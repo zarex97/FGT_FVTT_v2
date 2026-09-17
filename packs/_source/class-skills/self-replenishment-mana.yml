@@ -1,4 +1,4 @@
-# docs/B-rank-tables.md §B.3 — the Avenger class set (Ch. 15 §15.6).
+# docs/B-rank-tables.md §B.3 — the Avenger class set (Ch. 17).
 #
 # TWO EVENTS, ONE PAYOUT. *"At the end of Castor's Turn AND at the end of any
 # Turn he Acts"* -- and on a Turn that is both, it fires ONCE. Appendix E §E.2
@@ -26,6 +26,6 @@ passiveRules:
       - { key: StatDelta, stat: "health.value", table: selfReplenishmentHealth, clamp: true }
       # `table` on a CooldownDelta feeds `delta` -- a LITERAL turn count -- not
       # `ticks`. *"reduced by 2 Turns"* is not "2◈", and `engine/scheduler.mjs`
-      # distinguishes the two by field. Ch. 34 §34.8 proposes a `unit: turns`
+      # distinguishes the two by field. Ch. 45 proposes a `unit: turns`
       # marker for this; the distinction already existed.
       - { key: CooldownDelta, scope: np, table: selfReplenishmentCooldown, direction: down }

@@ -1,6 +1,6 @@
 /**
  * @file A damage resolution that reads TWO units.
- * @see docs/13-damage-pipeline.md, docs/34-case-dioscuri.md §34.6
+ * @see docs/22-damage-pipeline.md, docs/45-case-studies.md
  *
  * Two mechanisms, and the pipeline was half ready for both. Stage 1 has
  * resolved `ctx.units[src.unit]` since it was written, with `mountUnits` as its

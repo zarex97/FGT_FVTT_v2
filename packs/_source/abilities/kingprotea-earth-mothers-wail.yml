@@ -4,7 +4,7 @@
 #  Base Attack (MAG). Cooldown: 2◈ Turns"
 #
 # Two mechanisms, both built for Mannanán: `rangeBonus` for a reach stated
-# relative to her own Range (Ch. 09), and `damage.component` for an Attack Skill
+# relative to her own Range (Ch. 20), and `damage.component` for an Attack Skill
 # that draws on the Base Attack her Normal Attack does not.
 schema: 1
 id: kingprotea-earth-mothers-wail

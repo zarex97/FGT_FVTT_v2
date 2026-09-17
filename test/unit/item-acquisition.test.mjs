@@ -1,6 +1,6 @@
 /**
  * @file Who actually ends up holding an item.
- * @see module/rules/items.mjs, docs/15-abilities.md §15.8
+ * @see module/rules/items.mjs, docs/17-abilities.md
  *
  * Every route by which a unit comes to hold an item passes through
  * `acquisitionTarget` first, so a clause that redirects or refuses acquisition

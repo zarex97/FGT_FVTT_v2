@@ -1,6 +1,6 @@
 /**
  * @file What may answer a Counter, and who may Counter a Counter.
- * @see module/rules/counter.mjs, docs/12-combat-process.md §12.8
+ * @see module/rules/counter.mjs, docs/21-combat-process.md
  *
  * `beginCounter` has taken the attack as a parameter since it was written and
  * no caller ever passed one, so every Counter in the game was a Normal Attack
@@ -58,7 +58,7 @@ describe("mayCounterAgain", () => {
     isCounter: true, requiredTargetId: "A", counterDepth: 1, ...over,
   });
 
-  it("leaves an ordinary attack to the normal §12.8 rules", () => {
+  it("leaves an ordinary attack to the normal Ch. 21 rules", () => {
     expect(mayCounterAgain({ isCounter: false }, "B", "strict")).toBe(true);
   });
 
@@ -108,7 +108,7 @@ describe("the constants", () => {
 });
 
 describe("counterRedirect", () => {
-  // §12.8: "the Counter Attack cannot be used on the Master if its Servant is
+  // Ch. 21: "the Counter Attack cannot be used on the Master if its Servant is
   // within a 2 panel area of itself, the Counter Attack is redirected to that
   // Master's Servant instead."
   const master = { id: "M", kind: "master", faction: "f1", panel: { i: 5, j: 5 } };
@@ -118,7 +118,7 @@ describe("counterRedirect", () => {
   const board = (units) => ({ units });
 
   it("redirects to a Servant standing at exactly two panels", () => {
-    // The band the general §16.4 protection does NOT cover; it stops at one.
+    // The band the general Ch. 32 protection does NOT cover; it stops at one.
     expect(counterRedirect(master, board([master, servant("S", 5, 7)]))).toBe("S");
   });
 

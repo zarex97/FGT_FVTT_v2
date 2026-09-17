@@ -15,6 +15,17 @@ mov: 5
 range: { panels: 2, targets: 1 }
 baseAttack: { str: 150, mag: 150 }
 normalAttack: { mode: fixed, component: str }
+# Three panels on a side, stated by the game's author. Not decoration: two of
+# its own clauses are about the panels it stands on -- the knockback below
+# ("all Units occupying said panels are knocked back by 1 panel until the space
+# is free for Basmu to stand on") has to clear a 3x3 rather than a single cell,
+# and the Attack-denial clause's reach is measured from whatever it occupies.
+#
+# `tools/lib/content.mjs`'s `footprintSize` compiles this onto the prototype
+# token's `width`/`height` as well; the Hanging Gardens shipped 9x9 content on a
+# 1x1 token before it did, and a 3x3 that drops onto a scene as one cell is the
+# same defect wearing a different number.
+footprint: { w: 3, h: 3 }
 # "Bašmu do not count towards the number of Units who Move/Attack in a Turn.
 # A Bašmu can only Move/Attack once per Turn."
 countsTowardBudget: false

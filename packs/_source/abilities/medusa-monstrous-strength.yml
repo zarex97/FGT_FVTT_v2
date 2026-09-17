@@ -11,7 +11,7 @@ source: personal
 rank: B
 cooldown: "3◈"
 # Declared on BOTH sides -- a one-sided exclusion is decided by whichever
-# happens to be used first, which is not a rule (§15.3).
+# happens to be used first, which is not a rule (Ch. 17).
 sameTurnExclusive: [medusa-monstrous-snake-metamorphosis]
 # "At the START of a Damage Step", which is a window the Combat Process already
 # pauses at (`offerAttackerWindow`): what this grants is an INPUT to the damage

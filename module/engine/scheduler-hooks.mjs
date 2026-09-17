@@ -1,6 +1,6 @@
 /**
  * @file Binding the scheduler sequences to Foundry's combat lifecycle.
- * @see docs/25-turn-system.md §25.4
+ * @see docs/25-turn-order-and-scheduler.md
  *
  * Layer 3. The sequences themselves are pure and live in `scheduler.mjs`; this
  * is the only thing that decides *when* they run.
@@ -25,6 +25,7 @@ import { EffectRegistry } from "../rules/registry.mjs";
 import * as fields from "./fields.mjs";
 import { expireTerrain } from "./terrain.mjs";
 import { recordTurn, historyOf, setHistory } from "./state-history.mjs";
+import { boundaryKey, alreadyClaimed, tokenField } from "../rules/schedule-claim.mjs";
 
 export const Scheduler = {
   /** Register the hooks. Idempotent. */
@@ -48,11 +49,15 @@ async function onTurnChange(combat, prior, current) {
   if (!isScheduler()) return;
   if (!combat?.started) return;
 
-  const board = boardFor(combat);
   const tick = combat.system?.globalTurn ?? 0;
+  // One CONNECTION, not merely one user (Ch. 46 §46.4-D).
+  if (!await claimBoundary(combat, "turn")) return;
+
+  const board = boardFor(combat);
   const activeFactionId = factionOf(combat, prior);
   const activeUnits = board.units.filter((u) => u.factionId === activeFactionId);
   const actedUnits = board.units.filter((u) => u.acted);
+  const involvedUnits = board.units.filter((u) => u.inCombatPhase);
 
   const ctx = {
     tick,
@@ -69,7 +74,10 @@ async function onTurnChange(combat, prior, current) {
     // fires here. A `turnEnd`/`actedTurnEnd` handler with its own `roll:`
     // (Semiramis's `Construction` effect: "HGoB Construction is increased by
     // 1d6 at the end of every Turn") wrote nothing, silently, forever.
-    rolls: await gatherRolls([[activeUnits, "turnEnd"], [actedUnits, "actedTurnEnd"]]),
+    rolls: await gatherRolls([
+      [activeUnits, "turnEnd"], [actedUnits, "actedTurnEnd"],
+      [involvedUnits, "involvedTurnEnd"],
+    ]),
   };
 
   await run(scheduler.endTurn(board, ctx), "scheduler:endTurn");
@@ -90,13 +98,13 @@ async function onTurnChange(combat, prior, current) {
   // Belongs to the AREA rather than to Semiramis, the same reason
   // Unlimited Blade Works' turnStart toll below is authored on the field:
   // whoever is dragged in is subject to it, not just units she targets.
-  await run(await fields.runFieldEvents("actedTurnEnd"), "field:actedTurnEnd");
+  await run(await fields.runFieldEvents("actedTurnEnd", { board }), "field:actedTurnEnd");
 
   // …and the plain end of a Turn. Jack's Mist charges Poison BOTH ways --
   // "at the end of its Turn OR at the end of a Turn they Act while still
   // within the Mist" -- and only the acted half had a dispatcher, so a field
   // could author a `turnEnd` interior event and never be asked.
-  await run(await fields.runFieldEvents("turnEnd"), "field:turnEnd");
+  await run(await fields.runFieldEvents("turnEnd", { board }), "field:turnEnd");
 
   // A field's OWNER's Turn ending. Contagion trigger 1 is *"at the end of Pale
   // Rider's Turn: affects all enemy Units within the Contagion area"* -- every
@@ -112,7 +120,7 @@ async function onTurnChange(combat, prior, current) {
     .map((f) => f.id);
   if (ownedFields.length > 0) {
     await run(
-      await fields.runFieldEvents("unitTurnEnd", { fieldIds: ownedFields }),
+      await fields.runFieldEvents("unitTurnEnd", { fieldIds: ownedFields, board }),
       "field:unitTurnEnd",
     );
   }
@@ -174,7 +182,7 @@ async function onTurnChange(combat, prior, current) {
   );
 
   // Bounded fields: close the expired ones, then run what the survivors do at
-  // a Turn boundary. Ch. 43's whole read side shipped with nothing creating a
+  // a Turn boundary. Ch. 28's whole read side shipped with nothing creating a
   // field and nothing ending one, so a `duration` was decoration -- which for a
   // total-isolation Reality Marble means the match never ends.
   await fields.expireFields(nextTick);
@@ -204,6 +212,7 @@ async function onRoundChange(combat, updateData, options) {
   if (!combat?.started) return;
   // Only fire on a forward round change; rewinding is a GM correction.
   if ((options?.direction ?? 1) < 0) return;
+  if (!await claimBoundary(combat, "round")) return;
 
   const board = boardFor(combat);
   const ctx = {
@@ -212,7 +221,7 @@ async function onRoundChange(combat, updateData, options) {
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
     activeFactionId: null,
     effectDef: (id) => EffectRegistry.get(id),
-    // Switches off the multi-Servant tax (§16.7). Read here rather than in the
+    // Switches off the multi-Servant tax (Ch. 32). Read here rather than in the
     // rules layer, which has no settings.
     grandOrder: setting("grandOrder", false),
     rolls: await gatherRolls([[board.units, "roundEnd"]]),
@@ -231,7 +240,7 @@ async function onRoundChange(combat, updateData, options) {
   await fields.runUpkeep(ctx.tick, { round: ctx.round });
 
   // The Grail's contest and the victory check, both evaluated at round end
-  // (§19.4). Written back to the match, which is the runtime owner the Grail
+  // (Ch. 29). Written back to the match, which is the runtime owner the Grail
   // never had -- `grailCounter` sat on `MatchData` from the start with nothing
   // incrementing or reading it.
   await advanceGrail(combat, board);
@@ -319,7 +328,7 @@ async function gatherRolls(pairs) {
 /**
  * Store what every Unit was like at the end of this Turn.
  *
- * Ch. 43 §43.11's recorder, and its gate. A single `Combat` write per Turn, and
+ * Ch. 28's recorder, and its gate. A single `Combat` write per Turn, and
  * none at all in a match nobody asked to remember.
  *
  * @param {object} combat
@@ -337,12 +346,79 @@ async function recordHistory(combat, board) {
 }
 
 /**
- * Exactly one client runs the sequences.
+ * Exactly one USER runs the sequences.
+ *
+ * The first half of the election, and the cheap one. `activeGM` picks a single
+ * Gamemaster out of however many are connected — but `isSelf` is true for
+ * *every connection that user holds*, so this alone does not pick a single
+ * client. {@link claimBoundary} is the half that does.
+ *
  * @returns {boolean}
  */
 function isScheduler() {
   return Boolean(game.users.activeGM?.isSelf);
 }
+
+/**
+ * Claim one boundary for this CONNECTION, and say whether we won it.
+ *
+ * `isScheduler` above elects a user and two tabs on one Gamemaster both pass
+ * it, so both ran every turn-end sequence and every scheduled effect ticked
+ * twice. Found while auditing Heracles, where it turned Mad Enhancement's
+ * stated 20-per-Turn Master drain into a measured 40 and was briefly reported
+ * as a rules defect; `game.users.filter(u => u.active)` shows one user either
+ * way (Ch. 46 §46.4-D).
+ *
+ * **Why a token and a settle, rather than a flag.** Foundry hands a system no
+ * server-side compare-and-set, and both connections wake from the *same*
+ * broadcast — so a plain "has this boundary been run?" check is read by both
+ * before either writes, and both proceed. Instead both write a random token,
+ * the server serialises the two updates, and after a short settle exactly one
+ * connection still sees its own token. Last write wins, and "wins" is the
+ * whole election.
+ *
+ * The settle is the price of not having an atomic, and it is charged once per
+ * *boundary* — a player-driven event, not a hot path. The early return above it
+ * costs nothing in the ordinary single-client case on a boundary already run.
+ *
+ * **Keyed on the boundary's own identity, never on `system.globalTurn`.** That
+ * counter is advanced BY the sequence this guards, a hundred lines below the
+ * claim — so anything throwing in between left the claim written and the
+ * counter where it was, every later boundary read the same tick, found it
+ * already claimed, and refused. The scheduler froze for the life of the world.
+ * See `rules/schedule-claim.mjs` and Ch. 46 §46.4-AB.
+ *
+ * @param {object} combat
+ * @param {"turn"|"round"} kind
+ * @returns {Promise<boolean>}
+ */
+async function claimBoundary(combat, kind) {
+  const claim = combat.system?.scheduleClaim ?? {};
+  const key = boundaryKey(kind, combat);
+  // Already run, by this connection or another. Free, and the common case for
+  // the loser of a contested boundary once the winner's write has landed.
+  if (alreadyClaimed(claim, kind, key)) return false;
+
+  // A token PER SCALE. A round change is always also a turn change, so both
+  // hooks run `claimBoundary` at the same instant -- and with one shared field
+  // the turn's token landed last, the round's comparison found a stranger's,
+  // and the round sequence concluded it had lost and never ran at all
+  // (Ch. 46 §46.4-AL).
+  const field = tokenField(kind);
+  const token = foundry.utils.randomID();
+  await combat.update({ "system.scheduleClaim": { ...claim, [kind]: key, [field]: token } });
+  await new Promise((resolve) => { setTimeout(resolve, SETTLE_MS); });
+
+  return (combat.system?.scheduleClaim?.[field] ?? null) === token;
+}
+
+/**
+ * How long to let two connections' claims land before reading the winner.
+ *
+ * Both are on the same machine talking to a local server, so this is generous;
+ * it buys determinism on a once-per-boundary path and nothing is waiting on it.
+ */
+const SETTLE_MS = 120;
 
 /**
  * @param {object} combat

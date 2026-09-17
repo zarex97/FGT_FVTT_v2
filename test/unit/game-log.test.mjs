@@ -1,6 +1,6 @@
 /**
  * @file The game log, and GM overrides in the record.
- * @see docs/30-chat-and-audit.md §30.8, §30.10
+ * @see docs/37-chat-and-log.md, Ch. 37
  */
 
 import { describe, it, expect } from "vitest";
@@ -17,7 +17,7 @@ const attack = (over = {}) => entry({
 });
 
 describe("entry", () => {
-  it("carries the fields §30.8 names", () => {
+  it("carries the fields Ch. 37 names", () => {
     expect(attack()).toMatchObject({
       seq: 1, globalTurn: 12, round: 4, kind: "attack",
       actorIds: ["karna", "heracles"], messageId: null,
@@ -36,7 +36,7 @@ describe("entry", () => {
     expect(() => entry({ seq: 1, kind: "atack", summary: "x" })).toThrow(/unknown log kind/i);
   });
 
-  it("lists every kind §30.8 enumerates", () => {
+  it("lists every kind Ch. 37 enumerates", () => {
     expect([...LOG_KINDS].sort()).toEqual([
       "ability", "attack", "commandSpell", "contract", "defeat", "effect",
       "gmOverride", "grail", "movement", "scheduler", "setup",
@@ -90,7 +90,7 @@ describe("overrideEntry", () => {
   });
 
   it("REFUSES an override with no reason", () => {
-    // §30.10: "always carry a reason (the field is required)". An unexplained
+    // Ch. 37: "always carry a reason (the field is required)". An unexplained
     // override is indistinguishable from a bug in the record.
     expect(() => overrideEntry([attack({ seq: 3 })], 3, {
       original: "a", changed: "b", byUserId: "alice",
@@ -198,7 +198,7 @@ describe("filterLog", () => {
 
 describe("exportPayload", () => {
   it("is self-contained: ruleset, roster and entries", () => {
-    // §30.9: a maintainer must be able to replay it without the world.
+    // Ch. 37: a maintainer must be able to replay it without the world.
     const out = exportPayload({
       log: [attack()],
       systemVersion: "0.2.13",
@@ -225,7 +225,7 @@ describe("exportPayload", () => {
 });
 
 describe("summarizeLog", () => {
-  it("counts entries by kind, for the balance analysis §30.9 wants", () => {
+  it("counts entries by kind, for the balance analysis Ch. 37 wants", () => {
     const out = summarizeLog([
       attack({ seq: 1, kind: "attack" }),
       attack({ seq: 2, kind: "attack" }),

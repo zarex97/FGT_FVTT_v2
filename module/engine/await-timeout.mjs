@@ -1,12 +1,12 @@
 /**
  * @file Deadlines on reaction prompts, and what happens when they pass.
- * @see docs/27-reaction-protocol.md §27.5
+ * @see docs/23-reactions.md
  *
  * Layer 3. `rules/await-policy.mjs` decides *what* the default is; this runs
  * the clock and applies it.
  *
  * A player who has closed their browser must not block the table — but the
- * decision made for them must never cost them anything. §27.5's rule, and the
+ * decision made for them must never cost them anything. Ch. 23's rule, and the
  * one property the policy table enforces across every situation: **the timeout
  * default is always the option that spends nothing.** A player who was
  * disconnected should not come back to find their Luck and Command Spells
@@ -68,7 +68,7 @@ export function countdownFor(message, now = Date.now()) {
   return {
     label: formatCountdown(left),
     expired: left === 0,
-    // §27.5's "decide for them" button. GM-only, and shown from the start
+    // Ch. 23's "decide for them" button. GM-only, and shown from the start
     // rather than after the timeout: a GM who can see the table knows before
     // the clock does that somebody has left.
     canDecideForThem: game.user.isGM,

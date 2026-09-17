@@ -1,6 +1,6 @@
 /**
  * @file What may answer a Counter, and who may Counter a Counter.
- * @see docs/12-combat-process.md §12.8
+ * @see docs/21-combat-process.md
  *
  * Layer 2 (rules). Pure.
  *
@@ -111,10 +111,10 @@ export function mayCounterAgain(process, defenderId, mode) {
 }
 
 /**
- * How far a Master's Servant may stand and still absorb a Counter (§12.8).
+ * How far a Master's Servant may stand and still absorb a Counter (Ch. 21).
  *
  * TWO, and deliberately not the ONE that `rules/targeting/resolve.mjs`'s
- * `isProtectedMaster` uses. That is §16.4's general protection -- a Master
+ * `isProtectedMaster` uses. That is Ch. 32's general protection -- a Master
  * beside a Servant cannot be targeted at all, by anything. This is a different
  * rule with a wider radius that applies only to Counters, and it *retargets*
  * rather than refusing.
@@ -133,7 +133,7 @@ export const COUNTER_REDIRECT_PANELS = 2;
  *
  * `guardsOf` rather than "any Servant of that faction", because it already
  * knows the one case where that is wrong -- Pale Rider's Kagome Spirits guard
- * in his place, and he does not guard his own Master at all (Ch. 16).
+ * in his place, and he does not guard his own Master at all (Ch. 32).
  *
  * The NEAREST guard, so a Master flanked by two Servants has one answer rather
  * than whichever the board happened to list first. The rule does not say which,

@@ -1,6 +1,6 @@
 /**
  * @file Where the caster is looking, and what is standing in the way.
- * @see module/rules/targeting/facing.mjs, docs/44-case-expanded-roster.md §44.3
+ * @see module/rules/targeting/facing.mjs, docs/45-case-studies.md
  *
  * D44.8: *"No general line of sight; `requiresClearPath` is a per-ability
  * targeting predicate."* Medusa's Mystic Eyes is the only ability in the corpus

@@ -1,20 +1,20 @@
 /**
  * @file The Noble Phantasm availability gate.
- * @see docs/07-time-model.md §7.9
+ * @see docs/04-time-model.md
  *
  * Layer 2 (rules). Pure — no `game`, no `canvas`, no settings.
  *
  * > *"Usable after 5 full Rounds — i.e. from Round 6. Assassin: after 3 — from
  * > Round 4."*
  *
- * `CONFIG.FGT.gates` has held all four of §7.9's numbers since the config file
+ * `CONFIG.FGT.gates` has held all four of Ch. 04's numbers since the config file
  * was written and **nothing read that object**. Measured live before this
  * module existed: a Noble Phantasm fires in Round 1. This is the project's
  * dominant defect shape — a rule collected, correct and inert — applied to one
  * of the game's load-bearing constraints.
  *
  * The arithmetic lives here rather than in the reader because it is the part
- * worth testing exhaustively and the part that needs no world: §7.10's argument
+ * worth testing exhaustively and the part that needs no world: Ch. 04's argument
  * for the whole time model.
  */
 
@@ -47,13 +47,13 @@ export const ESSENCE_SHIFT = Object.freeze({
   kaleidoscope: 4, imaginaryNumber: 3, leyline: 2, harvest: 1,
 });
 
-/** Classes whose gate opens early. Assassin is the only one §7.9 names. */
+/** Classes whose gate opens early. Assassin is the only one Ch. 04 names. */
 const EARLY_CLASSES = Object.freeze(["assassin"]);
 
 /**
  * Does the availability gate cover this ability?
  *
- * `isNP || categorizedAsNP` — the same predicate §15.5's three other scoping
+ * `isNP || categorizedAsNP` — the same predicate Ch. 17's three other scoping
  * questions use (cooldown scope, damage-modifier scope, NP Seal scope).
  * Availability is a fourth scoping question that chapter never asked, and it
  * gets the same answer (spec R2).
@@ -118,7 +118,7 @@ export function gateRoundFor(unit, master, gates = NP_GATE) {
 /**
  * The first absolute Turn on which the gate is open.
  *
- * Round `n` begins on global turn `(n − 1) × turnsPerRound + 1` (§7.4's
+ * Round `n` begins on global turn `(n − 1) × turnsPerRound + 1` (Ch. 04's
  * global-turn index).
  *
  * @param {object|null|undefined} unit
@@ -139,7 +139,7 @@ export function gateTurnFor(unit, master, ctx = {}) {
  * > Turns **after** its NP would be available, X being the number of Turns its
  * > NP Cooldown was increased by."*
  *
- * **Additive, not `max()`.** §7.9 prints both readings — the prose says the two
+ * **Additive, not `max()`.** Ch. 04 prints both readings — the prose says the two
  * compose additively and the pseudocode beneath it says
  * `max(gateTurn, readyOnTurn)` — and the prose is right (spec R1). Under `max()`
  * an NP Lock spent while the target's NP was gated anyway costs the caster a

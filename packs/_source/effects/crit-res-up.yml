@@ -1,0 +1,28 @@
+# Appendix A §A.2
+# "Crit damage taken -X%. Not NP."
+#
+# Stage 2 of `rules/damage/pipeline.mjs` sums `critResUp` off the DEFENDER on
+# the same line it sums `critResDwn`, and neither had a document -- so the whole
+# incoming half of the crit-damage family was inert while both outgoing halves
+# (`Crit DmUp`, `Crit DmDwn`) shipped with Scáthach.
+schema: 1
+id: critResUp
+name: "Crit ResUp"
+description: "Crit Damage taken by this Unit is reduced by X%."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  # Stage 2 sums the defender's `critResUp` and `critResDwn` together and
+  # subtracts the pair, so this value is stated POSITIVE and the pipeline's
+  # sign convention does the rest.
+  - key: CritModifier
+    aspect: damage
+    modifierKey: critResUp
+    value: "@magnitude"
+notes: |
+  "Not NP" is a property of stage 2 rather than of this file: stage 2 acts on the `5d10` crit
+  roll only, and a Noble Phantasm does not make one. No `npValue` is stated for the same reason
+  — there is no NP branch for it to reach.

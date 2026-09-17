@@ -1,124 +1,182 @@
-# FGT System Design Documentation — Index
+# 00 — Index and Reading Order
 
-This is the complete design specification for the Fate/Grail Tactics Foundry VTT system.
-It is written to be read by a senior engineer who has never played the game, and to be
-sufficient to implement the system without further reference to the original documents.
+This chapter set describes the F/GT Foundry VTT system **as it is implemented**, not as it was
+planned. Every chapter is written from the current source and cites it by `file:line`.
 
-**Conventions used throughout:**
+## How to read a chapter
 
-- `◈` means *number of Turns in a Round*. See [Chapter 07](07-time-model.md).
-- Class and interface names are given in `PascalCase`, fields in `camelCase`,
-  enum members in `SCREAMING_SNAKE_CASE`.
-- Code blocks labelled `ts` are illustrative type declarations, not necessarily the final
-  implementation language (the system ships as JSDoc-annotated ESM).
-- Blocks marked **RULES** quote or paraphrase the source rulebook.
-- Blocks marked **DECISION** record a design choice where the source was ambiguous.
-- Blocks marked **RISK** flag something likely to be painful in implementation.
+Each chapter follows the same five sections:
 
----
+| Section | What it holds |
+|---|---|
+| **What it is** | One paragraph. The thing, in domain terms. |
+| **Where it lives** | The file map — every source file this chapter describes. |
+| **How it works** | The mechanism, with `file:line` citations. |
+| **Invariants & edge cases** | What must stay true *now*, and what breaks if it doesn't. |
+| **Traps and anti-patterns** | Defects this subsystem has actually suffered, and the rule each one bought. |
+| **Open questions** | Claims not yet verified, and decisions not yet made. |
 
-## Part 0 — Orientation
+**Everything in the main body is present tense and current.** A defect that has been fixed does
+not belong in *How it works* or *Invariants* — it goes in **Traps and anti-patterns**, at the
+bottom, where it reads as a warning rather than a bug report. Each entry names the trap, states
+the rule in the imperative, and keeps the history as the evidence for it:
 
-| # | Chapter | What it covers |
-|---|---|---|
-| 01 | [Vision and Goals](01-vision-and-goals.md) | What "full automation" means here, non-goals, success criteria, why the prototype is being replaced |
-| 02 | [Glossary](02-glossary.md) | Every term of art, with its formal definition and the class that owns it |
+> **Adding a write path without declaring the schema field.** Foundry discards a write to an
+> undeclared path without error. `baseAttack` was written to Masters for months and silently
+> dropped; every Master attacked for `{str: 0, mag: 0}`. **Add the field to the schema in the
+> same change as the write.**
 
-## Part I — The Domain Model
+Chapters are capped at roughly **300 lines**. A chapter that wants to be longer is two chapters,
+or its detail belongs in an appendix.
 
-| # | Chapter | What it covers |
-|---|---|---|
-| 03 | [Domain Overview](03-domain-overview.md) | The object graph at a glance; aggregate roots; the eight subsystems and how they compose |
-| 04 | [Units](04-units.md) | `Unit` hierarchy: Servant, Master, Civilian, Summon, Platform, Structure. Identity, disposition, factions, ownership |
-| 05 | [Ranks and Parameters](05-ranks-and-parameters.md) | Rank algebra (E → EX, `+`/`-` modifiers), parameter→stat derivation, rank comparison semantics |
-| 06 | [Stats and Resources](06-stats-and-resources.md) | Health, Agility, Luck, MOV, Range, Sustainability, Command Spells, and ability-specific resource pools (tokens, stocks, counters) |
-| 07 | [The Time Model](07-time-model.md) | Rounds, Turns, the ◈ operator, fractional-◈ arithmetic and rounding, duration semantics, cooldown semantics, the scheduler |
-| 08 | [Board and Geometry](08-board-and-geometry.md) | Grid, panels, distance metrics, the diagonal-reduction rule, facing and the four-cone direction model, occupancy, multi-panel units |
-| 09 | [Targeting](09-targeting.md) | **The targeting type system.** Every shape in the game, formalized, with resolution algorithms |
-| 10 | [Effects Taxonomy](10-effects-taxonomy.md) | The complete catalogue of buffs, debuffs, and non-buff statuses, classified by axis |
-| 11 | [The Effect Engine](11-effect-engine.md) | How an effect is represented, applied, stacked, suppressed, expired, and removed |
-| 12 | [The Combat Process](12-combat-process.md) | The step-by-step state machine, including the luck-check contest ladder |
+### Citation convention
 
-## Part II — Resolution Systems
+Every citation uses the **full repo-relative path**, every time — `module/engine/applier.mjs:105`,
+never a bare `applier.mjs:105`, even on the second mention in the same chapter. It costs a few
+characters and buys two things: any citation can be copied straight into an editor, and the whole
+set can be checked mechanically. Files at the repo root (`system.json`, `eslint.config.mjs`) are
+already full paths as written.
 
-| # | Chapter | What it covers |
-|---|---|---|
-| 13 | [The Damage Pipeline](13-damage-pipeline.md) | The strictly ordered damage computation, all 14 stages, with worked examples |
-| 14 | [Checks and Randomness](14-checks-and-randomness.md) | Agility Check, Luck Check, coin flips, injury rolls, block rolls, the dice-roll registry |
-| 15 | [Abilities](15-abilities.md) | Skills, Active/Passive, Spells, Attack Skills, Noble Phantasms, Class Skills, categorization rules |
-| 16 | [Relationships](16-relationships.md) | Master↔Servant contracts, ZON, Sustainability, Cover, Overpower/Underpower, contract stealing |
-| 17 | [Command Spells](17-command-spells.md) | The interrupt system; command spells as the only pre-emption mechanism |
-| 18 | [Action Economy](18-action-economy.md) | Per-turn budgets, what counts as Acting, Move/Attack ordering, Riding's double-move |
-| 19 | [Environment](19-environment.md) | Home Base, Day/Night cycle, Region bonuses, the Holy Grail, Random Events, Civilians |
-| 20 | [Platforms and Levels](20-platforms-and-levels.md) | Hanging Gardens of Babylon, Golden Hind, Storm Border — vehicles as scene levels |
+A line range (`:100-121`) points at a block worth reading whole; a single line (`:105`) points at
+the exact statement the claim rests on.
 
-## Part III — Foundry Architecture
+## Rules of this documentation
 
-| # | Chapter | What it covers |
-|---|---|---|
-| 21 | [System Skeleton](21-system-skeleton.md) | Manifest, module layout, bootstrap sequence, CONFIG registration, build tooling |
-| 22 | [Data Models](22-data-models.md) | Every `TypeDataModel` schema: actor subtypes, item subtypes, combat, combatant |
-| 23 | [Documents and Derived Data](23-documents-and-derived-data.md) | Document subclasses, the derived-data pipeline, preparation order, caching |
-| 24 | [The Rules Engine](24-rules-engine.md) | Rule elements, predicates, roll options, change resolution, priority |
-| 25 | [The Turn System](25-turn-system.md) | Player-based `Combat`, turn ownership, Delay, the round/turn event bus |
-| 26 | [Authority and Sockets](26-authority-and-sockets.md) | The GM proxy, the operation protocol, permission model, closed-information play |
-| 27 | [The Reaction Protocol](27-reaction-protocol.md) | Interactive multi-party prompts: how the evade/luck ladder is driven across clients |
-| 28 | [Targeting Implementation](28-targeting-implementation.md) | v14 grid shape generators, preview rendering, validation, LOS, the targeting service |
-| 29 | [User Interface](29-user-interface.md) | ApplicationV2 sheets, the tactical HUD, the action bar, the effect tray |
-| 30 | [Chat and Audit](30-chat-and-audit.md) | Chat card architecture, the damage explainer, the game log, replay |
+1. **The code is the authority.** A claim that can't be traced to current source or a passing
+   test doesn't go in a chapter — it goes under *Open questions*.
+2. **`docs/plan-archive/` is not a source.** Those are the original plan-era chapters 00–45,
+   written before the implementation existed. They are kept for history only.
+3. **Behavioural claims are tagged `[unverified]`** until confirmed in a running world.
+4. **Vocabulary comes from `CONTEXT.md`** at the repo root, which is the glossary. There is no
+   glossary chapter.
+5. **A comment describing a bug is not evidence the bug is live.** This codebase comments in an
+   unusual style: the post-mortem of a defect is written *at the site of its fix*, in the past
+   tense, often at length. `module/data/actor/master.mjs:24-33` explains at length that every
+   Master reported `{str: 0, mag: 0}` — on the lines immediately above the code that fixed it.
+   Before recording any defect as current, **confirm the fix is absent**: read the code the
+   comment sits on, and check for a regression test. Report the durable lesson, not the corpse.
 
-## Part IV — Case Studies and Reference
+## The map
 
-| # | Chapter | What it covers |
-|---|---|---|
-| 31 | [Case Study: Heracles](31-case-heracles.md) | Revival priority chains, God Hand's attack-recording, permanent Mad Enhancement |
-| 32 | [Case Study: Semiramis](32-case-semiramis.md) | Construction counters, a 9×9 flying fortress, conditional class skills, summons |
-| 33 | [Case Study: Mannanán mac Lir](33-case-mannanan.md) | Counter-NP that cancels other NPs, token economy, mode switching |
-| 34 | [Case Study: The Dioscuri](34-case-dioscuri.md) | One Servant, two bodies, half-unit accounting, shared cooldowns |
-| 35 | [Case Study: Van Gogh & Curse Economy](35-case-van-gogh.md) | Self-harm as a resource, >100% application chances, curse transfer |
-| 36 | [Case Study: The Remaining Seven](36-case-remaining.md) | Karna, Kiritsugu, Drake, Scáthach, Penthesilea, Nemo, Kingprotea |
-| 37 | [Content Pipeline](37-content-pipeline.md) | Authoring format, compendium build, validation, the Servant schema |
-| 38 | [Testing Strategy](38-testing-strategy.md) | Unit-testing a rules engine, golden-file combat tests, property tests for geometry |
-| 39 | [Migration and Versioning](39-migration-and-versioning.md) | Schema versioning, data migration, rule-version pinning for in-progress games |
-| 40 | [Roadmap](40-roadmap.md) | Milestones, sequencing, what "done" means per phase |
-| 41 | [Open Questions](41-open-questions.md) | Q1–Q40 and Q50 answered by the game's author; Q41–Q49 still open |
-| 42 | [Terrain](42-terrain.md) | The 21 terrain types, the directional overlap matrix, and day/night as a per-panel property |
-| 43 | [Bounded Fields](43-bounded-fields.md) | The third area family: enclosed NP zones with their own membership, permeability and escape rules |
-| 44 | [Case Studies: The Expanded Roster](44-case-expanded-roster.md) | Everything the 17 added Servants demanded, grouped by mechanism |
-| 45 | [Implementation Status and Completion Plan](45-implementation-status.md) | What is built, what is stubbed, what is missing, and the order to finish it in |
-| 45 | [Case Studies: The Expanded Roster](44-implementation-status.md) | Everything the 17 added Servants demanded, grouped by mechanism |
+### Part I — Orientation
 
-## Appendices
+| Ch | Chapter |
+|---|---|
+| 00 | Index and reading order *(this file)* |
+| 01 | What F/GT is, and what this system implements |
+| 02 | Architecture: five layers, and the one place that writes |
 
-| # | Appendix | What it covers |
-|---|---|---|
-| A | [Effect Catalogue](A-effect-catalogue.md) | All 152 effects with formal semantics, stacking, and implementation notes |
-| B | [Rank Tables](B-rank-tables.md) | Every rank-indexed table in the game, in one place |
-| C | [Dice Roll Registry](C-dice-registry.md) | Every named roll, its formula, and its modifiers |
-| D | [Servant Data Sheets](D-servant-data-sheets.md) | The 29 reference Servants as fully-specified system data |
-| E | [Event Reference](E-event-reference.md) | Every hook and engine event, with payload shapes and ordering guarantees |
+### Part II — Domain primitives — `module/domain/`
 
-Changes to any of the above are tracked in the [changelog](../CHANGELOG.md).
+| Ch | Chapter |
+|---|---|
+| 03 | Ranks, parameters and the rank-indexed tables |
+| 04 | The ◈ tick operator and the time model |
+| 05 | Board geometry: distance, shapes, reachability |
+| 06 | Units: kinds, stats, health and resources |
 
----
+### Part III — Data and documents — `module/data/`, `module/documents/`
 
-## Reading paths
+| Ch | Chapter |
+|---|---|
+| 07 | Actor and Item schemas |
+| 08 | Document subclasses and derived data |
+| 09 | Projection: documents → plain data |
 
-**"I'm implementing the combat engine."**
-02 → 07 → 12 → 13 → 14 → 27 → 30
+### Part IV — The rules engine — `module/rules/`
 
-**"I'm implementing targeting."**
-08 → 09 → 28 → 42 → 43 → Appendix D (to see the real shapes in use)
+| Ch | Chapter |
+|---|---|
+| 10 | Rule elements, scripts and priority bands |
+| 11 | Predicates, roll options and facets |
+| 12 | Invalidation, auras and the aura index |
+| 13 | Checks, randomness and the roll log |
 
-**"I'm authoring content."**
-05 → 10 → 11 → 15 → 24 → 37 → Appendix A → Appendix D
+### Part V — Effects
 
-**"I'm reviewing the architecture."**
-01 → 03 → 21 → 22 → 24 → 26 → 40
+| Ch | Chapter |
+|---|---|
+| 14 | Effect taxonomy, registry and families |
+| 15 | The seven-step application pipeline |
+| 16 | Removal, transfer, visibility and undo |
 
-**"I'm implementing areas."**
-08 → 09 → 19 → 20 (platforms and levels) → 42 (terrain) → 43 (bounded fields).
-These are three *distinct* area families and Chapter 43 §43.1 explains why they are not unified.
+### Part VI — Acting
 
-**"I want to know what changed and why."**
-[CHANGELOG](../CHANGELOG.md) → 41 (Open Questions) → 44
+| Ch | Chapter |
+|---|---|
+| 17 | Abilities: costs, requirements and timing windows |
+| 18 | Items and equipment |
+| 19 | The action economy and the turn budget |
+| 20 | Targeting: the eleven-step algorithm |
+| 21 | The Combat Process state machine |
+| 22 | The damage pipeline: sixteen stages |
+| 23 | Reactions, counters and deadlines |
+| 24 | Modes, stances, compulsion and control |
+
+### Part VII — The board and the world
+
+| Ch | Chapter |
+|---|---|
+| 25 | Turn order, the scheduler and round boundaries |
+| 26 | Terrain |
+| 27 | Platforms, levels and scene levels |
+| 28 | Bounded fields: the six-axis model |
+| 29 | Environment: day/night, Home Base and the Holy Grail |
+| 30 | Concealment, identity, Detect and vision |
+
+### Part VIII — The war
+
+| Ch | Chapter |
+|---|---|
+| 31 | Factions, war setup, summoning and contracts |
+| 32 | Relationships, Overpower and the multi-Servant tax |
+| 33 | Command Spells |
+
+### Part IX — Interface — `module/apps/`
+
+| Ch | Chapter |
+|---|---|
+| 34 | Action bar, turn panel and pending decisions |
+| 35 | Sheets, the ability editor and the predicate builder |
+| 36 | Canvas layers: targeting, overlays and tokens |
+| 37 | Chat cards, the game log and card visibility |
+
+### Part X — Authority, content and change
+
+| Ch | Chapter |
+|---|---|
+| 38 | Authority: the GM proxy socket and typed operations |
+| 39 | The authoring vocabulary |
+| 40 | Content pipeline: packs, YAML export and content sync |
+| 41 | Migration and versioning |
+| 42 | History, state rewind and desync detection |
+
+### Part XI — Practice
+
+| Ch | Chapter |
+|---|---|
+| 43 | Tooling: builds, checks and driving a live world |
+| 44 | Testing strategy |
+| 45 | Case studies: how a Servant's clauses become engine features |
+
+## Alongside the chapters
+
+| Document | What it holds |
+|---|---|
+| `46-roster-re-audit.md` | The roster audit. Live, maintained separately from this set. |
+| `A-effect-catalogue.md` | Every effect definition, as a table. |
+| `B-rank-tables.md` | The rank-indexed tables, as data. |
+| `C-dice-registry.md` | Every die rolled, and where. |
+| `D-servant-data-sheets.md` | Per-Servant detail. Chapter 45 explains the *pattern*; this holds the instances. |
+| `E-event-reference.md` | Every event the engine raises. |
+| `Master Essences.md` | Master Essence source notes. |
+| `CONTEXT.md` *(repo root)* | The glossary. Terms only, no implementation. |
+| `docs/adr/` | Architecture decision records. |
+| `docs/agents/` | How agents should consume this repo — issue tracker, labels, domain docs. |
+
+## Provenance
+
+The chapter map was derived from the codebase in September 2026: 219 files under `module/`,
+14 under `tools/`, and 213 test files. Each chapter names a real cluster of source files rather
+than a topic drawn in advance. The predecessor set — 46 chapters, 40,876 lines, written as a
+plan before implementation began — is in `docs/plan-archive/`.

@@ -1,6 +1,6 @@
 # packs/_source/servants/achilles.yml
 # Conversion source: char_orig_sheets/Copia de Achilles.md
-# Discussed: docs/44-case-expanded-roster.md §44.1–44.3, docs/D-servant-data-sheets.md §D.23
+# Discussed: docs/45-case-studies.md–44.3, docs/D-servant-data-sheets.md §D.23
 #
 # The reference set's acceptance test for GATING. Karna is the benchmark for the
 # predicate machinery and Kingprotea for stack economies; almost every clause on
@@ -41,7 +41,7 @@ baseAttack: { str: 135, mag: 150 }
 normalAttack: { mode: fixed, component: str }
 sustainability: "2◈"
 
-# ─── The stance (Ch. 44 §44.1) ─────────────────────────────────────────
+# ─── The stance (Ch. 45) ─────────────────────────────────────────
 #
 #   "When Achilles Acts, the player must state whether he is Mounted, or
 #    Dismounted. Achilles is always Dismounted when it is not his Turn. If

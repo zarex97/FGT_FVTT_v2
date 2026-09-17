@@ -1,6 +1,6 @@
 /**
  * @file One owner per class name.
- * @see styles/src/, docs/29-user-interface.md §29.9
+ * @see styles/src/, docs/34-action-bar.md
  *
  * Written after `.fgt-bar` was defined twice: `_shell.scss` had owned it for
  * the actor sheet's Health, Agility and Luck bars since the sheet was built,

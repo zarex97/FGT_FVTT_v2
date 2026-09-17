@@ -12,7 +12,7 @@ kind: skill
 slug: tooleFragarach
 isAttackSkill: true
 # Both swords share one clock. Holder Mode replaces this Skill with `Hallowed
-# Sea God's Sword` (§33.5), and *"sharing the cooldown state so a player cannot
+# Sea God's Sword` (Ch. 45), and *"sharing the cooldown state so a player cannot
 # reset a cooldown by switching modes"* is the whole reason the replacement is a
 # gate on two documents rather than one document with a branch.
 category: fragarachSword
@@ -21,10 +21,10 @@ timing: { window: ownTurn }
 alsoTriggers:
   - { ability: mannanan-hallowed-sea-gods-sword }
 requirements:
-  # The gate. Checked before the button is offered (§17.6), so a Mannanán with
+  # The gate. Checked before the button is offered (Ch. 33), so a Mannanán with
   # two tokens is not invited to press it.
   - { kind: resourceAtLeast, key: fragarachTokens, amount: 3 }
-  # Replaced by `Hallowed Sea God's Sword` in Holder Mode. Ch. 33 §33.5 calls
+  # Replaced by `Hallowed Sea God's Sword` in Holder Mode. Ch. 45 calls
   # this `ReplaceAbility`; expressed as the two gates that already exist, it is
   # the same rule with the same two properties -- one is hidden while the other
   # shows, and the shared `alsoTriggers` clock means switching modes does not
@@ -50,7 +50,7 @@ damage:
   # A's `Multihit`: *"the DU can separately Evade or Block each hit."*
   repeat: 3
   # "Damaged Units only perform an Injury Roll once regardless of number of hits
-  # taken" -- §12.6 names this Skill while saying so. The roll is made on the
+  # taken" -- Ch. 21 names this Skill while saying so. The roll is made on the
   # TOTAL, by whichever sibling Process is last to settle its damage.
   singleInjuryRoll: true
   # "If the DU Evades, its Evade Roll is increased by 3."

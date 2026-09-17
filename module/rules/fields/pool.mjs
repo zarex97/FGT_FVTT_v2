@@ -1,6 +1,6 @@
 /**
  * @file A field that drains its victims and pays the total to somebody else.
- * @see docs/43-bounded-fields.md §43.7
+ * @see docs/28-bounded-fields.md
  *
  * Layer 2 (rules). Pure.
  *

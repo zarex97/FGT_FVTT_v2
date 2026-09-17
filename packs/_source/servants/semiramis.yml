@@ -1,6 +1,6 @@
 # packs/_source/servants/semiramis.yml
 # Conversion source: char_orig_sheets/Copia de Semiramis.md
-# Discussed: docs/32-case-semiramis.md
+# Discussed: docs/45-case-studies.md
 #
 # The project's own acceptance test for "everything structural" (docs/32):
 # conditionally a different Servant depending on a coin flip at summon, a 9x9
@@ -51,7 +51,7 @@ summonVariant:
   tails:
     id: noDsc
 
-# ─── Resources (§6.10) ─────────────────────────────────────────────────
+# ─── Resources (Ch. 06) ─────────────────────────────────────────────────
 # HGoB Construction. Sources 1-2 (the region-based starting value and the
 # summon-time 1d6x1d6 roll) are applied at commit time by `engine/summon.mjs`,
 # not authored here as a static number. Source 6 (Gather) is a standalone

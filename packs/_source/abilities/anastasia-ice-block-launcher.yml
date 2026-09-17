@@ -17,8 +17,14 @@ description: |
   with a 5% chance of inflicting @effect[instakill]{Instakill} for each panel between Anastasia and the DU.
   Ice damage. Cooldown: 5◈ Turns.
 targeting:
-  # Range 3 + 3 = 6, which is what puts the Instakill ceiling at 30%.
-  anchor: { kind: targetUnit, range: 3, rangeBonus: 3 }
+  # *"Range+3 for the Combat Process"* -- `rangeBonus` alone, with NO absolute
+  # `range:` beside it. `anchorRange` returns an absolute `range` immediately
+  # and only falls through to `caster.range + rangeBonus` when it is absent, so
+  # stating both silently discarded the bonus and froze the reach at her
+  # written 3 instead of 3+3. Her Range is 3 today and the two spellings agreed
+  # on nothing: the ability reached 3 panels, not 6, and the Instakill ceiling
+  # sat at 15% rather than the 30% this comment claimed. Ch. 46 §46.4-F.
+  anchor: { kind: targetUnit, rangeBonus: 3 }
   shape: { kind: unit }
   selection: { relations: [enemy], chooser: chosen, count: 1 }
 damage:

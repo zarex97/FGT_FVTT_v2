@@ -20,7 +20,10 @@ unremovable: true
 defaultDuration: "3◈"
 rules:
   - { key: ApplicationChance, direction: outgoing, volatility: volatile, value: 30 }
-  - { key: ApplicationChance, direction: incoming, volatility: volatile, value: -15 }
+  # Clause 2 RESISTS, so the incoming value is positive: the applier computes
+  # `base + inflictBonus - resist`. Clause 1 above is `outgoing` and adds, which
+  # is why the two signs differ for what reads as one pair (Ch. 46 §46.4-J).
+  - { key: ApplicationChance, direction: incoming, volatility: volatile, value: 15 }
   - key: OnEvent
     event: damageStepEnd
     automatic: true

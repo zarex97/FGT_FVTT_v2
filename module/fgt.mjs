@@ -1,6 +1,6 @@
 /**
  * @file System entry point — the init/setup/ready sequence.
- * @see docs/21-system-skeleton.md §21.3
+ * @see docs/02-architecture.md
  */
 
 import { FGT } from "./config.mjs";
@@ -95,7 +95,7 @@ Hooks.once("init", () => {
   CONFIG.Combatant.dataModels = { player: data.PlayerCombatantData };
   // Declared in system.json since the manifest was written, with no data model
   // behind any of them -- so an `fgt.terrain` behaviour on a Region carried no
-  // type, no duration and no meaning (Ch. 22 §22.10).
+  // type, no duration and no meaning (Ch. 07).
   CONFIG.RegionBehavior.dataModels = {
     terrain: data.TerrainBehavior,
     homeBase: data.HomeBaseBehavior,
@@ -112,12 +112,12 @@ Hooks.once("init", () => {
   CONFIG.Token.documentClass = documents.FGTToken;
   // The PLACEABLE, not the document. A platform is a 9x9 token whose hit area
   // covers eighty other panels, so "which level accepts a click" has to be a
-  // rule (§20.2). Registered at init, because the canvas reads this when it
+  // rule (Ch. 27). Registered at init, because the canvas reads this when it
   // builds the token layer.
   CONFIG.Token.objectClass = FGTTokenPlaceable;
 
   // There is no initiative. Turn order is a 1d100 per faction, re-rolled every
-  // Round, plus Delay (Ch. 25 §25.3).
+  // Round, plus Delay (Ch. 25).
   CONFIG.Combat.initiative = { formula: "0", decimals: 0 };
 
   registerSheets();
@@ -246,7 +246,7 @@ function reprepareUnits() {
 }
 
 Hooks.once("ready", async () => {
-  // Ch. 39, and FIRST in this callback: the shape of stored data, then its
+  // Ch. 41, and FIRST in this callback: the shape of stored data, then its
   // content, before anything below reads either. GM-only and single-client,
   // because two clients migrating one world is a corrupted world.
   const { onReady: migrateOnReady } = await import("./migration/runner.mjs");
@@ -262,19 +262,19 @@ Hooks.once("ready", async () => {
   // Erases a painted terrain area when the effect that painted it ends --
   // Quetzalcoatl's Sol. GM client only, internally gated.
   Terrain.attach();
-  // §26.1: "a player owns their own Servants and Master." Keeps that true —
+  // Ch. 38: "a player owns their own Servants and Master." Keeps that true —
   // GM client only, like the faction roster it reads.
   FactionOwnership.attach();
-  // §4.2: a Servant's token shows its standard image until identityRevealed,
+  // Ch. 06: a Servant's token shows its standard image until identityRevealed,
   // then its true portrait — for every viewer at once, since a token texture
   // has no per-viewer rendering the way the sheet's own portrait does. Every
   // other unit type just follows its portrait.
   TokenImage.attach();
-  // §20.3: a Platform's token is the size of the footprint it declares. The
+  // Ch. 27: a Platform's token is the size of the footprint it declares. The
   // board reads occupancy off the TOKEN, so the two disagreeing is a rules
   // contradiction, not a cosmetic one.
   TokenFootprint.attach();
-  // §8.7: a unit's Detect radius IS its vision range, and until this was
+  // Ch. 05: a unit's Detect radius IS its vision range, and until this was
   // attached nothing ever wrote it to a token — so every token sat at
   // Foundry's `sight.enabled: false`, and a scene with token vision on showed
   // its players a black canvas with their own Servant invisible in it.
@@ -295,7 +295,7 @@ Hooks.once("ready", async () => {
   // A targeting area is discarded in a `finally`, so the only way one survives
   // is a client that stopped existing mid-decision. Sweep them once, here.
   sweepTransientRegions();
-  // Ch. 43: a PASSIVE bounded field has no cast to open it. Pale Rider's
+  // Ch. 28: a PASSIVE bounded field has no cast to open it. Pale Rider's
   // Contagion is the area around him, full stop — so it is reconciled with the
   // board here and at every Turn start rather than waiting for an activation
   // that never comes. Idempotent and GM-gated internally.
@@ -310,7 +310,7 @@ Hooks.once("ready", async () => {
       syncDerivedFields();
     });
   }
-  // §37.6's summon, reachable from the sidebar and the compendium. GM only,
+  // Ch. 40's summon, reachable from the sidebar and the compendium. GM only,
   // and it intercepts a bare compendium drop -- which would otherwise produce a
   // Servant with the template's numbers instead of its own rolled ones.
   attachSummonEntries();
@@ -320,7 +320,7 @@ Hooks.once("ready", async () => {
   // a number no d20 can roll under: that Servant auto-fails every Evade and
   // Luck Check in silence. GM-gated and idempotent internally.
   ensureSetupRolls().catch((err) => console.error("FGT | Setup rolls:", err));
-  // Ch. 43 §43.10: *"Bloodmarks can only be seen from a distance of 3 cells
+  // Ch. 28: *"Bloodmarks can only be seen from a distance of 3 cells
   // Maximum."* Presentation only, GM-gated internally, and re-evaluated
   // whenever anybody moves -- the question is positional, exactly like the
   // aura index above.
@@ -329,8 +329,8 @@ Hooks.once("ready", async () => {
     if (!("x" in changes) && !("y" in changes)) return;
     syncMarkVisibility().catch((err) => console.error("FGT | Mark visibility:", err));
   });
-  // §23.9's invalidation table, driving the canvas aura index and the overlays,
-  // plus §25.10's round-boundary desync check.
+  // Ch. 08's invalidation table, driving the canvas aura index and the overlays,
+  // plus Ch. 25's round-boundary desync check.
   attachInvalidation();
   // Penthesilea's Hatred of Achilles: "at any time, if there is a Greek Male
   // Unit within a 4 panel area, her Mad Enhancement is IMMEDIATELY ACTIVATED".
@@ -348,21 +348,21 @@ Hooks.once("ready", async () => {
   reconcileForcedModes().catch((err) => console.error("FGT | Forced modes:", err));
   // Once at load, for the tokens already on a board. The hooks above only
   // catch a token being placed or an actor being edited, and every token in
-  // every world that predates §8.7's vision sync is sitting at range 0.
+  // every world that predates Ch. 05's vision sync is sitting at range 0.
   backfillVision().catch((err) => console.error("FGT | Token vision backfill:", err));
-  // §29.5: attack, move, the ability quick-bar, the facing dial and the budget
+  // Ch. 34: attack, move, the ability quick-bar, the facing dial and the budget
   // dot, on the token itself.
   ActionBar.attach();
-  // §27.5: one place that answers "what is the game waiting for me to do?" An
+  // Ch. 23: one place that answers "what is the game waiting for me to do?" An
   // AoE already fans out to one ladder per defender, so a player with four
   // units can hold three prompts at once in a scrolling log.
   PendingPanel.attach();
-  // §12.8: a Counter rung that was already waiting when this client loaded. The
+  // Ch. 21: a Counter rung that was already waiting when this client loaded. The
   // render hook that normally arms the bar fires before the bar exists, so a
   // player who reloads mid-exchange would otherwise see the prompt and have
   // nothing to answer it with.
   resumeCounterArming();
-  // §27.5: a player who has closed their browser must not block the table, and
+  // Ch. 23: a player who has closed their browser must not block the table, and
   // the decision made for them must never spend anything.
   attachAwaitTimeouts();
   fgt.api = buildPublicAPI();
@@ -374,7 +374,7 @@ Hooks.once("ready", async () => {
  *
  * Everything a macro needs, and nothing that bypasses a permission check: the
  * pure functions are safe by construction, and anything that writes goes
- * through the intent applier (Ch. 21 §21.6).
+ * through the intent applier (Ch. 02).
  * @returns {object}
  */
 function buildPublicAPI() {
@@ -387,7 +387,7 @@ function buildPublicAPI() {
     // Engine (L3)
     intents, combatProcess, scheduler, budget,
     pickTarget,
-    // Summoning and setup rolls (Ch. 37 §37.6), and items (Ch. 15 §15.8).
+    // Summoning and setup rolls (Ch. 40), and items (Ch. 17).
     // Exposed because both are GM workflows a macro drives -- a summon dialog
     // is content, not engine.
     summon, items, copy,

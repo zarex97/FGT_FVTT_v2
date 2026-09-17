@@ -1,6 +1,6 @@
 /**
  * @file The unit-action registry — what a selected unit may DO, as data.
- * @see docs/29-user-interface.md §29.5, docs/18-action-economy.md §18.9
+ * @see docs/34-action-bar.md, docs/19-action-economy.md
  *
  * Layer 2 (rules). Pure: every predicate reads a unit snapshot and the board,
  * never a document and never a Foundry global.
@@ -21,6 +21,8 @@
 
 import { hasGranted, GRANTS } from "./granted.mjs";
 import { relationOf } from "./relations.mjs";
+import { contains, membershipVerdict, canAttemptEscape } from "./bounded-fields.mjs";
+import { remainingMovement } from "./movement.mjs";
 
 /**
  * The unit kinds that TAKE actions.
@@ -153,12 +155,50 @@ export const UNIT_ACTIONS = Object.freeze([
     },
   },
   {
+    // *"In order to Escape the Labyrinth, an enemy Unit must first Move to the
+    // inner border of the Labyrinth. At this point, if that Unit does not have
+    // any MOV left, it is unable to Escape on the same Turn; but if the Unit is
+    // still able to Move at least 1 panel, it can attempt to Escape."*
+    //
+    // Bills NOTHING: the Move it is part of is already paid for, and the roll is
+    // what the remaining movement buys. It is the affordance the ladder never
+    // had -- `escapeAttempt` was complete, tested and called by nobody, while
+    // `rules/movement.mjs` refused the exit outright (Ch. 46 §46.4-H).
+    id: "escape",
+    kind: null,
+    icon: "fa-solid fa-door-open",
+    label: "FGT.Action.Escape",
+    mode: "immediate",
+    available: (unit, board) => {
+      if (!acts(unit)) return null;
+      for (const field of board?.fields ?? []) {
+        if (!contains(field, unit.panel, board)) continue;
+        // Only a boundary that asks for a roll. A `free` exit needs no button
+        // and a hard refusal must not grow one.
+        if (membershipVerdict(field, unit, "exit", board).reason !== "rollRequired") continue;
+
+        const veterans = (board?.units ?? []).filter(
+          (u) => u.id !== unit.id && relationOf(u, unit, board) !== "enemy",
+        );
+        const gate = canAttemptEscape(field, unit, {
+          movRemaining: remainingMovement(unit),
+          adjacentVeterans: veterans,
+        });
+        // Offered even when the gate refuses, so the button can SAY why -- a
+        // unit standing in the middle of the Labyrinth needs to learn that the
+        // border is where this happens, and an absent button teaches nothing.
+        return { fieldId: field.id, chance: gate.chance ?? null, blocked: gate.ok ? null : gate.reason };
+      }
+      return null;
+    },
+  },
+  {
     id: "facing",
     kind: null,
     icon: "fa-solid fa-location-arrow",
     label: "FGT.Action.Facing",
     mode: "dial",
-    // §29.5 is explicit that setting facing must not end the turn, so it bills
+    // Ch. 34 is explicit that setting facing must not end the turn, so it bills
     // no ActionKind at all.
     available: (unit) => (acts(unit) ? {} : null),
   },

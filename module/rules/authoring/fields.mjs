@@ -1,6 +1,6 @@
 /**
  * @file The closed set of input kinds an authoring descriptor may ask for.
- * @see docs/29-user-interface.md §29.6
+ * @see docs/35-sheets-and-editor.md
  *
  * Layer 2 (rules). Pure.
  *

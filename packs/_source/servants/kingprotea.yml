@@ -1,6 +1,6 @@
 # packs/_source/servants/kingprotea.yml
 # Conversion source: char_orig_sheets/Copia de Kingprotea.md
-# Discussed: docs/36-case-remaining.md §36.7
+# Discussed: docs/45-case-studies.md
 #
 # The reference set's acceptance test for a Unit whose PHYSICAL SIZE changes
 # mid-match. Everything else on her sheet is a fortress: the highest Mad
@@ -50,7 +50,9 @@ abilities:
   - { ref: class-alter-ego }
   # A+ is the highest Mad Enhancement any sheet in the corpus carries: 55% of
   # all damage taken, 85% of all damage dealt.
-  - { ref: class-mad-enhancement, rank: "A+" }
+  # *"when its Master's Health is 25 or less, ME is forcibly deactivated"* --
+  # the forced deactivation, and no floor (Ch. 46 §46.4-C).
+  - { ref: class-mad-enhancement, rank: "A+", drainFloor: null, drainFloorWhen: null, forcedDeactivation: true }
   - { ref: kingprotea-territory-creation }
   - { ref: class-independent-action, rank: B }
   - { ref: kingprotea-divine-core }
@@ -63,7 +65,7 @@ abilities:
   - { ref: kingprotea-airavata-king-size }
 
 notes: |
-  The fourteenth Servant, and §36.7's *"a unit whose physical size changes mid-match"*.
+  The fourteenth Servant, and Ch. 45's *"a unit whose physical size changes mid-match"*.
 
   **Proliferation is one mechanism doing six jobs.** Each stock is worth +20% of her original
   Max Health, −10% NP damage taken (capped at 80%), +5% buff-removal resistance on top of a
@@ -79,7 +81,7 @@ notes: |
   **She is the first Servant with a footprint.** `system.footprint` was a Summon and Platform
   field; `engine/token-footprint.mjs` already sized a token from it and already re-synced on
   change, and only had to be told that a Servant can have one and that the value may be derived
-  rather than stored. Growing into occupied panels is Ch. 08 §8.3's cascade, which
+  rather than stored. Growing into occupied panels is Ch. 05's cascade, which
   `knockBackOccupants` already performed for Bašmu — over one panel, where hers is a 3×3.
 
   **Mad Enhancement A+ states two numbers the shared table does not produce**, and both fall out

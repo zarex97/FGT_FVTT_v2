@@ -1,8 +1,8 @@
 /**
  * @file The Wisdom of Dún Scáith setup dialog.
- * @see docs/36-case-remaining.md §36.4, docs/15-abilities.md §15.7
+ * @see docs/45-case-studies.md, docs/17-abilities.md
  *
- * Layer 4. Two stages, because §36.4 gives the two decisions to two different
+ * Layer 4. Two stages, because Ch. 45 gives the two decisions to two different
  * people:
  *
  *   3. The GM chooses which to offer (they may curate).
@@ -13,7 +13,7 @@
  * second stage travels over `FGTSocket.ask`, so the player is asked on their
  * own client and the GM waits for the answer.
  *
- * The rank band is a **toggle**, not a filter: §15.7 says "preferably Rank B to
+ * The rank band is a **toggle**, not a filter: Ch. 17 says "preferably Rank B to
  * Rank A", and a war whose Servants sit outside that band must still offer
  * something.
  */

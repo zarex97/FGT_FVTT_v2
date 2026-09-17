@@ -1,7 +1,7 @@
 /**
  * @file Summon-time variants — a coin flip at summon that changes a Servant's
  * shape from then on.
- * @see docs/05-ranks-and-parameters.md, char_orig_sheets/Copia de Semiramis.md
+ * @see docs/03-ranks-and-tables.md, char_orig_sheets/Copia de Semiramis.md
  *
  * Layer 2 (rules). Pure.
  *

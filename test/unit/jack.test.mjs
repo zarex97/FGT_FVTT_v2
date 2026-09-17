@@ -29,7 +29,7 @@ const unit = (over = {}) => ({
 
 const board = (units) => ({ units, alliances: {} });
 
-describe("The Mist — interior rules (Ch. 43)", () => {
+describe("The Mist — interior rules (Ch. 28)", () => {
   it("halves an enemy's MOV rather than subtracting a fixed number", () => {
     // The whole reason `factor` had to exist: half of 7 and half of 4 are
     // different numbers, so a delta cannot say "halved".

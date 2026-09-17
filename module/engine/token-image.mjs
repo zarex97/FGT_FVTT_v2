@@ -1,6 +1,6 @@
 /**
  * @file Keeping a Servant's token texture in sync with its concealed identity.
- * @see docs/04-units.md §4.2, docs/26-authority-and-sockets.md §26.6
+ * @see docs/06-units-and-stats.md, docs/38-authority.md
  *
  * Layer 3. Foundry does not propagate an actor's `img` to a token already
  * placed on a scene — each `TokenDocument` (and `prototypeToken`) carries its
@@ -10,7 +10,7 @@
  *
  * The token is not the sheet: a placed token's texture is **one field every
  * viewer sees identically** — Foundry has no per-viewer rendering for it, and
- * building that (the shadow-actor pattern) is the exact thing Ch. 26 §26.6
+ * building that (the shadow-actor pattern) is the exact thing Ch. 38
  * assesses and defers to Ch. 40. So this does not attempt to show the true
  * portrait to the owner and the standard image to everyone else the way the
  * sheet does (`apps/actor-sheet/context.mjs`'s `concealed`) — it keeps the

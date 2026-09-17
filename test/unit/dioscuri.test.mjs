@@ -1,6 +1,6 @@
 /**
  * @file Castor and Pollux, against their sheet.
- * @see char_orig_sheets/Copia de Dioscuri.md, docs/34-case-dioscuri.md
+ * @see char_orig_sheets/Copia de Dioscuri.md, docs/45-case-studies.md
  *
  * Pinned to the SHEET and to the documentation rather than to the
  * implementation, which is what the rest of this suite does. Every `it` here
@@ -9,6 +9,7 @@
 
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+import { resolveRef } from "../../tools/lib/content.mjs";
 import { parse } from "yaml";
 import { lookup } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
@@ -20,6 +21,17 @@ import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 const servant = (id) => parse(readFileSync(`packs/_source/servants/${id}.yml`, "utf8"));
 const ability = (id) => parse(readFileSync(`packs/_source/abilities/${id}.yml`, "utf8"));
 const classSkill = (id) => parse(readFileSync(`packs/_source/class-skills/${id}.yml`, "utf8"));
+
+/** A class skill as one Servant's own sheet instantiates it (Ch. 46 §46.4-C). */
+function madEnhancementFor(servant) {
+  const sv = parse(readFileSync(`packs/_source/servants/${servant}.yml`, "utf8"));
+  const ref = sv.abilities.find((a) => a.ref === "class-mad-enhancement");
+  const library = new Map([["class-mad-enhancement", classSkill("mad-enhancement")]]);
+  const problems = [];
+  const built = resolveRef(ref, library, problems, servant);
+  expect(problems).toEqual([]);
+  return built;
+}
 
 const castor = servant("castor");
 const pollux = servant("pollux");
@@ -98,8 +110,19 @@ describe("Castor's Mad Enhancement B− reproduces all three figures his sheet p
 });
 
 describe("R5 — the drain halves beside Pollux, and its floor and threshold with it", () => {
-  const clause = classSkill("mad-enhancement").activeRules
+  // INSTANTIATED for Castor, not read off the template. Clause 1 is
+  // parameterized -- the six sheets carrying Mad Enhancement print three
+  // different shapes of it (Ch. 46 §46.4-C) -- so the template alone no longer
+  // says what any particular Servant has, and asking it would test a Servant
+  // that does not exist.
+  const clause = madEnhancementFor("castor").activeRules
     .find((r) => r.key === "OnEvent" && r.event === "actedTurnEnd");
+
+  it("gives Castor the forced deactivation and no floor, as his sheet prints it", () => {
+    const [drain, setMode] = clause.then;
+    expect(drain.floorTable).toBe(null);
+    expect(setMode.key).toBe("SetMode");
+  });
 
   /** @param {number|null} distance @returns {object[]} */
   const actionsAt = (distance) => collectContributions(
@@ -110,18 +133,23 @@ describe("R5 — the drain halves beside Pollux, and its floor and threshold wit
   it("drains 20 and deactivates at 20 when the twins are apart", () => {
     const [drain, mode] = actionsAt(3);
     expect(drain.amount).toBe(20);
-    expect(drain.floor).toBe(20);
     expect(mode.whenValue.lte).toBe(20);
+    // NO floor. *"Castor's Master loses 20 Health at the end of every Turn he
+    // Acts; when its Health is 20 or less, ME is forcibly deactivated"* -- the
+    // threshold and nothing about a minimum. The floor belongs to Heracles's
+    // wording of the same clause, and the shared template gave it to all six
+    // bearers until 2026-09-16 (Ch. 46 §46.4-C).
+    expect(drain.floor).toBeUndefined();
   });
 
   it("drains 10 and deactivates at 10 when Castor stands beside Pollux", () => {
-    // All three readings move together. `madEnhancementDrain` is deliberately
-    // one number said three times, and halving only the drain would leave Mad
+    // BOTH readings move together. `madEnhancementDrain` is deliberately one
+    // number said twice for him, and halving only the drain would leave Mad
     // Enhancement running until the Master was under 20.
     const [drain, mode] = actionsAt(1);
     expect(drain.amount).toBe(10);
-    expect(drain.floor).toBe(10);
     expect(mode.whenValue.lte).toBe(10);
+    expect(drain.floor).toBeUndefined();
   });
 
   it("does not halve for a Servant with no partner at all", () => {

@@ -1,6 +1,6 @@
 /**
  * @file The effect definition registry.
- * @see docs/11-effect-engine.md §11.11
+ * @see docs/15-effect-application.md
  *
  * Layer 2 (rules). Pure once loaded: `load()` is handed the documents, it does
  * not go looking for them, so the lookup half is testable without a world.
@@ -48,7 +48,7 @@ export const EffectRegistry = {
         defaultMagnitude: sys.defaultMagnitude ?? 0,
         defaultDuration: sys.defaultDuration ?? null,
         unremovable: Boolean(sys.unremovable),
-        // Ch. 10 §10.6's self/ally exemption, read by `engine/effect-applier`
+        // Ch. 14's self/ally exemption, read by `engine/effect-applier`
         // at steps 1 and 3. `Decoy` is the only holder today.
         allySelfBypassesResistance: Boolean(sys.allySelfBypassesResistance),
         // The ceiling on how many instances one Unit may hold, read by

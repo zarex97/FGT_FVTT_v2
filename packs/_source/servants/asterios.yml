@@ -9,16 +9,17 @@ type: servant
 trueName: "Asterios, Minotauros, Bull of King Minos"
 servantClasses: [berserker]
 # The container it is summoned into, and the name opponents see until its
-# true name is revealed (Ch. 04 §4.2).
+# true name is revealed (Ch. 06).
 classContainer: berserker
 alignment: { order: chaotic, morality: evil }
 region: [greece, europe]
 attributes: [male, servant, earth, giant, humanoid, demonicBeast, animalistic, antiHero]
 
 # ─── Parameters and stats ──────────────────────────────────────────────
-# END A++ -> 1500 on the sheet. Stated here so the validator can cross-check
-# the rank table against what the sheet actually says.
 parameters: { str: "A++", end: "A++", agi: C, mag: D, luc: E }
+# The sheet's figure, kept for the record and NOT what he is played at:
+# `baseHealthByEnd` steps END A++ to 1700, and the table beats the sheet the
+# same way Base Attack's does (`domain/health.mjs#maxHealthFor`, Ch. 46 §46.6).
 baseHealth: 1500
 mov: 4
 range: { panels: 2, targets: 1 }
@@ -30,7 +31,11 @@ sustainability: "2◈"
 abilities:
   # NOT `cannotDeactivate`, unlike Heracles: Asterios' Mad Enhancement can be
   # switched off, but only 2◈ after it was switched on, and vice versa.
-  - { ref: class-mad-enhancement, rank: B }
+  # Clause 1 is the forced deactivation and NOT a floor: *"when its Master's
+  # Health is 20 or less, ME is forcibly deactivated"*, with nothing said about
+  # a minimum. Heracles's sheet prints the mirror image and the shared template
+  # used to give both to everyone (Ch. 46 §46.4-C).
+  - { ref: class-mad-enhancement, rank: B, drainFloor: null, drainFloorWhen: null, forcedDeactivation: true }
   - { ref: asterios-monstrous-strength }
   - { ref: asterios-natural-monster }
   - { ref: asterios-avyssos-of-labrys }
@@ -40,12 +45,12 @@ notes: |
   Authored from the original tabletop sheet as the first of the D1 pass, and **completed** in the
   Asterios/Karna pass. Every clause on the sheet now has a reader.
 
-  `Chaos Labyrinthos` is a point in Ch. 43's six-axis bounded-field model rather than a special
+  `Chaos Labyrinthos` is a point in Ch. 28's six-axis bounded-field model rather than a special
   case: `fixedArea` geometry with a Greece size override, free entry and a roll to leave, total
   isolation both ways, MOV +4 for Asterios and −2 for enemies inside, paid extension at 200 of his
   own Health, and an owner-defeat vulnerability. The escape ladder — 20% base, +5% per failure,
   border contact and remaining MOV required, and the veteran clause that lets an escapee lead
-  adjacent allies out — is the reference implementation of §43.4.
+  adjacent allies out — is the reference implementation of Ch. 28.
 
   Mad Enhancement's two-way 2◈ lockout is `toggleLock` on the class-skill template and is read by
   `rules/modes.mjs`; the note that used to stand here saying it was unbuilt predates both.

@@ -12,7 +12,7 @@
 # reaction ladder each. "Damaged Units only perform an Injury Roll once
 # regardless of number of hits taken" is `damage.singleInjuryRoll`
 # (module/engine/attack.mjs#applyInjury) -- "once, on the TOTAL" (docs/12
-# §12.6's own reading): each of 50-Fixed-damage hits is individually well
+# Ch. 21's own reading): each of 50-Fixed-damage hits is individually well
 # under the 100-damage Injury threshold, so checking only the first hit would
 # mean this NEVER rolls, regardless of how many land. Every process but the
 # LAST to resolve its own damage step (against a given defender, within the

@@ -52,7 +52,7 @@ describe("Rank ordinal", () => {
   });
 
   it("reproduces the Magic Resistance comparison from the damage worked example", () => {
-    // Ch. 13 §13.6: "compare(B, A+) = B(300) vs A+(401) → -1, NOT negated"
+    // Ch. 22: "compare(B, A+) = B(300) vs A+(401) → -1, NOT negated"
     expect(Rank.parse("B").ordinal).toBe(300);
     expect(Rank.parse("A+").ordinal).toBe(401);
     expect(Rank.compare(Rank.parse("B"), Rank.parse("A+"))).toBe(-1);

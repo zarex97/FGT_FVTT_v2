@@ -1,11 +1,11 @@
 # Anastasia & Viy, char_orig_sheets/Copia de Anastasia & Viy.md
 #
 # A Servant who inflicts a debuff on HERSELF to convert it into an offensive
-# buff. Ch. 44 §44.3 calls the shape "self-harm as a resource", with Van Gogh's
+# buff. Ch. 45 calls the shape "self-harm as a resource", with Van Gogh's
 # Curse economy as the precedent -- and the difference is that Gogh CONSUMES her
 # debuff while Anastasia REINTERPRETS hers.
 #
-# §44.3 also predicted the implementation exactly, down to the predicate string:
+# Ch. 45 also predicted the implementation exactly, down to the predicate string:
 # *"No new machinery: a passive with `predicate: ["self:effect:blind",
 # "attack:range:lte:2"]` that suppresses Blind's miss clause."* It was written
 # when nothing in the engine could make an attack miss at all, so there was

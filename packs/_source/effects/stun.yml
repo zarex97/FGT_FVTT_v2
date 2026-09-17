@@ -1,4 +1,4 @@
-# Appendix A -- prevents action entirely. Listed in §23.9's CAN_ACT_INVALIDATORS
+# Appendix A -- prevents action entirely. Listed in Ch. 08's CAN_ACT_INVALIDATORS
 # since that table was written; this is the definition that lets something
 # inflict it.
 schema: 1

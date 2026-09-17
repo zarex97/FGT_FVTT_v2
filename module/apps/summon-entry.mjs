@@ -1,6 +1,6 @@
 /**
  * @file Where a GM reaches the summon dialog from.
- * @see docs/37-content-pipeline.md §37.6
+ * @see docs/40-content-pipeline.md
  *
  * Layer 4. Two entry points, because they answer two different questions:
  *
@@ -12,7 +12,7 @@
  * The header has since grown the two other things a GM does to a world from
  * here — the game log and the war setup — and the one that undoes them all:
  * **Clean up**, which is the only place that knows a deleted actor's tokens
- * are still standing in the scenes (§29.13).
+ * are still standing in the scenes (Ch. 34).
  *
  * Dragging a compendium Servant onto the canvas still works and still produces
  * an actor with **no setup rolls**, which is the trap: the numbers on the sheet
@@ -66,7 +66,7 @@ function onRenderDirectory(_app, html) {
   button.addEventListener("click", () => SummonDialog.open());
   header.append(button);
 
-  // The game log (§30.8) lives here too: it is a GM tool about the match, and
+  // The game log (Ch. 37) lives here too: it is a GM tool about the match, and
   // the Actors sidebar is where the match's units already are.
   const log = document.createElement("button");
   log.type = "button";

@@ -44,7 +44,7 @@ normalAttack:
         - { component: mag, factor: 0.2 }
 sustainability: "7◈"
 
-# ─── Resources (§6.10) ─────────────────────────────────────────────────
+# ─── Resources (Ch. 06) ─────────────────────────────────────────────────
 # Aria, the second Resource pool in the system after Scáthach's PRS Tokens, and
 # the first that is spent all at once: Unlimited Blade Works "can only be used
 # by consuming 6 Aria" and the pool holds exactly 6. Gained one per Combat

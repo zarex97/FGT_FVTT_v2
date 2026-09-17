@@ -30,9 +30,16 @@ rules:
   # Scoped by `effectId` so it raises nothing but Freeze, and by an attack-time
   # predicate so it is the ICE that does it. `chanceContribution` honours both,
   # and has since Magic Resistance needed the second.
+  # `effect:`, NOT `effectId:`. The executor reads `el.effect`
+  # (`elements.mjs`: `effectId: el.effect ?? null`) and the authoring descriptor
+  # offers the same key -- so `effectId:` resolved to a null scope, and
+  # `chanceContribution` treats a null scope as matching EVERY effect
+  # (`if (c.effectId && c.effectId !== def.id) continue`). This clause therefore
+  # raised the chance of every debuff landing on a Soaked Unit under an Ice
+  # attack by 25 points, rather than Freeze's alone (Ch. 46 §46.4-AH).
   - key: ApplicationChance
     direction: incoming
-    effectId: freeze
+    effect: freeze
     value: -25
     predicate: ["attack:element:ice"]
 

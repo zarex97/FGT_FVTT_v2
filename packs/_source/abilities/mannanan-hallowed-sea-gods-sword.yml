@@ -7,7 +7,7 @@
 #
 # Holder Mode's clause 5: it REPLACES Toole Fragarach. The two are a pair of
 # documents sharing one clock rather than one document with a branch, for the
-# reason Ch. 33 §33.5 gives -- a player must not be able to reset a cooldown by
+# reason Ch. 45 gives -- a player must not be able to reset a cooldown by
 # switching modes, and Holder Mode is one-way, so there is nothing to branch
 # back to.
 schema: 1
@@ -23,7 +23,7 @@ alsoTriggers:
   - { ability: mannanan-toole-fragarach }
 requirements:
   # The other half of the replacement. Refused until she is in Holder Mode, so
-  # the button is absent rather than present-and-refusing (§17.6).
+  # the button is absent rather than present-and-refusing (Ch. 33).
   - { kind: modeActive, mode: godsHolderPossession }
 description: |
   Attack Skill. Range+1 for the Combat Process. Uses Base Attack (STR) and 50% of Base Attack

@@ -16,9 +16,9 @@ region: [greece, europe]
 alignment: { order: chaotic, morality: neutral }
 attributes: [male, servant, sky, humanoid]
 parameters: { str: A, end: "A++", agi: B, mag: C, luc: C }
-# END A++ -> 1500 on the sheet, where `baseHealthByEnd` would step to 1700.
-# Stated so the validator can cross-check, exactly as `asterios.yml` states his
-# at the same rank for the same reason.
+# END A++ -> 1500 on the sheet, where `baseHealthByEnd` steps to 1700. The
+# TABLE is what he is played at, the same way Base Attack's is; this line is the
+# record of what the sheet said (`domain/health.mjs#maxHealthFor`, Ch. 46 §46.6).
 baseHealth: 1500
 mov: 6
 range: { panels: 3, targets: 1 }
@@ -26,7 +26,7 @@ baseAttack: { str: 150, mag: 150 }
 sustainability: "2◈"
 
 # ─── The binding ───────────────────────────────────────────────────────
-# Ch. 16 §16.8, Ch. 34. Six clauses of the sheet's opening paragraph, as data.
+# Ch. 32, Ch. 45. Six clauses of the sheet's opening paragraph, as data.
 linkedGroup:
   id: dioscuri
   partners: [pollux]          # content ids; resolved to actor ids at summon
@@ -47,7 +47,9 @@ abilities:
   # his sheet prints. `madEnhancementDefence`'s own comment cites
   # "B- 35->15 (Castor)" as one of the seven sheets it was verified against, so
   # this rank was transcribed from him before anyone tried to author him.
-  - { ref: class-mad-enhancement, rank: "B-" }
+  # *"when its Health is 20 or less, ME is forcibly deactivated"* -- the forced
+  # deactivation, and no floor (Ch. 46 §46.4-C).
+  - { ref: class-mad-enhancement, rank: "B-", drainFloor: null, drainFloorWhen: null, forcedDeactivation: true }
   - { ref: dioscuri-twin-gods-divine-core-castor }
   - { ref: dioscuri-stars-of-the-chief-god }
   - { ref: dioscuri-guardians-of-navigation }

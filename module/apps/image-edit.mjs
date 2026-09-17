@@ -1,6 +1,6 @@
 /**
  * @file The "click a portrait to change it" wiring every AppV2 sheet needs.
- * @see docs/29-user-interface.md §29.2
+ * @see docs/34-action-bar.md
  *
  * AppV1's `FormApplication` wired an `img[data-edit]` click into a FilePicker
  * for free. `ActorSheetV2`/`ItemSheetV2` do not — an `img[data-edit="img"]`

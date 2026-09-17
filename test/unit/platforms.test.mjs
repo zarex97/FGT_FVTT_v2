@@ -1,6 +1,6 @@
 /**
  * @file Platforms and levels.
- * @see docs/20-platforms-and-levels.md, docs/45-implementation-status.md C3
+ * @see docs/27-platforms-and-levels.md, docs/46-roster-re-audit.md C3
  *
  * `resolveTargets` has had a `crossLevelAllows` step since it was written, and
  * it is gated on `board.crossLevel` — which **nothing ever supplied**. So the
@@ -248,7 +248,7 @@ describe("boardingTarget", () => {
   });
 
   it("takes two off each at A or better", () => {
-    // "AGI A and LUC A needs 8+ on a d12" — the worked example in §20.4.
+    // "AGI A and LUC A needs 8+ on a d12" — the worked example in Ch. 27.
     expect(boardingTarget({ parameters: { agi: "A", luc: "A" } })).toMatchObject({ target: 8 });
   });
 

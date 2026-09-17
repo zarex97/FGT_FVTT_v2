@@ -1,6 +1,6 @@
 /**
  * @file Turn and round boundary sequences.
- * @see docs/25-turn-system.md §25.4, docs/07-time-model.md §7.7
+ * @see docs/25-turn-order-and-scheduler.md, docs/04-time-model.md
  *
  * Layer 3. The **sequences** here are pure — they take a board snapshot and a
  * tick and return intents. Only `Scheduler.attach` in the Foundry layer binds
@@ -72,7 +72,22 @@ export function endTurn(board, ctx) {
   //    Acts", which is why this pass is not scoped to the active player.
   intents.push(...fireEvent("actedTurnEnd", units.filter((u) => u.acted), ctx));
 
-  // 3. ...and for every unit, whoever is acting. §7.4's table calls this one
+  // 2b. Turn-end handlers for every unit that was IN a Combat Phase this Turn,
+  //     on either side of it. Not the same set as the pass above: being
+  //     attacked is involvement and is not acting, and Karna states both scales
+  //     himself -- `Kavacha and Kundala` charges his Master *"at the end of
+  //     every Turn that Karna is involved in a Combat Phase"* where
+  //     `Vasavi Shakti` charges *"at the end of every Combat Process"*. Authored
+  //     on `actedTurnEnd`, the armour's upkeep skipped every Turn he only
+  //     defended -- which is most of them, for a Servant whose whole design is
+  //     to be attacked (Ch. 46 §46.9).
+  //
+  //     Attacking IS involvement, so this fires once for a Unit that both acted
+  //     and was attacked; the two passes are separate events and no clause
+  //     subscribes to both.
+  intents.push(...fireEvent("involvedTurnEnd", units.filter((u) => u.inCombatPhase), ctx));
+
+  // 3. ...and for every unit, whoever is acting. Ch. 04's table calls this one
   //    `turnEnd` -- *"every turn, any player's"* -- and calls the pass above it
   //    `unitTurnEnd`; the handler vocabulary grew the other way round, and the
   //    authored content (Serenity's Zabaniya, Medusa's Blood Fort) says
@@ -104,13 +119,13 @@ export function endTurn(board, ctx) {
   //    inflicts Poison should not also tick it in the same breath.
   intents.push(...terrainIntents(terrainPeriodics(units, board, "turnEnd"), ctx));
 
-  // 8. The multi-Servant tax (§16.7). Flat 25 Health per Master whose Servants
+  // 8. The multi-Servant tax (Ch. 32). Flat 25 Health per Master whose Servants
   //    acted more than once this Turn, and a LOSS rather than damage, so
   //    nothing reduces it.
   intents.push(...multiServantIntents(units, ctx));
 
   // 9. A stance is dropped when its owner's Turn ends. *"Achilles is always
-  //    Dismounted when it is not his Turn"* (Ch. 44 §44.1) -- a statement about
+  //    Dismounted when it is not his Turn"* (Ch. 45) -- a statement about
   //    what is true rather than about a transition, so it is enforced at the
   //    boundary rather than offered as one, and it is what makes Achilles' Heel
   //    a threat at all: whatever he attacked in, he defends on foot.
@@ -171,7 +186,7 @@ export function endRound(board, ctx) {
   intents.push(...tickPeriodics(units, "roundEnd", ctx));
   intents.push(...fireEvent("roundEnd", units, ctx));
   intents.push(...expireEffects(units, ctx, "roundEnd"));
-  // Home Base regeneration and the three-Round debuff cure (Ch. 19 §19.1 E1,
+  // Home Base regeneration and the three-Round debuff cure (Ch. 29 E1,
   // E2). The rules layer returns descriptors; turning them into intents is this
   // layer's job, the same division the `OnEvent` action table uses.
   intents.push(...homeBaseIntents(endOfRoundHomeBase(units, board)));
@@ -240,7 +255,7 @@ export function fireEvent(event, units, ctx) {
     for (const handler of u.eventHandlers ?? []) {
       if (!listensFor(handler, event)) continue;
 
-      // Ch. 11 §11.9: an effect does not act on the Turn it ends. Enforced for
+      // Ch. 15: an effect does not act on the Turn it ends. Enforced for
       // `periodic:` effects since the periodic pass was written, and nowhere
       // for the handlers an effect contributes -- Regen's three intervals are
       // handlers, not a periodic, so it would have healed once more on its way
@@ -295,7 +310,7 @@ export function fireEvent(event, units, ctx) {
       // about that family.
       if (handler.ofCategory && !handler.ofCategory.includes(ctx.subject?.category ?? null)) continue;
 
-      // The mirror: HGoB Construction source 5 (Ch. 32) is "a non-Spell
+      // The mirror: HGoB Construction source 5 (Ch. 45) is "a non-Spell
       // Skill used, EXCLUDING Item Construction" -- two exclusions
       // (category AND a specific ability), neither of which `ofCategory`'s
       // include-list can express.
@@ -319,7 +334,7 @@ export function fireEvent(event, units, ctx) {
       // Master's Health loss from him using the NP **overwrites** the 20 Health
       // loss from when Karna would normally Act/Attack."*
       //
-      // §15.4's `supersedes` is the right idea in the wrong scope -- it resolves
+      // Ch. 17's `supersedes` is the right idea in the wrong scope -- it resolves
       // a set of costs against each other at the moment an ability is used, and
       // this charge is not a cost of any ability. It is a standing upkeep that
       // falls due at the end of a Turn, and what suppresses it happened earlier
@@ -433,7 +448,7 @@ function usedThisTurn(unit, spec) {
 /**
  * Turn one normalized action into intents.
  *
- * The vocabulary is Ch. 24 §24.5's action list, which is deliberately smaller
+ * The vocabulary is Ch. 10's action list, which is deliberately smaller
  * than the rule-element list: an element describes a standing contribution, an
  * action describes a thing that happens once, at a moment, to a unit.
  *
@@ -504,7 +519,10 @@ export function dispatch(action, unit, handler, ctx) {
     });
   }
 
-  return run(action, subject, handler, ctx);
+  // `bearer` on EVERY dispatch, not only the fanned ones above. An action's
+  // subject may be somebody else -- Mad Enhancement's drain lands on the Master
+  // -- while its conditions are about the Unit that owns the clause.
+  return run(action, subject, handler, { ...ctx, bearer: unit });
 }
 
 /**
@@ -835,7 +853,20 @@ const ACTIONS = Object.freeze({
     // `alsoCurrent` on a `.max` write pulls the current value down with the
     // ceiling -- *"reduce its Max Health by 25"* must not leave a Unit standing
     // above its own maximum, and must not heal a wounded one either.
-    if (typeof a.floor !== "number") {
+    // The floor, and whether it applies at all.
+    //
+    // Penthesilea and Raikou print Mad Enhancement's Master-health floor as
+    // *"while the Skill does not meet the condition to be deactivated"* -- so it
+    // holds exactly while the mode is held ON, which is positional and is
+    // answered against the BEARER rather than against the Master the deduction
+    // lands on. Evaluated here rather than at collection because the compulsion
+    // that holds the mode is a board annotation, and the board does not exist
+    // when contributions are collected (Ch. 46 §46.4-C).
+    const floored = typeof a.floor === "number" && (!a.floorPredicate || testPredicate(
+      a.floorPredicate,
+      { options: rollOptionsFor({ attacker: c?.bearer ?? u, defender: null }) },
+    ));
+    if (!floored) {
       return [I.statDelta(u.id, a.stat, raw, a.clamp !== false, a.alsoCurrent === true)];
     }
 
@@ -867,7 +898,7 @@ const ACTIONS = Object.freeze({
     }
     // `rolled()` falls back to `a.amount`, not `a.delta` — the bare-number
     // shape every ResourceDelta shipped with before Semiramis's HGoB
-    // Construction needed a rolled gain (Ch. 32 "1d4+2 per Turn"). A roll
+    // Construction needed a rolled gain (Ch. 45 "1d4+2 per Turn"). A roll
     // that has not arrived yet writes nothing, same as `Heal`.
     const raw = a.roll ? rolled(a, c) : (a.delta ?? 0);
     if (raw === null) return [];
@@ -994,7 +1025,7 @@ const ACTIONS = Object.freeze({
    * Apply an effect instance.
    *
    * The expiry is computed HERE rather than authored, because durations are
-   * stored as absolute ticks (Ch. 07 §7.5) and only the scheduler knows what
+   * stored as absolute ticks (Ch. 04) and only the scheduler knows what
    * tick it is. An authored `expiry` would be a turn count masquerading as an
    * absolute one, and would expire immediately or never.
    */
@@ -1045,7 +1076,7 @@ const ACTIONS = Object.freeze({
     // WHO it lands on. The action used to apply to the handler's owner and
     // nothing else, so every on-hit rider in the catalogue -- `Bleed Atk`,
     // `Queen's Poison`, Serenity's poisoned daggers -- would have inflicted its
-    // debuff on the ATTACKER. `target: victim` is the vocabulary Ch. 32 already
+    // debuff on the ATTACKER. `target: victim` is the vocabulary Ch. 45 already
     // writes; it just had no reader.
     // `dispatch` has already resolved the set for a `nearby`/`victim` target and
     // handed each recipient in as `u`, so this must not expand it a second time
@@ -1342,7 +1373,7 @@ export function resolveDefeat(unit, ctx, cause = "damage") {
   // hangs -- Mad Enhancement's Sustainability penalty, a log entry, a counter.
   const intents = fireEvent("unitDefeated", [unit], ctx);
 
-  // Then the revival QUERY, priority-ordered (§31.2). Heracles has four ways
+  // Then the revival QUERY, priority-ordered (Ch. 45). Heracles has four ways
   // back and his sheet states the order: Undying > Guts > Battle Continuation
   // > God Hand. This used to take any handler that healed, in collection order
   // -- indistinguishable from correct with one source, and with four it spends
@@ -1368,7 +1399,7 @@ export function resolveDefeat(unit, ctx, cause = "damage") {
       ...spendRevival(unit, revival, ctx),
       // What the revival TURNS HER INTO, and what it costs to get there.
       //
-      // §31.2 lists four revival shapes and all four only restore Health.
+      // Ch. 45 lists four revival shapes and all four only restore Health.
       // Mannanán's *God's Holder: Possession* is a fifth: *"Remove all
       // Fragarach Counters from Mannanán and she enters Holder Mode, restoring
       // her Health to 50% of its maximum value."* The restore is the ordinary
@@ -1539,7 +1570,11 @@ function spendRevival(unit, revival, ctx = {}) {
   if (!source.abilityId) return [];
 
   return [
-    I.recordUse(unit.id, source.abilityId, null),
+    // The charges this attempt spent, not the fact that one happened. The
+    // effect-borne branch above has always passed `chargesUsed` to
+    // `consumeUse`; this one dropped it, so God Hand's cascade cost one of its
+    // eleven however many it burned.
+    I.recordUse(unit.id, source.abilityId, null, revival.chargesUsed),
     // Its own cooldown, which is how Battle Continuation's 3 Rounds are
     // enforced -- the clock `advanceCooldowns` already turns, visible on the
     // sheet where a player can see why the revive did not happen.
@@ -1591,7 +1626,47 @@ export function cooldownRate(unit, ability, ctx) {
   // NP Lag halves the rate — every other turn, keyed on the global tick so it
   // stays consistent across a reconnect.
   if (held.includes("npLag") && ability.isNP && ctx.tick % 2 === 1) return 0;
-  return 1 + (ability.regen ?? 0);
+  return 1 + (ability.regen ?? 0) + npRegenOf(unit, ability, held);
+}
+
+/**
+ * The extra turns per Turn that an acceleration effect grants a Noble Phantasm.
+ *
+ * This function knew the three effects that SLOW a Noble Phantasm down --
+ * `npLock`, `npDegen`, `npLag` -- and neither of the two that speed it up, so
+ * both were collected, valid and inert (Ch. 46 §46.4-W):
+ *
+ * - **`npRegen`** is *"reduced by an extra X per Turn"*, and carries its X as a
+ *   `StatDelta` on `stat: "npRegen"`. That lands in `unit.statDeltas`, which is
+ *   not projected onto the unit as a field, so there was nothing named
+ *   `unit.npRegen` to read and nobody read the bucket either. It is
+ *   `magnitudeStacks`, so two sources add.
+ * - **`npCooldownRegen`** is *"reduced by 1 Turn at the end of every Turn"* and
+ *   declares `periodic: { when: turnEnd, kind: npCooldown, amount: 1 }`.
+ *   `PERIODICS` is damage-over-time only and has no entry for it; `kind:
+ *   npCooldown` appears nowhere in the engine. Its amount is on its own sheet,
+ *   so it is read from the spec's stated 1 rather than invented here.
+ *
+ * Six ability files across five Servants apply one or the other. Measured live
+ * on Semiramis across four Turn boundaries: her Noble Phantasm's cooldown fell
+ * by exactly 1 each Turn whether `npRegen` was held or not.
+ *
+ * Noble Phantasms only: both sheets say "Noble Phantasm Cooldown", and an
+ * ordinary Skill's clock is not what either buys.
+ *
+ * @param {object} unit
+ * @param {object} ability
+ * @param {string[]} held the unit's held effect ids
+ * @returns {number} extra turns removed this Turn
+ */
+function npRegenOf(unit, ability, held) {
+  if (!ability.isNP) return 0;
+
+  const stacked = (unit.statDeltas ?? [])
+    .filter((d) => d.stat === "npRegen")
+    .reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+
+  return stacked + (held.includes("npCooldownRegen") ? 1 : 0);
 }
 
 /**
@@ -1622,14 +1697,25 @@ export function tickPeriodics(units, when, ctx) {
       // "The end of ITS Turn" -- widened only for the unit whose own Turn is
       // actually ending, not for every unit a faction-unscoped `turnEnd` tick
       // happens to reach.
+      // ...and "any Turn it Acts" means any turn OTHER than its own, because
+      // its own is already the first half of the sentence. `endTurn` makes both
+      // calls at one boundary -- `("turnEnd", every unit)` and
+      // `("actedTurnEnd", the ones that acted)` -- and a Unit acting on its own
+      // Turn, which is the ordinary case, answered both and took the tick
+      // TWICE. Measured live at stage 1: 40 where the curve and
+      // `periodicDamageFor` both say 20, with one instance and one override on
+      // the unit. The common case was double and the rare one -- acting during
+      // an enemy's Turn, i.e. reacting -- was single, which is the clause
+      // upside down (Ch. 46 §46.4-AJ).
+      const widened = (u.periodicOverrides ?? [])
+        .some((o) => o.effectId === e.defId && o.triggers.includes(when));
       const overridden = when === "turnEnd"
-        ? u.factionId === ctx.activeFactionId
-          && (u.periodicOverrides ?? []).some((o) => o.effectId === e.defId && o.triggers.includes(when))
-        : (u.periodicOverrides ?? []).some((o) => o.effectId === e.defId && o.triggers.includes(when));
+        ? u.factionId === ctx.activeFactionId && widened
+        : u.factionId !== ctx.activeFactionId && widened;
       if (spec.when !== when && !overridden) continue;
       if (spec.actedOnly && !u.acted) continue;
 
-      // An effect does not tick on the turn it expires (Ch. 11 §11.9).
+      // An effect does not tick on the turn it expires (Ch. 15).
       if (e.expiry !== null && e.expiry !== undefined && e.expiry <= ctx.tick) continue;
 
       const amount = periodicDamageFor(e, u, ctx.effectDef);
@@ -1726,7 +1812,7 @@ function capitalize(s) {
 }
 
 /**
- * HGoB Construction's Region multiplier (Ch. 32 §32.2): *"If the Grail
+ * HGoB Construction's Region multiplier (Ch. 45): *"If the Grail
  * War's Region is in a Middle East region, all Construction increases are
  * doubled excluding effects 1 and 2; if directly next to a Middle East
  * region, all Construction increases are increased by 2 excluding effects 1

@@ -1,6 +1,6 @@
 /**
  * @file Ability, Noble Phantasm, Command Spell, Master Essence and Equipment.
- * @see docs/15-abilities.md, docs/22-data-models.md
+ * @see docs/17-abilities.md, docs/07-schemas.md
  */
 
 import { RankField, TickField } from "../fields.mjs";
@@ -12,7 +12,7 @@ function abilityCommon() {
   return {
     contentId: new fields.StringField({ required: false, blank: true }),
     // Which revision of the authored content this document came from
-    // (Ch. 39 §39.6). Written by the pack builder and read by the content
+    // (Ch. 41). Written by the pack builder and read by the content
     // sync's report, so it can say what a document moved FROM rather than only
     // that it moved. The pack's entirely and never seeded: a world copy
     // claiming a version the pack never issued is the confusion it exists to end.
@@ -88,7 +88,7 @@ function abilityCommon() {
       // > "If a Unit has its NP Cooldown increased before its NP would be
       // > available, then its NP would only be usable X Turns after its NP
       // > would be available, X being the number of Turns its NP Cooldown was
-      // > increased by." (§7.9)
+      // > increased by." (Ch. 04)
       //
       // A permanent shift of the availability turn, never a countdown and never
       // reset -- the same argument every duration in this system makes. Zero
@@ -111,7 +111,7 @@ function abilityCommon() {
     // Rule elements and targeting stay as authored data. Keeping them
     // untyped here is deliberate: the content validator checks their shape at
     // build time, and a rigid schema would reject a rule element added by a
-    // module (Ch. 21 §21.4).
+    // module (Ch. 02).
     targeting: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     phases: new fields.ArrayField(new fields.ObjectField()),
     rules: new fields.ArrayField(new fields.ObjectField()),
@@ -119,7 +119,7 @@ function abilityCommon() {
     activeRules: new fields.ArrayField(new fields.ObjectField()),
     parameterized: new fields.ArrayField(new fields.StringField()),
 
-    // Standing per-use costs beyond the Noble Phantasm cost (§15.4). Each
+    // Standing per-use costs beyond the Noble Phantasm cost (Ch. 17). Each
     // carries an `id` so another cost can name it in `supersedes`, which is how
     // Karna's NP cost overwrites the 20 Health his Master loses when he Acts
     // rather than stacking with it.
@@ -172,7 +172,7 @@ function abilityCommon() {
     // > effects of all Units within a 3 panel area of Nursery are returned to
     // > what they were 3◈ Turns ago."*
     //
-    // Ch. 43 §43.11's load-bearing optimisation: recording is OFF by default
+    // Ch. 28's load-bearing optimisation: recording is OFF by default
     // and switched on only when something declaring this enters play, so *"a
     // match without Nursery Rhyme pays nothing"*. Read by
     // `rules/history.mjs#historyWanted`.
@@ -185,7 +185,7 @@ function abilityCommon() {
      * Attacks this ability has recorded — God Hand's *"these recorded Attacks
      * can no longer defeat Heracles"*.
      *
-     * A `SetField`, not a Resource. §6.10 draws exactly this line while
+     * A `SetField`, not a Resource. Ch. 06 draws exactly this line while
      * naming this ability: a pool that stores **identities** rather than a
      * number is a set. It is on the Item so it shows on the sheet, which is
      * not decoration — it is tactical information the opponent needs too.
@@ -215,7 +215,7 @@ function abilityCommon() {
     negatedWhile: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     // What this ability does to an incoming Noble Phantasm it CANCELS.
     //
-    // One ability in the corpus (§33.4) and the only thing in the game besides
+    // One ability in the corpus (Ch. 45) and the only thing in the game besides
     // a Command Spell that interrupts somebody else's resolution. Untyped for
     // the same reason rule elements are: the two branches -- "the strongest, so
     // Instakill" and "not the strongest, so reflect what it would have dealt"
@@ -248,7 +248,7 @@ function abilityCommon() {
     // is a gate that runs on every render.
     creates: new fields.SetField(new fields.StringField({ blank: false })),
     reactionOverride: new fields.ObjectField({ required: false, nullable: true, initial: null }),
-    // "Only the highest Rank takes effect" (§10.6): a group and what to compare.
+    // "Only the highest Rank takes effect" (Ch. 14): a group and what to compare.
     nonStacking: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     damage: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     // A second, UNCONDITIONAL resolution the same ability declares, with its own
@@ -264,7 +264,7 @@ function abilityCommon() {
     aftermath: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     element: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
 
-    // Whether Scáthach may copy this (§15.7). Authored per ability because
+    // Whether Scáthach may copy this (Ch. 17). Authored per ability because
     // "Skills a Servant is physically born with" is a judgement the author
     // makes and the engine cannot infer -- there is no field on Natural Body
     // that distinguishes it from any other passive.
@@ -304,7 +304,7 @@ function abilityCommon() {
     kind: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
     passive: new fields.BooleanField({ initial: false }),
 
-    // §15.3's "unless stated" overrides. NULLABLE rather than false-by-default:
+    // Ch. 17's "unless stated" overrides. NULLABLE rather than false-by-default:
     // `countsAsAttack` derives its answer from the phases when unstated, and a
     // boolean field would make "unstated" indistinguishable from "no".
     countsAsAttack: new fields.BooleanField({ required: false, nullable: true, initial: null }),
@@ -367,7 +367,7 @@ function abilityCommon() {
       required: false, nullable: true, initial: null, integer: true, min: 0, max: 100,
     }),
 
-    // Abilities this use ALSO puts on cooldown (§7.6). Scáthach's Gate of Skye
+    // Abilities this use ALSO puts on cooldown (Ch. 04). Scáthach's Gate of Skye
     // is the reference case — "when this NP is used, Primordial Rune and Wisdom
     // of Dún Scáith enter Cooldown" — and `engine/cooldown.mjs` has read this
     // field since it was written, against a schema that dropped it.
@@ -379,11 +379,11 @@ function abilityCommon() {
     // nothing. The compiler normalises an authored string into `{ability}`.
     alsoTriggers: new fields.ArrayField(new fields.ObjectField()),
 
-    // Per-use requirements (§15.4). Authored at the top level as well as under
+    // Per-use requirements (Ch. 17). Authored at the top level as well as under
     // `targeting.limits`, and the schema declared neither.
     requirements: new fields.ArrayField(new fields.ObjectField()),
 
-    // A resource that buys this use out of its cooldown entirely (§6.10).
+    // A resource that buys this use out of its cooldown entirely (Ch. 06).
     // Scáthach's Primordial Rune Spells: one PRS Token and the Spell "does not
     // enter Cooldown". `{ resource: "prs", amount: 1 }`.
     cooldownWaiver: new fields.ObjectField({ required: false, nullable: true, initial: null }),
@@ -401,7 +401,7 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // (`replacesRiderAction`), minus the mount and plus a predicate --
       // `{predicate: [...]}`, answered against the board by `actionSourceFor`.
       replacesNormalAttack: new fields.ObjectField({ required: false, nullable: true, initial: null }),
-      // A per-ability Round gate, which OVERRIDES the global one (Ch. 07 §7.9).
+      // A per-ability Round gate, which OVERRIDES the global one (Ch. 04).
       // Declared here as well as on `NoblePhantasmData` because a SKILL may be
       // `categorizedAsNP` and therefore inside the gate's scope -- the Magic
       // Crest is exactly that, and its own "from Round 3" is the row that keeps
@@ -420,7 +420,7 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // effect ids whose presence makes the tag above count.
       categorizedWhile: new fields.SetField(new fields.StringField({ blank: false })),
 
-      // A weak point the ATTACKER may aim at (Ch. 44 §44.2). Achilles' Heel is
+      // A weak point the ATTACKER may aim at (Ch. 45). Achilles' Heel is
       // the only one; `rules/weak-point.mjs` holds the schema in prose.
       weakPoint: new fields.ObjectField({ required: false, nullable: true, initial: null }),
 
@@ -464,7 +464,7 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       severity: new fields.StringField({
         required: false, initial: "normal", choices: ["normal", "instakill", "death", "erase"],
       }),
-      // Whether bearing this effect stops the Unit acting. Read by §23.9's
+      // Whether bearing this effect stops the Unit acting. Read by Ch. 08's
       // Master-protection invalidation, which had to guess from a hard-coded
       // list before any effect could say so itself.
       preventsAction: new fields.BooleanField({ initial: false }),
@@ -485,7 +485,7 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // count-limited effect fell back to 1.
       uses: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       // A ceiling on how many instances of a `magnitudeStacks` effect one Unit
-      // may hold. §36.7 sketches it beside the stacking rule and Kingprotea's
+      // may hold. Ch. 45 sketches it beside the stacking rule and Kingprotea's
       // Proliferation is the first to state one: *"Kingprotea can only have a
       // maximum of 10 Proliferation stocks."*
       maxStacks: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true, min: 1 }),
@@ -494,7 +494,7 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       absorbs: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       defaultDuration: new TickField(),
       unremovable: new fields.BooleanField({ initial: false }),
-      // Ch. 10 §10.6: *"Decoy is not affected by Debuff Resist or Immune
+      // Ch. 14: *"Decoy is not affected by Debuff Resist or Immune
       // effects when a Unit applies it on itself or on another allied Unit."*
       // A property of the EFFECT, so the applier can skip its resistance steps
       // without every caller having to know which effects are exempt. Two need
@@ -514,13 +514,13 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       replaces: new fields.ArrayField(new fields.StringField()),
       npTags: new fields.ArrayField(new fields.StringField()),
       /**
-       * A bounded field this ability creates (Ch. 43). Untyped for the same
+       * A bounded field this ability creates (Ch. 28). Untyped for the same
        * reason rule elements are.
        *
        * Declared on `NoblePhantasmData` alone until Pale Rider, because every
        * field in the corpus so far belonged to a Noble Phantasm — Chaos
        * Labyrinthos, Unlimited Blade Works, Sikera Ušum, The Mist. Nothing in
-       * Ch. 43 makes that a rule: a bounded field is an *area*, and what opens
+       * Ch. 28 makes that a rule: a bounded field is an *area*, and what opens
        * it is a separate question.
        *
        * Contagion is the counter-example and it is a **Skill**: *"(Passive)
@@ -550,7 +550,7 @@ export class NoblePhantasmData extends foundry.abstract.TypeDataModel {
       // effect ids whose presence makes the tag above count.
       categorizedWhile: new fields.SetField(new fields.StringField({ blank: false })),
 
-      // A weak point the ATTACKER may aim at (Ch. 44 §44.2). Achilles' Heel is
+      // A weak point the ATTACKER may aim at (Ch. 45). Achilles' Heel is
       // the only one; `rules/weak-point.mjs` holds the schema in prose.
       weakPoint: new fields.ObjectField({ required: false, nullable: true, initial: null }),
 
@@ -571,12 +571,12 @@ export class NoblePhantasmData extends foundry.abstract.TypeDataModel {
       // Set when it has been. Written once and never cleared.
       expended: new fields.BooleanField({ initial: false }),
       /**
-       * A bounded field this Noble Phantasm creates (Ch. 43). Untyped for the
+       * A bounded field this Noble Phantasm creates (Ch. 28). Untyped for the
        * same reason rule elements are: ten fields are points in one six-axis
        * model, and a rigid schema would reject the eleventh.
        */
       field: new fields.ObjectField({ required: false, nullable: true, initial: null }),
-      // Ordered scale plus unordered qualifiers (Ch. 43 §43.8). Stored as
+      // Ordered scale plus unordered qualifiers (Ch. 28). Stored as
       // authored; comparison uses the highest scale tag present.
       npTags: new fields.ArrayField(new fields.StringField()),
       // A per-ability round gate composes with the global one by max():
@@ -597,7 +597,7 @@ export class CommandSpellData extends foundry.abstract.TypeDataModel {
   static defineSchema() {
     return {
       contentId: new fields.StringField({ required: false, blank: true }),
-      // Ch. 39 §39.6, and it must be here rather than only on `abilityCommon`:
+      // Ch. 41, and it must be here rather than only on `abilityCommon`:
       // the pack builder emits `contentVersion` for EVERY item, and a model
       // that cannot hold it makes the content sync non-convergent -- it would
       // rewrite the document on every world load, for ever.
@@ -634,7 +634,7 @@ export class MasterEssenceData extends foundry.abstract.TypeDataModel {
   static defineSchema() {
     return {
       contentId: new fields.StringField({ required: false, blank: true }),
-      // Ch. 39 §39.6, and it must be here rather than only on `abilityCommon`:
+      // Ch. 41, and it must be here rather than only on `abilityCommon`:
       // the pack builder emits `contentVersion` for EVERY item, and a model
       // that cannot hold it makes the content sync non-convergent -- it would
       // rewrite the document on every world load, for ever.
@@ -651,7 +651,7 @@ export class EquipmentData extends foundry.abstract.TypeDataModel {
   static defineSchema() {
     return {
       contentId: new fields.StringField({ required: false, blank: true }),
-      // Ch. 39 §39.6, and it must be here rather than only on `abilityCommon`:
+      // Ch. 41, and it must be here rather than only on `abilityCommon`:
       // the pack builder emits `contentVersion` for EVERY item, and a model
       // that cannot hold it makes the content sync non-convergent -- it would
       // rewrite the document on every world load, for ever.
@@ -659,7 +659,7 @@ export class EquipmentData extends foundry.abstract.TypeDataModel {
       description: new fields.HTMLField({ required: false, blank: true }),
       equipped: new fields.BooleanField({ initial: false }),
 
-      // "Items are an ability with a quantity" (§15.8), and the default is that
+      // "Items are an ability with a quantity" (Ch. 17), and the default is that
       // they CANNOT be passed: "Items cannot be traded/given/passed to other
       // Units unless stated." Only [Semiramis' Poison] states otherwise, so a
       // permissive default would be wrong for everything except the exception.

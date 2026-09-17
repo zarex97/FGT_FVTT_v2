@@ -1,6 +1,6 @@
 /**
  * @file A Skill is not an Attack — against the shipped content.
- * @see docs/15-abilities.md §15.1, §15.2
+ * @see docs/17-abilities.md, Ch. 17
  *
  * The bug this pins, reported from a live table: using Asterios's *Avyssos of
  * Labrys* — three buffs, applied to Asterios, touching nobody — opened a

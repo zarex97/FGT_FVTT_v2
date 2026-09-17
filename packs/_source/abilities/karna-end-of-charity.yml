@@ -1,5 +1,5 @@
 # Karna, char_orig_sheets/Copia de Karna.md
-# Targeting: docs/09-targeting.md §9.9 — "self buff, THEN allies within 2 panels".
+# Targeting: docs/20-targeting.md — "self buff, THEN allies within 2 panels".
 schema: 1
 id: karna-end-of-charity
 name: "End of Charity"
@@ -27,7 +27,7 @@ phases:
   # differs from the ability's own -- the pattern EMIYA's Eye of the Mind (True)
   # EX established. `self` is in the relation list: "all allied Units within a 2
   # panel area of himself" includes himself unless the text excludes him, which
-  # it does not (Ch. 11 §11.6; Penthesilea's Charisma is the case that DOES).
+  # it does not (Ch. 15; Penthesilea's Charisma is the case that DOES).
   - kind: applyEffects
     targeting:
       anchor: { kind: self }

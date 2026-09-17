@@ -1,6 +1,6 @@
 /**
  * @file The unit-action registry.
- * @see module/rules/actions.mjs, docs/29-user-interface.md §29.5
+ * @see module/rules/actions.mjs, docs/34-action-bar.md
  *
  * Three of `budget.mjs`'s eight ActionKinds had no caller anywhere in the
  * repository when this was written: `mark`, `gather` and `ridingAttack`. Each
@@ -35,7 +35,7 @@ describe("the always-available actions", () => {
   });
 });
 
-describe("Mark (Ch. 43 §43.4)", () => {
+describe("Mark (Ch. 28)", () => {
   const medusa = () => unit({
     abilities: [{
       id: "np1", contentId: "medusa-blood-fort-andromeda", isNP: true,
@@ -61,7 +61,7 @@ describe("Mark (Ch. 43 §43.4)", () => {
   });
 });
 
-describe("Gather (Ch. 32)", () => {
+describe("Gather (Ch. 45)", () => {
   const semiramis = () => unit({ id: "s1", resources: { hgobConstruction: { value: 0, max: null } } });
   const ally = () => unit({ id: "a1", faction: "red" });
 
@@ -121,7 +121,7 @@ describe("the registry's shape", () => {
   });
 });
 
-describe("no ActionKind may go unreachable (§29.5 DA.3)", () => {
+describe("no ActionKind may go unreachable (Ch. 34 DA.3)", () => {
   it("gives every ActionKind either a registry entry or an explicit exemption", () => {
     // The guard that would have caught `mark`, `gather` and `ridingAttack`,
     // all three of which shipped with a complete engine and no caller. A new

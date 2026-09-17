@@ -1,6 +1,6 @@
 /**
  * @file Coming back from zero Health.
- * @see docs/31-case-heracles.md §31.2, §31.3, docs/04-units.md §4.13
+ * @see docs/45-case-studies.md, Ch. 45, docs/06-units-and-stats.md
  *
  * Layer 2 (rules). Pure — the caller rolls and passes the totals in.
  *
@@ -41,7 +41,7 @@ import { rollOptionsFor } from "./options.mjs";
  * @property {string} source
  */
 
-/** The published priorities (§31.2). Content may state its own. */
+/** The published priorities (Ch. 45). Content may state its own. */
 export const REVIVAL_PRIORITY = Object.freeze({
   specialGuts: 300,
   guts: 200,
@@ -209,7 +209,7 @@ export function pendingRevivalRolls(unit) {
  * that Attack under this Skill. These recorded Attacks can no longer defeat
  * Heracles."*
  *
- * Three readings were possible (§31.3): the specific ability, the attacking
+ * Three readings were possible (Ch. 45): the specific ability, the attacking
  * unit, or the specific instance. The instance is vacuous — it never recurs —
  * and the attacker is extraordinarily strong: Karna could never kill him again
  * by any means. So it is **the ability**, with a per-attacker pseudo-id for

@@ -1,19 +1,19 @@
 /**
  * @file `nurseryRhyme.rewind` — the corpus's first `Script`.
  * @see char_orig_sheets/Copia de Nursery Rhyme.md
- * @see docs/43-bounded-fields.md §43.11, docs/44-case-expanded-roster.md §44.6
+ * @see docs/28-bounded-fields.md, docs/45-case-studies.md
  *
  * Layer 3.
  *
  * **Why this is a Script and not a rule element.** Every other ability in the
  * corpus is data because its behaviour is a *composition* of named mechanisms.
  * This one has to walk a unit set, resolve a historical index, diff two states
- * and emit a heterogeneous batch — and it has **exactly one customer**. Ch. 24's
+ * and emit a heterogeneous batch — and it has **exactly one customer**. Ch. 10's
  * own position is that *"Scripts are the escape hatch, not the norm."* A rule
  * element generalising "rewind" from a single example would be inventing a
  * vocabulary for a shape nothing else has.
  *
- * If a second rewind ever appears, generalise then — which is the rule Ch. 44
+ * If a second rewind ever appears, generalise then — which is the rule Ch. 45
  * already applies to `innocentWorld` and `heel`.
  */
 

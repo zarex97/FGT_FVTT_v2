@@ -1,6 +1,6 @@
 /**
  * @file The Storm Border — a pocket dimension, entered and left.
- * @see docs/20-platforms-and-levels.md §20.6, char_orig_sheets/Copia de Nemo.md
+ * @see docs/27-platforms-and-levels.md, char_orig_sheets/Copia de Nemo.md
  *
  * The pure halves: who may enter, how far it travels, where it may surface,
  * and what happens if Nemo dies inside it. The placement itself is
@@ -191,7 +191,7 @@ describe("the Storm Border's own document", () => {
   const P = parse(readFileSync("packs/_source/platforms/storm-border.yml", "utf8"));
 
   it("has no combat statistics, because the sheet grants it none (R2)", () => {
-    // It was authored from Ch. 20 §20.5's general platform model and given
+    // It was authored from Ch. 27's general platform model and given
     // 3000 Health, MOV 8, Range 6 and Base Attack 220. Nemo's sheet has no
     // Health line for it, no attack and no movement: units inside "still take
     // their Turn normally", and where it surfaces is his decision, not a move.

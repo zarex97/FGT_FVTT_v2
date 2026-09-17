@@ -1,6 +1,6 @@
 /**
  * @file Predicate evaluation.
- * @see module/rules/predicate.mjs, docs/24-rules-engine.md §24.4
+ * @see module/rules/predicate.mjs, docs/11-predicates.md
  *
  * The module had no tests of its own, which is how a notation used in five
  * places — the `not:` prefix — stayed unimplemented. A bare string is a
@@ -67,7 +67,7 @@ describe("referencedOptions and the `not:` prefix", () => {
 /* -------------------------------------------------------------------------- */
 
 describe("prose from the facet table", () => {
-  // §24.4's whole argument for predicates being data rather than functions is
+  // Ch. 10's whole argument for predicates being data rather than functions is
   // that a failed one can be READ: "requires: target has the Large attribute
   // (target does not)". What it said was "target attribute = large", by
   // mechanical split -- and `explain` had no test of its own.

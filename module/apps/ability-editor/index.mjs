@@ -1,6 +1,6 @@
 /**
  * @file The ability editor's public surface.
- * @see docs/29-user-interface.md §29.6
+ * @see docs/35-sheets-and-editor.md
  *
  * A directory rather than a file, for the reason `actor-sheet/` is one: the
  * editor is growing a rail, eight sections and a descriptor renderer, and

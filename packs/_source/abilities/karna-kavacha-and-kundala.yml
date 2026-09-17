@@ -1,5 +1,5 @@
 # Karna, char_orig_sheets/Copia de Karna.md
-# Discussed: docs/36-case-remaining.md §36.1; the permanence is docs/07 §7.7.
+# Discussed: docs/45-case-studies.md; the permanence is docs/07 Ch. 04.
 schema: 1
 id: karna-kavacha-and-kundala
 name: "Kavacha and Kundala: O' Sun, Become Armor"
@@ -15,7 +15,7 @@ isPassive: true
 # "The effect of Kavacha and Kundala is LOST when Vasavi Shakti is
 # used/Activated." Modelled as being negated by the permanent status Vasavi
 # Shakti's activation applies, rather than as a flag -- so the -90% simply stops
-# existing, which is §36.1's own framing.
+# existing, which is Ch. 45's own framing.
 #
 # This is the clause that forced `rules/snapshot.mjs#negated` to honour
 # `negatedBy` at all. It read `negatedWhile` only, so `negatedBy` gated the USE
@@ -24,7 +24,7 @@ isPassive: true
 negatedBy: [vasaviActivated]
 # "This effect is negated if Karna is affected by NP Seal?"
 #
-# DECISION (§36.1, Ch. 41): it is NOT. The trailing question mark is in the
+# DECISION (Ch. 45, Ch. 41): it is NOT. The trailing question mark is in the
 # source, a question mark is not a statement, and `NP Seal`'s own text is "does
 # not affect passive NPs unless stated". So Kavacha and Kundala survives NP
 # Seal, and `npSeal` is deliberately absent from `negatedBy` above.
@@ -36,7 +36,7 @@ description: |
   lost when Vasavi Shakti is used/Activated.
 passiveRules:
   # −90%, the largest single defensive modifier in the corpus, and it joins the
-  # ADDITIVE stage-4 bucket like every other Def Up. §36.1 makes the point that
+  # ADDITIVE stage-4 bucket like every other Def Up. Ch. 45 makes the point that
   # this is why the bucket is additive: an attacker with +95% Atk Up still nets
   # +5% rather than being multiplied down to nothing.
   #
@@ -67,12 +67,18 @@ passiveRules:
   # KNOWN NARROWING: "involved in a Combat Phase" also covers being attacked on
   # somebody else's Turn without Acting, which `actedTurnEnd` does not see. The
   # alternative over-charges, and Note 2 is the tie-breaker: it prices this as an
-  # Act/Attack cost. Recorded in Ch. 45.
+  # Act/Attack cost. Recorded in Ch. 46.
   #
   # `floor: 1` limits THIS deduction rather than the pool -- "his Master's Health
   # cannot drop below 1 IN THIS WAY", so ordinary damage may still finish them.
+  # *"at the end of every Turn that Karna is INVOLVED IN A COMBAT PHASE"* --
+  # which includes being attacked, and `actedTurnEnd` does not. His own Vasavi
+  # Shakti charges the same 20 *"at the end of every Combat PROCESS"*, and Ch. E
+  # cites the pair as the reason those two scales are separate events; this half
+  # was hung on a third thing, so a Karna who only defended cost his Master
+  # nothing. Ch. 46 §46.9.
   - key: OnEvent
-    event: actedTurnEnd
+    event: involvedTurnEnd
     automatic: true
     # Note 2: "his Master's Health loss from him using the NP OVERWRITES the 20
     # Health loss from when Karna would normally Act/Attack." The three Noble

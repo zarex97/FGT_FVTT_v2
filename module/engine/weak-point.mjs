@@ -1,6 +1,6 @@
 /**
  * @file Offering and resolving a weak-point attack.
- * @see module/rules/weak-point.mjs, docs/44-case-expanded-roster.md §44.2
+ * @see module/rules/weak-point.mjs, docs/45-case-studies.md
  *
  * Layer 3. The arithmetic is pure and lives next door; this is the half that
  * asks the attacker, rolls, and writes.

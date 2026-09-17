@@ -6,7 +6,7 @@
 # Bloodmark, and it is done by simply Attacking it, Bloodmarks can only be seen
 # from a distance of 3 cells Maximum."
 #
-# A `Structure` actor, which §43.10 chose so that targeting, destruction,
+# A `Structure` actor, which Ch. 28 chose so that targeting, destruction,
 # visibility and Health all come from the unit model rather than from a bespoke
 # object layer. `StructureData` has been a registered actor type with NO
 # CONTENT since the types were declared; this is its first.

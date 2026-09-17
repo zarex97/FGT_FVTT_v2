@@ -1,6 +1,6 @@
 /**
  * @file The action bar — one persistent panel for the controlled unit.
- * @see docs/29-user-interface.md §29.5
+ * @see docs/34-action-bar.md
  *
  * Layer 4. Replaces the token HUD column, which packed an unbounded number of
  * controls into a container Foundry sizes for about four: Medusa produced
@@ -49,7 +49,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
   /**
    * The Counter this bar is armed for, or `null`.
    *
-   * §12.8's rung is the one moment a unit may attack outside its own turn, so
+   * Ch. 21's rung is the one moment a unit may attack outside its own turn, so
    * the bar is armed FOR the player rather than waiting to be found: the token
    * is selected, the bar opens, and the abilities that could answer glow.
    *
@@ -133,7 +133,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     const openFields = new Set((board.fields ?? []).map((f) => f.id));
 
     const actions = availableActions(snapshot, board).map((a) => {
-      // §12.8. Armed, the actions row is the Normal Attack and nothing else:
+      // Ch. 21. Armed, the actions row is the Normal Attack and nothing else:
       // it glows, and Move, Gather and the facing dial dim with a reason. The
       // Normal Attack is ALWAYS offered as a Counter and always free, so it is
       // lit even when every ability the unit holds is unaffordable.
@@ -249,11 +249,11 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         { label: "FGT.Resource.agility", value: actor.system?.agility?.value ?? 0, max: actor.system?.agility?.max ?? null },
         { label: "FGT.Resource.luck", value: actor.system?.luck?.value ?? 0, max: actor.system?.luck?.max ?? null },
       ],
-      // §6.10's pools — EMIYA's Aria, Semiramis's Construction, Scáthach's PRS
+      // Ch. 06's pools — EMIYA's Aria, Semiramis's Construction, Scáthach's PRS
       // Tokens. They gate abilities, so a player choosing what to press needs
       // them where the buttons are and not one tab away on the sheet.
       pools: poolsFor(snapshot.resources),
-      // §12.8. The banner, and what makes every slot below read as a Counter
+      // Ch. 21. The banner, and what makes every slot below read as a Counter
       // choice rather than an ordinary one.
       counter: this.counter ? { armed: true } : null,
       rows: rowsFor({ actions, abilities, fields, pins }),
@@ -281,7 +281,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
       || target.closest(".fgt-actionbar__row")?.dataset?.row || "";
     const armedId = target.dataset.slot;
 
-    // §12.8. While armed, EVERY click is a Counter declaration: the Normal
+    // Ch. 21. While armed, EVERY click is a Counter declaration: the Normal
     // Attack from the actions row, an ability from any other. The ordinary
     // handlers below are not reached, so a Move or a mode toggle cannot be
     // performed by answering somebody else's attack.
@@ -353,7 +353,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
    *
    * `requireUnitId` goes into the spec's limits, so an area that misses the
    * attacker is refused **under the cursor** while the player is still aiming
-   * rather than after they commit (§28.8).
+   * rather than after they commit (Ch. 20).
    *
    * Cancelling targeting leaves the bar armed. Declining is a button on the
    * card and is always explicit — a cancelled aim must not spend the rung.
@@ -369,7 +369,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     const { pickPlacementFor } = await import("../actor-sheet/sheet.mjs");
     const placement = await pickPlacementFor(actor, item, {
       requireUnitId: armed.requiredTargetId,
-      // §12.8: the shielded Master is dropped even from an area that covers it.
+      // Ch. 21: the shielded Master is dropped even from an area that covers it.
       excludeUnitIds: armed.excludeUnitIds ?? [],
     });
     if (!placement) return;
@@ -402,7 +402,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
 
     // Already armed for this rung with these terms: nothing to do. Compared on
     // the TERMS and not on the message id alone, which is the bug this comment
-    // exists for -- §12.8's redirect is decided at the rung and lands on the
+    // exists for -- Ch. 21's redirect is decided at the rung and lands on the
     // Process a render LATER than the first arming, so an id-only guard armed
     // the bar at the Master and then refused every correction. The player aimed
     // at a unit the resolution would have refused.
@@ -440,7 +440,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
   /**
    * Turn the facing dial.
    *
-   * §29.5 is explicit that this must **not** end the turn: facing is a
+   * Ch. 34 is explicit that this must **not** end the turn: facing is a
    * correction a player makes while thinking. Left-click turns 45° clockwise
    * and right-click 45° anticlockwise, so any of the eight is at most four
    * clicks away either way.
@@ -584,7 +584,7 @@ function abilityRefusal(verdict, entry, turnsPerRound) {
 }
 
 /**
- * §6.10's pools, labelled for a reader.
+ * Ch. 06's pools, labelled for a reader.
  *
  * `FGT.Pool.<key>` when a translation exists, and the camelCase key split into
  * words when it does not — so a pool a future Servant introduces shows as

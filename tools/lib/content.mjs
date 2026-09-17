@@ -1,6 +1,6 @@
 /**
  * @file Content loading, `ref:` resolution, id assignment and validation.
- * @see docs/37-content-pipeline.md
+ * @see docs/40-content-pipeline.md
  *
  * Pure functions over parsed objects, so the whole pipeline is unit-testable
  * without touching the filesystem. `tools/build-packs.mjs` and
@@ -38,7 +38,7 @@ export const SCHEMA_VERSION = 1;
 /**
  * Rule-element keys the engine knows. A `key` outside this set is a typo that
  * would otherwise sit in a compendium doing nothing.
- * @see docs/24-rules-engine.md §24.3
+ * @see docs/10-rule-elements.md
  */
 // NOTE: this list and `EXECUTORS` in `module/rules/elements.mjs` are two hand-
 // maintained copies of the same vocabulary, and nothing kept them in step.
@@ -135,13 +135,13 @@ const REQUIREMENT_SELECTORS = Object.freeze({
 /** Effect classification vocabularies, from Appendix A. */
 const POLARITIES = new Set(["buff", "debuff", "status"]);
 
-/** Setup dialogs an ability may open (§15.7, §36.4). */
+/** Setup dialogs an ability may open (Ch. 17, Ch. 45). */
 const DIALOGS = new Set(["copy"]);
 
-/** Why an ability may refuse to be copied (§15.7). */
+/** Why an ability may refuse to be copied (Ch. 17). */
 const COPY_REASONS = new Set(["physical", "unique", "classSkill", "rankEX"]);
 
-/** The two check tables, from docs/15-checks.md. Not rank tables. */
+/** The two check tables, from docs/13-checks-and-randomness.md. Not rank tables. */
 const CHECK_TABLES = new Set(["favourable", "unfavourable"]);
 const VOLATILITIES = new Set(["nonVolatile", "volatile", "mental", "terminal", "none"]);
 
@@ -174,7 +174,7 @@ export const PACKS = Object.freeze({
   platforms: { pack: "servants", documentType: "Actor", actorType: "platform" },
   summons: { pack: "servants", documentType: "Actor", actorType: "summon" },
   // Destructible objects that define or carry a field. Medusa's Bloodmarks are
-  // the first; §43.10 ruled them `Structure` actors precisely so that
+  // the first; Ch. 28 ruled them `Structure` actors precisely so that
   // targeting, destruction, visibility and Health all come for free.
   structures: { pack: "servants", documentType: "Actor", actorType: "structure" },
   // The `fgt.rules` pack has been declared in `system.json` since 0.1.0 and
@@ -248,7 +248,7 @@ export function assetFor(assets, dir, id) {
  *
  * - `img`, the true portrait: authored `img`, else `assets/<dir>/<id>.*`.
  * - `defaultImage`, the standard image an unrevealed Servant shows the table
- *   in place of its portrait (Ch. 04 s4.2): authored `defaultImage`, else
+ *   in place of its portrait (Ch. 06 s4.2): authored `defaultImage`, else
  *   `assets/classes/<classContainer>.*`. Only a Servant derives one -- the
  *   field is inert on every other type (`engine/token-image.mjs`), so
  *   filling it there would be authored-and-inert by construction.
@@ -422,7 +422,66 @@ export function resolveRef(entry, library, problems, where) {
     }
   }
 
-  return { ...substitute(template, params), _ref: entry.ref, ...params };
+  const built = prune(substitute(template, params), problems, `${where}: ref "${entry.ref}"`);
+  return { ...built, _ref: entry.ref, ...params };
+}
+
+/**
+ * Drop the clauses this instantiation does not carry.
+ *
+ * A template is instantiated per bearer, and until now every bearer got every
+ * clause. That is right for a table-driven skill -- Magic Resistance is the
+ * same rule at eleven ranks -- and wrong for one whose SHAPE differs between
+ * the sheets that carry it.
+ *
+ * Mad Enhancement is the case. Clause 1 is printed three different ways across
+ * the six sheets that have it: Heracles has a Master-health floor and **no**
+ * forced deactivation, Asterios/Castor/Kingprotea have the forced deactivation
+ * and **no** floor, and Penthesilea/Raikou have both. Authoring all of it for
+ * everybody gave three Servants a floor their sheets do not grant and one a
+ * forced deactivation his sheet replaces with the floor.
+ *
+ * `onlyIf: "@param"` marks a clause that exists only for some bearers.
+ * `substitute` above has already resolved it to a boolean, so this is a pure
+ * structural prune and the built document carries no trace of the field --
+ * which is the point: the compiled pack should say what this Servant HAS, not
+ * what the template could have given it.
+ *
+ * Splitting the template instead would mean one skill with three files and six
+ * numbers obliged to stay in step, which is the failure `substitute` exists to
+ * prevent. A `predicate` would be wrong for a different reason: this is not a
+ * question about the board, it is a question about whose sheet it is, and it
+ * has an answer at build time.
+ *
+ * @param {unknown} node
+ * @param {string[]} problems appended to when `onlyIf` survived unresolved
+ * @param {string} where for error messages
+ * @returns {unknown}
+ */
+export function prune(node, problems = [], where = "") {
+  if (Array.isArray(node)) {
+    return node
+      .filter((n) => !(n && typeof n === "object" && n.onlyIf === false))
+      .map((n) => prune(n, problems, where));
+  }
+  if (!node || typeof node !== "object") return node;
+
+  /** @type {Record<string, unknown>} */
+  const out = {};
+  for (const [k, v] of Object.entries(node)) {
+    if (k === "onlyIf") {
+      // A placeholder that reached here is a parameter the bearer never
+      // supplied. Silently keeping the clause would be the "collected and
+      // never read" failure in reverse -- a clause nobody asked for, shipped.
+      if (v !== true && v !== false) {
+        problems.push(`${where}: "onlyIf" resolved to ${JSON.stringify(v)} rather than a boolean `
+          + `-- the bearer did not supply that parameter`);
+      }
+      continue;
+    }
+    out[k] = prune(v, problems, where);
+  }
+  return out;
 }
 
 /**
@@ -502,7 +561,7 @@ export function validateAll(files, assets = null) {
   // -- Declared forward references -----------------------------------------
   //
   // A clause that names a Servant nobody has authored yet is legitimate
-  // (§36.1's DECISION) and is exactly the kind of debt that goes quiet. Warned
+  // (Ch. 45's DECISION) and is exactly the kind of debt that goes quiet. Warned
   // once per entry, and cleared the moment the named slug exists.
   const slugs = new Set(
     files.filter((f) => f.doc?.id)
@@ -1105,7 +1164,38 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
       problems.push(`${path}: ${where} is a Script element with no "script" id`);
     }
 
-    // §24.6: content may override the priority band, but must say why.
+    // `npValue: "@magnitude"` is a DANGLING EXPRESSION, and it looks exactly
+    // like the thing it is not.
+    //
+    // `rules/snapshot.mjs#resolveRuleValues` substitutes the two instance
+    // tokens by FIELD: `value` is matched against `"@magnitude"` and `npValue`
+    // against `"@npMagnitude"`. A `npValue` holding `"@magnitude"` therefore
+    // matches nothing, survives as a literal string into the executor, resolves
+    // against the `@` ref tree -- which publishes no `magnitude` -- and comes
+    // back `null`, so every executor drops the field.
+    //
+    // The behaviour that results is the pipeline default (an absent `npValue`
+    // uses `value`, i.e. FULL magnitude against a Noble Phantasm), which is
+    // what an author writing this line wanted. That is exactly why it went
+    // unnoticed in six content files: right answer, no reader. Say it by
+    // OMITTING `npValue`, which is the assertion, or state the reduced figure
+    // with `"@npMagnitude"` or a literal.
+    for (const field of ["npValue", "value"]) {
+      const token = field === "value" ? "@npMagnitude" : "@magnitude";
+      const raw = el[field];
+      if (typeof raw === "string" && raw.replace("-", "").trim() === token) {
+        problems.push(
+          `${path}: ${where} has ${field}: "${raw}", which resolves to nothing — `
+          + `"${token}" is only substituted into `
+          + `${field === "value" ? "npValue" : "value"}. `
+          + (field === "npValue"
+            ? "Omit npValue to mean \"including NP at full magnitude\", or use \"@npMagnitude\"."
+            : "Use \"@magnitude\"."),
+        );
+      }
+    }
+
+    // Ch. 10: content may override the priority band, but must say why.
     //
     // An override reorders the element against every other one in its band, and
     // an unmarked one is indistinguishable from a typo. So the marker is
@@ -1118,7 +1208,7 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
       if (typeof marker !== "string" || marker.trim() === "") {
         problems.push(
           `${path}: ${where} overrides priority (${el.priority}) without an "@intentional" `
-          + "marker explaining why (§24.6)",
+          + "marker explaining why (Ch. 10)",
         );
       } else if (!Number.isFinite(el.priority)) {
         problems.push(`${path}: ${where} has a non-numeric priority (${el.priority})`);
@@ -1210,7 +1300,7 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     }
   }
 
-  // §15.7: an ability that refuses to be copied has to say WHY, from the
+  // Ch. 17: an ability that refuses to be copied has to say WHY, from the
   // documented set. "cannot be copied" with no reason is a rule nobody can
   // check against the exclusion list.
   if (doc.copyable && doc.copyable.allowed === false) {
@@ -1319,6 +1409,23 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
         + `expected one of ${SHAPE_IDS.join(", ")}`,
       );
     }
+    // An anchor may state an ABSOLUTE reach or a RELATIVE one, and stating
+    // both is always a mistake: `anchorRange` returns `spec.range` the moment
+    // it is a number and never reaches `rangeBonus`, so the second field is
+    // discarded in silence. Two of Anastasia's Noble Phantasms carried both --
+    // *"Range+3 for the Combat Process"* authored as `range: 3, rangeBonus: 3`
+    // -- and each reached her written 3 rather than the 6 and 4 their sheets
+    // grant, with a comment beside one of them asserting the arithmetic it was
+    // not doing. Ch. 46 §46.4-F.
+    if (typeof spec.anchor?.range === "number" && spec.anchor?.rangeBonus !== undefined) {
+      problems.push(
+        `${path}: ${where} states both "range" and "rangeBonus" — `
+        + `anchorRange takes the absolute and discards the bonus. `
+        + `Use "range" for a reach the sheet prints, "rangeBonus" for one stated `
+        + `relative to the unit's own Range ("Range+2 for the Combat Process")`,
+      );
+    }
+
     // The CHOOSER, for the same reason and with the same failure:
     // `resolveTargets` throws a `RangeError` on one it does not know, so an
     // authored typo is a crash the moment somebody uses the ability. Doomsday
@@ -1394,6 +1501,20 @@ function targetSpecs(doc) {
  * @param {object} el a rule element
  * @returns {Array<[string, string]>} `[field, tableId]`
  */
+/**
+ * A real table id, as against an unresolved `@param` placeholder.
+ *
+ * A template is validated as it is authored, before any bearer has supplied its
+ * parameters, so `floorTable: "@drainFloor"` is correct source and not an
+ * unknown table. The same guard the rank and duration checks already apply.
+ *
+ * @param {unknown} v
+ * @returns {boolean}
+ */
+function named(v) {
+  return typeof v === "string" && !v.startsWith("@");
+}
+
 function actionTables(el) {
   /** @type {Array<[string, string]>} */
   const out = [];
@@ -1403,16 +1524,16 @@ function actionTables(el) {
     if (!action || typeof action !== "object") continue;
     const at = `then[${index}]`;
     for (const field of ["table", "cooldownTable", "floorTable"]) {
-      if (typeof action[field] === "string") out.push([`${at}.${field}`, action[field]]);
+      if (named(action[field])) out.push([`${at}.${field}`, action[field]]);
     }
     for (const field of ["lteTable", "gteTable"]) {
       const id = action.whenValue?.[field];
-      if (typeof id === "string") out.push([`${at}.whenValue.${field}`, id]);
+      if (named(id)) out.push([`${at}.whenValue.${field}`, id]);
     }
     // `restore: {table, cooldownTable}` — a `RevivalSource`'s nested pair.
     for (const field of ["table", "cooldownTable"]) {
       const id = action.restore?.[field];
-      if (typeof id === "string") out.push([`${at}.restore.${field}`, id]);
+      if (named(id)) out.push([`${at}.restore.${field}`, id]);
     }
   }
 
@@ -1543,7 +1664,7 @@ export function phaseEffects(doc) {
  * Rank tables stay **symbolic** rather than being resolved here, because a rank
  * can change at runtime — Semiramis aboard the Hanging Gardens, Kiritsugu under
  * Skill Seal. A Magic Resistance baked to 30% at build time would not respond
- * to a rank shift (Ch. 37 §37.3, step 4).
+ * to a rank shift (Ch. 40, step 4).
  *
  * @param {object} doc
  * @param {string} dir the source directory, which selects the pack
@@ -1556,7 +1677,7 @@ export function compileDocument(doc, dir, library, assets = new Map(), reference
 
   // Markers become real content links here rather than at render time, so the
   // compendium holds ordinary Foundry links that work in chat, journals and
-  // exported adventures with no system code involved (§37.3).
+  // exported adventures with no system code involved (Ch. 40).
   const linked = references
     ? { ...doc, description: rewriteReferences(doc.description, references).text }
     : doc;
@@ -1677,7 +1798,7 @@ function resourceOf(authored) {
  */
 function actorSystem(doc) {
   return {
-    // Master fields (Ch. 04 §4.5, Ch. 16, Ch. 17). Absent from every other
+    // Master fields (Ch. 06, Ch. 32, Ch. 33). Absent from every other
     // actor type, and `packs/_source/masters/` did not exist until the setup
     // wizard needed something to summon a Master FROM -- so these three had
     // never had a document to be dropped from. The validator's
@@ -1685,20 +1806,20 @@ function actorSystem(doc) {
     // it was added for.
     //
     // `rank` is "" for Rankless, a real state with rules of its own rather than
-    // a missing value: Ch. 17 prices an all-Rankless table differently.
-    // Normal's "select only one Noble Phantasm" (Ch. 15). Servants only.
+    // a missing value: Ch. 33 prices an all-Rankless table differently.
+    // Normal's "select only one Noble Phantasm" (Ch. 17). Servants only.
     npChoice: doc.npChoice ?? undefined,
     rank: doc.rank ?? undefined,
     commandSpells: doc.commandSpells ?? undefined,
     // The STATED ZON, which `zonRadius` reads as a floor under its class-based
     // derivation. Normal's seven Master sheets each state one.
     zon: doc.zon ?? undefined,
-    // Platform fields (Ch. 20). Absent from every other actor type and cheap
+    // Platform fields (Ch. 27). Absent from every other actor type and cheap
     // to carry; without them a platform compiles into an actor that knows its
     // Health and nothing about who it shields or how it moves.
     // `=== null` FIRST, because `?? undefined` collapses an authored null into
     // "field absent" and the schema then applies its 3x3 initial. The Storm
-    // Border states `footprint: null` deliberately -- Ch. 20 §20.6, *"it is not
+    // Border states `footprint: null` deliberately -- Ch. 27, *"it is not
     // on the board at all while it is submerged"* -- and it arrived in a live
     // world as a 3x3 hull, which is a submarine-shaped hole in the middle of
     // the board. Making the schema field nullable was necessary and not
@@ -1707,7 +1828,7 @@ function actorSystem(doc) {
     upkeep: doc.upkeep ?? null,
     countsTowardBudget: doc.countsTowardBudget ?? undefined,
     actsOncePerTurn: Boolean(doc.actsOncePerTurn),
-    // Bašmu (Ch. 32): tied to the HGoB and free to displace whoever it walks
+    // Bašmu (Ch. 45): tied to the HGoB and free to displace whoever it walks
     // into. Absent from every other summon and cheap to carry.
     boundToPlatformId: doc.boundToPlatformId ?? null,
     movesOntoOccupiedPanels: Boolean(doc.movesOntoOccupiedPanels),
@@ -1740,11 +1861,11 @@ function actorSystem(doc) {
     // which is the fourth time that has happened -- see `unitKeyCoverage` in
     // `tools/validate-content.mjs`, added so it is the last.
     itemHandling: doc.itemHandling ?? "hold",
-    // Structure-only (Ch. 43 §43.10). "Only Masters can destroy a Bloodmark",
+    // Structure-only (Ch. 28). "Only Masters can destroy a Bloodmark",
     // and "Bloodmarks can only be seen from a distance of 3 cells Maximum".
     destroyableBy: doc.destroyableBy ?? [],
     visibleWithin: doc.visibleWithin ?? null,
-    // Agility and Luck as STATED numbers (§6.3: Agility is the number you roll
+    // Agility and Luck as STATED numbers (Ch. 06: Agility is the number you roll
     // under, not a rank), which only summons and platforms carry -- Bašmu's
     // "Agility: 14 / Luck: 7", the four Dragon Tooth Warriors, the Hanging
     // Gardens. Every Servant sheet in the reference set reads "Agility: XX/XX",
@@ -1769,7 +1890,7 @@ function actorSystem(doc) {
     ownerId: doc.ownerId ?? null,
     level: doc.level ?? undefined,
     crossLevel: doc.crossLevel ?? undefined,
-    // A pocket dimension's own rules (Ch. 20 §20.6). An authored field absent
+    // A pocket dimension's own rules (Ch. 27). An authored field absent
     // from this allowlist compiles to its schema default -- null -- so the
     // Storm Border would have arrived as an ordinary platform with no entry
     // roll, no clock and no way out.
@@ -1795,7 +1916,7 @@ function actorSystem(doc) {
     baseAttack: doc.baseAttack ?? { str: 0, mag: 0 },
     normalAttack: doc.normalAttack ?? { mode: "fixed", component: "str" },
     sustainability: doc.sustainability ?? null,
-    // The linked-group binding (Ch. 16 §16.8). Authored SETTINGS only --
+    // The linked-group binding (Ch. 32). Authored SETTINGS only --
     // `memberIds` is resolved at summon and is never in the YAML -- but the
     // settings are what make a Servant half of a pair, and an authored field
     // this allowlist does not name compiles to its schema default. That is the
@@ -1813,7 +1934,7 @@ function actorSystem(doc) {
     // and the schema lives there, in prose, beside the clause it came from.
     stanceSpec: doc.stance ?? null,
     stance: doc.stance?.default ?? "",
-    // §6.10's pools, declared on the Servant that owns them.
+    // Ch. 06's pools, declared on the Servant that owns them.
     resources: doc.resources ?? {},
     notes: doc.notes ?? "",
   };
@@ -1856,7 +1977,7 @@ function itemSystem(doc) {
     // Enhancement is on and cannot be turned off.
     active: Boolean(doc.active),
     cannotDeactivate: Boolean(doc.cannotDeactivate),
-    // §15.3's two-way toggle lockout.
+    // Ch. 17's two-way toggle lockout.
     toggleLock: doc.toggleLock ?? null,
     // WHEN a mode may be switched off, for a mode with no bounded field of its
     // own to carry it. Raikou's Tenmōkaikai is the first: *"Raikou can
@@ -1870,11 +1991,11 @@ function itemSystem(doc) {
     // and her sheet then lists five other skills that count as Instinct --
     // a list that lives on the sheets asserting it, not in code.
     categorizedAs: doc.categorizedAs ?? [],
-    // A weak point (Ch. 44 §44.2). Compiled whole: `rules/weak-point.mjs` is
+    // A weak point (Ch. 45). Compiled whole: `rules/weak-point.mjs` is
     // its only reader and the schema lives there, in prose, beside the clause
     // it came from.
     weakPoint: doc.weakPoint ?? null,
-    // An ability that IS a Riding Attack (Ch. 44 §44.3).
+    // An ability that IS a Riding Attack (Ch. 45).
     ridingAttack: doc.ridingAttack ?? null,
     expendsPermanently: Boolean(doc.expendsPermanently),
     // "Eye of the Mind (only when Active/its buffs are in effect)": the effect
@@ -1882,12 +2003,12 @@ function itemSystem(doc) {
     categorizedWhile: doc.categorizedWhile ?? [],
     npTags: doc.npTags ?? [],
     cooldown: compileCooldown(doc.cooldown),
-    // §6.10: a resource that buys this use out of its cooldown entirely.
+    // Ch. 06: a resource that buys this use out of its cooldown entirely.
     cooldownWaiver: doc.cooldownWaiver ?? null,
     targeting: doc.targeting ?? null,
-    // The bounded field a Noble Phantasm creates (Ch. 43).
+    // The bounded field a Noble Phantasm creates (Ch. 28).
     field: doc.field ?? null,
-    // Item fields (Ch. 15 §15.8). `requirements` is carried below,
+    // Item fields (Ch. 17). `requirements` is carried below,
     // shared with the Command Spell block.
     quantity: doc.quantity ?? undefined,
     transferable: Boolean(doc.transferable),
@@ -1899,18 +2020,18 @@ function itemSystem(doc) {
     // `rules/items.mjs#acquisitionTarget`. A role pair against a CONTENT id,
     // because an actor id is random per world.
     barredFrom: doc.barredFrom ?? null,
-    // Ch. 43 §43.11's gate: this ability reads the past, so the match must
+    // Ch. 28's gate: this ability reads the past, so the match must
     // record one. Off by default, so a match without it pays nothing.
     requiresHistory: Boolean(doc.requiresHistory),
     phases: doc.phases ?? [],
-    // §15.7. `copyable` defaults to allowed, so an author only writes it to
+    // Ch. 17. `copyable` defaults to allowed, so an author only writes it to
     // say NO -- and the validator below checks the reason when they do.
     copyable: doc.copyable ?? undefined,
     copiedFrom: doc.copiedFrom ?? null,
     opensDialog: doc.opensDialog ?? null,
-    // §15.4's supersession, as authored data.
+    // Ch. 17's supersession, as authored data.
     additionalCosts: doc.additionalCosts ?? [],
-    // A per-ability Round gate (Ch. 44 §44.5). Declared in the ability schema
+    // A per-ability Round gate (Ch. 45). Declared in the ability schema
     // when it was written, authored on two abilities, and NOT LISTED HERE --
     // so it was dropped by this allowlist on the way into the pack and every
     // document read `null`. Ozymandias's *"can only be used after 7 full
@@ -1929,7 +2050,7 @@ function itemSystem(doc) {
     // the game was copyable by Wisdom of Dún Scáith.
     kind: doc.kind ?? null,
     passive: Boolean(doc.passive),
-    // §15.3's "unless stated" overrides. Passed through as authored, including
+    // Ch. 17's "unless stated" overrides. Passed through as authored, including
     // `undefined`, because `countsAsAttack` derives its answer when unstated.
     countsAsAttack: doc.countsAsAttack ?? undefined,
     countsAsAct: doc.countsAsAct ?? undefined,
@@ -1941,7 +2062,7 @@ function itemSystem(doc) {
     // The Round-scale cap. Karna's Uncrowned Arms Mastership has no cooldown,
     // so this is the only thing limiting it.
     oncePerRound: Boolean(doc.oncePerRound),
-    // §7.6. `engine/cooldown.mjs` has read this since it was written.
+    // Ch. 04. `engine/cooldown.mjs` has read this since it was written.
     // Normalised to objects, so the schema can hold both forms: a bare id is
     // the common case and `{exclusionSet}` / `{category}` names a group.
     alsoTriggers: (doc.alsoTriggers ?? []).map((e) => (typeof e === "string" ? { ability: e } : e)),
@@ -1966,9 +2087,9 @@ function itemSystem(doc) {
     // 'Kanshou & Bakuya' is negated while 'Overedge' is on Cooldown". A
     // `negatedBy` cannot say it: a cooldown is not something anybody carries.
     negatedWhile: doc.negatedWhile ?? null,
-    // What an ability does to an incoming Noble Phantasm it cancels (§33.4).
+    // What an ability does to an incoming Noble Phantasm it cancels (Ch. 45).
     cancelsNP: doc.cancelsNP ?? null,
-    // Ch. 10 §10.6: "Decoy is not affected by Debuff Resist or Immune effects
+    // Ch. 14: "Decoy is not affected by Debuff Resist or Immune effects
     // when a Unit applies it on itself or on another allied Unit." An effect
     // property rather than an application argument, because it is true of the
     // effect wherever it comes from.

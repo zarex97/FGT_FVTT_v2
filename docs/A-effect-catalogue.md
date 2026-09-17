@@ -1,9 +1,23 @@
 # Appendix A — Effect Catalogue
 
-> **Authored so far (Ch. 45).** 70 of roughly 152 effect definitions exist as content in
-> `packs/_source/effects/`. The three most recent are Pale Rider's: `charm` — the id
-> `rules/control.mjs#isCharmed` has looked for since it was written, with nothing to find —
-> `regen`, and `dmgCut`, the first negation in the catalogue with a charge count.
+> **Authored so far (Ch. 45).** **157 of 154** effect definitions exist as content in
+> `packs/_source/effects/`. This block previously claimed 70 while §A.20 claimed 34 and the
+> directory held 126 — three tallies that disagreed with each other and with the disk, which is
+> why the count is now stated once, here, and derived from `ls packs/_source/effects/`.
+>
+> The count exceeds the catalogue's own 154 because several rows are families whose members are
+> separate documents — `Atk Up` alone has eight, and the per-Servant variants (`kiritsuguMark`,
+> `raikouBuff`, `castorBuff`) are ids in the same namespace. §A.20's 154 counts **named rows**;
+> this counts **files**.
+>
+> The most recent **thirty-one** are a group rather than a Servant's kit, and they share a defect:
+> **`substitution`, `endure`, `accel`, `overCrit`, `gCrit`, `noCrit`, `ward`, `defCrk`,
+> `critResUp`, `critResDwn` and `blockUp` each had a working engine reader and no document able
+> to reach it.** Stage 0's halt, stage 16's Health clamp, stage 2's four-term crit sum, stage 4's
+> `ward` bucket, `critChance`'s two short-circuits and `canCounter`'s Accel flag were all
+> implemented, tested by their neighbours, and unreachable, because the id each one tests for by
+> name belonged to no effect. Authoring the eleven documents is the whole of the fix for nine of
+> them; see §A.21.
 >
 > An effect an ability references but which is **not** in that directory fails the content
 > build — `validate-content.mjs` refuses an unknown effect id, which is how the five added
@@ -37,7 +51,7 @@ and its implementation note. This is the authoritative reference the compendium 
 | `NP DmUp` | B | O | mag | 4 | NP damage +X%. Also affects abilities *categorized as NP*. Not passive NPs. |
 | `Overcharge` | B | O | mag | — | Magnitude of all **non-damage** NP effects increased. Explicitly excludes direct damage. |
 | `Crit DmUp` | B | O | mag | 2 | Crit damage +X%. Not NP unless stated. |
-| `Over Crit` | B | O | nr | 2 | While crit chance > 100%, crit damage +（chance − 100)%. |
+| `Over Crit` | B | O | nr | 2 | While crit chance > 100%, crit damage +（chance − 100)%. **Built** (`overCrit`), `rules: []` — `overCritBonus` has computed `max(0, chanceUsed − 100)` off the attacker's held effects since stage 2 was written. |
 | `Ignore Def` | B | O | nr | 4 | Attacks ignore `Def Up` on the DU. **Does not ignore `Dmg Cut`.** **Built** (`ignoreDef`, Drake) as `AttackProperty: ignoresDefUp` **alone**. Kiritsugu's `penetration` is the two-clause version — Ignore Def *and* a halved Invuln — and Achilles's `ignoresDefensiveBuffs` is wider still, so the set has three strengths of "gets past defences" and this is the mildest. |
 | `Break` | B | O | nr | 14 | Chance to ignore Block; extra damage if the attack was Blocked. Default chance 100% if unstated. |
 | `Uncharted` | B | — | nr | — | **Built** (`uncharted`, Drake). Detect +3 panels. Detect is **read-time**, not stored: `rules/identity.mjs#detectRangeOf` derives it from a class table whose Caster entry depends on where the unit is standing, so a Servant's stored `detect` is null. A delta written there starts from **zero** — throwing the class base away — and, because that null makes `restoreModifiable` skip the field, is never reset: Drake's read 6, 9, 12, 15, 18 across five preparations. So nothing writes it; `applyStatDeltas` skips `detect` and `detectRangeOf` sums the deltas onto the base it already resolves. |
@@ -53,16 +67,16 @@ and its implementation note. This is the authoritative reference the compendium 
 | Effect | Pol | Val | Stack | Stage | Semantics |
 |---|---|---|---|---|---|
 | `Def Up` | B | D | mag | 4 | Damage taken −X%. Reduced magnitude vs NP. Family: `defUp`. Sums additively with attacker `Atk Up` (Ch. 13 §13.4). |
-| `Ward` | B | D | mag | 4 | Damage from a matching category −X%, **including NP**. Predicated. |
+| `Ward` | B | D | mag | 4 | Damage from a matching category −X%, **including NP**. Predicated. **Built** (`ward`). *"Including NP"* is asserted by **omitting** `npValue`, which makes stage 4 fall back to `value`; writing `npValue: "@magnitude"` reads as the same assertion and is not one (§A.21). |
 | `Dmg Cut` | B | D | mag | 12 | Damage taken −X **flat**, including NP. Not bypassed by `Pierce`. **Built** (`dmgCut`), and the first effect to carry `uses` on a `DamageNegation`: Guidance of the Netherworld applies it "3 times", and a charge is spent only when the negation stage had damage to reduce. `mode: flat` was the executor's default and the attack flow skipped it outright — every negation in the corpus was dice-mode — so a flat cut authored cleanly and reduced nothing until this was built. |
-| `Crit ResUp` | B | D | mag | 2 | Crit damage taken −X%. Not NP. |
+| `Crit ResUp` | B | D | mag | 2 | Crit damage taken −X%. Not NP. **Built** (`critResUp`) — stage 2 has summed it off the defender since it was written. |
 | `Crit Guard` | B | D | mag | — | AU's crit chance −X% when attacking this unit. Not NP unless stated. |
 | `Shield (X)` | B | D | nr | 16 | Separate pool absorbing damage; excess passes through. **A Master with Shield cannot be Overpowered.** |
 | `Invuln` | B | D | nr | 16 | No damage. Vs NP: 50% reduction instead. "Reduce Health to 0" becomes "halve current Health". Cannot Block. `Pierce` ignores it. Does **not** prevent rider debuffs. Masters with it cannot be Overpowered. |
 | `Anti-Purge` | B | D | nr | 0 | No damage from anything, including NP and Fixed, even against `Pierce`. Beats `Invuln`. |
-| `Endure` | B | D | nr | 16 | Lethal damage leaves the unit at 1 Health, if it had >1. |
+| `Endure` | B | D | nr | 16 | Lethal damage leaves the unit at 1 Health, if it had >1. **Built** (`endure`), `rules: []`. Stage 16 carried the arithmetic **twice** — Gogh's *"cannot be defeated due to Curse"* is the same subtraction with a source, written directly beneath an `endure` test nothing could satisfy. The `health > 1` guard is the pipeline's: a Unit already at 1 is not saved, because Endure prevents the drop **to** zero rather than the defeat. |
 | `Max HpUp` | B | D | mag | — | Max Health +X **and current Health restored by the same amount**. |
-| `Block Up` | B | D | mag | 14 | Block roll +X. |
+| `Block Up` | B | D | mag | 14 | Block roll +X. **Built** (`blockUp`). `BlockModifier` exists solely to produce this key, stage 14 sums it and `explain.mjs` names it in the breakdown — an element, a reader and a log entry for an effect with no document. Percentage **points** onto the flat 25%. |
 
 ## A.3 Buffs — hit and avoid
 
@@ -71,9 +85,9 @@ and its implementation note. This is the authoritative reference the compendium 
 | `Dodge` | B | D | nr | Automatic successful Evade for the duration/count. **Cannot use the Evade action.** `Aim` ignores it. Fires on Evade rolls but **not** on other Agility Checks. |
 | `Aim` | B | O | nr | Ignores `Dodge` and the Evade action. Beaten by `Substitution`. |
 | `Pierce` | B | O | nr | Ignores `Invuln` and the Block action. **Does not ignore `Def Up` or `Dmg Cut`.** Beaten by `Anti-Purge`. |
-| `Substitution` | B | D | nr | Cannot be hit by anything, including NP and Fixed, even against `Aim`. Beats `Dodge`. |
+| `Substitution` | B | D | nr | Cannot be hit by anything, including NP and Fixed, even against `Aim`. Beats `Dodge`. **Built** (`substitution`), `rules: []` — stage 0 halts on it before the attack is measured, which is what makes the clause absolute. `aim.yml` withheld a `blockedBy` for it; that note is now corrected rather than fulfilled, because `blockedBy` gates *application* and these two ride opposite Units. |
 | `Insight` | B | OD | nr | 50% chance of automatically Evading any attack including NP; crit chance +25%. |
-| `Accel` | B | O | nr | Opponents cannot React to this unit's attacks. |
+| `Accel` | B | O | nr | Opponents cannot React to this unit's attacks. **Built** (`accel`), `rules: []` — and it needed engine work, because only the **Counter** rung was closed. See §A.21. |
 | `AGL Up` | B | D | mag | Agility Check rolls −X (easier). |
 | `AGL Dwn` | D | — | mag | Agility Check rolls +X (harder). |
 | `Agility Boost` | B | D | nr | Always uses the favourable Agility table. |
@@ -87,7 +101,7 @@ and its implementation note. This is the authoritative reference the compendium 
 |---|---|---|---|---|
 | `Crit Up` | B | O | mag | Crit chance +X%. Not NP unless stated. |
 | `S.Crit Up` | B | O | mag | As `Crit Up`, but **application cannot be prevented** and it is **Unremovable**. |
-| `G.Crit` | B | O | nr | Attacks always crit. Not NP unless stated. |
+| `G.Crit` | B | O | nr | Attacks always crit. Not NP unless stated. **Built** (`gCrit`), `rules: []` — `critChance` returns `{percent: 100, automatic: true}` on the line below `noCrit`'s. A short-circuit, not a +100% modifier, which is what makes "always" absolute. |
 | `Area CritUp` | B | O | mag | **Aura.** Crit chance +X% for allies within range. Only while within range. **Built** (`areaCritUp`) for Van Gogh's *De Sterrennacht*, radius 2, `relations: [ally, self]` — the bearer benefits, because "all allied Units" includes itself unless the text says otherwise. Written in the aura's **nested** form (`elements:`), which is what made its `@magnitude` the first in the corpus to need resolving at that depth; before that it reached every correct recipient carrying the literal string. Resolution at evaluation time is what makes "only while within range" true without a position-watcher. |
 | `Clarity` | B | O | nr | Doubles the magnitude of `Area CritUp` buffs affecting this unit. Evaluated in the aura-consumer band. |
 
@@ -159,12 +173,12 @@ whole attack.
 | `Def Dwn (B)` | D | nv | D | mag | 4 | As `Def Dwn`, with NP damage taken further increased. |
 | `Def Dwn (C)` | D | nv | D | mag | 4 | As `Def Dwn`, plus **Agility −1** on the same trigger as (A). |
 | `Def Dwn (MAG)` | D | nv | D | mag | 4 | As `Def Dwn`, but **only against MAG-component damage**. A distinct effect rather than a stronger one: the parenthesis names what is scoped, and content that strips "one Def Dwn" must be able to take this without taking an unscoped one instead. **Built 2026-09-16** (`packs/_source/effects/def-dwn-mag.yml`) for `Enigma`, which is the only thing that inflicts it. |
-| `Def Crk` | D | nv | D | mag | 16 | Damage taken +X **flat**, including NP. Categorized as `defDwn`. **Its addition does not count toward the Injury Roll threshold.** |
+| `Def Crk` | D | nv | D | mag | 16 | Damage taken +X **flat**, including NP. Categorized as `defDwn`. **Its addition does not count toward the Injury Roll threshold.** **Built** (`defCrk`). The subtle half was already enforced — stage 16 takes the injury snapshot *before* the addition, quoting this row — so only the effect that triggers it was missing. Needs an explicit `modifierKey`, because the default for a flat *taken* modifier is `flatReduction`, which subtracts. |
 | `Dmg Loss` | D | nv | O | mag | 7 | Damage dealt −X flat. **Not** categorized as `atkDwn`. |
 | `Crit Dwn` | D | nv | O | mag | — | Crit chance −X%. |
 | `Crit DmDwn` | D | nv | O | mag | 2 | Crit damage −X%. |
-| `No Crit` | D | nv | O | nr | — | Cannot crit. Not NP unless stated. |
-| `Crit ResDwn` | D | nv | D | mag | 2 | Crit damage taken +X%. Not NP. |
+| `No Crit` | D | nv | O | nr | — | Cannot crit. Not NP unless stated. **Built** (`noCrit`), `rules: []` — `critChance` short-circuits on the id **before** summing any modifier, so no `Crit Up` can outbid it. A `CritModifier` of −100 could be. |
+| `Crit ResDwn` | D | nv | D | mag | 2 | Crit damage taken +X%. Not NP. **Built** (`critResDwn`), the debuff half of the pair stage 2 already sums. |
 | `NP DmDwn` | D | nv | O | mag | 4 | NP damage −X%. |
 | `Bal Dwn (X%)` | D | nv | D | mag | — | Attacks against this unit have crit chance +X%. Not NP. |
 | `Max HpDwn` | D | nv | D | mag | — | Max Health −X. Health is **not** restored when it ends. |
@@ -583,7 +597,9 @@ Health.
 
 Each becomes one YAML file under `packs/_source/effects/` (Ch. 37 §37.1).
 
-**Authored so far: 34 of 154.** Scáthach brought fifteen at once, which is more than any other
+**Authored so far: 157 files against 154 named rows** — the count lives in this appendix's header block and is read
+off the directory rather than incremented by hand, because three hand-kept tallies had already
+drifted apart. Scáthach brought fifteen at once, which is more than any other
 Servant and not a coincidence: her *Primordial Rune* is a sixteen-row table of ordinary buffs and
 debuffs, so she needed the crit and debuff-chance families completed in **both** directions —
 `Crit DmUp` / `Crit Dwn` / `Crit DmDwn`, `NP DmUp` / `NP DmDwn`, and all four of
@@ -595,6 +611,108 @@ twenty-one-type terrain system, and every one of them is a buff, a status or a r
 debuff vocabulary catalogued from the source documents in `0.1.0` turned out to be complete.
 That is a useful signal about where the game's authors did their systematisation, and about
 which half of Appendix A is likely to keep growing.
+
+---
+
+## A.21 The thirty-one readers with no document — built 2026-09-16
+
+Thirty-one rows of this catalogue shared one defect, and it is this project's dominant one stated
+as plainly as it ever gets: **the behaviour was implemented and no Unit could be given the effect
+that triggers it.** Each reader tests for an effect **by id**, and each id belonged to no
+document.
+
+| Effect | The reader that was already there |
+|---|---|
+| `Substitution` | `damage/pipeline.mjs` stage 0 halts on it, before the attack is measured |
+| `Endure` | stage 16's clamp to `health − 1`, written twice — Gogh's Curse clause sits beneath it |
+| `Ward` | stage 4's `DEFENDER_BUCKET_KEYS`, the `Ward` element, and a row in `explain.mjs` |
+| `Def Crk` | stage 16, with the Injury-threshold snapshot taken above it |
+| `Crit ResUp` / `Crit ResDwn` | stage 2's four-term crit-damage sum |
+| `Over Crit` | `overCritBonus`, `max(0, chanceUsed − 100)` |
+| `G.Crit` / `No Crit` | the two short-circuits at the top of `checks.mjs#critChance` |
+| `Block Up` | the `BlockModifier` element, stage 14's sum, and a row in `explain.mjs` |
+| `Accel` | `combat-process.mjs#canCounter`'s `attackerHasAccel` flag |
+
+Nine of the eleven needed **only** the document — six of those carry `rules: []`, which is the
+finished state and not an unfinished one, because the pipeline recognises them by id and a rule
+element beside that would be a second, weaker implementation of a halt that already exists.
+
+Two needed more.
+
+### The second twenty
+
+| Effect | The reader that was already there |
+|---|---|
+| `nvDebuff Immune` / `vDebuff Immune` / `Men.Debuff Immune` | the `scoped` table in `effect-applier.mjs`, keyed on the incoming effect's own **volatility** |
+| `Off.Debuff Immune` / `Def.Debuff Immune` | the same gate's two **valence** branches |
+| `No Buff` | that gate's one buff branch — `polarity === "buff"`, the single line in the function that asks about a buff |
+| `NP Lock` / `NP Degen` / `NP Lag` | three short-circuits at the top of `scheduler.cooldownRate` |
+| `PoisHeal` / `CursHeal` / `FlamHeal` | **two** readers each: stage 0's element conversion *and* `PERIODICS[…].healConversion` |
+| `Luck Boost` / `Luck Loss` | four call sites, each `held.includes(id) \|\| plan.forceTable === …` |
+| `Stop` | `PREVENT_ALL`, plus **two** scheduler sweeps — durations and cooldowns are different passes |
+| `Crystalfreeze` | stage 16 iterates `[["freeze", …], ["crystalfreeze", …]]`; only one had a document |
+| `Immobilize` | the partial-prevention table, an Agility `+4` in `attack.mjs` — **and terrain inflicting it** |
+| `Seal` | `seal: ["attack", "skill", "np"]`, whose omission of `spell` *is* the row's last clause |
+| `Webbed` | `PREVENT_ALL` and `invalidation.mjs` |
+| `Dragonblight` | stage 0's halt on an elemental attack (clause 1 only) |
+
+Three of these are worth singling out.
+
+**`Immobilize` was worse than inert.** `rules/terrain.mjs` has *inflicted* it since the terrain
+system was built — `magnetic` ground is *"25% chance of Immobilize for 1◈ — 100% for units with
+the Mechanical attribute"*, carrying a resistance bypass written carefully around a debuff that
+did not exist. The clause could not land, so magnetic terrain did nothing at all. This is the
+first entry in this appendix where the missing document silently disabled a **shipped feature**
+rather than only a catalogue row.
+
+**The partial preventions are the half that can go wrong quietly.** `Immobilize` and `Seal` must
+**not** carry `preventsAction: true`: that flag routes an effect through `PREVENT_ALL`, which
+takes everything. Immobilize would then stop an Attack it is not supposed to stop, and Seal would
+stop the Spells its row explicitly spares. Both documents omit the flag deliberately, and the
+tests assert the permitted action rather than only the refused ones — a denial test that checks
+only refusals passes just as happily when the effect denies too much.
+
+**`Dragonblight` clause 2 had no reader at all.** *"Cannot inflict volatile debuffs"* is an
+**outgoing** `ApplicationChance` of −100 scoped by `volatility` — the same field Heracles's
+Bravery uses — so a volatile debuff authored later is covered by saying what it is, and no list
+of ids has to be kept in this file.
+
+`Levitating` is **not** in the table above and is deliberately not a document: §A.17.2 calls it
+an *attribute*, and `rules/platforms.mjs` and `rules/terrain.mjs` both read it off
+`unit.attributes`. An effect of the same id would be a second, divergent answer to one question.
+
+### `Accel` was a strictly weaker effect than this catalogue describes
+
+The row says *"opponents cannot **React**"*. `canCounter` had taken an `attackerHasAccel` flag
+since the Counter rung was written and `engine/attack.mjs` had passed it — so the **third** rung
+was closed and the first two were not. A defender could still Block and Evade an Accel attack.
+
+Nothing had noticed because nothing could apply `accel`; authoring the document is what first put
+a Unit on the near side of the gap. The fix went where the ladder is narrowed for every other
+reason — `forbiddenReactions`, assembled once at declaration alongside concealment's refusals, an
+AGI comparison and an attack's own `unblockable` — rather than beside the counter flag, because a
+rung closed in two places is a rung that can be reopened in one.
+
+Pressed in a live world against a real declared Normal Attack, the Process now halts at the
+`react` rung carrying `forbiddenReactions: []` normally and `["block", "evade"]` when the attacker
+holds Accel.
+
+### `npValue: "@magnitude"` is a dangling expression, and it bit six files
+
+`Ward` is *"including NP"* — full magnitude against a Noble Phantasm, unlike `Def Up`. The obvious
+way to say so is `npValue: "@magnitude"`, and it does nothing at all.
+
+`rules/snapshot.mjs#resolveRuleValues` substitutes the two instance tokens **by field**: `value` is
+matched against `"@magnitude"`, `npValue` against `"@npMagnitude"`. A `npValue` holding
+`"@magnitude"` therefore matches nothing, survives as a literal string into the executor, resolves
+against a `@` ref tree that publishes no `magnitude`, and comes back `null` — so every executor
+drops the field.
+
+The resulting behaviour is the pipeline's default (`isNP && m.npValue !== undefined ? m.npValue :
+m.value`), which is **exactly what the author wanted**. That is precisely why it went unnoticed in
+`atk-up-demonic`, `atk-up-magus`, `atk-up-ms`, `def-dwn-a` and `def-dwn-c`: right answer, dead
+line. The assertion is the **omission**, and `tools/lib/content.mjs` now refuses the dead spelling
+in either direction.
 
 ---
 

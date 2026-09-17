@@ -1,6 +1,6 @@
 /**
  * @file Karna — the clauses that needed engine that did not exist.
- * @see char_orig_sheets/Copia de Karna.md, docs/36-case-remaining.md §36.1
+ * @see char_orig_sheets/Copia de Karna.md, docs/45-case-studies.md
  *
  * Nine of his thirteen abilities were unauthored when this pass started,
  * including both of the two that define him. Each case below is either a clause
@@ -12,6 +12,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
 import { collectContributions } from "../../module/rules/elements.mjs";
+import { endTurn } from "../../module/engine/scheduler.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { applyStatDeltas } from "../../module/rules/derived.mjs";
 import { rollOptionsFor } from "../../module/rules/options.mjs";
@@ -63,7 +64,7 @@ describe("Brahmastra — the 4x/2x fork", () => {
   });
 
   it("drops to 2x on a single higher Parameter", () => {
-    // §36.1's own example: Heracles's LUC A against Karna's D, and nothing else
+    // Ch. 45's own example: Heracles's LUC A against Karna's D, and nothing else
     // needs to beat him.
     expect(branchFor({
       str: Rank.of("E"), end: Rank.of("E"), agi: Rank.of("E"), mag: Rank.of("E"), luc: Rank.of("A"),
@@ -121,7 +122,7 @@ describe("Kavacha and Kundala", () => {
 
   it("is negated by the status Vasavi Shakti's activation applies", () => {
     expect(kk.negatedBy).toEqual(["vasaviActivated"]);
-    // The DECISION recorded in §36.1: the trailing "?" on the NP Seal clause is
+    // The DECISION recorded in Ch. 45: the trailing "?" on the NP Seal clause is
     // in the source, and a question mark is not a statement.
     expect(kk.negatedBy).not.toContain("npSeal");
   });
@@ -132,12 +133,60 @@ describe("Kavacha and Kundala", () => {
       rules: [], passiveRules: kk.passiveRules, activeRules: [],
     }]).eventHandlers;
 
-    expect(handler.events).toEqual(["actedTurnEnd"]);
+    // *"at the end of every Turn that Karna is INVOLVED IN A COMBAT PHASE"* --
+    // not every Turn he ACTS. Being attacked is involvement, and a Servant whose
+    // whole design is to be attacked spends most Turns doing exactly that; on
+    // `actedTurnEnd` the armour's upkeep skipped every one of them. Measured on
+    // a live board before the fix: Heracles hit him for 184 and his Master paid
+    // nothing (Ch. 46 §46.9).
+    expect(handler.events).toEqual(["involvedTurnEnd"]);
     // Note 2: the NP cost "overwrites" the 20 rather than stacking with it.
     expect(handler.unlessUsedThisTurn).toEqual({ category: "karnaNP" });
     expect(handler.actions[0]).toMatchObject({
       subject: "master", stat: "health.value", amount: 20, direction: "down", floor: 1,
     });
+  });
+});
+
+describe("the Turn boundary knows who was in a Combat Phase", () => {
+  const kk = ability("karna-kavacha-and-kundala");
+  const handlers = collectContributions([{
+    id: "kk", slug: "kavachaAndKundala", rank: "A", active: false,
+    rules: [], passiveRules: kk.passiveRules, activeRules: [],
+  }]).eventHandlers;
+
+  /** Karna, with a Master to bill and a turn state to vary. */
+  const karna = (over = {}) => ({
+    id: "karna", name: "Karna", masterId: "master", factionId: "f1",
+    eventHandlers: handlers, acted: false, inCombatPhase: false, ...over,
+  });
+  const master = { id: "master", name: "Master", factionId: "f1", health: 250, eventHandlers: [] };
+  const ctx = (units) => ({
+    tick: 4, turnsPerRound: 3, activeFactionId: "f2", rolls: {},
+    board: { units: [...units, master] },
+  });
+  const billed = (karnaUnit) => {
+    const units = [karnaUnit, master];
+    return endTurn({ units }, ctx(units))
+      .filter((i) => i.t === "statDelta" && i.unitId === "master");
+  };
+
+  it("bills the Master on a Turn Karna only defended", () => {
+    // The case that was silently free: attacked on somebody else's Turn, so
+    // `acted` is false and `attacked` is false -- he did neither, he was done to.
+    expect(billed(karna({ inCombatPhase: true }))).toEqual([
+      expect.objectContaining({ unitId: "master", stat: "health.value", delta: -20 }),
+    ]);
+  });
+
+  it("bills once, not twice, when he both acted and was attacked", () => {
+    // Attacking IS involvement, so the flag is set either way. The two passes
+    // are separate events and this clause subscribes to one of them.
+    expect(billed(karna({ acted: true, inCombatPhase: true }))).toHaveLength(1);
+  });
+
+  it("bills nothing on a Turn he was in no Combat Phase at all", () => {
+    expect(billed(karna({ acted: true, inCombatPhase: false }))).toEqual([]);
   });
 });
 
@@ -304,7 +353,7 @@ describe("Mana Burst (Flames)", () => {
   const mb = ability("karna-mana-burst-flames");
 
   it("combines both Base Attacks: 125 + 175 = 300", () => {
-    // docs/06-stats-and-resources.md §6.7 states the number.
+    // docs/06-units-and-stats.md states the number.
     const result = computeDamage({
       attacker: { baseAttack: { str: 125, mag: 175 }, modifiers: [] },
       defender: { health: 9999, modifiers: [] },

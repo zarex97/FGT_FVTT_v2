@@ -1,6 +1,6 @@
 /**
  * @file The environment — Day/Night, Home Base and the Holy Grail.
- * @see docs/19-environment.md
+ * @see docs/29-environment.md
  *
  * Layer 2 (rules). Pure: it takes the board and returns modifiers, effect
  * descriptors and new state values. Never intents — an intent is how layer 3
@@ -38,7 +38,7 @@ export function phase(round, startedAtDay) {
 }
 
 /**
- * Which phase a **panel** is in — §42.6, verbatim.
+ * Which phase a **panel** is in — Ch. 26, verbatim.
  *
  * The function above is a property of the Round. This one is a property of the
  * ground, and the chapter changed the model for exactly one reason:
@@ -385,7 +385,7 @@ export function grailContest(state, units) {
  *
  * *"The chance is X%, where X = the amount of damage dealt by the NP divided by
  * 20."* A 2,000-damage NP is therefore a guaranteed loss **for everyone**,
- * which is why §19.4 requires the targeting preview to warn and take a second
+ * which is why Ch. 29 requires the targeting preview to warn and take a second
  * confirmation before it is thrown.
  *
  * @param {number} damage
@@ -403,7 +403,7 @@ export function grailDestructionChance(damage) {
  * Which regions border which.
  *
  * *"Directly next to"* is a geographic adjacency the source does not tabulate,
- * so this ships as curated, editable data (§19.3). Semiramis's HGoB Construction
+ * so this ships as curated, editable data (Ch. 29). Semiramis's HGoB Construction
  * counter is the only consumer today — but the mechanism is general, and a
  * one-way edge would make her counter depend on the order two regions happened
  * to be compared in, so the graph is kept **symmetric** and a test enforces it.
@@ -440,7 +440,7 @@ export const REGION_ADJACENCY = Object.freeze({
  * Netherlands, Europe and Greece, and benefits from a war in any of the three.
  *
  * Because it grants parameter *steps* it also moves Base Attack by ±10 per step
- * (Ch. 05 §5.6), which is why `parameters` separates `base` from `granted`.
+ * (Ch. 03), which is why `parameters` separates `base` from `granted`.
  *
  * @param {object} unit
  * @param {string|null} warRegion
@@ -493,7 +493,7 @@ export function mayAttackCivilian(attacker, ctx = {}) {
 /**
  * Killing a Civilian.
  *
- * A distinct resolution path (Ch. 04 §4.6): no damage calculation, no reaction
+ * A distinct resolution path (Ch. 06): no damage calculation, no reaction
  * ladder, no Overpower. The Civilian dies and the killer is paid.
  *
  * @param {object} attacker
@@ -564,7 +564,7 @@ export function checkVictory(board) {
  *
  * The Round comes in as an ARGUMENT rather than off `CONFIG`, because this is
  * Layer 2 and may not reach it -- and it was hardcoded as `> 1`, which left
- * `CONFIG.FGT.gates.noAttackRound` sitting beside the three other numbers §7.9
+ * `CONFIG.FGT.gates.noAttackRound` sitting beside the three other numbers Ch. 04
  * states and nothing reads. `0` switches the ban off.
  *
  * @param {number} round

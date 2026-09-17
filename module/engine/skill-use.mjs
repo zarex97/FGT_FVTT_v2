@@ -1,6 +1,6 @@
 /**
  * @file Using an active Skill that is not an Attack.
- * @see docs/15-abilities.md §15.1, §15.2, docs/18-action-economy.md
+ * @see docs/17-abilities.md, Ch. 17, docs/19-action-economy.md
  *
  * Layer 3.
  *
@@ -15,13 +15,14 @@
  * on the use path, which is this project's signature defect: a rule that is
  * right and inert.
  *
- * A Skill is not an Attack (§15.1). It has no defender, so there is nothing to
+ * A Skill is not an Attack (Ch. 17). It has no defender, so there is nothing to
  * evade, block or counter, and no Combat Process to run — a ladder whose every
  * rung is skipped is not a ladder. It spends the Unit's **Act** and, unless it
  * deals damage directly, not its Attack.
  */
 
-import { canUseAbility } from "../rules/costs.mjs";
+import { canUseAbility, additionalCostsFor } from "../rules/costs.mjs";
+import { refreshShield } from "./shield.mjs";
 import { displaceToken } from "./io.mjs";
 import {
   targetSpecFor, countsAsAttack, countsAsAct, isNegated, blockedThisTurn, needsTargeting,
@@ -87,7 +88,7 @@ export async function useSkill({
   const combat = game.combats?.active;
 
   // The same gates an attack passes, because they are gates on *using an
-  // ability* rather than on attacking: cooldown, round, cost, and §15.4's
+  // ability* rather than on attacking: cooldown, round, cost, and Ch. 17's
   // requirement list.
   const usage = canUseAbility({
     // Spread FIRST, then OR: an ability may carry the flag on its own document,
@@ -101,10 +102,10 @@ export async function useSkill({
     master,
     round: combat?.round ?? 1,
     board,
-    // §7.9's Round gate, whose numbers are world settings Layer 2 cannot read.
+    // Ch. 04's Round gate, whose numbers are world settings Layer 2 cannot read.
     ...gateContext(),
     // The `predicate` requirement kind (`rules/items.mjs`) has been in
-    // `meetsRequirement` since §15.4 was implemented and refused every use
+    // `meetsRequirement` since Ch. 17 was implemented and refused every use
     // that named it: `ctx.testPredicate` had no supplier here, so
     // `typeof undefined === "function"` failed and the gate always lost.
     // Semiramis's Sikera Ušum is the first content that needs it --
@@ -125,7 +126,7 @@ export async function useSkill({
   const blocker = blockedThisTurn(ability, usedThisTurn(actor));
   if (blocker) return { ok: false, reason: "sameTurnExclusive", blocker };
 
-  // A Skill spends the skill budget, not an attack (Ch. 18). `countsAsAttack`
+  // A Skill spends the skill budget, not an attack (Ch. 19). `countsAsAttack`
   // is consulted rather than assumed: a damaging Attack Skill spends both.
   const asAttack = countsAsAttack(ability);
   if (combat?.started) {
@@ -136,6 +137,20 @@ export async function useSkill({
   const targets = resolveSkillTargets(ability, self, board, placement);
   if (targets.errors.length > 0) return { ok: false, reason: targets.errors[0] };
 
+  // A barrier's pool, filled BEFORE the phases hand out the buff that spends it
+  // -- and before `recordUse` below, because `refreshShield` reads `timesUsed`
+  // to tell a first projection from a later one.
+  //
+  // `engine/attack.mjs`'s `payAbilityPrice` has always done this and was the
+  // ONLY caller, so a barrier granted through this path had a pool of zero.
+  // Scales of the Sacred Fish is the case: `countsAsAttack: false` on a
+  // `whenAllyAttacked` window, so it comes here -- and *"the Unit gains the
+  // Shield (200) buff"* granted a Shield of nothing. Measured live, Semiramis
+  // holding her own buff and taking an ordinary Normal Attack: 750 -> 733, with
+  // `shieldHealth: 0` against a declared 200 (Ch. 46 §46.4-AE). `refreshShield`
+  // even carries a default written for this very ability.
+  if (ability?.system?.shield) await refreshShield(ability);
+
   const applied = await runPhases(ability, actor, targets.units, board);
 
   const marks = {
@@ -145,6 +160,12 @@ export async function useSkill({
 
   await applyWorldIntents([
     ...(usage.cost && !applied.channelStarted ? costIntents(usage.cost, self) : []),
+    // The ability's OWN standing costs, which only the attack path used to pay.
+    // Rho Aias is a reaction and Unlimited Blade Works a Skill-path Noble
+    // Phantasm; both state a Master cost their sheets are explicit about, and
+    // both charged nothing (Ch. 46 §46.4-T).
+    ...(applied.channelStarted ? [] : additionalCostsFor({ ability, self, master })
+      .flatMap((cost) => costIntents(cost, self))),
     ...itemCostIntents(ability, actor),
     ...(applied.channelStarted ? [] : cooldownIntents(ability, actor, applied.summoned ?? 0, self)),
     I.markTurn(actorId, marks),
@@ -326,7 +347,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
   // `Double Summon` grants the 'DSC' buff only in its THIRD clause, "if
   // Semiramis does not have the Double Summon: Caster Skill", a condition on
   // one phase of a three-phase ability rather than on the ability as a whole.
-  // Self-only, like a rule element's own `predicate` (Ch. 24 §24.3) -- there
+  // Self-only, like a rule element's own `predicate` (Ch. 10) -- there
   // is no target and no attack here either, so a clause naming one belongs on
   // an `OnEvent` handler instead, not on a phase.
   //
@@ -546,7 +567,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
               [
                 I.itemGrant(target.unitId, phase.contentId, amount),
                 I.log({ kind: "itemGrant", contentId: phase.contentId, unitId: target.unitId, amount }),
-                // HGoB Construction source 4 (Ch. 32): "increased by the
+                // HGoB Construction source 4 (Ch. 45): "increased by the
                 // number of [Semiramis' Poison] PRODUCED" -- the SAME roll
                 // that decided the item count, not a second, independent
                 // one. `alsoGrantsResource` rides the one roll rather than
@@ -611,7 +632,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           //
           // `summonPlatform` builds a token from `platform.system.footprint`
           // and passes `footprint.w`/`.h` to `getTokenDocument`. The Storm
-          // Border's footprint is `null` by construction (Ch. 20 §20.6: *"it is
+          // Border's footprint is `null` by construction (Ch. 27: *"it is
           // not on the board at all"*), so reusing that path would either
           // crash on the null or fall back to 1x1 and put a submarine token on
           // the board -- the one thing a pocket dimension must not do.
@@ -673,7 +694,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
         }
 
         case "zone": {
-          // §42.7's authored shape for ability-created terrain. Once per use,
+          // Ch. 26's authored shape for ability-created terrain. Once per use,
           // from the caster: an area is one area, and looping it over a target
           // list would paint one per Unit caught. Same guard `createField` uses
           // one case above, for the same reason.
@@ -706,7 +727,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // panel within."*
           //
           // An attack in every structural sense except that it deals no damage
-          // (Ch. 43): it spends the attack budget and marks `acted`, through
+          // (Ch. 28): it spends the attack budget and marks `acted`, through
           // the ability's own `countsAsAttack`, and it never opens a Combat
           // Process -- there is no damage step for one to run.
           const field = (board.fields ?? []).find((f) => f.id === phase.fieldId);
@@ -1156,7 +1177,7 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
       uses: times,
       duration: rule.duration ?? spec.duration ?? def.defaultDuration,
       source: { unitId: actor.id, abilityId: ability.id },
-      // Declared per effect by the ability (§15.2). Atlas's two reductions
+      // Declared per effect by the ability (Ch. 17). Atlas's two reductions
       // stack, which is why this is a list rather than a number.
       chanceModifiers: spec.chanceModifiers ?? rule.chanceModifiers ?? [],
       // The ability's own stated chance, overriding the effect's default.
@@ -1336,7 +1357,7 @@ async function postCard(actor, ability, targets, applied) {
   await ChatMessage.create({
     content,
     speaker: publicSpeakerFor(actor, board),
-    // §26.7's `filtered` mode: one message every client renders differently.
+    // Ch. 38's `filtered` mode: one message every client renders differently.
     // The flags carry the full list, which is the documented trade -- a
     // filtered card ships the whole result to every client that can read them,
     // and `strict` (a whisper per audience) is the setting for a table that
@@ -1590,7 +1611,7 @@ async function runChoice(phase, ability, actor, snapshot, board = null) {
     // An option may branch into PHASES rather than name an effect. Mana Burst's
     // *"either restore 2 Agility and 2 Luck to Castor; or restore 1 Agility and
     // 1 Luck to both"* is two stat changes on different targets, which no
-    // effect id can say. Ch. 34 §34.10 proposed a separate `kind: choice` for
+    // effect id can say. Ch. 45 proposed a separate `kind: choice` for
     // this; `choose` is the decision phase this game already has, and a second
     // one beside it would be two grammars for one question.
     if (spec.phases) {
@@ -1932,6 +1953,31 @@ function applyBatchOfEffects(specs, actor, ride) {
  * @param {object} board
  * @returns {Promise<object[]>}
  */
+/**
+ * Start a channelled ability's channel, and say whether one began.
+ *
+ * A pass of its own, and it exists because of WHERE it has to run.
+ * {@link runCasterPhases} happens after the damage has landed; a channel has to
+ * be decided **before** `payAbilityPrice` charges anything, because starting one
+ * is exactly what defers the price. So `channel` stays out of
+ * {@link CASTER_PHASES} — putting it there would run it at the wrong end of the
+ * Process, after a cost it was supposed to have suppressed — and the attack path
+ * calls this instead (Ch. 46 §46.4-Z).
+ *
+ * Returns false when the unit is already channelling, which is `startChannel`'s
+ * own refusal: a second declaration neither restarts the clock nor earns the
+ * deferral, and must pay like anything else.
+ *
+ * @param {object} ability
+ * @param {object} actor
+ * @param {object} board
+ * @returns {Promise<boolean>} whether a channel actually began
+ */
+export async function runCasterChannel(ability, actor, board) {
+  const applied = await runPhases(ability, actor, [{ unitId: actor.id }], board, (p) => p.kind === "channel");
+  return Boolean(applied.channelStarted);
+}
+
 export async function runCasterPhases(ability, actor, board, extras = {}) {
   // The caster IS the resolved target list here. Passing an empty one made
   // every phase that had not written `target: self` resolve to `reuse` and then
@@ -2174,7 +2220,7 @@ export async function actorFromPacks(contentId) {
  *
  * Three forms. An explicit `shape` anchored on the caster is the ordinary case
  * (Charisma of the Sun's 5×5, Piedra Del Sol's 7×7). `shape: "reuse"` is
- * §42.7's other spelling — *"the NP's own blast area"* — and
+ * Ch. 26's other spelling — *"the NP's own blast area"* — and
  * `shape: "fortressNearby"` is Xiuhcoatl's, which Task 13 fills in.
  *
  * @param {object} spec the phase's `spec` block
@@ -2291,8 +2337,27 @@ function zoneRadius(spec) {
   return typeof size === "number" ? Math.floor(size / 2) : null;
 }
 
-const CASTER_PHASES = new Set([
-  "resource", "statChange", "setMode", "cooldown", "removeEffect", "summon", "createField", "choose", "heal",
+export const CASTER_PHASES = new Set([
+  // NOT `cooldown`. It was here AND in `engine/attack.mjs`'s post-damage loop,
+  // so an ability's own cooldown change ran twice on the attack path -- once at
+  // declaration and once as the Process advanced. The loop's handling is the
+  // richer one: `splitCooldownRider` separates changes aimed at the DEFENDER
+  // (once per Process) from the caster's own (once per Combat Phase, gated on
+  // `isFirstOfGroup`), a distinction declaration cannot make because no
+  // defender exists yet. The comment beside that loop already records the same
+  // bug being fixed for `summon`, which double-conjured Bašmu.
+  //
+  // Measured on Semiramis's Familiar Doves: two enemies carrying the Dove
+  // effect, so X = 2, and her Noble Phantasm's cooldown fell by 2 at
+  // declaration and 2 more on the first advance -- no Turn boundary, no fan.
+  // Through `useSkill`, which runs every phase once, it fell by exactly 2
+  // (Ch. 46 §46.4-X).
+  // NOT `channel` either, and for a sharper version of the same reason: this
+  // pass runs AFTER the damage and after `payAbilityPrice`, and a channel's
+  // whole effect on the cost flow is to defer it. Run here it would start a
+  // channel that had already been billed for. `runCasterChannel` above owns it,
+  // from before the price (Ch. 46 §46.4-Z).
+  "resource", "statChange", "setMode", "removeEffect", "summon", "createField", "choose", "heal",
   "summonPlatform",
   // Opening a pocket dimension is something the caster does once, from where
   // he is standing, exactly as raising a platform is.

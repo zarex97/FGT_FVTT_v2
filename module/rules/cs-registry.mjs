@@ -1,6 +1,6 @@
 /**
  * @file The Command Spell catalogue registry.
- * @see docs/17-command-spells.md §17.2
+ * @see docs/33-command-spells.md
  *
  * Layer 2 (rules). Pure once loaded: `load()` is handed the documents rather
  * than going looking for them, so the lookup half is testable without a world —

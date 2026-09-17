@@ -1,5 +1,5 @@
 # Nemo, char_orig_sheets/Copia de Nemo.md
-# Discussed: docs/36-case-remaining.md §36.6 ("A dice-counting attack skill
+# Discussed: docs/45-case-studies.md ("A dice-counting attack skill
 # with five conditional modifiers")
 #
 # The only `diceCount` formula in the corpus, and the only ability whose
@@ -66,7 +66,7 @@ damage:
         # flattens Agility to a number (`rules/snapshot.mjs`), and the `.value`
         # spelling -- which is what the Actor document uses -- resolves to
         # undefined and makes `predicate.mjs` throw on the comparison. Found in
-        # a live world; the sketch in Ch. 36 §36.6 had the document's spelling.
+        # a live world; the sketch in Ch. 45 had the document's spelling.
         - { delta: -1, predicate: [{ lte: ["@target.agility", "@self.agility"] }] }
     perSuccess: { amount: 25, component: str }
   component: str

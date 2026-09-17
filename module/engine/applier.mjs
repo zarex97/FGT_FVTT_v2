@@ -1,6 +1,6 @@
 /**
  * @file The only place in the system that writes documents.
- * @see docs/03-domain-overview.md §3.4, docs/26-authority-and-sockets.md
+ * @see docs/02-architecture.md, docs/38-authority.md
  *
  * Layer 3. Split deliberately in two:
  *
@@ -100,7 +100,7 @@ export async function applyIntents(intents, { io, canWrite, isGM = false, source
   // attack path alone would miss the half the clause exists for: a pure control
   // ability provoking a 2.5× retaliation.
   //
-  // Queued, never resolved: a Counter is a full declaration (§12.8) and cannot
+  // Queued, never resolved: a Counter is a full declaration (Ch. 21) and cannot
   // be opened from inside the write path (`engine/auto-counter.mjs`).
   await noteDebuffs(plan.local);
   // *"If Drake is inflicted with NP Seal, Golden Hind is immediately
@@ -252,7 +252,7 @@ async function resolveEffects(intents) {
   // than failing -- the flow is exercised directly by its own tests.
   if (typeof game === "undefined" || !game?.actors) return intents;
 
-  const [{ applyEffect, inflictBonusOf }, { EffectRegistry }, { unitSnapshot }] = await Promise.all([
+  const [{ applyEffect, inflictBonusOf }, { EffectRegistry }, { unitSnapshot, unitFrom }] = await Promise.all([
     import("./effect-applier.mjs"),
     import("../rules/registry.mjs"),
     import("./board.mjs"),
@@ -260,6 +260,19 @@ async function resolveEffects(intents) {
 
   /** @type {Intent[]} */
   const out = [];
+  // Built ONCE for the batch, not per intent: `currentBoard()` assembles every
+  // unit on the map, and this loop runs per effect applied.
+  //
+  // It is needed because the applier asks the target BOARD questions. A field's
+  // `ImmunityDowngrade` writes `suppressions` onto the units standing in it,
+  // and `immunityDowngradeFor` reads them at the immunity gate -- but this path
+  // built its subject with `unitSnapshot`, an actor-only pass that has no
+  // suppressions at all. So Sikera Usum clause d (*"the Poison Immune effect is
+  // reduced to a Poison Resist effect"*) never downgraded anything: measured
+  // with Serenity, who is Immune to Poison, standing in the Throne Room and
+  // taking fourteen poisoning attacks without being poisoned once
+  // (Ch. 46 §46.4-AG).
+  const board = currentBoard();
   for (const intent of mergeStages(intents)) {
     if (intent.t !== "applyEffect" || intent.resolved) {
       out.push(intent);
@@ -287,7 +300,7 @@ async function resolveEffects(intents) {
 
     const result = applyEffect({
       def,
-      target: unitSnapshot(target),
+      target: unitFrom(board, target) ?? unitSnapshot(target),
       magnitude: intent.effect.magnitude ?? 0,
       npMagnitude: intent.effect.npMagnitude ?? null,
       // An ability's stated chance beats the definition's `baseChance`. Carried
@@ -477,7 +490,7 @@ async function writeGroup(group, io) {
       await io.setFacing(unitId, intents.at(-1).facing);
       break;
     case "spendCS":
-      // The Servant travels with the intent, because §16.9's pools are keyed by
+      // The Servant travels with the intent, because Ch. 32's pools are keyed by
       // it -- without it the writer cannot tell which pool to draw from.
       await io.spendCommandSpells(
         unitId, sum(intents, "count"), intents[0].command, intents[0].servantId ?? null,
@@ -496,7 +509,7 @@ async function writeGroup(group, io) {
       for (const i of intents) await io.extendEffect(unitId, i.defId, i.turns);
       break;
     case "recordUse":
-      for (const i of intents) await io.recordUse(unitId, i.abilityId, i.contentId);
+      for (const i of intents) await io.recordUse(unitId, i.abilityId, i.contentId, i.count);
       break;
     case "defeat":
       await io.defeat(unitId, intents[0].cause);

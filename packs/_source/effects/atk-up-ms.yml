@@ -25,7 +25,14 @@ rules:
     direction: dealt
     value: "@magnitude"
     # "including NP" rather than a reduced NP figure, so the two are equal.
-    npValue: "@magnitude"
+    # "Including NP" is stated by OMITTING `npValue`: an absent npValue makes
+    # the pipeline use `value` against a Noble Phantasm too
+    # (`damage/pipeline.mjs`, `isNP && m.npValue !== undefined ? ... : m.value`),
+    # which is the full magnitude this clause wants. Writing `npValue:
+    # "@magnitude"` here reads as the same assertion and is not one -- that
+    # token is only substituted into `value`, so it resolved to nothing and the
+    # field was dropped. The behaviour was right and the line was inert; the
+    # content validator now refuses it.
     # DEFERRED, necessarily: the target does not exist at collection time, so
     # answering `target:attribute:` there answers it wrong and drops the
     # modifier for ever. The damage pipeline re-tests it with the attack in

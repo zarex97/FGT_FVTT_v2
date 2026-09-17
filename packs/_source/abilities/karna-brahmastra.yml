@@ -1,6 +1,6 @@
 # Karna, char_orig_sheets/Copia de Karna.md
-# The parameter comparison is docs/05-ranks-and-parameters.md §5.9 and
-# docs/36-case-remaining.md §36.1; targeting shape T9 in docs/09 §9.13.
+# The parameter comparison is docs/03-ranks-and-tables.md and
+# docs/45-case-studies.md; targeting shape T9 in docs/20-targeting.md.
 schema: 1
 id: karna-brahmastra
 name: "Brahmastra: O' Brahma, Cover the Earth"
@@ -50,7 +50,7 @@ damage:
   # whose Parameter is unranked, which has no Parameter higher than Karna's and
   # emits no option either way.
   #
-  # §36.1 notes the consequence and it is deliberate design: Heracles's LUC A
+  # Ch. 45 notes the consequence and it is deliberate design: Heracles's LUC A
   # and Drake's LUC EX both beat Karna's D on their own, so the 4x branch is
   # rarer than it looks.
   branches:

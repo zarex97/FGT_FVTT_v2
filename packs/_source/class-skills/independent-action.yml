@@ -33,7 +33,7 @@ passiveRules:
   # it.
   #
   # `stacks` is false BY OMISSION and that is the load-bearing part:
-  # §6.9 says Independent Action and the Caster/Assassin class bonus are "the
+  # Ch. 06 says Independent Action and the Caster/Assassin class bonus are "the
   # same effect" and take the HIGHEST rather than the sum. Mad Enhancement's +2
   # is a different effect and does add, which is why the field is per-element
   # rather than global.

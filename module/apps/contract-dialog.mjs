@@ -1,6 +1,6 @@
 /**
  * @file The contract dialog.
- * @see docs/16-relationships.md §16.2
+ * @see docs/32-relationships.md
  *
  * Layer 4. Lists every Servant on the board with what contracting it would
  * take — and, when it cannot be attempted, **why**.

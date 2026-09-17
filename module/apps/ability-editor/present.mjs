@@ -1,6 +1,6 @@
 /**
  * @file The ability editor's view-model, computed without a world.
- * @see docs/29-user-interface.md §29.6, D29.12
+ * @see docs/35-sheets-and-editor.md, D29.12
  *
  * Layer 4, but **pure**: no `game`, no `canvas`, no `ui`. D29.12 says
  * presentation arithmetic lives in a module that can be unit-tested without a
@@ -108,7 +108,7 @@ export function railRows(draft, itemType, { current = null } = {}) {
  * Every rule element authored into one bucket, plus what may be added.
  *
  * An element whose key no descriptor knows keeps its row and renders raw:
- * §21.4 lets a module add one, and an editor that dropped it on save would be
+ * Ch. 02 lets a module add one, and an editor that dropped it on save would be
  * silently deleting another package's content.
  *
  * @param {object} draft

@@ -38,7 +38,7 @@ description: |
   Cooldown: 8◈ Turns.
 targeting:
   # "in any non-diagonal direction next to Gogh" -- the player picks one of
-  # four, presented as ghost previews (Ch. 09 §9.3).
+  # four, presented as ghost previews (Ch. 20).
   anchor: { kind: selfEdgeAdjacent }
   shape: { kind: rect, w: 5, h: 5 }
   selection: { relations: [enemy], chooser: all }

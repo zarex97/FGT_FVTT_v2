@@ -1,6 +1,6 @@
 /**
  * @file What the pending-decisions window lists, and in what order.
- * @see docs/27-reaction-protocol.md §27.5, docs/29-user-interface.md
+ * @see docs/23-reactions.md, docs/34-action-bar.md
  *
  * Pure. The app scans the chat log and reads the flags; this decides what is
  * shown, so the ordering and the ownership rule are testable without Foundry —
@@ -8,7 +8,7 @@
  *
  * The problem it exists for: an AoE attack already fans out to one ladder PER
  * DEFENDER. Own four units, have a Noble Phantasm catch three, and there are
- * three prompts in a scrolling log, each with a clock, and §27.5's default on
+ * three prompts in a scrolling log, each with a clock, and Ch. 23's default on
  * expiry is the option that spends nothing. Nothing answered "what is the game
  * waiting for me to do?"
  */
@@ -31,8 +31,8 @@ const LABELS = Object.freeze({
  * The rows this viewer should see, soonest deadline first.
  *
  * A row survives when the viewer owns the unit being asked, when the viewer is
- * the GM (who answers for absent players through §27.5's "decide for them"), or
- * when the viewer has a Command Spell to spend into the exchange — §17.4's
+ * the GM (who answers for absent players through Ch. 23's "decide for them"), or
+ * when the viewer has a Command Spell to spend into the exchange — Ch. 33's
  * interrupt is the one decision that is yours on somebody else's rung.
  *
  * @param {object[]} entries already read off the messages by the app

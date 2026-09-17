@@ -1,0 +1,36 @@
+# Appendix A §A.9
+# "Damage taken +X flat, including NP. Categorized as `defDwn`. Its addition
+# does not count toward the Injury Roll threshold."
+#
+# Stage 16 of `rules/damage/pipeline.mjs` reads `defCrk` by name, and the
+# threshold clause is already enforced one line above it: the injury snapshot is
+# taken BEFORE the addition, with a comment quoting this catalogue row. So the
+# subtle half was implemented and the effect that triggers it did not exist.
+#
+# The flat counterpart of `Dmg Cut` on the intake side, and it lands at the same
+# stage for the same reason -- a flat number has to meet the total after every
+# percentage has been applied, or the percentages would scale it.
+schema: 1
+id: defCrk
+name: "Def Crk"
+description: |
+  Damage taken is increased by X, including from Noble Phantasms. The additional damage does not
+  count towards the amount required for an Injury Roll.
+polarity: debuff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+severity: normal
+# "Categorized as defDwn" -- so content that strips one `Def Dwn` can take this,
+# and a `Def Dwn`-scoped resistance answers it.
+families: [defDwn]
+rules:
+  # `direction: taken` with an explicit `modifierKey`, because the default for
+  # a taken flat modifier is `flatReduction` -- the generic member that REDUCES.
+  # This one adds, and stage 16 knows it by its own name.
+  - key: DamageModifier
+    direction: taken
+    stage: flat
+    modifierKey: defCrk
+    value: "@magnitude"

@@ -37,7 +37,7 @@ describe("tierOf", () => {
 
 describe("the two price questions", () => {
   it("pays the High column for High AND Rankless", () => {
-    // Ch. 15 §15.4: "Rankless Masters use the left column." The right column
+    // Ch. 17: "Rankless Masters use the left column." The right column
     // is the Low Rank penalty, not the default -- this is the behaviour the
     // two cost readers already had, moved rather than changed.
     expect(paysHighColumn(master("A"))).toBe(true);
@@ -71,7 +71,7 @@ describe("grantBudget", () => {
  * stop carrying their own copies of `isHighRankMaster`, so they capture
  * today's behaviour rather than tomorrow's. If one of them fails after the
  * refactor, the refactor changed a price -- revert it, do not adjust the
- * expectation. `if (!rank) return true` is Ch. 15 §15.4, not a defect.
+ * expectation. `if (!rank) return true` is Ch. 17, not a defect.
  */
 describe("de-duplication is behaviour-preserving", () => {
   const servant = { id: "s1", kind: "servant", contract: "contracted", sustainability: 6 };
@@ -143,7 +143,7 @@ describe("the coin flip keeps the rank it determines", () => {
 });
 
 /* -------------------------------------------------------------------------- */
-/*  What High Rank actually buys (Ch. 04 §4.5)                                 */
+/*  What High Rank actually buys (Ch. 06)                                 */
 /* -------------------------------------------------------------------------- */
 
 describe("High Rank Master grants — ZON", () => {
@@ -166,7 +166,7 @@ describe("High Rank Master grants — ZON", () => {
     // is the right intent and the wrong arithmetic: `max(derived, floor)`
     // swallows the bonus precisely when the floor wins, which is what the old
     // assertion locked in. The floor exists so a stated ZON is believed; the
-    // rank grant is a separate, unconditional "+1 panel" (Ch. 04 §4.5), and it
+    // rank grant is a separate, unconditional "+1 panel" (Ch. 06), and it
     // belongs on both sides of the comparison.
     //
     // Inert in Advanced, where almost no Master states a ZON. Total in Normal,

@@ -1,0 +1,20 @@
+# Appendix A §A.9
+# "Cannot crit. Not NP unless stated."
+#
+# `rules/checks.mjs#critChance` returns `{percent: 0, blocked: true}` for a Unit
+# holding `noCrit`, and has since crits were written. The counterpart of
+# `gCrit` on the same two lines, and neither had a document.
+schema: 1
+id: noCrit
+name: "No Crit"
+description: "This Unit's Attacks cannot Crit."
+polarity: debuff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+# No rule elements: `critChance` short-circuits on the id BEFORE summing any
+# modifier, which is what makes "cannot" absolute rather than "-100%". A
+# `CritModifier` of -100 would be beaten by a large enough `Crit Up`.
+rules: []

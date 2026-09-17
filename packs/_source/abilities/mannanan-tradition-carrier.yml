@@ -1,5 +1,5 @@
 # Mannanán mac Lir, char_orig_sheets/Copia de Mannanán mac Lir.md
-# Discussed: docs/33-case-mannanan.md §33.2
+# Discussed: docs/45-case-studies.md
 schema: 1
 id: mannanan-tradition-carrier
 name: "God's Holder: Tradition Carrier"
@@ -18,7 +18,7 @@ description: |
   (Passive 4) The duration of buffs are extended by ⅓◈ extra Turns when applied to Mannanán.
 passiveRules:
   # Passive 1's second half. The ceiling itself is the pool's own `max` on her
-  # sheet (§6.10) and `io.adjustResource` clamps to it, so the gain does not
+  # sheet (Ch. 06) and `io.adjustResource` clamps to it, so the gain does not
   # have to know the number -- which is what lets Holder Mode raise it to 7 by
   # moving one field.
   - key: OnEvent
@@ -33,7 +33,7 @@ passiveRules:
   # formality the engine performs (`engine/optional-costs.mjs`).
   #
   # "For that Combat Phase" is authored as `this turn`. A Combat Phase is the
-  # declaration plus its Counters (§12.1) and lives inside one Turn, and the
+  # declaration plus its Counters (Ch. 21) and lives inside one Turn, and the
   # duration vocabulary's smallest unit is the Turn -- so this is the closest
   # honest expression and it never outlives the exchange it was bought for.
   - key: OptionalCost
@@ -52,7 +52,7 @@ passiveRules:
     value: "5 * @self.resources.fragarachTokens.value"
 
   # Passive 4. A modifier on the effect APPLICATION pipeline rather than on a
-  # stat -- step 6 of Ch. 11 §11.2, adjusting the resolved tick count before the
+  # stat -- step 6 of Ch. 15, adjusting the resolved tick count before the
   # expiry is stamped.
   - key: DurationExtension
     amount: "⅓◈"

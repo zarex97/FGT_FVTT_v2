@@ -1,16 +1,16 @@
 # Nursery Rhyme, char_orig_sheets/Copia de Nursery Rhyme.md
 #
-# THE FIRST `Script` IN THE CORPUS. Ch. 34 and Ch. 36 both close their tallies
-# with "Script elements: zero", and Ch. 44 §44.6 budgets four across ~130
+# THE FIRST `Script` IN THE CORPUS. Ch. 45 and Ch. 45 both close their tallies
+# with "Script elements: zero", and Ch. 45 budgets four across ~130
 # abilities; this is one of them, and the only one built.
 #
 # Why this one is not data: every other ability in the corpus is a COMPOSITION
 # of named mechanisms. This one walks a unit set, resolves a historical index,
 # diffs two states and emits a heterogeneous batch -- and it has exactly one
-# customer. Ch. 24: "Scripts are the escape hatch, not the norm." A rule element
+# customer. Ch. 10: "Scripts are the escape hatch, not the norm." A rule element
 # generalising "rewind" from a single example would be inventing a vocabulary
 # for a shape nothing else has. If a second rewind ever appears, generalise then
-# -- the rule Ch. 44 already applies to `innocentWorld` and `heel`.
+# -- the rule Ch. 45 already applies to `innocentWorld` and `heel`.
 schema: 1
 id: nursery-queens-glass-game
 name: "The Queen's Glass Game: Perpetual Engine - Maiden Empire"
@@ -37,7 +37,7 @@ description: |
      used once during the entire game.
 passiveRules:
   # EFFECT 1. At the end of the Turn, after all other end-of-turn processing
-  # (Ch. 07 §7.7), so it undoes that Turn's events too.
+  # (Ch. 04), so it undoes that Turn's events too.
   #
   # "Enters Combat" is a moment this engine does not have -- no event, no flag,
   # no state, and the phrase occurs once in the whole repository, in ch. 43's

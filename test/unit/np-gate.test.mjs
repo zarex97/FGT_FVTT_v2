@@ -1,8 +1,8 @@
 /**
  * @file The Noble Phantasm availability gate.
- * @see docs/07-time-model.md §7.9, module/rules/np-gate.mjs
+ * @see docs/04-time-model.md, module/rules/np-gate.mjs
  *
- * `CONFIG.FGT.gates` held all four of §7.9's numbers from the day the config
+ * `CONFIG.FGT.gates` held all four of Ch. 04's numbers from the day the config
  * was written and NOTHING read that object. Measured live before this existed:
  * a Noble Phantasm fires in Round 1.
  */
@@ -16,7 +16,7 @@ import {
 const servant = (classes) => ({ id: "s", kind: "servant", servantClasses: classes });
 
 describe("the published defaults", () => {
-  it("are §7.9's own numbers", () => {
+  it("are Ch. 04's own numbers", () => {
     expect(NP_GATE).toEqual({ round: 6, assassinRound: 4 });
   });
 
@@ -33,7 +33,7 @@ describe("isGated", () => {
   });
 
   it("...and one that is only CATEGORIZED as one", () => {
-    // The same predicate §15.5's other three scoping questions use. EMIYA's
+    // The same predicate Ch. 17's other three scoping questions use. EMIYA's
     // Overedge, Bašmu's Dragonfire, Mannanán's Fragarach Counter and the
     // Hanging Gardens are all in scope.
     expect(isGated({ categorizedAsNP: true })).toBe(true);
@@ -124,7 +124,7 @@ describe("gateTurnFor", () => {
   });
 
   it("holds across every turnsPerRound the harness exercises", () => {
-    // §7.10 tests the time model against {3, 8, 15} rather than sampling.
+    // Ch. 04 tests the time model against {3, 8, 15} rather than sampling.
     expect(gateTurnFor(servant(["saber"]), null, { turnsPerRound: 8 })).toBe(41);
     expect(gateTurnFor(servant(["saber"]), null, { turnsPerRound: 15 })).toBe(76);
   });
@@ -147,7 +147,7 @@ describe("npAvailableTurn", () => {
     // > be available, X being the number of Turns its NP Cooldown was increased
     // > by."
     //
-    // Additive, not `max()` — §7.9's own pseudocode says max and is wrong
+    // Additive, not `max()` — Ch. 04's own pseudocode says max and is wrong
     // (spec R1). Under max() an NP Lock spent before the gate is free, which is
     // the outcome the clause exists to prevent.
     const locked = np({ cooldown: { remaining: 0, gatedDelay: 5 } });

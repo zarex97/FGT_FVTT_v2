@@ -1,6 +1,6 @@
 /**
  * @file Every rule element the engine executes, in the words a GM uses.
- * @see docs/29-user-interface.md §29.6, docs/11-effect-engine.md
+ * @see docs/35-sheets-and-editor.md, docs/15-effect-application.md
  *
  * Layer 2 (rules). Pure data.
  *
@@ -61,7 +61,7 @@ const SCALED = Object.freeze([
  * One descriptor.
  *
  * `label` and `hint` are **localization keys**, following
- * `rules/targeting/vocabulary.mjs` — §29.9 makes Spanish a first-class target,
+ * `rules/targeting/vocabulary.mjs` — Ch. 34 makes Spanish a first-class target,
  * and an English sentence baked into the table cannot be translated. The
  * second argument is the English, and it stays in the source because the
  * instruction "read the executor before changing a hint" is useless if the
@@ -79,7 +79,7 @@ const entry = (id, english, fields = []) => ({
   label: `FGT.Authoring.Element.${id}`,
   hint: `FGT.Authoring.Element.${id}Hint`,
   english,
-  doc: "11-effect-engine.md",
+  doc: "15-effect-application.md",
   buckets: ALL_BUCKETS,
   fields: [...fields, ...GATE],
 });

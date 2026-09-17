@@ -1,6 +1,6 @@
 /**
  * @file Every token's artwork stays upright.
- * @see docs/29-user-interface.md §29.3, docs/04-units.md §4.4
+ * @see docs/34-action-bar.md, docs/06-units-and-stats.md
  *
  * Layer 3. F/GT tracks which way a unit faces in `system.facing` — one of
  * eight compass points, set from the token HUD's dropdown

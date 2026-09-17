@@ -1,0 +1,21 @@
+# Appendix A §A.7
+# "Immune to non-volatile debuffs."
+#
+# `engine/effect-applier.mjs`'s immunity gate reads this id out of a `scoped`
+# table keyed on the incoming effect's own `volatility` -- so the classification
+# this appendix assigns every row is what decides coverage, and no sheet has to
+# list what it protects against. The table has named `nvDebuffImmune` since the
+# gate was written and no document could supply it.
+schema: 1
+id: nvDebuffImmune
+name: "nvDebuff Immune"
+description: "Immune to non-volatile debuffs."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+# No rule elements: the gate recognises the id. An `Immunity` element here would
+# have to enumerate every non-volatile debuff by name, which is the list this
+# appendix's `Vol` column already keeps -- in one place, correctly.
+rules: []

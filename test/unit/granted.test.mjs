@@ -1,6 +1,6 @@
 /**
  * @file Granted abilities — making `grantedAbilities` a live input.
- * @see docs/15-abilities.md §15.7, docs/45-implementation-status.md B3
+ * @see docs/17-abilities.md, docs/46-roster-re-audit.md B3
  *
  * `GrantedAbility` collected ability ids into `grantedAbilities` and nothing
  * read the bucket. Riding's double move *did* work — but through a separate

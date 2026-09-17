@@ -1,5 +1,5 @@
 # Quetzalcoatl, char_orig_sheets/Copia de Quetzalcoatl.md
-# The bounded-field model is Ch. 43; this is a point in its six axes, and it is
+# The bounded-field model is Ch. 28; this is a point in its six axes, and it is
 # structurally Jack's Mist with a placed object for an anchor.
 schema: 1
 id: quetz-piedra-del-sol
@@ -63,7 +63,7 @@ field:
     # DECISION: this OVERRIDES her Skill's +120 rather than stacking to +300.
     # The clause is headed with the Skill's own name and gives a different
     # number, which reads as the stone raising the Skill's value while it
-    # stands. `supersedes` is §15.4's mechanism for exactly that, so the two
+    # stands. `supersedes` is Ch. 17's mechanism for exactly that, so the two
     # cannot both apply and the reason is legible where it applies rather than
     # being a subtraction somebody has to remember. If play proves the other
     # reading, deleting the `supersedes` line is the whole fix.

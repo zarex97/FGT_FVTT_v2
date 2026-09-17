@@ -1,8 +1,8 @@
 /**
  * @file The GM's war setup wizard.
- * @see docs/19-environment.md §19.7, docs/29-user-interface.md
+ * @see docs/29-environment.md, docs/34-action-bar.md
  *
- * Layer 4. Ch. 19 §19.7 has listed twelve procedures that happen before a war
+ * Layer 4. Ch. 29 has listed twelve procedures that happen before a war
  * begins since it was written, and **three** of them existed: the Region's
  * parameter grant, the day/night opening flip, and Round 1's attack ban. The
  * other nine were a GM with a rulebook and a mouse — create the scene, set its
@@ -15,7 +15,7 @@
  * already builds the combatants, and `HomeBaseBehavior` already turns a Region
  * into a base that five rules read. This is the thing that calls them in order.
  *
- * Two of Ch. 29's rules govern every control here: an unavailable control is
+ * Two of Ch. 34's rules govern every control here: an unavailable control is
  * **disabled with its reason on screen, never hidden**, and **the arithmetic is
  * shown, not the answer**.
  */
@@ -48,7 +48,7 @@ const BLANK_DRAFT = Object.freeze({
   prepared: {},
 });
 
-/** Turns per round, defaulted from the war type (Ch. 07 §7.2). */
+/** Turns per round, defaulted from the war type (Ch. 04). */
 const TURNS_BY_WAR = Object.freeze({ greatHolyGrailWar: 3, holyGrailWar: 8, custom: 3 });
 
 /**
@@ -254,7 +254,7 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         ...c,
         factionName: roster.find((f) => f.id === c.factionId)?.name ?? c.factionId,
         candidateCount: candidates.length,
-        // Ch. 29: an unavailable control is DISABLED WITH ITS REASON, never
+        // Ch. 34: an unavailable control is DISABLED WITH ITS REASON, never
         // hidden. The reference roster holds no Saber, so this is not a corner
         // case -- it is every Advanced war built today.
         empty,
@@ -287,7 +287,7 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         rolled: Boolean(prepared),
         name: prepared?.source?.name ?? null,
         img: prepared?.source?.img ?? null,
-        // Ch. 29: the arithmetic is shown, not the answer. "1163" tells a GM
+        // Ch. 34: the arithmetic is shown, not the answer. "1163" tells a GM
         // nothing about whether to re-roll; "1250 - 87 (10d20)" tells them
         // everything.
         lines: prepared ? prepared.lines.map(describe) : [],
@@ -506,7 +506,7 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
-   * *"Once the match starts, the rolls are locked"* (§37.6).
+   * *"Once the match starts, the rolls are locked"* (Ch. 40).
    * @returns {boolean} true if the action was refused
    */
   #refuseWhenLocked() {

@@ -1,12 +1,12 @@
 /**
  * @file Summoning a Servant, and rolling a Master's setup lines.
- * @see docs/37-content-pipeline.md §37.6, docs/14-checks-and-randomness.md §14.9
+ * @see docs/40-content-pipeline.md, docs/13-checks-and-randomness.md
  *
  * Layer 3. `rules/setup-rolls.mjs` says what to roll and how to fold the
  * results; this rolls it and writes it.
  *
  * The operation is split into **prepare → re-roll → commit** rather than done
- * in one call, because §37.6 requires every line to be shown before anything is
+ * in one call, because Ch. 40 requires every line to be shown before anything is
  * written, with a per-line GM re-roll. A one-shot summon cannot offer that: by
  * the time the numbers exist, the actor already does too.
  *
@@ -135,7 +135,7 @@ export async function rerollSummonLine(prepared, lineId) {
  * Change who the Servant is being summoned for, or what the Master grants,
  * without re-rolling anything.
  *
- * The rolls survive: §37.6 applies grants **after** the rolls, so changing a
+ * The rolls survive: Ch. 40 applies grants **after** the rolls, so changing a
  * grant cannot change a die that was already thrown, and re-rolling here would
  * hand the GM a new set of numbers every time they touched the dropdown.
  *
@@ -213,7 +213,7 @@ export async function commitSummon(prepared, { withPartners = true } = {}) {
   // *"if the Region is Greece"* clause.
   if (prepared.warRegion) await setWarRegion(prepared.warRegion);
 
-  // §16.2's derivation, written down at the one moment it is unambiguous. The
+  // Ch. 32's derivation, written down at the one moment it is unambiguous. The
   // schema initialises `contract` to `"contracted"`, which is the right default
   // for nothing: a Servant summoned with no Master is FREE, and left to the
   // default its sheet reported a contract, a Master slot with no name in it,
@@ -226,7 +226,7 @@ export async function commitSummon(prepared, { withPartners = true } = {}) {
   } else {
     data.system.masterId = null;
   }
-  // The rolls lock at match start (§37.6); recording when they were made is
+  // The rolls lock at match start (Ch. 40); recording when they were made is
   // what lets anyone check that afterwards.
   data.system.summonedAt = game.combat?.system?.globalTurn ?? 0;
 
@@ -369,7 +369,7 @@ export async function rollMasterSetup({ masterId, confirm = true }) {
   const actor = game.actors.get(masterId);
   if (!actor) return { ok: false, reason: "notFound" };
 
-  // §14.9's three modes. The setting existed from the day settings were
+  // Ch. 13's three modes. The setting existed from the day settings were
   // written and nothing read it, so every Master was ranked by essence
   // whatever the world was configured for.
   const mode = game.settings.get("fgt", "masterMode") ?? "essences";
@@ -459,7 +459,7 @@ function warRuleset() {
   }
 }
 
-/** §14.9: Max Health moves by this much per END step, in either direction. */
+/** Ch. 13: Max Health moves by this much per END step, in either direction. */
 const HEALTH_PER_END_STEP = 100;
 
 /** Where each setup line is stored. */
@@ -563,7 +563,7 @@ export function applyGrants(lines, sheet, granted) {
  * @returns {number}
  */
 function healthAt(sheet, steps) {
-  // §14.9 states it literally: `baseHealthByEnd[grade] ± 100 per END step`.
+  // Ch. 13 states it literally: `baseHealthByEnd[grade] ± 100 per END step`.
   //
   // Re-reading the table at the shifted rank looks equivalent and is not, for a
   // Servant whose sheet states its own `baseHealth`: `servantSetupPlan` prefers
@@ -625,7 +625,7 @@ export function sheetPatch(lines, sheet, bakedGrants, warRegion = null) {
     Object.assign(patch, branch?.overrides ?? {});
   }
 
-  // HGoB Construction (Ch. 32 §32.2). Source 1 -- the Region-based starting
+  // HGoB Construction (Ch. 45). Source 1 -- the Region-based starting
   // value -- is not a roll, so it is added here rather than through the
   // setup plan: 25 if the war's own Region IS Middle East, 10 if merely
   // adjacent to it, 0 otherwise. Source 2 (the summon-time "2d6 multiplied")

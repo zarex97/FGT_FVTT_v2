@@ -31,7 +31,7 @@ describe("inAttackRange — the corrected diagonal reduction", () => {
   });
 
   it("matches the counts supplied by the game's author", () => {
-    // docs/08-board-and-geometry.md §8.2. Excluded = 8R - 12 for R >= 3.
+    // docs/05-board-geometry.md. Excluded = 8R - 12 for R >= 3.
     const expected = { 1: 9, 2: 25, 3: 37, 4: 61, 5: 93, 6: 133 };
     for (const [R, count] of Object.entries(expected)) {
       expect(attackRangeArea(Number(R)), `R=${R} closed form`).toBe(count);

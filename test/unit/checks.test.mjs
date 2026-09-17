@@ -220,7 +220,7 @@ describe("critChance", () => {
   const withMods = (mods) => ({ effects: [], checkModifiers: mods });
 
   it("is 50% with nothing modifying it", () => {
-    // §14.6: the coin flip IS a 50% chance, and writing it as a `1d2` is what
+    // Ch. 13: the coin flip IS a 50% chance, and writing it as a `1d2` is what
     // made every crit modifier in the game inert.
     expect(critChance(withMods([])).percent).toBe(50);
   });

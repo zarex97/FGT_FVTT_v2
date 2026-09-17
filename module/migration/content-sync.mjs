@@ -1,6 +1,6 @@
 /**
  * @file Reconciling a world document against its pack document.
- * @see docs/39-migration-and-versioning.md §39.6
+ * @see docs/41-migration.md
  *
  * Layer 2-equivalent: pure, no `game`, no `canvas`. The runner that walks the
  * world lives beside this and is Layer 4; this file only decides what to write.
@@ -44,7 +44,7 @@ export function reconcileSystem(kind, worldSystem, packSystem, { type = null } =
     if (ownedByWorld(kind, key, type)) continue;
 
     // THREE keys are half the pack's and half the world's: the pack states the
-    // SHAPE and the match states what it has done with it (Ch. 39, spec R2).
+    // SHAPE and the match states what it has done with it (Ch. 41, spec R2).
     // `cooldown`'s clock is what the match has spent, `summonVariant`'s
     // `variant` is how the coin actually came up, and `linkedGroup`'s
     // `memberIds` are the ACTOR ids resolved at summon -- the pack can only
@@ -66,7 +66,49 @@ export function reconcileSystem(kind, worldSystem, packSystem, { type = null } =
     out[key] = value;
   }
 
+  if (kind === "actor") applyVariantOverrides(out, packSystem);
+
   return out;
+}
+
+/**
+ * Put back what the summon's coin flip did to the sheet.
+ *
+ * Keeping `variant` through a sync -- which {@link SUMMON_VARIANT_OWNED_BY_WORLD}
+ * already does -- is only half of keeping the flip. `engine/summon.mjs#sheetPatch`
+ * merges the winning branch's `overrides` onto **top-level** system keys, and
+ * every one of those keys is the pack's, so the loop above dutifully restores
+ * the un-varianted sheet on every world load. The flip survived and its entire
+ * consequence did not.
+ *
+ * Measured on Semiramis, who is the reason this exists (Ch. 46 §46.4-AA): she
+ * summoned as `dsc` with Range 3, Sustainability 4◈ and a `rangeBanded` normal
+ * attack, all three correctly written AND persisted; one reload later she was
+ * Range 2, 2◈ and `fixed`, still answering `self:variant:dsc` to every
+ * predicate that asked. A Servant claiming a variant while carrying none of it
+ * is worse than either honest state, and it was invisible because the two sheets
+ * differ by three fields nobody re-reads after summon.
+ *
+ * The branch spec is read from the **pack**, never from the world's baked copy,
+ * so that editing what a variant *does* is still a content update and reaches a
+ * summon already standing on a board. Only the keys the branch actually names
+ * are touched; everything else the pack owns stays the pack's.
+ *
+ * Mutates `out`, which is this module's own fresh object and not a caller's.
+ *
+ * @param {object} out the merged system data, modified in place
+ * @param {object} packSystem
+ */
+function applyVariantOverrides(out, packSystem) {
+  const variant = out.summonVariant?.variant ?? out.variant ?? null;
+  if (!variant) return;
+
+  const spec = packSystem?.summonVariant ?? null;
+  const branch = spec?.heads?.id === variant ? spec.heads
+    : spec?.tails?.id === variant ? spec.tails
+      : null;
+
+  for (const [key, value] of Object.entries(branch?.overrides ?? {})) out[key] = value;
 }
 
 /**

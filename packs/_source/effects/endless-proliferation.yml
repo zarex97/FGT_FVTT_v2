@@ -19,7 +19,7 @@ stacking: noneRefresh
 baseChance: 100
 rules:
   # `anyTurnEnd` and not `turnEnd`: the handler vocabulary's `turnEnd` is the
-  # OWNER's Turn (§7.4's `unitTurnEnd`), and this clause is every Turn. The
+  # OWNER's Turn (Ch. 04's `unitTurnEnd`), and this clause is every Turn. The
   # arithmetic settles it -- ten Turns of buff, ten stocks, which is the maximum
   # her sheet prints. Her own Turns alone would reach three.
   - key: OnEvent

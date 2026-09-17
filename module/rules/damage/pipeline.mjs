@@ -1,6 +1,6 @@
 /**
  * @file The damage pipeline — sixteen strictly ordered stages.
- * @see docs/13-damage-pipeline.md
+ * @see docs/22-damage-pipeline.md
  *
  * Layer 2 (rules). **Pure.** Every random value the pipeline consumes is rolled
  * by the caller and passed in `ctx.rolls`; this keeps the function
@@ -9,7 +9,7 @@
  * rather than an approximation.
  *
  * Every stage records its contributors. That array **is** the damage explainer
- * in Ch. 30 — it is not debug output, it is the product.
+ * in Ch. 37 — it is not debug output, it is the product.
  *
  * The two things most likely to be got wrong, both corrected from earlier
  * drafts by the game's author:
@@ -65,7 +65,7 @@ export const STAGE_NAMES = Object.freeze([
 /**
  * Compute the damage of one hit.
  *
- * @param {object} ctx see docs/13-damage-pipeline.md §13.1
+ * @param {object} ctx see docs/22-damage-pipeline.md
  * @returns {DamageResult}
  */
 export function computeDamage(ctx) {
@@ -80,7 +80,7 @@ export function computeDamage(ctx) {
   // damage modifying effect on **both** the AU and DU including Block", which
   // is both sides by construction.
   //
-  // `bypassModifiers` is now TWO-SIDED (§13.8). Nemo says something narrower
+  // `bypassModifiers` is now TWO-SIDED (Ch. 22). Nemo says something narrower
   // twice -- Quickfire and Barrel Bombing are each *"not affected by damaging
   // modifying effects **on Nemo**"* -- and the Defending Unit's Def Up, Dmg
   // Cut, Magic Resistance and Block all still apply to both. A bare `true`
@@ -127,7 +127,7 @@ export function computeDamage(ctx) {
  * `bypassModifiers` authored before Nemo is bare, and `engine/fields.mjs` and
  * `engine/scheduler.mjs` both pass one for volatile-debuff damage.
  *
- * The object form is §13.8's. Nemo's Quickfire and Barrel Bombing are its two
+ * The object form is Ch. 22's. Nemo's Quickfire and Barrel Bombing are its two
  * users, and the distinction is not cosmetic: *"not affected by damaging
  * modifying effects **on Nemo**"* leaves the Defending Unit's own reductions
  * entirely alone, where the boolean would silently have discarded her Def Up,
@@ -197,7 +197,7 @@ function stage1Base(s) {
   // Named ONCE, in the first stage that opens, rather than listed at zero by
   // every stage that would have read the excluded modifier. One exclusion is
   // one fact, and six zero rows for it is noise in the one audit that has to
-  // stay readable at five cards (Ch. 30, Dohatsu Tenshou). The rule the other
+  // stay readable at five cards (Ch. 37, Dohatsu Tenshou). The rule the other
   // bypasses follow -- a modifier that vanishes from the breakdown is
   // indistinguishable from one that was never collected -- is honoured by
   // naming the SOURCE instead.
@@ -284,7 +284,7 @@ function stage1Base(s) {
  * The author's reference calculation places the roll inside the bracket:
  * `[(200 + 35) × 4 × 2 + 100] × …`, and only that placement reproduces the
  * stated total of 1980. Applying it after the multiplier — as an earlier draft
- * of Ch. 13 did — gives 1735.
+ * of Ch. 22 did — gives 1735.
  *
  * Crit-damage percentages multiply **the roll**, not the attack (Q39). The
  * `Attack−` branch is never scaled by them, because a non-crit has no crit
@@ -428,7 +428,7 @@ function stage4CombinedPercent(s) {
       continue;
     }
     // A successful Heel Attack: *"receives damage that ignores all Defensive
-    // Buffs and damage reducing effects"* (Ch. 44 §44.2). Wider than Ignore
+    // Buffs and damage reducing effects"* (Ch. 45). Wider than Ignore
     // Def, which reaches `defUp` alone. Only the REDUCING half is skipped — a
     // Def Dwn standing on him still helps his attacker, which is what "ignores
     // his defences" means and not "ignores his condition".
@@ -514,7 +514,7 @@ function elementFractionOf(s) {
  *
  * `contribute` is false at the stage-7 call site: stage 4b has already listed
  * these modifiers in the breakdown, and listing them twice for one collection
- * would read as two separate resistances in the one audit (Ch. 30) that has to
+ * would read as two separate resistances in the one audit (Ch. 37) that has to
  * stay legible at five cards.
  *
  * @param {PipelineState} s
@@ -691,7 +691,7 @@ function stage8Environment(s) {
   const env = s.ctx.environment ?? {};
 
   // Day/Night is ±25% for units with the [Dark] attribute, and the phase is a
-  // *per-panel* property now that terrain can override it (Ch. 42 §42.3).
+  // *per-panel* property now that terrain can override it (Ch. 26).
   if (env.phaseBonusPercent) {
     s.scale(Math.max(0, 1 + env.phaseBonusPercent / 100));
     s.contribute("dayNight", env.phaseBonusPercent, `${env.phase ?? "phase"} vs [Dark]`);
@@ -924,7 +924,7 @@ function stage15TotalDamageModifiers(s) {
     s.contribute(m.key ?? "totalDamage", m.factor, m.source);
   }
 
-  // A defence whose magnitude is the ATTACKER's property (Ch. 44 §44.2).
+  // A defence whose magnitude is the ATTACKER's property (Ch. 45).
   // *Andreias Amarantos* is the only one: what it reads is the attacker's
   // Divinity Rank, and the table it reads it through returns the PERCENTAGE of
   // damage that gets through — 0 for an attacker with no Divinity at all.
@@ -1138,7 +1138,7 @@ function has(unit, id) {
 /**
  * Does this attack go through the defender's reductions entirely?
  *
- * A successful Heel Attack (Ch. 44 §44.2): *"Achilles receives damage that
+ * A successful Heel Attack (Ch. 45): *"Achilles receives damage that
  * ignores all Defensive Buffs and damage reducing effects."*
  *
  * Wider than `Ignore Def`, which reaches `defUp` alone, and wider than
@@ -1232,7 +1232,7 @@ function activeMods(s, unit, keys) {
       // NAMED SOURCES, dropped from BOTH bags. Raikou's Dohatsu Tenshou:
       // *"These 4 Attacks are not affected by Mad Enhancement."*
       //
-      // Not `bypassModifiers`, which is all-or-nothing per side (§13.8). Her
+      // Not `bypassModifiers`, which is all-or-nothing per side (Ch. 22). Her
       // Divinity, both Mystery Slayer passives, her Atk Up from Thunder God's
       // Embodiment and every one of the defender's own reductions still apply
       // to those four attacks -- only the one named Skill does not, and the
@@ -1378,7 +1378,7 @@ class PipelineState {
    * Record one contribution, and **whose** it is.
    *
    * `side` is what lets a card show a viewer their own modifiers and withhold
-   * their opponent's (Ch. 26 §26.7). It is passed explicitly at every call
+   * their opponent's (Ch. 38). It is passed explicitly at every call
    * site rather than inferred from the key, because inference would be a
    * second table to keep in step with this one, and a stale entry there leaks
    * silently — the card would still render, just to the wrong person.

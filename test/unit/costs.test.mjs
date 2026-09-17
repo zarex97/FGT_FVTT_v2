@@ -1,7 +1,7 @@
 /**
  * @file Ability costs and requirements.
- * @see docs/15-abilities.md §15.4, docs/16-relationships.md §16.5
- * @see docs/45-implementation-status.md B4
+ * @see docs/17-abilities.md, docs/32-relationships.md
+ * @see docs/46-roster-re-audit.md B4
  *
  * `npCostByRank` and `freeServantNPSustainabilityCost` have been in
  * `domain/tables.mjs` since the tables were transcribed, and nothing has ever
@@ -22,7 +22,7 @@ const np = (over = {}) => ({ id: "np", rank: "A", isNP: true, cooldown: { remain
 
 describe("npCost", () => {
   it("charges a High Rank Master the left column", () => {
-    // Masters come in four ranks; A and B are High Rank (Ch. 04).
+    // Masters come in four ranks; A and B are High Rank (Ch. 06).
     expect(npCost({ ability: np(), unit: servant(), master: master({ rank: "A" }) }))
       .toMatchObject({ kind: "masterHealth", amount: 50 });
   });
@@ -45,7 +45,7 @@ describe("npCost", () => {
   });
 
   it("costs a Free Servant Sustainability instead of its Master's Health", () => {
-    // A Free Servant has no Master to charge (Ch. 16 §16.5).
+    // A Free Servant has no Master to charge (Ch. 32).
     expect(npCost({ ability: np(), unit: servant({ contract: "free", sustainability: 8 }), master: null }))
       .toMatchObject({ kind: "sustainability", amount: 5 });
   });
@@ -63,7 +63,7 @@ describe("npCost", () => {
 
 describe("canUseAbility", () => {
   const ok = (over = {}) => ({
-    // Round 6, because §7.9's global gate is live: these assertions are about
+    // Round 6, because Ch. 04's global gate is live: these assertions are about
     // Master Health, ZON, Sustainability and the requirement list, and the
     // Round they run in was only ever "some Round". The two tests below that
     // ARE about Rounds state their own `requiresRound`, which overrides the
@@ -146,7 +146,7 @@ describe("canUseAbility", () => {
     }))).toMatchObject({ ok: false, reason: "sustainability" });
   });
 
-  it("consults the rest of §15.4's requirement list", () => {
+  it("consults the rest of Ch. 17's requirement list", () => {
     // The list was implemented in `rules/items.mjs` and consulted by nothing:
     // an ability could carry a requirement that never refused anything.
     expect(canUseAbility(ok({
@@ -188,7 +188,7 @@ describe("the shape the SNAPSHOT actually provides", () => {
   });
   const snapshotMaster = (health) => ({ id: "m", kind: "master", rank: "A", health });
 
-  // Round 6 throughout, because §7.9's global gate is live and these assertions
+  // Round 6 throughout, because Ch. 04's global gate is live and these assertions
   // are about the SHAPE of the health field rather than about any Round.
 
   it("accepts a Master whose health is a bare number", () => {
@@ -217,7 +217,7 @@ describe("the shape the SNAPSHOT actually provides", () => {
   });
 });
 
-describe("resolveCosts — supersession (§15.4)", () => {
+describe("resolveCosts — supersession (Ch. 17)", () => {
   const actCost = { kind: "masterHealth", amount: 20, unitId: "m", id: "servantActs" };
   const npKarna = { kind: "masterHealth", amount: 50, unitId: "m", id: "npCost", supersedes: ["servantActs"] };
 
@@ -248,7 +248,7 @@ describe("resolveCosts — supersession (§15.4)", () => {
 
   it("lets a platform upkeep supersede the NP cost the same way", () => {
     // HGoB: "This effect overwrites the normal Master Health loss when a
-    // Servant uses its NP." Same mechanism, different content (Ch. 20).
+    // Servant uses its NP." Same mechanism, different content (Ch. 27).
     const upkeep = { kind: "masterHealth", amount: 50, unitId: "m", id: "hgobUpkeep", supersedes: ["npCost"] };
 
     expect(resolveCosts([npKarna, upkeep]).charged.map((c) => c.id)).toEqual(["hgobUpkeep"]);
@@ -303,7 +303,7 @@ describe("a Noble Phantasm charged at a Rank it does not have", () => {
 });
 
 describe("npGateRound", () => {
-  // Ch. 44 §44.5: a per-ability Round gate that composes with the global one by
+  // Ch. 45: a per-ability Round gate that composes with the global one by
   // `max()`. The field was declared in the ability schema when it was written,
   // authored on two abilities, and read by NOBODY -- it was not in the content
   // pipeline's allowlist either, so every document read `null` and Ozymandias's
@@ -333,7 +333,7 @@ describe("npGateRound", () => {
 
 describe("an ability spent for the rest of the game", () => {
   const ok = (over = {}) => ({
-    // Round 6, because §7.9's global gate is live: these assertions are about
+    // Round 6, because Ch. 04's global gate is live: these assertions are about
     // Master Health, ZON, Sustainability and the requirement list, and the
     // Round they run in was only ever "some Round". The two tests below that
     // ARE about Rounds state their own `requiresRound`, which overrides the
@@ -418,7 +418,7 @@ describe("the global Noble Phantasm gate", () => {
 
   it("...and EARLIER, which is what keeps the Magic Crest's own row alive", () => {
     // Spec R3. This is the direction `max()` could not express, and it is why
-    // the composition rule Ch. 44 recorded is replaced.
+    // the composition rule Ch. 45 recorded is replaced.
     const crest = { id: "c", categorizedAsNP: true, requiresRound: 3, cooldown: { remaining: 0 } };
     expect(canUseAbility(ok({ ability: crest, round: 2 })).ok).toBe(false);
     expect(canUseAbility(ok({ ability: crest, round: 3 })).ok).toBe(true);

@@ -1,6 +1,6 @@
 /**
  * @file Schema migrations.
- * @see docs/39-migration-and-versioning.md §39.2
+ * @see docs/41-migration.md
  *
  * Layer 1-equivalent: pure, no `game`, no `canvas`, no settings. D39.2 requires
  * migrations to be "pure functions over source data, so they are unit-testable
@@ -33,7 +33,7 @@ export const SCHEMA_VERSION = 1;
  * ```
  *
  * `ctx` carries what a handler cannot read from the document alone -- currently
- * `{globalTurn}`, which §39.2's own example needs to turn a remaining-tick count
+ * `{globalTurn}`, which Ch. 41's own example needs to turn a remaining-tick count
  * into an absolute expiry.
  *
  * Empty today. The version axis exists so that the FIRST shape change has

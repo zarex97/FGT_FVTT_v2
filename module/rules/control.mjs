@@ -1,6 +1,6 @@
 /**
  * @file Who controls a unit right now — Charm and control transfer.
- * @see docs/25-turn-system.md §25.7, docs/18-action-economy.md §18.5
+ * @see docs/25-turn-order-and-scheduler.md, docs/19-action-economy.md
  *
  * Layer 2 (rules). Pure.
  *
@@ -10,10 +10,10 @@
  * absent from its owner's; its token stays the owner's colour, because its
  * faction has not changed.
  *
- * §25.7's RISK is unchanged by any of this and worth restating: Foundry
+ * Ch. 25's RISK is unchanged by any of this and worth restating: Foundry
  * permissions are **not** altered by Charm, so the charmer's client cannot
  * write to the charmed actor. Every action with a charmed unit routes through
- * the GM proxy — which is already the default path (Ch. 26), so nothing here
+ * the GM proxy — which is already the default path (Ch. 38), so nothing here
  * needs a special case. It costs one extra round trip.
  */
 
@@ -42,7 +42,7 @@ export function charmSource(unit) {
   const charm = findCharm(unit);
   // `sourceUnitId` is what the projection writes (`rules/snapshot.mjs`'s
   // `effectInstances`); `source.unitId` is the older nested form the tests and
-  // Ch. 25 §25.7's sketch use. Both, because the whole reason this file did
+  // Ch. 25's sketch use. Both, because the whole reason this file did
   // nothing for so long is that it only knew the one nobody produced.
   return charm?.sourceUnitId ?? charm?.source?.unitId ?? null;
 }
@@ -98,7 +98,7 @@ export function unitsControlledBy(userId, board) {
 /**
  * Which faction's **Turn** this unit acts on.
  *
- * §25.7 again, in the half that is about the clock rather than about the
+ * Ch. 25 again, in the half that is about the clock rather than about the
  * keyboard: *"a charmed unit appears in the charmer's `currentUnits` during
  * their turn and is absent from its owner's"*. So a charmed unit moves on the
  * charmer's Turn, spends the charmer's action budget, and cannot be moved on

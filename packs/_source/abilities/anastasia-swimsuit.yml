@@ -8,9 +8,9 @@ passive: true
 description: |
   (Passive) All Total Water Damage taken is reduced by 50% including NP.
 passiveRules:
-  # A `Ward`, not a Def Up: a Ward is the category-predicated reduction (§24.3
+  # A `Ward`, not a Def Up: a Ward is the category-predicated reduction (Ch. 10
   # Group 2) and lands in the same stage-4 bucket, which keeps it additive
-  # against Atk Up the way §13.4 requires. Karna's fire resistance is the same
+  # against Atk Up the way Ch. 22 requires. Karna's fire resistance is the same
   # rule with a different element, and `attack:element` became a roll option
   # when he was authored.
   #

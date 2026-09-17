@@ -1,11 +1,11 @@
 /**
  * @file The ability editor.
- * @see docs/29-user-interface.md §29.6, docs/22-data-models.md §22.6
+ * @see docs/35-sheets-and-editor.md, docs/07-schemas.md
  *
- * Layer 4. The tool §29.6 says determines whether **SC-6** is met — a GM
+ * Layer 4. The tool Ch. 34 says determines whether **SC-6** is met — a GM
  * authors a Karna-complexity Servant in under an hour.
  *
- * The piece §29.6 says matters most is the **targeting picker**: a GM should
+ * The piece Ch. 34 says matters most is the **targeting picker**: a GM should
  * never have to know that `selfEdgeAdjacent` is the internal name for "a 5×5
  * area in any non-diagonal direction next to the caster" — they should see the
  * shapes and click one. So anchors and shapes are presented as labelled options
@@ -162,7 +162,7 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ItemSheetV2) {
       draft: this.#draft,
 
       // The three NP-scoping flags sit behind a disclosure that defaults to the
-      // derived values (§29.6): they are the flags most often set wrongly, and
+      // derived values (Ch. 34): they are the flags most often set wrongly, and
       // the derived answer is right almost always.
       advanced: {
         isNP: Boolean(this.#draft.isNP),
@@ -281,7 +281,7 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ItemSheetV2) {
       if (!known.has(el.key)) {
         problems.push(game.i18n.format("FGT.Editor.UnknownKey", { where, key: el.key }));
       }
-      // §24.6: an explicit priority reorders the element against its whole
+      // Ch. 10: an explicit priority reorders the element against its whole
       // band, so it must say why.
       if (el.priority !== undefined && !String(el["@intentional"] ?? "").trim()) {
         problems.push(game.i18n.format("FGT.Editor.NeedsIntentional", { where }));
@@ -332,7 +332,7 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ItemSheetV2) {
    *
    * A kind this editor has never heard of gets the JSON editor rather than an
    * empty form. Phases are an `ObjectField` and a module may add a kind
-   * (§21.4); an editor that rendered nothing for it would look like the phase
+   * (Ch. 02); an editor that rendered nothing for it would look like the phase
    * was empty, and saving would then make it so.
    *
    * @param {object} phase
@@ -417,7 +417,7 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ItemSheetV2) {
   /**
    * What a tick expression resolves to, in turns.
    *
-   * §29.6 asks for `"1◈+⅔◈"` to show *"= 5 turns at 3 turns/round"*, because
+   * Ch. 34 asks for `"1◈+⅔◈"` to show *"= 5 turns at 3 turns/round"*, because
    * tick arithmetic is the thing authors get wrong and the notation gives no
    * hint at all.
    *
@@ -952,7 +952,7 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ItemSheetV2) {
   /**
    * Write the ability back to `packs/_source/`, where it becomes content.
    *
-   * Ch. 39: the compendium is the whole source of truth, so a world copy is
+   * Ch. 41: the compendium is the whole source of truth, so a world copy is
    * reconciled to the pack on every load. That is only safe because an edit
    * worth keeping has this way home -- without it an hour's authoring lives in
    * one world until the next rebuild silently discards it.
@@ -1026,7 +1026,7 @@ const CELL = 9;
 /**
  * One targeting schematic, as an inline SVG grid.
  *
- * §29.6: *"a GM should never have to know that `selfEdgeAdjacent` is the
+ * Ch. 34: *"a GM should never have to know that `selfEdgeAdjacent` is the
  * internal name ... they should see four little diagrams and click one."*
  *
  * The diagrams were `<pre>` blocks of the raw characters with no width

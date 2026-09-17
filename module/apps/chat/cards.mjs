@@ -1,6 +1,6 @@
 /**
  * @file Attack chat cards — the visible surface of the whole engine.
- * @see docs/30-chat-and-audit.md
+ * @see docs/37-chat-and-log.md
  *
  * The card IS the audit record: the process state and the damage breakdown live
  * on message flags, so a match can be replayed from its chat log alone. That is
@@ -95,7 +95,7 @@ async function cardContext({
     // The live public name, falling back to the one remembered on the message.
     // Re-rendering from flags means a card about a DELETED actor would
     // otherwise lose the name it was posted with, and the chat log is the
-    // match's audit record (Ch. 30) -- it has to stay readable after a unit is
+    // match's audit record (Ch. 37) -- it has to stay readable after a unit is
     // gone, which is precisely when somebody goes back to read it.
     attackerName: (attacker ? publicIdentityOf(attacker, board).name : names?.attacker) ?? "Unknown",
     defenderName: (defender ? publicIdentityOf(defender, board).name : names?.defender) ?? "—",
@@ -133,7 +133,7 @@ async function cardContext({
       detail: h.detail ?? null,
     })),
 
-    // §27.5: the GM's "waiting for X (0:23)" indicator, and the button that
+    // Ch. 23: the GM's "waiting for X (0:23)" indicator, and the button that
     // decides for an absent player. Shown from the start rather than after the
     // clock runs out -- a GM who can see the table knows somebody has left
     // before the timer does.
@@ -146,21 +146,21 @@ async function cardContext({
 
     result: result ? explainedFor(result, visibility) : null,
 
-    // §26.7: what THIS viewer may see. A bystander gets the header and a count
+    // Ch. 38: what THIS viewer may see. A bystander gets the header and a count
     // of effects; the attacker gets their own contributing modifiers; the
     // defender gets what was applied to them; the GM gets everything.
     //
-    // This is the part of closed-information play worth building. §26.6 assesses
+    // This is the part of closed-information play worth building. Ch. 38 assesses
     // shadow actors honestly and defers them -- Foundry cannot hide part of a
     // document, and the workaround doubles the document count for a failure mode
     // that leaks the wrong thing. The card covers most of the benefit at a
-    // fraction of the cost, which §26.6 says outright.
+    // fraction of the cost, which Ch. 38 says outright.
     // Computed for `game.user`, which is THE VIEWER because `fillAttackCard`
     // re-renders this context on every client. Built once and stored, as it
     // was, it described whoever pressed the button.
     visibility,
 
-    // The roll log (§14.8), filtered per viewer -- a hidden Discover roll on a
+    // The roll log (Ch. 13), filtered per viewer -- a hidden Discover roll on a
     // card everyone can read would give away the Assassin's panel.
     rolls: visibleTo(state.rolls ?? [], {
       isGM: game.user.isGM,
@@ -217,7 +217,7 @@ function explainedFor(result, visibility) {
 }
 
 /**
- * §26.7's redaction for whoever is looking, with the effects split into the two
+ * Ch. 38's redaction for whoever is looking, with the effects split into the two
  * shapes a template can render.
  *
  * `cardFor` returns `effects` as an ARRAY for those entitled to read it and a
@@ -243,7 +243,7 @@ function viewerVisibility(state, result) {
 /**
  * Re-render an attack card for the client that is looking at it.
  *
- * §26.7's `filtered` mode. Until this existed the card was built ONCE, on
+ * Ch. 38's `filtered` mode. Until this existed the card was built ONCE, on
  * whichever client happened to resolve the attack, and that HTML was stored and
  * served to everyone — so the redaction described the wrong person, and the
  * template never read `visibility` at all, which meant the full damage
@@ -293,7 +293,7 @@ function fillAttackCard(message, html) {
  * The Command Spells this viewer could spend on this Process right now.
  *
  * Offered only at an interruptible rung, and only what `availableCommands`
- * says is actually usable — §17.6 requires an unusable command's option to
+ * says is actually usable — Ch. 33 requires an unusable command's option to
  * never appear, and the same argument covers cost.
  *
  * @param {object} state
@@ -332,7 +332,7 @@ function promptOptions(prompt, state = null) {
   if (prompt.kind === "reaction") {
     // `forbiddenReactions` has been written by the `retarget` interrupt since
     // Command Spells shipped and read by NOTHING, so a Servant pulled into an
-    // attack it never saw coming could still Block and Evade it -- §27.9's own
+    // attack it never saw coming could still Block and Evade it -- Ch. 23's own
     // rule, inert. Presence Concealment writes the same field.
     const refused = state?.forbiddenReactions ?? [];
     const rungs = [
@@ -343,7 +343,7 @@ function promptOptions(prompt, state = null) {
 
     // The reaction ABILITIES, beside the three standing rungs. `pendingPrompt`
     // has assembled them onto the prompt since the Combat Process was written
-    // -- *"Reaction abilities are offered BESIDE Block and Evade (§15.3). Medea's
+    // -- *"Reaction abilities are offered BESIDE Block and Evade (Ch. 17). Medea's
     // Trofa is 'used when Attacked' and there is no other moment it can be
     // reached"* -- and this function rebuilt a fixed three and threw them away.
     //
@@ -408,7 +408,7 @@ export function activateChatListeners() {
  * Arm the token's action bar when this viewer owns the unit being offered a
  * Counter, and disarm it once the rung has passed.
  *
- * §12.8's rung is the one moment a unit may attack outside its own turn, so the
+ * Ch. 21's rung is the one moment a unit may attack outside its own turn, so the
  * player is not left to discover that the bar has quietly become meaningful:
  * the token is selected, the bar opens, and the abilities that could answer
  * glow.
@@ -443,7 +443,7 @@ function armCounterRung(message) {
   ActionBar.armForCounter({
     token,
     messageId: message.id,
-    // §12.8: aim at the Servant, not the Master it is shielding.
+    // Ch. 21: aim at the Servant, not the Master it is shielding.
     requiredTargetId: state.counterRedirectId ?? state.attackerId,
     excludeUnitIds: state.counterRedirectId ? [state.attackerId] : [],
   });
@@ -531,7 +531,7 @@ function bindCardEvents(message, html) {
     }
 
     // Command Spell interrupts. Routed through the socket to the GM, because a
-    // spend changes a Process other clients are participating in (Ch. 27 §27.9).
+    // spend changes a Process other clients are participating in (Ch. 23).
     const spell = target.closest("[data-fgt-cs]");
     if (spell) {
       event.preventDefault();
@@ -555,7 +555,7 @@ function bindCardEvents(message, html) {
       return;
     }
 
-    // §27.5's "decide for them". GM-only, and it applies the SAME default the
+    // Ch. 23's "decide for them". GM-only, and it applies the SAME default the
     // timeout would -- so a GM who is tired of waiting cannot accidentally make
     // a costlier choice than the clock would have.
     if (target.closest("[data-fgt-decide]")) {
@@ -639,7 +639,7 @@ function ownersOf(actor) {
 /**
  * Fill a Skill card's effect list for whoever is looking at it.
  *
- * §26.7's `filtered` mode: one message, rendered differently per client. The
+ * Ch. 38's `filtered` mode: one message, rendered differently per client. The
  * card ships with a count and the hook replaces it with the rows this viewer
  * is entitled to read — everything for the caster's controller and the GM, and
  * for everyone else only what landed on a unit they control.

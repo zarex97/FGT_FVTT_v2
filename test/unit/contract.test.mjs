@@ -1,6 +1,6 @@
 /**
  * @file Contracting a Servant.
- * @see docs/16-relationships.md §16.2
+ * @see docs/32-relationships.md
  */
 
 import { describe, it, expect } from "vitest";
@@ -83,7 +83,7 @@ describe("contractPlan", () => {
   const m = master();
 
   it("forbids an ALLIED Master contracting an Unbound Servant", () => {
-    // The one row in §16.2's table that is not a roll but a prohibition.
+    // The one row in Ch. 32's table that is not a roll but a prohibition.
     const s = servant({ contract: "unbound", factionId: "red" });
 
     expect(contractPlan(m, s, board([m, s]))).toMatchObject({ ok: false, reason: "forbidden" });
@@ -206,7 +206,7 @@ describe("conquestContract", () => {
   });
 
   it("fires for a Servant killer only if it is within 2 panels of ITS OWN Master", () => {
-    // §16.2 calls this out: "a lone Servant killing a Master creates a Free
+    // Ch. 32 calls this out: "a lone Servant killing a Master creates a Free
     // Servant that nobody automatically claims."
     const ownMaster = master({ id: "kiritsugu", factionId: "red", panel: { i: 0, j: 0 } });
     const killingServant = servant({ id: "saber", factionId: "red", masterId: "kiritsugu", panel: { i: 9, j: 9 } });
@@ -226,7 +226,7 @@ describe("conquestContract", () => {
   });
 
   it("frees and contracts in ONE step, so no intermediate state is observable", () => {
-    // §16.2: killing a Master makes its Servants Free *and* immediately
+    // Ch. 32: killing a Master makes its Servants Free *and* immediately
     // contracts them. A descriptor list that set "free" first would let a
     // watcher see a Free Servant that was never Free.
     const out = conquestContract({ killer, deadMaster: dead, board: board([killer, dead, theirs]) });

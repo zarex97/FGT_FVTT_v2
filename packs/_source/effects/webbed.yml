@@ -1,0 +1,43 @@
+# Appendix A §A.13
+# "Cannot Act. Struggle at each turn end: 10% base (20% if STR >= B in
+# Advanced), +5% per failure. Removed by damage from an attack. Reapplication
+# resets the escape chance and EXTENDS the duration."
+#
+# `rules/budget.mjs`'s `PREVENT_ALL` and `rules/invalidation.mjs` have both
+# carried `webbed` since they were written.
+schema: 1
+id: webbed
+name: "Webbed"
+description: |
+  Cannot Act. At the end of each of its Turns the Unit may Struggle to escape; the chance rises
+  with each failure. Damage from an Attack removes it.
+polarity: debuff
+volatility: volatile
+valence: offensive
+# `noneExtend`, which is the row's own word: a second application does not stack
+# and does not merely refresh -- it ADDS the new duration to what is left, and
+# resets the escape ladder. `Suppression` is the other effect in the corpus with
+# this stacking mode, and it is there for the opposite reason (so a
+# `DurationExtension` cannot refill its uses).
+stacking: noneExtend
+baseChance: 100
+severity: normal
+preventsAction: true
+families: [bind]
+rules:
+  # "Removed by damage from an attack." Deliberately on `damageTaken` rather
+  # than on a phase boundary: Charm is "at the end of the Combat Phase if the
+  # unit takes damage", which is a delayed release, and this row says the web
+  # simply breaks.
+  - key: OnEvent
+    event: damageTaken
+    automatic: true
+    then:
+      - { key: RemoveEffect, effect: webbed }
+notes: |
+  The **Struggle** ladder — 10% base, 20% with STR ≥ B in Advanced, +5% per failure — is not
+  authored here. It is a per-instance counter resolved at the bearer's own turn end, and the
+  corpus has no vocabulary for a chance that climbs with its own history; the Nameless Forest's
+  escape roll is the nearest thing and reads a rank table rather than a tally. Recorded as the
+  one clause of this row without a reader, rather than authored as a flat roll that would look
+  implemented and be wrong.

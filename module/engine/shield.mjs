@@ -1,6 +1,6 @@
 /**
  * @file A second Health pool between an attack and its target.
- * @see docs/13-damage-pipeline.md, docs/A-effect-catalogue.md §A.3
+ * @see docs/22-damage-pipeline.md, docs/A-effect-catalogue.md §A.3
  *
  * Layer 3.
  *

@@ -1,5 +1,5 @@
 # Karna, char_orig_sheets/Copia de Karna.md
-# Targeting shape T11 in docs/09-targeting.md §9.13.
+# Targeting shape T11 in docs/20-targeting.md
 schema: 1
 id: karna-vasavi-shakti
 name: "Vasavi Shakti: O' Sun, Abide to Death"
@@ -48,7 +48,7 @@ damage:
   element: fire
   # The anti-Divine ladder, as `conditionalMultipliers` -- stage 3, INSIDE the
   # bracket, which is where the author's own reference calculation puts a
-  # multiplier stated in an ability's own description (Ch. 13 §13.3). A stage-4
+  # multiplier stated in an ability's own description (Ch. 22). A stage-4
   # percentage would be additive with Def Up and would not triple anything.
   #
   # `vasaviShaktiDivinityBonus` has been in `domain/tables.mjs` since the tables

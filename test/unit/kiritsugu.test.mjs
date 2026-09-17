@@ -5,7 +5,7 @@
  *
  * Everything here is layer 1 or 2, so it runs without a world. The
  * document-touching halves — the out-of-turn shot, the damage-step strip, both
- * Noble Phantasms in flight — are live-tested and recorded in Ch. 45.
+ * Noble Phantasms in flight — are live-tested and recorded in Ch. 46.
  *
  * Tests that assert an authored YAML shape are here to catch DRIFT, not to
  * prove behaviour: the Raikou pass produced a unit test that passed the whole

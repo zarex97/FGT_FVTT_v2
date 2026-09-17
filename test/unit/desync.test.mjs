@@ -1,6 +1,6 @@
 /**
  * @file The round-boundary desync detector.
- * @see docs/25-turn-system.md §25.10
+ * @see docs/25-turn-order-and-scheduler.md
  */
 
 import { describe, it, expect } from "vitest";
@@ -47,7 +47,7 @@ describe("boardChecksum", () => {
   });
 
   it("ignores fields that legitimately differ between clients", () => {
-    // §25.10 checksums positions, health and effect ids -- and nothing else.
+    // Ch. 25 checksums positions, health and effect ids -- and nothing else.
     // A cached snapshot or a local UI flag differing is not a desync, and
     // including one would make the detector cry wolf until it was ignored.
     expect(boardChecksum({ units: [unit({ _hover: true, snapshotVersion: 12 })] }))

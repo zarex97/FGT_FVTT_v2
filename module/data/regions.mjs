@@ -1,6 +1,6 @@
 /**
  * @file Region behaviour schemas — how the board carries terrain and bases.
- * @see docs/22-data-models.md §22.10, docs/42-terrain.md §42.1, docs/19-environment.md §19.1
+ * @see docs/07-schemas.md, docs/26-terrain.md, docs/29-environment.md
  *
  * `system.json` has declared these four behaviour types since the manifest was
  * written, and none of them had a data model — so a GM could add an `fgt.terrain`
@@ -15,7 +15,7 @@ const fields = foundry.data.fields;
 const Base = foundry.data.regionBehaviors.RegionBehaviorType;
 
 /**
- * A terrain area (Ch. 42).
+ * A terrain area (Ch. 26).
  *
  * `followsSource` defaults to **false**, and that is the rule rather than a
  * convenience: *"the created Terrain Effect area will not follow its user unless
@@ -42,7 +42,7 @@ export class TerrainBehavior extends Base {
 
       // The ABSOLUTE tick it disappears on, resolved when it is painted.
       // Durations are stored as expiry ticks everywhere else in this system
-      // (§7.5) for the same reason: a countdown needs a hook that can fail to
+      // (Ch. 04) for the same reason: a countdown needs a hook that can fail to
       // fire, and an expiry cannot.
       expiry: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
 
@@ -55,7 +55,7 @@ export class TerrainBehavior extends Base {
 }
 
 /**
- * A faction's Home Base (Ch. 19 §19.1).
+ * A faction's Home Base (Ch. 29).
  *
  * `isSecondary` exists for Semiramis's Hanging Gardens, which *"counts as a
  * second Home Base for Semiramis' Faction"* — which is why membership is
@@ -72,7 +72,7 @@ export class HomeBaseBehavior extends Base {
 }
 
 /**
- * A bounded field (Ch. 43).
+ * A bounded field (Ch. 28).
  *
  * Ten fields across nine Servants are points in one six-axis model, so the
  * behaviour carries the axes rather than a per-field flag: geometry, membership,
@@ -137,20 +137,20 @@ export class NPFieldBehavior extends Base {
 
       duration: new fields.StringField({ required: false, nullable: true, initial: null }),
       // The ABSOLUTE tick it closes on, resolved at cast time. Durations are
-      // stored as expiry ticks everywhere else (§7.5) for the same reason: a
+      // stored as expiry ticks everywhere else (Ch. 04) for the same reason: a
       // countdown needs a hook that can fail to fire, and an expiry cannot.
       expiry: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       // The tick a paid extension was last taken on. `repeatable: false` means
       // "once", and once needs a record — Doomsday Come *"can be repeatedly
       // extended"* and says so, which implies something that cannot.
       lastExtendedAt: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
-      /** Per-unit escape history, which the veteran rule needs (§43.11). */
+      /** Per-unit escape history, which the veteran rule needs (Ch. 28). */
       state: new fields.ObjectField({ required: true, initial: () => ({ escapeHistory: {} }) }),
     };
   }
 }
 
-/** A platform's footprint (Ch. 20). Declared for the same reason. */
+/** A platform's footprint (Ch. 27). Declared for the same reason. */
 export class PlatformBehavior extends Base {
   static defineSchema() {
     return {

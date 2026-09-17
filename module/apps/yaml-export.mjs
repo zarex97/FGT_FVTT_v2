@@ -1,6 +1,6 @@
 /**
  * @file Writing a document back to its pack source.
- * @see docs/29-user-interface.md §29.6, docs/39-migration-and-versioning.md
+ * @see docs/34-action-bar.md, docs/41-migration.md
  *
  * Layer 4.
  *
@@ -20,7 +20,7 @@ import {
 } from "../content/authored-fields.mjs";
 
 /**
- * Runtime fields the allowlist happens to name (Ch. 39, spec R2).
+ * Runtime fields the allowlist happens to name (Ch. 41, spec R2).
  *
  * `SEEDED_THEN_OWNED.item` is the same judgement the content sync makes in the
  * other direction -- what the pack must not overwrite is exactly what the

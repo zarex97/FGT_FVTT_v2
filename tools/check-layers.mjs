@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * @file Enforce the layer boundary: domain → rules → engine → apps.
- * @see docs/01-vision-and-goals.md §1.7
+ * @see docs/01-what-this-is.md
  *
  * `eslint.config.mjs` has computed a `zones` table since the project started,
  * its header calls the layer boundary *"the rule that matters here"*, and it
@@ -108,7 +108,7 @@ const KNOWN_EXCEPTIONS = [
     file: "module/engine/attack.mjs",
     imports: "apps",
     why: "The attack flow renders its own chat card. The Process state lives on a message "
-      + "flag (Ch. 27), so the orchestrator and its card are genuinely coupled; the fix is "
+      + "flag (Ch. 23), so the orchestrator and its card are genuinely coupled; the fix is "
       + "an event the apps layer subscribes to, not a re-parenting.",
   },
   {
@@ -160,7 +160,7 @@ for (const e of KNOWN_EXCEPTIONS) {
 
 if (problems.length > 0) {
   for (const p of problems) console.error(`error    ${p}`);
-  console.error(`\nFGT | ${problems.length} layer problem(s). See docs/01-vision-and-goals.md §1.7.`);
+  console.error(`\nFGT | ${problems.length} layer problem(s). See docs/01-what-this-is.md.`);
   process.exit(1);
 }
 

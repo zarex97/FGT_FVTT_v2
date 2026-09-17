@@ -1,6 +1,6 @@
 /**
  * @file The Mark Action, and the field four Marks build.
- * @see docs/43-bounded-fields.md §43.4 (`markDefined`), §43.10
+ * @see docs/28-bounded-fields.md (`markDefined`), Ch. 28
  *
  * Layer 3. `rules/bloodmarks.mjs` decides whether four panels make a square;
  * this places the objects and opens the area.
@@ -76,7 +76,7 @@ export async function placeMark({ unitId, abilityId }) {
   // *"counts as her Attack for the Turn"* — the `mark` action kind bills the
   // attack pool, so this is the same refusal attacking twice would get. NOT a
   // Home Base check: *"Bloodmarks can be placed on any panel, even within enemy
-  // Home Bases"* is an explicit exemption from Ch. 08's restriction.
+  // Home Bases"* is an explicit exemption from Ch. 05's restriction.
   const verdict = affordable(game.combats.active, self, "mark");
   if (!verdict.ok) return { ok: false, reason: verdict.reason ?? "cannotAct" };
 

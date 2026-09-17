@@ -8,7 +8,7 @@
 # Three of his eleven sheet entries cost nothing but a `ref:` line. Presence
 # Concealment A+ and Independent Action A between them supply eight numbers --
 # 5% discovery, +4 Evade, 2◈ cooldown, 8◈ Sustainability, +3 ZON, 4 contract
-# rolls -- and not one is authored here. See the spec §1.1.
+# rolls -- and not one is authored here. See the spec Ch. 01.
 schema: 1
 id: kiritsugu
 name: "Kiritsugu"

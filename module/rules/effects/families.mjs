@@ -1,6 +1,6 @@
 /**
  * @file Effect families — an umbrella name for a set of effects.
- * @see docs/A-effect-catalogue.md, docs/11-effect-engine.md
+ * @see docs/A-effect-catalogue.md, docs/15-effect-application.md
  *
  * Layer 2 (rules). Pure.
  *

@@ -170,14 +170,23 @@ describe("the two projected Noble Phantasms", () => {
     expect(caladbolg.damage).toMatchObject({ multiplier: 4, component: "mag", pierce: true, pierceOn: "primary" });
     expect(caladbolg.targeting.limits.casterOutsideArea).toBe(true);
     expect(caladbolg.targeting.shape).toEqual({ kind: "square", size: 3 });
-    // Range 4 + 2 for the Combat Process.
-    expect(caladbolg.targeting.anchor.range).toBe(6);
+    // *"Range+2 for the Combat Process"* — a reach RELATIVE to his own Range,
+    // not the sum with the addition already done. It was an absolute 6, and
+    // EMIYA is the one Servant whose Range actually moves: Magecraft grants
+    // Range Up on a Thaumaturgy Spell, and his sheet treats Projections as
+    // Thaumaturgy Spells. Measured live with Range Up in force — Range 5, and
+    // this still reaching 6 where the sheet grants 7 (Ch. 46 §46.12).
+    expect(caladbolg.targeting.anchor.range).toBeUndefined();
+    expect(caladbolg.targeting.anchor.rangeBonus).toBe(2);
   });
 
   it("Hrunting aims, bypasses Magic Resistance, and refuses point blank", () => {
     expect(hrunting.damage).toMatchObject({ multiplier: 4, component: "mag", aim: true, ignoresMagicResistance: true });
-    // Range 4 + 3, and "cannot be used on a Unit directly next to EMIYA".
-    expect(hrunting.targeting.anchor).toMatchObject({ range: 7, minRange: 2 });
+    // *"Range+3"* is relative and *"cannot be used on a Unit directly next to
+    // EMIYA"* is absolute, which is exactly what the two fields say separately.
+    // The reach was frozen at his written 4 plus 3; `minRange` was always right.
+    expect(hrunting.targeting.anchor).toMatchObject({ rangeBonus: 3, minRange: 2 });
+    expect(hrunting.targeting.anchor.range).toBeUndefined();
   });
 });
 
@@ -340,7 +349,7 @@ describe("Unlimited Blade Works", () => {
 describe("the Thaumaturgy family", () => {
   it("every Spell and Projection refuses under Silence, both ways", () => {
     // Two halves, and both are needed: the requirement stops it being used, and
-    // `negatedBy` stops it working if Silence lands after declaration (§15.3).
+    // `negatedBy` stops it working if Silence lands after declaration (Ch. 17).
     const gated = [
       "emiya-reinforcement", "emiya-tracing", "emiya-trace-on",
       "emiya-caladbolg", "emiya-hrunting", "emiya-overedge", "emiya-rho-aias",
@@ -354,7 +363,14 @@ describe("the Thaumaturgy family", () => {
 
   it("Magecraft widens his Range on any of them", () => {
     const handler = ability("emiya-magecraft").passiveRules[0];
-    expect(handler).toMatchObject({ event: "abilityUsed", ofCategory: "thaumaturgy" });
+    // BOTH categories. *"Note: 'Projection' Skills and NP are treated as
+    // Thaumaturgy Spells."* They carry `category: projection`, which is the
+    // right key for them — Projection Magic's Silence gate and Tracing's
+    // cooldown reduction both name that group — so the note is what makes
+    // Magecraft reach them. On `thaumaturgy` alone his Range Up fired for three
+    // Spells and never for the five Projections, which is most of what he does.
+    expect(handler).toMatchObject({ event: "abilityUsed" });
+    expect([handler.ofCategory].flat().sort()).toEqual(["projection", "thaumaturgy"]);
     expect(handler.then[0].effect.id).toBe("rangeUp");
   });
 

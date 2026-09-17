@@ -1,6 +1,6 @@
 /**
  * @file Spending a Command Spell.
- * @see docs/17-command-spells.md §17.3, §17.4, §17.8
+ * @see docs/33-command-spells.md, Ch. 33, Ch. 33
  *
  * Layer 3. The rules decide *whether* and *what*; this pays and writes.
  *
@@ -21,7 +21,7 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
 /**
  * The commands this Master may use at this moment.
  *
- * Offered commands are already filtered to the *usable* ones: §17.6 requires
+ * Offered commands are already filtered to the *usable* ones: Ch. 33 requires
  * Van Gogh's immunity to be checked at offer time "so the option never
  * appears", and the same argument covers cost — stopping a resolution to ask a
  * question with one answer is worse than not asking.
@@ -41,7 +41,7 @@ export function offerCommands({ masterId, window, context = {} }) {
 /**
  * Validate, pay for, and apply a Command Spell.
  *
- * The order is deliberate and is §17.4's: validate, **then** pay, then apply.
+ * The order is deliberate and is Ch. 33's: validate, **then** pay, then apply.
  * Paying before validating would burn a charge on a refusal, and applying
  * before paying would let a failed write leave a free command.
  *
@@ -49,7 +49,7 @@ export function offerCommands({ masterId, window, context = {} }) {
  * When a `messageId` is supplied the command is an **interrupt**: the effects
  * that change an in-flight resolution are applied to that Combat Process
  * instead of to the world, and the ladder resumes from wherever they left it.
- * That is a GM-side mutation by design (§27.9) — it changes a Process another
+ * That is a GM-side mutation by design (Ch. 23) — it changes a Process another
  * client is participating in.
  *
  * @param {object} args
@@ -74,7 +74,7 @@ export async function spendCommandSpell({ masterId, commandId, window, messageId
   const effects = effectsOf(command, ctx);
   const intents = [
     I.spendCS(masterId, cost, command.id, ctx.servant?.id ?? null),
-    // §17.8: the audit trail says who spent what, on whom, and when — a
+    // Ch. 33: the audit trail says who spent what, on whom, and when — a
     // Command Spell is the most consequential thing a Master can do and the
     // one most likely to be argued about afterwards.
     I.log({
@@ -128,7 +128,7 @@ function contextFor(masterId, window, context) {
     board,
     window,
     // The match clock. Every duration in this game is stored as an ABSOLUTE
-    // expiry tick (Ch. 07 §7.5), so a command that lasts a span needs to know
+    // expiry tick (Ch. 04), so a command that lasts a span needs to know
     // where "now" is -- and this context did not carry it. `cs-suspend-skill`
     // is the first command whose effect has a duration at all; without this it
     // stamped `0 + ticks`, which on any tick past the third is a suspension
@@ -326,7 +326,7 @@ async function interruptProcess(messageId, command, effects, masterId) {
 
   await message.setFlag("fgt", "process", process.serialize(state));
   // Resume: the ladder continues from wherever the interrupt left it, which
-  // may be a different rung than the one it was suspended at (§17.4).
+  // may be a different rung than the one it was suspended at (Ch. 33).
   const { advanceAttack } = await import("./attack.mjs");
   if (!process.pendingPrompt(state) && !process.isComplete(state)) {
     await advanceAttack({ messageId, event: "done" });

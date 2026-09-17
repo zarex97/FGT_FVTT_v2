@@ -1,6 +1,6 @@
 /**
  * @file What happens when a player clicks an ability.
- * @see docs/15-abilities.md §15.3, docs/18-action-economy.md §18.2
+ * @see docs/17-abilities.md, docs/19-action-economy.md
  *
  * Layer 2 (rules). Pure — takes an ability's `system` data and returns how it is
  * used. The sheet renders from this and the orchestrator routes from it, so the
@@ -38,12 +38,191 @@ import { test as testPredicate } from "./predicate.mjs";
  * @param {object} item an `FGTItem`, or any `{type, system}` shape
  * @returns {AbilityUse}
  */
+/**
+ * Does this ability deal no damage at all?
+ *
+ * *"(Non-damaging)"* is the first word of Chaos Labyrinthos's description, and
+ * an ability with phases and no `damage` phase is how content says so — it needs
+ * no `damage:` block to declare the absence of one.
+ *
+ * Here rather than in `engine/attack.mjs`, which is where it lived and where the
+ * **preview** could not reach it. `baseSpecFor` falls back to the caster's
+ * Normal Attack for an ability that authored no damage, which the resolver
+ * stopped doing when this predicate was written and the preview never did — so
+ * opening the Labyrinth was previewed at *"192 - 264"* and dealt 0. The gate and
+ * the display disagreeing is the shape this project keeps finding, and the
+ * player believes the display (Ch. 46 §46.8).
+ *
+ * @param {object} item an `FGTItem`, or any `{type, system}` shape
+ * @returns {boolean}
+ */
+/**
+ * An `applyEffects` phase's rules, flattened to the specs the appliers read.
+ *
+ * Two authoring shapes are live at once and both ship. A **bare spec** states
+ * everything about itself:
+ *
+ *     { id: "defUp", magnitude: 40, duration: "1◈" }
+ *
+ * A **wrapper** puts the effect in `effect:` and leaves the duration -- and any
+ * `chance`, `predicate` or `times` -- BESIDE it, because those are the phase
+ * talking about the application rather than about the effect:
+ *
+ *     { effect: { id: "atkUp", magnitude: 40 }, duration: "1◈" }
+ *
+ * `engine/attack.mjs` flattened the second with `r.effect ?? r`, which returns
+ * the inner object and discards every sibling. `applyDeclaredEffects` then read
+ * `spec.duration` as `undefined`, and an unstated duration is INFINITE
+ * (`engine/effect-applier.mjs`) -- so the buff never expired. Karna's *Flash of
+ * the Sun God* granted Atk Up and NP DmUp **permanently** where its sheet says
+ * one Turn, and the Skill path, which reads `rule.duration` separately, was
+ * correct the whole time (Ch. 46 §46.4-M).
+ *
+ * The inner effect wins where both name a field: it is the effect's own
+ * description of itself.
+ *
+ * @param {object} phase an `applyEffects`/`applyEffect` phase
+ * @returns {object[]} flat specs, each safe to hand to an applier
+ */
+/**
+ * What "using it" means when an attacker takes one of its own abilities at a
+ * timing window — the Combat Phase Start, or the Damage Step.
+ *
+ * `engine/attack.mjs#offerAttackerWindow` had two answers and the corpus has
+ * three:
+ *
+ * - `"mode"` — the switch IS the use. Karna's Uncrowned Arms Mastership:
+ *   *"switch the effect of this Skill from 1 to 2, or 2 to 1"*. Folding a
+ *   mode's rules into the attack in progress would apply the state it is
+ *   leaving rather than the one it is entering.
+ * - `"cast"` — the ability's effect is its PHASES, so they have to run.
+ *   EMIYA's and Kiritsugu's *Thaumaturgy: Reinforcement*, Achilles's *Runner
+ *   Comet*, Anastasia's *Watermelon*. This answer did not exist: the window
+ *   charged the Cooldown, recorded the use, announced it in chat and ran
+ *   nothing, so three of those four did **nothing at all** when taken at the
+ *   only window their sheets offer them (Ch. 46 §46.4-P).
+ * - `"contribute"` — the ability carries rules and no phases, and those rules
+ *   join the attack in progress. Asterios's Monstrous Strength, which is the
+ *   case the window was written for.
+ *
+ * An ability with BOTH phases and rules is `"cast"`: the window carries its
+ * rules separately, so running the phases costs it nothing.
+ *
+ * @param {object} item an ability Item
+ * @returns {"mode"|"cast"|"contribute"}
+ */
+/**
+ * The placement a REACTION is resolved with.
+ *
+ * Two fields, and both are needed:
+ *
+ * - `sourceUnitId` — whoever swung. A `sourceOfAttack` anchor resolves against
+ *   it; Kiritsugu's suppression shot points back at the attacker.
+ * - `unitId` — the unit in peril. A `targetUnit` anchor resolves against it;
+ *   EMIYA's *Rho Aias* is projected in front of the ally about to be hit.
+ *
+ * `unitId` used to be omitted whenever the reaction's owner WAS the unit in
+ * peril — which is the ordinary case for a self-protecting barrier. Rho Aias is
+ * anchored `{ kind: targetUnit, range: 3 }`, so with nothing to resolve the use
+ * was refused with *"Choose a target."*, the attack carried on, and the only
+ * second Health pool in the reference set never engaged. Measured live: offered,
+ * chosen, recorded as taken, `shieldHealth` still 1400 and EMIYA dead at 0
+ * against a clause reading *"EMIYA's Health cannot drop below 1"*
+ * (Ch. 46 §46.4-S).
+ *
+ * Naming the unit in peril is safe for every reaction: a `self` anchor resolves
+ * to the caster whatever is passed.
+ *
+ * @param {object} args
+ * @param {string} args.attackerId whoever swung
+ * @param {string} args.aimedAt the unit this reaction is pointed at
+ * @param {string} [args.ownerId] the reaction's owner — kept for callers' clarity
+ * @returns {{sourceUnitId: string, unitId: string}}
+ */
+export function reactionPlacement({ attackerId, aimedAt }) {
+  return { sourceUnitId: attackerId, unitId: aimedAt };
+}
+
+export function windowUseKind(item) {
+  const sys = item?.system ?? {};
+  if (sys.isMode) return "mode";
+  if ((sys.phases ?? []).length > 0) return "cast";
+  return "contribute";
+}
+
+export function effectSpecsOf(phase) {
+  return (phase?.rules ?? phase?.effects ?? []).map((rule) => {
+    if (!rule?.effect) return rule;
+    const { effect, ...beside } = rule;
+    return { ...beside, ...effect };
+  });
+}
+
+/**
+ * Does this ability spend Turns charging before it happens?
+ *
+ * Asked by `engine/attack.mjs` *before* it charges an ability's price, because
+ * a channelled Noble Phantasm has not happened yet and its sheet is explicit
+ * that the bill comes later: the Hanging Gardens of Babylon *"cannot Act for 3◈
+ * Turns... the Master only loses Health as per NP usage rules ONLY WHEN HGoB
+ * SUCCESSFULLY ACTIVATES, not at the start."* `useSkill` has always honoured
+ * that; the attack path charged in full and began no channel (Ch. 46 §46.4-Z).
+ *
+ * @param {object} item
+ * @returns {boolean}
+ */
+export function hasChannelPhase(item) {
+  return (item?.system?.phases ?? []).some((phase) => phase?.kind === "channel");
+}
+
+/**
+ * Whose channel a declaration interrupts — which is never the declarer's own.
+ *
+ * *"If Semiramis is **Attacked** during this period of 3◈ Turns, the period is
+ * interrupted and she has to restart the activation process."* The interrupt is
+ * right and `engine/attack.mjs` fires it at declaration rather than after the
+ * damage, deliberately: *declared against*, not necessarily hit.
+ *
+ * What it did not account for is a Noble Phantasm aimed at its own user. The
+ * Hanging Gardens' targeting is `{ anchor: self, shape: unit, selection:
+ * { relations: [self], includeSelf: true } }`, so Semiramis is always in her own
+ * `targetIds` — and `payAbilityPrice` starts the channel at line 268 while the
+ * interrupt fires at line 375. The channel began and the same declaration
+ * destroyed it, every time, leaving a Noble Phantasm that could be used
+ * endlessly and never did anything (Ch. 46 §46.4-Z).
+ *
+ * Being the subject of your own Noble Phantasm is not being Attacked, so the
+ * declarer comes out of the list. Everyone else stays: an area that catches
+ * three enemies mid-channel still interrupts all three.
+ *
+ * @param {string[]} targetIds
+ * @param {string} attackerId
+ * @returns {string[]}
+ */
+export function interruptedByDeclaration(targetIds, attackerId) {
+  return (targetIds ?? []).filter((id) => id !== attackerId);
+}
+
+export function dealsNoDamage(item) {
+  if (!item) return false;
+  const sys = item.system ?? {};
+  if (sys.damage) return false;
+  const phases = sys.phases ?? [];
+  return phases.length > 0 && !phases.some((p) => p.kind === "damage");
+}
+
+/**
+ * Classify an ability by how it is used.
+ *
+ * @param {object} item an `FGTItem`, or any `{type, system}` shape
+ * @returns {AbilityUse}
+ */
 export function classifyAbility(item) {
   const sys = item?.system ?? {};
   const isNP = item?.type === "noblePhantasm" || sys.isNP === true;
 
   // An ability whose whole use is a setup decision: Wisdom of Dún Scáith picks
-  // two abilities to copy (§15.7), and there is nothing to target and nothing
+  // two abilities to copy (Ch. 17), and there is nothing to target and nothing
   // to roll. Checked FIRST, because such an ability may also carry phases --
   // the copies it grants -- and would otherwise classify as active and open a
   // targeting session for a question.
@@ -75,7 +254,7 @@ export function classifyAbility(item) {
   // (a rule about NPs specifically, so `isNP`/`hasDamagePhase` are never
   // overridden below).
   //
-  // `countsAsAttack: false` (Ch. 15 §15.1) is content's own declaration that
+  // `countsAsAttack: false` (Ch. 17) is content's own declaration that
   // a Spell or Attack Skill is NOT attack-shaped, and used to only reach
   // `engine/skill-use.mjs`'s budget bookkeeping -- this function's own
   // `isAttack` (what the UI and `resolveAttack` route on) never read it, so
@@ -394,8 +573,8 @@ export function usageSpecFor(ability) {
     contentId: sys.contentId ?? null,
     rank: sys.rank ?? null,
     isNP: ability.type === "noblePhantasm" || Boolean(sys.isNP),
-    // The availability gate covers `isNP || categorizedAsNP` (Ch. 07 §7.9,
-    // Ch. 15 §15.5), and this projection carried only the first -- so the gate
+    // The availability gate covers `isNP || categorizedAsNP` (Ch. 04,
+    // Ch. 17), and this projection carried only the first -- so the gate
     // would have missed EMIYA's Overedge, Bašmu's Dragonfire, Mannanán's
     // Fragarach Counter and the Hanging Gardens, which is exactly the set the
     // ruling put in scope.
@@ -432,7 +611,7 @@ export function usageSpecFor(ability) {
     // composed by `max()`.
     //
     // `npGateRound` has been in the ability schema since it was written and was
-    // read by NOBODY -- Ch. 44 §44.5 names it for Ozymandias's *"can only be
+    // read by NOBODY -- Ch. 45 names it for Ozymandias's *"can only be
     // used after 7 full Rounds have passed"* and the field went straight into
     // the document and stopped there. `targeting.limits.requiresRound` is the
     // one with a reader (`costs.mjs`), so the two are folded here rather than

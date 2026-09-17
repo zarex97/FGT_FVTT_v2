@@ -1,6 +1,6 @@
 /**
  * @file Every requirement kind, in the words a GM uses.
- * @see docs/15-abilities.md §15.4, tools/lib/content.mjs
+ * @see docs/17-abilities.md, tools/lib/content.mjs
  *
  * Layer 2 (rules). Pure data.
  *
@@ -36,7 +36,7 @@ const maker = (prefix) => (id, english, fields = []) => ({
   label: `${prefix}.${id}`,
   hint: `${prefix}.${id}Hint`,
   english,
-  doc: "15-abilities.md",
+  doc: "17-abilities.md",
   fields,
 });
 

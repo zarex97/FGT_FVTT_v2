@@ -1,5 +1,5 @@
 # Quetzalcoatl, char_orig_sheets/Copia de Quetzalcoatl.md
-# Terrain: docs/42-terrain.md §42.6, §42.7
+# Terrain: docs/26-terrain.md, Ch. 26
 #
 # The first content in the corpus to PAINT TERRAIN, and the first to set
 # `followsSource` -- the flag `data/regions.mjs` declared for this clause by
@@ -27,7 +27,7 @@ targeting:
   # 2-panel area in the corpus is expressed.
   shape: { kind: square, size: 5 }
   # `includeSelf: true` because in F/GT "all allied Units" includes the caster
-  # unless the text says otherwise -- the ruling Ch. 45's aura finding settled,
+  # unless the text says otherwise -- the ruling Ch. 46's aura finding settled,
   # where the Servants who exclude themselves (Penthesilea, Kiritsugu) say so.
   selection: { relations: [ally, self], includeSelf: true, chooser: all }
 phases:
@@ -49,7 +49,7 @@ phases:
     effects:
       - { id: sol, duration: "1◈" }
 
-  # ...and the daylight itself. Terrain is NOT an effect (§42.1): a unit does
+  # ...and the daylight itself. Terrain is NOT an effect (Ch. 26): a unit does
   # not carry a Sunlight status, it stands in daylight, which is why this is
   # painted rather than applied and why leaving the area ends it with no removal
   # step. `followsSource` is what makes the 5x5 stay "around Quetz" as she

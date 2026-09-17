@@ -6,7 +6,7 @@
  * Everything here is layer 1 or 2, so it runs without a world. The
  * document-touching halves — the forced mode, the Command Spell override, the
  * clone spawn, the Master upkeep, both Noble Phantasms in flight — are
- * live-tested in `fgt2026` and recorded in Ch. 45.
+ * live-tested in `fgt2026` and recorded in Ch. 46.
  */
 
 import { describe, it, expect } from "vitest";
@@ -625,7 +625,7 @@ describe("Mana Burst (Lightning)", () => {
 
   it("is an Attack Skill on a 3◈ cooldown", () => {
     // Its Active PERFORMS a Normal Attack, so it opens a Combat Process and
-    // spends her Attack for the Turn (§15.1).
+    // spends her Attack for the Turn (Ch. 17).
     expect(A.isAttackSkill).toBe(true);
     expect(A.cooldown).toBe("3◈");
     expect(A.element).toBe("lightning");
@@ -1471,7 +1471,7 @@ describe("excluding one modifier source", () => {
   it("SAYS SO in the breakdown rather than vanishing", () => {
     // The rule stages 4, 7 and 12 already follow for `ignoresAttackerIncreases`
     // and `Ignore Def`: a modifier that vanishes from the breakdown is
-    // indistinguishable from one that was never collected. Ch. 30's audit is
+    // indistinguishable from one that was never collected. Ch. 37's audit is
     // the only way the live pass can check this clause at all.
     const out = swing({ excludeModifierSources: EXCLUDE });
     const text = JSON.stringify(out.breakdown ?? []);

@@ -23,7 +23,7 @@ description: |
   (Active) Used during your Turn. Applies @effect[atkUpStr]{Atk Up (STR)} for 1◈ Turns, STR damage
   dealt is increased by 25%; if NP, 15%.
 # A self-buff deals no damage, so it is not an Attack Skill and must not spend
-# the Unit's Attack for the Turn (§15.1).
+# the Unit's Attack for the Turn (Ch. 17).
 countsAsAttack: false
 timing: { window: ownTurn }
 targeting:
@@ -34,10 +34,17 @@ passiveRules:
   # `volatility: mental` is Appendix A's own classification rather than a list
   # of ids, so a mental debuff written after this file is covered without it
   # changing -- the same reading Heracles's copy makes.
+    # A POSITIVE incoming value, because `rules/checks.mjs#applicationChance`
+    # computes `base + inflictBonus - resist`: resistance is what SUBTRACTS, and
+    # a negative here would be a vulnerability of the same size. Authored `-50`
+    # once, which read the prose's "reduced by 50%" as a signed delta and made
+    # the clause do exactly the opposite -- Charm measured **150%** against
+    # Heracles on a live board, twice as likely as carrying nothing at all
+    # (Ch. 46 §46.4-J).
   - key: ApplicationChance
     direction: incoming
     volatility: mental
-    value: -50
+    value: 50
 phases:
   - kind: applyEffects
     target: self

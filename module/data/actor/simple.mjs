@@ -104,7 +104,7 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
         mag: new fields.NumberField({ required: true, integer: true, initial: 0 }),
       }),
       // NULLABLE, because a pocket dimension has no ground presence at all.
-      // Ch. 20 §20.6 says so of the Storm Border outright -- *"it is not on the
+      // Ch. 27 says so of the Storm Border outright -- *"it is not on the
       // board at all while it is submerged"* -- and a non-nullable SchemaField
       // turned an authored `footprint: null` into the 3x3 default, which is a
       // submarine-shaped hole in the middle of the board.
@@ -115,7 +115,7 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
 
       /**
        * A POCKET DIMENSION this platform is, rather than a place on the board
-       * (Ch. 20 §20.6). Nemo's Storm Border is the only one.
+       * (Ch. 27). Nemo's Storm Border is the only one.
        *
        * Untyped for the same reason rule elements are: the content validator
        * checks its shape at build time, and a rigid schema here would refuse a
@@ -168,7 +168,7 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
       // every rule element are:
       //
       //   `{amount, supersedes}` -- a charge on the owner's Master that REPLACES
-      //   another cost rather than adding to it (§15.4). The Hanging Gardens:
+      //   another cost rather than adding to it (Ch. 17). The Hanging Gardens:
       //   *"this effect overwrites the normal Master Health loss when a Servant
       //   uses its NP."* Read by `engine/attack.mjs` when an NP is paid for.
       //
@@ -237,7 +237,7 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
       // test instead, because the base moves.
       countsAsHomeBase: new fields.BooleanField({ initial: false }),
 
-      // Cross-level rules are per-platform, not global (Ch. 20 §20.7): the
+      // Cross-level rules are per-platform, not global (Ch. 27): the
       // author confirmed protection is decided case by case, so there is no
       // global rule to derive -- only a four-axis model each platform picks a
       // point in.

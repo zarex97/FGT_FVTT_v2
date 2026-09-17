@@ -80,7 +80,7 @@ describe("`self:free` is reachable from a unit's own state", () => {
   });
 });
 
-describe("Riding A+ Active — the MOV it promises (Ch. 03)", () => {
+describe("Riding A+ Active — the MOV it promises (Ch. 02)", () => {
   // "Used during your Turn. Increases MOV by 5 panels for this Turn."
   //
   // The Active is a USED ability: it has phases, so `classifyAbility` calls it

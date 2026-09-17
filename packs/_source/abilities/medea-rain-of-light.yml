@@ -11,7 +11,12 @@ description: |
   Damage Spell. Range +1 for the Combat Process. Hits a 3x3 panel area within Range for 3x damage.
 targeting:
   # Range 4: the Servant's 3, plus this Spell's own +1 "for the Combat Process".
-  anchor: { kind: withinRange, range: 4, metric: chebyshev }
+  # *"Range+1 for the Combat Process"* -- `rangeBonus`, which is the idiom
+  # `anchorRange`'s own docstring names for a reach stated relative to the
+  # unit's Range, and the exact wording §46.4-F fixed on two of Anastasia's.
+  # It was an absolute 4: her Range is 3 and 3+1 agreed with it, so the two
+  # coincided and the freeze was invisible (Ch. 46 §46.11).
+  anchor: { kind: withinRange, rangeBonus: 1, metric: chebyshev }
   shape: { kind: square, size: 3 }
   selection: { relations: [enemy], chooser: all }
 damage:

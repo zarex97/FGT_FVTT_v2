@@ -1,6 +1,6 @@
 /**
  * @file The ◈ operator: `TickExpr` parsing and resolution to integer turn counts.
- * @see docs/07-time-model.md
+ * @see docs/04-time-model.md
  *
  * Layer 1 (domain). Pure.
  *
@@ -23,7 +23,7 @@ import { INFINITE } from "./enums.mjs";
  * of three is degenerate — it would make "half a round" shorter than "a third of
  * a round" — so the exception is almost certainly deliberate.
  *
- * @see docs/07-time-model.md §7.2
+ * @see docs/04-time-model.md
  * @type {Readonly<Record<number, Readonly<Record<string, number>>>>}
  */
 export const TICK_OVERRIDES = Object.freeze({

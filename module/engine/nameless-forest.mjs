@@ -1,7 +1,7 @@
 /**
  * @file Walking out of the Nameless Forest.
  * @see char_orig_sheets/Copia de Nursery Rhyme.md
- * @see docs/14-checks-and-randomness.md
+ * @see docs/13-checks-and-randomness.md
  *
  * Layer 3. The arithmetic is `rules/nameless-forest.mjs` and pure; this rolls
  * the die, writes the result, and says so on the card.
@@ -15,7 +15,7 @@
  * **Can**, not must. Nothing else in the corpus offers a Unit an optional roll
  * on its own Turn — every check today is either compulsory (an Evade in the
  * ladder) or attached to using something — so this is an entry point the owner
- * invokes rather than a prompt the engine pushes. §27.5's default on an
+ * invokes rather than a prompt the engine pushes. Ch. 23's default on an
  * unanswered prompt is *"the option that spends nothing"*, and for an escape a
  * Unit may decline that is simply not taking it.
  */

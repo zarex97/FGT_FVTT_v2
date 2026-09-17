@@ -1,6 +1,6 @@
 /**
  * @file Switching a mode on and off, and the rules that refuse.
- * @see docs/15-abilities.md §15.3, docs/31-case-heracles.md
+ * @see docs/17-abilities.md, docs/45-case-studies.md
  *
  * Layer 2 (rules). Pure.
  *
@@ -57,7 +57,7 @@ import { rollOptionsFor } from "./options.mjs";
  * @returns {ToggleVerdict}
  */
 export function canToggleMode(
-  item, unit, { active, tick = 0, turnsPerRound = 3, clockRunning = true } = {},
+  item, unit, { active, tick = 0, turnsPerRound = 3, clockRunning = true, round = null } = {},
 ) {
   const sys = item?.system ?? {};
 
@@ -100,6 +100,37 @@ export function canToggleMode(
   // compulsion, and re-answered every time it is asked for the same reason.
   if (!active && !suspended && forcedOn(item, unit)) return { ok: false, reason: "forced" };
 
+  // "Can only be used once per Round", on the path a MODE is switched by.
+  //
+  // `rules/costs.mjs` has read `oncePerRound` since it was written and its
+  // comment names the ability it was written for -- Karna's Uncrowned Arms
+  // Mastership, whose two effects are a choice only because switching between
+  // them is rationed. But that gate is on the ABILITY-USE path, and this skill
+  // is a mode with no `phases`, so the sheet's toggle never calls `useSkill`,
+  // never reaches `costs.mjs`, and never recorded the use. It is also the only
+  // content in the corpus carrying the field: the one ability the gate exists
+  // for was the one ability that could not reach it (Ch. 46 §46.4-L).
+  //
+  // BOTH DIRECTIONS. The active clause is *"switch the effect of this Skill
+  // from 1 to 2, or 2 to 1"* -- each press is a use, so gating only the switch
+  // ON would leave every other press free.
+  //
+  // Matched on item id AND content id because `io.recordUse` stamps whichever
+  // it has, and matching one of the two counts half the uses -- the drift
+  // `costs.mjs` records for `oncePerTurn`. The round is compared only when the
+  // caller supplies one: a record carries the Round it was made in, and a stamp
+  // from an earlier Round must not bite in this one.
+  if (sys.oncePerRound) {
+    const record = unit?.roundState ?? {};
+    const sameRound = round === null || round === undefined
+      || record.round === null || record.round === undefined
+      || record.round === round;
+    const used = (record.abilitiesUsed ?? []).some(
+      (id) => id === item?.id || id === sys.contentId || id === sys.slug,
+    );
+    if (sameRound && used) return { ok: false, reason: "oncePerRound" };
+  }
+
   // The two-way lockout. "And vice versa" in the source: it governs switching
   // on just as much as switching off, so one clock answers both.
   const lock = sys.toggleLock ?? null;
@@ -112,6 +143,36 @@ export function canToggleMode(
   }
 
   return { ok: true };
+}
+
+/**
+ * Is this mode currently held ON — by either source?
+ *
+ * *"While the Skill does not meet the condition to be deactivated"* is the
+ * clause that needs it, and it appears on the two Mad Enhancement sheets whose
+ * skill is held on positionally: Penthesilea's by *Hatred of Achilles* (a Greek
+ * Male within 4 panels) and Raikou's by her Master's proximity. Their Master's
+ * Health floor applies **only while the mode cannot be switched off**, which is
+ * neither "is it on" nor "does she have it" — the two questions `skillActive`
+ * and `skill` already answer.
+ *
+ * Takes a SLUG rather than an item, because the caller is
+ * `rules/options.mjs`, which is looking at a snapshot's ability projection
+ * rather than at a document. Both halves are the existing predicates, so a
+ * third source of "held on" cannot drift from the refusal `canToggleMode` gives.
+ *
+ * Deliberately NOT `toggleLock` or `cannotDeactivate`: the lockout says *not
+ * yet* and is carried by every bearer of the skill including the three whose
+ * sheets grant no floor at all, and `cannotDeactivate` says *never* and belongs
+ * to Heracles, whose floor is unconditional and needs no predicate.
+ *
+ * @param {string} slug
+ * @param {object} unit the owner's snapshot
+ * @returns {boolean}
+ */
+export function heldOn(slug, unit) {
+  const item = { system: { slug } };
+  return compelledOn(item, unit) || forcedOn(item, unit);
 }
 
 /**
@@ -191,6 +252,8 @@ export function forcedOn(item, unit) {
   const rules = (unit?.forcedModeRules ?? []).filter((r) => r.mode === slug);
   if (rules.length === 0) return false;
 
-  const options = rollOptionsFor({ attacker: unit, defender: null });
+  // `withoutModeHeld`: this call is INSIDE the answer to "is a mode held",
+  // and asking for that option here would re-enter this function for ever.
+  const options = rollOptionsFor({ attacker: unit, defender: null, withoutModeHeld: true });
   return rules.some((r) => testPredicate(r.when, { options }));
 }

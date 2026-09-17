@@ -1,7 +1,7 @@
 /**
  * @file Asterios — Mad Enhancement's three arithmetic clauses, the attacker's
  *       own timing window, and the Labyrinth's Region clause.
- * @see char_orig_sheets/Copia de Asterios.md, docs/31-case-heracles.md
+ * @see char_orig_sheets/Copia de Asterios.md, docs/45-case-studies.md
  *
  * Every case here is a clause that was **authored and inert**, which is this
  * project's dominant defect and the reason each gets its own test rather than
@@ -16,10 +16,20 @@ import { parse } from "yaml";
 import { collectContributions } from "../../module/rules/elements.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { rollOptionsFor } from "../../module/rules/options.mjs";
-import { classifyAbility } from "../../module/rules/ability-use.mjs";
+import { classifyAbility, dealsNoDamage } from "../../module/rules/ability-use.mjs";
 import { abilitiesAtWindow } from "../../module/rules/reactions.mjs";
 import { regionSizedShape } from "../../module/engine/fields.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
+
+/** One authored ability document. */
+const ability = (id) => parse(readFileSync(`packs/_source/abilities/${id}.yml`, "utf8"));
+
+/** That document in the `{type, system}` shape `classifyAbility` reads. */
+const asItem = (doc) => ({
+  id: doc.id,
+  type: doc.isNP ? "noblePhantasm" : "ability",
+  system: { ...doc, targeting: doc.targeting ?? null, phases: doc.phases ?? [] },
+});
 
 /** @param {string} dir @returns {string[]} */
 function ymlUnder(dir) {
@@ -112,9 +122,9 @@ describe("Mad Enhancement — clause 3, halved for Base Attack (MAG)", () => {
   });
 
   it("stays ADDITIVE against Def Up, which the stage-4/5 split did not", () => {
-    // §13.4's own worked form: "(100 + 60 - 100)% ... so it would deal 30%
+    // Ch. 22's own worked form: "(100 + 60 - 100)% ... so it would deal 30%
     // damage only, not 0". With Rank B against 100% Def Up that is x0.60 for a
-    // STR attack. Ch. 13's original stage-5 proposal -- min() to the bucket and
+    // STR attack. Ch. 22's original stage-5 proposal -- min() to the bucket and
     // the difference to stage 5 -- gives x0.30 then x1.3 = x0.39, because the
     // two stages compose multiplicatively and the rule is additive.
     const mods = collectContributions(madEnhancement("B")).modifiers;
@@ -411,5 +421,49 @@ describe("attack:element", () => {
       attacker: {}, defender: {}, attack: { kind: "np", element: "fire" },
     });
     expect(options.has("attack:element:fire")).toBe(true);
+  });
+});
+
+/* ── The two the sheet got wrong about itself ─────────────────────────────── */
+
+describe("Chaos Labyrinthos is non-damaging, and says so to the preview too", () => {
+  const np = ability("asterios-chaos-labyrinthos");
+
+  it("declares it the way content does: phases, and no damage phase", () => {
+    // *"(Non-damaging)"* is the first word of the sheet's description, and it
+    // needs no `damage:` block to say so.
+    expect(np.damage).toBeUndefined();
+    expect((np.phases ?? []).length).toBeGreaterThan(0);
+    expect((np.phases ?? []).some((p) => p.kind === "damage")).toBe(false);
+  });
+
+  it("is recognised by the predicate BOTH the resolver and the preview read", () => {
+    // It lived in `engine/attack.mjs`, where the preview could not reach it --
+    // so the resolver dealt 0 and the confirmation dialog promised "192 - 264".
+    // Measured live before the fix (Ch. 46 §46.8).
+    expect(dealsNoDamage(asItem(np))).toBe(true);
+  });
+
+  it("does not call a damaging Noble Phantasm non-damaging", () => {
+    expect(dealsNoDamage(asItem(ability("heracles-nine-lives")))).toBe(false);
+  });
+});
+
+describe("Monstrous Strength is an Active, not a passive", () => {
+  const ms = ability("asterios-monstrous-strength");
+
+  it("is used at a timing window, as his sheet says", () => {
+    // *"(Active) Used at the start of a Damage Step when performing an Attack."*
+    expect(ms.timing.window).toEqual(["damageStep"]);
+    expect(ms.cooldown).toBe("3◈");
+  });
+
+  it("classifies as windowed rather than passive", () => {
+    // The classification was already right; the SHEET rendered every
+    // non-clickable ability as "Passive - always in effect", which told the
+    // player the skill was already working and that no Cooldown was at stake
+    // (Ch. 46 §46.8).
+    expect(classifyAbility(asItem(ms)))
+      .toMatchObject({ kind: "windowed", clickable: false, toggles: false });
   });
 });

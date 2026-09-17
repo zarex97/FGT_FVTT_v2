@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * @file YAML source → LevelDB compendium packs.
- * @see docs/37-content-pipeline.md §37.3
+ * @see docs/40-content-pipeline.md
  *
  * The packs are build artefacts and are gitignored: LevelDB directories are
  * binary, unmergeable and undiffable, which is unacceptable for content that

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * @file Standalone content validation. Runs in CI and before every pack build.
- * @see docs/37-content-pipeline.md §37.4
+ * @see docs/40-content-pipeline.md
  *
  * Exits non-zero on any problem. Warnings are printed but do not fail the
  * build, because they flag things that are suspicious rather than wrong.

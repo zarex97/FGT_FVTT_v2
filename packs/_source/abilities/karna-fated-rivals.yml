@@ -1,5 +1,5 @@
 # Karna, char_orig_sheets/Copia de Karna.md
-# Discussed: docs/36-case-remaining.md §36.1
+# Discussed: docs/45-case-studies.md
 schema: 1
 id: karna-fated-rivals
 name: "Fated Rivals of the Mahabharata"
@@ -26,7 +26,7 @@ passiveRules:
   # `predicate` is evaluated at collection time against Karna alone -- which
   # would make the element vanish, silently, before any board exists.
   #
-  # INERT UNTIL ARJUNA IS AUTHORED, and deliberately so: §36.1's DECISION is
+  # INERT UNTIL ARJUNA IS AUTHORED, and deliberately so: Ch. 45's DECISION is
   # that a cross-Servant reference resolves by a stable slug and produces a
   # warning rather than an error, because a match legitimately may not include
   # the Servant named. `target:trueName:` is not a roll option; the identity is

@@ -13,9 +13,9 @@ kind: classSkill
 passive: true
 copyable: { allowed: false, reason: classSkill }
 # `existenceOutsideTheDomain` WAS declared here as a forward reference: it is
-# Van Gogh's Class Skill (Ch. 35), and until she was authored the clause below
+# Van Gogh's Class Skill (Ch. 45), and until she was authored the clause below
 # was real and inert -- exactly as Karna's *Fated Rivals of the Mahabharata*
-# names an Arjuna nobody has built (§36.1's DECISION).
+# names an Arjuna nobody has built (Ch. 45's DECISION).
 #
 # She is built now (`class-skills/existence-outside-the-domain.yml`), so the
 # predicate resolves against a real document and the declaration is gone. The

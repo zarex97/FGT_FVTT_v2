@@ -8,7 +8,7 @@ slug: selfSuggestion
 cooldown: "4◈"
 timing: { window: ownTurn }
 # A cleanse and a self-buff deal no damage, so this is not an Attack Skill and
-# must not spend her Attack for the Turn (§15.1).
+# must not spend her Attack for the Turn (Ch. 17).
 countsAsAttack: false
 copyable: { allowed: false, reason: rankEX }
 description: |

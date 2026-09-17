@@ -1,6 +1,6 @@
 /**
  * @file Schema migrations.
- * @see module/migration/migrations.mjs, docs/39-migration-and-versioning.md §39.2
+ * @see module/migration/migrations.mjs, docs/41-migration.md
  *
  * D39.2: migrations are pure functions over source data, unit-testable without a
  * world. They must also be IDEMPOTENT -- a runner that fails halfway will be

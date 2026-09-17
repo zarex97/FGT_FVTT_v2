@@ -1,7 +1,7 @@
 /**
- * @file The Queen's Glass Game, against her sheet and Ch. 43 §43.11.
+ * @file The Queen's Glass Game, against her sheet and Ch. 28
  * @see char_orig_sheets/Copia de Nursery Rhyme.md
- * @see docs/43-bounded-fields.md §43.11
+ * @see docs/28-bounded-fields.md
  *
  * Part 4 of four, and the first ability in either roster that reads the past.
  */
@@ -53,7 +53,7 @@ describe("E2 — the gate, which is the whole performance story", () => {
   });
 });
 
-describe("E1 — the snapshot shape, from §43.11", () => {
+describe("E1 — the snapshot shape, from Ch. 28", () => {
   const unit = () => ({
     id: "foe",
     panel: { i: 4, j: 7 }, facing: "north",
@@ -103,7 +103,7 @@ describe("E1 — the snapshot shape, from §43.11", () => {
   });
 
   it("R8 — an effect snapshot records the id of its SOURCE", () => {
-    // §43.11's own RISK: the applier drops instances whose source no longer
+    // Ch. 28's own RISK: the applier drops instances whose source no longer
     // exists, and it can only do that if the snapshot recorded one.
     expect(snapshotUnit(unit(), 9).effects[0].sourceUnitId).toBe("nursery");
   });
@@ -167,7 +167,7 @@ describe("E1 — the ring buffer", () => {
   };
 
   it("retains 6 Rounds plus two turns", () => {
-    // §43.11's figure. Effect 2 reaches back six Rounds, so anything shorter
+    // Ch. 28's figure. Effect 2 reaches back six Rounds, so anything shorter
     // makes the once-per-game rewind reach past the end of the buffer.
     expect(RETENTION_TURNS(3)).toBe(6 * 3 + 2);
     expect(RETENTION_TURNS(4)).toBe(6 * 4 + 2);
@@ -210,7 +210,7 @@ describe("E1 — the ring buffer", () => {
   });
 
   it("stays inside its storage budget at the stated worst case", () => {
-    // §43.11 claims ~280 KB at 28 units x 50 turns. Within an order, because a
+    // Ch. 28 claims ~280 KB at 28 units x 50 turns. Within an order, because a
     // buffer that quietly grows unbounded on a long match is the failure mode
     // the diffing exists to prevent -- and an exact figure would break on any
     // harmless field addition.
@@ -270,7 +270,7 @@ describe("E3 — the restore", () => {
   });
 
   it("R8 — drops an effect whose source is gone, and logs each drop", () => {
-    // §43.11's own RISK, verbatim: "What must not happen is the rewind
+    // Ch. 28's own RISK, verbatim: "What must not happen is the rewind
     // restoring an effect whose source has since been removed, producing an
     // orphaned instance."
     const out = rewindIntents(board, history, ["foe"], 4);
@@ -323,8 +323,8 @@ describe("E4 — the Script registry the element has always promised", () => {
   });
 
   it("holds exactly the entries the corpus actually has", () => {
-    // Ch. 44 §44.6 budgets four across ~130 abilities and the tally has stood
-    // at zero. This is the first. If this list grows past what Ch. 44 budgets,
+    // Ch. 45 budgets four across ~130 abilities and the tally has stood
+    // at zero. This is the first. If this list grows past what Ch. 45 budgets,
     // that is a design conversation and not a merge.
     expect(Object.keys(SCRIPTS)).toEqual(["nurseryRhyme.rewind"]);
   });

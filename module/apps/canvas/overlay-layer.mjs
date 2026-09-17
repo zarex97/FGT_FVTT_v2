@@ -1,12 +1,12 @@
 /**
  * @file Persistent board overlays — ZON rings, threat ranges, Master protection.
- * @see docs/28-targeting-implementation.md §28.9
+ * @see docs/20-targeting.md
  *
  * Layer 4. Like the targeting layer, it draws and never decides: every panel it
  * fills came from the pure geometry in L1 and the ZON rules in L2.
  *
  * These are "the difference between a player planning correctly and a player
- * discovering a rule after they have committed" (§28.9). The ZON ring in
+ * discovering a rule after they have committed" (Ch. 20). The ZON ring in
  * particular exists to prevent the most common mistake in the game — attacking
  * from outside your Master's zone and losing 5d10 for it — which is invisible
  * on an unannotated board because it depends on a radius that is a property of
@@ -125,7 +125,7 @@ export class OverlayLayer extends foundry.canvas.layers.CanvasLayer {
       this.#drawProtection(this.#hovered, board);
     }
 
-    // §28.9's always-on context. These three are drawn without a selection,
+    // Ch. 20's always-on context. These three are drawn without a selection,
     // because they are facts about the board rather than about a unit -- and
     // each is a rule a player would otherwise discover after committing.
     this.#drawPlatforms(board);
@@ -133,14 +133,14 @@ export class OverlayLayer extends foundry.canvas.layers.CanvasLayer {
     for (const token of canvas.tokens?.controlled ?? []) this.#drawDecoyPull(token, board);
   }
 
-  /* ── Always-on context (§28.9) ───────────────────────────────────── */
+  /* ── Always-on context (Ch. 20) ───────────────────────────────────── */
 
   /**
    * Every platform's footprint, with its level.
    *
    * The level badge is the load-bearing half: two platforms at different levels
    * overlap on screen and do not interact, and nothing else on the canvas says
-   * so (Ch. 20).
+   * so (Ch. 27).
    *
    * @param {object} board
    */
@@ -166,7 +166,7 @@ export class OverlayLayer extends foundry.canvas.layers.CanvasLayer {
    * Drawn only when it exists: a ring around nothing would be a permanent
    * reminder of a thing that has not happened. Its colour carries the contest
    * state, because standing in it is only meaningful if you know whether it is
-   * being contested (Ch. 19 §19.4).
+   * being contested (Ch. 29).
    *
    * @param {object} board
    */
@@ -184,7 +184,7 @@ export class OverlayLayer extends foundry.canvas.layers.CanvasLayer {
    *
    * The one overlay that answers "why can I not target what I want to": a Decoy
    * constraint is invisible on the board and silently narrows the legal target
-   * set (Ch. 09).
+   * set (Ch. 20).
    *
    * @param {object} token
    * @param {object} board
@@ -216,7 +216,7 @@ export class OverlayLayer extends foundry.canvas.layers.CanvasLayer {
    * is the whole reason to draw it.
    *
    * Selecting the Master instead draws one ring per contracted Servant, since a
-   * Master with three classes of Servant has three different radii (§16.3).
+   * Master with three classes of Servant has three different radii (Ch. 32).
    *
    * @param {object} token
    * @param {object} board
@@ -241,7 +241,7 @@ export class OverlayLayer extends foundry.canvas.layers.CanvasLayer {
     this.#ring(status.master.panel, status.zon, status.outside ? BAD : OK, 0.08, board.bounds);
   }
 
-  /* ── Revealed positions (Familiar: Doves, Ch. 32) ─────────────────────────── */
+  /* ── Revealed positions (Familiar: Doves, Ch. 45) ─────────────────────────── */
 
   /**
    * A marker at the live panel of every unit carrying `token`'s owner's
@@ -296,7 +296,7 @@ export class OverlayLayer extends foundry.canvas.layers.CanvasLayer {
    *
    * Drawn only when a Servant is actually standing in it, because the rule is
    * conditional and an unconditional ring would claim a protection that is not
-   * there (§16.4).
+   * there (Ch. 32).
    *
    * @param {object} token
    * @param {object} board
@@ -391,7 +391,7 @@ export function registerOverlayLayer() {
  *
  * Selection and hover are read directly, because they are pure UI and no rule
  * cares about them. Everything else comes through `fgt.invalidate`, which
- * `engine/invalidation-hooks.mjs` derives from §23.9's table — the hand-
+ * `engine/invalidation-hooks.mjs` derives from Ch. 08's table — the hand-
  * maintained hook list that used to live here went stale in both directions,
  * refreshing on changes nothing drew and missing ones that mattered.
  */

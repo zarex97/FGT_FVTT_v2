@@ -1,6 +1,6 @@
 /**
  * @file Platforms and levels.
- * @see docs/20-platforms-and-levels.md
+ * @see docs/27-platforms-and-levels.md
  *
  * Layer 2 (rules). Pure — it takes the board and returns verdicts and
  * descriptors. The engine turns descriptors into intents.
@@ -58,7 +58,7 @@ export function platformsOn(board) {
  * @returns {object[]}
  */
 export function passengersOf(platform, board) {
-  // A platform on the GROUND has no passengers. §20.2 gives every active
+  // A platform on the GROUND has no passengers. Ch. 27 gives every active
   // platform a level of its own, stacked above the ground, so a platform still
   // sitting at level 0 has not been activated — and reading membership off
   // `level ?? 0` made it the owner of everyone standing on the ground.
@@ -85,7 +85,7 @@ export function passengersOf(platform, board) {
  * Move a platform, carrying everyone aboard.
  *
  * Passengers move **forced**, which is what keeps the carry off their own
- * movement budget and away from movement-triggered effects (Ch. 08 §8.3). A
+ * movement budget and away from movement-triggered effects (Ch. 05). A
  * passenger has not moved; it has been carried, and the two are different
  * events as far as every rule that watches movement is concerned.
  *
@@ -316,7 +316,7 @@ export function actionSourceFor(unit, board) {
  * twice on a turn that also happens to end a Round.
  *
  * A block with an `amount` and no `every` is the OTHER documented shape of
- * `upkeep` — a cost that supersedes another (§15.4) rather than a recurring
+ * `upkeep` — a cost that supersedes another (Ch. 17) rather than a recurring
  * toll — and is not due here at any tick. The Golden Hind carries both at once
  * and is the first platform to do so.
  *
@@ -575,7 +575,7 @@ export function fallOff(unit, platform, { passedAgility, servantRescued = false 
 }
 
 /**
- * The platform coming apart (§20.9).
+ * The platform coming apart (Ch. 27).
  *
  * Ordered, and the order is the specification's: save, damage the failures,
  * scatter **everyone**, then remove the level. Surviving the fall is not the
