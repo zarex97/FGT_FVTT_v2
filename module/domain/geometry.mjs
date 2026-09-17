@@ -1,6 +1,6 @@
 /**
  * @file Board geometry: the three distance metrics, shape generation, reachability.
- * @see docs/08-board-and-geometry.md
+ * @see docs/05-board-geometry.md
  *
  * Layer 1 (domain). Pure — no Foundry, no canvas.
  *
@@ -121,7 +121,7 @@ export function manhattan(a, b) {
  * @param {GridOffset} to
  * @param {number} R
  * @returns {boolean}
- * @see docs/08-board-and-geometry.md §8.2, Ch. 41 Q7
+ * @see docs/05-board-geometry.md, Ch. 41 Q7
  */
 export function inAttackRange(from, to, R) {
   const di = Math.abs(from.i - to.i);
@@ -327,7 +327,7 @@ export const NEIGHBOURS = Object.freeze([
  * @param {number} h extent along `dir`
  * @param {Bounds|null} [bounds=null]
  * @returns {GridOffset[]}
- * @see docs/09-targeting.md
+ * @see docs/20-targeting.md
  */
 export function adjacentBlock(origin, dir, w, h, bounds = null) {
   const out = [];
@@ -358,7 +358,7 @@ export function adjacentBlock(origin, dir, w, h, bounds = null) {
  *   — Danzō's Dongyū is 1×5 cardinal but 1×4 diagonal
  * @param {Bounds|null} [opts.bounds=null]
  * @returns {GridOffset[]}
- * @see docs/44-case-expanded-roster.md §44.3
+ * @see docs/45-case-studies.md
  */
 export function line(origin, dir, length, opts = {}) {
   const { bidirectional = false, diagonalLength = null, bounds = null } = opts;
@@ -385,7 +385,7 @@ export function line(origin, dir, length, opts = {}) {
  * "between" means on a grid the game gives no line of sight. Anything off
  * those three axes returns `[]`: it has no panels between it and the origin,
  * so nothing can obstruct it. The conservative reading, and the only one
- * Medusa's single worked example supports (Ch. 44 §44.3).
+ * Medusa's single worked example supports (Ch. 45).
  *
  * {@link line} projects a DIRECTION for a length; this walks to a GIVEN panel,
  * which nothing did before.
@@ -445,7 +445,7 @@ export function ring(centre, r, bounds = null) {
  * @param {(p: GridOffset) => boolean} blocked
  * @param {Bounds|null} [bounds=null]
  * @returns {Map<string, number>} panel key → step cost, excluding the origin
- * @see docs/08-board-and-geometry.md §8.3
+ * @see docs/05-board-geometry.md
  */
 export function reachablePanels(origin, mov, blocked, bounds = null) {
   /** @type {Map<string, number>} */
@@ -489,7 +489,7 @@ export function reachablePanels(origin, mov, blocked, bounds = null) {
  * @param {GridOffset} self
  * @param {GridOffset} other the attacker's panel
  * @returns {"front"|"right"|"back"|"left"}
- * @see docs/08-board-and-geometry.md §8.8
+ * @see docs/05-board-geometry.md
  */
 export function coneOf(facing, self, other) {
   const facingDeg = FACING_DEGREES[facing];

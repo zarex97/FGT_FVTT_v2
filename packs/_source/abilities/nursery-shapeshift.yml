@@ -12,7 +12,7 @@ passiveRules:
   # A `Ward`, not a `Def Up`. A Def Up is an EFFECT somebody applied and
   # somebody else can strip; this is a property of the Servant that nothing
   # applied and nothing can remove. Both land in the same stage-4 bucket, which
-  # keeps them additive the way §13.4 requires.
+  # keeps them additive the way Ch. 22 requires.
   #
   # `npValue` stated rather than defaulted: most percentage defences in
   # Appendix A are reduced against Noble Phantasms, and 15 happens to be half

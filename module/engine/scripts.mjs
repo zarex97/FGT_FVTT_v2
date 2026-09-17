@@ -1,6 +1,6 @@
 /**
  * @file The escape hatch — a closed registry of named scripts.
- * @see docs/24-rules-engine.md, docs/44-case-expanded-roster.md §44.6
+ * @see docs/10-rule-elements.md, docs/45-case-studies.md
  *
  * `rules/elements.mjs`'s `Script` element has promised this since it was
  * written — *"Scripts are named entries in a closed registry, never `eval`.
@@ -9,7 +9,7 @@
  * `eventHandlers` and **nothing read `handler.script`**.
  *
  * That is consistent rather than surprising: the corpus has zero Scripts, so
- * the hatch had never been opened. Ch. 34 and Ch. 36 both close their tallies
+ * the hatch had never been opened. Ch. 45 and Ch. 45 both close their tallies
  * with *"Script elements: zero."*
  *
  * **CLOSED is the security property, not a style choice.** A compendium is data
@@ -18,8 +18,8 @@
  * must not take the whole turn down, and the same holds here — and it certainly
  * does not `eval`.
  *
- * Ch. 24's position stands: *"Scripts are the escape hatch, not the norm."*
- * Ch. 44 §44.6 budgets four across ~130 abilities. Adding a fifth entry here is
+ * Ch. 10's position stands: *"Scripts are the escape hatch, not the norm."*
+ * Ch. 45 budgets four across ~130 abilities. Adding a fifth entry here is
  * a design conversation, not a merge.
  */
 
@@ -33,7 +33,7 @@ export const SCRIPTS = Object.freeze({
   /**
    * *"Restoring an arbitrary historical snapshot across a unit set."*
    *
-   * Ch. 44 §44.6 budgets it, and it is the only one of the four that is built.
+   * Ch. 45 budgets it, and it is the only one of the four that is built.
    * Why this one is not data: every other ability in the corpus is a
    * COMPOSITION of named mechanisms. This one walks a unit set, resolves a
    * historical index, diffs two states and emits a heterogeneous batch — and it

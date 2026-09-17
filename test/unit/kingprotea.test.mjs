@@ -1,10 +1,10 @@
 /**
  * @file Kingprotea — the pure halves of her kit.
- * @see docs/36-case-remaining.md §36.7, char_orig_sheets/Copia de Kingprotea.md
+ * @see docs/45-case-studies.md, char_orig_sheets/Copia de Kingprotea.md
  *
  * Everything here is layer 1 or 2, so it runs without a world. The parts that
  * need documents — the growth writing a token's size, the knockback cascade,
- * the stock-gain handler — are live-tested in `fgt2026` and recorded in Ch. 45.
+ * the stock-gain handler — are live-tested in `fgt2026` and recorded in Ch. 46.
  */
 
 import { describe, it, expect } from "vitest";
@@ -69,7 +69,7 @@ describe("Kingprotea's statline", () => {
 });
 
 /* ========================================================================== */
-/*  perStack — the mechanism §36.7 is about                                    */
+/*  perStack — the mechanism Ch. 45 is about                                    */
 /* ========================================================================== */
 
 describe("perStack", () => {

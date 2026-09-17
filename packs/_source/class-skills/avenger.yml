@@ -1,7 +1,7 @@
-# docs/B-rank-tables.md §B.3 — the Avenger class set (Ch. 15 §15.6).
+# docs/B-rank-tables.md §B.3 — the Avenger class set (Ch. 17).
 #
 # A class skill that is NET-NEGATIVE in isolation, which is rare enough that
-# Ch. 34 §34.8 calls it out: +80 to all damage TAKEN, offset only by a counter
+# Ch. 45 calls it out: +80 to all damage TAKEN, offset only by a counter
 # bonus the Servant has to earn by being attacked first.
 schema: 1
 id: class-avenger

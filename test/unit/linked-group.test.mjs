@@ -1,8 +1,8 @@
 /**
  * @file LinkedUnitGroup — the binding that makes two tokens one Servant.
- * @see docs/16-relationships.md §16.8, docs/34-case-dioscuri.md
+ * @see docs/32-relationships.md, docs/45-case-studies.md
  *
- * Ch. 16 D16.7 has specified this as a general mechanism since it was written,
+ * Ch. 32 D16.7 has specified this as a general mechanism since it was written,
  * and nothing implemented any of it. These tests pin the schema, the board
  * pass, and — the point of the whole exercise — that the readers which were
  * already waiting for it actually fire.

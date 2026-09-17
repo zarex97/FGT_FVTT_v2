@@ -1,6 +1,6 @@
 /**
  * @file Counters a Unit performs without being asked, and what provokes them.
- * @see docs/24-rules-engine.md §24.8, docs/33-case-mannanan.md §33.3
+ * @see docs/10-rule-elements.md, docs/45-case-studies.md
  *
  * Layer 3 (orchestration). This half is a **queue**; the declaration itself
  * lives in `engine/attack.mjs`, which is the only module that may open a Combat
@@ -23,7 +23,7 @@
  *      exchange does not interrupt it; it queues, and the queue drains when the
  *      Process finishes. A debuff from a Skill has no Process to wait for and
  *      drains at the end of the Skill.
- *   3. **A counter is a full declaration** (§12.8), so it cannot be produced
+ *   3. **A counter is a full declaration** (Ch. 21), so it cannot be produced
  *      from inside the write path that noticed the debuff. Hence a queue.
  *
  * The queue is **GM-side and in-memory**. It never outlives a resolution: a
@@ -57,7 +57,7 @@ const pending = new Map();
  *
  * A Fragarach Counter inflicts `Def Dwn (C)` on the Unit it answers, and that
  * is a debuff — so without this the counter would provoke a counter from
- * anybody standing in the same shoes. §12.8's *"Counters cannot be Countered
+ * anybody standing in the same shoes. Ch. 21's *"Counters cannot be Countered
  * again"* is the same rule stated for the ordinary ladder.
  *
  * @type {boolean}

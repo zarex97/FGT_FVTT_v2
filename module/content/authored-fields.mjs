@@ -1,6 +1,6 @@
 /**
  * @file Which fields belong to the pack, and which belong to the world.
- * @see docs/39-migration-and-versioning.md, docs/37-content-pipeline.md
+ * @see docs/41-migration.md, docs/40-content-pipeline.md
  *
  * Layer 1 (content). Pure data.
  *
@@ -28,7 +28,7 @@ export const AUTHORED_ACTOR_KEYS = Object.freeze([
   "classContainer", "concealedIdentity", "identityRevealed", "detect",
   "defaultImage", "alignment", "region", "attributes", "parameters",
   "baseHealth", "mov", "range", "baseAttack", "normalAttack", "sustainability",
-  // The linked-group binding (Ch. 16 §16.8). Settings only: `memberIds` is
+  // The linked-group binding (Ch. 32). Settings only: `memberIds` is
   // resolved at summon and is never authored.
   "linkedGroup",
   "summonVariant", "stanceSpec", "stance", "resources", "notes",
@@ -51,7 +51,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   // A refusal that belongs to the ITEM, not to any holder: "[Vorpal Blade]
   // cannot be obtained by Nursery or her Master."
   "barredFrom",
-  // Ch. 43 s43.11's gate. Declared in the schema, in `itemSystem()` and here in
+  // Ch. 28 s43.11's gate. Declared in the schema, in `itemSystem()` and here in
   // the SAME commit: this is exactly the shape of field this project has
   // silently dropped six times -- present on the schema, absent from an
   // allowlist, compiled to its default -- and a `requiresHistory` that compiles
@@ -90,7 +90,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
  * rewriting that.
  *
  * Overwriting any of these on a sync would reset a live match -- the corruption
- * Ch. 39 opens by promising to prevent.
+ * Ch. 41 opens by promising to prevent.
  */
 export const SEEDED_THEN_OWNED = Object.freeze({
   actor: Object.freeze([
@@ -99,7 +99,7 @@ export const SEEDED_THEN_OWNED = Object.freeze({
     // content sync against a real world -- every one of these would have been
     // reset on the next load. `summonerId` is written by `summoning.mjs` and
     // nulling it orphans every summon on the board; `ownerId` is the same for
-    // `hgob.mjs`'s Hanging Gardens. `identityRevealed` is §4.2's whole point --
+    // `hgob.mjs`'s Hanging Gardens. `identityRevealed` is Ch. 06's whole point --
     // Medusa had been revealed and would have been re-concealed. And
     // `classContainer` is the slot war setup PLACED a Servant in, which is not
     // the class her sheet names: Medusa sat in `saber` and the pack says

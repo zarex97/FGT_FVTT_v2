@@ -1,6 +1,6 @@
 /**
  * @file Every requirement an ability declares must be one the rules understand.
- * @see module/rules/items.mjs, docs/15-abilities.md §15.4
+ * @see module/rules/items.mjs, docs/17-abilities.md
  *
  * `meetsRequirement` refuses on an unknown kind, which is the safe direction
  * and the reason this guard is necessary: an ability whose gate nobody

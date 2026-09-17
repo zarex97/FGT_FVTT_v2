@@ -1,7 +1,7 @@
 # Quetzalcoatl, char_orig_sheets/Copia de Quetzalcoatl.md
-# Platform model: docs/20-platforms-and-levels.md §20.7
+# Platform model: docs/27-platforms-and-levels.md
 #
-# §20.7 built the per-role AoE axis specifically because this mount is *"the
+# Ch. 27 built the per-role AoE axis specifically because this mount is *"the
 # first platform in the set where the mount itself takes full AoE damage while
 # its riders are partially shielded"*. It has been waiting for her: the three
 # tiers her sheet states fall straight out of `aoePassengerFactor` unchanged --
@@ -64,7 +64,7 @@ crossLevel:
   # "If they are hit with an AoE Attack, the Quetzalcoatlus receives full damage,
   # Quetz receives 50% Total Damage while her Master receives no damage and
   # effects." Three tiers, TWO authored values -- the third is the function's
-  # own `unit.id === platform.id` branch, which is why §20.7 needed this mount
+  # own `unit.id === platform.id` branch, which is why Ch. 27 needed this mount
   # to discover the axis.
   aoePassengerFactor: 0.5
   aoeMastersImmune: true
@@ -75,6 +75,6 @@ crossLevel:
 notes: |
   The fifth platform, and the first a passenger drives rather than rides.
 
-  Its three AoE tiers are the reason Ch. 20 §20.7 has a per-role protection model instead of a
+  Its three AoE tiers are the reason Ch. 27 has a per-role protection model instead of a
   single number: the Hanging Gardens and the Golden Hind both shelter everyone aboard, and this
   one shelters its riders while taking the blast in full.

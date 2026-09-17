@@ -1,6 +1,6 @@
 /**
  * @file Presence Concealment — the eight clauses, as answerable questions.
- * @see docs/A-effect-catalogue.md §A.19, docs/44-case-expanded-roster.md §44.4
+ * @see docs/A-effect-catalogue.md §A.19, docs/45-case-studies.md
  *
  * Layer 2 (rules). Pure.
  *
@@ -171,7 +171,7 @@ function rankOf(unit, parameter) {
  *
  * The one place in the game where a coin decides whether an attack happened at
  * all, and the reason concealment does not simply make a Unit untargetable:
- * targeting drops it from anything *chosen* (§9), an area still reaches it, and
+ * targeting drops it from anything *chosen* (Ch. 20), an area still reaches it, and
  * this is the compensation.
  *
  * @param {number} coin `1` or `2` from a `1d2` — 1 is Heads
@@ -230,7 +230,7 @@ export function canUseWhileConcealed(item, { targetsEnemy = null } = {}) {
  */
 function touchesEnemy(targeting) {
   if (!targeting) return false;
-  // `selection.relations` is where §9's spec puts them. Reading `relations` off
+  // `selection.relations` is where Ch. 20 puts them. Reading `relations` off
   // the top level found nothing on every authored ability in the corpus, so the
   // clause answered "aims at nobody" and refused nothing at all.
   const relations = targeting.selection?.relations

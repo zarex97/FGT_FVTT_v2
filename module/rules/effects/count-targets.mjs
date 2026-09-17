@@ -1,6 +1,6 @@
 /**
  * @file A magnitude computed from the set a phase is about to affect.
- * @see docs/35-case-van-gogh.md §35.10, docs/11-effect-engine.md
+ * @see docs/45-case-studies.md, docs/15-effect-application.md
  *
  * Layer 2 (rules). Pure: it takes the resolved target list and returns a
  * number.

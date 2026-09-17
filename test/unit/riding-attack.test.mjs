@@ -1,6 +1,6 @@
 /**
  * @file Riding Attack and Passenger Seat.
- * @see module/rules/movement.mjs, docs/08-board-and-geometry.md
+ * @see module/rules/movement.mjs, docs/05-board-geometry.md
  *
  * Both have been in `GRANTS` since grants were written, and **no engine ever
  * read either**. Medusa is the first Servant whose sheet needs them, and hers

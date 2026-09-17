@@ -26,7 +26,7 @@ normalAttack: { mode: fixed, component: str }
 # the skill is the REASON the number is high, it does not add turns.
 sustainability: "6◈"
 # `contract` is NOT authored. No sheet in the corpus states one -- it is decided
-# at summon and by Ch. 16 §16.2's contracting, and her Sustainability clause
+# at summon and by Ch. 32's contracting, and her Sustainability clause
 # tests `self:free` at runtime rather than assuming it.
 
 # ─── Abilities ─────────────────────────────────────────────────────────
@@ -75,7 +75,7 @@ notes: |
 
   Blood Fort Andromeda is the only bounded field that is BUILT rather than cast, and the only one
   with no duration at all — four Bloodmark Actions over four turns, then it runs until she is
-  defeated. Ch. 43's `expiry: onOwnerDefeat` and its `markDefined` construction both existed as
+  defeated. Ch. 28's `expiry: onOwnerDefeat` and its `markDefined` construction both existed as
   specification with no implementation, and `Structure` was a registered actor type with no
   content.
 

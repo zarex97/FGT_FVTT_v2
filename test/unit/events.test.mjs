@@ -1,6 +1,6 @@
 /**
  * @file Event handlers — `OnEvent` collection and `fireEvent` dispatch.
- * @see docs/24-rules-engine.md §24.5 Group 5, docs/45-implementation-status.md A1
+ * @see docs/10-rule-elements.md Group 5, docs/46-roster-re-audit.md A1
  *
  * The defect these pin down: `OnEvent` stored the element's own shape and
  * `fireEvent` read a `handler.intents` array that nothing ever wrote, so every
@@ -42,7 +42,7 @@ describe("fireEvent dispatch", () => {
   });
 
   it("fires a handler that lists several events, on any one of them", () => {
-    // Mannanán's Fragarach subscribes to two events at once (Ch. 24 §24.8).
+    // Mannanán's Fragarach subscribes to two events at once (Ch. 10).
     const handlers = handlersFor([
       { key: "OnEvent", event: ["combatProcessEnd", "effectApplied"], then: [{ key: "Heal", amount: 10 }] },
     ]);
@@ -213,7 +213,7 @@ describe("actions in one handler see each other", () => {
 });
 
 /* ========================================================================== */
-/*  Ch. 11 §11.9 — an effect does not act on the Turn it ends                  */
+/*  Ch. 15 — an effect does not act on the Turn it ends                  */
 /* ========================================================================== */
 
 describe("an effect-borne handler on the turn its effect expires", () => {

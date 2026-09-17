@@ -1,11 +1,11 @@
 /**
  * @file The GM's summon dialog.
- * @see docs/37-content-pipeline.md §37.6, docs/14-checks-and-randomness.md §14.9
+ * @see docs/40-content-pipeline.md, docs/13-checks-and-randomness.md
  *
  * Layer 4. `engine/summon.mjs` prepares, re-rolls and commits; this shows the
  * plan and collects the GM's decisions.
  *
- * §37.6 asks for one specific thing: *"Every line is shown before committing,
+ * Ch. 40 asks for one specific thing: *"Every line is shown before committing,
  * with a per-line re-roll for the GM. Once the match starts, the rolls are
  * locked."* That shape is why the engine operation is split into prepare →
  * re-roll → commit — a one-shot summon has already created the actor by the
@@ -97,7 +97,7 @@ export class SummonDialog extends HandlebarsApplicationMixin(ApplicationV2) {
         key: p, label: p.toUpperCase(), value: this.#form.grants[p] ?? 0,
       })),
       // *"High Rank Masters additionally grant a free `+` to one of their
-      // Servant's Parameters"* (Ch. 04 §4.5). The rows above have always
+      // Servant's Parameters"* (Ch. 06). The rows above have always
       // offered the CHOICE; the ALLOWANCE is what nothing enforced, so a GM
       // could type any number into any row and `prepareSummon` honoured it.
       grantBudget: this.#grantBudget(),

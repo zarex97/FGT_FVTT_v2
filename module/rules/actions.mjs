@@ -1,6 +1,6 @@
 /**
  * @file The unit-action registry — what a selected unit may DO, as data.
- * @see docs/29-user-interface.md §29.5, docs/18-action-economy.md §18.9
+ * @see docs/34-action-bar.md, docs/19-action-economy.md
  *
  * Layer 2 (rules). Pure: every predicate reads a unit snapshot and the board,
  * never a document and never a Foundry global.
@@ -198,7 +198,7 @@ export const UNIT_ACTIONS = Object.freeze([
     icon: "fa-solid fa-location-arrow",
     label: "FGT.Action.Facing",
     mode: "dial",
-    // §29.5 is explicit that setting facing must not end the turn, so it bills
+    // Ch. 34 is explicit that setting facing must not end the turn, so it bills
     // no ActionKind at all.
     available: (unit) => (acts(unit) ? {} : null),
   },

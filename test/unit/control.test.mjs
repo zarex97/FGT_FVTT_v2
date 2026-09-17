@@ -1,6 +1,6 @@
 /**
  * @file Charm and control transfer.
- * @see docs/25-turn-system.md §25.7, docs/18-action-economy.md §18.5
+ * @see docs/25-turn-order-and-scheduler.md, docs/19-action-economy.md
  */
 
 import { describe, it, expect } from "vitest";
@@ -147,7 +147,7 @@ describe("actingFactionOf", () => {
   });
 
   it("is the CHARMER's faction while charmed", () => {
-    // §25.7: "a charmed unit appears in the charmer's currentUnits during
+    // Ch. 25: "a charmed unit appears in the charmer's currentUnits during
     // their turn and is absent from its owner's" -- so the Turn it may act on
     // and the budget it spends both move, while its own faction does not.
     const victim = charmed({ id: "victim" });

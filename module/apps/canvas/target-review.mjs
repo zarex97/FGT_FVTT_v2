@@ -1,6 +1,6 @@
 /**
  * @file The last look before an attack is declared.
- * @see docs/28-targeting-implementation.md §28.6
+ * @see docs/20-targeting.md
  *
  * Layer 4.
  *

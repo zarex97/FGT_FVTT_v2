@@ -6,14 +6,14 @@ rank: null
 category: primordialRuneSpell
 isSpell: true
 cooldown: "3◈"
-# One PRS Token buys this Spell out of its cooldown entirely (§6.10).
+# One PRS Token buys this Spell out of its cooldown entirely (Ch. 06).
 cooldownWaiver: { resource: prs, amount: 1 }
 # "Can only be used once per Turn." NOT redundant with the 3◈ cooldown: a token
 # skips that cooldown, leaving this as the only limit on the Spell.
 oncePerTurn: true
 timing: { window: ownTurn }
 # A Spell that heals and buffs an ally deals no damage, so it is not an Attack
-# Skill and must not spend her Attack (§15.1).
+# Skill and must not spend her Attack (Ch. 17).
 countsAsAttack: false
 description: |
   @ability[scathach-primordial-rune]{Primordial Rune} Spell. Range 2. Used during your Turn on an allied Unit within Range.

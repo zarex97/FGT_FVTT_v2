@@ -1,6 +1,6 @@
 /**
  * @file Abilities usable "when Attacked".
- * @see docs/15-abilities.md §15.3, docs/27-reaction-protocol.md
+ * @see docs/17-abilities.md, docs/23-reactions.md
  *
  * Medea has two, and they are the reason this exists: *Argos* is "used during
  * your Turn **or when Attacked**", and *Trofa* is "used **when Attacked**" and
@@ -42,7 +42,7 @@ describe("reactionAbilities", () => {
 
   it("does not offer one on cooldown", () => {
     // An option that refuses when pressed teaches nothing a missing option
-    // does not teach faster (§17.6's argument, applied to reactions).
+    // does not teach faster (Ch. 33's argument, applied to reactions).
     const cooling = { ...trofa, system: { ...trofa.system, cooldown: { remaining: 4 } } };
 
     expect(reactionAbilities(unit([cooling]))).toEqual([]);

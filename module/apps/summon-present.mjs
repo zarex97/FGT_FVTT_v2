@@ -1,6 +1,6 @@
 /**
  * @file The pure half of the summon and setup dialogs.
- * @see docs/29-user-interface.md, docs/37-content-pipeline.md §37.6
+ * @see docs/34-action-bar.md, docs/40-content-pipeline.md
  *
  * Layer 4, and deliberately touching no document and no Foundry global except
  * `game.i18n` — which is why it has tests and its callers do not. The repo
@@ -55,7 +55,7 @@ export function describe(line) {
 }
 
 /**
- * One plan step, for display. The tree in §37.6, in order.
+ * One plan step, for display. The tree in Ch. 40, in order.
  * @param {object} step
  * @returns {object}
  */

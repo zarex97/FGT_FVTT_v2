@@ -1,6 +1,6 @@
 /**
  * @file Cross-reference markers in content prose.
- * @see docs/37-content-pipeline.md §37.8
+ * @see docs/40-content-pipeline.md
  *
  * Pure, and deliberately ignorant of `content.mjs`: the caller builds the
  * index, because building it needs `documentId` and the pack map and importing

@@ -40,7 +40,7 @@ phases:
       - { id: npSeal, duration: "3◈" }
       - { id: defDwn, magnitude: 50, duration: "3◈" }
   # "The NP area becomes 'Day' for 2◈ Turns." `sunlight` is what `phaseAt`
-  # reads as Day (Ch. 42 §42.6), and `shape: reuse` is the 5x5 the damage just
+  # reads as Day (Ch. 26), and `shape: reuse` is the 5x5 the damage just
   # went through -- wherever the player put it, which for a Range-5 strike is
   # not a square around him.
   - kind: zone

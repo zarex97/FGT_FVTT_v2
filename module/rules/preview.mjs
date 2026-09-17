@@ -1,11 +1,11 @@
 /**
  * @file Speculative damage — what the targeting preview shows before committing.
- * @see docs/28-targeting-implementation.md §28.7
+ * @see docs/20-targeting.md
  *
  * Layer 2 (rules). Pure, and deliberately so: the preview runs the **real**
  * pipeline rather than an approximation of it, which is only possible because
- * the pipeline takes a pre-populated roll map and has no side effects (Ch. 13
- * §13.3). An approximation would drift from the real thing exactly when a
+ * the pipeline takes a pre-populated roll map and has no side effects (Ch. 22
+ * Ch. 22). An approximation would drift from the real thing exactly when a
  * player was relying on it.
  *
  * Two runs per target — every die at its minimum, then every die at its maximum
@@ -29,7 +29,7 @@ export const DICE_BOUNDS = Object.freeze({
   attackMinus: { min: 5, max: 50 },
   // `5d10`, the same die `attack+`/`attack-` roll, and the same bounds.
   // It read `{1, 20}` -- a `1d20`, which is not a die this rule has ever named
-  // (Ch. C, Ch. 16 §16.5). Found while giving the resolution its missing roll.
+  // (Ch. C, Ch. 32). Found while giving the resolution its missing roll.
   zonPenalty: { min: 5, max: 50 },
   magicResistanceDice: { min: 1, max: 100 },
   battleContinuation: { min: 0, max: 0 },

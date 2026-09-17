@@ -1,10 +1,10 @@
 /**
  * @file The poison family, and the four mechanisms it needed.
- * @see docs/A-effect-catalogue.md §A.12, docs/11-effect-engine.md §11.5
+ * @see docs/A-effect-catalogue.md §A.12, docs/15-effect-application.md
  *
  * Poison is the first staged effect authored, and building it exposed a
  * mechanism at each layer that had a name and no reader: the `effect:` shorthand
- * every rider in Appendix A is written in, the `target: victim` Ch. 32 already
+ * every rider in Appendix A is written in, the `target: victim` Ch. 45 already
  * writes, the per-instance `visibility`/`attributionHidden` pair `0.2.0` put on
  * the schema, and an unstated duration meaning "expires this instant".
  */
@@ -44,7 +44,7 @@ describe("the tick", () => {
   });
 });
 
-describe("PeriodicOverride (Ch. 32, Sikera Ušum clause c)", () => {
+describe("PeriodicOverride (Ch. 45, Sikera Ušum clause c)", () => {
   // "Units inflicted with Poison while within this NP area receive Poison
   // damage at the end of its Turn and at the end of any Turn it Acts, IN
   // ADDITION TO at the end of the Round." A field's `PeriodicOverride`

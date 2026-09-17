@@ -1,6 +1,6 @@
 /**
  * @file The only place in the system that writes documents.
- * @see docs/03-domain-overview.md §3.4, docs/26-authority-and-sockets.md
+ * @see docs/02-architecture.md, docs/38-authority.md
  *
  * Layer 3. Split deliberately in two:
  *
@@ -100,7 +100,7 @@ export async function applyIntents(intents, { io, canWrite, isGM = false, source
   // attack path alone would miss the half the clause exists for: a pure control
   // ability provoking a 2.5× retaliation.
   //
-  // Queued, never resolved: a Counter is a full declaration (§12.8) and cannot
+  // Queued, never resolved: a Counter is a full declaration (Ch. 21) and cannot
   // be opened from inside the write path (`engine/auto-counter.mjs`).
   await noteDebuffs(plan.local);
   // *"If Drake is inflicted with NP Seal, Golden Hind is immediately
@@ -490,7 +490,7 @@ async function writeGroup(group, io) {
       await io.setFacing(unitId, intents.at(-1).facing);
       break;
     case "spendCS":
-      // The Servant travels with the intent, because §16.9's pools are keyed by
+      // The Servant travels with the intent, because Ch. 32's pools are keyed by
       // it -- without it the writer cannot tell which pool to draw from.
       await io.spendCommandSpells(
         unitId, sum(intents, "count"), intents[0].command, intents[0].servantId ?? null,

@@ -1,6 +1,6 @@
 /**
  * @file Ending Presence Concealment, and everything that falls out of it.
- * @see module/rules/concealment.mjs, docs/44-case-expanded-roster.md §44.4
+ * @see module/rules/concealment.mjs, docs/45-case-studies.md
  *
  * Layer 3. `rules/concealment.mjs` decides; this is the half that writes.
  *
@@ -260,7 +260,7 @@ function cooldownTicks(skill) {
  * > *"When This Unit Moves into an enemy Servant's Range (or Detect, if in
  * > use), it has a 5% chance of being discovered."*
  *
- * `discoverAttempts` has produced these since Ch. 04 was implemented and
+ * `discoverAttempts` has produced these since Ch. 06 was implemented and
  * **nothing ever called it** — because `unit.concealed` was never true, so it
  * returned an empty list even where it was reachable at all.
  *

@@ -3,7 +3,7 @@ import { explainDamage, explainRankComparison, explainNotApplied, STAGE_LABELS }
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
 
-/** Worked example 1 from docs/13-damage-pipeline.md §13.5 — 409 damage. */
+/** Worked example 1 from docs/22-damage-pipeline.md — 409 damage. */
 function penthesileaVsHeracles() {
   const unit = (o = {}) => ({
     baseAttack: { str: 0, mag: 0 }, parameters: {}, effects: [], modifiers: [],

@@ -1,7 +1,7 @@
 /**
  * @file Asterios — Mad Enhancement's three arithmetic clauses, the attacker's
  *       own timing window, and the Labyrinth's Region clause.
- * @see char_orig_sheets/Copia de Asterios.md, docs/31-case-heracles.md
+ * @see char_orig_sheets/Copia de Asterios.md, docs/45-case-studies.md
  *
  * Every case here is a clause that was **authored and inert**, which is this
  * project's dominant defect and the reason each gets its own test rather than
@@ -122,9 +122,9 @@ describe("Mad Enhancement — clause 3, halved for Base Attack (MAG)", () => {
   });
 
   it("stays ADDITIVE against Def Up, which the stage-4/5 split did not", () => {
-    // §13.4's own worked form: "(100 + 60 - 100)% ... so it would deal 30%
+    // Ch. 22's own worked form: "(100 + 60 - 100)% ... so it would deal 30%
     // damage only, not 0". With Rank B against 100% Def Up that is x0.60 for a
-    // STR attack. Ch. 13's original stage-5 proposal -- min() to the bucket and
+    // STR attack. Ch. 22's original stage-5 proposal -- min() to the bucket and
     // the difference to stage 5 -- gives x0.30 then x1.3 = x0.39, because the
     // two stages compose multiplicatively and the rule is additive.
     const mods = collectContributions(madEnhancement("B")).modifiers;

@@ -1,6 +1,6 @@
 /**
  * @file Periodic damage is computed in one place.
- * @see docs/29-user-interface.md §29.2
+ * @see docs/34-action-bar.md
  *
  * The Effects tab has to print "Poison Stage 3 · 80 damage at end of Round",
  * and 160 when the bearer also holds Deadly Poison. `tickPeriodics` already

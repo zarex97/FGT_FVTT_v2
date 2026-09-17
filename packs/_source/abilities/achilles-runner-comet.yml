@@ -49,7 +49,7 @@ phases:
   # does not have, and a second document would be a copy nobody updates.
   #
   # "for that Turn" is `this turn`: it expires at the end of the Turn it was
-  # used in rather than surviving into the next (Ch. 07 §7.5).
+  # used in rather than surviving into the next (Ch. 04).
   - kind: applyEffects
     target: self
     predicate: [{ not: "self:effect:heelWounded" }]

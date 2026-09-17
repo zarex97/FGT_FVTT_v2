@@ -1,6 +1,6 @@
 /**
  * @file Blood Fort Andromeda's four Bloodmarks, and the square they define.
- * @see docs/43-bounded-fields.md §43.4 (`markDefined`), §43.10
+ * @see docs/28-bounded-fields.md (`markDefined`), Ch. 28
  *
  * Layer 2 (rules). Pure.
  *

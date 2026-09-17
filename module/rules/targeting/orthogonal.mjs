@@ -1,6 +1,6 @@
 /**
  * @file The four panels around a Unit, read off its facing.
- * @see docs/08-board-and-geometry.md §8.8
+ * @see docs/05-board-geometry.md
  * @see docs/superpowers/specs/2026-09-12-raikou-design.md R4
  *
  * Layer 2 (rules). Pure.

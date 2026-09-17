@@ -14,7 +14,7 @@ source: class
 slug: magicCrest
 kind: skill
 categorizedAsNP: true
-# "Magic Crest -- usable after 2 full Rounds, from Round 3" (Ch. 07 §7.9's own
+# "Magic Crest -- usable after 2 full Rounds, from Round 3" (Ch. 04's own
 # table row). It is `categorizedAsNP`, so the global Noble Phantasm gate covers
 # it -- and this line is what keeps it usable three Rounds before that.
 #

@@ -1,12 +1,12 @@
 /**
  * @file The eleven-step targeting resolution algorithm.
- * @see docs/09-targeting.md §9.7
+ * @see docs/20-targeting.md
  *
  * Layer 2 (rules). Pure — consumes a board snapshot, returns targets. Nothing
  * writes, which is what lets the preview run the real resolver rather than an
  * approximation of it.
  *
- * The four axes (§9.2) stay orthogonal on purpose: nine anchors × eleven shapes
+ * The four axes (Ch. 20) stay orthogonal on purpose: nine anchors × eleven shapes
  * × six selections covers every declaration in both rosters, and new content
  * composes rather than extends.
  */
@@ -118,7 +118,7 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   const anchor = resolveAnchor(spec.anchor, caster, board, placement, errors);
 
   // 1b. The anchor is itself a target. Step 8 lets an area's SPLASH catch a
-  //     protected Master (§16.4 rule 4's whole premise), but aiming the area at
+  //     protected Master (Ch. 32 rule 4's whole premise), but aiming the area at
   //     one is still "targeting a Master for an Attack" and rule 1 refuses it.
   if (anchor.unitId && !(spec.limits ?? {}).bypassMasterProtection && !caster.bypassesMasterProtection) {
     const aimed = (board.units ?? []).find((u) => u.id === anchor.unitId);
@@ -167,7 +167,7 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   // Narrowing here rather than erroring is the point: the compulsion does not
   // make the attack illegal, it makes the CHOICE illegal. Offering a free pick
   // of target and then refusing it would be offering something the rules have
-  // already taken away. §45.4 recorded that the targeting executors wrote keys
+  // already taken away. Ch. 46 recorded that the targeting executors wrote keys
   // nothing read; this is the reader.
   //
   // Only an ATTACK is compelled. "She will constantly Move towards and ATTACK
@@ -201,7 +201,7 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     }
   }
 
-  // 4c. BOUNDED FIELD ISOLATION (Ch. 43 §43.5). Full isolation partitions the
+  // 4c. BOUNDED FIELD ISOLATION (Ch. 28). Full isolation partitions the
   // board into two independent combats: a player whose units straddle the
   // boundary still takes one turn and acts with both groups, but the groups
   // cannot reach each other.
@@ -222,7 +222,7 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     });
   }
 
-  // 4d. CROSS-LEVEL PROTECTION (Ch. 20 §20.7). A platform states, in its own
+  // 4d. CROSS-LEVEL PROTECTION (Ch. 27). A platform states, in its own
   //     `crossLevel` block, who may shoot into it, who may shoot out of it,
   //     and whether the ground directly underneath is reachable at all.
   //
@@ -310,9 +310,9 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   //    targeted through it, unless the attacker bypasses protection.
   //
   //    Gated on `isChosen` for the same reason concealment is at step 7, and
-  //    the two rules draw the line with the same verb. §16.4 rule 1 refuses
+  //    the two rules draw the line with the same verb. Ch. 32 rule 1 refuses
   //    *targeting*: "Masters cannot be TARGETED for an Attack when their
-  //    Servant is within 2 panels". §16.4 rule 4 then describes a Master who
+  //    Servant is within 2 panels". Ch. 32 rule 4 then describes a Master who
   //    "gets CAUGHT IN an AoE Noble Phantasm" while a Servant stands within
   //    those same 2 panels — a state rule 1 would make unreachable if the
   //    splash were filtered too. Filtering here unconditionally is exactly why
@@ -320,8 +320,8 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   //    one this line removed from the area. The area catches whoever stands in
   //    it; only a directly chosen target is refused. The ANCHOR of an area is
   //    still refused below — aiming an AoE at a Master is targeting it.
-  // §12.8's redirect, the half that says who must NOT be caught. Unconditional,
-  // and deliberately NOT inside §16.4's block below: that one is gated on
+  // Ch. 21's redirect, the half that says who must NOT be caught. Unconditional,
+  // and deliberately NOT inside Ch. 32's block below: that one is gated on
   // `isChosen` so an area may still catch a protected Master incidentally,
   // which is the whole reason Cover works. This rule is the opposite -- the
   // Master takes nothing even from an area that covers it, because "the Counter
@@ -480,12 +480,12 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     errors.push("The caster cannot be within this ability's area.");
   }
 
-  // §12.8's *"declare an Attack on the AU"*. A Counter may be aimed anywhere,
+  // Ch. 21's *"declare an Attack on the AU"*. A Counter may be aimed anywhere,
   // as long as it CATCHES the unit that attacked -- not centred on it, which
   // would forbid an area answer that legitimately covers the attacker from one
   // side. Stated as a limit rather than checked after the placement is
   // committed, so the refusal is drawn under the cursor while the player is
-  // still aiming (§28.8): a refusal they fix by moving the mouse rather than
+  // still aiming (Ch. 20): a refusal they fix by moving the mouse rather than
   // one they fix by guessing.
   if (limits.requireUnitId && !chosen.some((t) => t.unitId === limits.requireUnitId)) {
     const required = (board.units ?? []).find((u) => u.id === limits.requireUnitId);
@@ -851,7 +851,7 @@ function candidatePlacements(spec, caster, board, max) {
       // and `domain/geometry.mjs#line` has stepped a diagonal correctly since
       // it was written -- `DELTA` holds all eight compass values too. Only
       // this picker was cardinal-only, so a diagonal line was expressible and
-      // unofferable. Ch. 44 §44.3 reads it as a geometry gap; it was not.
+      // unofferable. Ch. 45 reads it as a geometry gap; it was not.
       return (spec.shape?.directions === "all"
         ? ["n", "ne", "e", "se", "s", "sw", "w", "nw"]
         : ["n", "e", "s", "w"]).map((direction) => ({ direction }));
@@ -926,7 +926,7 @@ function inBounds(panel, board) {
  * @param {object} sel
  * @param {object} spec
  * @returns {boolean}
- * @see docs/09-targeting.md §9.5
+ * @see docs/20-targeting.md
  */
 function resolveIncludeSelf(sel, spec) {
   if (typeof sel.includeSelf === "boolean") return sel.includeSelf;
@@ -977,14 +977,14 @@ function isProtectedMaster(unit, caster, board) {
   if (relationOf(caster, unit, board) !== "enemy") return false;
   // `guardsOf` rather than "any Servant of that faction": Pale Rider's
   // Kagome Spirits stand in for him here, and he does not protect his own
-  // Master at all (Ch. 16).
+  // Master at all (Ch. 32).
   return guardsOf(unit, board).some(
     (u) => u.canAct !== false && u.panel && geo.chebyshev(u.panel, unit.panel) <= 1,
   );
 }
 
 /**
- * Cross-level rules are **per-platform**, not global (Ch. 20 §20.7). The board
+ * Cross-level rules are **per-platform**, not global (Ch. 27). The board
  * snapshot supplies the policy; this only enforces it.
  * @param {object} caster
  * @param {object} unit
@@ -1047,7 +1047,7 @@ function parametersBelowBy(caster, target, steps) {
     const mine = Rank.parseOrNull(caster?.parameters?.[key] ?? null);
     const theirs = Rank.parseOrNull(target?.parameters?.[key] ?? null);
     if (!mine || !theirs) continue;
-    // "One Rank lower" is one letter GRADE, not one `+`/`−` step: Ch. 05 §5.3
+    // "One Rank lower" is one letter GRADE, not one `+`/`−` step: Ch. 03
     // keeps the two scales apart, and `stepGrade` is the one that moves
     // grades. B+ against an A is not "one Rank lower"; a B is.
     if (Rank.compare(theirs, mine.stepGrade(-steps)) <= 0) below += 1;
@@ -1081,7 +1081,7 @@ function allPanels(board) {
 
 /**
  * Deterministic shuffle. Random selection must be reproducible so that a
- * replayed combat produces the same targets (Ch. 30).
+ * replayed combat produces the same targets (Ch. 37).
  * @template T
  * @param {T[]} arr
  * @param {number} seed

@@ -1,6 +1,6 @@
 /**
  * @file Switching a mode on and off, and the rules that refuse.
- * @see docs/15-abilities.md §15.3, docs/31-case-heracles.md
+ * @see docs/17-abilities.md, docs/45-case-studies.md
  *
  * Layer 2 (rules). Pure.
  *

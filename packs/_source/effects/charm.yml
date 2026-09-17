@@ -27,7 +27,7 @@ defaultDuration: "1◈"
 rules:
   # "Removed at the end of the Combat Phase if the Unit takes damage from an
   # Attack." The PHASE, not the Process -- a Counter is part of the same
-  # exchange (Ch. 12 §12.1), so a Charm broken by the opening attack should not
+  # exchange (Ch. 21), so a Charm broken by the opening attack should not
   # also be broken a second time by the counter it provoked.
   #
   # `requiresDamagedThisPhase` is answered against the damage the phase
@@ -42,7 +42,7 @@ rules:
 
   # "Immune to Confuse and Berserk while charmed." Appendix A states the same
   # exclusion from all three sides; this is Charm's. Neither of the other two
-  # is authored yet (Ch. 18 §18.5 lists Confuse's random selector as open), so
+  # is authored yet (Ch. 19 lists Confuse's random selector as open), so
   # this is inert today and correct the moment either exists -- which is the
   # right way round: the alternative is remembering to come back here.
   - key: Immunity

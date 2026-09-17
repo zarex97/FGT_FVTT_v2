@@ -1,6 +1,6 @@
 /**
  * @file The war's container roster — which slots exist and what may fill them.
- * @see docs/19-environment.md §19.7, docs/04-units.md §4.2
+ * @see docs/29-environment.md, docs/06-units-and-stats.md
  *
  * Layer 2 (rules). Pure: it takes the catalogue as an argument and returns the
  * candidates, and the caller rolls. That split is what lets the setup wizard
@@ -11,7 +11,7 @@
  * recorded which container a Servant occupies; nothing recorded that the war
  * HAS containers, which faction owns them, or that one is empty. That last is
  * the case this module exists for: the reference roster holds no Saber at all,
- * so every war built today has a slot the pool cannot fill, and Ch. 29 requires
+ * so every war built today has a slot the pool cannot fill, and Ch. 34 requires
  * that be shown with its reason rather than silently skipped.
  */
 
@@ -180,7 +180,7 @@ export function validateRoster(containers, factions, catalogue, { policy = "dupl
       say(c.id, "noCandidates");
     }
     // "The unselected Noble Phantasm is unusable" only means something once one
-    // IS selected (Ch. 15). A Servant offering the choice and given none would
+    // IS selected (Ch. 17). A Servant offering the choice and given none would
     // reach the table with both usable, which is a Servant nobody agreed to.
     if ((c.npOptions ?? []).length > 0 && !c.npChoice) say(c.id, "noNPChoice");
   }

@@ -1,13 +1,13 @@
 /**
  * @file Element priority bands, and Delay's mutation of the turn order.
- * @see docs/24-rules-engine.md §24.6, docs/07-time-model.md §7.8
+ * @see docs/10-rule-elements.md, docs/04-time-model.md
  */
 
 import { describe, it, expect } from "vitest";
 import { PRIORITY_BANDS, bandOf, orderElements } from "../../module/rules/ordering.mjs";
 import { computeTurnOrder, carryDelaysForward } from "../../module/engine/turn-order.mjs";
 
-/* ── §24.6 element ordering ───────────────────────────────────────────────── */
+/* ── Ch. 10 element ordering ───────────────────────────────────────────────── */
 
 describe("priority bands", () => {
   it("puts base changes before additive ones", () => {
@@ -69,7 +69,7 @@ describe("orderElements", () => {
   });
 });
 
-/* ── §7.8 Delay ───────────────────────────────────────────────────────────── */
+/* ── Ch. 04 Delay ───────────────────────────────────────────────────────────── */
 
 describe("Delay carried into the next round", () => {
   it("keeps a delay declared against a faction that has already acted", () => {
@@ -99,7 +99,7 @@ describe("computeTurnOrder with delays", () => {
   const order = ["a", "b", "c", "d", "e", "f", "g"];
 
   it("moves a player down the order by the delay", () => {
-    // The §7.8 worked example: Delay+2 on C gives A-B-D-E-C-F-G.
+    // The Ch. 04 worked example: Delay+2 on C gives A-B-D-E-C-F-G.
     expect(computeTurnOrder(order, { c: 2 }, ["a"], null))
       .toEqual(["a", "b", "d", "e", "c", "f", "g"]);
   });

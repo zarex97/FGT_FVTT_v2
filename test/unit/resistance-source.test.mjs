@@ -1,6 +1,6 @@
 /**
  * @file A resistance bypass scoped to one SOURCE.
- * @see module/engine/effect-applier.mjs, docs/11-effect-engine.md
+ * @see module/engine/effect-applier.mjs, docs/15-effect-application.md
  *
  * > Medusa's Mystic Eyes: *"Debuffs inflicted by this Skill ignore the DU's
  * > debuff resistance due to Magic Resistance."*

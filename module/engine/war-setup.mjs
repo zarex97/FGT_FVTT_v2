@@ -1,10 +1,10 @@
 /**
  * @file Building the board a war is fought on.
- * @see docs/08-board-and-geometry.md §8.9, docs/19-environment.md §19.1, §19.7
+ * @see docs/05-board-geometry.md, docs/29-environment.md, Ch. 29
  *
  * Layer 3. `rules/home-base.mjs` says where the bases go; this puts them there.
  *
- * Ch. 08 §8.9's grid table has been advisory since it was written — there is no
+ * Ch. 05's grid table has been advisory since it was written — there is no
  * `Scene.create` anywhere in `module/` and nothing checks a scene's grid — so a
  * war fought on a hex scene, or one with `distance: 5`, would misreport every
  * range in the game with no warning at all.
@@ -22,7 +22,7 @@ import { worldIO } from "./io.mjs";
 import { record } from "./game-log.mjs";
 
 /**
- * Ch. 08 §8.9, as data.
+ * Ch. 05, as data.
  *
  * `diagonals: ILLEGAL` is right for MOVEMENT and wrong for DISTANCE — ZON and
  * every "N panel area" are Chebyshev — which is why this system carries its own
@@ -41,7 +41,7 @@ export const GRID_REQUIREMENTS = Object.freeze({
 const GRID_SIZE = 100;
 
 /**
- * Every way this scene's grid disagrees with §8.9.
+ * Every way this scene's grid disagrees with Ch. 05.
  *
  * Reported rather than corrected on sight: a GM who set `distance: 5`
  * deliberately is owed the question, and a silent rewrite of someone's map
@@ -298,7 +298,7 @@ export async function commitWar(draft) {
   // `currentBoard` then reads no phase, no tick, no difficulty, no war type
   // and no Grail, and `clockRunning` says the match has not started. A null
   // scene makes it global, which is what "the Combat is the whole match"
-  // (Ch. 25 §25.1) means -- the war is not an encounter on one map.
+  // (Ch. 25) means -- the war is not an encounter on one map.
   const combat = await Combat.implementation.create({ type: "match", scene: null });
   // ACTIVATE it. `currentBoard()` reads `game.combats.active`, and
   // `Combat.create` leaves `active: false` -- `game.combat` is only the combat
@@ -372,7 +372,7 @@ export async function commitWar(draft) {
 
     // `setContract` is the ONE place that keeps `Servant.masterId` and
     // `Master.servantIds` reciprocal; writing either directly desynchronizes
-    // them, and §16.9's per-Servant Command Spell pools are keyed off the
+    // them, and Ch. 32's per-Servant Command Spell pools are keyed off the
     // Master's roster.
     await worldIO().setContract(servant.id, "contracted", master.id);
   }
@@ -393,7 +393,7 @@ export async function commitWar(draft) {
 /**
  * Drop every unit inside its own faction's base.
  *
- * Placed rather than left in the sidebar, because §19.7 step 10 is *"both
+ * Placed rather than left in the sidebar, because Ch. 29 step 10 is *"both
  * players are allowed to freely arrange their Units within their Home Base"* —
  * and a rearrangement needs something to rearrange.
  *

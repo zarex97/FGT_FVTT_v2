@@ -1,6 +1,6 @@
 /**
  * @file The ability's own fields, grouped into the sections the editor shows.
- * @see docs/29-user-interface.md §29.6, docs/22-data-models.md §22.6
+ * @see docs/35-sheets-and-editor.md, docs/07-schemas.md
  *
  * Layer 2 (rules). Pure data.
  *

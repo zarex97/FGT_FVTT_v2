@@ -1,6 +1,6 @@
 /**
  * @file The four Bloodmarks, and the square they define.
- * @see module/rules/bloodmarks.mjs, docs/43-bounded-fields.md §43.4
+ * @see module/rules/bloodmarks.mjs, docs/28-bounded-fields.md
  */
 
 import { describe, it, expect } from "vitest";

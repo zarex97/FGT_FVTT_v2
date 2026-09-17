@@ -1,6 +1,6 @@
 /**
  * @file The ability timing window vocabulary.
- * @see docs/15-abilities.md §15.3
+ * @see docs/17-abilities.md
  *
  * Layer 2 (rules). Pure data.
  *

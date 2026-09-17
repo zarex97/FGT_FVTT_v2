@@ -1,6 +1,6 @@
 /**
  * @file The Injury Roll — Combat Process step 4.
- * @see docs/12-combat-process.md §12.6
+ * @see docs/21-combat-process.md
  *
  * Layer 2. Pure: it decides *whether* the roll happens and says why. The `1d4`
  * itself is rolled by the caller, like every other roll in the system.
@@ -13,7 +13,7 @@
 /**
  * The stat an Injury Roll depletes. Agility is drained by exactly three things
  * — this, `Def Dwn (C)`, and Luck Checks — and never by an Agility Check
- * (Ch. 14 §14.5), so naming it here keeps the one write site honest.
+ * (Ch. 13), so naming it here keeps the one write site honest.
  */
 export const INJURY_STAT = "agility.value";
 
@@ -51,7 +51,7 @@ export function injuryCheck({
     return { roll: false, reason: "npOnly" };
   }
 
-  // Light Wound cancels the roll outright rather than reducing it (Ch. 14).
+  // Light Wound cancels the roll outright rather than reducing it (Ch. 13).
   if (lightWound) return { roll: false, reason: "lightWound" };
 
   return { roll: true, reason: "ok" };

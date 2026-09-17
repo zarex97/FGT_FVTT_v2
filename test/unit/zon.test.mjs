@@ -1,6 +1,6 @@
 /**
  * @file ZON — the Effective Servant Zone.
- * @see docs/06-stats-and-resources.md §6.9, docs/16-relationships.md §16.3
+ * @see docs/06-units-and-stats.md, docs/32-relationships.md
  *
  * The two consumers of `outsideZon` — pipeline stage 9 and the Noble Phantasm
  * legality check — both existed before anything computed it, so both rules had
@@ -36,7 +36,7 @@ describe("zonRadius — the class table and the max-not-sum channel", () => {
   const m = master("m", at(6, 6));
 
   it("reproduces the stated defaults", () => {
-    // Saber/Lancer/Rider/Berserker 2, Archer 4, Assassin 4, Caster 5 (§6.9).
+    // Saber/Lancer/Rider/Berserker 2, Archer 4, Assassin 4, Caster 5 (Ch. 06).
     expect(zonRadius(servant("s", at(0, 0), { servantClasses: ["saber"] }), m)).toBe(2);
     expect(zonRadius(servant("s", at(0, 0), { servantClasses: ["berserker"] }), m)).toBe(2);
     expect(zonRadius(servant("s", at(0, 0), { servantClasses: ["assassin"] }), m)).toBe(4);
@@ -62,7 +62,7 @@ describe("zonRadius — the class table and the max-not-sum channel", () => {
 
   it("stacks a bonus that declares itself as stacking", () => {
     // Kingprotea: base 2 + Independent Action B (+2, exclusive) + Mad
-    // Enhancement (+2, stacking) = 6 (§6.9).
+    // Enhancement (+2, stacking) = 6 (Ch. 06).
     const kingprotea = servant("s", at(0, 0), {
       zonBonuses: [
         { value: 2, stacks: false, source: "Independent Action" },
@@ -132,7 +132,7 @@ describe("zonStatus", () => {
     const board = boardWith([m, castor, pollux]);
 
     // Pollux is six panels outside, but Castor is inside, so neither is
-    // penalised: the test is `any`, not `all` (§6.9).
+    // penalised: the test is `any`, not `all` (Ch. 06).
     expect(zonStatus(pollux, board).outside).toBe(false);
     expect(zonStatus(castor, board).outside).toBe(false);
   });

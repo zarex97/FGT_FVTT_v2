@@ -1,6 +1,6 @@
 /**
  * @file Writing a document back to its pack source.
- * @see module/apps/yaml-export.mjs, docs/29-user-interface.md §29.6
+ * @see module/apps/yaml-export.mjs, docs/34-action-bar.md
  *
  * The compendium is the whole source of truth (spec R1), which is only safe
  * because authoring has somewhere to go. Without this the ability editor's

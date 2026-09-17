@@ -1,7 +1,7 @@
 /**
  * @file One declaration, N differently-shaped attacks.
- * @see docs/12-combat-process.md §12.1
- * @see docs/superpowers/specs/2026-09-12-raikou-design.md §4.7
+ * @see docs/21-combat-process.md
+ * @see docs/superpowers/specs/2026-09-12-raikou-design.md Ch. 06
  *
  * Layer 2 (rules). Pure.
  */

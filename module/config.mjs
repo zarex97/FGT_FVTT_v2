@@ -1,6 +1,6 @@
 /**
  * @file `CONFIG.FGT` — the system's public configuration surface.
- * @see docs/21-system-skeleton.md §21.4
+ * @see docs/02-architecture.md
  *
  * Everything a GM or module might want to override lives here rather than in
  * module-scope constants. A module adding a rule element does
@@ -26,10 +26,10 @@ export const FGT = {
   /** Appendix B, as data. */
   tables: TABLES,
 
-  /** The published fixed-operator fraction table (Ch. 07 §7.2). */
+  /** The published fixed-operator fraction table (Ch. 04). */
   tickOverrides: TICK_OVERRIDES,
 
-  /** Per-player, per-turn (Ch. 18). */
+  /** Per-player, per-turn (Ch. 19). */
   budgets: { servantMoves: 4, masterMoves: 3, servantAttacks: 2 },
 
   /** Round gates. Assassins unlock Noble Phantasms two rounds early. */

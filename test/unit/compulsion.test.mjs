@@ -1,10 +1,10 @@
 /**
  * @file Compulsions — being forced to attack a particular unit.
- * @see docs/18-action-economy.md §18.5, docs/24-rules-engine.md Group 4
- * @see docs/45-implementation-status.md D1
+ * @see docs/19-action-economy.md, docs/10-rule-elements.md Group 4
+ * @see docs/46-roster-re-audit.md D1
  *
  * Two halves that had never met. `budget.unmetCompulsions` has read a `hatred`
- * effect since it was written and **nothing applied one**; and §45.4 records
+ * effect since it was written and **nothing applied one**; and Ch. 46 records
  * that the four targeting executors "write keys that nothing in the targeting
  * resolver reads". So a compulsion could neither be acquired nor obeyed.
  *

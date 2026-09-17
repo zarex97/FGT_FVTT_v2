@@ -5,15 +5,15 @@
  * Layer 1 (domain). Pure.
  *
  * Four table kinds:
- *   - `scaled`    — a value per grade plus a per-step delta (Ch. 05 §5.4)
- *   - `banded`    — grades grouped; steps ignored (Ch. 05 §5.4)
- *   - `threshold` — ordinal cut points, optionally with overrides (Ch. 05 §5.4)
+ *   - `scaled`    — a value per grade plus a per-step delta (Ch. 03)
+ *   - `banded`    — grades grouped; steps ignored (Ch. 03)
+ *   - `threshold` — ordinal cut points, optionally with overrides (Ch. 03)
  *   - `equality`  — **exact** rank match, no ordering at all
  *
  * The fourth exists for one table. Scáthach's *Gate of Skye* keys on the
  * target's MAG being exactly `B` or exactly `A`; a `MAG EX` or `MAG A+` target
  * receives nothing. A banded table would let `A+` fall through to the `A` band
- * and quietly implement `gte`, which is the bug Ch. 05 §5.3's validator warning
+ * and quietly implement `gte`, which is the bug Ch. 03's validator warning
  * exists to catch. Making it a distinct kind puts the difference in the data
  * where it is visible.
  *
@@ -184,7 +184,7 @@ export const TABLES = Object.freeze({
    * The sheet says *"NP Cooldown is reduced by 2 Turns"*, and
    * `engine/scheduler.mjs`'s `CooldownDelta` distinguishes the two by FIELD:
    * `ticks` is a ◈ expression resolved against the world's turns per Round,
-   * `delta` is a raw turn count. This table feeds `delta`. Ch. 34 §34.8
+   * `delta` is a raw turn count. This table feeds `delta`. Ch. 45
    * proposes a `unit: turns` marker for exactly this; the distinction already
    * existed as two fields.
    */

@@ -1,6 +1,6 @@
 /**
  * @file The Servant actor schema.
- * @see docs/22-data-models.md, docs/04-units.md
+ * @see docs/07-schemas.md, docs/06-units-and-stats.md
  */
 
 import { unitCommon, combatantCommon } from "./_shared.mjs";
@@ -21,7 +21,7 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       trueName: new fields.StringField({ required: false, blank: true }),
 
       /**
-       * How many panels this Servant stands on (Ch. 04 §4.12).
+       * How many panels this Servant stands on (Ch. 06).
        *
        * `1x1` for every Servant in the corpus but one. Kingprotea's *Huge
        * Scale* grows her from 1x1 to 4x4 as Proliferation stocks accumulate, and
@@ -42,7 +42,7 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       // Caster -- kept as a set because content and rules both ask "is it a X".
       servantClasses: new fields.SetField(new fields.StringField({ blank: false })),
 
-      // A stance (Ch. 44 §44.1), and only Achilles has one. Blank means "the
+      // A stance (Ch. 45), and only Achilles has one. Blank means "the
       // spec's default", so an actor imported before the field existed reads
       // correctly rather than as an unknown state. `stanceSpec` is authored on
       // the sheet and compiled by `tools/lib/content.mjs`; `rules/stance.mjs`
@@ -52,7 +52,7 @@ export class ServantData extends foundry.abstract.TypeDataModel {
 
       // The ONE it is summoned into, and the one it is publicly known by. A
       // Servant is not "Heracles" to its opponents, it is "Berserker" -- or
-      // "Berserker of Yellow" once it belongs to a named faction (Ch. 04 §4.2).
+      // "Berserker of Yellow" once it belongs to a named faction (Ch. 06).
       classContainer: new fields.StringField({ required: false, blank: true }),
 
       // An override for that public name, for a Servant known as something
@@ -61,7 +61,7 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       concealedIdentity: new fields.StringField({ required: false, blank: true }),
 
       // The true name is hidden until this is set, which is what gives
-      // closed-information play (Ch. 26 §26.6) something to conceal.
+      // closed-information play (Ch. 38) something to conceal.
       identityRevealed: new fields.BooleanField({ initial: false }),
       alignment: new fields.SchemaField({
         order: new fields.StringField({ required: false, blank: true }),
@@ -72,7 +72,7 @@ export class ServantData extends foundry.abstract.TypeDataModel {
 
       // A coin flip AT SUMMON that changes this Servant's shape from then on --
       // Semiramis is the only one in the reference set that needs it. An
-      // ObjectField for the same reason `resources` is one (Ch. 06 §6.10): this
+      // ObjectField for the same reason `resources` is one (Ch. 06): this
       // is per-unit content, and a typed schema would have to name every future
       // Servant's branch shape before any of them could ship.
       //
@@ -118,13 +118,13 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       // not an authored key.
       glassGameSpent: new fields.BooleanField({ initial: false }),
 
-      // ZON exceptions, both from the reference set (Ch. 16 §16.3). Semiramis
+      // ZON exceptions, both from the reference set (Ch. 32). Semiramis
       // aboard the Hanging Gardens is exempt outright; the Dioscuri satisfy ZON
       // if *either* twin is inside, so the test is `any` across the partners.
       zonExempt: new fields.BooleanField({ initial: false }),
       zonPartnerIds: new fields.SetField(new fields.DocumentIdField()),
 
-      // Ch. 16 §16.8's `LinkedUnitGroup` (D16.7) — a general mechanism, not a
+      // Ch. 32's `LinkedUnitGroup` (D16.7) — a general mechanism, not a
       // Dioscuri special case: the shape recurs for a Servant with a permanent
       // summon, and for a Master-Servant pair moving under Passenger Seat.
       //

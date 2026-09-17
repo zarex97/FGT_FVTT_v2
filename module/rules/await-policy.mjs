@@ -1,13 +1,13 @@
 /**
  * @file What happens when nobody answers.
- * @see docs/27-reaction-protocol.md §27.5
+ * @see docs/23-reactions.md
  *
  * Layer 2 (rules). Pure.
  *
  * A player who has closed their browser must not block the table. That is the
  * requirement; the interesting part is what to decide *for* them.
  *
- * §27.5's decision, and the one property every entry below satisfies: **every
+ * Ch. 23's decision, and the one property every entry below satisfies: **every
  * timeout default is the option that spends nothing.** A player who was
  * disconnected should never come back to find their Luck and Command Spells
  * drained by auto-decisions. `spends: false` is asserted across the whole table

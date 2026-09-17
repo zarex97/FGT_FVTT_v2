@@ -1,6 +1,6 @@
 /**
  * @file Reading a unit's Health, whichever shape it arrived in.
- * @see docs/06-stats-and-resources.md, docs/23-documents-and-derived-data.md
+ * @see docs/06-units-and-stats.md, docs/08-documents-and-derived.md
  *
  * Layer 1 (domain). Pure.
  *

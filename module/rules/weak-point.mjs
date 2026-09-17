@@ -1,11 +1,11 @@
 /**
  * @file A weak point — a declared sub-attack with its own hit table.
- * @see docs/44-case-expanded-roster.md §44.2
+ * @see docs/45-case-studies.md
  *
  * Layer 2. Pure: the chance is computed from two Unit projections and the state
  * of the Combat Process, and nothing here rolls or writes.
  *
- * Achilles' Heel is the only one in either roster, and Ch. 44 §44.2 calls it
+ * Achilles' Heel is the only one in either roster, and Ch. 45 calls it
  * *"the most involved single mechanic"* there. Three things make it novel:
  *
  * 1. **The attacker opts in at declaration**, and it is resolved after a failed

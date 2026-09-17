@@ -665,7 +665,7 @@ describe("Van Gogh — Terror, and De Sterrennacht EX (NP1)", () => {
       base: 30, each: 10,
       requires: ["self:skill:existenceOutsideTheDomain"], excludeSelf: true,
     });
-    // NOT the `@count(...)` expression Ch. 35 proposed -- this codebase
+    // NOT the `@count(...)` expression Ch. 45 proposed -- this codebase
     // rejected that by name in `semiramis-familiar-doves.yml`.
     expect(JSON.stringify(np)).not.toContain("@count(");
   });
@@ -1305,7 +1305,7 @@ describe("Van Gogh is a Foreigner", () => {
   // kit -- fixed MAG normal attack, Item Construction, a support NP -- and
   // Appendix D had said Foreigner all along, inferred from the ability set.
   // `Existence Outside The Domain` is the tell: it is a Foreigner class skill,
-  // and Ch. 35's own tally calls her Base Attack clause "BA(MAG) on a
+  // and Ch. 45's own tally calls her Base Attack clause "BA(MAG) on a
   // NON-Caster".
   //
   // `classContainer` is presentational -- `authored-fields.mjs` keeps it out of

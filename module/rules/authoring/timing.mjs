@@ -1,6 +1,6 @@
 /**
  * @file The timing windows, as the editor offers them.
- * @see docs/15-abilities.md §15.3, module/rules/windows.mjs
+ * @see docs/17-abilities.md, module/rules/windows.mjs
  *
  * Layer 2 (rules). Pure data.
  *
@@ -23,7 +23,7 @@ export const TIMING_DESCRIPTORS = describeTable(
     label: `FGT.Authoring.Window.${id}`,
     hint: `FGT.Authoring.Window.${id}Hint`,
     english: ABILITY_WINDOWS[id].hint,
-    doc: "15-abilities.md",
+    doc: "17-abilities.md",
     // Carried through so the picker can say which window is documentary. A GM
     // choosing `ownTurn` should know nothing will offer the ability at a
     // moment -- it is the sheet button.

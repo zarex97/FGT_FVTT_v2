@@ -12,7 +12,7 @@
 # on it, and the shared template's own header records what happened the last
 # time that slug was wrong: the Servant became as easy to steal as one with no
 # class skill at all. At EX it is an absolute prohibition rather than a
-# difficulty (Ch. 44 Q48), which is passive 3 of her sheet.
+# difficulty (Ch. 45 Q48), which is passive 3 of her sheet.
 schema: 1
 id: class-independent-action-viy
 name: "Independent Action with Viy"
@@ -31,7 +31,7 @@ description: |
 passiveRules:
   # Passive 2, from the table -- EX gives 3, which is her sheet's number.
   #
-  # `stacks` is false by omission, and that is load-bearing: §6.9 says
+  # `stacks` is false by omission, and that is load-bearing: Ch. 06 says
   # Independent Action and the Caster/Assassin class bonus are the same effect
   # and take the HIGHEST rather than the sum.
   - key: ZonBonus

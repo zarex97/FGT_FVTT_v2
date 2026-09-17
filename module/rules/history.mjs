@@ -1,17 +1,17 @@
 /**
  * @file Whether this match records history at all, and what a snapshot holds.
- * @see docs/43-bounded-fields.md §43.11
+ * @see docs/28-bounded-fields.md
  *
  * Layer 2 (rules). Pure.
  *
- * §43.11's load-bearing optimisation, in one function: *"`historyRecording` is
+ * Ch. 28's load-bearing optimisation, in one function: *"`historyRecording` is
  * off by default and switched on only when an ability declaring
  * `requiresHistory: true` enters play. A match without Nursery Rhyme pays
  * nothing."*
  *
  * **The engine has never had to remember the past.** Every other ability in
  * either roster reads the present or schedules the future; The Queen's Glass
- * Game reads history, and Ch. 43 opens its design by saying so.
+ * Game reads history, and Ch. 28 opens its design by saying so.
  */
 
 /**
@@ -32,7 +32,7 @@ export function historyWanted(board) {
 /**
  * What one Unit was like at one tick.
  *
- * §43.11's `UnitStateSnapshot`, quoted so a reader can check the shape against
+ * Ch. 28's `UnitStateSnapshot`, quoted so a reader can check the shape against
  * the chapter without leaving the file:
  *
  * ```ts
@@ -60,7 +60,7 @@ export function historyWanted(board) {
  *
  * Effects are stored as FULL INSTANCES rather than ids, because an id alone
  * cannot restore a magnitude or an expiry, and each records the id of its
- * source so the applier can drop the orphans §43.11 warns about.
+ * source so the applier can drop the orphans Ch. 28 warns about.
  *
  * @param {object} unit a board projection or a document's `system`
  * @param {number} globalTurn
@@ -85,7 +85,7 @@ export function snapshotUnit(unit, globalTurn) {
       uses: e.uses ?? 0,
       expiry: e.expiry ?? null,
       appliedTick: e.appliedTick ?? null,
-      // WHOSE this is. §43.11's own RISK: *"What must not happen is the rewind
+      // WHOSE this is. Ch. 28's own RISK: *"What must not happen is the rewind
       // restoring an effect whose source has since been removed, producing an
       // orphaned instance."* The applier can only drop such an instance if the
       // snapshot recorded who put it there.
@@ -122,7 +122,7 @@ function pool(raw) {
 /**
  * What changed between two snapshots.
  *
- * The diffing is what keeps the buffer inside §43.11's ≈280 KB budget: a patch
+ * The diffing is what keeps the buffer inside Ch. 28's ≈280 KB budget: a patch
  * that always carried everything would be a ring of full snapshots wearing a
  * disguise. Shallow per top-level key, because these are small objects and a
  * deep structural diff would cost more to compute than it saves.

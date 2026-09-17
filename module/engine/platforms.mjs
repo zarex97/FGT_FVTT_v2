@@ -1,6 +1,6 @@
 /**
  * @file Platform operations — boarding, and coming apart.
- * @see docs/20-platforms-and-levels.md §20.4, §20.9
+ * @see docs/27-platforms-and-levels.md, Ch. 27
  *
  * Layer 3. The rules decide; this rolls, writes and moves tokens.
  */
@@ -108,7 +108,7 @@ export async function knockOff({ unitId, platformId, passedAgility, servantRescu
 }
 
 /**
- * Take the platform apart (§20.9).
+ * Take the platform apart (Ch. 27).
  *
  * The order is the specification's and it matters: save, damage the failures,
  * scatter **everyone**, then remove the level. Surviving the fall is not the
@@ -127,7 +127,7 @@ export async function destroyPlatform({ platformId, saves = {} }) {
   const descriptors = destructionSequence(platform, board, { saves });
   await applyWorldIntents(await toIntents(descriptors), "platform:destroyed");
 
-  // §20.9 steps 4-8, which used to be logged by name. Ordered by the schema
+  // Ch. 27 steps 4-8, which used to be logged by name. Ordered by the schema
   // rather than by preference: `TokenDocument#level` is required and
   // non-nullable and Foundry does not re-parent on delete, so scatter must
   // finish before the level goes.
@@ -193,7 +193,7 @@ async function setCooldownOnDestruction(platform) {
 }
 
 /**
- * Bring a platform onto the board (§20.9, create).
+ * Bring a platform onto the board (Ch. 27, create).
  *
  * The Scene Level comes first: boarding is a movement operation between levels,
  * so units cannot be placed aboard until there is a level to place them on.

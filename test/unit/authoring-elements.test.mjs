@@ -29,7 +29,7 @@ describe("drift: descriptors and EXECUTORS", () => {
     }
   });
 
-  it("covers all 54", () => {
+  it("and the two lists are the same length — no key described twice, none missed", () => {
     expect(ELEMENT_IDS.length).toBe(handledKeys().length);
   });
 });

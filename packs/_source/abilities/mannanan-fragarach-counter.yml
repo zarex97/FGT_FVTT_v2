@@ -1,5 +1,5 @@
 # Mannanán mac Lir — the Fragarach Counter.
-# docs/24-rules-engine.md §24.8, docs/33-case-mannanan.md §33.3
+# docs/10-rule-elements.md, docs/45-case-studies.md
 #
 # > "When Mannanán is Attacked or inflicted with a debuff, at the end of the
 # >  Combat Process (if Attacked), she automatically performs a Fragarach
@@ -16,7 +16,7 @@
 # NOT A BUTTON. `engine/auto-counter.mjs` queues the provocation and
 # `engine/attack.mjs#flushAutoCounters` declares this on her behalf. It is
 # authored as an ability rather than described inline on the effect because
-# §12.8's ruling is that a Counter is a full declaration -- its own reaction
+# Ch. 21's ruling is that a Counter is a full declaration -- its own reaction
 # ladder, its own damage pipeline, its own riders -- and describing it inline
 # would be a second, weaker damage path that no ladder reaches.
 schema: 1
@@ -26,7 +26,7 @@ kind: skill
 slug: fragarachCounter
 isAttackSkill: true
 # Clause 3: *"Fragarach Counters deal NP Damage; however they are not affected
-# by NP Seal."* The three scoping flags of §15.5 pulled apart, and this is the
+# by NP Seal."* The three scoping flags of Ch. 17 pulled apart, and this is the
 # clearest justification for their being independent:
 #
 #   damage   -> NP, so `NP DmUp`, `NP DmDwn` and every NP-scoped modifier see it

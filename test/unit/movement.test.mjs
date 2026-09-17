@@ -1,6 +1,6 @@
 /**
  * @file Movement legality, reachability and the Riding segments.
- * @see docs/08-board-and-geometry.md §8.3
+ * @see docs/05-board-geometry.md
  */
 
 import { describe, it, expect } from "vitest";
@@ -137,7 +137,7 @@ describe("a sealed field's own boundary — Sikera Ušum's Throne Room", () => {
 });
 
 describe("occupancy is per LEVEL, not per panel", () => {
-  // §20.2's whole reason for giving each platform its own Scene Level is
+  // Ch. 27's whole reason for giving each platform its own Scene Level is
   // "separate occupancy". `occupantAt` compared `i` and `j` and nothing else,
   // so every unit in the scene occupied the same 2D grid whatever its
   // elevation — and the Hanging Gardens, which is flying, could not be moved
@@ -369,7 +369,7 @@ describe("knockbackPanel — Akhilleus Kosmos's directional push", () => {
   });
 });
 
-describe("knockbackPanel (Ch. 32, Bašmu)", () => {
+describe("knockbackPanel (Ch. 45, Bašmu)", () => {
   // Bašmu at (6, 6), moving onto (6, 7) where `victim` stands -- knocked back
   // one further panel along the same line, away from Bašmu.
   const basmu = at(6, 6);

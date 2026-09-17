@@ -1,6 +1,6 @@
 /**
  * @file Effect, Combat and Combatant schemas.
- * @see docs/11-effect-engine.md, docs/25-turn-system.md
+ * @see docs/15-effect-application.md, docs/25-turn-order-and-scheduler.md
  */
 
 const fields = foundry.data.fields;
@@ -8,7 +8,7 @@ const fields = foundry.data.fields;
 /**
  * One ActiveEffect subtype, not one per effect. The effect's identity lives in
  * `system.defId` referencing the registry; declaring 152 subtypes would bloat
- * the manifest and gain nothing (Ch. 21 §21.1).
+ * the manifest and gain nothing (Ch. 02).
  */
 export class EffectData extends foundry.data.ActiveEffectTypeDataModel {
   static defineSchema() {
@@ -25,7 +25,7 @@ export class EffectData extends foundry.data.ActiveEffectTypeDataModel {
       // of sync with the contract is core's own.
       //
       // F/GT does not use Foundry's change system — a rule element on the
-      // effect *definition* is what modifies a unit (Ch. 24), because a change
+      // effect *definition* is what modifies a unit (Ch. 10), because a change
       // can only write a document field and the rules need predicates,
       // ordering and an audit trail. The field exists, defaults empty, and is
       // honoured by core for anyone who does put something in it.
@@ -46,11 +46,11 @@ export class EffectData extends foundry.data.ActiveEffectTypeDataModel {
       // An ABSOLUTE expiry tick, never a countdown. That is what makes Stop's
       // clock freeze expressible -- it shifts expiries rather than skipping
       // decrements -- and what keeps a mid-match fixed-operator change from
-      // corrupting every duration on the board (Ch. 07 §7.5).
+      // corrupting every duration on the board (Ch. 04).
       expiry: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
 
       // The tick this instance ARRIVED on, which is the mirror of `expiry` and
-      // answers the mirror question. Ch. 11 §11.9's rule -- an effect does not
+      // answers the mirror question. Ch. 15's rule -- an effect does not
       // act on the Turn it ends -- has always been enforced from `expiry`;
       // Kingprotea's `NP DmUp (GAO)` is the first clause that states the other
       // end: *"at the end of this Unit's Turn **except the Turn this Skill was
@@ -116,13 +116,13 @@ export class MatchData extends foundry.abstract.TypeDataModel {
       // actually played after Delay. Collapsing them would make Delay
       // cumulative -- each recomputation would delay from the already-delayed
       // position -- and a faction could be pushed to the back of the round by
-      // one declaration (Ch. 25 §25.3).
+      // one declaration (Ch. 25).
       baseOrder: new fields.ArrayField(new fields.StringField()),
       turnOrder: new fields.ArrayField(new fields.StringField()),
 
       // Faction id → positions delayed. Cleared at the start of each Round;
       // an individual entry is dropped at the end of the round it took effect
-      // in (Ch. 07 §7.8).
+      // in (Ch. 04).
       delays: new fields.ObjectField({ required: true, initial: () => ({}) }),
 
       // Which factions have already taken their turn this Round. Delay may not
@@ -130,7 +130,7 @@ export class MatchData extends foundry.abstract.TypeDataModel {
       // applied next Round instead.
       takenThisRound: new fields.ArrayField(new fields.StringField()),
 
-      // The war's Region (Ch. 19 §19.3). Grants every Servant from it a
+      // The war's Region (Ch. 29). Grants every Servant from it a
       // parameter step, which is why it lives on the match rather than on a
       // setting: it is chosen once, at setup, and never changes mid-war.
       region: new fields.StringField({ required: false, nullable: true, initial: null }),
@@ -155,14 +155,14 @@ export class MatchData extends foundry.abstract.TypeDataModel {
       difficulty: new fields.StringField({ initial: "intermediate",
         choices: ["beginner", "intermediate", "expert", "lunatic"] }),
 
-      // The Holy Grail (Ch. 19 §19.4). `grailCounter` counted defeated Servants
+      // The Holy Grail (Ch. 29). `grailCounter` counted defeated Servants
       // and nothing ever incremented or read it; the rest of the state had
       // nowhere to live at all, so materialization could not happen.
-      // The structured game log (Ch. 30 §30.8). Chat is ephemeral in practice --
+      // The structured game log (Ch. 37). Chat is ephemeral in practice --
       // it scrolls, it gets cleared, and it interleaves with out-of-character
       // talk -- so the record that survives lives here. Bounded at 200 entries;
       // older ones flush to a JournalEntry, which is what keeps this document
-      // from growing without limit (Ch. 22 §22.8's RISK).
+      // from growing without limit (Ch. 07's RISK).
       log: new fields.ArrayField(new fields.ObjectField()),
       // The journal holding everything already flushed off `log`.
       logJournalId: new fields.StringField({ required: false, nullable: true, initial: null }),
@@ -184,7 +184,7 @@ export class PlayerCombatantData extends foundry.abstract.TypeDataModel {
     return {
       factionId: new fields.StringField({ required: false, nullable: true, initial: null }),
 
-      // The GM's slot, which is always last in the order (Ch. 25 §25.3). A flag
+      // The GM's slot, which is always last in the order (Ch. 25). A flag
       // rather than a reserved faction id, because the GM is not a faction: it
       // owns no units and has no budget, it simply gets a turn.
       isGM: new fields.BooleanField({ initial: false }),

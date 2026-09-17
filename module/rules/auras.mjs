@@ -1,6 +1,6 @@
 /**
  * @file Auras — expanding a source's contribution onto the units around it.
- * @see docs/11-effect-engine.md §11.6, docs/23-documents-and-derived-data.md §23.3
+ * @see docs/15-effect-application.md, docs/08-documents-and-derived.md
  *
  * Layer 2 (rules). Pure — takes the board, returns modifiers.
  *
@@ -33,7 +33,7 @@ import { anyBoundaryBlocksEffect } from "./bounded-fields.mjs";
 /**
  * Every aura contribution a unit receives, from every source on the board.
  *
- * An optional `index` (§23.9) narrows which sources are worth asking about, by
+ * An optional `index` (Ch. 08) narrows which sources are worth asking about, by
  * position. It changes **nothing** about the answer: the relation test and the
  * stacking below are the same either way, and `test/unit/aura-index.test.mjs`
  * holds the two paths against each other. The index is spatial and this
@@ -114,7 +114,7 @@ function candidateAuras(unit, board, index) {
 /**
  * Give every unit on the board the auras it stands in.
  *
- * Two passes, and the reason is §23.3's cycle: unit A's derived data depends on
+ * Two passes, and the reason is Ch. 08's cycle: unit A's derived data depends on
  * unit B's position and rules, and vice versa. Collecting for **all** units
  * against the untouched board before writing any of it back means no unit can
  * observe another unit's freshly-received auras — an aura cannot feed an aura,
@@ -122,7 +122,7 @@ function candidateAuras(unit, board, index) {
  *
  * @param {object[]} units
  * @param {object} board
- * @param {object} [index] a spatial index (§23.9); an optimisation only
+ * @param {object} [index] a spatial index (Ch. 08); an optimisation only
  * @returns {void} mutates the recipient's contribution buckets
  */
 export function annotateAuras(units, board, index = null) {

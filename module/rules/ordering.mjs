@@ -1,6 +1,6 @@
 /**
  * @file Element priority bands.
- * @see docs/24-rules-engine.md §24.6, docs/06-stats-and-resources.md §6.11
+ * @see docs/10-rule-elements.md, docs/06-units-and-stats.md
  *
  * Layer 2 (rules). Pure.
  *
@@ -88,7 +88,7 @@ const BY_KEY = Object.freeze({
  * @returns {number}
  */
 export function bandOf(element) {
-  // Content may override, which §24.6 permits with an `@intentional` marker.
+  // Content may override, which Ch. 10 permits with an `@intentional` marker.
   if (typeof element?.priority === "number") return element.priority;
   // An element that reads aura magnitudes runs in the consumer band, whatever
   // its key: it is the dependency that decides, not the name.

@@ -1,6 +1,6 @@
 /**
  * @file The faction roster, and the alliance graph derived from it.
- * @see docs/04-units.md §4.10, docs/16-relationships.md
+ * @see docs/06-units-and-stats.md, docs/32-relationships.md
  *
  * Layer 2 (rules). Pure: it takes the roster as an argument and returns the
  * shapes the resolver wants. The GM edits it through a settings menu; the world
@@ -60,11 +60,11 @@ export function normalizeFactions(raw) {
       color: String(entry.color ?? FACTION_COLORS[index % FACTION_COLORS.length]),
       // A LIST, because a Great Holy Grail War is *"7 players cooperating as
       // one Faction"* -- or *"2 Players cooperating on each Faction"* -- and a
-      // singular field could express neither. Ch. 04 §4.10 has specified a list
+      // singular field could express neither. Ch. 06 has specified a list
       // since it was written; the code was the half that drifted.
       //
       // Migrated here rather than by a migration runner, which does not exist
-      // (Ch. 39): this normalizer runs on every read, so it is the one place a
+      // (Ch. 41): this normalizer runs on every read, so it is the one place a
       // shape change cannot be missed. A stored singular `userId` becomes a
       // one-element list, and `userIds` wins in a world that has both.
       // `filter` BEFORE `map`, not after: `String(null)` is `"null"`, a

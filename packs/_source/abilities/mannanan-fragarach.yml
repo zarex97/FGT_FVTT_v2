@@ -1,5 +1,5 @@
 # Mannanán mac Lir, char_orig_sheets/Copia de Mannanán mac Lir.md
-# Discussed: docs/33-case-mannanan.md §33.4 -- "the hardest single ability in
+# Discussed: docs/45-case-studies.md -- "the hardest single ability in
 # the reference set".
 schema: 1
 id: mannanan-fragarach
@@ -39,7 +39,7 @@ targeting:
   shape: { kind: unit }
   selection: { relations: [enemy], chooser: all, count: 1 }
 
-# The two branches, as data. §33.4 budgets a `Script` for this and it turned out
+# The two branches, as data. Ch. 45 budgets a `Script` for this and it turned out
 # not to need one: the only genuinely computational part is *"was it their
 # strongest"*, and that belongs in `rules/np-strength.mjs` where it is pure and
 # testable rather than inside a registered function that content cannot inspect.

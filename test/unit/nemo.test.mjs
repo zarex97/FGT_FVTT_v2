@@ -1,10 +1,10 @@
 /**
  * @file Captain Nemo — the pure halves of his kit.
- * @see docs/36-case-remaining.md §36.6, char_orig_sheets/Copia de Nemo.md
+ * @see docs/45-case-studies.md, char_orig_sheets/Copia de Nemo.md
  *
  * Everything here is layer 1 or 2, so it runs without a world. The
  * document-touching halves — Zero Sail's entry and resurface, Quickfire's
- * no-Counter refund — are live-tested in `fgt2026` and recorded in Ch. 45.
+ * no-Counter refund — are live-tested in `fgt2026` and recorded in Ch. 46.
  */
 
 import { describe, it, expect } from "vitest";
@@ -307,7 +307,7 @@ describe("the Deafen debuff", () => {
 });
 
 /* ========================================================================== */
-/*  Two-sided bypassModifiers (Ch. 13 §13.8)                                  */
+/*  Two-sided bypassModifiers (Ch. 22)                                  */
 /* ========================================================================== */
 
 describe("two-sided bypassModifiers", () => {

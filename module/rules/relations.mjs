@@ -1,6 +1,6 @@
 /**
  * @file How one Unit sees another.
- * @see docs/09-targeting.md §9.5, docs/16-relationships.md
+ * @see docs/20-targeting.md, docs/32-relationships.md
  *
  * Layer 2 (rules). Pure.
  *
@@ -51,7 +51,7 @@ export function isFriendly(relation) {
 
 /**
  * The Units that stand as "this Master's Servant" for the Servant–Master
- * relationship rules (Ch. 16).
+ * relationship rules (Ch. 32).
  *
  * Ordinarily the Master's own Servants. For a Servant carrying a
  * `RelationshipProxy`, its live bound summons instead — Pale Rider:

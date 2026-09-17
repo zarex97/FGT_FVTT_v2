@@ -1,6 +1,6 @@
 /**
  * @file Putting an ability on cooldown after it is used.
- * @see docs/07-time-model.md §7.5, docs/15-abilities.md §15.3
+ * @see docs/04-time-model.md, docs/17-abilities.md
  *
  * Layer 3.
  *
@@ -145,7 +145,7 @@ export function cooldownFor(ability, actorId, { count = 0, unit = null } = {}) {
 }
 
 /**
- * Abilities this use also puts on cooldown (Ch. 07 §7.6).
+ * Abilities this use also puts on cooldown (Ch. 04).
  *
  * Scáthach's *Gate of Skye* is the reference case: *"when this NP is used,
  * Primordial Rune and Wisdom of Dún Scáith enter Cooldown."* Note the

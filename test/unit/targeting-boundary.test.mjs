@@ -1,6 +1,6 @@
 /**
  * @file What the resolver says when it says no.
- * @see module/rules/targeting/resolve.mjs, docs/28-targeting-implementation.md §28.6
+ * @see module/rules/targeting/resolve.mjs, docs/20-targeting.md
  *
  * `test/unit/snapshot.test.mjs` pins the position projection. This pins the
  * other half of the same failure: a target list that came back empty used to
@@ -70,7 +70,7 @@ describe("exclusion reasons", () => {
   });
 
   it("explains a Master shielded by an adjacent Servant of its own faction", () => {
-    // A CHOSEN target, because that is the verb §16.4 rule 1 uses: "Masters
+    // A CHOSEN target, because that is the verb Ch. 32 rule 1 uses: "Masters
     // cannot be TARGETED for an Attack". An area's splash is a different
     // question, pinned in `targeting.test.mjs`.
     const me = unit("me", "Heracles", at(6, 6), { faction: "red", factionId: "red" });

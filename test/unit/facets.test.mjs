@@ -1,6 +1,6 @@
 /**
  * @file The predicate facet vocabulary.
- * @see module/rules/facets.mjs, docs/24-rules-engine.md §24.4
+ * @see module/rules/facets.mjs, docs/11-predicates.md
  *
  * `EMITTABLE` is GENERATED from this table rather than declared beside it.
  * Unlike `EXECUTORS` -- functions, which no table can generate -- it is pure
@@ -154,7 +154,7 @@ describe("the table is well formed", () => {
 });
 
 describe("the five facets that had an enum and were not using it", () => {
-  // spec §1.2: these validated as free text and could never be typo-caught.
+  // spec Ch. 01: these validated as free text and could never be typo-caught.
   // `self:highestParameter:strength` passed and can never match, because the
   // parameter is `str`.
   const valueOf = (id, seg) =>
@@ -178,7 +178,7 @@ describe("the five facets that had an enum and were not using it", () => {
 
 describe("attribute stays open", () => {
   it("is not a registry, because content names what is not built yet", () => {
-    // spec §10.1: `outsider` and `undead` are referenced by six clauses in four
+    // spec Ch. 14: `outsider` and `undead` are referenced by six clauses in four
     // files and granted by no authored unit. They are forward references to
     // the 29 Servants still to come, and a registry that errored would fail
     // the build on legitimate content.
@@ -229,7 +229,7 @@ describe("patternFor", () => {
 
 describe("REF_SCOPES", () => {
   it("says which roots each site may reference, and their shape", () => {
-    // spec §5.2: `@self.health` is `{value,max}` under expressionRefs and a
+    // spec Ch. 03: `@self.health` is `{value,max}` under expressionRefs and a
     // NUMBER under a unit snapshot. A picker offering one flat list would
     // emit paths that cannot resolve where they sit.
     expect(REF_SCOPES.ownerOnly.roots).toEqual(["self"]);

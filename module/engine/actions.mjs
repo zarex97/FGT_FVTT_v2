@@ -1,6 +1,6 @@
 /**
  * @file Dispatching a unit action to the engine that performs it.
- * @see module/rules/actions.mjs, docs/29-user-interface.md §29.5
+ * @see module/rules/actions.mjs, docs/34-action-bar.md
  *
  * Layer 3. One table, no rules. It exists so the bar never imports
  * `marks.mjs`, `gather.mjs` and `riding.mjs` directly, and so adding Servant

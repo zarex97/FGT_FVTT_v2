@@ -9,7 +9,7 @@ type: servant
 trueName: "Asterios, Minotauros, Bull of King Minos"
 servantClasses: [berserker]
 # The container it is summoned into, and the name opponents see until its
-# true name is revealed (Ch. 04 §4.2).
+# true name is revealed (Ch. 06).
 classContainer: berserker
 alignment: { order: chaotic, morality: evil }
 region: [greece, europe]
@@ -45,12 +45,12 @@ notes: |
   Authored from the original tabletop sheet as the first of the D1 pass, and **completed** in the
   Asterios/Karna pass. Every clause on the sheet now has a reader.
 
-  `Chaos Labyrinthos` is a point in Ch. 43's six-axis bounded-field model rather than a special
+  `Chaos Labyrinthos` is a point in Ch. 28's six-axis bounded-field model rather than a special
   case: `fixedArea` geometry with a Greece size override, free entry and a roll to leave, total
   isolation both ways, MOV +4 for Asterios and −2 for enemies inside, paid extension at 200 of his
   own Health, and an owner-defeat vulnerability. The escape ladder — 20% base, +5% per failure,
   border contact and remaining MOV required, and the veteran clause that lets an escapee lead
-  adjacent allies out — is the reference implementation of §43.4.
+  adjacent allies out — is the reference implementation of Ch. 28.
 
   Mad Enhancement's two-way 2◈ lockout is `toggleLock` on the class-skill template and is read by
   `rules/modes.mjs`; the note that used to stand here saying it was unbuilt predates both.

@@ -1,6 +1,6 @@
 /**
  * @file Cover — a Servant taking a Noble Phantasm for its Master.
- * @see docs/16-relationships.md §16.4 rule 4
+ * @see docs/32-relationships.md rule 4
  *
  * Layer 2 (rules). Pure.
  *
@@ -99,7 +99,7 @@ export function coverFactor(count) {
  * board order so two clients shoving the same Master agree.
  *
  * Occupied panels are skipped: a shove is a Move, and a Move onto a standing
- * Unit is not legal (Ch. 08).
+ * Unit is not legal (Ch. 05).
  *
  * @param {object} master
  * @param {Array<{i: number, j: number}>} areaPanels

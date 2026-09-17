@@ -1,6 +1,6 @@
 /**
  * @file Setup rolls and the summon plan.
- * @see docs/14-checks-and-randomness.md §14.9, docs/37-content-pipeline.md §37.6
+ * @see docs/13-checks-and-randomness.md, docs/40-content-pipeline.md
  */
 
 import { describe, it, expect } from "vitest";
@@ -15,7 +15,7 @@ const karna = {
 
 const lineOf = (plan, id) => plan.lines.find((l) => l.id === id);
 
-/* ── §14.9 Servant ────────────────────────────────────────────────────────── */
+/* ── Ch. 13 Servant ────────────────────────────────────────────────────────── */
 
 describe("servantSetupPlan", () => {
   it("has no summonVariant line for an ordinary Servant", () => {
@@ -75,7 +75,7 @@ describe("servantSetupPlan", () => {
   });
 });
 
-/* ── §14.9 Master ─────────────────────────────────────────────────────────── */
+/* ── Ch. 13 Master ─────────────────────────────────────────────────────────── */
 
 describe("masterSetupPlan", () => {
   it("gives every Master a flat 250 base Health", () => {
@@ -185,7 +185,7 @@ describe("resolveSetupPlan", () => {
   });
 
   it("resolves a summon variant's map to the branch id, not to base + a number", () => {
-    // Ch. 05, `rules/summon-variant.mjs`: the variant line's `map` carries
+    // Ch. 03, `rules/summon-variant.mjs`: the variant line's `map` carries
     // strings. `base + signed` would string-concatenate "0dsc" if this were
     // not special-cased.
     const semiramis = { ...karna, summonVariant: { heads: { id: "dsc" }, tails: { id: "noDsc" } } };
@@ -210,12 +210,12 @@ describe("baseAttackAdjustment", () => {
   });
 
   it("ignores parameters that do not feed Base Attack", () => {
-    // §37.6 states it outright: "BA adjustment: none (AGI does not affect BA)".
+    // Ch. 40 states it outright: "BA adjustment: none (AGI does not affect BA)".
     expect(baseAttackAdjustment({ agi: 1, end: 1, luc: 1 })).toEqual({ str: 0, mag: 0 });
   });
 });
 
-/* ── §37.6 the summon sequence ────────────────────────────────────────────── */
+/* ── Ch. 40 the summon sequence ────────────────────────────────────────────── */
 
 describe("summonPlan", () => {
   it("rolls before it grants", () => {

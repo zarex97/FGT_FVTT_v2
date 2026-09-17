@@ -1,11 +1,11 @@
 /**
  * @file Predicate evaluation over roll options.
- * @see docs/24-rules-engine.md §24.4
+ * @see docs/11-predicates.md
  *
  * Layer 2 (rules). Pure — consumes a snapshot and a roll-option set, returns a
  * boolean. No documents, no Foundry.
  *
- * A predicate is **data**, not a function, for three reasons (§24.4): content
+ * A predicate is **data**, not a function, for three reasons (Ch. 10): content
  * lives in compendia and cannot execute; a failed predicate must be renderable
  * as prose for the audit trail; and shared compendia must be safe to load.
  * {@link explain} is the second of those three.
@@ -97,7 +97,7 @@ export function testStatement(s, ctx) {
     const [a, b] = s.rankGte.map((r) => rank(r, ctx));
     // An unranked side never satisfies a rank threshold. Every rule that cares
     // states its own unranked fallback, so silently ordering null lowest would
-    // implement the wrong one (Ch. 05 §5.1).
+    // implement the wrong one (Ch. 03).
     return Rank.gte(a, b, false);
   }
   if ("rankEq" in s) {
@@ -214,7 +214,7 @@ const COMPARATORS = Object.freeze({
 /**
  * `target:attribute:large` → `target has the large attribute`.
  *
- * Reads the facet table's own `prose`, which is why §24.4's argument for
+ * Reads the facet table's own `prose`, which is why Ch. 10's argument for
  * predicates being data finally pays: a failed statement can be read as the
  * sentence its author meant, rather than as a mechanical split of the string
  * they typed.
@@ -253,7 +253,7 @@ function pretty(v) {
 /**
  * Collect every literal option string a predicate mentions.
  * The content validator uses this to catch typo'd options at build time, which
- * is the dominant failure mode in a data-driven system (Ch. 21 §21.8).
+ * is the dominant failure mode in a data-driven system (Ch. 02).
  * @param {Predicate|null|undefined} predicate
  * @returns {Set<string>}
  */

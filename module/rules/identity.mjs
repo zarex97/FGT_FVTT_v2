@@ -1,12 +1,12 @@
 /**
  * @file Servant identity, and Detect.
- * @see docs/04-units.md §4.2, docs/08-board-and-geometry.md §8.7
+ * @see docs/06-units-and-stats.md, docs/05-board-geometry.md
  *
  * Layer 2 (rules). Pure.
  *
  * A Servant is publicly its **class**, not its name — "Berserker", or
  * "Berserker of Yellow" once it belongs to a named faction. The true name is
- * hidden until revealed, and that is what gives Ch. 26 §26.6's
+ * hidden until revealed, and that is what gives Ch. 38's
  * closed-information play something to conceal.
  *
  * Detect is the other half of the same idea from the other direction: the
@@ -277,7 +277,7 @@ export function discoverAttempts(concealedUnit, board, { spent = {}, acquiredAt 
   const byFaction = new Map();
   for (const watcher of board?.units ?? []) {
     if (watcher.id === concealedUnit.id) continue;
-    // "An enemy SERVANT's Range (or Detect)". Ch. 8 §8.7 quotes the source's
+    // "An enemy SERVANT's Range (or Detect)". Ch. 05 quotes the source's
     // general rule as *"an enemy Unit's"*, and this filter used to follow it --
     // so a Master standing beside a concealed Servant rolled to Discover as
     // readily as the Servant hunting her. Measured live as two watchers at 35%

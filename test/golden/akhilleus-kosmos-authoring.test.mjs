@@ -10,7 +10,7 @@
  *
  * This test asserts the vocabulary can express the shipped YAML. It is the
  * half a machine can check; the other half is authoring it by hand in a live
- * world and looking at the result, which was done and is recorded in Ch. 45.
+ * world and looking at the result, which was done and is recorded in Ch. 46.
  */
 
 import { describe, it, expect } from "vitest";

@@ -89,7 +89,7 @@ describe("breakTie", () => {
   });
 });
 
-describe("computeTurnOrder — Delay (§25.3)", () => {
+describe("computeTurnOrder — Delay (Ch. 25)", () => {
   const base = ["a", "b", "c", "d"];
 
   it("is the rolled order when nobody has delayed", () => {

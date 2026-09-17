@@ -1,6 +1,6 @@
 /**
  * @file Binding the scheduler sequences to Foundry's combat lifecycle.
- * @see docs/25-turn-system.md §25.4
+ * @see docs/25-turn-order-and-scheduler.md
  *
  * Layer 3. The sequences themselves are pure and live in `scheduler.mjs`; this
  * is the only thing that decides *when* they run.
@@ -182,7 +182,7 @@ async function onTurnChange(combat, prior, current) {
   );
 
   // Bounded fields: close the expired ones, then run what the survivors do at
-  // a Turn boundary. Ch. 43's whole read side shipped with nothing creating a
+  // a Turn boundary. Ch. 28's whole read side shipped with nothing creating a
   // field and nothing ending one, so a `duration` was decoration -- which for a
   // total-isolation Reality Marble means the match never ends.
   await fields.expireFields(nextTick);
@@ -221,7 +221,7 @@ async function onRoundChange(combat, updateData, options) {
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
     activeFactionId: null,
     effectDef: (id) => EffectRegistry.get(id),
-    // Switches off the multi-Servant tax (§16.7). Read here rather than in the
+    // Switches off the multi-Servant tax (Ch. 32). Read here rather than in the
     // rules layer, which has no settings.
     grandOrder: setting("grandOrder", false),
     rolls: await gatherRolls([[board.units, "roundEnd"]]),
@@ -240,7 +240,7 @@ async function onRoundChange(combat, updateData, options) {
   await fields.runUpkeep(ctx.tick, { round: ctx.round });
 
   // The Grail's contest and the victory check, both evaluated at round end
-  // (§19.4). Written back to the match, which is the runtime owner the Grail
+  // (Ch. 29). Written back to the match, which is the runtime owner the Grail
   // never had -- `grailCounter` sat on `MatchData` from the start with nothing
   // incrementing or reading it.
   await advanceGrail(combat, board);
@@ -328,7 +328,7 @@ async function gatherRolls(pairs) {
 /**
  * Store what every Unit was like at the end of this Turn.
  *
- * Ch. 43 §43.11's recorder, and its gate. A single `Combat` write per Turn, and
+ * Ch. 28's recorder, and its gate. A single `Combat` write per Turn, and
  * none at all in a match nobody asked to remember.
  *
  * @param {object} combat

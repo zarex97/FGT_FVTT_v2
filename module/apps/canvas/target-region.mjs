@@ -1,6 +1,6 @@
 /**
  * @file The targeted area, as a real Region on the scene.
- * @see docs/28-targeting-implementation.md §28.5, docs/09-targeting.md
+ * @see docs/20-targeting.md, docs/20-targeting.md
  *
  * Layer 4.
  *

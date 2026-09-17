@@ -1,6 +1,6 @@
 /**
  * @file Who gets which Item sheet.
- * @see docs/29-user-interface.md §29.6
+ * @see docs/34-action-bar.md
  *
  * Layer 4, but pure — no Foundry globals, so it can be tested without a world.
  *

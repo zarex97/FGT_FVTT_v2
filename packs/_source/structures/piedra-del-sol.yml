@@ -1,8 +1,8 @@
 # Quetzalcoatl, char_orig_sheets/Copia de Quetzalcoatl.md
-# Discussed: docs/43-bounded-fields.md §43.10 -- "fields that are objects"
+# Discussed: docs/28-bounded-fields.md -- "fields that are objects"
 #
 # The SECOND `Structure` actor, after Medusa's Bloodmark, and the first that
-# levitates. §43.10's decision is why it is a unit at all: modelling it as one
+# levitates. Ch. 28's decision is why it is a unit at all: modelling it as one
 # gives targeting, destruction, visibility and Health for free rather than
 # building a bespoke object layer for one Noble Phantasm.
 #

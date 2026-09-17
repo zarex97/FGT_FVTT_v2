@@ -1,7 +1,7 @@
 /**
  * @file Command Spell interrupts — suspending and resuming a Combat Process.
- * @see docs/17-command-spells.md §17.4, docs/27-reaction-protocol.md §27.9
- * @see docs/45-implementation-status.md B1
+ * @see docs/33-command-spells.md, docs/23-reactions.md
+ * @see docs/46-roster-re-audit.md B1
  *
  * Six of the sixteen commands rewrite a resolution that is already in flight.
  * B1 shipped them logging their own names, because changing an in-flight
@@ -10,7 +10,7 @@
  *
  * The interrupt is a **GM-side mutation**: it changes a Process another client
  * is participating in, which is why the GM arbitrates the ladder even though
- * individual rungs are answered by their owners (§27.9).
+ * individual rungs are answered by their owners (Ch. 23).
  */
 
 import { describe, it, expect } from "vitest";
@@ -27,7 +27,7 @@ const at = (state) => ({ ...begin({ attackerId: "atk", defenderId: "def", attack
 
 describe("windowFor", () => {
   it("maps the reaction rung to its own window", () => {
-    // §17.4: Damage Block and Teleport Servant are offered at `react`.
+    // Ch. 33: Damage Block and Teleport Servant are offered at `react`.
     expect(windowFor(at("react"))).toBe("react");
   });
 
@@ -90,7 +90,7 @@ describe("applyInterrupt", () => {
 
   it("replaces the defender and restarts the ladder on a retarget", () => {
     // Teleport Servant moves the DU out; the Process gets a new defender who
-    // has not yet reacted (§27.9).
+    // has not yet reacted (Ch. 23).
     const out = applyInterrupt(at("s23_acceptOrEscape"), { kind: "retarget", newTargetId: "other" });
 
     expect(out.defenderId).toBe("other");

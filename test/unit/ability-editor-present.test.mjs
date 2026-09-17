@@ -133,7 +133,7 @@ describe("elementRows", () => {
   });
 
   it("keeps an unknown key rather than dropping it", () => {
-    // §21.4: a module may add a rule element. Losing it on the next save would
+    // Ch. 02: a module may add a rule element. Losing it on the next save would
     // be the editor silently deleting somebody else's content.
     const rows = elementRows({ rules: [{ key: "SomeModuleElement", x: 1 }] }, "rules");
     expect(rows).toHaveLength(1);

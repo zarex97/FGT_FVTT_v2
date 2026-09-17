@@ -1,6 +1,6 @@
 /**
  * @file The GM's faction roster editor.
- * @see docs/04-units.md §4.10
+ * @see docs/06-units-and-stats.md
  *
  * Layer 4. Create factions, colour them, assign a player to each, and declare
  * alliances. Every unit sheet then picks from this list rather than accepting

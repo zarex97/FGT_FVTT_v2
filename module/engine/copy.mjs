@@ -1,6 +1,6 @@
 /**
  * @file Granting copies — the write half of Wisdom of Dún Scáith.
- * @see docs/15-abilities.md §15.7, docs/36-gm-tools.md
+ * @see docs/17-abilities.md, docs/35-sheets-and-editor.md
  *
  * Layer 3. `rules/copy.mjs` decides what may be copied and what a copy is;
  * this offers the list and creates the documents.
@@ -29,7 +29,7 @@ const DUN_SCAITH = Object.freeze({ rank: "A+", cooldown: "4◈-⅓◈", exclusio
  *
  * @param {object} args
  * @param {string} args.copierId
- * @param {string[]} [args.prefer] grades to mark preferred; §15.7 says B and A
+ * @param {string[]} [args.prefer] grades to mark preferred; Ch. 17 says B and A
  * @returns {Array<object>}
  */
 export function offerCopies({ copierId, prefer = ["A", "B"] }) {
@@ -82,7 +82,7 @@ export async function grantCopies({ copierId, picks, slots = 2, grantedBy = "wis
         copiedFrom: copy.copiedFrom,
         grantedBy: copy.grantedBy,
         exclusionSet: copy.exclusionSet,
-        // Every slot from one grant gates on the others (§15.7): "Cannot be
+        // Every slot from one grant gates on the others (Ch. 17): "Cannot be
         // used if Wisdom of Dún Scáith (Skill 2) or (Clairvoyance) is on
         // Cooldown." Authored ON the copy, because the copy is what the player
         // presses and `canUseAbility` reads its requirements.

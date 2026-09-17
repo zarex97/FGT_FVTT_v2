@@ -1,6 +1,6 @@
 /**
  * @file Karna — the clauses that needed engine that did not exist.
- * @see char_orig_sheets/Copia de Karna.md, docs/36-case-remaining.md §36.1
+ * @see char_orig_sheets/Copia de Karna.md, docs/45-case-studies.md
  *
  * Nine of his thirteen abilities were unauthored when this pass started,
  * including both of the two that define him. Each case below is either a clause
@@ -64,7 +64,7 @@ describe("Brahmastra — the 4x/2x fork", () => {
   });
 
   it("drops to 2x on a single higher Parameter", () => {
-    // §36.1's own example: Heracles's LUC A against Karna's D, and nothing else
+    // Ch. 45's own example: Heracles's LUC A against Karna's D, and nothing else
     // needs to beat him.
     expect(branchFor({
       str: Rank.of("E"), end: Rank.of("E"), agi: Rank.of("E"), mag: Rank.of("E"), luc: Rank.of("A"),
@@ -122,7 +122,7 @@ describe("Kavacha and Kundala", () => {
 
   it("is negated by the status Vasavi Shakti's activation applies", () => {
     expect(kk.negatedBy).toEqual(["vasaviActivated"]);
-    // The DECISION recorded in §36.1: the trailing "?" on the NP Seal clause is
+    // The DECISION recorded in Ch. 45: the trailing "?" on the NP Seal clause is
     // in the source, and a question mark is not a statement.
     expect(kk.negatedBy).not.toContain("npSeal");
   });
@@ -353,7 +353,7 @@ describe("Mana Burst (Flames)", () => {
   const mb = ability("karna-mana-burst-flames");
 
   it("combines both Base Attacks: 125 + 175 = 300", () => {
-    // docs/06-stats-and-resources.md §6.7 states the number.
+    // docs/06-units-and-stats.md states the number.
     const result = computeDamage({
       attacker: { baseAttack: { str: 125, mag: 175 }, modifiers: [] },
       defender: { health: 9999, modifiers: [] },

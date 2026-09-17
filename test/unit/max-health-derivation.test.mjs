@@ -1,6 +1,6 @@
 /**
  * @file Max Health is derived from END, and the table beats the sheet.
- * @see module/domain/health.mjs, docs/06-stats-and-resources.md §6.1
+ * @see module/domain/health.mjs, docs/06-units-and-stats.md
  *
  * The mirror of `base-attack-derivation.test.mjs`. Base Attack has read from
  * its table since it was written, with an explicit rulebook sentence behind it;

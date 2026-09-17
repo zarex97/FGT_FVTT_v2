@@ -1,6 +1,6 @@
 /**
  * @file Faction turn order.
- * @see docs/25-turn-system.md §25.3, docs/19-environment.md §19.8
+ * @see docs/25-turn-order-and-scheduler.md, docs/29-environment.md
  *
  * Layer 3, but pure: it takes rolls and returns an order. The caller rolls.
  *
@@ -85,7 +85,7 @@ export function factionOfCombatant(combatant) {
  * @param {Iterable<string>} [takenThisRound] factions that have already acted
  * @param {string|null} [gmId] appended last when set
  * @returns {string[]}
- * @see docs/25-turn-system.md §25.3
+ * @see docs/25-turn-order-and-scheduler.md
  */
 export function computeTurnOrder(baseOrder, delays = {}, takenThisRound = [], gmId = null) {
   const taken = new Set(takenThisRound);
@@ -133,7 +133,7 @@ export function breakTie(order, rerolls) {
 /**
  * The delays that must survive into the next round.
  *
- * §7.8: *"If they have already taken it, the shift applies next round."*
+ * Ch. 04: *"If they have already taken it, the shift applies next round."*
  * `computeTurnOrder` correctly refuses to move a faction that has acted, and
  * `system.delays` is cleared at round start — so without this a Delay declared
  * against an already-acted faction was not deferred, it was **discarded**. The

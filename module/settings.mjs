@@ -1,6 +1,6 @@
 /**
  * @file Game settings registration.
- * @see docs/21-system-skeleton.md §21.5
+ * @see docs/02-architecture.md
  *
  * Settings that change rules are LOCKED once a match is in progress. Changing
  * the fixed-operator mid-game would invalidate every stored absolute expiry on
@@ -25,7 +25,7 @@ export function registerSettings() {
     type: new foundry.data.fields.NumberField({ required: true, integer: true, min: 2, initial: 3 }),
     default: 3, requiresReload: false, onChange: () => guardRuleChange("turnsPerRound"),
   });
-  // §7.9's round-indexed gates. All four numbers have been in
+  // Ch. 04's round-indexed gates. All four numbers have been in
   // `CONFIG.FGT.gates` since that file was written and NOTHING read the object
   // -- so a Noble Phantasm was usable in Round 1 in every world. Settings
   // rather than constants so `settings-are-read.test.mjs` holds each of them to
@@ -50,7 +50,7 @@ export function registerSettings() {
     default: CONFIG.FGT?.gates?.noAttackRound ?? 1, requiresReload: false,
     onChange: () => guardRuleChange("noAttackRound"),
   });
-  // §17.4: "An offer that blocks resolution indefinitely is unacceptable in a
+  // Ch. 33: "An offer that blocks resolution indefinitely is unacceptable in a
   // game with seven players." After this many seconds the ladder continues as
   // if the offer were declined, with a chat note -- a disconnected player sees
   // that they missed an opportunity rather than silently losing it.
@@ -60,7 +60,7 @@ export function registerSettings() {
     default: 45, requiresReload: false,
   });
   // A Grand Order war switches off two rules that assume rival Masters: the
-  // multi-Servant tax (§16.7) and Hatred of Achilles against allies (Ch. 44).
+  // multi-Servant tax (Ch. 32) and Hatred of Achilles against allies (Ch. 45).
   s("grandOrder", {
     name: "FGT.Settings.GrandOrder", hint: "FGT.Settings.GrandOrderHint",
     type: Boolean, default: false, requiresReload: false,
@@ -109,7 +109,7 @@ export function registerSettings() {
     type: String, default: "duplicates",
     choices: { duplicates: "FGT.DrawPolicy.Duplicates", unique: "FGT.DrawPolicy.Unique" },
   });
-  // §8.3 clause 4, as an OPTIONAL rule. It is the one movement clause that
+  // Ch. 05 clause 4, as an OPTIONAL rule. It is the one movement clause that
   // refuses a step onto a panel that looks empty, so a table that finds it more
   // trouble than it is worth can switch it off -- and then it stops applying
   // everywhere at once, reachability included. Default TRUE: it is a rule as
@@ -134,7 +134,7 @@ export function registerSettings() {
   });
   s("region", { name: "FGT.Settings.Region", type: String, default: "" });
   s("grailThreshold", { name: "FGT.Settings.GrailThreshold", type: Number, default: 9 });
-  // Ch. 26 §26.7. ON, a chat card is redacted per viewer: each side reads its
+  // Ch. 38 ON, a chat card is redacted per viewer: each side reads its
   // own contributing modifiers and the effects that landed on its own units,
   // and the damage of an exchange it was not part of stays hidden. OFF, every
   // card reads the way the GM's does. Default TRUE, because the rulebook's
@@ -145,7 +145,7 @@ export function registerSettings() {
     name: "FGT.Settings.ClosedInfo", hint: "FGT.Settings.ClosedInfoHint",
     type: Boolean, default: true,
   });
-  // §12.8. Rule 1 -- the unit a Counter was aimed at never answers it -- is NOT
+  // Ch. 21. Rule 1 -- the unit a Counter was aimed at never answers it -- is NOT
   // configurable; it is what stops two Servants countering each other to death.
   // This governs only the bystander an AREA counter caught on its way to
   // somebody else. Default `strict`: NO Counter begins as the product of a
@@ -167,7 +167,7 @@ export function registerSettings() {
   });
   s("activeSkillBudget", { name: "FGT.Settings.ActiveSkillBudget", type: String, default: "move" });
   s("interruptTimeout", { name: "FGT.Settings.InterruptTimeout", type: Number, default: 45 });
-  // §27.5: reactions get longer than optional contests, because a reaction is
+  // Ch. 23: reactions get longer than optional contests, because a reaction is
   // the decision a player most needs to think about and the one whose default
   // (take the hit) costs them the most.
   s("reactionTimeout", { name: "FGT.Settings.ReactionTimeout", type: Number, default: 60 });
@@ -204,7 +204,7 @@ export function registerSettings() {
 
   s("diceFormulas", { config: false, type: Object, default: {} });
 
-  // Ch. 39 §39.1's schema version. §39.1 put it on `world.flags.fgt`, which is
+  // Ch. 41's schema version. Ch. 41 put it on `world.flags.fgt`, which is
   // not a place: `game.world` is a World *package*, not a Document -- no
   // `flags`, no `setFlag` -- and Foundry ships no migration version of its own.
   // A world-scoped setting is the only durable per-world store the API offers.

@@ -1,7 +1,7 @@
 /**
  * @file Auras — the radius/relation expansion that never happened.
- * @see docs/11-effect-engine.md §11.6, docs/23-documents-and-derived-data.md §23.3
- * @see docs/45-implementation-status.md A5
+ * @see docs/15-effect-application.md, docs/08-documents-and-derived.md
+ * @see docs/46-roster-re-audit.md A5
  *
  * The defect: `Aura` wrote its modifier straight into its **owner's** modifier
  * bag carrying `radius` and `relations`, and the damage pipeline read the

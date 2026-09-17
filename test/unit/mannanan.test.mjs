@@ -1,11 +1,11 @@
 /**
  * @file Mannanán mac Lir — the pure halves of her kit.
- * @see docs/33-case-mannanan.md, char_orig_sheets/Copia de Mannanán mac Lir.md
+ * @see docs/45-case-studies.md, char_orig_sheets/Copia de Mannanán mac Lir.md
  *
  * Everything here is layer 1 or 2, so it runs without a world. The three
  * document-touching halves — the automatic counter's declaration, the Noble
  * Phantasm cancellation and Holder Mode's entry — are live-tested in `fgt2026`
- * and recorded in Ch. 45.
+ * and recorded in Ch. 46.
  */
 
 import { describe, it, expect } from "vitest";
@@ -34,10 +34,10 @@ function effect(id) {
 const SHEET = parse(readFileSync("packs/_source/servants/mannanan.yml", "utf8"));
 
 /* ========================================================================== */
-/*  §33.1 — the statline and the attribute closure                            */
+/*  Ch. 45 — the statline and the attribute closure                            */
 /* ========================================================================== */
 
-describe("Pseudo Servant (Ch. 02 §2.10)", () => {
+describe("Pseudo Servant (CONTEXT.md)", () => {
   it("gives every ordinary Servant Spirit and Hominidae", () => {
     const closed = closeAttributes(["male", "servant", "humanoid"]);
     expect(closed).toContain("spirit");
@@ -47,7 +47,7 @@ describe("Pseudo Servant (Ch. 02 §2.10)", () => {
   it("withholds Spirit from a Pseudo-Servant, and only Spirit", () => {
     const closed = closeAttributes(SHEET.attributes);
     // "Effects keying on Spirit miss her, and effects keying on Living Human
-    // hit her" -- Ch. 33's opening claim, which was previously unenforceable.
+    // hit her" -- Ch. 45's opening claim, which was previously unenforceable.
     expect(closed).not.toContain("spirit");
     expect(closed).toContain("livingHuman");
     expect(closed).toContain("hominidae");
@@ -86,7 +86,7 @@ describe("Pseudo Servant (Ch. 02 §2.10)", () => {
 });
 
 /* ========================================================================== */
-/*  §33.2 — the token economy                                                 */
+/*  Ch. 45 — the token economy                                                 */
 /* ========================================================================== */
 
 describe("Fragarach Tokens", () => {
@@ -136,7 +136,7 @@ describe("Fragarach Tokens", () => {
 });
 
 /* ========================================================================== */
-/*  §33.3 — the Fragarach status and its counter                              */
+/*  Ch. 45 — the Fragarach status and its counter                              */
 /* ========================================================================== */
 
 describe("the Fragarach status", () => {
@@ -224,7 +224,7 @@ describe("evadableOnlyBy", () => {
 });
 
 /* ========================================================================== */
-/*  §33.6 — Decoy                                                             */
+/*  Ch. 45 — Decoy                                                             */
 /* ========================================================================== */
 
 describe("Decoy", () => {
@@ -286,7 +286,7 @@ describe("Decoy", () => {
 });
 
 /* ========================================================================== */
-/*  §33.4 — "strongest NP"                                                    */
+/*  Ch. 45 — "strongest NP"                                                    */
 /* ========================================================================== */
 
 describe("ranking Noble Phantasms", () => {
@@ -325,7 +325,7 @@ describe("ranking Noble Phantasms", () => {
     });
     // 4x beats 3x, even though the 4x branch would not fire against the neutral
     // defender: "strongest" is a property of the Noble Phantasm, not of the
-    // matchup (§33.4's DECISION).
+    // matchup (Ch. 45's DECISION).
     expect(rankNoblePhantasms([branched, flat], attacker)[0].id).toBe("branched");
   });
 
@@ -342,7 +342,7 @@ describe("ranking Noble Phantasms", () => {
 });
 
 /* ========================================================================== */
-/*  §33.5 — Holder Mode                                                       */
+/*  Ch. 45 — Holder Mode                                                       */
 /* ========================================================================== */
 
 describe("God's Holder: Possession", () => {

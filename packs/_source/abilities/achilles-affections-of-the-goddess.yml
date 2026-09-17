@@ -12,7 +12,7 @@ slug: affectionsOfTheGoddess
 cooldown: "4◈"
 timing: { window: ownTurn }
 # Applying three buffs to himself deals no damage, so this is not an Attack
-# Skill and must not spend his Attack for the Turn (§15.1).
+# Skill and must not spend his Attack for the Turn (Ch. 17).
 countsAsAttack: false
 copyable: { allowed: false, reason: rankEX }
 description: |

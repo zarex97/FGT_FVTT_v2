@@ -9,7 +9,7 @@
  *
  * It happened with `field`. Every bounded field in the corpus belonged to a
  * Noble Phantasm — Chaos Labyrinthos, Unlimited Blade Works, Sikera Ušum, The
- * Mist — so `field` was declared on `NoblePhantasmData` alone. Nothing in Ch. 43
+ * Mist — so `field` was declared on `NoblePhantasmData` alone. Nothing in Ch. 28
  * makes that a rule, and Pale Rider's Contagion is a **Skill**: *"(Passive) The
  * 2 panel area around Pale Rider is the Contagion area."* Its whole six-axis
  * block compiled, shipped, and was thrown away on load.

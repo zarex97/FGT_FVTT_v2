@@ -3,7 +3,7 @@ import js from "@eslint/js";
 /**
  * The layer boundary is the rule that matters here.
  *
- * docs/01-vision-and-goals.md §1.7 defines four layers with a strict dependency
+ * docs/01-what-this-is.md defines four layers with a strict dependency
  * direction: domain → rules → engine → apps. A violation is a build failure
  * rather than a code review comment, because the whole value of the boundary is
  * that L1 and L2 stay testable without Foundry.
@@ -32,7 +32,7 @@ export const ALLOWED = {
 const zones = Object.entries(ALLOWED).map(([from, allowed]) => ({
   target: `./module/${from}`,
   from: LAYERS.filter((l) => l !== from && !allowed.includes(l)).map((l) => `./module/${l}`),
-  message: `module/${from} may only import from: ${allowed.join(", ") || "(nothing)"}. See docs/01-vision-and-goals.md §1.7.`,
+  message: `module/${from} may only import from: ${allowed.join(", ") || "(nothing)"}. See docs/01-what-this-is.md.`,
 }));
 
 export default [
@@ -84,7 +84,7 @@ export default [
         ...["game", "ui", "canvas", "CONFIG", "CONST", "Hooks", "foundry", "fgt",
           "window", "document", "PIXI"].map((name) => ({
           name,
-          message: `module/domain and module/rules must stay pure — no Foundry globals. Pass "${name}" data in through a snapshot instead. See docs/03-domain-overview.md §3.6.`,
+          message: `module/domain and module/rules must stay pure — no Foundry globals. Pass "${name}" data in through a snapshot instead. See docs/02-architecture.md.`,
         })),
       ],
     },

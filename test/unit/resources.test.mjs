@@ -1,5 +1,5 @@
 /**
- * @file Ability-specific pools (§6.10).
+ * @file Ability-specific pools (Ch. 06).
  * @see module/domain/resources.mjs
  */
 

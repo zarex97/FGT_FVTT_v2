@@ -1,12 +1,12 @@
 /**
  * @file Bounded fields — the six-axis model.
- * @see docs/43-bounded-fields.md
+ * @see docs/28-bounded-fields.md
  *
  * Layer 2 (rules). Pure.
  *
  * Ten fields across nine Servants, more than a third of the expanded roster.
  * They need a shared model or the engine grows ten special cases — which is the
- * whole argument of Ch. 43, and the reason this is one module rather than one
+ * whole argument of Ch. 28, and the reason this is one module rather than one
  * per Noble Phantasm.
  *
  * A field is a point in six axes: geometry, membership, isolation, interior

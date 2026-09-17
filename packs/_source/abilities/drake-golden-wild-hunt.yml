@@ -13,7 +13,7 @@
 # Phantasm. The platform document's 200 is a constant, present or not.
 #
 # Both Galleon modifiers are TOTAL damage (stage 15), not stage 4 -- her sheet
-# says "Total damage dealt" in both directions, and §13.4 makes the distinction
+# says "Total damage dealt" in both directions, and Ch. 22 makes the distinction
 # real: stage 4 pools every percentage into one additive bucket before eleven
 # more stages run, where stage 15 multiplies the finished number.
 schema: 1

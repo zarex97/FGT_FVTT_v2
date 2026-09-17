@@ -1,4 +1,4 @@
-# docs/17-command-spells.md §17.2 — cost 2 and cost 3
+# docs/33-command-spells.md — cost 2 and cost 3
 # The round gate is explicitly NOT overridable, so it is absent from this list.
 schema: 1
 id: cs-halve-noble-phantasm

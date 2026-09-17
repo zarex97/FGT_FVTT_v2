@@ -1,6 +1,6 @@
 /**
  * @file Turn a staged export into pack source.
- * @see module/apps/yaml-export.mjs, docs/29-user-interface.md §29.6
+ * @see module/apps/yaml-export.mjs, docs/34-action-bar.md
  *
  * The other half of the ability editor's way home. The browser writes the
  * authored shape as JSON because nothing under `module/` may import an npm

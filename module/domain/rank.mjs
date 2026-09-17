@@ -1,15 +1,15 @@
 /**
  * @file The `Rank` value object: parsing, comparison, and step arithmetic.
- * @see docs/05-ranks-and-parameters.md
+ * @see docs/03-ranks-and-tables.md
  *
  * Layer 1 (domain). Pure.
  *
  * Two things here are load-bearing and easy to get wrong:
  *
  * 1. `+` and `-` participate in comparison as sub-steps between grades, because
- *    Magic Resistance `A+` negates up to `A+`, not up to `A` (§5.3).
+ *    Magic Resistance `A+` negates up to `A+`, not up to `A` (Ch. 03).
  * 2. "Unranked" is `null`, never a sentinel `Rank`. Rank-dependent effects take
- *    an explicit branch for it (§5.1).
+ *    an explicit branch for it (Ch. 03).
  */
 
 import { GRADES, GRADE_SET } from "./enums.mjs";
@@ -17,7 +17,7 @@ import { GRADES, GRADE_SET } from "./enums.mjs";
 /**
  * Grade spacing on the ordinal scale. Generous: the observed maximum step count
  * is 2, so no realistic rank can cross a grade boundary by stepping.
- * @see docs/05-ranks-and-parameters.md §5.3
+ * @see docs/03-ranks-and-tables.md
  */
 export const STEP_WEIGHT = 100;
 
@@ -101,7 +101,7 @@ export class Rank {
    * Parse, returning `null` for the unranked marker.
    *
    * The source writes unranked abilities as `Rank: -`. That is not a rank with a
-   * minus; it means the ability has no rank at all (§5.1).
+   * minus; it means the ability has no rank at all (Ch. 03).
    *
    * @param {string|null|undefined} s
    * @returns {Rank|null}
@@ -139,7 +139,7 @@ export class Rank {
    *
    * @param {number} n
    * @returns {Rank}
-   * @see docs/05-ranks-and-parameters.md §5.4
+   * @see docs/03-ranks-and-tables.md
    */
   step(n) {
     if (n === 0) return this;
@@ -169,7 +169,7 @@ export class Rank {
    *
    * @param {number} n
    * @returns {Rank}
-   * @see docs/05-ranks-and-parameters.md §5.4
+   * @see docs/03-ranks-and-tables.md
    */
   stepGrade(n) {
     if (n === 0) return this;
@@ -192,7 +192,7 @@ export class Rank {
    *
    * Returns `null` when either side is unranked — callers **must** branch on
    * that rather than treating unranked as lowest. Every rank-dependent rule in
-   * the game states its own unranked fallback (§5.1), and silently ordering
+   * the game states its own unranked fallback (Ch. 03), and silently ordering
    * `null` below `E` would quietly implement the wrong one.
    *
    * @param {Rank|null} a

@@ -1,10 +1,10 @@
 /**
  * @file What the pending-decisions window lists.
- * @see module/apps/hud/pending-present.mjs, docs/27-reaction-protocol.md §27.5
+ * @see module/apps/hud/pending-present.mjs, docs/23-reactions.md
  *
  * An AoE attack already fans out to one ladder PER DEFENDER. Own four units,
  * have a Noble Phantasm catch three, and there are three prompts in a scrolling
- * log — each with a clock, and §27.5's default on expiry is the option that
+ * log — each with a clock, and Ch. 23's default on expiry is the option that
  * spends nothing. Nothing in the system answered "what is waiting for me?"
  */
 import { describe, it, expect } from "vitest";
@@ -27,7 +27,7 @@ describe("pendingRowsFor", () => {
   });
 
   it("keeps a Command Spell offer even when the rung is not the viewer's", () => {
-    // §17.4's interrupt: a Master may spend into somebody else's exchange, so
+    // Ch. 33's interrupt: a Master may spend into somebody else's exchange, so
     // the offer is the viewer's business even though the rung is not.
     const rows = pendingRowsFor([entry({ owned: false, commandSpells: 2 })], viewer);
     expect(rows).toHaveLength(1);
@@ -73,7 +73,7 @@ describe("pendingRowsFor", () => {
   });
 
   it("shows a GM every prompt, because the GM answers for absent players", () => {
-    // §27.5's "decide for them" lives on the card; the GM needs to find it.
+    // Ch. 23's "decide for them" lives on the card; the GM needs to find it.
     expect(pendingRowsFor([entry({ owned: false })], { id: "gm", isGM: true })).toHaveLength(1);
   });
 });

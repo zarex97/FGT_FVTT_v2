@@ -1,6 +1,6 @@
 /**
  * @file `FGTCombat` — turns belong to players, not tokens.
- * @see docs/25-turn-system.md
+ * @see docs/25-turn-order-and-scheduler.md
  *
  * Foundry's Combat is token-based and initiative-driven; F/GT is neither. Each
  * *player* takes a turn, moving up to four Servants and three Masters, and turn
@@ -179,7 +179,7 @@ export class FGTCombat extends Combat {
    * is what keeps a delay from compounding each time anything re-renders.
    *
    * A faction that has already acted this Round keeps the entry for the next
-   * Round instead of having it applied now (Ch. 25 §25.3).
+   * Round instead of having it applied now (Ch. 25).
    *
    * @param {string} factionId
    * @param {number} positions how many places later to go

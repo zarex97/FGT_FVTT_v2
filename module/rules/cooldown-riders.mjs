@@ -1,6 +1,6 @@
 /**
  * @file Splitting a cooldown rider between its two audiences.
- * @see docs/12-combat-process.md, docs/15-abilities.md §15.2
+ * @see docs/21-combat-process.md, docs/17-abilities.md
  *
  * Layer 2 (rules). Pure.
  *

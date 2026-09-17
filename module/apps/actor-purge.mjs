@@ -1,6 +1,6 @@
 /**
  * @file Deleting actors, and the tokens Foundry leaves behind them.
- * @see docs/29-user-interface.md §29.13
+ * @see docs/34-action-bar.md
  *
  * Layer 4. Every decision about *what goes with what* is `rules/purge.mjs`;
  * this gathers the world into that shape, renders the plan, and performs it.

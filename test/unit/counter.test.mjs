@@ -1,6 +1,6 @@
 /**
  * @file The Counter — Combat Process step 6.
- * @see docs/12-combat-process.md §12.8, docs/45-implementation-status.md A4
+ * @see docs/21-combat-process.md, docs/46-roster-re-audit.md A4
  *
  * The defect: `case "counter": return process.advance(state, "done")`. The step
  * existed, was reached, and did nothing. `canCounter` existed too but was never
@@ -67,7 +67,7 @@ describe("canCounter", () => {
   });
 
   it("refuses a defender under Fragarach, which cannot perform a normal Counter", () => {
-    // Mannanán trades the normal counter for an automatic one (Ch. 24 §24.8).
+    // Mannanán trades the normal counter for an automatic one (Ch. 10).
     expect(canCounter(proc(), { ...eligible, defenderHasFragarach: true })).toBe(false);
   });
 
@@ -150,7 +150,7 @@ describe("counter process fields", () => {
   });
 
   it("keeps the parent's groupId, because a Counter is part of the same Phase", () => {
-    // §12.1: a Phase is the declaration plus any Counters.
+    // Ch. 21: a Phase is the declaration plus any Counters.
     // `engine/attack.mjs#fireCombatPhaseEnd` counts unfinished siblings by
     // groupId and says so outright -- "a counter can add a process to the group
     // after the first one finished" -- so a counter with its own group would
@@ -199,7 +199,7 @@ describe("canCounter and the chain", () => {
     expect(canCounter(deep, { ...eligible, chainMode: "collateral" })).toBe(false);
   });
 
-  it("still refuses for every §12.8 reason it always did", () => {
+  it("still refuses for every Ch. 21 reason it always did", () => {
     expect(canCounter(proc(), { ...eligible, attackerInRange: false })).toBe(false);
     expect(canCounter(proc(), { ...eligible, attackerHasAccel: true })).toBe(false);
     expect(canCounter(proc(), { ...eligible, defenderHasBerserk: true })).toBe(false);
@@ -237,7 +237,7 @@ describe("the counter offer", () => {
 describe("the counter keeps its parent's Combat Phase", () => {
   // A source check, because the wiring it guards lives in `engine/attack.mjs`
   // and needs a live Foundry to exercise. It is here because the property is a
-  // RULE (§12.1: a Phase is the declaration plus its counters) and because it
+  // RULE (Ch. 21: a Phase is the declaration plus its counters) and because it
   // has already broken once: `runCounter` stopped going through `beginCounter`
   // when it started sharing the ordinary declaration path, and
   // `declareProcesses` quietly minted a fresh group. Nothing failed. The phase

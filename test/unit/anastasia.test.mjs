@@ -492,7 +492,7 @@ describe("the Servant document", () => {
     const refs = a.abilities.map((x) => x.ref);
     expect(refs).toContain("anastasia-snegleta");
     expect(refs).toContain("anastasia-ice-block-launcher");
-    // Ch. 33 §33.4 REJECTED storing it; np-strength computes it.
+    // Ch. 45 REJECTED storing it; np-strength computes it.
     expect(a.strongestNP).toBeUndefined();
   });
 

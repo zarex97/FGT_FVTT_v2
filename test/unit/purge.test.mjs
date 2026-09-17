@@ -1,6 +1,6 @@
 /**
  * @file Selecting actors and their tokens for deletion.
- * @see module/rules/purge.mjs, docs/29-user-interface.md §29.13
+ * @see module/rules/purge.mjs, docs/34-action-bar.md
  *
  * Foundry does not clean up after a deleted Actor. `Actor._onDelete`
  * (`client/documents/actor.mjs`) removes its ActiveEffects and nothing else,

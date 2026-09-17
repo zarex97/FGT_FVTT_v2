@@ -1,6 +1,6 @@
 /**
  * @file The weak-point chance table.
- * @see module/rules/weak-point.mjs, docs/44-case-expanded-roster.md §44.2
+ * @see module/rules/weak-point.mjs, docs/45-case-studies.md
  *
  * Achilles' Heel is the only weak point in either roster and the most involved
  * single mechanic in it: six conditional modifiers, one of them a Luck Check,

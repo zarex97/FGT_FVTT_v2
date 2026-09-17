@@ -1,6 +1,6 @@
 /**
  * @file The sheet's arithmetic, with no world in it.
- * @see docs/29-user-interface.md §29.2
+ * @see docs/35-sheets-and-editor.md
  *
  * Layer 4, but deliberately **pure**: no `game`, no documents, no `canvas`,
  * nothing that has to be running to answer. Everything here is a question with
@@ -41,7 +41,7 @@ export function resourceBar(resource) {
   const value = resource?.value ?? null;
 
   // A `null` maximum means intrinsically undamageable -- Pale Rider, the
-  // Kagome Spirits (Ch. 04) -- which is why the field is nullable rather than
+  // Kagome Spirits (Ch. 06) -- which is why the field is nullable rather than
   // zero. An empty track would read as "one hit from death", which is the
   // opposite of what it means.
   if (max === null) {
@@ -56,7 +56,7 @@ export function resourceBar(resource) {
 /**
  * The parameter row, with granted steps shown beside the rank in force.
  *
- * §5.6 keeps base parameters and granted steps apart *"because only granted
+ * Ch. 03 keeps base parameters and granted steps apart *"because only granted
  * steps move Base Attack, and because a sheet that shows `B` where the Servant
  * was written `C` and granted one step is a sheet nobody can check"*.
  *
@@ -106,7 +106,7 @@ export function parameterTiles(parameters, grantedSteps = {}, effective = null) 
       effective: now,
       shifted: Boolean(now && now !== rank),
       steps,
-      // The grant as the RANK LADDER writes it. Ch. 04 §4.5 states it as *"a
+      // The grant as the RANK LADDER writes it. Ch. 06 states it as *"a
       // free `+` to one of their Servant's Parameters"*, and a granted step is
       // literally that: A becomes A+, A+ becomes A++. "+1" is arithmetic this
       // ladder does not do anywhere else on the sheet, and it reads as a
@@ -208,7 +208,7 @@ function gcd(a, b) {
  * Takes the verdict `canUseAbility` returned — the **same call**
  * `engine/attack.mjs` makes before it resolves anything — rather than reading
  * the cooldown fields again. A card that computed its own answer would be a
- * second implementation of §15.10, and the copy is the one nobody updates.
+ * second implementation of Ch. 17, and the copy is the one nobody updates.
  *
  * The default branch matters more than the named ones. A gate added to
  * `rules/costs.mjs` later will arrive here as a reason this function has never
@@ -245,7 +245,7 @@ export function abilityState(verdict, { turnsPerRound = 3 } = {}) {
 /**
  * What using this ability costs, and whether the payer can pay it.
  *
- * Affordability is **stated, not implied** (§29.2's worked example): a player
+ * Affordability is **stated, not implied** (Ch. 34's worked example): a player
  * who is shown "Master cost 53 Health" still has to go and look at the Master,
  * and the look is where the mistake happens.
  *
@@ -289,7 +289,7 @@ export function abilityCost(cost, master, unit = null) {
 }
 
 /**
- * Every effect on a unit, grouped the way §29.2 groups them.
+ * Every effect on a unit, grouped the way Ch. 34 groups them.
  *
  * Takes a **lookup function** rather than the registry itself, which is what
  * keeps this module pure: `context.mjs` passes `(id) => EffectRegistry.get(id)`
@@ -316,7 +316,7 @@ export function groupEffects(instances, lookup, unit) {
       ...instance,
       name: def?.name ?? instance.defId,
       img: def?.img ?? null,
-      // `polarity` is the buff/debuff/status axis §29.2 groups by. `valence`
+      // `polarity` is the buff/debuff/status axis Ch. 34 groups by. `valence`
       // is a DIFFERENT axis -- offensive/defensive/neutral -- and grouping on
       // it filed every debuff in the catalogue under Statuses, because no
       // effect in the pack has `valence: debuff` at all.

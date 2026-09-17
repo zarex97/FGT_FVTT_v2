@@ -1,6 +1,6 @@
 /**
  * @file The predicate facet vocabulary — the authority for what an option may say.
- * @see docs/24-rules-engine.md §24.4, docs/29-user-interface.md §29.6
+ * @see docs/11-predicates.md, docs/34-action-bar.md
  *
  * Layer 2 (rules). Pure data.
  *
@@ -300,7 +300,7 @@ export const FACETS = Object.freeze([
   facet({
     id: "withinOfPartner",
     segments: [{ name: "panels", value: number(1, 6) }],
-    // The other member of a linked group (Ch. 16 §16.8). Adjacency is `:1`,
+    // The other member of a linked group (Ch. 32). Adjacency is `:1`,
     // with no special case: the ladder runs from the actual distance up to 6,
     // exactly as `withinOfMaster` above does, and a unit with no partner on
     // the board emits nothing at all.

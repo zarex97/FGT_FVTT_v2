@@ -1,6 +1,6 @@
 /**
  * @file Abilities whose effect is decided by a die, from a table.
- * @see docs/14-checks-and-randomness.md, docs/15-abilities.md §15.2
+ * @see docs/13-checks-and-randomness.md, docs/17-abilities.md
  *
  * Layer 2 (rules). Pure — takes the phase and the die results, returns which
  * entries fire.

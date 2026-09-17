@@ -1,6 +1,6 @@
 /**
  * @file The Token placeable — which level accepts a click.
- * @see docs/20-platforms-and-levels.md §20.2
+ * @see docs/27-platforms-and-levels.md
  *
  * Layer 4 (presentation). One override, for one problem: a platform is a
  * **9×9 token**, and a 9×9 token's hit area covers eighty other panels.

@@ -1,11 +1,11 @@
 # Vincent van Gogh, char_orig_sheets/Copia de Van Gogh.md
 #
-# The most mechanically inventive Servant in the set, and Ch. 35 says so: she
+# The most mechanically inventive Servant in the set, and Ch. 45 says so: she
 # uses the effect system in a direction it was not designed for. Her own debuff
 # is her fuel -- Curse raises her Noble Phantasm's readiness rather than
 # threatening her, and Sunflower's Curse makes sure it can never kill her.
 #
-# FIVE of the eleven mechanisms Ch. 35 §35.11 says she needs already had a
+# FIVE of the eleven mechanisms Ch. 45 says she needs already had a
 # reader and no writer, and two of them name her in their own comments:
 # `cs-kill-yourself.yml` refuses on `immuneToKillYourself` -- "Van Gogh's
 # Sunflower's Curse is the only stated immunity to a Command Spell" -- and
@@ -22,14 +22,14 @@ trueName: "Vincent van Gogh, Clytie, Clytie van Gogh, Vulthoom"
 # FOREIGNER, not Caster. Her kit reads Caster-ish -- a fixed MAG Normal Attack,
 # Item Construction, a support Noble Phantasm -- and Appendix D has said
 # Foreigner since it was written, inferred from the ability set. `Existence
-# Outside The Domain` is the tell: it is a Foreigner class skill, and Ch. 35's
+# Outside The Domain` is the tell: it is a Foreigner class skill, and Ch. 45's
 # own tally calls her Base Attack clause "BA(MAG) on a NON-Caster".
 classContainer: foreigner
 region: [netherlands, europe, greece]
 alignment: { order: chaotic, morality: neutral }
 # `[Man]` is the Nasuverse Attribute, as Kiritsugu's is. `threatToHumanity` and
 # `child` are new tags, and need no schema change: `attributes` is an open set
-# by design (Ch. 04 §4.5).
+# by design (Ch. 06).
 attributes: [female, servant, man, humanoid, threatToHumanity, child]
 parameters: { str: E, end: B, agi: C, mag: A, luc: D }
 baseHealth: 1250

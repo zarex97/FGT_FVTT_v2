@@ -1,6 +1,6 @@
 /**
  * @file Static checks for Handlebars templates.
- * @see docs/29-user-interface.md
+ * @see docs/34-action-bar.md
  *
  * Template defects have the slowest feedback loop in the project: they are
  * invisible to ESLint, invisible to the tests, and surface as a stack trace

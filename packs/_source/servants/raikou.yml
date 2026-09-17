@@ -26,7 +26,7 @@ trueName: "Minamoto no Yorimitsu"
 # second statline, so it is carried in `notes` rather than in a field.
 servantClasses: [berserker]
 # The container it is summoned into, and the name opponents see until its true
-# name is revealed (Ch. 04 §4.2). The sheet states no Class and lists three
+# name is revealed (Ch. 06). The sheet states no Class and lists three
 # class skills; Mad Enhancement is Berserker's and is the one that decides her
 # (R9). Not cosmetic: the container sets base Detect (`rules/identity.mjs`), her
 # ZON base and which column of `npCostByRank` her Master pays.

@@ -1,6 +1,6 @@
 /**
  * @file Summons that leave on a schedule.
- * @see docs/15-abilities.md, docs/44-case-expanded-roster.md
+ * @see docs/17-abilities.md, docs/45-case-studies.md
  *
  * Layer 2 (rules). Pure.
  *
@@ -13,7 +13,7 @@
  *
  * `expiresAt` has been on the summon schema (`data/actor/simple.mjs`) since it
  * was written, and the only thing that read it was the actor sheet's context
- * builder, which displayed it. That is the shape Ch. 45 calls **Collected**:
+ * builder, which displayed it. That is the shape Ch. 46 calls **Collected**:
  * right, and inert. Nothing wrote it, and nothing dismissed a summon when it
  * passed.
  *

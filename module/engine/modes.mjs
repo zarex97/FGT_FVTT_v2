@@ -1,6 +1,6 @@
 /**
  * @file Reconciling modes a compulsion forces on.
- * @see module/rules/modes.mjs, docs/15-abilities.md §15.3, docs/44-case-expanded-roster.md
+ * @see module/rules/modes.mjs, docs/17-abilities.md, docs/45-case-studies.md
  *
  * Layer 3. `rules/modes.mjs` decides *which* modes should be on; this is the
  * half that writes.

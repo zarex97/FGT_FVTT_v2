@@ -1,6 +1,6 @@
 /**
  * @file `SetField` values are Sets, and Sets have no `.includes`.
- * @see docs/22-data-models.md
+ * @see docs/07-schemas.md
  *
  * This shipped and broke every Servant sheet:
  *

@@ -1,7 +1,7 @@
 /**
  * @file The Queen's Glass Game's clock, and who it catches.
  * @see char_orig_sheets/Copia de Nursery Rhyme.md
- * @see docs/43-bounded-fields.md §43.11
+ * @see docs/28-bounded-fields.md
  *
  * Layer 2 (rules). Pure.
  */
@@ -23,7 +23,7 @@ export const GLASS_GAME_RADIUS = 3;
  *
  * **"Enters Combat" is a moment this engine does not have.** There is no
  * `enterCombat` event, no combat-lock flag and no `inCombat` state anywhere in
- * `module/`; the phrase occurs once in the whole repository, in Ch. 43 §43.11's
+ * `module/`; the phrase occurs once in the whole repository, in Ch. 28's
  * quotation of this same sheet.
  *
  * So it is DEFINED here as *the first Turn end at which an enemy Unit stands
