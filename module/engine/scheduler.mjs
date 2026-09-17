@@ -1697,10 +1697,21 @@ export function tickPeriodics(units, when, ctx) {
       // "The end of ITS Turn" -- widened only for the unit whose own Turn is
       // actually ending, not for every unit a faction-unscoped `turnEnd` tick
       // happens to reach.
+      // ...and "any Turn it Acts" means any turn OTHER than its own, because
+      // its own is already the first half of the sentence. `endTurn` makes both
+      // calls at one boundary -- `("turnEnd", every unit)` and
+      // `("actedTurnEnd", the ones that acted)` -- and a Unit acting on its own
+      // Turn, which is the ordinary case, answered both and took the tick
+      // TWICE. Measured live at stage 1: 40 where the curve and
+      // `periodicDamageFor` both say 20, with one instance and one override on
+      // the unit. The common case was double and the rare one -- acting during
+      // an enemy's Turn, i.e. reacting -- was single, which is the clause
+      // upside down (Ch. 46 §46.4-AJ).
+      const widened = (u.periodicOverrides ?? [])
+        .some((o) => o.effectId === e.defId && o.triggers.includes(when));
       const overridden = when === "turnEnd"
-        ? u.factionId === ctx.activeFactionId
-          && (u.periodicOverrides ?? []).some((o) => o.effectId === e.defId && o.triggers.includes(when))
-        : (u.periodicOverrides ?? []).some((o) => o.effectId === e.defId && o.triggers.includes(when));
+        ? u.factionId === ctx.activeFactionId && widened
+        : u.factionId !== ctx.activeFactionId && widened;
       if (spec.when !== when && !overridden) continue;
       if (spec.actedOnly && !u.acted) continue;
 

@@ -4730,3 +4730,39 @@ absorbing 200 of a 207-damage hit.
 205 test files, 4922 tests, layer boundaries intact. **`packs` still needs a rebuild** for
 `vorpal-blade.yml` (§46.4-AD).
 
+## Rule e gets content, and three defects fall out of it — 2026-09-16
+
+Sikera Ušum clause e had no content to meet, so two effects were authored against the game author's
+own definition of *weak to Poison*: **a Unit with an effect or passive that either takes extra
+damage from Poison, or has an increased chance of being inflicted with Poison.**
+`engine/scheduler.mjs#isWeakTo` already tested exactly those two branches — only the content was
+missing. `weakToPoison` carries its own `VulnerabilityAmplifier` (1.5×); `poisonSusceptible` carries
+an incoming `ApplicationChance` of −25 and no amplifier, so it exercises the other branch.
+
+Measured against `periodicDamageFor` at stage 1: 20 with nothing, **20** with the field's amplifier
+on a Unit that is not weak (rule e correctly declines), 30 for `weakToPoison` alone, **60** for
+`weakToPoison` in the area, **40** for `poisonSusceptible` in the area. Ch. 46 §46.14.3.
+
+Three engine defects it had been hiding:
+
+**§46.4-AH** — `ApplicationChance` reads `el.effect`, and `soaked.yml` authored `effectId:`. A null
+scope matches EVERY effect, so Soaked's *"25% chance of being inflicted with Freeze"* raised the
+chance of every debuff landing under an Ice attack. Anastasia's own test asserted the wrong key
+against the wrong file, so the pair agreed with each other and nothing else. The guard is now a
+corpus walk.
+
+**§46.4-AI** — `vulnerabilityAmplifiers` and `periodicOverrides` were collected into contributions
+and projected onto the unit by nothing. Both reached a unit only via `annotateFields`, from a
+FIELD's interior rules, so they worked inside Sikera Ušum's Throne Room and nowhere else. Van
+Gogh's *Channel Marker Soul* is the live casualty: a `VulnerabilityAmplifier` halving Curse damage
+that has never applied.
+
+**§46.4-AJ** — a widened periodic ticked twice at a boundary satisfying both its triggers. `endTurn`
+makes both `tickPeriodics` calls at one boundary and the `turnEnd` half was gated on the active
+faction while the acted half was not — so the ordinary case, a Unit acting on its own Turn, took
+Poison twice (40 at stage 1) and the rare one took it once. *"Any Turn it Acts"* now means any Turn
+that is not its own. Verified live: own Turn 20, another faction's Turn 20, and 40 only at the
+boundary that also rolls the Round, which the sheet stacks explicitly.
+
+208 test files, 4935 tests, layer boundaries intact.
+
