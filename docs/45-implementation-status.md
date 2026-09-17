@@ -4800,7 +4800,7 @@ before believing an override is at fault.
 
 ## The round scheduler was dead, and §46.14.3 is empty — 2026-09-16
 
-**§46.4-AM, mine, and the most consequential defect in this audit.** §46.4-D gave each scheduler
+**§46.4-AL, mine, and the most consequential defect in this audit.** §46.4-D gave each scheduler
 boundary a claim; §46.4-AB re-keyed it on the boundary's own identity. Both right. Neither noticed
 that the claim stored **one shared `token`** for two scales — and a round change is *always* also a
 turn change, so both hooks claim at the same instant. The turn's write lands last, the round's read

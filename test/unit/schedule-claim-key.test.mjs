@@ -95,7 +95,7 @@ describe("the two scales do not share a token", () => {
   //   [FGTDBG-ROUND] claim won= false
   //
   // with Poison (whose native trigger IS roundEnd) dealing 0 and HGoB
-  // Construction gaining 0 across every round boundary (Ch. 46 §46.4-AM).
+  // Construction gaining 0 across every round boundary (Ch. 46 §46.4-AL).
   it("reads the token belonging to its own scale", () => {
     const claim = { turn: "r3t1", turnToken: "aaa", round: "r3", roundToken: "bbb" };
     expect(alreadyClaimed(claim, "round", "r3")).toBe(true);

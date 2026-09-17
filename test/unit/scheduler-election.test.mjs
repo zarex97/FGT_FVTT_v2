@@ -65,7 +65,7 @@ describe("the boundary claim", () => {
     // both hooks claim at once -- and a single shared `token` field meant the
     // turn's write landed last and the round's comparison found a stranger's,
     // so the round sequence concluded it had lost and never ran
-    // (Ch. 46 §46.4-AM).
+    // (Ch. 46 §46.4-AL).
     expect(source).toMatch(/scheduleClaim\?\.\[field\] \?\? null\) === token/);
     expect(source).toMatch(/const field = tokenField\(kind\)/);
   });

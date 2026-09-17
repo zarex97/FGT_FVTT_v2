@@ -55,7 +55,7 @@ export function boundaryKey(kind, combat) {
  * round's claim compared, found a foreign token, and concluded it had lost.
  * The entire `roundEnd` sequence therefore never ran: Poison, Burn, Freeze and
  * Scald all tick on `roundEnd` as their NATIVE trigger, and so does HGoB
- * Construction's per-Round gain (Ch. 46 §46.4-AM). A world holding the old
+ * Construction's per-Round gain (Ch. 46 §46.4-AL). A world holding the old
  * single-`token` shape has no per-scale token at all, so both scales proceed
  * once and write the new one.
  *
