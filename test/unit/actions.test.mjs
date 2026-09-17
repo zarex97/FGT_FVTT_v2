@@ -159,6 +159,42 @@ describe("Forest Escape (#28)", () => {
   });
 });
 
+describe("Use Item (#30)", () => {
+  const poison = { contentId: "semiramis-poison", quantity: 2, consumable: true };
+  const blade = { contentId: "vorpal-blade", quantity: 1, consumable: false };
+  const holder = (items) => unit({ id: "h", items });
+
+  it("is offered to a Unit holding a consumable, naming what it may consume", () => {
+    const found = availableActions(holder([poison]), board([holder([poison])]))
+      .find((a) => a.id === "useItem");
+
+    expect(found).toBeDefined();
+    expect(found.mode).toBe("immediate");
+    expect(found.context.contentIds).toEqual(["semiramis-poison"]);
+  });
+
+  it("is withheld from a Unit holding only equipment that is never used", () => {
+    // `[Vorpal Blade]` works through its `rules` while equipped.
+    expect(idsFor(holder([blade]), board([holder([blade])]))).not.toContain("useItem");
+  });
+
+  it("is withheld when the last one has been spent", () => {
+    const spent = holder([{ ...poison, quantity: 0 }]);
+    expect(idsFor(spent, board([spent]))).not.toContain("useItem");
+  });
+
+  it("is withheld from a Unit holding nothing", () => {
+    expect(idsFor(unit(), board([unit()]))).not.toContain("useItem");
+  });
+
+  it("names every consumable when the Unit holds more than one", () => {
+    const two = holder([poison, { contentId: "other-brew", quantity: 1, consumable: true }, blade]);
+    const found = availableActions(two, board([two])).find((a) => a.id === "useItem");
+
+    expect(found.context.contentIds).toEqual(["semiramis-poison", "other-brew"]);
+  });
+});
+
 describe("the registry's shape", () => {
   it("gives every entry an id, kind, icon, label and mode", () => {
     for (const a of UNIT_ACTIONS) {

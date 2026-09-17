@@ -221,6 +221,28 @@ export const UNIT_ACTIONS = Object.freeze([
     },
   },
   {
+    // *"Consuming 1 grants the Queen's Poison effect for 3◈ Turns."* Ch. 18
+    // documents consumption as a first-class thing an item does, and the
+    // resolver has always produced the descriptors -- nothing called it, so
+    // every authored `consumeEffect` was unreachable and `queensPoison` could
+    // not be applied at all (#30).
+    //
+    // Bills NOTHING: the item is the cost. Distinct from `itemCost`, which is
+    // an ABILITY spending items on use and does not fire `consumeEffect`.
+    id: "useItem",
+    kind: null,
+    icon: "fa-solid fa-flask",
+    label: "FGT.Action.UseItem",
+    mode: "immediate",
+    available: (unit) => {
+      if (!acts(unit)) return null;
+      const contentIds = (unit.items ?? [])
+        .filter((i) => i.consumable && (i.quantity ?? 0) > 0)
+        .map((i) => i.contentId);
+      return contentIds.length > 0 ? { contentIds } : null;
+    },
+  },
+  {
     id: "facing",
     kind: null,
     icon: "fa-solid fa-location-arrow",

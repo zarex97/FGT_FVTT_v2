@@ -9,6 +9,7 @@ import {
   meetsRequirement, meetsRequirements, REQUIREMENT_KINDS,
 } from "../../module/rules/items.mjs";
 import { toIntents } from "../../module/engine/items.mjs";
+import { order, itemQuantity, applyEffect } from "../../module/engine/intents.mjs";
 
 const at = (i, j) => ({ i, j });
 const unit = (over = {}) => ({ id: "u", panel: at(0, 0), abilities: [], effects: [], zones: [], ...over });
@@ -69,6 +70,21 @@ describe("transferItem", () => {
   it("logs the transfer", () => {
     expect(transferItem(poison(), unit({ id: "a" }), unit({ id: "b" })))
       .toContainEqual(expect.objectContaining({ event: "itemTransferred" }));
+  });
+});
+
+describe("an item is spent BEFORE its effect runs (Ch. 18 invariant 3, #30)", () => {
+  it("applies the quantity write ahead of the effect, whatever order they arrive in", () => {
+    // *"An item whose own consumeEffect kills its bearer is still gone."*
+    // Order within a batch is decided by RANK, not by list position, so this
+    // is asserted through the sorter and with the batch deliberately built
+    // backwards. Nothing guarded the invariant until now.
+    const sorted = order([
+      applyEffect("u", { defId: "queensPoison" }, "item"),
+      itemQuantity("u", "semiramis-poison", -1),
+    ]);
+
+    expect(sorted.map((i) => i.t)).toEqual(["itemQuantity", "applyEffect"]);
   });
 });
 

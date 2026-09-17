@@ -38,7 +38,11 @@ Both types have `ORDER` rank 2, executed in the bookkeeping phase, so an item wh
 
 ### Consuming an item
 
-`consumeItem` produces an `itemQuantity` delta minus one, the item's `consumeEffect` descriptors placed after it, and a log entry (`module/rules/items.mjs:225-233`). Effects are authored in the short-form vocabulary — `{id, duration}` — and are resolved to absolute expiries at descriptor-to-intent time; the applier reads `intent.effect.defId` and `intent.effect.expiry`, so unresolved effects are silently lost (`module/engine/items.mjs:98-146`).
+`consumeItem` produces an `itemQuantity` delta minus one, the item's `consumeEffect` descriptors placed after it, and a log entry (`module/rules/items.mjs`). It is reached by the `useItem` action in the Unit-action registry, offered whenever the Unit holds a consumable with quantity remaining; a Unit carrying more than one is asked which. An item is **consumable** exactly when it authors a `consumeEffect`, and the unit projection carries that as a `consumable` flag so the registry can decide from a snapshot alone. Effects are authored in the short-form vocabulary — `{id, duration}` — and are resolved to absolute expiries at descriptor-to-intent time; the applier reads `intent.effect.defId` and `intent.effect.expiry`, so unresolved effects are silently lost (`module/engine/items.mjs:98-146`).
+
+### Spending an item as an ability's cost
+
+Distinct from consuming it, and the distinction is load-bearing: an ability may declare an `itemCost`, which is spent when the ability is used and **does not fire the item's `consumeEffect`** (`module/engine/skill-use.mjs`). Arrogant King's Poison *"Requires 3 [Semiramis' Poison] to use"* and inflicts its own effects; consuming one poison on its own grants `Queen's Poison` instead. Both are authored on the same item and neither is a special case of the other — paying with something and using it are different acts.
 
 ### Picking up an item
 
@@ -75,6 +79,27 @@ The rulebook placed the first item on a board via `[Vorpal Blade]`: *"…the [Vo
 7. **The per-turn transfer allowance is on the giver's turn state, not the item.** An item that changes hands carries no record of how many times it was already passed (`module/engine/items.mjs:8-11`).
 
 8. **An item that lands nowhere is warned, not silently dropped.** When `acquisitionTarget` returns `ok: false`, the applier logs the refusal and continues with the next intent in the batch, so a barred item stays on the board (`module/engine/applier.mjs:562-566`).
+
+## Traps and anti-patterns
+
+**A documented model with no entry point, beside an undocumented one that works.** Ch. 18 has
+described consumption since it was written, `consumeItem` produced the right descriptors, and the
+engine function that converts them existed — and **nothing had ever called it in any commit**. The
+consequence was not abstract: `[Semiramis' Poison]` authors
+`consumeEffect: applyEffect queensPoison 3◈`, and that is the **only** route to `queensPoison`
+anywhere in the corpus, so a fully authored effect with its own definition file could never be
+applied in play. Meanwhile `itemCost` — the mechanism that *did* work — appeared in no chapter at
+all, so the reachable half was the undocumented half and the documented half was the dead one. Fixed
+in [#30](https://github.com/zarex97/FGT_FVTT_v2/issues/30), and this chapter now covers `itemCost`.
+**When two mechanisms answer nearby questions, the one with a chapter is not automatically the one
+with a caller — check both directions.**
+
+**Ordering by list position instead of by rank.** `consumeItem` emits the quantity delta first and
+the effects after it, which reads as the invariant being satisfied by construction. It is not: a
+batch is applied in ORDER **rank** order, and the list is only a tie-break within a rank. The
+invariant that an item is spent before its own effect can kill its bearer rests entirely on
+`itemQuantity` ranking below `applyEffect`, and nothing asserted that until #30 added a test that
+sorts a deliberately reversed batch.
 
 ## Open questions
 

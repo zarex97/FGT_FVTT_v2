@@ -17,6 +17,7 @@ import { performRidingAttack } from "./riding.mjs";
 import { attemptEscape } from "./escape.mjs";
 import { boardPlatform } from "./platforms.mjs";
 import { attemptForestEscape } from "./nameless-forest.mjs";
+import { useItem as consumeHeldItem } from "./items.mjs";
 
 /**
  * id → handler. Held against `rules/actions.mjs`'s registry by
@@ -76,6 +77,38 @@ export const ACTION_HANDLERS = Object.freeze({
   // The Luck Check that is the Nameless Forest's only exit (#28). The registry
   // offers the button even while the gate refuses, so a blocked context is
   // surfaced here rather than rolling anyway.
+  // Ch. 18's consumption. `context.contentIds` is what the registry found the
+  // Unit holding; with more than one it asks, because "use an item" is
+  // ambiguous the moment a Unit carries two.
+  useItem: async ({ actor, context }) => {
+    const ids = context?.contentIds ?? [];
+    if (ids.length === 0) return { ok: false, reason: "noneLeft" };
+    let contentId = ids[0];
+    if (ids.length > 1) {
+      const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
+      const held = (id) => [...(actor.items ?? [])].find((i) => i.system?.contentId === id);
+      // `pick` returns an ARRAY of chosen ids, and `count: 1` is what makes it
+      // a single choice rather than a multi-select.
+      const picked = await ChoiceDialog.pick({
+        title: game.i18n.localize("FGT.Action.UseItem"),
+        hint: game.i18n.localize("FGT.Action.UseItemHint"),
+        count: 1,
+        min: 0,
+        options: ids.map((id) => ({
+          id,
+          name: held(id)?.name ?? id,
+          detail: game.i18n.format("FGT.Action.UseItemRemaining", {
+            count: held(id)?.system?.quantity ?? 0,
+          }),
+        })),
+      });
+      const choice = (picked ?? [])[0];
+      if (!choice) return { ok: false, reason: "cancelled" };
+      contentId = choice;
+    }
+    return consumeHeldItem({ unitId: actor.id, itemId: contentId });
+  },
+
   forestEscape: async ({ actor, context }) => {
     if (context?.blocked) return { ok: false, reason: context.blocked };
     return attemptForestEscape(actor.id);

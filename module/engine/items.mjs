@@ -77,12 +77,16 @@ export async function giveItem({ fromId, toId, itemId, count = 1 }) {
  *
  * @param {object} args
  * @param {string} args.unitId
- * @param {string} args.itemId
+ * @param {string} args.itemId a Foundry item id, or the stable `contentId`
  * @returns {Promise<{ok: boolean, reason?: string}>}
  */
 export async function useItem({ unitId, itemId }) {
   const actor = game.actors.get(unitId);
-  const item = actor?.items?.get(itemId);
+  // By EITHER key, the convention `io.adjustItemQuantity` already follows. A
+  // Foundry id is random per world, so the action bar addresses items by their
+  // stable content id and nothing else should have to know which it was given.
+  const item = actor?.items?.get(itemId)
+    ?? [...(actor?.items ?? [])].find((i) => i.system?.contentId === itemId);
   if (!actor || !item) return { ok: false, reason: "notFound" };
 
   const board = currentBoard();
