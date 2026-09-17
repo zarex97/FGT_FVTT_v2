@@ -8,7 +8,9 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { snapshotUnit, snapshotBoard, turnStateAt, turnWrite, contributionsOf } from "../../module/rules/snapshot.mjs";
+import {
+  snapshotUnit, snapshotBoard, turnStateAt, turnWrite, roundWrite, contributionsOf,
+} from "../../module/rules/snapshot.mjs";
 import { remainingMovement, segmentCheck } from "../../module/rules/movement.mjs";
 import { EffectRegistry } from "../../module/rules/registry.mjs";
 
@@ -461,6 +463,51 @@ describe("turnWrite — patching a turn record without resurrecting it (#32)", (
 
   it("lets the patch win over a live value", () => {
     expect(turnWrite({ tick: 5, itemTransfers: 1 }, 5, { itemTransfers: 2 }).itemTransfers).toBe(2);
+  });
+});
+
+describe("roundWrite — the same rule at Round scale", () => {
+  // The record has three fields and two writers that patch disjoint halves of
+  // it, so the revival ran in both directions.
+
+  it("clears the rest when the record belongs to an earlier Round", () => {
+    const stale = { round: 3, abilitiesUsed: ["emiya-caladbolg"], combatInBaseThisRound: true };
+
+    const out = roundWrite(stale, 5, { combatInBaseThisRound: true });
+
+    expect(out.round).toBe(5);
+    expect(out.combatInBaseThisRound).toBe(true);
+    // `markRoundState` wrote `{round: now, ...patch}`, so this list stayed --
+    // and Hrunting was refused on a Round where Caladbolg II had not been fired.
+    expect(out.abilitiesUsed).toEqual([]);
+  });
+
+  it("clears a stale base-combat flag when only the ability list is patched", () => {
+    // The other direction, and `recordUse`'s: it stamped the Round and wrote
+    // `abilitiesUsed` alone, so a Unit that fought in its own base two Rounds
+    // ago went on being refused Ch. 29's E1 regeneration for using any ability.
+    const stale = { round: 3, abilitiesUsed: [], combatInBaseThisRound: true };
+
+    const out = roundWrite(stale, 5, { abilitiesUsed: ["medea-keraino"] });
+
+    expect(out.combatInBaseThisRound).toBe(false);
+  });
+
+  it("keeps the rest of the record when it belongs to THIS Round", () => {
+    const live = { round: 5, abilitiesUsed: ["emiya-caladbolg"], combatInBaseThisRound: false };
+
+    const out = roundWrite(live, 5, { combatInBaseThisRound: true });
+
+    expect(out).toMatchObject({
+      round: 5, abilitiesUsed: ["emiya-caladbolg"], combatInBaseThisRound: true,
+    });
+  });
+
+  it("applies no staleness with no Round to be stale against", () => {
+    // `round: null` is "no combat is running", the same escape `turnWrite`
+    // gives `tick: null`.
+    const out = roundWrite({ round: null, abilitiesUsed: ["x"] }, null, {});
+    expect(out.abilitiesUsed).toEqual(["x"]);
   });
 });
 

@@ -664,9 +664,12 @@ export function turnStateAt(raw, tick) {
  * its allowance spent two Turns later, because something unrelated had marked
  * its turn state in between. Measured live (#32).
  *
- * `recordUse` in `engine/io.mjs` has always hand-rolled this comparison for
- * `abilitiesUsed` alone, which is the same fix applied in one place and is why
- * that one field escaped the bug.
+ * `recordUse` in `engine/io.mjs` hand-rolled this comparison for `abilitiesUsed`
+ * alone -- the same fix applied in one place, which is why that one field
+ * escaped the bug and why the twelve beside it did not. #32 was closed with
+ * `recordUse` still re-stamping the tick while patching two keys of fourteen,
+ * because the fix landed in `markTurn` and `recordUse` is a separate writer
+ * fifteen lines further down the same file. Both now come through here.
  *
  * Built on `turnStateAt`, so the write side and the read side cannot disagree
  * about what "stale" means.
@@ -703,6 +706,35 @@ export function roundStateAt(raw, round) {
     abilitiesUsed: [...(raw?.abilitiesUsed ?? [])],
     combatInBaseThisRound: Boolean(raw?.combatInBaseThisRound),
   };
+}
+
+/**
+ * The full round record to WRITE when patching one field of it.
+ *
+ * `turnWrite` one scale up, and for the same reason. `markRoundState` wrote
+ * `{round: now, ...patch}` -- the exact shape #32 fixed at Turn scale -- so
+ * re-stamping the Round made every other field of a stale record current again.
+ * The record has three fields and two writers that patch disjoint halves of it,
+ * which means the bug ran in both directions:
+ *
+ * - `markRoundState` sets `combatInBaseThisRound` and leaves `abilitiesUsed`,
+ *   so a Caladbolg II recorded in Round 3 was revived into Round 5 by fighting
+ *   in your own base -- and Ch. 32's Hrunting exclusion refused a shot that had
+ *   never been taken this Round.
+ * - `recordUse` sets `abilitiesUsed` and leaves `combatInBaseThisRound`, so a
+ *   `true` from Round 3 was revived into Round 5 by using any ability at all,
+ *   and Ch. 29's E1 regeneration was withheld from a Unit that had not fought.
+ *
+ * Built on `roundStateAt`, so the write side and the read side cannot disagree
+ * about what "stale" means.
+ *
+ * @param {object|null} raw the stored `roundState`
+ * @param {number|null} round now
+ * @param {object} patch the fields being set
+ * @returns {object} every field to write
+ */
+export function roundWrite(raw, round, patch = {}) {
+  return { ...roundStateAt(raw, round), ...patch, round };
 }
 
 /**

@@ -114,6 +114,20 @@ which composes on `turnStateAt` so the read and write sides cannot disagree abou
 **A stale-by-reading record needs a stale-aware writer; a partial write that refreshes the stamp
 resurrects everything it did not touch.**
 
+**And the same fix reached one writer of three.** `turnWrite` was applied to `markTurn`, but
+`recordUse` and `markRoundState` are separate writers in the same file — fifteen and twenty-five
+lines further down — and both went on doing exactly what `markTurn` had stopped doing. `recordUse`
+re-stamped `system.turnState.tick` while writing `abilitiesUsed` alone, reviving the other twelve
+fields of a stale record on **every ability use in the game**; the hand-rolled comparison that had
+protected `abilitiesUsed` protected nothing else. `markRoundState` was still literally
+`{round: now, ...patch}`, the pre-#32 shape, at Round scale. Because the round record's two writers
+patch disjoint halves of it, that ran in both directions: `markRoundState` revived a stale
+`abilitiesUsed` (Ch. 32's Caladbolg II/Hrunting exclusion refusing a shot never taken this Round),
+and `recordUse` revived a stale `combatInBaseThisRound` (Ch. 29's E1 regeneration withheld from a
+Unit that had not fought). Fixed by adding `roundWrite` beside `turnWrite` and routing all three
+writers through them. **Closing the issue is not the same as reaching the writers; a fix to one
+function in a file of writers is a fix to one writer.**
+
 ## Open questions
 
 - **Confirmed by reading the path; the double check is deliberate.** `acquisitionTarget` returns
