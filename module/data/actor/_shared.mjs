@@ -394,6 +394,26 @@ export function combatantCommon() {
      */
     seenUnitIds: new fields.SetField(new fields.StringField({ blank: false }), { initial: () => [] }),
 
+    /**
+     * This Unit's Discover budget while it is concealed.
+     *
+     * `{tick, spent: {factionId: [watcherId]}, acquiredAt: {watcherId: tick}}`.
+     *
+     * A faction gets **three** attempts per Turn against one concealed Unit,
+     * spent in the order its Servants acquired the target, and no Servant
+     * attempts twice in a Turn (Ch. 46 §46.4-AN). All three facts are about a
+     * PAIR -- this Unit and one watcher -- so the record lives on the Unit
+     * being hunted rather than on each hunter: one document to read, and it is
+     * discarded with the concealment it belongs to.
+     *
+     * `spent` is cleared whenever `tick` moves on; `acquiredAt` is not, because
+     * "order of arrival" is about who found this Unit first and that is a fact
+     * across Turns, not within one.
+     *
+     * Runtime state, never authored.
+     */
+    discoverBudget: new fields.ObjectField({ required: false, initial: () => ({}) }),
+
     // `null` defers to the ordinary rules; `false` overrides them. Read
     // (`!== false`) by `rules/budget.mjs`, `rules/targeting/resolve.mjs`,
     // `engine/attack.mjs` and `apps/canvas/overlay-layer.mjs` since each was

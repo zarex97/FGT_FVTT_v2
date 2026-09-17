@@ -1407,6 +1407,60 @@ write the new one; no migration.
 identity per thing being elected. Two scales sharing one token is two elections sharing one ballot
 box.*
 
+### AN. Discover was offered to everyone, without limit — **fixed 2026-09-16**
+
+Two rulings from the game's author, both narrowing what the engine did. §46.14.3 had left the first
+as an open question and the second had not been noticed at all.
+
+**Only Servants watch.** Presence Concealment clause 6 says *"an enemy **Servant's** Range (or
+Detect)"*; Ch. 8 §8.7 quotes the source's general rule as *"an enemy **Unit's**"*, and
+`discoverAttempts` had followed the general one — it filtered on enemy-ness and distance and nothing
+else. So a **Master** standing beside a concealed Servant rolled as readily as the Servant hunting
+her. Measured live: two watchers at 35% each against a sheet that offers 35%, which is **58%** for
+one step. The Skill's own wording governs.
+
+**And a faction gets three attempts per Turn against one concealed Unit.** Not three per Servant —
+three for the whole faction, spent in the order its Servants acquired the target, with no Servant
+attempting twice against the same target in one Turn. The budgets are **per faction**: a second
+faction that has never looked still has all three, however many the first has spent.
+
+Without the cap, concealment was defeated by arithmetic rather than by play. A concealed Servant
+walking past six enemies rolled six times, and at Semiramis's 35% that is a **92%** chance of being
+found for a single step — so the Skill was worth least exactly where a player would most want it,
+in front of a massed enemy line.
+
+**Where the record lives.** `system.discoverBudget` on the **concealed** Unit —
+`{tick, spent: {factionId: [watcherId]}, acquiredAt: {watcherId: tick}}`. All three facts are about
+a *pair*, this Unit and one watcher, so one document carries them and it is discarded with the
+concealment it belongs to. `spent` clears when the tick moves on; **`acquiredAt` does not**, because
+*"order of arrival"* is about who found this Unit first and that is a fact across Turns, not within
+one. Every enemy Servant in range is recorded, not merely the ones the budget can still afford —
+otherwise the fourth watcher of a Turn would be treated as having arrived later than it did and
+would keep losing its place in the queue.
+
+An attempt is charged **whether or not it succeeds**: the faction looked.
+
+**And the cap is a table setting**, `discoverAttemptsPerFaction`, asked for by the author and wired
+the way `masterProtection` is: registered in `settings.mjs`, carried to Layer 2 on `board.rules`,
+never read by the rules layer directly. `??` and not `||` in the fallback, because **0 is a legal
+value** and means *"no Discover rolls at all"* — a table that wants Presence Concealment absolute.
+Absence falls back to the rule as written, since every board built before the setting existed
+carries no value for it. Verified live at 3, 5, 1 and 0 against the same four watchers: **3, 4, 1,
+0** offered — 4 at a cap of 5, because the cap is a ceiling and not a quota.
+
+**Verified live**, Semiramis concealed with four enemy Servants ringing her and an enemy Master
+adjacent:
+
+| | |
+|---|---|
+| Attempts offered | **3**, not 5 — and the **Master is not among them** |
+| First `runDiscoverChecks` | 3 offered, the first succeeded, so **1** charged |
+| Second | **2** offered — the remainder of the faction's three — both charged |
+| Third | **0** offered. The faction is out for the Turn |
+| `acquiredAt` | all **four** Servants recorded, at the tick they arrived |
+| Next Turn | **3** offered again; `spent` cleared, `acquiredAt` kept at its original ticks |
+| The setting at 3 / 5 / 1 / 0 | **3 / 4 / 1 / 0** offered — 4 at a cap of 5, because only four enemy Servants were in range |
+
 ## 46.5 The per-Servant checklist
 
 Run all of it. An item that is obviously inapplicable is still an item you looked at.
@@ -1808,11 +1862,17 @@ The list this section used to hold is empty. What closed it:
 Pressing them cost three more engine defects: §46.4-AK, and — from Construction source 3 refusing to
 fire — **§46.4-AL**, the one that mattered most.
 
-**One question for the game's author, not a defect.** Presence Concealment clause 6 says *"an enemy
-**Servant's** Range (or Detect)"*, and Ch. 8 §8.7 quotes the source's general rule as *"an enemy
-**Unit's** Range (Detect)"*. The engine implements the general rule, so an enemy **Master** also
-gets a Discover roll — two watchers instead of one, which raises the per-move chance of being spotted
-from 35% to 58%. Both readings are in the source; only the author can say which governs.
+**That question is now answered.** Presence Concealment clause 6 says *"an enemy **Servant's**
+Range (or Detect)"* while Ch. 8 §8.7 quotes the source's general rule as *"an enemy **Unit's**"*,
+and the engine had followed the general one — so a Master rolled too, 58% per move against a sheet
+offering 35%. The author has settled it in favour of the Skill's wording, and added a cap with it:
+**three attempts per faction per Turn** against one concealed Unit. §46.4-AN.
+
+**And Bašmu is 3×3.** Its size had never been authored, so it defaulted to a single panel — which
+is not decoration for this summon: *"when it Moves to any occupied panels, all Units occupying said
+panels are knocked back by 1 panel until the space is free for Bašmu to stand on"* has to clear nine
+panels rather than one, and the Attack-denial clause's reach is measured from whatever it occupies.
+Verified on a live board: the token places 3×3.
 
 ### 46.14.4 A note on the board this was pressed on
 

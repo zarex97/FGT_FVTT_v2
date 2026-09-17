@@ -213,6 +213,8 @@
   "FGT.Prompt.commandSpell": "Interrupt with a Command Spell?",
   "FGT.Settings.GrandOrder": "Grand Order Holy Grail War",
   "FGT.Settings.GrandOrderHint": "Switches off the rules that assume rival Masters: the multi-Servant tax, and forced-attack compulsions against allied units.",
+  "FGT.Settings.DiscoverAttempts": "Discover attempts per faction, per Turn",
+  "FGT.Settings.DiscoverAttemptsHint": "How many times one faction may try to Discover a single Presence-Concealed Unit in a Turn. Spent in the order that faction's Servants acquired the target; no Servant tries twice. Each faction has its own. 3 is the rule as written; 0 makes concealment absolute.",
   "FGT.Settings.MasterProtection": "Enemy Master protection (optional rule)",
   "FGT.Settings.MasterProtectionHint": "Units may not enter a 1-panel area of an enemy Master while that Master's Servant is within 2 panels of it. Switch this off to let Units walk right up to a guarded Master.",
   "FGT.Victory.grailObtained": "The Holy Grail has been obtained!",
