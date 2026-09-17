@@ -433,6 +433,37 @@ describe("turnStateAt is what movement reads", () => {
   });
 });
 
+describe("held items (#30)", () => {
+  const holder = (items) => ({ id: "s", name: "S", type: "servant", effects: [], items, system: {} });
+
+  it("marks an item CONSUMABLE when it authors a consumeEffect", () => {
+    // The action registry decides whether to offer "use an item" from the
+    // snapshot alone, so the projection has to say which held items do
+    // anything when consumed. `[Semiramis' Poison]` is the only one in the
+    // corpus, and it is the only route to `queensPoison`.
+    const u = snapshotUnit(holder([{
+      id: "abc", name: "[Semiramis' Poison]", type: "equipment",
+      system: {
+        contentId: "semiramis-poison", quantity: 2,
+        consumeEffect: [{ kind: "applyEffect", effect: { id: "queensPoison", duration: "3◈" } }],
+      },
+    }]));
+
+    expect(u.items).toEqual([{ contentId: "semiramis-poison", quantity: 2, consumable: true }]);
+  });
+
+  it("marks one with no consumeEffect as not consumable", () => {
+    // `[Vorpal Blade]` is equipment that works through its `rules` while
+    // equipped; consuming it is not a thing it does.
+    const u = snapshotUnit(holder([{
+      id: "vb", name: "[Vorpal Blade]", type: "equipment",
+      system: { contentId: "vorpal-blade", quantity: 1 },
+    }]));
+
+    expect(u.items[0].consumable).toBe(false);
+  });
+});
+
 describe("turnStateAt", () => {
   it("projects which abilities went, which every same-Turn rule depends on", () => {
     // Absent from the projection until Scáthach's `oncePerTurn` needed it, so

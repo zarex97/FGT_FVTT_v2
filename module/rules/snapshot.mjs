@@ -556,7 +556,16 @@ export function snapshotUnit(actor, {
     // `platformContentId` is: a Foundry item id is random per world.
     items: [...(actor.items ?? [])]
       .filter((i) => i.type === "equipment")
-      .map((i) => ({ contentId: i.system?.contentId ?? i.id, quantity: i.system?.quantity ?? 0 })),
+      // `consumable` is whether USING it does anything -- Ch. 18's
+      // `consumeEffect`. The action registry decides from the snapshot alone
+      // whether to offer the button, and an item with no consumeEffect is
+      // equipment rather than a consumable: `[Vorpal Blade]` works through its
+      // `rules` while equipped and is never "used" (#30).
+      .map((i) => ({
+        contentId: i.system?.contentId ?? i.id,
+        quantity: i.system?.quantity ?? 0,
+        consumable: Boolean((i.system?.consumeEffect ?? []).length),
+      })),
     acted: turnState.acted,
     // Hoisted beside `acted` for the same reason `acted` is: `scheduler#endTurn`
     // filters the whole board on it once per boundary, and reaching into
