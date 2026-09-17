@@ -34,6 +34,25 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### A conformance check for the world model (2026-09-17)
+
+#### Added
+
+- **`tools/check-world.mjs`** (`npm run check:world`), which runs the same probe against
+  `test/helpers/world.mjs` and against a live world over CDP and reports where they disagree. It
+  works at all because the harness installs **globals**: a probe is a script against
+  `game.actors.get(id)`, and the identical text runs in both. Local only, like `check:smoke`.
+
+  Two probes are expected to **diverge**, and asserting that they still diverge *in the documented
+  way* is most of the point — a deliberate difference is one comment away from becoming an accidental
+  one. The undeclared-write throw is one. The other the check found on its first run: Foundry
+  validates a `SetField`'s **elements** and the model only coerces the collection, so a `SetField`
+  of `DocumentIdField` keeps a non-id where Foundry drops it. Harmless for what io writes today —
+  every id it writes came off a document — and now written down rather than waiting to matter.
+
+- **`tools/lib/cdp.mjs`**, the DevTools shell `fgt-eval.mjs` already had. Two copies of a WebSocket
+  handshake is two places to get the `return`-detection wrong.
+
 ### io.mjs is executed by the test suite, and the first thing it found (2026-09-17)
 
 #### Added

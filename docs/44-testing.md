@@ -19,6 +19,7 @@ The boundary enforced in chapter 02 — that `domain/` and `rules/` import nothi
 | `test/fixtures/` | Small fixture files used to seed test data |
 | `test/helpers/world.mjs` | A world faithful enough to run `engine/io.mjs` against — `withWorld({...}, fn)`, restoring globals in a `finally` |
 | `tools/smoke-world.mjs` | Launches a real world via Chrome DevTools Protocol and fails if it does not reach `game.ready` |
+| `tools/check-world.mjs` | Holds `test/helpers/world.mjs` against a live world, probe by probe (`npm run check:world`) |
 
 ## How it works
 
@@ -60,6 +61,8 @@ expect(adjust[0][2]).toBe(-400);
 This allows the engine's orchestration logic — batching, ordering, authority routing — to be tested without Foundry. The applier's convergence hooks are guarded on `game` so tests can skip them (`module/engine/applier.mjs:120-122`). The fake is **derived from `worldIO()`'s real surface** rather than typed out; it had drifted to 17 of 35 methods, so any test emitting a `setStance` or `recordUse` intent died on `io.setStance is not a function`.
 
 What that fake cannot tell you is what landed in the document, because it stands in for the thing that writes it. `test/helpers/world.mjs` is the other half: `withWorld({actors, tokens, combat, settings}, fn)` installs a modelled `game`/`canvas`/`foundry`, runs the real prepare chain over the real DataModels, and restores every global in a `finally`. **An undeclared write throws** rather than being silently discarded — less faithful than Foundry, and far more useful, since that is the defect `actor-fields.test.mjs` was built to chase and could only chase as text.
+
+**A model that is subtly wrong is worse than none**, because the tests written against it encode the wrongness. `npm run check:world` (`tools/check-world.mjs`) is the answer to that: it runs the same probe against the model and against a live world over CDP and reports where they disagree. Two probes are expected to *diverge* — the undeclared-write throw above, and one the check found on its first run: Foundry validates a `SetField`'s **elements** and the model only coerces the collection, so a `SetField` of `DocumentIdField` keeps a non-id where Foundry drops it. Both are recorded in the harness header and asserted by the check, so a deliberate difference cannot quietly become an accidental one. Local only, like `check:smoke`.
 
 It earned itself on its second test. `countTowardsGrail` read `!combat.system?.grailMaterialized` on the line *after* the `await combat.update()` that set it, so the guard was `true && false` on every defeat and `Hooks.callAll("fgtGrailMaterialized")` had **never fired**. Nothing could have caught that without executing io.
 

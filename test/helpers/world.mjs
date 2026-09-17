@@ -37,13 +37,22 @@
  * - **No socket.** `isGM` defaults true, so `planApplication` keeps everything
  *   local and `io.proxy` is never reached. Pass `isGM: false` to exercise
  *   routing; the proxy is recorded, not delivered.
- * - **Validation is coercion only.** `SetField`, `NumberField`'s `min`,
- *   `ArrayField` and `BooleanField` behave; `RankField` and `TickField` store
- *   what they are given rather than throwing on a bad rank. A fifth type that
- *   starts mattering should fail a test, not be guessed at here.
+ * - **Validation is coercion only, and only of the collection.** `SetField`,
+ *   `NumberField`'s `min`, `ArrayField` and `BooleanField` behave; `RankField`
+ *   and `TickField` store what they are given rather than throwing on a bad
+ *   rank. Nor are a field's ELEMENTS validated: a `SetField` of
+ *   `DocumentIdField` keeps a non-id where Foundry drops it — found by
+ *   `npm run check:world` on its first run, and left as a probe there. Harmless
+ *   for what io writes today, since every id it writes came off a document. A
+ *   fifth type that starts mattering should fail a probe, not be guessed at here.
  *
  * Anything not modelled **throws** rather than returning `undefined`, so the
  * gap names itself instead of letting a test assert on nothing.
+ *
+ * `npm run check:world` runs the same probes here and against a live world and
+ * reports where they disagree — including checking that the two divergences
+ * above are still the deliberate ones. Run it before trusting this model with
+ * something new.
  */
 
 import { readdirSync } from "node:fs";
