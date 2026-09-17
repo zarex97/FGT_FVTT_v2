@@ -64,6 +64,26 @@ A vertical layer of the board. Ground level and the deck of a Platform are diffe
 **Platform**:
 A Unit that other Units may board and be carried by, occupying its own Level.
 
+**Knockback**:
+Forced horizontal displacement of a Unit out of a Panel another Unit has moved into. The displaced
+Unit stays on its own Level.
+_Avoid_: push, shove, bump
+
+**Knocked Off**:
+A Unit leaving a Platform's Footprint because Knockback would carry it past the edge. Only a
+Platform that states the rule can knock a Unit off; on every other Platform the edge holds.
+_Avoid_: pushed off, fell off, thrown off
+
+**Jump**:
+A Unit's voluntary departure from a Platform's edge to a Board Panel within its MOV. Open to
+Servants and Summons, never to Masters or Civilians.
+_Avoid_: leap, dismount, disembark, unboard
+
+**Scattering**:
+The displacement of every passenger to ground Level when a Platform is destroyed. It takes the
+passengers who survived the destruction as well as those who did not.
+_Avoid_: dispersal, ejection
+
 **Home Base**:
 The zone a Faction starts in and defends, placed according to the war's shape.
 
