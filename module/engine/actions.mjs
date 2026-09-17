@@ -17,7 +17,7 @@ import { performRidingAttack } from "./riding.mjs";
 import { attemptEscape } from "./escape.mjs";
 import { boardPlatform } from "./platforms.mjs";
 import { attemptForestEscape } from "./nameless-forest.mjs";
-import { useItem as consumeHeldItem } from "./items.mjs";
+import { useItem as consumeHeldItem, giveItem } from "./items.mjs";
 
 /**
  * id → handler. Held against `rules/actions.mjs`'s registry by
@@ -107,6 +107,54 @@ export const ACTION_HANDLERS = Object.freeze({
       contentId = choice;
     }
     return consumeHeldItem({ unitId: actor.id, itemId: contentId });
+  },
+
+  // Ch. 18's transfer. Two choices, asked in the order the sentence gives them:
+  // WHAT is passed, then TO WHOM. The recipient list is recomputed per item
+  // because the reach is the item's own, not the giver's.
+  giveItem: async ({ actor, context }) => {
+    const ids = context?.contentIds ?? [];
+    if (ids.length === 0) return { ok: false, reason: "notTransferable" };
+
+    const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
+    const { currentBoard } = await import("./board.mjs");
+    const { relationOf } = await import("../rules/relations.mjs");
+    const { chebyshev } = await import("../domain/geometry.mjs");
+
+    const board = currentBoard();
+    const me = board.units.find((u) => u.id === actor.id);
+    const held = (id) => [...(actor.items ?? [])].find((i) => i.system?.contentId === id);
+    const ask = async (title, options) => {
+      if (options.length === 1) return options[0].id;
+      const picked = await ChoiceDialog.pick({ title, count: 1, min: 0, options });
+      return (picked ?? [])[0] ?? null;
+    };
+
+    const contentId = await ask(
+      game.i18n.localize("FGT.Action.GiveItem"),
+      ids.map((id) => ({
+        id,
+        name: held(id)?.name ?? id,
+        detail: game.i18n.format("FGT.Action.UseItemRemaining", { count: held(id)?.system?.quantity ?? 0 }),
+      })),
+    );
+    if (!contentId) return { ok: false, reason: "cancelled" };
+
+    const reach = held(contentId)?.system?.transferRange ?? 1;
+    const candidates = board.units.filter(
+      (u) => u.id !== actor.id && u.panel && me?.panel
+        && relationOf(u, me, board) !== "enemy"
+        && chebyshev(me.panel, u.panel) <= reach,
+    );
+    if (candidates.length === 0) return { ok: false, reason: "outOfRange" };
+
+    const toId = await ask(
+      game.i18n.localize("FGT.Action.GiveItemTo"),
+      candidates.map((u) => ({ id: u.id, name: game.actors.get(u.id)?.name ?? u.id })),
+    );
+    if (!toId) return { ok: false, reason: "cancelled" };
+
+    return giveItem({ fromId: actor.id, toId, itemId: held(contentId).id });
   },
 
   forestEscape: async ({ actor, context }) => {

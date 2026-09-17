@@ -16,7 +16,7 @@ import { onMasterDefeated } from "../rules/relationships.mjs";
 import { conquestContract } from "../rules/contract.mjs";
 import { record } from "./game-log.mjs";
 import { spendPlan } from "../rules/cs-namespacing.mjs";
-import { snapshotUnit } from "../rules/snapshot.mjs";
+import { snapshotUnit, turnWrite } from "../rules/snapshot.mjs";
 import { isGated, gateTurnFor } from "../rules/np-gate.mjs";
 import { clampToMax } from "../domain/health.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
@@ -740,8 +740,12 @@ export function worldIO() {
       const actor = resolve(unitId);
       if (!actor) return;
       // Stamped here rather than by each caller, so no writer can forget it and
-      // leave a turn state that never expires.
-      const stamped = { tick: game.combat?.system?.globalTurn ?? 0, ...patch };
+      // leave a turn state that never expires -- and rebuilt through
+      // `turnWrite`, which blanks the rest of the record when it belongs to an
+      // earlier Turn. Writing only the tick and the patch left every other
+      // stale field looking current (#32).
+      const now = game.combat?.system?.globalTurn ?? 0;
+      const stamped = turnWrite(actor.system?.turnState, now, patch);
       const update = {};
       for (const [key, value] of Object.entries(stamped)) update[`system.turnState.${key}`] = value;
       await actor.update(update);

@@ -34,7 +34,7 @@ Both types have `ORDER` rank 2, executed in the bookkeeping phase, so an item wh
 
 `canTransferItem` checks four gates in order, by intent: does the item allow it, is there any quantity left, is the recipient close enough, and has this unit already passed its allowance this turn (`module/rules/items.mjs:22-48`). Range is Chebyshev distance and defaults to 1 panel; `transfersPerTurn` defaults to 1 (`module/rules/items.mjs:40, 44`). The allowance is tracked on the giver's turn state rather than on the item, because a limit on the giver's action would otherwise travel to the recipient with their remaining budget (`module/engine/items.mjs:7-11`).
 
-`transferItem` produces three descriptors: a negative `itemQuantity` delta on the giver, an `itemGrant` on the receiver, and a log entry (`module/rules/items.mjs:206-212`). The range check is measured to the recipient unit, not to any redirected Master — if a redirect is planned, the receipt point is adjusted **before** the range check, but the throw is still measured from the original target (`module/engine/items.mjs:61-62`).
+`transferItem` produces three descriptors: a negative `itemQuantity` delta on the giver, an `itemGrant` on the receiver, and a log entry (`module/rules/items.mjs`). It is reached by the `giveItem` action, offered when the Unit holds a transferable item with quantity left **and** a non-enemy Unit stands within that item's own `transferRange`. The reach is asked per item rather than once per Unit, because the range belongs to the item. The range check is measured to the recipient unit, not to any redirected Master — if a redirect is planned, the receipt point is adjusted **before** the range check, but the throw is still measured from the original target (`module/engine/items.mjs:61-62`).
 
 ### Consuming an item
 
@@ -100,6 +100,19 @@ batch is applied in ORDER **rank** order, and the list is only a tie-break withi
 invariant that an item is spent before its own effect can kill its bearer rests entirely on
 `itemQuantity` ranking below `applyEffect`, and nothing asserted that until #30 added a test that
 sorts a deliberately reversed batch.
+
+**Re-stamping a stale turn record instead of clearing it.** Turn state is stale-by-reading: a record
+stamped with an earlier tick reads as blank, so nothing has to reset it. Writing is the other half of
+that rule and it was missing — `markTurn` wrote the new tick plus the patched keys and nothing else,
+so **re-stamping the tick made every other field of a stale record current again**. Measured live:
+Semiramis passed an item on one Turn, something unrelated marked her turn state two ticks later, and
+her once-per-Turn allowance was still spent in a Turn where she had passed nothing. `recordUse` had
+always hand-rolled the comparison for `abilitiesUsed` alone, which is why that one field escaped and
+why the general case went unnoticed. Fixed in
+[#32](https://github.com/zarex97/FGT_FVTT_v2/issues/32) by building the write through `turnWrite`,
+which composes on `turnStateAt` so the read and write sides cannot disagree about what stale means.
+**A stale-by-reading record needs a stale-aware writer; a partial write that refreshes the stamp
+resurrects everything it did not touch.**
 
 ## Open questions
 
