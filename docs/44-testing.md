@@ -2,9 +2,11 @@
 
 ## What it is
 
-The system tests at three layers. **Unit tests** exercise pure domain and rules functions in isolation. **Golden tests** pin worked examples from documentation — if the numbers change, either the docs or the code is wrong. **Smoke tests** load a real world in real Foundry and fail if it does not come up.
+The system tests at three layers. **Unit tests** exercise pure domain and rules functions in isolation, and — since `test/helpers/world.mjs` — the engine layer against a modelled world. **Golden tests** pin worked examples from documentation. **Smoke tests** load a real world in real Foundry and fail if it does not come up.
 
-The boundary enforced in chapter 02 — that `domain/` and `rules/` import nothing but each other — creates a crucial property: these two layers are testable without Foundry at all. Tests invoke them directly with hand-crafted inputs and inspect outputs. A defect in those layers fails tests. A defect in the `engine/` or UI layers might not, because no test is touching them; that is what smoke testing is for.
+The boundary enforced in chapter 02 — that `domain/` and `rules/` import nothing but each other — creates a crucial property: these two layers are testable without Foundry at all. Tests invoke them directly with hand-crafted inputs and inspect outputs.
+
+**The engine layer used to be the hole in that.** This chapter said for most of its life that *"the application layers are slow and tied to Foundry, so they get minimal automated testing"*, and the second half was treated as a consequence of the first. `module/engine/io.mjs` — 1429 lines, every unit-state write in the game — was executed by **none** of the suite: the fake the applier injects stands in for io itself, so the seam sits above the code that holds the bugs, and `test/unit/actor-fields.test.mjs` had to reach it by reading the file as *text*. `test/helpers/world.mjs` removes that constraint by modelling the world rather than by moving the seam. What has not changed is the prescription below: engine tests stay **sparse and wiring-focused**. The pyramid was never inverted by this — it stopped having a hole at the top.
 
 ## Where it lives
 
@@ -15,13 +17,14 @@ The boundary enforced in chapter 02 — that `domain/` and `rules/` import nothi
 | `test/unit/*.test.mjs` | 211 unit test files, testing individual rules and domain functions |
 | `test/golden/*.test.mjs` | 2 golden test files (damage, Akhilleus Kosmos authoring), pinning documentation worked examples |
 | `test/fixtures/` | Small fixture files used to seed test data |
+| `test/helpers/world.mjs` | A world faithful enough to run `engine/io.mjs` against — `withWorld({...}, fn)`, restoring globals in a `finally` |
 | `tools/smoke-world.mjs` | Launches a real world via Chrome DevTools Protocol and fails if it does not reach `game.ready` |
 
 ## How it works
 
 ### The test pyramid
 
-The system rests on unit tests at the base (211 test files covering domain and rules), golden tests in the middle (2 files pinning documentation), and smoke tests at the apex (real-world launch validation). This inversion of the typical pyramid reflects a deliberate choice: the pure layers are testable and must be thoroughly tested; the application layers are slow and tied to Foundry, so they get minimal automated testing.
+The system rests on unit tests at the base (211 test files covering domain and rules), golden tests in the middle (2 files pinning documentation), and smoke tests at the apex (real-world launch validation). This shape reflects a deliberate choice: the pure layers are testable and must be thoroughly tested; the application layers are slow, and their tests stay sparse and aimed at **wiring** — does this intent get created where it should, does this writer put the right thing in the document. That they were also *unreachable* was a separate problem, and is fixed.
 
 ### Unit tests on pure layers
 
@@ -54,7 +57,11 @@ const adjust = io.calls.filter(([n]) => n === "adjustHealth");
 expect(adjust[0][2]).toBe(-400);
 ```
 
-This allows the engine's orchestration logic — batching, ordering, authority routing — to be tested without Foundry. The applier's convergence hooks (auto-counters, platform deactivation) are guarded on `game` so tests can skip them (`module/engine/applier.mjs:120-122`).
+This allows the engine's orchestration logic — batching, ordering, authority routing — to be tested without Foundry. The applier's convergence hooks are guarded on `game` so tests can skip them (`module/engine/applier.mjs:120-122`). The fake is **derived from `worldIO()`'s real surface** rather than typed out; it had drifted to 17 of 35 methods, so any test emitting a `setStance` or `recordUse` intent died on `io.setStance is not a function`.
+
+What that fake cannot tell you is what landed in the document, because it stands in for the thing that writes it. `test/helpers/world.mjs` is the other half: `withWorld({actors, tokens, combat, settings}, fn)` installs a modelled `game`/`canvas`/`foundry`, runs the real prepare chain over the real DataModels, and restores every global in a `finally`. **An undeclared write throws** rather than being silently discarded — less faithful than Foundry, and far more useful, since that is the defect `actor-fields.test.mjs` was built to chase and could only chase as text.
+
+It earned itself on its second test. `countTowardsGrail` read `!combat.system?.grailMaterialized` on the line *after* the `await combat.update()` that set it, so the guard was `true && false` on every defeat and `Hooks.callAll("fgtGrailMaterialized")` had **never fired**. Nothing could have caught that without executing io.
 
 Test coverage reports only domain and rules (`vitest.config.mjs:10`), because a line executed in unit tests might still receive nothing from the real world. A defect hidden by test isolation cannot be caught by measuring coverage — this is the trap documented below.
 

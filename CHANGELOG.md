@@ -34,6 +34,33 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### io.mjs is executed by the test suite, and the first thing it found (2026-09-17)
+
+#### Added
+
+- **`test/helpers/world.mjs`** — a world faithful enough to run `module/engine/io.mjs` against.
+  `withWorld({actors, tokens, combat, settings}, fn)` installs a modelled `game`/`canvas`/`foundry`,
+  builds documents from the **real** DataModels, runs the real prepare chain — restore, the type's own
+  `prepareBaseData`, then `contributionsOf` + `applyStatDeltas` + `writeDerived` — and restores every
+  global in a `finally`. **An undeclared write throws**, where Foundry silently discards it: less
+  faithful, and the only version worth having, since that is the defect `actor-fields.test.mjs` exists
+  to chase and could only chase by reading io as text. `SetField` coerces Array→Set, because
+  `io.mjs:535` calls that shape *"the defect that has cost this project more than any other"*.
+  Everything unmodelled throws rather than returning `undefined`. Known divergences are listed in its
+  header.
+
+- **Twenty tests across `io-records` and `io-defeat`**, the first that have ever executed `io.mjs`.
+  The record writers now assert in CI what had to be checked by hand in a browser, one commit at a
+  time, because there was no other way to make the assertion.
+
+#### Fixed
+
+- **`Hooks.callAll("fgtGrailMaterialized")` had never fired.** `countTowardsGrail` read
+  `!combat.system?.grailMaterialized` on the line *after* the `await combat.update()` that set it, so
+  the guard was `next.materialized && false` on every defeat. A document's `system` is current the
+  moment `update()` resolves — measured live rather than assumed. The flag is now read before the
+  write. Found by the harness on its **second test**, which is the whole argument for building it.
+
 ### The write choke point was a quarter of the writes (2026-09-17)
 
 #### Corrected
