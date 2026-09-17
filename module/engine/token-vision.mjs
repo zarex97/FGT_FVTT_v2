@@ -1,11 +1,11 @@
 /**
  * @file Putting a unit's Detect radius onto its token as Foundry vision.
- * @see docs/08-board-and-geometry.md §8.7, docs/04-units.md §4.2
+ * @see docs/05-board-geometry.md, docs/06-units-and-stats.md
  *
- * Layer 3. Ch. 8.7 settled this a long time ago — *"Fog of war is Foundry's,
+ * Layer 3. Ch. 05.7 settled this a long time ago — *"Fog of war is Foundry's,
  * driven by `TokenDocument.sight` … we map it to Foundry-native vision so the
  * canvas does the work"* — and `data/actor/_shared.mjs` says the number in as
- * many words: **"Vision range and Detect are the same number (Ch. 08 §8.7)."**
+ * many words: **"Vision range and Detect are the same number (Ch. 05)."**
  *
  * The number existed. `rules/identity.mjs#detectRangeOf` computed it, the class
  * table behind it was authored and tested, and **nothing ever wrote it to a

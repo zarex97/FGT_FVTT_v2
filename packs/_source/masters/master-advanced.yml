@@ -20,7 +20,7 @@ baseHealth: 250
 mov: 2
 range: { panels: 2, targets: 1 }
 # Rankless until an Essence or the coin says otherwise -- a real state with
-# rules of its own, not a missing value: Ch. 17 prices an all-Rankless table
+# rules of its own, not a missing value: Ch. 33 prices an all-Rankless table
 # differently, and `rules/costs.mjs` treats an unset rank as the CHEAPER column
 # deliberately. `masterSetupPlan` writes the rolled figure over the MAG value.
 baseAttack: { str: 50, mag: 100 }
@@ -31,4 +31,4 @@ zon: 2
 notes: |
   Named `Master` rather than `Master of X`: the setup wizard renames each copy
   after the container it is assigned to, because a Master's public identity is
-  its Servant's container (Ch. 04 §4.2) and the container is not known here.
+  its Servant's container (Ch. 06) and the container is not known here.

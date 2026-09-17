@@ -1,6 +1,6 @@
 /**
  * @file Base Attack is derived from STR and MAG, and the table wins.
- * @see docs/06-stats-and-resources.md §6.4, docs/B-rank-tables.md, Ch. 41 Q50
+ * @see docs/06-units-and-stats.md, docs/B-rank-tables.md, Ch. 41 Q50
  *
  * The author's conversion table, supplied in full:
  *

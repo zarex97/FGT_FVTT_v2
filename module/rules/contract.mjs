@@ -1,6 +1,6 @@
 /**
  * @file Forming a contract with a Servant.
- * @see docs/16-relationships.md §16.2
+ * @see docs/32-relationships.md
  *
  * Layer 2 (rules). Pure — decides whether an attempt is legal, what must be
  * rolled, and what a success produces. The caller rolls.
@@ -78,7 +78,7 @@ export function contractPlan(contractor, servant, board) {
   const allied = !isEnemy(servant, contractor);
   const unbound = servant.contract === "unbound";
 
-  // §16.2's table. The one row that is neither a roll nor an automatic success
+  // Ch. 32's table. The one row that is neither a roll nor an automatic success
   // is an ally reaching for an Unbound Servant, which is forbidden outright.
   if (allied && unbound) {
     return { ok: false, reason: "forbidden", servantId: servant.id, contractorId: contractor.id };
@@ -163,7 +163,7 @@ export function contractOutcome(plan, rolls) {
 }
 
 /**
- * The automatic contract that follows killing a Master (§16.2).
+ * The automatic contract that follows killing a Master (Ch. 32).
  *
  * Three trigger conditions, one outcome. The middle one is the subtle one: a
  * **Servant** killing an enemy Master only transfers the contract if it is
@@ -187,7 +187,7 @@ export function conquestContract({ killer, deadMaster, board }) {
 
   // Freeing and contracting happen in ONE descriptor list. Emitting a
   // `contract: "free"` step first would let a watcher observe a Free Servant
-  // that, by the rules, was never Free -- §16.2 requires both in one
+  // that, by the rules, was never Free -- Ch. 32 requires both in one
   // transaction so no intermediate state exists.
   return {
     ok: true,
@@ -227,7 +227,7 @@ function claimantFor(killer, board) {
 function grants(masterId, servantId, spells) {
   return [
     { kind: "setContract", unitId: servantId, contract: "contracted", masterId },
-    // Namespaced to that Servant (§16.9): "3 Command Spells that can only be
+    // Namespaced to that Servant (Ch. 32): "3 Command Spells that can only be
     // used on that Servant".
     { kind: "grantCommandSpells", masterId, servantId, count: spells },
     { kind: "log", event: "contractFormed", masterId, servantId, spellsGranted: spells },

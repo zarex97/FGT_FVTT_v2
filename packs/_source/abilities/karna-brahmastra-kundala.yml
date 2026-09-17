@@ -1,19 +1,19 @@
-# Karna, docs/13-damage-pipeline.md §13.6 -- this is worked example 2.
-# Targeting shape T10 in docs/09-targeting.md §9.13.
+# Karna, docs/22-damage-pipeline.md -- this is worked example 2.
+# Targeting shape T10 in docs/20-targeting.md
 schema: 1
 id: karna-brahmastra-kundala
 name: "Brahmastra Kundala: O' Brahma, Curse Me"
 isNP: true
 rank: "A+"
 # [Anti-COUNTRY], as the sheet says. It shipped as `antiArmy`, which is
-# Brahmastra's tag -- and §43.8 compares Noble Phantasms by the highest scale
+# Brahmastra's tag -- and Ch. 28 compares Noble Phantasms by the highest scale
 # tag present, so a 7x7 Anti-Country NP was being weighed as an Anti-Army one.
 npTags: [antiCountry]
 kind: noblePhantasm
 slug: brahmastraKundala
 category: karnaNP
 # "Cooldown: 7◈+⅓◈ Turns, AND MANA BURST (FLAMES) ALSO ENTERS COOLDOWN when
-# this NP is used." §7.6's `alsoTriggers`, which `engine/cooldown.mjs` has read
+# this NP is used." Ch. 04's `alsoTriggers`, which `engine/cooldown.mjs` has read
 # since it was written -- the clause was simply never authored here.
 cooldown: "7◈+⅓◈"
 alsoTriggers:
@@ -77,7 +77,7 @@ phases:
       # defaulted -- the family's usual direction is the other way and an
       # omitted value would silently apply 30% to Noble Phantasms.
       #
-      # The "(B)" is the effect's Rank for §10.6's non-stacking comparison, not
+      # The "(B)" is the effect's Rank for Ch. 14's non-stacking comparison, not
       # a magnitude.
       - key: OnEvent
         event: damageDealt

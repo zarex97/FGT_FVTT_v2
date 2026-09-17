@@ -1,6 +1,6 @@
 /**
  * @file The current board, and the faction roster it is read against.
- * @see docs/03-domain-overview.md §3.4
+ * @see docs/02-architecture.md
  *
  * Layer 3. Four call sites were each building a board snapshot from the canvas
  * with their own idea of which settings to include, and **not one of them passed
@@ -111,7 +111,7 @@ export function currentWarRegion() {
  * The player who owns this actor, or `null` for a GM-run one.
  *
  * Resolved here rather than in the projection because it needs the user list,
- * and `rules/` may not touch `game` (§3.6). Charm is what makes it matter:
+ * and `rules/` may not touch `game` (Ch. 02). Charm is what makes it matter:
  * `rules/control.mjs#controllerOf` has read `unit.ownerUserId` since the file
  * was written and **nothing ever projected it**, so every unit answered
  * `undefined` and the whole control map collapsed to the GM.
@@ -227,7 +227,7 @@ function panelOf(doc) {
  *     Noble Phantasm legality check see the same answer the ZON ring draws.
  *   - `annotateAuras`, because an aura is a property of who is standing near
  *     whom. A unit re-projected here would carry only its own auras and none of
- *     the ones it is standing in, which is the defect Ch. 45 A5 repaired.
+ *     the ones it is standing in, which is the defect Ch. 46 A5 repaired.
  *
  * So: re-projecting a unit that the board already has is not a shortcut, it is
  * a wrong answer.
@@ -253,7 +253,7 @@ export function unitFrom(board, actor) {
 /**
  * The Round-gate context every `canUseAbility` call site needs.
  *
- * §7.9's gate is arithmetic in Layer 2 (`rules/np-gate.mjs`) and its numbers are
+ * Ch. 04's gate is arithmetic in Layer 2 (`rules/np-gate.mjs`) and its numbers are
  * world settings, which Layer 2 may not read — so they are fetched here and
  * handed down. Factored into one helper rather than repeated at seven call
  * sites: seven copies of a settings read are seven chances for one of them to
@@ -281,7 +281,7 @@ export function gateContext() {
     // without one: a use out of a match writes a cooldown nothing will ever
     // count down.
     clockRunning: clockRunning(),
-    // The ROUND, for §7.9's Noble Phantasm gate. `canUseAbility` defaults it to
+    // The ROUND, for Ch. 04's Noble Phantasm gate. `canUseAbility` defaults it to
     // 1, and the action bar was the one caller that never passed it -- so every
     // Noble Phantasm in the game was measured against Round 1 for the whole
     // match. Its tooltip read "Ready from Round 6 (5 away)" in Round 6: the
@@ -330,7 +330,7 @@ export function currentBoard(overrides = {}) {
       // while `fgt.region` is a registered setting the GM sets and which
       // `engine/summon.mjs` already reads. So `warRegion` was permanently
       // `null` in every world, and everything keyed on it was inert:
-      // `annotateRegionBonus` (§5.6's Region Parameter grants, a core rule),
+      // `annotateRegionBonus` (Ch. 03's Region Parameter grants, a core rule),
       // `regionScale` (the Hanging Gardens' Construction multiplier) and
       // Asterios's *"if the Region is Greece, it affects an 11x11 panel area
       // instead"*.
@@ -338,7 +338,7 @@ export function currentBoard(overrides = {}) {
       // The match field stays first because a per-match override is the right
       // shape once something writes one; the setting is the default rather than
       // a replacement.
-      // Optional rules the table has switched off (§8.3 clause 4 today).
+      // Optional rules the table has switched off (Ch. 05 clause 4 today).
       rules: {
         masterProtection: setting("masterProtection", true) !== false,
         // Ch. 46 §46.4-AN. Read here rather than in `rules/identity.mjs`, which
@@ -364,7 +364,7 @@ export function currentBoard(overrides = {}) {
         contest: combat?.system?.grailContest ?? {},
       },
       zones: homeBaseZonesOf(scene),
-      // Bounded fields (Ch. 43). Regions again, for the same reasons terrain
+      // Bounded fields (Ch. 28). Regions again, for the same reasons terrain
       // uses them: native membership, native enter/exit, and an area that may
       // be any shape at all.
       fields: boundedFieldsOf(scene),

@@ -1,6 +1,6 @@
 /**
  * @file Granted capabilities — reading the `grantedAbilities` bucket.
- * @see docs/15-abilities.md §15.7
+ * @see docs/17-abilities.md
  *
  * Layer 2 (rules). Pure.
  *
@@ -29,9 +29,9 @@
 export const GRANTS = Object.freeze({
   /** Riding: *"able to Move twice in one turn if it Attacks in between."* */
   doubleMove: "doubleMove",
-  /** Riding: an attack along the movement path (Ch. 03). Terminal for the turn. */
+  /** Riding: an attack along the movement path (Ch. 02). Terminal for the turn. */
   ridingAttack: "ridingAttack",
-  /** Riding: carrying another unit. Needs platforms (Ch. 20), so nothing reads it yet. */
+  /** Riding: carrying another unit. Needs platforms (Ch. 27), so nothing reads it yet. */
   passengerSeat: "passengerSeat",
 
   /**
@@ -62,7 +62,7 @@ export const GRANTS = Object.freeze({
   /**
    * Pale Rider and the Kagome Spirits: *"cannot Evade, Block, or Counter."*
    *
-   * The defender's rung of the ladder (Ch. 27) still happens -- the Process
+   * The defender's rung of the ladder (Ch. 23) still happens -- the Process
    * asks the defender -- and the only answer is nothing. Read by
    * `engine/attack.mjs#offeredReactions`.
    */
@@ -97,7 +97,7 @@ export function hasGranted(unit, id) {
 /**
  * A granted ability, as a descriptor.
  *
- * §15.7 makes the point that Scáthach's copies, Semiramis's *Double Summon*,
+ * Ch. 17 makes the point that Scáthach's copies, Semiramis's *Double Summon*,
  * a Master Essence's rule elements and `[Semiramis' Poison]` are all **one**
  * operation: temporarily add an ability to a unit, from an external source,
  * with its own lifetime. One shape, so a grant from any of the four expires,

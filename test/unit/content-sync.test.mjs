@@ -1,6 +1,6 @@
 /**
  * @file Reconciling a world document against its pack document.
- * @see module/migration/content-sync.mjs, docs/39-migration-and-versioning.md
+ * @see module/migration/content-sync.mjs, docs/41-migration.md
  *
  * The compendium is the whole source of truth (spec R1) -- but a world copy
  * holds what the match has written to it, and a sync that overwrites that is a

@@ -1,6 +1,6 @@
 /**
  * @file Transfer, effect visibility, Confuse's selector, and Undo.
- * @see docs/11-effect-engine.md §11.8, §11.10, docs/18-action-economy.md §18.5, §18.7
+ * @see docs/15-effect-application.md, Ch. 15, docs/19-action-economy.md, Ch. 19
  */
 
 import { describe, it, expect } from "vitest";
@@ -12,7 +12,7 @@ import {
 const unit = (over = {}) => ({ id: "u", pausedTicks: 0, effectInstances: [], ...over });
 const curse = (over = {}) => ({ id: "e1", defId: "curse", polarity: "debuff", stage: 3, expiry: 12, ...over });
 
-/* ── §11.8 Transfer ───────────────────────────────────────────────────────── */
+/* ── Ch. 15 Transfer ───────────────────────────────────────────────────────── */
 
 describe("transferEffect", () => {
   it("removes it from the source and applies it to the target", () => {
@@ -74,7 +74,7 @@ describe("transferableFrom", () => {
   });
 });
 
-/* ── §11.10 Visibility ────────────────────────────────────────────────────── */
+/* ── Ch. 15 Visibility ────────────────────────────────────────────────────── */
 
 describe("visibilityOf", () => {
   const bearer = unit({ id: "b", ownerId: "playerB" });
@@ -118,7 +118,7 @@ describe("canSeeEffect", () => {
   });
 });
 
-/* ── §18.5 Confuse ────────────────────────────────────────────────────────── */
+/* ── Ch. 19 Confuse ────────────────────────────────────────────────────────── */
 
 describe("confusedAction", () => {
   const targets = [{ id: "t1" }, { id: "t2" }, { id: "t3" }];
@@ -161,7 +161,7 @@ describe("confusedAction", () => {
   });
 });
 
-/* ── §18.7 Undo ───────────────────────────────────────────────────────────── */
+/* ── Ch. 19 Undo ───────────────────────────────────────────────────────────── */
 
 describe("canUndo", () => {
   const ctx = { turnEnded: false, actingFactionId: "a" };

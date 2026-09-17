@@ -1,6 +1,6 @@
 /**
  * @file The action bar's view-model.
- * @see module/apps/hud/present.mjs, docs/29-user-interface.md §29.5
+ * @see module/apps/hud/present.mjs, docs/34-action-bar.md
  *
  * Pure, so every slot state the design names is testable without Foundry —
  * the same split `apps/actor-sheet/present.mjs` already uses.
@@ -129,7 +129,7 @@ describe("rowsFor", () => {
 });
 
 describe("slotFor in counter mode", () => {
-  // §12.8's rung is the one moment a unit may attack outside its own turn, so
+  // Ch. 21's rung is the one moment a unit may attack outside its own turn, so
   // the bar is armed FOR the player rather than waiting to be found.
   const np = { id: "np1", name: "Nine Lives", img: "np.webp", isNP: true };
   const ok = { ok: true };

@@ -15,7 +15,7 @@ stacking: magnitudeStacks
 baseChance: 100
 rules:
   # The predicate names somebody who does not exist when the contribution is
-  # collected, so it is deferred to the damage pipeline (Ch. 24 §24.4).
+  # collected, so it is deferred to the damage pipeline (Ch. 10).
   - key: DamageModifier
     modifierKey: atkUp
     direction: dealt

@@ -1,6 +1,6 @@
 /**
  * @file Timeouts and absence — what happens when nobody answers.
- * @see docs/27-reaction-protocol.md §27.5
+ * @see docs/23-reactions.md
  */
 
 import { describe, it, expect } from "vitest";
@@ -35,7 +35,7 @@ describe("policyFor", () => {
   });
 
   it("SPENDS NOTHING on every documented situation", () => {
-    // §27.5's decision, as a property rather than six separate assertions: a
+    // Ch. 23's decision, as a property rather than six separate assertions: a
     // player who was disconnected must never come back to find their Luck and
     // Command Spells drained by auto-decisions.
     for (const situation of AWAIT_SITUATIONS) {

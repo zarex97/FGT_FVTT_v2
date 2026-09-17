@@ -1,6 +1,6 @@
 /**
  * @file A per-unit ring buffer of past states, and the rewind that reads it.
- * @see docs/43-bounded-fields.md §43.11
+ * @see docs/28-bounded-fields.md
  *
  * Layer 3. The shape and the diffing are `rules/history.mjs` and pure; this
  * owns the storage and the writes.
@@ -20,7 +20,7 @@ const FLAG = "stateHistory";
 /**
  * How many turns of history to keep.
  *
- * §43.11: *"retained for `max(6◈) + 2` turns."* Six because that is how far
+ * Ch. 28: *"retained for `max(6◈) + 2` turns."* Six because that is how far
  * back effect 2 reaches, and the `+ 2` is the chapter's own margin — a rewind
  * resolved at the very end of a turn is asking about a tick that has just
  * rolled over, and a buffer exactly six Rounds deep would be one entry short of
@@ -62,7 +62,7 @@ export const REWIND_EXCLUDED_RESOURCES = Object.freeze(["namelessForestTokens"])
  */
 export function recordTurn(board, globalTurn, history = {}, turnsPerRound = 3) {
   // THE GATE. A match with nobody who reads history writes nothing at all --
-  // no snapshots, no diffing, no storage. §43.11: *"a match without Nursery
+  // no snapshots, no diffing, no storage. Ch. 28: *"a match without Nursery
   // Rhyme pays nothing."*
   if (!historyWanted(board)) return null;
 
@@ -131,7 +131,7 @@ export function rewindIntents(board, history, unitIds, toTurn) {
     const resources = Object.fromEntries(Object.entries(state.resources ?? {})
       .filter(([key]) => !REWIND_EXCLUDED_RESOURCES.includes(key)));
 
-    // §43.11's RISK: *"What must not happen is the rewind restoring an effect
+    // Ch. 28's RISK: *"What must not happen is the rewind restoring an effect
     // whose source has since been removed, producing an orphaned instance.
     // Effect snapshots therefore record the source unit id and the applier
     // drops instances whose source no longer exists, logging each drop."*

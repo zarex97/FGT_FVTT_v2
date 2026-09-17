@@ -1,6 +1,6 @@
 /**
  * @file Legality rendering — why a placement is refused.
- * @see docs/28-targeting-implementation.md §28.8
+ * @see docs/20-targeting.md
  */
 
 import { describe, it, expect } from "vitest";
@@ -102,7 +102,7 @@ describe("isBlocked", () => {
   });
 
   it("blocks on an overridable refusal the player cannot actually afford", () => {
-    // §17.6: an unusable option should never appear. Offering the spend button
+    // Ch. 33: an unusable option should never appear. Offering the spend button
     // for a command the Master cannot pay for is that failure exactly.
     expect(isBlocked(presentVerdict([{ reason: "notInZon" }]), [])).toBe(true);
   });

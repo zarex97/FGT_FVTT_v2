@@ -1,5 +1,5 @@
 # Karna, char_orig_sheets/Copia de Karna.md
-# Targeting shape T5 in docs/09-targeting.md §9.13.
+# Targeting shape T5 in docs/20-targeting.md
 schema: 1
 id: karna-discernment-of-the-poor
 name: "Discernment of the Poor"
@@ -25,6 +25,6 @@ phases:
     rules:
       # "⅓◈ Turns" -- a THIRD of a Round, i.e. one Turn in a three-Turn Round.
       # Written as the fraction the sheet prints rather than as "1 turn", so it
-      # scales with the world's `turnsPerRound` setting the way §7.2 requires.
+      # scales with the world's `turnsPerRound` setting the way Ch. 04 requires.
       - { effect: { id: npSeal }, duration: "⅓◈" }
       - { effect: { id: debuffResDwn, magnitude: 50 }, duration: "⅓◈" }

@@ -1,6 +1,6 @@
 /**
  * @file Which Base Attack a Normal Attack draws on, at this distance.
- * @see docs/12-combat-process.md, docs/13-damage-pipeline.md §13.2
+ * @see docs/21-combat-process.md, docs/22-damage-pipeline.md
  *
  * Layer 2 (rules). Pure.
  *

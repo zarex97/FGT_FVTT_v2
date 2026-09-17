@@ -1,6 +1,6 @@
 /**
  * @file The game log — the structured record, and GM overrides within it.
- * @see docs/30-chat-and-audit.md §30.8, §30.9, §30.10
+ * @see docs/37-chat-and-log.md, Ch. 37, Ch. 37
  *
  * Layer 2 (rules). Pure: shapes entries, filters them, decides what to flush,
  * and builds the export payload. The engine does the writing.
@@ -20,7 +20,7 @@
  */
 
 /**
- * Every kind of entry, from §30.8.
+ * Every kind of entry, from Ch. 37.
  *
  * Closed, and validated on construction. A typo'd kind is worse than a missing
  * entry: it is *in* the log, and no filter in the viewer will ever match it, so
@@ -29,7 +29,7 @@
 export const LOG_KINDS = Object.freeze([
   "attack", "ability", "effect", "movement", "contract",
   "commandSpell", "defeat", "scheduler", "grail", "gmOverride",
-  // Building the war itself (Ch. 19 §19.7): the scene, the home bases, each
+  // Building the war itself (Ch. 29): the scene, the home bases, each
   // container filled. Its own kind rather than `scheduler`, because these
   // entries answer a different question -- not "what happened this Turn" but
   // "what was this war made of", which is the first thing anyone reads when a
@@ -39,7 +39,7 @@ export const LOG_KINDS = Object.freeze([
 
 const KINDS = new Set(LOG_KINDS);
 
-/** §30.8: the last 200 live on the Combat; older ones flush in batches of 100. */
+/** Ch. 37: the last 200 live on the Combat; older ones flush in batches of 100. */
 export const LOG_CAP = 200;
 export const FLUSH_BATCH = 100;
 
@@ -91,7 +91,7 @@ export function appendEntry(log, fields) {
 /**
  * Record a GM override of an earlier entry.
  *
- * The reason is **required**, and this throws without one. §30.10 says the
+ * The reason is **required**, and this throws without one. Ch. 37 says the
  * field is required, and the argument is practical rather than procedural: an
  * unexplained override is indistinguishable from a bug in the record, so a log
  * that permits one is a log nobody can trust the rest of.
@@ -112,7 +112,7 @@ export function overrideEntry(log, seq, { original, changed, reason, byUserId, r
   const target = existing.find((e) => e.seq === seq);
   if (!target) throw new RangeError(`FGT | No entry with seq ${seq} to override.`);
   if (!reason || String(reason).trim() === "") {
-    throw new Error("FGT | A GM override must carry a reason (§30.10).");
+    throw new Error("FGT | A GM override must carry a reason (Ch. 37).");
   }
 
   const record = entry({
@@ -145,7 +145,7 @@ export function isOverride(e) {
  *
  * A **partial batch never flushes**. Flushing the moment the cap is passed
  * would make every subsequent write a journal write, which is the cost this
- * bound exists to avoid (Ch. 22 §22.8's RISK).
+ * bound exists to avoid (Ch. 07's RISK).
  *
  * @param {object[]} log
  * @param {object} [options]
@@ -192,7 +192,7 @@ export function filterLog(log, { round, globalTurn, kind, actorId, search } = {}
 }
 
 /**
- * Aggregate statistics, for the balance analysis §30.9 describes.
+ * Aggregate statistics, for the balance analysis Ch. 37 describes.
  *
  * @param {object[]} log
  * @returns {object}
@@ -215,7 +215,7 @@ export function summarizeLog(log) {
 }
 
 /**
- * The self-contained export (§30.9).
+ * The self-contained export (Ch. 37).
  *
  * Self-contained is the requirement: a maintainer replays this **without the
  * world**, so the ruleset settings and the roster's setup rolls travel with the

@@ -1,7 +1,7 @@
 # Medea, char_orig_sheets/Copia de Medea.md
 #
 # The contract theft is the point, and it is the first content to use the
-# contract intents (§16.2): cutting a Servant's Contract, stripping the
+# contract intents (Ch. 32): cutting a Servant's Contract, stripping the
 # Master's Command Spells, and granting three namespaced ones to Medea.
 schema: 1
 id: medea-rule-breaker
@@ -11,7 +11,7 @@ isNP: true
 # `npTags`, not `npType`. Authored as the latter it matched no schema key, was
 # dropped on load, and read by nothing anywhere in the system -- so the one
 # Noble Phantasm in the corpus written this way had NO SCALE AT ALL. It matters
-# now: Ch. 43 §43.8's vulnerabilities and Doomsday Come's `piercedBy` both
+# now: Ch. 28's vulnerabilities and Doomsday Come's `piercedBy` both
 # compare scale through `meetsTagThreshold(npTags, ...)`, and an NP with an
 # empty tag list clears no threshold and triggers no vulnerability.
 npTags: [antiUnit]

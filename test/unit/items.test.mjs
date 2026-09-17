@@ -1,6 +1,6 @@
 /**
- * @file Items, and the remaining §15.4 requirement kinds.
- * @see docs/15-abilities.md §15.4, §15.8
+ * @file Items, and the remaining Ch. 17 requirement kinds.
+ * @see docs/17-abilities.md, Ch. 17
  */
 
 import { describe, it, expect } from "vitest";
@@ -20,7 +20,7 @@ const poison = (over = {}) => ({
   ...over,
 });
 
-/* ── §15.8 Items ──────────────────────────────────────────────────────────── */
+/* ── Ch. 17 Items ──────────────────────────────────────────────────────────── */
 
 describe("canTransferItem", () => {
   const from = unit({ id: "a", panel: at(0, 0) });
@@ -128,7 +128,7 @@ describe("toIntents resolves a consumeEffect's applyEffect descriptor (engine/it
   });
 });
 
-/* ── §15.4 requirement kinds ──────────────────────────────────────────────── */
+/* ── Ch. 17 requirement kinds ──────────────────────────────────────────────── */
 
 describe("meetsRequirement", () => {
   const ctx = (over = {}) => ({ unit: unit(), round: 5, ...over });
@@ -285,7 +285,7 @@ describe("meetsRequirement", () => {
     expect(meetsRequirement({ kind: "somethingNew" }, ctx())).toBe(false);
   });
 
-  it("implements every kind §15.4 lists", () => {
+  it("implements every kind Ch. 17 lists", () => {
     // The same guard that caught two unimplemented Command Spell requirements:
     // an unrecognised kind refuses, so the ability compiles, loads, and never
     // works.
@@ -293,7 +293,7 @@ describe("meetsRequirement", () => {
       "inZon", "roundAtLeast", "inZone", "notInZone", "hasSkill", "resourceAtLeast",
       "healthBelow", "modeActive", "counterpartAdjacent", "masterHealthAbove",
       "targetHasEffect", "predicate",
-      // Beyond §15.4's own list, added by content that needed them.
+      // Beyond Ch. 17's own list, added by content that needed them.
       // `notHasEffect` had been AUTHORED on Medea since she was written.
       "notHasEffect", "abilityOffCooldown", "modeInactive",
       // EMIYA's Eye of the Mind (True) exists at two Ranks and exactly one is
@@ -522,7 +522,7 @@ describe("healthRestoredSince", () => {
 });
 
 describe("resourceAtLeast", () => {
-  it("reads a §6.10 pool, which is the mechanism it exists for", () => {
+  it("reads a Ch. 06 pool, which is the mechanism it exists for", () => {
     // It looked only at the top level, so a gate on a real Resource pool always
     // read `undefined` and refused. EMIYA's Unlimited Blade Works is the first
     // content to gate on one, and it could not be used however much Aria he had.

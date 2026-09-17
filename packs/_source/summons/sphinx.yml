@@ -26,7 +26,7 @@ mov: 5
 range: { panels: 1, targets: 1 }
 baseAttack: { str: 125, mag: 0 }
 normalAttack: { mode: fixed, component: str }
-# An explicit override (Ch. 08 §8.7).
+# An explicit override (Ch. 05).
 detect: 2
 # "The Sphinxes do not count towards the number of Units that Move/Attack in a
 # Turn. The same Sphinx can only Move/Attack once per Turn." Two clauses, and

@@ -9,7 +9,7 @@ name: "Charisma"
 rank: B
 cooldown: "4◈"
 timing: { window: ownTurn }
-# It buffs; it deals no damage, so it is not an Attack Skill (§15.1).
+# It buffs; it deals no damage, so it is not an Attack Skill (Ch. 17).
 countsAsAttack: false
 description: |
   Effects are negated and cannot be used while @ability[class-mad-enhancement]{Mad Enhancement} is active.

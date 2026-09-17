@@ -1,6 +1,6 @@
 /**
  * @file A Unit at zero Health stays at zero.
- * @see module/data/actor/_shared.mjs, docs/06-stats-and-resources.md §6.1
+ * @see module/data/actor/_shared.mjs, docs/06-units-and-stats.md
  *
  * Each actor type's `prepareBaseData` backfills a Health pool that content
  * never filled in — a Servant dragged straight onto the board gets the END

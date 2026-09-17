@@ -3,7 +3,7 @@ import { unitWeight } from "./linked-group.mjs";
 
 /**
  * @file The turn budget: four pools, per-unit limits, prevention and compulsion.
- * @see docs/18-action-economy.md
+ * @see docs/19-action-economy.md
  *
  * Layer 2 (rules). Pure. Every function takes a budget and a unit snapshot and
  * returns a verdict or a new budget; nothing here reads a document or writes
@@ -108,7 +108,7 @@ export const ACTION_KINDS = Object.freeze([
 export function emptyBudget(maxima = {}) {
   const limits = { ...DEFAULT_MAXIMA, ...maxima };
   return {
-    // Stored in HALVES, as integers. Ch. 34 §34.5 names floating-point
+    // Stored in HALVES, as integers. Ch. 45 names floating-point
     // accumulation as the risk of a 0.5-weight unit; halves remove it rather
     // than manage it, and `used` below is derived for display only.
     //
@@ -227,8 +227,8 @@ export function canConsume(budget, unit, action) {
   const isAttack = ["attack", "np", "spell", "ridingAttack", "mark"].includes(action);
 
   // "During Semiramis' Turn, the HGoB can Move/Attack once per Turn ... does
-  // not count towards number of Units who Move or Act in a Turn" (§20.10),
-  // and Bašmu's "can only Move/Attack once per Turn" (§20.10/summons) --
+  // not count towards number of Units who Move or Act in a Turn" (Ch. 27),
+  // and Bašmu's "can only Move/Attack once per Turn" (Ch. 27/summons) --
   // exempt from every pool below, but not from a PER-UNIT cap, which is a
   // separate rule (see the module docstring's rule 2 vs. rule 1). A platform
   // is not a combatant taking a slot; it is equipment its owner operates, so

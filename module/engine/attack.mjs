@@ -1,6 +1,6 @@
 /**
  * @file The attack flow — declaration through to applied damage.
- * @see docs/12-combat-process.md, docs/27-reaction-protocol.md
+ * @see docs/21-combat-process.md, docs/23-reactions.md
  *
  * Layer 3. This is the orchestrator: it drives the Combat Process state
  * machine, asks humans for their rungs, runs the pure pipeline, and applies the
@@ -8,7 +8,7 @@
  *
  * The process state is stored on a **chat message flag** rather than in memory,
  * because the ladder spans up to five prompts across two clients and has to
- * survive a reconnect (Ch. 27). Every rung re-reads it, advances it, and writes
+ * survive a reconnect (Ch. 23). Every rung re-reads it, advances it, and writes
  * it back.
  */
 
@@ -145,7 +145,7 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   }
 
   // Costs are **validated** at declaration and **paid** at confirmation
-  // (§15.4): cancelling during targeting must cost nothing, and no rule
+  // (Ch. 17): cancelling during targeting must cost nothing, and no rule
   // requires otherwise. So this refuses early, and the payment is below.
   const master = self.masterId ? unitFrom(board, game.actors.get(self.masterId)) : null;
   const usage = canUseAbility({
@@ -153,10 +153,10 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
     unit: self,
     master,
     round: combat?.round ?? 1,
-    // §7.9's Round gate: its numbers are world settings, which Layer 2 may not
+    // Ch. 04's Round gate: its numbers are world settings, which Layer 2 may not
     // read, so they travel with the call.
     ...gateContext(),
-    // The rest of §15.4's requirement kinds need more than the unit: a
+    // The rest of Ch. 17's requirement kinds need more than the unit: a
     // counterpart check reads the board, and a target-effect check reads the
     // target. Passing neither made those two kinds silently unsatisfiable.
     board,
@@ -186,7 +186,7 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   const overridden = (placement?.overrides ?? []).includes(usage.reason);
   if (!usage.ok && !overridden) throw new Error(`FGT | Cannot use this ability: ${usageRefusal(usage)}`);
 
-  // §16.7: at 25 Health or less a Master cannot order more than one of its
+  // Ch. 32: at 25 Health or less a Master cannot order more than one of its
   // Servants to Act. Enforced here, where it composes with the ordinary budget.
   if (master && combat?.started) {
     const siblings = board.units.filter((u) => u.masterId === master.id && u.id !== self.id);
@@ -197,7 +197,7 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   }
 
   // "During the first Round, neither Player/Faction is allowed to Attack"
-  // (§19.7 step 12). A hard gate at declaration, so the refusal names the rule
+  // (Ch. 29 step 12). A hard gate at declaration, so the refusal names the rule
   // instead of letting a player discover it as an unexplained targeting error.
   if (combat?.started
     && !attacksPermitted(combat.round ?? 1, game.settings.get("fgt", "noAttackRound"))
@@ -263,7 +263,7 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   }
 
   // The ability's OWN price -- its shield refresh, its use record, its costs
-  // and its cooldown. Shared with the §12.8 Counter path, which pays all of it
+  // and its cooldown. Shared with the Ch. 21 Counter path, which pays all of it
   // and none of the budget above.
   await payAbilityPrice({ ability, attackerId, attacker, self, master, usage, board, resume });
 
@@ -292,7 +292,7 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   }
 
   // Civilians never enter a Combat Process: "the Civilian is instantly killed"
-  // -- no damage calculation, no reaction ladder, no Overpower (Ch. 04 §4.6).
+  // -- no damage calculation, no reaction ladder, no Overpower (Ch. 06).
   // Resolved here, before any Process exists, because a Process that always
   // ends the same way is a ladder with one rung.
   const civilians = targets.units
@@ -397,7 +397,7 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // "Can be used when a Noble Phantasm is used against Mannanán." The one
   // ability in the corpus that CANCELS another Unit's resolution rather than
   // answering it, and the reason the interrupt machinery had to be generalised
-  // past Command Spells (§17.1).
+  // past Command Spells (Ch. 33).
   //
   // Offered at the same moment a pre-emption is, and for the same reason: after
   // the attacker has paid in full, before any Combat Process exists. The
@@ -411,7 +411,7 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   }
 
   // The rest of a declaration -- the fan-out, the cards, the events -- is
-  // shared with the §12.8 Counter path, which needs every step of it.
+  // shared with the Ch. 21 Counter path, which needs every step of it.
   const primary = await declareProcesses({
     attackerId, attacker, ability, attackSpec, targetIds, targets, placement, board, perProcess,
   });
@@ -484,7 +484,7 @@ async function declareAftermath({
 /**
  * Charge an ability's own price: its use record, its costs and its cooldown.
  *
- * Separated from the BUDGET immediately above its old home, because a §12.8
+ * Separated from the BUDGET immediately above its old home, because a Ch. 21
  * Counter pays one and not the other. A Counter costs no turn — it is a
  * reaction — but the Noble Phantasm it is declared with costs exactly what it
  * would on the counterer's own turn. Without this split a Servant could
@@ -521,7 +521,7 @@ async function payAbilityPrice({ ability, attackerId, attacker, self, master, us
 
   // Confirmation: targeting is settled and legal, so the costs are now paid.
   //
-  // Plural, and resolved against each other first (§15.4). A cost may declare
+  // Plural, and resolved against each other first (Ch. 17). A cost may declare
   // that it `supersedes` another -- Karna's NP cost overwrites the 20 Health his
   // Master loses when he Acts, and the Hanging Gardens upkeep overwrites the NP
   // cost the other way -- and charging both would bill more than the rules say.
@@ -589,7 +589,7 @@ async function payAbilityPrice({ ability, attackerId, attacker, self, master, us
 /**
  * The `attack` descriptor a Combat Process carries.
  *
- * Extracted alongside `declareProcesses` and for the same reason: a §12.8
+ * Extracted alongside `declareProcesses` and for the same reason: a Ch. 21
  * Counter declares a real attack, so it needs a real spec, and building a
  * second one beside this would be the copy nobody updates. Every field here
  * exists because some rule reaches for it and cannot reach the ability
@@ -620,7 +620,7 @@ async function payAbilityPrice({ ability, attackerId, attacker, self, master, us
 function rideFacts(placement) {
   const remainingMov = placement.remainingMov ?? 0;
   // *"X = (the amount of remaining MOV Achilles has divided by 2)"*, rounded
-  // down by Ch. 02's blanket rule.
+  // down by CONTEXT.md's blanket rule.
   const x = Math.floor(remainingMov / 2);
   return {
     panels: placement.ridePanels,
@@ -805,7 +805,7 @@ function buildAttackSpec({ attacker, ability, abilityId, options, placement = nu
       // The Noble Phantasm's own RANK, beside its tags. Achilles's barrier
       // answers *"an AoE Noble Phantasm of Rank A and above"* -- a threshold on
       // the rank rather than on the scale tag, which is a different axis
-      // (Ch. 43 §43.8) and the one his sheet does not use.
+      // (Ch. 28) and the one his sheet does not use.
       rank: ability?.system?.rank ?? null,
   };
 }
@@ -834,7 +834,7 @@ function buildAttackSpec({ attacker, ability, abilityId, options, placement = nu
  * @param {object} args.targets the resolved target set
  * @param {object|null} args.placement
  * @param {object} args.board
- * @param {boolean} [args.isCounter] §12.8: this declaration answers an attack
+ * @param {boolean} [args.isCounter] Ch. 21: this declaration answers an attack
  * @param {string|null} [args.requiredTargetId] the unit the Counter was aimed at
  * @param {number} [args.counterDepth]
  * @returns {Promise<{groupId: string, processes: Array<{messageId: string, state: object}>, messageId: string, state: object}>}
@@ -844,7 +844,7 @@ async function declareProcesses({
   isCounter = false, requiredTargetId = null, counterDepth = 0, groupId = null,
   perProcess = null,
 }) {
-  // §12.8's flag, folded into the ATTACK rather than only onto the Process
+  // Ch. 21's flag, folded into the ATTACK rather than only onto the Process
   // state. `rules/options.mjs` emits `attack:isCounter` from the attack spec,
   // which is what travels into the damage context, the card and every
   // predicate -- and Avenger's counter bonus is the first clause to ask.
@@ -871,13 +871,13 @@ async function declareProcesses({
       // the process count would have flipped `attack:isAoE` on for them and
       // suppressed the defender's facing change into the bargain.
       isAoE: new Set(targetIds).size > 1,
-      // §12.1: a Combat Phase is the declaration PLUS its counters, and
+      // Ch. 21: a Combat Phase is the declaration PLUS its counters, and
       // `fireCombatPhaseEnd` counts unfinished siblings by group. A Counter
       // therefore inherits the parent's group rather than minting its own, or
       // the phase would end while the counter was still resolving. `null` on an
       // ordinary declaration, which mints one.
       groupId,
-      // §12.8. Null on an ordinary declaration; set on every process of a
+      // Ch. 21. Null on an ordinary declaration; set on every process of a
       // Counter's fan-out, so a bystander it caught cannot counter it in turn
       // unless `fgt.counterChain` says so.
       isCounter, requiredTargetId, counterDepth,
@@ -912,7 +912,7 @@ async function declareProcesses({
   // be standing when the crit coin is flipped -- and because the window is "a
   // Combat Phase", not "a Combat Phase you declared": she crits when she
   // counters too. `offerOptionalCosts` is idempotent per `groupId`, so the
-  // §12.8 Counter that shares this group does not ask again.
+  // Ch. 21 Counter that shares this group does not ask again.
   {
     const { offerOptionalCosts } = await import("./optional-costs.mjs");
     await offerOptionalCosts({
@@ -928,7 +928,7 @@ async function declareProcesses({
     // What this defender could answer with, beyond Block and Evade. Recorded on
     // the state because `pendingPrompt` is pure and cannot read documents, and
     // recorded ONCE at creation because the offer is decided by the moment the
-    // attack is declared (§15.3).
+    // attack is declared (Ch. 17).
     const withReactions = state.defenderId
       ? {
         ...state,
@@ -970,12 +970,12 @@ async function declareProcesses({
         ])],
       }
       : state;
-    // A weak point the attacker may aim at (Ch. 44 §44.2). Offered here, at
+    // A weak point the attacker may aim at (Ch. 45). Offered here, at
     // declaration, because the sheet says the attacker states it "during its
     // Attack" -- and because what it forbids (a Block) has to be settled before
     // the defender is shown their rung.
     const aimed = await offerWeakPoint(withReactions, { board });
-    // Step 1.5 -- the MISS CHECK (Ch. 12 §12.2). Rolled only when something can
+    // Step 1.5 -- the MISS CHECK (Ch. 21). Rolled only when something can
     // actually cause a miss, so an ordinary attack neither rolls a die nor
     // writes a log line it would then have to explain.
     //
@@ -1000,7 +1000,7 @@ async function declareProcesses({
 
     // A defender with no Luck, no Command Spells and no automatic evasion has
     // exactly one possible outcome at every rung past step 2, so the whole
-    // ladder collapses into a single prompt (Ch. 12 §12.3). Asked per defender,
+    // ladder collapses into a single prompt (Ch. 21). Asked per defender,
     // because one of four may collapse while the others do not.
     const defenderDoc = game.actors.get(advanced.defenderId);
     const collapse = defenderDoc ? process.laddersCollapse(unitSnapshot(defenderDoc)) : true;
@@ -1188,7 +1188,7 @@ export async function advanceAttack({ messageId, event, abilityId = null, placem
     }
   }
 
-  // §16.4 rule 4's price: *"in this situation, Servants cannot Evade the enemy
+  // Ch. 32 rule 4's price: *"in this situation, Servants cannot Evade the enemy
   // Unit's AoE NP if their Master is within a 2 panel range of them."* A
   // Servant that has just failed to shove its Master takes the blast standing.
   //
@@ -1228,7 +1228,7 @@ export async function advanceAttack({ messageId, event, abilityId = null, placem
     const outcome = await rollEvade(state);
     state = process.advance(state, outcome.success ? "success" : "fail", outcome);
     if (outcome.success) await fireEvadeSucceeded(state);
-    // §16.4 rule 4. A Master who fails to Evade an AoE Noble Phantasm gets one
+    // Ch. 32 rule 4. A Master who fails to Evade an AoE Noble Phantasm gets one
     // more chance: its Servants throw themselves at it.
     else await resolveCover(state, message);
   } else if (state.state.startsWith("s2") && event === "contest") {
@@ -1257,7 +1257,7 @@ export async function advanceAttack({ messageId, event, abilityId = null, placem
     const interrupted = await awaitInterrupt(message, state);
     if (interrupted) {
       // Somebody spent. Re-read: the interrupt may have moved the Process to a
-      // different rung entirely (§17.4, "RESUME, possibly at a different state").
+      // different rung entirely (Ch. 33, "RESUME, possibly at a different state").
       const reread = process.deserialize(message.getFlag("fgt", "process"));
       // Guard against re-reading BACKWARDS. The flag is only written at the end
       // of this function, so a spurious interrupt would otherwise restore the
@@ -1300,7 +1300,7 @@ export async function advanceAttack({ messageId, event, abilityId = null, placem
  * fully-absorbed Block still provokes. That is deliberate on the sheet: the
  * whole point of the `Decoy` pairing is that attacking her at all is a mistake.
  *
- * A Process that is itself a counter does not provoke another one (§12.8).
+ * A Process that is itself a counter does not provoke another one (Ch. 21).
  *
  * @param {object} state
  * @returns {Promise<void>}
@@ -1354,7 +1354,7 @@ export async function flushAutoCounters(groupId = null) {
       const options = rollOptionsFor({ attacker: self });
       const attackSpec = buildAttackSpec({ attacker: bearer, ability, abilityId: ability.id, options });
 
-      // `isCounter`, so §12.8's *"Counters cannot be Countered again"* closes
+      // `isCounter`, so Ch. 21's *"Counters cannot be Countered again"* closes
       // the chain -- and so the counter does not spend a Turn, which it never
       // had: this is a reaction, and `declareProcesses` sits below the budget.
       const out = await declareProcesses({
@@ -1369,7 +1369,7 @@ export async function flushAutoCounters(groupId = null) {
         isCounter: true,
         requiredTargetId: provoker.id,
         counterDepth: 1,
-        // The PARENT's group, when there is one. §12.1: a Combat Phase is the
+        // The PARENT's group, when there is one. Ch. 21: a Combat Phase is the
         // declaration plus its Counters, and `runCounter` inherits it for
         // exactly this reason -- `fireCombatPhaseEnd` counts unfinished
         // siblings by group, and a counter with a group of its own would end
@@ -1532,7 +1532,7 @@ async function fireCombatProcessEnd(state) {
 }
 
 /**
- * Cover — a Servant taking the blast for its Master (§16.4 rule 4).
+ * Cover — a Servant taking the blast for its Master (Ch. 32 rule 4).
  *
  * > *"When a Master that has its Servant within a 2 panel Range of itself gets
  * > caught in an AoE Noble Phantasm and fails to Evade, the Servant performs an
@@ -1555,7 +1555,7 @@ async function fireCombatProcessEnd(state) {
  */
 async function resolveCover(state, message) {
   // AoE Noble Phantasms only. The sheet offers the same process for a non-NP
-  // AoE and makes it *optional* there; that prompt is not built, and Ch. 16
+  // AoE and makes it *optional* there; that prompt is not built, and Ch. 32
   // records it.
   if (state.attack?.kind !== "np" || !state.isAoE) return;
   // Once per group, whatever re-enters. Cover writes to chat messages while
@@ -1587,7 +1587,7 @@ async function resolveCover(state, message) {
   const rolls = [];
   for (const servant of servants) {
     const roll = await new Roll("1d20").evaluate();
-    // An AGILITY Check, not an Evade. The same table machinery (§16.4 names it
+    // An AGILITY Check, not an Evade. The same table machinery (Ch. 32 names it
     // *"Agility Check/Agility Check−"*, and the dash is the unfavourable
     // table), but its own name in the plan vocabulary -- resolving it as an
     // Evade would let an Evade-specific bonus help a Servant shove, and
@@ -2423,7 +2423,7 @@ async function runAutomaticStep(state, message) {
   // because Luck is finite and a player may rationally refuse.
   const prompt = process.pendingPrompt(state);
   if (prompt?.kind === "luckCheck") {
-    // Beginner and Intermediate remove the Luck Check entirely (Ch. 19).
+    // Beginner and Intermediate remove the Luck Check entirely (Ch. 29).
     // Declined with a reason on the same path `luckChecksBlocked` uses, rather
     // than the prompt being suppressed silently -- a player who expected the
     // option is owed the sentence saying why it is gone.
@@ -2472,7 +2472,7 @@ async function runAutomaticStep(state, message) {
       // attacker's own window, asked before anything is computed, because what
       // it grants is an input to the computation. Recorded on the state so
       // `applyDamage` can fold the chosen abilities' rules into this one
-      // attack and nothing else (§15.3).
+      // attack and nothing else (Ch. 17).
       state = await offerAttackerWindow(state, DAMAGE_STEP_WINDOW, message);
 
       // Phases that resolve BEFORE the damage, because the damage depends on
@@ -2514,7 +2514,7 @@ async function runAutomaticStep(state, message) {
       // the first: *"NP Cooldown is reduced by ½◈ Turns at the end of the
       // Damage Step when a successful Attack is performed."*
       if (!skipped && result.total > 0) await fireDamageStepEnd(state);
-      // Terrain the attack itself changes (§42.2): Fire in a Forest makes
+      // Terrain the attack itself changes (Ch. 26): Fire in a Forest makes
       // Burning on Tails, and a Meadow is consumed by the attack that used it.
       // `rules/terrain.mjs#terrainConversions` has computed both since terrain
       // shipped and NOTHING HAS EVER ASKED IT -- the same collected-and-inert
@@ -2555,7 +2555,7 @@ async function runAutomaticStep(state, message) {
       if (state.counterAvailable !== undefined) return process.advance(state, "done");
 
       const available = counterAvailable(state);
-      // §12.8's redirect, decided here for the same reason `counterAvailable`
+      // Ch. 21's redirect, decided here for the same reason `counterAvailable`
       // is: it needs positions, and this file can see them while the pure
       // module cannot. Recorded once, so the armed bar and the resolution
       // cannot disagree about who is being protected.
@@ -2659,7 +2659,7 @@ async function rollEvade(state) {
   return {
     ...outcome,
     formula: roll.formula,
-    // §14.8: every roll files a record, so a failed Evade can be read back as
+    // Ch. 13: every roll files a record, so a failed Evade can be read back as
     // "the die was low" or "the wrong table was used" instead of one number.
     rollRecord: rollLog.fromCheck(outcome, {
       id: `${state.attackerId}:${state.defenderId}:evade:${game.combat?.system?.globalTurn ?? 0}`,
@@ -2870,7 +2870,7 @@ function pendingCosts({ usage, ability, self, master, board }) {
   // Servants declare costs and resolve that way (Ch. 46 §46.4-T).
   out.push(...additionalCostsFor({ ability, self, master }));
 
-  // A platform this Servant owns may replace the NP cost outright (Ch. 20).
+  // A platform this Servant owns may replace the NP cost outright (Ch. 27).
   const platform = (board.units ?? []).find(
     (u) => u.kind === "platform" && u.ownerId === self.id && u.upkeep,
   );
@@ -2892,7 +2892,7 @@ function pendingCosts({ usage, ability, self, master, board }) {
  * An ability's own **Total Damage** modifiers, resolved against its user.
  *
  * Stage 15 multiplies the finished number, where stage 4 pools every
- * percentage additively eleven stages earlier -- §13.4's dividing line, and
+ * percentage additively eleven stages earlier -- Ch. 22's dividing line, and
  * the difference between "damage dealt is increased" and "TOTAL damage dealt
  * is increased".
  *
@@ -2983,7 +2983,7 @@ function costIntents(cost, self) {
 /**
  * Hold a non-prompting rung open long enough for a Command Spell.
  *
- * §17.4: *"An offer that blocks resolution indefinitely is unacceptable in a
+ * Ch. 33: *"An offer that blocks resolution indefinitely is unacceptable in a
  * game with seven players."* So the wait is bounded by a setting (45s by
  * default, 0 to disable) and ends the moment somebody spends.
  *
@@ -3040,7 +3040,7 @@ async function awaitInterrupt(message, state) {
 }
 
 /**
- * Whether the defender of `state` may counter its attacker (§12.8).
+ * Whether the defender of `state` may counter its attacker (Ch. 21).
  *
  * Every clause `canCounter` takes is derived here from the board, so the pure
  * check never has to guess and never reads a field nobody writes.
@@ -3081,7 +3081,7 @@ function counterAvailable(state) {
 }
 
 /**
- * Run the counter as its own Combat Processes, roles reversed (§12.8, §27.10).
+ * Run the counter as its own Combat Processes, roles reversed (Ch. 21, Ch. 23).
  *
  * A full declaration, not a bare damage roll: Ch. 41 rules that the source's
  * *"Steps 1 and 4 are repeated"* is a typo for "1 **to** 4", because a counter
@@ -3106,7 +3106,7 @@ function counterAvailable(state) {
  * @returns {Promise<object|null>} null when the counter is refused
  */
 async function runCounter(state, { abilityId = null, placement = null } = {}) {
-  // §12.8: a Counter aimed at a Master whose Servant shields it hits the
+  // Ch. 21: a Counter aimed at a Master whose Servant shields it hits the
   // Servant instead, and the Master takes nothing. Read off the Process rather
   // than recomputed, so this and the armed bar cannot disagree.
   const requiredId = state.counterRedirectId ?? state.attackerId;
@@ -3180,7 +3180,7 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
 }
 
 /**
- * Combat Process step 4 — the Injury Roll (§12.6).
+ * Combat Process step 4 — the Injury Roll (Ch. 21).
  *
  * Reached after the damage has already been written, so the defender's Health
  * on the document is the post-damage value the rule wants.
@@ -3196,7 +3196,7 @@ async function applyInjury(state, message) {
 
   // Dragon Wing Warriors: "1d6+4 instances... each can be separately Evaded
   // or Blocked. Damaged Units only perform an Injury Roll ONCE regardless of
-  // number of hits taken" — "on the total" (docs/12 §12.6's own reading,
+  // number of hits taken" — "on the total" (docs/12 Ch. 21's own reading,
   // matching the reference set's other multi-hit attacks), not "using
   // whichever hit happens to run the check first". Each instance is its own
   // Combat Process and so reaches this step once per hit; naively checking
@@ -3245,7 +3245,7 @@ async function applyInjury(state, message) {
     healthAfter: defenderDoc.system?.health?.value ?? 0,
     defender: unitFrom(boardSnapshot(), defenderDoc),
     isNP: state.attack?.kind === "np",
-    // NOTE: no rung of the reaction ladder offers `Light Wound` yet (Ch. 45
+    // NOTE: no rung of the reaction ladder offers `Light Wound` yet (Ch. 46
     // D3), so this is always false today. It is read rather than hard-coded so
     // that adding the rung is the only change needed — but it is a gap, and it
     // is recorded as one rather than left to look implemented.
@@ -3287,7 +3287,7 @@ function alreadyInjuryRolled(state, message) {
     if (!raw) return false;
     const sibling = typeof raw === "string" ? JSON.parse(raw) : raw;
     // `attackerId` as well as the group and the defender. A Counter shares the
-    // parent's groupId (§12.1's Combat Phase) and an AREA counter can catch a
+    // parent's groupId (Ch. 21's Combat Phase) and an AREA counter can catch a
     // unit the original attack also caught -- so without this, one unit's
     // injuries from two DIFFERENT attackers in one Phase would be treated as
     // two hits of one multi-hit ability.
@@ -3484,7 +3484,7 @@ async function acceptedOptionalRevivals(unit) {
   const accepted = [];
   for (const source of optional) {
     // Its own gates first, so a Unit with no tokens left is not offered a
-    // transformation it cannot pay for (§17.6).
+    // transformation it cannot pay for (Ch. 33).
     if ((source.requires ?? []).some((req) => !meetsRequirement(req, { unit }))) continue;
 
     const picked = await askOwner(actor, {
@@ -3504,7 +3504,7 @@ async function acceptedOptionalRevivals(unit) {
  * Record the attack that just emptied this unit's Health, if anything asks.
  *
  * God Hand is the only ability in the reference set that does, and what counts
- * as "that Attack" is a judgement §31.3 makes explicitly: the **ability**, with
+ * as "that Attack" is a judgement Ch. 45 makes explicitly: the **ability**, with
  * a per-attacker pseudo-id for Normal Attacks. Recording the attacking *unit*
  * would mean Karna could never kill him again by any means; recording the
  * instance is vacuous, because an instance never recurs.
@@ -3647,7 +3647,7 @@ async function applyDamage(state, message) {
   // The crit roll, then every roll the pipeline will consume — rolled HERE so
   // the pipeline itself stays pure and reproducible.
   //
-  // A PERCENTAGE, not a `1d2`. §14.6: "the normal chance of getting a Crit
+  // A PERCENTAGE, not a `1d2`. Ch. 13: "the normal chance of getting a Crit
   // would be 50%. Some effects increase and decrease the chance." The coin
   // flip encoded the 50 and made every crit modifier in the game inert --
   // `Crit Up` applied, showed on the sheet, and changed nothing.
@@ -3744,11 +3744,11 @@ async function applyDamage(state, message) {
       ? facts.conditionalMultipliers
       : resolvedDamage(ability, options)?.conditionalMultipliers) ?? [],
     crit: { isCrit, chanceUsed: critSpec.percent },
-    // Which rolls this table plays with (Ch. 19). Threaded into ctx the way
+    // Which rolls this table plays with (Ch. 29). Threaded into ctx the way
     // `grandOrder` is, because a pure pipeline stage may not read a setting.
     difficulty: board?.difficulty,
     reaction: { kind: state.reaction ?? "none" },
-    // §16.4 rule 4, both halves. The Master its Servants covered *"receives no
+    // Ch. 32 rule 4, both halves. The Master its Servants covered *"receives no
     // damage and effects"*; each covering Servant's *"Total Damage ... is
     // increased by 100%"*, divided among them.
     //
@@ -3774,7 +3774,7 @@ async function applyDamage(state, message) {
     rolls: {
       [isCrit ? "attackPlus" : "attackMinus"]: attackRoll.total,
       negation: await rollNegation(defender, state.attack?.kind === "np"),
-      // §16.5's ZON penalty: *"when a Servant deals damage with an Attack while
+      // Ch. 32's ZON penalty: *"when a Servant deals damage with an Attack while
       // outside of its Master's ZON, damage dealt is reduced by 5d10"*.
       //
       // Stage 9 has implemented it since the pipeline was written and reads it
@@ -3815,7 +3815,7 @@ async function applyDamage(state, message) {
     }
   }
 
-  // §16.5. Overpower can end the Master outright before damage matters;
+  // Ch. 32. Overpower can end the Master outright before damage matters;
   // Underpower halves a Master's own Total Damage. Both are Master-Servant
   // asymmetries and neither fires between two units of the same kind.
   const overpower = resolveOverpower({
@@ -3834,7 +3834,7 @@ async function applyDamage(state, message) {
     ];
   }
   // The Luck Check that prevents the Overpower also saves the Master from
-  // lethal damage -- one success buys both (§16.5).
+  // lethal damage -- one success buys both (Ch. 32).
   if (overpower.survivesLethal && result.total >= currentHealth(defender)) {
     result.total = Math.max(0, currentHealth(defender, 1) - 1);
     result.breakdown = [...(result.breakdown ?? []), { stage: "luckCheck", label: "Survives at 1 Health" }];
@@ -3843,7 +3843,7 @@ async function applyDamage(state, message) {
   // Command Spell interrupts that changed the number rather than avoiding the
   // attack: Damage Block, Damage Up, Halve Noble Phantasm, NP Max. Applied to
   // the finished total, after every pipeline stage, because each is phrased
-  // against "Total Damage" (Ch. 17 §17.2).
+  // against "Total Damage" (Ch. 33).
   const csFactor = process.damageFactorOf(state);
   if (csFactor !== 1) {
     const before = result.total;
@@ -3862,7 +3862,7 @@ async function applyDamage(state, message) {
   //    no damage and effects are received; if Tails, Total Damage taken from
   //    that Attack is reduced by 50% & PC is deactivated."
   //
-  // Targeting already drops a concealed Unit from anything *chosen* (§9.7); an
+  // Targeting already drops a concealed Unit from anything *chosen* (Ch. 20); an
   // area still reaches it, and this is the compensation. On **Total Damage**,
   // so it lands after every pipeline stage and after the Command Spell factor,
   // and before the barrier -- a shield in front of a Unit that took no damage
@@ -4094,7 +4094,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
   const defenderDoc = game.actors.get(state.defenderId);
   if (!ability || !defenderDoc) return [];
 
-  // §16.4 rule 4: *"the Master receives no damage AND EFFECTS"*. The damage
+  // Ch. 32 rule 4: *"the Master receives no damage AND EFFECTS"*. The damage
   // half is stage 15's `factor: 0`; this is the other half, and it has to be
   // here rather than in the pipeline because a rider is not damage and would
   // otherwise land on a Master its Servants just took the blast for.
@@ -4173,14 +4173,14 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     attack: state.attack ?? {},
   });
 
-  // Through `effectivePhases`, because a copy (§15.7) has none of its own --
+  // Through `effectivePhases`, because a copy (Ch. 17) has none of its own --
   // reading `.phases` directly makes Scáthach's copies load and do nothing.
   // Resolve a player's `choose` into the branch they picked, before the loop.
   //
   //   *"First, either restore 2 Agility and 2 Luck to Castor; or restore 1
   //    Agility and 1 Luck to both Castor and Pollux."*
   //
-  // One ability, two outcomes, chosen at use. Ch. 34 §34.10 asks for a new
+  // One ability, two outcomes, chosen at use. Ch. 45 asks for a new
   // `kind: choice` phase for this; the engine already had `choose`, authored
   // by EMIYA's Trace On (*"apply ONE OF the following effects OF YOUR
   // CHOICE"*). An option gains an optional `phases:` list rather than a fifth
@@ -4326,7 +4326,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
       applied.push(...await applyTargetedRider(phase, ability, state, attackerDoc));
       continue;
     }
-    // Both authored shapes. §15.2's own is `effects: [{id, ...}]`; the earlier
+    // Both authored shapes. Ch. 17's own is `effects: [{id, ...}]`; the earlier
     // content wrapped each in an `OnEvent` rule element, and both still ship.
     // Reading only `rules` silently dropped every rider on the newer shape --
     // Medea's Aero dealt its damage and inflicted no Bleed.
@@ -4497,7 +4497,7 @@ async function resolveEmptiedDefender(state) {
 /**
  * Terrain the attack just changed.
  *
- * Two clauses, and they are opposites (§42.2): Fire **creates** Burning out of
+ * Two clauses, and they are opposites (Ch. 26): Fire **creates** Burning out of
  * a Forest permanently, and **consumes** a Meadow at the end of the Damage
  * Step. `rules/terrain.mjs#terrainConversions` decides both; this is the caller
  * it never had.
@@ -4663,9 +4663,9 @@ export async function runCheckPhase(phase, ability, state, defender, depth = 0) 
 
   const plan = checkPlan(defender, kind);
   // A LUCK Check is contested against the attacker's Luck and costs the
-  // defender a point either way (Ch. 14). Any other parameter is a plain check
+  // defender a point either way (Ch. 13). Any other parameter is a plain check
   // against that stat -- the same `resolveCheck`/`checkPlan` pair Cover
-  // (§16.4 rule 4) resolves an Agility Check with, and for the same reason:
+  // (Ch. 32 rule 4) resolves an Agility Check with, and for the same reason:
   // going through `evade()` would let an Evade-specific bonus help.
   const outcome = kind === "luck"
     ? luckCheck({
@@ -5038,7 +5038,7 @@ function replacingNormalAttack(self, actor) {
  * How many panels apart the two units are, or `null` when either has no panel.
  *
  * Chebyshev, which is what "at a Range of 3 or higher" counts: the attack-range
- * shape clips the outer ring's corners at R >= 3 (§8.2), but that is about
+ * shape clips the outer ring's corners at R >= 3 (Ch. 05), but that is about
  * which panels are *reachable*, not about how far away the one you hit is.
  *
  * @param {object} attacker
@@ -5250,7 +5250,7 @@ async function removalIntents(phase, doc, bearer) {
  *     which is why this cannot be an unconditional phase after damage -- it has
  *     to read the ladder's outcome, and `state.evaded` is where that lives.
  *
- * The Contract and the spells move in ONE batch, for §16.2's reason: no
+ * The Contract and the spells move in ONE batch, for Ch. 32's reason: no
  * intermediate state where the Servant is Free and unclaimed may be observable.
  *
  * @param {object} phase
@@ -5289,7 +5289,7 @@ async function cutContract(phase, state, defenderDoc) {
     I.markContract(defenderDoc.id, "contracted", newMaster.id),
     // "removes the Master's Command Spells" -- all of them, not the three that
     // move. The three Medea receives are granted separately and are namespaced
-    // to the Servant she just took (§16.9).
+    // to the Servant she just took (Ch. 32).
     ...(stripped > 0 ? [I.spendCS(oldMaster.id, stripped, "ruleBreaker", defenderDoc.id)] : []),
     I.grantCommandSpells(newMaster.id, defenderDoc.id, phase.grantToCaster?.commandSpells ?? 0),
     I.log({
@@ -5369,7 +5369,7 @@ function windowAugmented(attacker, attackerDoc, state) {
  * Asked **inline** rather than through the Combat Process's own prompt table,
  * and the distinction is deliberate. `PROMPTS` exists because the reaction
  * ladder is answered by the *other* client and has to survive being serialized
- * into a chat flag between rungs (Ch. 27). This question is answered by the
+ * into a chat flag between rungs (Ch. 23). This question is answered by the
  * player who is already driving this resolution, so a round trip through a card
  * would add a rung and a re-entry to ask somebody something they are looking at.
  * `FGTSocket.ask` still routes it to the ability's actual owner, because the
@@ -5497,7 +5497,7 @@ async function offerAttackerWindow(state, window, message) {
  *
  * The record is filed through `advance`'s own `detail.rollRecord`, which is the
  * one place a Process's rolls are appended, so a miss cannot produce a number
- * the log never hears about (§14.8).
+ * the log never hears about (Ch. 13).
  *
  * @param {object} state a Process sitting at `missCheck`
  * @param {object} attacker the attacker's snapshot
@@ -5608,7 +5608,7 @@ async function askOwner(actor, spec) {
 }
 
 /**
- * The reaction abilities a defender may answer with (§15.3).
+ * The reaction abilities a defender may answer with (Ch. 17).
  *
  * Reduced to what a card needs -- an id and a name -- rather than carrying the
  * documents: the state is serialized into a chat flag and crosses the socket,
@@ -5622,7 +5622,7 @@ function offeredReactions(defenderId, attack = null, isAoE = false, attackerId =
   if (!actor) return [];
 
   // Pale Rider and the Kagome Spirits: *"cannot Evade, Block, or Counter."*
-  // The rung still happens -- Ch. 27's ladder prompts the defender either way
+  // The rung still happens -- Ch. 23's ladder prompts the defender either way
   // -- and the only option on it is nothing. Refused here rather than by
   // giving them no reaction abilities, because an ALLY's Rho Aias is offered
   // at this same rung and is equally unavailable to them.
@@ -5638,7 +5638,7 @@ function offeredReactions(defenderId, attack = null, isAoE = false, attackerId =
   // one, and it is the only ability in the game whose user is neither the
   // attacker nor the defender.
   //
-  // Offered at the defender's rung because Ch. 27's ladder prompts one side per
+  // Offered at the defender's rung because Ch. 23's ladder prompts one side per
   // rung; the option is labelled with the projector's name so whoever answers
   // knows whose Health it is about to cost.
   const board = boardSnapshot();
@@ -5749,7 +5749,7 @@ function chanceFor(auto, attackProperties) {
  *
  * Jack the Ripper's *Murderer of the Misty Night* is the only clause in the
  * corpus that does this, and it is **not** a Counter. A Counter happens at the
- * end of the Process it answers (§12.8's `counter` rung), after the damage has
+ * end of the Process it answers (Ch. 21's `counter` rung), after the damage has
  * already landed; this happens *instead*, before the attacker's Process exists
  * at all. So it cannot reuse `beginCounter`: a counter cannot be countered and
  * ends the counterer's concealment on different terms, and neither is true of
@@ -5814,7 +5814,7 @@ async function offerPreemption({ attackerId, abilityId, placement, targetIds, bo
     // The Round phase is a COST modifier here rather than a damage one: the
     // same clause costs a point of Luck and a die by day, and nothing at night.
     //
-    // `board.phase` and deliberately NOT `phaseAt` (§42.6): the sentence names
+    // `board.phase` and deliberately NOT `phaseAt` (Ch. 26): the sentence names
     // a "Day ROUND", which a 5x5 pocket of Quetzalcoatl's daylight does not
     // change. The two positional readers -- the Dark modifiers and the item
     // phase requirement -- were repointed; this one is about the clock.
@@ -5941,7 +5941,7 @@ async function resumeDeferredAttack(state, message) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Cancelling a Noble Phantasm (Ch. 33 §33.4)                                */
+/*  Cancelling a Noble Phantasm (Ch. 45)                                */
 /* -------------------------------------------------------------------------- */
 
 /**
@@ -5953,11 +5953,11 @@ async function resumeDeferredAttack(state, message) {
  * > are effective at any Range. Fragarach cannot be responded to (Block, Evade,
  * > Luck Check, Counter, etc)."*
  *
- * This is the hardest single ability in the reference set (§33.4) and four
+ * This is the hardest single ability in the reference set (Ch. 45) and four
  * things make it so. Three are handled here:
  *
  *   1. **It interrupts another resolution.** Only Command Spells otherwise do
- *      (§17.1), so the offer sits exactly where `offerPreemption` sits: after
+ *      (Ch. 33), so the offer sits exactly where `offerPreemption` sits: after
  *      the attacker has paid, before any Combat Process exists. The attacker
  *      still spent the Noble Phantasm; nothing is refunded, which is what
  *      "cancelled" means and what makes walking into her expensive.
@@ -5984,7 +5984,7 @@ async function offerNPCancellation({ attackerId, attacker, ability, targetIds, b
     if (!defenderDoc) continue;
 
     const defender = unitFrom(board, defenderDoc) ?? unitSnapshot(defenderDoc);
-    // Everything that would refuse it is checked BEFORE it is offered (§17.6):
+    // Everything that would refuse it is checked BEFORE it is offered (Ch. 33):
     // the window, the cooldown, the tokens, the Turn record.
     const held = [...(defenderDoc.effects ?? [])].map((e) => e.system?.defId).filter(Boolean);
     const usable = abilitiesAtWindow(
@@ -6184,7 +6184,7 @@ function counterfactualDamage({ attackerDoc, ability, board, options, defenderUn
     // No crit. The coin was never flipped — the resolution did not happen — and
     // assuming one would hand the reflection a bonus the sheet does not mention.
     crit: { isCrit: false, chanceUsed: 0 },
-    // Which rolls this table plays with (Ch. 19). Threaded into ctx the way
+    // Which rolls this table plays with (Ch. 29). Threaded into ctx the way
     // `grandOrder` is, because a pure pipeline stage may not read a setting.
     difficulty: board?.difficulty,
     reaction: { kind: "none" },

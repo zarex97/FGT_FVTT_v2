@@ -1,6 +1,6 @@
 /**
  * @file The `diceCount` damage formula — damage as a count of dice over a threshold.
- * @see docs/36-case-remaining.md §36.6, module/rules/damage/dice-count.mjs
+ * @see docs/45-case-studies.md, module/rules/damage/dice-count.mjs
  *
  * One ability in the corpus: Nemo's *Quickfire*. Its interest is not the
  * counting, which is trivial, but the THRESHOLD — four conditional modifiers,

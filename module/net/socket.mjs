@@ -1,6 +1,6 @@
 /**
  * @file The GM proxy socket.
- * @see docs/26-authority-and-sockets.md §26.2
+ * @see docs/38-authority.md
  *
  * Three properties the prototype's version lacked, all of which matter:
  *
@@ -45,7 +45,7 @@ export class FGTSocket {
    *
    * **This timeout is a TRANSPORT wait, not a player's clock.** It measures how
    * long this client waits for the GM's client to run the operation and reply.
-   * A human's thinking time is §27.5's `AwaitPolicy` — `reactionTimeout` (60s)
+   * A human's thinking time is Ch. 23's `AwaitPolicy` — `reactionTimeout` (60s)
    * and `interruptTimeout` (45s), both GM settings — and `ask` below, which
    * waits two minutes because a person is reading it.
    *

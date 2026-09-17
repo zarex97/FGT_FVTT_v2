@@ -1,6 +1,6 @@
 /**
  * @file The Storm Border — a pocket dimension, entered and left.
- * @see docs/20-platforms-and-levels.md §20.6, char_orig_sheets/Copia de Nemo.md
+ * @see docs/27-platforms-and-levels.md, char_orig_sheets/Copia de Nemo.md
  *
  * Layer 3 (engine).
  *

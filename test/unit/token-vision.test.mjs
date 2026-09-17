@@ -1,8 +1,8 @@
 /**
  * @file A unit's Detect radius, as Foundry vision.
- * @see module/engine/token-vision.mjs, docs/08-board-and-geometry.md §8.7
+ * @see module/engine/token-vision.mjs, docs/05-board-geometry.md
  *
- * Ch. 8.7 decided that fog of war is Foundry's, driven by `TokenDocument.sight`,
+ * Ch. 05.7 decided that fog of war is Foundry's, driven by `TokenDocument.sight`,
  * and `data/actor/_shared.mjs` states outright that vision range and Detect are
  * the same number. `detectRangeOf` computed it and the class table behind it was
  * authored and tested — and nothing ever wrote the number to a token, so every

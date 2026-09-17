@@ -45,7 +45,7 @@ activeRules:
   # Clause 3, as a PREDICATED PAIR rather than as a stage-4/stage-5 split.
   #
   # *"All damage dealt is increased by X% including NP; this effect is halved for
-  # Attacks which use Base Attack (MAG)."* Ch. 13's stage 5 proposed contributing
+  # Attacks which use Base Attack (MAG)."* Ch. 22's stage 5 proposed contributing
   # `min(str, mag)` to the additive bucket and the difference to stage 5, on the
   # grounds that "one bucket cannot hold two magnitudes for one modifier". It
   # can now: a DEFERRED predicate (`attack:` clauses, built for Scáthach and
@@ -54,10 +54,10 @@ activeRules:
   #
   # That is not a tidier spelling of the same arithmetic -- the split gets the
   # STR case WRONG whenever anything else is in the bucket, because stage 4 and
-  # stage 5 compose multiplicatively while §13.4's rule is additive. Rank B
+  # stage 5 compose multiplicatively while Ch. 22's rule is additive. Rank B
   # (60/30) against 100% Def Up, attacking with STR: the rulebook's own worked
   # form is (100 + 60 - 100)% = x0.60; the split gives (100 + 30 - 100)% = x0.30
-  # at stage 4 and then x1.3 at stage 5 = x0.39. Ch. 13 §13.5 records the
+  # at stage 4 and then x1.3 at stage 5 = x0.39. Ch. 22 records the
   # correction.
   - key: DamageModifier
     modifierKey: atkUp
@@ -96,7 +96,7 @@ activeRules:
   # Clause 4's third part. `ZonBonus` is read by `rules/zon.mjs`, which takes
   # the HIGHEST of the non-stacking bonuses -- which is why this one does not
   # declare `stacks`: Mad Enhancement's +2 and a high-rank Master's +1 are not
-  # additive (§6.9).
+  # additive (Ch. 06).
   - key: ZonBonus
     value: 2
   # Clause 6: the unfavourable Evade table, always.
@@ -120,7 +120,7 @@ activeRules:
   # Authoring all of it for everybody -- which is what this template did until
   # 2026-09-16 -- gave three Servants a floor their sheets do not grant, and
   # gave Heracles a forced deactivation his sheet replaces with the floor. His
-  # own `cannotDeactivate` refuses it now (Ch. 15 §15.6), but refusing a clause
+  # own `cannotDeactivate` refuses it now (Ch. 17), but refusing a clause
   # is not the same as not having it, and the pack should say which he has.
   #
   # Penthesilea's and Raikou's CONDITIONAL floor is still authored as an
@@ -187,7 +187,7 @@ activeRules:
       # deactivated." Ordered after the drain, so it tests what the drain left.
       # Note the asymmetry the source draws: this is forcible, and a player's own
       # click is still refused by the 2◈ lockout above -- and by
-      # `cannotDeactivate`, which it does NOT beat (Ch. 15 §15.6).
+      # `cannotDeactivate`, which it does NOT beat (Ch. 17).
       #
       # Dropped at build time for a bearer whose sheet does not print it, so the
       # compiled document says what that Servant has.
@@ -202,6 +202,6 @@ activeRules:
 
   # Clause 5 is deliberately NOT here. "Sustainability is reduced by 2◈ if its
   # Master is defeated while ME is Active" is a consequence of the Master
-  # dying, not of the mode ticking, and it already lives where §16.6 puts it --
+  # dying, not of the mode ticking, and it already lives where Ch. 32 puts it --
   # `onMasterDefeated`, alongside the contract change and the mode lock that
   # happen in the same moment. Authoring it again here would charge it twice.

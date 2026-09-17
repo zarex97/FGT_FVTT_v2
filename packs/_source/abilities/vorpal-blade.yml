@@ -71,7 +71,7 @@ rules:
     predicate: ["attack:kind:normal", "target:contentId:jabberwock"]
 
   # B6. "If the Master with this Item Equipped cannot be Underpowered by
-  # Servants" -- §16.5's x0.5, refused outright rather than made less likely.
+  # Servants" -- Ch. 32's x0.5, refused outright rather than made less likely.
   - { key: Suppress, scope: underpower }
 
   # B7's other two consequences, on the one attack that lands.

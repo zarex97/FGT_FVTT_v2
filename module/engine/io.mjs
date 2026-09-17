@@ -1,6 +1,6 @@
 /**
  * @file The concrete write adapter — the `io` the applier calls.
- * @see docs/03-domain-overview.md §3.4, docs/26-authority-and-sockets.md
+ * @see docs/02-architecture.md, docs/38-authority.md
  *
  * Layer 3. This is the *only* file that calls `document.update()`. Everything
  * above it emits intents; everything below it is pure.
@@ -138,7 +138,7 @@ function watchedFractions(actor) {
  *
  * Every forced move this system performs — knockback, Gather, a platform
  * carrying its passengers, scatter-on-destruction, boarding, assigning a Scene
- * Level — is a displacement: the Unit did not walk there, and §8.3's legality
+ * Level — is a displacement: the Unit did not walk there, and Ch. 05's legality
  * rules do not apply to it. `fgtForced` says exactly that, but it is **our**
  * option and Foundry has never heard of it: it makes `movement-hooks.mjs` skip
  * *our* legality check and does nothing about Foundry's own.
@@ -263,7 +263,7 @@ export function worldIO() {
     /**
      * Adjust a resource, honouring a ceiling the pool declares for itself.
      *
-     * §6.10's pools carry their own `max` beside their `value`, and it is
+     * Ch. 06's pools carry their own `max` beside their `value`, and it is
      * load-bearing rather than cosmetic: *"the maximum number of PRS Tokens
      * Scáthach can have is 2"*, and her Primordial Rune grants **two** at a
      * time. Without the clamp a second use puts her at four and every
@@ -280,7 +280,7 @@ export function worldIO() {
      * coerced the very `null` the guard existed to catch, so a resource that
      * had never been written moved anyway, from a phantom zero rather than
      * from nothing. Sustainability's remaining-turns clock is `null` until its
-     * first write by design (Ch. 06 §6.8) — its very first per-Turn decrement
+     * first write by design (Ch. 06) — its very first per-Turn decrement
      * read that phantom zero and wrote `max(0, 0 - 1) = 0`, so a freshly Free
      * Servant's clock collapsed to zero after one Turn regardless of how many
      * it actually had left.
@@ -336,7 +336,7 @@ export function worldIO() {
           // for three versions.
           sourceFieldId: e.sourceFieldId ?? null,
           unremovable: Boolean(e.unremovable),
-          // §11.10 / Appendix A §A.18. Both have been on the instance schema
+          // Ch. 15 / Appendix A §A.18. Both have been on the instance schema
           // since `0.2.0` and this writer dropped both, so an effect could be
           // constructed hidden and would always be created public -- the same
           // shape as every other defect in this file's history: a field the
@@ -470,7 +470,7 @@ export function worldIO() {
     /**
      * Push a held effect's expiry out by `turns`.
      *
-     * Durations are stored as ABSOLUTE expiry ticks (§7.5), so extending is an
+     * Durations are stored as ABSOLUTE expiry ticks (Ch. 04), so extending is an
      * addition to that number -- which is also why an effect with no expiry
      * (permanent, or count-limited) is left alone: there is nothing to move,
      * and stamping one would give it a duration it never had.
@@ -581,13 +581,13 @@ export function worldIO() {
         ? ticks
         : (mode === "increase" ? current + ticks : Math.max(0, current - ticks));
 
-      // §7.9's cooldown interaction: an increase taken BEFORE the Noble
+      // Ch. 04's cooldown interaction: an increase taken BEFORE the Noble
       // Phantasm gate opens pushes the availability turn out by that much, on
       // top of the gate. Recorded here because this is the only place in the
       // system where a cooldown increase is applied, and read by
       // `rules/np-gate.mjs#npAvailableTurn`.
       //
-      // Additive rather than `max()` (§7.9's prose against its own pseudocode):
+      // Additive rather than `max()` (Ch. 04's prose against its own pseudocode):
       // under `max()` an NP Lock spent while the target's NP was gated anyway
       // costs its caster a Skill and buys nothing, which is the outcome the
       // clause exists to prevent.
@@ -649,7 +649,7 @@ export function worldIO() {
       const actor = resolve(unitId);
       if (!actor) return;
 
-      // §16.9: draw from the per-Servant pool first. They are the restricted
+      // Ch. 32: draw from the per-Servant pool first. They are the restricted
       // ones, so keeping the flexible pool back is strictly better for the
       // player -- and spending own spells while a namespaced pool sits full is
       // a loss nobody would notice until the pool expired with the contract.
@@ -1011,7 +1011,7 @@ export function worldIO() {
     },
 
     /**
-     * Where the Holy Grail is standing (§19.4).
+     * Where the Holy Grail is standing (Ch. 29).
      *
      * `MatchData.grailPosition` was declared and read and written by nothing,
      * so `grailContest` short-circuited on `!state.position` for the whole of
@@ -1024,11 +1024,11 @@ export function worldIO() {
     },
 
     /**
-     * Set a Servant's contract and its Master (§16.2).
+     * Set a Servant's contract and its Master (Ch. 32).
      *
      * The Master's roster is updated in the same call. Keeping only the
      * Servant's side would leave the Master sheet showing a Servant it does not
-     * have, and §16.9's pools are keyed off that roster.
+     * have, and Ch. 32's pools are keyed off that roster.
      *
      * @param {string} unitId
      * @param {string} contract
@@ -1059,7 +1059,7 @@ export function worldIO() {
     },
 
     /**
-     * Add Command Spells usable only on one Servant (§16.9).
+     * Add Command Spells usable only on one Servant (Ch. 32).
      * @param {string} masterId
      * @param {string} servantId
      * @param {number} count
@@ -1082,7 +1082,7 @@ export function worldIO() {
 
       // Two records, deliberately. The flag is the raw intent trail, keyed by
       // whatever `kind` the producer used, and it is what the damage explainer
-      // and the process cards read back. `system.log` is §30.8's structured
+      // and the process cards read back. `system.log` is Ch. 37's structured
       // record: a closed vocabulary, sequence-numbered, bounded and exportable.
       // Collapsing them would mean either constraining every producer to ten
       // kinds or letting the exportable log accept anything.
@@ -1205,7 +1205,7 @@ async function countTowardsGrail(unitId, cause) {
 }
 
 /**
- * A Master's death frees its Servants (§16.6).
+ * A Master's death frees its Servants (Ch. 32).
  *
  * `null` Sustainability is not zero: one has no clock and stays indefinitely,
  * the other disappears immediately. And an active Mad Enhancement locks in
@@ -1251,7 +1251,7 @@ async function freeContractedServants(unitId) {
  * A deliberate narrowing. The intent trail carries two dozen kinds, most of
  * them mechanism -- "terrainRollMissing", "commandSpellWindowClosed" -- and a
  * record that kept all of them would be a transcript rather than a history.
- * §30.8's ten kinds are the events a player or a maintainer goes looking for.
+ * Ch. 37's ten kinds are the events a player or a maintainer goes looking for.
  *
  * An unmapped kind returns `null` and stays in the intent trail only. That is
  * the safe direction: it is still recorded, just not promoted.

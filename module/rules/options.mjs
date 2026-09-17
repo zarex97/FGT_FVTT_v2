@@ -1,6 +1,6 @@
 /**
  * @file Roll options — the vocabulary every predicate is written against.
- * @see docs/24-rules-engine.md §24.4
+ * @see docs/11-predicates.md
  *
  * Layer 2 (rules). Pure.
  *
@@ -49,7 +49,7 @@ export function rollOptionsFor({ attacker, defender, attack = {}, withoutModeHel
   options.add(`attack:kind:${attack.kind ?? "normal"}`);
   if (attack.isAoE) options.add("attack:isAoE");
   // Whether this declaration ANSWERS an attack rather than starting one
-  // (§12.8). Avenger's second half is the first clause to ask: *"If Castor
+  // (Ch. 21). Avenger's second half is the first clause to ask: *"If Castor
   // Counters after receiving an Attack, increase the damage dealt when
   // Countering."* "After receiving an Attack" needs no separate test -- a
   // Counter is only ever declared at Combat Process step 6.
@@ -239,7 +239,7 @@ function add(options, side, unit, withoutModeHeld = false) {
 
   // WHICH Servant this is, by the one name of theirs that a world cannot rename.
   //
-  // §36.1's DECISION -- *"cross-Servant references resolve by a stable slug"* --
+  // Ch. 45's DECISION -- *"cross-Servant references resolve by a stable slug"* --
   // with nothing emitting one, so the only clause in the reference set that
   // names another Heroic Spirit could not be written at all. Karna's *Fated
   // Rivals of the Mahabharata* is *"if **Arjuna** is on the opposing Faction and
@@ -276,7 +276,7 @@ function add(options, side, unit, withoutModeHeld = false) {
   // 'Double Summon: Caster' passives are gated on `self:variant:dsc`.
   if (unit.variant) options.add(`${side}:variant:${unit.variant}`);
 
-  // The stance (Ch. 44 §44.1). This one option is what makes the rest of
+  // The stance (Ch. 45). This one option is what makes the rest of
   // Achilles's sheet ordinary: every *"while Mounted"* clause on it — Riding's
   // Attack and Passenger Seat, Troias Tragōidia and its Master upkeep — and
   // every *"when Unmounted"* clause — Dromeus Komētēs, Runner Comet, the duel,
@@ -286,7 +286,7 @@ function add(options, side, unit, withoutModeHeld = false) {
   if (stance) options.add(`${side}:stance:${stance}`);
 
   // Which bounded fields the unit is standing in. `annotateFields` has written
-  // `u.fields` since Ch. 43 was implemented and nothing ever read it back into
+  // `u.fields` since Ch. 28 was implemented and nothing ever read it back into
   // a predicate, so "while Unlimited Blade Works is Active" -- which both of
   // EMIYA's Circuits turn on -- had no way to be written.
   for (const f of unit.fields ?? []) options.add(`${side}:inField:${f}`);
@@ -361,7 +361,7 @@ function add(options, side, unit, withoutModeHeld = false) {
     for (let n = Math.max(1, d); n <= 6; n++) options.add(`${side}:withinOfOwnerMaster:${n}`);
   }
 
-  // Which PLATFORM the unit is aboard (Ch. 20) -- distinct from a bounded
+  // Which PLATFORM the unit is aboard (Ch. 27) -- distinct from a bounded
   // field. `annotatePlatforms` sets `u.platformContentId` to the platform's
   // STABLE content id (never its random Foundry document id, which content
   // cannot predicate on) -- Semiramis's Territory Creation needs to tell "on
@@ -369,7 +369,7 @@ function add(options, side, unit, withoutModeHeld = false) {
   // different Ranks.
   if (unit.platformContentId) options.add(`${side}:onPlatform:${unit.platformContentId}`);
 
-  // WHICH TERRAIN the unit is standing in (Ch. 42). `annotateTerrain` has
+  // WHICH TERRAIN the unit is standing in (Ch. 26). `annotateTerrain` has
   // written `u.terrain` onto every unit in the snapshot since terrain shipped
   // and NOTHING has ever read it -- so a clause like Nemo's *"when Nemo is
   // within a 'Waterside' or 'Imaginary Numbers Space' area"*, which gates four
@@ -379,7 +379,7 @@ function add(options, side, unit, withoutModeHeld = false) {
   // unit standing in two is in both.
   for (const type of unit.terrain ?? []) options.add(`${side}:terrain:${type}`);
 
-  // A Servant with no Master. §16.6's state, and the one this system already
+  // A Servant with no Master. Ch. 32's state, and the one this system already
   // charges differently for (`rules/costs.mjs`'s `freeServantNPSustainability
   // Cost`) — but the cost path asked the question privately, so no clause could
   // be WRITTEN against it. Jack the Ripper's Sustainability grows by 1◈ for

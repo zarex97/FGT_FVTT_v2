@@ -1,6 +1,6 @@
 /**
  * @file The turn panel — budget pips, compulsion warnings, and the End Turn gate.
- * @see docs/18-action-economy.md §18.9, docs/29-user-interface.md
+ * @see docs/19-action-economy.md, docs/34-action-bar.md
  *
  * Layer 4. Reads snapshots and the budget flag; every write goes through the
  * engine.

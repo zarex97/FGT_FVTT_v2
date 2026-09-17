@@ -3,7 +3,7 @@
  * @see module/rules/authoring/contract.mjs
  *
  * D5: a keyword with no explanation fails this test. The hints are the point
- * of the whole vocabulary -- §29.6's argument is that a GM should never have
+ * of the whole vocabulary -- Ch. 34's argument is that a GM should never have
  * to know the internal name -- so they cannot be optional, or they rot into
  * decoration on the half of the table nobody got to.
  */

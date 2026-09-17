@@ -1,6 +1,6 @@
 /**
  * @file Ability costs and requirements.
- * @see docs/15-abilities.md §15.4, docs/16-relationships.md §16.5
+ * @see docs/17-abilities.md, docs/32-relationships.md
  *
  * Layer 2 (rules). Pure — takes snapshots, returns a verdict and a price.
  *
@@ -55,7 +55,7 @@ export function npCost({ ability, unit, master }) {
  * Servant** branch below applies to them too. A Servant whose Master has just
  * been defeated has nobody to charge, and an `additionalCosts` entry that
  * named a Master anyway produced an intent with no target — which aborts the
- * whole batch rather than falling back to Sustainability the way §16.5 says.
+ * whole batch rather than falling back to Sustainability the way Ch. 32 says.
  *
  * @param {object} args
  * @param {string|null} args.rank
@@ -69,7 +69,7 @@ export function npCostAt({ rank, unit, master }) {
 
   // A Free Servant has no Master to charge, so the cost moves onto the Servant
   // itself — first as Sustainability, and if it has no clock at all, as double
-  // the High Rank Master figure in its own Health (Ch. 16 §16.5).
+  // the High Rank Master figure in its own Health (Ch. 32).
   if (isFree(unit)) {
     if (unit.sustainability === null || unit.sustainability === undefined) {
       return { kind: "selfHealth", amount: high * 2, unitId: unit.id };
@@ -258,13 +258,13 @@ export function canUseAbility({
     return { ok: false, reason: "exhausted", detail: { maxUses, timesUsed: ability.timesUsed ?? 0 }, cost };
   }
 
-  // §7.9's availability gate. An ability's OWN gate wins outright -- Ozymandias
+  // Ch. 04's availability gate. An ability's OWN gate wins outright -- Ozymandias
   // states Round 8 and the Magic Crest states Round 3, and BOTH must hold. The
   // global gate covers only abilities that state neither.
   //
-  // This replaces the `max()` composition Ch. 44 §44.5 recorded: `max()` cannot
+  // This replaces the `max()` composition Ch. 45 recorded: `max()` cannot
   // express a stated gate EARLIER than the global one, which is exactly what the
-  // Magic Crest's own row in §7.9's table is. `max()` still applies BETWEEN an
+  // Magic Crest's own row in Ch. 04's table is. `max()` still applies BETWEEN an
   // ability's two ways of stating a gate (`npGateRound` and
   // `targeting.limits.requiresRound`, folded by `usageSpecFor`), because both
   // are the ability speaking.
@@ -409,7 +409,7 @@ export function canUseAbility({
     return { ok: false, reason: "zon", cost };
   }
 
-  // Everything else §15.4 lists. Checked after the gates above because those
+  // Everything else Ch. 17 lists. Checked after the gates above because those
   // three are the common refusals and this is the long tail.
   const met = meetsRequirements(ability?.requirements ?? [], {
     unit, master, target: ctx.target ?? null, board: ctx.board ?? null,
@@ -560,13 +560,13 @@ function isFree(unit) {
 }
 
 /**
- * Resolve a set of pending costs against each other (§15.4).
+ * Resolve a set of pending costs against each other (Ch. 17).
  *
  * A `Cost` may carry `supersedes: string[]`, naming other costs it **replaces
  * rather than stacks with**. Karna is the reference case: *"his Master's Health
  * loss from him using the NP overwrites the 20 Health loss from when Karna
  * would normally Act/Attack"* — charging both would bill 70 where the rules say
- * 50. Ch. 20's Hanging Gardens upkeep uses the same mechanism in the other
+ * 50. Ch. 27's Hanging Gardens upkeep uses the same mechanism in the other
  * direction: the 50/round replaces the NP cost rather than adding to it.
  *
  * Supersession is resolved in **one pass over the original set**, not

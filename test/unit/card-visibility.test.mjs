@@ -1,6 +1,6 @@
 /**
  * @file Per-viewer chat card content.
- * @see docs/26-authority-and-sockets.md §26.7
+ * @see docs/38-authority.md
  */
 
 import { describe, it, expect } from "vitest";
@@ -115,14 +115,14 @@ describe("redactSources", () => {
 });
 
 describe("VISIBILITY_MODES", () => {
-  it("offers the two §26.7 documents", () => {
+  it("offers the two Ch. 38 documents", () => {
     // "one message with client-side filtering (fast, simple)" is the default,
     // and "separate whispered messages (slower, actually secure)" is strict.
     expect([...VISIBILITY_MODES].sort()).toEqual(["filtered", "strict"]);
   });
 });
 
-describe("a Skill card's effect list (§26.7)", () => {
+describe("a Skill card's effect list (Ch. 38)", () => {
   const rows = [
     { name: "Atk Up (STR)", controllers: ["caster-player"] },
     { name: "Burn", controllers: ["victim-player"] },
@@ -165,7 +165,7 @@ describe("a Skill card's effect list (§26.7)", () => {
   });
 });
 
-describe("an attack card's effects, split for a template (§26.7)", () => {
+describe("an attack card's effects, split for a template (Ch. 38)", () => {
   // `cardFor` returns `effects` as an ARRAY for those entitled to read it and
   // a COUNT for everyone else. One field with two types cannot be rendered
   // without a helper Handlebars does not have, so the card splits it — and the

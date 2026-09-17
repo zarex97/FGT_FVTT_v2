@@ -1,6 +1,6 @@
 /**
  * @file Every import in the system resolves to a file that exists.
- * @see docs/21-system-skeleton.md
+ * @see docs/02-architecture.md
  *
  * A mistyped relative path is a **black screen**: the browser fails to fetch
  * the module, `fgt.mjs` never finishes evaluating, no hook registers, and

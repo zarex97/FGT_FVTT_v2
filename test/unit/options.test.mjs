@@ -1,6 +1,6 @@
 /**
  * @file Roll options — the vocabulary predicates are written against.
- * @see docs/24-rules-engine.md §24.4
+ * @see docs/11-predicates.md
  *
  * Two gaps found by authoring Penthesilea:
  *

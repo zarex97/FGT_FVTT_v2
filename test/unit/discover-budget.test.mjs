@@ -8,7 +8,7 @@
  * **Servant's** Range (or Detect)"*; `discoverAttempts` filtered on enemy-ness
  * and distance and nothing else, so a **Master** standing near a concealed Unit
  * rolled too. Measured live: two watchers at 35% each — Heracles and his Master
- * — which is 58% per move against a Servant whose sheet offers 35%. Ch. 8 §8.7
+ * — which is 58% per move against a Servant whose sheet offers 35%. Ch. 05
  * quotes the source's general rule as *"an enemy Unit's"*, and the author has
  * settled it: the Skill's own wording governs.
  *

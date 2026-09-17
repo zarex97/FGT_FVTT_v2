@@ -1,6 +1,6 @@
 /**
  * @file The action bar's view-model.
- * @see docs/29-user-interface.md §29.5
+ * @see docs/34-action-bar.md
  *
  * Layer 4, and deliberately PURE: no Foundry globals, no documents. The bar
  * renders exactly what this returns, so every state the design names is
@@ -46,7 +46,7 @@ export function portraitBlock(unit, { img, defaultImage, publicName, trueName, i
  * @param {object|null} [view.cost] from `apps/actor-sheet/present.mjs#abilityCost`
  * @param {number} [view.turnsPerRound]
  * @param {{isAttack: boolean}|null} [view.counter] set while the bar is armed
- *   for a §12.8 Counter; `isAttack` is whether THIS ability could answer one
+ *   for a Ch. 21 Counter; `isAttack` is whether THIS ability could answer one
  * @returns {object}
  */
 export function slotFor(ability, { verdict, cost = null, turnsPerRound = 3, counter = null }) {
@@ -62,7 +62,7 @@ export function slotFor(ability, { verdict, cost = null, turnsPerRound = 3, coun
   else if (ability?.active) ring = "on";
 
   const refused = verdict?.ok === false;
-  // §12.8. While the bar is armed for a Counter, an ability that is not an
+  // Ch. 21. While the bar is armed for a Counter, an ability that is not an
   // Attack is not a choice -- and it is DIMMED with a reason rather than
   // hidden, so a player can see that their buff exists and is simply not an
   // answer to being attacked.

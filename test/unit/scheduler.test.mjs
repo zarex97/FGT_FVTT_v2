@@ -27,7 +27,7 @@ const emiya = (over = {}) => ({
 });
 
 describe("ResourceDelta", () => {
-  it("writes a §6.10 pool under `resources`", () => {
+  it("writes a Ch. 06 pool under `resources`", () => {
     const out = dispatch({ kind: "ResourceDelta", resource: "aria", delta: 1 }, emiya(), handler, ctx);
 
     expect(out).toEqual([{ t: "resource", unitId: "emiya", key: "resources.aria.value", delta: 1 }]);

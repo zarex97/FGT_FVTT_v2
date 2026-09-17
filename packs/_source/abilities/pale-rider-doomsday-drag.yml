@@ -15,7 +15,7 @@ name: "Doomsday Come: Drag"
 kind: skill
 slug: doomsdayDrag
 # "An attack in every structural sense except that it deals no damage"
-# (Ch. 43): it spends the Attack, marks him as having Acted, and opens no
+# (Ch. 28): it spends the Attack, marks him as having Acted, and opens no
 # Combat Process -- there is no damage step for one to run.
 countsAsAttack: true
 oncePerTurn: true

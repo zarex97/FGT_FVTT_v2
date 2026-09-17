@@ -1,6 +1,6 @@
 /**
  * @file Keeping a Platform's token the size of the footprint it declares.
- * @see docs/20-platforms-and-levels.md §20.3, docs/37-content-pipeline.md §37.4
+ * @see docs/27-platforms-and-levels.md, docs/40-content-pipeline.md
  *
  * Layer 3. A Platform declares `system.footprint: {w, h}` — the Hanging
  * Gardens of Babylon is 9×9 — but a Foundry token's size lives in a different

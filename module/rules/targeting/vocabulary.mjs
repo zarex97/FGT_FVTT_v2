@@ -1,10 +1,10 @@
 /**
  * @file The targeting vocabulary, in the words a GM uses.
- * @see docs/29-user-interface.md §29.6, docs/09-targeting.md
+ * @see docs/36-canvas-layers.md, docs/20-targeting.md
  *
  * Layer 2 (rules). Pure data.
  *
- * §29.6 is blunt about why this exists: *"A GM should never have to know that
+ * Ch. 34 is blunt about why this exists: *"A GM should never have to know that
  * `selfEdgeAdjacent` is the internal name for 'a 5×5 area in any non-diagonal
  * direction next to the caster' — they should see four little diagrams and
  * click one."* So each entry pairs the internal id with a plain-language label,
@@ -51,7 +51,7 @@ export const TARGET_ANCHORS = Object.freeze([
   },
   {
     // `withinRange` is the resolver's name for "a free panel the player picks".
-    // The id must be the internal one and the LABEL the friendly one -- §29.6's
+    // The id must be the internal one and the LABEL the friendly one -- Ch. 34's
     // whole point is that a GM never has to know the former. Calling this
     // `point` in the picker made it authorable and unresolvable: Medea's Rain
     // of Light threw `Unknown targeting anchor "point"`.

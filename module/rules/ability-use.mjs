@@ -1,6 +1,6 @@
 /**
  * @file What happens when a player clicks an ability.
- * @see docs/15-abilities.md §15.3, docs/18-action-economy.md §18.2
+ * @see docs/17-abilities.md, docs/19-action-economy.md
  *
  * Layer 2 (rules). Pure — takes an ability's `system` data and returns how it is
  * used. The sheet renders from this and the orchestrator routes from it, so the
@@ -222,7 +222,7 @@ export function classifyAbility(item) {
   const isNP = item?.type === "noblePhantasm" || sys.isNP === true;
 
   // An ability whose whole use is a setup decision: Wisdom of Dún Scáith picks
-  // two abilities to copy (§15.7), and there is nothing to target and nothing
+  // two abilities to copy (Ch. 17), and there is nothing to target and nothing
   // to roll. Checked FIRST, because such an ability may also carry phases --
   // the copies it grants -- and would otherwise classify as active and open a
   // targeting session for a question.
@@ -254,7 +254,7 @@ export function classifyAbility(item) {
   // (a rule about NPs specifically, so `isNP`/`hasDamagePhase` are never
   // overridden below).
   //
-  // `countsAsAttack: false` (Ch. 15 §15.1) is content's own declaration that
+  // `countsAsAttack: false` (Ch. 17) is content's own declaration that
   // a Spell or Attack Skill is NOT attack-shaped, and used to only reach
   // `engine/skill-use.mjs`'s budget bookkeeping -- this function's own
   // `isAttack` (what the UI and `resolveAttack` route on) never read it, so
@@ -573,8 +573,8 @@ export function usageSpecFor(ability) {
     contentId: sys.contentId ?? null,
     rank: sys.rank ?? null,
     isNP: ability.type === "noblePhantasm" || Boolean(sys.isNP),
-    // The availability gate covers `isNP || categorizedAsNP` (Ch. 07 §7.9,
-    // Ch. 15 §15.5), and this projection carried only the first -- so the gate
+    // The availability gate covers `isNP || categorizedAsNP` (Ch. 04,
+    // Ch. 17), and this projection carried only the first -- so the gate
     // would have missed EMIYA's Overedge, Bašmu's Dragonfire, Mannanán's
     // Fragarach Counter and the Hanging Gardens, which is exactly the set the
     // ruling put in scope.
@@ -611,7 +611,7 @@ export function usageSpecFor(ability) {
     // composed by `max()`.
     //
     // `npGateRound` has been in the ability schema since it was written and was
-    // read by NOBODY -- Ch. 44 §44.5 names it for Ozymandias's *"can only be
+    // read by NOBODY -- Ch. 45 names it for Ozymandias's *"can only be
     // used after 7 full Rounds have passed"* and the field went straight into
     // the document and stopped there. `targeting.limits.requiresRound` is the
     // one with a reader (`costs.mjs`), so the two are folded here rather than

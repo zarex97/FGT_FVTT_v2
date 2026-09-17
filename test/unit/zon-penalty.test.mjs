@@ -1,6 +1,6 @@
 /**
- * @file §16.5's ZON penalty, and the roll that never reached it.
- * @see module/rules/damage/pipeline.mjs stage 9, docs/16-relationships.md §16.5
+ * @file Ch. 32's ZON penalty, and the roll that never reached it.
+ * @see module/rules/damage/pipeline.mjs stage 9, docs/32-relationships.md
  *
  * > *"When a Servant deals damage with an Attack while outside of its Master's
  * > ZON, damage dealt is reduced by 5d10."*

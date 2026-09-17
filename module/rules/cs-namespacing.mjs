@@ -1,12 +1,12 @@
 /**
  * @file Command Spells, tracked per relationship rather than per Master.
- * @see docs/16-relationships.md §16.9
+ * @see docs/32-relationships.md
  *
  * Layer 2 (rules). Pure.
  *
  * Contracts move — a Master dies and their Servant is inherited, a Servant is
  * stolen — so a flat count on the Master cannot say *which* Servant its spells
- * reach. §16.9 splits it in two:
+ * reach. Ch. 32 splits it in two:
  *
  *   - **own** spells work on any contracted Servant. The original three.
  *   - **perServant** spells work only on the one they were granted for.
@@ -16,7 +16,7 @@
  * restricted pool and keeping the flexible ones back is strictly better for the
  * player. And **Unbound is derived**, not stored: a Master with zero own spells
  * and three borrowed for Servant B has Servant A Unbound and Servant B
- * contracted, which §16.9 calls a genuinely interesting state and which no
+ * contracted, which Ch. 32 calls a genuinely interesting state and which no
  * single counter can express.
  */
 
@@ -81,7 +81,7 @@ export function spendPlan(master, servantId, count) {
 }
 
 /**
- * Every pool this Master holds, for the Master sheet (§29.3).
+ * Every pool this Master holds, for the Master sheet (Ch. 34).
  *
  * A Servant with a grant but **no contract** is included: spells granted for a
  * Servant outlive the contract that produced them, which is the whole reason

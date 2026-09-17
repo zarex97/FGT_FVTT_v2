@@ -1,6 +1,6 @@
 /**
  * @file Passing and consuming items.
- * @see docs/15-abilities.md §15.8
+ * @see docs/17-abilities.md
  *
  * Layer 3. `rules/items.mjs` decides whether and produces descriptors; this
  * turns them into intents and writes.

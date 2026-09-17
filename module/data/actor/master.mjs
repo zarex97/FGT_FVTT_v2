@@ -1,6 +1,6 @@
 /**
  * @file The Master actor schema.
- * @see docs/16-relationships.md
+ * @see docs/32-relationships.md
  */
 
 import { unitCommon, combatantCommon } from "./_shared.mjs";
@@ -39,8 +39,8 @@ export class MasterData extends foundry.abstract.TypeDataModel {
       turnState,
       roundState,
       baseAttack,
-      // A–D (Ch. 04 §4.5), or blank for Rankless — a real state with rules of
-      // its own (Ch. 17 prices an all-Rankless table differently), not a
+      // A–D (Ch. 06), or blank for Rankless — a real state with rules of
+      // its own (Ch. 33 prices an all-Rankless table differently), not a
       // missing value.
       //
       // `choices` is what stops a typo. This was a free-form string, and
@@ -53,11 +53,11 @@ export class MasterData extends foundry.abstract.TypeDataModel {
         choices: ["", "A", "B", "C", "D"],
       }),
       // Three, spendable, and the only pre-emption mechanism in the game.
-      // The Master's OWN spells, usable on any contracted Servant (§16.9).
+      // The Master's OWN spells, usable on any contracted Servant (Ch. 32).
       commandSpells: new fields.NumberField({ required: true, integer: true, initial: 3, min: 0 }),
       // Servant id → spells usable only on that Servant. Added beside the count
       // rather than replacing it with a `{own, perServant}` pair, because the
-      // migration runner (Ch. 39) does not exist yet and retyping a live field
+      // migration runner (Ch. 41) does not exist yet and retyping a live field
       // would break every world that already has one.
       commandSpellsPerServant: new fields.ObjectField({ required: true, initial: () => ({}) }),
       zon: new fields.NumberField({ required: true, integer: true, initial: 2, min: 0 }),

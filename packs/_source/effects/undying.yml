@@ -19,7 +19,7 @@ baseChance: 100
 # One revival, then it is gone.
 uses: 1
 rules:
-  # Priority 300 -- the top of the chain (§31.2). Not cascading: it restores a
+  # Priority 300 -- the top of the chain (Ch. 45). Not cascading: it restores a
   # fraction of maximum, so there is nothing to roll again.
   - key: RevivalSource
     id: undying

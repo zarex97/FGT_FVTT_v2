@@ -26,7 +26,7 @@ baseAttack: { str: 150, mag: 150 }
 sustainability: "2◈"
 
 # ─── The binding ───────────────────────────────────────────────────────
-# Ch. 16 §16.8, Ch. 34. Six clauses of the sheet's opening paragraph, as data.
+# Ch. 32, Ch. 45. Six clauses of the sheet's opening paragraph, as data.
 linkedGroup:
   id: dioscuri
   partners: [pollux]          # content ids; resolved to actor ids at summon

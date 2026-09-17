@@ -1,10 +1,10 @@
-# docs/20-platforms-and-levels.md §20.6
+# docs/27-platforms-and-levels.md
 # Nemo, char_orig_sheets/Copia de Nemo.md ("Storm Border: Zero Sail")
 # Design: docs/superpowers/specs/2026-09-11-nemo-design.md §5
 #
 # **This file used to carry combat statistics it was never granted** -- 3000
 # Health, MOV 8, Range 6, Base Attack (MAG) 220 and a 5x3 footprint -- taken
-# from Ch. 20 §20.5's GENERAL platform model before Nemo's own sheet was read
+# from Ch. 27's GENERAL platform model before Nemo's own sheet was read
 # against it. The sheet gives the Storm Border no Health line, no attack and no
 # movement of its own: units inside *"still take their Turn normally"*, and
 # where it surfaces is Nemo's decision rather than a move. They are recorded
@@ -20,7 +20,7 @@ description: |
   Nemo's vessel, in Imaginary Numbers Space. A DIFFERENT DIMENSION rather than an elevation, so
   nothing crosses in either direction while it is submerged.
 attributes: [large, mechanical]
-# `null`, per §20.6 and D20.5: it is not on the board at all. The surfaced size
+# `null`, per Ch. 27 and D20.5: it is not on the board at all. The surfaced size
 # is not a separate number -- resurfacing places the UNITS onto a 5x5, which is
 # `relocateOnExit.shape` below and not a hull.
 footprint: null
@@ -77,7 +77,7 @@ dimension:
   # inside. And the Storm Border is itself `large`: what this guards against is
   # nesting one Large object inside another.
   #
-  # docs/20 §20.6 previously read this the other way and is corrected in the
+  # docs/20 Ch. 27 previously read this the other way and is corrected in the
   # same commit that builds it.
   restrictions:
     - { key: ForbidCreating, attributes: [large, giant] }

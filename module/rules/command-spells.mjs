@@ -1,6 +1,6 @@
 /**
  * @file Command Spells — which one may be used, when, and what it does.
- * @see docs/17-command-spells.md
+ * @see docs/33-command-spells.md
  *
  * Layer 2 (rules). Pure: it takes snapshots and a catalogue and returns
  * verdicts and **effects as data**. The engine turns effects into intents, the
@@ -29,7 +29,7 @@ import { availableFor } from "./cs-namespacing.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { paysHighColumn } from "./master-rank.mjs";
 
-/** The interruptible points (§17.4). `anyTime` commands are offered at all of them. */
+/** The interruptible points (Ch. 33). `anyTime` commands are offered at all of them. */
 export const WINDOWS = Object.freeze({
   beforeAttack: "beforeAttack",
   react: "react",
@@ -70,7 +70,7 @@ export function costOf(command, master, settings = {}) {
  */
 export function canSpend(command, ctx) {
   const cost = costOf(command, ctx.master, ctx.settings);
-  // §16.9: the pool is per RELATIONSHIP. A Master with three spells borrowed
+  // Ch. 32: the pool is per RELATIONSHIP. A Master with three spells borrowed
   // for Archer cannot spend them on Lancer, and the flat count could not say so.
   if (availableFor(ctx.master, ctx.servant?.id ?? null) < cost) {
     return { ok: false, reason: "cost", cost };
@@ -180,7 +180,7 @@ function meets(req, ctx) {
       return ctx.attack?.kind !== "np";
     case "targetNotImmune":
       // The immunity is a granted attribute, so content declares it and the
-      // offer never shows the option (§17.6).
+      // offer never shows the option (Ch. 33).
       return !(servant?.attributes ?? []).includes(immunityFor(ctx.command ?? req));
     case "servantWithin":
       return distance(master, servant) <= (req.panels ?? 2);
@@ -241,7 +241,7 @@ function inZone(req, master, servant) {
  * Would this Servant come back without spending three Command Spells?
  *
  * Reads the normalized `unitDefeated` handlers the effect engine already
- * builds (Ch. 45 A1), so Battle Continuation and God Hand answer for
+ * builds (Ch. 46 A1), so Battle Continuation and God Hand answer for
  * themselves rather than being named here — and a revive whose own cooldown is
  * running does not count, because it will not fire.
  *

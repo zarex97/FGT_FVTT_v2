@@ -1,6 +1,6 @@
 # packs/_source/servants/jack-the-ripper.yml
 # Conversion source: char_orig_sheets/Copia de Jack the Ripper.md
-# Data sheet: docs/D-servant-data-sheets.md §D.18 · bounded field: Ch. 43
+# Data sheet: docs/D-servant-data-sheets.md §D.18 · bounded field: Ch. 28
 schema: 1
 id: jack-the-ripper
 name: "Jack the Ripper"
@@ -72,7 +72,7 @@ notes: |
   happens" falls out of re-resolving the targeting rather than needing a special case. The
   Day/Night split is the first place the Round phase is a **cost** rather than a damage modifier.
 
-  **The Mist** is Ch. 43's first `freeform` field. It opens at its largest legal footprint — a
+  **The Mist** is Ch. 28's first `freeform` field. It opens at its largest legal footprint — a
   5×5 centred on Jack, exactly the 25 panels the sheet caps her at, every one inside the 4-panel
   leash — and stores its panels rather than recomputing them from a shape, which is what makes
   reshaping a write rather than a recast. Its Instinct exemption is the first rule anywhere keyed
@@ -83,11 +83,11 @@ notes: |
   compiling into rules that do nothing:
 
   - *Information Erasure*'s passive erases what a player wrote in their notebook. Its own text
-    hands it to the GM, and what it erases is not game state. Ch. 44 §44.4 files it under
+    hands it to the GM, and what it erases is not game state. Ch. 45 files it under
     closed-information play.
   - *The Mist*'s effect 7 exempts Jack from "the Fog of War area". There is no Fog of War
     subsystem to be exempt from — `engine/vision.mjs` is Detect and first-sighting, a different
-    question — and Ch. 26 §26.6 defers closed-information play to Ch. 40.
+    question — and Ch. 38 defers closed-information play to Ch. 40.
 
   The Mist's Advanced Note — *"High Rank Masters are not inflicted with Poison upon contact"* —
   was unmodelled at first for the same reason, and is now built: a Master carries a rank

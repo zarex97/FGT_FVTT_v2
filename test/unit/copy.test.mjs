@@ -1,6 +1,6 @@
 /**
  * @file Copied abilities — Wisdom of Dún Scáith.
- * @see docs/15-abilities.md §15.7
+ * @see docs/17-abilities.md
  */
 
 import { describe, it, expect } from "vitest";

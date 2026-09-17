@@ -1,17 +1,17 @@
 /**
  * @file Where each faction's Home Base sits, for a war of a given shape.
- * @see docs/19-environment.md §19.1, docs/08-board-and-geometry.md §8.2
+ * @see docs/29-environment.md, docs/05-board-geometry.md
  *
  * Layer 2 (rules). Pure, and it takes the board's bounds as an argument rather
  * than reading a scene — the contract every other module in this layer keeps.
  *
- * Home bases have been fully implemented since Ch. 19 was written — five
+ * Home bases have been fully implemented since Ch. 29 was written — five
  * effects, `CS: Escape`'s anchor, Caster's Detect, Territory Creation and the
  * Grail's exclusion zone all read them — and **nothing has ever created one**.
  * `docs/08` records why: *"| Static | Home bases | `Scene.regions`, authored
  * per-scene |"*. Authored, by a person, with a drawing tool, every time.
  *
- * Panels are `{i: row, j: column}`, zero-based, `i` increasing southward (§8.1).
+ * Panels are `{i: row, j: column}`, zero-based, `i` increasing southward (Ch. 05).
  */
 
 /**

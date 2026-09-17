@@ -1,6 +1,6 @@
 /**
  * @file The seven-step effect application pipeline.
- * @see docs/11-effect-engine.md §11.2
+ * @see docs/15-effect-application.md
  *
  * Layer 3 (orchestration), but **pure**: it decides and emits intents. The
  * caller supplies the chance roll, as everywhere else in the rules layer.
@@ -67,14 +67,14 @@ export function applyEffect({
   const held = target.effects ?? [];
   const instances = target.effectInstances ?? [];
 
-  // Ch. 10 §10.6 / Ch. 11 §11.2: *"Decoy is not affected by Debuff Resist or
+  // Ch. 14 / Ch. 15: *"Decoy is not affected by Debuff Resist or
   // Immune effects when a Unit applies it on itself or on another allied
   // Unit."* Two effects in the corpus need it -- `Decoy` and Kiritsugu's
   // `Decoy (Scapegoat)` -- and both are debuffs used DEFENSIVELY, which is the
   // whole reason the exemption exists: Mannanán puts Decoy on herself to feed
   // the Fragarach Counter, and her own Debuff Immune would otherwise refuse it.
   //
-  // Steps 1 and 3 are the ones skipped, exactly as §11.2 says. Exclusivity
+  // Steps 1 and 3 are the ones skipped, exactly as Ch. 15 says. Exclusivity
   // (step 2) and stacking (step 5) still run: they are about what the Unit is
   // already carrying, not about whether it wants this.
   const friendly = Boolean(def.allySelfBypassesResistance) && (
@@ -137,7 +137,7 @@ export function applyEffect({
     // made every stated chance in the game inert -- Stun's own 100 would have
     // applied to both.
     base: (chance ?? def.baseChance ?? 100) + declared,
-    // `friendly` skips the TARGET's resistance (§11.2), which is the whole of
+    // `friendly` skips the TARGET's resistance (Ch. 15), which is the whole of
     // what that clause is about. It must not also discard the APPLIER's own
     // outgoing bonus: Buff ChUp is applied by an ally, to an ally, and zeroing
     // it here made the only buff-chance effect in the game inert in exactly
@@ -233,7 +233,7 @@ export function applyEffect({
 
   // ── 6. CONSTRUCT ─────────────────────────────────────────────────────────
   // Duration is stored as an ABSOLUTE expiry tick, not a countdown, so that
-  // Stop's clock freeze and mid-game ◈ changes cannot corrupt it (Ch. 07 §7.5).
+  // Stop's clock freeze and mid-game ◈ changes cannot corrupt it (Ch. 04).
   // An effect nobody gave a clock to does not expire; it is removed by a Cure,
   // by consumption, or by whatever its own text says.
   //
@@ -249,7 +249,7 @@ export function applyEffect({
   // Mannanán's *Tradition Carrier*: *"the duration of buffs are extended by ⅓◈
   // extra Turns when applied to Mannanán."* Applied HERE, to the resolved tick
   // count, before the expiry is stamped -- durations are stored as absolute
-  // ticks (Ch. 07 §7.5), so an extension anywhere later would be arithmetic on
+  // ticks (Ch. 04), so an extension anywhere later would be arithmetic on
   // a clock that has already started. An effect with no clock is not given one.
   const ticks = base === INFINITE ? base : base + durationBonus(def, target, ctx);
   const expiry = ticks === INFINITE ? null : (ctx.currentTick ?? 0) + ticks;
@@ -265,7 +265,7 @@ export function applyEffect({
     uses: stack.uses,
     expiry,
     // The mirror of `expiry`: the tick it arrived on, for a handler that must
-    // not act on the Turn it was applied (Ch. 11 §11.9's other end).
+    // not act on the Turn it was applied (Ch. 15's other end).
     appliedTick: ctx.currentTick ?? 0,
     sourceUnitId: source?.unitId ?? null,
     sourceAbilityId: source?.abilityId ?? null,
@@ -616,7 +616,7 @@ function resolveStacking(def, existing, magnitude, stages = 1, uses = null) {
     }
 
     case "magnitudeStacks":
-      // A ceiling the definition may state. §36.7 sketches it as
+      // A ceiling the definition may state. Ch. 45 sketches it as
       // `stacking: {rule: magnitudeStacks, max: 10}` and Kingprotea's
       // Proliferation is the first that needs one: *"Kingprotea can only have a
       // maximum of 10 Proliferation stocks."* A `noop` rather than a refusal,

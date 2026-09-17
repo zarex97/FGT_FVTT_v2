@@ -1,6 +1,6 @@
 # packs/_source/servants/pale-rider.yml
 # Conversion source: char_orig_sheets/Copia de Pale Rider.md
-# Data sheet: docs/D-servant-data-sheets.md §D.26 · bounded fields: Ch. 43
+# Data sheet: docs/D-servant-data-sheets.md §D.26 · bounded fields: Ch. 28
 #
 # The strongest argument in the corpus for the snapshot/intent boundary:
 # almost nothing on his sheet is an attack. He cannot be damaged, cannot
@@ -8,7 +8,7 @@
 # leaks Health, a moving prison anchored to his Master, an aura of
 # parameter-keyed effects, and four summoned spirits that hunt their assigned
 # enemy. A design grown outward from "attacker hits defender" would need a
-# special case for every line of him; the bounded-field model of Ch. 43 is
+# special case for every line of him; the bounded-field model of Ch. 28 is
 # what makes him buildable without one.
 schema: 1
 id: pale-rider
@@ -71,15 +71,15 @@ notes: |
   Both of his relationship clauses are built, and building them filled two gaps
   elsewhere rather than in this sheet.
 
-  1. Cover (Ch. 16 §16.4 rule 4) -- "the Master is unharmed while the Total Damage taken by the
+  1. Cover (Ch. 32 rule 4) -- "the Master is unharmed while the Total Damage taken by the
      Servant is doubled; Servants cannot Evade an enemy Unit's NP if their Master is within a 2
      panel range" -- had no implementation for ANY Servant, so there was nothing for the proxy
      to redirect. `rules/cover.mjs` asks `guardsOf`, so his Kagome Spirits inherit the duty the
-     other three rules already redirect. Building it also found §16.4 rule 1 filtering an area's
+     other three rules already redirect. Building it also found Ch. 32 rule 1 filtering an area's
      splash and not merely its chosen targets, which had made rule 4 unreachable for everyone.
 
   2. "All Items that would be obtained by Pale Rider are instead obtained by his Master if
      he/she is within a 2 panel area." The rulebook describes exactly one way to obtain an item
-     -- being handed one (§15.8) -- and nothing drops one on a panel or awards one on a kill.
+     -- being handed one (Ch. 17) -- and nothing drops one on a panel or awards one on a kill.
      `acquisitionTarget` is the seam every acquisition asks, so `giveItem` redirects today and a
      drop or a reward inherits the answer the day either is added.

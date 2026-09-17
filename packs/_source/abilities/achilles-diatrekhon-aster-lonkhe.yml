@@ -1,5 +1,5 @@
 # Achilles, char_orig_sheets/Copia de Achilles.md
-# Discussed: docs/43-bounded-fields.md, docs/D-servant-data-sheets.md §D.23
+# Discussed: docs/28-bounded-fields.md, docs/D-servant-data-sheets.md §D.23
 #
 # The duel, and the only bounded field in the game that blocks Command Spells --
 # `rules/bounded-fields.mjs#isolationBlocks` has carried `blocksCommandSpells`
@@ -21,7 +21,7 @@ kind: noblePhantasm
 slug: diatrekhonAsterLonkhe
 cooldown: "6◈+⅓◈"
 timing: { window: ownTurn }
-# Non-damaging, but it still spends his Attack for the Turn: §15.4's
+# Non-damaging, but it still spends his Attack for the Turn: Ch. 17's
 # *"non-damaging NPs count as the Unit's Attack for that Turn"*.
 description: |
   Meteor Spear (Non-damaging) Duel Field. Can only be used when Unmounted. Range=2. Used on an
@@ -66,7 +66,7 @@ targeting:
     # A comparison against the CASTER over a COUNT of parameters, which no
     # predicate can express: "three of the five, each at least one Rank down"
     # is an aggregate, and the predicate language has no aggregate form
-    # (Ch. 24 §24.5 says so of `@` expressions for the same reason).
+    # (Ch. 10 says so of `@` expressions for the same reason).
     parametersBelow: { count: 3, steps: 1 }
 # The phase that OPENS it. A `field:` block is only a description until
 # something calls `createField`, and without this the whole Noble Phantasm

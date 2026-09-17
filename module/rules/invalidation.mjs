@@ -1,11 +1,11 @@
 /**
  * @file What each change invalidates.
- * @see docs/23-documents-and-derived-data.md §23.9
+ * @see docs/08-documents-and-derived.md
  *
  * Layer 2 (rules). Pure — a lookup from "what happened" to "what is now
  * stale". The engine does the clearing.
  *
- * §23.9 calls this the hardest part of any derived-data system, and the reason
+ * Ch. 08 calls this the hardest part of any derived-data system, and the reason
  * it is a **table** rather than a set of `if`s scattered through the hooks is
  * that the failure mode is silent in both directions: invalidate too little and
  * a client shows a number that is no longer true; invalidate too much and the
@@ -37,7 +37,7 @@ export const INVALIDATION_TARGETS = Object.freeze([
 ]);
 
 /**
- * The effects that change whether a unit can act, from §23.9.
+ * The effects that change whether a unit can act, from Ch. 08.
  *
  * Charm, Confuse and Berserk are in the list even though a unit under them
  * still *moves*: it no longer acts under its owner's direction, and Master

@@ -1,6 +1,6 @@
 /**
  * @file The Injury Roll — Combat Process step 4.
- * @see docs/12-combat-process.md §12.6, docs/45-implementation-status.md A3
+ * @see docs/21-combat-process.md, docs/46-roster-re-audit.md A3
  *
  * Step 4 was a stub: `attack.mjs` advanced straight through with `"done"`, and
  * the pipeline's `flags.exceededInjuryThreshold` had no reader at all.

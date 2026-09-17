@@ -32,7 +32,7 @@ rules:
     direction: incoming
     value: 4
   # "Assassin is able to Attack Masters and Move anywhere regardless of their
-  # Servant's position" -- the Master-protection exception Ch. 16 names Presence
+  # Servant's position" -- the Master-protection exception Ch. 32 names Presence
   # Concealment by.
   - key: Suppress
     scope: masterProtection

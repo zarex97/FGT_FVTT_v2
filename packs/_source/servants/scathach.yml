@@ -24,9 +24,9 @@ baseAttack: { str: 125, mag: 150 }
 normalAttack: { mode: fixed, component: str }
 sustainability: "2◈"
 
-# ─── Resources (§6.10) ─────────────────────────────────────────────────
+# ─── Resources (Ch. 06) ─────────────────────────────────────────────────
 # PRS Tokens: max 2, +2 per Primordial Rune, 1 spent to waive a Rune Spell's
-# cooldown. The FIRST resource pool in the system -- §6.10 designed the general
+# cooldown. The FIRST resource pool in the system -- Ch. 06 designed the general
 # mechanism and no Servant had needed it until now.
 resources:
   prs: { value: 0, max: 2 }
@@ -49,13 +49,13 @@ notes: |
   The sixth Servant, the first Lancer, and the first to need three things the engine did not
   have.
 
-  **PRS Tokens** are the first `Resource` pool (§6.10). The chapter designed the general
+  **PRS Tokens** are the first `Resource` pool (Ch. 06). The chapter designed the general
   mechanism and counted eight in the reference set; none had been built, because no authored
   Servant carried one. Hers is the smallest possible instance -- max 2, gained two at a time --
   and the clamp is load-bearing: a second *Primordial Rune* while she still holds one leaves her
   at 2, not 4, and every Rune Spell after that would otherwise be free.
 
-  **Wisdom of Dún Scáith** is the ability §15.7 calls the hardest in the set, and it is why the
+  **Wisdom of Dún Scáith** is the ability Ch. 17 calls the hardest in the set, and it is why the
   copy machinery exists. Two of her three Wisdom slots are filled at summon by the GM's curation
   dialog; the third, *Clairvoyance*, ships with fixed content and shares their `exclusionSet`,
   which is what makes "cannot be used if either of the others is on Cooldown" a rule rather than

@@ -1,6 +1,6 @@
 /**
  * @file Movement legality, reachability and the Riding segment rule.
- * @see docs/08-board-and-geometry.md §8.3, docs/18-action-economy.md §18.4
+ * @see docs/05-board-geometry.md, docs/19-action-economy.md
  *
  * Layer 2 (rules). Pure. `geometry.reachablePanels` does the search; everything
  * here is the seven-clause legality test that decides which panels the search
@@ -25,7 +25,7 @@ const IGNORES_BLOCKING = Object.freeze(["presenceConcealment", "hugeScale"]);
 /**
  * Unit kinds that are scenery rather than combatants for occupancy.
  *
- * Clause 3 of §8.3 is about *Units*: a Platform is stood on and a Structure is
+ * Clause 3 of Ch. 05 is about *Units*: a Platform is stood on and a Structure is
  * an object lying on the panel, so neither blocks a step. Two of them on ONE
  * panel is a different question — Quetzalcoatl's Piedra Del Sol may share with
  * anything except another object — and `canStopOn` answers it.
@@ -377,7 +377,7 @@ function blockedByFieldExit(panel, unit, board) {
 export function canStopOn(panel, unit, board) {
   if (!canPassThrough(panel, unit, board)) return false;
 
-  // Clause 8 — the linked-group leash (Ch. 16 §16.8). *"the maximum distance
+  // Clause 8 — the linked-group leash (Ch. 32). *"the maximum distance
   // between the two is 2 panels."* A hard constraint on where a member may
   // STAND, not a penalty, and not a constraint on the path: stepping out to 3
   // and back to 1 is legal, which is what lets a twin walk around a wall.
@@ -388,7 +388,7 @@ export function canStopOn(panel, unit, board) {
   //
   // A partner not on the board constrains nothing (`partnersOf` drops units
   // with no panel); a leash that refused every panel would freeze the survivor
-  // solid. Forced displacement may still break it -- Ch. 34 §34.3 takes that
+  // solid. Forced displacement may still break it -- Ch. 45 takes that
   // DECISION, because dragging the partner along would produce a knockback
   // that pulls a unit toward its attacker.
   const leash = unit?.linkedGroup?.leash;
@@ -507,7 +507,7 @@ export function decoyVerdict(unit, path, board) {
  * @returns {boolean}
  */
 export function inEnemyMasterProtection(panel, unit, board) {
-  // An OPTIONAL rule. It is the one clause in Ch. 08 that stops a player moving
+  // An OPTIONAL rule. It is the one clause in Ch. 05 that stops a player moving
   // where the board looks empty, and the refusal is easy to read as a bug --
   // so a table that does not want it can switch it off, and then it stops
   // applying everywhere at once, reachability included.
@@ -635,7 +635,7 @@ export function occupantsAt(panel, board, level = 0) {
  * @returns {object|null}
  */
 export function occupantAt(panel, board, level = 0) {
-  // Per LEVEL, not per panel. §20.2 gives each platform its own Scene Level for
+  // Per LEVEL, not per panel. Ch. 27 gives each platform its own Scene Level for
   // "separate occupancy" among four reasons, and this function -- the only
   // thing that answers "is somebody standing there" for movement -- compared
   // `i` and `j` and nothing else. Every unit in the scene therefore occupied

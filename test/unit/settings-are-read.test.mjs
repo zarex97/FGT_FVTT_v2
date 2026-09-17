@@ -1,6 +1,6 @@
 /**
  * @file Every registered setting is read by something.
- * @see module/settings.mjs, docs/21-system-skeleton.md §21.9
+ * @see module/settings.mjs, docs/02-architecture.md
  *
  * Written after `closedInfo` was found registered, translated, documented in
  * the settings table, and consulted by **no code at all**. A GM could turn

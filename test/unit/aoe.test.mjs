@@ -1,6 +1,6 @@
 /**
  * @file The AoE fan-out — one Combat Process per defender.
- * @see docs/12-combat-process.md §12.10, docs/45-implementation-status.md A2
+ * @see docs/21-combat-process.md, docs/46-roster-re-audit.md A2
  *
  * The defect: `resolveAttack` took `targets.units[0]` and discarded the rest,
  * keeping them only long enough to set an `isAoE` flag. A Noble Phantasm that
@@ -56,7 +56,7 @@ describe("beginFanOut", () => {
   });
 
   it("lets one defender's ladder advance without touching the others", () => {
-    // Each defender reacts independently (§12.10: "parallel prompt: all DUs
+    // Each defender reacts independently (Ch. 21: "parallel prompt: all DUs
     // choose react"). States are values, so advancing one must not be visible
     // in another.
     const [first, second] = fanOf("d1", "d2");

@@ -1,6 +1,6 @@
 /**
  * @file Branch selection for a check phase.
- * @see docs/14-checks-and-randomness.md, docs/15-abilities.md §15.2
+ * @see docs/13-checks-and-randomness.md, docs/17-abilities.md
  *
  * Layer 2 (rules). Pure.
  *

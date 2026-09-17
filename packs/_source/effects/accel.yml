@@ -7,7 +7,7 @@
 # unreachable.
 #
 # "React", not "Evade": this closes Block, Evade and the Counter together
-# (Ch. 27), which is why it sits on the attack rather than on a check.
+# (Ch. 23), which is why it sits on the attack rather than on a check.
 schema: 1
 id: accel
 name: "Accel"

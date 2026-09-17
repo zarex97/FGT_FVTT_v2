@@ -1,6 +1,6 @@
 /**
  * @file Rule-element execution — turning authored data into contributions.
- * @see docs/24-rules-engine.md §24.3
+ * @see docs/10-rule-elements.md
  *
  * Layer 2 (rules). **Pure.**
  *
@@ -17,7 +17,7 @@
  *
  * Values may be literals, `@`-expressions, or a `table:` reference resolved
  * against the owning ability's rank. Tables stay **symbolic** until here,
- * because a rank can change at runtime (Ch. 37 §37.3).
+ * because a rank can change at runtime (Ch. 40).
  */
 
 import { lookup } from "../domain/tables.mjs";
@@ -110,7 +110,7 @@ export function collectContributions(abilities, ctx = {}) {
       ...(ability.active ? (ability.activeRules ?? []) : []),
     ];
 
-    // Ordered before execution (Ch. 24 §24.6). Collection order is document
+    // Ordered before execution (Ch. 10). Collection order is document
     // load order, which differs between clients -- so two players could compute
     // two different numbers from the same board. Bands fix the what; the source
     // id fixes the tie.
@@ -329,7 +329,7 @@ export function resolveValue(el, rank, ctx, field = "value") {
  * nothing at zero, including its `base`. `max` clamps the result.
  *
  * Kingprotea is what it is for, and it is one field covering six clauses of one
- * Skill (Ch. 36 §36.7): Max Health per stock, NP damage taken per stock with a
+ * Skill (Ch. 45): Max Health per stock, NP damage taken per stock with a
  * cap, buff-removal resistance at 35 then +5, and a size/Range/MOV step every
  * third stock. Written as six bespoke readers they would be six places for the
  * count to be read differently.
@@ -446,7 +446,7 @@ function gradeAt(expr, ctx) {
 /**
  * A single multiplication around one `@` path: `"5 * @a.b"` or `"@a.b * 5"`.
  *
- * Deliberately the smallest possible grammar. Ch. 24 §24.5's own worked example
+ * Deliberately the smallest possible grammar. Ch. 10's own worked example
  * is `"5 * @self.resources.fragarachTokens.value"` -- Mannanán's *"Crit Damage
  * dealt is increased by 5% for every Fragarach Token"* -- and a per-unit scaling
  * of one pool is every expression the corpus has ever wanted. A general
@@ -514,10 +514,10 @@ function scalar(v, index = 0) {
 export function normalizeHandler(el, { rank, source, ability, ctx, deferred = null }) {
   return {
     // Always an array. Mannanán's Fragarach subscribes to two events at once
-    // (Ch. 24 §24.8), and a single-event handler is just the one-element case.
+    // (Ch. 10), and a single-event handler is just the one-element case.
     events: Array.isArray(el.event) ? [...el.event] : [el.event],
     actions: normalizeActions(el, rank, ctx),
-    // `automatic` marks a handler Addle can suppress (Ch. 11 §11.4).
+    // `automatic` marks a handler Addle can suppress (Ch. 15).
     automatic: el.automatic ?? false,
     // A gate on the EVENT rather than on a unit. `targetPredicate` below asks
     // about somebody standing there; this asks about what just happened --
@@ -552,7 +552,7 @@ export function normalizeHandler(el, { rank, source, ability, ctx, deferred = nu
     ofCategory: el.ofCategory === undefined
       ? null
       : (Array.isArray(el.ofCategory) ? [...el.ofCategory] : [el.ofCategory]),
-    // The mirror of `ofCategory`: HGoB Construction source 5 (Ch. 32) is "a
+    // The mirror of `ofCategory`: HGoB Construction source 5 (Ch. 45) is "a
     // non-Spell Skill used, EXCLUDING Item Construction" -- an exclusion on
     // the category AND on one specific ability at once, which an include-list
     // alone cannot say without naming every OTHER category or ability.
@@ -583,7 +583,7 @@ export function normalizeHandler(el, { rank, source, ability, ctx, deferred = nu
     // leave the Charm standing.
     requiresDamagedThisPhase: el.requiresDamagedThisPhase ?? false,
     defId: ability?.id ?? null,
-    // When the EFFECT carrying this handler runs out, for Ch. 11 §11.9: an
+    // When the EFFECT carrying this handler runs out, for Ch. 15: an
     // effect does not act on the Turn it ends. The periodic pass has enforced
     // that since it was written (`scheduler.mjs`) and event handlers had no way
     // to know -- the effect pseudo-ability passed `defId` and `uses` and not
@@ -1217,7 +1217,7 @@ export const EXECUTORS = Object.freeze({
    *
    * `stacks` is the load-bearing field. Independent Action and the Caster and
    * Assassin class bonus are *"the same effect"* and take the highest rather
-   * than the sum (§6.9); Mad Enhancement's +2 and a high-rank Master's +1 are
+   * than the sum (Ch. 06); Mad Enhancement's +2 and a high-rank Master's +1 are
    * not, and add. Declaring which one an element is belongs on the element,
    * because only the content knows.
    */
@@ -1261,7 +1261,7 @@ export const EXECUTORS = Object.freeze({
     // `rankShift: 1`, a single dense step. Karna's Vasavi Shakti is *"STR Rank
     // is increased **from B to A**"* and would have moved him to `B+`;
     // Kiritsugu's *"E → EX"* would have moved him to `E+`. Both are the form
-    // §5.9 lists as `set(rank)`, and it is the form a sheet uses whenever the
+    // Ch. 03 lists as `set(rank)`, and it is the form a sheet uses whenever the
     // distance is more than one step, because the author is naming an endpoint
     // rather than counting positions across a grade boundary.
     out.statDeltas.push({
@@ -1276,7 +1276,7 @@ export const EXECUTORS = Object.freeze({
   },
 
   /**
-   * A change to how many panels the Unit stands on (Ch. 04 §4.12).
+   * A change to how many panels the Unit stands on (Ch. 06).
    *
    * Pushed as deltas on `footprint.w`/`footprint.h` rather than as an abstract
    * `size`, which is what it used to be: nothing read `size`, so the element
@@ -1339,7 +1339,7 @@ export const EXECUTORS = Object.freeze({
    * a Successful Luck Check."*
    *
    * Not a Counter, and the distinction is the whole clause: a Counter happens
-   * at the END of the Combat Process it answers (§12.8, the `counter` rung),
+   * at the END of the Combat Process it answers (Ch. 21, the `counter` rung),
    * after the damage has already landed. This happens INSTEAD — Jack swings
    * first, and if the attacker dies there its attack never resolves at all.
    *
@@ -1458,7 +1458,7 @@ export const EXECUTORS = Object.freeze({
    * trigger, and a Combat Process that does both owes one counter.
    *
    * The counter is named as an ABILITY rather than described here, because
-   * §12.8's ruling is that a Counter is a full declaration -- its own reaction
+   * Ch. 21's ruling is that a Counter is a full declaration -- its own reaction
    * ladder, its own damage pipeline, its own riders. Describing it inline would
    * be a second, weaker damage path that no ladder reaches.
    */
@@ -1526,9 +1526,9 @@ export const EXECUTORS = Object.freeze({
    * A modifier on the effect APPLICATION pipeline rather than on a stat.
    *
    * *"The duration of buffs are extended by ⅓◈ extra Turns when applied to
-   * Mannanán."* It slots into step 6 of Ch. 11 §11.2, adjusting the resolved
+   * Mannanán."* It slots into step 6 of Ch. 15, adjusting the resolved
    * tick count before the expiry is stamped — which is the only place it can
-   * go: durations are stored as ABSOLUTE expiry ticks (Ch. 07 §7.5), so an
+   * go: durations are stored as ABSOLUTE expiry ticks (Ch. 04), so an
    * extension applied anywhere later would be arithmetic on a clock that has
    * already started.
    *
@@ -1850,8 +1850,8 @@ export const EXECUTORS = Object.freeze({
       // of defeat, which is the only moment it means anything.
       predicate: deferred ?? el.predicate ?? null,
       // `revivalPriority`, NOT `priority`. `priority` on a rule element already
-      // means "reorder me within my ordering band" (§24.6) and `orderElements`
-      // sorts on it -- so §31.2's `priority: 300` for Undying would have moved
+      // means "reorder me within my ordering band" (Ch. 10) and `orderElements`
+      // sorts on it -- so Ch. 45's `priority: 300` for Undying would have moved
       // the element itself into a band it does not belong to, silently, while
       // also failing the validator's "say why you reordered" check. One field,
       // two meanings, in one vocabulary.
@@ -1894,7 +1894,7 @@ export const EXECUTORS = Object.freeze({
       // Fragarach Token."*
       requires: [...(el.requires ?? [])],
       // What the revival TURNS HER INTO. A revival that also transforms its
-      // bearer is a fifth shape (§31.2 has four), and the transformation is a
+      // bearer is a fifth shape (Ch. 45 has four), and the transformation is a
       // mode rather than an effect because that is what the Skills gated on
       // Holder Mode ask about.
       enterMode: el.enterMode ?? null,

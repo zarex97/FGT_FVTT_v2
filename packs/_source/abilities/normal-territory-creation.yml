@@ -9,7 +9,7 @@
 #
 # `self:inHomeBase` is a board annotation `rules/snapshot.mjs` already sets from
 # `inOwnHomeBase`, and the offensive clause keys on where the OWNER stands
-# rather than the target -- Ch. 19 E5 is explicit that the bonus applies even to
+# rather than the target -- Ch. 29 E5 is explicit that the bonus applies even to
 # attacks OUT of the base. The defensive clause is an Aura, which is what makes
 # "lost if Caster is defeated" free: an aura with no source contributes nothing.
 schema: 1
@@ -27,7 +27,7 @@ description: |
   taken is reduced by (3d10+20). This effect is lost if Caster is defeated.
 passiveRules:
   # Clause 1 is about CASTER, so an ordinary predicate on its own options works,
-  # and it keys on where the OWNER stands rather than the target: Ch. 19 E5 is
+  # and it keys on where the OWNER stands rather than the target: Ch. 29 E5 is
   # explicit that the bonus applies even to attacks OUT of the base.
   # "including NP" is why there is no `attack:kind` predicate -- the default
   # would exempt Noble Phantasms.

@@ -1,6 +1,6 @@
 /**
  * @file The Noble Phantasm scale, and comparisons against it.
- * @see docs/43-bounded-fields.md §43.8, docs/41-open-questions.md Q44
+ * @see docs/28-bounded-fields.md, docs/00-index.md Q44
  *
  * Layer 2 (rules). Pure, and deliberately tiny.
  *

@@ -1,10 +1,10 @@
 /**
  * @file Servant identity and Detect.
- * @see docs/04-units.md §4.2, docs/08-board-and-geometry.md §8.7
+ * @see docs/06-units-and-stats.md, docs/05-board-geometry.md
  *
  * A Servant is publicly its **class**, not its name: "Archer", or "Archer of
  * Yellow" once it belongs to a named faction. The true name is hidden until
- * revealed, which is what makes Ch. 26 §26.6's closed-information play mean
+ * revealed, which is what makes Ch. 38's closed-information play mean
  * anything.
  */
 
@@ -78,7 +78,7 @@ describe("isIdentityRevealed", () => {
   });
 });
 
-/* ── §8.7 Detect ──────────────────────────────────────────────────────────── */
+/* ── Ch. 05 Detect ──────────────────────────────────────────────────────────── */
 
 describe("detectRangeOf", () => {
   const of = (container, over = {}, board = null) =>
@@ -167,7 +167,7 @@ describe("discoverChance", () => {
   });
 });
 
-describe("newlySeenBy (Ch. 32, Semiramis's Familiar: Doves)", () => {
+describe("newlySeenBy (Ch. 45, Semiramis's Familiar: Doves)", () => {
   const seer = (over = {}) => servant({
     id: "seer", classContainer: "assassin", panel: at(5, 5), seenUnitIds: [], ...over,
   });

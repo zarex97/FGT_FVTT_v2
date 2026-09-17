@@ -1,6 +1,6 @@
 /**
  * @file Castor and Pollux, against their sheet.
- * @see char_orig_sheets/Copia de Dioscuri.md, docs/34-case-dioscuri.md
+ * @see char_orig_sheets/Copia de Dioscuri.md, docs/45-case-studies.md
  *
  * Pinned to the SHEET and to the documentation rather than to the
  * implementation, which is what the rest of this suite does. Every `it` here

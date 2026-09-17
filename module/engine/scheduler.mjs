@@ -1,6 +1,6 @@
 /**
  * @file Turn and round boundary sequences.
- * @see docs/25-turn-system.md §25.4, docs/07-time-model.md §7.7
+ * @see docs/25-turn-order-and-scheduler.md, docs/04-time-model.md
  *
  * Layer 3. The **sequences** here are pure — they take a board snapshot and a
  * tick and return intents. Only `Scheduler.attach` in the Foundry layer binds
@@ -87,7 +87,7 @@ export function endTurn(board, ctx) {
   //     subscribes to both.
   intents.push(...fireEvent("involvedTurnEnd", units.filter((u) => u.inCombatPhase), ctx));
 
-  // 3. ...and for every unit, whoever is acting. §7.4's table calls this one
+  // 3. ...and for every unit, whoever is acting. Ch. 04's table calls this one
   //    `turnEnd` -- *"every turn, any player's"* -- and calls the pass above it
   //    `unitTurnEnd`; the handler vocabulary grew the other way round, and the
   //    authored content (Serenity's Zabaniya, Medusa's Blood Fort) says
@@ -119,13 +119,13 @@ export function endTurn(board, ctx) {
   //    inflicts Poison should not also tick it in the same breath.
   intents.push(...terrainIntents(terrainPeriodics(units, board, "turnEnd"), ctx));
 
-  // 8. The multi-Servant tax (§16.7). Flat 25 Health per Master whose Servants
+  // 8. The multi-Servant tax (Ch. 32). Flat 25 Health per Master whose Servants
   //    acted more than once this Turn, and a LOSS rather than damage, so
   //    nothing reduces it.
   intents.push(...multiServantIntents(units, ctx));
 
   // 9. A stance is dropped when its owner's Turn ends. *"Achilles is always
-  //    Dismounted when it is not his Turn"* (Ch. 44 §44.1) -- a statement about
+  //    Dismounted when it is not his Turn"* (Ch. 45) -- a statement about
   //    what is true rather than about a transition, so it is enforced at the
   //    boundary rather than offered as one, and it is what makes Achilles' Heel
   //    a threat at all: whatever he attacked in, he defends on foot.
@@ -186,7 +186,7 @@ export function endRound(board, ctx) {
   intents.push(...tickPeriodics(units, "roundEnd", ctx));
   intents.push(...fireEvent("roundEnd", units, ctx));
   intents.push(...expireEffects(units, ctx, "roundEnd"));
-  // Home Base regeneration and the three-Round debuff cure (Ch. 19 §19.1 E1,
+  // Home Base regeneration and the three-Round debuff cure (Ch. 29 E1,
   // E2). The rules layer returns descriptors; turning them into intents is this
   // layer's job, the same division the `OnEvent` action table uses.
   intents.push(...homeBaseIntents(endOfRoundHomeBase(units, board)));
@@ -255,7 +255,7 @@ export function fireEvent(event, units, ctx) {
     for (const handler of u.eventHandlers ?? []) {
       if (!listensFor(handler, event)) continue;
 
-      // Ch. 11 §11.9: an effect does not act on the Turn it ends. Enforced for
+      // Ch. 15: an effect does not act on the Turn it ends. Enforced for
       // `periodic:` effects since the periodic pass was written, and nowhere
       // for the handlers an effect contributes -- Regen's three intervals are
       // handlers, not a periodic, so it would have healed once more on its way
@@ -310,7 +310,7 @@ export function fireEvent(event, units, ctx) {
       // about that family.
       if (handler.ofCategory && !handler.ofCategory.includes(ctx.subject?.category ?? null)) continue;
 
-      // The mirror: HGoB Construction source 5 (Ch. 32) is "a non-Spell
+      // The mirror: HGoB Construction source 5 (Ch. 45) is "a non-Spell
       // Skill used, EXCLUDING Item Construction" -- two exclusions
       // (category AND a specific ability), neither of which `ofCategory`'s
       // include-list can express.
@@ -334,7 +334,7 @@ export function fireEvent(event, units, ctx) {
       // Master's Health loss from him using the NP **overwrites** the 20 Health
       // loss from when Karna would normally Act/Attack."*
       //
-      // §15.4's `supersedes` is the right idea in the wrong scope -- it resolves
+      // Ch. 17's `supersedes` is the right idea in the wrong scope -- it resolves
       // a set of costs against each other at the moment an ability is used, and
       // this charge is not a cost of any ability. It is a standing upkeep that
       // falls due at the end of a Turn, and what suppresses it happened earlier
@@ -448,7 +448,7 @@ function usedThisTurn(unit, spec) {
 /**
  * Turn one normalized action into intents.
  *
- * The vocabulary is Ch. 24 §24.5's action list, which is deliberately smaller
+ * The vocabulary is Ch. 10's action list, which is deliberately smaller
  * than the rule-element list: an element describes a standing contribution, an
  * action describes a thing that happens once, at a moment, to a unit.
  *
@@ -898,7 +898,7 @@ const ACTIONS = Object.freeze({
     }
     // `rolled()` falls back to `a.amount`, not `a.delta` — the bare-number
     // shape every ResourceDelta shipped with before Semiramis's HGoB
-    // Construction needed a rolled gain (Ch. 32 "1d4+2 per Turn"). A roll
+    // Construction needed a rolled gain (Ch. 45 "1d4+2 per Turn"). A roll
     // that has not arrived yet writes nothing, same as `Heal`.
     const raw = a.roll ? rolled(a, c) : (a.delta ?? 0);
     if (raw === null) return [];
@@ -1025,7 +1025,7 @@ const ACTIONS = Object.freeze({
    * Apply an effect instance.
    *
    * The expiry is computed HERE rather than authored, because durations are
-   * stored as absolute ticks (Ch. 07 §7.5) and only the scheduler knows what
+   * stored as absolute ticks (Ch. 04) and only the scheduler knows what
    * tick it is. An authored `expiry` would be a turn count masquerading as an
    * absolute one, and would expire immediately or never.
    */
@@ -1076,7 +1076,7 @@ const ACTIONS = Object.freeze({
     // WHO it lands on. The action used to apply to the handler's owner and
     // nothing else, so every on-hit rider in the catalogue -- `Bleed Atk`,
     // `Queen's Poison`, Serenity's poisoned daggers -- would have inflicted its
-    // debuff on the ATTACKER. `target: victim` is the vocabulary Ch. 32 already
+    // debuff on the ATTACKER. `target: victim` is the vocabulary Ch. 45 already
     // writes; it just had no reader.
     // `dispatch` has already resolved the set for a `nearby`/`victim` target and
     // handed each recipient in as `u`, so this must not expand it a second time
@@ -1373,7 +1373,7 @@ export function resolveDefeat(unit, ctx, cause = "damage") {
   // hangs -- Mad Enhancement's Sustainability penalty, a log entry, a counter.
   const intents = fireEvent("unitDefeated", [unit], ctx);
 
-  // Then the revival QUERY, priority-ordered (§31.2). Heracles has four ways
+  // Then the revival QUERY, priority-ordered (Ch. 45). Heracles has four ways
   // back and his sheet states the order: Undying > Guts > Battle Continuation
   // > God Hand. This used to take any handler that healed, in collection order
   // -- indistinguishable from correct with one source, and with four it spends
@@ -1399,7 +1399,7 @@ export function resolveDefeat(unit, ctx, cause = "damage") {
       ...spendRevival(unit, revival, ctx),
       // What the revival TURNS HER INTO, and what it costs to get there.
       //
-      // §31.2 lists four revival shapes and all four only restore Health.
+      // Ch. 45 lists four revival shapes and all four only restore Health.
       // Mannanán's *God's Holder: Possession* is a fifth: *"Remove all
       // Fragarach Counters from Mannanán and she enters Holder Mode, restoring
       // her Health to 50% of its maximum value."* The restore is the ordinary
@@ -1715,7 +1715,7 @@ export function tickPeriodics(units, when, ctx) {
       if (spec.when !== when && !overridden) continue;
       if (spec.actedOnly && !u.acted) continue;
 
-      // An effect does not tick on the turn it expires (Ch. 11 §11.9).
+      // An effect does not tick on the turn it expires (Ch. 15).
       if (e.expiry !== null && e.expiry !== undefined && e.expiry <= ctx.tick) continue;
 
       const amount = periodicDamageFor(e, u, ctx.effectDef);
@@ -1812,7 +1812,7 @@ function capitalize(s) {
 }
 
 /**
- * HGoB Construction's Region multiplier (Ch. 32 §32.2): *"If the Grail
+ * HGoB Construction's Region multiplier (Ch. 45): *"If the Grail
  * War's Region is in a Middle East region, all Construction increases are
  * doubled excluding effects 1 and 2; if directly next to a Middle East
  * region, all Construction increases are increased by 2 excluding effects 1

@@ -1,6 +1,6 @@
 /**
  * @file Where the turn budget lives, and who is allowed to spend it.
- * @see docs/18-action-economy.md, docs/26-authority-and-sockets.md
+ * @see docs/19-action-economy.md, docs/38-authority.md
  *
  * Layer 3. The arithmetic is in `rules/budget.mjs` and is pure; this decides
  * *where the number is stored* and routes the write.
@@ -51,7 +51,7 @@ export function affordable(combat, unit, action) {
 /**
  * Whose pool this unit spends from.
  *
- * Its own faction, unless a Charm has moved it. §25.7 puts a charmed unit in
+ * Its own faction, unless a Charm has moved it. Ch. 25 puts a charmed unit in
  * *"the charmer's `currentUnits` during their turn"*, and a unit acting on
  * another faction's Turn has to spend that faction's slots — its owner's pool
  * is not even reset while somebody else is taking their Turn, so charging it
@@ -138,7 +138,7 @@ export function rows(combat, factionId) {
     // rule, so the view vocabulary is named here. Handlebars cannot compare
     // numbers without a helper, and `{{#if spent}}` reads 0.5 as "full".
     pips: row.pips.map((v) => (v === 1 ? "full" : v === 0.5 ? "half" : "empty")),
-    // Ch. 34 §34.5 asks for this in as many words: the boundary case is
+    // Ch. 45 asks for this in as many words: the boundary case is
     // correct and surprising, so the HUD explains it rather than looking broken.
     hint: HALF_POOLS.has(row.pool)
       ? "A linked pair counts as one Unit -- each twin spends half a slot."

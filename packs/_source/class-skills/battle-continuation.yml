@@ -28,7 +28,7 @@ passiveRules:
   # FOUR ways back and his sheet states the order they resolve in -- "Undying >
   # normal Guts > Battle Continuation > God Hand" -- so revival is a
   # priority-ordered query rather than whichever handler happens to heal first.
-  # Priority 100 is §31.2's "passive revival skill" tier.
+  # Priority 100 is Ch. 45's "passive revival skill" tier.
   #
   # `requiresHealthRestoredSince` is the second condition, which had never been
   # enforced: "the Unit's Health must have been RESTORED BACK to above half its

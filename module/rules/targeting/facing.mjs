@@ -1,7 +1,7 @@
 /**
  * @file Two per-ability targeting prerequisites: where the caster is looking,
  * and what is standing in the way.
- * @see docs/44-case-expanded-roster.md §44.3 (D44.8), docs/09-targeting.md
+ * @see docs/45-case-studies.md (D44.8), docs/20-targeting.md
  *
  * Layer 2 (rules). Pure.
  *
@@ -20,7 +20,7 @@ import { coneOf, panelsBetween } from "../../domain/geometry.mjs";
  * > *"can only be used if Medusa is facing the targeted Unit."*
  *
  * `coneOf` has answered this since it was written and **nothing had ever called
- * it** — Ch. 14 §14.5's directional Evade modifiers (*"attacked from left or
+ * it** — Ch. 13's directional Evade modifiers (*"attacked from left or
  * right +1"*, *"from behind +2"*) are its intended consumer and are still
  * unbuilt, so `rollEvade` assembles its modifiers without them. This is the
  * function's first reader.

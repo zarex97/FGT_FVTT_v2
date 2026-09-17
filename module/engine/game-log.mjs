@@ -1,13 +1,13 @@
 /**
  * @file Writing the game log, flushing it, and exporting it.
- * @see docs/30-chat-and-audit.md §30.8, §30.9, §30.10
+ * @see docs/37-chat-and-log.md, Ch. 37, Ch. 37
  *
  * Layer 3. `rules/game-log.mjs` shapes and filters; this stores.
  *
- * The storage split is §30.8's, and it exists to bound one document: the last
+ * The storage split is Ch. 37's, and it exists to bound one document: the last
  * 200 entries live on `Combat.system.log` for quick access, and older ones
- * flush in batches of 100 to a JournalEntry named after the match. Ch. 22
- * §22.8 records the RISK this answers — a match document that grows all game
+ * flush in batches of 100 to a JournalEntry named after the match. Ch. 07
+ * Ch. 07 records the RISK this answers — a match document that grows all game
  * is a document that eventually fails to save, silently, at the worst moment.
  */
 
@@ -41,7 +41,7 @@ export async function record(fields, combat = game.combat) {
 }
 
 /**
- * Record a GM override of an earlier entry (§30.10).
+ * Record a GM override of an earlier entry (Ch. 37).
  *
  * The reason is required by the rules layer, which throws without one. That
  * throw is deliberate and is not caught here: an override with no reason is a
@@ -87,7 +87,7 @@ export async function fullLog(combat = game.combat) {
 }
 
 /**
- * The §30.9 export, as a JSON string.
+ * The Ch. 37 export, as a JSON string.
  *
  * Self-contained: the ruleset settings and the roster's setup rolls travel
  * with the entries, so a maintainer replays it without the world. The recorded

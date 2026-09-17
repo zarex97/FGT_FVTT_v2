@@ -1,10 +1,10 @@
 /**
  * @file Bounded fields — the six-axis model.
- * @see docs/43-bounded-fields.md, docs/45-implementation-status.md C4
+ * @see docs/28-bounded-fields.md, docs/46-roster-re-audit.md C4
  *
  * Ten fields across nine Servants, more than a third of the expanded roster.
  * They need a shared model or the engine grows ten special cases — which is
- * the whole argument of Ch. 43.
+ * the whole argument of Ch. 28.
  */
 
 import { describe, it, expect } from "vitest";
@@ -622,7 +622,7 @@ describe("annotateFields", () => {
   });
 });
 
-/* ── Geometry that reads the board (Ch. 43 §43.3) ─────────────────────────── */
+/* ── Geometry that reads the board (Ch. 28) ─────────────────────────── */
 
 describe("geometry overrides — Contagion", () => {
   const contagion = (over = {}) => ({

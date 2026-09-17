@@ -1,6 +1,6 @@
 /**
  * @file Applying collected `statDeltas` to a unit's derived values.
- * @see docs/23-documents-and-derived-data.md §23.4
+ * @see docs/08-documents-and-derived.md
  *
  * Layer 2 (rules). Pure: takes a plain `system`-shaped object and a list of
  * deltas, returns the changes to write. The document layer does the writing.

@@ -1,4 +1,4 @@
-# docs/20-platforms-and-levels.md §20.5
+# docs/27-platforms-and-levels.md
 schema: 1
 id: platform-golden-hind
 name: "The Golden Hind"
@@ -10,7 +10,7 @@ description: |
 # Agility, and already a reader rather than a new one: `rules/injury.mjs` has
 # tested for this attribute since it was written, naming the Golden Hind in its
 # own comment, and no content had ever carried it. The `attributes` set is open
-# by design (Ch. 04 §4.5), which is why the clause needs no schema field.
+# by design (Ch. 06), which is why the clause needs no schema field.
 attributes: [large, mechanical, injuryOnlyFromNP]
 baseHealth: 2500
 # "Agility: 10 (Only performs Injury Roll when damaged by NP)". The
@@ -24,7 +24,7 @@ inherit:
 mov: 6
 range: { panels: 5, targets: 1 }
 baseAttack: { str: 0, mag: 200 }
-# Stated on the sheet, and independent of its range (Ch. 20 §20.5).
+# Stated on the sheet, and independent of its range (Ch. 27).
 detect: 4
 footprint: { w: 4, h: 3 }
 capacity: 9

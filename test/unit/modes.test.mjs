@@ -142,7 +142,7 @@ describe("the invalidation that drives it", () => {
 
   it("does not name it on a change that cannot move anybody", () => {
     // Health ticks every burn; rebuilding the board on each one is the
-    // expensive mistake §23.9 warns about.
+    // expensive mistake Ch. 08 warns about.
     expect(invalidationsFor("actorField", { actorId: "p" })).not.toContain("compulsions");
     expect(invalidationsFor("effectChanged", { actorId: "p" })).not.toContain("compulsions");
   });

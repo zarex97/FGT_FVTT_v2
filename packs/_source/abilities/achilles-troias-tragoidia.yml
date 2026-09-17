@@ -1,5 +1,5 @@
 # Achilles, char_orig_sheets/Copia de Achilles.md
-# Discussed: docs/44-case-expanded-roster.md §44.3
+# Discussed: docs/45-case-studies.md
 #
 # His only damaging Noble Phantasm, and the one his Mount is named after. It is
 # a Riding Attack rather than an ability that benefits from one -- he rides 13
@@ -99,7 +99,7 @@ phases:
   # `clampToMax` is the difference between "RESTORES X Agility" and "grants X":
   # his sheet says restores, so it cannot push him past the maximum he rolled
   # at summon — and it is also what routes the write to the STAT rather than to
-  # a §6.10 resource pool named `agility`, which does not exist. Without it the
+  # a Ch. 06 resource pool named `agility`, which does not exist. Without it the
   # restore landed nowhere at all.
   - kind: resource
     target: self

@@ -1,6 +1,6 @@
 /**
  * @file The round-boundary desync detector.
- * @see docs/25-turn-system.md §25.10
+ * @see docs/25-turn-order-and-scheduler.md
  *
  * Layer 2 (rules). Pure, and hash-only — it never fetches or refreshes.
  *
@@ -9,7 +9,7 @@
  * view silently drifts: the GM computes a checksum at each round boundary and
  * broadcasts it, and a client that disagrees asks for a refresh.
  *
- * What goes into the checksum is the whole design. §25.10 names three things —
+ * What goes into the checksum is the whole design. Ch. 25 names three things —
  * **positions, health values, effect ids** — and the temptation is to add more
  * "for safety". Every field added that can legitimately differ between clients
  * turns the detector into a false alarm, and a detector that cries wolf is

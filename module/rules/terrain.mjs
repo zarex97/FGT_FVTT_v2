@@ -1,6 +1,6 @@
 /**
  * @file Terrain — a property of panels, evaluated for whoever stands on them.
- * @see docs/42-terrain.md
+ * @see docs/26-terrain.md
  *
  * Layer 2 (rules). Pure.
  *
@@ -12,7 +12,7 @@
  * makes terrain undispellable, uncurable and unresistable, and it is why moving
  * out ends the effects instantly with no removal step — there is nothing to
  * remove. Mechanically it is *"a positional aura whose source is a region
- * rather than a unit"* (§42.1), so this is the aura pass with a different
+ * rather than a unit"* (Ch. 26), so this is the aura pass with a different
  * source, and `annotateTerrain` sits beside `annotateAuras` for that reason.
  *
  * Effects are **data**, with an optional attribute gate, because a third of the
@@ -30,14 +30,14 @@ import { chebyshev } from "../domain/geometry.mjs";
  */
 
 /**
- * The catalogue (§42.2), restricted to the clauses that are a **standing
+ * The catalogue (Ch. 26), restricted to the clauses that are a **standing
  * modifier** on whoever occupies the panel.
  *
  * The periodic and event-driven clauses — Burning's inescapable `Burn`, the
  * Forest→Burning coin flip, Lava's on-entry damage, Eldritch's Horrors, Meadow
  * reverting after a Damage Step — are deliberately **absent** rather than
  * half-present: they need the scheduler and the movement hooks, not this table,
- * and a half-entry here would look implemented. Ch. 45 C1 lists them.
+ * and a half-entry here would look implemented. Ch. 46 C1 lists them.
  *
  * @type {Readonly<Record<string, TerrainEntry>>}
  */
@@ -86,7 +86,7 @@ export const TERRAIN = Object.freeze({
 
   poisonSwamp: {
     name: "Poison Swamp",
-    // Entirely periodic (§42.2): Poison at end of turn, then a 50% chance of an
+    // Entirely periodic (Ch. 26): Poison at end of turn, then a 50% chance of an
     // extra stage. Nothing standing here, so nothing in this table.
     effects: [],
   },
@@ -149,7 +149,7 @@ export const TERRAIN = Object.freeze({
   halloween: { name: "Halloween", effects: [] },
   labyrinth: { name: "Labyrinth", effects: [] },
 
-  // §42.6's three phase-override types. They carry NO standing effects, and the
+  // Ch. 26's three phase-override types. They carry NO standing effects, and the
   // empty list is the finished state rather than an unfinished one: they do not
   // modify the unit standing on them, they change which PHASE the panel is in,
   // and every Day/Night clause in the game then reads that instead of the
@@ -162,14 +162,14 @@ export const TERRAIN = Object.freeze({
   //
   // Authored as a set of three because the chapter defines them as one
   // mechanism. Quetzalcoatl's `Sol` needs only `sunlight`; building that branch
-  // alone would leave `phaseAt` a partial copy of a function §42.6 wrote out
+  // alone would leave `phaseAt` a partial copy of a function Ch. 26 wrote out
   // whole, and a phase override that works in only one direction is a rule
   // shaped around one Servant rather than around the game.
   sunlight: { name: "Sunlight", effects: [] },
   darkness: { name: "Darkness", effects: [] },
   indoors: { name: "Indoors", effects: [] },
 
-  // Nemo's Storm Border (Ch. 20 §20.6). A DIFFERENT DIMENSION rather than an
+  // Nemo's Storm Border (Ch. 27). A DIFFERENT DIMENSION rather than an
   // elevation, which is why nothing crosses into or out of it and why it has
   // no ground footprint at all.
   //

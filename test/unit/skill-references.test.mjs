@@ -54,11 +54,11 @@ const DOCS = SOURCE.map((p) => parse(readFileSync(p, "utf8")));
  * every slug a document has **declared** it is referring to ahead of time.
  *
  * A forward reference is legitimate and the corpus already contains one: Karna's
- * *Fated Rivals of the Mahabharata* names an Arjuna nobody has built, and §36.1's
+ * *Fated Rivals of the Mahabharata* names an Arjuna nobody has built, and Ch. 45's
  * DECISION is that a cross-Servant reference resolves by slug and warns rather
  * than erroring, *"because a match legitimately may not include the Servant
  * named"*. Mannanán's *Alter Ego* is the second: it pays double against the
- * `Existence Outside The Domain` Skill, which belongs to Van Gogh (Ch. 35).
+ * `Existence Outside The Domain` Skill, which belongs to Van Gogh (Ch. 45).
  *
  * `forwardReferences:` is how the author says so out loud. It is deliberately
  * not an allowlist inside this test: a typo would then be indistinguishable

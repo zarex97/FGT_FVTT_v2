@@ -1,6 +1,6 @@
 /**
  * @file Reconciling a world document against its pack document.
- * @see docs/39-migration-and-versioning.md §39.6
+ * @see docs/41-migration.md
  *
  * Layer 2-equivalent: pure, no `game`, no `canvas`. The runner that walks the
  * world lives beside this and is Layer 4; this file only decides what to write.
@@ -44,7 +44,7 @@ export function reconcileSystem(kind, worldSystem, packSystem, { type = null } =
     if (ownedByWorld(kind, key, type)) continue;
 
     // THREE keys are half the pack's and half the world's: the pack states the
-    // SHAPE and the match states what it has done with it (Ch. 39, spec R2).
+    // SHAPE and the match states what it has done with it (Ch. 41, spec R2).
     // `cooldown`'s clock is what the match has spent, `summonVariant`'s
     // `variant` is how the coin actually came up, and `linkedGroup`'s
     // `memberIds` are the ACTOR ids resolved at summon -- the pack can only

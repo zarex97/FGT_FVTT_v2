@@ -1,6 +1,6 @@
 /**
  * @file Whether a resolved Damage Step delivers its on-hit riders.
- * @see docs/12-combat-process.md, docs/E-event-reference.md §E.5
+ * @see docs/21-combat-process.md, docs/E-event-reference.md §E.5
  *
  * Layer 2 (rules). Pure.
  *

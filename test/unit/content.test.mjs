@@ -1,6 +1,6 @@
 /**
  * A validator that always passes is worthless. These tests exist to prove it
- * fails on the failure modes Ch. 37 §37.4 says it must catch.
+ * fails on the failure modes Ch. 40 says it must catch.
  */
 import { describe, it, expect } from "vitest";
 import {
@@ -261,7 +261,7 @@ describe("compileDocument", () => {
 
   it("keeps rank tables symbolic rather than baking them at build time", () => {
     // A Magic Resistance resolved to 30% at build time would not respond to a
-    // runtime rank shift (Ch. 37 §37.3 step 4).
+    // runtime rank shift (Ch. 40 step 4).
     const doc = { schema: 1, id: "mr", name: "MR", rules: [{ key: "Resistance", table: "magicResistancePercent" }] };
     const out = compileDocument(doc, "effects", library);
     expect(out.system.rules[0].table).toBe("magicResistancePercent");
@@ -293,7 +293,7 @@ describe("compileDocument", () => {
     expect(out.system.itemCost).toEqual(doc.itemCost);
   });
 
-  it("keeps an authored max alongside countFrom (Ch. 32, Sikera Ušum's '6◈+⅓◈ after the NP ends')", () => {
+  it("keeps an authored max alongside countFrom (Ch. 45, Sikera Ušum's '6◈+⅓◈ after the NP ends')", () => {
     // The object-form branch used to return `max: null` unconditionally,
     // discarding any authored one -- fine for Presence Concealment (rank
     // table only) and silent for the first ability that ALSO needed a flat
@@ -372,7 +372,7 @@ describe("compileDocument", () => {
   });
 });
 
-describe("activeRules nothing can switch on (§37.4)", () => {
+describe("activeRules nothing can switch on (Ch. 40)", () => {
   const errors = (doc, dir = "abilities") => validateAll([file(doc, "x.yml", dir)]).problems;
   const withActive = (over = {}) => ok({
     activeRules: [{ key: "MovDelta", value: 5 }], ...over,
@@ -412,7 +412,7 @@ describe("activeRules nothing can switch on (§37.4)", () => {
   });
 });
 
-describe("shipped artwork (§37.3)", () => {
+describe("shipped artwork (Ch. 40)", () => {
   const library = new Map();
   const { assets } = indexAssets([
     "classes/berserker.webp", "classes/alterEgo.png", "servants/asterios.webp",
@@ -525,7 +525,7 @@ describe("shipped artwork (§37.3)", () => {
   });
 });
 
-describe("copyable (§15.7)", () => {
+describe("copyable (Ch. 17)", () => {
   it("accepts an ability that says nothing, because copyable defaults to allowed", () => {
     expect(errorsFor([file(ok())])).toEqual([]);
   });
@@ -536,7 +536,7 @@ describe("copyable (§15.7)", () => {
 
   it("catches a refusal with no reason", () => {
     // "cannot be copied" with no reason is a rule nobody can check against
-    // §15.7's exclusion list.
+    // Ch. 17's exclusion list.
     expect(errorsFor([file(ok({ copyable: { allowed: false } }))])[0])
       .toMatch(/copyable\.allowed is false/);
   });
@@ -554,7 +554,7 @@ describe("copyable (§15.7)", () => {
   });
 });
 
-describe("priority overrides (§24.6)", () => {
+describe("priority overrides (Ch. 10)", () => {
   const withPriority = (over = {}) => ok({
     rules: [{ key: "StatDelta", priority: 45, ...over }],
   });
@@ -599,7 +599,7 @@ describe("priority overrides (§24.6)", () => {
   });
 });
 
-describe("cross-reference index (§37.3)", () => {
+describe("cross-reference index (Ch. 40)", () => {
   const files = [
     { path: "burn.yml", dir: "effects", doc: { schema: 1, id: "burn", name: "Burn" } },
     { path: "riding.yml", dir: "class-skills", doc: { schema: 1, id: "class-riding", name: "Riding" } },
@@ -661,7 +661,7 @@ describe("compileDocument rewrites markers", () => {
   });
 });
 
-describe("cross-reference validation (§37.4)", () => {
+describe("cross-reference validation (Ch. 40)", () => {
   const corpus = (extra) => [
     { path: "burn.yml", dir: "effects", doc: { schema: 1, id: "burn", name: "Burn" } },
     { path: "riding.yml", dir: "class-skills", doc: { schema: 1, id: "class-riding", name: "Riding" } },
@@ -762,7 +762,7 @@ describe("timing windows are validated", () => {
   const ability = (timing) => file({ ...ok(), timing }, "abilities/x.yml", "abilities");
 
   it("refuses a window the engine does not dispatch", () => {
-    // The spelling docs/15-abilities.md §15.3 published for years. An ability
+    // The spelling docs/17-abilities.md published for years. An ability
     // naming it authors cleanly and its window never fires.
     const problems = errorsFor([ability({ window: "damageStepStart" })]);
     expect(problems.join(" ")).toMatch(/damageStepStart/);

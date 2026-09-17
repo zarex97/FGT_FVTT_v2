@@ -40,7 +40,7 @@
  * screen while that user is already connected — if you are sitting in the world
  * as the Gamemaster, either pass a different `--user` or close your tab first.
  *
- * @see docs/38-testing.md
+ * @see docs/44-testing.md
  */
 
 /* ── Arguments ────────────────────────────────────────────────────────────── */

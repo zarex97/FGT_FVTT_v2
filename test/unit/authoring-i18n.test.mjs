@@ -1,6 +1,6 @@
 /**
  * @file Every authoring label and hint resolves to real text.
- * @see module/rules/authoring/, docs/29-user-interface.md §29.9
+ * @see module/rules/authoring/, docs/34-action-bar.md
  *
  * D5 says a keyword must carry a hint. This is the other half: a hint that is
  * a localization key nothing defines renders as `FGT.Authoring.Element.AuraHint`

@@ -1,6 +1,6 @@
 /**
  * @file Whether an attack misses before anybody reacts to it.
- * @see docs/A-effect-catalogue.md §A, docs/12-combat-process.md §12.2
+ * @see docs/A-effect-catalogue.md §A, docs/21-combat-process.md
  *
  * Layer 2 (rules). **Pure.**
  *
@@ -67,7 +67,7 @@ export function missChance(attacker, options = new Set()) {
   // Anastasia's *Watermelon Splitting Master*: *"When Anastasia performs a
   // Normal Attack at a Range of 1 to 2 while inflicted with Blind, it does not
   // have a chance of Missing."* A Servant who inflicts Blind on herself to turn
-  // it into an offensive buff -- Ch. 44 §44.3 calls the shape "self-harm as a
+  // it into an offensive buff -- Ch. 45 calls the shape "self-harm as a
   // resource", with Van Gogh's Curse economy as the precedent. The difference
   // is that Gogh CONSUMES her debuff and Anastasia REINTERPRETS hers.
   //

@@ -1,6 +1,6 @@
 /**
  * @file Intents — the boundary between deciding and writing.
- * @see docs/03-domain-overview.md §3.4
+ * @see docs/02-architecture.md
  *
  * Layer 3 (orchestration). This module is itself **pure**: it constructs,
  * validates, orders and batches intents. Only `applyIntents` in
@@ -66,7 +66,7 @@ const ORDER = Object.freeze({
   itemQuantity: 2,
   itemGrant: 2,
   // A contract and its spells are bookkeeping, and they must land together:
-  // §16.2 requires no intermediate state between freeing and contracting.
+  // Ch. 32 requires no intermediate state between freeing and contracting.
   markContract: 2,
   grantCommandSpells: 2,
   // After the action it records, before anything reads it back.
@@ -277,7 +277,7 @@ export const resource = (unitId, key, delta) =>
  * `resource`'s delta is added to whatever the field currently holds — and a
  * field that is legitimately `null` until its first write has no "current" to
  * add against. Sustainability's remaining-turns clock is exactly this: `null`
- * means "not started yet, defaults to the resolved maximum" (Ch. 06 §6.8), not
+ * means "not started yet, defaults to the resolved maximum" (Ch. 06), not
  * "zero". A relative `resource` intent against it reads the raw stored `null`,
  * and `io.adjustResource` cannot invent the resolved maximum on its own — it
  * has no ◈ expression to resolve and no `turnsPerRound` to resolve it with.
@@ -346,7 +346,7 @@ export const suspendSkill = (unitId, abilityId, untilTick, source = null) =>
   ({ t: "suspendSkill", unitId, abilityId, untilTick, source });
 
 /**
- * Put a Unit into a stance (Ch. 44 §44.1).
+ * Put a Unit into a stance (Ch. 45).
  *
  * Emitted by the Turn boundary for *"always Dismounted when it is not his
  * Turn"*, and by the sheet control for the declaration.
@@ -404,7 +404,7 @@ export const shieldDelta = (unitId, abilityId, delta) =>
 /**
  * Record an attack's identity under an ability that watches for it.
  *
- * God Hand's second passive, and the reason §6.10 draws a line between a
+ * God Hand's second passive, and the reason Ch. 06 draws a line between a
  * Resource and a set: this pool stores **identities**, not a number.
  *
  * @param {string} unitId @param {string} abilityId @param {string} identity
@@ -433,7 +433,7 @@ export const prompt = (userId, spec) =>
 
 /**
  * Record what a unit has done this turn. `patch` is a partial `turnState`.
- * @see docs/18-action-economy.md §18.4
+ * @see docs/19-action-economy.md
  */
 export const markTurn = (unitId, patch) =>
   ({ t: "markTurn", unitId, patch });
@@ -457,7 +457,7 @@ export const itemGrant = (unitId, contentId, delta = 1) =>
   ({ t: "itemGrant", unitId, contentId, delta });
 
 /**
- * Set a unit's contract state and its Master (§16.2).
+ * Set a unit's contract state and its Master (Ch. 32).
  * @param {string} unitId @param {string} contract @param {string|null} masterId
  * @returns {Intent}
  */
@@ -465,7 +465,7 @@ export const markContract = (unitId, contract, masterId = null) =>
   ({ t: "markContract", unitId, contract, masterId });
 
 /**
- * Grant Command Spells namespaced to one Servant (§16.9).
+ * Grant Command Spells namespaced to one Servant (Ch. 32).
  * @param {string} masterId @param {string} servantId @param {number} count
  * @returns {Intent}
  */

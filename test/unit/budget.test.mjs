@@ -1,6 +1,6 @@
 /**
  * @file The turn budget.
- * @see docs/18-action-economy.md
+ * @see docs/19-action-economy.md
  */
 
 import { describe, it, expect } from "vitest";
@@ -331,7 +331,7 @@ describe("D6 — a linked member counts as half a Unit", () => {
       b = consume(b, twin(id), "move").budget;
     }
     // Seven halves. `usedHalves` is what the comparison uses and it must be an
-    // integer -- Ch. 34 §34.5 names float accumulation as the risk here.
+    // integer -- Ch. 45 names float accumulation as the risk here.
     expect(b.pools.servantMove.usedHalves).toBe(7);
     expect(Number.isInteger(b.pools.servantMove.usedHalves)).toBe(true);
   });

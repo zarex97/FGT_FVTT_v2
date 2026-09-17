@@ -1,8 +1,8 @@
 /**
  * @file Creating a bounded field on the board.
- * @see docs/43-bounded-fields.md, module/rules/bounded-fields.mjs
+ * @see docs/28-bounded-fields.md, module/rules/bounded-fields.mjs
  *
- * Layer 3. The **write** half of Ch. 43.
+ * Layer 3. The **write** half of Ch. 28.
  *
  * Everything that reads a field already existed and none of it had ever run.
  * `panelsOf`, `membershipVerdict`, `escapeAttempt`, `isolationBlocks`,
@@ -15,7 +15,7 @@
  * done the same.
  *
  * A field is a Foundry **Region** carrying an `npField` behaviour, for the
- * reasons Ch. 42 gives for terrain: membership is maintained natively,
+ * reasons Ch. 26 gives for terrain: membership is maintained natively,
  * `tokenEnter`/`tokenExit` fire natively, and the shape survives a reload
  * without this module having to remember anything.
  */
@@ -232,7 +232,7 @@ async function openField(ability, actor, snapshot, spec, { panels: givenPanels =
     // when its owner leaves the board.
     passive: Boolean(spec.passive),
     duration: specDuration ?? null,
-    // Absolute, like every other duration in the system (§7.5): a countdown
+    // Absolute, like every other duration in the system (Ch. 04): a countdown
     // would have to be decremented by a hook that can fail to fire, and an
     // absolute expiry cannot.
     expiry: expiryOf(specDuration),
@@ -250,7 +250,7 @@ async function openField(ability, actor, snapshot, spec, { panels: givenPanels =
   // panels ... cannot expand past a distance of 4 panels from Jack", and a 5x5
   // centred on her is exactly 25 panels every one of which is within 2 -- the
   // largest legal opening, which is what a player who draws nothing wants.
-  // Reshaping it is a separate control (§43.4).
+  // Reshaping it is a separate control (Ch. 28).
   // A `markDefined` field's shape was decided by four objects on the board over
   // four Turns, so it arrives already computed. `panelsOf` reads a stored
   // `panels` for this geometry kind and there is nothing else to derive it from.
@@ -983,7 +983,7 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
 
       // Jack's Mist: *"Normal Humans immediately die if they are caught in the
       // Mist (this counts as Jack killing the Human)."* No damage number and
-      // no roll -- the same shape §4.6 gives a Servant attacking a Civilian,
+      // no roll -- the same shape Ch. 06 gives a Servant attacking a Civilian,
       // which `rules/environment.mjs#civilianKill` already writes as a bare
       // defeat plus the killer's bounty.
       //
@@ -1004,7 +1004,7 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
 
       // Sikera Ušum clause b: "it is inflicted with Poison" -- no damage
       // number to roll, an effect to apply. `expiry: null` is the correct
-      // "no duration" reading (Ch. 7 §7.5's resolution, the same one an
+      // "no duration" reading (Ch. 04's resolution, the same one an
       // ability phase's `applyEffects` uses): Poison's own duration is its
       // stage clock, not this rider's.
       // *"...then remove the 'GotN' effect from that Unit."* A field event that

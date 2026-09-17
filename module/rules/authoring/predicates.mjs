@@ -1,6 +1,6 @@
 /**
  * @file Every place a predicate can hide in an authored document.
- * @see docs/24-rules-engine.md §24.4
+ * @see docs/11-predicates.md
  *
  * Layer 2 (rules). Pure.
  *

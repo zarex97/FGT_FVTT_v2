@@ -1,6 +1,6 @@
 /**
  * @file Axis 2 — shape expansion. Anchor panel(s) → panel set.
- * @see docs/09-targeting.md §9.4
+ * @see docs/20-targeting.md
  *
  * Layer 2 (rules). Pure geometry over L1 primitives; no board state, no units.
  *
@@ -31,7 +31,7 @@ export const DELTA = Object.freeze({
 /**
  * Expand a shape around an anchor.
  *
- * @param {object} shape a `ShapeSpec` (docs/09-targeting.md §9.4)
+ * @param {object} shape a `ShapeSpec` (docs/20-targeting.md)
  * @param {object} anchor the resolved anchor from axis 1
  * @param {object} [opts]
  * @param {Bounds|null} [opts.bounds]
@@ -131,7 +131,7 @@ export function expand(shape, anchor, opts = {}) {
 
     case "orientedRect": {
       // "7×3 or 3×7 in the direction the bow is facing" is one shape described
-      // for both facings, projected forward from the front edge (Ch. 09 §9.4).
+      // for both facings, projected forward from the front edge (Ch. 20).
       // `direction` is a PLAYER's choice (`selfEdgeAdjacent`'s four ghost
       // previews); `facing` is a unit's own bearing, which for the Golden Hind
       // is its bow. The choice wins where there is one.
@@ -186,7 +186,7 @@ export function expand(shape, anchor, opts = {}) {
  * @param {string} d a cardinal direction name
  * @param {Bounds|null} [bounds]
  * @returns {GridOffset[]}
- * @see docs/09-targeting.md §9.3
+ * @see docs/20-targeting.md
  */
 export function orthogonalAdjacentRect(c, w, h, d, bounds = null) {
   const delta = DELTA[d];
@@ -218,7 +218,7 @@ function flat(panels) {
   return { panels, bands: null };
 }
 
-/** The standard board is 13×13; the Large Board is 25×25 (Ch. 08). */
+/** The standard board is 13×13; the Large Board is 25×25 (Ch. 05). */
 const STANDARD_BOARD = 13;
 
 /**

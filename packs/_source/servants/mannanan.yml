@@ -1,6 +1,6 @@
 # packs/_source/servants/mannanan.yml
 # Conversion source: char_orig_sheets/Copia de Mannanán mac Lir.md
-# Discussed: docs/33-case-mannanan.md
+# Discussed: docs/45-case-studies.md
 #
 # The reference set's acceptance test for REACTIVE mechanics: a counter that
 # fires on being attacked *or debuffed*, a Noble Phantasm that cancels an
@@ -42,7 +42,7 @@ baseAttack: { str: 150, mag: 250 }
 normalAttack: { mode: fixed, component: str }
 sustainability: "2◈"
 
-# ─── Resources (§6.10) ─────────────────────────────────────────────────
+# ─── Resources (Ch. 06) ─────────────────────────────────────────────────
 # The third Resource pool in the system, and the first with FOUR producers and
 # THREE consumers: +1 at the end of every Round, +1 per Fragarach Counter, +1
 # per acted Turn in Holder Mode; 1 for the Combat-Phase crit offer, 3 for Toole
@@ -55,7 +55,7 @@ sustainability: "2◈"
 resources:
   fragarachTokens: { value: 5, max: 5 }
 
-# ─── Holder Mode's rewrite (Ch. 33 §33.5) ──────────────────────────────
+# ─── Holder Mode's rewrite (Ch. 45) ──────────────────────────────
 # Clauses 3 and 4 of God's Holder: Possession change the SHAPE of her data
 # rather than layering a conditional on a fixed shape -- which is exactly what
 # `summonVariant` was built for (`rules/summon-variant.mjs`), and the reason
@@ -110,12 +110,12 @@ abilities:
   - { ref: mannanan-hallowed-sea-gods-sword }
   # The Fragarach Counter. Not a button: it is declared by the engine on her
   # behalf whenever the `fragarach` status provokes, and it is authored as an
-  # ability so that the counter is a full Combat Process (§12.8) with a real
+  # ability so that the counter is a full Combat Process (Ch. 21) with a real
   # reaction ladder rather than a second, weaker damage path.
   - { ref: mannanan-fragarach-counter }
 
 notes: |
-  The thirteenth Servant, and the one Ch. 33 calls the acceptance test for reactive mechanics.
+  The thirteenth Servant, and the one Ch. 45 calls the acceptance test for reactive mechanics.
 
   **`Pseudo Servant` finally means something.** Ch. 02 §2.10's implication table had never been
   built: `spirit` appeared nowhere in the corpus, so `Servant => Spirit` had no effect and the

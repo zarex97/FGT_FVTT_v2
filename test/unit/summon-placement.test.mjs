@@ -1,6 +1,6 @@
 /**
  * @file Where a summon lands — `engine/summoning.mjs#freePanels`.
- * @see docs/20-platforms-and-levels.md, docs/15-abilities.md §15.2
+ * @see docs/27-platforms-and-levels.md, docs/17-abilities.md
  *
  * A summon appears on a free panel beside its summoner. What counts as free is
  * the whole of this file: a platform is stood on rather than blocked by, and a

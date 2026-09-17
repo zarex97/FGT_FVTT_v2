@@ -1,6 +1,6 @@
 /**
  * @file Every localization key a template or module asks for exists.
- * @see docs/29-user-interface.md
+ * @see docs/34-action-bar.md
  *
  * A missing key does not throw. Foundry renders the key itself, so the button
  * reads `FGT.Summon.Confirm` and the system looks broken in a way no test and

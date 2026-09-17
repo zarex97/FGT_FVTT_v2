@@ -1,10 +1,10 @@
 /**
  * @file The targeting preview panel.
- * @see docs/28-targeting-implementation.md §28.6
+ * @see docs/20-targeting.md
  *
  * Layer 4. Every line it shows comes from data the resolution already produced:
  * the target list from `ResolvedTargets`, the damage range from a speculative
- * run of the real pipeline (§28.7), and the failure text from the resolver's
+ * run of the real pipeline (Ch. 20), and the failure text from the resolver's
  * own error strings.
  *
  * It renders itself rather than going through ApplicationV2 because it follows
@@ -81,14 +81,14 @@ export class TargetingHUD {
     // Everything the area caught and then dropped, with the reason it was
     // dropped. A unit standing inside the highlight and not in the target list
     // is the single most confusing thing a targeting preview can show, and the
-    // player has no way to work out why on their own (§28.6).
+    // player has no way to work out why on their own (Ch. 20).
     const excluded = (option.resolved?.excluded ?? []).map((e) => this.#excludedRow(e)).join("");
 
     // Warnings are shown for a LEGAL placement too — `grailAtRisk` is legal and
     // catastrophic, which is exactly the case a preview exists to surface.
     const warnings = (option.resolved?.warnings ?? [])
       .map((w) => `<div class="fgt-preview__warning">⚠ ${escape(w)}</div>`).join("");
-    // §28.8: each refusal rendered with its own numbers and its own KIND. A
+    // Ch. 20: each refusal rendered with its own numbers and its own KIND. A
     // refusal a Command Spell can lift carries the offer inline, because the
     // moment a player learns they cannot do something is the moment to tell
     // them what would let them.

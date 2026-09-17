@@ -1,6 +1,6 @@
 /**
  * @file Blood Fort Andromeda's drain pool.
- * @see module/rules/fields/pool.mjs, docs/43-bounded-fields.md §43.7
+ * @see module/rules/fields/pool.mjs, docs/28-bounded-fields.md
  */
 
 import { describe, it, expect } from "vitest";

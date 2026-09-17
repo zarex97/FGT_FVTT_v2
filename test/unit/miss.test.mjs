@@ -1,6 +1,6 @@
 /**
  * @file Blind's Miss chance, and Combat Process step 1.5.
- * @see docs/A-effect-catalogue.md §A (Blind), docs/12-combat-process.md §12.2
+ * @see docs/A-effect-catalogue.md §A (Blind), docs/21-combat-process.md
  *
  * Appendix A has catalogued Blind since it was written and nothing ever
  * authored it, because clause 1 needs a step the Combat Process did not have:

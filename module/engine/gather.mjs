@@ -1,6 +1,6 @@
 /**
  * @file "Gather" -- HGoB Construction source 6.
- * @see docs/32-case-semiramis.md
+ * @see docs/45-case-studies.md
  *
  * Layer 3. *"Semiramis or any allied Unit can perform 'Gather' during its
  * Turn, which increases Construction by 3. However, if Semiramis uses it,

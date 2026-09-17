@@ -1,6 +1,6 @@
 /**
  * @file Who gets which sheet.
- * @see module/apps/sheet-choice.mjs, docs/29-user-interface.md §29.6
+ * @see module/apps/sheet-choice.mjs, docs/34-action-bar.md
  *
  * The reported bug: Items -> Create Item -> Ability opened the plain display
  * sheet -- a name, a rank, a cooldown -- because AbilityEditor was registered

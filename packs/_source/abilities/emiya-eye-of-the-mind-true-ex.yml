@@ -14,7 +14,7 @@ cooldown: "4◈"
 # the EX form gains the proactive window the B form does not have.
 timing: { window: [ownTurn, whenAttacked] }
 # Jack the Ripper's sheet lists this skill among those "also categorized as
-# 'Instinct'", which is what her Mist's exemption keys on (Ch. 43, and
+# 'Instinct'", which is what her Mist's exemption keys on (Ch. 28, and
 # `rules/bounded-fields.mjs#hasCategory`). The parenthesis on her list is
 # "(only when Active/its buffs are in effect)", so the tag is gated on the
 # buffs this skill grants rather than being unconditional -- it is a cooldown

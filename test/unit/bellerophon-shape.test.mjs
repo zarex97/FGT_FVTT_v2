@@ -1,8 +1,8 @@
 /**
  * @file Bellerophon's line: diagonal, and board-size dependent.
- * @see module/rules/targeting/shapes.mjs, docs/44-case-expanded-roster.md §44.3
+ * @see module/rules/targeting/shapes.mjs, docs/45-case-studies.md
  *
- * §44.3 reads this as two novelties for the targeting engine — diagonal lines
+ * Ch. 45 reads this as two novelties for the targeting engine — diagonal lines
  * and bidirectional projection. Only half of that was true: `geometry.line` has
  * stepped a diagonal correctly since it was written and `DELTA` has held all
  * eight compass values, so a diagonal line was **expressible and unofferable**.

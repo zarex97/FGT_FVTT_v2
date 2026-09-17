@@ -1,6 +1,6 @@
 /**
  * @file Cross-reference markers in content prose.
- * @see tools/lib/references.mjs, docs/37-content-pipeline.md §37.8
+ * @see tools/lib/references.mjs, docs/40-content-pipeline.md
  *
  * Nothing in this system has ever called `enrichHTML`, so a description
  * mentioning Burn was plain text and a player had no way to learn what Burn

@@ -1,6 +1,6 @@
 /**
  * @file Agility Checks, Luck Checks, and the generic chance roll.
- * @see docs/14-checks-and-randomness.md
+ * @see docs/13-checks-and-randomness.md
  *
  * Layer 2 (rules). Pure — every check takes its die result as an argument and
  * returns a verdict. The caller rolls; this decides.
@@ -39,7 +39,7 @@ export const UNFAVOURABLE_PENALTY = 4;
  * `Agility Boost` / `Luck Boost` force the favourable table; `Agility Loss` /
  * `Luck Loss` force the unfavourable one. A unit carrying both takes the
  * unfavourable table — debuffs win ties, matching the effect engine's general
- * precedence (Ch. 11 §11.6).
+ * precedence (Ch. 15).
  *
  * @param {number} own the checking unit's current stat
  * @param {number} opposing the opponent's, or `null` for an uncontested check
@@ -226,7 +226,7 @@ export function resolveCheck({ roll, target, table, modifiers = [] }) {
  * @param {boolean} [args.forceUnfavourable] Mad Enhancement clause 6
  * @param {Array<{source: string, value: number}>} [args.modifiers]
  * @returns {CheckResult}
- * @see docs/14-checks-and-randomness.md §14.5
+ * @see docs/13-checks-and-randomness.md
  */
 export function evade({ roll, agility, hasDodge = false, attackHasAim = false,
   forceUnfavourable = false, modifiers = [], autoSucceed = null, attackProperties = [],
@@ -323,7 +323,7 @@ export function luckCheck({ roll, luck, opposingLuck = null, hasBoost = false,
  * @param {number} roll a `1d100` in 1..100
  * @param {number} percent
  * @returns {boolean}
- * @see docs/14-checks-and-randomness.md §14.6
+ * @see docs/13-checks-and-randomness.md
  */
 export function chance(roll, percent) {
   return roll <= Math.max(0, Math.min(100, percent));
@@ -356,7 +356,7 @@ export function applicationChance({ base, inflictBonus = 0, resist = 0,
 /**
  * The chance that an attack crits, as a percentage.
  *
- * §14.6: *"Since Flip a Coin is used when determining whether Attack+ or
+ * Ch. 13: *"Since Flip a Coin is used when determining whether Attack+ or
  * Attack− is used, the normal chance of getting a Crit would be 50%. Some
  * effects increase and decrease the chance"* — so a **base of 50 adjusted by
  * modifiers**, not a `1d2`.

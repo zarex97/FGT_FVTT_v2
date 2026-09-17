@@ -1,8 +1,8 @@
 /**
  * @file The stance — a per-action declaration, free but window-constrained.
- * @see module/rules/stance.mjs, docs/44-case-expanded-roster.md §44.1
+ * @see module/rules/stance.mjs, docs/45-case-studies.md
  *
- * Achilles is the only Servant in either roster with one, and Ch. 44 §44.1
+ * Achilles is the only Servant in either roster with one, and Ch. 45
  * argues at length that it is NOT a mode: a mode carries a duration, a cooldown
  * and a toggle lock, and may be forced on by a compulsion. A stance has none of
  * those. What it has instead is a set of moments at which it may change, and a

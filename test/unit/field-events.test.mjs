@@ -1,6 +1,6 @@
 /**
  * @file A bounded field's interior EVENTS — branch selection and filters.
- * @see docs/43-bounded-fields.md §43.6
+ * @see docs/28-bounded-fields.md
  */
 
 import { describe, it, expect } from "vitest";

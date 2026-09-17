@@ -1,12 +1,12 @@
 /**
  * @file Rolling a unit's way out of a bounded field.
- * @see module/rules/bounded-fields.mjs, docs/43-bounded-fields.md §43.4
+ * @see module/rules/bounded-fields.mjs, docs/28-bounded-fields.md
  *
  * Layer 3. The ladder itself is pure and lives in `rules/bounded-fields.mjs`;
  * this rolls the die, writes what the roll decided, and says so in the log.
  *
  * It exists because the ladder had **no caller at all**. `escapeAttempt`
- * implemented every rung of §43.4 — base chance, `+N` per failure, border
+ * implemented every rung of Ch. 28 — base chance, `+N` per failure, border
  * contact, remaining movement, relocation on failure, and the veteran clause
  * that lets an escapee lead adjacent allies out — and the only things that ever
  * called it were its own twelve unit tests. Meanwhile `rules/movement.mjs`

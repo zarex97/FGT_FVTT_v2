@@ -1,6 +1,6 @@
 /**
  * @file Projection from Foundry documents to plain data.
- * @see docs/03-domain-overview.md §3.4
+ * @see docs/02-architecture.md
  *
  * Layer 2 (rules). Pure in the sense that matters: it takes documents as
  * **arguments** and reads their fields. It never touches a global, never
@@ -142,7 +142,7 @@ export function snapshotUnit(actor, {
     // the would-be holder, its Master, and the distance between them at once.
     cannotHoldItems: Boolean(sys.cannotHoldItems),
     itemHandling: sys.itemHandling ?? "hold",
-    // Structure-only (Ch. 43 §43.10). Who may break this object, and how near
+    // Structure-only (Ch. 28). Who may break this object, and how near
     // a viewer must be to see it -- the first is a targeting filter and the
     // second is presentation, never state.
     destroyableBy: [...(sys.destroyableBy ?? [])],
@@ -202,7 +202,7 @@ export function snapshotUnit(actor, {
       : sustainabilityTurns(sys, turnsPerRound),
     // The authored maximum, for the sheet.
     sustainabilityMax: sys.sustainability ?? null,
-    // §16.2: *"State is derived, not stored"* -- `if (!m) return "free"`. The
+    // Ch. 32: *"State is derived, not stored"* -- `if (!m) return "free"`. The
     // stored field exists because the contract OPERATIONS write it, but it
     // initialises to `"contracted"` and a Servant summoned with no Master had
     // nothing to overwrite it, so every Free Servant's sheet claimed a contract
@@ -211,7 +211,7 @@ export function snapshotUnit(actor, {
     contract: sys.masterId ? (sys.contract ?? "contracted") : "free",
     commandSpells: sys.commandSpells ?? 0,
 
-    // §5.6: `effective = base shifted by granted`. `grantedSteps` holds the
+    // Ch. 03: `effective = base shifted by granted`. `grantedSteps` holds the
     // MASTER's grant and only that -- it is a permanent, per-unit fact this
     // projection can settle alone, and `grantedStepDeltas` names the Master as
     // its source. The war Region's grant is applied by `applyRegionBonus` on
@@ -230,7 +230,7 @@ export function snapshotUnit(actor, {
     // Abilities can grant attributes -- Divinity grants `divine`, which is what
     // Karna's Vasavi Shakti and Scathach's God Slayer key on.
     //
-    // Then CLOSED over Ch. 02 §2.10's implication table (`domain/attributes.mjs`),
+    // Then CLOSED over CONTEXT.md's implication table (`domain/attributes.mjs`),
     // which had never been applied anywhere: `Servant => Spirit` unless the
     // Servant is a Demi- or Pseudo-Servant, `Human => Humanoid, Living Human`,
     // and the derived `Magus` that Mannanan's Sealing Designation Enforcer
@@ -273,16 +273,16 @@ export function snapshotUnit(actor, {
     // that swaps a Unit's numbers for a while (her `DSC` buff); this is the
     // record of the coin flip. Found live driving Semiramis.
     variant: sys.variant ?? sys.summonVariant?.variant ?? null,
-    // The stance and the rules for changing it (Ch. 44 §44.1). Both travel,
+    // The stance and the rules for changing it (Ch. 45). Both travel,
     // because `rules/stance.mjs` answers "may this change now" from the
     // projection and never from the document.
-    // Weak points the ATTACKER may aim at (Ch. 44 §44.2). Collected from the
+    // Weak points the ATTACKER may aim at (Ch. 45). Collected from the
     // Unit's own abilities, because it is a property of the Unit rather than a
     // technique it uses -- which is also why nothing here checks a cooldown.
     weakPoints: [...(actor.items ?? [])]
       .map((i) => i.system?.weakPoint)
       .filter(Boolean),
-    // How this Unit shoves whoever it walks into (Ch. 08 §8.3). `null` for
+    // How this Unit shoves whoever it walks into (Ch. 05). `null` for
     // everyone but Achilles; Kingprotea's outward push is the default.
     knockback: contributions.knockback ?? null,
     // Riding's Passenger Seat, as the player left it. Read by
@@ -309,7 +309,7 @@ export function snapshotUnit(actor, {
     compulsionRules: contributions.compulsions ?? [],
     // Modes this Unit is HELD ON in, and the condition each waits on. Read by
     // `rules/modes.mjs#forcedOn` -- late, every time the question is asked,
-    // because the conditions are positional (Ch. 15 §15.3).
+    // because the conditions are positional (Ch. 17).
     forcedModeRules: contributions.forcedModeRules ?? [],
     // Scalings applied to an incoming effect's MAGNITUDE, read at step 4b of
     // the application pipeline (`engine/effect-applier.mjs`). Distinct from
@@ -334,7 +334,7 @@ export function snapshotUnit(actor, {
     // general list is what lets the ladder say WHICH effect refused.
     forbiddenReactions: [...new Set(contributions.forbiddenReactions ?? [])],
     alignment: sys.alignment ?? null,
-    // A Master's stored letter (Ch. 04 §4.5). `masterTier` is derived from it
+    // A Master's stored letter (Ch. 06). `masterTier` is derived from it
     // by `annotateMasterRank`, which needs the board: a Servant's tier is its
     // MASTER's, and only the board knows who that is.
     rank: sys.rank ?? null,
@@ -348,7 +348,7 @@ export function snapshotUnit(actor, {
     effectInstances: effectInstances(actor),
     modifiers: contributions.modifiers,
     abilities: collectAbilities(actor),
-    // §6.10's pools, so a gate or a cooldown waiver can ask what the Unit
+    // Ch. 06's pools, so a gate or a cooldown waiver can ask what the Unit
     // holds without reaching for the document. Copied one level deep, because
     // this layer is pure and must not hand a live document's object to a rule.
     resources: Object.fromEntries(
@@ -516,7 +516,7 @@ export function snapshotUnit(actor, {
         scope: "targeting", forceTarget: sys.pursuitTargetId, source: "pursuit",
       }]
       : (contributions.suppressions ?? []),
-    // Identity and Detect (Ch. 04 §4.2, Ch. 08 §8.7).
+    // Identity and Detect (Ch. 06, Ch. 05).
     trueName: sys.trueName ?? null,
     classContainer: sys.classContainer ?? [...(sys.servantClasses ?? [])][0] ?? null,
     concealedIdentity: sys.concealedIdentity || null,
@@ -525,14 +525,14 @@ export function snapshotUnit(actor, {
     // "While a Servant is affected by Charm, Confuse, Berserk, Stun, Stop,
     // Petrify, Freeze, Sleep, **or any other effect that prevents a Servant
     // from Acting**, the effects in the above paragraphs are negated"
-    // (§16.4). The flag alone answered only `engine/channel.mjs`, which is the
+    // (Ch. 32). The flag alone answered only `engine/channel.mjs`, which is the
     // one thing that writes it — so a Stunned Servant still protected its
     // Master, still redirected a Counter, still denied the zone and still
-    // covered against an AoE, and §16.4's negation clause was inert for all
+    // covered against an AoE, and Ch. 32's negation clause was inert for all
     // four rules.
     //
     // Read off the DEFINITIONS rather than a hard-coded list, which is what
-    // `preventsAction` was added for: its own schema comment says §23.9 "had
+    // `preventsAction` was added for: its own schema comment says Ch. 08 "had
     // to guess from a hard-coded list before any effect could say so itself".
     canAct: sys.canAct !== false
       && !effectIds.some((id) => EffectRegistry.get(id)?.preventsAction),
@@ -649,7 +649,7 @@ export function roundStateAt(raw, round) {
  * @param {object} [args.settings]
  * @returns {object}
  */
-/** The four the rulebook names (Ch. 19). Anything else reads as Intermediate. */
+/** The four the rulebook names (Ch. 29). Anything else reads as Intermediate. */
 const DIFFICULTIES = Object.freeze(["beginner", "intermediate", "expert", "lunatic"]);
 
 export function snapshotBoard({ scene, actors, settings = {} }) {
@@ -710,9 +710,9 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
     //
     // The same bug as `zones`, in the same object, missed when that one was
     // fixed. Everything downstream is affected: `terrainAt` found no areas, so
-    // every standing modifier, every periodic, `phaseAt` and the whole Ch. 42
+    // every standing modifier, every periodic, `phaseAt` and the whole Ch. 26
     // catalogue answered for empty ground. A GM's hand-drawn terrain has never
-    // done anything, and Ch. 45 has recorded terrain as **Done** throughout.
+    // done anything, and Ch. 46 has recorded terrain as **Done** throughout.
     //
     // Found live, painting Quetzalcoatl's `Sol`: the Region existed with 25
     // shapes and the right tag, and `phaseAt` reported Night standing in it.
@@ -756,7 +756,7 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
 
   // Auras are the same shape of problem as ZON and get the same answer: a
   // property of the board, settled once every unit is projected. Doing it here
-  // rather than per-unit is what stops the cycle in Ch. 23 §23.3 -- every unit
+  // rather than per-unit is what stops the cycle in Ch. 08 -- every unit
   // is expanded against the same untouched board, so an aura cannot feed an
   // aura and the result does not depend on visit order.
   // Terrain, for the same reason and in the same place: it is positional, so
@@ -802,7 +802,7 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // which Round it is or whose ground it is standing on.
   annotateEnvironment(units, board);
   // The war's Region grants every Servant from it "+ to all Parameters"
-  // (§19.3). Applied here rather than at setup so that changing the region
+  // (Ch. 29). Applied here rather than at setup so that changing the region
   // mid-configuration does not need every sheet rewritten.
   annotateRegionBonus(units, board);
   // ...and the one interior rule that takes something AWAY. Achilles's duel
@@ -822,9 +822,9 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   annotateSummonsActed(units);
   // Built here rather than cached across calls: `snapshotBoard` is where the
   // board's positions are already in hand, and an index built anywhere else
-  // would need the invalidation table (§23.9) to keep it honest. The engine
+  // would need the invalidation table (Ch. 08) to keep it honest. The engine
   // holds a longer-lived one for the canvas; this is the resolution path, and
-  // §23.3 requires that one to be synchronous and current.
+  // Ch. 08 requires that one to be synchronous and current.
   board.auraIndex = buildAuraIndex(board);
   annotateAuras(units, board, board.auraIndex);
 
@@ -908,7 +908,7 @@ function annotatePlatforms(units, board) {
  * Apply the war Region's parameter step.
  *
  * A **rank shift**, not a numeric delta, so it moves Base Attack by 10 per
- * step with it (Ch. 05 §5.6) — the same rule a High Rank Master's grant
+ * step with it (Ch. 03) — the same rule a High Rank Master's grant
  * applies via `applyGrantedSteps` above, kept live here instead of baked into
  * the sheet, because *"changing the region mid-configuration does not need
  * every sheet rewritten"*.
@@ -1016,7 +1016,7 @@ export function applyRegionBonus(unit, warRegion) {
  * What a Servant's Master's rank gives it, and the tier every predicate reads.
  *
  * A board pass rather than a per-unit projection because it needs the OTHER
- * unit: *"High Rank Masters: +1◈ while alive"* (Ch. 04 §4.5, Ch. 16) turns on
+ * unit: *"High Rank Masters: +1◈ while alive"* (Ch. 06, Ch. 32) turns on
  * whether the Master is still standing, and only the board knows that. The
  * bonus therefore lapses at the same instant the Free-Servant clock starts,
  * which is what the two rules together describe.
@@ -1075,7 +1075,7 @@ function annotateEnvironment(units, board) {
     u.inHomeBase = inOwnHomeBase(u, board);
     // `phaseAt(u.panel)`, not `board.phase`: a Dark unit standing inside
     // Quetzalcoatl's `Sol` is in daylight while the rest of the board is at
-    // Night (§42.6). Reading it at this unit's OWN panel satisfies decision Q43
+    // Night (Ch. 26). Reading it at this unit's OWN panel satisfies decision Q43
     // in both directions at once -- `darkModifiers` returns a dealt modifier
     // and a taken one, and Q43 wants the attacker's panel for the first and the
     // defender's for the second, which for this unit is the same panel.
@@ -1155,7 +1155,7 @@ function parseParameters(raw) {
 }
 
 /**
- * Shift parsed parameters by a High Rank Master's grant (Ch. 05 §5.6).
+ * Shift parsed parameters by a High Rank Master's grant (Ch. 03).
  *
  * `system.grantedSteps` was, until now, read only by `baseAttackAdjustment`
  * at summon time -- the Parameter itself kept its written Rank forever, so a
@@ -1265,7 +1265,7 @@ function effectInstances(actor) {
  * What is left of a Unit's Sustainability, in turns.
  *
  * `null` means the clock does not exist at all — Independent Action A+/EX —
- * and is emphatically not "a very large number" (Ch. 16 §16.6).
+ * and is emphatically not "a very large number" (Ch. 32).
  *
  * The stored `sustainability` is the authored MAXIMUM as a ◈ expression;
  * `sustainabilityRemaining` is what is left. A Servant summoned before the
@@ -1422,7 +1422,7 @@ export function contributionsOf(actor, { terrain = [] } = {}) {
       defId: effect.system?.defId ?? null,
       fromEffect: true,
       // WHEN this instance runs out, so a handler it contributes can honour
-      // Ch. 11 §11.9 ("an effect does not act on the Turn it ends") the way the
+      // Ch. 15 ("an effect does not act on the Turn it ends") the way the
       // periodic pass already does. Carried here because the instance is the
       // only thing that knows: the definition has no clock, and the handler is
       // built from the definition's rules.
@@ -1567,7 +1567,7 @@ export function stacksHeld(actor) {
  * What an `@` expression resolves against (`rules/elements.mjs`).
  *
  * A facade rather than the raw document, so content can write
- * `@self.resources.fragarachTokens.value` -- the form Ch. 24 §24.5 documents
+ * `@self.resources.fragarachTokens.value` -- the form Ch. 10 documents
  * and the form a unit SNAPSHOT already has -- instead of threading `.system`
  * through every path and being wrong on the projections that flatten it.
  *
@@ -1639,7 +1639,7 @@ function collectAbilities(actor) {
       // name a content id, a whole category, or a copy's exclusion set --
       // which is all three of the ways her sheet groups abilities.
       contentId: i.system?.contentId ?? null,
-      // Ch. 43 §43.11's gate. `rules/history.mjs#historyWanted` asks the BOARD
+      // Ch. 28's gate. `rules/history.mjs#historyWanted` asks the BOARD
       // whether anything on it reads the past, so a field the projection drops
       // is a recorder that never starts -- and both of The Queen's Glass
       // Game's effects then do nothing at all, silently. Found on a live board:
@@ -1656,7 +1656,7 @@ function collectAbilities(actor) {
       // The geometry of the field this ability BUILDS, if any. `rules/actions.mjs`
       // offers the Mark action from the snapshot alone and cannot reach the item
       // document to ask -- and "markDefined" is the whole test for whether this
-      // Noble Phantasm is assembled rather than cast (Ch. 43 §43.4).
+      // Noble Phantasm is assembled rather than cast (Ch. 28).
       fieldGeometryKind: i.system?.field?.geometry?.kind ?? null,
       category: i.system?.category ?? null,
       exclusionSet: i.system?.exclusionSet ?? null,
@@ -1665,7 +1665,7 @@ function collectAbilities(actor) {
       maxUses: i.system?.maxUses ?? null,
       lastUsedTick: i.system?.lastUsedTick ?? null,
       // God Hand's ledger. A pool that stores IDENTITIES rather than a number
-      // is a set field, not a §6.10 Resource -- which is the line §6.10 draws
+      // is a set field, not a Ch. 06 Resource -- which is the line Ch. 06 draws
       // and names this ability while drawing it.
       recordedAttacks: [...(i.system?.recordedAttacks ?? [])],
       // Both needed by `rules/options.mjs`: `slug` is what a predicate names,
@@ -1675,7 +1675,7 @@ function collectAbilities(actor) {
       slug: i.system?.slug ?? i.id,
       active: Boolean(i.system?.active),
 
-      // What `canCopy` asks about (§15.7). None of it was projected, so
+      // What `canCopy` asks about (Ch. 17). None of it was projected, so
       // `copyCandidates` -- which reads the BOARD -- saw abilities with no
       // phases and refused every one of them as `notActive`. Wisdom of Dún
       // Scáith could not copy a single Skill in the game.

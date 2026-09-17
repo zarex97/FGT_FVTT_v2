@@ -9,7 +9,7 @@ type: servant
 trueName: Penthesilea
 servantClasses: [berserker]
 # The container it is summoned into, and the name opponents see until its
-# true name is revealed (Ch. 04 §4.2).
+# true name is revealed (Ch. 06).
 classContainer: berserker
 alignment: { order: lawful, morality: good }
 region: [greece]
@@ -48,14 +48,14 @@ notes: |
   Second Servant of the D1 pass. Her Charisma is the archetypal aura and the reason `relations`
   is a list: "all damage dealt by OTHER allied Units within a 2 panel area" means allies WITHOUT
   self, so `self` is dropped from the default `[ally, self]` and she gains nothing from her own
-  Charisma. Ch. 11 §11.6 cites exactly this case; A5 now implements it.
+  Charisma. Ch. 15 cites exactly this case; A5 now implements it.
 
   She is now fully authored. Four engine additions were needed, each driven by one of her
   clauses rather than invented up front:
 
   - **`Compulsion`** (`rules/compulsion.mjs`), for *Hatred of Achilles*. Positional like an aura,
     because it lifts the instant the Greek Male leaves. The targeting resolver reads it and
-    narrows her legal targets -- which is the reader §45.4 recorded as missing for the whole
+    narrows her legal targets -- which is the reader Ch. 46 recorded as missing for the whole
     targeting-executor family.
   - **`skill:`, `skillActive:` and `region:` roll options.** `tables.mjs` had predicated on
     `target:skill:divinity` since the tables were transcribed and nothing ever emitted a `skill:`

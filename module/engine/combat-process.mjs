@@ -1,6 +1,6 @@
 /**
  * @file The Combat Process as an explicit state machine.
- * @see docs/12-combat-process.md
+ * @see docs/21-combat-process.md
  *
  * Layer 3 (orchestration), but **pure**: `advance()` is a reducer over a
  * serializable state. It never writes and never awaits — the caller drives it,
@@ -8,7 +8,7 @@
  *
  * That shape is not incidental. The reaction ladder spans up to five prompts
  * across two clients, so the state has to survive being serialized into a chat
- * message flag between rungs (Ch. 27). A reducer over plain data is the only
+ * message flag between rungs (Ch. 23). A reducer over plain data is the only
  * version of this that can be resumed after a reconnect.
  *
  * The ladder is symmetric and two rungs deep on each side, terminating in 2.3:
@@ -30,7 +30,7 @@ export const STATES = Object.freeze([
 ]);
 
 /**
- * The transition table, transcribed from Ch. 12 §12.3.
+ * The transition table, transcribed from Ch. 21
  *
  * Every Luck Check rung carries a `declined` edge, because Luck is a finite
  * resource spent 1 per check whether or not it succeeds, and a player may
@@ -64,7 +64,7 @@ export const TRANSITIONS = Object.freeze({
   "s23_acceptOrEscape:accept": "damage",
   "s23_acceptOrEscape:cs": "noDamage",
 
-  // The weak-point rung (Ch. 44 §44.2). It is not reached by an event of its
+  // The weak-point rung (Ch. 45). It is not reached by an event of its
   // own: `advance` redirects into it from whatever would have gone to `damage`,
   // because a declared Heel Attack resolves IN PLACE OF the damage rather than
   // beside it. Both outcomes are terminal for the attack —
@@ -168,13 +168,13 @@ export function begin({
     // this; it is a backstop against a content bug that authors a free area
     // attack (`MAX_COUNTER_DEPTH`).
     counterDepth,
-    // §12.8's Master redirect: the unit a Counter off THIS process must hit
+    // Ch. 21's Master redirect: the unit a Counter off THIS process must hit
     // instead of its attacker, because the attacker is a Master with a Servant
     // within two panels. Decided by the orchestrator at the counter rung, which
     // can see positions; `null` everywhere else.
     counterRedirectId,
     history: [],
-    // Every roll this Process made (§14.8). On the state rather than beside it
+    // Every roll this Process made (Ch. 13). On the state rather than beside it
     // because the state is what crosses the socket and what the card is built
     // from -- a log kept anywhere else would not survive either trip.
     rolls: [],
@@ -182,7 +182,7 @@ export function begin({
 }
 
 /**
- * One Combat Process per defender an attack caught (§12.10).
+ * One Combat Process per defender an attack caught (Ch. 21).
  *
  * `resolveAttack` used to take `targets.units[0]` and drop the rest, keeping
  * them only long enough to set the `isAoE` flag — so a Noble Phantasm over
@@ -327,7 +327,7 @@ export function pendingPrompt(s) {
   if (s.state === "counter" && !s.counterAvailable) return null;
 
   const unitId = p.side === "attacker" ? s.attackerId : s.defenderId;
-  // Reaction abilities are offered BESIDE Block and Evade (§15.3). Medea's
+  // Reaction abilities are offered BESIDE Block and Evade (Ch. 17). Medea's
   // Trofa is "used when Attacked" and there is no other moment it can be
   // reached: by the time it matters its owner is inside somebody else's
   // Process. The orchestrator records what is usable, because deciding it
@@ -412,7 +412,7 @@ export function canCounter(s, {
   // Berserk fixes the unit's target selection, so it cannot choose to counter.
   if (defenderHasBerserk) return false;
   // Mannanán trades the normal counter for an automatic Fragarach counter
-  // (Ch. 24 §24.8): "cannot perform a normal Counter".
+  // (Ch. 10): "cannot perform a normal Counter".
   //
   // `defenderForbids` is the general form -- a `ForbidReaction` element, from
   // whatever is doing the forbidding -- and `defenderHasFragarach` is the named
@@ -428,7 +428,7 @@ export function canCounter(s, {
 }
 
 /**
- * The counter sub-processes: an Attack the other way round (§12.8).
+ * The counter sub-processes: an Attack the other way round (Ch. 21).
  *
  * > *"the DU may use the 'Counter' Action and declare an Attack on the AU.
  * > Steps 1 and 4 of Combat are repeated, but with the roles reversed."*
@@ -445,7 +445,7 @@ export function canCounter(s, {
  * counter was a Normal Attack. A counter declared with a Noble Phantasm has
  * that Noble Phantasm's shape.
  *
- * **The parent's `groupId` is kept.** §12.1: a Combat Phase is the declaration
+ * **The parent's `groupId` is kept.** Ch. 21: a Combat Phase is the declaration
  * plus any counters. `engine/attack.mjs#fireCombatPhaseEnd` counts unfinished
  * siblings by `groupId` and says so in as many words — *"a counter can add a
  * process to the group after the first one finished"* — so giving the counter
@@ -498,7 +498,7 @@ export function shouldUpdateFacing(s) {
  *
  * @param {object} defender
  * @returns {boolean}
- * @see docs/12-combat-process.md §12.3, the RISK note
+ * @see docs/21-combat-process.md, the RISK note
  */
 export function laddersCollapse(defender) {
   return (
@@ -531,7 +531,7 @@ export function deserialize(json) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Interrupts (Ch. 17 §17.4, Ch. 27 §27.9)                                   */
+/*  Interrupts (Ch. 33, Ch. 23)                                   */
 /* -------------------------------------------------------------------------- */
 
 /**
@@ -590,7 +590,7 @@ export function damageFactorOf(s) {
 /**
  * Apply a Command Spell's effect to a Process already in flight.
  *
- * A **GM-side mutation** (§27.9): it changes a Process another client is
+ * A **GM-side mutation** (Ch. 23): it changes a Process another client is
  * participating in, which is why the GM arbitrates the ladder even though the
  * individual rungs are answered by their owners.
  *
@@ -626,7 +626,7 @@ export function applyInterrupt(s, interrupt) {
 
     case "retarget":
       // A new defender who has not reacted yet — and who cannot use the
-      // reactions it never had the chance to declare (§27.9).
+      // reactions it never had the chance to declare (Ch. 23).
       return {
         ...base,
         defenderId: interrupt.newTargetId,

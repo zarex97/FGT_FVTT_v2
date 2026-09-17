@@ -1,6 +1,6 @@
 /**
- * @file Items, and the requirement kinds §15.4 lists.
- * @see docs/15-abilities.md §15.4, §15.8
+ * @file Items, and the requirement kinds Ch. 17 lists.
+ * @see docs/17-abilities.md, Ch. 17
  *
  * Layer 2 (rules). Pure.
  *
@@ -51,7 +51,7 @@ export function canTransferItem(item, from, to, ctx = {}) {
  * How near a Master must stand to receive its Servant's items.
  *
  * *"instead obtained by his Master **if he/she is within a 2 panel area**"* —
- * the same 2 panels every Master-Servant rule in §16.4 is keyed on.
+ * the same 2 panels every Master-Servant rule in Ch. 32 is keyed on.
  */
 export const ITEM_REDIRECT_RANGE = 2;
 
@@ -80,7 +80,7 @@ export const ITEM_REDIRECT_RANGE = 2;
  * which is what the clause's own *"if"* says happens.
  *
  * NOT routed through `guardsOf`. Pale Rider's `RelationshipProxy` substitutes
- * his Kagome Spirits for him in the four §16.4 **relationship rules**; this is a
+ * his Kagome Spirits for him in the four Ch. 32 **relationship rules**; this is a
  * separate line on his sheet, and it says *"his Master"*.
  *
  * @param {object} unit the unit that would obtain the item
@@ -233,7 +233,7 @@ export function consumeItem(item, unit) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  §15.4 — the remaining requirement kinds                                   */
+/*  Ch. 17 — the remaining requirement kinds                                   */
 /* -------------------------------------------------------------------------- */
 
 /**
@@ -333,7 +333,7 @@ export function meetsRequirement(req, ctx) {
     // cycle switched off there is no Night to wait for, so the condition is
     // satisfied rather than permanently unsatisfiable.
     //
-    // Read at the UNIT'S PANEL rather than off the board (§42.6): a Servant
+    // Read at the UNIT'S PANEL rather than off the board (Ch. 26): a Servant
     // standing inside Quetzalcoatl's `Sol` is in daylight while the Round is at
     // Night, and an item gated on Night should not fire for her there.
     case "roundPhase":
@@ -359,7 +359,7 @@ export function meetsRequirement(req, ctx) {
       );
 
     case "stance":
-      // Ch. 44 §44.1. Four of Achilles's abilities are *"can only be used when
+      // Ch. 45 Four of Achilles's abilities are *"can only be used when
       // Unmounted"* and one is the mirror, so the gate is a requirement rather
       // than a predicate on each of their rules: a predicate would let the
       // ability be pressed and then quietly do nothing, and the sheet refuses
@@ -376,9 +376,9 @@ export function meetsRequirement(req, ctx) {
       );
 
     case "resourceAtLeast":
-      // §6.10's pools live under `resources`; Agility and Luck are top-level
+      // Ch. 06's pools live under `resources`; Agility and Luck are top-level
       // stats with the same `{value, max}` shape. This looked only at the top
-      // level, so a gate on a real Resource pool -- the mechanism §6.10 exists
+      // level, so a gate on a real Resource pool -- the mechanism Ch. 06 exists
       // for -- was always reading `undefined` and refusing. EMIYA's Unlimited
       // Blade Works is the first content to gate on one, and it could never be
       // used however much Aria he held.

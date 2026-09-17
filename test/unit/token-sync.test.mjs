@@ -13,7 +13,7 @@ const actor = (type, over = {}) => ({
   type, img: "true.png", system: { ...over },
 });
 
-describe("publicImageOf (§4.2)", () => {
+describe("publicImageOf (Ch. 06)", () => {
   it("shows a concealed Servant's standard image", () => {
     expect(publicImageOf(actor("servant", { defaultImage: "standard.png" })))
       .toBe("standard.png");
@@ -41,7 +41,7 @@ describe("publicImageOf (§4.2)", () => {
   );
 });
 
-describe("footprintSize (§20.3)", () => {
+describe("footprintSize (Ch. 27)", () => {
   it("reads a platform's declared footprint", () => {
     expect(footprintSize({ system: { footprint: { w: 9, h: 9 } } }))
       .toEqual({ width: 9, height: 9 });

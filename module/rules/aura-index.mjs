@@ -1,13 +1,13 @@
 /**
  * @file The spatially-bucketed aura index.
- * @see docs/23-documents-and-derived-data.md §23.3, §23.9
+ * @see docs/08-documents-and-derived.md, Ch. 08
  *
  * Layer 2 (rules). Pure — builds an index from a board snapshot and answers
  * *spatial* queries against it. The engine owns the instance and decides when
  * to rebuild.
  *
  * `annotateAuras` has been a **linear scan** since it was written: correct, and
- * 28 units was not yet a performance problem. This is the structure §23.3
+ * 28 units was not yet a performance problem. This is the structure Ch. 08
  * specifies, with the three properties that make it work:
  *
  * 1. **Units with no auras cost nothing** — they are skipped before any
@@ -24,14 +24,14 @@
  * would be two answers to one question — the defect this codebase produces most
  * often — so the index narrows the candidates and `collectAuras` judges them.
  *
- * The one-pass staleness this introduces is acceptable and stated in §23.3: an
+ * The one-pass staleness this introduces is acceptable and stated in Ch. 08: an
  * aura that begins applying one frame late is invisible, and any *resolution*
  * rebuilds synchronously before reading.
  */
 
 import { chebyshev } from "../domain/geometry.mjs";
 
-/** Panels per bucket, per §23.3. */
+/** Panels per bucket, per Ch. 08. */
 export const BUCKET_SIZE = 4;
 
 /**

@@ -1,10 +1,10 @@
 /**
  * @file Why a placement is illegal, in words a player can act on.
- * @see docs/28-targeting-implementation.md §28.8, docs/09-targeting.md §9.6
+ * @see docs/20-targeting.md, docs/20-targeting.md
  *
  * Layer 2 (rules). Pure — takes a refusal and its detail, returns what to show.
  *
- * §28.8's argument is that validation failures should render **inline, while
+ * Ch. 20's argument is that validation failures should render **inline, while
  * the player is still choosing**, rather than as an error after they commit.
  * The difference is not politeness: a refusal that names the number ("anchor is
  * 7 panels away; Range is 4") is one the player can fix by moving the cursor,
@@ -14,7 +14,7 @@
  *
  *   - **hard** — nothing in the game changes this. Show it and refuse.
  *   - **overridable** — a Command Spell can lift it, so the refusal carries the
- *     command that would (Ch. 17 §17.4). The button renders inline.
+ *     command that would (Ch. 33). The button renders inline.
  *   - **confirm** — the placement is *legal*; it is just catastrophic. The
  *     Grail is the only one, and it requires a second deliberate click.
  */
@@ -33,7 +33,7 @@ export const LEGALITY_KINDS = Object.freeze(["hard", "overridable", "confirm"]);
 export const REFUSALS = Object.freeze({
   outOfRange: { kind: "hard", i18n: "FGT.Legality.outOfRange", params: ["distance", "range"] },
   belowMinRange: { kind: "hard", i18n: "FGT.Legality.belowMinRange", params: ["minRange"] },
-  // §17.4: CS: Extend Reach lifts this one.
+  // Ch. 33: CS: Extend Reach lifts this one.
   notInZon: {
     kind: "overridable", i18n: "FGT.Legality.notInZon",
     params: ["distance", "zon"], command: "forceNoblePhantasm",
@@ -131,7 +131,7 @@ export function isBlocked(presented, availableCommands = []) {
     if (p.kind === "hard") return true;
     // Overridable only counts as unblocked when the command is genuinely
     // available -- offering a spend button for a command the Master cannot
-    // afford is the "unusable option should never appear" failure (§17.6).
+    // afford is the "unusable option should never appear" failure (Ch. 33).
     return !availableCommands.includes(p.command);
   });
 }

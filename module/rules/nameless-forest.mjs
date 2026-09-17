@@ -1,7 +1,7 @@
 /**
  * @file The Nameless Forest's death roll.
  * @see char_orig_sheets/Copia de Nursery Rhyme.md
- * @see docs/44-case-expanded-roster.md
+ * @see docs/45-case-studies.md
  *
  * Layer 2 (rules). Pure.
  *

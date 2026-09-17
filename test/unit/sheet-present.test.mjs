@@ -1,6 +1,6 @@
 /**
  * @file The sheet's arithmetic, held without a world.
- * @see docs/29-user-interface.md §29.2
+ * @see docs/34-action-bar.md
  *
  * Every function under test is pure by construction. That is the whole point
  * of the split: "Cooldown 4◈ (12 turns)", "Poison Stage 3 → 80" and "written
@@ -303,7 +303,7 @@ describe("describeModifier", () => {
 
 describe("a granted step is written in the game's own notation", () => {
   it("renders one step as a single +, not as +1", () => {
-    // Ch. 04 §4.5 states the grant as "a free `+` to one of their Servant's
+    // Ch. 06 states the grant as "a free `+` to one of their Servant's
     // Parameters", and a Rank carries it that way: A becomes A+. "+1" is
     // arithmetic the rank ladder does not use anywhere else on the sheet.
     expect(parameterTiles({ str: "B" }, { str: 1 })[0].plus).toBe("+");

@@ -1,6 +1,6 @@
 /**
  * @file Every `applyIntents` call site passes the options object it expects.
- * @see docs/25-intents-and-application.md
+ * @see docs/02-architecture.md
  *
  * `applyIntents(intents, { io, canWrite, isGM, source })` destructures its
  * second argument. Four call sites passed `worldIO()` there positionally, with

@@ -1,12 +1,12 @@
 # Karna, char_orig_sheets/Copia de Karna.md
-# The combined Base Attack is docs/06-stats-and-resources.md §6.7: "BA = 125 + 175 = 300".
+# The combined Base Attack is docs/06-units-and-stats.md: "BA = 125 + 175 = 300".
 schema: 1
 id: karna-mana-burst-flames
 name: "Mana Burst (Flames)"
 rank: A
 cooldown: "3◈"
 # An ATTACK SKILL: its Active performs a Normal Attack, so it opens a Combat
-# Process and spends Karna's Attack for the Turn (§15.1).
+# Process and spends Karna's Attack for the Turn (Ch. 17).
 isAttackSkill: true
 element: fire
 sameTurnExclusive: [karna-flash-of-the-sun-god]
@@ -105,9 +105,9 @@ passiveRules:
     effect: burn
   # Passive 3. "All Total Fire Damage taken is reduced by 50% including NP."
   #
-  # `Ward`, not `defUp`: a Ward is the category-predicated reduction (§24.3
+  # `Ward`, not `defUp`: a Ward is the category-predicated reduction (Ch. 10
   # Group 2) and lands in the same stage-4 bucket, which keeps it additive
-  # against Atk Up the way §13.4 requires. `npValue` equals `value` because the
+  # against Atk Up the way Ch. 22 requires. `npValue` equals `value` because the
   # sheet says "including NP" rather than giving a reduced NP figure.
   #
   # `attack:element:fire` is a NEW roll option. The pipeline has read

@@ -1,6 +1,6 @@
 /**
- * @file The attribute implication table (Ch. 02 §2.10).
- * @see docs/02-glossary.md §2.10, docs/04-units.md
+ * @file The attribute implication table (CONTEXT.md).
+ * @see docs/../CONTEXT.md CONTEXT.md, docs/06-units-and-stats.md
  *
  * Layer 1 (domain). Pure.
  *
@@ -15,7 +15,7 @@
  *   - `Pseudo Servant` was a word on a sheet with no consequence, because the
  *     only thing it does is *withhold* an implication nobody was applying.
  *
- * Mannanán is the Servant that makes the distinction matter — Ch. 33 opens on
+ * Mannanán is the Servant that makes the distinction matter — Ch. 45 opens on
  * it — so the table is transcribed here rather than restated in her file.
  *
  * `Magus` is the one entry that is not a tag-to-tag implication. Her *Sealing

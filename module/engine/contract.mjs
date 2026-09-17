@@ -1,10 +1,10 @@
 /**
  * @file Forming contracts — the draft flow.
- * @see docs/16-relationships.md §16.2
+ * @see docs/32-relationships.md
  *
  * Layer 3. `rules/contract.mjs` decides; this rolls and writes.
  *
- * The conquest path is the one that needs care. §16.2 requires the Servants of
+ * The conquest path is the one that needs care. Ch. 32 requires the Servants of
  * a killed Master to become Free **and** be contracted to the killer *in one
  * transaction, so no intermediate state is observable*. That is why
  * `onMasterDefeated` and this are sequenced here rather than each hooking the
@@ -74,7 +74,7 @@ export async function attemptContract({ contractorId, servantId }) {
 }
 
 /**
- * The automatic contract that follows a Master's death (§16.2).
+ * The automatic contract that follows a Master's death (Ch. 32).
  *
  * Called from the defeat path **after** `onMasterDefeated` has decided what
  * happens to the Servants, and applied in the same batch, so the Free state the

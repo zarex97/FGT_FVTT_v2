@@ -106,7 +106,7 @@ describe("every socket operation has a caller", () => {
 
   it("is requested from somewhere for every operation it declares", () => {
     // KNOWN DEAD. `discoverRoll` proxies a 1d100 to the GM so a player never
-    // learns a Discover was even attempted (Ch. 8.7). It was superseded before
+    // learns a Discover was even attempted (Ch. 05.7). It was superseded before
     // it was ever called: `engine/concealment.mjs#runDiscoverChecks` returns
     // early for anyone who is not the GM and rolls there directly, which
     // satisfies the same rule without a round trip. Listed rather than deleted

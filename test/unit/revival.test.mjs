@@ -1,6 +1,6 @@
 /**
  * @file Coming back from zero Health, in the order the sheet states.
- * @see module/rules/revival.mjs, docs/31-case-heracles.md §31.2, §31.3
+ * @see module/rules/revival.mjs, docs/45-case-studies.md, Ch. 45
  *
  * Heracles has four ways back and his sheet names the order:
  *
@@ -140,7 +140,7 @@ describe("God Hand's cascade", () => {
   });
 
   it("burns several charges against one very large hit", () => {
-    // §31.3's worked figure: 4,000 damage into a Heracles at 1,500 leaves 2,500
+    // Ch. 45's worked figure: 4,000 damage into a Heracles at 1,500 leaves 2,500
     // of overkill, which is two or three charges at an average of 105 a roll.
     const rolls = {
       "revival:godHand:0": 1000, "revival:godHand:1": 1000,
@@ -197,7 +197,7 @@ describe("the rolls the caller has to make", () => {
 
 describe("God Hand's ledger", () => {
   it("identifies an attack by its ABILITY, and a Normal Attack by its attacker", () => {
-    // §31.3's decision. Recording the attacking Unit would mean one kill locks
+    // Ch. 45's decision. Recording the attacking Unit would mean one kill locks
     // that Servant out for ever by any means; recording the instance is
     // vacuous, because an instance never recurs.
     expect(attackIdentity({ abilityId: "vasavi" }, "karna")).toBe("ability:vasavi");

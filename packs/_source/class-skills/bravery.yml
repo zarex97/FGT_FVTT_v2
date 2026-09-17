@@ -23,7 +23,7 @@ description: |
   (Active) Used during your Turn. Applies @effect[atkUpStr]{Atk Up (STR)} for 1◈ Turns, STR damage
   dealt is increased by 25%; if NP, 15%.
 # A self-buff deals no damage, so it is not an Attack Skill and must not spend
-# the Unit's Attack for the Turn (§15.1).
+# the Unit's Attack for the Turn (Ch. 17).
 countsAsAttack: false
 timing: { window: ownTurn }
 targeting:

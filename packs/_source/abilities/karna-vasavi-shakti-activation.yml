@@ -1,5 +1,5 @@
 # Karna, char_orig_sheets/Copia de Karna.md
-# Discussed: docs/36-case-remaining.md §36.1.
+# Discussed: docs/45-case-studies.md
 schema: 1
 id: karna-vasavi-shakti-activation
 name: "Vasavi Shakti — Activate"
@@ -15,7 +15,7 @@ name: "Vasavi Shakti — Activate"
 # Master cannot afford it -- so an EX-rank activation would have been gated
 # behind 75 Master Health that the sheet says it does not cost.
 #
-# §36.1 proposed a `modes:` block on one document for this. Two documents
+# Ch. 45 proposed a `modes:` block on one document for this. Two documents
 # instead: the branch machinery that arrived later (`targeting.branches`,
 # `damage.branches`, `cooldown.branches`, per-phase `predicate:`) covers every
 # case `modes:` was invented for, and this one is not a branch at all -- it is a
@@ -32,7 +32,7 @@ slug: vasaviShaktiActivation
 # broken, and `canUseAbility` refuses it with `exhausted` instead.
 maxUses: 1
 # Refused once it has been done, from the other direction too, so the button
-# disappears rather than refusing when pressed (§17.6).
+# disappears rather than refusing when pressed (Ch. 33).
 requirements:
   - { kind: notHasEffect, effectId: vasaviActivated }
 description: |

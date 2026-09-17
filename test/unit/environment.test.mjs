@@ -1,6 +1,6 @@
 /**
  * @file The environment — Day/Night, Home Base and the Holy Grail.
- * @see docs/19-environment.md, docs/45-implementation-status.md C2
+ * @see docs/29-environment.md, docs/46-roster-re-audit.md C2
  */
 
 import { describe, it, expect } from "vitest";

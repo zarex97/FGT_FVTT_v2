@@ -1,9 +1,9 @@
 /**
  * @file Heracles's kit, held against his sheet.
- * @see char_orig_sheets/Copia de Heracles.md, docs/31-case-heracles.md
+ * @see char_orig_sheets/Copia de Heracles.md, docs/45-case-studies.md
  *
  * He shipped with four of his eight abilities. The four that were missing are
- * the four Ch. 31 was written about: the revival chain, God Hand's two
+ * the four Ch. 45 was written about: the revival chain, God Hand's two
  * passives, the Skill his own Mad Enhancement switches off for the whole match,
  * and the third `evadeSucceeded` clause in the reference set.
  */
@@ -92,8 +92,8 @@ describe("the revival chain", () => {
   });
 
   it("does not name `priority`, which means something else on a rule element", () => {
-    // `priority` reorders an element within its ordering band (§24.6) and
-    // `orderElements` sorts on it — so §31.2's `priority: 300` would have moved
+    // `priority` reorders an element within its ordering band (Ch. 10) and
+    // `orderElements` sorts on it — so Ch. 45's `priority: 300` would have moved
     // the element itself into a band it does not belong to, silently.
     for (const rules of [effect("undying").rules, ability("heracles-god-hand").passiveRules]) {
       expect(rules.find((r) => r.key === "RevivalSource").priority).toBeUndefined();
