@@ -67,7 +67,7 @@ name `roundEnd` as their native trigger, so every periodic but the three `turnEn
 dealing damage, along with every `OnEvent roundEnd` clause in the corpus. It hid because the turn
 scale kept working and fires three times as often. `turnToken` and `roundToken` are separate now;
 a world holding the old single-`token` shape has neither, so both scales proceed once and write the
-new one. Ch. 46 §46.4-AM.
+new one. Ch. 46 §46.4-AL.
 
 > *An election needs an identity per thing being elected. Two scales sharing one token is two
 > elections sharing one ballot box.*

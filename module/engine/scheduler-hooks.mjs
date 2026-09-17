@@ -403,7 +403,7 @@ async function claimBoundary(combat, kind) {
   // hooks run `claimBoundary` at the same instant -- and with one shared field
   // the turn's token landed last, the round's comparison found a stranger's,
   // and the round sequence concluded it had lost and never ran at all
-  // (Ch. 46 §46.4-AM).
+  // (Ch. 46 §46.4-AL).
   const field = tokenField(kind);
   const token = foundry.utils.randomID();
   await combat.update({ "system.scheduleClaim": { ...claim, [kind]: key, [field]: token } });

@@ -1355,7 +1355,7 @@ override — was refusing her. Asking `Object.getOwnPropertyDescriptor(Token.pro
 for the base verdict beside the override's is what separated them, and is the probe to reach for
 whenever an override is suspected.
 
-### AM. The whole `roundEnd` scheduler was dead — **fixed 2026-09-16**
+### AL. The whole `roundEnd` scheduler was dead — **fixed 2026-09-16**
 
 **Mine, from §46.4-D, and the most consequential defect in this audit.**
 
@@ -1484,7 +1484,7 @@ per-Servant record of what each audit left untested.
 | **Medea** | ✅ | ✅ | 3 (2 hers, 1 general) | §46.11; §46.4-O |
 | **EMIYA** | ✅ | ✅ **complete** | 7 (2 his, 5 general) | §46.12; §46.4-P, Q, R, S, T |
 | Hassan of Serenity | — | — | — | |
-| **Semiramis** | ✅ | ✅ | 11 general (all fixed) | §46.4-W, X, Y, Z, AA, AB, AC, AD, AE, AF, AG |
+| **Semiramis** | ✅ | ✅ **complete** | 16 (2 hers, 14 general), all fixed | §46.14; §46.4-W…AM |
 | Scáthach | — | — | — | |
 | Kingprotea | — | — | — | |
 | Castor / Pollux | — | — | — | |
@@ -1806,7 +1806,7 @@ The list this section used to hold is empty. What closed it:
 | **Destruction and rebuild** | Construction **88 → 0**, `zonExempt` **true → false**, Sustainability **30 → 24** (the +2◈ reversed), the platform actor gone and `hgob-owner-buff` stripped |
 
 Pressing them cost three more engine defects: §46.4-AK, and — from Construction source 3 refusing to
-fire — **§46.4-AM**, the one that mattered most.
+fire — **§46.4-AL**, the one that mattered most.
 
 **One question for the game's author, not a defect.** Presence Concealment clause 6 says *"an enemy
 **Servant's** Range (or Detect)"*, and Ch. 8 §8.7 quotes the source's general rule as *"an enemy
@@ -1824,8 +1824,8 @@ tested while the rule is off, and the refusal looks identical to a working exemp
 ## 46.13 What this audit did **not** test
 
 §46.1 says an audit is finished when every clause has been *seen working on a board*. By that
-standard **none of the six Servants below is finished**, and this section is the honest record of
-the gap. It exists because the audit's own finding rate argues for it: every defect in §46.4 was
+standard **two of the Servants below are finished — Heracles and Semiramis — and the rest are not**,
+and this section is the honest record of the gap. It exists because the audit's own finding rate argues for it: every defect in §46.4 was
 found by pressing something, and three of them survived a complete paper trace that declared them
 correct. An untested clause here is not a clause believed good — it is a clause not yet asked.
 
@@ -2203,8 +2203,10 @@ Penthesilea and who does not have three parameters a rank below his — which is
 entirely. **Passenger Seat**, **Riding Attack** and **Double Move** are granted and visible on the
 snapshot but were never performed as actions.
 
-**Semiramis — partial, and the audit's richest single Servant for defects.** A war built by
-`commitWar` against Heracles. Four defects found, three fixed; two more recorded open.
+**Semiramis — COMPLETE, and the audit's richest Servant for defects by a wide margin.** A war
+built by `commitWar` against Heracles. **All twelve of her documents pressed; sixteen defects found,
+all fixed, and only two of them hers.** §46.14 is her full record; what follows is the first pass,
+kept because the second pass overturned part of it.
 
 *Pressed (engine):*
 
@@ -2232,12 +2234,18 @@ snapshot but were never performed as actions.
 *Found while pressing:* §46.4-W, §46.4-X, §46.4-Y — all fixed — and §46.4-Z and §46.4-AA, both
 recorded open.
 
-*Still untested:* **Sikera Ušum**, her Noble Phantasm, whose two branches §46.4-Y had made
-unreachable and which §46.4-Z now blocks at the channel; the **Hanging Gardens** past its
-activation, and therefore **Aerial Garden of Vanity** and **Dragon Wing Warriors**; **Summoning:
-Bašmu**, which §46.4-Y unblocked but which needs her standing on the completed platform for its
-summon branch; **Arrogant King's Poison**, which requires three [Semiramis' Poison] to use; and
-**Item Construction**, whose contributions did not appear on her projection.
+*Untested after the first pass — and **all of it pressed since**, in §46.14:* Sikera Ušum and
+its four interior rules; the Hanging Gardens past activation, with *Aerial Garden of Vanity* and
+*Dragon Wing Warriors*; *Summoning: Bašmu*'s summon branch; *Arrogant King's Poison*; and *Item
+Construction*. Nothing of hers is untested now. §46.14.3 lists what each measurement was.
+
+*And one thing this first pass got **wrong**, which is why it is kept.* The *Scales of the Sacred
+Fish* bullet above records the pool **200 → 0** absorbing its full value. That reading was taken
+while the ability still resolved through the **attack** path, which fills a barrier's pool on the
+way in. It was later — correctly — moved off that path (`countsAsAttack: false`, so it stops
+spending her Attack and opening a Combat Process against the ally it shields), and `refreshShield`
+had exactly one caller, so the pool silently became **0** and the Shield absorbed nothing. §46.4-AE.
+A measurement is only true of the code that was under it.
 
 ### 46.13.2 Fixes that were never pressed
 
@@ -2254,28 +2262,62 @@ A fix verified only by a unit test is a fix verified the way §46.1 warns agains
 | The **Max Health override** (§46.6) | Pressed for Asterios and Penthesilea — but **on hand-imported actors**, i.e. on the one derivation that was already right. §46.4-K is what that missed |
 | `withoutModeHeld`, the recursion break | Unit test, plus every live board since. Never deliberately re-provoked after the fix |
 | `involvedTurnEnd` | Pressed for Karna. **No check that other content on `actedTurnEnd` did not regress** — Mad Enhancement's drain is the only other user and it was re-measured, but not as a deliberate regression test |
+| **§46.4-AH**, Soaked's `effectId:` → `effect:` | A corpus-walking test that fails if any authored `ApplicationChance` uses the wrong key again, plus Anastasia's own assertion corrected. **Soaked has never been on a board**, so the clause it repairs — *"a 25% chance of being inflicted with Freeze"* under an Ice attack — has still never been watched landing on anybody |
+
+**And the sharpest entry is not a row.** Three of this audit's own fixes were later found to be
+defects: §46.4-D's boundary claim produced **§46.4-AB** (a claim keyed on the counter its own work
+advanced, which could freeze a match permanently) and then **§46.4-AL** (two scales sharing one
+election token, which killed every `roundEnd` effect in the game for the rest of the session).
+Both passed their unit tests. Both were caught only because something unrelated was pressed
+afterwards and refused to work — a channel that would not tick, and a Construction counter that
+would not rise.
+
+*A fix is a change, and a change is something to press.* The table above asks whether each fix was
+verified on a board; these two say the question is not optional even when the fix is small, obviously
+correct, and covered by a test that passes.
 
 ### 46.13.3 Subsystems this audit never exercised
 
 Not gaps in the system — gaps in *this pass*. Anything here could be carrying a defect of exactly
-the kind §46.4 collects, and nothing in six Servants' worth of pressing would have found it:
+the kind §46.4 collects, and nothing in eight Servants' worth of pressing would have found it:
 
 - **Command Spells.** Fifteen of the seventeen, and the §12.11 interrupt protocol. **Suspend Skill
   has now been spent** through `spendCommandSpell` and is recorded under Heracles; it is the only
   one, and it was chosen because a standing claim in §46.4-B depended on it.
 - **The Counter rung.** Offered repeatedly and declined every single time.
-- **Bounded fields** are no longer among these. Asterios's Labyrinth has now been opened twice on a
-  proper board, extended for Health, escaped from the hard way and closed by its owner's defeat —
-  `createField`, `expireFields`, `offerExtension`, `attemptEscape` and `endField` all driven. What
-  remains untested is every *other* field in the corpus.
-- **Injury Rolls, Block, Evade and Luck Checks.** Injury Rolls have since been seen resolving in
-  the combat log (*"injury: HP Herc (2)"*) as a side effect of pressing Battle Continuation, and an
-  Evade was rolled to force Mad Enhancement's unfavourable table — but neither was tested *as* a
-  subsystem, and Block and Luck Checks remain untouched.
+- **Bounded fields** are no longer among these, and are now the best-pressed subsystem in the
+  audit. Asterios's Labyrinth has been opened twice on a proper board, extended for Health, escaped
+  from the hard way and closed by its owner's defeat. Semiramis's **Throne Room** then drove the
+  half the Labyrinth does not have: branch selection by predicate, a `fixedArea` anchored to a
+  moving platform's computed centre, a `trappedAtActivation` **membership snapshot** (sealing the
+  Unit present at activation and ignoring one who walked in later), three interior rules, and a
+  cooldown that starts at the field's **closure** rather than at its use. `createField`,
+  `expireFields`, `offerExtension`, `attemptEscape`, `endField`, `runFieldEvents`,
+  `membershipVerdict` and `setCooldownOnDeactivation` have all now been driven. What remains
+  untested is every *other* field in the corpus.
+- **Injury Rolls, Block, Evade and Luck Checks.** Injury Rolls are now tested *as* a subsystem:
+  Dragon Wing Warriors fans into eight Combat Processes of 50 Fixed damage each, and the clause
+  *"damaged Units only perform an Injury Roll once regardless of number of hits taken"* was watched
+  doing exactly that — seven siblings deferring with `singleInjuryRollPending` and the eighth
+  summing 400 and rolling once. Evade has been rolled both to force Mad Enhancement's unfavourable
+  table and to read Presence Concealment's rank-table bonus off the card. **Block and Luck Checks
+  remain untouched**, and Block is now conspicuous: §46.4-AE's barrier work says what a Shield
+  absorbs, and nobody has ever pressed the rung that reduces damage by 25%.
 - **Master actions**, contracting, conquest and the multi-Servant tax.
-- **Terrain, the Grail, victory, day/night, Home Base** — Home Base regeneration was seen only as
-  noise contaminating a drain measurement, never tested on purpose.
-- **Platforms and Scene Levels**, and summons generally.
+- **Terrain, the Grail, victory and day/night.** **Home Base has come off this list**: the
+  10% reduction was read off live cards, `self:inHomeBase` gates Territory Creation's rank-C branch
+  on purpose, and the Hanging Gardens' *"counts as a second Home Base for Semiramis' Faction"* was
+  settled on a four-case truth table — aboard outside her ground zone **true**, the same unit on the
+  ground there **false**, inside her zone **true**, an **enemy** aboard **false**. Home Base
+  *regeneration* is still only ever seen as noise.
+- **Platforms and Scene Levels are no longer among these either.** The Hanging Gardens has been
+  built from a channel, boarded by an enemy through `boardPlatform`'s roll, attacked from and
+  attacked across levels, used as a targeting anchor, moved off, and **destroyed** — with all four
+  consequences of its destruction checked (Construction to 0, `zonExempt` withdrawn, the
+  Sustainability bonus reversed, the owner buff stripped). `forbidDirectlyBelow`,
+  `allowDirectlyBelow`, `outboundTargeting` and `actsOncePerTurn` were all read on a live board.
+  **Summons generally** are still thin: Bašmu was conjured and `noAliveSummon` refused a second,
+  but nothing else in the corpus has been summoned.
 - **The turn HUD and the action budget**, beyond pressing End Turn.
 - **War setup** — *no longer untouched.* A war has now been built through `commitWar`: scene,
   activated global Combat, factions, painted home bases, Masters, summons, reciprocal contracts and
@@ -2285,20 +2327,34 @@ the kind §46.4 collects, and nothing in six Servants' worth of pressing would h
 
 ### 46.13.4 The rest of the roster
 
-**Nineteen of the twenty-five authored Servants are untouched by this audit**: Serenity, Semiramis,
-Scáthach, Kingprotea, Castor and Pollux, Raikou, Anastasia & Viy, Achilles, Mannanán mac Lir,
-Medusa, Nemo, Kiritsugu, Francis Drake, Ozymandias, Pale Rider, Quetzalcoatl, Van Gogh, Jack the
-Ripper and Nursery Rhyme. Four of them have had a clause repaired *by* this audit without ever
-being audited themselves, which §46.13.2 records.
+**Seventeen of the twenty-five authored Servants are untouched by this audit**: Serenity,
+Scáthach, Kingprotea, Castor and Pollux, Raikou, Anastasia & Viy, Mannanán mac Lir, Medusa, Nemo,
+Kiritsugu, Francis Drake, Ozymandias, Pale Rider, Quetzalcoatl, Van Gogh, Jack the Ripper and
+Nursery Rhyme. Four of them have had a clause repaired *by* this audit without ever being audited
+themselves, which §46.13.2 records.
+
+Semiramis and Achilles were on this list and have come off it: she is complete (§46.14) and he was
+pressed to §46.4-V with two clauses still needing a second opponent. Serenity has now stood on a
+board too — as the **target** of Sikera Ušum rule d, because her *"Immune to Poison and Deadly
+Poison"* is the only Poison immunity in the corpus (§46.4-AG) — but none of her own clauses was
+pressed, so she stays here.
 
 **Four sheets have no implementation at all** and were not examined beyond noticing that: Hassan of
 the Hundred Faces, Katō Danzō, Proto Gil and Yan Qing.
 
 ### 46.13.5 The rate this section exists to defend
 
-Six Servants audited, **sixteen defects found**, and **ten of the sixteen were not the audited
-Servant's own** — they were general defects their sheets happened to be standing on. §46.4-J alone
-reached five clauses across four sheets and one effect, only one of which belongs to Heracles.
+**Eight Servants audited and thirty-seven defects found** — §46.4 runs A to AL, thirty-eight
+entries, of which one (§46.4-U) was reported and then retracted. **The large majority were not the
+audited Servant's own**: they were general defects their sheets happened to be standing on. A
+per-Servant count sums higher than thirty-seven because several defects were reached through more
+than one sheet — §46.4-J alone touched five clauses across four sheets and an effect, only one of
+them Heracles's. Semiramis accounts for sixteen, of which **fourteen are the engine's**.
+
+The ratio is the finding worth keeping. **Auditing a Servant is a way of auditing the engine**, and
+the deeper a Servant's kit reaches into mechanisms nothing else uses, the more it finds: almost
+every clause Semiramis owns is the only instance of its mechanism in the corpus, and a mechanism
+with one user is a mechanism whose bugs have never been reported.
 
 **Five survived a complete paper trace** that declared them correct: God Hand's ledger, the
 Labyrinth's escape ladder, Item Construction's valence, §16.5's ZON penalty, and Bravery's sign.
@@ -2307,6 +2363,12 @@ defect from the source** — they restated the wrong number and agreed with it, 
 were wrong together and neither could fail. Only asking the applier what percentage came out could
 separate them, and nothing did until a live board was made to answer.
 
-The honest reading of that is not that the audited six are now clean — only Heracles is finished by
-§46.1's standard. It is that pressing finds things tracing does not, that a source assertion is not
-a test of behaviour, and that most of the clauses above have only been traced.
+The honest reading of that is not that the audited eight are now clean — only **Heracles and
+Semiramis** are finished by §46.1's standard. It is that pressing finds things tracing does not,
+that a source assertion is not a test of behaviour, and that most of the clauses above have only
+been traced.
+
+**And three of this audit's own fixes were later found to be defects themselves** — §46.4-AB and
+§46.4-AL both came out of §46.4-D's boundary claim, and §46.4-AL had silently killed every
+`roundEnd` effect in the game for the rest of the session. A fix is a change, and a change is
+something to press.
