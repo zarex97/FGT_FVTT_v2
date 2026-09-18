@@ -191,9 +191,16 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         // not an open gate"*). Ten abilities across five Servants carry one,
         // including Karna's Vasavi Shakti and four of Quetzalcoatl's
         // (Ch. 46 §46.4-AX).
+        //
+        // `unit`, NOT `snapshot`. The board-derived unit is the one carrying
+        // the annotations a predicate asks about — `inHomeBase`, `onPlatform`,
+        // `inField` — and a bare `unitSnapshot` has none of them, so
+        // `self:inHomeBase` was never emitted and the Hanging Gardens refused
+        // while she stood in her Home Base. `unit` already falls back to
+        // `snapshot` when the board has no entry for her.
         const verdict = canUseAbility({
-          ability: item.system, unit: snapshot, master, board, ...gateContext(),
-          testPredicate: (p) => testPredicate(p, { options: rollOptionsFor({ attacker: snapshot }) }),
+          ability: item.system, unit, master, board, ...gateContext(),
+          testPredicate: (p) => testPredicate(p, { options: rollOptionsFor({ attacker: unit }) }),
         });
         const slot = slotFor({
           ...entry,
