@@ -23,11 +23,30 @@
  */
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { allClauses, parseCharacterSheet, renderClauseList } from "./lib/clauses.mjs";
 
 const SHEET_DIR = "char_orig_sheets";
+
+/** Read rather than imported: `import … with {type: "json"}` is past this repo's ESLint parser. */
+const CLAUSE_NAMES = JSON.parse(
+  readFileSync(join(dirname(fileURLToPath(import.meta.url)), "lib", "clause-names.json"), "utf8"),
+);
+
+/**
+ * The names a human gave this sheet's opening Clauses, keyed by the file's own
+ * basename rather than by the title inside it — two sheets print a title that
+ * is not their filename, and the filename is what the caller typed.
+ *
+ * @param {string} path
+ * @returns {Record<string, string>}
+ */
+function namesFor(path) {
+  const key = basename(path).replace(/^Copia de /, "").replace(/\.md$/, "");
+  return CLAUSE_NAMES[key] ?? {};
+}
 
 /**
  * The Character Sheet for a Servant, by whatever name the caller had to hand:
@@ -86,7 +105,7 @@ try {
 }
 
 for (const path of paths) {
-  const sheet = parseCharacterSheet(readFileSync(path, "utf8"));
+  const sheet = parseCharacterSheet(readFileSync(path, "utf8"), namesFor(path));
   const clauses = allClauses(sheet);
 
   if (flags.has("--count")) {

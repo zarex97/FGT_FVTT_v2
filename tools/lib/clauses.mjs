@@ -78,11 +78,34 @@ const NUMBERED_LINE = /^(\d+)\\?\.\s*(.*)$/;
  */
 const FOOTER_LINE = /^(?:items?\s*held|held\s*items?)[^:]*:\s*(.*)$/i;
 
-/** Boilerplate that states timing and no rule. Stripped before asking whether a line says anything. */
+/**
+ * Boilerplate that states timing and no rule. Stripped before asking whether a
+ * line says anything of its own.
+ *
+ * The second is the fragment that introduces a numbered list and carries no
+ * rule — *"Has the following effects while Active-"*, *"Applies the following
+ * effects on Achilles-"*, *"All damage received is reduced as follows-"*,
+ * *"There are several ways to increase the HGoB's Construction-"*. The trailing
+ * hyphen is the corpus' own mark for it. `[^.]*` keeps the match inside one
+ * sentence, so a rule stated before it survives: Asterios' Mad Enhancement
+ * lockout and his Labyrinth's geometry both sit in front of one of these.
+ */
 const BOILERPLATE = [
   /^Used during (?:your|its|his|her|their) Turn\.\s*/i,
-  /\bHas the following effects(?:[^-]*)-\s*$/i,
+  /[^.]*\b(?:follows?|following|effects?|methods?|ways?)\b[^.]*-\s*$/i,
 ];
+
+/**
+ * A Skill's epithet, stated as a sentence of its own before the rule:
+ * *"Heroism's Eternal Man."*, *"Runner Comet."*, *"Chinese Boxing."*. It names
+ * the Ability a second time and states nothing, so a Clause made of one is a
+ * checkbox an auditor cannot press.
+ *
+ * Every word title-case, at most five, no digits, and followed by more text —
+ * which is what keeps it off *"Affects a 9x9 panel area…"* and *"Gain 2 PRS
+ * Tokens."*.
+ */
+const EPITHET = /^(?:[\p{Lu}][\p{L}’'-]*(?:\s+(?:of|the|a|an|and)\s+|\s+)?){1,5}\.\s+(?=\S)/u;
 
 /** Lowercase connectives are not initials: "Avyssos of Labrys" abbreviates to AL, not AoL. */
 const STOPWORDS = new Set(["of", "the", "a", "an", "and", "in", "on", "to", "for", "de"]);
@@ -150,7 +173,7 @@ function isMarker(marker) {
  * @returns {string} the rule, or `""` when the line is timing only
  */
 function ruleBeyondTiming(text) {
-  let rest = text.trim();
+  let rest = text.trim().replace(EPITHET, "");
   for (const pattern of BOILERPLATE) rest = rest.replace(pattern, "").trim();
   return rest.replace(/^[.,;\s]+/, "").trim();
 }
@@ -316,9 +339,10 @@ function parseAbilityHead(rest) {
  * and belongs to neither.
  *
  * @param {string} markdown
+ * @param {Record<string, string>} [names] placeholder ref → the name a human gave it
  * @returns {{title: string, groups: Array<{name: string, tag: string|null, shared: boolean, statblock: Map<string,string>|null, statClaim: string|null, statClause: Clause|null, abilities: Ability[], notes: Clause[]}>, warnings: Array<{line: number, text: string, why: string}>}}
  */
-export function parseCharacterSheet(markdown) {
+export function parseCharacterSheet(markdown, names = {}) {
   const lines = String(markdown).split(/\r?\n/).map((l) => l.replace(/\s+$/, ""));
   /** @type {Array<{line: number, text: string, why: string}>} */
   const warnings = [];
@@ -462,6 +486,34 @@ export function parseCharacterSheet(markdown) {
   const kept = groups
     .filter((g) => g.abilities.length > 0 || g.notes.length > 0 || g.statClause)
     .map(({ preamble: _preamble, taken: _taken, ...g }) => g);
+
+  // Names are applied here, and the "give it a name" warnings are raised here
+  // rather than where the Clause was made, so that a ref which has been named
+  // is not also complained about. Both run before the collision check, which
+  // has to see the refs that are actually emitted.
+  for (const group of kept) {
+    /** @type {Array<[Clause, string]>} */
+    const owned = [
+      ...group.notes.map((n) => [n, group.name]),
+      ...group.abilities.flatMap((a) => a.clauses.map((c) => [c, a.name])),
+    ];
+    for (const [clause, owner] of owned) {
+      const named = names[clause.ref];
+      if (named) {
+        clause.ref = named;
+        clause.suffix = named.split(".").at(-1) ?? clause.suffix;
+        clause.unnamed = false;
+      }
+      if (!clause.unnamed) continue;
+      warnings.push({
+        line: clause.line,
+        text: clause.claim,
+        why: clause.ref.endsWith(".pre")
+          ? `${owner} opens with a rule of its own — emitted as ${clause.ref}, give it a name`
+          : `a rule under ${owner} carrying neither a number nor a marker — emitted as ${clause.ref}, give it a name`,
+      });
+    }
+  }
 
   // Whatever collides after the Ability abbreviations have been made unique is
   // a genuine clash inside one Ability — two cooldowns, two passives with the
@@ -654,14 +706,10 @@ function resolveClauses(ability, tokens, warnings) {
       const sole = markers.length === 1 && numbers.length === 0;
       const preamble = markers.length === 1 && numbers.length > 0;
       const suffix = sole ? "1" : preamble ? "pre" : markerSuffix(marker);
+      // The "give it a name" warning is raised by the caller, after names have
+      // been applied — a ref that has been named should not also be complained
+      // about, and a warning quoting a ref must quote the one that is emitted.
       push(suffix, rule, token.line, { marker, unnamed: preamble });
-      if (preamble) {
-        warnings.push({
-          line: token.line,
-          text: rule,
-          why: `${ability.name} opens with a rule of its own — emitted as ${ability.prefix}.pre, give it a name`,
-        });
-      }
       continue;
     }
 
@@ -724,11 +772,6 @@ function resolveClauses(ability, tokens, warnings) {
         line: token.line,
       });
     }
-    warnings.push({
-      line: token.line,
-      text: token.text,
-      why: `a rule under ${ability.name} carrying neither a number nor a marker — emitted as ${ability.prefix}.${scope}n${notes}, give it a name`,
-    });
   }
 }
 
