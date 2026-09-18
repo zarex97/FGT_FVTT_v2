@@ -283,6 +283,37 @@ export function canConsume(budget, unit, action) {
   if (isAttack && state.attacked) {
     return { ok: false, reason: "this unit has already attacked this turn", pool: null, free: false };
   }
+  // GATHER, twice over. The game's author states two rules and they are
+  // separable, so both are written:
+  //
+  //   1. *"A unit can only use Gather once per turn"* — on its own, whatever
+  //      else is true.
+  //   2. *"Using 'Gather' counts as a Unit's 'Move' for that Turn"*, read
+  //      strictly: Gather **is** the Move, so a Unit that has already Moved has
+  //      no Move left to spend on one.
+  //
+  // Neither was enforced. `poolFor` bills `gather` to the MOVE pool, but the
+  // post-attack guard below tests `action === "move"` by NAME, so Gather was a
+  // Move for costing and not a Move for refusing; and `alreadyCounted` further
+  // down then makes every later non-attack action free. Four Gathers in one
+  // Turn took Semiramis' Construction 10 → 30, against a Noble Phantasm gated
+  // at 100 that the sheet spends many Rounds reaching (Ch. 46 §46.4-BA).
+  //
+  // Rule 1 first, so the refusal names the rule a player actually broke.
+  if (action === "gather" && state.gathered) {
+    return { ok: false, reason: "this unit has already gathered this turn", pool: null, free: false };
+  }
+  if (action === "gather" && state.moved) {
+    return { ok: false, reason: "this unit has moved and cannot gather this turn", pool: null, free: false };
+  }
+  // The other direction of rule 2. Gather writes `attacked` as well, so the
+  // guard below already refuses this today — stated explicitly anyway, because
+  // that is a consequence of how Gather spends the Attack rather than of what
+  // this rule says, and a change to one should not silently repeal the other.
+  if (action === "move" && state.gathered) {
+    return { ok: false, reason: "this unit gathered and cannot move again", pool: null, free: false };
+  }
+
   // A Unit may Move as many times as its MOV allows, until it Attacks — the
   // allowance is a distance, and `segmentCheck` is what measures it. The only
   // thing the budget refuses is Moving *after* the Attack, which Riding alone

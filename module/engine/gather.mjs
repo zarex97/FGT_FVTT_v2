@@ -71,10 +71,14 @@ export async function gather({ actorId }) {
     [
       I.resource(owner.id, resourcePathFor("hgobConstruction", owner), amount),
       // "Counts as a Unit's Move" and "cannot Attack the same Turn" -- the
-      // same two turnState fields an ordinary Move and a spent Attack write,
-      // reused rather than a third bespoke flag `budget.canConsume` would
-      // also need to learn about.
-      I.markTurn(actorId, { moved: true, attacked: true }),
+      // same two turnState fields an ordinary Move and a spent Attack write.
+      //
+      // `gathered` is the third, and it is not redundant with `moved`: *"a unit
+      // can only use Gather once per turn"* is a rule in its own right, and
+      // resting it on `moved` would leave it at the mercy of `canConsume`'s
+      // free-second-non-attack-action rule, which is what let Gather repeat
+      // without limit in the first place (Ch. 46 §46.4-BA).
+      I.markTurn(actorId, { moved: true, attacked: true, gathered: true }),
       I.log({ kind: "gather", unitId: actorId, ownerId: owner.id, amount }),
     ],
     `gather:${actorId}`,

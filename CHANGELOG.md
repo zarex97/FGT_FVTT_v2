@@ -34,7 +34,7 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
-### Four rules that were right and unreachable, found auditing Semiramis (2026-09-18)
+### Seven rules that were right and unreachable, found auditing Semiramis (2026-09-18)
 
 #### Fixed
 
@@ -71,9 +71,32 @@ coincide by accident; the headings say which is which.
   then skipped her. It reads the scene's document collection now, warns on both failure paths, and
   the seating decision is extracted as the pure `seatingPlan`. Ch. 46 §46.14.6.
 
-All four are guarded by tests at the seam that could have caught them, and all four are red against
-the old code. Three are the same shape: in each case the rule computed the right answer every time it
-was asked, and the defect was that nothing asked — or that nobody was told.
+- **Gather could be repeated without limit, so HGoB Construction was unbounded.** `poolFor` bills
+  Gather to the **move** pool but `canConsume`'s guard tested the action by **name**, so Gather was a
+  Move for costing and not a Move for refusing; `alreadyCounted` then made every later non-attack
+  action free. Four Gathers in one Turn took Construction **10 → 30**, against a Noble Phantasm gated
+  at 100 that the sheet spends six sources and many Rounds reaching. Now two rules, written
+  separately: **Gather is once per Turn** on its own flag, and the strict reading of *"Gather counts
+  as your Move"* in both directions. Ch. 46 §46.4-BA.
+
+- **An Attack made outside its owner's Turn cost the owner's Attack.** The rule is *"every Noble
+  Phantasm consumes the attack budget if it is used on its owner's own Turn, and none does
+  otherwise"*, and the exception existed nowhere — `countsAsAttack` answers from the ability alone.
+  Since a faction's budget is cleared at the **start** of its own Turn, a Servant who attacked a Turn
+  ago met an exhausted pool when raising a *shield* on the enemy's. Derived from the acting faction
+  now, not from a flag on the content: Rho Aias still costs EMIYA his Attack on his own Turn.
+  Ch. 46 §46.4-AZ.
+
+- **An attack-shaped ability was billed to a pool that does not exist.** `engine/skill-use.mjs` passed
+  the ability **kind** `"normal"` where an **action** was wanted; `poolFor` does not know it, answered
+  `null`, and a null pool is *"costs nothing"*. Two abilities in the corpus were free to use, one of
+  them a Noble Phantasm. `budgetActionFor` moves beside the vocabulary it translates into, and the
+  engine warns on an action outside it. Ch. 46 §46.4-AY.
+
+All seven are guarded by tests at the seam that could have caught them, and all seven are red against
+the old code. The recurring shape: in each case the rule computed the right answer every time it was
+asked, and the defect was that nothing asked — or that nobody was told, or that the question was put
+in a vocabulary the answerer did not speak.
 
 ### The roster audit becomes twenty-six grabbable tickets (2026-09-18)
 

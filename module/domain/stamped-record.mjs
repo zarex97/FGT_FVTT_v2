@@ -138,6 +138,7 @@ export const TURN_RECORD = stampedRecord({
     moveSegments: 0,
     usedActiveSkill: false,
     usedRidingAttack: false,
+    gathered: false,
     reshapedField: false,
     itemTransfers: 0,
     abilitiesUsed: [],

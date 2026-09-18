@@ -2018,6 +2018,57 @@ carries `actingFactionId` and seeds `flags`, so the scenario can be stated at al
 
 ---
 
+### BA. Gather could be repeated without limit, so HGoB Construction was unbounded — **fixed 2026-09-18**
+
+**Reached: Semiramis, and any allied Unit on her board.** Reported by the game's author while reading
+§46.4-AW's fix: *"Using gather dims attacks and move, but it doesn't dim itself — it doesn't make
+sense, as it consumes attack and move budget."*
+
+The observation was about a lit icon. The consequence was that **the Hanging Gardens of Babylon could
+be opened on Round 1.** Its gate is Construction 100, which her sheet reaches through six sources over
+many Rounds; Gather is worth +5 to Semiramis herself. Measured live before the fix: four
+`gather()` calls in a single Turn, every one `{ok: true, amount: 5}`, Construction **10 → 30**. Any
+allied Unit may Gather, so a faction could stack it.
+
+Two causes, and neither was the one the icon suggested:
+
+1. **The post-attack guard named one action.** `canConsume` read `if (action === "move" && …)`.
+   `poolFor` bills `gather` to the **move** pool, so Gather was a Move for costing and not a Move for
+   refusing. *"Counts as a Unit's Move"* was enforced against Move and not against Gather.
+2. **`alreadyCounted` makes every later non-attack action free.** That is D18.3 and it is right for
+   Skills — *"a second non-attack action by the same unit is free"* — and it removed the pool as a
+   brake on Gather entirely.
+
+The author settled the two readings and added a second rule with it:
+
+> *"Let's go with the Strict reading. Also, remember that strict reading or not, **a unit can only use
+> Gather once per turn**."*
+
+So **two** rules, and the first has to hold on its own. Gather now writes a `gathered` flag on the
+Turn Record, and `canConsume` refuses on it directly — not on `moved`, because resting rule 1 on rule
+2 would leave it at the mercy of the free-second-action rule that caused this. The strict reading is
+written in both directions: Moved refuses Gather, Gathered refuses Move.
+
+`gathered` is a Turn Record field, so it is **stale-by-reading** like every other: a record stamped
+with an earlier tick reads blank and nothing has to reset it. `test/unit/master-data.test.mjs` — ADR
+0003's guard, that the schema and the record spec do not drift — caught the new field on the first
+run and required the spec updated with it, which is the guard doing exactly its job.
+
+**It composed with §46.4-AW for free.** That fix had taught the action bar to consult the budget, so
+with no HUD change at all the bar now reads:
+
+> Attack — *this unit has already attacked this turn* · Move — *this unit gathered and cannot move
+> again* · Gather — *this unit has already gathered this turn*
+
+all three greyed, each naming its own rule. The reported symptom disappeared as a consequence of
+fixing the cause.
+
+**What was measured and what was not.** Only Semiramis' own +5 was pressed. The allied Unit (+3) and
+Master (+4) cases share the code path and are covered by the unit tests, but were never put on a
+board.
+
+---
+
 ## 46.5 The per-Servant checklist
 
 §46.1's procedure is the *order*; this is the list of things to have looked at while running it.
