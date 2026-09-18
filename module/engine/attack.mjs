@@ -61,6 +61,7 @@ import { renderAttackCard, updateAttackCard } from "../apps/chat/cards.mjs";
 import { applyEffect, inflictBonusOf } from "./effect-applier.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import * as budget from "./budget.mjs";
+import { budgetActionFor } from "../rules/budget.mjs";
 import { resolveDefeat, pendingRolls, fireEvent } from "./scheduler.mjs";
 import { terrainConversions } from "../rules/terrain.mjs";
 import { paintTerrain, removeTerrainType } from "./terrain.mjs";
@@ -5198,22 +5199,12 @@ function abilityKind(ability) {
   return classifyAbility(ability).isAttack ? "normal" : "skill";
 }
 
-/**
- * Map an ability kind onto the action the budget and the prevention table know.
- *
- * The distinction that matters is `damageSpell` → `spell`: `Seal` spares Spells
- * and `Silence` hits only them, so collapsing the two would make both effects
- * wrong in opposite directions.
- *
- * @param {string} kind
- * @returns {string}
- */
-function budgetActionFor(kind) {
-  // A non-attack skill draws from the MOVE pool (D18.2), so it must not fall
-  // through to the attack default -- that would cost the Servant its attack.
-  return { np: "np", damageSpell: "spell", attackSkill: "attack", normal: "attack", skill: "skill" }[kind]
-    ?? "attack";
-}
+// `budgetActionFor` -- which maps an ability kind onto the action the budget
+// and the prevention table know, and whose distinction that matters is
+// `damageSpell` → `spell` (Seal spares Spells, Silence hits only them) -- now
+// lives in `rules/budget.mjs`, beside the vocabulary it translates into. It was
+// here, and `engine/skill-use.mjs` needed the same translation, did not know
+// about it, and passed a raw kind instead (Ch. 46 §46.4-AY).
 
 /** Re-exported so a macro can roll a raw chance without importing the rules layer. */
 export { chance };

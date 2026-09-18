@@ -93,6 +93,38 @@ export const ACTION_KINDS = Object.freeze([
  */
 
 /**
+ * The budget action an ability **kind** spends.
+ *
+ * An ability's kind (`normal`, `attackSkill`, `damageSpell`, …) and the action
+ * a budget understands (`attack`, `spell`, …) are two different vocabularies,
+ * and this is the only bridge between them. It lives here, beside
+ * `ACTION_KINDS` and `poolFor`, because the vocabulary does — two call sites
+ * kept their own copies and one of them invented a synonym.
+ *
+ * `engine/skill-use.mjs` passed the KIND `"normal"` straight to `poolFor`,
+ * which does not know it and so answered "no pool at all" — and a null pool is
+ * `{ok: true, free: true}`. Every attack-shaped ability that reaches `useSkill`
+ * was therefore checked against nothing and charged nothing, on a full pool as
+ * readily as an empty one. It failed **open**, so the only symptom was a
+ * Servant who could act slightly more than they should: Raikou's Goō
+ * Shōrai・Tenmōkaikai, a Noble Phantasm classified as a mode, cost her nothing
+ * to raise (Ch. 46 §46.4-AY).
+ *
+ * A kind with no entry falls to `attack` rather than to nothing, which is the
+ * conservative direction: an unrecognised attack-shaped ability should cost a
+ * Servant its attack, not be free.
+ *
+ * @param {string} kind an ability kind, from `rules/ability-use.mjs#abilityKind`
+ * @returns {ActionKind}
+ */
+export function budgetActionFor(kind) {
+  // A non-attack skill draws from the MOVE pool (D18.2), so it must not fall
+  // through to the attack default — that would cost the Servant its attack.
+  return { np: "np", damageSpell: "spell", attackSkill: "attack", normal: "attack", skill: "skill" }[kind]
+    ?? "attack";
+}
+
+/**
  * @typedef {object} Budget
  * @property {Record<string, {used: number, max: number}>} pools
  * @property {string[]} countedUnits units already counted against a move pool
