@@ -1920,6 +1920,48 @@ than for the function.
 
 ---
 
+### AY. An attack-shaped ability billed to a pool that does not exist — **fixed 2026-09-18**
+
+**Reached: every attack-shaped ability that resolves through `useSkill`.** Two in the corpus, and one
+of them is a Noble Phantasm: **Raikou's Goō Shōrai・Tenmōkaikai**, which `classifyAbility` calls a
+*mode* rather than an attack, and **Pale Rider's Doomsday Come: Drag**. Both cost nothing to use.
+
+An ability's **kind** (`normal`, `attackSkill`, `damageSpell`) and the **action** a budget understands
+(`attack`, `spell`) are two different vocabularies. `ACTION_KINDS` has held the second since it was
+written and `test/unit/actions.test.mjs` guards it in both directions. `budgetActionFor` is the
+bridge — and it lived inside `engine/attack.mjs`, where the other caller could not see it.
+
+So `engine/skill-use.mjs` passed the **kind** `"normal"` straight to the budget, twice: once to check
+and once to spend. `poolFor` does not know `"normal"`, answered `null`, and `canConsume` turns a null
+pool into `{ok: true, free: true}`:
+
+| | |
+|---|---|
+| `poolFor(unit, "attack")` | `"servantAttack"` |
+| `poolFor(unit, "normal")` | **`null`** |
+| `canConsume(exhaustedPool, unit, "normal")` | **`{ok: true, free: true}`** |
+
+A full pool and an empty one gave the same answer, because neither was consulted.
+
+**It failed open**, which is why it survived: the symptom is a Servant who can act slightly more than
+they should, and nobody counts. A null pool is also *legitimate* — a platform and a reaction really do
+cost nothing — so the `null` carried no information about whether it was meant.
+
+Fixed by moving `budgetActionFor` to `rules/budget.mjs`, beside the vocabulary it translates into, and
+having both engine callers use it. `engine/budget.mjs#affordable` and `#spend` now warn when handed an
+action outside `ACTION_KINDS`, naming the known set and pointing at the translator.
+
+**The warning is in the engine, not in `poolFor`.** The rules layer is pure and silent — there is not
+one `console` call under `module/rules/` — and a bad action name arrives from a caller, which is the
+engine's side of the boundary. Guarded by `test/unit/budget-vocabulary.test.mjs`, which asserts both
+callers translate before they bill and that only one copy of the translation exists.
+
+**Worth carrying forward:** a function that answers `null` for *"not applicable"* and `null` for
+*"I have never heard of this"* cannot tell a caller which it meant. The two needed separating by a
+vocabulary, not by a comment.
+
+---
+
 ## 46.5 The per-Servant checklist
 
 §46.1's procedure is the *order*; this is the list of things to have looked at while running it.

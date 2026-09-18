@@ -47,6 +47,7 @@ import { runContactEvents } from "./movement-hooks.mjs";
 import { tableFor, entriesFor, choicesIn, effectsOf } from "../rules/roll-table.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as budget from "./budget.mjs";
+import { budgetActionFor } from "../rules/budget.mjs";
 import * as I from "./intents.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { expressionRefs, stacksHeld } from "../rules/snapshot.mjs";
@@ -129,8 +130,14 @@ export async function useSkill({
   // A Skill spends the skill budget, not an attack (Ch. 19). `countsAsAttack`
   // is consulted rather than assumed: a damaging Attack Skill spends both.
   const asAttack = countsAsAttack(ability);
+  // Through `budgetActionFor`, NOT the raw kind. `"normal"` is an ability kind
+  // and not an action the budget knows, so `poolFor` answered "no pool" and a
+  // null pool is `{ok: true, free: true}` — every attack-shaped ability that
+  // reaches here was checked against nothing and charged nothing, on a full
+  // pool as readily as an empty one (Ch. 46 §46.4-AY).
+  const budgetAction = budgetActionFor(asAttack ? "normal" : "skill");
   if (combat?.started) {
-    const verdict = budget.affordable(combat, self, asAttack ? "normal" : "skill");
+    const verdict = budget.affordable(combat, self, budgetAction);
     if (!verdict.ok) return { ok: false, reason: verdict.reason };
   }
 
@@ -181,7 +188,9 @@ export async function useSkill({
     }),
   ], `skill:${abilityId}`);
 
-  if (combat?.started) await budget.spend({ combat, unit: self, action: asAttack ? "normal" : "skill" });
+  // The SAME action the check above asked about. Two spellings here is how a
+  // use gets checked against one pool and charged to another.
+  if (combat?.started) await budget.spend({ combat, unit: self, action: budgetAction });
   await fireAbilityUsed(actor, ability);
   await rollConcealmentBreak(actor, ability, self);
   await postCard(actor, ability, targets.units, applied);

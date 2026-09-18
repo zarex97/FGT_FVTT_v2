@@ -14,7 +14,7 @@
  * a player owns their Servants, not the Combat document.
  */
 
-import { emptyBudget, canConsume, consume, canEndTurn, summarize } from "../rules/budget.mjs";
+import { emptyBudget, canConsume, consume, canEndTurn, summarize, ACTION_KINDS } from "../rules/budget.mjs";
 
 const FLAG = "budgets";
 
@@ -44,8 +44,36 @@ export function budgetFor(combat, factionId) {
  * @returns {{ok: boolean, reason: string|null}}
  */
 export function affordable(combat, unit, action) {
+  warnUnknownAction(action, "affordable");
   const verdict = canConsume(budgetFor(combat, actingFactionOf(unit)), unit, action);
   return { ok: verdict.ok, reason: verdict.reason };
+}
+
+/**
+ * Say so when a caller names an action the budget does not know.
+ *
+ * `poolFor` answers `null` for an unrecognised action, and a null pool means
+ * *"draws from no pool"* — `{ok: true, free: true}`. That is right for a
+ * platform or a reaction, which genuinely cost nothing, and catastrophic for a
+ * typo: the action is checked against nothing and charged nothing, and it fails
+ * **open**, so the only symptom is a Unit that can act slightly more than it
+ * should. `engine/skill-use.mjs` passed the ability KIND `"normal"` here for as
+ * long as it existed, and nothing ever said a word (Ch. 46 §46.4-AY).
+ *
+ * Here rather than in `poolFor`: the rules layer is pure and silent — there is
+ * not one `console` call under `module/rules/` — and a bad action name arrives
+ * from a caller, which is this side of the boundary.
+ *
+ * @param {string} action
+ * @param {string} site the function that was called, for the message
+ */
+function warnUnknownAction(action, site) {
+  if (ACTION_KINDS.includes(action)) return;
+  console.warn(
+    `FGT | budget.${site}: "${action}" is not a budget action. `
+    + `Known: ${ACTION_KINDS.join(", ")}. It will draw from no pool and cost nothing. `
+    + "An ability KIND needs rules/budget.mjs#budgetActionFor first.",
+  );
 }
 
 /**
@@ -78,6 +106,7 @@ function actingFactionOf(unit) {
  * @returns {Promise<{ok: boolean, reason: string|null}>}
  */
 export async function spend({ combat, unit, action, ability = null, board = null }) {
+  warnUnknownAction(action, "spend");
   // The ACTING faction's pool, not the owning one — see `actingFactionOf`.
   const factionId = actingFactionOf(unit);
   const result = consume(budgetFor(combat, factionId), unit, action, {
