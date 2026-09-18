@@ -37,14 +37,17 @@
  * - **No socket.** `isGM` defaults true, so `planApplication` keeps everything
  *   local and `io.proxy` is never reached. Pass `isGM: false` to exercise
  *   routing; the proxy is recorded, not delivered.
- * - **Validation is coercion only, and only of the collection.** `SetField`,
- *   `NumberField`'s `min`, `ArrayField` and `BooleanField` behave; `RankField`
- *   and `TickField` store what they are given rather than throwing on a bad
- *   rank. Nor are a field's ELEMENTS validated: a `SetField` of
- *   `DocumentIdField` keeps a non-id where Foundry drops it — found by
- *   `npm run check:world` on its first run, and left as a probe there. Harmless
- *   for what io writes today, since every id it writes came off a document. A
- *   fifth type that starts mattering should fail a probe, not be guessed at here.
+ * - **The fields are Foundry's own; the write path only CLEANS with them.**
+ *   `test/helpers/foundry-common.mjs` loads the real `DataField` classes, so
+ *   `NumberField`'s `min`, `integer`, `ArrayField`, `BooleanField` and the
+ *   storage-versus-runtime split are Foundry's behaviour rather than a guess at
+ *   it. But Foundry splits a write in two — `clean()` casts, `validate()`
+ *   rejects — and `applyPatch` runs only the first. So a `SetField` of
+ *   `DocumentIdField` still keeps a non-id where a live world drops it, and
+ *   `RankField`/`TickField` still store a bad rank rather than throwing: the
+ *   real fields are present and are being asked the wrong question. Found by
+ *   `npm run check:world` on its first run, still true, and pinned by
+ *   `test/unit/world-model-fidelity.test.mjs` so it stays measured.
  *
  * Anything not modelled **throws** rather than returning `undefined`, so the
  * gap names itself instead of letting a test assert on nothing.
@@ -62,116 +65,32 @@ import { readdirSync } from "node:fs";
 /* -------------------------------------------------------------------------- */
 
 /**
- * Enough of `foundry.data.fields` for `module/data/**` to import and for the
- * four types that carry real semantics to carry them.
+ * Foundry's own, not a second spelling of it.
+ *
+ * This used to be ~90 lines of hand-written `DataField` subclasses carrying a
+ * documented admission that *"validation is coercion only"*. Every one of those
+ * lines was a guess at a system we do not own, and a guess that drifts silently:
+ * the fake `BooleanField` cast `"yes"` to `true` where the real one rejects it
+ * and falls back to the declared initial. `module/data/fields.mjs` had already
+ * outgrown the fake — `RankField` and `TickField` are written against
+ * `super._defaults` and `_validateType`, neither of which the fake ever called,
+ * so a bad rank could not be rejected by any test in this suite.
+ *
+ * The one class Foundry keeps on the CLIENT side stays faked below, which is the
+ * boundary ADR 0006 draws rather than a gap in it.
  */
-class DataField {
-  constructor(options = {}) { this.options = options; }
+const { fields: FIELDS, abstract: ABSTRACT, data: FOUNDRY_DATA, utils: UTILS, CONST } =
+  await import("./foundry-common.mjs");
 
-  static get _defaults() { return {}; }
-
-  /** The value a fresh document starts with. */
-  initial() {
-    const { initial } = this.options;
-    return typeof initial === "function" ? initial() : initial;
-  }
-
-  /** What a written value becomes in storage. */
-  clean(value) { return value; }
-}
-
-class StringField extends DataField {
-  initial() { return "initial" in this.options ? super.initial() : ""; }
-}
-class HTMLField extends StringField {}
-class FilePathField extends StringField {}
-class DocumentIdField extends DataField {
-  initial() { return "initial" in this.options ? super.initial() : null; }
-}
-
-class NumberField extends DataField {
-  initial() { return "initial" in this.options ? super.initial() : 0; }
-
-  clean(value) {
-    if (value === null || value === undefined) return value;
-    if (typeof value !== "number") return value;
-    const { min, max, integer } = this.options;
-    let out = integer ? Math.trunc(value) : value;
-    if (typeof min === "number") out = Math.max(min, out);
-    if (typeof max === "number") out = Math.min(max, out);
-    return out;
-  }
-}
-
-class BooleanField extends DataField {
-  initial() { return "initial" in this.options ? super.initial() : false; }
-  clean(value) { return Boolean(value); }
-}
-
-class ObjectField extends DataField {
-  initial() { return "initial" in this.options ? super.initial() : {}; }
-}
-
-class ArrayField extends DataField {
-  constructor(element, options = {}) { super(options); this.element = element; }
-  initial() { return "initial" in this.options ? super.initial() : []; }
-  clean(value) { return Array.isArray(value) ? [...value] : value; }
-}
+const { SchemaField, ObjectField } = FIELDS;
 
 /**
- * The one that matters most.
- *
- * `io.mjs:535` calls handing a `Set` where an array belongs *"the shape defect
- * that has cost this project more than any other"*: Foundry writes an empty
- * collection and says nothing. A fake storing the array verbatim would make
- * every such test pass by accident, so this coerces on the way in exactly as
- * Foundry does — array in, `Set` out.
+ * `RegionBehaviorType` lives in `client/`, not `common/`, so it is the one base
+ * still faked — `module/data/regions.mjs` extends it at import time and the
+ * registry pulls that file in. It extends the REAL `TypeDataModel`, so a region
+ * behaviour's schema is validated like every other.
  */
-class SetField extends ArrayField {
-  initial() { return new Set("initial" in this.options ? super.initial() ?? [] : []); }
-  clean(value) {
-    if (value instanceof Set) return new Set(value);
-    return new Set(Array.isArray(value) ? value : []);
-  }
-}
-
-class SchemaField extends DataField {
-  constructor(schema, options = {}) { super(options); this.fields = schema; }
-  initial() {
-    const out = {};
-    for (const [key, field] of Object.entries(this.fields)) out[key] = field.initial();
-    return out;
-  }
-}
-
-const FIELDS = {
-  DataField,
-  StringField,
-  HTMLField,
-  FilePathField,
-  DocumentIdField,
-  NumberField,
-  BooleanField,
-  ObjectField,
-  ArrayField,
-  SetField,
-  SchemaField,
-};
-
-/**
- * The bases the `*Data` classes extend.
- *
- * Three of them, because `module/data/index.mjs` is the real registry and
- * importing it pulls in the effect model and the region behaviours too. Faking
- * them is two empty classes; dodging the registry would mean this helper
- * keeping its own list of actor types, which is the duplication ADR 0003 is
- * about at one remove.
- */
-class TypeDataModel {
-  static defineSchema() { return {}; }
-}
-class ActiveEffectTypeDataModel extends TypeDataModel {}
-class RegionBehaviorType extends TypeDataModel {}
+class RegionBehaviorType extends ABSTRACT.TypeDataModel {}
 
 /* -------------------------------------------------------------------------- */
 /*  Globals                                                                   */
@@ -179,22 +98,20 @@ class RegionBehaviorType extends TypeDataModel {}
 
 const GLOBALS = ["game", "canvas", "foundry", "Hooks", "ui", "CONFIG", "CONST"];
 
-/** @param {string} path @param {object} root */
-function getProperty(root, path) {
-  return String(path).split(".").reduce((o, k) => (o == null ? o : o[k]), root);
-}
-
 /** Install the globals `module/data/**` and `module/engine/io.mjs` need. */
 function installFoundry() {
   globalThis.foundry = {
     data: {
+      ...FOUNDRY_DATA,
       fields: FIELDS,
-      ActiveEffectTypeDataModel,
       regionBehaviors: { RegionBehaviorType },
     },
-    abstract: { TypeDataModel },
-    utils: { getProperty, randomID: () => `id${Math.random().toString(36).slice(2, 10)}` },
+    abstract: ABSTRACT,
+    utils: UTILS,
+    CONST,
   };
+  // Foundry exposes the enum both ways, and `module/` reads it both ways.
+  globalThis.CONST = CONST;
   // Foundry extends the builtin. Node does not have it, and `io.mjs` calls it
   // three times, so without this the module throws on its first clamp.
   if (typeof Math.clamp !== "function") {
@@ -297,6 +214,32 @@ function applyPatch(target, patch, { schema, label, writes }) {
   }
 }
 
+/**
+ * Storage shape to runtime shape — the step `DataModel#initialize` performs.
+ *
+ * Foundry keeps the two apart and the difference is load-bearing. `_source` is
+ * JSON: a `SetField` stores an **array** there, and `clean()` is what puts it in
+ * that shape. The `Set` only exists after `initialize`, which is what
+ * `actor.system` reads. Cloning `_source` straight into `system` — what this
+ * model did while its fields were hand-written, by coercing to `Set` inside
+ * `clean` — collapses the two, and gets the storage side wrong to get the
+ * runtime side right.
+ *
+ * It is not academic. `apps/actor-sheet/context.mjs:292` asks
+ * `system.servantClasses?.size`, which an Array does not answer, so whether a
+ * Servant's class appears on their own sheet turns on this exact conversion.
+ *
+ * @param {object} source @param {object} schema
+ * @returns {object}
+ */
+function initializeSource(source, schema) {
+  const out = structuredClone(source);
+  for (const [key, field] of Object.entries(schema)) {
+    if (key in out) out[key] = field.initialize(out[key], null, {});
+  }
+  return out;
+}
+
 /** @param {object} root @param {string[]} parts @param {unknown} value */
 function assign(root, parts, value) {
   let node = root;
@@ -344,7 +287,9 @@ class FakeActor {
     // Declared defaults, then what the test asked for. `_source` is what a
     // write lands on; `system` is what the prepare chain leaves behind.
     const base = {};
-    for (const [key, field] of Object.entries(this.schema)) base[key] = field.initial();
+    // `initial` is an OPTION on a real DataField, not a method; `getInitialValue`
+    // is what resolves it (and a SchemaField's children with it).
+    for (const [key, field] of Object.entries(this.schema)) base[key] = field.getInitialValue();
     this._source = { system: { ...base, ...structuredClone(data.system ?? {}) } };
 
     this.items = new DocumentCollection();
@@ -376,7 +321,7 @@ class FakeActor {
    * declared without explicit Health — the END-rank table backfills it there.
    */
   prepare() {
-    this.system = structuredClone(this._source.system);
+    this.system = initializeSource(this._source.system, this.schema);
     const { restoreModifiable, applyStatDeltas, writeDerived } = this.world.derived;
     restoreModifiable(this.system, this._source.system);
     this.model.prototype.prepareBaseData?.call(this.system);
