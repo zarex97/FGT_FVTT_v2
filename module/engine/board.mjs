@@ -198,11 +198,13 @@ export function currentTick() {
 /**
  * This actor's Turn Record as it reads right now.
  *
- * The one place outside `io.mjs` that takes the stored record off a document,
- * so the document-to-projection step happens once instead of at each caller.
- * Two callers spelled the staleness comparison out themselves before this
- * existed, and a third -- `io.recordUse` -- spelled it differently, which was
- * the surviving half of #32.
+ * The one place that takes the stored record off a document, so the
+ * document-to-projection step happens once instead of at each caller. Two
+ * callers spelled the staleness comparison out themselves before this existed,
+ * and a third -- `io.recordUse` -- spelled it differently, which was the
+ * surviving half of #32. That one is absorbed too now: it was also the only
+ * hand-roller that WROTE the tick it read, so its copy stamped a use against
+ * whichever tracker happened to be on screen.
  *
  * Prefer a board snapshot where one is already in hand; this is for the paths
  * that hold only the actor.

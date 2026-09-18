@@ -16,8 +16,7 @@
  */
 
 import {
-  validatePath, remainingMovement, segmentCheck, pursuitVerdict, decoyVerdict,
-  passengerDestination, occupantAt,
+  validatePath, pursuitVerdict, decoyVerdict, passengerDestination, occupantAt,
 } from "../rules/movement.mjs";
 import { unitSnapshot, currentBoard } from "./board.mjs";
 import * as budget from "./budget.mjs";
@@ -607,23 +606,22 @@ function boardSnapshot(combat) {
   return currentBoard({ round: combat?.round ?? 1, tick: combat?.system?.globalTurn ?? 0 });
 }
 
-/**
- * How far this unit may still move — exported for the HUD and any macro that
- * wants to ask without reimplementing the arithmetic.
+/*
+ * `movementAllowance(actor)` stood here, exported "for the HUD and any macro
+ * that wants to ask without reimplementing the arithmetic", and nothing in
+ * `module/`, `test/`, `templates/` or `packs/` ever called it. The HUD does not
+ * need it: `apps/hud/turn-panel.mjs` already holds the board's own unit and
+ * calls `remainingMovement(u)` on it directly, which is the same arithmetic one
+ * layer down and without rebuilding a board snapshot to find a Unit it already
+ * has.
  *
- * @param {object} actor
- * @returns {{panels: number, blocked: string|null}}
+ * It is worth recording why it went rather than deleting it quietly. It was
+ * repaired during the Asterios audit — it had the same field-blindness
+ * `onPreMove` had, reporting MOV 4 for a Servant the board put at 8 — and the
+ * repair was correct and reached nobody. A function fixed on a path nobody
+ * walks is the same shape as a rule element with no reader: the cost is real
+ * and the benefit is zero. `onPreMove` above is where that fix earns its keep.
  */
-export function movementAllowance(actor) {
-  // The board's projection, for the reason `onPreMove` gives: a lone
-  // `unitSnapshot` cannot see a bounded field's interior rules, so this
-  // reported MOV 4 for an Asterios standing in his own Labyrinth at 8. The
-  // gate and the display have to answer this out of the same shape or the
-  // player is told one number and refused at another.
-  const board = currentBoard();
-  const unit = board.units?.find((u) => u.id === actor?.id) ?? unitSnapshot(actor);
-  return { panels: remainingMovement(unit), blocked: segmentCheck(unit) };
-}
 
 /**
  * Move a platform's passengers with it.

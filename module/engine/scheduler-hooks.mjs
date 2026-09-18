@@ -279,8 +279,6 @@ function onCombatEnd(combat) {
 
 /* -------------------------------------------------------------------------- */
 
-
-
 /**
  * The rolls a batch of (units, event) pairs will need, evaluated.
  *

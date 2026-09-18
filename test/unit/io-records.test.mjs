@@ -127,6 +127,30 @@ describe("recordUse", () => {
     });
   });
 
+  it("stamps against the match being PLAYED, not the tracker on screen", async () => {
+    // The third hand-roller `turnRecordOf`'s docstring names, and the only one
+    // of the five that WRITES the clock it reads: `recordUse` took its tick from
+    // `game.combat`, which is the Combat being VIEWED. With a second tracker
+    // open, a use was filed against a foreign tick and then read as stale for
+    // ever after — the record it wrote could never match the match it was
+    // played in.
+    await withWorld({
+      actors: [servant({
+        system: { turnState: staleAt(3), roundState: { round: 1, abilitiesUsed: [] } },
+        items: [ability("i1", "asterios-monstrous-strength")],
+      })],
+      combat: { started: true, round: 3, system: { globalTurn: 6 } },
+      viewedCombat: { started: true, round: 1, system: { globalTurn: 0 } },
+    }, async (w) => {
+      await (await io()).recordUse("semiramis", "i1", "asterios-monstrous-strength");
+
+      const a = w.actor("Semiramis");
+      expect(a.system.turnState.tick).toBe(6);
+      expect(a.system.roundState.round).toBe(3);
+      expect(a.system.turnState.abilitiesUsed).toEqual(["asterios-monstrous-strength"]);
+    });
+  });
+
   it("accumulates within one Turn, at both scales", async () => {
     await withWorld({
       actors: [servant({
