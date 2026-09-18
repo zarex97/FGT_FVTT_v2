@@ -125,31 +125,97 @@ export async function activateHangingGardens(semiramisId, { allyIds = [], allyPa
  */
 async function seatRiders(platform, origin, riders, chosen) {
   const scene = canvas.scene;
-  const { w = 9, h = 9 } = platform.system?.footprint ?? {};
+  const footprint = platform.system?.footprint ?? { w: 9, h: 9 };
+
+  for (const { unitId, panel } of seatingPlan(origin, footprint, riders, chosen)) {
+    // The scene's DOCUMENT collection, not `getActiveTokens()`.
+    //
+    // `getActiveTokens` reads the canvas **placeable** layer, and this runs
+    // immediately after a 9x9 token has been created and every rider moved to a
+    // new level — so the layer is mid-redraw and answers `[]` for a Unit whose
+    // token plainly exists. The owner was then skipped by the falsy-`token`
+    // guard below, silently, and left on the footprint's corner: outside the
+    // Throne Room, which made Sikera Ušum's DSC branch unreachable.
+    //
+    // The document collection does not depend on anything being drawn, which is
+    // the same reason §46.2 tells an auditor to move a token through its
+    // document rather than its placeable.
+    const token = tokenDocumentFor(unitId);
+    // Loud when there is nobody to seat. A silent skip here is how the owner
+    // came to be left on the rim twice: the arithmetic above is right, the
+    // caller is right, and the whole failure fits in one falsy `token`.
+    if (!token) {
+      console.warn(`FGT | Hanging Gardens: no token to seat for ${game.actors.get(unitId)?.name ?? unitId}.`);
+      continue;
+    }
+    // Through `displaceToken` for the reason `engine/io.mjs` records: a rider
+    // set down inside a 9x9 platform is not walking there.
+    const moved = await displaceToken(token, { x: panel.j * scene.grid.size, y: panel.i * scene.grid.size });
+    if (!moved) {
+      console.warn(`FGT | Hanging Gardens: could not seat ${token.name} at`, panel);
+    }
+  }
+}
+
+/**
+ * Which panel each rider takes, inside a footprint anchored at `origin`.
+ *
+ * Pure, and exported for that reason: the decision this makes is the whole of
+ * *"she is Moved to the middle panel of HGoB, and all allied Units of your
+ * choice are transported to any panel within the HGoB"*, and it can be asserted
+ * without a canvas, a scene or a platform. The impure half — finding a token
+ * and moving it — is the four lines that remain in `seatRiders`.
+ *
+ * The owner is `riders[0]` and takes the middle. Foundry anchors a token at its
+ * TOP-LEFT, so the middle of a `w × h` footprint anchored at `origin` is
+ * `origin + floor(size / 2)`. Everyone else takes the panel the caller chose,
+ * or the free panel nearest the middle when it chose none or chose one already
+ * taken or outside the footprint.
+ *
+ * @param {{i: number, j: number}} origin the panel the platform token is anchored to
+ * @param {{w: number, h: number}} footprint
+ * @param {string[]} riders owner first
+ * @param {Record<string, {i: number, j: number}>} [chosen]
+ * @returns {Array<{unitId: string, panel: {i: number, j: number}}>}
+ */
+export function seatingPlan(origin, footprint, riders, chosen = {}) {
+  const { w = 9, h = 9 } = footprint ?? {};
   const middle = { i: origin.i + Math.floor(h / 2), j: origin.j + Math.floor(w / 2) };
 
   // Ordered by distance from the middle, so an ally with no chosen panel lands
   // in the Throne Room rather than on the rim.
+  /** @type {Array<{i: number, j: number}>} */
   const inside = [];
   for (let i = origin.i; i < origin.i + h; i++) {
     for (let j = origin.j; j < origin.j + w; j++) inside.push({ i, j });
   }
   inside.sort((a, b) => reach(a, middle) - reach(b, middle));
 
+  /** @type {Array<{unitId: string, panel: {i: number, j: number}}>} */
+  const out = [];
   const taken = new Set();
-  for (const [index, unitId] of riders.entries()) {
-    const want = index === 0 ? middle : chosen[unitId] ?? null;
+  for (const [index, unitId] of (riders ?? []).entries()) {
+    const want = index === 0 ? middle : chosen?.[unitId] ?? null;
     const panel = want && !taken.has(key(want)) && contains(want, origin, w, h)
       ? want
       : inside.find((p) => !taken.has(key(p))) ?? null;
     if (!panel) continue;
     taken.add(key(panel));
-
-    const token = game.actors.get(unitId)?.getActiveTokens?.()[0]?.document ?? null;
-    // Through `displaceToken` for the reason `engine/io.mjs` records: a rider
-    // set down inside a 9x9 platform is not walking there.
-    if (token) await displaceToken(token, { x: panel.j * scene.grid.size, y: panel.i * scene.grid.size });
+    out.push({ unitId, panel });
   }
+  return out;
+}
+
+/**
+ * This Unit's token, read off the scene rather than off the canvas.
+ *
+ * @param {string} unitId
+ * @returns {object|null} a TokenDocument
+ */
+function tokenDocumentFor(unitId) {
+  return canvas.scene?.tokens?.find((t) => t.actorId === unitId)
+    ?? game.actors.get(unitId)?.getActiveTokens?.(false, true)?.[0]
+    ?? null;
 }
 
 /** @param {{i: number, j: number}} p */
