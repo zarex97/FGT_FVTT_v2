@@ -1842,6 +1842,29 @@ differs from its field is stating two areas on purpose. Applied at the two Layer
 hold the board rather than inside the pure `targetSpecFor`, which has no war Region and whose
 signature every ability in the game shares.
 
+### AW. A refused Attack reaches the console and nobody else — **open, #74**
+
+**Reached: every Unit, on every second attack attempt in a Turn.** `rules/budget.mjs#canConsume`
+refuses correctly — *"this unit has already attacked this turn"* — and `engine/attack.mjs:145` turns
+that verdict into `throw new Error(...)`. The rejection is logged and swallowed.
+
+Meanwhile the action bar leaves **Attack enabled**, beside slots it correctly greys with a reason,
+and the targeting session it opens reports **`✓ Legal — click to confirm`**. Confirming does
+nothing: no card, no notification, no change on the board. The only trace is a `console.error`.
+
+The comment ten lines above the throw states the opposite intent — *"a player who has no attacks
+left is **told** that rather than being told their target is out of range"* — so this is the case
+where the code's own stated purpose is the specification it fails.
+
+Found on Semiramis pressing `HGB.c6`, because Gather is the one action that spends a Unit's Attack
+without looking like an attack, which makes pressing Attack afterwards the natural next move. **The
+rule itself binds**; only its visibility is broken, which is why the Clause is still proven.
+
+§46.3 shape: **the gate and the display disagree**, in the direction where the player believes the
+display.
+
+---
+
 ## 46.5 The per-Servant checklist
 
 §46.1's procedure is the *order*; this is the list of things to have looked at while running it.
