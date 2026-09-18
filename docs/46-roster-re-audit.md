@@ -1962,6 +1962,62 @@ vocabulary, not by a comment.
 
 ---
 
+### AZ. A Noble Phantasm raised on somebody else's Turn still cost its owner's Attack — **fixed 2026-09-18**
+
+**Reached: every reaction-window Noble Phantasm.** EMIYA's Rho Aias and Achilles' Akhilleus Kosmos in
+the reference set, and every one authored after them.
+
+The game's author states the rule in one line:
+
+> *"Every Noble Phantasm consumes the attack budget if it is used on its owner's own Turn, and none
+> does otherwise."*
+
+The first half held. `poolFor` bills `np` to `servantAttack`, and a Unit that has attacked cannot then
+use a Noble Phantasm. The exception did not exist anywhere:
+`rules/ability-use.mjs#countsAsAttack` answers from the ability alone —
+
+```js
+if (item?.type === "noblePhantasm" || sys.isNP) return true;
+```
+
+— and has no notion of whose Turn it is.
+
+**Why it bites, and it is not the charge.** A faction's budget is cleared at the **start** of its own
+Turn, not the end (`engine/budget.mjs#reset`, and its comment says why). So during an enemy's Turn the
+flag still holds what that faction spent on its own last Turn. A Servant who attacked a Turn ago met
+an exhausted pool when trying to raise a **shield**. The spend itself is harmless — the reset wipes it
+before the owner acts again — so **the refusal was the defect**.
+
+**The obvious fix is the wrong one.** Two reaction abilities in the corpus carry
+`countsAsAttack: false` — Kiritsugu's Suppression Shot, whose sheet says it is free outright, and
+Semiramis' Scales, which is not an attack at all. Copying that onto Rho Aias would exempt it on
+EMIYA's **own** Turn too, which the author's clarification explicitly rules out: *"Rho Aias also
+consumes attack budget — just that… when it is used on someone else's turn, it does not consume
+budget."* The exemption is a property of **the moment**, not of the ability.
+
+So it is derived, once, in `engine/budget.mjs#attackOutsideOwnTurn`: an action drawing from an attack
+pool, by a unit whose acting faction is not the one taking the Turn, is neither checked nor charged.
+Both `affordable` and `spend` ask the **same** predicate — two spellings there is how an ability gets
+waved through by one and billed by the other. Only the attack pools: a reaction drawing from the move
+pool is already free for the ordinary reason. `actingFactionOf` rather than `unit.factionId`, so a
+**charmed** unit acting on the charmer's Turn is still on "its own" Turn for this purpose.
+
+**Ordering mattered.** This was invisible until §46.4-AY was fixed: `useSkill` was passing an action
+name no pool recognised, so the attack pool was never consulted and the refusal never happened.
+Fixing AY first made the defect appear for the first time, which is why the two were done in that
+order and in that sitting.
+
+**A test that only checked the reaction case would have passed against the wrong fix**, so
+`test/unit/reaction-attack-budget.test.mjs` asserts both directions and that neither content file has
+gained the flag.
+
+**And it caught a defective fixture.** The first version of that test built its pools as
+`{used, max}`; the real shape is `{usedHalves, maxHalves}`, so `undefined + 2 > undefined` is false
+and the "exhausted" pool was empty. Both directions passed for the wrong reason. The world model now
+carries `actingFactionId` and seeds `flags`, so the scenario can be stated at all.
+
+---
+
 ## 46.5 The per-Servant checklist
 
 §46.1's procedure is the *order*; this is the list of things to have looked at while running it.

@@ -14,7 +14,7 @@
  * a player owns their Servants, not the Combat document.
  */
 
-import { emptyBudget, canConsume, consume, canEndTurn, summarize, ACTION_KINDS } from "../rules/budget.mjs";
+import { emptyBudget, canConsume, consume, canEndTurn, summarize, ACTION_KINDS, poolFor } from "../rules/budget.mjs";
 
 const FLAG = "budgets";
 
@@ -45,6 +45,13 @@ export function budgetFor(combat, factionId) {
  */
 export function affordable(combat, unit, action) {
   warnUnknownAction(action, "affordable");
+  // An Attack made outside its owner's Turn is not checked against the attack
+  // pool at all. The budget on the flag is the one that faction spent on its
+  // OWN last Turn -- `reset` clears it when their next Turn begins, not when
+  // the last one ended -- so consulting it here refuses a Servant a defensive
+  // reaction because of how aggressive they were a Turn ago. Rho Aias is a
+  // shield (Ch. 46 §46.4-AZ).
+  if (attackOutsideOwnTurn(combat, unit, action)) return { ok: true, reason: null };
   const verdict = canConsume(budgetFor(combat, actingFactionOf(unit)), unit, action);
   return { ok: verdict.ok, reason: verdict.reason };
 }
@@ -97,6 +104,48 @@ function actingFactionOf(unit) {
 }
 
 /**
+ * Is this an Attack the unit is making **outside its own Turn**?
+ *
+ * The game's author states the rule as one line:
+ *
+ * > *"Every Noble Phantasm consumes the attack budget if it is used on its
+ * > owner's own Turn, and none does otherwise."*
+ *
+ * So the exemption is a property of **the moment**, not of the ability. Rho
+ * Aias costs EMIYA his Attack when he raises it on his own Turn and costs him
+ * nothing when he raises it as a reaction on somebody else's — and that is the
+ * same Noble Phantasm, with the same sheet, either way. Giving the content a
+ * `countsAsAttack: false` would have exempted it in both, which is why this is
+ * derived here instead: a reaction-window Noble Phantasm authored tomorrow
+ * inherits it with no content change (Ch. 46 §46.4-AZ).
+ *
+ * Only the **attack** pools. A reaction that draws from the move pool is
+ * already free on somebody else's Turn for the ordinary reason — that faction's
+ * budget is not the one being spent.
+ *
+ * `actingFactionOf` rather than `unit.factionId`, so a **charmed** unit acting
+ * on the charmer's Turn is still on "its own" Turn for this purpose: Ch. 25 puts
+ * it in the charmer's units, and it spends their slots. The comparison is
+ * against the faction the budget is being kept for, which is the same one.
+ *
+ * @param {object} combat
+ * @param {object} unit a `UnitSnapshot`
+ * @param {string} action
+ * @returns {boolean}
+ */
+function attackOutsideOwnTurn(combat, unit, action) {
+  const pool = poolFor(unit, action);
+  if (pool !== "servantAttack" && pool !== "masterAttack") return false;
+
+  const acting = combat?.actingFactionId ?? null;
+  // Before the match has an acting faction there is no "somebody else's Turn"
+  // to be on, and withholding the charge then would make every attack free.
+  if (!acting) return false;
+
+  return actingFactionOf(unit) !== acting;
+}
+
+/**
  * Spend the budget for an action, writing the result.
  *
  * @param {object} args
@@ -107,6 +156,10 @@ function actingFactionOf(unit) {
  */
 export async function spend({ combat, unit, action, ability = null, board = null }) {
   warnUnknownAction(action, "spend");
+  // Nothing to charge: see `attackOutsideOwnTurn`. Skipped on the SAME test the
+  // check above uses, so an ability can never be waved through by one and
+  // billed by the other.
+  if (attackOutsideOwnTurn(combat, unit, action)) return { ok: true, reason: null };
   // The ACTING faction's pool, not the owning one — see `actingFactionOf`.
   const factionId = actingFactionOf(unit);
   const result = consume(budgetFor(combat, factionId), unit, action, {

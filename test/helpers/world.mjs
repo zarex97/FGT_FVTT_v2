@@ -472,7 +472,18 @@ class FakeCombat {
     this.started = data.started ?? true;
     this.round = data.round ?? 1;
     this.system = { globalTurn: 0, grailCounter: 0, grailThreshold: 9, grailMaterialized: false, ...(data.system ?? {}) };
-    this.flags = {};
+    // Whose Turn it is. A real `Combat` derives this from its combatant; the
+    // model takes it as a fact, because a test about acting-faction behaviour
+    // should not have to build a turn order to state one. `null` is the honest
+    // default -- a match before it has an acting faction -- and is what
+    // `engine/budget.mjs#attackOutsideOwnTurn` treats as "no other Turn to be
+    // on", so an unset value cannot silently grant an exemption.
+    this.actingFactionId = data.actingFactionId ?? null;
+    // Seeded flags, in the flat `scope.key` shape `getFlag` reads. Without this
+    // a spec could set a budget the code would never find: `budgetFor` would
+    // answer a fresh, EMPTY budget and a test asserting a refusal would pass
+    // because nothing was ever exhausted.
+    this.flags = { ...(data.flags ?? {}) };
     this.world = world;
   }
 
