@@ -2216,6 +2216,35 @@ which the board projection does not carry.
 
 ---
 
+### BE. Every Combat Process card offered the Command Spells of every Master in the world — **fixed 2026-09-18**
+
+**Reached: every card, in every match.** Found on the Semiramis audit board while reading a reaction
+card for something else.
+
+`apps/chat/cards.mjs#offerableCommands` assembled the offer from the actor directory and filtered it
+on **ownership alone**:
+
+```js
+for (const master of game.actors.filter((a) => a.type === "master" && a.isOwner)) {
+```
+
+A GM owns every actor in the world. So a two-faction board with **two** Masters on it offered
+Command Spells from **twenty** — Drake's Master, Gogh's Master, an Archer's Master from a war that
+was over, two test Masters from a Heracles setup. Spending one would have charged a Master standing
+outside the fight, and Ch. 33's *"an unusable command's option must never appear"* was being read as
+being about cost alone.
+
+The template's own comment beside the block says *"only shown when this viewer owns a Master that can
+actually spend one"*, which is where the ownership test came from and how it passed review: it is the
+right sentence with one condition missing. Ownership is not membership.
+
+The offer now intersects the directory with the Masters the board projection holds.
+
+**Verified live** on the same board after the fix: the card offers **2** Masters, both in the match,
+against **20** owned in the world.
+
+---
+
 ---
 
 ## 46.5 The per-Servant checklist
