@@ -2067,6 +2067,50 @@ fixing the cause.
 Master (+4) cases share the code path and are covered by the unit tests, but were never put on a
 board.
 
+### BB. Every Round was played in the order rolled for the Round before it — **fixed 2026-09-18**
+
+**Reached: every match in the game.** Found on the Semiramis audit board while reading whose Turn it
+was, and it is the largest-reaching finding this audit has produced.
+
+Turn order is a `1d100` per faction **re-rolled every Round** — Ch. 41 Q32, answered that way for a
+stated reason: *a faction cannot be locked into last place for the whole match*. `rollTurnOrder`
+rolls it, breaks ties, and writes `system.turnOrder`. `_sortCombatants` reads that field and orders
+the tracker by it. Both are correct, and both have unit tests.
+
+**Nothing re-ran the sort.** Foundry derives `combat.turns` in `setupTurns`, which `_onUpdate` calls
+for `round`, `turn` and `combatants` changes only. `rollTurnOrder` writes to `system`, so the order
+it rolled reached the sort no earlier than the *next* round boundary — and that boundary sorts with
+whatever was current before its own re-roll. Each Round was therefore played in the order rolled for
+the Round before it, permanently one Round behind.
+
+Measured live, Round 3, a fresh read of each:
+
+| | |
+|---|---|
+| `system.turnOrder` | `["faction-1", "faction-2", GM]` |
+| `combat.turns` | `["Faction 2", "Faction 1", "GM"]` |
+| acting | **Faction 2** |
+
+and `combat.setupTurns()` called by hand on that same combat re-sorted it to `["Faction 1",
+"Faction 2", "GM"]` and moved the acting faction to Faction 1 — the arithmetic was never wrong.
+
+`system.turnOrder` has **three** writers, and all three had the same hole: `rollTurnOrder`,
+`delayFaction` — where it means a declared `Delay+X` did not move anybody until something unrelated
+re-rendered — and `markTurnTaken`. `delayFaction` alone announced its change, with
+`Hooks.callAll("fgtTurnOrderChanged")`, and **that hook has never had a listener anywhere in the
+system**: the one signal that the order had moved was sent to nobody. Ch. 46's own list of shapes
+has both halves of this: *an event with no firer*, and its mirror, an event with no consumer.
+
+One `#applyTurnOrder` helper now re-derives the turns and re-renders the tracker, and all three
+writers call it. Guarded by `test/unit/turn-order-callsites.test.mjs`, which reads the **source**:
+a test of the sort cannot catch this, because the sort answered correctly every time it was asked
+and the defect was that nothing asked. Red against the old code on all five assertions.
+
+**Verified live** after the fix, across the Round 3 → 4 boundary: `system.turnOrder` and
+`combat.turns` agree, and the faction the roll put first is the faction that acts.
+
+---
+
 ---
 
 ## 46.5 The per-Servant checklist

@@ -167,7 +167,34 @@ export class FGTCombat extends Combat {
       "system.delays": carryDelaysForward(this.system?.delays ?? {}, this.system?.takenThisRound ?? []),
       "system.takenThisRound": [],
     });
+    this.#applyTurnOrder();
     return order;
+  }
+
+  /**
+   * Re-derive `turns` from the order that was just written.
+   *
+   * `_sortCombatants` reads `system.turnOrder` and is right; **nothing ever
+   * re-ran it.** Foundry calls `setupTurns` from `_onUpdate` for `round`,
+   * `turn` and `combatants` changes only, so an order written into `system`
+   * reached the sort no earlier than the next round boundary — and that
+   * boundary sorts with the order current *before* the re-roll. Every Round was
+   * therefore played in the order rolled for the Round before it, which is the
+   * precise thing Ch. 41 Q32 re-rolls every Round to prevent.
+   *
+   * Found live on the Semiramis audit board (§46.4-BB): `system.turnOrder` read
+   * `[faction-1, faction-2, GM]` while `combat.turns` read
+   * `[Faction 2, Faction 1, GM]`, and Faction 2 was the one taking the turn.
+   *
+   * Every writer of `system.turnOrder` calls this. `Hooks.callAll` beside one
+   * of them was the only signal the order had changed and it has never had a
+   * listener, so the hook announced the change to nobody.
+   *
+   * @returns {void}
+   */
+  #applyTurnOrder() {
+    this.setupTurns();
+    globalThis.ui?.combat?.render?.();
   }
 
   /**
@@ -197,6 +224,7 @@ export class FGTCombat extends Combat {
       this.gmFactionId,
     );
     await this.update({ "system.delays": delays, "system.turnOrder": order });
+    this.#applyTurnOrder();
     Hooks.callAll("fgtTurnOrderChanged", this, order);
     return order;
   }
@@ -222,6 +250,7 @@ export class FGTCombat extends Combat {
         this.system?.baseOrder ?? [], this.system?.delays ?? {}, taken, this.gmFactionId,
       ),
     });
+    this.#applyTurnOrder();
   }
 
   /**
