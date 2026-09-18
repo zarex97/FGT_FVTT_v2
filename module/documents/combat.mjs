@@ -167,12 +167,11 @@ export class FGTCombat extends Combat {
       "system.delays": carryDelaysForward(this.system?.delays ?? {}, this.system?.takenThisRound ?? []),
       "system.takenThisRound": [],
     });
-    this.#applyTurnOrder();
     return order;
   }
 
   /**
-   * Re-derive `turns` from the order that was just written.
+   * Re-derive `turns` when the Round's order is rolled.
    *
    * `_sortCombatants` reads `system.turnOrder` and is right; **nothing ever
    * re-ran it.** Foundry calls `setupTurns` from `_onUpdate` for `round`,
@@ -186,13 +185,40 @@ export class FGTCombat extends Combat {
    * `[faction-1, faction-2, GM]` while `combat.turns` read
    * `[Faction 2, Faction 1, GM]`, and Faction 2 was the one taking the turn.
    *
-   * Every writer of `system.turnOrder` calls this. `Hooks.callAll` beside one
-   * of them was the only signal the order had changed and it has never had a
-   * listener, so the hook announced the change to nobody.
+   * **Here rather than beside the three writers**, for two reasons that only
+   * showed up once it was written the other way.
    *
+   * 1. *Every client.* `setupTurns` mutates the instance it is called on.
+   *    `rollTurnOrder` runs on the active GM alone, so re-sorting there fixed
+   *    the order on one screen; a player's client took the `system` change and,
+   *    by this defect's own premise, still never re-derived. `_onUpdate` runs
+   *    wherever the change lands.
+   * 2. *Only at `turn === 0`.* `this.turn` is an **index**, not an identity, so
+   *    re-sorting mid-Round moves whoever sits at that index — silently handing
+   *    the turn to another faction with no `combatTurnChange`, no budget reset
+   *    and no turn-start effects, while the faction that really held it never
+   *    gets a turn-end. `markTurnTaken` recomputes the order at every boundary
+   *    and `delayFaction` at every declaration; applying either mid-Round is
+   *    that bug. The rolled order is written at the top of a Round, where the
+   *    index is 0 either way, and that is the one moment applying it is safe.
+   *
+   * Delay therefore still does not move anybody within the Round it is declared
+   * in. That is unchanged behaviour rather than a new hole, and it is filed as
+   * its own ticket: `computeTurnOrder` re-applies `system.delays` against a
+   * shrinking `pending` list, so a `Delay+1` applied at every boundary would
+   * compound into `Delay+N` — the delay has to be spent before it can be
+   * applied, which is a rules change and not this fix's to make.
+   *
+   * @param {object} changed
+   * @param {object} options
+   * @param {string} userId
    * @returns {void}
+   * @inheritdoc
    */
-  #applyTurnOrder() {
+  _onUpdate(changed, options, userId) {
+    super._onUpdate(changed, options, userId);
+    if (changed?.system?.turnOrder === undefined) return;
+    if ((this.turn ?? 0) !== 0) return;
     this.setupTurns();
     globalThis.ui?.combat?.render?.();
   }
@@ -224,7 +250,6 @@ export class FGTCombat extends Combat {
       this.gmFactionId,
     );
     await this.update({ "system.delays": delays, "system.turnOrder": order });
-    this.#applyTurnOrder();
     Hooks.callAll("fgtTurnOrderChanged", this, order);
     return order;
   }
@@ -250,7 +275,6 @@ export class FGTCombat extends Combat {
         this.system?.baseOrder ?? [], this.system?.delays ?? {}, taken, this.gmFactionId,
       ),
     });
-    this.#applyTurnOrder();
   }
 
   /**

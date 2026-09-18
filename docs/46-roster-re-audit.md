@@ -2103,13 +2103,39 @@ re-rendered — and `markTurnTaken`. `delayFaction` alone announced its change, 
 system**: the one signal that the order had moved was sent to nobody. Ch. 46's own list of shapes
 has both halves of this: *an event with no firer*, and its mirror, an event with no consumer.
 
-One `#applyTurnOrder` helper now re-derives the turns and re-renders the tracker, and all three
-writers call it. Guarded by `test/unit/turn-order-callsites.test.mjs`, which reads the **source**:
-a test of the sort cannot catch this, because the sort answered correctly every time it was asked
-and the defect was that nothing asked. Red against the old code on all five assertions.
+**Where the re-sort goes is the whole of the fix, and the first attempt got it wrong twice.**
+Calling `setupTurns` beside each of the three writers was reviewed and rejected:
 
-**Verified live** after the fix, across the Round 3 → 4 boundary: `system.turnOrder` and
-`combat.turns` agree, and the faction the roll put first is the faction that acts.
+1. *It fixes one screen.* `setupTurns` mutates the instance it is called on, and `rollTurnOrder`
+   runs on the **active GM alone**. A player's client takes the `system` change and — by this
+   defect's own premise — still never re-derives. Player-side code reads the result:
+   `engine/movement-hooks.mjs` gates dragging on `combat.actingFactionId`, so the faction the roll
+   really put first would be told it is not its turn.
+2. *`this.turn` is an index, not an identity.* Re-sorting **mid-Round** moves whoever sits at that
+   index — handing the turn to another faction with no `combatTurnChange`, no budget reset and no
+   turn-start effects, while the faction that really held it never gets a turn-end. `markTurnTaken`
+   recomputes the order at every boundary and `delayFaction` at every declaration, so applying
+   either mid-Round *is* that bug.
+
+So the re-derivation lives in `_onUpdate` — which runs wherever the change lands, on every client —
+and only when `this.turn` is 0, which is the top of a Round and the one moment the rolled order can
+be applied without moving anybody. `delayFaction` and `markTurnTaken` write their recomputed order
+for the bookkeeping that reads it and no longer touch the played order.
+
+Guarded by `test/unit/turn-order-callsites.test.mjs`, which reads the **source**: a test of the sort
+cannot catch this, because the sort answered correctly every time it was asked and the defect was
+that nothing asked. Two of its five assertions guard against the rejected shape.
+
+**Verified live**, across the Round 17 → 18 boundary: at `turn: 0` the order reads
+`[faction-1, faction-2, GM]`, `combat.turns` agrees, and Faction 1 acts. At `turn: 1`,
+`markTurnTaken` has recomputed `system.turnOrder` to `[faction-2, faction-1, GM]` and `combat.turns`
+is correctly **unchanged** — Faction 2 acts, which is the second slot of the order that was rolled.
+
+**One thing this deliberately does not fix**, filed as #82: `computeTurnOrder` re-applies
+`system.delays` against a *shrinking* `pending` list, so a `Delay+1` applied at every boundary
+compounds into `Delay+N` — the declaration has to be **spent** before it can be applied. Delay
+therefore still does not move anybody within the Round it is declared in, which is unchanged
+behaviour rather than a new hole.
 
 ---
 
