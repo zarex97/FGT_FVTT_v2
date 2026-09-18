@@ -7,6 +7,8 @@
  * cross-level rule was implemented, called, and permanently inert.
  */
 
+import { readFileSync } from "node:fs";
+
 import { describe, it, expect } from "vitest";
 import {
   platformsOn, passengersOf, movePlatform, crossLevelRulesFor, crossLevelLegal,
@@ -945,5 +947,54 @@ describe("deactivatedBy — an effect on the owner switches the ship off", () =>
 
   it("leaves a platform that authored nothing alone", () => {
     expect(deactivatedBy([hgob], "semiramis", "npSeal")).toEqual([]);
+  });
+});
+
+/* ── Boarding puts you on the level, not merely on the panel ──────────────── */
+
+describe("a successful boarding", () => {
+  /**
+   * @see docs/46-roster-re-audit.md §46.4-BD
+   *
+   * Membership of a platform **is** the Scene Level — `passengersOf` above says
+   * so, and every aboard-only rule reads it. `boardPlatform` moved the boarder
+   * with `I.move`, which changes x and y and nothing else, so a Unit that
+   * passed its boarding roll ended up standing on the ground *underneath* the
+   * garden with the log recording `ok: true`.
+   *
+   * Measured live on the Semiramis audit board: Heracles rolled **11** against
+   * a target of **8** on a d12, the log said he had boarded, and the board
+   * projection still had him at `k: 0` while the garden flew at `k: 20`.
+   *
+   * The decision — who boards, against what target — is pure and is tested in
+   * `boardingTarget` above. The level assignment is I/O beside it, so this
+   * reads the source, the same way `hgob-seating.test.mjs` guards the token
+   * lookup it cannot call.
+   */
+  const src = readFileSync("module/engine/platforms.mjs", "utf8").replace(/\r\n/g, "\n");
+
+  it("moves the boarder onto the platform's Scene Level", () => {
+    const from = src.indexOf("export async function boardPlatform");
+    const body = src.slice(from, src.indexOf("\n}\n", from));
+    expect(body, "boardPlatform must put the boarder on the level, not only on the panel")
+      .toMatch(/comeAboard\(/);
+  });
+
+  it("carries a brought Master aboard with its Servant", () => {
+    // *"An enemy Servant that successfully boards may bring its Master."* The
+    // Master was moved by the same `I.move` and had the same hole.
+    const from = src.indexOf("export async function boardPlatform");
+    const body = src.slice(from, src.indexOf("\n}\n", from));
+    expect(body).toMatch(/boarders\.push\(master\.id\)/);
+    expect(body).toMatch(/comeAboard\(boarders, platformId\)/);
+  });
+
+  it("asks the level of the platform ACTOR, which is where levelId lives", () => {
+    // `levelOf` reads `system.levelId`; the board projection does not carry it,
+    // so handing it the snapshot silently assigns nobody.
+    const from = src.indexOf("async function comeAboard");
+    const body = src.slice(from, src.indexOf("\n}\n", from));
+    expect(body).toMatch(/game\.actors\.get\(platformId\)/);
+    expect(body).toMatch(/moveToLevel\(unitIds, platform\)/);
   });
 });

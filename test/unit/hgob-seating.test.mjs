@@ -115,3 +115,63 @@ describe("the token lookup beside it", () => {
     expect(src).toMatch(/could not seat/);
   });
 });
+
+describe("the riders it was never asked for", () => {
+  /**
+   * > *"…and **all allied Units of your choice are transported to any panel
+   * > within the HGoB**."*
+   *
+   * The other half of the same sentence, and it had the mirror of the same
+   * defect: `activateHangingGardens` has taken `allyIds` since it was written
+   * and `seatingPlan` seats them, but the one caller — the channel completing —
+   * passed nothing. So Semiramis always boarded alone and her Master was always
+   * left on the ground, under a garden that had just taken her out of his ZON.
+   *
+   * Measured live on her audit board (§46.14.7): the activation dialog reads
+   * *"1 target(s) · 1 panel(s)"* and the only name in it is hers.
+   */
+  // Line endings normalised: the repo checks out CRLF on Windows, and a
+  // `\n}\n` boundary that silently fails to match turns a slice of one function
+  // into a slice of the whole file — which is how this guard first passed
+  // against the very code it was written to fail on.
+  const src = readFileSync("module/engine/hgob.mjs", "utf8").replace(/\r\n/g, "\n");
+
+  it("asks who is coming when the channel completes", () => {
+    // The hook's own body, ending at the first closing brace in column 0 —
+    // bounding it by the next function's name instead passes on a file where
+    // that function does not exist yet, because `activateHangingGardens`'s own
+    // signature names `allyIds`.
+    const from = src.indexOf("async function onChannelComplete");
+    const body = src.slice(from, src.indexOf("\n}\n", from));
+    expect(body, "the activation must carry the choice, not default it away")
+      .toMatch(/activateHangingGardens\([^)]*allyIds/);
+  });
+
+  it("offers the choice to the Servant's owner rather than to whoever is arbitrating", () => {
+    // The GM runs the activation; the garden is not the GM's to fill.
+    expect(src).toMatch(/import \{ askOwner \} from "\.\/ask\.mjs"/);
+    expect(src).toMatch(/askOwner\(owner, \{/);
+  });
+
+  it("filters the answer against what was offered", () => {
+    // It crosses a socket from a client the GM does not control — the same
+    // reason ChoiceDialog enforces its own count a second time.
+    expect(src).toMatch(/offered\.has\(id\)/);
+  });
+
+  it("seats a chosen ally on the panel that was chosen for it", () => {
+    const plan = seatingPlan({ i: 0, j: 0 }, HGOB, ["owner", "master"], { master: { i: 6, j: 2 } });
+    expect(panelOf(plan, "owner")).toEqual({ i: 4, j: 4 });
+    expect(panelOf(plan, "master")).toEqual({ i: 6, j: 2 });
+  });
+
+  it("gives an ally with no chosen panel one inside the footprint", () => {
+    const plan = seatingPlan({ i: 0, j: 0 }, HGOB, ["owner", "master"]);
+    const at = panelOf(plan, "master");
+    expect(at.i).toBeGreaterThanOrEqual(0);
+    expect(at.i).toBeLessThanOrEqual(8);
+    expect(at.j).toBeGreaterThanOrEqual(0);
+    expect(at.j).toBeLessThanOrEqual(8);
+    expect(at).not.toEqual(panelOf(plan, "owner"));
+  });
+});

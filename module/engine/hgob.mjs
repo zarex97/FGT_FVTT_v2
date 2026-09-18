@@ -12,6 +12,7 @@
 
 import { currentBoard, unitSnapshot } from "./board.mjs";
 import { activatePlatform } from "./platforms.mjs";
+import { askOwner } from "./ask.mjs";
 import { displaceToken } from "./io.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
@@ -38,7 +39,66 @@ export const Hgob = {
 async function onChannelComplete({ actorId, onComplete }) {
   if (!game.users.activeGM?.isSelf) return;
   if (onComplete?.kind !== "activateHangingGardens") return;
-  await activateHangingGardens(actorId);
+  await activateHangingGardens(actorId, { allyIds: await chooseRiders(actorId) });
+}
+
+/**
+ * *"…and all allied Units of your choice are transported to any panel within
+ * the HGoB."*
+ *
+ * This is the half nobody was ever asked. `activateHangingGardens` has taken
+ * `allyIds` since it was written, `seatingPlan` seats them, and the one caller
+ * — the channel completing — passed **nothing**, so Semiramis always boarded
+ * alone and her Master was always left standing on the ground under a garden
+ * that had just taken her out of his ZON. Found live on her audit board
+ * (§46.14.7): the activation dialog reads *"1 target(s) · 1 panel(s)"* and the
+ * only name in it is hers.
+ *
+ * Everyone allied and on the board is eligible: the sheet puts no reach on it,
+ * and the whole point of a flying garden is that it takes her faction with her.
+ * The garden itself is not offered — it *is* the platform — and neither is
+ * anything already aboard one.
+ *
+ * Declining is an answer. A dismissed dialog, a disconnected owner or a
+ * timeout all resolve to `null`, and she boards alone — which is exactly the
+ * behaviour this replaces, now reached by choosing it rather than by nobody
+ * being asked.
+ *
+ * @param {string} ownerId Semiramis
+ * @returns {Promise<string[]>} the allied Units to bring aboard
+ */
+async function chooseRiders(ownerId) {
+  const owner = game.actors.get(ownerId);
+  const self = currentBoard().units.find((u) => u.id === ownerId);
+  if (!owner || !self) return [];
+
+  const eligible = currentBoard().units.filter((u) => (
+    u.id !== ownerId
+    && u.factionId === self.factionId
+    && u.kind !== "platform"
+    && u.panel
+    && !u.onPlatform
+  ));
+  if (eligible.length === 0) return [];
+
+  const picked = await askOwner(owner, {
+    kind: "choose",
+    title: game.i18n.localize("FGT.Hgob.RidersTitle"),
+    hint: game.i18n.localize("FGT.Hgob.RidersHint"),
+    min: 0,
+    count: eligible.length,
+    options: eligible.map((u) => ({
+      id: u.id,
+      name: u.name,
+      subtitle: game.i18n.format("FGT.Hgob.RiderAt", { i: u.panel.i, j: u.panel.j }),
+    })),
+  });
+
+  // Filter against the offer rather than trusting the answer: it crosses a
+  // socket from a client the GM does not control, the same reason
+  // `ChoiceDialog` enforces its own count.
+  const offered = new Set(eligible.map((u) => u.id));
+  return (picked ?? []).filter((id) => offered.has(id));
 }
 
 /**

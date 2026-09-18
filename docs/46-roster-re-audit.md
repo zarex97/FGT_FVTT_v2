@@ -2111,6 +2111,83 @@ and the defect was that nothing asked. Red against the old code on all five asse
 
 ---
 
+### BC. The Home Base's three-Round cure took every effect, not every debuff — **fixed 2026-09-18**
+
+**Reached: every Unit in the game that stands in its own Home Base for three Rounds**, which is the
+ordinary case for a Master and for any Servant defending.
+
+Ch. 29 E2: *"a Unit that has spent three full Rounds in its own Home Base is cured of every removable
+debuff."* `rules/environment.mjs#endOfRoundHomeBase` states it correctly and always has:
+
+```js
+if (e.unremovable) continue;
+if (e.polarity && e.polarity !== "debuff") continue;
+```
+
+**Neither field was ever projected onto an effect instance.** `rules/snapshot.mjs#effectInstances`
+carried `id`, `defId`, `magnitude`, `stage`, `uses`, `expiry`, three source ids, `visibility`,
+`attributionHidden` and `suppressed` — and neither `unremovable` nor `polarity`. Both guards read
+`undefined`, so neither could ever fire, and the sweep removed **everything the resident carried**:
+buffs, neutral statuses and unremovable effects alike.
+
+The same two fields are read by `rules/removal.mjs` and `rules/effect-flow.mjs` — Cure and Dispel —
+wherever those are handed a projected instance, so the reach is wider than E2 alone.
+
+Found on the Semiramis audit board, and it took a day to see because of where it hid. Her Hanging
+Gardens **counts as her Faction's second Home Base**, so standing aboard her own Noble Phantasm makes
+her a permanent resident; three Rounds after activating it she lost `hgob-owner-buff` —
+`unremovable: true`, `polarity: status`, `expiry: null` — and every one of `HGB.ranks`, `HGB.str`,
+`HGB.end`, `HGB.agi`, `HGB.mag` and `HGB.luc` quietly came off with it. The audit's *first* garden
+board had shown exactly that state and it had been written off as debris from a hand-driven session.
+
+**Measured, re-applying the buff and advancing:** it survived the Turn boundary and was gone at the
+Round boundary, every time. `scheduler.endRound(board, ctx)` asked directly returned
+`{t: "removeEffect", effectId: "…", reason: "Home Base"}` for it — the rule naming itself.
+
+The projection now carries both fields, the instance's own `unremovable` winning over the
+definition's where they differ (the owner buff is landed unremovable by the intent, and its
+definition says nothing). Guarded by `test/unit/home-base-cure.test.mjs`, which runs the projection
+and the rule **together**: either half alone passes, because the rule is right and the projection
+looks complete until you ask it the two questions the rule asks. Six of its seven assertions are red
+against the old code.
+
+**Verified live** across the Round 15 → 16 boundary after the fix: the buff stands, her STR stays
+`D` and her Health stays 1250/1250.
+
+---
+
+### BD. A successful boarding left the boarder standing on the ground — **fixed 2026-09-18**
+
+**Reached: every platform in the game** — the Hanging Gardens and the Golden Hind alike.
+
+Membership of a platform **is** the Scene Level: `rules/platforms.mjs#passengersOf` returns the units
+on the platform's level, and every aboard-only rule reads it. `engine/platforms.mjs#boardPlatform`
+moved a successful boarder with `I.move`, which changes x and y and nothing else. So a Unit that
+passed its boarding roll was moved to the platform's anchor **panel** and left on the ground
+underneath it: `onPlatform` false, every cross-level rule inapplicable, and the game log recording
+`ok: true`.
+
+Measured live, twice, from the action bar's own **Board** control:
+
+| roll | target | die | log | where he ended |
+|---|---|---|---|---|
+| 4 | 8 | 12 | `ok: false` | (3,3) `k: 0` |
+| 11 | 8 | 12 | **`ok: true`** | (0,0) **`k: 0`** — the garden flying at `k: 20` |
+
+The arithmetic beside it is right and is the reason this was worth pressing at all: `target: 8` is
+12 − 2 for Heracles' AGI Rank A − 2 for his LUC Rank A, which is `HG.board`, `HG.board.agi` and
+`HG.board.luc` in one reading.
+
+`activatePlatform` has assigned its initial riders to the level since the platform's own token was
+found flying at elevation 0 (§46.4 C3's neighbourhood); boarding is the same operation and was never
+given the same step. A `comeAboard` helper now does it for the boarder and for a Master carried up
+with its Servant, reading the level off the platform **actor** — `levelOf` wants `system.levelId`,
+which the board projection does not carry.
+
+**Verified live** after the fix: roll 12 against target 8 took Heracles from `k: 0` to **`k: 20`**.
+
+---
+
 ---
 
 ## 46.5 The per-Servant checklist
@@ -2606,3 +2683,40 @@ the pure `seatingPlan`, so where each rider goes can be asserted without a canva
 live: activated at (11,11), she was still at (11,11) afterwards"* — describing a repair that had been
 written and had never reached the board. A fix for this project's dominant defect shape, exhibiting
 this project's dominant defect shape.
+
+### 46.14.7 The riders the garden was never asked for — **fixed 2026-09-18**
+
+The other half of the sentence §46.14.6 repaired.
+
+> *"When HGoB is activated, place the HGoB token on the panel where Semiramis was standing; and she
+> is Moved to the middle panel of HGoB, **and all allied Units of your choice are transported to any
+> panel within the HGoB**."*
+
+`activateHangingGardens` has taken an `allyIds` option since it was written. `seatingPlan` seats
+those allies, gives each one the panel the caller chose, and falls back to the free panel nearest the
+middle when it chose none. All of it correct, all of it tested.
+
+**Its one caller passed nothing.** `onChannelComplete` — the channel finishing, which is the only way
+the garden ever goes up — called `activateHangingGardens(actorId)`, so `allyIds` defaulted to `[]`
+every time. Semiramis always boarded alone.
+
+Measured live: the activation's confirmation dialog reads **"1 target(s) · 1 panel(s)"** and the only
+name in it is hers, and after activation her Master was still standing on the ground at (0,1) — under
+a garden that had just taken her out of his ZON.
+
+The activation now asks. Eligible is everyone allied and on the board and not already aboard
+something: the sheet puts no reach on the clause, and a flying fortress that cannot carry your
+Faction is not the thing the sheet describes. The question goes to the **Servant's owner** through
+`engine/ask.mjs#askOwner`, not to whoever is arbitrating — a GM-run activation must not put a
+player's choice in the GM's hands — and the answer is filtered against what was offered, because it
+crosses a socket from a client the GM does not control. Declining is an answer: a dismissed dialog
+leaves her boarding alone, which is the old behaviour, now reached by choosing it.
+
+`askOwner` was a private function in `engine/attack.mjs` with a copy in `apps/copy-dialog.mjs`. The
+third caller is what moved it to `engine/ask.mjs`; attack.mjs imports it now and the copy-dialog's
+own — which routes from a unit id on layer 4 — is left with a comment saying where the shared one is.
+
+**The panel each ally lands on is not offered.** `allyPanels` is honoured if a caller supplies one,
+and nothing does: choosing a panel per ally is a canvas pick on a client that is not the one running
+the activation, and `seatingPlan`'s nearest-free-panel is a defensible stand-in. The *"to any panel
+within"* half of this Clause is therefore still owed.

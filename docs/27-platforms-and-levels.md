@@ -32,6 +32,8 @@ Boarding is a roll against the platform's declared difficulty, modified by the u
 
 A unit becomes eligible to board once it has moved (by ordinary movement) onto an active platform's footprint while still on the ground: `rules/actions.mjs`'s `board` action offers itself under exactly that condition (`module/rules/platforms.mjs#boardablePlatform`), and its handler calls `boardPlatform` (`module/engine/actions.mjs`). A GM may also call `boardPlatform` directly through `game.fgt.api.platforms`.
 
+**A successful boarding moves the Unit to the platform's Scene Level, not merely onto its panel.** Membership is the level, so the level assignment *is* the boarding: `boardPlatform` moves the boarder with an ordinary move intent and then calls `comeAboard`, which puts it — and a Master carried up with its Servant — on the platform's level, the same step `activatePlatform` takes for its initial riders. Until 2026-09-18 it took only the move, so a Unit that passed its roll stood on the ground underneath the platform while the log recorded a success (§46.4-BD).
+
 Bringing the Master along is gated on distance: *"A boarding Servant may bring its Master if the Master was within 2 panels"*, measured against where the Servant stood **before** boarding, never against the platform's own panel (`module/rules/platforms.mjs#mayBringMaster`, `module/engine/platforms.mjs`).
 
 A unit brought aboard stays there when the platform moves (`module/rules/platforms.mjs:100-108`): passengers move **forced**, which keeps boarding off their own movement budget and away from movement-triggered effects. Relative position is preserved so formation survives.

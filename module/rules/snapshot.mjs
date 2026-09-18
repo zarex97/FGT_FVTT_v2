@@ -1251,9 +1251,32 @@ function activeEffectIds(actor) {
 function effectInstances(actor) {
   return [...(actor.effects ?? [])]
     .filter((e) => !e.disabled)
-    .map((e) => ({
+    .map((e) => {
+      const defId = e.system?.defId ?? e.name;
+      const def = EffectRegistry.get(defId) ?? null;
+      return {
       id: e.id,
-      defId: e.system?.defId ?? e.name,
+      defId,
+      // What every removal rule in the system asks about an instance, and what
+      // none of them was ever told. `rules/environment.mjs#endOfRoundHomeBase`
+      // skips `e.unremovable` and anything whose `e.polarity` is not `debuff`;
+      // `rules/removal.mjs` and `rules/effect-flow.mjs` ask the same two
+      // questions. Neither field was projected, so both guards read `undefined`
+      // and neither could ever fire: the Home Base's three-Round cure took
+      // **every effect a resident carried**, buffs and unremovable statuses
+      // included.
+      //
+      // Found live (§46.4-BC): Semiramis aboard her own Hanging Gardens — which
+      // counts as her Faction's second Home Base — lost `hgob-owner-buff`, an
+      // `unremovable: true`, `polarity: status` effect with no expiry, three
+      // Rounds after activating it. Her Parameters, Health, Base Attack, MOV,
+      // Agility and Luck all fell back to their unbuffed values in silence.
+      //
+      // The instance's own flag wins over the definition's: an effect can be
+      // applied as unremovable by the intent that lands it (the owner buff is),
+      // where the definition says nothing.
+      unremovable: Boolean(e.system?.unremovable ?? def?.unremovable),
+      polarity: e.system?.polarity ?? def?.polarity ?? null,
       magnitude: e.system?.magnitude ?? 0,
       stage: e.system?.stage ?? 0,
       uses: e.system?.uses ?? 0,
@@ -1271,7 +1294,8 @@ function effectInstances(actor) {
       visibility: e.system?.visibility ?? "public",
       attributionHidden: Boolean(e.system?.attributionHidden),
       suppressed: Boolean(e.isSuppressed),
-    }));
+      };
+    });
 }
 
 /**
