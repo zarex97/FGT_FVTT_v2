@@ -17,7 +17,7 @@ import { ridersFire } from "../rules/damage/riders.mjs";
 import { expandInstances } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
-import { currentBoard, unitSnapshot, unitFrom, gateContext } from "./board.mjs";
+import { currentBoard, unitSnapshot, unitFrom, gateContext, currentTick } from "./board.mjs";
 import {
   evade as evadeCheck, luckCheck, chance, checkPlan, critChance, mergePlans,
   pendingCheckRolls, resolveCheck,
@@ -4448,12 +4448,26 @@ function authoredMagnitude(spec, actor, field = "magnitude", ride = null) {
   if (typeof raw === "number" && !spec.perStack && spec.max === undefined) return raw;
 
   const value = resolveValue(spec, null, {
-    // The ride's own facts, when there was one. `@self.remainingMov` is
-    // OVERRIDDEN here rather than read off the document, because the ride has
-    // already written its movement by the time a rider phase resolves.
+    // The ride's own facts, when there was one — and `@self.remainingMov`
+    // actually overridden with the pre-ride figure, which this comment has
+    // always claimed and no line ever did.
+    //
+    // `expressionRefs` honours `extras.self.remainingMov` ahead of the value it
+    // computes off the document. Nothing passed one: the ride went to a
+    // top-level `@ride` ref and `self` was never touched. So a rider phase
+    // authored `@self.remainingMov` read the POST-ride allowance — zero for a
+    // full-MOV ride — because `performRidingAttack` awaits its `markTurn`
+    // before the attack resolves. `riding.mjs` captures the figure before the
+    // ride for exactly this reason, and says so; it just had nowhere to hand it.
+    //
     // The tick, so `@self.remainingMov` measures this Turn's walk rather than
-    // whatever the record last held.
-    refs: expressionRefs(actor, { tick: game.combat?.system?.globalTurn ?? null, ...(ride ? { ride, hitCount: ride.hitCount } : {}) }),
+    // whatever the record last held — and `currentTick()`, not `game.combat`,
+    // which is the tracker being VIEWED rather than the match being played
+    // (#42).
+    refs: expressionRefs(actor, {
+      tick: currentTick(),
+      ...(ride ? { ride, hitCount: ride.hitCount, self: { remainingMov: ride.remainingMov } } : {}),
+    }),
     // `perStack` on an effect spec, so a magnitude may scale with what the
     // CASTER is carrying. Kingprotea's Airavata King Size is *"NP damage dealt
     // is increased by X%"* where X is her size, and her size is one step per
