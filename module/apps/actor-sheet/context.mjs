@@ -22,7 +22,7 @@ import { canUseAbility } from "../../rules/costs.mjs";
 import { alsoTriggered } from "../../engine/cooldown.mjs";
 import { detectRangeOf } from "../../rules/identity.mjs";
 import { tierOf } from "../../rules/master-rank.mjs";
-import { actedWeight } from "../../rules/relationships.mjs";
+import { actedWeight, MULTI_SERVANT_COST } from "../../rules/relationships.mjs";
 import { EffectRegistry } from "../../rules/registry.mjs";
 import {
   resourceBar, parameterTiles, baseAttackTiles, abilityState, abilityCost,
@@ -79,9 +79,11 @@ function masterContext(master) {
     // "a warning that it is lost on death" -- the Essence is the one thing on
     // this sheet whose loss is permanent.
     essences: [...(master.system.essences ?? [])],
-    // Ch. 32: at 25 Health or less a Master cannot order more than one Servant
-    // to Act, and the tax has already been charged by the time anyone looks.
-    taxWarning: (master.system.health?.value ?? 0) <= 25,
+    // Ch. 32: at the tax's own figure or less a Master cannot order more than
+    // one Servant to Act, and the tax has already been charged by the time
+    // anyone looks. `MULTI_SERVANT_COST` rather than a `25` literal -- the same
+    // threshold `mayOrderAnotherServant` refuses on, said once.
+    taxWarning: (master.system.health?.value ?? 0) <= MULTI_SERVANT_COST,
     // The weighted count the tax itself uses, off the board. This read
     // `master.system.turnState.servantsActed` -- a field no schema declares and
     // nothing writes -- so the badge was permanently 0 and the one warning a
@@ -92,7 +94,17 @@ function masterContext(master) {
     // Servants it charges. NOT by `servantIds` -- that is the set `contracted`
     // above reads, it is empty on every Master in the live world, and a badge
     // built on it would read 0 for a different reason than before.
-    multiServantTax: actedWeight(board.units.filter((u) => u.masterId === master.id)),
+    //
+    // Named for what it HOLDS. It was `multiServantTax`, which is a Health
+    // amount everywhere else in the system, while this is a weighted count of
+    // Units -- and no template read it at all, so the value was computed on
+    // every render of every Master's sheet and shown to nobody.
+    servantsActedWeight: actedWeight(board.units.filter((u) => u.masterId === master.id)),
+    // ...and what it will cost, so the sheet can say the number rather than
+    // leaving a boolean to imply it. The tax fires above one weighted Unit
+    // (`multiServantTax` in `rules/relationships.mjs`), which is the same
+    // comparison rendered here rather than a second reading of the rule.
+    multiServantCost: MULTI_SERVANT_COST,
   };
 }
 

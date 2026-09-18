@@ -643,6 +643,7 @@
   "FGT.Master.OutsideZon": "outside ZON",
   "FGT.Master.ZonPenalty": "attacks −5d10, Noble Phantasm unusable",
   "FGT.Master.TaxWarning": "At 25 Health or less this Master cannot order more than one Servant to Act.",
+  "FGT.Master.TaxPending": "{weight} Servants have Acted — {cost} Health at the end of this Turn.",
   "FGT.Master.Essence": "Master Essence",
   "FGT.Master.NoEssence": "No Essence.",
   "FGT.Master.EssenceLost": "The Essence and its granted effects are lost when this Master dies.",

@@ -427,6 +427,16 @@
         <p class="fgt-warning">{{localize "FGT.Master.TaxWarning"}}</p>
       {{/if}}
 
+      {{#if (gt servantsActedWeight 1)}}
+        {{!-- The bill itself, for the same reason the warning above exists: it
+              is charged at turn end and the decision cannot be taken back by
+              then, and a boolean cannot say how much. The weight is what the
+              tax counts -- both Dioscuri Acting is one Servant having Acted. --}}
+        <p class="fgt-warning">
+          {{localize "FGT.Master.TaxPending" weight=servantsActedWeight cost=multiServantCost}}
+        </p>
+      {{/if}}
+
       <h3 class="fgt-panel__title">{{localize "FGT.Master.Essence"}}</h3>
       {{#unless essences.length}}
         <p class="fgt-empty">{{localize "FGT.Master.NoEssence"}}</p>
