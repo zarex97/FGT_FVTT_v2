@@ -18,6 +18,7 @@ The boundary enforced in chapter 02 — that `domain/` and `rules/` import nothi
 | `test/golden/*.test.mjs` | 2 golden test files (damage, Akhilleus Kosmos authoring), pinning documentation worked examples |
 | `test/fixtures/` | Small fixture files used to seed test data |
 | `test/helpers/world.mjs` | A world faithful enough to run `engine/io.mjs` against — `withWorld({...}, fn)`, restoring globals in a `finally` |
+| `test/helpers/foundry-common.mjs` | The borrow point: Foundry's real `common/` layer, loaded from the `foundryVTT_copy` sibling repo |
 | `tools/smoke-world.mjs` | Launches a real world via Chrome DevTools Protocol and fails if it does not reach `game.ready` |
 | `tools/check-world.mjs` | Holds `test/helpers/world.mjs` against a live world, probe by probe (`npm run check:world`) |
 
@@ -62,7 +63,7 @@ This allows the engine's orchestration logic — batching, ordering, authority r
 
 What that fake cannot tell you is what landed in the document, because it stands in for the thing that writes it. `test/helpers/world.mjs` is the other half: `withWorld({actors, tokens, combat, settings}, fn)` installs a modelled `game`/`canvas`/`foundry`, runs the real prepare chain over the real DataModels, and restores every global in a `finally`. **An undeclared write throws** rather than being silently discarded — less faithful than Foundry, and far more useful, since that is the defect `actor-fields.test.mjs` was built to chase and could only chase as text.
 
-**A model that is subtly wrong is worse than none**, because the tests written against it encode the wrongness. `npm run check:world` (`tools/check-world.mjs`) is the answer to that: it runs the same probe against the model and against a live world over CDP and reports where they disagree. Two probes are expected to *diverge* — the undeclared-write throw above, and one the check found on its first run: Foundry validates a `SetField`'s **elements** and the model only coerces the collection, so a `SetField` of `DocumentIdField` keeps a non-id where Foundry drops it. Both are recorded in the harness header and asserted by the check, so a deliberate difference cannot quietly become an accidental one. Local only, like `check:smoke`.
+**A model that is subtly wrong is worse than none**, because the tests written against it encode the wrongness. `npm run check:world` (`tools/check-world.mjs`) is the answer to that: it runs the same probe against the model and against a live world over CDP and reports where they disagree. Two probes are expected to *diverge* — the undeclared-write throw above, and one the check found on its first run: Foundry validates a `SetField`'s **elements** and the model only cleans the collection, so a `SetField` of `DocumentIdField` keeps a non-id where Foundry drops it. That second one survived the model adopting Foundry's real field classes, because cleaning and validating are separate steps and the model's write path runs only the first. Both are recorded in the harness header and asserted by the check, so a deliberate difference cannot quietly become an accidental one. Local only, like `check:smoke`.
 
 It earned itself on its second test. `countTowardsGrail` read `!combat.system?.grailMaterialized` on the line *after* the `await combat.update()` that set it, so the guard was `true && false` on every defeat and `Hooks.callAll("fgtGrailMaterialized")` had **never fired**. Nothing could have caught that without executing io.
 
@@ -81,9 +82,22 @@ lines went unexecuted by the whole suite.
 the model uses those and fakes only the **client** layer: `game`, `canvas`, `ui`, `Hooks` and the
 world collections. Canvas and PIXI, rendering and ApplicationV2, sockets and the database backend are
 deliberately out of scope; smoke tests and live verification cover them. The source is read from the
-private `zarex97/foundryVTT_copy` sibling repo, located by an environment variable that defaults to
-the sibling path, pinned by commit, and asserted against `system.json`'s `verified` version. See
+private `zarex97/foundryVTT_copy` sibling repo and never vendored here — git history survives a
+visibility flip, so a copy that lands in this tree lands for good. `test/helpers/foundry-common.mjs`
+is the single borrow point; it resolves the path relative to itself rather than to the working
+directory, so a test, a tool and a CI step all answer the same. See
 [ADR 0006](adr/0006-the-world-model-borrows-foundry-and-stays-harsher.md).
+
+*Still to land: an environment override for that path, the assert against `system.json`'s `verified`
+version, and the CI sparse checkout of `app/common`.*
+
+**The borrow is invisible from the tests that motivated it**, which is the proof it was faithful and
+the reason it needs its own guard: the 45 tests across the five `withWorld` files passed identically
+before and after. `test/unit/world-model-fidelity.test.mjs` pins what only real fields can do —
+the storage-versus-runtime split in particular. A `SetField` stores an **array** in `_source` and
+yields a `Set` from `system`, because `clean()` and `initialize()` are different steps;
+`apps/actor-sheet/context.mjs:292` reads `system.servantClasses?.size`, which an Array does not
+answer, so that conversion decides whether a Servant's class shows on their own sheet.
 
 **It is deliberately harsher than the thing it models, in one place.** Foundry silently discards a
 write to an undeclared field; the model **throws**. That is how `io.defeat` was caught writing
@@ -92,10 +106,18 @@ legal target still taking its Turn. Borrowing real documents brings Foundry's si
 the strictness is re-applied as a wrapper. **Do not "fix" this to match Foundry**: it is the model's
 most valuable property, and the divergence with a proven defect to its name.
 
-Every deliberate divergence is an exported artefact rather than prose, so a pure test can assert the
-model still behaves as documented — a contract nothing checks is how half a fix ships. Separately,
-`npm run check:world` runs the same probe against the live world and the model and reports where
-they disagree; it needs Foundry, so it stays a manual gate.
+The second divergence survived the borrow, and why is worth keeping: Foundry splits a write into
+`clean()`, which casts, and `validate()`, which rejects — and the model's write path runs only the
+first. So a `SetField` of `DocumentIdField` still keeps a non-id where a live world drops it. The real
+field class is present and is being asked the wrong question. Closing it means running real validation
+on every write, which is its own change with its own blast radius, so until then it is pinned by a
+test rather than assumed away.
+
+Deliberate divergences should become an exported artefact rather than prose, so a pure test can assert
+the model still behaves as documented — a contract nothing checks is how half a fix ships. *Not yet
+built: today they are pinned by `test/unit/world-model-fidelity.test.mjs` and by the harness header.*
+Separately, `npm run check:world` runs the same probe against the live world and the model and reports
+where they disagree; it needs Foundry, so it stays a manual gate.
 
 **A deeper model does not narrow live verification.** Ch. 46's standard is unchanged: green tests are
 not evidence. A behaviour is promoted to model-only evidence **per behaviour, never wholesale**, and
