@@ -19,6 +19,8 @@ import { resourceLabel } from "../../domain/resources.mjs";
 import { stanceOf } from "../../rules/stance.mjs";
 import { classifyAbility, usageSpecFor } from "../../rules/ability-use.mjs";
 import { canUseAbility } from "../../rules/costs.mjs";
+import { test as testPredicate } from "../../rules/predicate.mjs";
+import { rollOptionsFor } from "../../rules/options.mjs";
 import { alsoTriggered } from "../../engine/cooldown.mjs";
 import { detectRangeOf } from "../../rules/identity.mjs";
 import { tierOf } from "../../rules/master-rank.mjs";
@@ -639,7 +641,17 @@ function abilityCard(item, { actor, unit, master, round, turnsPerRound, board })
   // `gateContext()` carries Ch. 04's Round gate: without it the sheet would show
   // a Noble Phantasm as usable that the declaration path then refuses, which is
   // worse than showing it locked.
-  const verdict = canUseAbility({ ability: spec, unit, master, round, board, ...gateContext() });
+  //
+  // `testPredicate` for the same reason, in the opposite direction. A
+  // `kind: "predicate"` requirement REFUSES without an evaluator — *"a gate
+  // nobody can answer is not an open gate"* (`rules/items.mjs`) — so a display
+  // that omits one shows every predicate-gated ability as permanently
+  // unusable. Ten abilities across five Servants carry one, the Hanging
+  // Gardens among them (Ch. 46 §46.4-AX).
+  const verdict = canUseAbility({
+    ability: spec, unit, master, round, board, ...gateContext(),
+    testPredicate: (p) => testPredicate(p, { options: rollOptionsFor({ attacker: unit }) }),
+  });
 
   return {
     id: item.id,

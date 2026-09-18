@@ -17,6 +17,8 @@ import { ticksLabel } from "../actor-sheet/present.mjs";
 import { availableActions } from "../../rules/actions.mjs";
 import { classifyAbility } from "../../rules/ability-use.mjs";
 import { canUseAbility } from "../../rules/costs.mjs";
+import { test as testPredicate } from "../../rules/predicate.mjs";
+import { rollOptionsFor } from "../../rules/options.mjs";
 import { publicNameOf } from "../../rules/identity.mjs";
 import { abilityCost, abilityState } from "../actor-sheet/present.mjs";
 import { currentBoard, unitSnapshot, unitFrom, gateContext } from "../../engine/board.mjs";
@@ -182,8 +184,16 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         const entry = (snapshot.abilities ?? []).find((a) => a.id === item.id) ?? {};
         // Same reason as the sheet's: a button that offers what the
         // declaration refuses is a worse affordance than a disabled one.
+        // `testPredicate`, or every ability carrying a `kind: "predicate"`
+        // requirement is greyed with *"Its conditions are not met right now"*
+        // whether they are met or not: without an evaluator that requirement
+        // refuses by design (`rules/items.mjs` — *"a gate nobody can answer is
+        // not an open gate"*). Ten abilities across five Servants carry one,
+        // including Karna's Vasavi Shakti and four of Quetzalcoatl's
+        // (Ch. 46 §46.4-AX).
         const verdict = canUseAbility({
           ability: item.system, unit: snapshot, master, board, ...gateContext(),
+          testPredicate: (p) => testPredicate(p, { options: rollOptionsFor({ attacker: snapshot }) }),
         });
         const slot = slotFor({
           ...entry,
