@@ -16,26 +16,32 @@ import { describe, it, expect } from "vitest";
 import { abbreviate, allClauses, parseCharacterSheet, renderClauseList } from "../../tools/lib/clauses.mjs";
 
 const SHEET_DIR = "char_orig_sheets";
-const sheet = (name) => parseCharacterSheet(readFileSync(join(SHEET_DIR, `Copia de ${name}.md`), "utf8"));
+const CLAUSE_NAMES = JSON.parse(readFileSync("tools/lib/clause-names.json", "utf8"));
+const source = (name) => readFileSync(join(SHEET_DIR, `Copia de ${name}.md`), "utf8");
+/** Parsed as the tool parses it: with the names a human gave that sheet's opening Clauses. */
+const named = (name) => parseCharacterSheet(source(name), CLAUSE_NAMES[name] ?? {});
+/** Parsed raw, to see what the grammar derives on its own. */
+const sheet = (name) => parseCharacterSheet(source(name));
 const refs = (parsed) => allClauses(parsed).map((c) => c.ref);
 
 /**
- * The list issue #41 was audited against, in its order. The two `.pre` refs are
- * the tool's placeholders for the Clauses a human named `ME.lock` and
- * `CL.geom` — the only two names in the whole list that are not mechanical.
+ * The list issue #41 was audited against, in its order — every ref exactly as
+ * that issue spells it. `ME.lock` and `CL.geom` are the only two a human named;
+ * the extractor derives them as `.pre` and `tools/lib/clause-names.json` supplies
+ * the names, so this asserts the whole round trip.
  */
 const ASTERIOS = [
   "SB",
-  "ME.pre", "ME.1", "ME.2", "ME.3", "ME.4", "ME.5", "ME.6", "ME.7",
+  "ME.lock", "ME.1", "ME.2", "ME.3", "ME.4", "ME.5", "ME.6", "ME.7",
   "MS.1", "MS.cd",
   "NM.p", "NM.a", "NM.cd",
   "AL.1", "AL.2", "AL.3", "AL.cd",
-  "CL.pre", "CL.1", "CL.2", "CL.3", "CL.4", "CL.5", "CL.6", "CL.7", "CL.8", "CL.9", "CL.10", "CL.cd",
+  "CL.geom", "CL.1", "CL.2", "CL.3", "CL.4", "CL.5", "CL.6", "CL.7", "CL.8", "CL.9", "CL.10", "CL.cd",
 ];
 
 describe("Asterios reproduces the list his audit was run against", () => {
   it("yields his thirty Clauses, in order, grouped under his five Abilities", () => {
-    const parsed = sheet("Asterios");
+    const parsed = named("Asterios");
     expect(refs(parsed)).toEqual(ASTERIOS);
     expect(ASTERIOS).toHaveLength(30);
     expect(parsed.groups).toHaveLength(1);
@@ -48,11 +54,28 @@ describe("Asterios reproduces the list his audit was run against", () => {
     ]);
   });
 
-  it("names the two Clauses a human has to name, and only those two", () => {
-    const parsed = sheet("Asterios");
-    expect(allClauses(parsed).filter((c) => c.unnamed).map((c) => c.ref)).toEqual(["ME.pre", "CL.pre"]);
-    expect(parsed.warnings).toHaveLength(2);
-    expect(parsed.warnings[0].why).toMatch(/Mad Enhancement opens with a rule of its own/);
+  it("asks for exactly two names, and stops asking once they are given", () => {
+    const raw = sheet("Asterios");
+    expect(allClauses(raw).filter((c) => c.unnamed).map((c) => c.ref)).toEqual(["ME.pre", "CL.pre"]);
+    expect(raw.warnings).toHaveLength(2);
+    expect(raw.warnings[0].why).toMatch(/Mad Enhancement opens with a rule of its own/);
+
+    const parsed = named("Asterios");
+    expect(allClauses(parsed).filter((c) => c.unnamed)).toEqual([]);
+    expect(parsed.warnings).toEqual([]);
+  });
+
+  it("names every opening Clause in the audit programme's scope", () => {
+    // 31 across the roster, and a `.pre` left in an issue body is a ref that
+    // will have to be renamed after findings already cite it.
+    const inScope = readdirSync(SHEET_DIR)
+      .filter((f) => f.endsWith(".md"))
+      .map((f) => f.replace(/^Copia de /, "").replace(/\.md$/, ""))
+      .filter((n) => !["Hassan (Hundred-Face)", "Katō Danzō", "Proto Gil", "Yan Qing"].includes(n));
+    for (const name of inScope) {
+      const unnamed = allClauses(named(name)).filter((c) => c.ref.endsWith(".pre"));
+      expect(unnamed.map((c) => c.ref), name).toEqual([]);
+    }
   });
 
   it("carries the statblock as one Clause with the fields the audit checks", () => {

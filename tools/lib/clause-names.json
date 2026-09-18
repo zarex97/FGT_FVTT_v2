@@ -1,0 +1,61 @@
+{
+  "_README": [
+    "Names for the one kind of Clause ref the extractor cannot derive: a rule stated on an",
+    "Ability's OPENING line rather than as a numbered item. The extractor emits those as `.pre`",
+    "and asks for a name; this file is the answer, so that the ref an audit issue carries is",
+    "reproducible from the Character Sheet rather than typed once into a GitHub issue.",
+    "",
+    "A ref is how a finding cites a Clause — 46.4-AT cites `ME.lock` — so renaming one after",
+    "findings exist breaks the citation. They are named here, once, before the issues are opened.",
+    "",
+    "Keyed by Character Sheet file basename, minus the `Copia de ` prefix and the `.md` suffix.",
+    "The vocabulary is deliberately small: `lock` a two-way switching lockout, `dur` a stated",
+    "duration, `scope` who an Ability reaches, `geom` a Noble Phantasm's area, `gate` a condition",
+    "on being used at all, `buffs` the named buffs an Ability applies."
+  ],
+
+  "Achilles": { "DK.pre": "DK.gate" },
+
+  "Asterios": { "ME.pre": "ME.lock", "CL.pre": "CL.geom" },
+
+  "Dioscuri": {
+    "CA.ME.pre": "CA.ME.lock",
+    "CA.SCG.pre": "CA.SCG.buffs",
+    "CA.GN.pre": "CA.GN.scope",
+    "PO.SCG.pre": "PO.SCG.buffs",
+    "PO.GN.pre": "PO.GN.scope"
+  },
+
+  "Francis Drake": { "BU.pre": "BU.scope" },
+
+  "Hassan (Serenity)": { "PC.pre": "PC.dur" },
+
+  "Jack the Ripper": { "PC.pre": "PC.dur", "MI.pre": "MI.geom" },
+
+  "Kingprotea": { "ME.pre": "ME.lock" },
+
+  "Kiritsugu": { "PC.pre": "PC.dur" },
+
+  "Nemo": { "JG.pre": "JG.scope" },
+
+  "Ozymandias": { "OZ.PHS.pre": "OZ.PHS.scope" },
+
+  "Pale Rider": { "IW.pre": "IW.scope", "GN.pre": "GN.scope", "KK.pre": "KK.summon" },
+
+  "Penthesilea": { "ME.pre": "ME.lock" },
+
+  "Quetzalcoatl": { "GGW.pre": "GGW.scope", "PDS.pre": "PDS.geom" },
+
+  "Raikou": { "TGE.pre": "TGE.gate" },
+
+  "Scáthach": { "PR.pre": "PR.tokens" },
+
+  "Semiramis": { "PC.pre": "PC.dur", "IC.pre": "IC.make", "HGB.pre": "HGB.gate" },
+
+  "Van Gogh": {
+    "HGH.pre": "HGH.scope",
+    "SLFUWU.pre": "SLFUWU.scope",
+    "ST.pre": "ST.terror",
+    "HGH2.pre": "HGH2.scope"
+  }
+}

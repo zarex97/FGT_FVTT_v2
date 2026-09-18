@@ -34,6 +34,44 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### The roster audit becomes twenty-six grabbable tickets (2026-09-18)
+
+#### Added
+
+- **Twenty-six audit issues**, one per remaining authored Servant plus one for the linked pair,
+  every one a sub-issue of the programme's map and carrying its Clause list at `Untouched`. The
+  bodies are generated from the Character Sheets rather than transcribed, so re-running the
+  extractor reproduces them.
+
+- **`tools/lib/clause-names.json`** — the names for the one ref the extractor cannot derive: a rule
+  stated on an Ability's opening line. **31 across the programme's scope**, in a small vocabulary
+  (`lock`, `dur`, `scope`, `geom`, `gate`, `buffs`). A file rather than a value typed once into an
+  issue, because a ref is how a finding cites a Clause — §46.4-AT cites `ME.lock` — so renaming one
+  after findings exist breaks the citation. With it the extractor's Asterios output *is* issue #41's
+  list, ref for ref.
+
+#### Corrected
+
+- **The roster's size was estimated at 600–900 Clauses and is 1,321.** Counted, not guessed. The
+  per-Servant range is 29 (Heracles) to 114 (Semiramis) against a guess of twenty-six to a hundred,
+  which puts **Asterios' 30 near the floor rather than the middle** — so costing the programme at
+  the tracer bullet's rate understates it by roughly half. The map issue's Further Notes are
+  corrected, naming the reading they replace.
+
+- **An audit issue's progress counter counted the wrong thing.** The acceptance list was a task
+  list, so eight of its boxes joined the Clause count and a Servant with every Clause proven would
+  have read as 29 of 37. The map's own decision requires that counter to count what the closing bar
+  measures; the acceptance list is now plain bullets. The twenty-six issues were rewritten before
+  any of them was worked.
+
+#### Fixed
+
+- **Two kinds of non-Clause were being emitted as Clauses.** The fragment that introduces a numbered
+  list and states nothing — *"Applies the following effects on Achilles-"*, *"Has several
+  effects-"*, *"All damage received is reduced as follows-"* — and a Skill's epithet stated as its
+  own sentence, like Achilles' *"Heroism's Eternal Man."* and *"Runner Comet."*. Six checkboxes that
+  no auditor could ever have pressed, across the corpus.
+
 ### An audit method written from what one cost, and a tool for its bulk (2026-09-18)
 
 #### Added
