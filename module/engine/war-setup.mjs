@@ -404,6 +404,22 @@ export async function commitWar(draft) {
   await note(combat, "Deploying units into their home bases");
   await deployTokens(scene, draft, roster, masters, servants);
 
+  // Everyone can see everyone their Detect reaches the moment they are placed,
+  // and `unitFirstSeen` has to be asked here or it is never asked about the
+  // opening board at all.
+  //
+  // `checkSightings` had exactly ONE caller -- `movement-hooks.mjs`, on a move
+  // -- so a Unit that was in sight from deployment was never "first seen" by
+  // anybody. Found on Semiramis: Familiar: Doves is the corpus' only consumer
+  // of the event, and she stood adjacent to an enemy Servant for five Rounds
+  // and attacked him twice without ever applying the Dove that lets her track
+  // him through Fog of War (Ch. 46 §46.14.5).
+  // No board passed: `checkSightings` falls back to `currentBoard()`, and the
+  // combat was activated at the top of this function, so that is this war's.
+  // Building one here would snapshot the scene before the deploy has settled.
+  const { checkSightings } = await import("./vision.mjs");
+  await checkSightings();
+
   await note(combat, `War built: ${servants.length} Servants, ${masters.length} Masters`);
   return { scene, masters, servants, combat };
 }

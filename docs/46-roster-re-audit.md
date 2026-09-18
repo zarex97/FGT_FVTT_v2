@@ -2264,3 +2264,38 @@ Verified on a live board: the token places 3×3.
 nothing — the rule it exempts her from was not running for anybody. It was switched on to press the
 clause and switched back afterwards. A clause that exempts you from an optional rule cannot be
 tested while the rule is off, and the refusal looks identical to a working exemption.
+
+### 46.14.5 The re-audit, 2026-09-18 — a question nobody asked
+
+Re-audited under the Clause scheme against the 104-Clause list her tracker issue carries. The first
+finding is not a rule that computes the wrong answer; it is a **correct rule that nothing ever
+asked**.
+
+**`checkSightings` had one call site — a movement hook — so nobody was ever *first seen* on the
+opening board.** `unitFirstSeen` is the event half of Detect, and Familiar: Doves is the **only**
+consumer of it in the whole corpus: *"Whenever Semiramis sees a Unit for the first time, the 'Dove'
+effect is applied to it"*, which is what then lets her track that Unit through Fog of War.
+
+Everything under it was right. `rules/identity.mjs#newlySeenBy` answers correctly and has unit tests
+that say so. The `dove` effect exists and applies. `RevealPosition` reads it. The passive is
+authored, and `fireEvent` reaches it. What was missing is that `engine/vision.mjs#checkSightings`
+was called from `engine/movement-hooks.mjs` and **nowhere else** — so two Units deployed in sight of
+one another were never first-seen by anybody until somebody walked.
+
+Measured live: Semiramis stood adjacent to an enemy Servant for **five Rounds**, attacked him
+**twice**, and had Dove'd nobody. Driving `checkSightings` by hand on that same board applied the
+Dove to both Units her Detect reached, immediately — so the machinery was whole and idle.
+
+Fixed by asking the question at the other moment a Unit can newly be seen: `commitWar` now runs the
+check after `deployTokens`. Guarded by `test/unit/vision-callsites.test.mjs`, which reads the source
+for the call sites rather than the behaviour — **a unit test of `newlySeenBy` cannot catch this**,
+because it answered correctly every time it was asked and the defect was that nothing asked. Red
+against the old code.
+
+This is §46.3's *"an event with no firer"* with one letter changed: the firer existed and was
+reachable from exactly one of the several places that owe it.
+
+**Kept to her case chapter rather than §46.4** because Familiar: Doves is the only thing in the
+corpus that consumes the event, so no second Servant inherits the fix. The *shape* generalises and
+is worth carrying to the next audit: an event with a single call site is worth checking against the
+list of moments it claims to describe.
