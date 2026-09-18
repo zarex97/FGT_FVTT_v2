@@ -34,6 +34,31 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### Two rules that were right and unreachable, found auditing Semiramis (2026-09-18)
+
+#### Fixed
+
+- **Nobody was ever *first seen* on the opening board.** `unitFirstSeen` is the event half of Detect
+  and Semiramis' Familiar: Doves is the corpus' only consumer of it, so *"whenever Semiramis sees a
+  Unit for the first time, the 'Dove' effect is applied to it"* is what lets her track a Unit through
+  Fog of War. Every part of it was correct except that `checkSightings` had **one call site, a
+  movement hook** — so two Units deployed in sight of each other were never first-seen until
+  somebody walked. Measured live: she stood adjacent to an enemy Servant for five Rounds, attacked
+  him twice, and had Dove'd nobody. `commitWar` now asks after deploying. Ch. 46 §46.14.5.
+
+- **Every predicate-gated ability was displayed as permanently unusable.** A `kind: "predicate"`
+  requirement refuses when no evaluator is supplied — deliberately, because *"a gate nobody can
+  answer is not an open gate"* — and only the two **execution** call sites ever supplied one. The
+  action bar and the actor sheet did not, so **ten abilities across five Servants**, among them
+  Karna's Vasavi Shakti and four of Quetzalcoatl's, were greyed out and captioned *"Its conditions
+  are not met right now"* whether or not they were. The bar also passed a bare `unitSnapshot` where
+  it already held the board-derived unit, so `self:inHomeBase` and `self:onPlatform` were never
+  emitted to a predicate either. Ch. 46 §46.4-AX.
+
+Both are guarded by call-site tests rather than behavioural ones: in each case the rule computed the
+right answer every time it was asked, and the defect was that nothing asked. Both red against the
+old code.
+
 ### The roster audit becomes twenty-six grabbable tickets (2026-09-18)
 
 #### Added
