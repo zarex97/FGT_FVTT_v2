@@ -26,9 +26,10 @@ import { onMasterDefeated } from "../rules/relationships.mjs";
 import { conquestContract } from "../rules/contract.mjs";
 import { record } from "./game-log.mjs";
 import { spendPlan } from "../rules/cs-namespacing.mjs";
-import {
-  snapshotUnit, turnStateAt, turnWrite, roundStateAt, roundWrite,
-} from "../rules/snapshot.mjs";
+import { snapshotUnit, turnWrite, roundWrite } from "../rules/snapshot.mjs";
+// The shared document→projection door and the two clock readers behind it.
+// `board.mjs` imports only from `rules/`, so this is acyclic.
+import { turnRecordOf, roundRecordOf, currentTick, currentRound } from "./board.mjs";
 import { isGated, gateTurnFor } from "../rules/np-gate.mjs";
 import { clampToMax } from "../domain/health.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
@@ -731,8 +732,16 @@ export function worldIO() {
       // `abilityOffCooldown` requirement name.
       const name = item?.system?.contentId || contentId || item?.id || abilityId;
 
-      const tick = game.combat?.system?.globalTurn ?? 0;
-      const round = game.combats?.active?.round ?? null;
+      // `currentTick()`/`currentRound()`, not the globals spelled out here.
+      // This read `game.combat` -- the tracker being VIEWED rather than the
+      // match being played -- and it is the only site of that confusion that
+      // WRITES: the tick it read was stamped onto the record, so with a second
+      // Combat open a recorded use was filed against a foreign clock and then
+      // read as stale for ever after. `turnRecordOf`'s own docstring named this
+      // function as the third hand-roller and "the surviving half of #32";
+      // this is that half.
+      const tick = currentTick();
+      const round = currentRound();
 
       // Through `turnWrite`/`roundWrite` rather than the comparison this
       // function used to hand-roll. It compared the stamps itself and then
@@ -742,8 +751,11 @@ export function worldIO() {
       // landed in `markTurn`. Rebuilding the whole record also makes the order
       // of this write against `markTurn`'s stop mattering: both read the
       // document fresh, and `skill-use.mjs` emits them in one batch.
-      const turn = turnStateAt(actor.system?.turnState, tick);
-      const byRound = roundStateAt(actor.system?.roundState, round);
+      //
+      // ...and through the shared projectors rather than a fourth spelling of
+      // the same two lines, which is what they were extracted for.
+      const turn = turnRecordOf(actor);
+      const byRound = roundRecordOf(actor);
       const stamped = {
         ...flatten("system.turnState", turnWrite(actor.system?.turnState, tick, {
           abilitiesUsed: [...new Set([...turn.abilitiesUsed, name])],
@@ -1438,7 +1450,7 @@ function classifyLogEntry(e) {
     commandSpell: "commandSpell", multiServantTax: "commandSpell",
     surviveKill: "defeat", disappear: "defeat",
     boarding: "movement", platformStep: "movement",
-    roundStart: "scheduler", roundEnd: "scheduler", resetTurnState: "scheduler",
+    roundStart: "scheduler", roundEnd: "scheduler",
   };
   const kind = map[e?.kind];
   if (!kind) return null;
