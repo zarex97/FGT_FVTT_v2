@@ -25,6 +25,7 @@ This chapter covers two halves. The first half is the **build pipeline**: YAML s
 | `tools/fgt-reload.mjs` | Reload the Foundry tab and wait for `game.ready`; for code changes only (`tools/fgt-reload.mjs:1-12`) |
 | `tools/fgt-rebuild.mjs` | Rebuild packs with the world running; older pattern, superseded by `fgt-world.mjs rebuild` (`tools/fgt-rebuild.mjs:1-12`) |
 | `tools/smoke-world.mjs` | Load a world in real Foundry, join, and fail if it does not come up; local gate, not CI (`tools/smoke-world.mjs:22-43`) |
+| `tools/extract-clauses.mjs` | Turn a Character Sheet into the Clause task list an audit issue needs; step 1 of the per-Servant procedure (`tools/extract-clauses.mjs:1-22`) |
 
 ## How it works
 
@@ -65,6 +66,24 @@ These scripts drive a real Foundry application over the Chrome DevTools Protocol
 **Expression evaluation** (`tools/fgt-eval.mjs:1-97`) attaches to the running page, evaluates an expression over CDP, and prints the result as JSON. It detects piped input (a multi-statement script) and treats it as a body rather than an expression (`tools/fgt-eval.mjs:71-73`). Useful for exercising the document-touching layers without clicking the UI.
 
 **Page reload** (`tools/fgt-reload.mjs:1-64`) reloads the page with cache bypass and polls `game.ready` for up to 60s. Module sources are loaded once at page load, so every edit to `module/` is invisible to the live world until the page comes back (`tools/fgt-reload.mjs:5-12`).
+
+### The Clause extractor
+
+`tools/extract-clauses.mjs` reads a Character Sheet from `char_orig_sheets/` and emits the Clause task list a Servant's audit issue carries — one line per Clause, grouped under its Ability, every Clause starting at `Untouched` ([Ch. 46 §46.1](46-roster-re-audit.md)). It exists because transcribing them by hand is the audit programme's mechanical bulk: roughly six to nine hundred Clauses across twenty-six Servants.
+
+```
+node tools/extract-clauses.mjs Asterios          # the list, on stdout
+node tools/extract-clauses.mjs --all --count     # how large each Servant's audit is
+node tools/extract-clauses.mjs Dioscuri --json   # the parse, for another tool to read
+```
+
+The parsing lives in `tools/lib/clauses.mjs` and is pure, so it is tested against the whole corpus rather than against a fixture (`test/unit/clauses.test.mjs`).
+
+**Its failure mode is the one the audit programme exists to find**, so it is built to be loud rather than tidy: anything the grammar cannot place is still emitted as a Clause *and* reported on stderr with the line it came from. A short list that looked complete would manufacture, twenty-six times over, exactly the silent omission an audit is supposed to catch. What it reports is real work, not noise — a rule stated with neither a number nor a timing marker, a numbered list that restarts inside one Ability, two Clauses whose refs would collide, and the Clause a human has to name because the sheet states it in an Ability's opening line rather than as a numbered item.
+
+**A ref is assembled from three parts, once**: the Unit tag on a sheet describing more than one Unit, the Ability's abbreviation, and the suffix. Asterios reads `ME.1`; Castor's half of the linked pair reads `CA.TGDC.p1`, because an unscoped sheet with four Units on it emits four Clauses called `SB` and a finding citing one of them names four Units. It is assembled when the Clause is made rather than patched afterwards, so that every warning quoting a ref names one that appears in the output — a warning pointing at a ref nobody can find sends the auditor looking for nothing.
+
+Mapping its two placeholder refs for Asterios — `ME.pre → ME.lock`, `CL.pre → CL.geom` — turns its output into the thirty-Clause list his audit was actually run against, which is the test that keeps it honest.
 
 **Smoke test** (`tools/smoke-world.mjs:1-43`) is a local gate that proves the world actually comes up. It opens its own tab (to avoid yanking a world out from under someone reading it), launches the world, joins as a user, and fails if `game.ready` never becomes true or if an uncaught exception fires during the sequence (`tools/smoke-world.mjs:85-305`). The `--strict` flag also fails on `console.error` output from the system (`tools/smoke-world.mjs:64`, `tools/smoke-world.mjs:286-289`). It is *not* part of CI — GitHub's runners have no Foundry to point it at — but must be run locally before tagging.
 

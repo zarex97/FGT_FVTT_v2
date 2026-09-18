@@ -84,12 +84,160 @@ reach. That is why the Clause list is the unit: a Clause nobody asked about is r
 The section numbering below skips **46.7** and **46.13** — the two deleted records. The gaps are left
 rather than closed, for the reason ADR 0005 gives.
 
+### The procedure
+
+Written from the Asterios re-audit of 2026-09-17 — the first Servant taken end to end under this
+scheme — rather than from an idea of what an audit ought to look like. An earlier version of this
+section described a method that predated the evidence levels and that nobody had followed, which is
+the same right-and-inert shape the programme exists to find, expressed in prose instead of code.
+
+Run it in this order. The order is not decoration: steps 1–3 are cheap and catch the errors that
+would otherwise invalidate every measurement taken after them.
+
+1. **Get the Clause list.** `node tools/extract-clauses.mjs "<Servant>"` emits it from the Character
+   Sheet, grouped by Ability, in the field order the tracker issue uses. It emits everything it
+   finds and never drops a line, but it prints to stderr what it could not place — a rule stated
+   with neither a number nor a timing marker, a Clause whose ref a human has to name — and settling
+   those is step 1's real work. A Clause that goes missing here and is not noticed is the same
+   defect as a Clause an auditor skipped, which is the shape this whole programme exists to find.
+2. **Check the statblock against the Character Sheet, field by field.** Parameters, Base Health,
+   MOV, Range and targets, Base Attack, Sustainability, alignment, region, attributes. Two of those
+   are *expected* to disagree with the printed sheet and the engine is right both times — Max Health
+   derives from the END table and Base Attack from the STR/MAG table (§46.6). Everything else that
+   disagrees is a finding. The statblock is one Clause on the list, `SB`.
+3. **Paper trace before the board.** For each Clause: Character Sheet → rule element in
+   `packs/_source/servants/<slug>.yml` → the engine reader that consumes it. A Clause whose element
+   has no reader is **Collected**, and you have found it for the price of a `grep`. This pass is
+   necessary and not sufficient — three defects have survived a complete paper trace that declared
+   them correct — so nothing here raises a Clause above `Traced`.
+4. **Build the board** (below), import the Servant fresh from the compiled pack, and apply the
+   setup rolls by hand before pressing anything.
+5. **Press the actives, Ability by Ability, in the order the list has them.** A real click on the
+   real control; read the result from the actor sheet, the chat card and the game log. Record the
+   observed numbers in the Clause line, not the word "works".
+6. **Stage and observe the passives** (below). Each one needs both halves of its differential.
+7. **Reach the engine-fired Clauses.** These are the expensive ones, because they have no control:
+   an expiry, a Round boundary, a Master's defeat, the owner's own defeat. Build the situation and
+   let the scheduler run. `Pressed (engine)` is the bar here — ADR 0004 — and it is the bar because
+   there is no button that could be broken.
+8. **File as you go.** A Servant-specific finding goes to that Servant's case chapter; a finding
+   that reaches anybody else goes to §46.4 and gets a letter. The test of which is the same test as
+   for splitting a ticket: would a second Servant need this fix?
+9. **Fix, or file a blocking ticket.** A defect whose fix is local to this Servant is fixed inside
+   this audit, with a regression test at whatever seam is natural. One a second Servant would need
+   becomes its own ticket and the Servant's issue blocks on it. A Clause that cannot be reached
+   because the board condition cannot be constructed becomes a blocking ticket naming that
+   condition — never a footnote.
+10. **Close only when every Clause is `Pressed` or `Observed`.** The tracker counts the ticked
+    boxes; it does not know what a thin audit looks like. Nothing else computes this for you.
+
+The two passes are steps 3 and 5–7. Everything else exists so that those two measure the right
+thing.
+
+### The world an audit is run on
+
+**Build the board with `commitWar`** — the function the war-setup wizard's Confirm button calls. It
+is one call, and it is the only way to get home bases, the Region, faction turns, the first-Round
+attack ban and `servantSetupPlan`. A hand-built `Combat.create` with a bumped round skips all of
+them, and skipping the last one gives every Servant a Max Health from the wrong derivation (§46.4-K).
+
+**Import the Servant fresh from the compiled pack, by the summon path. Never hand-build one, and
+never reuse a previous session's actor.** A hand-built Unit can carry a shape the pack would never
+produce, and a stale one carries numbers matching no table — a Heracles at 1600 Health with END A,
+where the table says 1500.
+
+**Rebuild the packs only when that Servant's content has changed.** A change under `packs/_source/**`
+needs `node tools/fgt-world.mjs rebuild`; a change under `module/**` needs no rebuild at all.
+**A rebuild needs the Foundry application fully closed, not merely the world shut down** — the
+desktop process holds the LevelDB packs open for its whole lifetime, and a rebuild that fails on
+`EBUSY` leaves the *old* packs in place, so the next measurement reports stale content as though it
+were new.
+
+**One GM connection.** Two make every scheduled effect tick twice — drains, periodics, cooldowns,
+expiries — so a stated 20 measures as 40. The boundary is claimed per connection now (§46.4-D), but
+count `/game` pages rather than users to see the situation: `game.users.filter(u => u.active)` shows
+one either way.
+
+**Prefer a neutral Region unless the Clause is about a Region.** A Servant whose region matches the
+war's gets +1 rank on every parameter and +10 Base Attack per STR/MAG step, so any figure measured
+against the sheet's printed number is wrong by that shift. Asterios reads `STR A++ → EX--` and
+`BA(STR) 170 → 180` in a Greece war. Where a Clause *is* about the Region — his Labyrinth grows from
+9×9 to 11×11 there — that is a second war, and the record says which board each measurement came from.
+
+**Resolve and apply the setup rolls before pressing anything.** Agility and Luck are not authored:
+`rules/setup-rolls.mjs#servantSetupPlan` rolls them at war setup, and a pack-fresh import dropped
+into a running match arrives at **0/0** with `setupLocked: true`. Every Clause touching either then
+measures zero and reads as a defect. Say in the record that you applied them by hand — a Servant
+whose Agility you chose is not evidence about a Servant whose Agility was rolled.
+
+### Staging a differential
+
+`Observed` is the level a passive reaches, and it needs two readings, not one. A passive stating that
+damage taken is reduced by 40% is not proved by reading 60 damage; it is proved by reading 100
+without the Clause in force and 60 with it. Record **both** values in the Clause line.
+
+The board has to be otherwise identical between the two readings. In practice that means holding the
+attacker, the defender, the Region, the Round and every other standing effect fixed and moving
+exactly one thing:
+
+- **A Clause carried by a mode** is the easy case: toggle the mode. Asterios's `ME.2` was taken as
+  **167** with Mad Enhancement off against **100** with it on, same attacker, same board, same Turn —
+  and the pipeline printed the reason beside it, `Def Up | Mad Enhancement | −40% | ✕ -40% → ×0.60`,
+  against stage 4 `✕ +0% → ×1.00` with the mode off.
+- **A Clause with no switch** is staged by removing what it depends on rather than by removing the
+  Clause: stand outside the area instead of inside it, attack with a MAG component instead of a STR
+  one, use a Normal Attack where the other half says NP. `ME.3`'s two halves were read off one
+  contribution list that gained `atkUp 60 [not:attack:component:mag]` and `atkUp 30
+  [attack:component:mag]` together.
+- **A Clause gated on a die you cannot force** is pressed with the chance staged, and the record
+  says so in those words. `AL.3`'s 10% Bleed rider never came up in the attacks actually made; what
+  was proved is that the rider fires on every landed Normal Attack and that, with the chance staged
+  to certainty, it inflicts Bleed with an expiry exactly 1◈ out. That is an honest press of
+  everything except the die.
+- **A Clause that states a refusal** needs the positive control on the same board. `CL.6`'s *"cannot
+  be used if Health is less than 200"* was staged at 150 and the evidence is an **absence** — no
+  prompt at all, the field closed, nobody charged. An absence is only evidence next to the presence:
+  the same prompt had appeared twice at full Health on the same board minutes earlier.
+
+**Read the value, then spend it.** A differential taken on the board *projection* proves the number
+moved, not that anything binds on it. Asterios's MOV read 10 inside his Labyrinth from the first
+audit onward and was still refused by the movement gate, which had never been shown the field's
+interior rules at all (§46.4-AP). Wherever a passive moves a stat, spend the stat: walk the panels,
+throw the attack, take the hit.
+
+### What an audit costs
+
+Measured on Asterios, the cheapest Servant that exercises every part of the scheme:
+
+| | |
+|---|---|
+| Clauses | **30** across 5 Abilities, the statblock counting as one of them |
+| Rule elements behind them | 12 |
+| Boards | **2** — a neutral 15×15 built with `commitWar`, plus a second war on Greece for the one Region-dependent Clause |
+| Defects found | **7**, of which **6 were general** (§46.4-AO…AV) and one was his alone |
+| Clauses that could not be pressed outright | 2 — one stating no mechanic (`NM.p`), one gated on a 10% die (`AL.3`) |
+| Most expensive Clause by wall-clock | the escape ladder, `CL.5` — one attempt per Turn, five Turns for five attempts, because the gate wants movement left and only a Turn restores it |
+| Single most expensive mistake | one hour lost to a dialog `ui.windows` cannot see, settled afterwards by one screenshot |
+
+Two figures are worth carrying forward. The **six-of-seven general ratio** is the programme's return:
+an audit is a way of auditing the engine, and most of what a Servant finds is not the Servant's.
+And **the expensive Clauses are the ones with no control of their own** — `ME.5` needed a Master
+killed with the mode active, `CL.8` needed Asterios himself defeated with a field standing. Budget by
+counting those, not by counting Clauses.
+
+Scaling is by Clause count and by how many of those Clauses have no control. The roster runs from
+Asterios's 30 to roughly a hundred Clauses against fifty-seven rule elements at the largest, so the
+biggest Servant is something over three times this. A Servant that proves too large for one sitting
+is split on a real boundary once that boundary is known, not pre-split on a guess.
+
 ---
 
 ## 46.2 Measurement hazards
 
-Every one of these was hit during the Heracles audit, and two of them produced a **wrong finding
-that was reported before being retracted**. Check them before trusting a number.
+Every one of these was hit by an audit, and three of them produced a **wrong finding that was
+reported before being retracted**. Check them before trusting a number. The first block came from
+Heracles; the rows marked *(Asterios)* were added by the re-audit of 2026-09-17 and are the ones
+about reading a measurement rather than about taking one.
 
 | Hazard | What it looks like | Guard |
 |---|---|---|
@@ -105,6 +253,12 @@ that was reported before being retracted**. Check them before trusting a number.
 | **Reading a Combat Process before it finishes** | An attack looks as though it applied nothing | Check `message.flags.fgt.process.state` and its `history`. A Process can be waiting on the **attacker's own** damage-step prompt while the pending panel advertises only the *defender's* reaction, and that dialog can take seconds to render. `advanceProcess` awaits it, so calling the socket directly looks like a hang. This produced a retracted "clause 2 applies nothing" against Asterios |
 | **The first `nextTurn` after `startCombat`** | The turn-end sequence does not fire | Discard the first trial; measure from the second |
 | **Moving a token to change a positional condition** | Two runs compare identical boards | A long hop is refused by movement legality and the token stays put, silently. Delete the token or move it within its MOV (§46.10) |
+| **A resist roll that wins** *(Asterios)* | A Clause applies to one target in the area and not the other, which looks exactly like a targeting bug | It is a die. `CL.2` missed the second enemy once — a 15% resist beating two 85% rolls — and took the same Clause at the next application. Apply again before filing; one trial is not a measurement, and the resist is itself a rule |
+| **Reading a stat instead of spending it** *(Asterios)* | The projection shows the number the Clause promises, so the Clause is filed as `Observed` | The gate that consumes the stat may never have been shown the rule. MOV read **10** inside the Labyrinth from the first audit onward while movement still refused the walk (§46.4-AP). Wherever a passive moves a stat, spend it: walk the panels, throw the attack, take the hit |
+| **Half an "and vice versa"** *(Asterios)* | The Clause is pressed in the direction the interface makes easy, and reads as proved | `ME.lock` says a mode switched on cannot be switched off for 2◈ *and vice versa*; only the ON direction had ever started the lockout, and the OFF half was a defect (§46.4-AT). Press both directions of any symmetric Clause, separately |
+| **An effect that charges nobody** *(Asterios)* | The Clause fires, the log says so, and the number on the sheet does not move | Read the **victim**, not the event. `ME.5` reduced a Sustainability belonging to no one for as long as it had existed (§46.4-AS), and the firing was never in doubt |
+| **Evidence that is an absence** *(Asterios)* | A refusal Clause is "proved" by nothing happening — which is also what a dead Clause looks like | Take the positive control on the same board, minutes apart. `CL.6`'s refusal below 200 Health is evidence only because the same prompt had appeared twice above it |
+| **One attempt per Turn** *(Asterios)* | A ladder looks stuck: the second attempt is refused immediately after the first | The gate wants movement left and only a Turn restores it — the Clause, not a workaround. `CL.5` cost five Turns for five attempts. Budget the Turns; do not conclude the gate is broken |
 
 **The general rule this produces:** when a measurement disagrees with a sheet, isolate the *pure*
 layer first. Call the rules function directly with a hand-built board. If the pure layer is right
@@ -1690,6 +1844,7 @@ signature every ability in the game shares.
 
 ## 46.5 The per-Servant checklist
 
+§46.1's procedure is the *order*; this is the list of things to have looked at while running it.
 Run all of it. An item that is obviously inapplicable is still an item you looked at.
 
 **Statblock**

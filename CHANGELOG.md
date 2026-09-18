@@ -34,6 +34,63 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### An audit method written from what one cost, and a tool for its bulk (2026-09-18)
+
+#### Added
+
+- **Ch. 46 §46.1 gains the per-Servant procedure**, written from the Asterios re-audit rather than
+  from an idea of what an audit ought to look like. Ten steps in the order they actually run, and
+  the order is not decoration: the three cheap steps come first because they catch the errors that
+  would otherwise invalidate every measurement taken after them. It is runnable by someone who has
+  not read the conversation that produced it.
+
+- **The world an audit is run on**, stated once instead of scattered through the hazards: built with
+  `commitWar`, never hand-built; the Servant imported fresh from the compiled pack and never reused
+  from a previous session; packs rebuilt only when that Servant's content changed, and only with the
+  Foundry **application** fully closed rather than merely the world shut down; one GM connection; a
+  neutral Region unless the Clause is about a Region; and the setup rolls applied by hand, because a
+  pack-fresh Servant dropped into a running match arrives at Agility 0 and Luck 0 and every Clause
+  touching either then reads as a defect.
+
+- **How a passive's differential is staged**, which `Observed` required and nothing explained. Four
+  shapes, each with the Asterios measurement behind it: a Clause carried by a mode (toggle it — 167
+  against 100), a Clause with no switch (remove what it depends on, not the Clause), a Clause gated
+  on a die you cannot force (stage the chance and say so in the record), and a Clause that states a
+  refusal (an absence is evidence only next to the presence). And the rule the whole thing turns on:
+  **read the value, then spend it** — Asterios' MOV read 10 inside his Labyrinth for a full audit
+  while the movement gate still refused the walk.
+
+- **What an audit costs**, measured: 30 Clauses, 5 Abilities, 12 rule elements, 2 boards, 7 defects
+  of which 6 were general, one hour lost to a dialog `ui.windows` cannot see. The two figures worth
+  carrying forward are the six-of-seven general ratio — an audit is a way of auditing the engine —
+  and that the expensive Clauses are the ones with no control of their own.
+
+- **Six measurement hazards from the Asterios re-audit** (§46.2), all of them about *reading* a
+  measurement rather than taking one: a resist roll that wins and looks like a targeting bug, a stat
+  read instead of spent, half of an "and vice versa", an effect that fires and charges nobody,
+  evidence that is an absence, and a ladder that allows one attempt per Turn.
+
+- **`tools/extract-clauses.mjs`** — turns a Character Sheet into the Clause task list an audit issue
+  needs, which is the programme's mechanical bulk at six to nine hundred Clauses across twenty-six
+  Servants. Built after the first audit rather than before it, so the line it emits is one that has
+  been used. It is loud rather than tidy: anything the grammar cannot place is still emitted *and*
+  reported with its line number, because a short list that looked complete would manufacture the
+  silent omission an audit exists to catch, twenty-six times over. The linked pair's shared
+  Clauses — the maximum separation, either's defeat killing both, the shared Cooldown — are emitted
+  apart from either twin's, since they belong to neither. Run against Asterios it reproduces the
+  thirty Clauses his audit was run against, and that is the test that keeps it honest.
+
+  A code review of the first version found seven defects in it, every one of them a way the tool
+  could lose or mis-file a Clause, and all seven are fixed and guarded by tests: an Ability header
+  ending in parentheses read as a rank variant, which filed five Clauses of Proto Gil's Magic
+  Resistance under the Ability above it **with no warning**; warnings quoting refs that renaming had
+  since made wrong, across nine sheets; the two sheets that spell the footer *Held Items* rather than
+  *Items held*, whose footers became phantom Clauses; a Cooldown taken to the end of its line,
+  swallowing two of Quetzalcoatl's exclusivity rules and one of Karna's notes; refs that collided
+  across the four Units on Ozymandias' sheet; redundant lettering at a rank-variant boundary; and an
+  ambiguous Servant name resolved by directory order rather than refused. Finding them is the same
+  exercise the tool exists to support, run on the tool.
+
 ### The roster audit resets to zero, and gets a vocabulary (2026-09-17)
 
 #### Removed
