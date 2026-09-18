@@ -17,8 +17,15 @@ import { unitWeight } from "./linked-group.mjs";
 /** Base chance for both coin flips. */
 const BASE_FLIP = 50;
 
-/** The multi-Servant tax, and the Health floor below which it becomes a ban. */
-const MULTI_SERVANT_COST = 25;
+/**
+ * The multi-Servant tax, and the Health floor below which it becomes a ban.
+ *
+ * Exported because the sheet has to warn about the same number it charges.
+ * `apps/actor-sheet/context.mjs` carried its own `25` literal, which is one
+ * threshold said twice — the shape this file's own Mad Enhancement entry
+ * (Ch. 46 §46.4-AS) is about.
+ */
+export const MULTI_SERVANT_COST = 25;
 
 /* -------------------------------------------------------------------------- */
 /*  Ch. 32 Overpower and Underpower                                            */
