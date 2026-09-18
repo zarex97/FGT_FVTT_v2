@@ -352,6 +352,18 @@ export function combatantCommon() {
       usedActiveSkill: new fields.BooleanField({ initial: false }),
       // Riding Attack is terminal for that unit's turn.
       usedRidingAttack: new fields.BooleanField({ initial: false }),
+      // *"A unit can only use Gather once per turn"* -- stated by the game's
+      // author as a rule in its own right, independent of Gather also counting
+      // as that unit's Move.
+      //
+      // Its own flag rather than reading `moved`, because the two rules are
+      // separable and one of them is load-bearing on its own: Gather writes
+      // `moved` and `attacked`, and `canConsume`'s "free second non-attack
+      // action" (D18.3) then let Gather repeat without limit anyway. Four
+      // presses in one Turn took Semiramis' HGoB Construction 10 -> 30, against
+      // a Noble Phantasm gated at 100 that the sheet spends many Rounds
+      // reaching (Ch. 46 §46.4-BA).
+      gathered: new fields.BooleanField({ initial: false }),
       // Jack's Mist: *"she can Move the Mist and/or change the shape of the
       // Mist ONCE"* per Turn. Its own flag rather than `usedActiveSkill`,
       // because the same sentence says it "does not count as Moving a Unit and
