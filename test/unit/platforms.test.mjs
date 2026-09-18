@@ -430,6 +430,17 @@ describe("Jump — leaving a Platform on purpose (#31)", () => {
       expect(jumpVerdict(spent, hgob(), left(spent))).toMatchObject({ ok: false, reason: "noMovement" });
     });
 
+    it("refuses a caller who forgot to say how much movement is left", () => {
+      // The omission used to fail OPEN: `undefined < 1` is `false`, so the
+      // movement rung was skipped entirely and a Unit with nothing left was
+      // waved off the Platform. Both production callers pass the figure
+      // (`engine/platforms.mjs`, `rules/actions.mjs`), so nothing in play was
+      // getting through -- but the guard has to hold on its own.
+      const fresh = rider3();
+      expect(jumpVerdict(fresh, hgob(), left(fresh))).toMatchObject({ ok: true });
+      expect(jumpVerdict(fresh, hgob())).toMatchObject({ ok: false, reason: "noMovement" });
+    });
+
     it("refuses a SLOWED Unit that has walked half its MOV", () => {
       // Slow halves MOV, so a MOV 4 Servant who has walked 2 has nothing left
       // -- and `jumpVerdict` used to compute 4 - 2 = 2 and let her jump, while
@@ -475,7 +486,27 @@ describe("Jump — leaving a Platform on purpose (#31)", () => {
     it("never offers a panel off the board", () => {
       const corner = rider3({ panel: { i: 5, j: 5 } });
       const small = { ...b([hgob(), corner]), bounds: { rows: 7, cols: 7 } };
-      expect(jumpLandings(corner, hgob(), small).every((p) => p.i < 7 && p.j < 7 && p.i >= 0 && p.j >= 0)).toBe(true);
+      const out = jumpLandings(corner, hgob(), small, left(corner));
+
+      // The fourth argument used to be missing here, and the omission hid
+      // itself: `reach` was `undefined`, `-undefined <= undefined` is
+      // `NaN <= NaN`, the loops never ran, and `.every` over the empty array it
+      // returned was vacuously true. The assertion named the clipping and
+      // exercised none of it. Asserting the list is non-empty is what stops
+      // that from passing again.
+      expect(out.length).toBeGreaterThan(0);
+      expect(out.every((p) => p.i < 7 && p.j < 7 && p.i >= 0 && p.j >= 0)).toBe(true);
+      // ...and it really is clipping: a reach of 3 from (5,5) would otherwise
+      // reach row and column 8.
+      expect(out.some((p) => p.i === 6 || p.j === 6)).toBe(true);
+    });
+
+    it("offers nothing when the caller forgets to say how far", () => {
+      // `jumpLandings` fails CLOSED on the omission, which is why only the test
+      // above ever caught it. `jumpVerdict` used to fail open on the same
+      // mistake; both now default to no movement at all.
+      const corner = rider3({ panel: { i: 5, j: 5 } });
+      expect(jumpLandings(corner, hgob(), b([hgob(), corner]))).toEqual([]);
     });
   });
 });

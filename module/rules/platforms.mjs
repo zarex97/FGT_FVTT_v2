@@ -348,11 +348,19 @@ export function isEdgePanel(panel, platform) {
  * Distinct from being Knocked Off in every respect: voluntary, no Agility
  * Check, no damage, and open only to the kinds the sheet names.
  *
+ * `remaining` defaults to **0**, so a caller that forgets it is refused rather
+ * than waved through. `undefined < 1` is `false`, which made the omission skip
+ * the movement rung entirely and return `{ok: true}` for a Unit with nothing
+ * left — the exact case the rung was written to catch. `jumpLandings` beside it
+ * failed closed on the same mistake (no landings, so `"nowhereToLand"`), which
+ * is why only a test ever noticed, and only by being silently vacuous.
+ *
  * @param {object} unit
  * @param {object} platform
+ * @param {number} [remaining] panels of MOV left this Turn
  * @returns {{ok: boolean, reason?: string}}
  */
-export function jumpVerdict(unit, platform, remaining) {
+export function jumpVerdict(unit, platform, remaining = 0) {
   if (!platform || (unit?.level ?? 0) !== (platform.level ?? 0) || (unit?.level ?? 0) === 0) {
     return { ok: false, reason: "notAboard" };
   }
@@ -380,9 +388,10 @@ export function jumpVerdict(unit, platform, remaining) {
  * @param {object} unit
  * @param {object} platform
  * @param {object} board
+ * @param {number} [remaining] panels of MOV left this Turn — the reach
  * @returns {Array<{i: number, j: number}>}
  */
-export function jumpLandings(unit, platform, board, remaining) {
+export function jumpLandings(unit, platform, board, remaining = 0) {
   const reach = remaining;
   const bounds = board?.bounds ?? null;
   const taken = (board?.units ?? [])
