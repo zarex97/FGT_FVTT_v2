@@ -1865,6 +1865,50 @@ display.
 
 ---
 
+### AX. Every predicate-gated ability displayed as permanently unusable — **fixed 2026-09-18**
+
+**Reached: ten abilities across five Servants**, including **Karna's Vasavi Shakti** and **four of
+Quetzalcoatl's** — and both of Semiramis' that carry one, which is how it was found.
+
+A `kind: "predicate"` requirement **refuses** when `ctx.testPredicate` is absent. That is
+deliberate, and `rules/items.mjs` says why in as many words: *"a gate nobody can answer is not an
+open gate."* For the execution path it is plainly right — running an ability whose conditions
+nobody checked is worse than refusing it.
+
+It is exactly the wrong default for a **display**, and only two call sites in the system ever
+supplied an evaluator: `engine/attack.mjs` and `engine/skill-use.mjs`. Both are execution. The two
+display paths — `apps/hud/action-bar.mjs` and `apps/actor-sheet/context.mjs` — omitted it, so every
+predicate-gated ability was greyed out and captioned **"Its conditions are not met right now"**,
+permanently, whether or not they were met.
+
+Measured on a live board, the same call twice with nothing else changed:
+
+| | verdict |
+|---|---|
+| `canUseAbility({ability, unit, master, board, …gateContext()})` | `{ok: false, reason: "predicate"}` |
+| the same, plus `testPredicate` | **`{ok: true, cost: {masterHealth: 100}}`** |
+
+Semiramis was standing in her Home Base, at Construction 100/100, on the Round her gate opens, with
+`self:inHomeBase` and `self:variant:dsc` both emitted onto her option set — and her Noble Phantasm
+said its conditions were not met. Her Summoning: Bašmu said the same thing for the same reason, and
+that refusal had already been read and believed twice earlier in this audit before the cause was
+found.
+
+Fixed by supplying the evaluator at both display sites, built the way `skill-use.mjs` builds it.
+Guarded by `test/unit/can-use-ability-callsites.test.mjs`, which reads the source: the defect is in
+what a caller **omitted**, not in what any function computed, so there is no behaviour to assert on.
+Red against the old code.
+
+§46.3 shape: **the gate and the display disagree** — the third instance this audit has found, and
+the only one where the display is stricter than the gate. The other two hid a refusal from the
+player; this one hid a working Noble Phantasm.
+
+**Worth carrying to the next audit:** an argument that is optional in a signature and load-bearing in
+one branch is invisible at every call site that forgets it. `grep` for the parameter name rather
+than for the function.
+
+---
+
 ## 46.5 The per-Servant checklist
 
 §46.1's procedure is the *order*; this is the list of things to have looked at while running it.
