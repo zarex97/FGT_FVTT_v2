@@ -512,7 +512,14 @@ function notModelled(what) {
  * @param {object} spec
  * @param {object[]} [spec.actors] `{id, name, type, system, items}`
  * @param {object[]} [spec.tokens] `{id, actorId, x, y}`
- * @param {object} [spec.combat] `{round, started, system: {globalTurn}}`
+ * @param {object} [spec.combat] `{round, started, system: {globalTurn}}` — the ACTIVE match
+ * @param {object} [spec.viewedCombat] a DIFFERENT Combat at `game.combat`, for the
+ *   viewed-versus-active split. Foundry keeps the two apart — `game.combat` is
+ *   whatever tracker is on screen — and this model used to point both names at
+ *   one object, so a reader of the wrong one was indistinguishable from a reader
+ *   of the right one and no test could tell them apart. Three readers in
+ *   `engine/board.mjs` had the wrong one (Ch. 46 §46.4 / #42). Omit it and the
+ *   two stay identical, which is the ordinary case.
  * @param {object} [spec.settings] `fgt` settings by key
  * @param {boolean} [spec.isGM]
  * @param {(world: object) => Promise<unknown>} fn
@@ -551,10 +558,15 @@ export async function withWorld(spec, fn) {
     world.tokens.set(token.id, token);
   }
   world.combat = new FakeCombat(spec.combat ?? {}, world);
+  // The tracker on screen, which is only the active one when nobody has opened
+  // another. Defaults to it, so every existing spec is unchanged.
+  world.viewedCombat = spec.viewedCombat
+    ? new FakeCombat(spec.viewedCombat, world)
+    : world.combat;
 
   globalThis.game = {
     actors: world.actors,
-    combat: world.combat,
+    combat: world.viewedCombat,
     combats: { active: world.combat },
     user: { id: "u1", isGM: spec.isGM ?? true },
     users: { activeGM: { isSelf: spec.isGM ?? true }, get: () => ({ isGM: spec.isGM ?? true }) },

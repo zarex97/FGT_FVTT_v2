@@ -101,7 +101,18 @@ export function unitSnapshot(actor, token = null) {
  */
 export function currentWarRegion() {
   try {
-    return game.combat?.system?.region || setting("region", null) || null;
+    // The ACTIVE match, not the viewed one -- the third instance of the same
+    // confusion in this file, and the one with the widest reach: `currentBoard`
+    // twenty lines below reads `game.combats?.active` for the war's type,
+    // ruleset, difficulty and Grail, so with another Combat on screen the
+    // Region came off a different match than every other fact in the same
+    // snapshot. A Region decides every Servant's Ranks and Base Attack
+    // (Ch. 46 §46.4-AO), so the disagreement is a rank on every parameter.
+    //
+    // No `started` gate, unlike the two projectors above: a war's Region is
+    // decided at setup and `commitWar` writes it before the clock exists, so
+    // gating on `started` would blank it for the whole of setup.
+    return game.combats?.active?.system?.region || setting("region", null) || null;
   } catch {
     return null;
   }
@@ -200,7 +211,18 @@ export function currentTick() {
  * @returns {object} the projected Turn Record
  */
 export function turnRecordOf(actor) {
-  return turnStateAt(actor?.system?.turnState, game.combat?.system?.globalTurn ?? 0);
+  // `currentTick()`, NOT `game.combat` -- the same hazard `gateContext` and
+  // `apps/actor-sheet/sheet.mjs` both record. `game.combat` is the combat being
+  // VIEWED, so with any other tracker on screen this projected the stored record
+  // against a tick from a different match while `unitSnapshot` and
+  // `snapshotBoard` projected it against the right one: one record, two answers,
+  // decided by what the GM happened to have open.
+  //
+  // It also settles the pre-match case in the same direction. `?? 0` blanked a
+  // record stamped against any other tick before the clock existed; `null` is
+  // `currentTick`'s deliberate "apply no staleness", because a GM arranging the
+  // board should not have it silently forgotten.
+  return turnStateAt(actor?.system?.turnState, currentTick());
 }
 
 /**
@@ -210,7 +232,11 @@ export function turnRecordOf(actor) {
  * @returns {object} the projected Round Record
  */
 export function roundRecordOf(actor) {
-  return roundStateAt(actor?.system?.roundState, game.combats?.active?.round ?? null);
+  // `currentRound()` rather than the round off the document, for the reason
+  // above and for its `started` check: an unstarted Combat reports Round 0, and
+  // measuring a stored record against that is measuring it against a clock that
+  // is not running.
+  return roundStateAt(actor?.system?.roundState, currentRound());
 }
 
 /**
