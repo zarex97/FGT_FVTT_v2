@@ -258,6 +258,7 @@ about reading a measurement rather than about taking one.
 | **Half an "and vice versa"** *(Asterios)* | The Clause is pressed in the direction the interface makes easy, and reads as proved | `ME.lock` says a mode switched on cannot be switched off for 2◈ *and vice versa*; only the ON direction had ever started the lockout, and the OFF half was a defect (§46.4-AT). Press both directions of any symmetric Clause, separately |
 | **An effect that charges nobody** *(Asterios)* | The Clause fires, the log says so, and the number on the sheet does not move | Read the **victim**, not the event. `ME.5` reduced a Sustainability belonging to no one for as long as it had existed (§46.4-AS), and the firing was never in doubt |
 | **Evidence that is an absence** *(Asterios)* | A refusal Clause is "proved" by nothing happening — which is also what a dead Clause looks like | Take the positive control on the same board, minutes apart. `CL.6`'s refusal below 200 Health is evidence only because the same prompt had appeared twice above it |
+| **A Unit on a platform cannot be clicked** *(Semiramis)* | The token is visible, the layer is active, `control()` does nothing and `canvas.tokens.hover` stays `null`. Indistinguishable from a dead canvas | **The viewed Scene Level is not the token's.** `apps/canvas/token.mjs` refuses interaction unless `document.level === canvas.level.id`, so a Servant aboard the Hanging Gardens is inert while the ground level is shown. Switch levels in the scene controls first. `canvas.scene.cycleLevel()` did not move it; the control does |
 | **One attempt per Turn** *(Asterios)* | A ladder looks stuck: the second attempt is refused immediately after the first | The gate wants movement left and only a Turn restores it — the Clause, not a workaround. `CL.5` cost five Turns for five attempts. Budget the Turns; do not conclude the gate is broken |
 
 **The general rule this produces:** when a measurement disagrees with a sheet, isolate the *pure*
@@ -2366,3 +2367,39 @@ reachable from exactly one of the several places that owe it.
 corpus that consumes the event, so no second Servant inherits the fix. The *shape* generalises and
 is worth carrying to the next audit: an event with a single call site is worth checking against the
 list of moments it claims to describe.
+
+### 46.14.6 The garden that never seated its owner — **fixed 2026-09-18**
+
+> *"When HGoB is activated, place the HGoB token on the panel where Semiramis was standing; **and she
+> is Moved to the middle panel of HGoB**, and all allied Units of your choice are transported to any
+> panel within the HGoB."*
+
+She was not moved. She stayed on the panel the token was anchored to — for a top-left-anchored
+footprint, its **corner**, which is the one panel guaranteed to be on the rim and outside the Throne
+Room. Measured twice before the fix: activated at (0,0) she was at (0,0); at (5,5), still (5,5).
+
+**It made her own Noble Phantasm unreachable.** `SIK.2` is *"can only be used within the 'Throne
+Room'"*, the middle 5×5, gated by a `withinPlatformCentre` requirement. Seated on the rim she was
+never in it, and the action bar said so: *"Sikera Ušum: Arrogant King's Alcohol — Must be on its
+Platform's centre."*
+
+**The arithmetic was never wrong.** `seatRiders` computed the middle correctly and always had. It
+then looked the rider's token up through `getActiveTokens()`, which reads the canvas **placeable**
+layer — and it runs immediately after a 9×9 token has been created and every rider reassigned to a
+new Scene Level, so the layer is mid-redraw and answers `[]` for a Unit whose token plainly exists.
+A falsy-`token` guard then skipped the owner **in silence**.
+
+Three separate things had to be true for this to survive: the lookup read the wrong collection, the
+guard was silent, and the failure looked exactly like a Servant who had simply not moved.
+
+The fix reads `canvas.scene.tokens`, the document collection, which does not depend on anything being
+drawn — the same reason §46.2 tells an auditor to move a token through its document rather than its
+placeable. `seatRiders` now warns on both failure paths, and the seating **decision** is extracted as
+the pure `seatingPlan`, so where each rider goes can be asserted without a canvas at all
+(`test/unit/hgob-seating.test.mjs`). Verified live: activated from (3,3), the platform's centre is
+(7,7) and she now stands on (7,7); the action bar offers Sikera Ušum with no refusal.
+
+**The comment above that call already said all of this.** It read *"Neither half happened… Found
+live: activated at (11,11), she was still at (11,11) afterwards"* — describing a repair that had been
+written and had never reached the board. A fix for this project's dominant defect shape, exhibiting
+this project's dominant defect shape.
