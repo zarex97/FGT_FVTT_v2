@@ -16,6 +16,7 @@ import { computeDamage, INJURY_THRESHOLD } from "../rules/damage/pipeline.mjs";
 import { ridersFire } from "../rules/damage/riders.mjs";
 import { expandInstances } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
+import { askOwner } from "./ask.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
 import { currentBoard, unitSnapshot, unitFrom, gateContext, currentTick } from "./board.mjs";
 import {
@@ -5623,33 +5624,6 @@ async function resolveChoosePhases(phases, attackerDoc) {
     if (branch) out.push(...(branch.phases ?? []));
   }
   return out;
-}
-
-/**
- * Ask the player who owns this actor, or answer it here when nobody does.
- *
- * A GM-run resolution must not put a Servant's decision in the GM's hands when
- * the Servant belongs to somebody: `FGTSocket.ask` is the primitive for exactly
- * that, and it short-circuits to a local dialog when the owner *is* this client.
- * An unowned actor (a summon, an NPC) falls back to whoever is arbitrating.
- *
- * A timeout or a disconnected owner resolves to **null**, which every caller
- * reads as "declined" — the attack must not stall because somebody walked away.
- *
- * @param {object} actor
- * @param {object} spec a prompt spec (`module/apps/prompt.mjs`)
- * @returns {Promise<unknown>}
- */
-async function askOwner(actor, spec) {
-  const owner = game.users.find((u) => u.active && !u.isGM && actor.testUserPermission(u, "OWNER"))
-    ?? game.user;
-  try {
-    const { FGTSocket } = await import("../net/socket.mjs");
-    return await FGTSocket.ask(owner.id, spec);
-  } catch (err) {
-    console.warn(`FGT | ${actor.name}'s window prompt was not answered:`, err);
-    return null;
-  }
 }
 
 /**

@@ -45,7 +45,7 @@ Five effects depend on Home Base membership:
 1. **E3** — "All damage taken by a Unit in its Home Base is reduced by 10% including NP" (`module/rules/environment.mjs:206-208`).
 2. **E4** — *"if both Units have to be in the Home Base"* — when both attacker and defender are inside, damage dealt is increased by 20%; if NP, 10% (`module/rules/environment.mjs:210-216`).
 3. **E1** — At round end, 100 Health and +1 Agility heal, unless the unit fought combat here (`module/rules/environment.mjs:248-252`).
-4. **E2** — Three consecutive rounds in base cure every removable debuff (`module/rules/environment.mjs:254-261`).
+4. **E2** — Three consecutive rounds in base cure every removable debuff (`module/rules/environment.mjs:254-261`). *Removable* and *debuff* are both real conditions: the sweep skips an instance that is `unremovable` and anything whose `polarity` is not `debuff`. Both are read off the **projected** effect instance, and neither was projected until 2026-09-18 — so the cure took every effect a resident carried, buffs and unremovable statuses included (§46.4-BC). `rules/removal.mjs` and `rules/effect-flow.mjs` ask the same two questions of the same projection.
 5. **E5** — Territory Creation's damage bonus applies *"even to attacks out of the base"*, keyed to the owner's own panel, not the target's (`module/rules/environment.mjs:590-593`).
 
 ### The Holy Grail

@@ -65,6 +65,7 @@ export async function boardPlatform({ unitId, platformId, hitByDragonWingWarrior
       ],
       "platform:board",
     );
+    await comeAboard([unitId], platformId);
     return { ok: true, roll: 0, target: 0 };
   }
 
@@ -76,19 +77,55 @@ export async function boardPlatform({ unitId, platformId, hitByDragonWingWarrior
     kind: "boarding", unitId, platformId, roll, target, die, ok,
   })];
 
+  /** Everyone this attempt actually carries aboard, the boarder first. */
+  const boarders = [];
   if (ok) {
+    boarders.push(unitId);
     intents.push(I.move(unitId, [platform.panel], true));
     if (bringMaster && unit.masterId) {
       const master = board.units.find((u) => u.id === unit.masterId);
       // "if the Master was within 2 panels" — checked against where the Master
       // stood, not where the Servant ended up. `unit` here is still the
       // pre-board snapshot, so `unit.panel` is exactly that.
-      if (master && mayBringMaster(unit, master)) intents.push(I.move(master.id, [platform.panel], true));
+      if (master && mayBringMaster(unit, master)) {
+        boarders.push(master.id);
+        intents.push(I.move(master.id, [platform.panel], true));
+      }
     }
   }
 
   await applyWorldIntents(intents, "platform:board");
+  await comeAboard(boarders, platformId);
   return { ok, roll, target };
+}
+
+/**
+ * Put the Units a boarding attempt won onto the platform's Scene Level.
+ *
+ * **Membership of a platform is the Scene Level, not the panel.** `I.move`
+ * changes x and y and nothing else, so a successful boarding left the boarder
+ * standing on the ground *underneath* the garden: `onPlatform` false, every
+ * aboard-only rule inapplicable, and the log cheerfully recording `ok: true`.
+ *
+ * Measured live on the Semiramis audit board (§46.4-BD): Heracles rolled 11
+ * against a target of 8 on a d12, the log said he had boarded, and the board
+ * projection still had him at `k: 0` while the garden flew at `k: 20`.
+ *
+ * `activatePlatform` has done this for its initial riders since the platform's
+ * own token was found flying at elevation 0; boarding is the same operation and
+ * was never given the same step.
+ *
+ * @param {string[]} unitIds the boarder, and its Master when one is carried
+ * @param {string} platformId
+ * @returns {Promise<void>}
+ */
+async function comeAboard(unitIds, platformId) {
+  if (unitIds.length === 0) return;
+  // The ACTOR, not the board snapshot: `levelOf` reads `system.levelId`, which
+  // the projection does not carry.
+  const platform = game.actors.get(platformId);
+  if (!platform) return;
+  await moveToLevel(unitIds, platform);
 }
 
 /**
