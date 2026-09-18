@@ -1843,7 +1843,7 @@ differs from its field is stating two areas on purpose. Applied at the two Layer
 hold the board rather than inside the pure `targetSpecFor`, which has no war Region and whose
 signature every ability in the game shares.
 
-### AW. A refused Attack reaches the console and nobody else — **open, #74**
+### AW. A refused Attack reached the console and nobody else — **fixed 2026-09-18**
 
 **Reached: every Unit, on every second attack attempt in a Turn.** `rules/budget.mjs#canConsume`
 refuses correctly — *"this unit has already attacked this turn"* — and `engine/attack.mjs:145` turns
@@ -1863,6 +1863,16 @@ rule itself binds**; only its visibility is broken, which is why the Clause is s
 
 §46.3 shape: **the gate and the display disagree**, in the direction where the player believes the
 display.
+
+**Fixed** by calling `budget.affordable` where its own docstring always said it belonged — *"the
+attack button is disabled with the refusal as its tooltip rather than failing after the click"* — and
+by surfacing the verdict at the throw site before it throws. Both carry `canConsume`'s **own
+sentence**, so the control and the gate cannot drift into two spellings of one rule.
+
+It turned out to hide a second rule as well: *"this unit has attacked and cannot move again"* was
+equally invisible, and the Move control is now greyed with it. Verified live after a Gather: **"Attack
+— this unit has already attacked this turn"** and **"Move — this unit has attacked and cannot move
+again"**, both dimmed, where before both were lit and did nothing.
 
 ---
 
