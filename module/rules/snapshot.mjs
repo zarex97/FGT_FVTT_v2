@@ -1687,8 +1687,14 @@ export function expressionRefs(actor, extras = {}) {
       // `extras.self` FIRST, so a caller holding facts the document cannot
       // carry can override it. That is how terrain has to arrive, and it is
       // what `engine/attack.mjs`'s ride comment has always said happens -- it
-      // did not: this key sits below the spread above, so the computed value
-      // won every time and a rider phase read the pre-ride allowance.
+      // did not, twice over. This key sat below the spread above, so the
+      // computed value won every time; and once that was righted, the ride
+      // still passed nothing to override WITH -- its facts went to a top-level
+      // `@ride` ref and `self` was never touched. A rider phase therefore read
+      // the POST-ride allowance, which is zero for a full-MOV ride, because
+      // `performRidingAttack` awaits its `markTurn` before the attack resolves.
+      // Both halves are closed now; `authoredMagnitude` passes
+      // `self: { remainingMov: ride.remainingMov }`.
       remainingMov: extras.self?.remainingMov ?? remainingMovement({
         mov: sys.mov ?? 0,
         effects: [...(actor?.effects ?? [])].map((e) => e.system?.defId).filter(Boolean),
