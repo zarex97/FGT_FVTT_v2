@@ -25,7 +25,7 @@ The boundary enforced in chapter 02 — that `domain/` and `rules/` import nothi
 
 ### The test pyramid
 
-The system rests on unit tests at the base (211 test files covering domain and rules), golden tests in the middle (2 files pinning documentation), and smoke tests at the apex (real-world launch validation). This shape reflects a deliberate choice: the pure layers are testable and must be thoroughly tested; the application layers are slow, and their tests stay sparse and aimed at **wiring** — does this intent get created where it should, does this writer put the right thing in the document. That they were also *unreachable* was a separate problem, and is fixed.
+The system rests on unit tests at the base (211 test files covering domain and rules), **world-model tests** above them (the tier that reaches `engine/io.mjs`), golden tests in the middle (2 files pinning documentation), and smoke tests at the apex (real-world launch validation). This shape reflects a deliberate choice: the pure layers are testable and must be thoroughly tested; the application layers are slow, and their tests stay sparse and aimed at **wiring** — does this intent get created where it should, does this writer put the right thing in the document. That they were also *unreachable* was a separate problem, and is fixed.
 
 ### Unit tests on pure layers
 
@@ -67,6 +67,45 @@ What that fake cannot tell you is what landed in the document, because it stands
 It earned itself on its second test. `countTowardsGrail` read `!combat.system?.grailMaterialized` on the line *after* the `await combat.update()` that set it, so the guard was `true && false` on every defeat and `Hooks.callAll("fgtGrailMaterialized")` had **never fired**. Nothing could have caught that without executing io.
 
 Test coverage reports only domain and rules (`vitest.config.mjs:10`), because a line executed in unit tests might still receive nothing from the real world. A defect hidden by test isolation cannot be caught by measuring coverage — this is the trap documented below.
+
+### World-model tests
+
+`test/helpers/world.mjs` stands up a world faithful enough to run `engine/io.mjs` against, and
+`withWorld(spec, fn)` installs the globals, runs the body and restores them in a `finally`. It
+exists because the applier takes its write adapter by injection, so the fake the applier's tests
+inject stands in for `io.mjs` itself — the seam sits *above* the code holding the bugs, and 1,429
+lines went unexecuted by the whole suite.
+
+**It borrows Foundry rather than imitating it.** Foundry's `common/` layer imports into plain Node —
+`DataModel`, `Document`, `EmbeddedCollection`, the real `DataField` classes and the real `CONST` — so
+the model uses those and fakes only the **client** layer: `game`, `canvas`, `ui`, `Hooks` and the
+world collections. Canvas and PIXI, rendering and ApplicationV2, sockets and the database backend are
+deliberately out of scope; smoke tests and live verification cover them. The source is read from the
+private `zarex97/foundryVTT_copy` sibling repo, located by an environment variable that defaults to
+the sibling path, pinned by commit, and asserted against `system.json`'s `verified` version. See
+[ADR 0006](adr/0006-the-world-model-borrows-foundry-and-stays-harsher.md).
+
+**It is deliberately harsher than the thing it models, in one place.** Foundry silently discards a
+write to an undeclared field; the model **throws**. That is how `io.defeat` was caught writing
+`system.defeated` to a schema that never declared it — every defeat in the game leaving the Unit a
+legal target still taking its Turn. Borrowing real documents brings Foundry's silence with them, so
+the strictness is re-applied as a wrapper. **Do not "fix" this to match Foundry**: it is the model's
+most valuable property, and the divergence with a proven defect to its name.
+
+Every deliberate divergence is an exported artefact rather than prose, so a pure test can assert the
+model still behaves as documented — a contract nothing checks is how half a fix ships. Separately,
+`npm run check:world` runs the same probe against the live world and the model and reports where
+they disagree; it needs Foundry, so it stays a manual gate.
+
+**A deeper model does not narrow live verification.** Ch. 46's standard is unchanged: green tests are
+not evidence. A behaviour is promoted to model-only evidence **per behaviour, never wholesale**, and
+only when a `check:world` probe covers it *and* the model has already caught a real defect in that
+behaviour. A passing probe alone is circular — it proves agreement on a case somebody already thought
+of.
+
+**Use `withWorld` rather than stubbing globals.** A test that assigns `globalThis.game` directly and
+does not restore it leaves a cross-file order dependency for whatever runs next, and the suite has
+carried exactly that bug.
 
 ### Golden tests
 
