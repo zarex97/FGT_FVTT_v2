@@ -34,7 +34,7 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
-### Two rules that were right and unreachable, found auditing Semiramis (2026-09-18)
+### Four rules that were right and unreachable, found auditing Semiramis (2026-09-18)
 
 #### Fixed
 
@@ -55,9 +55,25 @@ coincide by accident; the headings say which is which.
   it already held the board-derived unit, so `self:inHomeBase` and `self:onPlatform` were never
   emitted to a predicate either. Ch. 46 §46.4-AX.
 
-Both are guarded by call-site tests rather than behavioural ones: in each case the rule computed the
-right answer every time it was asked, and the defect was that nothing asked. Both red against the
-old code.
+- **A refused Attack reached the console and nobody else.** `rules/budget.mjs#canConsume` refused
+  correctly and `engine/attack.mjs` turned the verdict into a thrown `Error` that was logged and
+  swallowed — while the action bar left Attack **enabled** and the targeting session it opened
+  reported **`✓ Legal`**. Confirming did nothing at all. `budget.affordable`'s own docstring had
+  always said the bar should call it; nothing did. Both the bar and the throw site now carry
+  `canConsume`'s own sentence. It was hiding a second rule too: *"this unit has attacked and cannot
+  move again"* was equally invisible. Ch. 46 §46.4-AW.
+
+- **The Hanging Gardens never seated its owner.** *"She is Moved to the middle panel of HGoB"* did
+  not happen: she stayed on the footprint's corner, outside the Throne Room, which made **Sikera
+  Ušum's DSC branch unreachable for the Servant whose Noble Phantasm it is**. The arithmetic was
+  always right; `seatRiders` looked the rider's token up through `getActiveTokens()`, which reads the
+  canvas **placeable** layer — mid-redraw at exactly that moment — and a silent falsy-`token` guard
+  then skipped her. It reads the scene's document collection now, warns on both failure paths, and
+  the seating decision is extracted as the pure `seatingPlan`. Ch. 46 §46.14.6.
+
+All four are guarded by tests at the seam that could have caught them, and all four are red against
+the old code. Three are the same shape: in each case the rule computed the right answer every time it
+was asked, and the defect was that nothing asked — or that nobody was told.
 
 ### The roster audit becomes twenty-six grabbable tickets (2026-09-18)
 

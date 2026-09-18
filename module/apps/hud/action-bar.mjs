@@ -22,6 +22,7 @@ import { rollOptionsFor } from "../../rules/options.mjs";
 import { publicNameOf } from "../../rules/identity.mjs";
 import { abilityCost, abilityState } from "../actor-sheet/present.mjs";
 import { currentBoard, unitSnapshot, unitFrom, gateContext } from "../../engine/board.mjs";
+import * as budget from "../../engine/budget.mjs";
 import { mayDeactivate } from "../../engine/fields.mjs";
 import { mayReshape } from "../../rules/bounded-fields.mjs";
 import { FACINGS } from "../../domain/enums.mjs";
@@ -134,25 +135,57 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
     const openFields = new Set((board.fields ?? []).map((f) => f.id));
 
+    // What the action budget says about each action, BEFORE it is offered.
+    //
+    // `budget.affordable`'s own docstring has always said this is where it is
+    // meant to be called — *"the attack button is disabled with the refusal as
+    // its tooltip rather than failing after the click"* — and nothing called
+    // it. So a Unit that had already attacked was offered Attack, opened a
+    // targeting session that reported `✓ Legal`, confirmed it, and got nothing
+    // at all: `engine/attack.mjs` throws, the rejection is logged, and the
+    // player is told by no one. Gather is the natural way to meet it, because
+    // it spends a Unit's Attack without looking like an attack (§46.4-AW).
+    const combat = game.combats?.active ?? null;
+    const afford = (kind) => {
+      if (!combat?.started || !kind) return { ok: true, reason: null };
+      try {
+        return budget.affordable(combat, unit, kind);
+      } catch {
+        // A budget that cannot be computed must not withhold the control: a
+        // refusal nobody can justify is worse than an ambush.
+        return { ok: true, reason: null };
+      }
+    };
+
     const actions = availableActions(snapshot, board).map((a) => {
       // Ch. 21. Armed, the actions row is the Normal Attack and nothing else:
       // it glows, and Move, Gather and the facing dial dim with a reason. The
       // Normal Attack is ALWAYS offered as a Counter and always free, so it is
       // lit even when every ability the unit holds is unaffordable.
       const counter = this.counter ? a.id === "attack" : null;
+      // A Counter is free and is offered regardless of the budget — that is the
+      // whole of "always offered as a Counter and always free" above — so the
+      // budget is only consulted on the unit's own Turn.
+      const budgeted = counter === null ? afford(a.kind) : { ok: true, reason: null };
       return {
         ...a,
         counter: counter === true,
-        disabled: Boolean(a.disabled) || counter === false,
+        disabled: Boolean(a.disabled) || counter === false || !budgeted.ok,
         // A distinct string from the abilities row. Riding Attack IS an attack;
         // what disqualifies it is that it is a MOVE as well, and a Counter is
         // not a chance to move on somebody else's turn. Telling the player it
         // "is not an Attack" would be plainly false and they can see that.
+        // The budget's OWN sentence, not a second spelling of it. `canConsume`
+        // returns a human reason — "this unit has already attacked this turn" —
+        // and passing it through is what keeps the control and the gate from
+        // ever disagreeing about why something is unavailable.
         tooltip: counter === true
           ? `${game.i18n.localize(a.label)} — ${game.i18n.localize("FGT.Counter.Available")}`
           : (counter === false
             ? `${game.i18n.localize(a.label)} — ${game.i18n.localize("FGT.Counter.ActionRefused")}`
-            : game.i18n.localize(a.label)),
+            : (budgeted.ok
+              ? game.i18n.localize(a.label)
+              : `${game.i18n.localize(a.label)} — ${budgeted.reason}`)),
       };
     });
 

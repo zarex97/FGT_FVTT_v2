@@ -142,7 +142,19 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   const free = Boolean(ability?.system?.freeAction);
   if (combat?.started && !free) {
     const verdict = budget.affordable(combat, self, actionKind);
-    if (!verdict.ok) throw new Error(`FGT | Cannot attack: ${verdict.reason}`);
+    if (!verdict.ok) {
+      // TOLD, not just thrown. The comment above has claimed since it was
+      // written that the player "is told" this, and they were not: the
+      // rejection was logged and swallowed, so a Unit that had already
+      // attacked -- after Gather, most naturally -- clicked Attack, was shown
+      // `✓ Legal`, confirmed, and got silence (§46.4-AW).
+      //
+      // The throw stays: callers depend on it, and `resolveAttack` must not
+      // half-resolve. This only makes sure the refusal reaches a human first,
+      // in the budget's own words so the two can never drift.
+      ui.notifications?.warn(`${game.i18n.localize("FGT.Action.Attack")} — ${verdict.reason}`);
+      throw new Error(`FGT | Cannot attack: ${verdict.reason}`);
+    }
   }
 
   // Costs are **validated** at declaration and **paid** at confirmation
