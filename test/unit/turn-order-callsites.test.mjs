@@ -1,13 +1,14 @@
 /**
- * @file Every writer of `system.turnOrder` re-derives the turns it just wrote.
+ * @file The rolled order reaches the order that is played, on every client.
  * @see docs/46-roster-re-audit.md §46.4-BB
  *
  * `FGTCombat#_sortCombatants` reads `system.turnOrder` and is correct. It has
  * unit tests, and so do `resolveTurnOrder` and `computeTurnOrder` underneath
- * it. **Nothing re-ran the sort.** Foundry calls `setupTurns` from `_onUpdate`
- * for `round`, `turn` and `combatants` changes only, so an order written into
- * `system` reached the sort no earlier than the next round boundary — which
- * sorts with the order current *before* the re-roll.
+ * it. **Nothing re-ran the sort.** Foundry derives `combat.turns` in
+ * `setupTurns`, which `_onUpdate` calls for `round`, `turn` and `combatants`
+ * changes only, so an order written into `system` reached the sort no earlier
+ * than the next round boundary — which sorts with the order current *before*
+ * the re-roll.
  *
  * The consequence is the whole point of Ch. 41 Q32: turn order is re-rolled
  * every Round so a faction cannot be locked into last place, and every Round
@@ -19,9 +20,24 @@
  * `setupTurns()` by hand on that same combat re-sorted it and moved the acting
  * faction to Faction 1.
  *
- * This reads the source. A test of the sort cannot catch it — the sort answered
- * correctly every time it was asked, and the defect is that nothing asked. The
- * documents layer has no other seam: it is the one layer the suite's world
+ * ## Why the re-sort lives in `_onUpdate`, and only at `turn === 0`
+ *
+ * The first shape of this fix called `setupTurns` from each of the three
+ * methods that write `system.turnOrder`, and both halves of that were wrong:
+ *
+ * - `setupTurns` mutates the instance it is called on, and `rollTurnOrder` runs
+ *   on the **active GM alone**. A player's client took the `system` change and
+ *   still never re-derived, so the order was fixed on one screen.
+ * - `this.turn` is an **index**. Re-sorting mid-Round moves whoever sits at it,
+ *   handing the turn to a different faction with no `combatTurnChange`, no
+ *   budget reset and no turn-start effects — while the faction that really held
+ *   it never gets a turn-end. `markTurnTaken` recomputes at every boundary and
+ *   `delayFaction` at every declaration, so applying either mid-Round is that
+ *   bug.
+ *
+ * This reads the source. A test of the sort cannot catch the original defect —
+ * the sort answered correctly every time it was asked, and the defect was that
+ * nothing asked — and the documents layer is the one layer the suite's world
  * model does not stand in for.
  */
 
@@ -29,14 +45,10 @@ import { readFileSync } from "node:fs";
 
 import { describe, it, expect } from "vitest";
 
-const SRC = readFileSync("module/documents/combat.mjs", "utf8");
-
-/** The methods that write `system.turnOrder`, and why each one owes a re-sort. */
-const WRITERS = [
-  ["rollTurnOrder", "the Round's order is rolled fresh and must be the order it is played in"],
-  ["delayFaction", "Delay+X moves a faction's position for the turns still to come"],
-  ["markTurnTaken", "marking freezes a position, and the order is recomputed from it"],
-];
+// Line endings normalised: the repo checks out CRLF on Windows, and a `\n}\n`
+// boundary that silently fails to match turns a slice of one method into a
+// slice of the whole file.
+const SRC = readFileSync("module/documents/combat.mjs", "utf8").replace(/\r\n/g, "\n");
 
 /**
  * One method's body, from its declaration to the closing brace at its own
@@ -46,36 +58,46 @@ const WRITERS = [
  * @returns {string}
  */
 function bodyOf(name) {
-  const from = SRC.indexOf(`  async ${name}(`);
+  const from = SRC.search(new RegExp(`\\n  (?:async )?${name}\\(`));
   if (from < 0) throw new Error(`${name} not found in module/documents/combat.mjs`);
   const to = SRC.indexOf("\n  }\n", from);
   return SRC.slice(from, to < 0 ? undefined : to);
 }
 
-describe("system.turnOrder writers", () => {
-  it("re-derive the turns in one place rather than each their own way", () => {
-    // Two readers of one rule always drift. The helper is the single place the
-    // sort is re-run, and the place the reasoning is written down.
-    expect(SRC, "combat.mjs should carry a single #applyTurnOrder helper")
-      .toMatch(/#applyTurnOrder\(\)\s*\{[\s\S]*?this\.setupTurns\(\)/);
+describe("the rolled order reaching the played order", () => {
+  it("is re-derived from _onUpdate, so it happens on every client", () => {
+    // `setupTurns` mutates one instance, and `rollTurnOrder` runs on the active
+    // GM alone: a re-sort beside the write fixes the GM's screen and no other.
+    const body = bodyOf("_onUpdate");
+    expect(body, "combat.mjs should override _onUpdate").toMatch(/super\._onUpdate\(/);
+    expect(body, "the re-sort must be driven by the change reaching this client")
+      .toMatch(/changed\?\.system\?\.turnOrder/);
+    expect(body).toMatch(/this\.setupTurns\(\)/);
   });
 
-  for (const [name, why] of WRITERS) {
-    it(`${name} applies the order it writes — ${why}`, () => {
-      const body = bodyOf(name);
-      expect(body, `${name} writes system.turnOrder`).toMatch(/system\.turnOrder/);
-      expect(body, `${name} writes system.turnOrder and never re-derives the turns`)
-        .toMatch(/this\.#applyTurnOrder\(\)/);
+  it("applies it only at the top of a Round, where the turn index is 0", () => {
+    // `this.turn` is an index, not an identity. Re-sorting mid-Round moves
+    // whoever sits at it — no turn-change event, no budget reset, and the
+    // faction that held the turn never gets a turn-end.
+    expect(bodyOf("_onUpdate"), "a mid-Round re-sort silently reassigns the turn")
+      .toMatch(/\(this\.turn \?\? 0\) !== 0/);
+  });
+
+  for (const [name, why] of [
+    ["delayFaction", "Delay+X recomputes the order at every declaration"],
+    ["markTurnTaken", "marking recomputes the order at every turn boundary"],
+  ]) {
+    it(`${name} does not re-sort the played order itself — ${why}`, () => {
+      expect(bodyOf(name), `${name} must not apply its recomputed order mid-Round`)
+        .not.toMatch(/setupTurns\(\)/);
     });
   }
 
-  it("does not rely on fgtTurnOrderChanged to carry the change", () => {
+  it("keeps fgtTurnOrderChanged as an extension point, not the mechanism", () => {
     // The hook beside `delayFaction`'s write was the only signal the order had
-    // moved, and it has never had a listener anywhere in the system. It stays
-    // as an extension point; it is not the mechanism.
-    const listeners = readFileSync("module/documents/combat.mjs", "utf8");
-    expect(listeners).toMatch(/Hooks\.callAll\("fgtTurnOrderChanged"/);
-    expect(bodyOf("delayFaction"), "the re-sort must not be left to a hook nobody listens to")
-      .toMatch(/this\.#applyTurnOrder\(\)[\s\S]*Hooks\.callAll/);
+    // moved, and it has never had a listener anywhere in the system.
+    expect(SRC).toMatch(/Hooks\.callAll\("fgtTurnOrderChanged"/);
+    expect(bodyOf("_onUpdate"), "the re-sort must not depend on a hook nobody listens to")
+      .not.toMatch(/fgtTurnOrderChanged/);
   });
 });

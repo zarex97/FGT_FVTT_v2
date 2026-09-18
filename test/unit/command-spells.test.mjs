@@ -236,3 +236,39 @@ describe("the authored catalogue", () => {
     expect(commands.filter((c) => !(c.effect ?? []).length).map((c) => c.id)).toEqual([]);
   });
 });
+
+/* ── Whose Command Spells a card offers ───────────────────────────────────── */
+
+describe("the Masters a Combat Process card offers", () => {
+  /**
+   * @see docs/46-roster-re-audit.md §46.4-BE
+   *
+   * `apps/chat/cards.mjs#offerableCommands` filtered on **ownership alone**:
+   * `game.actors.filter((a) => a.type === "master" && a.isOwner)`. A GM owns
+   * every actor in the world, so every Master ever created was offered its
+   * Command Spells on every card — and spending one would have charged a Master
+   * standing outside the war.
+   *
+   * Measured live on the Semiramis audit board: a two-faction match with two
+   * Masters on it offered Command Spells from **eight**, six of them belonging
+   * to setups that were over — Drake's Master, Gogh's Master, an Archer's Master
+   * from another war.
+   *
+   * The offer is assembled from `game.actors` and a live board projection, so
+   * the guard is on the source: the decision has no seam of its own, and the
+   * one thing that matters is that match membership is asked at all.
+   */
+  const src = readFileSync("module/apps/chat/cards.mjs", "utf8").replace(/\r\n/g, "\n");
+  const from = src.indexOf("function offerableCommands");
+  const body = src.slice(from, src.indexOf("\n}\n", from));
+
+  it("asks which Masters are in this match", () => {
+    expect(body, "offerableCommands must read the board, not only the actor directory")
+      .toMatch(/currentBoard\(\)[\s\S]*kind === "master"/);
+  });
+
+  it("filters the actor directory by that membership", () => {
+    expect(body, "ownership is not membership: a GM owns every Master in the world")
+      .toMatch(/a\.isOwner && inMatch\.has\(a\.id\)/);
+  });
+});

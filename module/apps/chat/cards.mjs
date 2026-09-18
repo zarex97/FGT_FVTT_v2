@@ -303,9 +303,26 @@ function offerableCommands(state) {
   const window = windowFor(state);
   if (!window) return [];
 
+  // The Masters in THIS match, not every Master this viewer happens to own.
+  //
+  // The filter was ownership alone — and a GM owns every actor in the world, so
+  // every Master ever created was offered its Command Spells on every card, and
+  // spending one would have charged a Master standing outside the war. The
+  // template's own comment beside it reads *"only shown when this viewer owns a
+  // Master that can actually spend one"*, which took ownership for the whole
+  // condition.
+  //
+  // Measured live (§46.4-BE): a two-faction board with two Masters on it offered
+  // Command Spells from **eight**, six of them belonging to other setups
+  // entirely — Drake's Master, Gogh's Master, an Archer's Master from a war that
+  // was over.
+  const inMatch = new Set(
+    currentBoard().units.filter((u) => u.kind === "master").map((u) => u.id),
+  );
+
   /** @type {Array<{id: string, name: string, cost: number, masterId: string}>} */
   const out = [];
-  for (const master of game.actors.filter((a) => a.type === "master" && a.isOwner)) {
+  for (const master of game.actors.filter((a) => a.type === "master" && a.isOwner && inMatch.has(a.id))) {
     for (const command of offerCommands({ masterId: master.id, window, context: attackContext(state) })) {
       out.push({ id: command.id, name: command.name, cost: command.cost, masterId: master.id });
     }
