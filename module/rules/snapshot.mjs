@@ -429,6 +429,13 @@ export function snapshotUnit(actor, {
       // pipeline reads the element off the projection, so it arrived as `null`
       // and the swing had no type at all. Found live, one field after adding it.
       element: variantOverride?.normalAttack?.element ?? sys.normalAttack?.element ?? null,
+      // ...and how much of the swing carries it. `engine/attack.mjs` says why
+      // the two must travel together: an element without its fraction is
+      // silently a whole-element attack. Raikou's four copies are *"Lightning
+      // (half)"*; the real attack read the fraction off the document, and a
+      // caller handed this projection -- the preview -- saw none. Found by
+      // `test/unit/survival.test.mjs` on its first run.
+      elementFraction: variantOverride?.normalAttack?.elementFraction ?? sys.normalAttack?.elementFraction ?? null,
       // EMIYA's Normal Attack changes what it is made of at Range 3. Without
       // the bands here the projection reports the flat component, so the
       // preview and the resolution would disagree about his damage at every

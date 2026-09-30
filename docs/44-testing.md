@@ -18,6 +18,7 @@ The boundary enforced in chapter 02 — that `domain/` and `rules/` import nothi
 | `test/golden/*.test.mjs` | 2 golden test files (damage, Akhilleus Kosmos authoring), pinning documentation worked examples |
 | `test/fixtures/` | Small fixture files used to seed test data |
 | `tools/lib/foundry.mjs` | Loads Foundry's **real** `common/` data layer from `FOUNDRY_PATH` (default `../foundryVTT_copy`) and registers this system's DataModels; fails the run when the copy is missing or is not the build `system.json` is verified on (ADR-0006) |
+| `test/unit/survival.test.mjs` | Every Authored Key in the real corpus survives compile, DataModel and projection to a named route |
 | `test/helpers/world.mjs` | A world faithful enough to run `engine/io.mjs` against — `withWorld({...}, fn)`, restoring globals in a `finally` |
 | `tools/smoke-world.mjs` | Launches a real world via Chrome DevTools Protocol and fails if it does not reach `game.ready` |
 | `tools/check-world.mjs` | Holds `test/helpers/world.mjs` against a live world, probe by probe (`npm run check:world`) |
@@ -84,6 +85,26 @@ Three rules come with it, all from ADR-0006:
 - **Only `common/` is real.** The `client/` layer (DOM, PIXI, `@common` aliases) does not import in Node. The one client class `module/data` extends, `RegionBehaviorType`, is a bare `TypeDataModel` stand-in; the schemas built on it are still real. Client-side traps (the empty-diff skip before a write is sent, `_preCreate` edits that never reach the server) stay the job of lint and live probes.
 
 Foundry v14 needs Node 24 (its own `engines`), so CI and `package.json` say so.
+
+### The survival test
+
+`test/unit/survival.test.mjs` holds Hop 4 of Ch. 07's Route: that what the DataModel keeps, the rules can
+see. It compiles the **real** corpus, builds each Unit through the real DataModel in the test world,
+prepares it and projects it with the real `snapshotUnit`, and loads each Effect definition into the real
+`EffectRegistry`. Every Authored Key must then have a **route** in the test's own tables:
+
+- **projected** (`at`) — the prepared value must be what the snapshot holds there, through a named
+  transform (`range` splits into `range` and `maxTargets`; `agility` is the pool's `value`). A value that
+  carries no Clause — `null`, `false`, `""`, empty — is not checked, since a default cannot be told from a
+  drop.
+- **read from the document** (`reader`) — the named file must still mention the key, so a reader that goes
+  away takes the route with it.
+- **unread** — a key found with no reader at all, owned by an issue. The count may only shrink.
+
+A key with no route fails, naming the file and the last Hop it reached. Its first run found two: Raikou's
+copies' Normal Attack `elementFraction` was dropped by the projection (fixed — it now travels beside
+`element`), and Tenmōkaikai's `deactivation` window has no reader at all (#101). Reintroducing the
+`requiresHistory` omission in `collectAbilities` turns it red, naming The Queen's Glass Game.
 
 ### Golden tests
 
