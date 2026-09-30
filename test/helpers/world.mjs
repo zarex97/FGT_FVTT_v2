@@ -74,7 +74,7 @@
  */
 
 import { readdirSync } from "node:fs";
-import { loadFoundry, installSystem } from "../../tools/lib/foundry.mjs";
+import { loadFoundry, installSystem, sourceForm, firstMismatch } from "../../tools/lib/foundry.mjs";
 
 /* -------------------------------------------------------------------------- */
 /*  The data layer                                                            */
@@ -123,46 +123,6 @@ function installFoundry() {
 /** @param {object} root @param {string} path */
 function getProperty(root, path) {
   return String(path).split(".").reduce((o, k) => (o == null ? o : o[k]), root);
-}
-
-/** Sets become arrays, which is the form `_source` stores them in. */
-function sourceForm(value) {
-  if (value instanceof Set) return [...value].map(sourceForm);
-  if (Array.isArray(value)) return value.map(sourceForm);
-  if (value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
-    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, sourceForm(v)]));
-  }
-  return value;
-}
-
-/**
- * The first path at which `applied` is not what `requested` asked for, or null.
- *
- * An object asks only for the keys it names: Foundry MERGES an object written to
- * a `SchemaField` or `ObjectField`, so keys already stored beside them are not a
- * mismatch. An array asks for itself exactly, because Foundry replaces arrays
- * whole.
- */
-function firstMismatch(requested, applied, path) {
-  const want = sourceForm(requested);
-  const got = sourceForm(applied);
-  if (want && typeof want === "object" && !Array.isArray(want)) {
-    if (!got || typeof got !== "object" || Array.isArray(got)) return { path, want, got };
-    for (const [k, v] of Object.entries(want)) {
-      const miss = firstMismatch(v, got[k], `${path}.${k}`);
-      if (miss) return miss;
-    }
-    return null;
-  }
-  if (Array.isArray(want)) {
-    if (!Array.isArray(got) || got.length !== want.length) return { path, want, got };
-    for (let i = 0; i < want.length; i += 1) {
-      const miss = firstMismatch(want[i], got[i], `${path}.${i}`);
-      if (miss) return miss;
-    }
-    return null;
-  }
-  return Object.is(want, got) || (want === undefined && got === null) ? null : { path, want, got };
 }
 
 /**

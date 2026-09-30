@@ -19,7 +19,7 @@ trueName: "Emiya Kiritsugu"
 # Action is three passives. `classContainer` is presentational and the setup
 # wizard's slot -- no class bonus rests on it.
 classContainer: assassin
-region: japan
+region: [japan]
 alignment: { order: chaotic, morality: evil }
 attributes: [male, servant, man, humanoid, antiHero]
 # LUC is written **E**, not EX. Affection of the Holy Grail contributes the

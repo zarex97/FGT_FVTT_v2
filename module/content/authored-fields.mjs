@@ -4,12 +4,15 @@
  *
  * Layer 1 (content). Pure data.
  *
- * The content pipeline's `actorSystem()`/`itemSystem()` decide what a YAML
- * document may state, and silently drop anything they do not name -- the
- * mechanism that has already cost this project `npGateRound`, `onEnd` and
- * `countsTowardBudget`. The content sync needs exactly the same answer, so the
- * vocabulary lives here and both read it. `test/unit/authored-fields.test.mjs`
- * holds the two together in both directions.
+ * The content pipeline used to decide what a YAML document may state with two
+ * allowlists, `actorSystem()`/`itemSystem()`, that silently dropped anything
+ * they did not name -- the mechanism that cost this project `npGateRound`,
+ * `onEnd`, `countsTowardBudget` and, measured when they went, `periodic` on
+ * every damage-over-time effect. The compile now passes authored keys through
+ * and the DataModel decides (Ch. 40). The content sync still needs to know
+ * which keys the PACK owns, so the vocabulary lives here, and
+ * `test/unit/authored-fields.test.mjs` holds it to what the corpus actually
+ * compiles and to what the DataModels actually declare.
  */
 
 /** Actor fields a pack document may state. */
@@ -32,6 +35,8 @@ export const AUTHORED_ACTOR_KEYS = Object.freeze([
   // resolved at summon and is never authored.
   "linkedGroup",
   "summonVariant", "stanceSpec", "stance", "resources", "notes",
+  // A Platform's sheet text, which the allowlist never carried.
+  "description",
 ]);
 
 /** Item fields a pack document may state. */
@@ -73,7 +78,10 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "severity", "preventsAction", "terminal", "onRemove", "volatility",
   "families", "suppressesOtherEffects", "valence", "stacking", "baseChance",
   "defaultMagnitude", "uses", "maxStacks", "absorbs", "defaultDuration",
-  "unremovable", "blocks", "blockedBy", "replaces"
+  "unremovable", "blocks", "blockedBy", "replaces",
+  // Declared and read, and never compiled while the allowlist stood: a
+  // damage-over-time effect's tick, and Serenity's two concealment escapes.
+  "periodic", "usableWhileConcealed", "concealmentBreakChance",
 ]);
 
 /**

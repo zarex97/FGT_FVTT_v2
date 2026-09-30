@@ -10,7 +10,7 @@ trueName: "Nursery Rhyme, Alice"
 servantClasses: [caster]
 classContainer: caster
 region: [england, europe]
-alignment: { order: true, morality: neutral }
+alignment: { order: "true", morality: neutral }
 # `fairytale` and `child` are new tags and need no schema change -- `attributes`
 # is an open set. Both are read by her OWN Tommy Thumb clauses 5 and 6, so a
 # typo in either makes two of her clauses reach nobody, herself included.

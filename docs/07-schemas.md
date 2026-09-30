@@ -74,8 +74,10 @@ it was, which is why the schema files carry unusually long comments at their dec
 | `itemCost`, `summonVariant`, `rules`, `itemHandling`, `aftermath` | `module/data/actor/servant.mjs:84`, `module/data/actor/_shared.mjs:106` and siblings | Authored YAML compiled into packs, then dropped on load — Summon inheritance, Semiramis's branch selection |
 
 **Add the field to the schema in the same change as the write.** Nothing in Foundry will tell you
-otherwise. The corpus validator is what catches this now (Chapter 40), and it exists because
-review did not.
+otherwise. Two guards catch it now, both running Foundry's real DataModel (ADR-0006): the build's
+**model check** constructs every compiled document and fails on any Authored Key the model did not
+keep (Chapter 40), and the test world's **loud prune** throws on any runtime write that did not land
+as asked (Chapter 44). Neither sees a hand-edited world document.
 
 **Reading `nullable` as "optional".** `nullable: true` means the field may legally *hold* `null`;
 `required: false` means it may be *absent*. They are different, and the difference decides whether
@@ -92,14 +94,14 @@ load-bearing in this domain** — `health: null` means undamageable, not zero, a
 - **Confirmed live: untyped fields are validated at build time only.** A structurally nonsense rule —
   `{key: "NoSuchExecutorKind", nonsense: {deep: [1,2,3]}}` — was written into an item's `rules` bucket on a
   live world. It was accepted without complaint and stored back verbatim, unknown executor key and all.
-  `npm run validate:content` is therefore the only thing standing between authored nonsense and the engine
-  (Chapter 40), and it does not see a hand-edited world document. What the engine then does with an unknown
+  `npm run validate:content` — the validator and then the model check — is therefore the only thing standing
+  between authored nonsense and the engine (Chapter 40), and it does not see a hand-edited world document. What the engine then does with an unknown
   key is Chapter 10's `unhandled` bucket.
 
 - **Tested live, and the answer is the opposite of "silently keeps": it is discarded.** Writing
   `system.totallyUndeclaredField = 42` to a live actor left **no trace** — absent from the re-read, from
   `_source`, and from `toObject()` — while a declared write in the same test took normally. So there is no
   preserve-and-ignore behaviour to reason about and nothing to recover: an undeclared path is not stored at
-  all. This is the sharp edge of the trap below, and it is why the corpus validator exists.
+  all. This is the sharp edge of the trap below, and it is why the build's model check exists.
 
 - **Relative stats have no schema constraint on which fields may be relative.** `inherit: {str: "summoner + 2"}` is valid by shape alone; whether `str` is legal for a Summon type is an authoring convention checked by the validator, not by the schema.

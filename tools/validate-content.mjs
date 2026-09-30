@@ -5,10 +5,16 @@
  *
  * Exits non-zero on any problem. Warnings are printed but do not fail the
  * build, because they flag things that are suspicious rather than wrong.
+ *
+ * Two passes. The validator checks the authored source; then, if it is clean,
+ * every compiled document is constructed through Foundry's real DataModel and
+ * any Authored Key the model would not keep is a Silent Drop, and an error
+ * (ADR-0006).
  */
 
 import { loadSource, loadAssets } from "./lib/load.mjs";
-import { validateAll } from "./lib/content.mjs";
+import { validateAll, compileCorpus } from "./lib/content.mjs";
+import { checkCompiled, partitionKnown, reportModelCheck } from "./lib/model-check.mjs";
 
 const SOURCE = "packs/_source";
 const ASSETS = "assets";
@@ -26,7 +32,17 @@ if (files.length === 0) {
 for (const w of warnings) console.warn(`  warning  ${w}`);
 for (const p of all) console.error(`  error    ${p}`);
 
+// The model check needs content that compiles, so it runs only when the
+// validator found nothing.
+let dropped = 0;
+if (all.length === 0) {
+  const { failing, known, stale } = partitionKnown(await checkCompiled(compileCorpus(files, assets).compiled));
+  reportModelCheck({ failing, known, stale });
+  dropped = failing.length + stale.length;
+}
+
 console.log(
-  `\nFGT | ${files.length} source file(s), ${all.length} error(s), ${warnings.length} warning(s).`,
+  `\nFGT | ${files.length} source file(s), ${all.length} error(s), ${dropped} Silent Drop(s), `
+  + `${warnings.length} warning(s).`,
 );
-process.exit(all.length > 0 ? 1 : 0);
+process.exit(all.length + dropped > 0 ? 1 : 0);
