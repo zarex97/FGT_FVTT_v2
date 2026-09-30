@@ -78,10 +78,7 @@ export const INTERIOR_EXEMPT = {
  * only shrink; an entry that stops dropping fails as stale.
  */
 export const KNOWN_RULE_DROPS = Object.freeze([
-  { at: "servants/castor.yml items[\"Twin God's Divine Core\"] passiveRules[1]", leaf: "chance", issue: "#103" },
   { at: "servants/raikou.yml items[\"Goō Shōrai・Tenmōkaikai\"] activeRules[4]", leaf: "at", issue: "#103" },
-  { at: "servants-normal/normal-archer.yml items[\"Independent Action\"] passiveRules[0]", leaf: "chance.formula", issue: "#103" },
-  { at: "servants-normal/normal-archer.yml items[\"Independent Action\"] passiveRules[0]", leaf: "chance.success[]", issue: "#103" },
 ]);
 
 /** A stack count of one for any effect a per-stock clause asks about. */
@@ -242,7 +239,7 @@ describe("every key inside a rule element reaches something that reads it", () =
   it("keeps its known drops honest: each owned by an issue, none stale, fewer over time", () => {
     for (const d of KNOWN_RULE_DROPS) expect(d.issue).toMatch(/^#\d+$/);
     expect(KNOWN_RULE_DROPS.filter((d) => !seen.has(d))).toEqual([]);
-    expect(KNOWN_RULE_DROPS.length).toBeLessThanOrEqual(4);
+    expect(KNOWN_RULE_DROPS.length).toBeLessThanOrEqual(1);
   });
 
   it("names the element types it cannot run, rather than skipping them", () => {

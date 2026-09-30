@@ -17,7 +17,7 @@ import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { rollOptionsFor } from "../../module/rules/options.mjs";
 import { critChance } from "../../module/rules/checks.mjs";
 import { applyEffect } from "../../module/engine/effect-applier.mjs";
-import { fireEvent } from "../../module/engine/scheduler.mjs";
+import { fireEvent, pendingRolls, resolveDefeat } from "../../module/engine/scheduler.mjs";
 
 /** A content file under packs/_source, parsed. */
 const content = (path) => parse(readFileSync(`packs/_source/${path}`, "utf8"));
@@ -261,11 +261,14 @@ describe("SustainabilityGain", () => {
     const servant = content(path);
     return contributions({ name: servant.name, rules: servant.rules }, { options: new Set(["self:free"]) }).eventHandlers[0];
   };
+  // Written as the RESULT, from the Sustainability the snapshot resolves (6
+  // Turns left here): the stored figure is `null` until something first
+  // writes it, and a relative +3 on `null` would leave her at 3.
   const killed = (handler, victimKind) => fireEvent(
     "unitKilled",
-    [{ id: "jack", kind: "servant", effects: [], eventHandlers: [handler] }],
+    [{ id: "jack", kind: "servant", sustainability: 6, effects: [], eventHandlers: [handler] }],
     { tick: 1, turnsPerRound: 3, options: new Set([`target:type:${victimKind}`]) },
-  ).filter((i) => i.t === "statDelta" && i.stat === "sustainabilityRemaining").map((i) => i.delta);
+  ).filter((i) => i.t === "resource" && i.key === "sustainabilityRemaining").map((i) => i.delta);
 
   it("listens for a kill, not for her own defeat", () => {
     expect(handlerOf("servants/jack-the-ripper.yml").events).toEqual(["unitKilled"]);
@@ -273,14 +276,14 @@ describe("SustainabilityGain", () => {
 
   it("pays Jack 1◈ for a Civilian or a Master, and nothing for a Servant", () => {
     const jack = handlerOf("servants/jack-the-ripper.yml");
-    expect(killed(jack, "civilian")).toEqual([3]);
-    expect(killed(jack, "master")).toEqual([3]);
+    expect(killed(jack, "civilian")).toEqual([9]);
+    expect(killed(jack, "master")).toEqual([9]);
     expect(killed(jack, "servant")).toEqual([]);
   });
 
   it("pays Medusa for a Civilian only", () => {
     const medusa = handlerOf("servants/medusa.yml");
-    expect(killed(medusa, "civilian")).toEqual([3]);
+    expect(killed(medusa, "civilian")).toEqual([9]);
     expect(killed(medusa, "master")).toEqual([]);
   });
 });
@@ -310,5 +313,52 @@ describe("OnEvent: targeting", () => {
       tick: 1, turnsPerRound: 3, board, options: new Set(["attack:kind:normal"]),
     }).filter((i) => i.t === "applyEffect" && i.effect.defId === "sCritUp").map((i) => i.unitId);
     expect(hit.sort()).toEqual(["castor", "near", "pollux"]);
+  });
+});
+
+// A chance on the WHOLE handler, which no executor reads. The dispatcher reads
+// a chance on an ACTION, with a d100 its caller rolls.
+describe("OnEvent: chance", () => {
+  const rolled = (unit, event, total) => Object.fromEntries(pendingRolls(unit, event).map((r) => [r.key, total]));
+
+  // Castor's Twin God's Divine Core: *"Whenever Castor performs a successful
+  // Normal Attack, he has a 5% chance of reducing his NP Cooldown by 1 Turn."*
+  it("Castor's 5%: a 5 or under reduces the NP cooldown, a 6 does not", () => {
+    const skill = content("abilities/dioscuri-twin-gods-divine-core-castor.yml");
+    const handler = contributions({ name: skill.name, passiveRules: skill.passiveRules }).eventHandlers[0];
+    const castor = { id: "castor", effects: [], eventHandlers: [handler], abilities: [{ id: "np", isNP: true }] };
+    const fire = (total) => fireEvent("damageStepEnd", [castor], {
+      tick: 1, turnsPerRound: 3, options: new Set(["attack:kind:normal"]), rolls: rolled(castor, "damageStepEnd", total),
+    }).filter((i) => i.t === "cooldown");
+    expect(pendingRolls(castor, "damageStepEnd")).toHaveLength(1);
+    expect(fire(5).length).toBeGreaterThan(0);
+    expect(fire(6)).toEqual([]);
+  });
+
+  // Normal Archer's Improved Sustainability: *"When Archer's Master is
+  // defeated, Flip a Coin. If Heads, Archer's Sustainability is increased by
+  // 3◈ Turns."* A coin is 50 on a d100. The event had no raiser and the action
+  // no executor, so it had never paid.
+  it("the Normal Archer's coin: heads adds 3◈ when her Master falls", () => {
+    const skill = content("abilities/normal-independent-action.yml");
+    const handler = contributions({ name: skill.name, passiveRules: skill.passiveRules }).eventHandlers[0];
+    const archer = { id: "archer", kind: "servant", masterId: "m", sustainability: 6, effects: [], eventHandlers: [handler] };
+    const fire = (total) => fireEvent("masterDefeated", [archer], {
+      tick: 1, turnsPerRound: 3, rolls: rolled(archer, "masterDefeated", total),
+    }).filter((i) => i.t === "resource" && i.key === "sustainabilityRemaining").map((i) => i.delta);
+    expect(fire(50)).toEqual([15]);
+    expect(fire(51)).toEqual([]);
+  });
+
+  it("raises masterDefeated on a defeated Master's Servants", () => {
+    const skill = content("abilities/normal-independent-action.yml");
+    const handler = contributions({ name: skill.name, passiveRules: skill.passiveRules }).eventHandlers[0];
+    const archer = { id: "archer", kind: "servant", masterId: "m", sustainability: 6, effects: [], eventHandlers: [handler] };
+    const master = { id: "m", kind: "master", health: 0, effects: [], eventHandlers: [] };
+    const out = resolveDefeat(master, {
+      tick: 1, turnsPerRound: 3, board: { units: [master, archer] }, rolls: rolled(archer, "masterDefeated", 1),
+    });
+    expect(out.filter((i) => i.t === "resource" && i.unitId === "archer").map((i) => i.delta)).toEqual([15]);
+    expect(out.some((i) => i.t === "defeat" && i.unitId === "m")).toBe(true);
   });
 });

@@ -27,10 +27,15 @@ description: |
   (Passive) When an enemy Master or Caster tries to contract Archer, the 'Contract Servant' roll is
   performed twice. Archer can only be contracted if both rolls are successful.
 passiveRules:
+  # "Flip a Coin. If Heads" -- a 50% chance on the action, where the
+  # dispatcher reads one. `masterDefeated` is raised on a defeated Master's
+  # Servants by `engine/scheduler.mjs#resolveDefeat`, and `SustainabilityGain`
+  # is an action now. The handler-level coin, the event and the action were
+  # each read by nothing, so this had never paid (#103).
   - key: OnEvent
     event: masterDefeated
     automatic: true
-    chance: { formula: "1d2", success: [1] }
     then:
       - key: SustainabilityGain
         amount: "3◈"
+        chance: 50
