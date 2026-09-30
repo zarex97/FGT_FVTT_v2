@@ -74,7 +74,7 @@ import {
 } from "../rules/windows.mjs";
 import {
   reactionAbilities, allyReactions, abilityFromOption, abilitiesAtWindow, windowSubject } from "../rules/reactions.mjs";
-import { attacksPermitted, mayAttackCivilian, civilianKill, inOwnHomeBase } from "../rules/environment.mjs";
+import { attacksPermitted, mayAttackCivilian, civilianKill, inOwnHomeBase, grailStrike } from "../rules/environment.mjs";
 import { resolveOverpower, resolveUnderpower, mayOrderAnotherServant } from "../rules/relationships.mjs";
 import {
   reactionsRefused, reactionRefusedByAgility, aoeOutcome, isConcealed,
@@ -333,9 +333,15 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // `state.attack.abilityId` empty -- so `applyDamage` looked up no ability,
   // found no `damage` block, and Dendera Electric Bulb's 2x multiplier was
   // silently 1x. Measured that way: stage 3 read "Ability multiplier --".
-  const attackSpec = buildAttackSpec({
-    attacker, ability, abilityId: ability?.id ?? null, options, placement,
-  });
+  const attackSpec = {
+    ...buildAttackSpec({ attacker, ability, abilityId: ability?.id ?? null, options, placement }),
+    // The panels this declaration resolved against. Two clauses ask for the
+    // area and neither ever got it: Fire in a Forest *"If the attack's area
+    // is larger than 3x3, the whole attack area converts"* (`terrainConversions`
+    // read `state.attack.areaPanels`, which nothing set), and the Holy Grail
+    // struck by an AoE NP (#104).
+    areaPanels: targets.panels ?? [],
+  };
   // "EMIYA performs 2 Normal Attacks in a row." Two Combat PROCESSES against
   // the same defender, inside ONE Combat Phase -- which is the distinction that
   // matters, because a Combat Phase is what pays him his Aria and two phases
@@ -2438,11 +2444,38 @@ async function fireCombatPhaseEnd(state) {
   });
   if (intents.length > 0) await applyBatch(intents, "combatPhaseEnd");
 
+  await grailUnderNP(state, siblings, board);
+
   // The Phase is over, so the once-per-Phase optional spend may be offered
   // again next time. Cleared here rather than left to expire, because the guard
   // is keyed by `groupId` and a match is thousands of them.
   const { clearOptionalCostOffers } = await import("./optional-costs.mjs");
   clearOptionalCostOffers(state.groupId);
+}
+
+/**
+ * The Holy Grail under a Noble Phantasm's area, once per Combat Phase.
+ *
+ * *"If the Holy Grail is hit by an AoE NP that deals damage, it has a chance of
+ * being destroyed. The chance is X%, where X = the amount of damage dealt by
+ * the NP divided by 20."* The damage is the most the NP dealt to any one Unit
+ * in the phase: the Grail is not a Unit and takes no damage of its own, and
+ * "the amount of damage dealt by the NP" is the NP's number. Nothing wrote
+ * `grailDestroyed` before this (#104).
+ *
+ * @param {object} state
+ * @param {object[]} siblings the phase's chat messages
+ * @param {object} board
+ * @returns {Promise<void>}
+ */
+async function grailUnderNP(state, siblings, board) {
+  if (state.attack?.kind !== "np") return;
+  const dealt = Math.max(0, ...siblings.map((m) => m.getFlag("fgt", "result")?.total ?? 0));
+  const roll = (await new Roll("1d100").evaluate()).total;
+  const strike = grailStrike({ grail: board.grail, areaPanels: state.attack?.areaPanels ?? [], dealt, roll });
+  if (!strike.struck) return;
+  await applyBatch([I.log({ kind: "grailStruck", damage: dealt, chance: strike.chance, roll, destroyed: strike.destroyed })], "grail");
+  if (strike.destroyed) await game.combat?.update({ "system.grailDestroyed": true });
 }
 
 /**
