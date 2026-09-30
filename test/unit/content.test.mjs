@@ -918,3 +918,17 @@ describe("an OnEvent's targets", () => {
       .toMatch(/OnEvent's "targeting" is read by nothing/);
   });
 });
+
+describe("an OnEvent's chance", () => {
+  it("is refused on the handler, where nothing reads it (#103)", () => {
+    expect(errorsFor([file(ok({ rules: [{ key: "OnEvent", event: "turnEnd", chance: 5, then: [] }] }))])[0])
+      .toMatch(/OnEvent's "chance" is read by nothing/);
+  });
+});
+
+describe("an OnEvent's shorthand effect", () => {
+  it("keeps its chance, which the desugared ApplyEffect reads", () => {
+    const problems = errorsFor([file(ok({ rules: [{ key: "OnEvent", event: "damageDealt", effect: { id: "bleed" }, chance: 10 }] }))]);
+    expect(problems.filter((p) => /chance/.test(p))).toEqual([]);
+  });
+});

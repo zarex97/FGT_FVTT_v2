@@ -414,16 +414,31 @@ export function fireEvent(event, units, ctx) {
       // corpus whose Sustainability GROWS instead of draining -- Jack the
       // Ripper's "every time Jack kills a Human when she is a Free Servant,
       // increase her Sustainability by 1◈ Turns" -- had no payer.
-      if (handler.sustainabilityGain) {
-        const gain = resolveTicks(parseTick(`${handler.sustainabilityGain}◈`), ctx);
-        out.push(I.statDelta(u.id, "sustainabilityRemaining", gain, false));
-      }
+      if (handler.sustainabilityGain) out.push(sustainabilityGain(u, `${handler.sustainabilityGain}◈`, ctx));
       // A count-limited handler spends a charge each time it pays out.
       if (handler.consumesUse && handler.defId) out.push(I.consumeUse(u.id, handler.defId));
       out.push(I.log({ kind: "event", event, unitId: u.id, source: handler.source, tick: ctx.tick }));
     }
   }
   return out;
+}
+
+/**
+ * Sustainability ADDED, written as the result.
+ *
+ * Absolute, from the figure the snapshot resolves, for the reason
+ * `checkRemovals` gives for its decrement: the stored `sustainabilityRemaining`
+ * is `null` until something first writes it, so a relative gain on a Servant
+ * whose clock had never moved landed on zero -- 3◈ left where she had 2◈ + 3◈.
+ *
+ * @param {object} unit
+ * @param {string} amount a ◈ expression, `"3◈"`
+ * @param {SchedulerContext} ctx
+ * @returns {Intent}
+ */
+function sustainabilityGain(unit, amount, ctx) {
+  const gain = resolveTicks(parseTick(amount), ctx);
+  return I.setResource(unit.id, "sustainabilityRemaining", (unit.sustainability ?? 0) + gain);
 }
 
 /**
@@ -853,6 +868,15 @@ const ACTIONS = Object.freeze({
    * this way"* -- a limit on THIS deduction rather than on the pool, so other
    * damage may still take the Master below it.
    */
+  /**
+   * Sustainability added by an ACTION. The Normal Archer's Improved
+   * Sustainability: *"When Archer's Master is defeated, Flip a Coin. If Heads,
+   * Archer's Sustainability is increased by 3◈ Turns."* It was authored as an
+   * action with no executor, so it logged `unhandledAction` and paid nothing
+   * (#103).
+   */
+  SustainabilityGain: (a, u, h, c) => [sustainabilityGain(u, a.amount ?? "1◈", c)],
+
   StatDelta: (a, u, h, c) => {
     // A magnitude that names the EVENT's own payload, the way `CooldownDelta`
     // below already reads one -- *"its Health is restored by 75% of the damage
@@ -1453,9 +1477,30 @@ export function resolveDefeat(unit, ctx, cause = "damage") {
     // answer: a Unit that ran out of Sustainability was killed by nobody and
     // Ch. 32's Conquest needs a claimant.
     I.defeat(unit.id, cause, ctx.killerId ?? null),
+    ...masterDefeatedIntents(unit, ctx),
     ...linkedDeathIntents(unit, cause),
     ...glassGameOnDefeat(unit, ctx),
   ];
+}
+
+/**
+ * `masterDefeated`, raised on a defeated Master's own Servants.
+ *
+ * Authored on the Normal Archer's Improved Sustainability and raised by
+ * nothing, so her coin was never flipped (#103). At the tail, once the chain
+ * has resolved to a defeat: a Master a Command Spell saves was not defeated.
+ * The Servants are found on the board by `masterId`; a sweep with no board
+ * raises nothing, which is the honest answer for a caller that cannot say who
+ * the Servants are.
+ *
+ * @param {object} unit
+ * @param {SchedulerContext} ctx
+ * @returns {Intent[]}
+ */
+function masterDefeatedIntents(unit, ctx) {
+  if (unit.kind !== "master") return [];
+  const servants = (ctx.board?.units ?? []).filter((s) => s.masterId === unit.id && s.id !== unit.id);
+  return servants.length ? fireEvent("masterDefeated", servants, ctx) : [];
 }
 
 /**

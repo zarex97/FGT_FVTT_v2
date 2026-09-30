@@ -1133,6 +1133,14 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     // `radius`, `relations`, `includeSelf`, `alsoIncludes`). A handler-level
     // `targeting` block was read by nobody, so the Dioscuri's 'Pollux' buff
     // reached its bearer alone (#103).
+    // A chance belongs on the ACTION, where the dispatcher reads it and the
+    // caller rolls it. On the handler it was read by nobody: Castor's 5% came
+    // off every time, and the Normal Archer's coin was never flipped (#103).
+    // The `effect:` shorthand is the exception -- `normalizeActions` hands its
+    // `chance` to the ApplyEffect it desugars to.
+    if (el.key === "OnEvent" && el.chance !== undefined && !el.effect) {
+      problems.push(`${path}: ${where} OnEvent's "chance" is read by nothing; put it on the action (#103)`);
+    }
     if (el.key === "OnEvent" && el.targeting !== undefined) {
       problems.push(`${path}: ${where} OnEvent's "targeting" is read by nothing; name the targets on the action (target: nearby) (#103)`);
     }

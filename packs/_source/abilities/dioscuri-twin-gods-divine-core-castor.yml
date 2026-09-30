@@ -42,9 +42,11 @@ passiveRules:
     event: damageStepEnd
     automatic: true
     predicate: ["attack:kind:normal"]
-    chance: 5
     then:
-      - { key: CooldownDelta, scope: np, delta: -1 }
+      # The 5% on the ACTION, where the dispatcher reads a chance and the
+      # attack rolls its d100. On the handler it was read by nothing, so the
+      # cooldown came off on every successful Normal Attack (#103).
+      - { key: CooldownDelta, scope: np, delta: -1, chance: 5 }
 
   # "Counts as Divinity" -- the ATTRIBUTE half. Ten of the thirteen reference
   # Servants are Divine, which is what makes Karna's Vasavi Shakti and

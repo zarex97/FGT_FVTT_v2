@@ -136,6 +136,13 @@ executor actually reads, rather than of its descriptor's ids.
   `includeSelf` and `alsoIncludes: partner` (the linked partner wherever it stands), which is the
   Dioscuri's 'Pollux' buff; its handler-level `targeting` block was read by nobody, so S.Crit Up only
   ever reached the bearer. The validator refuses `targeting` on an OnEvent.
+- **`OnEvent`**, second: a `chance` belongs on the action, where `chanceGatePasses` reads it and the
+  caller rolls a d100 (the `effect:` shorthand keeps its own, which it hands to the ApplyEffect it
+  desugars to). Castor's 5% NP-cooldown clause had fired on every Normal Attack; `damageStepEnd` now
+  rolls for its actions. The Normal Archer's coin needed three things that did not exist: the
+  `masterDefeated` event (raised on a defeated Master's Servants at the tail of `resolveDefeat`), a
+  `SustainabilityGain` action, and the chance on it. Sustainability gains are now written as the
+  result from the snapshot's figure, because the stored one is `null` until first written.
 
 ## Open questions
 

@@ -3420,10 +3420,21 @@ async function resolveDefeatOf(defender, damage, state = {}) {
     // on (#27). Every other `resolveDefeat` caller is a sweep and supplies
     // none.
     killerId: state.attackerId ?? null,
+    // The board, so a defeated MASTER's Servants can be found and told
+    // (`masterDefeated`, #103).
+    board: boardSnapshot(),
     rolls: {},
   };
   for (const spec of pendingRolls(defender, "unitDefeated")) {
     ctx.rolls[spec.key] = (await new Roll(spec.formula).evaluate()).total;
+  }
+  // ...and theirs: the Normal Archer's coin is a chance on the action.
+  if (defender.kind === "master") {
+    for (const servant of ctx.board.units.filter((s) => s.masterId === defender.id)) {
+      for (const spec of pendingRolls(servant, "masterDefeated")) {
+        ctx.rolls[spec.key] ??= (await new Roll(spec.formula).evaluate()).total;
+      }
+    }
   }
 
   // "Whenever an Attack reduces Heracles' Health to 0 FOR THE FIRST TIME,
@@ -4673,12 +4684,19 @@ async function fireDamageStepEnd(state) {
   const defender = defenderDoc ? (unitFrom(board, defenderDoc) ?? unitSnapshot(defenderDoc)) : null;
   if (!defender) return;
 
+  // The caller rolls (`scheduler.pendingRolls`). This event passed none, so a
+  // chance on one of its actions could never pass: Castor's 5% NP-cooldown
+  // clause (#103).
+  const rolls = {};
+  for (const spec of pendingRolls(attacker, "damageStepEnd")) {
+    rolls[spec.key] ??= (await new Roll(spec.formula).evaluate()).total;
+  }
   const intents = fireEvent("damageStepEnd", [attacker], {
     tick: game.combat?.system?.globalTurn ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
     board,
     options: rollOptions(attacker, defender, state),
-    rolls: {},
+    rolls,
     // WHO WAS HIT. This event fires on the ATTACKER, and every rider hung from
     // it is about the Unit on the other end -- `targetsOf` and `subjectOf` both
     // read `ctx.victim.unitId`, and both correctly emit nothing when it is

@@ -155,6 +155,7 @@ one of the few triggers in the game that is not damage-related.
 | `fgt.healthReachedZero` | Health hit 0, **before** the revival chain | `{unitId, ctx}` |
 | `fgt.unitRevived` | A revival source fired | `{unitId, source, restored}` — **fired**, once, from the defeat resolution, which is the only place that knows a revival happened *and* which of the four paid for it. Heracles's `Indomitable` is the one clause that listens: *"whenever Heracles is defeated and revived through **any** effect"* — so it cannot hang off one source, and firing it from each would fire it four times. |
 | `fgt.unitDefeated` | Defeat after the revival chain resolved | `{unitId, cause}` |
+| `masterDefeated` | A Master's defeat resolved | Raised on that Master's own Servants, found on the board by `masterId`, at the tail of `resolveDefeat` (after the revival chain). The Normal Archer's Improved Sustainability listens (#103). |
 | `unitKilled` | An attack's defeat resolved to a death | Fired on the **killer**, with the victim as `target:` options (`engine/attack.mjs#killedBy`). `unitDefeated` is heard by the victim, so a clause about killing had nowhere to hang: Jack's and Medusa's Sustainability gains listened there and paid on their own deaths (#103). Only after the revival chain, and only on the attack path, which is the one that knows a killer. |
 | `fgt.unitErased` | Removed by `Erase` | `{unitId}` — **does not** increment the Grail counter |
 | `fgt.unitDisappeared` | Sustainability or NP cost | `{unitId, cause}` |

@@ -178,7 +178,8 @@ describe("Twin God's Divine Core — one name, two abilities", () => {
   });
 
   it("R10 — differs only in Passive 2", () => {
-    expect(his.passiveRules.some((r) => r.key === "OnEvent" && r.chance === 5)).toBe(true);
+    // The 5% on the action, where the dispatcher reads it (#103).
+    expect(his.passiveRules.some((r) => r.key === "OnEvent" && r.then?.some((a) => a.chance === 5))).toBe(true);
     expect(hers.passiveRules.some((r) => r.key === "CritModifier" && r.value === 5)).toBe(true);
   });
 
