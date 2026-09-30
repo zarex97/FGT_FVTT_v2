@@ -84,22 +84,14 @@ export const KNOWN_RULE_DROPS = Object.freeze([
   { at: "effects/pollux-buff.yml rules[0]", leaf: "targeting.selection.includeSelf", issue: "#103" },
   { at: "effects/pollux-buff.yml rules[0]", leaf: "targeting.selection.chooser", issue: "#103" },
   { at: "effects/pollux-buff.yml rules[0]", leaf: "targeting.selection.alsoIncludes", issue: "#103" },
-  { at: "servants/asterios.yml items[\"Mad Enhancement\"] activeRules[4]", leaf: "isBuff", issue: "#103" },
   { at: "servants/castor.yml items[\"Avenger\"] passiveRules[0]", leaf: "mode", issue: "#103" },
-  { at: "servants/castor.yml items[\"Mad Enhancement\"] activeRules[4]", leaf: "isBuff", issue: "#103" },
   { at: "servants/castor.yml items[\"Twin God's Divine Core\"] passiveRules[1]", leaf: "chance", issue: "#103" },
-  { at: "servants/heracles.yml items[\"Mad Enhancement\"] activeRules[4]", leaf: "isBuff", issue: "#103" },
   { at: "servants/jack-the-ripper.yml rules[0]", leaf: "targetPredicate[].or[]", issue: "#103" },
-  { at: "servants/kingprotea.yml items[\"Mad Enhancement\"] activeRules[4]", leaf: "isBuff", issue: "#103" },
   { at: "servants/kingprotea.yml items[\"Huge Scale\"] passiveRules[1]", leaf: "perStack.effect", issue: "#103" },
-  { at: "servants/kingprotea.yml items[\"Huge Scale\"] passiveRules[3]", leaf: "isBuff", issue: "#103" },
   { at: "servants/medusa.yml rules[0]", leaf: "targetPredicate[]", issue: "#103" },
-  { at: "servants/penthesilea.yml items[\"Mad Enhancement\"] activeRules[4]", leaf: "isBuff", issue: "#103" },
-  { at: "servants/raikou.yml items[\"Mad Enhancement\"] activeRules[4]", leaf: "isBuff", issue: "#103" },
   { at: "servants/raikou.yml items[\"Goō Shōrai・Tenmōkaikai\"] activeRules[4]", leaf: "at", issue: "#103" },
   { at: "servants-normal/normal-archer.yml items[\"Independent Action\"] passiveRules[0]", leaf: "chance.formula", issue: "#103" },
   { at: "servants-normal/normal-archer.yml items[\"Independent Action\"] passiveRules[0]", leaf: "chance.success[]", issue: "#103" },
-  { at: "servants-normal/normal-berserker.yml items[\"Mad Enhancement\"] activeRules[4]", leaf: "isBuff", issue: "#103" },
   { at: "servants-normal/normal-lancer.yml items[\"Battle Continuation\"] passiveRules[1]", leaf: "uses", issue: "#103" },
 ]);
 
@@ -261,7 +253,7 @@ describe("every key inside a rule element reaches something that reads it", () =
   it("keeps its known drops honest: each owned by an issue, none stale, fewer over time", () => {
     for (const d of KNOWN_RULE_DROPS) expect(d.issue).toMatch(/^#\d+$/);
     expect(KNOWN_RULE_DROPS.filter((d) => !seen.has(d))).toEqual([]);
-    expect(KNOWN_RULE_DROPS.length).toBeLessThanOrEqual(24);
+    expect(KNOWN_RULE_DROPS.length).toBeLessThanOrEqual(16);
   });
 
   it("names the element types it cannot run, rather than skipping them", () => {

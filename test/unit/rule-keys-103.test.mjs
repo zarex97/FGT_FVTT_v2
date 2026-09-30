@@ -173,3 +173,19 @@ describe("ForbidReaction", () => {
     expect(out.refusesReactions).toEqual([]);
   });
 });
+
+// Mad Enhancement: *"MOV is increased by 2, Range is increased by 1 ... The
+// effects of Mad Enhancement are neither a buff or a debuff."* Its MOV and
+// Range deltas both say `isBuff: false`, and only the MOV one kept it.
+describe("RangeDelta", () => {
+  it("carries isBuff, as StatDelta and MovDelta do: Mad Enhancement's Range +1 is not a buff", () => {
+    const skill = content("class-skills/mad-enhancement.yml");
+    const deltas = skill.activeRules.filter((r) => r.key === "MovDelta" || r.key === "RangeDelta");
+    const out = contributions({ name: skill.name, rank: "B", activeRules: deltas });
+    expect(out.statDeltas.map((d) => [d.stat, d.value, d.isBuff])).toEqual([["mov", 2, false], ["range.panels", 1, false]]);
+  });
+
+  it("is a buff unless it says otherwise", () => {
+    expect(contributions({ name: "Range Up", rules: [{ key: "RangeDelta", value: 1 }] }).statDeltas[0].isBuff).toBe(true);
+  });
+});
