@@ -424,7 +424,16 @@ export function resolveRef(entry, library, problems, where) {
   }
 
   const built = prune(substitute(template, params), problems, `${where}: ref "${entry.ref}"`);
-  return { ...built, _ref: entry.ref, ...params };
+  // A declared parameter the template holds only as a PLACEHOLDER is consumed
+  // by the substitution, not carried: Mad Enhancement's `drainFloor`,
+  // `drainFloorWhen` and `forcedDeactivation` are read into its rules at build
+  // time, and copying them onto the Ability as well put three keys its model
+  // does not declare on six Servants (#97). One the template also holds as a
+  // key of its own -- `rank: "@rank"` -- is a field, and stays. Every other
+  // entry key is an override.
+  const consumed = new Set((template.parameterized ?? []).filter((p) => !(p in template)));
+  const overrides = Object.fromEntries(Object.entries(params).filter(([k]) => !consumed.has(k)));
+  return { ...built, _ref: entry.ref, ...overrides };
 }
 
 /**
