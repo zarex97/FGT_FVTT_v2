@@ -18,8 +18,15 @@
  *    `operation.data`, not the argument (`client-backend.mjs:103,122`); a change
  *    made in `_preCreate`/`preCreate*` must go through `this.updateSource(...)`.
  *
- * `tools/check-world.mjs` proves both against a live world, so a Foundry upgrade
- * that changes either shows up there. Issue #94.
+ * 3. **A CONFIG registry replaced wholesale.** `CONFIG.ActiveEffect.dataModels`
+ *    ships as `{base: ActiveEffectTypeDataModel}` (`client/config.mjs:2031`) and
+ *    `CONFIG.RegionBehavior.dataModels` with twelve built-in behaviours. A system
+ *    that assigns its own object drops them, and a core status effect then fails
+ *    to create with no error -- the defeat skull never appeared (#96). Spread the
+ *    existing object.
+ *
+ * `tools/check-world.mjs` proves the first two against a live world, so a Foundry
+ * upgrade that changes either shows up there. Issue #94.
  */
 
 const WHY = {
@@ -31,6 +38,8 @@ const WHY = {
     + "a change here is silently lost. Use this.updateSource(...) / document.updateSource(...). See #94.",
   updateAfterSource: "update() after updateSource() on the same document diffs against the already-changed local copy, "
     + "finds nothing, and sends nothing (client/data/client-backend.mjs:262). See tools/lib/eslint-client-traps.mjs, #94.",
+  configReplaced: "Assigning a CONFIG.*.dataModels object drops core's own entries (ActiveEffect's `base`, the built-in "
+    + "Region behaviours), and what needed them fails silently. Spread the existing object first. See #96.",
 };
 
 /** The kind of Foundry lifecycle function a node is, and which parameter is its `data`. */
@@ -120,6 +129,13 @@ export default {
           },
 
           AssignmentExpression(node) {
+            // CONFIG.<Doc>.dataModels = { ... } with no spread of what was there.
+            const left = node.left;
+            if (left.type === "MemberExpression" && left.property?.name === "dataModels"
+              && rootOf(left) === "CONFIG" && node.right?.type === "ObjectExpression"
+              && !node.right.properties.some((p) => p.type === "SpreadElement")) {
+              context.report({ node, message: WHY.configReplaced });
+            }
             const l = life();
             if (!l || node.left.type !== "MemberExpression") return;
             if (l.kind === "preUpdate" && touchesSource(node.left)) {

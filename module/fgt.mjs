@@ -83,21 +83,30 @@ Hooks.once("init", () => {
 
   // ── Data models ──────────────────────────────────────────────────────────
   CONFIG.Actor.dataModels = {
+    ...CONFIG.Actor.dataModels,
     servant: data.ServantData, master: data.MasterData, civilian: data.CivilianData,
     summon: data.SummonData, platform: data.PlatformData, structure: data.StructureData,
   };
   CONFIG.Item.dataModels = {
+    ...CONFIG.Item.dataModels,
     ability: data.AbilityData, noblePhantasm: data.NoblePhantasmData,
     commandSpell: data.CommandSpellData, masterEssence: data.MasterEssenceData,
     equipment: data.EquipmentData,
   };
-  CONFIG.ActiveEffect.dataModels = { fgtEffect: data.EffectData };
-  CONFIG.Combat.dataModels = { match: data.MatchData };
-  CONFIG.Combatant.dataModels = { player: data.PlayerCombatantData };
+  // SPREAD, not replaced: core ships `{ base: ActiveEffectTypeDataModel }`, and
+  // dropping it made every core status effect fail to create without a word --
+  // a defeated Unit's skull among them (#96).
+  CONFIG.ActiveEffect.dataModels = { ...CONFIG.ActiveEffect.dataModels, fgtEffect: data.EffectData };
+  CONFIG.Combat.dataModels = { ...CONFIG.Combat.dataModels, match: data.MatchData };
+  CONFIG.Combatant.dataModels = { ...CONFIG.Combatant.dataModels, player: data.PlayerCombatantData };
   // Declared in system.json since the manifest was written, with no data model
   // behind any of them -- so an `fgt.terrain` behaviour on a Region carried no
   // type, no duration and no meaning (Ch. 07).
+  //
+  // Spread, for the same reason as ActiveEffect's above: core ships twelve
+  // built-in behaviours here, and a bare object dropped all of them (#96).
   CONFIG.RegionBehavior.dataModels = {
+    ...CONFIG.RegionBehavior.dataModels,
     terrain: data.TerrainBehavior,
     homeBase: data.HomeBaseBehavior,
     npField: data.NPFieldBehavior,
