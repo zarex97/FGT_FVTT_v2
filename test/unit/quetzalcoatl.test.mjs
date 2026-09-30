@@ -440,9 +440,9 @@ describe("Piedra Del Sol", () => {
  * placed at Luck 0 while Quetzalcoatl stood beside it with 20.
  */
 describe("the platform's authored keys survive its DataModel", () => {
-  // Read as TEXT, not by importing the model, which needs Foundry's global
-  // `fields` — the same choice `item-schema-coverage.test.mjs` makes and for
-  // the same reason.
+  // Read as TEXT, from before the models could be imported. The build's model
+  // check now holds every authored Platform key to the real PlatformData
+  // (tools/lib/model-check.mjs); this stays as the record of the one it found.
   const SOURCE = readFileSync("module/data/actor/simple.mjs", "utf8");
   const COMMON = readFileSync("module/data/actor/_shared.mjs", "utf8");
   const platformBody = SOURCE.slice(

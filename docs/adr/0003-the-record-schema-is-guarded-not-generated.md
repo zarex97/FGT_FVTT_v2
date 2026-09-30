@@ -54,3 +54,24 @@ agree is a fair trade; three is not, and at that point generating from the spec 
 text-scraping guards the new form — becomes the cheaper side. `clearTurnState` was very nearly that
 third consumer, carrying its own eight-key literal of a fourteen-key record, and it was deleted rather
 than corrected.
+
+## Amendment, 2026-09-30: the first reason is gone
+
+ADR-0006 put Foundry's real data layer under the tests, and the two text-scraping guards this ADR
+leaned on — `actor-fields.test.mjs` and `item-schema-coverage.test.mjs` — were deleted in #93. What
+they caught is now caught with the real classes: undeclared roots by the field ledger
+(`test/unit/field-ledger.test.mjs`) and the test world's loud prune, authored keys by the build's
+model check, per document type rather than over the union of names, and invalid defaults by
+`test/unit/schema-validity.test.mjs`. So **"it blinds two existing guards" no longer holds**: a
+`turnState` built by iterating a spec would be read by every one of those as readily as one written
+key by key.
+
+The decision stands on the other two reasons, which are unchanged. No schema in `module/data` is
+built by iteration, and the forty-four lines of comment in the `turnState` block are still the
+asset. `test/unit/master-data.test.mjs`'s drift test stays.
+
+The flip condition is reconsidered and kept. A **third consumer** of the field list is still what
+would make generation the cheaper side. The survival test (`test/unit/survival.test.mjs`) is not
+one: it reads the declared fields off the real schema, so it would follow a generated list for
+free, as the loud prune does. With the text guards gone, the cost of generating has fallen to the
+two reasons left, and a third consumer would now tip it more easily than when this was written.
