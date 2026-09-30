@@ -2295,6 +2295,15 @@ Room, twenty levels up, held him, and would equally have let a ground Reality Ma
 a platform over it. `openField` now stamps the caster's level on the anchor, `contains` checks it, and
 an unstamped field takes its owner's level.
 
+### BJ. A Unit brought into sight by a forced move was never seen — **fixed 2026-09-30**
+
+**Reached: FD.p / FD.a.** Staging Familiar: Doves' active half needed Doves on the enemies, and neither
+carried one, though Heracles had fought Semiramis for rounds. Her `seenUnitIds` held **only her own
+Master**. `engine/movement-hooks.mjs#onMove` ran the sighting check at its very end, below the early
+return for a forced move and the one for a level-only change -- and Heracles had come aboard by
+boarding, a level change, and every staging move was forced. *"Whenever Semiramis sees a Unit for the
+first time"* does not ask how the Unit got there. Both returns now check sightings first.
+
 ---
 
 ---

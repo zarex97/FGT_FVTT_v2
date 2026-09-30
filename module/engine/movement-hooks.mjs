@@ -167,6 +167,16 @@ function onPreMove(document, movement, operation) {
 }
 
 /**
+ * Who can now see whom, after any move -- see `onMove`.
+ * @param {object} combat
+ * @returns {Promise<void>}
+ */
+async function sightingsAfter(combat) {
+  const { checkSightings } = await import("./vision.mjs");
+  await checkSightings({ board: boardSnapshot(combat) });
+}
+
+/**
  * Record what the movement cost, once it has happened.
  *
  * @param {object} document
@@ -177,8 +187,12 @@ async function onMove(document, movement, operation) {
   const combat = game.combats.active;
   if (!combat?.started) return;
   // A level change is not a step, so it costs nothing (see `onPreMove`) and it
-  // crosses no boundary in the plane either.
-  if (isLevelOnlyChange(document, movement)) return;
+  // crosses no boundary in the plane either. It can still bring a Unit into
+  // somebody's sight: boarding is a level change.
+  if (isLevelOnlyChange(document, movement)) {
+    await sightingsAfter(combat);
+    return;
+  }
 
   // Bounded-field CONTACT is settled before anything else, and deliberately
   // above the forced-move return below: a Unit knocked back or carried into
@@ -210,7 +224,15 @@ async function onMove(document, movement, operation) {
   // displacement must not spend the mover's budget, and this read never
   // resolved, so `carryPassengers` could recurse into its own carried
   // passengers and every carried unit was billed for a move it did not make.
-  if (movement?.forced || operation?.fgtForced || movement?.options?.fgtForced) return;
+  if (movement?.forced || operation?.fgtForced || movement?.options?.fgtForced) {
+    // Familiar: Doves is *"whenever Semiramis SEES a Unit for the first time"*,
+    // and a Unit carried, knocked back or boarded into her sight has been
+    // seen. The check sat below this return, so on the Semiramis audit board
+    // she had seen only her own Master: Heracles came aboard by a forced move
+    // and fought her for rounds with no Dove (#68).
+    await sightingsAfter(combat);
+    return;
+  }
   if (!game.users.activeGM?.isSelf && !document.actor?.isOwner) return;
 
   const actor = document.actor;
