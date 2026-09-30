@@ -2417,6 +2417,14 @@ and read `prior.combatantId` afterwards. Since `claimBoundary` arrived on 2026-0
 faction. Evidence gathered since then on turn-end Clauses deserves a second look. The combatant is now
 copied before the first await; the board's corrupted order was repaired by hand.
 
+### BW. The Jump offered landings it could not pay for, off the board's edge — **fixed 2026-09-30**
+
+**Reached: HG.jump.** Heracles on the garden's edge with 6 panels left was offered landings 6 panels
+away. The jump costs the distance plus one, so a 6-panel landing costs 7: `jumpLandings` reached the
+full allowance and `jumpOff` then wrote a `movedPanels` past his MOV. The reach is now one short, and
+`jumpVerdict` refuses a Unit with a single panel left. The bounds check read `rows`/`cols`, which a real
+board's `{iMin, iMax, jMin, jMax}` does not carry, so nothing clipped the far edges.
+
 ---
 
 ---

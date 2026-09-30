@@ -454,9 +454,19 @@ describe("Jump — leaving a Platform on purpose (#31)", () => {
     });
 
     it("lets that Unit jump before it has spent the halved allowance", () => {
-      const slowed = rider3({ effects: ["slow"], turnState: { movedPanels: 1 } });
-      expect(left(slowed)).toBe(1);
+      const slowed = rider3({ effects: ["slow"] });
+      expect(left(slowed)).toBe(2);
       expect(jumpVerdict(slowed, hgob(), left(slowed))).toMatchObject({ ok: true });
+    });
+
+    // *"land on a Game Board panel within its MOV; in this case, the Unit's MOV
+    // is reduced by 1."* The shortest jump lands one panel out and costs two.
+    // With one panel left the Jump was offered, taken, and wrote a
+    // `movedPanels` past the Unit's MOV (§46.4-BW).
+    it("refuses a Unit with only one panel left, since the jump itself costs one", () => {
+      const one = rider3({ turnState: { movedPanels: 3 } });
+      expect(left(one)).toBe(1);
+      expect(jumpVerdict(one, hgob(), left(one))).toMatchObject({ ok: false, reason: "noMovement" });
     });
   });
 
@@ -467,13 +477,16 @@ describe("Jump — leaving a Platform on purpose (#31)", () => {
 
       expect(out.length).toBeGreaterThan(0);
       expect(out.every((p) => !withinFootprint(p, hgob()))).toBe(true);
-      expect(out.every((p) => Math.max(Math.abs(p.i - 5), Math.abs(p.j - 5)) <= 4)).toBe(true);
+      // Four panels left: three of distance, and the one the jump costs.
+      expect(out.every((p) => Math.max(Math.abs(p.i - 5), Math.abs(p.j - 5)) <= 3)).toBe(true);
+      expect(out.some((p) => Math.max(Math.abs(p.i - 5), Math.abs(p.j - 5)) === 3)).toBe(true);
     });
 
     it("offers nothing beyond the Unit's remaining movement", () => {
-      const tired = rider3({ mov: 4, turnState: { movedPanels: 3 } });
+      const tired = rider3({ mov: 4, turnState: { movedPanels: 2 } });
       const out = jumpLandings(tired, hgob(), b([hgob(), tired]), left(tired));
 
+      expect(out.length).toBeGreaterThan(0);
       expect(out.every((p) => Math.max(Math.abs(p.i - 5), Math.abs(p.j - 5)) <= 1)).toBe(true);
     });
 
@@ -501,6 +514,17 @@ describe("Jump — leaving a Platform on purpose (#31)", () => {
       // ...and it really is clipping: a reach of 3 from (5,5) would otherwise
       // reach row and column 8.
       expect(out.some((p) => p.i === 6 || p.j === 6)).toBe(true);
+    });
+
+    // The board's own bounds are `{iMin, iMax, jMin, jMax}` (`geo.inBounds`),
+    // and this read `rows`/`cols`, which a real board does not carry -- so on a
+    // real board nothing clipped the far edges.
+    it("clips to a real board's own bounds", () => {
+      const corner = rider3({ panel: { i: 5, j: 5 } });
+      const real = { ...b([hgob(), corner]), bounds: { iMin: 0, iMax: 6, jMin: 0, jMax: 6 } };
+      const out = jumpLandings(corner, hgob(), real, left(corner));
+      expect(out.length).toBeGreaterThan(0);
+      expect(out.every((p) => p.i <= 6 && p.j <= 6)).toBe(true);
     });
 
     it("offers nothing when the caller forgets to say how far", () => {
