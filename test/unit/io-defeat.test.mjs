@@ -72,6 +72,9 @@ describe("io.defeat", () => {
       expect(skull).toHaveLength(1);
       expect(skull[0]).toMatchObject({ img: "icons/svg/skull.svg" });
       expect([...skull[0].statuses]).toEqual(["dead"]);
+      // ...and drawn: the token shows an effect with no duration only when it
+      // says ALWAYS, which `ActiveEffect.fromStatusEffect` sets for a status.
+      expect(skull[0].showIcon).toBe(CONST.ACTIVE_EFFECT_SHOW_ICON.ALWAYS);
     });
   });
 

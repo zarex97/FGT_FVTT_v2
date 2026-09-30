@@ -258,7 +258,7 @@ class FakeEffect {
     this.origin = data.origin;
     this.doc = realDocument("ActiveEffect", {
       type: "fgtEffect",
-      ...documentData(data, ["name", "type", "img", "system", "disabled", "statuses", "flags"]),
+      ...documentData(data, ["name", "type", "img", "system", "disabled", "statuses", "flags", "showIcon"]),
     }, `Effect(${data.name ?? this.id})`);
   }
 
@@ -270,6 +270,7 @@ class FakeEffect {
   // (`flags.core.overlay`) -- the defeat skull (#96).
   get statuses() { return this.doc.statuses; }
   get flags() { return this.doc.flags; }
+  get showIcon() { return this.doc.showIcon; }
   get _source() { return this.doc._source; }
 
   async update(patch) {

@@ -1049,6 +1049,10 @@ export function worldIO() {
         await actor.createEmbeddedDocuments("ActiveEffect", [{
           name: "Defeated", img: "icons/svg/skull.svg", type: "base",
           statuses: ["dead"], flags: { core: { overlay: true } },
+          // Drawn although it has no duration. The token shows such an effect
+          // only when it says ALWAYS, which `ActiveEffect.fromStatusEffect`
+          // sets for a status; without it the effect existed and nothing drew.
+          showIcon: CONST.ACTIVE_EFFECT_SHOW_ICON.ALWAYS,
         }]);
       }
     },
