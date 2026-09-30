@@ -291,80 +291,7 @@ export function combatantCommon() {
     // Reset at the start of the owning faction's turn. `movedPanels` is a
     // running total rather than a per-segment count, because Riding's two moves
     // share one MOV allowance (Ch. 19).
-    turnState: new fields.SchemaField({
-      // The ◈ tick this state was written during. The rule it makes possible --
-      // a record stamped with an earlier tick reads as blank, so nothing has to
-      // reset it, and a writer must rebuild the whole record rather than
-      // re-stamp it -- belongs to `domain/stamped-record.mjs`, which states it
-      // once for both scales and owns what it cost to learn.
-      //
-      // This block and that module's `TURN_RECORD` are two spellings of one
-      // field list, held together by a drift test rather than generated from
-      // each other: a `SchemaField` carries validation and the prose below on
-      // why each field exists, and a spec table would lose both (ADR 0003).
-      // Adding a field here means adding it there, and the test says so.
-      tick: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
-      acted: new fields.BooleanField({ initial: false }),
-      moved: new fields.BooleanField({ initial: false }),
-      attacked: new fields.BooleanField({ initial: false }),
-      // Was this Unit in a Combat Phase this Turn — on EITHER side of it?
-      //
-      // Distinct from `acted`, which is what the Unit *did*, and from
-      // `attacked`, which is what it *did to somebody else*. Being the defender
-      // is involvement and neither of those records it.
-      //
-      // Karna's `Kavacha and Kundala` is the clause that needs it: *"Karna's
-      // Master loses 20 Health at the end of every Turn that Karna is INVOLVED
-      // IN A COMBAT PHASE"*, against `Vasavi Shakti`'s *"at the end of every
-      // Combat PROCESS Karna is involved in"*. Ch. E draws that distinction and
-      // names him as the reason for it; the Phase-scaled half was authored on
-      // `actedTurnEnd`, which is neither, so a Karna who was attacked and did
-      // not act cost his Master nothing (Ch. 46 §46.9).
-      inCombatPhase: new fields.BooleanField({ initial: false }),
-      movedPanels: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
-      moveSegments: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
-      usedActiveSkill: new fields.BooleanField({ initial: false }),
-      // Riding Attack is terminal for that unit's turn.
-      usedRidingAttack: new fields.BooleanField({ initial: false }),
-      // *"A unit can only use Gather once per turn"* -- stated by the game's
-      // author as a rule in its own right, independent of Gather also counting
-      // as that unit's Move.
-      //
-      // Its own flag rather than reading `moved`, because the two rules are
-      // separable and one of them is load-bearing on its own: Gather writes
-      // `moved` and `attacked`, and `canConsume`'s "free second non-attack
-      // action" (D18.3) then let Gather repeat without limit anyway. Four
-      // presses in one Turn took Semiramis' HGoB Construction 10 -> 30, against
-      // a Noble Phantasm gated at 100 that the sheet spends many Rounds
-      // reaching (Ch. 46 §46.4-BA).
-      gathered: new fields.BooleanField({ initial: false }),
-      // Jack's Mist: *"she can Move the Mist and/or change the shape of the
-      // Mist ONCE"* per Turn. Its own flag rather than `usedActiveSkill`,
-      // because the same sentence says it "does not count as Moving a Unit and
-      // is not an Attack" -- so a repaint must spend nothing else.
-      reshapedField: new fields.BooleanField({ initial: false }),
-      // How many items this Unit has passed this turn (Ch. 17). A count
-      // rather than a flag, because `transfersPerTurn` is per item and one of
-      // them may allow more than one.
-      itemTransfers: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
-      // Which abilities went this Turn, for `sameTurnExclusive` (Medea's
-      // Keraino and Trofa). Stale-by-tick like everything else here.
-      abilitiesUsed: new fields.ArrayField(new fields.StringField({ blank: false })),
-      // Which abilities ATTACKED this Unit this Turn, by content id. The
-      // Hanging Gardens: *"on the same Turn it was Attacked by Dragon Wing
-      // Warriors, the required roll is reduced by 2"* -- a question about the
-      // defender's Turn that nothing recorded (#68).
-      attackedBy: new fields.ArrayField(new fields.StringField({ blank: false })),
-      // *"Once per Turn during its own Turn it may attempt a Luck Check."*
-      // Nursery Rhyme's Nameless Forest, and the reason this is a COUNT rather
-      // than a flag is only symmetry with `itemTransfers` -- one is the limit.
-      //
-      // Undeclared until #28, so `markTurn`'s write was dropped in silence and
-      // the counter read 0 immediately after an escape. Measured live: the
-      // once-per-Turn limit did not exist, and a caught Unit could roll until
-      // it got out.
-      namelessForestAttempts: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
-    }),
+    turnState: turnStateField(),
 
     /**
      * The same record at ROUND scale, for exclusions a Turn cannot express.
@@ -491,5 +418,91 @@ export function normalAttackField() {
     // the schema had no field, so her swing hit one Unit (#99). Untyped for
     // the same reason `bands` is.
     shape: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+  });
+}
+
+/**
+ * The Turn Record: what a Unit has done during the current ◈ tick.
+ *
+ * Shared by combatants and platforms. The Hanging Gardens *"can Move/Attack
+ * once per Turn"*, and the cap reads this record -- a platform with no field
+ * had every write dropped by its model (Ch. 46 §46.4-BQ).
+ *
+ * @returns {foundry.data.fields.SchemaField}
+ */
+export function turnStateField() {
+  return new fields.SchemaField({
+    // The ◈ tick this state was written during. The rule it makes possible --
+    // a record stamped with an earlier tick reads as blank, so nothing has to
+    // reset it, and a writer must rebuild the whole record rather than
+    // re-stamp it -- belongs to `domain/stamped-record.mjs`, which states it
+    // once for both scales and owns what it cost to learn.
+    //
+    // This block and that module's `TURN_RECORD` are two spellings of one
+    // field list, held together by a drift test rather than generated from
+    // each other: a `SchemaField` carries validation and the prose below on
+    // why each field exists, and a spec table would lose both (ADR 0003).
+    // Adding a field here means adding it there, and the test says so.
+    tick: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+    acted: new fields.BooleanField({ initial: false }),
+    moved: new fields.BooleanField({ initial: false }),
+    attacked: new fields.BooleanField({ initial: false }),
+    // Was this Unit in a Combat Phase this Turn — on EITHER side of it?
+    //
+    // Distinct from `acted`, which is what the Unit *did*, and from
+    // `attacked`, which is what it *did to somebody else*. Being the defender
+    // is involvement and neither of those records it.
+    //
+    // Karna's `Kavacha and Kundala` is the clause that needs it: *"Karna's
+    // Master loses 20 Health at the end of every Turn that Karna is INVOLVED
+    // IN A COMBAT PHASE"*, against `Vasavi Shakti`'s *"at the end of every
+    // Combat PROCESS Karna is involved in"*. Ch. E draws that distinction and
+    // names him as the reason for it; the Phase-scaled half was authored on
+    // `actedTurnEnd`, which is neither, so a Karna who was attacked and did
+    // not act cost his Master nothing (Ch. 46 §46.9).
+    inCombatPhase: new fields.BooleanField({ initial: false }),
+    movedPanels: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
+    moveSegments: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
+    usedActiveSkill: new fields.BooleanField({ initial: false }),
+    // Riding Attack is terminal for that unit's turn.
+    usedRidingAttack: new fields.BooleanField({ initial: false }),
+    // *"A unit can only use Gather once per turn"* -- stated by the game's
+    // author as a rule in its own right, independent of Gather also counting
+    // as that unit's Move.
+    //
+    // Its own flag rather than reading `moved`, because the two rules are
+    // separable and one of them is load-bearing on its own: Gather writes
+    // `moved` and `attacked`, and `canConsume`'s "free second non-attack
+    // action" (D18.3) then let Gather repeat without limit anyway. Four
+    // presses in one Turn took Semiramis' HGoB Construction 10 -> 30, against
+    // a Noble Phantasm gated at 100 that the sheet spends many Rounds
+    // reaching (Ch. 46 §46.4-BA).
+    gathered: new fields.BooleanField({ initial: false }),
+    // Jack's Mist: *"she can Move the Mist and/or change the shape of the
+    // Mist ONCE"* per Turn. Its own flag rather than `usedActiveSkill`,
+    // because the same sentence says it "does not count as Moving a Unit and
+    // is not an Attack" -- so a repaint must spend nothing else.
+    reshapedField: new fields.BooleanField({ initial: false }),
+    // How many items this Unit has passed this turn (Ch. 17). A count
+    // rather than a flag, because `transfersPerTurn` is per item and one of
+    // them may allow more than one.
+    itemTransfers: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
+    // Which abilities went this Turn, for `sameTurnExclusive` (Medea's
+    // Keraino and Trofa). Stale-by-tick like everything else here.
+    abilitiesUsed: new fields.ArrayField(new fields.StringField({ blank: false })),
+    // Which abilities ATTACKED this Unit this Turn, by content id. The
+    // Hanging Gardens: *"on the same Turn it was Attacked by Dragon Wing
+    // Warriors, the required roll is reduced by 2"* -- a question about the
+    // defender's Turn that nothing recorded (#68).
+    attackedBy: new fields.ArrayField(new fields.StringField({ blank: false })),
+    // *"Once per Turn during its own Turn it may attempt a Luck Check."*
+    // Nursery Rhyme's Nameless Forest, and the reason this is a COUNT rather
+    // than a flag is only symmetry with `itemTransfers` -- one is the limit.
+    //
+    // Undeclared until #28, so `markTurn`'s write was dropped in silence and
+    // the counter read 0 immediately after an escape. Measured live: the
+    // once-per-Turn limit did not exist, and a caught Unit could roll until
+    // it got out.
+    namelessForestAttempts: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
   });
 }

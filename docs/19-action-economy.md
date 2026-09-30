@@ -47,7 +47,7 @@ Movement is measured separately: `segmentCheck` compares the unit's remaining mo
 
 ### Exemptions
 
-Platforms act once per turn free (`module/rules/budget.mjs:243-249`). Summons are exempt from pools entirely unless they opt into counting via `countsTowardBudget: true` (`module/rules/budget.mjs:147`). Units marked `exemptFromBudget` are also free (`module/rules/budget.mjs:139`). All three still obey their per-unit limits where applicable. The once-per-Turn cap that platforms and `actsOncePerTurn` summons carry sits on top of those limits: a Bašmu that has attacked cannot Move afterwards, exactly as a Servant cannot ([Ch. 46 §46.4-BK](46-roster-re-audit.md)).
+Platforms act once per turn free (`module/rules/budget.mjs:243-249`), which needs a record to count against: `PlatformData` carries the same `turnState` as a combatant (`_shared.mjs#turnStateField`), and without it every write was pruned and the cap never held ([Ch. 46 §46.4-BQ](46-roster-re-audit.md)). Summons are exempt from pools entirely unless they opt into counting via `countsTowardBudget: true` (`module/rules/budget.mjs:147`). Units marked `exemptFromBudget` are also free (`module/rules/budget.mjs:139`). All three still obey their per-unit limits where applicable. The once-per-Turn cap that platforms and `actsOncePerTurn` summons carry sits on top of those limits: a Bašmu that has attacked cannot Move afterwards, exactly as a Servant cannot ([Ch. 46 §46.4-BK](46-roster-re-audit.md)).
 
 Masters have an unlimited attack pool but are capped at one attack per turn by the per-unit limit (`module/rules/budget.mjs:276-279`).
 
