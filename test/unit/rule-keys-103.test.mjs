@@ -189,3 +189,21 @@ describe("RangeDelta", () => {
     expect(contributions({ name: "Range Up", rules: [{ key: "RangeDelta", value: 1 }] }).statDeltas[0].isBuff).toBe(true);
   });
 });
+
+// Kingprotea's Huge Scale: *"Max and current Health is increased by 20% of
+// Kingprotea's ORIGINAL Max Health"* per Proliferation stock. The survival test
+// listed `perStack.effect` as unread, and it is not: the magnitude is an `@`
+// expression, and `stackScaled` reads the stack only once that resolves to a
+// number, which it cannot without a Unit's refs. The test's exemption knew
+// that for an expression that STARTS with `@`, and this one starts with `0.2`.
+describe("MaxDelta", () => {
+  it("scales per stock: 0, 200, 600 for 0, 1 and 3 stocks at a base of 1000", () => {
+    const skill = content("abilities/kingprotea-huge-scale.yml");
+    const el = skill.passiveRules.find((r) => r.key === "MaxDelta");
+    const at = (n) => contributions(
+      { name: skill.name, passiveRules: [el] },
+      { stacks: { proliferationStock: n }, refs: { self: { baseHealth: 1000 } } },
+    ).statDeltas[0].value;
+    expect([at(0), at(1), at(3)]).toEqual([0, 200, 600]);
+  });
+});

@@ -39,8 +39,9 @@ export const EXEMPT = {
     // does not applies to Noble Phantasms anyway. Only `false` says anything.
     includesNP: (el) => (el.includesNP === true ? "restates the default" : null),
     // `stackScaled` reads it once the magnitude resolves to a number, which an
-    // `@` expression cannot without a Unit's refs.
-    perStack: (el) => (typeof el.value === "string" && el.value.startsWith("@")
+    // `@` expression cannot without a Unit's refs -- anywhere in the value, not
+    // only at its start: Huge Scale's `0.2 * @self.baseHealth` (#103).
+    perStack: (el) => (typeof el.value === "string" && el.value.includes("@")
       ? "read by stackScaled once the magnitude resolves against a Unit" : null),
   },
   // The bucket is `modifierKey` when one is named; `direction` and `aspect`
@@ -87,7 +88,6 @@ export const KNOWN_RULE_DROPS = Object.freeze([
   { at: "servants/castor.yml items[\"Avenger\"] passiveRules[0]", leaf: "mode", issue: "#103" },
   { at: "servants/castor.yml items[\"Twin God's Divine Core\"] passiveRules[1]", leaf: "chance", issue: "#103" },
   { at: "servants/jack-the-ripper.yml rules[0]", leaf: "targetPredicate[].or[]", issue: "#103" },
-  { at: "servants/kingprotea.yml items[\"Huge Scale\"] passiveRules[1]", leaf: "perStack.effect", issue: "#103" },
   { at: "servants/medusa.yml rules[0]", leaf: "targetPredicate[]", issue: "#103" },
   { at: "servants/raikou.yml items[\"Goō Shōrai・Tenmōkaikai\"] activeRules[4]", leaf: "at", issue: "#103" },
   { at: "servants-normal/normal-archer.yml items[\"Independent Action\"] passiveRules[0]", leaf: "chance.formula", issue: "#103" },
@@ -253,7 +253,7 @@ describe("every key inside a rule element reaches something that reads it", () =
   it("keeps its known drops honest: each owned by an issue, none stale, fewer over time", () => {
     for (const d of KNOWN_RULE_DROPS) expect(d.issue).toMatch(/^#\d+$/);
     expect(KNOWN_RULE_DROPS.filter((d) => !seen.has(d))).toEqual([]);
-    expect(KNOWN_RULE_DROPS.length).toBeLessThanOrEqual(16);
+    expect(KNOWN_RULE_DROPS.length).toBeLessThanOrEqual(15);
   });
 
   it("names the element types it cannot run, rather than skipping them", () => {
