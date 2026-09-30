@@ -910,10 +910,22 @@ export const EXECUTORS = Object.freeze({
   },
 
   /** A flat addition at stage 7. Divinity, Dmg Boost, Avenger's counter bonus. */
-  FlatDamage(el, { rank, source, out, ctx, deferred = null }) {
+  FlatDamage(el, { rank, source, ability, out, ctx, deferred = null }) {
+    // The figure against a Noble Phantasm, where the sheet states one. Vorpal
+    // Blade's *"the above Stat boosts do not affect NP"* is `npValue: 0`, and
+    // the executor dropped it (#103). Stage 7 reads it through `magnitudeOf`.
+    const np = el.npValue !== undefined ? resolveValue(el, rank, ctx, "npValue") : undefined;
     out.modifiers.push({
       key: el.modifierKey ?? "divinity",
       value: scalar(resolveValue(el, rank, ctx)),
+      ...(np !== null && np !== undefined ? { npValue: scalar(np) } : {}),
+      // A bonus that REPLACES another Skill's rather than adding to it: the Sun
+      // Stone's *"Goddess' Divine Core: all damage dealt is increased by 180"*
+      // stands in for the Skill's own 120 (#103). Named by content id, and
+      // every flat bonus carries the id of the Skill it came from so it can be
+      // named.
+      ...(el.supersedes ? { supersedes: [...el.supersedes] } : {}),
+      sourceContentId: ability?.contentId ?? null,
       component: el.component ?? null,
       // WHICH ELEMENT the addition is made of, when it is made of one.
       // Raikou's `Raikou` buff -- *"Normal Attacks deal 40 bonus LIGHTNING

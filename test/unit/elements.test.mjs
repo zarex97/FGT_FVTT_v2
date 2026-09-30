@@ -23,8 +23,12 @@ describe("table-driven values resolve against the owning ability's rank", () => 
       // `element: null` beside `component: null` for the same reason: a flat
       // bonus may be scoped to one Base Attack component, and (since Raikou's
       // `Raikou` buff) may be made of a damage type the attack itself is not.
-      // Divinity is scoped to neither.
-      { key: "divinity", value: 50, component: null, element: null, predicate: null, source: "Divinity" },
+      // Divinity is scoped to neither. `sourceContentId` names the Skill, so a
+      // bonus that `supersedes` it can find it (#103); this one has none.
+      {
+        key: "divinity", value: 50, sourceContentId: null, component: null, element: null,
+        predicate: null, source: "Divinity",
+      },
     ]);
   });
 
