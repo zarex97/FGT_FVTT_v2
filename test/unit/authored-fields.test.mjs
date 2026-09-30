@@ -162,6 +162,14 @@ describe("fields the engine writes during play", () => {
     expect(ownedByWorld("actor", "summonerId")).toBe(true);
   });
 
+  it("keeps a Bašmu bound to its garden", () => {
+    // `summoning.mjs` writes `boundToPlatformId` at the summons. The Semiramis
+    // audit (#68) found the live Bašmu holding null after a pack rebuild: the
+    // sync had put the pack's null back, so it could Jump off the garden and a
+    // destroyed garden would have left it on the board.
+    expect(ownedByWorld("actor", "boundToPlatformId")).toBe(true);
+  });
+
   it("keeps a platform's owner", () => {
     // `hgob.mjs` writes `ownerId` when the Hanging Gardens are placed.
     expect(ownedByWorld("actor", "ownerId")).toBe(true);

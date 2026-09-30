@@ -17,7 +17,7 @@
  * because nothing on screen says a Warrior is missing.
  */
 
-import { chebyshevDisc } from "../domain/geometry.mjs";
+import { chebyshevDisc, inBounds } from "../domain/geometry.mjs";
 import { currentBoard } from "./board.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { orthogonalPanels, SHEET_ORDER } from "../rules/targeting/orthogonal.mjs";
@@ -79,8 +79,6 @@ export async function summonPhase(phase, summoner, { choose = null } = {}) {
     }
   }
 
-  const panels = freePanels(summoner, spec.placement ?? {}, contentIds.length);
-
   // A summon tied to the platform its summoner is standing on.
   //
   // > *"Bašmu cannot leave the HGoB. If HGoB is removed from the field while
@@ -96,6 +94,13 @@ export async function summonPhase(phase, summoner, { choose = null } = {}) {
     const platformId = currentBoard().units.find((u) => u.id === summoner.id)?.platformId ?? null;
     if (platformId) stamps.boundToPlatformId = platformId;
   }
+
+  // The WHOLE footprint has to fit: Bašmu is 3x3, and testing only the panel
+  // its token is anchored on put it on top of Semiramis (Ch. 46 §46.4-BM).
+  const footprint = await largestFootprint(contentIds);
+  const panels = freePanels(summoner, spec.placement ?? {}, contentIds.length, {
+    footprint, within: stamps.boundToPlatformId ?? null,
+  });
 
   const created = await placeSummons(contentIds, panels, summoner, scene, spec, stamps);
 
@@ -132,12 +137,18 @@ export function scaledCooldown(cooldown, count, turnsPerRound) {
  * is not a state this system has rules for, and a Warrior that quietly failed
  * to appear is worse than one that appears further out.
  *
+ * A summon larger than one panel is placed by its top-left panel, and every
+ * panel it covers must be free, on the board, and -- `within` -- on the
+ * platform it is bound to. *"Directly next to her"* is then the footprint's
+ * nearest panel, not its anchor.
+ *
  * @param {object} summoner
  * @param {object} placement
  * @param {number} needed
+ * @param {{footprint?: {w: number, h: number}|null, within?: string|null}} [opts]
  * @returns {Array<{i: number, j: number}>}
  */
-export function freePanels(summoner, placement, needed) {
+export function freePanels(summoner, placement, needed, { footprint = null, within = null } = {}) {
   const board = currentBoard();
   const self = board.units.find((u) => u.id === summoner.id);
   const origin = self?.panel;
@@ -192,9 +203,56 @@ export function freePanels(summoner, placement, needed) {
     });
   }
 
-  return chebyshevDisc(origin, radius, board.bounds ?? null)
-    .filter((p) => !occupied.has(`${p.i},${p.j}`))
-    .slice(0, needed);
+  const platform = within ? board.units.find((u) => u.id === within) : null;
+  const deck = platform ? new Set((platform.panels ?? []).map((p) => `${p.i},${p.j}`)) : null;
+  const w = footprint?.w ?? 1;
+  const h = footprint?.h ?? 1;
+  if (w === 1 && h === 1) {
+    return chebyshevDisc(origin, radius, board.bounds ?? null)
+      .filter((p) => !occupied.has(`${p.i},${p.j}`))
+      .filter((p) => !deck || deck.has(`${p.i},${p.j}`))
+      .slice(0, needed);
+  }
+
+  const cells = (a) => Array.from({ length: h }, (_, di) =>
+    Array.from({ length: w }, (_, dj) => ({ i: a.i + di, j: a.j + dj }))).flat();
+  const reach = (a) => Math.min(...cells(a).map((c) => Math.max(Math.abs(c.i - origin.i), Math.abs(c.j - origin.j))));
+  const fits = (a) => cells(a).every((c) => inBounds(c, board.bounds ?? null)
+    && !occupied.has(`${c.i},${c.j}`) && (!deck || deck.has(`${c.i},${c.j}`)));
+
+  const anchors = [];
+  for (let i = origin.i - radius - (h - 1); i <= origin.i + radius; i += 1) {
+    for (let j = origin.j - radius - (w - 1); j <= origin.j + radius; j += 1) {
+      const a = { i, j };
+      if (reach(a) <= radius) anchors.push(a);
+    }
+  }
+  const out = [];
+  for (const a of anchors.sort((x, y) => reach(x) - reach(y))) {
+    if (out.length >= needed) break;
+    if (!fits(a)) continue;
+    out.push(a);
+    // Two summons from one call do not overlap each other either.
+    for (const c of cells(a)) occupied.add(`${c.i},${c.j}`);
+  }
+  return out;
+}
+
+/**
+ * The largest footprint among the summons about to be placed.
+ *
+ * @param {string[]} contentIds
+ * @returns {Promise<{w: number, h: number}>}
+ */
+async function largestFootprint(contentIds) {
+  let w = 1;
+  let h = 1;
+  for (const id of new Set(contentIds)) {
+    const source = await fromPacks(id);
+    w = Math.max(w, source?.prototypeToken?.width ?? 1);
+    h = Math.max(h, source?.prototypeToken?.height ?? 1);
+  }
+  return { w, h };
 }
 
 /**

@@ -23,7 +23,7 @@ import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
-import { movePlatform, actionSourceFor, withinFootprint } from "../rules/platforms.mjs";
+import { movePlatform, actionSourceFor, withinFootprint, canUnboard } from "../rules/platforms.mjs";
 import { hasGranted, GRANTS } from "../rules/granted.mjs";
 import { contains as fieldContains } from "../rules/bounded-fields.mjs";
 import { repaintFollowing } from "./terrain.mjs";
@@ -469,6 +469,8 @@ async function knockBackOccupants(moverId, movement = null) {
       // depends on where the previously-resolved occupant chose to go.
       const under = platformUnder(occupant, board);
       if (under && !withinFootprint(landing.panel, under)) {
+        // *"Bašmu cannot leave the HGoB"*: the edge holds a bound summon.
+        if (canUnboard(occupant, under).reason === "boundToPlatform") continue;
         const { knockOff } = await import("./platforms.mjs");
         await knockOff({ unitId: occupant.id, platformId: under.id });
         continue;
