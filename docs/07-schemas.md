@@ -75,7 +75,9 @@ read it (Hop 5).
 
 3. **`foundry: null` does not mean optional.** `nullable: true` makes a field hold null as a legal value. `required: false` makes it absent. The difference matters: an effect holding `visibility: "public"` is not readable as `"ownerOnly"`, so `nullable` here means "present but unknown" (`module/data/misc.mjs:75`).
 
-4. **`PlatformData.footprint` is `nullable: true` at the field level.** `null` means the platform has no board presence at all — Nemo's Storm Border while submerged. A non-nullable footprint would coerce that `null` into the 3×3 default and surface a submerged submarine (`module/data/actor/simple.mjs:111-114`).
+4. **A Normal Attack is one schema, `normalAttackField()`, shared by every Unit that attacks.** `combatantCommon()` spreads it and `PlatformData` declares it directly, since a Platform attacks but has no Parameters: the Golden Hind's MAG and the Quetzalcoatlus's STR were dropped before (#99). It carries `shape` for an area swing (Kagome: Famine's 3×3). A Summon declares `footprint` as a Servant and a Platform do; Bašmu's 3×3 was one panel to the rules.
+
+5. **`PlatformData.footprint` is `nullable: true` at the field level.** `null` means the platform has no board presence at all — Nemo's Storm Border while submerged. A non-nullable footprint would coerce that `null` into the 3×3 default and surface a submerged submarine (`module/data/actor/simple.mjs:111-114`).
 
 ## Traps and anti-patterns
 

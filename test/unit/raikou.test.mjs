@@ -1851,7 +1851,8 @@ describe("a Normal Attack's element reaches the attack spec", () => {
 
   it("declares elementFraction on the normalAttack schema", () => {
     const src = readFileSync("module/data/actor/_shared.mjs", "utf8");
-    const block = src.slice(src.indexOf("normalAttack: new fields.SchemaField"));
+    // One schema, shared by every Unit that attacks (#99).
+    const block = src.slice(src.indexOf("export function normalAttackField"));
     expect(block.slice(0, 1600)).toMatch(/elementFraction/);
   });
 

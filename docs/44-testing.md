@@ -160,7 +160,7 @@ list of what it found, every entry owned by an issue:
 | List | Guard | Issues |
 |---|---|---|
 | `KNOWN_DROPS` in `test/helpers/world.mjs` | the loud prune | #96 |
-| `KNOWN_BUILD_DROPS` in `tools/lib/known-drops.mjs` | the model check | #99, #100 (#97, #98 fixed) |
+| `KNOWN_BUILD_DROPS` in `tools/lib/known-drops.mjs` | the model check | #100 (#97–#99 fixed) |
 | `unread` routes in `test/unit/survival.test.mjs` | the survival test | #101 (#105 fixed) |
 | `KNOWN_RULE_DROPS` in `test/unit/rule-survival.test.mjs` | the rule-element survival test | empty (#102, #103 fixed) |
 | `KNOWN` in `test/unit/field-ledger.test.mjs` | the field ledger | #104 (#98 fixed) |
