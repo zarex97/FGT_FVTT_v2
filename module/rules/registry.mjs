@@ -77,7 +77,6 @@ export const EffectRegistry = {
         // ...and when it lands, once: Shock's "current Agility -3" (#106).
         onApply: sys.onApply ?? [],
         rules: sys.rules ?? [],
-        coveredByDebuffImmune: sys.coveredByDebuffImmune ?? false,
         bypassesImmunity: sys.bypassesImmunity ?? false,
         // ...and past Debuff Resist too (#98).
         bypassesResistance: sys.bypassesResistance ?? false,

@@ -788,8 +788,10 @@ function buildAttackSpec({ attacker, ability, abilityId, options, placement = nu
         // comment above warns about.
         ?? (ability ? undefined : normalAttackAt(attacker?.system ?? attacker, null)?.elementFraction)
         ?? undefined,
+      // Inside `damage`, where the authored key lives. A top-level fallback
+      // read a key no schema declares and no content authors (#104).
       ignoresMagicResistance: Boolean(
-        resolvedDamage(ability, options)?.ignoresMagicResistance ?? ability?.system?.ignoresMagicResistance,
+        resolvedDamage(ability, options)?.ignoresMagicResistance,
       ),
       // *"Damage dealt is not affected by Atk Up or other damage increasing
       // effects on Ozymandias."* Narrower than `bypassModifiers`, which skips
