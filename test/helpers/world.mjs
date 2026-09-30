@@ -577,6 +577,33 @@ export async function withWorld(spec, fn) {
   }
 }
 
+/**
+ * What the DataModel keeps of `data`, constructed under this world's real
+ * globals and none of the test file's own.
+ *
+ * For a caller that must seed a world with content as a live world would hold
+ * it -- after load has pruned whatever the schema does not declare -- rather
+ * than as authored, which the loud seed check would (rightly) refuse.
+ *
+ * @param {string} documentName "Actor", "Item", ...
+ * @param {object} data
+ * @returns {Promise<object>} the document's `_source`
+ */
+export async function keptByModel(documentName, data) {
+  await loadReal();
+  const saved = Object.fromEntries(GLOBALS.map((k) => [k, globalThis[k]]));
+  installFoundry();
+  globalThis.game.settings = { get: (scope, key) => (scope === "core" ? CORE_SETTINGS[key] : undefined) };
+  try {
+    return new foundry.documents[`Base${documentName}`](structuredClone(data), { strict: true })._source;
+  } finally {
+    for (const k of GLOBALS) {
+      if (saved[k] === undefined) delete globalThis[k];
+      else globalThis[k] = saved[k];
+    }
+  }
+}
+
 /** Whether `module/data/` has a type this helper does not model. */
 export function unmodelledActorTypes() {
   const files = readdirSync("module/data/actor").filter((f) => f.endsWith(".mjs") && !f.startsWith("_"));

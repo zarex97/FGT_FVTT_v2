@@ -26,89 +26,82 @@
  * ask it the two questions the rule asks.
  */
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect } from "vitest";
 
-import { snapshotUnit } from "../../module/rules/snapshot.mjs";
 import { endOfRoundHomeBase } from "../../module/rules/environment.mjs";
-import { EffectRegistry } from "../../module/rules/registry.mjs";
+import { withSubjects } from "../helpers/subject.mjs";
 
-beforeAll(() => {
-  EffectRegistry.load([
-    { name: "Burn", system: { contentId: "burn", polarity: "debuff" } },
-    { name: "Atk Up", system: { contentId: "atkUp", polarity: "buff" } },
-    {
-      name: "Aboard the Hanging Gardens",
-      system: { contentId: "hgob-owner-buff", polarity: "status", unremovable: true },
-    },
-    { name: "Dove", system: { contentId: "dove", polarity: "status" } },
-  ]);
+// Built through `test/helpers/subject.mjs`: Semiramis from the real corpus, her
+// effects as real ActiveEffects, and the registry loaded from the real effect
+// definitions -- `burn` a debuff, `atkUp` a buff, `hgob-owner-buff` an
+// unremovable status. This file used to write its own registry and its own
+// actor, which is the shape that hid this defect: a fixture can only prove the
+// half of the path below it.
+
+/** A resident of her own Home Base, three full Rounds in, carrying `effects`. */
+const resident = (effects) => ({
+  from: "semiramis",
+  id: "semiramis",
+  panel: { i: 0, j: 0 },
+  effects,
+  state: {
+    factionId: "red",
+    homeBase: { consecutiveRounds: 3 },
+    roundState: { round: 1, abilitiesUsed: [], combatInBaseThisRound: true },
+  },
 });
 
-/** An actor carrying the given effect instances. */
-const bearer = (instances) => ({
-  id: "semiramis", uuid: "Actor.semiramis", name: "Semiramis", type: "servant",
-  system: { factionId: "red", range: { panels: 3, targets: 1 } },
-  items: [],
-  effects: instances.map((e, n) => ({
-    id: `e${n}`, disabled: false, isSuppressed: false, system: e,
-  })),
-});
+/** A board whose only Home Base zone is her own. */
+const zones = { red: { faction: "red", panels: [{ i: 0, j: 0 }] } };
 
-/** A resident who has been home long enough for E2 to fire. */
-const resident = (unit) => ({
-  ...unit,
-  homeBase: { consecutiveRounds: 3, combatInBaseThisRound: true },
-});
+/** Her projected effect instances. */
+const instances = (effects) => withSubjects([resident(effects)], ({ units }) => units[0].effectInstances, { round: 1 });
 
-/** A board whose only Home Base zone is this unit's own. */
-const board = { zones: { red: { faction: "red", panels: [{ i: 0, j: 0 }] } } };
-const seated = (unit) => ({ ...unit, panel: { i: 0, j: 0 }, faction: "red" });
-
-/** Which effects the cure would take off this unit. */
-const cured = (unit) => endOfRoundHomeBase([resident(seated(unit))], board)
+/** Which effects the cure would take off her. */
+const cured = (effects) => withSubjects([resident(effects)], ({ board, world }) => endOfRoundHomeBase(board.units, board)
   .filter((d) => d.kind === "removeEffect")
-  .map((d) => d.effectId);
+  .map((d) => world.actor("semiramis").effects.get(d.effectId)?.system.defId),
+{ round: 1, settings: { zones } });
 
 describe("the effect instances the projection hands the cure", () => {
-  it("says whether an instance is unremovable", () => {
-    const unit = snapshotUnit(bearer([{ defId: "hgob-owner-buff", unremovable: true }]));
-    expect(unit.effectInstances[0].unremovable).toBe(true);
+  it("says whether an instance is unremovable", async () => {
+    const [e] = await instances([{ defId: "hgob-owner-buff", unremovable: true }]);
+    expect(e.unremovable).toBe(true);
   });
 
-  it("says what polarity an instance has, from its definition", () => {
-    const unit = snapshotUnit(bearer([{ defId: "burn" }]));
-    expect(unit.effectInstances[0].polarity).toBe("debuff");
+  it("says what polarity an instance has, from its definition", async () => {
+    const [e] = await instances([{ defId: "burn" }]);
+    expect(e.polarity).toBe("debuff");
   });
 
-  it("lets the instance's own unremovable flag win where the definition is silent", () => {
+  it("lets the instance's own unremovable flag win where the definition is silent", async () => {
     // The owner buff is landed by an intent that says `unremovable: true`; a
     // definition that says nothing must not undo that.
-    const unit = snapshotUnit(bearer([{ defId: "dove", unremovable: true }]));
-    expect(unit.effectInstances[0].unremovable).toBe(true);
+    const [e] = await instances([{ defId: "dove", unremovable: true }]);
+    expect(e.unremovable).toBe(true);
   });
 });
 
 describe("endOfRoundHomeBase, given what the projection actually carries", () => {
-  it("cures a debuff", () => {
-    expect(cured(snapshotUnit(bearer([{ defId: "burn" }])))).toEqual(["e0"]);
+  it("cures a debuff", async () => {
+    expect(await cured([{ defId: "burn" }])).toEqual(["burn"]);
   });
 
-  it("leaves a buff alone", () => {
+  it("leaves a buff alone", async () => {
     // Three Rounds at home is a rest, not a dispel of your own Skills.
-    expect(cured(snapshotUnit(bearer([{ defId: "atkUp" }])))).toEqual([]);
+    expect(await cured([{ defId: "atkUp" }])).toEqual([]);
   });
 
-  it("leaves an unremovable neutral status alone", () => {
+  it("leaves an unremovable neutral status alone", async () => {
     // The measured case: Semiramis aboard her own Hanging Gardens.
-    expect(cured(snapshotUnit(bearer([{ defId: "hgob-owner-buff", unremovable: true }])))).toEqual([]);
+    expect(await cured([{ defId: "hgob-owner-buff", unremovable: true }])).toEqual([]);
   });
 
-  it("takes the debuff and leaves the rest, in the same sweep", () => {
-    const unit = snapshotUnit(bearer([
+  it("takes the debuff and leaves the rest, in the same sweep", async () => {
+    expect(await cured([
       { defId: "burn" },
       { defId: "atkUp" },
       { defId: "hgob-owner-buff", unremovable: true },
-    ]));
-    expect(cured(unit)).toEqual(["e0"]);
+    ])).toEqual(["burn"]);
   });
 });

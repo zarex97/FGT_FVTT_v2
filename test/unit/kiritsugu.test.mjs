@@ -106,69 +106,63 @@ describe("Kiritsugu — the two class skills are a ref and nothing else", () => 
   });
 });
 
-import { annotateAuras } from "../../module/rules/auras.mjs";
+import { withSubjects } from "../helpers/subject.mjs";
 import { checkPlan } from "../../module/rules/checks.mjs";
 
 describe("Affection of the Holy Grail — the aura", () => {
-  // The aura is COLLECTED FROM THE ABILITY rather than hand-written here.
-  // The first version of this test built the post-executor shape by hand, and
-  // passed while `Aura` was dropping `check:` on the floor -- so `checkPlan`
-  // filtered the contribution out for being a modifier to no check at all, and
-  // nobody on a real board ever received it. A test that writes its own
-  // fixture can only prove the half of the path below the fixture.
-  const auraFromAbility = () => collectContributions([
-    src("abilities", "kiritsugu-affection-of-the-holy-grail.yml"),
-  ]).auras;
-
-  // Two allies and an enemy, all within 2 panels of Kiritsugu.
-  const board = () => ({
-    units: [
-      {
-        id: "kiritsugu", panel: { i: 5, j: 5 }, factionId: "red",
-        auras: auraFromAbility(),
-      },
-      { id: "ally", panel: { i: 5, j: 6 }, factionId: "red", auras: [] },
-      { id: "enemy", panel: { i: 6, j: 6 }, factionId: "blue", auras: [] },
-      { id: "distant", panel: { i: 5, j: 12 }, factionId: "red", auras: [] },
-    ],
+  // Kiritsugu and three bystanders are BUILT, not written: Kiritsugu from the
+  // real corpus with every ability he ships with, the board projected by the
+  // real `snapshotBoard`, which runs `annotateAuras` itself
+  // (`test/helpers/subject.mjs`). The first version of this test hand-wrote the
+  // post-executor aura, INCLUDING the `check` the executor was dropping, and
+  // passed while nobody on a real board ever received it. The second collected
+  // the aura from the ability but still hand-built the units around it. A test
+  // that writes its own fixture can only prove the half of the path below it.
+  const bystander = (id, factionId, panel) => ({
+    from: {
+      type: "servant", id, name: id, servantClasses: ["saber"],
+      parameters: { str: "C", end: "C", agi: "C", mag: "C", luc: "C" },
+    },
+    state: { factionId },
+    panel,
   });
-  const annotated = () => { const b = board(); annotateAuras(b.units, b); return b; };
-  const find = (b, id) => b.units.find((u) => u.id === id);
+  const board = (fn) => withSubjects([
+    { from: "kiritsugu", state: { factionId: "red" }, panel: { i: 5, j: 5 } },
+    bystander("ally", "red", { i: 5, j: 6 }),
+    bystander("enemy", "blue", { i: 6, j: 6 }),
+    bystander("distant", "red", { i: 5, j: 12 }),
+  ], fn);
+  const luck = (id) => board(({ unit }) => checkPlan(unit(id), "luck").modifiers.map((m) => m.value));
 
-  it("names the check it modifies, or checkPlan cannot match it", () => {
-    const [aura] = auraFromAbility();
-    expect(aura.key).toBe("checkModifier");
+  it("names the check it modifies, or checkPlan cannot match it", async () => {
+    const aura = await board(({ unit }) => unit("kiritsugu").auras.find((a) => a.key === "checkModifier"));
     expect(aura.check).toBe("luck");
     expect(aura.value).toBe(4);
     expect(aura.radius).toBe(2);
   });
 
-  it("reaches an ALLY's checkModifiers, where checkPlan can read it", () => {
+  it("reaches an ALLY's checkModifiers, where checkPlan can read it", async () => {
     // The whole defect this task fixes: without the route the contribution
     // lands in `modifiers` and `checkPlan` never sees it.
-    const ally = find(annotated(), "ally");
-    expect(ally.checkModifiers ?? []).toHaveLength(1);
-    expect(checkPlan(ally, "luck").modifiers.map((m) => m.value)).toEqual([4]);
+    expect(await luck("ally")).toEqual([4]);
   });
 
-  it("reaches an ENEMY too — the sheet says 'all Units'", () => {
-    const enemy = find(annotated(), "enemy");
-    expect(checkPlan(enemy, "luck").modifiers.map((m) => m.value)).toEqual([4]);
+  it("reaches an ENEMY too — the sheet says 'all Units'", async () => {
+    expect(await luck("enemy")).toEqual([4]);
   });
 
-  it("never reaches Kiritsugu himself — 'except himself'", () => {
-    expect(checkPlan(find(annotated(), "kiritsugu"), "luck").modifiers).toEqual([]);
+  it("never reaches Kiritsugu himself — 'except himself'", async () => {
+    expect(await luck("kiritsugu")).toEqual([]);
   });
 
-  it("does not reach past 2 panels", () => {
-    expect(checkPlan(find(annotated(), "distant"), "luck").modifiers).toEqual([]);
+  it("does not reach past 2 panels", async () => {
+    expect(await luck("distant")).toEqual([]);
   });
 
-  it("HINDERS the recipient — a check that passed at 10 now fails (spec R3)", () => {
+  it("HINDERS the recipient — a check that passed at 10 now fails (spec R3)", async () => {
     // `resolveCheck` succeeds on `total <= target`, so +4 moves a roll AWAY
     // from success. If this ever reads as a benefit, the sign is inverted.
-    const mods = checkPlan(find(annotated(), "ally"), "luck").modifiers;
-    const total = 10 + mods.reduce((a, m) => a + m.value, 0);
+    const total = 10 + (await luck("ally")).reduce((a, v) => a + v, 0);
     expect(total).toBe(14);
     expect(total <= 12).toBe(false);   // a Luck of 12: passed at 10, fails now
   });
