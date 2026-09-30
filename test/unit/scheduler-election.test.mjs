@@ -13,8 +13,7 @@
  *
  * `scheduler-hooks.mjs` is the client boundary — it reads `game`, writes a
  * document and awaits a broadcast — so this guards the condition in the source,
- * the discipline `actor-fields.test.mjs` and `applier-callsites.test.mjs` already
- * apply. The behaviour itself is verified on a live board with two tabs open.
+ * the discipline `applier-callsites.test.mjs` already applies. The behaviour itself is verified on a live board with two tabs open.
  */
 
 import { describe, it, expect } from "vitest";

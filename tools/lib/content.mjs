@@ -1853,6 +1853,9 @@ const NON_SYSTEM_ITEM_KEYS = new Set([
   "schema", "id", "name", "type", "img", "notes", "folder", "sort", "ownership", "flags", "effects",
   // An inline ability's reference to a library entry, consumed by `resolveRef`.
   "ref", "_ref", "with",
+  // Authoring metadata: a clause that names a slug nobody has built yet, read by
+  // `skill-references.test.mjs` and the validator, and by nothing at runtime.
+  "forwardReferences",
 ]);
 
 /**

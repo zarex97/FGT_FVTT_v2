@@ -6,9 +6,10 @@
  * suite's test files. The reason is structural rather than lazy: `applyIntents`
  * takes its write adapter by injection, and the fake the applier's tests inject
  * stands in for `io.mjs` itself — so the seam sits *above* the code that holds
- * the bugs. `test/unit/actor-fields.test.mjs` reaches io the only way left, by
- * reading it as **text** and regexing out `"system.x"` literals, which cannot
- * see a path built by template string.
+ * the bugs. A text guard reached io the only way left, by reading it as
+ * **text** and regexing out `"system.x"` literals, which cannot see a path built
+ * by template string; it has since been replaced by checks on the real schemas
+ * (`test/unit/schema-validity.test.mjs`, `field-ledger.test.mjs`).
  *
  * The alternative considered was moving that seam below io — injecting "the
  * world" and making io the implementation. It was rejected on measurement:

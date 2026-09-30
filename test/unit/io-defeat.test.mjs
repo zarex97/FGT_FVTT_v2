@@ -1,9 +1,9 @@
 /**
  * @file `io.defeat`, and the guard that would have caught it.
- * @see module/engine/io.mjs, test/helpers/world.mjs, test/unit/actor-fields.test.mjs
+ * @see module/engine/io.mjs, test/helpers/world.mjs, test/unit/field-ledger.test.mjs
  *
- * This is the method the whole schema-drift machine was built for.
- * `test/unit/actor-fields.test.mjs` opens with it:
+ * This is the method the whole schema-drift machine was built for. The text
+ * guard that came first, `actor-fields.test.mjs`, opened with it:
  *
  *   > `io.defeat` wrote `system.defeated` from the day it was written and no
  *   > actor schema had the field. Every defeat in the game put a skull on the
@@ -11,8 +11,9 @@
  *   > left the Unit unmarked: still a legal target, still taking its turn,
  *   > still alive to anything that asked.
  *
- * That guard is a regex over `io.mjs` **as text**, because there was no way to
- * execute the file. It cannot see a path built by template string, which is
+ * That guard was a regex over `io.mjs` **as text**, because there was no way to
+ * execute the file, and it has been replaced by the field ledger and the real
+ * schemas (ADR-0006). It cannot see a path built by template string, which is
  * most of them. The last test here is the point of the harness: with a world to
  * run against, the same defect is caught at runtime, by any test that defeats
  * anything, without anyone having written a test that looks for it.

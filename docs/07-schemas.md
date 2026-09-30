@@ -95,7 +95,11 @@ it was, which is why the schema files carry unusually long comments at their dec
 otherwise. Two guards catch it now, both running Foundry's real DataModel (ADR-0006): the build's
 **model check** constructs every compiled document and fails on any Authored Key the model did not
 keep (Chapter 40), and the test world's **loud prune** throws on any runtime write that did not land
-as asked (Chapter 44). Neither sees a hand-edited world document.
+as asked, on the type it is written to (Chapter 44). The **field ledger** (`test/unit/field-ledger.test.mjs`)
+fails on a `system.X` path no schema declares anywhere in `module/`, and `test/unit/schema-validity.test.mjs`
+asks Foundry whether every field's own default passes its own validation — the `choices` without
+`blank: true` shape that once made every actor invalid. These replaced two guards that scraped
+`module/data` as text (ADR-0003's amendment). None of them sees a hand-edited world document.
 
 **Reading `nullable` as "optional".** `nullable: true` means the field may legally *hold* `null`;
 `required: false` means it may be *absent*. They are different, and the difference decides whether

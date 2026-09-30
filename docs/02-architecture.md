@@ -166,9 +166,9 @@ called. It is **not** the only place `actor.update()` is called — see the tabl
 
 `worldIO()` is also the seam the applier's tests inject a fake at, which has a consequence worth
 stating plainly: the fake stands in for `io.mjs` itself, so **`io.mjs` is executed by none of the
-suite's 214 test files.** `test/unit/actor-fields.test.mjs` reaches it by reading the file as *text*
-and regexing out `"system.x"` literals, because that is the only way in. Ch. 44 covers what is being
-done about that.
+suite's 214 test files.** For a long time the only guard on it was a test that read the file as *text*
+and regexed out `"system.x"` literals. `test/helpers/world.mjs` now runs it against Foundry's real
+documents, and the text guard has been replaced by checks on the real schemas (Ch. 44, ADR-0006).
 
 ## Invariants & edge cases
 
