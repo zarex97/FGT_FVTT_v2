@@ -26,10 +26,12 @@
  * ask it the two questions the rule asks.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 
 import { endOfRoundHomeBase } from "../../module/rules/environment.mjs";
-import { withSubjects } from "../helpers/subject.mjs";
+import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
+
+beforeAll(prepareSubjects, 60_000);
 
 // Built through `test/helpers/subject.mjs`: Semiramis from the real corpus, her
 // effects as real ActiveEffects, and the registry loaded from the real effect

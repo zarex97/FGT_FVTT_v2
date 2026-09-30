@@ -121,6 +121,19 @@ export async function withSubjects(specs, fn, { round = null, tick = null, setti
 }
 
 /**
+ * Load Foundry and the corpus ahead of the first subject.
+ *
+ * Both are loaded once per test file and take seconds, which a first test would
+ * otherwise spend inside its own timeout. Call it from `beforeAll` with room.
+ *
+ * @returns {Promise<void>}
+ */
+export async function prepareSubjects() {
+  await installSystem();
+  await corpus();
+}
+
+/**
  * One Unit, projected alone.
  *
  * @param {SubjectSpec} spec
