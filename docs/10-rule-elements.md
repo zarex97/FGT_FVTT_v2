@@ -112,6 +112,10 @@ executor actually reads, rather than of its descriptor's ids.
 - **`Immunity`** reads `scope: debuffs` and `except`. Debuff Immune's rule is now the only thing that
   makes it block: the applier's check on the held effect's id is gone, and the file's exceptions
   (Instakill, Death, Erase) are what keep the terminal effects on their own ladder.
+- **`ForbidReaction`** reads `direction`. `incoming` takes the rungs from whoever the bearer attacks,
+  the same convention as an incoming check modifier; the snapshot carries them as `refusesReactions`,
+  and the attack folds them into the ladder and the counter check. Normal Presence Concealment's
+  *"cannot be Blocked or Countered"* had forbidden the Assassin's own Block and Counter instead.
 
 ## Open questions
 

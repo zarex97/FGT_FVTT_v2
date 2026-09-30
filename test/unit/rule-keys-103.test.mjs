@@ -145,3 +145,31 @@ describe("Immunity", () => {
     expect(land({ id: "atkUp", polarity: "buff", stacking: "magnitudeStacks" }, immune())).toBe("applied");
   });
 });
+
+// Normal Presence Concealment, Hidden Strike: *"Attacks performed by Assassin
+// while Presence Concealment is Active cannot be Blocked or Countered."* The
+// rungs are taken from the Assassin's TARGET. `direction: incoming` is the
+// same convention as the Evade +4 beside it: a clause on what is done against
+// this unit's attacks. Unread, the executor forbade the Assassin's OWN Block
+// and Counter, and left his targets theirs.
+describe("ForbidReaction", () => {
+  const pc = () => {
+    const file = content("effects/normal-presence-concealment-effect.yml");
+    return contributions({ name: file.name, rules: file.rules.filter((r) => r.key === "ForbidReaction") });
+  };
+
+  it("takes Block and Counter from whoever this unit attacks", () => {
+    expect(pc().refusesReactions).toEqual(["block", "counter"]);
+  });
+
+  it("leaves the Assassin's own reactions alone", () => {
+    expect(pc().forbiddenReactions).toEqual([]);
+  });
+
+  it("still forbids the bearer's own rung when no direction is given: Invuln cannot Block", () => {
+    const invuln = content("effects/invuln.yml");
+    const out = contributions({ name: invuln.name, rules: invuln.rules.filter((r) => r.key === "ForbidReaction") });
+    expect(out.forbiddenReactions).toEqual(["block"]);
+    expect(out.refusesReactions).toEqual([]);
+  });
+});

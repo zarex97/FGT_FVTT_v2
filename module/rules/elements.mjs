@@ -47,6 +47,7 @@ import { orderElements } from "./ordering.mjs";
  * @property {object[]} buffRemovalResist  how hard this unit's buffs are to dispel
  * @property {object[]} optionalCosts  spends this unit may OFFER at a timing window
  * @property {string[]} forbiddenReactions  rungs this unit may not take
+ * @property {string[]} refusesReactions  rungs a unit this one attacks may not take
  * @property {string[]} attributes       attributes granted by an ability
  * @property {object|null} magicResistance
  * @property {string|null} variantOverride
@@ -75,7 +76,7 @@ export function empty() {
     abilityRankShifts: [],
     auras: [], applicationChances: [], compulsions: [], preemptions: [], damageFloors: [],
     excludesOpponentSources: [], unhandled: [],
-    autoCounters: [], forbiddenReactions: [], durationExtensions: [], optionalCosts: [],
+    autoCounters: [], forbiddenReactions: [], refusesReactions: [], durationExtensions: [], optionalCosts: [],
     buffRemovalResist: [], knockback: null,
     forcedModeRules: [], magnitudeScales: [], attackProperties: [],
     categoryUseLimits: [], baseAttackModifiers: [],
@@ -1638,10 +1639,18 @@ export const EXECUTORS = Object.freeze({
    * forbidding, and the ladder can say *which* effect took the option away.
    */
   ForbidReaction(el, { source, out }) {
-    for (const r of [el.reactions ?? el.reaction ?? []].flat()) {
-      out.forbiddenReactions.push(r);
+    const reactions = [el.reactions ?? el.reaction ?? []].flat();
+    // `incoming`: the rungs are taken from whoever this unit ATTACKS, the same
+    // convention as an incoming check modifier. Normal Presence Concealment is
+    // *"Attacks performed by Assassin ... cannot be Blocked or Countered"*, and
+    // without this the executor forbade the Assassin's own Block and Counter
+    // and left his targets theirs (#103).
+    if (el.direction === "incoming") {
+      out.refusesReactions.push(...reactions);
+      return;
     }
-    out.suppressions.push({ scope: "reaction", reactions: [el.reactions ?? el.reaction ?? []].flat(), source });
+    out.forbiddenReactions.push(...reactions);
+    out.suppressions.push({ scope: "reaction", reactions, source });
   },
 
   /**
