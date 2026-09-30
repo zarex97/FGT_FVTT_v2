@@ -79,6 +79,8 @@ export const EffectRegistry = {
         rules: sys.rules ?? [],
         coveredByDebuffImmune: sys.coveredByDebuffImmune ?? false,
         bypassesImmunity: sys.bypassesImmunity ?? false,
+        // ...and past Debuff Resist too (#98).
+        bypassesResistance: sys.bypassesResistance ?? false,
       });
     }
     return DEFS.size;

@@ -147,7 +147,7 @@ export function applyEffect({
     // `ctx.resist` had no supplier: every caller left it at 0, so Off.Debuff
     // ResUp and Magic Resistance's clause 2 had nowhere to land. Reading it off
     // the target here closes the loop without every caller having to know.
-    resist: (bypassChanceModifiers || friendly) ? 0
+    resist: (bypassChanceModifiers || friendly || def.bypassesResistance) ? 0
       : (ctx.resist ?? resistanceOf(target, def, ctx.options, ctx.ignoresResistanceFrom))
         + (downgrade?.resistPercent ?? 0),
     immune: false,
@@ -511,6 +511,11 @@ function findImmunity(def, target, held) {
   // has to gate at exactly the same point as the `Charm Immune` status does.
   const granted = target.immunities ?? [];
   if (granted.includes(def.id)) return `${def.id} Immune`;
+  // Past every CLASS of immunity -- Debuff Immune and its scoped kin -- though
+  // not past one that names this effect. The 'Kiritsugu' debuff *"ignores
+  // Debuff Resist and Debuff Immune effects"*. The flag was read by the chance
+  // step, which runs after this gate, so Debuff Immune still stopped it (#98).
+  if (def.bypassesImmunity) return null;
   // A scoped immunity from a rule element, and the ONLY way Debuff Immune
   // blocks: its file's `scope: debuffs` and `except` list, not its id (#103).
   // The exceptions are what keep Instakill, Death and Erase on their own ladder.

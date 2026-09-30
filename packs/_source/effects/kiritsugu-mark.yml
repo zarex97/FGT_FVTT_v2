@@ -26,7 +26,11 @@ valence: offensive
 stacking: noneNoRefresh
 baseChance: 100
 unremovable: true
+# "Ignores Debuff Resist and Debuff Immune effects." Two flags, because they
+# are two defences: an immunity blocks outright, a resistance lowers the chance.
+# `AbilityData` declared neither, so the pack kept neither (#98).
 bypassesImmunity: true
+bypassesResistance: true
 rules:
   - key: BaseAttackModifier
     factor: 0.5
