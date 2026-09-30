@@ -13,7 +13,7 @@
  * what the shape did.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
@@ -106,10 +106,12 @@ describe("Kiritsugu — the two class skills are a ref and nothing else", () => 
   });
 });
 
-import { withSubjects } from "../helpers/subject.mjs";
+import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import { checkPlan } from "../../module/rules/checks.mjs";
 
 describe("Affection of the Holy Grail — the aura", () => {
+  beforeAll(prepareSubjects, 60_000);
+
   // Kiritsugu and three bystanders are BUILT, not written: Kiritsugu from the
   // real corpus with every ability he ships with, the board projected by the
   // real `snapshotBoard`, which runs `annotateAuras` itself

@@ -36,7 +36,7 @@ describe("the real data layer", () => {
   beforeAll(async () => {
     await loadFoundry();
     models = await installSystem();
-  });
+  }, 60_000);
 
   it("is Foundry's own, not a stand-in", () => {
     expect(foundry.data.fields.SchemaField.prototype._cleanType).toBeTypeOf("function");

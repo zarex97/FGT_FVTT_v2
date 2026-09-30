@@ -23,7 +23,7 @@ import { installSystem } from "../../tools/lib/foundry.mjs";
 import { withWorld } from "../helpers/world.mjs";
 
 let models;
-beforeAll(async () => { models = await installSystem(); });
+beforeAll(async () => { models = await installSystem(); }, 60_000);
 
 /**
  * The dotted paths in `field` whose own initial value fails the field's own

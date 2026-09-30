@@ -120,7 +120,7 @@ describe("the pipeline and the vocabulary agree", () => {
         for (const key of Object.keys(doc.system)) emitted.item.add(key);
       }
     }
-  });
+  }, 60_000);
 
   // A key only a known drop carries is not the pack's yet: its issue decides
   // whether it is declared or stops being authored.
