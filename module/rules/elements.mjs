@@ -1259,11 +1259,15 @@ export const EXECUTORS = Object.freeze({
     //
     // A Servant at Range 4 and a Servant at Range 2 both end at 1, which no
     // single delta expresses.
+    // Whether the change is a BUFF, as its two siblings carry it. Mad
+    // Enhancement's *"neither a buff or a debuff"* reached MOV and not Range
+    // (#103). Declarative today: nothing removes or blocks a Skill's delta.
+    const isBuff = el.isBuff !== false;
     if (typeof el.set === "number") {
-      out.statDeltas.push({ stat: "range.panels", value: el.set, absolute: true, source });
+      out.statDeltas.push({ stat: "range.panels", value: el.set, absolute: true, isBuff, source });
       return;
     }
-    out.statDeltas.push({ stat: "range.panels", value: scalar(resolveValue(el, rank, ctx)), source });
+    out.statDeltas.push({ stat: "range.panels", value: scalar(resolveValue(el, rank, ctx)), isBuff, source });
   },
 
   /**
