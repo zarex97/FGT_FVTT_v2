@@ -453,6 +453,18 @@ describe("knockbackPanel (Ch. 45, Bašmu)", () => {
     const below = other("v", 8, 6, {});
     expect(knockbackPanel(basmu, below, board([below])).panel).toEqual(at(9, 6));
   });
+
+  // Bašmu only ever moves on the Hanging Gardens, and the garden's own
+  // footprint covers every panel of its deck. `occupantAt` counted the
+  // platform, so every landing aboard was "taken" and nobody was ever knocked
+  // back: on the Semiramis audit (#68) Bašmu walked onto Heracles and he
+  // stayed where he was (§46.4-BU).
+  it("lands on the garden's deck -- the platform is stood on, not in the way", () => {
+    const deck = Array.from({ length: 9 }, (_, i) => Array.from({ length: 9 }, (_, j) => at(i, j))).flat();
+    const garden = { id: "hgob", kind: "platform", level: 20, panel: at(0, 0), panels: deck };
+    const heracles = other("h", 6, 4, { level: 20 });
+    expect(knockbackPanel(at(7, 4), heracles, board([garden, heracles])).panel).toEqual(at(5, 4));
+  });
 });
 
 describe("sharesPanel — co-location without displacement", () => {

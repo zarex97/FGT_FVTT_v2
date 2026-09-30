@@ -45,6 +45,12 @@ export const Scheduler = {
  * @param {object} current
  */
 async function onTurnChange(combat, prior, current) {
+  // The turn that ENDED, copied before anything awaits. `prior` is Foundry's
+  // own `combat.previous`, which `Combat#_onUpdate` refills with the state as
+  // it now stands on every later update -- and `claimBoundary` below writes to
+  // the Combat. Read after it, `prior` named the incoming combatant, and every
+  // turn-end step ran for the faction about to act (Ch. 46 §46.4-BV).
+  const endedCombatantId = prior?.combatantId ?? null;
   if (!isScheduler()) return;
   if (!combat?.started) return;
 
@@ -53,7 +59,7 @@ async function onTurnChange(combat, prior, current) {
   if (!await claimBoundary(combat, "turn")) return;
 
   const board = boardFor(combat);
-  const activeFactionId = factionOf(combat, prior);
+  const activeFactionId = factionOf(combat, { combatantId: endedCombatantId });
   const activeUnits = board.units.filter((u) => u.factionId === activeFactionId);
   const actedUnits = board.units.filter((u) => u.acted);
   const involvedUnits = board.units.filter((u) => u.inCombatPhase);

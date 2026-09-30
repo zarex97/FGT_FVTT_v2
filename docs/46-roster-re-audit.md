@@ -2396,6 +2396,27 @@ footprint to footprint (`geometry.mjs#inAttackRangeBetween`). The garden itself 
 a Bašmu stands on it: *"Enemy Units cannot Attack Semiramis or her allied Units if a Bašmu is next to
 them"*, and the garden *"counts as a separate Unit"*.
 
+### BU. Bašmu could not knock anybody back on the garden — **fixed 2026-09-30**
+
+**Reached: BS.move.** Bašmu moved onto Heracles and he did not move. `knockbackPanel` asked `occupantAt`
+whether each landing was free, and `occupantAt` counts the platform, whose footprint covers every panel
+of its own deck. Bašmu only ever moves on the garden, so every landing was taken and every push failed
+quietly. Landings are now judged free of Units: a platform or a structure is stood on, as `canStopOn` and
+`freePanels` already say. Measured after: a Bašmu moved onto Semiramis and she was pushed from (4,4) to
+(5,4).
+
+### BV. Every turn-end step ran for the faction about to act — **fixed 2026-09-30**
+
+**Reached: the audit board itself.** A reload turned Faction 1's Turn into Faction 2's, mid-Turn.
+`takenThisRound` read `[faction-1]` though Faction 2 had just acted, and `turnOrder` had been re-sorted
+to match, so a client that sorted afresh found Faction 2 at the current turn index. The cause is
+Foundry's: `combatTurnChange` receives `combat.previous`, and `Combat#_onUpdate` refills that object with
+the current state on every update. `onTurnChange` awaited `claimBoundary`, which writes to the Combat,
+and read `prior.combatantId` afterwards. Since `claimBoundary` arrived on 2026-09-16, every turn-end step
+-- the ending faction's `turnEnd` handlers, `advanceChannels`, `markTurnTaken` -- ran for the incoming
+faction. Evidence gathered since then on turn-end Clauses deserves a second look. The combatant is now
+copied before the first await; the board's corrupted order was repaired by hand.
+
 ---
 
 ---

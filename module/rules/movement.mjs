@@ -585,13 +585,20 @@ export function knockbackPanel(origin, unit, board, {
     ? [{ i: -1, j: 0 }, { i: 1, j: 0 }, { i: 0, j: -1 }, { i: 0, j: 1 }]
     : [toward];
 
+  // Free of UNITS. A platform or a structure is stood on, not in the way --
+  // `canStopOn` and `freePanels` say it in the same words -- and the Hanging
+  // Gardens covers every panel of its own deck, so counting it left Bašmu,
+  // which only ever moves there, with nowhere to push anybody (§46.4-BU).
+  const free = (panel) => !occupantsAt(panel, board, unit.level)
+    .some((u) => u.kind !== "platform" && u.kind !== "structure" && !u.sharesPanel);
+
   // Step by step rather than direction by direction, so a fanned-out search
   // returns the NEAREST free panel rather than the first direction's.
   for (let step = 1; step <= maxSteps; step++) {
     for (const dir of directions) {
       const panel = { i: unit.panel.i + dir.i * step, j: unit.panel.j + dir.j * step };
       if (!geo.inBounds(panel, board.bounds ?? null)) continue;
-      if (!occupantAt(panel, board, unit.level)) return { panel, sidestepped: false };
+      if (free(panel)) return { panel, sidestepped: false };
     }
   }
 
@@ -604,7 +611,7 @@ export function knockbackPanel(origin, unit, board, {
   for (const side of perpendicular(toward)) {
     const panel = { i: unit.panel.i + side.i, j: unit.panel.j + side.j };
     if (!geo.inBounds(panel, board.bounds ?? null)) continue;
-    if (!occupantAt(panel, board, unit.level)) return { panel, sidestepped: true };
+    if (free(panel)) return { panel, sidestepped: true };
   }
   return null;
 }
