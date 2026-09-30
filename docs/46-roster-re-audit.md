@@ -2359,6 +2359,16 @@ summon's placement, `bounded-fields.mjs#contains` since BI. `collectAuras` now r
 across levels. A `scope: "field"` aura stays unbounded, so Territory Creation's C still reaches her
 Master in the ground Home Base.
 
+### BQ. The garden's once-per-Turn cap read a record it could not keep — **fixed 2026-09-30**
+
+**Reached: HG.econ.** The garden Moved by drag, and its bar offered Move, Dragon Wing Warriors and
+Aerial Garden of Vanity again. `budget.mjs`'s cap reads the platform's `turnState`, and
+`PlatformData` declared none: it spreads `unitCommon()` only, and `turnState` lived in
+`combatantCommon()`. Every `system.turnState` write to the garden was pruned by its model -- a Hop 3
+drop (Ch. 07) that the loud prune would have named, had any test written to a platform in the test
+world. The unit test of the cap handed it an in-memory record. The field is now `turnStateField()`,
+shared by both. Measured after: one Move, then *"Move — this unit has already acted this Turn"*.
+
 ---
 
 ---

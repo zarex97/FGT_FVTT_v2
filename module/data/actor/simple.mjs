@@ -5,7 +5,7 @@
  * would be four files of five lines.
  */
 
-import { unitCommon, combatantCommon, normalAttackField } from "./_shared.mjs";
+import { unitCommon, combatantCommon, normalAttackField, turnStateField } from "./_shared.mjs";
 
 const fields = foundry.data.fields;
 
@@ -102,6 +102,9 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
   static defineSchema() {
     return {
       ...unitCommon(),
+      // *"the HGoB can Move/Attack once per Turn"*: the cap reads this record,
+      // and without the field every write to it was dropped (§46.4-BQ).
+      turnState: turnStateField(),
       description: new fields.HTMLField({ required: false, blank: true }),
       // A Platform can Attack (the HGoB's own Dragon Wing Warriors and Aerial
       // Garden of Vanity both read it) but has no Parameters of its own on

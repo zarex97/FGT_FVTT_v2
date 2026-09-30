@@ -105,3 +105,20 @@ describe("a Bašmu that has attacked", async () => {
     expect(canConsume(emptyBudget(), hgob, "move").ok).toBe(false);
   });
 });
+
+// *"During Semiramis' Turn, the HGoB can Move/Attack once per Turn."* The cap
+// reads the platform's Turn Record, and `PlatformData` declared none: every
+// `system.turnState` write to the garden was dropped by the model, so the cap
+// read a blank record forever. Found live -- the garden Moved by drag and the
+// bar offered it Move, Dragon Wing Warriors and Aerial Garden of Vanity again.
+describe("the Hanging Gardens' Turn Record", async () => {
+  const { keptByModel } = await import("../helpers/world.mjs");
+
+  it("is kept by the platform's model", async () => {
+    const kept = await keptByModel("Actor", {
+      name: "Hanging Gardens of Babylon", type: "platform",
+      system: { turnState: { tick: 54, acted: true, moved: true, movedPanels: 1 } },
+    });
+    expect(kept.system.turnState).toMatchObject({ tick: 54, moved: true, movedPanels: 1 });
+  });
+});
