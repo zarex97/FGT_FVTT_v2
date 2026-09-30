@@ -24,12 +24,20 @@ rules:
     event: damageStepEnd
     automatic: true
     predicate: ["attack:kind:normal", { not: "attack:crit" }]
-    targeting:
-      anchor: { kind: self }
-      shape: { kind: chebyshevRadius, r: 2 }
+    then:
+      # WHO, on the action: `target: nearby` is what the dispatcher reads. A
+      # handler-level `targeting` block said the same thing to nobody, so only
+      # the bearer ever got S.Crit Up (#103).
+      #
       # `alsoIncludes: partner` is the *"(and Pollux if she is out of the
       # Skill's Range)"* clause -- the partner is always in the set, never
       # excluded for distance and never counted twice for proximity.
-      selection: { relations: [ally, self], includeSelf: true, chooser: all, alsoIncludes: partner }
-    then:
-      - { key: ApplyEffect, effect: { id: sCritUp }, duration: "⅓◈", magnitude: 10 }
+      - key: ApplyEffect
+        target: nearby
+        radius: 2
+        relations: [ally]
+        includeSelf: true
+        alsoIncludes: partner
+        effect: { id: sCritUp }
+        duration: "⅓◈"
+        magnitude: 10

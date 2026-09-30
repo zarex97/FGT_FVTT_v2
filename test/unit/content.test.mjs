@@ -911,3 +911,10 @@ describe("a revival's budget", () => {
       .toMatch(/RevivalSource counts its budget in "charges"/);
   });
 });
+
+describe("an OnEvent's targets", () => {
+  it("are refused as a handler-level `targeting` block nothing reads (#103)", () => {
+    expect(errorsFor([file(ok({ rules: [{ key: "OnEvent", event: "turnEnd", targeting: { shape: {} }, then: [] }] }))])[0])
+      .toMatch(/OnEvent's "targeting" is read by nothing/);
+  });
+});
