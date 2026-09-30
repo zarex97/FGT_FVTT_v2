@@ -3450,11 +3450,37 @@ async function resolveDefeatOf(defender, damage, state = {}) {
 
   // Rebuilt in the SNAPSHOT's shape -- a flat number -- because that is what
   // `resolveDefeat` is given everywhere else and what `currentHealth` reads.
-  return [
-    ...recording,
-    ...dimensional,
-    ...resolveDefeat({ ...defender, health: remaining, acceptedRevivals: accepted }, ctx),
-  ];
+  const defeat = resolveDefeat({ ...defender, health: remaining, acceptedRevivals: accepted }, ctx);
+  return [...recording, ...dimensional, ...defeat, ...killedBy(defender, defeat, state, ctx)];
+}
+
+/**
+ * `unitKilled`, fired on the KILLER once a defeat is certain.
+ *
+ * `unitDefeated` is heard by the unit that ran out of Health, so a clause about
+ * killing somebody had nowhere to hang. Jack: *"Every time Jack kills a Human
+ * when she is a Free Servant, increase her Sustainability by 1◈ Turns."* It
+ * listened on `unitDefeated` and paid on her own death (#103).
+ *
+ * Only once the chain resolves TO a defeat -- a Servant Guts saves was not
+ * killed -- and only on the attack path, the one that knows a killer. The
+ * victim travels as `target:` options, which is what the handler's
+ * `targetPredicate` asks about.
+ *
+ * @param {object} victim the defender's snapshot
+ * @param {object[]} defeat what `resolveDefeat` returned
+ * @param {object} state the Combat Process
+ * @param {object} ctx the defeat context
+ * @returns {object[]}
+ */
+function killedBy(victim, defeat, state, ctx) {
+  if (!state.attackerId || !defeat.some((i) => i.t === "defeat" && i.unitId === victim.id)) return [];
+  const board = boardSnapshot();
+  const killer = unitFrom(board, game.actors.get(state.attackerId));
+  if (!killer) return [];
+  return fireEvent("unitKilled", [killer], {
+    ...ctx, board, options: rollOptionsFor({ attacker: killer, defender: victim }),
+  });
 }
 
 /**

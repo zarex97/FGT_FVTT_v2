@@ -2093,8 +2093,19 @@ export const EXECUTORS = Object.freeze({
     out.suppressions.push({ scope: "visibility", visibility: el.visibility, deferredUntil: el.deferredUntil, source });
   },
 
-  SustainabilityGain(el, { source, out }) {
-    out.eventHandlers.push({ event: el.event ?? "unitDefeated", sustainabilityGain: el.value ?? 1, source });
+  SustainabilityGain(el, { source, out, deferred = null }) {
+    out.eventHandlers.push({
+      // A KILL, heard by the killer. The default was `unitDefeated`, which
+      // fires on the defeated unit's own handlers -- so Jack and Medusa gained
+      // Sustainability when they themselves died, and never when they killed
+      // (#103). `engine/attack.mjs` fires `unitKilled` on the attacker.
+      events: [el.event ?? "unitKilled"],
+      // WHOM it has to be: Jack's "a Human", Medusa's "a Civilian". Dropped
+      // here, every kill paid (#103).
+      targetPredicate: mergePredicates(el.targetPredicate, deferred),
+      sustainabilityGain: el.value ?? 1,
+      source,
+    });
   },
 
   RelationshipProxy(el, { source, out }) {

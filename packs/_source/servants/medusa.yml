@@ -59,7 +59,10 @@ abilities:
 # is narrower, being Civilians rather than Humans at large.
 rules:
   - key: SustainabilityGain
-    event: unitDefeated
+    # Heard by the KILLER (`engine/attack.mjs` fires it on the attacker). On
+    # `unitDefeated` it was heard by the victim, so it paid on her own death
+    # (#103).
+    event: unitKilled
     value: 1
     predicate: ["self:free"]
     targetPredicate: ["target:type:civilian"]

@@ -128,6 +128,10 @@ executor actually reads, rather than of its descriptor's ids.
 - **`RevivalSource`** counts its budget in `charges`. Normal Lancer's Battle Continuation said `uses:
   1`, so *"can only be used once"* had no limit. The content now says `charges: 1`, and the validator
   refuses `uses`.
+- **`SustainabilityGain`** carries `targetPredicate` and listens for `unitKilled`, a new event fired on
+  the killer (Appendix E). It had listened on `unitDefeated`, which the victim hears, and dropped the
+  predicate: Jack and Medusa gained Sustainability when they themselves died, for anybody, and never
+  when they killed a Human or a Civilian.
 
 ## Open questions
 
