@@ -224,7 +224,11 @@ describe("groupEffects", () => {
   // every debuff in the game under Statuses.
   const defs = {
     defUp: { id: "defUp", name: "Def Up", polarity: "buff", valence: "defensive" },
-    poison: { id: "poison", name: "Poison", polarity: "debuff", valence: "offensive" },
+    // The tick is read from the definition's own periodic (#105).
+    poison: {
+      id: "poison", name: "Poison", polarity: "debuff", valence: "offensive",
+      periodic: { when: "roundEnd", amount: 20, scaling: "doubling" },
+    },
     madEnhancement: {
       id: "madEnhancement", name: "Mad Enhancement",
       polarity: "status", valence: "neither", unremovable: true,

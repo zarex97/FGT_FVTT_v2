@@ -328,7 +328,7 @@ export function groupEffects(instances, lookup, unit) {
       known: Boolean(def),
       // The number D29.4 names as the one players get wrong: "Stage 3" does
       // not look like 80 until somebody does 20 x 2^(3-1) out loud.
-      periodic: periodicDamageFor(instance, unit),
+      periodic: periodicDamageFor(instance, unit, lookup),
     };
 
     if (!def) out.unknown.push(row);

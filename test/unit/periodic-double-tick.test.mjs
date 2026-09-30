@@ -26,6 +26,7 @@
 
 import { describe, it, expect } from "vitest";
 import { tickPeriodics } from "../../module/engine/scheduler.mjs";
+import { effectDef } from "../helpers/effect-defs.mjs";
 
 const OVERRIDE = { effectId: "poison", triggers: ["turnEnd", "actedTurnEnd"], source: "semiramis-sikera-usum" };
 
@@ -35,7 +36,7 @@ const unit = ({ faction = "f1", acted = false }) => ({
   periodicOverrides: [OVERRIDE],
 });
 
-const ctx = { tick: 10, activeFactionId: "f1", effectDef: () => null };
+const ctx = { tick: 10, activeFactionId: "f1", effectDef };
 
 /** Both calls `endTurn` makes at one boundary, as it makes them. */
 function boundary(u) {

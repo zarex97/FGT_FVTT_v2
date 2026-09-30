@@ -24,14 +24,12 @@ stacking: noneRefresh
 baseChance: 100
 severity: normal
 preventsAction: true
-rules:
-  # "100 Ice damage at Round end." A periodic on the bearer.
-  #
-  # The absorption and the Fire escape are deliberately NOT authored here --
-  # they are pipeline stages, and restating them as rules would be a second
-  # implementation with nothing holding the two together.
-  - key: OnEvent
-    event: roundEnd
-    automatic: true
-    then:
-      - { key: StatDelta, stat: "health.value", delta: -100 }
+# "100 Ice damage at Round end." A periodic on the bearer, and the only one:
+# this file also carried an `OnEvent: roundEnd` StatDelta of -100, and the
+# scheduler's own table ticked 100 besides, so a Frozen Unit lost 200 (#105).
+#
+# The absorption and the Fire escape are deliberately NOT authored here --
+# they are pipeline stages, and restating them as rules would be a second
+# implementation with nothing holding the two together.
+periodic: { when: roundEnd, amount: 100, bypassModifiers: true }
+rules: []

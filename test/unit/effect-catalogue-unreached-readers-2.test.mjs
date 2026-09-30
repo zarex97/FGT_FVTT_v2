@@ -18,7 +18,9 @@ import { readFileSync } from "node:fs";
 import { parse } from "yaml";
 import { applyEffect, inflictBonusOf } from "../../module/engine/effect-applier.mjs";
 import { preventedBy } from "../../module/rules/budget.mjs";
-import { cooldownRate, PERIODICS } from "../../module/engine/scheduler.mjs";
+import { cooldownRate } from "../../module/engine/scheduler.mjs";
+import { periodicOf } from "../../module/rules/periodic.mjs";
+import { effectDef } from "../helpers/effect-defs.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { rollOptionsFor } from "../../module/rules/options.mjs";
 
@@ -123,8 +125,9 @@ describe("PoisHeal / CursHeal / FlamHeal — two readers each, neither reachable
     expect(hit([id], "ice").flags.converted).toBe(false);
   });
 
-  it.each(CASES)("%s is the healConversion the scheduler's periodic already named", (id) => {
-    expect(Object.values(PERIODICS).map((p) => p.healConversion)).toContain(id);
+  it.each(CASES)("%s is the healConversion an authored periodic names", (id) => {
+    const named = ["poison", "curse", "burn"].map((d) => periodicOf(effectDef(d))?.healConversion);
+    expect(named).toContain(id);
   });
 });
 

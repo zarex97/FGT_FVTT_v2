@@ -10,4 +10,5 @@ volatility: volatile
 valence: offensive
 stacking: stage
 baseChance: 100
-periodic: { when: turnEnd, formula: "25 * @stage", bypassModifiers: true }
+# "25 x N": 25 at stage 1, `perStage` (#105). Curse Heal turns it into healing.
+periodic: { when: turnEnd, amount: 25, scaling: perStage, healConversion: cursHeal, bypassModifiers: true }

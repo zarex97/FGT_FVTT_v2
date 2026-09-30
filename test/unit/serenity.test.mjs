@@ -12,7 +12,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
-import { PERIODICS } from "../../module/engine/scheduler.mjs";
+import { periodicOf } from "../../module/rules/periodic.mjs";
 import { REQUIREMENT_KINDS } from "../../module/rules/items.mjs";
 import { classifyAbility, needsTargeting, usageSpecFor } from "../../module/rules/ability-use.mjs";
 import { canUseWhileConcealed } from "../../module/rules/concealment.mjs";
@@ -291,14 +291,15 @@ describe("Zabaniya: Delusional Poison Body", () => {
 
 describe("the poison family", () => {
   it("has a definition for the staging the scheduler has always known", () => {
-    // `PERIODICS.poison` carried the formula since the scheduler was written and
-    // there was no document for it to key on -- so the whole poison family, every
-    // Servant that inflicts it and the Poison Swamp terrain all pointed at an
-    // effect that did not exist.
-    expect(PERIODICS.poison.when).toBe("roundEnd");
-    expect(PERIODICS.poison.amount({ stage: 1 })).toBe(20);
-    expect(PERIODICS.poison.amount({ stage: 3 })).toBe(80);
-    expect(PERIODICS.poison.amount({ stage: 5 })).toBe(320);
+    // The scheduler carried the formula before there was a document for it to
+    // key on -- so the whole poison family, every Servant that inflicts it and
+    // the Poison Swamp terrain all pointed at an effect that did not exist. The
+    // document now carries the formula too, and is the only copy (#105).
+    const tick = periodicOf(effect("poison"));
+    expect(tick.when).toBe("roundEnd");
+    expect(tick.amount({ stage: 1 })).toBe(20);
+    expect(tick.amount({ stage: 3 })).toBe(80);
+    expect(tick.amount({ stage: 5 })).toBe(320);
     expect(effect("poison").stacking).toBe("stage");
   });
 

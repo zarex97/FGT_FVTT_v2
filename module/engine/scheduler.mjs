@@ -28,6 +28,7 @@ import { currentHealth, maxHealth } from "../domain/health.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import * as I from "./intents.mjs";
+import { periodicOf } from "../rules/periodic.mjs";
 import { resolveRevival, pendingRevivalRolls } from "../rules/revival.mjs";
 import { resourcePathFor, resourceValue } from "../domain/resources.mjs";
 import { deathRollOutcome } from "../rules/nameless-forest.mjs";
@@ -106,8 +107,8 @@ export function endTurn(board, ctx) {
   // 5. Periodic effects due at turn end.
   intents.push(...tickPeriodics(units, "turnEnd", ctx));
   // Same boundary, the ACTED half: only a `PeriodicOverride`-widened instance
-  // (Sikera Ušum clause c) answers "turnEnd" to this, ever -- no periodic in
-  // `PERIODICS` has `when: "actedTurnEnd"` as its own default, so this call
+  // (Sikera Ušum clause c) answers "turnEnd" to this, ever -- no authored
+  // periodic has `when: "actedTurnEnd"` as its own, so this call
   // is a no-op everywhere the widening does not apply.
   intents.push(...tickPeriodics(units.filter((u) => u.acted), "actedTurnEnd", ctx));
 
@@ -1670,8 +1671,8 @@ export function cooldownRate(unit, ability, ctx) {
  *   `magnitudeStacks`, so two sources add.
  * - **`npCooldownRegen`** is *"reduced by 1 Turn at the end of every Turn"* and
  *   declares `periodic: { when: turnEnd, kind: npCooldown, amount: 1 }`.
- *   `PERIODICS` is damage-over-time only and has no entry for it; `kind:
- *   npCooldown` appears nowhere in the engine. Its amount is on its own sheet,
+ *   `periodicOf` is damage-over-time only and skips it; `kind:
+ *   npCooldown` is read nowhere else in the engine. Its amount is on its own sheet,
  *   so it is read from the spec's stated 1 rather than invented here.
  *
  * Six ability files across five Servants apply one or the other. Measured live
@@ -1714,7 +1715,7 @@ export function tickPeriodics(units, when, ctx) {
   for (const u of units) {
     if ((u.effects ?? []).includes("stop")) continue;
     for (const e of u.effectInstances ?? []) {
-      const spec = PERIODICS[e.defId];
+      const spec = periodicOf(ctx.effectDef?.(e.defId));
       if (!spec) continue;
       // Sikera Ušum clause c: "Units inflicted with Poison while within this
       // NP area receive Poison damage at the end of its Turn and at the end
@@ -1876,27 +1877,11 @@ export function regionScale(amount, scaledRegion, warRegion) {
  * @returns {number|null} `null` when this effect has no periodic tick at all
  */
 export function periodicDamageFor(instance, unit, effectDef = null) {
-  const spec = PERIODICS[instance?.defId];
+  const spec = periodicOf(effectDef?.(instance?.defId));
   if (!spec) return null;
   return amplify(spec.amount(instance), instance.defId, unit, effectDef);
 }
 
-/**
- * The periodic-damage catalogue. Amounts are from Appendix A §A.12.
- * @type {Readonly<Record<string, {when: string, amount: (e: object) => number,
- *   actedOnly?: boolean, healConversion?: string}>>}
- */
-export const PERIODICS = Object.freeze({
-  curse: { when: "turnEnd", amount: (e) => 25 * (e.stage || 1), healConversion: "cursHeal" },
-  poison: { when: "roundEnd", amount: (e) => 20 * 2 ** ((e.stage || 1) - 1), healConversion: "poisHeal" },
-  burn: { when: "roundEnd", amount: () => 50, healConversion: "flamHeal" },
-  scald: { when: "roundEnd", amount: () => 50 },
-  sap: { when: "turnEnd", amount: () => 50, actedOnly: true },
-  bleed: { when: "turnEnd", amount: () => 50, actedOnly: true },
-  freeze: { when: "roundEnd", amount: () => 100 },
-  crystalfreeze: { when: "roundEnd", amount: () => 100 },
-  crystallize: { when: "turnEnd", amount: () => 50, actedOnly: true },
-});
 
 /**
  * Remove effects whose absolute expiry tick has arrived.

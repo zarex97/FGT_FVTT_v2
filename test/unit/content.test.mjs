@@ -871,3 +871,19 @@ describe("predicate options are validated against the facets", () => {
     }
   });
 });
+
+// #105: `periodic` is the only source of a damage tick, so a key its reader
+// does not know is a tick that silently does not happen.
+describe("an Effect's periodic", () => {
+  it("accepts the vocabulary rules/periodic.mjs reads", () => {
+    expect(errorsFor([file(ok({ periodic: { when: "roundEnd", amount: 20, scaling: "doubling", healConversion: "poisHeal" } }))])).toEqual([]);
+  });
+
+  it("refuses the shapes that drifted while nothing read it", () => {
+    expect(errorsFor([file(ok({ periodic: { when: "turnEnd", formula: "25 * @stage" } }))]).join(" "))
+      .toMatch(/periodic\.formula is not read.*periodic\.amount must be a number/);
+    expect(errorsFor([file(ok({ periodic: { when: "roundEnd", amount: 20, scaling: "exponential" } }))])[0])
+      .toMatch(/periodic\.scaling "exponential"/);
+    expect(errorsFor([file(ok({ periodic: { when: "dawn", amount: 5 } }))])[0]).toMatch(/periodic\.when "dawn"/);
+  });
+});

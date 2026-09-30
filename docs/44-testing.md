@@ -108,8 +108,8 @@ prepares it and projects it with the real `snapshotUnit`, and loads each Effect 
 
 A projected route's target must itself have a reader outside the file that produces it. Reaching the
 snapshot or the registry is not the end of the Route: `periodic` reached the registry definition and was
-read by nobody there, while the scheduler ticked from its own `PERIODICS` table, and a test that stopped
-at the projection called that survival (#105).
+read by nobody there, while the scheduler ticked from its own table, and a test that stopped at the
+projection called that survival (#105, since fixed: `rules/periodic.mjs` reads it).
 - **unread** — a key found with no reader at all, owned by an issue. The count may only shrink.
 
 A key with no route fails, naming the file and the last Hop it reached. Its first run found two: Raikou's

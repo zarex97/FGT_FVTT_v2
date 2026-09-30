@@ -105,10 +105,10 @@ describe("Freeze — the pipeline has carried its behaviour unexercised", () => 
     expect(out.flags.removeFreeze).toBe(true);
   });
 
-  it("ticks 100 Ice at the end of each Round", () => {
-    const rule = effect("freeze").rules[0];
-    expect(rule.event).toBe("roundEnd");
-    expect(rule.then[0]).toMatchObject({ stat: "health.value", delta: -100 });
+  it("ticks 100 Ice at the end of each Round, from its periodic alone", () => {
+    // Once: a Round-end rule beside it ticked a second 100 (#105).
+    expect(effect("freeze").periodic).toMatchObject({ when: "roundEnd", amount: 100 });
+    expect(effect("freeze").rules).toEqual([]);
   });
 });
 
