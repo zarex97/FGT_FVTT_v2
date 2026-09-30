@@ -34,7 +34,7 @@ The gate checks three sources: effect-specific immunity (`immune:<effectId>`), c
 
 **Exception: an effect that bypasses.** `bypassesImmunity` passes every class of immunity (Debuff Immune and its scoped kin) at this gate, though not one that names the effect itself; `bypassesResistance` zeroes step 3's resistance. The 'Kiritsugu' debuff carries both: it *"ignores Debuff Resist and Debuff Immune effects"*. Neither flag was kept by the schema, and the immunity flag was read only by step 3, after this gate had already refused (#98). Debuff Immune itself gates through its rule's `scope: debuffs` and `except` list (#103).
 
-**Sikera Ušum clause d: downgrade, not refusal.** A field's `ImmunityDowngrade` suppression can downgrade `Poison Immune` to `Poison Resist`, changing step 3's resistance value rather than blocking here. The instance inherits the immunity type; the gate returns null if a downgrade covers it (`module/engine/effect-applier.mjs:87-102`).
+**Sikera Ušum clause d: downgrade, not refusal.** Its other half halves a resistance that **names** Poison, and only that: a resistance to volatile debuffs or to all debuffs covers Poison and is left whole (§46.4-BH). A field's `ImmunityDowngrade` suppression can downgrade `Poison Immune` to `Poison Resist`, changing step 3's resistance value rather than blocking here. The instance inherits the immunity type; the gate returns null if a downgrade covers it (`module/engine/effect-applier.mjs:87-102`).
 
 Outcome: `passed` or `blocked`. If blocked, the chain stops; the result carries the blocking effect's name.
 

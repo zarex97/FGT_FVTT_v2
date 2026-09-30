@@ -2276,6 +2276,15 @@ Semiramis, the Normal Caster's) reduced damage only near its bearer. The unit te
 `collectAuras` without an index, which is why they all passed. Field auras now sit on an `unbounded`
 list the index returns for every panel.
 
+### BH. Sikera Ušum halved every resistance to Poison, not only one that names it — **fixed 2026-09-30**
+
+**Reached: SIK.d.** *"Units with Poison Resist effects that are not Poison Immune in this area have the
+magnitude of those Poison Resist effects halved. Only applies to effects that specify Poison."*
+`engine/effect-applier.mjs#chanceContribution` halved every incoming contribution that matched Poison
+while the field's downgrade stood, and Poison matches a great deal: Queen's Poison's resistance to
+volatile debuffs, Magic Resistance's to debuffs. A Unit holding Queen's Poison in the Throne Room
+resisted a 50% Poison at 7.5 rather than 15. Only a contribution that names Poison is halved now.
+
 ---
 
 ---
