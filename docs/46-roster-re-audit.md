@@ -2433,6 +2433,15 @@ board's `{iMin, iMax, jMin, jMax}` does not carry, so nothing clipped the far ed
 above where it stood, or on the nearest free deck panel, and a carried Master beside its Servant on a
 panel of its own.
 
+### BY. Nobody saw a boarding roll — **fixed 2026-09-30**
+
+**Reached: HG.board.master.** Heracles rolled 1 against 8 and the player read *"That cannot be used right
+now"*. `boardPlatform` wrote the roll to the scheduler log only, and a failure came back with no reason,
+which the action bar filled with its generic refusal. A success was visible only as a token moving. The
+attempt is now announced in chat, die, roll, target and any relief, and a failure returns
+`boardFailed`. The allied walk-on path of a `byRelation` platform took the anchor corner as well, and
+now lands through `boardingLanding` too.
+
 ---
 
 ---
