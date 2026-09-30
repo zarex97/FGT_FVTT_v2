@@ -1237,9 +1237,9 @@ function grantedStepDeltas(grantedSteps) {
  * @returns {string[]}
  */
 function activeEffectIds(actor) {
-  const live = [...(actor.effects ?? [])]
+  const live = fgtEffects(actor)
     .filter((e) => !e.disabled && !e.isSuppressed)
-    .map((e) => e.system?.defId ?? e.name);
+    .map((e) => e.system.defId);
 
   // Petrify: *"Buffs, debuffs and other effects have no effect."* A blanket
   // negation that has to be answered HERE rather than by a rule element,
@@ -1254,14 +1254,28 @@ function activeEffectIds(actor) {
 }
 
 /**
+ * The actor's F/GT effects: the ones that name a definition.
+ *
+ * A core status is an ActiveEffect too -- the defeat skull is one (#96) -- and
+ * it names no `defId`. These readers fell back to its `name`, so it would have
+ * arrived as an effect called "Defeated" in every list, cure and sheet.
+ *
+ * @param {object} actor
+ * @returns {object[]}
+ */
+function fgtEffects(actor) {
+  return [...(actor.effects ?? [])].filter((e) => Boolean(e.system?.defId));
+}
+
+/**
  * @param {object} actor
  * @returns {object[]}
  */
 function effectInstances(actor) {
-  return [...(actor.effects ?? [])]
+  return fgtEffects(actor)
     .filter((e) => !e.disabled)
     .map((e) => {
-      const defId = e.system?.defId ?? e.name;
+      const defId = e.system.defId;
       const def = EffectRegistry.get(defId) ?? null;
       return {
       id: e.id,

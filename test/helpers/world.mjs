@@ -135,11 +135,7 @@ function getProperty(root, path) {
  * only shrink — `test/unit/world-loud-prune.test.mjs` holds its length — and an
  * entry leaves it when its issue is fixed, not when a test is inconvenient.
  */
-export const KNOWN_DROPS = Object.freeze([
-  // `io.defeat`'s skull. v14's Token has no `overlayEffect`; the overlay is an
-  // ActiveEffect flagged `core.overlay` now.
-  Object.freeze({ document: "Token", path: "overlayEffect", issue: "#96" }),
-]);
+export const KNOWN_DROPS = Object.freeze([]);
 
 const isKnownDrop = (document, path) => KNOWN_DROPS.some((d) => d.document === document && d.path === path);
 
@@ -262,13 +258,18 @@ class FakeEffect {
     this.origin = data.origin;
     this.doc = realDocument("ActiveEffect", {
       type: "fgtEffect",
-      ...documentData(data, ["name", "type", "img", "system", "disabled", "statuses"]),
+      ...documentData(data, ["name", "type", "img", "system", "disabled", "statuses", "flags"]),
     }, `Effect(${data.name ?? this.id})`);
   }
 
   get name() { return this.doc.name; }
   get type() { return this.doc.type; }
+  get img() { return this.doc.img; }
   get system() { return this.doc.system; }
+  // A core status's shape: what it IS (`statuses`) and how the token draws it
+  // (`flags.core.overlay`) -- the defeat skull (#96).
+  get statuses() { return this.doc.statuses; }
+  get flags() { return this.doc.flags; }
   get _source() { return this.doc._source; }
 
   async update(patch) {

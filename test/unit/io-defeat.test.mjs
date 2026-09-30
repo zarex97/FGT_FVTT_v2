@@ -60,15 +60,39 @@ describe("io.defeat", () => {
     });
   });
 
-  it("asks for the skull on the token -- a write Foundry v14 drops (#96)", async () => {
-    // This used to read the property back off a fake Token that kept anything,
-    // and so asserted the bug into existence: v14's Token has no
-    // `overlayEffect`, and the skull has never appeared. It is on the harness's
-    // KNOWN_DROPS until #96 moves the skull to an overlay ActiveEffect.
+  it("puts the skull on the token the way v14 draws one: an overlay ActiveEffect (#96)", async () => {
+    // v14's Token has no `overlayEffect`, so the write this used to make was
+    // dropped and the skull never appeared. The token draws the last applied
+    // effect flagged `core.overlay` (client/canvas/placeables/token.mjs), which
+    // is what `Actor#toggleStatusEffect(..., {overlay: true})` creates.
     await withWorld(world(), async (w) => {
       await (await io()).defeat("heracles", "damage");
-      expect(w.wrote("overlayEffect")).toHaveLength(1);
-      expect(w.tokens.get("t1")._source.overlayEffect).toBeUndefined();
+      expect(w.wrote("overlayEffect")).toEqual([]);
+      const skull = [...w.actor("Heracles").effects].filter((e) => e.flags?.core?.overlay);
+      expect(skull).toHaveLength(1);
+      expect(skull[0]).toMatchObject({ img: "icons/svg/skull.svg" });
+      expect([...skull[0].statuses]).toEqual(["dead"]);
+    });
+  });
+
+  it("does not put a second skull on a Unit defeated twice", async () => {
+    await withWorld(world(), async (w) => {
+      await (await io()).defeat("heracles", "damage");
+      await (await io()).defeat("heracles", "damage");
+      expect([...w.actor("Heracles").effects].filter((e) => e.flags?.core?.overlay)).toHaveLength(1);
+    });
+  });
+
+  it("keeps the skull out of the Unit's F/GT effects", async () => {
+    // A core status is not an F/GT effect: it has no `defId`, and the
+    // projection read `defId ?? name`, so it would have arrived as an effect
+    // called "Defeated" in every list, every cure and every sheet.
+    await withWorld(world(), async (w) => {
+      await (await io()).defeat("heracles", "damage");
+      const { snapshotUnit } = await import("../../module/rules/snapshot.mjs");
+      const snap = snapshotUnit(w.actor("Heracles"));
+      expect(snap.effects).toEqual([]);
+      expect(snap.effectInstances).toEqual([]);
     });
   });
 

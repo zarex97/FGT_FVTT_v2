@@ -108,6 +108,8 @@ Rules evaluate against a **snapshot** — a plain object flattening a document i
 
 8. **Masters carry `baseAttack` like any other combatant.** It comes from the shared `combatantCommon()` fragment and is declared on the schema (`module/data/actor/master.mjs:35`, `module/data/actor/master.mjs:41`; the field at `module/data/actor/_shared.mjs:224-227`).
 
+9. **A defeated Unit wears the skull as a core status, not as an F/GT effect.** `io.defeat` creates one ActiveEffect with `statuses: ["dead"]` and `flags.core.overlay`, which is what v14's token draws as its overlay; the old `overlayEffect` write went to a field v14's Token does not have (#96). It names no `defId`, and the projection reads only effects that do (`rules/snapshot.mjs#fgtEffects`), so it never appears in a Unit's effect list, a cure or a sheet. A second defeat does not add a second skull.
+
 ## Traps and anti-patterns
 
 **Reading a unit's Health, Agility or Luck without knowing which projection you hold.** Documents

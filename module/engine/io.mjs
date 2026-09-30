@@ -1038,8 +1038,19 @@ export function worldIO() {
       const actor = resolve(unitId);
       if (!actor) return;
       await actor.update({ "system.defeated": true, "system.defeatCause": cause });
-      const token = resolveToken(unitId);
-      if (token) await token.update({ overlayEffect: "icons/svg/skull.svg" });
+      // The skull. v14's Token has no `overlayEffect` -- that write was dropped
+      // and the skull never appeared (#96). The token draws the last applied
+      // effect flagged `core.overlay`, the shape `Actor#toggleStatusEffect`
+      // makes; built here directly so it does not depend on the client's
+      // status table. A core status, not an F/GT effect: it has no `defId`,
+      // and the projection leaves it out.
+      const skulled = [...(actor.effects ?? [])].some((e) => e.flags?.core?.overlay && e.statuses?.has?.("dead"));
+      if (!skulled) {
+        await actor.createEmbeddedDocuments("ActiveEffect", [{
+          name: "Defeated", img: "icons/svg/skull.svg", type: "base",
+          statuses: ["dead"], flags: { core: { overlay: true } },
+        }]);
+      }
     },
 
     /**
