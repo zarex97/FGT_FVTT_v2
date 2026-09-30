@@ -17,6 +17,7 @@ import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { rollOptionsFor } from "../../module/rules/options.mjs";
 import { critChance } from "../../module/rules/checks.mjs";
 import { applyEffect } from "../../module/engine/effect-applier.mjs";
+import { fireEvent } from "../../module/engine/scheduler.mjs";
 
 /** A content file under packs/_source, parsed. */
 const content = (path) => parse(readFileSync(`packs/_source/${path}`, "utf8"));
@@ -247,5 +248,39 @@ describe("RevivalSource", () => {
     const skill = content("abilities/normal-battle-continuation.yml");
     const [revival] = contributions({ name: skill.name, passiveRules: skill.passiveRules }).revivals;
     expect(revival).toMatchObject({ id: "normalBattleContinuation", charges: 1, formula: "5d20" });
+  });
+});
+
+// Jack: *"Every time Jack kills a Human when she is a Free Servant, increase
+// her Sustainability by 1◈ Turns."* Medusa's is the same for a Civilian. The
+// handler dropped `targetPredicate`, and it listened on `unitDefeated`, which
+// fires on the DEFEATED unit's own handlers -- so each of them gained
+// Sustainability when she herself died, and never when she killed.
+describe("SustainabilityGain", () => {
+  const handlerOf = (path) => {
+    const servant = content(path);
+    return contributions({ name: servant.name, rules: servant.rules }, { options: new Set(["self:free"]) }).eventHandlers[0];
+  };
+  const killed = (handler, victimKind) => fireEvent(
+    "unitKilled",
+    [{ id: "jack", kind: "servant", effects: [], eventHandlers: [handler] }],
+    { tick: 1, turnsPerRound: 3, options: new Set([`target:type:${victimKind}`]) },
+  ).filter((i) => i.t === "statDelta" && i.stat === "sustainabilityRemaining").map((i) => i.delta);
+
+  it("listens for a kill, not for her own defeat", () => {
+    expect(handlerOf("servants/jack-the-ripper.yml").events).toEqual(["unitKilled"]);
+  });
+
+  it("pays Jack 1◈ for a Civilian or a Master, and nothing for a Servant", () => {
+    const jack = handlerOf("servants/jack-the-ripper.yml");
+    expect(killed(jack, "civilian")).toEqual([3]);
+    expect(killed(jack, "master")).toEqual([3]);
+    expect(killed(jack, "servant")).toEqual([]);
+  });
+
+  it("pays Medusa for a Civilian only", () => {
+    const medusa = handlerOf("servants/medusa.yml");
+    expect(killed(medusa, "civilian")).toEqual([3]);
+    expect(killed(medusa, "master")).toEqual([]);
   });
 });

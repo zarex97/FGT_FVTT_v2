@@ -29,9 +29,13 @@ describe("Divinity E−", () => {
 });
 
 describe("Independent Action — the Civilian clause", () => {
+  // Heard by the KILLER, and only for a Civilian. This fixture used to say
+  // `unitDefeated` and assert the handler without its `targetPredicate`, which
+  // was the bug written down as the expectation: she was paid on her own death,
+  // for anybody (#103).
   const rule = {
     key: "SustainabilityGain",
-    event: "unitDefeated",
+    event: "unitKilled",
     value: 1,
     predicate: ["self:free"],
     targetPredicate: ["target:type:civilian"],
@@ -46,7 +50,7 @@ describe("Independent Action — the Civilian clause", () => {
     // her Sustainability by 1◈ Turns."
     const out = collectContributions(asAbility(), { options: new Set(["self:free"]) });
     expect(out.eventHandlers).toEqual([
-      { event: "unitDefeated", sustainabilityGain: 1, source: "Medusa" },
+      { events: ["unitKilled"], targetPredicate: ["target:type:civilian"], sustainabilityGain: 1, source: "Medusa" },
     ]);
   });
 
