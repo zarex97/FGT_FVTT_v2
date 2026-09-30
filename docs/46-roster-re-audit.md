@@ -2369,6 +2369,15 @@ drop (Ch. 07) that the loud prune would have named, had any test written to a pl
 world. The unit test of the cap handed it an in-memory record. The field is now `turnStateField()`,
 shared by both. Measured after: one Move, then *"Move — this unit has already acted this Turn"*.
 
+### BR. Aerial Garden of Vanity hit Units standing on the garden — **fixed 2026-09-30**
+
+**Reached: HG.agv.** Aimed so its 7x7 covered part of the deck, the preview read *"2 target(s)"*: Foe
+Alpha on the ground, and Heracles, aboard. *"Range=7. Cannot hit under or above the HGoB."* The file's
+comment read both halves as the platform's `forbidDirectlyBelow`, which is only "under". Dragon Wing
+Warriors, beside it, reaches *"the area under the HGoB and the area of the HGoB"*, so "above" is the
+deck. `targeting.forbidAboard` is authored on Aerial Garden of Vanity, and `resolve.mjs` step 4e drops a
+Unit standing on the caster's platform.
+
 ---
 
 ---

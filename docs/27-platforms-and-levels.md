@@ -73,6 +73,7 @@ The four axes (`module/rules/platforms.mjs:165-193`):
 - **Shooting IN** — the target's platform decides. May be `free`, `rangedOnly`, or `forbidden`.
 - **Shooting OUT** — the attacker's platform decides independently. Same three options, and a fortress that nobody shoots into may let occupants shoot out, or may not.
 - **Directly beneath** — a boolean flag `forbidDirectlyBelow`. The Hanging Gardens forbids it; Dragon Wing Warriors overrules it by setting `allowDirectlyBelow` on the phase (`module/rules/platforms.mjs:187-190`).
+- **The deck** — an ability's own `targeting.forbidAboard`. Aerial Garden of Vanity *"cannot hit under or above the HGoB"*: under is `forbidDirectlyBelow`, above is the deck, which Dragon Wing Warriors names as *"the area of the HGoB"*. `resolve.mjs` step 4e drops a Unit standing on the caster's platform ([Ch. 46 §46.4-BR](46-roster-re-audit.md)).
 - **AOE passengers** — what fraction of area damage reaches an occupant. The Golden Hind soaks 50% for most, all of it for Masters; Quetzalcoatlus soaks nothing for the mount itself (`module/rules/platforms.mjs:462-467`).
 
 This call (`module/rules/targeting/resolve.mjs:229-245`) runs at step 4d of the targeting resolver and decides whether each target is reachable before any other filter.

@@ -58,7 +58,7 @@ The algorithm is eleven steps plus two upfront checks. Each step narrows the sur
 
 3. **Bounded field isolation reads the attack's NP tags,** so Doomsday Come's exception (*"Anti-World or higher can cross the boundary"*) can fire. Without them, isolation would ask every question as if the attack were Normal (`module/rules/targeting/resolve.mjs:214-217`).
 
-4. **Cross-level protection was documented and unit-tested but never called** until this chapter. The Hanging Gardens' Aerial Garden of Vanity hit units directly below it, measured live (`module/rules/targeting/resolve.mjs:228-233`).
+4. **Cross-level protection was documented and unit-tested but never called** until this chapter. The Hanging Gardens' Aerial Garden of Vanity hit units directly below it, measured live (`module/rules/targeting/resolve.mjs:228-233`). It also hit units standing on the garden itself, the *"above"* of its sheet; step 4e and `targeting.forbidAboard` refuse those (§46.4-BR).
 
 5. **Master protection splits on `isChosen`.** A directly targeted Master is refused; an AoE that happens to catch a Master is allowed, because rule 4 (Ch. 32) describes exactly that scenario when it says the area "gets CAUGHT IN" the master (`module/rules/targeting/resolve.mjs:313-323`).
 
