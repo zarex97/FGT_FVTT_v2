@@ -90,13 +90,6 @@ export const KNOWN_RULE_DROPS = Object.freeze([
   { at: "effects/pollux-buff.yml rules[0]", leaf: "targeting.selection.includeSelf", issue: "#103" },
   { at: "effects/pollux-buff.yml rules[0]", leaf: "targeting.selection.chooser", issue: "#103" },
   { at: "effects/pollux-buff.yml rules[0]", leaf: "targeting.selection.alsoIncludes", issue: "#103" },
-  { at: "items[\"Magic Resistance\"] passiveRules[3]", leaf: "recipientRoles[]", issue: "#102" },
-  { at: "items[\"Magic Resistance\"] passiveRules[3]", leaf: "rules[].key", issue: "#102" },
-  { at: "items[\"Magic Resistance\"] passiveRules[3]", leaf: "rules[].component", issue: "#102" },
-  { at: "items[\"Magic Resistance\"] passiveRules[3]", leaf: "rules[].mode", issue: "#102" },
-  { at: "items[\"Magic Resistance\"] passiveRules[3]", leaf: "rules[].negatesUpToRank", issue: "#102" },
-  { at: "items[\"Magic Resistance\"] passiveRules[3]", leaf: "rules[].table", issue: "#102" },
-  { at: "items[\"Magic Resistance\"] passiveRules[3]", leaf: "rules[].includesNP", issue: "#102" },
   { at: "servants/asterios.yml items[\"Mad Enhancement\"] activeRules[4]", leaf: "isBuff", issue: "#103" },
   { at: "servants/castor.yml items[\"Avenger\"] passiveRules[0]", leaf: "mode", issue: "#103" },
   { at: "servants/castor.yml items[\"Mad Enhancement\"] activeRules[4]", leaf: "isBuff", issue: "#103" },
@@ -275,7 +268,7 @@ describe("every key inside a rule element reaches something that reads it", () =
   it("keeps its known drops honest: each owned by an issue, none stale, fewer over time", () => {
     for (const d of KNOWN_RULE_DROPS) expect(d.issue).toMatch(/^#\d+$/);
     expect(KNOWN_RULE_DROPS.filter((d) => !seen.has(d))).toEqual([]);
-    expect(KNOWN_RULE_DROPS.length).toBeLessThanOrEqual(38);
+    expect(KNOWN_RULE_DROPS.length).toBeLessThanOrEqual(31);
   });
 
   it("names the element types it cannot run, rather than skipping them", () => {

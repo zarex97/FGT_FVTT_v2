@@ -793,7 +793,20 @@ function rollSpec(table, rank) {
  * @param {string} source
  * @returns {object}
  */
-function auraElement(el, rank, ctx, source) {
+function auraElement(el, rank, ctx, source, ability = null) {
+  // The two kinds whose reader wants the EXECUTOR's shape, not the authored
+  // one: the pipeline reads `unit.magicResistance` as the Resistance executor
+  // builds it, and the applier reads an application chance's `effectId` and
+  // `predicate`, which the authored element spells `effect` and
+  // `attackPredicate`. Run the real executor, so a Skill that reaches somebody
+  // else reaches them exactly as it reaches its bearer (#102).
+  if (el?.key === "Resistance" || el?.key === "ApplicationChance") {
+    const scratch = { applicationChances: [] };
+    EXECUTORS[el.key](el, { rank, source, ability, out: scratch, ctx });
+    return el.key === "Resistance"
+      ? { key: "Resistance", source, magicResistance: scratch.magicResistance }
+      : { key: "ApplicationChance", ...scratch.applicationChances[0] };
+  }
   if (!el?.table) return { source, ...el };
   const v = resolveValue(el, rank, ctx);
   const { table, ...rest } = el;
@@ -1633,7 +1646,7 @@ export const EXECUTORS = Object.freeze({
    * units that should have it — including the owner, when the relation list
    * says so, which by default it does.
    */
-  Aura(el, { rank, source, out, ctx }) {
+  Aura(el, { rank, source, ability, out, ctx }) {
     out.auras.push({
       key: el.modifierKey ?? "aura", radius: el.radius ?? 2,
       relations: el.relations ?? ["ally", "self"],
@@ -1656,8 +1669,12 @@ export const EXECUTORS = Object.freeze({
       // declaring `rank: C` -- her ground Home Base -- so resolving both
       // against the ability would hand the C clause EX's dice.
       elements: el.elements
-        ? el.elements.map((e) => auraElement(e, el.rank ? Rank.parse(el.rank) : rank, ctx, source))
+        ? el.elements.map((e) => auraElement(e, el.rank ? Rank.parse(el.rank) : rank, ctx, source, ability))
         : null,
+      // A named ROLE the recipient must hold, relative to the bearer. Pollux's
+      // *"Castor also receives the effect of this Skill"* is `linkedPartner`.
+      // Dropped here, the aura reached every adjacent ally instead (#102).
+      recipientRoles: el.recipientRoles ?? null,
       group: el.group ?? null,
       rank: el.rank ?? (rank ? String(rank) : null),
       scope: el.scope ?? null,
