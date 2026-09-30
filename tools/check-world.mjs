@@ -18,6 +18,11 @@
  * what notices if that stops being the deliberate difference it is documented
  * as — or if a Foundry upgrade stops doing the silent thing.
  *
+ * Three more probe Foundry's CLIENT layer, which the model does not run at all:
+ * the empty-diff skip and a `preCreate` edit to `data`. They are live-only, and
+ * they prove the lint rule in `tools/lib/eslint-client-traps.mjs` still guards
+ * something real on the Foundry build in `system.json`.
+ *
  * Local only, like `check:smoke` — it needs Foundry serving and a Chrome with a
  * debugging port. It is not a CI gate; it is what you run before trusting the
  * model with something new.
@@ -134,6 +139,59 @@ const PROBES = [
   },
 ];
 
+/**
+ * Probes of Foundry's CLIENT layer, which the model cannot run at all.
+ *
+ * `client/` does not import in Node (ADR-0006), so the two Silent Drops it
+ * hides are guarded by a lint rule (`tools/lib/eslint-client-traps.mjs`) and
+ * PROVED here: each probe does the dangerous thing to a throwaway actor, reads
+ * back what the SERVER holds rather than the local copy, and deletes it. The
+ * point is the build: if a Foundry upgrade stops doing the silent thing, the
+ * lint is guarding something that is no longer there, and this says so (#94).
+ *
+ * `expect` states what Foundry does today, which is the trap.
+ */
+const SERVER_COPY = `
+  const fromServer = async (id) =>
+    (await CONFIG.DatabaseBackend.get(Actor.implementation, { query: { _id: id } }, game.user))[0];
+`;
+const CLIENT_PROBES = [
+  {
+    name: "update() after updateSource() sends nothing: the local copy says 4, the server 0",
+    body: `${SERVER_COPY}
+      const t = await Actor.create({ name: "fgt-probe empty diff", type: "civilian" });
+      try {
+        t.updateSource({ "system.mov": 4 });
+        await t.update({ "system.mov": 4 });
+        return { local: t.system.mov, server: (await fromServer(t.id))?.system?.mov ?? null };
+      } finally { await t.delete(); }
+    `,
+    expect: (v) => v.local === 4 && v.server !== 4,
+  },
+  {
+    name: "an edit to preCreate's data argument never reaches the server",
+    body: `${SERVER_COPY}
+      const hook = Hooks.once("preCreateActor", (doc, data) => { data.img = "icons/svg/skull.svg"; });
+      const t = await Actor.create({ name: "fgt-probe preCreate data", type: "civilian" });
+      try {
+        return { server: (await fromServer(t.id))?.img ?? null };
+      } finally { Hooks.off("preCreateActor", hook); await t.delete(); }
+    `,
+    expect: (v) => v.server !== "icons/svg/skull.svg",
+  },
+  {
+    name: "the same edit through updateSource() does reach it",
+    body: `${SERVER_COPY}
+      const hook = Hooks.once("preCreateActor", (doc) => { doc.updateSource({ img: "icons/svg/skull.svg" }); });
+      const t = await Actor.create({ name: "fgt-probe preCreate source", type: "civilian" });
+      try {
+        return { server: (await fromServer(t.id))?.img ?? null };
+      } finally { Hooks.off("preCreateActor", hook); await t.delete(); }
+    `,
+    expect: (v) => v.server === "icons/svg/skull.svg",
+  },
+];
+
 /** The body, wrapped so both sides resolve their own actor. */
 const liveScript = (body) => `
   const a = game.actors.find((x) => x.type === "servant" && !x.system.defeated);
@@ -180,6 +238,12 @@ for (const probe of PROBES) {
     ? JSON.stringify(live) === JSON.stringify(fake)
     : Boolean(probe.expectLive?.(live) && probe.expectFake?.(fake));
   results.push({ ...probe, live, fake, ok });
+}
+
+for (const probe of CLIENT_PROBES) {
+  const live = JSON.parse(await evaluate(probe.body));
+  results.push({ ...probe, agree: false, live, fake: "(client layer: not modelled)", ok: probe.expect(live),
+    divergence: "live-only; see tools/lib/eslint-client-traps.mjs" });
 }
 
 const failed = results.filter((r) => !r.ok);

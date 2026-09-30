@@ -146,6 +146,25 @@ asks about it (`module/rules/granted.mjs:1-18`).
    value, and source (ability name or "Max Health cap"). The sheet reads this to display *"MOV: 6
    (base 4 + Mad Enhancement +2)"* (`module/documents/index.mjs:99`).
 
+8. **Three writes Foundry's client loses without a word**, all measured against build 14.364. Paths are
+   relative to `foundryVTT_copy/app/`.
+   - **`update()` after `updateSource()` sends nothing.** The client diffs a change against its local
+     `_source` (`common/abstract/backend.mjs:148`, `diff: true` by default), and an empty diff is never
+     sent (`client/data/client-backend.mjs:262`). Measured live: after `updateSource({"system.mov": 4})`
+     then `update({"system.mov": 4})`, the local copy reads 4 and the server holds 0. The same call inside
+     a `_preUpdate` changes the local copy and leaves `changes` without it — mutate `changes` there.
+   - **A `_preCreate` edit to `data` never reaches the server.** The server receives `operation.data`,
+     not the argument (`client-backend.mjs:103,122`); go through `this.updateSource(...)`, which the
+     `preCreateToken` hooks in `engine/token-*.mjs` and `FGTActor#_preCreate` already do.
+   - **`reset()` wipes a write made to a schema field on the instance.** `reset()` is `_initialize()`
+     (`common/abstract/data.mjs:524`): it re-copies every schema field from `_source` and preparation
+     runs again. A value assigned to `actor.system.mov` outside `prepareData` is gone on the next
+     preparation; a non-schema property assigned there survives, and can go stale.
+
+   The first two are guarded by the `fgt/client-traps` ESLint rule (`tools/lib/eslint-client-traps.mjs`,
+   in `npm run lint`) and proved live by `npm run check:world` (Ch. 43, #94). The client layer does not
+   import in Node, so no unit test can run them (ADR-0006).
+
 ## Open questions
 
 - **How many times do `prepareBaseData` and `prepareDerivedData` run?** The Foundry lifecycle calls

@@ -1,4 +1,5 @@
 import js from "@eslint/js";
+import clientTraps from "./tools/lib/eslint-client-traps.mjs";
 
 /**
  * The layer boundary is the rule that matters here.
@@ -147,7 +148,16 @@ export default [
     files: ["tools/**/*.mjs"],
     languageOptions: { globals: { fetch: "readonly", WebSocket: "readonly" } },
   },
-  { ignores: ["node_modules/**", "packs/**", "styles/fgt.css", "coverage/**", ".build/**"] },
+  {
+    // Foundry's two client-side Silent Drops: an update() whose diff is empty
+    // because updateSource() already applied it, and a _preCreate edit to a
+    // `data` the server never receives. Neither can be run in Node, so this is
+    // the guard, and `tools/check-world.mjs` proves both live (#94).
+    files: ["module/**/*.mjs"],
+    plugins: { fgt: clientTraps },
+    rules: { "fgt/client-traps": "error" },
+  },
+  { ignores: ["node_modules/**", "packs/**", "styles/fgt.css", "coverage/**", ".build/**", ".foundry/**"] },
 ];
 
 export { zones };
