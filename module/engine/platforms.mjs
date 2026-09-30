@@ -190,15 +190,20 @@ export async function knockOff({ unitId, platformId, passedAgility = null, serva
   if (!canFallFrom(platform)) return { ok: false, reason: "edgeHolds" };
 
   // The Unit's own Agility Check, unless the caller already rolled one.
-  const passed = passedAgility ?? await agilityCheckPasses(unit);
+  const own = passedAgility === null ? await agilityCheck(unit) : { success: passedAgility, roll: null, target: null };
+  const passed = own.success;
 
   // *"If a Master who is directly next to its Servant fails its Agility Check,
   // its Servant can perform an Agility Check too."* Its OWN Servant, one panel
   // away, and only ever for a Master.
   let rescued = servantRescued ?? false;
+  let rescue = null;
   if (!passed && servantRescued === null) {
     const rescuer = rescuerFor(unit, board);
-    if (rescuer) rescued = await agilityCheckPasses(rescuer);
+    if (rescuer) {
+      rescue = { ...(await agilityCheck(rescuer)), name: rescuer.name };
+      rescued = rescue.success;
+    }
   }
 
   // The choice a passed check earns. Asked of the controlling player, because
@@ -231,8 +236,34 @@ export async function knockOff({ unitId, platformId, passedAgility = null, serva
   // that fell moved horizontally and stayed at Platform elevation.
   const landed = descriptors.some((d) => d.kind === "move" && d.toLevel === 0);
   if (landed) await dropToGround(unitId);
+  await announceFall(unit, platform, { own, rescue, passed, rescued, choice });
 
   return { ok: true, passed, rescued, choice, landed };
+}
+
+/**
+ * Tell the table how a fall off a Platform went.
+ *
+ * The Agility Check was rolled and never shown: Heracles fell off the garden
+ * with no card, and the only trace was his Health dropping (Ch. 46 §46.4-CA).
+ *
+ * @param {object} unit
+ * @param {object} platform
+ * @param {object} r
+ * @returns {Promise<void>}
+ */
+async function announceFall(unit, platform, { own, rescue, passed, rescued, choice }) {
+  const base = { name: unit.name ?? "", platform: platform.name ?? "", roll: own.roll ?? "—", target: own.target ?? "—" };
+  let text;
+  if (passed) {
+    text = game.i18n.format("FGT.Platform.FallPassed", base)
+      + (choice === "stay" ? ` ${game.i18n.localize("FGT.Platform.FallStayed")}` : ` ${game.i18n.localize("FGT.Platform.FallChoseLand")}`);
+  } else if (rescued) {
+    text = game.i18n.format("FGT.Platform.FallRescued", { ...base, servant: rescue?.name ?? "", servantRoll: rescue?.roll ?? "—" });
+  } else {
+    text = game.i18n.format("FGT.Platform.FallFailed", { ...base, damage: platform.knockOff?.damage ?? "10x2d6" });
+  }
+  await ChatMessage.create({ content: `<div class="fgt fall-card">${text}</div>`, speaker: { alias: unit.name } });
 }
 
 /**
@@ -240,21 +271,24 @@ export async function knockOff({ unitId, platformId, passedAgility = null, serva
  * @param {object} unit a unit projection
  * @returns {Promise<boolean>}
  */
-async function agilityCheckPasses(unit) {
+async function agilityCheck(unit) {
   const { checkPlan, resolveCheck } = await import("../rules/checks.mjs");
   // The same shape `engine/attack.mjs` uses for Penthesilea's shove: an AGILITY
   // Check has its own name in the plan vocabulary, so an Evade-specific bonus
   // cannot help somebody keep their footing.
   const plan = checkPlan(unit, "agility");
   const roll = (await new Roll("1d20").evaluate()).total;
-  return resolveCheck({
+  // A NUMBER on the board: the projection flattens the pools it carries, and
+  // reading `.value` off one gives `undefined` (Ch. 09).
+  const target = typeof unit.agility === "number" ? unit.agility : (unit.agility?.value ?? 0);
+  const { success } = resolveCheck({
     roll,
-    // A NUMBER on the board: the projection flattens the pools it carries, and
-    // reading `.value` off one gives `undefined` (Ch. 09).
-    target: typeof unit.agility === "number" ? unit.agility : (unit.agility?.value ?? 0),
+    target,
     table: plan.forceTable === "unfavourable" ? "unfavourable" : "favourable",
     modifiers: plan.modifiers,
-  }).success;
+  });
+  // The roll and the target travel with the verdict so the fall can be shown.
+  return { success, roll, target };
 }
 
 /**

@@ -617,6 +617,58 @@ export function knockbackPanel(origin, unit, board, {
 }
 
 /**
+ * Who a knockback moves, and where -- planned in full before anything moves.
+ *
+ * `footprint` is where the mover is ARRIVING, which the caller takes from the
+ * movement: at `moveToken` the token still reports where it came from. Each
+ * Unit is moved once, however many level layers the footprint lists a panel
+ * for (a Bašmu's are k 20, 21 and 22), and each landing is judged against the
+ * Units already planned to have moved. The loop this replaces visited every
+ * layer and read a stale board, so Heracles fell off the garden three times and
+ * his Master was pushed into the square Bašmu was arriving at (§46.4-BZ).
+ *
+ * Platforms, structures and Units that share a panel are stood on, not pushed.
+ *
+ * @param {object} mover
+ * @param {GridOffset[]} footprint every panel the mover will occupy
+ * @param {object} board
+ * @param {object} [opts] passed to {@link knockbackPanel}
+ * @returns {Array<{unitId: string, landing: {panel: GridOffset, sidestepped: boolean}}>}
+ */
+export function knockbackPlan(mover, footprint, board, opts = {}) {
+  const cells = [];
+  const seen = new Set();
+  for (const p of footprint ?? []) {
+    const key = `${p.i},${p.j}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    cells.push({ i: p.i, j: p.j });
+  }
+  if (cells.length === 0) return [];
+  const centre = {
+    i: Math.round(cells.reduce((n, p) => n + p.i, 0) / cells.length),
+    j: Math.round(cells.reduce((n, p) => n + p.j, 0) / cells.length),
+  };
+
+  // The mover where it is going, and everybody else where they stand.
+  let units = (board?.units ?? []).map((u) => (u.id === mover.id ? { ...u, panels: cells } : u));
+  const moved = new Set([mover.id]);
+  const plan = [];
+  for (const cell of cells) {
+    for (const occupant of occupantsAt(cell, { units }, mover.level)) {
+      if (moved.has(occupant.id)) continue;
+      if (occupant.kind === "platform" || occupant.kind === "structure" || occupant.sharesPanel) continue;
+      moved.add(occupant.id);
+      const landing = knockbackPanel(centre, occupant, { ...board, units }, opts);
+      if (!landing) continue;
+      plan.push({ unitId: occupant.id, landing });
+      units = units.map((u) => (u.id === occupant.id ? { ...u, panel: landing.panel, panels: [landing.panel] } : u));
+    }
+  }
+  return plan;
+}
+
+/**
  * The two cardinals at right angles to `dir` — "the panels to its sides".
  * @param {GridOffset} dir
  * @returns {GridOffset[]}

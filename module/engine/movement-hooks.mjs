@@ -410,23 +410,19 @@ function ignoresOccupancy(unit) {
  * @returns {Promise<void>}
  */
 async function knockBackOccupants(moverId, movement = null) {
-  const { knockbackPanel, occupantsAt } = await import("../rules/movement.mjs");
-  const board = boardSnapshot(game.combats.active);
+  const { knockbackPlan } = await import("../rules/movement.mjs");
+  let board = boardSnapshot(game.combats.active);
 
   // On the MOVER's own level: it knocks aside whoever it walks into, and it
   // cannot walk into somebody standing twenty feet above it.
   const mover = board.units.find((u) => u.id === moverId) ?? null;
   if (!mover) return;
 
-  // The whole footprint. `panels` is what the projection derives from the
-  // token's occupied grid spaces; `panel` is its anchor, and for a 1×1 the two
-  // lists are the same one entry.
-  const occupied = (mover.panels ?? []).length > 0 ? mover.panels : [mover.panel].filter(Boolean);
-  // Away from the mover's CENTRE, so a Unit under her north-west corner is
-  // shoved north-west rather than toward her middle. Passing the panel being
-  // cleared instead would name the occupant's own panel, and "away from where
-  // you already are" has no direction at all.
-  const centre = centreOf(occupied);
+  // Where the mover is ARRIVING. At `moveToken` the token still reports where
+  // it came from, so the board's own `panels` were the origin (or a waypoint)
+  // and a Unit could be pushed into the square the mover then stood on
+  // (§46.4-BZ). The movement's destination is the one that holds.
+  const footprint = destinationFootprint(movement) ?? ((mover.panels ?? []).length > 0 ? mover.panels : [mover.panel].filter(Boolean));
 
   // Two shapes of push, and the mover's own grant says which.
   //
@@ -441,63 +437,73 @@ async function knockBackOccupants(moverId, movement = null) {
   const push = pushStyle(mover);
   const along = push.direction === "travel" ? travelDirection(movement) : null;
 
-  for (const panel of occupied) {
-    // EVERY other Unit on the panel, not the first one found. A mover that
-    // walks onto somebody shares their panel, so `occupantAt` may return the
-    // mover itself and the Unit it is standing on is never pushed — which is
-    // exactly what happened when Achilles walked onto Karna and the board
-    // listed Achilles first.
-    for (const occupant of occupantsAt(panel, board, mover.level)) {
-      if (occupant.id === moverId) continue;
+  // Planned in full first: each Unit ONCE, each landing judged against the ones
+  // already planned. Every panel used to be visited once per level layer, so a
+  // Unit under a Bašmu was pushed -- and knocked off -- three times.
+  const plan = knockbackPlan(mover, footprint, board, {
+    preferredDirection: along,
+    allowSidestep: Boolean(push.sidestepDamages),
+  });
 
-      const landing = knockbackPanel(centre, occupant, board, {
-        preferredDirection: along,
-        allowSidestep: Boolean(push.sidestepDamages),
+  for (const { unitId, landing } of plan) {
+    const occupant = board.units.find((u) => u.id === unitId);
+    if (!occupant) continue;
+
+    // Shoved past a Platform's edge (#29). The ladder decides what happens
+    // instead -- and a Platform that authors no `knockOff` block holds its
+    // edge, so the push simply fails. Resolved serially, reading a fresh
+    // board each time, because a passed check earns "the nearest unoccupied
+    // panel", and which are free depends on the ones resolved before it.
+    const under = platformUnder(occupant, board);
+    if (under && !withinFootprint(landing.panel, under)) {
+      // *"Bašmu cannot leave the HGoB"*: the edge holds a bound summon.
+      if (canUnboard(occupant, under).reason === "boundToPlatform") continue;
+      const { knockOff } = await import("./platforms.mjs");
+      await knockOff({ unitId: occupant.id, platformId: under.id });
+      board = boardSnapshot(game.combats.active);
+      continue;
+    }
+
+    const token = canvas.tokens?.placeables?.find((t) => t.actor?.id === occupant.id);
+    if (!token) continue;
+
+    const point = canvas.grid.getTopLeftPoint(landing.panel);
+    // A knockback is displacement, not a walk, and it has to be submitted as
+    // one: `displaceToken` says `action: "displace"` so Foundry accepts it
+    // and `animate: false` so it commits. See `engine/io.mjs`.
+    await displaceToken(token.document, { x: point.x, y: point.y });
+
+    // "...and receives damage equivalent to a Normal Attack from Achilles."
+    // Only on the SIDESTEP: a Unit that got out of the way in time is merely
+    // displaced, and the damage is the price of not having room.
+    if (landing.sidestepped && push.sidestepDamages) {
+      const { resolveAttack } = await import("./attack.mjs");
+      await resolveAttack({
+        attackerId: moverId,
+        abilityId: null,
+        placement: { pathTargets: [occupant.id] },
       });
-      // "Until the space is free" -- when no free panel exists within range, the
-      // occupant simply stays: there is nowhere the sheet's own rule can send it.
-      if (!landing) continue;
-
-      // Shoved past a Platform's edge (#29). Nothing checked this, so the
-      // occupant was displaced to a panel at Platform elevation with no
-      // Platform under it and the match carried on with a Unit standing on
-      // nothing. The ladder decides what happens instead -- and a Platform that
-      // authors no `knockOff` block holds its edge, so the push simply fails.
-      //
-      // Resolved SERIALLY, inside this loop, because the choice a passed check
-      // earns is "the nearest unoccupied panel", and which panels are free
-      // depends on where the previously-resolved occupant chose to go.
-      const under = platformUnder(occupant, board);
-      if (under && !withinFootprint(landing.panel, under)) {
-        // *"Bašmu cannot leave the HGoB"*: the edge holds a bound summon.
-        if (canUnboard(occupant, under).reason === "boundToPlatform") continue;
-        const { knockOff } = await import("./platforms.mjs");
-        await knockOff({ unitId: occupant.id, platformId: under.id });
-        continue;
-      }
-
-      const token = canvas.tokens?.placeables?.find((t) => t.actor?.id === occupant.id);
-      if (!token) continue;
-
-      const point = canvas.grid.getTopLeftPoint(landing.panel);
-      // A knockback is displacement, not a walk, and it has to be submitted as
-      // one: `displaceToken` says `action: "displace"` so Foundry accepts it
-      // and `animate: false` so it commits. See `engine/io.mjs`.
-      await displaceToken(token.document, { x: point.x, y: point.y });
-
-      // "...and receives damage equivalent to a Normal Attack from Achilles."
-      // Only on the SIDESTEP: a Unit that got out of the way in time is merely
-      // displaced, and the damage is the price of not having room.
-      if (landing.sidestepped && push.sidestepDamages) {
-        const { resolveAttack } = await import("./attack.mjs");
-        await resolveAttack({
-          attackerId: moverId,
-          abilityId: null,
-          placement: { pathTargets: [occupant.id] },
-        });
-      }
     }
   }
+}
+
+/**
+ * The panels a movement's destination covers, or `null` when it names none.
+ *
+ * @param {object|null} movement the v14 movement operation
+ * @returns {Array<{i: number, j: number}>|null}
+ */
+function destinationFootprint(movement) {
+  const d = movement?.destination;
+  if (!d || typeof d.x !== "number" || typeof d.y !== "number") return null;
+  const size = canvas.grid.size;
+  const i0 = Math.round(d.y / size);
+  const j0 = Math.round(d.x / size);
+  const w = Math.max(1, Math.round(d.width ?? 1));
+  const h = Math.max(1, Math.round(d.height ?? 1));
+  const out = [];
+  for (let di = 0; di < h; di += 1) for (let dj = 0; dj < w; dj += 1) out.push({ i: i0 + di, j: j0 + dj });
+  return out;
 }
 
 /**
@@ -551,19 +557,6 @@ function travelDirection(movement) {
   return Math.abs(b.i - a.i) >= Math.abs(b.j - a.j) ? { i: di, j: 0 } : { i: 0, j: dj };
 }
 
-/**
- * The middle of a footprint, rounded to a panel.
- *
- * For a 1×1 it is the panel itself, which leaves `knockbackPanel` to fan out —
- * a mover that stands ON its victim has no direction to push it.
- *
- * @param {Array<{i: number, j: number}>} panels
- * @returns {{i: number, j: number}}
- */
-function centreOf(panels) {
-  const total = panels.reduce((acc, p) => ({ i: acc.i + p.i, j: acc.j + p.j }), { i: 0, j: 0 });
-  return { i: Math.round(total.i / panels.length), j: Math.round(total.j / panels.length) };
-}
 
 /* -------------------------------------------------------------------------- */
 

@@ -33,3 +33,24 @@ describe("boardPlatform announces its roll", () => {
     expect(lang["FGT.Platform.BoardFailed"]).toMatch(/\{roll\}.*\{target\}|\{target\}.*\{roll\}/);
   });
 });
+
+// > *"...it performs an Agility Check. If successful, it has a choice ... If
+// > failed, it lands on the Game Board panel directly under it and takes
+// > (10*2d6) STR damage."*
+//
+// Rolled, and never shown: Heracles fell off the garden with no card, and the
+// only trace of the check was his Health dropping (§46.4-CA).
+describe("knockOff announces its Agility Check", () => {
+  const off = src.slice(src.indexOf("export async function knockOff"), src.indexOf("async function agilityCheckPasses"));
+
+  it("posts the roll, the target and the outcome", () => {
+    expect(off).toMatch(/announceFall\(/);
+    expect(src).toMatch(/async function announceFall[\s\S]*ChatMessage\.create/);
+  });
+
+  it("has a line for passing, failing, and being caught by the Servant", () => {
+    for (const k of ["FGT.Platform.FallPassed", "FGT.Platform.FallFailed", "FGT.Platform.FallRescued"]) {
+      expect(lang[k]).toMatch(/\{roll\}/);
+    }
+  });
+});
