@@ -16,6 +16,8 @@ volatility: nonVolatile
 valence: defensive
 stacking: noneRefresh
 baseChance: 100
-unremovable: true
+# Removable. "The Unit gains the Shield (200) BUFF", and Appendix A's `Shield (X)`
+# is an ordinary buff; an `unremovable` copied from Rho Aias's marker put it
+# beyond every buff removal (#68).
 absorbs:
   poolFrom: sourceAbility
