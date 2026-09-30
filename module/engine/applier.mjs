@@ -619,6 +619,9 @@ async function writeGroup(group, io) {
       // within"*. The scheduler settles the tick to return on -- it is pure
       // and knows the turn length -- and hiding the token is this layer's job.
       for (const i of intents) {
+        // What a handler owes at a later boundary (`at:`), kept on the match
+        // until `scheduler-hooks.mjs` pays it (#103).
+        if (i.entry?.kind === "deferred") await io.defer?.(i.entry);
         if (i.entry?.kind !== "banish") continue;
         await io.banish(i.entry.unitId, i.entry.untilTick, i.entry.fieldId);
       }

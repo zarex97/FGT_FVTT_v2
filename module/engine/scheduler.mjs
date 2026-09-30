@@ -388,6 +388,19 @@ export function fireEvent(event, units, ctx) {
       // Closed and name-keyed: `runScript` refuses a name it does not hold and
       // logs the refusal rather than throwing, because a compendium is data
       // other people wrote.
+      // Owed LATER. The event is heard now and its actions land at the named
+      // boundary: the log carries them to it, and `runDeferred` pays them
+      // there (#103).
+      if (handler.at) {
+        out.push(I.log({
+          kind: "deferred", unitId: u.id, at: handler.at, actions: handler.actions ?? [],
+          source: handler.source ?? null, abilityId: handler.abilityId ?? null, defId: handler.defId ?? null,
+          tick: ctx.tick ?? 0,
+        }));
+        out.push(I.log({ kind: "event", event, unitId: u.id, source: handler.source, tick: ctx.tick }));
+        continue;
+      }
+
       if (handler.script) {
         out.push(...runScript(handler.script, {
           self: u, board: ctx.board, history: ctx.history ?? {},
@@ -421,6 +434,27 @@ export function fireEvent(event, units, ctx) {
     }
   }
   return out;
+}
+
+/**
+ * Pay what a handler deferred to this boundary (`at:`).
+ *
+ * The entries are the `deferred` log entries `fireEvent` wrote when the event
+ * was heard. The bearer is read off the board where it still stands, and
+ * addressed by id where it does not: Raikou, whose defeat is what deferred her
+ * Noble Phantasm's end, may be gone from the board by the time her Turn closes.
+ *
+ * @param {object[]} entries
+ * @param {object} board
+ * @param {SchedulerContext} ctx
+ * @returns {Intent[]}
+ */
+export function runDeferred(entries, board, ctx) {
+  return entries.flatMap((e) => {
+    const unit = (board?.units ?? []).find((u) => u.id === e.unitId) ?? { id: e.unitId, effects: [] };
+    const handler = { source: e.source, abilityId: e.abilityId, defId: e.defId };
+    return (e.actions ?? []).flatMap((a) => dispatch(a, unit, handler, { ...ctx, board }));
+  });
 }
 
 /**

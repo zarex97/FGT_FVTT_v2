@@ -81,6 +81,15 @@ async function onTurnChange(combat, prior, current) {
 
   await run(scheduler.endTurn(board, ctx), "scheduler:endTurn");
 
+  // What a handler owed at this boundary (`at: turnEnd`). Raikou's
+  // Tenmōkaikai ends here, at the close of the Turn she fell (#103).
+  const deferred = combat.getFlag("fgt", "deferred") ?? [];
+  const due = deferred.filter((e) => e.at === "turnEnd");
+  if (due.length > 0) {
+    await combat.setFlag("fgt", "deferred", deferred.filter((e) => e.at !== "turnEnd"));
+    await run(scheduler.runDeferred(due, board, ctx), "scheduler:deferred");
+  }
+
   // What every Unit was like at the end of this Turn.
   //
   // > *"…are returned to what they were 3◈ Turns ago."*

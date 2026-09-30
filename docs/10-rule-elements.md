@@ -143,6 +143,13 @@ executor actually reads, rather than of its descriptor's ids.
   `masterDefeated` event (raised on a defeated Master's Servants at the tail of `resolveDefeat`), a
   `SustainabilityGain` action, and the chance on it. Sustainability gains are now written as the
   result from the snapshot's figure, because the stored one is `null` until first written.
+- **`OnEvent`**, third: `at: turnEnd` defers the actions. `fireEvent` writes a `deferred` log entry
+  carrying them, `io.defer` keeps it on the match, and the turn hook pays it through
+  `scheduler.runDeferred` once `endTurn` has run. Raikou's Tenmōkaikai now ends at the close of the
+  Turn she falls, not the instant she falls. The validator refuses any `at` but `turnEnd`, the only
+  boundary drained.
+
+With that, `KNOWN_RULE_DROPS` is empty: every key inside every rule element reaches a reader.
 
 ## Open questions
 
