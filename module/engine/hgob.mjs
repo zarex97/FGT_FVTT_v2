@@ -39,7 +39,75 @@ export const Hgob = {
 async function onChannelComplete({ actorId, onComplete }) {
   if (!game.users.activeGM?.isSelf) return;
   if (onComplete?.kind !== "activateHangingGardens") return;
-  await activateHangingGardens(actorId, { allyIds: await chooseRiders(actorId) });
+  const allyIds = await chooseRiders(actorId);
+  const allyPanels = await chooseRiderPanels(actorId, allyIds);
+  await activateHangingGardens(actorId, { allyIds, allyPanels });
+}
+
+/**
+ * Where each chosen ally lands: *"transported to ANY panel within the HGoB"*.
+ *
+ * Asked of the Servant's owner, one ally at a time, from the footprint that
+ * will open where she stands -- the garden's top-left is her panel -- less the
+ * middle, which is hers, and less what an earlier ally took. Declining leaves
+ * that ally to `seatingPlan`'s nearest free panel. The choice used to be made
+ * for everyone that way: `allyPanels` had no caller (#68).
+ *
+ * @param {string} ownerId Semiramis
+ * @param {string[]} allyIds
+ * @returns {Promise<Record<string, {i: number, j: number}>>}
+ */
+async function chooseRiderPanels(ownerId, allyIds) {
+  const owner = game.actors.get(ownerId);
+  const self = currentBoard().units.find((u) => u.id === ownerId);
+  if (!owner || !self?.panel || allyIds.length === 0) return {};
+
+  const source = await platformFromPacks(PLATFORM_CONTENT_ID);
+  const footprint = source?.system?.footprint ?? { w: 9, h: 9 };
+  /** @type {Record<string, {i: number, j: number}>} */
+  const chosen = {};
+  for (const allyId of allyIds) {
+    const options = riderPanelOptions(self.panel, footprint, Object.values(chosen));
+    const picked = await askOwner(owner, {
+      kind: "choose",
+      title: game.i18n.format("FGT.Hgob.RiderPanelTitle", { name: game.actors.get(allyId)?.name ?? allyId }),
+      hint: game.i18n.localize("FGT.Hgob.RiderPanelHint"),
+      min: 0,
+      count: 1,
+      options: options.map((p) => ({
+        id: `${p.i},${p.j}`,
+        name: game.i18n.format("FGT.Hgob.RiderAt", { i: p.i, j: p.j }),
+        subtitle: p.throneRoom ? game.i18n.localize("FGT.Hgob.ThroneRoom") : "",
+      })),
+    });
+    // Filtered against the offer: the answer crosses a socket.
+    const id = (picked ?? [])[0];
+    const panel = options.find((p) => `${p.i},${p.j}` === id);
+    if (panel) chosen[allyId] = { i: panel.i, j: panel.j };
+  }
+  return chosen;
+}
+
+/**
+ * The panels an ally may be set down on, the Throne Room first.
+ *
+ * @param {{i: number, j: number}} origin the footprint's top-left
+ * @param {{w: number, h: number}} footprint
+ * @param {Array<{i: number, j: number}>} taken panels another ally already has
+ * @returns {Array<{i: number, j: number, throneRoom: boolean}>}
+ */
+export function riderPanelOptions(origin, footprint, taken = []) {
+  const { w = 9, h = 9 } = footprint ?? {};
+  const middle = { i: origin.i + Math.floor(h / 2), j: origin.j + Math.floor(w / 2) };
+  const out = [];
+  for (let i = origin.i; i < origin.i + h; i++) {
+    for (let j = origin.j; j < origin.j + w; j++) {
+      const p = { i, j };
+      if (key(p) === key(middle) || taken.some((t) => key(t) === key(p))) continue;
+      out.push({ i, j, throneRoom: reach(p, middle) <= 2 });
+    }
+  }
+  return out.sort((a, b) => reach(a, middle) - reach(b, middle));
 }
 
 /**
