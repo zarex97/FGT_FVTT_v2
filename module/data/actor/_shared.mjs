@@ -272,29 +272,7 @@ export function combatantCommon() {
     // the match starts, and this is what lets anyone check afterwards that they
     // were made before it did.
     summonedAt: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
-    normalAttack: new fields.SchemaField({
-      mode: new fields.StringField({ initial: "fixed", choices: ["fixed", "combined", "rangeBanded"] }),
-      component: new fields.StringField({ initial: "str", choices: ["str", "mag"] }),
-      // What a Normal Attack's damage IS. Every element in the engine is
-      // sourced from an ABILITY document, and the pipeline's element stage
-      // returns immediately without one -- so a Servant whose ordinary swing
-      // has a type had nowhere to state it. Ozymandias's Mesektet is the first:
-      // *"All Normal Attacks use Base Attack (MAG) ... Light damage."*
-      element: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
-      // "...Lightning damage (HALF)". How much of the swing carries that
-      // element, for the pipeline's stage 4b. Raikou's four Tenmokaikai copies
-      // are the first Normal Attacks in the corpus whose element is a FRACTION
-      // -- Ozymandias's Light and Nemo's Water are whole -- and without this
-      // field the parenthesis was dropped by the schema and every copy hit
-      // for full elemental damage.
-      elementFraction: new fields.NumberField({ required: false, nullable: true, initial: null }),
-      // What `rangeBanded` bands ON. The mode has been a declared choice since
-      // this schema was written with nothing to configure it and nothing
-      // reading it, so a Servant authored `rangeBanded` attacked with its flat
-      // `component` at every distance. Untyped for the same reason rule
-      // elements are; the content validator checks the shape at build time.
-      bands: new fields.ArrayField(new fields.ObjectField()),
-    }),
+    normalAttack: normalAttackField(),
     // null = the Sustainability clock does not exist for this unit
     // (Independent Action A+/EX). Not "a very large number".
     //
@@ -472,4 +450,45 @@ export function combatantCommon() {
       combatInBaseThisRound: new fields.BooleanField({ initial: false }),
     }),
   };
+}
+
+/**
+ * A Unit's Normal Attack: what it uses, what it is made of, and where it lands.
+ *
+ * A function rather than a field inside `combatantCommon`, because a Platform
+ * attacks too and carries no Parameters: the Golden Hind *"replaces Drake's
+ * Normal Attacks"* with its own MAG 200, and a Platform that could not declare
+ * one swung with the default STR (#99).
+ *
+ * @returns {foundry.data.fields.SchemaField}
+ */
+export function normalAttackField() {
+  return new fields.SchemaField({
+    mode: new fields.StringField({ initial: "fixed", choices: ["fixed", "combined", "rangeBanded"] }),
+    component: new fields.StringField({ initial: "str", choices: ["str", "mag"] }),
+    // What a Normal Attack's damage IS. Every element in the engine is
+    // sourced from an ABILITY document, and the pipeline's element stage
+    // returns immediately without one -- so a Servant whose ordinary swing
+    // has a type had nowhere to state it. Ozymandias's Mesektet is the first:
+    // *"All Normal Attacks use Base Attack (MAG) ... Light damage."*
+    element: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+    // "...Lightning damage (HALF)". How much of the swing carries that
+    // element, for the pipeline's stage 4b. Raikou's four Tenmokaikai copies
+    // are the first Normal Attacks in the corpus whose element is a FRACTION
+    // -- Ozymandias's Light and Nemo's Water are whole -- and without this
+    // field the parenthesis was dropped by the schema and every copy hit
+    // for full elemental damage.
+    elementFraction: new fields.NumberField({ required: false, nullable: true, initial: null }),
+    // What `rangeBanded` bands ON. The mode has been a declared choice since
+    // this schema was written with nothing to configure it and nothing
+    // reading it, so a Servant authored `rangeBanded` attacked with its flat
+    // `component` at every distance. Untyped for the same reason rule
+    // elements are; the content validator checks the shape at build time.
+    bands: new fields.ArrayField(new fields.ObjectField()),
+    // WHERE it lands, for a Normal Attack that is an area. Kagome: Famine's
+    // is a 3x3 square; `snapshot.mjs` and `ability-use.mjs` read it, and
+    // the schema had no field, so her swing hit one Unit (#99). Untyped for
+    // the same reason `bands` is.
+    shape: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+  });
 }

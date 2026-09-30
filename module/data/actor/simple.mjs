@@ -5,7 +5,7 @@
  * would be four files of five lines.
  */
 
-import { unitCommon, combatantCommon } from "./_shared.mjs";
+import { unitCommon, combatantCommon, normalAttackField } from "./_shared.mjs";
 
 const fields = foundry.data.fields;
 
@@ -50,6 +50,14 @@ export class SummonData extends foundry.abstract.TypeDataModel {
       // something; this is the one summon in the reference set that displaces
       // rather than being refused.
       movesOntoOccupiedPanels: new fields.BooleanField({ initial: false }),
+      // How many panels it stands on. Bašmu is 3x3: its token was sized from
+      // `footprint` at compile, and the rules read it off the model, which had
+      // no field -- so the knock-back cleared one cell and the reach of its
+      // Attack-denial clause was measured from one (#99).
+      footprint: new fields.SchemaField({
+        w: new fields.NumberField({ integer: true, initial: 1, min: 1 }),
+        h: new fields.NumberField({ integer: true, initial: 1, min: 1 }),
+      }),
 
 
       // Rule slugs switched off on this Unit, by name and permanently.
@@ -103,6 +111,8 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
         str: new fields.NumberField({ required: true, integer: true, initial: 0 }),
         mag: new fields.NumberField({ required: true, integer: true, initial: 0 }),
       }),
+      // ...and WHICH of them its Normal Attack uses (#99).
+      normalAttack: normalAttackField(),
       // NULLABLE, because a pocket dimension has no ground presence at all.
       // Ch. 27 says so of the Storm Border outright -- *"it is not on the
       // board at all while it is submerged"* -- and a non-nullable SchemaField
