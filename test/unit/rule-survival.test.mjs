@@ -91,7 +91,6 @@ export const KNOWN_RULE_DROPS = Object.freeze([
   { at: "servants/raikou.yml items[\"Goō Shōrai・Tenmōkaikai\"] activeRules[4]", leaf: "at", issue: "#103" },
   { at: "servants-normal/normal-archer.yml items[\"Independent Action\"] passiveRules[0]", leaf: "chance.formula", issue: "#103" },
   { at: "servants-normal/normal-archer.yml items[\"Independent Action\"] passiveRules[0]", leaf: "chance.success[]", issue: "#103" },
-  { at: "servants-normal/normal-lancer.yml items[\"Battle Continuation\"] passiveRules[1]", leaf: "uses", issue: "#103" },
 ]);
 
 /** A stack count of one for any effect a per-stock clause asks about. */
@@ -252,7 +251,7 @@ describe("every key inside a rule element reaches something that reads it", () =
   it("keeps its known drops honest: each owned by an issue, none stale, fewer over time", () => {
     for (const d of KNOWN_RULE_DROPS) expect(d.issue).toMatch(/^#\d+$/);
     expect(KNOWN_RULE_DROPS.filter((d) => !seen.has(d))).toEqual([]);
-    expect(KNOWN_RULE_DROPS.length).toBeLessThanOrEqual(14);
+    expect(KNOWN_RULE_DROPS.length).toBeLessThanOrEqual(13);
   });
 
   it("names the element types it cannot run, rather than skipping them", () => {

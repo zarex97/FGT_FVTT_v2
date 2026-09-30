@@ -125,6 +125,9 @@ executor actually reads, rather than of its descriptor's ids.
 - **`DamageModifier`** has no `mode`. Avenger's `mode: flat` was read by nothing: `modifierKey:
   avenger` is what makes the +80 flat, and `stage` is the executor's spelling when no key names a
   bucket. The line is gone and the validator refuses the key.
+- **`RevivalSource`** counts its budget in `charges`. Normal Lancer's Battle Continuation said `uses:
+  1`, so *"can only be used once"* had no limit. The content now says `charges: 1`, and the validator
+  refuses `uses`.
 
 ## Open questions
 
