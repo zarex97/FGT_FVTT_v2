@@ -368,6 +368,7 @@
   "FGT.Copy.Granted": "{count} Skills copied.",
   "FGT.Copy.Failed": "The copy was refused: {reason}.",
   "FGT.Mode.cannotDeactivate": "{name} cannot be deactivated.",
+  "FGT.Mode.notOwnTurn": "{name} can only be switched during its owner's Turn.",
   "FGT.Mode.compelled": "{name} cannot be deactivated while the Unit is compelled.",
   "FGT.Mode.toggleLock": "{name} was switched too recently — {remaining} more turn(s).",
   "FGT.Mode.noMatch": "{name} has a switching lockout, which needs a running match to measure. Begin the match first.",
