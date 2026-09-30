@@ -511,6 +511,13 @@ function findImmunity(def, target, held) {
   // has to gate at exactly the same point as the `Charm Immune` status does.
   const granted = target.immunities ?? [];
   if (granted.includes(def.id)) return `${def.id} Immune`;
+  // A scoped immunity from a rule element, and the ONLY way Debuff Immune
+  // blocks: its file's `scope: debuffs` and `except` list, not its id (#103).
+  // The exceptions are what keep Instakill, Death and Erase on their own ladder.
+  if (def.polarity === "debuff"
+    && granted.some((g) => g?.scope === "debuff" && !(g.except ?? []).includes(def.id))) {
+    return "Debuff Immune";
+  }
   if (def.polarity === "debuff" && granted.includes("debuff")) return "Debuff Immune";
   if (def.polarity === "debuff" && def.volatility && granted.includes(`debuff:${def.volatility}`)) {
     return `${def.volatility} Debuff Immune`;
@@ -523,7 +530,6 @@ function findImmunity(def, target, held) {
   // so — Instakill, Death and Erase have their own resistance ladder.
   if (def.volatility === "terminal" && !def.coveredByDebuffImmune) return null;
 
-  if (held.includes("debuffImmune")) return "Debuff Immune";
   const scoped = {
     nonVolatile: "nvDebuffImmune",
     volatile: "vDebuffImmune",

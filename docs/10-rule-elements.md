@@ -109,6 +109,9 @@ executor actually reads, rather than of its descriptor's ids.
   Up and Crit Up (Viy). An aura's `CritModifier` payload runs through the executor too.
 - **`Aura`** carries `npValue` when the aura is its own modifier: Atk Up (Charisma) is 20%, and 10%
   against a Noble Phantasm.
+- **`Immunity`** reads `scope: debuffs` and `except`. Debuff Immune's rule is now the only thing that
+  makes it block: the applier's check on the held effect's id is gone, and the file's exceptions
+  (Instakill, Death, Erase) are what keep the terminal effects on their own ladder.
 
 ## Open questions
 

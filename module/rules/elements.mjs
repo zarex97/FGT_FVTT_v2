@@ -2049,7 +2049,12 @@ export const EXECUTORS = Object.freeze({
   Immunity(el, { source, out }) {
     for (const id of el.effects ?? []) out.immunities.push(id);
     if (el.effect) out.immunities.push(el.effect);
-    void source;
+    // A whole CLASS of effect, with the ones it leaves alone named. Debuff
+    // Immune is *"cannot be inflicted with debuffs; does not affect Instakill,
+    // Death or Erase"*, and the file says so in `scope` and `except`. The
+    // executor read neither, and the applier gated on the held effect's id, so
+    // the list of exceptions was decoration (#103).
+    if (el.scope === "debuffs") out.immunities.push({ scope: "debuff", except: [...(el.except ?? [])], source });
   },
 
   ImmunityDowngrade(el, { source, out }) {
