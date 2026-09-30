@@ -124,7 +124,7 @@ describe("reconcileItems", () => {
 
 describe("PROVENANCE_KEYS", () => {
   it("is the pair that marks a runtime grant", () => {
-    expect(PROVENANCE_KEYS).toEqual(["copiedFrom", "grantedBy"]);
+    expect(PROVENANCE_KEYS).toEqual(["copiedFrom", "grantedBy", "inheritedFrom"]);
   });
 });
 
@@ -310,5 +310,20 @@ describe("a key play writes is not overwritten by the next reload", () => {
 
   it("lists no reason for a key play no longer writes", () => {
     expect(Object.keys(PACK_WINS).filter((key) => !written.has(key))).toEqual([]);
+  });
+});
+
+// #104. Raikou's copies inherit her passives: `engine/summoning.mjs` copies
+// each Ability onto the copy and stamps `inheritedFrom`. That is provenance --
+// granted during play, in no template -- and it was the one such stamp the
+// sync did not count, so the copy kept them only while their content ids
+// happened to be known.
+describe("an Ability a summon inherited", () => {
+  it("is kept by the sync, as anything granted during play is", () => {
+    const inherited = { _id: "i1", name: "Divinity", system: { contentId: "an-id-no-pack-knows", inheritedFrom: "raikou" } };
+    const { remove, kept } = reconcileItems([inherited], [], { knownContentIds: new Set() });
+    expect(remove).toEqual([]);
+    expect(kept).toEqual(["i1"]);
+    expect(PROVENANCE_KEYS).toContain("inheritedFrom");
   });
 });

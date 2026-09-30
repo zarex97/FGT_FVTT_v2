@@ -36,6 +36,7 @@ import { installSystem } from "../../tools/lib/foundry.mjs";
 const READ_ELSEWHERE = {
   contentVersion: "pack provenance; the content sync carries it generically through module/content/authored-fields.mjs",
   parameterized: "a template's slot list, read by the content validator in tools/lib/content.mjs",
+  inheritedFrom: "a provenance stamp, read by name through PROVENANCE_KEYS in module/migration/content-sync.mjs (#104)",
 };
 
 /** Declared fields with no writer by name, and what writes them instead. */
@@ -63,7 +64,7 @@ const NOT_A_SYSTEM_FIELD = {
 const KNOWN = {
   // Declared and never read.
   unread: { nonStacking: "#104", requiresRank: "#104", isInterrupt: "#104", oneUse: "#104", turnOrderRoll: "#104",
-    carriesOccupants: "#104", summonedAt: "#104", inheritedFrom: "#104", createdOnTurn: "#104" },
+    carriesOccupants: "#104", summonedAt: "#104", createdOnTurn: "#104" },
   // Declared and never written, by code or by content.
   unwritten: { nonStacking: "#104", requiresRank: "#104", isInterrupt: "#104", oneUse: "#104", turnOrderRoll: "#104",
     carriesOccupants: "#104" },
@@ -150,7 +151,7 @@ describe("the field ledger", () => {
   it("owns every known entry with an issue, and never gains one", () => {
     const all = Object.values(KNOWN).flatMap((m) => Object.values(m));
     for (const issue of all) expect(issue).toMatch(/^#\d+$/);
-    expect(all.length).toBeLessThanOrEqual(22);
+    expect(all.length).toBeLessThanOrEqual(21);
   });
 
   it("says how many system paths it cannot resolve", () => {
