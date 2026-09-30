@@ -44,3 +44,16 @@ describe("a Summon's size", () => {
     expect(await project("basmu", (u) => u.footprint)).toEqual({ w: 3, h: 3 });
   });
 });
+
+// #100. The Hanging Gardens *"does not Normal Attack"*: only its two named
+// Attacks exist. The file said it as `range.targets: 0`, which the model
+// clamps to 1 and nothing reads anyway, so the platform was offered a Normal
+// Attack like any other acting Unit. The engine's word for "cannot perform
+// Normal Attacks" is the `noNormalAttack` grant -- Pale Rider's Riding EX.
+describe("a Unit with no Normal Attack", () => {
+  it("the Hanging Gardens is not offered one", async () => {
+    const { UNIT_ACTIONS } = await import("../../module/rules/actions.mjs");
+    const attack = UNIT_ACTIONS.find((a) => a.id === "attack");
+    expect(await project("hanging-gardens-of-babylon", (u) => attack.available(u))).toBeNull();
+  });
+});

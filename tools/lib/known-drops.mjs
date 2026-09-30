@@ -18,11 +18,4 @@
 
 /** @type {ReadonlyArray<{file: string, path: string, issue: string}>} */
 export const KNOWN_BUILD_DROPS = Object.freeze([
-  { file: "packs/_source/platforms/hanging-gardens.yml", path: "system.range.targets", issue: "#100" },
-  { file: "packs/_source/structures/bloodmark.yml", path: "system.range.targets", issue: "#100" },
-  { file: "packs/_source/structures/bloodmark.yml", path: "system.baseAttack", issue: "#100" },
-  { file: "packs/_source/structures/piedra-del-sol.yml", path: "system.range.targets", issue: "#100" },
-  { file: "packs/_source/structures/piedra-del-sol.yml", path: "system.baseAttack", issue: "#100" },
-  { file: "packs/_source/structures/vorpal-blade-cache.yml", path: "system.range.targets", issue: "#100" },
-  { file: "packs/_source/structures/vorpal-blade-cache.yml", path: "system.baseAttack", issue: "#100" },
 ].map((d) => Object.freeze(d)));

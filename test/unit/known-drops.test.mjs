@@ -16,7 +16,7 @@ describe("the known build drops", () => {
   it("only shrinks", () => {
     // Lower this whenever an entry's issue is fixed. Raising it needs an issue
     // filed for every new entry, and a reason the drop cannot be fixed now.
-    expect(KNOWN_BUILD_DROPS.length).toBeLessThanOrEqual(7);
+    expect(KNOWN_BUILD_DROPS.length).toBeLessThanOrEqual(0);
   });
 
   it("names an issue for every entry", () => {
