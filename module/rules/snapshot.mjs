@@ -335,6 +335,8 @@ export function snapshotUnit(actor, {
     // one of these as a named special case (`defenderHasFragarach`); the
     // general list is what lets the ladder say WHICH effect refused.
     forbiddenReactions: [...new Set(contributions.forbiddenReactions ?? [])],
+    // ...and the rungs this Unit takes from whoever it attacks (#103).
+    refusesReactions: [...new Set(contributions.refusesReactions ?? [])],
     alignment: sys.alignment ?? null,
     // A Master's stored letter (Ch. 06). `masterTier` is derived from it
     // by `annotateMasterRank`, which needs the board: a Servant's tier is its

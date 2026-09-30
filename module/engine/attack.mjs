@@ -982,6 +982,9 @@ async function declareProcesses({
           // comparison, an unblockable attack -- and a rung closed in two
           // places is a rung that can be reopened in one.
           ...(accelRefusals(attackerId) ),
+          // Whatever the ATTACKER carries that takes rungs from its target:
+          // Normal Presence Concealment's Hidden Strike (#103).
+          ...attackerRefusals(attackerId),
         ])],
       }
       : state;
@@ -2037,6 +2040,11 @@ async function offerPreAttackSpell(owner, category) {
  * @param {string} attackerId
  * @returns {string[]}
  */
+function attackerRefusals(attackerId) {
+  const attacker = game.actors.get(attackerId);
+  return attacker ? (unitSnapshot(attacker).refusesReactions ?? []) : [];
+}
+
 function accelRefusals(attackerId) {
   const attacker = game.actors.get(attackerId);
   if (!attacker) return [];
@@ -3097,7 +3105,8 @@ function counterAvailable(state) {
     defenderHasFragarach: held.includes("fragarach"),
     // The general form: whatever the defender is carrying that says which rungs
     // it may not take (`ForbidReaction`).
-    defenderForbids: defender.forbiddenReactions ?? [],
+    // Plus what the ATTACKER takes from its target (#103).
+    defenderForbids: [...(defender.forbiddenReactions ?? []), ...(attacker.refusesReactions ?? [])],
     // AGI **Rank**, not the Agility pool. The pool is a spendable resource that
     // two Servants of the same Rank disagree about constantly, so a Servant who
     // had paid for a few Evades became blockable mid-match for no stated reason.
