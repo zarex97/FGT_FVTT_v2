@@ -48,7 +48,7 @@ This chapter covers two halves. The first half is the **build pipeline**: YAML s
 
 ### Live-world drivers
 
-These scripts drive a real Foundry application over the Chrome DevTools Protocol. They exist because *the document-touching layers have no unit tests* — they need a live world — and the only way to test them is by proving the world comes up (`tools/smoke-world.mjs:1-21`).
+These scripts drive a real Foundry application over the Chrome DevTools Protocol. They exist because some of the document-touching layer can only be proved in a live world — the `client/` half of Foundry, which does not import in Node, and anything that only shows once a world has come up (`tools/smoke-world.mjs:1-21`). The data layer itself is no longer among them: unit tests run Foundry's real `common/` classes through `tools/lib/foundry.mjs` (Ch. 44, ADR-0006).
 
 **Browser and application control** (`tools/fgt-world.mjs:52-353`) opens a CDP-enabled Chrome instance and manages the Foundry process:
 

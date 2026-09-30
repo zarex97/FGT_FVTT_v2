@@ -18,11 +18,23 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      FOUNDRY_PATH: ${{ github.workspace }}/.foundry
     steps:
       - uses: actions/checkout@v4
+      # Foundry's real data layer, which the tests and the pack build run
+      # against (ADR-0006). The copy is private and this repository is not,
+      # so it comes in with a read-only token; only `app/common` is needed.
+      - uses: actions/checkout@v4
+        with:
+          repository: zarex97/foundryVTT_copy
+          token: ${{ secrets.FOUNDRY_SOURCE_TOKEN }}
+          path: .foundry
+          sparse-checkout: app/common
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # Foundry v14's own floor (its package.json `engines`).
+          node-version: 24
           cache: npm
       - run: npm ci --legacy-peer-deps
 
