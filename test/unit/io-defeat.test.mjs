@@ -59,10 +59,15 @@ describe("io.defeat", () => {
     });
   });
 
-  it("puts the skull on the token", async () => {
+  it("asks for the skull on the token -- a write Foundry v14 drops (#96)", async () => {
+    // This used to read the property back off a fake Token that kept anything,
+    // and so asserted the bug into existence: v14's Token has no
+    // `overlayEffect`, and the skull has never appeared. It is on the harness's
+    // KNOWN_DROPS until #96 moves the skull to an overlay ActiveEffect.
     await withWorld(world(), async (w) => {
       await (await io()).defeat("heracles", "damage");
-      expect(w.tokens.get("t1").overlayEffect).toBe("icons/svg/skull.svg");
+      expect(w.wrote("overlayEffect")).toHaveLength(1);
+      expect(w.tokens.get("t1")._source.overlayEffect).toBeUndefined();
     });
   });
 
@@ -114,7 +119,7 @@ describe("the guard that a text scan cannot be", () => {
     // instead — less faithful, and the only version worth having.
     await withWorld(world(), async (w) => {
       await expect(w.actor("Heracles").update({ "system.totallyUndeclared": 42 }))
-        .rejects.toThrow(/no schema declares/);
+        .rejects.toThrow(/Silent Drop/);
     });
   });
 
@@ -138,14 +143,22 @@ describe("the guard that a text scan cannot be", () => {
     // The proof. `system.defeated` is declared today; if it were removed, this
     // is what the suite would do about it — and what it did about it for the
     // whole life of the bug is nothing, because nothing executed io.mjs.
-    await withWorld(world(), async (w) => {
-      const actor = w.actor("Heracles");
-      const saved = actor.schema.defeated;
-      delete actor.schema.defeated;
+    // The schema without it is a subclass registered in its place, which is
+    // where Foundry looks it up on every write.
+    await withWorld(world(), async () => {
+      const models = CONFIG.Actor.dataModels;
+      const saved = models.servant;
+      models.servant = class extends saved {
+        static defineSchema() {
+          const schema = super.defineSchema();
+          delete schema.defeated;
+          return schema;
+        }
+      };
       try {
         await expect((await io()).defeat("heracles", "damage")).rejects.toThrow(/system\.defeated/);
       } finally {
-        actor.schema.defeated = saved;
+        models.servant = saved;
       }
     });
   });

@@ -43,7 +43,7 @@ const world = (item = madEnhancement()) => ({
     items: [item],
   }],
   tokens: [{ id: "t1", actorId: "asterios" }],
-  combat: { round: 14, system: { globalTurn: 40, turnsPerRound: 3 } },
+  combat: { round: 14, system: { globalTurn: 40 } },
 });
 
 async function io() {
