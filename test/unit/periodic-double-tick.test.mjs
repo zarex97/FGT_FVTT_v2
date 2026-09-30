@@ -72,3 +72,23 @@ describe("the widening is still what makes any of it happen", () => {
     expect(boundary(bare)).toHaveLength(0);
   });
 });
+
+// #108's "second 160". At the Round 18 -> 19 boundary Heracles, Poisoned at
+// stage 4 inside the Throne Room, lost 320 where a dry run of `endRound` gave
+// one 160. The Round's last Turn was his own Faction's (`baseOrder` is
+// [faction-1, faction-2], and Faction 1 cast the NP on the Turn before), so
+// `endTurn` ticked him for *"the end of its Turn"* and `endRound` for *"in
+// addition to at the end of the Round"*. Two occasions, two ticks: the clause.
+describe("a Unit whose own Turn is the last of the Round", () => {
+  it("takes the Turn-end tick and the Round-end tick: 160 + 160 at stage 4", () => {
+    const heracles = { ...unit({ faction: "f1", acted: false }), effectInstances: [{ defId: "poison", stage: 4, expiry: null }] };
+    const ticks = [...boundary(heracles), ...tickPeriodics([heracles], "roundEnd", ctx)];
+    expect(ticks.map((t) => t.amount ?? t.value)).toEqual([160, 160]);
+  });
+
+  it("takes only the Round-end tick when the last Turn was somebody else's", () => {
+    const heracles = { ...unit({ faction: "f2", acted: false }), effectInstances: [{ defId: "poison", stage: 4, expiry: null }] };
+    const ticks = [...boundary(heracles), ...tickPeriodics([heracles], "roundEnd", ctx)];
+    expect(ticks.map((t) => t.amount ?? t.value)).toEqual([160]);
+  });
+});

@@ -1517,6 +1517,12 @@ its own is already the first half of the sentence.
 | another faction's Turn, having Acted | **20** |
 | the boundary that also rolls the **Round** | **40** — the round tick *plus* the acted tick, which is exactly what *"in addition to at the end of the Round"* says |
 
+The same double reads as a fault from outside, and did once. #108's *"second 160"*: Heracles at
+stage 4 lost **320** at a Round boundary where a dry run of `endRound` alone gave 160. The Round's
+last Turn was his own Faction's, so `endTurn` ticked him for *"the end of its Turn"* and `endRound`
+for *"the end of the Round"*. A live dry run at stage 2 gives **40** for his own Turn's end, **40**
+for the Round's, and nothing for another Faction's. Pinned in `test/unit/periodic-double-tick.test.mjs`.
+
 ### AK. Presence Concealment hid a Unit from the rules and from nobody else — **fixed 2026-09-16**
 
 > *"This Unit cannot be targeted for an Attack or an enemy Unit's Skill."*
