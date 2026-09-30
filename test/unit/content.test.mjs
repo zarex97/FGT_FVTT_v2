@@ -187,6 +187,23 @@ describe("ref resolution", () => {
     expect(r._ref).toBe("class-magic-resistance");
   });
 
+  // #97. Mad Enhancement's `drainFloor`, `drainFloorWhen` and
+  // `forcedDeactivation` are PARAMETERS: substituted into the template's rules
+  // at build time, and then also copied onto the built Ability, whose model
+  // declares none of them -- 18 Silent Drops of values nothing needed.
+  it("consumes a parameter the template holds only as a placeholder", () => {
+    const templates = new Map([["t", {
+      id: "t", name: "T", parameterized: ["rank", "floor"], rank: "@rank",
+      passiveRules: [{ key: "StatDelta", floorTable: "@floor" }],
+    }]]);
+    const r = resolveRef({ ref: "t", rank: "B", floor: "madEnhancementDrain", name: "Renamed" }, templates, [], "abilities[0]");
+    expect(r.rank).toBe("B");
+    expect(r.passiveRules[0].floorTable).toBe("madEnhancementDrain");
+    expect(r).not.toHaveProperty("floor");
+    // An entry key that is not a declared parameter is an override, and stays.
+    expect(r.name).toBe("Renamed");
+  });
+
   it("catches a ref that does not resolve — the renamed-file failure mode", () => {
     const problems = [];
     resolveRef({ ref: "class-magic-resistence" }, library, problems, "abilities[0]");

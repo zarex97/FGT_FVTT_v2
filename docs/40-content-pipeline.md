@@ -67,7 +67,7 @@ Overwriting these halves is how the old system corrupted matches. A content sync
 
 4. **Authoring flows through schema version 1.** Every YAML file must declare `schema: 1` (`tools/lib/content.mjs:36`).
 
-5. **`ref:` templates are instantiated at compile time.** A template's `parameterized` list names required parameters; missing one fails the build (`tools/lib/content.mjs:419-423`).
+5. **`ref:` templates are instantiated at compile time.** A template's `parameterized` list names required parameters; missing one fails the build (`tools/lib/content.mjs:419-423`). A parameter the template holds only as a placeholder is **consumed** by the substitution and not copied onto the built document; one the template also holds as a key of its own (`rank: "@rank"`) is a field and stays. Copying all of them put Mad Enhancement's `drainFloor`, `drainFloorWhen` and `forcedDeactivation` on six Abilities whose model declares none of them (#97).
 
 6. **Half-world fields survive only if they are listed.** The split between pack and world is checked structurally in both directions by a test; a missing entry means content silently overwrites play state (`test/unit/authored-fields.test.mjs`).
 
