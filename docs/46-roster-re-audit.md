@@ -2304,6 +2304,43 @@ return for a forced move and the one for a level-only change -- and Heracles had
 boarding, a level change, and every staging move was forced. *"Whenever Semiramis sees a Unit for the
 first time"* does not ask how the Unit got there. Both returns now check sightings first.
 
+### BK. A Bašmu Moved after its Attack — **fixed 2026-09-30**
+
+**Reached: BS.econ.** Bašmu attacked Heracles, and the bar still offered it a Move; `affordable` said
+yes. *"A Bašmu can only Move/Attack once per Turn"* is a cap on top of the per-unit limit, and Ch. 19
+says exempt units *"still obey their per-unit limits"*. The once-per-Turn branch of
+`rules/budget.mjs#canConsume` returned before the no-Move-after-Attack guard, so every
+`actsOncePerTurn` summon and every platform skipped it. The branch now applies the same guard, with the
+same Riding and `doubleMove` exceptions.
+
+### BL. A Bašmu could Jump off the garden — **fixed 2026-09-30**
+
+**Reached: BS.bound.** Bašmu, standing on the garden's edge, was offered Jump Off. *"Bašmu cannot leave
+the HGoB."* `summoning.mjs` stamps `boundToPlatformId` so the teardown can dismiss it, and the teardown
+reads it from the document, but `snapshotUnit` never projected it, so nothing in `rules/` could see the
+bond. It is projected now, `canUnboard` refuses `boundToPlatform` -- ahead of the edge rung, since the bar
+still shows a Jump blocked `notOnEdge` -- and a knockback that would push a bound summon past the edge
+holds it instead.
+
+### BM. A 3x3 Bašmu was summoned on top of Semiramis — **fixed 2026-09-30**
+
+**Reached: BS.bound, re-summoning.** A Bašmu summoned through the spell's own phase appeared with its
+token anchored at (3,3), diagonally beside Semiramis at (4,4) -- and, being 3x3, covering her panel.
+`engine/summoning.mjs#freePanels` tested only the anchor panel for occupancy. The whole footprint must
+be free, on the board, and on the platform a bound summon is tied to; *"directly next to her"* is
+measured from the footprint's nearest panel. `summonPhase` now reads the largest footprint among the
+summons it is about to place, and two summons from one call do not overlap each other.
+
+### BN. A pack rebuild unbound Bašmu from its garden — **fixed 2026-09-30**
+
+**Reached: BS.bound.** After BL's projection, the live Bašmu still read `boundToPlatformId: null`,
+though the spell's own summon phase, run again, stamped it correctly. The key is in
+`AUTHORED_ACTOR_KEYS` and was not in `SEEDED_THEN_OWNED`, so the content sync put the pack's null back
+on every world load after a rebuild -- and this session rebuilt the packs after each issue. The sweep in
+`content-sync.test.mjs` looks for `"system.X": value` writes, and `summoning.mjs` writes its stamps with
+`Object.assign(data.system, plain)`, which the sweep cannot see. It is world-owned now, like
+`summonerId` beside it.
+
 ---
 
 ---

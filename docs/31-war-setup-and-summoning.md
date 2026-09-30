@@ -58,7 +58,7 @@ A summon-time coin flip may change a Servant's shape. `resolveSummonVariant` tak
 
 ### Conjured summons
 
-`summonPhase` runs the `summon` phase. If `spec.contentIds` is set, all are summoned in order (Raikou's clones); otherwise, `countRoll` decides how many, and `typeRoll` per summoned unit decides what, with optional "your choice" entries (`module/engine/summoning.mjs:35-80`). Placement picks free panels from a named area around the conjurer.
+`summonPhase` runs the `summon` phase. If `spec.contentIds` is set, all are summoned in order (Raikou's clones); otherwise, `countRoll` decides how many, and `typeRoll` per summoned unit decides what, with optional "your choice" entries (`module/engine/summoning.mjs:35-80`). Placement picks free panels from a named area around the conjurer. A summon larger than one panel is placed by its top-left panel, and `freePanels` requires its WHOLE footprint to be free, on the board, and on the platform it is bound to (`boundToPlatform`); *"directly next to her"* is measured from the footprint's nearest panel, so a 3x3 Bašmu never covers Semiramis ([Ch. 46 §46.4-BM](46-roster-re-audit.md)).
 
 `expiredSummonIds` detects which conjured summons have outstayed their welcome: those with `kind: "summon"` and `expiresAt <= tick` (`module/rules/summons.mjs:40-46`). The expiry is an absolute tick, not a countdown, so it survives the unit's creation and never fails to fire (`module/rules/summons.mjs:20-22`).
 

@@ -120,6 +120,10 @@ export const SEEDED_THEN_OWNED = Object.freeze({
     // the class her sheet names: Medusa sat in `saber` and the pack says
     // `rider`.
     "summonerId", "ownerId", "identityRevealed", "classContainer",
+    // `summoning.mjs` stamps Bašmu's garden at the summons. Pack-owned, every
+    // pack rebuild put null back: the Bašmu on the audit board could Jump off
+    // and would have outlived its garden (Ch. 46 §46.4-BN).
+    "boundToPlatformId",
   ]),
   item: Object.freeze([
     "active", "timesUsed", "lastUsedTick", "recordedAttacks", "quantity",

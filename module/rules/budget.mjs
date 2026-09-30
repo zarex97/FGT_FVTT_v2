@@ -277,6 +277,13 @@ export function canConsume(budget, unit, action) {
     if (already) {
       return { ok: false, reason: "this unit has already acted this Turn", pool: null, free: false };
     }
+    // The cap sits ON TOP of the per-unit limit (Ch. 19: exempt units "still
+    // obey their per-unit limits"), so the no-Move-after-Attack rule below
+    // holds here too. Returning first let a Bašmu Move after its Attack
+    // (Ch. 46 §46.4-BK).
+    if (action === "move" && state.attacked && !hasGranted(unit, GRANTS.doubleMove) && !unit?.hasRiding) {
+      return { ok: false, reason: "this unit has attacked and cannot move again", pool: null, free: false };
+    }
     return { ok: true, reason: null, pool: null, free: true };
   }
 

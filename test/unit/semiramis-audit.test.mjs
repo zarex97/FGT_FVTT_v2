@@ -80,3 +80,28 @@ describe("boarding after Dragon Wing Warriors", async () => {
     expect(attackedByReliefApplies([], hgob)).toBe(false);
   });
 });
+
+// *"A Bašmu can only Move/Attack once per Turn"* -- a cap on top of the
+// per-unit limit, not a replacement for it. Ch. 19: exempt units *"still obey
+// their per-unit limits"*, and one of those is that a Unit that has attacked
+// cannot Move again. The once-per-Turn branch returned before that guard, so a
+// Bašmu that had just attacked was offered, and allowed, a Move.
+describe("a Bašmu that has attacked", async () => {
+  const { canConsume, emptyBudget } = await import("../../module/rules/budget.mjs");
+  const basmu = (turnState) => ({ id: "b", kind: "summon", actsOncePerTurn: true, turnState });
+
+  it("cannot Move afterwards", () => {
+    const v = canConsume(emptyBudget(), basmu({ attacked: true }), "move");
+    expect(v).toMatchObject({ ok: false, reason: "this unit has attacked and cannot move again" });
+  });
+
+  it("can still Attack after a Move, once, and spends no pool", () => {
+    expect(canConsume(emptyBudget(), basmu({ moved: true }), "attack")).toMatchObject({ ok: true, pool: null });
+    expect(canConsume(emptyBudget(), basmu({ moved: true, attacked: true }), "attack").ok).toBe(false);
+  });
+
+  it("and the Hanging Gardens, a platform, is held the same way", () => {
+    const hgob = { id: "p", kind: "platform", turnState: { attacked: true } };
+    expect(canConsume(emptyBudget(), hgob, "move").ok).toBe(false);
+  });
+});

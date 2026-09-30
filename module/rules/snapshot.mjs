@@ -138,6 +138,10 @@ export function snapshotUnit(actor, {
     // document: the movement constraint and the field teardown.
     pursuitTargetId: sys.pursuitTargetId ?? null,
     boundToFieldId: sys.boundToFieldId ?? null,
+    // Bašmu's *"cannot leave the HGoB"*. Stamped at the summons and read by
+    // the teardown from the document, but never projected, so `canUnboard`
+    // could not see it and the bar offered Bašmu a Jump (Ch. 46 §46.4-BL).
+    boundToPlatformId: sys.boundToPlatformId ?? null,
     summonAssignments: sys.summonAssignments ?? {},
     // Both halves of Pale Rider's Items line. Projected because
     // `acquisitionTarget` is pure and decides from the BOARD -- it has to see

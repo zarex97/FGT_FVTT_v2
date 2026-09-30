@@ -373,12 +373,15 @@ export function jumpVerdict(unit, platform, remaining = 0) {
     return { ok: false, reason: "notAboard" };
   }
   if (!JUMPING_KINDS.includes(unit?.kind)) return { ok: false, reason: "wrongKind" };
-  if (!isEdgePanel(unit.panel, platform)) return { ok: false, reason: "notOnEdge" };
 
   // *"Drake cannot unboard the Golden Hind."* A rider the Platform holds does
-  // not get out by jumping either.
+  // not get out by jumping either. Before the edge rung: the bar still shows a
+  // Jump blocked `notOnEdge`, and a Unit that can never leave has nothing to
+  // step towards.
   const off = canUnboard(unit, platform);
   if (!off.ok) return off;
+
+  if (!isEdgePanel(unit.panel, platform)) return { ok: false, reason: "notOnEdge" };
 
   // *"land on a Game Board panel within its MOV"* -- a Unit with none left has
   // nowhere to land.
@@ -656,6 +659,12 @@ export function deactivatedBy(platforms, unitId, defId) {
  * @returns {{ok: boolean, reason?: string}}
  */
 export function canUnboard(unit, platform) {
+  // *"Bašmu cannot leave the HGoB."* A summon bound to THIS platform, stamped
+  // by `summoning.mjs` at the summons, goes nowhere -- not by Jump, and not
+  // off the edge either (`movement-hooks.mjs` holds the push).
+  if (unit?.boundToPlatformId && unit.boundToPlatformId === platform?.id) {
+    return { ok: false, reason: "boundToPlatform" };
+  }
   const locked = platform?.lockAboard ?? [];
   if (locked.includes("owner") && unit?.id === platform?.ownerId) {
     return { ok: false, reason: "lockedAboard" };
