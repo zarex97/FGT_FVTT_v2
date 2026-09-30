@@ -124,6 +124,8 @@ Clicking a token selects it only if that token is on the level being viewed (`mo
 
 6. **Level assignment is dispatched through `displaceToken`, not a direct update.** The level and elevation are Foundry v14 `MOVEMENT_FIELDS`, so assignment through the normal path is constrained by movement legality. An explicit `action: "displace"` and `fgtForced` flag tell the movement hook to stand aside (`module/engine/scene-levels.mjs:369-410`).
 
+8. **The Hanging Gardens is beyond effects and reactions, and is attacked from below only at range.** Its `rules` carry `Immunity` at `scope: debuffs` and `scope: buffs` (the applier blocks either polarity), a `ForbidReaction` of its own Evade, Block and Counter, and an `incoming` one taking Counter from whoever it attacks. `crossLevel.hullTargeting: rangedOnly` makes a ground attack on the platform itself ranged-only; `crossLevelLegal` used to wave any attack on a platform through. The file had recorded the first two as unmodelled (#68). A defender's own forbidden rungs now also reach the react rung, where Invuln's "cannot Block" had been read only by the counter check.
+
 7. **A Platform that acts is offered a Normal Attack unless it says it has none.** Platforms are acting Units (`rules/actions.mjs#ACTING_KINDS`). The Hanging Gardens *"does not Normal Attack"* and says so with the `noNormalAttack` grant in its `rules`, the same word Pale Rider's Riding EX uses. It used to say `range.targets: 0`, which the model clamps to 1 and nothing reads, so it was offered one (#100). A Structure takes no action at all and states no target count or Base Attack.
 
 7. **Dimension travel preserves formation.** Passengers move as an offset group, not individually (`module/engine/dimension.mjs:350-360`).

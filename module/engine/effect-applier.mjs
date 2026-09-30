@@ -523,6 +523,10 @@ function findImmunity(def, target, held) {
     && granted.some((g) => g?.scope === "debuff" && !(g.except ?? []).includes(def.id))) {
     return "Debuff Immune";
   }
+  if (def.polarity === "buff"
+    && granted.some((g) => g?.scope === "buff" && !(g.except ?? []).includes(def.id))) {
+    return "Buff Immune";
+  }
   if (def.polarity === "debuff" && granted.includes("debuff")) return "Debuff Immune";
   if (def.polarity === "debuff" && def.volatility && granted.includes(`debuff:${def.volatility}`)) {
     return `${def.volatility} Debuff Immune`;

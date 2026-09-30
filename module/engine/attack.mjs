@@ -993,6 +993,11 @@ async function declareProcesses({
           // Whatever the ATTACKER carries that takes rungs from its target:
           // Normal Presence Concealment's Hidden Strike (#103).
           ...attackerRefusals(attackerId),
+          // ...and the rungs the DEFENDER may not take itself. Invuln's
+          // "cannot Block" and the Hanging Gardens' "cannot Evade, Block" were
+          // read only by the counter check, so the react rung still offered
+          // them (#68).
+          ...defenderRefusals(state.defenderId),
         ])],
       }
       : state;
@@ -2048,6 +2053,11 @@ async function offerPreAttackSpell(owner, category) {
  * @param {string} attackerId
  * @returns {string[]}
  */
+function defenderRefusals(defenderId) {
+  const defender = defenderId ? game.actors.get(defenderId) : null;
+  return defender ? (unitSnapshot(defender).forbiddenReactions ?? []).filter((r) => r !== "counter") : [];
+}
+
 function attackerRefusals(attackerId) {
   const attacker = game.actors.get(attackerId);
   return attacker ? (unitSnapshot(attacker).refusesReactions ?? []) : [];

@@ -15,3 +15,44 @@ describe("Scales of the Sacred Fish's Shield", () => {
     expect(effectDef("scalesShield").unremovable).toBeFalsy();
   });
 });
+
+// The Hanging Gardens' own rules, which its file recorded as UNMODELLED: *"The
+// HGoB cannot be affected by buffs and/or debuffs"* and *"cannot Evade, Block,
+// and Counter; and cannot be Countered"*. Now authored, on the platform's own
+// `rules`, and read through the real executors.
+describe("the Hanging Gardens, the Unit", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { parse } = await import("yaml");
+  const { collectContributions } = await import("../../module/rules/elements.mjs");
+  const { applyEffect } = await import("../../module/engine/effect-applier.mjs");
+  const { crossLevelLegal } = await import("../../module/rules/platforms.mjs");
+  const hgob = parse(readFileSync("packs/_source/platforms/hanging-gardens.yml", "utf8"));
+  const own = collectContributions([{ name: hgob.name, active: true, rules: hgob.rules }]);
+  const land = (id, polarity) => applyEffect({
+    def: { ...effectDef(id), id, polarity },
+    target: { id: "hgob", effects: [], effectInstances: [], immunities: own.immunities },
+    source: {}, ctx: { turnsPerRound: 3, currentTick: 0, roll: 1, options: new Set() },
+  }).outcome;
+
+  it("cannot be affected by a buff or a debuff", () => {
+    expect(land("atkUp", "buff")).toBe("blocked");
+    expect(land("slow", "debuff")).toBe("blocked");
+    expect(land("instakill", "debuff")).toBe("blocked");
+  });
+
+  it("cannot Evade, Block or Counter, and cannot be Countered", () => {
+    expect(own.forbiddenReactions.sort()).toEqual(["block", "counter", "evade"]);
+    expect(own.refusesReactions).toEqual(["counter"]);
+  });
+
+  // *"Enemy Units on the ground ... may only Attack the HGoB itself, with
+  // ranged Attacks."* A target that IS the platform was waved through at any
+  // reach.
+  it("can be attacked from the ground only at range", () => {
+    const platform = { id: "hgob", kind: "platform", level: 20, panel: { i: 0, j: 0 }, footprint: { w: 9, h: 9 }, crossLevel: hgob.crossLevel };
+    const board = { units: [platform] };
+    const at = (range) => crossLevelLegal({ id: "e", level: 0, range, panel: { i: 10, j: 10 } }, platform, board).ok;
+    expect(at(1)).toBe(false);
+    expect(at(3)).toBe(true);
+  });
+});

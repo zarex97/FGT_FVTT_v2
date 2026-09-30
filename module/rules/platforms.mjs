@@ -36,6 +36,7 @@ export const OPEN_PLATFORM = Object.freeze({
   aoeMastersImmune: false,
   outboundTargeting: "free",
   forbidDirectlyBelow: false,
+  hullTargeting: "free",
 });
 
 /**
@@ -165,9 +166,16 @@ function platformOf(unit, board) {
  */
 export function crossLevelLegal(attacker, target, board, { range = null, allowDirectlyBelow = false } = {}) {
   if ((attacker?.level ?? 0) === (target?.level ?? 0)) return { ok: true };
-  if (target?.kind === "platform") return { ok: true };
-
   const ranged = (range ?? attacker?.range ?? 1) >= 2;
+  // The platform ITSELF, from another level: its own `hullTargeting`. The
+  // Hanging Gardens may be attacked from the ground only at range, and this
+  // waved every such attack through at any reach (#68).
+  if (target?.kind === "platform") {
+    const hull = (target.crossLevel ?? OPEN_PLATFORM).hullTargeting ?? "free";
+    if (hull === "forbidden") return { ok: false, reason: "hullForbidden" };
+    if (hull === "rangedOnly" && !ranged) return { ok: false, reason: "requiresRanged" };
+    return { ok: true };
+  }
 
   // Shooting IN: the target's platform decides.
   const inbound = platformOf(target, board);
