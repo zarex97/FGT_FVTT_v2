@@ -14,10 +14,13 @@ The boundary enforced in chapter 02 — that `domain/` and `rules/` import nothi
 |---|---|
 | `vitest.config.mjs` | Test runner configuration; specifies Node environment and coverage targets |
 | `package.json` (scripts) | `test`, `test:watch`, `test:unit`, `test:golden` invoke vitest; `check:smoke` invokes smoke-world.mjs |
-| `test/unit/*.test.mjs` | 211 unit test files, testing individual rules and domain functions |
+| `test/unit/*.test.mjs` | 239 unit test files, testing individual rules and domain functions |
 | `test/golden/*.test.mjs` | 2 golden test files (damage, Akhilleus Kosmos authoring), pinning documentation worked examples |
 | `test/fixtures/` | Small fixture files used to seed test data |
 | `tools/lib/foundry.mjs` | Loads Foundry's **real** `common/` data layer from `FOUNDRY_PATH` (default `../foundryVTT_copy`) and registers this system's DataModels; fails the run when the copy is missing or is not the build `system.json` is verified on (ADR-0006) |
+| `tools/lib/model-check.mjs` | The build's model check: every compiled document through the real DataModel (Ch. 40) |
+| `test/unit/schema-validity.test.mjs` | Every field's default passes its own validation; a write lands only on the type that declares it |
+| `test/unit/client-traps.test.mjs` | The `fgt/client-traps` lint rule, held to each client-side trap (Ch. 08) |
 | `test/unit/field-ledger.test.mjs` | Every declared field has a reader and a writer, and nothing reads an undeclared `system` path |
 | `test/helpers/subject.mjs` | Builds test subjects from authored content through the real compile, DataModel and projection |
 | `test/unit/rule-survival.test.mjs` | No normalizer or executor drops a key authored inside a rule element |
@@ -30,7 +33,7 @@ The boundary enforced in chapter 02 — that `domain/` and `rules/` import nothi
 
 ### The test pyramid
 
-The system rests on unit tests at the base (211 test files covering domain and rules), golden tests in the middle (2 files pinning documentation), and smoke tests at the apex (real-world launch validation). This shape reflects a deliberate choice: the pure layers are testable and must be thoroughly tested; the application layers are slow, and their tests stay sparse and aimed at **wiring** — does this intent get created where it should, does this writer put the right thing in the document. That they were also *unreachable* was a separate problem, and is fixed.
+The system rests on unit tests at the base (239 test files covering domain and rules), golden tests in the middle (2 files pinning documentation), and smoke tests at the apex (real-world launch validation). This shape reflects a deliberate choice: the pure layers are testable and must be thoroughly tested; the application layers are slow, and their tests stay sparse and aimed at **wiring** — does this intent get created where it should, does this writer put the right thing in the document. That they were also *unreachable* was a separate problem, and is fixed.
 
 ### Unit tests on pure layers
 
@@ -141,6 +144,24 @@ Exemptions are per element type with a reason; drops found in shipped content ar
 owned by #102 and #103, may only shrink, and fail as stale once fixed. An element type whose executor
 cannot run without a world is printed and fails the count, rather than being skipped. Reintroducing
 `r.effect ?? r` in `effectSpecsOf`, or dropping the Aura's `check`, turns it red naming the key.
+
+### Known drops, and why each list only shrinks
+
+Every Silent Drop guard landed on a corpus that already had drops in it. Fixing each on sight would have
+meant rewriting Clauses without auditing them against their Character Sheets, so each guard landed with a
+list of what it found, every entry owned by an issue:
+
+| List | Guard | Issues |
+|---|---|---|
+| `KNOWN_DROPS` in `test/helpers/world.mjs` | the loud prune | #96 |
+| `KNOWN_BUILD_DROPS` in `tools/lib/known-drops.mjs` | the model check | #97–#100 |
+| `unread` routes in `test/unit/survival.test.mjs` | the survival test | #101 |
+| `KNOWN_RULE_DROPS` in `test/unit/rule-survival.test.mjs` | the rule-element survival test | #102, #103 |
+| `KNOWN` in `test/unit/field-ledger.test.mjs` | the field ledger | #104, #98 |
+
+Each list has a ceiling that fails if it rises, and each entry fails as **stale** once the drop stops
+happening, so a fix has to take its entry with it. A new entry is a filed issue and a reason the drop
+cannot be fixed now — never a way to make a guard pass.
 
 ### Golden tests
 
