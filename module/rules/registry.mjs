@@ -74,6 +74,8 @@ export const EffectRegistry = {
         // Actions that run when the effect goes away -- Shock's "current
         // Agility +1 when max is restored", Coma's exit damage.
         onRemove: sys.onRemove ?? [],
+        // ...and when it lands, once: Shock's "current Agility -3" (#106).
+        onApply: sys.onApply ?? [],
         rules: sys.rules ?? [],
         coveredByDebuffImmune: sys.coveredByDebuffImmune ?? false,
         bypassesImmunity: sys.bypassesImmunity ?? false,

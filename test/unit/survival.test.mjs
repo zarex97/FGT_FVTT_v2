@@ -186,6 +186,7 @@ export const EFFECT_ROUTES = {
     "families", "suppressesOtherEffects", "defaultMagnitude", "defaultDuration", "unremovable",
     "allySelfBypassesResistance", "maxStacks", "blocks", "blockedBy", "replaces", "periodic",
     "terminal", "uses", "absorbs", "onRemove", "rules", "bypassesImmunity",
+    "onApply",
   ].map((k) => [k, same(k)])),
   // Copied onto the registry definition and read by nobody there: damage over
   // time ticks from `engine/scheduler.mjs#PERIODICS` (#105).

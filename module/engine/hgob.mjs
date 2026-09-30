@@ -316,6 +316,16 @@ async function applyOwnerBuff(owner, platformId) {
     "hgob:activate",
   );
 
+  // *"Max AND CURRENT Health +500, Agility +2, Luck +4."* The buff derives the
+  // maxima; the currents are stored, so they are paid ONCE, here, in a batch of
+  // their own -- after the buff has landed, so the raised maximum is already
+  // there to clamp against (#106). When the buff goes, preparation clamps each
+  // current back to its maximum.
+  await applyWorldIntents(
+    [I.statDelta(owner.id, "health.value", 500), I.statDelta(owner.id, "agility.value", 2), I.statDelta(owner.id, "luck.value", 4)],
+    "hgob:activate",
+  );
+
   // `zonExempt` and `sustainabilityRemaining` have no rule-element reader
   // (see hgob-owner-buff.yml's own note) and are written directly.
   await owner.update({

@@ -1166,9 +1166,6 @@ export const EXECUTORS = Object.freeze({
       value: scalar(resolveValue(el, rank, ctx)),
       ...(el.factor !== undefined ? { factor: el.factor } : {}),
       ...(el.floor !== undefined ? { floor: el.floor } : {}),
-      // `Shock` is "Max **and current** Agility −3", and `Max HpUp` is the
-      // same shape in the other direction -- one delta that moves both.
-      ...(el.alsoCurrent ? { alsoCurrent: true } : {}),
       duration: el.duration ?? null,
       isBuff: el.isBuff !== false,
       source,
@@ -1176,11 +1173,9 @@ export const EXECUTORS = Object.freeze({
   },
 
   MaxDelta(el, { rank, source, out, ctx }) {
-    out.statDeltas.push({
-      stat: `${el.stat}.max`, value: scalar(resolveValue(el, rank, ctx)),
-      // Max HpUp restores current by the same amount; Max HpDwn does NOT.
-      alsoCurrent: el.alsoCurrent ?? false, source,
-    });
+    // The maximum only. "Max HpUp restores current by the same amount" is a
+    // stored change, paid once by the effect's `onApply` (#106).
+    out.statDeltas.push({ stat: `${el.stat}.max`, value: scalar(resolveValue(el, rank, ctx)), source });
   },
 
   MovDelta(el, { rank, source, out, ctx }) {

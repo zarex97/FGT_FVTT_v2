@@ -1122,6 +1122,17 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     if (el.key === "Script" && !el.script) {
       problems.push(`${path}: ${where} is a Script element with no "script" id`);
     }
+    // A rule element is DERIVED: it is re-applied on every preparation. A
+    // current pool is STORED, and every writer reads the prepared value and
+    // writes the result back -- so a derived change to one is baked into
+    // `_source` by the first write and applied again on top by the next
+    // preparation (#106). The current half of a clause is paid once: `onApply`
+    // on an effect, or an action in a handler.
+    if ((el.key === "StatDelta" || el.key === "MaxDelta")
+      && (el.alsoCurrent || (el.key === "StatDelta" && CURRENT_POOLS.test(String(el.stat ?? ""))))) {
+      problems.push(`${path}: ${where} changes a current value (${el.alsoCurrent ? "alsoCurrent" : el.stat}) `
+        + "from a rule element, which re-derives it on every preparation; pay it once with onApply (#106)");
+    }
 
     // `npValue: "@magnitude"` is a DANGLING EXPRESSION, and it looks exactly
     // like the thing it is not.
@@ -1543,6 +1554,9 @@ function durationFields(doc) {
  * @param {object} doc
  * @returns {Array<[string, object]>}
  */
+/** A current pool, as a rule element names it: `derived.mjs#normalise` reads the bare name as the current. */
+const CURRENT_POOLS = /^(health|agility|luck)(\.value)?$|\.value$/;
+
 export function ruleElements(doc) {
   /** @type {Array<[string, object]>} */
   const out = [];

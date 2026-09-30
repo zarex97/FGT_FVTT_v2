@@ -16,8 +16,8 @@
 # (module/rules/elements.mjs) and `applyStatDeltas` (rules/derived.mjs) now
 # both know `grades` as well as `steps` -- this file was the first content
 # ever to exercise a parameter `RankShift` at all, and the gap had no caller
-# to catch it until now. The `alsoCurrent` numeric-delta half needed no
-# change; that part was already correct.
+# to catch it until now. The numeric half raises the maxima only; the
+# currents are paid once by `engine/hgob.mjs` (#106).
 #
 # ZON exemption is NOT a rule element here: `zonExempt` (module/data/actor/
 # servant.mjs) is a plain Boolean already read by `rules/zon.mjs#zonStatus`
@@ -52,7 +52,10 @@ rules:
   - { key: RankShift, parameter: luc, grades: 1 }
   - { key: StatDelta, stat: baseAttack.str, value: 25 }
   - { key: StatDelta, stat: baseAttack.mag, value: 50 }
-  - { key: StatDelta, stat: health.max, value: 500, alsoCurrent: true }
+  # Maxima only. "Max AND CURRENT +X" is paid once, into the stored current,
+  # by `engine/hgob.mjs` at activation (#106): a derived `alsoCurrent` was
+  # baked into `_source` by every write and hid her first 500 damage.
+  - { key: StatDelta, stat: health.max, value: 500 }
   - { key: StatDelta, stat: mov, value: 1 }
-  - { key: StatDelta, stat: agility.max, value: 2, alsoCurrent: true }
-  - { key: StatDelta, stat: luck.max, value: 4, alsoCurrent: true }
+  - { key: StatDelta, stat: agility.max, value: 2 }
+  - { key: StatDelta, stat: luck.max, value: 4 }

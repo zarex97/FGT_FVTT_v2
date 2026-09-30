@@ -100,9 +100,10 @@ apply to the **already-modified** value, not the original (`module/rules/derived
 (`"cannot reduce MOV below 1"`) apply last in this pass (`module/rules/derived.mjs:139-145`).
 
 **Pass 3: Clamps.** A `value < 0` is clamped to `0` for any stat in `NON_NEGATIVE` — MOV, Range,
-Agility, Luck (`module/rules/derived.mjs:147-152`). Health has a ceiling: current Health is clamped to
-Max Health (even when no delta named `health.value`), because lowering Max Health drags current Health
-down with it (`module/rules/derived.mjs:153-164`).
+Agility, Luck (`module/rules/derived.mjs:147-152`). Each pool has a ceiling: current Health, Agility
+and Luck are clamped to their maximum (even when no delta named the current), because lowering a
+maximum drags its current down with it, and losing a buff that raised both leaves the current above
+the ceiling it paid into (#106).
 
 The result is a `{changes, trace}` object. `trace` records every change and its source for the sheet's
 tooltip; `changes` is a flat path → value map that `writeDerived` applies to the live `system`
@@ -164,6 +165,21 @@ asks about it (`module/rules/granted.mjs:1-18`).
    The first two are guarded by the `fgt/client-traps` ESLint rule (`tools/lib/eslint-client-traps.mjs`,
    in `npm run lint`) and proved live by `npm run check:world` (Ch. 43, #94). The client layer does not
    import in Node, so no unit test can run them (ADR-0006).
+
+9. **A maximum may be derived. A current value is paid once and stored (#106).** Every writer reads
+   the PREPARED current and writes the result back to `_source`. A rule element that changed a current
+   was therefore baked into `_source` by the first write and applied again by the next preparation.
+   Semiramis aboard her garden took 49 and read 1250/1250 before and after, and a Shocked Unit lost
+   three more Agility on every Agility spend. So:
+   - `applyStatDeltas` never derives a current: `alsoCurrent` is ignored there, and the validator
+     refuses it, or any current pool, on a `StatDelta` or `MaxDelta` rule element.
+   - An effect pays its current half with `onApply`, actions run once when an instance is CREATED and
+     not when it is refreshed (`engine/applier.mjs#resolveEffects`). Shock is the first: `MaxDelta
+     agility -3` in `rules`, `StatDelta agility.value delta -3` in `onApply`.
+   - A buff granted outside the effect flow pays its own: `engine/hgob.mjs#applyOwnerBuff` writes
+     Health +500, Agility +2 and Luck +4 in a batch after the buff lands.
+   - When the buff goes, Pass 3's clamp brings the current back under the maximum. Pinned by
+     `test/unit/current-pools.test.mjs`.
 
 ## Open questions
 

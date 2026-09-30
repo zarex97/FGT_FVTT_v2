@@ -30,8 +30,12 @@ id, name, img, polarity, volatility, valence, stacking, baseChance,
 severity, preventsAction, families, suppressesOtherEffects,
 defaultMagnitude, defaultDuration, unremovable, allySelfBypassesResistance,
 maxStacks, blocks, blockedBy, replaces, periodic, terminal, uses,
-absorbs, onRemove, rules, coveredByDebuffImmune, bypassesImmunity
+absorbs, onRemove, onApply, rules, coveredByDebuffImmune, bypassesImmunity
 ```
+
+`onRemove` runs when an instance expires; `onApply` runs once when one is created, never on a refresh.
+`onApply` is where a clause that changes a STORED value lives, because a rule element is re-derived on
+every preparation (Ch. 08, invariant 9).
 
 Query methods are pure and synchronous: `get(id)` returns the `def` or `null`, `has(id)` returns boolean, `all()` returns the value list, `size` returns the count. A `validate()` call checks that `blocks`, `blockedBy`, `replaces` fields reference only known ids — run in dev mode at setup (`module/rules/registry.mjs:120-137`). It reports both errors (dangling references) and warnings (unreciprocated `blockedBy` edges).
 

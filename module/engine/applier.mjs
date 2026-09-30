@@ -356,6 +356,27 @@ async function resolveEffects(intents) {
         },
       }
       : i)));
+
+    // What the effect does as it LANDS, once: Shock's *"maximum and current
+    // Agility are reduced by 3"*. The maximum is derived and comes back when
+    // the effect goes; the current is stored, so its half is paid here rather
+    // than re-derived on every preparation -- which baked it into `_source`
+    // three more points per Agility write (#106). A refresh replaces an
+    // instance already paid for, and pays nothing.
+    const created = result.outcome === "applied" && !def.terminal
+      && !result.intents.some((i) => i.t === "removeEffect" && i.reason === "refreshed");
+    if (created && def.onApply?.length) {
+      const { dispatch } = await import("./scheduler.mjs");
+      const unit = unitFrom(board, target) ?? unitSnapshot(target);
+      const handler = { source: def.name ?? def.id, abilityId: null, defId: def.id };
+      const ctx = {
+        board,
+        tick: game.combat?.system?.globalTurn ?? 0,
+        turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+        effectDef: (id) => EffectRegistry.get(id),
+      };
+      out.push(...def.onApply.flatMap((a) => dispatch({ ...a, kind: a.kind ?? a.key }, unit, handler, ctx)));
+    }
   }
   return out;
 }
