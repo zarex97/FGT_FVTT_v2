@@ -2262,6 +2262,20 @@ kept every element that source contributed. Two ranks from one source were both 
 the Territory Creation with the highest Rank takes effect"*, and the sheet's own TC.1 puts EX on the
 garden and C on the ground. The winner is now the source **at** its winning rank.
 
+### BG. Every field-wide aura stopped two panels from its bearer — **fixed 2026-09-30**
+
+**Reached: Semiramis's Territory Creation, TC.c.p2, and every other *"while this Unit is on the
+field"* aura in the corpus.** With BF fixed, her Master, standing in the ground Home Base three panels
+from her, still held **no** Rank C ward, where `collectAuras` asked directly returned it.
+
+`snapshotBoard` resolves auras through the spatial index (`rules/aura-index.mjs`). A field-scoped aura
+carries the Aura executor's default `radius: 2`, and the index filed it under that radius, so it was a
+candidate only within two panels of its bearer. `collectAuras` skips the distance test for
+`scope: "field"`, but it never saw the candidate. Every Territory Creation (Medea, Kingprotea,
+Semiramis, the Normal Caster's) reduced damage only near its bearer. The unit tests call
+`collectAuras` without an index, which is why they all passed. Field auras now sit on an `unbounded`
+list the index returns for every panel.
+
 ---
 
 ---
