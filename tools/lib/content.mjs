@@ -1141,6 +1141,11 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     if (el.key === "OnEvent" && el.chance !== undefined && !el.effect) {
       problems.push(`${path}: ${where} OnEvent's "chance" is read by nothing; put it on the action (#103)`);
     }
+    // `at` defers an OnEvent's actions to a boundary, and only `turnEnd` is
+    // drained (`engine/scheduler-hooks.mjs`). Any other would be owed for ever.
+    if (el.key === "OnEvent" && el.at !== undefined && el.at !== "turnEnd") {
+      problems.push(`${path}: ${where} OnEvent "at: ${el.at}" is never paid; only turnEnd is drained (#103)`);
+    }
     if (el.key === "OnEvent" && el.targeting !== undefined) {
       problems.push(`${path}: ${where} OnEvent's "targeting" is read by nothing; name the targets on the action (target: nearby) (#103)`);
     }

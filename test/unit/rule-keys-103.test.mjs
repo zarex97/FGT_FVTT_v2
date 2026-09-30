@@ -17,7 +17,7 @@ import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { rollOptionsFor } from "../../module/rules/options.mjs";
 import { critChance } from "../../module/rules/checks.mjs";
 import { applyEffect } from "../../module/engine/effect-applier.mjs";
-import { fireEvent, pendingRolls, resolveDefeat } from "../../module/engine/scheduler.mjs";
+import { fireEvent, pendingRolls, resolveDefeat, runDeferred } from "../../module/engine/scheduler.mjs";
 
 /** A content file under packs/_source, parsed. */
 const content = (path) => parse(readFileSync(`packs/_source/${path}`, "utf8"));
@@ -360,5 +360,32 @@ describe("OnEvent: chance", () => {
     });
     expect(out.filter((i) => i.t === "resource" && i.unitId === "archer").map((i) => i.delta)).toEqual([15]);
     expect(out.some((i) => i.t === "defeat" && i.unitId === "m")).toBe(true);
+  });
+});
+
+// Raikou's Tenmōkaikai: *"This NP is forcefully deactivated at the end of a
+// Turn Raikou is defeated."* At the END of that Turn, so her copies get their
+// last Turn out. `at: turnEnd` was read by nobody, so the NP switched off the
+// instant she fell.
+describe("OnEvent: at", () => {
+  const handler = () => {
+    const np = content("abilities/raikou-tenmokaikai.yml");
+    const rule = np.activeRules.find((r) => r.key === "OnEvent" && r.event === "unitDefeated");
+    return contributions({ name: np.name, activeRules: [rule] }).eventHandlers[0];
+  };
+  const raikou = () => ({ id: "raikou", effects: [], eventHandlers: [handler()] });
+
+  it("does nothing when she falls, and records what is owed at the Turn's end", () => {
+    const out = fireEvent("unitDefeated", [raikou()], { tick: 7, turnsPerRound: 3 });
+    expect(out.some((i) => i.t === "setMode")).toBe(false);
+    expect(out.find((i) => i.t === "log" && i.entry.kind === "deferred")?.entry)
+      .toMatchObject({ unitId: "raikou", at: "turnEnd", tick: 7, actions: [{ kind: "SetMode", ability: "tenmokaikai", active: false }] });
+  });
+
+  it("switches the NP off when the Turn ends", () => {
+    const [logged] = fireEvent("unitDefeated", [raikou()], { tick: 7, turnsPerRound: 3 })
+      .filter((i) => i.t === "log" && i.entry.kind === "deferred");
+    const out = runDeferred([logged.entry], { units: [] }, { tick: 7, turnsPerRound: 3 });
+    expect(out.filter((i) => i.t === "setMode")).toEqual([expect.objectContaining({ unitId: "raikou", abilityId: "tenmokaikai", active: false })]);
   });
 });

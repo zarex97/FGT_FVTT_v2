@@ -526,6 +526,11 @@ export function normalizeHandler(el, { rank, source, ability, ctx, deferred = nu
     // for removals the `gogh` buff made, and those are one event apart only by
     // sign and cause. Read by `scheduler.mjs#eventFilterPasses`.
     ...(el.eventFilter ? { eventFilter: el.eventFilter } : {}),
+    // WHEN the actions land, where that is not the moment the event fires.
+    // Raikou's Tenmōkaikai is *"forcefully deactivated at the end of a Turn
+    // Raikou is defeated"*: heard on `unitDefeated`, paid at `turnEnd`. Read by
+    // `scheduler.mjs#fireEvent`, which records what is owed (#103).
+    ...(el.at ? { at: el.at } : {}),
     abilityId: ability?.id ?? null,
     // Evaluated when the event FIRES, against the options the event carries --
     // as opposed to `predicate`, which gates the element at collection time

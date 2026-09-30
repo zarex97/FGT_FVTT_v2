@@ -932,3 +932,11 @@ describe("an OnEvent's shorthand effect", () => {
     expect(problems.filter((p) => /chance/.test(p))).toEqual([]);
   });
 });
+
+describe("an OnEvent's at", () => {
+  it("names a boundary that is drained (#103)", () => {
+    expect(errorsFor([file(ok({ rules: [{ key: "OnEvent", event: "unitDefeated", at: "roundEnd", then: [] }] }))])[0])
+      .toMatch(/"at: roundEnd" is never paid/);
+    expect(errorsFor([file(ok({ rules: [{ key: "OnEvent", event: "unitDefeated", at: "turnEnd", then: [] }] }))])).toEqual([]);
+  });
+});

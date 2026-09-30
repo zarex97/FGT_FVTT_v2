@@ -111,6 +111,7 @@ snapshot or the registry is not the end of the Route: `periodic` reached the reg
 read by nobody there, while the scheduler ticked from its own table, and a test that stopped at the
 projection called that survival (#105, since fixed: `rules/periodic.mjs` reads it).
 - **unread** — a key found with no reader at all, owned by an issue. The count may only shrink.
+  (The rule-element test's own list, `KNOWN_RULE_DROPS`, reached zero with #102 and #103.)
 
 A key with no route fails, naming the file and the last Hop it reached. Its first run found two: Raikou's
 copies' Normal Attack `elementFraction` was dropped by the projection (fixed — it now travels beside

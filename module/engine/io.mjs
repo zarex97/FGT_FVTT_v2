@@ -572,6 +572,16 @@ export function worldIO() {
      * @param {number} untilTick
      * @param {string|null} fieldId
      */
+    /**
+     * Keep what a handler owes at a later boundary on the match (#103).
+     * @param {object} entry a `deferred` log entry
+     */
+    async defer(entry) {
+      const combat = game.combat;
+      if (!combat) return;
+      await combat.setFlag("fgt", "deferred", [...(combat.getFlag("fgt", "deferred") ?? []), entry]);
+    },
+
     async banish(unitId, untilTick, fieldId) {
       const actor = resolve(unitId);
       const token = resolveToken(unitId);
