@@ -18,6 +18,7 @@ The boundary enforced in chapter 02 — that `domain/` and `rules/` import nothi
 | `test/golden/*.test.mjs` | 2 golden test files (damage, Akhilleus Kosmos authoring), pinning documentation worked examples |
 | `test/fixtures/` | Small fixture files used to seed test data |
 | `tools/lib/foundry.mjs` | Loads Foundry's **real** `common/` data layer from `FOUNDRY_PATH` (default `../foundryVTT_copy`) and registers this system's DataModels; fails the run when the copy is missing or is not the build `system.json` is verified on (ADR-0006) |
+| `test/unit/rule-survival.test.mjs` | No normalizer or executor drops a key authored inside a rule element |
 | `test/unit/survival.test.mjs` | Every Authored Key in the real corpus survives compile, DataModel and projection to a named route |
 | `test/helpers/world.mjs` | A world faithful enough to run `engine/io.mjs` against — `withWorld({...}, fn)`, restoring globals in a `finally` |
 | `tools/smoke-world.mjs` | Launches a real world via Chrome DevTools Protocol and fails if it does not reach `game.ready` |
@@ -105,6 +106,20 @@ A key with no route fails, naming the file and the last Hop it reached. Its firs
 copies' Normal Attack `elementFraction` was dropped by the projection (fixed — it now travels beside
 `element`), and Tenmōkaikai's `deactivation` window has no reader at all (#101). Reintroducing the
 `requiresHistory` omission in `collectAbilities` turns it red, naming The Queen's Glass Game.
+
+### The rule-element survival test
+
+`test/unit/rule-survival.test.mjs` extends the survival idea one Route further, into the keys
+**inside** rule elements. Every element in the real corpus — on Units, Abilities, Effects and bounded
+fields' interiors — goes through the real `collectContributions` (ordering, predicate, normalization,
+executor), and every phase through `effectSpecsOf`, wrapped in a Proxy that records every authored path
+anything reads. A leaf nobody read, and that did not travel into the output inside an object carried
+whole, fails. The context supplies one stack of everything, so a per-stock clause reads its whole
+`perStack`. Class Skill templates are skipped because their embedded copies carry the real values.
+Exemptions are per element type with a reason; drops found in shipped content are `KNOWN_RULE_DROPS`,
+owned by #102 and #103, may only shrink, and fail as stale once fixed. An element type whose executor
+cannot run without a world is printed and fails the count, rather than being skipped. Reintroducing
+`r.effect ?? r` in `effectSpecsOf`, or dropping the Aura's `check`, turns it red naming the key.
 
 ### Golden tests
 
