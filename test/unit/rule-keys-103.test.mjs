@@ -207,3 +207,33 @@ describe("MaxDelta", () => {
     expect([at(0), at(1), at(3)]).toEqual([0, 200, 600]);
   });
 });
+
+// Castor's Avenger B: *"All damage taken by Castor is increased by 80
+// including NP."* The file said `mode: flat`, a key DamageModifier does not
+// have: its bucket is `modifierKey: avenger`, which stage 11 reads as a flat
+// addition to damage taken. The executor spells the percent/flat choice
+// `stage`, and only asks when there is no `modifierKey`.
+describe("DamageModifier", () => {
+  const avenger = () => {
+    const skill = content("class-skills/avenger.yml");
+    return contributions({ name: skill.name, rank: "B", passiveRules: [skill.passiveRules[0]] }).modifiers[0];
+  };
+  const taken = (modifiers) => computeDamage({
+    attacker: { id: "a", baseAttack: { str: 200, mag: 200 }, modifiers: [], effects: [] },
+    defender: { id: "d", health: 9999, modifiers, effects: [] },
+    attack: { kind: "normal", component: "str" },
+    base: { fixedValue: 200 },
+    rolls: { attackMinus: 0 },
+    crit: { isCrit: false },
+    options: rollOptionsFor({ attacker: {}, defender: {}, attack: { kind: "normal" } }),
+  }).total;
+
+  it("adds Avenger B's 80 to every hit Castor takes", () => {
+    expect(avenger()).toMatchObject({ key: "avenger", value: 80 });
+    expect(taken([avenger()]) - taken([])).toBe(80);
+  });
+
+  it("is authored without a key the executor does not read", () => {
+    expect(content("class-skills/avenger.yml").passiveRules[0].mode).toBeUndefined();
+  });
+});

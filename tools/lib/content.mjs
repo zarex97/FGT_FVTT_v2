@@ -1124,6 +1124,12 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     // One spelling for an Aura's payload. The executor reads `elements`, so a
     // payload authored as `rules` compiled, loaded and delivered nothing:
     // Pollux's Magic Resistance never reached Castor (#102).
+    // DamageModifier chooses flat or percent with `stage`, and only when no
+    // `modifierKey` names the bucket. Avenger's `mode: flat` was read by
+    // nothing (#103).
+    if (el.key === "DamageModifier" && el.mode !== undefined) {
+      problems.push(`${path}: ${where} DamageModifier has no "mode"; its bucket is "modifierKey", or "stage" when there is none (#103)`);
+    }
     if (el.key === "Aura" && el.rules !== undefined) {
       problems.push(`${path}: ${where} Aura carries its payload as "rules", which the executor never reads; author it as "elements" (#102)`);
     }

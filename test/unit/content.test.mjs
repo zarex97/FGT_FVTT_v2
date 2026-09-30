@@ -897,3 +897,10 @@ describe("an Aura's payload", () => {
     expect(errorsFor([file(ok({ rules: [{ key: "Aura", radius: 1, elements: [{ key: "DamageModifier", value: 5 }] }] }))])).toEqual([]);
   });
 });
+
+describe("a DamageModifier's bucket", () => {
+  it("is refused as `mode`, a key the executor does not have (#103)", () => {
+    expect(errorsFor([file(ok({ rules: [{ key: "DamageModifier", modifierKey: "avenger", value: 80, mode: "flat" }] }))])[0])
+      .toMatch(/DamageModifier has no "mode"/);
+  });
+});
