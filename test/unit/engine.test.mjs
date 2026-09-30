@@ -695,10 +695,16 @@ describe("periodic damage", () => {
 });
 
 describe("Poison's stage increments at round start, not on application", () => {
-  it("bumps the stage once per round", () => {
+  it("sends ONE stage arriving, with no chance to roll", () => {
+    // This asserted `effect.stage === 2`, the new TOTAL -- and the applier
+    // reads `stages ?? stage` as stages ARRIVING, so the total was added on top
+    // and Poison ran N -> 2N + 1 every Round (#108). The resulting stage is
+    // held through the real applier in `poison-escalation.test.mjs`.
     const u = { id: "u", effectInstances: [{ id: "e", defId: "poison", stage: 1 }] };
     const out = beginRound(board([u]), sctx).filter((i) => i.t === "applyEffect");
-    expect(out[0].effect.stage).toBe(2);
+    expect(out[0].effect.stages).toBe(1);
+    expect(out[0].effect.chance).toBe(100);
+    expect(out[0].effect.bypassChanceModifiers).toBe(true);
   });
 });
 
