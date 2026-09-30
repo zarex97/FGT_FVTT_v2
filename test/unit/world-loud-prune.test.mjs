@@ -117,7 +117,7 @@ describe("the known drops", () => {
   it("only shrinks: each is a Silent Drop in production code, owned by an issue", () => {
     // Raise this number only by filing an issue for the new entry. Lower it
     // whenever an entry's issue is fixed.
-    expect(KNOWN_DROPS.length).toBeLessThanOrEqual(1);
+    expect(KNOWN_DROPS.length).toBeLessThanOrEqual(0);
     for (const d of KNOWN_DROPS) expect(d.issue).toMatch(/^#\d+$/);
   });
 });
