@@ -17,6 +17,7 @@ The boundary enforced in chapter 02 — that `domain/` and `rules/` import nothi
 | `test/unit/*.test.mjs` | 211 unit test files, testing individual rules and domain functions |
 | `test/golden/*.test.mjs` | 2 golden test files (damage, Akhilleus Kosmos authoring), pinning documentation worked examples |
 | `test/fixtures/` | Small fixture files used to seed test data |
+| `tools/lib/foundry.mjs` | Loads Foundry's **real** `common/` data layer from `FOUNDRY_PATH` (default `../foundryVTT_copy`) and registers this system's DataModels; fails the run when the copy is missing or is not the build `system.json` is verified on (ADR-0006) |
 | `test/helpers/world.mjs` | A world faithful enough to run `engine/io.mjs` against — `withWorld({...}, fn)`, restoring globals in a `finally` |
 | `tools/smoke-world.mjs` | Launches a real world via Chrome DevTools Protocol and fails if it does not reach `game.ready` |
 | `tools/check-world.mjs` | Holds `test/helpers/world.mjs` against a live world, probe by probe (`npm run check:world`) |
@@ -67,6 +68,20 @@ What that fake cannot tell you is what landed in the document, because it stands
 It earned itself on its second test. `countTowardsGrail` read `!combat.system?.grailMaterialized` on the line *after* the `await combat.update()` that set it, so the guard was `true && false` on every defeat and `Hooks.callAll("fgtGrailMaterialized")` had **never fired**. Nothing could have caught that without executing io.
 
 Test coverage reports only domain and rules (`vitest.config.mjs:10`), because a line executed in unit tests might still receive nothing from the real world. A defect hidden by test isolation cannot be caught by measuring coverage — this is the trap documented below.
+
+### Foundry's real data layer
+
+Most of this project's worst defects were **Silent Drops** (`CONTEXT.md`): a key discarded with no error, so the Clause it carried simply did not happen and only a live board noticed. About a dozen were Foundry's own `SchemaField` pruning a key the schema did not declare, and no test could see them while every test ran against an imitation of the field classes.
+
+`tools/lib/foundry.mjs` removes that. `loadFoundry()` imports `app/common/server.mjs` from a checkout of the private `zarex97/foundryVTT_copy` — `common/` is pure ESM and needs only a `logger` global — and after it `globalThis.foundry` is the real namespace. `installSystem()` then registers `module/data/**` exactly as `module/fgt.mjs` does at `init`, with the `game` and `CONFIG` a Document needs to construct, so `new foundry.documents.BaseActor({type: "servant"}, {strict: true})` builds a real document over the real `ServantData`. `test/unit/foundry-loader.test.mjs` proves it for every Actor and Item type: each constructs strictly, and each prunes a key its schema does not declare.
+
+Three rules come with it, all from ADR-0006:
+
+- **A missing copy fails the run; it never skips.** A guard that quietly does not run is a Silent Drop of its own. Clone the copy beside this repository or set `FOUNDRY_PATH`. CI checks it out with the `FOUNDRY_SOURCE_TOKEN` secret.
+- **The copy must be the verified build.** `locateFoundry` compares the copy's `major.build` with `system.json`'s `compatibility.verified` before importing anything, since cleaning rules change between releases.
+- **Only `common/` is real.** The `client/` layer (DOM, PIXI, `@common` aliases) does not import in Node. The one client class `module/data` extends, `RegionBehaviorType`, is a bare `TypeDataModel` stand-in; the schemas built on it are still real. Client-side traps (the empty-diff skip before a write is sent, `_preCreate` edits that never reach the server) stay the job of lint and live probes.
+
+Foundry v14 needs Node 24 (its own `engines`), so CI and `package.json` say so.
 
 ### Golden tests
 
