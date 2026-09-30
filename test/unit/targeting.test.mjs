@@ -872,6 +872,31 @@ describe("cross-level protection in the target ladder (Ch. 27)", () => {
     expect(validate(spec({ allowDirectlyBelow: true }), gunner, board, { panel: at(6, 6) }).ok).toBe(true);
   });
 
+  // *"Range=7. Cannot hit under or above the HGoB."* Against Dragon Wing
+  // Warriors' *"plus the area under the HGoB and the area of the HGoB"*, the
+  // area OF the garden is what "above" names: a Unit standing on its deck.
+  // Only "under" was modelled, so on the Semiramis audit (#68) the preview of
+  // Aerial Garden of Vanity listed Heracles, aboard, as a target.
+  describe("Aerial Garden of Vanity and the deck", () => {
+    const targetingOf = (id) => parse(readFileSync(`packs/_source/abilities/${id}.yml`, "utf8")).targeting;
+    const aboard = unit("aboard", 6, 7, { level: 2 });
+    const ground = unit("ground", 6, 9, { level: 0 });
+    const decked = boardWith([hgob, aboard, ground]);
+
+    it("does not hit a Unit standing on the garden", () => {
+      const agv = targetingOf("semiramis-hgob-aerial-garden-of-vanity");
+      const ids = resolveTargets(agv, gunner, decked, { panel: at(6, 8) }).units.map((u) => u.unitId);
+      expect(ids).not.toContain("aboard");
+      expect(ids).toContain("ground");
+    });
+
+    it("while Dragon Wing Warriors, which names the area of the garden, still does", () => {
+      const dww = targetingOf("semiramis-hgob-dragon-wing-warriors");
+      const ids = resolveTargets(dww, gunner, decked, { panel: at(6, 8) }).units.map((u) => u.unitId);
+      expect(ids).toContain("aboard");
+    });
+  });
+
   it("leaves same-level targeting untouched", () => {
     const ground = boardWith([unit("foe", 6, 6)]);
     expect(validate(spec(), { ...caster, range: 4 }, ground, { panel: at(6, 6) }).ok).toBe(true);

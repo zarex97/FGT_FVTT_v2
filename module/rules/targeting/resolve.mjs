@@ -246,6 +246,20 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     return verdict.ok || drop(u, crossLevelReason(verdict.reason));
   });
 
+  // 4e. THE DECK. Aerial Garden of Vanity *"cannot hit under or above the
+  //     HGoB"*, and against Dragon Wing Warriors' *"plus the area under the HGoB
+  //     and the area of the HGoB"* the area OF the garden is what "above"
+  //     names. `forbidDirectlyBelow` above is the "under" half; this is the
+  //     other, and only an ability that says so asks for it (Ch. 46 §46.4-BR).
+  if (spec.forbidAboard) {
+    const deckId = caster.kind === "platform" ? caster.id : caster.platformId ?? null;
+    const deck = deckId ? (board.units ?? []).find((p) => p.id === deckId) : null;
+    if (deck) {
+      survivors = survivors.filter((u) => !aboard(u, deck)
+        || drop(u, `standing on ${deck.name ?? "the platform"}, which this ability cannot hit`));
+    }
+  }
+
   // 5. KIND FILTER — platforms and structures are excluded unless asked for.
   const kinds = sel.kinds ?? null;
   survivors = survivors.filter((u) => {
@@ -962,6 +976,20 @@ function relationReason(relation, caster, unit, wanted) {
   }
   if (relation === "neutral") return `neutral; this ability targets ${wants}`;
   return `${relation}; this ability targets ${wants}`;
+}
+
+/**
+ * Is this Unit standing on the platform's deck?
+ *
+ * @param {object} unit
+ * @param {object} deck
+ * @returns {boolean}
+ */
+function aboard(unit, deck) {
+  if (unit.id === deck.id) return false;
+  if (unit.platformId) return unit.platformId === deck.id;
+  return (unit.level ?? 0) !== 0 && (unit.level ?? 0) === (deck.level ?? 0)
+    && (deck.panels ?? []).some((p) => p.i === unit.panel?.i && p.j === unit.panel?.j);
 }
 
 /**

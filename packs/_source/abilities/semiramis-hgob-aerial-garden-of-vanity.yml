@@ -1,9 +1,11 @@
 # Hanging Gardens of Babylon, char_orig_sheets/Copia de Semiramis.md, line 154-155.
 #
-# "Cannot hit under or above the HGoB" is not re-implemented here -- the
-# platform's own `crossLevel.forbidDirectlyBelow` (packs/_source/platforms/
-# hanging-gardens.yml) already states the general rule for every ranged
-# Attack to or from the HGoB.
+# "Cannot hit under or above the HGoB." UNDER is the platform's own
+# `crossLevel.forbidDirectlyBelow` (packs/_source/platforms/hanging-gardens.yml).
+# ABOVE is `targeting.forbidAboard`: Dragon Wing Warriors reaches "the area
+# under the HGoB and the area of the HGoB", so the area OF the garden -- its
+# deck -- is what this ability cannot hit. The old comment here read "above"
+# as covered too, and the preview listed Heracles, aboard, as a target (#68).
 schema: 1
 id: semiramis-hgob-aerial-garden-of-vanity
 name: "Aerial Garden of Vanity"
@@ -17,6 +19,7 @@ description: |
   Range=7. Cannot hit under or above the HGoB. Base Attack (MAG) is used. Hits a 7x7 panel area
   within Range for 2x damage. Cooldown: 2◈ Turns.
 targeting:
+  forbidAboard: true
   anchor: { kind: withinRange, range: 7, metric: chebyshev }
   shape: { kind: square, size: 7 }
   selection: { relations: [enemy], chooser: all }
