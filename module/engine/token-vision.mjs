@@ -72,6 +72,17 @@ export const TokenVision = {
       });
     }
 
+    // An effect that changes a Unit's Detect -- a `StatDelta` on `detect`, a
+    // suppression -- lands as an ActiveEffect, and `updateActor` never hears
+    // it. This watched `changes.system.effects`, a field no actor has (#104).
+    for (const hook of ["createActiveEffect", "updateActiveEffect", "deleteActiveEffect"]) {
+      Hooks.on(hook, (effect) => {
+        const actor = effect?.parent;
+        if (!actor || !UNIT_TYPES.has(actor.type)) return;
+        syncVision(actor).catch((err) => console.error("FGT | Token vision sync:", err));
+      });
+    }
+
     console.log("FGT | Token vision sync attached");
   },
 };
@@ -122,10 +133,10 @@ export function sightFor(actor, board = null) {
 function touchesDetect(changes) {
   const sys = changes?.system;
   if (!sys) return false;
-  return sys.detect !== undefined
-    || sys.classContainer !== undefined
-    || sys.effects !== undefined
-    || sys.suppressions !== undefined;
+  // `effects` and `suppressions` were asked here too, and no actor has either
+  // field, so neither could ever fire (#104). An effect that moves Detect is
+  // an ActiveEffect, and the ActiveEffect hooks below re-sync for it.
+  return sys.detect !== undefined || sys.classContainer !== undefined;
 }
 
 /**

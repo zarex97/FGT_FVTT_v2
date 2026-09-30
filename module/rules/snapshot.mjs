@@ -465,9 +465,13 @@ export function snapshotUnit(actor, {
     // reader iterates it and a `Set` does not survive the socket.
     linkedGroup: linkedGroupOf(sys),
     zon: sys.zon ?? null,
-    zonDistance: sys.zonDistance ?? null,
-    outsideZon: Boolean(sys.outsideZon),
-    zones: [...(sys.zones ?? [])],
+    // Board annotations, not document fields: `annotateZon` and
+    // `annotateEnvironment` fill them. Read off the actor they were always
+    // absent, and a per-unit caller that never reached the board read those
+    // absences as facts (#104).
+    zonDistance: null,
+    outsideZon: false,
+    zones: [],
     // Platform fields; harmless on anything that is not one.
     footprint: sys.footprint ?? null,
     capacity: sys.capacity ?? null,

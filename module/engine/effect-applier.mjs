@@ -531,9 +531,12 @@ function findImmunity(def, target, held) {
   if (def.polarity === "buff") return held.includes("noBuff") ? "No Buff" : null;
   if (def.polarity !== "debuff") return null;
 
-  // Terminal debuffs are NOT covered by Debuff Immune unless the immunity says
-  // so — Instakill, Death and Erase have their own resistance ladder.
-  if (def.volatility === "terminal" && !def.coveredByDebuffImmune) return null;
+  // Terminal debuffs are NOT covered by the scoped immunities below --
+  // Instakill, Death and Erase have their own resistance ladder. Debuff Immune
+  // itself says the same through its rule's `except` list, above. (A
+  // `coveredByDebuffImmune` escape was read here, declared nowhere and
+  // authored nowhere, #104.)
+  if (def.volatility === "terminal") return null;
 
   const scoped = {
     nonVolatile: "nvDebuffImmune",

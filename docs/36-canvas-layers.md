@@ -95,6 +95,8 @@ The overlay layer redraws when a token is selected, hovered, or when an `fgt.inv
 
 7. **Concealment is invisible to render until checked.** Presence Concealment is not a status or an effect badge; it is a getter checked on every visibility test. An enemy seeing a concealed unit sees it off-level or out of vision, never marked as concealed (`module/apps/canvas/token.mjs:113-128`).
 
+**Watching a field no actor has.** Token vision re-synced when `changes.system.effects` or `changes.system.suppressions` changed on an `updateActor`, and no actor has either field, so neither condition could fire (#104). An effect that moves Detect is an ActiveEffect: the create, update and delete hooks on ActiveEffect now re-sync the bearer's vision.
+
 ## Traps and anti-patterns
 
 **Overriding `_isVisible()` instead of `isVisible`.** Foundry v14 has no `_isVisible()` method — `isVisible` is a getter on `Token.prototype` and the ray-casting lives behind it in `CanvasVisibility#testVisibility`. Overriding the method that older versions had installs something nothing ever calls, which is a fix that tests green and does nothing on the board (`module/apps/canvas/token.mjs:104-108`). **Override the getter, not the method.**
