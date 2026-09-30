@@ -285,6 +285,47 @@ export function nearestFreePlatformPanel(unit, platform, board) {
 }
 
 /**
+ * Where a Unit that has just boarded stands on the deck.
+ *
+ * Directly above where it stood, when that deck panel is free; otherwise the
+ * nearest free one. `reserved` holds panels already promised in the same
+ * boarding -- the Servant's, when its Master comes with it -- so the two never
+ * share one. The platform's anchor was used for both, which put every boarder
+ * in the garden's corner (Ch. 46 §46.4-BX).
+ *
+ * @param {object} unit the boarder, on the ground
+ * @param {object} platform
+ * @param {object} board
+ * @param {Array<{i: number, j: number}>} [reserved]
+ * @returns {{i: number, j: number}|null}
+ */
+export function boardingLanding(unit, platform, board, reserved = []) {
+  const { w = 1, h = 1 } = platform?.footprint ?? {};
+  const taken = [
+    ...(board?.units ?? [])
+      .filter((u) => u.id !== platform?.id && u.id !== unit?.id && (u.level ?? 0) === (platform?.level ?? 0))
+      .flatMap((u) => u.panels ?? (u.panel ? [u.panel] : [])),
+    ...reserved,
+  ];
+  const free = (p) => !taken.some((q) => q.i === p.i && q.j === p.j);
+
+  if (unit?.panel && withinFootprint(unit.panel, platform) && free(unit.panel)) {
+    return { i: unit.panel.i, j: unit.panel.j };
+  }
+  let best = null;
+  let bestDistance = Infinity;
+  for (let di = 0; di < h; di += 1) {
+    for (let dj = 0; dj < w; dj += 1) {
+      const panel = { i: platform.panel.i + di, j: platform.panel.j + dj };
+      if (!free(panel)) continue;
+      const distance = unit?.panel ? chebyshev(unit.panel, panel) : 0;
+      if (distance < bestDistance) { best = panel; bestDistance = distance; }
+    }
+  }
+  return best;
+}
+
+/**
  * The Servant that may catch this Master, if one is standing there.
  *
  * > *"If a Master who is directly next to **its Servant** fails its Agility
