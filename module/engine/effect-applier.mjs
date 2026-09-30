@@ -787,7 +787,11 @@ function chanceContribution(unit, def, direction, options = null, ignoreSources 
     // step) -- this is the same field's downgrade suppression, read here
     // because a RESIST contribution is a property of the effect the unit
     // already carries, not of the field's own rule.
-    const halved = direction === "incoming"
+    // *"Only applies to effects that specify Poison"*: a resistance that NAMES
+    // the effect, not one that merely covers it. Queen's Poison's resistance
+    // to volatile debuffs and Magic Resistance's to debuffs both cover Poison,
+    // and the field halved them too (Ch. 46 §46.4-BH).
+    const halved = direction === "incoming" && c.effectId === def.id
       && (unit?.suppressions ?? []).some((s) => s.scope === "immunity" && (s.effectId === null || s.effectId === def.id));
     total += (c.value ?? 0) * (halved ? 0.5 : 1);
   }
