@@ -144,7 +144,9 @@ async function cardContext({
     // question for every player at the table.
     commandSpells: offerableCommands(state),
 
-    result: result ? explainedFor(result, visibility) : null,
+    // The Injury decision rides with the result: the card's Injury line reads
+    // it rather than the pipeline's pre-barrier flag (#110).
+    result: result ? explainedFor({ ...result, injury: message?.getFlag?.("fgt", "injury") ?? null }, visibility) : null,
 
     // Ch. 38: what THIS viewer may see. A bystander gets the header and a count
     // of effects; the attacker gets their own contributing modifiers; the

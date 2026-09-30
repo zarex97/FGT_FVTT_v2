@@ -93,7 +93,13 @@ export function summarize(result) {
     hasSplit: (result.magical ?? 0) > 0 && (result.physical ?? 0) > 0,
     negatedBy: flags.negatedBy ?? null,
     shieldAbsorbed: flags.shieldAbsorbed ?? 0,
-    injury: Boolean(flags.exceededInjuryThreshold),
+    // The Injury DECISION (`rules/injury.mjs#injuryCheck`, stored on the
+    // message as `flags.fgt.injury`) when it has been made. The pipeline's
+    // threshold flag is set before the barrier, so a hit a barrier absorbed
+    // whole read "Injury Roll required" (#110). Until the decision lands, a
+    // hit that dealt nothing claims no roll.
+    injury: result.injury ? Boolean(result.injury.roll)
+      : Boolean(flags.exceededInjuryThreshold) && (result.total ?? 0) > 0,
     defeatedOutright: Boolean(flags.defeatedOutright),
   };
 }

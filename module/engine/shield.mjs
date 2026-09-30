@@ -39,6 +39,31 @@ import * as I from "./intents.mjs";
  */
 
 /**
+ * Put an absorption onto the damage result the card and the log read.
+ *
+ * The pipeline's own `shieldAbsorbed` is set at stage 16, and the barrier runs
+ * after every stage -- so a card reading the flag said a hit Scales of the
+ * Sacred Fish absorbed whole had absorbed nothing (#110). The absorption goes
+ * on the flag here, beside the total and the row, so the three agree.
+ *
+ * @param {object} result the pipeline's result
+ * @param {Absorption} barrier
+ * @returns {object} the result, unchanged when nothing was absorbed
+ */
+export function landBarrier(result, barrier) {
+  if (!(barrier.absorbed > 0)) return result;
+  return {
+    ...result,
+    total: barrier.through,
+    breakdown: [
+      ...(result.breakdown ?? []),
+      { stage: "barrier", label: `${barrier.source} absorbed ${barrier.absorbed}`, to: barrier.through },
+    ],
+    flags: { ...result.flags, shieldAbsorbed: (result.flags?.shieldAbsorbed ?? 0) + barrier.absorbed },
+  };
+}
+
+/**
  * Run an incoming total through whatever barrier the defender stands behind.
  *
  * @param {object} defender the defender's snapshot
