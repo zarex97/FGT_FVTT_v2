@@ -18,6 +18,7 @@ The boundary enforced in chapter 02 — that `domain/` and `rules/` import nothi
 | `test/golden/*.test.mjs` | 2 golden test files (damage, Akhilleus Kosmos authoring), pinning documentation worked examples |
 | `test/fixtures/` | Small fixture files used to seed test data |
 | `tools/lib/foundry.mjs` | Loads Foundry's **real** `common/` data layer from `FOUNDRY_PATH` (default `../foundryVTT_copy`) and registers this system's DataModels; fails the run when the copy is missing or is not the build `system.json` is verified on (ADR-0006) |
+| `test/unit/field-ledger.test.mjs` | Every declared field has a reader and a writer, and nothing reads an undeclared `system` path |
 | `test/helpers/subject.mjs` | Builds test subjects from authored content through the real compile, DataModel and projection |
 | `test/unit/rule-survival.test.mjs` | No normalizer or executor drops a key authored inside a rule element |
 | `test/unit/survival.test.mjs` | Every Authored Key in the real corpus survives compile, DataModel and projection to a named route |
@@ -204,6 +205,16 @@ But `combatInBaseThisRound` is never written anywhere in the engine layer. Not i
 **The mirror image: a field with writers and no readers.** The same blindness runs the other way, and it is harder to spot because everything about it looks like it works. `turnState.mayMoveAgain` was declared on the schema, projected by `turnStateAt`, recomputed by the movement hook after every move, cleared by the Riding Attack path and blanked at the turn boundary — three writers, all correct, all live. Nothing read it, ever. Riding's second segment was decided elsewhere the whole time (`module/rules/movement.mjs:63,94`). A reader with no writer silently does nothing; a writer with no reader silently costs a document write and reads as a feature. Neither the schema, the projection nor coverage can tell you which you have; only asking the question can. `turnState.servantsActed` was a third variant — a **read** of a field no schema declared and nothing wrote, so the Master sheet's multi-Servant-tax badge was permanently `0` and the one warning a Master gets about the Ch. 32 tax never appeared.
 
 **The antidote:** Coverage tools measure lines executed, not contracts satisfied. If a rules function reads a field, integration tests or smoke tests that exercise the real world are the only gate that can catch the fact that nothing is supplying it. Unit tests that inject the value by hand prove correctness *given the input*, not that the input ever arrives. *Domain layer tests should be dense with edge cases. Engine layer tests should be sparse, but focused on wiring—does this intent get created where it should?*
+
+**The field ledger** now asks that question for every field at once. `test/unit/field-ledger.test.mjs`
+reads the field list from the real schemas and greps `module/`, `templates/` and `packs/_source` for a
+reader and a writer of each: a declared field nobody reads, a declared field nothing writes or authors,
+and a `system.X` read of a name no schema declares all fail, apart from known entries owned by an issue
+(#104, #98) that may only shrink and fail when stale. Grep, not a graph, because the claim is an absence
+(`docs/agents/code-search.md`); it errs toward passing on a field named like a common word, and prints
+how many `system.` paths are built dynamically and cannot be resolved. Its first run found a Grail whose
+destruction nothing records, a detection watcher listening to two actor fields that do not exist, and
+six declared fields with neither reader nor writer.
 
 ## Open questions
 
