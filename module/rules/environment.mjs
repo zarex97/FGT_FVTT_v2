@@ -422,6 +422,32 @@ export function grailDestructionChance(damage) {
   return Math.max(0, Math.min(100, (damage ?? 0) / 20));
 }
 
+/**
+ * Whether an AoE Noble Phantasm struck the Grail, and whether that destroyed it.
+ *
+ * *"If the Holy Grail is hit by an AoE NP that deals damage, it has a chance of
+ * being destroyed."* Struck when the Grail is on the field, still whole, and
+ * inside the NP's area, and the NP dealt damage. `grailDestroyed` was read and
+ * never written, so a destroyed Grail always read as intact (#104). The caller
+ * rolls the d100 and writes the result.
+ *
+ * @param {object} args
+ * @param {object|null} args.grail the board's `grail`
+ * @param {Array<{i: number, j: number}>} args.areaPanels the NP's area
+ * @param {number} args.dealt the damage the NP dealt
+ * @param {number} args.roll a d100
+ * @returns {{struck: boolean, chance: number, destroyed: boolean}}
+ */
+export function grailStrike({ grail, areaPanels, dealt, roll }) {
+  const at = grail?.position;
+  const inArea = Boolean(at) && (areaPanels ?? []).some((p) => p.i === at.i && p.j === at.j);
+  if (!grail?.materialized || grail.destroyed || !inArea || !(dealt > 0)) {
+    return { struck: false, chance: 0, destroyed: false };
+  }
+  const chance = grailDestructionChance(dealt);
+  return { struck: true, chance, destroyed: roll <= chance };
+}
+
 /* -------------------------------------------------------------------------- */
 /*  19.3 — the war's Region                                                   */
 /* -------------------------------------------------------------------------- */
