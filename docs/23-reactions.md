@@ -45,6 +45,8 @@ After the attack resolves and damage is dealt, the defender gets the counter run
 
 Counter-chains are capped to prevent infinite loops. The setting `fgt.counterChain` is either `"strict"` (default) or `"collateral"`. In strict mode, no Counter begins as the product of a Counter—the ladder always ends with the counter rung. In collateral mode, a bystander caught by an area Counter keeps its own right to counter; its answer targets its own attacker, so the rule closes it one step later (`module/rules/counter.mjs:75-111`). The depth cap is a constant, not a setting (`module/rules/counter.mjs:18-27`).
 
+The attacker must be within the defender's Range for a Counter, measured footprint to footprint (`geometry.mjs#inAttackRangeBetween`): a 3x3 Bašmu counters whatever any part of it reaches. Measured anchor to anchor, an attacker beside its far edge could not be countered (§46.4-BT).
+
 A Counter aimed at a Master whose Servant is within 2 panels is redirected to that Servant instead, a retarget not a refusal—the Counter happens, against the Servant (`module/rules/counter.mjs:146-159`). The redirect searches for the nearest guard, so a Master flanked by two Servants has one answer rather than whichever the board listed first (`module/rules/counter.mjs:151-157`).
 
 ### Automatic counters and the queue

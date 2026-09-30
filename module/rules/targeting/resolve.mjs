@@ -270,6 +270,12 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     // otherwise be refused by the blanket exclusion below. Everybody else is
     // still refused, at step 8b-ii and with a reason that names the kinds.
     if (u.kind === "structure" && (u.destroyableBy ?? []).includes(caster.kind)) return true;
+    // A platform with Health to lose is a Unit that can be attacked. *"Enemy
+    // Units on the ground can only Attack the HGoB with ranged Attacks"* says
+    // they can, and *"its Health drops to 0"* is how it is destroyed; which
+    // attacks may reach it is `crossLevel.hullTargeting`, at step 4d. Dropped
+    // here as "a platform", nothing ever reached that rule (Ch. 46 §46.4-BS).
+    if (u.kind === "platform" && u.maxHealth > 0 && !u.undamageable) return true;
     if (u.kind === "platform" || u.kind === "structure") return drop(u, `a ${u.kind}`);
     return true;
   });
@@ -657,14 +663,19 @@ function resolveAnchor(spec, caster, board, placement, errors) {
         return { ...base, panel: casterPanel };
       }
       const r = anchorRange(spec, caster);
-      if (!geo.inAttackRangeFromAny(casterPanels, unit.panel, r)) {
+      // To ANY panel of the target, as from any panel of the caster: a 3x3
+      // Bašmu or a 9x9 garden is in Range if any part of it is. Measured to
+      // the anchor corner alone, Heracles beside the garden's middle was told
+      // it was out of Range (Ch. 46 §46.4-BT).
+      const targetPanels = unit.panels?.length ? unit.panels : [unit.panel];
+      if (!geo.inAttackRangeBetween(casterPanels, targetPanels, r)) {
         errors.push(`${unit.name ?? "Target"} is out of Range (${r}).`);
       }
       // A minimum, which only the `withinRange` anchor honoured. EMIYA's
       // Hrunting "cannot be used on a Unit directly next to EMIYA" and picks a
       // UNIT, so the one anchor that could express the rule was the one it
       // could not use.
-      if (spec.minRange && geo.chebyshevFromAny(casterPanels, unit.panel) < spec.minRange) {
+      if (spec.minRange && Math.min(...targetPanels.map((p) => geo.chebyshevFromAny(casterPanels, p))) < spec.minRange) {
         errors.push(`${unit.name ?? "Target"} is too close; this ability has a minimum Range of ${spec.minRange}.`);
       }
       return { ...base, panel: unit.panel, panels: unit.panels ?? [unit.panel], unitId: unit.id };

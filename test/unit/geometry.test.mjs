@@ -211,3 +211,22 @@ describe("cardinalToward", () => {
     expect(cardinalToward(at(5, 5), at(7, 7))).toEqual({ i: 1, j: 0 });
   });
 });
+
+// A counter is the defender attacking back, and a 3x3 Bašmu is in Range of
+// whatever is in Range of any part of it. `counterAvailable` measured anchor to
+// anchor, so an attacker beside Bašmu's far edge could not be countered
+// (§46.4-BT).
+describe("inAttackRangeBetween — footprint to footprint", async () => {
+  const { inAttackRangeBetween } = await import("../../module/domain/geometry.mjs");
+  const block = (i0, j0, w) => Array.from({ length: w }, (_, di) =>
+    Array.from({ length: w }, (_, dj) => at(i0 + di, j0 + dj))).flat();
+
+  it("is true when any panel of one reaches any panel of the other", () => {
+    expect(inAttackRangeBetween(block(3, 3, 3), [at(6, 4)], 1)).toBe(true);
+    expect(inAttackRangeBetween([at(6, 4)], block(3, 3, 3), 1)).toBe(true);
+  });
+
+  it("is false when no pair does", () => {
+    expect(inAttackRangeBetween(block(3, 3, 3), [at(8, 4)], 1)).toBe(false);
+  });
+});
