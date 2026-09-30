@@ -96,6 +96,13 @@ reads `elements:` (#102), and seventeen more unread keys (#103), listed as known
 shrink. It also closes the follow-up the entry above asked for: a field-level check of what an
 executor actually reads, rather than of its descriptor's ids.
 
+#103's keys, closed one executor at a time, each pinned in `test/unit/rule-keys-103.test.mjs`:
+
+- **`FlatDamage`** carries `npValue` (Vorpal Blade's +50 is 0 against a Noble Phantasm) and
+  `supersedes`, a list of Skill content ids whose flat bonus it replaces. Every flat bonus now carries
+  `sourceContentId`, so stage 7 can drop a superseded one: the Sun Stone's 180 stands in for Goddess's
+  Divine Core's 120.
+
 ## Open questions
 
 - **Answered: the count is not fixed, but it cannot drift.** Measured live, `EXECUTORS` holds **62**

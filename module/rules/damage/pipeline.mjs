@@ -604,7 +604,14 @@ function stage7FlatAttackBonuses(s) {
   let flat = 0;
   /** Flat bonuses that carry an element of their OWN, keyed by it. */
   const elemental = new Map();
-  for (const m of activeMods(s, s.ctx.attacker, FLAT_ATTACK_KEYS)) {
+  const mods = activeMods(s, s.ctx.attacker, FLAT_ATTACK_KEYS);
+  // Skills a standing bonus replaces rather than adds to (#103).
+  const superseded = new Map(mods.flatMap((m) => (m.supersedes ?? []).map((id) => [id, m.source])));
+  for (const m of mods) {
+    if (m.sourceContentId && superseded.has(m.sourceContentId)) {
+      s.contribute(m.key, 0, `${m.source} (superseded by ${superseded.get(m.sourceContentId)})`, "attacker");
+      continue;
+    }
     // *"Damage dealt is not affected by Atk Up or OTHER DAMAGE INCREASING
     // EFFECTS on Ozymandias."* That is a category, not a list of one: Divinity's
     // flat +40 raises damage exactly as Atk Up does, so an attack that drops the
