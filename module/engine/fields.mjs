@@ -270,7 +270,10 @@ async function openField(ability, actor, snapshot, spec, { panels: givenPanels =
   const geometry = {
     ...(specGeometry ?? {}),
     shape: regionSizedShape({ ...(specGeometry ?? {}), shape: rolledShape }, snapshot.warRegion),
-    anchor: { ...anchor },
+    // The LEVEL is the caster's: a platform's centre carries none of its own,
+    // and a field is an area on one Scene Level (`rules/bounded-fields.mjs
+    // #contains`, #68).
+    anchor: { ...anchor, k: self.panel.k ?? 0 },
   };
   const field = {
     // `fieldId`, which is what `NPFieldBehavior` declares and what

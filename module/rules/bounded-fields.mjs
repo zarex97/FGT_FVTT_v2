@@ -230,7 +230,35 @@ function square(centre, size) {
  */
 export function contains(field, panel, board) {
   if (!panel) return false;
+  // ON ITS LEVEL. A field is an area on one Scene Level: Sikera Ušum's Throne
+  // Room is on the Hanging Gardens, and the enemy Master on the ground under
+  // it was a member, carrying its downgrade and its Turn-end Poison (#68). A
+  // panel that names no level asks nothing, so a caller holding a bare (i, j)
+  // is answered as before.
+  const level = levelOf(field, board);
+  if (panel.k !== undefined && level !== null && panel.k !== level) return false;
   return panelsOf(field, board).some((p) => p.i === panel.i && p.j === panel.j);
+}
+
+/**
+ * The Scene Level a field is on.
+ *
+ * A `followsUnit` field is wherever its anchor Unit is. Any other is where it
+ * was cast: `engine/fields.mjs#openField` stamps the caster's level on the
+ * anchor. A field opened before that stamp existed takes its owner's current
+ * level, which is right for every field that has not been left behind.
+ *
+ * @param {object} field
+ * @param {object} board
+ * @returns {number|null} `null` when nothing says
+ */
+function levelOf(field, board) {
+  const geometry = field.geometry ?? {};
+  const unitLevel = (id) => (board?.units ?? []).find((u) => u.id === id)?.panel?.k ?? null;
+  if (geometry.kind === "followsUnit") {
+    return unitLevel(geometry.unitRef === "ownerMaster" ? field.ownerMasterId : field.ownerId);
+  }
+  return geometry.anchor?.k ?? unitLevel(field.ownerId);
 }
 
 /* -------------------------------------------------------------------------- */

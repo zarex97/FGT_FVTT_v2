@@ -2285,6 +2285,16 @@ while the field's downgrade stood, and Poison matches a great deal: Queen's Pois
 volatile debuffs, Magic Resistance's to debuffs. A Unit holding Queen's Poison in the Throne Room
 resisted a 50% Poison at 7.5 rather than 15. Only a contribution that names Poison is halved now.
 
+### BI. A bounded field reached every level above and below it — **fixed 2026-09-30**
+
+**Reached: SIK.d, and every field anywhere near a platform.** Measuring the downgrade with a
+differential across two Units, the one meant to be *outside* the Throne Room -- the enemy Master,
+standing on the ground at (4,4) under the Hanging Gardens -- was downgraded too. He was a member of the
+field: `rules/bounded-fields.mjs#contains` compared `i` and `j` and never the level, so the Throne
+Room, twenty levels up, held him, and would equally have let a ground Reality Marble hold a Unit aboard
+a platform over it. `openField` now stamps the caster's level on the anchor, `contains` checks it, and
+an unstamped field takes its owner's level.
+
 ---
 
 ---

@@ -89,6 +89,12 @@ Pale Rider's Contagion is cast neither at an ability's use nor ended by a cooldo
 
 ## Invariants & edge cases
 
+**A field is on one Scene Level.** `contains` checks a panel's level against the field's: a
+`followsUnit` field is on its anchor Unit's level, any other on the level it was cast from, which
+`engine/fields.mjs#openField` stamps on the anchor as `k`. A field without the stamp takes its owner's
+current level. Before this, Sikera Ušum's Throne Room on the Hanging Gardens held the enemy Master
+standing on the ground under it (§46.4-BI).
+
 1. **A field's panels are clipped to board bounds and enemy home bases.** `panelsOf` clips the output of shape expansion to the board and to the panels forbidden by opposing bases — the whole field is never refused, just the part that violates the boundary (`module/rules/bounded-fields.mjs:87-104`).
 
 2. **Membership snapshots are taken at creation.** A field opening over units records `enteredAt` for each unit on the panels at that moment and `trappedUnitIds` for fields with `trappedAtActivation`. These are not recomputed; later entries get their own `enteredAt` stamps when they step in (`module/engine/fields.mjs:268-290`).
