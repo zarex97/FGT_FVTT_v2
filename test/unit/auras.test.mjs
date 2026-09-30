@@ -445,3 +445,31 @@ describe("one source carrying two ranks of a group (Semiramis's Territory Creati
     expect(wards(collectAuras(home, { units: [await semiramis(), home] }))).toEqual(["C"]);
   });
 });
+
+// *"...if a Bašmu is next to them."* A Unit on the ground twenty feet under
+// the Hanging Gardens is not next to anything on its deck -- the reading
+// `freePanels` and the bounded-field level check (§46.4-BI) already take.
+// Auras measured i and j only, so a Bašmu on the garden guarded an ally
+// standing on the ground below it (§46.4-BP). A field-wide aura is unbounded,
+// and stays so: Territory Creation reaches her Master on the ground.
+describe("an aura with a radius stays on its level", () => {
+  const at = (id, i, j, level, over = {}) => ({ ...unit(id, i, j, over), level });
+
+  it("does not reach an ally directly below it", () => {
+    const source = at("basmu", 0, 0, 20, { auras: [aura()] });
+    const below = at("master", 0, 1, 0);
+    expect(keysFor(below, boardOf([source, below]))).toEqual([]);
+  });
+
+  it("still reaches an ally beside it on its own level", () => {
+    const source = at("basmu", 0, 0, 20, { auras: [aura()] });
+    const beside = at("semiramis", 0, 1, 20);
+    expect(keysFor(beside, boardOf([source, beside]))).toEqual(["atkUp"]);
+  });
+
+  it("leaves a field-wide aura unbounded across levels", () => {
+    const source = at("semiramis", 0, 0, 20, { auras: [aura({ scope: "field" })] });
+    const below = at("master", 9, 9, 0);
+    expect(keysFor(below, boardOf([source, below]))).toEqual(["atkUp"]);
+  });
+});

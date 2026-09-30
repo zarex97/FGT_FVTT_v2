@@ -2341,6 +2341,24 @@ on every world load after a rebuild -- and this session rebuilt the packs after 
 `Object.assign(data.system, plain)`, which the sweep cannot see. It is world-owned now, like
 `summonerId` beside it.
 
+### BO. Bašmu's protection never reached anyone past its corner — **fixed 2026-09-30**
+
+**Reached: BS.guard.** Bašmu moved to stand with its footprint directly next to Semiramis, and she
+carried no `untargetableBy`. *"Enemy Units cannot Attack Semiramis or her allied Units if a Bašmu is
+next to them."* `rules/aura-index.mjs` bucketed and measured every aura from its source's ANCHOR panel,
+the top-left corner of a 3x3, and queried with the recipient's anchor only. `collectAuras`' own
+distance test is footprint to footprint, but it never saw the candidate. Only Bašmu itself, inside its
+own radius, was protected. The index now measures from both footprints.
+
+### BP. A radius aura reached through the garden's floor — **fixed 2026-09-30**
+
+**Reached: BS.guard.** Auras measured i and j only. A Bašmu on the garden's deck guarded any ally
+standing on the ground beneath its footprint, twenty feet down, and every radius aura aboard reached the
+ground the same way. The project already reads a Unit below as not beside anybody: `freePanels` for a
+summon's placement, `bounded-fields.mjs#contains` since BI. `collectAuras` now refuses a radius aura
+across levels. A `scope: "field"` aura stays unbounded, so Territory Creation's C still reaches her
+Master in the ground Home Base.
+
 ---
 
 ---

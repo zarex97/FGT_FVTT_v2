@@ -80,12 +80,38 @@ export function buildAuraIndex(board, previousVersion = 0) {
  * @returns {Array<{unit: object, aura: object}>}
  */
 export function candidatesAt(index, panel) {
-  if (!panel) return [];
-  return [
-    ...(index?.unbounded ?? []),
-    ...(index?.buckets?.get(bucketKey(panel.i, panel.j)) ?? [])
-      .filter((e) => chebyshev(e.unit.panel, panel) <= (e.aura.radius ?? 0)),
-  ].map((e) => ({ unit: e.unit, aura: e.aura }));
+  // One panel, or every panel a multi-panel recipient covers: a 3x3 Unit is
+  // "next to" whatever is next to any part of it (Ch. 46 §46.4-BO).
+  const at = (Array.isArray(panel) ? panel : [panel]).filter(Boolean);
+  if (at.length === 0) return [];
+  const seen = new Set();
+  const near = [];
+  for (const p of at) {
+    for (const e of index?.buckets?.get(bucketKey(p.i, p.j)) ?? []) {
+      if (seen.has(e)) continue;
+      seen.add(e);
+      if (reach(e.unit, at) <= (e.aura.radius ?? 0)) near.push(e);
+    }
+  }
+  return [...(index?.unbounded ?? []), ...near].map((e) => ({ unit: e.unit, aura: e.aura }));
+}
+
+/**
+ * Nearest panel of a source's footprint to any of the given panels.
+ *
+ * @param {object} unit
+ * @param {Array<{i: number, j: number}>} panels
+ * @returns {number}
+ */
+function reach(unit, panels) {
+  let best = Infinity;
+  for (const p of footprintOf(unit)) for (const q of panels) best = Math.min(best, chebyshev(p, q));
+  return best;
+}
+
+/** @param {object} unit @returns {Array<{i: number, j: number}>} */
+function footprintOf(unit) {
+  return unit.panels?.length ? unit.panels : [unit.panel];
 }
 
 /* -------------------------------------------------------------------------- */
@@ -105,10 +131,15 @@ function index(buckets, unit, aura) {
   const r = aura.radius ?? 0;
   const entry = { unit, aura };
 
-  const iMin = Math.floor((unit.panel.i - r) / BUCKET_SIZE);
-  const iMax = Math.floor((unit.panel.i + r) / BUCKET_SIZE);
-  const jMin = Math.floor((unit.panel.j - r) / BUCKET_SIZE);
-  const jMax = Math.floor((unit.panel.j + r) / BUCKET_SIZE);
+  // From the whole footprint: a 3x3 Bašmu's aura reaches out from its far
+  // edge, not only from its anchor corner.
+  const cells = footprintOf(unit);
+  const is = cells.map((p) => p.i);
+  const js = cells.map((p) => p.j);
+  const iMin = Math.floor((Math.min(...is) - r) / BUCKET_SIZE);
+  const iMax = Math.floor((Math.max(...is) + r) / BUCKET_SIZE);
+  const jMin = Math.floor((Math.min(...js) - r) / BUCKET_SIZE);
+  const jMax = Math.floor((Math.max(...js) + r) / BUCKET_SIZE);
 
   for (let bi = iMin; bi <= iMax; bi++) {
     for (let bj = jMin; bj <= jMax; bj++) {

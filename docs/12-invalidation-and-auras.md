@@ -100,6 +100,13 @@ the executor's default `radius` of 2, every *"while this Unit is on the field"* 
 out on a real board, which always resolves through the index; the index-free unit tests never saw it
 (§46.4-BG).
 
+Both ends are measured by footprint. A multi-panel source is bucketed from its whole footprint, and
+`candidatesAt` takes every panel a multi-panel recipient covers. Measured from the anchor corner, a 3x3
+Bašmu standing directly next to Semiramis never offered her its protection: `distanceBetween` in
+`auras.mjs` measures footprint to footprint, but the index narrowed the candidate away first
+(§46.4-BO). **An index that only narrows can still drop**, when its idea of distance is smaller than the
+filter's.
+
 Three properties make it work:
 1. **Units with no auras cost nothing** — skipped before any geometry (`module/rules/aura-index.mjs:49-52`)
 2. **Spatial narrowing only** — `candidatesAt` is an optimization; `collectAuras` still applies relation rules
@@ -130,6 +137,10 @@ The rebuild is one-frame stale on display but acceptable: *any resolution rebuil
 5. **Auras measure from the nearest panel of multi-panel units.** A nine-panel platform reaches further
    than a single panel at the same distance (`module/rules/auras.mjs:250-262`). Both source and recipient
    are measured this way.
+   A radius is also measured on **one level**: a Unit on the ground under the Hanging Gardens is not
+   "next to" a Bašmu on its deck, the reading `freePanels` and the bounded-field level check already take.
+   `scope: "field"` auras stay unbounded across levels, so Territory Creation still reaches her Master on
+   the ground (§46.4-BP).
 
 6. **Unbounded auras still respect boundaries.** `scope: "field"` makes an aura reach anywhere on the board,
    but it cannot cross a boundary that seals effect application (`module/rules/auras.mjs:54-67`,
