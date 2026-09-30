@@ -383,9 +383,10 @@ export function jumpVerdict(unit, platform, remaining = 0) {
 
   if (!isEdgePanel(unit.panel, platform)) return { ok: false, reason: "notOnEdge" };
 
-  // *"land on a Game Board panel within its MOV"* -- a Unit with none left has
-  // nowhere to land.
-  if (remaining < 1) return { ok: false, reason: "noMovement" };
+  // *"land on a Game Board panel within its MOV; in this case, the Unit's MOV
+  // is reduced by 1"* -- the shortest jump lands one panel out and costs two,
+  // so a Unit with one panel left has nowhere it can afford (§46.4-BW).
+  if (remaining < 2) return { ok: false, reason: "noMovement" };
 
   return { ok: true };
 }
@@ -403,7 +404,10 @@ export function jumpVerdict(unit, platform, remaining = 0) {
  * @returns {Array<{i: number, j: number}>}
  */
 export function jumpLandings(unit, platform, board, remaining = 0) {
-  const reach = remaining;
+  // The jump costs its distance PLUS ONE, so the reach is one short of what is
+  // left. Offering the full allowance let the Jump write a `movedPanels` past
+  // the Unit's MOV (§46.4-BW).
+  const reach = remaining - 1;
   const bounds = board?.bounds ?? null;
   const taken = (board?.units ?? [])
     .filter((u) => u.id !== unit?.id && (u.level ?? 0) === 0)
@@ -416,11 +420,23 @@ export function jumpLandings(unit, platform, board, remaining = 0) {
       if (withinFootprint(panel, platform)) continue;
       if (bounds && (panel.i < 0 || panel.j < 0
         || panel.i >= (bounds.rows ?? Infinity) || panel.j >= (bounds.cols ?? Infinity))) continue;
+      // A real board's bounds are `{iMin, iMax, jMin, jMax}`, which the line
+      // above never read (§46.4-BW).
+      if (bounds && bounds.iMax !== undefined && !inBoardBounds(panel, bounds)) continue;
       if (taken.some((p) => p.i === panel.i && p.j === panel.j)) continue;
       out.push(panel);
     }
   }
   return out;
+}
+
+/**
+ * @param {{i: number, j: number}} p
+ * @param {{iMin: number, iMax: number, jMin: number, jMax: number}} b
+ * @returns {boolean}
+ */
+function inBoardBounds(p, b) {
+  return p.i >= (b.iMin ?? 0) && p.i <= b.iMax && p.j >= (b.jMin ?? 0) && p.j <= b.jMax;
 }
 
 /**
