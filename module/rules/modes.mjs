@@ -55,12 +55,28 @@ import { rollOptionsFor } from "./options.mjs";
  * @param {number} [ctx.tick] the current global turn
  * @param {number} [ctx.turnsPerRound]
  * @param {boolean} [ctx.clockRunning] whether a started match is keeping time
+ * @param {boolean} [ctx.ownTurn] whether it is the owner's Turn; `undefined`
+ *   when the caller cannot tell, which answers nothing
  * @returns {ToggleVerdict}
  */
 export function canToggleMode(
-  item, unit, { active, tick = 0, turnsPerRound = 3, clockRunning = true, round = null } = {},
+  item, unit, { active, tick = 0, turnsPerRound = 3, clockRunning = true, round = null, ownTurn } = {},
 ) {
   const sys = item?.system ?? {};
+
+  // WHOSE Turn. Every mode in the corpus is *"(Active) Used during your
+  // Turn"*, and nothing asked, so a mode could be switched at any moment --
+  // and the one sheet that widens the window had nothing to widen. Raikou's
+  // Tenmōkaikai: *"Raikou can deactivate this NP during her Turn and at the
+  // start or end of any Turn or Round"*, which is `deactivation.window: any`
+  // (#101). Switching it ON is still her Turn's business.
+  if (ownTurn === false && clockRunning !== false) {
+    const offAnyTime = !active && sys.deactivation?.window === "any";
+    if (!offAnyTime) return { ok: false, reason: "notOwnTurn" };
+  }
+
+  // ...and WHO. `byOwner: false` is a mode its owner cannot switch off at all.
+  if (!active && sys.deactivation?.byOwner === false) return { ok: false, reason: "cannotDeactivate" };
 
   // A lockout stamped against a clock that does not exist. `toggledAt` is
   // written as the current tick, and out of a match every reader of the tick

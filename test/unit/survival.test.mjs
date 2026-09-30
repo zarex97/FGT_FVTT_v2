@@ -140,7 +140,7 @@ export const ABILITY_ROUTES = {
   cooldownWaiver: doc("module/engine/cooldown.mjs", "spent at use"),
   countsAsAttack: doc("module/rules/ability-use.mjs", "the action budget"),
   creates: doc("module/rules/costs.mjs", "matched by ForbidCreating"),
-  deactivation: unread("#101", "Tenmōkaikai's switch-off window; no reader looks at an Ability's"),
+  deactivation: doc("module/rules/modes.mjs", "Tenmōkaikai's switch-off window, read by canToggleMode (#101)"),
   description: doc("module/apps/actor-sheet/context.mjs", "the sheet's text"),
   element: doc("module/engine/attack.mjs", "the damage type of the use"),
   expendsPermanently: doc("module/engine/io.mjs", "spent at use"),
@@ -351,7 +351,7 @@ describe("every Authored Key survives its Route", () => {
   it("leaves unread keys only where an issue owns them, and fewer over time", () => {
     const owned = [UNIT_ROUTES, ABILITY_ROUTES, EFFECT_ROUTES].flatMap((t) => Object.values(t)).filter((r) => r.unread);
     for (const r of owned) expect(r.unread).toMatch(/^#\d+$/);
-    expect(owned.length).toBeLessThanOrEqual(1);
+    expect(owned.length).toBeLessThanOrEqual(0);
   });
 
   it("on every Unit", () => {

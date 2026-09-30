@@ -21,6 +21,7 @@ import { rollOptionsFor } from "../../rules/options.mjs";
 import { dealsNoDamage } from "../../rules/ability-use.mjs";
 import { buildContext } from "./context.mjs";
 import { editImage } from "../image-edit.mjs";
+import { factionOfCombatant } from "../../engine/turn-order.mjs";
 import { enrichAbilityCards } from "../enrich.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -124,7 +125,22 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const id = target.closest("[data-item-id]")?.dataset.itemId;
     const item = this.document.items.get(id);
     if (!item) return;
+    await FGTActorSheet.toggleMode(this.document, item);
+  }
 
+  /**
+   * Switch a mode, through every rule about when it may be switched.
+   *
+   * One path for the sheet and the action bar. The bar wrote `system.active`
+   * bare, so a mode switched from it skipped every gate -- Heracles's
+   * `cannotDeactivate`, the 2◈ lockout, a compulsion, the new own-Turn window
+   * (#101) -- and stamped no `toggledAt` for the lockout to count from.
+   *
+   * @param {object} actor
+   * @param {object} item
+   * @returns {Promise<void>}
+   */
+  static async toggleMode(actor, item) {
     const active = !item.system.active;
     // `currentTick`, NOT `game.combat` -- the latter is the combat being
     // VIEWED, so this stamped the lockout against whatever tracker happened to
@@ -135,7 +151,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // (`rules/modes.mjs`). This was a bare write, so Heracles's clause was the
     // only one that existed and the other two -- the 2◈ lockout and a
     // compulsion holding the mode on -- had nowhere to live.
-    const verdict = canToggleMode(item, unitSnapshot(this.document), {
+    const verdict = canToggleMode(item, unitSnapshot(actor), {
       active, tick, turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
       // A lockout is measured against the match's clock, so it cannot be
       // stamped when there is no match to measure it against.
@@ -143,6 +159,9 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       // The Round this press happens in, so a use recorded in an earlier one
       // does not bite in this one (Ch. 46 §46.4-L).
       round: game.combats?.active?.round ?? null,
+      // Whose Turn it is, when a faction's is (#101). The GM's own slot, and a
+      // table with no match, answer nothing.
+      ownTurn: ownTurnOf(actor),
     });
     if (!verdict.ok) {
       ui.notifications.warn(game.i18n.format(`FGT.Mode.${verdict.reason}`, {
@@ -168,7 +187,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // in the corpus states, and charging one would be inventing a rule.
     if (active && (item.system?.phases ?? []).length > 0) {
       const { useSkill } = await import("../../engine/skill-use.mjs");
-      const out = await useSkill({ actorId: this.document.id, abilityId: item.id });
+      const out = await useSkill({ actorId: actor.id, abilityId: item.id });
       if (!out.ok) {
         ui.notifications.warn(game.i18n.format("FGT.Skill.Refused", { name: item.name, reason: out.reason }));
         return;
@@ -202,7 +221,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         import("../../engine/intents.mjs"),
       ]);
       await applyWorldIntents(
-        [I.recordUse(this.document.id, item.id, item.system?.contentId ?? null)],
+        [I.recordUse(actor.id, item.id, item.system?.contentId ?? null)],
         "toggleMode",
       );
     }
@@ -549,6 +568,20 @@ export async function pickPlacementFor(actor, ability, { requireUnitId = null, e
  * @param {object} args
  * @returns {object}
  */
+/**
+ * Is it this actor's faction's Turn? `undefined` when no faction's Turn is
+ * running -- no match, or the GM's own slot -- which asks nothing of a mode.
+ * @param {object} actor
+ * @returns {boolean|undefined}
+ */
+function ownTurnOf(actor) {
+  const combat = game.combats?.active;
+  if (!combat?.started) return undefined;
+  const faction = factionOfCombatant(combat.combatant);
+  if (faction === null) return undefined;
+  return (actor.system?.factionId ?? null) === faction;
+}
+
 function previewContext({ caster, defender, ability, board, isNP }) {
   // Through the SAME facts builder the resolution uses. This built its own
   // three-line version, which meant the preview ignored an ability's declared

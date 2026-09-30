@@ -390,8 +390,10 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     const item = actor.items.get(id);
     if (!item) return;
     const { FGTActorSheet } = await import("../index.mjs");
+    // Through the sheet's toggle, which asks every rule about WHEN a mode may
+    // be switched. A bare write here skipped all of them (#101).
     if (classifyAbility(item).toggles) {
-      await item.update({ "system.active": !item.system?.active });
+      await FGTActorSheet.toggleMode(actor, item);
       return;
     }
     if (classifyAbility(item).isAttack) await FGTActorSheet.declareAttack(actor, item);

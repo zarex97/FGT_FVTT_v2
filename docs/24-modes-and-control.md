@@ -21,7 +21,7 @@ These four are grouped because they all answer the question "who decides what th
 
 ### Modes and their refusals
 
-A mode toggles on and off. `canToggleMode` (`module/rules/modes.mjs:59-146`) checks four refusals in order:
+A mode toggles on and off. `canToggleMode` (`module/rules/modes.mjs:59-146`) first asks **whose Turn** it is: every mode in the corpus is *"(Active) Used during your Turn"*, so with `ownTurn: false` it refuses (`notOwnTurn`), unless the switch is OFF and the mode's `deactivation.window` is `any`. That is Raikou's Tenmōkaikai, *"Raikou can deactivate this NP during her Turn and at the start or end of any Turn or Round"*, whose window was declared, stored and read by nobody until #101. `deactivation.byOwner: false` refuses the owner's switch-off. The caller passes `ownTurn` only when a faction's Turn is running; out of a match, or on the GM's own slot, it asks nothing. The sheet and the action bar both switch a mode through `FGTActorSheet.toggleMode`: the bar used to write `system.active` bare and skipped every gate below. Then four refusals, in order:
 
 1. **No clock.** If `clockRunning` is false and the mode carries a `toggleLock`, refuse. A lockout needs a tick to measure against (`module/rules/modes.mjs:72-74`).
 2. **Suspended.** A Command Spell buys a deactivation span; only switching *on* while suspended bites (`module/rules/modes.mjs:86-89`).
