@@ -66,3 +66,17 @@ describe("_preCreate edits to data", () => {
       .toEqual([]);
   });
 });
+
+// #96. `CONFIG.ActiveEffect.dataModels = { fgtEffect }` replaced core's
+// `{ base: ActiveEffectTypeDataModel }`, so no core status effect could be
+// created -- the defeat skull silently was not -- and the same shape on
+// `CONFIG.RegionBehavior.dataModels` dropped every built-in behaviour.
+describe("a CONFIG registry replaced wholesale", () => {
+  it("flags assigning a CONFIG dataModels object that does not spread the existing one", () => {
+    expect(lint(`CONFIG.ActiveEffect.dataModels = { fgtEffect: X };`)).toHaveLength(1);
+  });
+
+  it("allows one that keeps core's entries", () => {
+    expect(lint(`CONFIG.ActiveEffect.dataModels = { ...CONFIG.ActiveEffect.dataModels, fgtEffect: X };`)).toEqual([]);
+  });
+});

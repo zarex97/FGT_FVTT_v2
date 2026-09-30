@@ -162,6 +162,12 @@ asks about it (`module/rules/granted.mjs:1-18`).
      runs again. A value assigned to `actor.system.mov` outside `prepareData` is gone on the next
      preparation; a non-schema property assigned there survives, and can go stale.
 
+   A fourth, of the same family: **assigning a `CONFIG.*.dataModels` object drops core's own entries.**
+   `CONFIG.ActiveEffect.dataModels` ships as `{base: ActiveEffectTypeDataModel}` (`client/config.mjs:2031`)
+   and `CONFIG.RegionBehavior.dataModels` with twelve built-in behaviours; `fgt.mjs` replaced both, so no
+   core status effect could be created, silently -- the defeat skull among them (#96). Every assignment
+   now spreads the existing object, and the lint rule flags one that does not.
+
    The first two are guarded by the `fgt/client-traps` ESLint rule (`tools/lib/eslint-client-traps.mjs`,
    in `npm run lint`) and proved live by `npm run check:world` (Ch. 43, #94). The client layer does not
    import in Node, so no unit test can run them (ADR-0006).

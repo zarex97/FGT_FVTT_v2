@@ -36,8 +36,8 @@ import { withWorld } from "../helpers/world.mjs";
 
 const same = (at) => ({ at });
 const doc = (reader, why) => ({ reader, why });
-/** A key this test found with no reader, owned by an issue. The list may only shrink. */
-const unread = (issue, why) => ({ unread: issue, why });
+// A key found with no reader was listed as `{ unread: "#NNN", why }`, owned by
+// its issue. The last one left with #101, and the ceiling below is zero.
 const text = (v) => (v == null ? v : String(v));
 
 /** Where each Authored Key on a Unit goes after the DataModel. */
