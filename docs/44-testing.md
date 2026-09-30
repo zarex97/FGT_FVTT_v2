@@ -18,6 +18,7 @@ The boundary enforced in chapter 02 — that `domain/` and `rules/` import nothi
 | `test/golden/*.test.mjs` | 2 golden test files (damage, Akhilleus Kosmos authoring), pinning documentation worked examples |
 | `test/fixtures/` | Small fixture files used to seed test data |
 | `tools/lib/foundry.mjs` | Loads Foundry's **real** `common/` data layer from `FOUNDRY_PATH` (default `../foundryVTT_copy`) and registers this system's DataModels; fails the run when the copy is missing or is not the build `system.json` is verified on (ADR-0006) |
+| `test/helpers/subject.mjs` | Builds test subjects from authored content through the real compile, DataModel and projection |
 | `test/unit/rule-survival.test.mjs` | No normalizer or executor drops a key authored inside a rule element |
 | `test/unit/survival.test.mjs` | Every Authored Key in the real corpus survives compile, DataModel and projection to a named route |
 | `test/helpers/world.mjs` | A world faithful enough to run `engine/io.mjs` against — `withWorld({...}, fn)`, restoring globals in a `finally` |
@@ -106,6 +107,25 @@ A key with no route fails, naming the file and the last Hop it reached. Its firs
 copies' Normal Attack `elementFraction` was dropped by the projection (fixed — it now travels beside
 `element`), and Tenmōkaikai's `deactivation` window has no reader at all (#101). Reintroducing the
 `requiresHistory` omission in `collectAbilities` turns it red, naming The Queen's Glass Game.
+
+### Test subjects are built, not written
+
+A fixture written in the shape a reader expects can only confirm that reader, and at least eight Silent
+Drops hid behind one — an Aura's post-executor shape hand-written *with* the `check` the executor dropped
+(8037d25), `unremovable` injected into an effect instance the projection never filled (#80). **New tests
+build their subjects with `test/helpers/subject.mjs`.** `withSubjects(specs, fn)` takes Units from the
+real corpus by content id, or a small description in the same YAML shape as `packs/_source`, and runs
+them through the real compile, the real DataModel (via `keptByModel`, then the test world's loud prune),
+the real prepare chain, `snapshotUnit` and `snapshotBoard`, with the registry loaded from the real effect
+definitions. A test may change what was **authored** (`with`), the **state** the world holds (`state`,
+`effects` as real ActiveEffects) and **where** a Unit stands (`panel`); it may never edit the projection,
+because the projection is what is under test. `subject(spec)` is the one-Unit form.
+
+`test/unit/home-base-cure.test.mjs` and the Affection of the Holy Grail aura block in
+`test/unit/kiritsugu.test.mjs` were the first two moved, and each goes red on the defect it was written
+for. Existing hand-built subjects move when their test is next touched, not in a sweep:
+`test/unit/hand-built-subjects.test.mjs` counts unit literals assigning a projection-only key
+(`effectInstances`, `auras`, `checkModifiers` and the rest), prints the count, and fails if it rises.
 
 ### The rule-element survival test
 
