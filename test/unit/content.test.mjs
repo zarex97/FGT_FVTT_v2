@@ -887,3 +887,13 @@ describe("an Effect's periodic", () => {
     expect(errorsFor([file(ok({ periodic: { when: "dawn", amount: 5 } }))])[0]).toMatch(/periodic\.when "dawn"/);
   });
 });
+
+// #102: an Aura's payload is `elements`. Pollux's partner aura said `rules`, and
+// the executor never read it, so it delivered nothing to anybody.
+describe("an Aura's payload", () => {
+  it("is refused under the spelling the executor does not read", () => {
+    expect(errorsFor([file(ok({ rules: [{ key: "Aura", radius: 1, rules: [{ key: "Resistance" }] }] }))])[0])
+      .toMatch(/Aura carries its payload as "rules".*"elements" \(#102\)/);
+    expect(errorsFor([file(ok({ rules: [{ key: "Aura", radius: 1, elements: [{ key: "DamageModifier", value: 5 }] }] }))])).toEqual([]);
+  });
+});

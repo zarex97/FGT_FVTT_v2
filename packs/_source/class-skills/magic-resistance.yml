@@ -89,14 +89,36 @@ passiveRules:
   # returns exactly one of self/ally/enemy/neutral and a linked partner is
   # already an `ally`, so a `partner` relation would have dropped that partner
   # out of every ordinary ally-aura on the board.
+  #
+  # `elements`, the one spelling the Aura executor reads. This payload was
+  # authored as `rules:` and the executor never read it, so the aura carried
+  # nothing and Castor never had any Magic Resistance at all (#102). The
+  # validator now refuses `rules` on an Aura.
+  #
+  # "The effect of this Skill" is the whole Skill: Passive 1 and both halves of
+  # Passive 2, each exactly as the bearer's own entry above. The elements run
+  # through their real executors on the way (`rules/elements.mjs#auraElement`),
+  # so the negation threshold is Pollux's shifted rank, as his own is. `group`
+  # keeps the three together: an aura group is resolved as one Skill.
   - key: Aura
     radius: 1
     relations: [ally]
     recipientRoles: [linkedPartner]
-    rules:
+    group: magicResistance
+    elements:
       - key: Resistance
         component: mag
         mode: rankComparison
-        negatesUpToRank: "@rank"
         table: magicResistancePercent
         includesNP: true
+      - key: ApplicationChance
+        direction: incoming
+        severity: normal
+        table: magicResistanceDebuffResist
+      - key: ApplicationChance
+        direction: incoming
+        severity: [instakill, death]
+        table: magicResistanceDebuffResist
+        attackPredicate:
+          - { not: "attack:component:str" }
+          - { not: "attack:ignoresMagicResistance" }

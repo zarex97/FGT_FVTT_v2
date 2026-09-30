@@ -136,10 +136,34 @@ export function annotateAuras(units, board, index = null) {
     // snapshot and consulted by nobody — which is exactly what Medea's Item
     // Construction did until this line existed.
     for (const m of received[k]) {
+      // Magic Resistance is one value, not a list: the pipeline reads
+      // `unit.magicResistance`. One that arrives by aura -- Pollux's, reaching
+      // Castor -- is taken when the recipient has none, or a weaker one (#102).
+      if (m.key === "Resistance") {
+        if (strongerResistance(m.magicResistance, u.magicResistance)) u.magicResistance = m.magicResistance;
+        continue;
+      }
       const bucket = ROUTES[m.key] ?? "modifiers";
       u[bucket] = [...(u[bucket] ?? []), m];
     }
   });
+}
+
+/**
+ * Is `incoming` a better Magic Resistance than `own`?
+ *
+ * A rank-mode resistance negates up to its rank, so the higher rank is the
+ * better one; a unit with none takes any.
+ *
+ * @param {object|null} incoming
+ * @param {object|null} own
+ * @returns {boolean}
+ */
+function strongerResistance(incoming, own) {
+  if (!incoming) return false;
+  if (!own) return true;
+  if (incoming.mode !== "rank" || own.mode !== "rank") return false;
+  return Rank.compare(Rank.parseOrNull(String(incoming.rank)), Rank.parseOrNull(String(own.rank))) > 0;
 }
 
 /**

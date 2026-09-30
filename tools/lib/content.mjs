@@ -1121,6 +1121,12 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     if (!RULE_ELEMENT_KEYS.has(el.key)) {
       problems.push(`${path}: ${where} uses unknown rule element key "${el.key}"`);
     }
+    // One spelling for an Aura's payload. The executor reads `elements`, so a
+    // payload authored as `rules` compiled, loaded and delivered nothing:
+    // Pollux's Magic Resistance never reached Castor (#102).
+    if (el.key === "Aura" && el.rules !== undefined) {
+      problems.push(`${path}: ${where} Aura carries its payload as "rules", which the executor never reads; author it as "elements" (#102)`);
+    }
     if (el.key === "Script" && !el.script) {
       problems.push(`${path}: ${where} is a Script element with no "script" id`);
     }

@@ -81,6 +81,14 @@ correct reader field: `ApplicationChance` → `applicationChances`, `DamageNegat
 `damageNegation`, `Compulsion` → `compulsions`, etc. (`module/rules/auras.mjs:139-141`,
 `module/rules/auras.mjs:151-180`).
 
+An aura's payload is its `elements`, the only spelling the executor reads; the validator refuses
+`rules` on an Aura. `Resistance` and `ApplicationChance` payloads run through their real executors
+(`rules/elements.mjs#auraElement`), because their readers want the executor's shape: a recipient gets
+a Skill exactly as its bearer holds it. A `Resistance` lands on `unit.magicResistance`, a single
+value, taken when the recipient has none or a lower rank. Pollux's Magic Resistance reaching Castor
+is the case: its payload was authored as `rules` and `recipientRoles` was never copied, so the aura
+carried nothing to every adjacent ally, and Castor never had any (#102).
+
 ### The spatial index
 
 The aura index divides the board into 4×4 panel buckets (`module/rules/aura-index.mjs:35`) and
