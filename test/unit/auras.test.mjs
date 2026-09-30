@@ -413,3 +413,35 @@ describe("auras and bounded fields", () => {
     expect(collectAuras(target, board)).toHaveLength(1);
   });
 });
+
+// Found on the Semiramis audit's board III: a hit on Semiramis aboard her
+// Hanging Gardens was reduced by BOTH her Territory Creation wards, EX's 3d10+30
+// and C's 3d10+10 (48 and 24 on one card). A group was resolved by SOURCE, and
+// one source carrying two ranks of the same group kept both. *"Only the
+// Territory Creation with the highest Rank takes effect"*, and her sheet's TC.1
+// puts EX on the garden and C on the ground.
+describe("one source carrying two ranks of a group (Semiramis's Territory Creation)", () => {
+  const semiramis = async () => {
+    const { readFileSync } = await import("node:fs");
+    const { parse } = await import("yaml");
+    const { collectContributions } = await import("../../module/rules/elements.mjs");
+    const tc = parse(readFileSync("packs/_source/abilities/semiramis-territory-creation.yml", "utf8"));
+    const { auras } = collectContributions(
+      [{ name: tc.name, rank: tc.rank, active: true, passiveRules: tc.passiveRules }],
+      { options: new Set(["self:variant:dsc"]) },
+    );
+    return { id: "semiramis", factionId: "red", faction: "red", panel: { i: 0, j: 0 }, auras };
+  };
+  const ally = (over) => ({ id: "ally", factionId: "red", faction: "red", panel: { i: 4, j: 4 }, ...over });
+  const wards = (got) => got.filter((m) => m.key === "DamageNegation").map((m) => m.rank);
+
+  it("gives a Unit aboard the garden the EX ward alone", async () => {
+    const aboard = ally({ inHomeBase: true, platformContentId: "hanging-gardens-of-babylon" });
+    expect(wards(collectAuras(aboard, { units: [await semiramis(), aboard] }))).toEqual(["EX"]);
+  });
+
+  it("gives a Unit in the ground Home Base the C ward", async () => {
+    const home = ally({ inHomeBase: true });
+    expect(wards(collectAuras(home, { units: [await semiramis(), home] }))).toEqual(["C"]);
+  });
+});

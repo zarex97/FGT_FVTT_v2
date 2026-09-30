@@ -73,7 +73,7 @@ For each recipient:
 4. **Boundary check** — isolated fields that seal effect application seal auras too (`module/rules/auras.mjs:63-67`)
 5. **Recipient predicate** — a condition on the RECIPIENT, e.g., "in their Home Base" (`module/rules/auras.mjs:69-73`)
 6. **Recipient roles** — named roles relative to the source (summoner, summonerMaster, linkedPartner) (`module/rules/auras.mjs:75-78`)
-7. **Stacking** — `highestOnly` keeps the highest value per key; `group` resolves entire auras by rank as one unit
+7. **Stacking** — `highestOnly` keeps the highest value per key; `group` resolves entire auras by rank as one unit: the winning source **at its winning rank**, so one source carrying two ranks of a group (Semiramis's Territory Creation, EX aboard and C on the ground) contributes only the higher (§46.4-BF)
   (`module/rules/auras.mjs:275-311`)
 
 After binding (recording the source and stripping address fields), modifiers are routed to the

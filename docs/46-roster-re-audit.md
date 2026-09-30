@@ -2249,6 +2249,19 @@ The offer now intersects the directory with the Masters the board projection hol
 **Verified live** on the same board after the fix: the card offers **2** Masters, both in the match,
 against **20** owned in the world.
 
+### BF. One source carrying two ranks of a group kept both — **fixed 2026-09-30**
+
+**Reached: Semiramis's Territory Creation, TC.stack / TC.1.** Read off a counter Heracles landed on
+her aboard the Hanging Gardens: stage 12 carried **two** `Territory Creation` damage negations, **−48**
+and **−24** — EX's 3d10+30 and C's 3d10+10 on the same hit.
+
+Both wards are her own auras in the one `territoryCreation` group, EX scoped to the garden and C to
+any Home Base, and the garden **is** a Home Base (HG.home), so a Unit aboard qualified for both.
+`rules/auras.mjs#resolveStacking` resolved a group by **source**: it found the best-ranked source and
+kept every element that source contributed. Two ranks from one source were both "the winner". *"Only
+the Territory Creation with the highest Rank takes effect"*, and the sheet's own TC.1 puts EX on the
+garden and C on the ground. The winner is now the source **at** its winning rank.
+
 ---
 
 ---

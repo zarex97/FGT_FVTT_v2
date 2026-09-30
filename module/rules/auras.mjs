@@ -319,8 +319,12 @@ function resolveStacking(found) {
 
   for (const m of found) {
     if (m.group) {
+      // The winning source AT the winning rank. One source may carry two ranks
+      // of the same group -- Semiramis's Territory Creation is EX on her
+      // garden and C on the ground -- and matching the source alone kept both:
+      // a hit on her aboard was reduced by EX's 3d10+30 AND C's 3d10+10.
       const winner = bestSourceFor.get(m.group);
-      if (winner && m.aura?.sourceUnitId === winner.sourceUnitId) out.push(m);
+      if (winner && m.aura?.sourceUnitId === winner.sourceUnitId && m.rank === winner.rank) out.push(m);
       continue;
     }
     if ((m.stacking ?? "highestOnly") !== "highestOnly") {
