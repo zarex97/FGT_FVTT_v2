@@ -2442,6 +2442,24 @@ attempt is now announced in chat, die, roll, target and any relief, and a failur
 `boardFailed`. The allied walk-on path of a `byRelation` platform took the anchor corner as well, and
 now lands through `boardingLanding` too.
 
+### BZ. A knockback pushed each Unit once per level layer, from where the mover had been — **fixed 2026-09-30**
+
+**Reached: HG.knock.** A Bašmu dragged over Heracles, on the garden's edge, and his Master knocked
+Heracles off three times: the log held three `knockedOff` entries and his Health went 866 → 576. The
+board lists each panel of a Unit once per level layer it occupies -- k 20, 21 and 22 for a Bašmu -- and
+`knockBackOccupants` visited every entry. It also read the mover's footprint off the token, which at
+`moveToken` still reports where it came from, so the Master was pushed into the square the Bašmu then
+stood on. `rules/movement.mjs#knockbackPlan` now plans every push before any is made: each Unit once, from
+the footprint in the movement's destination, each landing judged against the pushes already planned.
+Platforms, structures and panel-sharing Units are stood on, not pushed.
+
+### CA. Nobody saw a fall's Agility Check — **fixed 2026-09-30**
+
+**Reached: HG.knock.** Heracles fell off the garden with no card; the check was rolled in
+`engine/platforms.mjs#knockOff` and only his Health showed it. The fall is announced now: the d20, the
+target, and whether the Unit kept its footing, chose to drop, was caught by its Servant, or fell and took
+the Platform's damage.
+
 ---
 
 ---

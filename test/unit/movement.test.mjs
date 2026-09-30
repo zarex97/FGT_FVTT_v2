@@ -560,3 +560,39 @@ describe("clause 8 — the linked-group leash (D3)", () => {
     expect(far).toEqual([]);
   });
 });
+
+// Who a knockback moves, and where, planned before anything is displaced.
+//
+// On the Semiramis audit (#68) a Bašmu dragged over Heracles and his Master
+// knocked Heracles off the garden THREE times -- 866 → 576, three falls -- and
+// pushed the Master into the square Bašmu was about to stand on (§46.4-BZ).
+// The board lists each panel of a Unit once per level layer it occupies (k 20,
+// 21, 22 for a Bašmu), and the loop visited every one; and the mover's
+// footprint was read off the token while it still reported where it came from.
+describe("knockbackPlan", async () => {
+  const { knockbackPlan } = await import("../../module/rules/movement.mjs");
+  const deck = Array.from({ length: 9 }, (_, i) => Array.from({ length: 9 }, (_, j) => at(i, j))).flat();
+  const garden = { id: "hgob", kind: "platform", level: 20, panel: at(0, 0), panels: deck };
+  const layered = (i0, j0) => [20, 21, 22].flatMap((k) =>
+    Array.from({ length: 3 }, (_, di) => Array.from({ length: 3 }, (_, dj) => ({ i: i0 + di, j: j0 + dj, k }))).flat());
+  const basmu = { id: "basmu", kind: "summon", level: 20, panel: at(6, 3), panels: layered(6, 3) };
+  const heracles = other("h", 8, 6, { level: 20 });
+  const master = other("m", 7, 6, { level: 20, kind: "master" });
+  const b = board([garden, basmu, heracles, master]);
+
+  it("moves each Unit once, however many layers the footprint lists", () => {
+    const plan = knockbackPlan(basmu, layered(6, 5), b);
+    expect(plan.map((p) => p.unitId).sort()).toEqual(["h", "m"]);
+  });
+
+  it("clears the footprint the mover is ARRIVING at, not the one it left", () => {
+    const plan = knockbackPlan(basmu, layered(6, 5), b);
+    const inside = (p) => p.i >= 6 && p.i <= 8 && p.j >= 5 && p.j <= 7;
+    for (const step of plan) expect(inside(step.landing.panel)).toBe(false);
+  });
+
+  it("sends the Unit on the edge off it, away from the centre", () => {
+    const plan = knockbackPlan(basmu, layered(6, 5), b);
+    expect(plan.find((p) => p.unitId === "h").landing.panel).toEqual(at(9, 6));
+  });
+});
