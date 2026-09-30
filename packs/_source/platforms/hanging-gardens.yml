@@ -30,9 +30,15 @@ agility: 0
 luck: 0
 mov: 2
 # "Does not Normal Attack, see below" -- only its own two named Attacks
-# (basmu... no: semiramis-hgob-dragon-wing-warriors, semiramis-hgob-aerial-
-# garden-of-vanity) exist; it has no Normal Attack of its own.
-range: { panels: 0, targets: 0 }
+# (semiramis-hgob-dragon-wing-warriors, semiramis-hgob-aerial-garden-of-vanity)
+# exist; it has no Normal Attack of its own. Said with the `noNormalAttack`
+# grant in `rules` below, the engine's word for it: an earlier `targets: 0`
+# here was clamped to 1 by the model and read by nothing, so the platform was
+# offered a Normal Attack (#100).
+range: { panels: 0 }
+rules:
+  - key: GrantedAbility
+    abilities: [noNormalAttack]
 baseAttack: { str: 0, mag: 200 }
 footprint: { w: 9, h: 9 }
 capacity: null

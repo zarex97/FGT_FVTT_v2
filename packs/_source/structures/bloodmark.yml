@@ -20,7 +20,9 @@ attributes: [structure, mark]
 # rather than a damage race.
 baseHealth: 1
 mov: 0
-range: { panels: 0, targets: 0 }
-baseAttack: { str: 0, mag: 0 }
+# A Structure takes no action at all (`rules/actions.mjs#ACTING_KINDS`), so
+# it states no target count and no Base Attack: `targets: 0` was clamped to 1
+# and `StructureData` declares no `baseAttack` (#100).
+range: { panels: 0 }
 destroyableBy: [master]
 visibleWithin: 3

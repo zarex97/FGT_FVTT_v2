@@ -24,8 +24,10 @@ attributes: [structure, levitating]
 baseHealth: null
 undamageable: true
 mov: 0
-range: { panels: 0, targets: 0 }
-baseAttack: { str: 0, mag: 0 }
+# A Structure takes no action at all (`rules/actions.mjs#ACTING_KINDS`), so
+# it states no target count and no Base Attack: `targets: 0` was clamped to 1
+# and `StructureData` declares no `baseAttack` (#100).
+range: { panels: 0 }
 # "The panel occupied by Piedra Del Sol can still be Moved onto (replace the
 # Piedra Del Sol on top of any Units which Move onto that panel)."
 sharesPanel: true
