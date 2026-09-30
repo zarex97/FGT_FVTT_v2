@@ -20,11 +20,13 @@ description: |
 passiveRules:
   # The drawback. `direction: taken` with a POSITIVE flat value -- the mirror of
   # a Ward, and the only class skill in the corpus that hurts its own bearer.
+  # `modifierKey: avenger` is what makes it flat: stage 11 reads that bucket as
+  # an addition to damage taken. (A `mode: flat` here was read by nothing;
+  # DamageModifier has no `mode`, #103.)
   - key: DamageModifier
     modifierKey: avenger
     direction: taken
     table: avenger
-    mode: flat
     includesNP: true
 
   # The offset. `avengerCounter` has been in `rules/damage/pipeline.mjs`'s

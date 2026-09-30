@@ -122,6 +122,9 @@ executor actually reads, rather than of its descriptor's ids.
 - **`MaxDelta`**'s `perStack` was never dropped. Huge Scale's magnitude is `0.2 * @self.baseHealth`,
   which resolves only against a Unit's refs, and the survival test's exemption for that case matched an
   expression starting with `@` and not one containing it. It scales 0, 200, 600 for 0, 1, 3 stocks.
+- **`DamageModifier`** has no `mode`. Avenger's `mode: flat` was read by nothing: `modifierKey:
+  avenger` is what makes the +80 flat, and `stage` is the executor's spelling when no key names a
+  bucket. The line is gone and the validator refuses the key.
 
 ## Open questions
 
