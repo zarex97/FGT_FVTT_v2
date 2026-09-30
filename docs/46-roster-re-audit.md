@@ -2834,7 +2834,8 @@ leaves her boarding alone, which is the old behaviour, now reached by choosing i
 third caller is what moved it to `engine/ask.mjs`; attack.mjs imports it now and the copy-dialog's
 own — which routes from a unit id on layer 4 — is left with a comment saying where the shared one is.
 
-**The panel each ally lands on is not offered.** `allyPanels` is honoured if a caller supplies one,
-and nothing does: choosing a panel per ally is a canvas pick on a client that is not the one running
-the activation, and `seatingPlan`'s nearest-free-panel is a defensible stand-in. The *"to any panel
-within"* half of this Clause is therefore still owed.
+**The panel each ally lands on is now offered** (#68). After the riders are chosen, the Servant's owner
+is asked, one ally at a time, for a panel of the footprint that will open where she stands -- less the
+middle, which is hers, and less what an earlier ally took, the Throne Room listed first
+(`engine/hgob.mjs#chooseRiderPanels`, `riderPanelOptions`). Declining leaves that ally to
+`seatingPlan`'s nearest free panel, which used to be the only answer.

@@ -175,3 +175,23 @@ describe("the riders it was never asked for", () => {
     expect(at).not.toEqual(panelOf(plan, "owner"));
   });
 });
+
+// *"...and all allied Units of your choice are transported to ANY panel within
+// the HGoB."* The riders were chosen and the panels never were: every ally was
+// given the nearest free one (#68). The panels offered are the footprint less
+// the middle, which is hers, and less anything another ally already took.
+describe("riderPanelOptions", async () => {
+  const { riderPanelOptions } = await import("../../module/engine/hgob.mjs");
+
+  it("offers every panel of the 9x9 but the middle, the Throne Room first", () => {
+    const options = riderPanelOptions({ i: 0, j: 0 }, HGOB, []);
+    expect(options).toHaveLength(80);
+    expect(options.some((p) => p.i === 4 && p.j === 4)).toBe(false);
+    expect(options[0]).toMatchObject({ throneRoom: true });
+    expect(options.at(-1)).toMatchObject({ throneRoom: false });
+  });
+
+  it("does not offer a panel another ally has taken", () => {
+    expect(riderPanelOptions({ i: 0, j: 0 }, HGOB, [{ i: 0, j: 0 }]).some((p) => p.i === 0 && p.j === 0)).toBe(false);
+  });
+});
