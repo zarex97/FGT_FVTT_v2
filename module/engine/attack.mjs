@@ -3190,6 +3190,14 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
     resume: false,
   });
 
+  // A Counter is an Act (#107, ruled by the game's author). Every clause keyed
+  // on Acting reads this flag -- Bleed and Sap tick on it, Sikera Ušum poisons
+  // and re-ticks on it, Mad Enhancement drains on it -- and a counterer never
+  // had it, so it stood inside all of them untouched. `acted` only, never
+  // `attacked`: the record is stamped with THIS Turn's tick, so it is stale by
+  // the counterer's own Turn and costs it nothing there.
+  await applyBatch([I.markTurn(counterer.id, { acted: true })], "counter:declared");
+
   return declareProcesses({
     attackerId: counterer.id,
     attacker: counterer,
