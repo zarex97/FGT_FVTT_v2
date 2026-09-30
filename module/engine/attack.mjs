@@ -35,7 +35,7 @@ import {
 import { counterRedirect } from "../rules/counter.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
-import { inAttackRange, chebyshev } from "../domain/geometry.mjs";
+import { inAttackRangeBetween, chebyshev } from "../domain/geometry.mjs";
 import { missChance, missSourceOf, chanceFromDistance } from "../rules/miss.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { collectContributions, resolveValue } from "../rules/elements.mjs";
@@ -3159,7 +3159,13 @@ function counterAvailable(state) {
   return process.canCounter(state, {
     defenderAlive: (defenderDoc.system?.health?.value ?? 0) > 0,
     // The DU's range, not the AU's: the counter is the DU attacking.
-    attackerInRange: inAttackRange(defender.panel, attacker.panel, defender.range ?? 1),
+    // Footprint to footprint: a 3x3 Bašmu counters whatever any part of it
+    // reaches (§46.4-BT).
+    attackerInRange: inAttackRangeBetween(
+      defender.panels?.length ? defender.panels : [defender.panel],
+      attacker.panels?.length ? attacker.panels : [attacker.panel],
+      defender.range ?? 1,
+    ),
     attackerHasAccel: (attacker.effects ?? []).includes("accel"),
     defenderCanAct: defender.canAct !== false,
     defenderHasBerserk: held.includes("berserk"),

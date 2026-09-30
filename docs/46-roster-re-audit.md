@@ -2378,6 +2378,24 @@ Warriors, beside it, reaches *"the area under the HGoB and the area of the HGoB"
 deck. `targeting.forbidAboard` is authored on Aerial Garden of Vanity, and `resolve.mjs` step 4e drops a
 Unit standing on the caster's platform.
 
+### BS. Nothing could attack the Hanging Gardens — **fixed 2026-09-30**
+
+**Reached: HG.noreact.** Heracles, aboard, could not target the garden, and a ground archer at Range 3
+could not either: *"a platform"*. *"Enemy Units on the ground can only Attack the HGoB with ranged
+Attacks"* says they can, and *"its Health drops to 0"* is how it is destroyed. Step 5 of the resolver
+drops platforms unless an ability names `kinds`, and no Normal Attack does, so `hullTargeting` (built in
+69a4771) was reached by nothing. A platform with Health to lose is now a legal target; the Storm
+Border, with none, is still excluded.
+
+### BT. A Unit's Range was measured to a 3x3 target's corner — **fixed 2026-09-30**
+
+**Reached: HG.noreact.** With BS fixed, Heracles beside the garden's middle was told it was *"out of Range
+(2)"*: the `targetUnit` anchor measured to the target's anchor panel, the garden's (0,0). Bašmu, 3x3,
+had the same blind side, and `counterAvailable` measured a Counter anchor to anchor. Both now measure
+footprint to footprint (`geometry.mjs#inAttackRangeBetween`). The garden itself stays unattackable while
+a Bašmu stands on it: *"Enemy Units cannot Attack Semiramis or her allied Units if a Bašmu is next to
+them"*, and the garden *"counts as a separate Unit"*.
+
 ---
 
 ---

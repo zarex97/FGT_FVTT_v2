@@ -832,6 +832,31 @@ describe("Range from a multi-panel unit (Ch. 05)", () => {
 
 /* -------------------------------------------------------------------------- */
 
+// A Unit is in Range if any part of it is. Bašmu is 3x3, and the target-a-unit
+// anchor measured Range to its TOP-LEFT panel only: on the Semiramis audit
+// (#68), Heracles standing beside the garden's middle was told the Hanging
+// Gardens was "out of Range (2)", measured to its (0,0) corner (§46.4-BT).
+describe("targetUnit — measured to the whole target", () => {
+  const block = (i0, j0, w) => Array.from({ length: w }, (_, di) =>
+    Array.from({ length: w }, (_, dj) => at(i0 + di, j0 + dj))).flat();
+  const basmu = unit("basmu", 3, 3, { panels: block(3, 3, 3) });
+  const spec = { anchor: { kind: "targetUnit", range: 1 }, shape: { kind: "unit" }, selection: { relations: ["enemy"], count: 1 } };
+
+  it("reaches a 3x3 Unit from beside its far edge", () => {
+    const beside = { ...caster, panel: at(6, 4), range: 1 };
+    const r = resolveTargets(spec, beside, boardWith([basmu]), { unitId: "basmu" });
+    expect(r.errors).toEqual([]);
+    expect(r.units.map((u) => u.unitId)).toEqual(["basmu"]);
+  });
+
+  it("still refuses one genuinely out of Range", () => {
+    const far = { ...caster, panel: at(8, 4), range: 1 };
+    expect(resolveTargets(spec, far, boardWith([basmu]), { unitId: "basmu" }).errors).toEqual(["Target is out of Range (1)."]);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+
 describe("cross-level protection in the target ladder (Ch. 27)", () => {
   // A 3x3 platform at level 2 anchored at (5,5), forbidding attacks straight
   // down — the Hanging Gardens' own configuration, in miniature.
@@ -894,6 +919,35 @@ describe("cross-level protection in the target ladder (Ch. 27)", () => {
       const dww = targetingOf("semiramis-hgob-dragon-wing-warriors");
       const ids = resolveTargets(dww, gunner, decked, { panel: at(6, 8) }).units.map((u) => u.unitId);
       expect(ids).toContain("aboard");
+    });
+  });
+
+  // *"Enemy Units on the ground can only Attack the HGoB with ranged
+  // Attacks"* -- which says they CAN, and *"Destroyed when ... its Health drops
+  // to 0"* needs a way for it to. Step 5 dropped every platform as "a
+  // platform" unless an ability named `kinds`, and no Normal Attack does, so
+  // `hullTargeting` was reached by nothing and the garden could not be
+  // attacked at all (§46.4-BS).
+  describe("the garden's own hull", () => {
+    const hull = { ...hgob, faction: "a", maxHealth: 6000, health: 6000, crossLevel: { ...hgob.crossLevel, hullTargeting: "rangedOnly" } };
+    const archer = unit("archer", 6, 10, { level: 0, faction: "b", range: 3 });
+    const decked = boardWith([hull, archer]);
+    const shot = (over = {}) => ({
+      anchor: { kind: "withinRange", range: 3, metric: "chebyshev" },
+      shape: { kind: "square", size: 1 },
+      selection: { relations: ["enemy"] },
+      ...over,
+    });
+
+    it("can be shot from the ground at range", () => {
+      const ids = resolveTargets(shot(), archer, decked, { panel: at(6, 7) }).units.map((u) => u.unitId);
+      expect(ids).toEqual(["hgob"]);
+    });
+
+    it("stays out of reach of a platform with no Health to lose", () => {
+      const scenery = { ...hull, maxHealth: null, health: null };
+      const ids = resolveTargets(shot(), archer, boardWith([scenery, archer]), { panel: at(6, 7) }).units.map((u) => u.unitId);
+      expect(ids).toEqual([]);
     });
   });
 

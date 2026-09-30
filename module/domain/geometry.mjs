@@ -89,6 +89,21 @@ export function inAttackRangeFromAny(from, to, R) {
 }
 
 /**
+ * {@link inAttackRange} from any panel of one Unit to any panel of another.
+ *
+ * Both ends multi-panel: a counter from a 3x3 Bašmu, or an attack on one, is in
+ * Range if any part reaches any part (Ch. 46 §46.4-BT).
+ *
+ * @param {GridOffset[]} from
+ * @param {GridOffset[]} to
+ * @param {number} R
+ * @returns {boolean}
+ */
+export function inAttackRangeBetween(from, to, R) {
+  return (to ?? []).some((q) => inAttackRangeFromAny(from, q, R));
+}
+
+/**
  * Manhattan distance — orthogonal steps only.
  *
  * Movement uses this: *"Units are not allowed to Move diagonally."* Note this

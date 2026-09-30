@@ -28,7 +28,7 @@ The algorithm is eleven steps plus two upfront checks. Each step narrows the sur
 
 ### The eleven main steps
 
-**1. Anchor** — Resolve where the area is placed from. Nine anchor kinds: `self`, `targetUnit`, `withinRange` (free panel), `selfEdgeAdjacent` (direction choice), `fieldEdge`, `zone`, `movementPath`, `platform`, `global`, `sourceOfAttack`. Each computes a panel (or panel set) where the shape expands. Range is measured from all panels a multi-panel unit occupies, not from a corner anchor alone (`module/rules/targeting/resolve.mjs:117-119`).
+**1. Anchor** — Resolve where the area is placed from. Nine anchor kinds: `self`, `targetUnit`, `withinRange` (free panel), `selfEdgeAdjacent` (direction choice), `fieldEdge`, `zone`, `movementPath`, `platform`, `global`, `sourceOfAttack`. Each computes a panel (or panel set) where the shape expands. Range is measured from all panels a multi-panel unit occupies, not from a corner anchor alone (`module/rules/targeting/resolve.mjs:117-119`), and `targetUnit` measures it TO all panels of the target too: a 3x3 Bašmu or the 9x9 garden is in Range if any part of it is (§46.4-BT). A platform with Health to lose is attackable like any Unit; one without stays excluded as "a platform" (§46.4-BS).
 
 **2. Shape** — Expand the area around the anchor. Thirteen shape kinds delegate to domain primitives (`chebyshevRadius`, `attackRange`, `rect`, `line`, `zone`) or targeting-specific constructors (`orientedRect` for direction-based placement). See chapter 05 for the geometry primitives (`module/rules/targeting/resolve.mjs:131-135`).
 
