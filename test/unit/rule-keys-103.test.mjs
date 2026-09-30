@@ -16,6 +16,7 @@ import { collectContributions } from "../../module/rules/elements.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { rollOptionsFor } from "../../module/rules/options.mjs";
 import { critChance } from "../../module/rules/checks.mjs";
+import { applyEffect } from "../../module/engine/effect-applier.mjs";
 
 /** A content file under packs/_source, parsed. */
 const content = (path) => parse(readFileSync(`packs/_source/${path}`, "utf8"));
@@ -108,5 +109,39 @@ describe("Aura", () => {
     const bonus = (kind) => hit([{ ...delivered, predicate: null }], { kind }).total / hit([], { kind }).total;
     expect(bonus("normal")).toBeCloseTo(1.2);
     expect(bonus("np")).toBeCloseTo(1.1);
+  });
+});
+
+// Appendix A: *"Cannot be inflicted with debuffs. Does not affect Instakill,
+// Death or Erase."* The file said so in `scope` and `except`, the executor
+// read neither, and the applier gated on the held effect's id instead -- so
+// the file's list of exceptions was decoration.
+describe("Immunity", () => {
+  const immune = (except) => {
+    const file = content("effects/debuff-immune.yml");
+    const rule = except ? { ...file.rules[0], except } : file.rules[0];
+    return contributions({ name: file.name, rules: [rule] }).immunities;
+  };
+  const land = (def, immunities) => applyEffect({
+    def: { stacking: "noneRefresh", baseChance: 100, ...def },
+    target: { id: "t", effects: [], effectInstances: [], immunities },
+    source: {},
+    ctx: { turnsPerRound: 3, currentTick: 0, roll: 1, options: new Set() },
+  }).outcome;
+
+  it("blocks a debuff, from the rule alone", () => {
+    expect(land({ id: "poison", polarity: "debuff", volatility: "volatile" }, immune())).toBe("blocked");
+  });
+
+  it("leaves the exceptions it names: Instakill lands", () => {
+    expect(land({ id: "instakill", polarity: "debuff", volatility: "terminal" }, immune())).toBe("applied");
+  });
+
+  it("reads the exceptions from the file: an Instakill it does not except is blocked", () => {
+    expect(land({ id: "instakill", polarity: "debuff", volatility: "terminal" }, immune(["death"]))).toBe("blocked");
+  });
+
+  it("does not touch a buff", () => {
+    expect(land({ id: "atkUp", polarity: "buff", stacking: "magnitudeStacks" }, immune())).toBe("applied");
   });
 });

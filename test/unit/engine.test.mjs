@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { effectDef } from "../helpers/effect-defs.mjs";
+import { collectContributions } from "../../module/rules/elements.mjs";
 import * as I from "../../module/engine/intents.mjs";
 import { applyEffect, applyBatch } from "../../module/engine/effect-applier.mjs";
 import {
@@ -119,6 +120,15 @@ describe("intent summarize — the free preview", () => {
 
 const ctx = { turnsPerRound: 3, currentTick: 10, roll: 1 };
 const target = (over = {}) => ({ id: "t", effects: [], effectInstances: [], ...over });
+
+/**
+ * A Unit holding Debuff Immune, as the snapshot carries it: the effect's id, and
+ * what its authored rule contributes. The gate reads the rule, not the id (#103).
+ */
+const debuffImmune = () => target({
+  effects: ["debuffImmune"],
+  immunities: collectContributions([{ name: "Debuff Immune", active: true, rules: effectDef("debuffImmune").rules }]).immunities,
+});
 const def = (over = {}) => ({
   id: "curse", polarity: "debuff", volatility: "volatile", valence: "offensive",
   stacking: "stage", baseChance: 100, ...over,
@@ -126,7 +136,7 @@ const def = (over = {}) => ({
 
 describe("step 1 — the immunity gate", () => {
   it("blocks a debuff on Debuff Immune, naming the blocker", () => {
-    const r = applyEffect({ def: def(), target: target({ effects: ["debuffImmune"] }), source: {}, ctx });
+    const r = applyEffect({ def: def(), target: debuffImmune(), source: {}, ctx });
     expect(r.outcome).toBe("blocked");
     expect(r.reason).toBe("Debuff Immune");
   });
@@ -141,7 +151,7 @@ describe("step 1 — the immunity gate", () => {
   it("does NOT block terminal debuffs with plain Debuff Immune", () => {
     // Instakill, Death and Erase have their own resistance ladder.
     const instakill = def({ id: "instakill", volatility: "terminal", stacking: "noneNoRefresh" });
-    expect(applyEffect({ def: instakill, target: target({ effects: ["debuffImmune"] }), source: {}, ctx }).outcome)
+    expect(applyEffect({ def: instakill, target: debuffImmune(), source: {}, ctx }).outcome)
       .toBe("applied");
   });
 
