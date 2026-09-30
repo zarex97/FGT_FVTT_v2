@@ -244,3 +244,41 @@ describe("a field-wide aura through the index", () => {
     expect(withIndex).toEqual(collectAuras(master, board));
   });
 });
+
+/* ── A source or recipient larger than one panel ──────────────── */
+
+// *"Enemy Units cannot Attack Semiramis or her allied Units if a Bašmu is next
+// to them."* Bašmu is 3x3. On the Semiramis audit (#68) it stood with its
+// footprint directly next to her, and she carried no protection: the index
+// measured the aura from the ANCHOR panel, its top-left corner, and never
+// offered it as a candidate. `auras.mjs#distanceBetween` already measures
+// footprint to footprint -- the index, which only narrows, narrowed it away.
+describe("the index measures from the whole footprint", () => {
+  const block = (i0, j0, w = 3) => Array.from({ length: w }, (_, di) =>
+    Array.from({ length: w }, (_, dj) => ({ i: i0 + di, j: j0 + dj }))).flat();
+  // Bašmu's own protection, as the real executor builds it from its file.
+  const basmu = async () => {
+    const { readFileSync } = await import("node:fs");
+    const { parse } = await import("yaml");
+    const { collectContributions } = await import("../../module/rules/elements.mjs");
+    const doc = parse(readFileSync("packs/_source/summons/basmu.yml", "utf8"));
+    const { auras } = collectContributions([{
+      name: doc.name, active: true,
+      passiveRules: doc.passiveRules.filter((r) => r.key === "TargetabilityModifier"),
+    }]);
+    return { id: "basmu", factionId: "red", panel: { i: 1, j: 3 }, panels: block(1, 3), auras };
+  };
+
+  it("offers a 3x3 source's aura beside its far edge", async () => {
+    const index = buildAuraIndex(board([await basmu()]));
+    expect(candidatesAt(index, { i: 4, j: 4 }).map((c) => c.unit.id)).toContain("basmu");
+  });
+
+  it("reaches a large recipient whose anchor is out of range", () => {
+    const giant = { id: "giant", factionId: "red", panel: { i: 5, j: 0 }, panels: block(5, 0) };
+    const source = { ...bearer({ id: "src", panel: { i: 4, j: 3 }, panels: undefined }), auras: [{ id: "guard", radius: 1, relations: ["ally"] }] };
+    const b = board([source, giant]);
+    const index = buildAuraIndex(b);
+    expect(collectAuras(giant, b, index).map((a) => a.aura?.sourceUnitId ?? a.sourceUnitId)).toContain("src");
+  });
+});

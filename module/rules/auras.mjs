@@ -56,6 +56,9 @@ export function collectAuras(unit, board, index = null) {
     // this Unit is on the field", and giving it a radius would have made it an
     // ordinary aura and quietly bounded a rule that is not.
     if (aura.scope !== "field" && distanceBetween(source, unit) > (aura.radius ?? 0)) continue;
+    // ...and a radius is measured on one level. A Unit on the ground under the
+    // Hanging Gardens is not "next to" a Bašmu on its deck (Ch. 46 §46.4-BP).
+    if (aura.scope !== "field" && (source.level ?? 0) !== (unit.level ?? 0)) continue;
 
     // ...but "unbounded" is not "through a wall". A bounded field that seals
     // effect application seals THIS too: *"Units outside the Labyrinth cannot
@@ -104,7 +107,8 @@ export function collectAuras(unit, board, index = null) {
  */
 function candidateAuras(unit, board, index) {
   if (index && unit?.panel) {
-    return candidatesAt(index, unit.panel).map((c) => ({ source: c.unit, aura: c.aura }));
+    return candidatesAt(index, unit.panels?.length ? unit.panels : unit.panel)
+      .map((c) => ({ source: c.unit, aura: c.aura }));
   }
   return (board.units ?? []).flatMap(
     (source) => (source.auras ?? []).map((aura) => ({ source, aura })),
