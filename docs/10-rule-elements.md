@@ -102,6 +102,11 @@ executor actually reads, rather than of its descriptor's ids.
   `supersedes`, a list of Skill content ids whose flat bonus it replaces. Every flat bonus now carries
   `sourceContentId`, so stage 7 can drop a superseded one: the Sun Stone's 180 stands in for Goddess's
   Divine Core's 120.
+- **`CritModifier`** carries `npValue`, and its `aspect: chance` now lands where crit chance is read:
+  `checkModifiers` with `check: "crit"`. It had produced a `critUp` modifier that nothing reads since
+  the coin flip was replaced, so six clauses raised nobody's crit chance: Oblivion Correction,
+  Existence Outside the Domain, Independent Action (Viy), Pollux's Twin God's Divine Core, Area Crit
+  Up and Crit Up (Viy). An aura's `CritModifier` payload runs through the executor too.
 
 ## Open questions
 
