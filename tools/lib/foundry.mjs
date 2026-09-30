@@ -150,13 +150,16 @@ export async function installSystem() {
   globalThis.game ??= {};
   Object.assign(game, {
     release: { generation: 14, build: Number(manifest.compatibility.verified.split(".")[1]) },
-    system: { id: manifest.id, version: manifest.version, documentTypes: manifest.documentTypes },
+    // `grid` is read when a Token's schema is built (`common/documents/token.mjs`).
+    system: { id: manifest.id, version: manifest.version, documentTypes: manifest.documentTypes, grid: manifest.grid },
     modules: new Map(),
     documentTypes: Object.fromEntries(
       Object.entries(documentTypes).map(([name, types]) => [name, ["base", ...types]]),
     ),
+    // Foundry's own `game.model` always carries the "base" type beside the
+    // system's; a Document's `TYPES` is read from it.
     model: Object.fromEntries(
-      Object.entries(documentTypes).map(([name, types]) => [name, Object.fromEntries(types.map((t) => [t, {}]))]),
+      Object.entries(documentTypes).map(([name, types]) => [name, Object.fromEntries(["base", ...types].map((t) => [t, {}]))]),
     ),
   });
   game.release.version = `${game.release.generation}.${game.release.build}`;

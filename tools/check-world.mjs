@@ -12,10 +12,11 @@
  * against `game.actors.get(id)`, and the identical text runs in the modelled
  * world and in the live one; nothing is written twice.
  *
- * Three of the probes are expected to **diverge**, and that is the point of
- * recording them: the harness deliberately throws where Foundry silently
- * discards, and this is what notices if that stops being the deliberate
- * difference it is documented as.
+ * Four of the probes are expected to **diverge**, and that is the point of
+ * recording them: the harness's loud prune deliberately throws wherever
+ * Foundry silently discards, clamps, coerces or voids a write, and this is
+ * what notices if that stops being the deliberate difference it is documented
+ * as — or if a Foundry upgrade stops doing the silent thing.
  *
  * Local only, like `check:smoke` — it needs Foundry serving and a Chrome with a
  * debugging port. It is not a CI gate; it is what you run before trusting the
@@ -55,7 +56,12 @@ const PROBES = [
       await a.update({ "system.mov": before });
       return { after };
     `,
-    agree: true,
+    // Foundry clamps to 0 and says nothing; the loud prune throws, because the
+    // value that landed is not the value written.
+    agree: false,
+    expectLive: (v) => v.after === 0,
+    expectFake: (v) => v.threw === true,
+    divergence: "Foundry clamps silently; the model throws",
   },
   {
     name: "a BooleanField coerces a truthy non-boolean",
@@ -66,7 +72,10 @@ const PROBES = [
       await a.update({ "system.undamageable": before });
       return { after, type: typeof after };
     `,
-    agree: true,
+    agree: false,
+    expectLive: (v) => v.after === true && v.type === "boolean",
+    expectFake: (v) => v.threw === true,
+    divergence: "Foundry coerces 1 to true silently; the model throws",
   },
   {
     name: "a SetField written as an array reads back as a Set",
@@ -90,17 +99,14 @@ const PROBES = [
       await a.update({ "system.zonPartnerIds": before });
       return out;
     `,
-    // Found by this check on its first run, and left in as the record of it.
-    // `zonPartnerIds` is a SetField of DocumentIdField, so Foundry validates
-    // each ENTRY and drops a non-id; the model coerces the collection and does
-    // not look inside it. Harmless for what io writes today -- every id it
-    // writes came off a document -- and exactly the kind of thing that stops
-    // being harmless quietly, which is why it is written down rather than
-    // patched over.
+    // Found by this check on its first run, when the model imitated the field
+    // classes and kept both entries. `zonPartnerIds` is a SetField of
+    // DocumentIdField, so Foundry validates each ENTRY and the write lands as
+    // nothing. The model now runs Foundry's own SetField, and throws.
     agree: false,
     expectLive: (v) => v.kept === 0,
-    expectFake: (v) => v.kept === 2,
-    divergence: "Foundry validates SetField ELEMENTS; the model coerces the collection only",
+    expectFake: (v) => v.threw === true,
+    divergence: "Foundry voids the write silently; the model throws",
   },
   {
     name: "a Servant's Health maximum is backfilled from the END table",
@@ -120,7 +126,7 @@ const PROBES = [
       }
     `,
     // Foundry discards it and says nothing; the model throws. Deliberate, and
-    // the reason the model is worth having — see its header.
+    // the reason the model is worth having — see its header's loud prune.
     agree: false,
     expectLive: (v) => v.threw === false && v.readBack === null,
     expectFake: (v) => v.threw === true,

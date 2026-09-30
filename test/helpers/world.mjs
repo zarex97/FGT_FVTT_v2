@@ -1,6 +1,6 @@
 /**
  * @file A world faithful enough to run `module/engine/io.mjs` against.
- * @see docs/44-testing.md, docs/02-architecture.md
+ * @see docs/44-testing.md, docs/02-architecture.md, docs/adr/0006-tests-and-build-run-real-foundry.md
  *
  * `io.mjs` is 1429 lines and, until this file, was executed by **none** of the
  * suite's test files. The reason is structural rather than lazy: `applyIntents`
@@ -17,244 +17,230 @@
  * of the writes and none of the engine's heaviest world-users. Faking the
  * globals costs no production code and makes all of them reachable.
  *
+ * ## The data layer is Foundry's own
+ *
+ * Every Actor, Item, ActiveEffect, Token and Combat here is backed by a REAL
+ * Foundry document — `foundry.documents.BaseActor` and the rest, over this
+ * system's real DataModels — loaded by `tools/lib/foundry.mjs` (ADR-0006). This
+ * file used to imitate the field classes instead, and the imitation let four
+ * Silent Drops through that Foundry does not: a write beneath a scalar field,
+ * undeclared keys inside an object written to a `SchemaField`, a seeded key
+ * nothing declares, and any path at all on an Item, Effect, Token or Combat.
+ *
  * ## What this is not
  *
  * It is a model, and this is the file to read before trusting it. Known
  * divergences from Foundry, each deliberate:
  *
- * - **An undeclared write throws.** Foundry *silently discards* it. Throwing is
+ * - **The loud prune.** Every write goes through the real `updateSource`, and
+ *   then each path written is read back out of `_source`. Anything that did not
+ *   land exactly as asked — pruned for want of a declaration, clamped or rounded
+ *   by a `NumberField`, reset to its initial value, an `ArrayField`/`SetField`
+ *   write voided by one bad element — **throws**, naming the path, what was
+ *   asked and what landed. Foundry does every one of those silently. Throwing is
  *   less faithful and far more useful: `io.defeat` wrote `system.defeated` from
  *   the day it was written to a schema that never declared it, and every defeat
- *   in the game left the Unit a legal target still taking its turn. Under this
- *   model that is a failing test the first time any test defeats anything.
+ *   in the game left the Unit a legal target still taking its turn. Seeds are
+ *   checked the same way, so a test cannot build its world out of keys the
+ *   schema would have dropped.
  * - **No diffing.** Every `update()` is recorded, including one that writes a
  *   value back to itself. The codebase guards its own no-ops by hand
  *   (`engine/shield.mjs:167`, `io.mjs:432`), so recording them matches what the
- *   code already assumes rather than what the wire does.
+ *   code already assumes rather than what the wire does. (Foundry's client
+ *   skips sending an update whose diff is empty; that trap is the client layer's
+ *   and is not modelled — Ch. 08.)
  * - **`update()` is synchronously visible.** Which matches the engine's
  *   assumptions everywhere except token movement, where Foundry holds the
  *   document at the origin until an animation finishes — see `move()` below.
  * - **No socket.** `isGM` defaults true, so `planApplication` keeps everything
  *   local and `io.proxy` is never reached. Pass `isGM: false` to exercise
  *   routing; the proxy is recorded, not delivered.
- * - **Validation is coercion only, and only of the collection.** `SetField`,
- *   `NumberField`'s `min`, `ArrayField` and `BooleanField` behave; `RankField`
- *   and `TickField` store what they are given rather than throwing on a bad
- *   rank. Nor are a field's ELEMENTS validated: a `SetField` of
- *   `DocumentIdField` keeps a non-id where Foundry drops it — found by
- *   `npm run check:world` on its first run, and left as a probe there. Harmless
- *   for what io writes today, since every id it writes came off a document. A
- *   fifth type that starts mattering should fail a probe, not be guessed at here.
+ * - **Ids are the test's own.** A Foundry `_id` is sixteen alphanumerics, and
+ *   tests name their actors `"heracles"`. The id lives on the wrapper and is
+ *   never handed to the document, so a Token's `actorId` is likewise held beside
+ *   its document rather than in it.
+ * - **The client layer is absent.** `prepareData` is this file's own order
+ *   (restore, the type's base pass, rule elements, derived), mirroring
+ *   `module/documents/index.mjs`; Combat's `started` and the acting faction are
+ *   facts a test states. Only `common/` imports in Node.
  *
  * Anything not modelled **throws** rather than returning `undefined`, so the
  * gap names itself instead of letting a test assert on nothing.
  *
  * `npm run check:world` runs the same probes here and against a live world and
- * reports where they disagree — including checking that the two divergences
- * above are still the deliberate ones. Run it before trusting this model with
- * something new.
+ * reports where they disagree — including checking that the loud prune is
+ * still throwing exactly where Foundry is still silent. Run it before trusting
+ * this model with something new.
  */
 
 import { readdirSync } from "node:fs";
+import { loadFoundry, installSystem } from "../../tools/lib/foundry.mjs";
 
 /* -------------------------------------------------------------------------- */
-/*  The field layer                                                           */
+/*  The data layer                                                            */
 /* -------------------------------------------------------------------------- */
 
 /**
- * Enough of `foundry.data.fields` for `module/data/**` to import and for the
- * four types that carry real semantics to carry them.
+ * Foundry's globals, captured once they are real, so every world can put them
+ * back after the last one restored whatever the test file had before.
+ * @type {{foundry: object, CONST: object, CONFIG: object, game: object, models: object}|null}
  */
-class DataField {
-  constructor(options = {}) { this.options = options; }
+let REAL = null;
 
-  static get _defaults() { return {}; }
-
-  /** The value a fresh document starts with. */
-  initial() {
-    const { initial } = this.options;
-    return typeof initial === "function" ? initial() : initial;
+async function loadReal() {
+  if (REAL) return REAL;
+  const saved = Object.fromEntries(GLOBALS.map((k) => [k, globalThis[k]]));
+  await loadFoundry();
+  const models = await installSystem();
+  REAL = {
+    foundry: globalThis.foundry,
+    CONST: globalThis.CONST,
+    CONFIG: globalThis.CONFIG,
+    game: { ...globalThis.game },
+    models,
+  };
+  for (const k of GLOBALS) {
+    if (saved[k] === undefined) delete globalThis[k];
+    else globalThis[k] = saved[k];
   }
-
-  /** What a written value becomes in storage. */
-  clean(value) { return value; }
+  return REAL;
 }
-
-class StringField extends DataField {
-  initial() { return "initial" in this.options ? super.initial() : ""; }
-}
-class HTMLField extends StringField {}
-class FilePathField extends StringField {}
-class DocumentIdField extends DataField {
-  initial() { return "initial" in this.options ? super.initial() : null; }
-}
-
-class NumberField extends DataField {
-  initial() { return "initial" in this.options ? super.initial() : 0; }
-
-  clean(value) {
-    if (value === null || value === undefined) return value;
-    if (typeof value !== "number") return value;
-    const { min, max, integer } = this.options;
-    let out = integer ? Math.trunc(value) : value;
-    if (typeof min === "number") out = Math.max(min, out);
-    if (typeof max === "number") out = Math.min(max, out);
-    return out;
-  }
-}
-
-class BooleanField extends DataField {
-  initial() { return "initial" in this.options ? super.initial() : false; }
-  clean(value) { return Boolean(value); }
-}
-
-class ObjectField extends DataField {
-  initial() { return "initial" in this.options ? super.initial() : {}; }
-}
-
-class ArrayField extends DataField {
-  constructor(element, options = {}) { super(options); this.element = element; }
-  initial() { return "initial" in this.options ? super.initial() : []; }
-  clean(value) { return Array.isArray(value) ? [...value] : value; }
-}
-
-/**
- * The one that matters most.
- *
- * `io.mjs:535` calls handing a `Set` where an array belongs *"the shape defect
- * that has cost this project more than any other"*: Foundry writes an empty
- * collection and says nothing. A fake storing the array verbatim would make
- * every such test pass by accident, so this coerces on the way in exactly as
- * Foundry does — array in, `Set` out.
- */
-class SetField extends ArrayField {
-  initial() { return new Set("initial" in this.options ? super.initial() ?? [] : []); }
-  clean(value) {
-    if (value instanceof Set) return new Set(value);
-    return new Set(Array.isArray(value) ? value : []);
-  }
-}
-
-class SchemaField extends DataField {
-  constructor(schema, options = {}) { super(options); this.fields = schema; }
-  initial() {
-    const out = {};
-    for (const [key, field] of Object.entries(this.fields)) out[key] = field.initial();
-    return out;
-  }
-}
-
-const FIELDS = {
-  DataField,
-  StringField,
-  HTMLField,
-  FilePathField,
-  DocumentIdField,
-  NumberField,
-  BooleanField,
-  ObjectField,
-  ArrayField,
-  SetField,
-  SchemaField,
-};
-
-/**
- * The bases the `*Data` classes extend.
- *
- * Three of them, because `module/data/index.mjs` is the real registry and
- * importing it pulls in the effect model and the region behaviours too. Faking
- * them is two empty classes; dodging the registry would mean this helper
- * keeping its own list of actor types, which is the duplication ADR 0003 is
- * about at one remove.
- */
-class TypeDataModel {
-  static defineSchema() { return {}; }
-}
-class ActiveEffectTypeDataModel extends TypeDataModel {}
-class RegionBehaviorType extends TypeDataModel {}
-
-/* -------------------------------------------------------------------------- */
-/*  Globals                                                                   */
-/* -------------------------------------------------------------------------- */
 
 const GLOBALS = ["game", "canvas", "foundry", "Hooks", "ui", "CONFIG", "CONST"];
 
-/** @param {string} path @param {object} root */
+/**
+ * Install the real `foundry`, `CONST` and `CONFIG`, and the part of `game` a
+ * Document reads while it constructs. The world replaces `game` with its own
+ * once its documents exist.
+ */
+function installFoundry() {
+  globalThis.foundry = REAL.foundry;
+  globalThis.CONST = REAL.CONST;
+  globalThis.CONFIG = REAL.CONFIG;
+  globalThis.game = { ...REAL.game };
+}
+
+/** @param {object} root @param {string} path */
 function getProperty(root, path) {
   return String(path).split(".").reduce((o, k) => (o == null ? o : o[k]), root);
 }
 
-/** Install the globals `module/data/**` and `module/engine/io.mjs` need. */
-function installFoundry() {
-  globalThis.foundry = {
-    data: {
-      fields: FIELDS,
-      ActiveEffectTypeDataModel,
-      regionBehaviors: { RegionBehaviorType },
-    },
-    abstract: { TypeDataModel },
-    utils: { getProperty, randomID: () => `id${Math.random().toString(36).slice(2, 10)}` },
-  };
-  // Foundry extends the builtin. Node does not have it, and `io.mjs` calls it
-  // three times, so without this the module throws on its first clamp.
-  if (typeof Math.clamp !== "function") {
-    Math.clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
-    Math.clamp.__fgtFake = true;
+/** Sets become arrays, which is the form `_source` stores them in. */
+function sourceForm(value) {
+  if (value instanceof Set) return [...value].map(sourceForm);
+  if (Array.isArray(value)) return value.map(sourceForm);
+  if (value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, sourceForm(v)]));
   }
-}
-
-/* -------------------------------------------------------------------------- */
-/*  Schemas                                                                   */
-/* -------------------------------------------------------------------------- */
-
-/** @type {Map<string, {schema: object, model: Function}>} */
-let MODELS = new Map();
-
-/**
- * Load the REAL DataModels, so the declared field list has one source.
- *
- * A hand-maintained list here would be a second spelling of the schema, which
- * is the duplication ADR 0003 exists to avoid at one remove.
- */
-async function loadModels() {
-  const data = await import("../../module/data/index.mjs");
-  const byType = {
-    servant: data.ServantData,
-    master: data.MasterData,
-    civilian: data.CivilianData,
-    summon: data.SummonData,
-    platform: data.PlatformData,
-    structure: data.StructureData,
-  };
-  MODELS = new Map(Object.entries(byType).map(([type, model]) => [
-    type, { model, schema: model.defineSchema() },
-  ]));
+  return value;
 }
 
 /**
- * The field declared at a dotted path, or `null` when nothing declares it.
+ * The first path at which `applied` is not what `requested` asked for, or null.
  *
- * Walks through `SchemaField`s and stops at an `ObjectField`, which is an
- * untyped bag by design — `system.resources.mana` is legal because `resources`
- * is declared, not because `mana` is.
- *
- * @param {object} schema
- * @param {string[]} parts
- * @returns {{field: DataField, rest: string[]}|null}
+ * An object asks only for the keys it names: Foundry MERGES an object written to
+ * a `SchemaField` or `ObjectField`, so keys already stored beside them are not a
+ * mismatch. An array asks for itself exactly, because Foundry replaces arrays
+ * whole.
  */
-function declaredAt(schema, parts) {
-  let fields = schema;
-  for (let i = 0; i < parts.length; i += 1) {
-    const field = fields?.[parts[i]];
-    if (!field) return null;
-    const rest = parts.slice(i + 1);
-    if (rest.length === 0) return { field, rest };
-    if (field instanceof SchemaField) { fields = field.fields; continue; }
-    // An ObjectField's interior is untyped; anything under it is declared.
-    if (field instanceof ObjectField) return { field, rest };
-    return { field, rest };
+function firstMismatch(requested, applied, path) {
+  const want = sourceForm(requested);
+  const got = sourceForm(applied);
+  if (want && typeof want === "object" && !Array.isArray(want)) {
+    if (!got || typeof got !== "object" || Array.isArray(got)) return { path, want, got };
+    for (const [k, v] of Object.entries(want)) {
+      const miss = firstMismatch(v, got[k], `${path}.${k}`);
+      if (miss) return miss;
+    }
+    return null;
   }
-  return null;
+  if (Array.isArray(want)) {
+    if (!Array.isArray(got) || got.length !== want.length) return { path, want, got };
+    for (let i = 0; i < want.length; i += 1) {
+      const miss = firstMismatch(want[i], got[i], `${path}.${i}`);
+      if (miss) return miss;
+    }
+    return null;
+  }
+  return Object.is(want, got) || (want === undefined && got === null) ? null : { path, want, got };
+}
+
+/**
+ * Silent Drops this harness has found in production code and that are not yet
+ * fixed, each with the issue that owns it.
+ *
+ * A write listed here is recorded and then allowed to drop, exactly as Foundry
+ * drops it, so a test about something else can still run past it. The list may
+ * only shrink — `test/unit/world-loud-prune.test.mjs` holds its length — and an
+ * entry leaves it when its issue is fixed, not when a test is inconvenient.
+ */
+export const KNOWN_DROPS = Object.freeze([
+  // `io.defeat`'s skull. v14's Token has no `overlayEffect`; the overlay is an
+  // ActiveEffect flagged `core.overlay` now.
+  Object.freeze({ document: "Token", path: "overlayEffect", issue: "#96" }),
+]);
+
+const isKnownDrop = (document, path) => KNOWN_DROPS.some((d) => d.document === document && d.path === path);
+
+/**
+ * The loud prune: apply `patch` through Foundry's real `updateSource`, and throw
+ * if any path written did not land exactly as asked.
+ *
+ * @param {object} doc a real Foundry document
+ * @param {object} patch `{"a.b.c": v}` or nested, as `Document#update` takes it
+ * @param {{label: string, writes: Array}} ctx
+ */
+function loudUpdate(doc, patch, { label, writes }) {
+  for (const [path, raw] of Object.entries(patch)) writes.push([label, path, raw]);
+  try {
+    doc.updateSource(structuredClone(sourceForm(patch)));
+  } catch (err) {
+    throw new Error(`${label}: Foundry refused ${JSON.stringify(Object.keys(patch))} — ${err.message}`, { cause: err });
+  }
+  for (const [path, requested] of Object.entries(patch)) {
+    if (path.includes("-=") || path.includes("==")) continue;
+    const miss = firstMismatch(requested, getProperty(doc._source, path), path);
+    if (miss && !isKnownDrop(doc.documentName, path)) throw silentDrop(label, "write to", miss);
+  }
+}
+
+/**
+ * The same check for the data a document was seeded with.
+ *
+ * @param {object} doc
+ * @param {object} data what the test asked the document to hold
+ * @param {string} label
+ */
+function loudSeed(doc, data, label) {
+  const miss = firstMismatch(data, doc._source, "");
+  if (miss) throw silentDrop(label, "seed of", { ...miss, path: miss.path.replace(/^\./, "") });
+}
+
+function silentDrop(label, what, { path, want, got }) {
+  return new Error(
+    `${label}: ${what} "${path}" would be a Silent Drop — asked for ${JSON.stringify(want)}, `
+    + `Foundry kept ${JSON.stringify(got)}. Foundry does this silently; see module/data/ and `
+    + "docs/adr/0006-tests-and-build-run-real-foundry.md.",
+  );
+}
+
+/**
+ * Build a real document of `documentName`, strictly, and hold it to its seed.
+ *
+ * @param {string} documentName "Actor", "Item", "ActiveEffect", "Token", "Combat"
+ * @param {object} data
+ * @param {string} label
+ */
+function realDocument(documentName, data, label) {
+  const Base = foundry.documents[`Base${documentName}`];
+  let doc;
+  try {
+    doc = new Base(structuredClone(sourceForm(data)), { strict: true });
+  } catch (err) {
+    throw new Error(`${label}: Foundry would not construct this ${documentName} — ${err.message}`, { cause: err });
+  }
+  loudSeed(doc, data, label);
+  return doc;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -274,78 +260,79 @@ class DocumentCollection extends Map {
 let SEQ = 0;
 const nextId = (prefix) => `${prefix}${(SEQ += 1).toString().padStart(4, "0")}`;
 
-/** Apply a flat `{"a.b.c": v}` patch to an object, coercing per the schema. */
-function applyPatch(target, patch, { schema, label, writes }) {
-  for (const [path, raw] of Object.entries(patch)) {
-    writes.push([label, path, raw]);
-    const parts = path.split(".");
-    if (schema && parts[0] === "system") {
-      const found = declaredAt(schema, parts.slice(1));
-      if (!found) {
-        throw new Error(
-          `${label}: write to "${path}", which no schema declares. Foundry discards this `
-          + "silently — see module/data/ and test/unit/actor-fields.test.mjs.",
-        );
-      }
-      // Coerce only when the patch names the field itself; a path reaching
-      // INTO an ObjectField or a SchemaField leaf is stored as given.
-      const value = found.rest.length === 0 ? found.field.clean(raw) : raw;
-      assign(target, parts, value);
-      continue;
-    }
-    assign(target, parts, raw);
-  }
-}
-
-/** @param {object} root @param {string[]} parts @param {unknown} value */
-function assign(root, parts, value) {
-  let node = root;
-  for (const key of parts.slice(0, -1)) {
-    if (node[key] === null || typeof node[key] !== "object") node[key] = {};
-    node = node[key];
-  }
-  node[parts.at(-1)] = value;
+/** What a test may seed a document with, minus the wrapper's own fields. */
+function documentData(data, keys) {
+  return Object.fromEntries(keys.filter((k) => data[k] !== undefined).map((k) => [k, data[k]]));
 }
 
 class FakeItem {
   constructor(data, actor, world) {
     this.id = data.id ?? data._id ?? nextId("item");
-    this.name = data.name ?? this.id;
-    this.type = data.type ?? "ability";
-    this.system = structuredClone(data.system ?? {});
     this.actor = actor;
     this.world = world;
+    this.doc = realDocument("Item", {
+      name: data.name ?? this.id,
+      type: data.type ?? "ability",
+      system: data.system ?? {},
+    }, `Item(${data.name ?? this.id})`);
   }
 
+  get name() { return this.doc.name; }
+  get type() { return this.doc.type; }
+  get system() { return this.doc.system; }
+  get _source() { return this.doc._source; }
+
   async update(patch) {
-    applyPatch(this, patch, { schema: null, label: `Item(${this.name})`, writes: this.world.writes });
+    loudUpdate(this.doc, patch, { label: `Item(${this.name})`, writes: this.world.writes });
+    this.doc.reset();
     this.actor?.prepare();
   }
 
   async delete() { this.actor?.items.delete(this.id); this.actor?.prepare(); }
 
-  toObject() { return { name: this.name, type: this.type, system: structuredClone(this.system) }; }
+  toObject() { return this.doc.toObject(); }
+}
+
+class FakeEffect {
+  constructor(data, actor, world) {
+    this.id = data.id ?? data._id ?? nextId("eff");
+    this.actor = actor;
+    this.world = world;
+    this.origin = data.origin;
+    this.doc = realDocument("ActiveEffect", {
+      type: "fgtEffect",
+      ...documentData(data, ["name", "type", "img", "system", "disabled", "statuses"]),
+    }, `Effect(${data.name ?? this.id})`);
+  }
+
+  get name() { return this.doc.name; }
+  get type() { return this.doc.type; }
+  get system() { return this.doc.system; }
+  get _source() { return this.doc._source; }
+
+  async update(patch) {
+    loudUpdate(this.doc, patch, { label: `Effect(${this.name})`, writes: this.world.writes });
+    this.doc.reset();
+  }
+
+  async delete() { this.actor.effects.delete(this.id); }
+
+  toObject() { return this.doc.toObject(); }
 }
 
 class FakeActor {
   constructor(data, world) {
     this.id = data.id ?? nextId("actor");
-    this.name = data.name ?? this.id;
-    this.type = data.type ?? "servant";
     this.world = world;
     this.isOwner = data.isOwner ?? true;
     this.ownership = data.ownership ?? {};
 
-    const entry = MODELS.get(this.type);
-    if (!entry) throw new Error(`No schema modelled for actor type "${this.type}".`);
-    this.schema = entry.schema;
-    this.model = entry.model;
-
-    // Declared defaults, then what the test asked for. `_source` is what a
-    // write lands on; `system` is what the prepare chain leaves behind.
-    const base = {};
-    for (const [key, field] of Object.entries(this.schema)) base[key] = field.initial();
-    this._source = { system: { ...base, ...structuredClone(data.system ?? {}) } };
+    const type = data.type ?? "servant";
+    this.model = REAL.models.Actor[type];
+    if (!this.model) throw new Error(`No schema modelled for actor type "${type}".`);
+    this.doc = realDocument("Actor", {
+      name: data.name ?? this.id, type, system: data.system ?? {},
+    }, `Actor(${data.name ?? this.id})`);
 
     this.items = new DocumentCollection();
     for (const i of data.items ?? []) {
@@ -355,6 +342,11 @@ class FakeActor {
     this.effects = new DocumentCollection();
     this.prepare();
   }
+
+  get name() { return this.doc.name; }
+  get type() { return this.doc.type; }
+  /** What a write lands on. `system` is what the prepare chain leaves behind. */
+  get _source() { return this.doc._source; }
 
   /** Rule elements collected from every owned item — `FGTActor#ruleElements`. */
   get ruleElements() {
@@ -374,42 +366,35 @@ class FakeActor {
    * `module/documents/index.mjs` runs these three in this order, and skipping
    * the middle one is what would make `health.max` read 0 for any Servant
    * declared without explicit Health — the END-rank table backfills it there.
+   * `reset()` is Foundry's own re-initialisation from `_source`, so whatever the
+   * last preparation wrote onto the model is gone before the next one starts.
    */
   prepare() {
-    this.system = structuredClone(this._source.system);
+    this.doc.reset();
+    this.system = this.doc.system;
     const { restoreModifiable, applyStatDeltas, writeDerived } = this.world.derived;
     restoreModifiable(this.system, this._source.system);
-    this.model.prototype.prepareBaseData?.call(this.system);
+    this.system.prepareBaseData?.();
     this.system.ruleElements = this.ruleElements;
     const contributions = this.world.contributionsOf(this);
     writeDerived(this.system, applyStatDeltas(this.system, contributions.statDeltas));
   }
 
   async update(patch) {
-    applyPatch(this._source, patch, {
-      schema: this.schema, label: `Actor(${this.name})`, writes: this.world.writes,
-    });
+    loudUpdate(this.doc, patch, { label: `Actor(${this.name})`, writes: this.world.writes });
     this.prepare();
   }
 
   async createEmbeddedDocuments(type, dataArray) {
     if (type === "Item") {
-      const made = dataArray.map((d) => {
-        const item = new FakeItem(d, this, this.world);
-        this.items.set(item.id, item);
-        return item;
-      });
+      const made = dataArray.map((d) => new FakeItem(d, this, this.world));
+      for (const item of made) this.items.set(item.id, item);
       this.prepare();
       return made;
     }
     if (type === "ActiveEffect") {
-      const made = dataArray.map((d) => {
-        const e = { id: d.id ?? d._id ?? nextId("eff"), name: d.name, system: structuredClone(d.system ?? {}), origin: d.origin };
-        e.update = async (patch) => applyPatch(e, patch, { schema: null, label: `Effect(${e.name})`, writes: this.world.writes });
-        e.delete = async () => { this.effects.delete(e.id); };
-        this.effects.set(e.id, e);
-        return e;
-      });
+      const made = dataArray.map((d) => new FakeEffect(d, this, this.world));
+      for (const e of made) this.effects.set(e.id, e);
       return made;
     }
     throw new Error(`Embedded document type "${type}" is not modelled.`);
@@ -432,17 +417,23 @@ class FakeToken {
   constructor(data, world) {
     this.id = data.id ?? nextId("token");
     this.actorId = data.actorId;
-    this.x = data.x ?? 0;
-    this.y = data.y ?? 0;
-    this.elevation = data.elevation ?? 0;
-    this.hidden = Boolean(data.hidden);
     this.world = world;
+    this.doc = realDocument("Token", {
+      x: data.x ?? 0, y: data.y ?? 0, elevation: data.elevation ?? 0, hidden: Boolean(data.hidden),
+    }, `Token(${this.id})`);
   }
+
+  get x() { return this.doc.x; }
+  get y() { return this.doc.y; }
+  get elevation() { return this.doc.elevation; }
+  get hidden() { return this.doc.hidden; }
+  get _source() { return this.doc._source; }
 
   get actor() { return this.world.actors.get(this.actorId) ?? null; }
 
   async update(patch) {
-    applyPatch(this, patch, { schema: null, label: `Token(${this.id})`, writes: this.world.writes });
+    loudUpdate(this.doc, patch, { label: `Token(${this.id})`, writes: this.world.writes });
+    this.doc.reset();
   }
 
   /**
@@ -456,9 +447,10 @@ class FakeToken {
    */
   async move(waypoint, options = {}) {
     if (options.animate !== false) return false;
-    if (waypoint?.x !== undefined) this.x = waypoint.x;
-    if (waypoint?.y !== undefined) this.y = waypoint.y;
-    if (waypoint?.elevation !== undefined) this.elevation = waypoint.elevation;
+    const patch = {};
+    for (const k of ["x", "y", "elevation"]) if (waypoint?.[k] !== undefined) patch[k] = waypoint[k];
+    loudUpdate(this.doc, patch, { label: `Token(${this.id})`, writes: [] });
+    this.doc.reset();
     this.world.writes.push(["Token", "move", { id: this.id, ...waypoint }]);
     return true;
   }
@@ -470,8 +462,10 @@ class FakeCombat {
   constructor(data, world) {
     this.id = data.id ?? nextId("combat");
     this.started = data.started ?? true;
-    this.round = data.round ?? 1;
-    this.system = { globalTurn: 0, grailCounter: 0, grailThreshold: 9, grailMaterialized: false, ...(data.system ?? {}) };
+    this.world = world;
+    this.doc = realDocument("Combat", {
+      type: "match", round: data.round ?? 1, system: data.system ?? {},
+    }, "Combat");
     // Whose Turn it is. A real `Combat` derives this from its combatant; the
     // model takes it as a fact, because a test about acting-faction behaviour
     // should not have to build a turn order to state one. `null` is the honest
@@ -484,11 +478,15 @@ class FakeCombat {
     // answer a fresh, EMPTY budget and a test asserting a refusal would pass
     // because nothing was ever exhausted.
     this.flags = { ...(data.flags ?? {}) };
-    this.world = world;
   }
 
+  get round() { return this.doc.round; }
+  get system() { return this.doc.system; }
+  get _source() { return this.doc._source; }
+
   async update(patch) {
-    applyPatch(this, patch, { schema: null, label: "Combat", writes: this.world.writes });
+    loudUpdate(this.doc, patch, { label: "Combat", writes: this.world.writes });
+    this.doc.reset();
   }
 
   getFlag(scope, key) { return this.flags[`${scope}.${key}`]; }
@@ -501,6 +499,9 @@ class FakeCombat {
 /* -------------------------------------------------------------------------- */
 /*  The world                                                                 */
 /* -------------------------------------------------------------------------- */
+
+/** The `core` settings Foundry's `common/` documents read, as a fresh world holds them. */
+const CORE_SETTINGS = { prototypeTokenOverrides: { base: {} } };
 
 /** Anything not modelled says so, rather than answering `undefined`. */
 function notModelled(what) {
@@ -537,11 +538,10 @@ function notModelled(what) {
  * @returns {Promise<unknown>}
  */
 export async function withWorld(spec, fn) {
+  await loadReal();
   const saved = Object.fromEntries(GLOBALS.map((k) => [k, globalThis[k]]));
-  const savedClamp = Math.clamp;
 
   installFoundry();
-  if (MODELS.size === 0) await loadModels();
   const snapshot = await import("../../module/rules/snapshot.mjs");
   const derived = await import("../../module/rules/derived.mjs");
 
@@ -576,13 +576,18 @@ export async function withWorld(spec, fn) {
     : world.combat;
 
   globalThis.game = {
+    // What a real Document reads while it constructs: release, system, model.
+    ...REAL.game,
     actors: world.actors,
     combat: world.viewedCombat,
     combats: { active: world.combat },
     user: { id: "u1", isGM: spec.isGM ?? true },
     users: { activeGM: { isSelf: spec.isGM ?? true }, get: () => ({ isGM: spec.isGM ?? true }) },
     settings: {
-      get(_scope, key) {
+      get(scope, key) {
+        // Foundry's own documents read one core setting while they update: the
+        // prototype-token overrides, empty in a fresh world.
+        if (scope === "core" && key in CORE_SETTINGS) return CORE_SETTINGS[key];
         if (!(key in world.settings)) throw new Error(`Setting "${key}" is not modelled by test/helpers/world.mjs.`);
         return world.settings[key];
       },
@@ -609,18 +614,7 @@ export async function withWorld(spec, fn) {
       if (saved[k] === undefined) delete globalThis[k];
       else globalThis[k] = saved[k];
     }
-    if (Math.clamp?.__fgtFake) {
-      if (savedClamp === undefined) delete Math.clamp;
-      else Math.clamp = savedClamp;
-    }
   }
-}
-
-/** The declared field names for one actor type, for a test that wants to assert on drift. */
-export function declaredFields(type) {
-  const entry = MODELS.get(type);
-  if (!entry) throw new Error(`No schema modelled for actor type "${type}".`);
-  return Object.keys(entry.schema);
 }
 
 /** Whether `module/data/` has a type this helper does not model. */
