@@ -45,7 +45,7 @@ import { normalAttackAt } from "../rules/normal-attack.mjs";
 import { actionSourceFor } from "../rules/platforms.mjs";
 import { GRANTS, hasGranted } from "../rules/granted.mjs";
 import { coveringServantsFor, coverFactor, shoveDestination, isCovering } from "../rules/cover.mjs";
-import { absorb, refreshShield } from "./shield.mjs";
+import { absorb, refreshShield, landBarrier } from "./shield.mjs";
 import { attackIdentity, recordedAttack } from "../rules/revival.mjs";
 import { expressionRefs, stacksHeld } from "../rules/snapshot.mjs";
 import { removalPlan, pendingRemovalRolls } from "../rules/removal.mjs";
@@ -3936,13 +3936,7 @@ async function applyDamage(state, message) {
   // Command Spell interrupt, because the sheet says it "will take the damage of
   // the enemy's NP" -- the finished number, not an intermediate one.
   const barrier = absorb(defender, result.total, { options });
-  if (barrier.absorbed > 0) {
-    result.total = barrier.through;
-    result.breakdown = [
-      ...(result.breakdown ?? []),
-      { stage: "barrier", label: `${barrier.source} absorbed ${barrier.absorbed}`, to: barrier.through },
-    ];
-  }
+  Object.assign(result, landBarrier(result, barrier));
 
   // "These recorded Attacks can no longer defeat Heracles -- whenever a recorded
   // Attack would reduce his Health to 0, his Health will remain at 1 instead."

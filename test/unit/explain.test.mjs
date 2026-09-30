@@ -159,3 +159,19 @@ describe("explainNotApplied", () => {
     expect(truncated).toBe(10);
   });
 });
+
+// #110. A hit Scales of the Sacred Fish absorbed whole read "0 · Injury Roll
+// required" and claimed the shield absorbed nothing: the card read two flags
+// the pipeline set BEFORE the barrier, which runs after it.
+describe("a hit the barrier absorbs", () => {
+  const absorbed = { total: 0, flags: { exceededInjuryThreshold: true, shieldAbsorbed: 176 } };
+
+  it("reads the Injury decision, not the pipeline's pre-barrier flag", () => {
+    expect(explainDamage({ ...absorbed, injury: { roll: false, reason: "noDamage" } }).summary.injury).toBe(false);
+    expect(explainDamage({ ...absorbed, total: 150, injury: { roll: true, reason: "ok" } }).summary.injury).toBe(true);
+  });
+
+  it("claims no Injury Roll for a hit that dealt nothing, before the decision lands", () => {
+    expect(explainDamage(absorbed).summary.injury).toBe(false);
+  });
+});

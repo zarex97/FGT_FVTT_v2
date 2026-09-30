@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { absorb, refreshShield } from "../../module/engine/shield.mjs";
+import { absorb, refreshShield, landBarrier } from "../../module/engine/shield.mjs";
 import { EffectRegistry } from "../../module/rules/registry.mjs";
 
 const NP = new Set(["attack:kind:np"]);
@@ -201,5 +201,24 @@ describe("refreshShield", () => {
 
   it("returns 0 for an ability with no shield spec at all", async () => {
     expect(await refreshShield(item({ timesUsed: 1 }))).toBe(0);
+  });
+});
+
+// #110. The card's "Shield absorbed" and Injury line came from flags set before
+// the barrier ran, so a hit it absorbed whole read "absorbed 0".
+describe("landBarrier", () => {
+  const result = { total: 176, breakdown: [], flags: { shieldAbsorbed: 0, exceededInjuryThreshold: true } };
+
+  it("reports what the barrier absorbed on the result the card reads", () => {
+    const landed = landBarrier(result, { through: 0, absorbed: 176, source: "Scales of the Sacred Fish" });
+    expect(landed.total).toBe(0);
+    expect(landed.flags.shieldAbsorbed).toBe(176);
+    expect(landed.breakdown.at(-1)).toMatchObject({ stage: "barrier", label: "Scales of the Sacred Fish absorbed 176", to: 0 });
+  });
+
+  it("adds to a pipeline Shield already absorbed, and leaves an untouched hit alone", () => {
+    const both = landBarrier({ ...result, flags: { shieldAbsorbed: 20 } }, { through: 100, absorbed: 56, source: "Rho Aias" });
+    expect(both.flags.shieldAbsorbed).toBe(76);
+    expect(landBarrier(result, { through: 176, absorbed: 0, source: null })).toBe(result);
   });
 });

@@ -66,6 +66,8 @@ Every roll is recorded with raw roll, total, and modifiers (`module/rules/roll-l
 
 **Computing a redaction and never using it.** `redactBreakdown` was computed and cached for years but never called to filter the breakdown that was displayed — the card showed the full result to everyone, including viewers who should not have seen it. The function was mathematically correct and never read, which made the defect invisible at review. **Redactors must be called at the point of rendering, and the template must receive the redacted output.** (`module/rules/card-visibility.mjs:163-164`, fixed at `module/apps/chat/cards.mjs:216`.)
 
+**Reading a flag set before the stage that changes it.** The card's Injury line read the pipeline's `exceededInjuryThreshold`, and its Shield line read `shieldAbsorbed`. Both are set at stage 16, and a barrier absorbs after every stage. So a hit Scales of the Sacred Fish absorbed whole read *"0 · Injury Roll required"* and *"absorbed 0"*, while the engine had already decided no roll (#110). **Read the decision, not an input to it.** The Injury line now reads `flags.fgt.injury`, the `injuryCheck` verdict, and `engine/shield.mjs#landBarrier` puts the absorption on the flag with the total and the row.
+
 ## Open questions
 
 - **Partly settled: the state is carried as a message flag, and both clients read the same document.**
