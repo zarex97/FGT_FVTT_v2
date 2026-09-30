@@ -248,8 +248,6 @@ function abilityCommon() {
     // is a gate that runs on every render.
     creates: new fields.SetField(new fields.StringField({ blank: false })),
     reactionOverride: new fields.ObjectField({ required: false, nullable: true, initial: null }),
-    // "Only the highest Rank takes effect" (Ch. 14): a group and what to compare.
-    nonStacking: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     damage: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     // A second, UNCONDITIONAL resolution the same ability declares, with its own
     // targeting, damage and riders. Quetzalcoatl's Xiuhcoatl is the first:
@@ -620,8 +618,6 @@ export class CommandSpellData extends foundry.abstract.TypeDataModel {
        * anything reading the flat field.
        */
       costByMasterRank: new fields.ObjectField({ required: false, nullable: true, initial: null }),
-      requiresRank: new fields.StringField({ required: false, nullable: true, initial: null }),
-      isInterrupt: new fields.BooleanField({ initial: true }),
       overridesValidation: new fields.ArrayField(new fields.StringField()),
 
       // Authored data, kept untyped for the same reason rule elements are: the
@@ -651,7 +647,6 @@ export class MasterEssenceData extends foundry.abstract.TypeDataModel {
       contentVersion: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       description: new fields.HTMLField({ required: false, blank: true }),
       rank: new RankField(),
-      oneUse: new fields.BooleanField({ initial: false }),
       rules: new fields.ArrayField(new fields.ObjectField()),
     };
   }

@@ -194,7 +194,6 @@ export class PlayerCombatantData extends foundry.abstract.TypeDataModel {
         masterMoves: new fields.NumberField({ integer: true, initial: 3, min: 0 }),
         servantAttacks: new fields.NumberField({ integer: true, initial: 2, min: 0 }),
       }),
-      turnOrderRoll: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       delay: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
     };
   }

@@ -163,7 +163,7 @@ list of what it found, every entry owned by an issue:
 | `KNOWN_BUILD_DROPS` in `tools/lib/known-drops.mjs` | the model check | empty (#97–#100 fixed) |
 | `unread` routes in `test/unit/survival.test.mjs` | the survival test | #101 (#105 fixed) |
 | `KNOWN_RULE_DROPS` in `test/unit/rule-survival.test.mjs` | the rule-element survival test | empty (#102, #103 fixed) |
-| `KNOWN` in `test/unit/field-ledger.test.mjs` | the field ledger | #104 (#98 fixed) |
+| `KNOWN` in `test/unit/field-ledger.test.mjs` | the field ledger | empty (#98, #104 fixed) |
 
 Each list has a ceiling that fails if it rises, and each entry fails as **stale** once the drop stops
 happening, so a fix has to take its entry with it. A new entry is a filed issue and a reason the drop

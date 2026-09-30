@@ -129,7 +129,6 @@ export async function paintTerrain({
       type: "terrain",
       system: {
         types, duration, sourceUnitId, followsSource, radius, tag,
-        createdOnTurn: tick,
         // An expiry rather than a countdown, for the reason Ch. 04 gives.
         expiry: duration
           ? tick + resolveTicks(parseTick(duration), {

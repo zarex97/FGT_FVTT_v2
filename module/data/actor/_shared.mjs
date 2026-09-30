@@ -268,10 +268,6 @@ export function combatantCommon() {
       str: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
       mag: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
     }),
-    // The ◈ this Unit's setup rolls were made on (Ch. 40). The rolls lock once
-    // the match starts, and this is what lets anyone check afterwards that they
-    // were made before it did.
-    summonedAt: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
     normalAttack: normalAttackField(),
     // null = the Sustainability clock does not exist for this unit
     // (Independent Action A+/EX). Not "a very large number".
