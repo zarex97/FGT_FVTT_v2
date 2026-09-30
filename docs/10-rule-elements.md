@@ -132,6 +132,10 @@ executor actually reads, rather than of its descriptor's ids.
   the killer (Appendix E). It had listened on `unitDefeated`, which the victim hears, and dropped the
   predicate: Jack and Medusa gained Sustainability when they themselves died, for anybody, and never
   when they killed a Human or a Civilian.
+- **`OnEvent`**, first of three: a handler names its targets on each action. `target: nearby` now takes
+  `includeSelf` and `alsoIncludes: partner` (the linked partner wherever it stands), which is the
+  Dioscuri's 'Pollux' buff; its handler-level `targeting` block was read by nobody, so S.Crit Up only
+  ever reached the bearer. The validator refuses `targeting` on an OnEvent.
 
 ## Open questions
 

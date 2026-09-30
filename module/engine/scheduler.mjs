@@ -1275,11 +1275,16 @@ function targetsOf(a, u, c) {
     case "nearby": {
       const radius = a.radius ?? 0;
       const relations = a.relations ?? ["enemy"];
-      return (c.board?.units ?? [])
+      const near = (c.board?.units ?? [])
         .filter((other) => other.id !== u.id)
         .filter((other) => chebyshevish(other.panel, u.panel) <= radius)
         .filter((other) => matchesRelation(other, u, relations))
         .map((other) => other.id);
+      // The bearer too, and its linked partner wherever it stands: the
+      // Dioscuri's 'Pollux' buff is *"all allied Units within a 2 panel area
+      // of himself (and Pollux if she is out of the Skill's Range)"* (#103).
+      const partner = a.alsoIncludes === "partner" ? [...(u.linkedGroup?.memberIds ?? [])] : [];
+      return [...new Set([...(a.includeSelf ? [u.id] : []), ...near, ...partner])];
     }
 
     default:

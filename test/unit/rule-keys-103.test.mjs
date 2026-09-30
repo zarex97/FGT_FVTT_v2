@@ -284,3 +284,31 @@ describe("SustainabilityGain", () => {
     expect(killed(medusa, "master")).toEqual([]);
   });
 });
+
+// The Dioscuri's 'Pollux' buff: *"When the affected Unit performs a Normal
+// Attack that does not Crit, apply S.Crit Up for ⅓◈ Turns to all allied Units
+// within a 2 panel area of himself (and Pollux if she is out of the Skill's
+// Range)."* A handler-level `targeting` block no executor reads; the action's
+// own `target: nearby` is the vocabulary that exists, and it now names the
+// bearer and the linked partner too.
+describe("OnEvent: targeting", () => {
+  const unit = (id, i, j, over = {}) => ({ id, panel: { i, j }, factionId: "f1", effects: [], eventHandlers: [], ...over });
+
+  it("reaches the bearer, allies within 2, and the partner wherever she stands", () => {
+    const buff = content("effects/pollux-buff.yml");
+    const [handler] = contributions({ name: buff.name, rules: buff.rules }).eventHandlers;
+    const castor = unit("castor", 5, 5, { eventHandlers: [handler], linkedGroup: { memberIds: ["pollux"] } });
+    const board = {
+      units: [
+        castor,
+        unit("near", 5, 7), unit("far", 5, 8),
+        unit("enemy", 5, 6, { factionId: "f2" }),
+        unit("pollux", 12, 12),
+      ],
+    };
+    const hit = fireEvent("damageStepEnd", [castor], {
+      tick: 1, turnsPerRound: 3, board, options: new Set(["attack:kind:normal"]),
+    }).filter((i) => i.t === "applyEffect" && i.effect.defId === "sCritUp").map((i) => i.unitId);
+    expect(hit.sort()).toEqual(["castor", "near", "pollux"]);
+  });
+});

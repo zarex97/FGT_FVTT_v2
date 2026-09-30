@@ -1129,6 +1129,13 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     // nothing (#103).
     // A revival's budget is `charges`. Normal Lancer's `uses: 1` was read by
     // nothing, so "can only be used once" had no limit (#103).
+    // An OnEvent names who it reaches on each ACTION (`target: nearby`,
+    // `radius`, `relations`, `includeSelf`, `alsoIncludes`). A handler-level
+    // `targeting` block was read by nobody, so the Dioscuri's 'Pollux' buff
+    // reached its bearer alone (#103).
+    if (el.key === "OnEvent" && el.targeting !== undefined) {
+      problems.push(`${path}: ${where} OnEvent's "targeting" is read by nothing; name the targets on the action (target: nearby) (#103)`);
+    }
     if (el.key === "RevivalSource" && el.uses !== undefined) {
       problems.push(`${path}: ${where} RevivalSource counts its budget in "charges", not "uses" (#103)`);
     }
