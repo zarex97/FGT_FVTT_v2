@@ -2073,6 +2073,9 @@ export const EXECUTORS = Object.freeze({
     // executor read neither, and the applier gated on the held effect's id, so
     // the list of exceptions was decoration (#103).
     if (el.scope === "debuffs") out.immunities.push({ scope: "debuff", except: [...(el.except ?? [])], source });
+    // ...and the other polarity. The Hanging Gardens *"cannot be affected by
+    // buffs and/or debuffs"* (#68).
+    if (el.scope === "buffs") out.immunities.push({ scope: "buff", except: [...(el.except ?? [])], source });
   },
 
   ImmunityDowngrade(el, { source, out }) {

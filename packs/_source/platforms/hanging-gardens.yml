@@ -39,6 +39,14 @@ range: { panels: 0 }
 rules:
   - key: GrantedAbility
     abilities: [noNormalAttack]
+  # "The HGoB cannot be affected by buffs and/or debuffs." Instakill and Death
+  # included: the sentence excepts nothing (#68).
+  - { key: Immunity, scope: debuffs }
+  - { key: Immunity, scope: buffs }
+  # "Cannot Evade, Block, and Counter" -- its own rungs -- "and cannot be
+  # Countered", a rung it takes from whoever it attacks (#68).
+  - { key: ForbidReaction, reactions: [evade, block, counter] }
+  - { key: ForbidReaction, reactions: [counter], direction: incoming }
 baseAttack: { str: 0, mag: 200 }
 footprint: { w: 9, h: 9 }
 capacity: null
@@ -58,11 +66,6 @@ countsAsHomeBase: true
 abilities:
   - { ref: semiramis-hgob-dragon-wing-warriors }
   - { ref: semiramis-hgob-aerial-garden-of-vanity }
-# "The HGoB cannot be affected by buffs and/or debuffs" and "cannot Evade,
-# Block, and Counter; and cannot be Countered" are UNMODELLED: no engine
-# mechanism reads a unit-level "immune to buffs" or "no reaction ladder" flag
-# today, and building one is out of scope for this platform's own checkpoint.
-# Recorded here rather than left to look implemented.
 # "If a Unit standing on the edge of the HGoB is knocked back which would knock
 # it off the HGoB, it performs an Agility Check." ADR 0001: falling is opt-in
 # per Platform, and the Hanging Gardens is the only Platform in the reference
@@ -75,3 +78,5 @@ crossLevel:
   aoeMastersImmune: false
   outboundTargeting: rangedOnly
   forbidDirectlyBelow: true
+  # "They may only Attack the HGoB itself, with ranged Attacks."
+  hullTargeting: rangedOnly

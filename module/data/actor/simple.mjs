@@ -265,6 +265,11 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
         outboundTargeting: new fields.StringField({
           initial: "free", choices: ["forbidden", "rangedOnly", "free"] }),
         forbidDirectlyBelow: new fields.BooleanField({ initial: false }),
+        // Attacking the platform ITSELF from another level. The Hanging
+        // Gardens: *"Enemy Units on the ground ... may only Attack the HGoB
+        // itself, with ranged Attacks"* (#68).
+        hullTargeting: new fields.StringField({
+          initial: "free", choices: ["forbidden", "rangedOnly", "free"] }),
       }),
     };
   }
