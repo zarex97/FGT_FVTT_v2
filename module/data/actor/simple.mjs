@@ -113,6 +113,9 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
       }),
       // ...and WHICH of them its Normal Attack uses (#99).
       normalAttack: normalAttackField(),
+      // The abilities whose attack eases a boarding on the same Turn -- the
+      // Hanging Gardens' Dragon Wing Warriors (#68).
+      boardingReliefAfter: new fields.ArrayField(new fields.StringField({ blank: false })),
       // NULLABLE, because a pocket dimension has no ground presence at all.
       // Ch. 27 says so of the Storm Border outright -- *"it is not on the
       // board at all while it is submerged"* -- and a non-nullable SchemaField

@@ -783,6 +783,23 @@ export function boardingTarget(unit, ctx = {}) {
 }
 
 /**
+ * Does the platform's boarding relief apply to a Unit attacked this Turn by these?
+ *
+ * The Hanging Gardens names the ability: *"on the same Turn it was Attacked by
+ * Dragon Wing Warriors"*. Authored as `boardingReliefAfter`, a list of content
+ * ids, so a platform names its own; the size of the relief is the Hanging
+ * Gardens' 2, in {@link boardingTarget}.
+ *
+ * @param {string[]} attackedBy the Unit's Turn Record
+ * @param {object|null} platform
+ * @returns {boolean}
+ */
+export function attackedByReliefApplies(attackedBy, platform) {
+  const after = platform?.boardingReliefAfter ?? [];
+  return (attackedBy ?? []).some((id) => after.includes(id));
+}
+
+/**
  * −1 at rank C–B, −2 at A or better.
  * @param {string|null|undefined} raw
  * @returns {number}

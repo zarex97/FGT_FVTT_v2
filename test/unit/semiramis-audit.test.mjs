@@ -56,3 +56,27 @@ describe("the Hanging Gardens, the Unit", async () => {
     expect(at(3)).toBe(true);
   });
 });
+
+// *"If a Unit attempts to board the HGoB on the same Turn it was Attacked by
+// Dragon Wing Warriors, the required roll is reduced by 2."* `boardingTarget`
+// took a `hitByDragonWingWarriors` flag and nothing ever passed it: no record
+// said which ability had attacked a Unit, and the Board button asked nothing.
+describe("boarding after Dragon Wing Warriors", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { parse } = await import("yaml");
+  const { TURN_RECORD } = await import("../../module/domain/stamped-record.mjs");
+  const { attackedByReliefApplies } = await import("../../module/rules/platforms.mjs");
+  const hgob = parse(readFileSync("packs/_source/platforms/hanging-gardens.yml", "utf8"));
+
+  it("is remembered per Turn: the record carries which abilities attacked the Unit", () => {
+    expect(TURN_RECORD.at({ tick: 5, attackedBy: ["semiramis-hgob-dragon-wing-warriors"] }, 5).attackedBy)
+      .toEqual(["semiramis-hgob-dragon-wing-warriors"]);
+    expect(TURN_RECORD.at({ tick: 4, attackedBy: ["semiramis-hgob-dragon-wing-warriors"] }, 5).attackedBy).toEqual([]);
+  });
+
+  it("relieves the roll for a Unit that Dragon Wing Warriors attacked, and for no other attack", () => {
+    expect(attackedByReliefApplies(["semiramis-hgob-dragon-wing-warriors"], hgob)).toBe(true);
+    expect(attackedByReliefApplies(["semiramis-hgob-aerial-garden-of-vanity"], hgob)).toBe(false);
+    expect(attackedByReliefApplies([], hgob)).toBe(false);
+  });
+});

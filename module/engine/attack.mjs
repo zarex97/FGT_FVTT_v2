@@ -18,7 +18,7 @@ import { expandInstances } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
 import { askOwner } from "./ask.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
-import { currentBoard, unitSnapshot, unitFrom, gateContext, currentTick } from "./board.mjs";
+import { currentBoard, unitSnapshot, unitFrom, gateContext, currentTick, turnRecordOf } from "./board.mjs";
 import {
   evade as evadeCheck, luckCheck, chance, checkPlan, critChance, mergePlans,
   pendingCheckRolls, resolveCheck,
@@ -947,6 +947,8 @@ async function declareProcesses({
 
   /** @type {Array<{messageId: string, state: object}>} */
   const processes = [];
+  // Who this declaration attacked, recorded once each on their Turn Record.
+  const attackedByRecorded = new Set();
   for (const state of states) {
     // What this defender could answer with, beyond Block and Evade. Recorded on
     // the state because `pendingPrompt` is pure and cannot read documents, and
@@ -1039,6 +1041,20 @@ async function declareProcesses({
     await message.setFlag("fgt", "process", process.serialize(advanced));
     await message.setFlag("fgt", "collapse", collapse);
     processes.push({ messageId: message.id, state: advanced });
+
+    // WHICH ability attacked this Unit, on its Turn Record. The Hanging
+    // Gardens' boarding relief asks *"on the same Turn it was Attacked by
+    // Dragon Wing Warriors"*, and nothing recorded it (#68). An Ability's
+    // attack only: a Normal Attack names no ability to be relieved by.
+    const attackerAbility = ability?.system?.contentId ?? null;
+    if (attackerAbility && defenderDoc && !attackedByRecorded.has(defenderDoc.id)) {
+      attackedByRecorded.add(defenderDoc.id);
+      const prior = turnRecordOf(defenderDoc).attackedBy ?? [];
+      await applyBatch(
+        [I.markTurn(defenderDoc.id, { attackedBy: [...new Set([...prior, attackerAbility])] })],
+        "attack:attackedBy",
+      );
+    }
 
     // A rung with no options on it cannot be answered, so nobody would ever
     // advance this Process. `advanceAttack` has a loop that drives through

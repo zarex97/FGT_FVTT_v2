@@ -350,6 +350,11 @@ export function combatantCommon() {
       // Which abilities went this Turn, for `sameTurnExclusive` (Medea's
       // Keraino and Trofa). Stale-by-tick like everything else here.
       abilitiesUsed: new fields.ArrayField(new fields.StringField({ blank: false })),
+      // Which abilities ATTACKED this Unit this Turn, by content id. The
+      // Hanging Gardens: *"on the same Turn it was Attacked by Dragon Wing
+      // Warriors, the required roll is reduced by 2"* -- a question about the
+      // defender's Turn that nothing recorded (#68).
+      attackedBy: new fields.ArrayField(new fields.StringField({ blank: false })),
       // *"Once per Turn during its own Turn it may attempt a Luck Check."*
       // Nursery Rhyme's Nameless Forest, and the reason this is a COUNT rather
       // than a flag is only symmetry with `itemTransfers` -- one is the limit.
