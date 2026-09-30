@@ -213,3 +213,34 @@ describe("affectsCanAct", () => {
     ].sort());
   });
 });
+
+// Found on the Semiramis audit board: her Master stood in the ground Home Base
+// three panels from her and got none of Territory Creation's Rank C ward.
+// `scope: "field"` is unbounded, but the Aura executor defaults `radius` to 2,
+// and the index filed the aura under that radius -- so on a real board, which
+// always resolves through the index, every "while this Unit is on the field"
+// aura stopped two panels out. `collectAuras` without an index got it right,
+// which is why the unit tests, all index-free, never saw it.
+describe("a field-wide aura through the index", () => {
+  // Her Rank C ward as the real executor builds it, `radius: 2` default and all.
+  const bearer = async () => {
+    const { readFileSync } = await import("node:fs");
+    const { parse } = await import("yaml");
+    const { collectContributions } = await import("../../module/rules/elements.mjs");
+    const tc = parse(readFileSync("packs/_source/abilities/semiramis-territory-creation.yml", "utf8"));
+    const rankC = tc.passiveRules.filter((r) => r.key === "Aura" && r.rank === "C");
+    const { auras } = collectContributions(
+      [{ name: tc.name, rank: "C", active: true, passiveRules: rankC }],
+      { options: new Set(["self:variant:dsc"]) },
+    );
+    return { id: "semiramis", factionId: "red", faction: "red", panel: { i: 4, j: 4 }, auras };
+  };
+  const master = { id: "master", factionId: "red", faction: "red", panel: { i: 30, j: 1 }, inHomeBase: true };
+
+  it("reaches a recipient anywhere on the board, as it does without the index", async () => {
+    const board = { units: [await bearer(), master] };
+    const withIndex = collectAuras(master, board, buildAuraIndex(board));
+    expect(withIndex).toHaveLength(1);
+    expect(withIndex).toEqual(collectAuras(master, board));
+  });
+});

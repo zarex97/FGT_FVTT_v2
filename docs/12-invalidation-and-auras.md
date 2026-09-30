@@ -94,7 +94,11 @@ carried nothing to every adjacent ally, and Castor never had any (#102).
 The aura index divides the board into 4×4 panel buckets (`module/rules/aura-index.mjs:35`) and
 indexes each aura into every bucket its radius touches (`module/rules/aura-index.mjs:96-112`).
 `candidatesAt(index, panel)` looks up one bucket and returns the (source, aura) pairs
-(`module/rules/aura-index.mjs:76-81`), avoiding an O(n²) sweep.
+(`module/rules/aura-index.mjs:76-81`), avoiding an O(n²) sweep. An aura with `scope: "field"` has no
+reach to bucket, so it goes on the index's `unbounded` list and is a candidate everywhere. Bucketed by
+the executor's default `radius` of 2, every *"while this Unit is on the field"* aura stopped two panels
+out on a real board, which always resolves through the index; the index-free unit tests never saw it
+(§46.4-BG).
 
 Three properties make it work:
 1. **Units with no auras cost nothing** — skipped before any geometry (`module/rules/aura-index.mjs:49-52`)

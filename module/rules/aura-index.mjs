@@ -44,6 +44,11 @@ export const BUCKET_SIZE = 4;
 export function buildAuraIndex(board, previousVersion = 0) {
   /** @type {Map<string, object[]>} */
   const buckets = new Map();
+  // Auras with no reach at all -- `scope: "field"`, *"while this Unit is on the
+  // field"*. They carry the executor's default `radius` of 2, and bucketing
+  // them by it made every one stop two panels out on a real board (#68).
+  /** @type {object[]} */
+  const unbounded = [];
   let count = 0;
 
   for (const unit of board?.units ?? []) {
@@ -55,12 +60,13 @@ export function buildAuraIndex(board, previousVersion = 0) {
     if (!unit.panel) continue;
 
     for (const aura of auras) {
-      index(buckets, unit, aura);
+      if (aura.scope === "field") unbounded.push({ unit, aura });
+      else index(buckets, unit, aura);
       count++;
     }
   }
 
-  return { version: previousVersion + 1, buckets, count };
+  return { version: previousVersion + 1, buckets, unbounded, count };
 }
 
 /**
@@ -75,9 +81,11 @@ export function buildAuraIndex(board, previousVersion = 0) {
  */
 export function candidatesAt(index, panel) {
   if (!panel) return [];
-  return (index?.buckets?.get(bucketKey(panel.i, panel.j)) ?? [])
-    .filter((e) => chebyshev(e.unit.panel, panel) <= (e.aura.radius ?? 0))
-    .map((e) => ({ unit: e.unit, aura: e.aura }));
+  return [
+    ...(index?.unbounded ?? []),
+    ...(index?.buckets?.get(bucketKey(panel.i, panel.j)) ?? [])
+      .filter((e) => chebyshev(e.unit.panel, panel) <= (e.aura.radius ?? 0)),
+  ].map((e) => ({ unit: e.unit, aura: e.aura }));
 }
 
 /* -------------------------------------------------------------------------- */
