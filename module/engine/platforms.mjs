@@ -8,11 +8,12 @@
 import {
   boardingTarget, fallOff, destructionSequence, passengersOf, mayBringMaster,
   canFallFrom, nearestFreePlatformPanel, rescuerFor,
-  jumpVerdict, jumpLandings,
+  jumpVerdict, jumpLandings, attackedByReliefApplies,
 } from "../rules/platforms.mjs";
+import { TURN_RECORD } from "../domain/stamped-record.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { remainingMovement } from "../rules/movement.mjs";
-import { currentBoard } from "./board.mjs";
+import { currentBoard, currentTick } from "./board.mjs";
 import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import { createLevel, moveToLevel, teardown, dropToGround } from "./scene-levels.mjs";
@@ -34,7 +35,7 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
  * @param {boolean} [args.bringMaster]
  * @returns {Promise<{ok: boolean, roll: number, target: number, reason?: string}>}
  */
-export async function boardPlatform({ unitId, platformId, hitByDragonWingWarriors = false, bringMaster = false }) {
+export async function boardPlatform({ unitId, platformId, hitByDragonWingWarriors = null, bringMaster = null }) {
   const board = currentBoard();
   const unit = board.units.find((u) => u.id === unitId);
   const platform = board.units.find((u) => u.id === platformId && u.kind === "platform");
@@ -69,7 +70,12 @@ export async function boardPlatform({ unitId, platformId, hitByDragonWingWarrior
     return { ok: true, roll: 0, target: 0 };
   }
 
-  const { die, target } = boardingTarget(unit, { hitByDragonWingWarriors, platform });
+  // Read off the Unit's own Turn Record when the caller does not say: the
+  // action bar's Board button says nothing, and so the relief never applied
+  // (#68).
+  const relieved = hitByDragonWingWarriors
+    ?? attackedByReliefApplies(TURN_RECORD.at(unit.turnState, currentTick()).attackedBy, platform);
+  const { die, target } = boardingTarget(unit, { hitByDragonWingWarriors: relieved, platform });
   const roll = (await new Roll(`1d${die}`).evaluate()).total;
   const ok = roll >= target;
 
@@ -82,15 +88,20 @@ export async function boardPlatform({ unitId, platformId, hitByDragonWingWarrior
   if (ok) {
     boarders.push(unitId);
     intents.push(I.move(unitId, [platform.panel], true));
-    if (bringMaster && unit.masterId) {
-      const master = board.units.find((u) => u.id === unit.masterId);
-      // "if the Master was within 2 panels" — checked against where the Master
-      // stood, not where the Servant ended up. `unit` here is still the
-      // pre-board snapshot, so `unit.panel` is exactly that.
-      if (master && mayBringMaster(unit, master)) {
-        boarders.push(master.id);
-        intents.push(I.move(master.id, [platform.panel], true));
-      }
+    const master = unit.kind === "servant" && unit.masterId
+      ? board.units.find((u) => u.id === unit.masterId) ?? null
+      : null;
+    // "if the Master was within 2 panels" — checked against where the Master
+    // stood, not where the Servant ended up. `unit` here is still the
+    // pre-board snapshot, so `unit.panel` is exactly that. ASKED when the
+    // caller does not say: the Board button never said, so a Master was never
+    // carried (#68).
+    const carry = master && mayBringMaster(unit, master)
+      ? (bringMaster ?? await askBringMaster(master, "Board"))
+      : false;
+    if (carry) {
+      boarders.push(master.id);
+      intents.push(I.move(master.id, [platform.panel], true));
     }
   }
 
@@ -369,18 +380,18 @@ async function askWhereToLand(unit, landings) {
  * @param {object} master
  * @returns {Promise<boolean>}
  */
-async function askBringMaster(master) {
+async function askBringMaster(master, kind = "Jump") {
   const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
   const picked = await ChoiceDialog.pick({
-    title: game.i18n.localize("FGT.Platform.JumpCarryTitle"),
-    hint: game.i18n.format("FGT.Platform.JumpCarryHint", {
+    title: game.i18n.localize(`FGT.Platform.${kind}CarryTitle`),
+    hint: game.i18n.format(`FGT.Platform.${kind}CarryHint`, {
       name: game.actors.get(master.id)?.name ?? master.id,
     }),
     count: 1,
     min: 0,
     options: [
-      { id: "yes", name: game.i18n.localize("FGT.Platform.JumpCarryYes") },
-      { id: "no", name: game.i18n.localize("FGT.Platform.JumpCarryNo") },
+      { id: "yes", name: game.i18n.localize(`FGT.Platform.${kind}CarryYes`) },
+      { id: "no", name: game.i18n.localize(`FGT.Platform.${kind}CarryNo`) },
     ],
   });
   return (picked ?? [])[0] === "yes";

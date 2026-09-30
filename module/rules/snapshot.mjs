@@ -477,6 +477,7 @@ export function snapshotUnit(actor, {
     capacity: sys.capacity ?? null,
     ownerId: sys.ownerId ?? null,
     crossLevel: sys.crossLevel ?? null,
+    boardingReliefAfter: [...(sys.boardingReliefAfter ?? [])],
     // `upkeep` was NEVER PROJECTED, so `engine/attack.mjs`'s platform cost
     // replacement -- `units.find(u => u.kind === "platform" && u.upkeep)` --
     // could not match a platform in any world: the Hanging Gardens' clause

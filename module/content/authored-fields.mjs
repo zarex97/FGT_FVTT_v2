@@ -21,6 +21,8 @@ export const AUTHORED_ACTOR_KEYS = Object.freeze([
   "countsTowardBudget", "actsOncePerTurn", "boundToPlatformId",
   "movesOntoOccupiedPanels", "sharesPanel", "replacesRiderAction",
   "countsAsHomeBase", "deactivation", "undamageable", "cannotHoldItems",
+  // The Hanging Gardens' boarding relief after Dragon Wing Warriors (#68).
+  "boardingReliefAfter",
   // The Golden Hind's three: a boarding roll of its own, riders it will not
   // let off, and effects on its OWNER that switch it off.
   "boarding", "lockAboard", "deactivateOn", "knockOff",
