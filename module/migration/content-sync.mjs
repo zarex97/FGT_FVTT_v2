@@ -22,7 +22,12 @@ import {
  * An ability copied by Wisdom of Dún Scáith carries both. It is not in any pack
  * template, so a naive sync would delete it every time the world loaded.
  */
-export const PROVENANCE_KEYS = Object.freeze(["copiedFrom", "grantedBy"]);
+export const PROVENANCE_KEYS = Object.freeze([
+  "copiedFrom", "grantedBy",
+  // A summon's copy of its summoner's Ability: Raikou's copies inherit her
+  // passives (`engine/summoning.mjs`). Stamped and read by nothing until #104.
+  "inheritedFrom",
+]);
 
 /**
  * The system data to write onto a world document.
