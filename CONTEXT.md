@@ -63,6 +63,27 @@ One statement of a rule inside a Character Sheet — a numbered item, or a sente
 without being numbered. The atom an audit is counted in.
 _Avoid_: line, bullet, rule (that is the authored element, not the prose)
 
+## The route a value travels
+
+**Authored Key**:
+A key written in the content source of a Unit, an Ability or an Effect — the form a Clause takes once
+it is data rather than prose.
+_Avoid_: field (unqualified), property, attribute (that is a game term)
+
+**Route**:
+The ordered places an Authored Key must pass through to reach the code that reads it. A Clause
+happens only if its keys survive the whole Route.
+_Avoid_: pipeline, flow, path
+
+**Hop**:
+One place on a Route that names the keys it passes on. Anything a Hop does not name goes no further.
+_Avoid_: layer, stage, step
+
+**Silent Drop**:
+A Hop discarding a key it does not name, with no error. The Clause it carried simply does not happen,
+so nothing fails and the defect is found only on a live board.
+_Avoid_: stripped, lost, missing, pruned
+
 ## The board
 
 **Panel**:
