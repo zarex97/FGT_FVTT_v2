@@ -109,13 +109,13 @@ export function applyStatDeltas(system, statDeltas = []) {
     changes[path] = d.absolute === true ? d.value : before + d.value;
     trace.push({ path, value: changes[path], source: d.source });
 
-    // `Max HpUp` restores current Health by the same amount; `Max HpDwn` does
-    // not reduce it, so only the positive direction carries.
-    if (d.alsoCurrent && d.value > 0) {
-      const currentPath = path.replace(/\.max$/, ".value");
-      changes[currentPath] = numberAt(read(currentPath)) + d.value;
-      trace.push({ path: currentPath, value: changes[currentPath], source: d.source });
-    }
+    // No `alsoCurrent` here, deliberately (#106). A current value is STORED:
+    // every writer reads the prepared value and writes the result back, so a
+    // derived "+X current" was baked into `_source` by the first write and
+    // added again by the next preparation -- Semiramis aboard her garden took
+    // 49 and read 1250/1250 before and after. A clause that raises the current
+    // pays it once, when it lands: `onApply` on the effect, or its applier
+    // (`engine/hgob.mjs`). The validator refuses the key on a rule element.
   }
 
   // ── 2b. Factors and floors ───────────────────────────────────────────────
@@ -151,16 +151,20 @@ export function applyStatDeltas(system, statDeltas = []) {
     if (NON_NEGATIVE.has(path) && value < 0) changes[path] = 0;
   }
 
-  // Only Health has a ceiling. `Agi Up` raising current Agility past the
-  // printed maximum is the normal case, not an overflow: the maximum is what
-  // the sheet started with, and buffs are explicitly allowed to exceed it.
-  // Lowering Max Health, by contrast, drags current Health down with it even
-  // when no delta named `health.value` — which is why this reads the current
-  // value rather than only revisiting paths already in `changes`.
-  const healthMax = numberAt(read("health.max"));
-  if (healthMax > 0 && numberAt(read("health.value")) > healthMax) {
-    changes["health.value"] = healthMax;
-    trace.push({ path: "health.value", value: healthMax, source: "Max Health cap" });
+  // Every pool's maximum is its ceiling. Lowering a maximum drags the current
+  // down with it even when no delta named the current -- which is why this
+  // reads the current value rather than only revisiting paths in `changes`.
+  // Agility and Luck used to be exempt, on the reading that a buff may carry a
+  // current past its maximum; no clause in the corpus does, and the exemption
+  // is what let a derived "+2 current", once baked into `_source`, read 17 / 15
+  // on Semiramis's bar (#106). With the maximum derived and the current
+  // stored, losing a buff that raised both now clamps the current.
+  for (const [pool, label] of [["health", "Max Health cap"], ["agility", "Max Agility cap"], ["luck", "Max Luck cap"]]) {
+    const max = numberAt(read(`${pool}.max`));
+    if (max > 0 && numberAt(read(`${pool}.value`)) > max) {
+      changes[`${pool}.value`] = max;
+      trace.push({ path: `${pool}.value`, value: max, source: label });
+    }
   }
 
   return { changes, trace };

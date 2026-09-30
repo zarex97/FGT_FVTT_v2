@@ -173,14 +173,12 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "add", type: "tokenList" },
     { key: "factor", type: "number" },
     { key: "floor", type: "number" },
-    { key: "alsoCurrent", type: "checkbox" },
     { key: "duration", type: "tickExpr" },
     { key: "isBuff", type: "checkbox" },
   ]),
   entry("MaxDelta", "Changes a pool's MAXIMUM — Health, Sustainability — not its current value.", [
     ...SCALED,
     { key: "stat", type: "text" },
-    { key: "alsoCurrent", type: "checkbox" },
   ]),
   entry("MovDelta", "Changes MOV. Slow halves it; a floor stops it reaching zero.", [
     ...SCALED,

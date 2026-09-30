@@ -84,6 +84,8 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   // registry, where nothing reads it: damage over time ticks from
   // `engine/scheduler.mjs#PERIODICS` (#105).
   "periodic", "usableWhileConcealed", "concealmentBreakChance",
+  // A current value paid once when an effect lands (#106).
+  "onApply",
 ]);
 
 /**

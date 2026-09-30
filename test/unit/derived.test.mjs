@@ -45,7 +45,8 @@ describe("applyStatDeltas", () => {
   });
 
   it("normalises the bare stat names the sheets use", () => {
-    const { changes } = applyStatDeltas(servant(), [
+    // Head-room under the maximum: a derived current is capped at it (#106).
+    const { changes } = applyStatDeltas(servant({ agility: { value: 12, max: 20 } }), [
       { stat: "agility", value: 3, source: "Agi Up" },
       { stat: "range", value: 1, source: "Range Up" },
     ]);
@@ -68,12 +69,24 @@ describe("applyStatDeltas", () => {
     expect(changes["health.value"]).toBe(300);
   });
 
-  it("Max HpUp restores current by the same amount", () => {
+  // "Max HpUp restores current by the same amount" is paid once, into the
+  // stored current, when the effect lands. Derived, it was baked into
+  // `_source` by every write and hid Semiramis's first 500 damage (#106).
+  it("raises a maximum without deriving the current", () => {
     const { changes } = applyStatDeltas(servant({ health: { value: 250, max: 400 } }), [
       { stat: "health.max", value: 100, alsoCurrent: true, source: "Max HpUp" },
     ]);
     expect(changes["health.max"]).toBe(500);
-    expect(changes["health.value"]).toBe(350);
+    expect(changes["health.value"]).toBeUndefined();
+  });
+
+  it("clamps Agility and Luck to a lowered maximum, as it does Health", () => {
+    const { changes } = applyStatDeltas(servant(), [
+      { stat: "agility.max", value: -3, source: "Shock" },
+      { stat: "luck.max", value: -2, source: "Luck Down" },
+    ]);
+    expect(changes["agility.value"]).toBe(9);
+    expect(changes["luck.value"]).toBe(6);
   });
 
   it("Max HpDwn does NOT reduce current beyond the new cap", () => {

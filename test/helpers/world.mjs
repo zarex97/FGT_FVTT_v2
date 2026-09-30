@@ -274,9 +274,10 @@ class FakeEffect {
   async update(patch) {
     loudUpdate(this.doc, patch, { label: `Effect(${this.name})`, writes: this.world.writes });
     this.doc.reset();
+    this.actor.prepare();
   }
 
-  async delete() { this.actor.effects.delete(this.id); }
+  async delete() { this.actor.effects.delete(this.id); this.actor.prepare(); }
 
   toObject() { return this.doc.toObject(); }
 }
@@ -356,6 +357,9 @@ class FakeActor {
     if (type === "ActiveEffect") {
       const made = dataArray.map((d) => new FakeEffect(d, this, this.world));
       for (const e of made) this.effects.set(e.id, e);
+      // Foundry re-prepares the parent when an embedded effect changes, and an
+      // effect's rules are contributions the prepare chain folds in.
+      this.prepare();
       return made;
     }
     throw new Error(`Embedded document type "${type}" is not modelled.`);

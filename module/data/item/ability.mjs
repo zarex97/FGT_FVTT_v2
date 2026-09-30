@@ -478,6 +478,10 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // an `OnEvent` handler's `then:`. Appendix A has several -- Shock's
       // "current Agility +1 when max is restored", Coma's exit damage.
       onRemove: new fields.ArrayField(new fields.ObjectField()),
+      // Actions that run once, when an instance is CREATED -- not when it is
+      // refreshed. Shock's "current Agility -3": a current value is stored, so
+      // a clause that changes it pays once rather than deriving (#106).
+      onApply: new fields.ArrayField(new fields.ObjectField()),
       defaultMagnitude: new fields.NumberField({ required: false, nullable: true, initial: null }),
       // How many charges an instance starts with, for count-stacked effects.
       // Read by `resolveStacking` since it was written, against a schema that

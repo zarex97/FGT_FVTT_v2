@@ -22,14 +22,13 @@ severity: normal
 # effect authored later counts by saying so about itself.
 families: [bind]
 rules:
-  # TWO deltas, not one flagged pair. "Max and current" is literally two
-  # numbers, and `alsoCurrent` exists for `Max HpUp`, whose restoration only
-  # runs upward -- borrowing it here would silently not apply the reduction.
+  # The MAXIMUM is derived: it comes back the moment the effect goes. The
+  # CURRENT is not -- it is paid once, below, when Shock lands (#106). A derived
+  # `agility.value -3` was re-applied on every preparation and baked into the
+  # stored value by every Agility write, so a Shocked Unit lost three more
+  # Agility each time it spent one.
   - key: MaxDelta
     stat: agility
-    value: -3
-  - key: StatDelta
-    stat: agility.value
     value: -3
 
   # The d6. A gate on the handler's own die rather than an application chance:
@@ -45,6 +44,13 @@ rules:
         when: { in: [3, 4] }
         duration: "1 turns"
         effect: { defId: stun }
+
+# "Maximum and current Agility are reduced by 3": the current half, paid once
+# on creation and not again when the effect is refreshed.
+onApply:
+  - key: StatDelta
+    stat: agility.value
+    delta: -3
 
 onRemove:
   # "current Agility +1 when max is restored" -- one point back, not the three

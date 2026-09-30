@@ -66,6 +66,20 @@ describe("domain validation", () => {
       .toMatch(/Script element with no "script" id/);
   });
 
+  // A rule element is re-derived on every preparation, and a current pool is
+  // stored: a derived change to one compounds with every write (#106).
+  it("refuses a rule element that changes a current pool", () => {
+    for (const el of [
+      { key: "StatDelta", stat: "agility.value", value: -3 },
+      { key: "StatDelta", stat: "luck", value: 2 },
+      { key: "StatDelta", stat: "health.max", value: 500, alsoCurrent: true },
+      { key: "MaxDelta", stat: "health", value: 100, alsoCurrent: true },
+    ]) {
+      expect(errorsFor([file(ok({ rules: [el] }))])[0]).toMatch(/changes a current value .*onApply \(#106\)/);
+    }
+    expect(errorsFor([file(ok({ rules: [{ key: "MaxDelta", stat: "agility", value: -3 }] }))])).toEqual([]);
+  });
+
   it("catches a reference to a table that does not exist", () => {
     expect(errorsFor([file(ok({ rules: [{ key: "FlatDamage", table: "divinty" }] }))])[0])
       .toMatch(/unknown table "divinty"/);
