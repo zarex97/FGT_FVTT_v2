@@ -62,7 +62,7 @@ export async function boardPlatform({ unitId, platformId, hitByDragonWingWarrior
     await applyWorldIntents(
       [
         I.log({ kind: "boarding", unitId, platformId, roll: 0, target: 0, die: 0, ok: true, free: true }),
-        I.move(unitId, [platform.panel], true),
+        I.move(unitId, [boardingLanding(unit, platform, board) ?? platform.panel], true),
       ],
       "platform:board",
     );
@@ -112,7 +112,35 @@ export async function boardPlatform({ unitId, platformId, hitByDragonWingWarrior
 
   await applyWorldIntents(intents, "platform:board");
   await comeAboard(boarders, platformId);
-  return { ok, roll, target };
+  await announceBoarding(unit, platform, { ok, roll, die, target, relieved, broughtMaster: boarders.length > 1 });
+  // A failed roll NAMES itself. Returned with no reason, the action bar filled
+  // the gap with "That cannot be used right now" (§46.4-BY).
+  return { ok, roll, target, reason: ok ? null : "boardFailed" };
+}
+
+/**
+ * Tell the table how a boarding attempt went.
+ *
+ * The roll used to reach the scheduler log and nowhere else, so a player saw a
+ * token move, or a generic refusal, and never the die (Ch. 46 §46.4-BY).
+ *
+ * @param {object} unit
+ * @param {object} platform
+ * @param {{ok: boolean, roll: number, die: number, target: number, relieved: boolean, broughtMaster: boolean}} r
+ * @returns {Promise<void>}
+ */
+async function announceBoarding(unit, platform, r) {
+  const key = r.ok ? "FGT.Platform.BoardSuccess" : "FGT.Platform.BoardFailed";
+  const extra = [
+    r.relieved ? game.i18n.localize("FGT.Platform.BoardRelieved") : null,
+    r.broughtMaster ? game.i18n.localize("FGT.Platform.BoardBroughtMaster") : null,
+  ].filter(Boolean).join(" ");
+  await ChatMessage.create({
+    content: `<div class="fgt boarding-card">${game.i18n.format(key, {
+      name: unit.name ?? "", platform: platform.name ?? "", die: r.die, roll: r.roll, target: r.target,
+    })}${extra ? ` ${extra}` : ""}</div>`,
+    speaker: { alias: unit.name },
+  });
 }
 
 /**
