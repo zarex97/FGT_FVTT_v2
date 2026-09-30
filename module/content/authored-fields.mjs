@@ -121,6 +121,10 @@ export const SEEDED_THEN_OWNED = Object.freeze({
   item: Object.freeze([
     "active", "timesUsed", "lastUsedTick", "recordedAttacks", "quantity",
     "copiedFrom", "grantedBy",
+    // A barrier's pool, which play spends and Rho Aias's own decay shrinks.
+    // Pack-owned, every reload refilled it (#109). The declared size is
+    // `shield`, and that still follows the pack.
+    "shieldHealth",
   ]),
 });
 
@@ -173,6 +177,12 @@ export const LINKED_GROUP_OWNED_BY_WORLD = Object.freeze(["memberIds"]);
  */
 export const SEEDED_BY_TYPE = Object.freeze({
   master: Object.freeze(["rank", "zon", "baseAttack", "commandSpells"]),
+  // The Hanging Gardens' *"Base Attack (MAG): Uses Semiramis'"*: activation
+  // copies her post-buff figure onto the platform (`engine/hgob.mjs`), and the
+  // pack holds a placeholder. Pack-owned, a reload put 200 back over her 250
+  // (#109). A pack change to a platform's Base Attack now reaches only new
+  // copies.
+  platform: Object.freeze(["baseAttack"]),
 });
 
 /**

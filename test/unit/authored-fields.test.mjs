@@ -201,7 +201,7 @@ describe("a Master's rolled stats", () => {
   });
 
   it("names only types the system actually has", () => {
-    const types = new Set(["servant", "master", "summon", "structure", "civilian"]);
+    const types = new Set(Object.keys(JSON.parse(readFileSync("system.json", "utf8")).documentTypes.Actor));
     for (const type of Object.keys(SEEDED_BY_TYPE)) expect(types).toContain(type);
   });
 });

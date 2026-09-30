@@ -9,9 +9,11 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import {
   reconcileSystem, reconcileItems, PROVENANCE_KEYS,
 } from "../../module/migration/content-sync.mjs";
+import { ownedByWorld } from "../../module/content/authored-fields.mjs";
 
 describe("reconcileSystem", () => {
   it("takes an authored field from the pack", () => {
@@ -241,5 +243,72 @@ describe("linkedGroup is half the pack's and half the world's", () => {
     expect(merged.linkedGroup.leash).toBe(2);
     expect(merged.linkedGroup.unitWeight).toBe(0.5);
     expect(merged.linkedGroup.linkedDeath).toBe("ignoresRevival");
+  });
+});
+
+// #109. Found live: Scales of the Sacred Fish's pool was spent to 37 and a
+// reload put it back at 200. Rho Aias's pool DECAYS by design (half of what is
+// left, each use after the first), so a reload undid the decay. The garden's
+// BA(MAG), which activation copies from Semiramis (250), came back as the
+// pack's placeholder (200).
+describe("values play writes and the pack only seeds", () => {
+  it("keeps a spent barrier spent", () => {
+    const out = reconcileSystem("item", { shield: { health: 1400 }, shieldHealth: 350 }, { shield: { health: 1400 }, shieldHealth: null });
+    expect(out.shieldHealth).toBe(350);
+    // The declared size still follows the pack.
+    expect(reconcileSystem("item", { shield: { health: 1400 } }, { shield: { health: 1000 } }).shield.health).toBe(1000);
+  });
+
+  it("keeps the Hanging Gardens' BA(MAG) mirrored from its owner", () => {
+    const out = reconcileSystem("actor", { baseAttack: { str: 0, mag: 250 } }, { baseAttack: { str: 0, mag: 200 } }, { type: "platform" });
+    expect(out.baseAttack.mag).toBe(250);
+  });
+});
+
+/**
+ * The sweep #109 asked for. Every `"system.X": value` that `module/` writes is
+ * a value play owns. If the pack owns X too, the next reload overwrites it.
+ * Each such X is either the world's (`SEEDED_THEN_OWNED`, `SEEDED_BY_TYPE`), or
+ * split, or listed here with the reason the pack's copy is still right.
+ */
+const PACK_WINS = {
+  "item:cooldown": "split: the clock is the world's (COOLDOWN_OWNED_BY_WORLD)",
+  "actor:linkedGroup": "split: memberIds are the world's (LINKED_GROUP_OWNED_BY_WORLD)",
+  "item:uses": "io.mjs#consumeUse writes an ActiveEffect, which the content sync does not reconcile",
+  "actor:region": "war-setup.mjs writes the Combat's region, not an actor's",
+  "actor:commandSpells": "written to a Master only, and SEEDED_BY_TYPE.master owns it",
+  "actor:baseAttack": "written to the Hanging Gardens only, and SEEDED_BY_TYPE.platform owns it (#109)",
+  "actor:parameters": "the Glass Game rewind restores the stored grades it snapshotted, which are the pack's",
+};
+
+describe("a key play writes is not overwritten by the next reload", () => {
+  const walk = (dir, out = []) => {
+    for (const f of readdirSync(dir)) {
+      const p = `${dir}/${f}`;
+      if (statSync(p).isDirectory()) walk(p, out);
+      else if (f.endsWith(".mjs")) out.push(p);
+    }
+    return out;
+  };
+  const written = new Map();
+  for (const p of walk("module")) {
+    const text = readFileSync(p, "utf8");
+    for (const m of text.matchAll(/["'`]system\.([A-Za-z]+)[\w.]*["'`]\s*:/g)) {
+      const line = text.slice(0, m.index).split(String.fromCharCode(10)).length;
+      for (const kind of ["actor", "item"]) {
+        if (ownedByWorld(kind, m[1])) continue;
+        const key = `${kind}:${m[1]}`;
+        written.set(key, [...(written.get(key) ?? []), `${p}:${line}`]);
+      }
+    }
+  }
+
+  it("owns every such key, or says why the pack's copy wins", () => {
+    const unexplained = [...written].filter(([key]) => !PACK_WINS[key]).map(([key, at]) => `${key} written at ${at.join(", ")}`);
+    expect(unexplained).toEqual([]);
+  });
+
+  it("lists no reason for a key play no longer writes", () => {
+    expect(Object.keys(PACK_WINS).filter((key) => !written.has(key))).toEqual([]);
   });
 });
