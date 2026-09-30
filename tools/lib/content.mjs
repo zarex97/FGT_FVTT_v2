@@ -1127,6 +1127,11 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     // DamageModifier chooses flat or percent with `stage`, and only when no
     // `modifierKey` names the bucket. Avenger's `mode: flat` was read by
     // nothing (#103).
+    // A revival's budget is `charges`. Normal Lancer's `uses: 1` was read by
+    // nothing, so "can only be used once" had no limit (#103).
+    if (el.key === "RevivalSource" && el.uses !== undefined) {
+      problems.push(`${path}: ${where} RevivalSource counts its budget in "charges", not "uses" (#103)`);
+    }
     if (el.key === "DamageModifier" && el.mode !== undefined) {
       problems.push(`${path}: ${where} DamageModifier has no "mode"; its bucket is "modifierKey", or "stage" when there is none (#103)`);
     }

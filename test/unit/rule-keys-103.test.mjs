@@ -237,3 +237,15 @@ describe("DamageModifier", () => {
     expect(content("class-skills/avenger.yml").passiveRules[0].mode).toBeUndefined();
   });
 });
+
+// Normal Lancer's Battle Continuation, Survival: *"When Health is reduced to
+// 0, roll 5d20 and restore Lancer's Health by that amount. This Skill can only
+// be used once."* The file said `uses: 1`; the executor reads `charges`, so the
+// revival had no limit.
+describe("RevivalSource", () => {
+  it("can only be used once: charges 1, restoring 5d20", () => {
+    const skill = content("abilities/normal-battle-continuation.yml");
+    const [revival] = contributions({ name: skill.name, passiveRules: skill.passiveRules }).revivals;
+    expect(revival).toMatchObject({ id: "normalBattleContinuation", charges: 1, formula: "5d20" });
+  });
+});

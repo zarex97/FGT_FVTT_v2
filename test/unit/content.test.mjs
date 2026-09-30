@@ -904,3 +904,10 @@ describe("a DamageModifier's bucket", () => {
       .toMatch(/DamageModifier has no "mode"/);
   });
 });
+
+describe("a revival's budget", () => {
+  it("is refused as `uses`, which the executor does not read (#103)", () => {
+    expect(errorsFor([file(ok({ rules: [{ key: "RevivalSource", id: "r", uses: 1 }] }))])[0])
+      .toMatch(/RevivalSource counts its budget in "charges"/);
+  });
+});

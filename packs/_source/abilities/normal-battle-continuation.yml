@@ -30,4 +30,7 @@ passiveRules:
     id: normalBattleContinuation
     revivalPriority: 100
     restore: { formula: "5d20" }
-    uses: 1
+    # "This Skill can only be used once." `charges` is the executor's word; an
+    # earlier `uses: 1` here was read by nothing, and the revival had no limit
+    # (#103).
+    charges: 1
