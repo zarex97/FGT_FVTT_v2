@@ -543,7 +543,12 @@ export async function withWorld(spec, fn) {
     combat: world.viewedCombat,
     combats: { active: world.combat },
     user: { id: "u1", isGM: spec.isGM ?? true },
-    users: { activeGM: { isSelf: spec.isGM ?? true }, get: () => ({ isGM: spec.isGM ?? true }) },
+    // A collection like Foundry's, iterable, with the one user this world is
+    // seen by: `engine/board.mjs#ownerUserOf` walks every user to find a
+    // Unit's non-GM owner.
+    users: Object.assign(new DocumentCollection([["u1", { id: "u1", isGM: spec.isGM ?? true, isSelf: true }]]), {
+      activeGM: { isSelf: spec.isGM ?? true },
+    }),
     settings: {
       get(scope, key) {
         // Foundry's own documents read one core setting while they update: the

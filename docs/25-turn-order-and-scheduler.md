@@ -87,6 +87,9 @@ A boundary is named by **Foundry's own counters** (`round` and `turn`), not by `
 
 ## Traps and anti-patterns
 
+**Sending a new total where the reader expects an increment.** `beginRound` escalates every Poison by re-applying it, and it sent the new stage total as `stage`. Since `7a443f2` the applier reads `stages ?? stage` as the stages *arriving* — right for a transfer, which carries its depth — so a stage-4 Poison landed at 9, and every Round ran N → 2N + 1 (#108). Each half had a test pinning its own reading of the one field. It sends `stages: 1` now, with no chance to roll, since an escalation is not an infliction. `test/unit/poison-escalation.test.mjs` runs the scheduler's intent through the real applier, which is the only test that could have seen it.
+
+
 **The round scheduler never ran because both scales shared one election token.** The turn change fires `claimBoundary` for the turn scale; a round change fires it for the round scale. Both wake on the same boundary — and with one shared `token` field, the turn's write landed last, the round's token comparison found a stranger's, and the round sequence read that it had lost. Poison, Burn, Freeze and Scald all tick only on `roundEnd` as their native trigger, so the entire round-end pass never ran (`module/rules/schedule-claim.mjs:51-60`). **Each scale now reads its own token field** (`tokenField(kind)` at `module/rules/schedule-claim.mjs:77-79`), and both proceed. `Scheduler.attach` in `module/engine/scheduler-hooks.mjs:32-37` writes both `turnToken` and `roundToken` on each boundary.
 
 ## Open questions

@@ -246,7 +246,14 @@ export function beginRound(board, ctx) {
   for (const u of units) {
     for (const e of u.effectInstances ?? []) {
       if (e.defId !== "poison") continue;
-      intents.push(I.applyEffect(u.id, { ...e, stage: (e.stage ?? 0) + 1 }, e.sourceUnitId));
+      // ONE stage arriving, not the new total. The applier reads `stages ??
+      // stage` as the stages arriving (`applier.mjs#depthOf`, which is right
+      // for a transfer), so the total sent as `stage` took a stage-4 Poison to
+      // 9 on a live board -- N to 2N + 1 every Round (#108). And no chance:
+      // escalation is not an infliction, so Poison Resist cannot stop it.
+      intents.push(I.applyEffect(u.id, {
+        ...e, stages: 1, chance: 100, bypassChanceModifiers: true,
+      }, e.sourceUnitId));
     }
   }
   intents.push(...fireEvent("roundStart", units, ctx));
