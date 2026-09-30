@@ -2425,6 +2425,14 @@ full allowance and `jumpOff` then wrote a `movedPanels` past his MOV. The reach 
 `jumpVerdict` refuses a Unit with a single panel left. The bounds check read `rows`/`cols`, which a real
 board's `{iMin, iMax, jMin, jMax}` does not carry, so nothing clipped the far edges.
 
+### BX. Every boarder appeared in the garden's corner — **fixed 2026-09-30**
+
+**Reached: HG.board.dww.** Foe Alpha boarded from under the garden's eastern edge at (4,8) and appeared at
+(0,0), its north-west corner. `boardPlatform` moved the boarder, and a Master it carried, to
+`platform.panel`, the anchor; two boarders shared one panel. `boardingLanding` puts the boarder directly
+above where it stood, or on the nearest free deck panel, and a carried Master beside its Servant on a
+panel of its own.
+
 ---
 
 ---

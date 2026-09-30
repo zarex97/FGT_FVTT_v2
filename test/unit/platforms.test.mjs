@@ -1022,3 +1022,34 @@ describe("a successful boarding", () => {
     expect(body).toMatch(/moveToLevel\(unitIds, platform\)/);
   });
 });
+
+// Where a boarder stands once aboard. `boardPlatform` moved every boarder, and
+// the Master it carried, to the platform's ANCHOR panel -- the garden's (0,0)
+// corner -- so on the Semiramis audit (#68) Foe Alpha, boarding from under the
+// garden's eastern edge at (4,8), appeared in its north-west corner, and a
+// carried Master would have been stacked on the same panel (§46.4-BX).
+describe("boardingLanding", async () => {
+  const { boardingLanding } = await import("../../module/rules/platforms.mjs");
+  const garden = { id: "hgob", kind: "platform", level: 20, panel: { i: 0, j: 0 }, footprint: { w: 9, h: 9 } };
+  const boardOf = (units) => ({ units: [garden, ...units] });
+
+  it("comes up directly above where it stood", () => {
+    const foe = { id: "f", level: 0, panel: { i: 4, j: 8 } };
+    expect(boardingLanding(foe, garden, boardOf([foe]))).toEqual({ i: 4, j: 8 });
+  });
+
+  it("takes the nearest free deck panel when that one is held", () => {
+    const foe = { id: "f", level: 0, panel: { i: 4, j: 8 } };
+    const held = { id: "h", level: 20, panel: { i: 4, j: 8 } };
+    const got = boardingLanding(foe, garden, boardOf([foe, held]));
+    expect(got).not.toEqual({ i: 4, j: 8 });
+    expect(Math.max(Math.abs(got.i - 4), Math.abs(got.j - 8))).toBe(1);
+  });
+
+  it("puts a carried Master beside the Servant, never on its panel", () => {
+    const foe = { id: "f", level: 0, panel: { i: 4, j: 8 } };
+    const got = boardingLanding(foe, garden, boardOf([foe]), [{ i: 4, j: 8 }]);
+    expect(got).not.toEqual({ i: 4, j: 8 });
+    expect(Math.max(Math.abs(got.i - 4), Math.abs(got.j - 8))).toBe(1);
+  });
+});

@@ -8,7 +8,7 @@
 import {
   boardingTarget, fallOff, destructionSequence, passengersOf, mayBringMaster,
   canFallFrom, nearestFreePlatformPanel, rescuerFor,
-  jumpVerdict, jumpLandings, attackedByReliefApplies,
+  jumpVerdict, jumpLandings, attackedByReliefApplies, boardingLanding,
 } from "../rules/platforms.mjs";
 import { TURN_RECORD } from "../domain/stamped-record.mjs";
 import { relationOf } from "../rules/relations.mjs";
@@ -87,7 +87,10 @@ export async function boardPlatform({ unitId, platformId, hitByDragonWingWarrior
   const boarders = [];
   if (ok) {
     boarders.push(unitId);
-    intents.push(I.move(unitId, [platform.panel], true));
+    // Directly above where it stood, or the nearest free deck panel -- never
+    // the platform's anchor corner, which every boarder used to share (§46.4-BX).
+    const landing = boardingLanding(unit, platform, board) ?? platform.panel;
+    intents.push(I.move(unitId, [landing], true));
     const master = unit.kind === "servant" && unit.masterId
       ? board.units.find((u) => u.id === unit.masterId) ?? null
       : null;
@@ -101,7 +104,9 @@ export async function boardPlatform({ unitId, platformId, hitByDragonWingWarrior
       : false;
     if (carry) {
       boarders.push(master.id);
-      intents.push(I.move(master.id, [platform.panel], true));
+      // Beside its Servant, on a panel of its own.
+      const beside = boardingLanding({ ...master, panel: landing }, platform, board, [landing]) ?? platform.panel;
+      intents.push(I.move(master.id, [beside], true));
     }
   }
 
