@@ -279,6 +279,8 @@ describe("VariantOverride (Ch. 45, Semiramis's Double Summon buff)", () => {
       shape: null,
       // ...and a damage TYPE (Ozymandias's Mesektet is Light); hers has none.
       element: null,
+      // ...and how much of the swing carries it (Raikou's copies' "(half)").
+      elementFraction: null,
     });
   });
 

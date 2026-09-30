@@ -49,6 +49,24 @@ The schema keeps seven kinds of field untyped because a rigid shape would reject
 
 The schema declares fields only. How a value is **computed** — derived from parameters via an END table, or from an effect list — is not the schema's job; that lives in `prepareBaseData` and `prepareDerivedData`. How a value is **validated** — that a rank string parses, that a duration is readable — is the schema's job, and it uses `RankField` and `TickField` to validate at write time (`module/data/fields.mjs:20-60`). A bad write throws immediately with a useful message, rather than corrupting a game far downstream.
 
+### The Route an Authored Key travels
+
+A Clause authored in `packs/_source` happens only if every key it is written in survives a **Route**
+of **Hops** (`CONTEXT.md`), and each Hop has discarded keys it did not name, silently. The Route, and
+what now holds each Hop:
+
+| # | Hop | What can drop a key | What catches it |
+|---|---|---|---|
+| 1 | **Compile** — `tools/lib/content.mjs#compileDocument` | Keys are passed through, so only the exclusion lists (`NON_SYSTEM_UNIT_KEYS`, `NON_SYSTEM_ITEM_KEYS`) and the derived keys can lose one. The hand-kept allowlists that dropped about a dozen are gone (Ch. 40). | `test/unit/model-check.test.mjs` |
+| 2 | **DataModel** — Foundry's `SchemaField` cleaning, on load | A key the schema does not declare is pruned; a value is clamped, rounded, trimmed or reset to its initial. | The build's **model check**, on the real classes (`tools/lib/model-check.mjs`, ADR-0006); `tools/lib/known-drops.mjs` lists the drops still open |
+| 3 | **Runtime write** — `update` through the engine | The same pruning, for a key the engine writes rather than the content | The test world's **loud prune** (`test/helpers/world.mjs`, Ch. 44) |
+| 4 | **Projection** — `rules/snapshot.mjs#snapshotUnit`, `collectAbilities`, `EffectRegistry.load` | A declared, stored key the projection never carries — `requiresHistory`, `unremovable`, `actsOncePerTurn` were all lost here | The **survival test**: every Authored Key has a route, projected (value-checked) or read from the document by a named file (`test/unit/survival.test.mjs`) |
+| 5 | **Reader** | Nobody reads the key at all, or reads a different key than the writer writes | The survival test's named readers; the field ledger (Ch. 44) |
+
+A new Authored Key is therefore four edits, and each one is checked: declare it on the DataModel
+(Hop 2), author it (Hop 1 carries it), give it a route in `test/unit/survival.test.mjs` (Hop 4), and
+read it (Hop 5).
+
 ## Invariants & edge cases
 
 1. **`null` and zero are not the same for Health.** Health `max` is `null` when the unit is intrinsically undamageable, and `value: null` when defeated. A Master refills to 250 if `max` is null or zero; a zero-max Servant comes back at 1 before revival bonuses land (`module/data/actor/_shared.mjs:40-52`, `module/data/actor/master.mjs:74-79`).
