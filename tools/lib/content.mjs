@@ -1010,33 +1010,15 @@ function validateImages(files, assets, warnings) {
 /**
  * Keys an Actor document may carry that are deliberately NOT part of `system`.
  *
- * Everything else a unit sheet authors has to appear in `actorSystem`'s output,
- * or it compiles to a schema default and the sheet quietly does less than it
- * says. See `unitKeyCoverage`.
+ * Everything else a unit sheet authors is passed through into `system`, where
+ * the build's model check holds it to the DataModel (`tools/lib/model-check.mjs`).
  */
 const NON_SYSTEM_UNIT_KEYS = new Set([
-  "schema", "id", "name", "type", "img", "description", "notes", "source",
+  "schema", "id", "name", "type", "img", "source",
   "abilities", "folder", "sort", "ownership", "prototypeToken", "effects",
   "flags", "token", "items",
 ]);
 
-/**
- * Every authored key on a unit sheet reaches the compiled actor.
- *
- * `actorSystem` is an explicit allowlist, and a key it does not name is
- * silently dropped: the document builds, the pack builds, the validator passes,
- * the sheet loads, and the clause does nothing. That has happened four times --
- * `itemCost`, `summonVariant`, `rules` and `itemHandling` -- each found only by
- * reading a live value in `fgt2026` and wondering why it was the default. The
- * allowlist's own comment named the failure mode without preventing it.
- *
- * Checked structurally rather than against a hand-written list, so a key added
- * to a schema tomorrow is covered by this the moment somebody authors it.
- *
- * @param {object} doc
- * @param {string} path
- * @param {string[]} problems
- */
 /**
  * Does an authored Base Attack agree with the parameter it derives from?
  *
@@ -1077,28 +1059,6 @@ function baseAttackAgreesWithTable(doc, path, warnings) {
 /**
  * @param {object} doc
  * @param {string} path
- * @param {string[]} problems
- */
-function unitKeyCoverage(doc, path, problems) {
-  let system;
-  try {
-    system = actorSystem(doc);
-  } catch {
-    return;                       // a shape problem another rule will report
-  }
-  for (const key of Object.keys(doc)) {
-    if (NON_SYSTEM_UNIT_KEYS.has(key)) continue;
-    if (key in system) continue;
-    problems.push(
-      `${path}: "${key}" is authored but not mapped by actorSystem() in `
-      + "tools/lib/content.mjs, so it compiles to its schema default and does nothing",
-    );
-  }
-}
-
-/**
- * @param {object} doc
- * @param {string} path
  * @param {Map<string, object>} library
  * @param {string[]} problems
  * @param {string[]} warnings
@@ -1116,7 +1076,6 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
   predicateOptionsExist(doc, path, problems);
 
   if (PACKS[dir]?.documentType === "Actor") {
-    unitKeyCoverage(doc, path, problems);
     baseAttackAgreesWithTable(doc, path, warnings);
   } else {
     activeRulesAreReachable(doc, path, problems);
@@ -1659,6 +1618,40 @@ export function phaseEffects(doc) {
 /* -------------------------------------------------------------------------- */
 
 /**
+ * Compile the whole corpus into the documents each pack will hold.
+ *
+ * One function for the pack build and the model check, so the check holds
+ * exactly the documents that ship — including the rule that an Ability a
+ * Servant references is embedded in that Servant rather than shipped alone.
+ *
+ * @param {Array<{path: string, dir: string, doc: object}>} files
+ * @param {Map<string, string>} [assets]
+ * @returns {{compiled: Array<{path: string, pack: string, doc: object}>, warnings: string[]}}
+ */
+export function compileCorpus(files, assets = new Map()) {
+  const library = new Map(files.filter((f) => f.doc?.id).map((f) => [f.doc.id, f.doc]));
+  // Built once for the whole corpus: every marker in every description is
+  // resolved against it, so a link cannot point at a document that is not
+  // being shipped in the same build.
+  const references = referenceIndex(files);
+  const embedded = new Set([...library.values()].flatMap((d) => (d.abilities ?? []).map((a) => a?.ref).filter(Boolean)));
+  const compiled = [];
+  const warnings = [];
+  for (const { path, dir, doc } of files) {
+    const spec = PACKS[dir];
+    if (!spec) {
+      warnings.push(`${path}: directory "${dir}" has no pack mapping — skipped`);
+      continue;
+    }
+    // Abilities referenced by a Servant are embedded in that Servant rather than
+    // shipped standalone, so they are compiled through the actor, not here.
+    if (dir === "abilities" && embedded.has(doc.id)) continue;
+    compiled.push({ path, pack: spec.pack, doc: compileDocument(doc, dir, library, assets, references) });
+  }
+  return { compiled, warnings };
+}
+
+/**
  * Turn one source document into a Foundry document ready for `compilePack`.
  *
  * Rank tables stay **symbolic** rather than being resolved here, because a rank
@@ -1678,7 +1671,9 @@ export function compileDocument(doc, dir, library, assets = new Map(), reference
   // Markers become real content links here rather than at render time, so the
   // compendium holds ordinary Foundry links that work in chat, journals and
   // exported adventures with no system code involved (Ch. 40).
-  const linked = references
+  // Only a description that was authored: the compile passes keys through, so
+  // a rewritten `""` would be a key the document never had.
+  const linked = references && doc.description !== undefined
     ? { ...doc, description: rewriteReferences(doc.description, references).text }
     : doc;
 
@@ -1718,7 +1713,7 @@ export function compileDocument(doc, dir, library, assets = new Map(), reference
       ...base,
       img: images.img,
       type,
-      system: { ...actorSystem(linked), defaultImage: images.defaultImage },
+      system: { ...actorSystem(linked, type), defaultImage: images.defaultImage },
       items: abilities.map((a) => compileEmbeddedAbility(a, doc.id, base._id, references)),
       prototypeToken: {
         // A Servant, Master or platform is ONE unit: its sheet and its token
@@ -1755,10 +1750,11 @@ export function compileDocument(doc, dir, library, assets = new Map(), reference
     };
   }
 
+  const type = doc.type ?? spec.itemType;
   return {
     ...base,
-    type: doc.type ?? spec.itemType,
-    system: itemSystem(linked),
+    type,
+    system: itemSystem(linked, type),
     _key: `!items!${base._id}`,
   };
 }
@@ -1780,8 +1776,7 @@ function footprintSize(footprint) {
 /**
  * A stated resource number into the `{value, max}` pair the schema wants.
  *
- * `undefined` when unauthored -- the key is still present, so `unitKeyCoverage`
- * is satisfied, and the schema default applies.
+ * `undefined` when unauthored, so the schema default applies.
  *
  * @param {number|object|undefined} authored
  * @returns {object|undefined}
@@ -1793,373 +1788,100 @@ function resourceOf(authored) {
 }
 
 /**
+ * The authored keys of a document, minus the ones that are not `system`.
+ *
+ * The compile PASSES KEYS THROUGH. It used to copy them by hand, one allowlist
+ * line per field, and a key the allowlist did not name compiled to its schema
+ * default with nothing anywhere failing — `itemCost`, `summonVariant`, `rules`,
+ * `itemHandling`, `agility`/`luck`, `npGateRound`, `alsoCountsAsAttackFor`,
+ * and, measured when the allowlists went, `periodic` on every damage-over-time
+ * effect, `bypassesImmunity`, Serenity's `usableWhileConcealed` and
+ * `concealmentBreakChance`, and every Platform's `description`. The DataModel
+ * is now the one list of what may exist, and `tools/lib/model-check.mjs` holds
+ * each compiled document to it at build time, so an undeclared key is a build
+ * error rather than a lost Clause (ADR-0006, Ch. 40).
+ *
  * @param {object} doc
+ * @param {Set<string>} excluded
  * @returns {object}
  */
-function actorSystem(doc) {
-  return {
-    // Master fields (Ch. 06, Ch. 32, Ch. 33). Absent from every other
-    // actor type, and `packs/_source/masters/` did not exist until the setup
-    // wizard needed something to summon a Master FROM -- so these three had
-    // never had a document to be dropped from. The validator's
-    // `unitKeyCoverage` is what caught them on the first build, which is what
-    // it was added for.
-    //
-    // `rank` is "" for Rankless, a real state with rules of its own rather than
-    // a missing value: Ch. 33 prices an all-Rankless table differently.
-    // Normal's "select only one Noble Phantasm" (Ch. 17). Servants only.
-    npChoice: doc.npChoice ?? undefined,
-    rank: doc.rank ?? undefined,
-    commandSpells: doc.commandSpells ?? undefined,
-    // The STATED ZON, which `zonRadius` reads as a floor under its class-based
-    // derivation. Normal's seven Master sheets each state one.
-    zon: doc.zon ?? undefined,
-    // Platform fields (Ch. 27). Absent from every other actor type and cheap
-    // to carry; without them a platform compiles into an actor that knows its
-    // Health and nothing about who it shields or how it moves.
-    // `=== null` FIRST, because `?? undefined` collapses an authored null into
-    // "field absent" and the schema then applies its 3x3 initial. The Storm
-    // Border states `footprint: null` deliberately -- Ch. 27, *"it is not
-    // on the board at all while it is submerged"* -- and it arrived in a live
-    // world as a 3x3 hull, which is a submarine-shaped hole in the middle of
-    // the board. Making the schema field nullable was necessary and not
-    // sufficient; this is the other half.
-    footprint: doc.footprint === null ? null : (doc.footprint ?? undefined),
-    upkeep: doc.upkeep ?? null,
-    countsTowardBudget: doc.countsTowardBudget ?? undefined,
-    actsOncePerTurn: Boolean(doc.actsOncePerTurn),
-    // Bašmu (Ch. 45): tied to the HGoB and free to displace whoever it walks
-    // into. Absent from every other summon and cheap to carry.
-    boundToPlatformId: doc.boundToPlatformId ?? null,
-    movesOntoOccupiedPanels: Boolean(doc.movesOntoOccupiedPanels),
-    // Co-location, as opposed to displacement -- Quetzalcoatl's Piedra Del Sol
-    // and her Quetzalcoatlus. See `data/actor/_shared.mjs` for why this is a
-    // second flag rather than a reuse of the one above.
-    sharesPanel: Boolean(doc.sharesPanel),
-    // A mount whose rider drives it, and whether its owner may switch it off.
-    // Both are the platform-side halves of rules a bounded field already
-    // carries; see `rules/platforms.mjs#actionSourceFor` and
-    // `#deactivationVerdict`.
-    replacesRiderAction: doc.replacesRiderAction ?? null,
-    // "The HGoB counts as a second Home Base for Semiramis' Faction."
-    countsAsHomeBase: Boolean(doc.countsAsHomeBase),
-    deactivation: doc.deactivation ?? null,
-    // The three per-platform rules the Golden Hind is the first to state: a
-    // boarding roll of its own (`rules/platforms.mjs#boardingTarget`), riders
-    // it will not let off (`#canUnboard`), and effects on its OWNER that
-    // switch it off (`#deactivatedBy`).
-    boarding: doc.boarding ?? null,
-    // ADR 0001 / #29: whether a Unit can be knocked off this Platform's edge,
-    // and what the fall costs. Absent means the edge holds.
-    knockOff: doc.knockOff ?? null,
-    lockAboard: doc.lockAboard ?? [],
-    deactivateOn: doc.deactivateOn ?? [],
-    // Pale Rider and the Kagome Spirits: "Base Health: -", "cannot be
-    // damaged". Without this the flag compiled to its schema default and each
-    // type's `prepareBaseData` backfilled a Health the sheet does not state.
-    undamageable: Boolean(doc.undamageable),
-    cannotHoldItems: Boolean(doc.cannotHoldItems),
-    // Where an item this unit would obtain actually goes. Authored alongside
-    // `cannotHoldItems` and dropped by this same allowlist on its first build,
-    // which is the fourth time that has happened -- see `unitKeyCoverage` in
-    // `tools/validate-content.mjs`, added so it is the last.
-    itemHandling: doc.itemHandling ?? "hold",
-    // Structure-only (Ch. 28). "Only Masters can destroy a Bloodmark",
-    // and "Bloodmarks can only be seen from a distance of 3 cells Maximum".
-    destroyableBy: doc.destroyableBy ?? [],
-    visibleWithin: doc.visibleWithin ?? null,
-    // Agility and Luck as STATED numbers (Ch. 06: Agility is the number you roll
-    // under, not a rank), which only summons and platforms carry -- Bašmu's
-    // "Agility: 14 / Luck: 7", the four Dragon Tooth Warriors, the Hanging
-    // Gardens. Every Servant sheet in the reference set reads "Agility: XX/XX",
-    // a slot the author never filled, so a Servant compiling to 0 is faithful
-    // and these were the only real values in the corpus. This allowlist dropped
-    // all of them: Bašmu has evaded and Luck-Checked against 0 since it shipped.
-    // Emitted only when authored, so a Servant keeps its schema default.
-    agility: resourceOf(doc.agility),
-    luck: resourceOf(doc.luck),
-    // Stats stated relative to the summoner (the Kagome Spirits' Agility and
-    // Luck), resolved at placement rather than written as numbers.
-    inherit: doc.inherit ?? null,
-    // Rule elements authored directly on the unit (Bašmu's Normal Attack
-    // rider and Targetability aura; HGoB Construction's round-end regen) --
-    // the same allowlist gap `itemCost` and `summonVariant` hit earlier: an
-    // authored field compiles to its schema default unless named here.
-    rules: doc.rules ?? [],
-    passiveRules: doc.passiveRules ?? [],
-    activeRules: doc.activeRules ?? [],
-    summonerId: doc.summonerId ?? null,
-    capacity: doc.capacity ?? null,
-    ownerId: doc.ownerId ?? null,
-    level: doc.level ?? undefined,
-    crossLevel: doc.crossLevel ?? undefined,
-    // A pocket dimension's own rules (Ch. 27). An authored field absent
-    // from this allowlist compiles to its schema default -- null -- so the
-    // Storm Border would have arrived as an ordinary platform with no entry
-    // roll, no clock and no way out.
-    dimension: doc.dimension ?? null,
-    contentId: doc.id,
-    contentVersion: doc.contentVersion ?? null,
-    trueName: doc.trueName ?? doc.name,
-    servantClasses: doc.servantClasses ?? [],
-    // The container defaults to the first declared class, so a single-class
-    // Servant needs no extra authoring.
-    classContainer: doc.classContainer ?? (doc.servantClasses ?? [])[0] ?? "",
-    concealedIdentity: doc.concealedIdentity ?? "",
-    identityRevealed: Boolean(doc.identityRevealed),
-    detect: doc.detect ?? null,
-    defaultImage: doc.defaultImage ?? null,
-    alignment: doc.alignment ?? null,
-    region: doc.region ?? [],
-    attributes: doc.attributes ?? [],
-    parameters: doc.parameters ?? {},
-    baseHealth: doc.baseHealth ?? null,
-    mov: doc.mov ?? 0,
-    range: doc.range ?? { panels: 1, targets: 1 },
-    baseAttack: doc.baseAttack ?? { str: 0, mag: 0 },
-    normalAttack: doc.normalAttack ?? { mode: "fixed", component: "str" },
-    sustainability: doc.sustainability ?? null,
-    // The linked-group binding (Ch. 32). Authored SETTINGS only --
-    // `memberIds` is resolved at summon and is never in the YAML -- but the
-    // settings are what make a Servant half of a pair, and an authored field
-    // this allowlist does not name compiles to its schema default. That is the
-    // fifth time it would have happened; the four recorded above are why
-    // `unitKeyCoverage` exists, and the Dioscuri would have arrived as two
-    // ordinary Servants with no leash, no linked death and no shared clock.
-    linkedGroup: doc.linkedGroup ?? undefined,
-    // A summon-time variant (`rules/summon-variant.mjs`) -- Semiramis's coin
-    // flip. `variant` is never authored; it is written at commit, once
-    // resolved, and is undefined here so a compiled Servant does not ship
-    // with a stale one.
-    summonVariant: doc.summonVariant ?? null,
-    // The stance's rules, authored as a `stance:` block on the sheet. Compiled
-    // whole rather than field by field: `rules/stance.mjs` is its only reader
-    // and the schema lives there, in prose, beside the clause it came from.
-    stanceSpec: doc.stance ?? null,
-    stance: doc.stance?.default ?? "",
-    // Ch. 06's pools, declared on the Servant that owns them.
-    resources: doc.resources ?? {},
-    notes: doc.notes ?? "",
-  };
+function passThrough(doc, excluded) {
+  return Object.fromEntries(Object.entries(doc).filter(([k, v]) => !excluded.has(k) && v !== undefined));
 }
 
 /**
+ * An Actor's `system`: every authored key, plus the few that are derived.
+ *
  * @param {object} doc
+ * @param {string} [type] the actor type, which decides which derived keys exist
  * @returns {object}
  */
-function itemSystem(doc) {
+function actorSystem(doc, type = doc.type) {
+  const { stance, ...authored } = passThrough(doc, NON_SYSTEM_UNIT_KEYS);
   return {
+    ...authored,
     contentId: doc.id,
-    contentVersion: doc.contentVersion ?? null,
-    description: doc.description ?? "",
-    source: doc.source ?? null,
-    rank: doc.rank ?? null,
-    // The slug defaults to the content id, so `hasSkill(actor, "riding")`
-    // matches `class-riding` without every file having to repeat itself.
-    slug: doc.slug ?? String(doc.id ?? "").replace(/^class-/, ""),
-    isNP: Boolean(doc.isNP),
-    isMode: Boolean(doc.isMode),
-    isAttackSkill: Boolean(doc.isAttackSkill),
-    // *"Counts as both Castor and Pollux's Attack for the Turn."* An authored
-    // field this allowlist does not name compiles to its schema default, and
-    // the default here is "" -- so the joint Noble Phantasm would have charged
-    // half a Servant attack and left Pollux free to swing again, silently.
-    //
-    // Found on a live board, which is the fifth time a field has been dropped
-    // here. `authored-fields.mjs` catches the ACTOR side; this is the item one.
-    alsoCountsAsAttackFor: doc.alsoCountsAsAttackFor ?? "",
-    // *"Can be used by Ozymandias as his Normal Attack while within Ramesseum
-    // Tentyris."* Named here as well as in the schema, because this allowlist
-    // silently drops what it does not name -- the way `npGateRound` was lost.
-    replacesNormalAttack: doc.replacesNormalAttack ?? null,
-    isSpell: Boolean(doc.isSpell),
-    // A Noble Phantasm with no active form -- Penthesilea's Goddess of War.
-    // Read by `classifyAbility`; without it every NP is a button.
-    isPassive: Boolean(doc.isPassive),
-    // A Servant's roster entry may switch a mode on at import -- Heracles's Mad
-    // Enhancement is on and cannot be turned off.
-    active: Boolean(doc.active),
-    cannotDeactivate: Boolean(doc.cannotDeactivate),
-    // Ch. 17's two-way toggle lockout.
-    toggleLock: doc.toggleLock ?? null,
-    // WHEN a mode may be switched off, for a mode with no bounded field of its
-    // own to carry it. Raikou's Tenmōkaikai is the first: *"Raikou can
-    // deactivate this NP during her Turn and at the start or end of any Turn or
-    // Round."* Absent from this allowlist it would compile to the schema
-    // default and the wider window would silently not exist.
-    deactivation: doc.deactivation ?? null,
-    categorizedAsNP: Boolean(doc.categorizedAsNP),
-    // An open tag set naming CATEGORIES this ability also counts as. Jack's
-    // Mist exempts anyone holding "the Instinct Skill of Rank B or higher",
-    // and her sheet then lists five other skills that count as Instinct --
-    // a list that lives on the sheets asserting it, not in code.
-    categorizedAs: doc.categorizedAs ?? [],
-    // A weak point (Ch. 45). Compiled whole: `rules/weak-point.mjs` is
-    // its only reader and the schema lives there, in prose, beside the clause
-    // it came from.
-    weakPoint: doc.weakPoint ?? null,
-    // An ability that IS a Riding Attack (Ch. 45).
-    ridingAttack: doc.ridingAttack ?? null,
-    expendsPermanently: Boolean(doc.expendsPermanently),
-    // "Eye of the Mind (only when Active/its buffs are in effect)": the effect
-    // ids whose presence makes the tag above count.
-    categorizedWhile: doc.categorizedWhile ?? [],
-    npTags: doc.npTags ?? [],
-    cooldown: compileCooldown(doc.cooldown),
-    // Ch. 06: a resource that buys this use out of its cooldown entirely.
-    cooldownWaiver: doc.cooldownWaiver ?? null,
-    targeting: doc.targeting ?? null,
-    // The bounded field a Noble Phantasm creates (Ch. 28).
-    field: doc.field ?? null,
-    // Item fields (Ch. 17). `requirements` is carried below,
-    // shared with the Command Spell block.
-    quantity: doc.quantity ?? undefined,
-    transferable: Boolean(doc.transferable),
-    transferRange: doc.transferRange ?? undefined,
-    transfersPerTurn: doc.transfersPerTurn ?? null,
-    consumeEffect: doc.consumeEffect ?? [],
-    // *"Cannot be obtained by Nursery or her Master."* A refusal that belongs
-    // to the ITEM rather than to any holder, read by
-    // `rules/items.mjs#acquisitionTarget`. A role pair against a CONTENT id,
-    // because an actor id is random per world.
-    barredFrom: doc.barredFrom ?? null,
-    // Ch. 28's gate: this ability reads the past, so the match must
-    // record one. Off by default, so a match without it pays nothing.
-    requiresHistory: Boolean(doc.requiresHistory),
-    phases: doc.phases ?? [],
-    // Ch. 17. `copyable` defaults to allowed, so an author only writes it to
-    // say NO -- and the validator below checks the reason when they do.
-    copyable: doc.copyable ?? undefined,
-    copiedFrom: doc.copiedFrom ?? null,
-    opensDialog: doc.opensDialog ?? null,
-    // Ch. 17's supersession, as authored data.
-    additionalCosts: doc.additionalCosts ?? [],
-    // A per-ability Round gate (Ch. 45). Declared in the ability schema
-    // when it was written, authored on two abilities, and NOT LISTED HERE --
-    // so it was dropped by this allowlist on the way into the pack and every
-    // document read `null`. Ozymandias's *"can only be used after 7 full
-    // Rounds have passed"* opened in Round 1.
-    npGateRound: doc.npGateRound ?? null,
-    // Arrogant King's Poison: "Requires 3 [Semiramis' Poison] to use" -- an
-    // item-quantity cost spent at use time (`engine/skill-use.mjs`'s
-    // `itemCostIntents`), distinct from `additionalCosts` (health/
-    // Sustainability) above.
-    itemCost: doc.itemCost ?? null,
-    // Medea: a Spell is a category High-Speed Divine Words resets wholesale,
-    // and `sameTurnExclusive` is a pair that may not both fire in one Turn.
-    category: doc.category ?? null,
-    // Read by `canCopy` -- "excluding Class Skills", "must have an Active
-    // effect" -- and never compiled, so every class skill and every passive in
-    // the game was copyable by Wisdom of Dún Scáith.
-    kind: doc.kind ?? null,
-    passive: Boolean(doc.passive),
-    // Ch. 17's "unless stated" overrides. Passed through as authored, including
-    // `undefined`, because `countsAsAttack` derives its answer when unstated.
-    countsAsAttack: doc.countsAsAttack ?? undefined,
-    countsAsAct: doc.countsAsAct ?? undefined,
-    oncePerTurn: Boolean(doc.oncePerTurn),
-    bypassesCategoryLimit: Boolean(doc.bypassesCategoryLimit),
-    freeAction: Boolean(doc.freeAction),
-    refusesReactionsUnlessFaster: Boolean(doc.refusesReactionsUnlessFaster),
-    offersSpellCategory: doc.offersSpellCategory ?? null,
-    // The Round-scale cap. Karna's Uncrowned Arms Mastership has no cooldown,
-    // so this is the only thing limiting it.
-    oncePerRound: Boolean(doc.oncePerRound),
-    // Ch. 04. `engine/cooldown.mjs` has read this since it was written.
-    // Normalised to objects, so the schema can hold both forms: a bare id is
-    // the common case and `{exclusionSet}` / `{category}` names a group.
-    alsoTriggers: (doc.alsoTriggers ?? []).map((e) => (typeof e === "string" ? { ability: e } : e)),
-    // The mutual-exclusion set. Set on a COPY by the grant, and authorable on
-    // a Servant's own abilities -- Scáthach's Clairvoyance shares `dunScaith`
-    // with the two slots the grant fills.
-    exclusionSet: doc.exclusionSet ?? null,
-    grantedBy: doc.grantedBy ?? null,
-    sameTurnExclusive: doc.sameTurnExclusive ?? [],
-    // Round-scale exclusion, and the whole-match use budget.
-    sameRoundExclusive: doc.sameRoundExclusive ?? [],
-    timesUsed: 0,
-    maxUses: doc.maxUses ?? null,
-    lastUsedTick: null,
-    recordedAttacks: [],
-    recordsAttacks: Boolean(doc.recordsAttacks),
-    // The barrier spec, and its pool. `shieldHealth` starts full.
-    shield: doc.shield ?? null,
-    shieldHealth: doc.shield?.health ?? null,
-    negatedBy: doc.negatedBy ?? [],
-    // Switched off by a STATE rather than by an effect -- "the effect of
-    // 'Kanshou & Bakuya' is negated while 'Overedge' is on Cooldown". A
-    // `negatedBy` cannot say it: a cooldown is not something anybody carries.
-    negatedWhile: doc.negatedWhile ?? null,
-    // What an ability does to an incoming Noble Phantasm it cancels (Ch. 45).
-    cancelsNP: doc.cancelsNP ?? null,
-    // Ch. 14: "Decoy is not affected by Debuff Resist or Immune effects
-    // when a Unit applies it on itself or on another allied Unit." An effect
-    // property rather than an application argument, because it is true of the
-    // effect wherever it comes from.
-    allySelfBypassesResistance: Boolean(doc.allySelfBypassesResistance),
-    nonStacking: doc.nonStacking ?? null,
-    damage: doc.damage ?? null,
-    // What a reaction rung means against this attack (Nemo's Quickfire). An
-    // authored field absent from this allowlist compiles to its schema default,
-    // which for an ObjectField is null -- so the ladder would have found no
-    // override and rolled an Evade the sheet says is not rolled.
-    reactionOverride: doc.reactionOverride ?? null,
-    // What this ability creates, by Attribute -- what a `ForbidCreating`
-    // suppression is matched against.
-    creates: doc.creates ?? [],
-    // A second, unconditional resolution the same ability declares -- Xiuhcoatl's
-    // splash. Compiled whole, the way `damage` is, because it carries its own
-    // targeting, damage and riders rather than patching the primary's.
-    aftermath: doc.aftermath ?? null,
-    element: doc.element ?? null,
-    rules: doc.rules ?? [],
-    passiveRules: doc.passiveRules ?? [],
-    activeRules: doc.activeRules ?? [],
-    // Command Spell fields. Absent from every other document type, and cheap
-    // to carry: without them the catalogue compiles into items that know their
-    // name and cost and nothing about when they may be used or what they do.
-    cost: doc.cost ?? undefined,
-    costByMasterRank: doc.costByMasterRank ?? null,
-    requirements: doc.requirements ?? [],
-    timing: doc.timing ?? null,
-    blockedWhen: doc.blockedWhen ?? [],
-    effect: doc.effect ?? [],
-    permanentConsequence: doc.permanentConsequence ?? [],
-    overridesValidation: doc.overridesValidation ?? [],
-    parameterized: doc.parameterized ?? [],
-    // Effect-definition fields, present only on effect documents.
-    polarity: doc.polarity ?? null,
-    // Appendix A's Instakill/Death ladder, which chance modifiers filter on.
-    severity: doc.severity ?? "normal",
-    preventsAction: Boolean(doc.preventsAction),
-    // Appendix A's terminal tier: what the effect DOES, rather than what the
-    // Unit then carries.
-    terminal: doc.terminal ?? null,
-    // Actions that run when the effect goes away.
-    onRemove: doc.onRemove ?? [],
-    volatility: doc.volatility ?? null,
-    // Appendix A's umbrella names -- `Bind` over its ten members. Declared on
-    // each member rather than centrally, so a new binding effect counts by
-    // saying so about itself.
-    families: doc.families ?? [],
-    suppressesOtherEffects: Boolean(doc.suppressesOtherEffects),
-    valence: doc.valence ?? null,
-    stacking: doc.stacking ?? null,
-    baseChance: doc.baseChance ?? null,
-    defaultMagnitude: doc.defaultMagnitude ?? null,
-    // Charges a count-stacked effect starts with.
-    uses: doc.uses ?? null,
-    // How many instances of a `magnitudeStacks` effect one Unit may hold.
-    maxStacks: doc.maxStacks ?? null,
-    // What a barrier effect absorbs, and where its pool lives (EMIYA's Rho
-    // Aias). Null on every other effect.
-    absorbs: doc.absorbs ?? null,
-    defaultDuration: doc.defaultDuration ?? null,
-    unremovable: Boolean(doc.unremovable),
-    blocks: doc.blocks ?? [],
-    blockedBy: doc.blockedBy ?? [],
-    // Mutual exclusion that RESOLVES rather than refuses.
-    replaces: doc.replaces ?? [],
+    ...(type === "servant" ? {
+      // The true name defaults to the display name, so a Servant with no
+      // concealment needs no extra authoring.
+      trueName: doc.trueName ?? doc.name,
+      // The container defaults to the first declared class, so a single-class
+      // Servant needs no extra authoring.
+      classContainer: doc.classContainer ?? (doc.servantClasses ?? [])[0] ?? "",
+    } : {}),
+    // The stance's rules, authored as a `stance:` block on the sheet. Compiled
+    // whole into `stanceSpec`: `rules/stance.mjs` is its only reader and the
+    // schema lives there, in prose, beside the clause it came from. `stance`
+    // itself is the CURRENT stance, which starts at the block's default.
+    ...(stance === undefined ? {} : { stanceSpec: stance, stance: stance?.default ?? "" }),
+    // Agility and Luck as STATED numbers (Ch. 06: Agility is the number you
+    // roll under, not a rank), authored as a bare number and stored as a pool.
+    ...(doc.agility === undefined ? {} : { agility: resourceOf(doc.agility) }),
+    ...(doc.luck === undefined ? {} : { luck: resourceOf(doc.luck) }),
+  };
+}
+
+
+/**
+ * Keys an Item document may carry that are deliberately NOT part of `system`.
+ *
+ * `notes` on an Ability or Effect is the author's commentary on how a Clause
+ * was modelled — kept in the source for the next reader, never shipped. (On a
+ * Unit, `notes` is the sheet's own notes field and does ship.)
+ */
+const NON_SYSTEM_ITEM_KEYS = new Set([
+  "schema", "id", "name", "type", "img", "notes", "folder", "sort", "ownership", "flags", "effects",
+  // An inline ability's reference to a library entry, consumed by `resolveRef`.
+  "ref", "_ref", "with",
+]);
+
+/**
+ * An Item's `system`: every authored key, plus the few that are derived.
+ *
+ * @param {object} doc
+ * @param {string} [type] the item type, which decides which derived keys exist
+ * @returns {object}
+ */
+function itemSystem(doc, type = doc.type) {
+  const usable = type === "ability" || type === "noblePhantasm";
+  return {
+    ...passThrough(doc, NON_SYSTEM_ITEM_KEYS),
+    contentId: doc.id,
+    // Only an Ability or a Noble Phantasm has a slug and a cooldown; a Command
+    // Spell, an Essence or a piece of Equipment declares neither.
+    ...(usable ? {
+      // The slug defaults to the content id, so `hasSkill(actor, "riding")`
+      // matches `class-riding` without every file having to repeat itself.
+      slug: doc.slug ?? String(doc.id ?? "").replace(/^class-/, ""),
+      cooldown: compileCooldown(doc.cooldown),
+    } : {}),
+    // Ch. 04. Normalised to objects, so the schema can hold both forms: a bare
+    // id is the common case and `{exclusionSet}` / `{category}` names a group.
+    ...(doc.alsoTriggers === undefined ? {} : {
+      alsoTriggers: doc.alsoTriggers.map((e) => (typeof e === "string" ? { ability: e } : e)),
+    }),
+    // The barrier's pool starts full.
+    ...(doc.shield?.health === undefined ? {} : { shieldHealth: doc.shield.health }),
   };
 }
 
@@ -2181,14 +1903,15 @@ function compileEmbeddedAbility(ability, ownerContentId, ownerDocumentId, refere
   // abilities are embedded, so they never pass through `compileDocument`'s own
   // rewrite. Missing it shipped every Servant ability with its markers raw --
   // which is to say, with `@effect[burn]` printed on the sheet.
-  const linked = references
+  const linked = references && ability.description !== undefined
     ? { ...ability, description: rewriteReferences(ability.description, references).text }
     : ability;
+  const type = ability.isNP ? "noblePhantasm" : "ability";
   return {
     _id: id,
     name: ability.name ?? ability._ref ?? ability.id,
-    type: ability.isNP ? "noblePhantasm" : "ability",
-    system: itemSystem(linked),
+    type,
+    system: itemSystem(linked, type),
     _key: `!actors.items!${ownerDocumentId}.${id}`,
   };
 }
@@ -2243,16 +1966,13 @@ function compileCooldown(cooldown) {
       countFrom: cooldown.countFrom ?? null,
       // Summoning: Bašmu's own two-cooldown branches (`engine/cooldown.mjs`),
       // dropped by the same allowlist shape this file's `max` used to drop.
-      branches: cooldown.branches ?? null,
+      ...(cooldown.branches == null ? {} : { branches: cooldown.branches }),
       // Raikou's Dohatsu Tenshou: *"its Cooldown is increased by 2◈ Turns (in
       // addition to its original Cooldown)"* when it ends Tenmōkaikai.
       // ADDITIVE on top of whichever cooldown was chosen, where `branches`
       // SELECTS one from several.
-      conditionalBonus: cooldown.conditionalBonus ?? null,
+      ...(cooldown.conditionalBonus == null ? {} : { conditionalBonus: cooldown.conditionalBonus }),
     };
   }
-  return {
-    max: cooldown ?? null, remaining: 0, regen: 0, perUnit: null,
-    countFrom: null, branches: null, conditionalBonus: null,
-  };
+  return { max: cooldown ?? null, remaining: 0, regen: 0, perUnit: null, countFrom: null };
 }

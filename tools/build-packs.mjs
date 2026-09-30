@@ -9,14 +9,16 @@
  * the source of truth.
  *
  * Validation runs first and a failure aborts the build, so a broken pack can
- * never reach a release.
+ * never reach a release. Then every compiled document is constructed through
+ * Foundry's real DataModel, and a key it would not keep aborts the build too.
  */
 
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { compilePack } from "@foundryvtt/foundryvtt-cli";
 import { loadSource, loadAssets } from "./lib/load.mjs";
-import { validateAll, compileDocument, PACKS, referenceIndex } from "./lib/content.mjs";
+import { validateAll, compileCorpus } from "./lib/content.mjs";
+import { checkCompiled, partitionKnown, reportModelCheck } from "./lib/model-check.mjs";
 
 const SOURCE = "packs/_source";
 const ASSETS = "assets";
@@ -35,29 +37,24 @@ if (all.length > 0) {
   process.exit(1);
 }
 
-const library = new Map(files.filter((f) => f.doc?.id).map((f) => [f.doc.id, f.doc]));
-
-// Built once for the whole corpus: every marker in every description is
-// resolved against it, so a link cannot point at a document that is not
-// being shipped in the same build.
-const references = referenceIndex(files);
+// Every compiled document is held to Foundry's real DataModel before anything
+// is packed: an Authored Key the model would not keep fails the build here,
+// instead of vanishing when the document loads in a world (ADR-0006).
+const { compiled, warnings: compileWarnings } = compileCorpus(files, assets);
+for (const w of compileWarnings) console.warn(`  warning  ${w}`);
+const { failing, known, stale } = partitionKnown(await checkCompiled(compiled));
+reportModelCheck({ failing, known, stale });
+if (failing.length > 0 || stale.length > 0) {
+  console.error(`\nFGT | Build aborted: ${failing.length} Silent Drop(s), ${stale.length} stale known drop(s).`);
+  process.exit(1);
+}
 
 // Group compiled documents by destination pack.
 /** @type {Map<string, object[]>} */
 const byPack = new Map();
-for (const { path, dir, doc } of files) {
-  const spec = PACKS[dir];
-  if (!spec) {
-    console.warn(`  warning  ${path}: directory "${dir}" has no pack mapping — skipped`);
-    continue;
-  }
-  // Abilities referenced by a Servant are embedded in that Servant rather than
-  // shipped standalone, so they are compiled through the actor, not here.
-  if (dir === "abilities" && [...library.values()].some((d) => (d.abilities ?? []).some((a) => a?.ref === doc.id))) {
-    continue;
-  }
-  if (!byPack.has(spec.pack)) byPack.set(spec.pack, []);
-  byPack.get(spec.pack).push(compileDocument(doc, dir, library, assets, references));
+for (const { pack, doc } of compiled) {
+  if (!byPack.has(pack)) byPack.set(pack, []);
+  byPack.get(pack).push(doc);
 }
 
 await rm(STAGING, { recursive: true, force: true });

@@ -47,7 +47,7 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       // correctly rather than as an unknown state. `stanceSpec` is authored on
       // the sheet and compiled by `tools/lib/content.mjs`; `rules/stance.mjs`
       // is the only thing that interprets either.
-      stance: new fields.StringField({ required: false, blank: true }),
+      stance: new fields.StringField({ required: false, blank: true, initial: "" }),
       stanceSpec: new fields.ObjectField({ required: false, nullable: true, initial: null }),
 
       // The ONE it is summoned into, and the one it is publicly known by. A
@@ -58,7 +58,7 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       // An override for that public name, for a Servant known as something
       // other than its container. Derived when blank, so the common case needs
       // no authoring.
-      concealedIdentity: new fields.StringField({ required: false, blank: true }),
+      concealedIdentity: new fields.StringField({ required: false, blank: true, initial: "" }),
 
       // The true name is hidden until this is set, which is what gives
       // closed-information play (Ch. 38) something to conceal.

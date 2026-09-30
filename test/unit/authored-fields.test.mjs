@@ -9,7 +9,7 @@
  * hand-maintained copies of one vocabulary drift, and the drift is silent.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import { readFileSync } from "node:fs";
 import {
   AUTHORED_ACTOR_KEYS, AUTHORED_ITEM_KEYS,
@@ -96,27 +96,55 @@ describe("the cooldown split", () => {
 });
 
 describe("the pipeline and the vocabulary agree", () => {
-  // Two hand-maintained copies of one list is the shape this codebase has been
-  // bitten by repeatedly. Either direction is a defect: a key here that the
-  // builder does not emit means the sync overwrites something the pack never
-  // sets, and a key the builder emits that is missing here means the sync
-  // leaves a stale field behind for ever.
-  const source = readFileSync("tools/lib/content.mjs", "utf8");
-
-  /** The keys one builder function emits, read out of its source. */
-  const emitted = (fnName) => {
-    const start = source.indexOf(`function ${fnName}(doc)`);
-    expect(start).toBeGreaterThan(-1);
-    const end = source.indexOf("\n}", start);
-    return [...source.slice(start, end).matchAll(/^ {4}([a-zA-Z][\w]*):/gm)].map((m) => m[1]);
-  };
-
-  it("actorSystem emits exactly AUTHORED_ACTOR_KEYS", () => {
-    expect([...emitted("actorSystem")].sort()).toEqual([...AUTHORED_ACTOR_KEYS].sort());
+  // The compile passes authored keys through (Ch. 40), so there is no longer
+  // an allowlist to read the vocabulary off. What the sync needs is the same
+  // fact from the other side: every key the corpus actually puts into a pack's
+  // `system` is one the vocabulary names. A key the pack emits and the list
+  // omits is one the sync would never update, leaving a stale field behind for
+  // ever -- and each key the list names is one some DataModel can hold.
+  let emitted;
+  let models;
+  beforeAll(async () => {
+    const { loadSource, loadAssets } = await import("../../tools/lib/load.mjs");
+    const { compileCorpus } = await import("../../tools/lib/content.mjs");
+    const { installSystem } = await import("../../tools/lib/foundry.mjs");
+    models = await installSystem();
+    const { files } = await loadSource("packs/_source");
+    const { assets } = await loadAssets("assets");
+    emitted = { actor: new Set(), item: new Set() };
+    for (const { doc } of compileCorpus(files, assets).compiled) {
+      if (doc._key.startsWith("!actors!")) {
+        for (const key of Object.keys(doc.system)) emitted.actor.add(key);
+        for (const item of doc.items ?? []) for (const key of Object.keys(item.system)) emitted.item.add(key);
+      } else if (doc._key.startsWith("!items!")) {
+        for (const key of Object.keys(doc.system)) emitted.item.add(key);
+      }
+    }
   });
 
-  it("itemSystem emits exactly AUTHORED_ITEM_KEYS", () => {
-    expect([...emitted("itemSystem")].sort()).toEqual([...AUTHORED_ITEM_KEYS].sort());
+  // A key only a known drop carries is not the pack's yet: its issue decides
+  // whether it is declared or stops being authored.
+  const unowned = (keys, authored) => [...keys].filter((k) => !authored.includes(k) && !knownDropKeys.has(k));
+  let knownDropKeys;
+  beforeAll(async () => {
+    const { KNOWN_BUILD_DROPS } = await import("../../tools/lib/known-drops.mjs");
+    knownDropKeys = new Set(KNOWN_BUILD_DROPS.map((d) => /system\.(\w+)/.exec(d.path)[1]));
+  });
+
+  it("names every key the corpus compiles into an Actor", () => {
+    expect(unowned(emitted.actor, AUTHORED_ACTOR_KEYS)).toEqual([]);
+  });
+
+  it("names every key the corpus compiles into an Item", () => {
+    expect(unowned(emitted.item, AUTHORED_ITEM_KEYS)).toEqual([]);
+  });
+
+  it("names only keys some DataModel declares", () => {
+    const declared = (kind) => new Set(Object.values(models[kind]).flatMap((m) => Object.keys(m.schema.fields)));
+    const actor = declared("Actor");
+    const item = declared("Item");
+    expect(AUTHORED_ACTOR_KEYS.filter((k) => !actor.has(k))).toEqual([]);
+    expect(AUTHORED_ITEM_KEYS.filter((k) => !item.has(k))).toEqual([]);
   });
 });
 

@@ -9,6 +9,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
+import { compileDocument } from "../../tools/lib/content.mjs";
 import { historyWanted, snapshotUnit, diffSnapshots, applyPatch } from "../../module/rules/history.mjs";
 import {
   recordTurn, stateAt, rewindIntents, RETENTION_TURNS, REWIND_EXCLUDED_RESOURCES,
@@ -515,7 +516,10 @@ describe("the gate's field survives every hop between the YAML and the board", (
   });
 
   it("the compiler carries it", () => {
-    expect(readFileSync("tools/lib/content.mjs", "utf8")).toContain("requiresHistory: Boolean(doc.requiresHistory)");
+    // Compiled, not read as text: the compile passes authored keys through, so
+    // there is no allowlist line left to look for, only the output.
+    const doc = parse(readFileSync("packs/_source/abilities/nursery-queens-glass-game.yml", "utf8"));
+    expect(compileDocument(doc, "abilities", new Map()).system.requiresHistory).toBe(true);
   });
 
   it("the allowlist names it", () => {

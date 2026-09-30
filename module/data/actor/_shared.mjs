@@ -205,8 +205,8 @@ export function unitCommon() {
     // disclosure names what it was.
     hiddenDamage: new fields.ObjectField({ required: true, initial: () => ({}) }),
 
-    biography: new fields.HTMLField({ required: false, blank: true }),
-    notes: new fields.HTMLField({ required: false, blank: true }),
+    biography: new fields.HTMLField({ required: false, blank: true, initial: "" }),
+    notes: new fields.HTMLField({ required: false, blank: true, initial: "" }),
 
     // Home Base residency (Ch. 29 E1/E2): how many consecutive Rounds this
     // Unit has ended standing in its own base. Unlike `turnState`/`roundState`,

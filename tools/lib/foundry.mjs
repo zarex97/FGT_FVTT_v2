@@ -138,6 +138,9 @@ export async function installSystem() {
   const documentTypes = Object.fromEntries(
     Object.entries(manifest.documentTypes).map(([name, types]) => [name, Object.keys(types)]),
   );
+  // Foundry's own page types, which a world has whatever the system declares;
+  // the `rules` pack ships journal pages of the `text` type.
+  documentTypes.JournalEntryPage ??= ["text", "image", "pdf", "video"];
 
   globalThis.CONFIG ??= {};
   for (const [name, byType] of Object.entries(models)) {
@@ -164,4 +167,67 @@ export async function installSystem() {
   });
   game.release.version = `${game.release.generation}.${game.release.build}`;
   return models;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Holding a write to what Foundry kept                                      */
+/* -------------------------------------------------------------------------- */
+
+/** Sets become arrays, which is the form `_source` stores them in. */
+export function sourceForm(value) {
+  if (value instanceof Set) return [...value].map(sourceForm);
+  if (Array.isArray(value)) return value.map(sourceForm);
+  if (value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, sourceForm(v)]));
+  }
+  return value;
+}
+
+/**
+ * The first path at which `applied` is not what `requested` asked for, or null.
+ *
+ * This is the comparison every Silent Drop guard makes between what was asked
+ * of Foundry and what it kept. An object asks only for the keys it names:
+ * Foundry MERGES an object written to a `SchemaField` or `ObjectField`, so keys
+ * already stored beside them are not a mismatch. An array asks for itself
+ * exactly, because Foundry replaces arrays whole. `undefined` asks for nothing,
+ * which is how Foundry's cleaning treats it too. A string that lands trimmed is
+ * not a mismatch: `StringField` trims, and whitespace carries no Clause.
+ *
+ * @param {unknown} requested
+ * @param {unknown} applied
+ * @param {string} path where `requested` sits, for the report
+ * @returns {{path: string, want: unknown, got: unknown}|null}
+ */
+export function firstMismatch(requested, applied, path) {
+  return mismatches(requested, applied, path)[0] ?? null;
+}
+
+/**
+ * Every path at which `applied` is not what `requested` asked for.
+ *
+ * `firstMismatch`, exhaustively: a build reporting on a whole document wants
+ * every lost key at once, not one per run.
+ *
+ * @param {unknown} requested
+ * @param {unknown} applied
+ * @param {string} path
+ * @returns {Array<{path: string, want: unknown, got: unknown}>}
+ */
+export function mismatches(requested, applied, path) {
+  const want = sourceForm(requested);
+  const got = sourceForm(applied);
+  if (want && typeof want === "object" && !Array.isArray(want)) {
+    if (!got || typeof got !== "object" || Array.isArray(got)) return [{ path, want, got }];
+    return Object.entries(want).flatMap(([k, v]) => mismatches(v, got[k], `${path}.${k}`));
+  }
+  if (Array.isArray(want)) {
+    if (!Array.isArray(got) || got.length !== want.length) return [{ path, want, got }];
+    return want.flatMap((v, i) => mismatches(v, got[i], `${path}.${i}`));
+  }
+  if (want === undefined || Object.is(want, got)) return [];
+  // A `StringField` trims. Surrounding whitespace carries no Clause, and a YAML
+  // block scalar always ends in a newline, so this one coercion is not a drop.
+  if (typeof want === "string" && typeof got === "string" && want.trim() === got) return [];
+  return [{ path, want, got }];
 }
