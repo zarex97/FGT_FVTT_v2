@@ -406,7 +406,11 @@ function critModifiers(unit, direction, options = null) {
     .filter((m) => m.check === "crit" && (m.direction ?? "outgoing") === direction)
     .filter((m) => typeof m.value === "number" && m.value !== 0)
     .filter((m) => !m.predicate || (options ? testPredicate(m.predicate, { options }) : false))
-    .map((m) => ({ source: m.source, value: m.value }));
+    // Against a Noble Phantasm, the figure the sheet states for one (#103).
+    .map((m) => ({
+      source: m.source,
+      value: options?.has?.("attack:kind:np") && typeof m.npValue === "number" ? m.npValue : m.value,
+    }));
 }
 
 /**

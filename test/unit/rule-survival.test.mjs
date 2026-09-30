@@ -78,7 +78,6 @@ export const INTERIOR_EXEMPT = {
  */
 export const KNOWN_RULE_DROPS = Object.freeze([
   { at: "effects/atk-up-charisma.yml rules[0]", leaf: "npValue", issue: "#103" },
-  { at: "effects/crit-up-viy.yml rules[0]", leaf: "npValue", issue: "#103" },
   { at: "effects/debuff-immune.yml rules[0]", leaf: "scope", issue: "#103" },
   { at: "effects/debuff-immune.yml rules[0]", leaf: "except[]", issue: "#103" },
   { at: "effects/normal-presence-concealment-effect.yml rules[1]", leaf: "direction", issue: "#103" },
@@ -266,7 +265,7 @@ describe("every key inside a rule element reaches something that reads it", () =
   it("keeps its known drops honest: each owned by an issue, none stale, fewer over time", () => {
     for (const d of KNOWN_RULE_DROPS) expect(d.issue).toMatch(/^#\d+$/);
     expect(KNOWN_RULE_DROPS.filter((d) => !seen.has(d))).toEqual([]);
-    expect(KNOWN_RULE_DROPS.length).toBeLessThanOrEqual(29);
+    expect(KNOWN_RULE_DROPS.length).toBeLessThanOrEqual(28);
   });
 
   it("names the element types it cannot run, rather than skipping them", () => {

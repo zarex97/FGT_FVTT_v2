@@ -15,6 +15,7 @@ import { parse } from "yaml";
 import { collectContributions } from "../../module/rules/elements.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { rollOptionsFor } from "../../module/rules/options.mjs";
+import { critChance } from "../../module/rules/checks.mjs";
 
 /** A content file under packs/_source, parsed. */
 const content = (path) => parse(readFileSync(`packs/_source/${path}`, "utf8"));
@@ -57,5 +58,41 @@ describe("FlatDamage", () => {
     expect(field).toMatchObject({ value: 180, supersedes: ["quetz-goddesses-divine-core"] });
     expect(flatOf([skill, field])).toBe(180);
     expect(flatOf([skill])).toBe(120);
+  });
+});
+
+// Found beside #103's `npValue` row, and the larger half of it: `aspect:
+// chance` produced a `critUp` modifier that NOTHING reads. Crit chance is read
+// off `checkModifiers` (`rules/checks.mjs#critChance`) since the coin flip was
+// replaced, so six clauses raised nobody's crit chance: Oblivion Correction,
+// Existence Outside the Domain, Independent Action (Viy), Pollux's Twin God's
+// Divine Core, Area Crit Up and Crit Up (Viy).
+describe("CritModifier", () => {
+  const chance = (checkModifiers, options = new Set()) =>
+    critChance({ checkModifiers, effects: [] }, null, { options }).percent;
+
+  it("raises crit chance: Oblivion Correction C", () => {
+    const skill = content("class-skills/oblivion-correction.yml");
+    const out = contributions({ name: skill.name, rank: "C", passiveRules: skill.passiveRules });
+    expect(chance(out.checkModifiers)).toBeGreaterThan(50);
+  });
+
+  it("carries npValue: Crit Up (Viy) is 50% on a MAG attack, 20% if NP", () => {
+    const viy = content("effects/crit-up-viy.yml");
+    // `@magnitude`/`@npMagnitude` as `rules/snapshot.mjs#resolveRuleValues`
+    // substitutes them on an instance.
+    const out = contributions({ name: viy.name, rules: [{ ...viy.rules[0], value: 50, npValue: 20 }] });
+    const mag = new Set(["attack:component:mag"]);
+    expect(chance(out.checkModifiers, mag)).toBe(100);
+    expect(chance(out.checkModifiers, new Set([...mag, "attack:kind:np"]))).toBe(70);
+    expect(chance(out.checkModifiers, new Set(["attack:component:str"]))).toBe(50);
+  });
+
+  it("reaches an ally through an aura: Area Crit Up", () => {
+    const area = content("effects/area-crit-up.yml");
+    const aura = { ...area.rules[0], elements: [{ ...area.rules[0].elements[0], value: 20 }] };
+    const [delivered] = contributions({ name: area.name, rules: [aura] }).auras[0].elements;
+    expect(delivered).toMatchObject({ key: "checkModifier", check: "crit", value: 20 });
+    expect(chance([delivered])).toBe(70);
   });
 });

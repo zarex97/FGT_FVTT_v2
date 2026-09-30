@@ -807,6 +807,15 @@ function auraElement(el, rank, ctx, source, ability = null) {
       ? { key: "Resistance", source, magicResistance: scratch.magicResistance }
       : { key: "ApplicationChance", ...scratch.applicationChances[0] };
   }
+  // A crit clause lands in two different buckets depending on its aspect, and
+  // Area Crit Up's raw `{key: CritModifier}` landed in neither (#103).
+  if (el?.key === "CritModifier") {
+    const scratch = { modifiers: [], checkModifiers: [] };
+    EXECUTORS.CritModifier(el, { rank, source, ability, out: scratch, ctx });
+    return scratch.checkModifiers.length
+      ? { key: "checkModifier", ...scratch.checkModifiers[0] }
+      : scratch.modifiers[0];
+  }
   if (!el?.table) return { source, ...el };
   const v = resolveValue(el, rank, ctx);
   const { table, ...rest } = el;
@@ -1073,6 +1082,29 @@ export const EXECUTORS = Object.freeze({
 
   /** Crit chance or crit damage. Crit damage acts at stage 2, on the roll only. */
   CritModifier(el, { rank, source, out, ctx, deferred = null }) {
+    // The figure against a Noble Phantasm. Crit Up (Viy) is *"50%; if NP, 20%"*
+    // and the executor dropped the second number (#103).
+    const np = el.npValue !== undefined ? resolveValue(el, rank, ctx, "npValue") : undefined;
+    const npPart = np !== null && np !== undefined ? { npValue: scalar(np) } : {};
+
+    // Crit CHANCE is a check modifier. `rules/checks.mjs#critChance` reads
+    // `checkModifiers` with `check: "crit"`, and has since the 1d2 coin was
+    // replaced; this aspect went on producing a `critUp` modifier nothing
+    // reads. So Oblivion Correction, Existence Outside the Domain, Independent
+    // Action (Viy), Pollux's Twin God's Divine Core, Area Crit Up and Crit Up
+    // (Viy) raised nobody's crit chance (#103).
+    if (el.aspect === "chance" && !el.modifierKey) {
+      out.checkModifiers.push({
+        check: "crit",
+        direction: el.direction ?? "outgoing",
+        value: scalar(resolveValue(el, rank, ctx)),
+        ...npPart,
+        predicate: deferred,
+        source,
+      });
+      return;
+    }
+
     out.modifiers.push({
       key: el.modifierKey ?? (el.aspect === "damage" ? "critDmUp" : "critUp"),
       value: scalar(resolveValue(el, rank, ctx)),
@@ -1087,6 +1119,7 @@ export const EXECUTORS = Object.freeze({
       // `undefined` for every other crit clause in the corpus, which is all of
       // them, and stage 2 reads that as "any component".
       ...(el.component ? { component: el.component } : {}),
+      ...npPart,
       // Crit damage modifiers land in the same bag the pipeline filters, so a
       // deferred clause reaches the same reader.
       predicate: deferred,
