@@ -48,7 +48,7 @@ Home bases are painted as Foundry Regions with grid shapes, one per faction, tag
 
 For each container, `createMasterFor` rolls the Master's setup lines (Health, Agility, Luck, Rank, Command Spells, Base Attack MAG) off the plan returned by `plansFor(ruleset).master` (`module/engine/war-setup.mjs:213-263`). A Normal Master's ZON is looked up by container class; an Advanced Master takes the template's 2 (`module/engine/war-setup.mjs:191-193`).
 
-`prepareSummon` readies a Servant, rolls setup lines (Health, Agility, Luck), and returns the plan WITHOUT writing (`module/engine/summon.mjs:88-108`). `commitSummon` creates the actor, applies setup line values and grants, sets the Master and faction, and records `summonedAt` for the match's global turn (`module/engine/summon.mjs:170-274`). Partners (linked groups marked `summonTogether`) are summoned in the same commit, cross-linking their `memberIds` (`module/engine/summon.mjs:250-271`).
+`prepareSummon` readies a Servant, rolls setup lines (Health, Agility, Luck), and returns the plan WITHOUT writing (`module/engine/summon.mjs:88-108`). `commitSummon` creates the actor, applies setup line values and grants, and sets the Master and faction (`module/engine/summon.mjs:170-274`). Partners (linked groups marked `summonTogether`) are summoned in the same commit, cross-linking their `memberIds` (`module/engine/summon.mjs:250-271`).
 
 Tokens are deployed into home bases, Servant then Master, picked from the base's free panels (`module/engine/war-setup.mjs:393-454`).
 
@@ -76,7 +76,7 @@ Mid-game, `attemptContract` rolls what the plan asks for. Allied contracts to al
 
 3. **Nothing is written until commit.** `prepareSummon` and `reviseSummon` leave the world untouched; `commitSummon` is the write point (`module/engine/summon.mjs:104`, `module/engine/summon.mjs:170`).
 
-4. **Setup rolls lock at match start.** `summonedAt` records the global turn when the Servant was rolled, preventing changes to the plan afterwards (`module/engine/summon.mjs:231`, `module/rules/setup-rolls.mjs:1-20`).
+4. **Setup rolls lock at match start.** The plan's confirm step carries `locksAtMatchStart` (`module/rules/setup-rolls.mjs:374`). A `summonedAt` stamp was written on every summon and read by nothing, so it guarded nothing; it is gone (#104).
 
 5. **A summon variant's `overrides` are applied at commit, not rolled.** The coin flip decides the branch; the branch's fields are written as-is (`module/rules/summon-variant.mjs:42-47`).
 
@@ -110,4 +110,4 @@ Mid-game, `attemptContract` rolls what the plan asks for. Allied contracts to al
   would summon each other for ever), but there is no transaction around the two phases and Foundry
   offers none. Recovering would mean re-running the cross-link, not re-summoning.
 
-- **When does `summonedAt` matter?** Setup rolls lock at match start; a Servant created before the match starts (setup) and one created after (conquest summon) both carry `summonedAt`. The rule does not state what this timestamp guards against.
+- ~~When does `summonedAt` matter?~~ Answered by #104: it did not. Nothing read it, and it is deleted.

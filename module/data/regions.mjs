@@ -31,7 +31,6 @@ export class TerrainBehavior extends Base {
       duration: new fields.StringField({ required: false, nullable: true, initial: null }),
       sourceUnitId: new fields.StringField({ required: false, nullable: true, initial: null }),
       followsSource: new fields.BooleanField({ initial: false }),
-      createdOnTurn: new fields.NumberField({ required: false, nullable: true, initial: null }),
 
       // How a PAINTED area is found again -- `sol:<unitId>`,
       // `piedra:<fieldId>`. An area an effect created has to be erasable when
@@ -156,7 +155,6 @@ export class PlatformBehavior extends Base {
     return {
       platformId: new fields.StringField({ required: true, blank: false }),
       level: new fields.NumberField({ required: true, integer: true, initial: 1 }),
-      carriesOccupants: new fields.BooleanField({ initial: true }),
     };
   }
 }

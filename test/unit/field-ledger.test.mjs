@@ -62,13 +62,11 @@ const NOT_A_SYSTEM_FIELD = {
  * an entry that stops being true fails as stale.
  */
 const KNOWN = {
-  // Declared and never read.
-  unread: { nonStacking: "#104", requiresRank: "#104", isInterrupt: "#104", oneUse: "#104", turnOrderRoll: "#104",
-    carriesOccupants: "#104", summonedAt: "#104", createdOnTurn: "#104" },
-  // Declared and never written, by code or by content.
-  unwritten: { nonStacking: "#104", requiresRank: "#104", isInterrupt: "#104", oneUse: "#104", turnOrderRoll: "#104",
-    carriesOccupants: "#104" },
-  // Read off a system that no schema declares it on.
+  // Declared and never read. Emptied by #104.
+  unread: {},
+  // Declared and never written, by code or by content. Emptied by #104.
+  unwritten: {},
+  // Read off a system that no schema declares it on. Emptied by #104.
   undeclared: {},
 };
 
@@ -150,7 +148,7 @@ describe("the field ledger", () => {
   it("owns every known entry with an issue, and never gains one", () => {
     const all = Object.values(KNOWN).flatMap((m) => Object.values(m));
     for (const issue of all) expect(issue).toMatch(/^#\d+$/);
-    expect(all.length).toBeLessThanOrEqual(14);
+    expect(all.length).toBeLessThanOrEqual(0);
   });
 
   it("says how many system paths it cannot resolve", () => {

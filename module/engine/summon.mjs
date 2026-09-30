@@ -226,10 +226,6 @@ export async function commitSummon(prepared, { withPartners = true } = {}) {
   } else {
     data.system.masterId = null;
   }
-  // The rolls lock at match start (Ch. 40); recording when they were made is
-  // what lets anyone check that afterwards.
-  data.system.summonedAt = game.combat?.system?.globalTurn ?? 0;
-
   const [actor] = await Actor.createDocuments([data]);
 
   // *"Castor and Pollux are summoned as two separate Servants as one."*
