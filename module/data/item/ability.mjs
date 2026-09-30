@@ -468,6 +468,12 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // Master-protection invalidation, which had to guess from a hard-coded
       // list before any effect could say so itself.
       preventsAction: new fields.BooleanField({ initial: false }),
+      // An effect that lands PAST the target's defences. The 'Kiritsugu' debuff
+      // *"ignores Debuff Resist and Debuff Immune effects"*: the registry and
+      // the applier read both, and no schema kept either, so the Mark never
+      // passed an immunity in a live world (#98).
+      bypassesImmunity: new fields.BooleanField({ required: false, initial: false }),
+      bypassesResistance: new fields.BooleanField({ required: false, initial: false }),
       periodic: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       // What a TERMINAL effect does when it lands. Appendix A's Instakill and
       // Death are consequences rather than conditions, so they carry an action

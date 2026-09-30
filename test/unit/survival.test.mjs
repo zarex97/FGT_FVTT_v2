@@ -185,7 +185,7 @@ export const EFFECT_ROUTES = {
     "polarity", "volatility", "valence", "stacking", "baseChance", "severity", "preventsAction",
     "families", "suppressesOtherEffects", "defaultMagnitude", "defaultDuration", "unremovable",
     "allySelfBypassesResistance", "maxStacks", "blocks", "blockedBy", "replaces", "periodic",
-    "terminal", "uses", "absorbs", "onRemove", "rules", "bypassesImmunity",
+    "terminal", "uses", "absorbs", "onRemove", "rules", "bypassesImmunity", "bypassesResistance",
     "onApply",
   ].map((k) => [k, same(k)])),
   contentId: same("id"),

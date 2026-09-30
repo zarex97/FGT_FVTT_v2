@@ -32,6 +32,8 @@ The gate checks three sources: effect-specific immunity (`immune:<effectId>`), c
 
 **Exception: Self/ally bypass.** A debuff with `allySelfBypassesResistance` — `Decoy` and `Decoy (Scapegoat)` — skip immunity entirely when the caster and target match or share a faction. The reasoning: Decoy is defensive and used on oneself to feed a counter; one's own Debuff Immune would otherwise block one's own tool. Steps 2 (exclusivity) and 5 (stacking) still run; only immunity and resistance (steps 1 and 3) are skipped (`module/engine/effect-applier.mjs:75-102`).
 
+**Exception: an effect that bypasses.** `bypassesImmunity` passes every class of immunity (Debuff Immune and its scoped kin) at this gate, though not one that names the effect itself; `bypassesResistance` zeroes step 3's resistance. The 'Kiritsugu' debuff carries both: it *"ignores Debuff Resist and Debuff Immune effects"*. Neither flag was kept by the schema, and the immunity flag was read only by step 3, after this gate had already refused (#98). Debuff Immune itself gates through its rule's `scope: debuffs` and `except` list (#103).
+
 **Sikera Ušum clause d: downgrade, not refusal.** A field's `ImmunityDowngrade` suppression can downgrade `Poison Immune` to `Poison Resist`, changing step 3's resistance value rather than blocking here. The instance inherits the immunity type; the gate returns null if a downgrade covers it (`module/engine/effect-applier.mjs:87-102`).
 
 Outcome: `passed` or `blocked`. If blocked, the chain stops; the result carries the blocking effect's name.

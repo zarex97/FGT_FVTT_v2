@@ -69,10 +69,7 @@ const KNOWN = {
     carriesOccupants: "#104", grailDestroyed: "#104" },
   // Read off a system that no schema declares it on.
   undeclared: { coveredByDebuffImmune: "#104", ignoresMagicResistance: "#104", zonDistance: "#104",
-    outsideZon: "#104", zones: "#104", effects: "#104", suppressions: "#104",
-    // Authored on Kiritsugu's Mark and read by the registry; the model check
-    // lists the same drop from the content side.
-    bypassesImmunity: "#98" },
+    outsideZon: "#104", zones: "#104", effects: "#104", suppressions: "#104" },
 };
 
 /* -------------------------------------------------------------------------- */
@@ -153,7 +150,7 @@ describe("the field ledger", () => {
   it("owns every known entry with an issue, and never gains one", () => {
     const all = Object.values(KNOWN).flatMap((m) => Object.values(m));
     for (const issue of all) expect(issue).toMatch(/^#\d+$/);
-    expect(all.length).toBeLessThanOrEqual(24);
+    expect(all.length).toBeLessThanOrEqual(23);
   });
 
   it("says how many system paths it cannot resolve", () => {

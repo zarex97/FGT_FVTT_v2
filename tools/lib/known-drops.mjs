@@ -18,7 +18,6 @@
 
 /** @type {ReadonlyArray<{file: string, path: string, issue: string}>} */
 export const KNOWN_BUILD_DROPS = Object.freeze([
-  { file: "packs/_source/effects/kiritsugu-mark.yml", path: "system.bypassesImmunity", issue: "#98" },
   { file: "packs/_source/platforms/golden-hind.yml", path: "system.normalAttack", issue: "#99" },
   { file: "packs/_source/platforms/hanging-gardens.yml", path: "system.range.targets", issue: "#100" },
   { file: "packs/_source/platforms/quetzalcoatlus.yml", path: "system.normalAttack", issue: "#99" },

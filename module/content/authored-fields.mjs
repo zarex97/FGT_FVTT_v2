@@ -83,6 +83,8 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   // escapes are declared and read. `periodic` is the only source of a damage
   // tick, read by `engine/scheduler.mjs#periodicOf` (#105).
   "periodic", "usableWhileConcealed", "concealmentBreakChance",
+  // The 'Kiritsugu' debuff's two bypasses, kept by the model since #98.
+  "bypassesImmunity", "bypassesResistance",
   // A current value paid once when an effect lands (#106).
   "onApply",
 ]);

@@ -30,7 +30,8 @@ id, name, img, polarity, volatility, valence, stacking, baseChance,
 severity, preventsAction, families, suppressesOtherEffects,
 defaultMagnitude, defaultDuration, unremovable, allySelfBypassesResistance,
 maxStacks, blocks, blockedBy, replaces, periodic, terminal, uses,
-absorbs, onRemove, onApply, rules, coveredByDebuffImmune, bypassesImmunity
+absorbs, onRemove, onApply, rules, coveredByDebuffImmune, bypassesImmunity,
+bypassesResistance
 ```
 
 `onRemove` runs when an instance expires; `onApply` runs once when one is created, never on a refresh.
