@@ -1794,9 +1794,9 @@ function resourceOf(authored) {
  * line per field, and a key the allowlist did not name compiled to its schema
  * default with nothing anywhere failing — `itemCost`, `summonVariant`, `rules`,
  * `itemHandling`, `agility`/`luck`, `npGateRound`, `alsoCountsAsAttackFor`,
- * and, measured when the allowlists went, `periodic` on every damage-over-time
- * effect, `bypassesImmunity`, Serenity's `usableWhileConcealed` and
- * `concealmentBreakChance`, and every Platform's `description`. The DataModel
+ * and, measured when the allowlists went, Kiritsugu's Mark's `bypassesImmunity`,
+ * Serenity's `usableWhileConcealed` and `concealmentBreakChance`, and every
+ * Platform's `description`. The DataModel
  * is now the one list of what may exist, and `tools/lib/model-check.mjs` holds
  * each compiled document to it at build time, so an undeclared key is a build
  * error rather than a lost Clause (ADR-0006, Ch. 40).

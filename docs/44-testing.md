@@ -105,6 +105,11 @@ prepares it and projects it with the real `snapshotUnit`, and loads each Effect 
   drop.
 - **read from the document** (`reader`) — the named file must still mention the key, so a reader that goes
   away takes the route with it.
+
+A projected route's target must itself have a reader outside the file that produces it. Reaching the
+snapshot or the registry is not the end of the Route: `periodic` reached the registry definition and was
+read by nobody there, while the scheduler ticked from its own `PERIODICS` table, and a test that stopped
+at the projection called that survival (#105).
 - **unread** — a key found with no reader at all, owned by an issue. The count may only shrink.
 
 A key with no route fails, naming the file and the last Hop it reached. Its first run found two: Raikou's
@@ -155,7 +160,7 @@ list of what it found, every entry owned by an issue:
 |---|---|---|
 | `KNOWN_DROPS` in `test/helpers/world.mjs` | the loud prune | #96 |
 | `KNOWN_BUILD_DROPS` in `tools/lib/known-drops.mjs` | the model check | #97–#100 |
-| `unread` routes in `test/unit/survival.test.mjs` | the survival test | #101 |
+| `unread` routes in `test/unit/survival.test.mjs` | the survival test | #101, #105 |
 | `KNOWN_RULE_DROPS` in `test/unit/rule-survival.test.mjs` | the rule-element survival test | #102, #103 |
 | `KNOWN` in `test/unit/field-ledger.test.mjs` | the field ledger | #104, #98 |
 

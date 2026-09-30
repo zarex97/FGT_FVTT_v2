@@ -7,8 +7,8 @@
  * The content pipeline used to decide what a YAML document may state with two
  * allowlists, `actorSystem()`/`itemSystem()`, that silently dropped anything
  * they did not name -- the mechanism that cost this project `npGateRound`,
- * `onEnd`, `countsTowardBudget` and, measured when they went, `periodic` on
- * every damage-over-time effect. The compile now passes authored keys through
+ * `onEnd`, `countsTowardBudget` and, measured when they went, Serenity's two
+ * concealment escapes. The compile now passes authored keys through
  * and the DataModel decides (Ch. 40). The content sync still needs to know
  * which keys the PACK owns, so the vocabulary lives here, and
  * `test/unit/authored-fields.test.mjs` holds it to what the corpus actually
@@ -79,8 +79,10 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "families", "suppressesOtherEffects", "valence", "stacking", "baseChance",
   "defaultMagnitude", "uses", "maxStacks", "absorbs", "defaultDuration",
   "unremovable", "blocks", "blockedBy", "replaces",
-  // Declared and read, and never compiled while the allowlist stood: a
-  // damage-over-time effect's tick, and Serenity's two concealment escapes.
+  // Never compiled while the allowlist stood. Serenity's two concealment
+  // escapes are declared and read. `periodic` is declared and copied into the
+  // registry, where nothing reads it: damage over time ticks from
+  // `engine/scheduler.mjs#PERIODICS` (#105).
   "periodic", "usableWhileConcealed", "concealmentBreakChance",
 ]);
 

@@ -24,7 +24,7 @@
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { loadSource, loadAssets } from "../../tools/lib/load.mjs";
 import { compileCorpus } from "../../tools/lib/content.mjs";
 import { installSystem, mismatches } from "../../tools/lib/foundry.mjs";
@@ -85,8 +85,10 @@ export const UNIT_ROUTES = {
   // Closed over the implication table, so the projection holds a superset.
   attributes: { at: "attributes", contains: true },
   parameters: { at: "parameters", from: (v) => v, project: (p) => Object.fromEntries(Object.entries(p ?? {}).map(([k, r]) => [k, text(r)])) },
-  // The authored ◈ expression; `sustainability` itself is resolved to Turns.
-  sustainability: same("sustainabilityMax"),
+  // Resolved to Turns by the projection itself (`sustainabilityTurns`). The
+  // authored expression is also copied to `sustainabilityMax`, which nothing
+  // reads (#105), so that is not a route.
+  sustainability: doc("module/rules/snapshot.mjs", "resolved to Turns by sustainabilityTurns"),
   movesOntoOccupiedPanels: same("ignoresOccupancy"),
   normalAttack: same("normalAttack"),
   contentVersion: doc("module/content/authored-fields.mjs", "a pack-owned key the content sync carries"),
@@ -185,6 +187,9 @@ export const EFFECT_ROUTES = {
     "allySelfBypassesResistance", "maxStacks", "blocks", "blockedBy", "replaces", "periodic",
     "terminal", "uses", "absorbs", "onRemove", "rules", "bypassesImmunity",
   ].map((k) => [k, same(k)])),
+  // Copied onto the registry definition and read by nobody there: damage over
+  // time ticks from `engine/scheduler.mjs#PERIODICS` (#105).
+  periodic: unread("#105", "the registry's copy has no reader; the scheduler reads its own table"),
   contentId: same("id"),
   description: doc("module/apps/actor-sheet/context.mjs", "the effect's text on the sheet"),
   source: doc("module/apps/actor-sheet/context.mjs", "where the effect came from, on the sheet"),
@@ -313,10 +318,42 @@ describe("every Authored Key survives its Route", () => {
 
   const report = (list) => list.join(String.fromCharCode(10));
 
+  it("routes only to a projected field something reads", () => {
+    // Reaching the snapshot or the registry is not the end of the Route: the
+    // projected field needs a reader too. `periodic` reached the registry and
+    // was read by nobody there, while the scheduler ticked from its own table,
+    // and a survival test that stopped at the projection called that survival
+    // (#105). The producer itself does not count as its own reader.
+    const strip = (t) => t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
+    const walk = (dir, out = []) => {
+      for (const f of readdirSync(dir)) {
+        const p = `${dir}/${f}`;
+        if (statSync(p).isDirectory()) walk(p, out);
+        else if (/\.(mjs|hbs)$/.test(f)) out.push(p);
+      }
+      return out;
+    };
+    const sources = [...walk("module"), ...walk("templates")].map((p) => [p, strip(readFileSync(p, "utf8"))]);
+    const unreadTargets = [];
+    for (const [table, producer] of [[UNIT_ROUTES, "module/rules/snapshot.mjs"],
+      [ABILITY_ROUTES, "module/rules/snapshot.mjs"], [EFFECT_ROUTES, "module/rules/registry.mjs"]]) {
+      for (const [key, route] of Object.entries(table)) {
+        for (const r of [route].flat().filter((x) => x.at)) {
+          // A property read, or a destructuring `{ key }` / `{ key, ... }`.
+          const read = new RegExp(String.raw`\.${r.at}\b(?!\s*=(?!=))|[{,]\s*${r.at}\b\s*[,}]`);
+          if (!sources.some(([p, text]) => p !== producer && read.test(text))) {
+            unreadTargets.push(`"${key}" is routed to \`${r.at}\`, which nothing outside ${producer} reads`);
+          }
+        }
+      }
+    }
+    expect(report(unreadTargets)).toBe("");
+  });
+
   it("leaves unread keys only where an issue owns them, and fewer over time", () => {
     const owned = [UNIT_ROUTES, ABILITY_ROUTES, EFFECT_ROUTES].flatMap((t) => Object.values(t)).filter((r) => r.unread);
     for (const r of owned) expect(r.unread).toMatch(/^#\d+$/);
-    expect(owned.length).toBeLessThanOrEqual(1);
+    expect(owned.length).toBeLessThanOrEqual(2);
   });
 
   it("on every Unit", () => {
