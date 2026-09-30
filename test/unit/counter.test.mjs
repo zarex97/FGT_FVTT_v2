@@ -286,3 +286,27 @@ describe("the redirect reaches the declaration", () => {
     expect(source).toMatch(/excludeUnitIds/);
   });
 });
+
+describe("a Counter is an Act (#107)", () => {
+  // Ruled by the game's author: a Unit that counter-attacks has Acted. Every
+  // clause keyed on Acting reads `turnState.acted` -- Bleed and Sap's ticks,
+  // Sikera Usum's "Acts then ends its Turn within the area" and "at the end of
+  // any Turn it Acts", Mad Enhancement's drain -- and the counter path paid the
+  // ability's price without ever stamping it, so a counterer stood inside every
+  // one of those clauses untouched. `runCounter` resolves through chat messages
+  // the test world does not model, so the stamp is held here in the source and
+  // proved on a live board (#68).
+  const source = readFileSync("module/engine/attack.mjs", "utf8");
+  const body = source.slice(source.indexOf("async function runCounter("), source.indexOf("\n}\n", source.indexOf("async function runCounter(")));
+
+  it("stamps the counterer's Turn Record as having Acted", () => {
+    expect(body).toMatch(/I\.markTurn\(counterer\.id,\s*\{\s*acted:\s*true\s*\}\)/);
+  });
+
+  it("stamps it without spending the counterer's attack for its own Turn", () => {
+    // `attacked` is what refuses a second attack on the Unit's own Turn; the
+    // record is stamped with THIS Turn's tick, so `acted` goes stale by then,
+    // and `attacked` must not be set here at all.
+    expect(body).not.toMatch(/markTurn\(counterer\.id,[^)]*attacked/);
+  });
+});
