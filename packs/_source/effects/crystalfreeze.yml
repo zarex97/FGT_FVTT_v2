@@ -25,13 +25,9 @@ baseChance: 100
 severity: normal
 preventsAction: true
 families: [bind]
-rules:
-  # The one clause with no reader, exactly as `freeze.yml` carries its Ice tick
-  # and nothing else. FIXED rather than Ice -- which is the other half of what
-  # separates the two rows, and the reason this is not authored by copying
-  # Freeze's line.
-  - key: OnEvent
-    event: roundEnd
-    automatic: true
-    then:
-      - { key: StatDelta, stat: "health.value", delta: -100 }
+# 100 at Round end, as Freeze. It too was ticked twice -- the scheduler's table
+# and an `OnEvent: roundEnd` here -- so a Crystalfrozen Unit lost 200 (#105).
+# FIXED rather than Ice is the other half of what separates the two rows; a
+# periodic tick ignores every damage modifier either way.
+periodic: { when: roundEnd, amount: 100, bypassModifiers: true }
+rules: []

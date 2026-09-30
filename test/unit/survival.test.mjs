@@ -87,7 +87,7 @@ export const UNIT_ROUTES = {
   parameters: { at: "parameters", from: (v) => v, project: (p) => Object.fromEntries(Object.entries(p ?? {}).map(([k, r]) => [k, text(r)])) },
   // Resolved to Turns by the projection itself (`sustainabilityTurns`). The
   // authored expression is also copied to `sustainabilityMax`, which nothing
-  // reads (#105), so that is not a route.
+  // reads, so that is not a route.
   sustainability: doc("module/rules/snapshot.mjs", "resolved to Turns by sustainabilityTurns"),
   movesOntoOccupiedPanels: same("ignoresOccupancy"),
   normalAttack: same("normalAttack"),
@@ -188,9 +188,6 @@ export const EFFECT_ROUTES = {
     "terminal", "uses", "absorbs", "onRemove", "rules", "bypassesImmunity",
     "onApply",
   ].map((k) => [k, same(k)])),
-  // Copied onto the registry definition and read by nobody there: damage over
-  // time ticks from `engine/scheduler.mjs#PERIODICS` (#105).
-  periodic: unread("#105", "the registry's copy has no reader; the scheduler reads its own table"),
   contentId: same("id"),
   description: doc("module/apps/actor-sheet/context.mjs", "the effect's text on the sheet"),
   source: doc("module/apps/actor-sheet/context.mjs", "where the effect came from, on the sheet"),
@@ -354,7 +351,7 @@ describe("every Authored Key survives its Route", () => {
   it("leaves unread keys only where an issue owns them, and fewer over time", () => {
     const owned = [UNIT_ROUTES, ABILITY_ROUTES, EFFECT_ROUTES].flatMap((t) => Object.values(t)).filter((r) => r.unread);
     for (const r of owned) expect(r.unread).toMatch(/^#\d+$/);
-    expect(owned.length).toBeLessThanOrEqual(2);
+    expect(owned.length).toBeLessThanOrEqual(1);
   });
 
   it("on every Unit", () => {

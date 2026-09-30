@@ -23,6 +23,7 @@ import { ANCHOR_IDS, SHAPE_IDS, CHOOSER_IDS } from "../../module/rules/targeting
 import { MODIFIER_KEYS } from "../../module/rules/damage/pipeline.mjs";
 import { ROUTES as AURA_ROUTES } from "../../module/rules/auras.mjs";
 import { TERRAIN } from "../../module/rules/terrain.mjs";
+import { PERIODIC_KEYS, PERIODIC_WHEN, PERIODIC_SCALINGS } from "../../module/rules/periodic.mjs";
 // The list `meetsRequirement` itself exports, not a second copy of it. A
 // hand-maintained duplicate is what `RULE_ELEMENT_KEYS` has to be held
 // against `EXECUTORS` by a test; where the reader already exports its own
@@ -1084,6 +1085,7 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     // vocabulary of their own.
     if (PACKS[dir]?.itemType === "ability") timingWindowsAreKnown(doc, path, problems);
     fieldIsOpenable(doc, path, problems);
+    periodicIsWellFormed(doc, path, problems);
     zonePhasesNameRealTerrain(doc, path, problems);
     aftermathIsComplete(doc, path, problems);
   }
@@ -1547,6 +1549,35 @@ function durationFields(doc) {
     if (el.duration !== undefined) out.push([`${where}.duration`, el.duration]);
   }
   return out;
+}
+
+/**
+ * An Effect's `periodic`, in the vocabulary `rules/periodic.mjs#periodicOf` reads.
+ *
+ * The block was authored for months against a reader that did not exist, and
+ * drifted: `formula: "25 * @stage"`, `staged: true`. Now that it is the only
+ * source of a tick (#105), a key the reader does not know is a tick that
+ * silently does not happen.
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} problems
+ */
+function periodicIsWellFormed(doc, path, problems) {
+  const p = doc.periodic;
+  if (p === undefined || p === null) return;
+  if (typeof p !== "object") {
+    problems.push(`${path}: periodic must be a mapping`);
+    return;
+  }
+  for (const key of Object.keys(p)) {
+    if (!PERIODIC_KEYS.includes(key)) problems.push(`${path}: periodic.${key} is not read by rules/periodic.mjs (#105)`);
+  }
+  if (!PERIODIC_WHEN.includes(p.when)) problems.push(`${path}: periodic.when "${p.when}" is not one of ${PERIODIC_WHEN.join(", ")}`);
+  if (typeof p.amount !== "number") problems.push(`${path}: periodic.amount must be a number, the tick at stage 1`);
+  if (p.scaling !== undefined && !PERIODIC_SCALINGS.includes(p.scaling)) {
+    problems.push(`${path}: periodic.scaling "${p.scaling}" is not one of ${PERIODIC_SCALINGS.join(", ")}`);
+  }
 }
 
 /**

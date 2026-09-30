@@ -23,9 +23,8 @@ baseChance: 100
 # No duration: Poison runs until it is cured. Every sheet that inflicts it with
 # a clock says so on the ability instead.
 #
-# The AMOUNT is not declared here, and deliberately. It is a function of the
-# stage rather than a constant, so `periodic.formula` -- which is a literal
-# string the scheduler hands to a die roller -- cannot express it. The catalogue
-# entry in `engine/scheduler.mjs` owns it, exactly as it does for Curse.
-periodic: { when: roundEnd, staged: true, bypassModifiers: true }
+# "Stage N deals 20 x 2^(N-1)": 20 at stage 1, `doubling`. This is the only
+# source of the tick; the scheduler's own table is gone (#105). Poison Heal
+# turns it into healing.
+periodic: { when: roundEnd, amount: 20, scaling: doubling, healConversion: poisHeal, bypassModifiers: true }
 rules: []

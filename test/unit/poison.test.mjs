@@ -10,11 +10,12 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { tickPeriodics, fireEvent, PERIODICS } from "../../module/engine/scheduler.mjs";
+import { tickPeriodics, fireEvent } from "../../module/engine/scheduler.mjs";
+import { effectDef } from "../helpers/effect-defs.mjs";
 import { normalizeHandler } from "../../module/rules/elements.mjs";
 import { applyEffect } from "../../module/engine/effect-applier.mjs";
 
-const ctx = { tick: 10, turnsPerRound: 3, rolls: {}, options: new Set() };
+const ctx = { tick: 10, turnsPerRound: 3, rolls: {}, options: new Set(), effectDef };
 
 /** A unit carrying one Poison instance at `stage`. */
 const poisoned = (stage, over = {}) => ({
@@ -107,7 +108,7 @@ describe("Deadly Poison", () => {
       id: "v", effects: ["burn", "deadlyPoison"], acted: true,
       effectInstances: [{ id: "e1", defId: "burn", expiry: null }],
     };
-    expect(tickPeriodics([unit], "roundEnd", ctx)[0].amount).toBe(PERIODICS.burn.amount({}));
+    expect(tickPeriodics([unit], "roundEnd", ctx)[0].amount).toBe(50);
   });
 
   it("still converts to healing for a Unit with PoisHeal", () => {

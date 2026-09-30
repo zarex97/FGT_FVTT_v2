@@ -11,39 +11,40 @@
 
 import { describe, it, expect } from "vitest";
 import { periodicDamageFor } from "../../module/engine/scheduler.mjs";
+import { effectDef } from "../helpers/effect-defs.mjs";
 
 describe("periodicDamageFor", () => {
   it("is null for an effect with no periodic tick", () => {
-    expect(periodicDamageFor({ defId: "defUp", stage: 0 }, { effects: [] })).toBe(null);
+    expect(periodicDamageFor({ defId: "defUp", stage: 0 }, { effects: [] }, effectDef)).toBe(null);
   });
 
   it("doubles Poison per stage — the number D29.4 says players get wrong", () => {
     const unit = { effects: ["poison"] };
-    expect(periodicDamageFor({ defId: "poison", stage: 1 }, unit)).toBe(20);
-    expect(periodicDamageFor({ defId: "poison", stage: 3 }, unit)).toBe(80);
-    expect(periodicDamageFor({ defId: "poison", stage: 4 }, unit)).toBe(160);
+    expect(periodicDamageFor({ defId: "poison", stage: 1 }, unit, effectDef)).toBe(20);
+    expect(periodicDamageFor({ defId: "poison", stage: 3 }, unit, effectDef)).toBe(80);
+    expect(periodicDamageFor({ defId: "poison", stage: 4 }, unit, effectDef)).toBe(160);
   });
 
   it("treats stage 0 as stage 1, as the tick does", () => {
-    expect(periodicDamageFor({ defId: "poison", stage: 0 }, { effects: [] })).toBe(20);
+    expect(periodicDamageFor({ defId: "poison", stage: 0 }, { effects: [] }, effectDef)).toBe(20);
   });
 
   it("applies Deadly Poison's amplifier, so Stage 4 reads 320 not 160", () => {
     const unit = { effects: ["poison", "deadlyPoison"] };
-    expect(periodicDamageFor({ defId: "poison", stage: 4 }, unit)).toBe(320);
+    expect(periodicDamageFor({ defId: "poison", stage: 4 }, unit, effectDef)).toBe(320);
   });
 
   it("does not amplify an effect the amplifier does not name", () => {
     const unit = { effects: ["burn", "deadlyPoison"] };
-    expect(periodicDamageFor({ defId: "burn", stage: 0 }, unit)).toBe(50);
+    expect(periodicDamageFor({ defId: "burn", stage: 0 }, unit, effectDef)).toBe(50);
   });
 
   it("scales Curse by stage", () => {
-    expect(periodicDamageFor({ defId: "curse", stage: 3 }, { effects: [] })).toBe(75);
+    expect(periodicDamageFor({ defId: "curse", stage: 3 }, { effects: [] }, effectDef)).toBe(75);
   });
 
   it("survives a unit with no effect list at all", () => {
-    expect(periodicDamageFor({ defId: "burn" }, null)).toBe(50);
+    expect(periodicDamageFor({ defId: "burn" }, null, effectDef)).toBe(50);
   });
 });
 
@@ -59,29 +60,29 @@ describe("Sikera Ušum clause e — the field's VulnerabilityAmplifier", () => {
 
   it("doubles Poison damage for a unit with a standing weakTo marker", () => {
     const unit = inField({ effects: ["poison", "weakToPoison"] });
-    expect(periodicDamageFor({ defId: "poison", stage: 1 }, unit)).toBe(40);
+    expect(periodicDamageFor({ defId: "poison", stage: 1 }, unit, effectDef)).toBe(40);
   });
 
   it("doubles it for a unit whose own resist contribution already raises Poison's chance", () => {
     const unit = inField({
       applicationChances: [{ direction: "incoming", effectId: "poison", value: -20 }],
     });
-    expect(periodicDamageFor({ defId: "poison", stage: 1 }, unit)).toBe(40);
+    expect(periodicDamageFor({ defId: "poison", stage: 1 }, unit, effectDef)).toBe(40);
   });
 
   it("does nothing for an ordinary unit standing in the same field", () => {
     // Not weak to Poison at all -- the field widens an EXISTING weakness, it
     // does not invent one.
-    expect(periodicDamageFor({ defId: "poison", stage: 1 }, inField())).toBe(20);
+    expect(periodicDamageFor({ defId: "poison", stage: 1 }, inField(), effectDef)).toBe(20);
   });
 
   it("does not amplify an unrelated effect the amplifier does not name", () => {
     const unit = inField({ effects: ["burn", "weakToPoison"] });
-    expect(periodicDamageFor({ defId: "burn", stage: 0 }, unit)).toBe(50);
+    expect(periodicDamageFor({ defId: "burn", stage: 0 }, unit, effectDef)).toBe(50);
   });
 
   it("stacks with Deadly Poison rather than replacing it", () => {
     const unit = inField({ effects: ["poison", "deadlyPoison", "weakToPoison"] });
-    expect(periodicDamageFor({ defId: "poison", stage: 1 }, unit)).toBe(80);
+    expect(periodicDamageFor({ defId: "poison", stage: 1 }, unit, effectDef)).toBe(80);
   });
 });

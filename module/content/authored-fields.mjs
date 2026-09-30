@@ -80,9 +80,8 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "defaultMagnitude", "uses", "maxStacks", "absorbs", "defaultDuration",
   "unremovable", "blocks", "blockedBy", "replaces",
   // Never compiled while the allowlist stood. Serenity's two concealment
-  // escapes are declared and read. `periodic` is declared and copied into the
-  // registry, where nothing reads it: damage over time ticks from
-  // `engine/scheduler.mjs#PERIODICS` (#105).
+  // escapes are declared and read. `periodic` is the only source of a damage
+  // tick, read by `engine/scheduler.mjs#periodicOf` (#105).
   "periodic", "usableWhileConcealed", "concealmentBreakChance",
   // A current value paid once when an effect lands (#106).
   "onApply",

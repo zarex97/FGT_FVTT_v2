@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { effectDef } from "../helpers/effect-defs.mjs";
 import * as I from "../../module/engine/intents.mjs";
 import { applyEffect, applyBatch } from "../../module/engine/effect-applier.mjs";
 import {
@@ -478,7 +479,7 @@ describe("the transition table has no dead ends", () => {
 /*  Scheduler                                                                 */
 /* ========================================================================== */
 
-const sctx = { tick: 10, round: 4, turnsPerRound: 3, activeFactionId: "a" };
+const sctx = { tick: 10, round: 4, turnsPerRound: 3, activeFactionId: "a", effectDef };
 const board = (units) => ({ units });
 
 describe("the weak-point rung", () => {

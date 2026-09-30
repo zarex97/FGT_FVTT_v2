@@ -24,8 +24,9 @@
 > during the Asterios and Penthesilea conversions were found. A missing definition cannot
 > therefore reach a compendium and silently do nothing.
 >
-> `bleed` is worth a note: `scheduler.PERIODICS` has always known how to *tick* it, and there
-> was no definition able to *inflict* it until D1.
+> `bleed` is worth a note: the scheduler's old periodic table always knew how to *tick* it, and
+> there was no definition able to *inflict* it until D1. The table is gone; every tick is now the
+> definition's own `periodic` (#105).
 
 Every named effect in F/GT, with its classification (Ch. 10), its mechanism, its stacking rule,
 and its implementation note. This is the authoritative reference the compendium is built from.
@@ -647,7 +648,7 @@ Two needed more.
 | `Off.Debuff Immune` / `Def.Debuff Immune` | the same gate's two **valence** branches |
 | `No Buff` | that gate's one buff branch — `polarity === "buff"`, the single line in the function that asks about a buff |
 | `NP Lock` / `NP Degen` / `NP Lag` | three short-circuits at the top of `scheduler.cooldownRate` |
-| `PoisHeal` / `CursHeal` / `FlamHeal` | **two** readers each: stage 0's element conversion *and* `PERIODICS[…].healConversion` |
+| `PoisHeal` / `CursHeal` / `FlamHeal` | **two** readers each: stage 0's element conversion *and* the `healConversion` on Poison's, Curse's and Burn's authored `periodic` |
 | `Luck Boost` / `Luck Loss` | four call sites, each `held.includes(id) \|\| plan.forceTable === …` |
 | `Stop` | `PREVENT_ALL`, plus **two** scheduler sweeps — durations and cooldowns are different passes |
 | `Crystalfreeze` | stage 16 iterates `[["freeze", …], ["crystalfreeze", …]]`; only one had a document |

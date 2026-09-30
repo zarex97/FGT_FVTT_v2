@@ -10,7 +10,9 @@ valence: offensive
 stacking: noneNoRefresh
 baseChance: 100
 defaultDuration: "2◈"
-periodic: { when: roundEnd, formula: "50", bypassModifiers: true }
+# Read by `engine/scheduler.mjs#periodicOf`, the only source of the tick (#105).
+# Flame Heal turns it into healing.
+periodic: { when: roundEnd, amount: 50, healConversion: flamHeal, bypassModifiers: true }
 rules:
   - key: StatDelta
     stat: baseAttack.str

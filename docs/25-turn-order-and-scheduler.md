@@ -58,7 +58,10 @@ Between the two sequences, the global turn counter advances and the budget is re
 
 `endRound` runs once per Round (`module/engine/scheduler.mjs:179-211`):
 
-1. Tick periodics on `roundEnd` (Burn, Poison, Freeze, etc.).
+1. Tick periodics on `roundEnd` (Burn, Poison, Freeze, etc.). Every tick is the Effect definition's own
+   `periodic`, read by `rules/periodic.mjs#periodicOf`: `amount` at stage 1, `scaling` for how it grows
+   (`perStage` for Curse, `doubling` for Poison), `actedOnly`, `healConversion`. There is no table in the
+   scheduler, and the validator refuses a key the reader does not know (#105).
 2. Fire `roundEnd` event handlers.
 3. Expire effects expiring on round end.
 4. Apply Home Base regeneration and three-Round debuff cures.
