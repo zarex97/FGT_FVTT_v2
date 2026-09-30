@@ -96,3 +96,17 @@ describe("CritModifier", () => {
     expect(chance([delivered])).toBe(70);
   });
 });
+
+// Penthesilea's Charisma, active: *"all damage dealt by allied Units within a
+// 2 panel area of herself is increased by 20%; if NP, 10%."*
+describe("Aura", () => {
+  it("carries npValue: Atk Up (Charisma) is 20% to a Normal Attack, 10% to an NP", () => {
+    const charisma = content("effects/atk-up-charisma.yml");
+    const aura = { ...charisma.rules[0], value: 20, npValue: 10 };
+    const [delivered] = contributions({ name: charisma.name, rules: [aura] }).auras;
+    expect(delivered).toMatchObject({ key: "atkUp", value: 20, npValue: 10 });
+    const bonus = (kind) => hit([{ ...delivered, predicate: null }], { kind }).total / hit([], { kind }).total;
+    expect(bonus("normal")).toBeCloseTo(1.2);
+    expect(bonus("np")).toBeCloseTo(1.1);
+  });
+});

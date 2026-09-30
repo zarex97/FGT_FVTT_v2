@@ -1692,10 +1692,15 @@ export const EXECUTORS = Object.freeze({
    * says so, which by default it does.
    */
   Aura(el, { rank, source, ability, out, ctx }) {
+    const np = el.npValue !== undefined ? resolveValue(el, rank, ctx, "npValue") : undefined;
     out.auras.push({
       key: el.modifierKey ?? "aura", radius: el.radius ?? 2,
       relations: el.relations ?? ["ally", "self"],
       value: scalar(resolveValue(el, rank, ctx)),
+      // An aura that IS its modifier carries the NP figure the same way a
+      // `DamageModifier` does. Atk Up (Charisma) is *"20%; if NP, 10%"*, and
+      // the NP half was dropped here (#103).
+      ...(np !== null && np !== undefined ? { npValue: scalar(np) } : {}),
       component: el.component ?? null,
       stacking: el.stacking ?? "highestOnly", source,
       // An aura may carry SEVERAL modifiers rather than being one. Medea's Item

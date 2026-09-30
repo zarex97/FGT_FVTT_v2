@@ -107,6 +107,8 @@ executor actually reads, rather than of its descriptor's ids.
   the coin flip was replaced, so six clauses raised nobody's crit chance: Oblivion Correction,
   Existence Outside the Domain, Independent Action (Viy), Pollux's Twin God's Divine Core, Area Crit
   Up and Crit Up (Viy). An aura's `CritModifier` payload runs through the executor too.
+- **`Aura`** carries `npValue` when the aura is its own modifier: Atk Up (Charisma) is 20%, and 10%
+  against a Noble Phantasm.
 
 ## Open questions
 
