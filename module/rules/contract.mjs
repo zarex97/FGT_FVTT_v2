@@ -54,6 +54,7 @@ export function canAttemptContract(contractor, servant, board) {
   const intruder = (board?.units ?? []).find((u) =>
     u.id !== contractor.id
     && u.id !== servant.id
+    && !u.defeated
     && isEnemy(u, contractor)
     && u.panel
     && chebyshev(u.panel, contractor.panel) <= ENEMY_CLEARANCE);

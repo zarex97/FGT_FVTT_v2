@@ -151,6 +151,11 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   const includeSelf = resolveIncludeSelf(sel, spec);
   survivors = survivors.filter((u) => {
     if (u.id === caster.id) return includeSelf || drop(u, "the attacker itself");
+    // A defeat never removes the token, so a corpse stands in the area like
+    // anybody else. It is listed, with its reason, and never a target: no
+    // ability in the corpus acts on the defeated, and one that ever does
+    // authors a key for it (#168).
+    if (u.defeated) return drop(u, "defeated");
     // *"...except herself AND THE PREVIOUSLY TARGETED UNIT"* -- Xiuhcoatl's
     // splash. `includeSelf: false` above is the first half; this is the second,
     // and only a SECOND resolution has a first one to exclude. Inert without a
@@ -194,7 +199,10 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   if (relations.has("enemy")) {
     const forced = (caster.suppressions ?? [])
       .filter((sup) => sup?.scope === "targeting" && sup.forceTarget)
-      .map((sup) => sup.forceTarget);
+      .map((sup) => sup.forceTarget)
+      // A forced target that has been defeated forces nothing: the narrowing
+      // below would otherwise leave the attacker no legal target at all (#168).
+      .filter((id) => !(board.units ?? []).some((u) => u.id === id && u.defeated));
     if (forced.length > 0) {
       survivors = survivors.filter((u) =>
         forced.includes(u.id) || drop(u, "the attacker is forced to attack another unit"));
@@ -571,7 +579,7 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     for (const id of [...(caster?.linkedGroup?.memberIds ?? [])]) {
       if (chosen.some((t) => t.unitId === id)) continue;
       const partner = (board.units ?? []).find((u) => u.id === id);
-      if (!partner) continue;
+      if (!partner || partner.defeated) continue;
       chosen = [...chosen, { ...toTargeted(partner, caster, bands), viaPartnerClause: true }];
     }
   }

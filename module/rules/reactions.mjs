@@ -241,7 +241,9 @@ export function allyReactions({ defender, board, attack, attacker = null, actorF
   if (!defender?.panel) return out;
 
   for (const unit of board?.units ?? []) {
-    if (!unit.panel) continue;
+    // A defeated Unit projects no reaction: a dead EMIYA raises no Rho Aias
+    // (#168).
+    if (!unit.panel || unit.defeated) continue;
     // "Any allied Unit (INCLUDING EMIYA)" -- the projector may itself be the
     // defender, which is why `self` counts and the id is not excluded.
     const relation = unit.id === defender.id ? "self" : relationOf(unit, defender, board);

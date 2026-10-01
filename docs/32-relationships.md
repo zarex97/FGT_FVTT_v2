@@ -90,6 +90,8 @@ before any step that mutates what it selects on.**
 
 4. **Linked groups count Units, not Servants.** Two 0.5-Unit Dioscuri acting together make 1.0 Unit total, which does not exceed the "more than one" threshold (`module/rules/relationships.mjs:244-246`, `module/test/unit/relationships.test.mjs:237-240`).
 
+4a. **A defeated Servant guards nobody.** `guardsOf` skips it, so the protection, the Counter redirect, the zone denial and the cover that read it all stop at once; a defeat leaves the token on the board (#168).
+
 5. **Conquest happens in one transaction.** A free Servant and a new contract must be written together; no intermediate Free state is observable (`module/engine/contract.mjs:79-82`).
 
 6. **Partner satisfaction is unioned, not intersected.** When `zonSatisfaction: "any"`, all members benefit if any partner is within ZON (`module/rules/linked-group.mjs:115-122`).

@@ -49,6 +49,10 @@ export function collectAuras(unit, board, index = null) {
   const found = [];
 
   for (const { source, aura } of candidateAuras(unit, board, index)) {
+    // A defeated Unit's token stays on the board, and its auras do not: a dead
+    // Medea shielded her ally with Item Construction for as long as the body
+    // stood next to him (#168).
+    if (source.defeated) continue;
     const relations = aura.relations ?? ["ally", "self"];
     if (!relations.includes(relationOf(source, unit, board))) continue;
 
