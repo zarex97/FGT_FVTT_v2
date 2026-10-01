@@ -23,7 +23,7 @@ import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
-import { movePlatform, actionSourceFor, withinFootprint, canUnboard } from "../rules/platforms.mjs";
+import { movePlatform, actionSourceFor, withinFootprint, canUnboard, boardingLanding } from "../rules/platforms.mjs";
 import { hasGranted, GRANTS } from "../rules/granted.mjs";
 import { contains as fieldContains } from "../rules/bounded-fields.mjs";
 import { repaintFollowing } from "./terrain.mjs";
@@ -459,8 +459,22 @@ async function knockBackOccupants(moverId, movement = null) {
       // *"Bašmu cannot leave the HGoB"*: the edge holds a bound summon.
       if (canUnboard(occupant, under).reason === "boundToPlatform") continue;
       const { knockOff } = await import("./platforms.mjs");
-      await knockOff({ unitId: occupant.id, platformId: under.id });
+      const fell = await knockOff({ unitId: occupant.id, platformId: under.id });
       board = boardSnapshot(game.combats.active);
+      // Not knocked OFF is not "not knocked back": a Master its Servant caught,
+      // or a Unit that kept its footing, still has to clear the square the
+      // mover is arriving at (Ch. 46 §46.4-CC).
+      if (fell?.ok && !fell?.landed) {
+        const now = board.units.find((u) => u.id === occupant.id);
+        const inside = now?.panel && footprint.some((p) => p.i === now.panel.i && p.j === now.panel.j);
+        const spot = inside ? boardingLanding(now, under, board, footprint) : null;
+        const token = spot ? canvas.tokens?.placeables?.find((t) => t.actor?.id === occupant.id) : null;
+        if (token) {
+          const point = canvas.grid.getTopLeftPoint(spot);
+          await displaceToken(token.document, { x: point.x, y: point.y });
+          board = boardSnapshot(game.combats.active);
+        }
+      }
       continue;
     }
 
