@@ -252,7 +252,7 @@ export function contains(field, panel, board) {
  * @param {object} board
  * @returns {number|null} `null` when nothing says
  */
-function levelOf(field, board) {
+export function levelOf(field, board) {
   const geometry = field.geometry ?? {};
   const unitLevel = (id) => (board?.units ?? []).find((u) => u.id === id)?.panel?.k ?? null;
   if (geometry.kind === "followsUnit") {

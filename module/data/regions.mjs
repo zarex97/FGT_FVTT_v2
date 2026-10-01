@@ -64,6 +64,13 @@ export class TerrainBehavior extends Base {
       // closes -- on every close path, with no tag to reconstruct (#152). A
       // field's OWN painted ground is erased by its authored `onEnd`.
       boundToFieldId: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+
+      // The Scene Level the area is painted on, as a field is on one
+      // (`rules/bounded-fields.mjs#contains`). A ground area does not reach a
+      // Unit aboard a platform above it, nor a deck's area one on the ground
+      // under it. `null` is every Level: a GM's hand-drawn area names none,
+      // exactly as a Foundry Region with no `levels` covers them all (#151).
+      level: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
     };
   }
 }
