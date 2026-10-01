@@ -182,7 +182,7 @@ describe("the Range she attacks with", () => {
 
   it("targetSpecFor reads it for a bare Normal Attack", () => {
     const src = readFileSync("module/engine/attack.mjs", "utf8");
-    const spec = src.slice(src.indexOf("function targetSpecFor(attacker, ability, options = null)"), src.indexOf("export function targetSpecForAttack"));
-    expect(spec).toMatch(/attackRangeOf\(/);
+    const spec = src.slice(src.indexOf("function targetSpecFor(attacker, ability, options = null, board = boardSnapshot())"), src.indexOf("export function targetSpecForAttack"));
+    expect(spec).toMatch(/attackSourceOf\(/);
   });
 });

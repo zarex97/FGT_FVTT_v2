@@ -912,21 +912,49 @@ export function turnPartnersOf(unit, board, action = null) {
 }
 
 /**
- * The Range a Normal Attack by this Unit reaches.
+ * What a Normal Attack by this Unit swings FROM: the panels it measures Range
+ * out of, and the Range it reaches.
  *
  * Her mount's while she rides one that replaces her Normal Attack, and her own
  * otherwise. The damage source already read the mount (`normalAttackAt`) while
  * the targeting read hers, so a Range Up on her lengthened the mount's attack
- * and one on the mount did not: both are 2 panels today, which hides it. One
- * answer for the preview and the resolution.
+ * and one on the mount did not: both are 2 panels today, which hides it. And
+ * the Range was the mount's but the panels it was measured from were still her
+ * one panel, so a target 2 panels from the far side of a 2x2 mount was refused
+ * as 3 away (#171). One answer for the preview, the targeting session, the
+ * resolution and the Counter rung.
+ *
+ * Only `attacksAsPlatform` swaps anything. An ability she casts herself -- her
+ * Spells, her Skills -- is hers, measured from her own footprint with her own
+ * Range, and does not come through here.
+ *
+ * @param {object} unit a BOARD unit
+ * @param {object} board
+ * @returns {{platform: object|null, attacksAsPlatform: boolean,
+ *            range: number|undefined, panels: Array<{i: number, j: number}>}}
+ */
+export function attackSourceOf(unit, board) {
+  const { platform, attacksAsPlatform } = actionSourceFor(unit, board);
+  const swings = attacksAsPlatform && platform ? platform : null;
+  const from = swings ?? unit;
+  return {
+    platform: swings,
+    attacksAsPlatform: Boolean(swings),
+    range: typeof swings?.range === "number" ? swings.range : unit?.range,
+    panels: from?.panels?.length ? from.panels : (from?.panel ? [from.panel] : []),
+  };
+}
+
+/**
+ * The Range a Normal Attack by this Unit reaches.
  *
  * @param {object} unit a BOARD unit
  * @param {object} board
  * @returns {number|undefined}
+ * @see attackSourceOf
  */
 export function attackRangeOf(unit, board) {
-  const { platform, attacksAsPlatform } = actionSourceFor(unit, board);
-  return attacksAsPlatform && typeof platform?.range === "number" ? platform.range : unit?.range;
+  return attackSourceOf(unit, board).range;
 }
 
 /**

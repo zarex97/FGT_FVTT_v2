@@ -43,7 +43,7 @@ import { test as testPredicate, explain as explainPredicate } from "../rules/pre
 import { thresholdFor, damageFromDice, thresholdModifiers } from "../rules/damage/dice-count.mjs";
 import { normalAttackAt } from "../rules/normal-attack.mjs";
 import {
-  actionSourceFor, turnPartnersOf, attackRangeOf, platformFactorsOf, platformTierModifiers,
+  actionSourceFor, turnPartnersOf, attackSourceOf, platformFactorsOf, platformTierModifiers,
 } from "../rules/platforms.mjs";
 import { GRANTS, hasGranted } from "../rules/granted.mjs";
 import { coveringServantsFor, coverFactor, shoveDestination, isCovering } from "../rules/cover.mjs";
@@ -137,7 +137,7 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
       selection: { relations: ["enemy"], chooser: "all" },
       pathTargets: placement.pathTargets,
     }
-    : targetSpecFor(attacker, ability, options);
+    : targetSpecFor(attacker, ability, options, board);
   // The scale travels with the placement so the isolation filter can honour a
   // field's `piercedBy` -- see `rules/targeting/resolve.mjs` step 4c.
   const targets = spec.pathTargets
@@ -1898,6 +1898,7 @@ function agilityRefusals(ability, attackerId, defenderId) {
  *    been decided.
  *
  * @param {object} state the Combat Process state
+ * @param {object|null} [board] the board the attack is on; the live one when omitted
  * @returns {Promise<void>}
  */
 async function runDamageStepStartHandlers(state) {
@@ -3171,15 +3172,18 @@ function counterAvailable(state) {
   if (!attacker?.panel || !defender?.panel) return false;
 
   const held = defender.effects ?? [];
+  // What the counter swings from: the mount's footprint and Range for a rider
+  // whose mount replaces her Normal Attack, and her own otherwise (#171).
+  const swing = attackSourceOf(defender, board);
   return process.canCounter(state, {
     defenderAlive: (defenderDoc.system?.health?.value ?? 0) > 0,
     // The DU's range, not the AU's: the counter is the DU attacking.
     // Footprint to footprint: a 3x3 Bašmu counters whatever any part of it
     // reaches (§46.4-BT).
     attackerInRange: inAttackRangeBetween(
-      defender.panels?.length ? defender.panels : [defender.panel],
+      swing.panels,
       attacker.panels?.length ? attacker.panels : [attacker.panel],
-      defender.range ?? 1,
+      swing.range ?? 1,
     ),
     attackerHasAccel: (attacker.effects ?? []).includes("accel"),
     defenderCanAct: defender.canAct !== false,
@@ -3275,7 +3279,7 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
   const mustCatch = counterMustCatchAttacker(ability);
   let targets = { units: [{ unitId: mustCatch ? requiredId : counterer.id }] };
   if (ability && placement && mustCatch) {
-    const spec = targetSpecForAttack(counterer, ability, options);
+    const spec = targetSpecForAttack(counterer, ability, options, board);
     targets = resolveTargets(
       { ...spec, limits: { ...(spec.limits ?? {}), requireUnitId: requiredId, excludeUnitIds } },
       self, board, { ...placement, reach: "attack" },
@@ -3842,7 +3846,7 @@ async function applyDamage(state, message) {
 
   // Once, and shared: the option set the predicates read and the context the
   // pipeline reads have to be describing the same attack.
-  const facts = attackFacts(attacker, defender, state);
+  const facts = attackFacts(attacker, defender, state, board);
   const options = rollOptionsFor({ attacker, defender, attack: facts });
   // The block THIS resolution is under: the aftermath's own for a splash, the
   // primary's (resolved for its behaviour) otherwise (#136).
@@ -4305,6 +4309,7 @@ function doubleDice(formula) {
  * Unit the board has no row for, so a tokenless actor still works.
  *
  * @param {object} state the Combat Process state
+ * @param {object|null} [board] the board the attack is on; the live one when omitted
  * @returns {{attacker: object|null, defender: object|null}}
  */
 function riderSubjects(state) {
@@ -5131,9 +5136,10 @@ function boardSnapshot() {
  * @param {object|null} ability
  * @param {Set<string>|null} [options] the caster's own roll options, for
  *   `targeting.branches`
+ * @param {object} [board] the board the spec is read against; the live one by default
  * @returns {object}
  */
-function targetSpecFor(attacker, ability, options = null) {
+function targetSpecFor(attacker, ability, options = null, board = boardSnapshot()) {
   // The PROJECTION, not the document. A Unit's Range is not always the one its
   // sheet was written with -- `rules/snapshot.mjs` folds in `RangeDelta`
   // contributions and a variant override, and Mannanán's Holder Mode uses the
@@ -5144,7 +5150,6 @@ function targetSpecFor(attacker, ability, options = null) {
   //
   // The attacker still travels through so a bare Normal Attack can carry a
   // shape of its own -- Kagome: Famine's "3x3 panel area".
-  const board = boardSnapshot();
   const projected = unitFrom(board, attacker) ?? unitSnapshot(attacker);
   const ownRange = typeof projected.range === "number"
     ? projected.range
@@ -5153,13 +5158,19 @@ function targetSpecFor(attacker, ability, options = null) {
   // swing, with the mount's Range -- the damage source already read the mount,
   // and the targeting read hers, so the preview and the resolution disagreed
   // the day the two differed (#143). An ability states its own Range.
-  const range = ability ? ownRange : (attackRangeOf({ ...projected, range: ownRange }, board) ?? ownRange);
+  //
+  // And it is measured from the MOUNT's footprint, not from her one panel
+  // (#171): the spec names the mount as its origin, and the resolver reads the
+  // panels off it. The same `attackSourceOf` the Counter rung asks.
+  const source = ability ? null : attackSourceOf({ ...projected, range: ownRange }, board);
+  const range = source?.range ?? ownRange;
   // ...and the war Region's say over an area that is the ability's own field.
   // `specForAbility` is pure and shared by every ability in the game; the
   // Region belongs to the board, which only this layer has.
-  return regionSizedTargeting(
+  const spec = regionSizedTargeting(
     specForAbility(ability, range, options, projected), ability, board.warRegion ?? null,
   );
+  return source?.platform ? { ...spec, anchor: { ...spec.anchor, originUnitId: source.platform.id } } : spec;
 }
 
 /**
@@ -5172,10 +5183,11 @@ function targetSpecFor(attacker, ability, options = null) {
  * @param {object} attacker an `FGTActor`
  * @param {object|null} ability
  * @param {Set<string>|null} [options]
+ * @param {object} [board] the board the spec is read against; the live one by default
  * @returns {object}
  */
-export function targetSpecForAttack(attacker, ability, options = null) {
-  return targetSpecFor(attacker, ability, options);
+export function targetSpecForAttack(attacker, ability, options = null, board = boardSnapshot()) {
+  return targetSpecFor(attacker, ability, options, board);
 }
 
 /**
@@ -5236,12 +5248,28 @@ function baseSpecFor(attacker, ability, range = null, options = null, block = un
   // answered from two different places.
   const board = boardSnapshot();
   const projected = unitFrom(board, attacker) ?? unitSnapshot(attacker);
-  // A mount that replaces its rider's Normal Attack supplies the whole spec,
-  // and its sources name `unit: "mount"` — which stage 1 resolves through
-  // `ctx.units`, populated beside this by `damageContext`.
-  const { platform, attacksAsPlatform } = actionSourceFor(projected, board);
+  return normalAttackBase(projected, board, range);
+}
+
+/**
+ * The base a bare Normal Attack by this Unit is built from.
+ *
+ * A mount that replaces its rider's Normal Attack supplies the whole spec, and
+ * its sources name `unit: "mount"` — which stage 1 resolves through
+ * `ctx.units`, populated beside this by `namedUnits`. One function for the
+ * resolution (`baseSpecFor`) and the targeting preview (`previewContext`),
+ * because the preview built its own and showed the rider's BA(STR) 125 where the
+ * card dealt the mount's 150 (#167).
+ *
+ * @param {object} unit a BOARD unit -- a bare `unitSnapshot` carries no `platformId`
+ * @param {object} board
+ * @param {number|null} range panels between attacker and defender
+ * @returns {{sources: object[]}}
+ */
+function normalAttackBase(unit, board, range) {
+  const { platform, attacksAsPlatform } = actionSourceFor(unit, board);
   return {
-    sources: normalAttackAt(projected, range, {
+    sources: normalAttackAt(unit, range, {
       platform: attacksAsPlatform ? platform : null,
     }).sources,
   };
@@ -5276,9 +5304,10 @@ function rollOptions(attacker, defender, state, extra = {}) {
  * @param {object} attacker attacker snapshot
  * @param {object} defender defender snapshot
  * @param {object} state the Combat Process state
+ * @param {object|null} [board] the board the attack is on; the live one when omitted
  * @returns {object}
  */
-export function attackFacts(attacker, defender, state) {
+export function attackFacts(attacker, defender, state, board = null) {
   const range = attackDistance(attacker, defender);
   const kind = state.attack?.kind ?? "normal";
   // HOW THE DEFENDER REACTED, so a predicate can ask. `state.reaction` is set
@@ -5300,7 +5329,7 @@ export function attackFacts(attacker, defender, state) {
   // combined STR/MAG shot that Magic Resistance does not see; at Range 2 the
   // same button is a plain STR attack.
   if (kind !== "normal") return facts;
-  const source = actionSourceFor(attacker, currentBoard());
+  const source = actionSourceFor(attacker, board ?? currentBoard());
   const normal = normalAttackAt(attacker, range, {
     platform: source.attacksAsPlatform ? source.platform : null,
   });
@@ -5324,15 +5353,23 @@ export function attackFacts(attacker, defender, state) {
  * thing that builds an attack for the pipeline, and the preview is a promise
  * about what the resolution will do (#124).
  *
+ * A bare Normal Attack by a rider whose mount replaces it is built the way the
+ * resolution builds it (#167): the base through `normalAttackBase`, and the
+ * named `mount` unit through `namedUnits`. The preview showed her own BA(STR)
+ * 125 where the card dealt the mount's 150.
+ *
  * @param {object} args
- * @param {object} args.caster the caster's board snapshot
+ * @param {object} args.caster the caster's unit snapshot. Read off the BOARD by
+ *   id when the board has it: only the board stamps `platformId`, and a rider's
+ *   platform is the whole question here.
  * @param {object} args.defender the defender's board snapshot
  * @param {object|null} args.ability the ability Item, or `null` for a Normal Attack
  * @param {object} args.board
  * @param {boolean} args.isNP
  * @returns {object}
  */
-export function previewContext({ caster, defender, ability, board, isNP }) {
+export function previewContext({ caster: given, defender, ability, board, isNP }) {
+  const caster = (board?.units ?? []).find((u) => u.id === given?.id) ?? given;
   // Through the SAME facts builder the resolution uses. This built its own
   // three-line version, which meant the preview ignored an ability's declared
   // `damage.base` -- Karna's combined STR+MAG read as plain STR -- and handed
@@ -5357,7 +5394,7 @@ export function previewContext({ caster, defender, ability, board, isNP }) {
       ignoresMagicResistance: Boolean(ability?.system?.damage?.ignoresMagicResistance),
       ...stated,
     },
-  });
+  }, board);
   const options = rollOptionsFor({ attacker: caster, defender, attack: facts });
   // Branch-resolved against the full option set, as `damageContext` does.
   const damage = resolvedDamage(ability, options);
@@ -5377,7 +5414,11 @@ export function previewContext({ caster, defender, ability, board, isNP }) {
     // caster's Normal Attack -- Brahmastra as BA(STR), a physical number the card
     // never deals.
     base: declaredBase(ability, options)
-      ?? { sources: normalAttackAt(caster, facts.range).sources },
+      ?? normalAttackBase(caster, board, facts.range),
+    // The named units the base may refer to -- `mount`, for a rider whose
+    // platform replaces her Normal Attack. Without it stage 1 read `unit:
+    // "mount"` as the attacker and the range was her 125 again (#167).
+    units: namedUnits(caster, board),
     multiplier: damage?.multiplier ?? 1,
     flatBonus: damage?.flatBonus ?? 0,
     conditionalMultipliers: damage?.conditionalMultipliers ?? [],
@@ -5735,6 +5776,7 @@ function windowAugmented(attacker, attackerDoc, state) {
  * keep it. Nothing is spent unless something is picked.
  *
  * @param {object} state the Combat Process state
+ * @param {object|null} [board] the board the attack is on; the live one when omitted
  * @param {string} window
  * @param {object} message the process's chat message
  * @returns {Promise<object>} the state, with `windowAbilities` recorded
