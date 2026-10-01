@@ -12,7 +12,7 @@
  * it back.
  */
 
-import { computeDamage, INJURY_THRESHOLD } from "../rules/damage/pipeline.mjs";
+import { computeDamage, isNPAttack, INJURY_THRESHOLD } from "../rules/damage/pipeline.mjs";
 import { ridersFire } from "../rules/damage/riders.mjs";
 import { expandInstances } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
@@ -3832,13 +3832,16 @@ async function applyDamage(state, message) {
   // `Crit Up` applied, showed on the sheet, and changed nothing.
   // Hawkeye's crit clauses are predicated on the distance, so the plan cannot
   // be read without the attack in scope.
-  const critSpec = critChance(attacker, defender, { options });
+  const identity = attackIdentityOf(ability, options);
+  // The pipeline's own definition of "is an NP", handed to the chance: the
+  // option `attack:kind:np` cannot see an attack the sheet only categorizes as one
+  // (#131). Crit Up and its kin do not affect a Noble Phantasm.
+  const critSpec = critChance(attacker, defender, { options, isNP: isNPAttack({ ...facts, ...identity }) });
   const critRoll = await new Roll("1d100").evaluate();
   const isCrit = critSpec.blocked
     ? false
     : (critSpec.automatic || critRoll.total <= critSpec.percent);
   const attackRoll = await new Roll("5d10").evaluate();
-  const identity = attackIdentityOf(ability, options);
 
   const ctx = {
     attacker, defender, board,

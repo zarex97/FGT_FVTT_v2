@@ -26,6 +26,8 @@ The roll log records every roll made: the raw die, every modifier, and chains of
 
 **Luck Checks** contest one unit's Luck against another's. If the rolling unit's Luck meets or exceeds the opponent's, the check uses the `"favourable"` table (`1d20`); otherwise, `"unfavourable"` (`1d20+4`), applying a flat 4-point penalty (`module/rules/checks.mjs:304-312`). An uncontested Luck Check — one with no opponent — always uses favourable (`module/rules/checks.mjs:49-54`).
 
+**Crit chance** is a base 50% adjusted by the `check: crit` modifiers (`checks.mjs#critChance`), and those are **"Not NP unless stated"** (Appendix A): Crit Up, S.Crit Up and their kin contribute nothing to a Noble Phantasm's chance unless the clause states a figure for one (`npValue`; Crit Up (Viy) is *"50%; if NP, 20%"*), where they used to apply at full value. `critChance` takes `isNP`, which the resolver passes from `isNPAttack` (`kind: "np"` or `categorizedAsNP`) so the chance and stage 2's crit damage cannot disagree about which attacks are Noble Phantasms. `G.Crit` and `No Crit` short-circuit before any modifier is summed and are unchanged; the catalogue's "Not NP unless stated" on them is a question for the review (#131).
+
 **Percentage rolls** for effect application and crit chances use the generic `chance` function: roll is strictly *under* the percentage, so 0% never succeeds and 100% always does, with no off-by-one (`module/rules/checks.mjs:328-330`). The dice registry (Appendix C) names over 20 formulas used in the system; every formula in 0.2.0+ is stated, not inferred (`docs/C-dice-registry.md:1-42`).
 
 ### Check modifiers and forcing

@@ -1,8 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import {
   evade, luckCheck, tableFor, resolveCheck, chance, applicationChance, checkPlan,
   UNFAVOURABLE_PENALTY, critChance,
 } from "../../module/rules/checks.mjs";
+import { rollOptionsFor } from "../../module/rules/options.mjs";
+import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 
 describe("the favourable/unfavourable split is symmetric between Evade and Luck", () => {
   it("penalises the unfavourable table by 4 in both cases — the Q40 correction", () => {
@@ -256,5 +258,39 @@ describe("critChance", () => {
 
   it("makes G.Crit certain on its own", () => {
     expect(critChance({ effects: ["gCrit"], checkModifiers: [] }).automatic).toBe(true);
+  });
+});
+
+// Crit Up, S.Crit Up and Crit DmUp do not affect Noble Phantasms (Appendix A:
+// "Not NP unless stated"). `critModifiers` fell back to the full value against an
+// NP when the clause stated no NP figure, so after Lucha Libre Xiuhcoatl crit
+// automatically (#131). Quetzalcoatl carries the two buffs as real effect
+// instances, projected the way a board projects them.
+describe("critChance against a Noble Phantasm", () => {
+  beforeAll(prepareSubjects, 60_000);
+
+  const buffed = (fn) => withSubjects(
+    [{ from: "quetzalcoatl", id: "quetzalcoatl", effects: [
+      { defId: "critUp", magnitude: 60 }, { defId: "sCritUp", magnitude: 25 },
+    ] }],
+    ({ unit }) => fn(unit("quetzalcoatl")),
+  );
+  const against = (unit, attack, extra = {}) => critChance(unit, null, {
+    options: rollOptionsFor({ attacker: unit, defender: null, attack }), ...extra,
+  });
+
+  it("raises a Normal Attack's crit chance by the full 60 + 25: 135, automatic", async () => {
+    const spec = await buffed((unit) => against(unit, { kind: "normal" }));
+    expect(spec).toMatchObject({ percent: 135, automatic: true });
+  });
+
+  it("leaves a Noble Phantasm at the base 50: neither states an NP figure", async () => {
+    const spec = await buffed((unit) => against(unit, { kind: "np" }));
+    expect(spec).toMatchObject({ percent: 50, automatic: false });
+  });
+
+  it("counts an attack the sheet categorizes as a Noble Phantasm as one, whatever its kind", async () => {
+    const spec = await buffed((unit) => against(unit, { kind: "normal" }, { isNP: true }));
+    expect(spec.percent).toBe(50);
   });
 });

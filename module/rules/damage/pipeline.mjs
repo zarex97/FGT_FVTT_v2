@@ -1275,7 +1275,42 @@ function sumCritMods(s, unit, key) {
   const component = s.ctx.attack?.component ?? s.ctx.component ?? null;
   return activeMods(s, unit, new Set([key]))
     .filter((m) => !m.component || m.component === component)
-    .reduce((acc, m) => acc + magnitudeOf(m, s.isNP, s.ctx), 0);
+    .reduce((acc, m) => acc + critMagnitudeOf(m, s.isNP), 0);
+}
+
+/**
+ * A crit modifier's magnitude against THIS attack.
+ *
+ * Not `magnitudeOf`, whose fallback is right for every other family: most
+ * percentage buffs carry a REDUCED figure against a Noble Phantasm and still
+ * apply. The crit family is *"Not NP unless stated"* (Appendix A: Crit Up, Crit
+ * DmUp, Crit Guard, G.Crit, No Crit) or plain *"Not NP"* (Crit ResUp, Crit
+ * ResDwn, Bal Dwn), so against an NP it contributes the figure the clause STATES
+ * for one and nothing otherwise. The same rule `checks.mjs#critChance` applies to
+ * the chance half (#131).
+ *
+ * @param {Modifier} m
+ * @param {boolean} isNP
+ * @returns {number}
+ */
+function critMagnitudeOf(m, isNP) {
+  const raw = isNP ? m.npValue : m.value;
+  return Number.isFinite(raw) ? raw : 0;
+}
+
+/**
+ * Is this attack a Noble Phantasm, for every rule that scopes on that?
+ *
+ * `kind: "np"`, or an ability the sheet CATEGORIZES as one. The one definition:
+ * the pipeline asks it, and so does crit chance (`rules/checks.mjs#critChance`),
+ * which asked only the option `attack:kind:np` and so called a categorized-as-NP
+ * attack an NP in stage 2 and a Normal Attack in the coin (#131).
+ *
+ * @param {{kind?: string, categorizedAsNP?: boolean}|null|undefined} attack
+ * @returns {boolean}
+ */
+export function isNPAttack(attack) {
+  return Boolean(attack?.kind === "np" || attack?.categorizedAsNP);
 }
 
 /**
@@ -1347,7 +1382,7 @@ class PipelineState {
       exceededInjuryThreshold: false,
       defeatedOutright: false,
     };
-    this.isNP = Boolean(ctx.attack?.kind === "np" || ctx.attack?.categorizedAsNP);
+    this.isNP = isNPAttack(ctx.attack);
     this.predicateCtx = {
       options: ctx.options ?? new Set(),
       refs: { self: ctx.attacker, target: ctx.defender, attack: ctx.attack, board: ctx.board },

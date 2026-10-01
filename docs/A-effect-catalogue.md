@@ -629,6 +629,7 @@ document.
 | `Ward` | stage 4's `DEFENDER_BUCKET_KEYS`, the `Ward` element, and a row in `explain.mjs` |
 | `Def Crk` | stage 16, with the Injury-threshold snapshot taken above it |
 | `Crit ResUp` / `Crit ResDwn` | stage 2's four-term crit-damage sum |
+| `Crit Up` / `S.Crit Up` / `Crit DmUp` | `checks.mjs#critChance` (chance) and stage 2's `sumCritMods` (damage), both **not against a Noble Phantasm** unless the clause states an `npValue` (#131) |
 | `Over Crit` | `overCritBonus`, `max(0, chanceUsed − 100)` |
 | `G.Crit` / `No Crit` | the two short-circuits at the top of `checks.mjs#critChance` |
 | `Block Up` | the `BlockModifier` element, stage 14's sum, and a row in `explain.mjs` |
