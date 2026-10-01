@@ -523,6 +523,18 @@ export const NESTED_ROUTES = [
       { file: "module/rules/costs.mjs", why: "canUseAbility refuses a second cast while the field stands" },
     ],
   },
+  // Xiuhcoatl's Burning on a [Fortress] NP lasts as long as that Fortress: the
+  // zone phase binds each area to its field, and `endField` erases what is bound (#152).
+  {
+    key: "boundToFieldId",
+    authored: [],
+    hops: [
+      { file: "module/engine/skill-use.mjs", why: "zonePaints binds one area per Fortress to its field" },
+      { file: "module/engine/terrain.mjs", why: "terrainDataOf writes it, repaintFollowing carries it, clearTerrainBoundTo reads it" },
+      { model: "RegionBehavior/terrain", why: "TerrainBehavior declares it; Foundry drops what a schema does not name" },
+      { file: "module/engine/fields.mjs", why: "endField erases the areas bound to the field it closes" },
+    ],
+  },
 ];
 
 describe("every key nested in an untyped block survives its Route", () => {

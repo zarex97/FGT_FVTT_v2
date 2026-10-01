@@ -75,6 +75,7 @@ export function squareAround({ i, j }, size) {
 /**
  * @typedef {object} FieldCast
  * @property {string} ability the content id of the ability that opens it
+ * @property {string} [as] open it under another field id, for a board that needs two of one kind
  * @property {string} owner the owner's actor id
  * @property {string|null} [ownerMaster] the owner's Master's actor id
  * @property {string|null} [faction] the owner's faction
@@ -95,7 +96,8 @@ export async function fieldsOf(casts) {
   const { fieldDataOf } = await import("../../module/engine/fields.mjs");
   const regions = [];
   for (const [n, cast] of casts.entries()) {
-    const ability = await compiled(cast.ability);
+    const authored = await compiled(cast.ability);
+    const ability = cast.as ? { ...authored, system: { ...authored.system, contentId: cast.as } } : authored;
     const spec = ability.system.field;
     if (!spec) throw new Error(`"${cast.ability}" authors no field.`);
     // The anchor `openField` stamps: where it was cast, and on which Level.

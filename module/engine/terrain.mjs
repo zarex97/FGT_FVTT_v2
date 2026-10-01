@@ -102,8 +102,9 @@ function nowTick() {
  */
 export function terrainDataOf({
   types, duration = null, sourceUnitId = null, followsSource = false, radius = null, tag, labelOnly = false,
+  boundToFieldId = null,
 }, expiry) {
-  return { types, duration, sourceUnitId, followsSource, radius, tag, expiry, labelOnly };
+  return { types, duration, sourceUnitId, followsSource, radius, tag, expiry, labelOnly, boundToFieldId };
 }
 
 /**
@@ -122,11 +123,13 @@ export function terrainDataOf({
  * @param {boolean} [args.followsSource]
  * @param {number|null} [args.radius] the radius to redraw a following area at
  * @param {boolean} [args.labelOnly] the area is CATEGORIZED as these types and runs none of their periodic clauses
+ * @param {string|null} [args.boundToFieldId] the bounded field this area lasts as long as: `endField` erases it
  * @returns {Promise<{ok: boolean, regionId?: string, reason?: string}>}
  */
 export async function paintTerrain({
   types, panels, tag,
   duration = null, sourceUnitId = null, followsSource = false, radius = null, labelOnly = false,
+  boundToFieldId = null,
 }) {
   const scene = canvas?.scene;
   if (!scene) return { ok: false, reason: "noScene" };
@@ -151,7 +154,7 @@ export async function paintTerrain({
     behaviors: [{
       type: "terrain",
       system: terrainDataOf(
-        { types, duration, sourceUnitId, followsSource, radius, tag, labelOnly },
+        { types, duration, sourceUnitId, followsSource, radius, tag, labelOnly, boundToFieldId },
         // An expiry rather than a countdown, for the reason Ch. 04 gives.
         duration
           ? tick + resolveTicks(parseTick(duration), {
@@ -177,6 +180,32 @@ export async function clearTerrain(tag, { sweep = true } = {}) {
   const scene = canvas?.scene;
   if (!scene || !tag) return { ok: false, removed: 0 };
   const ids = terrainRegionsFor(tag).map((r) => r.id);
+  if (ids.length === 0) return { ok: true, removed: 0 };
+  await scene.deleteEmbeddedDocuments("Region", ids);
+  if (sweep) await dropStrandedTerrainEffects();
+  return { ok: true, removed: ids.length };
+}
+
+/**
+ * Erase every area bound to a bounded field: the ground a field's own clause
+ * painted, which lasts exactly as long as the field does.
+ *
+ * Xiuhcoatl's *"…are now 'Burning' until the Fortress NP is deactivated"*: each
+ * Fortress's area is painted with that field's id, and `endField` calls this
+ * from every close path (`deactivateField`, `expireFields`, a forced end), so
+ * the Burning goes with the Fortress it belongs to and with no other (#152).
+ *
+ * @param {string} fieldId
+ * @param {object} [opts]
+ * @param {boolean} [opts.sweep] also take away the effects those areas were keeping alive
+ * @returns {Promise<{ok: boolean, removed: number}>}
+ */
+export async function clearTerrainBoundTo(fieldId, { sweep = true } = {}) {
+  const scene = canvas?.scene;
+  if (!scene || !fieldId) return { ok: false, removed: 0 };
+  const ids = terrainBehaviors()
+    .filter(({ behavior }) => behavior.system?.boundToFieldId === fieldId)
+    .map(({ region }) => region.id);
   if (ids.length === 0) return { ok: true, removed: 0 };
   await scene.deleteEmbeddedDocuments("Region", ids);
   if (sweep) await dropStrandedTerrainEffects();
@@ -262,6 +291,7 @@ export async function repaintFollowing(unitId, panel) {
       followsSource: true,
       radius: sys.radius ?? 2,
       labelOnly: Boolean(sys.labelOnly),
+      boundToFieldId: sys.boundToFieldId ?? null,
     });
     if (result.ok) {
       // Carry the ORIGINAL expiry across, since `paintTerrain` computed none.
