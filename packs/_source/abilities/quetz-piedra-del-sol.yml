@@ -36,6 +36,42 @@ targeting:
   shape: { kind: unit }
   selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
   limits: { requiresZon: true }
+# Clause 1: "While the Piedra Del Sol is above the field, it has the following
+# effects- 1. Goddess' Divine Core: All damage dealt is increased by 180; and all
+# damage taken by Quetz is reduced by 50% including NP."
+#
+# RULED: "on the field" means ON THE BOARD (the author, 2026-10-01). Both halves
+# hold wherever she stands for as long as the stone exists -- she may Move out of
+# the area (*"Quetz can Move out of the Piedra Del Sol area"*), ride the
+# Quetzalcoatlus over it, or stand at the far edge of the map -- so they are HER
+# passive rules gated on the stone existing, `fieldActive`, which is a question
+# about the field and not about where she is (Medusa's Blood Temple asks it of
+# Blood Fort Andromeda). They were the field's `interior` rules, which held only
+# while she stood inside the 7x7.
+passiveRules:
+  # "Goddess' Divine Core: All damage dealt is increased by 180."
+  #
+  # RULED: this REPLACES her Skill's +120 rather than stacking to +300. The
+  # clause is headed with the Skill's own name and gives a different number,
+  # which reads as the stone raising the Skill's value while it stands.
+  # `supersedes` is Ch. 17's mechanism for exactly that.
+  #
+  # `self:`: in the damage pipeline it is the ATTACKER, which is her.
+  - key: FlatDamage
+    value: 180
+    includesNP: true
+    supersedes: [quetz-goddesses-divine-core]
+    predicate: ["self:fieldActive:quetz-piedra-del-sol"]
+  # "...and all damage taken by Quetz is reduced by 50% including NP."
+  # `npValue` equal to `value` IS "including NP": most defensive percentages
+  # are halved against a Noble Phantasm, and this one is not.
+  #
+  # `target:`: in the pipeline the DEFENDER, which is her -- and only her, so a
+  # Master standing in the stone is not reduced.
+  - key: Ward
+    value: 50
+    npValue: 50
+    predicate: ["target:fieldActive:quetz-piedra-del-sol"]
 field:
   # Axis 1 -- geometry. `fixedArea`, so it does NOT follow her: the stone is
   # placed and stays there, which is what makes *"Quetz can Move out of the
@@ -55,30 +91,11 @@ field:
     insideCanTargetOutside: true
     outsideCanApplyEffectsInside: true
     visibilityAcrossBoundary: full
-  # Axis 4 -- interior rules. Clause 1, and both halves are HERS: the sheet's
-  # subject throughout clause 1 is Quetz, which is `relations: [self]`.
-  interior:
-    # "Goddess' Divine Core: All damage dealt is increased by 180."
-    #
-    # DECISION: this OVERRIDES her Skill's +120 rather than stacking to +300.
-    # The clause is headed with the Skill's own name and gives a different
-    # number, which reads as the stone raising the Skill's value while it
-    # stands. `supersedes` is Ch. 17's mechanism for exactly that, so the two
-    # cannot both apply and the reason is legible where it applies rather than
-    # being a subtraction somebody has to remember. If play proves the other
-    # reading, deleting the `supersedes` line is the whole fix.
-    - key: FlatDamage
-      value: 180
-      includesNP: true
-      relations: [self]
-      supersedes: [quetz-goddesses-divine-core]
-    # "...and all damage taken by Quetz is reduced by 50% including NP."
-    # `npValue` equal to `value` IS "including NP": most defensive percentages
-    # are halved against a Noble Phantasm, and this one is not.
-    - key: Ward
-      value: 50
-      npValue: 50
-      relations: [self]
+  # Axis 4 -- interior rules. NONE: clause 1's two halves are HERS, wherever she
+  # stands, so they are `passiveRules` of this Noble Phantasm (above), gated on
+  # the stone existing, and not rules of the 7x7. As `interior` rules they held
+  # only while she stood inside the area, which is not what the sheet says.
+  #
   # Clause 2. The generic `burning` terrain entry already inflicts an
   # unremovable, non-expiring Burn at turn end and deals fixed Fire damage
   # there; this area differs in exactly two ways -- 50 rather than 25, and
