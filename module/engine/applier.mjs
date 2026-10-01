@@ -472,6 +472,9 @@ async function writeGroup(group, io) {
   switch (t) {
     case "damage":
       await io.adjustHealth(unitId, -sum(intents, "amount"), { intents });
+      // Damage no attack dealt -- no breakdown -- has nobody else to resolve
+      // its defeat; the attack path resolves its own (§46.4-CE).
+      if (intents.some((i) => i.breakdown == null && !i.reflected)) await io.defeatIfLethal(unitId);
       break;
     case "heal":
       await io.adjustHealth(unitId, sum(intents, "amount"), { intents });

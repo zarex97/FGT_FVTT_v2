@@ -245,6 +245,34 @@ export function worldIO() {
     },
 
     /**
+     * Run the defeat chain for a Unit that damage from outside an attack has
+     * left at 0 Health.
+     *
+     * Only the attack path ever resolved a defeat, so a Poison tick, a fall
+     * off a Platform or Mad Enhancement's drain left a Unit standing at 0 --
+     * measured on the Semiramis audit, Heracles at 0/1500, not defeated
+     * (Ch. 46 §46.4-CE). Revivals are offered exactly as an attack's are:
+     * the same `resolveDefeatOf`, with nobody as the killer.
+     *
+     * @param {string} unitId
+     */
+    async defeatIfLethal(unitId) {
+      if (!game.user?.isGM) return;
+      const actor = resolve(unitId);
+      if (!actor || actor.system?.defeated) return;
+      const health = actor.system?.health;
+      if (health?.max === null || health?.value === null || (health?.value ?? 1) > 0) return;
+      const { currentBoard } = await import("./board.mjs");
+      const unit = currentBoard().units.find((u) => u.id === unitId);
+      if (!unit) return;
+      const { defeatFromDamage } = await import("./attack.mjs");
+      const intents = await defeatFromDamage(unit);
+      if (intents.length === 0) return;
+      const { applyIntents } = await import("./applier.mjs");
+      await applyIntents(intents, { io: this, canWrite: () => true, isGM: true, source: "defeat:lethal" });
+    },
+
+    /**
      * @param {string} unitId
      * @param {string} stat dot path under `system`
      * @param {number} delta

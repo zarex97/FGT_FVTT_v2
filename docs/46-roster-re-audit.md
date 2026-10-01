@@ -2488,6 +2488,16 @@ lost flip defeats it. A missed rescue is shown too. Not built: the Luck Check th
 Overpower -- `state.luckChecks.overpower` has no writer on the attack path either, which is a wider defect
 than this Servant's and is filed separately.
 
+### CE. Damage from outside an attack could not defeat anyone — **fixed 2026-09-30**
+
+**Reached: HG.knock.** Heracles was knocked off the garden at 0/1500 Health, not defeated, and the fall
+dealt him more. Only the attack path ever ran the defeat chain (`attack.mjs#resolveDefeatOf`); a Poison
+tick, Mad Enhancement's drain, a fall off a Platform or the garden's destruction damage lowered Health
+through the applier and stopped there. Semiramis's Poison, the weapon her whole kit is built around,
+could take a Unit to 0 and leave it standing. The applier now asks `io.defeatIfLethal` after any damage
+intent without a breakdown, which runs the same chain an attack does -- revivals included -- with nobody
+as the killer. Heracles, still at 0, was not defeated retroactively; the board was left as found.
+
 ---
 
 ---
