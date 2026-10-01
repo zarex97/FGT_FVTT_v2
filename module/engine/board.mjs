@@ -321,7 +321,8 @@ export function unitFrom(board, actor) {
  * caller that omits the whole object still gets the rule.
  *
  * @returns {{gates: {round: number, assassinRound: number}, turnsPerRound: number,
- *            turn: number|null, clockRunning: boolean}}
+ *            turn: number|null, clockRunning: boolean, round: number,
+ *            actingFactionId: string|null}}
  */
 export function gateContext() {
   return {
@@ -349,6 +350,13 @@ export function gateContext() {
     // Carried here rather than fixed at that one call site, so the omission
     // cannot recur. Every other caller passes the same value explicitly.
     round: game.combats?.active?.round ?? 1,
+    // WHOSE Turn it is, for an ability whose only window is `ownTurn` (#160).
+    // `null` before the match has started, or on the GM's own slot, which asks
+    // nothing of an ability -- the same answer `canToggleMode` gives. Read off
+    // the ACTIVE combat for the reason `round` is.
+    actingFactionId: game.combats?.active?.started
+      ? (game.combats.active.actingFactionId ?? null)
+      : null,
   };
 }
 

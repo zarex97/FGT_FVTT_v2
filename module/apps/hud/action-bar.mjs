@@ -234,6 +234,10 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         // `snapshot` when the board has no entry for her.
         const verdict = canUseAbility({
           ability: item.system, unit, master, board, ...gateContext(),
+          // Armed for a Counter, which is made on the enemy's Turn by
+          // definition: an ability used only "during your Turn" still answers
+          // one when it is an Attack (#160).
+          isCounter: Boolean(this.counter),
           testPredicate: (p) => testPredicate(p, { options: rollOptionsFor({ attacker: unit }) }),
         });
         const slot = slotFor({
