@@ -2620,6 +2620,615 @@ redirected a Counter, denied the zone and covered), in the Decoy and Compulsion 
 Male would now have left the attacker no legal target), in `allyReactions`, in the Discover watchers, in
 `rescuerFor`, and in the contract's enemy-clearance test. `test/unit/defeated-readers.test.mjs` holds them.
 
+### CQ. A Riding Attack could not be started from the interface — **fixed 2026-10-01** (#113)
+
+**Reached: RI.p2, RI.p2.stop and RI.p2.left.** The action bar handed every targeted action but Attack to
+`Hooks.callAll("fgtEnterMovement")`, which nothing listened for, so `performRidingAttack` ran from the
+console only, and `ridingAttackPath`, the only writer of `turnState.usedRidingAttack`, and Troias
+Tragōidia's `ridingAttack` block were dead with it. `rules/movement.mjs#ridingDestinations` now lists
+every panel `ridingAttackPath` accepts, so the overlay and the engine are one rule, and
+`apps/canvas/targeting-layer.mjs#pickDestination` paints them for the bar and for an ability that
+classifies as `ridesAsAttack`. Measured after: the slot opened the overlay and the ride ran, 12 panels
+north at tick 43 and 5 panels through W1, which took 229, at tick 61. Ten other `fgt…` hook names still
+have no `Hooks.on` (listed in #113, not looked at).
+
+### CR. A Riding Attack skipped every gate a drag and an attack both pass — **fixed 2026-10-01, not yet pressed live** (#114)
+
+**Reached: the Quetzalcoatl paper trace (#65).** `ridingAttackPath` tested straightness and the MOV
+allowance and nothing else, so a ride could end off the board, on an occupied panel or beside a guarded
+enemy Master, leave a field it may not leave, run from a Decoy, and hit Units on other Levels, platforms
+and Structures, because its path targets never reached `resolveTargets`. `performRidingAttack` also moved
+the token and stamped the Turn Record before `resolveAttack` ran its own gates and threw. The ride now
+goes through `canPassThrough` (an enemy in the line is hit, not in the way), `canStopOn` and the pursuit
+and Decoy verdicts; Immobilize prevents it; its hits come from the rider's Level through `resolveTargets`;
+and `engine/attack-preflight.mjs#attackPreflight`, extracted from `resolveAttack`, runs before anything
+moves. Found by reading the code; not seen on a board.
+
+### CS. A Riding Attack never carried the Master — **fixed 2026-10-01** (#115)
+
+**Reached: RI.combo.** Every Riding sheet says the ride *"can be combined with Passenger Seat"*. The carry
+was `movement-hooks.mjs#carryMaster`, which runs from `moveToken` and returns for any forced move, and
+`performRidingAttack` moves the token with `displaceToken`, which is forced: the Master stayed behind and
+nothing was logged. The body moved to `engine/passenger-seat.mjs#carryMasterAlong`, which takes two panels
+instead of a movement operation; the drag's hook is a wrapper and the ride calls it right after its
+displacement, with the same grant, `carriesMaster` switch and log entry and no pool spent. Measured after:
+her Master rode (13,4) → (1,4) at the same offset, tick 43.
+
+### CT. Riding's Active was a free toggle whose +MOV outlasted "this Turn" — **fixed 2026-10-01** (#116)
+
+**Reached: RI.a and RI.cd.** The Active has `activeRules` and no `phases`, so it classifies as a mode, and
+the toggle called `useSkill` only for a mode with phases: the sheet's 3◈ cooldown was never gated, billed
+or started, and the MovDelta's `duration: "this turn"` stopped at `statDeltas`, since a derived delta
+lasts as long as its source (`system.active`), which nothing switched off. Seen live: MOV 13 into Round 2,
+and a toggle off and on again in one Turn with `cooldown.remaining` 0 throughout.
+`rules/modes.mjs#pricedOnEntry` now sends the switch-on through `useSkill`, and `endsWithTurn` lets the
+end-of-Turn step in `scheduler-hooks.mjs` switch the mode off. Measured after: cooldown 9 (3◈) and MOV 7 →
+13 at tick 43, MOV 7 again at the Turn's end, tick 44.
+
+### CU. Double Move was decided by an item's name, not by the doubleMove grant — **fixed 2026-10-01, not yet pressed live** (#117)
+
+**Reached: the Quetzalcoatl paper trace (#65).** The drag gate was handed `unit.hasRiding`, an item slug
+or name match, and `canConsume` ORed it with the grant, so the grant was neither necessary nor sufficient:
+Pollux and Drake, whose sheets unlock Double Move only on the Turn of the Active, and Pale Rider, whose
+Riding grants none, could Move after an Attack every Turn. `rules/movement.mjs#segmentCheck` and
+`rules/budget.mjs#canConsume` now ask `hasGranted(unit, doubleMove)` and nothing else; the `hasRiding`
+projection, `hasSkill` and the option on `validatePath` and `planMovement` are deleted. Quetzalcoatl's
+RI.p1 had been right by accident of the item's name.
+
+### CV. Passenger Seat refused a Master who stood one move behind the Servant — **fixed 2026-10-01, not yet pressed live** (#118)
+
+**Reached: the Quetzalcoatl paper trace (#65).** The carry runs from `moveToken`, where Foundry still
+reports the Servant at her origin until the animation ends, and the landing is the Master's panel plus her
+delta. A Master exactly one move behind her, which is the ordinary 1-panel follow, landed on her origin,
+`occupantAt` found her there and the carry refused: *"could not ride along: the landing panel is
+occupied"*. `rules/movement.mjs#passengerLanding` treats her as already standing on her destination, and
+`passenger-seat.mjs#carryMasterAlong` asks it; off the board and a panel held by somebody else still
+refuse. The same stale-board timing as §46.4-BZ.
+
+### CW. Riding's Active was refused by No Buff and by a buff immunity — **fixed 2026-10-01, not yet pressed live** (#119)
+
+**Reached: the Quetzalcoatl paper trace (#65).** For Medusa, Drake and Pollux the Active is a used ability
+that applies `ridingActive`, the MOV Up and the marker their Riding Attack and Passenger Seat ask for. The
+effect was `polarity: buff`, and `applyEffect` gates every buff on No Buff and on a buff-scoped immunity,
+so under either the Active applied nothing and the grants went with it, though the sheets say the MOV Up
+is not a buff and Appendix A lists it among the statuses No Buff never blocks. It is `polarity: status` in
+`packs/_source/effects/riding-active.yml`. Quetzalcoatl was never affected: her Active is a mode. See
+§46.4-DJ for the same question about S.Crit Up.
+
+### CX. Drake's Riding carried the literal cooldown "@cooldown", and the build guard stripped it before it checked — **fixed 2026-10-01, not yet pressed live** (#120)
+
+**Reached: the Quetzalcoatl paper trace (#65).** `drake.yml` passed no `cooldown` beside
+`class-riding-drake`, so her compiled Riding held `"@cooldown"`, which Foundry's `TickField` refuses:
+strict construction refuses the Item, a lenient load falls back to `null`, and either way her Riding had
+no cooldown. `npm run validate:content` printed 0 Silent Drops because `model-check.mjs` stripped every
+whole-string `@name` from every document, embedded Items included, and the duration validators skipped any
+`@` value. `drake.yml` now passes `cooldown: "2◈"`; `tools/lib/content.mjs#resolveRef` refuses a rank,
+cooldown or duration still holding a placeholder, naming the ref and the parameter; the model check strips
+slots only from a standalone template.
+
+### CY. The summon dialog's Region list omitted three Regions that Servants carry — **fixed 2026-10-01, not yet pressed live** (#121)
+
+**Reached: SB.** The dialog offers `Object.keys(REGION_ADJACENCY)`, thirteen ids, and Quetzalcoatl's
+`centralAmerica` and `southAmerica` and Anastasia's `russia` were not among them, so a war that gives
+either her +1 rank could be made only by typing the exact camelCase id into the wizard's free-text field.
+The three ids join `rules/environment.mjs#REGION_ADJACENCY`, with the edges
+`centralAmerica`-`southAmerica` and `russia`-`europe` in both directions and none touching `middleEast`,
+so Semiramis's counter is unchanged. A guard holds every `region` id in `packs/_source/servants` to being
+a key of the graph.
+
+### CZ. The shared Riding text printed none of the rules it grants — **fixed 2026-10-01, not yet pressed live** (#122)
+
+**Reached: the Quetzalcoatl paper trace (#65).** No behaviour changed. `class-skills/riding.yml` printed
+the names of its grants and none of the rules they switch on (the straight line, the stop, MOV minus the
+panels already Moved, the relative position, one Unit) and no cooldown, and linked `@effect[movUp]` inside
+the sentence that says the MOV Up is not a buff. Comments said that nothing reads Passenger Seat
+(`rules/granted.mjs`), that `mayMoveAgain` holds the mutual exclusion, that the engine "already performs"
+a ride, and that her Riding is word-for-word the shared document. Pale Rider's MOV now reads `ridingMov`
+at EX instead of a flat 6 under a comment that said EX is not a row of that table.
+
+### DA. A debuff from a Skill that deals no damage ignored the target's resistance — **fixed 2026-10-01, not yet pressed live** (#123)
+
+**Reached: the Quetzalcoatl paper trace (#65).** `applyPhaseEffects` handed `applyEffect` a context with
+`resist: 0`, and the applier reads the target's own resistance with `ctx.resist ?? resistanceOf(target)`;
+`0 ?? x` is `0`. Every incoming `ApplicationChance` was skipped on the Skill path: Jack's Information
+Erasure read `100% (automatic)` on Quetzalcoatl where the attack path gives `rolled 99 vs 25%`, and
+Medea's Atlas ignored her Magic Resistance. The attack path had already fixed exactly this. The context
+literal is now `engine/skill-use.mjs#skillEffectContext`, exported, and carries no `resist`; a corpus
+guard fails on a literal `resist:` key anywhere in `module/engine` outside the applier.
+
+### DB. The targeting preview tested Magic Resistance against the user's MAG, the resolution against the ability's Rank — **fixed 2026-10-01, not yet pressed live** (#124)
+
+**Reached: the Quetzalcoatl paper trace (#65).** Stage 11 takes `ctx.attack.rank ?? attacker.mag`. The
+resolution set the ability's Rank and the preview built its attack with none, so Karna's Brahmastra (A+,
+MAG B) at her Magic Resistance A read *"negated: MR A >= attack B"* in the preview and was halved by the
+card, and A Tale for Somebody's Sake (C, MAG A) was halved by the preview and negated by the card: nine
+abilities and 44 ability-and-defender pairs disagreed. The preview also sent no `npTags`.
+`engine/attack.mjs#attackIdentityOf` now builds Rank, scale tags, NP category and element in one place for
+the resolution, the counterfactual and `previewContext`, which moved into `attack.mjs`. The gate and the
+display disagreeing, §46.3.
+
+### DC. A Skill that counts as Divinity was invisible to skill:divinity — **fixed 2026-10-01** (#125)
+
+**Reached: GDC.div.** `rollOptionsFor` emitted `skill:<slug>` and `skillRank:<slug>:gte:<grade>` from each
+ability's own slug and never read `categorizedAs`, while `hasCategory` and `categoryRankOf` did, so
+Goddess's Divine Core was Divinity to Achilles's and Ozymandias's clauses and "no Divinity" to Vasavi
+Shakti, which paid ×2.5 against it where ×3.0 is meant. `rules/items.mjs#categoriesOf` is now the one
+reader of "has Skill X at Rank R" for all three, and a Unit's own collection pass hands `rollOptionsFor`
+`rank`, `categorizedAs` and `categorizedWhile`. Measured after: her options as a defender carry
+`target:skill:divinity` and `target:skillRank:divinity:gte:EX`, tick 40.
+
+### DD. A flat bonus's supersedes never fired, so Piedra Del Sol stacked +180 on Divine Core's +120 — **fixed 2026-10-01** (#126)
+
+**Reached: GDC.p1 and PDS.1.** `FlatDamage` stamps `sourceContentId` and stage 7 drops a bonus another one
+supersedes, but `contributionsOf` built the ability record without `contentId`, so the bonus always
+carried `null` and Core plus the stone added +300 where the ruling is +180. #103's test passed `contentId`
+in by hand and agreed with itself, not with the projection: a Silent Drop.
+`rules/snapshot.mjs#abilityRecordOf` builds the record in one place for `contributionsOf` and for
+`attack.mjs`'s `windowAugmented`, which wrote the same shape by hand and dropped the id too, and
+`survival.test.mjs` routes the record as a Hop of its own. Measured after: *"Goddess's Divine Core
+(superseded by Piedra Del Sol) 0 · Piedra Del Sol +180"*, tick 39.
+
+### DE. An effect delivered by an event rider was tested against an empty option set — **fixed 2026-10-01, not yet pressed live** (#127)
+
+**Reached: the Quetzalcoatl paper trace (#65).** Latent: no content is wrong today. `resolveEffects`, the
+path every `OnEvent`, scheduler and field `ApplyEffect` takes, called `applyEffect` with `options: new
+Set()`, so Magic Resistance's Instakill and Death exemption (`not attack:component:str`, `not
+attack:ignoresMagicResistance`) passed both tests and could never apply to a rider-delivered Death:
+`rolled 99 vs 75%` where the attack path gives `100% (automatic)`. The `ApplyEffect` action in
+`scheduler.mjs` now copies the event's `attack:*` options onto the effect as `attackOptions`, and
+`engine/applier.mjs#riderOptions` builds the set from them; the key is read once and not stored.
+
+### DF. Guts revived nobody — **fixed 2026-10-01** (#128)
+
+**Reached: GGW.1.** `guts.yml` authors `restore: {percentOfMax: "@magnitude"}`, and `resolveRuleValues`
+substituted the instance magnitude into `value`, `npValue` and the named carriers, never into `restore`,
+so the literal string resolved to 0%: every Guts spent itself, restored nothing and left its bearer
+defeated (Quetzalcoatl's Good God's Wisdom, Nemo's Indomitable, Van Gogh's Imaginary Numbers Arts). The
+same shape as §46.4-AU. `rules/snapshot.mjs#resolveRuleValues` now treats `restore.percentOfMax` as a
+named carrier. Her projection carried `revivals [{guts, percentOfMax 10}]` at tick 40; the revival itself
+waited on §46.4-ER.
+
+### DG. A chooser: chosen ability could never be used from the interface — **fixed 2026-10-01** (#129)
+
+**Reached: GGW.scope, GGW.1, GGW.2 and every Xiuhcoatl press.** The targeting session built `chosenIds`
+from `resolved.units`, which a `chosen` selection leaves empty, and the resolver read the empty list as
+"the player chose nobody": 23 abilities were refused. Seen live at tick 7: Xiuhcoatl previewed *"0
+target(s) · 1 panel(s) — Legal"* and then *"Nothing is in the area. Aim again?"*.
+`rules/targeting/resolve.mjs#validate` now settles a choice among one candidate (21 of the 23 name their
+Unit with the anchor); two or more open the review as a pick, whatever `targetingReview` says; a choice
+that survives to the engine is refused, so a macro no longer pays and resolves against nobody. Measured
+after: the choose dialog listed her allies and refused the enemy, ticks 18 and 33.
+
+### DH. A Skill used from a player's client could not write what it paints, raises or buffs — **fixed 2026-10-01, not yet pressed live** (#130, #144)
+
+**Reached: the Quetzalcoatl paper trace (#65).** A non-attacking ability, and every damage-less Noble
+Phantasm since §46.4-CK, ran `useSkill` on the client that pressed it. A Player cannot create a Region
+with a Behavior, an Actor, a Token or a Level (no permission can be given for a Level), and is refused a
+buff on another player's Unit: a player's Charisma of the Sun would apply its own buffs, throw, paint no
+Day and set no cooldown. `net/operations.mjs#OPERATIONS.useSkill` runs it on the GM, and the questions a
+Skill asks go to the owning player through `engine/ask.mjs#chooseFor`; `OPERATIONS.deactivateField` does
+the same for the End control; `onMove` repaints a following area from the active GM only. Nobody has
+pressed it from a Player client: a single-GM board cannot show it.
+
+### DI. Crit Up, S.Crit Up and Crit DmUp raised a Noble Phantasm's crit at full value — **fixed 2026-10-01, not yet pressed live** (#131)
+
+**Reached: CS.2, LL.1 and LL.2, ruled by the user.** Appendix A says the crit family is *"Not NP unless
+stated"*, and both readers fell back to the full value: `checks.mjs#critModifiers` returned `npValue` only
+when stated, and stage 2's `sumCritMods` went through `magnitudeOf`, which does the same. After Lucha
+Libre her Xiuhcoatl crit automatically and with +50% crit damage. Against an NP a crit modifier now
+contributes its `npValue` and 0 where none is stated (Crit Up (Viy)'s 20 against 50 still wins). Crit
+chance also asked `attack:kind:np` where the pipeline asks `isNPAttack`, so an attack categorized as an NP
+was an NP in stage 2 and a Normal Attack in the coin. The `G.Crit` and `No Crit` short-circuits are left
+alone.
+
+### DJ. S.Crit Up's "application cannot be prevented" loses to No Buff and Buff Immune — **open, needs a ruling** (#132)
+
+**Reached: CS.2.** `s-crit-up.yml` models *"application cannot be prevented"* as `baseChance: 500`, which
+beats resistance at the chance step and nothing else; `findImmunity` runs before it and refuses any buff
+to a Unit holding `noBuff` or a buff-scoped immunity. Probe on the real projection: a plain ally
+`applied`, an ally with `noBuff` `blocked`, an ally with a scoped immunity `blocked`, and `applied` for
+both with `bypassesImmunity: true`. Nobody applies No Buff today, so the difference is latent. The
+question for the author: does No Buff, or a buff-scoped immunity, count as preventing it? Yes is one line
+of content; no is a reworded catalogue row. Decide with §46.4-CW, which has the same gate.
+
+### DK. A concealed ally could not be chosen by an allied Skill — **fixed 2026-10-01, not yet pressed live** (#133)
+
+**Reached: the Quetzalcoatl paper trace (#65).** Step 7 of `resolveTargets` dropped every concealed Unit
+from a chosen or counted selection whatever its relation, but Presence Concealment clause 1 forbids less:
+*"cannot be targeted for an Attack or an enemy Unit's Skill"*. A concealed ally could not be healed,
+guarded or buffed by Teachings of Circe, Scapegoat, Surgical Procedure, AR or Primordial Rune, nor, once
+§46.4-DG landed, by Good God's Wisdom. `ability-use.mjs#targetSpecFor` now says whether the use is an
+Attack (`limits.forAttack`) and step 7 keeps a concealed ally for a use that is not; a spec that does not
+say is an Attack. §46.4-AK fixed the token-visibility half of concealment; this is the targeting half.
+
+### DL. "Day Round" was read from the Round clock in one clause and from the panel in four — **open, needs a ruling** (#134)
+
+**Reached: CS.3.** Jack's Murderer of the Misty Night reads `board.phase` (`attack.mjs`); Maria the Ripper
+(`roundPhase`), Ozymandias's Pharaoh of the Hot Sands (`self:phase:day`), Soaked clause c and the Dark
+modifiers read `phaseAt`, the panel, which Quetzalcoatl's Sol repaints to Day. On a Night Round inside
+Sol, Jack cannot use Maria the Ripper and Ozymandias's Crit Up clauses fire while Jack's pre-emption stays
+free. The spend of Sol is Observed (§46.15.3): Ozymandias's clauses 2 and 3 applied during a Night Round.
+The question for the author: does *"Day Round"* mean the Round clock or the panel? Option B, the panel for
+all five, moves one reader (Misty Night to `phaseAt`) and keeps Ch. 26 and Ch. 29's model.
+
+### DM. A top-level damage.sources on a primary damage block was never read — **fixed 2026-10-01** (#135)
+
+**Reached: XI.ba.** Xiuhcoatl authored *"BA(STR) plus half of BA(MAG)"* as two sources at the top of the
+damage block; `baseSpecFor` read `damage.base`, failed, and built one source from `component: str`, so she
+dealt 500 at ×4 where her sheet says 1000. The block reaches the Combat Process and is read only for an
+aftermath, so the key dropped at a Hop and nothing failed; the card, the sheet preview and the NP ranking
+all read the same way and agreed. `rules/damage/instances.mjs#damageBaseOf` is now the one reader for all
+four, and the validator refuses a block that declares both spellings or a key outside `DAMAGE_BLOCK_KEYS`.
+Measured after: stage 1 *"BA(STR) × 1 +125 · BA(MAG) × 0.5 +125 = 250"*, tick 79.
+
+### DN. An aftermath was the primary's attack spec with a few keys painted over it, and declared the ability a second time — **fixed 2026-10-01** (#136, #137)
+
+**Reached: XI.splash.** `declareAftermath` overlaid four keys on the primary's spec and `applyDamage`
+re-read the rest from the primary's block, so Xiuhcoatl's splash inherited *"Fire damage (half)"* where
+the sheet says plain Fire (187 against 125 on a Waterside defender), its Magic Resistance exemption, the
+DU's single panel as `areaPanels`, and the primary's Total Damage. It also called `declareProcesses` with
+the same ability, so the caster phases and `abilityUsed` ran twice and the Units the splash caught skipped
+the Hanging Gardens' interrupt. `engine/attack.mjs#damageBlockFor` answers the aftermath's own block and
+`aftermathSpecFor` builds its spec from the panels it caught; `declareProcesses` takes `declaresUse`.
+Measured after: BA(MAG) ×1, whole Fire, Magic Resistance applied (ruling 2), and one Xiuhcoatl charged her
+Master 60 once, ticks 39 and 69.
+
+### DO. Xiuhcoatl's splash applied its riders twice, before the damage they ride on — **fixed 2026-10-01** (#65)
+
+**Reached: XI.splash.seal.** At tick 39 each splash target ran its riders twice: W1 *"NP Seal resisted 94
+vs 25% · Burn applied · NP Seal resisted 30 vs 25% · Burn already present"*, her Master *"NP Seal resisted
+47 vs 25% · Burn applied · NP Seal applied · Burn noop"*. `applyAbilityEffects` is called twice per
+resolution, `beforeDamage` and then the default `afterDamage`, and the aftermath branch ignored `when` and
+answered both. It now answers only `afterDamage` (89362b9); Xiuhcoatl is the only ability with aftermath
+effects. Measured at tick 69: one roll each, NP Seal *"resisted 65 vs 25%"* and Burn applied on the Sphinx
+Queen, *"resisted 35 vs 25%"* on her Master.
+
+### DP. A platform's occupants were dropped from every cross-level resolution — **fixed 2026-10-01** (#138)
+
+**Reached: QZ.aoe, QZ.aoe.m, QZ.aoe.m.fx and QZ.untgt.** Step 4d refused every occupant of a platform
+authoring `occupantTargeting: forbidden` for every caster and every kind of resolution, so an ally's buff
+on a rider was refused, an enemy Skill was barred where her sheet bars only an Attack, and an area reached
+nobody aboard: `aoePassengerFactor`, the sheets' *"50% Total Damage"*, and `aoeMastersImmune` were read by
+tests alone. `rules/platforms.mjs#crossLevelLegal` takes the resolution's reach and shape, with
+`crossLevel.protectedFrom` and `protectedAgainst` authored per platform; an area catches an occupant,
+drops a Master whose platform spares him, and keeps the rest with a `platformFactor` that stage 15
+multiplies in. Measured after: mount 656, Quetzalcoatl 123 (stage 11 493 → 246.5, then stage 15 ×0.50 →
+123.25), her Master untouched, tick 16.
+
+### DQ. Every platform's end rolled the Hanging Gardens' destruction check — **fixed 2026-10-01** (#139)
+
+**Reached: WS.deact, WS.force and the mount's defeat (ruling 12).** `destroyPlatform` rolled a check for
+every passenger and `destructionSequence` dealt 100 Fixed STR to each who failed, whatever ended any
+platform, though only the Hanging Gardens' sheet states the ladder. The Quetzalcoatlus's forced close
+fires with her Master at 25 Health or less, so it could kill him. Following ADR 0001, a platform now
+authors a `collapse` block (`{damage, component}`) to have the ladder, declared beside `knockOff`,
+projected, routed and authored on `hanging-gardens.yml`; one without it rolls nothing, deals nothing and
+still scatters its riders. Three ends of the mount (owner end at tick 13, defeat at tick 37, forced end at
+the Round 19 end) ran no check card and dealt the riders nothing.
+
+### DR. A destroyed platform scattered its passengers only onto its own footprint — **fixed 2026-10-01** (#140)
+
+**Reached: the mount's defeat (ruling 12).** `rules/platforms.mjs#scatterPanels` drew one free ground
+panel per passenger from under the footprint and stopped when they ran out, so a 1x1 mount or an occupied
+footprint left the rest standing where they were: two Units on one panel when the Quetzalcoatlus, which
+`sharesPanel`, fell over an enemy. The surplus now lands on the nearest free ground panels by Chebyshev
+distance from the footprint, ring by ring and random within a ring, inside the board and never on a panel
+an earlier passenger took. Measured after, on the 2x2 footprint: Quetzalcoatl (12,3) → (13,3) and her
+Master (12,4) → (13,4), tick 37.
+
+### DS. No control let an owner deactivate a platform, and a deactivation window was read for Modes and for nothing else — **fixed 2026-10-01** (#141, #150)
+
+**Reached: WS.deact, WS.deact.edge, PDS.deact and PDS.deact.edge.** The action bar built its End slots
+from `board.fields` and a platform is a Unit, so the Quetzalcoatlus and the Golden Hind, which author
+`deactivation {byOwner: true, window: any}`, could end only by defeat, an unpaid toll, an effect on the
+owner or a GM at the console. `platforms.mjs#deactivatablePlatforms` lists them, greyed with the moment it
+opens while a lockout runs, and `OPERATIONS.deactivatePlatform` asks the GM, who re-checks the lockout
+before `destroyPlatform`; forced closes never meet the lock (ruling 8). `deactivationVerdict` now reads
+`window`, so a block that states none means the owner's own Turn; every shipped block states `any`, and
+Achilles's duel is authored `any` to keep what its control did. Pressed: ended on her Turn at tick 13,
+off-Turn at tick 78 (the mount), at tick 83 (the stone).
+
+### DT. A platform Noble Phantasm, and a bounded field, could be cast again while the first stood — **fixed 2026-10-01** (#142, #148)
+
+**Reached: WS.cd and PDS.cd.** `countFrom: destroyed` and `countFrom: deactivation` start no clock at the
+cast, and nothing else refused the next one. A second Winged Serpent raised a second Quetzalcoatlus,
+charged the Master again and left two mounts each charging a toll; a second Piedra Del Sol went through
+`openField`'s bare `delete`, which skipped `endField`: the first stone stayed, the 8◈ never started and
+the new `createdAt` restarted the toll. `rules/costs.mjs#canUseAbility` now refuses `platformStands`
+(derived from the ability's `summonPlatform` phases) and `fieldAlreadyOpen` (read off the ability's own
+field, so a field authored later is covered). Six fields carry the clock. Measured: *"Its platform is
+still standing"* and *"Its area is already open: end it, or wait for it"*, tick 33.
+
+### DU. A rider's Move and Normal Attack were replaced by her mount's in the damage path only — **fixed 2026-10-01** (#143)
+
+**Reached: WS.move, WS.atk, TH.atk.qz, EH.atk.qz and TQ.atk.qz, ruling 10.** `replacesRiderAction` had one
+reader that ran, the damage source. The movement gate validated her own snapshot, so the platform's edge
+hold refused her drag as an occupied destination; a Move or an Attack stamped only the Turn Record of the
+unit that acted, so the mount kept a free Move and Attack; and targeting read her Range.
+`rules/movement.mjs#gateMovement` measures a driving rider as the mount;
+`rules/platforms.mjs#turnPartnersOf` names the unit whose Turn Record an action is also written to, and
+`attackRangeOf` the Range of the swing. Measured after: her drag drove the mount and her Attack was
+*"mount BA(STR) × 1 +150"*, one shared Move and Attack, ticks 18 and 21.
+
+### DV. A field's turnEnd interior event fired at every Turn's end, not at the end of the victim's own — **fixed 2026-10-01** (#145)
+
+**Reached: PDS.2.** `onTurnChange` dispatched the field `turnEnd` at every Turn's end and `runFieldEvent`
+never asked whose Turn it was, so Piedra Del Sol's 50, Contagion's trigger 2a and Jack's Mist's Poison on
+enemy Masters were charged at every faction's Turn end instead of once, at the end of the victim's own.
+`fields.mjs#runFieldEvents` now takes the faction whose Turn ended and scopes `turnEnd` to its Units; the
+clauses that mean every Turn, Blood Fort Andromeda's and Ramesseum Tentyris's Civilian tiers, say
+`anyTurnEnd`, and Blood Fort's two *"every Turn it Acts"* tiers say `actedTurnEnd`. Measured after: W1
+took 50 Fire and Burn at the end of its own Turn, tick 60, and at no other Turn's end.
+
+### DW. A field that painted Burning terrain also ran Burning's own Turn-end toll on everyone inside — **fixed 2026-10-01** (#146)
+
+**Reached: PDS.burning.** Piedra Del Sol paints real Burning over its 7x7 and `terrainPeriodics` gave
+every Unit inside a Burn and 25 Fixed Fire at every Turn end, so her own Noble Phantasm drained her and
+her Master and hit each enemy on top of clause 2's 50. The author ruled *"categorized as Burning"* a label
+only. A `zone` spec can now say `labelOnly`: it rides `zonePaintArgs`, `terrainDataOf` and
+`repaintFollowing` onto `TerrainBehavior`, `terrainAreasOf` projects it and
+`rules/terrain.mjs#terrainPeriodics` skips an area that carries it, while `terrainAt` and `terrainEffects`
+still say what the ground is. Measured after: W1 took only the stone's 50, ticks 58–64.
+
+### DX. An applyEffect intent could not say permanent or unremovable, and a terrain's or field's effect never ended on leaving — **fixed 2026-10-01** (#147)
+
+**Reached: PDS.2.perm and PDS.2.exit.** An emitted `expiry: null` reads as *"nobody stated a duration"*,
+so Burn's own 2◈ default won over a field action that authored `duration: null`, and the action never read
+`unremovable`: Piedra Del Sol's Burn lasted 2◈ and could be cleansed, and Burning terrain's
+`sourceTerrain` tie had no reader. The intent's effect now carries `permanent` and `unremovable` through
+`engine/effect-applier.mjs#mergeEmitted`, a field `ApplyEffect` reads both, and `sourceTerrain` is
+declared, written, projected and swept like `sourceFieldId`. Measured after: W1's Burn inside had `expiry
+null` and `unremovable true`, tick 60; it ended when W1 left, tick 64, which is an unruled reading
+(§46.15.5).
+
+### DY. A field's forced end was tested only when its toll fell due — **fixed 2026-10-01** (#149)
+
+**Reached: PDS.force, PDS.force.any and WS.force.** `runUpkeep` tested the payer's Health only after
+`upkeepDue`, so Piedra Del Sol's *"50 or less at any time → deactivated at the end of the Turn"* waited
+out its 1◈ period, and the Quetzalcoatlus's *"25 or less → at the end of the Round"* was never asked: its
+toll is a tick period, which `upkeepDue` refuses at a Round boundary. `upkeep.closeWhen
+{payerHealthAtMost, at: turnEnd | roundEnd}` is the new authored key, `platforms.mjs#forcedEndDue` answers
+it and `upkeepPlan` orders a sweep as the sheets state it: the threshold first, then the toll.
+`endWhenUnaffordable` stays for Jack's Mist. Measured: the stone forced off at a Turn's end with her
+Master at 45, tick 64; the mount at a Round's end with him at 20, tick 56.
+
+### DZ. Painted terrain had no Level, so a ground area applied to Units aboard a platform above it — **fixed 2026-10-01** (#151)
+
+**Reached: PDS.burning and CS.3.** `terrainAreasOf` projected no Level, `paintTerrain` stamped none and
+`terrainAt` compared `i` and `j` only: a ground Burning area burned a Unit at `k: 0`, at `k: 1` and at `k:
+20`, the Hanging Gardens. §46.4-BI fixed exactly this for fields (`contains` compares `panel.k`) and not
+for terrain. An area now carries a Level, stamped from the caster's, the Fortress's or the DU's;
+`rules/terrain.mjs#terrainAreasAt` matches it only when the panel names none, the area names none or they
+agree, so a hand-drawn area still covers every Level; and a following area follows its source's Level,
+including a change of Level alone (boarding). Measured after: the deck's Burning area (level 20) reached
+the mount and Quetzalcoatl aboard and not a ground Unit; a ground area did not reach the deck, ticks 34
+and 58.
+
+### EA. Xiuhcoatl treated an antiFortress field as a Fortress NP, and its Burning was never cleared — **fixed 2026-10-01** (#152)
+
+**Reached: XI.fort and XI.fort.end.** `fortressPanels` skipped a field only when its `npTags` held neither
+`fortress` nor `antiFortress`, so Xiuhcoatl used beside Piedra Del Sol (`antiArmy, antiFortress,
+boundedField`) painted Burning over the 9x9 for ever; and *"until the Fortress NP is deactivated"* had no
+reader, so the Burning outlived its Fortress and a second use moved the one area off the first Fortress
+while it stood. The author ruled that a [Fortress] NP is one tagged `fortress`, which today is Ramesseum
+Tentyris. `skill-use.mjs#fortressesNearby` tests that tag alone and gives each Fortress its own area under
+`TerrainBehavior.boundToFieldId`, and `fields.mjs#endField` erases what is bound to the field it closes.
+Measured: Burning over the 13x13 Fortress and ring, cleared when the Fortress ended, tick 69.
+
+### EB. A bounded field's interior events still acted on defeated Units — **fixed 2026-10-01, not yet pressed live** (#153)
+
+**Reached: the Quetzalcoatl paper trace (#65).** The other half of §46.4-CN and the sibling of §46.4-CP:
+`runFieldEvent` had no `defeated` test, and a defeat never removes the token, so every interior event kept
+acting on the corpse. For damage that is debris; where an action pays someone else it is more: Blood Fort
+Andromeda's Civilian tier (a Defeat, then a Heal of 100 and +1 Agility to Medusa or her Master) would pay
+the owner again for every corpse at every Turn end, and Ozymandias's Complex would log a fresh `fieldKill`
+for it. `engine/fields.mjs#runFieldEvent` now filters on `!u.defeated`; contact events share the filter.
+Every author of `interiorEvents` is reached.
+
+### EC. A field's Damage action dropped its element and its fixed flag, and nothing read an element on bare damage — **fixed 2026-10-01, not yet pressed live** (#154)
+
+**Reached: PDS.2.** The `Damage` branch of `runFieldEvent` read `roll`, `amount` and `component`, so
+Piedra Del Sol's `{amount: 50, element: fire, fixed: true}` became 50 damage with no element; and the
+applier's `damage` case only subtracted, so what an element does at stage 0 never reached a bare intent: a
+Frozen enemy in the stone took the 50 Fire and stayed Frozen where Appendix A says any Fire damage removes
+Freeze, and Burn, Poison and Curse damage did not turn into healing under their Heal effects. Stage 0's
+two rules are now `pipeline.mjs#elementalEarlyExit`, which stage 0 and `applier.mjs#resolveElements` both
+ask; the field action passes its element on, and the build refuses a field Damage with `fixed: false`,
+which it can never honour. Two readers of one rule, §46.3.
+
+### ED. usageSpecFor dropped three keys the use gate reads — **fixed 2026-10-01** (#155)
+
+**Reached: TH.gate, EH.gate, TQ.gate and QSP.pds.** `usageSpecFor` is what both use paths and the sheet's
+cards hand `canUseAbility`, and it did not carry `isSpell`, `categorizedAs` or `creates`; the action bar
+alone passed the raw `item.system`. Seal and Silence met the sixteen Spells backwards at the declaration,
+Blind's Mystic Eye clause never refused Medusa's Mystic Eyes, and a Storm Border never refused the five
+abilities that create a Large or Giant Unit, while the bar read each the other way.
+`rules/ability-use.mjs#usageSpecFor` carries the three keys and the bar passes it; a guard reads the gate
+and fails if it names a key the spec does not write. Measured: the Spells refused on the ground and usable
+aboard, ticks 1 and 7, and refused while Piedra Del Sol stood, tick 33.
+
+### EE. The Counter path never re-checked canUseAbility and had no way to say an ability cannot be a Counter — **fixed 2026-10-01** (#156)
+
+**Reached: TH.ctr, EH.ctr and TQ.ctr.** The three Spells end *"Cannot be used as a Counter"* and the
+content said it with `timing.window: ownTurn`, which is documentary (89 of the 117 window authorings), so
+they were offered as one. `cannotCounter` is a new Authored Key with its full route
+(`module/data/item/ability.mjs`, `AUTHORED_ITEM_KEYS`, the editor field, a route in `survival.test.mjs`)
+that `answersACounter` reads. `runCounter` also computed `canUseAbility` only to price the use and never
+refused on it, and the `declareCounter` authorizer checked nothing about the ability:
+`rules/counter.mjs#counterRefusal` now refuses before anything is spent, with a `testPredicate` so
+predicate-gated Counters stay legal. Measured: `answersACounter` false for all three and `counterOffer`
+leaving them out, tick 30.
+
+### EF. A rider and the sheet's ability cards were applied or gated on a bare snapshot, not the board's Unit — **fixed 2026-10-01, not yet pressed live** (#157, #158)
+
+**Reached: the Quetzalcoatl paper trace (#65).** The shape §46.4-AF and §46.4-AG fixed at two other sites.
+`applyAbilityEffects` built both sides from `unitSnapshot`, so a bounded field's incoming
+`ApplicationChance` and Sikera Ušum's Immunity downgrade, written only by `snapshotBoard`, never reached a
+rider: a 50% rider rolled at 60 was resisted on the snapshot and applied on the board's Unit.
+`engine/attack.mjs#riderSubjects` takes both from the board, once per call. The sheet's `abilitiesContext`
+gated every card on the bare snapshot, so `self:onPlatform`, `self:fieldActive` and the like were never
+emitted: while she rides, her Spells read *"conditions not met"* and Xiuhcoatl read usable. It now takes
+the caster from the board.
+
+### EG. An ability's kind was a free string nobody validated, so the three Quetzalcoatlus Spells resolved as STR Normal Attacks — **fixed 2026-10-01** (#159)
+
+**Reached: TH.1, EH.1 and TQ.1.** `kind` is a free `StringField` read in three places, and the corpus
+authored `activeSkill` and `spell`, which nothing reads. The three Spells authored `kind: spell` instead
+of `isSpell: true`, so `abilityKind` returned `normal` and they were billed `attack` and resolved as STR
+Normal Attacks: no Def Dwn (MAG), STR Reflect, the wrong prevention. The number was unaffected, since
+`baseSpecFor` reads the declared component first. They author `kind: skill` plus `isSpell: true`;
+`ABILITY_KINDS` in `rules/authoring/ability.mjs` is the one list the editor and `tools/lib/content.mjs`
+read, and Semiramis's two `activeSkill` become `skill`. Measured: Tlahuitequiliztli `{kind damageSpell,
+component mag, element lightning}` with her BA(MAG), tick 18.
+
+### EH. A Skill marked "Used during your Turn" could be used on any Player's Turn — **fixed 2026-10-01** (#160)
+
+**Reached: LL.when, CS.when and GGW.when.** Seen live at tick 2: Lucha Libre pressed from her bar on
+Faction 2's Turn resolved, *"2 effect(s) applied"*, cooldown 12. `timing.window: ownTurn` was read in
+exactly one place, `canToggleMode`, so it gated Modes and nothing else. `rules/costs.mjs#canUseAbility`
+now refuses an ability whose only window is `ownTurn` when the faction whose Turn is running is not the
+Unit's, with the reason `notOwnTurn`; an ability that names another window as well, a use made as a
+Counter, and a table with no acting faction are not asked. Measured after: every Skill on her bar read
+*"Only during your Turn."*, tick 12.
+
+### EI. A painted terrain area ended a Turn before the effect that painted it — **fixed 2026-10-01, not yet pressed live** (#161)
+
+**Reached: CS.3.** Seen live at tick 4: Charisma of the Sun stamped the Sol buff, Atk Up and the sunlight
+Region with one expiry, 4, and the Region was gone at the start of the Turn while Sol and Atk Up stood.
+The terrain sweep was handed the next tick and removed `expiry <= tick` when the Turn began; the effect
+sweep is handed the tick that just ended. Both now ask `domain/tick.mjs#expiryReached` of the tick of the
+Turn that just ended, so an area and an effect stamped with one expiry are present through that Turn and
+gone at its end, together.
+
+### EJ. A platform's "Luck: Shared with" was a copy of its owner's maximum Luck, not one pool — **fixed 2026-10-01** (#162)
+
+**Reached: QZ.luck, ruling 7.** `summonPlatform` resolved `inherit.luck {from: summoner}` once, at the
+cast, into a copy of the owner's maximum, and every Luck Check spends 1 from the checking unit's own id,
+so the two pools drifted apart. The projection carries `luckFromSummoner`,
+`snapshot.mjs#annotatePlatforms` reads the owner's current Luck onto a platform that shares it, and
+`io.mjs#adjustStat` writes a spend on such a platform to the owner's pool; `summonPlatform` copies no
+Luck. The Golden Hind's *"Shared with Drake"* is the same clause. Measured: a spend charged to the mount
+came off her pool, 20 → 19, tick 31.
+
+### EK. The content sync merged a pack item into the world's, so a key the pack removed survived — **fixed 2026-10-01** (#163)
+
+**Reached: the audit board itself, after the lane fixes.** After a pack rebuild and a world load,
+Xiuhcoatl's world item still held `anchor.range: 2`, which the pack no longer carried, though every other
+change in the item arrived. `migration/runner.mjs#syncContent` wrote each item's whole `system` with a
+recursive update, which merges, where the actor write beside it already passed `recursive: false`. The
+item write now does too. Invisible in tests, which never run the sync, and on a fresh import; it reaches
+every content change that removes a key or a list entry. Measured: after the sync the anchor was `{kind:
+withinRange, metric: chebyshev}`, tick 12.
+
+### EL. Ending a platform while its Scene Level was viewed left the canvas blank — **open** (#164)
+
+**Reached: WS.deact and WS.force.** Seen at tick 13 and again at the forced end at the Round 19 end: the
+GM was viewing the Quetzalcoatlus's Scene Level, the platform, its token and its Level were removed
+correctly, and the client was left with `canvas.scene` null and a black board; the level menu still listed
+the deleted Level, and only `scene.view()` brought the board back. Nothing moves a client off a Level that
+no longer exists. It reaches every client viewing a platform's Level when the platform ends. The fix
+proposed in #164: `scene-levels.mjs#removePlatform`, or a `deleteLevel` hook on every client, moves any
+viewer to the scene's default Level first. Not fixed.
+
+### EM. A targeting session left the canvas on the targeting layer — **fixed 2026-10-01** (#165)
+
+**Reached: GGW.scope, seen at tick 18 and after every session.** After Good God's Wisdom's unit picker
+`canvas.activeLayer.name` was `TargetingLayer`, `canvas.tokens.active` was false, no token could be
+controlled and the action bar was gone; only switching to another control group and back restored
+`TokenLayer`. `activate()` deactivates every other layer, and `pick` and the destination session never
+handed the canvas back, while the paint session's plain `deactivate()` left no layer at all. Every session
+now takes the canvas through `targeting-layer.mjs#takeCanvas` and returns it in its `finally`; a session
+superseded by a newer one does not hand back. A source guard fails on any `activate()` without the pairing
+(Ch. 36 invariant 8). Measured: `TokenLayer` active after the picker, tick 46.
+
+### EN. No reaction prompt ever timed out — **fixed 2026-10-01** (#166)
+
+**Reached: the audit board, at tick 19 and tick 21.** A Counter rung opened on Faction 2's Turn was still
+open two Turns later and armed the bar for the mount on Faction 1's next Turn.
+`await-timeout.mjs#policyForMessage` passed the `fgt.process` flag, a JSON string, straight to
+`pendingPrompt`, which returned `null` for every card, so no reaction, Luck Check, Command Spell, Counter
+or facing prompt ever got a deadline or a countdown, and Ch. 23's rule that an absent player never blocks
+the table held for none. It now deserializes, failing closed; a source guard checks every reader of the
+flag. Measured: an unanswered Counter rung was declined by the timer about 45 s after `promptStartedAt`,
+tick 49.
+
+### EO. The targeting preview and the Range of a rider's replaced Normal Attack read the rider, where her mount's replaces it — **fixed 2026-10-01** (#167, #171)
+
+**Reached: WS.atk.** Both seen live. The preview read *"Nemo 195–240"*, her own BA(STR) 125, where the
+card dealt 247 off the mount's 150 (tick 21): `previewContext` built its base from her Normal Attack and
+filled no `ctx.units`. Her attack on Nemo at (13,6) was refused *"out of Range (2)"* with the 2x2 mount's
+footprint 2 panels away and her own panel 3: targeting swapped the mount's Range number and measured it
+from her one panel (tick 36). The third builder of the attack drifting from the resolution, after
+§46.4-DB. `previewContext` builds its base through `normalAttackBase`, as `baseSpecFor` does, and
+`rules/platforms.mjs#attackSourceOf` answers the footprint and Range together for the preview, resolver,
+Counter rung and threat overlay. Measured: a target 3 from her panel and 2 from the footprint read
+*"Legal"*, tick 51.
+
+### EP. A platform that shares its summoner's Luck showed 0 Luck and its Luck Check buttons were disabled — **fixed 2026-10-01** (#169)
+
+**Reached: QZ.luck.** The engine routed the shared pool (§46.4-EJ) but three readers took
+`actor.system.luck`, the mount's stored 0, where the board's projection carries the owner's: the action
+bar's Luck row, the chat card's Luck rung, whose Contest button rendered disabled with
+`FGT.Reaction.NoLuck`, and the `luckCheck` dialog in `apps/prompt.mjs`. The shared pool could not be spent
+from the interface. All three now ask `engine/board.mjs#luckOf`, and a source guard fails any
+`module/apps` file that reads `system.luck` directly. Measured: the mount's bar reads *"Luck 20 / 20"*,
+her pool, tick 72.
+
+### EQ. A field raised from a platform's deck put its structure on the ground and its area on the deck — **open, needs a ruling** (#170)
+
+**Reached: PDS.place and PDS.2.** Seen at tick 33, cast from the Quetzalcoatlus at (14,8), elevation 20:
+the stone is a `structure` token at (14,8) on the ground Level, the field's `geometry.anchor` is `{i:14,
+j:8, k:20}` and the `burning` area is level 20, 49 panels. Nemo ended his Turn at (13,6) on the ground
+inside the 7x7 and took no 50 Fire and no Burn (Health 566 → 566; `contains` false for him, true for
+Quetzalcoatl on the deck), while the deck's Burning gave the mount *"elementDefUp Burning (water) −50
+×0.50"*, 164 → 82. Cast from the ground at tick 58 the anchor is `{5,4,k0}` and W1 inside took the clause.
+The question: which Level owns an area raised from a deck? Every self-anchored field raised from a deck
+splits the same way (Golden Hind, Hanging Gardens). Not fixed.
+
+### ER. Guts, Undying and every other revival lost the killing blow's overkill — **fixed 2026-10-01** (#172)
+
+**Reached: GGW.1.** `rules/revival.mjs#resolveRevival` subtracted the overkill from what every source
+restores, generalising Heracles's God Hand clause, the only sheet that says *"the excess damage is reduced
+from his newly restored Health"*. Seen at tick 40: Guts 10 on a 1250-Health Servant at Health 60, hit for
+227 (overkill 167), defeated with the Guts spent; `resolveRevival({overkill: 167})` gave `revived: false`,
+`restored: 0`, and with `overkill: 0` 125. #128's test had used `overkill: 0`. Only a `cascading` source
+carries the excess now; Guts, Undying, Battle Continuation, Divine Protection and Holder Mode restore
+their stated amount, and `ignoresOverkill`, Mannanán's alone, is retired. Measured: the mount at 50 took
+228 (overkill 178) and Guts revived it with 100, tick 49.
+
+### ES. At a Round boundary the first Turn started for the old order's faction, and the Round numbers ran one ahead — **fixed 2026-10-01** (#173)
+
+**Reached: the audit board, every Round.** At tick 41 the Combat went 14 → 15 while the log read `roundEnd
+15 · roundStart 16 · turnStart faction-1 tick 42`, and Faction 2 held tick 42 after the order was
+re-rolled. `combatRound` fires before Foundry writes the new Round and is not awaited, so `onRoundChange`
+read `combat.round` after an await, and `onTurnChange` took the incoming faction from the order before
+`rollTurnOrder` re-sorted it: `budget.reset` ran for the faction not acting. The boundary is now one
+ordered sequence in `engine/scheduler-hooks.mjs#onTurnChange`: end the Turn, end the Round (old number),
+roll, begin the Round (new number), begin the first Turn for `combat.combatant` after the re-sort.
+Measured: `roundEnd 24 · roundStart 25 · turnStart faction-1 tick 72`, matching the Combat.
+
+### ET. Overpower flipped its instant-defeat coin for a Servant's own Master, silently — **open, needs a ruling** (#174)
+
+**Reached: XI.splash, RI.p3 and XI.fort.** Xiuhcoatl's splash hits everyone within 2 panels, and her ZON
+is 2, so her own Master is always under it. At tick 39 the card read *400, Injury Roll required* and
+nothing else, and he stood at 1540/2000 with `defeated: true`, `defeatCause: "overpowered"` and the skull;
+it defeated him three times on this board (ticks 39, 69 and 79) and made her Master's carry at tick 43
+look like a failed RI.p3. `relationships.mjs#overpowerCheck` tests kinds only, with no relation test, and
+`I.defeat(…, "overpowered")` is written with no card line. For the author: an allied Servant should not
+flip it; whether a Master merely caught in an area does needs a ruling against Ch. 32's Cover ladder. Not
+fixed.
+
+### EU. The Quetzalcoatlus was never forced off at a Round's end while its Master was home — **open, needs a ruling** (#175)
+
+**Reached: WS.force.** Round 18 → 19: the mount's own toll took her Master 40 → 15 at the end of tick 52,
+then the Home Base heal took him to 115 and the mount stood, no `forcedEnd` in the log; `upkeepPlan(…,
+payerHealth 15, atRoundBoundary true)` returns `{close: forcedEnd}`, so the rule is right and never saw
+15. Two things need a ruling: `scheduler-hooks.mjs#onRoundChange` runs `endRound`, with its +100 heal,
+before `runUpkeep` reads `closeWhen` at `roundEnd` (which comes first?); and Home Base membership ignores
+Level, so Quetzalcoatl and her Master aboard at `k: 20` read `inHomeBase: true` (is a Unit flying over its
+Home Base inside it?). Observed outside a Home Base: forced off at the Round 19 end with the Master at 20,
+tick 56. Not fixed.
+
 ---
 
 ---
@@ -3156,3 +3765,222 @@ is asked, one ally at a time, for a panel of the footprint that will open where 
 middle, which is hers, and less what an earlier ally took, the Throne Room listed first
 (`engine/hgob.mjs#chooseRiderPanels`, `riderPanelOptions`). Declining leaves that ally to
 `seatingPlan`'s nearest free panel, which used to be the only answer.
+
+---
+
+## 46.15 Quetzalcoatl — the Servant who rides her own Noble Phantasm
+
+**All 113 of her Clauses were Pressed or Observed on a live board** (#65, 2026-09-30 to 2026-10-01): 60
+`Pressed (interface)`, 16 `Pressed (engine)`, 1 `Pressed (projection)`, 2 `Pressed`, 1 `Observed (interface)`
+and 33 `Observed`. They span three Units — Quetzalcoatl, the Quetzalcoatlus she summons and rides, and the
+Piedra Del Sol, a Structure — and the audit put **57 entries into §46.4 (CQ to EU)**, so this chapter is the
+case for her and the register is where the findings live.
+
+**Why she finds so much.** Her kit leans on mechanisms that have one user each. The Quetzalcoatlus is the
+only mount that replaces a *Move* (`replacesRiderAction`; the Golden Hind replaces only a Normal Attack), and
+Xiuhcoatl is the only ability with an `aftermath`. Piedra Del Sol is the only `supersedes` in the corpus,
+and Magic Resistance's Instakill and Death exemption is the only `attackPredicate`. Her three Spells are
+the only sheet that says *"Cannot be used as a Counter"*. Each is a mechanism with one user, which is
+§46.14's reason too, and a mechanism with one user has never had a bug report.
+
+**How this audit was built differently.** The Clause list was written by hand, line by line, from the
+Character Sheet, after a generated list of 56 was found wrong in five ways (#65; d18db76). The paper
+trace ran first: seven agents, then a second pass that tried to refute each claimed defect against the code.
+*"None was refuted. Two were merged into others."* It filed #113 to #162, fifty issues. The live
+presses found the rest: #160 and #161 on the first board, and #163 to #175 once the lane fixes were in.
+
+### 46.15.1 What held
+
+| Clause | Measured |
+|---|---|
+| **Statblock** (SB) | Header *RIDER · LAWFUL GOOD · CENTRAL AMERICA, SOUTH AMERICA*; Health 1250/1250, Agility 19/19, Luck 20/20; STR B, END B, AGI B+, MAG EX, LUC A+; BA(STR) 125, BA(MAG) 250, MOV 7, RANGE 2, TARGETS 1, DETECT 2 (derived), Sustainability 2◈. END B's table gives 1250, STR B 125, MAG EX 250, no override. The setup rolls ran in `servantSetupPlan` at `commitWar`, not by hand: Agility 17 + 1d2 (rolled 2), Luck 17 + 1d4 (rolled 3). *Kukulkan* is not carried; the True Name is display only |
+| **Magic Resistance**, passive 1 | Nemo (MAG A): base BA(MAG) 200, crit ×1.10 → 218.7, Divinity +50 → 268.7, ZON −24 → 244.7, stage 11 *"negated: MR A ≥ attack A × 0.00"* → **0**. Medea (MAG A+), same defender, same board: BA(MAG) +210, Attack− 5d10 = 27 → 183, *"−50% MAG (MR A < attack A+) × 0.50"* → 91.5, clamped **91**; Health 1250 → 1159. `MR.np`: EMIYA's Caladbolg (NP Rank A, MAG B) negated, 700 → 0; Hrunting (*"not affected by MR"*) bypassed, 700 stays |
+| **Magic Resistance** and **Divine Core**, passive 2 | Her `applicationChances`: incoming normal **25** (MR), incoming Instakill and Death **25** (MR, predicated `not attack:component:str` and `not attack:ignoresMagicResistance`), incoming normal **50** (Divine Core). `applyEffect` dry runs, roll 99: Burn from a MAG NP *"rolled 99 vs 25%"* (100 − 25 − 50); Burn from a STR Skill also 25%; Instakill and Death from a MAG NP **75%**, from a STR NP or an ignores-MR NP **100%**; Erase **100%**. Divine Core's 50 does not reach Instakill or Death (Appendix A: normal only) |
+| **Goddess's Divine Core**, passive 1 | +120 at stage 7: Normal Attack on Medea, BA(STR) 125, Attack+ 5d10 = 22 → 147, Atk Up ×1.30 → 191.1, Divinity +120 → **311.1**. Its Divinity: her options carry `target:skill:divinity` and `target:skillRank:divinity:gte:EX` (and A…E), so Vasavi Shakti's predicates see her |
+| **Charisma of the Sun** | Atk Up (30, NP 15) and S.Crit Up 25 on her and her Master at Chebyshev 1, expiries 4 and 2 against tick 1 (1◈ and ⅓◈); Medea at 18 got nothing. Sol on her, expiry 4, and a 5x5 `sunlight` Region following her. Cooldown 12 = 4◈. Spent on her own attack at stage 4 (*"Atk Up atkUp +30% ×1.30"*), and +15% on the NP: 944 → **1085.6**. Round 2 (Night): `phaseAt (10,0)` day inside the 5x5, `phaseAt (10,5)` night outside |
+| **Good God's Wisdom** | The choose dialog read *"3 target(s) · 25 panel(s)"*: Quetzalcoatlus, her Master, Quetzalcoatl; the enemy *NOT TARGETED "this ability targets ally or self"*. Her Master: Guts magnitude 10, Atk Up 40 (NP 30), both expiry 21 (tick 18 + 3), gone at tick 22. Cooldown **11** = 4◈−⅓◈ |
+| **Lucha Libre** | Crit Up 60, Crit DmUp 50, expiry 3 against tick 2 (⅓◈ = 1 tick). Cooldown 12 = 4◈. Xiuhcoatl's cooldown 21 → **18** |
+| **Xiuhcoatl** | Her Master −60 (Rank A). Stage 1 *"BA(STR) × 1 +125 · BA(MAG) × 0.5 +125 = 250"* at tick 79, and *"+95 · +110 = 205"* at tick 39 with Burn's −30 on each. *"4× damage"* 236 → 944, NP Seal expiry 42 (1◈), Burn expiry 45 (2◈); +15% → 1085.6; Piedra Del Sol *"+180"* → 1265.6, Nemo defeated. Against Ozymandias (MR B): stage 11 *"bypassed"*, 4× → 1132, Divine Core +120 → 1252, Block −25% → **939**. The splash: BA(MAG) ×1, whole Fire, MR applied; W1 card 334, her Master 2000 → 1540 including the −60. Cooldown 21 = 7◈. Refused while aboard (*"Its conditions are not met right now."*), usable on the ground |
+| **Winged Serpent** | A 2x2 mount on its own Level, she on that Level at elevation 20 (*"+20 panels"*), her adjacent Master placed **on** the deck at (12,13). Her Master −60 (321 → 261). Upkeep −25 per 1◈ (3 ticks), at the ends of ticks 10, 16, 19, 22, 25, 28, 31, 34, 49, 52 and 55, and none at the ends of 7, 8 and 9. At tick 12 the Fields row read *"cannot be ended yet — it opens in ⅓◈"*. Cooldown **21** (7◈) after an owner end, a defeat and a forced end |
+| **The mount** | Health 1000, Agility 16, MOV 7, Range 2/1, BA(STR) 150, 2x2. It drove across Nemo's panel and stood over Medea's; she was not targetable aboard (*"aboard a platform that cannot be attacked into"*). Medea's Rain of Light (3x3, MAG A+): mount **656**, no stage 15 entry; she **123** (stage 11 493 → 246.5, stage 15 *"platformAoe ×0.50"* → 123.25); her Master not targeted, 261 → 261, effects `[]` |
+| **The three Spells** | BA(MAG) 250 ×2 + Divine Core 120: Tlahuitequiliztli **568** (Medea 439 → 0), Ehecatle **664**, Tlaelquiyahuitl **680**, `{kind damageSpell, component mag}` with the elements lightning, wind and water. Shock expiry 36 = 30 + 6 (Agility 7 → 4), Slow expiry 33 = 27 + 6 (MOV 6 → 3, Agility 10 → 7), Sap expiry 78 (1◈). Cooldown 6 (2◈) on all three at once, the others reading *"Cooldown 2◈ (6 turns)"*; her Turn Record and the mount's `attacked: true` |
+| **Piedra Del Sol** | Her Master −100 (406 → 306). The stone a `structure` token, field `quetz-piedra-del-sol`, `fixedArea` square 7 (rows 11–17, cols 5–11). Upkeep −50 per 1◈ (281 → 231, 306 → 256). Ward ×0.50 outside the area: Barrel Bombing card **28** (150 fixed, Crit +37 → 187, ward ×0.50 → 93.5, ZON −36 → 57.5, stage 15 ×0.50 → 28.75). W1 at the end of its own Turn: 971 → **921** and a Burn `{expiry null, unremovable true}`; her Master, inside on the stone's panel, took nothing |
+| **Riding** | MOV 7 → 13, back to 7 at the Turn's end, ticks 43–44; cooldown 9 (3◈). Move 1, Attack, Move 12 accepted; the same second Move at 13 refused *"13 panels; 12 remain of MOV 13"*. After a 1-panel Move the overlay offered 12 panels, not 13; the ride ended the Turn (*"Move — Riding Attack ends this unit's turn"*, a drag of 2 refused, *"0 remain of MOV 13"*). 5 panels through W1 for **229**, W1 921 → 692; her Master carried at the same offset |
+
+### 46.15.2 What she cost the engine
+
+**Hers.** Four fixes went in with no issue of their own, all local to her and tagged #65: the Quetzalcoatlus is
+2x2, not 1x1 (e506119, ruling 16); Winged Serpent seats her adjacent Master on the mount and only her own
+Master boards it freely, where he had been left standing beside it on nothing and then needed a natural 12
+(7f7afc3); Xiuhcoatl no longer freezes her statblock Range into its anchor (fd974ad); and Piedra Del Sol's
++180 and −50% hold wherever she stands while the stone exists, where the content scoped both to the 7x7
+(4514b19, ruling 5). The three Spells' `kind: spell` is hers in the YAML and general in the reader
+(§46.4-EG).
+
+**The sixteen rulings of 2026-10-01**, each settled by the user, and what each changed:
+
+| # | Ruling | What it changed |
+|---|---|---|
+| 1 | The Spells use her BA(MAG) 250, ×2 | As authored |
+| 2 | Xiuhcoatl's splash is affected by Magic Resistance; only the hit on the DU is exempt | Content: `ignoresMagicResistance` deleted from the aftermath; §46.4-DN |
+| 3 | Magic Resistance compares an NP by the NP's own Rank | The resolution was right; the preview was not, §46.4-DB |
+| 4 | Piedra Del Sol's +180 replaces Divine Core's +120 | On a live board both counted (+300), §46.4-DD |
+| 5 | "On the field" means on the board | Content: the two interior rules became `fieldActive` passives (4514b19) |
+| 6 | "Categorized as 'Burning'" is a label | §46.4-DW |
+| 7 | The Quetzalcoatlus shares one Luck pool with her | §46.4-EJ, §46.4-EP |
+| 8 | A forced deactivation is not held off by the 2◈ lock | Held: a forced end never calls `deactivationVerdict`; §46.4-DS kept it so |
+| 9 | Winged Serpent's 7◈ Cooldown starts from any end of the mount | Held; Pressed after a voluntary end, a defeat and a forced end |
+| 10 | She and the Quetzalcoatlus share one Move and one Attack per Turn | §46.4-DU |
+| 11 | The Spells' 3x3 hits enemies only | Content (c3199a7) |
+| 12 | When the mount falls, its riders drop to the ground | §46.4-DQ, §46.4-DR |
+| 13 | Crit Up, S.Crit Up and Crit DmUp do not affect Noble Phantasms | §46.4-DI |
+| 14 | Riding Attack hits enemies only | As the engine does |
+| 15 | A [Fortress] NP is one tagged Fortress | §46.4-EA |
+| 16 | The Quetzalcoatlus is 2x2 panels | Content (e506119), not printed on the sheet |
+
+**What was general** (§46.4-CQ to §46.4-EU, issues #113 to #175 except #168, which §46.4-CP records, and the
+splash riders, filed under #65). Of the 63 issues, **38 are closed** with the fix looked at on a board; **19 are fixed in
+code and still open**, because no closing comment records a live press; **five wait for a ruling** (#132,
+#134, #170, #174, #175) and **one waits for a fix** (#164). By family:
+
+- **Riding**, nine entries: CQ (#113, no interface path), CR (#114, the gates), CS (#115, the Master),
+  CT (#116, the free toggle), CU (#117, Double Move by name), CV (#118, the stale landing), CW (#119, No Buff),
+  CX (#120, Drake's `"@cooldown"`), CZ (#122, the text).
+- **Platforms and the rider and mount pair**, twelve: DP (#138), DQ (#139), DR (#140), DS (#141, #150),
+  DT (#142, #148), DU (#143), EJ (#162), EL (#164), EO (#167, #171), EP (#169), EQ (#170), EU (#175).
+- **Fields and terrain**, nine: DV (#145), DW (#146), DX (#147), DY (#149), DZ (#151), EA (#152), EB (#153),
+  EC (#154), EI (#161).
+- **Effects, resistance, crit and revival**, nine: DA (#123), DB (#124), DC (#125), DD (#126), DE (#127),
+  DF (#128), DI (#131), DJ (#132), ER (#172).
+- **Use gates and targeting**, seven: DG (#129), DK (#133), ED (#155), EE (#156), EF (#157, #158), EG (#159),
+  EH (#160).
+- **One Noble Phantasm resolving**, three: DM (#135), DN (#136, #137), DO (the splash riders, found live).
+- **Plumbing**, eight: CY (#121), DH (#130, #144), DL (#134), EK (#163), EM (#165), EN (#166), ES (#173),
+  ET (#174).
+
+**Shapes worth carrying to the next audit.**
+
+- **A rule one sheet states, applied to every Servant.** §46.4-ER: `resolveRevival` subtracted the overkill from
+  every source, *"generalised to every source because every source in the corpus had it until now"*, and only
+  God Hand's sheet says it. §46.4-DQ is the same shape: the Hanging Gardens' destruction ladder ran on every
+  platform. Both are the opposite of a Silent Drop, a rule that fires too widely, and neither failed a test.
+- **The same attack built in several places.** §46.4-DB (the preview against the resolution), §46.4-EO (the
+  preview and the Range, *"a third builder of the attack"*) and §46.4-DM (the card, the preview and the NP
+  ranking all reading the damage block the same wrong way, so they agreed).
+- **A timing key whose only reader was the Mode toggle.** §46.4-EH (`ownTurn`), §46.4-DS (`deactivation.window`)
+  and §46.4-EE (`ownTurn` read as documentary) are one shape: an authored window that gates Modes and nothing
+  else.
+- **A value dropped at a Hop of its own.** §46.4-DD (`contentId` missing from the contribution record, which
+  `#103`'s test had passed in by hand), §46.4-DF (`@magnitude` never substituted into `restore`) and §46.4-EG (a
+  free `kind` string).
+- **A board question asked of a snapshot.** §46.4-EF is §46.4-AF and §46.4-AG at two more call sites.
+- **A defeated Unit is still on the board.** §46.4-CP, and its sibling §46.4-EB.
+
+### 46.15.3 Everything pressed
+
+Evidence level and tick for each of the 113 Clauses, as #65 records them.
+
+| Family | Clause · evidence level · tick |
+|---|---|
+| **SB** | SB · Pressed (interface) · 0 |
+| **Riding** (13) | RI.p1, RI.p1.cap · Pressed (interface) · 4. RI.p2 · **Observed (interface)** · 61. RI.p2.stop, RI.p2.left, RI.combo · Pressed (interface) · 43. RI.p3, RI.p3.one · Pressed (interface) · 1. RI.when · Pressed (interface) · 43, refused off-Turn at 40. RI.a · Pressed (interface) · 43–44. RI.notbuff · Pressed (engine) · 72. RI.notbuff.block · Pressed (interface) · 72. RI.cd · Pressed (interface) · 43 |
+| **Magic Resistance** (8) | MR.p1, MR.p1.over · Observed · 3. MR.np, MR.p2, MR.death, MR.death.x, MR.erase, MR.str · Pressed (engine) · 40 |
+| **Divine Core** (3) | GDC.p1 · Observed · 4 and 39. GDC.p2, GDC.div · Pressed (engine) · 40 |
+| **Charisma of the Sun** (6) | CS.when · Pressed (interface) · 1, refused off-Turn at 12. CS.1 · Observed · 4. CS.1.np · Observed · 39. CS.2, CS.cd · Pressed (interface) · 1. CS.3 · Observed · 70 |
+| **Good God's Wisdom** (6) | GGW.when, GGW.scope, GGW.2, GGW.2.np, GGW.cd · Pressed (interface) · 18, refused off-Turn at 12. GGW.1 · Observed · 49 |
+| **Lucha Libre** (5) | LL.when · Pressed (interface) · 12, refused off-Turn after #160. LL.1, LL.2, LL.cd · Pressed (interface) · 2. LL.3 · Pressed (interface) · 39 |
+| **Xiuhcoatl** (12) | XI.hdr, XI.ba, XI.du, XI.fire · Observed · 39. XI.mr · Observed · 79. XI.splash · Observed · 39 and 69. XI.splash.miss · Observed · 69 and 79. XI.splash.seal · Observed · 69. XI.ride · Pressed (interface) · 7 and 39. XI.fort, XI.fort.end · Observed · 69. XI.cd · Pressed (interface) · 39 |
+| **Winged Serpent** (15) | WS.hdr · Pressed (interface) · 7, 13 and 46. WS.summon, WS.seat, WS.deact · Pressed (interface) · 13. WS.master · Pressed (interface) · 13, a distant Master stays at 46. WS.board · Pressed (interface) · 51, enemies refused by the engine. WS.move · Pressed (interface) · 18. WS.atk · Observed · 21. WS.spells · Pressed (interface) · 1 and 7. WS.upkeep · Observed · 10, 16, 19, 22, 25, 28, 31, 34, 49, 52 and 55. WS.upkeep.x · Pressed (engine) · 64. WS.force · Observed · 56. WS.deact.edge · Pressed (interface) · 78. WS.lock · Pressed (interface) · 12, ruling 8 by the engine. WS.cd · Pressed · 13, 37 and 56 (ruling 9) |
+| **The mount** (9) | QZ.SB · Pressed (projection) · 13. QZ.luck · Pressed (engine) · 72. QZ.obst · Pressed (interface) · 21. QZ.occupy · Pressed (interface) · 18. QZ.untgt · Pressed (interface) · 12 and 19. QZ.untgt.m · Pressed (interface) · 19. QZ.aoe, QZ.aoe.m · Observed · 16 and 37. QZ.aoe.m.fx · Observed · 37 |
+| **The three Spells** (15) | TH.gate, EH.gate, TQ.gate · Pressed (interface) · 1 and 7. TH.1 · Observed · 18 and 30. EH.1 · Observed · 25 and 75. TQ.1 · Observed · 27. TH.atk, TH.atk.qz · Pressed (interface) · 18. EH.atk, EH.atk.qz · Pressed (interface) · 25. TQ.atk, TQ.atk.qz · Pressed (interface) · 27. TH.ctr, EH.ctr, TQ.ctr · Pressed (engine) · 30 |
+| **Shared by the Spells** (3) | QSP.cd · Pressed (interface) · 18 and 25. QSP.lock · Pressed (interface) · 18. QSP.pds · Pressed (interface) · 33 |
+| **Piedra Del Sol** (16) | PDS.hdr · Pressed (interface) · 33 and 58. PDS.place · Pressed (interface) · 58; from the deck it splits, #170. PDS.1 · Observed · 39 and 61. PDS.1.def · Observed · 37. PDS.2, PDS.2.perm · Observed · 60. PDS.2.exit · Observed · 64, an unruled reading. PDS.burning · Pressed (interface) · 33 and 58. PDS.out · Pressed (interface) · 36. PDS.upkeep · Observed · 36 and 61. PDS.upkeep.x, PDS.force · Pressed (engine) · 64. PDS.force.any · Observed · 64. PDS.deact · Pressed (interface) · 39. PDS.deact.edge · Pressed (interface) · 83. PDS.cd · Pressed · 39 and 64 |
+| **The Structure** (1) | PS.share · Pressed (interface) · 58 |
+
+`XI.fort` and `XI.fort.end` needed a [Fortress] Noble Phantasm on the board, and were reached once Ozymandias's
+Ramesseum Tentyris was (§46.15.4). `CS.3` was Observed twice, as a
+projection at tick 3 (the Night Round, `phaseAt` day inside her 5x5 and night outside) and as a *spend* at tick
+70, which needed a clause that reads the phase.
+
+### 46.15.4 A note on the board this was pressed on
+
+The board is *"Quetzalcoatl Audit — Neutral"*, built by `commitWar`: neutral Region, 21x21,
+`greatHolyGrailWar`, 3 Turns per Round. Faction 1 is Quetzalcoatl at (0,0) and her Master at (0,1); Faction 2 is
+Medea (18,0), her Master (18,1), Nemo (18,2) and his Master (18,3). Everything below is **staging**, and
+none of it is a measurement:
+
+- **`npGateRound` was set 6 → 2** as a world setting before `commitWar`, so the Noble Phantasms could be cast
+  early, and restored to 6 at tick 72.
+- **The GM displaced tokens** with `displaceToken` so the enemy stood in range: Medea (18,0) → (13,0) and Nemo
+  (18,2) → (13,2) at Chebyshev 3 from her at (10,0), then Nemo to (12,1), because a Normal Attack's Range uses
+  `inAttackRange` and not Chebyshev (*"out of Range (3)"*). Viewing the mount's Scene Level, for her bar
+  while she is aboard, is done through the scene level control, as §46.2 says.
+- **Cooldowns were staged to 0** whenever the Clause under test was not the cooldown: Winged Serpent 21 → 0 at
+  tick 13 to re-summon at the new 2x2 size, and again at ticks 46 and 72; the three Spells, 6 → 0 at tick 27 to
+  cast a second Spell without waiting 2◈, and 3 → 0 at ticks 30, 33 and 75; Good God's Wisdom 8 → 0 at tick
+  39; Piedra Del Sol at ticks 58 and 82; Xiuhcoatl at tick 79; Riding's, for `RI.notbuff.block`.
+- **Health was staged** to reach a threshold or to survive one. Nemo back to 1250 after each Spell (339, 570
+  and 566 → 1250). Her Master to his maximum 406 at tick 33 *"to afford Piedra Del Sol and its tolls"*. At tick
+  39 his Health max went 406 → 2000 and its value to 2000, because her ZON (2) equals the splash radius (2), so
+  Xiuhcoatl's splash always catches him. Her own Health 958 → 60 at tick 40
+  to set up the `GGW.1` revival. The mount 1000 → 50 at tick 49, her Master 406 → 40 at tick 51 for `WS.force`,
+  and 256 → 45 at tick 64 for `PDS.force.any`.
+- **Ozymandias was imported** from `fgt.servants` at tick 65 (actor `tuSn2P3C6SKEVnYJ`), faction 2, with
+  `masterId` of Nemo's Master, whose Servant was defeated, and contracted; his Agility and Luck were set to
+  15/15 by hand, because an import skips the setup roll. His Ramesseum Tentyris is the [Fortress] Noble Phantasm
+  that `XI.fort` and `XI.fort.end` needed (ruling 15), and his Pharaoh of the Hot Sands has the Day-only clauses
+  that the spend of `CS.3` needed.
+- **W1**, a Berserker test dummy (actor `TMZfs3UckBESEsvU`, faction 2, Health 1500) at (11,3), was the second
+  enemy in her splash and the enemy a ride could hit. A staged dummy has no Master: at a boundary it was
+  defeated with cause `sustainabilityExhausted`, with no skull, which is why `RI.p2` was not Observed at tick
+  43 and was redone at tick 61 after W1 was given a `masterId`.
+- **Restored after a probe**: the Defeated effect and a probe Guts instance after `GGW.1` at tick 40 (Health back
+  to 958); her Master's Defeated effect at ticks 43, 69 and 79 (§46.4-ET); a staged No Buff effect document
+  after `RI.notbuff.block`.
+
+**What the board cost to read.** The stone token (sort 100) sits on top of hers (sort 0): a click selects the
+stone, which has no actions, and Tab and the turn panel do not reach her either. A GM-only obstacle, worked
+around by selecting her through `token.control()` and raising her sort. The canvas went blank when a viewed Level
+was deleted (§46.4-EL) and stayed on the targeting layer after a picker (§46.4-EM). Passing ticks 47 and 48 with `nextTurn`
+lost Faction 1's Turn at tick 48. Her Master's Health rose 240 → 340 and 315 → 406 across Round boundaries with
+no log entry, which a `preUpdateActor` stack traced to the Faction 1 Home Base heal (+100): not a defect, but the
+same heal that later hid the Quetzalcoatlus's forced end (§46.4-EU).
+
+**Seen and not filed.** The reaction card listed each Command Spell twice at tick 3, and *"Teleport Servant"*
+twice on the mount's at tick 19. A 25% roll that succeeded on her at tick 37 (Barrel Bombing's Burn) shows only
+*"applied"* on the card. While she was aboard at tick 7, Attack and Riding Attack read *"already attacked this
+turn"* and the three Spells, which count as her Attack, showed no refusal. Riding's slot tooltip says nothing
+about turn ownership beforehand, where a Skill's reads *"Only during your Turn."* None was run to ground.
+
+**Fixes landed during the audit**, code only, and the world was reloaded after each group: 89362b9, 4c45ba3,
+b109bd1, e5ef1b5, bb2c505, e17e08f and 95f0628, with the suite at 296 files and 6140 tests green; then badffbd
+(#169) and dda9579 (#173), with 298 files and 6154 tests green and lint clean.
+
+### 46.15.5 Open readings, for the user
+
+These came up while pressing. Each is either the sheet being silent, or the engine choosing a reading the user
+has not ruled on.
+
+1. **`PDS.2.exit`** — *"Once it leaves the area, the Burn is no longer permanent."* The engine **ends** the
+   Burn on leaving. The alternative is a Burn that reverts to its ordinary 2◈. (The content's comment calls
+   this *"an unruled reading"*.)
+2. **Riding Attack's "straight line"** — the engine offers the eight grid lines, diagonals included, measured
+   Chebyshev (Ch. 5). Units may not *Move* diagonally. Should a ride be orthogonal only?
+3. **Deactivation window** (`WS.deact.edge`, `PDS.deact.edge`) — the sheet says *"during Quetz's Turn or at the
+   start or end of any Round or Turn"*. The engine's `window: any` allows the End control at every moment,
+   mid-Turn included.
+4. **#170** — which Level owns an area raised from a platform's deck: the stone went to the ground and the
+   area to the deck.
+5. **#174** — Overpower's coin flips for a Servant's own Master and for a Master caught in an area. Every
+   Xiuhcoatl puts her Master under it, since her ZON and the splash are both 2. It defeated him three times on
+   this board.
+6. **#175** — at a Round's end, the Home Base heal runs before the Quetzalcoatlus's ≤25 threshold. Also, Home
+   Base membership ignores Level.
+7. **A defeated Unit's panel** — `canPassThrough` still treats a defeated enemy as an obstacle (see the
+   comment on #168). Can a Unit walk through a body?
+
+The log records one more that #65 does not list. After the 2x2 Winged Serpent was cast at tick 13, a drag was
+refused with *"This Unit has Attacked; it cannot Move again this Turn."* The mover is the mount, which holds no
+`doubleMove` grant: does her Double Move carry to the mount's Move while she rides? And two entries in §46.4 wait
+on the author for the same reason: §46.4-DJ (does No Buff prevent S.Crit Up?) and §46.4-DL (does *"Day Round"*
+mean the Round or the panel?).
