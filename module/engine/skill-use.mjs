@@ -135,7 +135,12 @@ export async function useSkill({
   // null pool is `{ok: true, free: true}` — every attack-shaped ability that
   // reaches here was checked against nothing and charged nothing, on a full
   // pool as readily as an empty one (Ch. 46 §46.4-AY).
-  const budgetAction = budgetActionFor(asAttack ? "normal" : "skill");
+  // ...and a Noble Phantasm as one, now that a non-damaging NP comes here
+  // rather than to the attack path (§46.4-CK): billed `np`, NP Seal refuses it,
+  // and the Attack pool pays. A Spell is a `spell`, which Silence refuses.
+  const isNP = ability.type === "noblePhantasm" || ability.system?.isNP === true;
+  const budgetAction = budgetActionFor(isNP ? "np"
+    : asAttack ? (ability.system?.isSpell ? "damageSpell" : "normal") : "skill");
   if (combat?.started) {
     const verdict = budget.affordable(combat, self, budgetAction);
     if (!verdict.ok) return { ok: false, reason: verdict.reason };
@@ -1987,6 +1992,27 @@ function applyBatchOfEffects(specs, actor, ride) {
  * @param {object} board
  * @returns {Promise<boolean>} whether a channel actually began
  */
+/**
+ * Resolve an ability against its targets with no Combat Process: run its
+ * phases, log the use and post its card.
+ *
+ * The Counter path for a Noble Phantasm that deals no damage. It is still a
+ * Counter and still pays its price, which `runCounter` charges; it simply has
+ * no ladder to walk (Ch. 46 §46.4-CK).
+ *
+ * @param {object} args
+ * @returns {Promise<object[]>} what the phases applied
+ */
+export async function resolveWithoutProcess({ ability, actor, targets, board }) {
+  const applied = await runPhases(ability, actor, targets, board);
+  await applyWorldIntents([I.log({
+    kind: "ability", event: "skillUsed", unitId: actor.id, abilityId: ability.id, name: ability.name,
+    targets: targets.map((t) => t.unitId), applied: applied.map((a) => a.summary), counter: true,
+  })], `counter:${ability.id}`);
+  await postCard(actor, ability, targets, applied);
+  return applied;
+}
+
 export async function runCasterChannel(ability, actor, board) {
   const applied = await runPhases(ability, actor, [{ unitId: actor.id }], board, (p) => p.kind === "channel");
   return Boolean(applied.channelStarted);

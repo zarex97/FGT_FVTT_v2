@@ -52,7 +52,7 @@ An ability whose only moment is a timing window is not a button on the sheet (`m
 
 Every ability is one of five kinds (`module/rules/ability-use.mjs:220-305`):
 
-- **attack** — consumes an attack slot, opens targeting, resolves damage. Every Noble Phantasm, every Skill with a damage phase, every Attack Skill except those flagged `countsAsAttack: false`.
+- **attack** — opens targeting and a Combat Process, resolves damage. Anything that deals damage: a damage phase, or a damage block that deals any (a branch's `fixedValue: 0` does not). Ruled on the Semiramis audit: an ability with no damage opens no attack card, effect-only abilities included (§46.4-CK). A non-damaging Noble Phantasm is **active**, yet still costs the Attack — `countsAsAttack` holds that for every used NP, content cannot opt out, and `useSkill` bills it `np`, which NP Seal refuses — and it still answers a Counter (`rules/counter.mjs#answersACounter`), resolved through `skill-use.mjs#resolveWithoutProcess` with no ladder.
 - **mode** — toggles on or off, enters cooldown on toggle (if its own phases define one), never consumed. Riding's Active, Mad Enhancement.
 - **active** — resolves against its own targeting spec or phases when clicked. A self-buff, a utility Skill.
 - **passive** — always on. A class skill with only `passiveRules`, or an Attack Skill marked passive.

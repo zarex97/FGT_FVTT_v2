@@ -2541,6 +2541,27 @@ descriptor reached `toIntents`' default branch and was logged; `scatterToGround`
 `scatterPanels` now draws a random free ground panel under the footprint for each passenger, no two
 alike, and the engine moves them there before the level goes.
 
+### CK. Every Noble Phantasm opened an attack card, damage or not — **fixed 2026-09-30, ruled by the user**
+
+**Reached: HGB.act, re-activation.** Pressing the Hanging Gardens opened a Combat Process against
+Semiramis herself: *"Choose a reaction — Do nothing / Block / Evade / Scales of the Sacred Fish /
+Interrupt with a Command Spell"*, resolving to 0. `classifyAbility` called every Noble Phantasm an attack.
+The user ruled: *"It doesn't make sense for these kind of thing to open an attack card, as it doesn't
+have a damage phase, same with effect application-only abilities"*, and then *"NPs (even non-damaging
+ones) consume the Attack budget, and they can be used as a counter. But yes, they technically aren't an
+attack in the sense that you wouldn't walk through the ladder/rung."* So:
+
+- `classifyAbility` calls an ability an attack only when it deals damage. Twenty-one Noble Phantasms in
+  the corpus moved to the Skill path (fields, platforms, summons, effect-only NPs); none of the Attack
+  Skills or Spells did, since every one deals damage.
+- `countsAsAttack` keeps every used NP on the Attack budget, and `useSkill` bills it `np`, so NP Seal
+  still refuses it -- the Skill path used to bill everything attack-shaped as `attack`.
+- A non-damaging NP still answers a Counter (`answersACounter`), resolved by `resolveWithoutProcess` with
+  no ladder; one that touches only its user need not catch the attacker.
+- Two NPs authored `passive: true` with nothing to use were clickable attacks; they are passives now.
+- A Unit that is the harmless subject of its own ability skips its reaction rung even on the attack path
+  (`harmlessToSelf`), for a branch that resolves to `fixedValue: 0`.
+
 ---
 
 ---

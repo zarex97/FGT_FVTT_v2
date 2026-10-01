@@ -122,3 +122,24 @@ describe("the Hanging Gardens' Turn Record", async () => {
     expect(kept.system.turnState).toMatchObject({ tick: 54, moved: true, movedPanels: 1 });
   });
 });
+
+// Pressing the Hanging Gardens opened a Combat Process against Semiramis
+// herself: *"Choose a reaction — Do nothing / Block / Evade / Scales of the
+// Sacred Fish / Interrupt with a Command Spell"* -- for her own Noble Phantasm,
+// which targets her and deals nothing. §46.4-Z already ruled that being the
+// subject of your own NP is not being Attacked; the reaction rung disagreed
+// (§46.4-CK).
+describe("an ability that only touches its own user, harmlessly", async () => {
+  const { harmlessToSelf } = await import("../../module/rules/np-strength.mjs");
+  const { readFileSync } = await import("node:fs");
+  const { parse } = await import("yaml");
+  const item = (file, type = "noblePhantasm") => ({ type, system: parse(readFileSync(`packs/_source/abilities/${file}.yml`, "utf8")) });
+
+  it("is the Hanging Gardens' activation", () => {
+    expect(harmlessToSelf(item("semiramis-hanging-gardens-of-babylon"))).toBe(true);
+  });
+
+  it("is not a Noble Phantasm that deals damage", () => {
+    expect(harmlessToSelf(item("semiramis-hgob-aerial-garden-of-vanity", "ability"))).toBe(false);
+  });
+});

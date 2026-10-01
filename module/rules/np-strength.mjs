@@ -191,6 +191,26 @@ export function isDamagingNP(ability) {
 }
 
 /**
+ * Does this ability, aimed at its own user, do nothing a reaction could answer?
+ *
+ * No damage phase, and no damage block that deals any: the Hanging Gardens'
+ * activation, Summoning: Bašmu's summon branch (`fixedValue: 0`). Such an
+ * ability still resolves through the attack path, and its own user turned up
+ * as a defender offered Block, Evade and Command Spells against it (Ch. 46
+ * §46.4-CK). Being the subject of your own ability is not being Attacked.
+ *
+ * @param {object} ability an Item, or `{type, system}`
+ * @returns {boolean}
+ */
+export function harmlessToSelf(ability) {
+  const sys = ability?.system ?? {};
+  if ((sys.phases ?? []).some((p) => p.kind === "damage")) return false;
+  const dmg = sys.damage;
+  if (!dmg) return true;
+  return dmg.fixed === true && (dmg.base?.fixedValue ?? dmg.fixedValue ?? 0) === 0;
+}
+
+/**
  * Was `abilityId` the strongest damaging Noble Phantasm this Unit has?
  *
  * *"(or its only damage-dealing NP)"* — a Unit with one is always at its
