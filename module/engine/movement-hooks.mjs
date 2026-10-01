@@ -15,16 +15,14 @@
  * authoritative check lives here (Ch. 05).
  */
 
-import {
-  validatePath, pursuitVerdict, decoyVerdict, passengerDestination, occupantAt,
-} from "../rules/movement.mjs";
+import { validatePath, pursuitVerdict, decoyVerdict } from "../rules/movement.mjs";
+import { carryMasterAlong } from "./passenger-seat.mjs";
 import { unitSnapshot, currentBoard } from "./board.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
 import { movePlatform, actionSourceFor, withinFootprint, canUnboard, boardingLanding } from "../rules/platforms.mjs";
-import { hasGranted, GRANTS } from "../rules/granted.mjs";
 import { contains as fieldContains } from "../rules/bounded-fields.mjs";
 import { repaintFollowing } from "./terrain.mjs";
 import { displaceToken } from "./io.mjs";
@@ -655,6 +653,30 @@ function boardSnapshot(combat) {
  */
 
 /**
+ * Riding's Passenger Seat on a voluntary drag.
+ *
+ * The delta comes from the MOVEMENT, because at `moveToken` the document still
+ * reports the origin; the carry itself is `engine/passenger-seat.mjs`, which a
+ * Riding Attack calls too (#115).
+ *
+ * @param {object} actor the Servant
+ * @param {object} movement
+ * @returns {Promise<void>}
+ */
+async function carryMaster(actor, movement) {
+  const from = movement?.origin;
+  const to = movement?.destination;
+  if (!from || !to || !canvas?.grid) return;
+  const origin = canvas.grid.getOffset(from);
+  const destination = canvas.grid.getOffset(to);
+  await carryMasterAlong({
+    servantId: actor.id,
+    from: { i: origin.i, j: origin.j },
+    to: { i: destination.i, j: destination.j },
+  });
+}
+
+/**
  * Move a platform's passengers with it.
  *
  * `forced: true`, which is what keeps the carry off their own movement budget
@@ -665,73 +687,6 @@ function boardSnapshot(combat) {
  *
  * @param {object} actor the platform
  * @param {object} document its token
- * @param {object} movement
- * @returns {Promise<void>}
- */
-async function carryMaster(actor, movement) {
-  const board = currentBoard();
-  const servant = board.units.find((u) => u.id === actor.id);
-  if (!servant || !hasGranted(servant, GRANTS.passengerSeat)) return;
-
-  // *"The Servant's Master CAN Move together with its Servant."* "Can", so it
-  // is the player's choice, and `rules/actions.mjs` puts the switch on the
-  // action bar. Default ON: carrying is the point of the clause.
-  if (servant.carriesMaster === false) return;
-
-  const master = board.units.find((u) => u.id === servant.masterId);
-  if (!master?.panel || master.defeated) return;
-
-  const from = movement?.origin;
-  const to = movement?.destination;
-  if (!from || !to || !canvas?.grid) return;
-  const origin = canvas.grid.getOffset(from);
-  const destination = canvas.grid.getOffset(to);
-
-  const landing = passengerDestination(
-    { i: origin.i, j: origin.j }, { i: destination.i, j: destination.j },
-    master.panel, board.bounds ?? null,
-  );
-  // A carry that cannot happen is REPORTED, not dropped. Both refusals leave
-  // the Master standing where the Servant left him -- which is the correct
-  // outcome and a dangerous surprise, because the whole reason to carry a
-  // Master is to keep him inside the ZON and out of reach. Told once, in the
-  // words of the rule that refused.
-  const say = (reason) => ui.notifications?.warn(game.i18n.format("FGT.Movement.MasterNotCarried", {
-    master: game.actors.get(master.id)?.name ?? "The Master",
-    reason: game.i18n.localize(reason),
-  }));
-  if (!landing) return say("FGT.Movement.OffBoard");
-  if (landing.i === master.panel.i && landing.j === master.panel.j) return;
-  if (occupantAt(landing, board, master.level ?? 0)) return say("FGT.Movement.PanelOccupied");
-
-  const token = game.actors.get(master.id)?.getActiveTokens?.()[0]?.document;
-  if (!token) return;
-  const size = canvas.scene.grid.size;
-  // Displacement, not a Move of its own -- *"counts as only Moving one Unit"*,
-  // so it spends nothing and is not re-validated as a voluntary step. Said to
-  // Foundry as well as to us, or the carry is silently dropped (`io.mjs`).
-  await displaceToken(token, { x: landing.j * size, y: landing.i * size });
-
-  // Said out loud, because a token that moves without being dragged reads as a
-  // bug. The audit gets it too: "counts as only Moving one Unit" means the
-  // Master's pool was NOT spent, and a reader checking the budget needs to know
-  // why he is somewhere else.
-  await applyIntents([I.log({
-    kind: "passengerSeat",
-    unitId: master.id,
-    carriedBy: servant.id,
-    from: { ...master.panel },
-    to: { ...landing },
-    text: game.i18n.format("FGT.Movement.MasterCarried", {
-      master: game.actors.get(master.id)?.name ?? "The Master",
-      servant: actor.name,
-    }),
-  })], { io: worldIO(), canWrite: () => true, isGM: game.user.isGM, source: "passengerSeat" });
-}
-
-/**
- * @param {object} actor
- * @param {object} document
  * @param {object} movement
  * @returns {Promise<void>}
  */

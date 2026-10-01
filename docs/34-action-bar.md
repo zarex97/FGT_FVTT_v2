@@ -33,6 +33,8 @@ When armed for a Counter (Ch. 21), actions are recategorized: Normal Attack ligh
 
 The registry marks three actions `targeted`. **Attack** opens the targeting session (Ch. 20). **Move** asks for no destination: dragging the token is the Move, `onPreMove` judges every step of it, and the button answers `dragToMove` ("Drag the token to Move it.") until a reachable-panel overlay exists. It used to raise `fgtEnterMovement`, a hook with a `callAll` and no listener anywhere, so the button did nothing and said nothing (#113). **Riding Attack** asks where the ride ends: `rideFrom` (`module/apps/hud/action-bar.mjs`) lists `ridingDestinations`, opens the canvas's destination picker (`pickDestination`, Ch. 36 mode F), and hands the panel to `performAction("ridingAttack", { destination })`, showing a refusal with `refusalText` as every other action does. Cancelling the picker spends nothing. An ability that IS a Riding Attack (`classifyAbility(...).ridesAsAttack`, Troias Tragōidia) goes through the same `rideFrom` from `FGTActorSheet.declareAttack`, with its `abilityId`, so its 13-panel reach and its `@ride` facts reach the resolution.
 
+**Carry Master** is an immediate action, not a targeted one: it flips the Servant's `carriesMaster` (default on), which is the *"can"* in Passenger Seat's *"the Servant's Master can Move together with its Servant"*. The switch is read by the one carry, `passenger-seat.mjs#carryMasterAlong`, for a drag and for a Riding Attack alike (Ch. 5, #115): off, the Master stays where he stood and nothing is logged.
+
 ### The view-model seam
 
 `present.mjs` exists because the bar must render exactly what the rules decide, with no asymmetry between the bar and the sheet. Three pure functions build state without Foundry:
