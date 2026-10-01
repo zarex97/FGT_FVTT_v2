@@ -22,6 +22,7 @@
  */
 
 import { test as testPredicate } from "./predicate.mjs";
+import { platformsSummonedBy } from "./platforms.mjs";
 
 /**
  * @typedef {object} AbilityUse
@@ -719,5 +720,10 @@ export function usageSpecFor(ability) {
     isSpell: Boolean(sys.isSpell),
     categorizedAs: [...(sys.categorizedAs ?? [])],
     creates: [...(sys.creates ?? [])],
+    // The platforms this ability raises, from its `summonPlatform` phases. The
+    // use gate refuses a second cast while one of them still stands (#142), and
+    // this spec carries neither `phases` nor `creates`: a gate that read the
+    // phases would pass on the display and miss on the use paths.
+    summonsPlatforms: platformsSummonedBy(sys),
   };
 }

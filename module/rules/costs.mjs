@@ -24,6 +24,7 @@ import { isConcealed, canUseWhileConcealed } from "./concealment.mjs";
 import { paysHighColumn } from "./master-rank.mjs";
 import { preventedBy } from "./budget.mjs";
 import { usedOnlyDuringOwnTurn } from "./windows.mjs";
+import { standingPlatformOf } from "./platforms.mjs";
 
 /**
  * What using this ability costs, or `null` when it is free.
@@ -390,6 +391,14 @@ export function canUseAbility({
   const forbidden = forbiddenCreation(ability, unit);
   if (forbidden) {
     return { ok: false, reason: "forbidCreating", detail: { attribute: forbidden }, cost };
+  }
+
+  // A platform Noble Phantasm cannot be cast again while its platform stands
+  // (#142). Above the cost check, so a player is told why before being asked to
+  // pay for a cast that would have raised a second mount.
+  const standing = standingPlatformOf(ability, unit, ctx.board ?? null);
+  if (standing) {
+    return { ok: false, reason: "platformStands", detail: { platform: standing.name ?? standing.contentId ?? standing.id }, cost };
   }
 
   // The same question one scale up, and for the same reason `sameRoundExclusive`

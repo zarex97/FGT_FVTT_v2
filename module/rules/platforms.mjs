@@ -49,6 +49,52 @@ export function platformsOn(board) {
 }
 
 /**
+ * The content ids of the platforms an ability raises.
+ *
+ * Reads the ability's `summonPlatform` phases. Accepts the ability in EITHER
+ * shape the gate is handed -- the item's own `system` (the action bar's) or the
+ * `usageSpecFor` projection (the use paths'), which carries this list as
+ * `summonsPlatforms` and not the phases it came from.
+ *
+ * @param {object|null} ability
+ * @returns {string[]}
+ */
+export function platformsSummonedBy(ability) {
+  if (Array.isArray(ability?.summonsPlatforms)) return ability.summonsPlatforms;
+  const phases = ability?.phases ?? ability?.system?.phases ?? [];
+  return phases.filter((p) => p?.kind === "summonPlatform" && p.platformId).map((p) => p.platformId);
+}
+
+/**
+ * The platform an ability would raise that its user already has standing.
+ *
+ * > *"Cooldown: 7◈ Turns after Quetzalcoatlus is defeated."*
+ *
+ * `countFrom: destroyed` and `countFrom: deactivation` start no clock at the cast,
+ * so nothing refused a second cast while the first mount stood: it raised a second
+ * mount at her panel, moved her and her Master onto it, charged the Master's
+ * Health again, and left two platforms each charging its own toll (#142). The
+ * cooldown starts from ANY end of the mount (ruled, 2026-10-01), so it cannot
+ * be what refuses the cast while the mount is up -- this is its own rule, and
+ * derived from the phases, so there is no authored key for a guard to miss.
+ *
+ * Only the caster's own: another Servant's Quetzalcoatlus is no reason. A
+ * defeated one is on its way out and is not standing.
+ *
+ * @param {object|null} ability
+ * @param {object|null} unit the caster
+ * @param {object|null} board
+ * @returns {object|null} the standing platform
+ */
+export function standingPlatformOf(ability, unit, board) {
+  const raised = platformsSummonedBy(ability);
+  if (raised.length === 0 || !unit?.id) return null;
+  return platformsOn(board).find(
+    (p) => raised.includes(p.contentId) && p.ownerId === unit.id && !p.defeated,
+  ) ?? null;
+}
+
+/**
  * Everyone aboard a platform.
  *
  * Membership is *"units on the platform's level"*, not a stored manifest. A

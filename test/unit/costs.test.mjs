@@ -8,9 +8,12 @@
  * looked at either of them. Using a Noble Phantasm cost its Master nothing.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import { npCost, npCostAt, canUseAbility, resolveCosts } from "../../module/rules/costs.mjs";
 import { usageSpecFor } from "../../module/rules/ability-use.mjs";
+import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
+
+beforeAll(prepareSubjects, 60_000);
 
 const master = (over = {}) => ({ id: "m", rank: "A", health: { value: 500, max: 500 }, ...over });
 const servant = (over = {}) => ({
@@ -442,5 +445,71 @@ describe("the global Noble Phantasm gate", () => {
       .toBe(false);
     expect(canUseAbility(ok({ ability: locked, round: 7, turn: 21, turnsPerRound: 3 })).ok)
       .toBe(true);
+  });
+});
+
+// *"Cooldown: 7◈ Turns after Quetzalcoatlus is defeated."* The cooldown starts on any end of the
+// mount (ruled, 2026-10-01), so it cannot be what refuses a second cast while the mount stands: the
+// refusal is its own rule. A second cast raised a second mount, moved her and her Master onto it, and
+// charged the Master's Health again, while the upkeep sweep charged each platform on its own clock (#142).
+describe("a platform Noble Phantasm while its platform still stands", () => {
+  const ID = { quetz: "quetzSubject0001", mast: "mastrSubject0001", mount: "mountSubject0001", other: "otherSubject0001", rival: "rivalSubject0001" };
+  const cast = (mounts = []) => [
+    { from: "quetzalcoatl", id: ID.quetz, state: { masterId: ID.mast, factionId: "f1" }, panel: { i: 5, j: 5, k: 0 } },
+    { from: "master-advanced", id: ID.mast, state: { factionId: "f1" }, panel: { i: 5, j: 6, k: 0 } },
+    ...mounts,
+  ];
+  const mount = (id, ownerId, state = {}) => ({
+    from: "quetzalcoatlus", id, state: { ownerId, factionId: "f1", ...state }, panel: { i: 9, j: 9, k: 1 },
+  });
+  // Round 8 opens Ch. 04's global gate, so the only thing that can refuse is the rule under test.
+  const verdict = (mounts, shape = "spec") => withSubjects(cast(mounts), ({ unit, world, board }) => {
+    const item = world.actor(ID.quetz).items.find((i) => i.system.contentId === "quetz-winged-serpent");
+    return canUseAbility({
+      ability: shape === "spec" ? usageSpecFor(item) : item.system,
+      unit: unit(ID.quetz), master: unit(ID.mast), round: 8, board,
+    });
+  });
+
+  it("refuses the cast while her Quetzalcoatlus stands", async () => {
+    expect(await verdict([mount(ID.mount, ID.quetz)])).toMatchObject({
+      ok: false, reason: "platformStands", detail: { platform: expect.any(String) },
+    });
+  });
+
+  it("allows it with the mount absent", async () => {
+    expect(await verdict([])).toMatchObject({ ok: true });
+  });
+
+  it("allows it while another Servant's Quetzalcoatlus stands", async () => {
+    expect(await verdict([mount(ID.mount, ID.rival)])).toMatchObject({ ok: true });
+  });
+
+  it("allows it once her mount is defeated, which is the moment it is on its way out", async () => {
+    expect(await verdict([mount(ID.mount, ID.quetz, { defeated: true })])).toMatchObject({ ok: true });
+  });
+
+  it("refuses it on the shape the action bar hands over as well as the use paths' shape", async () => {
+    // The bar passes the item's own system, the use paths pass `usageSpecFor`: a gate that read only
+    // one of them would grey the button and let the press through, or the reverse.
+    expect(await verdict([mount(ID.mount, ID.quetz)], "system")).toMatchObject({ ok: false, reason: "platformStands" });
+  });
+
+  it("refuses before it asks the Master to pay", async () => {
+    const out = await withSubjects(cast([mount(ID.mount, ID.quetz)]), ({ unit, world, board }) => {
+      const item = world.actor(ID.quetz).items.find((i) => i.system.contentId === "quetz-winged-serpent");
+      // A Master with no Health to give would otherwise be refused `masterHealth`.
+      return canUseAbility({
+        ability: usageSpecFor(item), unit: unit(ID.quetz), master: { ...unit(ID.mast), health: { value: 1, max: 250 } },
+        round: 8, board,
+      });
+    });
+    expect(out.reason).toBe("platformStands");
+  });
+
+  it("has a line to read on the sheet and the bar", async () => {
+    const { readFileSync } = await import("node:fs");
+    const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
+    expect(lang["FGT.Ability.Refused.platformStands"]).toBeTruthy();
   });
 });
