@@ -344,6 +344,9 @@ export function rescuerFor(master, board) {
   if (master?.kind !== "master" || !master.panel) return null;
   return (board?.units ?? []).find(
     (u) => u.kind === "servant" && u.masterId === master.id
+      // Beside it on the deck: a Servant on the ground below catches nobody
+      // (Ch. 46 §46.4-CG).
+      && (u.level ?? 0) === (master.level ?? 0)
       && u.panel && chebyshev(u.panel, master.panel) <= 1,
   ) ?? null;
 }

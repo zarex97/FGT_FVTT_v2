@@ -2506,6 +2506,13 @@ as the killer. Heracles, still at 0, was not defeated retroactively; the board w
 start, so from then on no Master in any match could attack. Not a Semiramis Clause -- found on her board,
 and fixed: `canConsume` reads a `null` maximum as unlimited.
 
+### CG. A Servant on the ground could catch its Master falling off the deck — **fixed 2026-09-30**
+
+**Reached: HG.knock.master.** `rescuerFor` found the Master's Servant by i and j alone, so Heracles,
+standing on the ground below the garden's edge, would have caught his Master falling from the deck above
+him. *"A Master who is directly next to its Servant"* means beside it on the same level; the search now
+requires it, as `mayBringMaster` does (§46.4-CB).
+
 ---
 
 ---
