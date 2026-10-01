@@ -4352,6 +4352,11 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
   // four numbers and shares none of them, so running the phases here would
   // hand the splash the primary's riders and look entirely correct.
   if (state.attack?.isAftermath) {
+    // ONE pass. The resolver calls this twice, `beforeDamage` and then the
+    // default, and the riders below state no window, so both passes ran them:
+    // the splash rolled its 25% NP Seal twice and Burn landed before the damage
+    // it rides on (#65, found live). An aftermath's riders follow its damage.
+    if (when !== "afterDamage") return [];
     for (const rider of ability.system?.aftermath?.effects ?? []) {
       const def = EffectRegistry.get(rider.id);
       if (!def) {
