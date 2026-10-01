@@ -164,3 +164,102 @@ describe("declareCounter authorization", () => {
     expect(out.allowed).toBe(false);
   });
 });
+
+describe("useSkill authorization (#130, #144)", () => {
+  // A Skill pressed from a player's client used to run on that client, where it
+  // cannot write the Regions it paints, the Actors and Tokens it creates, or a
+  // buff on another player's Unit. It runs on the GM now, as an attack does --
+  // so this is what stops a player asking the GM to run somebody else's Skill.
+  const auth = OPERATIONS.useSkill.authorize;
+
+  /** Two players, a GM, and Servants that each hold one ability. */
+  function skillWorld() {
+    const users = {
+      alice: { id: "alice", name: "Alice", isGM: false },
+      bob: { id: "bob", name: "Bob", isGM: false },
+      gm: { id: "gm", name: "GM", isGM: true },
+    };
+    const actor = (id, ownerId, abilityId) => ({
+      id, name: id,
+      testUserPermission: (user) => user.id === ownerId,
+      items: { get: (itemId) => (itemId === abilityId ? { id: abilityId } : undefined) },
+    });
+    const actors = { saber: actor("saber", "alice", "charisma"), archer: actor("archer", "bob", "wisdom") };
+    return { users: { get: (id) => users[id] ?? null }, actors: { get: (id) => actors[id] ?? null } };
+  }
+
+  /** `authorize` reads `game` off the global; give it one. */
+  function withGame(fn) {
+    const previous = globalThis.game;
+    globalThis.game = skillWorld();
+    try { return fn(); } finally { globalThis.game = previous; }
+  }
+
+  it("allows the owner of the actor to use an ability the actor holds", () => {
+    expect(withGame(() => auth({ actorId: "saber", abilityId: "charisma" }, "alice")).allowed).toBe(true);
+  });
+
+  it("allows a GM to use anybody's", () => {
+    expect(withGame(() => auth({ actorId: "archer", abilityId: "wisdom" }, "gm")).allowed).toBe(true);
+  });
+
+  it("refuses a user who does not own the actor", () => {
+    const out = withGame(() => auth({ actorId: "archer", abilityId: "wisdom" }, "alice"));
+    expect(out.allowed).toBe(false);
+    expect(out.reason).toMatch(/Alice does not control archer/);
+  });
+
+  it("refuses an ability the actor does not hold, even for its owner", () => {
+    const out = withGame(() => auth({ actorId: "saber", abilityId: "wisdom" }, "alice"));
+    expect(out.allowed).toBe(false);
+    expect(out.reason).toMatch(/holds no such ability/);
+  });
+
+  it("refuses an unknown actor and an unknown user", () => {
+    expect(withGame(() => auth({ actorId: "ghost", abilityId: "x" }, "alice")).allowed).toBe(false);
+    expect(withGame(() => auth({ actorId: "saber", abilityId: "charisma" }, "mallory")).allowed).toBe(false);
+  });
+
+  it("hands the use only what a player may choose: the actor, the ability and the placement", async () => {
+    // `bypassesCategoryLimit` rides a use the ENGINE decides is free of a cap. A
+    // player must not be able to claim it in a socket payload.
+    const src = readFileSync("module/net/operations.mjs", "utf8");
+    const exec = src.slice(src.indexOf("useSkill: {"), src.indexOf("deactivateField: {"));
+    expect(exec).toMatch(/useSkill\(\{\s*actorId: payload\.actorId, abilityId: payload\.abilityId, placement: payload\.placement/);
+    expect(exec).not.toMatch(/bypassesCategoryLimit/);
+  });
+});
+
+describe("deactivateField authorization (#130)", () => {
+  // The End control deletes a Region, an Actor and a Token, and starts a
+  // cooldown: all GM writes. A player asks in the name of an actor they own, and
+  // the GM then checks the field is that actor's and may be ended now.
+  const auth = OPERATIONS.deactivateField.authorize;
+
+  function withGame(fn) {
+    const previous = globalThis.game;
+    const users = { alice: { id: "alice", name: "Alice", isGM: false }, gm: { id: "gm", name: "GM", isGM: true } };
+    const actor = (id, ownerId) => ({ id, name: id, testUserPermission: (u) => u.id === ownerId });
+    const actors = { saber: actor("saber", "alice"), archer: actor("archer", "bob") };
+    globalThis.game = { users: { get: (id) => users[id] ?? null }, actors: { get: (id) => actors[id] ?? null } };
+    try { return fn(); } finally { globalThis.game = previous; }
+  }
+
+  it("allows the owner of the actor the field belongs to", () => {
+    expect(withGame(() => auth({ actorId: "saber", fieldId: "mine" }, "alice")).allowed).toBe(true);
+  });
+
+  it("refuses a user who does not own that actor", () => {
+    const out = withGame(() => auth({ actorId: "archer", fieldId: "theirs" }, "alice"));
+    expect(out.allowed).toBe(false);
+    expect(out.reason).toMatch(/Alice does not control archer/);
+  });
+
+  it("allows a GM", () => {
+    expect(withGame(() => auth({ actorId: "archer", fieldId: "theirs" }, "gm")).allowed).toBe(true);
+  });
+
+  it("refuses an unknown actor", () => {
+    expect(withGame(() => auth({ actorId: "ghost", fieldId: "x" }, "alice")).allowed).toBe(false);
+  });
+});

@@ -420,8 +420,19 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
       if (what === "reshape") return reshape(field, unitFrom(board, actor));
       // Deactivating is what starts a `countFrom: "deactivation"` cooldown, so
       // this must not be a bare Region delete -- the clock would never start.
-      const { deactivateField } = await import("../../engine/fields.mjs");
-      await deactivateField(fieldId, "owner");
+      //
+      // Asked of the GM, who can write what ending a field deletes (its Region,
+      // its stone, its summons) and re-checks that it is this Unit's and that its
+      // `deactivation` block lets the owner end it now (#130).
+      const { FGTSocket } = await import("../../net/socket.mjs");
+      try {
+        const out = await FGTSocket.request("deactivateField", { actorId: actor.id, fieldId });
+        if (out?.ok === false) {
+          ui.notifications.warn(game.i18n.format("FGT.Skill.Refused", { name: field.id, reason: out.reason }));
+        }
+      } catch (err) {
+        ui.notifications.error(err.message);
+      }
       return;
     }
 

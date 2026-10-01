@@ -188,8 +188,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // Switching a mode OFF never pays: an exit price is not a thing any sheet
     // in the corpus states, and charging one would be inventing a rule.
     if (active && pricedOnEntry(item)) {
-      const { useSkill } = await import("../../engine/skill-use.mjs");
-      const out = await useSkill({ actorId: actor.id, abilityId: item.id });
+      const out = await FGTActorSheet.#relaySkill(actor, item);
       if (!out.ok) {
         ui.notifications.warn(game.i18n.format("FGT.Skill.Refused", { name: item.name, reason: out.reason }));
         return;
@@ -251,6 +250,31 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   /**
+   * Ask the GM to use a Skill, and say how it went.
+   *
+   * A Skill runs on the GM, as an attack does. On a player's client it cannot
+   * write what most of them write -- a `zone` phase's Region, a field's Region,
+   * the Actor, Token and Level a platform or a summon creates -- and is refused a
+   * buff on another player's Unit (`OPERATIONS.useSkill`, #130, #144). A GM's
+   * own press executes locally, so this is the one path for everybody. The
+   * placement the player picked travels with the request: only their client can
+   * pick it.
+   *
+   * @param {object} actor
+   * @param {object} ability
+   * @param {object} [placement]
+   * @returns {Promise<{ok: boolean, reason?: string}>}
+   */
+  static async #relaySkill(actor, ability, placement = {}) {
+    const { FGTSocket } = await import("../../net/socket.mjs");
+    try {
+      return await FGTSocket.request("useSkill", { actorId: actor.id, abilityId: ability.id, placement });
+    } catch (err) {
+      return { ok: false, reason: err.message };
+    }
+  }
+
+  /**
    * Use a non-attacking active Skill.
    *
    * The targeting session is opened **only when there is something to choose**.
@@ -269,8 +293,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       if (!placement) return;
     }
 
-    const { useSkill } = await import("../../engine/skill-use.mjs");
-    const out = await useSkill({ actorId: actor.id, abilityId: ability.id, placement });
+    const out = await FGTActorSheet.#relaySkill(actor, ability, placement);
     if (!out.ok) {
       ui.notifications.warn(game.i18n.format("FGT.Skill.Refused", {
         name: ability.name, reason: out.reason,
