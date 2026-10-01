@@ -61,7 +61,9 @@ export function endTurn(board, ctx) {
   // this function's own `board` parameter separately, so every handler fired
   // from a Turn/Round boundary saw `ctx.board` as `undefined`.
   ctx = { ...ctx, board };
-  const units = board.units ?? [];
+  // The living only. A defeat never removes the token, and a defeated Unit was
+  // still ticked, drained and re-defeated at every boundary (§46.4-CN).
+  const units = (board.units ?? []).filter((u) => !u.defeated);
   /** @type {Intent[]} */
   const intents = [];
 
@@ -149,7 +151,9 @@ export function endTurn(board, ctx) {
  */
 export function beginTurn(board, ctx) {
   ctx = { ...ctx, board };
-  const units = board.units ?? [];
+  // The living only. A defeat never removes the token, and a defeated Unit was
+  // still ticked, drained and re-defeated at every boundary (§46.4-CN).
+  const units = (board.units ?? []).filter((u) => !u.defeated);
   /** @type {Intent[]} */
   const intents = [I.log({ kind: "turnStart", faction: ctx.activeFactionId, tick: ctx.tick })];
 
@@ -180,7 +184,9 @@ export function beginTurn(board, ctx) {
  */
 export function endRound(board, ctx) {
   ctx = { ...ctx, board };
-  const units = board.units ?? [];
+  // The living only. A defeat never removes the token, and a defeated Unit was
+  // still ticked, drained and re-defeated at every boundary (§46.4-CN).
+  const units = (board.units ?? []).filter((u) => !u.defeated);
   /** @type {Intent[]} */
   const intents = [];
 
@@ -240,7 +246,9 @@ export function endRound(board, ctx) {
  */
 export function beginRound(board, ctx) {
   ctx = { ...ctx, board };
-  const units = board.units ?? [];
+  // The living only. A defeat never removes the token, and a defeated Unit was
+  // still ticked, drained and re-defeated at every boundary (§46.4-CN).
+  const units = (board.units ?? []).filter((u) => !u.defeated);
   /** @type {Intent[]} */
   const intents = [I.log({ kind: "roundStart", round: ctx.round })];
 
@@ -2053,6 +2061,9 @@ export function checkRemovals(units, ctx) {
   const out = [];
   for (const u of units) {
     if (u.kind !== "servant") continue;
+    // Already gone: "disappear" was logged and the defeat re-emitted every Turn
+    // after the clock ran out (§46.4-CN).
+    if (u.defeated) continue;
     if (u.contract !== "free" && u.contract !== "unbound") continue;
     if (u.sustainability === null || u.sustainability === undefined) continue;
     // *"Ozymandias' Sustainability does not decrease while he is within the

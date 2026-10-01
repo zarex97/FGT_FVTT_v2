@@ -2580,6 +2580,14 @@ Hanging Gardens' activation aimed at Semiramis herself and for De Sterrennacht's
 *Use* for an ability `classifyAbility` does not call an attack, which since §46.4-CK is every ability
 that deals no damage.
 
+### CN. A defeated Unit was still ticked at every boundary — **fixed 2026-09-30**
+
+**Reached: SIK.1, on the noDsc board.** The noDsc Semiramis, summoned without a Master, paid Sikera Ušum's
+4 Sustainability and was defeated with 0 left. From then on the log held `disappear` at every Turn, and
+her Construction kept rising at every Turn's and Round's end (35 → 41 → 53 → 59 → 69) under a
+**Defeated** effect. A defeat never removes the token, and the scheduler's four boundaries walked every
+Unit on the board. They now act on the living only, and `checkRemovals` skips a Unit already defeated.
+
 ---
 
 ---

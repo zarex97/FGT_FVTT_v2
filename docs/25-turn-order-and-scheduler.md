@@ -27,6 +27,8 @@ Two **boundary scales** — turn and round — fire different sequences and must
 
 When Foundry's combat advances to the next turn, it fires `combatTurnChange` after the turn has already advanced (`module/engine/scheduler-hooks.mjs:40-42`). The hook runs two sequences back-to-back: **end the turn we just left**, then **begin the one we just entered**. The boundary is named with both `round` and `turn` numbers so it cannot repeat on a later boundary (`module/rules/schedule-claim.mjs:35-38`).
 
+**The boundaries act on the living.** `beginTurn`, `endTurn`, `beginRound` and `endRound` drop defeated Units before anything runs, and `checkRemovals` skips one: a defeat never removes the token, and a Free Servant whose Sustainability ran out was re-defeated, logged as disappearing and still regenerating Construction at every boundary after (§46.4-CN).
+
 **Which turn ended is copied before the first `await`.** Foundry hands the hook its own `combat.previous`, and `Combat#_onUpdate` refills that object with the current state on every later update. `claimBoundary` writes to the Combat, so a `prior` read after it named the incoming combatant: from 2026-09-16 every turn-end step -- `turnEnd` handlers, channels, `markTurnTaken` -- ran for the faction about to act, and the corrupted `takenThisRound` re-sorted the order under the turn index, so a reloaded client saw the other faction's Turn (§46.4-BV).
 
 Round boundaries fire similarly on `combatRound`, unfiltered but only on forward changes — rewinding is a GM correction (`module/engine/scheduler-hooks.mjs:210-214`).
