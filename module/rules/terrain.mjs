@@ -211,7 +211,29 @@ export function terrainAt(panel, board) {
  * @returns {object[]}
  */
 export function terrainAreasAt(panel, board) {
-  return (board?.terrain?.areas ?? []).filter((area) => (area.panels ?? []).some((p) => chebyshev(p, panel) === 0));
+  return (board?.terrain?.areas ?? []).filter((area) => (
+    (area.panels ?? []).some((p) => chebyshev(p, panel) === 0) && onLevel(area, panel)
+  ));
+}
+
+/**
+ * Is a panel on the Level an area is painted on?
+ *
+ * An area is on ONE Level, as a field is (`rules/bounded-fields.mjs#contains`,
+ * §46.4-BI): a ground Burning area does not burn a Unit aboard a platform above
+ * it, nor a deck's area one on the ground under it. Either side that names no
+ * Level asks nothing -- a hand-drawn area has none, as Foundry's own Region with
+ * no `levels` covers every Level, and a bare (i, j) caller has no panel.k (#151).
+ *
+ * @param {{level?: number|null}} area
+ * @param {{k?: number|null}|null|undefined} panel
+ * @returns {boolean}
+ */
+function onLevel(area, panel) {
+  const painted = area?.level;
+  const standing = panel?.k;
+  return painted === null || painted === undefined || standing === null || standing === undefined
+    || painted === standing;
 }
 
 /**

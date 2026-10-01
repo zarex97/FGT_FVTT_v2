@@ -476,6 +476,8 @@ export function terrainAreasOf(scene) {
           id: `${region.id}:${type}`, type, panels, regionId: region.id,
           // A label: it names the ground and runs none of its clauses (#146).
           labelOnly: Boolean(behavior.system?.labelOnly),
+          // The Level it is painted on; `null` (a hand-drawn area) is every Level (#151).
+          level: behavior.system?.level ?? null,
         });
       }
     }

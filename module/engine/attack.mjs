@@ -4794,6 +4794,9 @@ async function applyTerrainConversions(state, result) {
         // states a duration for the fire itself.
         duration: change.reverts ? change.duration : null,
         tag: `conversion:${change.to}:${state.defenderId}:${result.total}`,
+        // The 3x3 around the DU is on the DU's Level: a ground fire does not
+        // burn a deck above it (#151).
+        level: defender.panel?.k ?? null,
       });
     } else if (change.kind === "removeTerrain") {
       // A Meadow is map terrain a GM drew, so it carries no tag and is

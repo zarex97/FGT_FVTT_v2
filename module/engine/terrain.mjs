@@ -102,9 +102,9 @@ function nowTick() {
  */
 export function terrainDataOf({
   types, duration = null, sourceUnitId = null, followsSource = false, radius = null, tag, labelOnly = false,
-  boundToFieldId = null,
+  boundToFieldId = null, level = null,
 }, expiry) {
-  return { types, duration, sourceUnitId, followsSource, radius, tag, expiry, labelOnly, boundToFieldId };
+  return { types, duration, sourceUnitId, followsSource, radius, tag, expiry, labelOnly, boundToFieldId, level };
 }
 
 /**
@@ -124,12 +124,13 @@ export function terrainDataOf({
  * @param {number|null} [args.radius] the radius to redraw a following area at
  * @param {boolean} [args.labelOnly] the area is CATEGORIZED as these types and runs none of their periodic clauses
  * @param {string|null} [args.boundToFieldId] the bounded field this area lasts as long as: `endField` erases it
+ * @param {number|null} [args.level] the Scene Level it is painted on; `null` is every Level
  * @returns {Promise<{ok: boolean, regionId?: string, reason?: string}>}
  */
 export async function paintTerrain({
   types, panels, tag,
   duration = null, sourceUnitId = null, followsSource = false, radius = null, labelOnly = false,
-  boundToFieldId = null,
+  boundToFieldId = null, level = null,
 }) {
   const scene = canvas?.scene;
   if (!scene) return { ok: false, reason: "noScene" };
@@ -154,7 +155,7 @@ export async function paintTerrain({
     behaviors: [{
       type: "terrain",
       system: terrainDataOf(
-        { types, duration, sourceUnitId, followsSource, radius, tag, labelOnly, boundToFieldId },
+        { types, duration, sourceUnitId, followsSource, radius, tag, labelOnly, boundToFieldId, level },
         // An expiry rather than a countdown, for the reason Ch. 04 gives.
         duration
           ? tick + resolveTicks(parseTick(duration), {
@@ -267,7 +268,7 @@ export async function dropStrandedTerrainEffects() {
  * with her rather than a step behind.
  *
  * @param {string} unitId
- * @param {{i: number, j: number}|null} panel where the unit now is
+ * @param {{i: number, j: number, k?: number}|null} panel where the unit now is, and on which Level
  * @returns {Promise<number>} how many areas moved
  */
 export async function repaintFollowing(unitId, panel) {
@@ -292,6 +293,10 @@ export async function repaintFollowing(unitId, panel) {
       radius: sys.radius ?? 2,
       labelOnly: Boolean(sys.labelOnly),
       boundToFieldId: sys.boundToFieldId ?? null,
+      // It goes where its source goes, and that includes UP: a source that
+      // boards a platform takes her daylight with her. A move that names no
+      // Level keeps the one the area had (#151).
+      level: panel.k ?? sys.level ?? null,
     });
     if (result.ok) {
       // Carry the ORIGINAL expiry across, since `paintTerrain` computed none.

@@ -145,6 +145,10 @@ A token whose live size drifts from its stored size (e.g. mid-animation after a 
 
 Clicking a token selects it only if that token is on the level being viewed (`module/apps/canvas/token.mjs:63-86`). A single-level scene is unaffected; the filter only matters once a platform exists and creates a second level. The override applies per-token so it re-evaluates on every refresh, surviving updates that would reset it. Otherwise a 9×9 platform at high elevation would swallow every click on the board beneath it.
 
+### What a Level separates besides targeting
+
+A bounded field is an area on one Level (`rules/bounded-fields.mjs#contains` compares `panel.k`, §46.4-BI), and **so is a painted terrain area** (#151, Ch. 26): a ground Burning area does not reach the Units aboard a platform above it — Quetzalcoatl and her Master riding the Quetzalcoatlus over Piedra Del Sol's 7×7 — and a deck's area does not reach the ground under it. A `zone` phase stamps the caster's Level, so a stone cast while Riding paints its Burning on the deck's Level, where its field already is. An area with no Level (a hand-drawn one) is on every Level. A following area — Sol's 5×5 of Day — follows its source's Level as well as her panel, and a change of Level alone (boarding) repaints it, so the daylight comes aboard with her.
+
 ## Invariants & edge cases
 
 1. **A platform on level 0 has no passengers.** `passengersOf` refuses this read rather than returning every unit on the board (`module/rules/platforms.mjs:60-77`).

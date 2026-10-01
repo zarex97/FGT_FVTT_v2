@@ -42,7 +42,7 @@ import { rollOptionsFor } from "../rules/options.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { transferableFrom, transferEffect, applicationsOf, effectGatePasses } from "../rules/effect-flow.mjs";
 import { evade, checkPlan } from "../rules/checks.mjs";
-import { randomFreePanelIn, panelsOf } from "../rules/bounded-fields.mjs";
+import { randomFreePanelIn, panelsOf, levelOf } from "../rules/bounded-fields.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { runContactEvents } from "./movement-hooks.mjs";
 import { tableFor, entriesFor, choicesIn, effectsOf } from "../rules/roll-table.mjs";
@@ -2339,6 +2339,9 @@ export function zonePaintArgs(spec, ability, actor, self, board, extras = {}) {
     // *"(The Piedra Del Sol area is categorized as 'Burning'.)"* -- a label, not
     // the terrain's own toll (#146).
     labelOnly: Boolean(spec.labelOnly),
+    // The Level the caster stands on: a ground area does not reach a Unit aboard
+    // a platform above it, nor a deck's the ground under it (#151).
+    level: self?.panel?.k ?? null,
   };
 }
 
@@ -2363,8 +2366,10 @@ export function zonePaintArgs(spec, ability, actor, self, board, extras = {}) {
 export function zonePaints(spec, ability, actor, self, board, extras = {}) {
   const base = zonePaintArgs(spec, ability, actor, self, board, extras);
   if (spec.shape !== "fortressNearby") return [base];
-  return fortressesNearby(self, board).map(({ fieldId, panels }) => ({
+  return fortressesNearby(self, board).map(({ fieldId, panels, level }) => ({
     ...base, panels, tag: `${base.tag}:${fieldId}`, boundToFieldId: fieldId,
+    // The FORTRESS's Level, which is not necessarily the caster's.
+    level,
   }));
 }
 
@@ -2414,11 +2419,11 @@ function zonePanels(spec, self, board, extras = {}) {
  *
  * @param {object} self the caster's snapshot
  * @param {object} board
- * @returns {Array<{fieldId: string, panels: Array<{i: number, j: number}>}>}
+ * @returns {Array<{fieldId: string, panels: Array<{i: number, j: number}>, level: number|null}>}
  */
 export function fortressesNearby(self, board) {
   if (!self?.panel) return [];
-  /** @type {Array<{fieldId: string, panels: Array<{i: number, j: number}>}>} */
+  /** @type {Array<{fieldId: string, panels: Array<{i: number, j: number}>, level: number|null}>} */
   const out = [];
 
   for (const field of board?.fields ?? []) {
@@ -2445,7 +2450,7 @@ export function fortressesNearby(self, board) {
         for (let dj = -1; dj <= 1; dj++) add({ i: p.i + di, j: p.j + dj });
       }
     }
-    out.push({ fieldId: field.id, panels: area });
+    out.push({ fieldId: field.id, panels: area, level: levelOf(field, board) });
   }
   return out;
 }

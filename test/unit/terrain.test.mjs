@@ -15,7 +15,9 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { readFileSync } from "node:fs";
 import { TERRAIN, terrainAt, terrainEffects, terrainPeriodics, annotateTerrain } from "../../module/rules/terrain.mjs";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
-import { areasOf, compiled, prepareFields } from "../helpers/field.mjs";
+import { areasOf, compiled, prepareFields, squareAround } from "../helpers/field.mjs";
+import { withWorld } from "../helpers/world.mjs";
+import { installSystem } from "../../tools/lib/foundry.mjs";
 import { zonePaintArgs } from "../../module/engine/skill-use.mjs";
 import { squareBounds } from "../../module/domain/geometry.mjs";
 import { phaseAt } from "../../module/rules/environment.mjs";
@@ -350,5 +352,112 @@ describe("a painted Burning area that is a label (#146)", () => {
     const source = readFileSync("module/engine/terrain.mjs", "utf8");
     const repaint = source.slice(source.indexOf("export async function repaintFollowing"));
     expect(repaint).toMatch(/labelOnly/);
+  });
+});
+
+/* ========================================================================== */
+/*  A painted area is on one Level (#151)                                     */
+/* ========================================================================== */
+
+describe("a painted area is on one Level (#151)", () => {
+  beforeAll(async () => { await prepareSubjects(); await prepareFields(); }, 120_000);
+
+  const burning = (level) => ({
+    types: ["burning"], panels: squareAround({ i: 6, j: 6 }, 7), tag: "gm",
+    ...(level === undefined ? {} : { level }),
+  });
+  const at = (level) => ({ i: 6, j: 7, ...(level === undefined ? {} : { k: level }) });
+  const typesAt = async (paint, panel) => terrainAt(panel, { terrain: { areas: await areasOf([{ paint }]) } });
+
+  it("returns a ground area for a Unit on the ground and not for one aboard a platform above it", async () => {
+    expect(await typesAt(burning(0), at(0))).toEqual(["burning"]);
+    expect(await typesAt(burning(0), at(1))).toEqual([]);
+    expect(await typesAt(burning(0), at(20))).toEqual([]);
+  });
+
+  it("returns a deck's area for a Unit on that deck and not for one on the ground under it", async () => {
+    expect(await typesAt(burning(1), at(1))).toEqual(["burning"]);
+    expect(await typesAt(burning(1), at(0))).toEqual([]);
+  });
+
+  it("returns an area that names no Level for every Level, as a hand-drawn one does", async () => {
+    for (const k of [0, 1, 20]) expect(await typesAt(burning(), at(k)), `k ${k}`).toEqual(["burning"]);
+  });
+
+  it("answers a panel that names no Level for every area, which is how a bare (i, j) caller asks", async () => {
+    expect(await typesAt(burning(1), at())).toEqual(["burning"]);
+  });
+
+  it("gives a Unit on a deck over a ground Burning area no Burn and no 25 Fixed Fire", async () => {
+    const areas = await areasOf([{ paint: burning(0) }]);
+    const toll = await withSubjects(
+      [
+        { from: "heracles", id: "onGround", state: { factionId: "B" }, panel: { i: 6, j: 7, k: 0 } },
+        { from: "heracles", id: "onDeck", state: { factionId: "B" }, panel: { i: 6, j: 8, k: 1 } },
+      ],
+      ({ board, units }) => terrainPeriodics(units, board, "turnEnd").map((d) => d.unitId),
+      { settings: { terrain: { areas } } },
+    );
+    expect(toll.filter((id) => id === "onGround")).toHaveLength(2);
+    expect(toll.filter((id) => id === "onDeck")).toEqual([]);
+  });
+
+  it("reads the stone's Burning on the Level the caster stood on", async () => {
+    const ability = await compiled("quetz-piedra-del-sol");
+    const spec = ability.system.phases.find((p) => p.kind === "zone").spec;
+    const board = { bounds: squareBounds(13) };
+    const aboard = zonePaintArgs(spec, ability, { id: "qz" }, { panel: { i: 6, j: 6, k: 1 } }, board);
+    const grounded = zonePaintArgs(spec, ability, { id: "qz" }, { panel: { i: 6, j: 6, k: 0 } }, board);
+    expect(aboard.level).toBe(1);
+    expect(grounded.level).toBe(0);
+    // A bare panel names no Level, and the area then names none either.
+    expect(zonePaintArgs(spec, ability, { id: "qz" }, { panel: { i: 6, j: 6 } }, board).level).toBeNull();
+  });
+
+  it("is carried by the behaviour, the projection and the area-aware reader", async () => {
+    const [area] = await areasOf([{ paint: burning(1) }]);
+    expect(area.level).toBe(1);
+  });
+});
+
+describe("a following area keeps to its source's Level (#151)", () => {
+  /** A scene holding one following area, recording what a repaint creates. */
+  async function repaintOnto(panel) {
+    const models = await installSystem();
+    const { terrainDataOf, repaintFollowing } = await import("../../module/engine/terrain.mjs");
+    const system = new models.RegionBehavior.terrain(structuredClone(terrainDataOf({
+      types: ["sunlight"], panels: [{ i: 1, j: 1 }], tag: "sol:u1", sourceUnitId: "u1", followsSource: true, radius: 2, level: 0,
+    }, null)), { strict: true }).toObject();
+    const created = [];
+    return withWorld({}, async () => {
+      globalThis.canvas = {
+        ...globalThis.canvas,
+        scene: {
+          regions: [{ id: "old", behaviors: [{ type: "terrain", disabled: false, system }] }],
+          grid: { size: 100 },
+          deleteEmbeddedDocuments: async () => {},
+          createEmbeddedDocuments: async (_type, data) => { created.push(...data); return data.map((_d, n) => ({ id: `new${n}` })); },
+        },
+      };
+      await repaintFollowing("u1", panel);
+      return created.map((c) => c.behaviors[0].system);
+    });
+  }
+
+  it("repaints the area on the Level the source moved to", async () => {
+    const [painted] = await repaintOnto({ i: 6, j: 6, k: 1 });
+    expect(painted).toMatchObject({ followsSource: true, tag: "sol:u1", level: 1 });
+  });
+
+  it("keeps the Level it had when the move names none", async () => {
+    const [painted] = await repaintOnto({ i: 6, j: 6 });
+    expect(painted.level).toBe(0);
+  });
+
+  it("repaints on a change of Level alone, which is what boarding is", () => {
+    const hooks = readFileSync("module/engine/movement-hooks.mjs", "utf8");
+    const onMove = hooks.slice(hooks.indexOf("async function onMove"));
+    const levelOnly = onMove.slice(onMove.indexOf("if (isLevelOnlyChange(document, movement)) {"), onMove.indexOf("// Bounded-field CONTACT"));
+    expect(levelOnly).toMatch(/repaintFollowing\(/);
   });
 });

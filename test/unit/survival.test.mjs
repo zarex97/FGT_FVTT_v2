@@ -535,6 +535,21 @@ export const NESTED_ROUTES = [
       { file: "module/engine/fields.mjs", why: "endField erases the areas bound to the field it closes" },
     ],
   },
+  // A painted area is on one Level, as a field is: the zone phase stamps the
+  // caster's (or the Fortress's), a repaint follows the source's, and
+  // `terrainAt` asks for it (#151).
+  {
+    key: "level",
+    authored: [],
+    hops: [
+      { file: "module/engine/skill-use.mjs", why: "zonePaintArgs stamps the caster's Level, zonePaints the Fortress's" },
+      { file: "module/engine/terrain.mjs", why: "terrainDataOf writes it, repaintFollowing carries the source's" },
+      { model: "RegionBehavior/terrain", why: "TerrainBehavior declares it; Foundry drops what a schema does not name" },
+      { file: "module/engine/board.mjs", why: "terrainAreasOf projects it onto the area" },
+      { file: "module/rules/terrain.mjs", why: "terrainAreasAt, and so terrainAt, asks for it" },
+      { file: "module/engine/movement-hooks.mjs", why: "a move and a change of Level both hand the mover's Level to the repaint" },
+    ],
+  },
 ];
 
 describe("every key nested in an untyped block survives its Route", () => {

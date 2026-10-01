@@ -182,6 +182,20 @@ async function sightingsAfter(combat) {
 }
 
 /**
+ * The Level a token stands on, the way the snapshot reads it: the first occupied
+ * offset's `k`, else its elevation.
+ *
+ * `null` when nothing says, which asks nothing of a painted area's Level.
+ *
+ * @param {object|null} document a `TokenDocument`
+ * @returns {number|null}
+ */
+export function levelOfToken(document) {
+  const offsets = document?.getOccupiedGridSpaceOffsets?.();
+  return offsets?.[0]?.k ?? document?.elevation ?? null;
+}
+
+/**
  * Record what the movement cost, once it has happened.
  *
  * @param {object} document
@@ -195,6 +209,16 @@ async function onMove(document, movement, operation) {
   // crosses no boundary in the plane either. It can still bring a Unit into
   // somebody's sight: boarding is a level change.
   if (isLevelOnlyChange(document, movement)) {
+    // ...and it takes the ground with it: a following area is on its source's
+    // Level, so her daylight comes ABOARD with her, and a Burn tied to the
+    // ground she left is no longer hers. Boarding is a level change and no step
+    // at all, which is why this cannot wait for the step below (#151).
+    if (document.actor && canvas?.grid) {
+      const here = canvas.grid.getOffset({ x: document.x, y: document.y });
+      const landed = { i: here.i, j: here.j, k: levelOfToken(document) };
+      await dropLeftTerrainEffects(document.actor, landed, currentBoard());
+      await repaintFollowing(document.actor.id, landed);
+    }
     await sightingsAfter(combat);
     return;
   }
@@ -220,7 +244,7 @@ async function onMove(document, movement, operation) {
   // documents (#147).
   if (document.actor && movement?.destination && canvas?.grid) {
     const to = canvas.grid.getOffset(movement.destination);
-    await dropLeftTerrainEffects(document.actor, { i: to.i, j: to.j }, currentBoard());
+    await dropLeftTerrainEffects(document.actor, { i: to.i, j: to.j, k: levelOfToken(document) }, currentBoard());
   }
 
   // A FOLLOWING terrain area goes where its source goes, and is above the
@@ -232,7 +256,9 @@ async function onMove(document, movement, operation) {
   // `platformDelta` below documents.
   if (document.actor) {
     const landed = movement?.destination ? canvas.grid.getOffset(movement.destination) : null;
-    await repaintFollowing(document.actor.id, landed ? { i: landed.i, j: landed.j } : null);
+    await repaintFollowing(
+      document.actor.id, landed ? { i: landed.i, j: landed.j, k: levelOfToken(document) } : null,
+    );
   }
 
   // `operation`, not `movement.options` -- see `onPreMove`. A forced
