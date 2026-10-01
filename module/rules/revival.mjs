@@ -143,19 +143,20 @@ export function resolveRevival({ unit, overkill = 0, rolls = {} }) {
     ? Math.floor(max * (source.percentOfMax / 100))
     : (rolls[`revival:${source.id}:${n}`] ?? 0));
 
-  // Overkill is subtracted from what the source restores, which is God Hand's
-  // own clause -- *"if the damage of the Attack that defeated Heracles exceeds
-  // his current Health, the excess damage is reduced from his newly restored
-  // Health"* -- generalised to every source because every source in the corpus
-  // had it until now.
+  // Overkill reaches what a source restores ONLY when the source says so, and
+  // the only source that says so is God Hand: *"if the damage of the Attack
+  // that defeated Heracles exceeds his current Health, the excess damage is
+  // reduced from his newly restored Health, and so on"*. `cascading` is that
+  // clause -- spending charges against the excess is all it means -- so a
+  // cascading source carries the overkill and every other source ignores it.
   //
-  // Mannanán's *God's Holder: Possession* is the first that does not: it is
-  // *"restoring her Health **to** 50% of its maximum value"*, a destination
-  // rather than an amount, and a Servant killed by a big enough hit would
-  // otherwise enter Holder Mode at less than the half her sheet promises. A
-  // cascading source cannot opt out — spending several charges against the
-  // excess is the only thing cascading means.
-  let remaining = source.ignoresOverkill && !source.cascading ? 0 : Math.max(0, overkill);
+  // It used to be the other way round: every source subtracted the overkill
+  // and Mannanan's "restoring her Health TO 50%" opted out. Guts 10 on a
+  // 1,250-Health Servant therefore restored 125 less whatever killed her, and
+  // an overkill of 167 left her dead (#172). Guts, Undying, Battle
+  // Continuation, Divine Protection and Holder Mode state an amount or a
+  // destination and nothing about the blow that preceded it.
+  let remaining = source.cascading ? Math.max(0, overkill) : 0;
   let restored = 0;
   let used = 0;
   const limit = source.charges ?? 1;

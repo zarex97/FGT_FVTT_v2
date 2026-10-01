@@ -132,7 +132,12 @@ executor actually reads, rather than of its descriptor's ids.
   bucket. The line is gone and the validator refuses the key.
 - **`RevivalSource`** counts its budget in `charges`. Normal Lancer's Battle Continuation said `uses:
   1`, so *"can only be used once"* had no limit. The content now says `charges: 1`, and the validator
-  refuses `uses`.
+  refuses `uses`. **Only a `cascading` source carries the killing blow's excess into what it restores**
+  (`rules/revival.mjs#resolveRevival`): that is God Hand's clause, *"the excess damage is reduced from
+  his newly restored Health, and so on"*, and no other source states it. Guts, Undying, Battle
+  Continuation, Divine Protection and Holder Mode restore their amount or destination whatever the
+  overkill; the old general subtraction left a Guts 10 Servant dead to a 167 overkill (#172).
+  `ignoresOverkill` is retired.
 - **`SustainabilityGain`** carries `targetPredicate` and listens for `unitKilled`, a new event fired on
   the killer (Appendix E). It had listened on `unitDefeated`, which the victim hears, and dropped the
   predicate: Jack and Medusa gained Sustainability when they themselves died, for anybody, and never
