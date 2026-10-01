@@ -580,7 +580,7 @@
   "FGT.Platform.FallRescued": "{name} fails its Agility Check (d20 → {roll} against {target}), but {servant} catches it (d20 → {servantRoll}): it stays aboard.",
   "FGT.Platform.FallRescueMissed": "{servant} tried to catch it (d20 → {servantRoll}) and missed.",
   "FGT.Platform.BoardFailed": "{name} fails to board {platform}: d{die} → {roll}, needing {target}.",
-  "FGT.Platform.BoardRelieved": "Eased by 2 for Dragon Wing Warriors this Turn.",
+  "FGT.Platform.BoardRelieved": "Eased by 2 for Dragon Wing Warriors this Round.",
   "FGT.Platform.BoardBroughtMaster": "Its Master comes aboard with it.",
   "FGT.Platform.BoardCarryHint": "{name} was within 2 panels of you and can come aboard with you.",
   "FGT.Platform.BoardCarryYes": "Bring them aboard",
