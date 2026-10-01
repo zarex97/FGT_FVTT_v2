@@ -343,11 +343,35 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   });
 
   await declareAftermath({
-    attackerId, attacker, ability, attackSpec, board, placement, targetIds,
+    attackerId, attacker, ability, options, board, placement, targetIds,
     groupId: primary.groupId,
   });
 
   return primary;
+}
+
+/**
+ * The attack spec of an aftermath: built from the aftermath's own damage block,
+ * with the panels the splash caught as its area.
+ *
+ * Not the primary's spec with keys painted over it. `areaPanels` is what Fire
+ * in a Forest (`terrainConversions`) and the Holy Grail's strike read; the
+ * overlay left it holding the DU's single panel.
+ *
+ * @param {object} args
+ * @param {object} args.attacker the actor document
+ * @param {object|null} args.ability
+ * @param {Set<string>|null} args.options
+ * @param {{panels?: object[], units?: object[]}} args.caught the aftermath's own `resolveTargets`
+ * @returns {object}
+ */
+export function aftermathSpecFor({ attacker, ability, options, caught }) {
+  return {
+    ...buildAttackSpec({ attacker, ability, abilityId: ability?.id ?? null, options, aftermath: true }),
+    isAftermath: true,
+    areaPanels: caught?.panels ?? [],
+    bands: Object.fromEntries((caught?.units ?? []).map((t) => [t.unitId, t.band ?? 0])),
+  };
 }
 
 /**
@@ -376,7 +400,7 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
  * @returns {Promise<void>}
  */
 async function declareAftermath({
-  attackerId, attacker, ability, attackSpec, board, placement, targetIds, groupId,
+  attackerId, attacker, ability, options, board, placement, targetIds, groupId,
 }) {
   const spec = ability?.system?.aftermath ?? null;
   if (!spec?.unconditional) return;
@@ -393,10 +417,10 @@ async function declareAftermath({
     attackerId,
     attacker,
     ability,
-    // The primary's flags (`ignoresMagicResistance`, the NP kind, the rank)
-    // still describe the same Noble Phantasm; only the damage differs, so the
-    // spec is overlaid rather than rebuilt.
-    attackSpec: { ...attackSpec, ...(spec.damage ?? {}), isAftermath: true },
+    // Its own spec, built from its own block. The primary's was overlaid before
+    // (#136), and every key the aftermath did not restate stayed the primary's:
+    // the element fraction, the Magic Resistance exemption, the area.
+    attackSpec: aftermathSpecFor({ attacker, ability, options, caught }),
     targetIds: caught.units.map((t) => t.unitId),
     targets: caught,
     placement: null,
@@ -609,7 +633,17 @@ function attackerProperty(attacker, property, fallback) {
   return values.length > 0 ? Math.max(...values) : fallback;
 }
 
-export function buildAttackSpec({ attacker, ability, abilityId, options, placement = null }) {
+export function buildAttackSpec({
+  attacker, ability, abilityId, options, placement = null, aftermath = false,
+}) {
+  // The damage block THIS resolution is under: an aftermath's own, else the
+  // primary's resolved for whichever behaviour fires. Reading the primary's for a
+  // splash is what made it inherit the hit's element fraction and its Magic
+  // Resistance exemption (#136).
+  const block = damageBlockFor(ability, options, { isAftermath: aftermath });
+  // A branch that does not state a key falls back to the block's own top level;
+  // an aftermath is a whole second block and has nothing to fall back to.
+  const topLevel = aftermath ? null : (ability?.system?.damage ?? null);
   return {
       abilityId,
       kind: ability ? abilityKind(ability) : "normal",
@@ -618,7 +652,7 @@ export function buildAttackSpec({ attacker, ability, abilityId, options, placeme
       // exempted for *"an Attack/Attack Skill/Spell/NP that deals STR damage or
       // that is not affected by Magic Resistance"* -- a property of the attack,
       // so it has to travel with the attack.
-      component: componentOf(attacker, ability, options),
+      component: componentOf(attacker, ability, options, block),
       // Facts that do not exist until the ride has happened. Troias Tragōidia
       // reads two of them — how much MOV he had left when he used it, and how
       // many Units he actually reached — and neither can come off a document.
@@ -646,7 +680,7 @@ export function buildAttackSpec({ attacker, ability, abilityId, options, placeme
       // Read as effect DEFINITION ids, the way `rules/snapshot.mjs`'s
       // `activeEffectIds` reads them -- an ActiveEffect's `system.defId` is the
       // catalogue id, and the document's own `name` is the display string.
-      aim: Boolean(resolvedDamage(ability, options)?.aim)
+      aim: Boolean(block?.aim)
         || [...(attacker?.effects ?? [])].some(
           (e) => !e.disabled && !e.isSuppressed && (e.system?.defId ?? e.name) === "aim",
         ),
@@ -656,9 +690,9 @@ export function buildAttackSpec({ attacker, ability, abilityId, options, placeme
       // are the first buffs in the game to grant an attack property, and until
       // `AttackProperty` existed there was nowhere for them to put it -- which
       // is why the corpus had no Pierce document at all.
-      pierce: Boolean(resolvedDamage(ability, options)?.pierce)
+      pierce: Boolean(block?.pierce)
         || attackerGrants(attacker, "pierce"),
-      ignoresDefUp: Boolean(resolvedDamage(ability, options)?.ignoresDefUp)
+      ignoresDefUp: Boolean(block?.ignoresDefUp)
         || attackerGrants(attacker, "ignoresDefUp"),
       // How much damage SURVIVES an Invuln, for a clause that weakens it rather
       // than bypassing it. 0 is the default and reproduces total negation.
@@ -679,14 +713,14 @@ export function buildAttackSpec({ attacker, ability, abilityId, options, placeme
       // `flamHeal` conversion, no element-scoped resistance and no
       // `attack:element:` predicate. The same document-for-snapshot mix-up as
       // the `.effects` read above, eight lines away.
-      element: resolvedDamage(ability, options)?.element ?? ability?.system?.element
+      element: block?.element ?? ability?.system?.element
         ?? (ability ? null : normalAttackAt(attacker?.system ?? attacker, null)?.element) ?? null,
       // "Fire damage (half)": how much of the total carries that element, which
       // the pipeline's stage 4b scales element-scoped modifiers by. Travels
       // BESIDE `element` at all three spec-building sites, because an element
       // that arrives without its fraction is silently a whole-element attack.
-      elementFraction: resolvedDamage(ability, options)?.elementFraction
-        ?? ability?.system?.damage?.elementFraction
+      elementFraction: block?.elementFraction
+        ?? topLevel?.elementFraction
         // ...and a Normal Attack's own "(half)", from the same spec its element
         // comes from. Without it an element arrives unfractioned, which stage 4b
         // reads as a whole-element attack -- the exact silent widening the
@@ -696,7 +730,7 @@ export function buildAttackSpec({ attacker, ability, abilityId, options, placeme
       // Inside `damage`, where the authored key lives. A top-level fallback
       // read a key no schema declares and no content authors (#104).
       ignoresMagicResistance: Boolean(
-        resolvedDamage(ability, options)?.ignoresMagicResistance,
+        block?.ignoresMagicResistance,
       ),
       // *"Damage dealt is not affected by Atk Up or other damage increasing
       // effects on Ozymandias."* Narrower than `bypassModifiers`, which skips
@@ -704,8 +738,8 @@ export function buildAttackSpec({ attacker, ability, abilityId, options, placeme
       // ATTACKER's increases and nothing else, so a Def Up on the target still
       // protects them and an Atk Dwn on him still costs him.
       ignoresAttackerIncreases: Boolean(
-        resolvedDamage(ability, options)?.ignoresAttackerIncreases
-        ?? ability?.system?.damage?.ignoresAttackerIncreases,
+        block?.ignoresAttackerIncreases
+        ?? topLevel?.ignoresAttackerIncreases,
       ),
       // Per-attack RESTRICTIONS on the reaction ladder. Appendix A treats the
       // ladder as a fixed three, and Mannanán's Fragarach Counter is the first
@@ -714,16 +748,16 @@ export function buildAttackSpec({ attacker, ability, abilityId, options, placeme
       // of the ATTACK, so they travel with it -- `unblockable` removes Block
       // from the rung at declaration and `evadableOnlyBy` makes the Evade roll
       // fail automatically unless the defender holds one of the named effects.
-      unblockable: Boolean(resolvedDamage(ability, options)?.unblockable),
-      evadableOnlyBy: [...(resolvedDamage(ability, options)?.evadableOnlyBy ?? [])],
+      unblockable: Boolean(block?.unblockable),
+      evadableOnlyBy: [...(block?.evadableOnlyBy ?? [])],
       // *"If the DU Evades, its Evade Roll is increased by 3."* A penalty the
       // ability imposes, alongside the ones the attack's kind and the
       // defender's own effects impose (`evadeModifiers`).
-      evadeModifier: resolvedDamage(ability, options)?.evadeModifier ?? 0,
+      evadeModifier: block?.evadeModifier ?? 0,
       // *"If any Evade fails, the remaining hits cannot be Evaded."* A property
       // that spans the SIBLING Processes of one multi-hit declaration, which is
       // why it is on the attack rather than on any one Process.
-      noEvadeAfterFail: Boolean(resolvedDamage(ability, options)?.noEvadeAfterFail),
+      noEvadeAfterFail: Boolean(block?.noEvadeAfterFail),
       // The SCALE, carried on the attack for exactly the reasons `element` and
       // `pierce` are: three separate rules ask about it and none of them can
       // reach the ability document. Doomsday Come's isolation opens for an
@@ -1362,7 +1396,7 @@ export async function flushAutoCounters(groupId = null) {
  * @returns {Promise<object|null>}
  */
 async function rollDiceCount(ability, options, { attacker, defender, facts }, state) {
-  const formula = ability?.system?.damage?.formula;
+  const formula = damageBlockFor(ability, options, state?.attack)?.formula;
   if (formula?.kind !== "diceCount") return null;
 
   const ctx = {
@@ -2910,8 +2944,8 @@ function pendingCosts({ usage, ability, self, master, board }) {
  * @param {object} self the attacker's snapshot
  * @returns {object[]} `{key, factor, source}` entries for stage 15
  */
-function totalModifiersFor(ability, options, self) {
-  const authored = resolvedDamage(ability, options)?.totalModifiers ?? [];
+function totalModifiersFor(ability, options, self, block = undefined) {
+  const authored = (block === undefined ? resolvedDamage(ability, options) : block)?.totalModifiers ?? [];
   /** @type {object[]} */
   const out = [];
 
@@ -3699,6 +3733,9 @@ async function applyDamage(state, message) {
   // pipeline reads have to be describing the same attack.
   const facts = attackFacts(attacker, defender, state);
   const options = rollOptionsFor({ attacker, defender, attack: facts });
+  // The block THIS resolution is under: the aftermath's own for a splash, the
+  // primary's (resolved for its behaviour) otherwise (#136).
+  const block = damageBlockFor(ability, options, state.attack);
 
   // A formula that produces its own total, rolled HERE for the same reason
   // every other roll in this function is: the pipeline is pure and dice are
@@ -3744,14 +3781,16 @@ async function applyDamage(state, message) {
       // attacker's. Authored on the ability as `damage.modifierSources`, and
       // read by `activeMods` -- the mirror of `excludeModifierSources`, which
       // lives on this same object for the same reason.
-      modifierSources: resolvedDamage(ability, options)?.modifierSources ?? [],
-      // Rank, scale tags, whether it counts as an NP, and the element with its
-      // fraction: one builder, shared with the preview and the counterfactual
-      // (#124). A Normal Attack has no ability document, so its element is the
-      // one `attackFacts` took from the Unit's own spec.
+      modifierSources: block?.modifierSources ?? [],
+      // Rank, scale tags and whether it counts as an NP: one builder, shared with
+      // the preview and the counterfactual (#124). The element and its fraction
+      // come from the block this resolution is under, so an aftermath's splash
+      // reads its own and not the primary's (#136).
       ...identity,
-      element: identity.element ?? facts.element ?? null,
-      elementFraction: identity.elementFraction ?? facts.elementFraction ?? undefined,
+      element: block?.element ?? ability?.system?.element ?? facts.element ?? null,
+      elementFraction: block?.elementFraction
+        ?? (state.attack?.isAftermath ? undefined : ability?.system?.damage?.elementFraction)
+        ?? facts.elementFraction ?? undefined,
       // Dragon Wing Warriors: "50 Fixed STR damage". The pipeline has read
       // `ctx.attack.isFixedDamage` (stages 1 and 2, `rules/damage/pipeline.mjs`)
       // since it was written; nothing ever set it from content, so an authored
@@ -3761,23 +3800,21 @@ async function applyDamage(state, message) {
       // `damage.branches` entry (`{fixed: true, base: {fixedValue: 0}}`) so
       // this Combat Process -- which still runs, she resolves as her own
       // defender -- deals nothing rather than her own Base Attack.
-      isFixedDamage: Boolean(resolvedDamage(ability, options)?.fixed) || dealsNoDamage(ability),
+      isFixedDamage: Boolean(block?.fixed) || dealsNoDamage(ability),
     },
-    // An AFTERMATH resolution carries its own damage, spread onto the attack
-    // spec when it was declared. Xiuhcoatl's splash uses BA(MAG) alone at 1x
-    // where the primary uses the combined 250 at 4x, so reading the ability's
-    // `damage` block here would give the splash the primary's numbers -- which
-    // is precisely the "looks resolved, is wrong" failure the two-resolution
-    // design exists to avoid.
+    // An AFTERMATH resolution is under its own damage block. Xiuhcoatl's splash
+    // uses BA(MAG) alone at 1x where the primary uses the combined 250 at 4x, so
+    // reading the ability's own `damage` block here would give the splash the
+    // primary's numbers -- which is precisely the "looks resolved, is wrong"
+    // failure the two-resolution design exists to avoid. `block` is that block
+    // for both, so nothing below has to know which it is (#136).
     base: dealsNoDamage(ability)
       ? { fixedValue: 0 }
       // A `diceCount` formula IS the base -- stage 1 takes the counted figure
       // and returns, so nothing looks for Base Attack sources at all.
       : diceBase
         ? diceBase
-        : (facts.isAftermath && facts.sources)
-          ? { sources: facts.sources }
-          : baseSpecFor(attackerDoc, ability, facts.range, options),
+        : baseSpecFor(attackerDoc, ability, facts.range, options, block),
     // Named base-attack sources. Stage 1 has resolved `ctx.units[src.unit]`
     // since the pipeline was written and nothing has ever supplied the map:
     // `"mount"` is its first entry, so a rider whose Normal Attack is replaced
@@ -3801,15 +3838,13 @@ async function applyDamage(state, message) {
     // Absent for every other ability in the corpus, where the map is empty and
     // the multiplier is 1 -- which is what stage 6 already did with nothing.
     band: state.attack?.bands?.[defender.id] ?? 0,
-    bandMultiplier: resolvedDamage(ability, options)
+    bandMultiplier: block
       ?.bands?.[state.attack?.bands?.[defender.id] ?? 0]?.multiplier ?? 1,
-    // Same reason as `base` above: the splash's own multiplier, or the
+    // Same reason as `base` above: the block is the splash's own, or the
     // ability's when this is the ordinary resolution.
-    multiplier: (facts.isAftermath ? facts.multiplier : resolvedDamage(ability, options)?.multiplier) ?? 1,
-    flatBonus: (facts.isAftermath ? facts.flatBonus : resolvedDamage(ability, options)?.flatBonus) ?? 0,
-    conditionalMultipliers: (facts.isAftermath
-      ? facts.conditionalMultipliers
-      : resolvedDamage(ability, options)?.conditionalMultipliers) ?? [],
+    multiplier: block?.multiplier ?? 1,
+    flatBonus: block?.flatBonus ?? 0,
+    conditionalMultipliers: block?.conditionalMultipliers ?? [],
     crit: { isCrit, chanceUsed: critSpec.percent },
     // Which rolls this table plays with (Ch. 29). Threaded into ctx the way
     // `grandOrder` is, because a pure pipeline stage may not read a setting.
@@ -3835,7 +3870,7 @@ async function applyDamage(state, message) {
       // -- like a passive -- so a modifier authored there would apply to every
       // Normal Attack she makes as well. This clause belongs to one Noble
       // Phantasm, and the damage block is what that Noble Phantasm is.
-      ...totalModifiersFor(ability, options, attacker),
+      ...totalModifiersFor(ability, options, attacker, block),
     ],
     luckChecks: {},
     rolls: {
@@ -5002,8 +5037,10 @@ export function targetSpecForAttack(attacker, ability, options = null) {
  * @param {Set<string>|null} options
  * @returns {{sources: object[]}|object|null}
  */
-function declaredBase(ability, options = null) {
-  const dmg = resolvedDamage(ability, options);
+function declaredBase(ability, options = null, block = undefined) {
+  // `block` is the damage block the resolution is under (#136): an aftermath's
+  // own, never the primary's. Omitted, the ability's resolved primary block.
+  const dmg = block === undefined ? resolvedDamage(ability, options) : block;
   // One reader for the block's base attack: `base`, its own `sources`, or a
   // single source built from a DECLARED `component` (`rules/damage/instances.mjs`).
   // The resolution read `base` and then `component` only, so Xiuhcoatl's top-level
@@ -5027,8 +5064,8 @@ function declaredBase(ability, options = null) {
  * @param {object|null} ability
  * @returns {object}
  */
-function baseSpecFor(attacker, ability, range = null, options = null) {
-  const stated = declaredBase(ability, options);
+function baseSpecFor(attacker, ability, range = null, options = null, block = undefined) {
+  const stated = declaredBase(ability, options, block);
   if (stated) return stated;
 
   // Through the same rule the option set used, so the number the pipeline adds
@@ -5265,8 +5302,8 @@ function attackDistance(attacker, defender) {
  * @param {object|null} ability
  * @returns {"str"|"mag"}
  */
-function componentOf(attacker, ability, options = null) {
-  const dmg = resolvedDamage(ability, options);
+function componentOf(attacker, ability, options = null, block = undefined) {
+  const dmg = block === undefined ? resolvedDamage(ability, options) : block;
   const declared = dmg?.component ?? damageBaseOf(dmg)?.sources?.[0]?.component;
   return declared ?? attacker?.system?.normalAttack?.component ?? "str";
 }
@@ -5300,6 +5337,29 @@ function resolvedDamage(ability, options) {
   if (!dmg?.branches?.length || !options) return dmg;
   const match = dmg.branches.find((b) => testPredicate(b.predicate, { options }));
   return match ?? dmg;
+}
+
+/**
+ * Which damage block a resolution is under.
+ *
+ * An AFTERMATH is a whole second resolution with its own block -- Xiuhcoatl's
+ * splash is BA(MAG) alone, 1x, whole Fire, affected by Magic Resistance, where
+ * the hit on the DU is the combined 250, 4x, Fire (half), exempt. It used to be
+ * the primary's attack spec with a few keys painted over it, and
+ * `applyDamage` re-read everything else from the primary's block, so the splash
+ * inherited the element fraction, the Magic Resistance flag, the area and the
+ * Total Damage modifiers it never declared (#136). One answer to "which block",
+ * asked by every reader, so there is no overlay left to forget a key.
+ *
+ * @param {object|null} ability an ability Item
+ * @param {Set<string>|null} options the caster's own roll options
+ * @param {{isAftermath?: boolean}|null} [attack] the attack spec, or anything carrying `isAftermath`
+ * @returns {object|null}
+ */
+export function damageBlockFor(ability, options, attack = null) {
+  return attack?.isAftermath
+    ? (ability?.system?.aftermath?.damage ?? null)
+    : resolvedDamage(ability, options);
 }
 
 

@@ -93,9 +93,15 @@ aftermath:
       - { unit: self, component: mag, factor: 1 }
     component: mag
     multiplier: 1
-    ignoresMagicResistance: true
+    # NO `ignoresMagicResistance` here, deliberately (ruled 2026-10-01): "that hit
+    # on the DU is not affected by Magic Resistance" exempts the hit and nothing
+    # else, so the splash IS affected. It was authored exempt, and deleting the
+    # line changed nothing until an aftermath stopped inheriting the primary's
+    # flag (#136); the primary above keeps its own.
+    #
     # Plain "Fire damage." here, with no "(half)": the sheet distinguishes its
-    # two sentences and so does this.
+    # two sentences and so does this. Whole Fire, since the aftermath no longer
+    # inherits the primary's `elementFraction` either.
     element: fire
   effects:
     - { id: npSeal, duration: "1◈", chance: 25 }
