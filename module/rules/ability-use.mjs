@@ -705,5 +705,19 @@ export function usageSpecFor(ability) {
     isAttackSkill: Boolean(sys.isAttackSkill),
     damage: sys.damage ?? null,
     usableWhileConcealed: Boolean(sys.usableWhileConcealed),
+    // The three keys the gate reads that this spec did not carry (#155).
+    // `isSpell`: Seal spares a Spell, Silence and Skill Seal refuse it
+    // (`costs.mjs#preventionActionFor`). `categorizedAs`: Blind clause 3,
+    // *"'Mystic Eye' Skills cannot be used"*. `creates`: Nemo's Storm Border,
+    // *"cannot use Skills ... that creates a Unit/Item/object that has the
+    // 'Large' or 'Giant' Attribute"*. Only the action bar passed the raw
+    // `item.system`, which has them, so the bar refused what the declaration
+    // accepted and the declaration refused what it should not. Copied out of the
+    // `SetField`s: the gate calls `.find` and `.length` on them.
+    // `test/unit/usage-spec.test.mjs` reads the gate and fails if it names a key
+    // this does not write.
+    isSpell: Boolean(sys.isSpell),
+    categorizedAs: [...(sys.categorizedAs ?? [])],
+    creates: [...(sys.creates ?? [])],
   };
 }

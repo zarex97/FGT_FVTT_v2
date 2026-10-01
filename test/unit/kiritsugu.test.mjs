@@ -108,6 +108,7 @@ describe("Kiritsugu — the two class skills are a ref and nothing else", () => 
 
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import { checkPlan } from "../../module/rules/checks.mjs";
+import { usageSpecFor } from "../../module/rules/ability-use.mjs";
 
 describe("Affection of the Holy Grail — the aura", () => {
   beforeAll(prepareSubjects, 60_000);
@@ -1006,11 +1007,25 @@ describe("A Seal is visible on the button, not only at the bill (R2)", () => {
     expect(r.detail.by).toBe("skillSeal");
   });
 
-  it("refuses a Spell under Skill Seal, and under Silence", () => {
+  // His real Spells, through `usageSpecFor` -- the spec the declaration and the
+  // card hand the gate. This used to hand-build `{isSpell: true}`, which is the
+  // key `usageSpecFor` did not carry: the test confirmed the reader while the
+  // use paths never saw a Spell (#155).
+  const realSpells = (effects) => withSubjects(
+    [{ from: "kiritsugu", effects: effects.map((defId) => ({ defId })) }],
+    ({ units, world }) => [...world.actor("kiritsugu").items]
+      .filter((item) => item.system.isSpell)
+      .map((item) => canUseAbility({ ability: usageSpecFor(item), unit: units[0], round: 6, turn: 18 })),
+  );
+
+  it("refuses a Spell under Skill Seal, and under Silence", async () => {
     for (const seal of ["skillSeal", "silence"]) {
-      const r = use({ id: "p", contentId: "p", isSpell: true }, [seal]);
-      expect(r.ok, seal).toBe(false);
-      expect(r.detail.by).toBe(seal);
+      const verdicts = await realSpells([seal]);
+      expect(verdicts.length, seal).toBe(3);
+      for (const r of verdicts) {
+        expect(r.ok, seal).toBe(false);
+        expect(r.detail.by).toBe(seal);
+      }
     }
   });
 
@@ -1023,9 +1038,8 @@ describe("A Seal is visible on the button, not only at the bill (R2)", () => {
       .toBe("npSeal");
   });
 
-  it("does not refuse a Spell under NP Seal", () => {
-    expect(use({ id: "p", contentId: "p", isSpell: true }, ["npSeal"]).reason)
-      .not.toBe("prevented");
+  it("does not refuse a Spell under NP Seal", async () => {
+    for (const r of await realSpells(["npSeal"])) expect(r.reason).not.toBe("prevented");
   });
 
   it("refuses nothing when the Unit holds none of them", () => {

@@ -8,8 +8,10 @@
  * swing not happening at all.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import { missChance, missSourceOf, MISS_SOURCES } from "../../module/rules/miss.mjs";
+import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
+import { usageSpecFor } from "../../module/rules/ability-use.mjs";
 import {
   begin, advance, isComplete, didHit, pendingPrompt, windowFor, serialize, deserialize, STATES,
 } from "../../module/engine/combat-process.mjs";
@@ -123,35 +125,46 @@ describe("Combat Process step 1.5 (R8)", () => {
 });
 
 describe("Blind clause 3 — Mystic Eye and Glam Sight Skills cannot be used", () => {
-  const suppressed = { id: "medusa", kind: "servant", suppressions: [{ scope: "mysticEye" }] };
-  const clear = { id: "medusa", kind: "servant", suppressions: [] };
-  const eyes = { id: "a", name: "Mystic Eyes", categorizedAs: ["mysticEye"] };
-  const other = { id: "b", name: "Monstrous Strength", categorizedAs: [] };
+  beforeAll(prepareSubjects, 60_000);
 
-  it("refuses an ability tagged with the suppressed category", () => {
-    const v = canUseAbility({ ability: eyes, unit: suppressed, clockRunning: true });
+  // Medusa's real Mystic Eyes and a real Skill outside the family, through
+  // `usageSpecFor` -- the spec the declaration and the sheet's card hand the
+  // gate. This hand-built `{categorizedAs: ["mysticEye"]}`, which is the key the
+  // spec did not carry, so the clause was confirmed against its reader while no
+  // use path ever carried it (#155).
+  const gate = (effects, pick, patch = (u) => u) => withSubjects(
+    [{ from: "medusa", effects: effects.map((defId) => ({ defId })) }],
+    ({ units, world }) => {
+      const item = [...world.actor(units[0].id).items].find(pick);
+      if (!item) throw new Error("the ability this test names is not on Medusa");
+      return canUseAbility({ ability: usageSpecFor(item), unit: patch(units[0]), clockRunning: true });
+    },
+  );
+  const mysticEyes = (i) => [...(i.system.categorizedAs ?? [])].includes("mysticEye");
+  // Her Monstrous Strength, a Skill the Blind clause does not name.
+  const outsideFamily = (i) => i.system.contentId === "medusa-monstrous-strength";
+
+  it("refuses an ability tagged with the suppressed category", async () => {
+    const v = await gate(["blind"], mysticEyes);
     expect(v.ok).toBe(false);
     expect(v.reason).toBe("suppressedCategory");
     expect(v.detail.category).toBe("mysticEye");
   });
 
-  it("leaves the same ability usable when nothing suppresses it", () => {
-    expect(canUseAbility({ ability: eyes, unit: clear, clockRunning: true }).reason)
-      .not.toBe("suppressedCategory");
+  it("leaves the same ability usable when nothing suppresses it", async () => {
+    expect((await gate([], mysticEyes)).reason).not.toBe("suppressedCategory");
   });
 
-  it("does not touch an ability outside the family", () => {
-    expect(canUseAbility({ ability: other, unit: suppressed, clockRunning: true }).reason)
-      .not.toBe("suppressedCategory");
+  it("does not touch an ability outside the family", async () => {
+    expect((await gate(["blind"], outsideFamily)).reason).not.toBe("suppressedCategory");
   });
 
-  it("is NOT lifted by Eye of the Mind", () => {
+  it("is NOT lifted by Eye of the Mind", async () => {
     // Clause 5 exempts 1, 2 and 4, and says nothing about 3 -- so a Unit with
     // Eye of the Mind still cannot use a Mystic Eye while Blind. The gate does
     // not consult the skill at all, which is what makes that true.
-    const withEye = { ...suppressed, skills: ["eyeOfTheMind"] };
-    expect(canUseAbility({ ability: eyes, unit: withEye, clockRunning: true }).reason)
-      .toBe("suppressedCategory");
+    const v = await gate(["blind"], mysticEyes, (u) => ({ ...u, skills: ["eyeOfTheMind"] }));
+    expect(v.reason).toBe("suppressedCategory");
   });
 });
 

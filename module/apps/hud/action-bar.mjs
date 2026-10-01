@@ -16,7 +16,7 @@ import { rowsFor, slotFor, portraitBlock } from "./present.mjs";
 import { ticksLabel } from "../actor-sheet/present.mjs";
 import { availableActions } from "../../rules/actions.mjs";
 import { ridingDestinations, ridingRefusal } from "../../rules/movement.mjs";
-import { classifyAbility } from "../../rules/ability-use.mjs";
+import { classifyAbility, usageSpecFor } from "../../rules/ability-use.mjs";
 import { answersACounter, counterMustCatchAttacker } from "../../rules/counter.mjs";
 import { canUseAbility } from "../../rules/costs.mjs";
 import { test as testPredicate } from "../../rules/predicate.mjs";
@@ -233,8 +233,14 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         // `self:inHomeBase` was never emitted and the Hanging Gardens refused
         // while she stood in her Home Base. `unit` already falls back to
         // `snapshot` when the board has no entry for her.
+        //
+        // `usageSpecFor(item)`, NOT `item.system`: the spec both use paths and
+        // the sheet's cards hand the gate. The bar was the third reader and read
+        // the raw document, which has `isSpell`, `categorizedAs` and `creates`
+        // where the spec had none, so the bar and the declaration disagreed in
+        // both directions (#155).
         const verdict = canUseAbility({
-          ability: item.system, unit, master, board, ...gateContext(),
+          ability: usageSpecFor(item), unit, master, board, ...gateContext(),
           // Armed for a Counter, which is made on the enemy's Turn by
           // definition: an ability used only "during your Turn" still answers
           // one when it is an Attack (#160).

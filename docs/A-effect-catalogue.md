@@ -674,6 +674,8 @@ stop the Spells its row explicitly spares. Both documents omit the flag delibera
 tests assert the permitted action rather than only the refused ones — a denial test that checks
 only refusals passes just as happily when the effect denies too much.
 
+**The gate and the action bar read one spec.** `Seal` spares a Spell, `Silence` and `Skill Seal` refuse it, Blind clause 3 refuses a Skill categorized as a Mystic Eye, and a Storm Border refuses what creates a Large or Giant Unit. Each reads a key (`isSpell`, `categorizedAs`, `creates`) that `usageSpecFor` — the spec both use paths and the sheet's cards hand `canUseAbility` — did not carry, so all three never refused at the declaration and the sixteen Spells met the prevention table backwards, while the action bar, which alone passed the raw `item.system`, read it the other way. The bar now passes `usageSpecFor(item)` too, and `test/unit/usage-spec.test.mjs` fails if the gate ever reads a key the spec does not write (#155).
+
 **`Dragonblight` clause 2 had no reader at all.** *"Cannot inflict volatile debuffs"* is an
 **outgoing** `ApplicationChance` of −100 scoped by `volatility` — the same field Heracles's
 Bravery uses — so a volatile debuff authored later is covered by saying what it is, and no list
