@@ -116,7 +116,11 @@ phases:
     target: self
   # "(The Piedra Del Sol area is categorized as 'Burning'.)" Painted rather than
   # implied, because the terrain is what gives the panels their fire and water
-  # interactions -- the field's own turn-end clause is only the toll.
+  # interactions -- the field's own turn-end clause is the only damage.
+  #
+  # `labelOnly`: ruled a LABEL. The panels are Burning to everything that asks
+  # what the ground is, and Burning's own Turn-end toll (a Burn and 25 Fixed
+  # Fire on EVERYONE inside, her and her Master included) does not run here.
   - kind: zone
     target: self
     spec:
@@ -126,3 +130,4 @@ phases:
       followsSource: false
       duration: null
       tag: "piedra:@field.id"
+      labelOnly: true

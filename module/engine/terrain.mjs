@@ -87,6 +87,24 @@ function nowTick() {
 }
 
 /**
+ * What a painted area's `terrain` behaviour is written as.
+ *
+ * Its own function so a test can build the behaviour the way a painting does
+ * (`test/helpers/field.mjs#areasOf`). Every key an area carries past its
+ * panels is named here, and a key this list does not name is a Silent Drop: the
+ * area is painted without it and nothing fails.
+ *
+ * @param {object} args `paintTerrain`'s argument
+ * @param {number|null} expiry the absolute tick it disappears on
+ * @returns {object}
+ */
+export function terrainDataOf({
+  types, duration = null, sourceUnitId = null, followsSource = false, radius = null, tag, labelOnly = false,
+}, expiry) {
+  return { types, duration, sourceUnitId, followsSource, radius, tag, expiry, labelOnly };
+}
+
+/**
  * Paint an area of terrain.
  *
  * Re-painting an existing tag MOVES it rather than adding a second area: a
@@ -101,11 +119,12 @@ function nowTick() {
  * @param {string|null} [args.sourceUnitId]
  * @param {boolean} [args.followsSource]
  * @param {number|null} [args.radius] the radius to redraw a following area at
+ * @param {boolean} [args.labelOnly] the area is CATEGORIZED as these types and runs none of their periodic clauses
  * @returns {Promise<{ok: boolean, regionId?: string, reason?: string}>}
  */
 export async function paintTerrain({
   types, panels, tag,
-  duration = null, sourceUnitId = null, followsSource = false, radius = null,
+  duration = null, sourceUnitId = null, followsSource = false, radius = null, labelOnly = false,
 }) {
   const scene = canvas?.scene;
   if (!scene) return { ok: false, reason: "noScene" };
@@ -127,15 +146,15 @@ export async function paintTerrain({
     shapes,
     behaviors: [{
       type: "terrain",
-      system: {
-        types, duration, sourceUnitId, followsSource, radius, tag,
+      system: terrainDataOf(
+        { types, duration, sourceUnitId, followsSource, radius, tag, labelOnly },
         // An expiry rather than a countdown, for the reason Ch. 04 gives.
-        expiry: duration
+        duration
           ? tick + resolveTicks(parseTick(duration), {
             turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
           })
           : null,
-      },
+      ),
     }],
   }]);
 
@@ -191,6 +210,7 @@ export async function repaintFollowing(unitId, panel) {
       sourceUnitId: unitId,
       followsSource: true,
       radius: sys.radius ?? 2,
+      labelOnly: Boolean(sys.labelOnly),
     });
     if (result.ok) {
       // Carry the ORIGINAL expiry across, since `paintTerrain` computed none.

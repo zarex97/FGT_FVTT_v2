@@ -116,25 +116,31 @@ export async function fieldsOf(casts) {
 }
 
 /**
+ * What `paintTerrain` is handed: the argument itself, as a `zone` phase builds it
+ * (`zonePaintArgs`) or as a test states it.
+ *
  * @typedef {object} AreaCast
- * @property {string[]} types the terrain it paints
- * @property {{i: number, j: number}[]} panels
- * @property {object} [behavior] the rest of the `terrain` behaviour, as `paintTerrain` writes it
+ * @property {object} paint `paintTerrain`'s argument -- `types`, `panels`, `tag`, and whatever else a painting carries
+ * @property {number|null} [expiry] the absolute tick it disappears on
  */
 
 /**
  * The terrain areas a live board would project for these paintings.
+ *
+ * Written by the same `terrainDataOf` `paintTerrain` calls, kept by the real
+ * `TerrainBehavior`, and read back by the real `terrainAreasOf`.
  *
  * @param {AreaCast[]} casts
  * @returns {Promise<object[]>} `board.terrain.areas`
  */
 export async function areasOf(casts) {
   const models = await installSystem();
-  const regions = casts.map((cast, n) => {
+  const { terrainDataOf } = await import("../../module/engine/terrain.mjs");
+  const regions = casts.map(({ paint, expiry = null }, n) => {
     const system = new models.RegionBehavior.terrain(
-      structuredClone({ types: cast.types, ...(cast.behavior ?? {}) }), { strict: true },
+      structuredClone(terrainDataOf(paint, expiry)), { strict: true },
     ).toObject();
-    return regionOf(`area${n}`, { type: "terrain", system }, cast.panels);
+    return regionOf(`area${n}`, { type: "terrain", system }, paint.panels);
   });
   const { terrainAreasOf } = await import("../../module/engine/board.mjs");
   return withGrid(() => terrainAreasOf({ regions }));

@@ -408,3 +408,57 @@ describe("every Authored Key survives its Route", () => {
     expect(report(failures.effect)).toBe("");
   });
 });
+
+/* -------------------------------------------------------------------------- */
+/*  Keys nested in a block the DataModel stores whole                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The tables above route a key of a Unit, an Ability or an Effect. A key that
+ * rides INSIDE an untyped block -- a `zone` phase's `spec`, a field's interior
+ * action, a painted area's behaviour -- is not on any of them, so each Hop it
+ * passes is named here instead (CLAUDE.md, Silent Drops).
+ *
+ * A Hop is `{ file, why }` -- the file must still READ the key, comments
+ * excluded -- or `{ model, why }` -- the DataModel must still DECLARE it, which
+ * is the Hop Foundry drops a key at without a word. `authored` names the
+ * content that carries the key, so the route cannot outlive its only user.
+ */
+export const NESTED_ROUTES = [
+  {
+    key: "labelOnly",
+    authored: ["packs/_source/abilities/quetz-piedra-del-sol.yml"],
+    hops: [
+      { file: "module/engine/skill-use.mjs", why: "zonePaintArgs hands the zone spec's key to paintTerrain" },
+      { file: "module/engine/terrain.mjs", why: "terrainDataOf writes it onto the behaviour, repaintFollowing carries it" },
+      { model: "terrain", why: "TerrainBehavior declares it; Foundry drops what a schema does not name" },
+      { file: "module/engine/board.mjs", why: "terrainAreasOf projects it onto the area" },
+      { file: "module/rules/terrain.mjs", why: "terrainPeriodics skips an area that carries it" },
+    ],
+  },
+];
+
+describe("every key nested in an untyped block survives its Route", () => {
+  // Source without its comments, so prose that names a key is not a reader of it.
+  const strip = (t) => t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
+  let models;
+
+  beforeAll(async () => { models = (await installSystem()).RegionBehavior; });
+
+  for (const { key, authored, hops } of NESTED_ROUTES) {
+    it(`"${key}" is authored, and every Hop after the compile still names it`, () => {
+      const lost = [];
+      for (const file of authored) {
+        if (!new RegExp(String.raw`\b${key}\b`).test(readFileSync(file, "utf8"))) lost.push(`${file} no longer authors "${key}"`);
+      }
+      for (const hop of hops) {
+        if (hop.model) {
+          if (!models[hop.model]?.schema.fields[key]) lost.push(`${hop.model} does not declare "${key}" (${hop.why})`);
+        } else if (!new RegExp(String.raw`\b${key}\b`).test(strip(readFileSync(hop.file, "utf8")))) {
+          lost.push(`${hop.file} no longer reads "${key}" (${hop.why})`);
+        }
+      }
+      expect(lost.join(String.fromCharCode(10))).toBe("");
+    });
+  }
+});

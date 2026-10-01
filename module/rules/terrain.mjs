@@ -193,11 +193,25 @@ export const TERRAIN = Object.freeze({
 export function terrainAt(panel, board) {
   /** @type {string[]} */
   const out = [];
-  for (const area of board?.terrain?.areas ?? []) {
-    if (!(area.panels ?? []).some((p) => chebyshev(p, panel) === 0)) continue;
+  for (const area of terrainAreasAt(panel, board)) {
     if (!out.includes(area.type)) out.push(area.type);
   }
   return out;
+}
+
+/**
+ * The areas covering a panel, in area order.
+ *
+ * Beside {@link terrainAt}, which answers with their types alone: a reader that
+ * must tell one area from another asks this. A `labelOnly` area names the
+ * ground and runs none of its clauses, and only the area carries that (#146).
+ *
+ * @param {{i: number, j: number}} panel
+ * @param {object} board
+ * @returns {object[]}
+ */
+export function terrainAreasAt(panel, board) {
+  return (board?.terrain?.areas ?? []).filter((area) => (area.panels ?? []).some((p) => chebyshev(p, panel) === 0));
 }
 
 /**
@@ -355,7 +369,13 @@ export function terrainPeriodics(units, board, when) {
 
   for (const unit of units ?? []) {
     const held = unit.effects ?? [];
-    for (const type of terrainAt(unit.panel ?? { i: -1, j: -1 }, board)) {
+    // Real terrain only. *"(The Piedra Del Sol area is categorized as
+    // 'Burning'.)"* is a label: the area IS Burning to every reader that asks
+    // what the ground is (`terrainAt`, `terrainEffects`), and Burning's own
+    // Turn-end toll does not run in it (#146).
+    const toll = new Set(terrainAreasAt(unit.panel ?? { i: -1, j: -1 }, board)
+      .filter((area) => !area.labelOnly).map((area) => area.type));
+    for (const type of toll) {
       for (const clause of PERIODICS[type] ?? []) {
         if (clause.when !== when) continue;
         if (clause.unlessEffect && held.includes(clause.unlessEffect)) continue;
