@@ -354,7 +354,11 @@ export function canConsume(budget, unit, action) {
   // 3.5 of 4 a twin may still move (7 + 1 <= 8) and a whole Servant may not
   // (7 + 2 > 8). Correct, slightly surprising, and explained in the HUD.
   const costHalves = Math.round(unitWeight(unit) * 2);
-  if (p && p.usedHalves + costHalves > p.maxHalves) {
+  // An unlimited pool's maximum is Infinity, which the Combat flag stores as
+  // `null` (JSON has no Infinity) -- and `x > null` compares against 0, so every
+  // Master read "exhausted (0/0)" once the budget had been written (§46.4-CF).
+  const unlimited = p?.maxHalves === null || p?.maxHalves === undefined || p?.maxHalves === Infinity;
+  if (p && !unlimited && p.usedHalves + costHalves > p.maxHalves) {
     return {
       ok: false,
       reason: `${LABELS[pool] ?? pool} exhausted (${p.usedHalves / 2}/${p.maxHalves / 2})`,
