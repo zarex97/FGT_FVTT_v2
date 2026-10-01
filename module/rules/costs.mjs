@@ -276,6 +276,25 @@ export function canUseAbility({
   const remaining = ability?.cooldown?.remaining ?? 0;
   if (remaining > 0) return { ok: false, reason: "cooldown", detail: { remaining }, cost };
 
+  // A field whose clock counts FROM DEACTIVATION starts no cooldown at the cast
+  // -- `cooldownFor` writes none -- so nothing above stops a second cast while
+  // the first still stands. That cast REPLACED the open field with a bare
+  // delete: its stone, its on-end actions and its field-tied effects stayed
+  // where they were, the 8◈ was never paid, and the upkeep period restarted.
+  // Refused instead (#148).
+  //
+  // Read off the ability itself, so a field authored later is covered with no
+  // content change. `unit.ownedFields` is the open fields this Unit owns, by
+  // content id, as `annotateFields` writes it. Named `fieldAlreadyOpen` and not
+  // `fieldOpen`: that is the REQUIREMENT "its field must be open", whose
+  // sentence says the opposite.
+  const holdsField = ability?.field && ability?.cooldown?.countFrom === "deactivation"
+    ? (ability.contentId ?? ability.id ?? null)
+    : null;
+  if (holdsField && (unit?.ownedFields ?? []).includes(holdsField)) {
+    return { ok: false, reason: "fieldAlreadyOpen", detail: { field: holdsField }, cost };
+  }
+
   // The whole-match budget. Before the Round gate because it is permanent:
   // "can only be used 11 times" is never going to become true again by waiting.
   const maxUses = ability?.maxUses ?? null;

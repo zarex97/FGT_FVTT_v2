@@ -151,3 +151,18 @@ export async function prepareFields() {
   await installSystem();
   await corpus();
 }
+
+/**
+ * Every ability the corpus authors, through the real compile.
+ *
+ * For a test that must hold over every ability that states something, so a
+ * new one is covered without a new test.
+ *
+ * @returns {Promise<Array<{id: string, doc: object}>>} `doc` is the compiled document
+ */
+export async function corpusAbilities() {
+  const { library, docs } = await corpus();
+  return [...library]
+    .filter(([, { dir }]) => dir === "abilities")
+    .map(([id, { doc, dir }]) => ({ id, doc: compileDocument(doc, dir, docs) }));
+}

@@ -512,6 +512,17 @@ export const NESTED_ROUTES = [
       { file: "module/engine/fields.mjs", why: "runUpkeep reads a field's or a platform's block for it, due toll or not" },
     ],
   },
+  // `cooldown.countFrom: deactivation` on an ability that opens a field: the clock
+  // starts at the close, so only the field's being open stops a second cast (#148).
+  {
+    key: "countFrom",
+    authored: ["packs/_source/abilities/quetz-piedra-del-sol.yml", "packs/_source/abilities/jack-the-mist.yml"],
+    hops: [
+      { file: "module/engine/cooldown.mjs", why: "cooldownFor starts no clock at the cast" },
+      { file: "module/engine/fields.mjs", why: "setCooldownOnDeactivation starts it when the field closes" },
+      { file: "module/rules/costs.mjs", why: "canUseAbility refuses a second cast while the field stands" },
+    ],
+  },
 ];
 
 describe("every key nested in an untyped block survives its Route", () => {

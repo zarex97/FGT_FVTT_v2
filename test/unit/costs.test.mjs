@@ -9,9 +9,11 @@
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
+import { readFileSync } from "node:fs";
 import { npCost, npCostAt, canUseAbility, resolveCosts } from "../../module/rules/costs.mjs";
 import { usageSpecFor } from "../../module/rules/ability-use.mjs";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
+import { corpusAbilities, prepareFields } from "../helpers/field.mjs";
 
 beforeAll(prepareSubjects, 60_000);
 
@@ -511,5 +513,71 @@ describe("a platform Noble Phantasm while its platform still stands", () => {
     const { readFileSync } = await import("node:fs");
     const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
     expect(lang["FGT.Ability.Refused.platformStands"]).toBeTruthy();
+  });
+});
+
+/* ========================================================================== */
+/*  A field that counts its cooldown from deactivation cannot be cast while it stands (#148) */
+/* ========================================================================== */
+
+describe("a field whose cooldown counts from deactivation (#148)", () => {
+  /** @type {Array<{id: string, doc: object}>} */
+  let held;
+
+  beforeAll(async () => {
+    await prepareFields();
+    held = (await corpusAbilities()).filter(({ doc }) => doc.system.field && doc.system.cooldown?.countFrom === "deactivation");
+  }, 120_000);
+
+  /** The ability as a use path hands it to the gate: the Item's system, with only the field gate left to speak. */
+  const spec = ({ id, doc }) => usageSpecFor({
+    id: `${id}-item`, type: "noblePhantasm",
+    system: { ...doc.system, requirements: [], targeting: null, additionalCosts: [] },
+  });
+  const gate = (entry, ownedFields) => canUseAbility({
+    ability: spec(entry), unit: servant({ ownedFields }), master: master(), round: 99,
+  });
+
+  it("covers the six fields the corpus authors, and any authored later", () => {
+    expect(held.map((h) => h.id).sort()).toEqual([
+      "asterios-chaos-labyrinthos", "jack-the-mist", "ozymandias-ramesseum-tentyris",
+      "pale-rider-doomsday-come", "quetz-piedra-del-sol", "semiramis-sikera-usum",
+    ]);
+  });
+
+  it("is refused while its own field is on the board", () => {
+    for (const entry of held) {
+      expect(gate(entry, [entry.id]), entry.id).toMatchObject({ ok: false, reason: "fieldAlreadyOpen" });
+    }
+  });
+
+  it("is allowed when its field is not, and when only some other field is", () => {
+    for (const entry of held) {
+      expect(gate(entry, []).ok, entry.id).toBe(true);
+      expect(gate(entry, ["some-other-field"]).ok, entry.id).toBe(true);
+    }
+  });
+
+  it("reads the same off the Item's own system, which is what the action bar passes", () => {
+    for (const entry of held) {
+      const verdict = canUseAbility({
+        ability: { ...entry.doc.system, requirements: [], targeting: null, additionalCosts: [] },
+        unit: servant({ ownedFields: [entry.id] }), master: master(), round: 99,
+      });
+      expect(verdict, entry.id).toMatchObject({ ok: false, reason: "fieldAlreadyOpen" });
+    }
+  });
+
+  it("does not touch a field whose cooldown starts at the cast", async () => {
+    // Unlimited Blade Works has a plain cooldown from the cast and a 2◈ duration,
+    // so its field is gone before it can be cast again; nothing here refuses it.
+    const ubw = (await corpusAbilities()).find((a) => a.id === "emiya-unlimited-blade-works");
+    expect(ubw.doc.system.field).toBeTruthy();
+    expect(gate(ubw, [ubw.id]).ok).toBe(true);
+  });
+
+  it("has a sentence to say it with", () => {
+    const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
+    expect(lang["FGT.Ability.Refused.fieldAlreadyOpen"]).toMatch(/\S/);
   });
 });
