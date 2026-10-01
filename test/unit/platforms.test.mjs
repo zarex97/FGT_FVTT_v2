@@ -638,9 +638,12 @@ describe("fallOff", () => {
 
 describe("destructionSequence", () => {
   const board = boardOf([platform(), rider(), grounded()]);
+  // Only a platform that states the ladder -- the Hanging Gardens -- has one (ADR 0001, #139).
+  const ladder = platform({ collapse: { damage: 100, component: "str" } });
+  const ladderBoard = boardOf([ladder, rider(), grounded()]);
 
   it("saves each passenger, scatters them, and removes the level", () => {
-    const out = destructionSequence(platform(), board, { saves: { r: false } });
+    const out = destructionSequence(ladder, ladderBoard, { saves: { r: false } });
     const kinds = out.map((d) => d.kind);
 
     expect(kinds).toContain("damage");
@@ -649,9 +652,24 @@ describe("destructionSequence", () => {
   });
 
   it("spares a passenger who made its save", () => {
-    const out = destructionSequence(platform(), board, { saves: { r: true } });
+    const out = destructionSequence(ladder, ladderBoard, { saves: { r: true } });
 
     expect(out.some((d) => d.kind === "damage")).toBe(false);
+  });
+
+  it("a platform with no collapse block emits no damage and still scatters each passenger", () => {
+    const out = destructionSequence(platform(), board, { saves: { r: false } });
+
+    expect(out.some((d) => d.kind === "damage")).toBe(false);
+    expect(out).toContainEqual(expect.objectContaining({ kind: "scatter", unitId: "r" }));
+  });
+
+  it("the same platform with a collapse block emits 100 for each failing passenger", () => {
+    const out = destructionSequence(ladder, ladderBoard, { saves: { r: false } });
+
+    expect(out.filter((d) => d.kind === "damage")).toEqual([
+      expect.objectContaining({ unitId: "r", amount: 100, component: "str", fixed: true }),
+    ]);
   });
 
   it("still scatters a passenger who made its save", () => {

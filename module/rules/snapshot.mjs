@@ -500,6 +500,10 @@ export function snapshotUnit(actor, {
     // every Platform holds its edge -- the exact "authored and unread" failure
     // this projection keeps producing.
     knockOff: sys.knockOff ?? null,
+    // The same opt-in for the platform's END (#139): only a Platform that
+    // authors the ladder rolls it, so a projection that drops it makes every
+    // platform's riders safe, silently.
+    collapse: sys.collapse ?? null,
     lockAboard: sys.lockAboard ?? [],
     deactivateOn: sys.deactivateOn ?? [],
     replacesRiderAction: sys.replacesRiderAction ?? null,

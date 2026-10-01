@@ -1074,20 +1074,6 @@ export function fallFormula(formula) {
 }
 
 /**
- * The platform coming apart (Ch. 27).
- *
- * Ordered, and the order is the specification's: save, damage the failures,
- * scatter **everyone**, then remove the level. Surviving the fall is not the
- * same as staying in the air, which is why a passenger who made its save is
- * still scattered — and why the level is removed last, once nobody is on it.
- *
- * @param {object} platform
- * @param {object} board
- * @param {object} ctx
- * @param {Record<string, boolean>} ctx.saves unitId → passed
- * @returns {object[]} descriptors
- */
-/**
  * Who a platform's destruction spares.
  *
  * > *"all Units on it perform either an Agility Check or a Luck Check roll. If
@@ -1160,16 +1146,37 @@ export function scatterPanels(passengers, platform, board, rand) {
   return out;
 }
 
+/**
+ * The platform coming apart (Ch. 27).
+ *
+ * Ordered, and the order is the specification's: save, damage the failures,
+ * scatter **everyone**, then remove the level. Surviving the fall is not the
+ * same as staying in the air, which is why a passenger who made its save is
+ * still scattered — and why the level is removed last, once nobody is on it.
+ *
+ * **The save and the damage are the platform's own, and opt-in** (ADR 0001,
+ * #139): only a platform that authors a `collapse` block states the ladder —
+ * the Hanging Gardens' *"fails, takes 100 Fixed STR damage"* — and one that
+ * says nothing (the Quetzalcoatlus, the Golden Hind) drops its riders to the
+ * ground unhurt. The damage rows come from the block, never from a constant.
+ *
+ * @param {object} platform
+ * @param {object} board
+ * @param {object} ctx
+ * @param {Record<string, boolean>} ctx.saves unitId → passed
+ * @returns {object[]} descriptors
+ */
 export function destructionSequence(platform, board, { saves = {} } = {}) {
   /** @type {object[]} */
   const out = [];
   const passengers = passengersOf(platform, board);
 
-  for (const p of passengers) {
+  const ladder = platform.collapse ?? null;
+  for (const p of ladder ? passengers : []) {
     if (saves[p.id] === true) continue;
     out.push({
-      kind: "damage", unitId: p.id, amount: 100, component: "str", fixed: true,
-      source: `${platform.id} destroyed`,
+      kind: "damage", unitId: p.id, amount: ladder.damage ?? 100, component: ladder.component ?? "str",
+      fixed: true, source: `${platform.id} destroyed`,
     });
   }
 

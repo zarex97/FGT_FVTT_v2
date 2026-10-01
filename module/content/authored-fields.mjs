@@ -28,6 +28,8 @@ export const AUTHORED_ACTOR_KEYS = Object.freeze([
   // The Golden Hind's three: a boarding roll of its own, riders it will not
   // let off, and effects on its OWNER that switch it off.
   "boarding", "lockAboard", "deactivateOn", "knockOff",
+  // The Hanging Gardens' destruction ladder, which no other platform states (#139).
+  "collapse",
   "itemHandling", "destroyableBy", "visibleWithin", "agility", "luck",
   "inherit", "rules", "passiveRules", "activeRules", "summonerId", "capacity",
   "ownerId", "level", "crossLevel", "dimension", "contentId", "contentVersion", "trueName",

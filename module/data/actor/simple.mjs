@@ -223,6 +223,12 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
       // `boarding` sets, where a Platform that states its own rule states it
       // completely. A Platform that says nothing holds its edge (#29).
       knockOff: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      // The same decision for the platform's END (ADR 0001, #139): *"all Units on
+      // it perform either an Agility Check or a Luck Check roll... if the roll
+      // fails, the Unit takes 100 Fixed STR damage"* is the Hanging Gardens'
+      // alone. `{damage, component}` -- presence is the opt-in. A Platform that
+      // says nothing drops its riders to the ground, unhurt and unrolled.
+      collapse: new fields.ObjectField({ required: false, nullable: true, initial: null }),
 
       // Roles that may not step off. *"Drake cannot unboard the Golden Hind."*
       // A role list rather than a unit id, because the platform document is
