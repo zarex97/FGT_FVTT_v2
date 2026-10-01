@@ -47,6 +47,22 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
   /** The in-flight session, or `null` when nothing is being targeted. */
   #session = null;
 
+  /**
+   * The layer that was active before a session took the canvas, or `null` when
+   * none was. `#takeCanvas` writes it and `#handCanvasBack` reads it.
+   *
+   * Instance state rather than a local of each session, because a second
+   * session can open over a live one: the second's `#cancel()` ends the first,
+   * and by the time the second asks "what was active?" the answer is this layer.
+   * Remembering only the layer that was active *before* any session took the
+   * canvas is what lets the last session out put it back where it found it.
+   * @type {foundry.canvas.layers.InteractionLayer|null}
+   */
+  #previousLayer = null;
+
+  /** Counts the sessions that have taken the canvas; the newest one owns it. */
+  #claim = 0;
+
   /** @inheritdoc */
   async _draw(options) {
     await super._draw(options);
@@ -82,7 +98,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
    */
   async paintPanels({ anchor, maxPanels, maxDistance, initial = [] }) {
     this.#cancel();
-    this.activate();
+    const claim = this.#takeCanvas();
 
     const key = (p) => `${p.i},${p.j}`;
     const painted = new Map(initial.map((p) => [key(p), { i: p.i, j: p.j }]));
@@ -105,7 +121,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
     } finally {
       hud.close();
       this.#graphics?.clear();
-      this.deactivate();
+      this.#handCanvasBack(claim);
     }
   }
 
@@ -208,7 +224,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
    */
   async pick({ spec, caster, board, preview = {} }) {
     this.#cancel();
-    this.activate();
+    const claim = this.#takeCanvas();
 
     const options = legalPlacements(spec, caster, board);
     const hud = new TargetingHUD({ label: preview.label, damageFor: preview.damageFor });
@@ -260,6 +276,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
       await Promise.all(placed.map(discardArea));
       this.#cancel();
       hud.close();
+      this.#handCanvasBack(claim);
     }
   }
 
@@ -608,6 +625,48 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
       window.addEventListener("keydown", key, true);
       this.#session = { finish };
     });
+  }
+
+  /**
+   * Make this the active layer for a session, remembering what was active.
+   *
+   * `activate()` deactivates every other layer, so a session that only ever
+   * activates this one leaves the canvas here when it ends: `canvas.activeLayer`
+   * stays the TargetingLayer, `canvas.tokens.active` is false, no token can be
+   * controlled and the action bar -- which hangs off token control -- closes and
+   * does not come back. The Token controls button cannot repair it, because that
+   * group is already the selected one; only switching to another group and back
+   * did (#165). Plain `deactivate()` is no better: it leaves no layer active at
+   * all. So every session takes the canvas here and returns it in its `finally`
+   * through `#handCanvasBack`.
+   *
+   * @returns {number} the claim to give back to `#handCanvasBack`
+   */
+  #takeCanvas() {
+    const active = canvas.activeLayer;
+    // Already on this layer means a session is live (its `#cancel()` has just
+    // ended it, but its `finally` has not run yet); keep the layer it recorded.
+    if (active !== this) this.#previousLayer = active ?? null;
+    this.activate();
+    return ++this.#claim;
+  }
+
+  /**
+   * Give the canvas back to the layer that was active before the session.
+   *
+   * Falls back to the token layer when nothing was active, since that is the
+   * layer a player is always in the middle of using. A session that has been
+   * superseded does nothing: its `finally` runs after the newer session's
+   * `#takeCanvas`, and activating another layer then would pull the canvas out
+   * from under the session that is now live.
+   *
+   * @param {number} claim what `#takeCanvas` returned for this session
+   */
+  #handCanvasBack(claim) {
+    if (claim !== this.#claim) return;
+    const previous = this.#previousLayer;
+    this.#previousLayer = null;
+    (previous && previous !== this ? previous : canvas.tokens)?.activate();
   }
 
   /** Abandon any session in flight and clear the drawing. */
