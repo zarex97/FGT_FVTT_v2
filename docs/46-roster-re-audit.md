@@ -2588,6 +2588,15 @@ her Construction kept rising at every Turn's and Round's end (35 → 41 → 53 �
 **Defeated** effect. A defeat never removes the token, and the scheduler's four boundaries walked every
 Unit on the board. They now act on the living only, and `checkRemovals` skips a Unit already defeated.
 
+### CO. The Dragon Wing Warriors boarding relief could never apply — **fixed 2026-09-30, ruled by the user**
+
+**Reached: HG.board.dww.** *"If the Unit attempts to board the HGoB on the same Turn it was Attacked by
+the HGoB's Dragon Wing Warriors, the roll value required is reduced by 2."* The attack is made on
+Semiramis's Turn and a boarding on the boarder's own, so the per-Turn `turnState.attackedBy` was always
+stale by the time it was read: Foe Alpha, hit at tick 56, boarded at tick 58 needing 8. Ruled: *"for now
+let's say HG.board.dww is 'same Round' instead of turn"*. `attackedBy` moved to the Round Record
+(`roundState`), written with `markRoundState` and read by `boardPlatform` against the current Round.
+
 ---
 
 ---

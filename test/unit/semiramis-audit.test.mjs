@@ -64,14 +64,26 @@ describe("the Hanging Gardens, the Unit", async () => {
 describe("boarding after Dragon Wing Warriors", async () => {
   const { readFileSync } = await import("node:fs");
   const { parse } = await import("yaml");
-  const { TURN_RECORD } = await import("../../module/domain/stamped-record.mjs");
+  const { ROUND_RECORD, TURN_RECORD } = await import("../../module/domain/stamped-record.mjs");
   const { attackedByReliefApplies } = await import("../../module/rules/platforms.mjs");
   const hgob = parse(readFileSync("packs/_source/platforms/hanging-gardens.yml", "utf8"));
 
-  it("is remembered per Turn: the record carries which abilities attacked the Unit", () => {
-    expect(TURN_RECORD.at({ tick: 5, attackedBy: ["semiramis-hgob-dragon-wing-warriors"] }, 5).attackedBy)
+  // Ruled by the user: *"for now let's say HG.board.dww is 'same Round'
+  // instead of turn"*. The attack lands on Semiramis's Turn and a boarding is
+  // made on the boarder's own, so a per-Turn record could never be read in
+  // time: Foe Alpha, hit at tick 56, boarded at tick 58 unrelieved (§46.4-CO).
+  it("is remembered per Round: the record carries which abilities attacked the Unit", () => {
+    expect(ROUND_RECORD.at({ round: 5, attackedBy: ["semiramis-hgob-dragon-wing-warriors"] }, 5).attackedBy)
       .toEqual(["semiramis-hgob-dragon-wing-warriors"]);
-    expect(TURN_RECORD.at({ tick: 4, attackedBy: ["semiramis-hgob-dragon-wing-warriors"] }, 5).attackedBy).toEqual([]);
+    expect(ROUND_RECORD.at({ round: 4, attackedBy: ["semiramis-hgob-dragon-wing-warriors"] }, 5).attackedBy).toEqual([]);
+    expect(TURN_RECORD.fields).not.toHaveProperty("attackedBy");
+  });
+
+  it("is written to the Round record and read from it by the boarding", () => {
+    const attack = readFileSync("module/engine/attack.mjs", "utf8");
+    const board = readFileSync("module/engine/platforms.mjs", "utf8");
+    expect(attack).toMatch(/I\.markRoundState\(defenderDoc\.id, \{ attackedBy:/);
+    expect(board).toMatch(/ROUND_RECORD\.at\(unit\.roundState, currentRound\(\)\)\.attackedBy/);
   });
 
   it("relieves the roll for a Unit that Dragon Wing Warriors attacked, and for no other attack", () => {

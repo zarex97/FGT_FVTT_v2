@@ -18,7 +18,7 @@ import { expandInstances } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
 import { askOwner } from "./ask.mjs";
 import { resolveTargets } from "../rules/targeting/resolve.mjs";
-import { currentBoard, unitSnapshot, unitFrom, gateContext, currentTick, turnRecordOf } from "./board.mjs";
+import { currentBoard, unitSnapshot, unitFrom, gateContext, currentTick, roundRecordOf } from "./board.mjs";
 import {
   evade as evadeCheck, luckCheck, chance, checkPlan, critChance, mergePlans,
   pendingCheckRolls, resolveCheck,
@@ -1049,9 +1049,9 @@ async function declareProcesses({
     const attackerAbility = ability?.system?.contentId ?? null;
     if (attackerAbility && defenderDoc && !attackedByRecorded.has(defenderDoc.id)) {
       attackedByRecorded.add(defenderDoc.id);
-      const prior = turnRecordOf(defenderDoc).attackedBy ?? [];
+      const prior = roundRecordOf(defenderDoc).attackedBy ?? [];
       await applyBatch(
-        [I.markTurn(defenderDoc.id, { attackedBy: [...new Set([...prior, attackerAbility])] })],
+        [I.markRoundState(defenderDoc.id, { attackedBy: [...new Set([...prior, attackerAbility])] })],
         "attack:attackedBy",
       );
     }
