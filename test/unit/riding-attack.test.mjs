@@ -9,7 +9,9 @@
 
 import { describe, it, expect, beforeAll } from "vitest";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
-import { ridingAttackPath, ridingDestinations, passengerDestination } from "../../module/rules/movement.mjs";
+import {
+  ridingAttackPath, ridingDestinations, passengerDestination, passengerLanding,
+} from "../../module/rules/movement.mjs";
 import { squareBounds } from "../../module/domain/geometry.mjs";
 
 const at = (i, j) => ({ i, j });
@@ -329,5 +331,70 @@ describe("passengerDestination", () => {
 
   it("is safe on missing input", () => {
     expect(passengerDestination(null, at(1, 1), at(1, 1))).toBe(null);
+  });
+});
+
+describe("passengerLanding (#118)", () => {
+  // The carry runs from `moveToken`, where the document still reports where the
+  // Servant CAME FROM (Foundry holds it at the origin until the animation ends).
+  // So the board still puts her on her origin panel, the landing is the Master's
+  // panel plus her delta, and a Master standing exactly one move behind her --
+  // the ordinary 1-panel follow -- lands on her origin: `occupantAt` found her
+  // there and refused to carry him.
+  const servant = { id: "s", kind: "servant", panel: at(5, 5), factionId: "a", faction: "a" };
+  const master = { id: "m", kind: "master", panel: at(5, 4), factionId: "a", faction: "a" };
+  const world = (units, over = {}) => ({ bounds: squareBounds(13), units, ...over });
+
+  it("lands a Master one move behind her on her origin, though the board still shows her there", () => {
+    const out = passengerLanding(servant, master, at(5, 5), at(5, 6), world([servant, master]));
+    expect(out).toEqual({ ok: true, panel: at(5, 5) });
+  });
+
+  it("agrees when the board has already caught up and shows her at her destination", () => {
+    // A Riding Attack's carry runs after the displacement has committed.
+    const arrived = { ...servant, panel: at(5, 6) };
+    expect(passengerLanding(arrived, master, at(5, 5), at(5, 6), world([arrived, master])))
+      .toEqual({ ok: true, panel: at(5, 5) });
+  });
+
+  it("lands a Master several panels behind exactly as passengerDestination does", () => {
+    const far = { ...master, panel: at(5, 2) };
+    expect(passengerLanding(servant, far, at(5, 5), at(5, 9), world([servant, far])).panel)
+      .toEqual(passengerDestination(at(5, 5), at(5, 9), far.panel));
+  });
+
+  it("still refuses a landing off the board", () => {
+    const edge = { ...master, panel: at(5, 0) };
+    expect(passengerLanding(servant, edge, at(5, 5), at(5, 4), world([servant, edge])))
+      .toMatchObject({ ok: false, reason: "offBoard" });
+  });
+
+  it("still refuses a landing held by another Unit", () => {
+    // A delta of (0,+1) takes a Master from (5,3) to (5,4), where somebody else stands.
+    const behind = { ...master, panel: at(5, 3) };
+    const held = { id: "b", kind: "servant", panel: at(5, 4), factionId: "b", faction: "b" };
+    expect(passengerLanding(servant, behind, at(5, 5), at(5, 6), world([servant, behind, held])))
+      .toMatchObject({ ok: false, reason: "panelOccupied" });
+  });
+
+  it("does not count a multi-panel Servant's old footprint as in the way", () => {
+    // A 2x2 Servant rides one panel east with her Master beside her footprint.
+    // He lands on a panel she is LEAVING, which her new footprint no longer holds.
+    const big = { ...servant, panel: at(5, 5), panels: [at(5, 5), at(5, 6), at(6, 5), at(6, 6)] };
+    const beside = { ...master, panel: at(5, 4) };
+    expect(passengerLanding(big, beside, at(5, 5), at(5, 6), world([big, beside])))
+      .toEqual({ ok: true, panel: at(5, 5) });
+  });
+
+  it("carries nobody who is not moving: a zero delta leaves him where he stands", () => {
+    expect(passengerLanding(servant, master, at(5, 5), at(5, 5), world([servant, master])))
+      .toEqual({ ok: true, panel: at(5, 4) });
+  });
+
+  it("is what the carry asks, so the drag and the ride cannot disagree", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("module/engine/passenger-seat.mjs", "utf8");
+    expect(src).toMatch(/passengerLanding\(/);
+    expect(src).not.toMatch(/occupantAt\(landing/);
   });
 });
