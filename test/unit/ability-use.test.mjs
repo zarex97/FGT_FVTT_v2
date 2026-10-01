@@ -7,8 +7,10 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import {
   classifyAbility, targetSpecFor, needsTargeting, countsAsAttack, countsAsAct,
-  blockedThisTurn, isNegated,
+  blockedThisTurn, isNegated, usageSpecFor,
 } from "../../module/rules/ability-use.mjs";
+
+beforeAll(prepareSubjects, 60_000);
 
 const ability = (system = {}, type = "ability") => ({ type, system });
 
@@ -389,5 +391,22 @@ describe("an ability that is itself a Riding Attack (#113)", () => {
 
   it("does not call a Normal Attack one", () => {
     expect(classifyAbility(null).ridesAsAttack).toBe(false);
+  });
+});
+
+// The use paths hand `canUseAbility` `usageSpecFor`, which carries neither `phases` nor `creates`, so a gate
+// that read the phases would pass on the display and miss on the press (#142).
+describe("usageSpecFor names the platforms an ability raises", () => {
+  const specOf = (from, contentId) => withSubjects([{ from, id: "casterSubject001" }], ({ world }) => {
+    const item = world.actor("casterSubject001").items.find((i) => i.system.contentId === contentId);
+    return usageSpecFor(item);
+  });
+
+  it("Winged Serpent raises the quetzalcoatlus", async () => {
+    expect((await specOf("quetzalcoatl", "quetz-winged-serpent")).summonsPlatforms).toEqual(["quetzalcoatlus"]);
+  });
+
+  it("an ability that raises no platform names none", async () => {
+    expect((await specOf("quetzalcoatl", "quetz-lucha-libre")).summonsPlatforms).toEqual([]);
   });
 });
