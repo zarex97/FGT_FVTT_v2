@@ -28,6 +28,32 @@ import { formatRange } from "../../rules/preview.mjs";
 export const REAIM = Symbol("re-aim");
 
 /**
+ * Which candidates start ticked when the player is asked to choose.
+ *
+ * None, when there is a real choice: ticking something for a player who has
+ * not decided is deciding for them. All of them when the ability takes every
+ * candidate anyway, because a list that must be ticked in full is a click that
+ * asks nothing (#129).
+ *
+ * @param {Array<{unitId: string}>} candidates
+ * @param {number} max the most the ability takes (`Infinity` for "unlimited")
+ * @returns {string[]}
+ */
+export function choicePreselection(candidates, max) {
+  return candidates.length <= max ? candidates.map((c) => c.unitId) : [];
+}
+
+/**
+ * May this many ticks be sent? At least one, at most what the ability takes.
+ * @param {number} ticked
+ * @param {number} max
+ * @returns {boolean}
+ */
+export function choiceIsComplete(ticked, max) {
+  return ticked >= 1 && ticked <= max;
+}
+
+/**
  * Confirm a resolved placement.
  *
  * @param {object} args
@@ -35,10 +61,19 @@ export const REAIM = Symbol("re-aim");
  * @param {string} args.label the ability's name
  * @param {Function|null} [args.damageFor] `(unitId) => {min, max}` for the preview
  * @param {boolean} [args.canReaim] whether re-aiming is meaningful for this anchor
+ * @param {number} [args.max] how many the ability takes, when it asks for a choice
  * @returns {Promise<string[]|symbol|null>} chosen unit ids, {@link REAIM}, or null
  */
-export async function reviewTargets({ resolved, label, damageFor = null, canReaim = true, isAttack = true }) {
-  const units = resolved?.units ?? [];
+export async function reviewTargets({
+  resolved, label, damageFor = null, canReaim = true, isAttack = true, max = Infinity,
+}) {
+  // A `chosen` selection that two or more Units could fill. The resolver lists
+  // them as `candidates` and leaves `units` empty until the player has picked,
+  // so this dialog is where the pick is made, and it opens whatever the
+  // `targetingReview` setting says: a choice cannot be skipped (#129).
+  const choosing = resolved?.needsChoice === true;
+  const units = choosing ? (resolved.candidates ?? []) : (resolved?.units ?? []);
+  const preticked = new Set(choosing ? choicePreselection(units, max) : units.map((t) => t.unitId));
   const excluded = resolved?.excluded ?? [];
 
   // Nothing caught and nothing excluded is the strongest reason to want another
@@ -62,7 +97,7 @@ export async function reviewTargets({ resolved, label, damageFor = null, canReai
     const range = damageFor?.(t.unitId) ?? null;
     return `<li class="fgt-review__row" data-unit-id="${t.unitId}">
       <label>
-        <input type="checkbox" name="target" value="${t.unitId}" checked>
+        <input type="checkbox" name="target" value="${t.unitId}"${preticked.has(t.unitId) ? " checked" : ""}>
         <span class="fgt-review__name">${escape(name)}</span>
       </label>
       ${range ? `<span class="fgt-review__damage">${escape(formatRange(range))}</span>` : ""}
@@ -81,6 +116,7 @@ export async function reviewTargets({ resolved, label, damageFor = null, canReai
   const content = `<div class="fgt-review">
     <p class="fgt-review__meta">${units.length} ${game.i18n.localize("FGT.Targeting.Targets")} ·
       ${resolved?.panels?.length ?? 0} ${game.i18n.localize("FGT.Targeting.Panels")}</p>
+    ${choosing ? `<p class="fgt-review__head">${escape(game.i18n.format(chooseKey(max), { max }))}</p>` : ""}
     ${rows ? `<ul class="fgt-review__list">${rows}</ul>` : ""}
     ${excludedRows ? `<p class="fgt-review__head">${game.i18n.localize("FGT.Targeting.Excluded")}</p>
       <ul class="fgt-review__list fgt-review__list--out">${excludedRows}</ul>` : ""}
@@ -119,9 +155,36 @@ export async function reviewTargets({ resolved, label, damageFor = null, canReai
     position: { width: 420 },
     content,
     buttons,
-    render: (_event, dialog) => highlightOnHover(dialog.element),
+    render: (_event, dialog) => {
+      highlightOnHover(dialog.element);
+      if (choosing) gateOnChoice(dialog.element, max);
+    },
     rejectClose: false,
   }).then((result) => result ?? null);
+}
+
+/**
+ * @param {number} max
+ * @returns {string} the lang key that says how many may be chosen
+ */
+function chooseKey(max) {
+  if (max === 1) return "FGT.Targeting.ChooseOne";
+  return max === Infinity ? "FGT.Targeting.ChooseAny" : "FGT.Targeting.ChooseUpTo";
+}
+
+/**
+ * Keep Use disabled until the ticks are a legal choice.
+ * @param {HTMLElement} html
+ * @param {number} max
+ */
+function gateOnChoice(html, max) {
+  const confirm = html.querySelector('button[data-action="confirm"]');
+  const boxes = Array.from(html.querySelectorAll('input[name="target"]'));
+  const sync = () => {
+    if (confirm) confirm.disabled = !choiceIsComplete(boxes.filter((b) => b.checked).length, max);
+  };
+  for (const box of boxes) box.addEventListener("change", sync);
+  sync();
 }
 
 /**

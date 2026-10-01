@@ -17,7 +17,7 @@ The algorithm is eleven steps plus two upfront checks. Each step narrows the sur
 | `module/engine/attack-preflight.mjs` | The gates a declaration passes before anything is spent or written, shared by `resolveAttack` and `performRidingAttack` (Ch. 19) |
 | `module/rules/legality.mjs` | Rendering refusals for the UI (hard/overridable/confirm) |
 | `module/apps/canvas/target-region.mjs` | Transient Region showing the area on the scene |
-| `module/apps/canvas/target-review.mjs` | Confirmation dialog listing chosen, excluded, and damage preview; its button reads *Attack* for an attack and *Use* otherwise (§46.4-CM) |
+| `module/apps/canvas/target-review.mjs` | Confirmation dialog listing chosen, excluded, and damage preview; its button reads *Attack* for an attack and *Use* otherwise (§46.4-CM). For a `chosen` selection with two or more candidates it is where the pick is made: unticked checkboxes, *Use* disabled until between one and `count` are ticked, opened whatever the `targetingReview` setting says (#129) |
 
 ## How it works
 
@@ -45,7 +45,7 @@ The algorithm is eleven steps plus two upfront checks. Each step narrows the sur
 
 **8. Protection** — Master-protection rules, targetability auras (Bašmu), destructibility limits, facing requirements, and path clarity. A Master adjacent to its own Servant cannot be targeted directly, but an AoE area can catch it incidentally (`module/rules/targeting/resolve.mjs:309-408`).
 
-**9. Chooser** — Narrow by selection mode: `all`, `nearest` (sorted by distance), `random` (seeded for replay), or `chosen` (player picks from candidates). Then **9b attacker's narrowing**: the player can always hit fewer targets than the rules allow (`module/rules/targeting/resolve.mjs:410-464`).
+**9. Chooser** — Narrow by selection mode: `all`, `nearest` (sorted by distance), `random` (seeded for replay), or `chosen` (player picks from candidates). `chosen` answers `needsChoice` with the `candidates` and no `units` until the placement carries `chosenIds`; the resolver's contract stays that. **The session supplies the choice (#129).** `validate()` -- the one projection every UI path calls -- settles a choice among one: when `needsChoice` survives with a single candidate it resolves again under that candidate's id, so limits stay in force, and the layer, HUD outline and preview all see the Unit. That is 21 of the 23 abilities that author `chosen`, which name their Unit with the anchor (`targetUnit`, `withinRange`, `fieldEdge` over a `unit` shape). Two or more candidates always ask: `reviewTargets` takes the candidates and `max: count`, whatever the `targetingReview` setting says, because a choice cannot be skipped. A choice that still survives to the engine is a refusal, not a run: `pendingChoiceErrors` gives `"Choose a target."` to `resolveAttack` (it throws) and `resolveSkillTargets` (`errors`), so a macro cannot pay a cost and resolve against nobody; the no-canvas `legacyPlacement` sends the targeted Unit as `chosenIds`. Then **9b attacker's narrowing**: the player can always hit fewer targets than the rules allow (`module/rules/targeting/resolve.mjs:410-464`).
 
 **10. Limits** — Enforce `maxTargets`, `minTargets`, `requireUnitId` (Counters must catch their attacker), `requiresZon`, `requiresCasterIn/Out`, and `casterOutsideArea` (EMIYA cannot be in his own Caladbolg blast) (`module/rules/targeting/resolve.mjs:466-508`).
 

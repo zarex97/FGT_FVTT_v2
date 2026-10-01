@@ -30,7 +30,7 @@ import {
   usageSpecFor,
 } from "../rules/ability-use.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
-import { resolveTargets } from "../rules/targeting/resolve.mjs";
+import { resolveTargets, pendingChoiceErrors } from "../rules/targeting/resolve.mjs";
 import { applyEffect, inflictBonusOf } from "./effect-applier.mjs";
 import { summonPhase } from "./summoning.mjs";
 import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
@@ -260,7 +260,7 @@ async function rollConcealmentBreak(actor, ability, self) {
  * @param {object} placement
  * @returns {{units: object[], errors: string[]}}
  */
-function resolveSkillTargets(ability, self, board, placement) {
+export function resolveSkillTargets(ability, self, board, placement) {
   // `self` is a SNAPSHOT, where `snapshotBoard` has flattened `range` to a
   // number -- so `.panels` was `undefined` and every Skill whose targeting
   // falls back to its caster's Range reached exactly ONE panel, whatever the
@@ -287,7 +287,9 @@ function resolveSkillTargets(ability, self, board, placement) {
   }
 
   const resolved = resolveTargets(spec, self, board, placement);
-  return { units: resolved.units, errors: resolved.errors };
+  // A choice still owed refuses. Without this a Skill called from a macro ran
+  // its phases against nobody and still paid its cost and cooldown (#129).
+  return { units: resolved.units, errors: [...resolved.errors, ...pendingChoiceErrors(resolved)] };
 }
 
 /**

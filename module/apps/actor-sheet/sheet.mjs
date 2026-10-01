@@ -602,7 +602,14 @@ function legacyPlacement() {
     return null;
   }
   const token = targets[0];
-  return { unitId: token.actor?.id, panel: { i: token.document.y, j: token.document.x } };
+  // The one Unit Foundry has targeted is the choice, for an ability that asks for
+  // one: without `chosenIds` a `chooser: chosen` ability returned `needsChoice`
+  // and did nothing (#129).
+  return {
+    unitId: token.actor?.id,
+    panel: { i: token.document.y, j: token.document.x },
+    chosenIds: [token.actor?.id],
+  };
 }
 
 

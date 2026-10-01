@@ -801,6 +801,15 @@ function resolveAnchor(spec, caster, board, placement, errors) {
  * every pointer move, which is affordable because the resolver is pure and does
  * no allocation beyond the panel set.
  *
+ * A choice among one is no choice. A `chosen` selection whose anchor already
+ * named the Unit (21 of the 23 abilities that author it: `targetUnit`,
+ * `withinRange` and `fieldEdge` over a `unit` shape) comes back from the
+ * resolver with `needsChoice` and a single candidate, and the session used to
+ * send its `resolved.units` -- always empty -- as `chosenIds`, which the
+ * resolver read as "the player chose nobody" (#129). So the one candidate is
+ * chosen here, by resolving again under its id, which keeps every limit in
+ * force. Two or more candidates stay `needsChoice`: the session asks.
+ *
  * @param {object} spec
  * @param {object} caster
  * @param {object} board
@@ -808,13 +817,45 @@ function resolveAnchor(spec, caster, board, placement, errors) {
  * @returns {{ok: boolean, reasons: string[], warnings: string[], resolved: ResolvedTargets}}
  */
 export function validate(spec, caster, board, placement = {}) {
-  const resolved = resolveTargets(spec, caster, board, placement);
+  let resolved = resolveTargets(spec, caster, board, placement);
+  if (resolved.needsChoice && resolved.candidates.length === 1) {
+    resolved = resolveTargets(spec, caster, board, {
+      ...placement, chosenIds: [resolved.candidates[0].unitId],
+    });
+  }
   return {
     ok: resolved.errors.length === 0,
     reasons: resolved.errors,
     warnings: resolved.warnings,
     resolved,
   };
+}
+
+/**
+ * The Units a resolution is about, for drawing: who is caught, or -- while a
+ * choice is still owed -- who could be chosen.
+ *
+ * @param {{units?: object[], candidates?: object[], needsChoice?: boolean}} resolved
+ * @returns {object[]}
+ */
+export function unitsShown(resolved) {
+  return (resolved?.needsChoice ? resolved.candidates : resolved?.units) ?? [];
+}
+
+/**
+ * What an engine entry point refuses when a choice is still owed.
+ *
+ * `resolveTargets` answers a `chosen` selection with `needsChoice` until the
+ * placement carries `chosenIds`, and the interface settles that before it
+ * sends anything (`validate`, the review dialog). A choice that survives to
+ * the engine came from a path that never asked -- a macro, a stale client --
+ * and running it resolved against nobody while still paying the cost (#129).
+ *
+ * @param {{needsChoice?: boolean}} resolved a `ResolvedTargets`
+ * @returns {string[]}
+ */
+export function pendingChoiceErrors(resolved) {
+  return resolved?.needsChoice ? ["Choose a target."] : [];
 }
 
 /**

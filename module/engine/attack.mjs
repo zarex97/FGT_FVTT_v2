@@ -17,7 +17,7 @@ import { ridersFire } from "../rules/damage/riders.mjs";
 import { expandInstances } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
 import { askOwner } from "./ask.mjs";
-import { resolveTargets } from "../rules/targeting/resolve.mjs";
+import { resolveTargets, pendingChoiceErrors } from "../rules/targeting/resolve.mjs";
 import { currentBoard, unitSnapshot, unitFrom, gateContext, currentTick, roundRecordOf } from "./board.mjs";
 import {
   evade as evadeCheck, luckCheck, chance, checkPlan, critChance, mergePlans,
@@ -145,11 +145,13 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
       ...placement, npTags: [...(ability?.system?.npTags ?? [])],
     });
 
-  if (targets.errors.length > 0) {
-    throw new Error(`FGT | Illegal attack: ${targets.errors.join(" ")}`);
-  }
-  if (targets.needsChoice) {
-    return { needsChoice: true, candidates: targets.candidates };
+  // A choice still owed is a refusal, not a quiet return: the interface settles
+  // it before anything is sent (`rules/targeting/resolve.mjs#validate`, the
+  // review dialog), so one that arrives here came from a path that never asked,
+  // and returning `{needsChoice}` made it do nothing and say nothing (#129).
+  const refusals = [...targets.errors, ...pendingChoiceErrors(targets)];
+  if (refusals.length > 0) {
+    throw new Error(`FGT | Illegal attack: ${refusals.join(" ")}`);
   }
 
   // Declaring the attack is what spends the budget, not landing it: a Noble

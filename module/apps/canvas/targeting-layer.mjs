@@ -24,7 +24,7 @@
  * to know no rules at all.
  */
 
-import { legalPlacements, validate } from "../../rules/targeting/resolve.mjs";
+import { legalPlacements, validate, unitsShown } from "../../rules/targeting/resolve.mjs";
 import { presentVerdict, needsHardConfirm } from "../../rules/legality.mjs";
 import { TargetingHUD } from "./targeting-hud.mjs";
 import { showArea, discardArea } from "./target-region.mjs";
@@ -244,13 +244,14 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
         });
         if (regionId) placed.push(regionId);
 
-        const chosen = await this.#confirm({ resolved, label, preview, mode });
+        const chosen = await this.#confirm({ resolved, label, preview, mode, spec });
         if (chosen === REAIM) continue;
         if (chosen === null) return null;
 
         // The resolution is the truth about who is being attacked; Foundry's own
         // target set is told about it so the rest of the world agrees (D28.8).
-        mirrorTargets(resolved.units.filter((u) => chosen.includes(u.unitId)));
+        // For a choice the player has just made, the pool is the candidates.
+        mirrorTargets(unitsShown(resolved).filter((u) => chosen.includes(u.unitId)));
         return { ...placement, chosenIds: chosen };
       }
     } finally {
@@ -271,13 +272,20 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
    * @param {object} args
    * @returns {Promise<string[]|symbol|null>}
    */
-  async #confirm({ resolved, label, preview, mode }) {
-    if (!game.settings.get("fgt", "targetingReview")) {
+  async #confirm({ resolved, label, preview, mode, spec }) {
+    // A choice still owed is asked whatever the setting says: with the review
+    // off there is nobody to pick for the player, and sending `resolved.units`
+    // -- empty for a `chosen` selection -- is what made 23 abilities unusable
+    // from the interface (#129). One candidate never gets here (`validate`
+    // has settled it).
+    if (!resolved.needsChoice && !game.settings.get("fgt", "targetingReview")) {
       return resolved.units.map((u) => u.unitId);
     }
+    const count = spec?.selection?.count;
     return reviewTargets({
       resolved,
       label,
+      max: typeof count === "number" ? count : Infinity,
       damageFor: preview.damageFor ?? null,
       isAttack: preview.isAttack ?? true,
       // An anchor that resolves without a choice has nowhere else to be put, so
@@ -328,7 +336,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
         this.#drawPanels(option.resolved.panels, option.legal ? LEGAL : ILLEGAL, alpha);
       });
       const current = options[focused];
-      this.#outlineUnits(current.resolved.units, current.legal ? LEGAL : ILLEGAL);
+      this.#outlineUnits(unitsShown(current.resolved), current.legal ? LEGAL : ILLEGAL);
       hud.update(current);
     };
 
@@ -373,7 +381,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
       this.#drawPanels(reachable.map((o) => o.placement.panel), LEGAL, 0.08);
       if (!current) return hud.update(null);
       this.#drawPanels(current.resolved.panels, current.legal ? LEGAL : ILLEGAL, 0.28);
-      this.#outlineUnits(current.resolved.units, current.legal ? LEGAL : ILLEGAL);
+      this.#outlineUnits(unitsShown(current.resolved), current.legal ? LEGAL : ILLEGAL);
       hud.update(current);
     };
 
@@ -491,7 +499,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
         this.#drawPanels(unit.panels ?? [unit.panel], option.legal ? LEGAL : ILLEGAL, 0.1);
       }
       const current = selectable[focused];
-      this.#outlineUnits(current.resolved.units, LEGAL);
+      this.#outlineUnits(unitsShown(current.resolved), LEGAL);
       hud.update(current);
     };
 
