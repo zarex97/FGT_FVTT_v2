@@ -50,6 +50,8 @@ Round boundaries fire similarly on `combatRound`, unfiltered but only on forward
 
 Effect expiry runs **after** the final periodic tick so an effect ending this turn still ticks once more (`module/engine/scheduler.mjs:114-115`). The `acted` state tracks which units took an action in the current phase — it is not turn-wide (`module/engine/scheduler.mjs:71-73`).
 
+After those ten, and before `globalTurn` advances, the hook switches off every mode whose duration was *"this Turn"* (`engine/modes.mjs#turnEndModeIntents`, Ch. 24): Riding's Active is a mode, its `MovDelta` states `duration: "this turn"`, and a derived delta lasts as long as its source, `system.active` (#116).
+
 ### The begin-of-turn sequence
 
 `beginTurn` logs the boundary once and fires `turnStart` for every unit in the match (Shock can roll on anyone's turn start, not just its owner's) (`module/engine/scheduler.mjs:149-167`). It also fires `turnStart` for terrain.

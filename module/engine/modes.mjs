@@ -32,7 +32,7 @@
  * A Berserker who has been driven mad does not simply calm down.
  */
 
-import { forcedModes } from "../rules/modes.mjs";
+import { forcedModes, modesEndedByTurn } from "../rules/modes.mjs";
 import { currentBoard } from "./board.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
@@ -104,6 +104,37 @@ export async function reconcileForcedModes(board = null) {
   } finally {
     running = false;
   }
+}
+
+/**
+ * The writes that end a mode whose duration was "this Turn".
+ *
+ * Riding's Active: *"Increases MOV by 6 panels for this Turn."* The duration
+ * lives on the mode's `MovDelta`, and a derived delta's duration is its
+ * SOURCE's business (`rules/derived.mjs`) -- here `system.active`. Nothing
+ * switched it off, so the +6 outlasted the Turn it was pressed in (#116).
+ * The scheduler asks this at every Turn's end, before `globalTurn` advances,
+ * and `rules/modes.mjs#modesEndedByTurn` answers which modes are due.
+ *
+ * Returned rather than written, so the scheduler applies it through the same
+ * path as every other boundary step. The item id is what is named: a Servant
+ * may hold several documents sharing the `riding` slug.
+ *
+ * @param {object[]} units the board's Units
+ * @param {number} tick the global Turn that is ending
+ * @returns {object[]} `setMode` intents, each switching one mode off
+ */
+export function turnEndModeIntents(units, tick) {
+  /** @type {object[]} */
+  const intents = [];
+  for (const unit of units ?? []) {
+    const actor = game.actors?.get(unit.id);
+    if (!actor) continue;
+    for (const item of modesEndedByTurn([...actor.items], tick)) {
+      intents.push(I.setMode(unit.id, item.id, false, "turnEnd"));
+    }
+  }
+  return intents;
 }
 
 /**

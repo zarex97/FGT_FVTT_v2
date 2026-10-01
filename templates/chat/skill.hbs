@@ -24,7 +24,7 @@
     </ul>
   {{else}}
     {{#unless refused.length}}
-      <div class="fgt-card__none">{{localize "FGT.Skill.NoEffects"}}</div>
+      <div class="fgt-card__none">{{#if modeOn}}{{localize "FGT.Skill.ModeOn"}}{{else}}{{localize "FGT.Skill.NoEffects"}}{{/if}}</div>
     {{/unless}}
   {{/if}}
 

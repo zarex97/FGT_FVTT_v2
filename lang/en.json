@@ -728,6 +728,7 @@
   "FGT.Chat.HiddenDamage": "Damage is not shown to units outside this exchange.",
   "FGT.Skill.HiddenEffects": "{n} effect(s) applied",
   "FGT.Skill.NoEffects": "No effects were applied.",
+  "FGT.Skill.ModeOn": "Switched on.",
   "FGT.Skill.Refused": "{name} cannot be used: {reason}.",
   "FGT.Skill.UnknownEffect": "{name} applies an unknown effect \"{id}\" — it did nothing.",
   "FGT.Skill.DamagePhase": "{name} deals damage but was used as a Skill. It should be marked as an Attack Skill.",

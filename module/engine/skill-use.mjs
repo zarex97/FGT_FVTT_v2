@@ -26,6 +26,7 @@ import { refreshShield } from "./shield.mjs";
 import { displaceToken } from "./io.mjs";
 import {
   targetSpecFor, countsAsAttack, countsAsAct, isNegated, blockedThisTurn, needsTargeting,
+  classifyAbility,
   usageSpecFor,
 } from "../rules/ability-use.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
@@ -1404,6 +1405,10 @@ async function postCard(actor, ability, targets, applied) {
       // Rendered empty on purpose: the hook fills it for whoever is looking.
       effects: [],
       effectCount: rows.length,
+      // A MODE's use is the switch itself. Riding's Active has no phases, so
+      // its card said "No effects were applied" over a +6 MOV that stands on
+      // the Unit for the Turn (#116).
+      modeOn: classifyAbility(ability).toggles,
       // A refusal is shown too: an effect the target was immune to is a fact
       // the player needs, and an empty card reads as a skill that did nothing.
       refused: applied
