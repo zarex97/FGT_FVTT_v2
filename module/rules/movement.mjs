@@ -49,6 +49,79 @@ const OBJECT_KINDS = new Set(["platform", "structure"]);
  */
 
 /**
+ * Whose movement rules a Move by this unit is measured by.
+ *
+ * > *"While Quetz is Riding the Quetzalcoatlus, Quetz's Move … is replaced with
+ * > Quetzalcoatlus'."* and *"The Quetzalcoatlus ignores obstacles while Moving,
+ * > and can Move onto occupied panels."*
+ *
+ * A rider whose mount replaces her Move is measured as THE MOUNT: its MOV, its
+ * own effects and its obstacle rules -- and, being a platform, it is not held at
+ * the footprint it stands on, which is what refused her drag as *"the destination
+ * panel is occupied"* (the #29 edge-hold). Two things stay hers: her Turn State,
+ * because the segments and the panels already spent are hers, and the panel the
+ * path starts from -- the drag begins at her token, which stands anywhere on a
+ * mount larger than one panel. Reading taken, following the planner's own
+ * design: the drive uses the MOUNT's MOV and the MOUNT's effects, so Riding's
+ * Active +6 does not carry to it. If the table rules otherwise it is one line
+ * here. Her Master, who does not drive (`roles`), is measured as himself and is
+ * still held.
+ *
+ * @param {object} unit the mover's snapshot, from the BOARD (`platformId` is stamped by the board pass)
+ * @param {object} board
+ * @returns {object} `unit` itself when nothing drives for it
+ */
+export function moverFor(unit, board) {
+  const source = actionSourceFor(unit, board);
+  if (!source.movesAsPlatform || !source.platform) return unit;
+  return {
+    ...source.platform,
+    panel: unit.panel,
+    turnState: unit.turnState,
+    level: source.platform.level ?? unit.level,
+  };
+}
+
+/**
+ * Is this drag legal? {@link validatePath} for the unit that is actually moving.
+ *
+ * What `onPreMove` calls, so the gate that runs is the one that knows about a
+ * driven mount: the planner swapped a rider for her mount and had no caller, and
+ * the gate validated her own snapshot, so her drag was refused outright and the
+ * mount's carry (`carryDrivenPlatform`) never fired (#143).
+ *
+ * A mount larger than one panel moves by the same delta she does, so its far
+ * panels must still be on the board when it arrives.
+ *
+ * @param {GridOffset[]} path panels after the origin, in order
+ * @param {object} unit
+ * @param {object} board
+ * @param {object} [opts] as {@link validatePath}
+ * @returns {{ok: boolean, reasons: string[], cost: number}}
+ */
+export function gateMovement(path, unit, board, opts = {}) {
+  const mover = moverFor(unit, board);
+  const verdict = validatePath(path, mover, board, opts);
+  if (mover === unit) return verdict;
+
+  const destination = (path ?? []).at(-1);
+  const platform = actionSourceFor(unit, board).platform;
+  if (destination && platform?.panel && unit.panel) {
+    const { w = 1, h = 1 } = platform.footprint ?? {};
+    const shift = { i: destination.i - unit.panel.i, j: destination.j - unit.panel.j };
+    const far = [
+      { i: platform.panel.i + shift.i, j: platform.panel.j + shift.j },
+      { i: platform.panel.i + shift.i + h - 1, j: platform.panel.j + shift.j + w - 1 },
+    ];
+    if (!far.every((p) => geo.inBounds(p, board.bounds ?? null))) {
+      verdict.reasons.push("The mount would leave the board.");
+      verdict.ok = false;
+    }
+  }
+  return verdict;
+}
+
+/**
  * Everywhere this unit could move to, right now.
  *
  * @param {object} unit the mover's snapshot
@@ -61,14 +134,8 @@ export function planMovement(unit, board) {
   // believed.
   const canDoubleMove = hasGranted(unit, GRANTS.doubleMove);
 
-  // A rider whose mount replaces her Move plans from THE MOUNT: its MOV, its
-  // panel, and its own obstacle rules -- *"the Quetzalcoatlus ignores obstacles
-  // while Moving, and can Move onto occupied panels"*. Her turn state comes
-  // with her, because the segments and the panels already spent are hers.
-  const source = actionSourceFor(unit, board);
-  const mover = source.movesAsPlatform
-    ? { ...source.platform, turnState: unit.turnState, level: source.platform.level ?? unit.level }
-    : unit;
+  // A rider whose mount replaces her Move plans from THE MOUNT (`moverFor`).
+  const mover = moverFor(unit, board);
 
   const budget = remainingMovement(mover);
   const bounds = board.bounds ?? null;

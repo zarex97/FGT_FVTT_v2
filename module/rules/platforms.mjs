@@ -756,6 +756,70 @@ export function actionSourceFor(unit, board) {
 }
 
 /**
+ * The Units whose Turn Record this Unit's action is also written to.
+ *
+ * > *"While Quetz is Riding the Quetzalcoatlus, Quetz's Move and Normal Attack is
+ * > replaced with Quetzalcoatlus'."* and a Spell *"counts as Quetz's &
+ * > Quetzalcoatlus' Attack for the Turn"*.
+ *
+ * Ruled by the user (2026-10-01): while she rides, she and the mount share ONE
+ * Move and ONE Attack per Turn. The two are one actor on two records, so what
+ * either does is stamped on both, and the mount's own once-per-Turn cap
+ * (`rules/budget.mjs`) then trips on the shared record in either order with no
+ * new refusal rule. Before this only the unit that acted was stamped, so after
+ * her Spell the mount could still make a free BA(STR) 150 attack, and the pair
+ * had two Moves and two Normal Attacks a Turn.
+ *
+ * - A driving owner shares with her mount.
+ * - A mount that carries its driver shares with her.
+ * - Nobody else: her Master, who rides as cargo, shares with nobody.
+ *
+ * Per ACTION, because platforms replace different things: the Golden Hind
+ * replaces Drake's Normal Attack and not her Move, so a Move of hers does not
+ * stamp the ship. `action` is `"move"` or `"attack"`, or omitted for either.
+ *
+ * @param {object} unit a BOARD unit -- a bare `unitSnapshot` carries no `platformId`
+ * @param {object} board
+ * @param {"move"|"attack"|null} [action]
+ * @returns {object[]}
+ */
+export function turnPartnersOf(unit, board, action = null) {
+  const shares = (source) => (action === "move"
+    ? source.movesAsPlatform
+    : action === "attack" ? source.attacksAsPlatform : source.movesAsPlatform || source.attacksAsPlatform);
+
+  const own = actionSourceFor(unit, board);
+  if (own.platform && shares(own)) return [own.platform];
+
+  if (unit?.kind === "platform" && unit.replacesRiderAction) {
+    const driver = (board?.units ?? []).find((u) => u.id === unit.ownerId && u.platformId === unit.id);
+    if (driver) {
+      const theirs = actionSourceFor(driver, board);
+      if (theirs.platform?.id === unit.id && shares(theirs)) return [driver];
+    }
+  }
+  return [];
+}
+
+/**
+ * The Range a Normal Attack by this Unit reaches.
+ *
+ * Her mount's while she rides one that replaces her Normal Attack, and her own
+ * otherwise. The damage source already read the mount (`normalAttackAt`) while
+ * the targeting read hers, so a Range Up on her lengthened the mount's attack
+ * and one on the mount did not: both are 2 panels today, which hides it. One
+ * answer for the preview and the resolution.
+ *
+ * @param {object} unit a BOARD unit
+ * @param {object} board
+ * @returns {number|undefined}
+ */
+export function attackRangeOf(unit, board) {
+  const { platform, attacksAsPlatform } = actionSourceFor(unit, board);
+  return attacksAsPlatform && typeof platform?.range === "number" ? platform.range : unit?.range;
+}
+
+/**
  * Is a recurring toll due on this sweep?
  *
  * **Two clocks, and the sheets distinguish them.** Jack's Mist and

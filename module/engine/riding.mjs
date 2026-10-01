@@ -20,6 +20,7 @@ import { attackPreflight } from "./attack-preflight.mjs";
 import { carryMasterAlong } from "./passenger-seat.mjs";
 import { displaceToken } from "./io.mjs";
 import { hasGranted, GRANTS } from "../rules/granted.mjs";
+import { turnPartnersOf } from "../rules/platforms.mjs";
 import { currentBoard } from "./board.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
@@ -109,11 +110,20 @@ export async function performRidingAttack({ unitId, destination, abilityId = nul
   // The MOVEMENT half of the bookkeeping, now. NOT `attacked` -- the attack
   // has not happened yet, and stamping it here makes `resolveAttack` refuse
   // the very call this function is about to make.
-  await applyWorldIntents([I.markTurn(unitId, {
+  //
+  // A rider and a mount that replaces her Move or Normal Attack share one Turn
+  // Record (ruled, 2026-10-01), and a Riding Attack is both, so the partner is
+  // stamped as she is.
+  const partners = turnPartnersOf(unit, board);
+  const ridden = {
     moved: true, acted: true, usedRidingAttack: true,
     movedPanels: (unit.turnState?.movedPanels ?? 0) + plan.distance,
     moveSegments: (unit.turnState?.moveSegments ?? 0) + 1,
-  })], "ridingAttack:move");
+  };
+  await applyWorldIntents(
+    [I.markTurn(unitId, ridden), ...partners.map((p) => I.markTurn(p.id, ridden))],
+    "ridingAttack:move",
+  );
 
   // ONE fan-out, as a Normal Attack. Every unit on the line is a defender of
   // the same Combat Phase, which is what "Attack all Units in its path" is --
@@ -121,7 +131,10 @@ export async function performRidingAttack({ unitId, destination, abilityId = nul
   if (plan.hits.length === 0) {
     // A ride that reached nobody still spends the action.
     await budget.spend({ combat: game.combats.active, unit, action: "ridingAttack" });
-    await applyWorldIntents([I.markTurn(unitId, { attacked: true })], "ridingAttack:spent");
+    await applyWorldIntents(
+      [I.markTurn(unitId, { attacked: true }), ...partners.map((p) => I.markTurn(p.id, { attacked: true }))],
+      "ridingAttack:spent",
+    );
     // ...and a Noble Phantasm used as one still does what it does to its user.
     // Troias Tragōidia *"first restores X Agility and applies Atk Up ... Deals
     // 4x damage"* -- the restore and the buff are not conditional on reaching
