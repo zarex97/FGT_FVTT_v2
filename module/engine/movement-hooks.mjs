@@ -28,7 +28,7 @@ import {
   movePlatform, actionSourceFor, withinFootprint, canUnboard, boardingLanding, turnPartnersOf,
 } from "../rules/platforms.mjs";
 import { contains as fieldContains } from "../rules/bounded-fields.mjs";
-import { repaintFollowing } from "./terrain.mjs";
+import { repaintFollowing, dropLeftTerrainEffects } from "./terrain.mjs";
 import { displaceToken } from "./io.mjs";
 
 export const Movement = {
@@ -212,6 +212,16 @@ async function onMove(document, movement, operation) {
   // forced-move return for the same reason contact is: a Unit knocked back out
   // of the Complex has still left it.
   if (document.actor) await dropLeftFieldEffects(document.actor, document, movement);
+
+  // ...and the same for terrain. *"While inside, this Burn does not expire and
+  // cannot be removed"*: `annotateTerrain` stops reading a terrain-tied effect
+  // once its bearer is off that ground, and this takes the document away. The
+  // destination comes off the movement payload for the reason `fieldsAt`
+  // documents (#147).
+  if (document.actor && movement?.destination && canvas?.grid) {
+    const to = canvas.grid.getOffset(movement.destination);
+    await dropLeftTerrainEffects(document.actor, { i: to.i, j: to.j }, currentBoard());
+  }
 
   // A FOLLOWING terrain area goes where its source goes, and is above the
   // forced-move return for the same reason contact is: *"the 5x5 panel area

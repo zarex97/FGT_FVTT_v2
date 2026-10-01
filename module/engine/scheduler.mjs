@@ -2141,11 +2141,16 @@ function terrainIntents(descriptors, ctx) {
           defId: d.effectId,
           magnitude: d.magnitude ?? 0,
           // A terrain-sourced effect with `duration: null` never expires while
-          // the unit stays inside; leaving is what ends it, and leaving is not
-          // a removal step.
+          // the unit stays inside; leaving is what ends it. `permanent` says
+          // "never" -- `expiry: null` alone is "not stated", and the
+          // definition's own default answers it (#147) -- and `sourceTerrain`
+          // is the tie `annotateTerrain` sweeps on, written only where the
+          // clause says the effect lasts while the unit stays: Poison Swamp's
+          // Poison does not end when its bearer walks out.
           expiry: null,
+          ...(d.permanent ? { permanent: true } : {}),
           unremovable: Boolean(d.unremovable),
-          sourceTerrain: d.terrain,
+          sourceTerrain: d.whileInside ? d.terrain : null,
         }, null));
         break;
 
@@ -2159,7 +2164,7 @@ function terrainIntents(descriptors, ctx) {
         if (roll > d.percent) break;
         out.push(d.then === "poisonStage"
           ? I.log({ kind: "poisonStage", unitId: d.unitId, terrain: d.terrain })
-          : I.applyEffect(d.unitId, { defId: d.then, expiry: null, sourceTerrain: d.terrain }, null));
+          : I.applyEffect(d.unitId, { defId: d.then, expiry: null }, null));
         break;
       }
 

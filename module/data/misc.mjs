@@ -70,6 +70,12 @@ export class EffectData extends foundry.data.ActiveEffectTypeDataModel {
       // ability's CONTENT id (`engine/fields.mjs` stamps `fieldId` from
       // `system.contentId`), which is a slug and not a Foundry id.
       sourceFieldId: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+      // The terrain TYPE this instance belongs to, if any, the way
+      // `sourceFieldId` names a field. Burning's Burn *"does not expire and
+      // cannot be removed"* while its bearer is inside, and ends on leaving --
+      // swept on the panel the bearer stands on, never on an exit event, for
+      // the argument above (#147).
+      sourceTerrain: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
       sourceAbilityId: new fields.StringField({ required: false, nullable: true, initial: null }),
       unremovable: new fields.BooleanField({ initial: false }),
       visibility: new fields.StringField({ initial: "public", choices: ["public", "ownerOnly", "gmOnly"] }),

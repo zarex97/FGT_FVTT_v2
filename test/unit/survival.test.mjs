@@ -431,9 +431,57 @@ export const NESTED_ROUTES = [
     hops: [
       { file: "module/engine/skill-use.mjs", why: "zonePaintArgs hands the zone spec's key to paintTerrain" },
       { file: "module/engine/terrain.mjs", why: "terrainDataOf writes it onto the behaviour, repaintFollowing carries it" },
-      { model: "terrain", why: "TerrainBehavior declares it; Foundry drops what a schema does not name" },
+      { model: "RegionBehavior/terrain", why: "TerrainBehavior declares it; Foundry drops what a schema does not name" },
       { file: "module/engine/board.mjs", why: "terrainAreasOf projects it onto the area" },
       { file: "module/rules/terrain.mjs", why: "terrainPeriodics skips an area that carries it" },
+    ],
+  },
+  // A field's `ApplyEffect` action says the Burn is unremovable, and says "never"
+  // by authoring `duration: null`; neither reached the instance (#147).
+  {
+    key: "unremovable",
+    authored: ["packs/_source/abilities/quetz-piedra-del-sol.yml"],
+    hops: [
+      { file: "module/engine/fields.mjs", why: "the field's ApplyEffect action puts it on the intent" },
+      { file: "module/engine/applier.mjs", why: "resolveEffects hands the intent's flag to the flow" },
+      { file: "module/engine/effect-applier.mjs", why: "the flow ORs it into the instance, mergeEmitted keeps it" },
+      { file: "module/engine/io.mjs", why: "createEffects writes it" },
+      { model: "ActiveEffect/fgtEffect", why: "EffectData declares it" },
+      { file: "module/rules/snapshot.mjs", why: "the instance projects it" },
+    ],
+  },
+  {
+    key: "permanent",
+    authored: [],
+    hops: [
+      { file: "module/engine/fields.mjs", why: "an authored `duration: null` on the field action becomes it" },
+      { file: "module/engine/scheduler.mjs", why: "the terrain's Burn descriptor becomes it" },
+      { file: "module/engine/applier.mjs", why: "resolveEffects hands it to the flow" },
+      { file: "module/engine/effect-applier.mjs", why: "the flow stamps no expiry; mergeEmitted does not overwrite it" },
+    ],
+  },
+  {
+    key: "tiedToField",
+    authored: ["packs/_source/abilities/quetz-piedra-del-sol.yml"],
+    hops: [
+      { file: "module/engine/fields.mjs", why: "the field action's tie becomes the intent's sourceFieldId" },
+      { model: "ActiveEffect/fgtEffect", why: "EffectData declares sourceFieldId", as: "sourceFieldId" },
+      { file: "module/rules/bounded-fields.mjs", why: "sweepFieldEffects reads sourceFieldId", as: "sourceFieldId" },
+      { file: "module/engine/movement-hooks.mjs", why: "dropLeftFieldEffects reads sourceFieldId", as: "sourceFieldId" },
+    ],
+  },
+  {
+    key: "sourceTerrain",
+    authored: [],
+    hops: [
+      { file: "module/engine/scheduler.mjs", why: "a terrain descriptor that lasts while inside stamps it on its intent" },
+      { file: "module/engine/applier.mjs", why: "resolveEffects hands it to the flow" },
+      { file: "module/engine/effect-applier.mjs", why: "the flow writes it on the instance" },
+      { file: "module/engine/io.mjs", why: "createEffects writes it" },
+      { model: "ActiveEffect/fgtEffect", why: "EffectData declares it" },
+      { file: "module/rules/snapshot.mjs", why: "the instance projects it" },
+      { file: "module/rules/terrain.mjs", why: "annotateTerrain sweeps on it" },
+      { file: "module/engine/terrain.mjs", why: "the document is deleted when its ground is gone" },
     ],
   },
 ];
@@ -443,7 +491,7 @@ describe("every key nested in an untyped block survives its Route", () => {
   const strip = (t) => t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
   let models;
 
-  beforeAll(async () => { models = (await installSystem()).RegionBehavior; });
+  beforeAll(async () => { models = await installSystem(); });
 
   for (const { key, authored, hops } of NESTED_ROUTES) {
     it(`"${key}" is authored, and every Hop after the compile still names it`, () => {
@@ -452,10 +500,13 @@ describe("every key nested in an untyped block survives its Route", () => {
         if (!new RegExp(String.raw`\b${key}\b`).test(readFileSync(file, "utf8"))) lost.push(`${file} no longer authors "${key}"`);
       }
       for (const hop of hops) {
+        // `as` is the name the Hop knows the key by, where it is not the authored one.
+        const name = hop.as ?? key;
         if (hop.model) {
-          if (!models[hop.model]?.schema.fields[key]) lost.push(`${hop.model} does not declare "${key}" (${hop.why})`);
-        } else if (!new RegExp(String.raw`\b${key}\b`).test(strip(readFileSync(hop.file, "utf8")))) {
-          lost.push(`${hop.file} no longer reads "${key}" (${hop.why})`);
+          const [document, type] = hop.model.split("/");
+          if (!models[document]?.[type]?.schema.fields[name]) lost.push(`${hop.model} does not declare "${name}" (${hop.why})`);
+        } else if (!new RegExp(String.raw`\b${name}\b`).test(strip(readFileSync(hop.file, "utf8")))) {
+          lost.push(`${hop.file} no longer reads "${name}" (${hop.why})`);
         }
       }
       expect(lost.join(String.fromCharCode(10))).toBe("");

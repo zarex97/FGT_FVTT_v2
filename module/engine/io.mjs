@@ -401,6 +401,8 @@ export function worldIO() {
           // which is exactly how `visibility` and `attributionHidden` were lost
           // for three versions.
           sourceFieldId: e.sourceFieldId ?? null,
+          // The terrain it dies with, beside the field it dies with (#147).
+          sourceTerrain: e.sourceTerrain ?? null,
           unremovable: Boolean(e.unremovable),
           // Ch. 15 / Appendix A §A.18. Both have been on the instance schema
           // since `0.2.0` and this writer dropped both, so an effect could be
