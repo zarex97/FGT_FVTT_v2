@@ -47,10 +47,14 @@ targeting:
 damage:
   # "Base Attack (STR) and half of Base Attack (MAG) is used (BA=250)" --
   # 125 + (250 / 2). Authored as TWO SOURCES rather than as the literal 250, so
-  # a buff to either Parameter moves the half it should and no more.
-  sources:
-    - { unit: self, component: str, factor: 1 }
-    - { unit: self, component: mag, factor: 0.5 }
+  # a buff to either Parameter moves the half it should and no more. Under
+  # `base`, the long spelling; the short one (`sources:` at the top of the
+  # block) is read too since #135, when it was found being dropped for
+  # `component` below -- she dealt the STR half, 500 where the sheet says 1000.
+  base:
+    sources:
+      - { unit: self, component: str, factor: 1 }
+      - { unit: self, component: mag, factor: 0.5 }
   # What the attack counts AS for a predicate. STR, because the sheet's framing
   # is her Base Attack (STR) with half her MAG added -- the same shape EMIYA's
   # ranged band uses.

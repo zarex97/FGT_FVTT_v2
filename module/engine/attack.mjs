@@ -14,7 +14,7 @@
 
 import { computeDamage, isNPAttack, INJURY_THRESHOLD } from "../rules/damage/pipeline.mjs";
 import { ridersFire } from "../rules/damage/riders.mjs";
-import { expandInstances } from "../rules/damage/instances.mjs";
+import { expandInstances, damageBaseOf } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
 import { askOwner } from "./ask.mjs";
 import { resolveTargets, pendingChoiceErrors } from "../rules/targeting/resolve.mjs";
@@ -5001,10 +5001,11 @@ export function targetSpecForAttack(attacker, ability, options = null) {
  */
 function declaredBase(ability, options = null) {
   const dmg = resolvedDamage(ability, options);
-  if (dmg?.base) return dmg.base;
-
-  // A DECLARED component, which decides the arithmetic and not only what the
-  // attack counts as.
+  // One reader for the block's base attack: `base`, its own `sources`, or a
+  // single source built from a DECLARED `component` (`rules/damage/instances.mjs`).
+  // The resolution read `base` and then `component` only, so Xiuhcoatl's top-level
+  // `sources` lost to `component: str` and she dealt 500 where her sheet says
+  // 1000 (#135).
   //
   // `componentOf` has read `damage.component` since it was written -- so an
   // ability declaring `mag` was correctly exempt from the wrong half of Magic
@@ -5015,8 +5016,7 @@ function declaredBase(ability, options = null) {
   // multiplied BA(STR) 65 where her sheet says BA(MAG) 100, and EMIYA's
   // Hrunting and Caladbolg II, Medea's Aero and Rain of Light, and three of
   // Scáthach's four all did the same. Found live.
-  const declared = dmg?.component ?? null;
-  return declared ? { sources: [{ unit: "self", component: declared, factor: 1 }] } : null;
+  return damageBaseOf(dmg);
 }
 
 /**
@@ -5229,24 +5229,6 @@ export function attackIdentityOf(ability, options = null) {
 }
 
 /**
- * The ability that IS this Unit's Normal Attack right now, if one is.
- *
- * `actionSourceFor` answers the question against the board -- the condition is
- * *"while within Ramesseum Tentyris"*, and only the board knows where anybody
- * is standing -- and this maps its answer back onto the item document, because
- * that is what the declaration path needs.
- *
- * @param {object} self the attacker's board unit
- * @param {object} actor
- * @returns {object|null} the ability Item, or `null`
- */
-function replacingNormalAttack(self, actor) {
-  const source = actionSourceFor(self, boardSnapshot());
-  if (!source.ability) return null;
-  return actor.items.get(source.ability.id) ?? null;
-}
-
-/**
  * How many panels apart the two units are, or `null` when either has no panel.
  *
  * Chebyshev, which is what "at a Range of 3 or higher" counts: the attack-range
@@ -5282,7 +5264,7 @@ function attackDistance(attacker, defender) {
  */
 function componentOf(attacker, ability, options = null) {
   const dmg = resolvedDamage(ability, options);
-  const declared = dmg?.component ?? dmg?.base?.sources?.[0]?.component;
+  const declared = dmg?.component ?? damageBaseOf(dmg)?.sources?.[0]?.component;
   return declared ?? attacker?.system?.normalAttack?.component ?? "str";
 }
 

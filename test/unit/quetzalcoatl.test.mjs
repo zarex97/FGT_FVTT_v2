@@ -15,6 +15,8 @@ import { parse } from "yaml";
 import { lookupNumber } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
 import { aoePassengerFactor } from "../../module/rules/platforms.mjs";
+import { expectedDamage } from "../../module/rules/np-strength.mjs";
+import { damageBaseOf } from "../../module/rules/damage/instances.mjs";
 
 const R = (s) => Rank.parse(s);
 
@@ -160,8 +162,10 @@ describe("Xiuhcoatl", () => {
     const mag = lookupNumber("baseAttackMagByMag", R("EX"));
     expect(str + mag / 2).toBe(250);
     // Authored as two sources rather than the literal, so a buff to either
-    // Parameter moves the half it should.
-    expect(np.damage.sources).toEqual([
+    // Parameter moves the half it should. Under `damage.base`, the long
+    // spelling every reader has always known; what the engine DOES with them is
+    // proved below, on the real item.
+    expect(np.damage.base.sources).toEqual([
       { unit: "self", component: "str", factor: 1 },
       { unit: "self", component: "mag", factor: 0.5 },
     ]);
@@ -223,6 +227,53 @@ describe("Xiuhcoatl", () => {
     expect(zone.spec.shape).toBe("fortressNearby");
     // "until the Fortress NP is deactivated" -- not a duration.
     expect(zone.spec.duration).toBe(null);
+  });
+});
+
+// #135. Her primary authored its two sources at the top of the damage block; the
+// resolution read `damage.base`, failed, and built one source from
+// `component: str`, so she dealt the STR half of `BA = 250` and lost the rest.
+// The card, the preview and the ranking read the same way and agreed on 500.
+// A YAML-shape assertion cannot see that, so these go through the real item.
+describe("Xiuhcoatl's base attack, on the real item (#135)", () => {
+  beforeAll(prepareSubjects, 60_000);
+
+  const halves = [
+    { unit: "self", component: "str", factor: 1 },
+    { unit: "self", component: "mag", factor: 0.5 },
+  ];
+  const strOnly = [{ unit: "self", component: "str", factor: 1 }];
+
+  /** `damage` rewritten: the real item's block with another base under it. */
+  const variant = (sys, over) => ({ ...sys, damage: { ...sys.damage, base: undefined, sources: undefined, ...over } });
+  const onBoard = (fn) => withSubjects([{ from: "quetzalcoatl" }], ({ unit, world }) => {
+    const item = world.actor("quetzalcoatl").items.find((i) => i.system.contentId === "quetz-xiuhcoatl");
+    return fn({ item, sys: item.system.toObject?.() ?? item.system, self: unit("quetzalcoatl") });
+  });
+
+  it("is the real item that the corpus authors, with both halves on it", async () => {
+    const base = await onBoard(({ sys }) => damageBaseOf(sys.damage));
+    expect(base.sources).toEqual(halves);
+  });
+
+  it("deals the whole of 'BA(STR) plus half of BA(MAG)', not the STR half alone", async () => {
+    const [real, both, half] = await onBoard(({ item, sys, self }) => [
+      expectedDamage(item, self),
+      expectedDamage({ id: item.id, system: variant(sys, { base: { sources: halves } }) }, self),
+      expectedDamage({ id: item.id, system: variant(sys, { base: { sources: strOnly } }) }, self),
+    ]);
+    expect(real).toBe(both);
+    expect(real).toBeGreaterThan(half * 1.5);
+  });
+
+  it("reads the short spelling the same as the long one, wherever a block authors it", async () => {
+    // Nemo's two blocks author `damage.sources` and are right only because it
+    // equals their `component`; adding a factor to either must not drop it.
+    const [short, long] = await onBoard(({ item, sys, self }) => [
+      expectedDamage({ id: item.id, system: variant(sys, { sources: halves }) }, self),
+      expectedDamage({ id: item.id, system: variant(sys, { base: { sources: halves } }) }, self),
+    ]);
+    expect(short).toBe(long);
   });
 });
 

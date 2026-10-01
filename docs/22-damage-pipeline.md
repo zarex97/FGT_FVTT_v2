@@ -25,7 +25,7 @@ Each stage runs in order, capturing what it changed into the `breakdown` array. 
 
 0. **Precondition** (`module/rules/damage/pipeline.mjs:153`): Early exits in fixed precedence — Substitution, Anti-Purge, invulnerable-by-nature, element-to-heal conversion, Freeze broken by Fire, Dragonblight, Reflect. Any match halts the pipeline.
 
-1. **Base** (line 194): Select base attacks and their multipliers. `diceTotal` (Quickfire's counted dice), `fixedValue` (Barrel Bombing's flat 150), or sources from the ability's own `base` block.
+1. **Base** (line 194): Select base attacks and their multipliers. `diceTotal` (Quickfire's counted dice), `fixedValue` (Barrel Bombing's flat 150), or sources from the ability's own damage block, through one reader (`damageBaseOf`, `module/rules/damage/instances.mjs`): `base` when the block states one (`base: { sources: [...] }`, the long spelling), otherwise the block's own `sources: [...]` (the short one, which an aftermath has always used), otherwise one source built from `component`, and failing all three the Normal Attack's. The resolution, the card, the actor-sheet preview and the NP ranking all read it, so they cannot disagree. A block that declares both `base` and `sources`, or a key that is not in `DAMAGE_BLOCK_KEYS`, is refused by `validate:content`: the top-level `sources` of Xiuhcoatl's primary was dropped for `component: str`, so she dealt 500 where her sheet says 1000, and `damage` is one untyped `ObjectField` that no Silent Drop guard could see into (#135).
 
 2. **Crit** (line 295): Apply Attack+/Attack−. The `5d10` roll is applied to Base Attack **before** the multiplier, per the author's reference calculation placing it inside the bracket `[(200+35)×4×2+100]×…` — applying it after gives the wrong total.
 
