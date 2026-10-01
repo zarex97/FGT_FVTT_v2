@@ -62,10 +62,13 @@ describe("FlatDamage", () => {
     const skill = await subject({ from: "quetzalcoatl" }).then(
       (quetz) => quetz.modifiers.find((m) => m.key === "divinity" && m.source === "Goddess's Divine Core"),
     );
-    const [field] = contributions({ name: stone.name, rules: [stone.field.interior[0]] }).modifiers;
+    // The stone's +180 is HER passive rule, gated on the stone existing (#65), not a rule of its 7x7.
+    const [field] = contributions({ name: stone.name, rules: [stone.passiveRules[0]] }).modifiers;
     expect(skill).toMatchObject({ value: 120, sourceContentId: "quetz-goddesses-divine-core" });
     expect(field).toMatchObject({ value: 180, supersedes: ["quetz-goddesses-divine-core"] });
-    expect(flatOf([skill, field])).toBe(180);
+    // Its predicate -- the stone exists -- is the pipeline's to answer
+    // (`test/unit/piedra-owner-bonus.test.mjs`); this is about `supersedes`.
+    expect(flatOf([skill, { ...field, predicate: null }])).toBe(180);
     expect(flatOf([skill])).toBe(120);
   });
 });

@@ -188,7 +188,7 @@ export function collectContributions(abilities, ctx = {}) {
 // predicate also names `attack:kind:normal` and deferral is all-or-nothing —
 // a predicate that named field membership ALONE was silently dropped.
 const DEFERRED_PREFIXES = Object.freeze([
-  "target:", "attack:", "self:inHomeBase", "self:onPlatform:", "self:inField:",
+  "target:", "attack:", "self:inHomeBase", "self:onPlatform:", "self:inField:", "self:fieldActive:",
 ]);
 
 /**

@@ -683,7 +683,8 @@ describe("Piedra Del Sol", () => {
   });
 
   it("OVERRIDES the Divine Core rather than stacking with it", () => {
-    const flat = np.field.interior.find((r) => r.key === "FlatDamage");
+    // Hers, wherever she stands while the stone exists -- not the 7x7's (#65, ruling 5).
+    const flat = np.passiveRules.find((r) => r.key === "FlatDamage");
     expect(flat.value).toBe(180);
     expect(flat.supersedes).toEqual(["quetz-goddesses-divine-core"]);
     // The Skill it supersedes gives 120, so the reading is 180 and not 300.
@@ -691,12 +692,13 @@ describe("Piedra Del Sol", () => {
   });
 
   it("reduces her damage taken by 50% INCLUDING NP", () => {
-    const ward = np.field.interior.find((r) => r.key === "Ward");
+    const ward = np.passiveRules.find((r) => r.key === "Ward");
     // `npValue` equal to `value` is what "including NP" means: most defensive
     // percentages are halved against a Noble Phantasm and this one is not.
     expect(ward.value).toBe(50);
     expect(ward.npValue).toBe(50);
-    expect(ward.relations).toEqual(["self"]);
+    // Gated on the stone existing, on the DEFENDER -- her -- and not on where she stands.
+    expect(ward.predicate).toEqual(["target:fieldActive:quetz-piedra-del-sol"]);
   });
 
   it("burns enemies for 50 at their turn end, permanently while inside", () => {
