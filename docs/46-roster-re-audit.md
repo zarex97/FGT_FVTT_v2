@@ -2460,6 +2460,13 @@ Platforms, structures and panel-sharing Units are stood on, not pushed.
 target, and whether the Unit kept its footing, chose to drop, was caught by its Servant, or fell and took
 the Platform's damage.
 
+### CB. A Servant was offered to bring a Master who was already aboard — **fixed 2026-09-30**
+
+**Reached: HG.knock.save.** Heracles boarded from the ground with his Master on the deck above him and
+was asked *"Bring your Master aboard?"*. `mayBringMaster` measured i and j and nothing else. It now
+requires the Master on the Servant's own level, which is also what the Jump's *"Master directly next to
+it"* means.
+
 ---
 
 ---

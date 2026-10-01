@@ -566,7 +566,8 @@ describe("mayBringMaster (#24)", () => {
   // "A boarding Servant may bring its Master if the Master was within 2
   // panels." -- measured against where the Servant stood before boarding.
   it("allows a Master within 2 panels", () => {
-    const servant = { ...rider(), panel: at(5, 6) };
+    // On the ground, as a Servant about to board is: `rider()` stands aboard.
+    const servant = { ...rider(), level: 0, panel: at(5, 6) };
     const master = { id: "m", panel: at(5, 8) };
     expect(mayBringMaster(servant, master)).toBe(true);
   });
@@ -1051,5 +1052,21 @@ describe("boardingLanding", async () => {
     const got = boardingLanding(foe, garden, boardOf([foe]), [{ i: 4, j: 8 }]);
     expect(got).not.toEqual({ i: 4, j: 8 });
     expect(Math.max(Math.abs(got.i - 4), Math.abs(got.j - 8))).toBe(1);
+  });
+});
+
+// *"When an enemy Servant successfully boards the HGoB, it can bring its Master
+// with it if its Master was within a 2 panel area of it."* A Master already
+// aboard is not brought anywhere. On the Semiramis audit (#68) Heracles boarded
+// from under the garden with his Master standing on its deck above him, and was
+// asked "Bring your Master aboard?" -- the carry measured i and j and nothing
+// else (§46.4-CB).
+describe("mayBringMaster — the same level", () => {
+  it("offers a Master on the ground beside a Servant on the ground", () => {
+    expect(mayBringMaster({ panel: { i: 8, j: 6 }, level: 0 }, { panel: { i: 7, j: 6 }, level: 0 })).toBe(true);
+  });
+
+  it("does not offer a Master already standing on the platform", () => {
+    expect(mayBringMaster({ panel: { i: 8, j: 6 }, level: 0 }, { panel: { i: 8, j: 5 }, level: 20 })).toBe(false);
   });
 });
