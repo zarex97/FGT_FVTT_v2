@@ -484,6 +484,24 @@ export const NESTED_ROUTES = [
       { file: "module/engine/terrain.mjs", why: "the document is deleted when its ground is gone" },
     ],
   },
+  // A field's `Damage` action says what element it is and that it is Fixed; the
+  // action read neither, and nothing read an element on a bare damage intent (#154).
+  {
+    key: "element",
+    authored: ["packs/_source/abilities/quetz-piedra-del-sol.yml"],
+    hops: [
+      { file: "module/engine/fields.mjs", why: "the field's Damage action puts it on the intent" },
+      { file: "module/engine/applier.mjs", why: "resolveElements reads it off a bare damage intent" },
+      { file: "module/rules/damage/pipeline.mjs", why: "elementalEarlyExit is the one rule it asks, for stage 0 as well" },
+    ],
+  },
+  {
+    key: "fixed",
+    authored: ["packs/_source/abilities/quetz-piedra-del-sol.yml"],
+    hops: [
+      { file: "tools/lib/content.mjs", why: "the build refuses fixed: false, the one value a field Damage cannot honour" },
+    ],
+  },
 ];
 
 describe("every key nested in an untyped block survives its Route", () => {

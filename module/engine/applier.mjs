@@ -80,7 +80,7 @@ export async function applyIntents(intents, { io, canWrite, isGM = false, source
   // step in one of them would leave the other two applying bare effect intents.
   // That is the same "two implementations of one rule" defect this file's own
   // header warns about.
-  const plan = planApplication(await resolveEffects(intents), { canWrite, isGM });
+  const plan = planApplication(await resolveElements(await resolveEffects(intents)), { canWrite, isGM });
   if (plan.problems.length > 0) {
     throw new Error(
       `FGT | Refusing to apply a malformed intent batch from ${source}:\n  ${plan.problems.join("\n  ")}`,
@@ -222,6 +222,48 @@ export async function applyWorldIntents(intents, source) {
     isGM: game.user.isGM,
     source,
   });
+}
+
+/**
+ * Let an element act on damage that never ran the pipeline.
+ *
+ * *"Any Fire damage removes Freeze with no damage or effects"* and *"Burn
+ * damage is converted to healing by Flame Heal"* are stage 0 of the pipeline.
+ * A bare damage intent -- a field's `Damage` action, the terrain's Burning toll
+ * -- skips the pipeline, so its element did nothing: a Frozen enemy in Piedra
+ * Del Sol took the 50 and stayed Frozen. Asked here, of the same
+ * `elementalEarlyExit` stage 0 asks, for a damage intent that carries an
+ * `element` and no `breakdown`: heal instead of damage, or remove Freeze with
+ * no damage (#154).
+ *
+ * @param {Intent[]} intents
+ * @returns {Promise<Intent[]>}
+ */
+async function resolveElements(intents) {
+  const bare = (i) => i.t === "damage" && i.element && i.breakdown == null && i.unitId;
+  if (!intents.some(bare)) return intents;
+  // No world: a unit test applying against an injected `io`, with nobody to ask.
+  if (typeof game === "undefined" || !game?.actors) return intents;
+
+  const [{ elementalEarlyExit }, { unitSnapshot }] = await Promise.all([
+    import("../rules/damage/pipeline.mjs"),
+    import("./board.mjs"),
+  ]);
+
+  /** @type {Intent[]} */
+  const out = [];
+  for (const intent of intents) {
+    const target = bare(intent) ? game.actors.get(intent.unitId) : null;
+    const exit = target ? elementalEarlyExit(unitSnapshot(target), intent.element) : null;
+    if (exit?.kind === "heal") {
+      out.push(I.heal(intent.unitId, intent.amount, intent.source ?? exit.by));
+    } else if (exit?.kind === "freeze") {
+      out.push(I.removeEffect(intent.unitId, "freeze", "fire"));
+    } else {
+      out.push(intent);
+    }
+  }
+  return out;
 }
 
 /**

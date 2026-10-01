@@ -1083,8 +1083,14 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
         // A bare damage intent, never the pipeline: "not affected by any damage
         // modifying effects on EMIYA" is the same exemption periodic effect
         // damage carries, and running the pipeline would apply his Atk Up to it.
+        //
+        // The ELEMENT rides the intent: Piedra Del Sol's *"50 Fire damage"* is
+        // Fire, which breaks a Frozen enemy's Freeze instead of hurting it, and
+        // `resolveElements` is what reads it (#154). Always Fixed -- a field
+        // Damage cannot run the pipeline, so `fixed: false` is refused at build.
         out.push(I.damage(unit.id, rolled, null, {
           bypassModifiers: true, source: field.id, component: action.component ?? "str",
+          element: action.element ?? null,
         }));
         continue;
       }
