@@ -146,7 +146,7 @@ export const ABILITY_ROUTES = {
   description: doc("module/apps/actor-sheet/context.mjs", "the sheet's text"),
   element: doc("module/engine/attack.mjs", "the damage type of the use"),
   expendsPermanently: doc("module/engine/io.mjs", "spent at use"),
-  freeAction: doc("module/engine/attack.mjs", "the action budget"),
+  freeAction: doc("module/engine/attack-preflight.mjs", "the action budget"),
   isAttackSkill: doc("module/rules/ability-use.mjs", "classifies the use"),
   isMode: doc("module/rules/modes.mjs", "classifies the use"),
   isPassive: doc("module/rules/ability-use.mjs", "classifies the use"),

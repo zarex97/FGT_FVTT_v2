@@ -10,6 +10,7 @@ An ability is a Skill, Spell, or Noble Phantasm a Servant can use. Using one fol
 |---|---|
 | `module/rules/costs.mjs` | Cost kinds, gates (cooldown, expended, round, cost), and the first-refusal rule |
 | `module/rules/windows.mjs` | The timing window vocabulary, and which windows have dispatchers |
+| `module/engine/attack-preflight.mjs` | `attackPreflight`: every refusal a declaration can meet before it spends anything (Normal Attack ban, budget, `canUseAbility`, Master order limit, first-Round ban). Pure of the apps layer, so it can be run in a test |
 | `module/rules/ability-use.mjs` | Ability classification (attack/mode/active/passive), targeting specs, and usage specs |
 | `module/engine/skill-use.mjs` | The orchestration path for non-attack abilities — phases, effects, placement |
 | `module/engine/cooldown.mjs` | Cooldown creation, branched cooldowns, and waiver paths |

@@ -14,6 +14,7 @@ The algorithm is eleven steps plus two upfront checks. Each step narrows the sur
 | `module/rules/targeting/shapes.mjs` | Axis 2 shape expansion (chapter 05 handles the primitives) |
 | `module/rules/targeting/vocabulary.mjs` | Anchor and shape ids for the UI, paired with schematics and labels |
 | `module/rules/targeting/facing.mjs` | Facing prerequisites: front-quadrant checks, path-clear |
+| `module/engine/attack-preflight.mjs` | The gates a declaration passes before anything is spent or written, shared by `resolveAttack` and `performRidingAttack` (Ch. 19) |
 | `module/rules/legality.mjs` | Rendering refusals for the UI (hard/overridable/confirm) |
 | `module/apps/canvas/target-region.mjs` | Transient Region showing the area on the scene |
 | `module/apps/canvas/target-review.mjs` | Confirmation dialog listing chosen, excluded, and damage preview; its button reads *Attack* for an attack and *Use* otherwise (§46.4-CM) |
@@ -28,7 +29,7 @@ The algorithm is eleven steps plus two upfront checks. Each step narrows the sur
 
 ### The eleven main steps
 
-**1. Anchor** — Resolve where the area is placed from. Nine anchor kinds: `self`, `targetUnit`, `withinRange` (free panel), `selfEdgeAdjacent` (direction choice), `fieldEdge`, `zone`, `movementPath`, `platform`, `global`, `sourceOfAttack`. Each computes a panel (or panel set) where the shape expands. Range is measured from all panels a multi-panel unit occupies, not from a corner anchor alone (`module/rules/targeting/resolve.mjs:117-119`), and `targetUnit` measures it TO all panels of the target too: a 3x3 Bašmu or the 9x9 garden is in Range if any part of it is (§46.4-BT). A platform with Health to lose is attackable like any Unit; one without stays excluded as "a platform" (§46.4-BS).
+**1. Anchor** — Resolve where the area is placed from. Nine anchor kinds: `self`, `targetUnit`, `withinRange` (free panel), `selfEdgeAdjacent` (direction choice), `fieldEdge`, `zone`, `movementPath`, `platform`, `global`, `sourceOfAttack`. `movementPath` (with the `path` shape and `placement.path`) is how a Riding Attack's line goes through the survivor filters below (`rules/movement.mjs#ridingAttackPath`, Ch. 5): it used to bypass them as `pathTargets`, so a field's isolation, the cross-level rules and the targetability aura never applied to it (#114). Each computes a panel (or panel set) where the shape expands. Range is measured from all panels a multi-panel unit occupies, not from a corner anchor alone (`module/rules/targeting/resolve.mjs:117-119`), and `targetUnit` measures it TO all panels of the target too: a 3x3 Bašmu or the 9x9 garden is in Range if any part of it is (§46.4-BT). A platform with Health to lose is attackable like any Unit; one without stays excluded as "a platform" (§46.4-BS).
 
 **2. Shape** — Expand the area around the anchor. Thirteen shape kinds delegate to domain primitives (`chebyshevRadius`, `attackRange`, `rect`, `line`, `zone`) or targeting-specific constructors (`orientedRect` for direction-based placement). See chapter 05 for the geometry primitives (`module/rules/targeting/resolve.mjs:131-135`).
 

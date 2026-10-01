@@ -152,6 +152,14 @@ describe("per-unit limits sit on top of the pools", () => {
     expect(canConsume(emptyBudget(), rider, "move").ok).toBe(true);
   });
 
+  it("refuses a Riding Attack to an Immobilized unit: it is a Move, and Immobilize prevents Move (#114)", () => {
+    const stuck = servant("a", { effects: ["immobilize"] });
+    expect(canConsume(emptyBudget(), stuck, "move").ok).toBe(false);
+    expect(canConsume(emptyBudget(), stuck, "ridingAttack")).toMatchObject({ ok: false, reason: expect.stringMatching(/immobilize/) });
+    // ...while Immobilize does not stop an Attack that does not Move.
+    expect(canConsume(emptyBudget(), stuck, "attack").ok).toBe(true);
+  });
+
   it("makes Riding Attack terminal for that unit's turn", () => {
     const after = servant("a", { turnState: { usedRidingAttack: true } });
     expect(canConsume(emptyBudget(), after, "move").ok).toBe(false);

@@ -23,6 +23,7 @@ import { categoryRankOf } from "../../module/rules/items.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { resolveValue } from "../../module/rules/elements.mjs";
 import { ridingAttackPath, knockbackPanel } from "../../module/rules/movement.mjs";
+import { squareBounds } from "../../module/domain/geometry.mjs";
 import { allyReactions, abilitiesAtWindow } from "../../module/rules/reactions.mjs";
 import { luckChecksBlocked, withoutForeignEffects } from "../../module/rules/bounded-fields.mjs";
 import { resolveTargets } from "../../module/rules/targeting/resolve.mjs";
@@ -477,7 +478,9 @@ describe("Troias Tragōidia", () => {
 
   it("lets an ability state the ride's reach", () => {
     const unit = { id: "a", panel: { i: 5, j: 5 }, mov: 7, turnState: { movedPanels: 0 }, effects: [] };
-    const board = { units: [unit], bounds: { rows: 25, cols: 25 } };
+    // The Large Board, in the bounds shape the rules read. A ride is held to the
+    // board's edge now (#114), so a board whose bounds say nothing is no board.
+    const board = { units: [unit], bounds: squareBounds(25) };
     const far = { i: 5, j: 18 };
     expect(ridingAttackPath(unit, far, board).ok).toBe(false);
     expect(ridingAttackPath(unit, far, board, { distanceOverride: 13 }).ok).toBe(true);

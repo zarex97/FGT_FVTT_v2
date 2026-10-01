@@ -71,12 +71,20 @@ function withoutKeys(value) {
 /**
  * Build Units from authored content, put them in a world, and project them.
  *
+ * `tokens: true` stands a token on the panel of every Subject that has one, as a
+ * live board does, so an engine function that reads `currentBoard()` finds them;
+ * `combat` and `worldSettings` are the world's own (`test/helpers/world.mjs`),
+ * where `settings` is what the board snapshot is built from.
+ *
  * @param {SubjectSpec[]} specs
  * @param {(ctx: {units: object[], unit: (id: string) => object, board: object, world: object}) => unknown} fn
- * @param {{round?: number|null, tick?: number|null, settings?: object}} [opts]
+ * @param {{round?: number|null, tick?: number|null, settings?: object, tokens?: boolean,
+ *   combat?: object, worldSettings?: object}} [opts]
  * @returns {Promise<unknown>}
  */
-export async function withSubjects(specs, fn, { round = null, tick = null, settings = {} } = {}) {
+export async function withSubjects(specs, fn, {
+  round = null, tick = null, settings = {}, tokens = false, combat = undefined, worldSettings = undefined,
+} = {}) {
   await installSystem();
   const { library, docs, effects } = await corpus();
   const { EffectRegistry } = await import("../../module/rules/registry.mjs");
@@ -100,7 +108,14 @@ export async function withSubjects(specs, fn, { round = null, tick = null, setti
     };
   }));
 
-  return withWorld({ actors }, async (world) => {
+  // One panel is 100 pixels in the test world (`world.mjs`).
+  const placed = tokens
+    ? specs.flatMap((spec, n) => (spec.panel
+      ? [{ id: `token-${actors[n].id}`, actorId: actors[n].id, x: spec.panel.j * 100, y: spec.panel.i * 100 }]
+      : []))
+    : [];
+
+  return withWorld({ actors, tokens: placed, combat, settings: worldSettings }, async (world) => {
     for (const [n, spec] of specs.entries()) {
       if (!spec.effects?.length) continue;
       await world.actor(actors[n].id).createEmbeddedDocuments("ActiveEffect", spec.effects.map((system) => ({

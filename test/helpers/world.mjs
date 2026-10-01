@@ -574,7 +574,18 @@ export async function withWorld(spec, fn) {
       get: (id) => world.tokensFor(id)[0] ?? null,
       placeables: [...world.tokens.values()].map((t) => ({ actor: t.actor, document: t })),
     },
-    grid: { getTopLeftPoint: ({ i, j }) => ({ x: j * 100, y: i * 100 }) },
+    // One panel is 100 pixels. `getOffset` is the inverse of `getTopLeftPoint`,
+    // which `engine/board.mjs#panelOf` asks of every token, and `size` is what
+    // an engine placing a token by panel multiplies by (`riding.mjs` reads it
+    // off `canvas.scene.grid`).
+    grid: {
+      size: 100,
+      getTopLeftPoint: ({ i, j }) => ({ x: j * 100, y: i * 100 }),
+      getOffset: ({ x, y }) => ({ i: Math.floor(y / 100), j: Math.floor(x / 100) }),
+    },
+    // No Regions on it: a scene a test builds has no terrain, home bases or fields
+    // until it says so.
+    scene: { grid: { size: 100 }, regions: [] },
   };
   globalThis.Hooks = { callAll: (...args) => world.hooks.push(args), on: () => {}, once: () => {} };
   globalThis.ui = { notifications: { warn: () => {}, error: () => {}, info: () => {} } };

@@ -16,6 +16,7 @@
  */
 
 import { ridingAttackPath, remainingMovement } from "../rules/movement.mjs";
+import { attackPreflight } from "./attack-preflight.mjs";
 import { displaceToken } from "./io.mjs";
 import { hasGranted, GRANTS } from "../rules/granted.mjs";
 import { currentBoard } from "./board.mjs";
@@ -62,8 +63,21 @@ export async function performRidingAttack({ unitId, destination, abilityId = nul
   const ride = ability?.system?.ridingAttack ?? null;
   const plan = ridingAttackPath(unit, destination, board, {
     distanceOverride: typeof ride?.distance === "number" ? ride.distance : null,
+    // A field's boundary opens for a big enough Noble Phantasm, so its tags
+    // travel with the ride as they do with any other declaration.
+    npTags: [...(ability?.system?.npTags ?? [])],
   });
   if (!plan.ok) return { ok: false, reason: plan.reason };
+
+  // Every gate the attack will meet, asked BEFORE anything moves. This ran after
+  // the displacement, inside `resolveAttack`, and those gates throw: the
+  // first-Round ban, the 25-Health Master order limit, `canUseAbility` for a
+  // Noble Phantasm ride on cooldown. A refused ride left the token on its
+  // destination with `usedRidingAttack: true` and no attack made (#114).
+  const preflight = attackPreflight({
+    attacker: actor, abilityId, placement: {}, board, combat: game.combats.active,
+  });
+  if (!preflight.ok) return { ok: false, reason: preflight.message };
 
   // *"X = the amount of remaining MOV Achilles has divided by 2."* Captured
   // BEFORE the ride writes its own movement, and deliberately: the NP's

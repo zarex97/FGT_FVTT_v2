@@ -409,7 +409,7 @@ describe("Riding Attack from the interface (#113)", () => {
   it("has a string for each refusal the ride gives", async () => {
     const { readFileSync } = await import("node:fs");
     const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
-    for (const reason of ["dragToMove", "noDestinations"]) {
+    for (const reason of ["dragToMove", "noDestinations", "notStraight", "offBoard", "blocked", "cannotStop", "mounted"]) {
       expect(lang[`FGT.Action.Refusal.${reason}`], reason).toBeTruthy();
     }
   });

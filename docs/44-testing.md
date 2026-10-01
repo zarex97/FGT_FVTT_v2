@@ -135,7 +135,11 @@ them through the real compile, the real DataModel (via `keptByModel`, then the t
 the real prepare chain, `snapshotUnit` and `snapshotBoard`, with the registry loaded from the real effect
 definitions. A test may change what was **authored** (`with`), the **state** the world holds (`state`,
 `effects` as real ActiveEffects) and **where** a Unit stands (`panel`); it may never edit the projection,
-because the projection is what is under test. `subject(spec)` is the one-Unit form.
+because the projection is what is under test. `subject(spec)` is the one-Unit form. `{ tokens: true }` stands
+a token on the panel of every Unit that has one, so an engine function that reads `currentBoard()` finds the
+board; `combat` and `worldSettings` seed the world's own Combat and `fgt` settings (`settings` is what the
+board snapshot is built from). The world model carries `canvas.grid.getOffset` and `canvas.scene.grid.size`
+for it, which is what let `test/unit/riding-attack-order.test.mjs` run `performRidingAttack` for real (#114).
 
 `test/unit/home-base-cure.test.mjs` and the Affection of the Holy Grail aura block in
 `test/unit/kiritsugu.test.mjs` were the first two moved, and each goes red on the defect it was written

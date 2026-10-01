@@ -15,7 +15,7 @@
 import { rowsFor, slotFor, portraitBlock } from "./present.mjs";
 import { ticksLabel } from "../actor-sheet/present.mjs";
 import { availableActions } from "../../rules/actions.mjs";
-import { ridingDestinations } from "../../rules/movement.mjs";
+import { ridingDestinations, ridingRefusal } from "../../rules/movement.mjs";
 import { classifyAbility } from "../../rules/ability-use.mjs";
 import { answersACounter, counterMustCatchAttacker } from "../../rules/counter.mjs";
 import { canUseAbility } from "../../rules/costs.mjs";
@@ -612,7 +612,9 @@ export async function rideFrom(actor, { ability = null, context = {} } = {}) {
     distanceOverride: typeof reach === "number" ? reach : null,
   });
   if (panels.length === 0) {
-    ui.notifications.warn(refusalText("noDestinations"));
+    // Said with the reason when there is one: a mounted rider is not stuck, she
+    // is refused (#114).
+    ui.notifications.warn(refusalText(ridingRefusal(unit, board) ?? "noDestinations"));
     return;
   }
 

@@ -7,7 +7,8 @@
  * are unlocked by Riding's Active rather than being permanent.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
+import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import { ridingAttackPath, ridingDestinations, passengerDestination } from "../../module/rules/movement.mjs";
 import { squareBounds } from "../../module/domain/geometry.mjs";
 
@@ -29,10 +30,14 @@ describe("ridingAttackPath", () => {
     expect(out.hits.map((u) => u.id)).toEqual(["x", "y"]);
   });
 
-  it("includes whoever is standing on the destination", () => {
+  it("refuses a destination an enemy stands on", () => {
+    // This pinned the opposite -- "includes whoever is standing on the
+    // destination" -- while a drag refuses a panel anyone occupies (`canStopOn`).
+    // The exemption the clause grants is for an enemy IN THE LINE, not for one on
+    // the panel the ride ends on (#114).
     const end = unit("end", 5, 4);
     const out = ridingAttackPath(medusa, at(5, 4), board([medusa, end]), { movedAlready: 0 });
-    expect(out.hits.map((u) => u.id)).toEqual(["end"]);
+    expect(out).toMatchObject({ ok: false, reason: "cannotStop" });
   });
 
   it("does not hit an ally it rides past", () => {
@@ -74,6 +79,166 @@ describe("ridingAttackPath", () => {
 
   it("refuses standing still", () => {
     expect(ridingAttackPath(medusa, at(5, 1), board([medusa])).reason).toBe("noMovement");
+  });
+});
+
+describe("ridingAttackPath — the gates a drag and an attack both pass (#114)", () => {
+  // Latent while nothing could start a ride (#113). A drag passes `validatePath`
+  // (bounds, `canPassThrough`, `canStopOn`) and the pursuit and Decoy verdicts;
+  // an attack passes the targeting resolver's filters. The ride passed neither.
+  const rider = { ...medusa, panel: at(5, 10) };
+
+  it("refuses a ride that ends off the board", () => {
+    expect(ridingAttackPath(rider, at(5, 15), board([rider]), { movedAlready: 0 }))
+      .toMatchObject({ ok: false, reason: "offBoard" });
+  });
+
+  it("refuses a destination an ally stands on", () => {
+    const friend = unit("friend", 5, 6, { faction: "a", factionId: "a" });
+    expect(ridingAttackPath(medusa, at(5, 6), board([medusa, friend]), { movedAlready: 0 }))
+      .toMatchObject({ ok: false, reason: "cannotStop" });
+  });
+
+  it("rides THROUGH an enemy that is not on the destination, and hits it", () => {
+    // *"Can Attack all Units in its path"* -- the point of the clause. A drag
+    // would be stopped by the enemy; the ride is not.
+    const x = unit("x", 5, 3);
+    const out = ridingAttackPath(medusa, at(5, 4), board([medusa, x]), { movedAlready: 0 });
+    expect(out.ok).toBe(true);
+    expect(out.hits.map((u) => u.id)).toEqual(["x"]);
+  });
+
+  it("rides through an ally without hitting it", () => {
+    const friend = unit("friend", 5, 3, { faction: "a", factionId: "a" });
+    const out = ridingAttackPath(medusa, at(5, 4), board([medusa, friend]), { movedAlready: 0 });
+    expect(out).toMatchObject({ ok: true, hits: [] });
+  });
+
+  describe("an enemy Master whose Servant stands within 2 of it", () => {
+    const master = unit("mstr", 3, 5, { kind: "master" });
+    const guard = unit("g", 3, 7);
+
+    it("refuses a ride that ends beside it", () => {
+      // (4,5) is within 1 of the Master at (3,5): `canPassThrough` says no.
+      expect(ridingAttackPath({ ...medusa, panel: at(5, 5) }, at(4, 5), board([medusa, master, guard]), { movedAlready: 0 }))
+        .toMatchObject({ ok: false, reason: "blocked" });
+    });
+
+    it("refuses a ride that passes through its zone and ends outside it", () => {
+      // Along row 4 from (4,1) to (4,8): (4,4) to (4,6) are within 1 of (3,5).
+      const out = ridingAttackPath({ ...medusa, panel: at(4, 1) }, at(4, 8), board([medusa, master, guard]), { movedAlready: 0 });
+      expect(out).toMatchObject({ ok: false, reason: "blocked" });
+    });
+
+    it("lets it by once its Servant has left", () => {
+      const lone = board([medusa, master]);
+      expect(ridingAttackPath({ ...medusa, panel: at(4, 1) }, at(4, 8), lone, { movedAlready: 0 }).ok).toBe(true);
+    });
+  });
+
+  it("refuses a ride that leaves a field its rider may not leave", () => {
+    const sealed = {
+      id: "duel", ownerId: "m", npTags: [],
+      geometry: { kind: "fixedArea", shape: { kind: "square", size: 3 }, anchor: at(5, 2) },
+      membership: { allyEntry: "free", enemyEntry: "free", allyExit: "sealed", enemyExit: "sealed" },
+      isolation: {}, interior: [], vulnerabilities: [], state: {},
+    };
+    const b = { ...board([medusa]), fields: [sealed] };
+    // (5,1) is inside the 3x3 about (5,2); (5,3) is inside too, (5,5) is out.
+    expect(ridingAttackPath(medusa, at(5, 3), b, { movedAlready: 0 }).ok).toBe(true);
+    expect(ridingAttackPath(medusa, at(5, 5), b, { movedAlready: 0 })).toMatchObject({ ok: false, reason: "blocked" });
+  });
+
+  it("refuses a ride away from a Decoy, as a drag is", () => {
+    const decoy = unit("d", 5, 0, { faction: "b", factionId: "b" });
+    const pulled = { ...medusa, decoy: { sourceUnitId: "d" } };
+    const away = ridingAttackPath(pulled, at(5, 5), board([pulled, decoy]), { movedAlready: 0 });
+    expect(away.ok).toBe(false);
+    expect(away.reason).toMatch(/cannot Move away/);
+    expect(ridingAttackPath(pulled, at(4, 0), board([pulled, decoy]), { movedAlready: 0 }).ok).toBe(true);
+  });
+
+  it("refuses a Kagome Spirit's ride away from its prey, as a drag is", () => {
+    const prey = unit("prey", 5, 9);
+    const spirit = { ...medusa, panel: at(5, 5), pursuitTargetId: "prey" };
+    expect(ridingAttackPath(spirit, at(5, 3), board([spirit, prey]), { movedAlready: 0 }).ok).toBe(false);
+    expect(ridingAttackPath(spirit, at(5, 7), board([spirit, prey]), { movedAlready: 0 }).ok).toBe(true);
+  });
+
+  it("refuses a rider whose mount replaces her Move, so a ride cannot strand her off her deck", () => {
+    // Ruled only half-way: *"Quetz's Move and Normal Attack is replaced with
+    // Quetzalcoatlus'"*, but not what a Riding Attack is then. Refused with a
+    // stated reason until the author rules (#114 item 4).
+    const mount = { id: "mount", kind: "platform", level: 1, panel: at(5, 1), replacesRiderAction: { move: true, normalAttack: true, roles: ["owner"] } };
+    const aboard = { ...medusa, level: 1, platformId: "mount", ownerId: undefined };
+    const platform = { ...mount, ownerId: "m" };
+    expect(ridingAttackPath(aboard, at(5, 4), board([aboard, platform]), { movedAlready: 0 }))
+      .toMatchObject({ ok: false, reason: "mounted" });
+  });
+
+  describe("who it hits", () => {
+    const x = unit("x", 5, 3);
+
+    it("leaves a Unit on another Level alone, though it stands above the line", () => {
+      const above = unit("above", 5, 3, { level: 1 });
+      const out = ridingAttackPath(medusa, at(5, 6), board([medusa, above, x]), { movedAlready: 0 });
+      expect(out.hits.map((u) => u.id)).toEqual(["x"]);
+    });
+
+    it("leaves a platform and a Structure alone: terrain, not a Unit in the path", () => {
+      const hull = unit("hull", 5, 4, { kind: "platform", maxHealth: 500 });
+      const wall = unit("wall", 5, 5, { kind: "structure" });
+      const out = ridingAttackPath(medusa, at(5, 6), board([medusa, hull, wall, x]), { movedAlready: 0 });
+      expect(out.hits.map((u) => u.id)).toEqual(["x"]);
+    });
+
+    it("catches a multi-panel Unit by any panel of its footprint, not only its corner", () => {
+      const big = unit("big", 4, 3, { panels: [at(4, 3), at(4, 4), at(5, 3), at(5, 4)] });
+      const out = ridingAttackPath(medusa, at(5, 6), board([medusa, big]), { movedAlready: 0 });
+      expect(out.hits.map((u) => u.id)).toEqual(["big"]);
+    });
+
+    it("hits a Unit once, however many of its panels the line crosses", () => {
+      const big = unit("big", 4, 3, { panels: [at(4, 3), at(4, 4), at(5, 3), at(5, 4)] });
+      const out = ridingAttackPath(medusa, at(5, 6), board([medusa, big]), { movedAlready: 0 });
+      expect(out.hits).toHaveLength(1);
+    });
+
+    it("passes everyone through the targeting resolver's filters: a protected Unit is not hit", () => {
+      // Bašmu's aura -- *"Enemy Units cannot Attack Semiramis or her allied
+      // Units if a Bašmu is next to them"* -- is read by `resolveTargets` at
+      // step 8b, which `pathTargets` skipped.
+      const shielded = unit("shielded", 5, 4, { untargetableBy: [{ source: "Bašmu" }] });
+      const out = ridingAttackPath(medusa, at(5, 6), board([medusa, shielded, x]), { movedAlready: 0 });
+      expect(out.hits.map((u) => u.id)).toEqual(["x"]);
+    });
+  });
+});
+
+describe("a ground rider and the Quetzalcoatlus (#114)", () => {
+  beforeAll(prepareSubjects, 60_000);
+
+  // *"Quetz or her Master cannot be targeted for an Attack while they are Riding
+  // the Quetzalcoatlus."* The mount authors `crossLevel.occupantTargeting:
+  // forbidden` and flies on Level 1. `pathTargets` matched Units by `i` and `j`
+  // alone, so a rider on the ground hit whoever was aboard, and the mount.
+  // Built through the real projection: the Levels, the platform and the grants
+  // are all authored content.
+  const scene = (quetz) => withSubjects([
+    { from: "karna", id: "rider", state: { factionId: "red" }, panel: { i: 5, j: 1 } },
+    { from: "quetzalcoatlus", id: "mount", state: { factionId: "blue" }, panel: { i: 5, j: 4, k: 1 } },
+    { from: "quetzalcoatl", id: "quetz", state: { factionId: "blue" }, panel: quetz },
+  ], ({ unit, board }) => ridingAttackPath(unit("rider"), { i: 5, j: 7 }, board));
+
+  it("hits neither her nor the mount while she is aboard it", async () => {
+    const out = await scene({ i: 5, j: 4, k: 1 });
+    expect(out.ok).toBe(true);
+    expect(out.hits.map((u) => u.id)).toEqual([]);
+  });
+
+  it("hits her once she stands on the ground in the line, which is the control", async () => {
+    const out = await scene({ i: 5, j: 4 });
+    expect(out.hits.map((u) => u.id)).toEqual(["quetz"]);
   });
 });
 
