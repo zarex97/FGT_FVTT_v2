@@ -28,7 +28,6 @@ capacity: null
 level: 3
 crossLevel:
   occupantTargeting: forbidden
-  requiresBoarding: true
   aoePassengerFactor: 0
   aoeMastersImmune: true
   outboundTargeting: forbidden

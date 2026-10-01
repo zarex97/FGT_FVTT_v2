@@ -46,6 +46,16 @@ const WRITTEN_ELSEWHERE = {
 };
 
 /**
+ * Declared fields that are a BLOCK of sub-keys, each of which needs a reader of its
+ * own. The ledger looks at top-level fields, and a block is "read" by whoever reads
+ * the block -- so a sub-key nobody reads passed every guard: `crossLevel.requiresBoarding`
+ * was declared, authored on four platforms and read by nothing (#138). Only the blocks
+ * named here are descended into: a sub-key called `value` or `max` is "read" by every
+ * `.value` in the codebase, so descending everywhere would only dilute the net.
+ */
+const DESCEND = ["crossLevel"];
+
+/**
  * `sys.X` / `system.X` reads of names no schema declares that are not a
  * document's system at all, or are assigned onto the model during preparation.
  */
@@ -100,6 +110,12 @@ describe("the field ledger", () => {
         for (const key of Object.keys(model.schema.fields)) {
           if (!declared.has(key)) declared.set(key, []);
           declared.get(key).push(`${doc}/${type}`);
+          if (DESCEND.includes(key)) {
+            for (const sub of Object.keys(model.schema.fields[key].fields ?? {})) {
+              if (!declared.has(sub)) declared.set(sub, []);
+              declared.get(sub).push(`${doc}/${type}.${key}`);
+            }
+          }
         }
       }
     }

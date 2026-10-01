@@ -2,16 +2,16 @@
  * @file Platforms and levels.
  * @see docs/27-platforms-and-levels.md, docs/46-roster-re-audit.md C3
  *
- * `resolveTargets` has had a `crossLevelAllows` step since it was written, and
- * it is gated on `board.crossLevel` — which **nothing ever supplied**. So the
- * cross-level rule was implemented, called, and permanently inert.
+ * `resolveTargets` read a platform's protection through a `crossLevelAllows` step
+ * gated on a `board.crossLevel` map that **nothing ever supplied**, beside the
+ * `crossLevelLegal` step that is now its only reader (#138).
  */
 
 import { readFileSync } from "node:fs";
 
 import { describe, it, expect } from "vitest";
 import {
-  platformsOn, passengersOf, movePlatform, crossLevelRulesFor, crossLevelLegal,
+  platformsOn, passengersOf, movePlatform, crossLevelLegal,
   boardingTarget, canUnboard, upkeepDue, deactivatedBy, fallOff, destructionSequence, aoePassengerFactor,
   platformCentre, withinPlatformCentre, deactivationVerdict, actionSourceFor,
   boardablePlatform, mayBringMaster,
@@ -28,7 +28,7 @@ const platform = (over = {}) => ({
   panel: at(5, 5), footprint: { w: 3, h: 3 },
   capacity: null,
   crossLevel: {
-    occupantTargeting: "forbidden", requiresBoarding: true,
+    occupantTargeting: "forbidden",
     aoePassengerFactor: 0.5, aoeMastersImmune: false,
     outboundTargeting: "rangedOnly", forbidDirectlyBelow: true,
   },
@@ -223,22 +223,6 @@ describe("aoePassengerFactor", () => {
 
   it("does not soak anything for the platform itself", () => {
     expect(aoePassengerFactor(platform(), platform())).toBe(1);
-  });
-});
-
-/* ── Board projection ─────────────────────────────────────────────────────── */
-
-describe("crossLevelRulesFor", () => {
-  it("keys each platform's rules by its id, which is what the resolver reads", () => {
-    // `resolveTargets` has read `board.crossLevel[unit.platformId]` since it was
-    // written, and nothing ever built that map.
-    const rules = crossLevelRulesFor(boardOf([platform(), rider()]));
-
-    expect(rules.hgob).toMatchObject({ requiresRanged: true, untargetable: true });
-  });
-
-  it("is empty for a board with no platforms", () => {
-    expect(crossLevelRulesFor(boardOf([rider()]))).toEqual({});
   });
 });
 

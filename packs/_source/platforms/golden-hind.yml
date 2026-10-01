@@ -93,7 +93,10 @@ upkeep:
 # the vehicle and its passengers take different fractions.
 crossLevel:
   occupantTargeting: forbidden
-  requiresBoarding: true
+  # "Enemy Units cannot target Units onboard" -- Attacks, Skills, Spells and
+  # Noble Phantasms alike (#138).
+  protectedFrom: enemies
+  protectedAgainst: anything
   aoePassengerFactor: 0.5
   aoeMastersImmune: true
   outboundTargeting: rangedOnly

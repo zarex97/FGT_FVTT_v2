@@ -36,7 +36,7 @@ import { tierOf } from "./master-rank.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { closeAttributes } from "../domain/attributes.mjs";
 import { rollOptionsFor } from "./options.mjs";
-import { platformsOn, crossLevelRulesFor } from "./platforms.mjs";
+import { platformsOn } from "./platforms.mjs";
 import { annotateFields, withoutForeignEffects } from "./bounded-fields.mjs";
 import { CONCEALMENT } from "./concealment.mjs";
 
@@ -743,11 +743,7 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
     drawPolicy: settings.drawPolicy ?? "duplicates",
     homeBaseDepth: settings.homeBaseDepth ?? 3,
     grail: settings.grail ?? null,
-    // Overwritten by `annotatePlatforms` below when the board has any. The
-    // targeting resolver has read this map since it was written and nothing
-    // ever supplied one, so the whole cross-level rule was inert.
     fields: settings.fields ?? [],
-    crossLevel: settings.crossLevel ?? null,
     // `terrainAreasOf` (engine/board.mjs) computes this into `settings.terrain`,
     // exactly as `homeBaseZonesOf` does for `zones` immediately above -- and
     // this line read `scene.terrain`, a property no Scene document has, so
@@ -946,7 +942,6 @@ function annotatePlatforms(units, board) {
       u.platformContentId = aboard.contentId ?? null;
     }
   }
-  board.crossLevel = crossLevelRulesFor(board);
 }
 
 /**

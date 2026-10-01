@@ -55,7 +55,7 @@ Each stage runs in order, capturing what it changed into the `breakdown` array. 
 
 14. **Block** (line 880): A reaction that reduces damage by 25% (or higher with Block Up / Strengthen Block). Base 25% is a flat percentage applied here, undiminished against Noble Phantasms.
 
-15. **Total-Damage Modifiers** (line 919): Modifiers whose text explicitly says *"Total Damage"* — applied multiplicatively to the finished number, each independently.
+15. **Total-Damage Modifiers** (line 919): Modifiers whose text explicitly says *"Total Damage"* — applied multiplicatively to the finished number, each independently. Its producers are Cover (Ch. 32), an ability's own Total Damage clauses (Drake's broadside), and a platform's area tier: a Unit caught aboard a platform by an enemy area takes the platform's `aoePassengerFactor` here — Quetz's *"50% Total Damage"* — with a breakdown row naming the platform (`rules/platforms.mjs#platformTierModifiers`, Ch. 27 *Cross-level targeting*, #138).
 
 16. **Absorption and Clamp** (line 959): Shields absorb damage before it reaches Health. Freeze and Crystalfreeze negate attacks under 150 damage. Invuln negates all non-NP damage (NP halved at stage 15, then checked here). Petrify defeats outright if damage exceeds 200 in one attack.
 

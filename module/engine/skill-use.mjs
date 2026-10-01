@@ -287,7 +287,8 @@ export function resolveSkillTargets(ability, self, board, placement) {
     return { units: [{ unitId: self.id }], errors: [] };
   }
 
-  const resolved = resolveTargets(spec, self, board, placement);
+  // An EFFECT, not an Attack: a platform may bar one and let the other through (#138).
+  const resolved = resolveTargets(spec, self, board, { ...placement, reach: "effect" });
   // A choice still owed refuses. Without this a Skill called from a macro ran
   // its phases against nobody and still paid its cost and cooldown (#129).
   return { units: resolved.units, errors: [...resolved.errors, ...pendingChoiceErrors(resolved)] };
@@ -325,7 +326,7 @@ function phaseTargets(phase, resolved, actor, board) {
       ? board.units.find((u) => u.id === resolved[0].unitId)
       : null;
     const out = resolveTargets(
-      phase.targeting, self, board, first?.panel ? { panel: first.panel } : {},
+      phase.targeting, self, board, { ...(first?.panel ? { panel: first.panel } : {}), reach: "effect" },
     );
     return out.units;
   }

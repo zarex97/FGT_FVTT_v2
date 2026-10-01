@@ -87,7 +87,10 @@ boardingReliefAfter: [semiramis-hgob-dragon-wing-warriors]
 destroyedWithOwner: true
 crossLevel:
   occupantTargeting: forbidden
-  requiresBoarding: true
+  # "Enemy Units on the ground cannot target Units onboard" -- Attacks, Skills,
+  # Spells and Noble Phantasms alike (#138).
+  protectedFrom: enemies
+  protectedAgainst: anything
   aoePassengerFactor: 0
   aoeMastersImmune: false
   outboundTargeting: rangedOnly

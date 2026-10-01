@@ -237,13 +237,32 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   //     refuse both of its own Skills as melee. `allowDirectlyBelow` is the
   //     one axis an ability may overrule — Dragon Wing Warriors is *"Range=4
   //     plus the area under the HGoB"*.
+  //
+  //     WHAT is being done and to whom are asked as well (#138): `reach` says
+  //     whether this is an Attack (the attack paths) or an effect (the Skill
+  //     paths), and an AREA shape catches an occupant instead of targeting it,
+  //     which is the `aoe*` axes' business. An occupant kept at a tier below
+  //     full damage carries it out as `platformFactor`, for stage 15.
   const crossLevelOptions = {
     range: typeof spec.anchor?.range === "number" ? spec.anchor.range : null,
     allowDirectlyBelow: Boolean(spec.allowDirectlyBelow),
+    // The placement says what the resolution is; failing that the spec does
+    // (the targeting session's preview says so on the spec, because it calls
+    // `validate` and `legalPlacements`, which take no reach of their own);
+    // failing that it is an Attack, the more protected reading.
+    reach: placement?.reach ?? spec.reach ?? "attack",
+    // A single Unit or a single panel is aimed at; anything wider is an area.
+    area: !["unit", "point"].includes(spec.shape?.kind ?? "point"),
   };
+  /** @type {Map<string, {platformFactor: number, platformName: string}>} */
+  const tiers = new Map();
   survivors = survivors.filter((u) => {
     const verdict = crossLevelLegal(caster, u, board, crossLevelOptions);
-    return verdict.ok || drop(u, crossLevelReason(verdict.reason));
+    if (!verdict.ok) return drop(u, crossLevelReason(verdict.reason));
+    if (typeof verdict.factor === "number") {
+      tiers.set(u.id, { platformFactor: verdict.factor, platformName: verdict.platform });
+    }
+    return true;
   });
 
   // 4e. THE DECK. Aerial Garden of Vanity *"cannot hit under or above the
@@ -398,10 +417,6 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     );
   }
 
-  if (board.crossLevel) {
-    survivors = survivors.filter((u) => crossLevelAllows(caster, u, spec, board, warnings, drop));
-  }
-
   // 8b. TARGETABILITY AURA — Bašmu's protection: "Enemy Units cannot Attack
   // Semiramis or her allied Units if a Bašmu is next to them." Unlike Master
   // protection above, the sheet states no "unless" clause, so there is no
@@ -437,7 +452,7 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   }
 
   // 9. CHOOSER
-  const withMeta = survivors.map((u) => toTargeted(u, caster, bands));
+  const withMeta = survivors.map((u) => ({ ...toTargeted(u, caster, bands), ...(tiers.get(u.id) ?? {}) }));
   let chosen = withMeta;
   let needsChoice = false;
   /** @type {TargetedUnit[]} */
@@ -604,6 +619,7 @@ export function resolveTargets(spec, caster, board, placement = {}) {
 function crossLevelReason(reason) {
   switch (reason) {
     case "occupantsForbidden": return "aboard a platform that cannot be attacked into";
+    case "aoeMastersImmune": return "a Master aboard a platform, which takes no damage or effects from an area";
     case "requiresRanged": return "on another level; this reach is too short to attack across";
     case "outboundForbidden": return "on another level; this platform cannot attack off it";
     case "directlyBelow": return "directly below this platform, which cannot attack straight down";
@@ -1070,31 +1086,6 @@ function isProtectedMaster(unit, caster, board) {
   return guardsOf(unit, board).some(
     (u) => u.canAct !== false && u.panel && geo.chebyshev(u.panel, unit.panel) <= 1,
   );
-}
-
-/**
- * Cross-level rules are **per-platform**, not global (Ch. 27). The board
- * snapshot supplies the policy; this only enforces it.
- * @param {object} caster
- * @param {object} unit
- * @param {object} spec
- * @param {object} board
- * @param {string[]} warnings
- * @returns {boolean}
- */
-function crossLevelAllows(caster, unit, spec, board, warnings, drop) {
-  if ((unit.level ?? 0) === (caster.level ?? 0)) return true;
-  const rules = board.crossLevel?.[unit.platformId] ?? board.crossLevel?.default;
-  if (!rules) return true;
-  if (rules.requiresRanged && (spec.isMelee ?? false)) {
-    warnings.push(`Units aboard ${unit.platformId ?? "a platform"} can only be attacked with ranged Attacks.`);
-    return drop(unit, `on another level; ${unit.platformId ?? "that platform"} can only be attacked at range`);
-  }
-  if (rules.untargetable) {
-    warnings.push(`${unit.name ?? "A unit"} cannot be targeted while aboard ${unit.platformId}.`);
-    return drop(unit, `aboard ${unit.platformId}, which cannot be targeted`);
-  }
-  return true;
 }
 
 /**
