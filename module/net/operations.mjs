@@ -293,6 +293,35 @@ export const OPERATIONS = Object.freeze({
   },
 
   /**
+   * End a platform at its owner's word (#141).
+   *
+   * Proxied because ending one deletes its Scene Level, its Token and its Actor,
+   * none of which a player may do. The authorizer is narrow in WHO: the player
+   * who owns the Servant that owns the platform, and the GM. The lockout is not
+   * checked here but in `engine/platforms.mjs#deactivatePlatform`, which the GM
+   * runs, so it is a rule and not a hidden button.
+   */
+  deactivatePlatform: {
+    authorize: (payload, userId) => {
+      const user = game.users.get(userId);
+      if (!user) return { allowed: false, reason: "Unknown user." };
+      const platform = game.actors.get(payload.platformId);
+      if (!platform) return { allowed: false, reason: "Unknown platform." };
+      if (user.isGM) return { allowed: true, reason: null };
+
+      const owner = game.actors.get(platform.system?.ownerId);
+      if (!owner?.testUserPermission(user, "OWNER")) {
+        return { allowed: false, reason: `${user.name} does not own ${platform.name}.` };
+      }
+      return { allowed: true, reason: null };
+    },
+    execute: async (payload) => {
+      const { deactivatePlatform } = await import("../engine/platforms.mjs");
+      return deactivatePlatform({ platformId: payload.platformId });
+    },
+  },
+
+  /**
    * Draw the targeted area on the scene as a grid-shape Region.
    *
    * Proxied because players cannot create scene documents. The authorizer is

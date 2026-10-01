@@ -9,7 +9,7 @@ import {
   boardingTarget, fallOff, destructionSequence, passengersOf, mayBringMaster,
   canFallFrom, nearestFreePlatformPanel, rescuerFor,
   jumpVerdict, jumpLandings, attackedByReliefApplies, boardingLanding, fallFormula, destructionSaves, scatterPanels,
-  seatVerdict,
+  seatVerdict, platformDeactivation,
 } from "../rules/platforms.mjs";
 import { ROUND_RECORD } from "../domain/stamped-record.mjs";
 import { relationOf } from "../rules/relations.mjs";
@@ -516,6 +516,41 @@ async function askBringMaster(master, kind = "Jump") {
     ],
   });
   return (picked ?? [])[0] === "yes";
+}
+
+/**
+ * Switch a platform off at its owner's word.
+ *
+ * > *"This NP can be deactivated during Quetz's Turn or at the start or end of
+ * > any Round or Turn, but cannot be deactivated for 2◈ Turns after it was
+ * > activated."*
+ *
+ * The VOLUNTARY end, and the only one the lockout holds off: it re-checks the
+ * verdict here because the lockout is a rule and not a hidden button. A forced
+ * close -- an unpayable toll, an effect on the owner -- calls `destroyPlatform`
+ * and never asks (ruled, 2026-10-01). Whatever ends the mount starts the same
+ * cooldown, because every route off the board arrives at `destroyPlatform`.
+ *
+ * Runs on the GM's client: a player may not delete the Level, the Token or the
+ * Actor `destroyPlatform` removes, so the bar asks for it through the
+ * `deactivatePlatform` socket operation, which authorises the platform's owner.
+ *
+ * @param {object} args
+ * @param {string} args.platformId
+ * @returns {Promise<{ok: boolean, reason?: string, unlocksAt?: number}>}
+ */
+export async function deactivatePlatform({ platformId }) {
+  const platform = currentBoard().units.find((u) => u.id === platformId && u.kind === "platform");
+  if (!platform) return { ok: false, reason: "unknownUnitOrPlatform" };
+
+  const verdict = platformDeactivation(platform, platform.ownerId, {
+    tick: game.combat?.system?.globalTurn ?? 0,
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+  });
+  if (!verdict.ok) return verdict;
+
+  await destroyPlatform({ platformId });
+  return { ok: true };
 }
 
 /**

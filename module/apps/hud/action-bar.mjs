@@ -27,6 +27,7 @@ import { currentBoard, unitSnapshot, unitFrom, gateContext } from "../../engine/
 import * as budget from "../../engine/budget.mjs";
 import { mayDeactivate } from "../../engine/fields.mjs";
 import { mayReshape } from "../../rules/bounded-fields.mjs";
+import { deactivatablePlatforms } from "../../rules/platforms.mjs";
 import { FACINGS } from "../../domain/enums.mjs";
 import { resourceLabel } from "../../domain/resources.mjs";
 import { turnContext, TURN_ACTIONS } from "./turn-panel.mjs";
@@ -295,6 +296,25 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     }
 
+    // A platform is a Unit, never a field, so the loop above cannot see it: the
+    // Quetzalcoatlus and the Golden Hind both author `deactivation: { byOwner }`
+    // and nothing reached a player (#141). A mount inside its lockout is shown
+    // greyed with the moment it opens, rather than not shown.
+    const tick = game.combat?.system?.globalTurn ?? 0;
+    for (const { platform, verdict } of deactivatablePlatforms(unit, board, { tick, turnsPerRound })) {
+      const name = platform.name ?? platform.contentId ?? platform.id;
+      fields.push({
+        id: `end:${platform.id}`, name, img: null, icon: "fa-solid fa-circle-xmark",
+        cost: null, cooldown: null, ring: null,
+        disabled: !verdict.ok, reason: verdict.ok ? null : verdict.reason,
+        tooltip: verdict.ok
+          ? game.i18n.format("FGT.HUD.EndPlatform", { name })
+          : game.i18n.format("FGT.HUD.EndPlatformLocked", {
+            name, ticks: ticksLabel(Math.max(0, (verdict.unlocksAt ?? tick) - tick), turnsPerRound),
+          }),
+      });
+    }
+
     const pins = (game.user.getFlag("fgt", "pins") ?? {})[actor.id] ?? [];
 
     return {
@@ -389,6 +409,12 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     if (row === "fields") {
       const [what, fieldId] = id.split(":");
       const board = currentBoard();
+      // A platform's End slot (#141): a platform is a Unit, so it is never in
+      // `board.fields` and the lookup below would return.
+      const platform = what === "end"
+        ? (board.units ?? []).find((u) => u.id === fieldId && u.kind === "platform")
+        : null;
+      if (platform) return endPlatform(platform);
       const field = (board.fields ?? []).find((f) => f.id === fieldId);
       if (!field) return;
       if (what === "reshape") return reshape(field, unitFrom(board, actor));
@@ -637,6 +663,27 @@ export async function rideFrom(actor, { ability = null, context = {} } = {}) {
     destination,
   });
   if (result?.ok === false) ui.notifications.warn(refusalText(result.reason));
+}
+
+/**
+ * End a platform its unit owns.
+ *
+ * Asked of the GM through the typed `deactivatePlatform` operation, because
+ * ending one deletes a Scene Level, a Token and an Actor and a player may do
+ * none of them; the GM re-checks the lockout, so the greyed slot is not the
+ * only thing holding it.
+ *
+ * @param {object} platform the platform's snapshot
+ * @returns {Promise<void>}
+ */
+async function endPlatform(platform) {
+  const { FGTSocket } = await import("../../net/socket.mjs");
+  try {
+    const out = await FGTSocket.request("deactivatePlatform", { platformId: platform.id });
+    if (out?.ok === false) ui.notifications.warn(refusalText(out.reason));
+  } catch (err) {
+    ui.notifications.warn(err.message);
+  }
 }
 
 /**
