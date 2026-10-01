@@ -69,7 +69,7 @@ Fixed damage bypasses stages 2–15 entirely and goes straight to stage 16 (`mod
 
 1. **The `5d10` roll belongs to stage 2, not stage 1.** It is not a base-attack factor; it scales the base before the ability multiplier. Placing it after the multiplier reverses the author's reference calculation (`module/rules/damage/pipeline.mjs:284-287`).
 
-2. **Crit-damage percentages scale the roll only.** Attack− is never scaled by `critDmUp`, because a non-crit has no crit damage to modify (`module/rules/damage/pipeline.mjs:289-291`).
+2. **Crit-damage percentages scale the roll only.** Attack− is never scaled by `critDmUp`, because a non-crit has no crit damage to modify (`module/rules/damage/pipeline.mjs:289-291`). **And they are *"Not NP unless stated"*** (Appendix A: Crit DmUp; plain *"Not NP"* for Crit ResUp and Crit ResDwn): `sumCritMods` reads `critMagnitudeOf`, which against a Noble Phantasm is the clause's `npValue` and 0 where it states none, where `magnitudeOf` would fall back to the full `value` as it does for every other family. "Against a Noble Phantasm" is `isNPAttack` (`kind: "np"` or `categorizedAsNP`), exported once and shared with crit chance. After Lucha Libre Xiuhcoatl had been critting automatically and with +50% crit damage (#131).
 
 3. **Component-scoped modifiers contribute asymmetrically.** The shared part contributes to stage 4; the differential (STR vs MAG) contributes to stage 5 (`module/rules/damage/pipeline.mjs:409-414`).
 

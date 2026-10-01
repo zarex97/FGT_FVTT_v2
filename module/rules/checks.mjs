@@ -370,18 +370,30 @@ export function applicationChance({ base, inflictBonus = 0, resist = 0,
  * Guard` and `Bal Dwn` are the defender's, and they are authored as *incoming*
  * crit modifiers so a defender cannot accidentally raise its own crit rate.
  *
+ * **Not against a Noble Phantasm** (Appendix A: Crit Up and its kin are *"Not NP
+ * unless stated"*). Against one a modifier contributes the figure its clause
+ * STATES for an NP (`npValue`) and nothing otherwise -- Crit Up (Viy) is *"50%;
+ * if NP, 20%"* and is the only clause in the corpus that states one (#131).
+ * `G.Crit` and `No Crit` below are left as they were: the catalogue's note on
+ * them is for the review, not the ruling.
+ *
  * @param {object} attacker
  * @param {object} [defender]
  * @param {object} [options]
  * @param {number} [options.base]
+ * @param {boolean} [options.isNP] whether the attack is a Noble Phantasm, as
+ *   `rules/damage/pipeline.mjs#isNPAttack` says. When absent it is read off the
+ *   option `attack:kind:np`, which cannot see an attack the sheet only
+ *   categorizes as one.
  * @returns {{percent: number, automatic: boolean, blocked: boolean, modifiers: object[]}}
  */
-export function critChance(attacker, defender = null, { base = BASE_CRIT_CHANCE, options = null } = {}) {
+export function critChance(attacker, defender = null, { base = BASE_CRIT_CHANCE, options = null, isNP = null } = {}) {
   const held = attacker?.effects ?? [];
+  const np = isNP ?? Boolean(options?.has?.("attack:kind:np"));
 
   const modifiers = [
-    ...critModifiers(attacker, "outgoing", options),
-    ...critModifiers(defender, "incoming", options),
+    ...critModifiers(attacker, "outgoing", options, np),
+    ...critModifiers(defender, "incoming", options, np),
   ];
   const percent = base + modifiers.reduce((a, m) => a + m.value, 0);
 
@@ -399,17 +411,22 @@ export const BASE_CRIT_CHANCE = 50;
 /**
  * @param {object|null} unit
  * @param {"outgoing"|"incoming"} direction
+ * @param {Set<string>|null} [options]
+ * @param {boolean} [isNP] against a Noble Phantasm
  * @returns {Array<{source: string, value: number}>}
  */
-function critModifiers(unit, direction, options = null) {
+function critModifiers(unit, direction, options = null, isNP = false) {
   return (unit?.checkModifiers ?? [])
     .filter((m) => m.check === "crit" && (m.direction ?? "outgoing") === direction)
     .filter((m) => typeof m.value === "number" && m.value !== 0)
     .filter((m) => !m.predicate || (options ? testPredicate(m.predicate, { options }) : false))
-    // Against a Noble Phantasm, the figure the sheet states for one (#103).
+    // Against a Noble Phantasm, the figure the sheet states for one (#103), and
+    // NOTHING where it states none: the crit family is "Not NP unless stated"
+    // (#131). Listed at 0 rather than dropped, so a reader asking why Crit Up did
+    // nothing sees it was collected.
     .map((m) => ({
       source: m.source,
-      value: options?.has?.("attack:kind:np") && typeof m.npValue === "number" ? m.npValue : m.value,
+      value: isNP ? (typeof m.npValue === "number" ? m.npValue : 0) : m.value,
     }));
 }
 
