@@ -1113,3 +1113,27 @@ describe("rescuerFor — on the Master's own level", () => {
     expect(rescuerFor(master, { units: [master, servant] })).toBeNull();
   });
 });
+
+// *"The HGoB is destroyed when Semiramis is defeated or its Health drops to
+// 0."* Neither trigger existed: a platform at 0 Health was defeated like a Unit
+// and stayed in the air, and Semiramis's defeat left her garden flying. Only an
+// effect on the owner (`deactivateOn`) or an unpaid upkeep ever destroyed one
+// (§46.4-CH).
+describe("platformsDestroyedBy", async () => {
+  const { platformsDestroyedBy } = await import("../../module/rules/platforms.mjs");
+  const garden = { id: "hgob", kind: "platform", ownerId: "sem", destroyedWithOwner: true };
+  const hind = { id: "hind", kind: "platform", ownerId: "drake" };
+  const board = { units: [garden, hind, { id: "sem", kind: "servant" }, { id: "drake", kind: "servant" }] };
+
+  it("destroys a platform that is itself defeated", () => {
+    expect(platformsDestroyedBy("hind", board)).toEqual(["hind"]);
+  });
+
+  it("destroys a platform whose sheet says it goes with its owner", () => {
+    expect(platformsDestroyedBy("sem", board)).toEqual(["hgob"]);
+  });
+
+  it("leaves one whose sheet says nothing of its owner", () => {
+    expect(platformsDestroyedBy("drake", board)).toEqual([]);
+  });
+});

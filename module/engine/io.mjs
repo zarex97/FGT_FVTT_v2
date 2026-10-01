@@ -256,6 +256,16 @@ export function worldIO() {
      *
      * @param {string} unitId
      */
+    async destroyPlatformsOf(unitId) {
+      if (!game.user?.isGM) return;
+      const { currentBoard } = await import("./board.mjs");
+      const { platformsDestroyedBy } = await import("../rules/platforms.mjs");
+      const ids = platformsDestroyedBy(unitId, currentBoard());
+      if (ids.length === 0) return;
+      const { destroyPlatform } = await import("./platforms.mjs");
+      for (const id of ids) await destroyPlatform({ platformId: id });
+    },
+
     async defeatIfLethal(unitId) {
       if (!game.user?.isGM) return;
       const actor = resolve(unitId);

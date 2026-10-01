@@ -80,6 +80,8 @@ This call (`module/rules/targeting/resolve.mjs:229-245`) runs at step 4d of the 
 
 ### Destruction and scattering
 
+**What destroys one.** A platform whose Health reaches 0 is defeated like a Unit, and a defeated platform is destroyed; one that authors `destroyedWithOwner` (the Hanging Gardens: *"destroyed when Semiramis is defeated"*) is destroyed with its owner. The applier's `defeat` case asks `io.destroyPlatformsOf`, which reads `rules/platforms.mjs#platformsDestroyedBy`. Before §46.4-CH only an effect on the owner (`deactivateOn`) or an unpaid upkeep ever destroyed a platform.
+
 When a platform is destroyed, the sequence is ordered and the order matters (`module/rules/platforms.mjs:591-615`):
 
 1. **Save.** Passengers roll to avoid damage from the platform's destruction.

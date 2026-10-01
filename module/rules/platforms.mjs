@@ -941,6 +941,31 @@ export function fallOff(unit, platform, {
 }
 
 /**
+ * The platforms a defeat takes with it.
+ *
+ * > *"The HGoB is destroyed when Semiramis is defeated or its Health drops to
+ * > 0."*
+ *
+ * A platform that is itself defeated -- its Health gone -- is destroyed; a
+ * Unit at 0 stays on the board until the chain says otherwise, a platform in
+ * the air does not. One whose sheet says it goes with its owner
+ * (`destroyedWithOwner`) is destroyed when its owner is. Neither trigger
+ * existed (Ch. 46 §46.4-CH).
+ *
+ * @param {string} defeatedId
+ * @param {object} board
+ * @returns {string[]} platform ids
+ */
+export function platformsDestroyedBy(defeatedId, board) {
+  const units = board?.units ?? [];
+  const self = units.find((u) => u.id === defeatedId);
+  if (self?.kind === "platform") return [self.id];
+  return units
+    .filter((u) => u.kind === "platform" && u.ownerId === defeatedId && u.destroyedWithOwner === true)
+    .map((u) => u.id);
+}
+
+/**
  * A fall's damage formula, as a Roll can read it.
  *
  * Authored the way the sheets print it -- *"(10*2d6)"*, written `10x2d6` in

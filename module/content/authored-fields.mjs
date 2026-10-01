@@ -23,6 +23,8 @@ export const AUTHORED_ACTOR_KEYS = Object.freeze([
   "countsAsHomeBase", "deactivation", "undamageable", "cannotHoldItems",
   // The Hanging Gardens' boarding relief after Dragon Wing Warriors (#68).
   "boardingReliefAfter",
+  // The Hanging Gardens is destroyed when Semiramis is defeated (#68).
+  "destroyedWithOwner",
   // The Golden Hind's three: a boarding roll of its own, riders it will not
   // let off, and effects on its OWNER that switch it off.
   "boarding", "lockAboard", "deactivateOn", "knockOff",
