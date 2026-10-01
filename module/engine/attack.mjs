@@ -3454,6 +3454,18 @@ function siblingInjuryTotals(state) {
  * @param {number} damage
  * @returns {Promise<object[]>} intents: a revive, or a defeat, or neither
  */
+/**
+ * The defeat chain for a Unit at 0 Health that no attack put there -- a Poison
+ * tick, a fall, a drain (Ch. 46 §46.4-CE). The same chain an attack runs, with
+ * nobody as the killer.
+ *
+ * @param {object} unit a board snapshot, its Health already spent
+ * @returns {Promise<object[]>}
+ */
+export async function defeatFromDamage(unit) {
+  return resolveDefeatOf(unit, 0, {});
+}
+
 async function resolveDefeatOf(defender, damage, state = {}) {
   // `defender` is a SNAPSHOT, whose `health` is a flat number. Reading
   // `.value` off it gave `undefined`, the `?? 0` made every defender look

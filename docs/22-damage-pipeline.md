@@ -79,6 +79,8 @@ Fixed damage bypasses stages 2–15 entirely and goes straight to stage 16 (`mod
 
 6. **Injury Threshold is 100.** Damage exceeding this requires an Injury Roll, checked at stage 16 before shields and Freeze apply (`module/rules/damage/pipeline.mjs:34`, line 966).
 
+7. **Damage from outside an attack can defeat.** A Poison tick, a fall, a drain: any damage intent without a breakdown runs `io.defeatIfLethal` after it lands, which offers revivals through the attack path's own `resolveDefeatOf` (`attack.mjs#defeatFromDamage`), with nobody as the killer. Only the attack path ever resolved a defeat, so such damage left Units standing at 0 Health (§46.4-CE).
+
 ## Traps and anti-patterns
 
 **Confusing fixed damage with fixed values.** `base.fixedValue` and `attack.isFixedDamage` are independent. Nemo's Barrel Bombing states *"150 Fire damage"* and *"not affected by damaging modifying effects **on Nemo**"* — a flat value with a one-sided bypass. Gating fixed values on `isFixedDamage` meant a stated number could only be used by attacks that bypassed both sides, so Barrel Bombing dealt ZERO because stage 1 fell through to a `sources` list it did not have. Found in a live world. **Decouple the two: `base.fixedValue` specifies the number; `attack.isFixedDamage` specifies the scope** (`module/rules/damage/pipeline.mjs:229-246`).

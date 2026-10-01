@@ -115,6 +115,22 @@ describe("applyIntents", () => {
     expect(adjust[0][2]).toBe(-400);
   });
 
+  // Damage that no attack dealt -- a Poison tick, a fall off the Hanging
+  // Gardens, Mad Enhancement's drain -- never reached the defeat chain, which
+  // only the attack path ran. On the Semiramis audit (#68) Heracles sat at 0
+  // Health, not defeated, and a fall dealt him more (§46.4-CE).
+  it("asks whether damage from outside an attack was lethal", async () => {
+    const io = fakeIo();
+    await applyIntents([I.damage("a", 80, null, { source: "poison" })], { io, canWrite: ownsA });
+    expect(io.calls.find(([n]) => n === "defeatIfLethal")).toEqual(["defeatIfLethal", "a"]);
+  });
+
+  it("leaves an attack's damage to the attack, which resolves its own defeat", async () => {
+    const io = fakeIo();
+    await applyIntents([I.damage("a", 80, [{ stage: "base" }])], { io, canWrite: ownsA });
+    expect(io.calls.find(([n]) => n === "defeatIfLethal")).toBeUndefined();
+  });
+
   it("sends healing as a positive adjustment", async () => {
     const io = fakeIo();
     await applyIntents([I.heal("a", 50, "regen")], { io, canWrite: ownsA });
