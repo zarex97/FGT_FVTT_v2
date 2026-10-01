@@ -14,8 +14,9 @@ type: platform
 attributes: [giant, beast]
 baseHealth: 1000
 agility: 16
-# "Luck: Shared with Quetz's" -- a number that is not a number, resolved at
-# placement from the summoner's live value, the way the Kagome Spirits' are.
+# "Luck: Shared with Quetz's" -- ONE POOL with hers (ruled, 2026-10-01), not a
+# number copied at the cast: the board reads her CURRENT Luck as the mount's,
+# and a Luck either of them spends comes out of hers. Never stored on the mount.
 inherit:
   luck: { from: summoner }
 mov: 7

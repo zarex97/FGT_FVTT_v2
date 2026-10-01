@@ -2258,6 +2258,10 @@ async function summonPlatform(phase, actor, board) {
   // Kagome Spirits' relative stats.
   for (const [stat, rule] of Object.entries(data.system.inherit ?? {})) {
     if (rule?.from !== "summoner") continue;
+    // Luck is NOT copied: "Shared with" is one pool with hers, read off the owner
+    // by the board projection and spent from her by `io.adjustStat` (#162). A
+    // copy was her MAXIMUM at the cast, and the two drifted with every check.
+    if (stat === "luck") continue;
     const base = actor.system?.[stat]?.max ?? actor.system?.[stat]?.value ?? 0;
     const value = Math.max(0, base + (rule.delta ?? 0));
     data.system[stat] = { value, max: value };

@@ -52,6 +52,27 @@ export function platformsOn(board) {
 }
 
 /**
+ * Whose Luck pool this platform is.
+ *
+ * > *"Luck: Shared with Quetz's"* -- the Quetzalcoatlus. *"Luck: Shared with Drake"* -- the Golden Hind.
+ *
+ * A platform that authors `inherit.luck: { from: summoner }` has no Luck of its
+ * own: it is one pool with its owner's (ruled, 2026-10-01), so what it reads is
+ * hers and what it spends is hers. The projection reads her CURRENT value onto it
+ * (`rules/snapshot.mjs#annotatePlatforms`) and `engine/io.mjs#adjustStat` spends
+ * from her. A copy taken at the cast was her MAXIMUM, and the two drifted apart
+ * with every Luck Check either made (#162).
+ *
+ * @param {object} platform a platform snapshot
+ * @param {object[]} units the board's units
+ * @returns {object|null} the owner, or `null` when the platform shares nothing
+ */
+export function luckOwnerOf(platform, units) {
+  if (platform?.kind !== "platform" || !platform.luckFromSummoner) return null;
+  return (units ?? []).find((u) => u.id === platform.ownerId) ?? null;
+}
+
+/**
  * The content ids of the platforms an ability raises.
  *
  * Reads the ability's `summonPlatform` phases. Accepts the ability in EITHER
