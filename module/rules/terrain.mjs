@@ -279,6 +279,7 @@ export function terrainEffects(unit, board) {
  */
 export function annotateTerrain(units, board) {
   for (const u of units ?? []) {
+    sweepTerrainEffects(u, board);
     const effects = terrainEffects(u, board);
     u.terrain = effects.types;
     u.terrainEffects = effects;
@@ -286,6 +287,58 @@ export function annotateTerrain(units, board) {
       u.modifiers = [...(u.modifiers ?? []), ...effects.modifiers];
     }
   }
+}
+
+/**
+ * The terrain TYPES a panel holds for real: a `labelOnly` area names the ground
+ * and carries none of its clauses, so it keeps no effect alive either.
+ *
+ * @param {{i: number, j: number}|null|undefined} panel
+ * @param {object} board
+ * @returns {string[]}
+ */
+function realTerrainAt(panel, board) {
+  if (!panel) return [];
+  return [...new Set(terrainAreasAt(panel, board).filter((a) => !a.labelOnly).map((a) => a.type))];
+}
+
+/**
+ * The effect instances tied to terrain that a panel no longer carries.
+ *
+ * Burning's *"this Burn does not expire and cannot be removed"* is while the
+ * Unit is INSIDE, and an instance names the terrain type that put it there
+ * (`sourceTerrain`). The mirror of a field-tied effect, and swept the same way:
+ * on where the bearer stands, never on an exit event, which can fail to fire
+ * (#147).
+ *
+ * @param {object[]} instances
+ * @param {{i: number, j: number}|null|undefined} panel
+ * @param {object} board
+ * @returns {object[]} the instances to drop
+ */
+export function leftTerrainEffects(instances, panel, board) {
+  const tied = (instances ?? []).filter((e) => e?.sourceTerrain);
+  if (tied.length === 0) return [];
+  const here = realTerrainAt(panel, board);
+  return tied.filter((e) => !here.includes(e.sourceTerrain));
+}
+
+/**
+ * Stop the snapshot reading a terrain-tied effect whose terrain the Unit is not on.
+ *
+ * The snapshot half. The matching document deletion lives in
+ * `engine/terrain.mjs`, so storage does not accumulate what the board already
+ * refuses to read.
+ *
+ * @param {object} unit
+ * @param {object} board
+ * @returns {void}
+ */
+function sweepTerrainEffects(unit, board) {
+  const gone = leftTerrainEffects(unit?.effectInstances, unit?.panel, board);
+  if (gone.length === 0) return;
+  unit.effectInstances = unit.effectInstances.filter((e) => !gone.includes(e));
+  unit.effects = unit.effectInstances.map((e) => e.defId ?? e);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -305,9 +358,13 @@ const PERIODICS = Object.freeze({
   burning: [
     // "All units are inflicted with Burn at the end of every Turn. While
     // inside, this Burn does not expire and cannot be removed."
+    //
+    // PERMANENT and TIED to the terrain: the intent says so (`permanent`, and
+    // `whileInside` becomes `sourceTerrain`), because an emitted `expiry:
+    // null` is only "not stated" and Burn's own 2◈ would answer it (#147).
     {
       when: "turnEnd", kind: "applyEffect", effectId: "burn",
-      duration: null, unremovable: true,
+      duration: null, permanent: true, unremovable: true, whileInside: true,
       // "Units with ANY resistance to Burn or Fire damage are not inflicted."
       unlessAnyEffect: ["flamHeal", "fireResist", "burnImmune"],
     },

@@ -69,6 +69,8 @@ A unit standing inside the field applies a set of modifier rules keyed on its re
 | `actedTurnEnd` | every Unit that Acted this Turn, any faction | Sikera Ušum, Blood Fort Andromeda's Master and Servant tiers, Jack's Mist's acted half |
 | `anyTurnEnd` | every Unit, whoever's Turn it was | Blood Fort Andromeda's and Ramesseum Tentyris' Civilian tiers |
 
+**An interior `ApplyEffect` can say how long the effect lasts.** *"…inflicted with Burn; this Burn debuff is permanent as long as the Unit is within the Piedra Del Sol area."* A `duration` the action authors as `null` is *permanent* (the instance gets no expiry, whatever the effect's own `defaultDuration` is); an **absent** `duration` is the definition's own, and a string (`"1◈"`) is that long. `unremovable: true` is forwarded to the instance, and `tiedToField: true` makes it live only while its bearer stands in this field (`sourceFieldId`, swept by `annotateFields` on membership and deleted by `dropLeftFieldEffects` on a move and by `endField` when the field closes). The sheet says only that the Burn is *no longer permanent* once the Unit leaves; the tie ends it outright, which is an unruled reading (the other is a Burn that reverts to its ordinary 2◈). The action reaches the instance through the intent's `permanent` and `unremovable` flags (Ch. 15) — before #147 neither was read, and Burn lasted its default 2◈ and could be cleansed while the Unit stood in the stone.
+
 ### Axis 5: Duration and Extension
 
 A field has an expiry tick, absolute like every other expiry in the system (`module/engine/fields.mjs:235-238`). At the expiry, the field closes unless paid extension buys more time (`module/engine/fields.mjs:680-691`).

@@ -25,6 +25,8 @@
 
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { chebyshevDisc } from "../domain/geometry.mjs";
+import { leftTerrainEffects } from "../rules/terrain.mjs";
+import { currentBoard } from "./board.mjs";
 
 export const Terrain = {
   /** Register the hooks. Idempotent per Foundry session; GM-gated internally. */
@@ -131,7 +133,9 @@ export async function paintTerrain({
   if (!Array.isArray(types) || types.length === 0) return { ok: false, reason: "noTypes" };
   if (!Array.isArray(panels) || panels.length === 0) return { ok: false, reason: "noPanels" };
 
-  await clearTerrain(tag);
+  // Not the sweep: this is a repaint, the area is about to exist again, and a
+  // terrain-tied effect must not be taken in the instant between.
+  await clearTerrain(tag, { sweep: false });
 
   const size = scene.grid.size;
   const shapes = panels.map((p) => ({
@@ -165,15 +169,62 @@ export async function paintTerrain({
  * Erase every area a tag created.
  *
  * @param {string} tag
+ * @param {object} [opts]
+ * @param {boolean} [opts.sweep] also take away the effects that area was keeping alive
  * @returns {Promise<{ok: boolean, removed: number}>}
  */
-export async function clearTerrain(tag) {
+export async function clearTerrain(tag, { sweep = true } = {}) {
   const scene = canvas?.scene;
   if (!scene || !tag) return { ok: false, removed: 0 };
   const ids = terrainRegionsFor(tag).map((r) => r.id);
   if (ids.length === 0) return { ok: true, removed: 0 };
   await scene.deleteEmbeddedDocuments("Region", ids);
+  if (sweep) await dropStrandedTerrainEffects();
   return { ok: true, removed: ids.length };
+}
+
+/**
+ * Delete the terrain-tied effects an actor carries that the ground at `panel`
+ * does not hold.
+ *
+ * Burning's Burn *"does not expire and cannot be removed"* while its bearer is
+ * inside, and ends on leaving. The snapshot already stops reading it
+ * (`rules/terrain.mjs#annotateTerrain`); this takes the document away too, so
+ * the sheet agrees with the board -- the mirror of
+ * `movement-hooks.mjs#dropLeftFieldEffects` (#147).
+ *
+ * @param {object} actor
+ * @param {{i: number, j: number}|null} panel where the actor stands, or is about to
+ * @param {object} [board]
+ * @returns {Promise<number>} how many effects were deleted
+ */
+export async function dropLeftTerrainEffects(actor, panel, board = currentBoard()) {
+  const tied = [...(actor?.effects ?? [])].filter((e) => e.system?.sourceTerrain);
+  if (tied.length === 0) return 0;
+  const gone = leftTerrainEffects(
+    tied.map((e) => ({ id: e.id, sourceTerrain: e.system.sourceTerrain })), panel, board,
+  );
+  if (gone.length === 0) return 0;
+  await actor.deleteEmbeddedDocuments("ActiveEffect", gone.map((e) => e.id));
+  return gone.length;
+}
+
+/**
+ * Every Unit on the board, asked whether the ground still holds what it carries.
+ *
+ * For the moment an AREA goes -- it expired, or its cause ended -- under a Unit
+ * that has not moved, which `dropLeftTerrainEffects` on a move never sees.
+ *
+ * @returns {Promise<number>} how many effects were deleted
+ */
+export async function dropStrandedTerrainEffects() {
+  const board = currentBoard();
+  let dropped = 0;
+  for (const unit of board.units ?? []) {
+    const actor = game.actors?.get(unit.id);
+    if (actor) dropped += await dropLeftTerrainEffects(actor, unit.panel, board);
+  }
+  return dropped;
 }
 
 /**
@@ -244,6 +295,7 @@ export async function expireTerrain(tick) {
   if (doomed.size === 0) return 0;
 
   await scene.deleteEmbeddedDocuments("Region", [...doomed]);
+  await dropStrandedTerrainEffects();
   return doomed.size;
 }
 

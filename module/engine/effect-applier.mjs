@@ -37,6 +37,41 @@ const MENTAL_EXCLUSIVITY = Object.freeze({
 const SLEEP_DERIVATIVES = Object.freeze(["nightmare", "coma"]);
 
 /**
+ * The instance the flow built, with what the EMITTER stated and the flow cannot know.
+ *
+ * Pulled out of `applier.mjs#resolveEffects` so a test reaches it without a
+ * world. Three things come from the intent, not the flow:
+ *
+ * - **The expiry**, when the emitter computed one: it knows the duration this
+ *   application was authored with, and the flow recomputes from the
+ *   definition's default, which is not the same thing. A `permanent` intent
+ *   has none at all. `expiry: null` alone is NOT permanent: it is "not
+ *   stated", and the flow's answer stands (#147).
+ * - **`unremovable`**, ORed with the definition's.
+ * - **The inflicter**, so Secret Poison can ask which instances a Unit inflicted.
+ *
+ * @param {object} flowIntent an `applyEffect` intent `applyEffect` returned
+ * @param {object} emitted the `applyEffect` intent that was resolved
+ * @returns {object}
+ */
+export function mergeEmitted(flowIntent, emitted) {
+  if (flowIntent.t !== "applyEffect") return flowIntent;
+  const stated = emitted.effect ?? {};
+  return {
+    ...flowIntent,
+    effect: {
+      ...flowIntent.effect,
+      expiry: stated.permanent ? null : (stated.expiry ?? flowIntent.effect.expiry),
+      unremovable: Boolean(flowIntent.effect.unremovable) || Boolean(stated.unremovable),
+      // The SOURCE has to survive the round trip: Secret Poison is disclosed by
+      // asking "which instances did this Unit inflict", and an instance that
+      // lost its inflicter can never be revealed.
+      sourceUnitId: flowIntent.effect.sourceUnitId ?? stated.sourceUnitId ?? emitted.sourceId ?? null,
+    },
+  };
+}
+
+/**
  * Apply one effect to one target.
  *
  * @param {object} args
@@ -45,8 +80,14 @@ const SLEEP_DERIVATIVES = Object.freeze(["nightmare", "coma"]);
  * @param {number} [args.magnitude]
  * @param {number|null} [args.npMagnitude] the reduced magnitude against an NP
  * @param {string|number|null} [args.duration] a ◈ expression
- * @param {object} args.source `{unitId, abilityId, fieldId}` -- `fieldId` ties
- *   the instance to a bounded field, which `annotateFields` sweeps on
+ * @param {boolean} [args.permanent] the instance has NO expiry, whatever the
+ *   definition's `defaultDuration` says. `duration: null` cannot say it: that
+ *   is "not stated", and the definition's default answers it (#147)
+ * @param {boolean} [args.unremovable] the instance cannot be removed, whatever
+ *   the definition says; ORed with the definition's own flag
+ * @param {object} args.source `{unitId, abilityId, fieldId, terrain}` -- `fieldId`
+ *   ties the instance to a bounded field, which `annotateFields` sweeps on;
+ *   `terrain` ties it to a terrain type, which `annotateTerrain` sweeps on
  * @param {object} args.ctx `{turnsPerRound, currentTick, roll, inflictBonus, resist}`
  * @param {object[]} [args.chanceModifiers] per-effect modifiers the ability declares
  * @param {number|null} [args.chance] the ability's own stated chance, which
@@ -61,6 +102,7 @@ export function applyEffect({
   def, target, magnitude = 0, npMagnitude = null, duration = null, source, ctx,
   chanceModifiers = [], chance = null, stages = 1, bypassChanceModifiers = false,
   visibility = "public", attributionHidden = false, uses = null,
+  permanent = false, unremovable = false,
 }) {
   /** @type {Array<{step: string, outcome: string, detail?: string}>} */
   const trace = [];
@@ -244,7 +286,11 @@ export function applyEffect({
   // gives it no duration at all, because it runs until it is cured), and it was
   // applied, staged to 1, and removed at the end of the same Round having dealt
   // nothing.
-  const authored = duration ?? def.defaultDuration ?? null;
+  //
+  // `permanent` is the one way to say "never" for an effect whose definition
+  // HAS a default: Burn lasts 2◈ unless something says it does not, and an
+  // emitted `null` means only that nobody stated a duration (#147).
+  const authored = permanent ? null : (duration ?? def.defaultDuration ?? null);
   const base = authored === null ? INFINITE : resolveTicks(parseTick(authored), ctx);
   // Mannanán's *Tradition Carrier*: *"the duration of buffs are extended by ⅓◈
   // extra Turns when applied to Mannanán."* Applied HERE, to the resolved tick
@@ -283,9 +329,15 @@ export function applyEffect({
     // bearer happens to be standing -- an ordinary debuff applied inside a
     // field is not the field's.
     sourceFieldId: source?.fieldId ?? null,
+    // The terrain TYPE that put this here, if one did: Burning's *"this Burn
+    // does not expire and cannot be removed"* while inside. `annotateTerrain`
+    // sweeps on it exactly as `annotateFields` does on the field (#147).
+    sourceTerrain: source?.terrain ?? null,
     polarity: def.polarity,
     volatility: def.volatility,
-    unremovable: Boolean(def.unremovable),
+    // The intent's own flag ORs the definition's: Burn is removable in general
+    // and not while it is Piedra Del Sol's.
+    unremovable: Boolean(def.unremovable) || Boolean(unremovable),
     // Deferred disclosure (Appendix A §A.18). Both fields have been on the
     // instance schema since `0.2.0` and NOTHING wrote either of them, so
     // Secret Poison had a place to live and no way to get there.

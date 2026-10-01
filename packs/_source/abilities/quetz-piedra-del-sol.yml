@@ -91,7 +91,12 @@ field:
         - { key: Damage, amount: 50, element: fire, fixed: true }
         # "permanent as long as the Unit is within the area": no duration and
         # unremovable, which is also what the Burning terrain's own clause says.
-        - { key: ApplyEffect, effect: { id: burn }, duration: null, unremovable: true }
+        # `duration: null` is PERMANENT (an absent duration is "the effect's
+        # own"), and `tiedToField` is what ends it on leaving the area or the
+        # stone closing -- the sheet says only that it is no longer permanent
+        # once the Unit leaves, and this ends it outright (an unruled reading;
+        # the other is a Burn that reverts to its ordinary 2◈).
+        - { key: ApplyEffect, effect: { id: burn }, duration: null, unremovable: true, tiedToField: true }
   # Axis 5 -- duration. There is none; the upkeep is what limits it.
   upkeep:
     every: "1◈"

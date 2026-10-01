@@ -252,7 +252,7 @@ async function resolveEffects(intents) {
   // than failing -- the flow is exercised directly by its own tests.
   if (typeof game === "undefined" || !game?.actors) return intents;
 
-  const [{ applyEffect, inflictBonusOf }, { EffectRegistry }, { unitSnapshot, unitFrom }] = await Promise.all([
+  const [{ applyEffect, inflictBonusOf, mergeEmitted }, { EffectRegistry }, { unitSnapshot, unitFrom }] = await Promise.all([
     import("./effect-applier.mjs"),
     import("../rules/registry.mjs"),
     import("./board.mjs"),
@@ -330,7 +330,14 @@ async function resolveEffects(intents) {
         // object does not is dropped here -- which is exactly what happened to
         // the Complex's Curse the first time it was fired live.
         fieldId: intent.effect.sourceFieldId ?? null,
+        // The terrain type that applied it, for the same reason (#147).
+        terrain: intent.effect.sourceTerrain ?? null,
       },
+      // What the emitter states about the instance itself (#147): `permanent`
+      // is "no expiry at all" where `expiry: null` is only "not stated", and
+      // `unremovable` adds to the definition's own flag.
+      permanent: Boolean(intent.effect.permanent),
+      unremovable: Boolean(intent.effect.unremovable),
       ctx: {
         turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
         currentTick: game.combat?.system?.globalTurn ?? 0,
@@ -344,19 +351,7 @@ async function resolveEffects(intents) {
     // The expiry was already computed by whoever emitted the intent, and it
     // knows the duration this application was authored with; the flow recomputes
     // from the definition's default, which is not the same thing.
-    out.push(...result.intents.map((i) => (i.t === "applyEffect"
-      ? {
-        ...i,
-        effect: {
-          ...i.effect,
-          expiry: intent.effect.expiry ?? i.effect.expiry,
-          // The SOURCE has to survive the round trip: Secret Poison is
-          // disclosed by asking "which instances did this Unit inflict", and an
-          // instance that lost its inflicter can never be revealed.
-          sourceUnitId: i.effect.sourceUnitId ?? intent.effect.sourceUnitId ?? intent.sourceId ?? null,
-        },
-      }
-      : i)));
+    out.push(...result.intents.map((i) => mergeEmitted(i, intent)));
 
     // What the effect does as it LANDS, once: Shock's *"maximum and current
     // Agility are reduced by 3"*. The maximum is derived and comes back when

@@ -1329,6 +1329,8 @@ function effectInstances(actor) {
       // projected here, because a field-tied effect that the board cannot see
       // as field-tied is an ordinary permanent debuff.
       sourceFieldId: e.system?.sourceFieldId ?? null,
+      // What `annotateTerrain`'s sweep reads, for the same reason (#147).
+      sourceTerrain: e.system?.sourceTerrain ?? null,
       // Deferred disclosure. Projected because the periodic tick has to know
       // that this instance's damage is not to be attributed -- the tally it
       // feeds is the "total Poison Damage taken" Serenity's sheet reveals when

@@ -1216,6 +1216,13 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
           // Poison and Curse arrived at stage 0.
           stage: action.effect?.stage ?? 0,
           expiry: ticks === null ? null : (game.combat?.system?.globalTurn ?? 0) + ticks,
+          // *"…this Burn debuff is permanent as long as the Unit is within the
+          // area."* A `duration` the action AUTHORS as `null` is "never";
+          // an absent one is "the definition's own" -- and the emitted
+          // `expiry: null` cannot tell them apart, which is how Burn lasted
+          // its default 2◈ (#147).
+          ...(Object.hasOwn(action, "duration") && action.duration === null ? { permanent: true } : {}),
+          unremovable: Boolean(action.unremovable),
           sourceUnitId: field.ownerId,
           // *"It is automatically removed after leaving the Complex."* The tie
           // that `annotateFields`' sweep reads: this instance lives exactly as
