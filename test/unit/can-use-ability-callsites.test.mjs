@@ -38,6 +38,7 @@ const CALLERS = [
   "module/apps/hud/action-bar.mjs",
   "module/apps/actor-sheet/context.mjs",
   "module/engine/attack.mjs",
+  "module/engine/attack-preflight.mjs",
   "module/engine/skill-use.mjs",
 ];
 
@@ -86,7 +87,11 @@ describe("canUseAbility call sites", () => {
   it("sees every call in the attack path, not only the first", () => {
     // resolveAttack, runCounter, the Noble Phantasm cancellation's offer and
     // its price.
-    expect(callArguments(readFileSync("module/engine/attack.mjs", "utf8")).length).toBe(4);
+    // resolveAttack's gate moved to `attack-preflight.mjs` so a Riding Attack can ask it before it
+    // moves the token (#114): the path is the two files together.
+    const path = ["module/engine/attack.mjs", "module/engine/attack-preflight.mjs"]
+      .map((f) => callArguments(readFileSync(f, "utf8")).length);
+    expect(path.reduce((a, b) => a + b, 0)).toBe(4);
   });
 
   it("the sheet's cards gate on the board's Unit, as the bar does (#158)", () => {
