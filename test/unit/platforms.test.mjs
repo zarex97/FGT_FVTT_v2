@@ -1097,3 +1097,19 @@ describe("a fall's own numbers", async () => {
     expect(toIntents).toMatch(/I\.defeat\(d\.unitId, "overpowered"/);
   });
 });
+
+// *"If a Master who is directly next to its Servant fails its Agility Check,
+// its Servant can perform an Agility Check too."* Next to it on the deck: a
+// Servant on the ground twenty feet below catches nobody. `rescuerFor`
+// measured i and j only (§46.4-CG).
+describe("rescuerFor — on the Master's own level", () => {
+  const master = { id: "m", kind: "master", level: 20, panel: { i: 7, j: 2 } };
+  it("finds the Servant beside the Master on the deck", () => {
+    const servant = { id: "s", kind: "servant", masterId: "m", level: 20, panel: { i: 8, j: 3 } };
+    expect(rescuerFor(master, { units: [master, servant] })?.id).toBe("s");
+  });
+  it("does not find one standing on the ground below", () => {
+    const servant = { id: "s", kind: "servant", masterId: "m", level: 0, panel: { i: 8, j: 3 } };
+    expect(rescuerFor(master, { units: [master, servant] })).toBeNull();
+  });
+});
