@@ -94,12 +94,23 @@ the same right-and-inert shape the programme exists to find, expressed in prose 
 Run it in this order. The order is not decoration: steps 1–3 are cheap and catch the errors that
 would otherwise invalidate every measurement taken after them.
 
-1. **Get the Clause list.** `node tools/extract-clauses.mjs "<Servant>"` emits it from the Character
-   Sheet, grouped by Ability, in the field order the tracker issue uses. It emits everything it
-   finds and never drops a line, but it prints to stderr what it could not place — a rule stated
-   with neither a number nor a timing marker, a Clause whose ref a human has to name — and settling
-   those is step 1's real work. A Clause that goes missing here and is not noticed is the same
-   defect as a Clause an auditor skipped, which is the shape this whole programme exists to find.
+1. **Build the Clause list by hand, from the Character Sheet.** Read it line by line and write one
+   Clause per rule that can fail on its own — a different mechanism, number, trigger or subject is
+   a different Clause — under the Unit or Ability that owns it. A summon, a mount or a platform with
+   a statblock of its own is its own group, with **one** statblock Clause. Name every line that is
+   deliberately not a Clause, and put every sentence the sheet leaves open under *Readings to
+   settle*, with the reading the authored content took. The Servant's audit issue is opened then,
+   with that list, and added to the roster tracker, #112. A Clause that goes missing here and is
+   not noticed is the same defect as a Clause an auditor skipped, which is the shape this whole
+   programme exists to find.
+
+   `node tools/extract-clauses.mjs "<Servant>"` still prints a first draft, and its stderr is worth
+   reading, but **its output is never the list**. On both sheets held against it by hand it dropped
+   rules in silence, filed prose as rules, split a summon's statblock into one Clause per line,
+   filed a Unit's rules under whichever Ability was open, filed a paragraph shared by three Spells
+   under the last of them, and bundled sentences whose halves fail independently (#73) —
+   Quetzalcoatl's generated 56 Clauses became 113 by hand. The twenty-four generated issues still
+   waiting were deleted, unworked, on 2026-09-30.
 2. **Check the statblock against the Character Sheet, field by field.** Parameters, Base Health,
    MOV, Range and targets, Base Attack, Sustainability, alignment, region, attributes. Two of those
    are *expected* to disagree with the printed sheet and the engine is right both times — Max Health

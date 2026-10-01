@@ -27,7 +27,7 @@ This chapter covers two halves. The first half is the **build pipeline**: YAML s
 | `tools/check-world.mjs` | Holds the test world to a live one, and proves Foundry's two client-side Silent Drops live (`npm run check:world`) |
 | `tools/lib/eslint-client-traps.mjs` | The `fgt/client-traps` lint rule: `update()` after `updateSource()`, `updateSource()` in a `preUpdate`, a `preCreate` edit to `data` |
 | `tools/smoke-world.mjs` | Load a world in real Foundry, join, and fail if it does not come up; local gate, not CI (`tools/smoke-world.mjs:22-43`) |
-| `tools/extract-clauses.mjs` | Turn a Character Sheet into the Clause task list an audit issue needs; step 1 of the per-Servant procedure (`tools/extract-clauses.mjs:1-22`) |
+| `tools/extract-clauses.mjs` | A first draft of a Servant's Clause list from its Character Sheet — never the list itself, which step 1 of the per-Servant procedure builds by hand (`tools/extract-clauses.mjs:1-22`) |
 
 ## How it works
 
@@ -71,17 +71,19 @@ These scripts drive a real Foundry application over the Chrome DevTools Protocol
 
 ### The Clause extractor
 
-`tools/extract-clauses.mjs` reads a Character Sheet from `char_orig_sheets/` and emits the Clause task list a Servant's audit issue carries — one line per Clause, grouped under its Ability, every Clause starting at `Untouched` ([Ch. 46 §46.1](46-roster-re-audit.md)). It exists because transcribing them by hand is the audit programme's mechanical bulk: roughly six to nine hundred Clauses across twenty-six Servants.
+`tools/extract-clauses.mjs` reads a Character Sheet from `char_orig_sheets/` and emits a **first draft** of the Clause task list a Servant's audit issue carries — one line per Clause, grouped under its Ability, every Clause starting at `Untouched` ([Ch. 46 §46.1](46-roster-re-audit.md)). It was written to be the list, because transcribing Clauses by hand looked like the audit programme's mechanical bulk.
+
+**It is not the list, and an audit issue is built by hand.** Both sheets held against its output were wrong in ways a reader trusts by accident: Semiramis' 114 Clauses became 104, and Quetzalcoatl's 56 became 113. It drops a preamble line that is not a statblock field in silence, files prose that introduces a list as a rule, splits a summon's statblock into one Clause per line, files a Unit's rules under whichever Ability was open, files a paragraph three Spells share under the last of them, and bundles sentences whose halves fail independently (#73). The twenty-four generated audit issues were deleted unworked on 2026-09-30; each is now opened when its audit starts, from a hand-built list, under the roster tracker #112.
 
 ```
-node tools/extract-clauses.mjs Asterios          # the list, on stdout
+node tools/extract-clauses.mjs Asterios          # the draft, on stdout
 node tools/extract-clauses.mjs --all --count     # how large each Servant's audit is
 node tools/extract-clauses.mjs Dioscuri --json   # the parse, for another tool to read
 ```
 
 The parsing lives in `tools/lib/clauses.mjs` and is pure, so it is tested against the whole corpus rather than against a fixture (`test/unit/clauses.test.mjs`).
 
-**Its failure mode is the one the audit programme exists to find**, so it is built to be loud rather than tidy: anything the grammar cannot place is still emitted as a Clause *and* reported on stderr with the line it came from. A short list that looked complete would manufacture, twenty-six times over, exactly the silent omission an audit is supposed to catch. What it reports is real work, not noise — a rule stated with neither a number nor a timing marker, a numbered list that restarts inside one Ability, two Clauses whose refs would collide, and the Clause a human has to name because the sheet states it in an Ability's opening line rather than as a numbered item.
+**Its failure mode is the one the audit programme exists to find**, so it was built to be loud rather than tidy: anything the grammar cannot place is meant to be emitted as a Clause *and* reported on stderr with the line it came from. It does not yet manage that for every line — #73's preamble lines go in silence — which is one more reason its output is a draft. A short list that looked complete would manufacture, twenty-six times over, exactly the silent omission an audit is supposed to catch. What it reports is real work, not noise — a rule stated with neither a number nor a timing marker, a numbered list that restarts inside one Ability, two Clauses whose refs would collide, and the Clause a human has to name because the sheet states it in an Ability's opening line rather than as a numbered item.
 
 **A ref is assembled from three parts, once**: the Unit tag on a sheet describing more than one Unit, the Ability's abbreviation, and the suffix. Asterios reads `ME.1`; Castor's half of the linked pair reads `CA.TGDC.p1`, because an unscoped sheet with four Units on it emits four Clauses called `SB` and a finding citing one of them names four Units. It is assembled when the Clause is made rather than patched afterwards, so that every warning quoting a ref names one that appears in the output — a warning pointing at a ref nobody can find sends the auditor looking for nothing.
 
