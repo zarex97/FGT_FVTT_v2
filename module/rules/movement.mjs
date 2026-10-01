@@ -368,6 +368,50 @@ export function passengerDestination(from, to, master, bounds = null) {
 }
 
 /**
+ * Where a Master lands when his Servant moves, judged against the board as it
+ * will be AFTER her move.
+ *
+ * The carry runs from `moveToken`, where Foundry still reports the Servant at
+ * her ORIGIN until the animation ends (`engine/io.mjs`; §46.4-BZ recorded the
+ * same timing for knockback). So the board still stands her on her origin
+ * panel, and a Master exactly one move behind her -- which includes the ordinary
+ * 1-panel follow -- lands on that panel: `occupantAt` found her there and the
+ * carry refused with "the landing panel is occupied" (#118). This treats her as
+ * already standing on `destination`, with her footprint translated to it, before
+ * it asks who holds the landing. A board that has already caught up (a Riding
+ * Attack's carry, after the displacement) gives the same answer.
+ *
+ * Bounds and a panel held by SOMEONE ELSE still refuse.
+ *
+ * @param {object} servant the Servant's snapshot
+ * @param {object} master the Master's snapshot
+ * @param {GridOffset} origin where the Servant was
+ * @param {GridOffset} destination where she is going, or now is
+ * @param {object} board
+ * @returns {{ok: true, panel: GridOffset}|{ok: false, reason: "offBoard"|"panelOccupied"}}
+ */
+export function passengerLanding(servant, master, origin, destination, board) {
+  const panel = passengerDestination(origin, destination, master.panel, board?.bounds ?? null);
+  if (!panel) return { ok: false, reason: "offBoard" };
+  // A delta of zero carries nobody anywhere.
+  if (panel.i === master.panel.i && panel.j === master.panel.j) return { ok: true, panel };
+
+  // The Servant where she will stand, whatever the board says: her footprint
+  // keeps its shape about her anchor and is moved onto the destination.
+  const anchor = servant.panel ?? origin;
+  const footprint = (servant.panels ?? [anchor]).map((p) => ({
+    ...p, i: p.i - anchor.i + destination.i, j: p.j - anchor.j + destination.j,
+  }));
+  const arrived = { ...servant, panel: { ...anchor, i: destination.i, j: destination.j }, panels: footprint };
+  const after = { ...board, units: (board?.units ?? []).map((u) => (u.id === servant.id ? arrived : u)) };
+
+  // Another Unit on the landing. The Master is not his own obstacle: it is a
+  // different panel from the one he leaves.
+  const holder = occupantsAt(panel, after, master.level ?? 0).find((u) => u.id !== master.id);
+  return holder ? { ok: false, reason: "panelOccupied" } : { ok: true, panel };
+}
+
+/**
  * MOV after the effects that change it.
  *
  * `Slow` **halves MOV, rounding down**, rather than doubling the cost of each

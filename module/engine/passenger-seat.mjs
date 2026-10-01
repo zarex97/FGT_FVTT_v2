@@ -23,7 +23,7 @@ import { displaceToken, worldIO } from "./io.mjs";
 import { applyIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
 import { hasGranted, GRANTS } from "../rules/granted.mjs";
-import { passengerDestination, occupantAt } from "../rules/movement.mjs";
+import { passengerLanding } from "../rules/movement.mjs";
 
 /**
  * Carry a Servant's Master by the delta the Servant just travelled.
@@ -53,9 +53,11 @@ export async function carryMasterAlong({ servantId, from, to }) {
   if (!master?.panel || master.defeated) return;
   if (!from || !to) return;
 
-  const landing = passengerDestination(
-    { i: from.i, j: from.j }, { i: to.i, j: to.j },
-    master.panel, board.bounds ?? null,
+  // Judged against the board as it will be AFTER her move (`passengerLanding`):
+  // at `moveToken` the board still stands her on her origin, which is exactly
+  // where a Master one move behind her lands (#118).
+  const verdict = passengerLanding(
+    servant, master, { i: from.i, j: from.j }, { i: to.i, j: to.j }, board,
   );
   // A carry that cannot happen is REPORTED, not dropped. Both refusals leave
   // the Master standing where the Servant left him -- which is the correct
@@ -66,9 +68,11 @@ export async function carryMasterAlong({ servantId, from, to }) {
     master: game.actors.get(master.id)?.name ?? "The Master",
     reason: game.i18n.localize(reason),
   }));
-  if (!landing) return say("FGT.Movement.OffBoard");
+  if (!verdict.ok) {
+    return say(verdict.reason === "offBoard" ? "FGT.Movement.OffBoard" : "FGT.Movement.PanelOccupied");
+  }
+  const landing = verdict.panel;
   if (landing.i === master.panel.i && landing.j === master.panel.j) return;
-  if (occupantAt(landing, board, master.level ?? 0)) return say("FGT.Movement.PanelOccupied");
 
   const token = game.actors.get(master.id)?.getActiveTokens?.()[0]?.document;
   if (!token) return;
