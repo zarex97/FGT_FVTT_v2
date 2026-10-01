@@ -886,6 +886,9 @@ describe("stacking actions actually reach the intents", () => {
     id: "medea", effectInstances: instances, effects: instances.map((i) => i.defId),
   });
 
+  // `resist: 0` is stated here because the target is a bare snapshot with no
+  // `ApplicationChance` to read; production contexts carry no `resist` key at all
+  // (`test/unit/skill-path-resistance.test.mjs` guards that).
   const ctx = { turnsPerRound: 3, currentTick: 4, roll: 1, inflictBonus: 0, resist: 0 };
 
   it("REPLACES rather than duplicates on a refresh", () => {
@@ -947,6 +950,8 @@ describe("per-effect chance modifiers (Medea's Atlas)", () => {
     valence: "offensive", stacking: "noneRefresh", baseChance: 100, severity: "normal",
   };
   const target = { id: "t", effectInstances: [], effects: [] };
+  // `resist: 0` is stated because `target` above carries no `ApplicationChance`; see the note on the
+  // stacking tests' ctx for why production contexts never state it.
   const base = { turnsPerRound: 3, currentTick: 0, inflictBonus: 0, resist: 0 };
 
   it("lands at full chance with no modifier matching", () => {
