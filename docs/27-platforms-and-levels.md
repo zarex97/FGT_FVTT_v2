@@ -84,7 +84,7 @@ This call (`module/rules/targeting/resolve.mjs:229-245`) runs at step 4d of the 
 
 When a platform is destroyed, the sequence is ordered and the order matters (`module/rules/platforms.mjs:591-615`):
 
-1. **Save.** Passengers roll to avoid damage from the platform's destruction.
+1. **Save.** Passengers roll to avoid damage from the platform's destruction: each rolls the better of an Agility or a Luck Check, and a Master within 2 panels of its Servant who passed is spared its own (`rules/platforms.mjs#destructionSaves`), all announced in one chat card. `destroyPlatform` passed no saves until §46.4-CI, so every passenger took the damage and nothing was rolled.
 2. **Damage.** Passengers who failed take 100 fixed damage, sourced from the platform.
 3. **Scatter.** *Every* passenger moves to the ground, including those who made the save — surviving the platform is not the same as staying in the air.
 4. **Reverse effects.** Effects the platform granted its owner are removed (`module/engine/scene-levels.mjs:335-341`).

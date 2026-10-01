@@ -2523,6 +2523,16 @@ defeated Semiramis left her garden flying. Neither mattered while nothing could 
 destroyed, and so is one authoring `destroyedWithOwner` when its owner is -- declared on `PlatformData`,
 projected, routed in the survival test, and authored on the Hanging Gardens.
 
+### CI. The garden's destruction rolled nobody's check — **fixed 2026-09-30**
+
+**Reached: HG.destroy.** *"All Units on it perform either an Agility Check or a Luck Check roll. If the
+roll fails, the Unit takes 100 Fixed STR damage. A Master who was within a 2 panel area of its Servant
+does not need to roll if its Servant succeeded."* `destructionSequence` takes the saves from its caller,
+and `destroyPlatform` passed none: every passenger took the 100, unrolled and unannounced, and the
+Master's exemption had nowhere to apply. Each passenger now rolls the better of the two checks -- the one
+its player would choose -- `destructionSaves` spares a Master whose Servant passed within 2 panels, and
+the outcome is posted as one card.
+
 ---
 
 ---

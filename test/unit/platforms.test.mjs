@@ -1137,3 +1137,33 @@ describe("platformsDestroyedBy", async () => {
     expect(platformsDestroyedBy("drake", board)).toEqual([]);
   });
 });
+
+// *"When the HGoB is destroyed, all Units on it perform either an Agility
+// Check or a Luck Check roll. If the roll fails, the Unit takes 100 Fixed STR
+// damage. A Master who was within a 2 panel area of its Servant does not need
+// to roll if its Servant succeeded its roll."* `destroyPlatform` passed no
+// saves, so every passenger took the 100: no check was ever rolled (§46.4-CI).
+describe("destructionSaves", async () => {
+  const { destructionSaves } = await import("../../module/rules/platforms.mjs");
+  const servant = { id: "s", kind: "servant", level: 20, panel: { i: 4, j: 4 } };
+  const master = { id: "m", kind: "master", level: 20, panel: { i: 4, j: 6 } };
+  const far = { id: "m", kind: "master", level: 20, panel: { i: 4, j: 7 } };
+  servant.masterId = "m";
+
+  it("saves whoever passed their own check", () => {
+    const out = destructionSaves([servant], { s: { success: true } });
+    expect(out.saves).toEqual({ s: true });
+  });
+
+  it("spares a Master within 2 panels of a Servant who passed, whatever its own roll", () => {
+    const out = destructionSaves([servant, master], { s: { success: true }, m: { success: false } });
+    expect(out.saves).toEqual({ s: true, m: true });
+    expect(out.exempt).toEqual(["m"]);
+  });
+
+  it("does not spare one three panels away", () => {
+    const out = destructionSaves([servant, far], { s: { success: true }, m: { success: false } });
+    expect(out.saves).toEqual({ s: true, m: false });
+    expect(out.exempt).toEqual([]);
+  });
+});

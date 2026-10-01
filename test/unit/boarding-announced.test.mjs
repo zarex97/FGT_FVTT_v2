@@ -54,3 +54,18 @@ describe("knockOff announces its Agility Check", () => {
     }
   });
 });
+
+// *"all Units on it perform either an Agility Check or a Luck Check roll"* --
+// never rolled: `destroyPlatform` passed no saves, every passenger took 100,
+// and nothing was shown (§46.4-CI).
+describe("destroyPlatform rolls and announces the passengers' checks", () => {
+  const destroy = src.slice(src.indexOf("export async function destroyPlatform"), src.indexOf("async function setCooldownOnDestruction"));
+  it("rolls each passenger's check when no saves were given", () => {
+    expect(destroy).toMatch(/destructionCheck\(p\)/);
+    expect(destroy).toMatch(/destructionSaves\(passengers, results\)/);
+  });
+  it("posts the outcome", () => {
+    expect(destroy).toMatch(/announceDestruction\(/);
+    expect(lang["FGT.Platform.DestroyFailed"]).toMatch(/\{roll\}/);
+  });
+});
