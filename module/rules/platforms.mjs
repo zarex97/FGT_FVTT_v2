@@ -516,6 +516,10 @@ export function boardablePlatform(unit, board) {
  */
 export function mayBringMaster(unit, master, radius = 2) {
   if (!unit?.panel || !master?.panel) return false;
+  // On the Servant's own level: a Master already standing on the deck is not
+  // "brought" aboard, and one twenty feet below is not beside a Servant on the
+  // deck. The carry measured i and j only (Ch. 46 §46.4-CB).
+  if ((unit.level ?? 0) !== (master.level ?? 0)) return false;
   return chebyshev(unit.panel, master.panel) <= radius;
 }
 
