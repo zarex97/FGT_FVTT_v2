@@ -157,7 +157,11 @@ export async function syncContent({ dryRun = false } = {}) {
 
     if (systemChanged) await actor.update({ system }, { diff: false, recursive: false });
     if (items.remove.length) await actor.deleteEmbeddedDocuments("Item", items.remove);
-    if (refreshed.length) await actor.updateEmbeddedDocuments("Item", refreshed, { diff: false });
+    // `recursive: false`, as the actor's own system above: `reconcileItems` has
+    // already built each item's WHOLE system, and a recursive update would merge
+    // it into the old one, so a key the pack removed would survive on every world
+    // item. Xiuhcoatl kept the `range: 2` its anchor no longer states (#163).
+    if (refreshed.length) await actor.updateEmbeddedDocuments("Item", refreshed, { diff: false, recursive: false });
     if (items.create.length) await actor.createEmbeddedDocuments("Item", items.create);
   }
 
