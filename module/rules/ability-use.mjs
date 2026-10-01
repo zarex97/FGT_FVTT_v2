@@ -657,6 +657,12 @@ export function usageSpecFor(ability) {
     // ruling put in scope.
     categorizedAsNP: Boolean(sys.categorizedAsNP),
     cooldown: sys.cooldown ?? { remaining: 0, gatedDelay: 0 },
+    // The bounded field this ability opens, whole, because the gate asks whether
+    // it opens one AND counts its cooldown from deactivation: such a field
+    // starts no clock at the cast, so only its being open stops a second cast
+    // (`rules/costs.mjs`, #148). The action bar hands the gate the Item's own
+    // system, which carries it; this is the other path's copy.
+    field: sys.field ?? null,
     // "Can only be used once per Turn" — Scáthach's Ár, whose 3◈ cooldown a
     // PRS Token skips entirely, leaving this as the only limit on it.
     oncePerTurn: Boolean(sys.oncePerTurn),

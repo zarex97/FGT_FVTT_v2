@@ -832,6 +832,7 @@
   "FGT.Ability.Refused.noAliveSummon": "Its summon is still alive.",
   "FGT.Ability.Refused.roundPhase": "Wrong phase of the Round.",
   "FGT.Ability.Refused.fieldOpen": "Requires its bounded field to be open.",
+  "FGT.Ability.Refused.fieldAlreadyOpen": "Its area is already open: end it, or wait for it to close, before using this again.",
   "FGT.Ability.Refused.stance": "Not in this stance.",
   "FGT.Duel.Title": "{challenger} challenges {name} to a duel",
   "FGT.Duel.Hint": "Accepting encloses both Units in a 5×5 area. Nobody may enter or leave, Command Spells cannot reach inside, neither Unit may use a Luck Check, and effects from Units outside are negated until the duel ends. Confirm without accepting to decline — the Noble Phantasm is then not activated.",
