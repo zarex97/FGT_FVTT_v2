@@ -212,6 +212,11 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
       // `byRelation` names the relation that must ROLL; every other relation
       // boards by Moving on, which is the Hind's very next sentence. Absent,
       // everyone rolls -- the Hanging Gardens' behaviour, and still the default.
+      //
+      // `{seats}` -- the Quetzalcoatlus: *"her Master can get on the
+      // Quetzalcoatlus at any time."* A list of ROLES (`owner`, `ownerMaster`)
+      // who board freely with no roll; anyone else is refused `notYourSeat`
+      // (`rules/platforms.mjs#seatVerdict`).
       boarding: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       // ADR 0001: falling is opt-in per Platform. Presence of this block is the
       // opt-in, and it carries its own numbers -- the same convention

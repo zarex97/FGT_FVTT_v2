@@ -29,6 +29,11 @@ footprint: { w: 2, h: 2 }
 # Quetz and her Master, and nobody else.
 capacity: 2
 level: 1
+# "…otherwise her Master can get on the Quetzalcoatlus at any time." Ruled by
+# the user (2026-10-01): freely, with no roll -- and no enemy takes the seat.
+# The two seats are roles, because the document is authored long before it has
+# an owner; any other Unit, ally or enemy, is refused (`seatVerdict`).
+boarding: { seats: [owner, ownerMaster] }
 # "The Quetzalcoatlus ignores obstacles while Moving, and can Move onto occupied
 # panels (place the Quetzalcoatlus on top of anything occupying said panels)."
 #

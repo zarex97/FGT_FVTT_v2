@@ -9,6 +9,7 @@ import {
   boardingTarget, fallOff, destructionSequence, passengersOf, mayBringMaster,
   canFallFrom, nearestFreePlatformPanel, rescuerFor,
   jumpVerdict, jumpLandings, attackedByReliefApplies, boardingLanding, fallFormula, destructionSaves, scatterPanels,
+  seatVerdict,
 } from "../rules/platforms.mjs";
 import { ROUND_RECORD } from "../domain/stamped-record.mjs";
 import { relationOf } from "../rules/relations.mjs";
@@ -42,6 +43,12 @@ export async function boardPlatform({ unitId, platformId, hitByDragonWingWarrior
   const platform = board.units.find((u) => u.id === platformId && u.kind === "platform");
   if (!unit || !platform) return { ok: false, roll: 0, target: 0, reason: "unknownUnitOrPlatform" };
 
+  // A platform that names its seats (the Quetzalcoatlus: her Master and nobody
+  // else) refuses everyone it did not name, enemy or ally, before anything
+  // else is asked -- the rule is this check and not the button's absence.
+  const seat = seatVerdict(unit, platform, board);
+  if (seat && !seat.ok) return { ok: false, roll: 0, target: 0, reason: seat.reason };
+
   // Capacity is counted before the roll: failing a roll you could never have
   // benefited from wastes the attempt for no reason.
   const aboard = passengersOf(platform, board).length;
@@ -59,7 +66,9 @@ export async function boardPlatform({ unitId, platformId, hitByDragonWingWarrior
   // platform that authors no `byRelation` makes everyone roll, which is the
   // Hanging Gardens' behaviour and stays the default.
   const gate = platform.boarding?.byRelation ?? null;
-  if (gate && relationOf(unit, platform, board) !== gate) {
+  // A seat the platform named is boarded freely too: *"her Master can get on
+  // the Quetzalcoatlus at any time"* -- no roll, whatever his relation.
+  if (seat?.ok || (gate && relationOf(unit, platform, board) !== gate)) {
     await applyWorldIntents(
       [
         I.log({ kind: "boarding", unitId, platformId, roll: 0, target: 0, die: 0, ok: true, free: true }),

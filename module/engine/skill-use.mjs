@@ -57,7 +57,7 @@ import { resolveValue } from "../rules/elements.mjs";
 import { createField, regionSizedTargeting } from "./fields.mjs";
 import { paintTerrain } from "./terrain.mjs";
 import { activatePlatform } from "./platforms.mjs";
-import { summonAnchor } from "../rules/platforms.mjs";
+import { summonAnchor, masterSeat } from "../rules/platforms.mjs";
 import { expand } from "../rules/targeting/shapes.mjs";
 import { fireEvent, regionScale } from "./scheduler.mjs";
 import { isConcealed, concealmentBreakChance } from "../rules/concealment.mjs";
@@ -2275,12 +2275,18 @@ async function summonPlatform(phase, actor, board) {
   });
   await scene.createEmbeddedDocuments("Token", [token.toObject()]);
 
-  // Who rides. The owner always; her Master only if he is standing next to it,
-  // which is the sheet's own condition and is measured from where he is now.
+  // Who rides. The owner always; her Master only if he is standing next to the
+  // MOUNT -- the sheet's own condition, measured from its footprint and not from
+  // her panel -- and then he is put ON it. Level assignment never changes x or
+  // y, so without the move he rode a deck he was not standing on.
   const riders = [actor.id];
   if (phase.boardMasterIfAdjacent && self.masterId) {
     const master = board.units.find((u) => u.id === self.masterId);
-    if (master?.panel && chebyshev(master.panel, self.panel) <= 1) riders.push(master.id);
+    const seat = masterSeat(self, master, { panel: anchor, footprint });
+    if (seat) {
+      await applyWorldIntents([I.move(master.id, [seat], true)], "platform:summonSeat");
+      riders.push(master.id);
+    }
   }
 
   const activated = await activatePlatform({ platformId: platform.id, initialUnitIds: riders });

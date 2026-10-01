@@ -499,9 +499,78 @@ function inBoardBounds(p, b) {
  */
 export function boardablePlatform(unit, board) {
   if (!unit?.panel || (unit.level ?? 0) !== 0) return null;
+  // A platform with seats of its own offers none to a Unit that has no claim on one.
   return platformsOn(board).find(
-    (p) => (p.level ?? 0) > 0 && isDirectlyBelow(unit, p),
+    (p) => (p.level ?? 0) > 0 && isDirectlyBelow(unit, p) && seatVerdict(unit, p, board)?.ok !== false,
   ) ?? null;
+}
+
+/**
+ * May this Unit take a seat on a platform that names its seats, and if not, why not.
+ *
+ * > *"…otherwise her Master can get on the Quetzalcoatlus at any time."* -- Winged Serpent
+ *
+ * Ruled by the user (2026-10-01, #65): her Master boards freely, with no roll, and nobody else
+ * takes the seat -- not an enemy, and not an ally who is not her Master. A platform says so by
+ * authoring `boarding.seats`, a list of ROLES (`owner`, `ownerMaster`), because the platform
+ * document is authored long before it has an owner (`canUnboard`'s `lockAboard` is the same
+ * shape). The Hanging Gardens and the Golden Hind author none and keep their own rolls.
+ *
+ * @param {object} unit the Unit asking to board
+ * @param {object} platform
+ * @param {object} board
+ * @returns {{ok: true}|{ok: false, reason: "notYourSeat"}|null} `null` when the platform names no seats
+ */
+export function seatVerdict(unit, platform, board) {
+  const seats = platform?.boarding?.seats;
+  if (!Array.isArray(seats)) return null;
+
+  const owner = (board?.units ?? []).find((u) => u.id === platform.ownerId) ?? null;
+  const roles = [];
+  if (unit?.id === platform.ownerId) roles.push("owner");
+  if (owner?.masterId && unit?.id === owner.masterId) roles.push("ownerMaster");
+  return roles.some((role) => seats.includes(role)) ? { ok: true } : { ok: false, reason: "notYourSeat" };
+}
+
+/**
+ * Is this panel on the platform's footprint, or one panel from it in any direction?
+ *
+ * The distance is to the nearest panel of the FOOTPRINT, not to its anchor: a Master two panels
+ * from a summoner's own panel can still be next to a 2x2 mount she stands on.
+ *
+ * @param {{i: number, j: number}|null} panel
+ * @param {{panel: {i: number, j: number}, footprint?: {w?: number, h?: number}}} platform
+ * @returns {boolean}
+ */
+export function nextToFootprint(panel, platform) {
+  if (!panel || !platform?.panel) return false;
+  const { w = 1, h = 1 } = platform.footprint ?? {};
+  const gap = (at, from, size) => Math.max(from - at, 0, at - (from + size - 1));
+  return Math.max(gap(panel.i, platform.panel.i, h), gap(panel.j, platform.panel.j, w)) <= 1;
+}
+
+/**
+ * Where her Master is put when the mount is summoned beside him.
+ *
+ * > *"…she is Moved onto the Quetzalcoatlus together with her Master (if her Master is next to
+ * > the Quetzalcoatlus; otherwise her Master can get on the Quetzalcoatlus at any time)."*
+ *
+ * Level assignment changes a token's level and never its x or y, so a Master who was merely
+ * beside the mount was left on its deck standing on nothing. He lands on a free panel of the
+ * footprint -- where he stands if that is one, else the nearest -- and never on hers. `null`
+ * when he is not next to it, which is not a refusal: he boards later, freely.
+ *
+ * @param {object} summoner the Servant, at the panel the mount is placed on
+ * @param {object} master
+ * @param {{panel: {i: number, j: number}, footprint: {w: number, h: number}}} mount where it is placed
+ * @returns {{i: number, j: number}|null}
+ */
+export function masterSeat(summoner, master, mount) {
+  if (!summoner?.panel || !master?.panel) return null;
+  if ((master.level ?? 0) !== (summoner.level ?? 0)) return null;
+  if (!nextToFootprint(master.panel, mount)) return null;
+  // The mount is not on the board yet, so nobody is aboard it: only her own panel is promised.
+  return boardingLanding(master, mount, { units: [] }, [summoner.panel]);
 }
 
 /**
