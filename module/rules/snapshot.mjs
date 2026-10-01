@@ -362,10 +362,6 @@ export function snapshotUnit(actor, {
     resources: Object.fromEntries(
       Object.entries(sys.resources ?? {}).map(([k, v]) => [k, { value: v?.value ?? 0, max: v?.max ?? null }]),
     ),
-    // Riding decides whether this unit may move again after attacking, and
-    // three separate places were each deciding it for themselves — two of them
-    // by reaching for `game.actors` from a layer that may not. One projection.
-    hasRiding: hasSkill(actor, "riding"),
     // Bašmu: "the HGoB can move onto occupied panels" and Bašmu itself "when
     // it Moves to any occupied panels, all Units occupying said panels are
     // knocked back" -- `rules/movement.mjs`'s `ignoresBlocking` already reads
@@ -1950,22 +1946,6 @@ function chargesLeft(actor, revival) {
   if (revival.charges === null || revival.charges === undefined) return null;
   const item = [...(actor.items ?? [])].find((i) => i.id === revival.abilityId);
   return Math.max(0, revival.charges - (item?.system?.timesUsed ?? 0));
-}
-
-/**
- * Does this actor own a named class skill?
- *
- * Matched on the slug first and the name second, because content authored
- * before slugs existed identifies its skills only by name.
- *
- * @param {object} actor
- * @param {string} slug
- * @returns {boolean}
- */
-function hasSkill(actor, slug) {
-  return [...(actor.items ?? [])].some(
-    (i) => i.system?.slug === slug || i.name?.toLowerCase?.() === slug,
-  );
 }
 
 /**

@@ -250,51 +250,54 @@ describe("moving repeatedly, and what stops it", () => {
     // its MOV allows. The superseded reading was one Move per Turn, which left
     // "This Unit has already Moved this Turn" on screen for the rest of the
     // match.
-    expect(segmentCheck(mover({ mov: 6, turnState: { moved: true, movedPanels: 2 } }), false))
+    expect(segmentCheck(mover({ mov: 6, turnState: { moved: true, movedPanels: 2 } })))
       .toBeNull();
   });
 
   it("allows a third and fourth move while the allowance lasts", () => {
     const walker = mover({ mov: 6, turnState: { moved: true, movedPanels: 5, moveSegments: 4 } });
-    expect(segmentCheck(walker, false)).toBeNull();
+    expect(segmentCheck(walker)).toBeNull();
   });
 
   it("refuses a move once the whole MOV has been spent", () => {
-    expect(segmentCheck(mover({ mov: 4, turnState: { moved: true, movedPanels: 4 } }), false))
+    expect(segmentCheck(mover({ mov: 4, turnState: { moved: true, movedPanels: 4 } })))
       .toMatch(/spent all 4 panels/);
   });
 
   it("fixes a Unit in place once it has Attacked", () => {
-    expect(segmentCheck(mover({ mov: 6, turnState: { attacked: true, movedPanels: 1 } }), false))
+    expect(segmentCheck(mover({ mov: 6, turnState: { attacked: true, movedPanels: 1 } })))
       .toMatch(/has Attacked; it cannot Move again/);
   });
 
-  it("lets Riding move after the attack", () => {
-    expect(segmentCheck(mover({ mov: 6, turnState: { attacked: true, movedPanels: 1 } }), true))
+  it("lets Double Move move after the attack", () => {
+    expect(segmentCheck(mover({ mov: 6, grantedAbilities: ["doubleMove"], turnState: { attacked: true, movedPanels: 1 } })))
       .toBeNull();
   });
 
-  it("reads Riding off the snapshot when it is not passed", () => {
-    const rider = mover({ mov: 6, hasRiding: true, turnState: { attacked: true, movedPanels: 1 } });
+  it("reads the doubleMove grant off the snapshot", () => {
+    const rider = mover({ mov: 6, grantedAbilities: ["doubleMove"], turnState: { attacked: true, movedPanels: 1 } });
     expect(segmentCheck(rider)).toBeNull();
-    expect(segmentCheck({ ...rider, hasRiding: false })).toMatch(/cannot Move again/);
+    expect(segmentCheck({ ...rider, grantedAbilities: [] })).toMatch(/cannot Move again/);
   });
 
   it("makes Riding Attack terminal", () => {
-    expect(segmentCheck(mover({ turnState: { usedRidingAttack: true } }), true))
+    expect(segmentCheck(mover({ grantedAbilities: ["doubleMove"], turnState: { usedRidingAttack: true } })))
       .toMatch(/ends this Unit's Turn/);
   });
 
   it("caps Riding's move after the attack against the same MOV allowance", () => {
     // MOV 6, 4 already walked before the attack: 2 left, not another 6.
-    const rider = mover({ mov: 6, turnState: { moved: true, attacked: true, movedPanels: 4, moveSegments: 1 } });
+    const rider = mover({
+      mov: 6, grantedAbilities: ["doubleMove"],
+      turnState: { moved: true, attacked: true, movedPanels: 4, moveSegments: 1 },
+    });
     expect(remainingMovement(rider)).toBe(2);
-    expect(validatePath([at(6, 7), at(6, 8), at(6, 9)], rider, board(), { hasRiding: true }).ok)
+    expect(validatePath([at(6, 7), at(6, 8), at(6, 9)], rider, board()).ok)
       .toBe(false);
   });
 
   it("reports the segment allowance in the plan", () => {
-    const plan = planMovement(mover(), board(), { hasRiding: true });
+    const plan = planMovement(mover({ grantedAbilities: ["doubleMove"] }), board());
     expect(plan.maxSegments).toBe(2);
     expect(planMovement(mover(), board()).maxSegments).toBe(1);
   });

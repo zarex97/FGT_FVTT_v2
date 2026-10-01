@@ -148,7 +148,7 @@ describe("per-unit limits sit on top of the pools", () => {
     expect(canConsume(emptyBudget(), attacked, "move").ok).toBe(false);
     expect(canConsume(emptyBudget(), attacked, "move").reason).toMatch(/attacked and cannot move/);
 
-    const rider = servant("a", { hasRiding: true, turnState: { moved: true, attacked: true } });
+    const rider = servant("a", { grantedAbilities: ["doubleMove"], turnState: { moved: true, attacked: true } });
     expect(canConsume(emptyBudget(), rider, "move").ok).toBe(true);
   });
 

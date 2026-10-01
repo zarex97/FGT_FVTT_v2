@@ -133,7 +133,7 @@ function onPreMove(document, movement, operation) {
   }
 
   const path = pathOf(movement);
-  const verdict = validatePath(path, unit, board, { hasRiding: unit.hasRiding });
+  const verdict = validatePath(path, unit, board);
   if (!verdict.ok) {
     ui.notifications.warn(`FGT | ${verdict.reasons[0]}`);
     return false;
