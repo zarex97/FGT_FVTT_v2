@@ -25,7 +25,7 @@ import { displaceToken } from "./io.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import {
   panelsOf, isExempt, legalRepaint, mayReshape, selectBranch, extensionFor, randomFreePanelIn,
-  vulnerabilityTriggered,
+  vulnerabilityTriggered, unitIdsOfTurn,
 } from "../rules/bounded-fields.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { relationOf } from "../rules/relations.mjs";
@@ -194,6 +194,61 @@ async function agreesToField(ability, actor, targetId) {
 }
 
 /**
+ * What a field's `npField` Region behaviour is written as: the spec the
+ * ability authored, with who cast it and when.
+ *
+ * Its own function so a test can build the behaviour the way a cast does,
+ * rather than by hand -- a fixture written in the shape `boundedFieldsOf`
+ * expects can only confirm `boundedFieldsOf` (`test/helpers/field.mjs`).
+ *
+ * @param {object} cast
+ * @param {object} cast.ability the ability Item (or its compiled document)
+ * @param {object} cast.actor its owner
+ * @param {string|null} cast.faction the owner's faction
+ * @param {object} cast.spec `ability.system.field`
+ * @param {object} cast.geometry the geometry as cast, anchored and sized
+ * @param {object|null} [cast.membership]
+ * @param {string|null} [cast.duration]
+ * @returns {object}
+ */
+export function fieldDataOf({ ability, actor, faction, spec, geometry, membership = null, duration = null }) {
+  return {
+    // `fieldId`, which is what `NPFieldBehavior` declares and what
+    // `boundedFieldsOf` reads back. Written as `id`, the behaviour failed
+    // validation on a required field and Foundry dropped it **silently** --
+    // leaving a Region on the canvas with an empty `behaviors` collection, so
+    // the Reality Marble existed and carried none of its six axes.
+    fieldId: ability.system?.contentId ?? ability.id,
+    ownerUnitId: actor.id,
+    ownerMasterId: actor.system?.masterId ?? null,
+    ownerFaction: faction,
+    npTags: [...(ability.system?.npTags ?? [])],
+    geometry,
+    membership: membership ?? null,
+    isolation: spec.isolation ?? null,
+    interior: spec.interior ?? [],
+    interiorEvents: spec.interiorEvents ?? [],
+    extension: spec.extension ?? null,
+    vulnerabilities: spec.vulnerabilities ?? [],
+    onEnd: spec.onEnd ?? [],
+    countsAsHomeBase: spec.countsAsHomeBase ?? null,
+    createdAt: game.combat?.system?.globalTurn ?? 0,
+    upkeep: spec.upkeep ?? null,
+    deactivation: spec.deactivation ?? null,
+    // Carried so `ensurePassiveFields` can recognise its own on a later pass:
+    // an open passive field must not be opened a second time, and must close
+    // when its owner leaves the board.
+    passive: Boolean(spec.passive),
+    duration: duration ?? null,
+    // Absolute, like every other duration in the system (Ch. 04): a countdown
+    // would have to be decremented by a hook that can fail to fire, and an
+    // absolute expiry cannot.
+    expiry: expiryOf(duration),
+    state: { escapeHistory: {} },
+  };
+}
+
+/**
  * Build and place one field's Region and behaviour.
  *
  * Split out of `createField` so a PASSIVE field can be opened by
@@ -275,40 +330,10 @@ async function openField(ability, actor, snapshot, spec, { panels: givenPanels =
     // #contains`, #68).
     anchor: { ...anchor, k: self.panel.k ?? 0 },
   };
-  const field = {
-    // `fieldId`, which is what `NPFieldBehavior` declares and what
-    // `boundedFieldsOf` reads back. Written as `id`, the behaviour failed
-    // validation on a required field and Foundry dropped it **silently** --
-    // leaving a Region on the canvas with an empty `behaviors` collection, so
-    // the Reality Marble existed and carried none of its six axes.
-    fieldId: ability.system?.contentId ?? ability.id,
-    ownerUnitId: actor.id,
-    ownerMasterId: actor.system?.masterId ?? null,
-    ownerFaction: self.faction ?? null,
-    npTags: [...(ability.system?.npTags ?? [])],
-    geometry,
-    membership: specMembership ?? null,
-    isolation: spec.isolation ?? null,
-    interior: spec.interior ?? [],
-    interiorEvents: spec.interiorEvents ?? [],
-    extension: spec.extension ?? null,
-    vulnerabilities: spec.vulnerabilities ?? [],
-    onEnd: spec.onEnd ?? [],
-    countsAsHomeBase: spec.countsAsHomeBase ?? null,
-    createdAt: game.combat?.system?.globalTurn ?? 0,
-    upkeep: spec.upkeep ?? null,
-    deactivation: spec.deactivation ?? null,
-    // Carried so `ensurePassiveFields` can recognise its own on a later pass:
-    // an open passive field must not be opened a second time, and must close
-    // when its owner leaves the board.
-    passive: Boolean(spec.passive),
-    duration: specDuration ?? null,
-    // Absolute, like every other duration in the system (Ch. 04): a countdown
-    // would have to be decremented by a hook that can fail to fire, and an
-    // absolute expiry cannot.
-    expiry: expiryOf(specDuration),
-    state: { escapeHistory: {} },
-  };
+  const field = fieldDataOf({
+    ability, actor, faction: self.faction ?? null, spec, geometry,
+    membership: specMembership, duration: specDuration,
+  });
 
   // `panelsOf` reads the runtime shape, where the id is `id` and the owner is
   // `ownerId`; the stored behaviour uses the schema's names. One object, two
@@ -896,11 +921,20 @@ function shouldClose(field, tick) {
  * perform an Evade roll. If failed, that Unit receives (25 x 1d4) STR damage;
  * this damage is not affected by any damage modifying effects on EMIYA."*
  *
+ * **`turnEnd` is the victim's own Turn.** *"When an enemy Unit ends its Turn
+ * within the area"* names the Turn of that Unit's Player, so `turnEnd` reaches
+ * only the Units of `activeFactionId` -- the handler-level `turnEnd` has
+ * always meant the same -- and with no faction whose Turn ended it reaches
+ * nobody. A clause about EVERY Turn says `anyTurnEnd`, which is unscoped
+ * (#145).
+ *
  * @param {string} event the boundary that fired
+ * @param {object} [opts]
+ * @param {string|null} [opts.activeFactionId] the faction whose Turn just ended
  * @returns {Promise<object[]>} the intents produced
  */
 export async function runFieldEvents(event, {
-  unitIds = null, fieldIds = null, assumeInside = false, board = null,
+  unitIds = null, fieldIds = null, assumeInside = false, board = null, activeFactionId = null,
 } = {}) {
   // `board` is not an optimisation. A boundary's dispatcher runs AFTER
   // `scheduler.endTurn`, which clears every Unit's turn state -- so a board
@@ -918,11 +952,14 @@ export async function runFieldEvents(event, {
   /** @type {object[]} */
   const intents = [];
 
+  const ownTurn = event === "turnEnd" ? unitIdsOfTurn(view, activeFactionId) : null;
+  const scope = ownTurn && unitIds ? ownTurn.filter((id) => unitIds.includes(id)) : (ownTurn ?? unitIds);
+
   for (const field of view.fields ?? []) {
     if (fieldIds && !fieldIds.includes(field.id)) continue;
     for (const spec of field.interiorEvents ?? []) {
       if (spec.event !== event) continue;
-      intents.push(...await runFieldEvent(field, spec, view, unitIds, assumeInside));
+      intents.push(...await runFieldEvent(field, spec, view, scope, assumeInside));
     }
   }
   return intents;

@@ -1170,6 +1170,27 @@ function sweepFieldEffects(units, fields) {
 }
 
 /**
+ * The Units whose own Turn a faction's Turn is.
+ *
+ * *"When an enemy Unit ends its Turn within the area"* names the Turn of the
+ * VICTIM's Player, which is what a faction's Turn is (a Turn belongs to a
+ * Player, CONTEXT.md). A Unit with no faction -- a Civilian -- has no Turn of
+ * its own, so it is in nobody's list and a clause about *any* Turn says
+ * `anyTurnEnd` instead (#145).
+ *
+ * The handler-level `turnEnd` has always been scoped the same way
+ * (`scheduler.endTurn`, step 1); this is the field-level half of that rule.
+ *
+ * @param {object} board
+ * @param {string|null|undefined} factionId the faction whose Turn just ended
+ * @returns {string[]} unit ids
+ */
+export function unitIdsOfTurn(board, factionId) {
+  if (!factionId) return [];
+  return (board?.units ?? []).filter((u) => u.factionId === factionId).map((u) => u.id);
+}
+
+/**
  * Interior rule keys that move a STAT rather than contributing a modifier.
  *
  * The field annotation runs after `prepareDerivedData` -- it needs the whole
