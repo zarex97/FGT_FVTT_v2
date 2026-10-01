@@ -397,7 +397,7 @@ describe("Xiuhcoatl's splash is its own resolution (#136)", () => {
   });
 
   it("applyDamage reads the splash's block through the one answer, and no overlay is left", () => {
-    const engine = readFileSync("module/engine/attack.mjs", "utf8").replace(/\r\n/g, "\n");
+    const engine = readFileSync("module/engine/attack.mjs", "utf8").replaceAll("\r\n", "\n");
     const from = engine.indexOf("async function applyDamage");
     const body = engine.slice(from, engine.indexOf("\n}\n", from));
     expect(body).toMatch(/damageBlockFor\(ability, options, state\.attack\)/);

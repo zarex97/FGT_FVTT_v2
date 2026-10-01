@@ -413,6 +413,17 @@ async function declareAftermath({
   const caught = resolveTargets(spec.targeting, self, board, { primaryTargetId });
   if ((caught.units ?? []).length === 0) return;
 
+  // The Hanging Gardens' *"If Semiramis is Attacked during this period, the
+  // period is interrupted"*, for a Semiramis the SPLASH caught. `resolveAttack`
+  // does this for the primary's targets before it declares anything; the splash
+  // is declared by this function and used to skip it (#137).
+  const caughtIds = caught.units.map((t) => t.unitId);
+  const interrupted = interruptedByDeclaration(caughtIds, attackerId);
+  if (interrupted.length > 0) {
+    const { interruptChannels } = await import("./channel.mjs");
+    await interruptChannels(interrupted);
+  }
+
   await declareProcesses({
     attackerId,
     attacker,
@@ -421,11 +432,15 @@ async function declareAftermath({
     // (#136), and every key the aftermath did not restate stayed the primary's:
     // the element fraction, the Magic Resistance exemption, the area.
     attackSpec: aftermathSpecFor({ attacker, ability, options, caught }),
-    targetIds: caught.units.map((t) => t.unitId),
+    targetIds: caughtIds,
     targets: caught,
     placement: null,
     board,
     groupId,
+    // The use was declared once, by `resolveAttack`'s own call: its caster
+    // phases ran and `abilityUsed` was raised there. The splash's defenders
+    // still get a Combat Process, a card and the declaration events (#137).
+    declaresUse: false,
   });
 }
 
@@ -799,12 +814,15 @@ export function buildAttackSpec({
  * @param {boolean} [args.isCounter] Ch. 21: this declaration answers an attack
  * @param {string|null} [args.requiredTargetId] the unit the Counter was aimed at
  * @param {number} [args.counterDepth]
+ * @param {boolean} [args.declaresUse] false for an aftermath, which resolves inside a
+ *   declaration `resolveAttack` already made: no second pass of the caster phases, no
+ *   second `abilityUsed` (#137)
  * @returns {Promise<{groupId: string, processes: Array<{messageId: string, state: object}>, messageId: string, state: object}>}
  */
 async function declareProcesses({
   attackerId, attacker, ability, attackSpec, targetIds, targets, placement, board,
   isCounter = false, requiredTargetId = null, counterDepth = 0, groupId = null,
-  perProcess = null,
+  perProcess = null, declaresUse = true,
 }) {
   // Ch. 21's flag, folded into the ATTACK rather than only onto the Process
   // state. `rules/options.mjs` emits `attack:isCounter` from the attack spec,
@@ -1034,7 +1052,12 @@ async function declareProcesses({
   // asking the player a question. A Noble Phantasm silently did none of it --
   // Unlimited Blade Works consumed no Aria and created no Reality Marble while
   // charging its Master in full.
-  if (ability) {
+  //
+  // Only when this resolution DECLARES the use. An aftermath is a second
+  // resolution inside one declaration, so a second pass here ran the caster
+  // phases twice -- Xiuhcoatl's `zone` painted Burning twice -- and raised
+  // `abilityUsed` twice (#137, the shape of §46.4-X).
+  if (ability && declaresUse) {
     const { runCasterPhases } = await import("./skill-use.mjs");
     // The ride's own facts travel with the caster phases, because Troias
     // Tragōidia's Agility restore is "X" and X is how much movement he had
@@ -1055,7 +1078,7 @@ async function declareProcesses({
   // the Skill path, because a Projection Noble Phantasm is a Thaumaturgy Spell
   // by his own sheet's note -- and firing it in only one place is exactly how
   // `abilitiesUsed` came to be recorded by half the game.
-  if (ability) {
+  if (ability && declaresUse) {
     const { fireAbilityUsed } = await import("./skill-use.mjs");
     await fireAbilityUsed(attacker, ability);
   }
