@@ -19,7 +19,7 @@
  */
 
 import { policyFor, expiryOutcome, formatCountdown, remainingMs } from "../rules/await-policy.mjs";
-import { pendingPrompt } from "./combat-process.mjs";
+import { pendingPrompt, deserialize } from "./combat-process.mjs";
 
 /** messageId → timer handle. */
 const timers = new Map();
@@ -36,7 +36,7 @@ const timers = new Map();
  * @returns {object|null}
  */
 export function policyForMessage(message) {
-  const state = message?.getFlag("fgt", "process");
+  const state = readProcessFlag(message?.getFlag("fgt", "process"));
   const prompt = state ? pendingPrompt(state) : null;
   if (!prompt) return null;
 
@@ -163,6 +163,29 @@ export function attachAwaitTimeouts() {
   });
 
   Hooks.on("deleteChatMessage", (message) => disarmTimeout(message.id));
+}
+
+/**
+ * The Process a message carries.
+ *
+ * The flag is a **JSON string** (`combat-process.mjs#serialize`), so handing it
+ * to `pendingPrompt` raw reads `PROMPTS[undefined]` and returns `null` for every
+ * card: no prompt ever got a deadline (#166). An already-parsed object is
+ * accepted too. A flag that does not parse reads as "no prompt", which fails
+ * closed: no timer, so nothing is auto-answered on the strength of a state that
+ * could not be read.
+ *
+ * @param {string|object|null|undefined} raw
+ * @returns {object|null}
+ */
+function readProcessFlag(raw) {
+  if (!raw) return null;
+  if (typeof raw === "object") return raw;
+  try {
+    return deserialize(raw);
+  } catch {
+    return null;
+  }
 }
 
 /**
