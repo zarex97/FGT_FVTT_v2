@@ -985,7 +985,16 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
   const excludedIds = new Set([field.ownerId, ...(spec.excludeOwnerMaster ? [field.ownerMasterId] : [])]);
 
   const inside = (board.units ?? []).filter((u) =>
-    (!unitIds || unitIds.includes(u.id))
+    // The LIVING only. A defeat never removes the token and a corpse keeps its
+    // place in `u.fields`, so every interior event kept acting on it: Piedra Del
+    // Sol's 50 and Burn, Blood Fort Andromeda's Defeat (and the Heal and the
+    // Agility it pays Medusa, once per corpse per Turn), Ramesseum Tentyris'
+    // Defeat with a fresh `fieldKill` for the same corpse. The scheduler's own
+    // boundary loops were made to skip the defeated (§46.4-CN) and these are
+    // dispatched separately. No clause acts on the dead; one that ever does
+    // authors a key for it (#153).
+    !u.defeated
+    && (!unitIds || unitIds.includes(u.id))
     // `assumeInside` is the CONTACT path, and it is not a shortcut: at
     // `moveToken` the board still places the mover on the panel it left --
     // `currentBoard()` reads the canvas placeables, which lag the document,
