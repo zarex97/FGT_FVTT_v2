@@ -2498,6 +2498,14 @@ could take a Unit to 0 and leave it standing. The applier now asks `io.defeatIfL
 intent without a breakdown, which runs the same chain an attack does -- revivals included -- with nobody
 as the killer. Heracles, still at 0, was not defeated retroactively; the board was left as found.
 
+### CF. No Master could attack once the budget had been saved — **fixed 2026-09-30**
+
+**Reached: HG.knock.master.** Heracles's Master's bar read *"Attack — Master attacks exhausted (0/0)"*.
+`masterAttack`'s maximum is `Infinity`; the budget lives on a Combat flag, JSON stores `Infinity` as
+`null`, and `usedHalves + cost > null` compares against 0. Every faction's budget is written at its Turn
+start, so from then on no Master in any match could attack. Not a Semiramis Clause -- found on her board,
+and fixed: `canConsume` reads a `null` maximum as unlimited.
+
 ---
 
 ---

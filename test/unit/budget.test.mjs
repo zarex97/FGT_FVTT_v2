@@ -411,3 +411,17 @@ describe("N8 — the joint NP counts as both twins' Attack", () => {
     expect(b.attackedUnits).toEqual(["castor"]);
   });
 });
+
+// "any number of Masters may attack" -- `masterAttack`'s maximum is Infinity,
+// and the budget lives on a Combat flag. JSON has no Infinity: the flag stores
+// `null`, `usedHalves + cost > null` compares against 0, and every Master read
+// "Master attacks exhausted (0/0)" once the budget had been written. Found on
+// the Semiramis audit (#68), on Heracles's Master (§46.4-CF).
+describe("an unlimited pool, read back from the flag", () => {
+  it("still lets a Master attack", () => {
+    const stored = JSON.parse(JSON.stringify(emptyBudget()));
+    expect(stored.pools.masterAttack.maxHalves).toBeNull();
+    const verdict = canConsume(stored, { id: "m", kind: "master", turnState: {} }, "attack");
+    expect(verdict.ok).toBe(true);
+  });
+});
