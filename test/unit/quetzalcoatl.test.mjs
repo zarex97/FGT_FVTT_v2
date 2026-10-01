@@ -450,6 +450,24 @@ describe("Xiuhcoatl's splash is its own resolution (#136)", () => {
     const declare = engine.slice(engine.indexOf("async function declareAftermath"));
     expect(declare.slice(0, declare.indexOf("\n}\n"))).not.toMatch(/\.\.\.\(spec\.damage/);
   });
+
+  // Found live: the splash card on her Master read "NP Seal resisted (47 vs
+  // 25%) · Burn applied · NP Seal applied · Burn already present". The resolver
+  // asks for riders twice, before and after the damage, and the aftermath
+  // branch answered both.
+  it("the splash's riders run once, after its damage", () => {
+    const engine = readFileSync("module/engine/attack.mjs", "utf8").replaceAll("\r\n", "\n");
+    const from = engine.indexOf("async function applyAbilityEffects");
+    const body = engine.slice(from, engine.indexOf("\n}\n", from));
+    expect(body).toMatch(/\{ when = "afterDamage" \}/);
+    const branch = body.slice(body.indexOf("if (state.attack?.isAftermath)"));
+    const loop = branch.indexOf("for (const rider of ability.system?.aftermath?.effects");
+    expect(loop).toBeGreaterThan(0);
+    expect(branch.slice(0, loop)).toMatch(/if \(when !== "afterDamage"\) return \[\];/);
+    const callers = engine.split("\n").filter((line) => line.includes("await applyAbilityEffects("));
+    const windows = callers.map((line) => line.match(/when: "(\w+)"/)?.[1] ?? "afterDamage");
+    expect(windows.sort()).toEqual(["afterDamage", "beforeDamage"]);
+  });
 });
 
 describe("the Quetzalcoatlus", () => {
