@@ -1070,3 +1070,30 @@ describe("mayBringMaster — the same level", () => {
     expect(mayBringMaster({ panel: { i: 8, j: 6 }, level: 0 }, { panel: { i: 8, j: 5 }, level: 20 })).toBe(false);
   });
 });
+
+// *"...it lands on the Game Board panel directly under it and takes (10*2d6)
+// STR damage"* and *"A Master knocked onto the Game Board performs an Overpower
+// roll, as though Attacked by a Servant."* `toIntents` rolled a hard-coded
+// "10*2d6" whatever the Platform authored, and turned the Overpower into a log
+// line that nothing read: no flip was ever made (§46.4-CD).
+describe("a fall's own numbers", async () => {
+  const { fallFormula } = await import("../../module/rules/platforms.mjs");
+  const src = readFileSync("module/engine/platforms.mjs", "utf8");
+  const toIntents = src.slice(src.indexOf("async function toIntents"));
+
+  it("reads the Platform's authored formula, written with an x", () => {
+    expect(fallFormula("10x2d6")).toBe("10*2d6");
+    expect(fallFormula("5x1d10")).toBe("5*1d10");
+    expect(fallFormula("3d6")).toBe("3d6");
+  });
+
+  it("rolls what the descriptor says, not a constant", () => {
+    expect(toIntents).not.toMatch(/new Roll\("10\*2d6"\)/);
+    expect(toIntents).toMatch(/fallFormula\(d\.formula\)/);
+  });
+
+  it("flips the Overpower coin for a Master who lands", () => {
+    expect(toIntents).toMatch(/resolveOverpower\(/);
+    expect(toIntents).toMatch(/I\.defeat\(d\.unitId, "overpowered"/);
+  });
+});

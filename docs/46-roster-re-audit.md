@@ -2476,6 +2476,18 @@ knockback must still clear the mover's space. A Unit left aboard by a knock -- c
 footing -- is now moved off the mover's footprint to the nearest free deck panel, which also covers the
 passed check's own landing, chosen from a board on which the mover had not yet arrived.
 
+### CD. A fall rolled a constant, and a landing Master's Overpower was never rolled — **fixed 2026-09-30**
+
+**Reached: HG.knock.master.** Heracles's Master was knocked off the garden; the log recorded
+`overpowerRequired` and nothing else. *"A Master knocked onto the Game Board performs an Overpower roll,
+as though Attacked by a Servant"* -- `engine/platforms.mjs#toIntents` turned the descriptor into a log
+line nobody read. The same function rolled a hard-coded `10*2d6` for every fall, whatever the Platform
+authored in `knockOff.damage`. The fall now rolls the Platform's own formula (`fallFormula` reads the
+sheets' `10x2d6`) and a landing Master flips the attack path's own Overpower coin, announced in chat; a
+lost flip defeats it. A missed rescue is shown too. Not built: the Luck Check that saves a Master from
+Overpower -- `state.luckChecks.overpower` has no writer on the attack path either, which is a wider defect
+than this Servant's and is filed separately.
+
 ---
 
 ---
