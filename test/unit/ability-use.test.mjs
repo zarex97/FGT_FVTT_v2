@@ -3,7 +3,8 @@
  * @see module/rules/ability-use.mjs
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
+import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import {
   classifyAbility, targetSpecFor, needsTargeting, countsAsAttack, countsAsAct,
   blockedThisTurn, isNegated,
@@ -359,5 +360,34 @@ describe("a passive Noble Phantasm", () => {
   it("leaves an ordinary Noble Phantasm an attack", () => {
     const outrage = { type: "noblePhantasm", system: { isNP: true, phases: [{ kind: "damage" }] } };
     expect(classifyAbility(outrage)).toMatchObject({ kind: "attack", isAttack: true });
+  });
+});
+
+describe("an ability that is itself a Riding Attack (#113)", () => {
+  beforeAll(prepareSubjects, 60_000);
+
+  // Troias Tragōidia is *"used in the form of a Riding Attack, with a distance of
+  // 13 panels"*. It was declared from the sheet's button, which never rides, so
+  // it resolved as a stationary 13-panel line and `@ride.x` / `@hitCount` had
+  // nothing to read. Built through the real projection: the key is authored as
+  // `ridingAttack: {distance: 13}` and has to survive to the classification.
+  const item = (from, contentId) => withSubjects([{ from }], ({ world }) => {
+    const found = world.actor(from).items.find((i) => i.system?.contentId === contentId);
+    return { use: classifyAbility(found), ride: found.system.ridingAttack };
+  });
+
+  it("classifies Troias Tragōidia as an attack that rides", async () => {
+    const { use, ride } = await item("achilles", "achilles-troias-tragoidia");
+    expect(ride).toMatchObject({ distance: 13 });
+    expect(use).toMatchObject({ kind: "attack", isAttack: true, ridesAsAttack: true });
+  });
+
+  it("does not call an ordinary Noble Phantasm one", async () => {
+    const { use } = await item("emiya", "emiya-caladbolg");
+    expect(use).toMatchObject({ kind: "attack", ridesAsAttack: false });
+  });
+
+  it("does not call a Normal Attack one", () => {
+    expect(classifyAbility(null).ridesAsAttack).toBe(false);
   });
 });

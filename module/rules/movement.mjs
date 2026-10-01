@@ -181,6 +181,47 @@ export function ridingAttackPath(unit, destination, board, { movedAlready = null
 }
 
 /**
+ * Every panel a Riding Attack may end on, from where this Unit stands.
+ *
+ * What the destination picker paints, and what `ridingAttackPath` judges: the
+ * overlay and the engine are ONE rule, because a candidate is offered only if
+ * `ridingAttackPath` accepts it. Two readers of one rule drift (Ch. 46 §46.3),
+ * and an overlay that offers a panel the engine then refuses is the silent
+ * no-op the action bar was built to stop (#113).
+ *
+ * Candidates are the eight lines a grid has, out to the allowance -- the
+ * ability's own reach when it states one (Troias Tragōidia's 13), else MOV --
+ * less the panels already Moved. A line stops where the board does.
+ *
+ * @param {object} unit
+ * @param {object} board
+ * @param {object} [opts]
+ * @param {number|null} [opts.distanceOverride] the ability's own reach
+ * @returns {GridOffset[]}
+ */
+export function ridingDestinations(unit, board, { distanceOverride = null } = {}) {
+  if (!unit?.panel) return [];
+  const reach = typeof distanceOverride === "number" ? distanceOverride : effectiveMov(unit);
+  const allowance = Math.max(0, reach - (unit.turnState?.movedPanels ?? 0));
+
+  /** @type {GridOffset[]} */
+  const out = [];
+  for (const [di, dj] of RIDING_DIRECTIONS) {
+    for (let step = 1; step <= allowance; step += 1) {
+      const panel = { i: unit.panel.i + di * step, j: unit.panel.j + dj * step };
+      if (!geo.inBounds(panel, board?.bounds ?? null)) break;
+      if (ridingAttackPath(unit, panel, board, { distanceOverride }).ok) out.push(panel);
+    }
+  }
+  return out;
+}
+
+/** The eight lines a Riding Attack may run along: the axes and the exact diagonals. */
+const RIDING_DIRECTIONS = Object.freeze([
+  [-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1],
+]);
+
+/**
  * Where a Master lands when it rides along with its Servant.
  *
  * > *"Passenger Seat: The Servant's Master can Move together with its Servant;

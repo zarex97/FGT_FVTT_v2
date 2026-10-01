@@ -302,6 +302,15 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
    * @returns {Promise<void>}
    */
   static async declareAttack(actor, ability) {
+    // An ability that IS a Riding Attack rides to a destination the player picks
+    // rather than aiming from where the Unit stands: *"used in the form of a
+    // Riding Attack, with a distance of 13 panels"* (Troias Tragōidia). Declared
+    // from here it resolved as a stationary 13-panel line, and `@ride.x` and
+    // `@hitCount` had nothing to read (#113).
+    if (ability && classifyAbility(ability).ridesAsAttack) {
+      const { rideFrom } = await import("../hud/action-bar.mjs");
+      return rideFrom(actor, { ability });
+    }
 
     const placement = await pickPlacement(actor, ability);
     // `null` is a cancellation, which is the most common outcome of opening a

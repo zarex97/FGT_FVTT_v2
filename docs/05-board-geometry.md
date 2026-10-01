@@ -48,6 +48,12 @@ Four-directional placement — Raikou's clones on front/back/left/right — is d
 
 Two opt-in prerequisites guard abilities. **Facing check:** `facingAllows` returns true only if the target is in the caster's front quadrant, or if the caster targets itself (`module/rules/targeting/facing.mjs:36-40`). **Path clear:** `pathClear` walks the panels between caster and target and returns false if any Servant or summon stands in the way. Civilians and defeated units do not obstruct (`module/rules/targeting/facing.mjs:63-75`).
 
+### Riding Attack
+
+*"Can Attack all Units in its path while Moving in a straight line as its Normal Attack."* A ride is a Move that is also an Attack, and "straight" means the eight lines a grid has: a shared row, a shared column or an exact diagonal (`module/rules/movement.mjs#ridingAttackPath`, measured Chebyshev). The allowance is MOV minus the panels already Moved this Turn, or the ability's own reach when it states one — Troias Tragōidia's `ridingAttack.distance: 13`.
+
+**One rule, two readers.** `ridingDestinations(unit, board, { distanceOverride })` lists every panel a ride may end on, and it offers a candidate only if `ridingAttackPath` accepts it, so the overlay a player picks from and the engine that judges the ride cannot disagree (two readers of one rule drift, §46.3). A line stops where the board does. The destination is picked on the canvas with `pickDestination` (Ch. 36, mode F) and performed by `performAction("ridingAttack", { destination })` (Ch. 34). The Move button, by contrast, names no destination: dragging the token is the Move, so the button says so (`dragToMove`) instead of raising a hook nobody listens for (#113).
+
 ## Invariants & edge cases
 
 1. **Panels are always measured from the whole footprint, not the anchor alone.** `chebyshevFromAny` and `inAttackRangeFromAny` check all panels a unit occupies and return the minimum distance or a boolean (`module/domain/geometry.mjs:68-89`). Single-panel units still use these; they are correct whether the unit occupies one panel or nine.

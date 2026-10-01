@@ -29,7 +29,7 @@ The **overlay layer** is always-on, rendering persistent board context. It draws
 
 ### Five targeting modes
 
-The targeting session dispatches to one of five interactions based on the `anchor` type (`module/apps/canvas/targeting-layer.mjs:209-305`):
+The targeting session dispatches to one of five interactions (and a sixth, mode F, below, that is not an anchor) based on the `anchor` type (`module/apps/canvas/targeting-layer.mjs:209-305`):
 
 **Mode A — direction picker** (`module/apps/canvas/targeting-layer.mjs:307-352`). Four ghosts drawn at once, one for each cardinal direction, tinted green (legal) or red (illegal). Hover brings one forward, arrow keys cycle, Enter or click confirms. Used when the anchor is `selfEdgeAdjacent` — a unit places an effect at an edge-adjacent panel in one of four directions, and showing all four simultaneously means the player never has to guess or redo (`module/apps/canvas/targeting-layer.mjs:21-24`).
 
@@ -38,6 +38,8 @@ The targeting session dispatches to one of five interactions based on the `ancho
 **Mode C — unit picker** (`module/apps/canvas/targeting-layer.mjs:413-461`). Every unit in `options` is dimly highlighted on the board, the legal ones cycle with Tab, and clicking or Enter selects. Used when the anchor is `targetUnit`.
 
 **Mode D — auto-resolve** (`module/apps/canvas/targeting-layer.mjs:300-304`). No user interaction. Used for anchors that resolve to exactly one placement (e.g. `self`).
+
+**Mode F — a destination from a fixed set** (`pickDestination`). Mode B's overlay without mode B's resolution: every panel the rules offered is dimmed, the hovered one is lit, and one click returns `{i, j}` (or `null` on cancel, which spends nothing). There is no area to resolve and nobody to list, because the panel IS the answer. The only user is a Riding Attack's destination (Ch. 5, Ch. 34), whose panels are `ridingDestinations`. As in mode B, a click on a panel that is not offered cancels the session.
 
 **Mode E — freeform paint** (`module/apps/canvas/targeting-layer.mjs:64-193`). The player drags to paint panels into the footprint or shift-drags to erase. Legal panels render in the legal tint; panels outside the leash render in red and refuse paint. Legality is drawn, not enforced afterwards, so nothing can be composed that will be rejected at commit (`module/apps/canvas/targeting-layer.mjs:71-74`). Enter confirms, Escape or right-click cancels.
 

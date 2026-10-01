@@ -351,3 +351,66 @@ describe("a Structure is not a unit that acts", () => {
     expect(idsFor(bloodmark(), board([bloodmark(), semiramis()]))).not.toContain("gather");
   });
 });
+
+describe("Riding Attack from the interface (#113)", () => {
+  // The bar handed every targeted action but Attack to `Hooks.callAll(
+  // "fgtEnterMovement")` and returned. Nothing listened, so `performRidingAttack`
+  // ran from the console only, and `ridingAttackPath`, `usedRidingAttack` and
+  // Troias Tragōidia's `ridingAttack` block were dead with it.
+
+  it("refuses a ride that names no destination", async () => {
+    const { performAction } = await import("../../module/engine/actions.mjs");
+    expect(await performAction("ridingAttack", { actor: { id: "x" } }))
+      .toEqual({ ok: false, reason: "noDestination" });
+  });
+
+  it("reaches `performRidingAttack` once it names one", async () => {
+    // A Unit the world does not hold is refused by `performRidingAttack` itself
+    // as `notFound` -- a reason only that function gives, so the handler got
+    // past `noDestination` and called it.
+    const { performAction } = await import("../../module/engine/actions.mjs");
+    const had = globalThis.game;
+    globalThis.game = { actors: new Map(), user: { isGM: true } };
+    try {
+      expect(await performAction("ridingAttack", { actor: { id: "ghost" }, destination: { i: 5, j: 5 } }))
+        .toEqual({ ok: false, reason: "notFound" });
+    } finally {
+      globalThis.game = had;
+    }
+  });
+
+  it("tells a player to drag the token to Move, rather than firing a hook nobody hears", async () => {
+    const { performAction } = await import("../../module/engine/actions.mjs");
+    expect(await performAction("move", { actor: { id: "x" }, token: {} }))
+      .toEqual({ ok: false, reason: "dragToMove" });
+  });
+
+  it("raises `fgtEnterMovement` nowhere, and nothing listens for it either", async () => {
+    const { readFileSync, readdirSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (
+      e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]));
+    const left = ["module", "templates", "lang"].flatMap(walk)
+      .filter((f) => /Hooks\.(callAll|call|on|once)\(\s*["']fgtEnterMovement/.test(readFileSync(f, "utf8")));
+    expect(left).toEqual([]);
+  });
+
+  it("is wired from the bar and from the declaration path through one destination picker", async () => {
+    const { readFileSync } = await import("node:fs");
+    const bar = readFileSync("module/apps/hud/action-bar.mjs", "utf8");
+    expect(bar).toMatch(/ridingDestinations\(/);
+    expect(bar).toMatch(/pickDestination\(/);
+    const sheet = readFileSync("module/apps/actor-sheet/sheet.mjs", "utf8");
+    expect(sheet).toMatch(/ridesAsAttack/);
+    const layer = readFileSync("module/apps/canvas/targeting-layer.mjs", "utf8");
+    expect(layer).toMatch(/export function pickDestination/);
+  });
+
+  it("has a string for each refusal the ride gives", async () => {
+    const { readFileSync } = await import("node:fs");
+    const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
+    for (const reason of ["dragToMove", "noDestinations"]) {
+      expect(lang[`FGT.Action.Refusal.${reason}`], reason).toBeTruthy();
+    }
+  });
+});

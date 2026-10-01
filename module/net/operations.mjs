@@ -137,6 +137,29 @@ export const OPERATIONS = Object.freeze({
     },
   },
 
+  /**
+   * Perform a Riding Attack: the Move and the attack it is, as one action.
+   *
+   * Computed on the GM client for the reason `resolveAttack` is -- it fans out
+   * into a Combat Process against Units the rider's player does not own -- and
+   * authorized the same way: the rider's owner, or the GM (#113).
+   */
+  ridingAttack: {
+    authorize: (payload, userId) => {
+      const rider = game.actors.get(payload.unitId);
+      const user = game.users.get(userId);
+      if (!rider || !user) return { allowed: false, reason: "Unknown rider." };
+      if (!user.isGM && !rider.testUserPermission(user, "OWNER")) {
+        return { allowed: false, reason: `${user.name} does not control ${rider.name}.` };
+      }
+      return { allowed: true, reason: null };
+    },
+    execute: async (payload) => {
+      const { performRidingAttack } = await import("../engine/riding.mjs");
+      return performRidingAttack(payload);
+    },
+  },
+
   /** Advance a Combat Process that is waiting on a human. */
   advanceProcess: {
     authorize: (payload, userId) => {

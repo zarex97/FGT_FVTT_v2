@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { ridingAttackPath, passengerDestination } from "../../module/rules/movement.mjs";
+import { ridingAttackPath, ridingDestinations, passengerDestination } from "../../module/rules/movement.mjs";
 import { squareBounds } from "../../module/domain/geometry.mjs";
 
 const at = (i, j) => ({ i, j });
@@ -74,6 +74,74 @@ describe("ridingAttackPath", () => {
 
   it("refuses standing still", () => {
     expect(ridingAttackPath(medusa, at(5, 1), board([medusa])).reason).toBe("noMovement");
+  });
+});
+
+describe("ridingDestinations (#113)", () => {
+  // The overlay a player picks a ride's end from, and the engine that judges it,
+  // must be one rule: two readers of one rule drift (Ch. 46 §46.3), and an
+  // overlay that offers a panel the engine then refuses is the silent no-op the
+  // action bar was built to stop.
+  const key = (p) => `${p.i},${p.j}`;
+
+  /** Every in-bounds panel on one of the eight lines, up to `allowance` away, by brute force. */
+  const brute = (from, allowance, size = 13) => {
+    const out = [];
+    for (let i = 0; i < size; i += 1) {
+      for (let j = 0; j < size; j += 1) {
+        const di = i - from.i; const dj = j - from.j;
+        const d = Math.max(Math.abs(di), Math.abs(dj));
+        const straight = di === 0 || dj === 0 || Math.abs(di) === Math.abs(dj);
+        if (d >= 1 && d <= allowance && straight) out.push({ i, j });
+      }
+    }
+    return out;
+  };
+
+  it("is exactly the straight-line panels within MOV minus the panels already Moved", () => {
+    const panels = ridingDestinations(medusa, board([medusa]));
+    expect(panels.map(key).sort()).toEqual(brute(medusa.panel, 7).map(key).sort());
+    expect(panels).toHaveLength(34);
+  });
+
+  it("has ridingAttackPath accept every one of them, and refuse one panel further", () => {
+    const b = board([medusa]);
+    for (const panel of ridingDestinations(medusa, b)) {
+      expect(ridingAttackPath(medusa, panel, b).ok, key(panel)).toBe(true);
+    }
+    // MOV 7 from (5,1): (5,8) is the last panel east, (5,9) is one further.
+    expect(ridingAttackPath(medusa, at(5, 8), b).ok).toBe(true);
+    expect(ridingAttackPath(medusa, at(5, 9), b).ok).toBe(false);
+  });
+
+  it("shortens by the panels already Moved", () => {
+    const spent = { ...medusa, turnState: { movedPanels: 4 } };
+    const panels = ridingDestinations(spent, board([spent]));
+    expect(panels.map(key).sort()).toEqual(brute(medusa.panel, 3).map(key).sort());
+  });
+
+  it("takes the ability's own distance when it states one, as Troias Tragōidia does", () => {
+    // *"This NP is used in the form of a Riding Attack, with a distance of 13
+    // panels"* -- MOV is not what bounds it.
+    const panels = ridingDestinations(medusa, board([medusa]), { distanceOverride: 13 });
+    expect(panels.map(key).sort()).toEqual(brute(medusa.panel, 13).map(key).sort());
+    expect(panels.length).toBeGreaterThan(34);
+  });
+
+  it("offers nothing to a Unit with no allowance left, or no panel", () => {
+    const spent = { ...medusa, turnState: { movedPanels: 7 } };
+    expect(ridingDestinations(spent, board([spent]))).toEqual([]);
+    expect(ridingDestinations({ ...medusa, panel: null }, board([medusa]))).toEqual([]);
+  });
+
+  it("never offers a panel off the board", () => {
+    const corner = { ...medusa, panel: at(0, 0) };
+    for (const panel of ridingDestinations(corner, board([corner]))) {
+      expect(panel.i).toBeGreaterThanOrEqual(0);
+      expect(panel.j).toBeGreaterThanOrEqual(0);
+      expect(panel.i).toBeLessThanOrEqual(12);
+      expect(panel.j).toBeLessThanOrEqual(12);
+    }
   });
 });
 

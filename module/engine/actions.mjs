@@ -33,14 +33,19 @@ export const ACTION_HANDLERS = Object.freeze({
     return { ok: true };
   },
 
-  move: async ({ token }) => {
-    Hooks.callAll("fgtEnterMovement", token);
-    return { ok: true };
-  },
+  // Dragging the token IS the Move: `movement-hooks.mjs#onPreMove` judges every
+  // step of it. This used to raise the `fgtEnterMovement` hook, which nothing
+  // ever listened for, so the button did nothing and said nothing. Until a
+  // reachable-panel overlay exists it says what to do instead (#113).
+  move: async () => ({ ok: false, reason: "dragToMove" }),
 
-  ridingAttack: async ({ actor, destination }) => {
+  // `context.abilityId` is the ability that IS the ride (Troias Tragōidia),
+  // when there is one; a bare Riding Attack is the Unit's Normal Attack.
+  ridingAttack: async ({ actor, context, destination }) => {
     if (!destination) return { ok: false, reason: "noDestination" };
-    return performRidingAttack({ unitId: actor.id, destination });
+    return performRidingAttack({
+      unitId: actor.id, destination, abilityId: context?.abilityId ?? null,
+    });
   },
 
   mark: async ({ actor, context }) => placeMark({ unitId: actor.id, abilityId: context.abilityId }),
