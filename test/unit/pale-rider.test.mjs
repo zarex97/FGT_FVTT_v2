@@ -10,10 +10,13 @@
  * four summoned spirits. These pin the general pieces each of those needed.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
+import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
 import { GRANTS, hasGranted } from "../../module/rules/granted.mjs";
+import { lookupNumber } from "../../module/domain/tables.mjs";
+import { Rank } from "../../module/domain/rank.mjs";
 import { zonRadius } from "../../module/rules/zon.mjs";
 import { collectContributions } from "../../module/rules/elements.mjs";
 import { interiorModifiers } from "../../module/rules/bounded-fields.mjs";
@@ -25,6 +28,8 @@ const classSkill = (name) => parse(readFileSync(`packs/_source/class-skills/${na
 const ability = (name) => parse(readFileSync(`packs/_source/abilities/${name}.yml`, "utf8"));
 
 /* -------------------------------------------------------------------------- */
+
+beforeAll(prepareSubjects, 60_000);
 
 describe("Riding EX — the four passives", () => {
   it("names two grants no other Servant carries", () => {
@@ -65,7 +70,26 @@ describe("Riding EX — the four passives", () => {
       fromStat: "mov", stacks: true,
     });
     // "The MOV Up effect from Riding's Active usage is not a buff."
-    expect(riding.activeRules[0]).toMatchObject({ key: "MovDelta", value: 6, isBuff: false });
+    expect(riding.activeRules[0]).toMatchObject({ key: "MovDelta", isBuff: false });
+  });
+
+  it("takes its MOV from the ridingMov table at EX, which is the number his sheet prints (#122)", () => {
+    // It said "a flat 6 ... EX is not a row that table has", and `ridingMov` has
+    // `EX: 6`. One source for the number rather than two.
+    const mov = classSkill("riding-pale-rider").activeRules[0];
+    expect(mov.table).toBe("ridingMov");
+    expect(mov.value).toBeUndefined();
+    expect(lookupNumber("ridingMov", Rank.parse("EX"))).toBe(6);
+  });
+
+  it("still raises his MOV by 6 while it is on, through the real projection (#122)", async () => {
+    // The executor has to take `rank: EX` from the Item for `table` to read a row.
+    await withSubjects([{ from: "pale-rider" }], async ({ world }) => {
+      const actor = world.actor("pale-rider");
+      const base = actor.system.mov;
+      await actor.items.find((i) => i.system?.slug === "riding").update({ "system.active": true });
+      expect(actor.system.mov - base).toBe(6);
+    });
   });
 });
 

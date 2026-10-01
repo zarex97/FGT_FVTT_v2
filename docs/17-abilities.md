@@ -61,6 +61,10 @@ Every ability is one of five kinds (`module/rules/ability-use.mjs:220-305`):
 
 The classification matters because non-attack abilities do not open a targeting session or a Combat Process (`module/engine/skill-use.mjs:7-22`). A Skill's click uses the Unit's **Act**; an Attack's click uses both the Attack and (usually) the Act.
 
+### The Riding family
+
+Riding is one class skill authored as several documents, because a rank table gives two Servants different numbers off one document but not different passives: the shared `class-riding` (the six `class-riding` bearers, Quetzalcoatl among them), `class-riding-achilles` (gated on the Mounted stance), `class-riding-medusa`, `class-riding-drake` and `class-riding-pollux` (whose Active is a **used** ability applying the `ridingActive` status, which the granted abilities ask for), `pale-rider-riding`, and the Normal Rider's rankless `normal-riding`. The shared document and Achilles's and Pale Rider's are **modes** (`activeRules`, no phases): their Active pays a cooldown on entry and ends with the Turn (Ch. 24, #116). The card a player reads is the document's `description`, so `class-riding` prints each rule its grants switch on — the three passives in full and the Active as "the Riding table's value", because an inline `@` is not substituted and the number is the rank's (#122). The rank and the cooldown are template slots the bearer fills beside the `ref`, and a slot left unfilled fails the build (Ch. 40, #120); Pale Rider's MOV is `table: ridingMov` at his own rank EX, the same 6 his sheet prints.
+
 ### Cooldowns
 
 A cooldown is stored as remaining Turns, counted down by the scheduler (`module/engine/cooldown.mjs:1-16`). The authored form is a tick expression (`3◈`, `5◈+⅓◈`) or, for one ability, a per-unit rate resolved against the summon count (`module/engine/cooldown.mjs:45-80`).

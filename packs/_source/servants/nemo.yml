@@ -72,10 +72,10 @@ rules:
 # ─── Abilities ─────────────────────────────────────────────────────────
 abilities:
   # "Class Skill: Riding — Rank: A+ / Storm Border." All three passives and the
-  # Active are already `class-riding`'s, and `engine/riding.mjs` already
-  # performs them -- including the clause the sheet restates at length, that a
-  # Riding Attack after a Move gets MOV minus the panels already spent
-  # (`turnState.movedPanels` is a running total for exactly this reason).
+  # Active are already `class-riding`'s, and the engine performs them -- the ride
+  # from the action bar, the Master's carry, and the clause the sheet restates at
+  # length, that a Riding Attack after a Move gets MOV minus the panels already
+  # spent (`turnState.movedPanels` is a running total for exactly this reason).
   #
   # "The Move Up effect from Riding's Active usage is not a buff" is already
   # `isBuff: false` on the shared file. Nemo adds NOTHING to Riding.

@@ -42,9 +42,11 @@ sustainability: "2◈"
 # ─── Abilities ─────────────────────────────────────────────────────────
 abilities:
   # The SHARED Riding document, unchanged. Her three passives and her Active are
-  # word-for-word `class-riding.yml`, and `ridingMov` already gives EX => +6 --
-  # the number her sheet prints, not one authored here. She is the first Rider
-  # since Ozymandias to need no variant of it.
+  # `class-riding.yml`'s clauses (which the card prints in full, #122), and
+  # `ridingMov` already gives EX => +6 -- the number her sheet prints, not one
+  # authored here. Her sheet names the numbers where the card names the table:
+  # +6 MOV, and the 3◈ cooldown passed below. She is the first Rider since
+  # Ozymandias to need no variant of it.
   - { ref: class-riding, rank: EX, cooldown: "3◈" }
   # Likewise unchanged, including the Instakill/Death/Erase paragraph, which the
   # shared document already carries verbatim. A => negates up to A, 50% off the

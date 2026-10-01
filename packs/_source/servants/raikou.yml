@@ -100,9 +100,9 @@ abilities:
         mode: madEnhancement
         when: ["self:withinOfMaster:2"]
   # "Class Skill: Riding — Rank: A+". All three passives and the Active are
-  # already shared, and `engine/riding.mjs` already performs them -- including
-  # the clause her sheet restates at length, that a Riding Attack after a Move
-  # gets MOV minus the panels already spent. "The Move Up effect ... is not a
+  # already shared, and the engine performs them -- the ride from the action bar,
+  # the Master's carry, and the clause her sheet restates at length, that a Riding
+  # Attack after a Move gets MOV minus the panels already spent. "The Move Up effect ... is not a
   # buff" is already `isBuff: false`. She adds NOTHING to Riding.
   - { ref: class-riding, rank: "A+", cooldown: "3◈-⅓◈" }
   # "Class Skill: Magic Resistance — Rank: D". Her three paragraphs -- the rank
