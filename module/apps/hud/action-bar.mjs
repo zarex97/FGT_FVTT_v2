@@ -15,6 +15,7 @@
 import { rowsFor, slotFor, portraitBlock } from "./present.mjs";
 import { ticksLabel } from "../actor-sheet/present.mjs";
 import { availableActions } from "../../rules/actions.mjs";
+import { ridingDestinations } from "../../rules/movement.mjs";
 import { classifyAbility } from "../../rules/ability-use.mjs";
 import { answersACounter, counterMustCatchAttacker } from "../../rules/counter.mjs";
 import { canUseAbility } from "../../rules/costs.mjs";
@@ -369,12 +370,10 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
 
       if (id === "facing") return this.turnFacing(actor, 1);
 
-      // A targeted action that is not the attack flow hands off to the canvas
-      // rather than resolving here: it needs a destination first.
-      if (entry.mode === "targeted" && id !== "attack") {
-        Hooks.callAll("fgtEnterMovement", this.token);
-        return;
-      }
+      // A Riding Attack needs a destination first: ask the canvas, then perform
+      // it. The slot used to fire `fgtEnterMovement`, a hook nothing listened
+      // for, so the ride could be performed from the console only (#113).
+      if (id === "ridingAttack") return rideFrom(actor, { context: entry.context });
 
       const result = await performAction(id, { actor, token: this.token, context: entry.context });
       if (result?.ok === false) ui.notifications.warn(refusalText(result.reason));
@@ -588,6 +587,49 @@ function refusalText(reason) {
 }
 
 /* -------------------------------------------------------------------------- */
+
+/**
+ * Ride: ask where it ends, then perform it.
+ *
+ * The one client door to a Riding Attack, shared by the bar's own slot and by
+ * an ability that IS one (Troias Tragōidia, routed here by
+ * `FGTActorSheet.declareAttack`). The panels offered are
+ * `rules/movement.mjs#ridingDestinations`, which asks the same
+ * `ridingAttackPath` the engine judges the ride by, so the overlay cannot offer
+ * a panel the engine then refuses. Cancelling spends nothing.
+ *
+ * @param {object} actor
+ * @param {object} [args]
+ * @param {object|null} [args.ability] the ability that is the ride, if it is one
+ * @param {object} [args.context] the registry's context for the action
+ * @returns {Promise<void>}
+ */
+export async function rideFrom(actor, { ability = null, context = {} } = {}) {
+  const board = currentBoard();
+  const unit = unitFrom(board, actor);
+  const reach = ability?.system?.ridingAttack?.distance;
+  const panels = ridingDestinations(unit, board, {
+    distanceOverride: typeof reach === "number" ? reach : null,
+  });
+  if (panels.length === 0) {
+    ui.notifications.warn(refusalText("noDestinations"));
+    return;
+  }
+
+  const { pickDestination } = await import("../canvas/targeting-layer.mjs");
+  const destination = await pickDestination({
+    panels, label: ability?.name ?? game.i18n.localize("FGT.Action.RidingAttack"),
+  });
+  if (!destination) return;
+
+  const { performAction } = await import("../../engine/actions.mjs");
+  const result = await performAction("ridingAttack", {
+    actor,
+    context: { ...context, ...(ability ? { abilityId: ability.id } : {}) },
+    destination,
+  });
+  if (result?.ok === false) ui.notifications.warn(refusalText(result.reason));
+}
 
 /**
  * Open the painter for a field, and commit what comes back.

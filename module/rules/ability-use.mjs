@@ -30,6 +30,10 @@ import { test as testPredicate } from "./predicate.mjs";
  * @property {boolean} clickable is there anything to do when pressed?
  * @property {boolean} toggles a mode, switched rather than used
  * @property {string} action the sheet action to bind
+ * @property {boolean} ridesAsAttack an attack that is itself a Riding Attack:
+ *   the Unit rides to a destination it picks, and everything on the line is a
+ *   defender (Troias Tragōidia). Declaring it from where the Unit stands is
+ *   not the ability.
  */
 
 /**
@@ -218,6 +222,26 @@ export function dealsNoDamage(item) {
  * @returns {AbilityUse}
  */
 export function classifyAbility(item) {
+  const use = classifyUse(item);
+  // *"This NP is used in the form of a Riding Attack, with a distance of 13
+  // panels."* Declared from the sheet it resolved as a stationary 13-panel line,
+  // and `@ride.x` / `@hitCount` had nothing to read (#113). Only an attack can
+  // be one.
+  //
+  // The DISTANCE is the marker, not the block: `ridingAttack` is a SchemaField,
+  // so a real document carries `{distance: null}` on every ability and a
+  // truthiness test calls them all rides.
+  return {
+    ...use,
+    ridesAsAttack: use.isAttack && typeof item?.system?.ridingAttack?.distance === "number",
+  };
+}
+
+/**
+ * @param {object} item
+ * @returns {Omit<AbilityUse, "ridesAsAttack">}
+ */
+function classifyUse(item) {
   const sys = item?.system ?? {};
   const isNP = item?.type === "noblePhantasm" || sys.isNP === true;
 

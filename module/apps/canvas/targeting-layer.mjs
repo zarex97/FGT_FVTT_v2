@@ -411,6 +411,62 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
     });
   }
 
+  /* ── Mode F — a destination from a fixed set ────────────────────────────── */
+
+  /**
+   * Pick where a ride ends, from the panels the rules offered.
+   *
+   * Mode B's interaction without mode B's resolution: the same dimmed overlay
+   * over every legal panel and one click, but there is no area to resolve and
+   * nobody to list -- the panel IS the answer. A Riding Attack's legal panels
+   * come from `rules/movement.mjs#ridingDestinations`, so what is painted here
+   * and what the engine judges afterwards are one rule (#113).
+   *
+   * As in mode B, a click on a panel that is not offered cancels the session,
+   * and cancelling spends nothing.
+   *
+   * @param {object} args
+   * @param {Array<{i: number, j: number}>} args.panels the offered panels
+   * @param {string} [args.label] what is being aimed
+   * @returns {Promise<{i: number, j: number}|null>} the panel, or null on cancel
+   */
+  async pickDestination({ panels, label = "" }) {
+    this.#cancel();
+    this.activate();
+
+    const key = (p) => `${p.i},${p.j}`;
+    const offered = new Set(panels.map(key));
+    const hud = new TargetingHUD({ label });
+    let current = null;
+
+    const render = () => {
+      this.#graphics.clear();
+      // Persistent context, as in mode B: it answers "where could I end?"
+      // without the player having to sweep the pointer to find out.
+      this.#drawPanels(panels, LEGAL, 0.08);
+      if (current) this.#drawPanels([current], LEGAL, 0.3);
+      hud.setLabel(label, game.i18n.localize("FGT.Targeting.ChooseDestination"));
+    };
+
+    announce(label, "withinRange");
+
+    try {
+      render();
+      return await this.#await({
+        onPointerMove: (panel) => {
+          const next = offered.has(key(panel)) ? { i: panel.i, j: panel.j } : null;
+          if (next?.i === current?.i && next?.j === current?.j) return;
+          current = next;
+          render();
+        },
+        onConfirm: () => (current ? { i: current.i, j: current.j } : null),
+      });
+    } finally {
+      this.#cancel();
+      hud.close();
+    }
+  }
+
   /* ── Mode C — the unit picker ───────────────────────────────────────────── */
 
   /**
@@ -672,6 +728,21 @@ export function pickTarget(args) {
   const layer = canvas.fgtTargeting;
   if (!layer) throw new Error("FGT | The targeting layer is not on the canvas.");
   return layer.pick(args);
+}
+
+/**
+ * Run a destination session on the active canvas.
+ *
+ * The module-level door to {@link TargetingLayer#pickDestination}, matching
+ * `pickTarget`'s shape so a caller never reaches for `canvas.fgtTargeting`.
+ *
+ * @param {object} args see {@link TargetingLayer#pickDestination}
+ * @returns {Promise<{i: number, j: number}|null>}
+ */
+export function pickDestination(args) {
+  const layer = canvas.fgtTargeting;
+  if (!layer) throw new Error("FGT | The targeting layer is not on the canvas.");
+  return layer.pickDestination(args);
 }
 
 /**

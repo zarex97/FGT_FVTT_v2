@@ -32,6 +32,15 @@ import { applyWorldIntents } from "./applier.mjs";
  * @returns {Promise<{ok: boolean, reason?: string, hit?: string[], messageId?: string}>}
  */
 export async function performRidingAttack({ unitId, destination, abilityId = null }) {
+  // A ride is an attack, and every attack is the GM's to resolve (Ch. 38 Model
+  // B): it writes damage to Units the rider's player does not own and opens a
+  // Combat Process the GM advances. `OPERATIONS.ridingAttack` authorizes the
+  // owner and runs this again where `isGM` holds.
+  if (!game.user?.isGM) {
+    const { FGTSocket } = await import("../net/socket.mjs");
+    return FGTSocket.request("ridingAttack", { unitId, destination, abilityId });
+  }
+
   const actor = game.actors.get(unitId);
   if (!actor) return { ok: false, reason: "notFound" };
 
