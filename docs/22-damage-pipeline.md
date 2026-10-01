@@ -47,7 +47,7 @@ Each stage runs in order, capturing what it changed into the `breakdown` array. 
 
 10. **Luck: Increased Damage** (line 742): Luck checks that increase outgoing damage.
 
-11. **Resistance** (line 763): Magic Resistance and physical Def scales the surviving damage multiplicatively. Applied as `1 + rank / 100` after both positive and negative modifiers sum.
+11. **Resistance** (line 763): Magic Resistance and physical Def scales the surviving damage multiplicatively. Applied as `1 + rank / 100` after both positive and negative modifiers sum. **Magic Resistance in rank mode compares against the attack's own Rank** (`ctx.attack.rank`): a Noble Phantasm is compared by its own Rank, Karna's Brahmastra (A+) against Quetzalcoatl's Magic Resistance A is halved (`−50% MAG (MR A < attack A+)`) whatever Karna's MAG is. Only an *unranked* attack (a Normal Attack) falls back to the attacker's MAG parameter. Every caller must therefore put the ability's Rank on the attack, and they do it through `attackIdentityOf` in `module/engine/attack.mjs` (the resolution, the counterfactual and the targeting preview); the preview once built none of it and read the caster's MAG, so a player aimed Brahmastra at her, read "negated", and the card dealt half (#124).
 
 12. **Flat Reductions** (line 805): Dmg Cut and other flat defences.
 
