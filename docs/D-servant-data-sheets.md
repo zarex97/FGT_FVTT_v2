@@ -1209,7 +1209,7 @@ above the board.
 | `elementFraction` | Ch. 13 §13 stage 4b | Needed the element modifiers to be **readable** first — six terrain types had emitted them into a void since terrain shipped. |
 | `aftermath` | Ch. 12 | A second unconditional resolution with its own damage and riders. |
 | `damage.base` / `damage.sources` | Ch. 22 stage 1 | Both spellings of a base attack are read by one function (`damageBaseOf`); her primary authored `sources` at the top and lost the MAG half to `component: str` until it was (#135). The validator refuses both together, and any key outside `DAMAGE_BLOCK_KEYS`. |
-| `replacesRiderAction` | Ch. 20 | First platform a passenger drives. Its base attack is `ctx.units.mount` — stage 1's named-source lookup, which nothing had ever supplied. |
+| `replacesRiderAction` | Ch. 20 | First platform a passenger drives. Its base attack is `ctx.units.mount` — stage 1's named-source lookup, which nothing had ever supplied. Her drag is gated as the mount's (`gateMovement`), she and the mount share one Move and one Attack a Turn (`turnPartnersOf`), and she attacks with the mount's Range (`attackRangeOf`) — Ch. 19, #143. |
 | Platform upkeep / `lockout` / `countFrom: destroyed` | Ch. 20 | Shared with a bounded field, because two of her NPs carry the same blocks. |
 
 **Exercised in a live world**, individually: her statline off the tables; `Sol` making a 5×5 of

@@ -15,14 +15,18 @@
  * authoritative check lives here (Ch. 05).
  */
 
-import { validatePath, pursuitVerdict, decoyVerdict } from "../rules/movement.mjs";
+import {
+  gateMovement, pursuitVerdict, decoyVerdict,
+} from "../rules/movement.mjs";
 import { carryMasterAlong } from "./passenger-seat.mjs";
 import { unitSnapshot, currentBoard } from "./board.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
-import { movePlatform, actionSourceFor, withinFootprint, canUnboard, boardingLanding } from "../rules/platforms.mjs";
+import {
+  movePlatform, actionSourceFor, withinFootprint, canUnboard, boardingLanding, turnPartnersOf,
+} from "../rules/platforms.mjs";
 import { contains as fieldContains } from "../rules/bounded-fields.mjs";
 import { repaintFollowing } from "./terrain.mjs";
 import { displaceToken } from "./io.mjs";
@@ -131,7 +135,10 @@ function onPreMove(document, movement, operation) {
   }
 
   const path = pathOf(movement);
-  const verdict = validatePath(path, unit, board);
+  // `gateMovement`, not `validatePath` on her own snapshot: a rider whose mount
+  // replaces her Move is measured as the mount, and the ordinary gate refused
+  // her drag outright (#143).
+  const verdict = gateMovement(path, unit, board);
   if (!verdict.ok) {
     ui.notifications.warn(`FGT | ${verdict.reasons[0]}`);
     return false;
@@ -281,13 +288,21 @@ async function onMove(document, movement, operation) {
   if (spent === 0) return;
 
   const state = unit.turnState ?? {};
+  const record = {
+    moved: true,
+    acted: true,
+    movedPanels: (state.movedPanels ?? 0) + spent,
+    moveSegments: (state.moveSegments ?? 0) + 1,
+  };
+  // A rider and the mount that replaces her Move share ONE Move per Turn (ruled,
+  // 2026-10-01), so the same record goes on both -- `movedPanels` included, which
+  // is what the mount's own cap reads. The BOARD's unit, not `unitSnapshot`,
+  // which carries no `platformId` (the trap recorded above).
+  const mine = currentBoard().units.find((u) => u.id === actor.id);
+  const partners = mine ? turnPartnersOf(mine, currentBoard(), "move") : [];
+  const records = [I.markTurn(actor.id, record), ...partners.map((p) => I.markTurn(p.id, record))];
   await applyIntents(
-    [I.markTurn(actor.id, {
-      moved: true,
-      acted: true,
-      movedPanels: (state.movedPanels ?? 0) + spent,
-      moveSegments: (state.moveSegments ?? 0) + 1,
-    })],
+    records,
     { io: worldIO(), canWrite: () => true, isGM: game.user.isGM, source: "movement" },
   );
 

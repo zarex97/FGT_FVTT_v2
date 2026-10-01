@@ -42,7 +42,7 @@ import { collectContributions, resolveValue } from "../rules/elements.mjs";
 import { test as testPredicate, explain as explainPredicate } from "../rules/predicate.mjs";
 import { thresholdFor, damageFromDice, thresholdModifiers } from "../rules/damage/dice-count.mjs";
 import { normalAttackAt } from "../rules/normal-attack.mjs";
-import { actionSourceFor } from "../rules/platforms.mjs";
+import { actionSourceFor, turnPartnersOf, attackRangeOf } from "../rules/platforms.mjs";
 import { GRANTS, hasGranted } from "../rules/granted.mjs";
 import { coveringServantsFor, coverFactor, shoveDestination, isCovering } from "../rules/cover.mjs";
 import { absorb, refreshShield, landBarrier } from "./shield.mjs";
@@ -174,10 +174,16 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   if (combat?.started && !resume && !free) {
     await budget.spend({ combat, unit: self, action: actionKind, ability, board });
     const isAttack = actionKind !== "skill";
+    const patch = isAttack
+      ? { attacked: true, acted: true }
+      : { usedActiveSkill: true, acted: true };
+    // A rider and the mount that replaces her Normal Attack share ONE Attack per
+    // Turn (ruled, 2026-10-01): a Spell is "Quetz's & the Quetzalcoatlus'
+    // Attack", and after hers the mount's own is spent, in either order. Only an
+    // Attack is shared -- a Skill spends neither.
+    const partners = isAttack ? turnPartnersOf(self, board, "attack") : [];
     await applyBatch(
-      [I.markTurn(attackerId, isAttack
-        ? { attacked: true, acted: true }
-        : { usedActiveSkill: true, acted: true })],
+      [I.markTurn(attackerId, patch), ...partners.map((p) => I.markTurn(p.id, patch))],
       "attack:declared",
     );
   }
@@ -5119,9 +5125,14 @@ function targetSpecFor(attacker, ability, options = null) {
   // shape of its own -- Kagome: Famine's "3x3 panel area".
   const board = boardSnapshot();
   const projected = unitFrom(board, attacker) ?? unitSnapshot(attacker);
-  const range = typeof projected.range === "number"
+  const ownRange = typeof projected.range === "number"
     ? projected.range
     : (attacker.system.range?.panels ?? 1);
+  // A bare Normal Attack by a rider whose mount replaces it is the MOUNT's
+  // swing, with the mount's Range -- the damage source already read the mount,
+  // and the targeting read hers, so the preview and the resolution disagreed
+  // the day the two differed (#143). An ability states its own Range.
+  const range = ability ? ownRange : (attackRangeOf({ ...projected, range: ownRange }, board) ?? ownRange);
   // ...and the war Region's say over an area that is the ability's own field.
   // `specForAbility` is pure and shared by every ability in the game; the
   // Region belongs to the board, which only this layer has.

@@ -269,12 +269,18 @@ export function canConsume(budget, unit, action) {
   // is not a combatant taking a slot; it is equipment its owner operates, so
   // it spends nothing -- but "spends nothing" is not "acts without limit",
   // which the unconditional `free: true` this replaced could not tell apart.
-  // A mount its RIDER drives (`replacesRiderAction`) needs nothing here, and
-  // the absence is deliberate rather than missing. Quetzalcoatl is a Servant,
-  // so she takes her own pool slot down this function's ordinary path; the
-  // Quetzalcoatlus is carried by `movePlatform` as a forced displacement, which
-  // returns before any budget is spent. One action, charged once, with no
-  // special case -- and adding one would bill her twice.
+  // A mount its RIDER drives (`replacesRiderAction`) needs no pool special case
+  // here, and the absence is deliberate rather than missing: Quetzalcoatl is a
+  // Servant, so she takes her own pool slot down this function's ordinary path,
+  // and the Quetzalcoatlus is carried by `movePlatform` as a forced
+  // displacement, which returns before any budget is spent -- adding one would
+  // bill her twice. The per-unit CAP below is another matter, and it is shared:
+  // while she rides they have ONE Move and ONE Attack a Turn between them
+  // (ruled, 2026-10-01). Nothing here knows that; the Turn Record does, because
+  // whatever either does is stamped on both (`rules/platforms.mjs#turnPartnersOf`),
+  // so this cap trips on the shared record in either order. An earlier version
+  // of this comment said "one action, charged once" and was true of the pool
+  // only: the mount's own button was free and so was a second Normal Attack.
   if (unit?.kind === "platform" || unit?.actsOncePerTurn) {
     const already = isAttack ? state.attacked : (action === "move" ? state.moved : false);
     if (already) {

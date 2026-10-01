@@ -107,6 +107,10 @@ When a platform is destroyed, the sequence is ordered and the order matters (`mo
 
 This is orchestrated by `engine/platforms.mjs#destroyPlatform` (`module/engine/platforms.mjs:122-151`), which calls the rules layer for descriptors, writes intents, and then runs `teardown` to perform the Foundry side (`module/engine/scene-levels.mjs:284-291`).
 
+### A mount its rider drives
+
+The Quetzalcoatlus is the only platform that replaces a rider's Move, and the Golden Hind replaces Drake's Normal Attack (`replacesRiderAction`, read by `rules/platforms.mjs#actionSourceFor`). While she rides, her Move **drives** the mount and her Normal Attack **is** the mount's, with the mount's Range; she and the mount share **one** Move and **one** Attack a Turn, and a Spell spends both (ruled 2026-10-01, #143). The gate that rations her drag is `rules/movement.mjs#gateMovement`, which measures her as the mount (`moverFor`: its MOV and effects, its obstacle rules, her Turn State) rather than refusing the drag at the edge of the footprint she stands on; her Master, who rides as cargo, is still held at the edge. The one Turn Record is `turnPartnersOf`, stamped by the Attack declaration, the move tail and Riding Attack; the Range is `attackRangeOf`. The full account, with the reading taken about Riding's Active, is in [Ch. 19](19-action-economy.md).
+
 ### Deactivating a platform
 
 The Quetzalcoatlus's sheet says *"This NP can be deactivated during Quetz's Turn or at the start or end of any Round or Turn, but cannot be deactivated for 2◈ Turns after it was activated"*; Drake's says she can end the Golden Hind during her Turn or at the start or end of any Turn or Round. Both author `deactivation: { byOwner: true, window: any }` (the mount with `lockout: "2◈"`), and until #141 nothing let an owner use it: the bar built its End slots from `board.fields` and a platform lives in `board.units`, so the only ends were defeat, an unpayable toll, an effect on the owner, or a GM at the console (`destroyPlatform` skips every gate).
