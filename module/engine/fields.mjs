@@ -36,7 +36,7 @@ import { rollOptionsFor } from "../rules/options.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import * as I from "./intents.mjs";
 import { distributePool } from "../rules/fields/pool.mjs";
-import { clearTerrain } from "./terrain.mjs";
+import { clearTerrain, clearTerrainBoundTo } from "./terrain.mjs";
 
 /**
  * A field's shape, grown or shrunk by the war Region it is cast in.
@@ -631,6 +631,10 @@ export async function endField(fieldId) {
     if (action.key !== "ClearTerrain" || !action.tag) continue;
     await clearTerrain(String(action.tag).replace("@field.id", fieldId));
   }
+  // ...and the ground ANOTHER ability painted for this field's sake: Xiuhcoatl's
+  // Burning on a Fortress, bound to the field's id when it was painted, goes when
+  // that Fortress does and not before (#152). Every close path comes through here.
+  await clearTerrainBoundTo(fieldId);
 
   // Every effect the field granted goes with it. `annotateFields` already
   // refuses to read one whose field has closed, so this is storage hygiene

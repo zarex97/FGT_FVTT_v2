@@ -128,10 +128,11 @@ phases:
   # "That NP area and the panels directly outside/next to the NP area are now
   # 'Burning' until the Fortress NP is deactivated."
   #
-  # NO LIVE REFERENT: the only [Fortress] NP in either roster is Ozymandias's
-  # Ramesseum Tentyris, which is unauthored. Built because the sheet says it,
-  # unit-tested against a synthetic field, and NOT demonstrable in a live world
-  # until he exists. Recorded here rather than left to look exercised.
+  # A [Fortress] NP is one tagged `fortress`: Ozymandias's Ramesseum Tentyris,
+  # and no other -- NOT an `antiFortress` one, her own Piedra Del Sol included
+  # (the author's ruling). One Burning area per Fortress in reach, each bound to
+  # its field (`boundToFieldId`), so closing that Fortress -- and no other --
+  # takes its Burning away; `duration: null` is "until", not "for ever".
   - kind: zone
     target: self
     spec:

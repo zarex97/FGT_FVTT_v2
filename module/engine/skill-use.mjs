@@ -726,13 +726,19 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // one case above, for the same reason.
           if (target.unitId !== actor.id) break;
           const spec = phase.spec ?? {};
-          const painted = await paintTerrain(zonePaintArgs(spec, ability, actor, self, board, extras));
+          // One area, except Xiuhcoatl's: one per [Fortress] NP in reach, each
+          // bound to its own field so it ends with it (#152). A use beside none
+          // paints nothing, and says so.
+          const paints = zonePaints(spec, ability, actor, self, board, extras);
+          const results = [];
+          for (const paint of paints) results.push(await paintTerrain(paint));
+          const failed = results.find((r) => !r.ok) ?? (results.length === 0 ? { reason: "noPanels" } : null);
           applied.push({
             summary: {
               id: "zone",
               name: (spec.terrain ?? []).join("/"),
-              outcome: painted.ok ? "applied" : "failed",
-              reason: painted.ok ? null : painted.reason,
+              outcome: failed ? "failed" : "applied",
+              reason: failed ? failed.reason : null,
             },
           });
           break;
@@ -2337,12 +2343,39 @@ export function zonePaintArgs(spec, ability, actor, self, board, extras = {}) {
 }
 
 /**
+ * Every area a `zone` phase paints: one, except for `fortressNearby`.
+ *
+ * Xiuhcoatl's *"that NP area and the panels directly outside it are now
+ * 'Burning' until the Fortress NP is deactivated"* is one area PER Fortress NP:
+ * each is tagged by its field and BOUND to it (`boundToFieldId`), so closing
+ * that field -- and no other -- takes its Burning away (`endField`). Painted as
+ * one union under one tag, a second use beside another Fortress MOVED the one
+ * area, and a use beside none left the old one standing (#152).
+ *
+ * @param {object} spec the phase's `spec` block
+ * @param {object} ability the ability Item
+ * @param {object} actor the caster
+ * @param {object} self the caster's snapshot
+ * @param {object} board
+ * @param {object} [extras]
+ * @returns {object[]} each `paintTerrain`'s argument
+ */
+export function zonePaints(spec, ability, actor, self, board, extras = {}) {
+  const base = zonePaintArgs(spec, ability, actor, self, board, extras);
+  if (spec.shape !== "fortressNearby") return [base];
+  return fortressesNearby(self, board).map(({ fieldId, panels }) => ({
+    ...base, panels, tag: `${base.tag}:${fieldId}`, boundToFieldId: fieldId,
+  }));
+}
+
+/**
  * The panels a `zone` phase covers.
  *
  * Three forms. An explicit `shape` anchored on the caster is the ordinary case
  * (Charisma of the Sun's 5×5, Piedra Del Sol's 7×7). `shape: "reuse"` is
  * Ch. 26's other spelling — *"the NP's own blast area"* — and
- * `shape: "fortressNearby"` is Xiuhcoatl's, which Task 13 fills in.
+ * `shape: "fortressNearby"` is Xiuhcoatl's, which paints one area per Fortress
+ * (`zonePaints`) and is the union of them here.
  *
  * @param {object} spec the phase's `spec` block
  * @param {object} self the caster's snapshot
@@ -2356,52 +2389,53 @@ function zonePanels(spec, self, board, extras = {}) {
   // is standing up to five panels away from it.
   if (spec.shape === "reuse") return extras.areaPanels ?? [];
   if (!self?.panel) return [];
-  if (spec.shape === "fortressNearby") return fortressPanels(self, board);
+  if (spec.shape === "fortressNearby") return fortressesNearby(self, board).flatMap((f) => f.panels);
   if (typeof spec.shape === "string") return [];
   return expand(spec.shape, { panel: self.panel }, { bounds: board?.bounds ?? null }).panels ?? [];
 }
 
 /**
- * Every `[Fortress]` field the caster is standing in or beside, plus its border.
+ * Every `[Fortress]` field the caster is standing in or beside, each with its
+ * own panels and the border around them.
  *
  * > *"If this NP is used within or directly next to a [Fortress] NP (regardless
  * > of ally's or enemy's), that NP area and the panels directly outside/next to
  * > the NP area are now 'Burning' until the Fortress NP is deactivated."*
  * > — Xiuhcoatl
  *
- * `rules/np-scale.mjs` has held the `fortress` qualifier and the `antiFortress`
- * scale comparison since it was written; this is the first reader for either.
- *
- * **There is no live referent.** The only `[Fortress]` Noble Phantasm in either
- * roster is Ozymandias's *Ramesseum Tentyris*, which is unauthored, so this
- * cannot fire in a real match yet. Built anyway, because the sheet says it and
- * a clause left out is a clause a reader assumes works.
+ * A [Fortress] NP is one tagged `fortress`, which is Ozymandias's *Ramesseum
+ * Tentyris* and no other. The author ruled that `antiFortress` -- a scale, which
+ * `rules/np-scale.mjs` keeps apart from the `fortress` qualifier -- is not one:
+ * this accepted both, so Xiuhcoatl used in or beside her own Piedra Del Sol
+ * (`antiArmy, antiFortress`) painted Burning over its 9x9 for ever (#152).
  *
  * "Directly next to" is Chebyshev 1 in both directions — the caster's proximity
  * to the field, and the border's proximity to the area.
  *
  * @param {object} self the caster's snapshot
  * @param {object} board
- * @returns {Array<{i: number, j: number}>}
+ * @returns {Array<{fieldId: string, panels: Array<{i: number, j: number}>}>}
  */
-function fortressPanels(self, board) {
-  const seen = new Set();
-  /** @type {Array<{i: number, j: number}>} */
+export function fortressesNearby(self, board) {
+  if (!self?.panel) return [];
+  /** @type {Array<{fieldId: string, panels: Array<{i: number, j: number}>}>} */
   const out = [];
-  const add = (p) => {
-    const k = `${p.i},${p.j}`;
-    if (seen.has(k)) return;
-    seen.add(k);
-    out.push({ i: p.i, j: p.j });
-  };
 
   for (const field of board?.fields ?? []) {
-    const tags = field.npTags ?? [];
-    if (!tags.includes("fortress") && !tags.includes("antiFortress")) continue;
+    if (!(field.npTags ?? []).includes("fortress")) continue;
 
     const panels = panelsOf(field, board) ?? [];
     if (!panels.some((p) => chebyshev(p, self.panel) <= 1)) continue;
 
+    const seen = new Set();
+    /** @type {Array<{i: number, j: number}>} */
+    const area = [];
+    const add = (p) => {
+      const k = `${p.i},${p.j}`;
+      if (seen.has(k)) return;
+      seen.add(k);
+      area.push({ i: p.i, j: p.j });
+    };
     for (const p of panels) {
       add(p);
       // "the panels directly outside/next to the NP area" -- the ring around
@@ -2411,6 +2445,7 @@ function fortressPanels(self, board) {
         for (let dj = -1; dj <= 1; dj++) add({ i: p.i + di, j: p.j + dj });
       }
     }
+    out.push({ fieldId: field.id, panels: area });
   }
   return out;
 }

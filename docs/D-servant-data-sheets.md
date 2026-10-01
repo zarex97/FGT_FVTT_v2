@@ -1225,10 +1225,15 @@ The last three were blocked for a while by something that looked environmental a
 forced displacement in the system was submitted to Foundry as a *walk* and silently discarded.
 See Ch. 20's *"Boarding: how a token actually reaches a Scene Level"*.
 
-**Not demonstrable.** Xiuhcoatl's `[Fortress]` clause is built and unit-tested, and **cannot fire
-in a real match**: the only `[Fortress]` NP in either roster is Ozymandias's *Ramesseum Tentyris*,
-which is unauthored. It is now the only clause of hers in that state, and it is recorded rather
-than left to look exercised.
+**Xiuhcoatl's `[Fortress]` clause is demonstrable.** It was recorded here as *"Not demonstrable"*
+because Ozymandias's *Ramesseum Tentyris* was unauthored; it is authored now (`npTags: [..., fortress]`),
+and it is the only `[Fortress]` NP in either roster. A `[Fortress]` NP is one tagged `fortress` —
+the author ruled that `antiFortress`, her own Piedra Del Sol included, is not one (#152). Used in or
+directly beside one, Xiuhcoatl paints Burning over that NP's area and the panels directly outside it:
+one area **per Fortress**, each bound to its field (`TerrainBehavior.boundToFieldId`), so
+*"until the Fortress NP is deactivated"* is `endField` erasing what is bound to the field it closes
+(`clearTerrainBoundTo`), on every close path. A use beside none paints nothing. The Burning is real
+terrain, so Burning's own toll runs on it (Ch. 26).
 
 **Note.** `Sol`, `Xiuhcoatl`'s Burning conversion, and `Piedra Del Sol` are three different
 routes to the same outcome — changing the terrain a panel has. Chapter 42's overlap matrix is

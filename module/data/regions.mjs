@@ -57,6 +57,13 @@ export class TerrainBehavior extends Base {
       // clause 2 is its only damage, and Burning's own toll would drain her and
       // her Master (#146).
       labelOnly: new fields.BooleanField({ initial: false }),
+
+      // The bounded field this area lasts as long as. Xiuhcoatl's *"…are now
+      // 'Burning' until the Fortress NP is deactivated"*: each Fortress's area
+      // names its field, and `endField` erases every area bound to the field it
+      // closes -- on every close path, with no tag to reconstruct (#152). A
+      // field's OWN painted ground is erased by its authored `onEnd`.
+      boundToFieldId: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
     };
   }
 }
