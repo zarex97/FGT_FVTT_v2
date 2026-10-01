@@ -3,7 +3,13 @@
  * @see docs/28-bounded-fields.md
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from "vitest";
+import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
+import { fieldsOf, squareAround, prepareFields } from "../helpers/field.mjs";
+import { runFieldEvents } from "../../module/engine/fields.mjs";
+import { elementalEarlyExit } from "../../module/rules/damage/pipeline.mjs";
+import * as I from "../../module/engine/intents.mjs";
+import { validateAll } from "../../tools/lib/content.mjs";
 
 
 describe("requiresEffect", () => {
@@ -36,5 +42,114 @@ describe("a field announces itself opening and closing", () => {
     const source = readFileSync("module/engine/fields.mjs", "utf8");
     const raises = [...source.matchAll(/Hooks\.callAll\("fgtFieldChanged"/g)];
     expect(raises.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+/* ========================================================================== */
+/*  A field's Damage action keeps its element, and an element acts (#154)     */
+/* ========================================================================== */
+
+describe("a field's Damage action and the element it names (#154)", () => {
+  beforeAll(async () => { await prepareSubjects(); await prepareFields(); }, 120_000);
+
+  // Document ids: a world actor named like its content id would not be a valid one where it is stamped.
+  const QZ = "quetzalcoatlAct1";
+  const FOE = "foeHeraclesAct01";
+  const QUETZ = { from: "quetzalcoatl", id: QZ, state: { factionId: "A" }, panel: { i: 6, j: 6 } };
+  const foe = (effects = []) => ({ from: "heracles", id: FOE, state: { factionId: "B" }, panel: { i: 6, j: 8 }, effects });
+
+  /** Piedra Del Sol's clause 2, run for the enemy's own Turn end. */
+  async function stoneIntents(board) {
+    return runFieldEvents("turnEnd", { board, activeFactionId: "B" });
+  }
+  const stone = () => fieldsOf([{
+    ability: "quetz-piedra-del-sol", owner: QZ, faction: "A", panels: squareAround({ i: 6, j: 6 }, 7),
+  }]);
+
+  /** Apply `intents` through the REAL applier, and say what `FOE` is left with. */
+  async function afterApplying(world, intents) {
+    const { applyIntents } = await import("../../module/engine/applier.mjs");
+    const { worldIO } = await import("../../module/engine/io.mjs");
+    const before = world.actor(FOE).system.health.value;
+    await applyIntents(intents, { io: worldIO(), canWrite: () => true, isGM: true, source: "test" });
+    return {
+      lost: before - world.actor(FOE).system.health.value,
+      effects: [...world.actor(FOE).effects].map((e) => e.system.defId),
+    };
+  }
+
+  beforeEach(() => { globalThis.Roll = class { async evaluate() { this.total = 1; return this; } }; });
+  afterEach(() => { delete globalThis.Roll; });
+
+  it("Piedra Del Sol's 50 Fire damage carries its element", async () => {
+    const fields = await stone();
+    const damage = await withSubjects([QUETZ, foe()], async ({ board }) => (await stoneIntents(board)).find((i) => i.t === "damage"),
+      { settings: { fields } });
+    expect(damage).toMatchObject({ unitId: FOE, amount: 50, element: "fire", bypassModifiers: true });
+  });
+
+  it("breaks a Frozen enemy's Freeze and deals it nothing: Fire removes Freeze with no damage", async () => {
+    const fields = await stone();
+    const out = await withSubjects([QUETZ, foe([{ defId: "freeze" }])], async ({ board, world }) => {
+      const intents = (await stoneIntents(board)).filter((i) => i.t === "damage");
+      return afterApplying(world, intents);
+    }, { settings: { fields } });
+    expect(out.lost).toBe(0);
+    expect(out.effects).not.toContain("freeze");
+  });
+
+  it("still deals the 50 to an enemy that is not Frozen", async () => {
+    const fields = await stone();
+    const out = await withSubjects([QUETZ, foe()], async ({ board, world }) => {
+      const intents = (await stoneIntents(board)).filter((i) => i.t === "damage");
+      return afterApplying(world, intents);
+    }, { settings: { fields } });
+    expect(out.lost).toBe(50);
+  });
+
+  it("heals a Unit with Flame Heal by the amount of a Burn-element damage, instead of hurting it", async () => {
+    const out = await withSubjects([foe([{ defId: "flamHeal" }])], async ({ world }) => {
+      await world.actor(FOE).update({ "system.health.value": 1000 });
+      return afterApplying(world, [I.damage(FOE, 40, null, { element: "burn" })]);
+    });
+    expect(out.lost).toBe(-40);
+  });
+
+  it("leaves damage with no element, and a Unit with no conversion, exactly as it was", async () => {
+    const out = await withSubjects([foe()], async ({ world }) => afterApplying(world, [
+      I.damage(FOE, 30, null, {}), I.damage(FOE, 20, null, { element: "burn" }),
+    ]));
+    expect(out.lost).toBe(50);
+  });
+
+  it("says one rule once: stage 0 and a bare damage intent ask the same function", () => {
+    expect(elementalEarlyExit({ effects: ["freeze"] }, "fire")).toEqual({ kind: "freeze" });
+    expect(elementalEarlyExit({ effects: ["flamHeal"] }, "burn")).toEqual({ kind: "heal", by: "flamHeal" });
+    expect(elementalEarlyExit({ effects: ["poisHeal"] }, "poison")).toEqual({ kind: "heal", by: "poisHeal" });
+    expect(elementalEarlyExit({ effects: ["cursHeal"] }, "curse")).toEqual({ kind: "heal", by: "cursHeal" });
+    expect(elementalEarlyExit({ effects: ["flamHeal"] }, "fire")).toBeNull();
+    expect(elementalEarlyExit({ effects: ["freeze"] }, "water")).toBeNull();
+    expect(elementalEarlyExit({ effects: ["freeze"] }, null)).toBeNull();
+  });
+});
+
+describe("the build refuses a field Damage that claims not to be Fixed (#154)", () => {
+  const field = (damage) => ({
+    schema: 1, id: "t-field", name: "T", kind: "noblePhantasm", isNP: true, rank: "A",
+    field: {
+      geometry: { kind: "fixedArea", shape: { kind: "square", size: 3 } },
+      interiorEvents: [{ event: "turnEnd", relations: ["enemy"], onFail: [damage] }],
+    },
+    phases: [{ kind: "createField", target: "self" }],
+  });
+  const problems = (damage) => validateAll([{ path: "t.yml", dir: "abilities", doc: field(damage) }]).problems;
+
+  it("accepts fixed: true, and an action that says nothing", () => {
+    expect(problems({ key: "Damage", amount: 50, element: "fire", fixed: true })).toEqual([]);
+    expect(problems({ key: "Damage", amount: 50, element: "fire" })).toEqual([]);
+  });
+
+  it("refuses fixed: false, which nothing honours", () => {
+    expect(problems({ key: "Damage", amount: 50, fixed: false })[0]).toMatch(/fixed: false/);
   });
 });

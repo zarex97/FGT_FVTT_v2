@@ -683,6 +683,34 @@ function fieldIsOpenable(doc, path, problems) {
 }
 
 /**
+ * A field's `Damage` action is always Fixed.
+ *
+ * `runFieldEvent` writes a bare damage intent and never runs the pipeline, so
+ * Def Up, a resistance or a Dmg Cut cannot reach it: `fixed: true` is what it
+ * IS, and `fixed: false` would be an authored claim nothing honours. Refused
+ * until a field Damage can go through the pipeline, so the key is honest only
+ * when it says what happens (#154).
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} problems
+ */
+function fieldDamageIsFixed(doc, path, problems) {
+  const events = doc?.field?.interiorEvents ?? [];
+  for (const [e, event] of events.entries()) {
+    const lists = [event?.onFail ?? [], ...(event?.branches ?? []).map((b) => b?.onFail ?? [])];
+    for (const action of lists.flat()) {
+      if (action?.key === "Damage" && action.fixed === false) {
+        problems.push(
+          `${path}: field.interiorEvents[${e}] has a Damage with "fixed: false", but a field's Damage never `
+          + "runs the damage pipeline, so it is always Fixed. Remove the key, or say \"fixed: true\".",
+        );
+      }
+    }
+  }
+}
+
+/**
  * A `zone` phase must name terrain that exists.
  *
  * Same failure shape as the geometry check above: an unknown type paints a
@@ -1192,6 +1220,7 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     // vocabulary of their own.
     if (PACKS[dir]?.itemType === "ability") timingWindowsAreKnown(doc, path, problems);
     fieldIsOpenable(doc, path, problems);
+    fieldDamageIsFixed(doc, path, problems);
     periodicIsWellFormed(doc, path, problems);
     zonePhasesNameRealTerrain(doc, path, problems);
     aftermathIsComplete(doc, path, problems);

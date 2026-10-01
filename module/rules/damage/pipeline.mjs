@@ -121,6 +121,28 @@ export function computeDamage(ctx) {
 }
 
 /**
+ * What an element does to a defender before any number is computed.
+ *
+ * Stage 0's two element rules, and the ONE reader of them: *"Any Fire damage
+ * removes Freeze with no damage or effects"* (Appendix A), and Burn, Poison and
+ * Curse damage turning into healing under Flame Heal, Poison Heal and Curse
+ * Heal. Damage that does not run the pipeline -- a field's `Damage` action,
+ * the terrain's Burning toll -- carries an `element` and asks this too
+ * (`engine/applier.mjs#resolveElements`), so that two readers of "what does a
+ * damage of element X do" cannot disagree (#154).
+ *
+ * @param {{effects?: string[]}|null|undefined} defender
+ * @param {string|null|undefined} element
+ * @returns {{kind: "heal", by: string}|{kind: "freeze"}|null}
+ */
+export function elementalEarlyExit(defender, element) {
+  const by = { poison: "poisHeal", curse: "cursHeal", burn: "flamHeal" }[element ?? ""];
+  if (by && has(defender, by)) return { kind: "heal", by };
+  if (element === "fire" && has(defender, "freeze")) return { kind: "freeze" };
+  return null;
+}
+
+/**
  * `bypassModifiers` in both its spellings.
  *
  * A boolean is the original, all-or-nothing form and keeps its meaning: every
@@ -162,16 +184,19 @@ function stage0Precondition(s) {
   // the Kagome Spirits. Distinct from Invuln: not removable, not halved vs NP.
   if (defender?.health === null) return s.halt("invulnerable-by-nature");
 
+  // The element's own early exits, from the one function a bare damage intent
+  // asks too (`engine/applier.mjs#resolveElements`).
+  const exit = elementalEarlyExit(defender, attack?.element);
+
   // Element-to-heal conversion happens before anything reduces the number.
-  const heal = { poison: "poisHeal", curse: "cursHeal", burn: "flamHeal" }[attack?.element ?? ""];
-  if (heal && has(defender, heal)) {
+  if (exit?.kind === "heal") {
     s.converted = true;
-    s.note("conversion", `${attack.element} converted to healing by ${heal}`, "defender");
+    s.note("conversion", `${attack.element} converted to healing by ${exit.by}`, "defender");
   }
 
   // Fire removes Freeze with no damage or effects. The <150 absorption clause
   // needs the total, so it is deferred to stage 16 where the total exists.
-  if (attack?.element === "fire" && has(defender, "freeze")) {
+  if (exit?.kind === "freeze") {
     s.removeFreeze = true;
     return s.halt("Freeze broken by Fire");
   }
