@@ -993,6 +993,41 @@ export function fallFormula(formula) {
  * @param {Record<string, boolean>} ctx.saves unitId → passed
  * @returns {object[]} descriptors
  */
+/**
+ * Who a platform's destruction spares.
+ *
+ * > *"all Units on it perform either an Agility Check or a Luck Check roll. If
+ * > the roll fails, the Unit takes 100 Fixed STR damage. A Master who was within
+ * > a 2 panel area of its Servant does not need to roll if its Servant
+ * > succeeded its roll."*
+ *
+ * `results` holds every passenger's own check, rolled by the caller; a Master
+ * whose Servant passed within 2 panels is spared without its own. `destroyPlatform`
+ * used to pass no saves at all, so every passenger took the damage (Ch. 46
+ * §46.4-CI).
+ *
+ * @param {object[]} passengers
+ * @param {Record<string, {success: boolean}>} results
+ * @returns {{saves: Record<string, boolean>, exempt: string[]}}
+ */
+export function destructionSaves(passengers, results) {
+  const saves = {};
+  const exempt = [];
+  for (const p of passengers) {
+    if (p.kind === "master") {
+      const servant = passengers.find((s) => s.kind === "servant" && s.masterId === p.id
+        && results[s.id]?.success && s.panel && p.panel && chebyshev(s.panel, p.panel) <= 2);
+      if (servant) {
+        saves[p.id] = true;
+        exempt.push(p.id);
+        continue;
+      }
+    }
+    saves[p.id] = Boolean(results[p.id]?.success);
+  }
+  return { saves, exempt };
+}
+
 export function destructionSequence(platform, board, { saves = {} } = {}) {
   /** @type {object[]} */
   const out = [];

@@ -8,7 +8,7 @@
 import {
   boardingTarget, fallOff, destructionSequence, passengersOf, mayBringMaster,
   canFallFrom, nearestFreePlatformPanel, rescuerFor,
-  jumpVerdict, jumpLandings, attackedByReliefApplies, boardingLanding, fallFormula,
+  jumpVerdict, jumpLandings, attackedByReliefApplies, boardingLanding, fallFormula, destructionSaves,
 } from "../rules/platforms.mjs";
 import { TURN_RECORD } from "../domain/stamped-record.mjs";
 import { relationOf } from "../rules/relations.mjs";
@@ -277,16 +277,55 @@ async function announceFall(unit, platform, { own, rescue, passed, rescued, choi
  * @param {object} unit a unit projection
  * @returns {Promise<boolean>}
  */
-async function agilityCheck(unit) {
+/**
+ * One passenger's check against a platform's destruction: Agility or Luck,
+ * whichever target is higher.
+ *
+ * @param {object} unit
+ * @returns {Promise<{success: boolean, roll: number, target: number, kind: string}>}
+ */
+async function destructionCheck(unit) {
+  const agi = typeof unit.agility === "number" ? unit.agility : (unit.agility?.value ?? 0);
+  const luc = typeof unit.luck === "number" ? unit.luck : (unit.luck?.value ?? 0);
+  const kind = luc > agi ? "luck" : "agility";
+  return { ...(await agilityCheck(unit, kind)), kind };
+}
+
+/**
+ * Tell the table who kept their footing as a platform came apart.
+ *
+ * @param {object} platform
+ * @param {object[]} passengers
+ * @param {Record<string, object>} results
+ * @param {Record<string, boolean>} saves
+ * @param {string[]} exempt
+ * @returns {Promise<void>}
+ */
+async function announceDestruction(platform, passengers, results, saves, exempt) {
+  const lines = passengers.map((p) => {
+    const r = results[p.id] ?? {};
+    if (exempt.includes(p.id)) return game.i18n.format("FGT.Platform.DestroyExempt", { name: p.name ?? "" });
+    return game.i18n.format(saves[p.id] ? "FGT.Platform.DestroySaved" : "FGT.Platform.DestroyFailed", {
+      name: p.name ?? "", check: game.i18n.localize(r.kind === "luck" ? "FGT.Check.Luck" : "FGT.Check.Agility"),
+      roll: r.roll ?? "—", target: r.target ?? "—",
+    });
+  });
+  await ChatMessage.create({
+    content: `<div class="fgt destruction-card"><p>${game.i18n.format("FGT.Platform.Destroyed", { platform: platform.name ?? "" })}</p>${lines.map((l) => `<p>${l}</p>`).join("")}</div>`,
+  });
+}
+
+async function agilityCheck(unit, kind = "agility") {
   const { checkPlan, resolveCheck } = await import("../rules/checks.mjs");
   // The same shape `engine/attack.mjs` uses for Penthesilea's shove: an AGILITY
   // Check has its own name in the plan vocabulary, so an Evade-specific bonus
   // cannot help somebody keep their footing.
-  const plan = checkPlan(unit, "agility");
+  const plan = checkPlan(unit, kind);
   const roll = (await new Roll("1d20").evaluate()).total;
   // A NUMBER on the board: the projection flattens the pools it carries, and
   // reading `.value` off one gives `undefined` (Ch. 09).
-  const target = typeof unit.agility === "number" ? unit.agility : (unit.agility?.value ?? 0);
+  const pool = unit[kind];
+  const target = typeof pool === "number" ? pool : (pool?.value ?? 0);
   const { success } = resolveCheck({
     roll,
     target,
@@ -482,12 +521,26 @@ async function askBringMaster(master, kind = "Jump") {
  * @param {Record<string, boolean>} [args.saves] unitId → passed
  * @returns {Promise<void>}
  */
-export async function destroyPlatform({ platformId, saves = {} }) {
+export async function destroyPlatform({ platformId, saves = null }) {
   const board = currentBoard();
   const platform = board.units.find((u) => u.id === platformId);
   if (!platform) return;
 
-  const descriptors = destructionSequence(platform, board, { saves });
+  // *"all Units on it perform either an Agility Check or a Luck Check roll"* --
+  // rolled here when the caller has not, the better of the two for each Unit,
+  // which is the one its player would choose. Nobody rolled before, and every
+  // passenger took the 100 (§46.4-CI).
+  let decided = saves;
+  if (!decided) {
+    const passengers = passengersOf(platform, board);
+    const results = {};
+    for (const p of passengers) results[p.id] = await destructionCheck(p);
+    const { saves: rolled, exempt } = destructionSaves(passengers, results);
+    decided = rolled;
+    await announceDestruction(platform, passengers, results, rolled, exempt);
+  }
+
+  const descriptors = destructionSequence(platform, board, { saves: decided });
   await applyWorldIntents(await toIntents(descriptors), "platform:destroyed");
 
   // Ch. 27 steps 4-8, which used to be logged by name. Ordered by the schema
