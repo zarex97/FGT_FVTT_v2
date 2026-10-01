@@ -12,6 +12,7 @@
 
 import { describe, it, expect } from "vitest";
 import { applyEffect, inflictBonusOf } from "../../module/engine/effect-applier.mjs";
+import { effectDef } from "../helpers/effect-defs.mjs";
 
 describe("bypassChanceModifiers (Queen's Poison's extra Stage)", () => {
   // Poison-like, non-terminal, so the chance path is exercised without the
@@ -299,5 +300,50 @@ describe("noneExtend stacking (#23)", () => {
 
     const applied = out.intents.find((i) => i.t === "applyEffect");
     expect(applied.effect.expiry).toBe(8);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  Riding's Active is a status, not a buff (#119)                             */
+/* -------------------------------------------------------------------------- */
+
+describe("Riding's Active, as Medusa, Drake and Pollux apply it (#119)", () => {
+  // *"The MOV Up from Riding's Active is not a buff and cannot be removed by buff
+  // removal effects, or prevented by an effect that prevents buffs from being
+  // applied."* For those three the Active is a USED ability that applies the
+  // `ridingActive` effect, and the effect was `polarity: buff`, so `findImmunity`
+  // gated it on No Buff and on a buff-scoped immunity. Under either, the Active
+  // applied nothing: the Unit lost the MOV Up and the grants it unlocks (Riding
+  // Attack and Passenger Seat; Double Move too for Drake and Pollux).
+  //
+  // Read through the real authored definition rather than a stand-in: the gate
+  // asks the definition's polarity, and the polarity is authored in a file.
+  const def = effectDef("ridingActive");
+  const rider = (over = {}) => ({ id: "t", effects: [], effectInstances: [], ...over });
+  const use = (target) => applyEffect({
+    def, magnitude: 5, friendly: true, target, source: {},
+    ctx: { roll: 100, currentTick: 0, turnsPerRound: 3 },
+  });
+
+  it("applies to a Unit holding nothing, as it always did", () => {
+    expect(use(rider()).outcome).toBe("applied");
+  });
+
+  it("applies to a Unit under No Buff", () => {
+    expect(use(rider({ effects: ["noBuff"] })).outcome).toBe("applied");
+  });
+
+  it("applies to a Unit with a scoped buff immunity", () => {
+    expect(use(rider({ immunities: [{ scope: "buff" }] })).outcome).toBe("applied");
+  });
+
+  it("is a status, which is what Appendix A says it is", () => {
+    expect(def.polarity).toBe("status");
+    // ...and it stays unremovable, which is the other half of the clause.
+    expect(def.unremovable).toBe(true);
+  });
+
+  it("is still stopped by an immunity that names it, which is a different thing", () => {
+    expect(use(rider({ effects: ["immune:ridingActive"] })).outcome).not.toBe("applied");
   });
 });
