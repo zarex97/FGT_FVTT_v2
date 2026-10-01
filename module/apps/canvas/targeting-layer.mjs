@@ -457,7 +457,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
    */
   async pickDestination({ panels, label = "" }) {
     this.#cancel();
-    this.activate();
+    const claim = this.#takeCanvas();
 
     const key = (p) => `${p.i},${p.j}`;
     const offered = new Set(panels.map(key));
@@ -489,6 +489,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
     } finally {
       this.#cancel();
       hud.close();
+      this.#handCanvasBack(claim);
     }
   }
 
