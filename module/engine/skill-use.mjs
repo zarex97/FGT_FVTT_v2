@@ -1082,6 +1082,54 @@ function authoredMagnitude(spec, actor, field = "magnitude") {
 }
 
 /**
+ * The context the Skill path hands `applyEffect`, in one place.
+ *
+ * Lifted out of the call so a test can see the keys the path REALLY sends: a
+ * hand-written ctx confirms only itself.
+ *
+ * It carries NO `resist` key, and not `resist: 0`. `applyEffect` reads the
+ * target's own resistance with `ctx.resist ?? resistanceOf(target)`, and
+ * `0 ?? x` is `0`: an explicit zero here made every incoming `ApplicationChance`
+ * inert on this path, so a debuff from a Skill that deals no damage (Jack's
+ * Information Erasure, Medea's Atlas) landed as if its target resisted nothing.
+ * `engine/attack.mjs` documents and avoids the same trap beside its own ctx
+ * (#123); `test/unit/skill-path-resistance.test.mjs` fails on a literal `resist:`.
+ *
+ * @param {object} args
+ * @param {object} args.attacker the user's snapshot
+ * @param {object} args.def the effect's definition
+ * @param {Set<string>} args.options the pair's roll options
+ * @param {number} args.roll the d100 for this application
+ * @param {number} args.turnsPerRound
+ * @param {number} args.currentTick
+ * @param {string|null} [args.factionId] the user's actor-document faction, read before the snapshot's
+ * @returns {object}
+ */
+export function skillEffectContext({
+  attacker, def, options, roll, turnsPerRound, currentTick, factionId = null,
+}) {
+  return {
+    turnsPerRound,
+    currentTick,
+    roll,
+    // The attacker's own outgoing `ApplicationChance` contributions.
+    // Hardcoded to 0 until Medea's Item Construction needed it, which
+    // made every outgoing contribution in the game inert.
+    inflictBonus: inflictBonusOf(attacker, def),
+    // The predicates those modifiers test against. Without the option set
+    // every predicate is unsatisfiable, which is the shape of defect this
+    // codebase has produced more than once.
+    options,
+    // Whose side applied it, for the self/ally exemption an effect may
+    // declare (`allySelfBypassesResistance`). A faction id rather than a
+    // relation, because this layer has the two documents and not the
+    // alliance table -- and the two effects that need it are both
+    // *"itself or another allied Unit"*, which is what a shared faction is.
+    sourceFactionId: factionId ?? attacker?.factionId ?? null,
+  };
+}
+
+/**
  * @param {object} phase
  * @param {object} ability
  * @param {object} actor
@@ -1204,26 +1252,15 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
       // The ability's own stated chance, overriding the effect's default.
       // Scáthach's Clairvoyance applies two of its three buffs at 80%.
       chance: spec.chance ?? rule.chance ?? null,
-      ctx: {
+      ctx: skillEffectContext({
+        attacker: unitSnapshot(actor),
+        def,
+        options,
+        roll: roll.total,
         turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
         currentTick: game.combat?.system?.globalTurn ?? 0,
-        roll: roll.total,
-        // The attacker's own outgoing `ApplicationChance` contributions.
-        // Hardcoded to 0 until Medea's Item Construction needed it, which
-        // made every outgoing contribution in the game inert.
-        inflictBonus: inflictBonusOf(unitSnapshot(actor), def),
-        // The predicates those modifiers test against. Without the option set
-        // every predicate is unsatisfiable, which is the shape of defect this
-        // codebase has produced more than once.
-        options,
-        resist: 0,
-        // Whose side applied it, for the self/ally exemption an effect may
-        // declare (`allySelfBypassesResistance`). A faction id rather than a
-        // relation, because this layer has the two documents and not the
-        // alliance table -- and the two effects that need it are both
-        // *"itself or another allied Unit"*, which is what a shared faction is.
-        sourceFactionId: actor.system?.factionId ?? unitSnapshot(actor).factionId ?? null,
-      },
+        factionId: actor.system?.factionId ?? null,
+      }),
     });
 
     if (outcome.intents.length > 0) await applyWorldIntents(outcome.intents, "skillEffect");
