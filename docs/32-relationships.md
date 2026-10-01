@@ -38,7 +38,7 @@ A conquered Servant never becomes Free, so none of the consequences of being Fre
 
 ### Overpower and Underpower
 
-`overpowerCheck` determines whether a Servant's attack on a Master can instant-defeat it: a 50% coin flip reduced by 10 for Def Up or Dmg Cut, blocked entirely by Invuln or Shield (`module/rules/relationships.mjs:43-58`). `resolveOverpower` folds in a Luck Check that covers both the flip and the lethal damage that follows, making it disproportionately valuable (`module/rules/relationships.mjs:76-82`).
+`overpowerCheck` determines whether a Servant's attack on a Master can instant-defeat it: a 50% coin flip reduced by 10 for Def Up or Dmg Cut, blocked entirely by Invuln or Shield (`module/rules/relationships.mjs:43-58`). `resolveOverpower` folds in a Luck Check that covers both the flip and the lethal damage that follows, making it disproportionately valuable (`module/rules/relationships.mjs:76-82`). A Master knocked off a Platform flips the same coin on landing, *"as though Attacked by a Servant"* (`engine/platforms.mjs#toIntents`, §46.4-CD). The Luck Check save is modelled in `resolveOverpower` but nothing writes `state.luckChecks.overpower`, so no attack and no fall can offer it yet.
 
 Underpower applies when a Master attacks a Servant: 50% chance its Total Damage is halved (×0.5), reduced by 10 for Atk Up or NP Dmg Up. A Master with a suppression scoped to `underpower` cannot be underpowered at all (`module/rules/relationships.mjs:96-139`).
 

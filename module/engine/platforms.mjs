@@ -8,10 +8,11 @@
 import {
   boardingTarget, fallOff, destructionSequence, passengersOf, mayBringMaster,
   canFallFrom, nearestFreePlatformPanel, rescuerFor,
-  jumpVerdict, jumpLandings, attackedByReliefApplies, boardingLanding,
+  jumpVerdict, jumpLandings, attackedByReliefApplies, boardingLanding, fallFormula,
 } from "../rules/platforms.mjs";
 import { TURN_RECORD } from "../domain/stamped-record.mjs";
 import { relationOf } from "../rules/relations.mjs";
+import { resolveOverpower } from "../rules/relationships.mjs";
 import { remainingMovement } from "../rules/movement.mjs";
 import { currentBoard, currentTick } from "./board.mjs";
 import * as I from "./intents.mjs";
@@ -262,6 +263,11 @@ async function announceFall(unit, platform, { own, rescue, passed, rescued, choi
     text = game.i18n.format("FGT.Platform.FallRescued", { ...base, servant: rescue?.name ?? "", servantRoll: rescue?.roll ?? "—" });
   } else {
     text = game.i18n.format("FGT.Platform.FallFailed", { ...base, damage: platform.knockOff?.damage ?? "10x2d6" });
+    // The Servant's attempt to catch it is a step of the rule, and a missed one
+    // is shown as plainly as a made one.
+    if (rescue) {
+      text += ` ${game.i18n.format("FGT.Platform.FallRescueMissed", { servant: rescue.name ?? "", servantRoll: rescue.roll ?? "—" })}`;
+    }
   }
   await ChatMessage.create({ content: `<div class="fgt fall-card">${text}</div>`, speaker: { alias: unit.name } });
 }
@@ -645,13 +651,33 @@ async function toIntents(descriptors) {
         out.push(I.move(d.unitId, [d.to], d.forced !== false));
         break;
       case "damage":
+        // The Platform's OWN formula: a hard-coded "10*2d6" stood in for every
+        // one (§46.4-CD).
         out.push(d.formula
-          ? I.damage(d.unitId, (await new Roll("10*2d6").evaluate()).total, null, { fixed: true, source: d.source })
+          ? I.damage(d.unitId, (await new Roll(fallFormula(d.formula)).evaluate()).total, null, { fixed: true, source: d.source })
           : I.damage(d.unitId, d.amount, null, { fixed: true, source: d.source }));
         break;
-      case "overpower":
-        out.push(I.log({ kind: "overpowerRequired", unitId: d.unitId, reason: d.reason }));
+      case "overpower": {
+        // *"A Master knocked onto the Game Board performs an Overpower roll, as
+        // though Attacked by a Servant."* Logged as required and never rolled
+        // until §46.4-CD. The attack path's own flip, with a Servant as the
+        // attacker; its Luck Check save is not offered here, as it is not
+        // offered on an attack either (`state.luckChecks.overpower` has no
+        // writer).
+        const master = currentBoard().units.find((u) => u.id === d.unitId) ?? { kind: "master" };
+        const roll = (await new Roll("1d100").evaluate()).total;
+        const verdict = resolveOverpower({ attacker: { kind: "servant" }, defender: master, roll });
+        out.push(I.log({ kind: "overpower", unitId: d.unitId, reason: d.reason, roll, chance: verdict.chance, defeated: verdict.defeated }));
+        if (verdict.defeated) out.push(I.defeat(d.unitId, "overpowered", null));
+        await ChatMessage.create({
+          content: `<div class="fgt overpower-card">${game.i18n.format(
+            verdict.defeated ? "FGT.Platform.FallOverpowered" : "FGT.Platform.FallNotOverpowered",
+            { name: master.name ?? "", roll, chance: verdict.chance },
+          )}</div>`,
+          speaker: { alias: master.name },
+        });
         break;
+      }
       default:
         out.push(I.log({ kind: "platformStep", step: d.kind, ...d }));
         break;

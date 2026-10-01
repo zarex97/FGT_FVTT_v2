@@ -938,6 +938,20 @@ export function fallOff(unit, platform, {
 }
 
 /**
+ * A fall's damage formula, as a Roll can read it.
+ *
+ * Authored the way the sheets print it -- *"(10*2d6)"*, written `10x2d6` in
+ * content. The engine rolled a hard-coded `10*2d6` whatever the Platform said
+ * (Ch. 46 §46.4-CD).
+ *
+ * @param {string} formula
+ * @returns {string}
+ */
+export function fallFormula(formula) {
+  return String(formula ?? "10x2d6").replace(/(\d+)\s*x\s*(?=\d)/gi, "$1*");
+}
+
+/**
  * The platform coming apart (Ch. 27).
  *
  * Ordered, and the order is the specification's: save, damage the failures,
