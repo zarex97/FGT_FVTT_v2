@@ -4198,6 +4198,32 @@ function doubleDice(formula) {
 }
 
 /**
+ * The two Units an attack's riders are applied between, projected by the BOARD.
+ *
+ * `applyEffect` reads `target.applicationChances` (the resistance and
+ * vulnerability sum) and `target.suppressions` (the immunity downgrade), and
+ * an attacker's own outgoing contribution. A bounded field's interior, and an
+ * aura, write those onto the Units standing in them -- but only in
+ * `snapshotBoard`'s pass. A bare `unitSnapshot` is not a board, and the riders
+ * were applied to bare ones, so Doomsday Come's *"chance of being inflicted by
+ * debuffs +50%"* and Sikera Ušum's Immunity downgrade never reached a rider
+ * (#157). The shape §46.4-AF fixed at `fireDamageStepEnd` and §46.4-AG at the
+ * intent path.
+ *
+ * ONE board per call. `unitFrom` falls back to a standalone projection for a
+ * Unit the board has no row for, so a tokenless actor still works.
+ *
+ * @param {object} state the Combat Process state
+ * @returns {{attacker: object|null, defender: object|null}}
+ */
+function riderSubjects(state) {
+  const board = boardSnapshot();
+  const attackerDoc = game.actors.get(state.attackerId);
+  const defenderDoc = state.defenderId ? game.actors.get(state.defenderId) : null;
+  return { attacker: unitFrom(board, attackerDoc), defender: unitFrom(board, defenderDoc) };
+}
+
+/**
  * Apply the effect riders an ability declares in its `phases`.
  *
  * Every application goes through the seven-step pipeline in
@@ -4226,7 +4252,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
   // this path -- negation is what matters here.
   if (damageResult.flags?.negatedBy) return [];
 
-  const defender = unitSnapshot(defenderDoc);
+  const { attacker: attackerUnit, defender } = riderSubjects(state);
   const applied = [];
 
   // An AFTERMATH resolution carries its own riders and NOT the ability's
@@ -4256,8 +4282,8 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
           turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
           currentTick: game.combat?.system?.globalTurn ?? 0,
           roll: roll.total,
-          inflictBonus: inflictBonusOf(unitSnapshot(game.actors.get(state.attackerId)), def),
-          options: rollOptions(unitSnapshot(game.actors.get(state.attackerId)), defender, state),
+          inflictBonus: inflictBonusOf(attackerUnit, def),
+          options: rollOptions(attackerUnit, defender, state),
         },
       });
       if (outcome.intents.length > 0) await applyBatch(outcome.intents, "aftermathEffect");
@@ -4272,8 +4298,8 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
   // The CASTER's own options, for a phase-level `predicate:` -- the same
   // vocabulary `engine/skill-use.mjs#runPhases` already reads, extended to
   // this loop for Summoning: Bašmu's summon branch (a `summon` phase gated
-  // off from the damage-spell branch's `damage`/`applyEffects` pair).
-  const attackerUnit = unitFrom(boardSnapshot(), attackerDoc);
+  // off from the damage-spell branch's `damage`/`applyEffects` pair). The
+  // board's attacker, from `riderSubjects` above.
   // ...WITH THE ATTACK IN SCOPE. This built caster-only options, so a phase
   // predicate could ask about the caster and about nothing else -- and this
   // loop runs once per Combat Process, where the attack is precisely the thing
@@ -4422,12 +4448,11 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     // every client agrees which that is.
     if (phase.target === "self") {
       if (!isFirstOfGroup(state)) continue;
-      const attackerUnit2 = unitSnapshot(attackerDoc);
       applied.push(...await applyDeclaredEffects(
         effectSpecsOf(phase),
         ability,
         { ...state, defenderId: state.attackerId },
-        attackerUnit2,
+        attackerUnit,
       ));
       continue;
     }
@@ -4504,8 +4529,8 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
           // The attacker's own outgoing `ApplicationChance` contributions.
           // Hardcoded to 0 until Medea's Item Construction needed it, which
           // made every outgoing contribution in the game inert.
-          inflictBonus: inflictBonusOf(unitSnapshot(game.actors.get(state.attackerId)), def),
-          options: rollOptions(unitSnapshot(game.actors.get(state.attackerId)), defender, state),
+          inflictBonus: inflictBonusOf(attackerUnit, def),
+          options: rollOptions(attackerUnit, defender, state),
           // NOT `resist: 0`. `applyEffect` falls back to `resistanceOf(target)`
           // when this is absent -- and `0 ?? x` is `0`, so an explicit zero
           // here defeated that fallback and made the target's resistance
@@ -4877,7 +4902,9 @@ export async function runCheckPhase(phase, ability, state, defender, depth = 0) 
  * @returns {Promise<object[]>}
  */
 async function applyDeclaredEffects(specs, ability, state, defender, { ignoresResistanceFrom = [] } = {}) {
-  const attacker = unitSnapshot(game.actors.get(state.attackerId));
+  // The board's attacker: an aura's outgoing `ApplicationChance` is annotated by
+  // `snapshotBoard` and a bare snapshot carries none (#157). One board per call.
+  const attacker = unitFrom(boardSnapshot(), game.actors.get(state.attackerId));
   /** @type {object[]} */
   const out = [];
 
