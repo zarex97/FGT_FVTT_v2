@@ -34,6 +34,24 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### Revival and the killing blow's excess (2026-10-01)
+
+#### Corrected
+
+- **Overkill was subtracted from what every revival source restores; only God Hand's text says so.**
+  `resolveRevival` carried the excess of the Attack that defeated the bearer into every source,
+  generalising Heracles's *"the excess damage is reduced from his newly restored Health, and so
+  on"*. Guts 10 on a 1,250-Health Servant restored 125 less whatever killed her, and an overkill of
+  167 left her dead (seen live). Only a `cascading` source carries the excess now; Guts, Undying,
+  Battle Continuation, Divine Protection and Holder Mode restore their stated amount.
+  `ignoresOverkill`, which Mannanán alone authored, is retired. Ch. 10, Ch. 46 §46.6. (#172)
+
+- **A Guts built from a real effect instance restored nothing.** `guts.yml` states its amount as
+  `restore: {percentOfMax: "@magnitude"}`, and `resolveRuleValues` substituted the instance's
+  magnitude into `value`, `chance` and an applied effect, but not into a `RevivalSource`'s nested
+  `restore`; the literal string resolved to 0. Found writing the #172 test through
+  `test/helpers/subject.mjs`. `restore.percentOfMax` resolves against the instance now.
+
 ### Seven rules that were right and unreachable, found auditing Semiramis (2026-09-18)
 
 #### Fixed

@@ -1939,6 +1939,8 @@ export const EXECUTORS = Object.freeze({
       // `null` is unlimited. God Hand is "can only be used 11 times", which is
       // the ability's own whole-match budget rather than a second counter.
       charges: el.charges ?? null,
+      // God Hand's "and so on", and with it the ONLY clause that carries the
+      // killing blow's excess into the revival (`resolveRevival`, #172).
       cascading: el.cascading === true,
       // A rank TABLE as well as a literal, because Battle Continuation restores
       // `5d20` at A and `3d20` at C and the same clause has to say both.
@@ -1964,11 +1966,6 @@ export const EXECUTORS = Object.freeze({
       // stays pure; the orchestrator asks and drops the source if the answer is
       // no (`engine/attack.mjs#resolveDefeatOf`).
       optional: el.optional === true,
-      // Whether the excess damage that killed the bearer eats into what this
-      // restores. `false` by default, which is God Hand's stated behaviour and
-      // what every source in the corpus had until Mannanán; `true` for a source
-      // that names a DESTINATION rather than an amount.
-      ignoresOverkill: el.ignoresOverkill === true,
       // Gates beyond charges and cooldown, in the ordinary requirement
       // vocabulary (`rules/items.mjs`). *"...and while she has at least 1
       // Fragarach Token."*

@@ -2682,9 +2682,10 @@ Recorded so they are not filed again.
   God Hand's eleven charges are not consulted. That matches Ch. 45's own pseudocode exactly. It is a
   reading of the sheet's priority list, not an oversight — but it is a *reading*, and it is the
   kind of thing to put to the game's author rather than to re-derive per Servant.
-- **Overkill is subtracted from every revival source.** Only God Hand's text carries the excess
-  clause; `rules/revival.mjs` generalises it and Ch. 31 says so in those words. Same status as
-  above.
+- **Overkill is subtracted only by God Hand.** *Corrected (#172):* this bullet used to read
+  *"subtracted from every revival source"*, on the reasoning that `rules/revival.mjs` generalised
+  God Hand's clause. Nothing but God Hand's text states it, and the generalisation left a Guts 10
+  Servant dead to a 167 overkill. Only a `cascading` source carries the excess now; Ch. 10 records it.
 
 ---
 

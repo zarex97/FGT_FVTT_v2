@@ -172,8 +172,13 @@ describe("God Hand's cascade", () => {
       rolls: { "revival:battleContinuation:0": 60, "revival:battleContinuation:1": 60 },
     });
 
+    // #172: this used to expect `revived: false`, because the old general rule
+    // subtracted the 500 of overkill from a source that never states it. Only
+    // God Hand's clause carries the excess; Battle Continuation restores its
+    // roll, one charge, and stops.
     expect(out.chargesUsed).toBe(1);
-    expect(out.revived).toBe(false);
+    expect(out.revived).toBe(true);
+    expect(out.restored).toBe(60);
   });
 });
 

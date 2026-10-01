@@ -373,8 +373,11 @@ describe("God's Holder: Possession", () => {
   it("restores to exactly half, whatever killed her", () => {
     const revival = possession.passiveRules.find((r) => r.key === "RevivalSource");
     // "Restoring her Health TO 50% of its maximum value" is a destination, so
-    // the overkill that God Hand subtracts does not apply here.
-    expect(revival.ignoresOverkill).toBe(true);
+    // the overkill that God Hand subtracts does not apply here. Nothing is
+    // authored for it any more (#172): only a `cascading` source carries the
+    // excess, and this one is not.
+    expect(revival.cascading).toBeUndefined();
+    expect(revival.ignoresOverkill).toBeUndefined();
     expect(possession.phases.find((p) => p.kind === "heal").toPercentOfMax).toBe(50);
   });
 

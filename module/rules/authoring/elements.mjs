@@ -405,7 +405,6 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "consumesOnUse", type: "checkbox" },
     { key: "requiresHealthRestoredSince", type: "checkbox" },
     { key: "optional", type: "checkbox" },
-    { key: "ignoresOverkill", type: "checkbox" },
     { key: "requires", type: "raw" },
     { key: "enterMode", type: "text" },
     { key: "then", type: "raw" },

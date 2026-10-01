@@ -89,10 +89,11 @@ passiveRules:
     consumesOnUse: false
     percentOfMax: 50
     # "...restoring her Health TO 50% of its maximum value." A destination, so
-    # the excess damage that killed her does not eat into it -- the same reading
-    # the button's own `toPercentOfMax` heal makes, and the reason both halves
-    # of this Skill land her at exactly half.
-    ignoresOverkill: true
+    # the excess damage that killed her does not eat into it. Nothing is
+    # authored for that: only a `cascading` source (God Hand) carries the
+    # overkill into what it restores (#172). The same reading the button's own
+    # `toPercentOfMax` heal makes, and the reason both halves of this Skill land
+    # her at exactly half.
     requires:
       - { kind: resourceAtLeast, key: fragarachTokens, amount: 1 }
     enterMode: godsHolderPossession
