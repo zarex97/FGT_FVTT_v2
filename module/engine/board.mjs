@@ -472,7 +472,11 @@ export function terrainAreasOf(scene) {
       if (behavior.type !== "terrain" || behavior.disabled) continue;
       const panels = panelsOfRegion(region);
       for (const type of behavior.system?.types ?? []) {
-        areas.push({ id: `${region.id}:${type}`, type, panels, regionId: region.id });
+        areas.push({
+          id: `${region.id}:${type}`, type, panels, regionId: region.id,
+          // A label: it names the ground and runs none of its clauses (#146).
+          labelOnly: Boolean(behavior.system?.labelOnly),
+        });
       }
     }
   }

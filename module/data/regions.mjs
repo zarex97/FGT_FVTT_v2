@@ -49,6 +49,14 @@ export class TerrainBehavior extends Base {
       // redrawn around its source's new panel without the ability that created
       // it being consulted again. Meaningless unless `followsSource`.
       radius: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+
+      // The area is CATEGORIZED as its types and nothing more: what the ground
+      // IS (its standing effects, the Water defence, every "is this Burning"
+      // reader) holds, and its own boundary clauses do not run. Piedra Del
+      // Sol's *"(The Piedra Del Sol area is categorized as 'Burning'.)"* --
+      // clause 2 is its only damage, and Burning's own toll would drain her and
+      // her Master (#146).
+      labelOnly: new fields.BooleanField({ initial: false }),
     };
   }
 }

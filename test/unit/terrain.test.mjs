@@ -11,8 +11,13 @@
  * removal step, because a unit never carried the terrain in the first place.
  */
 
-import { describe, it, expect } from "vitest";
-import { TERRAIN, terrainAt, terrainEffects, annotateTerrain } from "../../module/rules/terrain.mjs";
+import { describe, it, expect, beforeAll } from "vitest";
+import { readFileSync } from "node:fs";
+import { TERRAIN, terrainAt, terrainEffects, terrainPeriodics, annotateTerrain } from "../../module/rules/terrain.mjs";
+import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
+import { areasOf, compiled, prepareFields } from "../helpers/field.mjs";
+import { zonePaintArgs } from "../../module/engine/skill-use.mjs";
+import { squareBounds } from "../../module/domain/geometry.mjs";
 import { phaseAt } from "../../module/rules/environment.mjs";
 import { snapshotBoard } from "../../module/rules/snapshot.mjs";
 
@@ -281,5 +286,69 @@ describe("Imaginary Numbers Space (Nemo, Ch. 27)", () => {
     expect(out.movDelta).toBe(0);
     expect(out.evadeDelta).toBe(0);
     expect(out.modifiers).toEqual([]);
+  });
+});
+
+/* ========================================================================== */
+/*  A painted area that is only a label (#146)                                */
+/* ========================================================================== */
+
+describe("a painted Burning area that is a label (#146)", () => {
+  beforeAll(async () => { await prepareSubjects(); await prepareFields(); }, 120_000);
+
+  const MIDDLE = { i: 6, j: 6 };
+  const QUETZ = { from: "quetzalcoatl", id: "qz", state: { factionId: "A" }, panel: { i: 6, j: 6 } };
+  const MASTER = { from: "master-advanced", id: "qzMaster", state: { factionId: "A" }, panel: { i: 6, j: 7 } };
+  const FOE = { from: "heracles", id: "foe", state: { factionId: "B" }, panel: { i: 6, j: 8 } };
+
+  /** What Piedra Del Sol's own `zone` phase paints, through `zonePaintArgs`. */
+  async function stonePaint() {
+    const ability = await compiled("quetz-piedra-del-sol");
+    const spec = ability.system.phases.find((p) => p.kind === "zone").spec;
+    return zonePaintArgs(spec, ability, { id: "qz" }, { panel: MIDDLE }, { bounds: squareBounds(13) });
+  }
+
+  /** The terrain periodics at a Turn's end for everyone on a board with these areas. */
+  const tollAt = (areas) => withSubjects([QUETZ, MASTER, FOE], ({ board, units }) => ({
+    descriptors: terrainPeriodics(units, board, "turnEnd"),
+    types: units.map((u) => [u.id, terrainEffects(u, board).types]),
+  }), { settings: { terrain: { areas } } });
+
+  it("paints Burning over the stone's 7x7, flagged as a label", async () => {
+    const paint = await stonePaint();
+    expect(paint.types).toEqual(["burning"]);
+    expect(paint.panels).toHaveLength(49);
+    expect(paint.labelOnly).toBe(true);
+  });
+
+  it("runs no toll on Quetzalcoatl, her Master or an enemy standing in it", async () => {
+    const areas = await areasOf([{ paint: await stonePaint() }]);
+    const { descriptors } = await tollAt(areas);
+    expect(descriptors).toEqual([]);
+  });
+
+  it("is still Burning for every reader that asks what the ground is", async () => {
+    const areas = await areasOf([{ paint: await stonePaint() }]);
+    const { types } = await tollAt(areas);
+    expect(types).toEqual([["qz", ["burning"]], ["qzMaster", ["burning"]], ["foe", ["burning"]]]);
+  });
+
+  it("leaves real Burning over the same panels with its toll", async () => {
+    // A second, UNFLAGGED area: Xiuhcoatl's Burning on a Fortress, Forest turned
+    // Burning by Fire, a GM-drawn area. Its Burn and its 25 Fixed Fire stand.
+    const paint = await stonePaint();
+    const real = { types: ["burning"], panels: paint.panels, tag: "xiuhcoatl:test" };
+    const areas = await areasOf([{ paint }, { paint: real }]);
+    const { descriptors } = await tollAt(areas);
+    for (const id of ["qz", "qzMaster", "foe"]) {
+      expect(descriptors.filter((d) => d.unitId === id).map((d) => `${d.kind}:${d.effectId ?? d.amount}`).sort())
+        .toEqual(["applyEffect:burn", "damage:25"]);
+    }
+  });
+
+  it("keeps the flag when a following area is repainted", async () => {
+    const source = readFileSync("module/engine/terrain.mjs", "utf8");
+    const repaint = source.slice(source.indexOf("export async function repaintFollowing"));
+    expect(repaint).toMatch(/labelOnly/);
   });
 });

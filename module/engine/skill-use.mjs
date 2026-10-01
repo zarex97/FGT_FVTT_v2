@@ -726,15 +726,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // one case above, for the same reason.
           if (target.unitId !== actor.id) break;
           const spec = phase.spec ?? {};
-          const painted = await paintTerrain({
-            types: spec.terrain ?? [],
-            panels: zonePanels(spec, self, board, extras),
-            tag: zoneTag(spec, ability, actor),
-            duration: spec.duration ?? null,
-            sourceUnitId: actor.id,
-            followsSource: Boolean(spec.followsSource),
-            radius: zoneRadius(spec),
-          });
+          const painted = await paintTerrain(zonePaintArgs(spec, ability, actor, self, board, extras));
           applied.push({
             summary: {
               id: "zone",
@@ -2312,6 +2304,36 @@ export async function actorFromPacks(contentId) {
     if (entry) return pack.getDocument(entry._id);
   }
   return null;
+}
+
+/**
+ * What a `zone` phase hands to `paintTerrain`.
+ *
+ * Its own function so a test can follow an authored `spec` key from the
+ * ability to the area it paints (`test/unit/terrain.test.mjs`): a key this
+ * list does not name goes no further.
+ *
+ * @param {object} spec the phase's `spec` block
+ * @param {object} ability the ability Item
+ * @param {object} actor the caster
+ * @param {object} self the caster's snapshot
+ * @param {object} board
+ * @param {object} [extras] what the attack flow hands in (`areaPanels`)
+ * @returns {object} `paintTerrain`'s argument
+ */
+export function zonePaintArgs(spec, ability, actor, self, board, extras = {}) {
+  return {
+    types: spec.terrain ?? [],
+    panels: zonePanels(spec, self, board, extras),
+    tag: zoneTag(spec, ability, actor),
+    duration: spec.duration ?? null,
+    sourceUnitId: actor.id,
+    followsSource: Boolean(spec.followsSource),
+    radius: zoneRadius(spec),
+    // *"(The Piedra Del Sol area is categorized as 'Burning'.)"* -- a label, not
+    // the terrain's own toll (#146).
+    labelOnly: Boolean(spec.labelOnly),
+  };
 }
 
 /**
