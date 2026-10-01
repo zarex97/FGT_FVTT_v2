@@ -245,6 +245,50 @@ describe("Xiuhcoatl", () => {
 // `component: str`, so she dealt the STR half of `BA = 250` and lost the rest.
 // The card, the preview and the ranking read the same way and agreed on 500.
 // A YAML-shape assertion cannot see that, so these go through the real item.
+//
+// And #65, local to her. The sheet gives the NP no Range of its own, and the
+// content froze `range: 2` into the anchor: her statblock's Range, copied, so a
+// buff or a penalty to her Range moved every other attack she makes and not this
+// one. Silent on range is not 2, it is "her Range".
+describe("Xiuhcoatl reaches as far as she does (#65)", () => {
+  beforeAll(prepareSubjects, 60_000);
+
+  const at = (i, j) => ({ i, j });
+  const spec = ability("quetz-xiuhcoatl").targeting;
+  const foe = (j) => ({ id: "foe", panel: at(6, j), kind: "servant", faction: "b", attributes: [], effects: [] });
+  const board = (units) => ({
+    bounds: squareBounds(13), alliances: { a: ["a"], b: ["b"] }, seed: 1, units,
+  });
+  /** Can she name the panel `distance` away, at this Range? */
+  const reaches = (range, distance) => {
+    const quetz = { id: "quetz", panel: at(6, 6), kind: "servant", faction: "a", range };
+    return resolveTargets(spec, quetz, board([quetz, foe(6 + distance)]), { panel: at(6, 6 + distance) })
+      .errors.length === 0;
+  };
+
+  it("does not state a Range of its own, because the sheet states none", () => {
+    expect(spec.anchor.range).toBeUndefined();
+    expect(spec.anchor.rangeBonus).toBeUndefined();
+  });
+
+  it("reaches her statblock Range, which is 2 panels", async () => {
+    const range = await withSubjects([{ from: "quetzalcoatl" }], ({ unit }) => unit("quetzalcoatl").range);
+    expect(range).toBe(2);
+    expect(reaches(range, 2)).toBe(true);
+    expect(reaches(range, 3)).toBe(false);
+  });
+
+  it("follows her Range up: a buff to it reaches a panel further", () => {
+    expect(reaches(3, 3)).toBe(true);
+    expect(reaches(3, 4)).toBe(false);
+  });
+
+  it("follows her Range down: a penalty to it falls short of the panel it used to reach", () => {
+    expect(reaches(1, 2)).toBe(false);
+    expect(reaches(1, 1)).toBe(true);
+  });
+});
+
 describe("Xiuhcoatl's base attack, on the real item (#135)", () => {
   beforeAll(prepareSubjects, 60_000);
 

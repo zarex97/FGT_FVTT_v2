@@ -1235,6 +1235,8 @@ what keeps them from contradicting one another when two of them cover the same p
 
 **The three Quetzalcoatlus Spells** are Damage Spells by `isSpell: true` beside `kind: skill`, the corpus convention (Ch. 17). They authored `kind: spell`, which nothing reads, so they resolved as STR Normal Attacks (#159). Their 3×3 hits **enemies only** — the sheet says only "hits a 3×3 panel area", and the author ruled on 2026-10-01 that it does not catch her allies, her mount or her Master; they use her BA(MAG) 250 at 2×.
 
+**Xiuhcoatl's reach** is her Range. The sheet gives the NP no Range of its own, so its anchor states none and `anchorRange` falls back to the caster's (`range:` absolute, `rangeBonus:` relative, neither: her own). It had frozen `range: 2`, her statblock's figure, which said the same until a buff or a penalty moved her Range and moved every other attack of hers but this one (#65).
+
 ---
 
 ## D.29 EMIYA
