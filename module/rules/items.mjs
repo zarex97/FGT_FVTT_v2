@@ -245,6 +245,56 @@ export function consumeItem(item, unit) {
  * and never work.
  */
 /**
+ * Every ability CATEGORY this Unit holds, with the highest Rank it holds each at.
+ *
+ * The one reader of "this Unit has Skill X at Rank R" for a Skill that COUNTS AS
+ * another. `hasCategory`, `categoryRankOf` and the `skill:` / `skillRank:` roll
+ * options all ask it, so a clause worded by predicate and a clause worded by
+ * category cannot disagree about who has Divinity (#125): the options were read
+ * from each ability's own slug and called Goddess's Divine Core "no Divinity".
+ *
+ * `categorizedWhile` is honoured: a conditional categorisation counts only while
+ * its gate holds. A category held with no Rank at all (a summon's tag) is present
+ * with `null`, so membership and rank are one answer.
+ *
+ * @param {object} unit a Unit projection, or the same fields a collection pass holds
+ * @returns {Map<string, Rank|null>}
+ */
+export function categoriesOf(unit) {
+  /** @type {Map<string, Rank|null>} */
+  const held = new Map();
+  for (const ability of unit?.abilities ?? []) {
+    const tags = ability.categorizedAs ?? [];
+    if (tags.length === 0) continue;
+    const gate = ability.categorizedWhile ?? [];
+    if (gate.length > 0 && !gate.some((id) => (unit?.effects ?? []).includes(id))) continue;
+    const rank = rankOrNull(ability.rank);
+    for (const tag of tags) {
+      const best = held.get(tag) ?? null;
+      held.set(tag, rank && (!best || Rank.compare(rank, best) > 0) ? rank : best);
+    }
+  }
+  return held;
+}
+
+/**
+ * A rank as a `Rank`, or `null` for none or for one that does not parse: this
+ * runs over whatever a live document holds, and one malformed rank must not take
+ * a whole board snapshot down (the content validator is where it is loud).
+ *
+ * @param {Rank|string|null|undefined} raw
+ * @returns {Rank|null}
+ */
+function rankOrNull(raw) {
+  if (raw instanceof Rank) return raw;
+  try {
+    return Rank.parseOrNull(raw ?? null);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * The highest Rank this Unit holds in an ability CATEGORY, or `null`.
  *
  * A category rather than a slug, because more than one document can be the same
@@ -260,15 +310,7 @@ export function consumeItem(item, unit) {
  * @returns {Rank|null}
  */
 export function categoryRankOf(unit, category) {
-  let best = null;
-  for (const ability of unit?.abilities ?? []) {
-    if (!(ability.categorizedAs ?? []).includes(category)) continue;
-    const gate = ability.categorizedWhile ?? [];
-    if (gate.length > 0 && !gate.some((id) => (unit?.effects ?? []).includes(id))) continue;
-    const rank = ability.rank instanceof Rank ? ability.rank : Rank.parseOrNull(ability.rank ?? null);
-    if (rank && (!best || Rank.compare(rank, best) > 0)) best = rank;
-  }
-  return best;
+  return categoriesOf(unit).get(category) ?? null;
 }
 
 export const REQUIREMENT_KINDS = Object.freeze([

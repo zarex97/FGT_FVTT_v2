@@ -20,7 +20,7 @@ import { currentHealth } from "../domain/health.mjs";
 import { EXECUTORS, empty, deferredPredicate } from "./elements.mjs";
 import { test as testPredicate } from "./predicate.mjs";
 import { rollOptionsFor } from "./options.mjs";
-import { categoryRankOf } from "./items.mjs";
+import { categoriesOf } from "./items.mjs";
 import { relationOf } from "./relations.mjs";
 // The NP scale lives in its own module so `options.mjs` can read it without
 // importing this one, which imports `options.mjs` in turn. Re-exported here
@@ -796,18 +796,12 @@ export function hasCategory(unit, category, minRank = null) {
   // One implementation of the category vocabulary, in `rules/items.mjs` beside
   // the other ability-shaped readers. This asks the same question and then
   // compares.
-  const held = categoryRankOf(unit, category);
-  if (!floor) {
-    // A Unit may be categorised with no Rank at all -- a summon's tag, say --
-    // and `categoryRankOf` reports `null` for it, so membership is asked
-    // separately when no floor is given.
-    return (unit?.abilities ?? []).some((a) => {
-      if (!(a.categorizedAs ?? []).includes(category)) return false;
-      const gate = a.categorizedWhile ?? [];
-      return gate.length === 0 || gate.some((id) => (unit?.effects ?? []).includes(id));
-    });
-  }
-  return Boolean(held && Rank.compare(held, floor) >= 0);
+  const held = categoriesOf(unit);
+  // A Unit may be categorised with no Rank at all -- a summon's tag, say -- so
+  // membership is asked of the map when no floor is given, and the Rank when one is.
+  if (!floor) return held.has(category);
+  const rank = held.get(category) ?? null;
+  return Boolean(rank && Rank.compare(rank, floor) >= 0);
 }
 
 /**
