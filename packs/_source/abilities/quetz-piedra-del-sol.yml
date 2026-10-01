@@ -102,6 +102,13 @@ field:
     every: "1◈"
     cost: { kind: health, amount: 50, payer: ownerMaster }
     endWhenUnaffordable: true
+    # "If her Master's Health drops to/is 50 or less at any time, this NP is
+    # forcefully deactivated at the end of the Turn." A STANDING threshold, read
+    # at every Turn's end whether or not a toll falls due: the toll is once per
+    # 1◈, and a Master at 50 or less would otherwise keep the stone open for the
+    # rest of the period (#149). Also tested after a toll, so the toll that takes
+    # him to 50 closes it at that same boundary.
+    closeWhen: { payerHealthAtMost: 50, at: turnEnd }
   # Axis 6 -- vulnerability.
   vulnerabilities:
     - { kind: ownerDefeat, result: end }

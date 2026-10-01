@@ -31,7 +31,7 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { evade, checkPlan, chance } from "../rules/checks.mjs";
 import { applyWorldIntents } from "./applier.mjs";
-import { platformCentre, deactivationVerdict, upkeepDue } from "../rules/platforms.mjs";
+import { platformCentre, deactivationVerdict, upkeepDue, upkeepPlan } from "../rules/platforms.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import * as I from "./intents.mjs";
@@ -1305,7 +1305,7 @@ export async function runUpkeep(tick, { round = null } = {}) {
 
   for (const field of upkept) {
     const upkeep = field.upkeep;
-    if (!upkeep?.every) continue;
+    if (!upkeep) continue;
 
     // `activatedAt` is a platform's `createdAt`; the two names are the same
     // fact on two document types.
@@ -1318,20 +1318,42 @@ export async function runUpkeep(tick, { round = null } = {}) {
       createdAt: field.createdAt ?? field.activatedAt ?? tick,
       turnsPerRound,
     });
-    if (!verdict.due) continue;
 
     // Who pays. `ownerMaster` is what every sheet in the set names, the Golden
     // Hind included -- *"Drake's MASTER loses 50 Health"*. The `owner` branch
     // stays because the axis is real and a sheet may yet use it, but nothing in
     // the corpus does; the note that once claimed the Golden Hind did was
     // simply wrong about her sheet.
+    //
+    // Read for EVERY field that states a standing threshold, due or not: a
+    // forced end is tested at its own boundary, not when a toll happens to fall
+    // due (#149).
+    if (!verdict.due && !upkeep.closeWhen) continue;
     const payerId = upkeep.cost?.payer === "owner"
       ? field.ownerId
       : (field.ownerMasterId ?? game.actors.get(field.ownerId)?.system?.masterId ?? null);
     const payer = payerId ? game.actors.get(payerId) : null;
     const amount = Number(upkeep.cost?.amount ?? 0);
+    const payerHealth = payer ? currentHealth(unitSnapshot(payer)) : null;
 
-    if (!payer || (upkeep.endWhenUnaffordable && currentHealth(unitSnapshot(payer)) <= amount)) {
+    // `upkeepPlan` says what the sheets say, in the order they say it: the
+    // standing threshold, then the toll (closing INSTEAD of charging when it
+    // cannot be paid), then a toll that takes the payer to the threshold.
+    const plan = upkeepPlan(upkeep, { due: verdict.due, payerHealth, atRoundBoundary });
+
+    if (plan.close === "forcedEnd") {
+      await applyWorldIntents(
+        [I.log({
+          kind: "field", event: "forcedEnd", unitId: payerId ?? field.ownerId,
+          field: field.id, detail: { cause: "payerHealth", payerHealth, atMost: upkeep.closeWhen?.payerHealthAtMost },
+        })],
+        "field:forcedEnd",
+      );
+      await deactivateUpkept(field, "forcedEnd");
+      continue;
+    }
+
+    if (plan.close) {
       await applyWorldIntents(
         [I.log({
           kind: "field", event: "upkeepUnaffordable", unitId: payerId ?? field.ownerId,
@@ -1343,11 +1365,25 @@ export async function runUpkeep(tick, { round = null } = {}) {
       continue;
     }
 
+    if (plan.charge === undefined) continue;
     await applyWorldIntents(
       [I.damage(payer.id, amount, null, { bypassModifiers: true, source: field.id })],
       "field:upkeep",
     );
     await stampUpkeep(field, tick, round);
+
+    // *"If the upkeep takes her Master to 50 Health or less, ... forcefully
+    // deactivated at the end of the Turn."* The same boundary, after the charge.
+    if (plan.closeAfter) {
+      await applyWorldIntents(
+        [I.log({
+          kind: "field", event: "forcedEnd", unitId: payerId, field: field.id,
+          detail: { cause: "payerHealth", payerHealth: payerHealth - amount, atMost: upkeep.closeWhen?.payerHealthAtMost },
+        })],
+        "field:forcedEnd",
+      );
+      await deactivateUpkept(field, "forcedEnd");
+    }
   }
 }
 

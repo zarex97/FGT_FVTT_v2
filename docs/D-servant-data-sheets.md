@@ -1211,6 +1211,7 @@ above the board.
 | `damage.base` / `damage.sources` | Ch. 22 stage 1 | Both spellings of a base attack are read by one function (`damageBaseOf`); her primary authored `sources` at the top and lost the MAG half to `component: str` until it was (#135). The validator refuses both together, and any key outside `DAMAGE_BLOCK_KEYS`. |
 | `replacesRiderAction` | Ch. 20 | First platform a passenger drives. Its base attack is `ctx.units.mount` — stage 1's named-source lookup, which nothing had ever supplied. Her drag is gated as the mount's (`gateMovement`), she and the mount share one Move and one Attack a Turn (`turnPartnersOf`), and she attacks with the mount's Range (`attackRangeOf`) — Ch. 19, #143. |
 | Platform upkeep / `lockout` / `countFrom: destroyed` | Ch. 20 | Shared with a bounded field, because two of her NPs carry the same blocks. |
+| `upkeep.closeWhen` | Ch. 28 | *"50 or less at any time → deactivated at the end of the Turn"* (the stone) and *"25 or less → at the end of the Round"* (the mount) are standing thresholds on her Master's Health, tested at their own boundary whether or not a toll falls due. `endWhenUnaffordable` is the other rule — Jack's Mist's, tied to the toll — and both are kept (#149). |
 
 **Exercised in a live world**, individually: her statline off the tables; `Sol` making a 5×5 of
 Day inside a Night Round; Xiuhcoatl's two resolutions with their four different rider numbers;

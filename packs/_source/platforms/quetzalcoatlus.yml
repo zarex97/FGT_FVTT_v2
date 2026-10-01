@@ -57,6 +57,13 @@ upkeep:
   every: "1◈"
   cost: { kind: health, amount: 25, payer: ownerMaster }
   endWhenUnaffordable: true
+  # "If her Master's Health is 25 or less, this NP is forcefully deactivated at
+  # the END OF THE ROUND." The toll's `every: 1◈` is a tick period, which a Round
+  # boundary never reaches (`upkeepDue`), so the threshold is its own rule,
+  # read by the Round-end sweep (#149). `endWhenUnaffordable` above is the
+  # separate close-instead-of-charge on a due Turn mid-Round; remove it if the
+  # author wants the toll charged there.
+  closeWhen: { payerHealthAtMost: 25, at: roundEnd }
 # "This NP can be deactivated during Quetz's Turn or at the start or end of any
 # Round or Turn, BUT CANNOT BE DEACTIVATED FOR 2◈ TURNS after it was activated."
 #

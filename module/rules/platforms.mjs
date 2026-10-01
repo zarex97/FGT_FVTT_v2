@@ -992,6 +992,72 @@ export function upkeepDue(upkeep, {
 }
 
 /**
+ * Is a forced end owed at this boundary, whether or not a toll is?
+ *
+ * A STANDING threshold on the payer's Health, checked at the boundary it names:
+ *
+ * > *"If her Master's Health drops to/is 50 or less at any time, this NP is
+ * > forcefully deactivated at the end of the Turn."* — Piedra Del Sol
+ * >
+ * > *"If her Master's Health is 25 or less, this NP is forcefully deactivated
+ * > at the end of the Round."* — the Quetzalcoatlus
+ *
+ * Not the same rule as `endWhenUnaffordable`, which Jack's Mist's sheet ties to
+ * the toll (*"…and would lose Health due to this effect"*): that one is tested
+ * only when a toll falls due. These two sheets state a threshold and a
+ * moment, and a toll that falls due once every 1◈ (the stone) or never at a
+ * Round's end (a tick period, `upkeepDue` above) cannot answer either (#149).
+ *
+ * `closeWhen: { payerHealthAtMost, at }`, `at` being `turnEnd` (the default) or
+ * `roundEnd`. Health is read AT the boundary: a Master who dips and is healed
+ * back inside one Turn does not close it -- the sheet's *"at any time"* could
+ * be read as a latch, which is the open PDS.force ambiguity.
+ *
+ * @param {object|null} upkeep the authored block
+ * @param {object} ctx
+ * @param {number|null} ctx.payerHealth the payer's Health now, or `null` with no payer
+ * @param {boolean} ctx.atRoundBoundary which sweep is asking
+ * @returns {{due: boolean, reason?: string}}
+ */
+export function forcedEndDue(upkeep, { payerHealth = null, atRoundBoundary = false } = {}) {
+  const rule = upkeep?.closeWhen;
+  if (!rule || typeof rule.payerHealthAtMost !== "number") return { due: false, reason: "noRule" };
+  if ((rule.at === "roundEnd") !== Boolean(atRoundBoundary)) return { due: false, reason: "otherBoundary" };
+  if (typeof payerHealth !== "number") return { due: false, reason: "noPayer" };
+  return payerHealth <= rule.payerHealthAtMost ? { due: true } : { due: false, reason: "healthy" };
+}
+
+/**
+ * What one sweep does about one upkept field or platform.
+ *
+ * In the order the sheets state it: the standing threshold first, so a Master
+ * at the threshold is not charged and a stone cast with him already there
+ * closes at once; then the toll, which closes the field INSTEAD of charging
+ * when the payer cannot pay (Jack's Mist) or has nobody to pay it; and last,
+ * a toll that takes the payer to the threshold closes it at the SAME boundary --
+ * *"if the upkeep takes her Master to 50 Health or less, … forcefully
+ * deactivated at the end of the Turn"* (#149).
+ *
+ * @param {object|null} upkeep the authored block
+ * @param {object} ctx
+ * @param {boolean} ctx.due whether the toll falls due now (`upkeepDue`)
+ * @param {number|null} ctx.payerHealth the payer's Health, or `null` with no payer
+ * @param {boolean} [ctx.atRoundBoundary]
+ * @returns {{close?: string, charge?: number, closeAfter?: string|null}} `{}` when there is nothing to do
+ */
+export function upkeepPlan(upkeep, { due, payerHealth = null, atRoundBoundary = false } = {}) {
+  if (forcedEndDue(upkeep, { payerHealth, atRoundBoundary }).due) return { close: "forcedEnd" };
+  if (!due) return {};
+
+  const amount = Number(upkeep?.cost?.amount ?? 0);
+  if (typeof payerHealth !== "number" || (upkeep?.endWhenUnaffordable && payerHealth <= amount)) {
+    return { close: "upkeep" };
+  }
+  const after = forcedEndDue(upkeep, { payerHealth: payerHealth - amount, atRoundBoundary });
+  return { charge: amount, closeAfter: after.due ? "forcedEnd" : null };
+}
+
+/**
  * Which platforms an effect landing on a unit switches off.
  *
  * > *"If Drake is inflicted with NP Seal, Golden Hind is immediately
