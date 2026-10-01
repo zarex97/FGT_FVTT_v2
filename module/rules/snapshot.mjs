@@ -1451,14 +1451,6 @@ export function resolveRuleValues(rule, magnitude, npMagnitude) {
   const carriers = (node) => {
     const out = { ...node };
     if (node.chance !== undefined) out.chance = mine(node.chance);
-    // A `RevivalSource`'s amount. Guts is authored `restore: {percentOfMax:
-    // "@magnitude"}` -- "revive with X% of its Max Health" -- and `percentOfMax`
-    // reads an `@` it is not handed the instance for, so the literal string
-    // resolved to nothing and a Guts of any magnitude restored 0 (#172: the
-    // revival test through a real Guts instance found it).
-    if (node.restore && typeof node.restore === "object" && node.restore.percentOfMax !== undefined) {
-      out.restore = { ...node.restore, percentOfMax: mine(node.restore.percentOfMax) };
-    }
     // The effect an action applies states its own chance and magnitude, and
     // both may name the instance that is applying it.
     if (node.effect && typeof node.effect === "object") {

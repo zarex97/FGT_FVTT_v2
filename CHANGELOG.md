@@ -46,12 +46,6 @@ coincide by accident; the headings say which is which.
   Battle Continuation, Divine Protection and Holder Mode restore their stated amount.
   `ignoresOverkill`, which Mannanán alone authored, is retired. Ch. 10, Ch. 46 §46.6. (#172)
 
-- **A Guts built from a real effect instance restored nothing.** `guts.yml` states its amount as
-  `restore: {percentOfMax: "@magnitude"}`, and `resolveRuleValues` substituted the instance's
-  magnitude into `value`, `chance` and an applied effect, but not into a `RevivalSource`'s nested
-  `restore`; the literal string resolved to 0. Found writing the #172 test through
-  `test/helpers/subject.mjs`. `restore.percentOfMax` resolves against the instance now.
-
 ### Seven rules that were right and unreachable, found auditing Semiramis (2026-09-18)
 
 #### Fixed
