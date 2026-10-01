@@ -546,9 +546,13 @@ export async function pickPlacementFor(actor, ability, { requireUnitId = null, e
   // Ch. 21: a Counter must catch the unit that attacked. Merged into the spec so
   // the refusal is DRAWN, in the illegal tint with its reason, while the player
   // is still aiming.
-  const spec = (requireUnitId || excludeUnitIds.length > 0)
+  const aimed = (requireUnitId || excludeUnitIds.length > 0)
     ? { ...base, limits: { ...(base.limits ?? {}), requireUnitId, excludeUnitIds } }
     : base;
+  // What this is, for a platform's protection of its occupants (#138): the
+  // resolution says "attack" or "effect" through its placement, and the preview
+  // has no placement until the player aims, so it says it on the spec.
+  const spec = { ...aimed, reach: (ability ? classifyAbility(ability).isAttack : true) ? "attack" : "effect" };
   const isNP = ability?.type === "noblePhantasm";
 
   return pickTarget({

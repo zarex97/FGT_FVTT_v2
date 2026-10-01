@@ -744,30 +744,35 @@ describe("multi-panel units", () => {
 });
 
 describe("cross-level rules are per-platform, not global", () => {
-  it("blocks a melee attack against a unit aboard a platform that requires ranged", () => {
-    const flyer = unit("flyer", 6, 7, { level: 1, platformId: "hgob" });
-    const board = boardWith([caster, flyer], { crossLevel: { hgob: { requiresRanged: true } } });
-    const spec = {
-      anchor: { kind: "self" },
-      shape: { kind: "chebyshevRadius", r: 2 },
-      selection: { relations: ["enemy"], chooser: "all" },
-      isMelee: true,
-    };
-    const r = resolveTargets(spec, caster, board);
-    expect(r.units).toEqual([]);
-    expect(r.warnings.some((w) => /ranged Attacks/.test(w))).toBe(true);
+  // Read at step 4d off the PLATFORM on the board. These were written against a
+  // `board.crossLevel` map that was a second, redundant reader and is gone
+  // (#138): hand-built boards that only confirmed the dead one.
+  const deck = (crossLevel) => ({
+    id: "hgob", kind: "platform", faction: "a", panel: at(5, 5), level: 1, footprint: { w: 1, h: 1 }, crossLevel,
+  });
+  const flyer = unit("flyer", 6, 7, { level: 1, platformId: "hgob" });
+  const around = {
+    anchor: { kind: "self" },
+    shape: { kind: "chebyshevRadius", r: 2 },
+    selection: { relations: ["enemy"], chooser: "all" },
+  };
+  const melee = { ...caster, range: 1 };
+
+  it("blocks a melee reach against a unit aboard a platform that requires ranged", () => {
+    const board = boardWith([melee, deck({ occupantTargeting: "rangedOnly" }), flyer]);
+    const r = resolveTargets(around, melee, board);
+    expect(r.units.map((u) => u.unitId)).not.toContain("flyer");
+    expect(r.excluded.find((e) => e.unitId === "flyer")?.reason).toMatch(/too short/);
+  });
+
+  it("allows the same reach from further away", () => {
+    const board = boardWith([caster, deck({ occupantTargeting: "rangedOnly" }), flyer]);
+    expect(resolveTargets(around, caster, board).units.map((u) => u.unitId)).toContain("flyer");
   });
 
   it("allows the same attack when the platform has no such rule", () => {
-    const flyer = unit("flyer", 6, 7, { level: 1, platformId: "golden-hind" });
-    const board = boardWith([caster, flyer], { crossLevel: { hgob: { requiresRanged: true } } });
-    const spec = {
-      anchor: { kind: "self" },
-      shape: { kind: "chebyshevRadius", r: 2 },
-      selection: { relations: ["enemy"], chooser: "all" },
-      isMelee: true,
-    };
-    expect(resolveTargets(spec, caster, board).units.map((u) => u.unitId)).toEqual(["flyer"]);
+    const board = boardWith([melee, deck({ occupantTargeting: "free" }), flyer]);
+    expect(resolveTargets(around, melee, board).units.map((u) => u.unitId)).toContain("flyer");
   });
 });
 
@@ -1104,7 +1109,7 @@ describe("cross-level protection in the target ladder (Ch. 27)", () => {
     id: "hgob", kind: "platform", faction: "a", panel: at(5, 5), panels: deck, level: 2,
     footprint: { w: 3, h: 3 },
     crossLevel: {
-      occupantTargeting: "forbidden", requiresBoarding: true, aoePassengerFactor: 0,
+      occupantTargeting: "forbidden", aoePassengerFactor: 0,
       aoeMastersImmune: false, outboundTargeting: "rangedOnly", forbidDirectlyBelow: true,
     },
   };

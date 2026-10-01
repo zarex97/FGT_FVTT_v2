@@ -278,7 +278,10 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
       crossLevel: new fields.SchemaField({
         occupantTargeting: new fields.StringField({
           initial: "free", choices: ["forbidden", "rangedOnly", "free"] }),
-        requiresBoarding: new fields.BooleanField({ initial: false }),
+        // What fraction of an AREA reaches an occupant, and whether a Master
+        // aboard is spared it entirely (*"receives no damage and effects"*).
+        // Read at step 4d of the target ladder, which keeps a caught occupant
+        // for stage 15's "Total Damage" and drops a Master or a factor of 0.
         aoePassengerFactor: new fields.NumberField({ initial: 1, min: 0 }),
         aoeMastersImmune: new fields.BooleanField({ initial: false }),
         outboundTargeting: new fields.StringField({
@@ -289,6 +292,17 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
         // itself, with ranged Attacks"* (#68).
         hullTargeting: new fields.StringField({
           initial: "free", choices: ["forbidden", "rangedOnly", "free"] }),
+        // WHO the protection above is against, and WHAT it is against (#138).
+        // The sheets that state it bar enemies -- Semiramis: *"Enemy Units on
+        // the ground cannot target Units onboard"*, Drake: *"Enemy Units cannot
+        // target Units onboard"* -- and Quetzalcoatl's bars only an Attack:
+        // *"cannot be targeted for an Attack"*. The defaults are the blanket
+        // that was always applied, so a Platform that says nothing (the Storm
+        // Border) keeps its behaviour.
+        protectedFrom: new fields.StringField({
+          initial: "everyone", choices: ["enemies", "everyone"] }),
+        protectedAgainst: new fields.StringField({
+          initial: "anything", choices: ["attacks", "anything"] }),
       }),
     };
   }

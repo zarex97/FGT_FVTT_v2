@@ -5,10 +5,11 @@
  * Layer 2 (rules). Pure — it takes the board and returns verdicts and
  * descriptors. The engine turns descriptors into intents.
  *
- * `resolveTargets` has had a `crossLevelAllows` step since it was written, and
- * it is gated on `board.crossLevel` — which **nothing ever supplied**. So the
- * cross-level rule was implemented, called, and permanently inert. Same shape
- * as `MatchData.grailCounter` and `ctx.resist` before them.
+ * A platform's protection of its occupants is read in ONE place: step 4d of
+ * `resolveTargets`, through `crossLevelLegal`. It used to have a second
+ * reader, a `crossLevelAllows` gated on a `board.crossLevel` map this file
+ * built, which was redundant for one rule and dead for the other -- two readers
+ * of one rule drift (Ch. 46 §46.3), and it is gone (#138).
  *
  * The load-bearing decision (D20.1) is that **each active platform gets its own
  * Scene Level**. Almost everything else follows: separate occupancy, separate
@@ -22,6 +23,7 @@ import { chebyshev } from "../domain/geometry.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { test as testPredicate } from "./predicate.mjs";
 import { rollOptionsFor } from "./options.mjs";
+import { relationOf } from "./relations.mjs";
 
 /**
  * The default protection model. A platform that says nothing is transparent —
@@ -31,12 +33,13 @@ import { rollOptionsFor } from "./options.mjs";
  */
 export const OPEN_PLATFORM = Object.freeze({
   occupantTargeting: "free",
-  requiresBoarding: false,
   aoePassengerFactor: 1,
   aoeMastersImmune: false,
   outboundTargeting: "free",
   forbidDirectlyBelow: false,
   hullTargeting: "free",
+  protectedFrom: "everyone",
+  protectedAgainst: "anything",
 });
 
 /**
@@ -180,14 +183,32 @@ function platformOf(unit, board) {
 }
 
 /**
- * Is this attack legal across the levels involved?
+ * Is this resolution legal across the levels involved, and what does it cost the occupant?
  *
  * Cross-level rules are **per-platform data, decided case by case** — the
  * game's author confirmed as much (Ch. 41 Q37), so there is no global rule to
- * derive, only a four-axis model each platform picks a point in.
+ * derive, only a model each platform picks a point in.
  *
  * The platform **itself** is always a legal target: the protection is for its
  * occupants, and a vehicle nobody can shoot at is not a vehicle.
+ *
+ * **Who and what a platform shelters is data too** (#138). The sheets that
+ * state a protection bar ENEMIES -- Semiramis: *"Enemy Units on the ground
+ * cannot target Units onboard"*, Drake: *"Enemy Units cannot target Units
+ * onboard"* -- and Quetzalcoatl's bars only an ATTACK: *"cannot be targeted
+ * for an Attack"*. `protectedFrom` (`enemies` | `everyone`) and
+ * `protectedAgainst` (`attacks` | `anything`) say so, defaulting to the
+ * blanket that was always applied, so a platform that says nothing keeps its
+ * behaviour. A buff or a heal from the ground onto a rider is not an enemy
+ * Attack, and was refused all the same.
+ *
+ * **An area catches an occupant instead of targeting it.** `occupantTargeting:
+ * forbidden` refuses one Unit aimed at, and an AREA that merely covers it is
+ * the `aoe*` axes' business: a Master of a platform with `aoeMastersImmune`
+ * takes *"no damage and effects"* and is dropped (`aoeMastersImmune`), a factor
+ * of 0 drops anyone aboard (the Hanging Gardens), and any other factor keeps the
+ * occupant and is returned as `factor` for stage 15's *"50% Total Damage"*.
+ * `aoePassengerFactor` had no reader at all, only tests.
  *
  * This function was written, documented and unit-tested, and **no caller ever
  * consulted it** — so every axis below, and every `crossLevel` block authored
@@ -208,9 +229,16 @@ function platformOf(unit, board) {
  *   overrule, because one in the reference set says so in as many words:
  *   Dragon Wing Warriors is *"Range=4 plus the area UNDER the HGoB"* while the
  *   platform it is fired from forbids exactly that for everything else.
- * @returns {{ok: boolean, reason?: string}}
+ * @param {"attack"|"effect"} [options.reach] what is being done. An Attack by
+ *   default, which is the more protected reading; the Skill paths say `effect`.
+ * @param {boolean} [options.area] whether the shape is an area, which catches an
+ *   occupant rather than targets it
+ * @returns {{ok: boolean, reason?: string, factor?: number, platform?: string}}
+ *   `factor` and `platform` when an occupant is kept at a tier below full damage
  */
-export function crossLevelLegal(attacker, target, board, { range = null, allowDirectlyBelow = false } = {}) {
+export function crossLevelLegal(attacker, target, board, {
+  range = null, allowDirectlyBelow = false, reach = "attack", area = false,
+} = {}) {
   if ((attacker?.level ?? 0) === (target?.level ?? 0)) return { ok: true };
   const ranged = (range ?? attacker?.range ?? 1) >= 2;
   // The platform ITSELF, from another level: its own `hullTargeting`. The
@@ -225,10 +253,23 @@ export function crossLevelLegal(attacker, target, board, { range = null, allowDi
 
   // Shooting IN: the target's platform decides.
   const inbound = platformOf(target, board);
+  /** @type {{factor: number, platform: string}|null} */
+  let caught = null;
   if (inbound) {
     const rules = inbound.crossLevel ?? OPEN_PLATFORM;
-    if (rules.occupantTargeting === "forbidden") return { ok: false, reason: "occupantsForbidden" };
-    if (rules.occupantTargeting === "rangedOnly" && !ranged) return { ok: false, reason: "requiresRanged" };
+    if (shelters(rules, attacker, target, board, reach)) {
+      if (area) {
+        // Caught, not aimed at: the occupant's own tier, whatever the platform
+        // says about being targeted.
+        if (rules.aoeMastersImmune && target?.kind === "master") return { ok: false, reason: "aoeMastersImmune" };
+        const factor = aoePassengerFactor(target, inbound);
+        if (factor <= 0) return { ok: false, reason: "occupantsForbidden" };
+        if (factor < 1) caught = { factor, platform: inbound.name ?? inbound.contentId ?? inbound.id };
+      } else if (rules.occupantTargeting === "forbidden") {
+        return { ok: false, reason: "occupantsForbidden" };
+      }
+      if (rules.occupantTargeting === "rangedOnly" && !ranged) return { ok: false, reason: "requiresRanged" };
+    }
   }
 
   // Shooting OUT: the attacker's platform decides, and it is a different axis.
@@ -244,7 +285,55 @@ export function crossLevelLegal(attacker, target, board, { range = null, allowDi
     }
   }
 
-  return { ok: true };
+  return caught ? { ok: true, ...caught } : { ok: true };
+}
+
+/**
+ * Does this platform's protection apply to THIS resolution against THIS occupant?
+ *
+ * @param {object} rules the platform's `crossLevel` block
+ * @param {object} attacker
+ * @param {object} occupant
+ * @param {object} board
+ * @param {"attack"|"effect"} reach
+ * @returns {boolean}
+ */
+function shelters(rules, attacker, occupant, board, reach) {
+  if ((rules.protectedFrom ?? "everyone") === "enemies" && relationOf(attacker, occupant, board) !== "enemy") return false;
+  if ((rules.protectedAgainst ?? "anything") === "attacks" && reach !== "attack") return false;
+  return true;
+}
+
+/**
+ * The "Total Damage" modifiers a platform's area tier puts on one defender.
+ *
+ * > *"…Quetz receives 50% Total Damage…"*
+ *
+ * Read off the attack spec's `platformFactors`, which `platformFactorsOf`
+ * built from the resolved targets -- the resolver is what knew the occupant was
+ * CAUGHT by an area, and the shape of an attack is not recoverable from
+ * `state.isAoE`, which is false for an area that catches one Unit. Stage 15
+ * multiplies it and names the platform in the breakdown.
+ *
+ * @param {object|null} attack the Process's attack spec
+ * @param {object|null} defender
+ * @returns {Array<{key: string, factor: number, source: string}>}
+ */
+export function platformTierModifiers(attack, defender) {
+  const caught = attack?.platformFactors?.[defender?.id];
+  return caught ? [{ key: "platformAoe", factor: caught.factor, source: `aboard ${caught.platform}` }] : [];
+}
+
+/**
+ * Which of a resolution's targets were caught at a platform's area tier.
+ *
+ * @param {{units?: Array<{unitId: string, platformFactor?: number, platformName?: string}>}|null} targets
+ * @returns {Record<string, {factor: number, platform: string}>}
+ */
+export function platformFactorsOf(targets) {
+  return Object.fromEntries((targets?.units ?? [])
+    .filter((t) => typeof t.platformFactor === "number")
+    .map((t) => [t.unitId, { factor: t.platformFactor, platform: t.platformName ?? "a platform" }]));
 }
 
 /**
@@ -1044,29 +1133,6 @@ export function aoePassengerFactor(unit, platform) {
   const rules = platform.crossLevel ?? OPEN_PLATFORM;
   if (rules.aoeMastersImmune && unit?.kind === "master") return 0;
   return rules.aoePassengerFactor ?? 1;
-}
-
-/**
- * The `board.crossLevel` map the targeting resolver reads.
- *
- * Keyed by platform id, in the shape `crossLevelAllows` already expects — the
- * resolver was written against this map and has never been given one.
- *
- * @param {object} board
- * @returns {Record<string, {requiresRanged: boolean, untargetable: boolean, aoePassengerFactor: number}>}
- */
-export function crossLevelRulesFor(board) {
-  /** @type {Record<string, object>} */
-  const out = {};
-  for (const p of platformsOn(board)) {
-    const rules = p.crossLevel ?? OPEN_PLATFORM;
-    out[p.id] = {
-      requiresRanged: rules.occupantTargeting === "rangedOnly" || rules.outboundTargeting === "rangedOnly",
-      untargetable: rules.occupantTargeting === "forbidden",
-      aoePassengerFactor: rules.aoePassengerFactor ?? 1,
-    };
-  }
-  return out;
 }
 
 /* -------------------------------------------------------------------------- */

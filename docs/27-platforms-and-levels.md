@@ -78,17 +78,21 @@ The voluntary counterpart to being Knocked Off, and nothing like it: no Agility 
 
 ### Cross-level targeting
 
-The platform itself may always be targeted. Occupants are protected by **four independent axes** (`module/rules/platforms.mjs:135-193`), each decided per-platform and authored in the platform's `crossLevel` block. A platform that says nothing is transparent — `OPEN_PLATFORM` allows free targeting in, out, and into AOE passengers (`module/rules/platforms.mjs:31-38`).
+The platform itself may always be targeted (its `hullTargeting` decides from what reach). Occupants are protected along independent axes, each decided per platform and authored in its `crossLevel` block. A platform that says nothing is transparent — `OPEN_PLATFORM` (`module/rules/platforms.mjs`) allows free targeting in, out, and into area passengers.
 
-The four axes (`module/rules/platforms.mjs:165-193`):
+**One reader.** A platform's protection is read in one place: step 4d of `resolveTargets` (`module/rules/targeting/resolve.mjs`), through `rules/platforms.mjs#crossLevelLegal`. It had a second reader, `crossLevelAllows`, gated on a `board.crossLevel` map that `crossLevelRulesFor` built: redundant for `untargetable` and dead for `requiresRanged` (the branch needed `spec.isMelee`, which nothing writes). Two readers of one rule drift (Ch. 46 §46.3); both are gone, and so is `requiresBoarding`, which was declared and authored on four platforms and read by nothing (#138).
 
-- **Shooting IN** — the target's platform decides. May be `free`, `rangedOnly`, or `forbidden`.
-- **Shooting OUT** — the attacker's platform decides independently. Same three options, and a fortress that nobody shoots into may let occupants shoot out, or may not.
-- **Directly beneath** — a boolean flag `forbidDirectlyBelow`. The Hanging Gardens forbids it; Dragon Wing Warriors overrules it by setting `allowDirectlyBelow` on the phase (`module/rules/platforms.mjs:187-190`).
+The axes:
+
+- **Shooting IN** — the target's platform decides: `occupantTargeting` is `free`, `rangedOnly` or `forbidden`.
+- **Shooting OUT** — the attacker's platform decides independently (`outboundTargeting`). A fortress that nobody shoots into may let occupants shoot out, or may not.
+- **Directly beneath** — `forbidDirectlyBelow`. The Hanging Gardens forbids it; Dragon Wing Warriors overrules it by setting `allowDirectlyBelow` on the phase.
 - **The deck** — an ability's own `targeting.forbidAboard`. Aerial Garden of Vanity *"cannot hit under or above the HGoB"*: under is `forbidDirectlyBelow`, above is the deck, which Dragon Wing Warriors names as *"the area of the HGoB"*. `resolve.mjs` step 4e drops a Unit standing on the caster's platform ([Ch. 46 §46.4-BR](46-roster-re-audit.md)).
-- **AOE passengers** — what fraction of area damage reaches an occupant. The Golden Hind soaks 50% for most, all of it for Masters; Quetzalcoatlus soaks nothing for the mount itself (`module/rules/platforms.mjs:462-467`).
+- **Area passengers** — `aoePassengerFactor` and `aoeMastersImmune`, below.
 
-This call (`module/rules/targeting/resolve.mjs:229-245`) runs at step 4d of the targeting resolver and decides whether each target is reachable before any other filter.
+**Who the protection is against, and what** (#138). The sheets that state it bar **enemies** — Semiramis: *"Enemy Units on the ground cannot target Units onboard"*, Drake: *"Enemy Units cannot target Units onboard"* — and Quetzalcoatl's bars only an **Attack**: *"cannot be targeted for an Attack"*, where the Hanging Gardens and the Golden Hind say Attacks, Skills, Spells and Noble Phantasms. The engine barred everyone from everything, so a buff or a heal from the ground onto a rider was refused. `crossLevel.protectedFrom` (`enemies` | `everyone`) and `crossLevel.protectedAgainst` (`attacks` | `anything`) say so, defaulting to the old blanket, so a platform that says nothing — the Storm Border, whose sheet states no protection wording — keeps its behaviour. The Quetzalcoatlus authors `enemies` / `attacks`; the Hanging Gardens and the Golden Hind `enemies` / `anything`. The resolution says what it is through the placement's `reach`: the attack paths pass `"attack"` (also the default, the more protected reading), the Skill paths `"effect"`.
+
+**An area catches an occupant instead of targeting it.** An area shape (anything but a single unit or point) is what the `aoe*` axes are for: a Master of a platform with `aoeMastersImmune` is dropped (reason `aoeMastersImmune` — *"receives no damage and effects"*), a factor of 0 drops anyone aboard (the Hanging Gardens), and any other factor **keeps** the occupant and carries `platformFactor` out on the target. `declareProcesses` records it per defender on the attack spec (`platformFactors`, as `bands` is) and stage 15 multiplies it in (`platformTierModifiers`), naming the platform in the breakdown: *"Quetz receives 50% Total Damage"*, the mount (the platform itself) full damage. Area-ness comes from the spec's shape and not from `state.isAoE`, which is false for an area that catches one Unit. `aoePassengerFactor()` had no caller outside tests, so riders took 0% of an area where two sheets say 50%.
 
 ### Destruction and scattering
 

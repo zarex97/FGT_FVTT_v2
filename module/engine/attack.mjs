@@ -42,7 +42,9 @@ import { collectContributions, resolveValue } from "../rules/elements.mjs";
 import { test as testPredicate, explain as explainPredicate } from "../rules/predicate.mjs";
 import { thresholdFor, damageFromDice, thresholdModifiers } from "../rules/damage/dice-count.mjs";
 import { normalAttackAt } from "../rules/normal-attack.mjs";
-import { actionSourceFor, turnPartnersOf, attackRangeOf } from "../rules/platforms.mjs";
+import {
+  actionSourceFor, turnPartnersOf, attackRangeOf, platformFactorsOf, platformTierModifiers,
+} from "../rules/platforms.mjs";
 import { GRANTS, hasGranted } from "../rules/granted.mjs";
 import { coveringServantsFor, coverFactor, shoveDestination, isCovering } from "../rules/cover.mjs";
 import { absorb, refreshShield, landBarrier } from "./shield.mjs";
@@ -145,7 +147,9 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
       candidates: [], excluded: [],
     }
     : resolveTargets(spec, self, board, {
-      ...placement, npTags: [...(ability?.system?.npTags ?? [])],
+      // An ATTACK: a platform's protection of its occupants is read against what
+      // is being done, and it bars an Attack where it may let a Skill through.
+      ...placement, npTags: [...(ability?.system?.npTags ?? [])], reach: "attack",
     });
 
   // A choice still owed is a refusal, not a quiet return: the interface settles
@@ -416,7 +420,7 @@ async function declareAftermath({
 
   // The anchor of the resolution that just happened, which the splash excludes.
   const primaryTargetId = placement?.unitId ?? placement?.targetId ?? targetIds[0] ?? null;
-  const caught = resolveTargets(spec.targeting, self, board, { primaryTargetId });
+  const caught = resolveTargets(spec.targeting, self, board, { primaryTargetId, reach: "attack" });
   if ((caught.units ?? []).length === 0) return;
 
   // The Hanging Gardens' *"If Semiramis is Attacked during this period, the
@@ -835,7 +839,13 @@ async function declareProcesses({
   // which is what travels into the damage context, the card and every
   // predicate -- and Avenger's counter bonus is the first clause to ask.
   // Carried on the state too, which is where `mayCounterAgain` reads it.
-  const spec = isCounter ? { ...attackSpec, isCounter: true } : attackSpec;
+  const counterSpec = isCounter ? { ...attackSpec, isCounter: true } : attackSpec;
+  // Who this declaration caught at a platform's area tier (*"Quetz receives 50%
+  // Total Damage"*), recorded per defender the way `bands` is: the resolver is
+  // what knew the occupant was caught by an AREA, which `state.isAoE` cannot say
+  // for an area that catches one Unit.
+  const platformFactors = platformFactorsOf(targets);
+  const spec = Object.keys(platformFactors).length > 0 ? { ...counterSpec, platformFactors } : counterSpec;
 
   // A resolution that caught no units is still a resolution — a ground-placed
   // non-damaging NP has a shape and no defenders — so it keeps its single
@@ -3268,7 +3278,7 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
     const spec = targetSpecForAttack(counterer, ability, options);
     targets = resolveTargets(
       { ...spec, limits: { ...(spec.limits ?? {}), requireUnitId: requiredId, excludeUnitIds } },
-      self, board, placement,
+      self, board, { ...placement, reach: "attack" },
     );
   }
 
@@ -3961,6 +3971,9 @@ async function applyDamage(state, message) {
     // first entry.
     totalDamageModifiers: [
       ...coverModifiersFor(state, defender),
+      // A platform's AREA tier: the Unit was caught aboard one, and its sheet
+      // says what fraction of the Total Damage reaches it (#138).
+      ...platformTierModifiers(state.attack, defender),
       // The ATTACK's own "Total Damage" clauses. Drake's broadside: *"Total
       // damage dealt is further increased by 10% for every Galleon Token on
       // herself; however, if she has no Galleon Tokens, Total damage dealt is
@@ -4698,7 +4711,7 @@ function authoredMagnitude(spec, actor, field = "magnitude", ride = null) {
 async function applyTargetedRider(phase, ability, state, attackerDoc) {
   const board = boardSnapshot();
   const caster = unitFrom(board, attackerDoc) ?? unitSnapshot(attackerDoc);
-  const resolved = resolveTargets(phase.targeting, caster, board, { unitId: caster.id, panel: caster.panel });
+  const resolved = resolveTargets(phase.targeting, caster, board, { unitId: caster.id, panel: caster.panel, reach: "attack" });
 
   /** @type {object[]} */
   const out = [];
