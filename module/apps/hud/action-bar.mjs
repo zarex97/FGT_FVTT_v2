@@ -23,7 +23,7 @@ import { test as testPredicate } from "../../rules/predicate.mjs";
 import { rollOptionsFor } from "../../rules/options.mjs";
 import { publicNameOf } from "../../rules/identity.mjs";
 import { abilityCost, abilityState } from "../actor-sheet/present.mjs";
-import { currentBoard, unitSnapshot, unitFrom, gateContext } from "../../engine/board.mjs";
+import { currentBoard, unitSnapshot, unitFrom, luckOf, gateContext } from "../../engine/board.mjs";
 import * as budget from "../../engine/budget.mjs";
 import { mayDeactivate } from "../../engine/fields.mjs";
 import { mayReshape } from "../../rules/bounded-fields.mjs";
@@ -330,7 +330,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
       resources: [
         { label: "FGT.Resource.health", value: snapshot.health, max: actor.system?.health?.max ?? null },
         { label: "FGT.Resource.agility", value: actor.system?.agility?.value ?? 0, max: actor.system?.agility?.max ?? null },
-        { label: "FGT.Resource.luck", value: actor.system?.luck?.value ?? 0, max: actor.system?.luck?.max ?? null },
+        { label: "FGT.Resource.luck", ...luckOf(board, actor) },
       ],
       // Ch. 06's pools — EMIYA's Aria, Semiramis's Construction, Scáthach's PRS
       // Tokens. They gate abilities, so a player choosing what to press needs
