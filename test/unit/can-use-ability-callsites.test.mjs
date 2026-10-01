@@ -89,6 +89,20 @@ describe("canUseAbility call sites", () => {
     expect(callArguments(readFileSync("module/engine/attack.mjs", "utf8")).length).toBe(4);
   });
 
+  it("the sheet's cards gate on the board's Unit, as the bar does (#158)", () => {
+    // An evaluator is half of §46.4-AX. The other half is WHAT it evaluates: a
+    // bare `unitSnapshot` carries none of the board's annotations, so
+    // `self:onPlatform`, `self:inHomeBase`, `self:fieldActive:` and
+    // `self:terrain:` are never emitted and the card answers wrongly in both
+    // directions. Behavioural proof, with Quetzalcoatl riding, is in
+    // `sheet-cards.test.mjs`.
+    const src = readFileSync("module/apps/actor-sheet/context.mjs", "utf8").replaceAll("\r\n", "\n");
+    const from = src.indexOf("function abilitiesContext");
+    const body = src.slice(from, src.indexOf("\n}\n", from));
+    expect(body).toMatch(/unitFrom\(boardNow, actor\)/);
+    expect(body).not.toMatch(/unit: snapshot\b/);
+  });
+
   it("the refusing default is still what `meetsRequirement` does", () => {
     // If this ever stops being true the call sites above no longer need to
     // care, and this whole test can go. Stated so the next reader knows which

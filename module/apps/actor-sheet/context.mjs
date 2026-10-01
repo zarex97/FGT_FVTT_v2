@@ -12,7 +12,7 @@
  */
 
 import * as board from "../../engine/board.mjs";
-import { currentBoard, unitSnapshot, currentTick, currentRound, gateContext } from "../../engine/board.mjs";
+import { currentBoard, unitSnapshot, unitFrom, currentTick, currentRound, gateContext } from "../../engine/board.mjs";
 import { poolsOf, isUnbound } from "../../rules/cs-namespacing.mjs";
 import { chebyshev } from "../../domain/geometry.mjs";
 import { resourceLabel } from "../../domain/resources.mjs";
@@ -596,19 +596,32 @@ function signed(value) {
  * @param {object} actor
  * @param {object} snapshot
  * @param {number} turnsPerRound
+ * @param {object} [boardNow] the board, which a test supplies
  * @returns {object}
  */
-function abilitiesContext(actor, snapshot, turnsPerRound) {
-  const boardNow = currentBoard();
+export function abilitiesContext(actor, snapshot, turnsPerRound, boardNow = currentBoard()) {
   const master = snapshot.masterId
     ? (boardNow.units.find((u) => u.id === snapshot.masterId) ?? null)
     : null;
   const round = currentRound() ?? 1;
+  // The caster as the BOARD projects her, for the same reason the Master above
+  // is. A bare `unitSnapshot` carries none of the board's annotations --
+  // `platformContentId`, `inHomeBase`, `fields`, `ownedFields`, `terrain` are
+  // written only by `snapshotBoard`'s passes -- so `self:onPlatform:<id>`,
+  // `self:inHomeBase`, `self:fieldActive:<id>` and `self:terrain:<type>` were never
+  // emitted on the sheet, and a requirement that reads one was answered wrongly
+  // in BOTH directions: a Spell she may use while riding read "conditions not
+  // met", and Xiuhcoatl, which she may not, read usable. §46.4-AX gave the sheet
+  // its evaluator and applied the board's unit to the action bar only (#158).
+  //
+  // Only the gate needs it: the rest of `buildContext` stays on the snapshot.
+  // `unitFrom` falls back to a standalone projection for a Unit with no token.
+  const unit = unitFrom(boardNow, actor) ?? snapshot;
 
   const cards = [...actor.items]
     .filter((i) => i.type === "ability" || i.type === "noblePhantasm")
     .map((item) => abilityCard(item, {
-      actor, unit: snapshot, master, round, turnsPerRound, board: boardNow,
+      actor, unit, master, round, turnsPerRound, board: boardNow,
     }));
 
   // The order every reference sheet prints them in. An ability with no `kind`
