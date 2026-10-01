@@ -502,6 +502,16 @@ export const NESTED_ROUTES = [
       { file: "tools/lib/content.mjs", why: "the build refuses fixed: false, the one value a field Damage cannot honour" },
     ],
   },
+  // A standing threshold on the payer's Health, inside the `upkeep` block that
+  // both the field's behaviour and a platform's actor store whole (#149).
+  {
+    key: "closeWhen",
+    authored: ["packs/_source/abilities/quetz-piedra-del-sol.yml", "packs/_source/platforms/quetzalcoatlus.yml"],
+    hops: [
+      { file: "module/rules/platforms.mjs", why: "forcedEndDue reads it, and upkeepPlan puts it first" },
+      { file: "module/engine/fields.mjs", why: "runUpkeep reads a field's or a platform's block for it, due toll or not" },
+    ],
+  },
 ];
 
 describe("every key nested in an untyped block survives its Route", () => {
