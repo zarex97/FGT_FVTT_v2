@@ -183,3 +183,31 @@ describe("the engine asks the rules about the seat", async () => {
     expect(summon.indexOf("masterSeat(")).toBeLessThan(summon.indexOf("activatePlatform("));
   });
 });
+
+// *"…can Move onto occupied panels (place the Quetzalcoatlus on top of anything occupying said
+// panels)."* So it falls over an enemy in ordinary play, and Quetz and her Master must not land on it (#140).
+describe("a Quetzalcoatlus that falls over occupied ground", () => {
+  const ids = ["foeSubject000001", "foeSubject000002", "foeSubject000003", "foeSubject000004"];
+
+  it("drops her and her Master on free ground panels, never on the Units it covered", async () => {
+    const { scatterPanels, passengersOf, withinFootprint } = await import("../../module/rules/platforms.mjs");
+    const covering = ids.map((id, n) => ({
+      from: "heracles", id, state: { factionId: "f2" }, panel: { i: 5 + Math.floor(n / 2), j: 5 + (n % 2), k: 0 },
+    }));
+    const [quetz, mast] = [ID.quetz, ID.mast];
+    const landed = await withSubjects([
+      { from: "quetzalcoatlus", id: ID.mount, state: { ownerId: quetz }, panel: { i: 5, j: 5, k: 1 } },
+      { from: "quetzalcoatl", id: quetz, panel: { i: 5, j: 5, k: 1 } },
+      { from: "master-advanced", id: mast, panel: { i: 5, j: 6, k: 1 } },
+      ...covering,
+    ], ({ unit, board }) => {
+      const mount = unit(ID.mount);
+      return { mount, out: scatterPanels(passengersOf(mount, board), mount, board, Math.random) };
+    });
+
+    expect(Object.keys(landed.out).sort()).toEqual([mast, quetz].sort());
+    const cells = Object.values(landed.out);
+    expect(new Set(cells.map((p) => `${p.i},${p.j}`)).size).toBe(2);
+    for (const p of cells) expect(withinFootprint(p, landed.mount)).toBe(false);
+  });
+});

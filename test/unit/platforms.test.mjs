@@ -1215,3 +1215,91 @@ describe("scatterPanels", async () => {
     expect(one.a).not.toEqual(other.a);
   });
 });
+
+// The riders of a fallen platform drop to the ground (ruling 12), and where they drop must still be
+// a panel nobody holds. The draw used to stop when the free panels UNDER the footprint ran out, so a
+// small footprint, or an occupied one, left the rest where they stood -- two Units on one panel
+// (#140). The Quetzalcoatlus "can Move onto occupied panels", so it falls over an enemy in ordinary play.
+describe("scatterPanels when the footprint runs out of landings", async () => {
+  const { scatterPanels } = await import("../../module/rules/platforms.mjs");
+  const bounds = { iMin: 0, jMin: 0, iMax: 12, jMax: 12 };
+  const platformAt = (i, j, w, h) => ({ id: "mount", kind: "platform", level: 1, panel: { i, j }, footprint: { w, h }, sharesPanel: true });
+  const aboard = (id) => ({ id, kind: "servant", level: 1, panel: { i: 5, j: 5 } });
+  const onGround = (id, i, j) => ({ id, kind: "servant", level: 0, panel: { i, j } });
+  const cell = (p) => `${p.i},${p.j}`;
+  const dice = Math.random;
+
+  it("a 1x1 platform with two passengers and free ground gives both a distinct panel", () => {
+    const mount = platformAt(5, 5, 1, 1);
+    const riders = [aboard("a"), aboard("b")];
+    const out = scatterPanels(riders, mount, { units: [mount, ...riders], bounds }, dice);
+    expect(Object.keys(out).sort()).toEqual(["a", "b"]);
+    expect(new Set(Object.values(out).map(cell)).size).toBe(2);
+  });
+
+  it("a ground Unit on the footprint is never shared: each passenger lands one panel off it", () => {
+    const mount = platformAt(5, 5, 1, 1);
+    const riders = [aboard("a"), aboard("b")];
+    const foe = onGround("foe", 5, 5);
+    const out = scatterPanels(riders, mount, { units: [mount, ...riders, foe], bounds }, dice);
+    const cells = Object.values(out);
+    expect(cells).toHaveLength(2);
+    expect(new Set(cells.map(cell)).size).toBe(2);
+    for (const p of cells) {
+      expect(cell(p)).not.toBe("5,5");
+      expect(Math.max(Math.abs(p.i - 5), Math.abs(p.j - 5))).toBe(1);
+    }
+  });
+
+  it("a platform whose footprint is fully occupied still lands everyone, ring by ring", () => {
+    const mount = platformAt(5, 5, 2, 2);
+    const riders = [aboard("a"), aboard("b"), aboard("c")];
+    const ground = [onGround("g1", 5, 5), onGround("g2", 5, 6), onGround("g3", 6, 5), onGround("g4", 6, 6)];
+    const out = scatterPanels(riders, mount, { units: [mount, ...riders, ...ground], bounds }, dice);
+    const cells = Object.values(out).map(cell);
+    expect(cells).toHaveLength(3);
+    expect(new Set(cells).size).toBe(3);
+    for (const g of ground) expect(cells).not.toContain(cell(g.panel));
+    // The first ring is 12 panels around a 2x2; three passengers all fit in it.
+    for (const p of Object.values(out)) expect(withinFootprint(p, mount)).toBe(false);
+  });
+
+  it("uses the footprint's own free panels first, and the nearest ring only for the rest", () => {
+    const mount = platformAt(5, 5, 2, 1);
+    const riders = [aboard("a"), aboard("b"), aboard("c")];
+    const foe = onGround("foe", 5, 5);
+    const out = scatterPanels(riders, mount, { units: [mount, ...riders, foe], bounds }, dice);
+    const under = Object.values(out).filter((p) => withinFootprint(p, mount));
+    expect(under.map(cell)).toEqual(["5,6"]);
+    expect(Object.values(out)).toHaveLength(3);
+  });
+
+  it("stays on the board: a platform in the corner lands its passengers inside the bounds", () => {
+    const mount = platformAt(0, 0, 1, 1);
+    const riders = [aboard("a"), aboard("b"), aboard("c")];
+    const foe = onGround("foe", 0, 0);
+    const out = scatterPanels(riders, mount, { units: [mount, ...riders, foe], bounds }, dice);
+    expect(Object.values(out)).toHaveLength(3);
+    for (const p of Object.values(out)) {
+      expect(p.i).toBeGreaterThanOrEqual(0);
+      expect(p.j).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it("keeps its own panel when the board has no free ground panel at all", () => {
+    const tiny = { iMin: 0, jMin: 0, iMax: 0, jMax: 0 };
+    const mount = platformAt(0, 0, 1, 1);
+    const rider = aboard("a");
+    const out = scatterPanels([rider], mount, { units: [mount, rider, onGround("foe", 0, 0)], bounds: tiny }, dice);
+    expect(out).toEqual({});
+  });
+
+  it("does not treat a platform, a structure or a Unit that shares a panel as holding one", () => {
+    const mount = platformAt(5, 5, 1, 1);
+    const other = { ...platformAt(5, 5, 1, 1), id: "other", level: 2 };
+    const stone = { id: "stone", kind: "structure", level: 0, panel: { i: 5, j: 5 } };
+    const rider = aboard("a");
+    const out = scatterPanels([rider], mount, { units: [mount, other, stone, rider], bounds }, dice);
+    expect(cell(out.a)).toBe("5,5");
+  });
+});

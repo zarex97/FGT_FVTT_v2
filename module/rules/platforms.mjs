@@ -1118,6 +1118,17 @@ export function destructionSaves(passengers, results) {
  * descriptor was logged and nothing else, so every passenger landed directly
  * under where it stood (Ch. 46 §46.4-CJ).
  *
+ * **When the footprint runs out, the landing goes outward** (#140). The draw
+ * stopped there, so a one-panel mount, or a footprint with a Unit on it, left
+ * everyone it had no panel for standing where they were -- on top of whoever
+ * held it. A platform that `sharesPanel` falls over such a Unit in ordinary
+ * play. The rest land on the nearest free ground panels by Chebyshev distance
+ * from the footprint, ring by ring, random within a ring, inside the board.
+ * "Free" is the same rule as under the footprint: a ground Unit holds a panel,
+ * a platform, a structure or a Unit that shares its panel does not. A board
+ * with no free ground panel left leaves the passenger out of the answer, so it
+ * keeps its own.
+ *
  * @param {object[]} passengers
  * @param {object} platform
  * @param {object} board
@@ -1130,15 +1141,33 @@ export function scatterPanels(passengers, platform, board, rand) {
     .filter((u) => (u.level ?? 0) === 0 && u.kind !== "platform" && u.kind !== "structure" && !u.sharesPanel)
     .flatMap((u) => u.panels ?? (u.panel ? [u.panel] : []))
     .map((p) => `${p.i},${p.j}`));
-  const free = [];
-  for (let di = 0; di < h; di += 1) {
-    for (let dj = 0; dj < w; dj += 1) {
-      const p = { i: platform.panel.i + di, j: platform.panel.j + dj };
-      if (!taken.has(`${p.i},${p.j}`)) free.push(p);
+
+  const bounds = board?.bounds ?? null;
+  const onBoard = (p) => p.i >= (bounds?.iMin ?? 0) && p.j >= (bounds?.jMin ?? 0)
+    && p.i <= (bounds?.iMax ?? Infinity) && p.j <= (bounds?.jMax ?? Infinity);
+  const open = (p) => onBoard(p) && !taken.has(`${p.i},${p.j}`);
+  // The farthest a landing can be: across the whole board, and the largest is 25 wide.
+  const reach = bounds?.iMax !== undefined
+    ? Math.max(bounds.iMax - (bounds.iMin ?? 0), bounds.jMax - (bounds.jMin ?? 0)) + 1
+    : 25;
+  // Panels exactly `d` panels from the footprint (0 is the footprint itself).
+  const at = platform.panel;
+  const gap = (x, from, size) => Math.max(from - x, 0, x - (from + size - 1));
+  const ring = (d) => {
+    const found = [];
+    for (let i = at.i - d; i <= at.i + h - 1 + d; i += 1) {
+      for (let j = at.j - d; j <= at.j + w - 1 + d; j += 1) {
+        if (Math.max(gap(i, at.i, h), gap(j, at.j, w)) === d && open({ i, j })) found.push({ i, j });
+      }
     }
-  }
+    return found;
+  };
+
   const out = {};
+  let d = 0;
+  let free = ring(0);
   for (const unit of passengers) {
+    while (free.length === 0 && d < reach) { d += 1; free = ring(d); }
     if (free.length === 0) break;
     const k = Math.min(free.length - 1, Math.floor(rand() * free.length));
     out[unit.id] = free.splice(k, 1)[0];
