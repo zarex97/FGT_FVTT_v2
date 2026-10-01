@@ -163,9 +163,16 @@ describe("domain validation", () => {
       .toEqual([]);
   });
 
-  it("skips unresolved template placeholders rather than failing on them", () => {
+  it("skips unresolved template placeholders in a TEMPLATE rather than failing on them", () => {
     // A class-skill template legitimately carries "@rank" until instantiated.
-    expect(errorsFor([file(ok({ rank: "@rank", cooldown: "@cooldown" }))])).toEqual([]);
+    expect(errorsFor([file(ok({ parameterized: ["rank", "cooldown"], rank: "@rank", cooldown: "@cooldown" }))])).toEqual([]);
+  });
+
+  it("fails a placeholder in a document that is not a template (#120)", () => {
+    // Skipped for every document, so an unfilled slot anywhere read as a template.
+    const problems = errorsFor([file(ok({ rank: "@rank", cooldown: "@cooldown" }))]);
+    expect(problems.join("\n")).toMatch(/rank is not a valid rank \("@rank"\)/);
+    expect(problems.join("\n")).toMatch(/cooldown is not a valid duration \("@cooldown"\)/);
   });
 });
 
@@ -214,6 +221,39 @@ describe("ref resolution", () => {
     const problems = [];
     resolveRef({ ref: "class-magic-resistance" }, library, problems, "abilities[0]");
     expect(problems[0]).toMatch(/requires the parameter "rank"/);
+  });
+
+  it("catches a ref that leaves a duration placeholder unfilled, naming the ref and the parameter (#120)", () => {
+    // `parameterized` lists `rank` and the template also carries `cooldown: "@cooldown"`.
+    // The parameter check demanded only what `parameterized` named, so a bearer that
+    // forgot the cooldown shipped the literal "@cooldown": Drake's Riding.
+    const slotted = new Map([["class-slotted", {
+      id: "class-slotted", name: "Slotted", parameterized: ["rank"], rank: "@rank", cooldown: "@cooldown",
+    }]]);
+    const problems = [];
+    resolveRef({ ref: "class-slotted", rank: "B" }, slotted, problems, "abilities[0]");
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/ref "class-slotted"/);
+    expect(problems[0]).toMatch(/cooldown/);
+
+    const filled = [];
+    resolveRef({ ref: "class-slotted", rank: "B", cooldown: "2◈" }, slotted, filled, "abilities[0]");
+    expect(filled).toEqual([]);
+  });
+
+  it("reports it from a Servant's own validation too (#120)", () => {
+    const slotted = {
+      schema: 1, id: "class-slotted", name: "Slotted", source: "class",
+      parameterized: ["rank"], rank: "@rank", cooldown: "@cooldown",
+    };
+    const bearer = (entry) => ({
+      schema: 1, id: "bearer", name: "Bearer", servantClasses: ["rider"], abilities: [entry],
+    });
+    const run = (entry) => validateAll([
+      file(slotted, "slotted.yml", "class-skills"), file(bearer(entry), "bearer.yml", "servants"),
+    ]).problems;
+    expect(run({ ref: "class-slotted", rank: "B" }).join("\n")).toMatch(/bearer\.yml.*class-slotted.*cooldown/);
+    expect(run({ ref: "class-slotted", rank: "B", cooldown: "2◈" })).toEqual([]);
   });
 
   it("passes an inline ability straight through", () => {

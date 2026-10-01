@@ -424,6 +424,22 @@ export function resolveRef(entry, library, problems, where) {
   }
 
   const built = prune(substitute(template, params), problems, `${where}: ref "${entry.ref}"`);
+  // A slot the template holds that the bearer did not fill. The check above
+  // demands only what `parameterized` NAMES, so a placeholder missing from that
+  // list was never demanded of anybody: `class-riding-drake` carries
+  // `cooldown: "@cooldown"` and `parameterized: [rank]`, Drake passed no
+  // cooldown, and her compiled Riding held the literal -- which Foundry refuses
+  // and `validate:content` did not mention (#120). Asked of the fields a model
+  // PARSES; a placeholder inside a rule element is a runtime reference.
+  for (const field of ["rank", "cooldown", "duration"]) {
+    const left = [built[field], built[field]?.max].find((v) => typeof v === "string" && /^@\w+$/.test(v));
+    if (left) {
+      problems.push(
+        `${where}: ref "${entry.ref}" leaves ${field} as the unfilled placeholder "${left}" — `
+        + `pass "${left.slice(1)}" beside the ref`,
+      );
+    }
+  }
   // A declared parameter the template holds only as a PLACEHOLDER is consumed
   // by the substitution, not carried: Mad Enhancement's `drainFloor`,
   // `drainFloorWhen` and `forcedDeactivation` are read into its rules at build
@@ -1102,7 +1118,9 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
   // Ranks
   for (const [field, value] of rankFields(doc)) {
     if (value === null || value === undefined) continue;
-    if (typeof value === "string" && value.startsWith("@")) continue; // unresolved template param
+    // An unresolved template parameter, in a TEMPLATE. Skipped for every
+    // document, an unfilled slot anywhere read as one (#120).
+    if (typeof value === "string" && value.startsWith("@") && isTemplate(doc)) continue;
     try {
       Rank.parseOrNull(value);
     } catch {
@@ -1113,7 +1131,7 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
   // Durations and cooldowns
   for (const [field, value] of durationFields(doc)) {
     if (value === null || value === undefined) continue;
-    if (typeof value === "string" && value.startsWith("@")) continue;
+    if (typeof value === "string" && value.startsWith("@") && isTemplate(doc)) continue;
     try {
       parseTick(value);
     } catch (err) {
@@ -1573,6 +1591,18 @@ function rankFields(doc) {
     if (a?.rank !== undefined) out.push([`abilities[${index}].rank`, a.rank]);
   }
   return out;
+}
+
+/**
+ * Is this document a template, whose `@` slots are filled by whoever refs it?
+ *
+ * A template says so: it lists what must be passed in `parameterized`.
+ *
+ * @param {object} doc
+ * @returns {boolean}
+ */
+function isTemplate(doc) {
+  return Array.isArray(doc?.parameterized);
 }
 
 /** @param {object} doc @returns {Array<[string, unknown]>} */

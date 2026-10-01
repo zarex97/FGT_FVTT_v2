@@ -36,12 +36,18 @@ function withoutKeys(value) {
 }
 
 /**
- * A template's unfilled slots, removed.
+ * A STANDALONE template's unfilled slots, removed.
  *
  * A Class Skill is shipped once as a template — `rank: "@rank"`, `cooldown:
  * "@cooldown"` — and filled per Servant when a sheet references it, where the
  * embedded copy is checked with real values. The slot itself is not an
  * Authored Key and cannot be held to a rank field.
+ *
+ * Only for the template as a document of its own. An Item embedded in an Actor
+ * has had its slots filled by the `ref` that built it, so a slot still standing
+ * there is one the bearer forgot, and stripping it hid exactly that: Drake's
+ * Riding carried `cooldown: "@cooldown"` and the build said "0 Silent Drop(s)"
+ * (#120). Left in, Foundry refuses it in its own words.
  */
 function withoutTemplateSlots(value) {
   if (Array.isArray(value)) return value.map(withoutTemplateSlots);
@@ -84,7 +90,7 @@ export async function checkCompiled(entries) {
   for (const { path: file, doc: compiled } of entries) {
     const documentName = documentNameOf(compiled);
     if (!documentName) continue;
-    const data = withoutTemplateSlots(withoutKeys(compiled));
+    const data = documentName === "Actor" ? withoutKeys(compiled) : withoutTemplateSlots(withoutKeys(compiled));
     const { items = [], ...own } = data;
     const model = `${documentName}${own.type ? `/${own.type}` : ""}`;
 
@@ -104,6 +110,23 @@ export async function checkCompiled(entries) {
       const where = `items[${JSON.stringify(item.name)}] `;
       if (!kept) {
         problems.push({ file, path: where.trim(), message: `${file}: ${where}was dropped from the Actor entirely` });
+        continue;
+      }
+      // An embedded Item Foundry could not initialize is logged and set aside,
+      // NOT thrown, and its raw data stays in `_source` -- so the comparison
+      // below sees an exact copy and finds nothing. Asked of the collection
+      // itself, and re-run alone for the message (#120).
+      if (doc.items?.invalidDocumentIds?.has(item._id)) {
+        let why = "it failed Foundry's own validation";
+        try {
+          new foundry.documents.BaseItem(structuredClone(item), { strict: true });
+        } catch (err) {
+          why = err.message;
+        }
+        problems.push({
+          file, path: where.trim(),
+          message: `${file}: ${where}Foundry would not construct this Item — ${why}`,
+        });
         continue;
       }
       for (const miss of mismatches(item, kept, "").map((m) => ({ ...m, path: m.path.replace(/^\./, "") }))) {
