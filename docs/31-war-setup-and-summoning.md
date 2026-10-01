@@ -82,7 +82,7 @@ Mid-game, `attemptContract` rolls what the plan asks for. Allied contracts to al
 
 6. **Conquest contracts are atomic.** Freeing and contracting are one descriptor list so no intermediate Free state exists (`module/rules/contract.mjs:188-191`).
 
-7. **The war's Region is a world setting, not a match property.** The summon dialog asks for it; `setWarRegion` writes it so it survives the war and fuels Region-based grants live (`module/engine/summon.mjs:287-295`).
+7. **The war's Region is a world setting, not a match property.** The summon dialog asks for it; `setWarRegion` writes it so it survives the war and fuels Region-based grants live (`module/engine/summon.mjs:287-295`). **The dialog's Region list is `Object.keys(REGION_ADJACENCY)`** (`module/apps/summon-dialog.mjs`), so a Region a Servant is from but the graph does not hold cannot be chosen there: Quetzalcoatl's `centralAmerica` and `southAmerica` and Anastasia's `russia` were missing, and a war giving either her +1 rank could be made only by typing the exact id into the wizard's free-text field (#121). `test/unit/environment-rest.test.mjs` holds every `region` id in `packs/_source/servants` to being a key of the graph.
 
 ## Traps and anti-patterns
 

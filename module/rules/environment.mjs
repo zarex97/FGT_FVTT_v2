@@ -465,7 +465,7 @@ export function grailStrike({ grail, areaPanels, dealt, roll }) {
  */
 export const REGION_ADJACENCY = Object.freeze({
   greece: { adjacent: ["europe", "middleEast", "mesopotamia", "egypt"] },
-  europe: { adjacent: ["greece", "netherlands", "england", "middleEast"] },
+  europe: { adjacent: ["greece", "netherlands", "england", "middleEast", "russia"] },
   netherlands: { adjacent: ["europe", "england"] },
   england: { adjacent: ["europe", "netherlands", "ireland"] },
   ireland: { adjacent: ["england"] },
@@ -480,6 +480,15 @@ export const REGION_ADJACENCY = Object.freeze({
   eastIndia: { adjacent: ["india", "farEast"] },
   farEast: { adjacent: ["india", "eastIndia", "japan"] },
   japan: { adjacent: ["farEast"] },
+  // Quetzalcoatl (`[centralAmerica, southAmerica]`) and Anastasia (`[russia,
+  // europe]`) carry three ids the graph did not hold, and the summon dialog's
+  // Region select is this graph's keys -- so a war that gives either her +1 rank
+  // could be made only by typing the exact camelCase id (#121). Curated like the
+  // rest, and none of the edges touches the Middle East, so Semiramis's counter
+  // is unchanged. Any other border is data the author can edit.
+  centralAmerica: { adjacent: ["southAmerica"] },
+  southAmerica: { adjacent: ["centralAmerica"] },
+  russia: { adjacent: ["europe"] },
   // The Moon borders nothing. Stated rather than omitted, so "no entry" and
   // "no neighbours" stay distinguishable.
   moon: { adjacent: [] },

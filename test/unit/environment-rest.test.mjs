@@ -4,6 +4,8 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { readFileSync, readdirSync } from "node:fs";
+import { parse } from "yaml";
 import {
   regionBonusFor, regionsAdjacent, REGION_ADJACENCY,
   civilianKill, civiliansNeeded, mayAttackCivilian, checkVictory,
@@ -54,6 +56,34 @@ describe("the war's Region", () => {
 
   it("does not call a region adjacent to itself", () => {
     expect(regionsAdjacent("greece", "greece")).toBe(false);
+  });
+
+  it("lists every Region any Servant is from, so a war there can be chosen (#121)", () => {
+    // The summon dialog's Region select is `Object.keys(REGION_ADJACENCY)`, and its
+    // own comment says the graph is authoritative so a war is not fought "in a
+    // region no Servant can match". Quetzalcoatl is `[centralAmerica,
+    // southAmerica]` and Anastasia `[russia, europe]`: three ids the graph did not
+    // hold, so a war that gives either her +1 rank could be made only by typing
+    // the exact camelCase id into the wizard's free-text field.
+    const dir = "packs/_source/servants";
+    const missing = readdirSync(dir).filter((f) => f.endsWith(".yml")).flatMap((f) => {
+      const servant = parse(readFileSync(`${dir}/${f}`, "utf8"));
+      return (servant.region ?? [])
+        .filter((id) => !(id in REGION_ADJACENCY))
+        .map((id) => `${f}: ${id}`);
+    });
+    expect(missing).toEqual([]);
+  });
+
+  it("borders the Americas on each other and Russia on Europe, and Russia nowhere near the Middle East", () => {
+    expect(regionsAdjacent("centralAmerica", "southAmerica")).toBe(true);
+    expect(regionsAdjacent("southAmerica", "centralAmerica")).toBe(true);
+    expect(regionsAdjacent("russia", "europe")).toBe(true);
+    expect(regionsAdjacent("europe", "russia")).toBe(true);
+    // Semiramis's *"directly next to a Middle East region"* counter is unchanged:
+    // none of the new edges touches it.
+    expect(regionsAdjacent("russia", "middleEast")).toBe(false);
+    expect(regionsAdjacent("centralAmerica", "middleEast")).toBe(false);
   });
 
   it("keeps the adjacency graph symmetric", () => {

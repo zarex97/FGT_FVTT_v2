@@ -34,6 +34,10 @@ Individual panels may override the round's phase through terrain: *"Applies the 
 
 A Dark unit takes symmetric modifiers: *"During a Day Round, all damage received by Units with the 'Dark' Attribute is increased by 25% including NP, while all damage dealt ... is reduced by 25%. Vice versa during a Night Round."* The phrase *Including NP* is load-bearing — an `npValue` here would silently halve it, which is the difference between the rule as written and a rule that looks similar (`module/rules/environment.mjs:93-102`).
 
+### The Region graph
+
+`REGION_ADJACENCY` (`module/rules/environment.mjs`) is the curated list of which Regions border which: *"directly next to"* is geography the source does not tabulate. It is **symmetric** (a test enforces it, so Semiramis's Construction counter cannot depend on the order two Regions are compared in), `moon` has an entry with no neighbours so "no entry" and "no neighbours" stay distinguishable, and its keys are the Regions the summon dialog offers (Ch. 31) and the ids a Servant's `region` may name. It now holds `centralAmerica` and `southAmerica` (bordering each other) and `russia` (bordering `europe`); none touches the Middle East, so Semiramis's counter is unchanged. Any other border is data the author can edit (#121).
+
 ### Home Base zones and effects
 
 Home Base panels are placed by war shape. For a Great Holy Grail War, the top 3 rows belong to one faction and the bottom 3 to the other; for a Holy Grail War, the perimeter band is divided into N contiguous blocks, one per faction (`module/rules/home-base.mjs:98-134`). The setup wizard creates Region objects with a `homeBase` behavior pinning each base to a faction (`module/engine/war-setup.mjs`).
