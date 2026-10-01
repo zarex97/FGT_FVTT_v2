@@ -35,6 +35,8 @@ The registry marks three actions `targeted`. **Attack** opens the targeting sess
 
 **Carry Master** is an immediate action, not a targeted one: it flips the Servant's `carriesMaster` (default on), which is the *"can"* in Passenger Seat's *"the Servant's Master can Move together with its Servant"*. The switch is read by the one carry, `passenger-seat.mjs#carryMasterAlong`, for a drag and for a Riding Attack alike (Ch. 5, #115): off, the Master stays where he stood and nothing is logged.
 
+**The Fields row also ends a platform** (#141). A platform is a Unit and never a field, so the row's loop over `board.fields` could not see the two that author `deactivation: { byOwner: true }` — the Quetzalcoatlus and the Golden Hind. The row now adds an `end:<platformId>` slot for each platform the controlled unit owns (`rules/platforms.mjs#deactivatablePlatforms`), greyed with the moment it opens while a lockout runs (*"cannot be ended yet — it opens in 2◈"*) and not hidden. Clicking it asks the GM through the typed `deactivatePlatform` operation, because ending a platform deletes its Level, Token and Actor, which a player may not; the GM re-checks the lockout (Ch. 27 *Deactivating a platform*).
+
 ### The view-model seam
 
 `present.mjs` exists because the bar must render exactly what the rules decide, with no asymmetry between the bar and the sheet. Three pure functions build state without Foundry:

@@ -916,6 +916,55 @@ export function deactivationVerdict(spec, { createdAt, tick, unitId, ownerId, tu
 }
 
 /**
+ * May this Unit switch this platform off now -- {@link deactivationVerdict} on a
+ * platform snapshot.
+ *
+ * The one place a platform's `deactivation` block meets its `activatedAt` and its
+ * owner, so the bar's slot, its tooltip and the GM's re-check cannot read them
+ * differently. **A VOLUNTARY end only**: the lockout holds off an owner who
+ * would switch the mount off, not one that is forced to close -- an unpayable
+ * toll, or an effect on the owner, is not held off by the 2◈ lock (ruled,
+ * 2026-10-01), and those paths call `destroyPlatform` and never ask this.
+ *
+ * @param {object} platform a platform snapshot
+ * @param {string} unitId who would end it
+ * @param {object} ctx
+ * @param {number} ctx.tick now
+ * @param {number} ctx.turnsPerRound
+ * @returns {{ok: boolean, reason?: string, unlocksAt?: number}}
+ */
+export function platformDeactivation(platform, unitId, { tick, turnsPerRound }) {
+  return deactivationVerdict(platform?.deactivation, {
+    createdAt: platform?.activatedAt ?? 0, tick, unitId, ownerId: platform?.ownerId, turnsPerRound,
+  });
+}
+
+/**
+ * The platforms a Unit owns that it may be offered an End control for, each with its verdict.
+ *
+ * > *"This NP can be deactivated during Quetz's Turn or at the start or end of
+ * > any Round or Turn, but cannot be deactivated for 2◈ Turns after it was
+ * > activated."*
+ *
+ * `deactivation` was projected, routed and read by nobody that reached a
+ * player: the bar built its End slots from `board.fields`, and a platform is a
+ * Unit. A locked platform is LISTED with its `locked` verdict and `unlocksAt`,
+ * so the control can say when it opens rather than show nothing. A platform that
+ * authors no `byOwner` deactivation is not listed -- silence means no. `window:
+ * any` is no timing gate: the offer stands whenever the owner's bar does.
+ *
+ * @param {object} unit the owner
+ * @param {object} board
+ * @param {{tick: number, turnsPerRound: number}} ctx
+ * @returns {Array<{platform: object, verdict: {ok: boolean, reason?: string, unlocksAt?: number}}>}
+ */
+export function deactivatablePlatforms(unit, board, ctx) {
+  return platformsOn(board)
+    .filter((p) => p.ownerId === unit?.id && p.deactivation?.byOwner)
+    .map((platform) => ({ platform, verdict: platformDeactivation(platform, unit.id, ctx) }));
+}
+
+/**
  * How much of an area attack reaches this unit through its platform.
  *
  * The Golden Hind soaks half for everyone and **all** of it for Masters;
