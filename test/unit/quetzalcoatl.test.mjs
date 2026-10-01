@@ -551,10 +551,15 @@ describe("the three Quetzalcoatlus Spells", () => {
     }
   });
 
-  it("count as her Attack and cannot be used as a Counter", () => {
+  it("count as her Attack, and say they cannot be used as a Counter", () => {
     for (const s of spells) {
       expect(s.countsAsAttack).toBe(true);
-      // A reaction window is what a Counter needs; `ownTurn` refuses one.
+      // `cannotCounter` is what says it. `timing.window: ownTurn` was read as
+      // saying so and does not: it is documentary, 89 of the 117 window
+      // authorings are `ownTurn`, and the author has ruled that Noble Phantasms
+      // authored `ownTurn` can be Counters (#156). What the Counter path
+      // actually refuses is proved on the real items in `counter-rules.test.mjs`.
+      expect(s.cannotCounter).toBe(true);
       expect(s.timing.window).toBe("ownTurn");
     }
   });

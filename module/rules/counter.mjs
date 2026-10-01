@@ -80,15 +80,55 @@ export function counterOffer(items) {
  * an attack in the sense that you wouldn't walk through the ladder/rung."* A
  * non-damaging NP left the attack path (§46.4-CK); it stays a Counter.
  *
+ * **Unless it says it cannot.** `cannotCounter` is an ability's own statement
+ * -- Quetzalcoatl's three Spells each end *"Cannot be used as a Counter"* --
+ * and wins over every classification below. `timing.window: ownTurn` is not
+ * that statement: it is documentary, 89 of the 117 window authorings are
+ * `ownTurn`, and the author has ruled that Noble Phantasms authored `ownTurn`
+ * can be Counters (the Semiramis audit, quoted above).
+ *
  * @param {object} item
  * @returns {boolean}
  */
 export function answersACounter(item) {
+  if (item?.system?.cannotCounter === true) return false;
   const use = classifyAbility(item);
   if (use.isAttack) return true;
   const sys = item?.system ?? {};
   const isNP = item?.type === "noblePhantasm" || sys.isNP === true;
   return isNP && sys.isPassive !== true && sys.passive !== true && sys.isMode !== true;
+}
+
+/**
+ * Why this ability may not be declared as a Counter right now, or `null`.
+ *
+ * The server's check, and the action bar's dimming is the only other gate:
+ * `runCounter` priced a Counter off `canUseAbility` and never refused on it, and
+ * the `declareCounter` authorizer checks the rung and the owner and nothing
+ * about the ability, so a stale or crafted payload could run, and be paid for,
+ * anything the Servant owns -- an ability on cooldown included (#156).
+ *
+ * Two reasons, in this order. `"notACounter"` is the ability's own category
+ * (`answersACounter`, which covers `cannotCounter`), stable whatever the moment;
+ * otherwise the use gate's own reason for refusing it now (`"cooldown"`, `"round"`,
+ * `"prevented"`, ...).
+ *
+ * The verdict must come from a `canUseAbility` call that carried a
+ * `testPredicate`: a `predicate` requirement refuses without an evaluator on
+ * purpose (§46.4-AX), so a verdict taken without one would refuse every
+ * predicate-gated Counter, `self:onPlatform` and `self:fieldActive` among them.
+ *
+ * A Normal Attack is `item: null` and is not this function's to refuse: the gate
+ * reads an ability-less use as a Skill, which Skill Seal would wrongly prevent.
+ *
+ * @param {object|null} item the ability, or `null` for the Normal Attack
+ * @param {{ok: boolean, reason?: string}|null} verdict `canUseAbility`'s answer
+ * @returns {string|null}
+ */
+export function counterRefusal(item, verdict) {
+  if (item && !answersACounter(item)) return "notACounter";
+  if (item && verdict && verdict.ok === false) return verdict.reason ?? "refused";
+  return null;
 }
 
 /**

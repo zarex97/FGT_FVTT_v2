@@ -136,6 +136,7 @@ export const ABILITY_ROUTES = {
   alsoCountsAsAttackFor: doc("module/engine/budget.mjs", "the joint attack budget"),
   alsoTriggers: doc("module/engine/cooldown.mjs", "cooldowns started alongside"),
   cancelsNP: doc("module/engine/attack.mjs", "resolved against an incoming NP"),
+  cannotCounter: doc("module/rules/counter.mjs", "whether the ability may answer a Counter (#156)"),
   cannotDeactivate: doc("module/rules/modes.mjs", "the mode toggle"),
   concealmentBreakChance: doc("module/rules/concealment.mjs", "rolled when used while concealed"),
   cooldown: doc("module/engine/cooldown.mjs", "the clock is the item's own"),

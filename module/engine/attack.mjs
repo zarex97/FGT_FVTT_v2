@@ -32,7 +32,7 @@ import {
   classifyAbility, targetSpecFor as specForAbility, usageSpecFor, dealsNoDamage,
   effectSpecsOf, windowUseKind, reactionPlacement, hasChannelPhase, interruptedByDeclaration,
 } from "../rules/ability-use.mjs";
-import { counterRedirect, counterMustCatchAttacker } from "../rules/counter.mjs";
+import { counterRedirect, counterMustCatchAttacker, counterRefusal } from "../rules/counter.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { inAttackRangeBetween, chebyshev } from "../domain/geometry.mjs";
@@ -1254,8 +1254,15 @@ export async function advanceAttack({ messageId, event, abilityId = null, placem
     // A refused counter must NOT advance the ladder: the rung stays open and
     // the player may aim again. Advancing anyway is how one mis-aimed area
     // would have silently consumed the whole counter.
-    if (!counter) {
-      ui.notifications?.warn(game.i18n.localize("FGT.Counter.MustIncludeAttacker"));
+    //
+    // Two kinds of refusal, and only one of them is about aim: `null` is a
+    // placement that misses the attacker, and `{refused}` is the ability itself
+    // (`counterRefusal`). The attacker message was reused for both, and is wrong
+    // for the second (#156).
+    if (!counter || counter.refused) {
+      ui.notifications?.warn(counter?.refused
+        ? counterRefusalText(counter)
+        : game.i18n.localize("FGT.Counter.MustIncludeAttacker"));
       return state;
     }
     state = process.advance(state, "counter", { counterMessageId: counter?.messageId ?? null });
@@ -2991,6 +2998,52 @@ function totalModifiersFor(ability, options, self, block = undefined) {
   return out;
 }
 
+/**
+ * The evaluator a `kind: "predicate"` requirement needs (`rules/items.mjs`).
+ *
+ * Without one the requirement refuses by design -- *"a gate nobody can answer is
+ * not an open gate"* -- so every `canUseAbility` call on this path carries one
+ * (`test/unit/can-use-ability-callsites.test.mjs`).
+ *
+ * @param {object} unit the one using the ability
+ * @param {object|null} [target] the Unit it is aimed at, when there is one
+ * @returns {(predicate: object[]) => boolean}
+ */
+function requirementTester(unit, target = null) {
+  return (p) => testPredicate(p, { options: rollOptionsFor({ attacker: unit, defender: target }) });
+}
+
+/**
+ * A refused Counter, in words.
+ * @param {{refused: string, detail?: object|null}} counter
+ * @returns {string}
+ */
+function counterRefusalText(counter) {
+  if (counter.refused === "notACounter") return game.i18n.localize("FGT.Counter.NotACounter");
+  return game.i18n.format("FGT.Counter.Refused", {
+    reason: usageRefusal({ reason: counter.refused, detail: counter.detail ?? {} }),
+  });
+}
+
+/**
+ * Turn a refusal into something a player can act on.
+ * @param {object} usage
+ * @returns {string}
+ */
+function usageRefusal(usage) {
+  const d = usage.detail ?? {};
+  switch (usage.reason) {
+    case "cooldown": return `it is on cooldown for another ${d.remaining} turn(s).`;
+    case "round": return `it cannot be used before Round ${d.requiresRound} (this is Round ${d.round}).`;
+    case "zon": return "the Servant is outside its Master's ZON.";
+    case "masterHealth":
+      // The strict comparison is the surprising half, so it is spelled out.
+      return `its Master needs MORE than ${usage.cost.amount} Health to pay for it.`;
+    case "selfHealth": return `it needs more than ${usage.cost.amount} Health to pay for it.`;
+    case "sustainability": return `it needs more than ${usage.cost.amount}◈ of Sustainability.`;
+    default: return usage.reason ?? "unknown reason.";
+  }
+}
 
 /**
  * Pay a cost.
@@ -3167,10 +3220,37 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
   if (!counterer || !required) return null;
 
   const ability = abilityId ? counterer.items.get(abilityId) : null;
+  // A named ability the Servant does not own is not "no ability": reading it as
+  // one ran a Normal Attack in its place. Refused, with nothing spent (#156).
+  if (abilityId && !ability) return { refused: "notACounter" };
   const board = boardSnapshot();
   const self = unitFrom(board, counterer) ?? unitSnapshot(counterer);
   const options = rollOptionsFor({ attacker: self });
   const attackSpec = buildAttackSpec({ attacker: counterer, ability, abilityId, options });
+
+  // The use gate, ahead of everything that spends. This computed `canUseAbility`
+  // only to PRICE the use and never refused on it, and the `declareCounter`
+  // authorizer checks the rung and the owner and nothing about the ability, so
+  // the action bar's dimming was the only gate: an ability on cooldown, or one
+  // that cannot be a Counter at all, ran and was paid when a stale or crafted
+  // payload named it (#156).
+  //
+  // WITH `testPredicate`: a `predicate` requirement refuses without an evaluator
+  // by design (`rules/items.mjs`, §46.4-AX), so refusing on `!usage.ok` without
+  // one would refuse every predicate-gated Counter.
+  const master = self.masterId ? unitFrom(board, game.actors.get(self.masterId)) : null;
+  const counterTarget = unitFrom(board, required);
+  const usage = canUseAbility({
+    ability: abilityUsageSpec(ability), unit: self, master,
+    round: game.combats.active?.round ?? 1, board, ...gateContext(),
+    target: counterTarget,
+    testPredicate: requirementTester(self, counterTarget),
+    // A Counter is made on the enemy's Turn by definition, so an ability
+    // whose only window is `ownTurn` is not refused for that (#160).
+    isCounter: true,
+  });
+  const refusal = counterRefusal(ability, usage);
+  if (refusal) return { refused: refusal, detail: usage.detail ?? null };
 
   // Who this counter actually caught. A Normal Attack with no placement is the
   // original attacker and nobody else -- the old behaviour, kept as the default
@@ -3196,23 +3276,15 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
   // declared with costs what it always costs; for most of them the cooldown is
   // the only price there is, and skipping it would let a Servant answer every
   // attack with its Noble Phantasm forever.
-  const master = self.masterId ? unitFrom(board, game.actors.get(self.masterId)) : null;
   await payAbilityPrice({
     ability,
     attackerId: counterer.id,
     attacker: counterer,
     self,
     master,
-    // The same shape `resolveAttack` builds. `canUseAbility` decided whether
-    // the slot was offered at all; this is the record of what it costs.
-    usage: canUseAbility({
-      ability: abilityUsageSpec(ability), unit: self, master,
-      round: game.combats.active?.round ?? 1, board, ...gateContext(),
-      // A Counter is made on the enemy's Turn by definition, so an ability
-      // whose only window is `ownTurn` is not refused for that (#160).
-      isCounter: true,
-      target: unitFrom(board, required),
-    }),
+    // The same shape `resolveAttack` builds: the verdict taken above, which is
+    // also the record of what it costs.
+    usage,
     board,
     resume: false,
   });
@@ -6236,6 +6308,7 @@ async function offerNPCancellation({ attackerId, attacker, ability, targetIds, b
         board,
         ...gateContext(),
         target: self,
+        testPredicate: requirementTester(defender, self),
       });
       return usage.ok;
     });
@@ -6292,6 +6365,7 @@ async function resolveNPCancellation({
       ability: abilityUsageSpec(cancelling), unit: canceller, master: cancellerMaster,
       round: game.combats.active?.round ?? 1, board, ...gateContext(),
       target: unitFrom(board, attacker) ?? unitSnapshot(attacker),
+      testPredicate: requirementTester(canceller, unitFrom(board, attacker) ?? unitSnapshot(attacker)),
     }),
     board,
     resume: false,
