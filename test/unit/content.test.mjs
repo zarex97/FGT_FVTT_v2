@@ -435,7 +435,7 @@ describe("activeRules nothing can switch on (Ch. 40)", () => {
   });
 
   it("REFUSES activeRules on an attack", () => {
-    expect(errors(withActive({ isSpell: true }))[0]).toMatch(/activeRules/);
+    expect(errors(withActive({ isSpell: true, phases: [{ kind: "damage" }] }))[0]).toMatch(/activeRules/);
   });
 
   it("says nothing about an ability with no activeRules at all", () => {

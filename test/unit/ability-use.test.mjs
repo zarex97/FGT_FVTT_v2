@@ -12,9 +12,17 @@ import {
 const ability = (system = {}, type = "ability") => ({ type, system });
 
 describe("classifyAbility", () => {
-  it("calls a Noble Phantasm an attack, damaging or not", () => {
-    expect(classifyAbility(ability({}, "noblePhantasm")).kind).toBe("attack");
-    expect(classifyAbility(ability({ isNP: true })).kind).toBe("attack");
+  // Ruled on the Semiramis audit (#68): an ability with no damage opens no
+  // attack card, Noble Phantasms included -- they still cost the Attack and
+  // still answer a Counter, but walk no ladder (§46.4-CK).
+  it("calls a damaging Noble Phantasm an attack", () => {
+    expect(classifyAbility(ability({ phases: [{ kind: "damage" }] }, "noblePhantasm")).kind).toBe("attack");
+    expect(classifyAbility(ability({ isNP: true, damage: { component: "mag" } })).kind).toBe("attack");
+  });
+
+  it("does not call a non-damaging Noble Phantasm an attack", () => {
+    const field = ability({ phases: [{ kind: "createField" }] }, "noblePhantasm");
+    expect(classifyAbility(field)).toMatchObject({ kind: "active", isAttack: false });
   });
 
   it("calls anything with a damage phase an attack — Nine Lives", () => {
@@ -52,9 +60,10 @@ describe("classifyAbility", () => {
     expect(use.clickable).toBe(true);
   });
 
-  it("honours the explicit attack-skill and spell flags", () => {
-    expect(classifyAbility(ability({ isAttackSkill: true })).isAttack).toBe(true);
-    expect(classifyAbility(ability({ isSpell: true })).isAttack).toBe(true);
+  it("honours the explicit attack-skill and spell flags, on what deals damage", () => {
+    expect(classifyAbility(ability({ isAttackSkill: true, damage: { component: "str" } })).isAttack).toBe(true);
+    expect(classifyAbility(ability({ isSpell: true, phases: [{ kind: "damage" }] })).isAttack).toBe(true);
+    expect(classifyAbility(ability({ isSpell: true, phases: [{ kind: "applyEffects" }] })).isAttack).toBe(false);
   });
 
   it("routes a Spell with countsAsAttack: false away from the attack path", () => {
@@ -80,10 +89,13 @@ describe("classifyAbility", () => {
     // An Attack Skill gets the same override.
     expect(classifyAbility(ability({ isAttackSkill: true, countsAsAttack: false })).isAttack).toBe(false);
 
-    // A real Noble Phantasm is NEVER exempted, even with the flag set --
-    // "non-damaging NPs still cost the Attack" is a rule about NPs
-    // specifically, not something content can opt out of.
-    expect(classifyAbility(ability({ isNP: true, countsAsAttack: false })).isAttack).toBe(true);
+    // A real Noble Phantasm is NEVER exempted from costing the Attack, even
+    // with the flag set -- "non-damaging NPs still cost the Attack" is a rule
+    // about NPs specifically. Since §46.4-CK that is the BUDGET's question
+    // (`countsAsAttack`), not the Combat Process's: a non-damaging NP walks no
+    // ladder.
+    expect(classifyAbility(ability({ isNP: true, countsAsAttack: false })).isAttack).toBe(false);
+    expect(countsAsAttack(ability({ isNP: true, countsAsAttack: false }))).toBe(true);
 
     // Nor is an ability with a REAL damage phase, regardless of the flag.
     const contradictory = ability({
@@ -165,11 +177,15 @@ describe("needsTargeting", () => {
   });
 
   it("is true for an ability that targets an enemy", () => {
-    expect(needsTargeting({ system: { isAttackSkill: true } })).toBe(true);
+    expect(needsTargeting({ system: { isAttackSkill: true, phases: [{ kind: "damage" }] } })).toBe(true);
   });
 
   it("is true for a Noble Phantasm", () => {
-    expect(needsTargeting({ type: "noblePhantasm", system: {} })).toBe(true);
+    expect(needsTargeting({ type: "noblePhantasm", system: { phases: [{ kind: "damage" }] } })).toBe(true);
+    // ...and a non-damaging one aimed at somebody else, through its own targeting.
+    expect(needsTargeting({ type: "noblePhantasm", system: {
+      targeting: { anchor: { kind: "withinRange", range: 3 } }, phases: [{ kind: "applyEffects" }],
+    } })).toBe(true);
   });
 
   it("is true for a skill that still picks a DIRECTION", () => {

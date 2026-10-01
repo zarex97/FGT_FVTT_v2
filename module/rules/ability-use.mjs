@@ -249,10 +249,13 @@ export function classifyAbility(item) {
     return { kind: "passive", isAttack: false, clickable: false, toggles: false, action: "" };
   }
 
-  // An attack is anything that resolves damage, plus every Noble Phantasm --
-  // including the non-damaging ones, which still cost the Servant's attack
-  // (a rule about NPs specifically, so `isNP`/`hasDamagePhase` are never
-  // overridden below).
+  // An attack is anything that resolves DAMAGE, and nothing else. Every Noble
+  // Phantasm used to be one, damage or not, so the Hanging Gardens' activation
+  // opened a Combat Process against Semiramis herself and offered her Block,
+  // Evade and Command Spells against her own NP. Ruled on the audit: an ability
+  // with no damage phase opens no attack card, effect-only abilities included
+  // (Ch. 46 §46.4-CK). A non-damaging NP still costs the Servant's Attack --
+  // `countsAsAttack` says so, and `useSkill` bills it as `np`.
   //
   // `countsAsAttack: false` (Ch. 17) is content's own declaration that
   // a Spell or Attack Skill is NOT attack-shaped, and used to only reach
@@ -268,7 +271,13 @@ export function classifyAbility(item) {
   // Bašmu, which needed the SAME override to work for its own summon branch.
   const hasDamagePhase = (sys.phases ?? []).some((p) => p.kind === "damage");
   const declaredAttack = sys.isAttackSkill === true || sys.isSpell === true;
-  if (isNP || hasDamagePhase || (declaredAttack && sys.countsAsAttack !== false)) {
+  // A damage BLOCK deals damage too -- Gáe Bolg Alternative declares one with no
+  // damage phase -- unless it is the `fixedValue: 0` some branches select to say
+  // "no damage here".
+  const dmg = sys.damage;
+  const dealsByBlock = Boolean(dmg) && !(dmg.fixed === true && (dmg.base?.fixedValue ?? dmg.fixedValue ?? 0) === 0);
+  const deals = hasDamagePhase || dealsByBlock;
+  if (deals && (isNP || hasDamagePhase || dealsByBlock || (declaredAttack && sys.countsAsAttack !== false))) {
     return { kind: "attack", isAttack: true, clickable: true, toggles: false, action: "useAbility" };
   }
 
@@ -440,6 +449,12 @@ export function needsTargeting(item) {
  */
 export function countsAsAttack(item) {
   const sys = item?.system ?? {};
+  // A used Noble Phantasm always costs the Attack, damage or not, and content
+  // cannot opt out. `classifyAbility` enforced this while every NP opened a
+  // Combat Process; since §46.4-CK a non-damaging one does not, so the rule
+  // lives here, where the budget reads it.
+  const isNPItem = item?.type === "noblePhantasm" || sys.isNP;
+  if (isNPItem && sys.isPassive !== true) return true;
   if (typeof sys.countsAsAttack === "boolean") return sys.countsAsAttack;
 
   // A PASSIVE Noble Phantasm is never used, so it never costs an Attack.

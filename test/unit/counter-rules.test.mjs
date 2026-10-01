@@ -159,3 +159,26 @@ describe("counterRedirect", () => {
     expect(counterRedirect(master, board([master]))).toBeNull();
   });
 });
+
+// *"NPs (even non-damaging ones) consume the Attack budget, and they can be
+// used as a counter. But yes, they technically aren't an attack in the sense
+// that you wouldn't walk through the ladder/rung."* (§46.4-CK)
+describe("a Noble Phantasm that deals nothing, as a Counter", async () => {
+  const { counterOffer: offer, counterMustCatchAttacker } = await import("../../module/rules/counter.mjs");
+  const { readFileSync } = await import("node:fs");
+  const { parse } = await import("yaml");
+  const hgob = { id: "hg", name: "Hanging Gardens", type: "noblePhantasm",
+    system: parse(readFileSync("packs/_source/abilities/semiramis-hanging-gardens-of-babylon.yml", "utf8")) };
+  const sterrennacht = { id: "st", name: "De Sterrennacht", type: "noblePhantasm",
+    system: parse(readFileSync("packs/_source/abilities/gogh-de-sterrennacht.yml", "utf8")) };
+
+  it("is still offered", () => {
+    expect(offer([hgob, sterrennacht]).map((o) => o.id)).toEqual([null, "hg", "st"]);
+  });
+
+  it("need not catch the attacker when it touches only its user", () => {
+    expect(counterMustCatchAttacker(hgob)).toBe(false);
+    expect(counterMustCatchAttacker(sterrennacht)).toBe(true);
+    expect(counterMustCatchAttacker(null)).toBe(true);
+  });
+});

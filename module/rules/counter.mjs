@@ -60,7 +60,7 @@ export function counterOffer(items) {
     id: null, name: "FGT.Chat.NormalAttack", img: null, isNP: false, isNormalAttack: true,
   };
   const abilities = (items ?? [])
-    .filter((item) => classifyAbility(item).isAttack)
+    .filter(answersACounter)
     .map((item) => ({
       id: item.id,
       name: item.name,
@@ -69,6 +69,41 @@ export function counterOffer(items) {
       isNormalAttack: false,
     }));
   return [normal, ...abilities];
+}
+
+/**
+ * May this ability be declared as a Counter?
+ *
+ * Every Attack, and every Noble Phantasm that is used -- damaging or not. Ruled
+ * on the Semiramis audit: *"NPs (even non-damaging ones) consume the Attack
+ * budget, and they can be used as a counter. But yes, they technically aren't
+ * an attack in the sense that you wouldn't walk through the ladder/rung."* A
+ * non-damaging NP left the attack path (§46.4-CK); it stays a Counter.
+ *
+ * @param {object} item
+ * @returns {boolean}
+ */
+export function answersACounter(item) {
+  const use = classifyAbility(item);
+  if (use.isAttack) return true;
+  const sys = item?.system ?? {};
+  const isNP = item?.type === "noblePhantasm" || sys.isNP === true;
+  return isNP && sys.isPassive !== true && sys.passive !== true && sys.isMode !== true;
+}
+
+/**
+ * Must this Counter catch the Unit that attacked?
+ *
+ * Yes for anything aimed at others. A Noble Phantasm that touches only its own
+ * user -- the Hanging Gardens' activation -- has nobody else to catch.
+ *
+ * @param {object|null} item null for a Normal Attack
+ * @returns {boolean}
+ */
+export function counterMustCatchAttacker(item) {
+  if (!item || classifyAbility(item).isAttack) return true;
+  const relations = item.system?.targeting?.selection?.relations ?? [];
+  return !(relations.length > 0 && relations.every((r) => r === "self"));
 }
 
 /**

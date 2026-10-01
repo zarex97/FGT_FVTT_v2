@@ -32,7 +32,7 @@ import {
   classifyAbility, targetSpecFor as specForAbility, usageSpecFor, dealsNoDamage,
   effectSpecsOf, windowUseKind, reactionPlacement, hasChannelPhase, interruptedByDeclaration,
 } from "../rules/ability-use.mjs";
-import { counterRedirect } from "../rules/counter.mjs";
+import { counterRedirect, counterMustCatchAttacker } from "../rules/counter.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { inAttackRangeBetween, chebyshev } from "../domain/geometry.mjs";
@@ -49,7 +49,7 @@ import { absorb, refreshShield, landBarrier } from "./shield.mjs";
 import { attackIdentity, recordedAttack } from "../rules/revival.mjs";
 import { expressionRefs, stacksHeld } from "../rules/snapshot.mjs";
 import { removalPlan, pendingRemovalRolls } from "../rules/removal.mjs";
-import { isStrongestNP, isDamagingNP, EXPECTED_ATTACK_ROLL } from "../rules/np-strength.mjs";
+import { isStrongestNP, isDamagingNP, harmlessToSelf, EXPECTED_ATTACK_ROLL } from "../rules/np-strength.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import * as process from "./combat-process.mjs";
 import * as I from "./intents.mjs";
@@ -1070,7 +1070,10 @@ async function declareProcesses({
     //
     // `nothing` rather than a bespoke event: no reaction WAS taken, which is
     // precisely what that rung's "Do nothing" means.
-    if (!process.pendingPrompt(advanced)) {
+    // ...and a Unit that is only the subject of its own ability, which does it
+    // no harm, has nothing to react to (§46.4-CK).
+    const ownSubject = advanced.defenderId && advanced.defenderId === advanced.attackerId && harmlessToSelf(ability);
+    if (!process.pendingPrompt(advanced) || ownSubject) {
       await advanceAttack({ messageId: message.id, event: "nothing" });
     }
 
@@ -3228,9 +3231,11 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
 
   // Who this counter actually caught. A Normal Attack with no placement is the
   // original attacker and nobody else -- the old behaviour, kept as the default
-  // so a counter declared without a choice still works.
-  let targets = { units: [{ unitId: requiredId }] };
-  if (ability && placement) {
+  // so a counter declared without a choice still works. A Noble Phantasm that
+  // touches only its user catches its user (§46.4-CK).
+  const mustCatch = counterMustCatchAttacker(ability);
+  let targets = { units: [{ unitId: mustCatch ? requiredId : counterer.id }] };
+  if (ability && placement && mustCatch) {
     const spec = targetSpecForAttack(counterer, ability, options);
     targets = resolveTargets(
       { ...spec, limits: { ...(spec.limits ?? {}), requireUnitId: requiredId, excludeUnitIds } },
@@ -3241,7 +3246,7 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
   // The server saying what the targeting session already said under the cursor.
   // The client is not the authority: a payload that got past the authorizer
   // with a placement that misses is refused here, and the rung stays open.
-  if (!(targets.units ?? []).some((u) => u.unitId === requiredId)) return null;
+  if (mustCatch && !(targets.units ?? []).some((u) => u.unitId === requiredId)) return null;
 
   // The ability's OWN price -- its use record, its costs, its cooldown -- and
   // none of the budget. A Counter costs no turn, but the Noble Phantasm it is
@@ -3273,6 +3278,15 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
   // `attacked`: the record is stamped with THIS Turn's tick, so it is stale by
   // the counterer's own Turn and costs it nothing there.
   await applyBatch([I.markTurn(counterer.id, { acted: true })], "counter:declared");
+
+  // A Noble Phantasm that deals no damage is a Counter with no ladder: *"they
+  // technically aren't an attack in the sense that you wouldn't walk through
+  // the ladder/rung"* (§46.4-CK). Its phases run against what it caught.
+  if (ability && !classifyAbility(ability).isAttack) {
+    const { resolveWithoutProcess } = await import("./skill-use.mjs");
+    await resolveWithoutProcess({ ability, actor: counterer, targets: targets.units ?? [], board });
+    return { groupId: state.groupId, processes: [], messageId: null, state: null };
+  }
 
   return declareProcesses({
     attackerId: counterer.id,

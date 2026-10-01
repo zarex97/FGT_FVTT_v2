@@ -16,6 +16,7 @@ import { rowsFor, slotFor, portraitBlock } from "./present.mjs";
 import { ticksLabel } from "../actor-sheet/present.mjs";
 import { availableActions } from "../../rules/actions.mjs";
 import { classifyAbility } from "../../rules/ability-use.mjs";
+import { answersACounter, counterMustCatchAttacker } from "../../rules/counter.mjs";
 import { canUseAbility } from "../../rules/costs.mjs";
 import { test as testPredicate } from "../../rules/predicate.mjs";
 import { rollOptionsFor } from "../../rules/options.mjs";
@@ -245,7 +246,8 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
           verdict,
           cost: abilityCost(item.system?.cost, null, snapshot),
           turnsPerRound,
-          counter: this.counter ? { isAttack: use.isAttack } : null,
+          // A Noble Phantasm of any kind answers a Counter too (§46.4-CK).
+          counter: this.counter ? { isAttack: answersACounter(item) } : null,
         });
         return {
           ...slot,
@@ -338,7 +340,8 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this.counter) {
       const isNormal = armedRow === "actions" && armedId === "attack";
       const item = isNormal ? null : actor.items.get(armedId);
-      if (!isNormal && !(item && classifyAbility(item).isAttack)) {
+      // An Attack, or a Noble Phantasm of any kind (§46.4-CK).
+      if (!isNormal && !(item && answersACounter(item))) {
         ui.notifications.warn(game.i18n.localize("FGT.Counter.NotAnAttack"));
         return;
       }
@@ -420,7 +423,9 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const { pickPlacementFor } = await import("../actor-sheet/sheet.mjs");
     const placement = await pickPlacementFor(actor, item, {
-      requireUnitId: armed.requiredTargetId,
+      // Not for a Noble Phantasm that touches only its user, which has nobody
+      // else to catch (§46.4-CK).
+      requireUnitId: counterMustCatchAttacker(item) ? armed.requiredTargetId : null,
       // Ch. 21: the shielded Master is dropped even from an area that covers it.
       excludeUnitIds: armed.excludeUnitIds ?? [],
     });
