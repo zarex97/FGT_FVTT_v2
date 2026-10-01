@@ -119,6 +119,8 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
       // The abilities whose attack eases a boarding on the same Turn -- the
       // Hanging Gardens' Dragon Wing Warriors (#68).
       boardingReliefAfter: new fields.ArrayField(new fields.StringField({ blank: false })),
+      // *"The HGoB is destroyed when Semiramis is defeated"* (§46.4-CH).
+      destroyedWithOwner: new fields.BooleanField({ initial: false }),
       // NULLABLE, because a pocket dimension has no ground presence at all.
       // Ch. 27 says so of the Storm Border outright -- *"it is not on the
       // board at all while it is submerged"* -- and a non-nullable SchemaField

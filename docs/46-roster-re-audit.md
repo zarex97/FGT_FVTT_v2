@@ -2513,6 +2513,16 @@ standing on the ground below the garden's edge, would have caught his Master fal
 him. *"A Master who is directly next to its Servant"* means beside it on the same level; the search now
 requires it, as `mayBringMaster` does (§46.4-CB).
 
+### CH. Nothing destroyed the garden: not its Health, not her defeat — **fixed 2026-09-30**
+
+**Reached: HG.destroy.** *"The HGoB is destroyed when Semiramis is defeated or its Health drops to 0."*
+`destroyPlatform` had three callers: an effect on the owner (`deactivateOn`), an unpaid upkeep, and a
+field's closing. A platform taken to 0 Health ran the ordinary defeat chain and stayed in the air; a
+defeated Semiramis left her garden flying. Neither mattered while nothing could attack a platform
+(§46.4-BS). The applier's `defeat` case now asks `io.destroyPlatformsOf`: a defeated platform is
+destroyed, and so is one authoring `destroyedWithOwner` when its owner is -- declared on `PlatformData`,
+projected, routed in the survival test, and authored on the Hanging Gardens.
+
 ---
 
 ---

@@ -540,6 +540,9 @@ async function writeGroup(group, io) {
       break;
     case "defeat":
       await io.defeat(unitId, intents[0].cause, intents[0].killerId ?? null);
+      // A defeated platform falls, and one that goes with its owner goes with
+      // it (Ch. 46 §46.4-CH).
+      if (io.destroyPlatformsOf) await io.destroyPlatformsOf(unitId);
       break;
     // A summon whose stay ran out. Distinct from `defeat`: no revival chain, no
     // `unitDefeated`, no kill. It DOES write the summon's stats home and start

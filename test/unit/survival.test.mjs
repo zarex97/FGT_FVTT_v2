@@ -48,6 +48,7 @@ export const UNIT_ROUTES = {
   baseHealth: same("baseHealth"),
   boarding: same("boarding"),
   boardingReliefAfter: same("boardingReliefAfter"),
+  destroyedWithOwner: same("destroyedWithOwner"),
   cannotHoldItems: same("cannotHoldItems"),
   capacity: same("capacity"),
   classContainer: same("classContainer"),

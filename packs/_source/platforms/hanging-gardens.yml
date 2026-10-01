@@ -74,6 +74,10 @@ knockOff: { damage: "10x2d6", component: str }
 # "If a Unit attempts to board the HGoB on the same Turn it was Attacked by
 # Dragon Wing Warriors, the required roll is reduced by 2." (#68)
 boardingReliefAfter: [semiramis-hgob-dragon-wing-warriors]
+# "The HGoB is destroyed when Semiramis is defeated or its Health drops to 0."
+# The Health half is every platform's (rules/platforms.mjs#platformsDestroyedBy);
+# this is the owner half, which only this sheet states. (#68)
+destroyedWithOwner: true
 crossLevel:
   occupantTargeting: forbidden
   requiresBoarding: true
