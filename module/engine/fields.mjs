@@ -37,6 +37,7 @@ import { test as testPredicate } from "../rules/predicate.mjs";
 import * as I from "./intents.mjs";
 import { distributePool } from "../rules/fields/pool.mjs";
 import { clearTerrain, clearTerrainBoundTo } from "./terrain.mjs";
+import { chooseFor } from "./ask.mjs";
 
 /**
  * A field's shape, grown or shrunk by the war Region it is cast in.
@@ -178,8 +179,9 @@ export async function createField(ability, actor, board = null, { targetId = nul
 async function agreesToField(ability, actor, targetId) {
   const target = targetId ? game.actors.get(targetId) : null;
   if (!target) return false;
-  const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
-  const picked = await ChoiceDialog.pick({
+  // The CHALLENGED Unit's player is asked, wherever the cast is running: the
+  // consent is theirs to give, not the caster's or the GM's (#130).
+  const picked = await chooseFor(target, {
     title: game.i18n.format("FGT.Duel.Title", { challenger: actor.name, name: target.name }),
     hint: game.i18n.localize("FGT.Duel.Hint"),
     count: 1,

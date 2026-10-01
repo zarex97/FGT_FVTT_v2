@@ -213,7 +213,11 @@ async function onMove(document, movement, operation) {
     // Level, so her daylight comes ABOARD with her, and a Burn tied to the
     // ground she left is no longer hers. Boarding is a level change and no step
     // at all, which is why this cannot wait for the step below (#151).
-    if (document.actor && canvas?.grid) {
+    //
+    // From the ONE active GM, like the two below: `moveToken` fires on every
+    // connected client, a player's client is refused the Region writes, and two
+    // GM-role clients would race to delete and re-create the same area (#130).
+    if (document.actor && canvas?.grid && game.users.activeGM?.isSelf) {
       const here = canvas.grid.getOffset({ x: document.x, y: document.y });
       const landed = { i: here.i, j: here.j, k: levelOfToken(document) };
       await dropLeftTerrainEffects(document.actor, landed, currentBoard());
@@ -241,8 +245,9 @@ async function onMove(document, movement, operation) {
   // cannot be removed"*: `annotateTerrain` stops reading a terrain-tied effect
   // once its bearer is off that ground, and this takes the document away. The
   // destination comes off the movement payload for the reason `fieldsAt`
-  // documents (#147).
-  if (document.actor && movement?.destination && canvas?.grid) {
+  // documents (#147). The active GM's, for the reason the repaint below is
+  // (#130): it deletes documents, and `moveToken` fires on every client.
+  if (document.actor && movement?.destination && canvas?.grid && game.users.activeGM?.isSelf) {
     const to = canvas.grid.getOffset(movement.destination);
     await dropLeftTerrainEffects(document.actor, { i: to.i, j: to.j, k: levelOfToken(document) }, currentBoard());
   }
@@ -254,7 +259,13 @@ async function onMove(document, movement, operation) {
   //
   // `movement.destination` is a canvas POINT, not a panel -- the same trap
   // `platformDelta` below documents.
-  if (document.actor) {
+  //
+  // The active GM alone repaints. `onMove` is on `moveToken` for EVERY client,
+  // and `repaintFollowing` deletes and re-creates a Region: a player's client is
+  // refused (Foundry allows only a GM to create a Region with a Behaviour), and
+  // two GM-role clients race. `Terrain.attach` gates its own delete hook the
+  // same way (#130).
+  if (document.actor && game.users.activeGM?.isSelf) {
     const landed = movement?.destination ? canvas.grid.getOffset(movement.destination) : null;
     await repaintFollowing(
       document.actor.id, landed ? { i: landed.i, j: landed.j, k: levelOfToken(document) } : null,

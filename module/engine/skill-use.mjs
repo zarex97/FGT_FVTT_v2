@@ -55,6 +55,7 @@ import { expressionRefs, stacksHeld } from "../rules/snapshot.mjs";
 import { removalPlan, pendingRemovalRolls } from "../rules/removal.mjs";
 import { resolveValue } from "../rules/elements.mjs";
 import { createField, regionSizedTargeting } from "./fields.mjs";
+import { chooseFor } from "./ask.mjs";
 import { paintTerrain } from "./terrain.mjs";
 import { activatePlatform } from "./platforms.mjs";
 import { summonAnchor, masterSeat } from "../rules/platforms.mjs";
@@ -805,7 +806,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // Only once per use, not once per target: the phase conjures from the
           // CASTER, and looping it over a target list would multiply the squad.
           if (target.unitId !== actor.id) break;
-          const out = await summonPhase(phase, actor, { choose: chooseSummonType });
+          const out = await summonPhase(phase, actor, { choose: (spec) => chooseSummonType(actor, spec) });
           summoned = out.count;
           applied.push({ summary: { id: "summon", name: `${out.count} summoned`, outcome: "applied", reason: null } });
           break;
@@ -917,7 +918,7 @@ async function runRollTable(phase, ability, actor, target, board) {
     // the chosen row then applies exactly as if it had been rolled. ONE per
     // die: both dice landing on 8 asks twice, which is where the plural comes
     // from.
-    const rows = entry.choose ? await chooseRows(table, ability, roll) : [entry];
+    const rows = entry.choose ? await chooseRows(actor, table, ability, roll) : [entry];
 
     for (const row of rows) {
       out.push(...await applyPhaseEffects({ effects: effectsOf(row) }, ability, actor, target));
@@ -941,16 +942,17 @@ async function runRollTable(phase, ability, actor, target, board) {
  * rest. Two 8s ask twice and may pick the same row both times, which applies it
  * twice -- exactly what two of any other number would do.
  *
+ * @param {object} actor whose decision it is
  * @param {object} table
  * @param {object} ability
  * @param {number} roll the die that landed on the wildcard, for the prompt
  * @returns {Promise<object[]>}
  */
-async function chooseRows(table, ability, roll) {
+async function chooseRows(actor, table, ability, roll) {
   const options = choicesIn(table);
-  const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
 
-  const picked = await ChoiceDialog.pick({
+  // Asked of the caster's player, wherever the Skill is running (#130).
+  const picked = await chooseFor(actor, {
     title: ability.name,
     hint: game.i18n.format("FGT.RollTable.ChooseHint", { roll }),
     count: 1,
@@ -1651,11 +1653,9 @@ async function runChoice(phase, ability, actor, snapshot, board = null) {
   const options = phase.options ?? [];
   if (options.length === 0) return [];
 
-  // Imported dynamically, like the other two dialogs this file opens: the
-  // engine is layer 3 and the dialog is layer 4, so a static import would be a
-  // layer inversion the checker rejects.
-  const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
-  const picked = await ChoiceDialog.pick({
+  // Asked of the caster's player, wherever the Skill is running: a Skill runs on
+  // the GM, and its player's decision is on that player's screen (#130).
+  const picked = await chooseFor(actor, {
     title: ability.name,
     hint: phase.prompt ? game.i18n.localize(phase.prompt) : "",
     count: phase.count ?? 1,
@@ -1712,7 +1712,6 @@ async function runChoice(phase, ability, actor, snapshot, board = null) {
  * @returns {Promise<object[]>}
  */
 async function chosenCooldowns(phase, ability, doc) {
-  const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
   const spec = phase.choose ?? {};
   const options = spec.options ?? [];
   if (options.length === 0) return [];
@@ -1724,7 +1723,7 @@ async function chosenCooldowns(phase, ability, doc) {
   // only decision is WHICH, which is the prompt below.
   const shape = options.length === 1
     ? options[0].id
-    : (await ChoiceDialog.pick({
+    : (await chooseFor(doc, {
       title: ability.name,
       hint: game.i18n.localize("FGT.Skill.ChooseCooldownShape"),
       count: 1,
@@ -1747,7 +1746,7 @@ async function chosenCooldowns(phase, ability, doc) {
     i.system?.category === spec.category && (i.system?.cooldown?.remaining ?? 0) > 0);
   if (candidates.length === 0) return [];
 
-  const chosen = await ChoiceDialog.pick({
+  const chosen = await chooseFor(doc, {
     title: ability.name,
     hint: game.i18n.format("FGT.Skill.ChooseCooldownTargets", { turns }),
     // Fewer candidates than the shape asks for is not a refusal: reduce what
@@ -1878,12 +1877,12 @@ function usedThisTurn(actor) {
  * Dragon Tooth Warriors rolls 1d4 per Warrior and entry 4 is *"your choice of
  * Blade, Bow or Daggers"* -- a prompt rather than a fourth statblock.
  *
+ * @param {object} actor the summoner, whose player is asked
  * @param {object} spec
  * @returns {Promise<string|null>}
  */
-async function chooseSummonType(spec) {
-  const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
-  const picked = await ChoiceDialog.pick({
+async function chooseSummonType(actor, spec) {
+  const picked = await chooseFor(actor, {
     title: game.i18n.localize("FGT.Summon.ChooseType"),
     hint: game.i18n.localize("FGT.Summon.ChooseTypeHint"),
     count: 1,

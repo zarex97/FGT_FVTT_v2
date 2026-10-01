@@ -43,3 +43,21 @@ export async function askOwner(actor, spec) {
     return null;
   }
 }
+
+/**
+ * Ask the player who owns this actor to pick from a list.
+ *
+ * The `choose` prompt (`apps/prompt.mjs`), routed to the owner like every other
+ * question -- so a Skill that runs on the GM (`OPERATIONS.useSkill`) puts its
+ * player's decision on that player's screen rather than on the GM's: the
+ * roll-table wildcard, a `choose` phase, the shape and targets of a cooldown
+ * reduction, a summon's type, a duel's consent (#130).
+ *
+ * @param {object} actor whose decision it is
+ * @param {{title: string, hint?: string, count: number, min?: number, options: object[]}} spec
+ *   what `ChoiceDialog.pick` takes; it crosses a socket, so plain data only
+ * @returns {Promise<string[]|null>} the ids picked, or `null` for a decline
+ */
+export async function chooseFor(actor, spec) {
+  return askOwner(actor, { kind: "choose", ...spec });
+}

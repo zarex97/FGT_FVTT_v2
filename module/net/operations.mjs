@@ -160,6 +160,79 @@ export const OPERATIONS = Object.freeze({
     },
   },
 
+  /**
+   * Use a non-attacking Skill, or a Noble Phantasm that deals no damage.
+   *
+   * Run on the GM, like an attack. On a player's client it could not write what
+   * most of these write: a `zone` phase's Region and Behaviour, a field's
+   * Region, the Actor, Token and Level a platform or a summon creates, or a buff
+   * on a Unit another player owns (`authorizeIntents`). So the Skill's player
+   * asks, and the GM -- who can write all of it -- resolves it (Ch. 38, Model B;
+   * #130, #144). `canUseAbility` stays inside `useSkill`, so the GM re-checks
+   * every gate; the placement the player picked travels in the payload.
+   *
+   * Authorized by the actor, not by the Skill: its owner, and only an ability
+   * the actor holds. What the use may do to OTHER players' Units is the GM's
+   * resolution to decide, as an attack's is, and is not loosened here.
+   */
+  useSkill: {
+    authorize: (payload, userId) => {
+      const user = game.users.get(userId);
+      const actor = game.actors.get(payload.actorId);
+      if (!user || !actor) return { allowed: false, reason: "Unknown actor." };
+      if (user.isGM) return { allowed: true, reason: null };
+      if (!actor.testUserPermission(user, "OWNER")) {
+        return { allowed: false, reason: `${user.name} does not control ${actor.name}.` };
+      }
+      if (!actor.items?.get(payload.abilityId)) {
+        return { allowed: false, reason: `${actor.name} holds no such ability.` };
+      }
+      return { allowed: true, reason: null };
+    },
+    execute: async (payload) => {
+      const { useSkill } = await import("../engine/skill-use.mjs");
+      // Only what a player may choose. The flag that exempts a use from its
+      // category's per-Turn cap rides a use the ENGINE decides is free of one, and
+      // is never a thing to claim in a payload.
+      return useSkill({
+        actorId: payload.actorId, abilityId: payload.abilityId, placement: payload.placement ?? {},
+      });
+    },
+  },
+
+  /**
+   * End a bounded field its owner may end (the action bar's End control).
+   *
+   * Ending a field deletes its Region, its stone and its summons and starts the
+   * owning ability's cooldown: all GM writes, so a player asks and the GM does
+   * it. Authorized by the actor, as `useSkill` is; the GM then checks that the
+   * field is that actor's and that its `deactivation` block lets the owner end
+   * it NOW (`mayDeactivate`: `byOwner`, the lockout and the window), so a player
+   * cannot end somebody else's field or one still inside its lockout (#130).
+   */
+  deactivateField: {
+    authorize: (payload, userId) => {
+      const user = game.users.get(userId);
+      const actor = game.actors.get(payload.actorId);
+      if (!user || !actor) return { allowed: false, reason: "Unknown actor." };
+      if (user.isGM) return { allowed: true, reason: null };
+      if (!actor.testUserPermission(user, "OWNER")) {
+        return { allowed: false, reason: `${user.name} does not control ${actor.name}.` };
+      }
+      return { allowed: true, reason: null };
+    },
+    execute: async (payload) => {
+      const [{ currentBoard }, { deactivateField, mayDeactivate }] = await Promise.all([
+        import("../engine/board.mjs"),
+        import("../engine/fields.mjs"),
+      ]);
+      const field = (currentBoard().fields ?? []).find((f) => f.id === payload.fieldId);
+      if (!field || field.ownerId !== payload.actorId) return { ok: false, reason: "notYourField" };
+      if (!mayDeactivate(field, payload.actorId)) return { ok: false, reason: "mayNotDeactivate" };
+      return { ok: await deactivateField(payload.fieldId, "owner") };
+    },
+  },
+
   /** Advance a Combat Process that is waiting on a human. */
   advanceProcess: {
     authorize: (payload, userId) => {
