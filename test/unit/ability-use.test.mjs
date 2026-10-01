@@ -114,7 +114,24 @@ describe("classifyAbility", () => {
 describe("targetSpecFor", () => {
   it("uses the ability's own declaration when it has one", () => {
     const declared = { anchor: { kind: "selfEdgeAdjacent" }, shape: { kind: "orientedRect" } };
-    expect(targetSpecFor(ability({ targeting: declared }), 3)).toBe(declared);
+    // A copy that SAYS whether it is an Attack, and otherwise the declaration
+    // as it was written (#133): a declared Skill with no attack phase is not one.
+    const spec = targetSpecFor(ability({ targeting: declared }), 3);
+    expect(spec).toEqual({ ...declared, limits: { forAttack: false } });
+    expect(declared.limits).toBeUndefined();
+  });
+
+  it("says a declared Attack is one, and a bare Normal Attack too", () => {
+    const declared = { anchor: { kind: "targetUnit", range: 3 }, shape: { kind: "unit" } };
+    expect(targetSpecFor(ability({ targeting: declared, phases: [{ kind: "damage" }] }), 3).limits.forAttack).toBe(true);
+    expect(targetSpecFor(null, 4).limits.forAttack).toBe(true);
+  });
+
+  it("leaves a forAttack the declaration states alone, and keeps its other limits", () => {
+    const declared = { anchor: { kind: "self" }, shape: { kind: "unit" }, limits: { forAttack: true, requiresZon: true } };
+    expect(targetSpecFor(ability({ targeting: declared }), 3).limits).toEqual({ forAttack: true, requiresZon: true });
+    const bare = { anchor: { kind: "self" }, shape: { kind: "unit" }, limits: { requiresZon: true } };
+    expect(targetSpecFor(ability({ targeting: bare }), 3).limits).toEqual({ requiresZon: true, forAttack: false });
   });
 
   it("gives a normal attack a single enemy at the caster's Range", () => {
@@ -161,7 +178,7 @@ describe("targetSpecFor", () => {
     // No options supplied at all: falls through to the raw `targeting` block
     // rather than throwing -- a caller with no board context still gets
     // something back, even if it is not branch-selected.
-    expect(targetSpecFor(basmuSpell, 2)).toBe(basmuSpell.system.targeting);
+    expect(targetSpecFor(basmuSpell, 2)).toMatchObject(basmuSpell.system.targeting);
   });
 });
 

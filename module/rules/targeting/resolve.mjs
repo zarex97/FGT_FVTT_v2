@@ -316,12 +316,21 @@ export function resolveTargets(spec, caster, board, placement = {}) {
 
   // 7. VISIBILITY — concealment blocks *targeting*, but an AoE still catches
   //    the unit; it just gets the coin flip instead (Presence Concealment 1).
+  //
+  //    What it blocks is *"an Attack or an enemy Unit's Skill"*, and no more: an
+  //    ALLY'S Skill is neither, and §46.4-AK already lets the Unit's own side see
+  //    it, so they know it is there. `limits.forAttack` says which kind of use
+  //    this is (`rules/ability-use.mjs#targetSpecFor`); a spec that does not say
+  //    is an Attack, so a caller that never learned of the flag is unchanged.
   const chooser = sel.chooser ?? "all";
   const isChosen = chooser === "chosen" || (sel.count !== undefined && sel.count !== "unlimited");
   if (sel.excludeConcealed !== false && isChosen) {
     const before = survivors.length;
+    const forAttack = limits.forAttack !== false;
     survivors = survivors.filter(
-      (u) => !u.concealed || u.id === caster.id || drop(u, "concealed — it cannot be targeted directly"),
+      (u) => !u.concealed || u.id === caster.id
+        || (!forAttack && relationOf(caster, u, board) === "ally")
+        || drop(u, "concealed — it cannot be targeted directly"),
     );
     if (survivors.length < before) warnings.push("Concealed units cannot be targeted directly.");
   }
