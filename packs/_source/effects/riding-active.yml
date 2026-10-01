@@ -18,11 +18,19 @@
 # `unremovable`, for the same reason the MOV Up is not a buff: the sheet says
 # the Active's grant "cannot be removed by buff removal effects, or prevented
 # by an effect that prevents buffs from being applied."
+#
+# `polarity: status` is the other half of the same sentence. It was `buff`, and
+# `engine/effect-applier.mjs#findImmunity` gates every buff on No Buff and on a
+# buff-scoped immunity, so under either the Active applied nothing and the Unit
+# lost the MOV Up and the Riding Attack, Passenger Seat and Double Move it
+# unlocks (#119). The gate asks about buffs only, so a status passes.
+# Appendix A §A.16 already lists "Riding's Active MOV Up" among the statuses
+# "never blocked by No Buff".
 schema: 1
 id: ridingActive
 name: "Riding (Active)"
 description: "Riding Attack and Passenger Seat may be used this Turn."
-polarity: buff
+polarity: status
 volatility: nonVolatile
 valence: neither
 stacking: noneRefresh

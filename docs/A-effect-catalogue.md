@@ -428,7 +428,7 @@ Never removable by `Cure` or `Dispel`; never counted by "remove N buffs"; never 
 |---|---|---|
 | Active `Presence Concealment` | Class skill | Seven clauses — untargetable, unblockable/uncounterable attacks, free movement past Master protection, +100%/+50% damage, deactivation on attacking, Discover rolls, no enemy-targeting Active Skills. |
 | Active `Mad Enhancement` | Class skill | Six clauses — Master drain, damage reduction, damage increase (halved for MAG), MOV/Range/ZON bonuses, Sustainability penalty, forced Evade−. |
-| Riding's Active MOV Up | Class skill | MOV +X for the turn. Explicitly not a buff; unremovable; unpreventable by `No Buff`. |
+| Riding's Active MOV Up | Class skill | MOV +X for the turn. Explicitly not a buff; unremovable; unpreventable by `No Buff`. Authored `polarity: status` on the `ridingActive` effect that Medusa's, Drake's and Pollux's Active applies, which is what makes the last clause true (#119). |
 | `Queen's Poison` | Semiramis's item | Volatile-debuff inflict +30% / resist −15%; BA(STR) Normal Attacks inflict Poison with a flat 50% extra-stage chance; then self-removes. |
 | `Dove` | Semiramis's familiar | Permanent position-reveal mark. |
 | `Fragarach` | Mannanán's NP | Replaces the normal counter with an automatic 2.5× NP-damage counter triggered by attacks **or debuffs**. |
