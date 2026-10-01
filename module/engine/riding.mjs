@@ -17,6 +17,7 @@
 
 import { ridingAttackPath, remainingMovement } from "../rules/movement.mjs";
 import { attackPreflight } from "./attack-preflight.mjs";
+import { carryMasterAlong } from "./passenger-seat.mjs";
 import { displaceToken } from "./io.mjs";
 import { hasGranted, GRANTS } from "../rules/granted.mjs";
 import { currentBoard } from "./board.mjs";
@@ -96,6 +97,14 @@ export async function performRidingAttack({ unitId, destination, abilityId = nul
   // placing the Unit rather than the Unit walking -- and it must be submitted
   // as a displacement or Foundry constrains it away without a word (`io.mjs`).
   await displaceToken(token, { x: destination.j * size, y: destination.i * size });
+
+  // *"Can be combined with Passenger Seat."* The Master rides along by the same
+  // delta, as he does on a drag. The carry is `moveToken`'s on a voluntary move,
+  // and that hook returns for a forced one -- which a ride is -- so nothing
+  // carried him (#115). The document has caught up by the time `displaceToken`
+  // returns (`animate: false`), so the landing is judged against the board as it
+  // now is.
+  await carryMasterAlong({ servantId: unitId, from: unit.panel, to: destination });
 
   // The MOVEMENT half of the bookkeeping, now. NOT `attacked` -- the attack
   // has not happened yet, and stamping it here makes `resolveAttack` refuse
