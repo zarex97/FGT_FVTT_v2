@@ -76,7 +76,10 @@ passiveRules:
 # ─── Abilities ─────────────────────────────────────────────────────────
 abilities:
   - { ref: class-magic-resistance, rank: D }
-  - { ref: class-riding-drake, rank: B }
+  # `cooldown` is a slot of the template (`cooldown: "@cooldown"`) and was passed
+  # by nobody, so her compiled Riding held the literal and Foundry refused it
+  # (#120). B bands to 2◈ (`ridingCooldown`), which Pollux passes too.
+  - { ref: class-riding-drake, rank: B, cooldown: "2◈" }
   - { ref: drake-voyager-of-the-storm }
   - { ref: drake-beyond-the-uncharted }
   - { ref: drake-pioneer-of-the-stars }

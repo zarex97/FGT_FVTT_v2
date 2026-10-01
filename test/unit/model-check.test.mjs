@@ -55,6 +55,33 @@ describe("the model check", () => {
     expect(problems.map((p) => p.message).join("\n")).toMatch(/probe-servant.*items.*Probe Skill.*system\.notARealKey/);
   });
 
+  describe("a template slot nobody filled (#120)", () => {
+    // Drake's Riding carried `cooldown: "@cooldown"` because her sheet passed no
+    // `cooldown` beside the ref. `withoutTemplateSlots` stripped every whole-string
+    // `@name` from every document before constructing it, the Items embedded in an
+    // Actor included, so the slot that should have been filled never reached
+    // Foundry's own refusal (`is not a valid duration`) and `validate:content`
+    // printed "0 Silent Drop(s)". In a world her Riding had no cooldown.
+    const template = ability({ id: "class-slotted", parameterized: ["rank"], rank: "@rank", cooldown: "@cooldown" });
+    const library = new Map([[template.id, template]]);
+
+    it("fails an embedded Ability whose slot the bearer left empty", async () => {
+      const problems = await check(servant({ abilities: [{ ref: template.id, rank: "B" }] }), "servants", library);
+      // Foundry's own words, which run over several lines, naming the field.
+      expect(problems.map((p) => p.message).join("\n"))
+        .toMatch(/probe-servant[\s\S]*Foundry would not construct this Item[\s\S]*is not a valid duration[\s\S]*@cooldown/);
+    });
+
+    it("passes once the bearer fills it", async () => {
+      const filled = servant({ abilities: [{ ref: template.id, rank: "B", cooldown: "2◈" }] });
+      expect(await check(filled, "servants", library)).toEqual([]);
+    });
+
+    it("still passes the template on its own, whose slots are not yet anyone's", async () => {
+      expect(await check(template, "abilities")).toEqual([]);
+    });
+  });
+
   it("fails a value the model would change rather than keep", async () => {
     const problems = await check(servant({ mov: -3 }), "servants");
     expect(problems.map((p) => p.message).join("\n")).toMatch(/system\.mov/);

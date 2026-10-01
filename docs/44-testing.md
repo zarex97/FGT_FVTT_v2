@@ -18,7 +18,7 @@ The boundary enforced in chapter 02 — that `domain/` and `rules/` import nothi
 | `test/golden/*.test.mjs` | 2 golden test files (damage, Akhilleus Kosmos authoring), pinning documentation worked examples |
 | `test/fixtures/` | Small fixture files used to seed test data |
 | `tools/lib/foundry.mjs` | Loads Foundry's **real** `common/` data layer from `FOUNDRY_PATH` (default `../foundryVTT_copy`) and registers this system's DataModels; fails the run when the copy is missing or is not the build `system.json` is verified on (ADR-0006) |
-| `tools/lib/model-check.mjs` | The build's model check: every compiled document through the real DataModel (Ch. 40) |
+| `tools/lib/model-check.mjs` | The build's model check: every compiled document through the real DataModel, including the Items embedded in an Actor and the slots a bearer left unfilled (Ch. 40) |
 | `test/unit/schema-validity.test.mjs` | Every field's default passes its own validation; a write lands only on the type that declares it |
 | `test/unit/client-traps.test.mjs` | The `fgt/client-traps` lint rule, held to each client-side trap (Ch. 08) |
 | `test/unit/field-ledger.test.mjs` | Every declared field has a reader and a writer, and nothing reads an undeclared `system` path |

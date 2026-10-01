@@ -135,6 +135,13 @@ describe("the drag gate after an Attack", () => {
     expect(await gate({ from: "pollux", effects: [{ defId: "ridingActive" }] })).toBeNull();
   });
 
+  it("refuses Drake while her Riding Active is not in force, and allows her on its Turn", async () => {
+    // Built through the real projection since her Riding carries its cooldown (#120);
+    // before that her Item was refused at construction.
+    expect(await refusal({ from: "drake" })).toMatch(/cannot Move again/);
+    expect(await gate({ from: "drake", effects: [{ defId: "ridingActive" }] })).toBeNull();
+  });
+
   it("refuses Pale Rider, whose Riding grants none of the three", async () => {
     expect(await refusal({ from: "pale-rider" })).toMatch(/cannot Move again/);
   });

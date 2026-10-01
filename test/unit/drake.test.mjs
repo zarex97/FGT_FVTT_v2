@@ -119,6 +119,13 @@ describe("Drake — Riding B (spec R2)", () => {
   it("reads its cooldown off the table the sheet agrees with", () => {
     expect(lookup("ridingCooldown", Rank.parse("B"))).toBe("2◈");
   });
+
+  it("passes that cooldown beside the ref, which the template needs filled (#120)", () => {
+    // `riding-drake.yml` carries `cooldown: "@cooldown"` and `drake.yml` passed
+    // none, so her compiled Riding held the literal and Foundry refused it.
+    const entry = src("servants", "drake.yml").abilities.find((a) => a.ref === "class-riding-drake");
+    expect(entry.cooldown).toBe(lookup("ridingCooldown", Rank.parse("B")));
+  });
 });
 
 describe("Drake — Galleon Tokens", () => {
