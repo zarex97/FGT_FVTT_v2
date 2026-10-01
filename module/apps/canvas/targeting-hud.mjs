@@ -13,6 +13,7 @@
  */
 
 import { formatRange } from "../../rules/preview.mjs";
+import { unitsShown } from "../../rules/targeting/resolve.mjs";
 
 export class TargetingHUD {
   /** @type {HTMLElement|null} */
@@ -75,7 +76,7 @@ export class TargetingHUD {
       return;
     }
 
-    const targets = option.resolved?.units ?? [];
+    const targets = unitsShown(option.resolved);
     const rows = targets.map((t) => this.#row(t)).join("");
 
     // Everything the area caught and then dropped, with the reason it was

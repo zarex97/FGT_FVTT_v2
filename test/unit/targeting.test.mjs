@@ -4,8 +4,11 @@ import { parse } from "yaml";
 import {
   TARGET_SHAPES, TARGET_ANCHORS, SHAPE_IDS, ANCHOR_IDS,
 } from "../../module/rules/targeting/vocabulary.mjs";
-import { resolveTargets, legalPlacements, validate } from "../../module/rules/targeting/resolve.mjs";
+import {
+  resolveTargets, legalPlacements, validate, pendingChoiceErrors,
+} from "../../module/rules/targeting/resolve.mjs";
 import { expand, orthogonalAdjacentRect } from "../../module/rules/targeting/shapes.mjs";
+import { choicePreselection, choiceIsComplete } from "../../module/apps/canvas/target-review.mjs";
 import { squareBounds, key } from "../../module/domain/geometry.mjs";
 import { targetSpecFor } from "../../module/rules/ability-use.mjs";
 import { rollOptionsFor } from "../../module/rules/options.mjs";
@@ -518,6 +521,145 @@ describe("chooser: chosen — Gate of Skye's subset selection", () => {
     const board = boardWith([caster, unit("foe1", 4, 6), unit("foe2", 3, 6)]);
     const r = resolveTargets(limited, caster, board, { direction: "n", chosenIds: ["foe1", "foe2"] });
     expect(r.errors[0]).toMatch(/at most 1 target/);
+  });
+});
+
+// Found by the Quetzalcoatl paper trace (#65), then #129. The resolver answers a
+// `chooser: chosen` selection with `units: []` and `needsChoice: true` until
+// the placement carries `chosenIds`, and the session built that list from
+// `resolved.units` -- always empty for this chooser, and an empty array is
+// truthy, so the resolver read it as "the player chose nobody" and refused.
+// 23 abilities author the chooser; 21 name their unit with the anchor, so for
+// them there is one candidate and nothing to choose.
+describe("chooser: chosen — a choice among one is no choice (#129)", () => {
+  const targetingOf = (id) => parse(readFileSync(`packs/_source/abilities/${id}.yml`, "utf8")).targeting;
+  const quetz = { id: "quetz", panel: at(6, 6), kind: "servant", faction: "a", range: 2 };
+  const foe = unit("foe", 6, 8);
+
+  it("Brahmastra (`targetUnit`, unit shape) settles on its one candidate", () => {
+    const spec = targetingOf("karna-brahmastra");
+    const board = boardWith([caster, foe]);
+    const { resolved, ok } = validate(spec, caster, board, { unitId: "foe", panel: at(6, 8) });
+    expect(ok).toBe(true);
+    expect(resolved.needsChoice).toBe(false);
+    expect(resolved.units.map((u) => u.unitId)).toEqual(["foe"]);
+  });
+
+  it("Xiuhcoatl (`withinRange`, unit shape) settles on its one candidate", () => {
+    const spec = targetingOf("quetz-xiuhcoatl");
+    const board = boardWith([quetz, foe]);
+    const { resolved } = validate(spec, quetz, board, { panel: at(6, 8) });
+    expect(resolved.needsChoice).toBe(false);
+    expect(resolved.units.map((u) => u.unitId)).toEqual(["foe"]);
+  });
+
+  it("hands back ids the resolver accepts, which is what the session sends", () => {
+    const spec = targetingOf("karna-brahmastra");
+    const board = boardWith([caster, foe]);
+    const placement = { unitId: "foe", panel: at(6, 8) };
+    const settled = validate(spec, caster, board, placement).resolved;
+    const sent = resolveTargets(spec, caster, board, {
+      ...placement, chosenIds: settled.units.map((u) => u.unitId),
+    });
+    expect(sent.errors).toEqual([]);
+    expect(sent.units.map((u) => u.unitId)).toEqual(["foe"]);
+  });
+
+  it("settles with the limits applied, not around them", () => {
+    // A second resolution under the single candidate's id: a Counter that must
+    // catch the attacker still refuses when the one candidate is not it.
+    const spec = { ...targetingOf("karna-brahmastra"), limits: { requireUnitId: "someone-else" } };
+    const board = boardWith([caster, foe]);
+    const { ok, reasons } = validate(spec, caster, board, { unitId: "foe", panel: at(6, 8) });
+    expect(ok).toBe(false);
+    expect(reasons.join(" ")).toMatch(/must include/);
+  });
+
+  it("leaves the resolver's own contract alone: no choice made is still a choice owed", () => {
+    const spec = targetingOf("karna-brahmastra");
+    const board = boardWith([caster, foe]);
+    const raw = resolveTargets(spec, caster, board, { unitId: "foe", panel: at(6, 8) });
+    expect(raw.needsChoice).toBe(true);
+    expect(raw.units).toEqual([]);
+    expect(raw.candidates.map((c) => c.unitId)).toEqual(["foe"]);
+  });
+
+  describe("Good God's Wisdom, where there is something to choose", () => {
+    const spec = targetingOf("quetz-good-gods-wisdom");
+    const ally = unit("ally", 6, 7, { faction: "a" });
+    const board = boardWith([quetz, ally]);
+
+    it("still asks when two Units could be chosen", () => {
+      const { resolved, ok } = validate(spec, quetz, board, {});
+      expect(ok).toBe(true);
+      expect(resolved.needsChoice).toBe(true);
+      expect(resolved.candidates.map((c) => c.unitId).sort()).toEqual(["ally", "quetz"]);
+    });
+
+    it("resolves to the one she picked", () => {
+      const r = resolveTargets(spec, quetz, board, { chosenIds: ["ally"] });
+      expect(r.errors).toEqual([]);
+      expect(r.units.map((u) => u.unitId)).toEqual(["ally"]);
+    });
+
+    it("refuses nobody, and refuses two", () => {
+      expect(resolveTargets(spec, quetz, board, { chosenIds: [] }).errors.length).toBeGreaterThan(0);
+      expect(resolveTargets(spec, quetz, board, { chosenIds: ["ally", "quetz"] }).errors[0])
+        .toMatch(/at most 1 target/);
+    });
+
+    it("settles on herself when she is alone in the square", () => {
+      const { resolved } = validate(spec, quetz, boardWith([quetz]), {});
+      expect(resolved.needsChoice).toBe(false);
+      expect(resolved.units.map((u) => u.unitId)).toEqual(["quetz"]);
+    });
+  });
+
+  it("a choice that survives to the engine is refused, not run", () => {
+    // `resolveAttack` returned `{needsChoice}` and did nothing, silently, and
+    // `resolveSkillTargets` returned `units: []` and `errors: []` -- a Skill
+    // from a macro ran its phases against nobody and still paid its cost.
+    const spec = targetingOf("quetz-good-gods-wisdom");
+    const board = boardWith([quetz, unit("ally", 6, 7, { faction: "a" })]);
+    const raw = resolveTargets(spec, quetz, board, {});
+    expect(raw.needsChoice).toBe(true);
+    expect(pendingChoiceErrors(raw)).toEqual(["Choose a target."]);
+    expect(pendingChoiceErrors({ needsChoice: false })).toEqual([]);
+  });
+
+  it("both engine entry points read the refusal, and the sheet's fallback sends a choice", () => {
+    expect(readFileSync("module/engine/attack.mjs", "utf8")).toMatch(/pendingChoiceErrors\(targets\)/);
+    expect(readFileSync("module/engine/skill-use.mjs", "utf8")).toMatch(/pendingChoiceErrors\(resolved\)/);
+    const sheet = readFileSync("module/apps/actor-sheet/sheet.mjs", "utf8");
+    const body = sheet.slice(sheet.indexOf("function legacyPlacement"));
+    expect(body.slice(0, body.indexOf("\n}"))).toMatch(/chosenIds:\s*\[/);
+  });
+});
+
+describe("the review dialog asks for a choice (#129)", () => {
+  const two = [{ unitId: "a" }, { unitId: "b" }];
+
+  it("ticks nothing when there is a real choice to make", () => {
+    expect(choicePreselection(two, 1)).toEqual([]);
+  });
+
+  it("ticks everything when the ability takes every candidate anyway", () => {
+    expect(choicePreselection(two, 2)).toEqual(["a", "b"]);
+    expect(choicePreselection(two, Infinity)).toEqual(["a", "b"]);
+  });
+
+  it("keeps Use disabled until between one and the count are ticked", () => {
+    expect(choiceIsComplete(0, 1)).toBe(false);
+    expect(choiceIsComplete(1, 1)).toBe(true);
+    expect(choiceIsComplete(2, 1)).toBe(false);
+    expect(choiceIsComplete(5, Infinity)).toBe(true);
+  });
+
+  it("the session asks for an owed choice whatever the review setting says", () => {
+    const layer = readFileSync("module/apps/canvas/targeting-layer.mjs", "utf8");
+    const from = layer.indexOf("async #confirm");
+    const confirm = layer.slice(from, layer.indexOf("async #run", from));
+    expect(confirm).toMatch(/!resolved\.needsChoice && !game\.settings\.get\("fgt", "targetingReview"\)/);
   });
 });
 

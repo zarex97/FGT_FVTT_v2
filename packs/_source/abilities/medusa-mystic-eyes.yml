@@ -41,8 +41,9 @@ targeting:
   # `chooser: all` over a `unit` shape, which is how the corpus spells a
   # single-target ability (Heracles's Nine Lives is the same three lines). The
   # anchor has already picked the one unit; `chooser: chosen` would ask for a
-  # SECOND pick out of that set of one and hand back an empty target list until
-  # it arrived.
+  # SECOND pick out of that set of one. Since #129 it would not any more -- a
+  # choice among one settles itself in `validate()` and only two or more
+  # candidates ask -- so both spellings work; this one needs no settling.
   selection: { relations: [enemy], chooser: all, count: 1 }
   limits:
     requiresFacing: true
