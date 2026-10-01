@@ -18,6 +18,7 @@
 
 import * as geo from "../../domain/geometry.mjs";
 import { zonStatus, masterOf } from "../../rules/zon.mjs";
+import { attackSourceOf } from "../../rules/platforms.mjs";
 import { unitSnapshot, currentBoard } from "../../engine/board.mjs";
 
 /** In ZON. */
@@ -286,7 +287,15 @@ export class OverlayLayer extends foundry.canvas.layers.CanvasLayer {
     const unit = board.units.find((u) => u.id === token.actor?.id);
     if (!unit?.panel) return;
     if (unit.kind !== "servant" && unit.kind !== "summon") return;
-    this.#panels(geo.attackRangePanels(unit.panel, unit.range ?? 1, board.bounds), THREAT, 0.05);
+    // From where its Normal Attack swings: the mount's whole footprint for a
+    // rider whose mount replaces it (#171), once per panel in the union so a
+    // panel two discs cover is not tinted twice.
+    const swing = attackSourceOf(unit, board);
+    const reach = new Map();
+    for (const origin of swing.panels) {
+      for (const p of geo.attackRangePanels(origin, swing.range ?? 1, board.bounds)) reach.set(geo.key(p), p);
+    }
+    this.#panels([...reach.values()], THREAT, 0.05);
   }
 
   /* ── Master protection ──────────────────────────────────────────────────── */

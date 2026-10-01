@@ -66,6 +66,8 @@ function withoutKeys(value) {
  * @property {object[]} [effects] effect instances the Unit carries, as their
  *   `system` data (`{defId, ...}`), created as real ActiveEffects
  * @property {{i: number, j: number}} [panel] where it stands
+ * @property {Array<{i: number, j: number, k?: number}>} [footprint] every grid space it stands on, as a
+ *   sized token reports them -- the Unit's `panel` is the first and its `panels` the lot. Instead of `panel`.
  */
 
 /**
@@ -123,7 +125,13 @@ export async function withSubjects(specs, fn, {
       })));
     }
     const units = specs.map((spec, n) => snapshotUnit(world.actor(actors[n].id), {
-      panel: spec.panel ?? null, round, tick,
+      // A footprint is what a SIZED token reports, so it goes in as that: the
+      // real `gridFootprint` reads it, and `panel`/`panels` come out of the
+      // real projection rather than being written onto the snapshot.
+      ...(spec.footprint
+        ? { token: { getOccupiedGridSpaceOffsets: () => spec.footprint } }
+        : { panel: spec.panel ?? null }),
+      round, tick,
     }));
     const board = snapshotBoard({
       scene: null,

@@ -632,7 +632,18 @@ function resolveAnchor(spec, caster, board, placement, errors) {
   // Range is measured from the WHOLE unit, not from the anchor panel a
   // multi-panel footprint is stored under -- see
   // `domain/geometry.mjs#chebyshevFromAny` for the case that found it.
-  const casterPanels = caster.panels?.length ? caster.panels : [casterPanel];
+  //
+  // ...unless the swing is not hers. A bare Normal Attack by a rider whose mount
+  // replaces it names the mount in `anchor.originUnitId` (`engine/attack.mjs#
+  // targetSpecFor`, from `rules/platforms.mjs#attackSourceOf`), and Range is
+  // then measured from the mount's whole footprint: the Range was already the
+  // mount's, and the panel it was measured from was still her one (#171). Only
+  // that spec carries it, so what she casts herself measures from her own.
+  const origin = spec.originUnitId
+    ? (board.units ?? []).find((u) => u.id === spec.originUnitId)
+    : null;
+  const from = origin ?? caster;
+  const casterPanels = from.panels?.length ? from.panels : [from.panel ?? casterPanel];
   const base = { casterPanel };
 
   switch (spec.kind) {
