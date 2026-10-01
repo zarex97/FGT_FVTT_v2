@@ -52,15 +52,13 @@ const OBJECT_KINDS = new Set(["platform", "structure"]);
  *
  * @param {object} unit the mover's snapshot
  * @param {object} board the board snapshot
- * @param {object} [opts]
- * @param {boolean} [opts.hasRiding] legacy override; the `doubleMove` grant is preferred
  * @returns {MovementPlan}
  */
-export function planMovement(unit, board, { hasRiding = undefined } = {}) {
-  // The grant is the source of truth. The `hasRiding` override is kept for
-  // callers that already computed it, but a unit that carries the capability
-  // needs no help from its caller to be believed.
-  const canDoubleMove = hasGranted(unit, GRANTS.doubleMove) || hasRiding === true;
+export function planMovement(unit, board) {
+  // The grant is the one question to ask ("can this unit move twice?"), and a
+  // unit that carries the capability needs no help from its caller to be
+  // believed.
+  const canDoubleMove = hasGranted(unit, GRANTS.doubleMove);
 
   // A rider whose mount replaces her Move plans from THE MOUNT: its MOV, its
   // panel, and its own obstacle rules -- *"the Quetzalcoatlus ignores obstacles
@@ -242,11 +240,9 @@ export function effectiveMov(unit) {
  * @param {GridOffset[]} path panels after the origin, in order
  * @param {object} unit
  * @param {object} board
- * @param {object} [opts]
- * @param {boolean} [opts.hasRiding]
  * @returns {{ok: boolean, reasons: string[], cost: number}}
  */
-export function validatePath(path, unit, board, { hasRiding = false } = {}) {
+export function validatePath(path, unit, board) {
   const reasons = [];
   const steps = path ?? [];
   let previous = unit.panel;
@@ -275,7 +271,7 @@ export function validatePath(path, unit, board, { hasRiding = false } = {}) {
     reasons.push(`This path is ${cost} panels; ${budget} remain of MOV ${effectiveMov(unit)}.`);
   }
 
-  const segmentProblem = segmentCheck(unit, hasRiding);
+  const segmentProblem = segmentCheck(unit);
   if (segmentProblem) reasons.push(segmentProblem);
 
   return { ok: reasons.length === 0, reasons, cost };
@@ -284,11 +280,16 @@ export function validatePath(path, unit, board, { hasRiding = false } = {}) {
 /**
  * Whether this unit may begin another movement segment at all.
  *
+ * Asks the `doubleMove` grant, and nothing else. This used to be decided by
+ * whether the Unit held an item NAMED Riding, so a Servant whose Riding does
+ * not grant Double Move all the time moved after an Attack every Turn: Pollux
+ * and Drake, whose sheets unlock it only on the Turn of the Active, and Pale
+ * Rider, whose Riding grants none of it (#117).
+ *
  * @param {object} unit
- * @param {boolean} hasRiding
  * @returns {string|null} the refusal, or `null` when it may move
  */
-export function segmentCheck(unit, hasRiding = unit?.hasRiding ?? false) {
+export function segmentCheck(unit) {
   const state = unit?.turnState ?? {};
   if (state.usedRidingAttack) return "Riding Attack ends this Unit's Turn; it cannot Move again.";
 
@@ -304,10 +305,10 @@ export function segmentCheck(unit, hasRiding = unit?.hasRiding ?? false) {
   }
 
   // Attacking is what fixes a Unit in place: *"once you Attack you hold that
-  // position"*. Riding is the exception, and its two segments — before the
+  // position"*. Double Move is the exception, and its two segments — before the
   // Attack and after it — share the one MOV allowance already checked above.
   if (!state.attacked) return null;
-  if (!hasRiding) return "This Unit has Attacked; it cannot Move again this Turn.";
+  if (!hasGranted(unit, GRANTS.doubleMove)) return "This Unit has Attacked; it cannot Move again this Turn.";
   return null;
 }
 

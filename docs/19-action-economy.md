@@ -8,7 +8,7 @@ Three rules compose the budget and are easy to conflate:
 
 1. **The faction budget** — four independent pools (`module/rules/budget.mjs:26-31`). The maxima are fixed: `servantMove` = 4, `masterMove` = 3, `servantAttack` = 2, `masterAttack` = Infinity.
 
-2. **The per-unit limit** — a unit may move once and attack once (`module/rules/budget.mjs:17-18`), whatever the pools allow. A unit that has attacked may move only in specific cases: Riding gives a second segment, and a grant named `doubleMove` overrides the block.
+2. **The per-unit limit** — a unit may move once and attack once (`module/rules/budget.mjs:17-18`), whatever the pools allow. A unit that has attacked may move only if it holds the `doubleMove` grant, which overrides the block. The grant is the only question asked: Riding authors it (permanently for the six `class-riding` bearers, Medusa, Achilles and the Normal Rider; only on the Turn of the Active, `self:effect:ridingActive`, for Pollux and Drake; not at all for Pale Rider), and so can anything else that grants it (#117).
 
 3. **The unit-counting rule** — the budget counts *units*, not actions (`module/rules/budget.mjs:19-22`). A Servant that moves and then uses an Active Skill has consumed **one** move slot, not two. Attacks are the sole exception: they draw from `servantAttack` in addition to the unit being counted.
 
@@ -37,9 +37,9 @@ An action routes to its pool by action kind and unit type (`module/rules/budget.
 
 ### Per-unit limits
 
-Each unit's Turn Record carries `moved`, `attacked`, and `usedRidingAttack` flags (`module/rules/budget.mjs:244-265`). A unit that has attacked cannot move again, except under Riding's grant or `doubleMove` (`module/rules/budget.mjs:258-259`). Riding Attack is terminal: once used, the unit's turn ends (`module/rules/budget.mjs:263-265`).
+Each unit's Turn Record carries `moved`, `attacked`, and `usedRidingAttack` flags (`module/rules/budget.mjs:244-265`). A unit that has attacked cannot move again, except under the `doubleMove` grant (`module/rules/budget.mjs`; `segmentCheck` in `module/rules/movement.mjs` asks the same grant at the drag gate). Riding Attack is terminal: once used, the unit's turn ends (`module/rules/budget.mjs:263-265`).
 
-The record carried a fourth flag, `mayMoveAgain`, from the day Riding was written. Three sites wrote it — the movement hook recomputed it after every move, the Riding Attack path cleared it, the turn boundary blanked it — and **nothing ever read it**. Riding's second segment is decided by `GRANTS.doubleMove` and `hasRiding` in `module/rules/movement.mjs:63,94` and by the gate at `module/rules/budget.mjs:258`, none of which consult the flag. It has been deleted. **A per-Turn flag with writers and no readers is indistinguishable from a working feature**, which is the same shape as a reader with no writer ([Ch. 44](44-testing.md)) seen from the other end, and neither the schema nor the projection can tell you which you have.
+The record carried a fourth flag, `mayMoveAgain`, from the day Riding was written. Three sites wrote it — the movement hook recomputed it after every move, the Riding Attack path cleared it, the turn boundary blanked it — and **nothing ever read it**. Riding's second segment is decided by `GRANTS.doubleMove` in `module/rules/movement.mjs` and by the gate in `module/rules/budget.mjs`, none of which consult the flag. (A `hasRiding` projection, an item-name match, used to be a second question at the drag gate and the budget; it disagreed with the grant for Pollux, Drake and Pale Rider and is gone, #117.) It has been deleted. **A per-Turn flag with writers and no readers is indistinguishable from a working feature**, which is the same shape as a reader with no writer ([Ch. 44](44-testing.md)) seen from the other end, and neither the schema nor the projection can tell you which you have.
 
 Movement is measured separately: `segmentCheck` compares the unit's remaining movement allowance against remaining MOV (`module/apps/hud/turn-panel.mjs:68`).
 

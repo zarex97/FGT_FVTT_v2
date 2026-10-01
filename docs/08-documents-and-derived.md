@@ -115,7 +115,9 @@ After stat deltas, `contributions.grantedAbilities` holds ids like `"doubleMove"
 `"ignoresOccupancy"`. These are the **names of capabilities**, not data. The engine reads them at
 decision points — *"can this unit move twice?"* is `hasGranted(unit, "doubleMove")`
 (`module/rules/granted.mjs:93-95`). The grant is the input; the capability lives in the code that
-asks about it (`module/rules/granted.mjs:1-18`).
+asks about it (`module/rules/granted.mjs:1-18`). The drag gate (`segmentCheck`), the budget
+(`canConsume`) and `planMovement` all ask this one question; a name match on an item called Riding
+used to be a second, disagreeing answer for Pollux, Drake and Pale Rider and has been deleted (#117).
 
 ## Invariants & edge cases
 
