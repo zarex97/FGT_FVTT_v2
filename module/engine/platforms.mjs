@@ -10,11 +10,11 @@ import {
   canFallFrom, nearestFreePlatformPanel, rescuerFor,
   jumpVerdict, jumpLandings, attackedByReliefApplies, boardingLanding, fallFormula, destructionSaves, scatterPanels,
 } from "../rules/platforms.mjs";
-import { TURN_RECORD } from "../domain/stamped-record.mjs";
+import { ROUND_RECORD } from "../domain/stamped-record.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { resolveOverpower } from "../rules/relationships.mjs";
 import { remainingMovement } from "../rules/movement.mjs";
-import { currentBoard, currentTick } from "./board.mjs";
+import { currentBoard, currentRound } from "./board.mjs";
 import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import { createLevel, moveToLevel, teardown, dropToGround } from "./scene-levels.mjs";
@@ -75,7 +75,7 @@ export async function boardPlatform({ unitId, platformId, hitByDragonWingWarrior
   // action bar's Board button says nothing, and so the relief never applied
   // (#68).
   const relieved = hitByDragonWingWarriors
-    ?? attackedByReliefApplies(TURN_RECORD.at(unit.turnState, currentTick()).attackedBy, platform);
+    ?? attackedByReliefApplies(ROUND_RECORD.at(unit.roundState, currentRound()).attackedBy, platform);
   const { die, target } = boardingTarget(unit, { hitByDragonWingWarriors: relieved, platform });
   const roll = (await new Roll(`1d${die}`).evaluate()).total;
   const ok = roll >= target;

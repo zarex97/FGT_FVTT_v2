@@ -376,6 +376,13 @@ export function combatantCommon() {
       // this SchemaField -- a new Round needs no explicit reset write, unlike
       // `homeBase.consecutiveRounds` above, which has to survive one.
       combatInBaseThisRound: new fields.BooleanField({ initial: false }),
+      // Which abilities ATTACKED this Unit this Round, by content id. The
+      // Hanging Gardens: *"on the same Turn it was Attacked by Dragon Wing
+      // Warriors, the required roll is reduced by 2"* -- ruled by the user as
+      // the same ROUND, since the attack and the boarding fall on two
+      // factions' Turns and a Turn record could never be read in time (#68,
+      // Ch. 46 §46.4-CO).
+      attackedBy: new fields.ArrayField(new fields.StringField({ blank: false })),
     }),
   };
 }
@@ -490,11 +497,6 @@ export function turnStateField() {
     // Which abilities went this Turn, for `sameTurnExclusive` (Medea's
     // Keraino and Trofa). Stale-by-tick like everything else here.
     abilitiesUsed: new fields.ArrayField(new fields.StringField({ blank: false })),
-    // Which abilities ATTACKED this Unit this Turn, by content id. The
-    // Hanging Gardens: *"on the same Turn it was Attacked by Dragon Wing
-    // Warriors, the required roll is reduced by 2"* -- a question about the
-    // defender's Turn that nothing recorded (#68).
-    attackedBy: new fields.ArrayField(new fields.StringField({ blank: false })),
     // *"Once per Turn during its own Turn it may attempt a Luck Check."*
     // Nursery Rhyme's Nameless Forest, and the reason this is a COUNT rather
     // than a flag is only symmetry with `itemTransfers` -- one is the limit.

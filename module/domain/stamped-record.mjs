@@ -143,7 +143,6 @@ export const TURN_RECORD = stampedRecord({
     itemTransfers: 0,
     abilitiesUsed: [],
     namelessForestAttempts: 0,
-    attackedBy: [],
   },
 });
 
@@ -153,5 +152,8 @@ export const ROUND_RECORD = stampedRecord({
   fields: {
     abilitiesUsed: [],
     combatInBaseThisRound: false,
+    // Which abilities ATTACKED this Unit this Round, by content id -- the
+    // Hanging Gardens' boarding relief, ruled per Round (§46.4-CO).
+    attackedBy: [],
   },
 });
