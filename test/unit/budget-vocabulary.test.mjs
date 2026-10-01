@@ -79,7 +79,10 @@ describe("the raw kind is not an action", () => {
 });
 
 describe("both engine callers speak the vocabulary", () => {
-  for (const file of ["module/engine/attack.mjs", "module/engine/skill-use.mjs"]) {
+  // The attack path's translation sits in `attack-preflight.mjs` since #114: it is
+  // where `resolveAttack` and a Riding Attack ask the budget, and it was
+  // `attack.mjs`'s own copy before.
+  for (const file of ["module/engine/attack-preflight.mjs", "module/engine/skill-use.mjs"]) {
     it(`${file} translates before it bills`, () => {
       const src = readFileSync(file, "utf8");
       expect(src, `${file} must use the shared translator`).toMatch(/budgetActionFor\s*\(/);

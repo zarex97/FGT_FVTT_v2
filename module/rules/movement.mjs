@@ -18,6 +18,7 @@ import { contains, membershipVerdict } from "./bounded-fields.mjs";
 import { guardsOf, relationOf } from "./relations.mjs";
 import { actionSourceFor, withinFootprint } from "./platforms.mjs";
 import { partnersOf } from "./linked-group.mjs";
+import { resolveTargets } from "./targeting/resolve.mjs";
 
 /** Effects that let a unit ignore occupancy and Master protection. */
 const IGNORES_BLOCKING = Object.freeze(["presenceConcealment", "hugeScale"]);
@@ -126,15 +127,66 @@ export function remainingMovement(unit) {
  * point — a Riding Attack down a diagonal and a Mystic Eye down one should
  * agree about what a line is.
  *
+ * **One ride, judged by the rules a drag and an attack already have** (#114).
+ * The line is held to what `validatePath` holds a walk to -- the board's edge,
+ * `canPassThrough` (an enemy Master's zone, a field's exit), `canStopOn` at the
+ * destination, and the pursuit and Decoy verdicts -- with the ONE exemption that
+ * is the point of the clause: an enemy standing in the line, but not on the
+ * destination, does not stop the ride. It is hit. Who is hit passes through
+ * `resolveTargets`' own filters, from the rider's own Level.
+ *
  * @param {object} unit
  * @param {{i: number, j: number}} destination
  * @param {object} board
  * @param {object} [opts]
  * @param {number} [opts.movedAlready] panels spent earlier this Turn
+ * @param {number|null} [opts.distanceOverride] the ability's own reach
+ * @param {string[]} [opts.npTags] the ability's NP tags, for a field's isolation
  * @returns {{ok: boolean, reason?: string, hits?: object[], path?: object[], distance?: number}}
  */
-export function ridingAttackPath(unit, destination, board, { movedAlready = null, distanceOverride = null } = {}) {
+export function ridingAttackPath(unit, destination, board, {
+  movedAlready = null, distanceOverride = null, npTags = [],
+} = {}) {
+  const ride = judgeRide(unit, destination, board, { movedAlready, distanceOverride });
+  if (!ride.ok) return ride;
+  return { ...ride, hits: ridingHits(unit, ride.path, board, npTags) };
+}
+
+/**
+ * Why a ride is not possible at all, before any destination is asked about.
+ *
+ * *"While Quetz is Riding the Quetzalcoatlus, Quetz's Move and Normal Attack is
+ * replaced with Quetzalcoatlus'."* The ride displaced her TOKEN only and never
+ * asked whose Move it was, so it moved her off her deck and left the mount
+ * behind. The author has ruled that her Move drives the mount but not what a
+ * Riding Attack is then, so it is refused with a stated reason until they do
+ * (#114).
+ *
+ * @param {object} unit
+ * @param {object} board
+ * @returns {"mounted"|null}
+ */
+export function ridingRefusal(unit, board) {
+  return actionSourceFor(unit, board).movesAsPlatform ? "mounted" : null;
+}
+
+/**
+ * The movement half of a ride: is the line legal, ignoring who it hits?
+ *
+ * What `ridingDestinations` asks of each candidate, and what
+ * {@link ridingAttackPath} adds its hits to, so the overlay and the engine
+ * cannot disagree.
+ *
+ * @param {object} unit
+ * @param {{i: number, j: number}} destination
+ * @param {object} board
+ * @param {object} [opts]
+ * @returns {{ok: boolean, reason?: string, path?: object[], distance?: number}}
+ */
+function judgeRide(unit, destination, board, { movedAlready = null, distanceOverride = null } = {}) {
   if (!unit?.panel || !destination) return { ok: false, reason: "unplaced" };
+  const mounted = ridingRefusal(unit, board);
+  if (mounted) return { ok: false, reason: mounted };
 
   const path = geo.panelsBetween(unit.panel, destination);
   const di = destination.i - unit.panel.i;
@@ -165,19 +217,85 @@ export function ridingAttackPath(unit, destination, board, { movedAlready = null
     };
   }
 
-  // Everyone it runs THROUGH, plus whoever is standing on the destination.
-  // In path order, because the fan-out reads as a sequence down the line.
   const walked = [...path, destination];
-  const hits = [];
-  for (const panel of walked) {
-    for (const other of board?.units ?? []) {
-      if (other.id === unit.id || !other.panel || other.defeated) continue;
-      if (other.panel.i !== panel.i || other.panel.j !== panel.j) continue;
-      if (relationOf(unit, other, board) !== "enemy") continue;
-      hits.push(other);
-    }
+
+  // The board's edge, for every panel the ride covers. A drag is refused a step
+  // that leaves it; the ride was not, and (5,10) to (5,15) was `ok`.
+  if (walked.some((panel) => !geo.inBounds(panel, board?.bounds ?? null))) {
+    return { ok: false, reason: "offBoard" };
   }
-  return { ok: true, hits, path: walked, distance };
+
+  // What a drag holds every step to: an enemy Master's zone, a field's exit. An
+  // enemy in the line is exempt -- it is hit, not in the way.
+  if (walked.some((panel) => !canPassThrough(panel, unit, board, { throughEnemies: true }))) {
+    return { ok: false, reason: "blocked" };
+  }
+
+  // ...and the panel it ends on, which is `canStopOn`'s: nobody there at all
+  // (an enemy on the destination is not "in the line"), a Platform's edge held,
+  // a linked partner's leash.
+  if (!canStopOn(destination, unit, board)) return { ok: false, reason: "cannotStop" };
+
+  // Kagome Spirits and Decoy, as a drag asks them. `path[0]` is where it
+  // begins, so the verdicts compare the distance before and after.
+  const route = [unit.panel, ...walked];
+  const pursuit = pursuitVerdict(unit, route, board);
+  if (!pursuit.ok) return { ok: false, reason: pursuit.reason };
+  const pulled = decoyVerdict(unit, route, board);
+  if (!pulled.ok) return { ok: false, reason: pulled.reason };
+
+  return { ok: true, path: walked, distance };
+}
+
+/** What a ride is, to the targeting resolver: every enemy along a path of panels. */
+const RIDE_SPEC = Object.freeze({
+  anchor: { kind: "movementPath" },
+  shape: { kind: "path" },
+  selection: { relations: ["enemy"], chooser: "all" },
+  // A ride that reaches nobody is legal, and spends the action.
+  targetsRequired: false,
+});
+
+/**
+ * Everyone a ride hits, in path order.
+ *
+ * Chosen from the rider's own Level -- the path is a line on it, and a Unit
+ * above or below is not in it -- and kept to Units: a Platform or a Structure is
+ * terrain a ride crosses. Then through `resolveTargets`, which `pathTargets` used
+ * to skip entirely, so a field's isolation, the targetability aura and every
+ * other survivor filter applied to this attack as to any other (#114).
+ * Multi-panel Units are caught by any panel of their footprint.
+ *
+ * @param {object} unit
+ * @param {GridOffset[]} walked every panel the ride covers, in order
+ * @param {object} board
+ * @param {string[]} npTags
+ * @returns {object[]}
+ */
+function ridingHits(unit, walked, board, npTags) {
+  const level = unit.level ?? 0;
+  const firstStep = new Map();
+  walked.forEach((panel, n) => { if (!firstStep.has(geo.key(panel))) firstStep.set(geo.key(panel), n); });
+
+  const candidates = [];
+  for (const other of board?.units ?? []) {
+    if (other.id === unit.id || !other.panel || other.defeated) continue;
+    if ((other.level ?? 0) !== level || OBJECT_KINDS.has(other.kind)) continue;
+    if (relationOf(unit, other, board) !== "enemy") continue;
+    const steps = (other.panels ?? [other.panel])
+      .map((p) => firstStep.get(geo.key(p)))
+      .filter((n) => n !== undefined);
+    if (steps.length > 0) candidates.push({ other, at: Math.min(...steps) });
+  }
+  if (candidates.length === 0) return [];
+
+  const survivors = new Set(
+    resolveTargets(RIDE_SPEC, unit, board, { path: walked, npTags }).units.map((t) => t.unitId),
+  );
+  return candidates
+    .filter(({ other }) => survivors.has(other.id))
+    .sort((a, b) => a.at - b.at)
+    .map(({ other }) => other);
 }
 
 /**
@@ -185,7 +303,7 @@ export function ridingAttackPath(unit, destination, board, { movedAlready = null
  *
  * What the destination picker paints, and what `ridingAttackPath` judges: the
  * overlay and the engine are ONE rule, because a candidate is offered only if
- * `ridingAttackPath` accepts it. Two readers of one rule drift (Ch. 46 §46.3),
+ * the movement half of `ridingAttackPath` (`judgeRide`) accepts it. Two readers of one rule drift (Ch. 46 §46.3),
  * and an overlay that offers a panel the engine then refuses is the silent
  * no-op the action bar was built to stop (#113).
  *
@@ -210,7 +328,7 @@ export function ridingDestinations(unit, board, { distanceOverride = null } = {}
     for (let step = 1; step <= allowance; step += 1) {
       const panel = { i: unit.panel.i + di * step, j: unit.panel.j + dj * step };
       if (!geo.inBounds(panel, board?.bounds ?? null)) break;
-      if (ridingAttackPath(unit, panel, board, { distanceOverride }).ok) out.push(panel);
+      if (judgeRide(unit, panel, board, { distanceOverride }).ok) out.push(panel);
     }
   }
   return out;
@@ -361,9 +479,12 @@ export function segmentCheck(unit) {
  * @param {GridOffset} panel
  * @param {object} unit
  * @param {object} board
+ * @param {object} [opts]
+ * @param {boolean} [opts.throughEnemies] a Riding Attack's exemption: an enemy in
+ *   the line is not in the way, it is hit. Everything else still applies.
  * @returns {boolean}
  */
-export function canPassThrough(panel, unit, board) {
+export function canPassThrough(panel, unit, board, { throughEnemies = false } = {}) {
   if (ignoresBlocking(unit)) return true;
   // A Unit that may STOP on an occupied panel must be able to cross one:
   // ending a move somewhere it could not pass through is incoherent, and the
@@ -379,7 +500,7 @@ export function canPassThrough(panel, unit, board) {
   // Platforms and structures are terrain, not Units: a Platform is stood on,
   // and clause 3 is about *Units*, so neither blocks a step.
   const blocking = occupant && !OBJECT_KINDS.has(occupant.kind);
-  if (blocking && isEnemy(unit, occupant, board)) return false;
+  if (blocking && !throughEnemies && isEnemy(unit, occupant, board)) return false;
   if (inEnemyMasterProtection(panel, unit, board)) return false;
   if (blockedByFieldExit(panel, unit, board)) return false;
   return true;

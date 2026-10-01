@@ -37,7 +37,10 @@ const PREVENT_ALL = Object.freeze([
 
 /** Effect → what it prevents, for the partial preventions. */
 const PREVENTS = Object.freeze({
-  immobilize: ["move"],
+  // A Riding Attack is a Move as well as an Attack (#114): `canConsume` asked
+  // only about `ridingAttack` and Immobilize does not list it, so an Immobilized
+  // rider could ride away.
+  immobilize: ["move", "ridingAttack"],
   // *"Can only use the Move action."* -- Appendix A, and the complement of
   // `immobilize` directly above, which prevents only movement.
   //

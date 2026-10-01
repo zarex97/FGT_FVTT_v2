@@ -79,13 +79,20 @@ describe("where that refusal surfaces", () => {
   });
 
   it("the attack entry point tells somebody before it throws", () => {
+    // The refusal is made in `attack-preflight.mjs` (so a Riding Attack can ask it
+    // before it moves) and carries the budget's own words as `budgetReason`;
+    // `resolveAttack` is what tells the player, and throws.
+    const preflight = readFileSync("module/engine/attack-preflight.mjs", "utf8");
+    expect(preflight, "the refusal site moved").toMatch(/Cannot attack:/);
+    expect(preflight).toMatch(/budgetReason: verdict\.reason/);
+
     const src = readFileSync("module/engine/attack.mjs", "utf8");
-    const at = src.indexOf("Cannot attack:");
-    expect(at, "the refusal site moved").toBeGreaterThan(0);
+    const at = src.indexOf("throw new Error(`FGT | ${pre.message}`)");
+    expect(at, "the throw site moved").toBeGreaterThan(0);
     // The notification comes FIRST: a throw alone reaches a log and no human.
     const before = src.slice(Math.max(0, at - 900), at);
     expect(before, "a refused attack must reach the player, not only the console")
       .toMatch(/ui\.notifications\?\.warn/);
-    expect(before).toMatch(/verdict\.reason/);
+    expect(before).toMatch(/pre\.budgetReason/);
   });
 });
