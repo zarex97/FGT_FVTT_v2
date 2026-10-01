@@ -121,7 +121,12 @@ field:
   # duel until one Unit is 'defeated' AS PER THE TERMS OF THE DUEL"* -- and the
   # terms are the one clause the sheet leaves to the two players, so there is
   # no condition here to watch. `byOwner` is the control that closes it.
-  deactivation: { byOwner: true }
+  #
+  # `window: any`: the sheet states no window at all, and this keeps what the
+  # control always did -- offered at every moment, which is table arbitration.
+  # A block with no window is the owner's own Turn (#150); narrowing the duel to
+  # that is the author's call to make.
+  deactivation: { byOwner: true, window: any }
   # "The Noble Phantasm is only activated if the opposing Unit (player) agrees
   # to the duel." A consent gate, and the only one in the game: every other
   # field opens whether or not anyone inside wants it.

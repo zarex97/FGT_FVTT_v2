@@ -150,7 +150,10 @@ export const ABILITY_ROUTES = {
   cooldownWaiver: doc("module/engine/cooldown.mjs", "spent at use"),
   countsAsAttack: doc("module/rules/ability-use.mjs", "the action budget"),
   creates: doc("module/rules/costs.mjs", "matched by ForbidCreating"),
-  deactivation: doc("module/rules/modes.mjs", "Tenmōkaikai's switch-off window, read by canToggleMode (#101)"),
+  deactivation: [
+    doc("module/rules/modes.mjs", "Tenmōkaikai's switch-off window, read by canToggleMode (#101)"),
+    doc("module/rules/platforms.mjs", "a Field's or Platform's block: byOwner, lockout and the window, read by deactivationVerdict (#150)"),
+  ],
   description: doc("module/apps/actor-sheet/context.mjs", "the sheet's text"),
   element: doc("module/engine/attack.mjs", "the damage type of the use"),
   expendsPermanently: doc("module/engine/io.mjs", "spent at use"),

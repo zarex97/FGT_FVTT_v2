@@ -7,7 +7,8 @@
  * `crossLevelLegal` step that is now its only reader (#138).
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { parse } from "yaml";
 
 import { describe, it, expect } from "vitest";
 import {
@@ -783,6 +784,69 @@ describe("deactivationVerdict", () => {
 
   it("refuses on a missing spec rather than defaulting to permissive", () => {
     expect(deactivationVerdict(null, { ...base, tick: 99 }).ok).toBe(false);
+  });
+
+  // The window (#150). *"…during Quetz's Turn or at the start or end of any Round
+  // or Turn"* is `window: any`; a block that states none is the owner's Turn only,
+  // as `canToggleMode` reads it for a Mode. It was read for Modes and for no Field
+  // or Platform, so the End control was offered at every moment.
+  describe("the window", () => {
+    const ownTurnOnly = { byOwner: true };
+
+    it("refuses a block with no window when it is not the owner's Turn", () => {
+      const v = deactivationVerdict(ownTurnOnly, { ...base, tick: 99, ownTurn: false });
+      expect(v).toEqual({ ok: false, reason: "notOwnTurn" });
+    });
+
+    it("allows it on the owner's Turn", () => {
+      expect(deactivationVerdict(ownTurnOnly, { ...base, tick: 99, ownTurn: true }).ok).toBe(true);
+    });
+
+    it("allows window: any at every moment, which is every shipped field and platform that states one", () => {
+      expect(deactivationVerdict(free, { ...base, tick: 99, ownTurn: false }).ok).toBe(true);
+      expect(deactivationVerdict(free, { ...base, tick: 99, ownTurn: true }).ok).toBe(true);
+    });
+
+    it("asks nothing when the caller cannot tell whose Turn it is, as a Mode's does not", () => {
+      expect(deactivationVerdict(ownTurnOnly, { ...base, tick: 99 }).ok).toBe(true);
+      expect(deactivationVerdict(ownTurnOnly, { ...base, tick: 99, ownTurn: undefined }).ok).toBe(true);
+    });
+
+    it("still says who and why first: a stranger is not the owner on anyone's Turn", () => {
+      expect(deactivationVerdict(free, { ...base, tick: 99, unitId: "x", ownTurn: false }).reason).toBe("notOwner");
+    });
+  });
+
+  describe("what the corpus authors", () => {
+    const windowsOf = () => {
+      const out = [];
+      for (const [dir, key] of [["abilities", "field"], ["platforms", null]]) {
+        for (const file of readdirSync(`packs/_source/${dir}`).filter((f) => f.endsWith(".yml"))) {
+          const doc = parse(readFileSync(`packs/_source/${dir}/${file}`, "utf8"));
+          const block = key ? doc?.[key]?.deactivation : doc?.deactivation;
+          if (block) out.push([`${dir}/${file}`, block]);
+        }
+      }
+      return out;
+    };
+
+    it("states a window on every Field and Platform block, so none is silently own-Turn-only", () => {
+      const missing = windowsOf().filter(([, block]) => block.window === undefined).map(([file]) => file);
+      expect(missing).toEqual([]);
+    });
+
+    it("keeps Achilles's duel closable at any moment, which the sheet does not say either way", () => {
+      const duel = windowsOf().find(([file]) => file.includes("achilles-diatrekhon"));
+      expect(duel[1].window).toBe("any");
+    });
+  });
+
+  it("is asked by the control with the owner's Turn, not just the owner", () => {
+    const fields = readFileSync("module/engine/fields.mjs", "utf8").replace(/\r\n/g, "\n");
+    const body = (fn) => fields.slice(fields.indexOf(fn), fields.indexOf("\n}\n", fields.indexOf(fn)));
+    expect(body("export function deactivationReason")).toMatch(/ownTurn:\s*ownTurnOf\(field\)/);
+    // The yes/no is the same question with the reason dropped, so it cannot drift from it.
+    expect(body("export function mayDeactivate")).toMatch(/deactivationReason\(field, unitId\)\.ok/);
   });
 });
 
