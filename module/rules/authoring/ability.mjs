@@ -117,6 +117,7 @@ export const SECTIONS = Object.freeze([
       f("isMode", "checkbox", "Switched on and left on, rather than used."),
       f("toggleLock", "tickExpr", "How long after switching before it may be switched back."),
       f("cannotDeactivate", "checkbox", "Once on, it never comes off."),
+      f("cannotCounter", "checkbox", "It cannot be used as a Counter, however it is classed."),
       f("isAttackSkill", "checkbox", "Counts as an Attack as well as a Skill."),
       f("countsAsAttack", "checkbox", "Spends the Unit's Attack."),
       f("countsAsAct", "checkbox", "Counts as the Unit having Acted."),

@@ -48,6 +48,13 @@ function abilityCommon() {
     active: new fields.BooleanField({ initial: false }),
     /** Heracles cannot switch Mad Enhancement off. */
     cannotDeactivate: new fields.BooleanField({ initial: false }),
+    /**
+     * Quetzalcoatl's three Spells each end *"Cannot be used as a Counter"*.
+     * `timing.window: ownTurn` does not say it -- it is documentary, and the
+     * author has ruled that Noble Phantasms authored `ownTurn` CAN be Counters --
+     * so the ability says it itself. Read by `rules/counter.mjs#answersACounter`.
+     */
+    cannotCounter: new fields.BooleanField({ initial: false }),
     // "It can only be deactivated 2◈ Turns after it was activated, AND VICE
     // VERSA" -- one clock governing both directions, and `toggledAt` is the
     // tick it last flipped on. The toggle was a bare write until this existed,

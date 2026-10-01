@@ -21,10 +21,15 @@ alsoTriggers:
   - { exclusionSet: quetzalcoatlusSpells }
 element: wind
 timing: { window: ownTurn }
-# "Counts as Quetz's & Quetzalcoatlus' Attack for the Turn." The second half --
-# "cannot be used as a Counter" -- is `timing.window: ownTurn`, which refuses a
-# reaction window outright.
+# "Counts as Quetz's & Quetzalcoatlus' Attack for the Turn."
 countsAsAttack: true
+# "Cannot be used as a Counter." Said by `cannotCounter`, which `answersACounter`
+# reads (`rules/counter.mjs`). It used to be said by `timing.window: ownTurn`,
+# which does NOT refuse a reaction window: that window is documentary (89 of the
+# 117 window authorings are `ownTurn`) and the author has ruled that Noble
+# Phantasms authored `ownTurn` can be Counters, so these were offered as one
+# (#156).
+cannotCounter: true
 requirements:
   # "Can only be used while Riding Quetzalcoatlus."
   - { kind: predicate, predicate: ["self:onPlatform:quetzalcoatlus"] }

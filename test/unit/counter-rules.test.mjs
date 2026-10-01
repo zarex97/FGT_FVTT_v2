@@ -182,3 +182,110 @@ describe("a Noble Phantasm that deals nothing, as a Counter", async () => {
     expect(counterMustCatchAttacker(null)).toBe(true);
   });
 });
+
+// #156. Two gaps in one path. There was no way to say an ability cannot be used
+// as a Counter -- Quetzalcoatl's three Spells each end *"Cannot be used as a
+// Counter"*, and the content said it with `timing.window: ownTurn`, which is
+// documentary (89 of the 117 window authorings are `ownTurn`, and the author has
+// ruled that Noble Phantasms authored `ownTurn` CAN be Counters). And
+// `runCounter` computed `canUseAbility` only to price the use and never refused
+// on it, so an ability on cooldown, or one the bar would have dimmed, ran and was
+// paid when a stale or crafted `declareCounter` named it.
+//
+// Built with `test/helpers/subject.mjs`: the real items, through the real
+// projection and `usageSpecFor`.
+describe("an ability that cannot be a Counter (#156)", async () => {
+  const { beforeAll } = await import("vitest");
+  const { withSubjects, prepareSubjects } = await import("../helpers/subject.mjs");
+  const { answersACounter, counterRefusal } = await import("../../module/rules/counter.mjs");
+  const { usageSpecFor } = await import("../../module/rules/ability-use.mjs");
+  const { canUseAbility } = await import("../../module/rules/costs.mjs");
+  const { rollOptionsFor } = await import("../../module/rules/options.mjs");
+  const { test: testPredicate } = await import("../../module/rules/predicate.mjs");
+
+  beforeAll(prepareSubjects, 60_000);
+
+  const SPELLS = ["quetz-tlahuitequiliztli", "quetz-ehecatle", "quetz-tlaelquiyahuitl"];
+
+  /** The gate's verdict, as `runCounter` asks it, for one real ability of one real Servant. */
+  const seen = (from, contentId, fn) => withSubjects([{ from }], ({ units, world }) => {
+    const item = [...world.actor(units[0].id).items].find((i) => i.system.contentId === contentId);
+    const verdict = (spec = usageSpecFor(item), evaluator = true) => canUseAbility({
+      ability: spec, unit: units[0], round: 6, turn: 18,
+      ...(evaluator ? { testPredicate: (p) => testPredicate(p, { options: rollOptionsFor({ attacker: units[0] }) }) } : {}),
+    });
+    return fn({ item, verdict });
+  });
+
+  for (const id of SPELLS) {
+    it(`${id} does not answer a Counter, and is not offered`, async () => {
+      const [answers, offered] = await seen("quetzalcoatl", id, ({ item }) => [answersACounter(item), counterOffer([item])]);
+      expect(answers).toBe(false);
+      expect(offered.map((o) => o.id)).toEqual([null]);
+    });
+
+    it(`${id} is refused as a Counter, ready or not`, async () => {
+      const refusal = await seen("quetzalcoatl", id, ({ item, verdict }) => counterRefusal(item, verdict()));
+      expect(refusal).toBe("notACounter");
+    });
+  }
+
+  it("a Spell that CAN be a Counter, on cooldown, is refused for the cooldown", async () => {
+    const refusal = await seen("scathach", "scathach-thurs", ({ item, verdict }) => {
+      const spec = { ...usageSpecFor(item), cooldown: { remaining: 4, gatedDelay: 0 } };
+      return [answersACounter(item), counterRefusal(item, verdict(spec))];
+    });
+    expect(refusal).toEqual([true, "cooldown"]);
+  });
+
+  it("a ready Noble Phantasm is a legal Counter, and so is the Normal Attack", async () => {
+    const refusal = await seen("karna", "karna-brahmastra", ({ item, verdict }) => counterRefusal(item, verdict()));
+    expect(refusal).toBeNull();
+    expect(counterRefusal(null, { ok: true })).toBeNull();
+  });
+
+  it("a Counter whose requirement is a predicate is legal when the predicate holds", async () => {
+    // Xiuhcoatl: `{not: self:onPlatform:quetzalcoatlus}`. It is `null` only
+    // because the gate was handed an evaluator; without one a `predicate`
+    // requirement refuses by design (`rules/items.mjs`), which is the trap a
+    // plain `!usage.ok` refusal would have walked into for every predicate-gated
+    // Counter in the corpus.
+    const [withEvaluator, without] = await seen("quetzalcoatl", "quetz-xiuhcoatl", ({ item, verdict }) => [
+      counterRefusal(item, verdict(usageSpecFor(item), true)),
+      counterRefusal(item, verdict(usageSpecFor(item), false)),
+    ]);
+    expect(withEvaluator).toBeNull();
+    expect(without).toBe("predicate");
+  });
+
+  it("answers `notACounter` before anything about the moment, so the reason is the stable one", () => {
+    const sys = { cannotCounter: true, isAttackSkill: true, phases: [{ kind: "damage" }] };
+    const item = { id: "x", type: "ability", system: sys };
+    expect(answersACounter(item)).toBe(false);
+    expect(counterRefusal(item, { ok: false, reason: "cooldown" })).toBe("notACounter");
+  });
+});
+
+describe("runCounter refuses before it pays (#156)", async () => {
+  const { readFileSync } = await import("node:fs");
+  const engine = readFileSync("module/engine/attack.mjs", "utf8").replaceAll("\r\n", "\n");
+  const from = engine.indexOf("async function runCounter");
+  const body = engine.slice(from, engine.indexOf("\n}\n", from));
+
+  it("asks the gate with an evaluator, and refuses on its answer", () => {
+    expect(body).toMatch(/counterRefusal\(/);
+    expect(body).toMatch(/testPredicate:/);
+  });
+
+  it("refuses before `payAbilityPrice`, so nothing is spent", () => {
+    expect(body.indexOf("counterRefusal(")).toBeGreaterThan(-1);
+    expect(body.indexOf("counterRefusal(")).toBeLessThan(body.indexOf("payAbilityPrice("));
+  });
+
+  it("names the reason instead of reusing the attacker message", () => {
+    const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
+    expect(lang["FGT.Counter.NotACounter"]).toBeTruthy();
+    expect(lang["FGT.Counter.Refused"]).toMatch(/\{reason\}/);
+    expect(engine).toMatch(/FGT\.Counter\.Refused/);
+  });
+});
