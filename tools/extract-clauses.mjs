@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 /**
- * @file Emit a Servant's Clause task list from its Character Sheet.
+ * @file Emit a first draft of a Servant's Clause task list from its Character Sheet.
  * @see docs/46-roster-re-audit.md
  *
- * Step 1 of the per-Servant audit procedure. Hand-transcribing Clauses is the
- * programme's mechanical bulk — six to nine hundred of them across twenty-six
- * Servants — and this does the mechanical part: one task-list line per Clause,
- * grouped under its Ability, every Clause starting at `Untouched`.
+ * A DRAFT, never the list. Step 1 of the per-Servant audit procedure builds the
+ * list by hand: on both sheets held against this output it dropped rules in
+ * silence, filed prose as rules and misfiled a Unit's rules under another
+ * Ability (#73), and Quetzalcoatl's 56 Clauses became 113 by hand. What it does
+ * is the mechanical part: one task-list line per Clause, grouped under its
+ * Ability, every Clause starting at `Untouched`.
  *
  * It does **not** do the judgement part, and it is loud about which is which.
  * Everything it could not place is printed to stderr with the line it came from,
