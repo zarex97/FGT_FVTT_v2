@@ -2467,6 +2467,15 @@ was asked *"Bring your Master aboard?"*. `mayBringMaster` measured i and j and n
 requires the Master on the Servant's own level, which is also what the Jump's *"Master directly next to
 it"* means.
 
+### CC. A Master caught by its Servant stayed on the panel the Bašmu had taken — **fixed 2026-09-30**
+
+**Reached: HG.knock.save.** The Bašmu moved onto Heracles's Master on the garden's edge; the Master failed
+its Agility Check, Heracles caught it, and the Master stayed on its panel -- inside the Bašmu's new
+square. `fallOff` reads *"its Master is not knocked off"* as not moved, and in general that holds; but a
+knockback must still clear the mover's space. A Unit left aboard by a knock -- caught, or kept its
+footing -- is now moved off the mover's footprint to the nearest free deck panel, which also covers the
+passed check's own landing, chosen from a board on which the mover had not yet arrived.
+
 ---
 
 ---
