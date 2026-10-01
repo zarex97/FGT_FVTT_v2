@@ -37,9 +37,9 @@ passiveRules:
     fromStat: mov
     stacks: true
 activeRules:
-  # A flat 6 rather than the `ridingMov` table: the sheet prints the number,
-  # and EX is not a row that table has.
+  # `ridingMov` at EX, which is 6 -- the number the sheet prints, from one source
+  # rather than two. The rank is this document's own (`rank: EX` above).
   - key: MovDelta
-    value: 6
+    table: ridingMov
     duration: "this turn"
     isBuff: false

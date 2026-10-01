@@ -8,7 +8,8 @@
  * numbers transcribed by hand that quietly stop agreeing with the game.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
+import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
 import { lookupNumber } from "../../module/domain/tables.mjs";
@@ -498,5 +499,74 @@ describe("a painted area's tag resolves the same on both sides", () => {
     const zone = ability("quetz-charisma-of-the-sun").phases.find((p) => p.kind === "zone");
     // `Terrain.attach`'s deleteActiveEffect hook clears `${defId}:${unitId}`.
     expect(zone.spec.tag).toBe("sol:@self.id");
+  });
+});
+
+describe("the shared Riding card (#122)", () => {
+  beforeAll(prepareSubjects, 60_000);
+
+  // `riding.yml` printed "(Passive 1) Double Move. (Passive 2) Riding Attack.
+  // (Passive 3) Passenger Seat. (Active) Increases MOV for this Turn." -- the names
+  // of the grants and none of the rules they switch on, where every variant file
+  // spells them out. Her Servant file said her Riding was "word-for-word
+  // `class-riding.yml`", which it was not. Read off the real projection: this is
+  // what the card shows.
+  const card = () => withSubjects([{ from: "quetzalcoatl" }], ({ world }) => {
+    const riding = world.actor("quetzalcoatl").items.find((i) => i.system?.slug === "riding");
+    return riding.system.description;
+  });
+
+  it("states each rule its grants switch on", async () => {
+    const text = await card();
+    // Double Move
+    expect(text).toMatch(/Move twice during its Turn, once before and once after Attacking/);
+    expect(text).toMatch(/cannot exceed the Unit's MOV/);
+    // Riding Attack: the line, the stop, the allowance
+    expect(text).toMatch(/straight line/);
+    expect(text).toMatch(/Cannot Attack or Move after it has stopped/);
+    expect(text).toMatch(/MOV minus the panels already Moved/);
+    expect(text).toMatch(/Can be combined\s+with Passenger Seat/);
+    // Passenger Seat: the relative position, the one Unit
+    expect(text).toMatch(/same relative position/);
+    expect(text).toMatch(/only Moving one Unit/);
+  });
+
+  it("says what the Active does and that it has a cooldown, without a per-rank number", async () => {
+    // An inline "@" is not substituted, so no number can be written into the string.
+    const text = await card();
+    expect(text).toMatch(/\(Active\) Used during your Turn\. Increases MOV/);
+    expect(text).toMatch(/for this Turn/);
+    expect(text).toMatch(/Cooldown/);
+  });
+
+  it("keeps the note that the MOV Up is not a buff, without a link to an effect that reads Buff", async () => {
+    // `@effect[movUp]` opens a buff-polarity effect, inside the sentence that says
+    // it is not a buff.
+    const text = await card();
+    expect(text).toMatch(/is NOT a buff/);
+    expect(text).not.toMatch(/@effect\[/);
+  });
+});
+
+describe("the comments around Riding say what the code does (#122)", () => {
+  const read = (p) => readFileSync(p, "utf8");
+
+  it("does not call Passenger Seat unread: `carryMasterAlong` reads it", () => {
+    expect(read("module/rules/granted.mjs")).not.toMatch(/nothing reads it yet/);
+    expect(read("module/rules/movement.mjs")).not.toMatch(/has existed with no reader/);
+  });
+
+  it("does not send a reader of the Normal Rider to `mayMoveAgain`, which was deleted", () => {
+    const text = read("packs/_source/abilities/normal-riding.yml");
+    expect(text).not.toMatch(/mayMoveAgain/);
+    expect(text).toMatch(/passenger-seat\.mjs/);
+  });
+
+  it("does not say Pale Rider's EX is not a row of the Riding table", () => {
+    expect(read("packs/_source/class-skills/riding-pale-rider.yml")).not.toMatch(/EX is not a row/);
+  });
+
+  it("does not say Quetzalcoatl's Riding is word-for-word the shared document", () => {
+    expect(read("packs/_source/servants/quetzalcoatl.yml")).not.toMatch(/word-for-word `class-riding.yml`/);
   });
 });

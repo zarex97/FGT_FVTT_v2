@@ -31,7 +31,7 @@ export const GRANTS = Object.freeze({
   doubleMove: "doubleMove",
   /** Riding: an attack along the movement path (Ch. 02). Terminal for the turn. */
   ridingAttack: "ridingAttack",
-  /** Riding: carrying another unit. Needs platforms (Ch. 27), so nothing reads it yet. */
+  /** Riding: the Master moves with the Servant -- read by `engine/passenger-seat.mjs#carryMasterAlong`. */
   passengerSeat: "passengerSeat",
 
   /**

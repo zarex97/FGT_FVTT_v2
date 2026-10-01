@@ -350,8 +350,8 @@ const RIDING_DIRECTIONS = Object.freeze([
  * Master does not move at all and the clause says nothing. So the Master is
  * displaced by exactly the delta the Servant travelled.
  *
- * `GRANTS.passengerSeat` has existed with no reader for as long as
- * `ridingAttack` has.
+ * Read by `engine/passenger-seat.mjs#carryMasterAlong`, which a drag and a
+ * Riding Attack both call.
  *
  * @param {{i: number, j: number}} from the Servant's origin
  * @param {{i: number, j: number}} to the Servant's destination
