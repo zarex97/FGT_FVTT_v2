@@ -167,6 +167,11 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
       // it at 0 while she stood next to it with 20. The sixth authored key to
       // be lost this way -- `itemCost`, `summonVariant`, `rules`,
       // `itemHandling` and `aftermath` were the others.
+      //
+      // `luck: { from: summoner }` is the exception to "resolved at placement":
+      // on a platform it is *"Luck: Shared with Quetz's"*, ONE POOL with its
+      // owner's, never copied -- the board reads her current Luck as the
+      // platform's and `engine/io.mjs#adjustStat` spends from her (#162).
       inherit: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       // "During Semiramis' Turn, the HGoB can Move/Attack once per Turn."
       // `rules/budget.mjs#canConsume` reads this the same way `SummonData`'s

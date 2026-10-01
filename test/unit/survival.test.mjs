@@ -98,7 +98,13 @@ export const UNIT_ROUTES = {
   defaultImage: doc("module/apps/actor-sheet/context.mjs", "the sheet's portrait"),
   description: doc("module/apps/actor-sheet/context.mjs", "a Platform's sheet text"),
   dimension: doc("module/engine/dimension.mjs", "a pocket dimension is entered from the document"),
-  inherit: doc("module/engine/summoning.mjs", "resolved against the summoner at placement"),
+  // Two readers, because two kinds of Unit author it. A Summon's stats are resolved against its
+  // summoner at placement; a Platform's `luck: { from: summoner }` is not a starting value but one
+  // pool with its owner's (#162), projected as `luckFromSummoner` and read off her on the board.
+  inherit: [
+    doc("module/engine/summoning.mjs", "a Summon's stats, resolved against the summoner at placement"),
+    { at: "luckFromSummoner", from: (v) => v?.luck?.from === "summoner" },
+  ],
   // `system.level` is a Platform's own Scene Level number; the snapshot's
   // `level` is where a Unit stands. Two names, two facts.
   level: doc("module/apps/actor-sheet/context.mjs", "a Platform's Scene Level number"),

@@ -289,7 +289,7 @@ export function worldIO() {
      * @param {boolean} clamp
      */
     async adjustStat(unitId, stat, delta, clamp = true, alsoCurrent = false) {
-      const actor = resolve(unitId);
+      const actor = luckPoolOf(resolve(unitId), stat);
       if (!actor) return;
       const path = `system.${stat}`;
 
@@ -1293,6 +1293,26 @@ function resolve(unitId) {
   const fromToken = canvas?.tokens?.get(unitId)?.actor
     ?? canvas?.tokens?.placeables?.find((t) => t.actor?.id === unitId)?.actor;
   return fromToken ?? game.actors?.get(unitId) ?? null;
+}
+
+/**
+ * The actor whose pool this stat is.
+ *
+ * *"Luck: Shared with Quetz's"* -- the Quetzalcoatlus, and the Golden Hind for
+ * Drake. A platform authoring `inherit.luck: { from: summoner }` has one Luck
+ * pool with its owner, so a Luck spent or lowered on the platform's own id is
+ * spent from hers (#162). Redirected here, in the one writer, so the three
+ * places a Luck Check spends (`engine/attack.mjs`) and any later one need no
+ * knowledge of it. Everything else, and every other stat, is its own.
+ *
+ * @param {object|null} actor
+ * @param {string} stat dot path under `system`
+ * @returns {object|null}
+ */
+function luckPoolOf(actor, stat) {
+  if (!actor || actor.type !== "platform" || !stat.startsWith("luck.")) return actor;
+  if (actor.system?.inherit?.luck?.from !== "summoner") return actor;
+  return resolve(actor.system?.ownerId) ?? actor;
 }
 
 /**

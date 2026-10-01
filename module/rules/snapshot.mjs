@@ -36,7 +36,7 @@ import { tierOf } from "./master-rank.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { closeAttributes } from "../domain/attributes.mjs";
 import { rollOptionsFor } from "./options.mjs";
-import { platformsOn } from "./platforms.mjs";
+import { platformsOn, luckOwnerOf } from "./platforms.mjs";
 import { annotateFields, withoutForeignEffects } from "./bounded-fields.mjs";
 import { CONCEALMENT } from "./concealment.mjs";
 
@@ -476,6 +476,13 @@ export function snapshotUnit(actor, {
     footprint: sys.footprint ?? null,
     capacity: sys.capacity ?? null,
     ownerId: sys.ownerId ?? null,
+    // Whether the Luck is STATED relative to the summoner -- the authored fact,
+    // of any kind of Unit. *"Luck: Shared with Quetz's"* / *"…with Drake"*: for a
+    // PLATFORM that means no Luck of its own, one pool with its owner's, which
+    // `annotatePlatforms` reads onto it (`rules/platforms.mjs#luckOwnerOf`) and
+    // `engine/io.mjs#adjustStat` spends from (#162). A Summon's is only a
+    // starting value, resolved once at placement, and `luckOwnerOf` leaves it be.
+    luckFromSummoner: sys.inherit?.luck?.from === "summoner",
     crossLevel: sys.crossLevel ?? null,
     boardingReliefAfter: [...(sys.boardingReliefAfter ?? [])],
     // Read by `rules/platforms.mjs#platformsDestroyedBy` (§46.4-CH).
@@ -941,6 +948,12 @@ function annotatePlatforms(units, board) {
       // has actually created one.
       u.platformContentId = aboard.contentId ?? null;
     }
+  }
+
+  // One Luck pool, hers: the platform's own number is never read (#162).
+  for (const p of units) {
+    const owner = luckOwnerOf(p, units);
+    if (owner) p.luck = owner.luck;
   }
 }
 

@@ -16,9 +16,10 @@ baseHealth: 2500
 # "Agility: 10 (Only performs Injury Roll when damaged by NP)". The
 # parenthesis is the `injuryRoll` block below.
 agility: 10
-# "Luck: Shared with Drake" -- a number that is not a number, resolved at
-# placement from the summoner's live value, the same rule and the same moment
-# the Quetzalcoatlus and the Kagome Spirits use.
+# "Luck: Shared with Drake" -- ONE POOL with hers, the same rule as the
+# Quetzalcoatlus's: the board reads her CURRENT Luck as the ship's, and a Luck
+# either spends comes out of hers. (The Kagome Spirits' `inherit` is different:
+# a starting value, resolved once at placement.)
 inherit:
   luck: { from: summoner }
 mov: 6

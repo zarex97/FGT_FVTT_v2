@@ -32,7 +32,9 @@ The roll log records every roll made: the raw die, every modifier, and chains of
 
 ### Check modifiers and forcing
 
-The system collects modifiers per check into a `CheckPlan`: numeric deltas, forced tables, automatic successes, and player-adjustable rolls (`module/rules/checks.mjs:57-128`). A unit can force its own checks onto the unfavourable table with `Luck Loss` or onto favourable with `Luck Boost` — debuffs win ties, so a unit holding both forced tables uses unfavourable (`module/rules/checks.mjs:39-43`, `module/rules/checks.mjs:110-123`).
+The system collects modifiers per check into a `CheckPlan`: numeric deltas, forced tables, automatic successes, and player-adjustable rolls (`module/rules/checks.mjs:57-128`). **A platform's Luck is its owner's.** The Quetzalcoatlus (*"Luck: Shared with Quetz's"*) and the Golden Hind (*"Luck: Shared with Drake"*) have no pool of their own: a Luck Check either makes reads her current Luck and spends 1 from hers (`engine/io.mjs#adjustStat` redirects the write; [Ch. 27](27-platforms-and-levels.md), #162).
+
+A unit can force its own checks onto the unfavourable table with `Luck Loss` or onto favourable with `Luck Boost` — debuffs win ties, so a unit holding both forced tables uses unfavourable (`module/rules/checks.mjs:39-43`, `module/rules/checks.mjs:110-123`).
 
 EMIYA's *Clairvoyance* is the system's sole example of an *imposed* check modifier: an ability on one unit that forces another unit's checks onto a table (`module/rules/checks.mjs:130-160`). It is applied through `mergePlans`, which combines the checking unit's own modifiers with those imposed by the opponent.
 
