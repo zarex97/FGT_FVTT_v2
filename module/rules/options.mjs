@@ -28,6 +28,7 @@ import { NP_TAG_SCALE, scaleTagOf } from "./np-scale.mjs";
 import { referencedOptions } from "./predicate.mjs";
 import { stanceOf } from "./stance.mjs";
 import { heldOn } from "./modes.mjs";
+import { categoriesOf } from "./items.mjs";
 
 /**
  * Every option describing this attacker, this defender and this attack.
@@ -490,6 +491,20 @@ function add(options, side, unit, withoutModeHeld = false) {
     // the mode it governs is already held.
     if (!withoutModeHeld && ability.active && heldOn(slug, unit)) {
       options.add(`${side}:modeHeld:${slug}`);
+    }
+  }
+
+  // A Skill that COUNTS AS another is that Skill to every predicate that asks.
+  // Goddess's Divine Core is `categorizedAs: [divinity]`, and Kingprotea's header
+  // says it is a Divinity "for every clause in the game that asks" -- including
+  // Vasavi Shakti's `target:skill:divinity`, which read the slug and called every
+  // Divine Core holder "Divine, no Divinity" (#125). Read through the one
+  // reader `hasCategory` and `categoryRankOf` share. A Skill whose slug IS its
+  // tag (the class skill `divinity`) emits the same strings twice into a set.
+  for (const [tag, rank] of categoriesOf(unit)) {
+    options.add(`${side}:skill:${tag}`);
+    for (const grade of gradesClearedBy(rank)) {
+      options.add(`${side}:skillRank:${tag}:gte:${grade}`);
     }
   }
 }

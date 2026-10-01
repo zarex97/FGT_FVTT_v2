@@ -1649,8 +1649,17 @@ export function contributionsOf(actor, { terrain = [] } = {}) {
       // whoever is hitting Nemo is standing in water. `rollNegation` does not
       // test predicates at all, so it would simply always apply.
       terrain: [...terrain],
+      // What `rollOptionsFor` reads off an ability: its slug and whether it is on,
+      // and -- for a Skill that COUNTS AS another -- the tags it is categorized
+      // under, the Rank it holds them at and the effects that gate them. Without
+      // those a `self:skill:divinity` clause was false from a Divine Core
+      // holder's own contributions, as `target:skill:divinity` was on the board
+      // (#125). The board's own `abilities` carry the same four (`collectAbilities`).
       abilities: [...(actor.items ?? [])].map((i) => ({
         id: i.id, slug: i.system?.slug ?? i.id, active: Boolean(i.system?.active),
+        rank: i.system?.rank ?? null,
+        categorizedAs: [...(i.system?.categorizedAs ?? [])],
+        categorizedWhile: [...(i.system?.categorizedWhile ?? [])],
       })),
     },
     defender: null,
