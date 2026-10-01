@@ -499,7 +499,7 @@ export function boardingLanding(unit, platform, board, reserved = []) {
 export function rescuerFor(master, board) {
   if (master?.kind !== "master" || !master.panel) return null;
   return (board?.units ?? []).find(
-    (u) => u.kind === "servant" && u.masterId === master.id
+    (u) => u.kind === "servant" && u.masterId === master.id && !u.defeated
       // Beside it on the deck: a Servant on the ground below catches nobody
       // (Ch. 46 §46.4-CG).
       && (u.level ?? 0) === (master.level ?? 0)

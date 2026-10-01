@@ -80,6 +80,10 @@ export function guardsOf(master, board) {
   const out = [];
   for (const unit of units) {
     if (unit.kind !== "servant") continue;
+    // A defeat leaves the token on the board, and a corpse guards nobody: not
+    // the protection, the Counter redirect, the zone denial or the cover that
+    // read this list (#168).
+    if (unit.defeated) continue;
     if ((unit.factionId ?? unit.faction ?? null) !== faction) continue;
 
     const proxy = (unit.suppressions ?? [])

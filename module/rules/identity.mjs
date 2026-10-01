@@ -285,6 +285,8 @@ export function discoverAttempts(concealedUnit, board, { spent = {}, acquiredAt 
     // by the game's author in favour of the Skill's own wording
     // (Ch. 46 §46.4-AN).
     if (watcher.kind !== "servant") continue;
+    // A defeated Servant's token stays on the board, and it watches nobody (#168).
+    if (watcher.defeated) continue;
     if (!isEnemy(watcher, concealedUnit, board)) continue;
     if (chebyshev(watcher.panel ?? {}, concealedUnit.panel ?? {}) > detectRangeOf(watcher, board)) continue;
 

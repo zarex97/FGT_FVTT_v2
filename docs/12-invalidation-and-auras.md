@@ -133,6 +133,8 @@ The rebuild is one-frame stale on display but acceptable: *any resolution rebuil
 
 4. **The aura index narrows candidates; `collectAuras` judges them.** Two relation implementations
    would be two answers to one question (`module/rules/aura-index.mjs:24-25`).
+   One of the judgements is that **a defeated source projects nothing**: its token stays on the board and
+   its aura does not, so a dead Medea's Item Construction no longer shields her ally (#168).
 
 5. **Auras measure from the nearest panel of multi-panel units.** A nine-panel platform reaches further
    than a single panel at the same distance (`module/rules/auras.mjs:250-262`). Both source and recipient

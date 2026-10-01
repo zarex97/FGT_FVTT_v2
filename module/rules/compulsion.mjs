@@ -68,7 +68,10 @@ function decoysOn(units) {
   /** @type {Array<{id: string, radius: number, source: string, panel: object|null, factionId: unknown}>} */
   const out = [];
   for (const unit of units ?? []) {
-    if (unit.concealed) continue;
+    // A defeated Decoy draws nobody: its token stays on the board, and the
+    // enemy it pulled would be compelled to attack a corpse the resolver no
+    // longer offers (#168).
+    if (unit.concealed || unit.defeated) continue;
     for (const sup of unit.suppressions ?? []) {
       if (sup?.scope !== "targeting" || !sup.decoy) continue;
       out.push({
@@ -155,6 +158,8 @@ function compulsionsFor(unit, board) {
       // A unit can never compel itself, however well it matches. Penthesilea
       // is Greek; without this she would be trapped by her own predicate.
       if (other.id === unit.id) continue;
+      // ...nor can a corpse (#168).
+      if (other.defeated) continue;
       if (chebyshev(other.panel ?? {}, unit.panel ?? {}) > (rule.within ?? 0)) continue;
       if (!relationAllowed(rule, unit, other, board)) continue;
       if (rule.targetPredicate && !testPredicate(rule.targetPredicate, {

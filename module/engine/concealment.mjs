@@ -352,7 +352,7 @@ function budgetFor(actor, tick) {
 function recordArrivals(unit, board, acquiredAt, tick) {
   for (const watcher of board?.units ?? []) {
     if (watcher.id === unit.id) continue;
-    if (watcher.kind !== "servant") continue;
+    if (watcher.kind !== "servant" || watcher.defeated) continue;
     if ((watcher.faction ?? watcher.factionId) === (unit.faction ?? unit.factionId)) continue;
     if (!watcher.panel || !unit.panel) continue;
     if (chebyshev(watcher.panel, unit.panel) > detectRangeOf(watcher, board)) continue;

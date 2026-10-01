@@ -2608,6 +2608,18 @@ stale by the time it was read: Foe Alpha, hit at tick 56, boarded at tick 58 nee
 let's say HG.board.dww is 'same Round' instead of turn"*. `attackedBy` moved to the Round Record
 (`roundState`), written with `markRoundState` and read by `boardPlatform` against the current Round.
 
+### CP. A defeated Unit still projected its auras and was still offered as a target — **fixed 2026-10-01** (#168)
+
+**Reached: the Quetzalcoatl paper trace (#65).** Medea was defeated at tick 18, and at tick 25 Ehecatle's Sap
+on Nemo, two panels from her body, read *resisted — rolled 97 vs 50%*: the 50 was her Item Construction. The
+same preview listed "Medea 520–610" as a checked target. §46.4-CN's other half: a defeat never removes the
+token, so every reader that walks `board.units` meets the corpse. `collectAuras` now skips a defeated
+source, and `resolveTargets` drops a defeated Unit with the reason `defeated`, so the preview lists it under
+NOT TARGETED. The sweep that followed found the same gap in `guardsOf` (a dead Servant protected its Master,
+redirected a Counter, denied the zone and covered), in the Decoy and Compulsion readers (a dead Decoy or Greek
+Male would now have left the attacker no legal target), in `allyReactions`, in the Discover watchers, in
+`rescuerFor`, and in the contract's enemy-clearance test. `test/unit/defeated-readers.test.mjs` holds them.
+
 ---
 
 ---
