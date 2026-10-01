@@ -16,7 +16,7 @@ The algorithm is eleven steps plus two upfront checks. Each step narrows the sur
 | `module/rules/targeting/facing.mjs` | Facing prerequisites: front-quadrant checks, path-clear |
 | `module/rules/legality.mjs` | Rendering refusals for the UI (hard/overridable/confirm) |
 | `module/apps/canvas/target-region.mjs` | Transient Region showing the area on the scene |
-| `module/apps/canvas/target-review.mjs` | Confirmation dialog listing chosen, excluded, and damage preview |
+| `module/apps/canvas/target-review.mjs` | Confirmation dialog listing chosen, excluded, and damage preview; its button reads *Attack* for an attack and *Use* otherwise (§46.4-CM) |
 
 ## How it works
 

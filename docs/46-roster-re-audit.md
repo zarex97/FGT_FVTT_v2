@@ -2573,6 +2573,13 @@ session's HGB.act evidence -- *"nine of her own Turns of `elapsedTicks`"* -- mea
 before §46.4-BV the count also fired on the wrong faction's boundary, which happened to land once a Round
 as well.
 
+### CM. Every targeting review confirmed with "Attack" — **fixed 2026-09-30**
+
+**Reached: HGB.act, PC.6, CK's live check.** The review dialog's confirm button read *Attack* for the
+Hanging Gardens' activation aimed at Semiramis herself and for De Sterrennacht's five effects. It now reads
+*Use* for an ability `classifyAbility` does not call an attack, which since §46.4-CK is every ability
+that deals no damage.
+
 ---
 
 ---

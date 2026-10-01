@@ -543,6 +543,7 @@ export async function pickPlacementFor(actor, ability, { requireUnitId = null, e
     spec, caster, board,
     preview: {
       label: ability?.name ?? game.i18n.localize("FGT.Chat.NormalAttack"),
+      isAttack: ability ? classifyAbility(ability).isAttack : true,
       damageFor: (unitId) => {
         const defender = board.units.find((u) => u.id === unitId);
         if (!defender) return null;
