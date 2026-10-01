@@ -97,6 +97,8 @@ The overlay layer redraws when a token is selected, hovered, or when an `fgt.inv
 
 7. **Concealment is invisible to render until checked.** Presence Concealment is not a status or an effect badge; it is a getter checked on every visibility test. An enemy seeing a concealed unit sees it off-level or out of vision, never marked as concealed (`module/apps/canvas/token.mjs:113-128`).
 
+8. **A targeting session hands the canvas back.** `activate()` deactivates every other layer, so a session that only activates the TargetingLayer leaves the canvas there: no token can be controlled and the action bar closes until the player switches control groups and back. Every session that takes the layer (`pick`, `paintPanels`) does so through `#takeCanvas`, which remembers the layer that was active, and returns it in its `finally` through `#handCanvasBack` (the token layer when none was) (`module/apps/canvas/targeting-layer.mjs`, #165). `test/unit/targeting-layer-callsites.test.mjs` fails on any `activate()` without that pairing.
+
 **Watching a field no actor has.** Token vision re-synced when `changes.system.effects` or `changes.system.suppressions` changed on an `updateActor`, and no actor has either field, so neither condition could fire (#104). An effect that moves Detect is an ActiveEffect: the create, update and delete hooks on ActiveEffect now re-sync the bearer's vision.
 
 ## Traps and anti-patterns
