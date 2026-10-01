@@ -69,6 +69,9 @@ import { injuryCheck, INJURY_STAT } from "../rules/injury.mjs";
 import { meetsRequirement } from "../rules/items.mjs";
 import { canUseAbility, resolveCosts, additionalCostsFor } from "../rules/costs.mjs";
 import { attackPreflight, abilityKind } from "./attack-preflight.mjs";
+
+// Re-exported for the tests and callers that reach it through this module (#159).
+export { abilityKind };
 import {
   NP_DECLARATION_WINDOW, DAMAGE_STEP_WINDOW, COMBAT_PHASE_START_WINDOW,
 } from "../rules/windows.mjs";
@@ -606,7 +609,7 @@ function attackerProperty(attacker, property, fallback) {
   return values.length > 0 ? Math.max(...values) : fallback;
 }
 
-function buildAttackSpec({ attacker, ability, abilityId, options, placement = null }) {
+export function buildAttackSpec({ attacker, ability, abilityId, options, placement = null }) {
   return {
       abilityId,
       kind: ability ? abilityKind(ability) : "normal",

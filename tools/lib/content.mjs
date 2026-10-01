@@ -33,6 +33,7 @@ import { REQUIREMENT_KINDS as ABILITY_REQUIREMENT_KINDS } from "../../module/rul
 import { ABILITY_WINDOW_IDS, windowsOf } from "../../module/rules/windows.mjs";
 import { isEmittableOption } from "../../module/rules/options.mjs";
 import { predicateSitesIn } from "../../module/rules/authoring/predicates.mjs";
+import { ABILITY_KINDS } from "../../module/rules/authoring/ability.mjs";
 
 /** The schema version every source file must declare. */
 export const SCHEMA_VERSION = 1;
@@ -870,6 +871,31 @@ function damageInstancesAreWellFormed(doc, path, problems) {
 }
 
 /**
+ * An ability's `kind`, when it states one, is a kind something reads.
+ *
+ * `kind` is a free `StringField`, so a value nothing reads authors cleanly and
+ * does nothing: Quetzalcoatl's three Spells authored `kind: spell`, `isSpell`
+ * stayed false, and they resolved as STR Normal Attacks (#159). Absent is
+ * allowed -- Medea's Aero authors none. A Spell is `isSpell: true`, which is
+ * what `engine/attack.mjs#abilityKind` and the prevention table read.
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} problems
+ */
+function abilityKindIsKnown(doc, path, problems) {
+  if (doc?.kind === undefined || doc?.kind === null) return;
+  if (ABILITY_KINDS.includes(doc.kind)) return;
+  problems.push(
+    `${path}: kind "${doc.kind}" is not an ability kind (expected one of ${ABILITY_KINDS.join(", ")}). `
+    + (doc.kind === "spell"
+      ? "A Spell is `isSpell: true`, beside `kind: skill`: `kind` never made one, so it resolves as a Normal Attack. "
+      : "")
+    + "Read by `rules/copy.mjs`, the sheet's grouping and the copy and snapshot pass-through.",
+  );
+}
+
+/**
  * A damage block carries keys the engine reads, and one base attack.
  *
  * `damage` is one untyped `ObjectField`, so the DataModel and the Silent Drop
@@ -1159,6 +1185,9 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     activeRulesAreReachable(doc, path, problems);
     damageInstancesAreWellFormed(doc, path, problems);
     damageBlocksAreKnown(doc, path, problems);
+    // Scoped by directory: an effect definition shares the ability item type
+    // and has no `kind` to judge.
+    if (dir === "abilities" || dir === "class-skills") abilityKindIsKnown(doc, path, problems);
     // Scoped by itemType: command spells carry `timing.window` too, from a
     // vocabulary of their own.
     if (PACKS[dir]?.itemType === "ability") timingWindowsAreKnown(doc, path, problems);

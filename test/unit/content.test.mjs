@@ -8,6 +8,8 @@ import {
   indexAssets, unitImages, ASSET_ROOT, referenceIndex, referenceNames,
 } from "../../tools/lib/content.mjs";
 import { ABILITY_WINDOW_IDS } from "../../module/rules/windows.mjs";
+import { ABILITY_KINDS } from "../../module/rules/authoring/ability.mjs";
+import { loadSource } from "../../tools/lib/load.mjs";
 
 const file = (doc, path = "test.yml", dir = "effects") => ({ path, dir, doc });
 const ok = (over = {}) => ({ schema: 1, id: "thing", name: "Thing", ...over });
@@ -996,4 +998,46 @@ describe("an OnEvent's at", () => {
       .toMatch(/"at: roundEnd" is never paid/);
     expect(errorsFor([file(ok({ rules: [{ key: "OnEvent", event: "unitDefeated", at: "turnEnd", then: [] }] }))])).toEqual([]);
   });
+});
+
+// #159. `kind` was a free string nobody validated. Quetzalcoatl's three Spells
+// authored `kind: spell`, which nothing reads, so `isSpell` was false and they
+// resolved as STR Normal Attacks: no Def Dwn (MAG), STR Reflect, the wrong
+// prevention at the bill. Semiramis's two `kind: activeSkill` were the same
+// drift with no effect, because the sheet files any unknown kind under Skills.
+describe("an ability's kind (#159)", () => {
+  const errors = (kind, dir = "abilities") => validateAll([file(ok({ kind }), "x.yml", dir)]).problems;
+
+  it("is one of the kinds something reads", () => {
+    expect(ABILITY_KINDS).toEqual(["classSkill", "skill", "noblePhantasm"]);
+    for (const kind of ABILITY_KINDS) expect(errors(kind), kind).toEqual([]);
+  });
+
+  it("may be absent -- Medea's Aero authors none", () => {
+    expect(validateAll([file(ok(), "x.yml", "abilities")]).problems).toEqual([]);
+  });
+
+  it("REFUSES `kind: spell` and points at `isSpell: true`", () => {
+    const out = errors("spell");
+    expect(out.length).toBe(1);
+    expect(out[0]).toMatch(/isSpell: true/);
+  });
+
+  it("REFUSES `kind: activeSkill`, and names what is accepted", () => {
+    const out = errors("activeSkill");
+    expect(out.length).toBe(1);
+    expect(out[0]).toMatch(/classSkill, skill, noblePhantasm/);
+  });
+
+  it("judges class skills too, and nothing outside abilities", () => {
+    expect(errors("spell", "class-skills").length).toBe(1);
+    // An effect definition has no `kind` to judge.
+    expect(errors("spell", "effects")).toEqual([]);
+  });
+
+  it("passes the whole corpus", async () => {
+    const { files } = await loadSource("packs/_source");
+    const bad = validateAll(files).problems.filter((p) => / kind "/.test(p));
+    expect(bad).toEqual([]);
+  }, 30_000);
 });

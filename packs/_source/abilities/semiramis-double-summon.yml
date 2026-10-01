@@ -11,7 +11,7 @@ schema: 1
 id: semiramis-double-summon
 name: "Double Summon"
 rank: B
-kind: activeSkill
+kind: skill
 copyable: { allowed: false, reason: classSkill }
 cooldown: "4◈"
 timing: { window: ownTurn }

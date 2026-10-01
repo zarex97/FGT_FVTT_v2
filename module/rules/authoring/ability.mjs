@@ -48,6 +48,22 @@ export const RUNTIME_FIELDS = Object.freeze([
 ]);
 
 /**
+ * The values an ability's `kind` may take, and every one of them is read.
+ *
+ * `classSkill` cannot be copied (`rules/copy.mjs`), and `classSkill`,
+ * `skill` and `noblePhantasm` are the sheet's three groupings
+ * (`apps/actor-sheet/context.mjs`). `kind` was a free `StringField` nobody
+ * validated, and the corpus drifted to five: Quetzalcoatl's three Spells
+ * authored `kind: spell` (what makes a Spell is `isSpell: true`), so they
+ * resolved as STR Normal Attacks, and Semiramis's two `kind: activeSkill`
+ * did nothing at all (#159). The editor's list and the content validator both
+ * read this one.
+ *
+ * @type {readonly string[]}
+ */
+export const ABILITY_KINDS = Object.freeze(["classSkill", "skill", "noblePhantasm"]);
+
+/**
  * The sections, in rail order — the order a first author needs them, which is
  * also the order the sheet text tends to read in: what it is, what limits it,
  * when it fires, what it needs, what it passively does, where it lands, what
@@ -62,7 +78,7 @@ export const SECTIONS = Object.freeze([
     fields: [
       f("name", "text", "The name as it appears on the sheet and in chat."),
       f("kind", "select", "Class Skill, Personal Skill or Noble Phantasm.", {
-        choices: ["classSkill", "skill", "noblePhantasm"],
+        choices: ABILITY_KINDS,
       }),
       f("rank", "rank", "The Rank this ability is stated at — it drives every ranked table."),
       f("slug", "text", "The short internal name other content refers to this by."),

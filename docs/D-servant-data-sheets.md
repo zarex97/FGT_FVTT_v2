@@ -1233,6 +1233,8 @@ than left to look exercised.
 routes to the same outcome — changing the terrain a panel has. Chapter 42's overlap matrix is
 what keeps them from contradicting one another when two of them cover the same panel.
 
+**The three Quetzalcoatlus Spells** are Damage Spells by `isSpell: true` beside `kind: skill`, the corpus convention (Ch. 17). They authored `kind: spell`, which nothing reads, so they resolved as STR Normal Attacks (#159). Their 3×3 hits **enemies only** — the sheet says only "hits a 3×3 panel area", and the author ruled on 2026-10-01 that it does not catch her allies, her mount or her Master; they use her BA(MAG) 250 at 2×.
+
 ---
 
 ## D.29 EMIYA
