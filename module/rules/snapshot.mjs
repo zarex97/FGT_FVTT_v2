@@ -1448,6 +1448,14 @@ export function resolveRuleValues(rule, magnitude, npMagnitude) {
       if (node.effect.chance !== undefined) out.effect.chance = mine(node.effect.chance);
       if (node.effect.magnitude !== undefined) out.effect.magnitude = mine(node.effect.magnitude);
     }
+    // A `RevivalSource` states how much it restores, and `Guts` makes that the
+    // instance's own size -- `restore: { percentOfMax: "@magnitude" }`. Left as
+    // authored the literal string reached the executor, resolved to nothing
+    // against the unit's refs and became 0%: every Guts spent itself and
+    // defeated its bearer (#128). A named carrier, copied before it is touched.
+    if (node.restore && typeof node.restore === "object" && node.restore.percentOfMax !== undefined) {
+      out.restore = { ...node.restore, percentOfMax: mine(node.restore.percentOfMax) };
+    }
     return out;
   };
 
