@@ -8,7 +8,7 @@
 import {
   boardingTarget, fallOff, destructionSequence, passengersOf, mayBringMaster,
   canFallFrom, nearestFreePlatformPanel, rescuerFor,
-  jumpVerdict, jumpLandings, attackedByReliefApplies, boardingLanding, fallFormula, destructionSaves,
+  jumpVerdict, jumpLandings, attackedByReliefApplies, boardingLanding, fallFormula, destructionSaves, scatterPanels,
 } from "../rules/platforms.mjs";
 import { TURN_RECORD } from "../domain/stamped-record.mjs";
 import { relationOf } from "../rules/relations.mjs";
@@ -541,7 +541,12 @@ export async function destroyPlatform({ platformId, saves = null }) {
   }
 
   const descriptors = destructionSequence(platform, board, { saves: decided });
-  await applyWorldIntents(await toIntents(descriptors), "platform:destroyed");
+  // *"randomly scattered below it"* -- a random free ground panel under the
+  // footprint for each passenger, moved before the level change; they only
+  // ever dropped straight down (§46.4-CJ).
+  const landing = scatterPanels(passengersOf(platform, board), platform, board, () => CONFIG.Dice.randomUniform());
+  const moves = Object.entries(landing).map(([unitId, to]) => I.move(unitId, [to], true));
+  await applyWorldIntents([...(await toIntents(descriptors)), ...moves], "platform:destroyed");
 
   // Ch. 27 steps 4-8, which used to be logged by name. Ordered by the schema
   // rather than by preference: `TokenDocument#level` is required and
