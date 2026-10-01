@@ -40,7 +40,12 @@ description: |
   Fortress NP is deactivated.
   Cooldown: 7◈ Turns.
 targeting:
-  anchor: { kind: withinRange, range: 2, metric: chebyshev }
+  # NO `range:`. The sheet gives this NP no Range of its own, so it reaches as far
+  # as she does (`anchorRange` falls back to the caster's Range): 2 panels at her
+  # statblock, and a buff or a penalty to her Range moves it as it moves every
+  # other attack of hers. `range: 2` froze her statblock's figure here, which
+  # said the same thing until something changed her Range (#65).
+  anchor: { kind: withinRange, metric: chebyshev }
   shape: { kind: unit }
   selection: { relations: [enemy], chooser: chosen, count: 1 }
   limits: { requiresZon: true }
