@@ -523,7 +523,9 @@ async function askBringMaster(master, kind = "Jump") {
  *
  * The order is the specification's and it matters: save, damage the failures,
  * scatter **everyone**, then remove the level. Surviving the fall is not the
- * same as staying in the air.
+ * same as staying in the air. The save and the damage are the Hanging Gardens'
+ * alone (a `collapse` block, ADR 0001): every other platform drops its riders
+ * to the ground with no check and no damage.
  *
  * @param {object} args
  * @param {string} args.platformId
@@ -538,9 +540,11 @@ export async function destroyPlatform({ platformId, saves = null }) {
   // *"all Units on it perform either an Agility Check or a Luck Check roll"* --
   // rolled here when the caller has not, the better of the two for each Unit,
   // which is the one its player would choose. Nobody rolled before, and every
-  // passenger took the 100 (§46.4-CI).
+  // passenger took the 100 (§46.4-CI). Only a platform that states the ladder
+  // rolls it: the Quetzalcoatlus and the Golden Hind said nothing of riders and
+  // rolled two checks and risked 100 each on every way they ended (#139).
   let decided = saves;
-  if (!decided) {
+  if (!decided && platform.collapse) {
     const passengers = passengersOf(platform, board);
     const results = {};
     for (const p of passengers) results[p.id] = await destructionCheck(p);
@@ -549,7 +553,7 @@ export async function destroyPlatform({ platformId, saves = null }) {
     await announceDestruction(platform, passengers, results, rolled, exempt);
   }
 
-  const descriptors = destructionSequence(platform, board, { saves: decided });
+  const descriptors = destructionSequence(platform, board, { saves: decided ?? {} });
   // *"randomly scattered below it"* -- a random free ground panel under the
   // footprint for each passenger, moved before the level change; they only
   // ever dropped straight down (§46.4-CJ).

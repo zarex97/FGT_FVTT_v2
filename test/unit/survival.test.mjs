@@ -64,6 +64,7 @@ export const UNIT_ROUTES = {
   footprint: same("footprint"),
   itemHandling: same("itemHandling"),
   knockOff: same("knockOff"),
+  collapse: same("collapse"),
   linkedGroup: same("linkedGroup"),
   lockAboard: same("lockAboard"),
   mov: same("mov"),

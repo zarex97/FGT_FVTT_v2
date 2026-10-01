@@ -71,6 +71,13 @@ abilities:
 # per Platform, and the Hanging Gardens is the only Platform in the reference
 # set whose sheet states the ladder. Presence of this block IS the opt-in.
 knockOff: { damage: "10x2d6", component: str }
+# "When the HGoB is destroyed, all Units on it perform either an Agility Check
+# or a Luck Check roll. If the roll fails, the Unit takes 100 Fixed STR damage."
+# ADR 0001's decision again, for the platform's END: no other sheet states the
+# ladder, so no other platform has it. Presence of this block IS the opt-in, and
+# it carries the number; the check itself (the better of Agility or Luck, a
+# Master spared by a passing Servant within 2 panels) stays the garden's.
+collapse: { damage: 100, component: str }
 # "If a Unit attempts to board the HGoB on the same Turn it was Attacked by
 # Dragon Wing Warriors, the required roll is reduced by 2." (#68)
 boardingReliefAfter: [semiramis-hgob-dragon-wing-warriors]
