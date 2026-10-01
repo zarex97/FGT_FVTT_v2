@@ -1143,11 +1143,19 @@ export function canUnboard(unit, platform) {
  * @param {string} ctx.unitId who is asking
  * @param {string} ctx.ownerId
  * @param {number} ctx.turnsPerRound
+ * @param {boolean} [ctx.ownTurn] whether it is the owner's Turn; `undefined` when
+ *   the caller cannot tell (no match, the GM's slot), which asks nothing
  * @returns {{ok: boolean, reason?: string, unlocksAt?: number}}
  */
-export function deactivationVerdict(spec, { createdAt, tick, unitId, ownerId, turnsPerRound }) {
+export function deactivationVerdict(spec, { createdAt, tick, unitId, ownerId, turnsPerRound, ownTurn }) {
   if (!spec?.byOwner) return { ok: false, reason: "notAllowed" };
   if (unitId !== ownerId) return { ok: false, reason: "notOwner" };
+  // The WINDOW. *"…during Quetz's Turn or at the start or end of any Round or
+  // Turn"* is `window: any`; a block that states none is the owner's own Turn,
+  // exactly as `rules/modes.mjs#canToggleMode` reads it for a Mode (#101). It
+  // was read for Modes and for no Field or Platform, so the control was offered
+  // at every moment (#150).
+  if (ownTurn === false && spec.window !== "any") return { ok: false, reason: "notOwnTurn" };
   if (!spec.lockout) return { ok: true };
 
   const unlocksAt = (createdAt ?? 0) + resolveTicks(parseTick(spec.lockout), { turnsPerRound });

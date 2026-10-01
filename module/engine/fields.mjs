@@ -1678,13 +1678,25 @@ export async function deactivateField(fieldId, reason = "manual") {
  * @returns {boolean}
  */
 export function mayDeactivate(field, unitId) {
-  return deactivationVerdict(field?.deactivation, {
-    createdAt: field?.createdAt ?? field?.activatedAt ?? 0,
-    tick: game.combat?.system?.globalTurn ?? 0,
-    unitId,
-    ownerId: field?.ownerId,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-  }).ok;
+  return deactivationReason(field, unitId).ok;
+}
+
+/**
+ * Is it the owner's Turn? `undefined` when no faction's Turn is running -- no
+ * match, or the GM's own slot -- which asks nothing of a deactivation window
+ * (the same answer `apps/actor-sheet/sheet.mjs#ownTurnOf` gives a Mode).
+ *
+ * @param {object} field a field OR a platform snapshot
+ * @returns {boolean|undefined}
+ */
+function ownTurnOf(field) {
+  const combat = game.combats?.active;
+  if (!combat?.started) return undefined;
+  const acting = combat.actingFactionId ?? null;
+  if (acting === null) return undefined;
+  const faction = field?.ownerFaction ?? field?.factionId ?? field?.faction
+    ?? game.actors?.get(field?.ownerId)?.system?.factionId ?? null;
+  return faction === acting;
 }
 
 /**
@@ -1705,6 +1717,8 @@ export function deactivationReason(field, unitId) {
     unitId,
     ownerId: field?.ownerId,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    // A block that states no `window` is the owner's own Turn (#150).
+    ownTurn: ownTurnOf(field),
   });
 }
 

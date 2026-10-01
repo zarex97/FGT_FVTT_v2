@@ -730,7 +730,10 @@ describe("the duel field", () => {
 
   it("asks the challenged Unit before it opens, and ends when the table says", () => {
     expect(np.field.requiresConsent).toBe(true);
-    expect(np.field.deactivation).toEqual({ byOwner: true });
+    // `window: any` states what the control always did -- the sheet says nothing
+    // about owner deactivation, and a block with no window is the owner's own
+    // Turn (#150), so the table-arbitration reading is now authored.
+    expect(np.field.deactivation).toEqual({ byOwner: true, window: "any" });
   });
 });
 
