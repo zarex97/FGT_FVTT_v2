@@ -69,23 +69,37 @@ async function clearChannel(actor) {
 }
 
 /**
- * Advance every channelling unit of the given faction by one Turn.
+ * How far a channel has run at the end of a Turn.
  *
- * Called from the unit's OWN Turn ending -- "cannot Act for 3◈ Turns" counts
- * the bearer's own Turns, the same scale Sustainability's clock does, not
- * the global tick.
+ * Every Turn counts, from the one it began in: 1◈ is a Round of Turns (Ch. 04)
+ * and every other ◈ clock -- an effect's expiry, a cooldown -- counts the
+ * global Turn. Counting only the bearer's own Turns made "3◈" nine Rounds
+ * (Ch. 46 §46.4-CL).
  *
- * @param {object[]} units unit snapshots of the faction whose Turn just ended
+ * @param {{startedTick: number, ticksRequired: number}} channel
+ * @param {number} tick the Turn that is ending
+ * @returns {{elapsed: number, complete: boolean}}
+ */
+export function channelProgress(channel, tick) {
+  const elapsed = Math.max(0, tick - (channel?.startedTick ?? tick) + 1);
+  return { elapsed, complete: elapsed >= (channel?.ticksRequired ?? Infinity) };
+}
+
+/**
+ * Advance every channelling unit at the end of a Turn -- any faction's.
+ *
+ * @param {object[]} units every unit on the board
+ * @param {number} tick the Turn that is ending
  * @returns {Promise<void>}
  */
-export async function advanceChannels(units) {
+export async function advanceChannels(units, tick) {
   for (const unit of units) {
     if (!unit.channel) continue;
     const actor = game.actors.get(unit.id);
     if (!actor) continue;
 
-    const elapsed = (unit.channel.elapsedTicks ?? 0) + 1;
-    if (elapsed >= unit.channel.ticksRequired) {
+    const { elapsed, complete } = channelProgress(unit.channel, tick);
+    if (complete) {
       await completeChannel(actor, unit);
     } else {
       await actor.update({ "system.channel.elapsedTicks": elapsed });
