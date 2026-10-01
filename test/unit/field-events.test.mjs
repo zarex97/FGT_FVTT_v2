@@ -153,3 +153,67 @@ describe("the build refuses a field Damage that claims not to be Fixed (#154)", 
     expect(problems({ key: "Damage", amount: 50, fixed: false })[0]).toMatch(/fixed: false/);
   });
 });
+
+/* ========================================================================== */
+/*  A bounded field's interior events act on the living (#153)                */
+/* ========================================================================== */
+
+describe("a field's interior events leave the defeated alone (#153)", () => {
+  beforeAll(async () => { await prepareSubjects(); await prepareFields(); }, 120_000);
+
+  const QZ = "quetzalcoatlAct1";
+  const OWNER = { from: "quetzalcoatl", id: QZ, state: { factionId: "A" }, panel: { i: 6, j: 6 } };
+  const foe = (id, defeated, panel) => ({
+    from: "heracles", id, state: { factionId: "B", ...(defeated ? { defeated: true } : {}) }, panel,
+  });
+  const LIVING = "livingFoeAct0001";
+  const DEAD = "defeatedFoeAct01";
+
+  beforeEach(() => { globalThis.Roll = class { async evaluate() { this.total = 1; return this; } }; });
+  afterEach(() => { delete globalThis.Roll; });
+
+  it("Piedra Del Sol: the 50 and the Burn go to the living enemy and not to the corpse", async () => {
+    const fields = await fieldsOf([{
+      ability: "quetz-piedra-del-sol", owner: QZ, faction: "A", panels: squareAround({ i: 6, j: 6 }, 7),
+    }]);
+    const intents = await withSubjects(
+      [OWNER, foe(LIVING, false, { i: 6, j: 8 }), foe(DEAD, true, { i: 6, j: 9 })],
+      ({ board }) => runFieldEvents("turnEnd", { board, activeFactionId: "B" }),
+      { settings: { fields } },
+    );
+    expect(intents.filter((i) => i.unitId === DEAD)).toEqual([]);
+    expect(intents.filter((i) => i.unitId === LIVING).map((i) => i.t).sort()).toEqual(["applyEffect", "damage"]);
+  });
+
+  it("Blood Fort Andromeda: a defeated Civilian yields no Defeat, Heal or StatDelta", async () => {
+    const fields = await fieldsOf([{
+      ability: "medusa-blood-fort-andromeda", owner: QZ, faction: "A", panels: squareAround({ i: 6, j: 6 }, 7),
+    }]);
+    const civilian = (id, defeated, panel) => ({
+      from: { type: "civilian", id, name: id }, id, panel, ...(defeated ? { state: { defeated: true } } : {}),
+    });
+    const intents = await withSubjects(
+      [OWNER, civilian(LIVING, false, { i: 6, j: 8 }), civilian(DEAD, true, { i: 6, j: 9 })],
+      ({ board }) => runFieldEvents("anyTurnEnd", { board }),
+      { settings: { fields } },
+    );
+    // The living one is killed and pays Medusa once; the corpse is not killed again and pays nobody.
+    expect(intents.filter((i) => i.t === "defeat").map((i) => i.unitId)).toEqual([LIVING]);
+    expect(intents.filter((i) => i.t === "heal")).toHaveLength(1);
+    expect(intents.filter((i) => i.t === "statDelta")).toHaveLength(1);
+    expect(intents.filter((i) => i.t === "log" && i.unitId === DEAD)).toEqual([]);
+  });
+
+  it("a contact event does not wake a corpse either", async () => {
+    // Contact goes through the same filter. Jack's Mist kills a Normal Human *"caught in"* it.
+    const fields = await fieldsOf([{
+      ability: "jack-the-mist", owner: QZ, faction: "A", panels: squareAround({ i: 6, j: 6 }, 5),
+    }]);
+    const civilian = (id, defeated) => ({
+      from: { type: "civilian", id, name: id }, id, panel: { i: 6, j: 7 }, ...(defeated ? { state: { defeated: true } } : {}),
+    });
+    const intents = await withSubjects([OWNER, civilian(DEAD, true)],
+      ({ board }) => runFieldEvents("contact", { board }), { settings: { fields } });
+    expect(intents).toEqual([]);
+  });
+});
