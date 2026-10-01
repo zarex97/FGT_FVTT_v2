@@ -49,6 +49,10 @@ When an attack lands, terrain can change. Fire damage converts a Forest's 3×3 (
 
 Quetzalcoatl's `Sol` creates daylight in a 5×5 around her, and the light follows her as she moves. `followsSource` tags the area, and `repaintFollowing` redraws it around her new panel after every move (`module/engine/movement-hooks.mjs:175-205`). The original expiry is carried across each repaint so the area does not renew with every step (`module/engine/terrain.mjs:197-200`).
 
+### When a timed area ends
+
+A painted area's `duration` is stored as an **absolute expiry tick**, like every other expiry (Ch. 04), and it ends **at the end of the Turn at that tick** — the same boundary, by the same comparison, as an effect stamped with it. `expiryReached(expiry, tick)` (`module/domain/tick.mjs`) is that comparison, and both sweeps ask it of the tick of the Turn that just ended: `scheduler.endTurn` for effects (step 6) and `expireTerrain` for areas (`engine/scheduler-hooks.mjs` hands it the same `tick`). So an area and an effect painted by one use, with one "1◈", are present through the last Turn of their life and gone at its end, together: Sol's 5×5 of Day lasts exactly as long as the Sol buff. `expireTerrain` used to be handed the *next* tick, so the daylight went at the **start** of the Turn Sol was still standing for, and "the 5×5 around Quetz is Day" was false for the last Turn of her buff (#161). A hand-drawn area carries no expiry and is never swept.
+
 ### Movement and removal
 
 An effect that created terrain is removed when the effect expires, dispels, or is cured. The delete hook finds every region tagged with `${defId}:${unitId}` and clears them (`module/engine/terrain.mjs:40-46`). The Meadow clause removes Meadow from specific panels via type, not tag, because it acts on map terrain (`module/engine/terrain.mjs:246-267`).

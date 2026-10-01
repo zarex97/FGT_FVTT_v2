@@ -247,6 +247,27 @@ export function resolveTicks(expr, ctx) {
 }
 
 /**
+ * Has an absolute expiry been reached at a tick?
+ *
+ * THE comparison, for every clock that stores an absolute expiry: an effect
+ * (`scheduler.expireEffects`) and a painted terrain area
+ * (`engine/terrain.mjs#expireTerrain`) stamped with one expiry go at the same
+ * boundary, because they ask this of the same tick -- the tick of the Turn that
+ * just ended. Sol's daylight was gone a Turn before Sol was, because the two
+ * sweeps were handed different ticks (#161).
+ *
+ * `null`, `undefined` and `INFINITE` mean no clock.
+ *
+ * @param {number|null|undefined} expiry
+ * @param {number} tick
+ * @returns {boolean}
+ */
+export function expiryReached(expiry, tick) {
+  if (expiry === null || expiry === undefined || expiry === INFINITE) return false;
+  return expiry <= tick;
+}
+
+/**
  * Parse and resolve in one call.
  * @param {string|number|null|undefined} input
  * @param {{turnsPerRound: number}} ctx
