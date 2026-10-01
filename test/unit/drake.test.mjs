@@ -549,9 +549,8 @@ describe("Drake — Golden Wild Hunt (NP2)", () => {
     // The sheet exempts only the Range. `contentId`, not `unit`: a board
     // lookup cannot answer a Noble Phantasm that fires with no ship on the
     // board, and would fall back to her own 100.
-    // `base.sources`, NOT a top-level `sources`: `baseSpecFor` reads
-    // `damage.base` and otherwise falls through to the caster's declared
-    // component. Found live -- the breakdown read "self BA(MAG) x 1" = 100.
+    // Found live when a top-level `sources` was authored: the breakdown read
+    // "self BA(MAG) x 1" = 100. Both spellings are read now (#135).
     expect(a.damage.sources).toBeUndefined();
     expect(a.damage.base.sources).toEqual([
       { contentId: "platform-golden-hind", component: "mag", factor: 1 },

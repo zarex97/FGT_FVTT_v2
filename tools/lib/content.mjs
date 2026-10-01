@@ -21,6 +21,7 @@ import { TABLES, lookup } from "../../module/domain/tables.mjs";
 import { PRIORITY_BANDS } from "../../module/rules/ordering.mjs";
 import { ANCHOR_IDS, SHAPE_IDS, CHOOSER_IDS } from "../../module/rules/targeting/vocabulary.mjs";
 import { MODIFIER_KEYS } from "../../module/rules/damage/pipeline.mjs";
+import { DAMAGE_BLOCK_KEYS } from "../../module/rules/damage/instances.mjs";
 import { ROUTES as AURA_ROUTES } from "../../module/rules/auras.mjs";
 import { TERRAIN } from "../../module/rules/terrain.mjs";
 import { PERIODIC_KEYS, PERIODIC_WHEN, PERIODIC_SCALINGS } from "../../module/rules/periodic.mjs";
@@ -869,6 +870,57 @@ function damageInstancesAreWellFormed(doc, path, problems) {
 }
 
 /**
+ * A damage block carries keys the engine reads, and one base attack.
+ *
+ * `damage` is one untyped `ObjectField`, so the DataModel and the Silent Drop
+ * guards cannot see a subkey: Xiuhcoatl's top-level `sources` reached the
+ * Combat Process and was dropped there, and she dealt 500 where her sheet says
+ * 1000 (#135). Two refusals, over the primary block, its `branches` and
+ * `instances`, and an aftermath's:
+ *
+ * - `base` and `sources` together. They are two spellings of one thing
+ *   (`damageBaseOf`), and a silent precedence is how the half that loses goes
+ *   unnoticed.
+ * - A key that is not in `DAMAGE_BLOCK_KEYS`, the list taken from what the
+ *   engine reads off the block. A typo'd `multipler` is otherwise a Clause that
+ *   does not happen.
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} problems
+ */
+function damageBlocksAreKnown(doc, path, problems) {
+  const known = new Set(DAMAGE_BLOCK_KEYS);
+  /** @type {Array<[string, unknown]>} */
+  const blocks = [];
+  for (const [where, damage] of [["damage", doc.damage], ["aftermath.damage", doc.aftermath?.damage]]) {
+    if (!damage || typeof damage !== "object") continue;
+    const listed = (list, label) => (Array.isArray(list) ? list : []).map((b, i) => [`${label}[${i}]`, b]);
+    blocks.push(
+      [where, damage],
+      ...listed(damage.branches, `${where}.branches`),
+      ...listed(damage.instances, `${where}.instances`),
+    );
+  }
+  for (const [where, block] of blocks) {
+    if (!block || typeof block !== "object" || Array.isArray(block)) continue;
+    if (block.base !== undefined && block.sources !== undefined) {
+      problems.push(
+        `${path}: ${where} declares both "base" and "sources". They are two spellings of one `
+        + "base attack (`damageBaseOf`); state it once, as `base: { sources: [...] }` or as `sources: [...]`.",
+      );
+    }
+    for (const key of Object.keys(block)) {
+      if (known.has(key)) continue;
+      problems.push(
+        `${path}: ${where} carries "${key}", which nothing reads, so the clause it states does not `
+        + `happen. The keys the engine reads off a damage block: ${DAMAGE_BLOCK_KEYS.join(", ")}.`,
+      );
+    }
+  }
+}
+
+/**
  * Every `anyOf` holds bare option STRINGS, and nothing else.
  *
  * `rules/predicate.mjs` gives `anyOf` a different contract from its
@@ -1106,6 +1158,7 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
   } else {
     activeRulesAreReachable(doc, path, problems);
     damageInstancesAreWellFormed(doc, path, problems);
+    damageBlocksAreKnown(doc, path, problems);
     // Scoped by itemType: command spells carry `timing.window` too, from a
     // vocabulary of their own.
     if (PACKS[dir]?.itemType === "ability") timingWindowsAreKnown(doc, path, problems);

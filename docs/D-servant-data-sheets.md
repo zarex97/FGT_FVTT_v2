@@ -1208,6 +1208,7 @@ above the board.
 | `phaseAt` | Ch. 42 §42.6 | The chapter had already written the function out, naming `Sol` as its case. |
 | `elementFraction` | Ch. 13 §13 stage 4b | Needed the element modifiers to be **readable** first — six terrain types had emitted them into a void since terrain shipped. |
 | `aftermath` | Ch. 12 | A second unconditional resolution with its own damage and riders. |
+| `damage.base` / `damage.sources` | Ch. 22 stage 1 | Both spellings of a base attack are read by one function (`damageBaseOf`); her primary authored `sources` at the top and lost the MAG half to `component: str` until it was (#135). The validator refuses both together, and any key outside `DAMAGE_BLOCK_KEYS`. |
 | `replacesRiderAction` | Ch. 20 | First platform a passenger drives. Its base attack is `ctx.units.mount` — stage 1's named-source lookup, which nothing had ever supplied. |
 | Platform upkeep / `lockout` / `countFrom: destroyed` | Ch. 20 | Shared with a bounded field, because two of her NPs carry the same blocks. |
 

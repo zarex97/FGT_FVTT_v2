@@ -56,11 +56,11 @@ damage:
   multiplier: 4
   flatBonus: 100
   component: mag
-  # `base.sources`, NOT a top-level `sources`. `engine/attack.mjs#baseSpecFor`
-  # reads `damage.base` and falls through to "the caster's declared component"
-  # otherwise -- so a top-level `sources` is ignored. Nemo's Great Ram authors
-  # one and works only because it happens to restate the fallback's own value.
-  # Found live: this Noble Phantasm's breakdown read "self BA(MAG) x 1" = 100.
+  # `base.sources`. Found live when a top-level `sources` was here: the resolver
+  # read `damage.base` and fell through to "the caster's declared component", so
+  # the breakdown read "self BA(MAG) x 1" = 100. Both spellings are read now
+  # (`damageBaseOf`, #135) and the validator refuses the pair, so either is safe;
+  # this one stays.
   base:
     sources:
       # Spec R1: the SHIP's 200, present or not.

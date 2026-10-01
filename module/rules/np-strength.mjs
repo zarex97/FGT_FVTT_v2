@@ -31,6 +31,7 @@
  */
 
 import { computeDamage } from "./damage/pipeline.mjs";
+import { damageBaseOf } from "./damage/instances.mjs";
 
 /**
  * The expected total of `5d10`, the attack roll every damage event makes.
@@ -105,7 +106,9 @@ export function expectedDamage(ability, attacker) {
       },
       base: spec.fixed
         ? { fixedValue: spec.base?.fixedValue ?? 0 }
-        : (spec.base ?? { sources: [{ unit: "self", component: spec.component ?? "str", factor: 1 }] }),
+        // The same reader the resolution uses, so a block that authors its
+        // sources at the top ranks at what it deals (#135).
+        : (damageBaseOf(spec) ?? { sources: [{ unit: "self", component: "str", factor: 1 }] }),
       multiplier: spec.multiplier ?? 1,
       flatBonus: spec.flatBonus ?? 0,
       // Every conditional multiplier the ability declares, taken as though it

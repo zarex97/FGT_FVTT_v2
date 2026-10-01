@@ -52,3 +52,57 @@ export function expandInstances(damage) {
   const n = Math.max(1, typeof repeat === "number" ? repeat : (repeat ?? 1));
   return Array.from({ length: n }, () => ({ ...shared }));
 }
+
+/**
+ * The base attack of a damage block.
+ *
+ * Three spellings reach the pipeline, and every reader used to know a different
+ * subset. `damage.base` is the long form: `{sources}` or `{fixedValue}`.
+ * `damage.sources` is the short one, which an aftermath has always been read
+ * by and which Xiuhcoatl authored on her primary -- where the resolution read
+ * `base`, failed, and fell back to one source built from `component`, so she
+ * dealt the STR half of her *"Base Attack (STR) and half of Base Attack (MAG)"*
+ * and lost the rest (#135). `damage.component` alone is one source, factor 1.
+ *
+ * One reader, used by the resolution, the card, the sheet's preview and the NP
+ * ranking, so the four cannot disagree. A block that names none returns
+ * `null` and the caller falls back to the Normal Attack, as it always did.
+ *
+ * @param {object|null|undefined} block a `damage` block, a branch, an instance or an aftermath's
+ * @returns {{sources?: object[], fixedValue?: number}|null}
+ */
+export function damageBaseOf(block) {
+  if (!block) return null;
+  if (block.base) return block.base;
+  if (Array.isArray(block.sources) && block.sources.length > 0) return { sources: block.sources };
+  if (block.component) return { sources: [{ unit: "self", component: block.component, factor: 1 }] };
+  return null;
+}
+
+/**
+ * Every key a damage block (or one of its `branches` and `instances`) may carry.
+ *
+ * Taken from what the engine reads off the block: `buildAttackSpec` and
+ * `applyDamage` through `resolvedDamage(`, the rest spread onto the attack by
+ * {@link expandInstances} and read by the pipeline off `ctx.attack`. The
+ * validator refuses any other (`tools/lib/content.mjs`), because a key nothing
+ * reads is a Clause that does not happen and a build that says nothing
+ * (#135). `drake-golden-wild-hunt.yml` recorded the one instance anybody found
+ * live -- *"a top-level `sources` is ignored"* -- and never generalised it.
+ *
+ * @type {readonly string[]}
+ */
+export const DAMAGE_BLOCK_KEYS = Object.freeze([
+  // what the attack is built from
+  "base", "sources", "component", "multiplier", "flatBonus", "conditionalMultipliers",
+  "fixed", "fixedValue", "formula", "bands",
+  // what it counts as
+  "element", "elementFraction", "aim", "pierce", "pierceOn",
+  "ignoresMagicResistance", "ignoresDefUp", "ignoresAttackerIncreases", "isAoE",
+  // how the modifiers treat it
+  "bypassModifiers", "modifierSources", "excludeModifierSources", "totalModifiers",
+  // what the defender may answer it with
+  "unblockable", "evadableOnlyBy", "evadeModifier", "noEvadeAfterFail", "singleInjuryRoll", "skipIf",
+  // how it fans out
+  "repeat", "instances", "branches", "predicate", "kind",
+]);
