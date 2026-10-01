@@ -15,9 +15,7 @@ import { classifyAbility, needsTargeting } from "../../rules/ability-use.mjs";
 import { canToggleMode } from "../../rules/modes.mjs";
 import { mayChangeStance } from "../../rules/stance.mjs";
 import { unitSnapshot, currentTick, clockRunning } from "../../engine/board.mjs";
-import { attackFacts } from "../../engine/attack.mjs";
-import { normalAttackAt } from "../../rules/normal-attack.mjs";
-import { rollOptionsFor } from "../../rules/options.mjs";
+import { previewContext } from "../../engine/attack.mjs";
 import { dealsNoDamage } from "../../rules/ability-use.mjs";
 import { buildContext } from "./context.mjs";
 import { editImage } from "../image-edit.mjs";
@@ -565,11 +563,6 @@ export async function pickPlacementFor(actor, ability, { requireUnitId = null, e
 }
 
 /**
- * The damage context the preview runs, without any rolls.
- * @param {object} args
- * @returns {object}
- */
-/**
  * Is it this actor's faction's Turn? `undefined` when no faction's Turn is
  * running -- no match, or the GM's own slot -- which asks nothing of a mode.
  * @param {object} actor
@@ -581,43 +574,6 @@ function ownTurnOf(actor) {
   const faction = factionOfCombatant(combat.combatant);
   if (faction === null) return undefined;
   return (actor.system?.factionId ?? null) === faction;
-}
-
-function previewContext({ caster, defender, ability, board, isNP }) {
-  // Through the SAME facts builder the resolution uses. This built its own
-  // three-line version, which meant the preview ignored an ability's declared
-  // `damage.base` -- Karna's combined STR+MAG read as plain STR -- and handed
-  // the pipeline an EMPTY option set, so every predicated modifier on either
-  // side was dropped and the range it showed was a different rule from the one
-  // that would run.
-  const facts = attackFacts(caster, defender, {
-    attack: {
-      kind: isNP ? "np" : "normal",
-      abilityId: ability?.id ?? null,
-      component: ability?.system?.damage?.component ?? null,
-      aim: Boolean(ability?.system?.damage?.aim),
-      pierce: Boolean(ability?.system?.damage?.pierce),
-      ignoresMagicResistance: Boolean(ability?.system?.damage?.ignoresMagicResistance),
-    },
-  });
-
-  return {
-    attacker: caster, defender, board,
-    attack: {
-      ...facts,
-      categorizedAsNP: Boolean(ability?.system?.categorizedAsNP),
-      element: ability?.system?.element ?? null,
-    },
-    base: ability?.system?.damage?.base
-      ?? { sources: normalAttackAt(caster, facts.range).sources },
-    multiplier: ability?.system?.damage?.multiplier ?? 1,
-    flatBonus: ability?.system?.damage?.flatBonus ?? 0,
-    conditionalMultipliers: ability?.system?.damage?.conditionalMultipliers ?? [],
-    crit: { isCrit: false, chanceUsed: 0 },
-    reaction: { kind: "none" },
-    luckChecks: {},
-    options: rollOptionsFor({ attacker: caster, defender, attack: facts }),
-  };
 }
 
 /**

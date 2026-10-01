@@ -3838,6 +3838,7 @@ async function applyDamage(state, message) {
     ? false
     : (critSpec.automatic || critRoll.total <= critSpec.percent);
   const attackRoll = await new Roll("5d10").evaluate();
+  const identity = attackIdentityOf(ability, options);
 
   const ctx = {
     attacker, defender, board,
@@ -3852,18 +3853,13 @@ async function applyDamage(state, message) {
       // read by `activeMods` -- the mirror of `excludeModifierSources`, which
       // lives on this same object for the same reason.
       modifierSources: resolvedDamage(ability, options)?.modifierSources ?? [],
-      rank: Rank.parseOrNull(ability?.system?.rank),
-      categorizedAsNP: Boolean(ability?.system?.categorizedAsNP),
-      // The branch-resolved element first, then the ability's own. Rebuilding it
-      // from `ability.system` alone would drop a `damage.branches` element the
-      // way this block used to drop `component` and `pierce` -- Karna's
-      // Brahmastra Kundala is Fire and his Brahmastra is not, and both are the
-      // same Servant's Noble Phantasms.
-      element: resolvedDamage(ability, options)?.element ?? ability?.system?.element ?? facts.element ?? null,
-      // See the note at the first spec-building site: the fraction travels with
-      // the element or the attack silently becomes whole-element.
-      elementFraction: resolvedDamage(ability, options)?.elementFraction
-        ?? ability?.system?.damage?.elementFraction ?? facts.elementFraction ?? undefined,
+      // Rank, scale tags, whether it counts as an NP, and the element with its
+      // fraction: one builder, shared with the preview and the counterfactual
+      // (#124). A Normal Attack has no ability document, so its element is the
+      // one `attackFacts` took from the Unit's own spec.
+      ...identity,
+      element: identity.element ?? facts.element ?? null,
+      elementFraction: identity.elementFraction ?? facts.elementFraction ?? undefined,
       // Dragon Wing Warriors: "50 Fixed STR damage". The pipeline has read
       // `ctx.attack.isFixedDamage` (stages 1 and 2, `rules/damage/pipeline.mjs`)
       // since it was written; nothing ever set it from content, so an authored
@@ -5102,11 +5098,19 @@ export function targetSpecForAttack(attacker, ability, options = null) {
 }
 
 /**
- * @param {object} attacker
+ * The base an ability STATES, which needs neither the caster's document nor the
+ * board: its own `damage.base`, or a bare `damage.component` read as that
+ * component of the caster's own Base Attack. `null` when it states neither, and
+ * the caller falls back to the caster's Normal Attack.
+ *
+ * Shared by `baseSpecFor` (the resolution) and `previewContext`, so the number a
+ * card deals and the number the preview shows are built from the same clause.
+ *
  * @param {object|null} ability
- * @returns {object}
+ * @param {Set<string>|null} options
+ * @returns {{sources: object[]}|object|null}
  */
-function baseSpecFor(attacker, ability, range = null, options = null) {
+function declaredBase(ability, options = null) {
   const dmg = resolvedDamage(ability, options);
   if (dmg?.base) return dmg.base;
 
@@ -5123,7 +5127,17 @@ function baseSpecFor(attacker, ability, range = null, options = null) {
   // Hrunting and Caladbolg II, Medea's Aero and Rain of Light, and three of
   // Scáthach's four all did the same. Found live.
   const declared = dmg?.component ?? null;
-  if (declared) return { sources: [{ unit: "self", component: declared, factor: 1 }] };
+  return declared ? { sources: [{ unit: "self", component: declared, factor: 1 }] } : null;
+}
+
+/**
+ * @param {object} attacker
+ * @param {object|null} ability
+ * @returns {object}
+ */
+function baseSpecFor(attacker, ability, range = null, options = null) {
+  const stated = declaredBase(ability, options);
+  if (stated) return stated;
 
   // Through the same rule the option set used, so the number the pipeline adds
   // up and the component a predicate tests cannot disagree.
@@ -5217,6 +5231,111 @@ export function attackFacts(attacker, defender, state) {
     // the pipeline's element stage returned at once and the type was lost.
     element: normal.element ?? facts.element ?? null,
     ignoresMagicResistance: facts.ignoresMagicResistance || normal.ignoresMagicResistance,
+  };
+}
+
+/**
+ * The damage context the targeting preview runs, without any rolls.
+ *
+ * Lives beside `attackFacts` and `counterfactualDamage` because it is the third
+ * thing that builds an attack for the pipeline, and the preview is a promise
+ * about what the resolution will do (#124).
+ *
+ * @param {object} args
+ * @param {object} args.caster the caster's board snapshot
+ * @param {object} args.defender the defender's board snapshot
+ * @param {object|null} args.ability the ability Item, or `null` for a Normal Attack
+ * @param {object} args.board
+ * @param {boolean} args.isNP
+ * @returns {object}
+ */
+export function previewContext({ caster, defender, ability, board, isNP }) {
+  // Through the SAME facts builder the resolution uses. This built its own
+  // three-line version, which meant the preview ignored an ability's declared
+  // `damage.base` -- Karna's combined STR+MAG read as plain STR -- and handed
+  // the pipeline an EMPTY option set, so every predicated modifier on either
+  // side was dropped and the range it showed was a different rule from the one
+  // that would run.
+  //
+  // The attack's IDENTITY -- its Rank, its scale tags, whether it counts as a
+  // Noble Phantasm, its element -- comes from `attackIdentityOf`, which the
+  // resolution and the counterfactual call too (#124). The preview built none of
+  // it: with no `rank`, stage 11 compared Magic Resistance against the caster's
+  // MAG where the card compares it against the NP's own Rank, and with no
+  // `npTags` the `attack:npScale:*` options the resolver carries were absent.
+  const stated = attackIdentityOf(ability);
+  const facts = attackFacts(caster, defender, {
+    attack: {
+      kind: isNP ? "np" : "normal",
+      abilityId: ability?.id ?? null,
+      component: ability?.system?.damage?.component ?? null,
+      aim: Boolean(ability?.system?.damage?.aim),
+      pierce: Boolean(ability?.system?.damage?.pierce),
+      ignoresMagicResistance: Boolean(ability?.system?.damage?.ignoresMagicResistance),
+      ...stated,
+    },
+  });
+  const options = rollOptionsFor({ attacker: caster, defender, attack: facts });
+  // Branch-resolved against the full option set, as `damageContext` does.
+  const damage = resolvedDamage(ability, options);
+  const identity = attackIdentityOf(ability, options);
+
+  return {
+    attacker: caster, defender, board,
+    attack: {
+      ...facts,
+      ...identity,
+      element: identity.element ?? facts.element ?? null,
+      elementFraction: identity.elementFraction ?? facts.elementFraction ?? undefined,
+    },
+    // `declaredBase` is the part of `baseSpecFor` that needs no document: an
+    // ability that declares a `damage.component` and no `base` is built from that
+    // component. Without it every such Noble Phantasm was previewed from the
+    // caster's Normal Attack -- Brahmastra as BA(STR), a physical number the card
+    // never deals.
+    base: declaredBase(ability, options)
+      ?? { sources: normalAttackAt(caster, facts.range).sources },
+    multiplier: damage?.multiplier ?? 1,
+    flatBonus: damage?.flatBonus ?? 0,
+    conditionalMultipliers: damage?.conditionalMultipliers ?? [],
+    crit: { isCrit: false, chanceUsed: 0 },
+    reaction: { kind: "none" },
+    luckChecks: {},
+    options,
+  };
+}
+
+/**
+ * What an ability IS, as an attack: the facts about it that are the ability's
+ * own and not the caster's or the target's.
+ *
+ * One builder for the three places that put an ability into the damage pipeline
+ * -- the resolution (`damageContext`), the counterfactual and the targeting
+ * preview -- because three hand-built copies of this object drifted: the
+ * preview built none of it, and stage 11 compared Magic Resistance against the
+ * caster's MAG instead of the Noble Phantasm's own Rank (#124).
+ *
+ * `rank` is a `Rank` here, for a pure pipeline stage to compare. The
+ * declaration (`buildAttackSpec`) stamps the raw string instead, because that
+ * object is stored with the Combat Process.
+ *
+ * @param {object|null} ability the ability Item, or `null` for a Normal Attack
+ * @param {Set<string>|null} [options] resolves a `damage.branches` element
+ * @returns {{rank: Rank|null, npTags: string[], categorizedAsNP: boolean, element: string|null, elementFraction: number|undefined}}
+ */
+export function attackIdentityOf(ability, options = null) {
+  const damage = resolvedDamage(ability, options);
+  return {
+    rank: Rank.parseOrNull(ability?.system?.rank),
+    npTags: [...(ability?.system?.npTags ?? [])],
+    categorizedAsNP: Boolean(ability?.system?.categorizedAsNP),
+    // The branch-resolved element first, then the ability's own. Rebuilding it
+    // from `ability.system` alone would drop a `damage.branches` element: Karna's
+    // Brahmastra Kundala is Fire and his Brahmastra is not.
+    element: damage?.element ?? ability?.system?.element ?? null,
+    // The fraction travels with the element or the attack silently becomes
+    // whole-element.
+    elementFraction: damage?.elementFraction ?? ability?.system?.damage?.elementFraction ?? undefined,
   };
 }
 
@@ -6313,6 +6432,33 @@ async function resolveNPCancellation({
 }
 
 /**
+ * The attack `counterfactualDamage` computes, on its own so a test can hold it
+ * against the one the targeting preview builds (#124).
+ *
+ * @param {object} args
+ * @param {object} args.attackerDoc
+ * @param {object} args.ability
+ * @param {Set<string>} args.options
+ * @param {number|null} args.range
+ * @returns {object}
+ */
+export function counterfactualAttack({ attackerDoc, ability, options, range }) {
+  const damage = resolvedDamage(ability, options);
+  return {
+    kind: "np",
+    abilityId: ability.id,
+    // Rank, scale tags, NP category and element: the one builder (#124).
+    ...attackIdentityOf(ability, options),
+    component: componentOf(attackerDoc, ability, options),
+    ignoresMagicResistance: Boolean(damage?.ignoresMagicResistance),
+    pierce: Boolean(damage?.pierce),
+    aim: Boolean(damage?.aim),
+    isFixedDamage: Boolean(damage?.fixed),
+    range,
+  };
+}
+
+/**
  * What an ability WOULD have dealt, with every die at its expected value.
  *
  * The pipeline is pure and takes its randomness through `ctx.rolls`, so this is
@@ -6332,22 +6478,7 @@ function counterfactualDamage({ attackerDoc, ability, board, options, defenderUn
     attacker: attackerUnit,
     defender: defenderUnit,
     board,
-    attack: {
-      kind: "np",
-      abilityId: ability.id,
-      rank: Rank.parseOrNull(ability.system?.rank),
-      component: componentOf(attackerDoc, ability, options),
-      categorizedAsNP: Boolean(ability.system?.categorizedAsNP),
-      element: damage?.element ?? ability.system?.element ?? null,
-      // See the note at the first spec-building site.
-      elementFraction: damage?.elementFraction ?? undefined,
-      ignoresMagicResistance: Boolean(damage?.ignoresMagicResistance),
-      pierce: Boolean(damage?.pierce),
-      aim: Boolean(damage?.aim),
-      isFixedDamage: Boolean(damage?.fixed),
-      range,
-      npTags: [...(ability.system?.npTags ?? [])],
-    },
+    attack: counterfactualAttack({ attackerDoc, ability, options, range }),
     base: baseSpecFor(attackerDoc, ability, range, options),
     multiplier: damage?.multiplier ?? 1,
     flatBonus: damage?.flatBonus ?? 0,

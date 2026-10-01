@@ -26,6 +26,7 @@ The boundary enforced in chapter 02 — that `domain/` and `rules/` import nothi
 | `test/unit/rule-survival.test.mjs` | No normalizer or executor drops a key authored inside a rule element |
 | `test/unit/survival.test.mjs` | Every Authored Key in the real corpus survives compile, DataModel and projection to a named route |
 | `test/helpers/world.mjs` | A world faithful enough to run `engine/io.mjs` against — `withWorld({...}, fn)`, restoring globals in a `finally` |
+| `test/helpers/client-namespace.mjs` | The base classes Foundry's *client* `foundry.applications.api` offers a module-scope `class extends`, so `engine/attack.mjs` (which reaches the HUD through the chat card) can be imported by a test; nothing is rendered (#124) |
 | `tools/smoke-world.mjs` | Launches a real world via Chrome DevTools Protocol and fails if it does not reach `game.ready` |
 | `tools/check-world.mjs` | Holds `test/helpers/world.mjs` against a live world, probe by probe (`npm run check:world`) |
 
