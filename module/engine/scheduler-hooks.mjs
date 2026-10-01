@@ -158,12 +158,12 @@ async function onTurnChange(combat, prior, current) {
   const { runDimensionClock } = await import("./dimension.mjs");
   await runDimensionClock(tick);
 
-  // A channelling unit's own Turn ending, uninterrupted -- the Hanging
-  // Gardens' "cannot Act for 3◈ Turns." Scoped to the active faction's units
-  // for the same reason `turnEnd` handlers are: this counts THIS unit's own
-  // Turn, not the global tick.
+  // A channel uninterrupted -- the Hanging Gardens' "cannot Act for 3◈
+  // Turns." Every unit, at every Turn's end: a channel's 3◈ counts the global
+  // Turn like every other ◈ clock, Nemo's dimension above included, not only
+  // the bearer's own (§46.4-CL).
   const { advanceChannels } = await import("./channel.mjs");
-  await advanceChannels(activeUnits);
+  await advanceChannels(board.units, tick);
 
   // The faction that just finished is frozen in the order: a Delay declared
   // from here on applies to the next Round, not to a turn already taken.

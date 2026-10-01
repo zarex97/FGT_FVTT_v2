@@ -2562,6 +2562,17 @@ attack in the sense that you wouldn't walk through the ladder/rung."* So:
 - A Unit that is the harmless subject of its own ability skips its reaction rung even on the attack path
   (`harmlessToSelf`), for a branch that resolves to `fixedValue: 0`.
 
+### CL. The Hanging Gardens' 3◈ took nine Rounds — **fixed 2026-09-30**
+
+**Reached: HGB.act.** The re-activation opened `{ticksRequired: 9}`, and `advanceChannels` added one
+only at the end of the bearer's own Turns -- nine Rounds, where *"cannot Act for 3◈ Turns"* is three:
+1◈ is a Round of Turns (Ch. 04), and an effect's `expiresAt`, a cooldown and Nemo's dimension clock all
+count the global Turn. The channel's comment claimed Sustainability's scale for the choice. It now runs at
+every Turn's end, for every channelling unit, from the Turn it began in (`channelProgress`). The previous
+session's HGB.act evidence -- *"nine of her own Turns of `elapsedTicks`"* -- measured the defect. Measured
+before §46.4-BV the count also fired on the wrong faction's boundary, which happened to land once a Round
+as well.
+
 ---
 
 ---

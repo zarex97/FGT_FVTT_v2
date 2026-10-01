@@ -72,7 +72,7 @@ Cooldowns may start later: Presence Concealment's `2◈` begins "AFTER PC is dea
 
 ### Channeling
 
-A multi-Turn ability charging is stored on the Unit, not the ability (`module/engine/channel.mjs:38-58`). The Hanging Gardens of Babylon is the only clause using this: Semiramis cannot Act for 3◈ Turns while it charges, and any attack during that window interrupts it and forces a restart. The cost is **deferred** — charged only when the channel completes, not at the start (`module/engine/channel.mjs:1-20`).
+A multi-Turn ability charging is stored on the Unit, not the ability (`module/engine/channel.mjs:38-58`). The Hanging Gardens of Babylon is the only clause using this: Semiramis cannot Act for 3◈ Turns while it charges, and any attack during that window interrupts it and forces a restart. The 3◈ counts every Turn, any faction's, from the one it began in (`channel.mjs#channelProgress`), as effect expiries and cooldowns do; it counted only her own Turns, which made it nine Rounds (§46.4-CL). The cost is **deferred** — charged only when the channel completes, not at the start (`module/engine/channel.mjs:1-20`).
 
 A declaration interrupts every channel its targets hold, except the declarer's own (`module/rules/ability-use.mjs:202-204`). Semiramis cannot interrupt her own Hanging Gardens' channel by using it.
 
