@@ -12,7 +12,7 @@
  */
 
 import { classifyAbility, needsTargeting } from "../../rules/ability-use.mjs";
-import { canToggleMode } from "../../rules/modes.mjs";
+import { canToggleMode, pricedOnEntry } from "../../rules/modes.mjs";
 import { mayChangeStance } from "../../rules/stance.mjs";
 import { unitSnapshot, currentTick, clockRunning } from "../../engine/board.mjs";
 import { previewContext } from "../../engine/attack.mjs";
@@ -169,10 +169,10 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     // A mode may have an ENTRY PRICE, and until Mannanán none did. Mad
-    // Enhancement, Presence Concealment and Riding's Active are all free
-    // switches, so the toggle was a bare write and every gate an ordinary
-    // ability is checked against -- its requirements, its cooldown, its
-    // whole-match budget -- was simply absent from this path.
+    // Enhancement and Presence Concealment are free switches, so the toggle was
+    // a bare write and every gate an ordinary ability is checked against -- its
+    // requirements, its cooldown, its whole-match budget -- was simply absent
+    // from this path.
     //
     // *God's Holder: Possession* is the first that is not: *"can only be used
     // when Mannanán's Health is less than 30% of its maximum value OR when she
@@ -181,9 +181,13 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // her Health to 50% of its maximum value."* Three gates and three writes,
     // none of which a boolean flip performs.
     //
+    // Riding's Active is the second, and has no phases at all: *"Cooldown: 3◈
+    // Turns"* is a clock that starts at the press, which a bare flip never
+    // started (#116). `pricedOnEntry` is the one question both answer.
+    //
     // Switching a mode OFF never pays: an exit price is not a thing any sheet
     // in the corpus states, and charging one would be inventing a rule.
-    if (active && (item.system?.phases ?? []).length > 0) {
+    if (active && pricedOnEntry(item)) {
       const { useSkill } = await import("../../engine/skill-use.mjs");
       const out = await useSkill({ actorId: actor.id, abilityId: item.id });
       if (!out.ok) {
@@ -208,10 +212,11 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     // RECORD the press, for the modes that ration it. `canToggleMode` above can
     // only refuse a second switch if something wrote the first one down, and
-    // this path wrote nothing: a mode with no `phases` never calls `useSkill`,
-    // which is where every other use in the game is recorded. Narrowed to the
-    // modes that declare a limit so an ordinary free toggle -- Mad Enhancement,
-    // Presence Concealment, Riding -- does not start appearing in a record that
+    // this path wrote nothing: a mode that is not `pricedOnEntry` never calls
+    // `useSkill`, which is where every other use in the game is recorded.
+    // Narrowed to the modes that declare a limit so an ordinary free toggle --
+    // Mad Enhancement, Presence Concealment -- does not start appearing in a
+    // record that
     // `oncePerTurn` and `abilityOffCooldown` also read (Ch. 46 §46.4-L).
     if (item.system?.oncePerRound || item.system?.oncePerTurn) {
       const [{ applyWorldIntents }, I] = await Promise.all([

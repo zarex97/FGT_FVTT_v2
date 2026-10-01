@@ -163,6 +163,83 @@ export function canToggleMode(
 }
 
 /**
+ * Does switching this mode ON go through the ordinary use path?
+ *
+ * Two kinds of mode do. One has `phases` -- *God's Holder: Possession* restores
+ * Health and spends tokens when it is switched on, and `useSkill` is what runs
+ * a phase. The other states a **cooldown that starts at the use**, with no
+ * phases to run: Riding's Active, *"Cooldown: 3◈ Turns"*. The toggle used to
+ * ask only the first question, so the second kind was a bare flag flip -- its
+ * cooldown was never gated, never billed and never started (#116).
+ *
+ * A clock that starts when the mode ENDS (`countFrom`) is not an entry price:
+ * Presence Concealment, Zero Sail and Tenmōkaikai start theirs at the
+ * deactivation, which `engine/fields.mjs` and `platforms.mjs` already write.
+ *
+ * Switching a mode OFF never pays -- no sheet in the corpus states an exit
+ * price -- so this is asked only for the way ON.
+ *
+ * @param {object} item the ability, or any `{system}` shape
+ * @returns {boolean}
+ */
+export function pricedOnEntry(item) {
+  const sys = item?.system ?? {};
+  if ((sys.phases ?? []).length > 0) return true;
+  const cooldown = sys.cooldown ?? {};
+  if (cooldown.countFrom) return false;
+  return Boolean(cooldown.max) || Boolean(cooldown.perUnit) || (cooldown.branches ?? []).length > 0;
+}
+
+/**
+ * Does this mode switch itself off when the Turn it was switched on in ends?
+ *
+ * Riding's Active: *"Increases MOV by 6 panels **for this Turn**."* The
+ * `MovDelta` states `duration: "this turn"`, and `rules/derived.mjs` is
+ * explicit that a delta's duration is its SOURCE's business -- here the source
+ * is `system.active`, which nothing switched off, so one press gave +6 MOV
+ * through the enemy's Turns and into her next one (#116).
+ *
+ * Read off the mode's own `activeRules`, which is where the duration is
+ * authored, so a mode whose clauses state none is untouched. Only three
+ * documents author one (the shared `class-riding`, Achilles's and Pale Rider's).
+ *
+ * @param {object} item the ability, or any `{system}` shape
+ * @returns {boolean}
+ */
+export function endsWithTurn(item) {
+  return (item?.system?.activeRules ?? []).some((el) => {
+    try {
+      return parseTick(el?.duration)?.kind === "thisTurn";
+    } catch {
+      // An unreadable duration is the content validator's to report; here it
+      // simply is not "this turn".
+      return false;
+    }
+  });
+}
+
+/**
+ * Which of a Unit's modes the end of the Turn at `tick` switches off.
+ *
+ * A mode that is on, ends with the Turn, and was switched on in this Turn or an
+ * earlier one. `toggledAt` is stamped on every switch, so it names the Turn the
+ * mode started running in: a mode with none cannot have started later than now,
+ * and "or an earlier one" is what keeps a mode left on by a GM from outliving
+ * its Turn for the rest of the match.
+ *
+ * @param {object[]} items the Unit's abilities
+ * @param {number} tick the global Turn that is ending
+ * @returns {object[]}
+ */
+export function modesEndedByTurn(items, tick) {
+  return [...(items ?? [])].filter((item) => {
+    const sys = item.system ?? {};
+    if (!sys.active || !endsWithTurn(item)) return false;
+    return typeof sys.toggledAt !== "number" || sys.toggledAt <= tick;
+  });
+}
+
+/**
  * Is this mode currently held ON — by either source?
  *
  * *"While the Skill does not meet the condition to be deactivated"* is the

@@ -10,8 +10,8 @@ These four are grouped because they all answer the question "who decides what th
 
 | File | Role |
 |---|---|
-| `module/rules/modes.mjs` | Can a mode toggle? Refuses by cannotDeactivate, toggleLock, compulsion, or ForceMode |
-| `module/engine/modes.mjs` | Reconcile forced modes—switch on every mode a compulsion forces |
+| `module/rules/modes.mjs` | Can a mode toggle? Refuses by cannotDeactivate, toggleLock, compulsion, or ForceMode; whether switching on pays an entry price (`pricedOnEntry`) and which modes end with the Turn (`endsWithTurn`, `modesEndedByTurn`) |
+| `module/engine/modes.mjs` | Reconcile forced modes—switch on every mode a compulsion forces; the Turn-end switch-off (`turnEndModeIntents`) |
 | `module/rules/stance.mjs` | A stance's current state, constraints, and forced defaults |
 | `module/rules/compulsion.mjs` | Compute every unit's forced targets and Decoy pull |
 | `module/rules/control.mjs` | Who controls a unit (resolve Charm chains) and who acts on whose Turn |
@@ -29,6 +29,11 @@ A mode toggles on and off. `canToggleMode` (`module/rules/modes.mjs:59-146`) fir
 4. **Held on.** Two sources hold a mode on: `compelledOn` (a compulsion targeting this skill) and `forcedOn` (a `ForceMode` rule whose condition is true) (`module/rules/modes.mjs:97-101`).
 
 The last two are positional: they re-answer every time they are asked, not frozen into the snapshot.
+
+**An entry price, and a Turn's end.** Two rules belong to a mode that states a duration and a cooldown, which only Riding's Active does (*"Increases MOV by 6 panels for this Turn. Cooldown: 3◈ Turns"*, #116). Riding has `activeRules` and no phases, so it classifies as a mode, and the toggle used to be a bare flag flip: nothing started the 3◈ clock, and the `MovDelta`'s `duration: "this turn"` was copied into `statDeltas` and stopped there (`rules/derived.mjs`: a delta's duration is its *source's* business, and the source is `system.active`).
+
+1. **Cooldown on entry.** `pricedOnEntry(item)` is true for a mode with phases or with a cooldown that has no `countFrom`; the sheet's toggle (and so the action bar's) then runs `useSkill` before it writes `system.active`, which gates the cooldown, bills the move pool and starts the clock. A clock counted *from deactivation* is not an entry price, and switching off never is. `useSkill`'s card says "Switched on." for a mode with nothing to list.
+2. **"This Turn" ends with the Turn.** `endsWithTurn(item)` reads `duration: "this turn"` off the mode's `activeRules`. At every Turn's end, before `globalTurn` advances, `scheduler-hooks.mjs` asks `engine/modes.mjs#turnEndModeIntents`, which emits `setMode(…, false)` for each active mode that ends with the Turn and whose `toggledAt` is this Turn or an earlier one (`rules/modes.mjs#modesEndedByTurn`). It is a forced switch-off, so it is not held off by `toggleLock`, and it does not touch the cooldown.
 
 ### Forced modes and compulsions
 

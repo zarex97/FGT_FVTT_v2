@@ -165,6 +165,13 @@ async function onTurnChange(combat, prior, current) {
   const { advanceChannels } = await import("./channel.mjs");
   await advanceChannels(board.units, tick);
 
+  // A mode whose duration was "this Turn" ends with it. Riding's Active is
+  // *"Increases MOV by 6 panels for this Turn"*, and nothing switched the mode
+  // off, so the +6 ran on through the enemy's Turns (#116). Before `globalTurn`
+  // advances, so the Turn that is ending is the one asked about.
+  const { turnEndModeIntents } = await import("./modes.mjs");
+  await run(turnEndModeIntents(board.units, tick), "scheduler:modeTurnEnd");
+
   // The faction that just finished is frozen in the order: a Delay declared
   // from here on applies to the next Round, not to a turn already taken.
   if (typeof combat.markTurnTaken === "function") {
