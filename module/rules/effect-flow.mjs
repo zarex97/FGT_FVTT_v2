@@ -11,6 +11,30 @@
 import { test as testPredicate } from "./predicate.mjs";
 
 /* -------------------------------------------------------------------------- */
+/*  Ch. 15 Riders                                                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The options that describe the ATTACK an event was raised for.
+ *
+ * An effect an event rider delivers is applied long after the attack's own
+ * option set was built, by a path that has only the intent to go on, and an
+ * intent has nowhere to put a Set. Magic Resistance's Instakill and Death
+ * clause exempts *"an Attack ... that deals STR damage or that is not affected
+ * by Magic Resistance"* -- an `attackPredicate`, tested against the attack's
+ * options when the effect lands -- so those options ride on the effect as an
+ * array and the applier rebuilds the Set (`engine/applier.mjs#riderOptions`).
+ * Only `attack:*`: the rest describe the bearer and the target, which the
+ * applier reads off the Units it is handed (#127).
+ *
+ * @param {Iterable<string>|null|undefined} options the event's option set
+ * @returns {string[]}
+ */
+export function attackOptionsOf(options) {
+  return [...(options ?? [])].filter((option) => typeof option === "string" && option.startsWith("attack:"));
+}
+
+/* -------------------------------------------------------------------------- */
 /*  Ch. 15 Transfer                                                            */
 /* -------------------------------------------------------------------------- */
 

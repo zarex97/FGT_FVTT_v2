@@ -336,7 +336,8 @@ async function resolveEffects(intents) {
         currentTick: game.combat?.system?.globalTurn ?? 0,
         roll: (await new Roll("1d100").evaluate()).total,
         inflictBonus: inflicterDoc ? inflictBonusOf(unitSnapshot(inflicterDoc), def) : 0,
-        options: new Set(),
+        // The attack that raised the event, where there was one.
+        options: riderOptions(intent.effect),
       },
     });
 
@@ -379,6 +380,24 @@ async function resolveEffects(intents) {
     }
   }
   return out;
+}
+
+/**
+ * The option set an effect delivered by an event rider is tested against.
+ *
+ * What the `ApplyEffect` action copied off the event: the options of the attack
+ * that raised it (`rules/effect-flow.mjs#attackOptionsOf`). This was
+ * `new Set()` on this path, so Magic Resistance's `attackPredicate` -- Instakill
+ * and Death are unaffected when the attack deals STR damage or is not affected by
+ * Magic Resistance -- saw neither option and both `not:` tests passed whatever the
+ * attack was (#127). Empty for an effect that carries none: a Turn boundary and a
+ * field's interior event have no attack.
+ *
+ * @param {object|null|undefined} effect the intent's effect
+ * @returns {Set<string>}
+ */
+export function riderOptions(effect) {
+  return new Set(effect?.attackOptions ?? []);
 }
 
 /**
