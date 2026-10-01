@@ -9,7 +9,7 @@
  * the executor produced, never a shape written by hand.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
 import { collectContributions } from "../../module/rules/elements.mjs";
@@ -18,6 +18,9 @@ import { rollOptionsFor } from "../../module/rules/options.mjs";
 import { critChance } from "../../module/rules/checks.mjs";
 import { applyEffect } from "../../module/engine/effect-applier.mjs";
 import { fireEvent, pendingRolls, resolveDefeat, runDeferred } from "../../module/engine/scheduler.mjs";
+import { subject, prepareSubjects } from "../helpers/subject.mjs";
+
+beforeAll(prepareSubjects, 60_000);
 
 /** A content file under packs/_source, parsed. */
 const content = (path) => parse(readFileSync(`packs/_source/${path}`, "utf8"));
@@ -49,12 +52,16 @@ describe("FlatDamage", () => {
 
   // "Goddess' Divine Core: All damage dealt is increased by 180" while the
   // Sun Stone stands. The file's DECISION is that 180 replaces her Skill's 120.
-  it("carries supersedes: the Sun Stone's 180 replaces Goddess's Divine Core's 120", () => {
-    const core = content("abilities/quetz-goddesses-divine-core.yml");
+  //
+  // The Skill's own modifier comes from her REAL projection. This test used to
+  // build it from the YAML with `contentId` handed into the ability by hand, so
+  // it agreed with itself while `contributionsOf` dropped the id and `supersedes`
+  // never fired on a board (#126; `supersedes-projection.test.mjs` runs the rest).
+  it("carries supersedes: the Sun Stone's 180 replaces Goddess's Divine Core's 120", async () => {
     const stone = content("abilities/quetz-piedra-del-sol.yml");
-    const [skill] = contributions(
-      { name: core.name, contentId: core.id, rank: core.rank, passiveRules: [core.passiveRules[0]] },
-    ).modifiers;
+    const skill = await subject({ from: "quetzalcoatl" }).then(
+      (quetz) => quetz.modifiers.find((m) => m.key === "divinity" && m.source === "Goddess's Divine Core"),
+    );
     const [field] = contributions({ name: stone.name, rules: [stone.field.interior[0]] }).modifiers;
     expect(skill).toMatchObject({ value: 120, sourceContentId: "quetz-goddesses-divine-core" });
     expect(field).toMatchObject({ value: 180, supersedes: ["quetz-goddesses-divine-core"] });

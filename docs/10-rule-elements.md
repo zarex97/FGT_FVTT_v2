@@ -101,7 +101,12 @@ executor actually reads, rather than of its descriptor's ids.
 - **`FlatDamage`** carries `npValue` (Vorpal Blade's +50 is 0 against a Noble Phantasm) and
   `supersedes`, a list of Skill content ids whose flat bonus it replaces. Every flat bonus now carries
   `sourceContentId`, so stage 7 can drop a superseded one: the Sun Stone's 180 stands in for Goddess's
-  Divine Core's 120.
+  Divine Core's 120. The id is read off the record the collector is handed
+  (`rules/snapshot.mjs#abilityRecordOf`, shared by `contributionsOf` and an Attack's window abilities),
+  and that record dropped `contentId` for as long as it was written by hand: the executor was right, the
+  Hop before it discarded the key, and the two stacked to +300 on a board while #103's test, which passed
+  `contentId` in itself, stayed green (#126). The route is pinned in `test/unit/supersedes-projection.test.mjs`
+  and, as a Hop of its own, in `CONTRIBUTION_ROUTES` of `test/unit/survival.test.mjs`.
 - **`CritModifier`** carries `npValue`, and its `aspect: chance` now lands where crit chance is read:
   `checkModifiers` with `check: "crit"`. It had produced a `critUp` modifier that nothing reads since
   the coin flip was replaced, so six clauses raised nobody's crit chance: Oblivion Correction,

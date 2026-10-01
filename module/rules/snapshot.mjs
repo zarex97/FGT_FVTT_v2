@@ -1477,6 +1477,46 @@ export function resolveRuleValues(rule, magnitude, npMagnitude) {
 }
 
 /**
+ * What the rule collector is handed for one Ability: the Item as the executors
+ * read it, in one place.
+ *
+ * Two callers build this record -- the Unit's own collection (`contributionsOf`)
+ * and an Attack's window abilities (`engine/attack.mjs#windowAugmented`) -- and
+ * they wrote it by hand twice. The first copy dropped `contentId`, so a flat
+ * bonus always carried `sourceContentId: null` and another bonus's `supersedes`
+ * had nothing to match: Piedra Del Sol stacked its +180 on Goddess's Divine
+ * Core's +120 instead of replacing it (#126, which #103's test missed by
+ * handing `contentId` in).
+ *
+ * @param {object} item
+ * @param {object} [overrides] fields the caller states instead of the Item's own
+ * @returns {object}
+ */
+export function abilityRecordOf(item, overrides = {}) {
+  return {
+    id: item.id,
+    name: item.name,
+    // The stable machine name. Without it a cross-ability reference has only
+    // the Foundry document id to match on, which content cannot know --
+    // Goddess of War's "Divinity Rank is increased from B to A" names
+    // `divinity` and matched nothing.
+    slug: item.system?.slug ?? item.id,
+    // The content id, which is what `supersedes` names and what a flat bonus
+    // stamps as its `sourceContentId`.
+    contentId: item.system?.contentId ?? null,
+    rank: item.system?.rank ?? null,
+    // A mode's activeRules apply only while it is switched on. This defaulted
+    // to `true` while `active` was a field the DataModel silently dropped,
+    // which quietly applied every mode's active clauses at all times.
+    active: Boolean(item.system?.active),
+    rules: item.system?.rules ?? [],
+    passiveRules: item.system?.passiveRules ?? [],
+    activeRules: item.system?.activeRules ?? [],
+    ...overrides,
+  };
+}
+
+/**
  * @param {object} actor
  * @returns {object}
  */
@@ -1499,23 +1539,7 @@ export function contributionsOf(actor, { terrain = [] } = {}) {
     // Gated on the item TYPE, not on every item: an ability has no `equipped`
     // field, and reading one off it would switch off every passive in the game.
     .filter((item) => item.type !== "equipment" || Boolean(item.system?.equipped))
-    .map((item) => ({
-    id: item.id,
-    name: item.name,
-    // The stable machine name. Without it a cross-ability reference has only
-    // the Foundry document id to match on, which content cannot know --
-    // Goddess of War's "Divinity Rank is increased from B to A" names
-    // `divinity` and matched nothing.
-    slug: item.system?.slug ?? item.id,
-    rank: item.system?.rank ?? null,
-    // A mode's activeRules apply only while it is switched on. This defaulted
-    // to `true` while `active` was a field the DataModel silently dropped,
-    // which quietly applied every mode's active clauses at all times.
-    active: Boolean(item.system?.active),
-    rules: item.system?.rules ?? [],
-    passiveRules: item.system?.passiveRules ?? [],
-    activeRules: item.system?.activeRules ?? [],
-  }));
+    .map((item) => abilityRecordOf(item));
 
   // Rule elements authored directly on the unit -- a summon with no separate
   // ability item to carry them (Bašmu's Normal Attack rider), or a

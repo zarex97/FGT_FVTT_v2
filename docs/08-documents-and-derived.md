@@ -72,7 +72,7 @@ this.system.derivedTrace = derived.trace;
 
 ### Collecting contributions
 
-`contributionsOf(actor)` walks every owned item (filtering equipped equipment), executes its rule
+`contributionsOf(actor)` walks every owned item (filtering equipped equipment), hands each to the executors as the record `abilityRecordOf(item)` builds -- `id`, `name`, `slug`, `contentId`, `rank`, `active` and the three rule lists, one record for the Unit's own collection and for an Attack's window abilities alike, since a hand-written copy dropped `contentId` and with it every `supersedes` (#126) -- executes its rule
 elements, and returns a `Contributions` object — a plain container holding `statDeltas`,
 `grantedAbilities`, `modifiers`, and 20+ other buckets (`module/rules/snapshot.mjs:1355-1380`).
 

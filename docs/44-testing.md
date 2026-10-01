@@ -106,6 +106,11 @@ prepares it and projects it with the real `snapshotUnit`, and loads each Effect 
 - **read from the document** (`reader`) — the named file must still mention the key, so a reader that goes
   away takes the route with it.
 
+An Ability crosses the projection **twice**, and each record has its own table: `ABILITY_ROUTES` holds
+the board's `abilities` record, and `CONTRIBUTION_ROUTES` holds the record the rule collector is handed
+(`snapshot.mjs#abilityRecordOf`). `contentId` was routed through the first only, and the second dropped
+it -- so a flat bonus carried `sourceContentId: null` and no `supersedes` ever fired (#126).
+
 A projected route's target must itself have a reader outside the file that produces it. Reaching the
 snapshot or the registry is not the end of the Route: `periodic` reached the registry definition and was
 read by nobody there, while the scheduler ticked from its own table, and a test that stopped at the

@@ -47,7 +47,7 @@ import { GRANTS, hasGranted } from "../rules/granted.mjs";
 import { coveringServantsFor, coverFactor, shoveDestination, isCovering } from "../rules/cover.mjs";
 import { absorb, refreshShield, landBarrier } from "./shield.mjs";
 import { attackIdentity, recordedAttack } from "../rules/revival.mjs";
-import { expressionRefs, stacksHeld } from "../rules/snapshot.mjs";
+import { expressionRefs, stacksHeld, abilityRecordOf } from "../rules/snapshot.mjs";
 import { removalPlan, pendingRemovalRolls } from "../rules/removal.mjs";
 import { isStrongestNP, isDamagingNP, harmlessToSelf, EXPECTED_ATTACK_ROLL } from "../rules/np-strength.mjs";
 import { currentHealth } from "../domain/health.mjs";
@@ -5527,16 +5527,9 @@ function windowAugmented(attacker, attackerDoc, state) {
   const abilities = ids
     .map((id) => attackerDoc.items.get(id))
     .filter(Boolean)
-    .map((item) => ({
-      id: item.id,
-      name: item.name,
-      slug: item.system?.slug ?? item.id,
-      rank: item.system?.rank ?? null,
-      active: true,
-      rules: item.system?.rules ?? [],
-      passiveRules: [],
-      activeRules: item.system?.activeRules ?? [],
-    }));
+    // The record the Unit's own collection uses (`rules/snapshot.mjs#abilityRecordOf`),
+    // so the two cannot drift: this copy dropped `contentId` once (#126).
+    .map((item) => abilityRecordOf(item, { active: true, passiveRules: [] }));
   if (abilities.length === 0) return attacker;
 
   const extra = collectContributions(abilities, {
