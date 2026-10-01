@@ -23,7 +23,7 @@
  * no tag, which is what keeps it out of every sweep in this file.
  */
 
-import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { parseTick, resolveTicks, expiryReached } from "../domain/tick.mjs";
 import { chebyshevDisc } from "../domain/geometry.mjs";
 import { leftTerrainEffects } from "../rules/terrain.mjs";
 import { currentBoard } from "./board.mjs";
@@ -305,27 +305,35 @@ export async function repaintFollowing(unitId, panel) {
 }
 
 /**
- * Remove every painted area whose expiry tick has passed.
+ * Remove every painted area whose expiry tick has been reached.
  *
  * A hand-drawn Region carries no `expiry`, so a GM's own terrain is never
  * swept — which is what the tag/expiry pair is for.
  *
- * @param {number} tick
+ * `tick` is the tick of the Turn that just ENDED, the same one
+ * `scheduler.endTurn` hands the effect sweep, and the comparison is the same
+ * (`expiryReached`): an area and an effect stamped with one expiry are present
+ * through that Turn and gone at its end, together. This was handed the NEXT
+ * tick, so Sol's daylight went at the START of the Turn Sol itself was still
+ * standing for (#161).
+ *
+ * @param {number} tick the tick of the Turn that just ended
+ * @param {object} [opts]
+ * @param {boolean} [opts.sweep] also take away the effects those areas were keeping alive
  * @returns {Promise<number>} how many areas were removed
  */
-export async function expireTerrain(tick) {
+export async function expireTerrain(tick, { sweep = true } = {}) {
   const scene = canvas?.scene;
   if (!scene) return 0;
 
   const doomed = new Set();
   for (const { region, behavior } of terrainBehaviors()) {
-    const expiry = behavior.system?.expiry;
-    if (typeof expiry === "number" && expiry <= tick) doomed.add(region.id);
+    if (expiryReached(behavior.system?.expiry, tick)) doomed.add(region.id);
   }
   if (doomed.size === 0) return 0;
 
   await scene.deleteEmbeddedDocuments("Region", [...doomed]);
-  await dropStrandedTerrainEffects();
+  if (sweep) await dropStrandedTerrainEffects();
   return doomed.size;
 }
 

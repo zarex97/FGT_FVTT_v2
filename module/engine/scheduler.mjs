@@ -16,7 +16,7 @@
  */
 
 import { INFINITE } from "../domain/enums.mjs";
-import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { parseTick, resolveTicks, expiryReached } from "../domain/tick.mjs";
 import { expiredSummonIds } from "../rules/summons.mjs";
 import { endOfRoundHomeBase, homeBaseResidencyUpdates, regionsAdjacent } from "../rules/environment.mjs";
 import { terrainPeriodics } from "../rules/terrain.mjs";
@@ -2001,8 +2001,7 @@ export function expireEffects(units, ctx, reason = "expired") {
   const out = [];
   for (const u of units) {
     for (const e of u.effectInstances ?? []) {
-      if (e.expiry === null || e.expiry === undefined || e.expiry === INFINITE) continue;
-      if (e.expiry > ctx.tick) continue;
+      if (!expiryReached(e.expiry, ctx.tick)) continue;
 
       // Appendix A's "on removal" clauses, run BEFORE the removal so they see
       // the effect that is going away. Shock is the case: *"on removal,

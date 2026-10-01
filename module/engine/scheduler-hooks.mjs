@@ -226,7 +226,7 @@ async function onTurnChange(combat, prior, current) {
   // Terrain a `zone` phase painted, on the same boundary and for the same
   // reason: a `duration` nothing sweeps is decoration. Only PAINTED areas
   // carry an expiry, so a GM's hand-drawn terrain is never touched.
-  await expireTerrain(nextTick);
+  await expireTerrain(tick);
   // A passive field has no cast to open it and no expiry to close it, so the
   // Turn boundary is where it is reconciled with the board: a Servant summoned
   // mid-match gets his area, one who left the board loses it. Idempotent, and
