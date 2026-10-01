@@ -181,6 +181,26 @@ export const ABILITY_ROUTES = {
   weakPoint: doc("module/rules/snapshot.mjs", "collected onto the bearer as a weak point"),
 };
 
+/**
+ * Where an Ability's Authored Keys go on the SECOND Hop they cross: the record
+ * `abilityRecordOf` hands the rule collector (`contributionsOf`, `windowAugmented`).
+ *
+ * `ABILITY_ROUTES` above holds a key to the board's `abilities` record. The rule
+ * collector is a different record, written by a different Hop, and `contentId`
+ * was projected by the first and dropped by the second: a flat bonus stamped
+ * `sourceContentId: null` and Piedra Del Sol's `supersedes` never matched
+ * Goddess's Divine Core (#126). A key the executors read goes here as well.
+ */
+export const CONTRIBUTION_ROUTES = {
+  active: same("active"),
+  activeRules: same("activeRules"),
+  contentId: same("contentId"),
+  passiveRules: same("passiveRules"),
+  rules: same("rules"),
+  slug: same("slug"),
+  rank: { at: "rank", from: text, project: text },
+};
+
 /** Where each Authored Key on an Effect definition goes, through the registry. */
 export const EFFECT_ROUTES = {
   ...Object.fromEntries([
@@ -264,14 +284,14 @@ function checkRoute(where, key, value, route, projected, hop) {
 }
 
 describe("every Authored Key survives its Route", () => {
-  const failures = { unit: [], ability: [], effect: [] };
+  const failures = { unit: [], ability: [], contribution: [], effect: [] };
 
   beforeAll(async () => {
     await installSystem();
     const { files } = await loadSource("packs/_source");
     const { assets } = await loadAssets("assets");
     const { compiled } = compileCorpus(files, assets);
-    const { snapshotUnit } = await import("../../module/rules/snapshot.mjs");
+    const { snapshotUnit, abilityRecordOf } = await import("../../module/rules/snapshot.mjs");
     const { EffectRegistry } = await import("../../module/rules/registry.mjs");
 
     const effects = compiled.filter((c) => c.pack === "effects");
@@ -310,6 +330,13 @@ describe("every Authored Key survives its Route", () => {
             const f = checkRoute(`${c.path} items["${item.name}"]`, key, sys[key], ABILITY_ROUTES[key], ability, "the Ability's document");
             if (f) failures.ability.push(f);
           }
+          // The second Hop: what the rule collector is handed for this Ability.
+          const record = abilityRecordOf(actor.items.get(item._id));
+          for (const key of Object.keys(CONTRIBUTION_ROUTES)) {
+            if (!(key in item.system)) continue;
+            const f = checkRoute(`${c.path} items["${item.name}"]`, key, sys[key], CONTRIBUTION_ROUTES[key], record, "the contribution record");
+            if (f) failures.contribution.push(f);
+          }
         }
       });
     }
@@ -336,7 +363,8 @@ describe("every Authored Key survives its Route", () => {
     const sources = [...walk("module"), ...walk("templates")].map((p) => [p, strip(readFileSync(p, "utf8"))]);
     const unreadTargets = [];
     for (const [table, producer] of [[UNIT_ROUTES, "module/rules/snapshot.mjs"],
-      [ABILITY_ROUTES, "module/rules/snapshot.mjs"], [EFFECT_ROUTES, "module/rules/registry.mjs"]]) {
+      [ABILITY_ROUTES, "module/rules/snapshot.mjs"], [CONTRIBUTION_ROUTES, "module/rules/snapshot.mjs"],
+      [EFFECT_ROUTES, "module/rules/registry.mjs"]]) {
       for (const [key, route] of Object.entries(table)) {
         for (const r of [route].flat().filter((x) => x.at)) {
           // A property read, or a destructuring `{ key }` / `{ key, ... }`.
@@ -362,6 +390,10 @@ describe("every Authored Key survives its Route", () => {
 
   it("on every Ability", () => {
     expect(report(failures.ability)).toBe("");
+  });
+
+  it("on every Ability's contribution record", () => {
+    expect(report(failures.contribution)).toBe("");
   });
 
   it("on every Effect definition", () => {
