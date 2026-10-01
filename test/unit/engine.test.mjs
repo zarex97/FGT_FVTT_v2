@@ -819,6 +819,23 @@ describe("endRound", () => {
   });
 });
 
+// A defeated Unit stays on the board -- a defeat never removes the token -- and
+// the boundaries kept treating it as alive. On the Semiramis audit (#68) a Free
+// Semiramis whose Sustainability ran out logged "disappear" at every Turn after
+// and kept raising her Construction at every Round's end (§46.4-CN).
+describe("a defeated Unit at the boundaries", () => {
+  it("is not defeated again by its spent Sustainability", () => {
+    const gone = { id: "s", kind: "servant", contract: "free", sustainability: 0, defeated: true };
+    expect(checkRemovals([gone], sctx)).toEqual([]);
+  });
+
+  it("ticks nothing at the Round's end", () => {
+    const u = { id: "u", defeated: true, effects: ["burn"], effectInstances: [{ id: "e", defId: "burn", expiry: null }] };
+    const out = endRound(board([u]), sctx);
+    expect(out.some((i) => i.t === "damage")).toBe(false);
+  });
+});
+
 describe("endRound — Home Base residency (issue #19)", () => {
   const baseBoard = (units) => ({
     ...board(units),
