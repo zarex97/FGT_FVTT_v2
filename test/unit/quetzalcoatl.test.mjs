@@ -15,9 +15,10 @@ import { parse } from "yaml";
 import { lookupNumber } from "../../module/domain/tables.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
 import { aoePassengerFactor } from "../../module/rules/platforms.mjs";
-import { expectedDamage } from "../../module/rules/np-strength.mjs";
+import { expectedDamage, neutralDefender } from "../../module/rules/np-strength.mjs";
 import { damageBaseOf } from "../../module/rules/damage/instances.mjs";
 import { importAttack } from "../helpers/engine.mjs";
+import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { resolveTargets } from "../../module/rules/targeting/resolve.mjs";
 import { squareBounds } from "../../module/domain/geometry.mjs";
 import { budgetActionFor } from "../../module/rules/budget.mjs";
@@ -216,9 +217,13 @@ describe("Xiuhcoatl", () => {
     expect(np.aftermath.damage.elementFraction).toBeUndefined();
   });
 
-  it("bypasses Magic Resistance on both resolutions", () => {
+  it("bypasses Magic Resistance on the hit on the DU, and NOT on the splash (ruled 2026-10-01)", () => {
+    // "That hit on the DU is not affected by Magic Resistance": only the hit.
+    // The splash was authored exempt as well, and deleting the line changed
+    // nothing, because the aftermath inherited the primary's flag. That is what
+    // the behavioural block below proves.
     expect(np.damage.ignoresMagicResistance).toBe(true);
-    expect(np.aftermath.damage.ignoresMagicResistance).toBe(true);
+    expect(np.aftermath.damage.ignoresMagicResistance).toBeUndefined();
   });
 
   it("cannot be used while she is Riding the Quetzalcoatlus", () => {
@@ -279,6 +284,127 @@ describe("Xiuhcoatl's base attack, on the real item (#135)", () => {
       expectedDamage({ id: item.id, system: variant(sys, { base: { sources: halves } }) }, self),
     ]);
     expect(short).toBe(long);
+  });
+});
+
+// #136. `declareAftermath` overlaid a few keys on the PRIMARY's attack spec and
+// `applyDamage` then re-read everything else from the primary's damage block, so
+// the splash inherited the primary's element fraction ("Fire damage (half)"
+// where the sheet says plain "Fire damage"), its Magic Resistance exemption (the
+// author ruled the splash IS affected), and an `areaPanels` holding the DU's one
+// panel. Built from the real corpus, because the YAML says what was written and
+// not what the engine read.
+describe("Xiuhcoatl's splash is its own resolution (#136)", () => {
+  beforeAll(async () => { await prepareSubjects(); await importAttack(); }, 60_000);
+
+  const at = (i, j) => ({ i, j });
+
+  /** Quetzalcoatl and a Magic Resistance A defender (Pollux), with the engine in reach. */
+  const seen = (fn) => withSubjects([
+    { from: "quetzalcoatl", panel: at(6, 6) },
+    { from: "pollux", panel: at(5, 7) },
+  ], async ({ unit, world }) => {
+    const engine = await importAttack();
+    const doc = world.actor("quetzalcoatl");
+    const item = doc.items.find((i) => i.system.contentId === "quetz-xiuhcoatl");
+    const options = rollOptionsFor({ attacker: unit("quetzalcoatl") });
+    const caught = (panels = []) => ({ panels, units: [] });
+    return fn({
+      engine, doc, item, options, unit,
+      hit: () => engine.buildAttackSpec({ attacker: doc, ability: item, abilityId: item.id, options }),
+      splash: (panels) => engine.aftermathSpecFor({ attacker: doc, ability: item, options, caught: caught(panels) }),
+    });
+  });
+
+  /** What the pipeline deals under one resolution's spec and block, against one defender. */
+  const dealt = ({ unit, attack, defender, block }) => computeDamage({
+    // Without her passives: Divine Core's +120 is not what this block is about.
+    attacker: { ...unit("quetzalcoatl"), modifiers: [] },
+    defender,
+    board: {},
+    attack: { ...attack, rank: Rank.parse("A"), categorizedAsNP: false },
+    base: damageBaseOf(block),
+    multiplier: block.multiplier ?? 1,
+    flatBonus: block.flatBonus ?? 0,
+    crit: { isCrit: false, chanceUsed: 0 },
+    reaction: { kind: "none" }, luckChecks: {}, rolls: {}, options: new Set(),
+  });
+
+  // What a Waterside panel puts on whoever stands on it (`rules/terrain.mjs`);
+  // added here because the thing under test is the attack spec, not the terrain's
+  // projection.
+  const waterside = (u) => ({
+    ...u,
+    modifiers: [...(u.modifiers ?? []), { key: "elementDefUp", element: "fire", value: 50, source: "Waterside", predicate: null }],
+  });
+
+  it("damageBlockFor is the aftermath's own block for the splash, and the primary's otherwise", async () => {
+    const [primary, splash, plain] = await seen(({ engine, item, options }) => [
+      engine.damageBlockFor(item, options, { isAftermath: false }),
+      engine.damageBlockFor(item, options, { isAftermath: true }),
+      engine.damageBlockFor(item, options, null),
+    ]);
+    expect(primary.multiplier).toBe(4);
+    expect(plain.multiplier).toBe(4);
+    expect(splash.multiplier).toBe(1);
+    expect(splash.component).toBe("mag");
+  });
+
+  it("the hit on the DU is Fire (half) and the splash is whole Fire", async () => {
+    const [hit, splash] = await seen(({ hit, splash }) => [hit(), splash()]);
+    expect(hit.element).toBe("fire");
+    expect(hit.elementFraction).toBe(0.5);
+    expect(splash.element).toBe("fire");
+    expect(splash.elementFraction).toBeUndefined();
+  });
+
+  it("the splash is affected by Magic Resistance, and the hit on the DU is not (ruled)", async () => {
+    const [hit, splash] = await seen(({ hit, splash }) => [hit(), splash()]);
+    expect(hit.ignoresMagicResistance).toBe(true);
+    expect(splash.ignoresMagicResistance).toBe(false);
+  });
+
+  it("a Magic Resistance A defender in the splash has stage 11 applied, not bypassed", async () => {
+    const out = await seen(({ hit, splash, item, unit }) => ({
+      splash: dealt({ unit, attack: splash(), defender: unit("pollux"), block: item.system.aftermath.damage }),
+      hit: dealt({ unit, attack: hit(), defender: unit("pollux"), block: item.system.damage }),
+    }));
+    const stage11 = (result) => JSON.stringify(result.breakdown.find((b) => b.index === 11));
+    expect(stage11(out.hit)).toMatch(/bypass/i);
+    expect(stage11(out.splash)).not.toMatch(/bypass/i);
+    expect(stage11(out.splash)).toMatch(/MR/);
+  });
+
+  it("deals 250 on plain ground and 125 on Waterside, as whole Fire does", async () => {
+    const [plain, wet] = await seen(({ splash, item, unit }) => {
+      const block = item.system.aftermath.damage;
+      return [
+        dealt({ unit, attack: splash(), defender: neutralDefender(), block }).total,
+        dealt({ unit, attack: splash(), defender: waterside(neutralDefender()), block }).total,
+      ];
+    });
+    expect(plain).toBe(250);
+    // Whole Fire against Fire def +50 is 125. "Fire damage (half)", which the
+    // splash inherited, gave 187: the half that is Fire is resisted, the rest not.
+    expect(wet).toBe(125);
+  });
+
+  it("the splash's area is the panels it caught, not the DU's one panel", async () => {
+    const panels = Array.from({ length: 25 }, (_, n) => at(4 + Math.floor(n / 5), 4 + (n % 5)));
+    const spec = await seen(({ splash }) => splash(panels));
+    expect(spec.areaPanels.length).toBe(25);
+    expect(spec.isAftermath).toBe(true);
+  });
+
+  it("applyDamage reads the splash's block through the one answer, and no overlay is left", () => {
+    const engine = readFileSync("module/engine/attack.mjs", "utf8").replace(/\r\n/g, "\n");
+    const from = engine.indexOf("async function applyDamage");
+    const body = engine.slice(from, engine.indexOf("\n}\n", from));
+    expect(body).toMatch(/damageBlockFor\(ability, options, state\.attack\)/);
+    expect(body).not.toMatch(/facts\.isAftermath/);
+    expect(body).not.toMatch(/resolvedDamage\(/);
+    const declare = engine.slice(engine.indexOf("async function declareAftermath"));
+    expect(declare.slice(0, declare.indexOf("\n}\n"))).not.toMatch(/\.\.\.\(spec\.damage/);
   });
 });
 
