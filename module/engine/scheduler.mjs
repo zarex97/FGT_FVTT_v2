@@ -21,7 +21,7 @@ import { expiredSummonIds } from "../rules/summons.mjs";
 import { endOfRoundHomeBase, homeBaseResidencyUpdates, regionsAdjacent } from "../rules/environment.mjs";
 import { terrainPeriodics } from "../rules/terrain.mjs";
 import { multiServantTax } from "../rules/relationships.mjs";
-import { transferEffect, transferableFrom, removeStages } from "../rules/effect-flow.mjs";
+import { transferEffect, transferableFrom, removeStages, attackOptionsOf } from "../rules/effect-flow.mjs";
 import { forcedStanceFor } from "../rules/stance.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { currentHealth, maxHealth } from "../domain/health.mjs";
@@ -1126,6 +1126,10 @@ const ACTIONS = Object.freeze({
     if (applyTimes !== null && applyTimes <= 0) return [];
 
     const ticks = a.duration ? resolveTicks(parseTick(a.duration), c) : null;
+    // The ATTACK that raised the event, when one did. Magic Resistance's Death
+    // exemption is a clause about it, tested when the effect lands, by a path that
+    // has only this intent to go on (#127).
+    const attackOptions = attackOptionsOf(c.options);
     const effect = {
       ...(a.effect ?? {}),
       defId: a.effect?.defId ?? a.effect?.id ?? a.defId,
@@ -1152,6 +1156,10 @@ const ACTIONS = Object.freeze({
       // "Inflicts Stage 3 Poison": one application worth three stages, not
       // three applications each rolling their own chance.
       ...(a.stages !== undefined ? { stages: a.stages } : {}),
+      // ...and the attack's own options, for `attackPredicate`. Read once by
+      // `resolveEffects` and not stored: `applyEffect` rebuilds the instance field
+      // by field, so this is not on the effect DataModel.
+      ...(attackOptions.length > 0 ? { attackOptions } : {}),
       // ...and the same reading for CHARGES. *"Apply NP DmUp (GAO) to herself X
       // times, where X = the number of Proliferation Stocks she has"* -- one
       // application worth X, resolved here because only this pass can see how

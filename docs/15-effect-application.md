@@ -11,7 +11,7 @@ Every step emits a trace entry — *"Curse resisted (rolled 78 vs 65%)"* or *"Ch
 | File | Role |
 |---|---|
 | `module/engine/effect-applier.mjs` | The seven-step pipeline and the public `applyEffect` entry point |
-| `module/engine/applier.mjs` | `resolveEffects` — the adapter that bridges bare intents to the full pipeline (`module/engine/applier.mjs:247-361`) |
+| `module/engine/applier.mjs` | `resolveEffects` — the adapter that bridges bare intents to the full pipeline (`module/engine/applier.mjs:247-361`); `riderOptions` — the attack's options an event rider's effect is tested against (`attackOptions`, copied onto the effect by the scheduler's `ApplyEffect` action; Ch. 11, #127) |
 | `module/rules/removal.mjs` | Removal resistance and the logic for buff dispel — a _deletion_ pipeline with its own stacking (`module/rules/removal.mjs:1-27`) |
 | `module/rules/checks.mjs` | `applicationChance` — the function that computes landing chance at step 3 |
 | Domain primitives | `currentHealth`, `parseTick`, `resolveTicks` — read by step 6 (CONSTRUCT) |
