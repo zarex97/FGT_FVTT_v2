@@ -61,6 +61,14 @@ A unit standing inside the field applies a set of modifier rules keyed on its re
 
 **Interior events** are triggered on contact or at turn end, distinct from modifiers (`module/engine/fields.mjs:838-1100`). They scale by the unit's relation and highest parameter; their predicates split into unit-side (answered here with the unit's roll options) and attack-side (carried through for the targeting pipeline).
 
+**A field's `turnEnd` is the victim's own Turn.** *"When an enemy Unit ends its Turn within the area"* names the Turn of that Unit's Player, so `turnEnd` reaches only the Units of the faction whose Turn just ended: `runFieldEvents` takes `activeFactionId` and scopes the event through `unitIdsOfTurn` (`module/rules/bounded-fields.mjs`), and a `turnEnd` with no faction whose Turn ended reaches nobody. A Unit with no faction — a Civilian — has no Turn of its own. The handler-level `turnEnd` always meant the same (`scheduler.endTurn`, step 1); the field-level one did not, and Piedra Del Sol's 50 was charged at every faction's Turn end, three times a Round (#145). The three boundary events a field can ask for are three different scopes:
+
+| Event | Reaches | Authored by |
+|---|---|---|
+| `turnEnd` | the Units of the faction whose Turn ended | Piedra Del Sol, Contagion 2a, Jack's Mist (Poison on enemy Masters) |
+| `actedTurnEnd` | every Unit that Acted this Turn, any faction | Sikera Ušum, Blood Fort Andromeda's Master and Servant tiers, Jack's Mist's acted half |
+| `anyTurnEnd` | every Unit, whoever's Turn it was | Blood Fort Andromeda's and Ramesseum Tentyris' Civilian tiers |
+
 ### Axis 5: Duration and Extension
 
 A field has an expiry tick, absolute like every other expiry in the system (`module/engine/fields.mjs:235-238`). At the expiry, the field closes unless paid extension buys more time (`module/engine/fields.mjs:680-691`).

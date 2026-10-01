@@ -261,7 +261,10 @@ field:
     # matches no Normal Human at all. Measured live: the Civilian survived the
     # Turn it should have died on. `kinds: [civilian]` is what narrows it, and
     # Jack's Mist states the same clause the same way.
-    - event: turnEnd
+    #
+    # `anyTurnEnd`: a Civilian has no Turn of its own, and "the Turn after
+    # entering" may be any Turn's end (#145).
+    - event: anyTurnEnd
       relations: [neutral, ally, enemy, self]
       kinds: [civilian]
       afterTurnsInside: 1

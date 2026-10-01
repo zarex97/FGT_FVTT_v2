@@ -53,7 +53,11 @@ field:
     # Sustainability per Civilian she kills while Free, and a death the FIELD
     # took credit for would quietly stop paying her -- the same reason Jack's
     # Mist carries the flag.
-    - event: turnEnd
+    #
+    # `anyTurnEnd`, not `turnEnd`: a Civilian has no faction and so no Turn of
+    # its own, and `turnEnd` on a field is the victim's own Turn (#145). The
+    # sheet says "immediately", which is at the end of ANY Turn.
+    - event: anyTurnEnd
       relations: [enemy, ally, neutral]
       # "This NP constantly affects all Units within its area EXCLUDING MEDUSA
       # AND HER MASTER." The owner is always excluded; the owner's Master needs
@@ -72,7 +76,10 @@ field:
     # `HealthLoss`, not `Damage`: the sheet calls it losing Health and the
     # total is what heals Medusa, so running it through the pipeline would let
     # Def Up and Magic Resistance change how much she gains.
-    - event: turnEnd
+    #
+    # `actedTurnEnd`: "every Turn it ACTS" is any faction's Turn, which is that
+    # event's meaning -- `turnEnd` would now mean only its own (#145).
+    - event: actedTurnEnd
       relations: [enemy, ally, neutral]
       kinds: [master]
       excludeOwnerMaster: true
@@ -86,7 +93,7 @@ field:
         - { key: HealthLoss, amount: 40 }
 
     # "Servant, non-Human: Loses 20 Health at the end of every Turn it Acts."
-    - event: turnEnd
+    - event: actedTurnEnd
       relations: [enemy, ally, neutral]
       kinds: [servant, summon]
       excludeOwnerMaster: true

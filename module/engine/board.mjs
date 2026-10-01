@@ -464,7 +464,7 @@ function setting(key, fallback) {
  * @param {object|null} scene
  * @returns {Array<{id: string, type: string, panels: object[]}>}
  */
-function terrainAreasOf(scene) {
+export function terrainAreasOf(scene) {
   /** @type {Array<{id: string, type: string, panels: object[]}>} */
   const areas = [];
   for (const region of scene?.regions ?? []) {
@@ -550,7 +550,7 @@ function panelsOfRegion(region) {
  * @param {object|null} scene
  * @returns {object[]}
  */
-function boundedFieldsOf(scene) {
+export function boundedFieldsOf(scene) {
   /** @type {object[]} */
   const out = [];
   for (const region of scene?.regions ?? []) {

@@ -118,7 +118,19 @@ async function onTurnChange(combat, prior, current) {
   // "at the end of its Turn OR at the end of a Turn they Act while still
   // within the Mist" -- and only the acted half had a dispatcher, so a field
   // could author a `turnEnd` interior event and never be asked.
-  await run(await fields.runFieldEvents("turnEnd", { board }), "field:turnEnd");
+  //
+  // The victim's OWN Turn: `activeFactionId` scopes it to the faction whose
+  // Turn just ended, as the handler-level `turnEnd` is. Unscoped, Piedra Del
+  // Sol's 50 was charged at every faction's Turn end (#145).
+  await run(
+    await fields.runFieldEvents("turnEnd", { board, activeFactionId }),
+    "field:turnEnd",
+  );
+
+  // …and the clauses that mean EVERY Turn, whoever's. A Civilian has no faction
+  // and so no Turn of its own: Blood Fort Andromeda's *"immediately dies"* and
+  // the Complex's *"the Turn after entering"* are about it.
+  await run(await fields.runFieldEvents("anyTurnEnd", { board }), "field:anyTurnEnd");
 
   // A field's OWNER's Turn ending. Contagion trigger 1 is *"at the end of Pale
   // Rider's Turn: affects all enemy Units within the Contagion area"* -- every

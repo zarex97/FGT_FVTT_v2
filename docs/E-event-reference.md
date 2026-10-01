@@ -68,6 +68,14 @@ the L2 purity boundary and makes triggered effects testable.
 > is *"at the end of Pale Rider's Turn: affects all enemy Units within the Contagion area"* —
 > and it is scoped to the fields whose owner belongs to the faction whose Turn just ended.
 > Unscoped, an area would charge its toll on every faction's Turn.
+>
+> **A field's `turnEnd` is the victim's own Turn, as the handler's is (#145).** The dispatcher hands
+> `runFieldEvents` the faction whose Turn just ended, and `turnEnd` reaches only that faction's
+> Units (a Unit with no faction has no Turn). It used to fire at every Turn's end, so Piedra Del Sol's
+> *"an enemy Unit that ends its Turn within the area takes 50"* was charged three times a Round. The
+> field vocabulary has the same three scopes the handler vocabulary has: `turnEnd` (the faction's own
+> Units), `actedTurnEnd` (every Unit that Acted) and `anyTurnEnd` (every Unit, whoever's Turn it was —
+> a Civilian's, for Blood Fort Andromeda and Ramesseum Tentyris). Ch. 28, Axis 4.
 | `fgt.roundStart` | Start of every round | `{round, phase}` | After day/night flip |
 | `fgt.roundEnd` | End of every round | `{round}` | Before the boundary sequence |
 | `fgt.effectExpired` | An effect's duration ran out | `{unitId, effectId, defId}` | Scheduler step 5, **after** step 4's periodic ticks |
