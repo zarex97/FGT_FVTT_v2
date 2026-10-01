@@ -8,7 +8,7 @@ schema: 1
 id: semiramis-arrogant-kings-poison
 name: "Arrogant King's Poison"
 rank: B+
-kind: activeSkill
+kind: skill
 copyable: { allowed: false, reason: classSkill }
 cooldown: "4◈-⅓◈"
 timing: { window: ownTurn }

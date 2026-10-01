@@ -7,7 +7,11 @@
 schema: 1
 id: quetz-tlaelquiyahuitl
 name: "Tlaelquiyahuitl"
-kind: spell
+# `isSpell`, not `kind: spell`: what makes a Spell is the flag, and `kind` takes
+# `skill` here like every other Spell in the corpus (#159). `kind: spell` was read
+# by nothing, so these resolved as STR Normal Attacks.
+kind: skill
+isSpell: true
 slug: tlaelquiyahuitl
 cooldown: "2◈"
 # "All of Quetz's Quetzalcoatlus Spells share the same Cooldown (Cooldown: 2◈
@@ -34,7 +38,9 @@ description: |
 targeting:
   anchor: { kind: withinRange, range: 4, metric: chebyshev }
   shape: { kind: square, size: 3 }
-  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  # Enemies only (ruled 2026-10-01): the 3x3 does not hit her allies, her mount or
+  # her Master. It was authored to every relation, so it hit all of them.
+  selection: { relations: [enemy], chooser: all, includeSelf: false }
   isDamagingAoE: true
 damage:
   # Her own BA(MAG). `replacesRiderAction` takes her Normal Attack and gives her

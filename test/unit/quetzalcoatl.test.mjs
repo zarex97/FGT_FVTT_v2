@@ -17,6 +17,11 @@ import { Rank } from "../../module/domain/rank.mjs";
 import { aoePassengerFactor } from "../../module/rules/platforms.mjs";
 import { expectedDamage } from "../../module/rules/np-strength.mjs";
 import { damageBaseOf } from "../../module/rules/damage/instances.mjs";
+import { importAttack } from "../helpers/engine.mjs";
+import { resolveTargets } from "../../module/rules/targeting/resolve.mjs";
+import { squareBounds } from "../../module/domain/geometry.mjs";
+import { budgetActionFor } from "../../module/rules/budget.mjs";
+import { rollOptionsFor } from "../../module/rules/options.mjs";
 
 const R = (s) => Rank.parse(s);
 
@@ -371,6 +376,34 @@ describe("the three Quetzalcoatlus Spells", () => {
     }
   });
 
+  it("hit ENEMIES only: not her allies, her mount or her Master (ruled 2026-10-01)", () => {
+    // The sheet says "hits a 3x3 panel area" and is silent on who; the author
+    // ruled enemies only. The content authored every relation, so the Spell
+    // hit the Units standing beside her too.
+    const at = (i, j) => ({ i, j });
+    const unit = (id, i, j, over = {}) => ({
+      id, panel: at(i, j), kind: "servant", faction: "b", attributes: [], effects: [], ...over,
+    });
+    const quetz = unit("quetz", 6, 6, { faction: "a", range: 2 });
+    const board = {
+      bounds: squareBounds(13),
+      alliances: { a: ["a"], b: ["b"] },
+      seed: 1,
+      units: [
+        quetz,
+        unit("ally", 6, 9, { faction: "a" }),
+        unit("master", 7, 9, { faction: "a", kind: "master" }),
+        unit("mount", 6, 10, { faction: "a", kind: "platform" }),
+        unit("foe", 5, 9),
+        unit("foe2", 5, 10),
+      ],
+    };
+    for (const s of spells) {
+      const hit = resolveTargets(s.targeting, quetz, board, { panel: at(6, 9) }).units.map((u) => u.unitId).sort();
+      expect(hit, s.id).toEqual(["foe", "foe2"]);
+    }
+  });
+
   it("carry three different elements and three different riders", () => {
     expect(spells.map((s) => s.element)).toEqual(["lightning", "wind", "water"]);
     expect(spells.map((s) => s.phases.find((p) => p.kind === "applyEffects").rules[0].effect.id))
@@ -399,6 +432,63 @@ describe("the three Quetzalcoatlus Spells", () => {
       expect(s.timing.window).toBe("ownTurn");
     }
   });
+});
+
+// #159. The three authored `kind: spell`, which nothing reads, so `isSpell` was
+// false and each resolved as a STR Normal Attack: Def Dwn (MAG) never applied,
+// N.Atk Up and every `attack:kind:normal` rider did, STR Reflect answered where
+// MAG Reflect should, and the bill was `attack`, not `spell`. Built from the
+// real corpus, because the YAML says what was written and not what was read.
+describe("the three Quetzalcoatlus Spells are Damage Spells (#159)", () => {
+  // The engine's first import takes seconds, which a first test would spend
+  // inside its own timeout.
+  beforeAll(async () => { await prepareSubjects(); await importAttack(); }, 60_000);
+  const ids = ["quetz-tlahuitequiliztli", "quetz-ehecatle", "quetz-tlaelquiyahuitl"];
+
+  /** What the engine makes of one real Spell in her hands, against a Medea. */
+  const seen = (id) => withSubjects(
+    [{ from: "quetzalcoatl", panel: { i: 6, j: 6 } }, { from: "medea", panel: { i: 6, j: 9 } }],
+    async ({ unit, world }) => {
+      const { abilityKind, buildAttackSpec, attackFacts } = await importAttack();
+      const doc = world.actor("quetzalcoatl");
+      const item = doc.items.find((i) => i.system.contentId === id);
+      const options = rollOptionsFor({ attacker: unit("quetzalcoatl") });
+      const attack = buildAttackSpec({ attacker: doc, ability: item, abilityId: item.id, options });
+      const facts = attackFacts(unit("quetzalcoatl"), unit("medea"), { attack });
+      return {
+        isSpell: item.system.isSpell,
+        kind: abilityKind(item),
+        bill: budgetActionFor(abilityKind(item)),
+        attack,
+        facts,
+        options: rollOptionsFor({ attacker: unit("quetzalcoatl"), defender: unit("medea"), attack: facts }),
+      };
+    },
+  );
+
+  for (const id of ids) {
+    it(`${id} is a Damage Spell, billed as a Spell`, async () => {
+      const out = await seen(id);
+      expect(out.isSpell).toBe(true);
+      expect(out.kind).toBe("damageSpell");
+      expect(out.bill).toBe("spell");
+    });
+
+    it(`${id} keeps her MAG as what the attack counts as`, async () => {
+      const out = await seen(id);
+      expect(out.attack.kind).toBe("damageSpell");
+      expect(out.attack.component).toBe("mag");
+      // `attackFacts` rewrites a NORMAL attack's component to the Normal Attack's
+      // own, which on a rider is the mount's STR; a Spell is exempt.
+      expect(out.facts.component).toBe("mag");
+    });
+
+    it(`${id} is seen as MAG damage and not as a Normal Attack`, async () => {
+      const { options } = await seen(id);
+      expect(options.has("attack:component:mag")).toBe(true);
+      expect(options.has("attack:kind:normal")).toBe(false);
+    });
+  }
 });
 
 describe("Piedra Del Sol", () => {
