@@ -524,6 +524,7 @@
   "FGT.Editor.Effect": "Effect",
   "FGT.Action.Refusal.unknownAction": "That action does not exist.",
   "FGT.Action.Refusal.boardFailed": "The boarding roll failed.",
+  "FGT.Action.Refusal.notYourSeat": "Only its owner and her Master can ride this platform.",
   "FGT.Action.Refusal.noDestination": "Pick a destination first.",
   "FGT.Action.Refusal.noDestinations": "There is nowhere in a straight line this Unit can ride to.",
   "FGT.Action.Refusal.dragToMove": "Drag the token to Move it.",

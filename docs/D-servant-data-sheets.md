@@ -1241,6 +1241,11 @@ what keeps them from contradicting one another when two of them cover the same p
 content had authored one panel. A mount that size is placed by its top-left on her panel and slid back
 onto the board at its edge (Ch. 27 *Raising a platform*).
 
+**Who sits on it.** Winged Serpent puts her adjacent Master **on** the mount's footprint (next to the mount,
+measured from its footprint), and a Master who was not adjacent boards later **freely, with no roll**; no
+enemy and no ally who is not her Master takes the seat (`boarding: { seats: [owner, ownerMaster] }`, ruling 17,
+#65; Ch. 27 *Boarding and carrying*).
+
 ---
 
 ## D.29 EMIYA
