@@ -34,6 +34,20 @@ coincide by accident; the headings say which is which.
 
 ## [Unreleased]
 
+### Round boundaries (2026-10-01)
+
+#### Fixed
+
+- **A Round boundary logged the wrong Rounds and began the first Turn for the wrong faction.**
+  `combatRound` fires before Foundry writes the new Round, and `onRoundChange` read `combat.round`
+  after an `await`, so the log read `roundEnd 15` / `roundStart 16` when the Combat went 14 to 15,
+  and every Round-end clause saw a Round one too high. Meanwhile `onTurnChange` took the incoming
+  faction from the order before `rollTurnOrder` wrote the new one, so `budget.reset` and
+  `beginTurn` ran for a faction that did not hold the Turn. The Round boundary is now one ordered
+  sequence inside `onTurnChange` -- end Turn, end Round (the old number), roll, begin Round (the new
+  number), begin Turn for `combat.combatant` after the re-sort -- and `onRoundChange` only records
+  the Rounds from `updateData`. Ch. 25. (#173)
+
 ### Revival and the killing blow's excess (2026-10-01)
 
 #### Corrected
