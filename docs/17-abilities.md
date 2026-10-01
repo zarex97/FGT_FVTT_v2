@@ -36,7 +36,7 @@ Requirements are ability-declared predicates checked at the end of this chain (`
 
 ### Timing windows
 
-Six timing windows exist, and only one is documentary: `ownTurn` is how the sheet button reads, not an offer (`module/rules/windows.mjs:39-75`). The others dispatch at specific moments:
+Six timing windows exist, and only one is not offered at a moment: `ownTurn` is how the sheet button reads (`module/rules/windows.mjs:39-75`). It is **enforced**, though, by two readers (#160): `canToggleMode` for a mode, and `canUseAbility` for every other ability, which refuses with `notOwnTurn` ("Only during your Turn.") when `ownTurn` is the ability's ONLY window and the faction whose Turn is running (`gateContext().actingFactionId`) is not the one the Unit acts on (its `actingFactionId`, so a charmed Unit follows its charmer). It asks nothing when no faction's Turn is running, of an ability that names another window as well (it is used at one or the other and the gate cannot tell which), or of a use made as a Counter (`isCounter`, which is on the enemy's Turn by definition). The others dispatch at specific moments:
 
 - `whenAttacked` — as a reaction inside an attacker's Combat Process (`module/rules/windows.mjs:47-50`)
 - `whenAllyAttacked` — when an ally nearby is about to be hit (`module/rules/windows.mjs:52-55`)

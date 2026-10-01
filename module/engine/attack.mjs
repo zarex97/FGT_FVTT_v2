@@ -3265,6 +3265,9 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
     usage: canUseAbility({
       ability: abilityUsageSpec(ability), unit: self, master,
       round: game.combats.active?.round ?? 1, board, ...gateContext(),
+      // A Counter is made on the enemy's Turn by definition, so an ability
+      // whose only window is `ownTurn` is not refused for that (#160).
+      isCounter: true,
       target: unitFrom(board, required),
     }),
     board,

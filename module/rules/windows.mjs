@@ -17,10 +17,13 @@
  * after, when the picker offered `point` and the resolver only knew
  * `withinRange`. One list, and a drift test in both directions.
  *
- * **`ownTurn` is the odd one.** No dispatcher matches it — it is documentary,
- * meaning "usable during your Turn", which is the sheet button rather than an
- * offer. `dispatched` says so rather than leaving a reader to hunt for a call
- * site that does not exist. 89 of the 117 uses are this one.
+ * **`ownTurn` is the odd one.** No dispatcher matches it — it is not offered at
+ * a moment, it is "usable during your Turn", which is the sheet button rather
+ * than an offer. `dispatched` says so rather than leaving a reader to hunt for
+ * a call site that does not exist. 89 of the 117 uses are this one. It is
+ * ENFORCED, though, by two readers: `rules/modes.mjs#canToggleMode` for a mode
+ * and `rules/costs.mjs#canUseAbility` for everything else, through
+ * {@link usedOnlyDuringOwnTurn} (#160).
  *
  * Command spells have their own windows (`rules/command-spells.mjs#WINDOWS`)
  * and the two lists must never merge, for the same reason their requirement
@@ -39,8 +42,8 @@
 export const ABILITY_WINDOWS = Object.freeze({
   ownTurn: Object.freeze({
     id: "ownTurn",
-    // Documentary. `rules/ability-use.mjs` reads it only to classify the
-    // ability; nothing offers at it.
+    // Not offered at: `rules/ability-use.mjs` reads it to classify the
+    // ability, and the use gate refuses it on another Turn (#160).
     dispatched: false,
     hint: "During its owner's own Turn — the ordinary case, and the sheet button.",
   }),
@@ -126,4 +129,24 @@ export function isAbilityWindow(id) {
  */
 export function windowsOf(timing) {
   return [timing?.window ?? []].flat().filter((w) => typeof w === "string");
+}
+
+/**
+ * Is this ability usable at no moment but its owner's own Turn?
+ *
+ * *"(Active) Used during your Turn."* `ownTurn` was read in one place, so it
+ * gated Modes and nothing else, and Quetzalcoatl's Lucha Libre was pressed on
+ * the enemy's Turn and resolved (#160).
+ *
+ * Only when `ownTurn` is the ONLY window. An ability that also names another
+ * moment -- Medea's Argos, *"used during your Turn or when Attacked"*, Karna's
+ * Uncrowned Arms Mastership at a Combat Phase -- is used at one or the other,
+ * and the use gate cannot tell which, so it asks nothing of it.
+ *
+ * @param {object|null|undefined} ability an ability, or its usage spec
+ * @returns {boolean}
+ */
+export function usedOnlyDuringOwnTurn(ability) {
+  const windows = windowsOf(ability?.timing);
+  return windows.length > 0 && windows.every((w) => w === ABILITY_WINDOWS.ownTurn.id);
 }

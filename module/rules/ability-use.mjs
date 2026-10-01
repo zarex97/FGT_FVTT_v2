@@ -672,6 +672,8 @@ export function usageSpecFor(ability) {
     // Max, not first-wins: two gates on one ability both have to be past.
     requiresRound: maxRound(sys.targeting?.limits?.requiresRound, sys.npGateRound),
     requirements: sys.targeting?.limits?.requirements ?? sys.requirements ?? [],
+    // *"(Active) Used during your Turn."* The use gate reads the window (#160).
+    timing: sys.timing ?? null,
     // Presence Concealment clause 7 needs all four: whether the ability is
     // aimed at an enemy, and the three escapes the clause itself names --
     // "unless stated", Attack Skills, and Spells that deal damage.

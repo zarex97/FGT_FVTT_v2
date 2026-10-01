@@ -800,6 +800,7 @@
   "FGT.Ability.Refused.counterpartAdjacent": "Its counterpart is not next to it.",
   "FGT.Ability.Refused.masterHealthAbove": "The Master's Health is too low.",
   "FGT.Ability.Refused.expended": "Spent for the rest of the game.",
+  "FGT.Ability.Refused.notOwnTurn": "Only during your Turn.",
   "FGT.Ability.Refused.noMatch": "No match is running — begin the match before using abilities.",
   "FGT.Ability.Refused.suppressedCategory": "{name} is a '{category}' Skill and cannot be used right now.",
   "FGT.HUD.NoMatch": "No match running",

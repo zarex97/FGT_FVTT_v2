@@ -23,6 +23,7 @@ import { isGated, gateRoundFor, npAvailableTurn, NP_GATE } from "./np-gate.mjs";
 import { isConcealed, canUseWhileConcealed } from "./concealment.mjs";
 import { paysHighColumn } from "./master-rank.mjs";
 import { preventedBy } from "./budget.mjs";
+import { usedOnlyDuringOwnTurn } from "./windows.mjs";
 
 /**
  * What using this ability costs, or `null` when it is free.
@@ -167,6 +168,10 @@ export function additionalCostsFor({ ability, self, master = null }) {
  * @param {object|null} [args.master]
  * @param {number} [args.round]
  * @param {boolean} [args.clockRunning] whether a started match is keeping time
+ * @param {string|null} [args.actingFactionId] the faction whose Turn it is, from
+ *   `engine/board.mjs#gateContext`; `null` when none is (no match, the GM's slot)
+ * @param {boolean} [args.isCounter] this use answers an attack, which is made on
+ *   somebody else's Turn by definition
  * @returns {{ok: boolean, reason?: string, detail?: object, cost: object|null}}
  */
 export function canUseAbility({
@@ -212,6 +217,25 @@ export function canUseAbility({
 
   if (clockRunning === false) {
     return { ok: false, reason: "noMatch", detail: {}, cost };
+  }
+
+  // *"(Active) Used during your Turn."* A Skill whose only window is `ownTurn`
+  // cannot be used on another Player's Turn. The window was read in exactly one
+  // place, `canToggleMode`, so it gated Modes and nothing else: Lucha Libre was
+  // pressed from the action bar on the enemy's Turn and resolved (#160).
+  //
+  // Which Turn a Unit acts on is its `actingFactionId` -- a charmed Unit acts on
+  // its CHARMER's -- falling back to its own faction. Asked of nothing when no
+  // faction's Turn is running, which is what `canToggleMode` answers too. A
+  // Counter is exempt: it is made on the enemy's Turn by definition, and every
+  // Noble Phantasm answers one (§46.4-CK).
+  //
+  // Above the cooldown: "on cooldown for 4 Turns" would invite a player to wait
+  // for a Turn on which the Skill still could not be used.
+  const acting = ctx.actingFactionId ?? null;
+  if (acting && !ctx.isCounter && usedOnlyDuringOwnTurn(ability)) {
+    const side = unit?.actingFactionId ?? unit?.factionId ?? null;
+    if (side && side !== acting) return { ok: false, reason: "notOwnTurn", detail: {}, cost };
   }
 
   // *"The clones ... can only perform Normal Attacks."* Raikou's copies inherit
