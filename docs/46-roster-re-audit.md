@@ -2533,6 +2533,14 @@ Master's exemption had nowhere to apply. Each passenger now rolls the better of 
 its player would choose -- `destructionSaves` spares a Master whose Servant passed within 2 panels, and
 the outcome is posted as one card.
 
+### CJ. The garden's passengers were not scattered — **fixed 2026-09-30**
+
+**Reached: HG.destroy.** Semiramis and Foe Alpha landed at (5,3) and (0,0) on the ground, the panels they
+had stood on aboard. *"All Units onboard the HGoB are randomly scattered below it."* The `scatter`
+descriptor reached `toIntents`' default branch and was logged; `scatterToGround` only changed the level.
+`scatterPanels` now draws a random free ground panel under the footprint for each passenger, no two
+alike, and the engine moves them there before the level goes.
+
 ---
 
 ---

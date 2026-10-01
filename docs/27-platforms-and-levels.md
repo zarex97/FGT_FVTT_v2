@@ -86,7 +86,7 @@ When a platform is destroyed, the sequence is ordered and the order matters (`mo
 
 1. **Save.** Passengers roll to avoid damage from the platform's destruction: each rolls the better of an Agility or a Luck Check, and a Master within 2 panels of its Servant who passed is spared its own (`rules/platforms.mjs#destructionSaves`), all announced in one chat card. `destroyPlatform` passed no saves until §46.4-CI, so every passenger took the damage and nothing was rolled.
 2. **Damage.** Passengers who failed take 100 fixed damage, sourced from the platform.
-3. **Scatter.** *Every* passenger moves to the ground, including those who made the save — surviving the platform is not the same as staying in the air.
+3. **Scatter.** *Every* passenger moves to the ground, including those who made the save — surviving the platform is not the same as staying in the air. Each lands on a random free ground panel under the footprint, no two alike (`rules/platforms.mjs#scatterPanels`, the engine's dice); until §46.4-CJ they only changed level and landed directly under where they stood.
 4. **Reverse effects.** Effects the platform granted its owner are removed (`module/engine/scene-levels.mjs:335-341`).
 5. **Remove bound summons.** Creatures bound to the platform go with it. Bašmu is the reference case (`module/engine/scene-levels.mjs:344-359`).
 6. **Delete the level.** The Scene Level is deleted only after every token has scattered off it (`module/engine/scene-levels.mjs:249-271`), because `TokenDocument#level` is required and non-nullable and Foundry does not re-parent on delete.

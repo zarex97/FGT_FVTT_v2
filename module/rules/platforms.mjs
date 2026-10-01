@@ -1028,6 +1028,44 @@ export function destructionSaves(passengers, results) {
   return { saves, exempt };
 }
 
+/**
+ * Where each passenger lands when a platform comes apart.
+ *
+ * > *"Then, all Units onboard the HGoB are randomly scattered below it."*
+ *
+ * A random free GROUND panel under the footprint for each, no two alike, drawn
+ * from `rand` (0 ≤ x < 1) so the caller owns the dice. The `scatter`
+ * descriptor was logged and nothing else, so every passenger landed directly
+ * under where it stood (Ch. 46 §46.4-CJ).
+ *
+ * @param {object[]} passengers
+ * @param {object} platform
+ * @param {object} board
+ * @param {() => number} rand
+ * @returns {Record<string, {i: number, j: number}>}
+ */
+export function scatterPanels(passengers, platform, board, rand) {
+  const { w = 1, h = 1 } = platform?.footprint ?? {};
+  const taken = new Set((board?.units ?? [])
+    .filter((u) => (u.level ?? 0) === 0 && u.kind !== "platform" && u.kind !== "structure" && !u.sharesPanel)
+    .flatMap((u) => u.panels ?? (u.panel ? [u.panel] : []))
+    .map((p) => `${p.i},${p.j}`));
+  const free = [];
+  for (let di = 0; di < h; di += 1) {
+    for (let dj = 0; dj < w; dj += 1) {
+      const p = { i: platform.panel.i + di, j: platform.panel.j + dj };
+      if (!taken.has(`${p.i},${p.j}`)) free.push(p);
+    }
+  }
+  const out = {};
+  for (const unit of passengers) {
+    if (free.length === 0) break;
+    const k = Math.min(free.length - 1, Math.floor(rand() * free.length));
+    out[unit.id] = free.splice(k, 1)[0];
+  }
+  return out;
+}
+
 export function destructionSequence(platform, board, { saves = {} } = {}) {
   /** @type {object[]} */
   const out = [];

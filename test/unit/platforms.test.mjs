@@ -1167,3 +1167,33 @@ describe("destructionSaves", async () => {
     expect(out.exempt).toEqual([]);
   });
 });
+
+// *"Then, all Units onboard the HGoB are randomly scattered below it."* The
+// `scatter` descriptor was logged and the units only changed level, so each
+// landed directly under where it stood (§46.4-CJ).
+describe("scatterPanels", async () => {
+  const { scatterPanels } = await import("../../module/rules/platforms.mjs");
+  const garden = { id: "hgob", kind: "platform", level: 20, panel: { i: 0, j: 0 }, footprint: { w: 9, h: 9 } };
+  const a = { id: "a", level: 20, panel: { i: 5, j: 3 } };
+  const b = { id: "b", level: 20, panel: { i: 0, j: 0 } };
+  const groundling = { id: "g", level: 0, panel: { i: 4, j: 4 } };
+  const board = { units: [garden, a, b, groundling] };
+  const seq = (...xs) => { let k = 0; return () => xs[k++ % xs.length]; };
+
+  it("puts every passenger on a distinct free ground panel under the footprint", () => {
+    const out = scatterPanels([a, b], garden, board, seq(0.5, 0.5, 0.1));
+    const cells = Object.values(out);
+    expect(cells).toHaveLength(2);
+    expect(new Set(cells.map((p) => `${p.i},${p.j}`)).size).toBe(2);
+    for (const p of cells) {
+      expect(withinFootprint(p, garden)).toBe(true);
+      expect(p).not.toEqual({ i: 4, j: 4 });
+    }
+  });
+
+  it("draws from the dice, not from where each one stood", () => {
+    const one = scatterPanels([a], garden, board, seq(0));
+    const other = scatterPanels([a], garden, board, seq(0.99));
+    expect(one.a).not.toEqual(other.a);
+  });
+});
