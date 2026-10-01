@@ -24,6 +24,8 @@ The pipeline is exposed as `applyEffect()` (`module/engine/effect-applier.mjs:60
 
 For unresolved `applyEffect` intents that arrive at the applier boundary, `resolveEffects()` (`module/engine/applier.mjs:247-361`) fetches the definition, takes a snapshot of the target from the board (which includes field-scoped suppressions), rolls its own `1d100`, and calls `applyEffect`. This path exists because three call sites write effects without going through `applyWorldIntents` — the attack flow, the scheduler's boundary sequences, and the movement hook — and running the pipeline in one of them would leave the other two applying bare intents, repeating logic (`module/engine/applier.mjs:77-82`).
 
+**The attack path takes both subjects from the board too (#157).** `applyAbilityEffects` builds the attacker and the defender once per Combat Process with `riderSubjects(state)` (`unitFrom(boardSnapshot(), doc)`, which falls back to a standalone projection for a Unit the board has no row for), and `applyDeclaredEffects` takes its attacker from the board, so a bounded field's `ApplicationChance` and Immunity downgrade, and an aura's outgoing bonus, reach a rider: they are written only by `snapshotBoard`'s pass, which a bare `unitSnapshot` never ran. Doomsday Come's *chance of being inflicted by debuffs +50%* is the case that shows it (a 50% rider rolled at 60 is `resisted` on the bare snapshot and `applied` on the board's Unit); the same shape §46.4-AF fixed at `fireDamageStepEnd` and §46.4-AG at the intent path.
+
 ### Step 1: Immunity gate
 
 A target holding a matching immunity (e.g., `Poison Immune`, `Debuff Immune`, or a scoped immunity like `vDebuffImmune`) refuses the application outright (`module/engine/effect-applier.mjs:85-102`).
