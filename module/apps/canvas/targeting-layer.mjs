@@ -279,6 +279,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
       resolved,
       label,
       damageFor: preview.damageFor ?? null,
+      isAttack: preview.isAttack ?? true,
       // An anchor that resolves without a choice has nowhere else to be put, so
       // offering a button that visibly does nothing is worse than not offering
       // one.

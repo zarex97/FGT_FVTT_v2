@@ -37,7 +37,7 @@ export const REAIM = Symbol("re-aim");
  * @param {boolean} [args.canReaim] whether re-aiming is meaningful for this anchor
  * @returns {Promise<string[]|symbol|null>} chosen unit ids, {@link REAIM}, or null
  */
-export async function reviewTargets({ resolved, label, damageFor = null, canReaim = true }) {
+export async function reviewTargets({ resolved, label, damageFor = null, canReaim = true, isAttack = true }) {
   const units = resolved?.units ?? [];
   const excluded = resolved?.excluded ?? [];
 
@@ -89,7 +89,8 @@ export async function reviewTargets({ resolved, label, damageFor = null, canReai
 
   const buttons = [{
     action: "confirm",
-    label: game.i18n.localize("FGT.Targeting.Confirm"),
+    // "Attack" only for an attack: a non-damaging ability is not one (§46.4-CM).
+    label: game.i18n.localize(isAttack ? "FGT.Targeting.Confirm" : "FGT.Targeting.Use"),
     icon: "fa-solid fa-crosshairs",
     default: true,
     callback: (_event, _button, dialog) => Array.from(

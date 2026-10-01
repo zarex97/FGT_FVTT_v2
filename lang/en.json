@@ -315,6 +315,7 @@
   "FGT.Settings.TargetingReview": "Confirm targets before attacking",
   "FGT.Settings.TargetingReviewHint": "After aiming, show the list of units the area caught — and the ones the rules excluded, with the reason — so you can adjust or re-aim before the attack is declared.",
   "FGT.Targeting.Confirm": "Attack",
+  "FGT.Targeting.Use": "Use",
   "FGT.Targeting.Reaim": "Re-aim",
   "FGT.Targeting.Cancel": "Cancel",
   "FGT.Targeting.NothingInArea": "Nothing is in the area.",
