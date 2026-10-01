@@ -40,7 +40,7 @@ describe("the sheet asks the GM to use a Skill", () => {
   });
 
   it("so does a mode whose switch-on is a use", () => {
-    const body = between(sheet, "if (active && (item.system?.phases ?? []).length > 0) {", "// Stamped on BOTH directions");
+    const body = between(sheet, "if (active && pricedOnEntry(item)) {", "// Stamped on BOTH directions");
     expect(body).toContain("#relaySkill(actor, item)");
     expect(body).not.toContain("skill-use.mjs");
   });

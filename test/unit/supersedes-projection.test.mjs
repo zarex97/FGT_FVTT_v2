@@ -20,26 +20,25 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { rollOptionsFor } from "../../module/rules/options.mjs";
-import { interiorContributions } from "../../module/rules/bounded-fields.mjs";
 
 beforeAll(prepareSubjects, 60_000);
 
 const CORE = "quetz-goddesses-divine-core";
 const STONE = "quetz-piedra-del-sol";
+const STONE_NAME = "Piedra Del Sol: The Sun Stone";
 
-/** Quetzalcoatl as the projection builds her, with the stone's field open over her, and what the stone adds. */
+/**
+ * Quetzalcoatl as the projection builds her, and the same Quetzalcoatl with her stone standing.
+ *
+ * The stone's +180 is HER passive rule, gated on `self:fieldActive:` (#65, ruling 5): it holds
+ * wherever she stands while the stone exists, so it is in her modifiers already and the field
+ * being open is what lets it count. Standing is `ownedFields`, the annotation the board pass writes.
+ */
 const withStone = (fn) => withSubjects(
   [{ from: "quetzalcoatl", id: "quetzalcoatl", panel: { i: 6, j: 6 } }],
-  ({ unit, board, world }) => {
+  ({ unit }) => {
     const quetz = unit("quetzalcoatl");
-    const spec = world.actor("quetzalcoatl").items.find((i) => i.system.contentId === STONE).system.field;
-    // The runtime shape `engine/fields.mjs#createField` stores: the ability's id as the field's id.
-    const field = {
-      ...spec, id: STONE, ownerId: "quetzalcoatl", ownerFaction: quetz.faction,
-      geometry: { ...spec.geometry, anchor: { i: 6, j: 6, k: 0 } },
-    };
-    const stone = interiorContributions(field, quetz, board).modifiers;
-    return fn({ quetz, stone });
+    return fn({ quetz, standing: { ...quetz, ownedFields: [STONE] } });
   },
 );
 
@@ -78,9 +77,9 @@ describe("Piedra Del Sol over Goddess's Divine Core", () => {
   });
 
   it("replaces it with the stone's +180, where the two stacked to +300", async () => {
-    const { added, rows } = await withStone(({ quetz, stone }) => stage7(flatOnly(quetz, stone)));
+    const { added, rows } = await withStone(({ standing }) => stage7(flatOnly(standing)));
     expect(added).toBe(180);
-    expect(rows.find((r) => r.note === `Goddess's Divine Core (superseded by ${STONE})`)).toMatchObject({ value: 0 });
-    expect(rows.find((r) => r.note === STONE)).toMatchObject({ value: 180 });
+    expect(rows.find((r) => r.note === `Goddess's Divine Core (superseded by ${STONE_NAME})`)).toMatchObject({ value: 0 });
+    expect(rows.find((r) => r.note === STONE_NAME)).toMatchObject({ value: 180 });
   });
 });
