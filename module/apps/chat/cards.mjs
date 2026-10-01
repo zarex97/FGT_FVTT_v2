@@ -15,7 +15,7 @@ import { pendingPrompt, didHit, isComplete, PROMPTS, windowFor } from "../../eng
 import * as process from "../../engine/combat-process.mjs";
 import { offerCommands } from "../../engine/command-spells.mjs";
 import { publicIdentityOf, publicSpeakerFor } from "../../engine/public-identity.mjs";
-import { currentBoard } from "../../engine/board.mjs";
+import { currentBoard, luckOf } from "../../engine/board.mjs";
 import { ActionBar } from "../hud/action-bar.mjs";
 
 /**
@@ -347,7 +347,7 @@ function attackContext(state) {
  * @param {object} [state] the Combat Process, for the reactions it refuses
  * @returns {Array<{event: string, label: string, hint: string|null}>}
  */
-function promptOptions(prompt, state = null) {
+export function promptOptions(prompt, state = null) {
   if (prompt.kind === "reaction") {
     // `forbiddenReactions` has been written by the `retarget` interrupt since
     // Command Spells shipped and read by NOTHING, so a Servant pulled into an
@@ -398,8 +398,9 @@ function promptOptions(prompt, state = null) {
   }
   // Every Luck Check rung is optional, because Luck is spent whether or not
   // the check succeeds. The cost is shown on the button.
-  const unit = game.actors.get(prompt.unitId);
-  const luck = unit?.system?.luck?.value ?? 0;
+  // From the board, not the actor: a platform that shares its summoner's Luck
+  // holds none of its own, and its stored 0 disabled this button (#169).
+  const luck = luckOf(currentBoard(), game.actors.get(prompt.unitId)).value;
   return [
     {
       event: "contest",

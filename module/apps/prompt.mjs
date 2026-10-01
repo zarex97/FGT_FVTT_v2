@@ -14,6 +14,8 @@
  * the most common outcome of asking a question, not a failure.
  */
 
+import { currentBoard, luckOf } from "../engine/board.mjs";
+
 const { DialogV2 } = foundry.applications.api;
 
 /**
@@ -48,7 +50,9 @@ const RENDERERS = Object.freeze({
       content: `<p>${game.i18n.format("FGT.Prompt.LuckCheckBody", {
         name: unit?.name ?? game.i18n.localize("FGT.Unit"),
         check: game.i18n.localize(`FGT.Check.${spec.check ?? "generic"}`),
-        luck: unit?.system?.luck?.value ?? 0,
+        // The board's Luck, not the actor's: a platform sharing its summoner's
+        // holds none of its own (#169).
+        luck: luckOf(currentBoard(), unit).value,
       })}</p>`,
       rejectClose: false,
     });

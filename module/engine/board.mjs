@@ -302,6 +302,26 @@ export function unitFrom(board, actor) {
 }
 
 /**
+ * A Unit's Luck as the board holds it: the number a Luck Check will spend from.
+ *
+ * A platform whose sheet says *"Luck: Shared with <owner>"* has one pool with its
+ * owner (#162), and its own actor's stored `system.luck` is a dead 0 that nothing
+ * keeps. The projection carries the shared value on the platform's snapshot
+ * (`rules/snapshot.mjs#annotatePlatforms`), so every interface reader asks here
+ * and not at `actor.system.luck` (#169). The maximum is the pool's own, which for
+ * a sharing platform is its owner's.
+ *
+ * @param {object|null} board
+ * @param {object|null} actor
+ * @returns {{value: number, max: number|null}}
+ */
+export function luckOf(board, actor) {
+  const unit = unitFrom(board, actor);
+  const pool = unit?.luckFromSummoner ? (game.actors?.get(unit.ownerId) ?? actor) : actor;
+  return { value: unit?.luck ?? 0, max: pool?.system?.luck?.max ?? null };
+}
+
+/**
  * Snapshot the board as it currently stands.
  *
  * @param {object} [overrides] extra `settings` for the snapshot
