@@ -527,6 +527,31 @@ export function mayBringMaster(unit, master, radius = 2) {
 }
 
 /**
+ * The top-left panel a summoned platform is placed by, so that it stands where its
+ * summoner does.
+ *
+ * > *"…summons a Quetzalcoatlus at her position"*
+ *
+ * A token is placed by its top-left panel, which for a 1x1 mount was the summoner's own. A
+ * larger one summoned from the last row or column would hang off the board, so the anchor
+ * slides back just far enough to stay on it -- and never so far that the summoner's panel
+ * leaves the footprint.
+ *
+ * @param {{i: number, j: number}} panel the summoner's panel
+ * @param {{w?: number, h?: number}|null} footprint
+ * @param {{iMin?: number, jMin?: number, iMax?: number, jMax?: number}|null} [bounds]
+ * @returns {{i: number, j: number}}
+ */
+export function summonAnchor(panel, footprint, bounds = null) {
+  const { w = 1, h = 1 } = footprint ?? {};
+  const fit = (at, size, min, max) => Math.max(min ?? 0, Math.min(at, (max ?? Infinity) - size + 1));
+  return {
+    i: fit(panel.i, h, bounds?.iMin, bounds?.iMax),
+    j: fit(panel.j, w, bounds?.jMin, bounds?.jMax),
+  };
+}
+
+/**
  * The geometric centre of a platform's own footprint.
  *
  * `panel` is a token's own anchor corner (top-left), not the middle of a 9x9

@@ -22,9 +22,10 @@ mov: 7
 range: { panels: 2, targets: 1 }
 baseAttack: { str: 150, mag: 0 }
 normalAttack: { mode: fixed, component: str }
-# A one-panel mount, not a fortress. Every other platform in the set is 3x3 or
-# larger, and the schema's default would have made this one 3x3 silently.
-footprint: { w: 1, h: 1 }
+# 2x2 panels, ruled by the user (2026-10-01): the sheet prints no size, and the
+# mount is neither a fortress nor a single panel. The schema's default would
+# have made it 3x3 silently, so the size is stated.
+footprint: { w: 2, h: 2 }
 # Quetz and her Master, and nobody else.
 capacity: 2
 level: 1
