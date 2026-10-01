@@ -51,14 +51,25 @@ async function onTurnChange(combat, prior, current) {
   // the Combat. Read after it, `prior` named the incoming combatant, and every
   // turn-end step ran for the faction about to act (Ch. 46 §46.4-BV).
   const endedCombatantId = prior?.combatantId ?? null;
+  // The Round the ended Turn belonged to, and the one the incoming Turn does,
+  // for the same reason: these are Foundry's own objects and are read here,
+  // not after a write (#173).
+  const endedRound = prior?.round ?? null;
+  const beganRound = current?.round ?? null;
+  // Whether `combatRound` announced this as a Round boundary, and which Rounds
+  // it ended and began. Taken synchronously: it is consumed once.
+  const roundEntry = takePendingRound(combat, beganRound);
   if (!isScheduler()) return;
   if (!combat?.started) return;
 
   const tick = combat.system?.globalTurn ?? 0;
   // One CONNECTION, not merely one user (Ch. 46 §46.4-D).
   if (!await claimBoundary(combat, "turn")) return;
+  // The Round is claimed by whoever won the Turn, and only by them: a loser has
+  // returned above, so the two claims cannot be split between two connections.
+  const runsRound = Boolean(roundEntry) && await claimBoundary(combat, "round");
 
-  const board = boardFor(combat);
+  const board = boardFor(combat, endedRound);
   const activeFactionId = factionOf(combat, { combatantId: endedCombatantId });
   const activeUnits = board.units.filter((u) => u.factionId === activeFactionId);
   const actedUnits = board.units.filter((u) => u.acted);
@@ -66,7 +77,7 @@ async function onTurnChange(combat, prior, current) {
 
   const ctx = {
     tick,
-    round: combat.round ?? 1,
+    round: endedRound ?? combat.round ?? 1,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
     activeFactionId,
     // Injected rather than imported by the scheduler, so the scheduler stays
@@ -190,10 +201,19 @@ async function onTurnChange(combat, prior, current) {
     await combat.markTurnTaken(ctx.activeFactionId);
   }
 
+  // A Round closes with its last Turn, so its end belongs here: after that
+  // Turn's end and before the tick moves on, with the Round's OWN number.
+  if (runsRound) await endRoundSequence(combat, roundEntry.ended, tick);
+
   // The global turn advances between the two halves, so an effect expiring
   // "this turn" is gone before the next unit acts.
   const nextTick = tick + 1;
   await combat.update({ "system.globalTurn": nextTick });
+
+  // The new Round: roll its order, then begin it with ITS number (#173). The
+  // roll re-sorts `turns` (`FGTCombat#_onUpdate`, top of the Round), so who
+  // holds the first Turn is not known until it has landed.
+  if (runsRound) await beginRoundSequence(combat, roundEntry.started, nextTick);
 
   // The incoming faction starts its turn with full pools. The turn RECORD is
   // not cleared, because it expires by being read: `system.globalTurn` has just
@@ -203,13 +223,18 @@ async function onTurnChange(combat, prior, current) {
   // itself -- while creating a real hazard, since a board re-derived after the
   // clear saw `acted: false` on every unit and killed every `actedTurnEnd`
   // field dispatch (`test/unit/field-acted-turn-end.test.mjs`).
-  const incoming = factionOf(combat, current);
+  //
+  // After a Round boundary that is `combat.combatant` NOW, not the combatant
+  // `current` named when the hook fired: the roll above re-sorted the turns, and
+  // a different faction may hold the Turn (#173).
+  const incoming = runsRound ? factionOf(combat, null) : factionOf(combat, current);
   await budget.reset(combat, incoming);
 
   const startingBoard = boardFor(combat);
   await run(
     scheduler.beginTurn(startingBoard, {
       ...ctx, tick: nextTick, activeFactionId: incoming,
+      round: beganRound ?? combat.round ?? 1,
       // `beginTurn` fires `turnStart` for EVERY unit (Shock's action-loss
       // roll can land on anyone's turn start), not just the incoming
       // faction's -- so this is its own gather, not `ctx.rolls` carried over.
@@ -240,6 +265,20 @@ async function onTurnChange(combat, prior, current) {
 }
 
 /**
+ * Foundry fires `combatRound` BEFORE it writes the new Round: `nextRound` calls
+ * `Hooks.callAll("combatRound", this, updateData, updateOptions)`, does not
+ * await it, and then `this.update(updateData)`. `combatTurnChange` follows once
+ * that update has landed.
+ *
+ * So this hook runs nothing. It records which Round ended and which began --
+ * from `updateData`, never from `combat.round`, which is the old Round now and
+ * the new one after any `await` -- and {@link onTurnChange} runs the boundary in
+ * the one order the rules need: end the Turn, end the Round, roll the new order,
+ * begin the Round, begin the first Turn of the NEW order. Run independently the
+ * two raced: the Round's numbers were read from a Combat that had already
+ * moved, and the first Turn began for the faction the OLD order had put first
+ * (#173).
+ *
  * @param {object} combat
  * @param {object} updateData
  * @param {object} options
@@ -249,12 +288,48 @@ async function onRoundChange(combat, updateData, options) {
   if (!combat?.started) return;
   // Only fire on a forward round change; rewinding is a GM correction.
   if ((options?.direction ?? 1) < 0) return;
-  if (!await claimBoundary(combat, "round")) return;
 
-  const board = boardFor(combat);
+  const started = updateData?.round ?? ((combat.round ?? 0) + 1);
+  pendingRounds.set(combat.id, { ended: started - 1, started });
+}
+
+/**
+ * The Round boundaries `combatRound` has announced and `combatTurnChange` has
+ * not yet run, by Combat id.
+ *
+ * @type {Map<string, {ended: number, started: number}>}
+ */
+const pendingRounds = new Map();
+
+/**
+ * Take the announced Round boundary, once.
+ *
+ * An entry that does not name the Round the Turn change entered is stale -- the
+ * update it announced never landed -- and is dropped rather than run.
+ *
+ * @param {object} combat
+ * @param {number|null} startedRound the Round the incoming Turn belongs to
+ * @returns {{ended: number, started: number}|null}
+ */
+function takePendingRound(combat, startedRound) {
+  const entry = pendingRounds.get(combat?.id) ?? null;
+  pendingRounds.delete(combat?.id);
+  return entry && entry.started === startedRound ? entry : null;
+}
+
+/**
+ * The end of the Round that closed.
+ *
+ * @param {object} combat
+ * @param {number} round the Round that ended
+ * @param {number} tick the Turn that closed it
+ * @returns {Promise<void>}
+ */
+async function endRoundSequence(combat, round, tick) {
+  const board = boardFor(combat, round, tick);
   const ctx = {
-    tick: combat.system?.globalTurn ?? 0,
-    round: combat.round ?? 1,
+    tick,
+    round,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
     activeFactionId: null,
     effectDef: (id) => EffectRegistry.get(id),
@@ -288,15 +363,30 @@ async function onRoundChange(combat, updateData, options) {
   // crosses. Hygiene rather than the mechanism -- `tallyAgainstField` compares
   // the Round it recorded and ignores a stale window on its own.
   await fields.resetFieldWindows();
+}
 
+/**
+ * The start of the Round that began, after its order is rolled.
+ *
+ * @param {object} combat
+ * @param {number} round the Round that began
+ * @param {number} tick the first tick of it
+ * @returns {Promise<void>}
+ */
+async function beginRoundSequence(combat, round, tick) {
   // Turn order is re-rolled every Round (Ch. 41 Q32), before the new Round's
   // start-of-round effects fire.
   if (typeof combat.rollTurnOrder === "function") await combat.rollTurnOrder();
 
-  const startingBoard = boardFor(combat);
+  const startingBoard = boardFor(combat, round, tick);
   await run(
     scheduler.beginRound(startingBoard, {
-      ...ctx, round: (combat.round ?? 1) + 1,
+      tick,
+      round,
+      turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+      activeFactionId: null,
+      effectDef: (id) => EffectRegistry.get(id),
+      grandOrder: setting("grandOrder", false),
       rolls: await gatherRolls([[startingBoard.units, "roundStart"]]),
     }),
     "scheduler:beginRound",
@@ -436,11 +526,22 @@ async function claimBoundary(combat, kind) {
 const SETTLE_MS = 120;
 
 /**
+ * The board, as of a named Round and tick.
+ *
+ * Both default to the Combat's own. A boundary names the Round it is about
+ * rather than reading `combat.round`, which has already moved on by the time
+ * the end of the old one runs (#173).
+ *
  * @param {object} combat
+ * @param {number|null} [round]
+ * @param {number|null} [tick]
  * @returns {object}
  */
-function boardFor(combat) {
-  return currentBoard({ round: combat.round ?? 1, tick: combat.system?.globalTurn ?? 0 });
+function boardFor(combat, round = null, tick = null) {
+  return currentBoard({
+    round: round ?? combat.round ?? 1,
+    tick: tick ?? combat.system?.globalTurn ?? 0,
+  });
 }
 
 /**

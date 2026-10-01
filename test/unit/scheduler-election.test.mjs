@@ -39,7 +39,10 @@ describe("the boundary claim", () => {
 
   it("refuses to proceed on a lost claim rather than merely logging one", () => {
     expect(source).toMatch(/if \(!await claimBoundary\(combat, "turn"\)\) return;/);
-    expect(source).toMatch(/if \(!await claimBoundary\(combat, "round"\)\) return;/);
+    // The Round is claimed inside the Turn handler, by the connection that won
+    // the Turn (#173): a lost Round claim skips the Round's steps and does not
+    // abandon the Turn.
+    expect(source).toMatch(/const runsRound = Boolean\(roundEntry\) && await claimBoundary\(combat, "round"\);/);
   });
 
   it("is keyed on the boundary, NOT on the counter its own sequence advances", () => {
