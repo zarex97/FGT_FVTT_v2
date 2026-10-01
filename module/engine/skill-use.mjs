@@ -57,6 +57,7 @@ import { resolveValue } from "../rules/elements.mjs";
 import { createField, regionSizedTargeting } from "./fields.mjs";
 import { paintTerrain } from "./terrain.mjs";
 import { activatePlatform } from "./platforms.mjs";
+import { summonAnchor } from "../rules/platforms.mjs";
 import { expand } from "../rules/targeting/shapes.mjs";
 import { fireEvent, regionScale } from "./scheduler.mjs";
 import { isConcealed, concealmentBreakChance } from "../rules/concealment.mjs";
@@ -2263,9 +2264,12 @@ async function summonPlatform(phase, actor, board) {
 
   const platform = await Actor.create(data);
   const footprint = platform.system?.footprint ?? { w: 1, h: 1 };
+  // Placed by its top-left, so a mount larger than one panel is slid back onto
+  // the board when she stands at its edge, her own panel still under it.
+  const anchor = summonAnchor(self.panel, footprint, board.bounds);
   const token = await platform.getTokenDocument({
-    x: self.panel.j * scene.grid.size,
-    y: self.panel.i * scene.grid.size,
+    x: anchor.j * scene.grid.size,
+    y: anchor.i * scene.grid.size,
     width: footprint.w,
     height: footprint.h,
   });

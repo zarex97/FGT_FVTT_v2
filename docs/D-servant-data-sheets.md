@@ -1237,6 +1237,10 @@ what keeps them from contradicting one another when two of them cover the same p
 
 **Xiuhcoatl's reach** is her Range. The sheet gives the NP no Range of its own, so its anchor states none and `anchorRange` falls back to the caster's (`range:` absolute, `rangeBonus:` relative, neither: her own). It had frozen `range: 2`, her statblock's figure, which said the same until a buff or a penalty moved her Range and moved every other attack of hers but this one (#65).
 
+**The Quetzalcoatlus is 2×2.** Her sheet prints no size; the user ruled 2×2 (2026-10-01, #65) after the
+content had authored one panel. A mount that size is placed by its top-left on her panel and slid back
+onto the board at its edge (Ch. 27 *Raising a platform*).
+
 ---
 
 ## D.29 EMIYA

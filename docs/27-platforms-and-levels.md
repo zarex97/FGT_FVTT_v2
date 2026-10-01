@@ -26,6 +26,12 @@ A platform's **footprint** (`{w, h}`) declares how many panels it occupies. Memb
 
 A platform on the ground (level 0) has no passengers — a platform sitting at level 0 has not been activated (`module/rules/platforms.mjs:60-77`). `passengersOf` filters to units on the platform's level and excludes the platform itself. The guard against reading "everyone on the ground belongs to this platform" is documented: the Hanging Gardens' token was never assigned to its new level and therefore counted every unit in the scene as a passenger (`module/rules/platforms.mjs:61-72`).
 
+### Raising a platform
+
+A Noble Phantasm that summons a platform (`summonPlatform`, `module/engine/skill-use.mjs`) creates its Actor from the compendium, stamps its owner and the tick it was raised on, resolves its `inherit` stats, and places its token **at the summoner's panel**. A token is placed by its top-left panel, which for a one-panel mount was the summoner's own; a larger mount summoned from the last row or column would hang off the board, so the anchor slides back just far enough to stay on it, never so far that her panel leaves the footprint (`module/rules/platforms.mjs#summonAnchor`).
+
+**The Quetzalcoatlus is 2×2 panels.** The sheet prints no size; the user ruled 2×2 (2026-10-01, #65) and the content authored 1×1. The compiled token takes its size from the authored `footprint` (see *Token sizing*), so the one line in `packs/_source/platforms/quetzalcoatlus.yml` is the whole of the size.
+
 ### Boarding and carrying
 
 Boarding is a roll against the platform's declared difficulty, modified by the unit's Agility and Luck Ranks. A platform that specifies a `boarding` block states it in full — the Golden Hind rolls a ten-sided die with no relief clause — and every other platform defaults to the Hanging Gardens' rule: 1d12, target 12, reduced by rank relief and special circumstances (`module/rules/platforms.mjs:508-529`). The modifier **reduces the required value**, not the roll (`module/engine/platforms.mjs:21-23`).

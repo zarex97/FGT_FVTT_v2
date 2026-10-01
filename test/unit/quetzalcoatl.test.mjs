@@ -501,8 +501,8 @@ describe("the Quetzalcoatlus", () => {
     expect(mount.inherit.luck).toEqual({ from: "summoner" });
   });
 
-  it("is one panel, not the schema's default 3x3", () => {
-    expect(mount.footprint).toEqual({ w: 1, h: 1 });
+  it("is 2x2 panels, not the schema's default 3x3", () => {
+    expect(mount.footprint).toEqual({ w: 2, h: 2 });
   });
 });
 
