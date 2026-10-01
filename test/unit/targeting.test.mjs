@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
 import {
@@ -7,6 +7,9 @@ import {
 import { resolveTargets, legalPlacements, validate } from "../../module/rules/targeting/resolve.mjs";
 import { expand, orthogonalAdjacentRect } from "../../module/rules/targeting/shapes.mjs";
 import { squareBounds, key } from "../../module/domain/geometry.mjs";
+import { targetSpecFor } from "../../module/rules/ability-use.mjs";
+import { rollOptionsFor } from "../../module/rules/options.mjs";
+import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 
 const at = (i, j) => ({ i, j });
 const bounds = squareBounds(13);
@@ -235,6 +238,100 @@ describe("selection filters", () => {
     const r = resolveTargets(aoe, caster, board);
     expect(r.units.map((u) => u.unitId)).toEqual(["hidden"]);
     expect(r.units[0].concealedAoE).toBe(true);
+  });
+});
+
+// Presence Concealment clause 1: *"This Unit cannot be targeted for an **Attack or
+// an enemy Unit's Skill**."* Step 7 dropped every concealed Unit from a chosen
+// selection whatever its relation, so a concealed ALLY could not be healed,
+// guarded or buffed by a single-target Skill (#133). The spec comes from the real
+// ability through `targetSpecFor`, and the Units from the real projection, the
+// ally holding the real `presenceConcealment` effect.
+describe("a concealed ally and an allied Skill", () => {
+  beforeAll(prepareSubjects, 60_000);
+
+  /** `owner` (a corpus Servant) and an ally or enemy standing next to them, `hidden` or not. */
+  const scene = (owner, { relation = "ally", hidden = true } = {}, fn) => withSubjects([
+    { from: owner, id: owner, panel: { i: 6, j: 6 }, state: { factionId: "f1" } },
+    {
+      from: "heracles", id: "other", panel: { i: 6, j: 7 }, state: { factionId: relation === "ally" ? "f1" : "f2" },
+      effects: hidden ? [{ defId: "presenceConcealment" }] : [],
+    },
+  ], ({ unit, board, world }) => fn({ unit, board, world, caster: unit(owner), other: unit("other") }), { settings: {} });
+
+  /** The ability's real spec, as the Skill path builds it. */
+  const specOf = ({ caster, world }, abilityId) => {
+    const item = world.actor(caster.id).items.find((i) => i.system.contentId === abilityId);
+    const reach = typeof caster.range === "number" ? caster.range : 1;
+    return targetSpecFor(item, reach, rollOptionsFor({ attacker: caster }));
+  };
+
+  /** Who the resolver offers or picks, whether the pick is made yet or not. */
+  const reached = (r) => [...r.units, ...(r.candidates ?? [])].map((t) => t.unitId);
+
+  it("resolves a concealed ally for Medea's Teachings of Circe, which refused it", async () => {
+    await scene("medea", {}, (ctx) => {
+      expect(ctx.other.concealed).toBe(true);
+      const spec = specOf(ctx, "medea-teachings-of-circe");
+      expect(spec.limits.forAttack).toBe(false);
+      const r = resolveTargets(spec, ctx.caster, ctx.board, { unitId: "other", panel: ctx.other.panel });
+      expect(r.errors).toEqual([]);
+      expect(r.units.map((u) => u.unitId)).toEqual(["other"]);
+    });
+  });
+
+  it("still resolves the same ally when it is not concealed (the control)", async () => {
+    await scene("medea", { hidden: false }, (ctx) => {
+      const r = resolveTargets(specOf(ctx, "medea-teachings-of-circe"), ctx.caster, ctx.board,
+        { unitId: "other", panel: ctx.other.panel });
+      expect(r.units.map((u) => u.unitId)).toEqual(["other"]);
+    });
+  });
+
+  it("still refuses a concealed ENEMY under the same spec shape: an enemy Unit's Skill is shut out", async () => {
+    await scene("medea", { relation: "enemy" }, (ctx) => {
+      const base = specOf(ctx, "medea-teachings-of-circe");
+      const spec = { ...base, selection: { ...base.selection, relations: ["ally", "self", "enemy"] } };
+      const r = resolveTargets(spec, ctx.caster, ctx.board, { unitId: "other", panel: ctx.other.panel });
+      expect(r.units).toEqual([]);
+      expect(r.errors.join(" ")).toMatch(/concealed/);
+    });
+  });
+
+  it("still refuses a concealed ally for an ATTACK: forAttack holds it out whoever it is aimed at", async () => {
+    await scene("medea", {}, (ctx) => {
+      const base = specOf(ctx, "medea-teachings-of-circe");
+      const spec = { ...base, limits: { ...base.limits, forAttack: true } };
+      const r = resolveTargets(spec, ctx.caster, ctx.board, { unitId: "other", panel: ctx.other.panel });
+      expect(r.units).toEqual([]);
+      expect(r.errors.join(" ")).toMatch(/concealed/);
+    });
+  });
+
+  it("a spec that does not say whether it is an Attack is held out as before", async () => {
+    await scene("medea", {}, (ctx) => {
+      const { limits: _dropped, ...spec } = specOf(ctx, "medea-teachings-of-circe");
+      const r = resolveTargets(spec, ctx.caster, ctx.board, { unitId: "other", panel: ctx.other.panel });
+      expect(r.units).toEqual([]);
+    });
+  });
+
+  // The seven abilities a scan of `packs/_source` found authoring an ally relation with a chosen or
+  // counted selection. The last two cannot be used from the interface yet (#129); this holds the
+  // targeting half for when they can.
+  it.each([
+    ["jack-the-ripper", "jack-surgical-procedure"],
+    ["kiritsugu", "kiritsugu-scapegoat"],
+    ["medea", "medea-teachings-of-circe"],
+    ["scathach", "scathach-ar"],
+    ["scathach", "scathach-primordial-rune"],
+    ["quetzalcoatl", "quetz-good-gods-wisdom"],
+    ["van-gogh", "gogh-shadow-of-longing"],
+  ])("%s's %s reaches a concealed ally", async (owner, abilityId) => {
+    await scene(owner, {}, (ctx) => {
+      const r = resolveTargets(specOf(ctx, abilityId), ctx.caster, ctx.board, { unitId: "other", panel: ctx.other.panel });
+      expect(reached(r)).toContain("other");
+    });
   });
 });
 

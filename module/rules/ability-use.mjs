@@ -339,6 +339,43 @@ export function classifyAbility(item) {
  * @returns {object} a `TargetSpec`
  */
 export function targetSpecFor(item, range, options = null, attacker = null) {
+  return markedForAttack(declaredTargetSpec(item, range, options, attacker), item);
+}
+
+/**
+ * The spec, saying whether it belongs to an Attack.
+ *
+ * Presence Concealment forbids being targeted *"for an Attack or an enemy
+ * Unit's Skill"*, and the resolver (`rules/targeting/resolve.mjs`, step 7) cannot
+ * tell the two apart from a bare spec: it dropped every concealed Unit from a
+ * chosen selection, so an allied Servant under Presence Concealment could not be
+ * healed, guarded or buffed by a single-target Skill (#133). This is the one
+ * place that has both the spec and the ability, and `classifyAbility` already
+ * knows which it is. A bare Normal Attack (`item` null) is an Attack.
+ *
+ * Stated by the spec when it states it; copied, because the spec is the
+ * ability's own declaration and is shared.
+ *
+ * @param {object} spec
+ * @param {object|null} item
+ * @returns {object}
+ */
+function markedForAttack(spec, item) {
+  if (spec.limits?.forAttack !== undefined) return spec;
+  const forAttack = item ? classifyAbility(item).isAttack : true;
+  return { ...spec, limits: { ...(spec.limits ?? {}), forAttack } };
+}
+
+/**
+ * The spec an ability declares, or the one its kind defaults to.
+ *
+ * @param {object|null} item
+ * @param {number} range
+ * @param {Set<string>|null} options
+ * @param {object|null} attacker
+ * @returns {object}
+ */
+function declaredTargetSpec(item, range, options, attacker) {
   const branches = item?.system?.targeting?.branches;
   if (branches?.length > 0 && options) {
     const match = branches.find((b) => testPredicate(b.predicate, { options }));
