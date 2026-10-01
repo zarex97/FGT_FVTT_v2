@@ -2486,7 +2486,7 @@ authored in `knockOff.damage`. The fall now rolls the Platform's own formula (`f
 sheets' `10x2d6`) and a landing Master flips the attack path's own Overpower coin, announced in chat; a
 lost flip defeats it. A missed rescue is shown too. Not built: the Luck Check that saves a Master from
 Overpower -- `state.luckChecks.overpower` has no writer on the attack path either, which is a wider defect
-than this Servant's and is filed separately.
+than this Servant's and is filed as #111.
 
 ### CE. Damage from outside an attack could not defeat anyone — **fixed 2026-09-30**
 
