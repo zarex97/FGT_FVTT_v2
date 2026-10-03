@@ -772,6 +772,8 @@
   "FGT.Anchor.globalHint": "Everything on the field, wherever it is.",
   "FGT.Anchor.sourceOfAttack": "Whatever just attacked",
   "FGT.Anchor.sourceOfAttackHint": "Placed on the attacker — for abilities used when Attacked.",
+  "FGT.Anchor.primaryTarget": "The first resolution's target",
+  "FGT.Anchor.primaryTargetHint": "Centred on the Unit the ability was aimed at, by its whole footprint — for a splash that follows a hit.",
   "FGT.Summon.NoRoom": "No free panel for {count} more — they did not appear.",
   "FGT.Summon.NoPanel": "{name} had nowhere to appear and was not summoned.",
   "FGT.Structure.NoPanel": "{name} had nowhere to appear — every panel on the board is occupied.",

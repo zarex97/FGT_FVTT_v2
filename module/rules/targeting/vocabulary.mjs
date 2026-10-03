@@ -109,6 +109,15 @@ export const TARGET_ANCHORS = Object.freeze([
     hint: "FGT.Anchor.sourceOfAttackHint",
     schematic: ["..... ", "..... ", "#..@. ", "..... ", "....."],
   },
+  {
+    // A second resolution centred on whoever the first was aimed at.
+    // Xiuhcoatl's splash, as the user changed it (2026-10-02): everything
+    // within 2 panels of the target, not of Quetzalcoatl.
+    id: "primaryTarget",
+    label: "FGT.Anchor.primaryTarget",
+    hint: "FGT.Anchor.primaryTargetHint",
+    schematic: ["..... ", "..... ", "@..#. ", "..... ", "....."],
+  },
 ]);
 
 /**

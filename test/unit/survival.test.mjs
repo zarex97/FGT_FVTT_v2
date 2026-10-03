@@ -538,6 +538,15 @@ export const NESTED_ROUTES = [
       { file: "module/engine/fields.mjs", why: "endField erases the areas bound to the field it closes" },
     ],
   },
+  // Where a `fortressNearby` zone measures "used within or directly next to"
+  // from: the target, for Xiuhcoatl since the user ruled it so (2026-10-02, #65).
+  {
+    key: "from",
+    authored: ["packs/_source/abilities/quetz-xiuhcoatl.yml"],
+    hops: [
+      { file: "module/engine/skill-use.mjs", why: "fortressFrom reads the zone spec's key and hands the target's panels to fortressesNearby" },
+    ],
+  },
   // A painted area is on one Level, as a field is: the zone phase stamps the
   // caster's (or the Fortress's), a repaint follows the source's, and
   // `terrainAt` asks for it (#151).
