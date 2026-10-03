@@ -42,7 +42,7 @@ import { rollOptionsFor } from "../rules/options.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { transferableFrom, transferEffect, applicationsOf, effectGatePasses } from "../rules/effect-flow.mjs";
 import { evade, checkPlan } from "../rules/checks.mjs";
-import { randomFreePanelIn, panelsOf, levelOf } from "../rules/bounded-fields.mjs";
+import { randomFreePanelIn, panelsOf, levelOf, castLevel } from "../rules/bounded-fields.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { runContactEvents } from "./movement-hooks.mjs";
 import { tableFor, entriesFor, choicesIn, effectsOf } from "../rules/roll-table.mjs";
@@ -2339,8 +2339,10 @@ export function zonePaintArgs(spec, ability, actor, self, board, extras = {}) {
     // the terrain's own toll (#146).
     labelOnly: Boolean(spec.labelOnly),
     // The Level the caster stands on: a ground area does not reach a Unit aboard
-    // a platform above it, nor a deck's the ground under it (#151).
-    level: self?.panel?.k ?? null,
+    // a platform above it, nor a deck's the ground under it (#151). Unless the
+    // cast places a structure on her panel: the area goes where the structure
+    // goes, the ground (`castLevel`, #170).
+    level: castLevel(ability, self?.panel?.k),
   };
 }
 

@@ -25,7 +25,7 @@ import { displaceToken } from "./io.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import {
   panelsOf, isExempt, legalRepaint, mayReshape, selectBranch, extensionFor, randomFreePanelIn,
-  vulnerabilityTriggered, unitIdsOfTurn,
+  vulnerabilityTriggered, unitIdsOfTurn, castLevel,
 } from "../rules/bounded-fields.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { relationOf } from "../rules/relations.mjs";
@@ -329,8 +329,9 @@ async function openField(ability, actor, snapshot, spec, { panels: givenPanels =
     shape: regionSizedShape({ ...(specGeometry ?? {}), shape: rolledShape }, snapshot.warRegion),
     // The LEVEL is the caster's: a platform's centre carries none of its own,
     // and a field is an area on one Scene Level (`rules/bounded-fields.mjs
-    // #contains`, #68).
-    anchor: { ...anchor, k: self.panel.k ?? 0 },
+    // #contains`, #68). Except where the cast also places a structure on her
+    // panel: the area goes where the structure goes, the ground (#170).
+    anchor: { ...anchor, k: castLevel(ability, self.panel.k) ?? 0 },
   };
   const field = fieldDataOf({
     ability, actor, faction: self.faction ?? null, spec, geometry,

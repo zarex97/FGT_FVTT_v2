@@ -262,6 +262,28 @@ export function levelOf(field, board) {
   return geometry.anchor?.k ?? unitLevel(field.ownerId);
 }
 
+/**
+ * The Level an ability's area goes to when it is cast.
+ *
+ * The caster's own, except for an ability that also places a STRUCTURE on her
+ * panel: the structure is a ground object (`engine/skill-use.mjs#
+ * createStructure` creates its token on the Scene's default Level), and its
+ * area goes where it goes. Piedra Del Sol cast from the Quetzalcoatlus's deck
+ * put the stone on the ground and its 7x7 and Burning label on the deck, so a
+ * ground enemy beside the stone was never burned -- ruled 2026-10-02 (#65,
+ * ruling 20, #170): the stone, its field and its label all go on the ground,
+ * under her.
+ *
+ * @param {object|null} ability the ability Item (or its `system`)
+ * @param {number|null|undefined} casterLevel the caster's `panel.k`
+ * @returns {number|null}
+ */
+export function castLevel(ability, casterLevel) {
+  const phases = ability?.system?.phases ?? ability?.phases ?? [];
+  const onHerPanel = phases.some((p) => p?.kind === "createStructure" && p.at !== "randomPanel");
+  return onHerPanel ? 0 : (casterLevel ?? null);
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Axis 2 — membership                                                       */
 /* -------------------------------------------------------------------------- */
