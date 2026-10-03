@@ -1554,6 +1554,8 @@ function classifyLogEntry(e) {
     cost: "ability", revive: "ability", event: "effect", poisonStage: "effect",
     commandSpell: "commandSpell", multiServantTax: "commandSpell",
     surviveKill: "defeat", disappear: "defeat",
+    // A body leaving the board one tick after it fell (#65, ruling 25).
+    bodyCleared: "defeat",
     boarding: "movement", platformStep: "movement",
     roundStart: "scheduler", roundEnd: "scheduler",
   };
