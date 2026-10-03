@@ -29,6 +29,7 @@ export {
   NP_TAG_SCALE, NP_TAG_QUALIFIERS, scaleOf, scaleTagOf, meetsTagThreshold,
 } from "./np-scale.mjs";
 import { meetsTagThreshold } from "./np-scale.mjs";
+import { parseTick, resolveTicks } from "../domain/tick.mjs";
 
 /* -------------------------------------------------------------------------- */
 /*  Axis 1 — geometry                                                         */
@@ -1167,6 +1168,85 @@ function sweepFieldEffects(units, fields) {
     u.effectInstances = kept;
     u.effects = kept.map((e) => e.defId ?? e);
   }
+}
+
+/**
+ * The field action that applied a tied effect, if it says the effect turns
+ * ORDINARY when its bearer leaves rather than ending.
+ *
+ * > *"…this Burn debuff is permanent as long as the Unit is within the area.
+ * > Once it leaves the area, the Burn is no longer permanent."* — Piedra Del Sol
+ *
+ * Ruled 2026-10-02 (#65, ruling 17): leaving makes it an ordinary Burn -- its
+ * definition's duration from the moment it leaves, and removable -- and walking
+ * back in while it runs makes that same Burn permanent again. An action that
+ * states `onLeave: ordinary` asks for that; one that states nothing keeps the
+ * older rule, *"automatically removed after leaving the Complex"* (Ozymandias).
+ *
+ * Searches every action list a field carries -- its interior rules and each
+ * interior event's branches -- so the lookup does not depend on which trigger
+ * applied the effect.
+ *
+ * @param {object|null} field the projected field
+ * @param {string} defId the effect's definition id
+ * @returns {object|null} the action, or `null` when the effect simply ends
+ */
+export function revertingActionFor(field, defId) {
+  if (!field || !defId) return null;
+  const lists = [
+    field.interior ?? [],
+    ...(field.interiorEvents ?? []).flatMap((ev) => [ev.onFail ?? [], ev.onSuccess ?? [], ev.actions ?? []]),
+  ];
+  for (const list of lists) {
+    for (const action of list) {
+      if (action?.key !== "ApplyEffect" || !action.tiedToField) continue;
+      const id = action.effect?.id ?? action.effect?.defId;
+      if (id === defId && action.onLeave === "ordinary") return action;
+    }
+  }
+  return null;
+}
+
+/**
+ * The patch that turns a field-tied instance ordinary as its bearer leaves.
+ *
+ * The definition's own duration from NOW, and the definition's own
+ * removability -- an ordinary Burn is 2◈ and can be cleansed. The field it left
+ * is remembered, so re-entering it can make the same instance permanent again
+ * ({@link reentryPatch}).
+ *
+ * @param {object} effect the instance's system data (`sourceFieldId` set)
+ * @param {object} def the effect definition
+ * @param {object} ctx
+ * @param {number} ctx.tick the current global Turn
+ * @param {number} ctx.turnsPerRound
+ * @returns {object} system fields to write
+ */
+export function leavePatch(effect, def, { tick, turnsPerRound }) {
+  const duration = def?.defaultDuration ? resolveTicks(parseTick(String(def.defaultDuration)), { turnsPerRound }) : null;
+  return {
+    sourceFieldId: null,
+    revertedFromField: effect?.sourceFieldId ?? null,
+    expiry: duration === null ? null : tick + duration,
+    unremovable: Boolean(def?.unremovable),
+  };
+}
+
+/**
+ * The patch that makes a reverted instance permanent again as its bearer walks
+ * back into the field it left.
+ *
+ * @param {object} effect the instance's system data (`revertedFromField` set)
+ * @param {object} action the field action that applied it
+ * @returns {object} system fields to write
+ */
+export function reentryPatch(effect, action) {
+  return {
+    sourceFieldId: effect?.revertedFromField ?? null,
+    revertedFromField: null,
+    expiry: null,
+    unremovable: Boolean(action?.unremovable),
+  };
 }
 
 /**

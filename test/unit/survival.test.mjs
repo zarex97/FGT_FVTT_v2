@@ -538,6 +538,15 @@ export const NESTED_ROUTES = [
       { file: "module/engine/fields.mjs", why: "endField erases the areas bound to the field it closes" },
     ],
   },
+  // A field-tied effect that turns ordinary on leaving rather than ending:
+  // Piedra Del Sol's Burn (ruled 2026-10-02, #65, ruling 17).
+  {
+    key: "onLeave",
+    authored: ["packs/_source/abilities/quetz-piedra-del-sol.yml"],
+    hops: [
+      { file: "module/rules/bounded-fields.mjs", why: "revertingActionFor reads it off the field's ApplyEffect action" },
+    ],
+  },
   // Where a `fortressNearby` zone measures "used within or directly next to"
   // from: the target, for Xiuhcoatl since the user ruled it so (2026-10-02, #65).
   {

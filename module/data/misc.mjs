@@ -76,6 +76,12 @@ export class EffectData extends foundry.data.ActiveEffectTypeDataModel {
       // swept on the panel the bearer stands on, never on an exit event, for
       // the argument above (#147).
       sourceTerrain: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+      // The field a tied instance LEFT and turned ordinary on leaving. Piedra
+      // Del Sol's Burn *"is no longer permanent"* once its bearer leaves -- an
+      // ordinary Burn from then on -- and walking back in makes that same Burn
+      // permanent again (ruled 2026-10-02, #65). `sourceFieldId` is cleared on
+      // leaving, so this is how re-entry finds it (`engine/movement-hooks.mjs`).
+      revertedFromField: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
       sourceAbilityId: new fields.StringField({ required: false, nullable: true, initial: null }),
       unremovable: new fields.BooleanField({ initial: false }),
       visibility: new fields.StringField({ initial: "public", choices: ["public", "ownerOnly", "gmOnly"] }),
