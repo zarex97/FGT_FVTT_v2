@@ -115,7 +115,11 @@ Pale Rider's Contagion is cast neither at an ability's use nor ended by a cooldo
 `followsUnit` field is on its anchor Unit's level, any other on the level it was cast from, which
 `engine/fields.mjs#openField` stamps on the anchor as `k`. A field without the stamp takes its owner's
 current level. Before this, Sikera Ušum's Throne Room on the Hanging Gardens held the enemy Master
-standing on the ground under it (§46.4-BI).
+standing on the ground under it (§46.4-BI). **A cast that also places a structure on the caster's
+panel puts its field on the structure's Level** (`rules/bounded-fields.mjs#castLevel`): the structure is
+a ground object, so Piedra Del Sol cast from the Quetzalcoatlus's deck opens its 7x7 on the ground under
+her, around the stone, where it had opened on the deck and burned no ground enemy (ruled 2026-10-02,
+#170). The same `castLevel` stamps the zone it paints (`zonePaintArgs`).
 
 1. **A field's panels are clipped to board bounds and enemy home bases.** `panelsOf` clips the output of shape expansion to the board and to the panels forbidden by opposing bases — the whole field is never refused, just the part that violates the boundary (`module/rules/bounded-fields.mjs:87-104`).
 

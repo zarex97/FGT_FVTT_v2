@@ -402,8 +402,12 @@ describe("a painted area is on one Level (#151)", () => {
     expect(toll.filter((id) => id === "onDeck")).toEqual([]);
   });
 
-  it("reads the stone's Burning on the Level the caster stood on", async () => {
-    const ability = await compiled("quetz-piedra-del-sol");
+  // Charisma of the Sun's daylight, which places no structure, so it is the
+  // caster's Level. Piedra Del Sol's label went here too until ruling 20
+  // (#170) put an area cast with a structure on the structure's Level, the
+  // ground: `test/unit/cast-level.test.mjs`.
+  it("reads a zone on the Level the caster stood on", async () => {
+    const ability = await compiled("quetz-charisma-of-the-sun");
     const spec = ability.system.phases.find((p) => p.kind === "zone").spec;
     const board = { bounds: squareBounds(13) };
     const aboard = zonePaintArgs(spec, ability, { id: "qz" }, { panel: { i: 6, j: 6, k: 1 } }, board);
@@ -412,6 +416,13 @@ describe("a painted area is on one Level (#151)", () => {
     expect(grounded.level).toBe(0);
     // A bare panel names no Level, and the area then names none either.
     expect(zonePaintArgs(spec, ability, { id: "qz" }, { panel: { i: 6, j: 6 } }, board).level).toBeNull();
+  });
+
+  it("reads the stone's Burning on the ground, wherever she cast it from (#170)", async () => {
+    const ability = await compiled("quetz-piedra-del-sol");
+    const spec = ability.system.phases.find((p) => p.kind === "zone").spec;
+    const board = { bounds: squareBounds(13) };
+    expect(zonePaintArgs(spec, ability, { id: "qz" }, { panel: { i: 6, j: 6, k: 1 } }, board).level).toBe(0);
   });
 
   it("is carried by the behaviour, the projection and the area-aware reader", async () => {
