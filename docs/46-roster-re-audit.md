@@ -3956,31 +3956,29 @@ about turn ownership beforehand, where a Skill's reads *"Only during your Turn."
 b109bd1, e5ef1b5, bb2c505, e17e08f and 95f0628, with the suite at 296 files and 6140 tests green; then badffbd
 (#169) and dda9579 (#173), with 298 files and 6154 tests green and lint clean.
 
-### 46.15.5 Open readings, for the user
+### 46.15.5 The readings, ruled
 
-These came up while pressing. Each is either the sheet being silent, or the engine choosing a reading the user
-has not ruled on.
+These came up while pressing: each was the sheet being silent, or the engine choosing a reading nobody had ruled
+on. The user ruled them on 2026-10-02 (#65, rulings 17–28), and each was built and pressed live one at a time
+(W1–W8):
 
-1. **`PDS.2.exit`** — *"Once it leaves the area, the Burn is no longer permanent."* The engine **ends** the
-   Burn on leaving. The alternative is a Burn that reverts to its ordinary 2◈. (The content's comment calls
-   this *"an unruled reading"*.)
-2. **Riding Attack's "straight line"** — the engine offers the eight grid lines, diagonals included, measured
-   Chebyshev (Ch. 5). Units may not *Move* diagonally. Should a ride be orthogonal only?
-3. **Deactivation window** (`WS.deact.edge`, `PDS.deact.edge`) — the sheet says *"during Quetz's Turn or at the
-   start or end of any Round or Turn"*. The engine's `window: any` allows the End control at every moment,
-   mid-Turn included.
-4. **#170** — which Level owns an area raised from a platform's deck: the stone went to the ground and the
-   area to the deck.
-5. **#174** — Overpower's coin flips for a Servant's own Master and for a Master caught in an area. Every
-   Xiuhcoatl puts her Master under it, since her ZON and the splash are both 2. It defeated him three times on
-   this board.
-6. **#175** — at a Round's end, the Home Base heal runs before the Quetzalcoatlus's ≤25 threshold. Also, Home
-   Base membership ignores Level.
-7. **A defeated Unit's panel** — `canPassThrough` still treats a defeated enemy as an obstacle (see the
-   comment on #168). Can a Unit walk through a body?
+| Reading | Ruling | Built | Pressed live |
+|---|---|---|---|
+| `PDS.2.exit`, the Burn on leaving | an ordinary Burn, 2◈ from leaving and removable; re-entry makes it permanent again (17) | 9aaea35 | ticks 91–96 |
+| Riding Attack's "straight line" | the eight grid lines stay the default; a GM world setting, `ridingAttackLines`, allows rows and columns only (18) | e0cec6e | tick 106 |
+| The deactivation window | an End outside the owner's Turn, the GM's slot included, is queued for that Turn's end; Achilles's duel, which states no window, is his own Turn only (19) | 3850b45 | ticks 111–112 |
+| #170, which Level owns a deck-cast area | the stone, its field and its Burning label all go on the ground (20) | 9a24d10 | ticks 100–103 |
+| #174, Overpower on her own Master | any Servant's Attack on a Master flips, hers included, and the card shows the flip (21) | 6285c5e, f88e168 | ticks 106–108 |
+| Xiuhcoatl's reach and splash | the user's change: Range+2, a splash 2 panels around the target's footprint, the [Fortress] measured from the target (22) | b6c1f1e | ticks 84–85 |
+| #175, first half: the Round-end order | the Home Base heal runs before the forced-end threshold, as built (23) | nothing to build | — |
+| #175, second half: Home Base and Levels | left open, #177 (24) | — | — |
+| A defeated Unit's panel | a body leaves the board at the end of the next Turn, token removed and actor kept; until then it is passed through and not stopped on (25) | 9e3c620, 8f6f3a8 | ticks 108–110 |
+| Double Move and Riding's +6 aboard | both carry to the mount she drives: 7 + 6 = 13, split around the Attack (26, 27) | 925e1e2 | tick 103 |
 
-The log records one more that #65 does not list. After the 2x2 Winged Serpent was cast at tick 13, a drag was
-refused with *"This Unit has Attacked; it cannot Move again this Turn."* The mover is the mount, which holds no
-`doubleMove` grant: does her Double Move carry to the mount's Move while she rides? And two entries in §46.4 wait
-on the author for the same reason: §46.4-DJ (does No Buff prevent S.Crit Up?) and §46.4-DL (does *"Day Round"*
-mean the Round or the panel?).
+Pressing them found three more, fixed or filed. A Master the Overpower flip defeated keeps his Health, and the
+card then offered him a Counter (`counterAvailable` read Health only; f88e168). A drag across a Turn could not
+find the body's clock, because no defeat recorded its tick (`defeatedAt`, 9e3c620). Ending a platform while the
+GM viewed its Level left the canvas on no scene (#176, open).
+
+Two entries in §46.4 still wait on the author: §46.4-DJ (does No Buff prevent S.Crit Up?) and §46.4-DL (does
+*"Day Round"* mean the Round or the panel?).
