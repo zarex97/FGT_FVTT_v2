@@ -229,20 +229,26 @@ function decoded(text) {
  * them these two accounted for 83 of the first run's 100 reported changes, all
  * of which would have been rewritten on every load and none of which were real.
  *
+ * A key MISSING on one side and `null` on the other: the pack omits a key the
+ * DataModel then stores as `null`, so the replace (#163) wrote the pack's shape
+ * and the model filled the null straight back in. Four Semiramis actors were
+ * "changed" on every load for `normalAttack.element`, `elementFraction` and
+ * `shape` (found 2026-10-02). A key the pack removed that still holds a value
+ * is not `null`, so it is still a change.
+ *
  * @param {*} a
  * @param {*} b
  * @returns {boolean}
  */
-function same(a, b) {
+export function same(a, b) {
   if (typeof a === "string" && typeof b === "string") return decoded(a) === decoded(b);
   if (Array.isArray(a) || Array.isArray(b)) {
     if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
     return a.every((value, i) => same(value, b[i]));
   }
   if (a && b && typeof a === "object" && typeof b === "object") {
-    const keys = Object.keys(a);
-    if (keys.length !== Object.keys(b).length) return false;
-    return keys.every((key) => key in b && same(a[key], b[key]));
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+    return [...keys].every((key) => same(a[key] ?? null, b[key] ?? null));
   }
   return a === b;
 }

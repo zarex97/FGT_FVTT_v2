@@ -24,3 +24,19 @@ describe("syncContent writes", () => {
     expect(body).toMatch(/updateEmbeddedDocuments\("Item", refreshed, \{ diff: false, recursive: false \}\)/);
   });
 });
+
+// A key the pack omits and the DataModel stores as `null` is not a change: the
+// replace writes the pack's shape and the model fills the null straight back, so
+// four Semiramis actors resynced on every load (2026-10-02).
+describe("syncContent's comparison", async () => {
+  const { same } = await import("../../module/migration/runner.mjs");
+
+  it("treats a missing key and a null one as the same", () => {
+    expect(same({ mode: "fixed", element: null }, { mode: "fixed" })).toBe(true);
+    expect(same({ mode: "fixed" }, { mode: "fixed", shape: null })).toBe(true);
+  });
+
+  it("still sees a key the pack removed that holds a value", () => {
+    expect(same({ anchor: { kind: "withinRange", range: 2 } }, { anchor: { kind: "withinRange" } })).toBe(false);
+  });
+});
