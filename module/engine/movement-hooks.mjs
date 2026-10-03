@@ -27,7 +27,9 @@ import { worldIO } from "./io.mjs";
 import {
   movePlatform, actionSourceFor, withinFootprint, canUnboard, boardingLanding, turnPartnersOf,
 } from "../rules/platforms.mjs";
-import { contains as fieldContains } from "../rules/bounded-fields.mjs";
+import {
+  contains as fieldContains, revertingActionFor, leavePatch, reentryPatch,
+} from "../rules/bounded-fields.mjs";
 import { repaintFollowing, dropLeftTerrainEffects } from "./terrain.mjs";
 import { displaceToken } from "./io.mjs";
 
@@ -240,6 +242,7 @@ async function onMove(document, movement, operation) {
   // forced-move return for the same reason contact is: a Unit knocked back out
   // of the Complex has still left it.
   if (document.actor) await dropLeftFieldEffects(document.actor, document, movement);
+  if (document.actor) await restoreReenteredFieldEffects(document.actor, document, movement);
 
   // ...and the same for terrain. *"While inside, this Burn does not expire and
   // cannot be removed"*: `annotateTerrain` stops reading a terrain-tied effect
@@ -914,7 +917,62 @@ async function dropLeftFieldEffects(actor, document, movement) {
   const inside = new Set(fieldsAt(document, movement, board) ?? unitFieldsFrom(board, actor));
 
   const gone = tied.filter((e) => !inside.has(e.system.sourceFieldId));
-  if (gone.length > 0) await actor.deleteEmbeddedDocuments("ActiveEffect", gone.map((e) => e.id));
+  if (gone.length === 0) return;
+
+  // Most end outright. One that its field's action marks `onLeave: ordinary`
+  // stays, as the effect it would be anywhere else: Piedra Del Sol's Burn
+  // *"is no longer permanent"* once its bearer leaves (ruled 2026-10-02, #65).
+  // Its field is still open -- a closing field takes its own in `endField`.
+  const { EffectRegistry } = await import("../rules/registry.mjs");
+  const fieldsById = new Map((board.fields ?? []).map((f) => [f.id, f]));
+  const tick = game.combat?.system?.globalTurn ?? 0;
+  const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
+  const reverting = gone.filter((e) => revertingActionFor(fieldsById.get(e.system.sourceFieldId), e.system.defId));
+  const ending = gone.filter((e) => !reverting.includes(e));
+
+  if (reverting.length > 0) {
+    await actor.updateEmbeddedDocuments("ActiveEffect", reverting.map((e) => ({
+      _id: e.id,
+      ...Object.fromEntries(Object.entries(leavePatch(e.system, EffectRegistry.get(e.system.defId), { tick, turnsPerRound }))
+        .map(([k, v]) => [`system.${k}`, v])),
+    })));
+  }
+  if (ending.length > 0) await actor.deleteEmbeddedDocuments("ActiveEffect", ending.map((e) => e.id));
+}
+
+/**
+ * Make an instance that turned ordinary on leaving a field permanent again as
+ * its bearer walks back in.
+ *
+ * > *"…this Burn debuff is permanent as long as the Unit is within the area."*
+ *
+ * The same Burn, not a second one (ruled 2026-10-02, #65): its field's own
+ * turn-end clause would find it present and, Burn not stacking, add nothing --
+ * so without this a Unit that stepped out and back would carry an ordinary,
+ * cleansable Burn while standing inside.
+ *
+ * @param {object} actor
+ * @param {object} document
+ * @param {object} movement
+ * @returns {Promise<void>}
+ */
+async function restoreReenteredFieldEffects(actor, document, movement) {
+  const reverted = actor.effects?.filter?.((e) => e.system?.revertedFromField) ?? [];
+  if (reverted.length === 0) return;
+
+  const board = currentBoard();
+  const inside = new Set(fieldsAt(document, movement, board) ?? unitFieldsFrom(board, actor));
+  const fieldsById = new Map((board.fields ?? []).map((f) => [f.id, f]));
+  const back = reverted
+    .filter((e) => inside.has(e.system.revertedFromField))
+    .map((e) => ({ e, action: revertingActionFor(fieldsById.get(e.system.revertedFromField), e.system.defId) }))
+    .filter(({ action }) => action);
+  if (back.length === 0) return;
+
+  await actor.updateEmbeddedDocuments("ActiveEffect", back.map(({ e, action }) => ({
+    _id: e.id,
+    ...Object.fromEntries(Object.entries(reentryPatch(e.system, action)).map(([k, v]) => [`system.${k}`, v])),
+  })));
 }
 
 /**
