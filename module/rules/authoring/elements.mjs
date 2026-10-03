@@ -186,6 +186,7 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "floor", type: "number" },
     { key: "duration", type: "tickExpr" },
     { key: "isBuff", type: "checkbox" },
+    { key: "carriesToMount", type: "checkbox" },
   ]),
   entry("RangeDelta", "Changes how far the Unit can reach.", [...SCALED]),
   entry("SizeStep", "Changes how many panels the Unit stands on, as a footprint delta.", [

@@ -35,3 +35,7 @@ activeRules:
     table: ridingMov
     duration: "this turn"
     isBuff: false
+    # The +MOV moves the mount she drives, not only her own feet: Quetzalcoatl
+    # riding the Quetzalcoatlus moves 7 + 6 = 13 (ruled 2026-10-02, #65,
+    # ruling 27). `rules/movement.mjs#moverFor` adds it to the mount's MOV.
+    carriesToMount: true

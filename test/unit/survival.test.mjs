@@ -556,6 +556,16 @@ export const NESTED_ROUTES = [
       { file: "module/engine/skill-use.mjs", why: "fortressFrom reads the zone spec's key and hands the target's panels to fortressesNearby" },
     ],
   },
+  // A MOV delta that moves the mount its bearer drives, not only her own feet:
+  // Riding's Active +6 (ruled 2026-10-02, #65, ruling 27).
+  {
+    key: "carriesToMount",
+    authored: ["packs/_source/class-skills/riding.yml"],
+    hops: [
+      { file: "module/rules/elements.mjs", why: "the MovDelta element puts it on the stat delta" },
+      { file: "module/rules/movement.mjs", why: "moverFor adds every delta that carries to the mount's MOV" },
+    ],
+  },
   // A painted area is on one Level, as a field is: the zone phase stamps the
   // caster's (or the Fortress's), a repaint follows the source's, and
   // `terrainAt` asks for it (#151).

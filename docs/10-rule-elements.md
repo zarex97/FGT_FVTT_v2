@@ -124,6 +124,9 @@ executor actually reads, rather than of its descriptor's ids.
 - **`RangeDelta`** carries `isBuff`, as `StatDelta` and `MovDelta` do. Eight sites said `isBuff:
   false` (Mad Enhancement on seven Servants, Kingprotea's Huge Scale) and only their MOV halves kept
   it. The flag is declarative today: no engine path removes or blocks a Skill's stat delta.
+- **`MovDelta`** also carries `carriesToMount`. The delta then moves the mount its bearer drives,
+  not only her own feet: `rules/movement.mjs#moverFor` adds it to the mount's MOV. Only the shared
+  Riding's Active authors it, so Quetzalcoatl's drive is 7 + 6 = 13 (ruled 2026-10-02, #65).
 - **`MaxDelta`**'s `perStack` was never dropped. Huge Scale's magnitude is `0.2 * @self.baseHealth`,
   which resolves only against a Unit's refs, and the survival test's exemption for that case matched an
   expression starting with `@` and not one containing it. It scales 0, 200, 600 for 0, 1, 3 stocks.

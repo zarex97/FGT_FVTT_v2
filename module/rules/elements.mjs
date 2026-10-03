@@ -1254,6 +1254,9 @@ export const EXECUTORS = Object.freeze({
       // Riding's Active MOV Up is explicitly NOT a buff: unremovable, and not
       // prevented by an effect that blocks buffs.
       isBuff: el.isBuff !== false, source,
+      // And it moves the mount she drives too (ruling 27, #65): `moverFor`
+      // adds every delta that says so to the mount's MOV.
+      ...(el.carriesToMount ? { carriesToMount: true } : {}),
     });
   },
 

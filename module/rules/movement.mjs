@@ -61,11 +61,14 @@ const OBJECT_KINDS = new Set(["platform", "structure"]);
  * panel is occupied"* (the #29 edge-hold). Two things stay hers: her Turn State,
  * because the segments and the panels already spent are hers, and the panel the
  * path starts from -- the drag begins at her token, which stands anywhere on a
- * mount larger than one panel. Reading taken, following the planner's own
- * design: the drive uses the MOUNT's MOV and the MOUNT's effects, so Riding's
- * Active +6 does not carry to it. If the table rules otherwise it is one line
- * here. Her Master, who does not drive (`roles`), is measured as himself and is
- * still held.
+ * mount larger than one panel. Her Master, who does not drive (`roles`), is
+ * measured as himself and is still held.
+ *
+ * Two of her Riding clauses carry to the mount she drives (ruled 2026-10-02,
+ * #65, rulings 26 and 27). Her Double Move: the mount's Move is hers, so it may
+ * be split around the Attack as hers may. And her Active's *"MOV +6 for this
+ * Turn"*: the mount moves 7 + 6 = 13. Only a MOV delta authored
+ * `carriesToMount` carries -- a buff on her, or her Slow, stays on her feet.
  *
  * @param {object} unit the mover's snapshot, from the BOARD (`platformId` is stamped by the board pass)
  * @param {object} board
@@ -74,11 +77,20 @@ const OBJECT_KINDS = new Set(["platform", "structure"]);
 export function moverFor(unit, board) {
   const source = actionSourceFor(unit, board);
   if (!source.movesAsPlatform || !source.platform) return unit;
+  const platform = source.platform;
+  const carried = (unit.statDeltas ?? [])
+    .filter((d) => d.stat === "mov" && d.carriesToMount && typeof d.value === "number")
+    .reduce((sum, d) => sum + d.value, 0);
+  const granted = platform.grantedAbilities ?? [];
   return {
-    ...source.platform,
+    ...platform,
+    mov: (platform.mov ?? 0) + carried,
+    grantedAbilities: hasGranted(unit, GRANTS.doubleMove) && !granted.includes(GRANTS.doubleMove)
+      ? [...granted, GRANTS.doubleMove]
+      : granted,
     panel: unit.panel,
     turnState: unit.turnState,
-    level: source.platform.level ?? unit.level,
+    level: platform.level ?? unit.level,
   };
 }
 
