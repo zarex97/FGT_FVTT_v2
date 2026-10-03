@@ -168,6 +168,8 @@ export function snapshotUnit(actor, {
       ? { contentId: sys.carriesItemId, barredFrom: sys.carriesItemBarredFrom ?? null }
       : null,
     defeated: Boolean(sys.defeated),
+    // When it fell, for the body's removal one tick later (#65, ruling 25).
+    defeatedAt: sys.defeatedAt ?? null,
     // The Queen's Glass Game's once-per-game rewind, spent. Projected because
     // `resolveDefeat` reads it off the snapshot it is handed, and a flag the
     // board cannot see is a flag that clause would spend twice.

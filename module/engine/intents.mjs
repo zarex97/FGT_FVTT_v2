@@ -33,6 +33,8 @@ export const INTENT_TYPES = Object.freeze([
   // A type here, a constructor below, an ORDER rank, and an applier case: all
   // four, or `applyIntents` throws the whole batch out. These two had three.
   "suspendSkill", "setStage", "event",
+  // A defeated Unit's body leaving the board (#65, ruling 25).
+  "clearBody",
 ]);
 
 /**
@@ -114,6 +116,8 @@ const ORDER = Object.freeze({
   // unspent rather than spent-and-not-applied.
   markGlassGameSpent: 9,
   dismissSummon: 9,
+  // After the defeat it follows, the last thing done to a Unit on the board.
+  clearBody: 9,
   // Bookkeeping on the summon's own clock, alongside the other stat writes --
   // and well before the dismissal that reads it, so a stay extended and expired
   // in one batch extends first.
@@ -209,6 +213,20 @@ export const defeat = (unitId, cause, killerId = null) =>
  */
 export const dismissSummon = (unitId, reason = "expired") =>
   ({ t: "dismissSummon", unitId, reason });
+
+/**
+ * Take a defeated Unit's body off the board.
+ *
+ * *"Defeated units should disappear from the field 1 turn after being
+ * defeated"* (ruled 2026-10-02, #65, ruling 25): at the end of the next Turn,
+ * the token is removed and the ACTOR is kept, so the log, the records and a
+ * rewind still find it. Not a defeat and not a dismissal: nothing counts, no
+ * stats go home and no cooldown starts.
+ *
+ * @param {string} unitId
+ * @returns {object}
+ */
+export const clearBody = (unitId) => ({ t: "clearBody", unitId });
 
 /**
  * Move a summon's departure tick.

@@ -140,7 +140,34 @@ export function endTurn(board, ctx) {
   // 10. Sustainability and removal checks.
   intents.push(...checkRemovals(units, ctx));
 
+  // 11. The bodies. Read off the WHOLE board, since these are the defeated.
+  intents.push(...clearBodies(board.units ?? [], ctx));
+
   return intents;
+}
+
+/**
+ * The defeated Units whose bodies leave the board at this Turn's end.
+ *
+ * *"Defeated units should disappear from the field 1 turn after being
+ * defeated"* (ruled 2026-10-02, #65, ruling 25): at the end of the NEXT Turn
+ * after the defeat, one tick later. A Unit defeated on tick T is still on the
+ * board when Turn T ends and goes when Turn T+1 does. Until then it may be
+ * passed through and not stopped on (`rules/movement.mjs`). Every kind of Unit
+ * -- Servants, Masters, summons and Civilians. Platforms and Structures are
+ * objects with their own ends, and are left alone.
+ *
+ * A body with no recorded tick fell before the tick was kept, so it goes now.
+ *
+ * @param {object[]} units every unit on the board, defeated ones included
+ * @param {SchedulerContext} ctx
+ * @returns {Intent[]}
+ */
+export function clearBodies(units, ctx) {
+  return units
+    .filter((u) => u.defeated && u.panel && u.kind !== "platform" && u.kind !== "structure")
+    .filter((u) => u.defeatedAt === null || u.defeatedAt === undefined || u.defeatedAt < ctx.tick)
+    .flatMap((u) => [I.clearBody(u.id), I.log({ kind: "bodyCleared", unitId: u.id, tick: ctx.tick })]);
 }
 
 /**

@@ -637,11 +637,13 @@ export function canPassThrough(panel, unit, board, { throughEnemies = false } = 
   // Unit displaces nobody.
   if (unit?.sharesPanel) return !inEnemyMasterProtection(panel, unit, board);
 
-  const occupant = occupantAt(panel, board, unit.level);
   // Platforms and structures are terrain, not Units: a Platform is stood on,
-  // and clause 3 is about *Units*, so neither blocks a step.
-  const blocking = occupant && !OBJECT_KINDS.has(occupant.kind);
-  if (blocking && !throughEnemies && isEnemy(unit, occupant, board)) return false;
+  // and clause 3 is about *Units*, so neither blocks a step. Nor does a body:
+  // a defeated Unit may be passed through until it leaves the board, and is
+  // not a panel to stop on (`canStopOn`; ruled 2026-10-02, #65, ruling 25).
+  const blocking = occupantsAt(panel, board, unit.level)
+    .some((o) => !OBJECT_KINDS.has(o.kind) && !o.defeated && isEnemy(unit, o, board));
+  if (blocking && !throughEnemies) return false;
   if (inEnemyMasterProtection(panel, unit, board)) return false;
   if (blockedByFieldExit(panel, unit, board)) return false;
   return true;

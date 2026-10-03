@@ -176,6 +176,10 @@ export function unitCommon() {
     // and a revival source has to be able to tell what killed the bearer.
     defeated: new fields.BooleanField({ initial: false }),
     defeatCause: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+    // The tick the defeat landed on. A defeated Unit's token leaves the board
+    // at the end of the NEXT Turn, one tick later (ruled 2026-10-02, #65,
+    // ruling 25), and the scheduler needs to know which Turn that is.
+    defeatedAt: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
 
     // Ability-specific pools (Ch. 06): `{ prs: { value: 0, max: 2 } }`.
     //
