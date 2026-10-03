@@ -822,6 +822,20 @@ function resolveAnchor(spec, caster, board, placement, errors) {
       return { ...base, panel: src?.panel ?? casterPanel, panels: src ? [src.panel] : [], unitId: src?.id };
     }
 
+    // The Unit the resolution this one follows was aimed at, by its whole
+    // footprint. Xiuhcoatl's splash, as the user changed it (ruled 2026-10-02,
+    // #65): *"everything within 2 panels of the target"*, where the sheet had
+    // it around Quetzalcoatl. An aftermath hands `primaryTargetId` in
+    // (`engine/attack.mjs#declareAftermath`), so this is where it lands.
+    case "primaryTarget": {
+      const unit = (board.units ?? []).find((u) => u.id === placement.primaryTargetId);
+      if (!unit?.panel) {
+        errors.push("No target to centre this on.");
+        return { ...base, panel: casterPanel, panels: [] };
+      }
+      return { ...base, panel: unit.panel, panels: unit.panels?.length ? unit.panels : [unit.panel], unitId: unit.id };
+    }
+
     default:
       throw new RangeError(`FGT | Unknown targeting anchor "${spec.kind}".`);
   }

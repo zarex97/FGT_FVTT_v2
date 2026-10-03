@@ -78,14 +78,29 @@ describe("the zone phase paints one area per Fortress, each bound to its own", (
     return { ability, spec: ability.system.phases.find((p) => p.kind === "zone").spec };
   };
 
-  /** What the zone paints for Quetzalcoatl at (6, 8) with these fields on the board. */
-  async function painted(casts) {
+  /**
+   * What the zone paints for Xiuhcoatl aimed at a Unit standing on `target`,
+   * with Quetzalcoatl at `at`. The check is measured from the TARGET since the
+   * user ruled it so (2026-10-02, #65); the attack flow hands the panels it
+   * resolved against in as `areaPanels`.
+   */
+  async function painted(casts, target = { i: 6, j: 8 }, at = { i: 6, j: 2 }) {
     const fields = await fieldsOf(casts);
     const { ability, spec } = await zone();
-    return withSubjects([{ ...QUETZ, panel: { i: 6, j: 8 } }], ({ board, unit }) =>
-      zonePaints(spec, ability, { id: QZ }, unit(QZ), { ...board, bounds: squareBounds(13) }),
+    return withSubjects([{ ...QUETZ, panel: at }], ({ board, unit }) =>
+      zonePaints(spec, ability, { id: QZ }, unit(QZ), { ...board, bounds: squareBounds(13) }, { areaPanels: [target] }),
     { settings: { fields } });
   }
+
+  it("measures from the target: aimed beside the Fortress from far away, it paints", async () => {
+    const { spec } = await zone();
+    expect(spec.from).toBe("target");
+    expect(await painted([complex()], { i: 6, j: 8 }, { i: 6, j: 2 })).toHaveLength(1);
+  });
+
+  it("measures from the target: she beside the Fortress, aimed away from it, paints nothing", async () => {
+    expect(await painted([complex()], { i: 6, j: 4 }, { i: 6, j: 8 })).toEqual([]);
+  });
 
   it("paints one Burning area for one Fortress, bound to that field", async () => {
     const paints = await painted([complex()]);

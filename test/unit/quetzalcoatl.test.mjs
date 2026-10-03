@@ -247,45 +247,95 @@ describe("Xiuhcoatl", () => {
 // A YAML-shape assertion cannot see that, so these go through the real item.
 //
 // And #65, local to her. The sheet gives the NP no Range of its own, and the
-// content froze `range: 2` into the anchor: her statblock's Range, copied, so a
-// buff or a penalty to her Range moved every other attack she makes and not this
-// one. Silent on range is not 2, it is "her Range".
-describe("Xiuhcoatl reaches as far as she does (#65)", () => {
+// content once froze `range: 2` into the anchor. Then the user changed it
+// (ruled 2026-10-02): Range+2, measured by the Attack Range rule like every
+// other Range. Still relative to hers, so a buff or a penalty to her Range moves
+// it as it moves every other attack she makes.
+describe("Xiuhcoatl reaches two panels past her Range (#65, ruled 2026-10-02)", () => {
   beforeAll(prepareSubjects, 60_000);
 
   const at = (i, j) => ({ i, j });
   const spec = ability("quetz-xiuhcoatl").targeting;
-  const foe = (j) => ({ id: "foe", panel: at(6, j), kind: "servant", faction: "b", attributes: [], effects: [] });
+  const foe = (p) => ({ id: "foe", panel: p, kind: "servant", faction: "b", attributes: [], effects: [] });
   const board = (units) => ({
     bounds: squareBounds(13), alliances: { a: ["a"], b: ["b"] }, seed: 1, units,
   });
-  /** Can she name the panel `distance` away, at this Range? */
-  const reaches = (range, distance) => {
+  /** Can she, at (6, 6) with this Range, name the panel `di` rows and `dj` columns away? */
+  const reaches = (range, di, dj = 0) => {
     const quetz = { id: "quetz", panel: at(6, 6), kind: "servant", faction: "a", range };
-    return resolveTargets(spec, quetz, board([quetz, foe(6 + distance)]), { panel: at(6, 6 + distance) })
-      .errors.length === 0;
+    const target = at(6 + di, 6 + dj);
+    return resolveTargets(spec, quetz, board([quetz, foe(target)]), { panel: target }).errors.length === 0;
   };
 
-  it("does not state a Range of its own, because the sheet states none", () => {
+  it("states Range+2 and no Range of its own, measured by the Attack Range rule", () => {
     expect(spec.anchor.range).toBeUndefined();
-    expect(spec.anchor.rangeBonus).toBeUndefined();
+    expect(spec.anchor.rangeBonus).toBe(2);
+    expect(spec.anchor.metric).toBeUndefined();
   });
 
-  it("reaches her statblock Range, which is 2 panels", async () => {
+  it("reaches 4 panels at her statblock Range of 2, and not 5", async () => {
     const range = await withSubjects([{ from: "quetzalcoatl" }], ({ unit }) => unit("quetzalcoatl").range);
     expect(range).toBe(2);
-    expect(reaches(range, 2)).toBe(true);
-    expect(reaches(range, 3)).toBe(false);
+    expect(reaches(range, 0, 4)).toBe(true);
+    expect(reaches(range, 0, 5)).toBe(false);
   });
 
-  it("follows her Range up: a buff to it reaches a panel further", () => {
-    expect(reaches(3, 3)).toBe(true);
-    expect(reaches(3, 4)).toBe(false);
+  it("loses the outer ring's corners, as every Range of 3 or more does", () => {
+    expect(reaches(2, 4, 1)).toBe(true);
+    expect(reaches(2, 4, 2)).toBe(false);
+    expect(reaches(2, 4, 4)).toBe(false);
+    expect(reaches(2, 3, 3)).toBe(true);
   });
 
-  it("follows her Range down: a penalty to it falls short of the panel it used to reach", () => {
-    expect(reaches(1, 2)).toBe(false);
-    expect(reaches(1, 1)).toBe(true);
+  it("follows her Range up and down", () => {
+    expect(reaches(3, 0, 5)).toBe(true);
+    expect(reaches(3, 0, 6)).toBe(false);
+    expect(reaches(1, 0, 3)).toBe(true);
+    expect(reaches(1, 0, 4)).toBe(false);
+  });
+});
+
+// The splash, as the user changed it (ruled 2026-10-02): everything within 2
+// panels of the TARGET's whole footprint, except Quetzalcoatl and the target.
+// Her Master is not spared.
+describe("Xiuhcoatl's splash is centred on its target (#65, ruled 2026-10-02)", () => {
+  const at = (i, j) => ({ i, j });
+  const splash = ability("quetz-xiuhcoatl").aftermath.targeting;
+  const unitAt = (id, p, faction, extra = {}) => ({
+    id, panel: p, kind: "servant", faction, attributes: [], effects: [], ...extra,
+  });
+  const board = (units) => ({
+    bounds: squareBounds(15), alliances: { a: ["a"], b: ["b"] }, seed: 1, units,
+  });
+  const caught = (units, primaryTargetId = "du") =>
+    resolveTargets(splash, units[0], board(units), { primaryTargetId, reach: "attack" }).units.map((t) => t.unitId).sort();
+
+  it("anchors on the primary target and reaches 2 panels from it", () => {
+    expect(splash.anchor).toEqual({ kind: "primaryTarget" });
+    expect(splash.shape).toEqual({ kind: "chebyshevRadius", r: 2 });
+  });
+
+  it("catches Units near the target, not Units near her", () => {
+    const quetz = unitAt("quetz", at(7, 2), "a");
+    const du = unitAt("du", at(7, 6), "b");
+    const nearDu = unitAt("nearDu", at(5, 8), "b");
+    const nearHer = unitAt("nearHer", at(7, 1), "b");
+    expect(caught([quetz, du, nearDu, nearHer])).toEqual(["nearDu"]);
+  });
+
+  it("spares her and the target, and catches her Master if he stands there", () => {
+    const quetz = unitAt("quetz", at(7, 5), "a", { masterId: "master" });
+    const du = unitAt("du", at(7, 6), "b");
+    const master = { id: "master", panel: at(7, 7), kind: "master", faction: "a", attributes: [], effects: [] };
+    expect(caught([quetz, du, master])).toEqual(["master"]);
+  });
+
+  it("reaches 2 past every edge of a 2x2 target, not only its corner", () => {
+    const quetz = unitAt("quetz", at(1, 1), "a");
+    const du = unitAt("du", at(6, 6), "b", { panels: [at(6, 6), at(6, 7), at(7, 6), at(7, 7)] });
+    const pastFarEdge = unitAt("far", at(9, 9), "b");
+    const beyond = unitAt("beyond", at(10, 9), "b");
+    expect(caught([quetz, du, pastFarEdge, beyond])).toEqual(["far"]);
   });
 });
 

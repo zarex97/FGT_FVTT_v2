@@ -69,7 +69,14 @@ export function expand(shape, anchor, opts = {}) {
     }
 
     case "chebyshevRadius": {
-      const disc = geo.chebyshevDisc(origin, shape.r, bounds);
+      // Around the anchor's WHOLE footprint when it has one: "within 2 panels
+      // of the target" from a 2x2 mount or a 3x3 Bašmu reaches 2 past every
+      // edge, not 2 past its top-left corner -- the same footprint-to-footprint
+      // rule Range uses (§46.4-BT; Xiuhcoatl's splash, ruled 2026-10-02).
+      const footprint = anchor.panels?.length > 1 ? anchor.panels : [origin];
+      const disc = footprint.length === 1
+        ? geo.chebyshevDisc(origin, shape.r, bounds)
+        : geo.normalize(footprint.flatMap((p) => geo.chebyshevDisc(p, shape.r, bounds)), bounds);
       // *"…within a 2 panel area of Kiritsugu OR THE TARGET"* (Scapegoat) — a
       // UNION of two discs, which is ONE area and not two applications.
       //

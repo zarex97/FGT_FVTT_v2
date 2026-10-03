@@ -3,8 +3,9 @@
 #
 # Two resolutions and a fraction.
 #
-# The splash is NOT an area attack with a hole in it: different anchor (her, not
-# the target), different base attack (MAG alone, not the combined 250),
+# The splash is NOT an area attack with a hole in it: its own anchor (the target's
+# footprint, since the user's 2026-10-02 change; the sheet put it around her),
+# different base attack (MAG alone, not the combined 250),
 # different multiplier (1x, not 4x) and a different rider set (Burn 1◈ and NP
 # Seal at 25%, against Burn 2◈ and NP Seal outright). The sheet gives four
 # numbers and shares none of them, which is why this is an `aftermath` block
@@ -27,25 +28,25 @@ timing: { window: ownTurn }
 requirements:
   - { kind: predicate, predicate: [{ not: "self:onPlatform:quetzalcoatlus" }] }
 description: |
-  Base Attack (STR) and half of Base Attack (MAG) is used (BA=250), not affected by Magic
+  Range+2. Base Attack (STR) and half of Base Attack (MAG) is used (BA=250), not affected by Magic
   Resistance. Deals 4x damage and inflicts @effect[npSeal]{NP Seal} for 1◈ Turns, and inflicts
   @effect[burn]{Burn} for 2◈ Turns. Fire damage (half).
   Then (regardless of whether the NP hits the DU or not), deals normal damage to all Units within
-  a 2 panel area of Quetzalcoatl except herself and the previously targeted Unit (Base Attack
+  a 2 panel area of the targeted Unit except Quetzalcoatl and the targeted Unit (Base Attack
   (MAG) is used) with a 25% chance of inflicting NP Seal for 1◈ Turns and inflicts Burn for 1◈
   Turns. Fire damage.
   Xiuhcoatl cannot be used if Quetz is Riding the Quetzalcoatlus.
-  If this NP is used within or directly next to a [Fortress] NP (regardless of ally's or enemy's),
+  If this NP is used on a Unit within or directly next to a [Fortress] NP (regardless of ally's or enemy's),
   that NP area and the panels directly outside/next to the NP area are now 'Burning' until the
   Fortress NP is deactivated.
   Cooldown: 7◈ Turns.
 targeting:
-  # NO `range:`. The sheet gives this NP no Range of its own, so it reaches as far
-  # as she does (`anchorRange` falls back to the caster's Range): 2 panels at her
-  # statblock, and a buff or a penalty to her Range moves it as it moves every
-  # other attack of hers. `range: 2` froze her statblock's figure here, which
-  # said the same thing until something changed her Range (#65).
-  anchor: { kind: withinRange, metric: chebyshev }
+  # "Range+2" -- the user's change (ruled 2026-10-02, #65). The sheet gives this
+  # NP no Range of its own; it now reaches two panels past hers (`rangeBonus`,
+  # read by `anchorRange`): 4 at her statblock, and a buff or a penalty to her
+  # Range still moves it. NO `metric:` -- measured by the Attack Range rule like
+  # every other Range, so at 3 or more the outer ring loses its corners.
+  anchor: { kind: withinRange, rangeBonus: 2 }
   shape: { kind: unit }
   selection: { relations: [enemy], chooser: chosen, count: 1 }
   limits: { requiresZon: true }
@@ -80,11 +81,17 @@ aftermath:
   # alongside the primary rather than sequenced behind its outcome.
   unconditional: true
   targeting:
-    anchor: { kind: self }
-    shape: { kind: square, size: 5 }
+    # "within a 2 panel area of the targeted Unit" -- the user's change (ruled
+    # 2026-10-02, #65); the sheet said "of Quetzalcoatl". Measured from the
+    # target's WHOLE footprint (`primaryTarget` hands it over, and
+    # `chebyshevRadius` unions around every panel of it), so a 2x2 mount's
+    # splash reaches 2 past each edge.
+    anchor: { kind: primaryTarget }
+    shape: { kind: chebyshevRadius, r: 2 }
     selection:
       relations: [enemy, ally, neutral]
-      # "except herself..."
+      # "except herself..." -- she can now stand inside it, and is still spared.
+      # Her Master is not: Overpower's coin stays on him (ruled 2026-10-02).
       includeSelf: false
       # "...and the previously targeted Unit."
       excludePrimaryTarget: true
@@ -133,9 +140,14 @@ phases:
   # (the author's ruling). One Burning area per Fortress in reach, each bound to
   # its field (`boundToFieldId`), so closing that Fortress -- and no other --
   # takes its Burning away; `duration: null` is "until", not "for ever".
+  #
+  # `from: target`: "used within or directly next to" is measured from the
+  # Unit it is used on, not from her -- the user's ruling (2026-10-02, #65),
+  # which goes with the longer reach.
   - kind: zone
     target: self
     spec:
       terrain: [burning]
       shape: fortressNearby
+      from: target
       duration: null

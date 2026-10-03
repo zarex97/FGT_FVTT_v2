@@ -1189,7 +1189,7 @@ Terrain: Ch. 42 (Burning, Sunlight).
 | Charisma of the Sun (EX) | Active | **RE+** the `Sol` buff: **the 5×5 around her is Day even during a Night Round** — a per-panel terrain phase override (Ch. 42 §42.3) |
 | Good God's Wisdom (A+) | Active | RE (`Guts` 10% + `Atk Up` on one ally) |
 | Lucha Libre (EX) | Active | RE (reduces **one named NP's** cooldown by 1◈) |
-| Xiuhcoatl (A, NP) | Damaging NP | **RE+** combined BA (250); **unconditional splash** to a 2-panel radius *whether or not the primary hit*; and **terrain creation** — used within or beside a `[Fortress]` NP, that area and its border become `Burning` |
+| Xiuhcoatl (A, NP) | Damaging NP | **RE+** combined BA (250) at **Range+2**; **unconditional splash** to a 2-panel radius around the **target** *whether or not the primary hit*; and **terrain creation** — aimed at a Unit within or beside a `[Fortress]` NP, that area and its border become `Burning`. Range+2, the target-centred splash and the target-measured Fortress check are the user's changes (2026-10-02, #65) |
 | Quetzalcoatl: Winged Serpent (A, NP) | Platform NP | **RE+** a mount that **replaces her Move and Normal Attack**; three mount-only Spells on a shared cooldown; tiered AoE soak (mount full / Quetz 50% Total / Master none); ignores obstacles and stacks on occupied panels; a **2◈ deactivation lockout** |
 | Piedra Del Sol (EX, NP) | Levitating bounded field | **RE+** a 7×7 `Burning` zone anchored above her with a **permanent-while-inside** Burn, upkeep, and a movable footprint. Its clause 1 — **+180 on everything she deals (replacing Divine Core's +120), −50% on everything she takes, NPs included** — is **hers wherever she stands while the stone exists** (*"on the field" means on the board*, ruled): two passive rules of the NP gated on `fieldActive`, not rules of the 7×7; the zone's `Burning` is a **label** (`labelOnly`) whose own toll does not run; the Burn is permanent and tied to the field |
 
@@ -1241,7 +1241,7 @@ what keeps them from contradicting one another when two of them cover the same p
 
 **The three Quetzalcoatlus Spells** are Damage Spells by `isSpell: true` beside `kind: skill`, the corpus convention (Ch. 17). They authored `kind: spell`, which nothing reads, so they resolved as STR Normal Attacks (#159). Their 3×3 hits **enemies only** — the sheet says only "hits a 3×3 panel area", and the author ruled on 2026-10-01 that it does not catch her allies, her mount or her Master; they use her BA(MAG) 250 at 2×.
 
-**Xiuhcoatl's reach** is her Range. The sheet gives the NP no Range of its own, so its anchor states none and `anchorRange` falls back to the caster's (`range:` absolute, `rangeBonus:` relative, neither: her own). It had frozen `range: 2`, her statblock's figure, which said the same until a buff or a penalty moved her Range and moved every other attack of hers but this one (#65).
+**Xiuhcoatl's reach** is her Range +2 — the user's change (ruled 2026-10-02, #65), measured by the Attack Range rule like every other Range. The sheet gives the NP no Range of its own, so its anchor states only `rangeBonus: 2` and `anchorRange` adds it to the caster's (`range:` absolute, `rangeBonus:` relative). It had frozen `range: 2`, her statblock's figure, which said the same until a buff or a penalty moved her Range and moved every other attack of hers but this one (#65).
 
 **The Quetzalcoatlus is 2×2.** Her sheet prints no size; the user ruled 2×2 (2026-10-01, #65) after the
 content had authored one panel. A mount that size is placed by its top-left on her panel and slid back

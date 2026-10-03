@@ -2365,7 +2365,7 @@ export function zonePaintArgs(spec, ability, actor, self, board, extras = {}) {
 export function zonePaints(spec, ability, actor, self, board, extras = {}) {
   const base = zonePaintArgs(spec, ability, actor, self, board, extras);
   if (spec.shape !== "fortressNearby") return [base];
-  return fortressesNearby(self, board).map(({ fieldId, panels, level }) => ({
+  return fortressesNearby(self, board, fortressFrom(spec, extras)).map(({ fieldId, panels, level }) => ({
     ...base, panels, tag: `${base.tag}:${fieldId}`, boundToFieldId: fieldId,
     // The FORTRESS's Level, which is not necessarily the caster's.
     level,
@@ -2393,9 +2393,28 @@ function zonePanels(spec, self, board, extras = {}) {
   // is standing up to five panels away from it.
   if (spec.shape === "reuse") return extras.areaPanels ?? [];
   if (!self?.panel) return [];
-  if (spec.shape === "fortressNearby") return fortressesNearby(self, board).flatMap((f) => f.panels);
+  if (spec.shape === "fortressNearby") {
+    return fortressesNearby(self, board, fortressFrom(spec, extras)).flatMap((f) => f.panels);
+  }
   if (typeof spec.shape === "string") return [];
   return expand(spec.shape, { panel: self.panel }, { bounds: board?.bounds ?? null }).panels ?? [];
+}
+
+/**
+ * The panels a `fortressNearby` zone measures from.
+ *
+ * `spec.from: target` is the panels the attack resolved against -- for a
+ * unit-shaped primary, the target's footprint -- and anything else is the
+ * caster. Xiuhcoatl's *"if this NP is used within or directly next to a
+ * [Fortress] NP"* is measured from its target since the user ruled it so
+ * (2026-10-02, #65).
+ *
+ * @param {object} spec the phase's `spec` block
+ * @param {object} [extras] what the attack flow hands in (`areaPanels`)
+ * @returns {Array<{i: number, j: number}>|null} `null` for the caster
+ */
+function fortressFrom(spec, extras = {}) {
+  return spec.from === "target" ? (extras.areaPanels ?? []) : null;
 }
 
 /**
@@ -2420,8 +2439,12 @@ function zonePanels(spec, self, board, extras = {}) {
  * @param {object} board
  * @returns {Array<{fieldId: string, panels: Array<{i: number, j: number}>, level: number|null}>}
  */
-export function fortressesNearby(self, board) {
-  if (!self?.panel) return [];
+export function fortressesNearby(self, board, from = null) {
+  // Where "used within or directly next to" is measured from. The caster by
+  // default; the target's footprint for a zone that says `from: target`, which
+  // is Xiuhcoatl's since the user ruled it so (2026-10-02, #65).
+  const origins = from !== null ? from : (self?.panel ? [self.panel] : []);
+  if (origins.length === 0) return [];
   /** @type {Array<{fieldId: string, panels: Array<{i: number, j: number}>, level: number|null}>} */
   const out = [];
 
@@ -2429,7 +2452,7 @@ export function fortressesNearby(self, board) {
     if (!(field.npTags ?? []).includes("fortress")) continue;
 
     const panels = panelsOf(field, board) ?? [];
-    if (!panels.some((p) => chebyshev(p, self.panel) <= 1)) continue;
+    if (!panels.some((p) => origins.some((o) => chebyshev(p, o) <= 1))) continue;
 
     const seen = new Set();
     /** @type {Array<{i: number, j: number}>} */
