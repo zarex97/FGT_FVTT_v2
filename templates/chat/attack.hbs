@@ -46,6 +46,9 @@
       {{#if result.summary.injury}}
         <div class="fgt-card__flag">Injury Roll required</div>
       {{/if}}
+      {{#if result.summary.overpower}}
+        <div class="fgt-card__flag">{{result.summary.overpower}}</div>
+      {{/if}}
       {{#if result.summary.shieldAbsorbed}}
         <div class="fgt-card__flag">Shield absorbed {{result.summary.shieldAbsorbed}}</div>
       {{/if}}
