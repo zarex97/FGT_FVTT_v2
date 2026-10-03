@@ -3176,7 +3176,9 @@ function counterAvailable(state) {
   // whose mount replaces her Normal Attack, and her own otherwise (#171).
   const swing = attackSourceOf(defender, board);
   return process.canCounter(state, {
-    defenderAlive: (defenderDoc.system?.health?.value ?? 0) > 0,
+    // Defeated, not only out of Health: an Overpowered Master keeps his Health
+    // and is defeated all the same, and was offered a Counter (#65, W6).
+    defenderAlive: !defenderDoc.system?.defeated && (defenderDoc.system?.health?.value ?? 0) > 0,
     // The DU's range, not the AU's: the counter is the DU attacking.
     // Footprint to footprint: a 3x3 Bašmu counters whatever any part of it
     // reaches (§46.4-BT).
