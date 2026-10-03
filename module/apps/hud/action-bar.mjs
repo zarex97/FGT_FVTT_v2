@@ -25,7 +25,8 @@ import { publicNameOf } from "../../rules/identity.mjs";
 import { abilityCost, abilityState } from "../actor-sheet/present.mjs";
 import { currentBoard, unitSnapshot, unitFrom, luckOf, gateContext } from "../../engine/board.mjs";
 import * as budget from "../../engine/budget.mjs";
-import { mayDeactivate } from "../../engine/fields.mjs";
+import { mayDeactivate, ownTurnOf } from "../../engine/fields.mjs";
+import { isQueued } from "../../engine/queued-ends.mjs";
 import { mayReshape } from "../../rules/bounded-fields.mjs";
 import { deactivatablePlatforms } from "../../rules/platforms.mjs";
 import { FACINGS } from "../../domain/enums.mjs";
@@ -281,10 +282,13 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const field of board.fields ?? []) {
       const name = nameOfField(field, actor);
       if (mayDeactivate(field, actor.id)) {
+        // Pressed outside the owner's Turn, it waits for the Turn's end, and the
+        // slot says so (#65, ruling 19).
+        const queued = isQueued(field.id);
         fields.push({
           id: `end:${field.id}`, name, img: null, icon: "fa-solid fa-circle-xmark",
-          cost: null, cooldown: null, ring: null, disabled: false, reason: null,
-          tooltip: game.i18n.format("FGT.HUD.EndField", { name }),
+          cost: null, cooldown: null, ring: null, disabled: queued, reason: queued ? "endQueued" : null,
+          tooltip: game.i18n.format(queued ? "FGT.HUD.EndQueued" : "FGT.HUD.EndField", { name }),
         });
       }
       if (mayReshape(field, unit)) {
@@ -301,17 +305,22 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     // and nothing reached a player (#141). A mount inside its lockout is shown
     // greyed with the moment it opens, rather than not shown.
     const tick = game.combat?.system?.globalTurn ?? 0;
-    for (const { platform, verdict } of deactivatablePlatforms(unit, board, { tick, turnsPerRound })) {
+    for (const { platform, verdict } of deactivatablePlatforms(unit, board, {
+      // Her platforms are hers, so whose Turn it is is asked of her.
+      tick, turnsPerRound, ownTurn: ownTurnOf(unit),
+    })) {
       const name = platform.name ?? platform.contentId ?? platform.id;
+      const queued = isQueued(platform.id);
       fields.push({
         id: `end:${platform.id}`, name, img: null, icon: "fa-solid fa-circle-xmark",
         cost: null, cooldown: null, ring: null,
-        disabled: !verdict.ok, reason: verdict.ok ? null : verdict.reason,
-        tooltip: verdict.ok
-          ? game.i18n.format("FGT.HUD.EndPlatform", { name })
-          : game.i18n.format("FGT.HUD.EndPlatformLocked", {
-            name, ticks: ticksLabel(Math.max(0, (verdict.unlocksAt ?? tick) - tick), turnsPerRound),
-          }),
+        disabled: !verdict.ok || queued, reason: queued ? "endQueued" : verdict.ok ? null : verdict.reason,
+        tooltip: queued ? game.i18n.format("FGT.HUD.EndQueued", { name })
+          : verdict.ok
+            ? game.i18n.format("FGT.HUD.EndPlatform", { name })
+            : game.i18n.format("FGT.HUD.EndPlatformLocked", {
+              name, ticks: ticksLabel(Math.max(0, (verdict.unlocksAt ?? tick) - tick), turnsPerRound),
+            }),
       });
     }
 
@@ -429,6 +438,8 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         const out = await FGTSocket.request("deactivateField", { actorId: actor.id, fieldId });
         if (out?.ok === false) {
           ui.notifications.warn(game.i18n.format("FGT.Skill.Refused", { name: field.id, reason: out.reason }));
+        } else if (out?.queued) {
+          ui.notifications.info(game.i18n.format("FGT.HUD.EndQueuedNotice", { name: nameOfField(field, actor) }));
         }
       } catch (err) {
         ui.notifications.error(err.message);
@@ -692,6 +703,9 @@ async function endPlatform(platform) {
   try {
     const out = await FGTSocket.request("deactivatePlatform", { platformId: platform.id });
     if (out?.ok === false) ui.notifications.warn(refusalText(out.reason));
+    else if (out?.queued) {
+      ui.notifications.info(game.i18n.format("FGT.HUD.EndQueuedNotice", { name: platform.name ?? platform.id }));
+    }
   } catch (err) {
     ui.notifications.warn(err.message);
   }

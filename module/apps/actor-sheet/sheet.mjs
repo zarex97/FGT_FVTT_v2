@@ -168,6 +168,18 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
+    // Switched OFF during somebody else's Turn -- the GM's slot included -- a
+    // `window: any` Mode waits for that Turn's end (#65, ruling 19). Asked of
+    // the GM, who keeps the queue on the Combat.
+    if (!active && item.system?.deactivation?.window === "any" && game.combats?.active?.started
+      && ownTurnOf(actor) !== true) {
+      const { FGTSocket } = await import("../../net/socket.mjs");
+      const out = await FGTSocket.request("queueModeEnd", { actorId: actor.id, itemId: item.id });
+      if (out?.ok === false) ui.notifications.warn(game.i18n.format("FGT.Skill.Refused", { name: item.name, reason: out.reason }));
+      else ui.notifications.info(game.i18n.format("FGT.HUD.EndQueuedNotice", { name: item.name }));
+      return;
+    }
+
     // A mode may have an ENTRY PRICE, and until Mannanán none did. Mad
     // Enhancement and Presence Concealment are free switches, so the toggle was
     // a bare write and every gate an ordinary ability is checked against -- its

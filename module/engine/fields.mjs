@@ -1685,18 +1685,18 @@ export function mayDeactivate(field, unitId) {
 }
 
 /**
- * Is it the owner's Turn? `undefined` when no faction's Turn is running -- no
- * match, or the GM's own slot -- which asks nothing of a deactivation window
- * (the same answer `apps/actor-sheet/sheet.mjs#ownTurnOf` gives a Mode).
+ * Is it the owner's Turn? `undefined` when no match is running, which asks
+ * nothing of a deactivation window. The GM's own slot is somebody else's Turn:
+ * an End pressed there waits for its end like any other (#65, ruling 19).
  *
  * @param {object} field a field OR a platform snapshot
  * @returns {boolean|undefined}
  */
-function ownTurnOf(field) {
+export function ownTurnOf(field) {
   const combat = game.combats?.active;
   if (!combat?.started) return undefined;
   const acting = combat.actingFactionId ?? null;
-  if (acting === null) return undefined;
+  if (acting === null) return false;
   const faction = field?.ownerFaction ?? field?.factionId ?? field?.faction
     ?? game.actors?.get(field?.ownerId)?.system?.factionId ?? null;
   return faction === acting;
@@ -1714,6 +1714,7 @@ function ownTurnOf(field) {
  * @returns {{ok: boolean, reason?: string, unlocksAt?: number}}
  */
 export function deactivationReason(field, unitId) {
+  // `queued` rides along: allowed now, ended at the Turn's end (#65, ruling 19).
   return deactivationVerdict(field?.deactivation, {
     createdAt: field?.createdAt ?? field?.activatedAt ?? 0,
     tick: game.combat?.system?.globalTurn ?? 0,

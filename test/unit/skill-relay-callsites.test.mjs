@@ -70,7 +70,8 @@ describe("the operations the GM runs", () => {
 
   it("deactivateField re-checks on the GM that the actor owns the field and may end it now", () => {
     const body = between(ops, "deactivateField: {", "advanceProcess: {");
-    expect(body).toMatch(/mayDeactivate\(/);
+    // The verdict with its reason kept, so a queued End can be told apart (#65, ruling 19).
+    expect(body).toMatch(/deactivationReason\(/);
     expect(body).toMatch(/ownerId/);
   });
 });

@@ -222,14 +222,45 @@ export const OPERATIONS = Object.freeze({
       return { allowed: true, reason: null };
     },
     execute: async (payload) => {
-      const [{ currentBoard }, { deactivateField, mayDeactivate }] = await Promise.all([
+      const [{ currentBoard }, { deactivateField, deactivationReason }, { queueEnd }] = await Promise.all([
         import("../engine/board.mjs"),
         import("../engine/fields.mjs"),
+        import("../engine/queued-ends.mjs"),
       ]);
       const field = (currentBoard().fields ?? []).find((f) => f.id === payload.fieldId);
       if (!field || field.ownerId !== payload.actorId) return { ok: false, reason: "notYourField" };
-      if (!mayDeactivate(field, payload.actorId)) return { ok: false, reason: "mayNotDeactivate" };
+      const verdict = deactivationReason(field, payload.actorId);
+      if (!verdict.ok) return { ok: false, reason: "mayNotDeactivate" };
+      // Outside the owner's Turn it waits for the Turn's end (#65, ruling 19).
+      if (verdict.queued) {
+        return { ok: await queueEnd({ kind: "field", id: payload.fieldId, ownerId: payload.actorId }), queued: true };
+      }
       return { ok: await deactivateField(payload.fieldId, "owner") };
+    },
+  },
+
+  /**
+   * Hold a Mode's switch-off for the Turn's end (#65, ruling 19).
+   *
+   * Raikou's Tenmōkaikai, *"can deactivate this NP during her Turn and at the
+   * start or end of any Turn or Round"*: switched off during somebody else's
+   * Turn, it ends when that Turn does. The queue lives on the Combat, which a
+   * player cannot write, so the sheet asks the GM. Authorized by the actor;
+   * the GM checks the Mode is that actor's, is on, and states `window: any`.
+   */
+  queueModeEnd: {
+    authorize: (payload, userId) => {
+      const user = game.users.get(userId);
+      const actor = game.actors.get(payload.actorId);
+      if (!user || !actor) return { allowed: false, reason: "Unknown actor." };
+      if (user.isGM || actor.testUserPermission(user, "OWNER")) return { allowed: true, reason: null };
+      return { allowed: false, reason: `${user.name} does not control ${actor.name}.` };
+    },
+    execute: async (payload) => {
+      const item = game.actors.get(payload.actorId)?.items.get(payload.itemId);
+      if (!item?.system?.active || item.system?.deactivation?.window !== "any") return { ok: false, reason: "mayNotDeactivate" };
+      const { queueEnd } = await import("../engine/queued-ends.mjs");
+      return { ok: await queueEnd({ kind: "mode", id: item.id, ownerId: payload.actorId }), queued: true };
     },
   },
 

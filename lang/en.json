@@ -672,6 +672,8 @@
   "FGT.HUD.EndField": "End {name}",
   "FGT.HUD.EndPlatform": "End {name}",
   "FGT.HUD.EndPlatformLocked": "{name} cannot be ended yet — it opens in {ticks}",
+  "FGT.HUD.EndQueued": "{name} ends at the end of this Turn",
+  "FGT.HUD.EndQueuedNotice": "{name} will end at the end of this Turn.",
   "FGT.Action.Refusal.locked": "Its lockout has not run out yet.",
   "FGT.HUD.Facing": "Facing: {facing} — click to turn clockwise, right-click anticlockwise. Does not end the turn.",
   "FGT.HUD.Budget": "Move: {move} · Attack: {attack}",
