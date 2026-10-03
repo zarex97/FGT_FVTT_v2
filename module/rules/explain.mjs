@@ -101,7 +101,27 @@ export function summarize(result) {
     injury: result.injury ? Boolean(result.injury.roll)
       : Boolean(flags.exceededInjuryThreshold) && (result.total ?? 0) > 0,
     defeatedOutright: Boolean(flags.defeatedOutright),
+    overpower: overpowerText(flags.overpower),
   };
+}
+
+/**
+ * The Overpower flip, as the card says it.
+ *
+ * *"When a Servant successfully Attacks a Master, the player controlling the
+ * Servant flips a coin. If Heads, the Master is instantly defeated."* The flip
+ * is a 1d100 under the chance, 50 unless Def Up or Dmg Cut lowers it. Ruled
+ * 2026-10-02 (#65, ruling 21): the card shows it, Heads or Tails (#174).
+ *
+ * @param {{roll: number|null, chance: number, heads: boolean, saved: boolean}|null|undefined} flip
+ * @returns {string|null}
+ */
+export function overpowerText(flip) {
+  if (!flip) return null;
+  if (flip.saved) return "Overpower: Luck Check passed — no flip, survives";
+  return flip.heads
+    ? `Overpower: Heads (${flip.roll} ≤ ${flip.chance}) — Master defeated`
+    : `Overpower: Tails (${flip.roll} > ${flip.chance})`;
 }
 
 /**

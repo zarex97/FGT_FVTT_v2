@@ -4038,10 +4038,22 @@ async function applyDamage(state, message) {
   // Ch. 32. Overpower can end the Master outright before damage matters;
   // Underpower halves a Master's own Total Damage. Both are Master-Servant
   // asymmetries and neither fires between two units of the same kind.
+  const overpowerRoll = (await new Roll("1d100").evaluate()).total;
   const overpower = resolveOverpower({
-    attacker, defender, roll: (await new Roll("1d100").evaluate()).total,
+    attacker, defender, roll: overpowerRoll,
     luckCheckPassed: Boolean(state.luckChecks?.overpower),
   });
+  // The flip goes on the card, Heads or Tails (ruled 2026-10-02, #65 ruling
+  // 21, #174). It used to defeat a Master with nothing on the card at all.
+  if (overpower.applies) {
+    result.flags = {
+      ...result.flags,
+      overpower: {
+        roll: overpower.survivesLethal ? null : overpowerRoll, chance: overpower.chance,
+        heads: overpower.defeated, saved: overpower.survivesLethal,
+      },
+    };
+  }
   const underpower = resolveUnderpower({
     attacker, defender, roll: (await new Roll("1d100").evaluate()).total,
   });
