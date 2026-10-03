@@ -59,3 +59,12 @@ describe("the card", () => {
     expect(readFileSync("templates/chat/attack.hbs", "utf8")).toMatch(/\{\{result\.summary\.overpower\}\}/);
   });
 });
+
+describe("a Master the flip defeated does not Counter", () => {
+  it("counterAvailable reads the defeat, not only the Health", () => {
+    // Live: Heads at 117 / 340 Health, and the card then asked him "Counter-attack?".
+    const src = readFileSync("module/engine/attack.mjs", "utf8").replaceAll("\r\n", "\n");
+    const fn = src.slice(src.indexOf("function counterAvailable(state)"));
+    expect(fn.slice(0, fn.indexOf("\n}\n"))).toMatch(/defenderAlive: !defenderDoc\.system\?\.defeated &&/);
+  });
+});
