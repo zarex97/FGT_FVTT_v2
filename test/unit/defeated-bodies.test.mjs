@@ -94,3 +94,9 @@ describe("the writers", () => {
     expect(body).not.toMatch(/actor\.delete|Actor\.delete/);
   });
 });
+
+describe("the game log", () => {
+  it("records a body leaving, under defeat", () => {
+    expect(readFileSync("module/engine/io.mjs", "utf8")).toMatch(/bodyCleared: "defeat"/);
+  });
+});
