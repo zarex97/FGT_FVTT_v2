@@ -277,6 +277,8 @@ function judgeRide(unit, destination, board, { movedAlready = null, distanceOver
   if (di !== 0 && dj !== 0 && Math.abs(di) !== Math.abs(dj)) {
     return { ok: false, reason: "notStraight" };
   }
+  // A table that holds the ride to rows and columns (#65, ruling 18).
+  if (di !== 0 && dj !== 0 && !ridesDiagonally(board)) return { ok: false, reason: "notStraight" };
 
   const spent = movedAlready ?? unit.turnState?.movedPanels ?? 0;
   // *"This NP is used in the form of a Riding Attack, with a distance of 13
@@ -403,7 +405,8 @@ export function ridingDestinations(unit, board, { distanceOverride = null } = {}
 
   /** @type {GridOffset[]} */
   const out = [];
-  for (const [di, dj] of RIDING_DIRECTIONS) {
+  const directions = ridesDiagonally(board) ? RIDING_DIRECTIONS : RIDING_DIRECTIONS.slice(0, 4);
+  for (const [di, dj] of directions) {
     for (let step = 1; step <= allowance; step += 1) {
       const panel = { i: unit.panel.i + di * step, j: unit.panel.j + dj * step };
       if (!geo.inBounds(panel, board?.bounds ?? null)) break;
@@ -417,6 +420,21 @@ export function ridingDestinations(unit, board, { distanceOverride = null } = {}
 const RIDING_DIRECTIONS = Object.freeze([
   [-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1],
 ]);
+
+/**
+ * May a Riding Attack run down a diagonal on this board?
+ *
+ * *"…while Moving in a straight line"*. The eight grid lines are the default,
+ * diagonals included; a GM may hold the ride to rows and columns with the
+ * `ridingAttackLines` world setting, carried here on `board.rules` (ruled
+ * 2026-10-02, #65, ruling 18). Absent reads as the default.
+ *
+ * @param {object} board
+ * @returns {boolean}
+ */
+export function ridesDiagonally(board) {
+  return board?.rules?.ridingAttackLines !== "orthogonal";
+}
 
 /**
  * Where a Master lands when it rides along with its Servant.
