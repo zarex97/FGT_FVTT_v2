@@ -830,14 +830,14 @@ describe("deactivationVerdict", () => {
       return out;
     };
 
-    it("states a window on every Field and Platform block, so none is silently own-Turn-only", () => {
+    it("states a window on every Field and Platform block but Achilles's duel, which is his own Turn only", () => {
       const missing = windowsOf().filter(([, block]) => block.window === undefined).map(([file]) => file);
-      expect(missing).toEqual([]);
+      expect(missing).toEqual([expect.stringContaining("achilles-diatrekhon")]);
     });
 
-    it("keeps Achilles's duel closable at any moment, which the sheet does not say either way", () => {
+    it("leaves Achilles's duel own-Turn-only, as ruled (#65, ruling 19)", () => {
       const duel = windowsOf().find(([file]) => file.includes("achilles-diatrekhon"));
-      expect(duel[1].window).toBe("any");
+      expect(duel[1].window).toBeUndefined();
     });
   });
 

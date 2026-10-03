@@ -1172,8 +1172,9 @@ export function canUnboard(unit, platform) {
  * @param {string} ctx.ownerId
  * @param {number} ctx.turnsPerRound
  * @param {boolean} [ctx.ownTurn] whether it is the owner's Turn; `undefined` when
- *   the caller cannot tell (no match, the GM's slot), which asks nothing
- * @returns {{ok: boolean, reason?: string, unlocksAt?: number}}
+ *   the caller cannot tell (no match), which asks nothing
+ * @returns {{ok: boolean, queued?: boolean, reason?: string, unlocksAt?: number}}
+ *   `queued`: allowed, but it ends at the next boundary rather than now
  */
 export function deactivationVerdict(spec, { createdAt, tick, unitId, ownerId, turnsPerRound, ownTurn }) {
   if (!spec?.byOwner) return { ok: false, reason: "notAllowed" };
@@ -1184,11 +1185,15 @@ export function deactivationVerdict(spec, { createdAt, tick, unitId, ownerId, tu
   // was read for Modes and for no Field or Platform, so the control was offered
   // at every moment (#150).
   if (ownTurn === false && spec.window !== "any") return { ok: false, reason: "notOwnTurn" };
-  if (!spec.lockout) return { ok: true };
-
-  const unlocksAt = (createdAt ?? 0) + resolveTicks(parseTick(spec.lockout), { turnsPerRound });
-  if (tick < unlocksAt) return { ok: false, reason: "locked", unlocksAt };
-  return { ok: true };
+  if (spec.lockout) {
+    const unlocksAt = (createdAt ?? 0) + resolveTicks(parseTick(spec.lockout), { turnsPerRound });
+    if (tick < unlocksAt) return { ok: false, reason: "locked", unlocksAt };
+  }
+  // *"…during Quetz's Turn or AT THE START OR END of any Round or Turn."*
+  // Outside her Turn the end waits for the next boundary: pressed during
+  // somebody else's Turn, it is queued for that Turn's end (ruled 2026-10-02,
+  // #65, ruling 19). During her own Turn it ends at once.
+  return ownTurn === false ? { ok: true, queued: true } : { ok: true };
 }
 
 /**
@@ -1207,11 +1212,12 @@ export function deactivationVerdict(spec, { createdAt, tick, unitId, ownerId, tu
  * @param {object} ctx
  * @param {number} ctx.tick now
  * @param {number} ctx.turnsPerRound
- * @returns {{ok: boolean, reason?: string, unlocksAt?: number}}
+ * @param {boolean} [ctx.ownTurn] whether it is the owner's Turn (the window)
+ * @returns {{ok: boolean, queued?: boolean, reason?: string, unlocksAt?: number}}
  */
-export function platformDeactivation(platform, unitId, { tick, turnsPerRound }) {
+export function platformDeactivation(platform, unitId, { tick, turnsPerRound, ownTurn }) {
   return deactivationVerdict(platform?.deactivation, {
-    createdAt: platform?.activatedAt ?? 0, tick, unitId, ownerId: platform?.ownerId, turnsPerRound,
+    createdAt: platform?.activatedAt ?? 0, tick, unitId, ownerId: platform?.ownerId, turnsPerRound, ownTurn,
   });
 }
 

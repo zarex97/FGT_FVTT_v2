@@ -728,12 +728,12 @@ describe("the duel field", () => {
     expect(hits(foe({ str: "B+", end: "A", agi: "A+", mag: "C", luc: "D" }))).toBe(1);
   });
 
-  it("asks the challenged Unit before it opens, and ends when the table says", () => {
+  it("asks the challenged Unit before it opens, and he may end it on his own Turn", () => {
     expect(np.field.requiresConsent).toBe(true);
-    // `window: any` states what the control always did -- the sheet says nothing
-    // about owner deactivation, and a block with no window is the owner's own
-    // Turn (#150), so the table-arbitration reading is now authored.
-    expect(np.field.deactivation).toEqual({ byOwner: true, window: "any" });
+    // The sheet states no window, and a block with no window is the owner's own
+    // Turn (#150). Ruled 2026-10-02 (#65, ruling 19): the duel falls back to
+    // that; it had been authored `window: any`.
+    expect(np.field.deactivation).toEqual({ byOwner: true });
   });
 });
 

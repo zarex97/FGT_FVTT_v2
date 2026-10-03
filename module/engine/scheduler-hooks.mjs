@@ -25,6 +25,7 @@ import * as fields from "./fields.mjs";
 import { expireTerrain } from "./terrain.mjs";
 import { recordTurn, historyOf, setHistory } from "./state-history.mjs";
 import { boundaryKey, alreadyClaimed, tokenField } from "../rules/schedule-claim.mjs";
+import { payQueuedEnds } from "./queued-ends.mjs";
 
 export const Scheduler = {
   /** Register the hooks. Idempotent. */
@@ -97,6 +98,10 @@ async function onTurnChange(combat, prior, current) {
   };
 
   await run(scheduler.endTurn(board, ctx), "scheduler:endTurn");
+
+  // The Ends pressed during this Turn by an owner whose Turn it was not
+  // (#65, ruling 19): *"…or at the start or end of any Round or Turn."*
+  await payQueuedEnds(combat);
 
   // What a handler owed at this boundary (`at: turnEnd`). Raikou's
   // Tenmōkaikai ends here, at the close of the Turn she fell (#103).

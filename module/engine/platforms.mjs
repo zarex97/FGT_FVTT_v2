@@ -543,11 +543,18 @@ export async function deactivatePlatform({ platformId }) {
   const platform = currentBoard().units.find((u) => u.id === platformId && u.kind === "platform");
   if (!platform) return { ok: false, reason: "unknownUnitOrPlatform" };
 
+  const { ownTurnOf } = await import("./fields.mjs");
   const verdict = platformDeactivation(platform, platform.ownerId, {
     tick: game.combat?.system?.globalTurn ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    ownTurn: ownTurnOf(platform),
   });
   if (!verdict.ok) return verdict;
+  // Outside her Turn the mount goes at the Turn's end (#65, ruling 19).
+  if (verdict.queued) {
+    const { queueEnd } = await import("./queued-ends.mjs");
+    return { ok: await queueEnd({ kind: "platform", id: platformId, ownerId: platform.ownerId }), queued: true };
+  }
 
   await destroyPlatform({ platformId });
   return { ok: true };
