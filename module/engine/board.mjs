@@ -433,6 +433,8 @@ export function currentBoard(overrides = {}) {
         // is Layer 2 and has no settings -- the same route `masterProtection`
         // above takes.
         discoverAttemptsPerFaction: setting("discoverAttemptsPerFaction", 3),
+        // #65 ruling 18: the eight lines, or rows and columns only.
+        ridingAttackLines: setting("ridingAttackLines", "eight"),
       },
       warRegion: currentWarRegion(),
       warType: combat?.system?.warType ?? setting("warType", "greatHolyGrailWar"),

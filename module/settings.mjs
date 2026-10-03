@@ -144,6 +144,15 @@ export function registerSettings() {
     type: Boolean, default: true,
     onChange: () => guardRuleChange("masterProtection"),
   });
+  // Which straight lines a Riding Attack may run along. The eight grid lines,
+  // diagonals included, are the default; a GM may hold it to rows and columns
+  // (ruled 2026-10-02, #65, ruling 18). NOT in RULE_SETTINGS: nothing stored
+  // depends on it, it only decides the next ride.
+  s("ridingAttackLines", {
+    name: "FGT.Settings.RidingAttackLines", hint: "FGT.Settings.RidingAttackLinesHint",
+    type: String, default: "eight",
+    choices: { eight: "FGT.RidingAttackLines.Eight", orthogonal: "FGT.RidingAttackLines.Orthogonal" },
+  });
   // Ch. 46 §46.4-AN. How many Discover attempts ONE faction gets per Turn
   // against one concealed Unit -- not per Servant, and not shared across the
   // board. Three is the rule as written; a table may raise it, lower it, or set
