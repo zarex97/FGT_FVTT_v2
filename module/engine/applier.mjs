@@ -606,6 +606,10 @@ async function writeGroup(group, io) {
     case "dismissSummon":
       await io.dismissSummon(unitId, intents[0].reason);
       break;
+    // A defeated Unit's body leaving the board, one tick after it fell.
+    case "clearBody":
+      await io.clearBody(unitId);
+      break;
     // *"extends its period of existing on the board for 3◈ MORE Turns."*
     // Summed, so two extensions in one batch both count.
     // ONE update per Unit, so a failure cannot leave a Unit half in the past.

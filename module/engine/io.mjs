@@ -899,6 +899,16 @@ export function worldIO() {
      * @param {string} unitId
      * @param {string} reason
      */
+    /**
+     * Remove a defeated Unit's tokens from the scene, keeping its actor.
+     * @param {string} unitId
+     */
+    async clearBody(unitId) {
+      const scene = canvas?.scene ?? game.scenes?.active ?? null;
+      const ids = (scene?.tokens?.contents ?? []).filter((t) => t.actorId === unitId).map((t) => t.id);
+      if (ids.length > 0) await scene.deleteEmbeddedDocuments("Token", ids);
+    },
+
     async dismissSummon(unitId, reason) {
       const summon = resolve(unitId);
       if (!summon) return;
@@ -1077,7 +1087,12 @@ export function worldIO() {
       await freeContractedServants(unitId, killerId);
       const actor = resolve(unitId);
       if (!actor) return;
-      await actor.update({ "system.defeated": true, "system.defeatCause": cause });
+      await actor.update({
+        "system.defeated": true, "system.defeatCause": cause,
+        // The first defeat's tick, kept by a second: the body's clock runs from
+        // when it fell (#65, ruling 25).
+        ...(actor.system?.defeated ? {} : { "system.defeatedAt": game.combat?.system?.globalTurn ?? null }),
+      });
       // The skull. v14's Token has no `overlayEffect` -- that write was dropped
       // and the skull never appeared (#96). The token draws the last applied
       // effect flagged `core.overlay`, the shape `Actor#toggleStatusEffect`
@@ -1430,7 +1445,12 @@ async function freeContractedServants(unitId, killerId = null) {
       conquered: conquered.has(actor.id), spares, turnsPerRound,
     })) {
       if (d.kind === "setContract") await actor.update({ "system.contract": d.contract, "system.masterId": null });
-      else if (d.kind === "defeat") await actor.update({ "system.defeated": true, "system.defeatCause": d.cause });
+      else if (d.kind === "defeat") {
+        await actor.update({
+          "system.defeated": true, "system.defeatCause": d.cause,
+          ...(actor.system?.defeated ? {} : { "system.defeatedAt": game.combat?.system?.globalTurn ?? null }),
+        });
+      }
       else if (d.kind === "resource") {
         // Read through the snapshot, which resolves the ◈ expression to turns:
         // the raw field is "2◈" and `Math.max(0, "2◈" + -2)` is NaN.
