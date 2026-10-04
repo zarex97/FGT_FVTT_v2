@@ -961,12 +961,24 @@ export async function runFieldEvents(event, {
 
   const ownTurn = event === "turnEnd" ? unitIdsOfTurn(view, activeFactionId) : null;
   const scope = ownTurn && unitIds ? ownTurn.filter((id) => unitIds.includes(id)) : (ownTurn ?? unitIds);
+  // The Units whose OWN Turn just ended, for an acted event that is the second
+  // half of an "or" (#180).
+  const ownTurnIds = new Set(activeFactionId ? unitIdsOfTurn(view, activeFactionId) : []);
 
   for (const field of view.fields ?? []) {
     if (fieldIds && !fieldIds.includes(field.id)) continue;
     for (const spec of field.interiorEvents ?? []) {
       if (spec.event !== event) continue;
-      intents.push(...await runFieldEvent(field, spec, view, scope, assumeInside));
+      // *"If an enemy Unit ended its Turn within the Contagion area, OR at the
+      // end of a Turn an enemy Unit Acted and ended that Turn within"* is ONE
+      // trigger. Authored as a `turnEnd` and an `actedTurnEnd`, both fired on
+      // a Unit that Acted on its own Turn and charged it twice: Medea lost 200
+      // where the sheet says 100. `notOnOwnTurn` leaves the own Turn to the
+      // `turnEnd` half.
+      const unitScope = spec.notOnOwnTurn
+        ? (view.units ?? []).map((u) => u.id).filter((id) => !ownTurnIds.has(id) && (!scope || scope.includes(id)))
+        : scope;
+      intents.push(...await runFieldEvent(field, spec, view, unitScope, assumeInside));
     }
   }
   return intents;

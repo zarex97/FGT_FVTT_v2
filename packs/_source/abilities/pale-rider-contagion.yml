@@ -98,9 +98,13 @@ field:
       branches: *contagion
       onFail: *contagionBase
 
+    # The second half of trigger 2's "or": a Turn the enemy Acted in that was
+    # not its own. On its own Turn the `turnEnd` above already fired, and the
+    # "or" is one trigger, not two (#180).
     - event: actedTurnEnd
       relations: [enemy]
       requiresActed: true
+      notOnOwnTurn: true
       branches: *contagion
       onFail: *contagionBase
 
