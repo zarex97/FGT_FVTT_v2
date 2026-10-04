@@ -285,10 +285,22 @@ describe("Doomsday Come — the drag-in", () => {
     });
   });
 
-  it("exists only while the area does, and costs an Attack once per Turn", () => {
+  it("exists only while the area does, once per Turn, and costs nothing", () => {
+    // Ruled 2026-10-04 (#180): an action the NP grants, neither an Attack nor
+    // a Skill. No budget slot; he still counts as having Acted.
     expect(drag.requirements).toEqual([{ kind: "fieldOpen", field: "pale-rider-doomsday-come" }]);
-    expect(drag.countsAsAttack).toBe(true);
+    expect(drag.countsAsAttack).toBe(false);
+    expect(drag.countsAsAct).toBe(true);
+    expect(drag.freeAction).toBe(true);
     expect(drag.oncePerTurn).toBe(true);
+  });
+
+  it("a free action on the Skill path is neither checked against nor charged to a pool", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("module/engine/skill-use.mjs", "utf8");
+    expect(src).toMatch(/const free = Boolean\(ability\.system\?\.freeAction\);\s*if \(combat\?\.started && !free\) \{\s*const verdict = budget\.affordable/);
+    expect(src).toMatch(/if \(combat\?\.started && !free\) await budget\.spend/);
+    expect(src).toMatch(/\.\.\.\(free \? \{\} : asAttack \? \{ attacked: true \} : \{ usedActiveSkill: true \}\)/);
   });
 
   it("resolves as a dragInto phase and deals no damage", () => {

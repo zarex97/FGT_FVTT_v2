@@ -152,6 +152,7 @@ export const ABILITY_ROUTES = {
   cooldown: doc("module/engine/cooldown.mjs", "the clock is the item's own"),
   cooldownWaiver: doc("module/engine/cooldown.mjs", "spent at use"),
   countsAsAttack: doc("module/rules/ability-use.mjs", "the action budget"),
+  countsAsAct: doc("module/rules/ability-use.mjs", "marks the Turn Record acted"),
   creates: doc("module/rules/costs.mjs", "matched by ForbidCreating"),
   deactivation: [
     doc("module/rules/modes.mjs", "Tenmōkaikai's switch-off window, read by canToggleMode (#101)"),
