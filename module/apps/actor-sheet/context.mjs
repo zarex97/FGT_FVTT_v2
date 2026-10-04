@@ -23,6 +23,7 @@ import { test as testPredicate } from "../../rules/predicate.mjs";
 import { rollOptionsFor } from "../../rules/options.mjs";
 import { alsoTriggered } from "../../engine/cooldown.mjs";
 import { detectRangeOf } from "../../rules/identity.mjs";
+import { hasGranted, GRANTS } from "../../rules/granted.mjs";
 import { tierOf } from "../../rules/master-rank.mjs";
 import { actedWeight, MULTI_SERVANT_COST } from "../../rules/relationships.mjs";
 import { EffectRegistry } from "../../rules/registry.mjs";
@@ -209,6 +210,11 @@ export function buildContext(actor, sheet) {
     // Spread first: `servantClasses` is a SetField, so it arrives as a `Set`,
     // which has `.has` and not `.includes`.
     canContract: isMaster || [...(system.servantClasses ?? [])].includes("caster"),
+    // *"Pale Rider cannot perform Normal Attacks."* The action bar has never
+    // offered him the slot (`rules/actions.mjs`); the sheet offered the button,
+    // previewed a Legal attack and was refused on the press (#180). A control
+    // that always refuses is worse than none, as the line above says.
+    canNormalAttack: !hasGranted(snapshot, GRANTS.noNormalAttack),
     canRollSetup: isMaster && game.user.isGM,
     setupLocked: Boolean(game.combat?.started),
 
