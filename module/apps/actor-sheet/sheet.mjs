@@ -587,7 +587,14 @@ export async function pickPlacementFor(actor, ability, { requireUnitId = null, e
   // What this is, for a platform's protection of its occupants (#138): the
   // resolution says "attack" or "effect" through its placement, and the preview
   // has no placement until the player aims, so it says it on the spec.
-  const spec = { ...aimed, reach: (ability ? classifyAbility(ability).isAttack : true) ? "attack" : "effect" };
+  const spec = {
+    ...aimed, reach: (ability ? classifyAbility(ability).isAttack : true) ? "attack" : "effect",
+    // ...and its SCALE, for the same reason: a field's isolation lets an
+    // [Anti-World] Noble Phantasm across (`piercedBy`), and the aiming session
+    // validated every placement without it -- so the one NP Doomsday Come's
+    // boundary admits found "no legal targets" across it (#183).
+    npTags: [...(ability?.system?.npTags ?? [])],
+  };
   const isNP = ability?.type === "noblePhantasm";
 
   return pickTarget({
