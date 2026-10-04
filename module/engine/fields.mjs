@@ -560,7 +560,10 @@ export async function ensurePassiveFields() {
       const spec = ability.system?.field ?? null;
       if (!spec?.passive) continue;
       const fieldId = ability.system?.contentId ?? ability.id;
-      if (open.has(fieldId)) continue;
+      if (open.has(fieldId)) {
+        await refreshPassiveField(fieldId, spec);
+        continue;
+      }
       await openField(ability, actor, board, spec);
       open.add(fieldId);
     }
@@ -580,6 +583,54 @@ export async function ensurePassiveFields() {
   // whose size is decided by an EFFECT -- Contagion's 9x9 Active -- changes
   // without anybody moving, so the move hook alone would leave it stale.
   await syncDerivedFields();
+}
+
+/**
+ * The rule axes a field copies off its ability's spec when it opens: what the
+ * area DOES, as against where it is (`geometry`, `membership`) or what has
+ * happened in it (`state`).
+ */
+const RULE_AXES = {
+  isolation: null, interior: [], interiorEvents: [], extension: null, vulnerabilities: [],
+  onEnd: [], countsAsHomeBase: null, upkeep: null, deactivation: null,
+};
+
+/**
+ * The patch that brings a field's stored rule axes up to its ability's spec,
+ * or `null` when they already agree.
+ *
+ * Live (#180): Contagion's field opened at tick 0, then its content gained
+ * `notOnOwnTurn`. A passive field is opened once and never again, so the
+ * stored copy went on charging a Unit twice on its own Turn, rounds after the
+ * fix had shipped. An active field is cast afresh each time and cannot go stale
+ * this way; a passive one stands for the whole war.
+ *
+ * @param {object} stored the field behaviour's `system`
+ * @param {object} spec `ability.system.field`
+ * @returns {object|null}
+ */
+export function staleRuleAxes(stored, spec) {
+  // Defaulted as `fieldDataOf` defaults them, so a field opened from the same
+  // spec reads equal.
+  const patch = {};
+  for (const [key, empty] of Object.entries(RULE_AXES)) {
+    const fresh = spec?.[key] ?? empty;
+    if (JSON.stringify(stored?.[key] ?? empty) !== JSON.stringify(fresh)) patch[`system.${key}`] = fresh;
+  }
+  return Object.keys(patch).length ? patch : null;
+}
+
+/**
+ * Bring a standing passive field's rules up to its ability's current spec.
+ *
+ * @param {string} fieldId
+ * @param {object} spec
+ * @returns {Promise<void>}
+ */
+async function refreshPassiveField(fieldId, spec) {
+  const behavior = behaviorFor(fieldId);
+  const patch = behavior ? staleRuleAxes(behavior.system, spec) : null;
+  if (patch) await behavior.update(patch);
 }
 
 /**

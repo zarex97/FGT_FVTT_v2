@@ -115,6 +115,8 @@ When an `ownerMaster` vulnerability triggers with a delay, the delay is stamped 
 
 Pale Rider's Contagion is cast neither at an ability's use nor ended by a cooldown. It exists because he does. A passive field opens when its owner joins the board and closes when they leave (`module/engine/fields.mjs:399-430`). The pass runs idempotently at `ready` and at every turn start, so a reloaded world repairs itself without a hook being required to fire first (`module/engine/fields.mjs:391-392`).
 
+The same pass keeps a standing passive field's rules current. A field copies its ability's rule axes when it opens: isolation, interior, interiorEvents, extension, vulnerabilities, onEnd, countsAsHomeBase, upkeep and deactivation. A passive field opens once and stands for the whole war, so a content change never reached it. Live (#180), Contagion opened at tick 0, its content then gained `notOnOwnTurn`, and the field went on charging an enemy twice at the end of its own Turn. Now `staleRuleAxes` compares each axis with the ability's current spec, and `refreshPassiveField` writes the ones that differ. Geometry, membership and state are left alone: they are where the area is and what has happened in it, not what it does. Test: `test/unit/passive-field-refresh.test.mjs`.
+
 ## Invariants & edge cases
 
 **A field is on one Scene Level.** `contains` checks a panel's level against the field's: a
