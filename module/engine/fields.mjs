@@ -621,6 +621,24 @@ export function staleRuleAxes(stored, spec) {
 }
 
 /**
+ * Where a Spirit bound to a field appears: the first of `beside` inside the
+ * field, else a random free panel inside it.
+ *
+ * @param {Array<{i: number, j: number}>} beside free panels next to its enemy, nearest first
+ * @param {object} field
+ * @param {object} board
+ * @param {() => number} [random]
+ * @returns {Array<{i: number, j: number}>} one panel, or none
+ */
+export function boundPlacement(beside, field, board, random = Math.random) {
+  const inside = new Set(panelsOf(field, board).map((p) => `${p.i},${p.j}`));
+  const next = beside.find((p) => p && inside.has(`${p.i},${p.j}`));
+  if (next) return [next];
+  const any = randomFreePanelIn(field, board, random);
+  return any ? [any] : [];
+}
+
+/**
  * Bring a standing passive field's rules up to its ability's current spec.
  *
  * @param {string} fieldId
@@ -1265,8 +1283,18 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
         }
         if (!contentId) continue;
 
+        // Next to its enemy, and INSIDE the area. Live (#180): Achilles and
+        // Ozymandias stood on Doomsday Come's last row, the first free panel
+        // beside each was the row below, and both Spirits appeared outside --
+        // where isolation forbade the very Attack they were summoned to make.
+        // *"Reappears on a random panel within Doomsday Come"* says where a
+        // Spirit belongs; with no free panel beside its enemy inside, any
+        // free panel inside.
         const { placeSummons, freePanels } = await import("./summoning.mjs");
-        const panels = freePanels(unit, action.placement ?? { adjacentTo: "self" }, 1);
+        const panels = boundPlacement(
+          freePanels(unit, action.placement ?? { adjacentTo: "self" }, 9),
+          field, currentBoard(),
+        );
         await placeSummons([contentId], panels, ownerDoc, canvas.scene, {}, {
           pursuitTargetId: unit.id,
           boundToFieldId: field.id,
