@@ -38,6 +38,8 @@ The ability editor is an **ItemSheetV2 registered as the default sheet for three
 
 **Details tab** carries identity, prose (description, abilities), alignment, Region, reference sheets and image fields. Only the GM sees authored values (trueName, descriptions); players see public identity only.
 
+**The sheet offers what the action bar offers** (#180). The Overview tab's Actions panel showed a Normal Attack button to Pale Rider, previewed a Legal attack, and the press was refused: his Riding grants `noNormalAttack`, which `rules/actions.mjs` reads to drop the bar's slot. The context's `canNormalAttack` reads the same grant, and the template hides the button. Test: `test/unit/sheet-no-normal-attack.test.mjs`.
+
 ### Separation of concerns
 
 `context.mjs` is impure: it reaches for documents, the board, combat, settings, and builds a snapshot. `present.mjs` is pure: given parameters, it returns presentation data with no side effects (`module/apps/actor-sheet/sheet.mjs:11`). This split means the sheet's arithmetic can be unit-tested without Foundry running, and changes to the board or combat behaviour stay visible without reading the template.

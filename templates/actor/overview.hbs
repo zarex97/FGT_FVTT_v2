@@ -273,9 +273,11 @@
   <section class="fgt-panel">
     <h3 class="fgt-panel__title">{{localize "FGT.Sheet.Actions"}}</h3>
     <div class="fgt-actions">
-      <button type="button" class="fgt-button fgt-button--attack" data-action="normalAttack">
-        {{localize "FGT.Sheet.NormalAttack"}}
-      </button>
+      {{#if canNormalAttack}}
+        <button type="button" class="fgt-button fgt-button--attack" data-action="normalAttack">
+          {{localize "FGT.Sheet.NormalAttack"}}
+        </button>
+      {{/if}}
 
       {{#if canContract}}
         <button type="button" class="fgt-button" data-action="contract">
