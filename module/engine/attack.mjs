@@ -52,7 +52,7 @@ import { attackIdentity, recordedAttack } from "../rules/revival.mjs";
 import { expressionRefs, stacksHeld, abilityRecordOf } from "../rules/snapshot.mjs";
 import { removalPlan, pendingRemovalRolls } from "../rules/removal.mjs";
 import { isStrongestNP, isDamagingNP, harmlessToSelf, EXPECTED_ATTACK_ROLL } from "../rules/np-strength.mjs";
-import { currentHealth } from "../domain/health.mjs";
+import { currentHealth, isUndamageable } from "../domain/health.mjs";
 import * as process from "./combat-process.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
@@ -3525,6 +3525,12 @@ async function resolveDefeatOf(defender, damage, state = {}) {
   // `.value` off it gave `undefined`, the `?? 0` made every defender look
   // empty, and the early return never fired -- so a 500-damage hit on a
   // Servant at 3000 went through the whole defeat chain.
+  //
+  // And a Unit with NO Health is not at 0 (#180). Pale Rider's null read as 0
+  // here, so any hit on him -- even one his nature negated to 0 -- ran the
+  // defeat chain, and Asterios defeated him with a 0. Hidden until 6376e1a,
+  // because until then a stale 1500 sat where his null belongs.
+  if (isUndamageable(defender)) return [];
   const remaining = currentHealth(defender) - damage;
   if (remaining > 0) return [];
 
