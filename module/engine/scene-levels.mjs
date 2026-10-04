@@ -179,12 +179,16 @@ export async function sweepOrphanLevels(scene = canvas.scene) {
       await assignLevel(stranded.map((t) => t.id), ground, scene);
     }
   }
+  // The Levels FIRST, the ground's references after (#176): the ground write
+  // redraws the canvas of a client viewing a Level that sees the ground, and
+  // Foundry's move off a deleted Level then landed in the middle of that draw
+  // and left the client on no scene.
+  await scene.deleteEmbeddedDocuments("Level", ids);
   if (ground) {
     await ground.update({
       "visibility.levels": (ground.visibility?.levels ?? []).filter((id) => !ids.includes(id)),
     });
   }
-  await scene.deleteEmbeddedDocuments("Level", ids);
   return ids;
 }
 
@@ -283,17 +287,19 @@ export async function destroyLevel(platform, scene = canvas.scene) {
     return { ok: false, reason: "passengersAboard", stranded: stranded.map((t) => t.id) };
   }
 
-  // Drop the ground's reference first. A dangling id in `visibility.levels`
-  // is harmless today, but it accumulates over a match of repeated HGoB
-  // rebuilds and nothing ever cleans it up.
+  // Delete, THEN drop the ground's reference. A dangling id in
+  // `visibility.levels` is harmless today, but it accumulates over a match of
+  // repeated HGoB rebuilds and nothing ever cleans it up. The order is #176's:
+  // the ground write redraws the canvas of a client viewing this Level, and
+  // Foundry's move off the deleted Level landed in the middle of that draw and
+  // left the client on no scene. `engine/level-exit.mjs` is the other half.
+  await scene.deleteEmbeddedDocuments("Level", [level.id]);
   const ground = groundLevel(scene);
   if (ground) {
     await ground.update({
       "visibility.levels": (ground.visibility?.levels ?? []).filter((id) => id !== level.id),
     });
   }
-
-  await scene.deleteEmbeddedDocuments("Level", [level.id]);
   await platform.update({ "system.levelId": null });
   return { ok: true };
 }

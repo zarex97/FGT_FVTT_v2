@@ -51,6 +51,7 @@ import { FactionOwnership } from "./engine/faction-ownership.mjs";
 import { TokenImage } from "./engine/token-image.mjs";
 import { TokenFootprint } from "./engine/token-footprint.mjs";
 import { TokenRotation } from "./engine/token-rotation.mjs";
+import { LevelExit } from "./engine/level-exit.mjs";
 import { TokenVision, backfillVision } from "./engine/token-vision.mjs";
 import { registerTargetingLayer, pickTarget } from "./apps/canvas/targeting-layer.mjs";
 import { registerOverlayLayer, attachOverlays } from "./apps/canvas/overlay-layer.mjs";
@@ -292,6 +293,9 @@ Hooks.once("ready", async () => {
   // Facing lives in `system.facing`, not in Foundry's `rotation` — so an
   // unlocked token lets the artwork point somewhere the rules disagree with.
   TokenRotation.attach();
+  // A client viewing a Level that is deleted goes where its selected token
+  // landed, or to the ground (#176).
+  LevelExit.attach();
   // `system.facing` lives on the Actor, and no Foundry render flag fires for
   // it — so the chevron the placeable draws has to be told by hand.
   Hooks.on("updateActor", (actor, changes) => {
