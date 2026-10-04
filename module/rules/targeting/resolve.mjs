@@ -224,6 +224,11 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     isCommandSpell: Boolean(placement.isCommandSpell),
   };
   for (const field of board.fields ?? []) {
+    // An anchor measured from a field's edge reaches ACROSS that edge by
+    // definition: Doomsday Come's drag targets *"an enemy Unit within a 2 panel
+    // area of the Doomsday Come area"* to pull it in, from a Pale Rider who is
+    // usually inside. The area's own isolation refused every one of them (#180).
+    if (spec.anchor?.kind === "fieldEdge" && spec.anchor.fieldId === field.id) continue;
     survivors = survivors.filter((u) => {
       const verdict = isolationBlocks(field, caster, u, board, isolationCtx);
       return !verdict.blocked || drop(u, `separated by ${field.id}`);
