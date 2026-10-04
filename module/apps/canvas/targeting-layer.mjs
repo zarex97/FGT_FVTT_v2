@@ -308,7 +308,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
       // An anchor that resolves without a choice has nowhere else to be put, so
       // offering a button that visibly does nothing is worse than not offering
       // one.
-      canReaim: mode === "selfEdgeAdjacent" || mode === "withinRange" || mode === "targetUnit",
+      canReaim: mode === "selfEdgeAdjacent" || mode === "withinRange" || mode === "targetUnit" || mode === "fieldEdge",
     });
   }
 
@@ -322,7 +322,8 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
     switch (mode) {
       case "selfEdgeAdjacent": return this.#directionPicker(options, hud);
       case "withinRange": return this.#freePlacement(spec, caster, board, options, hud);
-      case "targetUnit": return this.#unitPicker(options, hud, board);
+      case "targetUnit":
+      case "fieldEdge": return this.#unitPicker(options, hud, board);
       default:
         if (options[0]?.legal) return options[0].placement;
         reportNothingLegal(options, board);
@@ -687,6 +688,7 @@ const MODE_HINTS = Object.freeze({
   selfEdgeAdjacent: "FGT.Targeting.ModeDirection",
   withinRange: "FGT.Targeting.ModePanel",
   targetUnit: "FGT.Targeting.ModeUnit",
+  fieldEdge: "FGT.Targeting.ModeUnit",
   E: "FGT.Paint.Keys",
 });
 
