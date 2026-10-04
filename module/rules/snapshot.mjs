@@ -164,6 +164,8 @@ export function snapshotUnit(actor, {
     // than looked up here: `rules/items.mjs#itemPickupIntents` is pure and
     // cannot load a pack, and there is no item registry to ask.
     carriesItemId: sys.carriesItemId ?? null,
+    // How many lie here: a dropped stack lands whole (#180).
+    carriesItemCount: sys.carriesItemCount ?? 1,
     carriesItem: sys.carriesItemId
       ? { contentId: sys.carriesItemId, barredFrom: sys.carriesItemBarredFrom ?? null }
       : null,

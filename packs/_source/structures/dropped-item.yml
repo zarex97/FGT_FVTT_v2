@@ -1,0 +1,27 @@
+# Pale Rider, char_orig_sheets/Copia de Pale Rider.md
+#
+# An Item lying on a panel because the Unit it was meant for could not hold it.
+#
+# > *"Pale Rider cannot hold Items, all Items that would be obtained by Pale
+# > Rider are instead obtained by his Master if he/she is within a 2 panel area
+# > of Pale Rider; otherwise the Item will be left on the panel where the Unit
+# > who dropped the Item was standing on."*
+#
+# Ruled 2026-10-04 (#180): it lands on the giver's panel, or on his own when
+# nobody handed it over, as one stack; anyone moving onto the panel picks up
+# everything there. The same kind of object as the Vorpal Blade's cache:
+# `carriesItemId`, `carriesItemCount` and `panel` are stamped by
+# `io.dropItem`, and the name and image are the Item's.
+schema: 1
+id: dropped-item
+name: "Dropped Item"
+type: structure
+attributes: [structure]
+# Not a target and not destructible; it is removed when somebody picks it up.
+baseHealth: 1
+mov: 0
+range: { panels: 0 }
+destroyableBy: []
+notes: |
+  Placed where an Item that Pale Rider could not hold was left. Picked up, whole stack, by any Unit that
+  moves onto its panel.

@@ -47,7 +47,11 @@ export async function giveItem({ fromId, toId, itemId, count = 1 }) {
   // rather than to the holder. `[Vorpal Blade]` *"cannot be obtained by Nursery
   // or her Master"*, which is not a property of either of them.
   const destination = acquisitionTarget(named, board, item);
-  if (!destination.ok) return { ok: false, reason: destination.reason };
+  // Pale Rider with his Master away: the hand-over still happens and the Item
+  // lands on the GIVER's panel (ruled 2026-10-04, #180). The grant names him;
+  // the applier asks the same question and drops it at `dropAt`.
+  const onFloor = !destination.ok && Boolean(destination.leftOnFloor);
+  if (!destination.ok && !onFloor) return { ok: false, reason: destination.reason };
   const to = destination.redirected
     ? board.units.find((u) => u.id === destination.unitId)
     : named;
@@ -63,13 +67,17 @@ export async function giveItem({ fromId, toId, itemId, count = 1 }) {
   });
   if (!verdict.ok) return verdict;
 
-  const intents = toIntents(transferItem(spec, from, to, count));
+  const descriptors = transferItem(spec, from, to, count);
+  if (onFloor) {
+    for (const d of descriptors) if (d.kind === "itemGrant") d.dropAt = from.panel;
+  }
+  const intents = toIntents(descriptors);
   // The allowance is spent whether or not the recipient's write is ours to
   // make, so it rides in the same batch.
   intents.push(I.markTurn(fromId, { itemTransfers: transfersThisTurn(fromDoc) + 1 }));
 
   await applyWorldIntents(intents, `item:give:${spec.id}`);
-  return { ok: true, toId: to.id, redirected: destination.redirected };
+  return { ok: true, toId: to.id, redirected: Boolean(destination.redirected), leftOnFloor: onFloor };
 }
 
 /**
@@ -166,7 +174,7 @@ export function toIntents(descriptors, ctx = {}) {
         out.push(I.itemQuantity(d.unitId, d.itemId, d.delta));
         break;
       case "itemGrant":
-        out.push(I.itemGrant(d.unitId, d.contentId, d.delta));
+        out.push({ ...I.itemGrant(d.unitId, d.contentId, d.delta, d.dropAt ?? null), barredFrom: d.barredFrom ?? null });
         break;
       case "applyEffect": {
         const ticks = d.effect?.duration ? resolveTicks(parseTick(d.effect.duration), ctx) : null;

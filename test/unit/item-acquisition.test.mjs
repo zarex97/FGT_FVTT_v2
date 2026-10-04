@@ -49,32 +49,35 @@ describe("acquisitionTarget", () => {
 
     const far = master({ panel: at(5, 5 + ITEM_REDIRECT_RANGE + 1) });
     const out = acquisitionTarget(rider({ panel: at(5, 5) }), board([far, rider({ panel: at(5, 5) })]));
-    expect(out).toEqual({ ok: false, reason: "cannotHoldItems" });
+    expect(out).toEqual({ ok: false, reason: "cannotHoldItems", leftOnFloor: true });
   });
 
+  // Ruled 2026-10-04 (#180): a refusal to HOLD, with the Item left on the
+  // floor -- "otherwise the Item will be left on the panel where the Unit who
+  // dropped the Item was standing on".
   it("refuses when the Master is off the board entirely", () => {
     const pr = rider();
-    expect(acquisitionTarget(pr, board([pr]))).toEqual({ ok: false, reason: "cannotHoldItems" });
+    expect(acquisitionTarget(pr, board([pr]))).toEqual({ ok: false, reason: "cannotHoldItems", leftOnFloor: true });
   });
 
   it("refuses a unit that cannot hold items and redirects nowhere", () => {
     // The two halves are separable: `cannotHoldItems` alone is a refusal, and
     // nothing in the corpus pairs a redirect with a unit that CAN hold items.
     const u = { id: "x", kind: "servant", panel: at(1, 1), cannotHoldItems: true };
-    expect(acquisitionTarget(u, board([u]))).toEqual({ ok: false, reason: "cannotHoldItems" });
+    expect(acquisitionTarget(u, board([u]))).toEqual({ ok: false, reason: "cannotHoldItems", leftOnFloor: false });
   });
 
   it("does not redirect into a Master who cannot hold items either", () => {
     // No cycles, and no silently vanishing item.
     const m = master({ cannotHoldItems: true });
     const pr = rider();
-    expect(acquisitionTarget(pr, board([m, pr]))).toEqual({ ok: false, reason: "cannotHoldItems" });
+    expect(acquisitionTarget(pr, board([m, pr]))).toEqual({ ok: false, reason: "cannotHoldItems", leftOnFloor: true });
   });
 
   it("refuses a defeated Master, who holds nothing", () => {
     const m = master({ defeated: true });
     const pr = rider();
-    expect(acquisitionTarget(pr, board([m, pr]))).toEqual({ ok: false, reason: "cannotHoldItems" });
+    expect(acquisitionTarget(pr, board([m, pr]))).toEqual({ ok: false, reason: "cannotHoldItems", leftOnFloor: true });
   });
 
   it("is safe on a missing unit", () => {
