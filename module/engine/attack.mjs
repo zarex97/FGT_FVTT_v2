@@ -857,6 +857,17 @@ async function declareProcesses({
   const primaryId = attackSpec.pierce && ability?.system?.damage?.pierceOn === "primary"
     ? (placement?.unitId ?? placement?.targetId ?? null)
     : null;
+  // The start of the Combat Phase for an Attack aimed at a guarded Master
+  // (#181): case 2 changes the target to the adjacent guard, case 3 lets a
+  // guard within 2 step in on an Agility Check. Only a TARGETED Attack -- the
+  // Master is the anchor -- and never a Counter, which has Ch. 21's own
+  // redirect. Case 1 was refused at targeting.
+  const aimedAt = targets?.anchor?.unitId ?? placement?.unitId ?? null;
+  if (!isCounter && targetIds.length === 1 && aimedAt === targetIds[0]) {
+    const { guardMasterTarget } = await import("./master-guard.mjs");
+    const guardId = await guardMasterTarget({ attackerId, targetId: targetIds[0] });
+    if (guardId) targetIds = [guardId];
+  }
   const states = targetIds.length > 0
     ? process.beginFanOut({
       attackerId,

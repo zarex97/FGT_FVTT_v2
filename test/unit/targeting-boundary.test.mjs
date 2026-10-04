@@ -81,7 +81,7 @@ describe("exclusion reasons", () => {
     };
     const r = resolveTargets(single, me, boardWith([me, foe, guard]));
 
-    expect(r.excluded.find((e) => e.unitId === "m").reason).toMatch(/protected by an adjacent Servant/);
+    expect(r.excluded.find((e) => e.unitId === "m").reason).toMatch(/guarded by a Servant within/);
     expect(r.candidates.map((u) => u.unitId ?? u.id)).toEqual(["g"]);
   });
 

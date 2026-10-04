@@ -16,7 +16,8 @@ import { expand, DELTA } from "./shapes.mjs";
 import { test as testPredicate } from "../predicate.mjs";
 import { compelledTargetsOf } from "../compulsion.mjs";
 import { isolationBlocks, panelsOf } from "../bounded-fields.mjs";
-import { relationOf, guardsOf } from "../relations.mjs";
+import { relationOf } from "../relations.mjs";
+import { guardsInRange, guardsNear } from "../master-guard.mjs";
 import { crossLevelLegal } from "../platforms.mjs";
 import { Rank } from "../../domain/rank.mjs";
 import { facingAllows, pathClear } from "./facing.mjs";
@@ -122,8 +123,8 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   //     one is still "targeting a Master for an Attack" and rule 1 refuses it.
   if (anchor.unitId && !(spec.limits ?? {}).bypassMasterProtection && !caster.bypassesMasterProtection) {
     const aimed = (board.units ?? []).find((u) => u.id === anchor.unitId);
-    if (aimed && isProtectedMaster(aimed, caster, board)) {
-      errors.push(`${aimed.name ?? "That Master"} is protected by an adjacent Servant and cannot be targeted.`);
+    if (aimed && isProtectedMaster(aimed, caster, board, anchorRange(spec.anchor ?? {}, caster))) {
+      errors.push(`${aimed.name ?? "That Master"} is guarded by a Servant within your Range: only the Servant can be targeted.`);
     }
   }
 
@@ -424,8 +425,13 @@ export function resolveTargets(spec, caster, board, placement = {}) {
 
   if (!limits.bypassMasterProtection && !caster.bypassesMasterProtection && isChosen) {
     const before = survivors.length;
+    // "Within the AU's Range" for a pick among candidates is "itself a
+    // candidate": a guard this very attack could reach instead (#181, case 1).
+    const reachable = new Set(survivors.map((u) => u.id));
     survivors = survivors.filter(
-      (u) => !isProtectedMaster(u, caster, board) || drop(u, "a Master protected by an adjacent Servant"),
+      (u) => !(u.kind === "master" && relationOf(caster, u, board) === "enemy"
+        && guardsNear(u, board).some((g) => reachable.has(g.id)))
+        || drop(u, "a Master guarded by a Servant within Range"),
     );
     if (survivors.length < before) warnings.push("Protected Masters were excluded.");
   }
@@ -1137,22 +1143,27 @@ function aboard(unit, deck) {
 }
 
 /**
- * A Master standing next to a Servant of its own faction cannot be targeted
- * through it. Presence Concealment and several abilities bypass this.
+ * Case 1 of the rulebook's three (#181): a Master whose guard is within 2
+ * panels of it AND within the attacker's Range cannot be targeted -- *"the AU
+ * can only target the Servant"*. Cases 2 and 3 let the Master be targeted and
+ * act at the start of the Combat Phase (`engine/master-guard.mjs`). This used
+ * to refuse whenever a guard stood ADJACENT, which is case 2's condition with
+ * case 1's answer. Presence Concealment and several abilities bypass it.
+ *
+ * `guardsOf` rather than "any Servant of that faction": Pale Rider's Kagome
+ * Spirits stand in for him, he does not protect his own Master at all, and a
+ * charmed Servant guards nobody (Ch. 32).
+ *
  * @param {object} unit
  * @param {object} caster
  * @param {object} board
+ * @param {number} range the attack's Range
  * @returns {boolean}
  */
-function isProtectedMaster(unit, caster, board) {
+function isProtectedMaster(unit, caster, board, range) {
   if (unit.kind !== "master") return false;
   if (relationOf(caster, unit, board) !== "enemy") return false;
-  // `guardsOf` rather than "any Servant of that faction": Pale Rider's
-  // Kagome Spirits stand in for him here, and he does not protect his own
-  // Master at all (Ch. 32).
-  return guardsOf(unit, board).some(
-    (u) => u.canAct !== false && u.panel && geo.chebyshev(u.panel, unit.panel) <= 1,
-  );
+  return guardsInRange(unit, caster, board, range).length > 0;
 }
 
 /**

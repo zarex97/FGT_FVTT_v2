@@ -36,6 +36,16 @@ Conquest is decided by the defeat write path **before** anything is freed, and t
 
 A conquered Servant never becomes Free, so none of the consequences of being Free apply to it — no mode lock, no Mad Enhancement Sustainability charge, and no instant defeat at zero Sustainability. **Conquest therefore saves a Servant that would otherwise vanish with its Master.** The world setting `conquestSparesServants` (default on) carries this; switched off, a conquered Servant pays those costs anyway, and is still never Free.
 
+### Attacking a guarded Master
+
+Ruled 2026-10-04 (#181): the rulebook's three cases, for every targeted Attack (Normal Attacks, Attack Skills, single-target Noble Phantasms), with `guardsOf` deciding who guards, so Pale Rider's Kagome Spirits stand in for him, he guards nobody, and a charmed Servant guards nobody. An area Noble Phantasm keeps the AoE cover rule below.
+
+1. **A guard within 2 of the Master and within the attacker's Range**: only the guard can be targeted, and with two the attacker picks. Refused at targeting (`rules/targeting/resolve.mjs#isProtectedMaster`, through `rules/master-guard.mjs#guardsInRange`).
+2. **An adjacent guard out of Range**: the Master may be targeted, and at the start of the Combat Phase the target becomes the adjacent guard nearest the attacker, the first in board order on a tie.
+3. **A guard within 2, neither in Range nor adjacent**: at the start of the Combat Phase each such guard makes an Agility Check against the attacker (the contest's table, the Agility Check's own plan), nearest the Master first and on a tie nearest the attacker, until one succeeds. It moves to the free panel next to its Master nearest itself, ties nearest the attacker, and takes the Attack. A guard that cannot Move makes no check; with no free panel, no check is made.
+
+Cases 2 and 3 run in `engine/master-guard.mjs#guardMasterTarget`, called from `declareProcesses` for a declaration whose anchor is the Master, never for a Counter (Ch. 21 has its own redirect). Each posts a public line with the rolls and logs `masterGuard`. Until now the engine refused whenever a guard stood adjacent, which is case 2's condition with case 1's answer. Test: `test/unit/master-guard.test.mjs`.
+
 ### Overpower and Underpower
 
 `overpowerCheck` determines whether a Servant's attack on a Master can instant-defeat it: a 50% coin flip reduced by 10 for Def Up or Dmg Cut, blocked entirely by Invuln or Shield (`module/rules/relationships.mjs:43-58`). `resolveOverpower` folds in a Luck Check that covers both the flip and the lethal damage that follows, making it disproportionately valuable (`module/rules/relationships.mjs:76-82`). A Master knocked off a Platform flips the same coin on landing, *"as though Attacked by a Servant"* (`engine/platforms.mjs#toIntents`, §46.4-CD). The Luck Check save is modelled in `resolveOverpower` but nothing writes `state.luckChecks.overpower`, so no attack and no fall can offer it yet (#111).

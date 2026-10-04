@@ -1534,5 +1534,11 @@
   "FGT.FieldReport.Outcome.success": "evaded",
   "FGT.FieldReport.Outcome.fail": "failed",
   "FGT.FieldReport.RoundTitle": "End of the Round",
-  "FGT.FieldReport.Periodic": "{who} takes {amount} from {effect}"
+  "FGT.FieldReport.Periodic": "{who} takes {amount} from {effect}",
+  "FGT.MasterGuard.Redirected": "{guard} stands next to {master}: the Attack is changed to {guard}.",
+  "FGT.MasterGuard.SteppedIn": "{guard} steps in beside {master} and takes the Attack.",
+  "FGT.MasterGuard.Held": "No guard reached {master}: the Attack proceeds.",
+  "FGT.MasterGuard.Roll": "{name} Agility Check 1d20 → {roll}, {total} against {target}: {outcome}",
+  "FGT.MasterGuard.Success": "success",
+  "FGT.MasterGuard.Fail": "failed"
 }
