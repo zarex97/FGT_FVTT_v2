@@ -38,7 +38,7 @@ Health arrives in two shapes in code and all three have meaning (`module/domain/
 
 - **Document shape**: `{ value, max }` — the current and maximum, stored on-disk. Every write reads it here.
 - **Snapshot shape**: a bare number — the current value only; the maximum is stored separately (`healthMax` or `maxHealth` field). `snapshotUnit` flattens documents to snapshots for rules evaluation.
-- **Null health**: *not zero, but intrinsically undamageable*. Pale Rider and the Kagome Spirits have `health: null` at authorship, and no damage pipeline ever runs against them (`module/engine/io.mjs:204-210`). `adjustHealth` refuses to write when `health.max === null` rather than creating a health pool.
+- **Null health**: *not zero, but intrinsically undamageable*. Pale Rider and the Kagome Spirits have `health: null` at authorship, and no damage pipeline ever runs against them (`module/engine/io.mjs:204-210`). `adjustHealth` refuses to write when `health.max === null` rather than creating a health pool. Nor is such a Unit ever defeated by a hit (#180): `engine/attack.mjs#resolveDefeatOf` returns before the defeat chain when `isUndamageable(defender)`. It used to read the null as 0, so a hit negated to 0 still emptied a bar of 0, and live Asterios defeated Pale Rider with a 0. Test: `test/unit/undamageable-not-defeated.test.mjs`.
 
 A unit at zero health is defeated and about to revive or fall; one with `null` health cannot be hurt at all. Six rules files read `unit.health.value` directly, silently wrong against a snapshot shape — `currentHealth` is the one reader to use (`module/domain/health.mjs:36-41`).
 
