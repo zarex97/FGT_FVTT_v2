@@ -35,16 +35,27 @@ async function charges(activeFactionId) {
     return {
       turnEnd: count(await runFieldEvents("turnEnd", { board, activeFactionId })),
       actedTurnEnd: count(await runFieldEvents("actedTurnEnd", { board, activeFactionId })),
+      unitTurnEnd: count(await runFieldEvents("unitTurnEnd", { board, fieldIds: ["pale-rider-contagion"] })),
     };
   }, { tick: TICK, settings: { fields } });
 }
 
 describe("Contagion trigger 2 is one trigger", () => {
   it("on the enemy's own Turn: the own-Turn half fires and the acted half does not", async () => {
-    expect(await charges("B")).toEqual({ turnEnd: 1, actedTurnEnd: 0 });
+    expect(await charges("B")).toMatchObject({ turnEnd: 1, actedTurnEnd: 0 });
   });
 
   it("on somebody else's Turn the enemy Acted in: the acted half fires", async () => {
-    expect(await charges("A")).toEqual({ turnEnd: 0, actedTurnEnd: 1 });
+    expect(await charges("A")).toMatchObject({ turnEnd: 0, actedTurnEnd: 1 });
+  });
+});
+
+describe("Contagion trigger 1 and trigger 2's acted half are two triggers", () => {
+  // Ruled 2026-10-04: an enemy inside that Acted on Pale Rider's Turn is
+  // charged by trigger 1 (every enemy inside, at the end of his Turn) and by
+  // the acted half of trigger 2 (that Unit only). The "or" joins trigger 2's
+  // two halves, not trigger 1 to either.
+  it("charges twice at the end of his Turn", async () => {
+    expect(await charges("A")).toEqual({ turnEnd: 0, actedTurnEnd: 1, unitTurnEnd: 1 });
   });
 });
