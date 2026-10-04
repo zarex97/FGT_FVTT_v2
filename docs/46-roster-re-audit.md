@@ -4039,9 +4039,7 @@ Two entries in §46.4 still wait on the author: §46.4-DJ (does No Buff prevent 
 
 ## 46.16 Pale Rider — the Servant who cannot be hurt and is never alone
 
-**114 of his 115 Clauses were Pressed or Observed on a live board** (#180, 2026-10-02 to 2026-10-04). The last,
-`DC.aw.all`, waits on reading 7: whether every Unit inside Doomsday Come receives an [Anti-World] Noble
-Phantasm used on it, or only the Units it targets. The five Anti-World Clauses were pressed with a test
+**All 115 of his Clauses were Pressed or Observed on a live board** (#180, 2026-10-02 to 2026-10-04). The five Anti-World Clauses were pressed with a test
 Servant built for them (#183): **Test Heracles (Anti-World)**, Heracles's statblock carrying one Noble
 Phantasm, Nine Lives: Shooting the Hundred Heads at [Anti-World] and Range 3 (`test-anti-world-heracles`).
 Three more were ruled not Clauses on him (reading 11): Magic Resistance's damage half can change nothing on a
@@ -4069,6 +4067,7 @@ His own, fixed and tested:
 | 2dfc34e | An Item he could not hold was refused outright; ruled (reading 12), it is left on the floor |
 | 1f58d37 | A pickup asked about the panel the token had just left, so nothing was picked up |
 | 216b59c | The aiming session dropped an NP's scale, so no Anti-World NP could be aimed across the boundary |
+| f60bbfc | The area closed after the first of an NP's Processes, taking later defenders out of its halving |
 
 What was general is §46.4-EV to §46.4-FE, issues #181 and #182 among them.
 
@@ -4084,6 +4083,7 @@ What was general is §46.4-EV to §46.4-FE, issues #181 and #182 among them.
 | Records (#182) | A card per field per Turn end, rider rolls in the attack card, a Round-end card, a log entry for each |
 | The Anti-World Clauses (#183) | Pressed with a test Servant built for them |
 | Magic Resistance's damage half (reading 11) | Not Clauses on him: no outcome can change |
+| Breaking Doomsday Come (reading 7) | Every Unit inside at the declaration takes the NP at −50%, its user excepted, each in its own Combat Process with the riders; no cover; the area closes after the last Process |
 | An Item he cannot hold (reading 12) | Left on the giver's panel, or his own with no giver; a ground Item stays; moving onto a panel takes every Item there, whole |
 
 ### 46.16.3 A note on the board
