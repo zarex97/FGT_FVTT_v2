@@ -240,6 +240,10 @@ export const MODIFIABLE_PATHS = Object.freeze([
 export function restoreModifiable(system, source) {
   if (!source) return system;
   for (const path of MODIFIABLE_PATHS) {
+    // A Unit that cannot be damaged has no Health, whatever a writer stored
+    // there: `prepareBaseData` nulls it, and restoring a stored figure over
+    // that null gave Pale Rider 1500 Health a war setup had written (#180).
+    if (system.undamageable && path.startsWith("health.")) continue;
     const stored = getPath(source, path);
     if (stored === null || stored === undefined) continue;
     if (getPath(system, path) === undefined) continue;

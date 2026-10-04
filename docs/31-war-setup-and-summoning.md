@@ -48,7 +48,7 @@ Home bases are painted as Foundry Regions with grid shapes, one per faction, tag
 
 For each container, `createMasterFor` rolls the Master's setup lines (Health, Agility, Luck, Rank, Command Spells, Base Attack MAG) off the plan returned by `plansFor(ruleset).master` (`module/engine/war-setup.mjs:213-263`). A Normal Master's ZON is looked up by container class; an Advanced Master takes the template's 2 (`module/engine/war-setup.mjs:191-193`).
 
-`prepareSummon` readies a Servant, rolls setup lines (Health, Agility, Luck), and returns the plan WITHOUT writing (`module/engine/summon.mjs:88-108`). `commitSummon` creates the actor, applies setup line values and grants, and sets the Master and faction (`module/engine/summon.mjs:170-274`). Partners (linked groups marked `summonTogether`) are summoned in the same commit, cross-linking their `memberIds` (`module/engine/summon.mjs:250-271`).
+`prepareSummon` readies a Servant, rolls setup lines (Health, Agility, Luck), and returns the plan WITHOUT writing (`module/engine/summon.mjs:88-108`). `commitSummon` creates the actor, applies setup line values (a Servant that cannot be damaged gets no Health at all, #180) and grants, and sets the Master and faction (`module/engine/summon.mjs:170-274`). Partners (linked groups marked `summonTogether`) are summoned in the same commit, cross-linking their `memberIds` (`module/engine/summon.mjs:250-271`).
 
 Tokens are deployed into home bases, Servant then Master, picked from the base's free panels (`module/engine/war-setup.mjs:393-454`).
 

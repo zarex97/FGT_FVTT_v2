@@ -60,6 +60,8 @@ Every field in `MODIFIABLE_PATHS` — MOV, Range, Parameters, Health, Agility, L
 the field it is about to write"* (`module/rules/derived.mjs:219-223`). Without restoration, a `MOV +2`
 landing in one preparation would still be there when the next runs, and the delta would apply twice.
 
+**Except the Health of a Unit that cannot be damaged** (#180). `prepareBaseData` nulls an `undamageable` Unit's Health, and restoring a stored figure over that null made Pale Rider damageable: a war built with `commitWar` wrote his END table's 1500 to `_source`, and every preparation put it back. `restoreModifiable` now skips `health.*` on such a Unit, and `engine/summon.mjs#sheetPatch` writes `{max: null, value: null}` for one instead of a figure.
+
 **After schema derivations**, `prepareDerivedData` folds stat deltas and exposes rule elements
 (`module/documents/index.mjs:84-100`):
 
