@@ -83,6 +83,18 @@ describe("a rider's chance", () => {
     expect(specs).toContainEqual(expect.objectContaining({ formula: "1d100", chance: 5, label: "death" }));
   });
 
+  it("each Kagome Spirit rolls its own Death chance", async () => {
+    const chances = await withSubjects([
+      { from: "kagome-sword", id: "swordChance00001", state: { factionId: "A" }, panel: { i: 2, j: 2 } },
+      { from: "kagome-famine", id: "famineChance0001", state: { factionId: "A" }, panel: { i: 2, j: 3 } },
+      { from: "kagome-death", id: "deathChance00001", state: { factionId: "A" }, panel: { i: 2, j: 4 } },
+      { from: "kagome-beast", id: "beastChance00001", state: { factionId: "A" }, panel: { i: 2, j: 5 } },
+    ], ({ unit }) => ["swordChance00001", "famineChance0001", "deathChance00001", "beastChance00001"]
+      .map((id) => pendingRolls(unit(id), "damageDealt").find((r) => r.label === "death")?.chance));
+    // Sword 5%, Famine 10%, Death 25%, Beast 10%: the four statblocks.
+    expect(chances).toEqual([5, 10, 25, 10]);
+  });
+
   it("files several records in one step", () => {
     const s = { state: "damage", history: [], rolls: [] };
     const out = process.advance(s, "done", { rollRecords: [{ id: "r1" }, { id: "r2" }] });
