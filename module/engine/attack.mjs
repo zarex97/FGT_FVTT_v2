@@ -6007,6 +6007,13 @@ async function resolveChoosePhases(phases, attackerDoc) {
       out.push(phase);
       continue;
     }
+    // A choice whose branches only touch the CASTER was already asked and
+    // paid at declaration: `choose` is in `CASTER_PHASES`, and `runChoice`
+    // runs a branch's phases itself. Asking here too put Mana Burst's
+    // restoration in front of the player twice in one attack, live (#180).
+    // Only a branch carrying a per-defender rider is this loop's to decide.
+    const perDefender = (o) => (o.phases ?? []).some((p) => p.kind === "applyEffects" || p.kind === "applyEffect");
+    if (!(phase.options ?? []).some(perDefender)) continue;
     const options = phase.options ?? [];
     const picked = await askOwner(attackerDoc, {
       kind: "choose",

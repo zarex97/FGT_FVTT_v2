@@ -1670,7 +1670,9 @@ async function runChoice(phase, ability, actor, snapshot, board = null) {
     count: phase.count ?? 1,
     options: options.map((o) => ({
       id: o.id,
-      name: o.label ?? EffectRegistry.get(o.id)?.name ?? o.id,
+      // A label is a lang key: Mana Burst's read "FGT.Dioscuri.SelfRestore" on
+      // the button, live (#180).
+      name: o.label ? game.i18n.localize(o.label) : (EffectRegistry.get(o.id)?.name ?? o.id),
       detail: EffectRegistry.get(o.id)?.description ?? "",
     })),
   });
