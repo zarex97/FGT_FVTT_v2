@@ -97,7 +97,10 @@ export const UNIT_ROUTES = {
   contentVersion: doc("module/content/authored-fields.mjs", "a pack-owned key the content sync carries"),
   defaultImage: doc("module/apps/actor-sheet/context.mjs", "the sheet's portrait"),
   description: doc("module/apps/actor-sheet/context.mjs", "a Platform's sheet text"),
-  dimension: doc("module/engine/dimension.mjs", "a pocket dimension is entered from the document"),
+  dimension: [
+    doc("module/engine/dimension.mjs", "a pocket dimension is entered from the document"),
+    { at: "isDimension", from: (v) => Boolean(v) },
+  ],
   // Two readers, because two kinds of Unit author it. A Summon's stats are resolved against its
   // summoner at placement; a Platform's `luck: { from: summoner }` is not a starting value but one
   // pool with its owner's (#162), projected as `luckFromSummoner` and read off her on the board.
