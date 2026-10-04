@@ -705,9 +705,15 @@ export function roundWrite(raw, round, patch = {}) {
 const DIFFICULTIES = Object.freeze(["beginner", "intermediate", "expert", "lunatic"]);
 
 export function snapshotBoard({ scene, actors, settings = {} }) {
+  // A banished Kagome Spirit is not on the board. *"That Kagome Spirit
+  // DISAPPEARS for 1◈ Turns"* -- and `io.banish` only hid its token, so the
+  // board went on reading it: it held its panel, guarded his Master, could be
+  // targeted and could act (#180). The field keeps who is away until when
+  // (`state.banished`), and `returnBanished` brings it back.
+  const banished = new Set((settings.fields ?? []).flatMap((f) => Object.keys(f.state?.banished ?? {})));
   // A caller that has a canvas resolves each unit's panel first and passes the
   // finished snapshot; anything else is projected here.
-  const units = actors.map((a) => a.snapshot
+  const units = actors.filter((a) => !banished.has(a.snapshot?.id ?? a.actor?.id ?? a.id)).map((a) => a.snapshot
     ?? snapshotUnit(a.actor ?? a, {
       token: a.token,
       tick: settings.tickForTurnState ?? null,
