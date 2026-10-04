@@ -199,10 +199,22 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   if (relations.has("enemy")) {
     const forced = (caster.suppressions ?? [])
       .filter((sup) => sup?.scope === "targeting" && sup.forceTarget)
-      .map((sup) => sup.forceTarget)
       // A forced target that has been defeated forces nothing: the narrowing
       // below would otherwise leave the attacker no legal target at all (#168).
-      .filter((id) => !(board.units ?? []).some((u) => u.id === id && u.defeated));
+      // Nor does one no longer on the board (#180): a defeated Unit's body is
+      // cleared at the Turn's end, and Asterios's Famine, compelled towards a
+      // body that was gone, could attack nobody for the rest of the war.
+      // A Spirit's pursuit also lifts once its prey has left the field the
+      // Spirit is bound to, as `rules/movement.mjs#pursuitVerdict` lifts the
+      // move half: the compulsion belongs to the area.
+      .filter((sup) => {
+        const prey = (board.units ?? []).find((u) => u.id === sup.forceTarget);
+        if (!prey?.panel || prey.defeated) return false;
+        if (sup.source === "pursuit" && caster.boundToFieldId
+          && !(prey.fields ?? []).includes(caster.boundToFieldId)) return false;
+        return true;
+      })
+      .map((sup) => sup.forceTarget);
     if (forced.length > 0) {
       survivors = survivors.filter((u) =>
         forced.includes(u.id) || drop(u, "the attacker is forced to attack another unit"));
