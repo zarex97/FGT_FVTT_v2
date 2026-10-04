@@ -15,7 +15,7 @@
 import * as geo from "../domain/geometry.mjs";
 import { hasGranted, GRANTS } from "./granted.mjs";
 import { contains, membershipVerdict } from "./bounded-fields.mjs";
-import { guardsOf, relationOf } from "./relations.mjs";
+import { guardsOf, relationOf, sideOf } from "./relations.mjs";
 import { actionSourceFor, withinFootprint } from "./platforms.mjs";
 import { partnersOf } from "./linked-group.mjs";
 import { resolveTargets } from "./targeting/resolve.mjs";
@@ -774,6 +774,9 @@ export function pursuitVerdict(unit, path, board) {
   // enemy *within* Doomsday Come, and one who has left is no longer its
   // business.
   if (unit.boundToFieldId && !(prey.fields ?? []).includes(unit.boundToFieldId)) return { ok: true };
+  // ...and while the prey is not its enemy at all: a Unit Pale Rider has
+  // charmed is his ally for the Charm's duration (ruled 2026-10-04, #180).
+  if (relationOf(unit, prey, board) !== "enemy") return { ok: true };
 
   const before = geo.chebyshev(path[0], prey.panel);
   const after = geo.chebyshev(path[path.length - 1], prey.panel);
@@ -1043,8 +1046,9 @@ export function occupantAt(panel, board, level = 0) {
  */
 function isEnemy(unit, other, board) {
   if (other.id === unit.id) return false;
-  const mine = unit.factionId ?? unit.faction ?? null;
-  const theirs = other.factionId ?? other.faction ?? null;
+  // Sides, so a charmed Unit is its charmer's ally here too (#180).
+  const mine = sideOf(unit);
+  const theirs = sideOf(other);
   if (mine === null || theirs === null) return false;
   if (mine === theirs) return false;
   const allies = board.alliances?.[mine] ?? [mine];

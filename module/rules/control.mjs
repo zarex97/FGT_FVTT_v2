@@ -103,8 +103,9 @@ export function unitsControlledBy(userId, board) {
  * their turn and is absent from its owner's"*. So a charmed unit moves on the
  * charmer's Turn, spends the charmer's action budget, and cannot be moved on
  * its owner's Turn at all — while its **own** `factionId` is untouched, which
- * is why the token keeps its colour and every relation still reads it as the
- * enemy it was.
+ * is why the token keeps its colour. Every relation reads its SIDE, which is
+ * this answer (`rules/relations.mjs#sideOf`): ruled 2026-10-04 (#180), a
+ * charmed Unit is its charmer's ally and its own Faction's enemy.
  *
  * Follows the chain for the same reason `controllerOf` does, and shares its
  * cycle guard.

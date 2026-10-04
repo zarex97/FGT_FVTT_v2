@@ -212,6 +212,8 @@ export function resolveTargets(spec, caster, board, placement = {}) {
         if (!prey?.panel || prey.defeated) return false;
         if (sup.source === "pursuit" && caster.boundToFieldId
           && !(prey.fields ?? []).includes(caster.boundToFieldId)) return false;
+        // A charmed prey is the Spirit's ally for the Charm's duration (#180).
+        if (sup.source === "pursuit" && relationOf(caster, prey, board) !== "enemy") return false;
         return true;
       })
       .map((sup) => ({ id: sup.forceTarget, pursuit: sup.source === "pursuit" }));

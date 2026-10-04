@@ -18,6 +18,26 @@
  */
 
 /**
+ * The side a Unit is on: its charmer's while it is charmed, its own otherwise.
+ *
+ * Ruled 2026-10-04 (#180): *"The Unit is controlled by the inflicter's Faction
+ * for the duration"* makes a charmed Unit the charmer's ALLY and its own
+ * Faction's ENEMY, for every rule at once -- one relation per pair. So
+ * Contagion and Innocent World (*"enemy Units"*) skip a Unit Pale Rider has
+ * charmed, a Kagome Spirit's chase lifts, Doomsday Come lets it out, it guards
+ * nobody, and its own side may attack it. `actingFactionId` is the charm chain
+ * `rules/control.mjs#annotateControl` already settles on the board, before the
+ * field and aura passes read any relation; a Unit projected alone has none and
+ * reads its own faction.
+ *
+ * @param {object|null} unit
+ * @returns {string|null}
+ */
+export function sideOf(unit) {
+  return unit?.actingFactionId ?? unit?.faction ?? unit?.factionId ?? null;
+}
+
+/**
  * @param {object} source the Unit doing the looking
  * @param {object} unit the Unit being looked at
  * @param {object} board carries `alliances`
@@ -30,8 +50,9 @@ export function relationOf(source, unit, board) {
   // assigned one yet — neither is an ally and neither is a legal enemy.
   if (unit?.kind === "civilian" || unit?.faction === null) return "neutral";
 
-  const allied = board?.alliances?.[source?.faction]?.includes(unit?.faction)
-    ?? unit?.faction === source?.faction;
+  const mine = sideOf(source);
+  const theirs = sideOf(unit);
+  const allied = board?.alliances?.[mine]?.includes(theirs) ?? theirs === mine;
   return allied ? "ally" : "enemy";
 }
 
@@ -74,7 +95,7 @@ export function isFriendly(relation) {
  */
 export function guardsOf(master, board) {
   const units = board?.units ?? [];
-  const faction = master?.factionId ?? master?.faction ?? null;
+  const faction = sideOf(master);
 
   /** @type {object[]} */
   const out = [];
@@ -84,7 +105,9 @@ export function guardsOf(master, board) {
     // the protection, the Counter redirect, the zone denial or the cover that
     // read this list (#168).
     if (unit.defeated) continue;
-    if ((unit.factionId ?? unit.faction ?? null) !== faction) continue;
+    // Its SIDE, not its faction: a charmed Servant is its own Master's enemy
+    // for the Charm's duration and guards nobody (ruled 2026-10-04, #180).
+    if (sideOf(unit) !== faction) continue;
 
     const proxy = (unit.suppressions ?? [])
       .find((s) => s?.scope === "relationship")?.proxy ?? null;
