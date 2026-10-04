@@ -245,7 +245,9 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   // (from outside) or within"*. Without them every isolation question is asked
   // as though the attack were a Normal one, and the exception could never fire.
   const isolationCtx = {
-    npTags: placement.npTags ?? [],
+    // The placement's when the declaration path supplies them, else the
+    // spec's, which is where the aiming session carries them (#183).
+    npTags: placement.npTags ?? spec.npTags ?? [],
     isCommandSpell: Boolean(placement.isCommandSpell),
   };
   for (const field of board.fields ?? []) {

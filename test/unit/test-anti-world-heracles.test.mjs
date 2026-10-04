@@ -11,6 +11,8 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import { fieldsOf, squareAround, prepareFields, compiled } from "../helpers/field.mjs";
 import { isolationBlocks } from "../../module/rules/bounded-fields.mjs";
+import { resolveTargets } from "../../module/rules/targeting/resolve.mjs";
+import { readFileSync } from "node:fs";
 
 beforeAll(async () => { await prepareSubjects(); await prepareFields(); }, 120_000);
 
@@ -41,11 +43,18 @@ describe("the test Noble Phantasm", () => {
       { from: "test-anti-world-heracles", id: ID.herc, state: { factionId: "B" }, panel: { i: 9, j: 4 } },
     ], ({ unit, board }) => {
       const field = board.fields[0];
+      const spec = { anchor: { kind: "targetUnit" }, shape: { kind: "unit" }, selection: { relations: ["enemy"], chooser: "all", count: 1 } };
       return [
         isolationBlocks(field, unit(ID.herc), unit(ID.q), board, { npTags: [] }).blocked,
         isolationBlocks(field, unit(ID.herc), unit(ID.q), board, { npTags: ["antiWorld"] }).blocked,
+        // The aiming session carries the tags on the SPEC, with a bare placement.
+        resolveTargets({ ...spec, npTags: ["antiWorld"] }, unit(ID.herc), board, { unitId: ID.q }).errors,
       ];
     }, { settings: { fields } });
-    expect(out).toEqual([true, false]);
+    expect(out).toEqual([true, false, []]);
+  });
+
+  it("travels on the aiming session's spec", () => {
+    expect(readFileSync("module/apps/actor-sheet/sheet.mjs", "utf8")).toMatch(/npTags: \[\.\.\.\(ability\?\.system\?\.npTags \?\? \[\]\)\],/);
   });
 });
