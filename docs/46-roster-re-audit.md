@@ -4039,11 +4039,14 @@ Two entries in §46.4 still wait on the author: §46.4-DJ (does No Buff prevent 
 
 ## 46.16 Pale Rider — the Servant who cannot be hurt and is never alone
 
-**110 of his 115 Clauses were Pressed or Observed on a live board** (#180, 2026-10-02 to 2026-10-04). The five
-left need a damaging [Anti-World] Noble Phantasm the corpus does not have (#183, ruled: blocked, no tests
-yet). Three more were ruled not Clauses on him (reading 11): Magic Resistance's damage half can change
-nothing on a Unit every hit negates to 0. The Clauses span five Units: Pale Rider and the four Kagome
-Spirits his Noble Phantasm summons. His Doomsday Come carries the rules of three other abilities.
+**114 of his 115 Clauses were Pressed or Observed on a live board** (#180, 2026-10-02 to 2026-10-04). The last,
+`DC.aw.all`, waits on reading 7: whether every Unit inside Doomsday Come receives an [Anti-World] Noble
+Phantasm used on it, or only the Units it targets. The five Anti-World Clauses were pressed with a test
+Servant built for them (#183): **Test Heracles (Anti-World)**, Heracles's statblock carrying one Noble
+Phantasm, Nine Lives: Shooting the Hundred Heads at [Anti-World] and Range 3 (`test-anti-world-heracles`).
+Three more were ruled not Clauses on him (reading 11): Magic Resistance's damage half can change nothing on a
+Unit every hit negates to 0. The Clauses span five Units: Pale Rider and the four Kagome Spirits his Noble
+Phantasm summons. His Doomsday Come carries the rules of three other abilities.
 
 **Why he finds so much.** Almost nothing he does is an Attack. He has no Health, no Normal Attack and no
 reactions; his damage is a field's Health loss; his Noble Phantasm is a prison that summons allies who chase
@@ -4065,6 +4068,7 @@ His own, fixed and tested:
 | 4d107bb | A banished Kagome Spirit stayed on the board: it held its panel, guarded and could be targeted |
 | 2dfc34e | An Item he could not hold was refused outright; ruled (reading 12), it is left on the floor |
 | 1f58d37 | A pickup asked about the panel the token had just left, so nothing was picked up |
+| 216b59c | The aiming session dropped an NP's scale, so no Anti-World NP could be aimed across the boundary |
 
 What was general is §46.4-EV to §46.4-FE, issues #181 and #182 among them.
 
@@ -4078,7 +4082,7 @@ What was general is §46.4-EV to §46.4-FE, issues #181 and #182 among them.
 | Charm | The charmer's ally and its own side's enemy, for every rule; its own Turn is the charmer's; its Master's Command Spells still reach it |
 | A guarded Master (#181) | The rulebook's three cases, for every targeted Attack, with `guardsOf` |
 | Records (#182) | A card per field per Turn end, rider rolls in the attack card, a Round-end card, a log entry for each |
-| The Anti-World Clauses (#183) | Blocked; no tests until a Servant has such a Noble Phantasm |
+| The Anti-World Clauses (#183) | Pressed with a test Servant built for them |
 | Magic Resistance's damage half (reading 11) | Not Clauses on him: no outcome can change |
 | An Item he cannot hold (reading 12) | Left on the giver's panel, or his own with no giver; a ground Item stays; moving onto a panel takes every Item there, whole |
 
