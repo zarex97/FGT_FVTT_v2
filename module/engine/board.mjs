@@ -426,6 +426,12 @@ export function currentBoard(overrides = {}) {
       // The match field stays first because a per-match override is the right
       // shape once something writes one; the setting is the default rather than
       // a replacement.
+      // The Scene Levels that are pocket dimensions (#177). Read off the
+      // platform ACTORS, because a dimension has no ground footprint and so no
+      // token: its passengers are never stamped with its `platformId`.
+      dimensionLevels: game.actors
+        .filter((a) => a.type === "platform" && a.system?.dimension && a.system?.levelId)
+        .map((a) => a.system.levelId),
       // Optional rules the table has switched off (Ch. 05 clause 4 today).
       rules: {
         masterProtection: setting("masterProtection", true) !== false,

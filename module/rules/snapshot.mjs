@@ -181,6 +181,10 @@ export function snapshotUnit(actor, {
     panels: footprint.length > 1 ? footprint : (sys.panels ?? null),
     level: footprint[0].k ?? doc?.elevation ?? 0,
     platformId: sys.platformId ?? null,
+    // The Scene Level document the token stands on -- not `level`, which is a
+    // height -- so a pocket dimension can be told from a deck at the same
+    // height (#177).
+    levelId: doc?.document?.level ?? doc?.level ?? null,
     // A platform that is a pocket dimension, not a deck above the board: who
     // is aboard it is in no Home Base (#177). The block itself is read off the
     // document by `engine/dimension.mjs`.
@@ -757,6 +761,8 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
     homeBaseDepth: settings.homeBaseDepth ?? 3,
     grail: settings.grail ?? null,
     fields: settings.fields ?? [],
+    // The Scene Level ids that are pocket dimensions (#177).
+    dimensionLevels: settings.dimensionLevels ?? [],
     // `terrainAreasOf` (engine/board.mjs) computes this into `settings.terrain`,
     // exactly as `homeBaseZonesOf` does for `zones` immediately above -- and
     // this line read `scene.terrain`, a property no Scene document has, so
