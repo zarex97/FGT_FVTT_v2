@@ -753,7 +753,9 @@ function resolveAnchor(spec, caster, board, placement, errors) {
       // refuses; Dendera Electric Bulb reaches *"any panel within Ramesseum
       // Tentyris, AND ALSO 4 panels away from the border"*, so it does not.
       // The anchor says which it is rather than assuming the older one.
-      if (edge === 0 && !spec.allowInside) {
+      if (!nearest) {
+        errors.push("That area covers no panels.");
+      } else if (edge === 0 && !spec.allowInside) {
         errors.push(`${unit.name ?? "That Unit"} is already inside.`);
       } else if (edge > 0) {
         // *"…and also has a Range of 4 panels away from the border of Ramesseum
@@ -1008,8 +1010,11 @@ function candidatePlacements(spec, caster, board, max) {
     }
 
     // Mode C. Every unit on the board; the relation and range filters inside
-    // the resolver decide which are legal.
+    // the resolver decide which are legal. `fieldEdge` names a Unit too -- the
+    // one Doomsday Come's drag pulls in -- and offered nothing, so the session
+    // refused it at once: "No legal targets … Choose a target." (#180).
     case "targetUnit":
+    case "fieldEdge":
       return (board.units ?? [])
         .filter((u) => u.id !== caster.id || spec.selection?.includeSelf)
         .slice(0, max)
