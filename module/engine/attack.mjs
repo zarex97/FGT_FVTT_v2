@@ -868,6 +868,23 @@ async function declareProcesses({
     const guardId = await guardMasterTarget({ attackerId, targetId: targetIds[0] });
     if (guardId) targetIds = [guardId];
   }
+  // An [Anti-World] Noble Phantasm breaking Doomsday Come: *"all Units within
+  // it receive the damage from that NP"* (ruled 2026-10-04, #180 reading 7).
+  // Every Unit inside at THIS moment, each in its own Combat Process -- an area
+  // attack, with its reactions and the NP's riders -- and never the user. A
+  // target inside is hit once. Cover is not the breaking's: those it adds are
+  // marked, and the group remembers whether the NP was an area of its own.
+  /** @type {Set<string>} */
+  let caughtByBreaking = new Set();
+  const ownAoE = new Set(targetIds).size > 1;
+  if (!isCounter && attackSpec.kind === "np" && (attackSpec.npTags ?? []).length > 0) {
+    const { breakingCatch } = await import("../rules/bounded-fields.mjs");
+    const extra = breakingCatch(currentBoard(), {
+      attackerId, npTags: attackSpec.npTags, targetIds, areaPanels: targets?.panels ?? [],
+    });
+    caughtByBreaking = new Set(extra);
+    targetIds = [...targetIds, ...extra];
+  }
   const states = targetIds.length > 0
     ? process.beginFanOut({
       attackerId,
@@ -897,9 +914,12 @@ async function declareProcesses({
       // reads the MAG portion as a Noble Phantasm, and which half of every
       // `[normal, vsNP]` table pair the defender gets.
       const instance = perProcess?.[index] ?? null;
-      const withInstance = instance
-        ? { ...state, attack: { ...state.attack, ...instance } }
+      const withBreaking = caughtByBreaking.size > 0
+        ? { ...state, breaking: { ownAoE }, ...(caughtByBreaking.has(state.defenderId) ? { caughtByBreaking: true } : {}) }
         : state;
+      const withInstance = instance
+        ? { ...withBreaking, attack: { ...withBreaking.attack, ...instance } }
+        : withBreaking;
       return primaryId === null
         ? withInstance
         : {
@@ -1604,6 +1624,10 @@ async function resolveCover(state, message) {
   // AoE and makes it *optional* there; that prompt is not built, and Ch. 32
   // records it.
   if (state.attack?.kind !== "np" || !state.isAoE) return;
+  // Not the breaking's (ruled 2026-10-04, #180 reading 7, Q9): a Unit caught
+  // only because an [Anti-World] NP broke Doomsday Come takes it like anyone,
+  // and a single-target NP is not made an area attack for cover by it.
+  if (state.caughtByBreaking || (state.breaking && !state.breaking.ownAoE)) return;
   // Once per group, whatever re-enters. Cover writes to chat messages while
   // this Process is still mid-flight, and `attachAwaitTimeouts` re-arms a
   // message's prompt clock on every `updateChatMessage` -- so a write here can
@@ -2272,6 +2296,12 @@ async function fireDamageTaken(state, result) {
 async function closeFieldsPiercedBy(state) {
   const npTags = state.attack?.npTags ?? [];
   if (state.attack?.kind !== "np" || npTags.length === 0) return;
+  // At the end of the LAST Process of the declaration. An NP that broke
+  // Doomsday Come fans out to everyone inside (#180, reading 7), and closing
+  // the area when the first of them finished took the others out of the very
+  // rule that halves their damage. Counted once per use, too.
+  const group = siblingStates(state);
+  if (group.some((s2) => s2 !== state && s2.defenderId !== state.defenderId && !process.isComplete(s2))) return;
 
   const { vulnerabilityTriggered, meetsTagThreshold } = await import("../rules/bounded-fields.mjs");
   const { deactivateField, tallyAgainstField, lockOutField } = await import("./fields.mjs");
@@ -2285,11 +2315,12 @@ async function closeFieldsPiercedBy(state) {
   const board = currentBoard();
   const attacker = (board.units ?? []).find((u) => u.id === state.attackerId) ?? null;
   const defender = (board.units ?? []).find((u) => u.id === state.defenderId) ?? null;
+  const defenders = group.map((s2) => (board.units ?? []).find((u) => u.id === s2.defenderId) ?? null);
 
   for (const field of board.fields ?? []) {
     // Only a field this Process actually reached. One at the far end of the
     // board is not "used on" by an NP fired at somebody else, however large.
-    const touched = [attacker, defender].some((u) => (u?.fields ?? []).includes(field.id));
+      const touched = [attacker, defender, ...defenders].some((u) => (u?.fields ?? []).includes(field.id));
     if (!touched) continue;
 
     // Recorded before it is tested: *"two … in the same Round"* counts THIS

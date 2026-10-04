@@ -977,6 +977,51 @@ export function extensionFor(field, payer) {
  * @param {object} event
  * @returns {{triggered: boolean, result?: string, reason?: string}}
  */
+/**
+ * Every Unit an [Anti-World]-or-higher Noble Phantasm catches by breaking a
+ * field it was used on or within (#180, reading 7).
+ *
+ * > *"...and all Units within it receive the damage from that NP, but its
+ * > Total Damage is reduced by 50%."* -- Doomsday Come
+ *
+ * Ruled 2026-10-04: the NP is "used on or within" a field when its user stands
+ * inside, or any of its targets or any panel of its area is inside. Then every
+ * Unit inside at the declaration takes it -- enemies, allies, the field's own
+ * owner's Master -- whatever the NP's shape, except its user. Objects
+ * (structures, platforms) are not Units. Only a vulnerability that says
+ * `hitsAllWithin` does this; the halving is the field's interior rule.
+ *
+ * @param {object} board
+ * @param {object} args
+ * @param {string} args.attackerId
+ * @param {string[]} args.npTags
+ * @param {string[]} args.targetIds the NP's own targets
+ * @param {Array<{i: number, j: number}>} [args.areaPanels] its area, if it has one
+ * @returns {string[]} the Units the breaking adds, not already targets
+ */
+export function breakingCatch(board, { attackerId, npTags, targetIds, areaPanels = [] }) {
+  const units = board?.units ?? [];
+  const attacker = units.find((u) => u.id === attackerId) ?? null;
+  const out = new Set();
+  for (const field of board?.fields ?? []) {
+    const breaks = (field.vulnerabilities ?? []).some((v) => v.kind === "npScaleUsedOn"
+      && v.hitsAllWithin && meetsTagThreshold(npTags ?? [], v.scale));
+    if (!breaks) continue;
+    const inside = (u) => (u?.fields ?? []).includes(field.id);
+    const panels = new Set(panelsOf(field, board).map((p) => `${p.i},${p.j}`));
+    const usedOn = inside(attacker)
+      || targetIds.some((id) => inside(units.find((u) => u.id === id)))
+      || areaPanels.some((p) => panels.has(`${p.i},${p.j}`));
+    if (!usedOn) continue;
+    for (const u of units) {
+      if (u.id === attackerId || targetIds.includes(u.id)) continue;
+      if (u.defeated || !u.panel || u.kind === "structure" || u.kind === "platform") continue;
+      if (inside(u)) out.add(u.id);
+    }
+  }
+  return [...out];
+}
+
 export function vulnerabilityTriggered(field, event) {
   for (const v of field.vulnerabilities ?? []) {
     switch (v.kind) {

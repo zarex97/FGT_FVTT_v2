@@ -579,6 +579,18 @@ export const NESTED_ROUTES = [
       { file: "module/engine/fields.mjs", why: "runFieldEvents scopes an actedTurnEnd spec off the Units whose own Turn ended" },
     ],
   },
+  // An [Anti-World] NP that breaks Doomsday Come hits every Unit within
+  // (#180, reading 7). Rides a field's vulnerability entry, an untyped object.
+  {
+    key: "hitsAllWithin",
+    authored: ["packs/_source/abilities/pale-rider-doomsday-come.yml"],
+    // `fieldDataOf` and `boundedFieldsOf` copy the vulnerability entries whole,
+    // and `NPFieldBehavior` holds them as untyped objects, so the reader is the
+    // only file that names it.
+    hops: [
+      { file: "module/rules/bounded-fields.mjs", why: "breakingCatch reads it" },
+    ],
+  },
   // A painted area is on one Level, as a field is: the zone phase stamps the
   // caster's (or the Fortress's), a repaint follows the source's, and
   // `terrainAt` asks for it (#151).

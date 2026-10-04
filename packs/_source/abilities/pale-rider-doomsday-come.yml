@@ -257,5 +257,9 @@ field:
   # meant to shelter them.
   vulnerabilities:
     - { kind: ownerDefeat, result: end }
-    - { kind: npScaleUsedOn, scale: antiWorld, result: end, when: combatProcessEnd }
+    # "...and all Units within it receive the damage from that NP, but its
+    # Total Damage is reduced by 50%." Ruled 2026-10-04 (#180, reading 7):
+    # every Unit inside at the declaration, whatever the NP's own shape,
+    # each in its own Combat Process with the NP's riders; never its user.
+    - { kind: npScaleUsedOn, scale: antiWorld, result: end, when: combatProcessEnd, hitsAllWithin: true }
   onEnd: []
