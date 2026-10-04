@@ -16,6 +16,7 @@ import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
 import { currentBoard } from "./board.mjs";
 import { factionOfCombatant } from "./turn-order.mjs";
+import { sideOf } from "../rules/relations.mjs";
 import * as budget from "./budget.mjs";
 import {
   grailContest, checkVictory, grailPanelCandidates,
@@ -72,7 +73,8 @@ async function onTurnChange(combat, prior, current) {
 
   const board = boardFor(combat, endedRound);
   const activeFactionId = factionOf(combat, { combatantId: endedCombatantId });
-  const activeUnits = board.units.filter((u) => u.factionId === activeFactionId);
+  // Its SIDE: a charmed Unit's own Turn is its charmer's (#180).
+  const activeUnits = board.units.filter((u) => sideOf(u) === activeFactionId);
   const actedUnits = board.units.filter((u) => u.acted);
   const involvedUnits = board.units.filter((u) => u.inCombatPhase);
 

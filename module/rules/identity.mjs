@@ -16,6 +16,7 @@
 import { chebyshev } from "../domain/geometry.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { inPocketDimension } from "./environment.mjs";
+import { sideOf } from "./relations.mjs";
 
 /**
  * Detect, and therefore vision range, **by class container**.
@@ -351,6 +352,9 @@ export function discoverAttempts(concealedUnit, board, { spent = {}, acquiredAt 
  */
 function isEnemy(a, b, board) {
   if (!a.faction || !b.faction) return false;
-  const allied = board?.alliances?.[a.faction]?.includes(b.faction) ?? a.faction === b.faction;
+  // Sides, so a charmed Unit is its charmer's ally here too (#180).
+  const mine = sideOf(a);
+  const theirs = sideOf(b);
+  const allied = board?.alliances?.[mine]?.includes(theirs) ?? mine === theirs;
   return !allied;
 }

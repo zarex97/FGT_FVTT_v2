@@ -21,6 +21,7 @@ import { expiredSummonIds } from "../rules/summons.mjs";
 import { endOfRoundHomeBase, homeBaseResidencyUpdates, regionsAdjacent } from "../rules/environment.mjs";
 import { terrainPeriodics } from "../rules/terrain.mjs";
 import { multiServantTax } from "../rules/relationships.mjs";
+import { sideOf } from "../rules/relations.mjs";
 import { transferEffect, transferableFrom, removeStages, attackOptionsOf } from "../rules/effect-flow.mjs";
 import { forcedStanceFor } from "../rules/stance.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
@@ -68,7 +69,9 @@ export function endTurn(board, ctx) {
   const intents = [];
 
   // 1. Turn-end handlers for the active faction's units.
-  intents.push(...fireEvent("turnEnd", units.filter((u) => u.factionId === ctx.activeFactionId), ctx));
+  //    A charmed Unit's own Turn is its charmer's (ruled 2026-10-04, #180),
+  //    so "the active faction's units" are the ones on its SIDE.
+  intents.push(...fireEvent("turnEnd", units.filter((u) => sideOf(u) === ctx.activeFactionId), ctx));
 
   // 2. Turn-end handlers for EVERY unit that acted, of any faction. Sap and
   //    Bleed fire "at the end of the unit's turn AND at the end of any turn it
@@ -132,7 +135,7 @@ export function endTurn(board, ctx) {
   //    what is true rather than about a transition, so it is enforced at the
   //    boundary rather than offered as one, and it is what makes Achilles' Heel
   //    a threat at all: whatever he attacked in, he defends on foot.
-  for (const u of units.filter((x) => x.factionId === ctx.activeFactionId)) {
+  for (const u of units.filter((x) => sideOf(x) === ctx.activeFactionId)) {
     const forced = forcedStanceFor(u, { isOwnTurn: false });
     if (forced) intents.push(I.setStance(u.id, forced, "turn end"));
   }
@@ -1407,7 +1410,8 @@ function targetsOf(a, u, c) {
  */
 function matchesRelation(other, owner, relations) {
   if (relations.includes("any")) return true;
-  const allied = other.factionId != null && other.factionId === owner.factionId;
+  // Sides, so a charmed Unit is its charmer's ally here too (#180).
+  const allied = sideOf(other) != null && sideOf(other) === sideOf(owner);
   return relations.includes(allied ? "ally" : "enemy");
 }
 
@@ -1865,8 +1869,8 @@ export function tickPeriodics(units, when, ctx) {
       const widened = (u.periodicOverrides ?? [])
         .some((o) => o.effectId === e.defId && o.triggers.includes(when));
       const overridden = when === "turnEnd"
-        ? u.factionId === ctx.activeFactionId && widened
-        : u.factionId !== ctx.activeFactionId && widened;
+        ? sideOf(u) === ctx.activeFactionId && widened
+        : sideOf(u) !== ctx.activeFactionId && widened;
       if (spec.when !== when && !overridden) continue;
       if (spec.actedOnly && !u.acted) continue;
 
@@ -2217,7 +2221,7 @@ function multiServantIntents(units, ctx) {
   // just acted, not every Master on the board. Charging all of them would bill
   // seven players for one player's turn.
   const acting = units.filter(
-    (u) => u.kind === "master" && (ctx.activeFactionId === null || u.factionId === ctx.activeFactionId),
+    (u) => u.kind === "master" && (ctx.activeFactionId === null || sideOf(u) === ctx.activeFactionId),
   );
   for (const master of acting) {
     const servants = units.filter((u) => u.masterId === master.id);

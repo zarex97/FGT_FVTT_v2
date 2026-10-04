@@ -61,6 +61,8 @@ Charm transfers control without moving ownership or faction. `controllerOf` (`mo
 
 `annotateControl` (`module/rules/control.mjs:154-160`) stamps every unit with who controls it and on whose Turn it acts. The same unit appears in the charmer's action budget but leaves its owner's, and its token keeps its original faction colour (`module/rules/control.mjs:99-107`).
 
+**A charmed Unit changes sides for the Charm's duration** (ruled 2026-10-04, #180). *"The Unit is controlled by the inflicter's Faction for the duration"*: it is the charmer's **ally** and its own Faction's **enemy**, for every rule at once. `rules/relations.mjs#sideOf` answers the Unit's `actingFactionId` (the charm chain above) before its `faction`, and every relation reads it: `relationOf`, `guardsOf`, the field relations in `rules/bounded-fields.mjs`, movement's and identity's enemy checks, and the scheduler's radius clauses. So Contagion and Innocent World skip a Unit Pale Rider has charmed, a Kagome Spirit's chase lifts off it, Doomsday Come lets it out, it guards nobody, and its own side may attack it. Its own Turn is its charmer's for every trigger: `unitIdsOfTurn`, the scheduler's `turnEnd` handlers, periodic ticks and the stance drop read its side. Its own Master may still spend Command Spells on it: a contract is not a side. A GM may still move it on any Turn, as the movement gate exempts the GM everywhere. Test: `test/unit/charm-sides.test.mjs`.
+
 ### Faction ownership
 
 Foundry's own permission system is not altered by faction assignment or Charm, so the charmer's client cannot write to a charmed unit (`module/rules/control.mjs:14-17`). Instead, all writes route through the GM proxy (Ch. 26).

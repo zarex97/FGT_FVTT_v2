@@ -21,7 +21,7 @@ import { EXECUTORS, empty, deferredPredicate } from "./elements.mjs";
 import { test as testPredicate } from "./predicate.mjs";
 import { rollOptionsFor } from "./options.mjs";
 import { categoriesOf } from "./items.mjs";
-import { relationOf } from "./relations.mjs";
+import { relationOf, sideOf } from "./relations.mjs";
 // The NP scale lives in its own module so `options.mjs` can read it without
 // importing this one, which imports `options.mjs` in turn. Re-exported here
 // because every existing caller and test asks this file for it.
@@ -307,7 +307,11 @@ function relationTo(field, unit, board) {
     ?? (board?.units ?? []).find((u) => u.id === field.ownerId)?.faction
     ?? null;
   if (owner === null) return "enemy";
-  const allied = board?.alliances?.[owner]?.includes(unit.faction) ?? unit.faction === owner;
+  // The Unit's SIDE: a Unit the owner has charmed is the owner's ally, so
+  // Contagion and Innocent World skip it and Doomsday Come lets it out
+  // (ruled 2026-10-04, #180).
+  const side = sideOf(unit);
+  const allied = board?.alliances?.[owner]?.includes(side) ?? side === owner;
   return allied ? "ally" : "enemy";
 }
 
@@ -790,7 +794,7 @@ export function isExempt(spec, unit, board) {
   if (!spec.orAdjacentToAlly) return false;
   return (board?.units ?? []).some((other) => (
     other.id !== unit?.id
-    && other.faction === unit?.faction
+    && sideOf(other) === sideOf(unit)
     && adjacent(other.panel, unit?.panel)
     && hasCategory(other, spec.categorizedAs, spec.minRank)
   ));
@@ -1289,7 +1293,8 @@ export function reentryPatch(effect, action) {
  */
 export function unitIdsOfTurn(board, factionId) {
   if (!factionId) return [];
-  return (board?.units ?? []).filter((u) => u.factionId === factionId).map((u) => u.id);
+  // Its SIDE: a charmed Unit's own Turn is its charmer's (ruled 2026-10-04, #180).
+  return (board?.units ?? []).filter((u) => sideOf(u) === factionId).map((u) => u.id);
 }
 
 /**
