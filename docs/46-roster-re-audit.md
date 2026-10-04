@@ -3229,6 +3229,62 @@ Level, so Quetzalcoatl and her Master aboard at `k: 20` read `inHomeBase: true` 
 Home Base inside it?). Observed outside a Home Base: forced off at the Round 19 end with the Master at 20,
 tick 56. Not fixed.
 
+
+### EV. An undamageable sheet kept the Health its END table wrote — **fixed** (6376e1a, #180)
+
+**Reached: SB, RI.1.** Pale Rider's header read Health 1500 / 1500: commitWar wrote the END A figure and
+`derived.mjs#restoreModifiable` put it back over the null `prepareBaseData` sets, so `isUndamageable` was
+false for every Unit authored `undamageable: true`. `restoreModifiable` now skips `health.*` on such a
+sheet, and `summon.mjs#sheetPatch` writes null.
+
+### EW. A field's "or" between its own-Turn and acted triggers fired both halves — **fixed** (76406b4, ed711c9, #180)
+
+**Reached: CO.t2.** Medea cast Atlas on her own Turn inside Contagion and lost 200 where the sheet says 100.
+The acted half now carries `notOnOwnTurn` (Contagion and Jack's Mist). The fix did not reach the live
+board: `ensurePassiveFields` skipped any passive field already open, so the field opened at tick 0 kept
+its old `interiorEvents`. A standing passive field now takes its ability's current rule axes
+(`staleRuleAxes`). Ruled with it: trigger 1 and the acted half are two triggers, charged twice.
+
+### EX. A field's Health loss that emptied a bar did not defeat — **fixed** (999b92c, #180)
+
+**Reached: CO.dc.poison.** Contagion took Medea 122 → 0 and she stood on, undefeated: a `HealthLoss` is a
+stat write and nothing asked whether it was lethal. It now carries `defeatsAtZero`.
+
+### EY. A hit on a Unit with no Health defeated it — **fixed** (3b5f93f, #180)
+
+**Reached: RI.1.** Asterios's attack on Pale Rider was negated to 0 and defeated him:
+`resolveDefeatOf` read his null Health as 0. Hidden until EV, because a stale 1500 sat there.
+
+### EZ. A forced target that was gone forced the attacker to attack nobody — **fixed** (e952fe3, #180)
+
+**Reached: KF.SB.** Asterios's body was cleared and his Famine, still forced towards him, refused every
+target. A forced target off the board, or a Spirit's prey outside its field, now forces nothing; ruled
+2026-10-04, a pursuing Spirit's area hits every enemy in it (d252511).
+
+### FA. Attacking a guarded Master was "an adjacent guard refuses" — **fixed** (25a4b7d, #181)
+
+**Reached: KK.rel.untgt.** The rulebook's three cases (a guard in Range, an adjacent guard, an Agility
+Check) were one refusal. Built as ruled 2026-10-04; pressed live, Castor stepped in on a 15 against 17.
+
+### FB. Field events, rider chances and Round-end ticks left no record — **fixed** (3f73b71, #182)
+
+**Reached: every chance Clause.** Contagion's losses and rolls, a Spirit's Death die and Poison's
+Round-end damage were invisible. One card per field per Turn end, rider rolls in the attack card, a
+Round-end card, and a log entry for each and for every defeat.
+
+### FC. A charmed Unit kept its side — **ruled and built** (35c9621, #180)
+
+**Reached: CO.t2, IW.scope.** Ruled 2026-10-04: a charmed Unit is its charmer's ally and its own side's
+enemy for every rule, and its own Turn is its charmer's. `rules/relations.mjs#sideOf`.
+
+### FD. A choice on an Attack Skill was asked twice — **fixed** (441e0b1)
+
+**Reached: KK.banish, on Castor's Mana Burst.** The declaration's caster pass asked the restoration and
+the rider step asked again, the first time in raw lang keys.
+
+### FE. A passive ability's card showed a cost it can never pay — **fixed** (f8793fe)
+
+**Reached: KK.hdr.** Kagome Kagome read "The Master cannot pay the Health cost … cannot be paid".
 ---
 
 ---
@@ -3980,3 +4036,51 @@ GM viewed its Level left the canvas on no scene (#176, open).
 
 Two entries in §46.4 still wait on the author: §46.4-DJ (does No Buff prevent S.Crit Up?) and §46.4-DL (does
 *"Day Round"* mean the Round or the panel?).
+
+## 46.16 Pale Rider — the Servant who cannot be hurt and is never alone
+
+**109 of his 118 Clauses were Pressed or Observed on a live board** (#180, 2026-10-02 to 2026-10-04). The nine
+left are not presses still owed. Five need a damaging [Anti-World] Noble Phantasm that the corpus does not have
+(#183, ruled: blocked, no tests yet). Four wait on readings 11 and 12 in #180: Magic Resistance's damage half
+on a Unit that takes no damage (`MR.p1`, `MR.p1.over`, `MR.np`), and where an Item he cannot hold goes when
+his Master is away (`PR.items.drop`). The Clauses span five Units: Pale Rider and the four Kagome Spirits
+his Noble Phantasm summons. His Doomsday Come carries the rules of three other abilities.
+
+**Why he finds so much.** Almost nothing he does is an Attack. He has no Health, no Normal Attack and no
+reactions; his damage is a field's Health loss; his Noble Phantasm is a prison that summons allies who chase
+one enemy each. Each of those is a path the attack-shaped engine walks rarely, and several had never run:
+a null Health reaching the defeat chain (§46.4-EY), a passive field outliving a content change (§46.4-EW),
+a banished Unit, and a Drag that is neither an Attack nor a Skill.
+
+### 46.16.1 What he cost the engine
+
+His own, fixed and tested:
+
+| Commit | Finding |
+|---|---|
+| 4567c06, 9e81120, 741b6fd | The Drag could not be aimed from the interface (the `fieldEdge` picker, and its own isolation) |
+| a5e228e | A Kagome Spirit could appear outside Doomsday Come, where isolation forbade its Attack |
+| 92feffc | "Cannot Evade, Block, or Counter" left Block and Evade on the rung; he Evaded |
+| e04c31c | His sheet offered a Normal Attack the bar hides |
+| fa21d57 | The Drag ran field contact twice: two Spirits for one dragged Master |
+| 4d107bb | A banished Kagome Spirit stayed on the board: it held its panel, guarded and could be targeted |
+
+What was general is §46.4-EV to §46.4-FE, issues #181 and #182 among them.
+
+### 46.16.2 The readings, ruled 2026-10-04
+
+| Question | Ruling |
+|---|---|
+| Triggers 1 and 3 on his Turn | Two triggers: an enemy that Acts inside on his Turn is charged twice |
+| Famine's 3×3 | Must contain its enemy, and hits every enemy in it |
+| The Drag | An action Doomsday Come grants, neither an Attack nor a Skill: no budget slot, he has Acted, no ZON or NP Seal, only general Evade bonuses |
+| Charm | The charmer's ally and its own side's enemy, for every rule; its own Turn is the charmer's; its Master's Command Spells still reach it |
+| A guarded Master (#181) | The rulebook's three cases, for every targeted Attack, with `guardsOf` |
+| Records (#182) | A card per field per Turn end, rider rolls in the attack card, a Round-end card, a log entry for each |
+| The Anti-World Clauses (#183) | Blocked; no tests until a Servant has such a Noble Phantasm |
+
+### 46.16.3 A note on the board
+
+One board, `Pale Rider Audit — Neutral`, ran 35 ticks. Doomsday Come was cast three times; its cooldown,
+his Master's Health and three defeated or out-of-place Units were staged to do it, and each staging is in
+#180's record. The chance Clauses before §46.4-FB were read from their outcomes; after it, from the card.
