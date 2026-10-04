@@ -58,3 +58,11 @@ describe("the hand-over and the grant", () => {
     expect(readFileSync("packs/_source/structures/dropped-item.yml", "utf8")).toMatch(/^id: dropped-item$/m);
   });
 });
+
+describe("the pickup's panel", () => {
+  it("is the one the token's document stopped on, not the lagging board's", () => {
+    const src = readFileSync("module/engine/movement-hooks.mjs", "utf8");
+    expect(src).toMatch(/const stopped = canvas\?\.grid \? canvas\.grid\.getOffset\(\{ x: document\.x, y: document\.y \}\) : null;\s*await pickUpItemHere\(actor\.id, combat, stopped\);/);
+    expect(src).toMatch(/const unit = stopped \? \{ \.\.\.found, panel: \{ \.\.\.found\.panel, i: stopped\.i, j: stopped\.j \} \} : found;/);
+  });
+});

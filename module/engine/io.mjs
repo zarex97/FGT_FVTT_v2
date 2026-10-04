@@ -1210,6 +1210,9 @@ export function worldIO() {
       const token = (await structure.getTokenDocument()).toObject();
       token.x = panel.j * scene.grid.size;
       token.y = panel.i * scene.grid.size;
+      // The TOKEN's name is its own, copied from the prototype: named only on
+      // the actor, it read "Dropped Item" on the board.
+      if (item?.name) token.name = item.name;
       if (item?.img) token.texture = { ...(token.texture ?? {}), src: item.img };
       await scene.createEmbeddedDocuments("Token", [token]);
       await this.log([{ kind: "item", event: "itemDropped", itemId: contentId, count, panel, for: byId }]);

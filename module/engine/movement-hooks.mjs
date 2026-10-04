@@ -393,7 +393,14 @@ async function onMove(document, movement, operation) {
   // `rules/items.mjs#acquisitionTarget`, which every acquisition route passes
   // through, so a future trade or reward inherits it. Refused, the pass returns
   // nothing and the sword stays where it lies.
-  await pickUpItemHere(actor.id, combat);
+  //
+  // WHERE it stopped is the DOCUMENT's, not the board's: `currentBoard()` reads
+  // the canvas placeables, which lag the document while the token animates, so
+  // the pass asked about the panel the Unit had just LEFT. Live, Pale Rider
+  // walked onto two dropped Poisons with his Master two away and nobody picked
+  // them up (#180).
+  const stopped = canvas?.grid ? canvas.grid.getOffset({ x: document.x, y: document.y }) : null;
+  await pickUpItemHere(actor.id, combat, stopped);
 
   // Familiar: Doves (Ch. 45): "whenever Semiramis sees a Unit for the first
   // time" is not about concealment at all, so it runs unconditionally on
@@ -407,12 +414,14 @@ async function onMove(document, movement, operation) {
  *
  * @param {string} unitId
  * @param {object} combat
+ * @param {{i: number, j: number}|null} [stopped] the panel it stopped on, off the document
  * @returns {Promise<void>}
  */
-async function pickUpItemHere(unitId, combat) {
+async function pickUpItemHere(unitId, combat, stopped = null) {
   const board = boardSnapshot(combat);
-  const unit = board.units.find((u) => u.id === unitId);
-  if (!unit) return;
+  const found = board.units.find((u) => u.id === unitId);
+  if (!found) return;
+  const unit = stopped ? { ...found, panel: { ...found.panel, i: stopped.i, j: stopped.j } } : found;
 
   const { itemPickupIntents } = await import("../rules/items.mjs");
   const descriptors = itemPickupIntents(unit, board);

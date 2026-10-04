@@ -72,7 +72,7 @@ Ruled 2026-10-04 (#180, reading 12). Pale Rider's sheet: *"…otherwise the Item
 - `io.dropItem` places the `dropped-item` structure, named and drawn as the Item, with `carriesItemId` and `carriesItemCount`: a stack lands whole.
 - A ground Item is taken only by moving onto its panel, so a giver steps off and back. Moving onto a panel takes **every** Item lying there, each through its own refusals, whole.
 
-Test: `test/unit/item-drop.test.mjs`.
+The pickup asks about the panel the token's DOCUMENT stopped on: the board reads the canvas placeables, which lag while the token animates, and live Pale Rider walked onto two dropped Poisons with nobody picking them up. Test: `test/unit/item-drop.test.mjs`.
 
 ## Invariants & edge cases
 
