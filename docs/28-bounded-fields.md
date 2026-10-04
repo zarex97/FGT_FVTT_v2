@@ -119,6 +119,8 @@ A field is destroyed when a listed **vulnerability** is triggered (`module/rules
 
 When an `ownerMaster` vulnerability triggers with a delay, the delay is stamped once as an absolute tick and counted down by a cleanup phase, not by a decremented counter (`module/engine/fields.mjs:1311-1335`).
 
+**Breaking Doomsday Come hits every Unit within** (ruled 2026-10-04, #180 reading 7). *"…all Units within it receive the damage from that NP, but its Total Damage is reduced by 50%."* The vulnerability authors `hitsAllWithin`. `rules/bounded-fields.mjs#breakingCatch` answers who: when the [Anti-World] NP's user stands inside, or any of its targets or area panels is inside, every Unit inside at the declaration except the user, objects excluded. `declareProcesses` adds them to the fan-out, each its own Combat Process with its reactions and the NP's riders, an area attack; a target inside is hit once; the NP's own targets outside take it at full damage; cover is not applied to the breaking (`caughtByBreaking`, `breaking.ownAoE`); a Counter across the boundary is refused, since the isolation stands until the end. The area now closes after the **last** Process of the declaration, so none of the caught Units leaves the halving rule before its damage lands, and the use is counted once. Test: `test/unit/doomsday-breaking.test.mjs`.
+
 ### Passive fields
 
 Pale Rider's Contagion is cast neither at an ability's use nor ended by a cooldown. It exists because he does. A passive field opens when its owner joins the board and closes when they leave (`module/engine/fields.mjs:399-430`). The pass runs idempotently at `ready` and at every turn start, so a reloaded world repairs itself without a hook being required to fire first (`module/engine/fields.mjs:391-392`).

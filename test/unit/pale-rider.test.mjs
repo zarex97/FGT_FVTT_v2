@@ -256,7 +256,7 @@ describe("Doomsday Come — the Anti-World escape", () => {
   it("opens its boundary for an Anti-World NP and ends on the same use", () => {
     expect(np.field.isolation.piercedBy).toEqual({ npScale: "antiWorld" });
     expect(np.field.vulnerabilities).toContainEqual({
-      kind: "npScaleUsedOn", scale: "antiWorld", result: "end", when: "combatProcessEnd",
+      kind: "npScaleUsedOn", scale: "antiWorld", result: "end", when: "combatProcessEnd", hitsAllWithin: true,
     });
   });
 
