@@ -56,3 +56,10 @@ it("the session picks a Unit for a fieldEdge anchor", () => {
   const layer = readFileSync("module/apps/canvas/targeting-layer.mjs", "utf8");
   expect(layer).toMatch(/case "fieldEdge": return this\.#unitPicker\(/);
 });
+
+it("the area's own isolation does not stand between the drag and its target", () => {
+  // Live: Pale Rider inside Doomsday Come, Asterios one panel outside it, and the
+  // drag refused him as "separated by pale-rider-doomsday-come".
+  const src = readFileSync("module/rules/targeting/resolve.mjs", "utf8");
+  expect(src).toMatch(/if \(spec\.anchor\?\.kind === "fieldEdge" && spec\.anchor\.fieldId === field\.id\) continue;/);
+});
