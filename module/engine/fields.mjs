@@ -1084,7 +1084,7 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
       // A stat write, never the pipeline: routing it through `I.damage` would
       // subject it to Def Up, Dmg Cut, Magic Resistance and the whole of Ch.
       // 13, and would raise `fgt.damageTaken` for every on-damage rider in the
-      // game. It still reaches zero and `resolveDefeat` still notices, which
+      // game. It still reaches zero and the applier still defeats at zero, which
       // is the one thing "not damage" must NOT mean.
       if (action.key === "HealthLoss") {
         // *"The effects of this NP is halved against Units with the
@@ -1096,7 +1096,10 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
         });
         const amount = Math.floor(Math.abs(action.amount ?? 0) * (halve ? 0.5 : 1));
         if (amount > 0) {
-          out.push(I.statDelta(unit.id, "health.value", -amount));
+          // `defeatsAtZero`: nothing else asked whether this loss was lethal.
+          // Live, Contagion took Medea from 122 to 0 and she stood on at 0,
+          // undefeated (#180).
+          out.push({ ...I.statDelta(unit.id, "health.value", -amount), defeatsAtZero: true });
           // What is drained is what may be paid out, and no more.
           if (spec.payout) pool += amount;
         }

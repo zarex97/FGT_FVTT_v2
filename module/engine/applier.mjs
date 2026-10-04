@@ -537,6 +537,10 @@ async function writeGroup(group, io) {
       break;
     case "statDelta":
       for (const i of intents) await io.adjustStat(unitId, i.stat, i.delta, i.clamp, i.alsoCurrent);
+      // A Health LOSS that is not damage still empties a Health bar: a field's
+      // `HealthLoss` (Pale Rider's Contagion, Ramesseum Tentyris' toll) marks
+      // its intent, and the Unit it leaves at 0 is defeated (#180).
+      if (intents.some((i) => i.defeatsAtZero)) await io.defeatIfLethal(unitId);
       break;
     case "resource":
       for (const i of intents) await io.adjustResource(unitId, i.key, i.delta, Boolean(i.absolute));
