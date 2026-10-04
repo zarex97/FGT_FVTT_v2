@@ -128,7 +128,7 @@ async function onTurnChange(combat, prior, current) {
   // Belongs to the AREA rather than to Semiramis, the same reason
   // Unlimited Blade Works' turnStart toll below is authored on the field:
   // whoever is dragged in is subject to it, not just units she targets.
-  await run(await fields.runFieldEvents("actedTurnEnd", { board }), "field:actedTurnEnd");
+  await run(await fields.runFieldEvents("actedTurnEnd", { board, activeFactionId }), "field:actedTurnEnd");
 
   // …and the plain end of a Turn. Jack's Mist charges Poison BOTH ways --
   // "at the end of its Turn OR at the end of a Turn they Act while still

@@ -163,10 +163,13 @@ field:
       relations: [enemy]
       onFail:
         - { key: ApplyEffect, effect: { id: poison } }
+    # "...OR at the end of a Turn they Act": one trigger. On the Master's own
+    # Turn the `turnEnd` above fired already (#180).
     - event: actedTurnEnd
       kinds: [master]
       relations: [enemy]
       requiresActed: true
+      notOnOwnTurn: true
       onFail:
         - { key: ApplyEffect, effect: { id: poison } }
   # Axis 5 -- duration. There is none: the Mist stands until it is switched

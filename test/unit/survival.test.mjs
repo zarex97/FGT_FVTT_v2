@@ -569,6 +569,15 @@ export const NESTED_ROUTES = [
       { file: "module/rules/movement.mjs", why: "moverFor adds every delta that carries to the mount's MOV" },
     ],
   },
+  // The second half of an "or" between a field's turnEnd and actedTurnEnd
+  // events: it does not fire on the Unit's own Turn (#180).
+  {
+    key: "notOnOwnTurn",
+    authored: ["packs/_source/abilities/pale-rider-contagion.yml", "packs/_source/abilities/jack-the-mist.yml"],
+    hops: [
+      { file: "module/engine/fields.mjs", why: "runFieldEvents scopes an actedTurnEnd spec off the Units whose own Turn ended" },
+    ],
+  },
   // A painted area is on one Level, as a field is: the zone phase stamps the
   // caster's (or the Fortress's), a repaint follows the source's, and
   // `terrainAt` asks for it (#151).
