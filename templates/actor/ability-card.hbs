@@ -51,6 +51,7 @@
             data-tooltip="{{localize 'FGT.Sheet.Edit'}}">✎</button>
   </header>
 
+  {{#if state}}
   <p class="fgt-card-ability__state{{#unless state.ok}} fgt-card-ability__state--blocked{{/unless}}">
     {{#unless state.ok}}<i class="fa-solid fa-ban"></i> {{/unless}}
     {{localize state.label
@@ -62,6 +63,7 @@
       <span class="fgt-stat__note">{{localize "FGT.Sheet.Uses" used=usage.used max=usage.max}}</span>
     {{/if}}
   </p>
+  {{/if}}
 
   {{#if cost}}
     {{!-- Affordability stated, not implied: a player shown "Master cost 53
