@@ -17,6 +17,7 @@ import { worldIO } from "./io.mjs";
 import { currentBoard } from "./board.mjs";
 import { factionOfCombatant } from "./turn-order.mjs";
 import { sideOf } from "../rules/relations.mjs";
+import { fieldEventsIn, postFieldReports, postPeriodicReport } from "./field-report.mjs";
 import * as budget from "./budget.mjs";
 import {
   grailContest, checkVictory, grailPanelCandidates,
@@ -130,7 +131,10 @@ async function onTurnChange(combat, prior, current) {
   // Belongs to the AREA rather than to Semiramis, the same reason
   // Unlimited Blade Works' turnStart toll below is authored on the field:
   // whoever is dragged in is subject to it, not just units she targets.
-  await run(await fields.runFieldEvents("actedTurnEnd", { board, activeFactionId }), "field:actedTurnEnd");
+  // What the fields did this Turn end, gathered for one card per field (#182).
+  const fieldEvents = [];
+  const reported = (intents) => { fieldEvents.push(...fieldEventsIn(intents)); return intents; };
+  await run(reported(await fields.runFieldEvents("actedTurnEnd", { board, activeFactionId })), "field:actedTurnEnd");
 
   // …and the plain end of a Turn. Jack's Mist charges Poison BOTH ways --
   // "at the end of its Turn OR at the end of a Turn they Act while still
@@ -141,14 +145,14 @@ async function onTurnChange(combat, prior, current) {
   // Turn just ended, as the handler-level `turnEnd` is. Unscoped, Piedra Del
   // Sol's 50 was charged at every faction's Turn end (#145).
   await run(
-    await fields.runFieldEvents("turnEnd", { board, activeFactionId }),
+    reported(await fields.runFieldEvents("turnEnd", { board, activeFactionId })),
     "field:turnEnd",
   );
 
   // …and the clauses that mean EVERY Turn, whoever's. A Civilian has no faction
   // and so no Turn of its own: Blood Fort Andromeda's *"immediately dies"* and
   // the Complex's *"the Turn after entering"* are about it.
-  await run(await fields.runFieldEvents("anyTurnEnd", { board }), "field:anyTurnEnd");
+  await run(reported(await fields.runFieldEvents("anyTurnEnd", { board })), "field:anyTurnEnd");
 
   // A field's OWNER's Turn ending. Contagion trigger 1 is *"at the end of Pale
   // Rider's Turn: affects all enemy Units within the Contagion area"* -- every
@@ -164,10 +168,11 @@ async function onTurnChange(combat, prior, current) {
     .map((f) => f.id);
   if (ownedFields.length > 0) {
     await run(
-      await fields.runFieldEvents("unitTurnEnd", { fieldIds: ownedFields, board }),
+      reported(await fields.runFieldEvents("unitTurnEnd", { fieldIds: ownedFields, board })),
       "field:unitTurnEnd",
     );
   }
+  await postFieldReports(fieldEvents);
 
   // Jack's Mist: "During Jack's Turn OR at the end of any Turn Jack Acts,
   // she can Move the Mist and/or change the shape once." The second window,
@@ -346,7 +351,9 @@ async function endRoundSequence(combat, round, tick) {
     rolls: await gatherRolls([[board.units, "roundEnd"]]),
   };
 
-  await run(scheduler.endRound(board, ctx), "scheduler:endRound");
+  const roundIntents = scheduler.endRound(board, ctx);
+  await run(roundIntents, "scheduler:endRound");
+  await postPeriodicReport(roundIntents, worldIO());
 
   // The second upkeep sweep, for tolls charged on the ROUND rather than on a
   // tick period. The Golden Hind is the only one: *"At the end of every

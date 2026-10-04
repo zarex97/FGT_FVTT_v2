@@ -1466,7 +1466,12 @@ export function pendingRolls(unit, event) {
       // `roll` decides the amount, `chance` decides whether there is one at
       // all. Drake's Crit passive carries only the second.
       if (action.chance !== undefined) {
-        out.push({ key: chanceKey(action, unit), formula: "1d100", bonus: 0 });
+        // `chance` and `label` ride along so the caller can file the roll it
+        // makes: a Kagome Spirit's Death chance was rolled and never shown (#182).
+        out.push({
+          key: chanceKey(action, unit), formula: "1d100", bonus: 0, chance: action.chance,
+          label: [action.key, action.effect?.id ?? action.effect?.defId].filter(Boolean).join(" "),
+        });
       }
     }
   }

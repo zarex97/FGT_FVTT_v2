@@ -1121,6 +1121,16 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
   // so the amounts have to be summed across the whole pass before anything is
   // paid out.
   let pool = 0;
+  // What happened to whom, for the table (#182). Every Health loss, damage,
+  // defeat and chance roll an interior event makes files a `fieldEvent` log
+  // entry; `engine/field-report.mjs` gathers one Turn end's entries into a
+  // card per field. A roll that leaves no record cannot be checked, and Ch. 46
+  // asks for a differential on every chance Clause.
+  const report = (unit, detail) => out.push(I.log({
+    kind: "fieldEvent", fieldId: field.id, event: spec.event ?? null,
+    unitId: unit.id, unitName: unit.name ?? null,
+    tick: game.combat?.system?.globalTurn ?? 0, ...detail,
+  }));
 
   for (const unit of inside) {
     // The check the Unit gets to avoid it. A success is a clean escape: the
@@ -1137,6 +1147,7 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
         autoSucceed: plan.autoSucceed,
         modifiers: plan.modifiers,
       });
+      report(unit, { roll: { check: "evade", formula: "1d20", total: roll.total, outcome: outcome.success ? "success" : "fail" } });
       if (outcome.success) continue;
     }
 
@@ -1169,6 +1180,7 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
           // Live, Contagion took Medea from 122 to 0 and she stood on at 0,
           // undefeated (#180).
           out.push({ ...I.statDelta(unit.id, "health.value", -amount), defeatsAtZero: true });
+          report(unit, { healthLoss: amount });
           // What is drained is what may be paid out, and no more.
           if (spec.payout) pool += amount;
         }
@@ -1192,6 +1204,7 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
           bypassModifiers: true, source: field.id, component: action.component ?? "str",
           element: action.element ?? null,
         }));
+        report(unit, { damage: rolled, element: action.element ?? null });
         continue;
       }
 
@@ -1207,6 +1220,7 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
       // for instead of her would quietly stop paying her.
       if (action.key === "Defeat") {
         out.push(I.defeat(unit.id, action.cause ?? "field"));
+        report(unit, { defeat: action.cause ?? "field" });
         if (action.creditOwner && field.ownerId) {
           out.push(I.log({
             kind: "defeat", event: "fieldKill", unitId: unit.id,
@@ -1308,9 +1322,14 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
         // probability, rolled here rather than left to the effect's
         // `baseChance` -- Poison's is 100, and the number that varies is the
         // FIELD's, which under Doomsday Come becomes 75.
+        const effectId = action.effect?.id ?? action.effect?.defId ?? null;
         if (typeof action.chance === "number") {
           const roll = await new Roll("1d100").evaluate();
-          if (!chance(roll.total, action.chance)) continue;
+          const hit = chance(roll.total, action.chance);
+          report(unit, { roll: { effect: effectId, formula: "1d100", total: roll.total, chance: action.chance, outcome: hit ? "hit" : "missed" } });
+          if (!hit) continue;
+        } else {
+          report(unit, { effect: effectId });
         }
 
         // *"Charm for 1◈ Turns."* A duration stated by the rider rather than

@@ -44,6 +44,17 @@ Every roll is recorded with raw roll, total, and modifiers (`module/rules/roll-l
 
 `visibleTo` filters rolls by their own visibility flag; hidden rolls are hidden for a reason — a Discover roll a player can read gives away the Assassin's panel without anyone rolling anything (`module/rules/roll-log.mjs:140-147`).
 
+### Rolls with no attack around them
+
+Ruled 2026-10-04 (#182): a roll no Combat Process owns still leaves a record.
+
+- **Field events.** `engine/fields.mjs#runFieldEvent` files a `fieldEvent` log entry for every Health loss, damage, defeat, interior Evade and chance roll (`1d100` against the field's `chance`, `hit` or `missed`). `engine/scheduler-hooks.mjs` gathers one Turn end's entries from all four dispatches (`actedTurnEnd`, `turnEnd`, `anyTurnEnd`, `unitTurnEnd`) and `engine/field-report.mjs#postFieldReports` posts **one public card per field**. A contact event logs too, with no card.
+- **A rider's chance inside an attack.** `scheduler.pendingRolls` carries each chance spec's `chance` and `label`; `fireDamageDealt` files a roll record per die, and the Damage Step advances with them as `rollRecords`, so a Kagome Spirit's Death die is in the card's Rolls.
+- **Round-end periodic ticks.** `postPeriodicReport` reads the `periodic` damage intents `scheduler.endRound` returned, logs a `periodicTick` per tick and posts **one card**. The effect is named, never who inflicted it, so a Secret Poison stays secret.
+- **Every defeat.** `io.defeat` logs `{kind: "defeat", event: "defeated", cause, killerId}` the first time a Unit falls, whatever wrote it.
+
+Test: `test/unit/roll-records.test.mjs`.
+
 ### Export and replay
 
 `fullLog` reads back flushed entries from the journal and returns one continuous history (`module/engine/game-log.mjs:78-87`). `exportLog` produces a self-contained JSON export with the ruleset settings, roster setup rolls, and all recorded rolls — with them replay is exact; without them it is re-simulation, which proves nothing about the bug being reported (`module/engine/game-log.mjs:100-123`).
