@@ -12,7 +12,7 @@
  * the area.
  */
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { it, expect, beforeAll } from "vitest";
 import { readFileSync } from "node:fs";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import { fieldsOf, squareAround, prepareFields, compiled } from "../helpers/field.mjs";
