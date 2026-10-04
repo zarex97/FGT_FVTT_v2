@@ -361,7 +361,7 @@ describe("Master protection", () => {
     const r = resolveTargets(chosen, caster, board);
     expect(r.candidates.map((u) => u.unitId ?? u.id)).toEqual(["guard"]);
     expect(r.excluded.find((e) => e.unitId === "master").reason)
-      .toMatch(/protected by an adjacent Servant/);
+      .toMatch(/guarded by a Servant within/);
     expect(r.warnings).toContain("Protected Masters were excluded.");
   });
 
@@ -392,7 +392,7 @@ describe("Master protection", () => {
     ]);
     const aimed = { ...spec, anchor: { kind: "targetUnit", range: 6 } };
     const r = resolveTargets(aimed, caster, board, { unitId: "master" });
-    expect(r.errors.join(" ")).toMatch(/protected by an adjacent Servant/);
+    expect(r.errors.join(" ")).toMatch(/guarded by a Servant within/);
   });
 
   it("allows the Master once no Servant is adjacent", () => {
