@@ -1087,6 +1087,11 @@ export function worldIO() {
       await freeContractedServants(unitId, killerId);
       const actor = resolve(unitId);
       if (!actor) return;
+      // Every defeat is logged, whoever caused it (#182). A Contagion loss that
+      // emptied Asterios's Health defeated him at tick 14 with no entry at all.
+      if (!actor.system?.defeated) {
+        await this.log([{ kind: "defeat", event: "defeated", unitId, cause, killerId, tick: game.combat?.system?.globalTurn ?? 0 }]);
+      }
       await actor.update({
         "system.defeated": true, "system.defeatCause": cause,
         // The first defeat's tick, kept by a second: the body's clock runs from

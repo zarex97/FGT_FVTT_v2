@@ -2108,7 +2108,7 @@ function concealmentRefusals(attackerId, defenderId) {
 async function fireDamageDealt(state, result) {
   const attacker = unitSnapshot(game.actors.get(state.attackerId));
   const defender = state.defenderId ? unitSnapshot(game.actors.get(state.defenderId)) : null;
-  if (!attacker || !defender) return;
+  if (!attacker || !defender) return [];
 
   // Whatever this attacker's `damageDealt` handlers need to roll, rolled here
   // on the same "caller rolls" contract every other event honours: `fireEvent`
@@ -2120,9 +2120,25 @@ async function fireDamageDealt(state, result) {
   // the first content to hang one here.
   /** @type {Record<string, number>} */
   const rolls = {};
+  // The chance rolls, filed on this attack's card (#182, ruled 2026-10-04): a
+  // Kagome Spirit's *"5% chance of inflicting Death"* was rolled and nobody
+  // could see the die.
+  /** @type {object[]} */
+  const records = [];
+  const tick = game.combat?.system?.globalTurn ?? 0;
   for (const spec of pendingRolls(attacker, "damageDealt")) {
     if (!spec.formula || spec.key in rolls) continue;
     rolls[spec.key] = (await new Roll(spec.formula).evaluate()).total;
+    if (spec.chance === undefined) continue;
+    const hit = rolls[spec.key] <= spec.chance;
+    records.push(rollLog.record({
+      id: `${state.attackerId}:${state.defenderId}:rider:${spec.key}:${tick}`,
+      globalTurn: tick, entryId: "rider-", formula: spec.formula,
+      raw: rolls[spec.key], total: rolls[spec.key],
+      modifiers: [{ source: `against ${spec.chance}%: ${hit ? "hit" : "missed"}`, delta: 0, stage: "chance" }],
+      purpose: `${attacker.name}: ${spec.label || "rider"} on ${defender.name}`,
+      actorId: state.attackerId,
+    }));
   }
 
   const intents = fireEvent("damageDealt", [attacker], {
@@ -2136,6 +2152,7 @@ async function fireDamageDealt(state, result) {
     rolls,
   });
   if (intents.length > 0) await applyBatch(intents, "damageDealt");
+  return records;
 }
 
 /**
@@ -2615,13 +2632,13 @@ async function runAutomaticStep(state, message) {
       // in Appendix A was silent against exactly the targets worth riding.
       // `rules/damage/riders.mjs` is now the single decision, with the reasons.
       const riders = ridersFire({ skipped, result });
-      if (riders) await fireDamageDealt(state, result);
+      const riderRolls = riders ? await fireDamageDealt(state, result) : [];
       // ...and the mirror, on the Unit that took it.
       if (riders) await fireDamageTaken(state, result);
 
       await message.setFlag("fgt", "damage", result.total);
       await message.setFlag("fgt", "effects", [...before, ...applied].map((a) => a.summary));
-      return process.advance(state, "done", { total: result.total });
+      return process.advance(state, "done", { total: result.total, rollRecords: riderRolls });
     }
     case "injury":
       await applyInjury(state, message);

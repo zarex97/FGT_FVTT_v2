@@ -290,6 +290,8 @@ export function advance(s, event, detail = undefined) {
   // A detail carrying a roll record files it. Done here rather than at each
   // roll site so no check can produce a number the log never hears about.
   if (detail?.rollRecord) out.rolls = appendRoll(s.rolls ?? [], detail.rollRecord);
+  // Several at once: the riders' chance rolls at the end of the Damage Step (#182).
+  for (const r of detail?.rollRecords ?? []) out.rolls = appendRoll(out.rolls ?? s.rolls ?? [], r);
   if (s.state === "react") out.reaction = event;
   if (s.state === "evadeRoll") out.evaded = event === "success";
   if (s.state === "heelResolve") {

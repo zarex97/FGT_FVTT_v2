@@ -1520,5 +1520,19 @@
   "FGT.Window.ownTurn": "Your Turn",
   "FGT.Window.whenAttacked": "When attacked",
   "FGT.Window.whenAllyAttacked": "When an ally is attacked",
-  "FGT.Window.whenTargetedByNP": "When a Noble Phantasm is declared on you"
+  "FGT.Window.whenTargetedByNP": "When a Noble Phantasm is declared on you",
+  "FGT.FieldReport.Title": "{field}: end of the Turn",
+  "FGT.FieldReport.HealthLoss": "{who} loses {amount} Health",
+  "FGT.FieldReport.Damage": "{who} takes {amount} damage",
+  "FGT.FieldReport.Defeat": "{who} is defeated",
+  "FGT.FieldReport.Evade": "{who} Evade 1d20 → {total}: {outcome}",
+  "FGT.FieldReport.Chance": "{who} {effect}: 1d100 → {total} against {chance}%: {outcome}",
+  "FGT.FieldReport.Effect": "{who} receives {effect}",
+  "FGT.FieldReport.Other": "{who} is affected",
+  "FGT.FieldReport.Outcome.hit": "inflicted",
+  "FGT.FieldReport.Outcome.missed": "missed",
+  "FGT.FieldReport.Outcome.success": "evaded",
+  "FGT.FieldReport.Outcome.fail": "failed",
+  "FGT.FieldReport.RoundTitle": "End of the Round",
+  "FGT.FieldReport.Periodic": "{who} takes {amount} from {effect}"
 }
