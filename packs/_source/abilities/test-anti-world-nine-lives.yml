@@ -1,0 +1,33 @@
+# Test Servant, built 2026-10-04 to unblock #183.
+#
+# Heracles's "Nine Lives: Shooting the Hundred Heads", raised to [Anti-World].
+# No Servant in the corpus has a damage-dealing Noble Phantasm of [Anti-World]
+# or higher, and five of Doomsday Come's Clauses are about exactly one being
+# used on it (#180, DC.aw.*). This is that Noble Phantasm, and nothing else:
+# the numbers are Nine Lives's (`heracles-nine-lives.yml`), only the scale tag
+# differs.
+schema: 1
+id: test-anti-world-nine-lives
+name: "Nine Lives: Shooting the Hundred Heads"
+isNP: true
+rank: "A+"
+npTags: [antiWorld]
+cooldown: "7◈+⅓◈"
+description: "TEST NOBLE PHANTASM. Base Attack (STR) is used. Deals 4x damage plus 100. Then inflicts @effect[defDwn]{Def Dwn} for 1◈ Turns, all damage taken is increased by 30%. Classified [Anti-World]."
+targeting:
+  anchor: { kind: targetUnit }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+  limits: { requiresZon: true }
+damage:
+  base: { sources: [{ unit: self, component: str, factor: 1 }] }
+  multiplier: 4
+  flatBonus: 100
+phases:
+  - kind: damage
+  - kind: applyEffects
+    rules:
+      - key: OnEvent
+        event: damageDealt
+        effect: { id: defDwn, magnitude: 30 }
+        duration: "1◈"

@@ -1,0 +1,35 @@
+# Test Servant, built 2026-10-04 to unblock #183. NOT A CHARACTER SHEET.
+#
+# Heracles's statblock (`heracles.yml`) carrying one Noble Phantasm: Nine Lives:
+# Shooting the Hundred Heads, raised to [Anti-World]. It exists so a damage-
+# dealing [Anti-World] Noble Phantasm can be used on Pale Rider's Doomsday Come
+# on a live board (#180, DC.aw.*). None of his Skills: they would only add
+# rules nobody is testing. Range 3, an Archer's reach for the Archer version of
+# the Noble Phantasm, so it can be aimed across the area's edge.
+schema: 1
+id: test-anti-world-heracles
+name: "Test Heracles (Anti-World)"
+type: servant
+
+trueName: "Test Heracles (Anti-World)"
+servantClasses: [archer]
+classContainer: archer
+alignment: { order: chaotic, morality: mad }
+region: [greece]
+attributes: [male, servant, earth, humanoid]
+
+parameters: { str: "A+", end: A, agi: A, mag: B, luc: A }
+baseHealth: 1500
+mov: 6
+range: { panels: 3, targets: 1 }
+baseAttack: { str: 160, mag: 175 }
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+abilities:
+  - { ref: test-anti-world-nine-lives }
+
+notes: |
+  A test Servant, not a character from the sheets. Heracles's numbers with one Noble Phantasm, Nine
+  Lives: Shooting the Hundred Heads at [Anti-World], so Doomsday Come's Anti-World clauses can be
+  pressed (#183).
