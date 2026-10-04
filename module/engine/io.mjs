@@ -1172,6 +1172,50 @@ export function worldIO() {
     },
 
     /**
+     * Leave an Item on a panel, as a ground Item anyone may pick up (#180).
+     *
+     * The `dropped-item` structure, named after the Item and carrying it the
+     * way the Vorpal Blade's cache does, with its count.
+     *
+     * @param {string} contentId
+     * @param {number} count
+     * @param {{i: number, j: number}|null} panel
+     * @param {object|null} barredFrom
+     * @param {string|null} byId the Unit it was meant for
+     */
+    async dropItem(contentId, count, panel, barredFrom = null, byId = null) {
+      const scene = canvas?.scene;
+      if (!scene || !panel) {
+        console.warn(`FGT | "${contentId}" had nowhere to land.`);
+        return;
+      }
+      const source = await droppedItemSource();
+      if (!source) {
+        console.warn("FGT | The dropped-item structure is missing from the packs.");
+        return;
+      }
+      const item = await fromContent(contentId);
+      const data = source.toObject();
+      data.name = item?.name ?? contentId;
+      if (item?.img) data.img = item.img;
+      data.system = {
+        ...data.system,
+        carriesItemId: contentId,
+        carriesItemCount: Math.max(1, count ?? 1),
+        carriesItemBarredFrom: barredFrom ?? item?.system?.barredFrom ?? null,
+        placedById: byId,
+        panel: { i: panel.i, j: panel.j },
+      };
+      const [structure] = await Actor.createDocuments([data]);
+      const token = (await structure.getTokenDocument()).toObject();
+      token.x = panel.j * scene.grid.size;
+      token.y = panel.i * scene.grid.size;
+      if (item?.img) token.texture = { ...(token.texture ?? {}), src: item.img };
+      await scene.createEmbeddedDocuments("Token", [token]);
+      await this.log([{ kind: "item", event: "itemDropped", itemId: contentId, count, panel, for: byId }]);
+    },
+
+    /**
      * Where the Holy Grail is standing (Ch. 29).
      *
      * `MatchData.grailPosition` was declared and read and written by nothing,
@@ -1274,6 +1318,16 @@ export function worldIO() {
       return FGTSocket.request("prompt", { userId, spec });
     },
   };
+}
+
+/**
+ * The ground-Item structure every dropped Item is placed as (#180).
+ *
+ * @returns {Promise<object|null>}
+ */
+async function droppedItemSource() {
+  const { actorFromPacks } = await import("./skill-use.mjs");
+  return actorFromPacks("dropped-item");
 }
 
 /**

@@ -653,6 +653,14 @@ async function writeGroup(group, io) {
           board.units.find((u) => u.id === unitId), board,
           { contentId: i.contentId, barredFrom: i.barredFrom ?? null },
         );
+        if (!to.ok && to.leftOnFloor) {
+          // *"...left on the panel where the Unit who dropped the Item was
+          // standing"*: the giver's panel when one handed it over, his own
+          // when nobody did (ruled 2026-10-04, #180).
+          const holder = board.units.find((u) => u.id === unitId);
+          await io.dropItem?.(i.contentId, i.delta, i.dropAt ?? holder?.panel ?? null, i.barredFrom ?? null, unitId);
+          continue;
+        }
         if (!to.ok) {
           // Loud: an item that lands nowhere is a clause doing less than it
           // says, and silence is how that goes unnoticed for a month.

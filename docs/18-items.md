@@ -58,9 +58,21 @@ The rulebook placed the first item on a board via `[Vorpal Blade]`: *"…the [Vo
 
 2. **Redirect:** If the unit has `itemHandling: "redirectToMaster"` and that Master is not defeated, holds items, and stands within `ITEM_REDIRECT_RANGE` (2 panels), the target is the Master and `redirected: true` is set (`module/rules/items.mjs:110-116`). Used only by Pale Rider (`module/rules/items.mjs:78-80, 84`).
 
-3. **Refusal:** If the unit has `cannotHoldItems`, acquisition is refused (`module/rules/items.mjs:118`).
+3. **Refusal:** If the unit has `cannotHoldItems`, acquisition is refused (`module/rules/items.mjs:118`). The refusal carries `leftOnFloor` for a unit that also redirects (Pale Rider): the Item is not lost.
 
 4. **Default:** The unit obtains its own item, `redirected: false` (`module/rules/items.mjs:119`).
+
+### Left on the floor
+
+Ruled 2026-10-04 (#180, reading 12). Pale Rider's sheet: *"…otherwise the Item will be left on the panel where the Unit who dropped the Item was standing on."*
+
+- **A hand-over** to him with his Master farther than 2 panels away still happens. `giveItem` marks the grant with `dropAt: <the giver's panel>`, the applier's `itemGrant` case sees `leftOnFloor` and calls `io.dropItem`, and the giver spends the hand-over for the Turn.
+- **A grant with no giver** lands on his own panel.
+- **A ground Item he walks onto** stays where it lies, as `itemPickupIntents` already refused.
+- `io.dropItem` places the `dropped-item` structure, named and drawn as the Item, with `carriesItemId` and `carriesItemCount`: a stack lands whole.
+- A ground Item is taken only by moving onto its panel, so a giver steps off and back. Moving onto a panel takes **every** Item lying there, each through its own refusals, whole.
+
+Test: `test/unit/item-drop.test.mjs`.
 
 ## Invariants & edge cases
 

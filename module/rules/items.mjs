@@ -115,7 +115,15 @@ export function acquisitionTarget(unit, board, item = null) {
     if (reachable) return { ok: true, unitId: master.id, redirected: true };
   }
 
-  if (unit.cannotHoldItems) return { ok: false, reason: "cannotHoldItems" };
+  // *"...otherwise the Item will be left on the panel where the Unit who
+  // dropped the Item was standing on."* Ruled 2026-10-04 (#180): a hand-over
+  // still happens and the Item lands on the GIVER's panel; a grant with no
+  // giver lands on his own; a ground Item he walks onto stays where it lies.
+  // Still a refusal to HOLD -- `leftOnFloor` tells each caller the Item is not
+  // lost.
+  if (unit.cannotHoldItems) {
+    return { ok: false, reason: "cannotHoldItems", leftOnFloor: unit.itemHandling === "redirectToMaster" };
+  }
   return { ok: true, unitId: unit.id, redirected: false };
 }
 
@@ -146,24 +154,33 @@ export function acquisitionTarget(unit, board, item = null) {
  */
 export function itemPickupIntents(unit, board) {
   if (!unit?.panel) return [];
-  const cache = (board?.units ?? []).find((u) => (
+  // EVERY Item lying here, each through its own refusals (ruled 2026-10-04,
+  // #180): a dropped stack can land where the Vorpal Blade already lies, and
+  // *"walking onto its panel picks it up"* does not say how many.
+  const caches = (board?.units ?? []).filter((u) => (
     u.kind === "structure" && u.carriesItemId && u.panel
     && u.panel.i === unit.panel.i && u.panel.j === unit.panel.j
   ));
-  if (!cache) return [];
 
-  const to = acquisitionTarget(unit, board, cache.carriesItem ?? { contentId: cache.carriesItemId });
-  if (!to.ok) return [];
-
-  return [
-    {
-      kind: "itemGrant", unitId: to.unitId, itemId: cache.carriesItemId,
-      contentId: cache.carriesItemId, delta: 1,
-      barredFrom: cache.carriesItem?.barredFrom ?? null,
-    },
-    { kind: "dismiss", unitId: cache.id, reason: "itemTaken" },
-    { kind: "log", event: "itemPickedUp", itemId: cache.carriesItemId, by: to.unitId },
-  ];
+  /** @type {object[]} */
+  const out = [];
+  for (const cache of caches) {
+    const to = acquisitionTarget(unit, board, cache.carriesItem ?? { contentId: cache.carriesItemId });
+    // Refused -- the Vorpal Blade's bar, or Pale Rider with his Master away --
+    // and the Item stays exactly where it lies.
+    if (!to.ok) continue;
+    const count = Math.max(1, cache.carriesItemCount ?? 1);
+    out.push(
+      {
+        kind: "itemGrant", unitId: to.unitId, itemId: cache.carriesItemId,
+        contentId: cache.carriesItemId, delta: count,
+        barredFrom: cache.carriesItem?.barredFrom ?? null,
+      },
+      { kind: "dismiss", unitId: cache.id, reason: "itemTaken" },
+      { kind: "log", event: "itemPickedUp", itemId: cache.carriesItemId, by: to.unitId, count },
+    );
+  }
+  return out;
 }
 
 /**

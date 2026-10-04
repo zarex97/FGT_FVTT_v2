@@ -377,6 +377,10 @@ export class StructureData extends foundry.abstract.TypeDataModel {
       // pickup pass can answer *"cannot be obtained by Nursery or her Master"*
       // without loading a pack.
       carriesItemBarredFrom: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      // How many of the Item lie here. A hand-over of 3 potions to Pale Rider
+      // with his Master away lands all 3, as one stack (ruled 2026-10-04,
+      // #180), and whoever walks on takes all 3.
+      carriesItemCount: new fields.NumberField({ required: false, nullable: false, integer: true, min: 1, initial: 1 }),
 
       // Where it stands, written at placement rather than read back off the
       // token. A Structure never moves, and the token index lags its own

@@ -497,8 +497,8 @@ export const itemQuantity = (unitId, itemId, delta) =>
  * @param {string} unitId @param {string} contentId @param {number} delta
  * @returns {Intent}
  */
-export const itemGrant = (unitId, contentId, delta = 1) =>
-  ({ t: "itemGrant", unitId, contentId, delta });
+export const itemGrant = (unitId, contentId, delta = 1, dropAt = null) =>
+  ({ t: "itemGrant", unitId, contentId, delta, ...(dropAt ? { dropAt } : {}) });
 
 /**
  * Set a unit's contract state and its Master (Ch. 32).
