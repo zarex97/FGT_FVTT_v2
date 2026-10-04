@@ -113,6 +113,11 @@ export function darkModifiers(unit, current) {
  * @returns {object|null}
  */
 export function ownBaseOf(unit, board) {
+  // A pocket dimension is somewhere else, not above the board: a Unit inside
+  // the Storm Border is in no Home Base, whatever panel it stands on (ruled
+  // 2026-10-03, #177). A Unit on an ordinary platform's Level over its own
+  // rows IS inside, as (i, j) says -- the same ruling, the other half.
+  if (inPocketDimension(unit, board)) return null;
   for (const zone of Object.values(board?.zones ?? {})) {
     if (zone.faction !== unit?.faction) continue;
     if ((zone.panels ?? []).some((p) => chebyshev(p, unit.panel) === 0)) return zone;
@@ -184,6 +189,19 @@ export function ownBaseOf(unit, board) {
  */
 export function inOwnHomeBase(unit, board) {
   return ownBaseOf(unit, board) !== null;
+}
+
+/**
+ * Is this Unit inside a pocket dimension -- aboard a platform that authors a
+ * `dimension` block, the Storm Border's Imaginary Numbers Space?
+ *
+ * @param {object} unit
+ * @param {object} board
+ * @returns {boolean}
+ */
+export function inPocketDimension(unit, board) {
+  if (!unit?.platformId) return false;
+  return Boolean((board?.units ?? []).find((u) => u.id === unit.platformId)?.isDimension);
 }
 
 /**

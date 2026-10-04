@@ -181,6 +181,10 @@ export function snapshotUnit(actor, {
     panels: footprint.length > 1 ? footprint : (sys.panels ?? null),
     level: footprint[0].k ?? doc?.elevation ?? 0,
     platformId: sys.platformId ?? null,
+    // A platform that is a pocket dimension, not a deck above the board: who
+    // is aboard it is in no Home Base (#177). The block itself is read off the
+    // document by `engine/dimension.mjs`.
+    isDimension: Boolean(sys.dimension),
     facing: sys.facing ?? "n",
 
     // `null` is a legal health value meaning "cannot be damaged and cannot be

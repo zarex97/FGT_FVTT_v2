@@ -15,6 +15,7 @@
 
 import { chebyshev } from "../domain/geometry.mjs";
 import { Rank } from "../domain/rank.mjs";
+import { inPocketDimension } from "./environment.mjs";
 
 /**
  * Detect, and therefore vision range, **by class container**.
@@ -168,6 +169,8 @@ function detectForClass(unit, board) {
  * @returns {boolean}
  */
 function inOwnHomeBase(unit, board) {
+  // Inside the Storm Border is in no Home Base (#177).
+  if (inPocketDimension(unit, board)) return false;
   for (const zone of Object.values(board?.zones ?? {})) {
     if (zone.faction !== unit?.faction) continue;
     if ((zone.panels ?? []).some((p) => p.i === unit.panel?.i && p.j === unit.panel?.j)) return true;
