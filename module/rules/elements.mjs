@@ -1996,8 +1996,14 @@ export const EXECUTORS = Object.freeze({
   },
 
   GrantedAbility(el, { source, out }) {
-    for (const id of el.abilities ?? []) out.grantedAbilities.push(id);
-    if (el.ability) out.grantedAbilities.push(el.ability);
+    const ids = [...(el.abilities ?? []), ...(el.ability ? [el.ability] : [])];
+    out.grantedAbilities.push(...ids);
+    // *"Pale Rider cannot Evade, Block, or Counter."* `noReactions` was read
+    // only where reaction ABILITIES are offered, so the react rung still put
+    // Block and Evade in front of him, and live he Evaded Achilles (#180).
+    // Said as the rungs it closes, which is what the ladder and the counter
+    // check already read.
+    if (ids.includes("noReactions")) out.forbiddenReactions.push("evade", "block", "counter");
     void source;
   },
 
