@@ -4039,12 +4039,11 @@ Two entries in §46.4 still wait on the author: §46.4-DJ (does No Buff prevent 
 
 ## 46.16 Pale Rider — the Servant who cannot be hurt and is never alone
 
-**109 of his 118 Clauses were Pressed or Observed on a live board** (#180, 2026-10-02 to 2026-10-04). The nine
-left are not presses still owed. Five need a damaging [Anti-World] Noble Phantasm that the corpus does not have
-(#183, ruled: blocked, no tests yet). Four wait on readings 11 and 12 in #180: Magic Resistance's damage half
-on a Unit that takes no damage (`MR.p1`, `MR.p1.over`, `MR.np`), and where an Item he cannot hold goes when
-his Master is away (`PR.items.drop`). The Clauses span five Units: Pale Rider and the four Kagome Spirits
-his Noble Phantasm summons. His Doomsday Come carries the rules of three other abilities.
+**110 of his 115 Clauses were Pressed or Observed on a live board** (#180, 2026-10-02 to 2026-10-04). The five
+left need a damaging [Anti-World] Noble Phantasm the corpus does not have (#183, ruled: blocked, no tests
+yet). Three more were ruled not Clauses on him (reading 11): Magic Resistance's damage half can change
+nothing on a Unit every hit negates to 0. The Clauses span five Units: Pale Rider and the four Kagome
+Spirits his Noble Phantasm summons. His Doomsday Come carries the rules of three other abilities.
 
 **Why he finds so much.** Almost nothing he does is an Attack. He has no Health, no Normal Attack and no
 reactions; his damage is a field's Health loss; his Noble Phantasm is a prison that summons allies who chase
@@ -4064,6 +4063,8 @@ His own, fixed and tested:
 | e04c31c | His sheet offered a Normal Attack the bar hides |
 | fa21d57 | The Drag ran field contact twice: two Spirits for one dragged Master |
 | 4d107bb | A banished Kagome Spirit stayed on the board: it held its panel, guarded and could be targeted |
+| 2dfc34e | An Item he could not hold was refused outright; ruled (reading 12), it is left on the floor |
+| 1f58d37 | A pickup asked about the panel the token had just left, so nothing was picked up |
 
 What was general is §46.4-EV to §46.4-FE, issues #181 and #182 among them.
 
@@ -4078,6 +4079,8 @@ What was general is §46.4-EV to §46.4-FE, issues #181 and #182 among them.
 | A guarded Master (#181) | The rulebook's three cases, for every targeted Attack, with `guardsOf` |
 | Records (#182) | A card per field per Turn end, rider rolls in the attack card, a Round-end card, a log entry for each |
 | The Anti-World Clauses (#183) | Blocked; no tests until a Servant has such a Noble Phantasm |
+| Magic Resistance's damage half (reading 11) | Not Clauses on him: no outcome can change |
+| An Item he cannot hold (reading 12) | Left on the giver's panel, or his own with no giver; a ground Item stays; moving onto a panel takes every Item there, whole |
 
 ### 46.16.3 A note on the board
 
