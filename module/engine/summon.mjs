@@ -589,7 +589,10 @@ export function sheetPatch(lines, sheet, bakedGrants, warRegion = null) {
   const patch = {};
   const value = (id) => lines.find((l) => l.id === id)?.value ?? 0;
 
-  patch.health = { max: value("maxHealth"), value: value("maxHealth") };
+  // *"Base Health: -"* and *"cannot take damage"*: no Health to write (#180).
+  patch.health = sheet?.undamageable
+    ? { max: null, value: null }
+    : { max: value("maxHealth"), value: value("maxHealth") };
   patch.agility = { max: value("maxAgility"), value: value("maxAgility") };
   patch.luck = { max: value("maxLuck"), value: value("maxLuck") };
 
