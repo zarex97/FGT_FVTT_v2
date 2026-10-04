@@ -214,10 +214,20 @@ export function resolveTargets(spec, caster, board, placement = {}) {
           && !(prey.fields ?? []).includes(caster.boundToFieldId)) return false;
         return true;
       })
-      .map((sup) => sup.forceTarget);
-    if (forced.length > 0) {
+      .map((sup) => ({ id: sup.forceTarget, pursuit: sup.source === "pursuit" }));
+    // A Kagome Spirit's AREA attack. Ruled 2026-10-04 (#180): Famine's 3x3
+    // must contain its enemy, and then hits every enemy in it -- a 3x3 that
+    // hits one Unit is not an area. Decoy and Fated Rivals keep the narrowing:
+    // they say who may be targeted, a pursuit says what the Spirit must hit.
+    const area = (spec.shape?.kind ?? "unit") !== "unit";
+    const pursued = forced.filter((f) => f.pursuit).map((f) => f.id);
+    const narrowing = forced.filter((f) => !(f.pursuit && area)).map((f) => f.id);
+    if (area && pursued.length > 0 && !survivors.some((u) => pursued.includes(u.id))) {
+      survivors = survivors.filter((u) => drop(u, "the area must contain the Spirit's own enemy"));
+    }
+    if (narrowing.length > 0) {
       survivors = survivors.filter((u) =>
-        forced.includes(u.id) || drop(u, "the attacker is forced to attack another unit"));
+        narrowing.includes(u.id) || drop(u, "the attacker is forced to attack another unit"));
     }
   }
 
