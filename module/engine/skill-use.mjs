@@ -44,7 +44,6 @@ import { transferableFrom, transferEffect, applicationsOf, effectGatePasses } fr
 import { evade, checkPlan } from "../rules/checks.mjs";
 import { randomFreePanelIn, panelsOf, levelOf, castLevel } from "../rules/bounded-fields.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
-import { runContactEvents } from "./movement-hooks.mjs";
 import { tableFor, entriesFor, choicesIn, effectsOf } from "../rules/roll-table.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as budget from "./budget.mjs";
@@ -801,9 +800,11 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
             x: panel.j * canvas.scene.grid.size,
             y: panel.i * canvas.scene.grid.size,
           });
-          // Being swept into an area is contact with it, the same reading
-          // `createField` makes for whoever a field opens around.
-          await runContactEvents([doc.id], [field.id]);
+          // Being swept into an area is contact with it -- and the displacement
+          // itself runs it: `movement-hooks.mjs` settles field contact above
+          // its forced-move return, for exactly this case. Calling it here as
+          // well ran Kagome Kagome twice, and live the dragged Master got a
+          // Beast AND a Sword on one panel (#180).
           applied.push({ summary: {
             id: "dragInto", name: doc.name, outcome: "applied", reason: `Evade ${roll.total}`,
           } });
