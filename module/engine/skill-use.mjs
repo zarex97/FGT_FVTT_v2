@@ -144,7 +144,13 @@ export async function useSkill({
   const isNP = ability.type === "noblePhantasm" || ability.system?.isNP === true;
   const budgetAction = budgetActionFor(isNP ? "np"
     : asAttack ? (ability.system?.isSpell ? "damageSpell" : "normal") : "skill");
-  if (combat?.started) {
+  // An action that costs nothing. Doomsday Come's Drag is ruled (2026-10-04,
+  // #180) an action the Noble Phantasm grants, neither an Attack nor a Skill:
+  // no pool is asked or charged -- so no Seal on either refuses it -- and the
+  // Unit is marked as having Acted and nothing more. The same flag the attack
+  // path reads for Kiritsugu's free Normal Attack (`attack-preflight.mjs`).
+  const free = Boolean(ability.system?.freeAction);
+  if (combat?.started && !free) {
     const verdict = budget.affordable(combat, self, budgetAction);
     if (!verdict.ok) return { ok: false, reason: verdict.reason };
   }
@@ -170,7 +176,7 @@ export async function useSkill({
 
   const marks = {
     ...(countsAsAct(ability) ? { acted: true } : {}),
-    ...(asAttack ? { attacked: true } : { usedActiveSkill: true }),
+    ...(free ? {} : asAttack ? { attacked: true } : { usedActiveSkill: true }),
   };
 
   await applyWorldIntents([
@@ -198,7 +204,7 @@ export async function useSkill({
 
   // The SAME action the check above asked about. Two spellings here is how a
   // use gets checked against one pool and charged to another.
-  if (combat?.started) await budget.spend({ combat, unit: self, action: budgetAction });
+  if (combat?.started && !free) await budget.spend({ combat, unit: self, action: budgetAction });
   await fireAbilityUsed(actor, ability);
   await rollConcealmentBreak(actor, ability, self);
   await postCard(actor, ability, targets.units, applied);
@@ -751,10 +757,12 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // forcibly dragged into the Doomsday Come area and placed on a random
           // panel within."*
           //
-          // An attack in every structural sense except that it deals no damage
-          // (Ch. 28): it spends the attack budget and marks `acted`, through
-          // the ability's own `countsAsAttack`, and it never opens a Combat
-          // Process -- there is no damage step for one to run.
+          // Not an Attack and not a Skill (ruled 2026-10-04, #180): an action
+          // the Noble Phantasm grants. It spends no budget (`freeAction`),
+          // marks `acted`, and never opens a Combat Process -- there is no
+          // damage step for one to run. The roll takes only what modifies
+          // Evade rolls in general (Innocent World's +4), read off the BOARD
+          // unit; nothing about the kind of Attack, because it is none.
           const field = (board.fields ?? []).find((f) => f.id === phase.fieldId);
           if (!field) break;
 

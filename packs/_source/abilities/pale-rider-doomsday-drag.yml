@@ -17,7 +17,13 @@ slug: doomsdayDrag
 # "An attack in every structural sense except that it deals no damage"
 # (Ch. 28): it spends the Attack, marks him as having Acted, and opens no
 # Combat Process -- there is no damage step for one to run.
-countsAsAttack: true
+# Ruled 2026-10-04 (#180): an action Doomsday Come grants, neither an Attack
+# (it has no damage) nor a Skill. It spends no budget slot and no Seal on
+# either refuses it; he still counts as having Acted. Its only condition is
+# the area being open, so it ignores the Master's ZON and NP Seal too.
+countsAsAttack: false
+countsAsAct: true
+freeAction: true
 oncePerTurn: true
 timing: { window: ownTurn }
 requirements:
