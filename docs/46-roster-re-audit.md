@@ -2632,7 +2632,7 @@ classifies as `ridesAsAttack`. Measured after: the slot opened the overlay and t
 north at tick 43 and 5 panels through W1, which took 229, at tick 61. Ten other `fgt…` hook names still
 have no `Hooks.on` (listed in #113, not looked at).
 
-### CR. A Riding Attack skipped every gate a drag and an attack both pass — **fixed 2026-10-01, not yet pressed live** (#114)
+### CR. A Riding Attack skipped every gate a drag and an attack both pass — **fixed 2026-10-01, pressed live 2026-10-04** (#114)
 
 **Reached: the Quetzalcoatl paper trace (#65).** `ridingAttackPath` tested straightness and the MOV
 allowance and nothing else, so a ride could end off the board, on an occupied panel or beside a guarded
@@ -2665,7 +2665,7 @@ and a toggle off and on again in one Turn with `cooldown.remaining` 0 throughout
 end-of-Turn step in `scheduler-hooks.mjs` switch the mode off. Measured after: cooldown 9 (3◈) and MOV 7 →
 13 at tick 43, MOV 7 again at the Turn's end, tick 44.
 
-### CU. Double Move was decided by an item's name, not by the doubleMove grant — **fixed 2026-10-01, not yet pressed live** (#117)
+### CU. Double Move was decided by an item's name, not by the doubleMove grant — **fixed 2026-10-01, pressed live 2026-10-04** (#117)
 
 **Reached: the Quetzalcoatl paper trace (#65).** The drag gate was handed `unit.hasRiding`, an item slug
 or name match, and `canConsume` ORed it with the grant, so the grant was neither necessary nor sufficient:
@@ -2675,7 +2675,7 @@ Riding grants none, could Move after an Attack every Turn. `rules/movement.mjs#s
 projection, `hasSkill` and the option on `validatePath` and `planMovement` are deleted. Quetzalcoatl's
 RI.p1 had been right by accident of the item's name.
 
-### CV. Passenger Seat refused a Master who stood one move behind the Servant — **fixed 2026-10-01, not yet pressed live** (#118)
+### CV. Passenger Seat refused a Master who stood one move behind the Servant — **fixed 2026-10-01, pressed live 2026-10-04** (#118)
 
 **Reached: the Quetzalcoatl paper trace (#65).** The carry runs from `moveToken`, where Foundry still
 reports the Servant at her origin until the animation ends, and the landing is the Master's panel plus her
@@ -2685,7 +2685,7 @@ occupied"*. `rules/movement.mjs#passengerLanding` treats her as already standing
 `passenger-seat.mjs#carryMasterAlong` asks it; off the board and a panel held by somebody else still
 refuse. The same stale-board timing as §46.4-BZ.
 
-### CW. Riding's Active was refused by No Buff and by a buff immunity — **fixed 2026-10-01, not yet pressed live** (#119)
+### CW. Riding's Active was refused by No Buff and by a buff immunity — **fixed 2026-10-01, pressed live 2026-10-04** (#119)
 
 **Reached: the Quetzalcoatl paper trace (#65).** For Medusa, Drake and Pollux the Active is a used ability
 that applies `ridingActive`, the MOV Up and the marker their Riding Attack and Passenger Seat ask for. The
@@ -2695,7 +2695,7 @@ is not a buff and Appendix A lists it among the statuses No Buff never blocks. I
 `packs/_source/effects/riding-active.yml`. Quetzalcoatl was never affected: her Active is a mode. See
 §46.4-DJ for the same question about S.Crit Up.
 
-### CX. Drake's Riding carried the literal cooldown "@cooldown", and the build guard stripped it before it checked — **fixed 2026-10-01, not yet pressed live** (#120)
+### CX. Drake's Riding carried the literal cooldown "@cooldown", and the build guard stripped it before it checked — **fixed 2026-10-01, pressed live 2026-10-04** (#120)
 
 **Reached: the Quetzalcoatl paper trace (#65).** `drake.yml` passed no `cooldown` beside
 `class-riding-drake`, so her compiled Riding held `"@cooldown"`, which Foundry's `TickField` refuses:
@@ -2706,7 +2706,7 @@ whole-string `@name` from every document, embedded Items included, and the durat
 cooldown or duration still holding a placeholder, naming the ref and the parameter; the model check strips
 slots only from a standalone template.
 
-### CY. The summon dialog's Region list omitted three Regions that Servants carry — **fixed 2026-10-01, not yet pressed live** (#121)
+### CY. The summon dialog's Region list omitted three Regions that Servants carry — **fixed 2026-10-01, pressed live 2026-10-04** (#121)
 
 **Reached: SB.** The dialog offers `Object.keys(REGION_ADJACENCY)`, thirteen ids, and Quetzalcoatl's
 `centralAmerica` and `southAmerica` and Anastasia's `russia` were not among them, so a war that gives
@@ -2716,7 +2716,7 @@ The three ids join `rules/environment.mjs#REGION_ADJACENCY`, with the edges
 so Semiramis's counter is unchanged. A guard holds every `region` id in `packs/_source/servants` to being
 a key of the graph.
 
-### CZ. The shared Riding text printed none of the rules it grants — **fixed 2026-10-01, not yet pressed live** (#122)
+### CZ. The shared Riding text printed none of the rules it grants — **fixed 2026-10-01, pressed live 2026-10-04** (#122)
 
 **Reached: the Quetzalcoatl paper trace (#65).** No behaviour changed. `class-skills/riding.yml` printed
 the names of its grants and none of the rules they switch on (the straight line, the stop, MOV minus the
@@ -2726,7 +2726,7 @@ the sentence that says the MOV Up is not a buff. Comments said that nothing read
 a ride, and that her Riding is word-for-word the shared document. Pale Rider's MOV now reads `ridingMov`
 at EX instead of a flat 6 under a comment that said EX is not a row of that table.
 
-### DA. A debuff from a Skill that deals no damage ignored the target's resistance — **fixed 2026-10-01, not yet pressed live** (#123)
+### DA. A debuff from a Skill that deals no damage ignored the target's resistance — **fixed 2026-10-01, pressed live 2026-10-04** (#123)
 
 **Reached: the Quetzalcoatl paper trace (#65).** `applyPhaseEffects` handed `applyEffect` a context with
 `resist: 0`, and the applier reads the target's own resistance with `ctx.resist ?? resistanceOf(target)`;
@@ -2736,7 +2736,7 @@ Medea's Atlas ignored her Magic Resistance. The attack path had already fixed ex
 literal is now `engine/skill-use.mjs#skillEffectContext`, exported, and carries no `resist`; a corpus
 guard fails on a literal `resist:` key anywhere in `module/engine` outside the applier.
 
-### DB. The targeting preview tested Magic Resistance against the user's MAG, the resolution against the ability's Rank — **fixed 2026-10-01, not yet pressed live** (#124)
+### DB. The targeting preview tested Magic Resistance against the user's MAG, the resolution against the ability's Rank — **fixed 2026-10-01, pressed live 2026-10-04** (#124)
 
 **Reached: the Quetzalcoatl paper trace (#65).** Stage 11 takes `ctx.attack.rank ?? attacker.mag`. The
 resolution set the ability's Rank and the preview built its attack with none, so Karna's Brahmastra (A+,
@@ -2768,7 +2768,7 @@ in by hand and agreed with itself, not with the projection: a Silent Drop.
 `survival.test.mjs` routes the record as a Hop of its own. Measured after: *"Goddess's Divine Core
 (superseded by Piedra Del Sol) 0 · Piedra Del Sol +180"*, tick 39.
 
-### DE. An effect delivered by an event rider was tested against an empty option set — **fixed 2026-10-01, not yet pressed live** (#127)
+### DE. An effect delivered by an event rider was tested against an empty option set — **fixed 2026-10-01, pressed live 2026-10-04** (#127)
 
 **Reached: the Quetzalcoatl paper trace (#65).** Latent: no content is wrong today. `resolveEffects`, the
 path every `OnEvent`, scheduler and field `ApplyEffect` takes, called `applyEffect` with `options: new
@@ -2799,7 +2799,7 @@ Unit with the anchor); two or more open the review as a pick, whatever `targetin
 that survives to the engine is refused, so a macro no longer pays and resolves against nobody. Measured
 after: the choose dialog listed her allies and refused the enemy, ticks 18 and 33.
 
-### DH. A Skill used from a player's client could not write what it paints, raises or buffs — **fixed 2026-10-01, not yet pressed live** (#130, #144)
+### DH. A Skill used from a player's client could not write what it paints, raises or buffs — **fixed 2026-10-01, pressed live from a Player client 2026-10-04** (#130, #144)
 
 **Reached: the Quetzalcoatl paper trace (#65).** A non-attacking ability, and every damage-less Noble
 Phantasm since §46.4-CK, ran `useSkill` on the client that pressed it. A Player cannot create a Region
@@ -2810,7 +2810,7 @@ Skill asks go to the owning player through `engine/ask.mjs#chooseFor`; `OPERATIO
 the same for the End control; `onMove` repaints a following area from the active GM only. Nobody has
 pressed it from a Player client: a single-GM board cannot show it.
 
-### DI. Crit Up, S.Crit Up and Crit DmUp raised a Noble Phantasm's crit at full value — **fixed 2026-10-01, not yet pressed live** (#131)
+### DI. Crit Up, S.Crit Up and Crit DmUp raised a Noble Phantasm's crit at full value — **fixed 2026-10-01, pressed live 2026-10-04** (#131)
 
 **Reached: CS.2, LL.1 and LL.2, ruled by the user.** Appendix A says the crit family is *"Not NP unless
 stated"*, and both readers fell back to the full value: `checks.mjs#critModifiers` returned `npValue` only
@@ -2831,7 +2831,7 @@ both with `bypassesImmunity: true`. Nobody applies No Buff today, so the differe
 question for the author: does No Buff, or a buff-scoped immunity, count as preventing it? Yes is one line
 of content; no is a reworded catalogue row. Decide with §46.4-CW, which has the same gate.
 
-### DK. A concealed ally could not be chosen by an allied Skill — **fixed 2026-10-01, not yet pressed live** (#133)
+### DK. A concealed ally could not be chosen by an allied Skill — **fixed 2026-10-01, pressed live 2026-10-04** (#133)
 
 **Reached: the Quetzalcoatl paper trace (#65).** Step 7 of `resolveTargets` dropped every concealed Unit
 from a chosen or counted selection whatever its relation, but Presence Concealment clause 1 forbids less:
@@ -3015,7 +3015,7 @@ Tentyris. `skill-use.mjs#fortressesNearby` tests that tag alone and gives each F
 `TerrainBehavior.boundToFieldId`, and `fields.mjs#endField` erases what is bound to the field it closes.
 Measured: Burning over the 13x13 Fortress and ring, cleared when the Fortress ended, tick 69.
 
-### EB. A bounded field's interior events still acted on defeated Units — **fixed 2026-10-01, not yet pressed live** (#153)
+### EB. A bounded field's interior events still acted on defeated Units — **fixed 2026-10-01, pressed live 2026-10-04** (#153)
 
 **Reached: the Quetzalcoatl paper trace (#65).** The other half of §46.4-CN and the sibling of §46.4-CP:
 `runFieldEvent` had no `defeated` test, and a defeat never removes the token, so every interior event kept
@@ -3025,7 +3025,7 @@ the owner again for every corpse at every Turn end, and Ozymandias's Complex wou
 for it. `engine/fields.mjs#runFieldEvent` now filters on `!u.defeated`; contact events share the filter.
 Every author of `interiorEvents` is reached.
 
-### EC. A field's Damage action dropped its element and its fixed flag, and nothing read an element on bare damage — **fixed 2026-10-01, not yet pressed live** (#154)
+### EC. A field's Damage action dropped its element and its fixed flag, and nothing read an element on bare damage — **fixed 2026-10-01, pressed live 2026-10-04** (#154)
 
 **Reached: PDS.2.** The `Damage` branch of `runFieldEvent` read `roll`, `amount` and `component`, so
 Piedra Del Sol's `{amount: 50, element: fire, fixed: true}` became 50 damage with no element; and the
@@ -3059,7 +3059,7 @@ refused on it, and the `declareCounter` authorizer checked nothing about the abi
 predicate-gated Counters stay legal. Measured: `answersACounter` false for all three and `counterOffer`
 leaving them out, tick 30.
 
-### EF. A rider and the sheet's ability cards were applied or gated on a bare snapshot, not the board's Unit — **fixed 2026-10-01, not yet pressed live** (#157, #158)
+### EF. A rider and the sheet's ability cards were applied or gated on a bare snapshot, not the board's Unit — **fixed 2026-10-01; the sheet half pressed live 2026-10-04 (#158), the rider half waits for a field with an incoming ApplicationChance on the board (#157)**
 
 **Reached: the Quetzalcoatl paper trace (#65).** The shape §46.4-AF and §46.4-AG fixed at two other sites.
 `applyAbilityEffects` built both sides from `unitSnapshot`, so a bounded field's incoming
@@ -3091,7 +3091,7 @@ Unit's, with the reason `notOwnTurn`; an ability that names another window as we
 Counter, and a table with no acting faction are not asked. Measured after: every Skill on her bar read
 *"Only during your Turn."*, tick 12.
 
-### EI. A painted terrain area ended a Turn before the effect that painted it — **fixed 2026-10-01, not yet pressed live** (#161)
+### EI. A painted terrain area ended a Turn before the effect that painted it — **fixed 2026-10-01, pressed live 2026-10-04** (#161)
 
 **Reached: CS.3.** Seen live at tick 4: Charisma of the Sun stamped the Sol buff, Atk Up and the sunlight
 Region with one expiry, 4, and the Region was gone at the start of the Turn while Sol and Atk Up stood.
@@ -3839,9 +3839,7 @@ Master boards it freely, where he had been left standing beside it on nothing an
 | 16 | The Quetzalcoatlus is 2x2 panels | Content (e506119), not printed on the sheet |
 
 **What was general** (§46.4-CQ to §46.4-EU, issues #113 to #175 except #168, which §46.4-CP records, and the
-splash riders, filed under #65). Of the 63 issues, **38 are closed** with the fix looked at on a board; **19 are fixed in
-code and still open**, because no closing comment records a live press; **five wait for a ruling** (#132,
-#134, #170, #174, #175) and **one waits for a fix** (#164). By family:
+splash riders, filed under #65). Of the 63 issues, **60 are closed**, each with the fix looked at on a board. Eighteen of them were pressed live on 2026-10-04, two of those from a Player client (#130, #144). The rest were ruled and built (#170, #174, #175) or duplicated (#164). **One is fixed in code and not yet pressed**: #157, which needs a field with an incoming `ApplicationChance` on the board, and the only one authored is Pale Rider's Doomsday Come. **Two wait for a ruling**: #132 and #134. By family:
 
 - **Riding**, nine entries: CQ (#113, no interface path), CR (#114, the gates), CS (#115, the Master),
   CT (#116, the free toggle), CU (#117, Double Move by name), CV (#118, the stale landing), CW (#119, No Buff),
