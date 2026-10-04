@@ -83,6 +83,7 @@ export function squareAround({ i, j }, size) {
  * @property {{i: number, j: number, k?: number}} [anchor] where it was cast; the middle of its panels by default
  * @property {number} [createdAt]
  * @property {object} [state] what the field's own state holds (`enteredAt`, ...)
+ * @property {object} [shape] the shape as cast, for a field that ROLLS its size at the cast (Doomsday Come's `radiusRoll`); the authored shape otherwise
  */
 
 /**
@@ -105,7 +106,7 @@ export async function fieldsOf(casts) {
     const anchor = { i: middle.i, j: middle.j, k: 0, ...(cast.anchor ?? {}) };
     const data = fieldDataOf({
       ability, actor: { id: cast.owner, system: { masterId: cast.ownerMaster ?? null } },
-      faction: cast.faction ?? null, spec, geometry: { ...(spec.geometry ?? {}), anchor },
+      faction: cast.faction ?? null, spec, geometry: { ...(spec.geometry ?? {}), ...(cast.shape ? { shape: cast.shape } : {}), anchor },
       membership: spec.membership, duration: spec.duration,
     });
     data.createdAt = cast.createdAt ?? 0;
