@@ -75,7 +75,7 @@ describe("a card reads the board's annotations (#158)", () => {
       const { abilitiesContext } = await import("../../module/apps/actor-sheet/context.mjs");
       const cards = abilitiesContext(world.actor("quetz"), snapshotUnit(world.actor("quetz"), { panel: { i: 6, j: 6 } }), 3, board);
       const all = [...cards.classSkills, ...cards.skills, ...cards.noblePhantasms];
-      return Object.fromEntries(all.map((c) => [c.name, c.state.ok]));
+      return Object.fromEntries(all.map((c) => [c.name, c.state?.ok ?? null]));
     });
     expect(states.Tlahuitequiliztli).toBe(false);
     expect(states["Xiuhcoatl: O Flame, Burn the Gods Themselves"]).toBe(true);

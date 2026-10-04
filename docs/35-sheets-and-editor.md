@@ -40,6 +40,8 @@ The ability editor is an **ItemSheetV2 registered as the default sheet for three
 
 **The sheet offers what the action bar offers** (#180). The Overview tab's Actions panel showed a Normal Attack button to Pale Rider, previewed a Legal attack, and the press was refused: his Riding grants `noNormalAttack`, which `rules/actions.mjs` reads to drop the bar's slot. The context's `canNormalAttack` reads the same grant, and the template hides the button. Test: `test/unit/sheet-no-normal-attack.test.mjs`.
 
+**A passive's card shows no use state and no cost** (#180). Kagome Kagome, a Rank A Noble Phantasm always in effect, read "The Master cannot pay the Health cost … ✗ cannot be paid" on Pale Rider's sheet: the card asked `canUseAbility` about a use that cannot happen. For `use.kind === "passive"` the context passes neither `state` nor `cost`, and the template draws the state line only when there is one. Test: `test/unit/passive-card-no-cost.test.mjs`.
+
 ### Separation of concerns
 
 `context.mjs` is impure: it reaches for documents, the board, combat, settings, and builds a snapshot. `present.mjs` is pure: given parameters, it returns presentation data with no side effects (`module/apps/actor-sheet/sheet.mjs:11`). This split means the sheet's arithmetic can be unit-tested without Foundry running, and changes to the board or combat behaviour stay visible without reading the template.

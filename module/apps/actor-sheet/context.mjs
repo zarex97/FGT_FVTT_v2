@@ -696,8 +696,12 @@ function abilityCard(item, { actor, unit, master, round, turnsPerRound, board })
     // A mode that is on reads as on; `cannotDeactivate` explains a disabled
     // toggle rather than leaving the player clicking a dead control.
     locked: Boolean(item.system.active && item.system.cannotDeactivate),
-    state: abilityState(verdict, { turnsPerRound }),
-    cost: abilityCost(verdict.cost, master, unit),
+    // A PASSIVE is never used, so it is never refused and never billed. Kagome
+    // Kagome, Rank A and always in effect, read "The Master cannot pay the
+    // Health cost ... ✗ cannot be paid" on Pale Rider's sheet (#180): the Rank's
+    // Health cost belongs to a use that cannot happen.
+    state: use.kind === "passive" ? null : abilityState(verdict, { turnsPerRound }),
+    cost: use.kind === "passive" ? null : abilityCost(verdict.cost, master, unit),
     usage: item.system.maxUses !== null && item.system.maxUses !== undefined
       ? { used: item.system.timesUsed ?? 0, max: item.system.maxUses }
       : null,
