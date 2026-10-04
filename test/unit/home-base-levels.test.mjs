@@ -56,3 +56,22 @@ describe("a pocket dimension over the Home Base", () => {
     expect([deck.detect, dimension.detect]).toEqual([5, 3]);
   });
 });
+
+describe("a dimension with no token", () => {
+  // Live: Zero Sail put Nemo on "The Storm Border" Level, and the Storm Border
+  // has no ground footprint, so no token: nothing stamped his `platformId`, and
+  // he still read `inHomeBase: true`. The Level he stands on is the answer.
+  it("is told by the Level the Unit stands on", async () => {
+    const { inPocketDimension, inOwnHomeBase } = await import("../../module/rules/environment.mjs");
+    const board = { zones: HOME, dimensionLevels: ["stormLevel"], units: [] };
+    const nemo = { id: "n", faction: "f1", panel: { i: 5, j: 5 }, levelId: "stormLevel", platformId: null };
+    expect(inPocketDimension(nemo, board)).toBe(true);
+    expect(inOwnHomeBase(nemo, board)).toBe(false);
+    expect(inOwnHomeBase({ ...nemo, levelId: "deckLevel" }, board)).toBe(true);
+  });
+
+  it("the live board lists the dimension Levels off the platform actors", async () => {
+    const { readFileSync } = await import("node:fs");
+    expect(readFileSync("module/engine/board.mjs", "utf8")).toMatch(/dimensionLevels: game\.actors\s*\.filter\(\(a\) => a\.type === "platform" && a\.system\?\.dimension/);
+  });
+});

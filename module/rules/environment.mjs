@@ -200,6 +200,9 @@ export function inOwnHomeBase(unit, board) {
  * @returns {boolean}
  */
 export function inPocketDimension(unit, board) {
+  // By the Level the token stands on: the Storm Border has no ground footprint
+  // and so no token, and its passengers are never stamped with a `platformId`.
+  if (unit?.levelId && (board?.dimensionLevels ?? []).includes(unit.levelId)) return true;
   if (!unit?.platformId) return false;
   return Boolean((board?.units ?? []).find((u) => u.id === unit.platformId)?.isDimension);
 }
