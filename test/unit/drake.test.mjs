@@ -419,20 +419,25 @@ describe("The Golden Hind — boarding (spec R7)", () => {
   });
 });
 
-describe("The Golden Hind — the toll (spec R6, R11, R12)", () => {
+describe("The Golden Hind — the toll (#187 reading 5, spec R11, R12)", () => {
   const h = src("platforms", "golden-hind.yml");
 
-  it("charges her MASTER 50 on the Round boundary", () => {
-    expect(h.upkeep.every).toBe("round");
+  it("charges her MASTER 50 every 1◈ from its activation", () => {
+    // Ruled 2026-10-05, replacing spec R6: "a full Round" is the Turns that
+    // make a Round, counted from the Turn it was raised.
+    expect(h.upkeep.every).toBe("1◈");
     expect(h.upkeep.cost).toEqual({ kind: "health", amount: 50, payer: "ownerMaster" });
   });
 
-  it("charges on the Round, not on a 1◈ period (spec R6)", () => {
-    // Her sheet strikes out "Round/1◈ Turns" in favour of "full Round", and
-    // with a variable turnsPerRound the two are different moments.
-    expect(h.upkeep.every).not.toBe("1◈");
-    // The Quetzalcoatlus is the tick-period platform, and stays one.
-    expect(src("platforms", "quetzalcoatlus.yml").upkeep.every).toBe("1◈");
+  it("raised on Turn 25, first due at the end of Turn 28, the Turn of use not counted", async () => {
+    const { upkeepDue } = await import("../../module/rules/platforms.mjs");
+    const due = (tick, last = null) => upkeepDue(h.upkeep, { tick, lastUpkeepAt: last, createdAt: 25, turnsPerRound: 3 }).due;
+    expect(due(27)).toBe(false);
+    expect(due(28)).toBe(true);
+    expect(due(30, 28)).toBe(false);
+    expect(due(31, 28)).toBe(true);
+    // Never at a Round boundary: a tick period belongs to the Turn's end.
+    expect(upkeepDue(h.upkeep, { tick: 28, createdAt: 25, turnsPerRound: 3, atRoundBoundary: true, round: 10 }).due).toBe(false);
   });
 
   it("closes instead of charging when he cannot pay (spec R12)", () => {
@@ -535,7 +540,7 @@ describe("Drake — Golden Wild Hunt (NP2)", () => {
 
   it("hits 7x3 from whichever anchor applies, the same shape on both", () => {
     const [ship] = a.targeting.anchor.branches;
-    expect(ship.shape).toEqual({ kind: "orientedRect", short: 3, long: 7 });
+    expect(ship.shape).toEqual({ kind: "orientedRect", short: 3, long: 7, turnable: true });
     expect(a.targeting.anchor.otherwise.shape).toEqual(ship.shape);
   });
 
@@ -763,5 +768,68 @@ describe("Raising the Golden Hind costs her Master nothing (spec R11)", () => {
     // Nothing here charges 50; `runUpkeep` does, once a Round.
     expect(hind.upkeep.cost.amount).toBe(50);
     expect(np1.additionalCosts[0].amount).toBe(0);
+  });
+});
+
+describe("the Golden Hind's Crit is Drake's Crit (#187 reading 2)", () => {
+  // Ruled 2026-10-05: the ship's Attack is "Drake's Normal Attack", replaced.
+  // From her own slot she is the attacker already; when the ship token itself
+  // attacks, her `damageDealt` handlers now run beside its own.
+  it("damageDealt reaches the driver of a mount that attacks for her", () => {
+    const src = readFileSync("module/engine/attack.mjs", "utf8");
+    const fn = src.slice(src.indexOf("async function fireDamageDealt"), src.indexOf("async function fireDamageDealt") + 4000);
+    expect(fn).toMatch(/turnPartnersOf\(/);
+    expect(fn).toMatch(/fireEvent\("damageDealt", hearers,/);
+  });
+
+  it("the ship's driver is its owner aboard, for the Attack", async () => {
+    const { turnPartnersOf } = await import("../../module/rules/platforms.mjs");
+    const hind = { id: "hind", kind: "platform", ownerId: "drake", replacesRiderAction: { roles: ["owner"], normalAttack: true } };
+    const drake = { id: "drake", kind: "servant", platformId: "hind" };
+    const board = { units: [hind, drake] };
+    expect(turnPartnersOf(hind, board, "attack").map((u) => u.id)).toEqual(["drake"]);
+    expect(turnPartnersOf(hind, { units: [hind, { ...drake, platformId: null }] }, "attack")).toEqual([]);
+  });
+});
+
+describe("Golden Wild Hunt turns a quarter in the preview (#187 reading 6)", () => {
+  // Ruled 2026-10-05: 7 long ahead and 3 wide, or 3 deep and 7 wide, toggled
+  // in the targeting preview.
+  const spec = {
+    anchor: { kind: "self" },
+    shape: { kind: "orientedRect", short: 3, long: 7, turnable: true },
+    selection: { relations: ["enemy"], chooser: "all" },
+  };
+  const caster = { id: "drake", kind: "servant", factionId: "f1", panel: { i: 12, j: 12 }, facing: "n", range: 3 };
+  const board = { units: [caster], bounds: { iMin: 0, jMin: 0, iMax: 24, jMax: 24 }, alliances: {} };
+  const extent = (panels) => {
+    const is = panels.map((p) => p.i); const js = panels.map((p) => p.j);
+    return { deep: Math.max(...is) - Math.min(...is) + 1, wide: Math.max(...js) - Math.min(...js) + 1 };
+  };
+
+  it("offers both shapes", async () => {
+    const { legalPlacements } = await import("../../module/rules/targeting/resolve.mjs");
+    expect(legalPlacements(spec, caster, board).map((o) => o.placement)).toEqual([{}, { transverse: true }]);
+  });
+
+  it("7 deep and 3 wide by default, 3 deep and 7 wide turned", async () => {
+    const { resolveTargets } = await import("../../module/rules/targeting/resolve.mjs");
+    expect(extent(resolveTargets(spec, caster, board, {}).panels)).toEqual({ deep: 7, wide: 3 });
+    expect(extent(resolveTargets(spec, caster, board, { transverse: true }).panels)).toEqual({ deep: 3, wide: 7 });
+  });
+
+  it("a shape that does not say turnable ignores the turn", async () => {
+    const { resolveTargets, legalPlacements } = await import("../../module/rules/targeting/resolve.mjs");
+    const fixed = { ...spec, shape: { kind: "orientedRect", short: 3, long: 7 } };
+    expect(extent(resolveTargets(fixed, caster, board, { transverse: true }).panels)).toEqual({ deep: 7, wide: 3 });
+    expect(legalPlacements(fixed, caster, board)).toHaveLength(1);
+  });
+
+  it("both of her branches say turnable, and the preview toggles", () => {
+    const np = src("abilities", "drake-golden-wild-hunt.yml");
+    expect(np.targeting.anchor.branches[0].shape.turnable).toBe(true);
+    expect(np.targeting.anchor.otherwise.shape.turnable).toBe(true);
+    const layer = readFileSync("module/apps/canvas/targeting-layer.mjs", "utf8");
+    expect(layer).toMatch(/if \(options\.length > 1\) return this\.#directionPicker\(options, hud\);/);
   });
 });

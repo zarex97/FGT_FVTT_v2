@@ -2235,7 +2235,16 @@ async function fireDamageDealt(state, result) {
   /** @type {object[]} */
   const records = [];
   const tick = game.combat?.system?.globalTurn ?? 0;
-  for (const spec of pendingRolls(attacker, "damageDealt")) {
+  // A mount that attacks IN PLACE of its driver attacks as her (#187 reading
+  // 2): the Golden Hind's Attack is *"Drake's Normal Attack"*, replaced, so its
+  // Crit is her Crit and Blazing Golden Rule's *"whenever this Unit performs a
+  // Crit"* hears it. Her handlers run beside the ship's, never instead.
+  const board = currentBoard();
+  const drivers = attacker.kind === "platform"
+    ? turnPartnersOf((board.units ?? []).find((u) => u.id === attacker.id) ?? attacker, board, "attack")
+    : [];
+  const hearers = [attacker, ...drivers.map((d) => unitSnapshot(game.actors.get(d.id)) ?? d)];
+  for (const spec of hearers.flatMap((u) => pendingRolls(u, "damageDealt"))) {
     if (!spec.formula || spec.key in rolls) continue;
     rolls[spec.key] = (await new Roll(spec.formula).evaluate()).total;
     if (spec.chance === undefined) continue;
@@ -2250,10 +2259,10 @@ async function fireDamageDealt(state, result) {
     }));
   }
 
-  const intents = fireEvent("damageDealt", [attacker], {
+  const intents = fireEvent("damageDealt", hearers, {
     tick: game.combat?.system?.globalTurn ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-    board: currentBoard(),
+    board,
     // `attack:crit` is in the set only here, which is right: a clause that asks
     // whether the attack crit is by definition asking about a resolved one.
     options: rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) }),

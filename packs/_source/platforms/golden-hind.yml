@@ -5,7 +5,7 @@ name: "The Golden Hind"
 type: platform
 description: |
   Francis Drake's ship. Activated directly as a Noble Phantasm, with an upkeep of 50 Master
-  Health per Round that REPLACES the normal Noble Phantasm cost rather than stacking with it.
+  Health every full Round (1◈ from its activation) that REPLACES the normal Noble Phantasm cost rather than stacking with it.
 # "Only performs Injury Roll when damaged by NP" -- the parenthesis beside its
 # Agility, and already a reader rather than a new one: `rules/injury.mjs` has
 # tested for this attribute since it was written, naming the Golden Hind in its
@@ -70,8 +70,10 @@ deactivateOn: [npSeal]
 # the end of the Round if Drake's Master has 50 Health or less; her Master does
 # not lose Health at the end of the Round in this situation."
 #
-# `every: round` rather than `1◈` is the author's own strikethrough (spec R6):
-# `turnsPerRound` is a world setting, so the two are different moments.
+# `every: "1◈"`, counted from the Turn it was raised, that Turn not counted
+# (ruled 2026-10-05, #187 reading 5, replacing spec R6's Round boundary): "a full
+# Round" is the Turns that make a Round. Raised on Turn 25 with three Turns a
+# Round, her Master first pays at the end of Turn 28.
 #
 # `endWhenUnaffordable` is the "or less" half, and already means "close INSTEAD
 # of charging" -- the sheet's exact clause, with no new semantics (spec R12).
@@ -85,7 +87,7 @@ deactivateOn: [npSeal]
 # The FIRST platform to carry both documented shapes of `upkeep` at once -- a
 # recurring toll AND a cost that replaces another.
 upkeep:
-  every: round
+  every: "1◈"
   cost: { kind: health, amount: 50, payer: ownerMaster }
   endWhenUnaffordable: true
   supersedes: [npCost]

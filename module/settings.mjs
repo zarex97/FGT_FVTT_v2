@@ -161,6 +161,14 @@ export function registerSettings() {
   // A number rather than a toggle because the interesting house rules are the
   // middle ones: at six a concealed Servant walking a line is found 92% of the
   // time, and at one the Skill is close to unbreakable.
+  // What a "ranged Attack" is, for every platform rule that allows only ranged
+  // Attacks across its levels: the Golden Hind and the Hanging Gardens. The
+  // minimum Range that counts. 2 is the reading ruled 2026-10-05 (#187
+  // reading 4); a table may raise it. Nothing stored depends on it.
+  s("rangedMinimumRange", {
+    name: "FGT.Settings.RangedMinimumRange", hint: "FGT.Settings.RangedMinimumRangeHint",
+    type: Number, default: 2, range: { min: 2, max: 10, step: 1 },
+  });
   s("discoverAttemptsPerFaction", {
     name: "FGT.Settings.DiscoverAttempts", hint: "FGT.Settings.DiscoverAttemptsHint",
     type: Number, default: 3, range: { min: 0, max: 10, step: 1 },

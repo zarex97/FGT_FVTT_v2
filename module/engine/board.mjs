@@ -441,6 +441,8 @@ export function currentBoard(overrides = {}) {
         discoverAttemptsPerFaction: setting("discoverAttemptsPerFaction", 3),
         // #65 ruling 18: the eight lines, or rows and columns only.
         ridingAttackLines: setting("ridingAttackLines", "eight"),
+        // #187 reading 4: what Range makes an Attack "ranged".
+        rangedMinimumRange: setting("rangedMinimumRange", 2),
       },
       warRegion: currentWarRegion(),
       warType: combat?.system?.warType ?? setting("warType", "greatHolyGrailWar"),

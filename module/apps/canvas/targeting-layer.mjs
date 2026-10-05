@@ -325,6 +325,9 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
       case "targetUnit":
       case "fieldEdge": return this.#unitPicker(options, hud, board);
       default:
+        // A shape with a quarter turn offers both, toggled like directions
+        // (#187 reading 6): hover, the arrow keys or R, then click or Enter.
+        if (options.length > 1) return this.#directionPicker(options, hud);
         if (options[0]?.legal) return options[0].placement;
         reportNothingLegal(options, board);
         return null;
@@ -362,7 +365,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
 
     return this.#await({
       onKey: (key) => {
-        const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[key];
+        const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1, r: 1, R: 1 }[key];
         if (step === undefined) return null;
         focused = (focused + step + options.length) % options.length;
         render();

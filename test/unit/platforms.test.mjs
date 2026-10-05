@@ -162,6 +162,22 @@ describe("crossLevelLegal", () => {
       .toMatchObject({ ok: false, reason: "requiresRanged" });
   });
 
+  it("counts ranged from the table's minimum Range (#187 reading 4)", () => {
+    // Ruled 2026-10-05: Range 2 or more by default, and a setting a GM may raise.
+    const open = platform({ crossLevel: { ...platform().crossLevel, occupantTargeting: "rangedOnly" } });
+    const b = boardOf([open, rider(), grounded()]);
+    expect(crossLevelLegal({ ...grounded(), range: 2 }, rider(), b)).toMatchObject({ ok: true });
+    const strict = { ...b, rules: { ...(b.rules ?? {}), rangedMinimumRange: 3 } };
+    expect(crossLevelLegal({ ...grounded(), range: 2 }, rider(), strict))
+      .toMatchObject({ ok: false, reason: "requiresRanged" });
+    expect(crossLevelLegal({ ...grounded(), range: 3 }, rider(), strict)).toMatchObject({ ok: true });
+  });
+
+  it("the setting reaches the board", () => {
+    expect(readFileSync("module/engine/board.mjs", "utf8")).toMatch(/rangedMinimumRange: setting\("rangedMinimumRange", 2\)/);
+    expect(readFileSync("module/settings.mjs", "utf8")).toMatch(/s\("rangedMinimumRange", \{/);
+  });
+
   it("always allows the platform itself to be targeted", () => {
     // Protection is for the occupants. The vehicle is always a legal target.
     expect(crossLevelLegal({ ...grounded(), range: 1 }, platform(), board)).toMatchObject({ ok: true });
