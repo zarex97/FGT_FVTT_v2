@@ -898,3 +898,24 @@ describe("a ride is a Riding Attack to Troias's passive (#184)", () => {
     expect(plain.has("attack:kind:ridingAttack")).toBe(false);
   });
 });
+
+describe("Troias's toll is collected for a Turn he Dismounted in (#184)", () => {
+  it("the rule collection sees the Turn record, at its own tick only", async () => {
+    // Live: Mounted, Dismounted at the start of his Combat Phase -- and his
+    // Master paid nothing, because collection saw only the stance.
+    const { contributionsOf } = await import("../../module/rules/snapshot.mjs");
+    const np = ability("achilles-troias-tragoidia");
+    const actor = (turnState) => ({
+      id: "achilles", type: "servant",
+      system: { stance: "dismounted", stanceSpec: STANCE, turnState },
+      items: [{ id: "tt", name: np.name, type: "ability", system: np }],
+      effects: [],
+    });
+    const tolls = (turnState, tick) => (contributionsOf(actor(turnState), { tick }).eventHandlers ?? [])
+      .filter((h) => (h.events ?? []).includes("actedTurnEnd")).length;
+    expect(tolls({ tick: 9, mounted: true }, 9)).toBe(1);
+    // A record from an earlier Turn does not answer for this one.
+    expect(tolls({ tick: 6, mounted: true }, 9)).toBe(0);
+    expect(tolls({ tick: 9, mounted: false }, 9)).toBe(0);
+  });
+});

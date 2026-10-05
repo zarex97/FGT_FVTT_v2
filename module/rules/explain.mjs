@@ -49,6 +49,22 @@ export function explainDamage(result, opts = {}) {
   const rows = [];
 
   for (const stage of result.breakdown ?? []) {
+    // An adjustment made AFTER the pipeline -- God Hand's "survives at 1",
+    // Underpower, a Command Spell's factor -- is `{stage, label, from, to}`,
+    // not a numbered stage. It rendered as "Stage undefined" (#184).
+    if (stage.index === undefined && stage.label) {
+      const changed = typeof stage.from === "number" && typeof stage.to === "number";
+      rows.push({
+        index: null,
+        label: stage.label,
+        delta: changed ? formatDelta(stage.from, stage.to) : "—",
+        running: changed ? round(stage.to) : null,
+        contributors: [],
+        notes: [],
+        inert: !changed,
+      });
+      continue;
+    }
     const before = total(stage.before);
     const after = total(stage.after);
     const contributors = (stage.contributors ?? []).map((c) => ({

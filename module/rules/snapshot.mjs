@@ -66,7 +66,7 @@ export function snapshotUnit(actor, {
 } = {}) {
   const sys = actor.system ?? {};
   const doc = token ?? actor.token ?? null;
-  const contributions = contributionsOf(actor, { terrain });
+  const contributions = contributionsOf(actor, { terrain, tick });
   const footprint = gridFootprint(doc, panel);
   const turnState = turnStateAt(sys.turnState, tick);
   const effectIds = activeEffectIds(actor);
@@ -842,7 +842,7 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   //
   // Nemo's *Poseidon's Protection* is the clause that found it: its 50/100
   // reduction is collected only while he is in water, and it never was.
-  recollectForTerrain(units, actors);
+  recollectForTerrain(units, actors, settings.tickForTurnState ?? null);
   // Which platform each unit is aboard, and the protection model the targeting
   // resolver enforces. Positional, so it settles here with the other passes.
   //
@@ -932,7 +932,7 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
  * @param {object[]} actors
  * @returns {void}
  */
-function recollectForTerrain(units, actors) {
+function recollectForTerrain(units, actors, tick = null) {
   for (const u of units) {
     if ((u.terrain ?? []).length === 0) continue;
     // `actors` entries are `{actor, token, snapshot?}` wrappers, not Actors --
@@ -943,7 +943,7 @@ function recollectForTerrain(units, actors) {
     const actor = entry?.actor ?? entry ?? null;
     if (!actor?.items) continue;
 
-    const again = contributionsOf(actor, { terrain: u.terrain });
+    const again = contributionsOf(actor, { terrain: u.terrain, tick });
     // The terrain pass has already pushed its own modifiers onto `u.modifiers`
     // (Waterside's element bonuses), so the re-collected list is merged rather
     // than assigned -- assigning would drop the ground the unit is standing on
@@ -1560,7 +1560,7 @@ export function abilityRecordOf(item, overrides = {}) {
  * @param {object} actor
  * @returns {object}
  */
-export function contributionsOf(actor, { terrain = [] } = {}) {
+export function contributionsOf(actor, { terrain = [], tick = null } = {}) {
   const sys = actor.system ?? {};
   const abilities = [...(actor.items ?? [])]
     .filter((item) => !negated(item, actor))
@@ -1680,6 +1680,13 @@ export function contributionsOf(actor, { terrain = [] } = {}) {
       // never granted. Found live, on the first toggle.
       stance: sys.stance ?? "",
       stanceSpec: sys.stanceSpec ?? null,
+      // ...and the Turn record, for `self:stance:mountedThisTurn`: Troias
+      // Tragoidia's Master toll is "any Turn where Achilles Acts while
+      // Mounted", and a Turn he Dismounted in had only the stance to go on
+      // here, so it charged nothing (#184, found live). Read at the tick the
+      // caller names and blank without one, so a record from an earlier Turn
+      // cannot answer for this one.
+      turnState: tick === null ? null : turnStateAt(sys.turnState, tick),
       // WHICH TERRAIN the bearer is standing in, threaded in by the board pass.
       //
       // The fourth entry in this comment's own list of fields this projection
