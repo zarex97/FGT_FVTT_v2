@@ -39,6 +39,15 @@ describe("overpowerCheck", () => {
       .toMatchObject({ applies: false, reason: "shield" });
   });
 
+  // #184: Akhilleus Kosmos negated Bellerophon on Achilles's Master and the
+  // coin defeated him anyway. The two that beat Invuln beat the coin too.
+  it("cannot happen to a Master behind Anti-Purge or Substitution", () => {
+    expect(overpowerCheck(servant(), master({ effects: ["antiPurge"] })))
+      .toMatchObject({ applies: false, reason: "antiPurge" });
+    expect(overpowerCheck(servant(), master({ effects: ["substitution"] })))
+      .toMatchObject({ applies: false, reason: "substitution" });
+  });
+
   it("is ten points less likely against Def Up", () => {
     expect(overpowerCheck(servant(), master({ effects: ["defUp"] }))).toMatchObject({ chance: 40 });
   });

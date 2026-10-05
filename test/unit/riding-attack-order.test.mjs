@@ -94,3 +94,38 @@ describe("a Riding Attack that reaches nobody, in a Round when it may be made", 
     });
   });
 });
+
+describe("a Noble Phantasm ridden onto an empty line still pays its price (#184)", () => {
+  // `payAbilityPrice` lives in engine/attack.mjs, which reaches the UI namespace.
+  beforeAll(async () => {
+    const { installClientNamespace } = await import("../helpers/client-namespace.mjs");
+    installClientNamespace();
+  });
+
+  it("Troias Tragoidia: the cooldown starts and a card says what happened", async () => {
+    await withSubjects([
+      { from: "achilles", id: "achillesSubj0001", panel: { i: 5, j: 2 }, state: { factionId: "red", stance: "mounted" } },
+    ], async ({ world }) => {
+      const { performRidingAttack } = await import("../../module/engine/riding.mjs");
+      // Chat is not modelled by the world; the card is recorded instead.
+      const posted = [];
+      globalThis.ChatMessage = { create: async (d) => { posted.push(d); return d; }, getSpeaker: () => ({}) };
+      globalThis.Roll = class { async evaluate() { this.total = 1; return this; } };
+      const actor = world.actor("achillesSubj0001");
+      const np = actor.items.find((i) => i.system?.contentId === "achilles-troias-tragoidia");
+      const out = await performRidingAttack({ unitId: "achillesSubj0001", destination: { i: 5, j: 4 }, abilityId: np.id });
+      expect(out).toMatchObject({ ok: true, hit: [] });
+      // 7◈+⅓◈ at three Turns a Round.
+      expect(actor.items.get(np.id).system.cooldown.remaining).toBe(22);
+      expect(posted.some((m) => /Troias.*(empty line|EmptyLine)/.test(m.content))).toBe(true);
+      delete globalThis.ChatMessage;
+      delete globalThis.Roll;
+    }, {
+      round: 3,
+      tick: 9,
+      tokens: true,
+      combat: { round: 3, started: true, actingFactionId: "red", system: { globalTurn: 9 } },
+      worldSettings: { noAttackRound: 1, grandOrder: false, turnsPerRound: 3 },
+    });
+  });
+});

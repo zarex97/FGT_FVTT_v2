@@ -57,6 +57,13 @@ export function overpowerCheck(attacker, defender) {
   // cannot be Overpowered at all.
   if (held.includes("invuln")) return { applies: false, chance: 0, reason: "invuln" };
   if (held.includes("shield")) return { applies: false, chance: 0, reason: "shield" };
+  // And the two that beat Invuln: an attack Anti-Purge or Substitution negated
+  // at stage 0 never "successfully Attacks" the Master at all. Found live
+  // (#184): Akhilleus Kosmos's barrier -- *"Negate all damage and effects of
+  // that Noble Phantasm"*, authored as Anti-Purge -- took Bellerophon's
+  // damage to 0 on Achilles's Master, and the coin then defeated him anyway.
+  if (held.includes("antiPurge")) return { applies: false, chance: 0, reason: "antiPurge" };
+  if (held.includes("substitution")) return { applies: false, chance: 0, reason: "substitution" };
 
   let chance = BASE_FLIP;
   if (held.includes("defUp") || held.includes("dmgCut")) chance -= 10;

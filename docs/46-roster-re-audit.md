@@ -3314,6 +3314,20 @@ and no offer. The Turn record now remembers a Mounted Turn, for the toll. Ch. 45
 **Reached: AK.kb.side, on reading.** Akhilleus Kosmos's sidestep ran a Normal Attack mid-Move: it spent
 the budget, offered reactions and was refused once he had attacked. Ruled 2026-10-04: damage measured
 as his Normal Attack, not an Attack.
+
+### FK. A complete negation still flipped the Overpower coin — **fixed** (#184)
+
+**Reached: AK.neg.** Akhilleus Kosmos's Anti-Purge took Bellerophon to 0 on Achilles's Master, and the
+coin defeated him. Anti-Purge and Substitution now stop the coin and the event riders. Ch. 21, Ch. 32.
+
+### FL. An expended ability kept its passives — **fixed** (#184)
+
+**Reached: AK.broken.** The barrier spent, his shove still walked him through people. Ch. 17.
+
+### FM. A Noble Phantasm on an empty ride was free — **fixed** (#184)
+
+**Reached: TT.cd.** Troias ridden onto an empty line: Agility and Atk Up, no cost, no cooldown, no card.
+Ch. 05.
 ---
 
 ---

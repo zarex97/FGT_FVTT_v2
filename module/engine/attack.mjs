@@ -487,7 +487,7 @@ async function declareAftermath({
  * @param {object} args
  * @returns {Promise<void>}
  */
-async function payAbilityPrice({ ability, attackerId, attacker, self, master, usage, board, resume }) {
+export async function payAbilityPrice({ ability, attackerId, attacker, self, master, usage, board, resume }) {
   if (resume) return;
 
   // A barrier is refreshed on the way up, BEFORE the use is recorded: *"every

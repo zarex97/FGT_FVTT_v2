@@ -846,3 +846,24 @@ describe("Akhilleus Kosmos's shove is damage, not an Attack (#184 reading 8)", (
     expect(attack).toMatch(/const phaseWindow = resume \|\| plainDamage/);
   });
 });
+
+describe("Akhilleus Kosmos broken loses ALL its effects (#184)", () => {
+  it("an expended ability contributes nothing: the shove is gone", async () => {
+    const { contributionsOf } = await import("../../module/rules/snapshot.mjs");
+    const { collectContributions } = await import("../../module/rules/elements.mjs");
+    const np = ability("achilles-akhilleus-kosmos");
+    const actor = (expended) => ({
+      id: "achilles", system: { stance: "dismounted", stanceSpec: STANCE },
+      items: [{ id: "ak", name: np.name, type: "ability", system: {
+        ...np, expended, passiveRules: np.passiveRules.map(({ predicate, ...r }) => (void predicate, r)),
+      } }],
+      effects: [],
+    });
+    // The passive's own stance predicate is dropped here so the question is
+    // only "expended or not"; the stance gate has its own test above.
+    void collectContributions;
+    const granted = (expended) => contributionsOf(actor(expended)).grantedAbilities ?? [];
+    expect(granted(false)).toContain("ignoresOccupancy");
+    expect(granted(true)).not.toContain("ignoresOccupancy");
+  });
+});
