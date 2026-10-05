@@ -1025,6 +1025,16 @@ function shouldClose(field, tick) {
   // The duel's default end: a duellist's defeat that stuck (#184 reading 4).
   if (duelDecided(field, (id) => Boolean(game.actors.get(id)?.system?.defeated))) return true;
 
+  return endsForOwnerDefeat(field);
+}
+
+/**
+ * Is this field closing because its owner fell?
+ *
+ * @param {object} field
+ * @returns {boolean}
+ */
+function endsForOwnerDefeat(field) {
   const onOwnerDefeat = (field.vulnerabilities ?? []).some(
     (v) => v.kind === "ownerDefeat" && v.result === "end",
   );
@@ -1497,6 +1507,12 @@ export async function runUpkeep(tick, { round = null } = {}) {
   for (const field of upkept) {
     const upkeep = field.upkeep;
     if (!upkeep) continue;
+    // Closing at this boundary anyway (#185). Jack's Mist: *"forcefully
+    // deactivated at the end of a Turn Jack is defeated ... Her Master does not
+    // lose Health on the same Turn this NP is deactivated."* The close runs at
+    // the next Turn's start (`expireFields`), after this toll, so the Turn she
+    // fell charged her Master 15 for a field that was ending.
+    if (endsForOwnerDefeat(field)) continue;
 
     // `activatedAt` is a platform's `createdAt`; the two names are the same
     // fact on two document types.
@@ -2042,7 +2058,9 @@ export async function offerReshape(board) {
 
   for (const field of board.fields ?? []) {
     const owner = (board.units ?? []).find((u) => u.id === field.ownerId);
-    if (!owner?.acted || !mayReshape(field, owner)) continue;
+    // Not a fallen owner (#185): Jack defeated by a Counter on her own Turn was
+    // still asked to reshape the Mist her defeat was closing.
+    if (!owner?.acted || owner.defeated || !mayReshape(field, owner)) continue;
 
     const doc = game.actors.get(owner.id);
     if (!doc) continue;

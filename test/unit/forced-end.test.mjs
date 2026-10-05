@@ -144,3 +144,37 @@ describe("runUpkeep follows the plan", () => {
     expect(sweep).not.toMatch(/if \(!verdict\.due\) continue;/);
   });
 });
+
+describe("a field its owner's defeat is closing charges no toll (#185)", () => {
+  // Live: EMIYA defeated Jack on Turn 28, a toll Turn for the Mist. Her Master
+  // paid 15 at the Turn's end, and the Mist closed at the next Turn's start.
+  // *"Her Master does not lose Health on the same Turn this NP is deactivated."*
+  const fields = readFileSync("module/engine/fields.mjs", "utf8");
+  const sweep = fields.slice(fields.indexOf("export async function runUpkeep"), fields.indexOf("async function stampUpkeep"));
+
+  it("skips the field before anything is charged", () => {
+    const skip = sweep.indexOf("if (endsForOwnerDefeat(field)) continue;");
+    expect(skip).toBeGreaterThan(0);
+    expect(skip).toBeLessThan(sweep.indexOf("upkeepPlan("));
+  });
+
+  it("asks the same question the close does", () => {
+    const close = fields.slice(fields.indexOf("function shouldClose"), fields.indexOf("function endsForOwnerDefeat"));
+    expect(close).toMatch(/return endsForOwnerDefeat\(field\);/);
+  });
+
+  it("the Mist states both halves", async () => {
+    const { parse } = await import("yaml");
+    const mist = parse(readFileSync("packs/_source/abilities/jack-the-mist.yml", "utf8"));
+    expect(mist.field.vulnerabilities).toContainEqual({ kind: "ownerDefeat", result: "end" });
+    expect(mist.field.upkeep.cost).toMatchObject({ kind: "health", amount: 15, payer: "ownerMaster" });
+  });
+});
+
+describe("a fallen owner is not offered the reshape (#185)", () => {
+  it("offerReshape skips a defeated owner", () => {
+    const fields = readFileSync("module/engine/fields.mjs", "utf8");
+    const offer = fields.slice(fields.indexOf("export async function offerReshape"), fields.indexOf("export async function offerReshape") + 900);
+    expect(offer).toMatch(/if \(!owner\?\.acted \|\| owner\.defeated \|\| !mayReshape\(field, owner\)\) continue;/);
+  });
+});
