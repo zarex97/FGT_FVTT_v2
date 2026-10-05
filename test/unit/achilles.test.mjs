@@ -588,6 +588,7 @@ describe("Akhilleus Kosmos — the push", () => {
     // Hers: no preferred direction, no sidestep — the occupant simply stays.
     expect(knockbackPanel({ i: 6, j: 6 }, victim, full)).toBe(null);
   });
+
 });
 
 describe("Akhilleus Kosmos — the barrier", () => {
@@ -865,5 +866,35 @@ describe("Akhilleus Kosmos broken loses ALL its effects (#184)", () => {
     const granted = (expended) => contributionsOf(actor(expended)).grantedAbilities ?? [];
     expect(granted(false)).toContain("ignoresOccupancy");
     expect(granted(true)).not.toContain("ignoresOccupancy");
+  });
+});
+
+describe("Andreias Amarantos reads the attacker's Divinity by GRADE (#184)", () => {
+  it("E- is E-Rank: halved, not zeroed (Medusa)", () => {
+    const pct = (r) => lookup("andreiasAmarantosByAttackerDivinity", Rank.parse(r));
+    expect([pct("E-"), pct("E"), pct("E+")]).toEqual([50, 50, 50]);
+    expect([pct("D-"), pct("D"), pct("D+")]).toEqual([75, 75, 75]);
+    expect([pct("C-"), pct("C"), pct("B+"), pct("A")]).toEqual([100, 100, 100, 100]);
+  });
+});
+
+describe("Troias's Atk Up stands before every hit (#184)", () => {
+  it("a before-damage self-buff is paid by the first Process to strike", () => {
+    // Live: three defenders answered in reverse order and only the last-declared
+    // -- the one that answered last -- hit with the Atk Up.
+    const src = readFileSync("module/engine/attack.mjs", "utf8");
+    expect(src).toMatch(/const pays = when === "beforeDamage" \? isFirstToStrike\(state\) : isFirstOfGroup\(state\);/);
+    expect(src).toMatch(/function isFirstToStrike\(state\) \{[\s\S]{0,300}h\.state === "damage"/);
+  });
+});
+
+describe("a ride is a Riding Attack to Troias's passive (#184)", () => {
+  it("emits attack:kind:ridingAttack beside the attack's own kind", async () => {
+    const { rollOptionsFor } = await import("../../module/rules/options.mjs");
+    const ride = rollOptionsFor({ attacker: inStance("mounted"), attack: { kind: "normal", ride: { panels: 4 } } });
+    expect(ride.has("attack:kind:ridingAttack")).toBe(true);
+    expect(ride.has("attack:kind:normal")).toBe(true);
+    const plain = rollOptionsFor({ attacker: inStance("mounted"), attack: { kind: "normal" } });
+    expect(plain.has("attack:kind:ridingAttack")).toBe(false);
   });
 });

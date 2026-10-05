@@ -64,7 +64,7 @@ Arrays and dice-formula strings are stepped element-wise or with a separate bonu
 
 **Banded** tables group grades; steps are ignored. Independent Action Sustainability has one band for `["EX", "A+"]` (null, no clock), another for `["A"]` (8 turns) (`module/domain/tables.mjs:196-205`). The lookup checks exact rank first (`A+` matches the first band), then bare grade, so a banded table can distinguish `A+` from `A`.
 
-**Threshold** tables use ordinal cut points. Andreias Amarantos gives a value for any rank at or above a threshold. An attacker with Divinity `C` gets 100, `D` gets 75, `E` gets 50, and no Divinity (unranked) gets the default of 0 (`module/domain/tables.mjs:385-401`).
+**Threshold** tables use ordinal cut points. Andreias Amarantos gives a value for any rank at or above a threshold. An attacker with Divinity `C` gets 100, `D` gets 75, `E` gets 50, and no Divinity (unranked) gets the default of 0 (`module/domain/tables.mjs:385-401`). **It reads by grade** (`byGrade`, #184): *"E-Rank Divinity"* is every E, and Medusa's E- had fallen below E's ordinal cut point to the no-Divinity 0.
 
 **Equality** tables match **exact** ranks only. Gate of Skye gives a save modifier for `MAG` exactly `B` or exactly `A`, with a default of 0 for everything else — including `A+`, `A-`, and unranked (`module/domain/tables.mjs:423-432`).
 

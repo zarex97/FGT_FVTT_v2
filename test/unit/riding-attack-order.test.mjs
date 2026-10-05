@@ -129,3 +129,15 @@ describe("a Noble Phantasm ridden onto an empty line still pays its price (#184)
     });
   });
 });
+
+describe("a ride's gates are the declaration's, judged before it moves (#184)", () => {
+  it("resolveAttack takes the ride's own preflight rather than asking again", async () => {
+    const { readFileSync } = await import("node:fs");
+    const riding = readFileSync("module/engine/riding.mjs", "utf8");
+    const attack = readFileSync("module/engine/attack.mjs", "utf8");
+    // Live: Troias carried Achilles out of his Master's ZON, and the second
+    // asking refused the Noble Phantasm after the ride had been spent.
+    expect(riding).toMatch(/preflighted: preflight,/);
+    expect(attack).toMatch(/const pre = preflighted \?\? attackPreflight\(/);
+  });
+});
