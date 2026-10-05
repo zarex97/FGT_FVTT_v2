@@ -482,7 +482,7 @@ function ignoresOccupancy(unit) {
  * @returns {Promise<void>}
  */
 async function knockBackOccupants(moverId, movement = null) {
-  const { knockbackPlan } = await import("../rules/movement.mjs");
+  const { knockbackPlan, travelShovePlan, stepsBetween } = await import("../rules/movement.mjs");
   let board = boardSnapshot(game.combats.active);
 
   // On the MOVER's own level: it knocks aside whoever it walks into, and it
@@ -507,13 +507,43 @@ async function knockBackOccupants(moverId, movement = null) {
   //   vacate those panels, that Unit is forcefully Moved to one of the panels
   //   to its sides, and receives damage equivalent to a Normal Attack."
   const push = pushStyle(mover);
-  const along = push.direction === "travel" ? travelDirection(movement) : null;
+
+  // Achilles's shove walks his whole path, not only where he stops (ruled
+  // 2026-10-05, #184 readings 14 and 15): every Unit he moves through is
+  // carried ahead of him, and one with somebody behind it steps aside and is
+  // hit. Planned in `rules/movement.mjs#travelShovePlan`, applied here.
+  if (push.direction === "travel") {
+    const origin = movement?.origin ? canvas.grid.getOffset(movement.origin) : mover.panel;
+    const steps = [];
+    let prev = origin;
+    for (const wp of pathOf(movement)) {
+      steps.push(...stepsBetween(prev, wp));
+      prev = wp;
+    }
+    const plan = travelShovePlan({ ...mover, panel: origin }, steps, board);
+    for (const { unitId, landing } of plan) {
+      const token = canvas.tokens?.placeables?.find((t) => t.actor?.id === unitId);
+      if (!token) continue;
+      const point = canvas.grid.getTopLeftPoint(landing.panel);
+      await displaceToken(token.document, { x: point.x, y: point.y });
+      // "...and receives damage equivalent to a Normal Attack from Achilles"
+      // -- not an Attack (ruled 2026-10-04, #184 reading 8).
+      if (landing.sidestepped && push.sidestepDamages) {
+        const { resolveAttack } = await import("./attack.mjs");
+        await resolveAttack({
+          attackerId: moverId,
+          abilityId: null,
+          placement: { pathTargets: [unitId], plainDamage: true },
+        });
+      }
+    }
+    return;
+  }
 
   // Planned in full first: each Unit ONCE, each landing judged against the ones
   // already planned. Every panel used to be visited once per level layer, so a
   // Unit under a Bašmu was pushed -- and knocked off -- three times.
   const plan = knockbackPlan(mover, footprint, board, {
-    preferredDirection: along,
     allowSidestep: Boolean(push.sidestepDamages),
   });
 
@@ -628,25 +658,6 @@ function pushStyle(mover) {
   };
 }
 
-/**
- * The cardinal the mover was travelling in, or `null` when it cannot be told.
- *
- * @param {object|null} movement the v14 movement operation
- * @returns {{i: number, j: number}|null}
- */
-function travelDirection(movement) {
-  const from = movement?.origin;
-  const to = movement?.destination ?? movement?.passed?.waypoints?.at(-1);
-  if (!from || !to) return null;
-  const a = canvas?.grid?.getOffset?.(from);
-  const b = canvas?.grid?.getOffset?.(to);
-  if (!a || !b) return null;
-  const di = Math.sign(b.i - a.i);
-  const dj = Math.sign(b.j - a.j);
-  if (di === 0 && dj === 0) return null;
-  // One axis, like every other step on this board.
-  return Math.abs(b.i - a.i) >= Math.abs(b.j - a.j) ? { i: di, j: 0 } : { i: 0, j: dj };
-}
 
 
 /* -------------------------------------------------------------------------- */

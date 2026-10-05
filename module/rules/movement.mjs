@@ -1003,6 +1003,99 @@ export function knockbackPlan(mover, footprint, board, opts = {}) {
 }
 
 /**
+ * Every panel a move steps onto, in order, from `from` to `to` — one Chebyshev
+ * step at a time, diagonal while both axes still differ. `from` is not listed;
+ * `to` is.
+ *
+ * @param {GridOffset} from
+ * @param {GridOffset} to
+ * @returns {GridOffset[]}
+ */
+export function stepsBetween(from, to) {
+  const out = [];
+  let at = { i: from.i, j: from.j };
+  for (let guard = 0; guard < 200 && (at.i !== to.i || at.j !== to.j); guard += 1) {
+    at = { i: at.i + Math.sign(to.i - at.i), j: at.j + Math.sign(to.j - at.j) };
+    out.push(at);
+  }
+  return out;
+}
+
+/**
+ * Akhilleus Kosmos's shove, step by step along the move he actually made.
+ *
+ * > *"If Achilles intends to Move onto an occupied Panel, the Unit occupying
+ * > said panel is forced to Move backward until Achilles stops Moving in that
+ * > direction. If the Unit does not or cannot vacate those panels, that Unit is
+ * > forcefully Moved to one of the panels to its sides, and receives damage
+ * > equivalent to a Normal Attack from Achilles."*
+ *
+ * Ruled 2026-10-05 (#184, readings 14 and 15):
+ *
+ * - Every Unit he moves THROUGH is shoved, not only the one where he stops. It
+ *   is carried ahead of him, one panel each step he takes, and ends on the panel
+ *   past where he stops.
+ * - A shove is one panel. If that panel is taken -- a Unit behind it, the
+ *   board's edge -- the Unit "cannot vacate": it goes to a panel at its side and
+ *   is hit. Units never pass through each other; the old search skipped over
+ *   whoever stood behind and set the Unit down beyond them.
+ *
+ * Objects (platforms, structures) and Units sharing a panel are stood on, not
+ * shoved, as everywhere else.
+ *
+ * @param {object} mover
+ * @param {GridOffset[]} steps every panel stepped onto, in order (`stepsBetween`)
+ * @param {object} board
+ * @returns {Array<{unitId: string, landing: {panel: GridOffset, sidestepped: boolean}}>}
+ */
+export function travelShovePlan(mover, steps, board) {
+  const level = mover?.level ?? 0;
+  const bounds = board?.bounds ?? null;
+  const key = (p) => `${p.i},${p.j}`;
+  const solid = (u) => u.id !== mover.id && !u.defeated && (u.level ?? 0) === level
+    && u.kind !== "platform" && u.kind !== "structure" && !u.sharesPanel && u.panel;
+  /** @type {Map<string, GridOffset>} */
+  const at = new Map((board?.units ?? []).filter(solid).map((u) => [u.id, { i: u.panel.i, j: u.panel.j }]));
+  const sidestepped = new Set();
+  const start = new Map([...at].map(([id, p]) => [id, key(p)]));
+  const whoIsAt = (p) => [...at].find(([, q]) => q.i === p.i && q.j === p.j)?.[0] ?? null;
+  const free = (p) => geo.inBounds(p, bounds) && !whoIsAt(p);
+
+  let prev = mover.panel;
+  for (const step of steps ?? []) {
+    const dir = { i: Math.sign(step.i - prev.i), j: Math.sign(step.j - prev.j) };
+    const occupant = whoIsAt(step);
+    if (occupant) {
+      const back = { i: step.i + dir.i, j: step.j + dir.j };
+      if (free(back)) {
+        at.set(occupant, back);
+      } else {
+        const side = sidesOf(dir).map((s) => ({ i: step.i + s.i, j: step.j + s.j })).find(free) ?? null;
+        if (side) {
+          at.set(occupant, side);
+          sidestepped.add(occupant);
+        }
+      }
+    }
+    prev = step;
+  }
+
+  return [...at]
+    .filter(([id, p]) => start.get(id) !== key(p))
+    .map(([id, p]) => ({ unitId: id, landing: { panel: p, sidestepped: sidestepped.has(id) } }));
+}
+
+/**
+ * The two panels at right angles to a step, diagonal ones included.
+ * @param {GridOffset} dir
+ * @returns {GridOffset[]}
+ */
+function sidesOf(dir) {
+  if (dir.i !== 0 && dir.j !== 0) return [{ i: dir.i, j: -dir.j }, { i: -dir.i, j: dir.j }];
+  return perpendicular(dir);
+}
+
+/**
  * The two cardinals at right angles to `dir` — "the panels to its sides".
  * @param {GridOffset} dir
  * @returns {GridOffset[]}
