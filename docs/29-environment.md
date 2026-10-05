@@ -32,6 +32,8 @@ The phase is a property of the round. *"When the game starts, Flip a Coin. If He
 
 Individual panels may override the round's phase through terrain: *"Applies the 'Sol' buff to herself ... The 5x5 panel area around Quetz is 'Day', even if it is during a Night Round."* Indoors has priority — *"there is no Day or Night when Indoors"* — because it is an absence rather than a value and must beat both overrides (`module/rules/environment.mjs:68-74`).
 
+**A rule reads the phase where the Unit that originates it stands** (ruled 2026-10-05, #185, for every rule). A Night-only ability is usable by a Unit in the dark on a Unit standing in a daylight zone, and that target's own Day-only reduction still applies. Every reader already took the Unit's panel (`phaseAt`, `u.phase`) except the pre-emptive strike's Luck Check, which read the board's clock on purpose; it reads the pre-empter's phase now, and with no Day-Night cycle it charges nothing.
+
 A Dark unit takes symmetric modifiers: *"During a Day Round, all damage received by Units with the 'Dark' Attribute is increased by 25% including NP, while all damage dealt ... is reduced by 25%. Vice versa during a Night Round."* The phrase *Including NP* is load-bearing — an `npValue` here would silently halve it, which is the difference between the rule as written and a rule that looks similar (`module/rules/environment.mjs:93-102`).
 
 ### The Region graph

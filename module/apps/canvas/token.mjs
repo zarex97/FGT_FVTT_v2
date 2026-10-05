@@ -26,7 +26,39 @@
  */
 
 import { hiddenFromViewer } from "../../rules/concealment.mjs";
-import { factions } from "../../engine/board.mjs";
+import { factions, currentBoard } from "../../engine/board.mjs";
+import { seesThroughOwnField } from "../../rules/identity.mjs";
+
+/**
+ * Units the viewer's own Units see through a field of theirs, rebuilt at most
+ * every quarter second: `isVisible` runs per token per refresh, and a board
+ * per token per frame would be the whole frame.
+ *
+ * @type {{at: number, ids: Set<string>}}
+ */
+let fieldSight = { at: 0, ids: new Set() };
+
+/**
+ * Jack's Mist (#185 reading 6): its owner sees every Unit in it, wherever she
+ * stands. Foundry's own sight is a radius around the token, so a Unit inside
+ * the Mist and outside that radius is shown to the viewers who own her.
+ *
+ * @returns {Set<string>}
+ */
+function seenThroughFields() {
+  const now = Date.now();
+  if (now - fieldSight.at < 250) return fieldSight.ids;
+  const ids = new Set();
+  const board = currentBoard();
+  if ((board.fields ?? []).some((f) => f.isolation?.ownerSeesInside)) {
+    const mine = (board.units ?? []).filter((u) => game.actors.get(u.id)?.isOwner);
+    for (const target of board.units ?? []) {
+      if (mine.some((seer) => seesThroughOwnField(seer, target, board))) ids.add(target.id);
+    }
+  }
+  fieldSight = { at: now, ids };
+  return ids;
+}
 
 const { Token } = foundry.canvas.placeables;
 
@@ -111,9 +143,10 @@ export class FGTToken extends Token {
    * @override
    */
   get isVisible() {
-    if (!super.isVisible) return false;
-
     const actor = this.actor;
+    // A token the GM hid stays hidden: the Mist lends sight, not permission.
+    if (!super.isVisible && (this.document.hidden || !(actor && seenThroughFields().has(actor.id)))) return false;
+
     if (!actor) return true;
 
     return !hiddenFromViewer(

@@ -23,7 +23,7 @@
  */
 
 import { coneOf, chebyshev } from "../domain/geometry.mjs";
-import { detectRangeOf } from "./identity.mjs";
+import { sees } from "./identity.mjs";
 import { stanceOf } from "./stance.mjs";
 
 /**
@@ -118,7 +118,7 @@ export function weakPointChance(spec, { defender, attacker, state, board = null,
   // place where he had no vision of)." His own Detect range is what "vision"
   // means everywhere else on this board, so it is what it means here.
   if (typeof spec.fogOfWarBonus === "number" && defender?.panel && attacker?.panel) {
-    const seen = chebyshev(defender.panel, attacker.panel) <= detectRangeOf(defender, board);
+    const seen = sees(defender, attacker, board);
     if (!seen) add("fogOfWar", spec.fogOfWarBonus);
   }
 

@@ -601,6 +601,15 @@ export const NESTED_ROUTES = [
       { file: "module/engine/fields.mjs", why: "openField pushes the others out and stamps the duellists" },
     ],
   },
+  // Jack sees every Unit inside her own Mist (#185 reading 6). On a field's
+  // isolation, an untyped object, read where "seeing" is decided.
+  {
+    key: "ownerSeesInside",
+    authored: ["packs/_source/abilities/jack-the-mist.yml"],
+    hops: [
+      { file: "module/rules/identity.mjs", why: "seesThroughOwnField reads it for sees()" },
+    ],
+  },
   // A painted area is on one Level, as a field is: the zone phase stamps the
   // caster's (or the Fortress's), a repaint follows the source's, and
   // `terrainAt` asks for it (#151).

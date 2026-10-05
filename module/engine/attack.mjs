@@ -6351,11 +6351,12 @@ async function offerPreemption({ attackerId, abilityId, placement, targetIds, bo
     // The Round phase is a COST modifier here rather than a damage one: the
     // same clause costs a point of Luck and a die by day, and nothing at night.
     //
-    // `board.phase` and deliberately NOT `phaseAt` (Ch. 26): the sentence names
-    // a "Day ROUND", which a 5x5 pocket of Quetzalcoatl's daylight does not
-    // change. The two positional readers -- the Dark modifiers and the item
-    // phase requirement -- were repointed; this one is about the clock.
-    if ((rule.requiresLuckCheckIn ?? []).includes(board.phase)) {
+    // JACK'S phase, at her panel -- ruled 2026-10-05 (#185 reading 12): a rule
+    // reads the phase where the Unit that originates it stands, sunlight and
+    // darkness zones included, for every rule. It had read the board's clock
+    // on purpose ("a Day ROUND"), the one reader left on it. With no Day-Night
+    // cycle her phase is `none` and no Luck Check is charged (reading 13).
+    if ((rule.requiresLuckCheckIn ?? []).includes(defender?.phase ?? board.phase)) {
       const ok = await preemptionLuckCheck(defenderDoc, attackerId);
       if (!ok) continue;
     }

@@ -180,6 +180,41 @@ function inOwnHomeBase(unit, board) {
 }
 
 /**
+ * Can `seer` see `target` right now? Its Detect range, or a field of its own
+ * that it sees all of.
+ *
+ * Jack's Mist: *"Jack is not affected by the Fog of War area within the Mist
+ * (i.e. she can see all Units within the Mist)"* -- ruled 2026-10-05 (#185
+ * reading 6), wherever she stands. A field whose isolation says
+ * `ownerSeesInside` gives its owner every Unit standing in it. The one question
+ * every "seen" and "unseen" rule asks, so none of them can disagree: first
+ * sightings, Discover, the arrival order, the Heel's Fog of War and the canvas.
+ *
+ * @param {object} seer
+ * @param {object} target
+ * @param {object|null} [board]
+ * @returns {boolean}
+ */
+export function sees(seer, target, board = null) {
+  if (!seer?.panel || !target?.panel) return false;
+  if (chebyshev(seer.panel, target.panel) <= detectRangeOf(seer, board)) return true;
+  return seesThroughOwnField(seer, target, board);
+}
+
+/**
+ * @param {object} seer
+ * @param {object} target
+ * @param {object|null} board
+ * @returns {boolean}
+ */
+export function seesThroughOwnField(seer, target, board) {
+  const inside = new Set(target?.fields ?? []);
+  if (inside.size === 0) return false;
+  return (board?.fields ?? []).some((f) => f.ownerId === seer?.id
+    && f.isolation?.ownerSeesInside === true && inside.has(f.id));
+}
+
+/**
  * Every unit newly within `seer`'s Detect range it has not seen before.
  *
  * Familiar: Doves' passive: *"Whenever Semiramis sees a Unit for the first
@@ -200,10 +235,9 @@ function inOwnHomeBase(unit, board) {
 export function newlySeenBy(seer, board) {
   if (!seer?.panel) return [];
   const seen = new Set(seer.seenUnitIds ?? []);
-  const range = detectRangeOf(seer, board);
 
   return (board?.units ?? [])
-    .filter((u) => u.id !== seer.id && u.panel && !seen.has(u.id) && chebyshev(seer.panel, u.panel) <= range)
+    .filter((u) => u.id !== seer.id && u.panel && !seen.has(u.id) && sees(seer, u, board))
     .map((u) => u.id);
 }
 
@@ -292,7 +326,7 @@ export function discoverAttempts(concealedUnit, board, { spent = {}, acquiredAt 
     // A defeated Servant's token stays on the board, and it watches nobody (#168).
     if (watcher.defeated) continue;
     if (!isEnemy(watcher, concealedUnit, board)) continue;
-    if (chebyshev(watcher.panel ?? {}, concealedUnit.panel ?? {}) > detectRangeOf(watcher, board)) continue;
+    if (!sees(watcher, concealedUnit, board)) continue;
 
     const faction = watcher.faction ?? watcher.factionId ?? null;
     // "No repeated attempts from the same Unit on the same Turn against the
