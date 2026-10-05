@@ -495,8 +495,12 @@ describe("Troias Tragōidia", () => {
     expect(ridingAttackPath(unit, far, board, { distanceOverride: 13 }).ok).toBe(true);
   });
 
-  it("hits in both directions on the normal board only", () => {
-    expect(np.targeting.shape).toMatchObject({ kind: "line", length: 13, bidirectional: "unlessLargeBoard" });
+  it("is one line, in the chosen direction, on any board (#184 reading 16)", () => {
+    // Ruled 2026-10-05: the sheet's "both directions ... Front only on the
+    // Large Board" note is set aside for every character for now.
+    expect(np.targeting.shape).toMatchObject({ kind: "line", length: 13 });
+    expect(np.targeting.shape.bidirectional).toBeUndefined();
+    expect(ability("medusa-bellerophon").targeting.shape.bidirectional).toBeUndefined();
   });
 
   it("deals 4x on Base Attack (STR), and is Mounted-only", () => {
