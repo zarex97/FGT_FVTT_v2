@@ -175,3 +175,15 @@ describe("a hit the barrier absorbs", () => {
     expect(explainDamage(absorbed).summary.injury).toBe(false);
   });
 });
+
+describe("an adjustment after the pipeline is named (#184)", () => {
+  it("God Hand's survives-at-1 reads as itself, not 'Stage undefined'", async () => {
+    const { explainDamage } = await import("../../module/rules/explain.mjs");
+    const { rows } = explainDamage({ total: 0, breakdown: [
+      { stage: "recorded", label: "God Hand: Twelve Labors: survives at 1", from: 71, to: 0 },
+    ] });
+    expect(rows[0].label).toBe("God Hand: Twelve Labors: survives at 1");
+    expect(rows[0].running).toBe(0);
+    expect(rows[0].inert).toBe(false);
+  });
+});

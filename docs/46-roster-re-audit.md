@@ -3369,6 +3369,15 @@ failed Heel left a card with nothing but "noDamage". The roll is now on the card
 **Reached: DA.foreign.** The duel took Karna's Atk Up off Achilles's board and its +10% still reached his
 hit. Every contribution an effect makes carries its instance (`EFFECT_INSTANCE`), and the duel drops
 them with it. Ch. 10.
+
+### FV. A rule's own options carried no Turn record — **fixed** (#184)
+
+**Reached: TT.toll.** `self:stance:mountedThisTurn` was tested at collection with the stance alone, so a
+Turn he Dismounted in charged his Master nothing. `contributionsOf` reads the record at its tick. Ch. 45.
+
+### FW. A post-pipeline row printed "Stage undefined" — **fixed** (#184)
+
+**Reached: DA.end.** God Hand's survives-at-1 took 71 to 0 under that label. Ch. 22.
 ---
 
 ---
