@@ -4193,9 +4193,10 @@ his Master's Health and three defeated or out-of-place Units were staged to do i
 
 ## 46.17 Achilles — the Servant whose sheet turns on a stance
 
-**119 of his 122 Clauses were Pressed or Observed on a live board** (#184, 2026-10-04 to 2026-10-05). Three
-wait on readings the sheet leaves open: the shove through a panel he passes (14), the shove that meets a Unit
-standing behind (15), and Troias Tragōidia's *"both directions"* for a ride (16). Ruled first, in one
+**All 120 of his Clauses were Pressed or Observed on a live board** (#184, 2026-10-04 to 2026-10-05). The
+last readings were ruled on 2026-10-05: his shove walks his whole path and a Unit with somebody behind it
+steps aside and is hit (14, 15); the *"both directions"* note was set aside for every character for now, which
+took `TT.both` and `TT.large` off his list and made Bellerophon one line too (16). Ruled first, in one
 grilling: facing's cones (3 front, 2 sides, 3 back, for every rule), directional Evade, the duel's default end
 and who it encloses, the stance across a Turn, Double Move's two sources, and Akhilleus Kosmos's trigger.
 
@@ -4214,6 +4215,7 @@ second revive.
 | b9d467e | A ride re-asked its gates after moving; a before-damage self-buff paid by the first declared; Divinity tiers by ordinal; no `attack:kind:ridingAttack` (§46.4-FN to FQ) |
 | 6d784b1 | Field entry never asked; Command Spells across a seal; the Heel's Luck and roll; a negated effect's contributions (§46.4-FR to FU) |
 | 63f2ca8 | The toll's options had no Turn record; "Stage undefined" (§46.4-FV, FW) |
+| bdd55bb | The shove walks his whole path, one panel a step (§46.4-FX) |
 
 ### 46.17.2 What was staged
 

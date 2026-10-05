@@ -31,8 +31,6 @@ description: |
   divided by 2). Deals 4x damage. Then, applies @effect[critDmUp]{Crit DmUp} for 1◈ Turns, Crit
   Damage dealt is increased by Y0%, Y=number of Units successfully hit by this NP.
   Cooldown: 7◈+⅓◈ Turns.
-  Note: Hits in both directions (Front and back) on the normal board; but only hits in one
-  direction (Front) if playing on the Large Board.
 
 # "This NP is used in the form of a Riding Attack, with a distance of 13
 # panels." The distance is the NP's, not his MOV -- his is 8 at best.
@@ -45,11 +43,10 @@ targeting:
     kind: line
     length: 13
     width: 1
-    # "Hits in both directions (Front and back) on the normal board; but only
-    # hits in one direction (Front) if playing on the Large Board." The same
-    # board-size-dependent projection Bellerophon uses, read off the scene's
-    # own bounds rather than off a setting.
-    bidirectional: unlessLargeBoard
+    # Ruled 2026-10-05 (#184 reading 16): the sheet's note "Hits in both directions
+    # (Front and back) ... only one direction (Front) on the Large Board" is set
+    # aside for every character for now. One line, in the direction chosen, on
+    # any board.
   selection: { relations: [enemy], chooser: all }
 
 damage:

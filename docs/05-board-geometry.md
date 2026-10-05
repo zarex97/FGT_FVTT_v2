@@ -82,7 +82,7 @@ Both callers ask the same things: the `passengerSeat` grant, the Servant's own `
 
 4. **`panelsBetween` only works on shared axes.** Panels that are off-axis (not on the same row, column, or exact diagonal) return `[]` — the conservative reading of what "between" means on a grid with no line of sight (`module/domain/geometry.mjs:381-408`).
 
-5. **Board-size-dependent shapes read `bounds` rather than a setting.** A bidirectional line that switches to one-way on the Large Board reads the scene's actual board size from the bounds object, not a flag (`module/rules/targeting/shapes.mjs:100-113`).
+5. **Board-size-dependent shapes read `bounds` rather than a setting.** No content uses `bidirectional: unlessLargeBoard` now: the sheets' *"Hits in both directions (Front and back) … one direction (Front) on the Large Board"* note was set aside for every character for now (ruled 2026-10-05, #184 reading 16), so Troias Tragōidia and Bellerophon are one line in the chosen direction on any board. The vocabulary stays for the day it returns. A bidirectional line that switches to one-way on the Large Board reads the scene's actual board size from the bounds object, not a flag (`module/rules/targeting/shapes.mjs:100-113`).
 
 6. **Placement search ends at the board edge, not past it.** `orthogonalPanels` breaks when a panel goes out of bounds instead of skipping to the next direction. There is nothing further out (`module/rules/targeting/orthogonal.mjs:67-80`).
 

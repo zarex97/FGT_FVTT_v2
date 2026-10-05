@@ -20,9 +20,6 @@ description: |
   (including diagonal) next to Medusa for 4x damage plus 100. Then, applies @effect[critUp]{Crit Up} for 1◈
   Turns, Crit Chance is increased by 30%. Not affected by @ability[class-magic-resistance]{Magic Resistance}.
   Cooldown: 7◈+⅓◈ Turns.
-
-  Hits in both directions (Front and back); but only hits in one direction (Front) if playing
-  on the Large Board.
 targeting:
   anchor: { kind: selfEdgeAdjacent }
   shape:
@@ -32,8 +29,10 @@ targeting:
     # "in any direction (including diagonal)" -- eight ghost previews rather
     # than four. The geometry always handled a diagonal; the picker did not.
     directions: all
-    # "Hits in both directions ... but only one direction on the Large Board."
-    bidirectional: unlessLargeBoard
+    # Ruled 2026-10-05 (#184 reading 16): the sheet's note "Hits in both directions
+    # (Front and back) ... only one direction (Front) on the Large Board" is set
+    # aside for every character for now. One line, in the direction chosen, on
+    # any board.
   selection: { relations: [enemy], chooser: all }
 damage:
   multiplier: 4
