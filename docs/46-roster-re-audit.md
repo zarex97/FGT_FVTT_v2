@@ -4184,3 +4184,36 @@ What was general is §46.4-EV to §46.4-FE, issues #181 and #182 among them.
 One board, `Pale Rider Audit — Neutral`, ran 35 ticks. Doomsday Come was cast three times; its cooldown,
 his Master's Health and three defeated or out-of-place Units were staged to do it, and each staging is in
 #180's record. The chance Clauses before §46.4-FB were read from their outcomes; after it, from the card.
+
+## 46.17 Achilles — the Servant whose sheet turns on a stance
+
+**119 of his 122 Clauses were Pressed or Observed on a live board** (#184, 2026-10-04 to 2026-10-05). Three
+wait on readings the sheet leaves open: the shove through a panel he passes (14), the shove that meets a Unit
+standing behind (15), and Troias Tragōidia's *"both directions"* for a ride (16). Ruled first, in one
+grilling: facing's cones (3 front, 2 sides, 3 back, for every rule), directional Evade, the duel's default end
+and who it encloses, the stance across a Turn, Double Move's two sources, and Akhilleus Kosmos's trigger.
+
+**Why he finds so much.** Every clause is gated on Mounted or Dismounted, and the stance changes mid-Turn at a
+moment nothing had ever offered. His Noble Phantasms are a ride, a prison and a barrier, each a path the
+attack-shaped engine walks rarely: a ride re-asked its gates after moving, a duel let Units walk in and
+Command Spells cross, and a spent barrier kept its passive. Two Silent Drops sat under Battle Continuation's
+second revive.
+
+### 46.17.1 What he cost the engine
+
+| Commit | Finding |
+|---|---|
+| ab6567c | The rulings built: cones, directional Evade, the duel's push-out and default end, the Dismount offer, the Mounted record, Double Move's sources, the barrier's floor, the shove as plain damage, the half-Health watermark (§46.4-FF to FJ) |
+| 5c8eb4e | Overpower after a complete negation; an expended ability's passives; an NP on an empty ride was free (§46.4-FK to FM) |
+| b9d467e | A ride re-asked its gates after moving; a before-damage self-buff paid by the first declared; Divinity tiers by ordinal; no `attack:kind:ridingAttack` (§46.4-FN to FQ) |
+| 6d784b1 | Field entry never asked; Command Spells across a seal; the Heel's Luck and roll; a negated effect's contributions (§46.4-FR to FU) |
+| 63f2ca8 | The toll's options had no Turn record; "Stage undefined" (§46.4-FV, FW) |
+
+### 46.17.2 What was staged
+
+A precondition the board could not reach in time was staged and named in its evidence line: his Agility
+lowered to see Troias restore it, Medusa's Divinity set to D for Andreias's middle tier, No Buff and the two
+Seals laid on him, a foreign buff and debuffs for the duel to negate, Heracles's revivals spent to end it, the
+barrier re-armed to press the shove, and Masters moved into ZON. Clauses no Unit on the board could reach were
+pressed through the real projection instead (Magic Resistance against a Rank C attack, the three-Parameters
+refusal) and say so.
