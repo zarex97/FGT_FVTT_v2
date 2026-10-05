@@ -42,13 +42,15 @@ targeting:
         anchor: { kind: platform, platformId: platform-golden-hind }
         # `short`/`long`, never `w`/`h`: the anchor's facing decides which of
         # the two becomes the width, which is what makes one entry describe
-        # both the 7x3 and the 3x7 the sheet names.
-        shape: { kind: orientedRect, short: 3, long: 7 }
+        # both the 7x3 and the 3x7 the sheet names. `turnable`: she may turn it
+        # a quarter in the preview, 3 deep and 7 wide (ruled 2026-10-05, #187
+        # reading 6).
+        shape: { kind: orientedRect, short: 3, long: 7, turnable: true }
     otherwise:
       # "the Range is still the same, just applied to Drake" -- the same shape,
       # a different origin, and her own facing decides the direction.
       anchor: { kind: self }
-      shape: { kind: orientedRect, short: 3, long: 7 }
+      shape: { kind: orientedRect, short: 3, long: 7, turnable: true }
   selection: { relations: [enemy], chooser: all }
 damage:
   # "4x damage plus 100". Heracles's Nine Lives is the precedent for the

@@ -108,7 +108,7 @@ says *"**Total** damage dealt is further increased"* and *"**Total** damage deal
 15%"*. §13.4 makes that distinction load-bearing, and §36.3 already flagged it for the clause
 this one replaces.
 
-**R6 — The 50 Health toll charges on the Round boundary, not on a 1◈ period.** The sheet's own
+**R6 — The 50 Health toll charges on the Round boundary, not on a 1◈ period.** *(Superseded 2026-10-05, #187 reading 5: a 1◈ period counted from the activation, the Turn of use not counted.)* The sheet's own
 text is `At the end of every ~~Round/1◈ Turns~~ full Round`. The strikethrough is the author
 rejecting the tick-period reading, and with variable turn order `1◈` from activation and the end
 of the Round are different moments.

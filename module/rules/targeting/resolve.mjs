@@ -689,7 +689,8 @@ function resolveAnchor(spec, caster, board, placement, errors) {
     : null;
   const from = origin ?? caster;
   const casterPanels = from.panels?.length ? from.panels : [from.panel ?? casterPanel];
-  const base = { casterPanel };
+  // A turnable shape's quarter turn, chosen in the preview (#187 reading 6).
+  const base = { casterPanel, ...(placement?.transverse === true ? { transverse: true } : {}) };
 
   switch (spec.kind) {
     case "self":
@@ -1057,10 +1058,23 @@ function candidatePlacements(spec, caster, board, max) {
         .slice(0, max)
         .map((u) => ({ unitId: u.id }));
 
-    // Everything else resolves without a choice.
+    // Everything else resolves without a choice -- but a turnable shape
+    // offers its quarter turn too (#187 reading 6), so the picker can toggle.
     default:
-      return [{}];
+      return turnable(spec) ? [{}, { transverse: true }] : [{}];
   }
+}
+
+/**
+ * Does this spec's shape, or any shape a conditional could pick, turn?
+ *
+ * @param {object} spec
+ * @returns {boolean}
+ */
+function turnable(spec) {
+  const anchor = spec.anchor ?? {};
+  const shapes = [spec.shape, ...(anchor.branches ?? []).map((b) => b.shape), anchor.otherwise?.shape];
+  return shapes.some((s) => s?.turnable === true);
 }
 
 /**

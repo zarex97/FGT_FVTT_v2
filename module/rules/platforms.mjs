@@ -204,6 +204,17 @@ function platformOf(unit, board) {
 }
 
 /**
+ * The minimum Range an Attack needs to count as ranged.
+ *
+ * @param {object} board
+ * @returns {number}
+ */
+export function rangedMinimumRange(board) {
+  const n = Number(board?.rules?.rangedMinimumRange);
+  return Number.isFinite(n) && n >= 2 ? n : 2;
+}
+
+/**
  * Is this resolution legal across the levels involved, and what does it cost the occupant?
  *
  * Cross-level rules are **per-platform data, decided case by case** — the
@@ -261,7 +272,9 @@ export function crossLevelLegal(attacker, target, board, {
   range = null, allowDirectlyBelow = false, reach = "attack", area = false,
 } = {}) {
   if ((attacker?.level ?? 0) === (target?.level ?? 0)) return { ok: true };
-  const ranged = (range ?? attacker?.range ?? 1) >= 2;
+  // "Ranged" is a table setting (#187 reading 4): Range 2 or more unless the
+  // GM raised it, carried on `board.rules` as Layer 2 reads no settings.
+  const ranged = (range ?? attacker?.range ?? 1) >= rangedMinimumRange(board);
   // The platform ITSELF, from another level: its own `hullTargeting`. The
   // Hanging Gardens may be attacked from the ground only at range, and this
   // waved every such attack through at any reach (#68).

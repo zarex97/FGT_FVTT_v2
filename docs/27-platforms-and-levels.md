@@ -89,6 +89,7 @@ The platform itself may always be targeted (its `hullTargeting` decides from wha
 The axes:
 
 - **Shooting IN** — the target's platform decides: `occupantTargeting` is `free`, `rangedOnly` or `forbidden`.
+- **What "ranged" is** — an Attack whose Range is at least the world setting `rangedMinimumRange`, default 2 (ruled 2026-10-05, #187 reading 4). Range 1 is melee. The setting reaches the rules layer as `board.rules.rangedMinimumRange`, read by `rules/platforms.mjs#rangedMinimumRange`, for every `rangedOnly` axis: the Golden Hind's both ways and the Hanging Gardens' hull.
 - **Shooting OUT** — the attacker's platform decides independently (`outboundTargeting`). A fortress that nobody shoots into may let occupants shoot out, or may not.
 - **Directly beneath** — `forbidDirectlyBelow`. The Hanging Gardens forbids it; Dragon Wing Warriors overrules it by setting `allowDirectlyBelow` on the phase.
 - **The deck** — an ability's own `targeting.forbidAboard`. Aerial Garden of Vanity *"cannot hit under or above the HGoB"*: under is `forbidDirectlyBelow`, above is the deck, which Dragon Wing Warriors names as *"the area of the HGoB"*. `resolve.mjs` step 4e drops a Unit standing on the caster's platform ([Ch. 46 §46.4-BR](46-roster-re-audit.md)).
@@ -101,6 +102,10 @@ The axes:
 ### Destruction and scattering
 
 **The deactivation block is shared with bounded fields.** A platform's `deactivation: { byOwner, window, lockout }` is the block a bounded field carries, read by one function (`deactivationVerdict`, Ch. 28): `byOwner` and `lockout` as before, and **`window`** — `any` is *"during Quetz's Turn or at the start or end of any Round or Turn"*, and a block with none is the owner's own Turn, which the verdict answers `notOwnTurn` when it is not (#150). The Quetzalcoatlus and the Golden Hind both state `any`.
+
+**The Golden Hind's toll is a period from its activation** (ruled 2026-10-05, #187 reading 5, replacing the design's R6). *"At the end of every full Round Golden Hind is Active"* reads as the Turns that make a Round, counted from the Turn it was raised, that Turn not counted, as every duration is: raised on Turn 25 with three Turns a Round, her Master first pays at the end of Turn 28. The platform authors `upkeep.every: "1◈"`, the Quetzalcoatlus's shape. A Master at 50 Health or less is tested when the toll falls due and the ship closes instead of charging (reading 14, `endWhenUnaffordable`). Blazing Golden Rule's Galleon Token decay stays at each Round's end: it has no activation to count from (reading 15).
+
+**A mount that attacks for its driver attacks as her** (#187 reading 2). The Golden Hind's Attack is *"Drake's Normal Attack"*, replaced. From her own slot she is the attacker already, and the ship supplies the spec (`unit: "mount"`). When the ship token itself attacks, `engine/attack.mjs#fireDamageDealt` now runs her `damageDealt` handlers beside its own, through `turnPartnersOf(ship, board, "attack")`, so Blazing Golden Rule's *"whenever this Unit performs a Crit"* hears a Crit either way.
 
 **What destroys one.** A platform whose Health reaches 0 is defeated like a Unit, and a defeated platform is destroyed; one that authors `destroyedWithOwner` (the Hanging Gardens: *"destroyed when Semiramis is defeated"*) is destroyed with its owner. The applier's `defeat` case asks `io.destroyPlatformsOf`, which reads `rules/platforms.mjs#platformsDestroyedBy`. Before §46.4-CH only an effect on the owner (`deactivateOn`) or an unpaid upkeep ever destroyed a platform.
 

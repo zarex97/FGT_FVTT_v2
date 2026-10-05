@@ -143,9 +143,12 @@ export function expand(shape, anchor, opts = {}) {
       // previews); `facing` is a unit's own bearing, which for the Golden Hind
       // is its bow. The choice wins where there is one.
       const d = anchor.direction ?? anchor.facing ?? "n";
-      const alongAxis = d === "n" || d === "s";
-      const w = alongAxis ? shape.short : shape.long;
-      const h = alongAxis ? shape.long : shape.short;
+      // `turnable`: the player may turn it a quarter, long side across the
+      // facing instead of along it (#187 reading 6, Golden Wild Hunt's
+      // "7x3 or 3x7"). The placement says so as `transverse`.
+      const along = (d === "n" || d === "s") !== Boolean(shape.turnable && anchor.transverse);
+      const w = along ? shape.short : shape.long;
+      const h = along ? shape.long : shape.short;
       return flat(orthogonalAdjacentRect(anchor.casterPanel ?? origin, w, h, d, bounds));
     }
 
