@@ -24,6 +24,7 @@
  */
 
 import { meetsRequirement } from "./items.mjs";
+import { watermarkKey } from "../domain/health.mjs";
 import { test } from "./predicate.mjs";
 import { rollOptionsFor } from "./options.mjs";
 
@@ -108,7 +109,7 @@ function isAvailable(source, unit) {
   // match and never dropped has not been *restored* to anything.
   const fraction = source.requiresHealthRestoredSince ?? null;
   if (fraction !== null) {
-    const at = unit.healthWatermarks?.[String(fraction)] ?? null;
+    const at = unit.healthWatermarks?.[watermarkKey(fraction)] ?? null;
     const last = ability?.lastUsedTick ?? null;
     if (last !== null && (at === null || at < last)) return false;
   }

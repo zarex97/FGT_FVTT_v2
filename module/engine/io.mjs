@@ -31,7 +31,7 @@ import { snapshotUnit, turnWrite, roundWrite } from "../rules/snapshot.mjs";
 // `board.mjs` imports only from `rules/`, so this is acyclic.
 import { turnRecordOf, roundRecordOf, currentTick, currentRound } from "./board.mjs";
 import { isGated, gateTurnFor } from "../rules/np-gate.mjs";
-import { clampToMax } from "../domain/health.mjs";
+import { clampToMax, watermarkKey } from "../domain/health.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 
 /**
@@ -103,13 +103,19 @@ function watermarks(actor, value) {
   if (max <= 0) return {};
 
   const tick = game.combat?.system?.globalTurn ?? 0;
-  /** @type {object} */
-  const patch = {};
+  // Keyed by `watermarkKey` -- `"50"`, not `0.5`, whose dot Foundry expands
+  // into `{0: {5: tick}}` (#184). The whole object is written, so a stale
+  // key from before the fix is carried rather than mangled further.
+  const marks = { ...(actor.system?.healthWatermarks ?? {}) };
+  let changed = false;
   for (const fraction of watchedFractions(actor)) {
-    if (value < max * fraction) continue;
-    patch[`system.healthWatermarks.${fraction}`] = tick;
+    // "Restored back to ABOVE half" -- Battle Continuation and Rho Aias say it
+    // in the same words, and exactly half is not above it (#184).
+    if (value <= max * fraction) continue;
+    marks[watermarkKey(fraction)] = tick;
+    changed = true;
   }
-  return patch;
+  return changed ? { "system.healthWatermarks": marks } : {};
 }
 
 /**
@@ -154,8 +160,16 @@ function watchedFractions(actor) {
     // Battle Continuation states it on the revival rather than as a
     // requirement: "the Unit's Health must have been restored back to above
     // half its maximum value at least once since the last activation".
+    //
+    // It is authored as `requiresHealthRestoredSince` on the `RevivalSource`
+    // (`class-skills/battle-continuation.yml`), which is the key
+    // `rules/revival.mjs` gates on. This read only `revive.healthRestoredSince`,
+    // a key no content writes, so the half-Health crossing was never recorded
+    // and the gate refused every revive after the first: Battle Continuation
+    // worked once a match (#184).
     for (const el of item.system?.passiveRules ?? []) {
       if (el?.revive?.healthRestoredSince) out.add(el.revive.healthRestoredSince);
+      if (el?.key === "RevivalSource" && el.requiresHealthRestoredSince) out.add(el.requiresHealthRestoredSince);
     }
   }
   return [...out];

@@ -328,6 +328,86 @@ function relationTo(field, unit, board) {
  * @param {object} board
  * @returns {{ok: boolean, reason?: string}}
  */
+/**
+ * Where each Unit that is not a duellist goes when the duel's area closes
+ * around it (ruled 2026-10-04, #184 reading 4).
+ *
+ * > *"Achilles and the opposing Unit are enclosed within a 5x5 panel area
+ * > where they are standing on the game board."*
+ *
+ * The two, and nobody else: every other Unit standing in the area is moved to
+ * the nearest free panel outside it, a forced move -- no reaction, no Move
+ * spent. Nearest by Chebyshev distance, then by orthogonal distance, then
+ * top-left first, so the same board always gives the same answer. Structures
+ * and platforms stay where they are: they are objects, not Units in the duel.
+ *
+ * @param {Array<{i: number, j: number}>} panels the area
+ * @param {object} board
+ * @param {string[]} keepIds the duellists
+ * @returns {Array<{unitId: string, from: {i: number, j: number}, to: {i: number, j: number}|null}>}
+ */
+export function pushOutPlan(panels, board, keepIds) {
+  const key = (p) => `${p.i},${p.j}`;
+  const area = new Set(panels.map(key));
+  const units = board?.units ?? [];
+  const movers = units.filter((u) => u.panel && area.has(key(u.panel)) && !keepIds.includes(u.id)
+    && u.kind !== "structure" && u.kind !== "platform" && !u.platformId)
+    .sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  const moverIds = new Set(movers.map((u) => u.id));
+  const taken = new Set(units.filter((u) => u.panel && !moverIds.has(u.id) && !u.defeated).map((u) => key(u.panel)));
+  const bounds = board?.bounds ?? null;
+  const reach = bounds ? Math.max(bounds.iMax - bounds.iMin, bounds.jMax - bounds.jMin) + 1 : 26;
+
+  return movers.map((u) => {
+    let best = null;
+    for (let d = 1; d <= reach && !best; d += 1) {
+      for (let di = -d; di <= d; di += 1) {
+        for (let dj = -d; dj <= d; dj += 1) {
+          if (Math.max(Math.abs(di), Math.abs(dj)) !== d) continue;
+          const p = { i: u.panel.i + di, j: u.panel.j + dj };
+          if (area.has(key(p)) || taken.has(key(p)) || !inBounds(p, bounds)) continue;
+          const score = [d, Math.abs(di) + Math.abs(dj), p.i, p.j];
+          if (!best || lexLess(score, best.score)) best = { p, score };
+        }
+      }
+    }
+    if (best) taken.add(key(best.p));
+    return { unitId: u.id, from: u.panel, to: best?.p ?? null };
+  });
+}
+
+/**
+ * @param {number[]} a
+ * @param {number[]} b
+ * @returns {boolean} whether `a` sorts before `b`
+ */
+function lexLess(a, b) {
+  for (let n = 0; n < a.length; n += 1) if (a[n] !== b[n]) return a[n] < b[n];
+  return false;
+}
+
+/**
+ * Has a duel been decided? (#184 reading 4.)
+ *
+ * > *"...both Units will continuously duel (Combat) until one Unit is
+ * > 'defeated' as per the terms of the duel; and when the 'defeat' occurs, the
+ * > NP is deactivated."*
+ *
+ * Ruled 2026-10-04: by default the defeat is a real one THAT STICKS -- a
+ * duellist revived by Battle Continuation or God Hand fights on, so this reads
+ * the defeat as it stands after the revivals, never the moment Health hit 0.
+ * Other terms the two players agreed are the GM's control to end it.
+ *
+ * @param {object} field
+ * @param {(id: string) => boolean} isDefeated
+ * @returns {boolean}
+ */
+export function duelDecided(field, isDefeated) {
+  const watches = (field?.vulnerabilities ?? []).some((v) => v.kind === "duellistDefeat" && v.result === "end");
+  if (!watches) return false;
+  return (field.state?.duellistIds ?? []).some((id) => isDefeated(id));
+}
+
 export function membershipVerdict(field, unit, direction, board) {
   const rules = field.membership ?? {};
 

@@ -17,13 +17,18 @@ slug: akhilleusKosmos
 # of Turns after which it comes back.
 expendsPermanently: true
 # Used when an ALLY is about to be hit, the same third reaction window Rho Aias
-# opens in. `againstRank: A` is the difference: his sheet gates on the incoming
+# opens in. `againstRank` is the difference: his sheet gates on the incoming
 # NP's RANK where EMIYA's gates on it being one at all.
-timing: { window: whenAllyAttacked, againstKind: np, againstRank: A, requiresAoE: true, radius: 2 }
-requirements:
-  # "Used when Achilles Moves when Unmounted", and the barrier likewise: every
-  # clause of this Noble Phantasm is a dismounted one.
-  - { kind: stance, stance: dismounted }
+#
+# Ruled 2026-10-04 (#184 reading 11): "Rank A and above" is every A, so the
+# floor is A-, not A -- `Rank.compare` orders A- below A. "Is targeted / is
+# within Range of" is the NP's area covering him or the ally, or the NP
+# targeting them, which is the defender this window is offered for.
+timing: { window: whenAllyAttacked, againstKind: np, againstRank: "A-", requiresAoE: true, radius: 2 }
+# No stance requirement (#184 reading 11). "Used when Achilles Moves when
+# Unmounted" is the passive's own sentence, and its two rules below carry the
+# stance as predicates; the barrier's sentence names none. It had been gated
+# Dismounted with the rest -- which, off his Turn, he always is anyway.
 description: |
   (Passive) Used when Achilles Moves when Unmounted. If Achilles intends to Move onto an occupied
   Panel, the Unit occupying said panel is forced to Move backward until Achilles stops Moving in

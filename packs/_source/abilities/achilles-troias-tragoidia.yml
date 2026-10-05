@@ -78,7 +78,10 @@ passiveRules:
   - key: OnEvent
     event: actedTurnEnd
     automatic: true
-    predicate: ["self:stance:mounted"]
+    # "...any Turn where Achilles Acts while Mounted" -- Mounted at ANY point of
+    # it (ruled 2026-10-04, #184): a Dismount at the start of his Combat Phase
+    # does not refund the toll, so the stance at the Turn's end cannot decide.
+    predicate: ["self:stance:mountedThisTurn"]
     then:
       - { key: StatDelta, subject: master, stat: health.value, amount: 25, direction: down }
 

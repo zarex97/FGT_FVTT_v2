@@ -510,5 +510,10 @@ export function turnStateField() {
     // once-per-Turn limit did not exist, and a caught Unit could roll until
     // it got out.
     namelessForestAttempts: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
+    // Was this Unit Mounted at any point of this Turn? Achilles's Master pays
+    // Troias Tragoidia's toll for a Turn he Acts Mounted, and Dismounting at
+    // the start of his Combat Phase does not refund it (#184). Written when the
+    // stance is declared Mounted; `rules/stance.mjs#mountedThisTurn` reads it.
+    mounted: new fields.BooleanField({ initial: false }),
   });
 }

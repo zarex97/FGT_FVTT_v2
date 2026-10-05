@@ -80,10 +80,10 @@ describe("Achilles's statline", () => {
 describe("Riding A+", () => {
   const riding = classSkill("riding-achilles");
 
-  it("keeps Double Move ungated, which is the exception his sheet names", () => {
+  it("grants Double Move only Mounted: on foot it is Dromeus's (#184 reading 13)", () => {
     const grants = riding.passiveRules.filter((r) => r.key === "GrantedAbility");
-    const free = grants.find((g) => g.abilities.includes("doubleMove"));
-    expect(free.predicate).toBeUndefined();
+    const own = grants.find((g) => g.abilities.includes("doubleMove"));
+    expect(own.predicate).toEqual(["self:stance:mounted"]);
   });
 
   it("gates Riding Attack and Passenger Seat on the stance", () => {
@@ -99,7 +99,7 @@ describe("Riding A+", () => {
       { options: new Set([`self:stance:${state}`]) },
     ).grantedAbilities ?? [];
     expect(collect("mounted")).toEqual(expect.arrayContaining(["doubleMove", "ridingAttack", "passengerSeat"]));
-    expect(collect("dismounted")).toEqual(["doubleMove"]);
+    expect(collect("dismounted")).toEqual([]);
   });
 
   it("refuses the Active on foot", () => {
@@ -200,10 +200,19 @@ describe("Dromeus Komētēs", () => {
     expect(np.phases).toBeUndefined();
   });
 
-  it("re-grants Double Move on foot, so a Seal on either document leaves it standing", () => {
+  it("is his only Double Move on foot, and the Heel wound takes it (#184 reading 13)", () => {
     const grant = np.passiveRules.find((r) => r.key === "GrantedAbility");
     expect(grant.abilities).toEqual(["doubleMove"]);
     expect(grant.predicate).toContain("self:stance:dismounted");
+    const riding = classSkill("riding-achilles");
+    const both = (options) => collectContributions([
+      { id: "r", name: "Riding", rank: "A+", passiveRules: riding.passiveRules },
+      { id: "d", name: "Dromeus Komētēs", rank: "A+", passiveRules: np.passiveRules },
+    ], { options: new Set(options) }).grantedAbilities ?? [];
+    expect(both(["self:stance:dismounted"])).toContain("doubleMove");
+    expect(both(["self:stance:dismounted", "self:effect:heelWounded"])).not.toContain("doubleMove");
+    // Mounted, Riding's own grant stands whatever the Heel.
+    expect(both(["self:stance:mounted", "self:effect:heelWounded"])).toContain("doubleMove");
   });
 
   it("lowers the value of his Evade rolls by 4, and only on foot", () => {
@@ -537,7 +546,9 @@ describe("Troias Tragōidia", () => {
 
   it("bills his Master 25 Health at the end of any Turn he Acts while Mounted", () => {
     const upkeep = np.passiveRules.find((r) => r.key === "OnEvent");
-    expect(upkeep).toMatchObject({ event: "actedTurnEnd", predicate: ["self:stance:mounted"] });
+    // Mounted at ANY point of the Turn (#184): a Dismount at the start of his
+    // Combat Phase does not refund it.
+    expect(upkeep).toMatchObject({ event: "actedTurnEnd", predicate: ["self:stance:mountedThisTurn"] });
     expect(upkeep.then[0]).toEqual({
       key: "StatDelta", subject: "master", stat: "health.value", amount: 25, direction: "down",
     });
@@ -584,8 +595,15 @@ describe("Akhilleus Kosmos — the barrier", () => {
 
   it("answers an AoE Noble Phantasm of Rank A or above, within 2 panels", () => {
     expect(np.timing).toEqual({
-      window: "whenAllyAttacked", againstKind: "np", againstRank: "A", requiresAoE: true, radius: 2,
+      window: "whenAllyAttacked", againstKind: "np", againstRank: "A-", requiresAoE: true, radius: 2,
     });
+  });
+
+  it("is not gated on the stance; its shove is (#184 reading 11)", () => {
+    expect(np.requirements ?? []).not.toContainEqual(expect.objectContaining({ kind: "stance" }));
+    for (const key of ["GrantedAbility", "Knockback"]) {
+      expect(np.passiveRules.find((r) => r.key === key).predicate).toEqual(["self:stance:dismounted"]);
+    }
   });
 
   it("is offered only against what its sheet names", () => {
@@ -601,6 +619,10 @@ describe("Akhilleus Kosmos — the barrier", () => {
 
     expect(offer({ kind: "np", rank: "A+", isAoE: true })).toBe(1);
     expect(offer({ kind: "np", rank: "A", isAoE: true })).toBe(1);
+    // "Rank A and above" is every A (#184 reading 11), and EX is above them.
+    expect(offer({ kind: "np", rank: "A-", isAoE: true })).toBe(1);
+    expect(offer({ kind: "np", rank: "EX", isAoE: true })).toBe(1);
+    expect(offer({ kind: "np", rank: "B+", isAoE: true })).toBe(0);
     // Below Rank A, single-target, or not a Noble Phantasm at all: silent.
     expect(offer({ kind: "np", rank: "B", isAoE: true })).toBe(0);
     expect(offer({ kind: "np", rank: "A+", isAoE: false })).toBe(0);
@@ -649,6 +671,8 @@ describe("the duel field", () => {
       allyEntry: "sealed", enemyEntry: "sealed",
       allyExit: "sealed", enemyExit: "sealed",
       trappedAtActivation: true,
+      // The two duellists only; anyone else is pushed out (#184 reading 4).
+      enclosesOnly: "duellists",
     });
   });
 
@@ -761,5 +785,64 @@ describe("a timing window honours the ability's own requirements", () => {
   it("stays silent under either Seal", () => {
     expect(abilitiesAtWindow(unit("dismounted", ["skillSeal"]), "combatPhaseStart")).toEqual([]);
     expect(abilitiesAtWindow(unit("dismounted", ["npSeal"]), "combatPhaseStart")).toEqual([]);
+  });
+});
+
+/* ========================================================================== */
+/*  The stance across a Turn (#184)                                           */
+/* ========================================================================== */
+
+describe("the stance across his Turn (#184, ruled 2026-10-04)", () => {
+  it("offers the one transition at the start of a Combat Phase, and only Mounted", async () => {
+    const { transitionsAt } = await import("../../module/rules/stance.mjs");
+    expect(transitionsAt(inStance("mounted"), "combatPhaseStart")).toEqual(["dismounted"]);
+    // No way back up: the sheet offers none.
+    expect(transitionsAt(inStance("dismounted"), "combatPhaseStart")).toEqual([]);
+    expect(transitionsAt({ id: "x" }, "combatPhaseStart")).toEqual([]);
+  });
+
+  it("the attack offers it before the window's abilities, on a fresh declaration", () => {
+    const src = readFileSync("module/engine/attack.mjs", "utf8");
+    const offer = src.indexOf("await offerStanceTransition(attackerId, COMBAT_PHASE_START_WINDOW);");
+    const window = src.indexOf(": await offerAttackerWindow({ attackerId }, COMBAT_PHASE_START_WINDOW, null);");
+    expect(offer).toBeGreaterThan(0);
+    expect(offer).toBeLessThan(window);
+  });
+
+  it("remembers he was Mounted after he Dismounts, for the toll", async () => {
+    const { mountedThisTurn } = await import("../../module/rules/stance.mjs");
+    const { rollOptionsFor } = await import("../../module/rules/options.mjs");
+    const stepped = { ...inStance("dismounted"), turnState: { mounted: true } };
+    expect(mountedThisTurn(stepped)).toBe(true);
+    expect(mountedThisTurn(inStance("dismounted"))).toBe(false);
+    expect(mountedThisTurn(inStance("mounted"))).toBe(true);
+    expect(rollOptionsFor({ attacker: stepped }).has("self:stance:mountedThisTurn")).toBe(true);
+    expect(rollOptionsFor({ attacker: inStance("dismounted") }).has("self:stance:mountedThisTurn")).toBe(false);
+  });
+
+  it("the Turn record declares `mounted`, and the sheet writes it when he Mounts", async () => {
+    const { TURN_RECORD } = await import("../../module/domain/stamped-record.mjs");
+    expect(TURN_RECORD.at({ tick: 4, mounted: true }, 4).mounted).toBe(true);
+    expect(TURN_RECORD.at({ tick: 3, mounted: true }, 4).mounted).toBe(false);
+    const sheet = readFileSync("module/apps/actor-sheet/sheet.mjs", "utf8");
+    expect(sheet).toMatch(/I\.markTurn\(this\.document\.id, \{ mounted: true \}\)/);
+  });
+});
+
+describe("Akhilleus Kosmos's shove is damage, not an Attack (#184 reading 8)", () => {
+  it("the sidestep asks for plain damage", () => {
+    const hooks = readFileSync("module/engine/movement-hooks.mjs", "utf8");
+    expect(hooks).toMatch(/placement: \{ pathTargets: \[occupant\.id\], plainDamage: true \}/);
+  });
+
+  it("which spends nothing and leaves nothing to react with", () => {
+    const pre = readFileSync("module/engine/attack-preflight.mjs", "utf8");
+    expect(pre).toMatch(/const free = Boolean\(ability\?\.system\?\.freeAction\) \|\| Boolean\(placement\?\.plainDamage\);/);
+    const attack = readFileSync("module/engine/attack.mjs", "utf8");
+    expect(attack).toMatch(/\.\.\.\(placement\?\.plainDamage \? \["evade", "block", "counter"\] : \[\]\)/);
+    expect(attack).toMatch(/\[state\.defenderId\]: placement\?\.plainDamage\s*\? \[\]/);
+    // No Combat Phase: neither the Dismount nor the window is offered.
+    expect(attack).toMatch(/if \(!resume && !plainDamage\) \{/);
+    expect(attack).toMatch(/const phaseWindow = resume \|\| plainDamage/);
   });
 });

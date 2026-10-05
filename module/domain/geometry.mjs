@@ -500,6 +500,14 @@ export function reachablePanels(origin, mov, blocked, bounds = null) {
  * one of four cones, because every rule that cares (the evade modifier table,
  * Achilles' Heel) is expressed as front/side/back.
  *
+ * Of the eight panels around a Unit, **3 are front, 2 are sides, 3 are back**:
+ * a diagonal belongs to the front or the back, never to a side (ruled
+ * 2026-10-04, #184 reading 10, for every facing rule). The front cone is the
+ * 90 degrees around the facing with BOTH edges in; the back the same behind;
+ * the sides are what lies strictly between. It was a half-open 90-degree
+ * quadrant, so the front-left diagonal read front and the front-right one read
+ * side -- the same attack, two answers by mirror image.
+ *
  * @param {string} facing one of {@link import("./enums.mjs").FACINGS}
  * @param {GridOffset} self
  * @param {GridOffset} other the attacker's panel
@@ -511,11 +519,14 @@ export function coneOf(facing, self, other) {
   if (facingDeg === undefined) throw new RangeError(`FGT | Unknown facing "${facing}".`);
   // Screen coordinates: +i is south, +j is east. Bearing 0 = north.
   const bearing = (Math.atan2(other.j - self.j, -(other.i - self.i)) * 180) / Math.PI;
-  const rel = ((bearing - facingDeg) % 360 + 360 + 45) % 360;
-  if (rel < 90) return "front";
-  if (rel < 180) return "right";
-  if (rel < 270) return "back";
-  return "left";
+  // Signed, in (-180, 180]: positive is clockwise, to the right. Rounded so a
+  // diagonal's 45 degrees is exactly 45 and lands on the edge it belongs to.
+  let rel = Math.round((((bearing - facingDeg) % 360) + 360) % 360 * 1e6) / 1e6;
+  if (rel > 180) rel -= 360;
+  const off = Math.abs(rel);
+  if (off <= 45) return "front";
+  if (off >= 135) return "back";
+  return rel > 0 ? "right" : "left";
 }
 
 /** @type {Readonly<Record<string, number>>} */
@@ -565,6 +576,27 @@ export function rotateFacing(facing, degrees) {
   const found = Object.keys(FACING_DEGREES).find((f) => FACING_DEGREES[f] === turned);
   if (!found) throw new RangeError(`FGT | Rotation of ${degrees}° does not land on a facing.`);
   return found;
+}
+
+/**
+ * The nearest of the eight facings from `from` toward `to`: where a defender
+ * turns to look at the Unit that attacked it (ruled 2026-10-04, #184).
+ *
+ * Facing has eight directions, and the turn had four -- a diagonal attacker
+ * left the defender looking along an axis beside it. On an integer grid no
+ * bearing sits exactly between two facings, so there is no tie to break.
+ *
+ * @param {GridOffset} from
+ * @param {GridOffset} to
+ * @returns {string|null} a facing, or null when the two panels are the same
+ */
+export function facingToward(from, to) {
+  const di = to.i - from.i;
+  const dj = to.j - from.j;
+  if (di === 0 && dj === 0) return null;
+  const bearing = ((Math.atan2(dj, -di) * 180) / Math.PI + 360) % 360;
+  const step = Math.round(bearing / 45) % 8;
+  return Object.keys(FACING_DEGREES).find((f) => FACING_DEGREES[f] === step * 45) ?? null;
 }
 
 /**

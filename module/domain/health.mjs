@@ -133,3 +133,20 @@ export function maxHealthFor(sheet, lookup, Rank) {
   if (typeof derived === "number") return derived;
   return sheet?.baseHealth ?? 0;
 }
+
+/**
+ * The key a Health fraction's watermark is stored under: its percent, `"50"`.
+ *
+ * Not the fraction itself. `0.5` has a dot in it, and Foundry expands every
+ * dotted key in an update -- inside an object as well as in a path -- so a
+ * write of `{"0.5": tick}` was stored as `{0: {5: tick}}`, and every reader
+ * asking for `["0.5"]` found nothing. Rho Aias's and Battle Continuation's
+ * "restored above half since the last use" refused every use after the first
+ * (#184). One function, so the writer and both readers cannot disagree.
+ *
+ * @param {number} fraction e.g. `0.5`
+ * @returns {string} e.g. `"50"`
+ */
+export function watermarkKey(fraction) {
+  return String(Math.round(Number(fraction) * 100));
+}

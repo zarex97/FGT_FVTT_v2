@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   chebyshev, manhattan, inAttackRange, attackRangeArea, attackRangePanels,
   squareBounds, chebyshevDisc, centredRect, adjacentBlock, line, ring,
-  reachablePanels, coneOf, cardinalToward, key,
+  reachablePanels, coneOf, cardinalToward, facingToward, key,
 } from "../../module/domain/geometry.mjs";
 
 const at = (i, j) => ({ i, j });
@@ -192,6 +192,39 @@ describe("facing cones", () => {
     expect(coneOf("e", self, at(5, 7))).toBe("front");
     expect(coneOf("e", self, at(3, 5))).toBe("left");
     expect(coneOf("s", self, at(7, 5))).toBe("front");
+  });
+
+  it("puts the diagonals in the front and the back: 3, 2, 3 (#184 reading 10)", () => {
+    const self = at(5, 5);
+    const ring = (facing) => [
+      [4, 4], [4, 5], [4, 6], [5, 6], [6, 6], [6, 5], [6, 4], [5, 4],
+    ].map(([i, j]) => coneOf(facing, self, at(i, j)));
+    // nw, n, ne, e, se, s, sw, w
+    expect(ring("n")).toEqual(["front", "front", "front", "right", "back", "back", "back", "left"]);
+    // A diagonal facing: its front is the two orthogonals beside it.
+    expect(ring("ne")).toEqual(["left", "front", "front", "front", "right", "back", "back", "back"]);
+  });
+
+  it("is symmetric: the mirror of a front-left attacker is front-right", () => {
+    const self = at(5, 5);
+    expect(coneOf("n", self, at(3, 4))).toBe("front");
+    expect(coneOf("n", self, at(3, 6))).toBe("front");
+    expect(coneOf("n", self, at(4, 7))).toBe("right");
+    expect(coneOf("n", self, at(4, 3))).toBe("left");
+  });
+
+  it("a defender turns to the nearest of the eight (#184)", () => {
+    const self = at(5, 5);
+    expect(facingToward(self, at(4, 6))).toBe("ne");
+    expect(facingToward(self, at(2, 6))).toBe("n");
+    expect(facingToward(self, at(3, 7))).toBe("ne");
+    expect(facingToward(self, at(7, 3))).toBe("sw");
+    expect(facingToward(self, at(5, 2))).toBe("w");
+    expect(facingToward(self, at(5, 5))).toBe(null);
+    // Whoever it turns to is in its front cone afterwards.
+    for (const p of [at(4, 6), at(2, 6), at(3, 7), at(8, 1)]) {
+      expect(coneOf(facingToward(self, p), self, p)).toBe("front");
+    }
   });
 
   it("rejects an unknown facing rather than defaulting to front", () => {

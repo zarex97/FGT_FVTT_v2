@@ -95,7 +95,11 @@ export function attackPreflight({ attacker, abilityId, placement = {}, board, co
   // Turn: a real Normal Attack, dealing real damage, billed to nobody -- so it
   // skips the budget on BOTH sides, the check here and the spend below, rather
   // than being excused one and refused by the other.
-  const free = Boolean(ability?.system?.freeAction);
+  //
+  // And damage that is only MEASURED as an attack. Akhilleus Kosmos's shove:
+  // *"receives damage equivalent to a Normal Attack from Achilles"* -- ruled
+  // 2026-10-04 (#184 reading 8): not an Attack, so it spends nothing.
+  const free = Boolean(ability?.system?.freeAction) || Boolean(placement?.plainDamage);
   if (combat?.started && !free) {
     const verdict = budget.affordable(combat, self, actionKind);
     // `budgetReason` is how `resolveAttack` knows to TELL the player as well as

@@ -14,7 +14,7 @@
 
 import { chebyshev } from "../domain/geometry.mjs";
 import { Rank } from "../domain/rank.mjs";
-import { currentHealth, maxHealth } from "../domain/health.mjs";
+import { currentHealth, maxHealth, watermarkKey } from "../domain/health.mjs";
 import { withinPlatformCentre } from "./platforms.mjs";
 import { stanceOf } from "./stance.mjs";
 import { phaseAt } from "./environment.mjs";
@@ -473,7 +473,7 @@ export function meetsRequirement(req, ctx) {
       // Never used: vacuously satisfied. The clause is "since the last usage",
       // and there has not been one.
       if (last === null) return true;
-      const at = unit?.healthWatermarks?.[String(req.fraction ?? 0.5)] ?? null;
+      const at = unit?.healthWatermarks?.[watermarkKey(req.fraction ?? 0.5)] ?? null;
       return at !== null && at >= last;
     }
 

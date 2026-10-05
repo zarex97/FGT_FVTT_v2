@@ -38,6 +38,8 @@ A field partitions units into relations: **self** (owner), **ally**, or **enemy*
 
 **The owner counts as an ally of its own field.** There are three relations and two membership keys, so `membershipVerdict` has to fold `self` into one of them, and it folded it into `enemy` — which trapped every field's owner inside it. Measured live in Asterios's own Labyrinth: his Master walked out free under `allyExit: free`, an enemy was held to the 20% roll, and Asterios himself was refused outright, with the action bar offering him the escape ladder his own Noble Phantasm offers his victims (Ch. 46 §46.4-AQ). Only the `trappedAtActivation` policy answers by id instead, which is why it is stated above the relation split rather than beside it.
 
+**A duel encloses its two duellists and nobody else** (ruled 2026-10-04, #184 reading 4). *"Achilles and the opposing Unit are enclosed within a 5x5 panel area."* `membership.enclosesOnly: duellists` makes `openField` move every other Unit standing in the area to the nearest free panel outside it, a forced move (`rules/bounded-fields.mjs#pushOutPlan`: nearest by Chebyshev, then orthogonal distance, then top-left; never onto an occupied panel or off the board; objects stay). It runs before the membership snapshots, so `trappedAtActivation` traps only the two, and it stamps `state.duellistIds`. Test: `test/unit/duel-enclosure.test.mjs`.
+
 **The escape ladder** (`module/rules/bounded-fields.mjs:342-408`) has four rungs, tested in order:
 
 1. **Border contact.** Unless `requiresBorderContact` is false, the unit must stand on the field's inner edge.
@@ -116,6 +118,7 @@ A field is destroyed when a listed **vulnerability** is triggered (`module/rules
 - `npCount` — two or more NPs of a threshold scale in the same round.
 - `damageThreshold` — the field receives more than a set amount of damage in a round.
 - `markDestruction` — all marks (e.g., Bloodmarks) have been destroyed.
+- `duellistDefeat` — a duellist's defeat that **stuck** (#184 reading 4). The duel's default end; a duellist revived by Battle Continuation or God Hand fights on. `duelDecided` reads `state.duellistIds`, `closeDecidedDuels` runs at the end of every Combat Process (after its revivals) and `shouldClose` at the boundary. The owner's control still ends it for other terms the two players agreed.
 
 When an `ownerMaster` vulnerability triggers with a delay, the delay is stamped once as an absolute tick and counted down by a cleanup phase, not by a decremented counter (`module/engine/fields.mjs:1311-1335`).
 
