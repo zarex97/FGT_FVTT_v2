@@ -117,6 +117,12 @@ export function attackPreflight({ attacker, abilityId, placement = {}, board, co
   // (Ch. 17): cancelling during targeting must cost nothing, and no rule
   // requires otherwise. So this refuses early, and the payment is below.
   const master = self.masterId ? unitFrom(board, game.actors.get(self.masterId)) : null;
+  // The aimed Unit. A placement from the canvas names it `unitId`; `targetId`
+  // is the older spelling some callers still use. Reading only `targetId`
+  // left every target requirement unsatisfiable from the interface: Maria
+  // Method 2 was refused on a Female inside the Mist at Night (#185).
+  const aimedId = placement?.unitId ?? placement?.targetId ?? null;
+  const aimed = aimedId ? unitFrom(board, game.actors.get(aimedId)) : null;
   const usage = canUseAbility({
     ability: usageSpecFor(ability),
     unit: self,
@@ -129,7 +135,7 @@ export function attackPreflight({ attacker, abilityId, placement = {}, board, co
     // counterpart check reads the board, and a target-effect check reads the
     // target. Passing neither made those two kinds silently unsatisfiable.
     board,
-    target: placement?.targetId ? unitFrom(board, game.actors.get(placement.targetId)) : null,
+    target: aimed,
     // The same gap `engine/skill-use.mjs`'s `useSkill` had: the `predicate`
     // requirement kind (`rules/items.mjs`) refused every use on the ATTACK
     // path too, unconditionally, for the same reason -- nothing ever
@@ -145,7 +151,7 @@ export function attackPreflight({ attacker, abilityId, placement = {}, board, co
     testPredicate: (p) => testPredicate(p, {
       options: rollOptionsFor({
         attacker: self,
-        defender: placement?.targetId ? unitFrom(board, game.actors.get(placement.targetId)) : null,
+        defender: aimed,
       }),
     }),
   });
@@ -210,7 +216,14 @@ function usageRefusal(usage) {
       return `its Master needs MORE than ${usage.cost.amount} Health to pay for it.`;
     case "selfHealth": return `it needs more than ${usage.cost.amount} Health to pay for it.`;
     case "sustainability": return `it needs more than ${usage.cost.amount}◈ of Sustainability.`;
-    default: return usage.reason ?? "unknown reason.";
+    default: {
+      // A failed requirement reports its KIND (`rules/items.mjs`), and the
+      // sheet and the bar already word every kind under this key. Printed
+      // raw it read "Cannot use this ability: roundPhase" (#185).
+      const key = `FGT.Ability.Refused.${usage.reason}`;
+      if (usage.reason && globalThis.game?.i18n?.has?.(key)) return game.i18n.localize(key);
+      return usage.reason ?? "unknown reason.";
+    }
   }
 }
 
