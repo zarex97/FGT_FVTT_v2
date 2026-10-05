@@ -42,5 +42,11 @@
  */
 export function ridersFire({ skipped, result }) {
   if (skipped) return false;
+  // A COMPLETE negation at stage 0 is the other "no damage and effects": Anti-
+  // Purge and Substitution halt the attack before it is measured (#184,
+  // Akhilleus Kosmos). The ability's own riders were already refused for it
+  // (`engine/attack.mjs#applyAbilityEffects`); the event-declared ones were
+  // not, so a barrier that negated the NP still let its on-hit riders land.
+  if (["Anti-Purge", "Substitution"].includes(result?.flags?.negatedBy)) return false;
   return result?.flags?.concealmentVeil?.effects !== false;
 }

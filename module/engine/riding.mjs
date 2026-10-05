@@ -141,6 +141,20 @@ export async function performRidingAttack({ unitId, destination, abilityId = nul
     // anybody, and only the Crit DmUp is (Y = the number hit, so zero).
     // Without this the whole NP was spent for nothing on an empty line.
     if (ability) {
+      // ...and its PRICE, which only `resolveAttack` paid: the use record, the
+      // Master's NP cost and the cooldown. Found live (#184): Troias Tragoidia
+      // ridden one panel onto an empty line restored Agility and applied its
+      // Atk Up, cost his Master nothing, started no cooldown and left no card --
+      // a Noble Phantasm usable every Turn for its self-buff alone.
+      const { payAbilityPrice } = await import("./attack.mjs");
+      await payAbilityPrice({
+        ability, attackerId: unitId, attacker: actor, self: preflight.self,
+        master: preflight.master, usage: preflight.usage, board, resume: false,
+      });
+      await ChatMessage.create({
+        speaker: ChatMessage.getSpeaker({ actor }),
+        content: `<p><strong>${foundry.utils.escapeHTML(ability.name)}</strong> — ${game.i18n.localize("FGT.Riding.EmptyLine")}</p>`,
+      });
       const x = Math.floor(remainingMov / 2);
       const ride = { panels: plan.distance, hitCount: 0, remainingMov, x, xLessOne: Math.max(0, x - 1) };
       const { runCasterPhases, applySelfRiders } = await import("./skill-use.mjs");

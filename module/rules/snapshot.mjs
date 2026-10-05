@@ -1569,6 +1569,13 @@ export function contributionsOf(actor, { terrain = [] } = {}) {
     // Gated on the item TYPE, not on every item: an ability has no `equipped`
     // field, and reading one off it would switch off every passive in the game.
     .filter((item) => item.type !== "equipment" || Boolean(item.system?.equipped))
+    // An EXPENDED ability contributes nothing. Akhilleus Kosmos: *"After that,
+    // Akhilleus Kosmos is broken; ALL ITS EFFECTS ARE LOST and cannot be used
+    // for the rest of the game"* -- found live (#184): the barrier was spent and
+    // his shove (`ignoresOccupancy`, `Knockback`) still walked him through
+    // people. The war setup's unselected NP choice is the same word, and *"is
+    // unusable"* does not leave its passives running either.
+    .filter((item) => !item.system?.expended)
     .map((item) => abilityRecordOf(item));
 
   // Rule elements authored directly on the unit -- a summon with no separate

@@ -54,3 +54,13 @@ describe("whether a resolved Damage Step fires its on-hit riders", () => {
     expect(ridersFire({ skipped: null, result: {} })).toBe(true);
   });
 });
+
+describe("a complete negation refuses the riders (#184)", () => {
+  it("Anti-Purge and Substitution: no damage and no effects", async () => {
+    const { ridersFire } = await import("../../module/rules/damage/riders.mjs");
+    expect(ridersFire({ skipped: null, result: { total: 0, flags: { negatedBy: "Anti-Purge" } } })).toBe(false);
+    expect(ridersFire({ skipped: null, result: { total: 0, flags: { negatedBy: "Substitution" } } })).toBe(false);
+    // Reduced to nothing is still hit (the ruling this file is about).
+    expect(ridersFire({ skipped: null, result: { total: 0, flags: {} } })).toBe(true);
+  });
+});
