@@ -598,7 +598,7 @@ export async function ensurePassiveFields() {
   for (const field of board.fields ?? []) {
     if (!field.passive) continue;
     const owner = (board.units ?? []).find((u) => u.id === field.ownerId);
-    if (!owner?.panel || owner.defeated) await endField(field.id);
+    if (!owner?.panel || owner.defeated) await endField(field.id, owner?.defeated ? "ownerDefeat" : "ended");
   }
 
   // ...and put every derived shape where the board now says it is. A field
@@ -676,14 +676,32 @@ async function refreshPassiveField(fieldId, spec) {
 /**
  * Close a field, by the ability that opened it.
  *
+ * Every close path comes through here, so this is where the table is told
+ * (#185): the Mist closing because her Master could not pay was a log line,
+ * and closing for her defeat was not even that.
+ *
  * @param {string} fieldId
+ * @param {string} [reason] why it closed, for the card and the log
+ * @param {object} [opts]
+ * @param {boolean} [opts.logged] the caller already logged the deactivation
  * @returns {Promise<boolean>} whether anything was there to close
  */
-export async function endField(fieldId) {
+export async function endField(fieldId, reason = "ended", { logged = false } = {}) {
   const scene = canvas?.scene ?? null;
   const region = scene?.regions?.find((r) =>
     r.behaviors?.some((b) => b.type === "npField" && b.system?.fieldId === fieldId));
   if (!region) return false;
+  const ownerId = region.behaviors?.find((b) => b.type === "npField")?.system?.ownerUnitId ?? null;
+  if (!logged) {
+    await applyWorldIntents(
+      [I.log({ kind: "field", event: "deactivated", unitId: ownerId, field: fieldId, reason })],
+      "field:deactivate",
+    );
+  }
+  {
+    const { postFieldClosed } = await import("./field-report.mjs");
+    await postFieldClosed(region.name ?? fieldId, fieldId, reason);
+  }
 
   // *"When Doomsday Come ends, all Kagome Spirits immediately disappear."*
   // The same shape a platform taking its bound summons with it already has
@@ -899,7 +917,7 @@ export async function expireFields(tick) {
     const expired = field.expiry !== null && field.expiry !== undefined && field.expiry <= tick;
     if (expired && field.extension && await offerExtension(field, tick)) continue;
 
-    if (await endField(field.id)) {
+    if (await endField(field.id, closeReason(field, tick) ?? "ended")) {
       closed.push(field.id);
       // Sikera Ušum's "6◈+⅓◈ Turns AFTER the NP ends" -- a clock that starts
       // at the field's OWN closure, not at the ability's use, the same shape
@@ -1012,20 +1030,31 @@ async function offerExtension(field, tick) {
  * @returns {boolean}
  */
 function shouldClose(field, tick) {
-  if (field.expiry !== null && field.expiry !== undefined && field.expiry <= tick) return true;
+  return closeReason(field, tick) !== null;
+}
+
+/**
+ * Why this field closes at this boundary, or `null` when it does not.
+ *
+ * @param {object} field
+ * @param {number} tick
+ * @returns {"expired"|"forcedEnd"|"duelDecided"|"ownerDefeat"|null}
+ */
+function closeReason(field, tick) {
+  if (field.expiry !== null && field.expiry !== undefined && field.expiry <= tick) return "expired";
 
   // A forced end that was SCHEDULED rather than immediate -- the Master's
   // defeat, two ticks ago. An absolute tick, stamped once by `stampForcedEnds`,
   // for the same reason every duration in this system is one.
   const forced = field.state?.forcedEnd ?? null;
-  if (forced !== null && forced !== undefined && forced <= tick) return true;
+  if (forced !== null && forced !== undefined && forced <= tick) return "forcedEnd";
 
   // Axis 6. "Owner defeat ends it" is the only vulnerability in the reference
   // set that resolves without a roll, and both authored fields carry it.
   // The duel's default end: a duellist's defeat that stuck (#184 reading 4).
-  if (duelDecided(field, (id) => Boolean(game.actors.get(id)?.system?.defeated))) return true;
+  if (duelDecided(field, (id) => Boolean(game.actors.get(id)?.system?.defeated))) return "duelDecided";
 
-  return endsForOwnerDefeat(field);
+  return endsForOwnerDefeat(field) ? "ownerDefeat" : null;
 }
 
 /**
@@ -1280,8 +1309,9 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
       // and `unitKilled` fires on her as the attack path's `killedBy` does. The
       // `fieldKill` log line was all `creditOwner` wrote, and nothing read it:
       // Jack's and Medusa's Free Servant Sustainability never grew from a field
-      // kill. The Civilian bounty is not paid here: Blood Fort Andromeda
-      // authors its own, and the Mist's is the author's call.
+      // kill. The Civilian bounty is paid where the field says so (`bounty`):
+      // the Mist does (ruled 2026-10-05, #185 reading 13), and Blood Fort
+      // Andromeda authors its own payout instead.
       if (action.key === "Defeat") {
         const cause = action.cause ?? "field";
         const killer = action.creditOwner ? owner : null;
@@ -1289,6 +1319,15 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
         report(unit, { defeat: cause });
         if (killer) {
           const { fireEvent } = await import("./scheduler.mjs");
+          // Ch. 06's bounty, the shape `rules/environment.mjs#civilianKill`
+          // already writes for a Servant attacking a Civilian.
+          if (action.bounty === true && unit.kind === "civilian") {
+            const { civilianKill } = await import("../rules/environment.mjs");
+            for (const d of civilianKill(killer, unit)) {
+              if (d.kind === "heal") out.push(I.heal(d.unitId, d.amount, d.source));
+              if (d.kind === "statDelta") out.push(I.statDelta(d.unitId, d.stat, d.delta));
+            }
+          }
           out.push(I.log({
             kind: "defeat", event: "fieldKill", unitId: unit.id,
             by: killer.id, field: field.id, victimKind: unit.kind,
@@ -1856,7 +1895,7 @@ export async function deactivateField(fieldId, reason = "manual") {
     [I.log({ kind: "field", event: "deactivated", unitId: field.ownerId, field: fieldId, reason })],
     "field:deactivate",
   );
-  return endField(fieldId);
+  return endField(fieldId, reason, { logged: true });
 }
 
 /**

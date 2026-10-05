@@ -9,7 +9,7 @@
 
 import { explainDamage } from "../../rules/explain.mjs";
 import { visibleTo, renderBreakdown } from "../../rules/roll-log.mjs";
-import { cardFor, skillEffectsFor, redactBreakdown } from "../../rules/card-visibility.mjs";
+import { cardFor, skillEffectsFor, redactBreakdown, effectLine } from "../../rules/card-visibility.mjs";
 import { countdownFor } from "../../engine/await-timeout.mjs";
 import { pendingPrompt, didHit, isComplete, PROMPTS, windowFor } from "../../engine/combat-process.mjs";
 import * as process from "../../engine/combat-process.mjs";
@@ -83,7 +83,7 @@ async function cardContext({
   const prompt = pendingPrompt(state);
   const defender = game.actors.get(state.defenderId);
   // Computed BEFORE the breakdown, because the breakdown is redacted with it.
-  const visibility = result ? viewerVisibility(state, result) : null;
+  const visibility = result ? viewerVisibility(state, result, message?.getFlag?.("fgt", "effects") ?? []) : null;
   // For the public names below: `publicNameOf` reads a unit's faction to say
   // "Rider of Red", and only the board knows the factions.
   const board = currentBoard();
@@ -230,8 +230,8 @@ function explainedFor(result, visibility) {
  * @param {object} result
  * @returns {object}
  */
-function viewerVisibility(state, result) {
-  const card = cardFor(visibilityInput(state, result), {
+function viewerVisibility(state, result, effects = []) {
+  const card = cardFor(visibilityInput(state, result, effects), {
     id: game.user.id, isGM: game.user.isGM, openTable: openTable(),
   });
   const names = Array.isArray(card.effects) ? card.effects : [];
@@ -606,7 +606,7 @@ export { PROMPTS };
  * @param {object} result
  * @returns {object}
  */
-function visibilityInput(state, result) {
+function visibilityInput(state, result, effects = []) {
   const attacker = game.actors.get(state.attackerId);
   const defender = game.actors.get(state.defenderId);
 
@@ -626,7 +626,11 @@ function visibilityInput(state, result) {
       value: row.value ?? row.amount ?? 0,
       side: sideOf(row, state),
     })),
-    effects: (state.appliedEffects ?? []).map((e) => e.defId ?? e),
+    // What the riders did, from the message's `effects` flag, which the engine
+    // writes after the damage (#185). This read `state.appliedEffects`, which
+    // nothing has ever written, so no attack card listed an effect: Maria's
+    // Instakill and its roll were in the flags and nowhere on the card.
+    effects: (effects ?? []).map(effectLine),
     rolls: state.rolls ?? [],
   };
 }

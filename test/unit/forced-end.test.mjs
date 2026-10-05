@@ -159,8 +159,8 @@ describe("a field its owner's defeat is closing charges no toll (#185)", () => {
   });
 
   it("asks the same question the close does", () => {
-    const close = fields.slice(fields.indexOf("function shouldClose"), fields.indexOf("function endsForOwnerDefeat"));
-    expect(close).toMatch(/return endsForOwnerDefeat\(field\);/);
+    const close = fields.slice(fields.indexOf("function closeReason"), fields.indexOf("function endsForOwnerDefeat"));
+    expect(close).toMatch(/return endsForOwnerDefeat\(field\) \? "ownerDefeat" : null;/);
   });
 
   it("the Mist states both halves", async () => {
@@ -176,5 +176,36 @@ describe("a fallen owner is not offered the reshape (#185)", () => {
     const fields = readFileSync("module/engine/fields.mjs", "utf8");
     const offer = fields.slice(fields.indexOf("export async function offerReshape"), fields.indexOf("export async function offerReshape") + 900);
     expect(offer).toMatch(/if \(!owner\?\.acted \|\| owner\.defeated \|\| !mayReshape\(field, owner\)\) continue;/);
+  });
+});
+
+describe("a closing field tells the table (#185)", () => {
+  // Live: the Mist closing because her Master could not pay was a log line,
+  // and its close at her defeat was not even that.
+  const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
+  const t = (key, data) => {
+    const text = lang[key] ?? key;
+    return data ? text.replace(/\{(\w+)\}/g, (_, k) => data[k]) : text;
+  };
+
+  it("names the field and the reason", async () => {
+    const { fieldClosedCard } = await import("../../module/engine/field-report.mjs");
+    const card = fieldClosedCard("The Mist", "upkeep", t);
+    expect(card).toContain("The Mist ends.");
+    expect(card).toContain(lang["FGT.Field.Closed.upkeep"]);
+    expect(fieldClosedCard("The Mist", "ownerDefeat", t)).toContain(lang["FGT.Field.Closed.ownerDefeat"]);
+  });
+
+  it("falls back for a reason it has no words for", async () => {
+    const { fieldClosedCard } = await import("../../module/engine/field-report.mjs");
+    expect(fieldClosedCard("X", "somethingNew", t)).toContain(lang["FGT.Field.Closed.ended"]);
+  });
+
+  it("every close path posts it, with its reason", () => {
+    const fields = readFileSync("module/engine/fields.mjs", "utf8");
+    const end = fields.slice(fields.indexOf("export async function endField"), fields.indexOf("export async function endField") + 1600);
+    expect(end).toMatch(/await postFieldClosed\(region\.name \?\? fieldId, fieldId, reason\);/);
+    expect(fields).toMatch(/await endField\(field\.id, closeReason\(field, tick\) \?\? "ended"\)/);
+    expect(fields).toMatch(/return endField\(fieldId, reason, \{ logged: true \}\);/);
   });
 });

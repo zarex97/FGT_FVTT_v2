@@ -226,3 +226,18 @@ function canSeeRoll(roll, { isGM, viewerId, result }) {
   }
   return false;
 }
+
+/**
+ * One rider's outcome, as the card prints it: the name, what happened if it
+ * did not land, and the roll when a chance decided it.
+ *
+ * @param {{name?: string, id?: string, outcome?: string, reason?: string|null, chance?: string|null}|string} e
+ * @returns {string}
+ */
+export function effectLine(e) {
+  if (typeof e === "string") return e;
+  const name = e?.name ?? e?.id ?? "?";
+  if (e?.outcome === "applied") return e.chance ? `${name} (${e.chance})` : name;
+  const why = e?.reason ? `, ${e.reason}` : "";
+  return `${name}: ${e?.outcome ?? "not applied"}${why}`;
+}

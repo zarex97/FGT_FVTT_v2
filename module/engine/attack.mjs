@@ -4552,7 +4552,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
       });
       if (outcome.intents.length > 0) await applyBatch(outcome.intents, "aftermathEffect");
       applied.push({
-        summary: { id: rider.id, name: def.name, outcome: outcome.outcome, reason: outcome.reason },
+        summary: { id: rider.id, name: def.name, outcome: outcome.outcome, reason: outcome.reason, chance: outcome.chance ?? null },
         result: outcome,
       });
     }
@@ -4814,7 +4814,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
 
       if (outcome.intents.length > 0) await applyBatch(outcome.intents, "abilityEffect");
       applied.push({
-        summary: { id: spec.id, name: def.name, outcome: outcome.outcome, reason: outcome.reason },
+        summary: { id: spec.id, name: def.name, outcome: outcome.outcome, reason: outcome.reason, chance: outcome.chance ?? null },
         result: outcome,
       });
     }
@@ -5232,7 +5232,7 @@ async function applyDeclaredEffects(specs, ability, state, defender, { ignoresRe
 
     if (outcome.intents.length > 0) await applyBatch(outcome.intents, "npCheckEffect");
     out.push({
-      summary: { id: spec.id, name: def.name, outcome: outcome.outcome, reason: outcome.reason },
+      summary: { id: spec.id, name: def.name, outcome: outcome.outcome, reason: outcome.reason, chance: outcome.chance ?? null },
       result: outcome,
     });
   }

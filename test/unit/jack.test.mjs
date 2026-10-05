@@ -330,3 +330,58 @@ describe("an Instakill rider after the damage defeats (#185)", () => {
     expect(fn).toMatch(/if \(defender\?\.defeated \|\| doc\.system\?\.defeated\) return;/);
   });
 });
+
+describe("an attack card lists its riders and their rolls (#185)", () => {
+  // Live: Maria's 50% Instakill, landed or resisted, was in the message's
+  // `effects` flag and nowhere on the card; the card read
+  // `state.appliedEffects`, which nothing writes.
+  it("words each outcome, with the roll when a chance decided it", async () => {
+    const { effectLine } = await import("../../module/rules/card-visibility.mjs");
+    expect(effectLine({ name: "Instakill", outcome: "applied", reason: null, chance: "rolled 12 vs 50%" })).toBe("Instakill (rolled 12 vs 50%)");
+    expect(effectLine({ name: "Instakill", outcome: "resisted", reason: "rolled 59 vs 50%", chance: "rolled 59 vs 50%" })).toBe("Instakill: resisted, rolled 59 vs 50%");
+    expect(effectLine({ name: "Def Dwn", outcome: "applied", reason: null, chance: null })).toBe("Def Dwn");
+  });
+
+  it("the card reads the flag the engine writes, and the applier keeps a landed roll", async () => {
+    const { readFileSync } = await import("node:fs");
+    const cards = readFileSync("module/apps/chat/cards.mjs", "utf8");
+    expect(cards).toMatch(/viewerVisibility\(state, result, message\?\.getFlag\?\.\("fgt", "effects"\) \?\? \[\]\)/);
+    expect(cards.includes("(state.appliedEffects ?? [])")).toBe(false);
+    expect(readFileSync("module/engine/attack.mjs", "utf8")).toMatch(/await message\.setFlag\("fgt", "effects"/);
+    const applier = readFileSync("module/engine/effect-applier.mjs", "utf8");
+    expect(applier).toMatch(/return \{ outcome: "applied", reason: null, chance: rolled, intents, trace \};/);
+  });
+});
+
+describe("a healing Skill's card says what it did (#185)", () => {
+  // Live: Surgical Procedure healed 50 and restored 1 Agility under "No
+  // effects were applied" -- the card counted effects only.
+  it("words a stat change", async () => {
+    const { statChangeLine } = await import("../../module/engine/skill-use.mjs");
+    expect(statChangeLine({ t: "statDelta", stat: "agility.value", delta: 1 })).toBe("Agility +1");
+    expect(statChangeLine({ t: "statDelta", stat: "health.max", delta: -50 })).toBe("Health max -50");
+    expect(statChangeLine({ t: "statDelta", stat: "agility.value", delta: 0 })).toBe(null);
+  });
+
+  it("puts the heal and the stat change on the card's rows", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("module/engine/skill-use.mjs", "utf8");
+    expect(src).toMatch(/summary: \{ id: "heal", name: `Health \+\$\{amount\}`/);
+    expect(src).toMatch(/summary: \{ id: "statChange", name: line/);
+  });
+});
+
+describe("Eye of the Mind (False) counts as Instinct while its buffs stand (#185 reading 14)", () => {
+  // Ruled 2026-10-05: her list names the family. Through the real projection,
+  // so the tag has to survive the compile and the snapshot to count.
+  it("Heracles is exempt from the Mist with Dodge on him, and not without", async () => {
+    const { withSubjects, prepareSubjects } = await import("../helpers/subject.mjs");
+    await prepareSubjects();
+    const exempt = (effects) => withSubjects(
+      [{ from: "heracles", id: "heraclesInMist1", effects }],
+      ({ unit }) => hasCategory(unit("heraclesInMist1"), "instinct", "B"),
+    );
+    expect(await exempt([{ defId: "dodge" }])).toBe(true);
+    expect(await exempt([])).toBe(false);
+  }, 120_000);
+});
