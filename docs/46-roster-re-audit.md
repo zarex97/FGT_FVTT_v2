@@ -2841,7 +2841,7 @@ guarded or buffed by Teachings of Circe, Scapegoat, Surgical Procedure, AR or Pr
 Attack (`limits.forAttack`) and step 7 keeps a concealed ally for a use that is not; a spec that does not
 say is an Attack. §46.4-AK fixed the token-visibility half of concealment; this is the targeting half.
 
-### DL. "Day Round" was read from the Round clock in one clause and from the panel in four — **open, needs a ruling** (#134)
+### DL. "Day Round" was read from the Round clock in one clause and from the panel in four — **ruled and built** (#134, #185)
 
 **Reached: CS.3.** Jack's Murderer of the Misty Night reads `board.phase` (`attack.mjs`); Maria the Ripper
 (`roundPhase`), Ozymandias's Pharaoh of the Hot Sands (`self:phase:day`), Soaked clause c and the Dark
@@ -2850,6 +2850,10 @@ Sol, Jack cannot use Maria the Ripper and Ozymandias's Crit Up clauses fire whil
 free. The spend of Sol is Observed (§46.15.3): Ozymandias's clauses 2 and 3 applied during a Night Round.
 The question for the author: does *"Day Round"* mean the Round clock or the panel? Option B, the panel for
 all five, moves one reader (Misty Night to `phaseAt`) and keeps Ch. 26 and Ch. 29's model.
+Ruled 2026-10-05 (#185 readings 12 to 14): the panel of the Unit a rule originates from, for every rule. A
+Night-only ability used on a Unit standing in a Day zone is allowed, and that Unit's Day reduction applies.
+Misty Night's Luck Check now reads her own phase (`defender.phase`), and no check is asked with no Day-Night
+cycle (53dd336).
 
 ### DM. A top-level damage.sources on a primary damage block was never read — **fixed 2026-10-01** (#135)
 
@@ -3384,6 +3388,75 @@ Turn he Dismounted in charged his Master nothing. `contributionsOf` reads the re
 **Reached: AK.kb, AK.kb.side.** Units he walked through were passed; the one where he stopped was set down
 past whoever stood behind it. Ruled 2026-10-05 (readings 14, 15): carried ahead along his path, one panel a
 step; a taken panel means a sidestep and the hit. Ch. 45.
+### FY. Jack's pre-emptive strike stopped at its miss check — **fixed** (#185)
+
+**Reached: MM.p1.** `runPreemption` advanced her Process to `missCheck` and posted the card, which offered
+nothing: every other declaration goes through `runMissCheck`. It now does too (2506126). Ch. 21.
+
+### FZ. The attack she pre-empted came back refused for its own budget — **fixed** (#185)
+
+**Reached: MM.p1.** The resumed declaration asked the budget gate again and was refused *"already attacked
+this turn"*. `attackPreflight` takes `resume` and skips the gate it already paid (2506126). Ch. 21.
+
+### GA. An area that caught one concealed Unit flipped no coin — **fixed** (#185)
+
+**Reached: PC.1.aoe.** `state.isAoE` counts distinct defenders, so Rain of Light's 3×3 around Jack alone
+landed its 525 in full. The resolver's `concealedAoE` (caught by the shape, not chosen) rides on the Process
+as `caughtConcealed`, and the coin reads it (2506126). Ch. 30.
+
+### GB. Every conceal and reveal threw, and no visibility pass ran — **fixed** (#185)
+
+**Reached: PC.when.** `token-vision.mjs` named `refreshVisibility`, a flag Foundry v14's PerceptionManager
+does not define, and `update` threw on it. `refreshVision` alone ends in `canvas.visibility.refresh()`
+(2803525). Ch. 30.
+
+### GC. A credited field kill credited nobody — **fixed** (#185)
+
+**Reached: MI.1.credit, FS.** `creditOwner` wrote a `fieldKill` log line nothing read: the defeat named no
+killer and `unitKilled` never fired, so no Free Servant's Sustainability grew from a field kill (Jack's Mist,
+Blood Fort Andromeda, Ramesseum Tentyris). The attack path's Civilian kill had the same gap. Both now name the
+killer and fire `unitKilled` (2803525). Ch. 28.
+
+### GD. The preflight read only `targetId`, and the canvas sends `unitId` — **fixed** (#185)
+
+**Reached: MA2.near.** Every `target:` requirement failed from the interface, so Maria Method 2 was refused
+on a Female inside the Mist at Night (d48534f). Ch. 21.
+
+### GE. A failed requirement printed its raw kind — **fixed** (#185)
+
+**Reached: MA2.night.** *"Cannot use this ability: roundPhase"*. It is worded from
+`FGT.Ability.Refused.<kind>`, as the sheet and the bar are (d48534f). Ch. 21.
+
+### GF. An Instakill rider after the damage left its target at 0 Health, undefeated — **fixed** (#185)
+
+**Reached: MA2.far.** Only a before-damage phase was followed by `resolveEmptiedDefender`. Medusa sat at 0 on
+the board after Method 2 at Range 3. The check now follows the after-damage riders too (d48534f). Ch. 21.
+
+### GG. The Mist charged its toll on the Turn Jack fell — **fixed** (#185)
+
+**Reached: MI.toll.none.** The owner-defeat close runs at the next Turn's start and the toll at the ending
+Turn's end, so her Master paid 15 for a Mist that was closing. `runUpkeep` skips a field `endsForOwnerDefeat`
+names (50f0e58). Ch. 28.
+
+### GH. A defeated Jack was offered the end-of-Turn reshape — **fixed** (#185)
+
+**Reached: MI.defeat.** `offerReshape` skips a defeated owner (50f0e58). Ch. 28.
+
+### GI. No card when a field closes — **open** (#185)
+
+**Reached: MI.toll.force.** The Mist's forced close is only a log line, and an owner-defeat close is not even
+that. Every field, not Jack's alone.
+
+### GJ. An attack card keeps its effect chance rolls in flags only — **open** (#185)
+
+**Reached: MA2.near.ik.** *"rolled 59 vs 50%"* is in the card's `effects` flag and not on the card, and a
+chance that succeeds keeps no roll at all. Every attack rider with a chance.
+
+### GK. A healing Skill's card reads "No effects were applied" — **open** (#185)
+
+**Reached: SP.heal.** Surgical Procedure healed 50 and restored 1 Agility. The skill card counts effects only;
+a heal or a stat change from a phase is not summarised.
+
 ---
 
 ---
@@ -4225,3 +4298,51 @@ Seals laid on him, a foreign buff and debuffs for the duel to negate, Heracles's
 barrier re-armed to press the shove, and Masters moved into ZON. Clauses no Unit on the board could reach were
 pressed through the real projection instead (Magic Resistance against a Rank C attack, the three-Parameters
 refusal) and say so.
+
+## 46.18 Jack the Ripper — the Servant who hides in her own weather
+
+**All 87 of her Clauses were Pressed or Observed on a live board** (#185, 2026-10-05). The readings were
+ruled in one grilling the same day: *"Human"* is Civilians and Masters (1); she strikes first and the
+attacker's Attack follows unless she defeated them (2); the Mist Poisons enemy Masters only (3) and may be any
+25 panels within 4 of her, unconnected allowed (4); MOV halved rounds down to a minimum of 1 (5); she sees
+every Unit inside her Mist, on the canvas and for every Detect rule (6); Information Erasure's passive is a
+table rule, filed as #186 (7); Maria is Rank D by Method 1 and B+ by Method 2 (8); the Female bonus doubles
+the whole hit (9); Method 1 has Range 2 (10); inside the Mist both Dodge and Atk Up last 1◈ (11); and Day or
+Night is read at the panel of the Unit a rule originates from, for every rule (12 to 14, §46.4-DL).
+
+**Why she finds so much.** Her kit is three systems the attack-shaped engine walks rarely: a Unit nobody may
+choose, a field that kills and charges, and a strike that jumps the queue. Concealment met the area that
+catches one Unit and a visibility pass that never ran. The Mist met kill credit nobody read, a toll that
+outlived her and a reshape offered to the dead. Maria met a preflight that could not see its target and an
+Instakill that left a body standing.
+
+### 46.18.1 What she cost the engine
+
+| Commit | Finding |
+|---|---|
+| 53dd336 | The rulings built: her sight inside the Mist (`sees`), and phase by origin for the pre-emption's Luck Check (§46.4-DL) |
+| 2506126 | The pre-emption's miss check; the resumed attack's budget; the coin for an area that catches her alone (§46.4-FY to GA) |
+| 2803525 | A credited field kill credits its owner; the visibility pass on conceal and reveal (§46.4-GB, GC) |
+| d48534f | The preflight's aimed Unit; requirement refusals in words; an after-damage Instakill defeats (§46.4-GD to GF) |
+| 50f0e58 | No toll and no reshape for a Mist her defeat closes (§46.4-GG, GH) |
+
+Three findings stay open, none of them hers alone: no card when a field closes, effect chance rolls kept off
+the attack card, and a healing Skill's card that says nothing was applied (§46.4-GI to GK).
+
+### 46.18.2 What was staged
+
+Named in each evidence line: Presence Concealment's cooldown and her Turn record reset to conceal her again
+the same Turn; the faction's attack budget reset to re-cast for the coin's other face; her Master moved into
+ZON and his Health raised; Medusa's Master set to Rank B for the High Rank exemption; EMIYA imported inside
+the Mist for the Instinct exemption; two Civilians placed for effect 1; her contract set to Free for the
+Sustainability gain, then restored; a Mist's activation tick moved so its toll fell on the Turn she died; and
+Jack revived once to be defeated again. Her sight into the Mist from outside is Pressed through the engine
+(`sees`, with a differential); a non-GM canvas was not opened.
+
+### 46.18.3 Two readings for the author
+
+1. **Does a Mist kill pay her a Civilian's bounty?** *"This counts as Jack killing the Human"* now credits her
+   the kill and her Free Servant Sustainability. A Servant that kills a Civilian also heals 100 and gains 1
+   Agility (Ch. 06); Blood Fort Andromeda authors its own payout, and the Mist pays none.
+2. **Does Eye of the Mind (False) count as Instinct?** Her list names *"Eye of the Mind (only when Active)"*.
+   EMIYA's (True) is tagged; Heracles's (False) is deliberately not, as a separate, lesser named skill.
