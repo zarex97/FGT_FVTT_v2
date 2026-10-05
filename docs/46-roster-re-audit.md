@@ -3328,6 +3328,26 @@ coin defeated him. Anti-Purge and Substitution now stop the coin and the event r
 
 **Reached: TT.cd.** Troias ridden onto an empty line: Agility and Atk Up, no cost, no cooldown, no card.
 Ch. 05.
+
+### FN. A ride re-ran its gates after it moved — **fixed** (#184)
+
+**Reached: TT.ride.** Troias carried Achilles out of his Master's ZON, and `resolveAttack` asked the gates
+again and refused the Noble Phantasm with the ride already spent. The ride's own preflight, asked before
+the move, is now the declaration's. Ch. 05.
+
+### FO. A before-damage self-buff waited for the first-declared defender — **fixed** (#184)
+
+**Reached: TT.atk.np.** Three defenders answered in reverse, and Troias's Atk Up landed with the last
+hit. The first Process to strike pays it now. Ch. 21.
+
+### FP. A tier table read Medusa's E- as no Divinity — **fixed** (#184)
+
+**Reached: AA.2.** Andreias Amarantos's cut points were ordinals; E- fell below E's to the zero tier.
+`threshold` tables may read by grade. Ch. 03.
+
+### FQ. Nothing emitted `attack:kind:ridingAttack` — **fixed** (#184)
+
+**Reached: TT.p.** Troias's *"Riding Attack damage +25%"* never applied to any ride. Ch. 11.
 ---
 
 ---

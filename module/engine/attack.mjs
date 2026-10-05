@@ -99,7 +99,7 @@ import { regionSizedTargeting } from "./fields.mjs";
  * @param {object} args.placement  the player's targeting choices
  * @returns {Promise<{messageId: string, state: object}>}
  */
-export async function resolveAttack({ attackerId, abilityId, placement, resume = false }) {
+export async function resolveAttack({ attackerId, abilityId, placement, resume = false, preflighted = null }) {
   const attacker = game.actors.get(attackerId);
   if (!attacker) throw new Error(`FGT | Unknown attacker ${attackerId}`);
 
@@ -109,7 +109,12 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // moves the token (#114). It returns the Unit, the ability it resolved to and
   // what the use will cost; a refusal is thrown from here, as it always was.
   const combat = game.combats.active;
-  const pre = attackPreflight({ attacker, abilityId, placement, board, combat });
+  // A Riding Attack asked these gates BEFORE it moved the token, and that is
+  // the declaration (#114). Asking them again after the ride judged a ZON the
+  // ride itself had changed: Troias Tragoidia carried Achilles four panels from
+  // a Master who could not land beside him, was refused "outside its Master's
+  // ZON", and left him moved, his ride spent and no attack made (#184).
+  const pre = preflighted ?? attackPreflight({ attacker, abilityId, placement, board, combat });
   if (!pre.ok) {
     // TOLD, not just thrown. A refusal for want of budget was logged and
     // swallowed, so a Unit that had already attacked -- after Gather, most
@@ -1810,6 +1815,24 @@ function coverModifiersFor(state, defender) {
   }
   return [];
 }
+
+/**
+ * Is this the first Process of its group to reach the Damage Step?
+ *
+ * For what an ability does to its user BEFORE its damage (#184): the defenders
+ * answer their rungs in any order, so the first declared is not the first to
+ * strike, and a buff pinned to it arrived after the hits it was for.
+ *
+ * @param {object} state
+ * @returns {boolean}
+ */
+function isFirstToStrike(state) {
+  return !siblingMessages(state)
+    .map((m) => process.deserialize(m.getFlag("fgt", "process")))
+    .some((s2) => s2 && s2.defenderId !== state.defenderId
+      && (s2.history ?? []).some((h) => h.state === "damage"));
+}
+
 
 /**
  * Is this the Process a once-per-Phase effect should be paid on?
@@ -4668,8 +4691,15 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     // through four Units would have granted +120% instead of +30%. The first
     // defender's Process is the one that pays it, chosen by group order so
     // every client agrees which that is.
+    //
+    // A BEFORE-damage self-buff is the first Process to STRIKE's to pay, not
+    // the first declared: *"First restores X Agility and applies Atk Up ...
+    // Deals 4x damage"* stands before every hit. The defenders answer in any
+    // order, and on a live board Troias's Atk Up landed with the last of three
+    // hits, so the first two went without it (#184).
     if (phase.target === "self") {
-      if (!isFirstOfGroup(state)) continue;
+      const pays = when === "beforeDamage" ? isFirstToStrike(state) : isFirstOfGroup(state);
+      if (!pays) continue;
       applied.push(...await applyDeclaredEffects(
         effectSpecsOf(phase),
         ability,

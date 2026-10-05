@@ -75,6 +75,21 @@ describe("Magic Resistance in the preview, as in the resolution", () => {
   });
 });
 
+describe("Achilles's Magic Resistance C (#184, MR.p1, MR.p1.over, MR.np)", () => {
+  // Nobody on the audit board had a MAG attack of Rank C or lower, so the
+  // negation is pressed here, through the real projection.
+  it("A Tale for Somebody's Sake (Rank C): negated -- up to C is nothing", async () => {
+    const notes = await aim("nursery-rhyme", "nursery-a-tale-for-somebodys-sake", "achilles", ({ preview }) => stage11(preview));
+    expect(notes).toEqual(["negated: MR C ≥ attack C"]);
+  });
+
+  it("Brahmastra (Rank A+): reduced by 30%, and it is a Noble Phantasm", async () => {
+    const notes = await aim("karna", "karna-brahmastra", "achilles", ({ preview }) => stage11(preview));
+    expect(notes).toHaveLength(1);
+    expect(notes[0]).toMatch(/30% MAG \(MR C < attack A\+\)$/);
+  });
+});
+
 describe("the preview's attack and the counterfactual's are one identity", () => {
   // The nine abilities a scan over the projected Servants found preview and resolution disagreeing on
   // (44 ability-and-defender pairs), and the Servant each belongs to.

@@ -389,9 +389,15 @@ export const TABLES = Object.freeze({
    * The only defensive table in the game whose *absent* case is the strongest
    * one — an attacker with no Divinity deals **zero**. Against the expanded
    * roster that is eleven of seventeen Servants.
+   *
+   * By GRADE (`byGrade`): *"Unit with E-Rank Divinity"* is every E, and
+   * Medusa's is E-. Read by ordinal, E- fell below E's cut point to the
+   * no-Divinity default, and her hit on Achilles was zeroed instead of halved
+   * (#184).
    */
   andreiasAmarantosByAttackerDivinity: {
     kind: "threshold",
+    byGrade: true,
     thresholds: [
       { minOrdinal: ord("C"), value: 100 },
       { minOrdinal: ord("D"), value: 75 },
@@ -480,7 +486,10 @@ export function lookup(id, rank) {
       return table.fallback;
     }
     case "threshold": {
-      for (const t of table.thresholds) if (rank.ordinal >= t.minOrdinal) return t.value;
+      // `byGrade`: the cut points are letter grades, so a `-` or `+` does not
+      // move a Rank across one -- "E-Rank" includes E-.
+      const at = table.byGrade ? Rank.of(rank.grade, 0).ordinal : rank.ordinal;
+      for (const t of table.thresholds) if (at >= t.minOrdinal) return t.value;
       return table.default;
     }
     case "equality": {

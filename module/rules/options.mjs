@@ -48,6 +48,12 @@ export function rollOptionsFor({ attacker, defender, attack = {}, withoutModeHel
   compareParameters(options, attacker, defender);
 
   options.add(`attack:kind:${attack.kind ?? "normal"}`);
+  // A RIDE is a kind too. Troias Tragoidia's passive is *"Riding Attack damage
+  // is increased by 25%"*, authored `attack:kind:ridingAttack`, and nothing
+  // emitted it: a ride's Normal Attack is `kind: normal`, so the +25% never
+  // applied to any ride (#184, found live). Both, because a ride is still that
+  // Unit's Normal Attack (or the Noble Phantasm it is) for everything else.
+  if (attack.ride) options.add("attack:kind:ridingAttack");
   if (attack.isAoE) options.add("attack:isAoE");
   // Whether this declaration ANSWERS an attack rather than starting one
   // (Ch. 21). Avenger's second half is the first clause to ask: *"If Castor

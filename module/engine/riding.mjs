@@ -174,6 +174,8 @@ export async function performRidingAttack({ unitId, destination, abilityId = nul
   const result = await resolveAttack({
     attackerId: unitId,
     abilityId,
+    // The gates were judged above, before the move: the declaration (#184).
+    preflighted: preflight,
     placement: {
       pathTargets: plan.hits.map((u) => u.id),
       // How far he actually rode and how many he actually reached. Troias

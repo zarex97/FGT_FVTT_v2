@@ -43,6 +43,8 @@ The engine calls `rollOptionsFor` once per attack with attacker, defender, and a
 
 **Unranked parameters emit nothing.** A unit with no MAG rank does not hold `rank:mag:gte:E` and no clause requiring one can be accidentally satisfied. Karna's *Brahmastra* compares both units' parameters and emits `target:paramVsSelf:${parameter}:gt/eq/lt`, only for parameters both sides rank (`module/rules/options.mjs:193-206`).
 
+**A ride emits `attack:kind:ridingAttack`** beside its own kind (#184). Troias Tragōidia's *"Riding Attack damage is increased by 25%"* was authored against it and nothing emitted it, so no ride ever got the bonus; `rules/options.mjs` now adds it whenever the attack carries `ride` facts.
+
 ### The facet table
 
 `FACETS` is an array of 45 descriptors, each declaring one option family (`module/rules/facets.mjs:76-424`). Each facet has:
