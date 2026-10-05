@@ -919,3 +919,38 @@ describe("Troias's toll is collected for a Turn he Dismounted in (#184)", () => 
     expect(tolls({ tick: 9, mounted: false }, 9)).toBe(0);
   });
 });
+
+describe("Akhilleus Kosmos's shove along his whole path (#184, readings 14 and 15)", () => {
+  const bounds = squareBounds(13);
+  const u = (id, i, j) => ({ id, kind: "servant", panel: { i, j }, level: 0 });
+  const plan = async (mover, to, others) => {
+    const { travelShovePlan, stepsBetween } = await import("../../module/rules/movement.mjs");
+    return travelShovePlan(mover, stepsBetween(mover.panel, to), { bounds, units: [mover, ...others] });
+  };
+
+  it("carries a Unit he walks through ahead of him, to the panel past where he stops", async () => {
+    const out = await plan(u("ach", 7, 12), { i: 7, j: 8 }, [u("her", 7, 10)]);
+    expect(out).toEqual([{ unitId: "her", landing: { panel: { i: 7, j: 7 }, sidestepped: false } }]);
+  });
+
+  it("one with a Unit behind it cannot vacate: it steps aside and is hit", async () => {
+    // Live: Heracles (7,12) with Medea at (7,11) behind him, Achilles from (7,13).
+    const out = await plan(u("ach", 7, 13), { i: 7, j: 12 }, [u("her", 7, 12), u("med", 7, 11)]);
+    expect(out).toEqual([{ unitId: "her", landing: { panel: { i: 6, j: 12 }, sidestepped: true } }]);
+  });
+
+  it("the board's edge stops a shove the same way", async () => {
+    const out = await plan(u("ach", 7, 2), { i: 7, j: 0 }, [u("her", 7, 1)]);
+    expect(out[0].landing.sidestepped).toBe(true);
+  });
+
+  it("a Unit he does not reach is left alone", async () => {
+    const out = await plan(u("ach", 7, 12), { i: 7, j: 10 }, [u("med", 5, 5)]);
+    expect(out).toEqual([]);
+  });
+
+  it("the move hook asks this plan for a travel-style shove", () => {
+    const hooks = readFileSync("module/engine/movement-hooks.mjs", "utf8");
+    expect(hooks).toMatch(/const plan = travelShovePlan\(\{ \.\.\.mover, panel: origin \}, steps, board\);/);
+  });
+});

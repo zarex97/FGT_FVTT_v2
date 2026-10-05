@@ -3378,6 +3378,12 @@ Turn he Dismounted in charged his Master nothing. `contributionsOf` reads the re
 ### FW. A post-pipeline row printed "Stage undefined" — **fixed** (#184)
 
 **Reached: DA.end.** God Hand's survives-at-1 took 71 to 0 under that label. Ch. 22.
+
+### FX. The shove reached only the panel he stopped on, and leapt — **ruled and built** (#184)
+
+**Reached: AK.kb, AK.kb.side.** Units he walked through were passed; the one where he stopped was set down
+past whoever stood behind it. Ruled 2026-10-05 (readings 14, 15): carried ahead along his path, one panel a
+step; a taken panel means a sidestep and the hit. Ch. 45.
 ---
 
 ---
