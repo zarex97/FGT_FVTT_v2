@@ -89,6 +89,11 @@ field:
     insideCanTargetOutside: true
     outsideCanApplyEffectsInside: true
     visibilityAcrossBoundary: full
+    # Effect 7. "Jack is not affected by the Fog of War area within the Mist
+    # (i.e. she can see all Units within the Mist)." Ruled 2026-10-05 (#185
+    # reading 6): built -- the owner sees every Unit inside, wherever she
+    # stands, for every Detect rule and on the canvas (`rules/identity.mjs#sees`).
+    ownerSeesInside: true
   # Axis 4 -- interior rules.
   interior:
     # Effect 3. `direction: outgoing` -- this worsens the EVADER'S OWN roll,
@@ -193,16 +198,5 @@ field:
 phases:
   - kind: createField
     target: self
-# Effect 7 -- "Jack is not affected by the Fog of War area within the Mist
-# (i.e. she can see all Units within the Mist)" -- is NOT MODELLED, and this is
-# the honest place to say so rather than authoring a rule that compiles and
-# does nothing.
-#
-# There is no Fog of War subsystem to be exempt from. `engine/vision.mjs` is
-# Detect and first-sighting (Ch. 05), which is a different question:
-# Detect decides whether a Presence-Concealed unit may be Discovered, not what
-# any player can see on the canvas. Foundry's own token vision is off for this
-# system, and closed-information play is what Ch. 38 defers to Ch. 40.
-#
-# When that arrives, this clause is one `Suppress` element and a reader.
+# Effect 7 is `field.isolation.ownerSeesInside` above (#185 reading 6).
 

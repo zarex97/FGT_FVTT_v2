@@ -18,8 +18,7 @@
  */
 
 import { CONCEALMENT, CONCEALMENT_SLUG, DEACTIVATION_REASONS } from "../rules/concealment.mjs";
-import { discoverAttempts, detectRangeOf } from "../rules/identity.mjs";
-import { chebyshev } from "../domain/geometry.mjs";
+import { discoverAttempts, sees } from "../rules/identity.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
@@ -355,7 +354,7 @@ function recordArrivals(unit, board, acquiredAt, tick) {
     if (watcher.kind !== "servant" || watcher.defeated) continue;
     if ((watcher.faction ?? watcher.factionId) === (unit.faction ?? unit.factionId)) continue;
     if (!watcher.panel || !unit.panel) continue;
-    if (chebyshev(watcher.panel, unit.panel) > detectRangeOf(watcher, board)) continue;
+    if (!sees(watcher, unit, board)) continue;
     if (acquiredAt[watcher.id] === undefined) acquiredAt[watcher.id] = tick;
   }
 }

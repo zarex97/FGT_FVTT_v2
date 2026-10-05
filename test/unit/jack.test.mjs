@@ -196,3 +196,48 @@ describe("The Mist as authored — the exemption is on contact only", () => {
     expect(masterEvents.filter((e) => e.event !== "contact").length).toBeGreaterThan(0);
   });
 });
+
+describe("the pre-emption's Luck Check reads Jack's own phase (#185 reading 12)", () => {
+  it("off the pre-empter's projection, not the board's clock", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("module/engine/attack.mjs", "utf8");
+    expect(src).toMatch(/requiresLuckCheckIn \?\? \[\]\)\.includes\(defender\?\.phase \?\? board\.phase\)/);
+  });
+
+  it("her phase is the one at her panel, and none without a cycle", async () => {
+    const { phaseAt } = await import("../../module/rules/environment.mjs");
+    const board = { phase: "night", terrainAreas: [] };
+    expect(phaseAt({ i: 1, j: 1 }, board)).toBe("night");
+  });
+});
+
+describe("Jack sees every Unit inside her Mist (#185 reading 6)", () => {
+  const mist = { id: "jack-the-mist", ownerId: "jack", isolation: { ownerSeesInside: true } };
+  const jack = { id: "jack", panel: { i: 0, j: 0 }, classContainer: "assassin", fields: [] };
+  const far = { id: "far", panel: { i: 9, j: 9 }, fields: ["jack-the-mist"] };
+  const out = { id: "out", panel: { i: 9, j: 9 }, fields: [] };
+
+  it("wherever she stands, and only inside", async () => {
+    const { sees } = await import("../../module/rules/identity.mjs");
+    const board = { fields: [mist], units: [jack, far, out] };
+    expect(sees(jack, far, board)).toBe(true);
+    expect(sees(jack, out, board)).toBe(false);
+    // Nobody else borrows her sight.
+    expect(sees({ ...jack, id: "other" }, far, board)).toBe(false);
+  });
+
+  it("every seen/unseen rule asks it", async () => {
+    const { readFileSync } = await import("node:fs");
+    expect(readFileSync("module/rules/weak-point.mjs", "utf8")).toMatch(/const seen = sees\(defender, attacker, board\);/);
+    expect(readFileSync("module/engine/concealment.mjs", "utf8")).toMatch(/if \(!sees\(watcher, unit, board\)\) continue;/);
+    expect(readFileSync("module/rules/identity.mjs", "utf8")).toMatch(/if \(!sees\(watcher, concealedUnit, board\)\) continue;/);
+    expect(readFileSync("module/apps/canvas/token.mjs", "utf8")).toMatch(/seenThroughFields\(\)\.has\(actor\.id\)/);
+  });
+
+  it("the Mist authors it", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { parse } = await import("yaml");
+    const np = parse(readFileSync("packs/_source/abilities/jack-the-mist.yml", "utf8"));
+    expect(np.field.isolation.ownerSeesInside).toBe(true);
+  });
+});
