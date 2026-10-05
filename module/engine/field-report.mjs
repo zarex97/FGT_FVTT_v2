@@ -135,3 +135,32 @@ export async function postPeriodicReport(intents, io) {
   const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
   await ChatMessage.create({ content: periodicCard(ticks, t), flags: { fgt: { periodicReport: true } } });
 }
+
+/**
+ * The card a closing field posts (#185).
+ *
+ * @param {string} name the field's name, as its Region carries it
+ * @param {string} reason why it closed: `owner`, `upkeep`, `ownerDefeat` ...
+ * @param {(key: string, data?: object) => string} t the localiser
+ * @returns {string}
+ */
+export function fieldClosedCard(name, reason, t) {
+  const key = `FGT.Field.Closed.${reason}`;
+  const why = t(key);
+  const text = why === key ? t("FGT.Field.Closed.ended") : why;
+  return `<div class="fgt-card fgt-card--field-closed"><p>${t("FGT.Field.ClosedTitle", { name })}</p>`
+    + `<p class="fgt-card__meta">${text}</p></div>`;
+}
+
+/**
+ * Post the card a closing field owes the table (#185).
+ *
+ * @param {string} name
+ * @param {string} fieldId
+ * @param {string} reason
+ * @returns {Promise<void>}
+ */
+export async function postFieldClosed(name, fieldId, reason) {
+  const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
+  await ChatMessage.create({ content: fieldClosedCard(name, reason, t), flags: { fgt: { fieldClosed: fieldId, reason } } });
+}

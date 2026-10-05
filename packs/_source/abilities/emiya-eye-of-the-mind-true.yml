@@ -23,10 +23,8 @@ timing: { window: whenAttacked }
 # buffs this skill grants rather than being unconditional -- it is a cooldown
 # Skill and never `active`, so gating on that flag would make the tag dead.
 #
-# The FALSE variant (`heracles-eye-of-the-mind-false.yml`) is deliberately NOT
-# tagged: her list names "Eye of the Mind", and this corpus carries "Eye of the
-# Mind (False)" as a separate, lesser named skill. If the author intends the
-# family rather than the skill, adding the two lines there is the whole change.
+# The FALSE variant (`heracles-eye-of-the-mind-false.yml`) is tagged too: her
+# list names the family (ruled 2026-10-05, #185 reading 14).
 categorizedAs: [instinct]
 categorizedWhile: [dodge, atkUp, defUp]
 description: |

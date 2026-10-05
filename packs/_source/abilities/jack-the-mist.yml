@@ -140,7 +140,10 @@ field:
       kinds: [civilian]
       relations: [neutral, ally, enemy, self]
       onFail:
-        - { key: Defeat, cause: mist, creditOwner: true }
+        # `bounty`: the kill is hers, so she is paid as any Servant that kills
+        # a Civilian is -- 100 Health and 1 Agility (Ch. 06). Ruled 2026-10-05
+        # (#185 reading 13).
+        - { key: Defeat, cause: mist, creditOwner: true, bounty: true }
 
     # Effect 2, the contact half. Masters only -- a Servant is not a Human, and
     # "non-normal Humans" in this corpus is the Master category.

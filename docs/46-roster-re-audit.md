@@ -3442,20 +3442,21 @@ names (50f0e58). Ch. 28.
 
 **Reached: MI.defeat.** `offerReshape` skips a defeated owner (50f0e58). Ch. 28.
 
-### GI. No card when a field closes — **open** (#185)
+### GI. No card when a field closes — **fixed** (#185)
 
-**Reached: MI.toll.force.** The Mist's forced close is only a log line, and an owner-defeat close is not even
-that. Every field, not Jack's alone.
+**Reached: MI.toll.force.** The Mist's forced close was only a log line, and an owner-defeat close was not even
+that. Every field, not Jack's alone. `endField` now logs the close and posts a card naming the reason. Ch. 37.
 
-### GJ. An attack card keeps its effect chance rolls in flags only — **open** (#185)
+### GJ. An attack card listed no effect at all — **fixed** (#185)
 
-**Reached: MA2.near.ik.** *"rolled 59 vs 50%"* is in the card's `effects` flag and not on the card, and a
-chance that succeeds keeps no roll at all. Every attack rider with a chance.
+**Reached: MA2.near.ik.** *"rolled 59 vs 50%"* was in the card's `effects` flag and not on the card, and a
+chance that succeeded kept no roll at all. The card read `state.appliedEffects`, which nothing writes. It reads
+the flag now, with the roll for both outcomes. Every attack rider. Ch. 37.
 
-### GK. A healing Skill's card reads "No effects were applied" — **open** (#185)
+### GK. A healing Skill's card read "No effects were applied" — **fixed** (#185)
 
-**Reached: SP.heal.** Surgical Procedure healed 50 and restored 1 Agility. The skill card counts effects only;
-a heal or a stat change from a phase is not summarised.
+**Reached: SP.heal.** Surgical Procedure healed 50 and restored 1 Agility. The skill card counted effects only.
+A heal and a stat change now add rows: *"Health +50"*, *"Agility +1"*. Ch. 37.
 
 ---
 
@@ -4326,8 +4327,8 @@ Instakill that left a body standing.
 | d48534f | The preflight's aimed Unit; requirement refusals in words; an after-damage Instakill defeats (§46.4-GD to GF) |
 | 50f0e58 | No toll and no reshape for a Mist her defeat closes (§46.4-GG, GH) |
 
-Three findings stay open, none of them hers alone: no card when a field closes, effect chance rolls kept off
-the attack card, and a healing Skill's card that says nothing was applied (§46.4-GI to GK).
+Three more, none of them hers alone, were fixed after: a card when a field closes, the attack card's riders
+and their rolls, and a healing Skill's card (§46.4-GI to GK).
 
 ### 46.18.2 What was staged
 
@@ -4339,10 +4340,9 @@ Sustainability gain, then restored; a Mist's activation tick moved so its toll f
 Jack revived once to be defeated again. Her sight into the Mist from outside is Pressed through the engine
 (`sees`, with a differential); a non-GM canvas was not opened.
 
-### 46.18.3 Two readings for the author
+### 46.18.3 Two last readings
 
-1. **Does a Mist kill pay her a Civilian's bounty?** *"This counts as Jack killing the Human"* now credits her
-   the kill and her Free Servant Sustainability. A Servant that kills a Civilian also heals 100 and gains 1
-   Agility (Ch. 06); Blood Fort Andromeda authors its own payout, and the Mist pays none.
-2. **Does Eye of the Mind (False) count as Instinct?** Her list names *"Eye of the Mind (only when Active)"*.
-   EMIYA's (True) is tagged; Heracles's (False) is deliberately not, as a separate, lesser named skill.
+Ruled 2026-10-05 after the press. A Mist kill pays her a Civilian's bounty, 100 Health and 1 Agility, as any
+Servant's kill does (`bounty: true`, reading 13): live, 719 → 819 Health and 13 → 14 Agility. Eye of the Mind
+counts as Instinct as a family, so Heracles's (False) lifts the Mist while its buffs stand (reading 14): live,
+his MOV 4/8 inside the Mist became 8/8 once he used it.

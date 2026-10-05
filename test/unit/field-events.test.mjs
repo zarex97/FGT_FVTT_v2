@@ -247,6 +247,12 @@ describe("the Mist's kill is Jack's kill (#185)", () => {
     expect(intents.find((i) => i.t === "defeat")).toMatchObject({ unitId: CIV, cause: "mist", killerId: JACK });
   });
 
+  it("pays her a Civilian's bounty: 100 Health and 1 Agility (reading 13)", async () => {
+    const intents = await contact({});
+    expect(intents.find((i) => i.t === "heal")).toMatchObject({ unitId: JACK, amount: 100 });
+    expect(intents.find((i) => i.t === "statDelta")).toMatchObject({ unitId: JACK, stat: "agility.value", delta: 1 });
+  });
+
   it("pays a contracted Jack no Sustainability", async () => {
     const intents = await contact({});
     expect(intents.some((i) => i.t === "resource" && i.key === "sustainabilityRemaining")).toBe(false);

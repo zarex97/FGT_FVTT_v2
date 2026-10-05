@@ -501,16 +501,22 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
               : (phase.amount ?? 0));
           if (amount > 0) {
             await applyWorldIntents([I.heal(target.unitId, amount, ability.id)], `skill:${ability.id}:heal`);
+            // On the card (#185): Surgical Procedure healed 50 under "No
+            // effects were applied", because only effects were counted.
+            applied.push({ unitId: target.unitId, summary: { id: "heal", name: `Health +${amount}`, outcome: "applied", reason: null } });
           }
           break;
         }
 
-        case "statChange":
-          await applyWorldIntents(
-            statChanges(phase, target.unitId, doc),
-            `skill:${ability.id}:stat`,
-          );
+        case "statChange": {
+          const changes = statChanges(phase, target.unitId, doc);
+          await applyWorldIntents(changes, `skill:${ability.id}:stat`);
+          for (const c of changes) {
+            const line = statChangeLine(c);
+            if (line) applied.push({ unitId: target.unitId, summary: { id: "statChange", name: line, outcome: "applied", reason: null } });
+          }
           break;
+        }
 
         // Switch a mode off (or on) as a PHASE, rather than from an event.
         //
@@ -1440,6 +1446,21 @@ async function postCard(actor, ability, targets, applied) {
     // wants more than that.
     flags: { fgt: { kind: "skill", rows, casterControllers: ownersOf(actor) } },
   });
+}
+
+/**
+ * A stat change as a skill card prints it: `Agility +1`.
+ *
+ * @param {object} intent a `statDelta` or `resource` intent
+ * @returns {string|null}
+ */
+export function statChangeLine(intent) {
+  const key = intent?.stat ?? intent?.key ?? null;
+  const delta = Number(intent?.delta);
+  if (!key || !Number.isFinite(delta) || delta === 0) return null;
+  const [word, part] = String(key).split(".");
+  const label = word.charAt(0).toUpperCase() + word.slice(1) + (part === "max" ? " max" : "");
+  return `${label} ${delta > 0 ? "+" : ""}${delta}`;
 }
 
 /**

@@ -14,6 +14,12 @@ cooldown: "4◈"
 # at the react rung beside Block and Evade. A Skill usable only on his own Turn
 # would never fire in defence, which is the whole point of this one.
 timing: { window: whenAttacked }
+# Jack the Ripper's sheet lists "Eye of the Mind (only when Active/its buffs
+# are in effect)" among the Skills "also categorized as 'Instinct'", which is
+# what her Mist's exemption keys on. Ruled 2026-10-05 (#185 reading 14): the
+# family, so the False variant counts too, while the buffs it grants stand.
+categorizedAs: [instinct]
+categorizedWhile: [dodge, critDmUp]
 description: |
   (Passive) Upon a successful Evade, reduce the Cooldown of this Skill by ⅓◈ Turns.
   (Active) Used at the start of a Combat Process when Attacked. Applies @effect[dodge]{Dodge} to Heracles for

@@ -207,8 +207,12 @@ export function applyEffect({
       : `rolled ${roll} vs ${chanceSpec.percent}%`
         + (matched.length > 0 ? ` [${matched.map((m) => `${m.source} ${m.value}`).join(", ")}]` : ""),
   });
+  // The roll, kept for a success too (#185): the card showed a resisted
+  // chance's roll and nothing for one that landed, so half of every chance
+  // Clause's differential could not be checked.
+  const rolled = automatic ? null : `rolled ${roll} vs ${chanceSpec.percent}%`;
   if (!succeeded) {
-    return { outcome: "resisted", reason: `rolled ${roll} vs ${chanceSpec.percent}%`, intents: [], trace };
+    return { outcome: "resisted", reason: rolled, chance: rolled, intents: [], trace };
   }
 
   // ── 4. PREVENTION WINDOW ─────────────────────────────────────────────────
@@ -357,7 +361,7 @@ export function applyEffect({
   // exist before either of them could do anything.
   if (def.terminal) {
     trace.push({ step: "terminal", outcome: def.terminal.kind });
-    return { outcome: "applied", reason: null, intents: terminalIntents(def, target, source), trace };
+    return { outcome: "applied", reason: null, chance: rolled, intents: terminalIntents(def, target, source), trace };
   }
 
   const intents = exclusion.replaces.map((id) => I.removeEffect(target.id, id, "replaced"));
@@ -405,7 +409,7 @@ export function applyEffect({
 
   intents.push({ ...I.applyEffect(target.id, effect, source?.unitId ?? null), resolved: true });
 
-  return { outcome: "applied", reason: null, intents, trace };
+  return { outcome: "applied", reason: null, chance: rolled, intents, trace };
 }
 
 /**

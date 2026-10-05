@@ -79,6 +79,12 @@ Test: `test/unit/roll-records.test.mjs`.
 
 **Reading a flag set before the stage that changes it.** The card's Injury line read the pipeline's `exceededInjuryThreshold`, and its Shield line read `shieldAbsorbed`. Both are set at stage 16, and a barrier absorbs after every stage. So a hit Scales of the Sacred Fish absorbed whole read *"0 · Injury Roll required"* and *"absorbed 0"*, while the engine had already decided no roll (#110). **Read the decision, not an input to it.** The Injury line now reads `flags.fgt.injury`, the `injuryCheck` verdict, and `engine/shield.mjs#landBarrier` puts the absorption on the flag with the total and the row.
 
+**Reading a field nothing writes.** The attack card listed its riders from `state.appliedEffects`, which no code has ever written, while the engine wrote what the riders did to the message's `effects` flag. So no attack card listed an effect: Maria the Ripper's 50% Instakill, landed or resisted, was in the flags and nowhere on the card (#185). The card now reads the flag, worded by `rules/card-visibility.mjs#effectLine`: the name, the outcome when it did not land, and the roll when a chance decided it (*"Instakill (rolled 42 vs 50%)"*, *"Instakill: resisted, rolled 85 vs 50%"*). `engine/effect-applier.mjs` keeps the roll on a success too; it kept it only on a resist.
+
+**Counting one kind of result.** A Skill card counted the effects a Skill applied and nothing else, so Surgical Procedure healed 50 and restored 1 Agility under *"No effects were applied"* (#185). A `heal` phase and a `statChange` phase now add a row each (*"Health +50"*, *"Agility +1"*, `engine/skill-use.mjs#statChangeLine`), filtered per viewer like an effect.
+
+**A close that tells nobody.** A field closing posted nothing, and a close for its owner's defeat was not even logged (#185). `engine/fields.mjs#endField`, which every close path reaches, logs the `deactivated` entry when its caller has not and posts `engine/field-report.mjs#fieldClosedCard`: *"The Mist: Darkened Misty Metropolis ends. Its owner ended it."* The reason is `owner`, `upkeep`, `forcedEnd`, `ownerDefeat`, `expired`, `duelDecided` or `vulnerability`, worded from `FGT.Field.Closed.<reason>`.
+
 ## Open questions
 
 - **Partly settled: the state is carried as a message flag, and both clients read the same document.**
