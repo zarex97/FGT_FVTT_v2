@@ -2725,6 +2725,10 @@ async function runAutomaticStep(state, message) {
       // make a complete negation the strongest debuff delivery in the game.
       const veiled = result.flags?.concealmentVeil?.effects === false;
       const applied = (skipped || veiled) ? [] : await applyAbilityEffects(state, result);
+      // ...and a rider can empty one too. Maria the Ripper's *"Then, has a 50%
+      // chance of inflicting Instakill"* lands after the damage, and left
+      // Medusa at 0 Health, undefeated, on the board (#185).
+      if (applied.length > 0) await resolveEmptiedDefender(state);
 
       // §E's `damageStepEnd`, fired for the first time. It has been in the
       // event reference since the reference was written and nothing ever
@@ -4915,6 +4919,8 @@ async function resolveEmptiedDefender(state) {
   if (!doc) return;
 
   const defender = unitFrom(boardSnapshot(), doc);
+  // Already defeated by the damage: asking again would run the chain twice.
+  if (defender?.defeated || doc.system?.defeated) return;
   if (currentHealth(defender) > 0) return;
 
   // Zero damage: the Health is already gone. This asks "is it defeated", not

@@ -287,3 +287,46 @@ describe("concealing starts a visibility pass Foundry accepts (#185)", () => {
     for (const flag of used) expect(defined).toContain(`    ${flag}: {`);
   });
 });
+
+describe("a failed requirement is refused in words (#185)", () => {
+  // Live: Maria Method 2 by day read "Cannot use this ability: roundPhase".
+  it("the preflight words a requirement kind the way the sheet does", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("module/engine/attack-preflight.mjs", "utf8");
+    expect(src).toMatch(/const key = `FGT\.Ability\.Refused\.\$\{usage\.reason\}`;/);
+    const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
+    expect(lang["FGT.Ability.Refused.roundPhase"]).toBeTruthy();
+  });
+});
+
+describe("the preflight knows who was aimed at (#185)", () => {
+  // Live: Maria Method 2 on Medea, Female, both inside the Mist, at Night, was
+  // refused "Its conditions are not met right now". The canvas names the aimed
+  // Unit `unitId`, and the preflight read only `targetId`, so every `target:`
+  // requirement was false from the interface.
+  it("reads unitId first, then targetId, for both the target and the predicate", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("module/engine/attack-preflight.mjs", "utf8");
+    expect(src).toMatch(/const aimedId = placement\?\.unitId \?\? placement\?\.targetId \?\? null;/);
+    expect(src).toMatch(/target: aimed,/);
+    expect(src).toMatch(/defender: aimed,/);
+    expect(src).not.toMatch(/placement\?\.targetId \? unitFrom/);
+  });
+});
+
+describe("an Instakill rider after the damage defeats (#185)", () => {
+  // Live: Maria Method 2 at Range 3 dealt 0 and its 50% Instakill landed;
+  // Medusa sat at 0 Health, undefeated, still on the board. Only a phase
+  // BEFORE the damage was followed by the emptied-defender check.
+  it("asks the defeat chain after the after-damage riders too, once", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("module/engine/attack.mjs", "utf8");
+    const riders = src.indexOf("const applied = (skipped || veiled) ? [] : await applyAbilityEffects(state, result);");
+    const check = src.indexOf("if (applied.length > 0) await resolveEmptiedDefender(state);");
+    expect(riders).toBeGreaterThan(0);
+    expect(check).toBeGreaterThan(riders);
+    expect(check - riders).toBeLessThan(400);
+    const fn = src.slice(src.indexOf("async function resolveEmptiedDefender"), src.indexOf("async function resolveEmptiedDefender") + 600);
+    expect(fn).toMatch(/if \(defender\?\.defeated \|\| doc\.system\?\.defeated\) return;/);
+  });
+});
