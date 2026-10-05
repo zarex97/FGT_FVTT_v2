@@ -241,3 +241,32 @@ describe("Jack sees every Unit inside her Mist (#185 reading 6)", () => {
     expect(np.field.isolation.ownerSeesInside).toBe(true);
   });
 });
+
+describe("the pre-emptive strike goes through the miss check (#185)", () => {
+  it("runPreemption hands its Process to runMissCheck before the card", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("module/engine/attack.mjs", "utf8");
+    const at = src.indexOf("async function runPreemption");
+    const body = src.slice(at, at + 2500);
+    expect(body).toMatch(/const state = await runMissCheck\(process\.advance\(/);
+  });
+});
+
+describe("the attack Jack pre-empts comes back (#185)", () => {
+  it("a resumed declaration is not asked for a budget it already paid", async () => {
+    const { readFileSync } = await import("node:fs");
+    expect(readFileSync("module/engine/attack-preflight.mjs", "utf8")).toMatch(/if \(combat\?\.started && !free && !resume\) \{/);
+    expect(readFileSync("module/engine/attack.mjs", "utf8")).toMatch(/attackPreflight\(\{ attacker, abilityId, placement, board, combat, resume \}\)/);
+  });
+});
+
+describe("an area that catches Jack alone still flips the coin (#185)", () => {
+  // Live: Rain of Light's 3x3 centred on her caught no one else, so `isAoE`
+  // (distinct defenders) was false and the full 525 landed with no coin.
+  it("the resolver's catch rides on the Process and the coin reads it", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("module/engine/attack.mjs", "utf8");
+    expect(src).toMatch(/filter\(\(t\) => t\.concealedAoE\)/);
+    expect(src).toMatch(/if \(\(state\.isAoE \|\| state\.caughtConcealed\) && isConcealed\(defender\)\) \{/);
+  });
+});

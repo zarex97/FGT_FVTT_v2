@@ -497,7 +497,7 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   }
 
   // 9. CHOOSER
-  const withMeta = survivors.map((u) => ({ ...toTargeted(u, caster, bands), ...(tiers.get(u.id) ?? {}) }));
+  const withMeta = survivors.map((u) => ({ ...toTargeted(u, caster, bands, !isChosen), ...(tiers.get(u.id) ?? {}) }));
   let chosen = withMeta;
   let needsChoice = false;
   /** @type {TargetedUnit[]} */
@@ -617,7 +617,7 @@ export function resolveTargets(spec, caster, board, placement = {}) {
       if (chosen.some((t) => t.unitId === id)) continue;
       const partner = (board.units ?? []).find((u) => u.id === id);
       if (!partner || partner.defeated) continue;
-      chosen = [...chosen, { ...toTargeted(partner, caster, bands), viaPartnerClause: true }];
+      chosen = [...chosen, { ...toTargeted(partner, caster, bands, false), viaPartnerClause: true }];
     }
   }
 
@@ -1172,14 +1172,17 @@ function isProtectedMaster(unit, caster, board, range) {
  * @param {object} u
  * @param {object} caster
  * @param {Map<string, number>|null} bands
+ * @param {boolean} caught the shape caught it rather than a choice naming it:
+ *   Presence Concealment's coin is for a Unit *"caught in an AoE Attack"*, and
+ *   a chosen concealed Unit only survives step 7 when the spec waived it (#185)
  * @returns {TargetedUnit}
  */
-function toTargeted(u, caster, bands) {
+function toTargeted(u, caster, bands, caught) {
   return {
     unitId: u.id,
     distance: geo.chebyshev(caster.panel, u.panel),
     band: bands?.get(geo.key(u.panel)) ?? 0,
-    concealedAoE: Boolean(u.concealed),
+    concealedAoE: Boolean(u.concealed) && caught,
     relation: u.id === caster.id ? "self" : (u.relation ?? "enemy"),
   };
 }

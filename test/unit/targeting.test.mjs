@@ -241,6 +241,12 @@ describe("selection filters", () => {
     const r = resolveTargets(aoe, caster, board);
     expect(r.units.map((u) => u.unitId)).toEqual(["hidden"]);
     expect(r.units[0].concealedAoE).toBe(true);
+
+    // Chosen past the waiver, it was named and not caught: no coin (#185).
+    const waived = { ...single, selection: { ...single.selection, excludeConcealed: false } };
+    const named = resolveTargets(waived, caster, board, { unitId: "hidden" });
+    expect(named.units.map((u) => u.unitId)).toEqual(["hidden"]);
+    expect(named.units[0].concealedAoE).toBe(false);
   });
 });
 
