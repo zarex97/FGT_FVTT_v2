@@ -114,7 +114,7 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // ride itself had changed: Troias Tragoidia carried Achilles four panels from
   // a Master who could not land beside him, was refused "outside its Master's
   // ZON", and left him moved, his ride spent and no attack made (#184).
-  const pre = preflighted ?? attackPreflight({ attacker, abilityId, placement, board, combat });
+  const pre = preflighted ?? attackPreflight({ attacker, abilityId, placement, board, combat, resume });
   if (!pre.ok) {
     // TOLD, not just thrown. A refusal for want of budget was logged and
     // swallowed, so a Unit that had already attacked -- after Gather, most
@@ -864,6 +864,7 @@ async function declareProcesses({
   // what knew the occupant was caught by an AREA, which `state.isAoE` cannot say
   // for an area that catches one Unit.
   const platformFactors = platformFactorsOf(targets);
+  const caughtConcealed = new Set((targets?.units ?? []).filter((t) => t.concealedAoE).map((t) => t.unitId));
   const spec = Object.keys(platformFactors).length > 0 ? { ...counterSpec, platformFactors } : counterSpec;
 
   // A resolution that caught no units is still a resolution — a ground-placed
@@ -945,6 +946,10 @@ async function declareProcesses({
         (coneBoard?.units ?? []).find((u) => u.id === attackerId) ?? null,
       );
       const withCone = { ...withBreaking, cone: coneOfDefender };
+      // Caught by the shape while concealed (#185): an area that holds Jack
+      // alone is still an AoE Attack for Presence Concealment's coin, though
+      // `isAoE` -- distinct defenders -- is false for it.
+      if (caughtConcealed.has(withCone.defenderId)) withCone.caughtConcealed = true;
       const withInstance = instance
         ? { ...withCone, attack: { ...withCone.attack, ...instance } }
         : withCone;
@@ -4231,7 +4236,7 @@ async function applyDamage(state, message) {
   // so it lands after every pipeline stage and after the Command Spell factor,
   // and before the barrier -- a shield in front of a Unit that took no damage
   // has nothing to absorb.
-  if (state.isAoE && isConcealed(defender)) {
+  if ((state.isAoE || state.caughtConcealed) && isConcealed(defender)) {
     const coin = await new Roll("1d2").evaluate();
     const veil = aoeOutcome(coin.total);
     const before = result.total;
@@ -6411,7 +6416,11 @@ async function runPreemption({ preempterId, attackerId, abilityId, placement, ta
 
   // A NORMAL Attack. The clause says "Attack", and a Servant's Attack with no
   // ability named is its Normal Attack everywhere else in this engine.
-  const state = process.advance(
+  // Through the miss check, as every declaration is (`declareProcesses`). It
+  // stopped at `declare -> done`, sitting on `missCheck`, an automatic rung
+  // nothing then drove: Jack's strike first had a card with no buttons, and
+  // the attack it pre-empted never came back (#185, found live).
+  const state = await runMissCheck(process.advance(
     process.begin({
       attackerId: preempterId,
       defenderId: attackerId,
@@ -6424,7 +6433,7 @@ async function runPreemption({ preempterId, attackerId, abilityId, placement, ta
       isPreemption: true,
     }),
     "done",
-  );
+  ), unitSnapshot(preempter), currentBoard());
 
   const message = await renderAttackCard({
     state, attacker: preempter, ability: null, targets: [{ unitId: attackerId }],

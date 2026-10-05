@@ -56,7 +56,7 @@ const refuse = (message) => ({ ok: false, message });
  * @param {object} [args.combat] the active Combat
  * @returns {Preflight|{ok: false, message: string, budgetReason?: string}}
  */
-export function attackPreflight({ attacker, abilityId, placement = {}, board, combat }) {
+export function attackPreflight({ attacker, abilityId, placement = {}, board, combat, resume = false }) {
   // From the board, not projected alone: ZON is pairwise, so only the board
   // knows whether this Servant is inside its Master's zone -- and that is what
   // `limits.requiresZon` on every Noble Phantasm turns on.
@@ -100,7 +100,11 @@ export function attackPreflight({ attacker, abilityId, placement = {}, board, co
   // *"receives damage equivalent to a Normal Attack from Achilles"* -- ruled
   // 2026-10-04 (#184 reading 8): not an Attack, so it spends nothing.
   const free = Boolean(ability?.system?.freeAction) || Boolean(placement?.plainDamage);
-  if (combat?.started && !free) {
+  // ...and not a RESUMED declaration. A pre-empted attack paid its budget when
+  // it was first declared; asking again found it already spent and refused it,
+  // so the attack Jack struck first against never came back (#185, found live:
+  // "this unit has already attacked this turn").
+  if (combat?.started && !free && !resume) {
     const verdict = budget.affordable(combat, self, actionKind);
     // `budgetReason` is how `resolveAttack` knows to TELL the player as well as
     // refuse: a Unit that had already attacked -- after Gather, most naturally --
