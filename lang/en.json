@@ -270,6 +270,8 @@
   "FGT.Targeting.ChoosePanel": "Choose a panel — right-click or Escape to cancel.",
   "FGT.Targeting.ChooseDestination": "Choose where the ride ends — right-click or Escape to cancel.",
   "FGT.Targeting.NoTargets": "No legal targets for this ability.",
+  "FGT.Targeting.NotThisUnit": "{name} cannot be targeted: {reason}",
+  "FGT.Targeting.Illegal": "not a legal target for this ability.",
   "FGT.Targeting.Targets": "target(s)",
   "FGT.Targeting.Panels": "panel(s)",
   "FGT.Targeting.Legal": "✓ Legal — click to confirm",

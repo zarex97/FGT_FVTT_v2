@@ -228,7 +228,9 @@ function formatValue(source, value) {
 
 const PERCENT_SOURCES = new Set([
   "atkUp", "atkDwn", "defUp", "defDwn", "dmgUp", "npDmUp", "npDmDwn", "ward",
-  "block", "blockUp", "strengthenBlock", "dayNight", "homeBaseAttack", "magicResistance",
+  "block", "blockUp", "strengthenBlock", "dayNight", "homeBaseAttack",
+  // Not `magicResistance`: every row it contributes is an AMOUNT, the MAG it
+  // took away, so the card read "−108%" for 108 removed (#187).
 ]);
 
 /** @type {Readonly<Record<string, string>>} */

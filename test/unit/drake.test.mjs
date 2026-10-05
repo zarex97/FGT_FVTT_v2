@@ -833,3 +833,16 @@ describe("Golden Wild Hunt turns a quarter in the preview (#187 reading 6)", () 
     expect(layer).toMatch(/if \(options\.length > 1\) return this\.#directionPicker\(options, hud\);/);
   });
 });
+
+describe("Magic Resistance's row reads as an amount (#187)", () => {
+  // Live: Rain of Light on Drake printed "−108%" for the 108 MAG it took.
+  it("no percent sign on a magicResistance contributor", async () => {
+    const { explainDamage } = await import("../../module/rules/explain.mjs");
+    const out = explainDamage({ breakdown: [{
+      index: 11, label: "Resistance", before: { mag: 540, phys: 0 }, after: { mag: 432, phys: 0 },
+      contributors: [{ source: "magicResistance", value: -108, note: "−20% MAG (MR D < attack A+)" }],
+    }] });
+    const row = out.rows.find((r) => r.index === 11);
+    expect(row.contributors[0].value).toBe("−108");
+  });
+});

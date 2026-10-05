@@ -34,6 +34,8 @@ import { chebyshev } from "../../domain/geometry.mjs";
 
 const LEGAL = 0x4488ff;
 const ILLEGAL = 0xff4444;
+/** A picker's answer to a click that should leave the session open. */
+const KEEP = Symbol("keep aiming");
 
 export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
   /** @inheritdoc */
@@ -543,7 +545,29 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
         focused = hit;
         render();
       },
-      onConfirm: () => selectable[focused].placement,
+      // A click ON a Unit picks that Unit or nothing (#187). It confirmed the
+      // focused option wherever the click landed, so a click on an enemy out
+      // of Range attacked whichever legal Unit was focused: Medea's Aero, aimed
+      // at Drake four panels away, hit Karna. A click on an illegal Unit says
+      // why and keeps aiming; a click on no Unit keeps aiming; Enter still
+      // confirms the focused one.
+      onConfirm: (panel) => {
+        if (!panel) return selectable[focused].placement;
+        const at = (o) => {
+          const unit = board.units.find((u) => u.id === o.placement.unitId);
+          return (unit?.panels ?? [unit?.panel]).some((p) => p && p.i === panel.i && p.j === panel.j);
+        };
+        const pick = selectable.find(at);
+        if (pick) return pick.placement;
+        const refused = options.find((o) => !o.legal && at(o));
+        if (refused) {
+          const unit = board.units.find((u) => u.id === refused.placement.unitId);
+          ui.notifications.warn(game.i18n.format("FGT.Targeting.NotThisUnit", {
+            name: unit?.name ?? "?", reason: (refused.reasons ?? [])[0] ?? game.i18n.localize("FGT.Targeting.Illegal"),
+          }));
+        }
+        return KEEP;
+      },
     });
   }
 
@@ -602,7 +626,13 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
         const point = event.data.getLocalPosition(canvas.stage);
         onPointerMove(canvas.grid.getOffset(point));
       };
-      const click = () => finish(onConfirm());
+      // A click names a panel, which a picker may refuse: `KEEP` leaves the
+      // session open rather than confirming something else (#187).
+      const click = (event) => {
+        const point = event?.data?.getLocalPosition?.(canvas.stage);
+        const value = onConfirm(point ? canvas.grid.getOffset(point) : null);
+        if (value !== KEEP) finish(value);
+      };
       const right = () => finish(null);
       const key = (event) => {
         if (event.key === "Escape") return finish(null);
