@@ -217,3 +217,50 @@ describe("a field's interior events leave the defeated alone (#153)", () => {
     expect(intents).toEqual([]);
   });
 });
+
+/* ========================================================================== */
+/*  A field that kills for its owner credits the owner (#185)                 */
+/* ========================================================================== */
+
+describe("the Mist's kill is Jack's kill (#185)", () => {
+  beforeAll(async () => { await prepareSubjects(); await prepareFields(); }, 120_000);
+
+  // *"Normal Humans immediately die if they are caught in the Mist (this counts
+  // as Jack killing the Human)."* Live: a Civilian died in the Mist and the
+  // defeat named no killer; `creditOwner` wrote a log line nothing read, so
+  // her Free Servant Sustainability never grew from a Mist kill.
+  const JACK = "jackTheRipperAc1";
+  const CIV = "civilianCaught01";
+  const jack = (state) => ({ from: "jack-the-ripper", id: JACK, state: { factionId: "A", ...state }, panel: { i: 6, j: 6 } });
+  const civilian = { from: { type: "civilian", id: CIV, name: CIV }, id: CIV, panel: { i: 6, j: 7 } };
+
+  async function contact(state) {
+    const fields = await fieldsOf([{
+      ability: "jack-the-mist", owner: JACK, faction: "A", panels: squareAround({ i: 6, j: 6 }, 5),
+    }]);
+    return withSubjects([jack(state), civilian],
+      ({ board }) => runFieldEvents("contact", { board }), { settings: { fields } });
+  }
+
+  it("names her as the killer", async () => {
+    const intents = await contact({ masterId: null, contract: "free" });
+    expect(intents.find((i) => i.t === "defeat")).toMatchObject({ unitId: CIV, cause: "mist", killerId: JACK });
+  });
+
+  it("pays a contracted Jack no Sustainability", async () => {
+    const intents = await contact({});
+    expect(intents.some((i) => i.t === "resource" && i.key === "sustainabilityRemaining")).toBe(false);
+  });
+
+  it("grows a Free Servant's Sustainability by 1◈", async () => {
+    const intents = await contact({ masterId: null, contract: "free" });
+    expect(intents.some((i) => i.t === "resource" && i.unitId === JACK && i.key === "sustainabilityRemaining")).toBe(true);
+  });
+
+  it("and the attack path tells the attacker too", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("module/engine/attack.mjs", "utf8");
+    expect(src).toMatch(/civilianIntents\(descriptors, self\.id\)/);
+    expect(src).toMatch(/fireEvent\("unitKilled", \[self\]/);
+  });
+});

@@ -270,3 +270,20 @@ describe("an area that catches Jack alone still flips the coin (#185)", () => {
     expect(src).toMatch(/if \(\(state\.isAoE \|\| state\.caughtConcealed\) && isConcealed\(defender\)\) \{/);
   });
 });
+
+describe("concealing starts a visibility pass Foundry accepts (#185)", () => {
+  // Live: every conceal and reveal threw '"refreshVisibility" is not defined
+  // as a supported RenderFlag option', and the pass never ran.
+  it("names only flags the v14 PerceptionManager defines", async () => {
+    const { readFileSync, existsSync } = await import("node:fs");
+    const src = readFileSync("module/engine/token-vision.mjs", "utf8");
+    const used = [...src.matchAll(/perception\?\.update\(\{([^}]*)\}\)/g)]
+      .flatMap((m) => [...m[1].matchAll(/(\w+):/g)].map((x) => x[1]));
+    expect(used).toContain("refreshVision");
+    const root = process.env.FOUNDRY_PATH ?? "../foundryVTT_copy";
+    const pm = `${root}/app/client/canvas/perception/perception-manager.mjs`;
+    expect(existsSync(pm)).toBe(true);
+    const defined = readFileSync(pm, "utf8");
+    for (const flag of used) expect(defined).toContain(`    ${flag}: {`);
+  });
+});

@@ -256,7 +256,16 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
       );
     }
     const descriptors = civilians.flatMap((c) => civilianKill(self, c));
-    await applyBatch(civilianIntents(descriptors), "civilianKill");
+    // The attacker killed them, and is told so (#185): the defeat names the
+    // killer, and `unitKilled` fires on it as `killedBy` does for a Process.
+    // Jack's Free Servant clause listens there, and a Civilian -- the one
+    // Human she meets most -- never reached it.
+    const killed = civilians.flatMap((c) => fireEvent("unitKilled", [self], {
+      tick: game.combat?.system?.globalTurn ?? 0, board,
+      turnsPerRound: game.settings.get("fgt", "turnsPerRound") || 3,
+      options: rollOptionsFor({ attacker: self, defender: c }),
+    }));
+    await applyBatch([...civilianIntents(descriptors, self.id), ...killed], "civilianKill");
   }
 
   // One Combat Process per target — which is what the comment here has always
@@ -3034,12 +3043,13 @@ async function rollLuck(state) {
 /**
  * Turn Civilian-kill descriptors into intents.
  * @param {object[]} descriptors
+ * @param {string|null} [killerId] the attacker, who killed them (#185)
  * @returns {object[]}
  */
-function civilianIntents(descriptors) {
+function civilianIntents(descriptors, killerId = null) {
   return descriptors.map((d) => {
     switch (d.kind) {
-      case "defeat": return I.defeat(d.unitId, d.cause);
+      case "defeat": return I.defeat(d.unitId, d.cause, killerId);
       case "heal": return I.heal(d.unitId, d.amount, d.source);
       case "statDelta": return I.statDelta(d.unitId, d.stat, d.delta);
       default: return I.log({ kind: "unappliedCivilianEffect", effect: d.kind, unitId: d.unitId });
