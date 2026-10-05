@@ -272,3 +272,26 @@ describe("the Masters a Combat Process card offers", () => {
       .toMatch(/a\.isOwner && inMatch\.has\(a\.id\)/);
   });
 });
+
+describe("a field that seals itself against Command Spells (#184)", () => {
+  // Achilles's duel: "...or interfere with the duel, even with Command Spells".
+  const duel = {
+    id: "duel", ownerId: "s", faction: "f1",
+    geometry: { kind: "fixedArea", shape: { kind: "square", size: 5 }, anchor: { i: 5, j: 5, k: 0 } },
+    isolation: { outsideCanTargetInside: false, insideCanTargetOutside: false, blocksCommandSpells: true },
+    membership: {}, state: {},
+  };
+  const at = (unit, i, j) => ({ ...unit, panel: { i, j }, level: 0 });
+
+  it("refuses a Master outside spending on the Servant inside", () => {
+    const c = ctx({ master: at(master(), 5, 10), servant: at(servant(), 5, 5) });
+    expect(canSpend(halfHeal, { ...c, board: { fields: [duel], units: [c.master, c.servant] } }))
+      .toMatchObject({ ok: false, reason: "commandSpellsBlocked" });
+  });
+
+  it("says nothing when both stand on the same side", () => {
+    const c = ctx({ master: at(master(), 5, 12), servant: at(servant(), 5, 11) });
+    expect(canSpend(halfHeal, { ...c, board: { fields: [duel], units: [c.master, c.servant] } }))
+      .toMatchObject({ ok: true });
+  });
+});

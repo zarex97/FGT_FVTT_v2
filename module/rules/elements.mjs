@@ -155,10 +155,49 @@ export function collectContributions(abilities, ctx = {}) {
         out.unhandled.push({ key: el.key, source });
         continue;
       }
+      const before = ability.fromEffect ? bucketLengths(out) : null;
       execute(el, { rank, source, ability, out, ctx, deferred });
+      if (before) stampInstance(out, before, ability.id);
     }
   }
   return out;
+}
+
+/**
+ * The INSTANCE id an effect's contribution came from, on the contribution.
+ *
+ * Non-enumerable, so it is invisible to equality, serialisation and every
+ * reader that does not ask for it. Achilles's duel negates "all buffs and
+ * debuffs that were caused by Units not involved" (#184): the effect was taken
+ * off the board but what it had already contributed was not -- Karna's Atk Up
+ * still added +10% to a hit inside the duel. Two Atk Ups from two sources share
+ * a `source` name, so only the instance can tell them apart.
+ *
+ * @type {string}
+ */
+export const EFFECT_INSTANCE = "effectInstanceId";
+
+/** @param {object} out @returns {Record<string, number>} */
+function bucketLengths(out) {
+  const lengths = {};
+  for (const [k, v] of Object.entries(out)) if (Array.isArray(v)) lengths[k] = v.length;
+  return lengths;
+}
+
+/**
+ * @param {object} out
+ * @param {Record<string, number>} before
+ * @param {string} instanceId
+ */
+function stampInstance(out, before, instanceId) {
+  for (const [k, v] of Object.entries(out)) {
+    if (!Array.isArray(v)) continue;
+    for (let n = before[k] ?? 0; n < v.length; n += 1) {
+      const item = v[n];
+      if (!item || typeof item !== "object" || Object.isFrozen(item)) continue;
+      Object.defineProperty(item, EFFECT_INSTANCE, { value: instanceId, enumerable: false, configurable: true });
+    }
+  }
 }
 
 /**

@@ -38,6 +38,9 @@ The flat `cost` field is the default; `costByMasterRank` overrides it. Kill Your
 
 The requirement `noOtherRevival` is unique: it checks whether a Servant would revive anyway through Battle Continuation or God Hand (`module/rules/command-spells.mjs:251-263`). Survive Kill reads the `unitDefeated` handlers from the Servant's sheet and filters for Revive actions, checking whether each ability's cooldown is still running. If any revival is available, the requirement fails — spending three spells to save a Servant who would have come back anyway is not meaningful.
 
+
+**A field that blocks Command Spells refuses them across its boundary** (#184). `canSpend` asks every field's `isolationBlocks(…, { isCommandSpell: true })` with the Master and the contracted Servant; one inside and one out is `commandSpellsBlocked`. Achilles's duel: *"…or interfere with the duel, even with Command Spells"*; nothing that spends one had asked.
+
 ### Spending and applying effects
 
 `spendCommandSpell` validates, then pays, then applies effects, in that order (`module/engine/command-spells.mjs:63-100`). Validating before paying avoids burning a charge on a refusal. Applying after paying avoids leaving a failed write with a free command in flight. The spend writes two updates: one to `system.commandSpells` for the own pool, and one to `system.commandSpellsPerServant[servantId]` for the grant, drawing from the grant pool first (`module/engine/io.mjs:648-666`).

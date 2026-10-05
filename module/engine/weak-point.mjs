@@ -17,9 +17,11 @@
  */
 
 import { weakPointChance, weakPointOffered } from "../rules/weak-point.mjs";
+import { luckChecksBlocked } from "../rules/bounded-fields.mjs";
 import { luckCheck } from "../rules/checks.mjs";
 import { unitSnapshot } from "./board.mjs";
 import * as I from "./intents.mjs";
+import * as rollLog from "../rules/roll-log.mjs";
 
 /**
  * The weak point this defender exposes to this attack, or `null`.
@@ -73,7 +75,12 @@ export async function offerWeakPoint(state, { board = null } = {}) {
   // one -- the same disagreement that made the Agility clause award itself
   // every time. Read both ways, and the offer's second option appears.
   const luck = typeof attacker.luck === "number" ? attacker.luck : (attacker.luck?.value ?? 0);
-  if (spec.luckCheckBonus && luck > 0) {
+  // *"Luck Check cannot be used by the involved Units"* -- Achilles's duel. The
+  // offer read the attacker off a bare snapshot, which carries none of the
+  // field rules it stands in, so the Heel's Luck option was offered inside the
+  // duel (#184, found live). The board's projection carries the suppression.
+  const onBoard = (board?.units ?? []).find((u) => u.id === attackerDoc.id) ?? null;
+  if (spec.luckCheckBonus && luck > 0 && !luckChecksBlocked(onBoard)) {
     options.push({
       id: "heelLuck",
       name: game.i18n.format("FGT.WeakPoint.AimWithLuck", {
@@ -148,9 +155,30 @@ export async function resolveWeakPoint(state, { board = null } = {}) {
   const roll = (await new Roll("1d100").evaluate()).total;
   const succeeded = roll <= chance;
 
+  // On the card, with its working (#184). The Heel roll decides the whole
+  // attack -- a miss is an Evade -- and it filed no record, so a failed Heel
+  // left a card that said nothing but "noDamage" in its ladder.
+  const tick = game.combat?.system?.globalTurn ?? 0;
+  const rollRecord = rollLog.record({
+    id: `${state.attackerId}:${state.defenderId}:heel:${tick}`,
+    globalTurn: tick,
+    entryId: "heel",
+    formula: "1d100",
+    raw: roll,
+    total: roll,
+    modifiers: [
+      ...breakdown.map((b) => ({ source: describePart(b.label), delta: b.delta, stage: "modifier" })),
+      { source: `${succeeded ? "succeeds" : "fails"}: ${roll} against ${chance}%`, delta: 0, stage: "table" },
+    ],
+    purpose: game.i18n.format(succeeded ? "FGT.WeakPoint.RollHit" : "FGT.WeakPoint.RollMiss", {
+      attacker: attackerDoc?.name ?? "", name: defenderDoc?.name ?? "",
+    }),
+    actorId: state.attackerId,
+  });
+
   return {
     event: succeeded ? "success" : "fail",
-    detail: { chance, roll, breakdown, luckRoll, luckPassed, specId: spec.id },
+    detail: { chance, roll, breakdown, luckRoll, luckPassed, specId: spec.id, rollRecord },
     // Luck is spent whether or not the check succeeded -- the rule everywhere
     // else in the ladder, and what this offer's own hint promises. Returned as
     // an intent so the caller writes it in the same batch as the wound.
@@ -185,6 +213,14 @@ export function weakPointIntents(state, onSuccess) {
     sourceUnitId: state.attackerId,
     visibility: "public",
   }, state.attackerId)];
+}
+
+/**
+ * @param {string} label a breakdown part
+ * @returns {string}
+ */
+function describePart(label) {
+  return game.i18n.localize(`FGT.WeakPoint.Part.${label}`);
 }
 
 /**

@@ -227,3 +227,13 @@ describe("weakPointOffered", () => {
     expect(weakPointChance(HEEL, { ...front, luckCheckPassed: true }).chance).toBe(25);
   });
 });
+
+describe("the Heel roll goes on the card (#184)", () => {
+  it("resolveWeakPoint files a roll record the card lists", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("module/engine/weak-point.mjs", "utf8");
+    // Live: a failed Heel left a card whose only trace was "noDamage".
+    expect(src).toMatch(/entryId: "heel",[\s\S]{0,80}formula: "1d100"/);
+    expect(src).toMatch(/detail: \{ chance, roll, breakdown, luckRoll, luckPassed, specId: spec\.id, rollRecord \}/);
+  });
+});
