@@ -646,7 +646,32 @@ export function canPassThrough(panel, unit, board, { throughEnemies = false } = 
   if (blocking && !throughEnemies) return false;
   if (inEnemyMasterProtection(panel, unit, board)) return false;
   if (blockedByFieldExit(panel, unit, board)) return false;
+  if (blockedByFieldEntry(panel, unit, board)) return false;
   return true;
+}
+
+/**
+ * Would this step take the unit INTO a field that will not let it in?
+ *
+ * The other half of {@link blockedByFieldExit}, and the half nothing asked.
+ * Achilles's duel: *"No Units can enter the NP area"* -- `allyEntry` and
+ * `enemyEntry` both `sealed` -- and Karna walked straight in (#184, found
+ * live). Unlimited Blade Works's `forbidden` was as unenforced on foot. A
+ * Unit dragged in by a rule is displaced, not walked, so it never reaches
+ * this.
+ *
+ * @param {GridOffset} panel the candidate step
+ * @param {object} unit
+ * @param {object} board
+ * @returns {boolean}
+ */
+function blockedByFieldEntry(panel, unit, board) {
+  for (const field of board?.fields ?? []) {
+    if (unit.panel && contains(field, unit.panel, board)) continue; // already inside
+    if (!contains(field, panel, board)) continue; // this step stays outside
+    if (!membershipVerdict(field, unit, "enter", board).ok) return true;
+  }
+  return false;
 }
 
 /**

@@ -3348,6 +3348,27 @@ hit. The first Process to strike pays it now. Ch. 21.
 ### FQ. Nothing emitted `attack:kind:ridingAttack` — **fixed** (#184)
 
 **Reached: TT.p.** Troias's *"Riding Attack damage +25%"* never applied to any ride. Ch. 11.
+
+### FR. Movement never asked a field's entry policy — **fixed** (#184)
+
+**Reached: DA.noenter.** Karna walked into the duel; UBW's `forbidden` entry was as unenforced.
+`rules/movement.mjs#blockedByFieldEntry` beside the exit check. Ch. 28.
+
+### FS. Command Spells crossed a field that blocks them — **fixed** (#184)
+
+**Reached: DA.nointerfere.** `blocksCommandSpells` was read by nothing that spends one. `canSpend` asks
+`isolationBlocks` with `isCommandSpell`. Ch. 33.
+
+### FT. The Heel's Luck option inside the duel, and no record of its roll — **fixed** (#184)
+
+**Reached: DA.noluck, HE.miss.** The offer read a bare snapshot, without the field's suppression; and a
+failed Heel left a card with nothing but "noDamage". The roll is now on the card. Ch. 45.
+
+### FU. A negated effect's contributions stayed — **fixed** (#184)
+
+**Reached: DA.foreign.** The duel took Karna's Atk Up off Achilles's board and its +10% still reached his
+hit. Every contribution an effect makes carries its instance (`EFFECT_INSTANCE`), and the duel drops
+them with it. Ch. 10.
 ---
 
 ---

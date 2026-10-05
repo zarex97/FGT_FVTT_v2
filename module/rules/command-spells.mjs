@@ -28,6 +28,7 @@ import { currentHealth } from "../domain/health.mjs";
 import { availableFor } from "./cs-namespacing.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { paysHighColumn } from "./master-rank.mjs";
+import { isolationBlocks } from "./bounded-fields.mjs";
 
 /** The interruptible points (Ch. 33). `anyTime` commands are offered at all of them. */
 export const WINDOWS = Object.freeze({
@@ -78,6 +79,19 @@ export function canSpend(command, ctx) {
 
   for (const req of command.requirements ?? []) {
     if (!meets(req, ctx)) return { ok: false, reason: req.kind, cost };
+  }
+
+  // A field that seals itself against Command Spells. Achilles's duel: *"No
+  // Units can ... interfere with the duel, EVEN WITH COMMAND SPELLS"*.
+  // `isolationBlocks` has answered `isCommandSpell` since it was written and
+  // nothing that spends one ever asked it, so a Master outside healed a
+  // duellist inside (#184). The Master and the Servant on either side of the
+  // boundary is the case; both inside, or both out, the field says nothing.
+  for (const field of ctx.board?.fields ?? []) {
+    if (!ctx.master?.panel || !ctx.servant?.panel) break;
+    if (isolationBlocks(field, ctx.master, ctx.servant, ctx.board, { isCommandSpell: true }).blocked) {
+      return { ok: false, reason: "commandSpellsBlocked", cost };
+    }
   }
 
   // `blockedWhen` is a state-scoped veto rather than a requirement: Half Heal

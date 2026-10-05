@@ -40,6 +40,10 @@ A field partitions units into relations: **self** (owner), **ally**, or **enemy*
 
 **A duel encloses its two duellists and nobody else** (ruled 2026-10-04, #184 reading 4). *"Achilles and the opposing Unit are enclosed within a 5x5 panel area."* `membership.enclosesOnly: duellists` makes `openField` move every other Unit standing in the area to the nearest free panel outside it, a forced move (`rules/bounded-fields.mjs#pushOutPlan`: nearest by Chebyshev, then orthogonal distance, then top-left; never onto an occupied panel or off the board; objects stay). It runs before the membership snapshots, so `trappedAtActivation` traps only the two, and it stamps `state.duellistIds`. Test: `test/unit/duel-enclosure.test.mjs`.
 
+**Entry is asked on every step, as exit is** (#184). `rules/movement.mjs#blockedByFieldEntry` refuses a step from outside a field into it when `membershipVerdict(…, "enter")` refuses; before it only `blockedByFieldExit` existed, and Karna walked into Achilles's sealed duel. A Unit moved in by a rule is displaced, not walked, and is not asked.
+
+**Negation reaches what an effect contributed** (#184). The duel's foreign-effect filter (`snapshot.mjs`) drops the effect instances AND every contribution stamped with their instance (`rules/elements.mjs#EFFECT_INSTANCE`); it had removed the effect from the board and left its +10% in the damage.
+
 **The escape ladder** (`module/rules/bounded-fields.mjs:342-408`) has four rungs, tested in order:
 
 1. **Border contact.** Unless `requiresBorderContact` is false, the unit must stand on the field's inner edge.

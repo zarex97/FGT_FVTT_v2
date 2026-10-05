@@ -18,7 +18,7 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { TURN_RECORD, ROUND_RECORD } from "../domain/stamped-record.mjs";
 import { remainingMovement } from "./movement.mjs";
 import { Rank } from "../domain/rank.mjs";
-import { collectContributions } from "./elements.mjs";
+import { collectContributions, EFFECT_INSTANCE } from "./elements.mjs";
 import { baseAttackAdjustment } from "./setup-rolls.mjs";
 import { annotateZon } from "./zon.mjs";
 import { annotateLinkedGroups } from "./linked-group.mjs";
@@ -880,8 +880,18 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   for (const u of units) {
     const kept = withoutForeignEffects(u, u.effectInstances ?? [], board);
     if (kept.length === (u.effectInstances ?? []).length) continue;
+    const gone = new Set((u.effectInstances ?? []).filter((e) => !kept.includes(e)).map((e) => e.id));
     u.effectInstances = kept;
     u.effects = kept.map((e) => e.defId);
+    // ...and what those effects CONTRIBUTED. Filtering the list alone left
+    // Karna's Atk Up adding +10% to Achilles's hit inside the duel (#184).
+    // Every contribution an effect made is stamped with its instance
+    // (`rules/elements.mjs#EFFECT_INSTANCE`).
+    for (const [k, v] of Object.entries(u)) {
+      if (!Array.isArray(v) || k === "effectInstances" || k === "effects") continue;
+      if (!v.some((x) => x && typeof x === "object" && gone.has(x[EFFECT_INSTANCE]))) continue;
+      u[k] = v.filter((x) => !(x && typeof x === "object" && gone.has(x[EFFECT_INSTANCE])));
+    }
   }
   // Positional, like auras: it holds while somebody is standing nearby.
   annotateCompulsions(units, board);

@@ -103,3 +103,53 @@ describe("the content", () => {
     expect(np.field.deactivation).toEqual({ byOwner: true });
   });
 });
+
+describe("nobody walks into the duel (#184)", () => {
+  // Live: Karna stepped into Achilles's duel. Movement asked a field's EXIT
+  // policy and never its entry one.
+  const field = {
+    id: "duel", ownerId: "achilles", faction: "f1",
+    geometry: { kind: "fixedArea", shape: { kind: "square", size: 5 }, anchor: { i: 5, j: 5, k: 0 } },
+    membership: { allyEntry: "sealed", enemyEntry: "sealed", allyExit: "sealed", enemyExit: "sealed" },
+    state: {},
+  };
+  const karna = { id: "karna", kind: "servant", faction: "f1", factionId: "f1", panel: { i: 5, j: 8 }, level: 0, fields: [] };
+  const board = { bounds: squareBounds(13), fields: [field], units: [karna], alliances: { f1: ["f1"] } };
+
+  it("refuses the step that crosses in, and leaves the ones outside alone", async () => {
+    const { canPassThrough } = await import("../../module/rules/movement.mjs");
+    expect(canPassThrough({ i: 5, j: 7 }, karna, board)).toBe(false);
+    expect(canPassThrough({ i: 5, j: 9 }, karna, board)).toBe(true);
+  });
+});
+
+describe("no Luck Check inside the duel, the Heel's included (#184)", () => {
+  it("the Heel offer drops its Luck option where the board suppresses Luck Checks", async () => {
+    const src = readFileSync("module/engine/weak-point.mjs", "utf8");
+    expect(src).toMatch(/spec\.luckCheckBonus && luck > 0 && !luckChecksBlocked\(onBoard\)/);
+    const { luckChecksBlocked } = await import("../../module/rules/bounded-fields.mjs");
+    expect(luckChecksBlocked({ suppressions: [{ scope: "luckCheck" }] })).toBe(true);
+    expect(luckChecksBlocked({ suppressions: [] })).toBe(false);
+  });
+});
+
+describe("a foreign effect's contributions go with it (#184)", () => {
+  // Live: Karna's Atk Up was off Achilles's board effects inside the duel and
+  // still added +10% to his hit.
+  it("every contribution an effect makes carries its instance, invisibly", async () => {
+    const { collectContributions, EFFECT_INSTANCE } = await import("../../module/rules/elements.mjs");
+    const out = collectContributions([
+      { id: "fx1", name: "atkUp", fromEffect: true, active: true, rules: [{ key: "DamageModifier", modifierKey: "atkUp", direction: "dealt", value: 10 }] },
+      { id: "ab1", name: "Bravery", active: true, rules: [{ key: "DamageModifier", modifierKey: "atkUp", direction: "dealt", value: 25 }] },
+    ]);
+    const [fromEffect, fromAbility] = out.modifiers;
+    expect(fromEffect[EFFECT_INSTANCE]).toBe("fx1");
+    expect(fromAbility[EFFECT_INSTANCE]).toBeUndefined();
+    expect(Object.keys(fromEffect)).not.toContain(EFFECT_INSTANCE);
+  });
+
+  it("the board drops them with the effect", () => {
+    const src = readFileSync("module/rules/snapshot.mjs", "utf8");
+    expect(src).toMatch(/gone\.has\(x\[EFFECT_INSTANCE\]\)/);
+  });
+});
