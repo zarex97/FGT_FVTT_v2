@@ -99,6 +99,42 @@ export function mayChangeStance(unit, to, { at = "declare", acted = false, isOwn
 }
 
 /**
+ * The stances this Unit may move to at a window, by its `transitions`.
+ *
+ * *"If Mounted at the start of a Combat Phase, Achilles can Dismount at the
+ * start of the Combat Phase"* -- a window the sheet's stance control never
+ * reaches, because once he has declared his attack he has acted and the
+ * declaration is closed. Nothing offered it, so a Mounted Achilles fought
+ * every exchange Mounted (#184).
+ *
+ * @param {object} unit a Unit projection
+ * @param {string} at one of {@link STANCE_WINDOWS}
+ * @returns {string[]} the states reachable now; empty for a Unit with no stance
+ */
+export function transitionsAt(unit, at) {
+  const spec = unit?.stanceSpec ?? null;
+  if (!spec?.states?.length) return [];
+  const from = stanceOf(unit);
+  return (spec.transitions ?? []).filter((t) => t.from === from && t.at === at).map((t) => t.to);
+}
+
+/**
+ * Was this Unit Mounted at any point of the current Turn? (#184, ruled
+ * 2026-10-04.)
+ *
+ * *"At the end of any Turn where Achilles Acts while Mounted, his Master loses
+ * 25 Health"* -- and a Turn he began Mounted and finished on foot, having
+ * Dismounted at the start of his Combat Phase, is one. The stance at the
+ * Turn's end alone cannot say so; the Turn record's `mounted` remembers it.
+ *
+ * @param {object} unit a Unit projection
+ * @returns {boolean}
+ */
+export function mountedThisTurn(unit) {
+  return stanceOf(unit) === "mounted" || Boolean(unit?.turnState?.mounted);
+}
+
+/**
  * The stance this Unit must be dragged into right now, or `null`.
  *
  * *"Achilles is always Dismounted when it is not his Turn"*, which is what makes

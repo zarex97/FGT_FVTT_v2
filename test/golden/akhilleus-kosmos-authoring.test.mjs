@@ -54,7 +54,8 @@ describe("every clause of Akhilleus Kosmos is reachable", () => {
   });
 
   it("describes its requirement and the field it carries", () => {
-    for (const req of shipped.requirements) {
+    // None since #184 reading 11: the barrier is not gated on the stance.
+    for (const req of shipped.requirements ?? []) {
       const descriptor = REQUIREMENT_DESCRIPTORS[req.kind];
       expect(descriptor, `no descriptor for requirement ${req.kind}`).toBeDefined();
       const known = new Set(descriptor.fields.map((f) => f.key));

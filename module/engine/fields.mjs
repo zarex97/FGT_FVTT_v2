@@ -25,7 +25,7 @@ import { displaceToken } from "./io.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import {
   panelsOf, isExempt, legalRepaint, mayReshape, selectBranch, extensionFor, randomFreePanelIn,
-  vulnerabilityTriggered, unitIdsOfTurn, castLevel,
+  vulnerabilityTriggered, unitIdsOfTurn, castLevel, pushOutPlan, duelDecided,
 } from "../rules/bounded-fields.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { relationOf } from "../rules/relations.mjs";
@@ -165,7 +165,7 @@ export async function createField(ability, actor, board = null, { targetId = nul
     return { declined: true };
   }
 
-  return openField(ability, actor, board ?? currentBoard(), spec);
+  return openField(ability, actor, board ?? currentBoard(), spec, { targetId });
 }
 
 /**
@@ -264,7 +264,7 @@ export function fieldDataOf({ ability, actor, faction, spec, geometry, membershi
  * @param {object} spec `ability.system.field`
  * @returns {Promise<object|null>} the created Region, or null
  */
-async function openField(ability, actor, snapshot, spec, { panels: givenPanels = null } = {}) {
+async function openField(ability, actor, snapshot, spec, { panels: givenPanels = null, targetId = null } = {}) {
   const scene = canvas?.scene ?? null;
   if (!spec || !scene) return null;
 
@@ -363,6 +363,28 @@ async function openField(ability, actor, snapshot, spec, { panels: givenPanels =
   }
   const panels = panelsOf(runtime, snapshot);
   if (panels.length === 0) return null;
+
+  // *"Achilles and the opposing Unit are enclosed"* -- the two of them and
+  // nobody else (ruled 2026-10-04, #184 reading 4). Everyone else standing in
+  // the area is moved to the nearest free panel outside it, a forced move,
+  // BEFORE the area is drawn, so the membership snapshots below see the board
+  // as the duel begins. The duellists are remembered: the default defeat is
+  // theirs to suffer.
+  if (specMembership?.enclosesOnly === "duellists") {
+    const duellists = [actor.id, targetId].filter(Boolean);
+    field.state.duellistIds = duellists;
+    const plan = pushOutPlan(panels, snapshot, duellists);
+    const size = scene.grid?.size ?? 100;
+    for (const step of plan) {
+      const token = canvas?.tokens?.placeables?.find((t) => t.actor?.id === step.unitId)?.document ?? null;
+      if (!token || !step.to) {
+        console.warn(`FGT | ${ability.name}: nowhere outside the duel to move ${step.unitId}.`);
+        continue;
+      }
+      await displaceToken(token, { x: step.to.j * size, y: step.to.i * size });
+    }
+    if (plan.length > 0) snapshot = currentBoard();
+  }
 
   // The membership snapshot itself, taken at the same moment the panels are
   // -- "Units within the Throne Room WHEN THE NP WAS ACTIVATED", not
@@ -824,6 +846,28 @@ export async function openFieldFromMarks(ability, actor, square) {
 }
 
 /**
+ * End every duel a defeat has decided, now rather than at the next boundary
+ * (#184 reading 4): *"when the 'defeat' occurs, the NP is deactivated."*
+ *
+ * Called at the end of a Combat Process, after its revivals have resolved, so
+ * a duellist Battle Continuation brought back reads as standing. A defeat that
+ * happens outside an attack is caught by `expireFields` at the boundary.
+ *
+ * @returns {Promise<string[]>} the ids closed
+ */
+export async function closeDecidedDuels() {
+  if (!canvas?.scene) return [];
+  /** @type {string[]} */
+  const closed = [];
+  for (const field of currentBoard().fields ?? []) {
+    if (!duelDecided(field, (id) => Boolean(game.actors.get(id)?.system?.defeated))) continue;
+    // `deactivateField`, as a pierced field is closed: it logs the reason.
+    if (await deactivateField(field.id, "duelDecided")) closed.push(field.id);
+  }
+  return closed;
+}
+
+/**
  * Close every field whose expiry has arrived, and every one whose owner is gone.
  *
  * The reader `duration` and `vulnerabilities` never had. A field with a
@@ -978,6 +1022,9 @@ function shouldClose(field, tick) {
 
   // Axis 6. "Owner defeat ends it" is the only vulnerability in the reference
   // set that resolves without a roll, and both authored fields carry it.
+  // The duel's default end: a duellist's defeat that stuck (#184 reading 4).
+  if (duelDecided(field, (id) => Boolean(game.actors.get(id)?.system?.defeated))) return true;
+
   const onOwnerDefeat = (field.vulnerabilities ?? []).some(
     (v) => v.kind === "ownerDefeat" && v.result === "end",
   );

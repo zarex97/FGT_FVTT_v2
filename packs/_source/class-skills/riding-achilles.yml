@@ -9,8 +9,11 @@
 #
 # Medusa's variant unlocks Riding Attack and Passenger Seat with its own Active;
 # his gates them on a STANCE. The exception is the interesting half: Double Move
-# survives dismounting because *Dromeus Komētēs* re-grants it on foot, and his
+# survives dismounting because *Dromeus Komētēs* grants it on foot, and his
 # sheet says so by pointing at that Noble Phantasm rather than by repeating it.
+# Ruled 2026-10-04 (#184 reading 13): the pointer IS the exception -- on foot
+# Double Move comes from Dromeus alone, so the Heel wound that strips Dromeus's
+# passives strips it too. This document grants it only while Mounted.
 #
 # `class-riding.yml`'s own comment predicted Achilles would keep the shared
 # document. He does not, and `riding-medusa.yml` has been corrected to say so.
@@ -42,11 +45,14 @@ description: |
 requirements:
   - { kind: stance, stance: mounted }
 passiveRules:
-  # Passive 1, and the exception. Ungated: he keeps Double Move on foot, and
-  # `achilles-dromeus-kometes.yml` grants it there as well so that the clause
-  # survives even if this Skill is Sealed.
+  # Passive 1, and the exception. Mounted, it is Riding's; on foot it is
+  # Dromeus Komētēs's (`achilles-dromeus-kometes.yml`), which is what "(see
+  # Dromeus Komētēs)" says (#184 reading 13). It had been ungated here, so a
+  # wounded Heel cost him nothing on foot. A Seal touches neither: Appendix A's
+  # Seals stop using a Skill or NP, not its passives.
   - key: GrantedAbility
     abilities: [doubleMove]
+    predicate: ["self:stance:mounted"]
   # Passives 2 and 3, gated on the stance rather than on a marker effect. A
   # predicate, not a requirement: these are grants that other machinery asks
   # about (`rules/movement.mjs`, `engine/riding.mjs`), so they have to be absent

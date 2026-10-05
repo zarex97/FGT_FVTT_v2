@@ -72,6 +72,25 @@ describe("the base, by the side he was struck from", () => {
   it("is 10 from behind", () => {
     expect(chanceOf({ attacker: { panel: { i: 6, j: 5 } }, state: counter })).toBe(10);
   });
+
+  // Ruled 2026-10-04 (#184 reading 10): 3 front, 2 sides, 3 back.
+  it("a diagonal is the front or the back, never a side", () => {
+    expect(chanceOf({ attacker: { panel: { i: 4, j: 4 } }, state: counter })).toBe(0);
+    expect(chanceOf({ attacker: { panel: { i: 4, j: 6 } }, state: counter })).toBe(0);
+    expect(chanceOf({ attacker: { panel: { i: 6, j: 4 } }, state: counter })).toBe(10);
+    expect(chanceOf({ attacker: { panel: { i: 6, j: 6 } }, state: counter })).toBe(10);
+  });
+
+  it("reads the cone stamped at the declaration, not the turned facing", () => {
+    // He has since turned to face the attacker behind him; the Process says back.
+    expect(chanceOf({
+      defender: { facing: "s" }, attacker: { panel: { i: 6, j: 5 } }, state: { ...counter, cone: "back" },
+    })).toBe(10);
+  });
+
+  it("an attacker on his own panel comes from the front", () => {
+    expect(chanceOf({ attacker: { panel: { i: 5, j: 5 } }, state: counter })).toBe(0);
+  });
 });
 
 describe("the six modifiers", () => {

@@ -105,14 +105,14 @@ describe("availability", () => {
     // enforcing it, because nothing recorded the crossing.
     const notYet = heracles({
       abilities: [{ id: "bc", name: "Battle Continuation", cooldownRemaining: 0, lastUsedTick: 9 }],
-      healthWatermarks: { 0.5: 4 },
+      healthWatermarks: { 50: 4 },
       revivals: [battleContinuation],
     });
     expect(availableRevivals(notYet)).toEqual([]);
 
     const recovered = heracles({
       abilities: [{ id: "bc", name: "Battle Continuation", cooldownRemaining: 0, lastUsedTick: 9 }],
-      healthWatermarks: { 0.5: 11 },
+      healthWatermarks: { 50: 11 },
       revivals: [battleContinuation],
     });
     expect(availableRevivals(recovered).map((s) => s.id)).toEqual(["battleContinuation"]);

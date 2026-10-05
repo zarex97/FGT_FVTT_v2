@@ -520,12 +520,12 @@ describe("healthRestoredSince", () => {
 
   it("refuses when Health has not been that high since the last use", () => {
     expect(meetsRequirement({ kind: "healthRestoredSince", fraction: 0.5 },
-      { unit: unit({ healthWatermarks: { 0.5: 3 } }), ability: ability(7) })).toBe(false);
+      { unit: unit({ healthWatermarks: { 50: 3 } }), ability: ability(7) })).toBe(false);
   });
 
   it("passes once it has", () => {
     expect(meetsRequirement({ kind: "healthRestoredSince", fraction: 0.5 },
-      { unit: unit({ healthWatermarks: { 0.5: 9 } }), ability: ability(7) })).toBe(true);
+      { unit: unit({ healthWatermarks: { 50: 9 } }), ability: ability(7) })).toBe(true);
   });
 
   it("refuses a Unit that has no watermark at all", () => {

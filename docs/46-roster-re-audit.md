@@ -3285,6 +3285,35 @@ the rider step asked again, the first time in raw lang keys.
 ### FE. A passive ability's card showed a cost it can never pay — **fixed** (f8793fe)
 
 **Reached: KK.hdr.** Kagome Kagome read "The Master cannot pay the Health cost … cannot be paid".
+
+### FF. Facing's cones were lopsided — **ruled and built** (#184)
+
+**Reached: HE.front, HE.side, HE.back, on reading.** A half-open 90° quadrant put the front-left
+diagonal in the front and the front-right one in a side. Ruled 2026-10-04: of the eight panels around a
+Unit 3 are front, 2 sides, 3 back, for every facing rule, read at the declaration; the defender then
+turns to the nearest of eight, not four. Ch. 05.
+
+### FG. Directional Evade was in the table and never applied — **ruled and built** (#184)
+
+**Reached: HE.side, on reading Appendix C.** *"Attacked from the left or right +1"*, *"from behind +2"*
+had no reader. Built with the cones, single-target attacks only. Ch. 13.
+
+### FH. "Restored above half since the last use" was never recorded — **fixed** (#184)
+
+**Reached: BC.p2.half, on reading.** Two Silent Drops, one under the other. The writer watched a key
+no content writes, and the key it would have stamped, `0.5`, is split by Foundry at its dot. Battle
+Continuation revived once a match and Rho Aias was usable once. Ch. 10.
+
+### FI. A stance transition was never offered — **built** (#184)
+
+**Reached: ST.dismount, on reading.** Achilles's Dismount at the start of a Combat Phase had a rule
+and no offer. The Turn record now remembers a Mounted Turn, for the toll. Ch. 45.
+
+### FJ. A shove that deals damage was a real Attack — **ruled and built** (#184)
+
+**Reached: AK.kb.side, on reading.** Akhilleus Kosmos's sidestep ran a Normal Attack mid-Move: it spent
+the budget, offered reactions and was refused once he had attacked. Ruled 2026-10-04: damage measured
+as his Normal Attack, not an Attack.
 ---
 
 ---

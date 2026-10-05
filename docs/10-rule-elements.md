@@ -133,6 +133,15 @@ executor actually reads, rather than of its descriptor's ids.
 - **`DamageModifier`** has no `mode`. Avenger's `mode: flat` was read by nothing: `modifierKey:
   avenger` is what makes the +80 flat, and `stage` is the executor's spelling when no key names a
   bucket. The line is gone and the validator refuses the key.
+- **`RevivalSource`**'s `requiresHealthRestoredSince` was never recorded (#184). The gate reads a
+  watermark that `engine/io.mjs#watermarks` stamps only for fractions it is told to watch, and it
+  looked for them on `revive.healthRestoredSince`, a key no content writes. Under that, the key itself
+  was lost: `0.5` has a dot, and Foundry expands every dotted key in an update, inside an object too,
+  so the stamp landed at `{0: {5: tick}}`. Battle Continuation revived once a match and Rho Aias was
+  usable once. Watermarks are now keyed by percent (`domain/health.mjs#watermarkKey`, `"50"`), the
+  writer reads the `RevivalSource` key, and "above half" is strict. Ruled 2026-10-04: the first revive
+  is free; after it, Health must rise above half again. Test:
+  `test/unit/battle-continuation-watermark.test.mjs`.
 - **`RevivalSource`** counts its budget in `charges`. Normal Lancer's Battle Continuation said `uses:
   1`, so *"can only be used once"* had no limit. The content now says `charges: 1`, and the validator
   refuses `uses`. **Only a `cascading` source carries the killing blow's excess into what it restores**

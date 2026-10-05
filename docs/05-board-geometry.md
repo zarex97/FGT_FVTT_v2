@@ -40,7 +40,11 @@ Targeting uses a two-axis system: Axis 1 resolves the anchor (caster, target, di
 
 ### Facing and cones
 
-Facing is stored as one of eight compass directions but only ever *read* as one of four cones — front/side/back — because every rule that cares (Evade modifiers, Achilles' Heel) is expressed that way (`module/domain/geometry.mjs:481-504`). `coneOf(facing, self, other)` classifies an attacker into a quadrant using bearing arithmetic.
+Facing is stored as one of eight compass directions but only ever *read* as one of four cones — front/side/back — because every rule that cares (Evade modifiers, Achilles' Heel) is expressed that way (`module/domain/geometry.mjs#coneOf`). `coneOf(facing, self, other)` classifies an attacker by its bearing.
+
+**Of the eight panels around a Unit, 3 are front, 2 are sides, 3 are back** (ruled 2026-10-04, #184 reading 10, for every facing rule). The front cone is the 90° around the facing with both edges in, the back the same behind, and the sides are what lies strictly between, so a diagonal is always front or back. It had been a half-open quadrant: the front-left diagonal read front and the front-right one side, the same attack two ways by mirror image. Medusa's *"facing the targeted Unit"* reads the same front cone, so it is three panels wide.
+
+**Read at the declaration.** `rules/targeting/facing.mjs#attackCone` is stamped on each Combat Process as `state.cone` when it is declared; the Evade and the Heel both read the stamp. An attack with no direction (no attacker on the board, or one on the defender's panel) is from the front. After a single-target attack the defender turns to face the attacker, to the **nearest of the eight** (`facingToward`; it had been four), and that turn comes after the damage, so it never changes the cone of the attack that caused it. Moving does not turn a Unit; the player turns it on its own Turn.
 
 Four-directional placement — Raikou's clones on front/back/left/right — is derived from the facing by rotation, not tabulated, because four of the eight facings are diagonals. `orthogonalPanels` finds one free panel per direction, displaced outward where blocked (`module/rules/targeting/orthogonal.mjs:45-94`).
 

@@ -564,10 +564,15 @@ async function knockBackOccupants(moverId, movement = null) {
     // displaced, and the damage is the price of not having room.
     if (landing.sidestepped && push.sidestepDamages) {
       const { resolveAttack } = await import("./attack.mjs");
+      // Damage EQUIVALENT to his Normal Attack, worked out by the attack
+      // pipeline with his own modifiers -- and not an Attack (ruled 2026-10-04,
+      // #184 reading 8): no Evade, Block or Counter, and it spends nothing.
+      // It had been a real Normal Attack, which charged the budget mid-Move
+      // and was refused outright once he had already attacked.
       await resolveAttack({
         attackerId: moverId,
         abilityId: null,
-        placement: { pathTargets: [occupant.id] },
+        placement: { pathTargets: [occupant.id], plainDamage: true },
       });
     }
   }

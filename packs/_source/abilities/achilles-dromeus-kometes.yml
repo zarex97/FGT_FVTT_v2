@@ -1,9 +1,9 @@
 # Achilles, char_orig_sheets/Copia de Achilles.md
 #
 # A Noble Phantasm that is purely passive and deals nothing — one of two on his
-# sheet, which is a corpus record. It is also the reason his Riding leaves
-# Double Move ungated: the clause is granted twice, once by each, so Sealing
-# either one leaves him with it.
+# sheet, which is a corpus record. On foot it is his ONLY source of Double Move
+# (ruled 2026-10-04, #184 reading 13): Riding grants it Mounted, this grants it
+# Dismounted, and the Heel wound takes this one away.
 schema: 1
 id: achilles-dromeus-kometes
 name: "Dromeus Komētēs: Comet Form"
@@ -18,10 +18,10 @@ description: |
   1. Has the effects of Passive 1 of @ability[class-riding-achilles]{Riding} (Double Move).
   2. The value of @effect[evade]{Evade} rolls are reduced by 4.
 passiveRules:
-  # Clause 1. Granted rather than referenced: his Riding grants Double Move too,
-  # and a grant collected twice is still one grant -- so Skill Seal on either
-  # document leaves the other's standing, which is what "has the effects of
-  # Passive 1" means when the two abilities are separately sealable.
+  # Clause 1. Granted rather than referenced: his Riding grants Double Move only
+  # while Mounted, so on foot this grant is the clause, and `heelWounded`
+  # removes it (#184 reading 13). Seals do not reach it: a passive NP is not
+  # stopped by NP Seal (Appendix A).
   - key: GrantedAbility
     abilities: [doubleMove]
     predicate: ["self:stance:dismounted", { not: "self:effect:heelWounded" }]

@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { facingAllows, pathClear } from "../../module/rules/targeting/facing.mjs";
+import { facingAllows, pathClear, attackCone, directionalEvade } from "../../module/rules/targeting/facing.mjs";
 import { panelsBetween } from "../../module/domain/geometry.mjs";
 import { resolveTargets } from "../../module/rules/targeting/resolve.mjs";
 import { squareBounds } from "../../module/domain/geometry.mjs";
@@ -206,5 +206,42 @@ describe("a Structure that names who may break it", () => {
     };
     const r = resolveTargets(spec, master, board([master, plain]), { unitId: "mark" });
     expect(r.units).toEqual([]);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+
+describe("the cone an attack comes from, and its Evade (#184 reading 10)", () => {
+  const me = unit("me", 5, 5, { facing: "n" });
+
+  it("Medusa's front is three panels wide: the diagonals are in it", () => {
+    expect(facingAllows(me, unit("t", 4, 4))).toBe(true);
+    expect(facingAllows(me, unit("t", 4, 6))).toBe(true);
+    expect(facingAllows(me, unit("t", 5, 6))).toBe(false);
+  });
+
+  it("no direction at all is the front", () => {
+    expect(attackCone(me, unit("a", 5, 5))).toBe("front");
+    expect(attackCone(me, null)).toBe("front");
+    expect(attackCone(me, unit("a", 6, 4))).toBe("back");
+  });
+
+  it("Appendix C.1: sides +1, behind +2, the front nothing", () => {
+    expect(directionalEvade("left", false)).toEqual({ source: "attacked from the left", value: 1 });
+    expect(directionalEvade("right", false)?.value).toBe(1);
+    expect(directionalEvade("back", false)).toEqual({ source: "attacked from behind", value: 2 });
+    expect(directionalEvade("front", false)).toBe(null);
+  });
+
+  it("an area attack gets none of it: it has its own +2", () => {
+    expect(directionalEvade("back", true)).toBe(null);
+    expect(directionalEvade("left", true)).toBe(null);
+  });
+
+  it("the Evade rung reads it, from the stamp or the live board", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("module/engine/attack.mjs", "utf8");
+    expect(src).toMatch(/directionalEvade\(state\.cone \?\? attackCone\(defender, attacker\), Boolean\(state\.isAoE\)\)/);
+    expect(src).toMatch(/const withCone = \{ \.\.\.withBreaking, cone: coneOfDefender \}/);
   });
 });

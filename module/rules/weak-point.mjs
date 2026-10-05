@@ -63,9 +63,14 @@ export function weakPointChance(spec, { defender, attacker, state, board = null,
   // Which of his four cones the attack came from. `coneOf` has answered this
   // since it was written and named Achilles' Heel in its own docstring; this is
   // its second caller and the one it was written for.
-  const side = defender?.panel && attacker?.panel
+  //
+  // The cone stamped on the Process at its declaration wins (#184): the
+  // defender turns to face the attacker after the damage, and a second hit of
+  // the same declaration must not read the turned facing.
+  const side = state?.cone ?? (defender?.panel && attacker?.panel
+    && !(defender.panel.i === attacker.panel.i && defender.panel.j === attacker.panel.j)
     ? coneOf(defender.facing ?? "n", defender.panel, attacker.panel)
-    : "front";
+    : "front");
   let chance = spec.baseChanceBySide?.[side] ?? 0;
   breakdown.push({ label: side, delta: chance });
 

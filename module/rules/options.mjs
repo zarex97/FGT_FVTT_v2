@@ -26,7 +26,7 @@ import { GENERATED_EMITTABLE } from "./facets.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { NP_TAG_SCALE, scaleTagOf } from "./np-scale.mjs";
 import { referencedOptions } from "./predicate.mjs";
-import { stanceOf } from "./stance.mjs";
+import { stanceOf, mountedThisTurn } from "./stance.mjs";
 import { heldOn } from "./modes.mjs";
 import { categoriesOf } from "./items.mjs";
 
@@ -285,6 +285,9 @@ function add(options, side, unit, withoutModeHeld = false) {
   // case in whatever code happens to be asking.
   const stance = stanceOf(unit);
   if (stance) options.add(`${side}:stance:${stance}`);
+  // Mounted at any point of this Turn, for the toll that a mid-Turn Dismount
+  // does not refund (#184).
+  if (stance && mountedThisTurn(unit)) options.add(`${side}:stance:mountedThisTurn`);
 
   // Which bounded fields the unit is standing in. `annotateFields` has written
   // `u.fields` since Ch. 28 was implemented and nothing ever read it back into

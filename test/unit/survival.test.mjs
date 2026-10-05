@@ -591,6 +591,16 @@ export const NESTED_ROUTES = [
       { file: "module/rules/bounded-fields.mjs", why: "breakingCatch reads it" },
     ],
   },
+  // The duel closes around its two duellists alone: everyone else in the area
+  // is pushed out as it opens (#184 reading 4). On a field's membership, an
+  // untyped object, read where the field opens.
+  {
+    key: "enclosesOnly",
+    authored: ["packs/_source/abilities/achilles-diatrekhon-aster-lonkhe.yml"],
+    hops: [
+      { file: "module/engine/fields.mjs", why: "openField pushes the others out and stamps the duellists" },
+    ],
+  },
   // A painted area is on one Level, as a field is: the zone phase stamps the
   // caster's (or the Fortress's), a repaint follows the source's, and
   // `terrainAt` asks for it (#151).

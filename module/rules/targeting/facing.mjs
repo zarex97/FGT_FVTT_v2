@@ -40,6 +40,44 @@ export function facingAllows(caster, target) {
 }
 
 /**
+ * Which of the defender's cones an attack comes from, read at its declaration.
+ *
+ * Ruled 2026-10-04 (#184 reading 10): read when the attack is DECLARED, before
+ * the defender turns to face it, and stamped on the Combat Process so every
+ * rung that asks -- the Evade, Achilles' Heel -- gets the same answer. An
+ * attack with no direction at all (no attacker on the board, or one standing
+ * on the defender's own panel) comes from the front.
+ *
+ * @param {object|null} defender
+ * @param {object|null} attacker
+ * @returns {"front"|"left"|"right"|"back"}
+ */
+export function attackCone(defender, attacker) {
+  if (!defender?.panel || !attacker?.panel) return "front";
+  if (defender.panel.i === attacker.panel.i && defender.panel.j === attacker.panel.j) return "front";
+  return coneOf(defender.facing ?? "n", defender.panel, attacker.panel);
+}
+
+/**
+ * The directional Evade modifier: Appendix C.1's *"Attacked from the left or
+ * right +1"* and *"Attacked from behind +2"*.
+ *
+ * In the table since it was transcribed, and never applied. Ruled 2026-10-04
+ * (#184): **single-target attacks only** -- an area attack already carries its
+ * own +2 and has no aimed direction to come from.
+ *
+ * @param {string|null|undefined} cone from {@link attackCone}
+ * @param {boolean} isAoE
+ * @returns {{source: string, value: number}|null}
+ */
+export function directionalEvade(cone, isAoE) {
+  if (isAoE) return null;
+  if (cone === "back") return { source: "attacked from behind", value: 2 };
+  if (cone === "left" || cone === "right") return { source: `attacked from the ${cone}`, value: 1 };
+  return null;
+}
+
+/**
  * Is there nothing standing between caster and target?
  *
  * > *"Cannot be used on a Unit if there is an obstacle/obstruction between

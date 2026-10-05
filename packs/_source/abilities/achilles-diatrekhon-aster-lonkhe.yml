@@ -6,10 +6,11 @@
 # as its own axis since it was written, in a comment naming "the duel field" as
 # the reason it exists. This is that field.
 #
-# One clause is deliberately NOT modelled. *"All conditions of the duel
-# (including defeat) must be decided and agreed on by the two involved
-# parties"* is a table negotiation rather than a rule, so the engine enforces
-# every mechanical clause and a GM control ends the duel. Encoding a terms
+# *"All conditions of the duel (including defeat) must be decided and agreed on
+# by the two involved parties"* is a table negotiation rather than a rule. Ruled
+# 2026-10-04 (#184 reading 4): the DEFAULT is a real defeat that sticks -- the
+# duel ends when a duellist is defeated and not revived -- and the owner's
+# control still ends it for any other terms the two agreed. Encoding a terms
 # vocabulary would be inventing rules the sheet does not have.
 schema: 1
 id: achilles-diatrekhon-aster-lonkhe
@@ -100,6 +101,11 @@ field:
     allyExit: sealed
     enemyExit: sealed
     trappedAtActivation: true
+    # "ACHILLES AND THE OPPOSING UNIT are enclosed" -- the two and nobody else.
+    # Anyone else standing in the 5x5 when it opens is moved to the nearest
+    # free panel outside, a forced move (#184 reading 4), so `trappedAtActivation`
+    # above traps only the duellists.
+    enclosesOnly: duellists
   # Axis 3 -- isolation. "...or interfere with the duel, even with Command
   # Spells."
   isolation:
@@ -127,6 +133,12 @@ field:
   # back to his own Turn only. It had been `window: any`, offered at every
   # moment.
   deactivation: { byOwner: true }
+  # Axis 6 -- the default end. *"...until one Unit is 'defeated' as per the
+  # terms of the duel; and when the 'defeat' occurs, the NP is deactivated."*
+  # Read after a Combat Process has finished, so a duellist Battle
+  # Continuation or God Hand revived fights on (#184 reading 4).
+  vulnerabilities:
+    - { kind: duellistDefeat, result: end }
   # "The Noble Phantasm is only activated if the opposing Unit (player) agrees
   # to the duel." A consent gate, and the only one in the game: every other
   # field opens whether or not anyone inside wants it.

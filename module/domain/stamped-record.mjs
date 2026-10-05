@@ -143,6 +143,7 @@ export const TURN_RECORD = stampedRecord({
     itemTransfers: 0,
     abilitiesUsed: [],
     namelessForestAttempts: 0,
+    mounted: false,
   },
 });
 

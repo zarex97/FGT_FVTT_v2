@@ -44,6 +44,8 @@ Some modifiers have a chance of applying — EMIYA's Clairvoyance is 80% likely 
 
 A **contested check** compares two stats. When resolving a Luck Check against an opponent, pass `opposingLuck`; the function uses `tableFor` to decide which table applies (`module/rules/checks.mjs:304-312`). An Evade check against an attack is the default case: Agility is compared implicitly to nothing (uncontested, so always favourable), but modifiers from the attack (`attackIsNP: +3`, `fromBehind: +2`) make it harder to succeed.
 
+**Directional Evade** is Appendix C.1's *"attacked from the left or right +1"* and *"attacked from behind +2"*. It sat in the table, unapplied, until #184: `rules/targeting/facing.mjs#directionalEvade` reads the cone stamped at the declaration (Ch. 05) and `engine/attack.mjs#evadeModifiers` adds it. **Single-target attacks only** (ruled 2026-10-04): an area attack carries its own +2 and has no aimed direction. A Process built without a stamp, a pre-emption, reads the cone off the live board.
+
 The attack engine demonstrates this at line 2794–2800: a Luck Check passes both the defender's luck and the attacker's luck (`opposingLuck`) to `luckCheck`, along with a plan describing forced tables and modifiers (`module/engine/attack.mjs:2794-2800`).
 
 ### Roll log and audit trail

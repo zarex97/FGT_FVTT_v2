@@ -59,6 +59,7 @@ import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
 import { offerWeakPoint, resolveWeakPoint, weakPointIntents } from "./weak-point.mjs";
 import { luckChecksBlocked } from "../rules/bounded-fields.mjs";
+import { attackCone, directionalEvade } from "../rules/targeting/facing.mjs";
 import { luckChecksApply } from "../rules/difficulty.mjs";
 import { renderAttackCard, updateAttackCard } from "../apps/chat/cards.mjs";
 import { applyEffect, inflictBonusOf } from "./effect-applier.mjs";
@@ -207,7 +208,20 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // After the cost and the cooldown, so an attack that was refused never opens
   // the window, and before any Process exists, so the switch is in force for the
   // crit coin it is about to change.
-  const phaseWindow = resume
+  // *"If Mounted at the start of a Combat Phase, Achilles can Dismount at the
+  // start of the Combat Phase"* (#184). Asked of the attacker only: off his
+  // own Turn he is always Dismounted, so as a defender there is nothing to
+  // get off. Before the window's abilities, so Runner Comet -- Unmounted only,
+  // at the start of a Combat Phase -- is offered to the Achilles who just
+  // stepped down.
+  // Not for damage that is only measured as an attack (#184 reading 8): the
+  // shove is no Combat Phase, so neither is anything offered at its start.
+  const plainDamage = Boolean(placement?.plainDamage);
+  if (!resume && !plainDamage) {
+    const { offerStanceTransition } = await import("./stance.mjs");
+    await offerStanceTransition(attackerId, COMBAT_PHASE_START_WINDOW);
+  }
+  const phaseWindow = resume || plainDamage
     ? { windowAbilities: [] }
     : await offerAttackerWindow({ attackerId }, COMBAT_PHASE_START_WINDOW, null);
   if ((phaseWindow.windowAbilities ?? []).length > 0) {
@@ -917,9 +931,18 @@ async function declareProcesses({
       const withBreaking = caughtByBreaking.size > 0
         ? { ...state, breaking: { ownAoE }, ...(caughtByBreaking.has(state.defenderId) ? { caughtByBreaking: true } : {}) }
         : state;
+      // Where the attack comes from, as the defender stands NOW (#184): the
+      // Evade and the Heel both read this, and the defender turns to face the
+      // attacker only after the damage, so neither may read the turned facing.
+      const coneBoard = board ?? currentBoard();
+      const coneOfDefender = attackCone(
+        (coneBoard?.units ?? []).find((u) => u.id === withBreaking.defenderId) ?? null,
+        (coneBoard?.units ?? []).find((u) => u.id === attackerId) ?? null,
+      );
+      const withCone = { ...withBreaking, cone: coneOfDefender };
       const withInstance = instance
-        ? { ...withBreaking, attack: { ...withBreaking.attack, ...instance } }
-        : withBreaking;
+        ? { ...withCone, attack: { ...withCone.attack, ...instance } }
+        : withCone;
       return primaryId === null
         ? withInstance
         : {
@@ -961,7 +984,14 @@ async function declareProcesses({
     const withReactions = state.defenderId
       ? {
         ...state,
-        reactionAbilities: { [state.defenderId]: offeredReactions(state.defenderId, state.attack, state.isAoE, state.attackerId) },
+        // Damage only MEASURED as a Normal Attack has nothing to react to:
+        // Akhilleus Kosmos's shove (#184 reading 8). No Evade, no Block, no
+        // Counter, and no reaction ability offered against it.
+        reactionAbilities: {
+          [state.defenderId]: placement?.plainDamage
+            ? []
+            : offeredReactions(state.defenderId, state.attack, state.isAoE, state.attackerId),
+        },
         // Presence Concealment clause 2: *"This Unit's Attacks cannot be
         // Blocked or Countered unless the DU's current AGI Rank is equal to or
         // higher than it."* Decided once, at declaration, alongside the offer --
@@ -1004,6 +1034,7 @@ async function declareProcesses({
           // read only by the counter check, so the react rung still offered
           // them (#68).
           ...defenderRefusals(state.defenderId),
+          ...(placement?.plainDamage ? ["evade", "block", "counter"] : []),
         ])],
       }
       : state;
@@ -1340,6 +1371,12 @@ export async function advanceAttack({ messageId, event, abilityId = null, placem
   if (process.isComplete(state)) {
     await endConcealmentAfterAttack(state);
     await closeFieldsPiercedBy(state);
+    // A duel ends at the defeat (#184 reading 4) -- the one that stuck, so this
+    // runs after the Process, when any revival has already been decided.
+    {
+      const { closeDecidedDuels } = await import("./fields.mjs");
+      await closeDecidedDuels();
+    }
     await runAfterProcessPhases(state);
     await fireCombatProcessEnd(state);
     // *"When Mannanán is Attacked ... at the end of the Combat Process ... she
@@ -2905,6 +2942,11 @@ function evadeModifiers(state, attacker, defender) {
   }
   if (state.attack?.kind === "np") mods.push({ source: "attack is an NP", value: 3 });
   if (state.isAoE) mods.push({ source: "attack is AoE", value: 2 });
+  // Appendix C.1, from the side +1 and from behind +2 -- single-target attacks
+  // only, from the cone stamped at the declaration (#184).
+  // A Process built elsewhere (a pre-emption) carries no stamp: read it now.
+  const directional = directionalEvade(state.cone ?? attackCone(defender, attacker), Boolean(state.isAoE));
+  if (directional) mods.push(directional);
   if ((defender.effects ?? []).includes("slow")) mods.push({ source: "Slow", value: 2 });
   if ((defender.effects ?? []).includes("blind")) mods.push({ source: "Blind", value: 3 });
   if ((defender.effects ?? []).includes("immobilize")) mods.push({ source: "Immobilize", value: 4 });
@@ -5178,11 +5220,13 @@ function damageSuppressedBy(state, before) {
 async function applyFacing(state) {
   const attacker = unitSnapshot(game.actors.get(state.attackerId));
   const defender = unitSnapshot(game.actors.get(state.defenderId));
-  const di = attacker.panel.i - defender.panel.i;
-  const dj = attacker.panel.j - defender.panel.j;
-  const facing = Math.abs(di) >= Math.abs(dj)
-    ? (di < 0 ? "n" : "s")
-    : (dj > 0 ? "e" : "w");
+  if (!attacker?.panel || !defender?.panel) return;
+  // The nearest of EIGHT, not four (#184): a defender attacked from a diagonal
+  // looks at the attacker, not along an axis beside it. Runs after the
+  // reactions and the damage, so the cones they read were the old facing.
+  const { facingToward } = await import("../domain/geometry.mjs");
+  const facing = facingToward(defender.panel, attacker.panel);
+  if (!facing) return;
   await applyBatch([I.setFacing(state.defenderId, facing)], "facing");
 }
 

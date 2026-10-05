@@ -116,7 +116,14 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }));
       return;
     }
+    // Declared Mounted on his own Turn: the Turn record remembers it, so the
+    // toll of a Turn he Acts Mounted survives a Dismount later in it (#184).
     await this.document.update({ "system.stance": to });
+    if (to === "mounted" && game.combat?.started) {
+      const { applyWorldIntents } = await import("../../engine/applier.mjs");
+      const I = await import("../../engine/intents.mjs");
+      await applyWorldIntents([I.markTurn(this.document.id, { mounted: true })], "stance:declare");
+    }
   }
 
   static async #onToggleMode(_event, target) {
