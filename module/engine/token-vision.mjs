@@ -68,7 +68,11 @@ export const TokenVision = {
     for (const hook of ["createActiveEffect", "deleteActiveEffect"]) {
       Hooks.on(hook, (effect) => {
         if (effect?.system?.defId !== CONCEALMENT) return;
-        canvas?.perception?.update({ refreshVision: true, refreshVisibility: true });
+        // `refreshVision` alone: it ends in `canvas.visibility.refresh()`,
+        // which is the pass that asks every token. v14 has no
+        // `refreshVisibility` flag, and naming one made `update` throw, so
+        // no pass ran at all (#185).
+        canvas?.perception?.update({ refreshVision: true });
       });
     }
 

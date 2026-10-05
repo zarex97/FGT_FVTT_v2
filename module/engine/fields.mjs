@@ -1265,13 +1265,28 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
       // flavour: Jack's own Sustainability GROWS by 1◈ for every Human she
       // kills while she is a Free Servant, and a death the field takes credit
       // for instead of her would quietly stop paying her.
+      //
+      // So a credited kill is HER kill (#185): the defeat names her as killer,
+      // and `unitKilled` fires on her as the attack path's `killedBy` does. The
+      // `fieldKill` log line was all `creditOwner` wrote, and nothing read it:
+      // Jack's and Medusa's Free Servant Sustainability never grew from a field
+      // kill. The Civilian bounty is not paid here: Blood Fort Andromeda
+      // authors its own, and the Mist's is the author's call.
       if (action.key === "Defeat") {
-        out.push(I.defeat(unit.id, action.cause ?? "field"));
-        report(unit, { defeat: action.cause ?? "field" });
-        if (action.creditOwner && field.ownerId) {
+        const cause = action.cause ?? "field";
+        const killer = action.creditOwner ? owner : null;
+        out.push(I.defeat(unit.id, cause, killer?.id ?? null));
+        report(unit, { defeat: cause });
+        if (killer) {
+          const { fireEvent } = await import("./scheduler.mjs");
           out.push(I.log({
             kind: "defeat", event: "fieldKill", unitId: unit.id,
-            by: field.ownerId, field: field.id, victimKind: unit.kind,
+            by: killer.id, field: field.id, victimKind: unit.kind,
+          }));
+          out.push(...fireEvent("unitKilled", [killer], {
+            tick: game.combat?.system?.globalTurn ?? 0, board,
+            turnsPerRound: game.settings.get("fgt", "turnsPerRound") || 3,
+            options: rollOptionsFor({ attacker: killer, defender: unit }),
           }));
         }
         continue;
