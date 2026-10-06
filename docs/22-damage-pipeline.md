@@ -31,7 +31,7 @@ Each stage runs in order, capturing what it changed into the `breakdown` array. 
 
 2. **Crit** (line 295): Apply Attack+/Attack−. The `5d10` roll is applied to Base Attack **before** the multiplier, per the author's reference calculation placing it inside the bracket `[(200+35)×4×2+100]×…` — applying it after gives the wrong total.
 
-3. **Ability Multiplier** (line 349): The ability's declared multiplier and its conditional multipliers (text conditions, not buffs). Conditional multipliers stated in the description land inside the bracket here; buff percentages land at stage 4.
+3. **Ability Multiplier** (line 349): The ability's declared multiplier and its conditional multipliers (text conditions, not buffs). Conditional multipliers stated in the description land inside the bracket here; buff percentages land at stage 4. A Normal Attack carries its own (`normalAttack.conditionalMultipliers`, through `normalAttackAt` and `attackFacts`), because it has no damage block: Mesektet makes Ozymandias's Normal Attacks *"+100% against Dark"*, a ×2 of its own, not an Atk Up summed with his others. Mesektet's NP doubles inside the bracket too, before its +100, as the reference calculation does (ruled 2026-10-06, #189 readings 3 and 18).
 
 4. **Combined Percent** (line 384): The one additive bucket—Atk Up, Def Up, Dmg Cut, etc.—summed before application. *"If AU has 30% Atk Up and DU has 100% Def Up: (100+30−100)% = 30% damage."*
 

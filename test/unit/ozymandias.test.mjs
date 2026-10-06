@@ -10,6 +10,9 @@ import { parse } from "yaml";
 
 import { turnWrite } from "../../module/rules/snapshot.mjs";
 import { interiorModifiers } from "../../module/rules/bounded-fields.mjs";
+import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
+import { normalAttackAt } from "../../module/rules/normal-attack.mjs";
+import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 
 const src = (dir, file) =>
   parse(readFileSync(join(process.cwd(), "packs/_source", dir, file), "utf8"));
@@ -62,4 +65,34 @@ describe("Divine Protection revives the Sphinxes, not any allied summon (reading
     const other = { id: "d", kind: "summon", contentId: "dragon-tooth-warrior-blade", faction: "a", factionId: "a", panel: { i: 4, j: 4 } };
     expect(revivals(other)).toEqual([]);
   });
+});
+
+describe("doubled against Dark, inside the bracket (readings 2, 3, 18)", () => {
+  const dark = { id: "d", attributes: ["dark"], parameters: {}, effects: [], modifiers: [], health: 5000, maxHealth: 5000 };
+  const light = { ...dark, attributes: [] };
+  const attacker = { id: "oz", baseAttack: { str: 100, mag: 200 }, modifiers: [], abilities: [] };
+  const hit = (defender, block) => computeDamage({
+    attacker, defender, base: { sources: [{ unit: "self", component: "mag", factor: 1 }] }, component: "mag",
+    multiplier: block.multiplier ?? 1, flatBonus: block.flatBonus ?? 0,
+    conditionalMultipliers: block.conditionalMultipliers ?? [], rolls: { attackMinus: 0 },
+    // The option set the resolution builds (`rollOptionsFor`), as far as this asks.
+    options: new Set(defender.attributes.map((a) => `target:attribute:${a}`)),
+  }).total;
+
+  it("Mesektet: 200 × 4 × 2 + 100 against Dark, 200 × 4 + 100 otherwise", () => {
+    const mk = src("abilities", "ozymandias-mesektet.yml").damage;
+    expect(hit(dark, mk)).toBe(1700);
+    expect(hit(light, mk)).toBe(900);
+  });
+
+  it("his Normal Attack carries its ×2 through the real projection", async () => {
+    await prepareSubjects();
+    await withSubjects([{ from: "ozymandias", id: "oz", panel: { i: 5, j: 5 } }], ({ board }) => {
+      const oz = board.units.find((u) => u.id === "oz");
+      const normal = normalAttackAt(oz, 1);
+      expect(normal.conditionalMultipliers).toEqual([{ factor: 2, predicate: ["target:attribute:dark"], source: "Mesektet: Dark (+100%)" }]);
+      expect(hit(dark, normal)).toBe(400);
+      expect(hit(light, normal)).toBe(200);
+    });
+  }, 120_000);
 });

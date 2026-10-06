@@ -69,6 +69,8 @@ export function normalAttackAt(unit, range = null, { platform = null } = {}) {
     // The Rank Magic Resistance meets it at, when it is not the attacker's
     // MAG: the Golden Hind's swing is the Noble Phantasm's, A+ (#187).
     attackRank: spec.attackRank ?? null,
+    // Its own stage-3 multipliers: Mesektet's ×2 against Dark (#189).
+    conditionalMultipliers: spec.conditionalMultipliers ?? [],
   };
 
   if (spec.mode !== "rangeBanded") return flat;
@@ -96,6 +98,7 @@ export function normalAttackAt(unit, range = null, { platform = null } = {}) {
     element: band.element ?? spec.element ?? null,
     ignoresMagicResistance: Boolean(band.ignoresMagicResistance),
     attackRank: spec.attackRank ?? null,
+    conditionalMultipliers: spec.conditionalMultipliers ?? [],
   };
 }
 

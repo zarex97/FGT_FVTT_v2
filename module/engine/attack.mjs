@@ -4133,7 +4133,7 @@ async function applyDamage(state, message) {
     // ability's when this is the ordinary resolution.
     multiplier: block?.multiplier ?? 1,
     flatBonus: block?.flatBonus ?? 0,
-    conditionalMultipliers: block?.conditionalMultipliers ?? [],
+    conditionalMultipliers: block?.conditionalMultipliers ?? facts.conditionalMultipliers ?? [],
     crit: { isCrit, chanceUsed: critSpec.percent },
     // Which rolls this table plays with (Ch. 29). Threaded into ctx the way
     // `grandOrder` is, because a pure pipeline stage may not read a setting.
@@ -5559,6 +5559,9 @@ export function attackFacts(attacker, defender, state, board = null) {
     ignoresMagicResistance: facts.ignoresMagicResistance || normal.ignoresMagicResistance,
     // Stage 11's Rank for a Normal Attack that is not the attacker's own (#187).
     attackRank: normal.attackRank ?? null,
+    // Stage 3's multipliers of a Normal Attack, which has no damage block to
+    // carry them: Mesektet's ×2 against Dark (#189 readings 3, 18).
+    conditionalMultipliers: normal.conditionalMultipliers ?? [],
   };
 }
 
@@ -5642,7 +5645,7 @@ export function previewContext({ caster: given, defender, ability, board, isNP }
     contentBaseAttack: contentBaseAttacks(),
     multiplier: damage?.multiplier ?? 1,
     flatBonus: damage?.flatBonus ?? 0,
-    conditionalMultipliers: damage?.conditionalMultipliers ?? [],
+    conditionalMultipliers: damage?.conditionalMultipliers ?? facts.conditionalMultipliers ?? [],
     crit: { isCrit: false, chanceUsed: 0 },
     reaction: { kind: "none" },
     luckChecks: {},
