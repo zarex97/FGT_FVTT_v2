@@ -99,8 +99,8 @@ export async function placeMark({ unitId, abilityId }) {
 
   // *"If all four Bloodmarks are complete, Bloodfort Andromeda is activated"*,
   // and *"whenever Bloodfort Andromeda is complete (Activated), all other
-  // Bloodmarks will vanish"* — the strays go, the corners stay, because a
-  // Master destroying a corner is how the area is broken.
+  // Bloodmarks will vanish"* — the strays go. The corners stay, untargetable,
+  // to show where the area is (#188 reading 14).
   const corners = new Set(square.corners.map((c) => `${c.i},${c.j}`));
   for (const mark of placed) {
     const p = panelOf(mark);
@@ -113,32 +113,22 @@ export async function placeMark({ unitId, abilityId }) {
 }
 
 /**
- * Destroy a Bloodmark, and end the field if it was holding one up.
+ * Remove a Bloodmark from the board.
  *
- * > *"Only Masters can destroy a Bloodmark, and it is done by simply Attacking
- * > it."*
+ * Used for the strays when a Fort activates: *"all other Bloodmarks will
+ * vanish."* It ends nothing. *"When Bloodfort Andromeda is activated, it is
+ * continuously Active until Medusa is defeated"* (#188 reading 14): a corner
+ * cannot even be targeted while its Fort stands (`rules/targeting/resolve.mjs`,
+ * step 8b-ii), and the corners go with the field (`engine/fields.mjs#endField`).
  *
- * The refusal for everybody else is a targeting filter (`destroyableBy`), so a
- * Servant is told why rather than swinging and achieving nothing.
- *
- * @param {string} markId
- * @returns {Promise<{ok: boolean, endedField?: string}>}
+ * @param {string|object} markId
+ * @returns {Promise<{ok: boolean}>}
  */
 export async function destroyMark(markId) {
   const mark = typeof markId === "string" ? game.actors.get(markId) : markId;
   if (!mark) return { ok: false };
-
-  const fieldId = mark.system?.fieldId ?? null;
   for (const token of mark.getActiveTokens?.() ?? []) await token.document.delete();
   await mark.delete();
-
-  // A corner is gone, so the square is gone. `endField` is idempotent and
-  // returns false when there was nothing open.
-  if (fieldId && (currentBoard().fields ?? []).some((f) => f.id === fieldId)) {
-    const { endField } = await import("./fields.mjs");
-    await endField(fieldId);
-    return { ok: true, endedField: fieldId };
-  }
   return { ok: true };
 }
 
