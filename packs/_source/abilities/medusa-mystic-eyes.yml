@@ -44,7 +44,10 @@ targeting:
   # SECOND pick out of that set of one. Since #129 it would not any more -- a
   # choice among one settles itself in `validate()` and only two or more
   # candidates ask -- so both spellings work; this one needs no settling.
-  selection: { relations: [enemy], chooser: all, count: 1 }
+  # Enemies and Civilians (#188 reading 15): "Humans (including Masters)" means
+  # Civilians first. A Civilian has no Agility, so its check is against 0 and
+  # always fails -- it is Petrified (reading 17).
+  selection: { relations: [enemy, civilian], chooser: all, count: 1 }
   limits:
     requiresFacing: true
     requiresClearPath: true

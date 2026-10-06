@@ -174,3 +174,35 @@ describe("a field's contact pass leaves a card (#188)", () => {
     expect(readFileSync("module/engine/fields.mjs", "utf8").match(/await postContactReport\(intents\)/g)).toHaveLength(2);
   });
 });
+
+describe("the Eyes reach a Civilian (#188 readings 15, 17)", () => {
+  const eyes = src("abilities", "medusa-mystic-eyes.yml");
+  const board = (units) => ({ bounds: squareBounds(13), units, alliances: { a: ["a"], b: ["b"] } });
+  const medusa = unit("medusa", 6, 4, { faction: "a", factionId: "a", range: 2, facing: "e" });
+
+  it("targets a Civilian two panels ahead, and still an enemy", () => {
+    const civ = unit("civ", 6, 6, { kind: "civilian", faction: null, factionId: null });
+    expect(resolveTargets(eyes.targeting, medusa, board([medusa, civ]), { unitId: "civ" }).units.map((u) => u.unitId)).toEqual(["civ"]);
+    const foe = unit("foe", 6, 6);
+    expect(resolveTargets(eyes.targeting, medusa, board([medusa, foe]), { unitId: "foe" }).units.map((u) => u.unitId)).toEqual(["foe"]);
+  });
+
+  it("does not reach anything else neutral", () => {
+    const stray = unit("stray", 6, 6, { faction: null, factionId: null });
+    expect(resolveTargets(eyes.targeting, medusa, board([medusa, stray]), { unitId: "stray" }).units).toEqual([]);
+  });
+});
+
+describe("the first Round forbids what counts as an Attack (#188 readings 16, 18)", () => {
+  it("refuses the Mark, a ride and an Attack in Round 1, and a Skill never", async () => {
+    const { attackForbiddenThisRound, COUNTS_AS_ATTACK } = await import("../../module/rules/environment.mjs");
+    for (const a of ["mark", "ridingAttack", "attack", "np", "spell"]) expect(attackForbiddenThisRound(a, 1), a).toBe(true);
+    expect(attackForbiddenThisRound("skill", 1)).toBe(false);
+    expect(attackForbiddenThisRound("move", 1)).toBe(false);
+    expect(attackForbiddenThisRound("mark", 2)).toBe(false);
+    // Written once: exactly the actions billed to an Attack pool.
+    const { poolFor, ACTION_KINDS } = await import("../../module/rules/budget.mjs");
+    const servant = { kind: "servant" };
+    expect(ACTION_KINDS.filter((a) => poolFor(servant, a) === "servantAttack").sort()).toEqual([...COUNTS_AS_ATTACK].sort());
+  });
+});

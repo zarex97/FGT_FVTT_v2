@@ -659,6 +659,29 @@ export function attacksPermitted(round, noAttackRound = 1) {
 }
 
 /**
+ * The budget actions that count as an Attack: every one billed to an Attack
+ * pool (`rules/budget.mjs#poolFor`). Bellerophon and Aero are declared Attacks;
+ * a Riding Attack is one; and the Mark *"counts as her Attack for the Turn"*.
+ */
+export const COUNTS_AS_ATTACK = Object.freeze(["attack", "np", "spell", "ridingAttack", "mark"]);
+
+/**
+ * Does the first-Round ban refuse this action?
+ *
+ * Ruled (#188 readings 16, 18): the ban reaches every action that counts as an
+ * Attack, not only a declared one. The Mark was placed on Turn 1 because only
+ * an Attack's declaration asked.
+ *
+ * @param {string} action a budget action
+ * @param {number} round
+ * @param {number} [noAttackRound]
+ * @returns {boolean}
+ */
+export function attackForbiddenThisRound(action, round, noAttackRound = 1) {
+  return COUNTS_AS_ATTACK.includes(action) && !attacksPermitted(round, noAttackRound);
+}
+
+/**
  * E5 — is Territory Creation amplified for this owner right now?
  *
  * Keyed on where the **owner** stands, not on where its target is: the

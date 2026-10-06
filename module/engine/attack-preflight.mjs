@@ -17,7 +17,7 @@
 import { canUseAbility } from "../rules/costs.mjs";
 import { usageSpecFor, classifyAbility } from "../rules/ability-use.mjs";
 import { budgetActionFor } from "../rules/budget.mjs";
-import { attacksPermitted } from "../rules/environment.mjs";
+import { attackForbiddenThisRound } from "../rules/environment.mjs";
 import { mayOrderAnotherServant } from "../rules/relationships.mjs";
 import { GRANTS, hasGranted } from "../rules/granted.mjs";
 import { actionSourceFor } from "../rules/platforms.mjs";
@@ -173,8 +173,7 @@ export function attackPreflight({ attacker, abilityId, placement = {}, board, co
   // (Ch. 29 step 12). A hard gate at declaration, so the refusal names the rule
   // instead of letting a player discover it as an unexplained targeting error.
   if (combat?.started
-    && !attacksPermitted(combat.round ?? 1, game.settings.get("fgt", "noAttackRound"))
-    && actionKind !== "skill") {
+    && attackForbiddenThisRound(actionKind, combat.round ?? 1, game.settings.get("fgt", "noAttackRound"))) {
     return refuse("No attacks are permitted during the first Round.");
   }
 

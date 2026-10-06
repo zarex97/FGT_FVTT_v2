@@ -171,6 +171,10 @@ export function resolveTargets(spec, caster, board, placement = {}) {
       return drop(u, "the Unit this Noble Phantasm already targeted");
     }
     const relation = relationOf(caster, u, board);
+    // `civilian`: a neutral Civilian, and nothing else neutral. Mystic Eyes is
+    // *"used on an enemy Unit"* and its first tier is *"Humans (including
+    // Masters)"*, which only makes sense if Civilians are in it (#188 reading 15).
+    if (relations.has("civilian") && u.kind === "civilian") return true;
     return relations.has(relation) || drop(u, relationReason(relation, caster, u, relations));
   });
 
