@@ -150,3 +150,12 @@ describe("the Bulb's reach beyond the Complex: 4 straight, 3 diagonally (#189)",
     expect(errorsAt(0, 1)[0]).toMatch(/Range is 3 on the diagonal/);
   });
 });
+
+describe("the Sphinx Wehem-Mesut deals MAG at a Range of 2 or more (#189)", () => {
+  it("re-sources its swing from BA(MAG) at Range 2, and from BA(STR) at 1", () => {
+    const w = src("summons", "sphinx-wehem-mesut.yml");
+    const unit = { normalAttack: w.normalAttack, baseAttack: w.baseAttack };
+    expect(normalAttackAt(unit, 2)).toMatchObject({ component: "mag", sources: [{ unit: "self", component: "mag", factor: 1 }] });
+    expect(normalAttackAt(unit, 1)).toMatchObject({ component: "str", sources: [{ unit: "self", component: "str", factor: 1 }] });
+  });
+});
