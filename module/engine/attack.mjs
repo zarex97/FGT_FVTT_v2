@@ -2244,10 +2244,18 @@ async function fireDamageDealt(state, result) {
     ? turnPartnersOf((board.units ?? []).find((u) => u.id === attacker.id) ?? attacker, board, "attack")
     : [];
   const hearers = [attacker, ...drivers.map((d) => unitSnapshot(game.actors.get(d.id)) ?? d)];
-  for (const spec of hearers.flatMap((u) => pendingRolls(u, "damageDealt"))) {
+  // `attack:crit` is in the set only here, which is right: a clause that asks
+  // whether the attack crit is by definition asking about a resolved one.
+  const options = rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) });
+  for (const [hearer, spec] of hearers.flatMap((u) => pendingRolls(u, "damageDealt").map((s) => [u, s]))) {
     if (!spec.formula || spec.key in rolls) continue;
     rolls[spec.key] = (await new Roll(spec.formula).evaluate()).total;
     if (spec.chance === undefined) continue;
+    // Filed only where its clause applies: a "15% on a Crit" roll on an attack
+    // that did not Crit decided nothing, and the card said "missed" (#187).
+    if (spec.predicate && !testPredicate(spec.predicate, {
+      options: new Set([...options, ...rollOptionsFor({ attacker: hearer, defender: null })]),
+    })) continue;
     const hit = rolls[spec.key] <= spec.chance;
     records.push(rollLog.record({
       id: `${state.attackerId}:${state.defenderId}:rider:${spec.key}:${tick}`,
@@ -2263,9 +2271,7 @@ async function fireDamageDealt(state, result) {
     tick: game.combat?.system?.globalTurn ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
     board,
-    // `attack:crit` is in the set only here, which is right: a clause that asks
-    // whether the attack crit is by definition asking about a resolved one.
-    options: rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) }),
+    options,
     victim: { unitId: state.defenderId },
     rolls,
   });

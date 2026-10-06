@@ -1216,7 +1216,20 @@ function gridFootprint(doc, explicit) {
 
   if (typeof doc?.getOccupiedGridSpaceOffsets === "function") {
     const offsets = doc.getOccupiedGridSpaceOffsets();
-    if (offsets?.length) return offsets.map((o) => ({ i: o.i, j: o.j, k: o.k }));
+    // One entry per PANEL. A v14 token has a depth, and a 4x3 platform of
+    // depth 3 reports 36 offsets: each panel once per elevation layer (k 20,
+    // 21, 22). Every reader compares `i`/`j`, so the Golden Hind stood on each
+    // of its panels three times (#187). The lowest layer is kept, which is the
+    // one `level` is read from.
+    if (offsets?.length) {
+      const seen = new Map();
+      for (const o of offsets) {
+        const key = `${o.i},${o.j}`;
+        const prior = seen.get(key);
+        if (!prior || (o.k ?? 0) < (prior.k ?? 0)) seen.set(key, { i: o.i, j: o.j, k: o.k });
+      }
+      return [...seen.values()];
+    }
   }
 
   // No token, or a gridless scene. `{0, 0}` is wrong for anything on a board,

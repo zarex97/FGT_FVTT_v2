@@ -51,6 +51,17 @@ describe("panel projection", () => {
     expect(snapshotUnit(actor(), { token: doc, panel: { i: 3, j: 4 } }).panel).toEqual({ i: 3, j: 4 });
   });
 
+  it("lists each panel once for a deep token (#187)", () => {
+    // Live: the Golden Hind, 4x3 at depth 3, reported 36 offsets, each panel
+    // once per elevation layer.
+    const offsets = [];
+    for (let i = 10; i <= 12; i += 1) for (let j = 10; j <= 13; j += 1) for (const k of [22, 20, 21]) offsets.push({ i, j, k });
+    const unit = snapshotUnit(actor(), { token: token({ x: 1000, y: 1000, offsets }) });
+    expect(unit.panels).toHaveLength(12);
+    expect(unit.panel).toEqual({ i: 10, j: 10, k: 20 });
+    expect(unit.level).toBe(20);
+  });
+
   it("carries a multi-panel unit's whole footprint", () => {
     const doc = token({ x: 0, y: 0, offsets: [{ i: 0, j: 0 }, { i: 0, j: 1 }, { i: 1, j: 0 }, { i: 1, j: 1 }] });
     const unit = snapshotUnit(actor(), { token: doc });

@@ -21,7 +21,7 @@
  * deals damage directly, not its Attack.
  */
 
-import { canUseAbility, additionalCostsFor } from "../rules/costs.mjs";
+import { canUseAbility, additionalCostsFor, resolveCosts } from "../rules/costs.mjs";
 import { refreshShield } from "./shield.mjs";
 import { displaceToken } from "./io.mjs";
 import {
@@ -178,14 +178,20 @@ export async function useSkill({
     ...(free ? {} : asAttack ? { attacked: true } : { usedActiveSkill: true }),
   };
 
+  // The Noble Phantasm cost and the ability's OWN standing costs, resolved
+  // against each other before anything is paid -- the attack path's rule. The
+  // ability's costs were paid beside the NP cost and never instead of it, so
+  // the Golden Hind's activation, whose upkeep `supersedes: [npCost]`, charged
+  // Drake's Master 53 as an ordinary Noble Phantasm (#187). Rho Aias and
+  // Unlimited Blade Works state their Master costs here too (Ch. 46 §46.4-T).
+  const { charged } = applied.channelStarted ? { charged: [] } : resolveCosts([
+    ...(usage.cost ? [{ ...usage.cost, id: "npCost" }] : []),
+    ...additionalCostsFor({ ability, self, master }),
+    ...standingUpkeepCost(board, self, master),
+  ]);
+
   await applyWorldIntents([
-    ...(usage.cost && !applied.channelStarted ? costIntents(usage.cost, self) : []),
-    // The ability's OWN standing costs, which only the attack path used to pay.
-    // Rho Aias is a reaction and Unlimited Blade Works a Skill-path Noble
-    // Phantasm; both state a Master cost their sheets are explicit about, and
-    // both charged nothing (Ch. 46 §46.4-T).
-    ...(applied.channelStarted ? [] : additionalCostsFor({ ability, self, master })
-      .flatMap((cost) => costIntents(cost, self))),
+    ...charged.flatMap((cost) => costIntents(cost, self)),
     ...itemCostIntents(ability, actor),
     ...(applied.channelStarted ? [] : cooldownIntents(ability, actor, applied.summoned ?? 0, self)),
     I.markTurn(actorId, marks),
@@ -1337,6 +1343,28 @@ function cooldownIntents(ability, actor, summoned = 0, unit = null) {
     // token spent would make Scáthach's Rune Spells free for ever.
     ...plan.spends.map((sp) => I.resource(sp.unitId, sp.key, sp.delta)),
   ];
+}
+
+/**
+ * The standing upkeep cost of a platform this Servant owns, as a cost that may
+ * supersede others.
+ *
+ * @param {object} board
+ * @param {object} self
+ * @param {object|null} master
+ * @returns {object[]}
+ */
+function standingUpkeepCost(board, self, master) {
+  // A platform this Servant owns may replace the NP cost outright while it
+  // stands (Ch. 27): the Golden Hind's *"overwrites the normal Master Health
+  // loss when a Servant uses its NP"*. The attack path's `pendingCosts` names
+  // it the same way.
+  const platform = (board?.units ?? []).find((u) => u.kind === "platform" && u.ownerId === self?.id && u.upkeep);
+  if (!platform?.upkeep) return [];
+  return [{
+    kind: "masterHealth", amount: 0, unitId: master?.id ?? null,
+    id: `upkeep:${platform.id}`, supersedes: platform.upkeep.supersedes ?? [],
+  }];
 }
 
 /**
