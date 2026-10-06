@@ -461,6 +461,8 @@ export function snapshotUnit(actor, {
       // Normal Attack in the game hit exactly one panel because the targeting
       // fallback said `{kind: "unit"}` and nothing could say otherwise.
       shape: variantOverride?.normalAttack?.shape ?? sys.normalAttack?.shape ?? null,
+      // The Rank Magic Resistance meets it at (#187 reading 8).
+      attackRank: variantOverride?.normalAttack?.attackRank ?? sys.normalAttack?.attackRank ?? null,
     },
 
     // ZON belongs to the Master-Servant pair, so a per-unit projection cannot

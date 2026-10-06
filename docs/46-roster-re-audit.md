@@ -3529,11 +3529,13 @@ even after GQ. It hands the board's unit, and so does the preview (14921c7). Ch.
 **Reached: GH.deact.** *"Golden Hind: Wild Hunt cannot be used: zon."* Worded from
 `FGT.Ability.Refused.<kind>` (f015a78). Ch. 37.
 
-### GZ. The Golden Hind's Attack carries Drake's MAG E for Magic Resistance — **open, needs a ruling** (#187)
+### GZ. The Golden Hind's Attack carried Drake's MAG E for Magic Resistance — **ruled and built** (#187)
 
 **Reached: GH.na.** The ship's BA(MAG) 200 Attack is compared against Magic Resistance at Drake's own MAG Rank,
 E, so any Magic Resistance of E or better negates it outright: EMIYA's D, *"negated: MR D ≥ attack E"*, 258 →
 0. The ship's sheet gives it no MAG Rank. Golden Wild Hunt is compared at its own Rank, A+.
+Ruled 2026-10-05 (reading 8): the Noble Phantasm's Rank, A+. The ship's Normal Attack authors `attackRank` and
+stage 11 reads it before the attacker's MAG; live, *"−20% MAG (MR D < attack A+)"*. Ch. 22.
 
 ---
 
@@ -4428,10 +4430,10 @@ his MOV 4/8 inside the Mist became 8/8 once he used it.
 
 **All 88 of her Clauses were Pressed or Observed on a live board** (#187, 2026-10-05). Twelve readings were
 ruled in September's design (`docs/superpowers/specs/2026-09-13-drake-design.md`); seven more in one
-grilling on 2026-10-05: *"QAR"* is the Golden Hind (1); a Crit from the ship's Attack is hers (2); Luck is one
+grilling on 2026-10-05, and an eighth after the press: *"QAR"* is the Golden Hind (1); a Crit from the ship's Attack is hers (2); Luck is one
 pool (3); an Attack is ranged at Range 2 or more, a world setting a GM may raise (4); the 50 Health toll is a
 1◈ period from the activation, the Turn of use not counted, replacing R6 (5); Golden Wild Hunt turns a
-quarter in the preview (6); and a scatter keeps #140's rule (7). The forced close is tested when the toll
+quarter in the preview (6); a scatter keeps #140's rule (7); and the ship's Attack meets Magic Resistance at the Noble Phantasm's A+ (8). The forced close is tested when the toll
 falls due, and the token decay stays at the Round's end.
 
 **Why she finds so much.** Almost every Clause of hers runs from a second level. The ship is a platform that
@@ -4450,8 +4452,8 @@ those had a reader that had only ever been asked from the ground.
 | 14921c7 | The aiming session's snapshot; the preview's content Base Attack; the hull ranged-only (§46.4-GU to GW) |
 | f015a78 | A platform's end card; Skill refusals in words (§46.4-GX, GY) |
 
-One finding stays open, and is a reading: what MAG Rank the ship's Attack carries for Magic Resistance
-(§46.4-GZ).
+The last reading, what MAG Rank the ship's Attack carries for Magic Resistance, was ruled after the press:
+the Noble Phantasm's A+ (§46.4-GZ).
 
 ### 46.19.2 What was staged
 

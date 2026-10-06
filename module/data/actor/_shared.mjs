@@ -429,6 +429,13 @@ export function normalAttackField() {
     // the schema had no field, so her swing hit one Unit (#99). Untyped for
     // the same reason `bands` is.
     shape: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+    // The Rank Magic Resistance meets this Attack at, for a Normal Attack that
+    // is not its attacker's own. The Golden Hind's sheet gives the ship no MAG
+    // Rank, so its BA(MAG) 200 swing met Magic Resistance at Drake's MAG E and
+    // any MR of E or better negated it; ruled 2026-10-05 (#187 reading 8): the
+    // Noble Phantasm's own Rank, A+. Unset, stage 11 falls back to the
+    // attacker's MAG as it always has.
+    attackRank: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
   });
 }
 

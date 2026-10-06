@@ -814,8 +814,12 @@ function stage11Resistance(s) {
     return s.end(11);
   }
 
-  // Rank mode. An unranked attack falls back to the attacker's MAG parameter.
-  const attackRank = s.ctx.attack?.rank ?? s.ctx.attacker?.parameters?.mag ?? null;
+  // Rank mode. An ability's own Rank first; then a Normal Attack's stated one
+  // (the Golden Hind's swing is its Noble Phantasm's A+, #187 reading 8); then
+  // the attacker's MAG parameter.
+  const attackRank = s.ctx.attack?.rank
+    ?? Rank.parseOrNull(s.ctx.attack?.attackRank ?? null)
+    ?? s.ctx.attacker?.parameters?.mag ?? null;
   const mrRank = mr.rank instanceof Rank ? mr.rank : Rank.parseOrNull(mr.rank);
   if (Rank.gte(mrRank, attackRank, false)) {
     s.contribute("magicResistance", -s.mag, `negated: MR ${mrRank} ≥ attack ${attackRank}`, "defender");
