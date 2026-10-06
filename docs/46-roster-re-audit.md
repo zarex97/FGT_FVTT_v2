@@ -4317,7 +4317,7 @@ Master boards it freely, where he had been left standing beside it on nothing an
 | 16 | The Quetzalcoatlus is 2x2 panels | Content (e506119), not printed on the sheet |
 
 **What was general** (§46.4-CQ to §46.4-EU, issues #113 to #175 except #168, which §46.4-CP records, and the
-splash riders, filed under #65). Of the 63 issues, **60 are closed**, each with the fix looked at on a board. Eighteen of them were pressed live on 2026-10-04, two of those from a Player client (#130, #144). The rest were ruled and built (#170, #174, #175) or duplicated (#164). **One is fixed in code and not yet pressed**: #157, which needs a field with an incoming `ApplicationChance` on the board, and the only one authored is Pale Rider's Doomsday Come. **Two wait for a ruling**: #132 and #134. By family:
+splash riders, filed under #65). Of the 63 issues, **61 are closed**, each with the fix looked at on a board. Eighteen of them were pressed live on 2026-10-04, two of those from a Player client (#130, #144). The rest were ruled and built (#170, #174, #175) or duplicated (#164). **One is fixed in code and not yet pressed**: #157, which needs a field with an incoming `ApplicationChance` on the board, and the only one authored is Pale Rider's Doomsday Come. **One waits for a ruling**: #134. #132 was ruled and built on 2026-10-06 (§46.4-HZ to IB). By family:
 
 - **Riding**, nine entries: CQ (#113, no interface path), CR (#114, the gates), CS (#115, the Master),
   CT (#116, the free toggle), CU (#117, Double Move by name), CV (#118, the stale landing), CW (#119, No Buff),
