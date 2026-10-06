@@ -193,10 +193,12 @@ describe("the Eyes reach a Civilian (#188 readings 15, 17)", () => {
   });
 });
 
-describe("the first Round forbids what counts as an Attack (#188 readings 16, 18)", () => {
-  it("refuses the Mark, a ride and an Attack in Round 1, and a Skill never", async () => {
+describe("the first Round forbids what counts as an Attack, but the Mark (#188 readings 16, 18)", () => {
+  it("refuses a ride and an Attack in Round 1, and a Skill or a Mark never", async () => {
     const { attackForbiddenThisRound, COUNTS_AS_ATTACK } = await import("../../module/rules/environment.mjs");
-    for (const a of ["mark", "ridingAttack", "attack", "np", "spell"]) expect(attackForbiddenThisRound(a, 1), a).toBe(true);
+    for (const a of ["ridingAttack", "attack", "np", "spell"]) expect(attackForbiddenThisRound(a, 1), a).toBe(true);
+    expect(attackForbiddenThisRound("mark", 1)).toBe(false);
+    expect(readFileSync("module/engine/marks.mjs", "utf8")).not.toMatch(/attackForbiddenThisRound/);
     expect(attackForbiddenThisRound("skill", 1)).toBe(false);
     expect(attackForbiddenThisRound("move", 1)).toBe(false);
     expect(attackForbiddenThisRound("mark", 2)).toBe(false);

@@ -23,7 +23,6 @@ import { affordable, spend } from "./budget.mjs";
 import { openFieldFromMarks } from "./fields.mjs";
 import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
-import { attackForbiddenThisRound } from "../rules/environment.mjs";
 
 /** The Structure content every Bloodmark is made from. */
 const MARK_CONTENT_ID = "bloodmark";
@@ -77,12 +76,7 @@ export async function placeMark({ unitId, abilityId }) {
   // attack pool, so this is the same refusal attacking twice would get. NOT a
   // Home Base check: *"Bloodmarks can be placed on any panel, even within enemy
   // Home Bases"* is an explicit exemption from Ch. 05's restriction.
-  // ...and so the first Round forbids it as it forbids an Attack (#188).
-  const combat = game.combats.active;
-  if (combat?.started
-    && attackForbiddenThisRound("mark", combat.round ?? 1, game.settings.get("fgt", "noAttackRound"))) {
-    return { ok: false, reason: "firstRound" };
-  }
+  // The first Round does NOT forbid it: `FIRST_ROUND_EXEMPT` (#188 reading 16).
   const verdict = affordable(game.combats.active, self, "mark");
   if (!verdict.ok) return { ok: false, reason: verdict.reason ?? "cannotAct" };
 

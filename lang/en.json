@@ -537,7 +537,6 @@
   "FGT.Editor.Save": "Save",
   "FGT.Editor.Effect": "Effect",
   "FGT.Action.Refusal.unknownAction": "That action does not exist.",
-  "FGT.Action.Refusal.firstRound": "No attacks are permitted during the first Round, and a Mark counts as her Attack.",
   "FGT.Action.Refusal.boardFailed": "The boarding roll failed.",
   "FGT.Action.Refusal.notYourSeat": "Only its owner and her Master can ride this platform.",
   "FGT.Action.Refusal.noDestination": "Pick a destination first.",

@@ -63,7 +63,7 @@ A linked pair counts as one unit for move slots, each member spending 0.5 halves
 
 ### The first Round: no Attack of any kind
 
-*"During the first Round, neither Player/Faction is allowed to Attack."* The ban reaches every action that **counts as an Attack**, which is every action billed to an Attack pool: `rules/environment.mjs#COUNTS_AS_ATTACK` (`attack`, `np`, `spell`, `ridingAttack`, `mark`), tested equal to what `poolFor` bills there so the two cannot drift. `attackForbiddenThisRound` is asked by the attack preflight and by `engine/marks.mjs#placeMark`. Before this only a declared Attack asked, so Medusa's Mark, which *"counts as her Attack for the Turn"*, was placed on Turn 1 (ruled, #188 readings 16 and 18). A Skill draws a Move slot and is never refused.
+*"During the first Round, neither Player/Faction is allowed to Attack."* The ban reaches every action that **counts as an Attack**, which is every action billed to an Attack pool: `rules/environment.mjs#COUNTS_AS_ATTACK` (`attack`, `np`, `spell`, `ridingAttack`, `mark`), tested equal to what `poolFor` bills there so the two cannot drift. `attackForbiddenThisRound` is asked by the attack preflight. **The Mark is exempt** (`FIRST_ROUND_EXEMPT`): it *"counts as her Attack for the Turn"* and spends that Attack, but it hurts nobody, and Medusa may place one in Round 1 (ruled 2026-10-06, #188 reading 16, reversing the first ruling, which refused it in `engine/marks.mjs#placeMark`). A Skill draws a Move slot and is never refused.
 
 ### Prevention: effects that stop action
 
