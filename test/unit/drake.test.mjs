@@ -883,3 +883,44 @@ describe("raising the Golden Hind costs no ordinary NP cost (#187, spec R11)", (
     expect(src).toMatch(/\.\.\.charged\.flatMap\(\(cost\) => costIntents\(cost, self\)\),/);
   });
 });
+
+describe("abilities aimed from the Golden Hind's deck (#187)", () => {
+  // Live: Beyond the Uncharted from the deck took its fallback (within 2 of
+  // Drake) because no caller passed options to a conditional anchor, and its
+  // platform branch found no ship because it matched the actor id only.
+  const ship = {
+    id: "hindActor", contentId: "platform-golden-hind", kind: "platform", ownerId: "drake", faction: "f1", factionId: "f1",
+    panel: { i: 10, j: 10 }, panels: [], facing: "n", level: 20,
+  };
+  for (let i = 10; i <= 12; i += 1) for (let j = 10; j <= 13; j += 1) ship.panels.push({ i, j });
+  const drake = { id: "drake", kind: "servant", factionId: "f1", faction: "f1", panel: { i: 12, j: 10, k: 20 }, level: 20, platformId: "hindActor", facing: "n" };
+  const board = { units: [ship, drake], bounds: { iMin: 0, jMin: 0, iMax: 24, jMax: 24 }, alliances: {} };
+  const ext = (ps) => {
+    const is = ps.map((p) => p.i); const js = ps.map((p) => p.j);
+    return [Math.min(...is), Math.max(...is), Math.min(...js), Math.max(...js)];
+  };
+
+  it("a conditional anchor asks the caster's own options when none are passed", () => {
+    const src = readFileSync("module/rules/targeting/resolve.mjs", "utf8");
+    expect(src).toMatch(/const opts = placement\.options \?\? rollOptionsFor\(\{ attacker: caster \}\);/);
+  });
+
+  it("the broadside starts at the bow, wherever Drake stands", async () => {
+    const { resolveTargets } = await import("../../module/rules/targeting/resolve.mjs");
+    const spec = {
+      anchor: { kind: "platform", platformId: "platform-golden-hind" },
+      shape: { kind: "orientedRect", short: 3, long: 7, turnable: true },
+      selection: { relations: ["enemy"], chooser: "all" },
+    };
+    // Drake at the stern (12,10); bow is row 10, columns 10-13, middle 11.
+    expect(ext(resolveTargets(spec, drake, board, {}).panels)).toEqual([3, 9, 10, 12]);
+    expect(ext(resolveTargets(spec, drake, board, { transverse: true }).panels)).toEqual([7, 9, 8, 14]);
+  });
+
+  it("the ship is immune to buffs and debuffs", () => {
+    const hind = src("platforms", "golden-hind.yml");
+    expect(hind.rules).toEqual(expect.arrayContaining([
+      { key: "Immunity", scope: "debuffs" }, { key: "Immunity", scope: "buffs" },
+    ]));
+  });
+});

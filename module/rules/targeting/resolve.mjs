@@ -14,6 +14,7 @@
 import * as geo from "../../domain/geometry.mjs";
 import { expand, DELTA } from "./shapes.mjs";
 import { test as testPredicate } from "../predicate.mjs";
+import { rollOptionsFor } from "../options.mjs";
 import { compelledTargetsOf } from "../compulsion.mjs";
 import { isolationBlocks, panelsOf } from "../bounded-fields.mjs";
 import { relationOf } from "../relations.mjs";
@@ -104,7 +105,12 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   //     Branches are tested in order and the first match wins, which is the
   //     same precedence `damage.branches` uses.
   if (spec.anchor?.kind === "conditional") {
-    const opts = placement.options ?? new Set();
+    // The caster's own options when the caller supplied none. No caller ever
+    // did, so every conditional anchor took its fallback: Beyond the
+    // Uncharted from the Golden Hind's deck buffed everyone within 2 of Drake,
+    // the ship and a grounded Master included, and missed Karna aboard (#187).
+    // Nemo's two Storm Border Skills share the shape.
+    const opts = placement.options ?? rollOptionsFor({ attacker: caster });
     const branch = (spec.anchor.branches ?? [])
       .find((b) => testPredicate(b.predicate, { options: opts, refs: placement.refs ?? {} }))
       ?? spec.anchor.otherwise;
@@ -825,17 +831,29 @@ function resolveAnchor(spec, caster, board, placement, errors) {
     }
 
     case "platform": {
-      const platform = (board.units ?? []).find((u) => u.id === (placement.platformId ?? spec.platformId));
+      // By id, or by the CONTENT id an ability authors (`platform-golden-hind`):
+      // the caster's own one first, since two Drakes would each raise a ship.
+      // The anchor matched the actor id only, so the ship the content names was
+      // never found and its zone was empty (#187).
+      const wanted = placement.platformId ?? spec.platformId;
+      const platforms = (board.units ?? []).filter((u) => u.kind === "platform"
+        && (u.id === wanted || u.contentId === wanted));
+      const platform = platforms.find((u) => u.ownerId === caster?.id) ?? platforms[0] ?? null;
       // *"in the direction the Golden Hind is facing (i.e. where the ship's
       // bow is facing)"*. `PlatformData` spreads `unitCommon()`, so a platform
       // has carried `facing` all along and `snapshot.mjs` projects it --
       // nothing had ever asked the anchor for it, so the bow pointed one way
       // and the broadside went another.
+      const facing = platform?.facing ?? caster.facing ?? "n";
       return {
         ...base,
+        // FROM THE BOW (#187): a shape projected forward starts at the middle
+        // of the ship's front edge, not at the panel its owner stands on.
+        // From Drake at the stern the broadside began inside her own ship.
+        ...(platform ? { casterPanel: bowOf(platform, facing) } : {}),
         panel: platform?.panel ?? casterPanel,
         panels: platform?.panels ?? [],
-        facing: platform?.facing ?? caster.facing ?? "n",
+        facing,
       };
     }
 
@@ -1063,6 +1081,26 @@ function candidatePlacements(spec, caster, board, max) {
     default:
       return turnable(spec) ? [{}, { transverse: true }] : [{}];
   }
+}
+
+/**
+ * The middle panel of a platform's front edge, the edge its facing points out
+ * of. An even edge rounds toward its lower index.
+ *
+ * @param {object} platform
+ * @param {string} facing
+ * @returns {GridOffset}
+ */
+function bowOf(platform, facing) {
+  const panels = platform.panels?.length ? platform.panels : [platform.panel];
+  const is = panels.map((p) => p.i); const js = panels.map((p) => p.j);
+  const [iMin, iMax, jMin, jMax] = [Math.min(...is), Math.max(...is), Math.min(...js), Math.max(...js)];
+  const midI = iMin + Math.floor((iMax - iMin) / 2);
+  const midJ = jMin + Math.floor((jMax - jMin) / 2);
+  // A lookup rather than a `switch`: the vocabulary test reads every `case`
+  // in this file as an anchor kind.
+  const edge = { s: { i: iMax, j: midJ }, e: { i: midI, j: jMax }, w: { i: midI, j: jMin } };
+  return edge[facing] ?? { i: iMin, j: midJ };
 }
 
 /**
