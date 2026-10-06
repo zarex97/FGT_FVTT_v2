@@ -33,7 +33,10 @@ phases:
   - kind: cooldown
     target: reuse
     changes:
-      - { scope: np, ticks: "⅔◈", direction: down }
+      # "Reduce THEIR NP Cooldown": each ally's own. Without `unit: target` the
+      # change reached the caster's, once per ally: live, Mesektet 10 → 4 and
+      # Medea's Rule Breaker untouched (#189).
+      - { unit: target, scope: np, ticks: "⅔◈", direction: down }
   - kind: applyEffects
     target: reuse
     effects:

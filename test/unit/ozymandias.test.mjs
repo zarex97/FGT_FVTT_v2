@@ -96,3 +96,22 @@ describe("doubled against Dark, inside the bracket (readings 2, 3, 18)", () => {
     });
   }, 120_000);
 });
+
+describe("Protection from Ra reaches each ally's own Noble Phantasm (#189)", () => {
+  it("cuts the TARGET's NP cooldown, not the caster's once per ally", async () => {
+    globalThis.game ??= {};
+    const settings = game.settings;
+    game.settings = { get: () => 3 };
+    try {
+      const { cooldownChanges } = await import("../../module/engine/skill-use.mjs");
+      const phase = src("abilities", "ozymandias-protection-from-ra.yml").phases.find((p) => p.kind === "cooldown");
+      const item = (id) => ({ id, type: "noblePhantasm", system: { isNP: true, contentId: id, cooldown: { remaining: 10 } } });
+      const caster = { id: "oz", items: [item("mesektet")] };
+      const medea = { id: "medea", items: [item("rule-breaker")] };
+      const out = cooldownChanges(phase, caster, null, null, medea);
+      expect(out).toEqual([{ t: "cooldown", unitId: "medea", abilityId: "rule-breaker", ticks: 2, mode: "reduce" }]);
+    } finally {
+      game.settings = settings;
+    }
+  });
+});
