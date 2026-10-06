@@ -64,6 +64,7 @@ export const INTERIOR_EXEMPT = {
   relations: () => "rules/bounded-fields.mjs#interiorModifiers filters on the unit's relation to the field",
   kinds: () => "rules/bounded-fields.mjs#interiorModifiers filters on the unit's kind",
   contentIds: () => "rules/bounded-fields.mjs#interiorModifiers filters on the unit's content id (#189 reading 5)",
+  sparesCategorizedNP: () => "rules/budget.mjs#preventedBy spares an ability only categorized as an NP (#189)",
   exemptIf: () => "rules/bounded-fields.mjs#isExempt",
   // A MOV or Range rule inside a field is applied to the unit standing in it by
   // `applyInteriorStat`, which honours its floor, ceiling and factor.

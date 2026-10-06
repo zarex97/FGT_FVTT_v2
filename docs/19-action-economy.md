@@ -67,6 +67,8 @@ A linked pair counts as one unit for move slots, each member spending 0.5 halves
 
 ### Prevention: effects that stop action
 
+**A standing suppression may spare what is only Categorized as a Noble Phantasm.** God's Curse (Ramesseum Tentyris) suppresses `npSeal` for every Servant inside, and *"does not affect Attacks/Skills/Spells that are only Categorized as Noble Phantasms"*: its `Suppress` element says `sparesCategorizedNP`, and `preventedBy` takes `categorizedOnly` from `canUseAbility`. EMIYA's Overedge was refused inside the Complex (#189). An ordinary NP Seal makes no such exception.
+
 Held effects in PREVENT_ALL block every action (`module/rules/budget.mjs:34-36`): stun, stop, freeze, petrify, sleep, nightmare, coma, webbed, crystalfreeze. The PREVENTS table lists action kinds each remaining effect blocks — immobilize prevents move; disable prevents everything but move; seal prevents attack/skill/np; silence prevents spell; skillSeal prevents skill and spell; npSeal prevents np only (`module/rules/budget.mjs:39-52`). Suppressions (like NP Seal from Innocent World) are checked alongside held effects (`module/rules/budget.mjs:204-207`).
 
 `preventedBy` is consulted first, before budget is spent, because a prevented action costs nothing (`module/rules/budget.mjs:221-223`).
