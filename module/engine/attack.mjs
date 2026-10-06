@@ -874,6 +874,17 @@ async function declareProcesses({
   // predicate -- and Avenger's counter bonus is the first clause to ask.
   // Carried on the state too, which is where `mayCounterAgain` reads it.
   const counterSpec = isCounter ? { ...attackSpec, isCounter: true } : attackSpec;
+  // A field this use spends ends FIRST (`endExpendedFields`): before any
+  // Process is declared, so none resolves under it, and a Unit it took with it
+  // is no longer a defender.
+  if (ability && declaresUse && !isCounter) {
+    const { endExpendedFields } = await import("./skill-use.mjs");
+    if (await endExpendedFields(ability)) {
+      board = currentBoard();
+      const standing = new Set((board.units ?? []).map((u) => u.id));
+      targetIds = targetIds.filter((id) => standing.has(id));
+    }
+  }
   // Who this declaration caught at a platform's area tier (*"Quetz receives 50%
   // Total Damage"*), recorded per defender the way `bands` is: the resolver is
   // what knew the occupant was caught by an AREA, which `state.isAoE` cannot say

@@ -74,9 +74,11 @@ export const REFUSALS = Object.freeze({
 export function presentRefusal(reason, detail = {}) {
   const spec = REFUSALS[reason];
   if (!spec) {
+    // A worded reason ends its own sentence, and the template ends it again:
+    // "Range is 5.." on every out-of-range anchor (#189).
     return {
       reason, kind: "hard", i18n: "FGT.Legality.unknown",
-      params: { reason }, command: null, unrecognised: true,
+      params: { reason: String(reason).replace(/\.+$/, "") }, command: null, unrecognised: true,
     };
   }
 

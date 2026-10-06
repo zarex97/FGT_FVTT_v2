@@ -43,6 +43,8 @@ The algorithm is eleven steps plus two upfront checks. Each step narrows the sur
 
 **`fieldEdge` measures from the nearest panel, a straight one before a diagonal on a tie** (#189). The Dendera Bulb reaches *"4 panels away from the border (if diagonal, 3)"*; a Unit four panels straight out from an edge is also four from the corner panel, and the first of the two in the list decided, so a straight shot was refused as a diagonal one.
 
+**A worded refusal ends once** (#189). A resolver's own reason is a sentence, *"Anchor panel is 6 panels away; Range is 5."*, and `FGT.Legality.unknown` (*"Refused: {reason}."*) ends it again: every far anchor read *"Range is 5.."*. `rules/legality.mjs#presentRefusal` strips the trailing stop from the parameter and keeps the reason itself whole.
+
 **5. Kind filter** — Exclude platforms and structures unless explicitly named. Structures that declare `destroyableBy` pass to step 8b-ii whoever the caster is, which refuses any other kind with *"destructible only by master"* (it said only *"a structure"*, #188); they were included if the caster matches (`module/rules/targeting/resolve.mjs:249-270`). A Bloodmark whose Fort stands is refused at step 8b-ii, *"a corner of an active field"*: once active, only Medusa's defeat ends the Fort (#188 reading 14).
 
 **6. Attribute filter** — Run the ability's target predicate (e.g., "male", "has Divinity"). Then **6b parameter comparison**: aggregate counts like *"3+ Parameters one Rank lower than the caster"* that no predicate can express (`module/rules/targeting/resolve.mjs:272-295`).
