@@ -200,3 +200,44 @@ describe("a rolled modifier's die is on the card (#190)", () => {
     expect(out[0]).toMatchObject({ formula: "1d4", total: 3, purpose: gow });
   });
 });
+
+describe("a Skill suspended by a Command Spell stops contributing (#190)", () => {
+  it("drops Hatred's compulsion until the span has passed", async () => {
+    const { contributionsOf } = await import("../../module/rules/snapshot.mjs");
+    const hatred = {
+      id: "h", name: "Hatred of Achilles", type: "ability",
+      system: { suspendedUntil: 10, passiveRules: [{ key: "Compulsion", id: "hatred", within: 4, forcesTarget: true }] },
+    };
+    const actor = { id: "pen", type: "servant", system: {}, items: [hatred], effects: [] };
+    expect(contributionsOf(actor, { tick: 9 }).compulsionRules ?? contributionsOf(actor, { tick: 9 }).compulsions).toEqual([]);
+    const later = contributionsOf(actor, { tick: 10 });
+    expect((later.compulsionRules ?? later.compulsions).map((c) => c.id)).toEqual(["hatred"]);
+  });
+});
+
+describe("a Master spends a Command Spell in its own Turn (#190)", () => {
+  it("offers the action to a Master holding one, and to nobody else", async () => {
+    const { UNIT_ACTIONS } = await import("../../module/rules/actions.mjs");
+    const cs = UNIT_ACTIONS.find((a) => a.id === "commandSpell");
+    expect(cs.available({ kind: "master", commandSpells: 2 })).toEqual({});
+    expect(cs.available({ kind: "master", commandSpells: 0 })).toBeNull();
+    expect(cs.available({ kind: "master", commandSpells: 2, defeated: true })).toBeNull();
+    expect(cs.available({ kind: "servant", commandSpells: 2 })).toBeNull();
+  });
+
+  it("says so on a card when it interrupts nothing", async () => {
+    const { readFileSync } = await import("node:fs");
+    const s = readFileSync("module/engine/command-spells.mjs", "utf8");
+    expect(s).toMatch(/else await postCommandSpellCard\(/);
+  });
+});
+
+describe("a suspension lapses on its tick (#190)", () => {
+  it("reconciles the forced modes after the tick has moved", async () => {
+    const { readFileSync } = await import("node:fs");
+    const s = readFileSync("module/engine/scheduler-hooks.mjs", "utf8");
+    const at = s.indexOf('await combat.update({ "system.globalTurn": nextTick });');
+    expect(at).toBeGreaterThan(0);
+    expect(s.indexOf("await reconcileForcedModes();", at)).toBeGreaterThan(at);
+  });
+});
