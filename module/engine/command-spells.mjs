@@ -95,6 +95,9 @@ export async function spendCommandSpell({ masterId, commandId, window, messageId
   // Interrupts land on the Process, not on the world. `effectIntents` above
   // already skipped them, so nothing is applied twice.
   if (messageId) await interruptProcess(messageId, command, effects, masterId);
+  // ...and one spent in a Master's own Turn says so on a card. An interrupt
+  // shows on the attack card it interrupted; this had nowhere at all (#190).
+  else await postCommandSpellCard({ master: ctx.master, servant: ctx.servant, command, cost, abilityId: context.abilityId ?? null });
 
   return { ok: true, cost };
 }
@@ -102,6 +105,30 @@ export async function spendCommandSpell({ masterId, commandId, window, messageId
 /* -------------------------------------------------------------------------- */
 /*  Internals                                                                 */
 /* -------------------------------------------------------------------------- */
+
+/**
+ * The card a Command Spell spent outside any Process posts.
+ *
+ * @param {object} args
+ * @param {object} args.master the Master's snapshot
+ * @param {object|null} args.servant the contracted Servant's snapshot
+ * @param {object} args.command
+ * @param {number} args.cost
+ * @param {string|null} args.abilityId the Skill it reached, when it reaches one
+ * @returns {Promise<void>}
+ */
+async function postCommandSpellCard({ master, servant, command, cost, abilityId }) {
+  const escape = foundry.utils.escapeHTML;
+  const skill = abilityId ? game.actors.get(servant?.id)?.items.get(abilityId)?.name ?? null : null;
+  const text = game.i18n.format(skill ? "FGT.CommandSpell.SpentOn" : "FGT.CommandSpell.Spent", {
+    master: escape(master?.name ?? ""), cost, name: escape(command.name),
+    servant: escape(servant?.name ?? ""), skill: escape(skill ?? ""),
+  });
+  await ChatMessage.create({
+    content: `<div class="fgt-card fgt-card--command-spell"><p>${text}</p></div>`,
+    flags: { fgt: { commandSpell: command.id } },
+  });
+}
 
 /**
  * Build the pure context the rules layer wants from the live world.

@@ -135,6 +135,19 @@ export const UNIT_ACTIONS = Object.freeze([
     },
   },
   {
+    // A Command Spell spent in its Master's OWN Turn: Suspend Skill, the
+    // cooldown commands. Every one of them was spendable only from an attack
+    // card's interrupt, so a Master had no way to buy *"Hatred of Achilles can
+    // be disabled for 1◈ Turns by spending one Command Spell"* (#190).
+    id: "commandSpell",
+    kind: null,
+    icon: "fa-solid fa-hand-sparkles",
+    label: "FGT.Action.CommandSpell",
+    mode: "immediate",
+    available: (unit) => (acts(unit) && unit.kind === "master" && !unit.defeated && (unit.commandSpells ?? 0) > 0
+      ? {} : null),
+  },
+  {
     id: "carryMaster",
     // Bills NOTHING. *"Counts as only Moving one Unit"* -- the Servant's own
     // Move is the one that is paid for, and this button only decides whether

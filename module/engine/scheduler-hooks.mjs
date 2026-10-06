@@ -225,6 +225,13 @@ async function onTurnChange(combat, prior, current) {
   // "this turn" is gone before the next unit acts.
   const nextTick = tick + 1;
   await combat.update({ "system.globalTurn": nextTick });
+  // A Command Spell's suspension lapses ON a tick, and the reconcile this Turn
+  // change raised ran before the tick moved: Mad Enhancement bought off for 1◈
+  // beside a Greek Male stayed off until somebody happened to move (#190).
+  {
+    const { reconcileForcedModes } = await import("./modes.mjs");
+    await reconcileForcedModes();
+  }
 
   // The new Round: roll its order, then begin it with ITS number (#173). The
   // roll re-sorts `turns` (`FGTCombat#_onUpdate`, top of the Round), so who

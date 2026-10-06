@@ -52,6 +52,47 @@ export const ACTION_HANDLERS = Object.freeze({
 
   gather: async ({ actor }) => gather({ actorId: actor.id }),
 
+  // A Command Spell in the Master's own Turn (#190). Two choices, in the order
+  // the command needs them: WHICH command, then, for one that reaches a single
+  // Skill, WHICH Skill of the contracted Servant. The rules decide what is
+  // offerable (`offerCommands`, window `ownTurn`); the GM pays and applies.
+  commandSpell: async ({ actor }) => {
+    const { offerCommands } = await import("./command-spells.mjs");
+    const offered = offerCommands({ masterId: actor.id, window: "ownTurn" });
+    if (offered.length === 0) return { ok: false, reason: "noCommand" };
+    const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
+    const [commandId] = (await ChoiceDialog.pick({
+      title: game.i18n.localize("FGT.Action.CommandSpell"),
+      hint: game.i18n.localize("FGT.Action.CommandSpellHint"),
+      count: 1,
+      min: 0,
+      options: offered.map((c) => ({ id: c.id, name: c.name, detail: c.description ?? "" })),
+    })) ?? [];
+    if (!commandId) return { ok: false, reason: "cancelled" };
+
+    const command = offered.find((c) => c.id === commandId);
+    const context = {};
+    if ((command?.effect ?? []).some((e) => e.scope === "oneSkill")) {
+      const servant = game.actors.find((a) => a.type === "servant" && a.system?.masterId === actor.id);
+      const skills = [...(servant?.items ?? [])].filter((i) => i.type === "ability" && !i.system?.isNP);
+      if (skills.length === 0) return { ok: false, reason: "noSkill" };
+      const [abilityId] = (await ChoiceDialog.pick({
+        title: command.name,
+        hint: game.i18n.format("FGT.Action.CommandSpellSkill", { name: servant.name }),
+        count: 1,
+        min: 0,
+        options: skills.map((i) => ({ id: i.id, name: i.name })),
+      })) ?? [];
+      if (!abilityId) return { ok: false, reason: "cancelled" };
+      context.abilityId = abilityId;
+    }
+
+    const { FGTSocket } = await import("../net/socket.mjs");
+    return FGTSocket.request("spendCommandSpell", {
+      masterId: actor.id, commandId, window: "ownTurn", context,
+    });
+  },
+
   // Riding's Passenger Seat, as a switch rather than a prompt. Flips whether
   // this Servant takes her Master along on every Move she makes; the carry
   // itself is `engine/movement-hooks.mjs#carryMaster`, on the `moveToken` hook.

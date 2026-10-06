@@ -1613,6 +1613,13 @@ export function contributionsOf(actor, { terrain = [], tick = null } = {}) {
     // people. The war setup's unselected NP choice is the same word, and *"is
     // unusable"* does not leave its passives running either.
     .filter((item) => !item.system?.expended)
+    // ...nor a Skill SUSPENDED by a Command Spell, until its span has passed.
+    // `suspendedUntil` was read only for a Mode, which it also switches off; a
+    // passive bought off the same way kept every rule running -- Hatred of
+    // Achilles *"can be disabled for 1◈ Turns by spending one Command Spell"*
+    // and its compulsion held on regardless (#190).
+    .filter((item) => !(typeof item.system?.suspendedUntil === "number" && typeof tick === "number"
+      && tick < item.system.suspendedUntil))
     .map((item) => abilityRecordOf(item));
 
   // Rule elements authored directly on the unit -- a summon with no separate
