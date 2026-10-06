@@ -31,6 +31,16 @@ import { heldOn } from "./modes.mjs";
 import { categoriesOf } from "./items.mjs";
 
 /**
+ * A hearer's own facts, and nothing about an attack it was not asked about.
+ *
+ * @param {object} unit
+ * @returns {string[]}
+ */
+export function selfOptionsOf(unit) {
+  return [...rollOptionsFor({ attacker: unit, defender: null })].filter((o) => o.startsWith("self:"));
+}
+
+/**
  * Every option describing this attacker, this defender and this attack.
  *
  * @param {object} args

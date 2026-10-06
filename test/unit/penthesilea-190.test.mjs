@@ -168,3 +168,14 @@ describe("the Turn end says what it did to Health (#190)", () => {
     expect(out[0]).toMatchObject({ unitId: "pen", stat: "health.value", source: "Mad Enhancement" });
   });
 });
+
+describe("a Normal-Attack-only rider is not filed on a Noble Phantasm (#190)", () => {
+  it("takes only the hearer's self: facts into the filing test", async () => {
+    const { selfOptionsOf } = await import("../../module/rules/options.mjs");
+    const opts = selfOptionsOf({ id: "karna", kind: "servant", effects: ["vasaviActivated"] });
+    expect(opts.some((o) => o.startsWith("attack:"))).toBe(false);
+    expect(opts).toContain("self:effect:vasaviActivated");
+    const { readFileSync } = await import("node:fs");
+    expect(readFileSync("module/engine/attack.mjs", "utf8")).toMatch(/options: new Set\(\[\.\.\.options, \.\.\.selfOptionsOf\(hearer\)\]\)/);
+  });
+});
