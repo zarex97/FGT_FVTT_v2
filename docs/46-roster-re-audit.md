@@ -4554,7 +4554,7 @@ reported less than it did.
 | e2592e8 | Only her defeat ends the Fort; its corners cannot be targeted |
 | 559c827 | Structures under attack; a Skill card's check and cooldown; worded refusals (§46.4-HA to HG) |
 | 4467692 | A field's card lists what it pays; a contact pass posts one (§46.4-HH, HI) |
-| (this) | The Eyes reach Civilians; the first Round forbids the Mark (§46.4-HJ, HK) |
+| 93e5a5d | The Eyes reach Civilians; the first Round forbids the Mark (§46.4-HJ, HK) |
 
 Two more readings were ruled on 2026-10-06 and built: the Eyes reach Civilians, who always fail their check
 (§46.4-HJ); and the first Round forbids every action that counts as an Attack, the Mark among them (§46.4-HK).
