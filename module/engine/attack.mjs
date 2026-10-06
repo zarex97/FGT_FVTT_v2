@@ -5127,6 +5127,10 @@ export async function runCheckPhase(phase, ability, state, defender, depth = 0) 
   // against that stat -- the same `resolveCheck`/`checkPlan` pair Cover
   // (Ch. 32 rule 4) resolves an Agility Check with, and for the same reason:
   // going through `evade()` would let an Evade-specific bonus help.
+  //
+  // And `plan.autoSucceed` is never read, deliberately: Dodge and `AutoSucceed`
+  // are an Evade's, and a check a Skill demands is rolled. Ruled for Medusa's
+  // Mystic Eyes (#188 reading 12): neither passes its Agility Check.
   const outcome = kind === "luck"
     ? luckCheck({
       roll: roll.total,
@@ -5982,6 +5986,16 @@ async function offerAttackerWindow(state, window, message) {
   // otherwise offer the same cooldown twice for one attack.
   if (state.windowAbilities !== undefined) return state;
 
+  // ...and once per ATTACK. A fan-out is one Combat Phase and many Processes,
+  // so a Riding Attack through three Units reached this three times, and
+  // Monstrous Strength, billed on the first, was gone for the other two: one
+  // hit of the ride got +80%. *"STR Damage dealt by THAT ATTACK is increased"*,
+  // and a ride is one Attack (#188 reading 13). The first Process to get here
+  // asks and records the answer, a refusal included, on its message; its
+  // siblings take the same answer without asking or paying again.
+  const decided = groupWindowPick(state, window);
+  if (decided) return { ...state, windowAbilities: decided };
+
   const actor = game.actors.get(state.attackerId);
   if (!actor) return { ...state, windowAbilities: [] };
 
@@ -6009,7 +6023,10 @@ async function offerAttackerWindow(state, window, message) {
   });
 
   const chosen = (picked ?? []).filter((id) => offers.some((a) => a.id === id));
-  if (chosen.length === 0) return { ...state, windowAbilities: [] };
+  if (chosen.length === 0) {
+    await recordWindowPick(message, window, []);
+    return { ...state, windowAbilities: [] };
+  }
 
   // Paid for at the moment it is taken. `cooldownFor` is the same planner both
   // use paths run through, so a window use and a sheet click cannot disagree
@@ -6074,8 +6091,37 @@ async function offerAttackerWindow(state, window, message) {
     speaker: publicSpeakerFor(actor),
   });
 
-  void message;
+  await recordWindowPick(message, window, carried);
   return { ...state, windowAbilities: carried };
+}
+
+/**
+ * The answer a sibling Process already gave this window, if any.
+ *
+ * @param {object} state
+ * @param {string} window
+ * @returns {string[]|null} the carried ability ids, `[]` for a refusal
+ */
+function groupWindowPick(state, window) {
+  for (const m of siblingMessages(state)) {
+    const pick = m.getFlag("fgt", "windowPicks")?.[window];
+    if (Array.isArray(pick)) return pick;
+  }
+  return null;
+}
+
+/**
+ * Record this window's answer on the Process's message, for its siblings.
+ *
+ * @param {object|null} message
+ * @param {string} window
+ * @param {string[]} ids
+ * @returns {Promise<void>}
+ */
+async function recordWindowPick(message, window, ids) {
+  if (!message?.setFlag) return;
+  const picks = { ...(message.getFlag("fgt", "windowPicks") ?? {}), [window]: ids };
+  await message.setFlag("fgt", "windowPicks", picks);
 }
 
 /**

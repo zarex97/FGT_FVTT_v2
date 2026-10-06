@@ -20,9 +20,9 @@
 /**
  * Split a drained pool between beneficiaries, capped at the pool.
  *
- * *"either or both"* leaves the division to the table and states no procedure,
- * so an even split is the neutral reading — and the remainder goes to the first
- * named, who is the field's owner. Nothing is wasted and nothing is invented.
+ * *"either or both"* is the owner's player's choice (#188 reading 2), made by
+ * {@link splitPool}. This is the answer when nobody chooses: an even split, the
+ * remainder to the first named, who is the field's owner.
  *
  * @param {number} pool total Health drained this tick
  * @param {Array<{unitId: string}>} beneficiaries in priority order
@@ -39,4 +39,32 @@ export function distributePool(pool, beneficiaries) {
   return who
     .map((b, n) => ({ unitId: b.unitId, amount: share + (n === 0 ? remainder : 0) }))
     .filter((h) => h.amount > 0);
+}
+
+/**
+ * The pool divided as the owner's player chose.
+ *
+ * > *"The total Health lost from all affected victims is used to heal either or
+ * > both Medusa and her Master (total amount healed between the two cannot
+ * > exceed the amount of Health drained from victims)."*
+ *
+ * Ruled (#188 reading 2): her player divides it, each time a drain falls due.
+ * The first beneficiary gets the amount chosen, clamped to the pool; the
+ * second gets the rest. No answer, or anything but two beneficiaries, is
+ * {@link distributePool}'s even split.
+ *
+ * @param {number} pool
+ * @param {Array<{unitId: string}>} beneficiaries
+ * @param {number|null} first the Health chosen for the first beneficiary
+ * @returns {Array<{unitId: string, amount: number}>} entries with 0 omitted
+ */
+export function splitPool(pool, beneficiaries, first) {
+  const total = Math.max(0, Math.floor(pool ?? 0));
+  const who = (beneficiaries ?? []).filter((b) => b?.unitId);
+  if (who.length !== 2 || !Number.isFinite(first)) return distributePool(pool, beneficiaries);
+  const mine = Math.min(total, Math.max(0, Math.floor(first)));
+  return [
+    { unitId: who[0].unitId, amount: mine },
+    { unitId: who[1].unitId, amount: total - mine },
+  ].filter((h) => h.amount > 0);
 }

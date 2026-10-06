@@ -28,7 +28,7 @@ import {
   movePlatform, actionSourceFor, withinFootprint, canUnboard, boardingLanding, turnPartnersOf,
 } from "../rules/platforms.mjs";
 import {
-  contains as fieldContains, revertingActionFor, leavePatch, reentryPatch,
+  contains as fieldContains, revertingActionFor, leavePatch, reentryPatch, haltIndex,
 } from "../rules/bounded-fields.mjs";
 import { repaintFollowing, dropLeftTerrainEffects } from "./terrain.mjs";
 import { displaceToken } from "./io.mjs";
@@ -168,6 +168,23 @@ function onPreMove(document, movement, operation) {
   // rule means in practice.
   if (!affordable.ok && !unit.turnState?.moved) {
     ui.notifications.warn(`FGT | ${affordable.reason}`);
+    return false;
+  }
+
+  // A field that takes the mover on its first panel inside stops the move
+  // there (#188 reading 9): a Civilian crossing Blood Fort Andromeda dies on
+  // entering it rather than walking through. This move is refused and the
+  // same one, cut at that panel, is made instead; it passes this hook again,
+  // ends inside, and the contact pass in `onMove` does the rest.
+  const halt = haltIndex(path, unit, board);
+  if (halt !== null && halt < path.length - 1) {
+    const waypoints = (movement?.pending?.waypoints?.length
+      ? movement.pending.waypoints
+      : (movement?.passed?.waypoints ?? [])).slice(0, halt + 1);
+    setTimeout(() => {
+      document.move(waypoints.map((w) => ({ x: w.x, y: w.y })))
+        .catch((err) => console.error("FGT | A move cut at a field's edge:", err));
+    }, 0);
     return false;
   }
   return true;

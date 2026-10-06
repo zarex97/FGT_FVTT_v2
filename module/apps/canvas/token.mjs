@@ -28,6 +28,7 @@
 import { hiddenFromViewer } from "../../rules/concealment.mjs";
 import { factions, currentBoard } from "../../engine/board.mjs";
 import { seesThroughOwnField } from "../../rules/identity.mjs";
+import { markSeenBy } from "../../rules/bloodmarks.mjs";
 
 /**
  * Units the viewer's own Units see through a field of theirs, rebuilt at most
@@ -59,6 +60,40 @@ function seenThroughFields() {
   fieldSight = { at: now, ids };
   return ids;
 }
+
+/**
+ * The board's Units, for the Bloodmark question, rebuilt at most every quarter
+ * second for the same reason as `fieldSight`.
+ *
+ * @type {{at: number, units: object[]}}
+ */
+let markSight = { at: 0, units: [] };
+
+/** @returns {object[]} */
+function boardUnits() {
+  const now = Date.now();
+  if (now - markSight.at >= 250) markSight = { at: now, units: currentBoard().units ?? [] };
+  return markSight.units;
+}
+
+/**
+ * Is this a Structure that is seen only from nearby, a Bloodmark?
+ *
+ * @param {object|null} actor
+ * @returns {boolean}
+ */
+function seenOnlyNearby(actor) {
+  return actor?.type === "structure" && Number.isFinite(actor.system?.visibleWithin);
+}
+
+/**
+ * Drop the cached Units, so the next visibility pass sees a move that just
+ * happened rather than the board of a quarter second ago.
+ */
+export function forgetMarkSight() {
+  markSight = { at: 0, units: [] };
+}
+Hooks.on("fgtMarkSight", forgetMarkSight);
 
 const { Token } = foundry.canvas.placeables;
 
@@ -144,6 +179,22 @@ export class FGTToken extends Token {
    */
   get isVisible() {
     const actor = this.actor;
+    // A Bloodmark, per viewer (#188 reading 6): her side always, everyone else
+    // from 3 panels. Answered here rather than with the token's `hidden`, which
+    // is one value for every client. A mark the GM hid by hand stays hidden.
+    if (seenOnlyNearby(actor)) {
+      if (this.document.hidden && !game.user?.isGM) return false;
+      return markSeenBy(
+        {
+          factionId: actor.system?.factionId ?? null,
+          panel: actor.system?.panel ?? null,
+          visibleWithin: actor.system.visibleWithin,
+        },
+        { userId: game.user?.id ?? null, isGM: Boolean(game.user?.isGM) },
+        factions(),
+        boardUnits(),
+      );
+    }
     // A token the GM hid stays hidden: the Mist lends sight, not permission.
     if (!super.isVisible && (this.document.hidden || !(actor && seenThroughFields().has(actor.id)))) return false;
 

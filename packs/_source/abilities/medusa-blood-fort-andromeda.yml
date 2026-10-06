@@ -54,10 +54,16 @@ field:
     # took credit for would quietly stop paying her -- the same reason Jack's
     # Mist carries the flag.
     #
-    # `anyTurnEnd`, not `turnEnd`: a Civilian has no faction and so no Turn of
-    # its own, and `turnEnd` on a field is the victim's own Turn (#145). The
-    # sheet says "immediately", which is at the end of ANY Turn.
-    - event: anyTurnEnd
+    # `contact`, ruled 2026-10-05 (#188 reading 9): "immediately" is the moment
+    # the Fort activates over a Civilian, and the moment one enters it. The
+    # first build waited for the end of any Turn. `haltsMover`: a Civilian
+    # crossing the area dies on its first panel inside, its move stopping
+    # there (`rules/bounded-fields.mjs#haltIndex`).
+    #
+    # `ownerOrMaster`, ruled (#188 reading 1): her player chooses who heals, per
+    # Civilian, and both halves go to the one chosen. Unanswered, Medusa.
+    - event: contact
+      haltsMover: true
       relations: [enemy, ally, neutral]
       # "This NP constantly affects all Units within its area EXCLUDING MEDUSA
       # AND HER MASTER." The owner is always excluded; the owner's Master needs
@@ -66,8 +72,8 @@ field:
       kinds: [civilian]
       onFail:
         - { key: Defeat, cause: bloodFort, creditOwner: true }
-        - { key: Heal, target: owner, amount: 100 }
-        - { key: StatDelta, target: owner, stat: agility.value, delta: 1 }
+        - { key: Heal, target: ownerOrMaster, amount: 100 }
+        - { key: StatDelta, target: ownerOrMaster, stat: agility.value, delta: 1 }
 
     # "Master, non-normal Human: Loses 40 Health at the end of every Turn it
     # ACTS within Bloodfort Andromeda." A Unit that never Acted has nothing to
@@ -88,6 +94,9 @@ field:
       # Attribute." One clause over every tier, so it is stated once on the
       # event rather than three times as extra branches.
       halveIf: ["self:attribute:mechanical"]
+      # "...used to heal either or both Medusa and her Master": her player
+      # divides each drain, up to its total (#188 reading 2); unanswered, an
+      # even split (`rules/fields/pool.mjs#splitPool`).
       payout: [owner, ownerMaster]
       onFail:
         - { key: HealthLoss, amount: 40 }

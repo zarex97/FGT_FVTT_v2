@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { squareFrom, completedSquare, LEGAL_SIZES } from "../../module/rules/bloodmarks.mjs";
+import { squareFrom, completedSquare, LEGAL_SIZES, markSeenBy } from "../../module/rules/bloodmarks.mjs";
 
 const at = (i, j) => ({ i, j });
 const corners = (i, j, n) => [at(i, j), at(i, j + n - 1), at(i + n - 1, j), at(i + n - 1, j + n - 1)];
@@ -70,5 +70,46 @@ describe("completedSquare", () => {
 
   it("is null when no four of them make a legal square", () => {
     expect(completedSquare([at(0, 0), at(0, 3), at(3, 0), at(9, 9), at(1, 1)])).toBe(null);
+  });
+});
+
+describe("markSeenBy (#188 reading 6)", () => {
+  // "Bloodmarks can only be seen from a distance of 3 cells Maximum." Ruled:
+  // her side always sees her marks, every other side from 3 panels.
+  const factions = [
+    { id: "medusa", userIds: ["pMedusa"], allies: [] },
+    { id: "foe", userIds: ["pFoe"], allies: [] },
+    { id: "friend", userIds: ["pFriend"], allies: ["medusa"] },
+  ];
+  const mark = { factionId: "medusa", panel: at(10, 10), visibleWithin: 3 };
+  const medusaPlayer = { userId: "pMedusa", isGM: false };
+  const foePlayer = { userId: "pFoe", isGM: false };
+  const unit = (factionId, i, j, extra = {}) => ({ factionId, panel: at(i, j), defeated: false, ...extra });
+
+  it("her own player sees her mark with nobody near — the first build hid it", () => {
+    expect(markSeenBy(mark, medusaPlayer, factions, [unit("medusa", 0, 0)])).toBe(true);
+  });
+
+  it("an enemy sees it from 3 panels and not from 4", () => {
+    expect(markSeenBy(mark, foePlayer, factions, [unit("foe", 13, 13)])).toBe(true);
+    expect(markSeenBy(mark, foePlayer, factions, [unit("foe", 14, 10)])).toBe(false);
+  });
+
+  it("an enemy's sight is its own Units', not anyone's", () => {
+    // Medusa standing on her mark does not show it to the enemy.
+    expect(markSeenBy(mark, foePlayer, factions, [unit("medusa", 10, 10), unit("foe", 0, 0)])).toBe(false);
+  });
+
+  it("a defeated Unit sees nothing", () => {
+    expect(markSeenBy(mark, foePlayer, factions, [unit("foe", 11, 11, { defeated: true })])).toBe(false);
+  });
+
+  it("a declared ally is her side", () => {
+    expect(markSeenBy(mark, { userId: "pFriend", isGM: false }, factions, [])).toBe(true);
+  });
+
+  it("the GM always sees; a viewer with no faction never does", () => {
+    expect(markSeenBy(mark, { userId: "gm", isGM: true }, factions, [])).toBe(true);
+    expect(markSeenBy(mark, { userId: "nobody", isGM: false }, factions, [unit("foe", 10, 11)])).toBe(false);
   });
 });
