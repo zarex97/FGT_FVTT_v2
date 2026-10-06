@@ -215,7 +215,6 @@ async function spend({ actor, unit, spec }) {
         roll: (await new Roll("1d100").evaluate()).total,
         inflictBonus: 0,
         options: rollOptionsFor({ attacker: unit }),
-        sourceFactionId: unit.factionId ?? null,
       },
     });
     intents.push(...outcome.intents);

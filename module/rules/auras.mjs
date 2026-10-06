@@ -47,6 +47,8 @@ import { anyBoundaryBlocksEffect } from "./bounded-fields.mjs";
 export function collectAuras(unit, board, index = null) {
   /** @type {object[]} */
   const found = [];
+  /** @type {Map<string, string>} which holder of one cast reached this Unit */
+  const casts = new Map();
 
   for (const { source, aura } of candidateAuras(unit, board, index)) {
     // A defeated Unit's token stays on the board, and its auras do not: a dead
@@ -56,13 +58,21 @@ export function collectAuras(unit, board, index = null) {
     const relations = aura.relations ?? ["ally", "self"];
     if (!relations.includes(relationOf(source, unit, board))) continue;
 
+    // A buff's aura is received like a buff: No Buff or a buff Immunity on the
+    // RECIPIENT refuses it, and the same on its holder stops nothing (#132).
+    if (aura.buff && refusesBuffs(unit)) continue;
+
+    // Reached besides the radius, by a named role: the Pollux buff's linked
+    // partner, wherever it stands (#132).
+    const alsoReached = Boolean(aura.alsoReaches) && inRecipientRoles(aura.alsoReaches, source, unit, board);
+
     // `scope: "field"` is unbounded: Medea's Territory Creation applies "while
     // this Unit is on the field", and giving it a radius would have made it an
     // ordinary aura and quietly bounded a rule that is not.
-    if (aura.scope !== "field" && distanceBetween(source, unit) > (aura.radius ?? 0)) continue;
+    if (!alsoReached && aura.scope !== "field" && distanceBetween(source, unit) > (aura.radius ?? 0)) continue;
     // ...and a radius is measured on one level. A Unit on the ground under the
     // Hanging Gardens is not "next to" a Bašmu on its deck (Ch. 46 §46.4-BP).
-    if (aura.scope !== "field" && (source.level ?? 0) !== (unit.level ?? 0)) continue;
+    if (!alsoReached && aura.scope !== "field" && (source.level ?? 0) !== (unit.level ?? 0)) continue;
 
     // ...but "unbounded" is not "through a wall". A bounded field that seals
     // effect application seals THIS too: *"Units outside the Labyrinth cannot
@@ -83,6 +93,13 @@ export function collectAuras(unit, board, index = null) {
     // `relations` list is the widest this could be said before: the Sphinxes
     // shield two units, not every ally within a panel of one.
     if (aura.recipientRoles && !inRecipientRoles(aura.recipientRoles, source, unit, board)) continue;
+
+    // One cast reaches a Unit once, however many holders it has.
+    if (aura.castKey) {
+      const holder = casts.get(aura.castKey);
+      if (holder && holder !== source.id) continue;
+      casts.set(aura.castKey, source.id);
+    }
 
     // An aura may carry SEVERAL modifiers. Medea's Item Construction is six --
     // three outgoing and three incoming, one per severity tier -- and they are
@@ -228,7 +245,10 @@ export const ROUTES = Object.freeze({
  * @returns {object}
  */
 function bind(a, source) {
-  const { radius, relations, elements, recipientRoles, ...modifier } = a;
+  const { radius, relations, elements, recipientRoles, alsoReaches, buff, castKey, ...modifier } = a;
+  void alsoReaches;
+  void buff;
+  void castKey;
   void relations;
   void elements;
   // Addressing, like `relations` -- answered by the time we get here, and a
@@ -272,6 +292,18 @@ function inRecipientRoles(roles, source, recipient, board) {
       && [...(source?.linkedGroup?.memberIds ?? [])].includes(recipient.id)) return true;
   }
   return false;
+}
+
+/**
+ * Does this Unit refuse a buff? No Buff, or a buff-scoped Immunity, the two
+ * gates `engine/effect-applier.mjs#findImmunity` asks of an applied buff.
+ *
+ * @param {object} unit
+ * @returns {boolean}
+ */
+function refusesBuffs(unit) {
+  if ((unit?.effects ?? []).includes("noBuff")) return true;
+  return (unit?.immunities ?? []).some((g) => g?.scope === "buff");
 }
 
 /**

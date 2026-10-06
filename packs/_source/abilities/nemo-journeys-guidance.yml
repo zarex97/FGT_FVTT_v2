@@ -38,10 +38,18 @@ phases:
     target: reuse
     effects:
       - { id: atkUp, duration: "1◈", magnitude: 20, npMagnitude: 15 }
-      # "Crit Chance is increased by 15%." S.Crit Up rather than Crit Up: its
-      # application cannot be prevented and it is Unremovable, which is the
-      # whole difference between the two and the reason the sheet names it.
+  # 2. S.Crit Up is an aura he holds (#132): the allies within 2 panels of him,
+  # or, with Zero Sail activated, every ally on the Storm Border.
+  - kind: applyEffects
+    target: self
+    predicate: [{ not: "self:skillActive:zeroSail" }]
+    effects:
       - { id: sCritUp, duration: "⅓◈", magnitude: 15 }
+  - kind: applyEffects
+    target: self
+    predicate: ["self:skillActive:zeroSail"]
+    effects:
+      - { id: sCritUpStormBorder, duration: "⅓◈", magnitude: 15 }
   # 3. "apply Effect 1 TWICE" -- a SECOND INSTANCE of the same magnitudeStacks
   # buff, so 40% in total. NOT one buff at 40: the difference shows the moment
   # anything removes one of them, and the sheet says "twice" rather than

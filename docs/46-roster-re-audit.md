@@ -3686,6 +3686,27 @@ no MAG Rank, and the content cuts its MAG by the percentage, never negating it. 
 they are used by enemy Units within the Complex."* The content counts two, inside or out. Xiuhcoatl from inside
 alone left the Complex standing. **Ruled 2026-10-06 (reading 20):** two, from outside and within together, as built.
 
+### HZ. S.Crit Up could be prevented, and was held by every ally — **ruled and built** (#132)
+
+**Reached: the Quetzalcoatl paper trace (#65), CS.2.** *"Application cannot be prevented and it is Unremovable"*
+was chance 500 and a copy on every ally, which No Buff refused anyway. Ruled 2026-10-06: an **aura its caster
+holds**. Its Crit Chance reaches allies within 2 panels as they walk in and out; it is removed only from the
+holder, which ends it for all; a recipient's No Buff or buff Immunity refuses its share and the holder's stops
+nothing; two sources stack. Twelve casters put it on themselves; Scapegoat on Kiritsugu and his target, reaching a
+Unit once; the Pollux buff's reaches the partner; Journey's Guidance under Zero Sail, the Storm Border. Ch. 12, 15,
+Appendix A.
+
+### IA. Rho Aias was a buff — **ruled and built** (#132)
+
+A barrier EMIYA projects, filed as a buff at chance 500, so No Buff on a covered ally refused the barrier. Ruled
+2026-10-06: a status at chance 100. Ch. 15.
+
+### IB. Decoy skipped its own side's gates — **ruled and built** (#132)
+
+`allySelfBypassesResistance` let Decoy and Decoy (Scapegoat) skip immunity, resistance and declared modifiers when
+self- or ally-applied. Ruled 2026-10-06: no application skips the target's gates for being its own side's. The
+key is gone. Ch. 14, 15.
+
 ---
 
 ---

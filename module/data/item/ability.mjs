@@ -511,12 +511,6 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       unremovable: new fields.BooleanField({ initial: false }),
       // Ch. 14: *"Decoy is not affected by Debuff Resist or Immune
       // effects when a Unit applies it on itself or on another allied Unit."*
-      // A property of the EFFECT, so the applier can skip its resistance steps
-      // without every caller having to know which effects are exempt. Two need
-      // it -- `Decoy` and Kiritsugu's `Decoy (Scapegoat)` -- and both are
-      // debuffs used defensively, which is the whole reason the exemption
-      // exists.
-      allySelfBypassesResistance: new fields.BooleanField({ initial: false }),
       blocks: new fields.ArrayField(new fields.StringField()),
       blockedBy: new fields.ArrayField(new fields.StringField()),
       // Effects this one REPLACES rather than being refused by.

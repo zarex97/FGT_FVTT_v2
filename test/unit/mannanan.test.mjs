@@ -230,8 +230,8 @@ describe("evadableOnlyBy", () => {
 describe("Decoy", () => {
   const def = effect("decoy");
 
-  it("bypasses resistance when self- or ally-applied", () => {
-    expect(def.allySelfBypassesResistance).toBe(true);
+  it("has no self/ally exemption from resistance (#132)", () => {
+    expect(def.allySelfBypassesResistance).toBeUndefined();
   });
 
   /** Mannanán at (0,0) with Decoy up, an enemy at (0,2), an ally at (0,1). */

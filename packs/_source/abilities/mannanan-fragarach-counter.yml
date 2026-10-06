@@ -84,10 +84,9 @@ phases:
   # b. S.Crit Up to allies within 2 panels of MANNANÁN, not of the victim, so
   # this phase carries its own targeting.
   - kind: applyEffects
-    targeting:
-      anchor: { kind: self }
-      shape: { kind: chebyshevRadius, r: 2 }
-      selection: { relations: [ally, self], includeSelf: true, chooser: all }
+    # The holder of the S.Crit Up aura: it reaches the allies within 2 panels
+    # from there (#132).
+    target: self
     effects:
       - { id: sCritUp, magnitude: 10, duration: "⅓◈" }
   # c. "Mannanán's NP Cooldown is reduced by ⅓◈ Turns." `scope: np` -- the

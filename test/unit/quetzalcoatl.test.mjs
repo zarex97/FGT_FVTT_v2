@@ -107,8 +107,11 @@ describe("Charisma of the Sun", () => {
   });
 
   it("applies Sol to herself alone, not to every ally in range", () => {
-    const selfPhase = skill.phases.find((p) => p.target === "self" && p.kind === "applyEffects");
-    expect(selfPhase.effects.map((e) => e.id)).toEqual(["sol"]);
+    // Hers alone: Sol, and the S.Crit Up aura she holds (#132).
+    const mine = skill.phases.filter((p) => p.target === "self" && p.kind === "applyEffects").flatMap((p) => p.effects);
+    expect(mine.map((e) => e.id)).toEqual(["sCritUp", "sol"]);
+    const allies = skill.phases.find((p) => p.target === "reuse").effects.map((e) => e.id);
+    expect(allies).toEqual(["atkUp"]);
   });
 
   it("paints FOLLOWING sunlight, which is what 'around Quetz' means", () => {

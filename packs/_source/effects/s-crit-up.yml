@@ -1,25 +1,34 @@
 # Appendix A §A.4
 #
 # "As Crit Up, but application cannot be prevented and it is Unremovable."
-# Both halves matter for EMIYA's Eye of the Mind (True) EX, which hands it to
-# every ally within 2 panels: a plain Crit Up would be strippable by anything
-# that removes buffs, and resistible by a target with Debuff ResUp -- neither
-# of which should touch a buff its own side applied.
+# Ruled 2026-10-06 (#132): an AURA held by its caster. The caster holds this
+# effect, and its Crit Chance reaches every allied Unit within 2 panels of him,
+# entering and leaving as they move (`rules/auras.mjs`). The allies hold
+# nothing, so nothing on them can be removed: "cannot be prevented" means the
+# bonus is stripped only by removing this effect from its holder, as an aura is
+# ended at its source.
+#
+# A Unit with No Buff or a buff Immunity receives nothing from it, and No Buff
+# on the holder stops nothing: it is the receiving that a buff gate refuses.
+# So the holder's own copy passes the gate (`bypassesImmunity`), and the aura
+# checks each recipient (`collectAuras`, `buff`).
+#
+# Chance 100, an ordinary buff's: the 500 it carried read "cannot be prevented"
+# as "past every resistance", which the ruling does not.
 schema: 1
 id: sCritUp
 name: "S.Crit Up"
-description: "Crit Chance is increased by X%. Cannot be prevented, and is Unremovable."
+description: "Crit Chance of all allied Units within a 2 panel area of this Unit is increased by X%. Removed only from this Unit, which ends it for all of them."
 polarity: buff
 volatility: nonVolatile
 valence: offensive
 stacking: magnitudeStacks
-# 500, not 100. Appendix A's idiom for "certain, and it stays certain after
-# every reduction in the game has been applied" -- the same figure Proto Gil's
-# Drowning clause uses, and the only way "application cannot be prevented" is
-# expressible in a system where resistances subtract.
-baseChance: 500
-unremovable: true
+baseChance: 100
+bypassesImmunity: true
 rules:
-  - key: CheckModifier
-    check: crit
-    value: "@magnitude"
+  - key: Aura
+    radius: 2
+    relations: [ally, self]
+    stacking: magnitudeStacks
+    elements:
+      - { key: CritModifier, aspect: chance, value: "@magnitude" }

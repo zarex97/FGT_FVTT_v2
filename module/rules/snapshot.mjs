@@ -1645,6 +1645,12 @@ export function contributionsOf(actor, { terrain = [], tick = null } = {}) {
       // consumed, which makes a one-use buff permanent.
       defId: effect.system?.defId ?? null,
       fromEffect: true,
+      // What an Aura it carries needs of its holder (#132): a buff's aura is
+      // refused by a recipient with No Buff, and one cast's auras on two
+      // holders reach a Unit once (`rules/auras.mjs`).
+      polarity: def.polarity ?? null,
+      sourceUnitId: effect.system?.sourceUnitId ?? null,
+      sourceAbilityId: effect.system?.sourceAbilityId ?? null,
       // WHEN this instance runs out, so a handler it contributes can honour
       // Ch. 15 ("an effect does not act on the Turn it ends") the way the
       // periodic pass already does. Carried here because the instance is the

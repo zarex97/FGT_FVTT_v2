@@ -34,20 +34,15 @@ phases:
 
   # "to all allied Units within a 2 panel area of Kiritsugu OR THE TARGET."
   #
-  # A UNION of two discs, expressed as ONE area -- `alsoAroundCaster` on the
-  # shape. Two phases, one anchored on each, would apply `sCritUp` twice to
-  # anybody standing in the overlap, and it is `magnitudeStacks`: the allies
-  # closest to both would quietly get 30% where the sheet says 15.
-  #
-  # Anchored on the TARGET -- `phaseTargets` hands a phase the placement the
-  # ability already resolved, so this re-uses the ally the player chose rather
-  # than asking again -- with the caster's own disc unioned in by the shape.
+  # S.Crit Up is an aura (#132), so the union of two discs is two holders:
+  # Kiritsugu and his target. One cast reaches a Unit once however many
+  # holders it has (`rules/auras.mjs`, `castKey`), so an ally standing near
+  # both gets 15%, not 30%.
   - kind: applyEffects
-    targeting:
-      anchor: { kind: targetUnit, range: 2 }
-      shape: { kind: chebyshevRadius, r: 2, alsoAroundCaster: true }
-      selection: { relations: [ally, self], includeSelf: true, chooser: all }
+    target: self
     effects:
-      # S.Crit Up, not Crit Up: "application cannot be prevented and it is
-      # Unremovable" (§A.4), which is right for a buff your own side hands out.
+      - { id: sCritUp, magnitude: 15, duration: "⅓◈" }
+  - kind: applyEffects
+    target: reuse
+    effects:
       - { id: sCritUp, magnitude: 15, duration: "⅓◈" }

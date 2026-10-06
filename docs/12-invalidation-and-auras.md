@@ -72,7 +72,15 @@ For each recipient:
    nearest panel of multi-panel units (`module/rules/auras.mjs:58-61`, `module/rules/auras.mjs:256-262`)
 4. **Boundary check** — isolated fields that seal effect application seal auras too (`module/rules/auras.mjs:63-67`)
 5. **Recipient predicate** — a condition on the RECIPIENT, e.g., "in their Home Base" (`module/rules/auras.mjs:69-73`)
-6. **Recipient roles** — named roles relative to the source (summoner, summonerMaster, linkedPartner) (`module/rules/auras.mjs:75-78`)
+6. **Recipient roles** — named roles relative to the source (summoner, summonerMaster, linkedPartner) (`module/rules/auras.mjs:75-78`).
+   `alsoReaches` names roles reached **besides** the radius: the Pollux buff's S.Crit Up reaches the bearer's linked
+   partner wherever it stands. The index keeps such an aura with the unbounded ones (#132).
+6a. **A buff's aura is received like a buff** (#132). An Aura carried by a `polarity: buff` effect is marked `buff`, and
+   a recipient holding `No Buff` or a buff-scoped Immunity gets nothing from it (`refusesBuffs`). The same on the holder
+   stops nothing: it is the receiving a buff gate refuses.
+6b. **One cast reaches a Unit once** (#132). An Aura on an effect carries `castKey`, its definition, source Unit, source
+   ability and applied tick. Scapegoat puts S.Crit Up on Kiritsugu and on his target; a Unit near both is reached by the
+   first holder only, so it gets 15%, not 30%. Two instances on one holder still both count.
 7. **Stacking** — `highestOnly` keeps the highest value per key; `group` resolves entire auras by rank as one unit: the winning source **at its winning rank**, so one source carrying two ranks of a group (Semiramis's Territory Creation, EX aboard and C on the ground) contributes only the higher (§46.4-BF)
   (`module/rules/auras.mjs:275-311`)
 

@@ -101,7 +101,7 @@ and its implementation note. This is the authoritative reference the compendium 
 | Effect | Pol | Val | Stack | Semantics |
 |---|---|---|---|---|
 | `Crit Up` | B | O | mag | Crit chance +X%. Not NP unless stated. |
-| `S.Crit Up` | B | O | mag | As `Crit Up`, but **application cannot be prevented** and it is **Unremovable**. |
+| `S.Crit Up` | B | O | mag | As `Crit Up`, but **application cannot be prevented** and it is **Unremovable**. Ruled (#132): an **aura its caster holds**, reaching allies within 2 panels as they walk in and out; removed only from its holder, which ends it for all. A recipient's `No Buff` or buff Immunity refuses its share; the holder's stops nothing. Chance 100. |
 | `G.Crit` | B | O | nr | Attacks always crit. Not NP unless stated. **Built** (`gCrit`), `rules: []` — `critChance` returns `{percent: 100, automatic: true}` on the line below `noCrit`'s. A short-circuit, not a +100% modifier, which is what makes "always" absolute. |
 | `Area CritUp` | B | O | mag | **Aura.** Crit chance +X% for allies within range. Only while within range. **Built** (`areaCritUp`) for Van Gogh's *De Sterrennacht*, radius 2, `relations: [ally, self]` — the bearer benefits, because "all allied Units" includes itself unless the text says otherwise. Written in the aura's **nested** form (`elements:`), which is what made its `@magnitude` the first in the corpus to need resolving at that depth; before that it reached every correct recipient carrying the literal string. Resolution at evaluation time is what makes "only while within range" true without a position-watcher. |
 | `Clarity` | B | O | nr | Doubles the magnitude of `Area CritUp` buffs affecting this unit. Evaluated in the aura-consumer band. |
@@ -204,7 +204,7 @@ whole attack.
 | `NP Degen` | D | NP cooldown +X per interval, and natural reduction stops. |
 | `NP Lock` | D | Natural NP cooldown reduction stops. **Not** NP Seal — the NP is still usable. |
 | `NP Lag` | D | Natural NP cooldown reduction is halved in rate (every other turn). |
-| `Decoy` | D | Enemies within `max(3, their Range)` cannot move away, may only attack/target this unit, and **must** attack it if the player attacks at all. Not stacked. **Bypasses resistance when self- or ally-applied.** Inert while the bearer is concealed. |
+| `Decoy` | D | Enemies within `max(3, their Range)` cannot move away, may only attack/target this unit, and **must** attack it if the player attacks at all. Not stacked. No self/ally exemption: applied by its own side it meets Debuff Resist and Debuff Immune (ruled 2026-10-06, #132). Inert while the bearer is concealed. |
 | `Delay+X` | D | The affected **player's** turn moves X later in the order. **Unremovable.** Applies next round if they have already acted. Never past the GM. Removed at the end of the round it fires in. |
 
 ## A.11 Debuffs — mental
@@ -729,7 +729,7 @@ in either direction.
 | `pierce` | buff | **The first Pierce document in the corpus.** `Pierce` was in this catalogue and read by the damage pipeline in three places, and no content could produce it: `attack.pierce` came only from an ability's own `damage:` block. It rides `AttackProperty` (Ch. 13). |
 | `penetration` | buff | Ignore Def **and** a halved Invuln. `invulnFactor: 0.5` is how much damage SURVIVES — the first clause that weakens a defence rather than bypassing it, and deliberately **not** Pierce, which would be a total bypass the sheet withholds. |
 | `critUpFamiliar` | buff | Range-conditional Crit Up, beside `critUpHawkeye` and for the same reason: a plain `critUp` would sharpen him in melee where the sheet gives him nothing. Its predicate is DEFERRED. |
-| `decoyScapegoat` | debuff | Its own document rather than the shared `decoy`, because Lethal Gunfire Suppression triggers on **this** one — sharing it would make Mannanán's self-applied Decoy fire Kiritsugu's gun from across the board. Keeps `allySelfBypassesResistance`: it is applied to an ally on purpose. |
+| `decoyScapegoat` | debuff | Its own document rather than the shared `decoy`, because Lethal Gunfire Suppression triggers on **this** one — sharing it would make Mannanán's self-applied Decoy fire Kiritsugu's gun from across the board. Meets the ally's Debuff Resist and Debuff Immune (#132). |
 | `suppression` | buff | **Two clocks that are not the same clock**: `uses: 5` and a 1◈ duration, ending on whichever runs out first. A use is spent by a SUCCESSFUL strip only. `noneExtend`, so Magecraft's `DurationExtension` lengthens the clock without refilling the uses. |
 | `kiritsuguMark` | debuff | Halves BOTH Base Attack components; unremovable, non-stacking, past Debuff Resist *and* Debuff Immune. Named `kiritsuguMark`, never `kiritsugu` — an effect sharing a content id with its Servant is a build-breaking collision, which `raikou` hit. Its display NAME is still "Kiritsugu", as the sheet has it, which makes the content linter flag every mention of the man; those are incidental. |
 

@@ -29,10 +29,9 @@ phases:
   # panel area of himself" includes himself unless the text excludes him, which
   # it does not (Ch. 15; Penthesilea's Charisma is the case that DOES).
   - kind: applyEffects
-    targeting:
-      anchor: { kind: self }
-      shape: { kind: chebyshevRadius, r: 2 }
-      selection: { relations: [ally, self], includeSelf: true, chooser: all }
+    # The holder of the S.Crit Up aura: it reaches the allies within 2 panels
+    # from there (#132).
+    target: self
     rules:
       - { effect: { id: sCritUp, magnitude: 40 }, duration: "⅓◈" }
   # Clause 3. "OR ... OR ... (your choice)" -- the choice IS the rule, so it

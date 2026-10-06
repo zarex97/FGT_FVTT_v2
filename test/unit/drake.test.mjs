@@ -282,7 +282,8 @@ describe("Drake — Beyond the Uncharted", () => {
 describe("Drake — Pioneer of the Stars", () => {
   const a = src("abilities", "drake-pioneer-of-the-stars.yml");
   const selfPhase = a.phases.find((p) => p.kind === "applyEffects" && p.target === "self");
-  const groupPhase = a.phases.find((p) => p.kind === "applyEffects" && p.target === "reuse");
+  // S.Crit Up is an aura she holds (#132): a second phase on herself.
+  const groupPhase = a.phases.filter((p) => p.kind === "applyEffects" && p.target === "self")[1];
 
   it("is EX rank on a 4◈ cooldown", () => {
     expect(a.rank).toBe("EX");

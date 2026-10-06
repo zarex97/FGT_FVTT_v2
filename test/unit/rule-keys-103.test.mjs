@@ -307,7 +307,7 @@ describe("SustainabilityGain", () => {
 describe("OnEvent: targeting", () => {
   const unit = (id, i, j, over = {}) => ({ id, panel: { i, j }, factionId: "f1", effects: [], eventHandlers: [], ...over });
 
-  it("reaches the bearer, allies within 2, and the partner wherever she stands", () => {
+  it("puts the S.Crit Up aura on the bearer alone; the aura reaches the rest (#132)", () => {
     const buff = content("effects/pollux-buff.yml");
     const [handler] = contributions({ name: buff.name, rules: buff.rules }).eventHandlers;
     const castor = unit("castor", 5, 5, { eventHandlers: [handler], linkedGroup: { memberIds: ["pollux"] } });
@@ -321,8 +321,8 @@ describe("OnEvent: targeting", () => {
     };
     const hit = fireEvent("damageStepEnd", [castor], {
       tick: 1, turnsPerRound: 3, board, options: new Set(["attack:kind:normal"]),
-    }).filter((i) => i.t === "applyEffect" && i.effect.defId === "sCritUp").map((i) => i.unitId);
-    expect(hit.sort()).toEqual(["castor", "near", "pollux"]);
+    }).filter((i) => i.t === "applyEffect" && i.effect.defId === "sCritUpPollux").map((i) => i.unitId);
+    expect(hit).toEqual(["castor"]);
   });
 });
 
