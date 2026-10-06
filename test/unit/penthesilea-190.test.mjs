@@ -140,3 +140,31 @@ describe("a drag asks Hatred of Achilles (#190)", () => {
     expect(s).toMatch(/const pulled = decoyVerdict\(unit, route, board\);/);
   });
 });
+
+describe("the Turn end says what it did to Health (#190)", () => {
+  it("names the Unit, the amount and the source", async () => {
+    const { turnEndCard } = await import("../../module/engine/turn-report.mjs");
+    const t = (key, d) => `${key}|${d?.who}|${d?.amount}|${d?.source}`;
+    const card = turnEndCard(
+      [{ t: "statDelta", unitId: "m", stat: "health.value", delta: -30, source: "Mad Enhancement" },
+        { t: "statDelta", unitId: "x", stat: "agility.value", delta: -1 }],
+      (id) => (id === "m" ? "Her Master" : id), t,
+    );
+    expect(card).toContain("FGT.TurnReport.Loses|Her Master|30|Mad Enhancement");
+    expect(card).not.toContain("agility");
+    expect(turnEndCard([], (id) => id, t)).toBeNull();
+  });
+
+  it("carries the handler's source on a StatDelta from the scheduler", async () => {
+    const { collectContributions } = await import("../../module/rules/elements.mjs");
+    const { fireEvent } = await import("../../module/engine/scheduler.mjs");
+    const [handler] = collectContributions([{ active: true, name: "Mad Enhancement", rules: [{
+      key: "OnEvent", event: "actedTurnEnd", automatic: true,
+      then: [{ key: "StatDelta", stat: "health.value", delta: -30 }],
+    }] }]).eventHandlers;
+    const pen = { id: "pen", panel: { i: 0, j: 0 }, health: 100, eventHandlers: [handler], effects: [] };
+    const out = fireEvent("actedTurnEnd", [pen], { tick: 1, turnsPerRound: 3, board: { units: [pen] } })
+      .filter((i) => i.t === "statDelta");
+    expect(out[0]).toMatchObject({ unitId: "pen", stat: "health.value", source: "Mad Enhancement" });
+  });
+});
