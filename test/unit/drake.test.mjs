@@ -955,3 +955,28 @@ describe("the broadside's preview counts the ship's Base Attack (#187)", () => {
     expect(fn).toMatch(/contentBaseAttack: contentBaseAttacks\(\),/);
   });
 });
+
+describe("a platform's close tells the table (#187)", () => {
+  // Live: the Golden Hind's forced close for an unpaid toll was only log lines.
+  it("destroyPlatform posts the close card with its reason, from every path", () => {
+    const platforms = readFileSync("module/engine/platforms.mjs", "utf8");
+    const fn = platforms.slice(platforms.indexOf("export async function destroyPlatform"), platforms.indexOf("export async function destroyPlatform") + 900);
+    expect(fn).toMatch(/await postFieldClosed\(platform\.name \?\? platformId, platformId, reason\);/);
+    expect(platforms).toMatch(/destroyPlatform\(\{ platformId, reason: "owner" \}\)/);
+    expect(readFileSync("module/engine/fields.mjs", "utf8")).toMatch(/destroyPlatform\(\{ platformId: field\.id, reason \}\)/);
+    expect(readFileSync("module/engine/applier.mjs", "utf8")).toMatch(/destroyPlatform\(\{ platformId: id, reason: "effect" \}\)/);
+    const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
+    for (const r of ["destroyed", "effect", "upkeep", "owner", "ownerDefeat"]) expect(lang[`FGT.Field.Closed.${r}`]).toBeTruthy();
+  });
+});
+
+describe("a Skill refusal is worded (#187)", () => {
+  // Live: "Golden Hind: Wild Hunt cannot be used: zon."
+  it("the sheet words every Skill refusal through FGT.Ability.Refused", () => {
+    const sheet = readFileSync("module/apps/actor-sheet/sheet.mjs", "utf8");
+    expect(sheet).not.toMatch(/reason: out\.reason[ ,}]/);
+    expect((sheet.match(/reason: refusalWords\(out\.reason\)/g) ?? []).length).toBe(3);
+    const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
+    expect(lang["FGT.Ability.Refused.zon"]).toBeTruthy();
+  });
+});

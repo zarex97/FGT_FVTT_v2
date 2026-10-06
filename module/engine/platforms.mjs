@@ -556,7 +556,7 @@ export async function deactivatePlatform({ platformId }) {
     return { ok: await queueEnd({ kind: "platform", id: platformId, ownerId: platform.ownerId }), queued: true };
   }
 
-  await destroyPlatform({ platformId });
+  await destroyPlatform({ platformId, reason: "owner" });
   return { ok: true };
 }
 
@@ -572,12 +572,19 @@ export async function deactivatePlatform({ platformId }) {
  * @param {object} args
  * @param {string} args.platformId
  * @param {Record<string, boolean>} [args.saves] unitId → passed
+ * @param {string} [args.reason] why it ends, for the card the table is shown
  * @returns {Promise<void>}
  */
-export async function destroyPlatform({ platformId, saves = null }) {
+export async function destroyPlatform({ platformId, saves = null, reason = "destroyed" }) {
   const board = currentBoard();
   const platform = board.units.find((u) => u.id === platformId);
   if (!platform) return;
+  // The table is told, as a field's close tells it (#187): the Golden Hind's
+  // forced close for an unpaid toll was only log lines.
+  {
+    const { postFieldClosed } = await import("./field-report.mjs");
+    await postFieldClosed(platform.name ?? platformId, platformId, reason);
+  }
 
   // *"all Units on it perform either an Agility Check or a Luck Check roll"* --
   // rolled here when the caller has not, the better of the two for each Unit,

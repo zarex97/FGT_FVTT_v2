@@ -1686,7 +1686,7 @@ async function deactivateUpkept(field, reason) {
     return;
   }
   const { destroyPlatform } = await import("./platforms.mjs");
-  await destroyPlatform({ platformId: field.id });
+  await destroyPlatform({ platformId: field.id, reason });
 }
 
 /**

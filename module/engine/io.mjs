@@ -277,7 +277,7 @@ export function worldIO() {
       const ids = platformsDestroyedBy(unitId, currentBoard());
       if (ids.length === 0) return;
       const { destroyPlatform } = await import("./platforms.mjs");
-      for (const id of ids) await destroyPlatform({ platformId: id });
+      for (const id of ids) await destroyPlatform({ platformId: id, reason: "ownerDefeat" });
     },
 
     async defeatIfLethal(unitId) {

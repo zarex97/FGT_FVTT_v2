@@ -677,6 +677,8 @@
   "FGT.Field.Closed.expired": "Its duration ran out.",
   "FGT.Field.Closed.duelDecided": "The duel is decided.",
   "FGT.Field.Closed.vulnerability": "It was broken.",
+  "FGT.Field.Closed.destroyed": "It was destroyed.",
+  "FGT.Field.Closed.effect": "An effect on its owner ended it.",
   "FGT.Paint.OfferTitle": "Reshape the field?",
   "FGT.Paint.OfferHint": "{name} acted this Turn and may Move or reshape the field once.",
   "FGT.Paint.Offer": "Reshape",
