@@ -3537,6 +3537,66 @@ E, so any Magic Resistance of E or better negates it outright: EMIYA's D, *"nega
 Ruled 2026-10-05 (reading 8): the Noble Phantasm's Rank, A+. The ship's Normal Attack authors `attackRank` and
 stage 11 reads it before the attacker's MAG; live, *"−20% MAG (MR D < attack A+)"*. Ch. 22.
 
+### HA. A Skill's check left no line on its card — **fixed** (#188)
+
+**Reached: ME.c.ok.** Mystic Eyes read *"No effects were applied"* over an Agility Check that took 2 Agility:
+only effects were reported. A `check` phase adds its roll and what it decided, *"Agility Check 3 vs 18:
+success"*, *"Agility -2"* (559c827). Ch. 37.
+
+### HB. A Skill's cooldown change left no line on its card — **fixed** (#188)
+
+**Reached: BT.npcd.** Blood Temple read *"NP Regen"* over a 2-Turn cut to Bellerophon. A `cooldown` phase
+adds *"Bellerophon: Cooldown 22 → 20"*, and nothing for an ability already ready (559c827). Ch. 37.
+
+### HC. A Structure was asked to react — **fixed** (#188)
+
+**Reached: BF.destroy.** A Master's Attack on a Bloodmark stopped to ask the Bloodmark to Block, Evade or spend
+a Command Spell, and waited. A Structure takes no action: the Process records `defenderInert` and its rungs
+answer themselves (559c827). Ch. 21.
+
+### HD. A Bloodmark could not be broken — **fixed** (#188)
+
+**Reached: BF.destroy.** `baseHealth: 1` never became Health on a Structure, and `null` Health reads as
+invulnerable by nature: a Master's swing dealt 0. `StructureData` derives it as a Platform does (559c827).
+Ch. 06.
+
+### HE. A broken Structure stayed on the board — **fixed** (#188)
+
+**Reached: BF.destroy.** The mark sat under a skull. A defeated Structure is destroyed: its token and actor go
+(559c827). Ch. 06.
+
+### HF. A Servant aiming at a Bloodmark was told only "a structure" — **fixed** (#188)
+
+**Reached: BF.destroy.** The kind filter refused it before the step that names who may break it. Now
+*"destructible only by master"* (559c827). Ch. 20.
+
+### HG. An exclusion refusal named its partner by content id — **fixed** (#188)
+
+**Reached: SM.excl.** *"Cannot be used on the same Turn as medusa-monstrous-strength."* The bar and the
+sheet name it, *"…as Monstrous Strength"* (559c827). Ch. 17.
+
+### HH. A field's card listed its losses and not its heals — **fixed** (#188)
+
+**Reached: BF.pool.** Blood Fort Andromeda's Turn-end card named every drain and none of the heals it paid.
+The report carries heals and stat changes (4467692). Ch. 28.
+
+### HI. A field's contact pass posted no card — **fixed** (#188)
+
+**Reached: BF.civ.enter.** A Civilian walked into the Fort, died and healed Medusa with no card. Every contact
+pass posts *"{field}: on contact"* (4467692). Ch. 28.
+
+### HJ. A Civilian is never an "enemy Unit" — **open, needs a ruling** (#188)
+
+**Reached: ME.h.ok.** Mystic Eyes is *"used on an enemy Unit"*, and its first tier names Humans, which #185
+ruled are Civilians and Masters. A Civilian is neutral, so the Eyes refuse it: *"Civilian M1 cannot be
+targeted: a Civilian, and Civilians are neutral; this ability targets enemy"*. The Human tier reaches Masters
+only.
+
+### HK. The Mark Action is allowed in the first Round — **open, needs a ruling** (#188)
+
+**Reached: BF.mark.** No Attack is permitted in the first Round, and a Mark *"counts as her Attack for the
+Turn"*. The Mark was placed on Turn 1 all the same.
+
 ---
 
 ---
@@ -4464,3 +4524,42 @@ Master moved into reach of Beyond the Uncharted; capacity lowered to 3 for one b
 Medea revived or moved to reach the ship; NP Seal laid on Drake as an Attack's rider would land it.
 Magic Resistance's chance clauses, the cross-level rules and the buff-removal selector were pressed through
 the live board's engine, each with its differential.
+
+## 46.20 Medusa — the Servant who builds a Noble Phantasm
+
+**All 88 of her Clauses were Pressed or Observed on a live board** (#188, 2026-10-06). Fourteen readings were
+ruled on 2026-10-05: who takes a Civilian's heal, and how the drain divides, is her player's choice (1, 2);
+Petrify lasts until cured (3); a Unit other than a Civilian blocks the gaze (4); facing is the front cone (5);
+her side always sees her marks, others from 3 panels (6); only an enemy Master breaks one (7); the Mechanical
+halving halves the Health lost (8); a Civilian dies the moment the Fort activates over it or it enters (9);
+Blood Temple's *"instead"* replaces only the immediate cut (10); Bellerophon hits everyone on its line (11);
+the Eyes force a roll past Dodge (12); one Monstrous Strength boosts every hit of a ride (13); and once active,
+only her defeat ends the Fort (14). Four Clauses were added in the grilling: the summon tiers of the Eyes and
+the Fort, a Civilian walking in, and Monstrous Strength on a ride.
+
+**Why she finds what she finds.** Her Noble Phantasm is not cast: it is four Structures placed over four
+Turns, and then a field that takes from one side and pays the other. Structures had been targeted, never broken;
+and a field had taken, never shown what it paid. Her Skills are a check, a cooldown and a window, and each had
+reported less than it did.
+
+### 46.20.1 What she cost the engine
+
+| Commit | Finding |
+|---|---|
+| 1f12cad | The rulings built: the heal choice and the split, per-viewer marks, Bellerophon's reach, the ride's one pick, the Civilian's death on entry |
+| e2592e8 | Only her defeat ends the Fort; its corners cannot be targeted |
+| 559c827 | Structures under attack; a Skill card's check and cooldown; worded refusals (§46.4-HA to HG) |
+| 4467692 | A field's card lists what it pays; a contact pass posts one (§46.4-HH, HI) |
+
+Two findings stay open, and both are readings: whether a Civilian can be the Eyes' target (§46.4-HJ), and
+whether the Mark is an Attack the first Round forbids (§46.4-HK).
+
+### 46.20.2 What was staged
+
+Named in each evidence line: opening positions and every move into reach or out of a guard's; Agility set to
+1 or 20 to force a tier's branch; cooldowns, Turn records and the attack budget reset to press a Clause again
+the same Turn, the four corners among them; Health lowered to show a heal and raised to survive Bellerophon;
+No Buff laid on Medusa; her Master defeated to make her Free and revived after; a Civilian's MOV raised to 3 to
+walk it in; Medusa revived after the Fort's end to place a fresh mark. Magic Resistance's chance clauses, the
+"if NP" halves, the ZON and the buff-removal selector were pressed through the live board's engine, each with
+its differential.
