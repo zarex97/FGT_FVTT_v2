@@ -2802,7 +2802,9 @@ async function runAutomaticStep(state, message) {
 
       await message.setFlag("fgt", "damage", result.total);
       await message.setFlag("fgt", "effects", [...before, ...applied].map((a) => a.summary));
-      return process.advance(state, "done", { total: result.total, rollRecords: riderRolls });
+      return process.advance(state, "done", {
+        total: result.total, rollRecords: [...(result.modifierRolls ?? []), ...riderRolls],
+      });
     }
     case "injury":
       await applyInjury(state, message);
@@ -4211,6 +4213,11 @@ async function applyDamage(state, message) {
   };
 
   const result = computeDamage(ctx);
+  // The dice a rolled modifier threw, on the card beside the rest (#190):
+  // Goddess of War's d4 lifted and cut her damage by a number nobody could
+  // see. Filed only where the modifier reached the breakdown, so a die whose
+  // clause did not apply is not reported as if it had.
+  result.modifierRolls = rollLog.modifierDiceRecords(ctx, result, state, game.combat?.system?.globalTurn ?? 0);
   // Whether it crit belongs ON the result, not only on the chat flag. Every
   // rider fired after the Damage Step reads its predicate off the option set,
   // and `attack:crit` can only be in that set if the resolved attack says so --

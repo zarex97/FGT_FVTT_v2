@@ -172,3 +172,40 @@ export function renderBreakdown(r) {
 function signed(n) {
   return n > 0 ? `+${n}` : String(n);
 }
+
+/**
+ * Roll records for the rolled modifiers a damage computation used.
+ *
+ * Goddess of War's d4 lifted and cut Penthesilea's damage by a number nobody
+ * could see (#190). Filed only where the modifier reached the breakdown, so a
+ * die whose clause did not apply is not reported as if it had.
+ *
+ * @param {object} ctx the damage context, carrying `attacker`, `defender` and `rolls`
+ * @param {object} result the pipeline's result
+ * @param {{attackerId: string, defenderId: string}} state the Process state
+ * @param {number} tick
+ * @returns {object[]}
+ */
+export function modifierDiceRecords(ctx, result, state, tick) {
+  // A contributor names its modifier KEY as `source` and the ability as `note`;
+  // both are matched, so the defender's Goddess of War cut does not file her
+  // own, unused, Attack die beside it.
+  const used = new Set((result?.breakdown ?? []).flatMap((b) => (b.contributors ?? [])
+    .map((c) => `${c.source}|${c.note ?? c.source}`)));
+  const seen = new Set();
+  const out = [];
+  for (const m of [...(ctx?.attacker?.modifiers ?? []), ...(ctx?.defender?.modifiers ?? [])]) {
+    const key = m.roll?.key;
+    if (!key || seen.has(key) || typeof ctx.rolls?.[key] !== "number" || !used.has(`${m.key}|${m.source}`)) continue;
+    seen.add(key);
+    out.push(record({
+      id: `${state.attackerId}:${state.defenderId}:modifier:${key}:${tick}`,
+      globalTurn: tick, entryId: "modifier", formula: m.roll.formula,
+      raw: ctx.rolls[key], total: ctx.rolls[key],
+      modifiers: [],
+      purpose: m.source,
+      actorId: state.attackerId,
+    }));
+  }
+  return out;
+}
