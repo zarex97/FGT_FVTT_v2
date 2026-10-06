@@ -235,7 +235,7 @@ export function poolFor(unit, action) {
  * @param {ActionKind} action
  * @returns {{prevented: boolean, by: string|null}}
  */
-export function preventedBy(unit, action) {
+export function preventedBy(unit, action, { categorizedOnly = false } = {}) {
   const held = unit?.effects ?? [];
   const blanket = PREVENT_ALL.find((id) => held.includes(id));
   if (blanket) return { prevented: true, by: blanket };
@@ -258,6 +258,11 @@ export function preventedBy(unit, action) {
   // find. Read against the SAME table the effects are, so a scope and an
   // effect id that share a name prevent the same actions.
   for (const suppression of unit?.suppressions ?? []) {
+    // God's Curse: *"Does not affect Attacks/Skills/Spells that are only
+    // Categorized as Noble Phantasms."* A suppression that says so spares an
+    // ability that is only categorized as one; EMIYA's Overedge was refused
+    // inside Ramesseum Tentyris (#189).
+    if (categorizedOnly && suppression?.sparesCategorizedNP) continue;
     const actions = PREVENTS[suppression?.scope];
     if (actions?.includes(action)) return { prevented: true, by: suppression.scope };
   }

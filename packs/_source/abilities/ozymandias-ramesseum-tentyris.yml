@@ -221,6 +221,9 @@ field:
       relations: [self, ally, enemy]
       kinds: [servant]
       exemptIf: { categorizedAs: divinity, minRank: B }
+      # "Does not affect Attacks/Skills/Spells that are only Categorized as
+      # Noble Phantasms": EMIYA's Overedge was refused inside (#189).
+      sparesCategorizedNP: true
   # 1. "When Ramesseum Tentyris is activated, three additional Units allied with
   # Ozymandias are spawned within the Complex: Sphinx, Sphinx Queen, and Sphinx
   # Wehem-Mesut."

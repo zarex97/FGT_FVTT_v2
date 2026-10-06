@@ -2106,7 +2106,11 @@ export const EXECUTORS = Object.freeze({
   },
 
   Suppress(el, { source, out }) {
-    out.suppressions.push({ scope: el.scope, predicate: el.predicate ?? null, source });
+    out.suppressions.push({
+      scope: el.scope, predicate: el.predicate ?? null, source,
+      // God's Curse spares what is only Categorized as a Noble Phantasm (#189).
+      ...(el.sparesCategorizedNP ? { sparesCategorizedNP: true } : {}),
+    });
   },
 
   Immunity(el, { source, out }) {

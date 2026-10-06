@@ -159,3 +159,17 @@ describe("the Sphinx Wehem-Mesut deals MAG at a Range of 2 or more (#189)", () =
     expect(normalAttackAt(unit, 1)).toMatchObject({ component: "str", sources: [{ unit: "self", component: "str", factor: 1 }] });
   });
 });
+
+describe("God's Curse spares what is only Categorized as a Noble Phantasm (#189)", () => {
+  it("prevents a Noble Phantasm and spares an ability only categorized as one", async () => {
+    const { preventedBy } = await import("../../module/rules/budget.mjs");
+    const rt = src("abilities", "ozymandias-ramesseum-tentyris.yml");
+    const curse = rt.field.interior.find((r) => r.key === "Suppress" && r.scope === "npSeal");
+    expect(curse.sparesCategorizedNP).toBe(true);
+    const unit = { suppressions: [{ scope: "npSeal", sparesCategorizedNP: true }] };
+    expect(preventedBy(unit, "np").prevented).toBe(true);
+    expect(preventedBy(unit, "np", { categorizedOnly: true }).prevented).toBe(false);
+    // An ordinary NP Seal makes no such exception.
+    expect(preventedBy({ suppressions: [{ scope: "npSeal" }] }, "np", { categorizedOnly: true }).prevented).toBe(true);
+  });
+});

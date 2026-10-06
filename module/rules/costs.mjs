@@ -376,7 +376,9 @@ export function canUseAbility({
   // before this. Asked HERE for the reason the block below already gives: a
   // player who presses something and watches nothing happen has been shown a
   // bug, not told a rule.
-  const sealed = preventedBy(unit, preventionActionFor(ability));
+  const sealed = preventedBy(unit, preventionActionFor(ability), {
+    categorizedOnly: !ability?.isNP && Boolean(ability?.categorizedAsNP),
+  });
   if (sealed.prevented) {
     return { ok: false, reason: "prevented", detail: { by: sealed.by }, cost };
   }
