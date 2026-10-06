@@ -241,3 +241,25 @@ describe("a suspension lapses on its tick (#190)", () => {
     expect(s.indexOf("await reconcileForcedModes();", at)).toBeGreaterThan(at);
   });
 });
+
+describe("a contracted Servant serves its new Master's side (#190)", () => {
+  it("takes the Master's faction with the contract", async () => {
+    await prepareSubjects();
+    const enemyMaster = { type: "master", id: "m2", name: "Master of Lancer", attributes: ["human"], baseHealth: 200 };
+    const side = await withSubjects([
+      { from: "penthesilea", id: PEN, state: { factionId: "faction-1", contract: "contracted" } },
+      { from: enemyMaster, id: "kmaster0000000aa", state: { factionId: "faction-2" } },
+    ], async ({ world }) => {
+      const io = (await import("../../module/engine/io.mjs")).worldIO();
+      await io.setContract(PEN, "contracted", "kmaster0000000aa");
+      return [world.actor(PEN).system.factionId, world.actor(PEN).system.masterId];
+    });
+    expect(side).toEqual(["faction-2", "kmaster0000000aa"]);
+  }, 120_000);
+
+  it("takes it in a Conquest too", async () => {
+    const { readFileSync } = await import("node:fs");
+    const s = readFileSync("module/engine/io.mjs", "utf8");
+    expect(s).toMatch(/"system\.masterId": d\.masterId, "system\.factionId": side \}/);
+  });
+});

@@ -1269,7 +1269,10 @@ export function worldIO() {
       if (!servant) return;
 
       const previous = servant.system?.masterId ?? null;
-      await servant.update({ "system.contract": contract, "system.masterId": masterId });
+      // A contracted Servant serves its Master's side (#190).
+      const side = masterId ? (resolve(masterId)?.system?.factionId ?? servant.system?.factionId ?? null)
+        : (servant.system?.factionId ?? null);
+      await servant.update({ "system.contract": contract, "system.masterId": masterId, "system.factionId": side });
 
       if (previous && previous !== masterId) {
         const old = resolve(previous);
@@ -1605,7 +1608,11 @@ async function resolveConquest(deadMasterId, killerId) {
       if (!servant) continue;
       // Straight to the new Contract. Never `free` first, and never through a
       // separate freeing pass -- that is the whole point of the transaction.
-      await servant.update({ "system.contract": d.contract, "system.masterId": d.masterId });
+      // ...and onto the new Master's SIDE. The faction stayed the dead
+      // Master's, so a conquered Servant went on fighting for the side that
+      // lost her, under a Master of the other (#190).
+      const side = resolve(d.masterId)?.system?.factionId ?? servant.system?.factionId ?? null;
+      await servant.update({ "system.contract": d.contract, "system.masterId": d.masterId, "system.factionId": side });
       claimed.add(d.unitId);
     } else if (d.kind === "grantCommandSpells") {
       const claimant = resolve(d.masterId);
