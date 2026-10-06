@@ -179,3 +179,24 @@ describe("a Normal-Attack-only rider is not filed on a Noble Phantasm (#190)", (
     expect(readFileSync("module/engine/attack.mjs", "utf8")).toMatch(/options: new Set\(\[\.\.\.options, \.\.\.selfOptionsOf\(hearer\)\]\)/);
   });
 });
+
+describe("a rolled modifier's die is on the card (#190)", () => {
+  it("files Goddess of War's d4 where it reached the breakdown, and only there", async () => {
+    const { modifierDiceRecords } = await import("../../module/rules/roll-log.mjs");
+    const gow = "Goddess of War: War God's Military Sash";
+    const ctx = {
+      attacker: { modifiers: [
+        { key: "atkUp", source: gow, roll: { key: "goddessOfWarAtk", formula: "1d4", multiplier: 10 } },
+        // Her own cut, which this Attack of hers did not use.
+        { key: "defUp", source: gow, roll: { key: "goddessOfWarDef", formula: "1d4", multiplier: 10 } },
+      ] },
+      defender: { modifiers: [{ source: "Other", roll: { key: "other", formula: "1d6" } }] },
+      rolls: { goddessOfWarAtk: 3, goddessOfWarDef: 2, other: 5 },
+    };
+    // As the pipeline writes it: the modifier key as `source`, the ability as `note`.
+    const result = { breakdown: [{ index: 4, contributors: [{ source: "atkUp", value: 30, note: gow }] }] };
+    const out = modifierDiceRecords(ctx, result, { attackerId: "pen", defenderId: "kar" }, 7);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ formula: "1d4", total: 3, purpose: gow });
+  });
+});
