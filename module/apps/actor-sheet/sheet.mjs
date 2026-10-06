@@ -604,8 +604,12 @@ export async function pickPlacementFor(actor, ability, { requireUnitId = null, e
   };
   const isNP = ability?.type === "noblePhantasm";
 
+  // The board's unit for the session and its preview too (#187): the bare
+  // snapshot has no `platformId`, so a conditional anchor tested against it
+  // took its fallback while aiming -- Beyond the Uncharted from the Golden
+  // Hind's deck previewed everyone within 2 of Drake.
   return pickTarget({
-    spec, caster, board,
+    spec, caster: boardSelf, board,
     preview: {
       label: ability?.name ?? game.i18n.localize("FGT.Chat.NormalAttack"),
       isAttack: ability ? classifyAbility(ability).isAttack : true,
@@ -621,7 +625,7 @@ export async function pickPlacementFor(actor, ability, { requireUnitId = null, e
         // display (Ch. 46 §46.8).
         if (dealsNoDamage(ability)) return null;
         return preview.damageRange(
-          previewContext({ caster, defender, ability, board, isNP }),
+          previewContext({ caster: boardSelf, defender, ability, board, isNP }),
           { negation: preview.negationBounds(defender, isNP) },
         );
       },

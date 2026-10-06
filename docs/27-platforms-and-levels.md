@@ -111,6 +111,8 @@ The axes:
 
 **The Golden Hind cannot be affected by buffs or debuffs** (#187). Its sheet says so in the Hanging Gardens' words, and the platform authored neither rule: Beyond the Uncharted from the deck put NP DmUp, Atk Up and NP Regen on the ship. It now carries `Immunity` at `scope: debuffs` and `scope: buffs`, as the Gardens do.
 
+**The Golden Hind's hull takes only ranged Attacks from the ground** (#187). *"Enemy Units on the ground can only Attack the Golden Hind with ranged Attacks."* The platform authored the occupants' axes and not the hull's, so a melee Attack from the ground reached the ship. It now carries `crossLevel.hullTargeting: rangedOnly`, as the Gardens do.
+
 **A deep token stands on each panel once** (#187). A v14 token has a depth, and the 4x3 Golden Hind at depth 3 reported 36 grid offsets, each panel once per elevation layer. `rules/snapshot.mjs#gridFootprint` keeps one entry per panel, the lowest layer, which `level` reads.
 
 **What destroys one.** A platform whose Health reaches 0 is defeated like a Unit, and a defeated platform is destroyed; one that authors `destroyedWithOwner` (the Hanging Gardens: *"destroyed when Semiramis is defeated"*) is destroyed with its owner. The applier's `defeat` case asks `io.destroyPlatformsOf`, which reads `rules/platforms.mjs#platformsDestroyedBy`. Before §46.4-CH only an effect on the owner (`deactivateOn`) or an unpaid upkeep ever destroyed a platform.

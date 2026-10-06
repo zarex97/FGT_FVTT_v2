@@ -562,8 +562,14 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
         const refused = options.find((o) => !o.legal && at(o));
         if (refused) {
           const unit = board.units.find((u) => u.id === refused.placement.unitId);
+          // The Unit's OWN exclusion first: the resolution's error is about the
+          // whole selection ("No legal targets: The Golden Hind is an ally..."),
+          // where the excluded entry says why THIS one is out (directly below
+          // the ship, out of Range).
+          const own = (refused.resolved?.excluded ?? []).find((e) => e.unitId === unit?.id)?.reason;
           ui.notifications.warn(game.i18n.format("FGT.Targeting.NotThisUnit", {
-            name: unit?.name ?? "?", reason: (refused.reasons ?? [])[0] ?? game.i18n.localize("FGT.Targeting.Illegal"),
+            name: unit?.name ?? "?",
+            reason: own ?? (refused.reasons ?? [])[0] ?? game.i18n.localize("FGT.Targeting.Illegal"),
           }));
         }
         return KEEP;
