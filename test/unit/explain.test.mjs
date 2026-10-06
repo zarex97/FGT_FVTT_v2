@@ -187,3 +187,12 @@ describe("an adjustment after the pipeline is named (#184)", () => {
     expect(rows[0].inert).toBe(false);
   });
 });
+
+describe("the element's stage is named (#189)", () => {
+  it("reads 'Element', not 'Stage 4.5'", () => {
+    const { rows } = explainDamage({ total: 10, breakdown: [
+      { index: 4.5, before: { mag: 10, phys: 0 }, after: { mag: 10, phys: 0 }, contributors: [], notes: [] },
+    ] });
+    expect(rows[0].label).toBe("Element");
+  });
+});

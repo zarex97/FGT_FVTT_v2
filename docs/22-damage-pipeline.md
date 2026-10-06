@@ -36,7 +36,7 @@ Each stage runs in order, capturing what it changed into the `breakdown` array. 
 
 4. **Combined Percent** (line 384): The one additive bucket—Atk Up, Def Up, Dmg Cut, etc.—summed before application. *"If AU has 30% Atk Up and DU has 100% Def Up: (100+30−100)% = 30% damage."*
 
-4.5. **Elements** (line 472): Element-based resistance and amplification. Run as a substage of stage 4, scaling damage by the element percent.
+4.5. **Elements** (line 472): Element-based resistance and amplification. Run as a substage of stage 4, scaling damage by the element percent. Its card row reads **Element** (`rules/explain.mjs#BETWEEN_LABELS`); it read "Stage 4.5" on every attack carrying an element (#189).
 
 5. **Component Amplification** (line 561): Component-scoped modifiers (STR-only, MAG-only). Applied separately to the physical and magical shares.
 

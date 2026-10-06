@@ -33,6 +33,13 @@ describe("presentRefusal", () => {
     expect(presentRefusal("somethingNew")).toMatchObject({ kind: "hard", unrecognised: true });
   });
 
+  it("does not end a worded reason twice (#189)", () => {
+    // The template adds the full stop: "Range is 5.." on every far anchor.
+    const out = presentRefusal("Anchor panel is 6 panels away; Range is 5.");
+    expect(out.params.reason).toBe("Anchor panel is 6 panels away; Range is 5");
+    expect(out.reason).toBe("Anchor panel is 6 panels away; Range is 5.");
+  });
+
   it("only ever uses a documented kind", () => {
     for (const reason of Object.keys(REFUSALS)) {
       expect(LEGALITY_KINDS).toContain(presentRefusal(reason).kind);

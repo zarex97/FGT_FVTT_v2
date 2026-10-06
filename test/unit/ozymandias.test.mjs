@@ -3,7 +3,7 @@
  * @see char_orig_sheets/Copia de Ozymandias.md, docs/46-roster-re-audit.md
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
@@ -188,5 +188,39 @@ describe("the Sphinxes come back with the Stats they left with (#189)", () => {
     const src3 = readFileSync("module/engine/fields.mjs", "utf8");
     expect(src3).toMatch(/const live = summon\.getActiveTokens\?\.\(\)\[0\]\?\.actor \?\? summon;/);
     expect(src3).toMatch(/health: \{ value: live\.system\.health\?\.value/);
+  });
+});
+
+describe("Pyramid Drop: Ramesseum Tentyris ends first, then the Drop (#189 reading 10)", () => {
+  it("ends every open field an expend phase names, and nothing else", async () => {
+    vi.resetModules();
+    const ended = [];
+    vi.doMock("../../module/engine/board.mjs", async (orig) => ({
+      ...(await orig()),
+      currentBoard: () => ({ units: [], fields: [{ id: "ozymandias-ramesseum-tentyris" }] }),
+    }));
+    vi.doMock("../../module/engine/fields.mjs", async (orig) => ({
+      ...(await orig()),
+      endField: async (id) => { ended.push(id); return true; },
+    }));
+    try {
+      const { endExpendedFields } = await import("../../module/engine/skill-use.mjs");
+      expect(await endExpendedFields({ system: src("abilities", "ozymandias-pyramid-drop.yml") })).toBe(true);
+      expect(ended).toEqual(["ozymandias-ramesseum-tentyris"]);
+      expect(await endExpendedFields({ system: { phases: [{ kind: "damage" }] } })).toBe(false);
+      expect(ended).toHaveLength(1);
+    } finally {
+      vi.doUnmock("../../module/engine/board.mjs");
+      vi.doUnmock("../../module/engine/fields.mjs");
+      vi.resetModules();
+    }
+  });
+
+  it("ends it before any Process is declared, and drops a defender it took with it", () => {
+    const s = readFileSync("module/engine/attack.mjs", "utf8");
+    const body = s.slice(s.indexOf("async function declareProcesses("));
+    expect(body.indexOf("endExpendedFields(ability)")).toBeGreaterThan(0);
+    expect(body.indexOf("endExpendedFields(ability)")).toBeLessThan(body.indexOf("process.beginFanOut"));
+    expect(body).toMatch(/targetIds = targetIds\.filter\(\(id\) => standing\.has\(id\)\)/);
   });
 });

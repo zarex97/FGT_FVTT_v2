@@ -738,6 +738,8 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
             // *"...in this case Ramesseum Tentyris ends first, then the Pyramid
             // Drop occurs."* The ORDER is the sheet's, and it matters: the
             // Complex's own interior rules must not be standing over the blast.
+            // On the attack path `endExpendedFields` has ended it already,
+            // before any Process; this covers a use with no Process.
             const { endField } = await import("./fields.mjs");
             if ((board.fields ?? []).some((f) => f.id === contentId)) await endField(contentId);
             await item.update({ "system.expended": true });
@@ -2153,6 +2155,36 @@ export async function resolveWithoutProcess({ ability, actor, targets, board }) 
   })], `counter:${ability.id}`);
   await postCard(actor, ability, targets, applied);
   return applied;
+}
+
+/**
+ * End every open field an `expend` phase names, before the use does anything.
+ *
+ * > *"…in this case Ramesseum Tentyris ends first, then the Pyramid Drop
+ * > occurs."*
+ *
+ * The caster pass runs after the Processes are declared, and a Process with no
+ * reaction to wait for resolves inside that declaration. Pressed live: the Drop
+ * defeated a Master under the Complex's interior rules, hit a Sphinx that then
+ * vanished with its Process open, and only then ended the Complex (#189).
+ *
+ * @param {object} ability
+ * @returns {Promise<boolean>} whether any field ended
+ */
+export async function endExpendedFields(ability) {
+  const open = new Set((currentBoard().fields ?? []).map((f) => f.id));
+  let ended = false;
+  for (const phase of effectivePhases(ability?.system ?? {}, resolveSource)) {
+    if (phase.kind !== "expend") continue;
+    for (const contentId of phase.abilities ?? []) {
+      if (!open.has(contentId)) continue;
+      const { endField } = await import("./fields.mjs");
+      await endField(contentId);
+      open.delete(contentId);
+      ended = true;
+    }
+  }
+  return ended;
 }
 
 export async function runCasterChannel(ability, actor, board) {

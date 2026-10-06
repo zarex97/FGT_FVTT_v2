@@ -26,6 +26,13 @@ export const STAGE_LABELS = Object.freeze([
 ]);
 
 /**
+ * The stages BETWEEN the numbered ones, which `STAGE_LABELS` cannot index.
+ * 4.5 is the element's own scale (`stage4bElements`): every attack carrying an
+ * element printed it as "Stage 4.5" (#189).
+ */
+export const BETWEEN_LABELS = Object.freeze({ 4.5: "Element" });
+
+/**
  * @typedef {object} ExplainerRow
  * @property {number} index
  * @property {string} label
@@ -83,7 +90,7 @@ export function explainDamage(result, opts = {}) {
 
     rows.push({
       index: stage.index,
-      label: STAGE_LABELS[stage.index] ?? STAGE_NAMES[stage.index] ?? `Stage ${stage.index}`,
+      label: STAGE_LABELS[stage.index] ?? BETWEEN_LABELS[stage.index] ?? STAGE_NAMES[stage.index] ?? `Stage ${stage.index}`,
       delta: inert ? "—" : formatDelta(before, after),
       running: round(after),
       contributors,
