@@ -829,7 +829,9 @@ function stage11Resistance(s) {
     const pct = mr.percent ?? lookupNumber("magicResistancePercent", mrRank);
     const lost = s.mag * (pct / 100);
     s.mag -= lost;
-    s.contribute("magicResistance", -lost, `−${pct}% MAG (MR ${mrRank} < attack ${attackRank})`, "defender");
+    // An attacker with no MAG Rank -- a Sphinx, a summon -- is named as such;
+    // the row read "attack null" (#189).
+    s.contribute("magicResistance", -lost, `−${pct}% MAG (MR ${mrRank} < attack ${attackRank ?? "with no MAG Rank"})`, "defender");
   }
   s.end(11);
 }

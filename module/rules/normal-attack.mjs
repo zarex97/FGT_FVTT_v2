@@ -85,9 +85,17 @@ export function normalAttackAt(unit, range = null, { platform = null } = {}) {
   const sources = (band.sources ?? []).map((s) => ({
     unit: named, component: s.component ?? component, factor: s.factor ?? 1,
   }));
+  // A band that names only a COMPONENT re-sources the swing from it: the
+  // Sphinx Wehem-Mesut's *"Base Attack (STR/MAG): 200 (At a Range of 2 or
+  // higher, Attack deals MAG damage)"* is `{from: 2, component: mag}`, and
+  // falling back to the flat STR sources labelled the hit MAG and dealt it as
+  // STR, so Magic Resistance never saw it (#189).
+  const bandOnly = band.component && sources.length === 0
+    ? [{ unit: named, component: band.component, factor: 1 }]
+    : null;
 
   return {
-    sources: sources.length > 0 ? sources : flat.sources,
+    sources: sources.length > 0 ? sources : (bandOnly ?? flat.sources),
     // What the attack COUNTS AS when two components are combined: the sheet's
     // own framing is "Base Attack (STR) and 20% of his Base Attack (MAG)
     // combined", a STR attack with a MAG top-up, and `damage.component` is
