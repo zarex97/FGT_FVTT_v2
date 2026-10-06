@@ -4828,6 +4828,7 @@ Command Spell spent in her own Turn, which no control could spend.
 | cb11a1f | A rolled modifier's die is on the card (§46.4-IH) |
 | cd6ff5a | An own-Turn Command Spell from the Master's bar; suspension of a passive, and its lapse (§46.4-II to IK) |
 | 94f7352 | A contracted Servant serves its new Master's side (§46.4-IL) |
+| 7575b9a | Readings 11 to 13: the forced deactivation at any moment, over Hatred; the floor inside the lockout (§46.4-IN to IP) |
 
 The three readings the press raised were ruled and built after it (§46.4-IN to IP).
 
