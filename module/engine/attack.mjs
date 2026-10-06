@@ -37,7 +37,7 @@ import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { inAttackRangeBetween, chebyshev } from "../domain/geometry.mjs";
 import { missChance, missSourceOf, chanceFromDistance } from "../rules/miss.mjs";
-import { rollOptionsFor } from "../rules/options.mjs";
+import { rollOptionsFor, selfOptionsOf } from "../rules/options.mjs";
 import { collectContributions, resolveValue } from "../rules/elements.mjs";
 import { test as testPredicate, explain as explainPredicate } from "../rules/predicate.mjs";
 import { thresholdFor, damageFromDice, thresholdModifiers } from "../rules/damage/dice-count.mjs";
@@ -2275,7 +2275,11 @@ async function fireDamageDealt(state, result) {
     // Filed only where its clause applies: a "15% on a Crit" roll on an attack
     // that did not Crit decided nothing, and the card said "missed" (#187).
     if (spec.predicate && !testPredicate(spec.predicate, {
-      options: new Set([...options, ...rollOptionsFor({ attacker: hearer, defender: null })]),
+      // Only the hearer's `self:` facts. A bare `rollOptionsFor` also emits
+      // `attack:kind:normal` for the attack it was not given, so every
+      // "Normal Attacks only" rider was filed on a Noble Phantasm too: Karna's
+      // Burn read "hit" on Brahmastra and applied nothing (#190).
+      options: new Set([...options, ...selfOptionsOf(hearer)]),
     })) continue;
     const hit = rolls[spec.key] <= spec.chance;
     records.push(rollLog.record({
