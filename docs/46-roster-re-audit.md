@@ -3707,6 +3707,84 @@ A barrier EMIYA projects, filed as a buff at chance 500, so No Buff on a covered
 self- or ally-applied. Ruled 2026-10-06: no application skips the target's gates for being its own side's. The
 key is gone. Ch. 14, 15.
 
+### IC. Hatred of Achilles never switched Mad Enhancement on — **fixed** (#190)
+
+**Reached: HA.me.** Achilles walked to 4 panels of her and nothing happened. In v14 a TokenDocument's `x` and `y`
+read the animated position until the move finishes, so the board projected in `updateToken` still had him at 5.
+The move's invalidation waits for `movementAnimationPromise` (8679295). Ch. 12.
+
+### ID. The End Turn gate never saw a compulsion — **fixed** (#190)
+
+**Reached: HA.end.** She could end her Turn without moving towards him: the HUD built its verdict from bare
+snapshots, and only the board pass annotates a compulsion. It reads the board's Units; a Round that forbids every
+Attack demands only the Move (599172b). Ch. 19.
+
+### IE. A one-panel drag compared nothing — **fixed** (#190)
+
+**Reached: HA.move.** A sideways step under Hatred went through: the drag gate never asked Hatred, and Foundry's
+waypoints carry only where a move goes, so a one-panel path had no start to measure from. Decoy's *"cannot Move
+away"* and a Kagome Spirit's pursuit let every single step through for the same reason. The gate measures from
+the move's origin and asks Hatred (599172b). Ch. 19.
+
+### IF. A Turn end that moved a Health bar said nothing — **fixed** (#190)
+
+**Reached: ME.drain.** Her Master lost 30 at each Turn's end and no card said why. A `StatDelta` from the
+scheduler carries its handler's `source`, and the Turn end posts *"Master of Berserker of Faction 1 loses 30 Health
+(Mad Enhancement)."* (441afa9). Ch. 37.
+
+### IG. A Normal-Attack-only rider was filed on a Noble Phantasm — **fixed** (#190)
+
+**Reached: ME.dt.np.** Karna's Brahmastra card read *"Karna: burn on Penthesilea … 12 against 25%: hit"* and no
+Burn landed: his Burn rides Normal Attacks, and the filing test unioned the hearer's bare options, which carry
+`attack:kind:normal` for an attack they were not given. It takes only `self:` facts (0887510). Ch. 37.
+
+### IH. Goddess of War's d4 was on no card — **fixed** (#190)
+
+**Reached: GW.def.np.** *"Def Up Goddess of War −20%"*, and nothing said which die made it. Each rolled modifier
+the breakdown used is filed in the card's Rolls, matched on its key and its ability (cb11a1f). Ch. 37.
+
+### II. No control spent a Command Spell in the Master's own Turn — **built** (#190)
+
+**Reached: ME.cs.** Suspend Skill and the cooldown commands were spendable only from an attack card's interrupt.
+The Master's bar offers Command Spell: the command, then the Skill it reaches; a spend posts a card (cd6ff5a).
+Ch. 33.
+
+### IJ. A suspended passive kept its rules — **fixed** (#190)
+
+**Reached: HA.cs.** `suspendedUntil` was read for a Mode only, so Hatred bought off by a Command Spell held its
+compulsion. A suspended Skill contributes nothing until its span passes (cd6ff5a). Ch. 33.
+
+### IK. A suspension lapsed only when somebody moved — **fixed** (#190)
+
+**Reached: ME.cs.re.** Mad Enhancement bought off to tick 23 beside Heracles stayed off past it: the reconcile a
+Turn change raises ran before the tick moved. It runs again after (cd6ff5a). Ch. 33.
+
+### IL. A conquered Servant kept the side that lost her — **fixed** (#190)
+
+**Reached: ME.sus.** Karna's Master conquered her and she stayed on faction-1. A contract and a Conquest write the
+new Master's faction (94f7352). Ch. 32.
+
+### IM. The Grand Order setting spared nobody from Hatred — **fixed** (#190)
+
+**Reached: HA.go.** The setting's own comment said it switched Hatred off against allies; nothing read it. The
+board carries `grandOrder`, and Hatred's compulsion declares `spareAlliesInGrandOrder` (1695b47). Ch. 32.
+
+### IN. Hatred against Mad Enhancement's forced deactivation — **open, needs a ruling** (#190)
+
+**Reached: ME.force.** *"When its Master's Health is 30 or less, ME is forcibly deactivated"* against Hatred's
+*"regardless of … any other factors"*. Built: it switches off at the Turn's end and Hatred switches it back on, and
+the floor then holds her Master at 30.
+
+### IO. The floor during the 2◈ lock — **open, needs a ruling** (#190)
+
+**Reached: ME.floor.** The floor holds only while Hatred holds the mode on, not during the 2◈ after activation,
+when it cannot be deactivated either.
+
+### IP. A drain that takes the Master to 0 — **open, needs a ruling** (#190)
+
+**Reached: ME.drain.** With no floor, a Master at 30 loses 30 and is defeated; the forced deactivation is checked
+after the drain, not before.
+
 ---
 
 ---
@@ -4722,3 +4800,44 @@ cleared to raise it again after each ending; a Kingprotea's MAG raised to A; the
 the Round's damage window set to 2950 to cross 3000 with one swing; Karna's Mana Burst cooldown cleared. Magic
 Resistance's chance clauses, his Sustainability inside the Complex and the Debuff rolls were pressed through
 the live board's engine, each with its differential.
+
+## 46.22 Penthesilea — the Servant a Greek Male decides
+
+**All 74 of her Clauses were Pressed or Observed on a live board** (#190, 2026-10-06). Ten readings were ruled on
+2026-10-06: a Greek Male is a Servant, for Hatred and for Atk Up (GreekMale) (1); she goes for the nearest, the
+player picking between two at one distance (2); under Hatred she only Moves and Attacks, Outrage Amazon on him
+being an Attack (3); she Moves towards him with all her MOV and may not end her Turn short (10). Built as they
+stood: Hatred switches Mad Enhancement on during its lock (4); Mad Enhancement's Command Spell holds it off for 1◈
+beside a Greek Male (5); an idle Turn costs her Master nothing (6); an Atk Up (Charisma) she already holds keeps
+working under Mad Enhancement (7); Goddess of War lowers her own Evade rolls (8); Def Down lands only when the hit
+deals damage (9). Three are open (11 to 13), all about Mad Enhancement's drain against Hatred.
+
+**Why she finds what she finds.** Hatred of Achilles is positional and compels, so it asks the board at every
+move and every Turn's end; and nothing on the live board had ever asked. Her sheet also prices a Skill in a
+Command Spell spent in her own Turn, which no control could spend.
+
+### 46.22.1 What she cost the engine
+
+| Commit | Finding |
+|---|---|
+| 1695b47 | The rulings built; the Grand Order setting read (§46.4-IM) |
+| 8679295 | A moved token invalidates once its move has settled (§46.4-IC) |
+| 599172b | The End Turn gate and the drag gate see Hatred; a one-panel drag measured from its origin (§46.4-ID, IE) |
+| 441afa9 | A Turn end's Health change posts a card (§46.4-IF) |
+| 0887510 | A Normal-Attack-only rider is not filed on an NP (§46.4-IG) |
+| cb11a1f | A rolled modifier's die is on the card (§46.4-IH) |
+| cd6ff5a | An own-Turn Command Spell from the Master's bar; suspension of a passive, and its lapse (§46.4-II to IK) |
+| 94f7352 | A contracted Servant serves its new Master's side (§46.4-IL) |
+
+Three findings stay open, and all are readings (§46.4-IN to IP).
+
+### 46.22.2 What was staged
+
+Named in each evidence line: opening positions, and Achilles, Heracles and Karna placed into or out of reach;
+Heracles made her ally for the ally half and the Grand Order setting switched on for it; her Master's Health set to
+40, 60 or 183 to pay, to floor or to be defeated; Karna's Turn record, budget and Brahmastra cooldown reset to strike
+her again, his Master's Health restored to pay; her own cooldowns and Turn record reset; Mad Enhancement switched
+off or on directly for the passives' differentials; No Buff, Skill Seal and Atk Up (STR) laid on her and removed;
+Conquest's sparing switched off for clause 5; her Health restored after Karna's NPs defeated her once. Charisma's
+passive, Mad Enhancement's MAG halving and its immunity to buff removal, Golden Rule's Debuff Immune, Goddess of
+War on an NP and the ally half of Hatred were pressed through the live board's engine, each with its differential.
