@@ -3594,12 +3594,15 @@ only. Ruled 2026-10-06 (readings 15, 17): the Eyes target enemies and Civilians,
 admits nothing else neutral; a Civilian's Agility Check is against 0 and always fails. Live, *"Agility Check 9
 vs 0: failure"*, *"Petrify"*. Ch. 20.
 
-### HK. The Mark Action was allowed in the first Round — **ruled and built** (#188)
+### HK. The Mark Action and the first Round — **ruled again: allowed** (#188)
 
 **Reached: BF.mark.** No Attack is permitted in the first Round, and a Mark *"counts as her Attack for the
 Turn"*. The Mark was placed on Turn 1 all the same. Ruled 2026-10-06 (readings 16, 18): the ban reaches every
 action that counts as an Attack, written once as the Attack pool's actions. Live, in a staged Round 1: *"No
-attacks are permitted during the first Round, and a Mark counts as her Attack."* Ch. 19.
+attacks are permitted during the first Round, and a Mark counts as her Attack."* **Ruled again 2026-10-06
+(reading 16):** the Mark is allowed in Round 1. It still spends her Attack for the Turn. `FIRST_ROUND_EXEMPT`
+holds it, and `placeMark` no longer asks. Live, in a staged Round 1: the Mark placed a Bloodmark on (11,5); her
+Normal Attack on Medea was refused, *"No attacks are permitted during the first Round."* Ch. 19.
 
 ### HL. An ally's Noble Phantasm cooldown cut landed on the caster — **fixed** (#189)
 
@@ -4639,7 +4642,8 @@ reported less than it did.
 | 93e5a5d | The Eyes reach Civilians; the first Round forbids the Mark (§46.4-HJ, HK) |
 
 Two more readings were ruled on 2026-10-06 and built: the Eyes reach Civilians, who always fail their check
-(§46.4-HJ); and the first Round forbids every action that counts as an Attack, the Mark among them (§46.4-HK).
+(§46.4-HJ); and the first Round forbids every action that counts as an Attack but the Mark, which was ruled again to
+be allowed (§46.4-HK).
 
 ### 46.20.2 What was staged
 
