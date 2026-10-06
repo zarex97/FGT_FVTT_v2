@@ -63,7 +63,7 @@ vi.mock("../../module/engine/state-history.mjs", () => ({
 }));
 vi.mock("../../module/engine/dimension.mjs", () => ({ runDimensionClock: async () => {} }));
 vi.mock("../../module/engine/channel.mjs", () => ({ advanceChannels: async () => {} }));
-vi.mock("../../module/engine/modes.mjs", () => ({ turnEndModeIntents: () => [] }));
+vi.mock("../../module/engine/modes.mjs", () => ({ turnEndModeIntents: () => [], reconcileForcedModes: async () => [] }));
 
 /** The hooks the scheduler registers, by name. */
 const handlers = {};
