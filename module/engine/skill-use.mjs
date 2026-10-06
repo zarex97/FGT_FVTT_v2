@@ -567,14 +567,22 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           );
           break;
 
-        case "cooldown":
-          await applyWorldIntents(
-            phase.choose
-              ? await chosenCooldowns(phase, ability, doc)
-              : cooldownChanges(phase, actor, board, ability, doc),
-            `skill:${ability.id}:cooldown`,
-          );
+        case "cooldown": {
+          const changes = phase.choose
+            ? await chosenCooldowns(phase, ability, doc)
+            : cooldownChanges(phase, actor, board, ability, doc);
+          const remainingOf = (c) => game.actors.get(c.unitId)?.items?.get(c.abilityId)?.system?.cooldown?.remaining ?? 0;
+          const before = changes.map(remainingOf);
+          await applyWorldIntents(changes, `skill:${ability.id}:cooldown`);
+          // On the card. Blood Temple's read *"NP Regen"* and nothing else: the
+          // ⅔◈ it took off the Noble Phantasm left no line (#188).
+          changes.forEach((c, n) => {
+            const name = game.actors.get(c.unitId)?.items?.get(c.abilityId)?.name ?? null;
+            const line = cooldownLine(name, before[n], remainingOf(c));
+            if (line) applied.push({ unitId: c.unitId, summary: { id: "cooldown", name: line, outcome: "applied", reason: null } });
+          });
           break;
+        }
 
         case "removeEffect":
           await applyWorldIntents(
@@ -1474,6 +1482,33 @@ async function postCard(actor, ability, targets, applied) {
     // wants more than that.
     flags: { fgt: { kind: "skill", rows, casterControllers: ownersOf(actor) } },
   });
+}
+
+/**
+ * A check as a card prints it: `Agility Check 3 vs 18: success`.
+ *
+ * @param {string} label the localized check name; an unlocalized key falls back to `kind`
+ * @param {string} kind `agility`, `luck`, ...
+ * @param {{total: number, target: number, success: boolean}} outcome
+ * @returns {string}
+ */
+export function checkLine(label, kind, outcome) {
+  const name = !label || label.startsWith("FGT.") ? kind : label;
+  return `${name} ${outcome.total} vs ${outcome.target}: ${outcome.success ? "success" : "failure"}`;
+}
+
+/**
+ * A cooldown change as a skill card prints it: `Bellerophon: Cooldown 22 → 20`.
+ * `null` when nothing moved -- a reduction on an ability already ready.
+ *
+ * @param {string|null} name the ability's name
+ * @param {number} before remaining Turns before the change
+ * @param {number} after remaining Turns after it
+ * @returns {string|null}
+ */
+export function cooldownLine(name, before, after) {
+  if (!name || !Number.isFinite(before) || !Number.isFinite(after) || before === after) return null;
+  return `${name}: Cooldown ${before} → ${after}`;
 }
 
 /**

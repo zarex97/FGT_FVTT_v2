@@ -22,7 +22,7 @@ import { canUseAbility } from "../../rules/costs.mjs";
 import { test as testPredicate } from "../../rules/predicate.mjs";
 import { rollOptionsFor } from "../../rules/options.mjs";
 import { publicNameOf } from "../../rules/identity.mjs";
-import { abilityCost, abilityState } from "../actor-sheet/present.mjs";
+import { abilityCost, abilityState, abilityNamesOf } from "../actor-sheet/present.mjs";
 import { currentBoard, unitSnapshot, unitFrom, luckOf, gateContext } from "../../engine/board.mjs";
 import * as budget from "../../engine/budget.mjs";
 import { mayDeactivate, ownTurnOf } from "../../engine/fields.mjs";
@@ -753,9 +753,9 @@ async function reshape(field, unit) {
  * @param {number} turnsPerRound
  * @returns {string}
  */
-function abilityRefusal(verdict, entry, turnsPerRound) {
+function abilityRefusal(verdict, entry, turnsPerRound, actor = null) {
   if (verdict?.ok === false) {
-    const state = abilityState(verdict, { turnsPerRound });
+    const state = abilityState(verdict, { turnsPerRound, nameOf: abilityNamesOf(actor) });
     if (game.i18n.has(state.label)) return game.i18n.format(state.label, state.detail ?? {});
     return verdict.reason ?? game.i18n.localize("FGT.Action.Refusal.unavailable");
   }
@@ -827,6 +827,6 @@ function counterTooltip(slot, item, verdict, entry, turnsPerRound) {
     return `${item.name} \u2014 ${game.i18n.localize("FGT.Counter.NotAnAttack")}`;
   }
   return slot.disabled
-    ? `${item.name} \u2014 ${abilityRefusal(verdict, entry, turnsPerRound)}`
+    ? `${item.name} \u2014 ${abilityRefusal(verdict, entry, turnsPerRound, item.parent)}`
     : item.name;
 }

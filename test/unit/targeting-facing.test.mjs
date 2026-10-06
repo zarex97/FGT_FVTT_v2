@@ -195,7 +195,8 @@ describe("a Structure that names who may break it", () => {
     };
     const r = resolveTargets(spec, servant, board([servant, mark]), { unitId: "mark" });
     expect(r.units).toEqual([]);
-    expect(r.excluded.find((e) => e.unitId === "mark").reason).toMatch(/structure/);
+    // Named by kind (#188): "a structure" told the player nothing.
+    expect(r.excluded.find((e) => e.unitId === "mark").reason).toBe("destructible only by master");
   });
 
   it("refuses her own Master: only an ENEMY Master breaks a Bloodmark (#188 reading 7)", () => {

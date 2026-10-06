@@ -39,6 +39,8 @@ Requirements are ability-declared predicates checked at the end of this chain (`
 
 ### Timing windows
 
+**An exclusion names its partner.** `sameTurnExclusive` and `sameRoundExclusive` refuse with the partner's content id, and `present.mjs#abilityState` takes a `nameOf` (`abilityNamesOf(actor)`) so the bar and the sheet read *"Cannot be used on the same Turn as Monstrous Strength"* rather than *"…medusa-monstrous-strength"* (#188).
+
 Six timing windows exist, and only one is not offered at a moment: `ownTurn` is how the sheet button reads (`module/rules/windows.mjs:39-75`). It is **enforced**, though, by two readers (#160): `canToggleMode` for a mode, and `canUseAbility` for every other ability, which refuses with `notOwnTurn` ("Only during your Turn.") when `ownTurn` is the ability's ONLY window and the faction whose Turn is running (`gateContext().actingFactionId`) is not the one the Unit acts on (its `actingFactionId`, so a charmed Unit follows its charmer). It asks nothing when no faction's Turn is running, of an ability that names another window as well (it is used at one or the other and the gate cannot tell which), or of a use made as a Counter (`isCounter`, which is on the enemy's Turn by definition). The others dispatch at specific moments:
 
 - `whenAttacked` — as a reaction inside an attacker's Combat Process (`module/rules/windows.mjs:47-50`)

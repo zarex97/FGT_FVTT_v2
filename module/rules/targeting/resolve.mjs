@@ -333,8 +333,10 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     // them. *"Only Masters can destroy a Bloodmark, and it is done by SIMPLY
     // ATTACKING IT"* -- a Normal Attack, which declares no `kinds` and would
     // otherwise be refused by the blanket exclusion below. Everybody else is
-    // still refused, at step 8b-ii and with a reason that names the kinds.
-    if (u.kind === "structure" && (u.destroyableBy ?? []).includes(caster.kind)) return true;
+    // still refused, at step 8b-ii and with a reason that names the kinds --
+    // so it passes here whoever the caster is. Tested on the caster's kind,
+    // a Servant swinging at a Bloodmark was told only *"a structure"* (#188).
+    if (u.kind === "structure" && (u.destroyableBy ?? []).length > 0) return true;
     // A platform with Health to lose is a Unit that can be attacked. *"Enemy
     // Units on the ground can only Attack the HGoB with ranged Attacks"* says
     // they can, and *"its Health drops to 0"* is how it is destroyed; which

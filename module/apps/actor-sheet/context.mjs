@@ -28,7 +28,7 @@ import { tierOf } from "../../rules/master-rank.mjs";
 import { actedWeight, MULTI_SERVANT_COST } from "../../rules/relationships.mjs";
 import { EffectRegistry } from "../../rules/registry.mjs";
 import {
-  resourceBar, parameterTiles, baseAttackTiles, abilityState, abilityCost,
+  resourceBar, parameterTiles, baseAttackTiles, abilityState, abilityCost, abilityNamesOf,
   groupEffects, describeModifier, remainingTurns,
 } from "./present.mjs";
 
@@ -700,7 +700,7 @@ function abilityCard(item, { actor, unit, master, round, turnsPerRound, board })
     // Kagome, Rank A and always in effect, read "The Master cannot pay the
     // Health cost ... ✗ cannot be paid" on Pale Rider's sheet (#180): the Rank's
     // Health cost belongs to a use that cannot happen.
-    state: use.kind === "passive" ? null : abilityState(verdict, { turnsPerRound }),
+    state: use.kind === "passive" ? null : abilityState(verdict, { turnsPerRound, nameOf: abilityNamesOf(actor) }),
     cost: use.kind === "passive" ? null : abilityCost(verdict.cost, master, unit),
     usage: item.system.maxUses !== null && item.system.maxUses !== undefined
       ? { used: item.system.timesUsed ?? 0, max: item.system.maxUses }
