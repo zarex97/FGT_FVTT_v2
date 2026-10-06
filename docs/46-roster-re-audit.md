@@ -3585,17 +3585,21 @@ The report carries heals and stat changes (4467692). Ch. 28.
 **Reached: BF.civ.enter.** A Civilian walked into the Fort, died and healed Medusa with no card. Every contact
 pass posts *"{field}: on contact"* (4467692). Ch. 28.
 
-### HJ. A Civilian is never an "enemy Unit" — **open, needs a ruling** (#188)
+### HJ. A Civilian was never an "enemy Unit" — **ruled and built** (#188)
 
 **Reached: ME.h.ok.** Mystic Eyes is *"used on an enemy Unit"*, and its first tier names Humans, which #185
 ruled are Civilians and Masters. A Civilian is neutral, so the Eyes refuse it: *"Civilian M1 cannot be
-targeted: a Civilian, and Civilians are neutral; this ability targets enemy"*. The Human tier reaches Masters
-only.
+targeted: a Civilian, and Civilians are neutral; this ability targets enemy"*. The Human tier reached Masters
+only. Ruled 2026-10-06 (readings 15, 17): the Eyes target enemies and Civilians, by a `civilian` relation that
+admits nothing else neutral; a Civilian's Agility Check is against 0 and always fails. Live, *"Agility Check 9
+vs 0: failure"*, *"Petrify"*. Ch. 20.
 
-### HK. The Mark Action is allowed in the first Round — **open, needs a ruling** (#188)
+### HK. The Mark Action was allowed in the first Round — **ruled and built** (#188)
 
 **Reached: BF.mark.** No Attack is permitted in the first Round, and a Mark *"counts as her Attack for the
-Turn"*. The Mark was placed on Turn 1 all the same.
+Turn"*. The Mark was placed on Turn 1 all the same. Ruled 2026-10-06 (readings 16, 18): the ban reaches every
+action that counts as an Attack, written once as the Attack pool's actions. Live, in a staged Round 1: *"No
+attacks are permitted during the first Round, and a Mark counts as her Attack."* Ch. 19.
 
 ---
 
@@ -4550,9 +4554,10 @@ reported less than it did.
 | e2592e8 | Only her defeat ends the Fort; its corners cannot be targeted |
 | 559c827 | Structures under attack; a Skill card's check and cooldown; worded refusals (§46.4-HA to HG) |
 | 4467692 | A field's card lists what it pays; a contact pass posts one (§46.4-HH, HI) |
+| (this) | The Eyes reach Civilians; the first Round forbids the Mark (§46.4-HJ, HK) |
 
-Two findings stay open, and both are readings: whether a Civilian can be the Eyes' target (§46.4-HJ), and
-whether the Mark is an Attack the first Round forbids (§46.4-HK).
+Two more readings were ruled on 2026-10-06 and built: the Eyes reach Civilians, who always fail their check
+(§46.4-HJ); and the first Round forbids every action that counts as an Attack, the Mark among them (§46.4-HK).
 
 ### 46.20.2 What was staged
 

@@ -61,6 +61,10 @@ Masters have an unlimited attack pool but are capped at one attack per turn by t
 
 A linked pair counts as one unit for move slots, each member spending 0.5 halves (`module/rules/budget.mjs:286`). *"Counts as both Castor and Pollux's Attack for the Turn"* — if a joint attack is declared, both twins are marked as having attacked and their combined weight (1.0 halves) is deducted once from the attack pool (`module/rules/budget.mjs:314-327`).
 
+### The first Round: no Attack of any kind
+
+*"During the first Round, neither Player/Faction is allowed to Attack."* The ban reaches every action that **counts as an Attack**, which is every action billed to an Attack pool: `rules/environment.mjs#COUNTS_AS_ATTACK` (`attack`, `np`, `spell`, `ridingAttack`, `mark`), tested equal to what `poolFor` bills there so the two cannot drift. `attackForbiddenThisRound` is asked by the attack preflight and by `engine/marks.mjs#placeMark`. Before this only a declared Attack asked, so Medusa's Mark, which *"counts as her Attack for the Turn"*, was placed on Turn 1 (ruled, #188 readings 16 and 18). A Skill draws a Move slot and is never refused.
+
 ### Prevention: effects that stop action
 
 Held effects in PREVENT_ALL block every action (`module/rules/budget.mjs:34-36`): stun, stop, freeze, petrify, sleep, nightmare, coma, webbed, crystalfreeze. The PREVENTS table lists action kinds each remaining effect blocks — immobilize prevents move; disable prevents everything but move; seal prevents attack/skill/np; silence prevents spell; skillSeal prevents skill and spell; npSeal prevents np only (`module/rules/budget.mjs:39-52`). Suppressions (like NP Seal from Innocent World) are checked alongside held effects (`module/rules/budget.mjs:204-207`).
