@@ -58,6 +58,8 @@ A **Command Spell escape** at step 2.3 ends the process. Both units leave the bo
 
 A **successful Heel Attack** is a special: the attacker gambles declaring it. If it succeeds, damage ignores all defensive buffs. If it fails, the defender evades instead (`module/engine/combat-process.mjs:67-79`).
 
+A **Structure defender answers nothing** (#188). A Structure takes no action at all (`rules/actions.mjs`), so a Master's Attack on a Bloodmark has nobody to ask. The Process records `defenderInert`, `pendingPrompt` shows no prompt for the defender's rungs, and `combat-process.mjs#inertAnswer` answers them as a player who did nothing would: *nothing* on the reaction, *accept* on the escape, *declined* on a Luck rung. Before this the ladder stopped to ask the Bloodmark to Block or Evade, and waited on it.
+
 The process is **complete** when it reaches the `done` state (`module/engine/combat-process.mjs:368-370`).
 
 ## Invariants & edge cases

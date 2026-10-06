@@ -393,4 +393,19 @@ export class StructureData extends foundry.abstract.TypeDataModel {
       }, { required: false, nullable: true, initial: null }),
     };
   }
+
+  /**
+   * Fill Health from `baseHealth`, as `PlatformData` does. A Bloodmark is
+   * authored with `baseHealth: 1` so a Master's single Attack breaks it, and
+   * with no derivation its Health stayed `null` -- which the damage pipeline
+   * reads as *invulnerable by nature*: live, a Master's swing at one dealt 0
+   * (#188).
+   * @inheritdoc
+   */
+  prepareBaseData() {
+    if ((this.health.max === null || this.health.max === 0) && this.baseHealth) {
+      this.health.max = this.baseHealth;
+      if (this.health.value === null) this.health.value = this.baseHealth;
+    }
+  }
 }

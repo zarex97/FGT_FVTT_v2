@@ -30,7 +30,7 @@ Every actor is exactly one of these (`module/domain/enums.mjs:25-27`):
 - **Civilian** (`civilianData`): unit with no parameters, no combat stats, no combat item categories. Moves, can hold items. Story and scenario only.
 - **Summon** (`summonData`): combatant placed by a Servant, with five parameters, two base attacks, inherit fields for stats relative to the summoner (e.g., *"Agility: Pale Rider's plus 2"*), expiry, and optional bounds to a Platform or field.
 - **Platform** (`platformData`): field effect with baseAttack only, footprint (3×3 default, nullable for pocket dimensions), upkeep cost, and owner link. No parameters.
-- **Structure** (`structureData`): objective unit with no combat stats. Constraint rules (who can destroy it, visibility range). Bloodmarks are the reference.
+- **Structure** (`structureData`): objective unit with no combat stats. Constraint rules (who can destroy it, visibility range). Bloodmarks are the reference. Its Health comes from `baseHealth` in `prepareBaseData`, as a Platform's does: a Bloodmark's `baseHealth: 1` stayed `null` Health, which the damage pipeline reads as invulnerable by nature, so a Master's swing at one dealt 0 (#188). A defeated Structure is **destroyed**: `io.defeat` deletes its token and actor rather than leaving it under a skull.
 
 ### Health: two shapes, three meanings
 

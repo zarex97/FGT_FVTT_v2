@@ -1106,6 +1106,14 @@ export function worldIO() {
       if (!actor.system?.defeated) {
         await this.log([{ kind: "defeat", event: "defeated", unitId, cause, killerId, tick: game.combat?.system?.globalTurn ?? 0 }]);
       }
+      // A Structure is destroyed, not left lying: *"Only Masters can destroy a
+      // Bloodmark, and it is done by simply Attacking it."* A broken mark stayed
+      // on its panel under a skull (#188). Nothing reads a defeated Structure.
+      if (actor.type === "structure") {
+        for (const token of actor.getActiveTokens?.() ?? []) await token.document.delete();
+        await actor.delete();
+        return;
+      }
       await actor.update({
         "system.defeated": true, "system.defeatCause": cause,
         // The first defeat's tick, kept by a second: the body's clock runs from

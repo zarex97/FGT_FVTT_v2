@@ -26,7 +26,7 @@ import {
 import * as rollLog from "../rules/roll-log.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
 import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
-import { cooldownChanges } from "./skill-use.mjs";
+import { cooldownChanges, statChangeLine, checkLine } from "./skill-use.mjs";
 import { splitCooldownRider } from "../rules/cooldown-riders.mjs";
 import {
   classifyAbility, targetSpecFor as specForAbility, usageSpecFor, dealsNoDamage,
@@ -1055,6 +1055,10 @@ async function declareProcesses({
           ...defenderRefusals(state.defenderId),
           ...(placement?.plainDamage ? ["evade", "block", "counter"] : []),
         ])],
+        // A Structure takes no action at all (`rules/actions.mjs`), so it
+        // answers no rung (`process.inertAnswer`). A Master's swing at a
+        // Bloodmark stopped to ask the Bloodmark to Block or Evade (#188).
+        defenderInert: game.actors.get(state.defenderId)?.type === "structure",
       }
       : state;
     // A weak point the attacker may aim at (Ch. 45). Offered here, at
@@ -2650,6 +2654,10 @@ async function grailUnderNP(state, siblings, board) {
  * @returns {Promise<object>}
  */
 async function runAutomaticStep(state, message) {
+  // A defender that takes no action answers its own rungs (#188).
+  const inert = process.inertAnswer(state);
+  if (inert) return process.advance(state, inert);
+
   // *"Luck Check cannot be used by the involved Units."* Achilles's duel is the
   // only thing in the game that says so, and it removes the OPTION rather than
   // penalising the roll -- so the rung is declined automatically rather than
@@ -5156,16 +5164,25 @@ export async function runCheckPhase(phase, ability, state, defender, depth = 0) 
   if (kind === "luck") intents.unshift(I.statDelta(state.defenderId, "luck.value", -1));
   await applyBatch(intents, "np:check");
 
+  // The roll and what it decided, on the card. Mystic Eyes' card read *"No
+  // effects were applied"* over an Agility Check that took 2 Agility away:
+  // only effects were reported, so the check, its number and a stat outcome
+  // left no line (#188).
+  const rows = [{ summary: {
+    id: "check", name: checkLine(game.i18n.localize(`FGT.CheckRoll.${kind}`), kind, outcome),
+    outcome: "applied", reason: null, chance: null,
+  } }];
+
   const taken = outcome.success ? branch.onSuccess : branch.onFail;
-  if (!taken) return [];
+  if (!taken) return rows;
 
   // "If Failed, roll again. On the second time, if Successful ... If Failed ..."
   if (isNestedCheck(taken)) {
-    return runCheckPhase(
+    return [...rows, ...await runCheckPhase(
       { ...taken, modifierTable: phase.modifierTable, modifierRank: phase.modifierRank,
         ignoresResistanceFrom: phase.ignoresResistanceFrom },
       ability, state, defender, depth + 1,
-    );
+    )];
   }
 
   // An outcome that is not an effect: *"reduce the DU's Agility by 2"*.
@@ -5174,12 +5191,16 @@ export async function runCheckPhase(phase, ability, state, defender, depth = 0) 
       taken.statDeltas.map((d) => I.statDelta(state.defenderId, d.path, d.delta)),
       "np:check:stat",
     );
+    for (const d of taken.statDeltas) {
+      const line = statChangeLine({ stat: d.path, delta: d.delta });
+      if (line) rows.push({ summary: { id: "statChange", name: line, outcome: "applied", reason: null, chance: null } });
+    }
   }
-  if (!taken.effects?.length) return [];
+  if (!taken.effects?.length) return rows;
 
-  return applyDeclaredEffects(taken.effects, ability, state, defender, {
+  return [...rows, ...await applyDeclaredEffects(taken.effects, ability, state, defender, {
     ignoresResistanceFrom: phase.ignoresResistanceFrom ?? [],
-  });
+  })];
 }
 
 /**

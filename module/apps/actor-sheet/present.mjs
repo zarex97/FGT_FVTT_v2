@@ -217,13 +217,17 @@ function gcd(a, b) {
  * explanation, which is the one thing D29.2 forbids.
  *
  * @param {{ok: boolean, reason?: string, detail?: object}} verdict
- * @param {{turnsPerRound?: number}} [ctx]
+ * @param {{turnsPerRound?: number, nameOf?: function(string): (string|null)}} [ctx]
+ *   `nameOf` turns an ability id or content id into the name a player reads
  * @returns {{ok: boolean, label: string, detail: object}}
  */
-export function abilityState(verdict, { turnsPerRound = 3 } = {}) {
+export function abilityState(verdict, { turnsPerRound = 3, nameOf = null } = {}) {
   if (verdict?.ok !== false) return { ok: true, label: "FGT.Ability.Ready", detail: {} };
 
   const detail = { ...(verdict.detail ?? {}) };
+  // An exclusion names its partner by content id; the player reads its name.
+  // *"Cannot be used on the same Turn as medusa-monstrous-strength"* (#188).
+  if (detail.partner && nameOf) detail.partner = nameOf(detail.partner) ?? detail.partner;
   switch (verdict.reason) {
     case "cooldown":
       detail.ticks = ticksLabel(detail.remaining ?? 0, turnsPerRound);
@@ -384,4 +388,15 @@ function clauseText(clause) {
   return Object.entries(clause)
     .map(([key, value]) => `${key} ${Array.isArray(value) ? value.join(", ") : value}`)
     .join(" ");
+}
+
+/**
+ * A `nameOf` for {@link abilityState}: an ability of this actor, by id or by
+ * content id.
+ *
+ * @param {object|null} actor
+ * @returns {function(string): (string|null)}
+ */
+export function abilityNamesOf(actor) {
+  return (id) => actor?.items?.find?.((i) => i.id === id || i.system?.contentId === id)?.name ?? null;
 }

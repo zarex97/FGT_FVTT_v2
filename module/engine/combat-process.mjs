@@ -322,6 +322,8 @@ export function legalEvents(state) {
 export function pendingPrompt(s) {
   const p = PROMPTS[s.state];
   if (!p) return null;
+  // A defender that takes no action answers nothing: see `inertAnswer`.
+  if (p.side === "defender" && s.defenderInert) return null;
   // The counter rung is the one prompt that is conditional. Offering it to a
   // defender who cannot counter would stop the ladder to ask a question with
   // one answer, so eligibility is decided first (by the orchestrator, which can
@@ -351,6 +353,26 @@ export function pendingPrompt(s) {
   if (s.state === "react" && options?.length === 0) return null;
 
   return { ...p, options, unitId, abilities: extra };
+}
+
+/**
+ * What a defender that takes no action answers on its rung.
+ *
+ * A Structure takes no action at all (`rules/actions.mjs`), so a Master's swing
+ * at a Bloodmark has nobody to ask (#188): no reaction, no Luck, no Command
+ * Spell to escape with. The rung is answered for it, the way a player who did
+ * nothing would answer it, and `pendingPrompt` shows no prompt.
+ *
+ * @param {ProcessState} s
+ * @returns {string|null} the event, or `null` when the rung is not the defender's
+ */
+export function inertAnswer(s) {
+  if (!s?.defenderInert) return null;
+  const p = PROMPTS[s.state];
+  if (!p || p.side !== "defender") return null;
+  if (p.kind === "reaction") return "nothing";
+  if (p.kind === "acceptOrEscape") return "accept";
+  return "declined";
 }
 
 /**

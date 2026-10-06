@@ -12,6 +12,7 @@ import { resolveTargets } from "../../module/rules/targeting/resolve.mjs";
 import { squareBounds } from "../../module/domain/geometry.mjs";
 import { haltIndex } from "../../module/rules/bounded-fields.mjs";
 import { splitPool, distributePool } from "../../module/rules/fields/pool.mjs";
+import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 
 const src = (dir, file) =>
   parse(readFileSync(join(process.cwd(), "packs/_source", dir, file), "utf8"));
@@ -87,5 +88,65 @@ describe("the drain, divided by her player (#188 reading 2)", () => {
   it("is the even split when nobody answers", () => {
     expect(splitPool(61, two, null)).toEqual(distributePool(61, two));
     expect(distributePool(61, two)).toEqual([{ unitId: "medusa", amount: 31 }, { unitId: "master", amount: 30 }]);
+  });
+});
+
+describe("what a Skill's card says (#188)", () => {
+  // Live: the Eyes read "No effects were applied" over an Agility Check that
+  // took 2 Agility, and Blood Temple read "NP Regen" over a 2-Turn cut.
+  it("words a check and a cooldown change", async () => {
+    const { checkLine, cooldownLine } = await import("../../module/engine/skill-use.mjs");
+    expect(checkLine("Agility Check", "agility", { total: 3, target: 18, success: true })).toBe("Agility Check 3 vs 18: success");
+    expect(checkLine("FGT.CheckRoll.foo", "foo", { total: 9, target: 4, success: false })).toBe("foo 9 vs 4: failure");
+    expect(cooldownLine("Bellerophon", 22, 20)).toBe("Bellerophon: Cooldown 22 → 20");
+    // A cut on an ability already ready changed nothing, and prints nothing.
+    expect(cooldownLine("Blood Fort Andromeda", 0, 0)).toBe(null);
+  });
+
+  it("puts the check, the stat change and the cooldown on the card's rows", async () => {
+    const { readFileSync } = await import("node:fs");
+    const attack = readFileSync("module/engine/attack.mjs", "utf8");
+    expect(attack).toMatch(/id: "check", name: checkLine\(/);
+    expect(attack).toMatch(/summary: \{ id: "statChange", name: line/);
+    const skill = readFileSync("module/engine/skill-use.mjs", "utf8");
+    expect(skill).toMatch(/summary: \{ id: "cooldown", name: line/);
+  });
+
+  it("names an exclusion's partner, not its content id", async () => {
+    const { abilityState, abilityNamesOf } = await import("../../module/apps/actor-sheet/present.mjs");
+    const actor = { items: [{ id: "i1", name: "Monstrous Strength", system: { contentId: "medusa-monstrous-strength" } }] };
+    const verdict = { ok: false, reason: "sameTurnExclusive", detail: { partner: "medusa-monstrous-strength" } };
+    expect(abilityState(verdict, { nameOf: abilityNamesOf(actor) }).detail.partner).toBe("Monstrous Strength");
+    expect(abilityState(verdict).detail.partner).toBe("medusa-monstrous-strength");
+  });
+});
+
+describe("a Structure under attack (#188)", () => {
+  it("answers no rung: no reaction, no Luck, no escape", async () => {
+    const process = await import("../../module/engine/combat-process.mjs");
+    expect(process.inertAnswer({ state: "react", defenderInert: true })).toBe("nothing");
+    expect(process.inertAnswer({ state: "s23_acceptOrEscape", defenderInert: true })).toBe("accept");
+    expect(process.inertAnswer({ state: "s22_duContest", defenderInert: true })).toBe("declined");
+    expect(process.inertAnswer({ state: "s21_luckyHit", defenderInert: true })).toBe(null);
+    expect(process.inertAnswer({ state: "react" })).toBe(null);
+    expect(process.pendingPrompt({ state: "react", defenderInert: true, defenderId: "m", attackerId: "a" })).toBe(null);
+    expect(process.pendingPrompt({ state: "react", defenderId: "m", attackerId: "a" })).not.toBe(null);
+  });
+
+  it("has the Health it was authored with, so a Master's Attack can break it", async () => {
+    // `baseHealth: 1` and no derivation: Health stayed null, which the damage
+    // pipeline reads as invulnerable by nature -- live, a Master's swing dealt 0.
+    await prepareSubjects();
+    await withSubjects([{ from: "bloodmark", id: "mark", panel: { i: 5, j: 5 } }], ({ board }) => {
+      const mark = board.units.find((u) => u.id === "mark");
+      expect(mark.kind).toBe("structure");
+      expect(mark.maxHealth ?? mark.health?.max).toBe(1);
+    });
+  }, 120_000);
+
+  it("is destroyed when defeated, not left on its panel", async () => {
+    const { readFileSync } = await import("node:fs");
+    const io = readFileSync("module/engine/io.mjs", "utf8");
+    expect(io).toMatch(/if \(actor\.type === "structure"\) \{\s*for \(const token of actor\.getActiveTokens/);
   });
 });
