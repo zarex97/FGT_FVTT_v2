@@ -370,7 +370,7 @@ describe("The Golden Hind — the statline her sheet prints", () => {
   });
 
   it("attacks with MAG, its only Base Attack", () => {
-    expect(h.normalAttack).toEqual({ mode: "fixed", component: "mag" });
+    expect(h.normalAttack).toEqual({ mode: "fixed", component: "mag", attackRank: "A+" });
   });
 
   it("replaces Drake's Normal Attack but NOT her Move (spec R8)", () => {
@@ -978,5 +978,25 @@ describe("a Skill refusal is worded (#187)", () => {
     expect((sheet.match(/reason: refusalWords\(out\.reason\)/g) ?? []).length).toBe(3);
     const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
     expect(lang["FGT.Ability.Refused.zon"]).toBeTruthy();
+  });
+});
+
+describe("the Golden Hind's swing meets Magic Resistance at A+ (#187 reading 8)", () => {
+  // Live: EMIYA's MR D negated the ship's BA(MAG) 200 swing outright, "MR D ≥
+  // attack E" -- Drake's own MAG. Ruled 2026-10-05: the Noble Phantasm's Rank.
+  it("the ship authors attackRank A+ on its Normal Attack", () => {
+    expect(src("platforms", "golden-hind.yml").normalAttack).toMatchObject({ component: "mag", attackRank: "A+" });
+  });
+
+  it("normalAttackAt carries it from the mount", async () => {
+    const { normalAttackAt } = await import("../../module/rules/normal-attack.mjs");
+    const ship = { normalAttack: { mode: "fixed", component: "mag", attackRank: "A+" } };
+    expect(normalAttackAt({ normalAttack: { component: "str" } }, 3, { platform: ship })).toMatchObject({ component: "mag", attackRank: "A+" });
+    expect(normalAttackAt({ normalAttack: { component: "str" } }, 3).attackRank).toBe(null);
+  });
+
+  it("stage 11 reads it before the attacker's MAG", () => {
+    const pipeline = readFileSync("module/rules/damage/pipeline.mjs", "utf8");
+    expect(pipeline).toMatch(/\?\? Rank\.parseOrNull\(s\.ctx\.attack\?\.attackRank \?\? null\)\s*\n\s*\?\? s\.ctx\.attacker\?\.parameters\?\.mag/);
   });
 });

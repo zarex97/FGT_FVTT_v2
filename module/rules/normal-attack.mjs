@@ -66,6 +66,9 @@ export function normalAttackAt(unit, range = null, { platform = null } = {}) {
     // attack, which is a bigger number than the sheet prints.
     elementFraction: spec.elementFraction ?? undefined,
     ignoresMagicResistance: false,
+    // The Rank Magic Resistance meets it at, when it is not the attacker's
+    // MAG: the Golden Hind's swing is the Noble Phantasm's, A+ (#187).
+    attackRank: spec.attackRank ?? null,
   };
 
   if (spec.mode !== "rangeBanded") return flat;
@@ -92,6 +95,7 @@ export function normalAttackAt(unit, range = null, { platform = null } = {}) {
     // A band may RETYPE the damage as well as re-source it.
     element: band.element ?? spec.element ?? null,
     ignoresMagicResistance: Boolean(band.ignoresMagicResistance),
+    attackRank: spec.attackRank ?? null,
   };
 }
 

@@ -38,7 +38,11 @@ level: 2
 # displaces nobody, which is what "place it on top of" says.
 sharesPanel: true
 # Its only Base Attack is MAG 200; there is no STR column to choose from.
-normalAttack: { mode: fixed, component: mag }
+# `attackRank`: Magic Resistance meets the ship's swing at its Noble Phantasm's
+# Rank, A+, not at Drake's MAG E -- the sheet gives the ship no MAG Rank, and
+# at E any MR of E or better negated it outright. Ruled 2026-10-05 (#187
+# reading 8).
+normalAttack: { mode: fixed, component: mag, attackRank: "A+" }
 # "Drake's Normal Attacks are replaced with Attacks from the Golden Hind."
 #
 # Spec R8. The Attack ONLY -- Quetzalcoatl's mount also takes `move: true`,

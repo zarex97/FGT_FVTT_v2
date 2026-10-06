@@ -5532,6 +5532,8 @@ export function attackFacts(attacker, defender, state, board = null) {
     // the pipeline's element stage returned at once and the type was lost.
     element: normal.element ?? facts.element ?? null,
     ignoresMagicResistance: facts.ignoresMagicResistance || normal.ignoresMagicResistance,
+    // Stage 11's Rank for a Normal Attack that is not the attacker's own (#187).
+    attackRank: normal.attackRank ?? null,
   };
 }
 

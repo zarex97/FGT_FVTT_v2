@@ -432,6 +432,19 @@ describe("every Authored Key survives its Route", () => {
  * content that carries the key, so the route cannot outlive its only user.
  */
 export const NESTED_ROUTES = [
+  // The Golden Hind's swing meets Magic Resistance at its Noble Phantasm's
+  // Rank, not Drake's MAG (#187 reading 8).
+  {
+    key: "attackRank",
+    authored: ["packs/_source/platforms/golden-hind.yml"],
+    hops: [
+      { file: "module/data/actor/_shared.mjs", why: "normalAttackField declares it; Foundry drops what a schema does not name" },
+      { file: "module/rules/snapshot.mjs", why: "the projection rebuilds normalAttack field by field and carries it" },
+      { file: "module/rules/normal-attack.mjs", why: "normalAttackAt hands it on with the mount's spec" },
+      { file: "module/engine/attack.mjs", why: "attackFacts puts it on the attack the pipeline reads" },
+      { file: "module/rules/damage/pipeline.mjs", why: "stage 11 compares Magic Resistance against it" },
+    ],
+  },
   {
     key: "labelOnly",
     authored: ["packs/_source/abilities/quetz-piedra-del-sol.yml"],

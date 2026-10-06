@@ -292,6 +292,8 @@ describe("VariantOverride (Ch. 45, Semiramis's Double Summon buff)", () => {
       element: null,
       // ...and how much of the swing carries it (Raikou's copies' "(half)").
       elementFraction: null,
+      // ...and the Rank Magic Resistance meets it at (the Golden Hind's A+).
+      attackRank: null,
     });
   });
 
