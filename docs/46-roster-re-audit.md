@@ -3458,6 +3458,83 @@ the flag now, with the roll for both outcomes. Every attack rider. Ch. 37.
 **Reached: SP.heal.** Surgical Procedure healed 50 and restored 1 Agility. The skill card counted effects only.
 A heal and a stat change now add rows: *"Health +50"*, *"Agility +1"*. Ch. 37.
 
+### GL. A click on an illegal Unit attacked the focused legal one — **fixed** (#187)
+
+**Reached: MR.cut.** The unit picker confirmed its focused option wherever a click landed: Medea's Aero, clicked
+on Drake out of Range, hit Karna. A click picks the Unit under it or warns with that Unit's own exclusion and
+keeps aiming (6547920, 14921c7). Ch. 20.
+
+### GM. Magic Resistance's row printed its amount as a percent — **fixed** (#187)
+
+**Reached: MR.cut.** *"−108%"* for 108 MAG removed: `magicResistance` sat in the explainer's percent sources
+(6547920). Ch. 37.
+
+### GN. Raising the Golden Hind charged the ordinary NP cost — **fixed** (#187)
+
+**Reached: GH.toll.np.** The Skill path paid an ability's own costs beside the NP cost, so the upkeep that
+`supersedes: [npCost]` charged 0 and the NP cost 53 anyway. It resolves them together (43af32c). Ch. 27.
+
+### GO. A deep token stood on each panel once per layer — **fixed** (#187)
+
+**Reached: GH.size.** The 4×3 Hind at token depth 3 projected 36 panels. One per panel, the lowest layer
+(43af32c). Ch. 27.
+
+### GP. A chance roll was filed where its clause did not apply — **fixed** (#187)
+
+**Reached: BG.crit.tok.** The 15% Galleon Token roll printed *"missed"* on attacks that did not Crit. A
+chance roll is filed only where the handler's condition holds (43af32c). Ch. 37.
+
+### GQ. A conditional anchor never chose its branch — **fixed** (#187)
+
+**Reached: BU.hind.** Step 0b read `placement.options`, which no caller passed, so every conditional anchor
+took its fallback (Beyond the Uncharted from the deck; Nemo's two Storm Border Skills share the shape). It
+defaults to the caster's options (32fd771). Ch. 20.
+
+### GR. A platform anchor did not find the ship its content names — **fixed** (#187)
+
+**Reached: BU.hind.** It matched the actor id, and content names `platform-golden-hind`. It matches either,
+the caster's own first (32fd771). Ch. 20.
+
+### GS. A shape from a ship started at its owner's panel — **fixed** (#187)
+
+**Reached: GW.area.** From the stern the broadside began inside the ship. It starts at the bow (32fd771).
+Ch. 20.
+
+### GT. The Golden Hind took buffs — **fixed** (#187)
+
+**Reached: GH.nobuff.** *"Cannot be affected by buffs and/or debuffs"* was unauthored. Two `Immunity` rules,
+as the Gardens (32fd771). Ch. 27.
+
+### GU. The aiming session used a snapshot without the caster's ship — **fixed** (#187)
+
+**Reached: BU.hind.** `pickPlacementFor` handed the layer a bare snapshot, so the session took the fallback
+even after GQ. It hands the board's unit, and so does the preview (14921c7). Ch. 20.
+
+### GV. A content Base Attack was missing from the preview — **fixed** (#187)
+
+**Reached: GW.ba.** Golden Wild Hunt previewed 117 and dealt 1341: the preview gave stage 1 no
+`contentBaseAttack` (14921c7). Ch. 20.
+
+### GW. A melee Attack from the ground reached the Hind's hull — **fixed** (#187)
+
+**Reached: GH.ranged.up.** `hullTargeting` was unauthored. `rangedOnly`, as the Gardens (14921c7). Ch. 27.
+
+### GX. A platform's end posted no card — **fixed** (#187)
+
+**Reached: GH.toll.force.** `destroyPlatform` posts the field-closing card with its reason from every path
+(f015a78). Ch. 27.
+
+### GY. A Skill refusal printed its raw kind — **fixed** (#187)
+
+**Reached: GH.deact.** *"Golden Hind: Wild Hunt cannot be used: zon."* Worded from
+`FGT.Ability.Refused.<kind>` (f015a78). Ch. 37.
+
+### GZ. The Golden Hind's Attack carries Drake's MAG E for Magic Resistance — **open, needs a ruling** (#187)
+
+**Reached: GH.na.** The ship's BA(MAG) 200 Attack is compared against Magic Resistance at Drake's own MAG Rank,
+E, so any Magic Resistance of E or better negates it outright: EMIYA's D, *"negated: MR D ≥ attack E"*, 258 →
+0. The ship's sheet gives it no MAG Rank. Golden Wild Hunt is compared at its own Rank, A+.
+
 ---
 
 ---
@@ -4346,3 +4423,42 @@ Ruled 2026-10-05 after the press. A Mist kill pays her a Civilian's bounty, 100 
 Servant's kill does (`bounty: true`, reading 13): live, 719 → 819 Health and 13 → 14 Agility. Eye of the Mind
 counts as Instinct as a family, so Heracles's (False) lifts the Mist while its buffs stand (reading 14): live,
 his MOV 4/8 inside the Mist became 8/8 once he used it.
+
+## 46.19 Francis Drake — the Servant who fights from her ship
+
+**All 88 of her Clauses were Pressed or Observed on a live board** (#187, 2026-10-05). Twelve readings were
+ruled in September's design (`docs/superpowers/specs/2026-09-13-drake-design.md`); seven more in one
+grilling on 2026-10-05: *"QAR"* is the Golden Hind (1); a Crit from the ship's Attack is hers (2); Luck is one
+pool (3); an Attack is ranged at Range 2 or more, a world setting a GM may raise (4); the 50 Health toll is a
+1◈ period from the activation, the Turn of use not counted, replacing R6 (5); Golden Wild Hunt turns a
+quarter in the preview (6); and a scatter keeps #140's rule (7). The forced close is tested when the toll
+falls due, and the token decay stays at the Round's end.
+
+**Why she finds so much.** Almost every Clause of hers runs from a second level. The ship is a platform that
+is also a Noble Phantasm, raised on the Skill path and attacked through on the attack path; her Skills aim
+from its deck through a conditional anchor; and its protections are a dozen axes of `crossLevel`. Each of
+those had a reader that had only ever been asked from the ground.
+
+### 46.19.1 What she cost the engine
+
+| Commit | Finding |
+|---|---|
+| b176141 | The rulings built: ranged by setting, the toll by period, the turnable broadside, the mount's Crit heard by its driver |
+| 6547920 | A click on an illegal Unit; Magic Resistance's row as a percent (§46.4-GL, GM) |
+| 43af32c | The raise's NP cost; a deep token's panels; a chance roll filed off its clause (§46.4-GN to GP) |
+| 32fd771 | Aiming from the deck: the conditional's options, the ship by content id, the bow, the ship's immunity (§46.4-GQ to GT) |
+| 14921c7 | The aiming session's snapshot; the preview's content Base Attack; the hull ranged-only (§46.4-GU to GW) |
+| f015a78 | A platform's end card; Skill refusals in words (§46.4-GX, GY) |
+
+One finding stays open, and is a reading: what MAG Rank the ship's Attack carries for Magic Resistance
+(§46.4-GZ).
+
+### 46.19.2 What was staged
+
+Named in each evidence line: opening positions; Medea's MAG lowered to D for the negation; No Buff laid on
+Drake; cooldowns, Turn records and the attack budget reset to press a Clause again the same Turn; her
+Master's Health raised for costs and lowered to 50 for the forced close; Galleon Tokens set to 0; Karna's
+Master moved into reach of Beyond the Uncharted; capacity lowered to 3 for one boarding; Heracles, EMIYA and
+Medea revived or moved to reach the ship; NP Seal laid on Drake as an Attack's rider would land it.
+Magic Resistance's chance clauses, the cross-level rules and the buff-removal selector were pressed through
+the live board's engine, each with its differential.
