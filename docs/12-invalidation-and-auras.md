@@ -39,7 +39,7 @@ Nine events drive the table:
 - **`modeToggled`**: mode activation toggled → invalidates `["auraIndex"]` and, if the mode changes `canAct`, also
   `masterProtection:${actorId}` for Masters within 2 panels (`module/rules/invalidation.mjs:97-101`). The rule: *anything that
   changes `canAct` invalidates Master protection for Masters within 2 panels* (`module/rules/invalidation.mjs:15-18`).
-- **`tokenMoved`**: position changed → `["board", "auraIndex", "decoy", "compulsions"]`, plus `zon` for both the mover and its ZON partner
+- **`tokenMoved`**: position changed → `["board", "auraIndex", "decoy", "compulsions"]`, plus `zon` for both the mover and its ZON partner. Fired once the move has **settled** (`token.object.movementAnimationPromise`): in v14 a TokenDocument's `x` and `y` read the animated position until the movement finishes, so a board projected inside `updateToken` still stood the Unit where it started, and Hatred of Achilles never saw a Greek Male walk into its 4 panels (#190)
   (`module/rules/invalidation.mjs:103-110`)
 - **`tokenDeleted`** and **`createToken`**: → `["all"]` (`module/rules/invalidation.mjs:112-113`)
 - **`turnAdvanced`** and **`roundAdvanced`**: → `["board", "cooldowns", "effectActivity", "compulsions"]`, plus `["phase"]` on round
