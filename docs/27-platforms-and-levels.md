@@ -109,6 +109,8 @@ The axes:
 
 **A Skill-path Noble Phantasm resolves its costs before paying them** (#187). The Golden Hind is raised on the Skill path, and that path paid the ability's own costs beside the NP cost: its upkeep `goldenHindUpkeep` (`supersedes: [npCost]`) charged 0 and the NP cost charged 53 anyway. `engine/skill-use.mjs#useSkill` now passes the NP cost, the ability's costs and a standing platform's upkeep through `rules/costs.mjs#resolveCosts`, as `engine/attack.mjs#pendingCosts` always has.
 
+**The Golden Hind cannot be affected by buffs or debuffs** (#187). Its sheet says so in the Hanging Gardens' words, and the platform authored neither rule: Beyond the Uncharted from the deck put NP DmUp, Atk Up and NP Regen on the ship. It now carries `Immunity` at `scope: debuffs` and `scope: buffs`, as the Gardens do.
+
 **A deep token stands on each panel once** (#187). A v14 token has a depth, and the 4x3 Golden Hind at depth 3 reported 36 grid offsets, each panel once per elevation layer. `rules/snapshot.mjs#gridFootprint` keeps one entry per panel, the lowest layer, which `level` reads.
 
 **What destroys one.** A platform whose Health reaches 0 is defeated like a Unit, and a defeated platform is destroyed; one that authors `destroyedWithOwner` (the Hanging Gardens: *"destroyed when Semiramis is defeated"*) is destroyed with its owner. The applier's `defeat` case asks `io.destroyPlatformsOf`, which reads `rules/platforms.mjs#platformsDestroyedBy`. Before §46.4-CH only an effect on the owner (`deactivateOn`) or an unpaid upkeep ever destroyed a platform.

@@ -94,6 +94,12 @@ upkeep:
 # "Full damage to the ship, 50% to units aboard, Masters aboard take nothing."
 # Three target sets from one placement -- the only platform in the set where
 # the vehicle and its passengers take different fractions.
+# "The Golden Hind cannot be affected by buffs and/or debuffs." The Hanging
+# Gardens' sentence, word for word, and their two rules. Unauthored, Beyond the
+# Uncharted from the deck put NP DmUp, Atk Up and NP Regen on the ship (#187).
+rules:
+  - { key: Immunity, scope: debuffs }
+  - { key: Immunity, scope: buffs }
 crossLevel:
   occupantTargeting: forbidden
   # "Enemy Units cannot target Units onboard" -- Attacks, Skills, Spells and
