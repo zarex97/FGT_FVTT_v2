@@ -718,10 +718,15 @@ export async function endField(fieldId, reason = "ended", { logged = false } = {
     // Keyed by content id, so the Queen's Health comes back to the Queen.
     const owner = game.actors.get(summon.system?.summonerId);
     if (owner && summon.system?.contentId) {
+      // The TOKEN's actor: a summon's token is unlinked, so its Health and
+      // Agility live there, and the base actor still reads its sheet's full
+      // values. Read off the base, a Sphinx Queen at 150 came back at 1500
+      // (#189).
+      const live = summon.getActiveTokens?.()[0]?.actor ?? summon;
       await owner.update({
         [`system.fieldSummonStats.${summon.system.contentId}`]: {
-          health: { value: summon.system.health?.value ?? null, max: summon.system.health?.max ?? null },
-          agility: { value: summon.system.agility?.value ?? null, max: summon.system.agility?.max ?? null },
+          health: { value: live.system.health?.value ?? null, max: live.system.health?.max ?? null },
+          agility: { value: live.system.agility?.value ?? null, max: live.system.agility?.max ?? null },
         },
       });
     }

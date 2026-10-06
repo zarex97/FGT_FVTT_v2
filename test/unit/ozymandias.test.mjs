@@ -182,3 +182,11 @@ describe("a revival says so on a card (#189)", () => {
     expect(html).toContain('FGT.Revival.Card {"name":"Ozymandias","source":"Ramesseum Tentyris","amount":200}');
   });
 });
+
+describe("the Sphinxes come back with the Stats they left with (#189)", () => {
+  it("remembers what the summon's TOKEN held, not its sheet", () => {
+    const src3 = readFileSync("module/engine/fields.mjs", "utf8");
+    expect(src3).toMatch(/const live = summon\.getActiveTokens\?\.\(\)\[0\]\?\.actor \?\? summon;/);
+    expect(src3).toMatch(/health: \{ value: live\.system\.health\?\.value/);
+  });
+});
