@@ -18,7 +18,7 @@
 
 import * as budget from "../../engine/budget.mjs";
 import { remainingMovement, effectiveMov, segmentCheck } from "../../rules/movement.mjs";
-import { unitSnapshot, factionOfUser, faction as factionById } from "../../engine/board.mjs";
+import { currentBoard, factionOfUser, faction as factionById } from "../../engine/board.mjs";
 
 /**
  * The turn panel's context: the acting faction, its budget, and the End Turn
@@ -38,8 +38,9 @@ import { unitSnapshot, factionOfUser, faction as factionById } from "../../engin
 export async function turnContext() {
   const combat = game.combats.active;
   const factionId = actingFaction(combat);
-  const units = factionUnits(factionId);
-  const verdict = budget.endTurnVerdict(combat, factionId, units);
+  const board = currentBoard();
+  const units = factionUnits(factionId, board);
+  const verdict = budget.endTurnVerdict(combat, factionId, board.units ?? []);
 
   return {
     active: Boolean(combat?.started),
@@ -98,7 +99,7 @@ export const TURN_ACTIONS = Object.freeze({
 async function onEndTurn(_event) {
   const combat = game.combats.active;
   const factionId = actingFaction(combat);
-  const verdict = budget.endTurnVerdict(combat, factionId, factionUnits(factionId));
+  const verdict = budget.endTurnVerdict(combat, factionId, currentBoard().units ?? []);
   if (!verdict.ok) {
     // Belt and braces: the button is already disabled, but a stale render
     // must not be able to skip the gate.
@@ -163,13 +164,15 @@ function factionLabel(combat, factionId) {
 
 /**
  * @param {string|null} factionId
+ * @param {object} [board]
  * @returns {object[]} unit snapshots
  */
-function factionUnits(factionId) {
+function factionUnits(factionId, board = currentBoard()) {
   if (!factionId) return [];
-  return (canvas?.tokens?.placeables ?? [])
-    .map((t) => (t.actor ? unitSnapshot(t.actor, t.document) : null))
-    .filter((u) => u && u.factionId === factionId);
+  // The BOARD's Units, not bare snapshots: a compulsion is positional and only
+  // the board pass annotates it, so a bare snapshot carried none and the End
+  // Turn gate never saw Hatred of Achilles (#190).
+  return (board.units ?? []).filter((u) => u.factionId === factionId);
 }
 
 /**
