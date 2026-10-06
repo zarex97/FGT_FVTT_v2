@@ -209,6 +209,24 @@ describe("a Structure that names who may break it", () => {
     expect(r.units).toEqual([]);
   });
 
+  it("refuses a corner while its Fort stands, and allows it before (#188 reading 14)", () => {
+    // "When Bloodfort Andromeda is activated, it is continuously Active until
+    // Medusa is defeated": breaking a corner would do nothing, so none can be
+    // attacked while the Fort stands.
+    const corner = { ...mark, attributes: ["structure", "mark"], fieldId: "fort" };
+    const master = {
+      id: "m", name: "Enemy Master", kind: "master", panel: at(5, 5),
+      faction: "b", factionId: "b", range: 5,
+    };
+    const building = { ...board([master, corner]), fields: [] };
+    expect(resolveTargets(spec, master, building, { unitId: "mark" }).units.map((u) => u.unitId)).toEqual(["mark"]);
+
+    const standing = { ...board([master, corner]), fields: [{ id: "fort", panels: [] }] };
+    const r = resolveTargets(spec, master, standing, { unitId: "mark" });
+    expect(r.units).toEqual([]);
+    expect(r.excluded.find((e) => e.unitId === "mark").reason).toMatch(/active field/);
+  });
+
   it("still excludes a Structure that names nobody", () => {
     const plain = { ...mark, destroyableBy: [] };
     const master = {

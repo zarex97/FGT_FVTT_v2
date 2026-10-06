@@ -452,6 +452,14 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     return allowed.length === 0 || allowed.includes(caster.kind)
       || drop(u, `destructible only by ${allowed.join(" or ")}`);
   });
+  //  ...and not once the area it marks is up. *"When Bloodfort Andromeda is
+  //  activated, it is continuously Active until Medusa is defeated"* (#188
+  //  reading 14): the four corners stay to show where it is, and breaking one
+  //  would do nothing, so none can be attacked while the Fort stands.
+  survivors = survivors.filter((u) =>
+    !(u.kind === "structure" && (u.attributes ?? []).includes("mark") && u.fieldId
+      && (board.fields ?? []).some((f) => f.id === u.fieldId))
+    || drop(u, "a corner of an active field"));
 
   // 8c. FACING and CLEAR PATH — Medusa's Mystic Eyes is the only ability in
   //     the corpus that asks either, which is exactly what D44.8 decided: no

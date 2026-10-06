@@ -154,6 +154,9 @@ export function snapshotUnit(actor, {
     destroyableBy: [...(sys.destroyableBy ?? [])],
     visibleWithin: sys.visibleWithin ?? null,
     placedById: sys.placedById ?? null,
+    // The field a Bloodmark is a corner of. Projected so targeting can refuse a
+    // corner while its Fort stands (#188 reading 14).
+    fieldId: sys.fieldId ?? null,
     // An item lying on this object's panel, waiting to be walked onto.
     //
     // > *"the [Vorpal Blade] Item appears on a random panel on the game board,
