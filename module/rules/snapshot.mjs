@@ -370,7 +370,7 @@ export function snapshotUnit(actor, {
     effectFamilies: familiesPresent(effectIds, EffectRegistry),
     effectInstances: effectInstances(actor),
     modifiers: contributions.modifiers,
-    abilities: collectAbilities(actor),
+    abilities: collectAbilities(actor, { tick, turnsPerRound }),
     // Ch. 06's pools, so a gate or a cooldown waiver can ask what the Unit
     // holds without reaching for the document. Copied one level deep, because
     // this layer is pure and must not hand a live document's object to a rule.
@@ -1901,7 +1901,20 @@ export function expressionRefs(actor, extras = {}) {
  * @param {object} actor
  * @returns {object[]}
  */
-function collectAbilities(actor) {
+/**
+ * Is a mode inside its toggle lockout at this tick?
+ *
+ * @param {object} sys
+ * @param {number|null} tick
+ * @param {number} turnsPerRound
+ * @returns {boolean}
+ */
+function lockedAt(sys, tick, turnsPerRound) {
+  if (!sys?.toggleLock || sys.toggledAt === null || sys.toggledAt === undefined || typeof tick !== "number") return false;
+  return tick - sys.toggledAt < resolveTicks(parseTick(sys.toggleLock), { turnsPerRound });
+}
+
+function collectAbilities(actor, { tick = null, turnsPerRound = 3 } = {}) {
   return [...(actor.items ?? [])]
     .filter((i) => i.type === "ability" || i.type === "noblePhantasm")
     .map((i) => ({
@@ -1963,6 +1976,10 @@ function collectAbilities(actor) {
       // both.
       slug: i.system?.slug ?? i.id,
       active: Boolean(i.system?.active),
+      // Inside its two-way lockout, when it can be switched neither on nor
+      // off: Mad Enhancement's Master-health floor holds then too (#190
+      // reading 12), as `self:modeLocked:<slug>`.
+      locked: lockedAt(i.system, tick, turnsPerRound),
 
       // What `canCopy` asks about (Ch. 17). None of it was projected, so
       // `copyCandidates` -- which reads the BOARD -- saw abilities with no

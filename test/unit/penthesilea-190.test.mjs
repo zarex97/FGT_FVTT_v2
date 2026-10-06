@@ -18,6 +18,10 @@ import { unmetCompulsions } from "../../module/rules/budget.mjs";
 import { rollOptionsFor } from "../../module/rules/options.mjs";
 import { test as predicate } from "../../module/rules/predicate.mjs";
 import { effectDef } from "../helpers/effect-defs.mjs";
+import { readFileSync as readSource } from "node:fs";
+import { parse } from "yaml";
+
+const src = (dir, file) => parse(readSource(`packs/_source/${dir}/${file}`, "utf8"));
 
 const PEN = "penthesilea00000";
 const side = (id, from, i, j, factionId = "b") => ({ from, id, panel: { i, j }, state: { factionId } });
@@ -261,5 +265,49 @@ describe("a contracted Servant serves its new Master's side (#190)", () => {
     const { readFileSync } = await import("node:fs");
     const s = readFileSync("module/engine/io.mjs", "utf8");
     expect(s).toMatch(/"system\.masterId": d\.masterId, "system\.factionId": side \}/);
+  });
+});
+
+describe("Mad Enhancement's drain against Hatred (#190 readings 11 to 13)", () => {
+  const me = (active) => ({
+    id: "me", name: "Mad Enhancement",
+    system: {
+      isMode: true, active, slug: "madEnhancement", rank: "EX",
+      activeRules: [{ key: "OnEvent", event: "actedTurnEnd", then: [
+        { key: "SetMode", ability: "madEnhancement", active: false,
+          whenValue: { subject: "master", stat: "health.value", lteTable: "madEnhancementDrain" } },
+      ] }],
+    },
+  });
+  const board = (masterHealth) => ({ units: [
+    { id: "pen", kind: "servant", masterId: "m" },
+    { id: "m", kind: "master", health: masterHealth },
+  ] });
+  const pen = { id: "pen", kind: "servant", masterId: "m", compulsions: [{ forcesSkill: "madEnhancement", targetIds: ["ach"] }] };
+
+  it("is forcibly off whenever her Master is at 30 or less, at any moment (13)", async () => {
+    const { forcedOffNow } = await import("../../module/rules/modes.mjs");
+    expect(forcedOffNow(me(true), pen, board(30))).toBe(true);
+    expect(forcedOffNow(me(true), pen, board(31))).toBe(false);
+  });
+
+  it("is not switched on by Hatred while her Master is at 30 or less (11)", async () => {
+    const { forcedModes } = await import("../../module/rules/modes.mjs");
+    expect(forcedModes(pen, [me(false)], { tick: 5, board: board(30) })).toEqual([]);
+    expect(forcedModes(pen, [me(false)], { tick: 5, board: board(40) }).map((i) => i.id)).toEqual(["me"]);
+  });
+
+  it("floors the drain inside the 2◈ lockout too (12)", async () => {
+    const { rollOptionsFor } = await import("../../module/rules/options.mjs");
+    const unit = { id: "pen", kind: "servant", abilities: [{ slug: "madEnhancement", active: true, locked: true }] };
+    expect([...rollOptionsFor({ attacker: unit })]).toContain("self:modeLocked:madEnhancement");
+    const free = { ...unit, abilities: [{ slug: "madEnhancement", active: true, locked: false }] };
+    expect([...rollOptionsFor({ attacker: free })]).not.toContain("self:modeLocked:madEnhancement");
+    const pent = src("servants", "penthesilea.yml").abilities.find((a) => a.ref === "class-mad-enhancement");
+    expect(pent.drainFloorWhen).toEqual([{ anyOf: ["self:modeHeld:madEnhancement", "self:modeLocked:madEnhancement"] }]);
+    // The projection stamps `locked` from the mode's own clock.
+    const snap = readSource("module/rules/snapshot.mjs", "utf8");
+    expect(snap).toMatch(/abilities: collectAbilities\(actor, \{ tick, turnsPerRound \}\)/);
+    expect(snap).toMatch(/locked: lockedAt\(i\.system, tick, turnsPerRound\)/);
   });
 });

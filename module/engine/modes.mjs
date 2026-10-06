@@ -32,7 +32,7 @@
  * A Berserker who has been driven mad does not simply calm down.
  */
 
-import { forcedModes, modesEndedByTurn } from "../rules/modes.mjs";
+import { forcedModes, forcedOffNow, modesEndedByTurn } from "../rules/modes.mjs";
 import { currentBoard } from "./board.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
@@ -69,6 +69,8 @@ export async function reconcileForcedModes(board = null) {
     const intents = [];
     /** @type {Array<{unitId: string, ability: string}>} */
     const switched = [];
+    /** @type {Array<{unitId: string, ability: string}>} */
+    const stopped = [];
 
     const tick = game.combat?.system?.globalTurn ?? 0;
 
@@ -80,13 +82,22 @@ export async function reconcileForcedModes(board = null) {
       // would have collected, the refusal in `canToggleMode` would have
       // worked, and the half that WRITES would never have run: her Mad
       // Enhancement would refuse to switch off and refuse to switch itself on.
-      const forceable = (unit.compulsions ?? []).length || (unit.forcedModeRules ?? []).length;
-      if (!forceable) continue;
-
       const actor = game.actors.get(unit.id);
       if (!actor) continue;
 
-      for (const item of forcedModes(unit, [...actor.items], { tick })) {
+      // A mode switched OFF the moment its own forced deactivation holds
+      // (#190 reading 13): an enemy dropping her Master to 30 ends the rage
+      // there, before any drain.
+      for (const item of [...actor.items].filter((i) => i.system?.isMode && i.system?.active)) {
+        if (!forcedOffNow(item, unit, snapshot)) continue;
+        intents.push(I.setMode(unit.id, item.system?.slug ?? item.id, false, "forcedDeactivation"));
+        stopped.push({ unitId: unit.id, ability: item.name });
+      }
+
+      const forceable = (unit.compulsions ?? []).length || (unit.forcedModeRules ?? []).length;
+      if (!forceable) continue;
+
+      for (const item of forcedModes(unit, [...actor.items], { tick, board: snapshot })) {
         const slug = item.system?.slug ?? item.id;
         // `regardless of Cooldown or any other factors` -- no gate is
         // consulted, which is the whole point of the clause and the reason
@@ -98,7 +109,8 @@ export async function reconcileForcedModes(board = null) {
 
     if (intents.length > 0) {
       await applyWorldIntents(intents, "compulsion:forcedMode");
-      await announce(switched, snapshot);
+      if (switched.length > 0) await announce(switched, snapshot);
+      if (stopped.length > 0) await announceStopped(stopped);
     }
     return switched;
   } finally {
@@ -196,9 +208,26 @@ async function announce(switched, board) {
  */
 export function attachForcedModes() {
   Hooks.on("fgt.invalidate", (targets) => {
-    if (!targets?.includes("compulsions") && !targets?.includes("all")) return;
+    // `board` as well: a Master's Health changing is an actor update, and it
+    // is what decides a forced deactivation (#190).
+    if (!targets?.includes("compulsions") && !targets?.includes("all") && !targets?.includes("board")) return;
     // Not awaited: this is a reaction to a document change, not part of any
     // resolution, and blocking the hook would block the write that fired it.
     reconcileForcedModes().catch((err) => console.error("FGT | Forced modes:", err));
   });
+}
+
+/**
+ * Say which modes were forcibly switched off, and why.
+ *
+ * @param {Array<{unitId: string, ability: string}>} stopped
+ * @returns {Promise<void>}
+ */
+async function announceStopped(stopped) {
+  if (!game.users?.activeGM?.isSelf) return;
+  const escape = foundry.utils.escapeHTML;
+  const lines = stopped.map((s) => game.i18n.format("FGT.Mode.ForcedOff", {
+    ability: escape(s.ability), name: escape(game.actors.get(s.unitId)?.name ?? s.unitId),
+  }));
+  await ChatMessage.create({ content: `<div class="fgt-card fgt-card--mode"><p>${lines.join("<br>")}</p></div>` });
 }

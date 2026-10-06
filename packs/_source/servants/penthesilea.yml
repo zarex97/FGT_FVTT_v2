@@ -35,7 +35,7 @@ abilities:
   # and `self:modeHeld:madEnhancement` is the predicate that says so: switched
   # on AND unable to be switched off, which is neither of the two questions
   # `skillActive` and `skill` already answer. Ch. 46 §46.4-C.
-  - { ref: class-mad-enhancement, rank: EX, drainFloor: madEnhancementDrain, drainFloorWhen: ["self:modeHeld:madEnhancement"], forcedDeactivation: true }
+  - { ref: class-mad-enhancement, rank: EX, drainFloor: madEnhancementDrain, drainFloorWhen: [{ anyOf: ["self:modeHeld:madEnhancement", "self:modeLocked:madEnhancement"] }], forcedDeactivation: true }
   - { ref: divinity, rank: B }
   - { ref: penthesilea-hatred-of-achilles }
   - { ref: penthesilea-charisma }

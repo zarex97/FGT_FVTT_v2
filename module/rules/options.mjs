@@ -511,6 +511,9 @@ function add(options, side, unit, withoutModeHeld = false) {
     if (!withoutModeHeld && ability.active && heldOn(slug, unit)) {
       options.add(`${side}:modeHeld:${slug}`);
     }
+    // ...and LOCKED on: inside its two-way lockout, it cannot be switched off
+    // either (#190 reading 12).
+    if (ability.active && ability.locked) options.add(`${side}:modeLocked:${slug}`);
   }
 
   // A Skill that COUNTS AS another is that Skill to every predicate that asks.

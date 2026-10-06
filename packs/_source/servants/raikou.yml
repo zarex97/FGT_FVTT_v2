@@ -76,7 +76,9 @@ abilities:
     # *"...while the Skill does not meet the condition to be deactivated"* --
     # for her, while her Master stands within 2 panels and the `ForceMode` rule
     # below is holding it on. Ch. 46 §46.4-C.
-    drainFloorWhen: ["self:modeHeld:madEnhancement"]
+    # Held on OR inside its 2◈ lockout: either way it cannot be switched off
+    # (ruled on the same sentence of Penthesilea's sheet, #190 reading 12).
+    drainFloorWhen: [{ anyOf: ["self:modeHeld:madEnhancement", "self:modeLocked:madEnhancement"] }]
     forcedDeactivation: true
     passiveRules:
       # "(Passive) When Raikou's Master is within a 2 panel area of herself, her

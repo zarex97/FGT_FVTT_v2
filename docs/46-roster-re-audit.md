@@ -3769,21 +3769,21 @@ new Master's faction (94f7352). Ch. 32.
 **Reached: HA.go.** The setting's own comment said it switched Hatred off against allies; nothing read it. The
 board carries `grandOrder`, and Hatred's compulsion declares `spareAlliesInGrandOrder` (1695b47). Ch. 32.
 
-### IN. Hatred against Mad Enhancement's forced deactivation — **open, needs a ruling** (#190)
+### IN. Hatred against Mad Enhancement's forced deactivation — **ruled and built** (#190)
 
 **Reached: ME.force.** *"When its Master's Health is 30 or less, ME is forcibly deactivated"* against Hatred's
 *"regardless of … any other factors"*. Built: it switches off at the Turn's end and Hatred switches it back on, and
-the floor then holds her Master at 30.
+the floor then holds her Master at 30. **Ruled 2026-10-06 (reading 11):** while her Master is at 30 or less, Hatred cannot switch it on.
 
-### IO. The floor during the 2◈ lock — **open, needs a ruling** (#190)
+### IO. The floor during the 2◈ lock — **ruled and built** (#190)
 
 **Reached: ME.floor.** The floor holds only while Hatred holds the mode on, not during the 2◈ after activation,
-when it cannot be deactivated either.
+when it cannot be deactivated either. **Ruled 2026-10-06 (reading 12):** it holds then too; Raikou's identical sentence reads the same.
 
-### IP. A drain that takes the Master to 0 — **open, needs a ruling** (#190)
+### IP. A drain that takes the Master to 0 — **ruled and built** (#190)
 
 **Reached: ME.drain.** With no floor, a Master at 30 loses 30 and is defeated; the forced deactivation is checked
-after the drain, not before.
+after the drain, not before. **Ruled 2026-10-06 (reading 13):** it is checked at any moment, so a Master at 30 or less is never drained.
 
 ---
 
@@ -4810,7 +4810,7 @@ being an Attack (3); she Moves towards him with all her MOV and may not end her 
 stood: Hatred switches Mad Enhancement on during its lock (4); Mad Enhancement's Command Spell holds it off for 1◈
 beside a Greek Male (5); an idle Turn costs her Master nothing (6); an Atk Up (Charisma) she already holds keeps
 working under Mad Enhancement (7); Goddess of War lowers her own Evade rolls (8); Def Down lands only when the hit
-deals damage (9). Three are open (11 to 13), all about Mad Enhancement's drain against Hatred.
+deals damage (9). Three more were ruled after the press: Hatred cannot switch Mad Enhancement on while her Master is at 30 or less (11); the floor holds inside the 2◈ lockout too (12); the forced deactivation holds at any moment (13).
 
 **Why she finds what she finds.** Hatred of Achilles is positional and compels, so it asks the board at every
 move and every Turn's end; and nothing on the live board had ever asked. Her sheet also prices a Skill in a
@@ -4829,7 +4829,7 @@ Command Spell spent in her own Turn, which no control could spend.
 | cd6ff5a | An own-Turn Command Spell from the Master's bar; suspension of a passive, and its lapse (§46.4-II to IK) |
 | 94f7352 | A contracted Servant serves its new Master's side (§46.4-IL) |
 
-Three findings stay open, and all are readings (§46.4-IN to IP).
+The three readings the press raised were ruled and built after it (§46.4-IN to IP).
 
 ### 46.22.2 What was staged
 

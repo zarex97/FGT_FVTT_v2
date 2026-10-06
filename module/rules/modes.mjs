@@ -37,6 +37,9 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { ROUND_RECORD } from "../domain/stamped-record.mjs";
 import { test as testPredicate } from "./predicate.mjs";
 import { rollOptionsFor } from "./options.mjs";
+import { lookupNumber } from "../domain/tables.mjs";
+import { currentHealth } from "../domain/health.mjs";
+import { Rank } from "../domain/rank.mjs";
 
 /**
  * @typedef {object} ToggleVerdict
@@ -303,7 +306,7 @@ export function compelledOn(item, unit) {
  * @param {number} [ctx.tick] the current global turn, for a live suspension
  * @returns {object[]} the abilities that should be switched on
  */
-export function forcedModes(unit, items, { tick = 0 } = {}) {
+export function forcedModes(unit, items, { tick = 0, board = null } = {}) {
   const compelled = new Set(
     (unit?.compulsions ?? [])
       .filter((c) => c.forcesSkill && (c.targetIds ?? []).length > 0)
@@ -317,10 +320,54 @@ export function forcedModes(unit, items, { tick = 0 } = {}) {
     // Command Spell was spent to prevent, and this is the half that would
     // undo it: `reconcileForcedModes` runs on every invalidation.
     if (typeof sys.suspendedUntil === "number" && tick < sys.suspendedUntil) return false;
+    // ...nor while its own forced deactivation holds. Hatred of Achilles
+    // switches Mad Enhancement on *"regardless of … any other factors"*, but
+    // while her Master's Health is 30 or less it cannot: the switch-off is the
+    // safety valve (ruled 2026-10-06, #190 reading 11).
+    if (board && forcedOffNow(i, unit, board)) return false;
     // Either source switches it on. `forcedOn` is asked per item because its
     // rule names the mode's own slug.
     return compelled.has(sys.slug ?? i.id) || forcedOn(i, unit);
   });
+}
+
+/**
+ * Does this mode's own forced deactivation hold right now?
+ *
+ * Mad Enhancement: *"when its Master's Health is 30 or less, ME is forcibly
+ * deactivated"*. Ruled 2026-10-06 (#190 reading 13): at ANY moment, not only
+ * at the end of a Turn it Acts, so a Master the enemy drops to 30 is not then
+ * drained to 0. Read off the mode's own authored `SetMode` -- `active: false`
+ * with a `whenValue` -- so the threshold, its table and Castor's partner
+ * factor are the ones the Turn-end check already uses.
+ *
+ * @param {object} item the mode, as a document or `{system}`
+ * @param {object} unit its bearer's board snapshot
+ * @param {object} board
+ * @returns {boolean}
+ */
+export function forcedOffNow(item, unit, board) {
+  const sys = item?.system ?? {};
+  if (!sys.isMode) return false;
+  for (const rule of sys.activeRules ?? []) {
+    for (const action of rule.then ?? []) {
+      if (action.key !== "SetMode" || action.active !== false || !action.whenValue) continue;
+      const gate = action.whenValue;
+      const subject = gate.subject === "master"
+        ? (board?.units ?? []).find((u) => u.id === unit?.masterId) ?? null
+        : unit;
+      if (!subject || gate.stat !== "health.value") continue;
+      let limit = gate.lte ?? (gate.lteTable ? lookupNumber(gate.lteTable, Rank.parseOrNull(sys.rank ?? null)) : null);
+      if (typeof limit !== "number") continue;
+      const factor = action.tableFactor ?? null;
+      if (factor && (!factor.predicate || testPredicate(factor.predicate, { options: rollOptionsFor({ attacker: unit }) }))) {
+        limit *= factor.value ?? 1;
+      }
+      const health = currentHealth(subject);
+      if (typeof health === "number" && health <= limit) return true;
+    }
+  }
+  return false;
 }
 
 /**
