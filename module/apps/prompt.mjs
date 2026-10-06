@@ -68,4 +68,21 @@ const RENDERERS = Object.freeze({
     const { ChoiceDialog } = await import("./choice-dialog.mjs");
     return ChoiceDialog.pick(spec);
   },
+
+  // One pool, two Units: how much of it goes to the first (Blood Fort
+  // Andromeda's drain, #188 reading 2). The rest goes to the second; the
+  // asker clamps. A closed window is `null`, the even split.
+  split: async (spec) => {
+    const pool = Math.max(0, Math.floor(spec.pool ?? 0));
+    const start = Math.ceil(pool / 2);
+    const answer = await DialogV2.prompt({
+      window: { title: spec.title ?? game.i18n.localize("FGT.Field.SplitTitle") },
+      content: `<p>${foundry.utils.escapeHTML(spec.hint ?? "")}</p>`
+        + `<label>${foundry.utils.escapeHTML(spec.label ?? "")} `
+        + `<input type="number" name="first" min="0" max="${pool}" step="1" value="${start}" autofocus></label>`,
+      ok: { callback: (_event, button) => Number(button.form.elements.first.value) },
+      rejectClose: false,
+    });
+    return Number.isFinite(answer) ? { first: answer } : null;
+  },
 });

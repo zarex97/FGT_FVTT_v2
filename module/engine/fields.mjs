@@ -35,9 +35,9 @@ import { platformCentre, deactivationVerdict, upkeepDue, upkeepPlan } from "../r
 import { rollOptionsFor } from "../rules/options.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import * as I from "./intents.mjs";
-import { distributePool } from "../rules/fields/pool.mjs";
+import { splitPool } from "../rules/fields/pool.mjs";
 import { clearTerrain, clearTerrainBoundTo } from "./terrain.mjs";
-import { chooseFor } from "./ask.mjs";
+import { chooseFor, askOwner } from "./ask.mjs";
 
 /**
  * A field's shape, grown or shrunk by the war Region it is cast in.
@@ -1207,6 +1207,10 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
   // so the amounts have to be summed across the whole pass before anything is
   // paid out.
   let pool = 0;
+  // Who a Civilian's reward goes to, per victim, asked once for both halves
+  // (#188 reading 1): the Health and the Agility go to the same Unit.
+  /** @type {Map<string, string>} */
+  const rewardTo = new Map();
   // What happened to whom, for the table (#182). Every Health loss, damage,
   // defeat and chance roll an interior event makes files a `fieldEvent` log
   // entry; `engine/field-report.mjs` gathers one Turn end's entries into a
@@ -1357,9 +1361,10 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
       // The first interior actions in the corpus that write to somebody OTHER
       // than the unit the event landed on, which is why they take a `target`.
       if (action.key === "Heal" || action.key === "StatDelta") {
-        const who = action.target === "ownerMaster" ? field.ownerMasterId
-          : action.target === "owner" ? field.ownerId
-            : unit.id;
+        const who = action.target === "ownerOrMaster" ? await rewardRecipient(field, unit, chosen, rewardTo)
+          : action.target === "ownerMaster" ? field.ownerMasterId
+            : action.target === "owner" ? field.ownerId
+              : unit.id;
         if (!who) continue;
         out.push(action.key === "Heal"
           ? I.heal(who, Math.abs(action.amount ?? 0), field.id)
@@ -1484,18 +1489,95 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
   // exceed the amount of Health drained from victims)."*
   //
   // Paid AFTER the loop because the cap is on the total, and enforced by
-  // `distributePool` rather than trusted to the content: two beneficiaries and
+  // `splitPool` rather than trusted to the content: two beneficiaries and
   // one pool means an uncapped split would pay the drain out twice.
   if (spec.payout && pool > 0) {
     const beneficiaries = [...(spec.payout ?? [])]
       .map((who) => (who === "owner" ? field.ownerId : who === "ownerMaster" ? field.ownerMasterId : who))
       .filter(Boolean)
       .map((unitId) => ({ unitId }));
-    for (const heal of distributePool(pool, beneficiaries)) {
+    const first = beneficiaries.length === 2 ? await askSplit(field, pool, beneficiaries) : null;
+    for (const heal of splitPool(pool, beneficiaries, first)) {
       out.push(I.heal(heal.unitId, heal.amount, field.id));
     }
   }
   return out;
+}
+
+/**
+ * Who a Civilian's reward goes to: *"Either Medusa or her Master heals 100
+ * Health and 1 Agility."*
+ *
+ * Ruled (#188 reading 1): her player chooses, per Civilian. Unanswered, or with
+ * no Master to choose, the owner. Asked once per victim; the Heal and the
+ * Agility that follow it read the same answer.
+ *
+ * @param {object} field
+ * @param {object} victim
+ * @param {object} branch the event's chosen branch, for the amounts it names
+ * @param {Map<string, string>} memo
+ * @returns {Promise<string>}
+ */
+async function rewardRecipient(field, victim, branch, memo) {
+  if (memo.has(victim.id)) return memo.get(victim.id);
+  const ownerDoc = game.actors.get(field.ownerId);
+  const masterDoc = field.ownerMasterId ? game.actors.get(field.ownerMasterId) : null;
+  let who = field.ownerId;
+  if (ownerDoc && masterDoc && !masterDoc.system?.defeated) {
+    const heal = (branch.onFail ?? []).find((a) => a.key === "Heal");
+    const stat = (branch.onFail ?? []).find((a) => a.key === "StatDelta");
+    const picked = await chooseFor(ownerDoc, {
+      title: game.i18n.localize("FGT.Field.HealWhoTitle"),
+      hint: game.i18n.format("FGT.Field.HealWhoHint", {
+        victim: victim.name ?? "", field: fieldName(field),
+        amount: Math.abs(heal?.amount ?? 0), agility: stat?.delta ?? 0,
+      }),
+      count: 1,
+      min: 0,
+      options: [
+        { id: ownerDoc.id, name: ownerDoc.name },
+        { id: masterDoc.id, name: masterDoc.name },
+      ],
+    });
+    if (picked?.[0] === masterDoc.id) who = masterDoc.id;
+  }
+  memo.set(victim.id, who);
+  return who;
+}
+
+/**
+ * A field's name for the table: its Region's, which is the ability's.
+ *
+ * @param {object} field
+ * @returns {string}
+ */
+function fieldName(field) {
+  return canvas?.scene?.regions?.get(field.regionId)?.name ?? field.id;
+}
+
+/**
+ * How much of a drain heals the first beneficiary, as the owner's player
+ * divides it (#188 reading 2). `null` for no answer, which is the even split.
+ *
+ * @param {object} field
+ * @param {number} pool
+ * @param {Array<{unitId: string}>} beneficiaries exactly two
+ * @returns {Promise<number|null>}
+ */
+async function askSplit(field, pool, beneficiaries) {
+  const ownerDoc = game.actors.get(field.ownerId);
+  const [a, b] = beneficiaries.map((x) => game.actors.get(x.unitId));
+  if (!ownerDoc || !a || !b || b.system?.defeated) return b?.system?.defeated ? pool : null;
+  const answer = await askOwner(ownerDoc, {
+    kind: "split",
+    pool,
+    title: game.i18n.localize("FGT.Field.SplitTitle"),
+    hint: game.i18n.format("FGT.Field.SplitHint", {
+      field: fieldName(field), pool, first: a.name, second: b.name,
+    }),
+    label: game.i18n.format("FGT.Field.SplitLabel", { first: a.name }),
+  });
+  return Number.isFinite(answer?.first) ? answer.first : null;
 }
 
 /**

@@ -103,21 +103,30 @@ describe("a Unit with no faction has no Turn", () => {
   });
 });
 
-describe("anyTurnEnd: the clauses that mean every Turn", () => {
+describe("anyTurnEnd: the clauses that mean every Turn, and Blood Fort's that no longer does", () => {
   const blood = {
     ability: "medusa-blood-fort-andromeda", owner: "qz", faction: "A",
     panels: squareAround({ i: 6, j: 6 }, 7),
   };
 
-  it("Blood Fort Andromeda's Civilian tier is authored on anyTurnEnd, and kills at any faction's Turn end", async () => {
+  it("Blood Fort Andromeda's Civilian tier is `contact`, not anyTurnEnd (#188 reading 9)", async () => {
+    // "Normal Human: Immediately dies." Ruled: the moment the Fort activates
+    // over a Civilian, and the moment one enters -- not at the next Turn end.
     const events = (await compiled("medusa-blood-fort-andromeda")).system.field.interiorEvents;
     const civilianTier = events.find((e) => (e.kinds ?? []).includes("civilian"));
-    expect(civilianTier.event).toBe("anyTurnEnd");
+    expect(civilianTier).toMatchObject({ event: "contact", haltsMover: true });
 
     const specs = [QUETZ, CIVILIAN];
+    const fields = await fieldsOf([blood]);
+    const caught = await withSubjects(specs, ({ board }) => runFieldEvents("contact", { board, unitIds: ["civ"] }),
+      { settings: { fields } });
+    expect(caught.filter((i) => i.t === "defeat" && i.unitId === "civ")).toHaveLength(1);
+    // With no Master to choose, Medusa takes the reward.
+    expect(caught.filter((i) => i.t === "heal" && i.unitId === "qz")).toHaveLength(1);
+
     for (const faction of ["A", "B"]) {
       const intents = await turnEnd("anyTurnEnd", { specs, casts: [blood], endedFaction: faction });
-      expect(intents.filter((i) => i.t === "defeat" && i.unitId === "civ"), faction).toHaveLength(1);
+      expect(intents.filter((i) => i.t === "defeat"), faction).toEqual([]);
     }
   });
 

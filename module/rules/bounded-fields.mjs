@@ -242,6 +242,57 @@ export function contains(field, panel, board) {
 }
 
 /**
+ * Where a move must stop, because a field takes the mover the moment it enters.
+ *
+ * > *"Normal Human: Immediately dies."* (Blood Fort Andromeda)
+ *
+ * Ruled (#188 reading 9): a Civilian dies the moment it enters the area, on the
+ * first panel inside, and its move stops there. The `contact` event already
+ * kills it where a move ENDS; a move that only crosses the area would carry it
+ * through alive. A `contact` event authored with `haltsMover` stops the move on
+ * the first panel inside for every Unit it would act on.
+ *
+ * The same filter `engine/fields.mjs#runFieldEvent` applies, for the parts a
+ * move can know: the owner and (with `excludeOwnerMaster`) the owner's Master
+ * are excluded, `kinds` and `relations` must match. A path that starts inside
+ * the field is entering nothing.
+ *
+ * @param {Array<{i: number, j: number}>} path the panels stepped on, in order
+ * @param {object} unit the mover, as the board projects it
+ * @param {object} board
+ * @returns {number|null} the index of the panel the move stops on, or `null`
+ */
+export function haltIndex(path, unit, board) {
+  if (!unit || !(path ?? []).length) return null;
+  let first = null;
+  for (const field of board.fields ?? []) {
+    const halts = (field.interiorEvents ?? []).some((spec) =>
+      spec.event === "contact" && spec.haltsMover && eventReaches(spec, field, unit, board));
+    if (!halts || contains(field, unit.panel, board)) continue;
+    const at = path.findIndex((p) => contains(field, p, board));
+    if (at >= 0 && (first === null || at < first)) first = at;
+  }
+  return first;
+}
+
+/**
+ * Does this interior event act on this Unit, as far as who it is goes?
+ *
+ * @param {object} spec
+ * @param {object} field
+ * @param {object} unit
+ * @param {object} board
+ * @returns {boolean}
+ */
+function eventReaches(spec, field, unit, board) {
+  if (unit.id === field.ownerId) return false;
+  if (spec.excludeOwnerMaster && unit.id === field.ownerMasterId) return false;
+  if (spec.kinds && !spec.kinds.includes(unit.kind)) return false;
+  const owner = (board.units ?? []).find((u) => u.id === field.ownerId) ?? null;
+  return new Set(spec.relations ?? ["enemy"]).has(relationOf(owner, unit, board));
+}
+
+/**
  * The Scene Level a field is on.
  *
  * A `followsUnit` field is wherever its anchor Unit is. Any other is where it

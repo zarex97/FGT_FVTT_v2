@@ -335,9 +335,9 @@ Hooks.once("ready", async () => {
   // Luck Check in silence. GM-gated and idempotent internally.
   ensureSetupRolls().catch((err) => console.error("FGT | Setup rolls:", err));
   // Ch. 28: *"Bloodmarks can only be seen from a distance of 3 cells
-  // Maximum."* Presentation only, GM-gated internally, and re-evaluated
-  // whenever anybody moves -- the question is positional, exactly like the
-  // aura index above.
+  // Maximum."* Presentation only, answered per viewer on every client
+  // (`apps/canvas/token.mjs#isVisible`), and re-asked whenever anybody moves
+  // -- the question is positional, exactly like the aura index above.
   syncMarkVisibility().catch((err) => console.error("FGT | Mark visibility:", err));
   Hooks.on("updateToken", (_doc, changes) => {
     if (!("x" in changes) && !("y" in changes)) return;

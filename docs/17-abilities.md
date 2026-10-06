@@ -43,7 +43,7 @@ Six timing windows exist, and only one is not offered at a moment: `ownTurn` is 
 
 - `whenAttacked` — as a reaction inside an attacker's Combat Process (`module/rules/windows.mjs:47-50`)
 - `whenAllyAttacked` — when an ally nearby is about to be hit (`module/rules/windows.mjs:52-55`)
-- `damageStep` — at the start of a Damage Step, on the attacker's own attack (`module/rules/windows.mjs:57-60`)
+- `damageStep` — at the start of a Damage Step, on the attacker's own attack (`module/rules/windows.mjs:57-60`). Asked **once per attack**, not once per Process (#188 reading 13): a fan-out is one Combat Phase and many Processes, and a Riding Attack through three Units asked three times, so Monstrous Strength, billed on the first, boosted one hit of the ride. The first Process to reach the window asks and records the answer, a refusal included, on its message (`windowPicks`); its siblings take the same answer without asking or paying again (`engine/attack.mjs#offerAttackerWindow`).
 - `combatPhaseStart` — at the start of a Combat Phase, on the attacker's own attack (`module/rules/windows.mjs:62-65`)
 - `whenTargetedByNP` — when a Noble Phantasm is declared (before any Combat Process) (`module/rules/windows.mjs:67-70`)
 

@@ -21,7 +21,6 @@ import { completedSquare } from "../rules/bloodmarks.mjs";
 import { currentBoard } from "./board.mjs";
 import { affordable, spend } from "./budget.mjs";
 import { openFieldFromMarks } from "./fields.mjs";
-import { chebyshev } from "../domain/geometry.mjs";
 import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 
@@ -144,45 +143,36 @@ export async function destroyMark(markId) {
 }
 
 /**
- * Hide every Bloodmark nobody is near enough to see.
+ * Redraw every Bloodmark's visibility, on this client.
  *
  * > *"Bloodmarks can only be seen from a distance of 3 cells Maximum."*
  *
- * **Approximated, and deliberately so.** The rule is per-viewer, and Foundry
- * has no per-viewer token rendering: a placed token's visibility is one field
- * every client resolves the same way. `engine/token-image.mjs` states the same
- * constraint for a Servant's portrait, and D44.9 assessed the shadow-actor
- * pattern that would fix it and deferred it to Ch. 40.
+ * The decision is per viewer and lives on the canvas
+ * (`apps/canvas/token.mjs#isVisible`, `rules/bloodmarks.mjs#markSeenBy`): her
+ * side always sees her marks, every other side from 3 panels (#188 reading 6).
+ * This only asks each mark's token to answer again, because a Unit moving is
+ * not a change to the mark and Foundry would not otherwise re-ask it.
  *
- * So this uses the one lever that exists — Foundry's `hidden`, which players
- * cannot see through and the GM always can — and drives it from whether ANY
- * enemy of the mark's owner stands within 3 panels. It errs toward concealment,
- * which is the clause's own direction: the counter-play is a Master sortie into
- * fog, and a mark visible to a player whose units are all far away would give
- * that away for free.
- *
- * Never a state write beyond the flag: a hidden mark is still on the board for
- * every rule, so this can no more desynchronize anything than a portrait can.
+ * The first build drove the token's `hidden` flag from whether ANY enemy stood
+ * within 3. `hidden` is one value for every client, so Medusa's own player lost
+ * sight of her marks whenever no enemy was near. A mark that build hid is
+ * shown again here, once, by the GM, and stamped so a mark the GM hides by hand
+ * afterwards stays hidden.
  *
  * @returns {Promise<void>}
  */
 export async function syncMarkVisibility() {
-  if (!game.user.isGM || !canvas?.scene) return;
+  if (!canvas?.scene) return;
+  // The canvas caches the board's Units for a quarter second; a move has just
+  // changed them.
+  Hooks.callAll("fgtMarkSight");
 
-  const board = currentBoard();
-  for (const mark of game.actors.filter((a) => a.type === "structure" && a.system?.visibleWithin !== null)) {
-    const panel = panelOf(mark);
-    if (!panel) continue;
-
-    const reach = mark.system.visibleWithin ?? 3;
-    const seen = (board.units ?? []).some((u) =>
-      u.panel && !u.defeated
-      && u.factionId && u.factionId !== mark.system?.factionId
-      && chebyshev(u.panel, panel) <= reach);
-
+  for (const mark of game.actors.filter((a) => a.type === "structure" && Number.isFinite(a.system?.visibleWithin))) {
     for (const token of mark.getActiveTokens?.() ?? []) {
-      if (token.document.hidden === !seen) continue;
-      await token.document.update({ hidden: !seen });
+      if (game.user.isGM && !token.document.getFlag?.("fgt", "perViewerSight")) {
+        await token.document.update({ hidden: false, "flags.fgt.perViewerSight": true });
+      }
+      token.renderFlags?.set?.({ refreshVisibility: true });
     }
   }
 }
@@ -262,6 +252,9 @@ async function createMark(owner, panel, fieldId) {
   const token = (await mark.getTokenDocument()).toObject();
   token.x = panel.j * size;
   token.y = panel.i * size;
+  // Seen per viewer (`markSeenBy`), never hidden for everyone.
+  token.hidden = false;
+  token.flags = { ...(token.flags ?? {}), fgt: { ...(token.flags?.fgt ?? {}), perViewerSight: true } };
   await canvas.scene.createEmbeddedDocuments("Token", [token]);
   return mark;
 }

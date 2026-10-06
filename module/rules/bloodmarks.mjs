@@ -17,6 +17,9 @@
  * anything held in a dialog. That is the safer half of the design.
  */
 
+import { chebyshev } from "../domain/geometry.mjs";
+import { alliancesOf, factionForUser } from "./factions.mjs";
+
 /** *"the four corner panels of a 5x5, 7x7, or 9x9 panel area"*. */
 export const LEGAL_SIZES = Object.freeze([5, 7, 9]);
 
@@ -93,4 +96,41 @@ export function completedSquare(marks) {
     }
   }
   return null;
+}
+
+/**
+ * Does this viewer see this Bloodmark?
+ *
+ * > *"Bloodmarks can only be seen from a distance of 3 cells Maximum."*
+ *
+ * Ruled (#188 reading 6): **her side always sees her marks**, and every other
+ * side only while one of its Units stands within reach. The first build hid a
+ * mark from everyone while no enemy stood near, Medusa's own player included,
+ * because the only lever it used was the token's `hidden` flag, which is one
+ * value for every client.
+ *
+ * Asked per viewer, so the canvas can answer it client by client
+ * (`apps/canvas/token.mjs#isVisible`). The GM always sees. A viewer with no
+ * faction has no Units to see with, so sees nothing.
+ *
+ * @param {{factionId: string|null, panel: {i: number, j: number}|null, visibleWithin: number|null}} mark
+ * @param {{userId: string|null, isGM: boolean}} viewer
+ * @param {object[]} factions the normalized roster
+ * @param {object[]} units board units, `{factionId, panel, defeated}`
+ * @returns {boolean}
+ */
+export function markSeenBy(mark, viewer, factions, units) {
+  if (!mark) return false;
+  if (viewer?.isGM) return true;
+  if (mark.visibleWithin === null || mark.visibleWithin === undefined) return true;
+
+  const mine = factionForUser(factions ?? [], viewer?.userId);
+  if (!mine) return false;
+  const side = alliancesOf(factions ?? [])[mine.id] ?? [mine.id];
+  if (side.includes(mark.factionId)) return true;
+  if (!mark.panel) return false;
+
+  return (units ?? []).some((u) =>
+    u.panel && !u.defeated && side.includes(u.factionId)
+    && chebyshev(u.panel, mark.panel) <= mark.visibleWithin);
 }

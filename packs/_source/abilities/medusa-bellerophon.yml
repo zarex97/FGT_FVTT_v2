@@ -33,7 +33,10 @@ targeting:
     # (Front and back) ... only one direction (Front) on the Large Board" is set
     # aside for every character for now. One line, in the direction chosen, on
     # any board.
-  selection: { relations: [enemy], chooser: all }
+  # "Hits a 1x13 or 13x1 panel area" names no relation, so it hits everyone on
+  # the line, her own side included (#188 reading 11; EMIYA's Caladbolg II is
+  # the precedent). Medusa stands beside the line, never on it.
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
 damage:
   multiplier: 4
   flatBonus: 100

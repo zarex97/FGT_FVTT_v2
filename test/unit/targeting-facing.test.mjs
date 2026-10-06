@@ -198,6 +198,17 @@ describe("a Structure that names who may break it", () => {
     expect(r.excluded.find((e) => e.unitId === "mark").reason).toMatch(/structure/);
   });
 
+  it("refuses her own Master: only an ENEMY Master breaks a Bloodmark (#188 reading 7)", () => {
+    // The mark carries Medusa's faction, so a Master of her side is no enemy of
+    // it, and a Normal Attack selects enemies.
+    const own = {
+      id: "m", name: "Her Master", kind: "master", panel: at(5, 5),
+      faction: "a", factionId: "a", range: 5,
+    };
+    const r = resolveTargets(spec, own, board([own, mark]), { unitId: "mark" });
+    expect(r.units).toEqual([]);
+  });
+
   it("still excludes a Structure that names nobody", () => {
     const plain = { ...mark, destroyableBy: [] };
     const master = {

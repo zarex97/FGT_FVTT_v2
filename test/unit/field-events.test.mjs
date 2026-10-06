@@ -185,7 +185,7 @@ describe("a field's interior events leave the defeated alone (#153)", () => {
     expect(intents.filter((i) => i.unitId === LIVING).map((i) => i.t).sort()).toEqual(["applyEffect", "damage"]);
   });
 
-  it("Blood Fort Andromeda: a defeated Civilian yields no Defeat, Heal or StatDelta", async () => {
+  it("Blood Fort Andromeda: a defeated Civilian yields no Defeat, Heal or StatDelta on contact (#188 reading 9)", async () => {
     const fields = await fieldsOf([{
       ability: "medusa-blood-fort-andromeda", owner: QZ, faction: "A", panels: squareAround({ i: 6, j: 6 }, 7),
     }]);
@@ -194,7 +194,7 @@ describe("a field's interior events leave the defeated alone (#153)", () => {
     });
     const intents = await withSubjects(
       [OWNER, civilian(LIVING, false, { i: 6, j: 8 }), civilian(DEAD, true, { i: 6, j: 9 })],
-      ({ board }) => runFieldEvents("anyTurnEnd", { board }),
+      ({ board }) => runFieldEvents("contact", { board }),
       { settings: { fields } },
     );
     // The living one is killed and pays Medusa once; the corpse is not killed again and pays nobody.
