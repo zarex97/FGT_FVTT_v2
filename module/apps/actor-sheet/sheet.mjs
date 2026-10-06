@@ -182,7 +182,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       && ownTurnOf(actor) !== true) {
       const { FGTSocket } = await import("../../net/socket.mjs");
       const out = await FGTSocket.request("queueModeEnd", { actorId: actor.id, itemId: item.id });
-      if (out?.ok === false) ui.notifications.warn(game.i18n.format("FGT.Skill.Refused", { name: item.name, reason: out.reason }));
+      if (out?.ok === false) ui.notifications.warn(game.i18n.format("FGT.Skill.Refused", { name: item.name, reason: refusalWords(out.reason) }));
       else ui.notifications.info(game.i18n.format("FGT.HUD.EndQueuedNotice", { name: item.name }));
       return;
     }
@@ -209,7 +209,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (active && pricedOnEntry(item)) {
       const out = await FGTActorSheet.#relaySkill(actor, item);
       if (!out.ok) {
-        ui.notifications.warn(game.i18n.format("FGT.Skill.Refused", { name: item.name, reason: out.reason }));
+        ui.notifications.warn(game.i18n.format("FGT.Skill.Refused", { name: item.name, reason: refusalWords(out.reason) }));
         return;
       }
     }
@@ -315,7 +315,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const out = await FGTActorSheet.#relaySkill(actor, ability, placement);
     if (!out.ok) {
       ui.notifications.warn(game.i18n.format("FGT.Skill.Refused", {
-        name: ability.name, reason: out.reason,
+        name: ability.name, reason: refusalWords(out.reason),
       }));
     }
   }
@@ -548,6 +548,21 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
  */
 async function pickPlacement(actor, ability) {
   return pickPlacementFor(actor, ability);
+}
+
+/**
+ * A refusal's reason in words, where the sheet already has them.
+ *
+ * Reasons are KINDS (`zon`, `cooldown`, a requirement's kind). Printed raw the
+ * card read "Golden Hind: Wild Hunt cannot be used: zon." (#187). The words are
+ * `FGT.Ability.Refused.<kind>`, which the ability cards and the action bar read.
+ *
+ * @param {string|null|undefined} reason
+ * @returns {string}
+ */
+export function refusalWords(reason) {
+  const key = `FGT.Ability.Refused.${reason}`;
+  return reason && game.i18n.has(key) ? game.i18n.localize(key) : (reason ?? "");
 }
 
 /**

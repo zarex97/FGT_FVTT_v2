@@ -85,6 +85,8 @@ Test: `test/unit/roll-records.test.mjs`.
 
 **Filing a roll whose clause did not apply.** Drake's *"whenever this Unit performs a Crit ... 15% chance of gaining 1 Galleon Token"* rolled its die on every hit and the card printed *"68 against 15%: missed"* on attacks that did not Crit (#187). `scheduler.pendingRolls` now carries the handler's `predicate`, and `engine/attack.mjs#fireDamageDealt` files a chance roll only when it holds.
 
+**A reason printed as a kind.** A Skill refused on the sheet's and the bar's use path printed the kind it was refused for: *"Golden Hind: Wild Hunt cannot be used: zon."* (#187). `apps/actor-sheet/sheet.mjs#refusalWords` words it from `FGT.Ability.Refused.<kind>`, which the ability cards already read: *"Outside the Master's ZON — Noble Phantasms are unusable."*
+
 **Counting one kind of result.** A Skill card counted the effects a Skill applied and nothing else, so Surgical Procedure healed 50 and restored 1 Agility under *"No effects were applied"* (#185). A `heal` phase and a `statChange` phase now add a row each (*"Health +50"*, *"Agility +1"*, `engine/skill-use.mjs#statChangeLine`), filtered per viewer like an effect.
 
 **A close that tells nobody.** A field closing posted nothing, and a close for its owner's defeat was not even logged (#185). `engine/fields.mjs#endField`, which every close path reaches, logs the `deactivated` entry when its caller has not and posts `engine/field-report.mjs#fieldClosedCard`: *"The Mist: Darkened Misty Metropolis ends. Its owner ended it."* The reason is `owner`, `upkeep`, `forcedEnd`, `ownerDefeat`, `expired`, `duelDecided` or `vulnerability`, worded from `FGT.Field.Closed.<reason>`.

@@ -85,7 +85,7 @@ export async function payQueuedEnds(combat) {
       await deactivateField(entry.id, "owner");
     } else if (entry.kind === "platform") {
       const { destroyPlatform } = await import("./platforms.mjs");
-      await destroyPlatform({ platformId: entry.id });
+      await destroyPlatform({ platformId: entry.id, reason: "owner" });
     } else if (entry.kind === "mode") {
       // What the sheet's toggle writes for a Mode switched off: `setMode`
       // flips it and restamps `toggledAt`.

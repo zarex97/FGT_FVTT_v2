@@ -162,7 +162,7 @@ async function notePlatformDeactivations(intents) {
   const { destroyPlatform } = await import("./platforms.mjs");
   for (const intent of applied) {
     for (const id of deactivatedBy(platforms, intent.unitId, intent.effect.defId)) {
-      await destroyPlatform({ platformId: id });
+      await destroyPlatform({ platformId: id, reason: "effect" });
     }
   }
 }
