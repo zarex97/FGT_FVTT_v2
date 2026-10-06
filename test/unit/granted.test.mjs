@@ -86,7 +86,7 @@ describe("the double move reads the grant", () => {
     // "The Servant is able to Move twice in one turn if it Attacks in between."
     const attacked = {
       ...unit(["doubleMove"]),
-      turnState: { attacked: true, moved: true, moveSegments: 1, movedPanels: 1 },
+      turnState: { attacked: true, moved: true, movedBeforeAttack: true, moveSegments: 1, movedPanels: 1 },
     };
 
     expect(canConsume(emptyBudget(), attacked, "move")).toMatchObject({ ok: true });
@@ -95,7 +95,7 @@ describe("the double move reads the grant", () => {
   it("refuses the second move to a unit that was not granted it", () => {
     const attacked = {
       ...unit([]),
-      turnState: { attacked: true, moved: true, moveSegments: 1, movedPanels: 1 },
+      turnState: { attacked: true, moved: true, movedBeforeAttack: true, moveSegments: 1, movedPanels: 1 },
     };
 
     expect(canConsume(emptyBudget(), attacked, "move")).toMatchObject({ ok: false });
@@ -120,7 +120,7 @@ describe("the drag gate after an Attack", () => {
   /** What the gate says to a Unit that has Attacked and has not Moved. */
   const gate = (spec) => withSubjects([{
     ...spec,
-    state: { ...(spec.state ?? {}), turnState: { attacked: true, movedPanels: 0 } },
+    state: { ...(spec.state ?? {}), turnState: { attacked: true, movedBeforeAttack: true, movedPanels: 0 } },
   }], ({ units }) => segmentCheck(units[0]));
   // `null` is "may move", so a refusal is asserted as the text it should be.
   const refusal = async (spec) => String(await gate(spec));
@@ -171,8 +171,8 @@ describe("the drag gate after an Attack", () => {
 
   it("reads the grant at the budget too, so the two gates cannot disagree", async () => {
     const verdicts = await withSubjects([
-      { from: "pollux", id: "pollux", state: { turnState: { attacked: true, moved: true, moveSegments: 1, movedPanels: 1 } } },
-      { from: "quetzalcoatl", id: "quetzalcoatl", state: { turnState: { attacked: true, moved: true, moveSegments: 1, movedPanels: 1 } } },
+      { from: "pollux", id: "pollux", state: { turnState: { attacked: true, moved: true, movedBeforeAttack: true, moveSegments: 1, movedPanels: 1 } } },
+      { from: "quetzalcoatl", id: "quetzalcoatl", state: { turnState: { attacked: true, moved: true, movedBeforeAttack: true, moveSegments: 1, movedPanels: 1 } } },
     ], ({ units }) => units.map((u) => canConsume(emptyBudget(), u, "move").ok));
     expect(verdicts).toEqual([false, true]);
   });

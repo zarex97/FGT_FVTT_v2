@@ -574,6 +574,12 @@ describe("masterHealthFraction", () => {
   it("reads a document's shape as well as a snapshot's", () => {
     expect(meetsRequirement(req, { unit: {}, master: { health: { value: 200, max: 250 } } })).toBe(true);
   });
+
+  it("with `above`, refuses exactly the fraction: paying it must leave some Health (#189 reading 4)", () => {
+    const strict = { kind: "masterHealthFraction", above: 0.5 };
+    expect(meetsRequirement(strict, { unit: {}, master: { health: 125, maxHealth: 250 } })).toBe(false);
+    expect(meetsRequirement(strict, { unit: {}, master: { health: 126, maxHealth: 250 } })).toBe(true);
+  });
 });
 
 describe("fieldOpen", () => {

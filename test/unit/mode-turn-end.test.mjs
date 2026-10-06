@@ -93,7 +93,7 @@ describe("a mode whose duration is this Turn", () => {
   it("is exactly the three Riding documents that author it, and no other mode", async () => {
     const modes = await corpusModes();
     const ending = [...modes].filter(([, item]) => endsWithTurn(item)).map(([id]) => id).sort();
-    expect(ending).toEqual(["class-riding", "class-riding-achilles", "pale-rider-riding"]);
+    expect(ending).toEqual(["class-riding", "class-riding-achilles", "class-riding-ozymandias", "pale-rider-riding"]);
     // ...and the corpus really holds other modes for that to be a distinction.
     expect([...modes.keys()].length).toBeGreaterThan(ending.length);
   }, 60_000);

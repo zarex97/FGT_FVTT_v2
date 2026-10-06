@@ -673,7 +673,12 @@ export function turnStateAt(raw, tick) {
  * @returns {object} every field to write
  */
 export function turnWrite(raw, tick, patch = {}) {
-  return TURN_RECORD.write(raw, tick, patch);
+  // The moment the Attack is recorded is the one moment that knows whether a
+  // Move came before it (#189 reading 15). Here, in the one writer every
+  // stamp goes through, so no attack path can forget it.
+  const now = TURN_RECORD.at(raw, tick);
+  const first = patch.attacked === true && !now.attacked && patch.movedBeforeAttack === undefined;
+  return TURN_RECORD.write(raw, tick, first ? { movedBeforeAttack: Boolean(now.moved || patch.moved), ...patch } : patch);
 }
 
 /**

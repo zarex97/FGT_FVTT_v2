@@ -138,17 +138,21 @@ describe("per-unit limits sit on top of the pools", () => {
       .toBe(false);
   });
 
-  it("allows repeated moves before the attack, and refuses one after it", () => {
+  it("allows repeated moves before the attack, and refuses Move–Attack–Move (#189 reading 15)", () => {
     // MOV is the limit on how far, and `segmentCheck` measures it; the budget's
-    // only say is that Attacking fixes the Unit in place unless it has Riding.
+    // say is that a Unit which Moved and then Attacked holds, unless it has
+    // Double Move. One that Attacked without Moving may Move afterwards.
     const moved = { turnState: { moved: true, moveSegments: 3 } };
     expect(canConsume(emptyBudget(), servant("a", moved), "move").ok).toBe(true);
 
-    const attacked = servant("a", { turnState: { moved: true, attacked: true } });
+    const attacked = servant("a", { turnState: { moved: true, attacked: true, movedBeforeAttack: true } });
     expect(canConsume(emptyBudget(), attacked, "move").ok).toBe(false);
-    expect(canConsume(emptyBudget(), attacked, "move").reason).toMatch(/attacked and cannot move/);
+    expect(canConsume(emptyBudget(), attacked, "move").reason).toMatch(/moved, then attacked/);
 
-    const rider = servant("a", { grantedAbilities: ["doubleMove"], turnState: { moved: true, attacked: true } });
+    const stoodToAttack = servant("a", { turnState: { attacked: true, movedBeforeAttack: false } });
+    expect(canConsume(emptyBudget(), stoodToAttack, "move").ok).toBe(true);
+
+    const rider = servant("a", { grantedAbilities: ["doubleMove"], turnState: { moved: true, attacked: true, movedBeforeAttack: true } });
     expect(canConsume(emptyBudget(), rider, "move").ok).toBe(true);
   });
 

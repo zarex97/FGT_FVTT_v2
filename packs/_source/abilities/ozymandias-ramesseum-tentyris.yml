@@ -43,7 +43,9 @@ targeting:
     requirements:
       # "Cannot be used if his Master's Health is less than that" -- a FRACTION
       # of the maximum, and stated as a refusal, so the comparison is `>=`.
-      - { kind: masterHealthFraction, atLeast: 0.5 }
+      # Ruled 2026-10-06 (#189 reading 4): the Master must keep some Health
+      # after paying, so exactly half is refused -- `above`, not `atLeast`.
+      - { kind: masterHealthFraction, above: 0.5 }
 # "First, the Master's Health is reduced by 50% of its maximum value." The first
 # cost in the corpus whose size is not on the sheet, because it depends on whose
 # Master it is.
@@ -198,6 +200,9 @@ field:
       consumesOnUse: false
       relations: [ally]
       kinds: [summon]
+      # "When ANY OF THE SPHINXES are defeated within the Complex" -- the three,
+      # not any allied summon (ruled 2026-10-06, #189 reading 5).
+      contentIds: [sphinx, sphinx-queen, sphinx-wehem-mesut]
 
     - key: Suppress
       scope: sustainabilityDecay

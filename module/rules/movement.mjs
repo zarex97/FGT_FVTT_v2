@@ -14,6 +14,7 @@
 
 import * as geo from "../domain/geometry.mjs";
 import { hasGranted, GRANTS } from "./granted.mjs";
+import { mayMoveAfterAttack } from "./budget.mjs";
 import { contains, membershipVerdict } from "./bounded-fields.mjs";
 import { guardsOf, relationOf, sideOf } from "./relations.mjs";
 import { actionSourceFor, withinFootprint } from "./platforms.mjs";
@@ -604,12 +605,11 @@ export function segmentCheck(unit) {
     return `This Unit has spent all ${effectiveMov(unit)} panels of its MOV this Turn.`;
   }
 
-  // Attacking is what fixes a Unit in place: *"once you Attack you hold that
-  // position"*. Double Move is the exception, and its two segments — before the
-  // Attack and after it — share the one MOV allowance already checked above.
-  if (!state.attacked) return null;
-  if (!hasGranted(unit, GRANTS.doubleMove)) return "This Unit has Attacked; it cannot Move again this Turn.";
-  return null;
+  // Move then Attack, or Attack then Move -- not both, unless Double Move
+  // (#189 reading 15). The superseded reading held every Unit in place once it
+  // had Attacked. All of it shares the one MOV allowance checked above.
+  if (mayMoveAfterAttack(state, unit)) return null;
+  return "This Unit Moved and then Attacked; it cannot Move again this Turn.";
 }
 
 /* -------------------------------------------------------------------------- */

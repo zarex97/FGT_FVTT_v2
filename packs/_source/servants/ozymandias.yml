@@ -41,7 +41,8 @@ abilities:
   # be combined with Passenger Seat", which he could not do without having it.
   # `3◈-⅓◈` is passed literally because `ridingCooldown` has no A+ band --
   # the same reason Achilles and Medusa pass theirs.
-  - { ref: class-riding, rank: "A+", cooldown: "3◈-⅓◈" }
+  # His own Riding: no Passenger Seat (#189 reading 1).
+  - { ref: class-riding-ozymandias, rank: "A+", cooldown: "3◈-⅓◈" }
   - { ref: class-magic-resistance, rank: B }
   - { ref: divinity, rank: B }
   - { ref: ozymandias-pharaoh-of-the-hot-sands }
@@ -52,6 +53,7 @@ abilities:
   - { ref: ozymandias-dendera-electric-bulb }
   - { ref: ozymandias-dendera-electric-bulb-area }
   - { ref: ozymandias-pyramid-drop }
+  - { ref: ozymandias-sphinx-of-abu-el-hol }
 
 notes: |
   Ramesseum Tentyris is the only [Fortress] Noble Phantasm in either roster,

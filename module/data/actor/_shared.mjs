@@ -465,6 +465,8 @@ export function turnStateField() {
     acted: new fields.BooleanField({ initial: false }),
     moved: new fields.BooleanField({ initial: false }),
     attacked: new fields.BooleanField({ initial: false }),
+    // Had it Moved when it Attacked (#189 reading 15)? See `TURN_RECORD`.
+    movedBeforeAttack: new fields.BooleanField({ initial: false }),
     // Was this Unit in a Combat Phase this Turn — on EITHER side of it?
     //
     // Distinct from `acted`, which is what the Unit *did*, and from

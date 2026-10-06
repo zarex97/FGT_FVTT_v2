@@ -264,9 +264,14 @@ describe("moving repeatedly, and what stops it", () => {
       .toMatch(/spent all 4 panels/);
   });
 
-  it("fixes a Unit in place once it has Attacked", () => {
-    expect(segmentCheck(mover({ mov: 6, turnState: { attacked: true, movedPanels: 1 } })))
-      .toMatch(/has Attacked; it cannot Move again/);
+  it("fixes a Unit in place once it has Moved and then Attacked (#189 reading 15)", () => {
+    expect(segmentCheck(mover({ mov: 6, turnState: { attacked: true, movedBeforeAttack: true, movedPanels: 1 } })))
+      .toMatch(/Moved and then Attacked; it cannot Move again/);
+  });
+
+  it("lets a Unit that stood still to Attack Move afterwards (#189 reading 15)", () => {
+    expect(segmentCheck(mover({ mov: 6, turnState: { attacked: true, movedBeforeAttack: false, movedPanels: 0 } })))
+      .toBeNull();
   });
 
   it("lets Double Move move after the attack", () => {
@@ -275,7 +280,7 @@ describe("moving repeatedly, and what stops it", () => {
   });
 
   it("reads the doubleMove grant off the snapshot", () => {
-    const rider = mover({ mov: 6, grantedAbilities: ["doubleMove"], turnState: { attacked: true, movedPanels: 1 } });
+    const rider = mover({ mov: 6, grantedAbilities: ["doubleMove"], turnState: { attacked: true, movedBeforeAttack: true, movedPanels: 1 } });
     expect(segmentCheck(rider)).toBeNull();
     expect(segmentCheck({ ...rider, grantedAbilities: [] })).toMatch(/cannot Move again/);
   });

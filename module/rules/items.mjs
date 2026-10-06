@@ -488,6 +488,9 @@ export function meetsRequirement(req, ctx) {
     // misstate one of the two.
     case "masterHealthFraction": {
       const max = master?.maxHealth ?? master?.health?.max ?? 0;
+      // `above`, strictly: ruled (#189 reading 4), a cost of this fraction must
+      // leave the Master some Health, so exactly half cannot pay half.
+      if (req.above !== undefined) return currentHealth(master) > Math.floor(max * req.above);
       return currentHealth(master) >= Math.ceil(max * (req.atLeast ?? 0));
     }
 
