@@ -66,7 +66,7 @@ At the end of a Turn, if more than one Servant has Acted, the Master loses 25 He
 
 A Master with 25 Health or less cannot order a second Servant to Act if one has already (`module/rules/relationships.mjs:267-279`). This prohibition is the flip side of the tax: it prevents a Master from spending to zero in the same Turn.
 
-The `grandOrder` setting disables both the tax and the prohibition, and also disables Hatred of Achilles against allies (`module/settings.mjs:64-67`).
+The `grandOrder` setting disables both the tax and the prohibition, and also disables Hatred of Achilles against allies. That last half was only a comment until #190: nothing read the setting, so Hatred reached allies in a Grand Order war. The board now carries `grandOrder`, and Hatred's compulsion declares `spareAlliesInGrandOrder`.
 
 ### Linked groups
 

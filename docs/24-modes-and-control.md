@@ -51,7 +51,7 @@ The window constraint is advisory; the sheet prevents Dismounting mid-Combat whi
 
 ### Compulsions and decoys
 
-A compulsion forces a unit to attack a particular target. `annotateCompulsions` (`module/rules/compulsion.mjs:30-55`) computes every unit's compulsions every time the board is projected, checking distance and predicate against every other unit. A compulsion is **positional**—it holds while somebody is nearby and lifts the moment they are not.
+A compulsion forces a unit to attack a particular target. One that `pursues` (Hatred of Achilles) keeps only the **nearest** target, every one at that distance when two tie (ruled 2026-10-06, #190 reading 2), and its targets are Greek Male **Servants** only (reading 1). `spareAlliesInGrandOrder` drops an allied target when `board.grandOrder` is set, the Grand Order setting carried onto the board. `annotateCompulsions` (`module/rules/compulsion.mjs:30-55`) computes every unit's compulsions every time the board is projected, checking distance and predicate against every other unit. A compulsion is **positional**—it holds while somebody is nearby and lifts the moment they are not.
 
 `compelledTargetsOf` (`module/rules/compulsion.mjs:134-138`) returns the targets a unit *must* attack, narrowing the targeting resolver's legal set. Decoy (`module/rules/compulsion.mjs:104-122`) reverses the direction: a unit with a Decoy suppression pulls enemies toward it, constraining *their* movement (via `rules/movement.mjs`) and read by the overlay layer.
 

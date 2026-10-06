@@ -203,7 +203,9 @@ export async function reset(combat, factionId) {
  * @returns {{ok: boolean, unmet: object[]}}
  */
 export function endTurnVerdict(combat, factionId, units) {
-  return canEndTurn(units.filter((u) => u.factionId === factionId));
+  // The whole board beside the faction's own: a pursuit measures against a
+  // target on the other side (#190).
+  return canEndTurn(units.filter((u) => u.factionId === factionId), { units });
 }
 
 /**

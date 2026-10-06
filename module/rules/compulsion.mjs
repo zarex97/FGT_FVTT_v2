@@ -162,6 +162,8 @@ function compulsionsFor(unit, board) {
       if (other.defeated) continue;
       if (chebyshev(other.panel ?? {}, unit.panel ?? {}) > (rule.within ?? 0)) continue;
       if (!relationAllowed(rule, unit, other, board)) continue;
+      // *"No effect against allied Units"* in a Grand Order war.
+      if (rule.spareAlliesInGrandOrder && board.grandOrder && allied(unit, other, board)) continue;
       if (rule.targetPredicate && !testPredicate(rule.targetPredicate, {
         options: rollOptionsFor({ attacker: unit, defender: other }),
       })) continue;
@@ -170,7 +172,14 @@ function compulsionsFor(unit, board) {
     }
 
     if (targetIds.length > 0) {
-      out.push({ id: rule.id, forcesTarget: Boolean(rule.forcesTarget), forcesSkill: rule.forcesSkill ?? null, targetIds, source: rule.source });
+      // *"She will constantly Move towards and Attack said Unit"*: the nearest
+      // one, and the player picks between two at the same distance (ruled
+      // 2026-10-06, #190 reading 2).
+      const kept = rule.pursues ? nearestOf(unit, targetIds, board) : targetIds;
+      out.push({
+        id: rule.id, forcesTarget: Boolean(rule.forcesTarget), forcesSkill: rule.forcesSkill ?? null,
+        pursues: Boolean(rule.pursues), targetIds: kept, source: rule.source,
+      });
     }
   }
 
@@ -190,7 +199,41 @@ function compulsionsFor(unit, board) {
  */
 function relationAllowed(rule, unit, other, board) {
   const relations = rule.relations ?? ["ally", "enemy"];
-  const allied = board.alliances?.[unit.faction]?.includes(other.faction)
-    ?? other.faction === unit.faction;
-  return relations.includes(allied ? "ally" : "enemy");
+  return relations.includes(allied(unit, other, board) ? "ally" : "enemy");
+}
+
+/**
+ * Are these two on the same side?
+ *
+ * @param {object} unit
+ * @param {object} other
+ * @param {object} board
+ * @returns {boolean}
+ */
+function allied(unit, other, board) {
+  return board.alliances?.[unit.faction]?.includes(other.faction) ?? other.faction === unit.faction;
+}
+
+/**
+ * The targets at the least distance from the compelled Unit.
+ *
+ * @param {object} unit
+ * @param {string[]} ids
+ * @param {object} board
+ * @returns {string[]}
+ */
+function nearestOf(unit, ids, board) {
+  const far = (id) => chebyshev((board.units ?? []).find((u) => u.id === id)?.panel ?? {}, unit.panel ?? {});
+  const least = Math.min(...ids.map(far));
+  return ids.filter((id) => far(id) === least);
+}
+
+/**
+ * The pursuit a Unit is under, if any: Hatred of Achilles with a target in reach.
+ *
+ * @param {object} unit
+ * @returns {object|null}
+ */
+export function pursuitOf(unit) {
+  return (unit?.compulsions ?? []).find((c) => c.pursues && (c.targetIds ?? []).length > 0) ?? null;
 }

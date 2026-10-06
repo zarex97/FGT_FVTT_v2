@@ -1892,6 +1892,12 @@ export const EXECUTORS = Object.freeze({
       targetPredicate: el.targetPredicate ?? null,
       forcesTarget: el.forcesTarget !== false,
       forcesSkill: el.forcesSkill ?? null,
+      // Hatred of Achilles: the nearest target only, no Skill, and a Move that
+      // closes on it until she can Attack (#190 readings 2, 3, Q10).
+      pursues: Boolean(el.pursues),
+      // *"Hatred of Achilles has no effect against allied Units if Penthesilea
+      // is summoned in a Grand Order Holy Grail War."*
+      spareAlliesInGrandOrder: Boolean(el.spareAlliesInGrandOrder),
       source,
     });
   },
