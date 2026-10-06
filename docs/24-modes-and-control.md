@@ -41,6 +41,8 @@ When a compulsion's condition becomes true or a `ForceMode` rule's condition tri
 
 The write bypasses `canToggleMode`—the sheet says *"immediately activated regardless of Cooldown or any other factors"* (`module/engine/modes.mjs:91-94`). The reverse is absent: when the condition lifts, nothing switches the mode off, freeing the player rather than moving their hand.
 
+**Mad Enhancement's forced deactivation wins** (ruled 2026-10-06, #190 readings 11 to 13). *"When its Master's Health is 30 or less, ME is forcibly deactivated"* holds at any moment, not only at the end of a Turn it Acts: `reconcileForcedModes` switches an active mode off the moment `rules/modes.mjs#forcedOffNow` holds -- read off the mode's own authored `SetMode` (`active: false`, `whenValue`), so the table and Castor's partner factor are the Turn-end check's -- and posts *"Mad Enhancement forcibly deactivated on …"*. It runs on a `board` invalidation too, which a Master's Health changing raises. While it holds, neither Hatred nor a `ForceMode` switches the mode on (`forcedModes` asks it). The floor *"while the Skill does not meet the condition to be deactivated"* holds while the mode is held on **or** inside its 2◈ lockout: the projection stamps `locked` on a mode within `toggleLock` of `toggledAt`, and `rules/options.mjs` emits `self:modeLocked:<slug>`; Penthesilea's and Raikou's `drainFloorWhen` take either.
+
 ### Stances: declarations and constraints
 
 A **stance** is not a mode. It has no duration, cooldown, or toggle lock, and a compulsion cannot force one on. What it has instead is a set of windows—moments at which switching is allowed—and a default it is forced into when it is not the unit's own Turn (`module/rules/stance.mjs:1-28`).
