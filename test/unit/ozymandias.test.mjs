@@ -12,6 +12,8 @@ import { turnWrite } from "../../module/rules/snapshot.mjs";
 import { interiorModifiers } from "../../module/rules/bounded-fields.mjs";
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { normalAttackAt } from "../../module/rules/normal-attack.mjs";
+import { resolveTargets } from "../../module/rules/targeting/resolve.mjs";
+import { squareBounds } from "../../module/domain/geometry.mjs";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 
 const src = (dir, file) =>
@@ -113,5 +115,38 @@ describe("Protection from Ra reaches each ally's own Noble Phantasm (#189)", () 
     } finally {
       game.settings = settings;
     }
+  });
+});
+
+describe("a Civilian an attack kills is no defender of its Processes (#189)", () => {
+  it("builds the fan-out from the Units left after the Civilians died", () => {
+    const src2 = readFileSync("module/engine/attack.mjs", "utf8");
+    expect(src2).toMatch(/const defenders = targets\.units\.filter\(\(t\) => !killedCivilians\.has\(t\.unitId\)\)/);
+    expect(src2).toMatch(/const targetIds = defenders\.flatMap/);
+  });
+});
+
+describe("the Bulb's reach beyond the Complex: 4 straight, 3 diagonally (#189)", () => {
+  const panels = [];
+  for (let i = 4; i <= 14; i++) for (let j = 5; j <= 15; j++) panels.push({ i, j });
+  const field = { id: "ozymandias-ramesseum-tentyris", ownerId: "oz", geometry: { kind: "markDefined" }, panels };
+  const bulb = src("abilities", "ozymandias-dendera-electric-bulb.yml").targeting;
+  const oz = { id: "oz", name: "Ozymandias", kind: "servant", faction: "a", factionId: "a", panel: { i: 9, j: 10 }, range: 3 };
+  const errorsAt = (i, j) => {
+    const foe = { id: "foe", name: "Foe", kind: "master", faction: "b", factionId: "b", panel: { i, j } };
+    const board = { bounds: squareBounds(21), units: [oz, foe], fields: [field], alliances: { a: ["a"], b: ["b"] } };
+    return resolveTargets(bulb, oz, board, { unitId: "foe" }).errors;
+  };
+
+  it("reaches 4 panels straight out, though a corner panel is as near", () => {
+    // (9,1): 4 from (9,5), and 4 from the corner (5,5) as well -- the tie that
+    // measured a straight shot as a diagonal one.
+    expect(errorsAt(9, 1)).toEqual([]);
+    expect(errorsAt(9, 0)[0]).toMatch(/5 panels from the area; Range is 4\./);
+  });
+
+  it("reaches 3 diagonally and not 4", () => {
+    expect(errorsAt(1, 2)).toEqual([]);
+    expect(errorsAt(0, 1)[0]).toMatch(/Range is 3 on the diagonal/);
   });
 });
