@@ -267,6 +267,12 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
     }));
     await applyBatch([...civilianIntents(descriptors, self.id), ...killed], "civilianKill");
   }
+  // ...and so they are no defenders of the Processes below. A Civilian in the
+  // Dendera Bulb's 2x2 was killed here AND given a Process of its own, whose
+  // card read "0 -- Negated by invulnerable-by-nature" over a Unit that had
+  // just died (#189).
+  const killedCivilians = new Set(civilians.map((c) => c.id));
+  const defenders = targets.units.filter((t) => !killedCivilians.has(t.unitId));
 
   // One Combat Process per target — which is what the comment here has always
   // said, and what the code did not do. It took `targets.units[0]` and dropped
@@ -311,9 +317,9 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // target, so the declared order reads down the chat log: a player matching
   // five cards to five sentences of Dohatsu Tenshou should find them in the
   // sheet's order.
-  const targetIds = targets.units.flatMap((t) => instanceSpecs.map(() => t.unitId));
+  const targetIds = defenders.flatMap((t) => instanceSpecs.map(() => t.unitId));
   // The spec each of those processes resolves under, in the same order.
-  const perProcess = targets.units.flatMap(() => instanceSpecs);
+  const perProcess = defenders.flatMap(() => instanceSpecs);
 
   // WHICH RING each target stands in, carried forward from the geometry pass.
   //
@@ -329,7 +335,7 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // site. The two would agree today -- both are Chebyshev from the caster --
   // but they are two answers to one question, and the geometry pass is the one
   // that actually chose these targets.
-  attackSpec.bands = Object.fromEntries(targets.units.map((t) => [t.unitId, t.band ?? 0]));
+  attackSpec.bands = Object.fromEntries(defenders.map((t) => [t.unitId, t.band ?? 0]));
 
   // The Hanging Gardens' activation: "If Semiramis is Attacked during this
   // period, the period... is interrupted." Declared against, not necessarily

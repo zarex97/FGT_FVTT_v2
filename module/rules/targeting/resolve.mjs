@@ -800,9 +800,19 @@ function resolveAnchor(spec, caster, board, placement, errors) {
         return { ...base, panel: casterPanel };
       }
       const panels = panelsOf(field, board);
+      // The nearest panel, and among equally near ones a STRAIGHT one before a
+      // diagonal: a Unit four panels west of the border is as far from the
+      // corner panel as from the panel level with it, and taking whichever came
+      // first in the list measured a straight shot as a diagonal one and
+      // refused it, "Range is 3 on the diagonal" (#189).
+      const isDiagonalTo = (p) => p.i !== unit.panel.i && p.j !== unit.panel.j;
+      const nearer = (p, best) => {
+        const dp = geo.chebyshev(p, unit.panel);
+        const db = geo.chebyshev(best, unit.panel);
+        return dp < db || (dp === db && isDiagonalTo(best) && !isDiagonalTo(p));
+      };
       const nearest = panels.length > 0
-        ? panels.reduce((best, p) => (
-          geo.chebyshev(p, unit.panel) < geo.chebyshev(best, unit.panel) ? p : best))
+        ? panels.reduce((best, p) => (nearer(p, best) ? p : best))
         : null;
       const edge = nearest ? geo.chebyshev(nearest, unit.panel) : Infinity;
       const r = spec.range ?? 1;
