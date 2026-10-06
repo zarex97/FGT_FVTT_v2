@@ -102,10 +102,19 @@ export function attachInvalidation() {
 
   Hooks.on("updateToken", (token, changes) => {
     if (changes?.x === undefined && changes?.y === undefined) return;
-    invalidate(invalidationsFor("tokenMoved", {
+    const fire = () => invalidate(invalidationsFor("tokenMoved", {
       actorId: token.actor?.id ?? null,
       partnerId: token.actor?.system?.masterId ?? null,
     }));
+    // After the move has SETTLED. In v14 a TokenDocument's `x` and `y` read the
+    // animated position until the movement finishes, so a board projected in
+    // this hook still stands the Unit where it started. Measured live: Achilles
+    // walked to 4 panels of Penthesilea and Hatred of Achilles never switched
+    // her Mad Enhancement on, because the board it asked still had him at 5
+    // (#190).
+    const settling = token.object?.movementAnimationPromise ?? null;
+    if (settling) settling.then(fire, fire);
+    else fire();
   });
 
   Hooks.on("deleteToken", () => invalidate(invalidationsFor("tokenDeleted", {})));
