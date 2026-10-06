@@ -1,3 +1,4 @@
+import { pursuitOf } from "./compulsion.mjs";
 import { hasGranted, GRANTS } from "./granted.mjs";
 import { unitWeight } from "./linked-group.mjs";
 
@@ -461,7 +462,7 @@ export function consume(budget, unit, action, { alsoCountsAsAttackFor = null, bo
  * @param {object[]} units the acting faction's units, as snapshots
  * @returns {Array<{unitId: string, unitName: string, effect: string, message: string}>}
  */
-export function unmetCompulsions(units) {
+export function unmetCompulsions(units, board = null) {
   const mine = units ?? [];
   const attackers = mine.filter((u) => u.turnState?.attacked);
   const anyoneAttacked = attackers.length > 0;
@@ -481,6 +482,16 @@ export function unmetCompulsions(units) {
     // A unit that could not have attacked is not in breach.
     if (preventedBy(unit, "attack").prevented) continue;
     if (unit.canAct === false) continue;
+
+    // Hatred of Achilles is not conditional on anybody else attacking: she
+    // Moves towards him with all her MOV and Attacks him once she can
+    // (ruled 2026-10-06, #190 Q10).
+    const pursuit = pursuitOf(unit);
+    if (pursuit) {
+      const breach = pursuitBreach(unit, pursuit, board);
+      if (breach) unmet.push({ unitId: unit.id, unitName: unit.name, effect: "Hatred", message: breach });
+      continue;
+    }
 
     if (compelled === "berserk") {
       // Berserk is unconditional -- "has to Move and Attack on its Turn if able"
@@ -513,13 +524,38 @@ export function unmetCompulsions(units) {
 }
 
 /**
+ * Why a pursuing Unit may not end its Turn yet, or null.
+ *
+ * In Range of him and not yet Attacked: she must Attack. Out of Range with MOV
+ * left: she must Move towards him. Out of Range with none left: she did all
+ * she could.
+ *
+ * @param {object} unit
+ * @param {object} pursuit
+ * @param {object|null} board
+ * @returns {string|null}
+ */
+function pursuitBreach(unit, pursuit, board) {
+  const target = (board?.units ?? []).find((u) => u.id === pursuit.targetIds[0]);
+  const name = target?.name ?? "the Unit she hates";
+  const range = unit.range?.panels ?? unit.range ?? 1;
+  const reach = target?.panel && unit.panel ? chebyshevOf(unit.panel, target.panel) : 0;
+  if (reach <= range) return `${unit.name} must Attack ${name} (Hatred of Achilles).`;
+  const left = (unit.mov ?? 0) - (unit.turnState?.movedPanels ?? 0);
+  if (left > 0 && !preventedBy(unit, "move").prevented) {
+    return `${unit.name} must Move towards ${name} with all her MOV (Hatred of Achilles).`;
+  }
+  return null;
+}
+
+/**
  * May the turn be ended?
  *
  * @param {object[]} units the acting faction's units
  * @returns {{ok: boolean, unmet: object[]}}
  */
-export function canEndTurn(units) {
-  const unmet = unmetCompulsions(units);
+export function canEndTurn(units, board = null) {
+  const unmet = unmetCompulsions(units, board);
   return { ok: unmet.length === 0, unmet };
 }
 
@@ -546,4 +582,15 @@ export function summarize(budget) {
         return remaining >= 2 ? 1 : remaining === 1 ? 0.5 : 0;
       }),
     }));
+}
+
+/**
+ * Chebyshev distance between two panels.
+ *
+ * @param {{i: number, j: number}} a
+ * @param {{i: number, j: number}} b
+ * @returns {number}
+ */
+function chebyshevOf(a, b) {
+  return Math.max(Math.abs(a.i - b.i), Math.abs(a.j - b.j));
 }

@@ -12,6 +12,7 @@
  * neither. Those are different predicates and the search needs both.
  */
 
+import { pursuitOf } from "./compulsion.mjs";
 import * as geo from "../domain/geometry.mjs";
 import { hasGranted, GRANTS } from "./granted.mjs";
 import { mayMoveAfterAttack } from "./budget.mjs";
@@ -325,6 +326,8 @@ function judgeRide(unit, destination, board, { movedAlready = null, distanceOver
   if (!pursuit.ok) return { ok: false, reason: pursuit.reason };
   const pulled = decoyVerdict(unit, route, board);
   if (!pulled.ok) return { ok: false, reason: pulled.reason };
+  const hated = hatredVerdict(unit, route, board);
+  if (!hated.ok) return { ok: false, reason: hated.reason };
 
   return { ok: true, path: walked, distance };
 }
@@ -810,6 +813,35 @@ export function pursuitVerdict(unit, path, board) {
   return after <= before
     ? { ok: true }
     : { ok: false, reason: `${unit.name ?? "This summon"} must Move towards ${prey.name ?? "its target"}.` };
+}
+
+/**
+ * Hatred of Achilles' movement half.
+ *
+ * > *"She will constantly Move towards and Attack said Unit."*
+ *
+ * Out of her Range, every Move closes on him; within it, none takes her
+ * farther away (ruled 2026-10-06, #190 Q10). The turn-end half, that she may
+ * not stop short, is `rules/budget.mjs#unmetCompulsions`.
+ *
+ * @param {object} unit
+ * @param {Array<{i: number, j: number}>} path
+ * @param {object} board
+ * @returns {{ok: boolean, reason?: string}}
+ */
+export function hatredVerdict(unit, path, board) {
+  const pursuit = pursuitOf(unit);
+  if (!pursuit || !Array.isArray(path) || path.length < 2) return { ok: true };
+  const target = (board?.units ?? []).find((u) => u.id === pursuit.targetIds[0]);
+  if (!target?.panel) return { ok: true };
+
+  const before = geo.chebyshev(path[0], target.panel);
+  const after = geo.chebyshev(path[path.length - 1], target.panel);
+  const range = unit.range?.panels ?? unit.range ?? 1;
+  const ok = before > range ? after < before : after <= before;
+  return ok
+    ? { ok: true }
+    : { ok: false, reason: `${unit.name ?? "This Unit"} can only Move towards ${target.name ?? "the Unit she hates"}.` };
 }
 
 /**

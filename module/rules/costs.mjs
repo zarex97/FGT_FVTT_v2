@@ -14,6 +14,7 @@
  * problem is actionable and a refusal that names four is a wall of text.
  */
 
+import { pursuitOf } from "./compulsion.mjs";
 import { hasGranted, GRANTS } from "./granted.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { currentHealth } from "../domain/health.mjs";
@@ -254,6 +255,14 @@ export function canUseAbility({
   // exists to permit. Measured live: a Sakata copy could not attack at all.
   if (ability && hasGranted(unit, GRANTS.normalAttacksOnly)) {
     return { ok: false, reason: "normalAttacksOnly", detail: {}, cost };
+  }
+
+  // Hatred of Achilles: *"she will ignore all orders/Player commands; she
+  // will constantly Move towards and Attack said Unit"*. The Move and the
+  // Attack, Outrage Amazon among Attacks, and no Skill (ruled 2026-10-06,
+  // #190 reading 3).
+  if (ability && !ability.isNP && pursuitOf(unit)) {
+    return { ok: false, reason: "compelled", detail: {}, cost };
   }
 
   // Spent for the rest of the game, and ABOVE the cooldown gate rather than

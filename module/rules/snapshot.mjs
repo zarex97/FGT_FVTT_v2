@@ -761,6 +761,8 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
     // the term `engine/movement-hooks.mjs`, `engine/budget.mjs` and
     // `rules/control.mjs` all already use.
     actingFactionId: settings.actingFactionId ?? null,
+    // A Grand Order war, which spares allies from Hatred of Achilles (#190).
+    grandOrder: Boolean(settings.grandOrder),
     round: settings.round ?? 1,
     turnsPerRound: settings.turnsPerRound ?? 3,
     tick: settings.tick ?? 0,

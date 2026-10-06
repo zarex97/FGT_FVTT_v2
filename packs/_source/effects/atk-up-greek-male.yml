@@ -20,4 +20,6 @@ rules:
     modifierKey: atkUp
     direction: dealt
     value: "@magnitude"
-    predicate: ["target:attribute:male", "target:region:greece"]
+    # A Greek Male SERVANT, as Hatred of Achilles reads it (ruled 2026-10-06,
+    # #190 reading 1).
+    predicate: ["target:attribute:male", "target:region:greece", "target:type:servant"]

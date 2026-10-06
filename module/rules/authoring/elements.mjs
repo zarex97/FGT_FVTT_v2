@@ -381,6 +381,8 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "targetPredicate", type: "predicateList" },
     { key: "forcesTarget", type: "checkbox" },
     { key: "forcesSkill", type: "text" },
+    { key: "pursues", type: "checkbox" },
+    { key: "spareAlliesInGrandOrder", type: "checkbox" },
   ]),
   entry("GrantedAbility", "Hands the bearer an ability it does not otherwise have.", [
     { key: "abilities", type: "tokenList" },
