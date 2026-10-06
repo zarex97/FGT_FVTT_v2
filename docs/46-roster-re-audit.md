@@ -3601,6 +3601,88 @@ Turn"*. The Mark was placed on Turn 1 all the same. Ruled 2026-10-06 (readings 1
 action that counts as an Attack, written once as the Attack pool's actions. Live, in a staged Round 1: *"No
 attacks are permitted during the first Round, and a Mark counts as her Attack."* Ch. 19.
 
+### HL. An ally's Noble Phantasm cooldown cut landed on the caster — **fixed** (#189)
+
+**Reached: PR.npcd.** Protection from Ra cuts *"each ally's"* NP cooldown. Cast on three allies, it cut his own
+Mesektet three times, 10 → 4, and Medea's Rule Breaker not at all: the phase named no unit, so it read the
+caster. It and Serenity's Shapeshift carry `unit: target` (000c39d). Ch. 17.
+
+### HM. A landed chance effect hid its roll — **fixed** (#189)
+
+**Reached: IP.atk.** Imperial Privilege's card showed *"rolled 83 vs 60%"* on a miss and nothing on a hit. A
+Skill card row reads `effectLine(summary)`, and the summary carries the chance: *"Atk Up (rolled 27 vs 60%)"*
+(000c39d). Ch. 37.
+
+### HN. A Civilian an attack killed still got a Process — **fixed** (#189)
+
+**Reached: DB.area.** The Bulb's 2×2 killed a Civilian, which then got its own card, *"0 — Negated by
+invulnerable-by-nature"*. The fan-out is built from the defenders left after the Civilians died (098de3f).
+Ch. 21.
+
+### HO. A straight reach from a field's edge was measured as diagonal — **fixed** (#189)
+
+**Reached: DB.range.** The Bulb reaches *"4 panels away from the border (if diagonal, 3)"*. A Unit four panels
+straight out is also four from a corner panel, and the first in the list decided: *"Range is 3 on the
+diagonal"*. `fieldEdge` prefers a straight panel on a tie (098de3f). Ch. 20.
+
+### HP. A band that names only its component did not re-source the swing — **fixed** (#189)
+
+**Reached: SX.w.mag.** The Sphinx Wehem-Mesut deals MAG at Range 2 or more. The band named the component and
+no source, so the swing stayed BA(STR) under a MAG label, and Magic Resistance never saw it. Such a band now
+re-sources the swing from its own component: *"BA(MAG) self +200"* (0c576f5). Ch. 22.
+
+### HQ. Magic Resistance named a Unit with no MAG Rank "attack null" — **fixed** (#189)
+
+**Reached: SX.w.mag.** Stage 11 read *"MR D < attack null"*. It reads *"…with no MAG Rank"* (0c576f5).
+Ch. 22.
+
+### HR. God's Curse prevented what is only Categorized as a Noble Phantasm — **fixed** (#189)
+
+**Reached: RT.gc.cat.** *"Servants cannot use their Noble Phantasms."* EMIYA's Overedge, only Categorized as
+one, was *"Prevented"* beside Caladbolg. The Suppress carries `sparesCategorizedNP`, and `preventedBy` takes
+`categorizedOnly` (1aa6e52). Ch. 19.
+
+### HS. A revival posted no card — **fixed** (#189)
+
+**Reached: RT.dp.rev.** Divine Protection brought Ozymandias back at 200 and only the log said so. Every
+`revive` entry posts a card: *"Sphinx Queen is defeated and revived by Ramesseum Tentyris…, with 150
+Health."* (`engine/revival-report.mjs`, bcdc562). Ch. 37.
+
+### HT. The Sphinxes came back at full Health — **fixed** (#189)
+
+**Reached: RT.off.sph.** *"…the Sphinxes will respawn …with the same Stats as when they disappeared."* The
+memory read the base actor, not the token's, and the Queen wounded to 600 came back at 1500. `endField` reads
+the token's actor (5d7c769). Ch. 28.
+
+### HU. Pyramid Drop ended the Complex after its damage — **fixed** (#189)
+
+**Reached: RT.pd.** *"Ramesseum Tentyris ends first, then the Pyramid Drop occurs."* The caster pass runs after
+the Processes are declared, and one with no reaction to wait for resolves inside the declaration: the Drop
+defeated a Master under the Complex's rules, hit a Sphinx that then vanished with its Process open, and only
+then ended the Complex. `declareProcesses` calls `endExpendedFields` first and drops a defender the field took
+with it (e6f5006). Ch. 21.
+
+### HV. A worded refusal was ended twice — **fixed** (#189)
+
+**Reached: PD.area.** *"Refused: Anchor panel is 6 panels away; Range is 5.."*: the reason ends its own
+sentence and the template ends it again. `presentRefusal` strips the stop from the parameter (e6f5006). Ch. 20.
+
+### HW. The element's stage read "Stage 4.5" — **fixed** (#189)
+
+**Reached: PD.dd.** Every attack carrying an element showed an unnamed row. It reads *"Element"*
+(`BETWEEN_LABELS`, e6f5006). Ch. 22.
+
+### HX. A MAG attack from a Unit with no MAG Rank — **open, needs a ruling** (#189)
+
+**Reached: SX.w.mag.** Magic Resistance negates *"MAG damage from a MAG Rank of up to B"*. The Wehem-Mesut has
+no MAG Rank, and the content cuts its MAG by the percentage, never negating it.
+
+### HY. One Noble Phantasm used within the Complex, or two — **open, needs a ruling** (#189)
+
+**Reached: RT.break.in.** *"…2 [Anti-Fortress] or higher Noble Phantasms in the same Round from outside, or
+they are used by enemy Units within the Complex."* The content counts two, inside or out. Xiuhcoatl from inside
+alone left the Complex standing.
+
 ---
 
 ---
@@ -4568,3 +4650,48 @@ No Buff laid on Medusa; her Master defeated to make her Free and revived after; 
 walk it in; Medusa revived after the Fort's end to place a fresh mark. Magic Resistance's chance clauses, the
 "if NP" halves, the ZON and the buff-removal selector were pressed through the live board's engine, each with
 its differential.
+
+## 46.21 Ozymandias — the Servant whose Noble Phantasm is a place
+
+**All 115 of his Clauses were Pressed or Observed on a live board** (#189, 2026-10-06). Eighteen readings were
+ruled on 2026-10-06. He has no Passenger Seat (1). Against Dark, Mesektet is 4× × 2 + 100 and his Normal
+Attack doubles on its own, the ×2 its own factor at stage 3 (2, 3, 17, 18). His Master keeps some Health after
+paying (4). Divine Protection's 10% revives the Sphinxes only (5). Revived, he keeps the Complex (6). God's
+Curse reaches inside only, and binds every Servant there, his allies too, Divinity B or higher excepted (7, 8).
+The 3000 counts what enemies deal to his side inside in one Round (9). Pyramid Drop needs the Complex, which
+ends first (10). The Bulb's 2×2 hits everyone in it but him (11). A Sphinx's Luck is its own copy (13). The
+Sphinx of Abu el-Hol is a passive Noble Phantasm item (14). And from a Sphinx's *"Move/Attack once"* came a
+general rule: **without Double Move, a Unit may Move then Attack, or Attack then Move, never Move–Attack–Move**
+(12, 15, 16; `rules/budget.mjs#mayMoveAfterAttack`, stamped as `movedBeforeAttack`).
+
+**Why he finds what he finds.** His second Noble Phantasm is a field that holds summons, curses everyone else
+inside, revives, and ends four different ways, one of them by a third Noble Phantasm. Fields had been opened
+and closed; they had not taken Units with them, given them back, or been ended by an attack mid-declaration.
+His Skills reach allies' clocks, which a caster-side phase had never been asked to do.
+
+### 46.21.1 What he cost the engine
+
+| Commit | Finding |
+|---|---|
+| 44db728 | The rulings built, and Move–Attack–Move for every Unit |
+| cf80497 | The Dark doubling at stage 3 (`normalAttack.conditionalMultipliers`) |
+| 000c39d | An ally's cooldown cut lands on the ally; a landed chance shows its roll (§46.4-HL, HM) |
+| 098de3f | A killed Civilian gets no Process; a straight reach from a field's edge (§46.4-HN, HO) |
+| 0c576f5 | A component-only band re-sources the swing; "with no MAG Rank" (§46.4-HP, HQ) |
+| 1aa6e52 | God's Curse spares what is only Categorized as a Noble Phantasm (§46.4-HR) |
+| bcdc562 | A revival posts a card (§46.4-HS) |
+| 5d7c769 | The Sphinxes come back with what their tokens held (§46.4-HT) |
+| e6f5006 | A spent field ends before the Processes; a refusal ends once; the Element row (§46.4-HU to HW) |
+
+Two findings stay open, and both are readings: whether a Unit with no MAG Rank is "up to B" for Magic
+Resistance (§46.4-HX), and whether one Noble Phantasm used within the Complex ends it (§46.4-HY).
+
+### 46.21.2 What was staged
+
+Named in each evidence line: opening positions and every move into reach, the Sphinxes among them; cooldowns,
+Turn records and the attack budget reset to press a Clause again the same Turn; his Master's Health set to 183
+to pay for the Complex and the Drop, and defeated to press its delayed end; Ramesseum Tentyris' `expended`
+cleared to raise it again after each ending; a Kingprotea's MAG raised to A; the Sphinx Queen wounded to 600;
+the Round's damage window set to 2950 to cross 3000 with one swing; Karna's Mana Burst cooldown cleared. Magic
+Resistance's chance clauses, his Sustainability inside the Complex and the Debuff rolls were pressed through
+the live board's engine, each with its differential.
