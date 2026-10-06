@@ -33,7 +33,11 @@ description: |
   effects on Ozymandias. His Master loses 10 Health per use.
 requirements:
   # "Cannot be used if his Master's Health is less than 10."
-  - { kind: masterHealthAbove, amount: 9 }
+  # Ruled 2026-10-06 (#189 reading 4): more than 10, so paying 10 leaves some.
+  - { kind: masterHealthAbove, amount: 10 }
+  # "Can be used by Ozymandias as his Normal Attack WHILE WITHIN Ramesseum
+  # Tentyris." Both methods, stated as the gate rather than left to the anchor.
+  - { kind: predicate, predicate: ["self:inField:ozymandias-ramesseum-tentyris"] }
 additionalCosts:
   - { id: denderaMasterHealth, kind: masterHealth, amount: 10 }
 targeting:
@@ -48,7 +52,9 @@ targeting:
     diagonalRange: 3
     allowInside: true
   shape: { kind: rect, w: 2, h: 2 }
-  selection: { relations: [enemy, ally, self], chooser: all, includeSelf: true }
+  # "Hits a 2x2 panel area" names no relation: everyone in it but Ozymandias,
+  # Civilians included (ruled 2026-10-06, #189 reading 11; EMIYA's precedent).
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
 damage:
   component: mag
   multiplier: 1.5

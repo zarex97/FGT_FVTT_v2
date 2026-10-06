@@ -845,6 +845,10 @@ export function interiorModifiers(field, unit, board) {
     // for the two beside it, in consecutive sentences — so the unit kind is a
     // filter the interior rules need and `interiorEvents` already had.
     .filter((rule) => !rule.kinds || rule.kinds.includes(unit?.kind))
+    // ...and by WHICH Unit it is, where the sheet names them. Divine
+    // Protection revives *"any of the Sphinxes"*, not any allied summon
+    // (#189 reading 5); `kinds: [summon]` alone could not say so.
+    .filter((rule) => !rule.contentIds || rule.contentIds.includes(unit?.contentId))
     .filter((rule) => !isExempt(rule.exemptIf, unit, board))
     // Clause 9's third part. `exemptIf` above is authored per rule and asks
     // about the UNIT's categories; this asks about the field's own memory of

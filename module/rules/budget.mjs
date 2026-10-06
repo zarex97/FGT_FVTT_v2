@@ -87,6 +87,27 @@ const LABELS = Object.freeze({
  *
  * @type {ReadonlyArray<string>}
  */
+/**
+ * May this Unit Move now that it has Attacked?
+ *
+ * Ruled (#189 reading 15): without Double Move a Unit may Move then Attack, or
+ * Attack then Move -- never Move, Attack and Move again. Double Move is what
+ * allows that. The engine had refused every Move after an Attack, so a Unit
+ * that stood still to Attack could not walk away afterwards.
+ *
+ * Several drags before the Attack are one Move, and several after it are one
+ * Move, all within MOV (`rules/movement.mjs#segmentCheck` measures that).
+ *
+ * @param {object} state the Unit's Turn Record
+ * @param {object} unit
+ * @returns {boolean}
+ */
+export function mayMoveAfterAttack(state, unit) {
+  if (!state?.attacked) return true;
+  if (hasGranted(unit, GRANTS.doubleMove)) return true;
+  return !state.movedBeforeAttack;
+}
+
 export const ACTION_KINDS = Object.freeze([
   "move", "attack", "skill", "np", "spell", "ridingAttack", "gather", "mark",
 ]);
@@ -290,8 +311,8 @@ export function canConsume(budget, unit, action) {
     // obey their per-unit limits"), so the no-Move-after-Attack rule below
     // holds here too. Returning first let a Bašmu Move after its Attack
     // (Ch. 46 §46.4-BK).
-    if (action === "move" && state.attacked && !hasGranted(unit, GRANTS.doubleMove)) {
-      return { ok: false, reason: "this unit has attacked and cannot move again", pool: null, free: false };
+    if (action === "move" && !mayMoveAfterAttack(state, unit)) {
+      return { ok: false, reason: "this unit moved, then attacked, and cannot move again", pool: null, free: false };
     }
     return { ok: true, reason: null, pool: null, free: true };
   }
@@ -330,12 +351,13 @@ export function canConsume(budget, unit, action) {
     return { ok: false, reason: "this unit gathered and cannot move again", pool: null, free: false };
   }
 
-  // A Unit may Move as many times as its MOV allows, until it Attacks — the
-  // allowance is a distance, and `segmentCheck` is what measures it. The only
-  // thing the budget refuses is Moving *after* the Attack, which Riding alone
-  // permits. (The superseded rule was one Move per Turn.)
-  if (action === "move" && state.attacked && !hasGranted(unit, GRANTS.doubleMove)) {
-    return { ok: false, reason: "this unit has attacked and cannot move again", pool: null, free: false };
+  // A Unit may Move as many times as its MOV allows -- the allowance is a
+  // distance, and `segmentCheck` is what measures it. What the budget refuses
+  // is a Move after an Attack that a Move came before, which Double Move alone
+  // permits (#189 reading 15). (The superseded rules were one Move per Turn,
+  // and then no Move after any Attack.)
+  if (action === "move" && !mayMoveAfterAttack(state, unit)) {
+    return { ok: false, reason: "this unit moved, then attacked, and cannot move again", pool: null, free: false };
   }
   // Riding Attack is terminal: *"neither can it Move a second time after using
   // a Riding Attack"*.

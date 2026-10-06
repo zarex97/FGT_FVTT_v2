@@ -19,6 +19,12 @@ npTags: [antiFortress]
 # the second press, and `expendsPermanently` marks it spent on the sheet rather
 # than leaving it looking merely on cooldown.
 maxUses: 1
+# Only while Ramesseum Tentyris stands (ruled 2026-10-06, #189 reading 10): its
+# name and "Ramesseum Tentyris ends first, then the Pyramid Drop occurs" both
+# assume the Complex is up. The `expend` phase below ends it at declaration,
+# before the damage, which is the "first".
+requirements:
+  - { kind: fieldOpen, field: ozymandias-ramesseum-tentyris }
 expendsPermanently: true
 timing: { window: ownTurn }
 description: |

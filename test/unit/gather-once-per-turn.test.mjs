@@ -95,9 +95,11 @@ describe("the rest of the budget is unchanged", () => {
       .toMatchObject({ ok: true, free: true });
   });
 
-  it("a unit that has only attacked can still not Move, for its own reason", () => {
-    expect(canConsume(roomy, unit({ attacked: true, moved: false, gathered: false }), "move").reason)
-      .toBe("this unit has attacked and cannot move again");
+  it("a unit that Moved and then Attacked can still not Move, for its own reason", () => {
+    expect(canConsume(roomy, unit({ attacked: true, moved: true, movedBeforeAttack: true, gathered: false }), "move").reason)
+      .toBe("this unit moved, then attacked, and cannot move again");
+    // ...and one that only Attacked may (#189 reading 15).
+    expect(canConsume(roomy, unit({ attacked: true, moved: false, gathered: false }), "move").ok).toBe(true);
   });
 });
 

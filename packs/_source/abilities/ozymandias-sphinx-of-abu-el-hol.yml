@@ -1,0 +1,25 @@
+# Ozymandias, char_orig_sheets/Copia de Ozymandias.md
+#
+# A Noble Phantasm with no rules of its own. Its clauses -- three Sphinxes
+# spawned with the Complex, their budget, their guard, their disappearance and
+# return -- are Ramesseum Tentyris's `onOpen` and the Sphinxes' own sheets
+# (`summons/sphinx*.yml`). Ruled 2026-10-06 (#189 reading 14): it is on his
+# sheet all the same, so a player can read it; with no item, nothing named it.
+schema: 1
+id: ozymandias-sphinx-of-abu-el-hol
+name: "The Sphinx of Abu el-Hol: The Lion-Bodied Beast of the Hot Sand"
+isNP: true
+kind: noblePhantasm
+slug: sphinxOfAbuElHol
+rank: A
+npTags: [antiArmy]
+isPassive: true
+description: |
+  (Passive) Activated together with @np[ozymandias-ramesseum-tentyris]{Ramesseum Tentyris}.
+  When Ramesseum Tentyris is activated, three additional Units allied with Ozymandias spawn within
+  the Complex: the Sphinx, the Sphinx Queen and the Sphinx Wehem-Mesut. The Sphinxes do not count
+  towards the number of Units that Move/Attack in a Turn, and the same Sphinx can only Move/Attack
+  once per Turn. Enemy Units cannot Attack Ozymandias or his Master if any Sphinxes are next to them.
+  The Sphinxes are able to leave Ramesseum Tentyris; when it ends or is deactivated, all Sphinxes
+  disappear regardless of position, and if it is reactivated they respawn within the Complex with
+  the same Stats as when they disappeared.

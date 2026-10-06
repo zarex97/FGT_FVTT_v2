@@ -133,6 +133,10 @@ export const TURN_RECORD = stampedRecord({
     acted: false,
     moved: false,
     attacked: false,
+    // Had it Moved when it Attacked? Stamped by `rules/snapshot.mjs#turnWrite`
+    // at the moment `attacked` turns true: a Unit may Move then Attack, or
+    // Attack then Move, but only Double Move allows both (#189 reading 15).
+    movedBeforeAttack: false,
     inCombatPhase: false,
     movedPanels: 0,
     moveSegments: 0,

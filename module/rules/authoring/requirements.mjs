@@ -96,8 +96,9 @@ export const REQUIREMENT_DESCRIPTORS = describeTable([
   req("masterHealthAbove", "Only while the Master has more than a flat amount of Health.", [
     { key: "amount", type: "number" },
   ]),
-  req("masterHealthFraction", "Only while the Master's Health is at least a fraction of its maximum.", [
+  req("masterHealthFraction", "Only while the Master's Health is at least (or, with `above`, more than) a fraction of its maximum.", [
     { key: "atLeast", type: "number" },
+    { key: "above", type: "number" },
   ]),
   req("counterpartAdjacent", "Only while this Unit's counterpart is standing next to it."),
   req("targetHasEffect", "Only while the target carries a named effect.", [

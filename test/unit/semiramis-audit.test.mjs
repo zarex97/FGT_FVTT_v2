@@ -102,9 +102,10 @@ describe("a Bašmu that has attacked", async () => {
   const { canConsume, emptyBudget } = await import("../../module/rules/budget.mjs");
   const basmu = (turnState) => ({ id: "b", kind: "summon", actsOncePerTurn: true, turnState });
 
-  it("cannot Move afterwards", () => {
-    const v = canConsume(emptyBudget(), basmu({ attacked: true }), "move");
-    expect(v).toMatchObject({ ok: false, reason: "this unit has attacked and cannot move again" });
+  it("cannot Move afterwards, having Moved first (#189 reading 15)", () => {
+    const v = canConsume(emptyBudget(), basmu({ attacked: true, movedBeforeAttack: true }), "move");
+    expect(v).toMatchObject({ ok: false, reason: "this unit moved, then attacked, and cannot move again" });
+    expect(canConsume(emptyBudget(), basmu({ attacked: true }), "move").ok).toBe(true);
   });
 
   it("can still Attack after a Move, once, and spends no pool", () => {
@@ -113,7 +114,7 @@ describe("a Bašmu that has attacked", async () => {
   });
 
   it("and the Hanging Gardens, a platform, is held the same way", () => {
-    const hgob = { id: "p", kind: "platform", turnState: { attacked: true } };
+    const hgob = { id: "p", kind: "platform", turnState: { attacked: true, movedBeforeAttack: true } };
     expect(canConsume(emptyBudget(), hgob, "move").ok).toBe(false);
   });
 });

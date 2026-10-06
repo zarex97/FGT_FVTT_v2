@@ -1,0 +1,36 @@
+# Ozymandias, char_orig_sheets/Copia de Ozymandias.md
+#
+# Riding A+ with two passives, not three. His sheet lists Double Move and
+# Riding Attack and no Passenger Seat; its Riding Attack still says "Can be
+# combined with Passenger Seat", the shared Riding wording. Ruled 2026-10-06
+# (#189 reading 1): he has no Passenger Seat -- the line reads as a typo, and
+# is left on his sheet as it stands for now. `class-riding` granted all three.
+schema: 1
+id: class-riding-ozymandias
+name: "Riding"
+source: class
+slug: riding
+parameterized: [rank]
+rank: "@rank"
+cooldown: "@cooldown"
+description: |
+  Solar Ship: Mesektet.
+  (Passive 1) Double Move: can Move twice during its Turn, once before and once after Attacking;
+  total distance Moved cannot exceed the Unit's MOV.
+  (Passive 2) Riding Attack: can Attack all Units in its path while Moving in a straight line as
+  its Normal Attack during its Turn. Cannot Attack or Move after it has stopped. Can be combined
+  with Passenger Seat. If the Unit has already Moved this Turn, the panels it may Move for its
+  Riding Attack equal its MOV minus the panels already Moved.
+  (Active) Used during your Turn. Increases MOV by 5 panels for this Turn.
+
+  The MOV bonus from the Active is NOT a buff: it cannot be removed by buff removal and is not
+  prevented by an effect that blocks buffs.
+passiveRules:
+  - key: GrantedAbility
+    abilities: [doubleMove, ridingAttack]
+activeRules:
+  - key: MovDelta
+    table: ridingMov
+    duration: "this turn"
+    isBuff: false
+    carriesToMount: true
