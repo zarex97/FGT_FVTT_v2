@@ -3672,16 +3672,16 @@ sentence and the template ends it again. `presentRefusal` strips the stop from t
 **Reached: PD.dd.** Every attack carrying an element showed an unnamed row. It reads *"Element"*
 (`BETWEEN_LABELS`, e6f5006). Ch. 22.
 
-### HX. A MAG attack from a Unit with no MAG Rank — **open, needs a ruling** (#189)
+### HX. A MAG attack from a Unit with no MAG Rank — **ruled, as built** (#189)
 
 **Reached: SX.w.mag.** Magic Resistance negates *"MAG damage from a MAG Rank of up to B"*. The Wehem-Mesut has
-no MAG Rank, and the content cuts its MAG by the percentage, never negating it.
+no MAG Rank, and the content cuts its MAG by the percentage, never negating it. **Ruled 2026-10-06 (reading 19):** as built.
 
-### HY. One Noble Phantasm used within the Complex, or two — **open, needs a ruling** (#189)
+### HY. One Noble Phantasm used within the Complex, or two — **ruled, as built** (#189)
 
 **Reached: RT.break.in.** *"…2 [Anti-Fortress] or higher Noble Phantasms in the same Round from outside, or
 they are used by enemy Units within the Complex."* The content counts two, inside or out. Xiuhcoatl from inside
-alone left the Complex standing.
+alone left the Complex standing. **Ruled 2026-10-06 (reading 20):** two, from outside and within together, as built.
 
 ---
 
@@ -4653,7 +4653,7 @@ its differential.
 
 ## 46.21 Ozymandias — the Servant whose Noble Phantasm is a place
 
-**All 115 of his Clauses were Pressed or Observed on a live board** (#189, 2026-10-06). Eighteen readings were
+**All 115 of his Clauses were Pressed or Observed on a live board** (#189, 2026-10-06). Twenty readings were
 ruled on 2026-10-06. He has no Passenger Seat (1). Against Dark, Mesektet is 4× × 2 + 100 and his Normal
 Attack doubles on its own, the ×2 its own factor at stage 3 (2, 3, 17, 18). His Master keeps some Health after
 paying (4). Divine Protection's 10% revives the Sphinxes only (5). Revived, he keeps the Complex (6). God's
@@ -4683,8 +4683,10 @@ His Skills reach allies' clocks, which a caster-side phase had never been asked 
 | 5d7c769 | The Sphinxes come back with what their tokens held (§46.4-HT) |
 | e6f5006 | A spent field ends before the Processes; a refusal ends once; the Element row (§46.4-HU to HW) |
 
-Two findings stay open, and both are readings: whether a Unit with no MAG Rank is "up to B" for Magic
-Resistance (§46.4-HX), and whether one Noble Phantasm used within the Complex ends it (§46.4-HY).
+Two readings were ruled after the press, both as built: a Unit with no MAG Rank is never "up to B" for Magic
+Resistance (§46.4-HX), and the Complex breaks on two Noble Phantasms in a Round, from outside and within
+together (§46.4-HY). Pyramid Drop's "ends first" means the Sphinxes vanish before it lands and Divine Protection
+no longer covers his allies from it.
 
 ### 46.21.2 What was staged
 
