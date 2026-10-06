@@ -135,7 +135,7 @@ A field is destroyed when a listed **vulnerability** is triggered (`module/rules
 - `masterDefeat` — field ends after an optional delay when the owner's Master falls.
 - `npScaleUsedOn` — an Anti-World NP used on this field (attacks crossing the boundary or originating inside).
 - `npTagAtLeast` — an NP of that scale used anywhere on the board.
-- `npCount` — two or more NPs of a threshold scale in the same round.
+- `npCount` — two or more NPs of a threshold scale in the same round. Ramesseum Tentyris counts them from outside and from enemies within together: *"…or they are used by enemy Units within the Complex"* is the same two, mixed, never one used within (ruled 2026-10-06, #189 reading 20).
 - `damageThreshold` — the field receives more than a set amount of damage in a round.
 - `markDestruction` — all marks (e.g., Bloodmarks) have been destroyed.
 - `duellistDefeat` — a duellist's defeat that **stuck** (#184 reading 4). The duel's default end; a duellist revived by Battle Continuation or God Hand fights on. `duelDecided` reads `state.duellistIds`, `closeDecidedDuels` runs at the end of every Combat Process (after its revivals) and `shouldClose` at the boundary. The owner's control still ends it for other terms the two players agreed.
