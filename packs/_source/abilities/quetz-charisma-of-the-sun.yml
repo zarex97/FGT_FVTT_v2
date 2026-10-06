@@ -39,6 +39,12 @@ phases:
     target: reuse
     effects:
       - { id: atkUp, magnitude: 30, npMagnitude: 15, duration: "1◈" }
+
+  # Clause 2. S.Crit Up is an aura she holds, reaching the allies within 2
+  # panels of her from there (#132).
+  - kind: applyEffects
+    target: self
+    effects:
       - { id: sCritUp, magnitude: 25, duration: "⅓◈" }
 
   # Clause 3 is HERS ALONE, so it is a separate phase targeting self rather than

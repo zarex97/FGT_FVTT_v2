@@ -109,23 +109,14 @@ export function applyEffect({
   const held = target.effects ?? [];
   const instances = target.effectInstances ?? [];
 
-  // Ch. 14 / Ch. 15: *"Decoy is not affected by Debuff Resist or
-  // Immune effects when a Unit applies it on itself or on another allied
-  // Unit."* Two effects in the corpus need it -- `Decoy` and Kiritsugu's
-  // `Decoy (Scapegoat)` -- and both are debuffs used DEFENSIVELY, which is the
-  // whole reason the exemption exists: Mannanán puts Decoy on herself to feed
-  // the Fragarach Counter, and her own Debuff Immune would otherwise refuse it.
-  //
-  // Steps 1 and 3 are the ones skipped, exactly as Ch. 15 says. Exclusivity
-  // (step 2) and stacking (step 5) still run: they are about what the Unit is
-  // already carrying, not about whether it wants this.
-  const friendly = Boolean(def.allySelfBypassesResistance) && (
-    source?.unitId === target.id
-    || (ctx.sourceFactionId != null && ctx.sourceFactionId === target.factionId)
-  );
+  // No application skips the target's gates for being its own side's. Decoy's
+  // self/ally exemption skipped immunity, resistance and the declared
+  // modifiers; ruled away 2026-10-06 (#132): a buff or a debuff from your own
+  // side meets the target's resistance and the applier's own bonuses like any
+  // other.
 
   // ── 1. IMMUNITY GATE ─────────────────────────────────────────────────────
-  const immunity = friendly ? null : findImmunity(def, target, held);
+  const immunity = findImmunity(def, target, held);
   // Sikera Ušum clause d: "the Poison Immune effect is reduced to a Poison
   // Resist effect" -- a downgrade FROM immune TO merely resistant, not a
   // second, separate refusal. The gate still runs; it just does not block
@@ -138,9 +129,7 @@ export function applyEffect({
   trace.push({
     step: "immunity",
     outcome: "passed",
-    detail: friendly
-      ? "self/ally application bypasses resistance"
-      : (downgrade ? `${immunity} downgraded to ${downgrade.resistPercent}% resist` : undefined),
+    detail: downgrade ? `${immunity} downgraded to ${downgrade.resistPercent}% resist` : undefined,
   });
 
   // ── 2. REPLACEMENT / EXCLUSIVITY GATE ────────────────────────────────────
@@ -166,7 +155,7 @@ export function applyEffect({
   // extra Stage is "a flat 50% chance ... not affected by debuff chance
   // increasing/reducing effects", and `matched`/`declared` are themselves
   // debuff-chance modifiers the ability declares.
-  const matched = (bypassChanceModifiers || friendly) ? [] : (chanceModifiers ?? []).filter(
+  const matched = bypassChanceModifiers ? [] : (chanceModifiers ?? []).filter(
     (m) => !m.predicate || test(m.predicate, { options: ctx.options ?? new Set() }),
   );
   const declared = matched.reduce((sum, m) => sum + (m.value ?? 0), 0);
@@ -179,17 +168,15 @@ export function applyEffect({
     // made every stated chance in the game inert -- Stun's own 100 would have
     // applied to both.
     base: (chance ?? def.baseChance ?? 100) + declared,
-    // `friendly` skips the TARGET's resistance (Ch. 15), which is the whole of
-    // what that clause is about. It must not also discard the APPLIER's own
-    // outgoing bonus: Buff ChUp is applied by an ally, to an ally, and zeroing
-    // it here made the only buff-chance effect in the game inert in exactly
-    // the case it exists for.
+    // The APPLIER's own outgoing bonus: Buff ChUp is applied by an ally, to an
+    // ally, and zeroing it made the only buff-chance effect in the game inert
+    // in exactly the case it exists for.
     inflictBonus: bypassChanceModifiers ? 0 : (ctx.inflictBonus ?? 0),
     // The target's own resistance, from its `ApplicationChance` contributions.
     // `ctx.resist` had no supplier: every caller left it at 0, so Off.Debuff
     // ResUp and Magic Resistance's clause 2 had nowhere to land. Reading it off
     // the target here closes the loop without every caller having to know.
-    resist: (bypassChanceModifiers || friendly || def.bypassesResistance) ? 0
+    resist: (bypassChanceModifiers || def.bypassesResistance) ? 0
       : (ctx.resist ?? resistanceOf(target, def, ctx.options, ctx.ignoresResistanceFrom))
         + (downgrade?.resistPercent ?? 0),
     immune: false,

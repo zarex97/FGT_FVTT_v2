@@ -1785,6 +1785,17 @@ export const EXECUTORS = Object.freeze({
       // *"Castor also receives the effect of this Skill"* is `linkedPartner`.
       // Dropped here, the aura reached every adjacent ally instead (#102).
       recipientRoles: el.recipientRoles ?? null,
+      // Roles reached BESIDES the radius: the Pollux buff's *"and its linked
+      // partner wherever it stands"* (#132).
+      alsoReaches: el.alsoReaches ?? null,
+      // A buff's aura is a buff its recipient receives: No Buff and a buff
+      // Immunity refuse it there, and not on the holder (#132).
+      ...(ability?.fromEffect && ability.polarity === "buff" ? { buff: true } : {}),
+      // One cast, several holders: Scapegoat puts S.Crit Up on Kiritsugu AND
+      // his target, and a Unit near both is reached once (#132).
+      ...(ability?.fromEffect && ability.sourceUnitId
+        ? { castKey: [ability.defId, ability.sourceUnitId, ability.sourceAbilityId ?? "", ability.appliedTick ?? ""].join("|") }
+        : {}),
       group: el.group ?? null,
       rank: el.rank ?? (rank ? String(rank) : null),
       scope: el.scope ?? null,

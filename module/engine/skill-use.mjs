@@ -1139,11 +1139,10 @@ function authoredMagnitude(spec, actor, field = "magnitude") {
  * @param {number} args.roll the d100 for this application
  * @param {number} args.turnsPerRound
  * @param {number} args.currentTick
- * @param {string|null} [args.factionId] the user's actor-document faction, read before the snapshot's
  * @returns {object}
  */
 export function skillEffectContext({
-  attacker, def, options, roll, turnsPerRound, currentTick, factionId = null,
+  attacker, def, options, roll, turnsPerRound, currentTick,
 }) {
   return {
     turnsPerRound,
@@ -1157,12 +1156,6 @@ export function skillEffectContext({
     // every predicate is unsatisfiable, which is the shape of defect this
     // codebase has produced more than once.
     options,
-    // Whose side applied it, for the self/ally exemption an effect may
-    // declare (`allySelfBypassesResistance`). A faction id rather than a
-    // relation, because this layer has the two documents and not the
-    // alliance table -- and the two effects that need it are both
-    // *"itself or another allied Unit"*, which is what a shared faction is.
-    sourceFactionId: factionId ?? attacker?.factionId ?? null,
   };
 }
 
@@ -1296,7 +1289,6 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
         roll: roll.total,
         turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
         currentTick: game.combat?.system?.globalTurn ?? 0,
-        factionId: actor.system?.factionId ?? null,
       }),
     });
 

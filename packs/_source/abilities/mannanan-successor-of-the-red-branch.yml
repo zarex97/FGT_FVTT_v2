@@ -37,10 +37,9 @@ phases:
   # Clause 3 reaches a different set of Units from the first two, so it carries
   # its own targeting rather than reusing the Skill's.
   - kind: applyEffects
-    targeting:
-      anchor: { kind: self }
-      shape: { kind: chebyshevRadius, r: 2 }
-      selection: { relations: [ally, self], includeSelf: true, chooser: all }
+    # The holder of the S.Crit Up aura: it reaches the allies within 2 panels
+    # from there (#132).
+    target: self
     effects:
       # S.Crit Up, as the sheet says: "application cannot be prevented and it is
       # Unremovable" (§A.4), so an opponent cannot strip the half of this clause

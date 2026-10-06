@@ -46,8 +46,8 @@ phases:
     effects:
       - { id: pierce, duration: "1◈+½◈" }
   # "and applies S.Crit Up to all allied Units within a 2 panel area of
-  # herself" -- the Skill's own target list.
+  # herself" -- an aura she holds, reaching them from there (#132).
   - kind: applyEffects
-    target: reuse
+    target: self
     effects:
       - { id: sCritUp, duration: "⅓◈", magnitude: 10 }

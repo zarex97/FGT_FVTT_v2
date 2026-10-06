@@ -705,9 +705,11 @@ describe("Journey's Guidance (Rank C++)", () => {
   });
 
   it("applies S.Crit Up at 15% for ⅓◈", () => {
-    const crit = A.phases[0].effects.find((e) => e.id === "sCritUp");
-    expect(crit.magnitude).toBe(15);
-    expect(crit.duration).toBe("⅓◈");
+    // An aura he holds (#132): within 2 panels, or the whole Storm Border
+    // with Zero Sail activated.
+    const crits = A.phases.filter((p) => p.target === "self").flatMap((p) => p.effects);
+    expect(crits.map((e) => e.id)).toEqual(["sCritUp", "sCritUpStormBorder"]);
+    for (const crit of crits) expect(crit).toMatchObject({ magnitude: 15, duration: "⅓◈" });
   });
 
   it("applies Effect 1 TWICE on Waterside or in Imaginary Numbers", () => {
@@ -715,7 +717,7 @@ describe("Journey's Guidance (Rank C++)", () => {
     // buff, which is 40% total, and NOT one buff at double magnitude. The
     // difference shows the moment anything removes one of them, and the sheet
     // says "twice" rather than "doubled".
-    const second = A.phases.find((p) => p.kind === "applyEffects" && p.predicate);
+    const second = A.phases.find((p) => p.kind === "applyEffects" && p.predicate?.[0]?.anyOf);
     expect(second.predicate).toEqual([
       { anyOf: ["self:terrain:waterside", "self:terrain:imaginaryNumbers"] },
     ]);

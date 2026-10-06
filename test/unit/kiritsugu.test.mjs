@@ -447,19 +447,17 @@ describe("Scapegoat", () => {
     expect(a.phases[0].effects[0].duration).toBe("1◈");
   });
 
-  it("bypasses resistance, because it is applied to an ALLY", () => {
-    // Without this a high-Debuff-Resist ally shrugs off the protection his own
-    // side is trying to give him.
-    expect(src("effects", "decoy-scapegoat.yml").allySelfBypassesResistance).toBe(true);
+  it("meets the ally's resistance like any debuff (#132)", () => {
+    expect(src("effects", "decoy-scapegoat.yml")).not.toHaveProperty("allySelfBypassesResistance");
   });
 
-  it("grants S.Crit Up at 15% for ⅓◈, unpreventable and unremovable", () => {
-    const crit = a.phases[1].effects.find((e) => e.id === "sCritUp");
-    expect(crit.magnitude).toBe(15);
-    expect(crit.duration).toBe("⅓◈");
+  it("puts the S.Crit Up aura on Kiritsugu and on his target, 15% for ⅓◈ (#132)", () => {
+    const holders = a.phases.filter((p) => (p.effects ?? []).some((e) => e.id === "sCritUp"));
+    expect(holders.map((p) => p.target)).toEqual(["self", "reuse"]);
+    for (const p of holders) expect(p.effects[0]).toMatchObject({ magnitude: 15, duration: "⅓◈" });
     const e = src("effects", "s-crit-up.yml");
-    expect(e.unremovable).toBe(true);
-    expect(e.baseChance).toBe(500);
+    expect(e.baseChance).toBe(100);
+    expect(e.rules[0]).toMatchObject({ key: "Aura", radius: 2 });
   });
 
   it("costs 3◈ and spends no Attack", () => {

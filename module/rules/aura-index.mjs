@@ -60,7 +60,8 @@ export function buildAuraIndex(board, previousVersion = 0) {
     if (!unit.panel) continue;
 
     for (const aura of auras) {
-      if (aura.scope === "field") unbounded.push({ unit, aura });
+      // ...and one that reaches a role wherever it stands (#132).
+      if (aura.scope === "field" || aura.alsoReaches) unbounded.push({ unit, aura });
       else index(buckets, unit, aura);
       count++;
     }

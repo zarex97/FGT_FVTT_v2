@@ -408,8 +408,9 @@ describe("the paired buffs are complementary (C26–C27)", () => {
 
   it("C26 — the Pollux buff hands out S.Crit Up at +10% for ⅓◈", () => {
     const action = read("pollux-buff").rules[0].then[0];
-    expect(action).toMatchObject({ key: "ApplyEffect", duration: "⅓◈", magnitude: 10 });
-    expect(action.effect.id).toBe("sCritUp");
+    expect(action).toMatchObject({ key: "ApplyEffect", target: "self", duration: "⅓◈", magnitude: 10 });
+    // The bearer holds the aura, and it reaches the partner too (#132).
+    expect(action.effect.id).toBe("sCritUpPollux");
   });
 
   it("C27 — the Castor buff turns the attacker's own NP clock by 1 literal Turn", () => {

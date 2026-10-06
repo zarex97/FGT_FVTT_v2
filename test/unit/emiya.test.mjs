@@ -147,11 +147,10 @@ describe("Eye of the Mind (True), at two Ranks", () => {
   });
 
   it("reaches EMIYA's neighbours with its own targeting, not the Skill's", () => {
-    // The clause that needed a phase to carry a target spec: on a reaction,
-    // `reuse` resolves to whoever just attacked him.
-    const aura = ex.phases.find((p) => p.targeting);
-    expect(aura.targeting.shape).toEqual({ kind: "chebyshevRadius", r: 2 });
-    expect(aura.effects[0].id).toBe("sCritUp");
+    // On a reaction `reuse` resolves to whoever just attacked him, so the
+    // clause names its holder: S.Crit Up is an aura he holds (#132).
+    const aura = ex.phases.find((p) => (p.effects ?? []).some((e) => e.id === "sCritUp"));
+    expect(aura.target).toBe("self");
   });
 });
 

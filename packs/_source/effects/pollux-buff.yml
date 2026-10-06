@@ -29,15 +29,11 @@ rules:
       # handler-level `targeting` block said the same thing to nobody, so only
       # the bearer ever got S.Crit Up (#103).
       #
-      # `alsoIncludes: partner` is the *"(and Pollux if she is out of the
-      # Skill's Range)"* clause -- the partner is always in the set, never
-      # excluded for distance and never counted twice for proximity.
+      # S.Crit Up is an aura its holder carries (#132). This one is the
+      # bearer's, and reaches its linked partner wherever it stands: the
+      # *"(and Pollux if she is out of the Skill's Range)"* clause.
       - key: ApplyEffect
-        target: nearby
-        radius: 2
-        relations: [ally]
-        includeSelf: true
-        alsoIncludes: partner
-        effect: { id: sCritUp }
+        target: self
+        effect: { id: sCritUpPollux }
         duration: "⅓◈"
         magnitude: 10

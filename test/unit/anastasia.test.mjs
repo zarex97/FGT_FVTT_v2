@@ -356,10 +356,9 @@ describe("her three active skills", () => {
     expect(a.cooldown).toBe("3◈");
     const mine = a.phases.find((p) => p.target === "self").effects.map((e) => e.id);
     expect(mine).toEqual(["invuln", "buffRemovalResUp"]);
-    // Defaulting effect 3 to `reuse` would have put Invuln on her whole team.
-    const allies = a.phases.find((p) => p.targeting);
-    expect(allies.targeting.shape).toEqual({ kind: "chebyshevRadius", r: 2 });
-    expect(allies.effects[0]).toMatchObject({ id: "sCritUp", magnitude: 20, duration: "⅓◈" });
+    // Effect 3 is an aura she holds (#132): it reaches the allies from her.
+    const aura = a.phases.filter((p) => p.target === "self").flatMap((p) => p.effects);
+    expect(aura).toContainEqual(expect.objectContaining({ id: "sCritUp", magnitude: 20, duration: "⅓◈" }));
   });
 
   it("Spirit Eyes applies all four of its buffs", () => {

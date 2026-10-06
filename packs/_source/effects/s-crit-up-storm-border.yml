@@ -1,0 +1,24 @@
+# Nemo, char_orig_sheets/Copia de Nemo.md
+#
+# S.Crit Up as Journey's Guidance hands it out with Zero Sail activated:
+# "affects all allied Units within the Storm Border". The same aura as
+# `sCritUp` (#132), reaching every ally aboard the Storm Border instead of a
+# radius.
+schema: 1
+id: sCritUpStormBorder
+name: "S.Crit Up"
+description: "Crit Chance of all allied Units on the Storm Border is increased by X%. Removed only from this Unit, which ends it for all of them."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+bypassesImmunity: true
+rules:
+  - key: Aura
+    scope: field
+    relations: [ally, self]
+    requiresRecipient: { platformContentId: platform-storm-border }
+    stacking: magnitudeStacks
+    elements:
+      - { key: CritModifier, aspect: chance, value: "@magnitude" }

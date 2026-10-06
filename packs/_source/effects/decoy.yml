@@ -22,11 +22,8 @@ valence: defensive
 # "Not stacked."
 stacking: noneRefresh
 baseChance: 100
-# "Bypasses resistance when self- or ally-applied." Decoy is used DEFENSIVELY --
-# Mannanán puts it on herself to feed the Fragarach Counter, Kiritsugu's
-# Scapegoat puts it on an ally -- so the debuff machinery that exists to refuse
-# an enemy's debuff must not refuse your own side's (Ch. 14).
-allySelfBypassesResistance: true
+# No self/ally exemption (ruled 2026-10-06, #132): applied by its own side, it
+# meets the target's Debuff Resist and Debuff Immune like any debuff.
 rules:
   # "Within max(3, their Range)" -- the floor is authored and the Range half is
   # read per enemy by the board pass, because it is a different number for each

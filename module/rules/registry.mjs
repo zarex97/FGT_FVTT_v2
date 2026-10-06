@@ -48,9 +48,6 @@ export const EffectRegistry = {
         defaultMagnitude: sys.defaultMagnitude ?? 0,
         defaultDuration: sys.defaultDuration ?? null,
         unremovable: Boolean(sys.unremovable),
-        // Ch. 14's self/ally exemption, read by `engine/effect-applier`
-        // at steps 1 and 3. `Decoy` is the only holder today.
-        allySelfBypassesResistance: Boolean(sys.allySelfBypassesResistance),
         // The ceiling on how many instances one Unit may hold, read by
         // `resolveStacking`'s `magnitudeStacks` branch.
         maxStacks: sys.maxStacks ?? null,

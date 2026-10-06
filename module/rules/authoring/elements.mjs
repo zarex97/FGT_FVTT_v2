@@ -371,6 +371,8 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "rank", type: "rank" },
     { key: "scope", type: "text" },
     { key: "requiresRecipient", type: "predicateList" },
+    { key: "recipientRoles", type: "tokenList" },
+    { key: "alsoReaches", type: "tokenList" },
   ]),
   entry("Compulsion", "Forces a Unit to act against a particular target — Berserk, Decoy's pull.", [
     { key: "id", type: "text" },

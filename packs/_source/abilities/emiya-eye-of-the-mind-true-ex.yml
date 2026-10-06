@@ -59,10 +59,9 @@ phases:
   # is "every ally within 2 panels of me" -- least of all on a reaction, where
   # `reuse` resolves to whoever attacked him.
   - kind: applyEffects
-    targeting:
-      anchor: { kind: self }
-      shape: { kind: chebyshevRadius, r: 2 }
-      selection: { relations: [ally, self], includeSelf: true, chooser: all }
+    # The holder of the S.Crit Up aura: it reaches the allies within 2 panels
+    # from there (#132).
+    target: self
     effects:
       # S.Crit Up, not Crit Up: "application cannot be prevented and it is
       # Unremovable" (§A.4). Handing out plain Crit Up would let a Debuff-heavy

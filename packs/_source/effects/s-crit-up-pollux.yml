@@ -1,0 +1,24 @@
+# The Dioscuri, char_orig_sheets/Copia de Dioscuri.md
+#
+# S.Crit Up as the Pollux buff hands it out: "to all allied Units within a 2
+# panel area of himself (and Pollux if she is out of the Skill's Range)". The
+# same aura as `sCritUp` (#132), and it also reaches the holder's linked
+# partner wherever the partner stands.
+schema: 1
+id: sCritUpPollux
+name: "S.Crit Up"
+description: "Crit Chance of all allied Units within a 2 panel area of this Unit, and of its linked partner wherever it stands, is increased by X%. Removed only from this Unit, which ends it for all of them."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+bypassesImmunity: true
+rules:
+  - key: Aura
+    radius: 2
+    relations: [ally, self]
+    alsoReaches: [linkedPartner]
+    stacking: magnitudeStacks
+    elements:
+      - { key: CritModifier, aspect: chance, value: "@magnitude" }

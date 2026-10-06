@@ -28,7 +28,7 @@ The registry is a frozen `Map` populated from compendium documents at setup. `lo
 ```
 id, name, img, polarity, volatility, valence, stacking, baseChance,
 severity, preventsAction, families, suppressesOtherEffects,
-defaultMagnitude, defaultDuration, unremovable, allySelfBypassesResistance,
+defaultMagnitude, defaultDuration, unremovable,
 maxStacks, blocks, blockedBy, replaces, periodic, terminal, uses,
 absorbs, onRemove, onApply, rules, bypassesImmunity,
 bypassesResistance
