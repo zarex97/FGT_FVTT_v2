@@ -150,3 +150,27 @@ describe("a Structure under attack (#188)", () => {
     expect(io).toMatch(/if \(actor\.type === "structure"\) \{\s*for \(const token of actor\.getActiveTokens/);
   });
 });
+
+describe("the Fort's card lists what it pays (#188)", () => {
+  it("words a heal and a stat change", async () => {
+    const { lineFor } = await import("../../module/engine/field-report.mjs");
+    const t = (key, data) => `${key} ${JSON.stringify(data)}`;
+    expect(lineFor({ unitName: "Medusa", heal: 60 }, t)).toBe('FGT.FieldReport.Heal {"who":"Medusa","amount":60}');
+    expect(lineFor({ unitName: "Medusa", statDelta: "Agility +1" }, t)).toBe('FGT.FieldReport.StatDelta {"who":"Medusa","line":"Agility +1"}');
+  });
+});
+
+describe("a field's contact pass leaves a card (#188)", () => {
+  it("titles it as a contact, not a Turn end", async () => {
+    const { fieldReportCards } = await import("../../module/engine/field-report.mjs");
+    const t = (key, data) => `${key}:${data?.field ?? ""}`;
+    const [card] = fieldReportCards([{ fieldId: "f", unitName: "Civilian", defeat: "bloodFort" }], () => "Fort", t, "FGT.FieldReport.ContactTitle");
+    expect(card.content).toContain("FGT.FieldReport.ContactTitle:Fort");
+  });
+
+  it("is posted from every contact pass", async () => {
+    const { readFileSync } = await import("node:fs");
+    expect(readFileSync("module/engine/movement-hooks.mjs", "utf8")).toMatch(/postFieldReports\(fieldEventsIn\(intents\), \{ titleKey: "FGT.FieldReport.ContactTitle" \}\)/);
+    expect(readFileSync("module/engine/fields.mjs", "utf8").match(/await postContactReport\(intents\)/g)).toHaveLength(2);
+  });
+});

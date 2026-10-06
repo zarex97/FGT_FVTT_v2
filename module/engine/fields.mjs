@@ -466,6 +466,7 @@ async function openField(ability, actor, snapshot, spec, { panels: givenPanels =
   if (caught.length > 0) {
     const intents = await runFieldEvents("contact", { unitIds: caught });
     if (intents.length > 0) await applyWorldIntents(intents, "field:contact");
+    await postContactReport(intents);
   }
 
   // *"When Ramesseum Tentyris is activated, three additional Units allied with
@@ -1369,6 +1370,13 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
         out.push(action.key === "Heal"
           ? I.heal(who, Math.abs(action.amount ?? 0), field.id)
           : I.statDelta(who, action.stat ?? "health.value", action.delta ?? 0));
+        const recipient = { id: who, name: game.actors.get(who)?.name ?? null };
+        if (action.key === "Heal") report(recipient, { heal: Math.abs(action.amount ?? 0) });
+        else {
+          const { statChangeLine } = await import("./skill-use.mjs");
+          const line = statChangeLine({ stat: action.stat ?? "health.value", delta: action.delta ?? 0 });
+          if (line) report(recipient, { statDelta: line });
+        }
         continue;
       }
 
@@ -1499,6 +1507,7 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
     const first = beneficiaries.length === 2 ? await askSplit(field, pool, beneficiaries) : null;
     for (const heal of splitPool(pool, beneficiaries, first)) {
       out.push(I.heal(heal.unitId, heal.amount, field.id));
+      report({ id: heal.unitId, name: game.actors.get(heal.unitId)?.name ?? null }, { heal: heal.amount });
     }
   }
   return out;
@@ -1543,6 +1552,17 @@ async function rewardRecipient(field, victim, branch, memo) {
   }
   memo.set(victim.id, who);
   return who;
+}
+
+/**
+ * The card for a `contact` pass: who the field took as it closed in (#188).
+ *
+ * @param {object[]} intents
+ * @returns {Promise<void>}
+ */
+async function postContactReport(intents) {
+  const { fieldEventsIn, postFieldReports } = await import("./field-report.mjs");
+  await postFieldReports(fieldEventsIn(intents), { titleKey: "FGT.FieldReport.ContactTitle" });
 }
 
 /**
@@ -2118,6 +2138,7 @@ async function redraw(field, panels) {
       unitIds: caught, fieldIds: [field.id], assumeInside: true,
     });
     if (intents.length > 0) await applyWorldIntents(intents, "field:contact");
+    await postContactReport(intents);
   }
   return { ok: true };
 }
