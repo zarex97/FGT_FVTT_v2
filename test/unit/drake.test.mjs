@@ -846,3 +846,40 @@ describe("Magic Resistance's row reads as an amount (#187)", () => {
     expect(row.contributors[0].value).toBe("−108");
   });
 });
+
+describe("Drake's 15% token roll is filed only on a Crit (#187)", () => {
+  // Live: every attack printed "rider 1d100 → 68 against 15%: missed", Crit or
+  // not; the clause is "whenever this Unit performs a Crit".
+  it("pendingRolls carries the handler's condition", async () => {
+    const { pendingRolls } = await import("../../module/engine/scheduler.mjs");
+    const unit = { id: "drake", eventHandlers: [{ events: ["damageDealt"], targetPredicate: ["attack:crit"], actions: [{ key: "ResourceDelta", resource: "galleonTokens", delta: 1, chance: 15 }] }] };
+    const [spec] = pendingRolls(unit, "damageDealt");
+    expect(spec).toMatchObject({ formula: "1d100", chance: 15, predicate: ["attack:crit"] });
+  });
+
+  it("fireDamageDealt skips the record when the condition fails", () => {
+    const src = readFileSync("module/engine/attack.mjs", "utf8");
+    const fn = src.slice(src.indexOf("async function fireDamageDealt"), src.indexOf("async function fireDamageDealt") + 5000);
+    expect(fn).toMatch(/if \(spec\.predicate && !testPredicate\(spec\.predicate,/);
+  });
+});
+
+describe("raising the Golden Hind costs no ordinary NP cost (#187, spec R11)", () => {
+  // Live: activating the Hind charged her Master 53 (the NP cost) and 0 (its
+  // upkeep). The Skill path paid an ability's own costs BESIDE the NP cost.
+  it("its upkeep supersedes the NP cost when resolved together", async () => {
+    const { resolveCosts } = await import("../../module/rules/costs.mjs");
+    const { charged, superseded } = resolveCosts([
+      { kind: "masterHealth", amount: 53, unitId: "m", id: "npCost" },
+      { kind: "masterHealth", amount: 0, unitId: "m", id: "goldenHindUpkeep", supersedes: ["npCost"] },
+    ]);
+    expect(charged.map((c) => c.id)).toEqual(["goldenHindUpkeep"]);
+    expect(superseded).toEqual([{ id: "npCost", by: "goldenHindUpkeep" }]);
+  });
+
+  it("the Skill path resolves its costs before paying", () => {
+    const src = readFileSync("module/engine/skill-use.mjs", "utf8");
+    expect(src).toMatch(/const \{ charged \} = applied\.channelStarted \? \{ charged: \[\] \} : resolveCosts\(\[/);
+    expect(src).toMatch(/\.\.\.charged\.flatMap\(\(cost\) => costIntents\(cost, self\)\),/);
+  });
+});

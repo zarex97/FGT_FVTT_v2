@@ -1471,6 +1471,10 @@ export function pendingRolls(unit, event) {
         out.push({
           key: chanceKey(action, unit), formula: "1d100", bonus: 0, chance: action.chance,
           label: [action.key, action.effect?.id ?? action.effect?.defId].filter(Boolean).join(" "),
+          // The handler's own condition, so a caller filing the roll can tell
+          // a roll that decided something from one whose clause never applied
+          // (#187: Drake's 15% token roll was printed on attacks that did not Crit).
+          predicate: handler.targetPredicate ?? null,
         });
       }
     }
