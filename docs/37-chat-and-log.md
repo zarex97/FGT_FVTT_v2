@@ -91,6 +91,8 @@ Test: `test/unit/roll-records.test.mjs`.
 
 **A revival that tells nobody.** A revival was logged (`kind: revive`) and shown nowhere: Divine Protection brought Ozymandias back at 200 and the card read the 6 that felled him. `io.log` now posts `engine/revival-report.mjs#postRevival` for each one, public: *"Sphinx Queen is defeated and revived by Ramesseum Tentyris …, with 150 Health."* (#189).
 
+**A Turn end that moved a Health bar says so** (#190). A handler fired at a Turn boundary wrote its Health change and nothing else: Mad Enhancement's *"this Servant's Master loses 30 Health at the end of every Turn it Acts"* dropped Penthesilea's Master by 30 and no card said why. A `StatDelta` from the scheduler carries its handler's `source`, and `engine/turn-report.mjs#postTurnEndReport` posts *"End of the Turn"* with one line per Health change: *"{who} loses 30 Health (Mad Enhancement)."*
+
 **A close that tells nobody.** A field closing posted nothing, and a close for its owner's defeat was not even logged (#185). `engine/fields.mjs#endField`, which every close path reaches, logs the `deactivated` entry when its caller has not and posts `engine/field-report.mjs#fieldClosedCard`: *"The Mist: Darkened Misty Metropolis ends. Its owner ended it."* The reason is `owner`, `upkeep`, `forcedEnd`, `ownerDefeat`, `expired`, `duelDecided` or `vulnerability`, worded from `FGT.Field.Closed.<reason>`.
 
 ## Open questions

@@ -18,6 +18,7 @@ import { currentBoard } from "./board.mjs";
 import { factionOfCombatant } from "./turn-order.mjs";
 import { sideOf } from "../rules/relations.mjs";
 import { fieldEventsIn, postFieldReports, postPeriodicReport } from "./field-report.mjs";
+import { postTurnEndReport } from "./turn-report.mjs";
 import * as budget from "./budget.mjs";
 import {
   grailContest, checkVictory, grailPanelCandidates,
@@ -100,7 +101,10 @@ async function onTurnChange(combat, prior, current) {
     ]),
   };
 
-  await run(scheduler.endTurn(board, ctx), "scheduler:endTurn");
+  const turnIntents = scheduler.endTurn(board, ctx);
+  await run(turnIntents, "scheduler:endTurn");
+  // ...and say what it did to anybody's Health (#190).
+  await postTurnEndReport(turnIntents);
 
   // The Ends pressed during this Turn by an owner whose Turn it was not
   // (#65, ruling 19): *"…or at the start or end of any Round or Turn."*

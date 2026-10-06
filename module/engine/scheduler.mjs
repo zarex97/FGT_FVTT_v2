@@ -986,8 +986,11 @@ const ACTIONS = Object.freeze({
       a.floorPredicate,
       { options: rollOptionsFor({ attacker: c?.bearer ?? u, defender: null }) },
     ));
+    // The handler's source rides on the intent, so the Turn end's card can say
+    // why a Health bar moved (#190).
+    const source = h?.source ?? null;
     if (!floored) {
-      return [I.statDelta(u.id, a.stat, raw, a.clamp !== false, a.alsoCurrent === true)];
+      return [{ ...I.statDelta(u.id, a.stat, raw, a.clamp !== false, a.alsoCurrent === true), source }];
     }
 
     const current = a.stat === "health.value" ? currentHealth(u) : readStat(u, a.stat);
@@ -995,7 +998,7 @@ const ACTIONS = Object.freeze({
     // Already at or below the floor: this deduction takes nothing at all.
     const allowed = Math.max(0, current - a.floor);
     const applied = raw < 0 ? -Math.min(allowed, Math.abs(raw)) : raw;
-    return applied === 0 ? [] : [I.statDelta(u.id, a.stat, applied)];
+    return applied === 0 ? [] : [{ ...I.statDelta(u.id, a.stat, applied), source }];
   },
 
   /**
