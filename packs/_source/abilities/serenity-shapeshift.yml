@@ -34,7 +34,10 @@ phases:
   - kind: cooldown
     target: reuse
     changes:
-      - { scope: np, ticks: "1◈" }
+      # `unit: target`: the TARGET's Noble Phantasms. Without it the change
+      # reached the caster's own, and Shapeshift lengthened Serenity's clock
+      # (#189; found on Protection from Ra, which has the same shape).
+      - { unit: target, scope: np, ticks: "1◈", direction: up }
 
   - kind: applyEffects
     target: reuse

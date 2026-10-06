@@ -144,7 +144,9 @@ describe("Shapeshift", () => {
     // or reduce -- and `set` would have replaced a longer clock with a shorter
     // one, turning the debuff into a favour.
     expect(ss.phases[0]).toMatchObject({ kind: "cooldown", target: "reuse" });
-    expect(ss.phases[0].changes).toEqual([{ scope: "np", ticks: "1◈" }]);
+    // `unit: target`: the TARGET's clock. Without it the change reached
+    // Serenity's own Noble Phantasm (#189).
+    expect(ss.phases[0].changes).toEqual([{ unit: "target", scope: "np", ticks: "1◈", direction: "up" }]);
   });
 
   it("names a scope rather than an ability, because the target may have two", () => {

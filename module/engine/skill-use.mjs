@@ -63,6 +63,7 @@ import { fireEvent, regionScale } from "./scheduler.mjs";
 import { isConcealed, concealmentBreakChance } from "../rules/concealment.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import { publicIdentityOf, publicSpeakerFor } from "./public-identity.mjs";
+import { effectLine } from "../rules/card-visibility.mjs";
 
 /**
  * Use an active Skill.
@@ -1299,7 +1300,9 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
 
     if (outcome.intents.length > 0) await applyWorldIntents(outcome.intents, "skillEffect");
     out.push({
-      summary: { id: spec.id, name: def.name, outcome: outcome.outcome, reason: outcome.reason },
+      // The roll beside the name when there was one (#189): Imperial
+      // Privilege's two 60% chances showed a miss's roll and hid a hit's.
+      summary: { id: spec.id, name: def.name, outcome: outcome.outcome, reason: outcome.reason, chance: outcome.chance ?? null },
       result: outcome,
     });
     }
@@ -1445,7 +1448,8 @@ async function postCard(actor, ability, targets, applied) {
   const rows = applied
     .filter((a) => a.summary.outcome === "applied")
     .map((a) => ({
-      name: a.summary.name,
+      // `effectLine`: the name, and the roll that landed it when there was one.
+      name: effectLine(a.summary),
       controllers: ownersOf(game.actors.get(a.unitId)),
     }));
 
