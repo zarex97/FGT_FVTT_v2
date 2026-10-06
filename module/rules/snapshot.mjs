@@ -466,6 +466,8 @@ export function snapshotUnit(actor, {
       shape: variantOverride?.normalAttack?.shape ?? sys.normalAttack?.shape ?? null,
       // The Rank Magic Resistance meets it at (#187 reading 8).
       attackRank: variantOverride?.normalAttack?.attackRank ?? sys.normalAttack?.attackRank ?? null,
+      // Its own stage-3 multipliers (#189 readings 3, 18).
+      conditionalMultipliers: [...(variantOverride?.normalAttack?.conditionalMultipliers ?? sys.normalAttack?.conditionalMultipliers ?? [])],
     },
 
     // ZON belongs to the Master-Servant pair, so a per-unit projection cannot

@@ -33,7 +33,17 @@ baseAttack: { str: 100, mag: 200 }
 # > "(Passive) The source of Ozymandias' Normal Attacks. All Normal Attacks use
 # > Base Attack (MAG) ... Light damage."
 # The element rides here; the ×2 against `Dark` is on the Mesektet document.
-normalAttack: { mode: fixed, component: mag, element: light }
+# Mesektet's passive: *"The source of Ozymandias' Normal Attacks. All Normal
+# Attacks use Base Attack (MAG) and deal extra damage to Units with the 'Dark'
+# Attribute, damage dealt is increased by 100%. Light damage."* The ×2 is its
+# own factor at stage 3, not an Atk Up summed with his others (ruled
+# 2026-10-06, #189 readings 3 and 18).
+normalAttack:
+  mode: fixed
+  component: mag
+  element: light
+  conditionalMultipliers:
+    - { factor: 2, predicate: ["target:attribute:dark"], source: "Mesektet: Dark (+100%)" }
 sustainability: "2◈"
 
 abilities:

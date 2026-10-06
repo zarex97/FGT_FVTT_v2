@@ -294,6 +294,7 @@ describe("VariantOverride (Ch. 45, Semiramis's Double Summon buff)", () => {
       elementFraction: null,
       // ...and the Rank Magic Resistance meets it at (the Golden Hind's A+).
       attackRank: null,
+      conditionalMultipliers: [],
     });
   });
 

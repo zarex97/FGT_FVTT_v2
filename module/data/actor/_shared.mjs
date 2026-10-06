@@ -436,6 +436,12 @@ export function normalAttackField() {
     // Noble Phantasm's own Rank, A+. Unset, stage 11 falls back to the
     // attacker's MAG as it always has.
     attackRank: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+    // A multiplier of its own on THIS Normal Attack, stage 3, inside the
+    // bracket where the author's reference calculation puts one. Mesektet is
+    // the source of Ozymandias's Normal Attacks: *"deal extra damage to Units
+    // with the 'Dark' Attribute, damage dealt is increased by 100%"* -- ×2, not
+    // an Atk Up summed with his others (ruled 2026-10-06, #189 readings 3, 18).
+    conditionalMultipliers: new fields.ArrayField(new fields.ObjectField()),
   });
 }
 

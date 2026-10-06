@@ -445,6 +445,19 @@ export const NESTED_ROUTES = [
       { file: "module/rules/damage/pipeline.mjs", why: "stage 11 compares Magic Resistance against it" },
     ],
   },
+  // A Normal Attack's own stage-3 multiplier: Mesektet's ×2 against Dark
+  // (#189 readings 3, 18).
+  {
+    key: "conditionalMultipliers",
+    authored: ["packs/_source/servants/ozymandias.yml"],
+    hops: [
+      { file: "module/data/actor/_shared.mjs", why: "normalAttackField declares it; Foundry drops what a schema does not name" },
+      { file: "module/rules/snapshot.mjs", why: "the projection rebuilds normalAttack field by field and carries it" },
+      { file: "module/rules/normal-attack.mjs", why: "normalAttackAt hands it on" },
+      { file: "module/engine/attack.mjs", why: "attackFacts carries it, and the resolution and preview hand it to stage 3" },
+      { file: "module/rules/damage/pipeline.mjs", why: "stage 3 multiplies by it" },
+    ],
+  },
   {
     key: "labelOnly",
     authored: ["packs/_source/abilities/quetz-piedra-del-sol.yml"],
