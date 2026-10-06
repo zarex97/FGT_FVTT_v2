@@ -33,6 +33,11 @@ export function lineFor(e, t) {
   if (typeof e.healthLoss === "number") return t("FGT.FieldReport.HealthLoss", { who, amount: e.healthLoss });
   if (typeof e.damage === "number") return t("FGT.FieldReport.Damage", { who, amount: e.damage });
   if (e.defeat) return t("FGT.FieldReport.Defeat", { who });
+  // What the field PAYS, to its owner's side: Blood Fort Andromeda's drain and
+  // a Civilian's reward. The card listed every loss and none of the heals they
+  // bought (#188).
+  if (typeof e.heal === "number") return t("FGT.FieldReport.Heal", { who, amount: e.heal });
+  if (e.statDelta) return t("FGT.FieldReport.StatDelta", { who, line: e.statDelta });
   if (e.roll?.check === "evade") {
     return t("FGT.FieldReport.Evade", { who, total: e.roll.total, outcome: t(`FGT.FieldReport.Outcome.${e.roll.outcome}`) });
   }
@@ -52,9 +57,10 @@ export function lineFor(e, t) {
  * @param {object[]} entries `fieldEvent` entries
  * @param {(fieldId: string) => string} nameOf the field's display name
  * @param {(key: string, data?: object) => string} t a formatter
+ * @param {string} [titleKey] the heading: a Turn end's, or a contact's
  * @returns {Array<{fieldId: string, content: string}>}
  */
-export function fieldReportCards(entries, nameOf, t) {
+export function fieldReportCards(entries, nameOf, t, titleKey = "FGT.FieldReport.Title") {
   /** @type {Map<string, object[]>} */
   const byField = new Map();
   for (const e of entries ?? []) {
@@ -64,7 +70,7 @@ export function fieldReportCards(entries, nameOf, t) {
   return [...byField.entries()].map(([fieldId, list]) => ({
     fieldId,
     content: `<div class="fgt-card fgt-card--field-report">`
-      + `<h3>${t("FGT.FieldReport.Title", { field: nameOf(fieldId) })}</h3>`
+      + `<h3>${t(titleKey, { field: nameOf(fieldId) })}</h3>`
       + `<ul>${list.map((e) => `<li>${lineFor(e, t)}</li>`).join("")}</ul></div>`,
   }));
 }
@@ -72,15 +78,20 @@ export function fieldReportCards(entries, nameOf, t) {
 /**
  * Post the cards. Public: a field's effects are on the board for everyone.
  *
+ * A field's `contact` pass posts its own (#188): a Civilian walking into Blood
+ * Fort Andromeda died, and healed Medusa, with no card at all -- the report
+ * was gathered at Turn ends only.
+ *
  * @param {object[]} entries
+ * @param {{titleKey?: string}} [opts]
  * @returns {Promise<void>}
  */
-export async function postFieldReports(entries) {
+export async function postFieldReports(entries, { titleKey } = {}) {
   if (!entries?.length || !game.users?.activeGM?.isSelf) return;
   const nameOf = (fieldId) => canvas?.scene?.regions?.find((r) =>
     r.behaviors?.some((b) => b.type === "npField" && b.system?.fieldId === fieldId))?.name ?? fieldId;
   const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
-  for (const card of fieldReportCards(entries, nameOf, t)) {
+  for (const card of fieldReportCards(entries, nameOf, t, titleKey)) {
     await ChatMessage.create({ content: card.content, flags: { fgt: { fieldReport: card.fieldId } } });
   }
 }

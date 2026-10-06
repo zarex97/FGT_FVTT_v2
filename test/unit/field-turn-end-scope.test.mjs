@@ -123,6 +123,9 @@ describe("anyTurnEnd: the clauses that mean every Turn, and Blood Fort's that no
     expect(caught.filter((i) => i.t === "defeat" && i.unitId === "civ")).toHaveLength(1);
     // With no Master to choose, Medusa takes the reward.
     expect(caught.filter((i) => i.t === "heal" && i.unitId === "qz")).toHaveLength(1);
+    // ...and the card says so (#188): the report listed losses only.
+    const paid = caught.filter((i) => i.t === "log" && i.entry?.kind === "fieldEvent" && i.entry.unitId === "qz");
+    expect(paid.map((i) => i.entry.heal ?? i.entry.statDelta)).toEqual([100, "Agility +1"]);
 
     for (const faction of ["A", "B"]) {
       const intents = await turnEnd("anyTurnEnd", { specs, casts: [blood], endedFaction: faction });

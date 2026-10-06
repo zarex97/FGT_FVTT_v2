@@ -932,6 +932,8 @@ export async function runContactEvents(unitIds, fieldIds = null) {
   await applyIntents(intents, {
     io: worldIO(), canWrite: () => true, isGM: game.user.isGM, source: "field:contact",
   });
+  const { fieldEventsIn, postFieldReports } = await import("./field-report.mjs");
+  await postFieldReports(fieldEventsIn(intents), { titleKey: "FGT.FieldReport.ContactTitle" });
 }
 
 /**
