@@ -94,6 +94,9 @@ describe("Hatred of Achilles: what she may do (#190)", () => {
       expect(unmetCompulsions([spent], board)).toEqual([]);
       const done = { ...me, turnState: { ...(me.turnState ?? {}), attacked: true } };
       expect(unmetCompulsions([done], board)).toEqual([]);
+      // In a Round that forbids every Attack, closing on him is enough.
+      expect(unmetCompulsions([near], { ...board, attacksForbidden: true })).toEqual([]);
+      expect(unmetCompulsions([me], { ...board, attacksForbidden: true })[0].message).toMatch(/must Move towards/);
     });
   }, 120_000);
 });
@@ -115,4 +118,25 @@ describe("Atk Up (GreekMale) reads a Greek Male as Hatred does (#190 reading 1)"
       expect(against("greekMaster")).toBe(false);
     });
   }, 120_000);
+});
+
+describe("the End Turn gate reads the board, where a compulsion lives (#190)", () => {
+  it("builds its verdict from the board's Units, not bare snapshots", async () => {
+    const { readFileSync } = await import("node:fs");
+    const s = readFileSync("module/apps/hud/turn-panel.mjs", "utf8");
+    expect(s).not.toMatch(/unitSnapshot\(/);
+    expect(s).toContain("endTurnVerdict(combat, factionId, board.units ?? [])");
+    expect(s).toContain("endTurnVerdict(combat, factionId, currentBoard().units ?? [])");
+  });
+});
+
+describe("a drag asks Hatred of Achilles (#190)", () => {
+  it("is refused in the drag gate, not only on a ride", async () => {
+    const { readFileSync } = await import("node:fs");
+    const s = readFileSync("module/engine/movement-hooks.mjs", "utf8");
+    expect(s).toMatch(/const hated = hatredVerdict\(unit, route, board\);/);
+    // ...from where the move BEGINS: Foundry's waypoints carry only where it goes.
+    expect(s).toMatch(/const route = origin \? \[origin, \.\.\.path\] : path;/);
+    expect(s).toMatch(/const pulled = decoyVerdict\(unit, route, board\);/);
+  });
 });

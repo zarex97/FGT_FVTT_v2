@@ -15,6 +15,7 @@
  */
 
 import { emptyBudget, canConsume, consume, canEndTurn, summarize, ACTION_KINDS, poolFor } from "../rules/budget.mjs";
+import { attacksPermitted } from "../rules/environment.mjs";
 
 const FLAG = "budgets";
 
@@ -204,8 +205,11 @@ export async function reset(combat, factionId) {
  */
 export function endTurnVerdict(combat, factionId, units) {
   // The whole board beside the faction's own: a pursuit measures against a
-  // target on the other side (#190).
-  return canEndTurn(units.filter((u) => u.factionId === factionId), { units });
+  // target on the other side, and cannot demand an Attack the first Round
+  // forbids (#190).
+  const noAttackRound = game.settings?.get?.("fgt", "noAttackRound") ?? 1;
+  const attacksForbidden = Boolean(combat?.started) && !attacksPermitted(combat.round ?? 1, noAttackRound);
+  return canEndTurn(units.filter((u) => u.factionId === factionId), { units, attacksForbidden });
 }
 
 /**

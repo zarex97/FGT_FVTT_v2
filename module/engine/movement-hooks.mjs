@@ -16,7 +16,7 @@
  */
 
 import {
-  gateMovement, pursuitVerdict, decoyVerdict,
+  gateMovement, pursuitVerdict, decoyVerdict, hatredVerdict,
 } from "../rules/movement.mjs";
 import { carryMasterAlong } from "./passenger-seat.mjs";
 import { unitSnapshot, currentBoard } from "./board.mjs";
@@ -146,8 +146,16 @@ function onPreMove(document, movement, operation) {
     return false;
   }
 
+  // The three distance rules below compare where the move BEGINS with where it
+  // ends, and Foundry's waypoints carry only where it goes: a one-panel drag
+  // was a one-panel path, and a one-panel path compares nothing. So Decoy's
+  // "cannot Move away" and Hatred of Achilles' "Move towards" let every single
+  // step through (#190).
+  const origin = movement?.origin ? canvas.grid.getOffset(movement.origin) : unit.panel;
+  const route = origin ? [origin, ...path] : path;
+
   // A Kagome Spirit may not walk away from the enemy it was summoned for.
-  const pursuit = pursuitVerdict(unit, path, board);
+  const pursuit = pursuitVerdict(unit, route, board);
   if (!pursuit.ok) {
     ui.notifications.warn(`FGT | ${pursuit.reason}`);
     return false;
@@ -156,9 +164,17 @@ function onPreMove(document, movement, operation) {
   // ...and nothing may walk away from a Decoy. The same shape, a different
   // rule: the pull is stamped on this Unit by the board pass rather than
   // authored on it (`rules/compulsion.mjs`).
-  const pulled = decoyVerdict(unit, path, board);
+  const pulled = decoyVerdict(unit, route, board);
   if (!pulled.ok) {
     ui.notifications.warn(`FGT | ${pulled.reason}`);
+    return false;
+  }
+
+  // ...and Hatred of Achilles closes on him (#190 Q10). It was asked only by
+  // the ride's path check, so a plain drag walked her sideways.
+  const hated = hatredVerdict(unit, route, board);
+  if (!hated.ok) {
+    ui.notifications.warn(`FGT | ${hated.reason}`);
     return false;
   }
 

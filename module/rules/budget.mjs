@@ -540,7 +540,12 @@ function pursuitBreach(unit, pursuit, board) {
   const name = target?.name ?? "the Unit she hates";
   const range = unit.range?.panels ?? unit.range ?? 1;
   const reach = target?.panel && unit.panel ? chebyshevOf(unit.panel, target.panel) : 0;
-  if (reach <= range) return `${unit.name} must Attack ${name} (Hatred of Achilles).`;
+  if (reach <= range) {
+    // Not in a Round that forbids every Attack: she has closed on him, and that
+    // is all she could do.
+    if (board?.attacksForbidden) return null;
+    return `${unit.name} must Attack ${name} (Hatred of Achilles).`;
+  }
   const left = (unit.mov ?? 0) - (unit.turnState?.movedPanels ?? 0);
   if (left > 0 && !preventedBy(unit, "move").prevented) {
     return `${unit.name} must Move towards ${name} with all her MOV (Hatred of Achilles).`;
