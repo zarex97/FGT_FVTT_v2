@@ -173,3 +173,12 @@ describe("God's Curse spares what is only Categorized as a Noble Phantasm (#189)
     expect(preventedBy({ suppressions: [{ scope: "npSeal" }] }, "np", { categorizedOnly: true }).prevented).toBe(true);
   });
 });
+
+describe("a revival says so on a card (#189)", () => {
+  it("names the Unit, its source and the Health it came back with", async () => {
+    const { revivalCard } = await import("../../module/engine/revival-report.mjs");
+    const t = (key, data) => `${key} ${JSON.stringify(data ?? {})}`;
+    const html = revivalCard({ unitId: "oz", source: "rt", amount: 200 }, () => "Ozymandias", () => "Ramesseum Tentyris", t);
+    expect(html).toContain('FGT.Revival.Card {"name":"Ozymandias","source":"Ramesseum Tentyris","amount":200}');
+  });
+});

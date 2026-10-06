@@ -1324,6 +1324,14 @@ export function worldIO() {
         if (!classified) continue;
         await record(classified, combat);
       }
+
+      // A revival, said out loud. It was logged and nothing else: Divine
+      // Protection brought Ozymandias back at 200 inside his Complex and the
+      // attack card read "6 damage" over it (#189). Public, as a defeat is.
+      for (const e of entries.filter((x) => x?.kind === "revive")) {
+        const { postRevival } = await import("./revival-report.mjs");
+        await postRevival(e);
+      }
     },
 
     /**
