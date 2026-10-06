@@ -5608,6 +5608,11 @@ export function previewContext({ caster: given, defender, ability, board, isNP }
     // platform replaces her Normal Attack. Without it stage 1 read `unit:
     // "mount"` as the attacker and the range was her 125 again (#167).
     units: namedUnits(caster, board),
+    // A source that names a COMPENDIUM document's Base Attack (Golden Wild
+    // Hunt's `platform-golden-hind`), as the resolution supplies it. Without it
+    // stage 1 added nothing and the broadside previewed at 117 and dealt 1341
+    // (#187).
+    contentBaseAttack: contentBaseAttacks(),
     multiplier: damage?.multiplier ?? 1,
     flatBonus: damage?.flatBonus ?? 0,
     conditionalMultipliers: damage?.conditionalMultipliers ?? [],

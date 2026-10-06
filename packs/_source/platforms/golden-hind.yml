@@ -109,4 +109,8 @@ crossLevel:
   aoePassengerFactor: 0.5
   aoeMastersImmune: true
   outboundTargeting: rangedOnly
+  # "Enemy Units on the ground can only Attack the Golden Hind with ranged
+  # Attacks." The ship ITSELF, the Gardens' axis; unauthored, a melee Attack
+  # from the ground reached the hull (#187).
+  hullTargeting: rangedOnly
   forbidDirectlyBelow: true

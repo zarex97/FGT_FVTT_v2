@@ -924,3 +924,34 @@ describe("abilities aimed from the Golden Hind's deck (#187)", () => {
     ]));
   });
 });
+
+describe("the Golden Hind's hull takes only ranged Attacks from the ground (#187)", () => {
+  // Live: crossLevelLegal(Heracles at Range 1, the ship) was ok.
+  it("authors hullTargeting: rangedOnly", () => {
+    expect(src("platforms", "golden-hind.yml").crossLevel.hullTargeting).toBe("rangedOnly");
+  });
+
+  it("a melee Attack on the hull is refused, a ranged one allowed", async () => {
+    const { crossLevelLegal } = await import("../../module/rules/platforms.mjs");
+    const ship = { id: "hind", kind: "platform", level: 20, crossLevel: src("platforms", "golden-hind.yml").crossLevel };
+    const herc = { id: "herc", kind: "servant", level: 0 };
+    expect(crossLevelLegal(herc, ship, { units: [ship, herc] }, { range: 1 })).toMatchObject({ ok: false, reason: "requiresRanged" });
+    expect(crossLevelLegal(herc, ship, { units: [ship, herc] }, { range: 2 })).toMatchObject({ ok: true });
+  });
+
+  it("the aiming session uses the board's unit, with her ship", () => {
+    const sheet = readFileSync("module/apps/actor-sheet/sheet.mjs", "utf8");
+    expect(sheet).toMatch(/spec, caster: boardSelf, board,/);
+    expect(sheet).toMatch(/previewContext\(\{ caster: boardSelf, defender, ability, board, isNP \}\)/);
+  });
+});
+
+describe("the broadside's preview counts the ship's Base Attack (#187)", () => {
+  // Live: previewed at 117, dealt 1341 -- the preview gave stage 1 no
+  // contentBaseAttack, so `platform-golden-hind`'s 200 contributed nothing.
+  it("previewContext supplies contentBaseAttack as the resolution does", () => {
+    const src = readFileSync("module/engine/attack.mjs", "utf8");
+    const fn = src.slice(src.indexOf("export function previewContext"), src.indexOf("export function previewContext") + 4000);
+    expect(fn).toMatch(/contentBaseAttack: contentBaseAttacks\(\),/);
+  });
+});
