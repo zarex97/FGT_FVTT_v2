@@ -60,6 +60,14 @@ umask 077; read -rsp "password: " p; printf %s "$p" > ~/.fgt-gm-password; unset 
 
 Without the files, both are blank -- the PC's behaviour.
 
+## Remote Control
+
+A general Claude Code session runs on the VPS under the systemd unit `claude-rc`: `claude remote-control
+--name vps --permission-mode auto` inside tmux session `claude-rc`, in `~/workspace`. It starts at boot and
+restarts 30 s after a crash. Open it as `vps` from claude.ai/code or the Claude app, then `cd` to
+`~/foundrydata/Data/systems/fgt`. To look at its screen: `ssh foundry-dev -t tmux attach -t claude-rc`,
+then `Ctrl-b d`. Keep `remain-on-exit` off in tmux, or a dead pane holds the unit up and it never restarts.
+
 ## Things that bite
 
 - One GM client per world: close the user's GM tab before a headless `join`.
