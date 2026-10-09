@@ -27,21 +27,43 @@
  *   node tools/fgt-world.mjs app:start | app:stop | app:restart
  *   node tools/fgt-world.mjs chrome:start        # the CDP-enabled browser
  *   node tools/fgt-world.mjs up [worldId]        # chrome + app + launch
+ *
+ * On Linux this is the VPS (docs/agents/vps.md): Foundry is the Node build
+ * under the systemd unit `foundry`, and the debug Chrome is headless. Its
+ * setup screen has an administrator password and its world a Gamemaster
+ * password, read from files the user wrote and never printed.
  */
 
 import { spawn, execFile } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { join as joinPath } from "node:path";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
+const LINUX = process.platform === "linux";
 const PORT = process.env.FGT_CDP_PORT ?? 9222;
 const WORLD = process.env.FGT_WORLD ?? "fgt2026";
 const FOUNDRY_EXE = process.env.FGT_FOUNDRY_EXE
   ?? "C:\\Program Files\\Foundry Virtual Tabletop\\Foundry Virtual Tabletop.exe";
 const CHROME_EXE = process.env.FGT_CHROME_EXE
-  ?? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+  ?? (LINUX ? "/usr/bin/google-chrome" : "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe");
 const CHROME_PROFILE = process.env.FGT_CHROME_PROFILE
-  ?? `${process.env.TEMP}\\chrome-foundry-debug`;
+  ?? joinPath(tmpdir(), "chrome-foundry-debug");
+const ADMIN_PASSWORD_FILE = process.env.FGT_ADMIN_PASSWORD_FILE ?? joinPath(homedir(), ".foundry-admin-password");
+const GM_PASSWORD_FILE = process.env.FGT_GM_PASSWORD_FILE ?? joinPath(homedir(), ".fgt-gm-password");
+
+/**
+ * A password the user wrote to a file, or "" when there is none -- the local
+ * world's Gamemaster has no password and its setup screen no admin password.
+ *
+ * @param {string} file
+ * @returns {string}
+ */
+function secretFrom(file) {
+  return existsSync(file) ? readFileSync(file, "utf8").trim() : "";
+}
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -223,6 +245,8 @@ async function launch(worldId = WORLD) {
   // /setup, and wait for the list to render.
   if (!String(page.url).includes("/setup")) {
     await navigate(page, "http://localhost:30000/setup");
+    // With an administrator password, /setup redirects to /auth first.
+    if (await waitForUrl("/auth", 5) && !await adminLogIn()) return false;
     if (!await waitForUrl("/setup", 30)) return false;
     page = await foundryPage();
     if (!page) return false;
@@ -253,6 +277,30 @@ async function launch(worldId = WORLD) {
 }
 
 /**
+ * Log in to the setup screen with the administrator password, the form
+ * `templates/setup/setup-authentication.hbs` posts.
+ *
+ * @returns {Promise<boolean>}
+ */
+async function adminLogIn() {
+  const password = secretFrom(ADMIN_PASSWORD_FILE);
+  if (!password) {
+    console.error(`FGT | The setup screen wants the administrator password, and ${ADMIN_PASSWORD_FILE} is missing.`);
+    return false;
+  }
+  const page = await foundryPage();
+  if (!page) return false;
+  const sent = await evaluate(page, `
+    const form = document.querySelector('form:has(input[name="adminPassword"])');
+    if (!form) return false;
+    form.querySelector('input[name="adminPassword"]').value = ${JSON.stringify(password)};
+    form.requestSubmit(form.querySelector('button[value="adminAuth"]'));
+    return true;
+  `).catch(() => "false");
+  return sent === "true";
+}
+
+/**
  * Join the launched world as a user, which is what turns `/join` into `/game`.
  *
  * Defaults to the Gamemaster: every tool here drives the world with GM
@@ -277,6 +325,8 @@ async function join(userName = process.env.FGT_USER ?? "Gamemaster") {
     }
     select.value = option.value;
     select.dispatchEvent(new Event("change", { bubbles: true }));
+    const password = form.querySelector('input[name="password"]');
+    if (password) password.value = ${JSON.stringify(secretFrom(GM_PASSWORD_FILE))};
     // Submit the form rather than clicking: the button is inside it and the
     // submit handler is what Foundry listens on.
     form.requestSubmit(form.querySelector('button[name="join"]'));
@@ -304,6 +354,9 @@ async function join(userName = process.env.FGT_USER ?? "Gamemaster") {
 
 /** @returns {Promise<boolean>} */
 async function appRunning() {
+  if (LINUX) {
+    return execFileAsync("systemctl", ["is-active", "--quiet", "foundry"]).then(() => true, () => false);
+  }
   try {
     // `/FO CSV`, because the default table output TRUNCATES the image name to
     // the column width -- "Foundry Virtual Tabletop.exe" comes back as
@@ -321,7 +374,8 @@ async function appRunning() {
 async function appStart() {
   if (await appRunning()) return;
   // Detached: the server has to outlive this process.
-  spawn(FOUNDRY_EXE, [], { detached: true, stdio: "ignore" }).unref();
+  if (LINUX) await execFileAsync("sudo", ["systemctl", "start", "foundry"]);
+  else spawn(FOUNDRY_EXE, [], { detached: true, stdio: "ignore" }).unref();
   // The HTTP server takes a few seconds to bind :30000.
   for (let i = 0; i < 60; i++) {
     try {
@@ -333,7 +387,9 @@ async function appStart() {
 
 /** @returns {Promise<void>} */
 async function appStop() {
-  await execFileAsync("taskkill", ["/IM", "Foundry Virtual Tabletop.exe", "/F"]).catch(() => {});
+  // On the VPS this stops the one server every world shares, PF2e's too.
+  if (LINUX) await execFileAsync("sudo", ["systemctl", "stop", "foundry"]).catch(() => {});
+  else await execFileAsync("taskkill", ["/IM", "Foundry Virtual Tabletop.exe", "/F"]).catch(() => {});
   await sleep(2000);
 }
 
@@ -341,9 +397,14 @@ async function appStop() {
 async function chromeStart() {
   const reachable = await fetch(`http://127.0.0.1:${PORT}/json/version`).then(() => true).catch(() => false);
   if (reachable) return;
+  // The VPS has no display and no GPU: headless, with WebGL in software.
+  const headless = LINUX
+    ? ["--headless=new", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--window-size=1600,1000"]
+    : [];
   spawn(CHROME_EXE, [
     `--remote-debugging-port=${PORT}`,
     `--user-data-dir=${CHROME_PROFILE}`,
+    ...headless,
     "http://localhost:30000",
   ], { detached: true, stdio: "ignore" }).unref();
   for (let i = 0; i < 40; i++) {

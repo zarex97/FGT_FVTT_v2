@@ -30,6 +30,12 @@ discards it and nothing fails. When a change adds or moves an Authored Key, a fi
 
 The map of Hops is in `docs/07-schemas.md`, the guards in `docs/44-testing.md`, the reason in ADR-0006.
 
+### Two workplaces
+
+This PC and a VPS (`ssh foundry-dev`), each with its own clone, Foundry and copy of world `fgt2026`.
+Code moves by git; the world is copied one way, never merged; one licence runs one Foundry at a time.
+See `docs/agents/vps.md`.
+
 ### Domain docs
 
 Single-context: `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
