@@ -235,17 +235,24 @@ async function shutdown() {
 async function launch(worldId = WORLD) {
   let page = await foundryPage();
   if (!page) return false;
-  if (String(page.url).includes("/game")) return true;    // already up
-
-  // A page sitting on /join belongs to a world that is already launched.
-  if (String(page.url).includes("/join")) return true;
+  // A page on /game or /join belongs to a launched world -- unless the server
+  // restarted under it, or it is another world (the VPS also runs PF2e's).
+  if (/\/(game|join)/.test(String(page.url))) {
+    const active = await fetch("http://localhost:30000/api/status").then((r) => r.json()).catch(() => ({}));
+    if (active.world === worldId) return true;
+    if (active.world) {
+      console.error(`FGT | "${active.world}" is running; shut it down before launching "${worldId}".`);
+      return false;
+    }
+  }
 
   // Anything else -- `/no` after a shutdown, or a tab left on an old route --
   // has no world list to click. Send it to the root, which redirects to
   // /setup, and wait for the list to render.
   if (!String(page.url).includes("/setup")) {
-    await navigate(page, "http://localhost:30000/setup");
-    // With an administrator password, /setup redirects to /auth first.
+    // With an administrator password, /setup redirects to /auth first. A tab
+    // already sitting there is logged in where it stands.
+    if (!String(page.url).includes("/auth")) await navigate(page, "http://localhost:30000/setup");
     if (await waitForUrl("/auth", 5) && !await adminLogIn()) return false;
     if (!await waitForUrl("/setup", 30)) return false;
     page = await foundryPage();
@@ -314,6 +321,12 @@ async function join(userName = process.env.FGT_USER ?? "Gamemaster") {
   if (!page) return false;
   if (String(page.url).includes("/game")) return true;
   if (!String(page.url).includes("/join")) return false;
+
+  // Right after a launch the page is on /join before its form renders.
+  for (let i = 0; i < 30; i++) {
+    if (await evaluate(page, `return !!document.getElementById("join-game-form");`).catch(() => "false") === "true") break;
+    await sleep(1000);
+  }
 
   const picked = await evaluate(page, `
     const select = document.querySelector('select[name="userid"]');
