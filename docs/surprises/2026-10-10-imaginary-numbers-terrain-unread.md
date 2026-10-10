@@ -3,7 +3,8 @@ id: 2026-10-10-imaginary-numbers-terrain-unread
 found: live press
 kind: collected-but-unread
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** inside the Storm Border Nemo carries `self:terrain:imaginaryNumbers`, so Poseidon's
 Protection, Voyager of the Storm, Journey's Guidance and the Noble Phantasm take their Waterside branch.

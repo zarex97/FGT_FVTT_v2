@@ -3,7 +3,8 @@ id: 2026-10-10-first-apply-runs-after-damage
 found: live press
 kind: authored-order-is-not-timing
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** Great Ram Nautilus — *"When this NP is used, first apply … NP DmUp … Then, deals 4x damage"* —
 counts its two NP DmUps (30% and, on Waterside, 20%) in its own damage. The YAML lists the

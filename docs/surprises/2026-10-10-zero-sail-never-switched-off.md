@@ -3,7 +3,8 @@ id: 2026-10-10-zero-sail-never-switched-off
 found: retraction
 kind: event-with-no-listener
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** surfacing ends Zero Sail and starts its *"5◈ Turns after Nemo resurfaces"* cooldown
 (`countFrom: deactivation`).

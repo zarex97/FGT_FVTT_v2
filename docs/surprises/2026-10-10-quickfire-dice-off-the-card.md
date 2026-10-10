@@ -3,7 +3,8 @@ id: 2026-10-10-quickfire-dice-off-the-card
 found: live press
 kind: recorded-not-rendered
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Quickfire's card lists its 6d6 and every threshold modifier, fired or not —
 `module/rules/damage/dice-count.mjs` exists so a player handed "you dealt 75" can check it.

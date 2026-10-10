@@ -3,7 +3,8 @@ id: 2026-10-10-band-map-overwritten
 found: live press
 kind: name-collision-on-spread
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** Triton's Conch deals Karna, two panels from Nemo, 0.5x and a 50% Deafen — the targeting
 dialog itself read "Karna … band 1".

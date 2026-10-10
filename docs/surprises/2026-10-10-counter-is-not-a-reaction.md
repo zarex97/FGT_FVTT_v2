@@ -3,7 +3,8 @@ id: 2026-10-10-counter-is-not-a-reaction
 found: retraction
 kind: event-option-never-emitted
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Quickfire refunds 1◈ of its cooldown only if the target does not Counter
 (`predicate: ["not:target:reaction:counter"]`).

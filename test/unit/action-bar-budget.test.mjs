@@ -96,3 +96,18 @@ describe("where that refusal surfaces", () => {
     expect(before).toMatch(/pre\.budgetReason/);
   });
 });
+
+describe("a greyed slot does not run (#192)", () => {
+  const bar = readFileSync(new URL("../../module/apps/hud/action-bar.mjs", import.meta.url), "utf8");
+  const handler = bar.slice(bar.indexOf("static async onUseSlot("), bar.indexOf("async declareCounterWith("));
+
+  it("refuses a disabled slot before any handler, with the slot's own sentence", () => {
+    const guard = handler.indexOf('classList.contains("fgt-slot--disabled")');
+    expect(guard).toBeGreaterThan(-1);
+    expect(handler.slice(guard, guard + 300)).toMatch(/ui\.notifications\.warn\(target\.dataset\.tooltip/);
+    // Ahead of the Counter branch and every engine call.
+    for (const call of ["declareCounterWith(", "performAction(", "declareAttack(", "useSkill(", "toggleMode("]) {
+      expect(guard).toBeLessThan(handler.indexOf(call));
+    }
+  });
+});

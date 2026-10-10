@@ -3,7 +3,8 @@ id: 2026-10-10-zero-sail-toggled-off-inside
 found: live press
 kind: mode-with-a-way-out-elsewhere
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** while submerged, Zero Sail stays Active until the Storm Border resurfaces; the only way out
 is the Resurface control.

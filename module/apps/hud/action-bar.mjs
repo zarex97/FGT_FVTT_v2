@@ -381,6 +381,15 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     const actor = this.token?.actor;
     if (!actor) return;
 
+    // A greyed slot says why and stops (#192). The template greys it with a
+    // class, not the `disabled` attribute, so the tooltip still shows on hover,
+    // and nothing below asked. A spent budget opened targeting, offered
+    // "Attack" and was refused by the engine after the player had committed.
+    if (target.classList.contains("fgt-slot--disabled")) {
+      ui.notifications.warn(target.dataset.tooltip || game.i18n.localize("FGT.Targeting.Illegal"));
+      return;
+    }
+
     const armedRow = target.dataset.row
       || target.closest(".fgt-actionbar__row")?.dataset?.row || "";
     const armedId = target.dataset.slot;

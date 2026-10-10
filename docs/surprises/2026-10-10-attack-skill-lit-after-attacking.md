@@ -3,7 +3,8 @@ id: 2026-10-10-attack-skill-lit-after-attacking
 found: live press
 kind: gate-and-display-disagree
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** after Nemo's Riding Attack, every Attack of his greys on the bar with "this unit has already
 attacked this turn", as the Attack slot did.

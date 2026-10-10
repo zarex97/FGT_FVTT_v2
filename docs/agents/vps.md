@@ -77,3 +77,15 @@ then `Ctrl-b d`. Keep `remain-on-exit` off in tmux, or a dead pane holds the uni
 - A folder without a manifest inside `Data/systems` or `Data/modules` is scanned as a broken package.
   Reference source, like `~/foundryVTT_copy`, lives outside `Data`.
 - Each repo needs one interactive `claude` run on the VPS so the user can accept folder trust.
+
+## Driving the board headless
+
+Lessons from driving Nemo's audit over CDP (`docs/surprises/patterns/vps-drive-kit.md`):
+
+- **Drags move no token** over CDP's `Input.dispatchMouseEvent`, though clicks work. Cause not found. Move
+  with `TokenDocument#move`, the call a drag ends in, and record the Clause as `Pressed (engine)`.
+- **The full suite outruns a 600 s tool call** on the VPS's 2 CPUs, and a pipe to `grep` hides even partial
+  output. Run it in the background to a log and read the log. Run single files in the foreground.
+- **`pkill -f <pattern>` kills its own shell**, since the shell's command line holds the pattern (exit 144).
+  Kill by PID with a bracketed pattern: `ps -eo pid,args | grep "[r]emote-debugging-port=9222" | awk '{print $1}' | xargs -r kill`.
+

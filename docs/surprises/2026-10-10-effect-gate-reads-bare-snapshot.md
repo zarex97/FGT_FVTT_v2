@@ -3,7 +3,8 @@ id: 2026-10-10-effect-gate-reads-bare-snapshot
 found: live press
 kind: bare-snapshot-loses-position
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Voyager of the Storm pressed inside the Storm Border applies three effects to each ally:
 Atk Up 10% for ⅓◈, NP DmUp 10% for ⅓◈, and — Nemo being in Imaginary Numbers Space — Atk Up 20% for 1◈.

@@ -3,7 +3,8 @@ id: 2026-10-10-dimension-exit-offer-unheard
 found: retraction
 kind: event-with-no-listener
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** the Storm Border surfaces at a Turn End, by Nemo's choice or forced at 2◈ — the design and
 `nemo.test.mjs` both treated the resurface as built.
