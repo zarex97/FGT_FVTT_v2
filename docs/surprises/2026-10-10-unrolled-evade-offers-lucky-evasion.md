@@ -3,7 +3,8 @@ id: 2026-10-10-unrolled-evade-offers-lucky-evasion
 found: live press
 kind: override-takes-the-generic-edge
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** Karna choosing Evade against Quickfire rolls nothing and avoids nothing; the threshold rises
 to 6 and the hit lands.

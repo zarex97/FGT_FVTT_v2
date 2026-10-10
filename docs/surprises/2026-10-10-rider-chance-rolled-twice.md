@@ -3,7 +3,8 @@ id: 2026-10-10-rider-chance-rolled-twice
 found: live press
 kind: one-chance-two-dice
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Nemo's Normal Attack inflicts Slow on a 10% die; the card's "1d100 → 1 against 10%: hit"
 means Karna is Slowed.

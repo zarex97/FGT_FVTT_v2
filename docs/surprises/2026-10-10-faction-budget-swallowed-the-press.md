@@ -1,11 +1,12 @@
 ---
 id: 2026-10-10-faction-budget-swallowed-the-press
-found: tooling
-kind: staging-reset-misses-a-gate
+found: live press
+kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
-**Expected:** Resetting Nemo's Turn record and Quickfire's cooldown readies a second Quickfire in the same Turn.
-**Actual:** The press silently did nothing and left the Targeting layer active. The tracker read "Servant attacks 2/2", the faction's budget, which `resetTurn` does not touch. Pressing Escape to clear it opened Foundry's main menu.
-**Cause:** `scratchpad/pre.js resetTurn @ d162f50` resets only the Unit's `markTurn`; the faction-level attack budget is a second gate.
-**Fix:** Advanced to the faction's next Turn instead, then `canvas.tokens.activate()` before selecting. Also: a world left after an Erase test held Nemo `contract: "free"`, so ZON never applied until `system.contract` and `system.masterId` were restored.
+**Expected:** A slot the bar greys cannot be used. With "Servant attacks 2/2" spent, Quickfire is greyed with `Quickfire — Servant attacks exhausted (2/2)`, so clicking it does nothing but say so.
+**Actual:** Clicking it opened targeting, which reported `✓ Legal — click to confirm`, and offered "Attack". Then the engine refused: `FGT | Cannot attack: Servant attacks exhausted (2/2)`. It looked like a press that silently did nothing. I first worked around it by advancing to the faction's next Turn, which skipped the defect instead of fixing it. The user called that out, #192. The 2/2 itself was honest: my staging `resetTurn` had let Nemo attack twice.
+**Cause:** `templates/hud/action-bar.hbs:35 @ a238438` greys a slot with a class only, and `module/apps/hud/action-bar.mjs:380 @ a238438` `onUseSlot` never asked. The gate and the display agreed, and the click was a third reader that read neither.
+**Fix:** `module/apps/hud/action-bar.mjs:383 @ uncommitted` refuses a `fgt-slot--disabled` slot first, warning with its tooltip. Live, the click showed "Quickfire — Servant attacks exhausted (2/2)" and stayed on the Token layer. `test/unit/action-bar-budget.test.mjs` reads the guard.

@@ -3,7 +3,8 @@ id: 2026-10-10-canvas-dead-after-level-delete
 found: live press
 kind: teardown-under-the-viewer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: live-client-only
 ---
 **Expected:** after the Storm Border surfaces or submerges, the GM's board shows everyone where they now stand.
 

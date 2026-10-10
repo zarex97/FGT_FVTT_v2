@@ -3,7 +3,8 @@ id: 2026-10-10-home-bases-are-zones
 found: live press
 kind: name-drift-across-a-boundary
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** the Resurface picker never offers a 5x5 that overlaps an enemy Home Base (ruling R3).
 

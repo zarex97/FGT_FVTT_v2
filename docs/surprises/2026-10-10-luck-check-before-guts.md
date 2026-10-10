@@ -3,7 +3,8 @@ id: 2026-10-10-luck-check-before-guts
 found: retraction
 kind: wrong-order-against-revival
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** *"If Nemo is defeated while Zero Sail is Active, he performs a Luck Check"* — only a Nemo
 who actually dies makes the check; Indomitable's Guts reviving him means no check (#191 reading 9).

@@ -3,7 +3,8 @@ id: 2026-10-10-cdp-drag-moves-nothing
 found: tooling
 kind: headless-canvas-input
 status: open
-reviewed: false
+reviewed: true
+pattern: vps-drive-kit
 ---
 **Expected:** a CDP `Input.dispatchMouseEvent` press-move-release over a token on the VPS's headless Chrome
 drags it, as the claude-in-chrome drags did on the PC.

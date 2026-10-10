@@ -3,7 +3,8 @@ id: 2026-10-10-fixedvalue-stood-in-for-base-attack
 found: test
 kind: fixture-stands-in-for-the-real-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** Skipping stage 2 for a `fixedValue` base touches only Nemo's two Skills, since every other
 authored flat base is `fixed: true`.

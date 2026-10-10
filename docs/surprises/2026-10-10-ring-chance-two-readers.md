@@ -3,7 +3,8 @@ id: 2026-10-10-ring-chance-two-readers
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** with the band map fixed, Karna two panels out is Deafened on a 50% chance.
 

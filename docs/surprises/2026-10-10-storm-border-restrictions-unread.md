@@ -3,7 +3,8 @@ id: 2026-10-10-storm-border-restrictions-unread
 found: live press
 kind: collected-but-unread
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** inside the Storm Border, an ability that creates a Large or Giant thing is refused (ruling
 R1) — `rules/costs.mjs` has a `forbidCreating` refusal for exactly this.

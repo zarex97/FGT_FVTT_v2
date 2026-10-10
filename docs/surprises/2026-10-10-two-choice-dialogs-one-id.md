@@ -3,7 +3,8 @@ id: 2026-10-10-two-choice-dialogs-one-id
 found: live press
 kind: fixed-id-singleton-window
 status: fixed
-reviewed: false
+reviewed: true
+pattern: live-client-only
 ---
 **Expected:** pressing Zero Sail with two enemies within 3 panels asks each of them "Attempt to enter?",
 then submerges.

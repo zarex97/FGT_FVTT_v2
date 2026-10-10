@@ -3,7 +3,8 @@ id: 2026-10-10-indomited-dropped-at-collection
 found: live press
 kind: event-option-judged-at-collection
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** Nemo, killed with Guts and Indomited on him, is revived with 20% and his NP Cooldown drops by
 1◈+⅔◈ (12 → 7).

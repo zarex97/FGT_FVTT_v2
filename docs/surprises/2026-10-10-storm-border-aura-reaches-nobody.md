@@ -3,7 +3,8 @@ id: 2026-10-10-storm-border-aura-reaches-nobody
 found: live press
 kind: dimension-has-no-token
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** Journey's Guidance pressed inside the Storm Border gives every ally aboard S.Crit Up 15%
 for ⅓◈, through the `sCritUpStormBorder` aura on Nemo.

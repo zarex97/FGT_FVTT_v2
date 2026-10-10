@@ -9,7 +9,10 @@
 
 import { readFileSync } from "node:fs";
 
-const FAILURE = /(\bFAIL\b|AssertionError|exit code [1-9]|Exit code [1-9]|failed with exit code|\bTraceback\b|\bnever fired\b|\brefused\b|\bnothing listens\b)/;
+// A failed command already sets `is_error`. The text test is for what a pipe
+// hides: a test runner's own verdict, matched as it prints it, so prose that
+// merely quotes a failure does not count.
+const FAILURE = /^\s*(FAIL|×)\s|Test Files\s+\d+ failed|Tests\s+\d+ failed|AssertionError:|^Traceback \(most recent/m;
 
 let input = {};
 try {
@@ -40,12 +43,21 @@ for (let k = entries.length - 1; k >= 0; k--) if (isPrompt(entries[k])) { start 
 const turn = entries.slice(start + 1);
 
 const text = (x) => (typeof x === "string" ? x : Array.isArray(x) ? x.map((y) => y?.text ?? "").join("\n") : "");
+// A call that touches the records themselves: reading them quotes old
+// failures ("Exit code 144", "FAIL"), and the text test would take those
+// quotes for a failure of this turn.
+const SURPRISES = /docs\/surprises\b/;
+const touchesRecords = new Set();
 let failed = false;
 let recorded = false;
 for (const e of turn) {
   for (const part of Array.isArray(e.message?.content) ? e.message.content : []) {
-    if (part?.type === "tool_result" && (part.is_error || FAILURE.test(text(part.content)))) failed = true;
-    if (part?.type === "tool_use" && JSON.stringify(part.input ?? {}).includes("docs/surprises/")) recorded = true;
+    if (part?.type === "tool_use" && SURPRISES.test(JSON.stringify(part.input ?? {}))) {
+      recorded = true;
+      touchesRecords.add(part.id);
+    }
+    if (part?.type !== "tool_result") continue;
+    if (part.is_error || (!touchesRecords.has(part.tool_use_id) && FAILURE.test(text(part.content)))) failed = true;
   }
 }
 
