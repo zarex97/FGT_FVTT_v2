@@ -150,6 +150,66 @@ export function passengersOf(platform, board) {
 }
 
 /* -------------------------------------------------------------------------- */
+/*  Pocket dimensions                                                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The 5x5 the dimension's occupants stand on, centred where it went under.
+ *
+ * > *"…places all Units within the Storm Border onto a 5x5 panel area on the
+ * > board…"*
+ *
+ * The inside is that same 5x5 (#191 reading 3, ruled 2026-10-10). It lies on the
+ * dimension's own Scene Level at the grid position it submerged from, so a Unit
+ * keeps ordinary grid coordinates while it is inside and its offset from the
+ * centre is what carries it back out.
+ *
+ * @param {object} spec the platform's `dimension`
+ * @param {{i: number, j: number}} centre
+ * @returns {{centre: {i: number, j: number}, halfW: number, halfH: number,
+ *            panels: Array<{i: number, j: number}>}}
+ */
+export function interiorOf(spec, centre) {
+  const { w = 5, h = 5 } = spec?.interior?.shape ?? spec?.relocateOnExit?.shape ?? {};
+  const halfW = Math.floor(w / 2);
+  const halfH = Math.floor(h / 2);
+  const panels = [];
+  for (let i = centre.i - halfH; i <= centre.i + halfH; i++) {
+    for (let j = centre.j - halfW; j <= centre.j + halfW; j++) panels.push({ i, j });
+  }
+  return { centre: { i: centre.i, j: centre.j }, halfW, halfH, panels };
+}
+
+/**
+ * Is this panel inside the 5x5?
+ *
+ * @param {ReturnType<typeof interiorOf>} interior
+ * @param {{i: number, j: number}} panel
+ * @returns {boolean}
+ */
+export function withinInterior(interior, panel) {
+  return Math.abs(panel.i - interior.centre.i) <= interior.halfH
+    && Math.abs(panel.j - interior.centre.j) <= interior.halfW;
+}
+
+/**
+ * The pocket dimension a Unit is inside, if any.
+ *
+ * By the Level its token stands on, as `rules/environment.mjs#inPocketDimension`
+ * asks: a dimension has no token, so nobody inside carries its `platformId`
+ * (#178), and `platformOf` -- which matches a platform UNIT on the same level --
+ * found nothing and sheltered nobody.
+ *
+ * @param {object} unit
+ * @param {object} board carries `dimensions` (`engine/board.mjs`)
+ * @returns {object|null} `{id, contentId, ownerId, levelId, spec, centre}`
+ */
+export function dimensionOf(unit, board) {
+  if (!unit?.levelId) return null;
+  return (board?.dimensions ?? []).find((d) => d.levelId === unit.levelId) ?? null;
+}
+
+/* -------------------------------------------------------------------------- */
 /*  20.8 — movement linkage                                                   */
 /* -------------------------------------------------------------------------- */
 
@@ -272,6 +332,13 @@ export function crossLevelLegal(attacker, target, board, {
   range = null, allowDirectlyBelow = false, reach = "attack", area = false,
 } = {}) {
   if ((attacker?.level ?? 0) === (target?.level ?? 0)) return { ok: true };
+  // A POCKET DIMENSION is not above anything: nothing crosses in or out of it,
+  // either way, and not only an Attack -- a buff from outside does not reach in
+  // (#191 reading 3). It has no token, so the platform axes below never found it
+  // and a Unit inside was as open as one on the ground (#178).
+  if (dimensionOf(attacker, board)?.levelId !== dimensionOf(target, board)?.levelId) {
+    return { ok: false, reason: "otherDimension" };
+  }
   // "Ranged" is a table setting (#187 reading 4): Range 2 or more unless the
   // GM raised it, carried on `board.rules` as Layer 2 reads no settings.
   const ranged = (range ?? attacker?.range ?? 1) >= rangedMinimumRange(board);

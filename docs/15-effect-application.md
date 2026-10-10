@@ -72,6 +72,10 @@ The roll is supplied in context. An automatic effect (≥100%) lands without rol
 
 Outcome: `passed` or `resisted`. The trace records the roll and all modifiers in the event it fails.
 
+**One chance, one die (#191).** An event handler's action-level `chance` (Nemo's 10% Slow) is rolled by `dispatch` and filed on the card; the die travels on the instance as `effect.rolled` and the applier reads it instead of rolling again, with the target's resistance and the inflicter's bonus applied to that same die. The dispatch gate leaves an `ApplyEffect`'s verdict to the application. It used to roll twice: a card reading *"1 against 10%: hit"* applied nothing.
+
+**An entry's own predicate reads the caster as the board sees it (#191).** The Skill path tests a per-entry `predicate` against `phaseCtx.self`, the board-derived caster, so `self:terrain:*` and `self:onPlatform:*` are answerable there as they are for the phase gates and the cooldown branch. A bare snapshot left Voyager of the Storm's Waterside Atk Up unappliable.
+
 ### Step 4: Prevention window
 
 An offered prevention (`Luck Check`) pauses the application and returns a prompt intent. Only offered once per Combat Process and never against terminal effects (`module/engine/effect-applier.mjs:172-182`).

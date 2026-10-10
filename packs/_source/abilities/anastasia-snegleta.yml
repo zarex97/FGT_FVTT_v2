@@ -39,7 +39,13 @@ phases:
   # damage"* -- and Def Dwn (A) raises damage taken by 30%, so applying it first
   # is worth 30% of THIS very attack. Authored after the damage it would be
   # worth 30% of the NEXT one, which is a different Noble Phantasm.
+  #
+  # `when: beforeDamage` is what says so: a phase that states no `when` runs
+  # AFTER the damage whatever its place in this list (`engine/attack.mjs`,
+  # "Unstated means after"), so the order alone applied Def Dwn (A) after the
+  # hit it was written to raise (#191).
   - kind: applyEffects
+    when: beforeDamage
     target: reuse
     effects:
       - { id: defDwnA, duration: "⅓◈", magnitude: 30 }

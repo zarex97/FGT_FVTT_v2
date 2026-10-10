@@ -44,6 +44,10 @@ export const TRANSITIONS = Object.freeze({
 
   "evadeRoll:success": "s21_luckyHit",
   "evadeRoll:fail": "s24_luckyEvasion",
+  // An Evade the ATTACK says is not rolled (Quickfire: *"instead of performing
+  // an Evade roll"*): no die, so nothing for Lucky Evasion to rescue and no
+  // failed Evade for an escape to answer -- the attack proceeds (#191).
+  "evadeRoll:overridden": "damage",
 
   "s21_luckyHit:fail": "noDamage",
   "s21_luckyHit:success": "s22_duContest",

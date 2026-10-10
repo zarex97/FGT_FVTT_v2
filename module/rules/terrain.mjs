@@ -304,6 +304,14 @@ export function annotateTerrain(units, board) {
     sweepTerrainEffects(u, board);
     const effects = terrainEffects(u, board);
     u.terrain = effects.types;
+    // A pocket dimension IS terrain to everyone inside it: the Storm Border's
+    // `terrainTags: [imaginaryNumbers]`. Authored, documented, and read by
+    // nobody, so Nemo's four *"within a 'Waterside' or 'Imaginary Numbers Space'
+    // area"* clauses never fired while he was submerged (#191).
+    const dimension = (board?.dimensions ?? []).find((d) => d.levelId && d.levelId === u.levelId);
+    for (const tag of dimension?.spec?.terrainTags ?? []) {
+      if (!u.terrain.includes(tag)) u.terrain = [...u.terrain, tag];
+    }
     u.terrainEffects = effects;
     if (effects.modifiers.length > 0) {
       u.modifiers = [...(u.modifiers ?? []), ...effects.modifiers];

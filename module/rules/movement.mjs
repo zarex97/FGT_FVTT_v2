@@ -18,7 +18,7 @@ import { hasGranted, GRANTS } from "./granted.mjs";
 import { mayMoveAfterAttack } from "./budget.mjs";
 import { contains, membershipVerdict } from "./bounded-fields.mjs";
 import { guardsOf, relationOf, sideOf } from "./relations.mjs";
-import { actionSourceFor, withinFootprint } from "./platforms.mjs";
+import { actionSourceFor, withinFootprint, dimensionOf, interiorOf, withinInterior } from "./platforms.mjs";
 import { partnersOf } from "./linked-group.mjs";
 import { resolveTargets } from "./targeting/resolve.mjs";
 
@@ -565,7 +565,12 @@ export function validatePath(path, unit, board) {
   }
 
   const destination = steps.at(-1);
-  if (destination && !canStopOn(destination, unit, board)) {
+  // Past a pocket dimension's 5x5 is not "occupied", it is nowhere: said so,
+  // or a Unit held at the Storm Border's edge read a reason that was false (#191).
+  const dimension = dimensionOf(unit, board);
+  if (destination && dimension && !withinInterior(interiorOf(dimension.spec, dimension.centre), destination)) {
+    reasons.push("The Storm Border's 5x5 is the only floor in there; this panel is past its edge.");
+  } else if (destination && !canStopOn(destination, unit, board)) {
     reasons.push("The destination panel is occupied.");
   }
 
@@ -724,6 +729,11 @@ export function canStopOn(panel, unit, board) {
     );
     if (under && !withinFootprint(panel, under)) return false;
   }
+
+  // A pocket dimension's 5x5 holds too (#191 reading 3): it is the only floor
+  // in there, and a Unit inside walked across the whole board on its Level.
+  const dimension = dimensionOf(unit, board);
+  if (dimension && !withinInterior(interiorOf(dimension.spec, dimension.centre), panel)) return false;
 
   // Clause 8 — the linked-group leash (Ch. 32). *"the maximum distance
   // between the two is 2 panels."* A hard constraint on where a member may

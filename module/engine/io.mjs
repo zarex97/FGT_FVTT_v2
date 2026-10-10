@@ -22,6 +22,7 @@
 
 import { FGTSocket } from "../net/socket.mjs";
 import { registerDefeat } from "../rules/environment.mjs";
+import { interiorOf } from "../rules/platforms.mjs";
 import { onMasterDefeated } from "../rules/relationships.mjs";
 import { conquestContract } from "../rules/contract.mjs";
 import { record } from "./game-log.mjs";
@@ -173,6 +174,27 @@ function watchedFractions(actor) {
     }
   }
   return [...out];
+}
+
+/**
+ * A destination held inside the pocket dimension the token stands in, if any.
+ *
+ * Clamped axis by axis, so a straight push stops on the edge panel in its own
+ * line -- *"it stops at the edge"* (#191 reading 3, ruled 2026-10-10).
+ *
+ * @param {object} token a TokenDocument
+ * @param {{i: number, j: number}} destination
+ * @returns {{i: number, j: number}}
+ */
+function clampToDimension(token, destination) {
+  const level = token?.level ?? null;
+  if (!level) return destination;
+  const platform = game.actors?.find((a) => a.type === "platform" && a.system?.dimension
+    && a.system?.levelId === level && a.system?.submergedFrom);
+  if (!platform) return destination;
+  const { centre, halfW, halfH } = interiorOf(platform.system.dimension, platform.system.submergedFrom);
+  const clamp = (v, c, h) => Math.min(c + h, Math.max(c - h, v));
+  return { ...destination, i: clamp(destination.i, centre.i, halfH), j: clamp(destination.j, centre.j, halfW) };
 }
 
 /**
@@ -708,8 +730,12 @@ export function worldIO() {
      */
     async move(unitId, path) {
       const token = resolveToken(unitId);
-      const destination = path.at(-1);
+      let destination = path.at(-1);
       if (!token || !destination) return;
+      // Inside a pocket dimension a push stops at the 5x5's edge (#191 reading
+      // 3): it is the only floor in there. Every forced move reaches here, and
+      // a walk was already held by `canStopOn`.
+      destination = clampToDimension(token, destination);
       // A move intent's path carries GRID OFFSETS -- `{i, j}` -- and a token's
       // `x`/`y` are PIXELS. Writing `j` and `i` straight through put a carried
       // passenger at pixel (8, 3) instead of panel (3, 8): every platform
@@ -1120,6 +1146,14 @@ export function worldIO() {
         // when it fell (#65, ruling 25).
         ...(actor.system?.defeated ? {} : { "system.defeatedAt": game.combat?.system?.globalTurn ?? null }),
       });
+      // ERASE takes the Unit out of the game, so there is no body to leave
+      // lying: *"Unit is removed from the game"* (Appendix A §A.16), and Zero
+      // Sail's failed Luck Check *"their bodies disappear immediately"* (#191
+      // reading 9). The actor stays, defeated, for the record and the Grail.
+      if (cause === "erase") {
+        for (const token of actor.getActiveTokens?.() ?? []) await token.document.delete();
+        return;
+      }
       // The skull. v14's Token has no `overlayEffect` -- that write was dropped
       // and the skull never appeared (#96). The token draws the last applied
       // effect flagged `core.overlay`, the shape `Actor#toggleStatusEffect`

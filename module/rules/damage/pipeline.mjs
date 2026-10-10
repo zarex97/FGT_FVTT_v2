@@ -121,6 +121,62 @@ export function computeDamage(ctx) {
 }
 
 /**
+ * Compute a `diceCount` attack as one hit per die that succeeded.
+ *
+ * > *"…deals 25 STR damage for each die that rolls X or higher… A DU damaged by
+ * > this Attack Skill only performs an Injury Roll once, regardless of number
+ * > of hits received."*
+ *
+ * Each success is its own hit (#191 reading 10, ruled 2026-10-10): a defender's
+ * flat reduction, Freeze's floor of 150 and an Endure are met by every 25, not
+ * by one 75. Still one Combat Process -- one reaction, one crit roll, one
+ * Injury Roll against the sum. The hits run in order, so a Shield one hit
+ * empties is empty for the next, and Health falls as they land.
+ *
+ * Every other attack is one {@link computeDamage}, unchanged.
+ *
+ * @param {object} ctx as {@link computeDamage}
+ * @returns {DamageResult} the hits summed, with `hits` listing each one
+ */
+export function computeDamageHits(ctx) {
+  const base = ctx.base ?? {};
+  const n = base.successes ?? 0;
+  if (base.diceTotal === undefined || n <= 1) return computeDamage(ctx);
+
+  const per = base.diceTotal / n;
+  let shield = ctx.defender?.shield ?? 0;
+  let health = ctx.defender?.health;
+  const hits = [];
+  for (let k = 1; k <= n; k++) {
+    const r = computeDamage({
+      ...ctx,
+      base: { ...base, diceTotal: per, hit: k, hits: n },
+      defender: { ...ctx.defender, shield, ...(typeof health === "number" ? { health } : {}) },
+    });
+    shield = Math.max(0, shield - (r.flags?.shieldAbsorbed ?? 0));
+    if (typeof health === "number") health = Math.max(0, health - r.total);
+    hits.push(r);
+  }
+
+  const sum = (key) => round4(hits.reduce((t, r) => t + (r[key] ?? 0), 0));
+  const total = sum("total");
+  const flags = { ...hits[0].flags };
+  flags.shieldAbsorbed = round4(hits.reduce((t, r) => t + (r.flags?.shieldAbsorbed ?? 0), 0));
+  flags.exceededInjuryThreshold = total > INJURY_THRESHOLD;
+  flags.defeatedOutright = hits.some((r) => r.flags?.defeatedOutright);
+  flags.removeFreeze = hits.some((r) => r.flags?.removeFreeze);
+  flags.negatedBy = hits.every((r) => r.flags?.negatedBy) ? hits[0].flags.negatedBy : null;
+  return {
+    total, magical: sum("magical"), physical: sum("physical"), fixed: sum("fixed"),
+    // The first hit's stages, which every hit shares but the Shield and the
+    // clamps; `hits` carries each one's own.
+    breakdown: hits[0].breakdown,
+    flags,
+    hits: hits.map((r) => ({ total: r.total, shieldAbsorbed: r.flags?.shieldAbsorbed ?? 0 })),
+  };
+}
+
+/**
  * What an element does to a defender before any number is computed.
  *
  * Stage 0's two element rules, and the ONE reader of them: *"Any Fire damage
@@ -246,7 +302,10 @@ function stage1Base(s) {
   if (spec.diceTotal !== undefined) {
     s.phys = spec.diceTotal;
     s.fixed = s.phys;
-    const counted = `${spec.successes} of ${spec.diceRolled} dice at ${spec.threshold}+`;
+    // One hit of several (#191 reading 10) says which, and how many there are.
+    const counted = spec.hits
+      ? `hit ${spec.hit} of ${spec.hits}: ${spec.hits} of ${spec.diceRolled} dice at ${spec.threshold}+`
+      : `${spec.successes} of ${spec.diceRolled} dice at ${spec.threshold}+`;
     s.contribute("diceCount", s.phys, counted, "attacker");
     return s.end(1);
   }

@@ -3785,6 +3785,54 @@ when it cannot be deactivated either. **Ruled 2026-10-06 (reading 12):** it hold
 **Reached: ME.drain.** With no floor, a Master at 30 loses 30 and is defeated; the forced deactivation is checked
 after the drain, not before. **Ruled 2026-10-06 (reading 13):** it is checked at any moment, so a Master at 30 or less is never drained.
 
+### IQ. Two choice windows on one client were one window — **fixed** (#191)
+
+**Reached: ZS.enemy.** Every `ChoiceDialog` carried the id `fgt-choice-dialog`; Zero Sail asks every enemy in
+reach at once, and with nobody else connected all of them are the GM's, so the second never showed and the
+Skill waited on it for good. Each dialog has its own id. Ch. 38.
+
+### IR. An effect entry's own predicate read a bare snapshot — **fixed** (#191)
+
+**Reached: VS.ws.** The Skill path tested a per-entry `predicate` against `unitSnapshot(actor)`, which carries
+no board annotation, so `self:terrain:*` and `self:onPlatform:*` never passed there while the phase gate and the
+cooldown branch beside it did. The board-derived caster travels as `phaseCtx.self`. #157's family. Ch. 15.
+
+### IS. An action-level rider chance was rolled twice — **fixed** (#191)
+
+**Reached: NA.slow.** `dispatch` gated an `OnEvent` action's `chance` on the die the card files, and the
+instance carried the same `chance` into the applier, which rolled a second d100: every such rider in the corpus
+landed at its chance squared. The gated die travels as `effect.rolled`; the gate leaves an `ApplyEffect`'s
+verdict to the application. Ch. 15.
+
+### IT. A phase listed first still ran after the damage — **fixed** (#191)
+
+**Reached: GR.npd.** On the attack path an unstated `when` means after the damage, whatever the list's order.
+Great Ram Nautilus's NP DmUps and Anastasia's Snegleta's Def Dwn (A) missed their own hit; both now state
+`when: beforeDamage`, and a corpus test refuses the shape. Ch. 17.
+
+### IU. An Attack ability stayed lit after its Unit had attacked — **fixed** (#191)
+
+**Reached: RD.ra.stop.** The bar consulted the Turn's budget for the actions row only; Triton's Conch stayed
+lit after a Riding Attack and the declaration threw. An Attack ability asks the same `afford("attack")`. §46.3's
+"gate and display" shape. Ch. 34.
+
+### IV. A `revival:` predicate was judged at collection time — **fixed** (#191)
+
+**Reached: IN.ind.** `revival:source:<id>` lives only in `unitRevived`'s own options, and `revival:` was not a
+deferred prefix, so Indomited's handler was dropped before it existed. Heracles's unconditional Indomitable was
+unaffected, which is why nothing showed. Ch. 11.
+
+### IW. A Level created or deleted left the canvas not ready — **fixed** (#191)
+
+**Reached: ZS.rs.place.** Every submerge and surface left the GM's canvas blank until `canvas.draw()`. A
+`createLevel`/`deleteLevel` hook redraws on any client showing the scene. Any platform's Level is the same
+event. Ch. 27.
+
+### IX. An Erased Unit left a body — **fixed** (#191)
+
+**Reached: ZS.def.fail.** Erase is *"removed from the game"*; `io.defeat` treated it as any defeat and left the
+token under a skull. It now deletes the token and keeps the actor, defeated. Ch. 14.
+
 ---
 
 ---
@@ -4842,3 +4890,43 @@ off or on directly for the passives' differentials; No Buff, Skill Seal and Atk 
 Conquest's sparing switched off for clause 5; her Health restored after Karna's NPs defeated her once. Charisma's
 passive, Mad Enhancement's MAG halving and its immunity to buff removal, Golden Rule's Debuff Immune, Goddess of
 War on an NP and the ally half of Hatred were pressed through the live board's engine, each with its differential.
+
+## 46.23 Nemo — the Servant who takes his allies under
+
+**103 of his 105 Clauses were Pressed or Observed on a live board** (#191, 2026-10-10), on the VPS copy of
+`fgt2026`. Thirteen readings were ruled before the press on 2026-10-10, and a fourteenth is open: whether a
+dice count's per-success hits and Barrel Bombing's flat 150 meet stage 2's ±5d10 and stage 9's ZON penalty
+(`QF.dice` and `QF.inj` wait on it; at present six successes deal nothing).
+
+**Why he finds what he finds.** Zero Sail is the only pocket dimension in the game, and almost nothing about it
+had ever run: its exit was a hook nobody heard, its terrain tag and its restriction had no reader, nobody aboard
+was stamped as aboard, and the Home Base check read a board key that does not exist. The dimension had been
+designed and unit-tested in its pure half and never driven.
+
+### 46.23.1 What he cost the engine
+
+| Finding | Where |
+|---|---|
+| The Storm Border never surfaced: `fgtDimensionExitOffer` had no listener. A Resurface control, a stored plan, the boundary carrying it out, a forced exit with a warning and a fallback | `engine/dimension.mjs`, `rules/actions.mjs`, `apps/hud/action-bar.mjs`, `net/operations.mjs` |
+| Surfacing never switched Zero Sail off or started its 5◈ | `engine/dimension.mjs#endZeroSail` |
+| No ally ever entered (no chooser); every enemy rolled unasked; Civilians counted as enemies | `enterDimension`, `manifestFor` |
+| The inside had no edge; entrants kept their panels | `interiorOf`, `entryPlacement`, `canStopOn`, `io.move` |
+| Nothing kept a Unit inside from targeting or being targeted from outside (#178) | `rules/platforms.mjs#crossLevelLegal` |
+| `terrainTags`, `restrictions` and the aboard-stamp were unread for a dimension | `rules/terrain.mjs`, `rules/snapshot.mjs#annotatePlatforms` |
+| The landing check read `board.homeBases`; the board has `zones`, whose side is `faction` | `placementIsLegal` |
+| The Luck Check on his death ran before Guts, Erased an empty list, and showed no die | `engine/attack.mjs#resolveDimensionalDefeat` |
+| Zero Sail could be clicked off inside | `nemo-zero-sail.yml`, `deactivation.byOwner: false` |
+| Quickfire's Evade override offered Lucky Evasion; its roll log never reached the card; a Counter never withheld its refund | `combat-process.mjs`, `engine/attack.mjs` |
+| Triton's Conch dealt every ring band 0 and rolled ring 0's chance | `attack.bandOf`, `declaredChance` |
+| General: §46.4-IQ to IX | |
+
+### 46.23.2 What was staged
+
+Named in each evidence line: opening positions and every placement into and out of reach; Waterside painted
+under Nemo; Heracles given the Large attribute for Great Ram; Slow, Guts and No Buff laid on Units; dice forced
+through `CONFIG.Dice.randomUniform` for a Crit, the Slow rider, Karna's 18+ entry and both Luck Checks; cooldowns
+and Turn records reset to press again after a fix; Nemo's Health set to 30 or 10 to be killed, and his defeat
+undone between the pass and fail sessions; the dimension's `activatedAt` moved forward to keep it submerged. Every
+movement Clause was driven through `TokenDocument#move`, the drag's own call: CDP drags move no token on the VPS's
+headless Chrome. The Counter that withholds Quickfire's refund could not be answered inside its timer over CDP;
+that Clause was found by reading and fixed, and stands at `Pressed (engine)`.

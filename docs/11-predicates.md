@@ -45,6 +45,8 @@ The engine calls `rollOptionsFor` once per attack with attacker, defender, and a
 
 **A ride emits `attack:kind:ridingAttack`** beside its own kind (#184). Troias Tragōidia's *"Riding Attack damage is increased by 25%"* was authored against it and nothing emitted it, so no ride ever got the bonus; `rules/options.mjs` now adds it whenever the attack carries `ride` facts.
 
+**`revival:` is deferred (#191).** `unitRevived` carries `revival:source:<id>` in its own option set, which no collection-time pass can hold; a predicate naming it was answered there and its handler dropped, so Nemo's Indomited never paid. `DEFERRED_PREFIXES` (`rules/elements.mjs`) now lists `revival:` beside `target:` and `attack:`.
+
 ### The facet table
 
 `FACETS` is an array of 45 descriptors, each declaring one option family (`module/rules/facets.mjs:76-424`). Each facet has:

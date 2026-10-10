@@ -485,7 +485,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
         case "applyEffects":
         case "applyEffect":
           applied.push(...await applyPhaseEffects(phase, ability, actor, snapshot, {
-            targets: phaseUnits,
+            targets: phaseUnits, self,
           }));
           break;
 
@@ -1186,7 +1186,14 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
     // The options this recipient is addressed by, built once: the per-effect
     // gate below and the chance modifiers further down ask the same question
     // of the same pair.
-    const options = rollOptionsFor({ attacker: unitSnapshot(actor), defender: target });
+    //
+    // The caster as the BOARD sees it when the caller has one: a bare snapshot
+    // carries no position-derived options, so an entry gated on where the
+    // caster stands -- Voyager of the Storm's *"if Nemo is within a 'Waterside'
+    // or 'Imaginary Numbers Space' area"* -- never passed, while the phase
+    // gates and the cooldown branch beside it, which read the board, did
+    // (#191).
+    const options = rollOptionsFor({ attacker: phaseCtx.self ?? unitSnapshot(actor), defender: target });
 
     // A `predicate` on ONE ENTRY narrows that entry to a subset of the
     // recipients the phase already resolved. De Sterrennacht clause 2 --

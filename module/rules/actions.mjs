@@ -148,6 +148,24 @@ export const UNIT_ACTIONS = Object.freeze([
       ? {} : null),
   },
   {
+    // *"At the end of any Turn, Nemo can choose to resurface the Storm
+    // Border."* Pressed at any moment, on anybody's Turn, and carried out at
+    // the next Turn End (#191 reading 5). Bills nothing: it is not an Action of
+    // his. `planned` drives the pressed state, so his player can see that a
+    // resurface is waiting.
+    id: "resurface",
+    kind: null,
+    icon: "fa-solid fa-water",
+    label: "FGT.Action.Resurface",
+    mode: "immediate",
+    available: (unit, board) => {
+      if (!acts(unit) || unit.defeated) return null;
+      const dimension = (board?.dimensions ?? []).find((d) => d.ownerId === unit.id);
+      if (!dimension) return null;
+      return { platformId: dimension.id, on: Boolean(dimension.plan), plan: dimension.plan ?? null };
+    },
+  },
+  {
     id: "carryMaster",
     // Bills NOTHING. *"Counts as only Moving one Unit"* -- the Servant's own
     // Move is the one that is paid for, and this button only decides whether

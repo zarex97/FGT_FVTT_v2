@@ -433,6 +433,22 @@ export function currentBoard(overrides = {}) {
       dimensionLevels: game.actors
         .filter((a) => a.type === "platform" && a.system?.dimension && a.system?.levelId)
         .map((a) => a.system.levelId),
+      // ...and where each one's 5x5 lies (#191 reading 3): the panels a Unit
+      // inside may stand on, what a Skill reaching "all Units within the Storm
+      // Border" covers, and who is inside, by Level.
+      dimensions: game.actors
+        .filter((a) => a.type === "platform" && a.system?.dimension && a.system?.levelId && a.system?.submergedFrom)
+        .map((a) => ({
+          id: a.id,
+          contentId: a.system.contentId ?? null,
+          ownerId: a.system.ownerId ?? null,
+          levelId: a.system.levelId,
+          spec: a.system.dimension,
+          centre: { i: a.system.submergedFrom.i, j: a.system.submergedFrom.j },
+          plan: a.system.resurfacePlan ?? null,
+          activatedAt: a.system.activatedAt ?? null,
+          factionId: a.system.factionId ?? null,
+        })),
       // Optional rules the table has switched off (Ch. 05 clause 4 today).
       rules: {
         masterProtection: setting("masterProtection", true) !== false,

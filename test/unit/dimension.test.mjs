@@ -12,6 +12,7 @@ import { readFileSync } from "node:fs";
 import { parse } from "yaml";
 import {
   manifestFor, travelDistance, placementIsLegal, onOwnerDefeat,
+  interiorOf, withinInterior, orient, ORIENTATIONS, entryPlacement, landingPlan, fallbackLanding,
 } from "../../module/engine/dimension.mjs";
 
 /** The real spec, so the tests and the content cannot drift. */
@@ -81,6 +82,174 @@ describe("who can enter the Storm Border", () => {
     expect(run({ rolls: { farEnemy: 20 } }).entering).not.toContain("farEnemy");
   });
 });
+
+describe("who counts as an ally or an enemy at the door (#191 reading 2)", () => {
+  const board = {
+    units: [
+      OWNER,
+      { id: "civilian", kind: "civilian", panel: at(6, 6), factionId: null },
+      { id: "hind", kind: "platform", panel: at(5, 6), factionId: "red" },
+      { id: "body", panel: at(4, 5), factionId: "red", defeated: true },
+      { id: "master", kind: "master", panel: at(4, 4), factionId: "red" },
+      { id: "enemyMaster", kind: "master", panel: at(8, 5), factionId: "blue" },
+    ],
+  };
+  const out = manifestFor(SPEC, { owner: OWNER, board, chosenAllyIds: [], rolls: {} });
+
+  it("offers his Master, and no platform or body", () => {
+    expect(out.eligibleAllies).toEqual(["master"]);
+  });
+
+  it("lets an enemy Master attempt, and never a Civilian", () => {
+    expect(out.eligibleEnemies).toEqual(["enemyMaster"]);
+  });
+});
+
+/* ========================================================================== */
+/*  The inside                                                                */
+/* ========================================================================== */
+
+describe("the inside is a 5x5 (#191 reading 3)", () => {
+  const inside = interiorOf(SPEC, at(5, 5));
+
+  it("is 25 panels around where it went under", () => {
+    expect(inside.panels).toHaveLength(25);
+    expect(withinInterior(inside, at(3, 3))).toBe(true);
+    expect(withinInterior(inside, at(7, 7))).toBe(true);
+    expect(withinInterior(inside, at(8, 5))).toBe(false);
+  });
+});
+
+describe("where entrants stand (#191 reading 4)", () => {
+  const board = {
+    units: [
+      OWNER,
+      { id: "ally", panel: at(6, 5), factionId: "red" },
+      { id: "enemy", panel: at(8, 5), factionId: "blue" },
+      { id: "enemy2", panel: at(8, 8), factionId: "blue" },
+    ],
+  };
+  const seats = entryPlacement(SPEC, { owner: OWNER, entering: ["nemo", "ally", "enemy", "enemy2"], board });
+
+  it("puts Nemo at the centre and keeps an ally's offset", () => {
+    expect(seats.nemo).toEqual(at(5, 5));
+    expect(seats.ally).toEqual(at(6, 5));
+  });
+
+  it("slides an enemy from 3 panels out to the nearest panel of the edge", () => {
+    expect(seats.enemy).toEqual(at(7, 5));
+    expect(seats.enemy2).toEqual(at(7, 7));
+  });
+
+  it("never seats two Units on one panel", () => {
+    const crowd = {
+      units: [OWNER, { id: "a", panel: at(8, 5), factionId: "blue" }, { id: "b", panel: at(8, 5), factionId: "blue" }],
+    };
+    const s = entryPlacement(SPEC, { owner: OWNER, entering: ["nemo", "a", "b"], board: crowd });
+    expect(s.a).not.toEqual(s.b);
+  });
+});
+
+/* ========================================================================== */
+/*  The way back out                                                          */
+/* ========================================================================== */
+
+describe("any orientation (#191 reading 6)", () => {
+  it("has eight, and r0 changes nothing", () => {
+    expect(ORIENTATIONS).toHaveLength(8);
+    expect(orient(at(1, 2), "r0")).toEqual(at(1, 2));
+  });
+
+  it("turns clockwise as the board is drawn", () => {
+    // Right of the centre goes below it.
+    expect(orient(at(0, 1), "r90")).toEqual(at(1, 0));
+    expect(orient(at(0, 1), "r180")).toEqual(at(0, -1));
+    expect(orient(at(0, 1), "r270")).toEqual(at(-1, 0));
+  });
+
+  it("mirrors left for right before it turns", () => {
+    expect(orient(at(1, 2), "m0")).toEqual(at(1, -2));
+    expect(orient(at(0, 1), "m90")).toEqual(at(-1, 0));
+  });
+
+  it("gives eight different squares for an asymmetric formation", () => {
+    const seen = new Set(ORIENTATIONS.map((o) => JSON.stringify([orient(at(1, 2), o), orient(at(0, 1), o)])));
+    expect(seen.size).toBe(8);
+  });
+});
+
+describe("landing on the board (#191 reading 6)", () => {
+  const OCC = [
+    { id: "nemo", panel: at(5, 5) },
+    { id: "ally", panel: at(5, 6) },
+    { id: "body", panel: at(7, 7), defeated: true },
+  ];
+  const bounds = { iMin: 0, iMax: 20, jMin: 0, jMax: 20 };
+  const plan = (over = {}) => landingPlan(SPEC, {
+    from: at(5, 5), at: at(10, 10), occupants: OCC, board: { bounds, units: [] },
+    factionId: "red", distance: 8, ...over,
+  });
+
+  it("keeps everyone's panel in the 5x5, bodies too", () => {
+    expect(plan().panels).toEqual({ nemo: at(10, 10), ally: at(10, 11), body: at(12, 12) });
+  });
+
+  it("turns the whole formation with the square", () => {
+    expect(plan({ orientation: "r90" }).panels).toEqual({ nemo: at(10, 10), ally: at(11, 10), body: at(12, 8) });
+  });
+
+  it("sends a Unit whose panel is held to the nearest free one", () => {
+    const board = { bounds, units: [{ id: "x", panel: at(10, 11), level: 0 }] };
+    const out = plan({ board });
+    expect(out.ok).toBe(true);
+    expect(out.panels.ally).not.toEqual(at(10, 11));
+    expect(chebyshevOf(out.panels.ally, at(10, 11))).toBe(1);
+  });
+
+  it("does not count a platform or a structure as in the way", () => {
+    const board = { bounds, units: [{ id: "s", kind: "structure", panel: at(10, 11), level: 0 }] };
+    expect(plan({ board }).panels.ally).toEqual(at(10, 11));
+  });
+
+  it("refuses a 5x5 with too few free panels", () => {
+    const units = interiorOf(SPEC, at(10, 10)).panels.slice(0, 23).map((p, n) => ({ id: `u${n}`, panel: p, level: 0 }));
+    expect(plan({ board: { bounds, units } })).toEqual({ ok: false, reason: "noRoom" });
+  });
+
+  it("refuses a 5x5 hanging off the board", () => {
+    expect(plan({ at: at(1, 10) }).reason).toBe("offBoard");
+  });
+
+  it("refuses beyond the travel distance", () => {
+    expect(plan({ distance: 2 }).reason).toBe("illegalPlacement");
+  });
+});
+
+describe("surfacing with no plan (#191 reading 8)", () => {
+  const bounds = { iMin: 0, iMax: 20, jMin: 0, jMax: 20 };
+  const OCC = [{ id: "nemo", panel: at(6, 5) }];
+
+  it("surfaces centred on Nemo's own panel", () => {
+    const out = fallbackLanding(SPEC, {
+      ownerPanel: at(6, 5), from: at(5, 5), occupants: OCC, board: { bounds, units: [] }, factionId: "red", distance: 2,
+    });
+    // The square is centred on him; he keeps his own panel in it, one below
+    // where it went under.
+    expect(out.at).toEqual(at(6, 5));
+    expect(out.panels.nemo).toEqual(at(7, 5));
+  });
+
+  it("moves to the nearest legal spot when his own is not", () => {
+    // An enemy Home Base clips the square centred on him.
+    const board = { bounds, units: [], homeBases: [{ factionId: "blue", panels: [at(8, 5)] }] };
+    const out = fallbackLanding(SPEC, {
+      ownerPanel: at(6, 5), from: at(5, 5), occupants: OCC, board, factionId: "red", distance: 2,
+    });
+    expect(out.at).toEqual(at(5, 4));
+  });
+});
+
+const chebyshevOf = (a, b) => Math.max(Math.abs(a.i - b.i), Math.abs(a.j - b.j));
 
 /* ========================================================================== */
 /*  How far it travels                                                        */
@@ -218,5 +387,13 @@ describe("the Storm Border's own document", () => {
 
   it("states the travel distance as an expression, not the sheet's worked 5", () => {
     expect(P.dimension.relocateOnExit.maxDistance).toBe("2 + floor(turnsInside / ⅓◈)");
+  });
+});
+
+describe("a live board's Home Bases are its zones (#191)", () => {
+  it("refuses a 5x5 overlapping an enemy zone", () => {
+    const board = { zones: { z2: { faction: "blue", panels: [at(18, 10)] }, z1: { faction: "red", panels: [at(15, 10)] } } };
+    expect(placementIsLegal(SPEC, { at: at(16, 10), from: at(14, 10), distance: 8, board, factionId: "red" })).toBe(false);
+    expect(placementIsLegal(SPEC, { at: at(15, 10), from: at(14, 10), distance: 8, board, factionId: "red" })).toBe(true);
   });
 });

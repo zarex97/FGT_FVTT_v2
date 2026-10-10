@@ -677,6 +677,11 @@ export function chanceKey(action, unit) {
  */
 function chanceGatePasses(action, unit, ctx) {
   if (action.chance === undefined) return true;
+  // An effect's chance is decided where the effect LANDS, against the target's
+  // resistance and the inflicter's bonuses, on this same die (`rolled`, below).
+  // Gating it here as well rolled it twice -- 10% became 1% (#191) -- and a
+  // gate on the raw figure would refuse a die that Silent Dance's +10% lets in.
+  if (action.kind === "ApplyEffect" && typeof ctx.rolls?.[chanceKey(action, unit)] === "number") return true;
   const total = ctx.rolls?.[chanceKey(action, unit)];
   if (typeof total !== "number") return false;
   return total <= action.chance;
@@ -1179,6 +1184,13 @@ const ACTIONS = Object.freeze({
       // because an intent has nowhere else to put it.
       ...(a.chance !== undefined || a.effect?.chance !== undefined
         ? { chance: a.chance ?? a.effect?.chance } : {}),
+      // ...and an action-level chance was already ROLLED, by `dispatch`'s gate,
+      // with the die filed on the card. That die travels with the instance so
+      // the application reads the same one: the applier rolled a second d100
+      // against the same 10%, so Nemo's Slow landed one time in a hundred and a
+      // card reading "1 against 10%: hit" applied nothing (#191).
+      ...(a.chance !== undefined && typeof c.rolls?.[chanceKey(a, c.bearer ?? u)] === "number"
+        ? { rolled: c.rolls[chanceKey(a, c.bearer ?? u)] } : {}),
       // Queen's Poison's third clause: "a 50% chance of inflicting an
       // additional Stage of Poison ... this 50% extra chance is not affected
       // by debuff chance increasing/reducing effects, it is a flat 50%

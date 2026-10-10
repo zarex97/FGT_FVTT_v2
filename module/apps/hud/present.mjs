@@ -109,7 +109,12 @@ export function rowsFor({ actions = [], abilities = [], fields = [], effects = [
   const buckets = { pinned: [], actions: [], skills: [], np: [], modes: [], fields, effects };
 
   for (const action of actions) {
-    buckets.actions.push({ ...action, isAction: true, id: action.id, name: action.label });
+    // The same "switched on" ring a mode wears, for an action whose context
+    // says it is on: Carry Master, and a resurface the Storm Border has waiting
+    // (#191). `on` was computed for the pressed state and never drawn.
+    buckets.actions.push({
+      ...action, isAction: true, id: action.id, name: action.label, ring: action.context?.on ? "on" : null,
+    });
   }
   for (const ability of abilities) {
     const row = GROUP_ROW[ability.group] ?? "skills";

@@ -148,9 +148,46 @@ The Quetzalcoatlus's sheet says *"This NP can be deactivated during Quetz's Turn
 
 ### Pocket dimensions
 
-The Storm Border (and any dimension) is a platform with no ground footprint. `enterDimension` rolls for eligible enemies, moves the manifest onto a new Scene Level, and records the entry panel. `resurface` moves the manifest back to the ground, offset from where it submerged (`module/engine/dimension.mjs:221-368`). Travel distance grows by 1 panel per ⅓ turn spent inside (`module/engine/dimension.mjs:133-140`). Neither resize the manifest — passengers keep their relative positions and move as a group.
+The Storm Border is a platform with no ground footprint and no token: a **dimension**. Its own Scene Level
+is the only record of who is inside, and `engine/board.mjs` projects each open one as `board.dimensions` —
+its actor, owner, Level, `spec`, centre (the panel it submerged from), `activatedAt` and any pending
+resurface `plan`. Everything below reads that list (#191, rulings of 2026-10-10).
 
-A dimension whose owner is defeated forces a Luck Check. On success the dimension resurfaces but the owner still dies. On failure, every occupant takes Erase (`module/engine/dimension.mjs:197-202`). This is not a revival and must not register as one.
+**The inside is a 5x5** (`dimension.interior`), centred where it went under, on the dimension's Level at the
+same grid coordinates. A walk is held at its edge (`rules/movement.mjs#canStopOn`, with its own refusal
+sentence) and so is a push: `engine/io.mjs#move` clamps any forced move on a dimension's Level to the 5x5.
+
+**Going in.** `enterDimension` asks Nemo's player which allies within 2 come along — every one ticked to
+start, Masters included — and asks each enemy within 3 (by relation: a Civilian is not an enemy) whether to
+attempt; only a yes rolls the d20, against 18. The rolls and who entered go on one chat card. Everyone is
+seated by `entryPlacement`: Nemo at the centre, everyone else at their offset from him, a Unit outside the
+5x5 sliding to the nearest free panel of it (straight before diagonal).
+
+**Inside.** `rules/snapshot.mjs#annotatePlatforms` stamps every Unit on the Level with the dimension's
+`platformId`/`platformContentId` (so the Storm Border's S.Crit Up aura finds its recipients) and runs the
+dimension's `restrictions` through the element executors (so `ForbidCreating` refuses a Large- or
+Giant-creating ability, ruling R1). `rules/terrain.mjs#annotateTerrain` adds the dimension's `terrainTags`
+(`imaginaryNumbers`) to each of them. `rules/platforms.mjs#crossLevelLegal` refuses any resolution between a
+Unit inside and one outside, either way, Attack or effect (`otherDimension`); a `platform` anchor naming the
+dimension resolves to its 5x5. Zero Sail cannot be switched off by its owner (`deactivation.byOwner: false`).
+
+**Coming out.** Nemo's bar carries a **Resurface** action (`rules/actions.mjs`) whenever he owns an open
+dimension, on anybody's Turn. Pressing it picks a centre among the spots `landingOptions` offers — within the
+2+X allowance it will have at the next Turn End, never overlapping an enemy Home Base (the board's `zones`)
+— and one of the eight turns and flips that fit there; `scheduleResurface` (the `scheduleResurface` socket
+operation) stores it on the dimension, and pressing again redoes or calls it off. `runDimensionClock`, at
+every Turn boundary, carries out a stored plan (a panel taken since sends its Unit to the nearest free panel
+of the 5x5; a plan gone illegal is called off with a chat line), warns one Turn before the 2◈ ceiling, and at
+the ceiling surfaces on the plan or, with none, centred on Nemo's own panel or the nearest legal spot
+(`fallbackLanding`). Nothing asks anybody anything at the boundary. `resurface` sets every token down on the
+ground Level at its landing panel in one write, bodies included, switches Zero Sail off and starts its 5◈,
+then tears the Level down. A `createLevel`/`deleteLevel` hook redraws a canvas the Level change left not
+ready.
+
+**Nemo defeated inside.** The Luck Check runs after the revival chain, so a Nemo his Guts revives makes none.
+On a pass it surfaces at once on his plan or the fallback, and he stays defeated; on a fail every Unit on the
+Level is Erased, and an Erase deletes the body's token (`io.defeat`). The check posts its die on a card. This
+is not a revival and must not register as one.
 
 ### Token sizing
 

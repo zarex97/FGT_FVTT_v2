@@ -343,6 +343,19 @@ Hooks.once("ready", async () => {
     if (!("x" in changes) && !("y" in changes)) return;
     syncMarkVisibility().catch((err) => console.error("FGT | Mark visibility:", err));
   });
+  // A platform's or a dimension's Level deleted under a client's feet. The
+  // Storm Border surfacing moves everyone aboard to the ground and deletes its
+  // Level in one breath, and the canvas was left not ready -- no board, no
+  // tokens, nothing to click -- until something redrew it (#191). Every client,
+  // because every client was showing that scene.
+  // Created, too: submerging creates the Level and moves everyone onto it at
+  // once, and the canvas stalled the same way.
+  for (const hook of ["createLevel", "deleteLevel"]) {
+    Hooks.on(hook, (level) => {
+      if (level?.parent?.id !== canvas?.scene?.id) return;
+      setTimeout(() => { if (!canvas.ready) canvas.draw(); }, 500);
+    });
+  }
   // Ch. 08's invalidation table, driving the canvas aura index and the overlays,
   // plus Ch. 25's round-boundary desync check.
   attachInvalidation();

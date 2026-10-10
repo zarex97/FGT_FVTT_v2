@@ -68,6 +68,10 @@ Every stage calls `begin(index)` on entry, records contributions via `contribute
 
 Fixed damage bypasses stages 2–15 entirely and goes straight to stage 16 (`module/rules/damage/pipeline.mjs:91-95`). One-sided bypass (e.g., Nemo's Quickfire) zeroes its side's modifiers at collection points (stage 4, 4b, 7 for attacker; stage 4, 11, 12, 14 for defender) rather than skipping the stage, so the breakdown explains which modifiers were excluded.
 
+**A dice count is one hit per success (#191 reading 10).** `computeDamageHits` runs the pipeline once per die that met the threshold, each with the 25 a success is worth: a Shield one hit empties is empty for the next and Health falls as they land, while the crit roll, the reaction and the Injury Roll are one for the attack (`exceededInjuryThreshold` reads the sum). Every other attack is one `computeDamage`. Whether stage 2's ±5d10 and stage 9's ZON penalty belong on each 25, or on a dice count and a flat value at all, is open (#191 reading 14). The 6d6 and every threshold modifier reach the card's Rolls through `rollRecords`.
+
+**A ring's chance has one reader (#191).** `declaredChance` (`engine/attack.mjs`) states an effect's chance for both effect paths: a chance per panel, then a chance per ring off the `bandOf` map stage 6 reads, then the flat `chance`. The per-target ring map is `attack.bandOf`, not `bands`: the damage block's own `bands` list is spread over each Process's attack and replaced the map.
+
 ## Invariants & edge cases
 
 1. **The `5d10` roll belongs to stage 2, not stage 1.** It is not a base-attack factor; it scales the base before the ability multiplier. Placing it after the multiplier reverses the author's reference calculation (`module/rules/damage/pipeline.mjs:284-287`).

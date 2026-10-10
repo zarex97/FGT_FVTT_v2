@@ -12,7 +12,7 @@
  * it back.
  */
 
-import { computeDamage, isNPAttack, INJURY_THRESHOLD } from "../rules/damage/pipeline.mjs";
+import { computeDamage, computeDamageHits, isNPAttack, INJURY_THRESHOLD } from "../rules/damage/pipeline.mjs";
 import { ridersFire } from "../rules/damage/riders.mjs";
 import { expandInstances, damageBaseOf } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
@@ -335,7 +335,13 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // site. The two would agree today -- both are Chebyshev from the caster --
   // but they are two answers to one question, and the geometry pass is the one
   // that actually chose these targets.
-  attackSpec.bands = Object.fromEntries(defenders.map((t) => [t.unitId, t.band ?? 0]));
+  //
+  // `bandOf`, NOT `bands`: the damage block has a `bands` key of its own -- the
+  // index-aligned multipliers -- and `expandInstances` spreads the block onto
+  // each Process's attack, so a map called `bands` was overwritten by the list.
+  // Every target then read ring 0: Triton's Conch dealt Karna, two panels out,
+  // 1.5x and an 85% Deafen where the targeting had shown band 1 (#191).
+  attackSpec.bandOf = Object.fromEntries(defenders.map((t) => [t.unitId, t.band ?? 0]));
 
   // The Hanging Gardens' activation: "If Semiramis is Attacked during this
   // period, the period... is interrupted." Declared against, not necessarily
@@ -414,7 +420,7 @@ export function aftermathSpecFor({ attacker, ability, options, caught }) {
     ...buildAttackSpec({ attacker, ability, abilityId: ability?.id ?? null, options, aftermath: true }),
     isAftermath: true,
     areaPanels: caught?.panels ?? [],
-    bands: Object.fromEntries((caught?.units ?? []).map((t) => [t.unitId, t.band ?? 0])),
+    bandOf: Object.fromEntries((caught?.units ?? []).map((t) => [t.unitId, t.band ?? 0])),
   };
 }
 
@@ -1348,7 +1354,7 @@ export async function advanceAttack({ messageId, event, abilityId = null, placem
   if (state.state === "react" && event === "evade"
     && reactionOverrideFor(state, "evade")?.kind === "noRoll") {
     state = process.advance(state, "evade");
-    state = process.advance(state, "fail", {
+    state = process.advance(state, "overridden", {
       success: false,
       overridden: true,
       note: game.i18n.localize("FGT.Reaction.EvadeNoRoll"),
@@ -1562,26 +1568,28 @@ async function rollDiceCount(ability, options, { attacker, defender, facts }, st
   const faces = roll.dice.flatMap((d) => d.results.map((r) => r.result));
   const counted = damageFromDice(formula, faces, threshold.threshold);
 
-  state.rollLog = [
-    ...(state.rollLog ?? []),
-    rollLog.record({
-      id: `${state.attackerId}:${state.defenderId}:diceCount:${game.combat?.system?.globalTurn ?? 0}`,
-      globalTurn: game.combat?.system?.globalTurn ?? 0,
-      entryId: "threshold",
-      formula: formula.dice,
-      raw: faces.join(", "),
-      total: threshold.threshold,
-      modifiers: thresholdModifiers(threshold, ctx, explainPredicate),
-      purpose: `${ability.name}: ${counted.successes} of ${faces.length} dice at ${threshold.threshold}+`,
-      actorId: state.attackerId,
-    }),
-  ];
+  const record = rollLog.record({
+    id: `${state.attackerId}:${state.defenderId}:diceCount:${game.combat?.system?.globalTurn ?? 0}`,
+    globalTurn: game.combat?.system?.globalTurn ?? 0,
+    entryId: "threshold",
+    formula: formula.dice,
+    raw: faces.join(", "),
+    total: threshold.threshold,
+    modifiers: thresholdModifiers(threshold, ctx, explainPredicate),
+    purpose: `${ability.name}: ${counted.successes} of ${faces.length} dice at ${threshold.threshold}+`,
+    actorId: state.attackerId,
+  });
+  state.rollLog = [...(state.rollLog ?? []), record];
 
   return {
     diceTotal: counted.total,
     successes: counted.successes,
     diceRolled: faces.length,
     threshold: threshold.threshold,
+    // For the card's Rolls: `state.rollLog` is read by nobody that renders, so
+    // the six faces and the four modifiers behind "6 of 6 dice at 2+" were
+    // recorded and never shown (#191).
+    record,
   };
 }
 
@@ -1623,6 +1631,14 @@ async function runAfterProcessPhases(state) {
   // The reaction is in THIS option set and in no earlier one -- `attackFacts`
   // carries `state.reaction`, which is null until the ladder resolves it.
   const options = rollOptions(attacker, defender, state);
+  // ...and whether it was COUNTERED, which is not a reaction: `state.reaction`
+  // is the react rung (nothing, Block, Evade), and a Counter is declared rungs
+  // later. So `target:reaction:counter` was never in this set, and Quickfire's
+  // *"if the enemy Unit does not perform a Counter on Nemo"* refunded its
+  // cooldown after a Counter too (#191).
+  if ((state.history ?? []).some((h) => h.state === "counter" && h.event === "counter")) {
+    options.add("target:reaction:counter");
+  }
 
   /** @type {object[]} */
   const intents = [];
@@ -3771,16 +3787,6 @@ async function resolveDefeatOf(defender, damage, state = {}) {
   // survived, and he survives this one or he does not.
   const recording = recordIntents(defender, state);
 
-  // Nemo's Zero Sail: *"If Nemo is defeated while Zero Sail is Active, he
-  // performs a Luck Check BEFORE dying."*
-  //
-  // Before the revival chain, and NOT a revival: the parenthesis that follows
-  // -- *"(but he is still defeated)"* -- is the whole point. Registered as a
-  // `RevivalSource` it would compete with his own Guts for priority and, on a
-  // success, leave him alive, which the sheet denies in the same sentence that
-  // grants the check.
-  const dimensional = await resolveDimensionalDefeat(defender, ctx);
-
   // A revival the player CHOOSES. Asked here, because `resolveDefeat` is pure
   // and this is a question about somebody's intentions rather than about the
   // board: *God's Holder: Possession* costs every Fragarach Token she holds and
@@ -3790,6 +3796,17 @@ async function resolveDefeatOf(defender, damage, state = {}) {
   // Rebuilt in the SNAPSHOT's shape -- a flat number -- because that is what
   // `resolveDefeat` is given everywhere else and what `currentHealth` reads.
   const defeat = resolveDefeat({ ...defender, health: remaining, acceptedRevivals: accepted }, ctx);
+
+  // Nemo's Zero Sail: *"If Nemo is defeated while Zero Sail is Active, he
+  // performs a Luck Check BEFORE dying."*
+  //
+  // AFTER the revival chain: a Nemo his Guts revives is not defeated and makes
+  // no check (#191 reading 9, ruled 2026-10-10). It ran first, so Indomitable's
+  // Guts and the check both fired on one blow. And NOT a revival: *"(but he is
+  // still defeated)"* -- registered as a `RevivalSource` it would compete with
+  // his Guts and, on a success, leave him alive.
+  const dies = defeat.some((i) => i.t === "defeat" && i.unitId === defender.id);
+  const dimensional = dies ? await resolveDimensionalDefeat(defender, ctx) : [];
   return [...recording, ...dimensional, ...defeat, ...killedBy(defender, defeat, state, ctx)];
 }
 
@@ -3843,24 +3860,35 @@ async function resolveDimensionalDefeat(defender, ctx) {
   const spec = platform?.system?.dimension;
   if (!spec?.onOwnerDefeat) return [];
 
-  const { onOwnerDefeat, resurface } = await import("./dimension.mjs");
+  const { onOwnerDefeat, resurface, postDimensionCard } = await import("./dimension.mjs");
   const board = currentBoard();
+  // By LEVEL: a dimension has no footprint, so `platformContentId` was stamped
+  // on nobody and a failed check Erased an empty list (#178).
   const occupants = (board.units ?? [])
-    .filter((u) => u.platformContentId === platform.system?.contentId)
+    .filter((u) => u.levelId && u.levelId === platform.system?.levelId && !u.defeated)
     .map((u) => u.id);
+  if (!occupants.includes(defender.id)) occupants.push(defender.id);
 
   const roll = await new Roll("1d20").evaluate();
   const check = luckCheck({ roll: roll.total, luck: defender.luck ?? 0 });
+  // On the chat log, with its die: the check that decides whether everyone
+  // aboard is Erased reached only the flag log (#191).
+  await postDimensionCard(game.i18n.format(check.success ? "FGT.Dimension.LuckPassed" : "FGT.Dimension.LuckFailed", {
+    name: defender.name ?? "Nemo", roll: roll.total, luck: defender.luck ?? 0,
+  }));
   const verdict = onOwnerDefeat(spec, {
     owner: defender, succeeded: check.success, occupants,
   });
   if (!verdict) return [];
 
   if (verdict.resurfaces) {
-    // "The Storm Border IMMEDIATELY resurfaces" -- at the owner's own panel,
-    // because he is not alive to choose a destination and the sheet gives the
-    // choice to nobody else.
-    await resurface({ platformId: platform.id, at: defender.panel, forced: true });
+    // "The Storm Border IMMEDIATELY resurfaces" -- on the plan he pressed if it
+    // still holds, otherwise centred on his own panel or the nearest legal spot
+    // (#191 reading 9). Nobody is asked: he is not alive to choose, and the
+    // attack does not wait.
+    await resurface({
+      platformId: platform.id, plan: platform.system?.resurfacePlan ?? null, forced: true, ownerPanel: defender.panel,
+    });
     return [I.log({
       kind: "ability", unitId: defender.id, tick: ctx.tick,
       detail: `Zero Sail: Luck Check passed (${roll.total}) -- the Storm Border surfaces, Nemo is still defeated.`,
@@ -4149,9 +4177,9 @@ async function applyDamage(state, message) {
     //
     // Absent for every other ability in the corpus, where the map is empty and
     // the multiplier is 1 -- which is what stage 6 already did with nothing.
-    band: state.attack?.bands?.[defender.id] ?? 0,
+    band: state.attack?.bandOf?.[defender.id] ?? 0,
     bandMultiplier: block
-      ?.bands?.[state.attack?.bands?.[defender.id] ?? 0]?.multiplier ?? 1,
+      ?.bands?.[state.attack?.bandOf?.[defender.id] ?? 0]?.multiplier ?? 1,
     // Same reason as `base` above: the block is the splash's own, or the
     // ability's when this is the ordinary resolution.
     multiplier: block?.multiplier ?? 1,
@@ -4212,12 +4240,16 @@ async function applyDamage(state, message) {
     options,
   };
 
-  const result = computeDamage(ctx);
+  // One hit per success for a dice count (#191 reading 10); one hit otherwise.
+  const result = computeDamageHits(ctx);
   // The dice a rolled modifier threw, on the card beside the rest (#190):
   // Goddess of War's d4 lifted and cut her damage by a number nobody could
   // see. Filed only where the modifier reached the breakdown, so a die whose
   // clause did not apply is not reported as if it had.
-  result.modifierRolls = rollLog.modifierDiceRecords(ctx, result, state, game.combat?.system?.globalTurn ?? 0);
+  result.modifierRolls = [
+    ...(diceBase?.record ? [diceBase.record] : []),
+    ...rollLog.modifierDiceRecords(ctx, result, state, game.combat?.system?.globalTurn ?? 0),
+  ];
   // Whether it crit belongs ON the result, not only on the chat flag. Every
   // rider fired after the Damage Step reads its predicate off the option set,
   // and `attack:crit` can only be in that set if the resolved attack says so --
@@ -4825,9 +4857,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
         // measured (`facts.range`, spread onto `state.attack`) -- recomputing
         // it from panels here could disagree with the range the attack was
         // declared at, which is the number the whole resolution used.
-        chance: spec.chancePerPanel !== undefined
-          ? chanceFromDistance(spec.chancePerPanel, state.attack?.range ?? null)
-          : (spec.chance ?? rule.chance ?? null),
+        chance: declaredChance(spec, rule, state, defender),
         // An authored magnitude may be an `@` EXPRESSION rather than a number
         // (`rules/elements.mjs#resolveValue`), resolved against the CASTER at
         // the moment of application. One rule for both use paths: the Skill
@@ -4871,6 +4901,33 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     }
   }
   return applied;
+}
+
+/**
+ * The chance an ability states for one effect against one defender.
+ *
+ * ONE reader for both effect paths -- the post-damage rider loop and
+ * `applyDeclaredEffects`. Only the second read a ring's chance, so Triton's
+ * Conch's Deafen was rolled at 100% against a Unit two panels out, where the
+ * sheet says 50% (#191); and only the first read `chancePerPanel`. Two readers
+ * of one rule drift (Ch. 46 §46.3).
+ *
+ * In order: a chance per panel of distance (Anastasia's Ice Block Launcher),
+ * a chance per ring (Triton's Conch, index-aligned with the targeting's
+ * `bands` and read off the same `bandOf` map stage 6 reads), then the flat
+ * `chance`; `null` leaves the definition's own `baseChance`.
+ *
+ * @param {object} spec the effect entry
+ * @param {object} rule the rule it sits on, which may carry the chance instead
+ * @param {object} state the Combat Process
+ * @param {object|null} defender
+ * @returns {number|null}
+ */
+function declaredChance(spec, rule, state, defender) {
+  if (spec.chancePerPanel !== undefined) return chanceFromDistance(spec.chancePerPanel, state.attack?.range ?? null);
+  const ring = spec.bands?.[state.attack?.bandOf?.[defender?.id] ?? 0]?.chance;
+  if (typeof ring === "number") return ring;
+  return spec.chance ?? rule?.chance ?? null;
 }
 
 /**
@@ -5281,8 +5338,7 @@ async function applyDeclaredEffects(specs, ability, state, defender, { ignoresRe
       // pass here could disagree with the one that chose these targets. Falls
       // through to the flat `chance` for every other ability, which is all of
       // them.
-      chance: spec.bands?.[state.attack?.bands?.[defender?.id] ?? 0]?.chance
-        ?? spec.chance ?? null,
+      chance: declaredChance(spec, spec, state, defender),
       source: { unitId: state.attackerId, abilityId: ability.id },
       ctx: {
         turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
