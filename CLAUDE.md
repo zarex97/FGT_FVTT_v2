@@ -30,6 +30,16 @@ discards it and nothing fails. When a change adds or moves an Authored Key, a fi
 
 The map of Hops is in `docs/07-schemas.md`, the guards in `docs/44-testing.md`, the reason in ADR-0006.
 
+### Surprises
+
+When the board, a test or the user contradicts what the design or I expected, record it with the
+`record-surprise` skill before the turn ends. `/review-surprises` fuses them into patterns and the
+lessons below. The records live in `docs/surprises/`.
+
+### Lessons
+
+One line per pattern `/review-surprises` confirmed, each linking its file in `docs/surprises/patterns/`.
+
 ### Two workplaces
 
 This PC and a VPS (`ssh foundry-dev`), each with its own clone, Foundry and copy of world `fgt2026`.
