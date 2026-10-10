@@ -3833,6 +3833,14 @@ event. Ch. 27.
 **Reached: ZS.def.fail.** Erase is *"removed from the game"*; `io.defeat` treated it as any defeat and left the
 token under a skull. It now deletes the token and keeps the actor, defeated. Ch. 14.
 
+### X. A figure with no Base Attack met the crit roll, once per hit — **fixed** (#191 reading 14)
+
+**Reached: QF.dice, QF.inj.** Stage 2 took ±5d10 off each of Quickfire's 25s and stage 9 took the ZON penalty
+off each again, so six successes dealt 0. Attack± is a Base Attack plus or minus 5d10; a dice count and Barrel
+Bombing's flat 150 have none, so stage 2 now rolls nothing for them, and the ZON penalty is one roll carried
+across the hits. Unit tests that used `fixedValue` as a stand-in for a Base Attack of 200 now name a real
+source. Ch. 22.
+
 ---
 
 ---
@@ -4893,10 +4901,10 @@ War on an NP and the ally half of Hatred were pressed through the live board's e
 
 ## 46.23 Nemo — the Servant who takes his allies under
 
-**103 of his 105 Clauses were Pressed or Observed on a live board** (#191, 2026-10-10), on the VPS copy of
-`fgt2026`. Thirteen readings were ruled before the press on 2026-10-10, and a fourteenth is open: whether a
-dice count's per-success hits and Barrel Bombing's flat 150 meet stage 2's ±5d10 and stage 9's ZON penalty
-(`QF.dice` and `QF.inj` wait on it; at present six successes deal nothing).
+**All 105 of his Clauses were Pressed or Observed on a live board** (#191, 2026-10-10), on the VPS copy of
+`fgt2026`. Thirteen readings were ruled before the press on 2026-10-10, and a fourteenth after it: a dice
+count and a flat value roll no ±5d10, and the ZON penalty comes off once (§46.4-X). Live, six 6s dealt 150
+with one Injury Roll, 100 outside the ZON; Barrel Bombing dealt 150, 100 outside it.
 
 **Why he finds what he finds.** Zero Sail is the only pocket dimension in the game, and almost nothing about it
 had ever run: its exit was a hook nobody heard, its terrain tag and its restriction had no reader, nobody aboard
@@ -4918,7 +4926,7 @@ designed and unit-tested in its pure half and never driven.
 | Zero Sail could be clicked off inside | `nemo-zero-sail.yml`, `deactivation.byOwner: false` |
 | Quickfire's Evade override offered Lucky Evasion; its roll log never reached the card; a Counter never withheld its refund | `combat-process.mjs`, `engine/attack.mjs` |
 | Triton's Conch dealt every ring band 0 and rolled ring 0's chance | `attack.bandOf`, `declaredChance` |
-| General: §46.4-IQ to IX | |
+| General: §46.4-IQ to X | |
 
 ### 46.23.2 What was staged
 

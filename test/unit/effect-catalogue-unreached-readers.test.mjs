@@ -29,7 +29,7 @@ const hit = (over = {}) => computeDamage({
   attacker: ATTACKER,
   defender: DEFENDER,
   attack: { kind: "normal", component: "str" },
-  base: { fixedValue: 200 },
+  base: { sources: [{ unit: "self", component: "str", factor: 1 }] },
   rolls: { attackMinus: 0 },
   crit: { isCrit: false },
   options: rollOptionsFor({ attacker: {}, defender: {}, attack: { kind: "normal" } }),

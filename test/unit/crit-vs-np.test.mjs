@@ -36,7 +36,7 @@ const stage2 = (attacker, attack) => computeDamage({
   attacker,
   defender: { id: "d", health: 99999, modifiers: [], effects: [] },
   attack: { component: "str", ...attack },
-  base: { fixedValue: 200 },
+  base: { sources: [{ unit: "self", component: "str", factor: 1 }] },
   rolls: { attackPlus: 30 },
   crit: { isCrit: true, chanceUsed: 100 },
   options: rollOptionsFor({ attacker, defender: null, attack }),
@@ -64,7 +64,7 @@ describe("the defender's side is not an NP's either", () => {
     const attacker = await holding([{ defId: "critDmUp", magnitude: 50 }], (u) => u);
     const defender = { id: "d", health: 99999, effects: [], modifiers: [{ key: "critResUp", value: 20, source: "Crit ResUp" }] };
     const note = (attack) => computeDamage({
-      attacker, defender, attack: { component: "str", ...attack }, base: { fixedValue: 200 },
+      attacker, defender, attack: { component: "str", ...attack }, base: { sources: [{ unit: "self", component: "str", factor: 1 }] },
       rolls: { attackPlus: 30 }, crit: { isCrit: true, chanceUsed: 100 },
       options: rollOptionsFor({ attacker, defender, attack }),
     }).breakdown.find((s) => s.index === 2).contributors.map((c) => c.note);
