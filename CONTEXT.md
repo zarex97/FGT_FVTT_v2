@@ -84,6 +84,11 @@ A Hop discarding a key it does not name, with no error. The Clause it carried si
 so nothing fails and the defect is found only on a live board.
 _Avoid_: stripped, lost, missing, pruned
 
+**Surprise**:
+An expectation that reality contradicted: the design, a test or a claim said one thing, and a live
+board, a test or the user showed another. Recorded one by one, then fused into patterns.
+_Avoid_: bug (a Surprise may be a wrong belief with no defect), error, failure, miss
+
 ## The board
 
 **Panel**:
