@@ -131,7 +131,8 @@ export function computeDamage(ctx) {
  * flat reduction, Freeze's floor of 150 and an Endure are met by every 25, not
  * by one 75. Still one Combat Process -- one reaction, one crit roll, one
  * Injury Roll against the sum. The hits run in order, so a Shield one hit
- * empties is empty for the next, and Health falls as they land.
+ * empties is empty for the next, and Health falls as they land. The ZON
+ * penalty is one roll taken off the total, carried hit to hit (reading 14).
  *
  * Every other attack is one {@link computeDamage}, unchanged.
  *
@@ -146,14 +147,16 @@ export function computeDamageHits(ctx) {
   const per = base.diceTotal / n;
   let shield = ctx.defender?.shield ?? 0;
   let health = ctx.defender?.health;
+  let zonLeft = ctx.rolls?.zonPenalty ?? 0;
   const hits = [];
   for (let k = 1; k <= n; k++) {
     const r = computeDamage({
       ...ctx,
-      base: { ...base, diceTotal: per, hit: k, hits: n },
+      base: { ...base, diceTotal: per, hit: k, hits: n, zonLeft },
       defender: { ...ctx.defender, shield, ...(typeof health === "number" ? { health } : {}) },
     });
     shield = Math.max(0, shield - (r.flags?.shieldAbsorbed ?? 0));
+    zonLeft = Math.max(0, zonLeft - (r.flags?.zonApplied ?? 0));
     if (typeof health === "number") health = Math.max(0, health - r.total);
     hits.push(r);
   }
@@ -385,6 +388,19 @@ function stage2Crit(s) {
   // removed instead of leaving a gap a reader has to account for.
   if (!damageModifiersApply(s.ctx.difficulty)) {
     s.contribute("attack+", 0, "removed on Beginner", "attacker");
+    s.end(2);
+    return;
+  }
+
+  // Attack± is a Base Attack plus or minus 5d10, so an attack with no Base
+  // Attack has no roll to add (#191 reading 14, ruled 2026-10-10). Quickfire's
+  // 25 per die and Barrel Bombing's flat 150 are figures, not Base Attacks;
+  // per hit, the 5d10 wiped out every 25. A crit therefore has nothing to
+  // scale here either. Every other flat base is `fixed: true` and never
+  // reaches this stage.
+  const spec = s.ctx.base ?? {};
+  if (spec.diceTotal !== undefined || spec.fixedValue !== undefined) {
+    s.contribute("attack-", 0, "no Base Attack: no Attack± roll", "attacker");
     s.end(2);
     return;
   }
@@ -817,9 +833,14 @@ function stage9ZonPenalty(s) {
   // own Noble Phantasms honour, which the sheet does not say.
   const waived = (s.ctx.attacker?.suppressions ?? []).some((x) => x.scope === "zonPenalty");
   if (s.ctx.attacker?.outsideZon && !waived) {
-    const roll = s.ctx.rolls?.zonPenalty ?? 0;
+    // Once per attack, not once per hit (#191 reading 14). A dice-count attack
+    // passes what is left of the one roll as `base.zonLeft`; each hit takes
+    // what it can and the rest carries to the next.
+    const left = s.ctx.base?.zonLeft;
+    const roll = left !== undefined ? Math.min(left, s.total) : (s.ctx.rolls?.zonPenalty ?? 0);
+    s.flags.zonApplied = Math.min(roll, s.total);
     s.addProportional(-roll);
-    s.contribute("zonPenalty", -roll, "outside the Master's ZON", "attacker");
+    s.contribute("zonPenalty", -roll, left !== undefined ? "outside the Master's ZON, once across the hits" : "outside the Master's ZON", "attacker");
     s.clampNonNegative();
   }
   s.end(9);

@@ -151,6 +151,49 @@ describe("Quickfire: one hit per success (#191 reading 10)", () => {
   });
 });
 
+describe("no Attack± on a figure, one ZON penalty (#191 reading 14)", () => {
+  const base = { diceTotal: 150, successes: 6, diceRolled: 6, threshold: 5 };
+  const ctx = (over = {}) => ({
+    attacker: { id: "nemo", modifiers: [] },
+    defender: { id: "x", health: 1000, modifiers: [] },
+    board: {},
+    attack: { component: "str", bypassModifiers: { attacker: true, defender: false } },
+    base,
+    crit: { isCrit: false },
+    rolls: { attackMinus: 27, attackPlus: 30 },
+    options: new Set(),
+    ...over,
+  });
+
+  it("rolls no 5d10 against Quickfire's 25s, crit or not", () => {
+    expect(computeDamageHits(ctx()).total).toBe(150);
+    expect(computeDamageHits(ctx({ crit: { isCrit: true } })).total).toBe(150);
+  });
+
+  it("rolls no 5d10 against Barrel Bombing's flat 150", () => {
+    const out = computeDamageHits(ctx({ base: { fixedValue: 150 } }));
+    expect(out.total).toBe(150);
+  });
+
+  it("takes the ZON penalty once off Quickfire's total, carried hit to hit", () => {
+    const out = computeDamageHits(ctx({
+      attacker: { id: "nemo", modifiers: [], outsideZon: true },
+      rolls: { zonPenalty: 30 },
+    }));
+    expect(out.total).toBe(120);
+    expect(out.hits.map((h) => h.total)).toEqual([0, 20, 25, 25, 25, 25]);
+  });
+
+  it("still takes the ZON penalty off Barrel Bombing", () => {
+    const out = computeDamageHits(ctx({
+      attacker: { id: "nemo", modifiers: [], outsideZon: true },
+      base: { fixedValue: 150 },
+      rolls: { zonPenalty: 30 },
+    }));
+    expect(out.total).toBe(120);
+  });
+});
+
 describe("Imaginary Numbers Space is terrain inside (#191)", async () => {
   const { annotateTerrain } = await import("../../module/rules/terrain.mjs");
   const { rollOptionsFor } = await import("../../module/rules/options.mjs");
