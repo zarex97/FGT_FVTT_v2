@@ -18,7 +18,7 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { TURN_RECORD, ROUND_RECORD } from "../domain/stamped-record.mjs";
 import { remainingMovement } from "./movement.mjs";
 import { Rank } from "../domain/rank.mjs";
-import { collectContributions, EFFECT_INSTANCE } from "./elements.mjs";
+import { collectContributions, EFFECT_INSTANCE, EXECUTORS, empty } from "./elements.mjs";
 import { baseAttackAdjustment } from "./setup-rolls.mjs";
 import { annotateZon } from "./zon.mjs";
 import { annotateLinkedGroups } from "./linked-group.mjs";
@@ -785,6 +785,8 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
     fields: settings.fields ?? [],
     // The Scene Level ids that are pocket dimensions (#177).
     dimensionLevels: settings.dimensionLevels ?? [],
+    // Each pocket dimension's Level and centre (#191 reading 3).
+    dimensions: settings.dimensions ?? [],
     // `terrainAreasOf` (engine/board.mjs) computes this into `settings.terrain`,
     // exactly as `homeBaseZonesOf` does for `zones` immediately above -- and
     // this line read `scene.terrain`, a property no Scene document has, so
@@ -971,6 +973,31 @@ function recollectForTerrain(units, actors, tick = null) {
 }
 
 function annotatePlatforms(units, board) {
+  // Aboard a POCKET DIMENSION, by Level: it has no token for the footprint test
+  // below to find, so nobody inside carried its `platformId` (#178) and every
+  // rule keyed on being aboard the Storm Border -- S.Crit Up's
+  // `requiresRecipient: { platformContentId }` first -- reached nobody (#191).
+  for (const u of units) {
+    if (u.kind === "platform") continue;
+    const dimension = (board?.dimensions ?? []).find((d) => d.levelId && d.levelId === u.levelId);
+    if (!dimension) continue;
+    u.platformId = dimension.id;
+    u.platformContentId = dimension.contentId ?? null;
+    // ...and what being inside it forbids: the Storm Border's `restrictions`,
+    // *"Units within the Storm Border cannot use ... any ability that creates a
+    // Unit/Item/object that has the 'Large' or 'Giant' Attribute"* (ruling R1).
+    // Authored as rule elements and read by nobody, so a Giant-creating Noble
+    // Phantasm was usable inside (#191). Run through the same executors every
+    // other element is, and only their suppressions kept -- that is where
+    // `rules/costs.mjs#forbiddenCreation` looks.
+    for (const el of dimension.spec?.restrictions ?? []) {
+      const run = EXECUTORS[el?.key];
+      if (!run) continue;
+      const out = empty();
+      run(el, { source: "The Storm Border", out, rank: null, ctx: {} });
+      u.suppressions = [...(u.suppressions ?? []), ...(out.suppressions ?? [])];
+    }
+  }
 
   const platforms = platformsOn(board);
   if (platforms.length === 0) return;

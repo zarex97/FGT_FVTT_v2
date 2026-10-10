@@ -262,6 +262,18 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
           // A Noble Phantasm of any kind answers a Counter too (§46.4-CK).
           counter: this.counter ? { isAttack: answersACounter(item) } : null,
         });
+        // An ability that IS an Attack spends the same budget the Attack slot
+        // does, and is refused by the same sentence: Triton's Conch stayed lit
+        // after a Riding Attack while the Attack slot beside it greyed, and its
+        // targeting opened, offered "Attack", and the declaration threw (#191).
+        const spent = !this.counter && use.isAttack ? afford("attack") : { ok: true, reason: null };
+        if (!spent.ok) {
+          return {
+            ...slot, disabled: true,
+            group: use.toggles ? "mode" : (entry.isNP ? "np" : "skill"),
+            tooltip: `${item.name} — ${spent.reason}`,
+          };
+        }
         return {
           ...slot,
           group: use.toggles ? "mode" : (entry.isNP ? "np" : "skill"),
@@ -409,6 +421,9 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
       // it. The slot used to fire `fgtEnterMovement`, a hook nothing listened
       // for, so the ride could be performed from the console only (#113).
       if (id === "ridingAttack") return rideFrom(actor, { context: entry.context });
+      // The Storm Border's way out: pick the spot and the turn now, carried out
+      // at the next Turn End (#191 reading 5).
+      if (id === "resurface") return resurfaceFrom(actor, entry.context);
 
       const result = await performAction(id, { actor, token: this.token, context: entry.context });
       if (result?.ok === false) ui.notifications.warn(refusalText(result.reason));
@@ -685,6 +700,91 @@ export async function rideFrom(actor, { ability = null, context = {} } = {}) {
     destination,
   });
   if (result?.ok === false) ui.notifications.warn(refusalText(result.reason));
+}
+
+/**
+ * Plan where the Storm Border surfaces at the next Turn End, or change or call
+ * off the plan already made.
+ *
+ * Offers only spots that fit at the allowance it will have then, and at a spot
+ * only the orientations that fit, from `engine/dimension.mjs#landingOptions`.
+ * Sent to the GM, who writes the plan and checks it again. Cancelling spends
+ * nothing.
+ *
+ * @param {object} actor Nemo
+ * @param {{platformId: string, plan: object|null}} context
+ * @returns {Promise<void>}
+ */
+async function resurfaceFrom(actor, context) {
+  const { ChoiceDialog } = await import("../choice-dialog.mjs");
+  const { performAction } = await import("../../engine/actions.mjs");
+  const send = async (plan) => {
+    try {
+      const out = await performAction("resurface", { actor, context, plan });
+      if (out?.ok === false) {
+        ui.notifications.warn(game.i18n.localize(`FGT.Dimension.Reason.${out.reason}`));
+        return false;
+      }
+      return true;
+    } catch (err) {
+      ui.notifications.warn(err.message);
+      return false;
+    }
+  };
+
+  if (context.plan) {
+    const [choice] = (await ChoiceDialog.pick({
+      title: game.i18n.localize("FGT.Action.Resurface"),
+      hint: game.i18n.format("FGT.Dimension.PlannedHint", { i: context.plan.at.i, j: context.plan.at.j }),
+      count: 1,
+      options: [
+        { id: "redo", name: game.i18n.localize("FGT.Dimension.Redo") },
+        { id: "cancel", name: game.i18n.localize("FGT.Dimension.CallOff") },
+      ],
+    })) ?? [];
+    if (!choice) return;
+    if (choice === "cancel") {
+      if (await send(null)) ui.notifications.info(game.i18n.localize("FGT.Dimension.CalledOffNotice"));
+      return;
+    }
+  }
+
+  const board = currentBoard();
+  const dimension = (board.dimensions ?? []).find((d) => d.id === context.platformId);
+  if (!dimension) return;
+  const { landingOptions } = await import("../../engine/dimension.mjs");
+  const options = landingOptions(dimension, board, {
+    now: game.combat?.system?.globalTurn ?? 0, turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+  });
+  if (options.length === 0) {
+    ui.notifications.warn(game.i18n.localize("FGT.Dimension.Reason.noRoom"));
+    return;
+  }
+
+  const { pickDestination } = await import("../canvas/targeting-layer.mjs");
+  const at = await pickDestination({
+    panels: options.map((o) => o.at), label: game.i18n.localize("FGT.Dimension.PickCentre"),
+    hint: game.i18n.localize("FGT.Dimension.PickCentreHint"),
+  });
+  if (!at) return;
+  const fits = options.find((o) => o.at.i === at.i && o.at.j === at.j)?.orientations ?? [];
+  if (fits.length === 0) return;
+
+  let orientation = fits[0];
+  if (fits.length > 1) {
+    const [picked] = (await ChoiceDialog.pick({
+      title: game.i18n.localize("FGT.Dimension.OrientationTitle"),
+      hint: game.i18n.localize("FGT.Dimension.OrientationHint"),
+      count: 1,
+      options: fits.map((o) => ({ id: o, name: game.i18n.localize(`FGT.Dimension.Orientation.${o}`) })),
+    })) ?? [];
+    if (!picked) return;
+    orientation = picked;
+  }
+
+  if (await send({ at, orientation })) {
+    ui.notifications.info(game.i18n.format("FGT.Dimension.PlannedNotice", { i: at.i, j: at.j }));
+  }
 }
 
 /**

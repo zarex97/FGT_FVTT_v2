@@ -19,7 +19,7 @@ import { compelledTargetsOf } from "../compulsion.mjs";
 import { isolationBlocks, panelsOf } from "../bounded-fields.mjs";
 import { relationOf } from "../relations.mjs";
 import { guardsInRange, guardsNear } from "../master-guard.mjs";
-import { crossLevelLegal } from "../platforms.mjs";
+import { crossLevelLegal, interiorOf } from "../platforms.mjs";
 import { Rank } from "../../domain/rank.mjs";
 import { facingAllows, pathClear } from "./facing.mjs";
 
@@ -683,6 +683,7 @@ export function resolveTargets(spec, caster, board, placement = {}) {
  */
 function crossLevelReason(reason) {
   switch (reason) {
+    case "otherDimension": return "in another dimension; nothing crosses in or out of the Storm Border";
     case "occupantsForbidden": return "aboard a platform that cannot be attacked into";
     case "aoeMastersImmune": return "a Master aboard a platform, which takes no damage or effects from an area";
     case "requiresRanged": return "on another level; this reach is too short to attack across";
@@ -863,6 +864,16 @@ function resolveAnchor(spec, caster, board, placement, errors) {
       const platforms = (board.units ?? []).filter((u) => u.kind === "platform"
         && (u.id === wanted || u.contentId === wanted));
       const platform = platforms.find((u) => u.ownerId === caster?.id) ?? platforms[0] ?? null;
+      // A POCKET DIMENSION has no token to find: its area is its 5x5, on its own
+      // Level (#191 reading 3). Voyager of the Storm's and Journey's Guidance's
+      // *"all allied Units within the Storm Border"* reached nobody.
+      if (!platform) {
+        const dims = (board.dimensions ?? []).filter((d) => d.id === wanted || d.contentId === wanted);
+        const dim = dims.find((d) => d.ownerId === caster?.id) ?? dims[0] ?? null;
+        if (dim) {
+          return { ...base, panel: dim.centre, panels: interiorOf(dim.spec, dim.centre).panels, facing: caster.facing ?? "n" };
+        }
+      }
       // *"in the direction the Golden Hind is facing (i.e. where the ship's
       // bow is facing)"*. `PlatformData` spreads `unitCommon()`, so a platform
       // has carried `facing` all along and `snapshot.mjs` projects it --

@@ -109,6 +109,14 @@ An optional cost's effect goes through immunity, exclusivity, and duration exten
 
 **A choice on an Attack Skill is asked once** (#180). `choose` is a caster phase, so the declaration's `runCasterPhases` asks it and runs a branch's phases (`runChoice`, which shows each label localized). `engine/attack.mjs#resolveChoosePhases` asks again only for a choice with a branch carrying a per-defender rider (`applyEffects`); live, Castor's Mana Burst asked its restoration twice, the first time in raw lang keys. Test: `test/unit/choice-asked-once.test.mjs`.
 
+### When a phase runs against the damage
+
+On the attack path a phase runs **after** the damage unless it states `when: beforeDamage`, wherever it sits
+in the list. *"First apply … Then, deals 4x damage"* needs the key: Nemo's Great Ram Nautilus and Anastasia's
+Snegleta both listed their buffs and debuffs first and had them land after their own hit (#191).
+`test/unit/storm-border-191.test.mjs` refuses any effect phase listed before a `damage` phase without a
+`when`.
+
 ## Invariants & edge cases
 
 1. **One refusal answers the question.** `canUseAbility` returns the first refusal in order, never all of them (`module/rules/costs.mjs:162-165`). A player pressing an ability sees one clear reason why not, not a list.

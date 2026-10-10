@@ -57,7 +57,7 @@ A **suppressed** instance does not count: a Stun that is not stunning anybody is
 - `nonVolatile` — does not remove on damage (e.g., `Atk Up`)
 - `volatile` — removes on damage (e.g., `Burn`, `Stun`)
 - `mental` — classified as a mental debuff, subject to mental-debuff-immune (`packs/_source/effects/charm.yml:21`)
-- `terminal` — a lethal-class effect (Instakill, Death, Erase)
+- `terminal` — a lethal-class effect (Instakill, Death, Erase) — and Erase leaves no body: `io.defeat` deletes the token of a Unit defeated with cause `erase` and keeps the actor, defeated, for the record (Appendix A §A.16, *"removed from the game"*; #191 reading 9)
 
 **Valence** captures the intent of application (`module/rules/registry.mjs:37`; Appendix A Val column):
 - `offensive` — applied to enemies (e.g., `Atk Up` on self is offensive)

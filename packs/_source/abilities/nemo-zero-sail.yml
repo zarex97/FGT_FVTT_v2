@@ -14,6 +14,13 @@ slug: zeroSail
 # `self:skillActive:zeroSail`. Without `isMode` the DataModel leaves
 # `system.active` undefined and both of those branches silently never fire.
 isMode: true
+# ...and one its owner cannot switch off. The way out is to RESURFACE, at a
+# Turn's end, on the control his bar offers (#191 reading 5); clicking the mode
+# itself switched Zero Sail off with everyone still in Imaginary Numbers Space,
+# so Voyager of the Storm and Journey's Guidance lost their "within the Storm
+# Border" branch while the Storm Border stood. Surfacing switches it off
+# (`engine/dimension.mjs#endZeroSail`).
+deactivation: { byOwner: false }
 # What it brings into existence, for the restriction it imposes on everyone
 # else: the Storm Border is `[large, mechanical]`, so a second Zero Sail from
 # inside the first is exactly what `ForbidCreating` refuses.

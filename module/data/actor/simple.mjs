@@ -153,6 +153,13 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
        * out.
        */
       submergedFrom: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      /**
+       * Where a dimension will surface at the next Turn End, once its owner has
+       * said: `{ at: {i, j}, orientation, by }` (#191 readings 5 and 6). Pressed
+       * at any moment, carried out at the boundary, cleared when it surfaces or
+       * is called off. Not authored; written and read by `engine/dimension.mjs`.
+       */
+      resurfacePlan: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       capacity: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       /** The Servant that created it, whose effects are reversed on destruction. */
       ownerId: new fields.StringField({ required: false, nullable: true, initial: null }),

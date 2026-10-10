@@ -426,6 +426,33 @@ export const OPERATIONS = Object.freeze({
   },
 
   /**
+   * Plan, change or call off a pocket dimension's resurface (#191 reading 5).
+   *
+   * Proxied because the plan is written on the dimension's actor, which the GM
+   * created. The same narrow WHO as `deactivatePlatform`: the player who owns
+   * the dimension's owner, and the GM. Legality is checked by
+   * `engine/dimension.mjs#scheduleResurface`, which the GM runs.
+   */
+  scheduleResurface: {
+    authorize: (payload, userId) => {
+      const user = game.users.get(userId);
+      if (!user) return { allowed: false, reason: "Unknown user." };
+      const platform = game.actors.get(payload.platformId);
+      if (!platform?.system?.dimension) return { allowed: false, reason: "Unknown dimension." };
+      if (user.isGM) return { allowed: true, reason: null };
+      const owner = game.actors.get(platform.system?.ownerId);
+      if (!owner?.testUserPermission(user, "OWNER")) {
+        return { allowed: false, reason: `${user.name} does not own ${platform.name}.` };
+      }
+      return { allowed: true, reason: null };
+    },
+    execute: async (payload, userId) => {
+      const { scheduleResurface } = await import("../engine/dimension.mjs");
+      return scheduleResurface({ platformId: payload.platformId, plan: payload.plan ?? null, by: userId ?? null });
+    },
+  },
+
+  /**
    * Draw the targeted area on the scene as a grid-shape Region.
    *
    * Proxied because players cannot create scene documents. The authorizer is

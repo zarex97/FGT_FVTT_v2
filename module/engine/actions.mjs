@@ -48,6 +48,16 @@ export const ACTION_HANDLERS = Object.freeze({
     });
   },
 
+  // The Storm Border's way out (#191 reading 5). The bar asks where and which
+  // way (`apps/hud/action-bar.mjs#resurfaceFrom`), as it asks where a ride ends;
+  // this sends the plan -- or `null`, calling it off -- to the GM, who writes it
+  // on the dimension and checks it again.
+  resurface: async ({ context, plan = null }) => {
+    const { FGTSocket } = await import("../net/socket.mjs");
+    const out = await FGTSocket.request("scheduleResurface", { platformId: context.platformId, plan });
+    return out?.ok === false ? { ok: false, reason: out.reason } : { ok: true };
+  },
+
   mark: async ({ actor, context }) => placeMark({ unitId: actor.id, abilityId: context.abilityId }),
 
   gather: async ({ actor }) => gather({ actorId: actor.id }),
@@ -227,10 +237,11 @@ export const ACTION_HANDLERS = Object.freeze({
  * @param {object} [args.token]
  * @param {object} [args.context] whatever the registry predicate produced
  * @param {{i: number, j: number}} [args.destination] for a targeted action
+ * @param {object|null} [args.plan] a resurface plan, `null` to call one off (#191)
  * @returns {Promise<{ok: boolean, reason?: string}>}
  */
-export async function performAction(id, { actor, token = null, context = {}, destination = null }) {
+export async function performAction(id, { actor, token = null, context = {}, destination = null, plan = null }) {
   const handler = ACTION_HANDLERS[id];
   if (!handler) return { ok: false, reason: "unknownAction" };
-  return handler({ actor, token, context, destination });
+  return handler({ actor, token, context, destination, plan });
 }

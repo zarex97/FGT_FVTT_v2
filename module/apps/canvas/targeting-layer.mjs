@@ -459,9 +459,11 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
    * @param {object} args
    * @param {Array<{i: number, j: number}>} args.panels the offered panels
    * @param {string} [args.label] what is being aimed
+   * @param {string} [args.hint] the line under it; a ride's "where the ride
+   *   ends" by default, which read wrong over the Storm Border's surfacing (#191)
    * @returns {Promise<{i: number, j: number}|null>} the panel, or null on cancel
    */
-  async pickDestination({ panels, label = "" }) {
+  async pickDestination({ panels, label = "", hint = null }) {
     this.#cancel();
     const claim = this.#takeCanvas();
 
@@ -476,7 +478,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
       // without the player having to sweep the pointer to find out.
       this.#drawPanels(panels, LEGAL, 0.08);
       if (current) this.#drawPanels([current], LEGAL, 0.3);
-      hud.setLabel(label, game.i18n.localize("FGT.Targeting.ChooseDestination"));
+      hud.setLabel(label, hint ?? game.i18n.localize("FGT.Targeting.ChooseDestination"));
     };
 
     announce(label, "withinRange");

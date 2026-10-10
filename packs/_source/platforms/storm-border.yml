@@ -40,17 +40,28 @@ dimension:
   terrainTags: [imaginaryNumbers]
   entry:
     # "Nemo and any number of allied Units within a 2 panel area of himself"
-    # -- ANY number, so the chooser is uncapped.
+    # -- ANY number, so the chooser is uncapped: his player picks, every ally in
+    # reach ticked to start, Masters included (#191 reading 1).
     allies: { range: 2, automatic: true, chooser: chosen }
     # "Enemy Units within a 3 panel area ... can ATTEMPT to enter ... roll a
     # twenty-sided die; the enemy Unit only successfully enters if it rolls 18
-    # or higher." A 15% opt-in, and it is the enemy's choice to try.
+    # or higher." A 15% opt-in, and it is the enemy's choice to try: each
+    # enemy's owner is asked, and only a yes rolls (#191 reading 2).
     enemies: { range: 3, roll: "1d20", successOn: 18 }
+  # The inside is a 5x5, centred where it went under (#191 reading 3, ruled
+  # 2026-10-10): the same square it surfaces as, so everyone keeps their panel
+  # in it on the way out. Nemo stands at its centre and everyone who comes in
+  # keeps their offset from him, sliding to the nearest free panel when it falls
+  # outside (reading 4). A walk is held at its edge, and so is a push.
+  interior:
+    shape: { kind: rect, w: 5, h: 5 }
   # "The maximum time the Storm Border can spend within Imaginary Numbers Space
   # is 2◈ Turns, Nemo is forced to resurface after 2◈ Turns have passed."
   maxDuration: "2◈"
   forceExitAt: maxDuration
   relocateOnExit:
+    # "...in any orientation": the inside 5x5 laid down in any of its eight
+    # turns and flips, everyone on their own panel in it (#191 reading 6).
     shape: { kind: rect, w: 5, h: 5 }
     # "2+X panels, where X=1 for every ⅓◈ Turns spent within Imaginary Numbers
     # Space (e.g. 1◈ Turns spent, Nemo can travel 2+3=5 panels)."

@@ -226,8 +226,14 @@ function stampInstance(out, before, instanceId) {
 // "false" every time. Sikera Ušum's own clause survived only because its
 // predicate also names `attack:kind:normal` and deferral is all-or-nothing —
 // a predicate that named field membership ALONE was silently dropped.
+//
+// `revival:` too: `unitRevived` carries `revival:source:<id>` in its OWN option
+// set, which nothing at collection time can hold, so Nemo's Indomited --
+// *"when Nemo is revived due to Guts, reduce his NP Cooldown"* -- was dropped
+// before it existed as a handler, and Guts revived him with the payout unpaid
+// (#191).
 const DEFERRED_PREFIXES = Object.freeze([
-  "target:", "attack:", "self:inHomeBase", "self:onPlatform:", "self:inField:", "self:fieldActive:",
+  "target:", "attack:", "self:inHomeBase", "self:onPlatform:", "self:inField:", "self:fieldActive:", "revival:",
 ]);
 
 /**

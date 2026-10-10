@@ -48,7 +48,13 @@ phases:
   # The order is stated and it is load-bearing: all three buffs are NP-damage
   # buffs applied to the Unit about to swing an NP, so a damage phase ahead of
   # them would collect none of them and the Skill would do nothing at all.
+  #
+  # ...and `when: beforeDamage` is what makes the order count. A phase that
+  # states no `when` runs AFTER the damage wherever it is listed, so all three
+  # buffs landed after the 4x they were written for (#191, found live: stage 4
+  # read Heracles' Def Up and no NP DmUp at all).
   - kind: applyEffects
+    when: beforeDamage
     target: self
     effects:
       # 1. Unconditional.

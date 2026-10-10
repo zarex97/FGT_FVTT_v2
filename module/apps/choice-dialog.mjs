@@ -47,6 +47,7 @@ export class ChoiceDialog extends HandlebarsApplicationMixin(ApplicationV2) {
    * @param {string} [spec.hint]
    * @param {number} spec.count the most that may be picked
    * @param {number} [spec.min] the fewest; defaults to `count`, i.e. "exactly"
+   * @param {string[]} [spec.preselected] ids ticked when it opens
    * @param {Array<{id: string, name: string, subtitle?: string, detail?: string}>} spec.options
    * @returns {Promise<string[]|null>}
    */
@@ -62,9 +63,21 @@ export class ChoiceDialog extends HandlebarsApplicationMixin(ApplicationV2) {
    * @param {(value: string[]|null) => void} resolve
    */
   constructor(spec, resolve) {
-    super({ window: { title: spec.title || "FGT.Choice.Title" } });
+    // An id of its OWN. Two questions can be open on one client at once --
+    // Zero Sail asks every enemy in reach together, and with nobody else
+    // connected every one of them is the GM's -- and two windows sharing the
+    // fixed id are one window to Foundry: the second never showed, and the
+    // asker waited on it for good (#191).
+    super({ id: `fgt-choice-dialog-${foundry.utils.randomID()}`, window: { title: spec.title || "FGT.Choice.Title" } });
     this.#spec = spec;
     this.#resolve = resolve;
+    // Ticked to start, for a question whose usual answer is "all of them":
+    // Zero Sail takes every ally in reach unless its player unticks one (#191
+    // reading 1). Only offered ids, and never past the count.
+    const offered = new Set((spec.options ?? []).map((o) => o.id));
+    for (const id of spec.preselected ?? []) {
+      if (offered.has(id) && this.#picked.size < (spec.count ?? 1)) this.#picked.add(id);
+    }
   }
 
   /**
