@@ -1,9 +1,10 @@
 ---
 id: 2026-10-11-boundaries-skipped-after-reload
 found: live press
-kind: live-client-only
+kind: vps-drive-kit
 status: open
-reviewed: false
+reviewed: true
+pattern: vps-drive-kit
 ---
 **Expected:** Each `nextTurn` runs one Turn boundary and logs one `turnStart`, as it does on a page that has been up a while.
 **Actual:** Twice, the first `nextTurn` calls within about 20 s of a page reload advanced Foundry's Turn with no boundary run. Round 9's GM Turn went to Round 10's GM Turn, and the log shows `turnStart: t25` then `turnStart: t26` with no Faction 1 or 2 Turn, no `roundEnd: 9` and no `roundStart: 10`.

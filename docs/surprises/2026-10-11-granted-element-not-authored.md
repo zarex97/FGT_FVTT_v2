@@ -3,7 +3,8 @@ id: 2026-10-11-granted-element-not-authored
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Under Tenmōkaikai, Raikou's attacks deal Lightning damage (half) (R5).
 **Actual:** Her Normal Attack's process carried `element: null`. Nothing on her NP granted an element.

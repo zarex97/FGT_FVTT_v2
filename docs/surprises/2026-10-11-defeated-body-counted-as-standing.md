@@ -3,7 +3,8 @@ id: 2026-10-11-defeated-body-counted-as-standing
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** With Watanabe, Sakata and Urabe defeated, Usui reads `lastOfSummonGroup: true`, and its defeat ends Tenmōkaikai.
 **Actual:** Usui read `last=false` while the other three read `hp0 defeated=true`.

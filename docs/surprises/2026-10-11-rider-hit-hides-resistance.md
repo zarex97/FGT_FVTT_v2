@@ -3,7 +3,8 @@ id: 2026-10-11-rider-hit-hides-resistance
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Usui's hit inflicts Disable when its 50% rider roll succeeds.
 **Actual:** The card read "disable on Mannanán mac Lir rider- 1d100 → 39 against 50%: hit". No Disable landed, and nothing said why.

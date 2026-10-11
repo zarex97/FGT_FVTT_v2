@@ -3,7 +3,8 @@ id: 2026-10-11-counter-offered-per-instance
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** At most one Counter per target against Dohatsu Tenshou, after the whole Noble Phantasm (reading 17).
 **Actual:** Every instance's ladder ran its own counter rung: "counter → declined" on each of EMIYA's cards.

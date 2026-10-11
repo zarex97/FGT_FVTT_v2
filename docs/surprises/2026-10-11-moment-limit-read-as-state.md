@@ -1,9 +1,10 @@
 ---
 id: 2026-10-11-moment-limit-read-as-state
 found: live press
-kind: generic-path-escapes-special-case
+kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** Her Master at 26 pays the 25 upkeep and drops to 1, and Tenmōkaikai stays on until the next upkeep finds 25 or less.
 **Actual:** One Turn End posted both "loses 25 Health (Goō Shōrai・Tenmōkaikai)" and "Goō Shōrai・Tenmōkaikai forcibly deactivated on Raikou: its Master's Health is at its limit."

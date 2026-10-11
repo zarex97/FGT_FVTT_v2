@@ -3,7 +3,8 @@ id: 2026-10-11-end-verdict-raw-reason
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** An active mode that cannot be switched off says why in words, as the sheet's toggle does.
 **Actual:** Mad Enhancement's slot read "Mad Enhancement — toggleLock".

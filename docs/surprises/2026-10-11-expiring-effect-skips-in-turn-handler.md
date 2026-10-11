@@ -3,7 +3,8 @@ id: 2026-10-11-expiring-effect-skips-in-turn-handler
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Crit DmUp (Martial) scales Raikou's crit at tick 4 and spends one of its three uses (R1).
 **Actual:** The card read "Attack+ … ×1.30 crit damage", and the effect still held 3 uses.

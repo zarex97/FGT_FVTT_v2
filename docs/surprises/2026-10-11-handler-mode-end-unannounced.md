@@ -3,7 +3,8 @@ id: 2026-10-11-handler-mode-end-unannounced
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** When Tenmōkaikai is forced off at a Turn's end, a card says so and why.
 **Actual:** Tick 24 ended with Tenmōkaikai off, four copies gone and her Master untouched at 1. Chat said nothing.
