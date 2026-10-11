@@ -17,6 +17,9 @@ slug: manaBurstLightning
 # An ATTACK SKILL: its Active performs a Normal Attack, so it opens a Combat
 # Process and spends her Attack for the Turn (Ch. 17).
 isAttackSkill: true
+# Used WITH a Normal Attack: a Riding Attack offers it, and every Unit the ride
+# hits takes it; the cooldown and the Dodge come once (#195 reading 4).
+usedWithNormalAttack: true
 element: lightning
 cooldown: "3◈"
 timing: { window: ownTurn }
@@ -103,11 +106,15 @@ passiveRules:
 
   # Passive 2. "All Lightning damage taken is reduced by 50% including NP."
   #
-  # `Ward`, not `defUp`: a Ward is the category-predicated reduction (Ch. 10
-  # Group 2) and lands in the same stage-4 bucket, which keeps it additive
-  # against Atk Up the way Ch. 22 requires. `npValue` equals `value` because the
-  # sheet says "including NP" rather than giving a reduced NP figure.
-  - key: Ward
+  # LIGHTNING damage, so an `elementDefUp` scoped to it: stage 4b scales it by
+  # the attack's share, and a half-Lightning attack -- her own Sakata's, her
+  # Tenmokaikai's -- loses 25% of its total, not 50%. It was a `Ward` on
+  # `attack:element:lightning`, which took 50% off the whole total, STR half
+  # included, and could not meet the `Raikou` buff's +40 Lightning at stage 7
+  # (#195). `npValue` equals `value`: "including NP".
+  - key: DamageModifier
+    modifierKey: elementDefUp
+    element: lightning
+    direction: taken
     value: 50
     npValue: 50
-    predicate: ["attack:element:lightning"]

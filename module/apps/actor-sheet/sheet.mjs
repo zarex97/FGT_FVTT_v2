@@ -181,6 +181,13 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!active && item.system?.deactivation?.window === "any" && game.combats?.active?.started
       && ownTurnOf(actor) !== true) {
       const { FGTSocket } = await import("../../net/socket.mjs");
+      // Pressed again while it waits: the End is taken back (#195 reading 14).
+      const { isQueued } = await import("../../engine/queued-ends.mjs");
+      if (isQueued(item.id)) {
+        const out = await FGTSocket.request("cancelModeEnd", { actorId: actor.id, itemId: item.id });
+        if (out?.ok) ui.notifications.info(game.i18n.format("FGT.HUD.EndCancelledNotice", { name: item.name }));
+        return;
+      }
       const out = await FGTSocket.request("queueModeEnd", { actorId: actor.id, itemId: item.id });
       if (out?.ok === false) ui.notifications.warn(game.i18n.format("FGT.Skill.Refused", { name: item.name, reason: refusalWords(out.reason) }));
       else ui.notifications.info(game.i18n.format("FGT.HUD.EndQueuedNotice", { name: item.name }));

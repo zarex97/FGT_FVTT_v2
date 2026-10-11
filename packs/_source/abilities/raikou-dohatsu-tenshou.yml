@@ -54,7 +54,8 @@ targeting:
   # "Range=3. Hits a 3x3 panel area within Range."
   anchor: { kind: withinRange, range: 3 }
   shape: { kind: square, size: 3 }
-  selection: { relations: [enemy], chooser: all }
+  # Every Unit in the 3x3, allies too (#195 reading 16).
+  selection: { relations: [enemy, ally, neutral], includeSelf: true, chooser: all }
 damage:
   # FIVE INSTANCES, each its own Combat Process and therefore its own reaction
   # ladder -- which is exactly what "each of these four Attacks can be

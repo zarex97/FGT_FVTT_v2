@@ -18,7 +18,7 @@
 /** Actor fields a pack document may state. */
 export const AUTHORED_ACTOR_KEYS = Object.freeze([
   "npChoice", "rank", "commandSpells", "zon", "footprint", "upkeep",
-  "countsTowardBudget", "actsOncePerTurn", "leavesWithSummoner", "boundToPlatformId",
+  "countsTowardBudget", "actsOncePerTurn", "leavesWithSummoner", "leavesWithMode", "boundToPlatformId",
   "movesOntoOccupiedPanels", "sharesPanel", "replacesRiderAction",
   "countsAsHomeBase", "deactivation", "undamageable", "cannotHoldItems",
   // The Hanging Gardens' boarding relief after Dragon Wing Warriors (#68).
@@ -73,7 +73,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "npGateRound", "itemCost", "category", "kind", "passive", "countsAsAttack",
   "countsAsAct", "oncePerTurn", "oncePerRound", "alsoTriggers",
   "exclusionSet", "grantedBy", "sameTurnExclusive", "sameRoundExclusive",
-  "bypassesCategoryLimit", "refusesReactionsUnlessFaster", "offersSpellCategory", "reactionFree",
+  "bypassesCategoryLimit", "refusesReactionsUnlessFaster", "offersSpellCategory", "reactionFree", "usedWithNormalAttack",
   "freeAction",
   "timesUsed", "maxUses", "lastUsedTick", "recordedAttacks",
   "recordsAttacks", "shield", "shieldHealth", "negatedBy", "negatedWhile",

@@ -304,6 +304,16 @@ export function beginRound(board, ctx) {
 /* -------------------------------------------------------------------------- */
 
 /**
+ * Whether an event is a Turn or Round boundary, where an expiring effect no
+ * longer acts (Ch. 15).
+ * @param {string} event
+ * @returns {boolean}
+ */
+function isBoundaryEvent(event) {
+  return /turnEnd|roundEnd|TurnEnd|RoundEnd|turnStart|roundStart|TurnStart|RoundStart/.test(String(event));
+}
+
+/**
  * Fire every rule element listening for `event` on the given units.
  * @param {string} event
  * @param {object[]} units
@@ -322,8 +332,13 @@ export function fireEvent(event, units, ctx) {
       // for the handlers an effect contributes -- Regen's three intervals are
       // handlers, not a periodic, so it would have healed once more on its way
       // out. `null` for an ability's own handler, which has no clock.
+      //
+      // A BOUNDARY rule. Inside the Turn the effect is still in force -- its
+      // modifiers apply -- so its in-Turn handlers act too: Crit DmUp (Martial),
+      // expiring at tick 4, scaled a crit at tick 4 and kept its use, because
+      // this skipped the `damageDealt` handler that spends it (#195).
       if (handler.expiry !== null && handler.expiry !== undefined
-        && handler.expiry <= (ctx.tick ?? 0)) continue;
+        && handler.expiry <= (ctx.tick ?? 0) && isBoundaryEvent(event)) continue;
 
       // ...and the mirror. *"At the end of this Unit's Turn EXCEPT the Turn
       // this Skill was activated"* -- Kingprotea's `NP DmUp (GAO)` decays one
@@ -363,6 +378,11 @@ export function fireEvent(event, units, ctx) {
         const options = new Set([
           ...(ctx.options ?? []),
           ...rollOptionsFor({ attacker: u, defender: null }),
+          // Whose Turn this boundary is, for an `anyTurnEnd` handler that
+          // treats its own Turn apart: Tenmōkaikai charges *"at the end of
+          // Raikou's Turn and at the end of any Turn Raikou or any of her
+          // copies Acts"* (#195).
+          ...(ctx.activeFactionId != null && sideOf(u) === ctx.activeFactionId ? ["self:ownTurn"] : []),
         ]);
         if (!testPredicate(handler.targetPredicate, { options })) continue;
       }
@@ -1486,6 +1506,8 @@ export function pendingRolls(unit, event) {
         out.push({
           key: chanceKey(action, unit), formula: "1d100", bonus: 0, chance: action.chance,
           label: [action.key, action.effect?.id ?? action.effect?.defId].filter(Boolean).join(" "),
+          // The effect it gates, so the card can say when the target resisted it (#195).
+          effectId: action.effect?.id ?? action.effect?.defId ?? null,
           // The handler's own condition, so a caller filing the roll can tell
           // a roll that decided something from one whose clause never applied
           // (#187: Drake's 15% token roll was printed on attacks that did not Crit).

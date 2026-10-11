@@ -318,8 +318,14 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // five cards to five sentences of Dohatsu Tenshou should find them in the
   // sheet's order.
   const targetIds = defenders.flatMap((t) => instanceSpecs.map(() => t.unitId));
-  // The spec each of those processes resolves under, in the same order.
-  const perProcess = defenders.flatMap(() => instanceSpecs);
+  // The spec each of those processes resolves under, in the same order. The
+  // whole instance travels as `instanceBlock` too, because the damage step
+  // reads its multiplier, base and element from a BLOCK: it read the ability's
+  // top-level block, so Dohatsu Tenshou's four 0.5x sub-attacks dealt 1x with
+  // no element and its 3.5x+200 BA(MAG) part dealt 1x BA(STR) (#195).
+  const perProcess = defenders.flatMap(() => instanceSpecs.map((s, i) => ({
+    ...s, instanceBlock: s, instanceIndex: i, instanceCount: instanceSpecs.length,
+  })));
 
   // WHICH RING each target stands in, carried forward from the geometry pass.
   //
@@ -665,6 +671,18 @@ function rideFacts(placement) {
 function attackerProperties(attacker) {
   if (!attacker) return [];
   return unitSnapshot(attacker)?.attackProperties ?? [];
+}
+
+/**
+ * The element, and its share, the attacker's own state grants an attack, read
+ * from a unit's `attackProperties`.
+ * @param {Array<{property: string, value: unknown}>} props
+ * @returns {{element: string|undefined, fraction: number|undefined}}
+ */
+function grantedElementIn(props) {
+  const element = props.find((p) => p.property === "element" && typeof p.value === "string")?.value;
+  const fraction = element ? props.find((p) => p.property === "elementFraction")?.value : undefined;
+  return { element, fraction: typeof fraction === "number" ? fraction : undefined };
 }
 
 /**
@@ -1342,6 +1360,12 @@ export async function advanceAttack({ messageId, event, abilityId = null, placem
     }
   }
 
+  // An Evade and a Block are Acts (#195 reading 12): *"at the end of any Turn
+  // Raikou or any of her copies Acts"* charges for a copy that only dodged.
+  // Recorded once the rung is taken, below. #194 re-rules Penthesilea by it.
+  const reacting = state.state === "react" && (event === "evade" || event === "block")
+    ? state.defenderId : null;
+
   // Ch. 32 rule 4's price: *"in this situation, Servants cannot Evade the enemy
   // Unit's AoE NP if their Master is within a 2 panel range of them."* A
   // Servant that has just failed to shove its Master takes the blast standing.
@@ -1410,6 +1434,9 @@ export async function advanceAttack({ messageId, event, abilityId = null, placem
     state = process.advance(state, "counter", { counterMessageId: counter?.messageId ?? null });
   } else {
     state = process.advance(state, event);
+  }
+  if (reacting && state.state !== "react") {
+    await applyBatch([I.markTurn(reacting, { acted: true })], "reaction:acted");
   }
 
   // Drive through every state that needs no human input — pausing at any rung
@@ -1930,11 +1957,17 @@ function isFirstOfGroup(state) {
  */
 function siblingMessages(state) {
   if (!state.groupId) return [];
+  // The same ATTACKER as well as the same group. A Counter shares its parent's
+  // groupId (Ch. 21's Combat Phase), so the parent's first message was the
+  // counter's "first of group": Raikou's Mana Burst Counter never applied its
+  // own Dodge, because the Process that "paid" it was Mannanán's attack on her
+  // (#195).
   return game.messages.filter((m) => {
     const raw = m.getFlag("fgt", "process");
     if (!raw) return false;
     try {
-      return process.deserialize(raw).groupId === state.groupId;
+      const sibling = process.deserialize(raw);
+      return sibling.groupId === state.groupId && sibling.attackerId === state.attackerId;
     } catch {
       return false;
     }
@@ -2289,6 +2322,8 @@ async function fireDamageDealt(state, result) {
   // could see the die.
   /** @type {object[]} */
   const records = [];
+  /** @type {object[]} the chance rolls, filed once the effects have resolved */
+  const filed = [];
   const tick = game.combat?.system?.globalTurn ?? 0;
   // A mount that attacks IN PLACE of its driver attacks as her (#187 reading
   // 2): the Golden Hind's Attack is *"Drake's Normal Attack"*, replaced, so its
@@ -2315,26 +2350,45 @@ async function fireDamageDealt(state, result) {
       // Burn read "hit" on Brahmastra and applied nothing (#190).
       options: new Set([...options, ...selfOptionsOf(hearer)]),
     })) continue;
-    const hit = rolls[spec.key] <= spec.chance;
+    filed.push({ spec, hit: rolls[spec.key] <= spec.chance });
+  }
+
+  // A handler that throws is reported, and the Process goes on. The 'Raikou'
+  // buff's "-⅓◈" threw here, the Damage Step never saved, and every retry of
+  // the reaction applied the hit again (#195).
+  let intents = [];
+  try {
+    intents = fireEvent("damageDealt", hearers, {
+      tick: game.combat?.system?.globalTurn ?? 0,
+      turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+      board,
+      options,
+      victim: { unitId: state.defenderId },
+      rolls,
+    });
+  } catch (err) {
+    console.error("FGT | A damageDealt handler failed:", err);
+    ui.notifications?.error(`FGT | ${err.message}`);
+  }
+  const logged = () => (game.combat?.getFlag?.("fgt", "log") ?? []).length;
+  const before = logged();
+  if (intents.length > 0) await applyBatch(intents, "damageDealt");
+  // What the target's resistance did to a die that came in under the stated
+  // chance: "hit" alone hid it (#195).
+  const resisted = (game.combat?.getFlag?.("fgt", "log") ?? []).slice(before)
+    .filter((e) => e.kind === "effectResisted" && e.unitId === state.defenderId);
+  for (const { spec, hit } of filed) {
+    const lost = hit ? resisted.find((e) => e.defId === spec.effectId && e.sourceUnitId === state.attackerId) : null;
+    const verdict = !hit ? "missed" : lost ? `resisted (${lost.chance})` : "hit";
     records.push(rollLog.record({
       id: `${state.attackerId}:${state.defenderId}:rider:${spec.key}:${tick}`,
       globalTurn: tick, entryId: "rider-", formula: spec.formula,
       raw: rolls[spec.key], total: rolls[spec.key],
-      modifiers: [{ source: `against ${spec.chance}%: ${hit ? "hit" : "missed"}`, delta: 0, stage: "chance" }],
+      modifiers: [{ source: `against ${spec.chance}%: ${verdict}`, delta: 0, stage: "chance" }],
       purpose: `${attacker.name}: ${spec.label || "rider"} on ${defender.name}`,
       actorId: state.attackerId,
     }));
   }
-
-  const intents = fireEvent("damageDealt", hearers, {
-    tick: game.combat?.system?.globalTurn ?? 0,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-    board,
-    options,
-    victim: { unitId: state.defenderId },
-    rolls,
-  });
-  if (intents.length > 0) await applyBatch(intents, "damageDealt");
   return records;
 }
 
@@ -3385,6 +3439,10 @@ async function awaitInterrupt(message, state) {
  * @returns {boolean}
  */
 function counterAvailable(state) {
+  // One Counter per target for a declaration of several instances, offered on
+  // its LAST: Dohatsu Tenshou's four sub-attacks are "treated as Normal
+  // Attacks", and each offered its own Counter, five per target (#195 reading 17).
+  if ((state.attack?.instanceCount ?? 1) > 1 && (state.attack?.instanceIndex ?? 0) < state.attack.instanceCount - 1) return false;
   const board = boardSnapshot();
   const attackerDoc = game.actors.get(state.attackerId);
   const defenderDoc = game.actors.get(state.defenderId);
@@ -4145,10 +4203,14 @@ async function applyDamage(state, message) {
       // come from the block this resolution is under, so an aftermath's splash
       // reads its own and not the primary's (#136).
       ...identity,
+      // `facts` carries an element the attacker's own state grants an attack
+      // that has none (`withGrantedElement`, #195). A block with its own element
+      // keeps it, and does not take the granted share either.
       element: block?.element ?? ability?.system?.element ?? facts.element ?? null,
       elementFraction: block?.elementFraction
         ?? (state.attack?.isAftermath ? undefined : ability?.system?.damage?.elementFraction)
-        ?? facts.elementFraction ?? undefined,
+        ?? (facts.grantedElement && (block?.element ?? ability?.system?.element) ? undefined : facts.elementFraction)
+        ?? undefined,
       // Dragon Wing Warriors: "50 Fixed STR damage". The pipeline has read
       // `ctx.attack.isFixedDamage` (stages 1 and 2, `rules/damage/pipeline.mjs`)
       // since it was written; nothing ever set it from content, so an authored
@@ -5608,6 +5670,25 @@ function rollOptions(attacker, defender, state, extra = {}) {
 }
 
 /**
+ * An element-less attack takes the element the attacker's state grants:
+ * *"During the NP duration, Raikou's Attacks … Lightning damage (half)"* (#195).
+ * In the facts, so `attack:element:*` options see it as the pipeline does. An
+ * ability's own element, stated or in its damage block, keeps it.
+ *
+ * @param {object} attacker attacker snapshot
+ * @param {object} facts
+ * @returns {object}
+ */
+function withGrantedElement(attacker, facts) {
+  if (facts.element) return facts;
+  const doc = facts.abilityId ? globalThis.game?.actors?.get(attacker?.id)?.items?.get(facts.abilityId) : null;
+  if (doc && (doc.system?.element ?? doc.system?.damage?.element)) return facts;
+  const granted = grantedElementIn(attacker?.attackProperties ?? []);
+  if (!granted.element) return facts;
+  return { ...facts, element: granted.element, elementFraction: facts.elementFraction ?? granted.fraction, grantedElement: true };
+}
+
+/**
  * Everything about THIS attack that a predicate may ask about.
  *
  * One builder, because there were four call sites and each spread a different
@@ -5634,10 +5715,10 @@ export function attackFacts(attacker, defender, state, board = null) {
   // Nemo's Quickfire reads it twice: once for "+1 if the enemy Unit Evades",
   // and once for the cooldown refund "if the enemy Unit does not perform a
   // Counter".
-  const facts = {
+  const facts = withGrantedElement(attacker, {
     ...(state.attack ?? {}), kind, isAoE: Boolean(state.isAoE), range,
     reaction: state.reaction ?? null,
-  };
+  });
 
   // A Normal Attack that changes shape with distance decides two of these
   // fields itself, and only here -- the declaration cannot, because the
@@ -5658,6 +5739,7 @@ export function attackFacts(attacker, defender, state, board = null) {
     // to. Mesektet is *"All Normal Attacks ... Light damage"*, and without this
     // the pipeline's element stage returned at once and the type was lost.
     element: normal.element ?? facts.element ?? null,
+    elementFraction: normal.element ? normal.elementFraction : facts.elementFraction,
     ignoresMagicResistance: facts.ignoresMagicResistance || normal.ignoresMagicResistance,
     // Stage 11's Rank for a Normal Attack that is not the attacker's own (#187).
     attackRank: normal.attackRank ?? null,
@@ -5720,14 +5802,19 @@ export function previewContext({ caster: given, defender, ability, board, isNP }
   // Branch-resolved against the full option set, as `damageContext` does.
   const damage = resolvedDamage(ability, options);
   const identity = attackIdentityOf(ability, options);
+  const granted = grantedElementIn(caster?.attackProperties ?? []);
 
   return {
     attacker: caster, defender, board,
     attack: {
       ...facts,
       ...identity,
-      element: identity.element ?? facts.element ?? null,
-      elementFraction: identity.elementFraction ?? facts.elementFraction ?? undefined,
+      // The element the caster's state grants an element-less attack, as the
+      // resolution reads it (#195): without it the preview showed Tenmōkaikai's
+      // attacks with no Lightning half.
+      element: identity.element ?? facts.element ?? granted.element ?? null,
+      elementFraction: identity.elementFraction ?? facts.elementFraction
+        ?? ((identity.element ?? facts.element) ? undefined : granted.fraction) ?? undefined,
     },
     // `declaredBase` is the part of `baseSpecFor` that needs no document: an
     // ability that declares a `damage.component` and no `base` is built from that
@@ -5878,9 +5965,9 @@ function resolvedDamage(ability, options) {
  * @returns {object|null}
  */
 export function damageBlockFor(ability, options, attack = null) {
-  return attack?.isAftermath
-    ? (ability?.system?.aftermath?.damage ?? null)
-    : resolvedDamage(ability, options);
+  if (attack?.isAftermath) return ability?.system?.aftermath?.damage ?? null;
+  // One instance of a multi-instance declaration resolves under its own block.
+  return attack?.instanceBlock ?? resolvedDamage(ability, options);
 }
 
 

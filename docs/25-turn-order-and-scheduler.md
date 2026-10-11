@@ -89,6 +89,10 @@ A boundary is named by **Foundry's own counters** (`round` and `turn`), not by `
 
 **NP Regen does not tick on the Turn it expires** (#193 reading 7). `npRegenOf` skips an `npCooldownRegen` instance whose expiry is the Turn ending, as `tickPeriodics` does for every `periodic:` effect, so 1◈ takes 1◈ off.
 
+**An effect in its last Turn still acts inside it** (#195). `fireEvent` skips an instance on its expiry tick only for boundary events (`isBoundaryEvent`: `turnStart`, `turnEnd`, `roundStart`, `roundEnd` and their kin). Crit DmUp (Martial) expiring this Turn still spends its use on this Turn's crit; it skipped the in-Turn handler before.
+
+**`self:ownTurn` and `anyTurnEnd`** (#195). `fireEvent` adds `self:ownTurn` to a handler's options when the bearer's side holds the Turn. Tenmōkaikai's upkeep is one `anyTurnEnd` handler gated `or: [self:ownTurn, self:selfOrSummonsActed]`: her own Turn always charges, any other Turn charges when she or a copy Acted, and a Turn End charges once. It sat on `turnEnd`, which fires only on her side's Turn, gated on her Acting. A handler's `at: turnEnd` actions (`runDeferred`) reach the Turn-end card too.
+
 1. **Only the active GM client runs sequences.** Two browser tabs on one Gamemaster are two **connections**, and both pass `game.users.activeGM?.isSelf` until the token settler runs (`module/engine/scheduler-hooks.mjs:358-360`, `module/engine/scheduler-hooks.mjs:370`).
 
 2. **Turn order is a faction list, not a token list.** A Combatant is a faction; adding tokens to the tracker does nothing useful (`module/documents/combat.mjs:26-30`). The match must be populated through `addFaction` or `syncFactions` (`module/documents/combat.mjs:34-91`).

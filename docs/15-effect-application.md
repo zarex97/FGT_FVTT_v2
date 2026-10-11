@@ -76,6 +76,8 @@ Outcome: `passed` or `resisted`. The trace records the roll and all modifiers in
 
 **An entry's own predicate reads the caster as the board sees it (#191).** The Skill path tests a per-entry `predicate` against `phaseCtx.self`, the board-derived caster, so `self:terrain:*` and `self:onPlatform:*` are answerable there as they are for the phase gates and the cooldown branch. A bare snapshot left Voyager of the Storm's Waterside Atk Up unappliable.
 
+**A resisted rider says so** (#195). The rider's chance roll is filed after its effect has resolved: a resisted application logs `effectResisted`, and the card reads *"against 50%: resisted (rolled 39 vs 30%)"*. It was filed first and read "hit" while the target's resistance turned the same die away.
+
 ### Step 4: Prevention window
 
 An offered prevention (`Luck Check`) pauses the application and returns a prompt intent. Only offered once per Combat Process and never against terminal effects (`module/engine/effect-applier.mjs:172-182`).

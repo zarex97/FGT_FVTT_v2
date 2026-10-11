@@ -19,6 +19,7 @@ import { ridingDestinations, ridingRefusal } from "../../rules/movement.mjs";
 import { classifyAbility, usageSpecFor } from "../../rules/ability-use.mjs";
 import { answersACounter, counterMustCatchAttacker } from "../../rules/counter.mjs";
 import { canUseAbility } from "../../rules/costs.mjs";
+import { canToggleMode } from "../../rules/modes.mjs";
 import { test as testPredicate } from "../../rules/predicate.mjs";
 import { rollOptionsFor } from "../../rules/options.mjs";
 import { publicNameOf } from "../../rules/identity.mjs";
@@ -241,7 +242,12 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         // the raw document, which has `isSpell`, `categorizedAs` and `creates`
         // where the spec had none, so the bar and the declaration disagreed in
         // both directions (#155).
-        const verdict = canUseAbility({
+        // A mode that is ON is switched OFF from this slot, which asks the
+        // mode's own rules, not the use gate: Tenmōkaikai's slot greyed "The
+        // Master cannot pay the Health cost" while it ran, so nothing could end
+        // it (#195 reading 14). Switching off costs nothing.
+        const ending = use.toggles && Boolean(item.system?.active);
+        const verdict = ending ? endVerdict(item, actor) : canUseAbility({
           ability: usageSpecFor(item), unit, master, board, ...gateContext(),
           // Armed for a Counter, which is made on the enemy's Turn by
           // definition: an ability used only "during your Turn" still answers
@@ -266,12 +272,21 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         // does, and is refused by the same sentence: Triton's Conch stayed lit
         // after a Riding Attack while the Attack slot beside it greyed, and its
         // targeting opened, offered "Attack", and the declaration threw (#191).
-        const spent = !this.counter && use.isAttack ? afford("attack") : { ok: true, reason: null };
+        const spent = !this.counter && use.isAttack && !ending ? afford("attack") : { ok: true, reason: null };
         if (!spent.ok) {
           return {
             ...slot, disabled: true,
             group: use.toggles ? "mode" : (entry.isNP ? "np" : "skill"),
             tooltip: `${item.name} — ${spent.reason}`,
+          };
+        }
+        if (ending && !verdict.ok) return { ...slot, group: "mode", tooltip: verdict.text };
+        // A Mode whose End waits for the boundary says so, and a press takes
+        // it back (#195 reading 14).
+        if (ending && isQueued(item.id)) {
+          return {
+            ...slot, group: "mode",
+            tooltip: game.i18n.format("FGT.HUD.EndQueuedCancel", { name: item.name }),
           };
         }
         return {
@@ -664,6 +679,32 @@ function refusalText(reason) {
   return game.i18n.has(key) ? game.i18n.localize(key) : reason;
 }
 
+/**
+ * Whether a mode that is on may be switched off now, as the use gate's shape.
+ *
+ * With the refusal in the sheet's own words (`FGT.Mode.*`): the use gate's
+ * mapping has no entry for a mode's reasons, and the slot read
+ * "Mad Enhancement — toggleLock" (#195).
+ *
+ * @param {object} item
+ * @param {object} actor
+ * @returns {{ok: boolean, reason: string|null, text: string|null}}
+ */
+function endVerdict(item, actor) {
+  const self = unitSnapshot(actor);
+  const v = canToggleMode(item, self, {
+    active: false,
+    tick: game.combat?.system?.globalTurn ?? 0,
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    round: game.combats?.active?.round ?? null,
+    ownTurn: ownTurnOf(self),
+  });
+  if (v.ok) return { ok: true, reason: null, text: null };
+  const key = `FGT.Mode.${v.reason}`;
+  const text = game.i18n.has(key) ? game.i18n.format(key, { name: item.name, ...(v.detail ?? {}) }) : `${item.name} \u2014 ${v.reason}`;
+  return { ok: false, reason: v.reason, text };
+}
+
 /* -------------------------------------------------------------------------- */
 
 /**
@@ -701,6 +742,26 @@ export async function rideFrom(actor, { ability = null, context = {} } = {}) {
     panels, label: ability?.name ?? game.i18n.localize("FGT.Action.RidingAttack"),
   });
   if (!destination) return;
+
+  // A ride IS a Normal Attack, so an ability used WITH one may ride along:
+  // Raikou's Mana Burst (#195 reading 4). Offered only when its gate passes.
+  if (!ability) {
+    const usable = [...actor.items].filter((i) => i.system?.usedWithNormalAttack && canUseAbility({
+      ability: usageSpecFor(i), unit, round: game.combat?.round ?? 1, board, ...gateContext(),
+      testPredicate: (p) => testPredicate(p, { options: rollOptionsFor({ attacker: unit }) }),
+    }).ok);
+    if (usable.length > 0) {
+      const { ChoiceDialog } = await import("../choice-dialog.mjs");
+      const picked = await ChoiceDialog.pick({
+        title: game.i18n.localize("FGT.Riding.WithAbility"),
+        hint: game.i18n.localize("FGT.Riding.WithAbilityHint"),
+        count: 1, min: 0,
+        options: usable.map((i) => ({ id: i.id, name: i.name })),
+      });
+      const chosen = picked?.[0] ? actor.items.get(picked[0]) : null;
+      if (chosen) ability = chosen;
+    }
+  }
 
   const { performAction } = await import("../../engine/actions.mjs");
   const result = await performAction("ridingAttack", {

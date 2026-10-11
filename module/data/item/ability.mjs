@@ -357,6 +357,12 @@ function abilityCommon() {
     // Trofa, which IS her Evade, leaves this false.
     reactionFree: new fields.BooleanField({ initial: false }),
 
+    // Used WITH a Normal Attack rather than as one of its own: Raikou's Mana
+    // Burst (Lightning) *"is used when Raikou performs a Normal Attack"*. A
+    // Riding Attack is a Normal Attack, so the ride offers it, and every Unit the
+    // ride hits takes it (#195 reading 4).
+    usedWithNormalAttack: new fields.BooleanField({ initial: false }),
+
     // The same limit one scale up, and the same argument `sameRoundExclusive`
     // makes against `sameTurnExclusive`: a Servant acts up to three times in a
     // Round, so a per-Turn cap forbids almost nothing. Karna's *Uncrowned Arms

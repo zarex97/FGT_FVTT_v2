@@ -400,6 +400,16 @@ async function resolveEffects(intents) {
     // knows the duration this application was authored with; the flow recomputes
     // from the definition's default, which is not the same thing.
     out.push(...result.intents.map((i) => mergeEmitted(i, intent)));
+    // A resisted effect leaves a trace. Usui's Disable rolled 39 under its 50%,
+    // the card said "hit", and Mannanán's resistance took it to 30% with nothing
+    // anywhere saying so (#195). The rider's card reads this back.
+    if (result.outcome === "resisted") {
+      out.push({ t: "log", entry: {
+        kind: "effectResisted", unitId: intent.unitId, defId: def.id,
+        sourceUnitId: inflicter, chance: result.reason ?? null,
+        tick: game.combat?.system?.globalTurn ?? 0,
+      } });
+    }
 
     // What the effect does as it LANDS, once: Shock's *"maximum and current
     // Agility are reduced by 3"*. The maximum is derived and comes back when

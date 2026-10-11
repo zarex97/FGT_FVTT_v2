@@ -66,6 +66,25 @@ export async function queueEnd(entry, combat = game.combats?.active) {
 }
 
 /**
+ * Take an End back off the queue before its boundary (#195 reading 14:
+ * *"it ends at the next Turn or Round boundary, and it can be cancelled before
+ * then"*).
+ * @param {string} id
+ * @param {object} [combat]
+ * @returns {Promise<boolean>} whether there was one to cancel
+ */
+export async function cancelEnd(id, combat = game.combats?.active) {
+  if (!combat || !isQueued(id, combat)) return false;
+  const entry = queuedEnds(combat).find((e) => e.id === id);
+  await combat.setFlag("fgt", FLAG, queuedEnds(combat).filter((e) => e.id !== id));
+  await applyWorldIntents(
+    [I.log({ kind: "field", event: "endCancelled", unitId: entry?.ownerId ?? null, field: id, tick: combat.system?.globalTurn ?? 0 })],
+    "queuedEnd",
+  );
+  return true;
+}
+
+/**
  * End everything that was waiting for this boundary.
  *
  * The queue is emptied before anything ends, so an end that throws cannot be

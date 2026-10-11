@@ -64,6 +64,8 @@ Test: `test/unit/roll-records.test.mjs`.
 
 **A Skill card names what it removed and what it rolled** (#193). A `removeEffect` phase adds a row per effect taken off (*"Burn removed"*), and a summon's row carries its dice and names (*"5 summoned (1d6 → 5; 1d4 → 4, 3, 3, 2, 1): …"*).
 
+**The Turn-end card names the modes it ended** (#195). Beside Health changes, `turnEndCard` lists each mode a Turn-end handler switched off — *"Goō Shōrai・Tenmōkaikai ends on Raikou (Goō Shōrai・Tenmōkaikai)."* — including a handler owed `at: turnEnd`. A rider's chance line ends *"resisted (rolled … vs …%)"* when the target resisted it (Ch. 15).
+
 1. **Process state on message flags survives reconnect.** The card IS the audit record; replaying a match means re-executing from the log, not from saved state, so the process must be readable from flags alone (`module/apps/chat/cards.mjs:2-8`).
 
 2. **Visibility is by-side, not by-name.** A row with no side belongs to the board and is shown to everyone. Dropping it would silently change the arithmetic, which reads as a bug rather than as discretion (`module/rules/card-visibility.mjs:181-183`).

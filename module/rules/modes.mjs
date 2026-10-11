@@ -338,8 +338,8 @@ export function forcedModes(unit, items, { tick = 0, board = null } = {}) {
  * deactivated"*. Ruled 2026-10-06 (#190 reading 13): at ANY moment, not only
  * at the end of a Turn it Acts, so a Master the enemy drops to 30 is not then
  * drained to 0. Read off the mode's own authored `SetMode` -- `active: false`
- * with a `whenValue` -- so the threshold, its table and Castor's partner
- * factor are the ones the Turn-end check already uses.
+ * with a `whenValue` and `atAnyMoment: true` -- so the threshold, its table and
+ * Castor's partner factor are the ones the Turn-end check already uses.
  *
  * @param {object} item the mode, as a document or `{system}`
  * @param {object} unit its bearer's board snapshot
@@ -351,7 +351,11 @@ export function forcedOffNow(item, unit, board) {
   if (!sys.isMode) return false;
   for (const rule of sys.activeRules ?? []) {
     for (const action of rule.then ?? []) {
-      if (action.key !== "SetMode" || action.active !== false || !action.whenValue) continue;
+      // Only a limit the sheet states as a STATE. Tenmōkaikai's is a moment --
+      // *"if her Master has 25 or less and would lose it"* -- and read here it
+      // ended the NP the instant its own upkeep took her Master from 26 to 1
+      // (#195). Its Turn-end handler answers it there.
+      if (action.key !== "SetMode" || action.active !== false || !action.whenValue || !action.atAnyMoment) continue;
       const gate = action.whenValue;
       const subject = gate.subject === "master"
         ? (board?.units ?? []).find((u) => u.id === unit?.masterId) ?? null

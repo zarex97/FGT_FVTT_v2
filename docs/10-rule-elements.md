@@ -185,3 +185,5 @@ With that, `KNOWN_RULE_DROPS` is empty: every key inside every rule element reac
   "covers all 54" long after the count reached 62, and now says what it actually checks.)
 
 - **Multi-client determinism via source id has never been tested in a live world with changing load order.** The code is correct by reading, but a test of two clients loading documents in reverse order and computing the same contributions would confirm it (`module/rules/ordering.mjs:102-105`).
+
+**`AttackProperty` carries a string, and `DamageModifier` its element** (#195). Tenmōkaikai grants `AttackProperty element lightning` beside `elementFraction 0.5`; the executor kept only numbers and booleans. `DamageModifier` passes `element` through, which an `elementDefUp`/`elementAtkUp` needs for stage 4b to match it (Ch. 22).

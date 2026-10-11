@@ -44,6 +44,7 @@ const text = (v) => (v == null ? v : String(v));
 export const UNIT_ROUTES = {
   actsOncePerTurn: same("actsOncePerTurn"),
   leavesWithSummoner: doc("module/engine/io.mjs", "read off the summon when its summoner is defeated"),
+  leavesWithMode: doc("module/engine/scheduler-hooks.mjs", "read off the summon when its summoner's mode ends"),
   alignment: same("alignment"),
   baseAttack: same("baseAttack"),
   baseHealth: same("baseHealth"),
@@ -175,6 +176,7 @@ export const ABILITY_ROUTES = {
   offersSpellCategory: doc("module/engine/attack.mjs", "offered at use"),
   oncePerRound: doc("module/rules/ability-use.mjs", "gates the use"),
   reactionFree: doc("module/engine/attack.mjs", "keeps the reaction rung open after the ability"),
+  usedWithNormalAttack: doc("module/apps/hud/action-bar.mjs", "offered on a Riding Attack"),
   oncePerTurn: doc("module/rules/ability-use.mjs", "gates the use"),
   opensDialog: doc("module/rules/ability-use.mjs", "the use opens a dialog"),
   parameterized: doc("tools/lib/content.mjs", "a template's slot list, consumed at compile"),

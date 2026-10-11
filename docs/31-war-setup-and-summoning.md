@@ -72,6 +72,8 @@ Mid-game, `attemptContract` rolls what the plan asks for. Allied contracts to al
 
 **A summon's panels can be its owner's pick, and it can leave with its summoner** (#193 readings 13, 15). `placement.chooser: owner` asks the owner, through `askOwner` and the `pickPanels` prompt, for one panel per summon among the free ones; a cancel places the rest. `leavesWithSummoner: true` dismisses the summon when `io.defeat` writes its summoner's defeat. `dismissSummon` deletes tokens by scene query and then the WORLD actor: `resolve` prefers an unlinked token's synthetic actor, and deleting that left the world actor behind. The card names the dice and who came, and the type choice lists names.
 
+**A copy inherits the authored stat, and leaves with the mode that made it** (#195). A scalar `inherit` reads `summoner._source.system[stat]`: Raikou's copies took MOV 9, her Riding +5 included, where the sheet gives them her 4. `leavesWithMode: <slug>` dismisses a summon when its summoner's mode with that slug switches off, whatever ended it (`scheduler-hooks.mjs#onModeEnded`). `lastOfSummonGroup` counts only summons not defeated: a defeated body stays a Turn, until `clearBody`, and counted it kept the last copy standing from being the last.
+
 1. **Factions must be symmetric.** If red allies blue, blue must ally red. `normalizeFactions` enforces this (`module/rules/factions.mjs:84-89`).
 
 2. **A faction's id never changes.** The name is free to change; the id is what every actor stores and must remain stable (`module/rules/factions.mjs:124-149`).

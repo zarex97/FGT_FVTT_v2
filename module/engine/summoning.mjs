@@ -375,7 +375,10 @@ export async function placeSummons(contentIds, panels, summoner, scene, spec, st
       // max}` into it would hand the schema an object where it wants a number
       // and silently leave the summon on MOV 0.
       const scalar = typeof raw === "number";
-      const base = scalar ? raw : (raw?.max ?? raw?.value ?? 0);
+      // A scalar from the SOURCE: `system.mov` is derived, and carries Riding's
+      // +5 and Mad Enhancement's +2 -- her own effects, which the copies cannot
+      // use. Raikou's copies came out at MOV 9 where hers is 4 (#195 reading 7).
+      const base = scalar ? (summoner._source?.system?.[stat] ?? raw) : (raw?.max ?? raw?.value ?? 0);
 
       // A FACTOR beside the existing delta. Raikou's copies are *"the same Max
       // Agility, Max Luck and MOV as Raikou, but Max Health is halved"* -- 1250

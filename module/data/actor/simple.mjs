@@ -32,6 +32,9 @@ export class SummonData extends foundry.abstract.TypeDataModel {
       // Warriors go with her (#193 reading 15); a summon that outlives its
       // summoner leaves this false.
       leavesWithSummoner: new fields.BooleanField({ initial: false }),
+      // Leaves the board when the summoner's mode of this slug ends. Raikou's
+      // copies go with Tenmōkaikai (#195 reading 13).
+      leavesWithMode: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
       // Stats stated RELATIVE to the summoner. The Kagome Spirits are the
       // first: *"Agility: Pale Rider's plus 2"*, *"Luck: Same as Pale
       // Rider's"* -- numbers that cannot be written on the sheet because they
