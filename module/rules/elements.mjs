@@ -962,6 +962,12 @@ export const EXECUTORS = Object.freeze({
       value: round(scalar(v) * f),
       ...(np !== null && np !== undefined ? { npValue: round(scalar(np) * f) } : {}),
       component: el.component ?? null,
+      // The element an `elementDefUp`/`elementAtkUp` is scoped to. Stage 4b
+      // matches it against the attack's and scales by the attack's share:
+      // Raikou's *"All Lightning damage taken is reduced by 50%"* meets half of
+      // a half-Lightning attack (#195). Dropped here, no element key could be
+      // authored at all.
+      element: el.element ?? null,
       // `null` when the collection pass answered it; the clause itself when it
       // could not, for the pipeline to answer with the attack in scope.
       predicate: deferred,
@@ -1207,9 +1213,11 @@ export const EXECUTORS = Object.freeze({
     // A bare `property:` means "grant it", so the default is `true`. A number
     // resolves through the `@` machinery like any other magnitude; a boolean
     // must survive intact, and `scalar()` would flatten it.
+    // A string survives too: Tenmōkaikai grants `element: lightning` (#195).
     const value = el.value === undefined
       ? true
-      : (typeof el.value === "boolean" ? el.value : scalar(resolveValue(el, rank, ctx)));
+      : (typeof el.value === "boolean" || (typeof el.value === "string" && !el.value.startsWith("@"))
+        ? el.value : scalar(resolveValue(el, rank, ctx)));
     out.attackProperties.push({ property: el.property, value, predicate: deferred, source });
   },
 

@@ -17,7 +17,16 @@ volatility: nonVolatile
 valence: offensive
 stacking: magnitudeStacks
 baseChance: 100
+# The value follows Mad Enhancement LIVE (#195 reading 3): +30% while it is
+# Active, +60% while it is not, changing as it flips. So the two figures are
+# two predicated rules read at every projection, not a magnitude fixed when
+# the buff lands. Raikou's Genji-clan is the only source.
 rules:
   - key: CheckModifier
     check: crit
-    value: "@magnitude"
+    value: 30
+    predicate: ["self:skillActive:madEnhancement"]
+  - key: CheckModifier
+    check: crit
+    value: 60
+    predicate: ["not:self:skillActive:madEnhancement"]

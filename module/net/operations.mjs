@@ -264,6 +264,23 @@ export const OPERATIONS = Object.freeze({
     },
   },
 
+  /** Take a queued Mode End back before its boundary (#195 reading 14). */
+  cancelModeEnd: {
+    authorize: (payload, userId) => {
+      const user = game.users.get(userId);
+      const actor = game.actors.get(payload.actorId);
+      if (!user || !actor) return { allowed: false, reason: "Unknown actor." };
+      if (user.isGM || actor.testUserPermission(user, "OWNER")) return { allowed: true, reason: null };
+      return { allowed: false, reason: `${user.name} does not control ${actor.name}.` };
+    },
+    execute: async (payload) => {
+      const item = game.actors.get(payload.actorId)?.items.get(payload.itemId);
+      if (!item) return { ok: false, reason: "mayNotDeactivate" };
+      const { cancelEnd } = await import("../engine/queued-ends.mjs");
+      return { ok: await cancelEnd(item.id), cancelled: true };
+    },
+  },
+
   /** Advance a Combat Process that is waiting on a human. */
   advanceProcess: {
     authorize: (payload, userId) => {

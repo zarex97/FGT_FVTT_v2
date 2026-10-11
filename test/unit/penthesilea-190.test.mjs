@@ -274,7 +274,7 @@ describe("Mad Enhancement's drain against Hatred (#190 readings 11 to 13)", () =
     system: {
       isMode: true, active, slug: "madEnhancement", rank: "EX",
       activeRules: [{ key: "OnEvent", event: "actedTurnEnd", then: [
-        { key: "SetMode", ability: "madEnhancement", active: false,
+        { key: "SetMode", ability: "madEnhancement", active: false, atAnyMoment: true,
           whenValue: { subject: "master", stat: "health.value", lteTable: "madEnhancementDrain" } },
       ] }],
     },

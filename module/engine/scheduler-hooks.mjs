@@ -29,6 +29,7 @@ import { expireTerrain } from "./terrain.mjs";
 import { recordTurn, historyOf, setHistory } from "./state-history.mjs";
 import { boundaryKey, alreadyClaimed, tokenField } from "../rules/schedule-claim.mjs";
 import { payQueuedEnds } from "./queued-ends.mjs";
+import { parseTick, resolveTicks } from "../domain/tick.mjs";
 
 export const Scheduler = {
   /** Register the hooks. Idempotent. */
@@ -36,9 +37,48 @@ export const Scheduler = {
     Hooks.on("combatTurnChange", onTurnChange);
     Hooks.on("combatRound", onRoundChange);
     Hooks.on("deleteCombat", onCombatEnd);
+    Hooks.on("updateItem", onModeEnded);
     console.log("FGT | Scheduler attached");
   },
 };
+
+/**
+ * A mode switched off takes the summons that only exist while it lasts, and
+ * starts the cooldown that counts from its end.
+ *
+ * > *"…Disappears when the Noble Phantasm ends"* -- Raikou's four copies leave
+ * > whatever ended Tenmōkaikai: her End, her Master's Health, her defeat (#195
+ * > reading 13). Read off the item update, the one place every path through a
+ * > mode's end passes, from the one active GM.
+ *
+ * > *"Cooldown: 7◈+⅓◈ Turns after this NP is deactivated"* -- a mode's
+ * > `countFrom: deactivation` clock had a writer only for a field, a platform
+ * > and Zero Sail's dimension. Tenmōkaikai ended with its cooldown at 0 (#195).
+ *
+ * @param {object} item
+ * @param {object} changes
+ */
+async function onModeEnded(item, changes) {
+  if (changes?.system?.active !== false) return;
+  if (!game.users?.activeGM?.isSelf) return;
+  const owner = item.parent;
+  const slug = item.system?.slug;
+  if (!owner) return;
+  const I = await import("./intents.mjs");
+  const intents = [];
+  const leaving = slug
+    ? game.actors.filter((a) => a.system?.summonerId === owner.id && a.system?.leavesWithMode === slug)
+    : [];
+  intents.push(...leaving.map((a) => I.dismissSummon(a.id, "modeEnded")));
+  const cd = item.system?.cooldown ?? null;
+  if (item.system?.isMode && cd?.countFrom === "deactivation" && cd.max && !(cd.remaining > 0)) {
+    const ticks = resolveTicks(parseTick(String(cd.max)), { turnsPerRound: game.settings.get("fgt", "turnsPerRound") });
+    if (ticks > 0) intents.push(I.cooldown(owner.id, item.id, ticks, "set"));
+  }
+  if (intents.length === 0) return;
+  const { applyWorldIntents } = await import("./applier.mjs");
+  await applyWorldIntents(intents, `mode:${slug ?? item.id}:ended`);
+}
 
 /**
  * Foundry fires this after the turn has already advanced, so the sequence runs
@@ -116,7 +156,11 @@ async function onTurnChange(combat, prior, current) {
   const due = deferred.filter((e) => e.at === "turnEnd");
   if (due.length > 0) {
     await combat.setFlag("fgt", "deferred", deferred.filter((e) => e.at !== "turnEnd"));
-    await run(scheduler.runDeferred(due, board, ctx), "scheduler:deferred");
+    const owed = scheduler.runDeferred(due, board, ctx);
+    await run(owed, "scheduler:deferred");
+    // Said on the card like the rest of the Turn's end: Tenmōkaikai ending on
+    // the Turn she fell was silent (#195).
+    await postTurnEndReport(owed);
   }
 
   // What every Unit was like at the end of this Turn.

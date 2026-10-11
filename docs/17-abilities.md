@@ -166,3 +166,5 @@ Snegleta both listed their buffs and debuffs first and had them land after their
   (`module/engine/skill-use.mjs:1258-1260`).
 
 - **Who chooses when an optional cost is offered?** The Unit's owner answers; the GM is the fallback. The reference set has only one Unit with an optional cost (Mannanán), tested only by its author. `FGTSocket.ask` is a socket prompt, so the latency and answer path are system-level.
+
+**`usedWithNormalAttack`** (#195 reading 4). An Attack Skill that *"is used when [she] performs a Normal Attack"* — Raikou's Mana Burst — is offered by a Riding Attack's ride and, as an Attack, at a Counter. The field is declared on the ability DataModel and routed in `test/unit/survival.test.mjs`.

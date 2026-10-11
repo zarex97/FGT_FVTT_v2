@@ -51,6 +51,8 @@ inherit:
 # from the POOL, still capped per Unit.
 countsTowardBudget: false
 actsOncePerTurn: true
+# Gone when Tenmōkaikai ends, whatever ended it (#195 reading 13).
+leavesWithMode: tenmokaikai
 passiveRules:
   # "...and can only perform Normal Attacks." A grant, so the Skill and NP
   # buttons are withheld rather than refused on click -- which matters

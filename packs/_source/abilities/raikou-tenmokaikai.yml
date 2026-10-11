@@ -78,6 +78,10 @@ phases:
       countsTowardBudget: false
       actsOncePerTurn: true
 activeRules:
+  # *"Raikou's Attacks … Lightning damage (half)"*: an element her attacks take
+  # while it lasts, when they have none of their own (#195).
+  - { key: AttackProperty, property: element, value: lightning }
+  - { key: AttackProperty, property: elementFraction, value: 0.5 }
   # "During the NP duration, Raikou's Attacks deal 50% extra damage..."
   #
   # NO `attack:kind` predicate (R5). The sheet narrows to "Normal Attacks" in
@@ -117,7 +121,12 @@ activeRules:
   # 125 a Round, which makes the Noble Phantasm unusable and is the reading
   # easiest to write by accident (a handler on each copy).
   - key: OnEvent
-    event: turnEnd
+    # `anyTurnEnd`, every Turn's end, any side's. It was `turnEnd`, which fires
+    # only on her own side's Turn -- so a copy that Acted on an enemy Turn cost
+    # nothing -- and gated on her Acting, so a Turn she only switched the Noble
+    # Phantasm on cost nothing either (#195). Her own Turn charges whatever she
+    # did: `self:ownTurn`.
+    event: anyTurnEnd
     automatic: true
     # DEFERRED, and it has to be. `collectContributions` answers an element's
     # `predicate` at COLLECTION time, and `selfOrSummonsActed` is annotated by
@@ -131,7 +140,8 @@ activeRules:
     # it when the event actually fires -- which is the only moment the answer
     # exists.
     defer: true
-    predicate: ["self:selfOrSummonsActed"]
+    predicate:
+      - or: ["self:ownTurn", "self:selfOrSummonsActed"]
     then:
       # ORDERED THE OTHER WAY ROUND FROM MAD ENHANCEMENT, and the sheet is why.
       # Mad Enhancement drains and THEN tests what is left; this one reads:

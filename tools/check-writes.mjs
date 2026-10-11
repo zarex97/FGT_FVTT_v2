@@ -84,6 +84,7 @@ const ALLOWED = [
   { file: "engine/scheduler-hooks.mjs", category: "combat-document", why: "advances the ◈ clock and claims the turn boundary" },
   { file: "engine/budget.mjs", category: "combat-document", why: "the faction action pools live on a Combat flag" },
   { file: "engine/game-log.mjs", category: "combat-document", why: "the match log, and its journal spill" },
+  { file: "engine/queued-ends.mjs", category: "combat-document", why: "the Ends pressed outside their owner's Turn wait on a Combat flag (#65, #195)" },
 
   // ── Owner-side bookkeeping that predates the vocabulary ──────────────────
   // These are unit-state writes that never got an intent. They are the only

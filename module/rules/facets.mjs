@@ -281,6 +281,11 @@ export const FACETS = Object.freeze([
     prose: "{subject} or one of its summons acted this Turn",
   }),
   facet({
+    id: "ownTurn",
+    english: "The Turn ending or beginning is its own side's.",
+    prose: "it is {subject}'s own Turn",
+  }),
+  facet({
     id: "lastOfSummonGroup",
     english: "Is the only summon of its summoner still on the board.",
     prose: "{subject} is the last of its summoner's summons",

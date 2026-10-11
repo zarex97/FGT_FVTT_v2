@@ -19,10 +19,18 @@ rules:
   # `critDmUp` is read BY NAME in stage 2 of the damage pipeline, which is why
   # this is a CritModifier and not a DamageModifier: crit damage scales the
   # Attack+ roll and never touches the Attack− branch.
+  # Live, as Crit Up (Martial): +30% while Mad Enhancement is Active, +60%
+  # while it is not (#195 reading 3).
   - key: CritModifier
     aspect: damage
     modifierKey: critDmUp
-    value: "@magnitude"
+    value: 30
+    predicate: ["self:skillActive:madEnhancement"]
+  - key: CritModifier
+    aspect: damage
+    modifierKey: critDmUp
+    value: 60
+    predicate: ["not:self:skillActive:madEnhancement"]
 
   # The spender, and it has to be a SEPARATE element: a `CritModifier` fires
   # inside the damage pipeline, where there is no event rung to hang

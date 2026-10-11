@@ -111,3 +111,9 @@ Foundry **ownership** must be kept in sync with faction assignment for a player 
   that switches itself on is reported, and a forced stance is not. The reasoning stands -- an
   unexplained mode toggle reads as a bug, whereas a forced stance is the rule system doing visibly
   what the sheet says.
+
+**A limit read at any moment says so** (#195). `forcedOffNow` reads a mode's `SetMode active:false whenValue` only when it carries `atAnyMoment: true`. Mad Enhancement's does (#190 reading 13). Tenmōkaikai's does not: *"if her Master has 25 or less and would lose it"* is a moment, answered by its upkeep handler, and read at any moment it ended the NP the instant the upkeep took her Master from 26 to 1.
+
+**A mode's end starts its `countFrom: deactivation` cooldown** (#195). `scheduler-hooks.mjs#onModeEnded` sets it on the item update that switches any such mode off, beside dismissing its `leavesWithMode` summons. Only a field, a platform and Zero Sail's dimension had written it.
+
+**A queued End can be taken back** (#195 reading 14). Pressed outside the owner's Turn, a `window: any` mode's End is queued for the boundary (#65); pressed again while queued, the sheet asks the GM for `cancelModeEnd` and the queue drops it.

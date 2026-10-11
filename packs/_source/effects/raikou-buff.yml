@@ -33,6 +33,9 @@ rules:
   # the element's own share, so a Lightning ward meets the 40 and nothing else
   # -- and the 40 does not drag her ordinary STR damage into that ward.
   - key: FlatDamage
+    # Its own key: left unstated, FlatDamage files under "divinity", and the
+    # card read "Divinity raikouBuff (lightning) +40" beside her real Divinity (#195).
+    modifierKey: flatDamage
     value: 40
     element: lightning
     predicate: ["attack:kind:normal"]
@@ -54,4 +57,7 @@ rules:
       # R3 -- BOTH Noble Phantasms. `scope: np` reaches every NP on cooldown,
       # the reading Scáthach's `alpi` already takes and for the same reason:
       # the sheet names no ability and she has two.
-      - { key: CooldownDelta, scope: np, ticks: "-⅓◈" }
+      # A POSITIVE span: `CooldownDelta` reads `ticks` as a reduction already.
+      # "-⅓◈" failed to parse, threw inside the Damage Step and left the
+      # Process at the reaction rung with the damage applied (#195).
+      - { key: CooldownDelta, scope: np, ticks: "⅓◈" }

@@ -9,6 +9,7 @@
  * live-tested in `fgt2026` and recorded in Ch. 46.
  */
 
+import { parseTick, resolveTicks } from "../../module/domain/tick.mjs";
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -553,31 +554,36 @@ describe("Genji-clan Martial Arts Discipline — the Active", () => {
     expect(A.phases.length).toBeGreaterThan(0);
   });
 
-  it("applies both buffs in each branch, at the branch's magnitude", () => {
-    const withMe = A.phases.filter((p) => p.predicate?.includes("self:skillActive:madEnhancement"));
-    const without = A.phases.filter((p) => p.predicate?.includes("not:self:skillActive:madEnhancement"));
-    expect(withMe).toHaveLength(1);
-    expect(without).toHaveLength(1);
-    expect(withMe[0].effects).toEqual([
-      { id: "critUpMartial", magnitude: 30, duration: "1◈" },
-      { id: "critDmUpMartial", magnitude: 30, duration: "1◈", uses: 3 },
+  it("applies both buffs once; the 30 / 60 split follows Mad Enhancement live (#195 reading 3)", () => {
+    const apply = A.phases.filter((p) => p.kind === "applyEffects");
+    expect(apply).toHaveLength(1);
+    expect(apply[0].predicate).toBeUndefined();
+    expect(apply[0].effects).toEqual([
+      { id: "critUpMartial", duration: "1◈" },
+      { id: "critDmUpMartial", duration: "1◈", uses: 3 },
     ]);
-    // INVERTED against the mode: she crits better when she is calm.
-    expect(without[0].effects).toEqual([
-      { id: "critUpMartial", magnitude: 60, duration: "1◈" },
-      { id: "critDmUpMartial", magnitude: 60, duration: "1◈", uses: 3 },
+    // INVERTED against the mode, on the effects: she crits better when she is calm.
+    const crit = (doc, key) => doc.rules.filter((r) => r.key === key).map((r) => [r.value, r.predicate]);
+    expect(crit(UP, "CheckModifier")).toEqual([
+      [30, ["self:skillActive:madEnhancement"]],
+      [60, ["not:self:skillActive:madEnhancement"]],
+    ]);
+    expect(crit(DM, "CritModifier")).toEqual([
+      [30, ["self:skillActive:madEnhancement"]],
+      [60, ["not:self:skillActive:madEnhancement"]],
     ]);
   });
 
   it("Crit Up (Martial) carries NO count — the sheet gives it none", () => {
     expect(UP.uses).toBeUndefined();
     expect(UP.stacking).toBe("magnitudeStacks");
-    const rule = UP.rules.find((r) => r.key === "CheckModifier");
-    expect(rule.check).toBe("crit");
-    expect(rule.value).toBe("@magnitude");
-    // Unconditional. `critUpHawkeye` exists because EMIYA's is "at a Range of
-    // 3 or higher"; hers names no condition, so it carries no predicate.
-    expect(rule.predicate).toBeUndefined();
+    // Its only conditions are Mad Enhancement's two states, read live; it names
+    // no Range or target condition (`critUpHawkeye` is EMIYA's, "at a Range of 3
+    // or higher").
+    for (const rule of UP.rules.filter((r) => r.key === "CheckModifier")) {
+      expect(rule.check).toBe("crit");
+      expect(rule.predicate.every((p) => /self:skillActive:madEnhancement$/.test(p))).toBe(true);
+    }
   });
 
   it("Crit DmUp (Martial) is three uses OR 1◈, whichever ends first (R1)", () => {
@@ -604,9 +610,12 @@ describe("Genji-clan Martial Arts Discipline — the Active", () => {
   it("pairs every CritModifier with a consumesUse twin", () => {
     // A count-limited modifier without its spender is an infinite buff, and
     // the two live in different halves of the file.
-    const mods = DM.rules.filter((r) => r.key === "CritModifier").length;
+    // Two CritModifiers, exactly one of which holds at a time (Mad Enhancement
+    // on or off), so one spender pays for whichever scaled the hit.
+    const mods = DM.rules.filter((r) => r.key === "CritModifier");
+    expect(mods).toHaveLength(2);
     const spenders = DM.rules.filter((r) => r.key === "OnEvent" && r.consumesUse).length;
-    expect(spenders).toBeGreaterThanOrEqual(mods);
+    expect(spenders).toBe(1);
   });
 
   it("emits an option `attack:crit` that the vocabulary admits", () => {
@@ -672,11 +681,20 @@ describe("Mana Burst (Lightning)", () => {
 
   it("makes her immune to Shock and halves Lightning taken, including NP", () => {
     expect(A.passiveRules).toContainEqual({ key: "Immunity", effect: "shock" });
-    const ward = A.passiveRules.find((r) => r.key === "Ward");
-    expect(ward.value).toBe(50);
+    // LIGHTNING damage taken: an element-scoped key, so stage 4b meets only the
+    // attack's Lightning share (#195). A Ward took 50% off the whole total.
+    const ward = A.passiveRules.find((r) => r.modifierKey === "elementDefUp");
+    expect(ward).toMatchObject({ key: "DamageModifier", element: "lightning", direction: "taken", value: 50 });
     // "including NP" rather than a reduced NP figure, so the two are equal.
     expect(ward.npValue).toBe(50);
-    expect(ward.predicate).toEqual(["attack:element:lightning"]);
+    expect(A.passiveRules.some((r) => r.key === "Ward")).toBe(false);
+  });
+
+  it("collects the passive with its element, for stage 4b to match", async () => {
+    const { EXECUTORS, empty } = await import("../../module/rules/elements.mjs");
+    const out = empty();
+    EXECUTORS.DamageModifier(A.passiveRules.find((r) => r.modifierKey === "elementDefUp"), { rank: "A", source: "Mana Burst (Lightning)", out, ctx: {} });
+    expect(out.modifiers[0]).toMatchObject({ key: "elementDefUp", element: "lightning", value: 50, npValue: 50 });
   });
 
   it("needed no engine code that Karna had not already bought", () => {
@@ -748,7 +766,10 @@ describe("Thunder God's Embodiment", () => {
     // the reading Scáthach's `alpi` already takes, and for the same reason:
     // the sheet names no ability and she has two.
     expect(cd.scope).toBe("np");
-    expect(cd.ticks).toBe("-⅓◈");
+    // A positive span that PARSES: `CooldownDelta` subtracts it. "-⅓◈" threw in
+    // the live Damage Step (#195); asserting the string let it through.
+    expect(cd.ticks).toBe("⅓◈");
+    expect(resolveTicks(parseTick(cd.ticks), { turnsPerRound: 3 })).toBe(1);
   });
 
   /**
@@ -799,6 +820,16 @@ describe("Thunder God's Embodiment", () => {
       { modifiers: [{ key: "elementDefUp", value: 50, element: "lightning", source: "ward" }] },
     );
     expect(out.total).toBe(220);
+  });
+
+  it("halves only the Lightning half of a half-Lightning attack", () => {
+    // Her Sakata's Normal Attack, or her own under Tenmokaikai: 200, half of it
+    // Lightning, against her own passive. 200 x (1 - 0.5 x 0.5) = 150 (#195).
+    const out = damage(
+      {}, { modifiers: [{ key: "elementDefUp", value: 50, element: "lightning", source: "Mana Burst (Lightning)" }] },
+      { element: "lightning", elementFraction: 0.5 },
+    );
+    expect(out.total).toBe(150);
   });
 
   it("adds an unresisted elemental bonus at face value", () => {
@@ -1218,11 +1249,11 @@ describe("Goō Shōrai・Tenmōkaikai", () => {
   });
 
   it("charges her Master 25 per TURN, not per copy", () => {
-    const upkeep = A.activeRules.find((r) => r.key === "OnEvent" && r.event === "turnEnd");
-    // ONE handler, on HER, at her own turn end -- which happens once -- gated
-    // on whether she or any copy acted. Four handlers on four copies would be
-    // 125 a Round and would make the Noble Phantasm unusable.
-    expect(upkeep.predicate).toEqual(["self:selfOrSummonsActed"]);
+    const upkeep = A.activeRules.find((r) => r.key === "OnEvent" && r.event === "anyTurnEnd");
+    // ONE handler, on HER, at every Turn's end -- which happens once -- gated
+    // on her own Turn or whether she or any copy acted (#195). Four handlers on
+    // four copies would be 125 a Round and would make the Noble Phantasm unusable.
+    expect(upkeep.predicate).toEqual([{ or: ["self:ownTurn", "self:selfOrSummonsActed"] }]);
     const drain = upkeep.then.find((t) => t.key === "StatDelta");
     expect(drain.subject).toBe("master");
     expect(drain.amount).toBe(25);
@@ -1230,7 +1261,7 @@ describe("Goō Shōrai・Tenmōkaikai", () => {
   });
 
   it("deactivates BEFORE it would charge a Master at 25 or less", () => {
-    const upkeep = A.activeRules.find((r) => r.key === "OnEvent" && r.event === "turnEnd");
+    const upkeep = A.activeRules.find((r) => r.key === "OnEvent" && r.event === "anyTurnEnd");
     const [first, second] = upkeep.then;
     // ORDERED THE OTHER WAY ROUND FROM MAD ENHANCEMENT, and the sheet is why:
     // "Her Master does not lose Health on the same Turn this NP is
@@ -1692,9 +1723,9 @@ describe("the upkeep predicate must be DEFERRED, not answered at collection", ()
    */
   it("marks the turn-end upkeep deferred", () => {
     const A = ability("raikou-tenmokaikai");
-    const upkeep = A.activeRules.find((r) => r.key === "OnEvent" && r.event === "turnEnd");
+    const upkeep = A.activeRules.find((r) => r.key === "OnEvent" && r.event === "anyTurnEnd");
     expect(upkeep.defer).toBe(true);
-    expect(upkeep.predicate).toEqual(["self:selfOrSummonsActed"]);
+    expect(upkeep.predicate).toEqual([{ or: ["self:ownTurn", "self:selfOrSummonsActed"] }]);
   });
 
   it("puts a deferred predicate where fireEvent will look for it", () => {
@@ -1728,7 +1759,7 @@ describe("the upkeep predicate must be DEFERRED, not answered at collection", ()
     // has. The copies inherit `passiveRules` alone (`inherit.passives`), so
     // there is exactly one handler on the board however many of them swung.
     const A = ability("raikou-tenmokaikai");
-    expect(A.activeRules.filter((r) => r.key === "OnEvent" && r.event === "turnEnd")).toHaveLength(1);
+    expect(A.activeRules.filter((r) => r.key === "OnEvent" && r.event === "anyTurnEnd")).toHaveLength(1);
     for (const id of ["raikou-watanabe", "raikou-sakata", "raikou-urabe", "raikou-usui"]) {
       const onTurnEnd = summon(id).passiveRules
         .filter((r) => r.key === "OnEvent" && String(r.event).includes("urnEnd"));
@@ -1798,7 +1829,7 @@ describe("the upkeep's drain is gated, not merely ordered", () => {
    * (−25 in full).
    */
   const upkeep = ability("raikou-tenmokaikai").activeRules
-    .find((r) => r.key === "OnEvent" && r.event === "turnEnd");
+    .find((r) => r.key === "OnEvent" && r.event === "anyTurnEnd");
 
   it("deactivates at 25 or below", () => {
     const setMode = upkeep.then.find((t) => t.key === "SetMode");

@@ -196,6 +196,9 @@ activeRules:
         ability: madEnhancement
         active: false
         whenValue: { subject: master, stat: health.value, lteTable: madEnhancementDrain }
+        # "When its Master's Health is 30 or less": a state, so it holds at any
+        # moment, not only here (#190 reading 13; `rules/modes.mjs#forcedOffNow`).
+        atAnyMoment: true
         # The same halving as the drain above, for the same reason: one number,
         # three readings, and they must not disagree.
         tableFactor: { value: 0.5, predicate: ["self:withinOfPartner:1"] }

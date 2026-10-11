@@ -75,6 +75,8 @@ The shove is a Move to the nearest panel outside the area, not anywhere outsideâ
 
 **A reaction ability can leave the reaction open** (#193 reading 8). An ability with `reactionFree: true` (Medea's Argos) resolves at the rung and the rung stays: the defender still chooses Do nothing, Block or Evade, and every reaction ability is withdrawn for that Attack, so Trofa cannot follow Argos. Without the flag (Trofa) the ability is the reaction.
 
+**An Evade and a Block are Acts** (#195 reading 12). `advanceAttack` marks the defender `acted` once it takes the Evade or Block rung, so *"any Turn Raikou or any of her copies Acts"* charges for a copy that only dodged. This widens #190 reading 6 for Penthesilea, to be re-ruled in #194.
+
 1. **A reaction ability must meet all requirements to be offered.** Every requirement answerable from the unit alone is checked before the ability is offered (`module/rules/reactions.mjs:168-169`). Target-dependent gates like `targetHasEffect` cannot be judged and must not refuseâ€”an unsatisfiable gate is not offered, it is silently skipped (`module/rules/reactions.mjs:64-68`).
 
 2. **The reaction options are a single list, not a second set of buttons.** Block, Evade, and reaction abilities are all in `reactionOptions`, so a player sees them in one place (`module/rules/reactions.mjs:186-188`). A second set of buttons would be a second place to keep in step, and the first thing to fall out of step is the reason a button is disabled (`module/apps/hud/pending-panel.mjs:8-10`).

@@ -105,3 +105,5 @@ the smallest real duration instead of to zero.**
 
 
 - **U+2212 minus sign caught in the wild.** The tick parser accepts only ASCII hyphen (`-`), not U+2212 MINUS SIGN (−). The test `tick-literals.test.mjs` was written specifically to catch this mutation, after an `engine/copy.mjs` cooldown expression written with the Unicode character threw, was caught by `cooldownFor`, and left every copy with no cooldown at all (`test/unit/tick-literals.test.mjs:1-14`).
+
+**Every authored span parses** (#195). The `Raikou` buff's `CooldownDelta` carried `"-⅓◈"`, which `parseTick` refuses: it threw inside the live Damage Step, the Process never saved, and each retry of the reaction applied the hit again. The sign belongs to the action (`CooldownDelta` subtracts), never to the span. `test/unit/content-ticks.test.mjs` parses every `ticks`, `duration` and cooldown span in `packs/_source`, and `fireDamageDealt` reports a handler that throws instead of losing the Process.

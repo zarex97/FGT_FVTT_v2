@@ -2169,7 +2169,10 @@ export function annotateLastOfSummonGroup(units) {
   /** @type {Map<unknown, number>} */
   const alive = new Map();
   for (const u of units ?? []) {
-    if (u.kind !== "summon" || !u.summonerId) continue;
+    // A defeated copy's body stays on the board until `clearBody`, a Turn
+    // later, and counted it kept the last one standing from being the last:
+    // all four of Raikou's copies down and Tenmōkaikai still running (#195).
+    if (u.kind !== "summon" || !u.summonerId || u.defeated) continue;
     alive.set(u.summonerId, (alive.get(u.summonerId) ?? 0) + 1);
   }
   for (const u of units ?? []) {

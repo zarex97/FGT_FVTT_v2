@@ -3900,6 +3900,95 @@ synthetic actor. That removed the token and left the world actor, and dismissing
 with their summoner (`leavesWithSummoner`) had no reader at all. Both are fixed, and the dismissal runs after the
 defeat is written. Ch. 31.
 
+### JI. A signed span threw inside the Damage Step — **fixed** (#195)
+
+**Reached: Raikou RB.buff.** The `Raikou` buff's `CooldownDelta` read `"-⅓◈"`. `parseTick` refuses a sign, so it threw
+mid-Process; the Damage Step never saved and every retry applied the hit again. The span is positive now, every
+authored span is parsed by a test, and a throwing `damageDealt` handler is reported, not fatal. Ch. 04.
+
+### JJ. An effect in its last Turn skipped its in-Turn handlers — **fixed** (#195)
+
+**Reached: Raikou GJ.critdm.use.** `fireEvent` skipped every instance on its expiry tick, so Crit DmUp (Martial),
+expiring that Turn, applied its modifier to a crit and never spent the use. The skip holds for boundary events
+only. Ch. 25.
+
+### JK. Every damage instance read the ability's top-level block — **fixed** (#195)
+
+**Reached: Raikou DH.four, DH.np.** Dohatsu Tenshou's five Processes carried their instance's `kind` but the damage
+step read multiplier, base and element from the block, which holds only `instances`. Each Process carries its
+`instanceBlock` now. Ch. 22.
+
+### JL. A Counter was offered after every instance — **fixed** (#195 reading 17)
+
+**Reached: Raikou DH.counter.** `counterAvailable` is false for all instances but the last. Ch. 21.
+
+### JM. A copy inherited the derived stat — **fixed** (#195)
+
+**Reached: Raikou TK.stats.** A scalar `inherit` read the summoner's prepared `system.mov` (9, Riding included). It
+reads the source stat. Ch. 31.
+
+### JN. A granted element reached the resolution and nothing else — **fixed** (#195)
+
+**Reached: Raikou TK.rider.elem.** `AttackProperty` dropped a string value, and the granted element was added only in
+`applyDamage`'s context: the preview and every `attack:element:*` option missed it. `attackFacts` adds it. Ch. 22.
+
+### JO. A damage-type resistance reduced the whole total — **fixed** (#195)
+
+**Reached: Raikou MB.light.** Mana Burst's *"All Lightning damage taken is reduced by 50%"* was a stage-4 `Ward`, so a
+half-Lightning attack lost 50%, its STR half included. `DamageModifier` dropped `element`, so the stage-4b key could
+not be authored. It carries it, and the passive is `elementDefUp` (lightning). Karna's *"All Total Fire Damage"*
+keeps its Ward: his sheet says Total. Ch. 10, Ch. 22.
+
+### JP. A rider's card said "hit" over a resisted effect — **fixed** (#195)
+
+**Reached: Raikou TK.usu.** The chance roll was filed before the effect flow rolled the same die against the
+resisted chance. The flow logs `effectResisted`, and the card files after it. Ch. 15, Ch. 37.
+
+### JQ. A moment limit was read as a state — **fixed** (#195)
+
+**Reached: Raikou TK.force.** `forcedOffNow` read every mode's `SetMode active:false whenValue` at any moment, which
+was ruled for Mad Enhancement alone. `atAnyMoment: true` opts in. Ch. 24.
+
+### JR. A mode's `countFrom: deactivation` cooldown had no writer — **fixed** (#195)
+
+**Reached: Raikou TK.cd.** Only fields, platforms and Zero Sail wrote it. `onModeEnded` writes it for any mode. Ch. 24.
+
+### JS. A Turn-end upkeep missed its own Turn and every other — **fixed** (#195)
+
+**Reached: Raikou TK.upkeep.** `turnEnd` fires only for the active side, and the gate asked only whether she Acted.
+`self:ownTurn` is an option at a boundary, and the upkeep is one `anyTurnEnd` handler. Ch. 25.
+
+### JT. An Evade and a Block were not Acts — **fixed** (#195 reading 12)
+
+**Reached: Raikou TK.upkeep.react.** The defender is marked `acted` when it takes either rung. #194 re-rules
+Penthesilea by it. Ch. 23.
+
+### JU. Modes ended at a Turn's end went unsaid — **fixed** (#195)
+
+**Reached: Raikou TK.force, TK.defeat.** The Turn-end card reported Health only. It names each mode a handler
+switched off, deferred handlers included. Ch. 37.
+
+### JV. An active mode's slot asked the activation gate, and a queued End could not be cancelled — **fixed** (#195 reading 14)
+
+**Reached: Raikou TK.end, TK.end.queued, ME.lock.tip.** The slot greyed *"The Master cannot pay the Health cost"* while
+the NP ran. It asks `canToggleMode` off, in the `FGT.Mode` sentences. A second press takes a queued End back. Ch. 24,
+Ch. 34.
+
+### JW. The last summon standing was not the last — **fixed** (#195)
+
+**Reached: Raikou TK.last.** `annotateLastOfSummonGroup` counted defeated bodies, which stay a Turn. Ch. 31.
+
+### JX. A Counter shared its parent's fan-out — **fixed** (#195)
+
+**Reached: Raikou MB.na.counter.** `siblingMessages` grouped by `groupId`, which a Counter shares with its parent, so
+the counter's once-per-Phase self rider never paid. Siblings share the attacker too. Ch. 21.
+
+### JY. A turn-boundary hook can skip right after a page reload — **open** (#195)
+
+Twice, within about a minute of a page reload, a `nextTurn` ran no boundary, and once `onModeEnded` did nothing; the
+same steps later worked. Recorded in `docs/surprises/2026-10-11-boundaries-skipped-after-reload.md`. Not reproduced
+without a reload.
+
 ---
 
 ---
@@ -5012,3 +5101,44 @@ undone between the pass and fail sessions; the dimension's `activatedAt` moved f
 movement Clause was driven through `TokenDocument#move`, the drag's own call: CDP drags move no token on the VPS's
 headless Chrome. The Counter that withholds Quickfire's refund could not be answered inside its timer over CDP;
 that Clause was found by reading and fixed, and stands at `Pressed (engine)`.
+
+## 46.24 Raikou — the Servant who is five
+
+**All 128 of her Clauses were Pressed or Observed on a live board** (#195, 2026-10-11), on the VPS copy of
+`fgt2026`, after 18 readings were ruled on 2026-10-10. The board found sixteen engine defects, all of which reach
+other Servants (§46.4-JI to JX), and four in her own content. One more is open (§46.4-JY).
+
+**Why she finds what she finds.** Her kit hangs on time and on herself. Tenmōkaikai is a mode with an upkeep paid
+at Turn ends that are not hers, a limit read at one moment, a cooldown that starts at its end, four summons that
+leave with it and a guard around her. Dohatsu Tenshou is five Processes under two rule sets. Every one of those
+exercised a reader that had only ever seen the simple case.
+
+### 46.24.1 What she cost the engine
+
+| Finding | Where |
+|---|---|
+| A signed span threw in the Damage Step | `raikou-buff.yml`, `content-ticks.test.mjs`, `attack.mjs#fireDamageDealt` |
+| An expiring effect skipped its in-Turn handler | `scheduler.mjs#fireEvent` |
+| Instances read the top block; a Counter per instance | `attack.mjs#damageBlockFor`, `counterAvailable` |
+| Copies' MOV from the derived stat; they never left; the last was not the last | `summoning.mjs#inherit`, `leavesWithMode`, `snapshot.mjs#annotateLastOfSummonGroup` |
+| The NP's element unauthored and then unseen by the preview | `raikou-tenmokaikai.yml`, `attack.mjs#withGrantedElement` |
+| Lightning resistance on the whole total | `raikou-mana-burst-lightning.yml`, `elements.mjs#DamageModifier` |
+| Upkeep on the wrong Turn ends; the limit read at any moment; no cooldown; no card | `raikou-tenmokaikai.yml`, `rules/modes.mjs#forcedOffNow`, `scheduler-hooks.mjs#onModeEnded`, `turn-report.mjs` |
+| The slot greyed while on; a queued End not cancellable | `action-bar.mjs#endVerdict`, `queued-ends.mjs#cancelEnd` |
+| Mana Burst on a ride; on a Counter without its Dodge | `action-bar.mjs#rideFrom`, `attack.mjs#siblingMessages` |
+| A resisted rider read "hit" | `applier.mjs`, `attack.mjs#fireDamageDealt` |
+| General: §46.4-JI to JX | |
+
+Her own, fixed in content: Dohatsu Tenshou hits every Unit in its 3x3 (reading 16); Genji is one effects phase with
+values that follow Mad Enhancement live (reading 3); Crit Up and Crit DmUp (Martial) carry both figures; the
+`Raikou` buff files under `flatDamage`.
+
+### 46.24.2 What was staged
+
+Named in each evidence line: positions; her Master's Health raised or lowered between presses; Mad Enhancement
+switched off or suspended through `suspendedUntil` to reach the calm half; cooldowns and Turn records reset to press
+again after a fix; Medusa, Mannanán, Heracles and Raikou revived between presses; the copies' last three brought
+down by a damage write before Usui; and the two prompt timeouts raised to 300 s while a Counter was driven over CDP,
+then restored to 45 and 60. Her defeat for TK.defeat came from Medusa's Normal Attack: a damage write had defeated
+her without `unitDefeated`, which is not a press. Several `nextTurn` calls were repeated by the helper reading a
+stale log; see the open Surprise on Round boundaries.
