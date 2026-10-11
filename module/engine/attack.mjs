@@ -18,7 +18,7 @@ import { expandInstances, damageBaseOf } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
 import { askOwner } from "./ask.mjs";
 import { resolveTargets, pendingChoiceErrors } from "../rules/targeting/resolve.mjs";
-import { currentBoard, unitSnapshot, unitFrom, gateContext, currentTick, roundRecordOf } from "./board.mjs";
+import { currentBoard, unitFrom, unitOf, gateContext, currentTick, roundRecordOf } from "./board.mjs";
 import {
   evade as evadeCheck, luckCheck, chance, checkPlan, critChance, mergePlans,
   pendingCheckRolls, resolveCheck,
@@ -283,7 +283,7 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // found no `damage` block, and Dendera Electric Bulb's 2x multiplier was
   // silently 1x. Measured that way: stage 3 read "Ability multiplier --".
   const attackSpec = {
-    ...buildAttackSpec({ attacker, ability, abilityId: ability?.id ?? null, options, placement }),
+    ...buildAttackSpec({ attacker, ability, abilityId: ability?.id ?? null, options, placement, board }),
     // The panels this declaration resolved against. Two clauses ask for the
     // area and neither ever got it: Fire in a Forest *"If the attack's area
     // is larger than 3x3, the whole attack area converts"* (`terrainConversions`
@@ -421,9 +421,9 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
  * @param {{panels?: object[], units?: object[]}} args.caught the aftermath's own `resolveTargets`
  * @returns {object}
  */
-export function aftermathSpecFor({ attacker, ability, options, caught }) {
+export function aftermathSpecFor({ attacker, ability, options, caught, board = null }) {
   return {
-    ...buildAttackSpec({ attacker, ability, abilityId: ability?.id ?? null, options, aftermath: true }),
+    ...buildAttackSpec({ attacker, ability, abilityId: ability?.id ?? null, options, aftermath: true, board }),
     isAftermath: true,
     areaPanels: caught?.panels ?? [],
     bandOf: Object.fromEntries((caught?.units ?? []).map((t) => [t.unitId, t.band ?? 0])),
@@ -487,7 +487,7 @@ async function declareAftermath({
     // Its own spec, built from its own block. The primary's was overlaid before
     // (#136), and every key the aftermath did not restate stayed the primary's:
     // the element fraction, the Magic Resistance exemption, the area.
-    attackSpec: aftermathSpecFor({ attacker, ability, options, caught }),
+    attackSpec: aftermathSpecFor({ attacker, ability, options, caught, board }),
     targetIds: caughtIds,
     targets: caught,
     placement: null,
@@ -668,9 +668,9 @@ function rideFacts(placement) {
  * @param {object} attacker an Actor document
  * @returns {Array<{property: string, value: number|boolean}>}
  */
-function attackerProperties(attacker) {
+function attackerProperties(attacker, board) {
   if (!attacker) return [];
-  return unitSnapshot(attacker)?.attackProperties ?? [];
+  return unitOf(attacker, board)?.attackProperties ?? [];
 }
 
 /**
@@ -692,8 +692,8 @@ function grantedElementIn(props) {
  * @param {string} property
  * @returns {boolean}
  */
-function attackerGrants(attacker, property) {
-  return attackerProperties(attacker).some(
+function attackerGrants(attacker, property, board) {
+  return attackerProperties(attacker, board).some(
     (p) => p.property === property && p.value !== false && p.value !== 0,
   );
 }
@@ -709,16 +709,19 @@ function attackerGrants(attacker, property) {
  * @param {number} fallback
  * @returns {number}
  */
-function attackerProperty(attacker, property, fallback) {
-  const values = attackerProperties(attacker)
+function attackerProperty(attacker, property, fallback, board) {
+  const values = attackerProperties(attacker, board)
     .filter((p) => p.property === property && typeof p.value === "number")
     .map((p) => p.value);
   return values.length > 0 ? Math.max(...values) : fallback;
 }
 
 export function buildAttackSpec({
-  attacker, ability, abilityId, options, placement = null, aftermath = false,
+  attacker, ability, abilityId, options, placement = null, aftermath = false, board = null,
 }) {
+  // The attacker as the board sees it, for the buffs it carries: every engine
+  // caller passes the board it holds. With none, a lone projection, on purpose.
+  const view = board ?? null;
   // The damage block THIS resolution is under: an aftermath's own, else the
   // primary's resolved for whichever behaviour fires. Reading the primary's for a
   // splash is what made it inherit the hit's element fraction and its Magic
@@ -774,12 +777,12 @@ export function buildAttackSpec({
       // `AttackProperty` existed there was nowhere for them to put it -- which
       // is why the corpus had no Pierce document at all.
       pierce: Boolean(block?.pierce)
-        || attackerGrants(attacker, "pierce"),
+        || attackerGrants(attacker, "pierce", view),
       ignoresDefUp: Boolean(block?.ignoresDefUp)
-        || attackerGrants(attacker, "ignoresDefUp"),
+        || attackerGrants(attacker, "ignoresDefUp", view),
       // How much damage SURVIVES an Invuln, for a clause that weakens it rather
       // than bypassing it. 0 is the default and reproduces total negation.
-      invulnFactor: attackerProperty(attacker, "invulnFactor", 0),
+      invulnFactor: attackerProperty(attacker, "invulnFactor", 0, view),
       // The damage TYPE, carried on the attack for the same reason `component` is.
       // The pipeline has read `ctx.attack.element` at stage 0 since it was written
       // -- Fire breaks Freeze, `flamHeal` converts it -- and the attack spec never
@@ -1050,7 +1053,7 @@ async function declareProcesses({
         reactionAbilities: {
           [state.defenderId]: placement?.plainDamage
             ? []
-            : offeredReactions(state.defenderId, state.attack, state.isAoE, state.attackerId),
+            : offeredReactions(state.defenderId, state.attack, state.isAoE, state.attackerId, board),
         },
         // Presence Concealment clause 2: *"This Unit's Attacks cannot be
         // Blocked or Countered unless the DU's current AGI Rank is equal to or
@@ -1062,13 +1065,13 @@ async function declareProcesses({
         // filters the buttons, and `process.advance` refuses the event, so a
         // stale card or a macro cannot Block one anyway.
         forbiddenReactions: [...new Set([
-          ...concealmentRefusals(attackerId, state.defenderId),
+          ...concealmentRefusals(attackerId, state.defenderId, board),
           // An ABILITY that narrows the ladder by a rank comparison rather than
           // by naming rungs. Kiritsugu's Lethal Gunfire Suppression: *"cannot
           // be Reacted to unless the AU's AGI Rank is higher than Kiritsugu's."*
           // One boundary apart from concealment's, which is why both live in
           // `rules/concealment.mjs` rather than one being reimplemented here.
-          ...agilityRefusals(ability, attackerId, state.defenderId),
+          ...agilityRefusals(ability, attackerId, state.defenderId, board),
           ...(state.attack?.unblockable ? ["block"] : []),
           // Appendix A §A.3 `Accel`: *"Opponents cannot React to this unit's
           // attacks."*
@@ -1085,15 +1088,15 @@ async function declareProcesses({
           // ladder is narrowed for every other reason -- concealment, an AGI
           // comparison, an unblockable attack -- and a rung closed in two
           // places is a rung that can be reopened in one.
-          ...(accelRefusals(attackerId) ),
+          ...(accelRefusals(attackerId, board) ),
           // Whatever the ATTACKER carries that takes rungs from its target:
           // Normal Presence Concealment's Hidden Strike (#103).
-          ...attackerRefusals(attackerId),
+          ...attackerRefusals(attackerId, board),
           // ...and the rungs the DEFENDER may not take itself. Invuln's
           // "cannot Block" and the Hanging Gardens' "cannot Evade, Block" were
           // read only by the counter check, so the react rung still offered
           // them (#68).
-          ...defenderRefusals(state.defenderId),
+          ...defenderRefusals(state.defenderId, board),
           ...(placement?.plainDamage ? ["evade", "block", "counter"] : []),
         ])],
         // A Structure takes no action at all (`rules/actions.mjs`), so it
@@ -1119,7 +1122,7 @@ async function declareProcesses({
     // carries everything those options are built from.
     const advanced = await runMissCheck(
       process.advance(aimed, "done"),
-      board.units.find((u) => u.id === attackerId) ?? unitSnapshot(attacker),
+      unitOf(attacker, board),
       board,
     );
     const target = targets.units.find((t) => t.unitId === advanced.defenderId);
@@ -1135,7 +1138,7 @@ async function declareProcesses({
     // ladder collapses into a single prompt (Ch. 21). Asked per defender,
     // because one of four may collapse while the others do not.
     const defenderDoc = game.actors.get(advanced.defenderId);
-    const collapse = defenderDoc ? process.laddersCollapse(unitSnapshot(defenderDoc)) : true;
+    const collapse = defenderDoc ? process.laddersCollapse(unitOf(defenderDoc, board)) : true;
 
     await message.setFlag("fgt", "process", process.serialize(advanced));
     await message.setFlag("fgt", "collapse", collapse);
@@ -1542,11 +1545,11 @@ export async function flushAutoCounters(groupId = null) {
       }
       // A defeated Unit does not counter, and neither does one that cannot act.
       const board = boardSnapshot();
-      const self = unitFrom(board, bearer) ?? unitSnapshot(bearer);
+      const self = unitOf(bearer, board);
       if (self.defeated || currentHealth(self) <= 0 || self.canAct === false) continue;
 
       const options = rollOptionsFor({ attacker: self });
-      const attackSpec = buildAttackSpec({ attacker: bearer, ability, abilityId: ability.id, options });
+      const attackSpec = buildAttackSpec({ attacker: bearer, ability, abilityId: ability.id, options, board });
 
       // `isCounter`, so Ch. 21's *"Counters cannot be Countered again"* closes
       // the chain -- and so the counter does not spend a Turn, which it never
@@ -1719,10 +1722,11 @@ async function runAfterProcessPhases(state) {
  * @returns {Promise<void>}
  */
 async function fireCombatProcessEnd(state) {
+  const board = currentBoard();
   const units = [...new Set([state.attackerId, state.defenderId].filter(Boolean))]
     .map((id) => game.actors.get(id))
     .filter(Boolean)
-    .map((a) => unitSnapshot(a));
+    .map((a) => unitOf(a, board));
   if (units.length === 0) return;
 
   const intents = fireEvent("combatProcessEnd", units, {
@@ -2011,8 +2015,9 @@ function coverStateFor(state) {
  * @returns {Promise<void>}
  */
 async function fireAttacked(state) {
-  const attacker = unitSnapshot(game.actors.get(state.attackerId));
-  const defender = state.defenderId ? unitSnapshot(game.actors.get(state.defenderId)) : null;
+  const board = currentBoard();
+  const attacker = unitOf(game.actors.get(state.attackerId), board);
+  const defender = state.defenderId ? unitOf(game.actors.get(state.defenderId), board) : null;
   if (!attacker || !defender) return;
 
   // The coin the Kagome Spirits' banishment flips, pre-rolled on the same
@@ -2044,8 +2049,9 @@ async function fireAttacked(state) {
  * @returns {Promise<void>}
  */
 async function fireAttackDeclared(state) {
-  const attacker = unitSnapshot(game.actors.get(state.attackerId));
-  const defender = state.defenderId ? unitSnapshot(game.actors.get(state.defenderId)) : null;
+  const board = currentBoard();
+  const attacker = unitOf(game.actors.get(state.attackerId), board);
+  const defender = state.defenderId ? unitOf(game.actors.get(state.defenderId), board) : null;
   if (!attacker || !defender) return;
 
   const intents = fireEvent("attackDeclared", [attacker], {
@@ -2065,12 +2071,12 @@ async function fireAttackDeclared(state) {
  * @param {string} defenderId
  * @returns {string[]}
  */
-function agilityRefusals(ability, attackerId, defenderId) {
+function agilityRefusals(ability, attackerId, defenderId, board = boardSnapshot()) {
   if (!ability?.system?.refusesReactionsUnlessFaster) return [];
   const attacker = game.actors.get(attackerId);
   const defender = game.actors.get(defenderId);
   if (!attacker || !defender) return [];
-  return reactionRefusedByAgility(unitSnapshot(attacker), unitSnapshot(defender));
+  return reactionRefusedByAgility(unitOf(attacker, board), unitOf(defender, board));
 }
 
 /**
@@ -2104,8 +2110,8 @@ async function runDamageStepStartHandlers(state) {
   if (!attackerDoc || !defenderDoc) return;
 
   const board = currentBoard();
-  const attacker = unitFrom(board, attackerDoc) ?? unitSnapshot(attackerDoc);
-  const defender = unitFrom(board, defenderDoc) ?? unitSnapshot(defenderDoc);
+  const attacker = unitOf(attackerDoc, board);
+  const defender = unitOf(defenderDoc, board);
   // The live attack is in scope, so `attack:kind:normal` can actually be
   // answered — the omission that made every phase predicate in the game blind
   // to the attack until it was fixed for Raikou.
@@ -2255,20 +2261,20 @@ async function offerPreAttackSpell(owner, category) {
  * @param {string} attackerId
  * @returns {string[]}
  */
-function defenderRefusals(defenderId) {
+function defenderRefusals(defenderId, board = boardSnapshot()) {
   const defender = defenderId ? game.actors.get(defenderId) : null;
-  return defender ? (unitSnapshot(defender).forbiddenReactions ?? []).filter((r) => r !== "counter") : [];
+  return defender ? (unitOf(defender, board).forbiddenReactions ?? []).filter((r) => r !== "counter") : [];
 }
 
-function attackerRefusals(attackerId) {
+function attackerRefusals(attackerId, board = boardSnapshot()) {
   const attacker = game.actors.get(attackerId);
-  return attacker ? (unitSnapshot(attacker).refusesReactions ?? []) : [];
+  return attacker ? (unitOf(attacker, board).refusesReactions ?? []) : [];
 }
 
-function accelRefusals(attackerId) {
+function accelRefusals(attackerId, board = boardSnapshot()) {
   const attacker = game.actors.get(attackerId);
   if (!attacker) return [];
-  return (unitSnapshot(attacker).effects ?? []).includes("accel") ? ["block", "evade"] : [];
+  return (unitOf(attacker, board).effects ?? []).includes("accel") ? ["block", "evade"] : [];
 }
 
 /**
@@ -2278,11 +2284,11 @@ function accelRefusals(attackerId) {
  * @param {string} defenderId
  * @returns {string[]}
  */
-function concealmentRefusals(attackerId, defenderId) {
+function concealmentRefusals(attackerId, defenderId, board = boardSnapshot()) {
   const attacker = game.actors.get(attackerId);
   const defender = game.actors.get(defenderId);
   if (!attacker || !defender) return [];
-  return reactionsRefused(unitSnapshot(attacker), unitSnapshot(defender));
+  return reactionsRefused(unitOf(attacker, board), unitOf(defender, board));
 }
 
 /**
@@ -2303,8 +2309,9 @@ function concealmentRefusals(attackerId, defenderId) {
  * @returns {Promise<void>}
  */
 async function fireDamageDealt(state, result) {
-  const attacker = unitSnapshot(game.actors.get(state.attackerId));
-  const defender = state.defenderId ? unitSnapshot(game.actors.get(state.defenderId)) : null;
+  const board = currentBoard();
+  const attacker = unitOf(game.actors.get(state.attackerId), board);
+  const defender = state.defenderId ? unitOf(game.actors.get(state.defenderId), board) : null;
   if (!attacker || !defender) return [];
 
   // Whatever this attacker's `damageDealt` handlers need to roll, rolled here
@@ -2329,11 +2336,10 @@ async function fireDamageDealt(state, result) {
   // 2): the Golden Hind's Attack is *"Drake's Normal Attack"*, replaced, so its
   // Crit is her Crit and Blazing Golden Rule's *"whenever this Unit performs a
   // Crit"* hears it. Her handlers run beside the ship's, never instead.
-  const board = currentBoard();
   const drivers = attacker.kind === "platform"
-    ? turnPartnersOf((board.units ?? []).find((u) => u.id === attacker.id) ?? attacker, board, "attack")
+    ? turnPartnersOf(attacker, board, "attack")
     : [];
-  const hearers = [attacker, ...drivers.map((d) => unitSnapshot(game.actors.get(d.id)) ?? d)];
+  const hearers = [attacker, ...drivers.map((d) => unitOf(game.actors.get(d.id), board) ?? d)];
   // `attack:crit` is in the set only here, which is right: a clause that asks
   // whether the attack crit is by definition asking about a resolved one.
   const options = rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) });
@@ -2601,9 +2607,10 @@ async function endConcealmentAfterAttack(state) {
  * @returns {Promise<void>}
  */
 async function fireEvadeSucceeded(state) {
-  const defender = state.defenderId ? unitSnapshot(game.actors.get(state.defenderId)) : null;
+  const board = currentBoard();
+  const defender = state.defenderId ? unitOf(game.actors.get(state.defenderId), board) : null;
   if (!defender) return;
-  const attacker = unitSnapshot(game.actors.get(state.attackerId));
+  const attacker = unitOf(game.actors.get(state.attackerId), board);
 
   const intents = fireEvent("evadeSucceeded", [defender], {
     tick: game.combat?.system?.globalTurn ?? 0,
@@ -2667,10 +2674,11 @@ async function fireCombatPhaseEnd(state) {
     state.defenderId,
     ...siblings.map((m) => process.deserialize(m.getFlag("fgt", "process")).defenderId),
   ].filter(Boolean);
+  let board = currentBoard();
   const units = [...new Set(involved)]
     .map((id) => game.actors.get(id))
     .filter(Boolean)
-    .map((a) => unitSnapshot(a));
+    .map((a) => unitOf(a, board));
   if (units.length === 0) return;
 
   // Who this phase actually hurt. Charm is *"removed at the end of the Combat
@@ -2694,7 +2702,7 @@ async function fireCombatPhaseEnd(state) {
   // defender -- which is exactly what *"involved in a Combat Phase"* names, and
   // it is the only place that knows it. `markTurn` stamps the current tick, so
   // the flag is stale-by-reading at the next one like the rest of turn state.
-  const board = currentBoard();
+  board = currentBoard();
   await applyBatch(
     units.map((u) => I.markTurn(u.id, { inCombatPhase: true })),
     "combatPhase:involvement",
@@ -2782,7 +2790,7 @@ async function runAutomaticStep(state, message) {
       return process.advance(state, "declined", { reason: "luckChecksRemoved" });
     }
     const asked = game.actors.get(prompt.unitId);
-    if (asked && luckChecksBlocked(unitFrom(boardSnapshot(), asked) ?? unitSnapshot(asked))) {
+    if (asked && luckChecksBlocked(unitOf(asked, boardSnapshot()))) {
       return process.advance(state, "declined", { reason: "luckChecksBlocked" });
     }
   }
@@ -3527,9 +3535,9 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
   // one ran a Normal Attack in its place. Refused, with nothing spent (#156).
   if (abilityId && !ability) return { refused: "notACounter" };
   const board = boardSnapshot();
-  const self = unitFrom(board, counterer) ?? unitSnapshot(counterer);
+  const self = unitOf(counterer, board);
   const options = rollOptionsFor({ attacker: self });
-  const attackSpec = buildAttackSpec({ attacker: counterer, ability, abilityId, options });
+  const attackSpec = buildAttackSpec({ attacker: counterer, ability, abilityId, options, board });
 
   // The use gate, ahead of everything that spends. This computed `canUseAbility`
   // only to PRICE the use and never refused on it, and the `declareCounter`
@@ -5078,7 +5086,7 @@ function authoredMagnitude(spec, actor, field = "magnitude", ride = null) {
  */
 async function applyTargetedRider(phase, ability, state, attackerDoc) {
   const board = boardSnapshot();
-  const caster = unitFrom(board, attackerDoc) ?? unitSnapshot(attackerDoc);
+  const caster = unitOf(attackerDoc, board);
   const resolved = resolveTargets(phase.targeting, caster, board, { unitId: caster.id, panel: caster.panel, reach: "attack" });
 
   /** @type {object[]} */
@@ -5090,7 +5098,7 @@ async function applyTargetedRider(phase, ability, state, attackerDoc) {
       effectSpecsOf(phase),
       ability,
       { ...state, defenderId: target.unitId },
-      board.units.find((u) => u.id === target.unitId) ?? unitSnapshot(doc),
+      unitOf(doc, board),
     ));
   }
   return out;
@@ -5208,8 +5216,8 @@ async function fireDamageStepEnd(state) {
   const board = currentBoard();
   const attackerDoc = game.actors.get(state.attackerId);
   const defenderDoc = state.defenderId ? game.actors.get(state.defenderId) : null;
-  const attacker = unitFrom(board, attackerDoc) ?? unitSnapshot(attackerDoc);
-  const defender = defenderDoc ? (unitFrom(board, defenderDoc) ?? unitSnapshot(defenderDoc)) : null;
+  const attacker = unitOf(attackerDoc, board);
+  const defender = defenderDoc ? (unitOf(defenderDoc, board)) : null;
   if (!defender) return;
 
   // The caller rolls (`scheduler.pendingRolls`). This event passed none, so a
@@ -5266,7 +5274,7 @@ export async function runCheckPhase(phase, ability, state, defender, depth = 0) 
   if (depth >= MAX_CHECK_DEPTH) return [];
 
   const attackerDoc = game.actors.get(state.attackerId);
-  const attacker = unitSnapshot(attackerDoc);
+  const attacker = unitOf(attackerDoc, boardSnapshot());
 
   // WHICH outcome this target gets, before anything is rolled. Medusa's Mystic
   // Eyes has three, chosen by what the target IS -- and a phase with no
@@ -5473,8 +5481,9 @@ function damageSuppressedBy(state, before) {
  * @param {object} state
  */
 async function applyFacing(state) {
-  const attacker = unitSnapshot(game.actors.get(state.attackerId));
-  const defender = unitSnapshot(game.actors.get(state.defenderId));
+  const board = currentBoard();
+  const attacker = unitOf(game.actors.get(state.attackerId), board);
+  const defender = unitOf(game.actors.get(state.defenderId), board);
   if (!attacker?.panel || !defender?.panel) return;
   // The nearest of EIGHT, not four (#184): a defender attacked from a diagonal
   // looks at the attacker, not along an axis beside it. Runs after the
@@ -5528,7 +5537,7 @@ function targetSpecFor(attacker, ability, options = null, board = boardSnapshot(
   //
   // The attacker still travels through so a bare Normal Attack can carry a
   // shape of its own -- Kagome: Famine's "3x3 panel area".
-  const projected = unitFrom(board, attacker) ?? unitSnapshot(attacker);
+  const projected = unitOf(attacker, board);
   const ownRange = typeof projected.range === "number"
     ? projected.range
     : (attacker.system.range?.panels ?? 1);
@@ -5625,7 +5634,7 @@ function baseSpecFor(attacker, ability, range = null, options = null, block = un
   // Resistance and then dealt the wrong number -- the two halves of one band
   // answered from two different places.
   const board = boardSnapshot();
-  const projected = unitFrom(board, attacker) ?? unitSnapshot(attacker);
+  const projected = unitOf(attacker, board);
   return normalAttackBase(projected, board, range);
 }
 
@@ -6221,7 +6230,7 @@ async function offerAttackerWindow(state, window, message) {
   // `stance.mjs#stanceOf` can only answer from `stanceSpec`. Assembled by hand,
   // the subject answered `null` and every *"can only be used when Unmounted"*
   // ability was refused before it could be offered (Ch. 46 §46.4-V).
-  const offers = abilitiesAtWindow(windowSubject(unitSnapshot(actor), actor.items), window);
+  const offers = abilitiesAtWindow(windowSubject(unitOf(actor, boardSnapshot()), actor.items), window);
   if (offers.length === 0) return { ...state, windowAbilities: [] };
 
   const picked = await askOwner(actor, {
@@ -6269,7 +6278,7 @@ async function offerAttackerWindow(state, window, message) {
 
   const intents = billed.flatMap((id) => {
     const item = actor.items.get(id);
-    const self = unitSnapshot(actor);
+    const self = unitOf(actor, boardSnapshot());
     const plan = cooldownFor(item, actor.id, { unit: self });
     const toggles = classifyAbility(item).toggles;
     return [
@@ -6454,7 +6463,7 @@ async function resolveChoosePhases(phases, attackerDoc) {
  * @param {string} defenderId
  * @returns {Array<{id: string, name: string}>}
  */
-function offeredReactions(defenderId, attack = null, isAoE = false, attackerId = null) {
+function offeredReactions(defenderId, attack = null, isAoE = false, attackerId = null, board = boardSnapshot()) {
   const actor = game.actors.get(defenderId);
   if (!actor) return [];
 
@@ -6463,7 +6472,7 @@ function offeredReactions(defenderId, attack = null, isAoE = false, attackerId =
   // -- and the only option on it is nothing. Refused here rather than by
   // giving them no reaction abilities, because an ALLY's Rho Aias is offered
   // at this same rung and is equally unavailable to them.
-  const snapshot = unitSnapshot(actor);
+  const snapshot = unitOf(actor, board);
   if (hasGranted(snapshot, GRANTS.noReactions)) return [];
 
   // `windowSubject`, not a hand-built `{items, effects, turnState}`. That shape
@@ -6484,9 +6493,8 @@ function offeredReactions(defenderId, attack = null, isAoE = false, attackerId =
   // Offered at the defender's rung because Ch. 23's ladder prompts one side per
   // rung; the option is labelled with the projector's name so whoever answers
   // knows whose Health it is about to cost.
-  const board = boardSnapshot();
   const ally = allyReactions({
-    defender: board.units.find((u) => u.id === defenderId) ?? unitSnapshot(actor),
+    defender: unitOf(actor, board),
     board,
     // `isAoE` lives on the Process rather than on the attack spec, and
     // Akhilleus Kosmos gates on it, so it is folded in here where both are in
@@ -6537,7 +6545,7 @@ function autoEvadeFrom(state, defender) {
   // what the roll itself would have failed, which is the worst kind of bug: it
   // fires only when the defender happens to be buffed.
   const permit = evadePermit(state);
-  if (permit && !permit.some((id) => (unitSnapshot(defender).effects ?? []).includes(id))) {
+  if (permit && !permit.some((id) => (unitOf(defender, boardSnapshot()).effects ?? []).includes(id))) {
     return { applies: false };
   }
 
@@ -6717,6 +6725,7 @@ async function runPreemption({ preempterId, attackerId, abilityId, placement, ta
 
   // A NORMAL Attack. The clause says "Attack", and a Servant's Attack with no
   // ability named is its Normal Attack everywhere else in this engine.
+  const preemptBoard = currentBoard();
   // Through the miss check, as every declaration is (`declareProcesses`). It
   // stopped at `declare -> done`, sitting on `missCheck`, an automatic rung
   // nothing then drove: Jack's strike first had a card with no buttons, and
@@ -6728,19 +6737,19 @@ async function runPreemption({ preempterId, attackerId, abilityId, placement, ta
       attack: {
         abilityId: null,
         kind: "normal",
-        component: componentOf(preempter, null, rollOptionsFor({ attacker: unitSnapshot(preempter) })),
+        component: componentOf(preempter, null, rollOptionsFor({ attacker: unitOf(preempter, preemptBoard) })),
       },
       isAoE: false,
       isPreemption: true,
     }),
     "done",
-  ), unitSnapshot(preempter), currentBoard());
+  ), unitOf(preempter, preemptBoard), preemptBoard);
 
   const message = await renderAttackCard({
     state, attacker: preempter, ability: null, targets: [{ unitId: attackerId }],
   });
   await message.setFlag("fgt", "process", process.serialize(state));
-  await message.setFlag("fgt", "collapse", process.laddersCollapse(unitSnapshot(target)));
+  await message.setFlag("fgt", "collapse", process.laddersCollapse(unitOf(target, preemptBoard)));
   // The other half of the exchange, parked until this one finishes.
   await message.setFlag("fgt", "deferredAttack", {
     attackerId, abilityId, placement: placement ?? null, targetIds,
@@ -6770,7 +6779,7 @@ async function resumeDeferredAttack(state, message) {
 
   const attacker = game.actors.get(deferred.attackerId);
   if (!attacker) return;
-  if (attacker.system?.defeated?.at || currentHealth(unitSnapshot(attacker)) <= 0) {
+  if (attacker.system?.defeated?.at || currentHealth(unitOf(attacker, null)) <= 0) {
     await applyBatch([I.log({
       kind: "attack", event: "preemptCancelled", unitId: deferred.attackerId,
       by: state.attackerId,
@@ -6831,7 +6840,7 @@ async function offerNPCancellation({ attackerId, attacker, ability, targetIds, b
     const defenderDoc = game.actors.get(defenderId);
     if (!defenderDoc) continue;
 
-    const defender = unitFrom(board, defenderDoc) ?? unitSnapshot(defenderDoc);
+    const defender = unitOf(defenderDoc, board);
     // Everything that would refuse it is checked BEFORE it is offered (Ch. 33):
     // the window, the cooldown, the tokens, the Turn record -- and the Round
     // record, which this could not check at all until it stopped hand-building
@@ -6909,8 +6918,8 @@ async function resolveNPCancellation({
     usage: canUseAbility({
       ability: abilityUsageSpec(cancelling), unit: canceller, master: cancellerMaster,
       round: game.combats.active?.round ?? 1, board, ...gateContext(),
-      target: unitFrom(board, attacker) ?? unitSnapshot(attacker),
-      testPredicate: requirementTester(canceller, unitFrom(board, attacker) ?? unitSnapshot(attacker)),
+      target: unitOf(attacker, board),
+      testPredicate: requirementTester(canceller, unitOf(attacker, board)),
     }),
     board,
     resume: false,
@@ -6926,7 +6935,7 @@ async function resolveNPCancellation({
   }
 
   const spec = cancelling.system.cancelsNP ?? {};
-  const attackerUnit = unitFrom(board, attacker) ?? unitSnapshot(attacker);
+  const attackerUnit = unitOf(attacker, board);
   const { strongest, ranked } = isStrongestNP([...attacker.items], attackerUnit, ability.id);
 
   /** @type {object[]} */
@@ -7035,7 +7044,7 @@ export function counterfactualAttack({ attackerDoc, ability, options, range }) {
  * @returns {number}
  */
 function counterfactualDamage({ attackerDoc, ability, board, options, defenderUnit }) {
-  const attackerUnit = unitFrom(board, attackerDoc) ?? unitSnapshot(attackerDoc);
+  const attackerUnit = unitOf(attackerDoc, board);
   const range = attackDistance(attackerUnit, defenderUnit);
   const damage = resolvedDamage(ability, options);
 
@@ -7075,7 +7084,7 @@ function counterfactualDamage({ attackerDoc, ability, board, options, defenderUn
 async function resolveEmptiedUnit(unitId) {
   const doc = game.actors.get(unitId);
   if (!doc) return;
-  const unit = unitFrom(boardSnapshot(), doc) ?? unitSnapshot(doc);
+  const unit = unitOf(doc, boardSnapshot());
   if (currentHealth(unit) > 0) return;
 
   const intents = await resolveDefeatOf(unit, 0, {});

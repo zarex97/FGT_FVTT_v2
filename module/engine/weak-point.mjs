@@ -19,7 +19,7 @@
 import { weakPointChance, weakPointOffered } from "../rules/weak-point.mjs";
 import { luckChecksBlocked } from "../rules/bounded-fields.mjs";
 import { luckCheck } from "../rules/checks.mjs";
-import { unitSnapshot } from "./board.mjs";
+import { currentBoard, unitOf } from "./board.mjs";
 import * as I from "./intents.mjs";
 import * as rollLog from "../rules/roll-log.mjs";
 
@@ -55,8 +55,9 @@ export async function offerWeakPoint(state, { board = null } = {}) {
   const defenderDoc = game.actors.get(state.defenderId);
   if (!attackerDoc || !defenderDoc) return state;
 
-  const attacker = unitSnapshot(attackerDoc);
-  const defender = unitSnapshot(defenderDoc);
+  const view = board ?? currentBoard();
+  const attacker = unitOf(attackerDoc, view);
+  const defender = unitOf(defenderDoc, view);
   const spec = exposedWeakPoint(defender, attacker, state, board);
   if (!spec) return state;
 
@@ -130,8 +131,9 @@ export async function offerWeakPoint(state, { board = null } = {}) {
 export async function resolveWeakPoint(state, { board = null } = {}) {
   const attackerDoc = game.actors.get(state.attackerId);
   const defenderDoc = game.actors.get(state.defenderId);
-  const attacker = unitSnapshot(attackerDoc);
-  const defender = unitSnapshot(defenderDoc);
+  const view = board ?? currentBoard();
+  const attacker = unitOf(attackerDoc, view);
+  const defender = unitOf(defenderDoc, view);
   const spec = (defender?.weakPoints ?? []).find((w) => w.id === state.heel?.specId) ?? null;
   if (!spec) return { event: "fail", detail: { reason: "no weak point" } };
 

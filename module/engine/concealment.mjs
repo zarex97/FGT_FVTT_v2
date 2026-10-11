@@ -23,7 +23,7 @@ import { lookup } from "../domain/tables.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { applyWorldIntents } from "./applier.mjs";
-import { currentBoard, unitSnapshot } from "./board.mjs";
+import { currentBoard, unitOf } from "./board.mjs";
 import * as I from "./intents.mjs";
 import { publicSpeakerFor } from "./public-identity.mjs";
 import { publicIdentityOf } from "./public-identity.mjs";
@@ -276,7 +276,7 @@ export async function runDiscoverChecks(unitId) {
 
   const actor = game.actors.get(unitId);
   const board = currentBoard();
-  const unit = (board.units ?? []).find((u) => u.id === unitId) ?? unitSnapshot(actor);
+  const unit = unitOf(actor, board);
 
   // The per-Turn budget, and the arrival order it is spent in. Both are read
   // before the attempts are computed and written after, because a Discover that

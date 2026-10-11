@@ -10,7 +10,7 @@
  * `zonExempt`, the Sustainability bump) nothing else has a reason to know.
  */
 
-import { currentBoard, unitSnapshot } from "./board.mjs";
+import { currentBoard, unitOf } from "./board.mjs";
 import { activatePlatform } from "./platforms.mjs";
 import { askOwner } from "./ask.mjs";
 import { displaceToken } from "./io.mjs";
@@ -363,7 +363,7 @@ const contains = (p, origin, w, h) =>
  * @returns {Promise<void>}
  */
 async function applyOwnerBuff(owner, platformId) {
-  const self = unitSnapshot(owner);
+  const self = unitOf(owner, currentBoard());
   const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
   const bonus = resolveTicks(parseTick(SUSTAINABILITY_BONUS), { turnsPerRound });
 
@@ -413,7 +413,7 @@ async function onPlatformDestroyed(platform) {
   if (!owner) return;
 
   // "its Construction is reduced to 0" -- she may rebuild from scratch.
-  const self = unitSnapshot(owner);
+  const self = unitOf(owner, currentBoard());
   const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
   const bonus = resolveTicks(parseTick(SUSTAINABILITY_BONUS), { turnsPerRound });
 

@@ -19,7 +19,7 @@
 import * as geo from "../../domain/geometry.mjs";
 import { zonStatus, masterOf } from "../../rules/zon.mjs";
 import { attackSourceOf } from "../../rules/platforms.mjs";
-import { unitSnapshot, currentBoard } from "../../engine/board.mjs";
+import { unitOf, currentBoard } from "../../engine/board.mjs";
 
 /** In ZON. */
 const OK = 0x44cc88;
@@ -226,7 +226,7 @@ export class OverlayLayer extends foundry.canvas.layers.CanvasLayer {
     const actor = token.actor;
     if (!actor) return;
 
-    const unit = board.units.find((u) => u.id === actor.id) ?? unitSnapshot(actor);
+    const unit = unitOf(actor, board);
 
     if (unit.kind === "master") {
       for (const servant of board.units.filter((u) => masterOf(u, board)?.id === unit.id)) {
