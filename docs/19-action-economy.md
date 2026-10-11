@@ -85,6 +85,8 @@ Setting facing is free and does not cost a budget slot: its action entry declare
 
 ## Invariants & edge cases
 
+**`category: spell` is a Spell to Silence, Seal and Skill Seal** (#193). `preventionActionFor` reads `isSpell` or the category; Medea's five non-damaging Spells carry only the category.
+
 1. **Budget reads/writes go through the GM.** A player owns their Servants but not the Combat document, so budget writes are proxied to the GM (`module/engine/budget.mjs:163-169`).
 
 2. **Charmed units spend from the charmer's faction budget.** A Charm moves a unit into the charmer's `currentUnits` and its budget is the charmer's pool, not its owner's — the owner's pool is not reset during another faction's turn (`module/engine/budget.mjs:53-69`).

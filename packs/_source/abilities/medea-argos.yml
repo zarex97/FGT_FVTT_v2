@@ -9,6 +9,9 @@ cooldown: "4◈"
 # must OFFER -- a Spell usable only on your own turn would never fire in
 # defence, which is the whole point of this one.
 timing: { window: [ownTurn, whenAttacked] }
+# Cast when Attacked it is not her reaction: the rung stays open and she still
+# Blocks, Evades or takes it, with Trofa no longer offered (#193 reading 8).
+reactionFree: true
 description: |
   Spell. Used during your Turn or when Attacked. Applies @effect[defUp]{Def Up} for 1◈ Turns: all damage taken
   is reduced by 50%; if NP, 30%.

@@ -92,6 +92,8 @@ Rules evaluate against a **snapshot** — a plain object flattening a document i
 
 ## Invariants & edge cases
 
+**A Servant can be a Master, and its Servant's ZON is the class figure around it** (#193 reading 19). Medea holds the Servants Rule Breaker takes. `zon.mjs#zonRadius` adds a stated ZON and the High Rank bonus only for a Master that is not a Servant, and `annotateZon` writes `zon` only on Servants, so a real Master's stated ZON is no longer nulled for Servants annotated after it.
+
 1. **`null` Health is not zero Health.** Undamageable is not dead. `adjustHealth` refuses writes when `max === null` rather than creating a pool that does not exist. `isUndamageable` is the check that distinguishes them (`module/engine/io.mjs:208-210`, `module/domain/health.mjs:70-72`).
 
 2. **Health has two shapes.** Documents carry `{ value, max }`; snapshots carry a bare number plus `healthMax` or `maxHealth` fields. A reader that assumes one shape gets `undefined` against the other and the `?? 0` silently turns it into the wrong answer (`module/domain/health.mjs:1-27`).

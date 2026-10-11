@@ -85,6 +85,8 @@ Comparisons offer `@`-paths scoped to the context: `ownerOnly` has only `self`, 
 
 ## Invariants & edge cases
 
+**Rank comparisons read the letter** (#193 reading 11). `gradesClearedBy` emits `rank:<p>:gte:B` for B−, B and B+ alike: *"a Rank of B or higher"* is met by B−. It compared whole ranks before, so B− sat below B.
+
 1. **A predicate is an implicit AND.** `test` returns `true` only if every statement passes (`module/rules/predicate.mjs:51-54`).
 
 2. **The `not:` prefix applies to one option, not a whole statement.** `"not:target:skill:divinity"` is a bare string negating the option that follows, distinct from `{not: "target:skill:divinity"}`, the object form (`module/rules/predicate.mjs:20-78`).

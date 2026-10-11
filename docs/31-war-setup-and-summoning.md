@@ -70,6 +70,8 @@ Mid-game, `attemptContract` rolls what the plan asks for. Allied contracts to al
 
 ## Invariants & edge cases
 
+**A summon's panels can be its owner's pick, and it can leave with its summoner** (#193 readings 13, 15). `placement.chooser: owner` asks the owner, through `askOwner` and the `pickPanels` prompt, for one panel per summon among the free ones; a cancel places the rest. `leavesWithSummoner: true` dismisses the summon when `io.defeat` writes its summoner's defeat. `dismissSummon` deletes tokens by scene query and then the WORLD actor: `resolve` prefers an unlinked token's synthetic actor, and deleting that left the world actor behind. The card names the dice and who came, and the type choice lists names.
+
 1. **Factions must be symmetric.** If red allies blue, blue must ally red. `normalizeFactions` enforces this (`module/rules/factions.mjs:84-89`).
 
 2. **A faction's id never changes.** The name is free to change; the id is what every actor stores and must remain stable (`module/rules/factions.mjs:124-149`).

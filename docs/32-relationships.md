@@ -94,6 +94,8 @@ before any step that mutates what it selects on.**
 
 ## Invariants & edge cases
 
+**Whoever holds a Contract is a Master** (#193 readings 18, 21). Medea's Rule Breaker makes her the stolen Servant's Master: the Contract and three namespaced Command Spells go to her (`commandSpellsPerServant` is declared on Servants too), the Servant's Noble Phantasm cost is charged to her Health, the multi-Servant tax bills her, and her defeat frees or conquers her Servants. Each of those readers had tested for a `master` actor.
+
 1. **Overpower and Underpower are directional.** Neither applies when both units are Servants or both are Masters. Zero chance and "does not apply" are different facts (`module/rules/relationships.mjs:43-46`, `module/rules/relationships.mjs:96-99`).
 
 2. **`null` Sustainability is not zero.** A Servant with `null` has no clock and stays indefinitely; one with `0` disappears immediately (`module/rules/relationships.mjs:171-183`).

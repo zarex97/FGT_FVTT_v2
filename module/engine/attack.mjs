@@ -1306,6 +1306,21 @@ export async function advanceAttack({ messageId, event, abilityId = null, placem
       if (!out.ok) ui.notifications?.warn(game.i18n.format("FGT.Skill.Refused", { name: used.name, reason: out.reason }));
     }
 
+    // A FREE reaction ability is not the reaction (#193 reading 8). Argos's
+    // Def Up is on her now, and the rung stays where it was: she still chooses
+    // to take it, Block or Evade. Every reaction ability leaves the offer, so
+    // Trofa cannot follow Argos against the same Attack.
+    if (used?.system?.reactionFree) {
+      state = {
+        ...state,
+        reactionAbilities: { ...(state.reactionAbilities ?? {}), [state.defenderId]: [] },
+        history: [...state.history, { state: "react", event, detail: { free: true } }],
+      };
+      await message.setFlag("fgt", "process", process.serialize(state));
+      await updateAttackCard(message, state);
+      return state;
+    }
+
     // An auto-evade granted by what was just used takes the Evade rung without
     // a roll. Read AFTER the ability resolved, because that is what granted it.
     const auto = autoEvadeFrom(state, defender);
@@ -1318,6 +1333,9 @@ export async function advanceAttack({ messageId, event, abilityId = null, placem
       state = process.advance(state, "evade");
       state = process.advance(state, auto.success ? "success" : "fail", auto.outcome);
       if (auto.success) await fireEvadeSucceeded(state);
+      // A failed Trofa was her Evade, and she may still Block (#193 reading 9):
+      // the escape rung offers Block beside accepting, after Lucky Evasion.
+      else state = { ...state, blockAfterAutoEvade: true };
       await message.setFlag("fgt", "process", process.serialize(state));
       await updateAttackCard(message, state);
       return state;
@@ -5984,11 +6002,15 @@ async function cutContract(phase, state, defenderDoc) {
 
   const oldMaster = defenderDoc.system?.masterId ? game.actors.get(defenderDoc.system.masterId) : null;
   const caster = game.actors.get(state.attackerId);
-  const newMaster = caster?.type === "master" ? caster : game.actors.get(caster?.system?.masterId);
+  // MEDEA receives the Contract, not her Master: *"the Servant's Contract,
+  // along with three Command Spells, will be given to Medea"* (#193 reading
+  // 18). This gave both to her Master, so the stolen Servant's ZON, its Noble
+  // Phantasm's Health and its Command Spells all hung on somebody else.
+  const newMaster = caster ?? null;
 
   if (!newMaster) {
-    // A Free Medea has no Master to receive the Contract. The Servant is still
-    // cut loose -- the NP destroyed the talisman either way.
+    // No caster on record to receive the Contract. The Servant is still cut
+    // loose -- the NP destroyed the talisman either way.
     await applyBatch([I.markContract(defenderDoc.id, "free", null)], "np:cutContract");
     return [{ summary: { id: "cutContract", name: "Rule Breaker", outcome: "applied", reason: "freedOnly" } }];
   }

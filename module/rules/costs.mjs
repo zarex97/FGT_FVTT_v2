@@ -564,7 +564,12 @@ function categoryLimitFor(ability, unit) {
  */
 function preventionActionFor(ability) {
   if (ability?.isNP || ability?.categorizedAsNP) return "np";
-  if (ability?.isSpell) return "spell";
+  // `category: spell` is a Spell too. Medea's Argos, Keraino, Trofa, Atlas and
+  // Dragon Tooth Warriors carry the category and not `isSpell`, which her two
+  // Damage Spells and EMIYA's Thaumaturgy carry, so Silence stopped Aero and
+  // let the other five through (#193). High-Speed Divine Words already finds
+  // "all of Medea's Spells" by the category.
+  if (ability?.isSpell || ability?.category === "spell") return "spell";
   return "skill";
 }
 

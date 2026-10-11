@@ -202,6 +202,9 @@ export function snapshotUnit(actor, {
     health: sys.health?.value ?? null,
     maxHealth: sys.health?.max ?? null,
     agility: sys.agility?.value ?? 0,
+    // The maximum beside it, for a restore stated as a share of it: Half Heal
+    // and Full Heal restore "Agility by 50% of maximum" (#193).
+    maxAgility: sys.agility?.max ?? 0,
     luck: sys.luck?.value ?? 0,
     mov: sys.mov ?? 0,
     // The NUMBER of panels, not the `{panels, targets}` schema object. Every
@@ -231,6 +234,8 @@ export function snapshotUnit(actor, {
     // else from, and the stored value is not evidence of one.
     contract: sys.masterId ? (sys.contract ?? "contracted") : "free",
     commandSpells: sys.commandSpells ?? 0,
+    // A Servant can hold them too, as a Master (#193 reading 18).
+    commandSpellsPerServant: sys.commandSpellsPerServant ?? {},
 
     // Ch. 03: `effective = base shifted by granted`. `grantedSteps` holds the
     // MASTER's grant and only that -- it is a permanent, per-unit fact this

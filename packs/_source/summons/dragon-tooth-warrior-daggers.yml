@@ -20,6 +20,8 @@ detect: 2
 # Neither clause is Medea-specific machinery: both are properties of the summon.
 countsTowardBudget: false
 actsOncePerTurn: true
+# They go when Medea is defeated (#193 reading 15).
+leavesWithSummoner: true
 # "Enemy Units cannot Attack Medea or her Master if any Dragon Tooth Warriors
 # are directly next to them" -- a protection projected onto its SUMMONER, which
 # is a Decoy-shaped rule rather than a Compulsion: it removes targets rather

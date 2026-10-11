@@ -69,6 +69,25 @@ const RENDERERS = Object.freeze({
     return ChoiceDialog.pick(spec);
   },
 
+  // Where each summon appears, one panel at a time (#193 reading 13). The
+  // offered panels shrink as they are taken. A cancel ends the picking and
+  // returns what was picked; the asker places the rest itself, so a closed
+  // window never costs a Dragon Tooth Warrior.
+  pickPanels: async (spec) => {
+    const { pickDestination } = await import("./canvas/targeting-layer.mjs");
+    const key = (p) => `${p.i},${p.j}`;
+    let left = [...(spec.panels ?? [])];
+    const picked = [];
+    for (const label of spec.labels ?? []) {
+      if (left.length === 0) break;
+      const at = await pickDestination({ panels: left, label, hint: spec.hint ?? null });
+      if (!at) break;
+      picked.push(at);
+      left = left.filter((p) => key(p) !== key(at));
+    }
+    return { panels: picked };
+  },
+
   // One pool, two Units: how much of it goes to the first (Blood Fort
   // Andromeda's drain, #188 reading 2). The rest goes to the second; the
   // asker clamps. A closed window is `null`, the even split.

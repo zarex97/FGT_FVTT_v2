@@ -386,7 +386,11 @@ async function resolveEffects(intents) {
         // The die the handler's chance gate already rolled, when it rolled one;
         // a fresh one only for a chance nothing has decided yet (#191).
         roll: typeof intent.effect.rolled === "number" ? intent.effect.rolled : (await new Roll("1d100").evaluate()).total,
-        inflictBonus: inflicterDoc ? inflictBonusOf(unitSnapshot(inflicterDoc), def) : 0,
+        // The inflicter as the BOARD projects it. A bare `unitSnapshot` has no
+        // auras, so Item Construction's +50 -- an aura Medea holds on herself --
+        // never reached a Spell's debuff: Atlas on Medusa rolled against 30%
+        // where the sheet makes it 80% (#193).
+        inflictBonus: inflicterDoc ? inflictBonusOf(unitFrom(board, inflicterDoc) ?? unitSnapshot(inflicterDoc), def) : 0,
         // The attack that raised the event, where there was one.
         options: riderOptions(intent.effect),
       },

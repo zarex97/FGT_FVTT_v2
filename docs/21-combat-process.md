@@ -70,6 +70,8 @@ The process is **complete** when it reaches the `done` state (`module/engine/com
 
 ## Invariants & edge cases
 
+**A failed automatic Evade may still Block** (#193 reading 9). When an `autoEvade` fails — Trofa's 50% against a Noble Phantasm — the state carries `blockAfterAutoEvade`, and after Lucky Evasion the escape rung offers Block beside accepting: `s23_acceptOrEscape:block` → `damage`, with `reaction: block` for stage 14.
+
 1. **One process per distinct defender.** A fan-out over five units opens five processes (`module/engine/combat-process.mjs:212-236`). EMIYA's Overedge is two swings against one unit and is two processes against one defender, not an area attack (`module/engine/attack.mjs:922-926`).
 
 2. **Weak-point offers at declaration, but only when possible.** Achilles' Heel is offered to the attacker before any ladder prompt, because the offer decides what Block will forbid (`module/engine/attack.mjs:991-1002`). The weak-point chance is pure and computed twice per offer — once plain, once with Luck bonus (`module/engine/weak-point.mjs:60-62`).

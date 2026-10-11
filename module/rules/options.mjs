@@ -553,7 +553,11 @@ function gradesClearedBy(raw) {
     return [];
   }
   if (!rank) return [];
-  return GRADE_LADDER.filter((grade) => Rank.gte(rank, Rank.of(grade)));
+  // Read at the LETTER: "a Rank of B or higher" is met by B−, B and B+ alike
+  // (#193 reading 11, for Atlas; the same words mean the same everywhere).
+  // Comparing the whole rank put B− below B, so a MAG B− Servant escaped
+  // Atlas's −25.
+  return GRADE_LADDER.filter((grade) => Rank.gte(Rank.of(rank.grade), Rank.of(grade)));
 }
 
 /** The grades a comparison may name, weakest first. */

@@ -48,6 +48,12 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       // the sheet and compiled by `tools/lib/content.mjs`; `rules/stance.mjs`
       // is the only thing that interprets either.
       stance: new fields.StringField({ required: false, blank: true, initial: "" }),
+
+      // Command Spells a Servant holds AS a Master: Servant id → spells usable
+      // only on that Servant. Medea's Rule Breaker gives her the Contract and
+      // three of them (#193 reading 18); a Caster's conquest claims the same way.
+      // Without the field the grant had nowhere to land on a Servant.
+      commandSpellsPerServant: new fields.ObjectField({ required: true, initial: () => ({}) }),
       stanceSpec: new fields.ObjectField({ required: false, nullable: true, initial: null }),
 
       // The ONE it is summoned into, and the one it is publicly known by. A

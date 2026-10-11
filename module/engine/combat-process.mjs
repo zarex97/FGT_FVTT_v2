@@ -66,6 +66,9 @@ export const TRANSITIONS = Object.freeze({
   "s25_auContest:declined": "noDamage",
 
   "s23_acceptOrEscape:accept": "damage",
+  // Offered only after an automatic Evade failed (#193 reading 9): Medea's
+  // Trofa against a Noble Phantasm was her Evade, and she may still Block.
+  "s23_acceptOrEscape:block": "damage",
   "s23_acceptOrEscape:cs": "noDamage",
 
   // The weak-point rung (Ch. 45). It is not reached by an event of its
@@ -297,6 +300,7 @@ export function advance(s, event, detail = undefined) {
   // Several at once: the riders' chance rolls at the end of the Damage Step (#182).
   for (const r of detail?.rollRecords ?? []) out.rolls = appendRoll(out.rolls ?? s.rolls ?? [], r);
   if (s.state === "react") out.reaction = event;
+  if (s.state === "s23_acceptOrEscape" && normalized === "block") out.reaction = "block";
   if (s.state === "evadeRoll") out.evaded = event === "success";
   if (s.state === "heelResolve") {
     out.heel = { ...s.heel, resolved: true, succeeded: normalized === "success" };

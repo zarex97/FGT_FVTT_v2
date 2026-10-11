@@ -168,6 +168,18 @@ describe("effectsOf", () => {
     ]);
   });
 
+  // The live context hands it the BOARD snapshot, whose `health` and `agility`
+  // are numbers with `maxHealth` and `maxAgility` beside them. The fixture
+  // above uses `{value, max}` pools, so this agreed with the code while every
+  // Half Heal on a live board restored 0 (#193).
+  it("reads the board snapshot's maxima too", () => {
+    const board = servant({ health: 400, maxHealth: 1000, agility: 3, maxAgility: 8 });
+    expect(effectsOf(halfHeal, ctx({ servant: board }))).toEqual([
+      { kind: "statChange", unitId: "s", stat: "health", delta: 500, clamp: true },
+      { kind: "statChange", unitId: "s", stat: "agility", delta: 4, clamp: true },
+    ]);
+  });
+
   it("targets the contracted Servant, not the Master who spent the spell", () => {
     expect(effectsOf(killYourself, ctx())).toEqual([{ kind: "defeat", unitId: "s" }]);
   });

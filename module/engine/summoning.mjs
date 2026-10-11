@@ -98,13 +98,60 @@ export async function summonPhase(phase, summoner, { choose = null } = {}) {
   // The WHOLE footprint has to fit: Bašmu is 3x3, and testing only the panel
   // its token is anchored on put it on top of Semiramis (Ch. 46 §46.4-BM).
   const footprint = await largestFootprint(contentIds);
-  const panels = freePanels(summoner, spec.placement ?? {}, contentIds.length, {
-    footprint, within: stamps.boundToPlatformId ?? null,
-  });
+  const panels = spec.placement?.chooser === "owner"
+    ? await ownerPanels(summoner, spec.placement, contentIds)
+    : freePanels(summoner, spec.placement ?? {}, contentIds.length, {
+      footprint, within: stamps.boundToPlatformId ?? null,
+    });
 
   const created = await placeSummons(contentIds, panels, summoner, scene, spec, stamps);
 
   return { count: created.length, created, rolls };
+}
+
+/**
+ * The panels the summoner's owner picks, one per summon.
+ *
+ * > *"they will appear within a 5x5 panel area around Medea"*
+ *
+ * The sheet says where, not which panel, and #193 reading 13 gives the choice
+ * to her owner: each Warrior goes on an empty, passable panel of the area, and
+ * one with no free panel left is lost. Asked through `askOwner`, so a Skill the
+ * GM resolves still puts the pick on the player's canvas.
+ *
+ * A pick outside the offer is ignored, and whatever the owner did not pick --
+ * a cancel, a timeout -- is filled from the remaining panels in order, so a
+ * dismissed window never costs a summon. Fewer panels than summons returns
+ * fewer panels, and `placeSummons` names the ones that could not appear.
+ *
+ * @param {object} summoner
+ * @param {object} placement
+ * @param {string[]} contentIds
+ * @returns {Promise<Array<{i: number, j: number}>>}
+ */
+async function ownerPanels(summoner, placement, contentIds) {
+  const offered = freePanels(summoner, placement, Infinity);
+  if (offered.length === 0) return [];
+  const names = [];
+  for (const id of contentIds.slice(0, offered.length)) names.push((await fromPacks(id))?.name ?? id);
+
+  const { askOwner } = await import("./ask.mjs");
+  const answer = await askOwner(summoner, {
+    kind: "pickPanels",
+    panels: offered,
+    labels: names,
+    hint: game.i18n.localize("FGT.Summon.PickPanel"),
+  });
+
+  const key = (p) => `${p.i},${p.j}`;
+  const free = new Map(offered.map((p) => [key(p), p]));
+  const chosen = [];
+  for (const p of answer?.panels ?? []) {
+    if (chosen.length >= names.length || !free.has(key(p))) continue;
+    chosen.push(free.get(key(p)));
+    free.delete(key(p));
+  }
+  return [...chosen, ...free.values()].slice(0, names.length);
 }
 
 /**
@@ -520,6 +567,15 @@ function fractionOf(raw) {
  * @param {string} contentId
  * @returns {Promise<object|null>}
  */
+/**
+ * A summon's display name by content id, or the id when no pack holds it.
+ * @param {string} contentId
+ * @returns {Promise<string>}
+ */
+export async function summonName(contentId) {
+  return (await fromPacks(contentId))?.name ?? contentId;
+}
+
 async function fromPacks(contentId) {
   for (const pack of game.packs.filter((p) => p.metadata.type === "Actor")) {
     const index = await pack.getIndex({ fields: ["system.contentId"] });

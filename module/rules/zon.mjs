@@ -107,7 +107,12 @@ export function zonRadius(servant, master, config = {}) {
   // Added to `derived` rather than folded into the floor below. That floor
   // exists so a Master sheet stating a ZON is believed; a rank bonus is a
   // different thing, and a stated ZON would swallow it whole.
-  const rankBonus = isHighRank(master) ? 1 : 0;
+  // A MASTER's rank and stated ZON only. A Servant who is somebody's Master --
+  // Medea, after Rule Breaker -- has neither, and her snapshot's `zon` is her
+  // OWN zone around her Master: Medusa, stolen, measured 6 around Medea where
+  // a Rider's figure is 2 (#193 reading 19).
+  const isMaster = Boolean(master) && master.kind !== "servant";
+  const rankBonus = isMaster && isHighRank(master) ? 1 : 0;
 
   // The rank bonus is added to BOTH sides of the comparison. It used to sit
   // only inside `derived`, on the reasoning above that a stated ZON should not
@@ -117,7 +122,7 @@ export function zonRadius(servant, master, config = {}) {
   // Assassin 4, the rest 2), so a High Rank Normal Master bought nothing at all
   // with the coin that made them one.
   const derived = radius + exclusive + stacking + rankBonus;
-  return Math.max(derived, (master?.zon ?? 0) + rankBonus);
+  return Math.max(derived, isMaster ? (master?.zon ?? 0) + rankBonus : 0);
 }
 
 /**
@@ -189,7 +194,10 @@ export function masterOf(servant, board) {
 export function annotateZon(units, board, config = {}) {
   for (const unit of units) {
     const status = zonStatus(unit, board, config);
-    unit.zon = status.zon;
+    // Only a Servant's zone is written here. A Master's `zon` is its stated
+    // stat, which `zonRadius` reads; nulling it (a Master has no zone of its
+    // own) took it from every Servant annotated after its Master.
+    if (unit.kind === "servant") unit.zon = status.zon;
     unit.zonDistance = status.distance;
     unit.zonMasterId = status.master?.id ?? null;
     unit.outsideZon = status.outside;

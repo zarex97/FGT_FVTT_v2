@@ -59,6 +59,8 @@ Everything downstream of a spend — the `spendCS` intent, the applier case, `io
 
 ## Invariants & edge cases
 
+**A percent-of-maximum command reads the board's shape** (#193). `deltaFor` finds the maximum as `pool.max` or as `max<Stat>` beside a number, which is what the board snapshot carries (`maxHealth`, `maxAgility`). It read only `health.max`, so Half Heal and Full Heal restored 0.
+
 1. **Cost can depend on Master Rank.** `costByMasterRank` pairs High and Low values; the rules layer reads `paysHighColumn(master)` and selects one (`module/rules/command-spells.mjs:53-59`). When every Master is Rankless (rank unstated), all commands follow the High path, making Kill Yourself uniformly 1 cost (`module/rules/command-spells.mjs:53-59`).
 
 2. **Unusable commands are never offered.** A requirement that fails, a cost that is not affordable, or a `blockedWhen` state that holds produces no UI button. The filter runs `canSpend` with full context, returning `{ ok: false, reason, cost }` on any gate, so the offer knows what blocked the command (`module/engine/command-spells.mjs:35-39`).

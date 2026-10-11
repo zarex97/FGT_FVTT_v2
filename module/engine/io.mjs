@@ -956,7 +956,9 @@ export function worldIO() {
       const owner = summon.system?.summonerId ? resolve(summon.system.summonerId) : null;
       const contentId = summon.system?.contentId ?? null;
 
-      if (owner && contentId) {
+      // A summon gone with its summoner leaves no record: its kind is conjured
+      // fresh next time, and a remembered 12 Health would follow a new Warrior.
+      if (owner && contentId && reason !== "summonerDefeated") {
         // The SAME record `engine/fields.mjs` writes when a field closes over
         // its Sphinxes, and the same one `placeSummons` reads back. Kept on the
         // owner because it is the only thing that outlives the summon.
@@ -999,8 +1001,19 @@ export function worldIO() {
       // to name. `reason` distinguishes a timed departure from the field-close
       // and platform-teardown routes that also remove summons.
       record({ kind: "summonDismissed", unitId, name: summon.name, reason });
-      for (const token of summon.getActiveTokens?.() ?? []) await token.document.delete();
-      await summon.delete();
+      // By scene query, and once. `getActiveTokens` handed back a token whose
+      // document was already gone when two Warriors were dismissed in one
+      // defeat, and the throw aborted the defeat itself (#193).
+      // One at a time and only while still there: a board invalidation run by
+      // the first deletion may already have taken the next.
+      for (const scene of game.scenes ?? []) {
+        for (const id of scene.tokens.filter((t) => t.actorId === summon.id).map((t) => t.id)) {
+          if (scene.tokens.get(id)) await scene.deleteEmbeddedDocuments("Token", [id]).catch(() => {});
+        }
+      }
+      // The WORLD actor: `resolve` may hand back a token's synthetic actor,
+      // whose delete leaves the world one behind (#193).
+      await game.actors.get(summon.id)?.delete().catch((err) => console.warn("FGT | Summon not deleted:", err));
     },
 
     /**
@@ -1140,12 +1153,19 @@ export function worldIO() {
         await actor.delete();
         return;
       }
+      // Summons that go with their summoner (#193 reading 15): Medea's Dragon
+      // Tooth Warriors stood on the board after she fell. Dismissed, not
+      // defeated -- they are not killed, they stop being conjured.
+      const goWithIt = game.actors.filter((a) => a.system?.summonerId === unitId && a.system?.leavesWithSummoner);
       await actor.update({
         "system.defeated": true, "system.defeatCause": cause,
         // The first defeat's tick, kept by a second: the body's clock runs from
         // when it fell (#65, ruling 25).
         ...(actor.system?.defeated ? {} : { "system.defeatedAt": game.combat?.system?.globalTurn ?? null }),
       });
+      // After the defeat is written, so a failed dismissal cannot leave the
+      // summoner standing.
+      for (const summon of goWithIt) await this.dismissSummon(summon.id, "summonerDefeated");
       // ERASE takes the Unit out of the game, so there is no body to leave
       // lying: *"Unit is removed from the game"* (Appendix A §A.16), and Zero
       // Sail's failed Luck Check *"their bodies disappear immediately"* (#191
@@ -1528,7 +1548,10 @@ async function countTowardsGrail(unitId, cause) {
  */
 async function freeContractedServants(unitId, killerId = null) {
   const master = game.actors.get(unitId);
-  if (master?.type !== "master" || !game.user.isGM) return;
+  // Whoever holds a Contract, not only a `master` actor: Medea's Servants
+  // taken by Rule Breaker stayed contracted to her body (#193 reading 18).
+  const holds = master?.type === "master" || game.actors.some((a) => a.system?.masterId === unitId);
+  if (!holds || !game.user.isGM) return;
 
   // CONQUEST FIRST, and the ordering is correctness rather than preference
   // (#27, ADR 0002). `conquestContract` selects the Servants to claim by

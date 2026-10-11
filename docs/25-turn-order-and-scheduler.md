@@ -87,6 +87,8 @@ A boundary is named by **Foundry's own counters** (`round` and `turn`), not by `
 
 ## Invariants & edge cases
 
+**NP Regen does not tick on the Turn it expires** (#193 reading 7). `npRegenOf` skips an `npCooldownRegen` instance whose expiry is the Turn ending, as `tickPeriodics` does for every `periodic:` effect, so 1◈ takes 1◈ off.
+
 1. **Only the active GM client runs sequences.** Two browser tabs on one Gamemaster are two **connections**, and both pass `game.users.activeGM?.isSelf` until the token settler runs (`module/engine/scheduler-hooks.mjs:358-360`, `module/engine/scheduler-hooks.mjs:370`).
 
 2. **Turn order is a faction list, not a token list.** A Combatant is a faction; adding tokens to the tracker does nothing useful (`module/documents/combat.mjs:26-30`). The match must be populated through `addFaction` or `syncFactions` (`module/documents/combat.mjs:34-91`).
