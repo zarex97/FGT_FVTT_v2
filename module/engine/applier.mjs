@@ -245,16 +245,17 @@ async function resolveElements(intents) {
   // No world: a unit test applying against an injected `io`, with nobody to ask.
   if (typeof game === "undefined" || !game?.actors) return intents;
 
-  const [{ elementalEarlyExit }, { unitSnapshot }] = await Promise.all([
+  const [{ elementalEarlyExit }, { unitOf, currentBoard }] = await Promise.all([
     import("../rules/damage/pipeline.mjs"),
     import("./board.mjs"),
   ]);
+  const board = currentBoard();
 
   /** @type {Intent[]} */
   const out = [];
   for (const intent of intents) {
     const target = bare(intent) ? game.actors.get(intent.unitId) : null;
-    const exit = target ? elementalEarlyExit(unitSnapshot(target), intent.element) : null;
+    const exit = target ? elementalEarlyExit(unitOf(target, board), intent.element) : null;
     if (exit?.kind === "heal") {
       out.push(I.heal(intent.unitId, intent.amount, intent.source ?? exit.by));
     } else if (exit?.kind === "freeze") {
@@ -294,7 +295,7 @@ async function resolveEffects(intents) {
   // than failing -- the flow is exercised directly by its own tests.
   if (typeof game === "undefined" || !game?.actors) return intents;
 
-  const [{ applyEffect, inflictBonusOf, mergeEmitted }, { EffectRegistry }, { unitSnapshot, unitFrom }] = await Promise.all([
+  const [{ applyEffect, inflictBonusOf, mergeEmitted }, { EffectRegistry }, { unitOf }] = await Promise.all([
     import("./effect-applier.mjs"),
     import("../rules/registry.mjs"),
     import("./board.mjs"),
@@ -342,7 +343,7 @@ async function resolveEffects(intents) {
 
     const result = applyEffect({
       def,
-      target: unitFrom(board, target) ?? unitSnapshot(target),
+      target: unitOf(target, board),
       magnitude: intent.effect.magnitude ?? 0,
       npMagnitude: intent.effect.npMagnitude ?? null,
       // An ability's stated chance beats the definition's `baseChance`. Carried
@@ -390,7 +391,7 @@ async function resolveEffects(intents) {
         // auras, so Item Construction's +50 -- an aura Medea holds on herself --
         // never reached a Spell's debuff: Atlas on Medusa rolled against 30%
         // where the sheet makes it 80% (#193).
-        inflictBonus: inflicterDoc ? inflictBonusOf(unitFrom(board, inflicterDoc) ?? unitSnapshot(inflicterDoc), def) : 0,
+        inflictBonus: inflicterDoc ? inflictBonusOf(unitOf(inflicterDoc, board), def) : 0,
         // The attack that raised the event, where there was one.
         options: riderOptions(intent.effect),
       },
@@ -421,7 +422,7 @@ async function resolveEffects(intents) {
       && !result.intents.some((i) => i.t === "removeEffect" && i.reason === "refreshed");
     if (created && def.onApply?.length) {
       const { dispatch } = await import("./scheduler.mjs");
-      const unit = unitFrom(board, target) ?? unitSnapshot(target);
+      const unit = unitOf(target, board);
       const handler = { source: def.name ?? def.id, abilityId: null, defId: def.id };
       const ctx = {
         board,

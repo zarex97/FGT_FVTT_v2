@@ -297,8 +297,39 @@ function panelOf(doc) {
  * @returns {object|null} the unit snapshot
  */
 export function unitFrom(board, actor) {
+  return unitOf(actor, board);
+}
+
+/**
+ * THE way engine code looks at a Unit: as the board sees it.
+ *
+ * A bare `unitSnapshot` carries no auras, no terrain, no ZON and no
+ * suppressions -- every one of them a property of who stands where -- and a
+ * reader handed one answers silently wrong: Item Construction never reached
+ * Medea's own Spells, an entry gate lost its position, a Master's ZON read a
+ * Servant's own (Ch. 46 §46.4-JA; Surprises of the `assumed-shape` pattern).
+ *
+ * `board` is required. Pass the board the resolution already holds -- building
+ * one costs ~75 ms against ~4 ms for a lone projection, so this never builds
+ * one itself. Pass `null` deliberately, for an actor read with no board at all
+ * (a sheet opened outside a scene); the result then says `projectedAlone`.
+ * An actor with no token on the board gets a lone projection too, marked the
+ * same way.
+ *
+ * @param {object|string|null} actor an `FGTActor`, or its id
+ * @param {object|null} board a board snapshot, or `null` on purpose
+ * @returns {object|null} the board's unit, or a lone projection marked `projectedAlone`
+ */
+export function unitOf(actor, board) {
+  if (board === undefined) throw new TypeError("FGT | unitOf needs a board, or null on purpose");
   if (!actor) return null;
-  return board?.units?.find((u) => u.id === actor.id) ?? unitSnapshot(actor);
+  const id = typeof actor === "string" ? actor : actor.id;
+  const found = board?.units?.find((u) => u.id === id);
+  if (found) return found;
+  const doc = typeof actor === "string" ? game.actors?.get(actor) : actor;
+  const alone = doc ? unitSnapshot(doc) : null;
+  if (alone) alone.projectedAlone = true;
+  return alone;
 }
 
 /**

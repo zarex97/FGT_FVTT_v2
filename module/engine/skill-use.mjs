@@ -35,7 +35,7 @@ import { applyEffect, inflictBonusOf } from "./effect-applier.mjs";
 import { summonPhase } from "./summoning.mjs";
 import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
-import { currentBoard, unitFrom, unitSnapshot, gateContext, turnRecordOf } from "./board.mjs";
+import { currentBoard, unitFrom, unitOf, gateContext, turnRecordOf } from "./board.mjs";
 import { countTargetsMagnitude } from "../rules/effects/count-targets.mjs";
 import { resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
@@ -322,7 +322,7 @@ function phaseTargets(phase, resolved, actor, board) {
   // attacked. EMIYA's Eye of the Mind (True) EX buffs himself three ways and
   // his neighbours a fourth, in one use.
   if (phase.targeting) {
-    const self = board.units.find((u) => u.id === actor.id) ?? unitSnapshot(actor);
+    const self = unitOf(actor, board);
     // The placement the ABILITY already resolved, so a phase may anchor on the
     // unit the player CHOSE rather than asking them to choose again.
     //
@@ -400,7 +400,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
   // Named rather than inlined: a `zone` phase needs the caster's PANEL to
   // expand its shape around, and the board-derived unit is the only projection
   // that carries one.
-  const self = board.units.find((u) => u.id === actor.id) ?? unitSnapshot(actor);
+  const self = unitOf(actor, board);
   const selfOptions = rollOptionsFor({ attacker: self });
 
   for (const phase of effectivePhases(ability.system ?? {}, resolveSource)) {
@@ -436,7 +436,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
     for (const target of phaseSet) {
       const doc = game.actors.get(target.unitId);
       if (!doc) continue;
-      const snapshot = board.units.find((u) => u.id === target.unitId) ?? unitSnapshot(doc);
+      const snapshot = unitOf(doc, board);
       // Where the entries below land, stamped once here rather than at each of
       // the ten `applied.push` sites. The card needs it to decide who is
       // entitled to read a row: an effect a Servant put on ITSELF is its
@@ -945,7 +945,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
  * @returns {Promise<object[]>}
  */
 async function runRollTable(phase, ability, actor, target, board) {
-  const self = board.units.find((u) => u.id === actor.id) ?? unitSnapshot(actor);
+  const self = unitOf(actor, board);
   const table = tableFor(phase, relationOf(self, target, board));
   if (!table) {
     console.warn(`FGT | ${ability.name} has a rollTable phase with no table for this target.`);
@@ -1217,7 +1217,7 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
     // or 'Imaginary Numbers Space' area"* -- never passed, while the phase
     // gates and the cooldown branch beside it, which read the board, did
     // (#191).
-    const options = rollOptionsFor({ attacker: phaseCtx.self ?? unitSnapshot(actor), defender: target });
+    const options = rollOptionsFor({ attacker: phaseCtx.self ?? unitOf(actor, currentBoard()), defender: target });
 
     // A `predicate` on ONE ENTRY narrows that entry to a subset of the
     // recipients the phase already resolved. De Sterrennacht clause 2 --
@@ -1258,7 +1258,7 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
     // path is byte-for-byte what it was.
     const recipient = application === 0
       ? target
-      : (unitSnapshot(game.actors?.get(target?.id)) ?? target);
+      : (unitOf(game.actors?.get(target?.id), currentBoard()) ?? target);
 
     const roll = await new Roll("1d100").evaluate();
     const outcome = applyEffect({
@@ -1319,7 +1319,7 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
         // Medea herself -- was missing from every Skill's debuff: Atlas on
         // Medusa rolled against 30% where the sheet makes it 80% (#193). The
         // test beside this built its caster from the board and passed.
-        attacker: phaseCtx.self ?? unitFrom(currentBoard(), actor) ?? unitSnapshot(actor),
+        attacker: phaseCtx.self ?? unitOf(actor, currentBoard()),
         def,
         options,
         roll: roll.total,
@@ -1635,7 +1635,7 @@ export function cooldownChanges(phase, doc, board = null, self = null, target = 
  * @returns {number}
  */
 function countMatchingTurns(change, doc, board) {
-  const self = board?.units?.find((u) => u.id === doc.id) ?? unitSnapshot(doc);
+  const self = unitOf(doc, board);
   const spec = change.countMatching;
   const count = (board?.units ?? []).reduce((n, u) => {
     if (spec.relation && relationOf(self, u, board) !== spec.relation) return n;
@@ -2045,11 +2045,12 @@ async function chooseSummonType(actor, spec) {
  * @returns {Promise<void>}
  */
 export async function fireAbilityUsed(actor, ability) {
-  const unit = unitSnapshot(actor);
+  const board = currentBoard();
+  const unit = unitOf(actor, board);
   const intents = fireEvent("abilityUsed", [unit], {
     tick: game.combat?.system?.globalTurn ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-    board: currentBoard(),
+    board,
     options: new Set(),
     rolls: {},
     subject: {

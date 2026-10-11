@@ -20,7 +20,7 @@
  * without this module having to remember anything.
  */
 
-import { currentBoard, unitSnapshot } from "./board.mjs";
+import { currentBoard, unitOf } from "./board.mjs";
 import { displaceToken } from "./io.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import {
@@ -971,7 +971,7 @@ async function offerExtension(field, tick) {
   // charging the token is how a Master gets billed for an extension they could
   // not pay, or refused one they could.
   const board = currentBoard();
-  const payer = (board.units ?? []).find((u) => u.id === payerId) ?? unitSnapshot(doc);
+  const payer = unitOf(doc ?? payerId, board);
 
   const verdict = extensionFor(field, payer);
   if (!verdict.ok) return false;
@@ -1687,7 +1687,9 @@ export async function runUpkeep(tick, { round = null } = {}) {
       : (field.ownerMasterId ?? game.actors.get(field.ownerId)?.system?.masterId ?? null);
     const payer = payerId ? game.actors.get(payerId) : null;
     const amount = Number(upkeep.cost?.amount ?? 0);
-    const payerHealth = payer ? currentHealth(unitSnapshot(payer)) : null;
+    // Read live, not off `board`: an earlier field in this same loop may have
+    // just charged this payer, and the board was built before it did.
+    const payerHealth = payer ? currentHealth(unitOf(payer, null)) : null;
 
     // `upkeepPlan` says what the sheets say, in the order they say it: the
     // standing threshold, then the toll (closing INSTEAD of charging when it

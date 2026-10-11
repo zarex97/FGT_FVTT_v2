@@ -39,16 +39,14 @@ const body = (() => {
 })();
 
 describe("fireDamageStepEnd asks the board, not a bare snapshot", () => {
+  // Through `unitOf`, which takes the board's row and projects alone only for a
+  // Unit the board has none for (test/unit/unit-view.test.mjs).
   it("builds the attacker from the board when the board knows it", () => {
-    expect(body).toMatch(/unitFrom\(board, /);
+    expect(body).toMatch(/unitOf\(attackerDoc, board\)/);
   });
 
   it("builds the defender the same way, so `target:inField:` works too", () => {
-    expect((body.match(/unitFrom\(board, /g) ?? []).length).toBeGreaterThanOrEqual(2);
-  });
-
-  it("still falls back to unitSnapshot for a unit the board has no row for", () => {
-    expect(body).toMatch(/\?\?\s*unitSnapshot\(/);
+    expect(body).toMatch(/unitOf\(defenderDoc, board\)/);
   });
 
   it("computes the board once and reuses it for the context", () => {
