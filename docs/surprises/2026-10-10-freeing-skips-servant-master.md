@@ -1,9 +1,10 @@
 ---
 id: 2026-10-10-freeing-skips-servant-master
 found: live press
-kind: assumed-shape
+kind: role-keyed-on-type
 status: fixed
-reviewed: false
+reviewed: true
+pattern: role-keyed-on-type
 ---
 **Expected:** Medea defeated, her stolen Medusa and Quetzalcoatl go Free or are conquered (reading 18).
 **Actual:** Both stayed `contracted` to Medea's body.

@@ -3,7 +3,8 @@ id: 2026-10-10-half-heal-reads-pool-shape
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** Medea spends one of her stolen Command Spells on Half Heal, and Medusa recovers half her maximum Health.
 **Actual:** "Medea spends 1 Command Spell(s): Half Heal." The spell was spent, and Medusa stayed at 402. EMIYA's own Master got the same result, so every Half Heal and Full Heal in the game restored 0.

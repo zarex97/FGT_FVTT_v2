@@ -3,7 +3,8 @@ id: 2026-10-10-skill-debuff-reads-bare-caster
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** Atlas on Medusa rolls against 80%: 100, plus Item Construction's 50, minus 25 for MAG B, minus 25 for Magic Resistance B, minus her own Magic Resistance 20. `test/unit/skill-path-resistance.test.mjs` already asserted the +50.
 **Actual:** "rolled 52 vs 30%", resisted. The +50 was missing.

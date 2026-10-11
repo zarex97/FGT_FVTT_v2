@@ -43,6 +43,7 @@ One line per pattern `/review-surprises` confirmed, each linking its file in `do
 - **Producer without consumer.** "Built" means everything a feature emits has a consumer: grep for the reader of each hook, key, option and record before calling it done. [pattern](docs/surprises/patterns/producer-without-consumer.md)
 - **Two readers, one rule.** When adding or fixing a rule, find every other place that answers the same question and make them call one reader. [pattern](docs/surprises/patterns/two-readers-one-rule.md)
 - **Assumed shape.** Before keying on a name or shape, read one live object of it, and build test data from that live shape. [pattern](docs/surprises/patterns/assumed-shape.md)
+- **Role keyed on type.** When code asks about a role (Master, summoner, owner), ask about the relationship that confers it, never the actor's type. [pattern](docs/surprises/patterns/role-keyed-on-type.md)
 - **Hidden timing rule.** For every "first", "then", "if defeated" or "when X" clause, find the key that sets its timing and press the order live. [pattern](docs/surprises/patterns/hidden-timing-rule.md)
 
 ### Two workplaces

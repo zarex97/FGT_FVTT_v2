@@ -3,7 +3,8 @@ id: 2026-10-10-np-regen-ticks-on-expiry-turn
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Teachings of Circe's NP Regen for 1◈ takes ⅓◈ off at three Turn Ends, 1◈ in total (reading 7).
 **Actual:** EMIYA's Unlimited Blade Works went 12 → 10 → 8 → 6 → 4 over Turn Ends 2–5, then 1 a Turn. Four regen ticks, 1⅓◈.

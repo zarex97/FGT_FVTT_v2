@@ -1,9 +1,10 @@
 ---
 id: 2026-10-10-rule-breaker-contract-to-her-master
 found: live press
-kind: assumed-shape
+kind: role-keyed-on-type
 status: fixed
-reviewed: false
+reviewed: true
+pattern: role-keyed-on-type
 ---
 **Expected:** Rule Breaker gives Medusa's Contract and three Command Spells to Medea (reading 18).
 **Actual:** Medusa's `masterId` became Medea's Master, and the three spells went to him.
