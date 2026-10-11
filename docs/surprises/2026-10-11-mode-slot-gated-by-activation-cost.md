@@ -8,4 +8,4 @@ reviewed: false
 **Expected:** An active Tenmōkaikai can be ended from her bar (reading 14).
 **Actual:** The slot was greyed: "Goō Shōrai・Tenmōkaikai — The Master cannot pay the Health cost".
 **Cause:** `module/apps/hud/action-bar.mjs:250 @ f15a3d1` — the bar asked `canUseAbility`, the activation gate, of a slot whose press would end the mode. The toggle path asks `canToggleMode`.
-**Fix:** `module/apps/hud/action-bar.mjs:697 @ uncommitted` — an active toggle's slot asks `endVerdict`, which is `canToggleMode` with `active: false`. Seen live: the slot is pressable while active.
+**Fix:** `module/apps/hud/action-bar.mjs:697 @ b9884b9` — an active toggle's slot asks `endVerdict`, which is `canToggleMode` with `active: false`. Seen live: the slot is pressable while active.
