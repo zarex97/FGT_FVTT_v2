@@ -2115,7 +2115,8 @@ async function runDamageStepStartHandlers(state) {
   // The live attack is in scope, so `attack:kind:normal` can actually be
   // answered — the omission that made every phase predicate in the game blind
   // to the attack until it was fixed for Raikou.
-  const options = rollOptionsFor({ attacker, defender, attack: state.attack ?? {} });
+  // Through the attack's facts like every other event (range, reaction, a granted element).
+  const options = rollOptions(attacker, defender, state);
 
   for (const handler of attacker.eventHandlers ?? []) {
     if (!(handler.events ?? []).includes("damageStepStart")) continue;
@@ -4154,12 +4155,10 @@ async function applyDamage(state, message) {
   const ability = state.attack?.abilityId ? attackerDoc.items.get(state.attack.abilityId) : null;
 
   // Once, and shared: the option set the predicates read and the context the
-  // pipeline reads have to be describing the same attack.
-  const facts = attackFacts(attacker, defender, state, board);
-  const options = rollOptionsFor({ attacker, defender, attack: facts });
-  // The block THIS resolution is under: the aftermath's own for a splash, the
-  // primary's (resolved for its behaviour) otherwise (#136).
-  const block = damageBlockFor(ability, options, state.attack);
+  // pipeline reads describe the same attack -- the Attack Description, which
+  // the preview and the counterfactual read too (`describeAttack`).
+  const description = describeAttack({ state, attacker, defender, board, ability });
+  const { facts, options, block, identity } = description;
 
   // A formula that produces its own total, rolled HERE for the same reason
   // every other roll in this function is: the pipeline is pure and dice are
@@ -4182,7 +4181,6 @@ async function applyDamage(state, message) {
   // `Crit Up` applied, showed on the sheet, and changed nothing.
   // Hawkeye's crit clauses are predicated on the distance, so the plan cannot
   // be read without the attack in scope.
-  const identity = attackIdentityOf(ability, options);
   // The pipeline's own definition of "is an NP", handed to the chance: the
   // option `attack:kind:np` cannot see an attack the sheet only categorizes as one
   // (#131). Crit Up and its kin do not affect a Noble Phantasm.
@@ -4195,41 +4193,9 @@ async function applyDamage(state, message) {
 
   const ctx = {
     attacker, defender, board,
-    attack: {
-      // SPREAD, not rebuilt. `component`, `pierce` and `ignoresMagicResistance`
-      // are all read by the pipeline and all three were dropped here, which is
-      // why Magic Resistance could not be bypassed and Pierce did nothing.
-      ...facts,
-      abilityId: state.attack?.abilityId ?? null,
-      // Named units whose modifier bags this attack combines with the
-      // attacker's. Authored on the ability as `damage.modifierSources`, and
-      // read by `activeMods` -- the mirror of `excludeModifierSources`, which
-      // lives on this same object for the same reason.
-      modifierSources: block?.modifierSources ?? [],
-      // Rank, scale tags and whether it counts as an NP: one builder, shared with
-      // the preview and the counterfactual (#124). The element and its fraction
-      // come from the block this resolution is under, so an aftermath's splash
-      // reads its own and not the primary's (#136).
-      ...identity,
-      // `facts` carries an element the attacker's own state grants an attack
-      // that has none (`withGrantedElement`, #195). A block with its own element
-      // keeps it, and does not take the granted share either.
-      element: block?.element ?? ability?.system?.element ?? facts.element ?? null,
-      elementFraction: block?.elementFraction
-        ?? (state.attack?.isAftermath ? undefined : ability?.system?.damage?.elementFraction)
-        ?? (facts.grantedElement && (block?.element ?? ability?.system?.element) ? undefined : facts.elementFraction)
-        ?? undefined,
-      // Dragon Wing Warriors: "50 Fixed STR damage". The pipeline has read
-      // `ctx.attack.isFixedDamage` (stages 1 and 2, `rules/damage/pipeline.mjs`)
-      // since it was written; nothing ever set it from content, so an authored
-      // `damage.fixed` was always computed as a normal, modifiable attack.
-      //
-      // Summoning: Bašmu's summon branch: `resolvedDamage` picks the matching
-      // `damage.branches` entry (`{fixed: true, base: {fixedValue: 0}}`) so
-      // this Combat Process -- which still runs, she resolves as her own
-      // defender -- deals nothing rather than her own Base Attack.
-      isFixedDamage: Boolean(block?.fixed) || dealsNoDamage(ability),
-    },
+    // The Attack Description's attack: the same object the preview and the
+    // counterfactual hand the pipeline.
+    attack: description.attack,
     // An AFTERMATH resolution is under its own damage block. Xiuhcoatl's splash
     // uses BA(MAG) alone at 1x where the primary uses the combined 250 at 4x, so
     // reading the ability's own `damage` block here would give the splash the
@@ -5679,6 +5645,62 @@ function rollOptions(attacker, defender, state, extra = {}) {
 }
 
 /**
+ * The Attack Description: everything a Clause may ask about one attack against
+ * one defender (CONTEXT.md).
+ *
+ * ONE builder for the resolution, the targeting preview and the counterfactual.
+ * Each used to assemble its own: the element was decided four ways, the preview
+ * missed an element the attacker's state granted, the counterfactual never
+ * asked for one, and every fix landed in one assembler and drifted in the
+ * others (#195; the `two-readers-one-rule` pattern).
+ *
+ * `state.attack` is the stored declaration (`buildAttackSpec`), fixed when the
+ * attack was declared. This derives the rest for this defender, on this board.
+ *
+ * @param {object} args
+ * @param {object} args.state the Combat Process state, or `{ attack }` for a preview
+ * @param {object} args.attacker the attacker as the board sees it
+ * @param {object|null} args.defender the defender as the board sees it
+ * @param {object|null} args.board
+ * @param {object|null} [args.ability] the ability Item, or `null` for a Normal Attack
+ * @returns {{facts: object, options: Set<string>, block: object|null, identity: object, attack: object}}
+ */
+export function describeAttack({ state, attacker, defender, board, ability = null }) {
+  const facts = attackFacts(attacker, defender, state, board);
+  const options = rollOptionsFor({ attacker, defender, attack: facts });
+  // The block THIS resolution is under: the aftermath's own for a splash, the
+  // primary's (resolved for its behaviour) otherwise (#136).
+  const block = damageBlockFor(ability, options, state.attack);
+  // Rank, scale tags and whether it counts as an NP (#124).
+  const identity = attackIdentityOf(ability, options);
+  // The ability's own element, from the block it is under or the document. A
+  // granted one (`withGrantedElement`) fills only an attack with none, and
+  // brings its share only then.
+  const own = block?.element ?? ability?.system?.element ?? null;
+  return {
+    facts, options, block, identity,
+    attack: {
+      // SPREAD, not rebuilt. `component`, `pierce` and `ignoresMagicResistance`
+      // are all read by the pipeline.
+      ...facts,
+      abilityId: state.attack?.abilityId ?? facts.abilityId ?? null,
+      // Named units whose modifier bags this attack combines with the
+      // attacker's (`damage.modifierSources`).
+      modifierSources: block?.modifierSources ?? [],
+      ...identity,
+      element: own ?? facts.element ?? null,
+      elementFraction: block?.elementFraction
+        ?? (state.attack?.isAftermath ? undefined : ability?.system?.damage?.elementFraction)
+        ?? (facts.grantedElement && own ? undefined : facts.elementFraction)
+        ?? undefined,
+      // Dragon Wing Warriors' "50 Fixed STR damage", and Bašmu's summon branch
+      // dealing nothing.
+      isFixedDamage: Boolean(block?.fixed) || dealsNoDamage(ability),
+    },
+  };
+}
+
+/**
  * An element-less attack takes the element the attacker's state grants:
  * *"During the NP duration, Raikou's Attacks … Lightning damage (half)"* (#195).
  * In the facts, so `attack:element:*` options see it as the pipeline does. An
@@ -5782,49 +5804,22 @@ export function attackFacts(attacker, defender, state, board = null) {
  */
 export function previewContext({ caster: given, defender, ability, board, isNP }) {
   const caster = (board?.units ?? []).find((u) => u.id === given?.id) ?? given;
-  // Through the SAME facts builder the resolution uses. This built its own
-  // three-line version, which meant the preview ignored an ability's declared
-  // `damage.base` -- Karna's combined STR+MAG read as plain STR -- and handed
-  // the pipeline an EMPTY option set, so every predicated modifier on either
-  // side was dropped and the range it showed was a different rule from the one
-  // that would run.
-  //
-  // The attack's IDENTITY -- its Rank, its scale tags, whether it counts as a
-  // Noble Phantasm, its element -- comes from `attackIdentityOf`, which the
-  // resolution and the counterfactual call too (#124). The preview built none of
-  // it: with no `rank`, stage 11 compared Magic Resistance against the caster's
-  // MAG where the card compares it against the NP's own Rank, and with no
-  // `npTags` the `attack:npScale:*` options the resolver carries were absent.
-  const stated = attackIdentityOf(ability);
-  const facts = attackFacts(caster, defender, {
-    attack: {
-      kind: isNP ? "np" : "normal",
-      abilityId: ability?.id ?? null,
-      component: ability?.system?.damage?.component ?? null,
-      aim: Boolean(ability?.system?.damage?.aim),
-      pierce: Boolean(ability?.system?.damage?.pierce),
-      ignoresMagicResistance: Boolean(ability?.system?.damage?.ignoresMagicResistance),
-      ...stated,
-    },
-  }, board);
-  const options = rollOptionsFor({ attacker: caster, defender, attack: facts });
-  // Branch-resolved against the full option set, as `damageContext` does.
-  const damage = resolvedDamage(ability, options);
-  const identity = attackIdentityOf(ability, options);
-  const granted = grantedElementIn(caster?.attackProperties ?? []);
+  // The preview declares the attack the way a press does (`buildAttackSpec`)
+  // and describes it through the Attack Description the resolution reads
+  // (`describeAttack`). It used to assemble both itself: no Rank (#124), no
+  // block, Aim and Pierce without the attacker's buffs, a Skill counted as a
+  // Normal Attack, and an element chain of its own that missed a granted one.
+  const casterDoc = globalThis.game?.actors?.get?.(caster?.id) ?? caster;
+  const declared = buildAttackSpec({
+    attacker: casterDoc, ability, abilityId: ability?.id ?? null,
+    options: rollOptionsFor({ attacker: caster, defender }), board,
+  });
+  const state = { attack: { ...declared, kind: isNP ? "np" : declared.kind } };
+  const { facts, options, block, attack } = describeAttack({ state, attacker: caster, defender, board, ability });
 
   return {
     attacker: caster, defender, board,
-    attack: {
-      ...facts,
-      ...identity,
-      // The element the caster's state grants an element-less attack, as the
-      // resolution reads it (#195): without it the preview showed Tenmōkaikai's
-      // attacks with no Lightning half.
-      element: identity.element ?? facts.element ?? granted.element ?? null,
-      elementFraction: identity.elementFraction ?? facts.elementFraction
-        ?? ((identity.element ?? facts.element) ? undefined : granted.fraction) ?? undefined,
-    },
+    attack,
     // `declaredBase` is the part of `baseSpecFor` that needs no document: an
     // ability that declares a `damage.component` and no `base` is built from that
     // component. Without it every such Noble Phantasm was previewed from the
@@ -5841,9 +5836,9 @@ export function previewContext({ caster: given, defender, ability, board, isNP }
     // stage 1 added nothing and the broadside previewed at 117 and dealt 1341
     // (#187).
     contentBaseAttack: contentBaseAttacks(),
-    multiplier: damage?.multiplier ?? 1,
-    flatBonus: damage?.flatBonus ?? 0,
-    conditionalMultipliers: damage?.conditionalMultipliers ?? facts.conditionalMultipliers ?? [],
+    multiplier: block?.multiplier ?? 1,
+    flatBonus: block?.flatBonus ?? 0,
+    conditionalMultipliers: block?.conditionalMultipliers ?? facts.conditionalMultipliers ?? [],
     crit: { isCrit: false, chanceUsed: 0 },
     reaction: { kind: "none" },
     luckChecks: {},
@@ -7016,20 +7011,20 @@ async function resolveNPCancellation({
  * @param {number|null} args.range
  * @returns {object}
  */
-export function counterfactualAttack({ attackerDoc, ability, options, range }) {
-  const damage = resolvedDamage(ability, options);
-  return {
-    kind: "np",
-    abilityId: ability.id,
-    // Rank, scale tags, NP category and element: the one builder (#124).
-    ...attackIdentityOf(ability, options),
-    component: componentOf(attackerDoc, ability, options),
-    ignoresMagicResistance: Boolean(damage?.ignoresMagicResistance),
-    pierce: Boolean(damage?.pierce),
-    aim: Boolean(damage?.aim),
-    isFixedDamage: Boolean(damage?.fixed),
-    range,
-  };
+export function counterfactualAttack({ attackerDoc, ability, attacker, defender, board, options }) {
+  return counterfactualDescription({ attackerDoc, ability, attacker, defender, board, options }).attack;
+}
+
+/**
+ * The Attack Description of a Noble Phantasm that never resolved: declared as
+ * a press would declare it, described as the resolution would.
+ *
+ * @param {object} args
+ * @returns {ReturnType<typeof describeAttack>}
+ */
+function counterfactualDescription({ attackerDoc, ability, attacker, defender, board, options }) {
+  const declared = buildAttackSpec({ attacker: attackerDoc, ability, abilityId: ability.id, options, board });
+  return describeAttack({ state: { attack: { ...declared, kind: "np" } }, attacker, defender, board, ability });
 }
 
 /**
@@ -7045,18 +7040,20 @@ export function counterfactualAttack({ attackerDoc, ability, options, range }) {
  */
 function counterfactualDamage({ attackerDoc, ability, board, options, defenderUnit }) {
   const attackerUnit = unitOf(attackerDoc, board);
-  const range = attackDistance(attackerUnit, defenderUnit);
-  const damage = resolvedDamage(ability, options);
+  const description = counterfactualDescription({
+    attackerDoc, ability, attacker: attackerUnit, defender: defenderUnit, board, options,
+  });
+  const { block, attack } = description;
 
   return computeDamage({
     attacker: attackerUnit,
     defender: defenderUnit,
     board,
-    attack: counterfactualAttack({ attackerDoc, ability, options, range }),
-    base: baseSpecFor(attackerDoc, ability, range, options),
-    multiplier: damage?.multiplier ?? 1,
-    flatBonus: damage?.flatBonus ?? 0,
-    conditionalMultipliers: damage?.conditionalMultipliers ?? [],
+    attack,
+    base: baseSpecFor(attackerDoc, ability, attack.range, description.options, block),
+    multiplier: block?.multiplier ?? 1,
+    flatBonus: block?.flatBonus ?? 0,
+    conditionalMultipliers: block?.conditionalMultipliers ?? [],
     // No crit. The coin was never flipped — the resolution did not happen — and
     // assuming one would hand the reflection a bonus the sheet does not mention.
     crit: { isCrit: false, chanceUsed: 0 },
@@ -7067,7 +7064,7 @@ function counterfactualDamage({ attackerDoc, ability, board, options, defenderUn
     totalDamageModifiers: [],
     luckChecks: {},
     rolls: { attackMinus: EXPECTED_ATTACK_ROLL, negation: [] },
-    options: rollOptionsFor({ attacker: attackerUnit, defender: defenderUnit, attack: { kind: "np", range } }),
+    options: description.options,
   }).total;
 }
 
