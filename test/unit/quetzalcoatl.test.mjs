@@ -497,7 +497,10 @@ describe("Xiuhcoatl's splash is its own resolution (#136)", () => {
     const engine = readFileSync("module/engine/attack.mjs", "utf8").replaceAll("\r\n", "\n");
     const from = engine.indexOf("async function applyDamage");
     const body = engine.slice(from, engine.indexOf("\n}\n", from));
-    expect(body).toMatch(/damageBlockFor\(ability, options, state\.attack\)/);
+    // Through the Attack Description, which takes the block the one way.
+    expect(body).toMatch(/describeAttack\(\{ state, attacker, defender, board, ability \}\)/);
+    const describe = engine.slice(engine.indexOf("export function describeAttack"));
+    expect(describe.slice(0, describe.indexOf("\n}\n"))).toMatch(/damageBlockFor\(ability, options, state\.attack\)/);
     expect(body).not.toMatch(/facts\.isAftermath/);
     expect(body).not.toMatch(/resolvedDamage\(/);
     const declare = engine.slice(engine.indexOf("async function declareAftermath"));
