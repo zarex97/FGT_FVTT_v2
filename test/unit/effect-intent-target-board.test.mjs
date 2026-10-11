@@ -41,12 +41,11 @@ import { readFileSync } from "node:fs";
 const applier = readFileSync("module/engine/applier.mjs", "utf8");
 
 describe("the intent path tests against the board's unit", () => {
-  it("prefers unitFrom(board, …) over a bare snapshot", () => {
-    expect(applier).toMatch(/unitFrom\(\s*board\s*,\s*target\s*\)/);
-  });
-
-  it("still falls back to unitSnapshot for a unit with no board row", () => {
-    expect(applier).toMatch(/unitFrom\([^)]*\)\s*\?\?\s*unitSnapshot\(target\)/);
+  // `unitOf` takes the board's row, and projects alone only for a Unit the
+  // board has none for (test/unit/unit-view.test.mjs).
+  it("asks unitOf(target, board), not a bare snapshot", () => {
+    expect(applier).toMatch(/unitOf\(\s*target\s*,\s*board\s*\)/);
+    expect(applier).not.toMatch(/unitSnapshot\(target\)/);
   });
 
   it("builds the board once for the batch, not once per intent", () => {

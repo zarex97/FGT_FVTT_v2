@@ -22,7 +22,7 @@
  * Fragarach Counter is the whole point of standing there.
  */
 
-import { currentBoard, unitFrom, unitSnapshot } from "./board.mjs";
+import { currentBoard, unitOf } from "./board.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { resourcePathFor, resourceLabel } from "../domain/resources.mjs";
 import { applyWorldIntents } from "./applier.mjs";
@@ -66,7 +66,7 @@ export async function offerOptionalCosts({ unitIds, timing, groupId = null }) {
   for (const unitId of [...new Set(unitIds)].filter(Boolean)) {
     const actor = game.actors.get(unitId);
     if (!actor) continue;
-    const unit = unitFrom(board, actor) ?? unitSnapshot(actor);
+    const unit = unitOf(actor, board);
 
     for (const spec of (unit.optionalCosts ?? []).filter((c) => c.timing === timing)) {
       if (!canPay(unit, spec.cost)) continue;

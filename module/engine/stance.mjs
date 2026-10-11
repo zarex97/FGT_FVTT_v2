@@ -12,7 +12,7 @@
  * attack, and nothing ever offered it (#184).
  */
 
-import { unitSnapshot } from "./board.mjs";
+import { currentBoard, unitOf } from "./board.mjs";
 import { chooseFor } from "./ask.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import { transitionsAt } from "../rules/stance.mjs";
@@ -30,7 +30,7 @@ import * as I from "./intents.mjs";
 export async function offerStanceTransition(unitId, at) {
   const actor = game.actors.get(unitId);
   if (!actor) return null;
-  const open = transitionsAt(unitSnapshot(actor), at);
+  const open = transitionsAt(unitOf(actor, currentBoard()), at);
   if (open.length === 0) return null;
 
   const picked = await chooseFor(actor, {

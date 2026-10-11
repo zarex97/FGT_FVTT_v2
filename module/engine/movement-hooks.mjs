@@ -19,7 +19,7 @@ import {
   gateMovement, pursuitVerdict, decoyVerdict, hatredVerdict,
 } from "../rules/movement.mjs";
 import { carryMasterAlong } from "./passenger-seat.mjs";
-import { unitSnapshot, currentBoard } from "./board.mjs";
+import { unitSnapshot, unitOf, currentBoard } from "./board.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
@@ -110,7 +110,7 @@ function onPreMove(document, movement, operation) {
   // Ch. 28's whole interior axis reaches movement through this one line. The
   // `?? unitSnapshot` fallback is for a Unit the board does not hold -- a token
   // being placed before the match, which the guard above already lets through.
-  const unit = board.units?.find((u) => u.id === actor.id) ?? unitSnapshot(actor, document);
+  const unit = unitOf(actor, board);
 
   // A unit may only move on its own faction's turn. The GM is exempt: placing
   // and correcting the board is not taking a turn, and a system that fights the
