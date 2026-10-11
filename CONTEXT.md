@@ -10,7 +10,8 @@ restate it.
 
 **Unit**:
 Anything that occupies panels on the board and can be targeted. The six kinds are Servant, Master,
-Civilian, Summon, Platform and Structure.
+Civilian, Summon, Platform and Structure. A rule reads a Unit as the Board sees it: with the auras,
+terrain and ZON that come from where it and the others stand.
 _Avoid_: token, actor, character, model
 
 **Servant**:
@@ -251,6 +252,12 @@ The roll made when damage crosses a threshold, deciding a lasting consequence.
 
 **Weak Point**:
 A declared sub-attack with its own hit table, offered only when it could land.
+
+**Attack Description**:
+Everything a Clause may ask about one attack against one defender: what it is, what it carries, how
+far it reaches and how it was answered. Fixed in part when the attack is declared, and completed for
+each defender. The preview, the resolution and the counterfactual read the same one.
+_Avoid_: attack spec, facts, context (those are its parts in code)
 
 **Damage Step**:
 One resolved instance of damage within a Combat Phase. One declaration may produce several.

@@ -63,13 +63,13 @@ describe("Item Construction's +50 reaches her Spells' debuffs", () => {
   it("the Skill path asks with the board's caster", () => {
     const src = read("module/engine/skill-use.mjs");
     const call = src.slice(src.indexOf("ctx: skillEffectContext({"), src.indexOf("ctx: skillEffectContext({") + 600);
-    expect(call).toMatch(/attacker: phaseCtx\.self \?\? unitFrom\(currentBoard\(\), actor\)/);
+    expect(call).toMatch(/attacker: phaseCtx\.self \?\? unitOf\(actor, currentBoard\(\)\)/);
   });
 
   it("the event path asks with the board's inflicter", () => {
     const src = read("module/engine/applier.mjs");
     expect(src).not.toMatch(/inflictBonusOf\(unitSnapshot\(/);
-    expect(src).toMatch(/inflictBonusOf\(unitFrom\(board, inflicterDoc\)/);
+    expect(src).toMatch(/inflictBonusOf\(unitOf\(inflicterDoc, board\)/);
   });
 });
 

@@ -24,7 +24,7 @@ import { test as testPredicate } from "../../rules/predicate.mjs";
 import { rollOptionsFor } from "../../rules/options.mjs";
 import { publicNameOf } from "../../rules/identity.mjs";
 import { abilityCost, abilityState, abilityNamesOf } from "../actor-sheet/present.mjs";
-import { currentBoard, unitSnapshot, unitFrom, luckOf, gateContext } from "../../engine/board.mjs";
+import { currentBoard, unitFrom, unitOf, luckOf, gateContext } from "../../engine/board.mjs";
 import * as budget from "../../engine/budget.mjs";
 import { mayDeactivate, ownTurnOf } from "../../engine/fields.mjs";
 import { isQueued } from "../../engine/queued-ends.mjs";
@@ -135,8 +135,10 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     // ONE snapshot per render, threaded through every builder — the same
     // discipline `actor-sheet/context.mjs` uses and for the same reason.
     const board = currentBoard();
-    const snapshot = unitSnapshot(actor, token.document);
-    const unit = unitFrom(board, actor) ?? snapshot;
+    // The board's view, one shape for every builder below (Ch. 46: a bare
+    // snapshot lacks auras, terrain and ZON).
+    const unit = unitOf(actor, board);
+    const snapshot = unit;
     const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
     const openFields = new Set((board.fields ?? []).map((f) => f.id));
 
@@ -247,7 +249,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         // Master cannot pay the Health cost" while it ran, so nothing could end
         // it (#195 reading 14). Switching off costs nothing.
         const ending = use.toggles && Boolean(item.system?.active);
-        const verdict = ending ? endVerdict(item, actor) : canUseAbility({
+        const verdict = ending ? endVerdict(item, actor, board) : canUseAbility({
           ability: usageSpecFor(item), unit, master, board, ...gateContext(),
           // Armed for a Counter, which is made on the enemy's Turn by
           // definition: an ability used only "during your Turn" still answers
@@ -435,8 +437,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     if (row === "actions") {
       const { performAction } = await import("../../engine/actions.mjs");
       const board = currentBoard();
-      const snapshot = unitSnapshot(actor, this.token.document);
-      const entry = availableActions(snapshot, board).find((a) => a.id === id);
+      const entry = availableActions(unitOf(actor, board), board).find((a) => a.id === id);
       if (!entry) return;
 
       if (id === "facing") return this.turnFacing(actor, 1);
@@ -688,10 +689,11 @@ function refusalText(reason) {
  *
  * @param {object} item
  * @param {object} actor
+ * @param {object} board the render's board
  * @returns {{ok: boolean, reason: string|null, text: string|null}}
  */
-function endVerdict(item, actor) {
-  const self = unitSnapshot(actor);
+function endVerdict(item, actor, board) {
+  const self = unitOf(actor, board);
   const v = canToggleMode(item, self, {
     active: false,
     tick: game.combat?.system?.globalTurn ?? 0,

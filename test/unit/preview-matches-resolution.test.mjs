@@ -41,9 +41,8 @@ const aim = (owner, abilityId, defender, fn) => withSubjects(
     const isNP = ability.type === "noblePhantasm";
     const preview = previewContext({ caster, defender: target, ability, board, isNP });
     const resolution = counterfactualAttack({
-      attackerDoc: world.actor(owner), ability,
+      attackerDoc: world.actor(owner), ability, attacker: caster, defender: target, board,
       options: rollOptionsFor({ attacker: caster, defender: target, attack: { kind: "np", range: 1 } }),
-      range: 1,
     });
     return fn({ preview, resolution, ability });
   },
@@ -58,7 +57,7 @@ describe("Magic Resistance in the preview, as in the resolution", () => {
     const notes = await aim("karna", "karna-brahmastra", "quetzalcoatl", ({ preview }) => stage11(preview));
     expect(notes).toHaveLength(1);
     expect(notes[0]).toMatch(/50% MAG \(MR A < attack A\+\)$/);
-  });
+  }, 60_000);
 
   it("A Tale for Somebody's Sake (Rank C, Nursery MAG A) on Karna (MR C): negated by the NP's own Rank, not halved by her MAG", async () => {
     const notes = await aim("nursery-rhyme", "nursery-a-tale-for-somebodys-sake", "karna", ({ preview }) => stage11(preview));

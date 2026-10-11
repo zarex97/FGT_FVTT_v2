@@ -14,7 +14,7 @@
 import { classifyAbility, needsTargeting } from "../../rules/ability-use.mjs";
 import { canToggleMode, pricedOnEntry } from "../../rules/modes.mjs";
 import { mayChangeStance } from "../../rules/stance.mjs";
-import { unitSnapshot, currentTick, clockRunning } from "../../engine/board.mjs";
+import { unitOf, currentBoard, currentTick, clockRunning } from "../../engine/board.mjs";
 import { previewContext } from "../../engine/attack.mjs";
 import { dealsNoDamage } from "../../rules/ability-use.mjs";
 import { buildContext } from "./context.mjs";
@@ -100,7 +100,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
    */
   static async #onSetStance(_event, target) {
     const to = target.dataset.stance;
-    const unit = unitSnapshot(this.document);
+    const unit = unitOf(this.document, currentBoard());
     const at = game.combat?.started ? "declare" : "free";
     const acting = game.combats?.active?.actingFactionId ?? null;
     const verdict = mayChangeStance(unit, to, {
@@ -156,7 +156,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // (`rules/modes.mjs`). This was a bare write, so Heracles's clause was the
     // only one that existed and the other two -- the 2◈ lockout and a
     // compulsion holding the mode on -- had nowhere to live.
-    const verdict = canToggleMode(item, unitSnapshot(actor), {
+    const verdict = canToggleMode(item, unitOf(actor, currentBoard()), {
       active, tick, turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
       // A lockout is measured against the match's clock, so it cannot be
       // stamped when there is no match to measure it against.
@@ -586,19 +586,18 @@ export function refusalWords(reason) {
  * @returns {Promise<object|null>}
  */
 export async function pickPlacementFor(actor, ability, { requireUnitId = null, excludeUnitIds = [] } = {}) {
-  const [{ pickTarget }, { targetSpecForAttack }, { currentBoard, unitSnapshot }, { rollOptionsFor }, preview] =
+  const [{ pickTarget }, { targetSpecForAttack }, { rollOptionsFor }, preview] =
     await Promise.all([
       import("../canvas/targeting-layer.mjs"),
       import("../../engine/attack.mjs"),
-      import("../../engine/board.mjs"),
       import("../../rules/options.mjs"),
       import("../../rules/preview.mjs"),
     ]);
 
   if (!canvas?.ready || !canvas.fgtTargeting) return legacyPlacement();
 
-  const caster = unitSnapshot(actor);
   const board = currentBoard();
+  const caster = unitOf(actor, board);
 
   // The board-derived unit, not `caster` above -- `targeting.branches`
   // (Summoning: Bašmu) is tested against `self:onPlatform:`, which only the
