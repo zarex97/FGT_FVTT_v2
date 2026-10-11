@@ -3,7 +3,8 @@ id: 2026-10-11-negative-tick-throws-mid-process
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** Raikou's Normal Attack with the 'Raikou' buff lands on Medusa, takes ⅓◈ off both Noble Phantasms, and the Combat Process moves on.
 **Actual:** "Do nothing" applied the damage, and the Process stayed at `react`. Each further click applied it again, and Medusa went 750 → 163 → 0. Console: `FGT | Empty term in "-⅓◈".`

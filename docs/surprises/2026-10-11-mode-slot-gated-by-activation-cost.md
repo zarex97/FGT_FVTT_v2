@@ -3,7 +3,8 @@ id: 2026-10-11-mode-slot-gated-by-activation-cost
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** An active Tenmōkaikai can be ended from her bar (reading 14).
 **Actual:** The slot was greyed: "Goō Shōrai・Tenmōkaikai — The Master cannot pay the Health cost".

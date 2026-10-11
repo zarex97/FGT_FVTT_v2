@@ -3,7 +3,8 @@ id: 2026-10-11-copies-inherit-derived-mov
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** Each Raikou copy has "the same MOV as Raikou", her base 4 (reading 7).
 **Actual:** All four copies read MOV 9.

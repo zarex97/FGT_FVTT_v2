@@ -1,9 +1,10 @@
 ---
 id: 2026-10-11-counter-shares-parent-fanout
 found: live press
-kind: role-keyed-on-type
+kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** Raikou's Mana Burst as a Counter applies "Dodge to herself for ⅓◈ Turns", as it does from her bar.
 **Actual:** The Counter hit Mannanán for BA 350 with "Shock (rolled 36 vs 80%)". Raikou carried no Dodge.

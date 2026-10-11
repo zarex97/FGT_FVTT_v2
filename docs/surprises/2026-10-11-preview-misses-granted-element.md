@@ -3,7 +3,8 @@ id: 2026-10-11-preview-misses-granted-element
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** The damage preview and the resolution agree on Tenmōkaikai's Lightning half.
 **Actual:** `previewContext` built Raikou's attack with no element, while the resolution added it.

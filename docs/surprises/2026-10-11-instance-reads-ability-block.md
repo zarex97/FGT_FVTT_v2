@@ -3,7 +3,8 @@ id: 2026-10-11-instance-reads-ability-block
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Dohatsu Tenshou deals four 0.5× BA(STR) sub-attacks, each half Lightning, Fire, Ice and Wind, then 3.5× BA(MAG) + 200 as the Noble Phantasm (R6, design §4.7).
 **Actual:** Every card read "Ability multiplier —" and "Element —". The Noble Phantasm part read "Base BA(STR) +150" with no 3.5× and no +200. Medusa took 358, 364, 391, 419 and 310.

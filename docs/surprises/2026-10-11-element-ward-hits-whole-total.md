@@ -3,7 +3,8 @@ id: 2026-10-11-element-ward-hits-whole-total
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** "All Lightning damage taken is reduced by 50%" takes 25% off a half-Lightning attack.
 **Actual:** Sakata's half-Lightning Normal Attack on Raikou read "ward −50" at stage 4, on the whole total.

@@ -89,3 +89,4 @@ Lessons from driving Nemo's audit over CDP (`docs/surprises/patterns/vps-drive-k
 - **`pkill -f <pattern>` kills its own shell**, since the shell's command line holds the pattern (exit 144).
   Kill by PID with a bracketed pattern: `ps -eo pid,args | grep "[r]emote-debugging-port=9222" | awk '{print $1}' | xargs -r kill`.
 
+- **After a page reload, wait about 60 s before driving Turns.** Twice a `nextTurn` within a minute of a reload ran no boundary, and once `onModeEnded` did nothing (open Surprise `2026-10-11-boundaries-skipped-after-reload`). And confirm each `nextTurn` landed — a new `turnStart` with a new tick — before calling the next: a helper that reads the log too early calls it twice and skips a Turn.

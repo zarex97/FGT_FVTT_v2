@@ -3,7 +3,8 @@ id: 2026-10-11-mode-deactivation-cooldown-unwritten
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Tenmōkaikai's end starts "Cooldown: 7◈+⅓◈ Turns after this NP is deactivated", 22 ticks.
 **Actual:** Forced off at tick 16, its cooldown read `remaining: 0`.
