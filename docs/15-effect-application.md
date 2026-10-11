@@ -134,6 +134,8 @@ Outcome: `applied`. The `intents` array carries every intent this application em
 
 ## Invariants & edge cases
 
+**The inflicter is the board's unit** (#193). Both live callers of `inflictBonusOf` — the Skill path and the event path — now hand it the board projection, auras included. A bare `unitSnapshot` carries none, so Medea's Item Construction never reached her own Spells. The chance line names the ability's own modifiers: *"rolled 69 vs 80% [target MAG B+ -25, Magic Resistance B+ -25]"*.
+
 1. **Immunity is checked before chance.** Step 1 runs even when chance is 0, and chance step 3 does not re-check immunity. If both apply, immunity wins (`module/engine/effect-applier.mjs:85-170`).
 
 2. **Replacement is checked before blocking.** A pair declaring both `replaces` and `blocks` does not refuse itself; replacement happens first (`module/engine/effect-applier.mjs:554-559`).

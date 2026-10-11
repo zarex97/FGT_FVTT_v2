@@ -351,6 +351,12 @@ function abilityCommon() {
       required: false, nullable: true, initial: null, blank: false,
     }),
 
+    // A reaction ability that is NOT the reaction. Medea's Argos is *"used
+    // during your Turn or when Attacked"*: cast at the reaction rung it applies
+    // Def Up, and she then still Blocks, Evades or takes it (#193 reading 8).
+    // Trofa, which IS her Evade, leaves this false.
+    reactionFree: new fields.BooleanField({ initial: false }),
+
     // The same limit one scale up, and the same argument `sameRoundExclusive`
     // makes against `sameTurnExclusive`: a Servant acts up to three times in a
     // Round, so a per-Turn cap forbids almost nothing. Karna's *Uncrowned Arms

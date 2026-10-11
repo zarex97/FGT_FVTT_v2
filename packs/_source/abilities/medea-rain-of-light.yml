@@ -18,7 +18,10 @@ targeting:
   # coincided and the freeze was invisible (Ch. 46 §46.11).
   anchor: { kind: withinRange, rangeBonus: 1, metric: chebyshev }
   shape: { kind: square, size: 3 }
-  selection: { relations: [enemy], chooser: all }
+  # Every Unit in the 3x3, allies too, and Medea herself if the centre is
+  # within 1 of her: the sheet names no relation (#193 reading 12, as Nemo's
+  # areas, #191 reading 11).
+  selection: { relations: [enemy, ally, neutral], includeSelf: true, chooser: all }
 damage:
   multiplier: 3
   component: mag

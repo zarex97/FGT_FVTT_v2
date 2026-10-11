@@ -1809,7 +1809,7 @@ export function cooldownRate(unit, ability, ctx) {
   // NP Lag halves the rate — every other turn, keyed on the global tick so it
   // stays consistent across a reconnect.
   if (held.includes("npLag") && ability.isNP && ctx.tick % 2 === 1) return 0;
-  return 1 + (ability.regen ?? 0) + npRegenOf(unit, ability, held);
+  return 1 + (ability.regen ?? 0) + npRegenOf(unit, ability, held, ctx);
 }
 
 /**
@@ -1842,14 +1842,21 @@ export function cooldownRate(unit, ability, ctx) {
  * @param {string[]} held the unit's held effect ids
  * @returns {number} extra turns removed this Turn
  */
-function npRegenOf(unit, ability, held) {
+function npRegenOf(unit, ability, held, ctx = {}) {
   if (!ability.isNP) return 0;
 
   const stacked = (unit.statDeltas ?? [])
     .filter((d) => d.stat === "npRegen")
     .reduce((sum, d) => sum + (Number(d.value) || 0), 0);
 
-  return stacked + (held.includes("npCooldownRegen") ? 1 : 0);
+  // Not on the Turn it ends, the rule every `periodic:` tick already keeps
+  // (`tickPeriodics`). Teachings of Circe's NP Regen for 1◈ ticked at four
+  // Turn Ends -- the one it was applied in and the three after -- so it took
+  // 1⅓◈ off where the sheet gives 1◈ (#193 reading 7).
+  const regen = (unit.effectInstances ?? []).some((e) => e.defId === "npCooldownRegen"
+    && !(e.expiry !== null && e.expiry !== undefined && e.expiry <= (ctx.tick ?? 0)))
+    || (!(unit.effectInstances ?? []).length && held.includes("npCooldownRegen"));
+  return stacked + (regen ? 1 : 0);
 }
 
 /**
@@ -2244,14 +2251,18 @@ function multiServantIntents(units, ctx) {
   // The tax is charged "at the end of ITS Turn" -- the Master whose faction
   // just acted, not every Master on the board. Charging all of them would bill
   // seven players for one player's turn.
+  // A Master is whoever holds a Contract, not only a `master` Unit: Medea
+  // holding two Servants stolen by Rule Breaker pays it too (#193 reading 21).
+  const holds = (u) => u.kind === "master" || units.some((s) => s.masterId === u.id);
   const acting = units.filter(
-    (u) => u.kind === "master" && (ctx.activeFactionId === null || sideOf(u) === ctx.activeFactionId),
+    (u) => holds(u) && (ctx.activeFactionId === null || sideOf(u) === ctx.activeFactionId),
   );
   for (const master of acting) {
     const servants = units.filter((u) => u.masterId === master.id);
     for (const d of multiServantTax(master, servants, { grandOrder: ctx.grandOrder })) {
       // `statDelta`, not `damage`: a loss bypasses every reduction effect.
-      out.push(I.statDelta(d.unitId, d.stat, d.delta));
+      // Named, so the Turn-end card says why: it read "(an effect)" (#193).
+      out.push({ ...I.statDelta(d.unitId, d.stat, d.delta), source: d.source });
       out.push(I.log({ kind: "multiServantTax", unitId: d.unitId, amount: -d.delta }));
     }
   }

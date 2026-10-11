@@ -324,7 +324,13 @@ function targetOf(target, ctx) {
  */
 function deltaFor(change, unit) {
   if (change.deltaPercentOfMax === undefined) return change.delta ?? 0;
-  const max = unit?.[change.stat]?.max ?? 0;
+  // The BOARD snapshot's shape: `health` and `agility` are numbers, and their
+  // maxima sit beside them as `maxHealth` and `maxAgility`. Reading
+  // `unit.health.max` found nothing, so Half Heal and Full Heal restored 0 for
+  // every Master in the game (#193). A `{value, max}` pool still reads first.
+  const pool = unit?.[change.stat];
+  const beside = unit?.[`max${change.stat[0].toUpperCase()}${change.stat.slice(1)}`];
+  const max = (pool && typeof pool === "object" ? pool.max : undefined) ?? beside ?? 0;
   return Math.floor((max * change.deltaPercentOfMax) / 100);
 }
 

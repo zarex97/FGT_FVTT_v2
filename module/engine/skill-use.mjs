@@ -585,13 +585,24 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           break;
         }
 
-        case "removeEffect":
+        case "removeEffect": {
+          const removed = await resolveRemoval(phase, doc, snapshot);
           await applyWorldIntents(
-            (await resolveRemoval(phase, doc, snapshot))
-              .map((id) => I.removeEffect(target.unitId, id, "skill")),
+            removed.map((id) => I.removeEffect(target.unitId, id, "skill")),
             `skill:${ability.id}:remove`,
           );
+          // On the card, one line per effect taken off. Teachings of Circe
+          // cleared Burn, Atk Dwn and Def Dwn and its card said "2 effect(s)
+          // applied", naming the heal and the regen only (#193).
+          for (const id of removed) {
+            applied.push({ unitId: target.unitId, summary: {
+              id: `remove:${id}`,
+              name: game.i18n.format("FGT.Removal.Removed", { effect: EffectRegistry.get(id)?.name ?? id }),
+              outcome: "applied", reason: null,
+            } });
+          }
           break;
+        }
 
         case "rollTable":
           applied.push(...await runRollTable(phase, ability, actor, snapshot, board));
@@ -840,7 +851,20 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           if (target.unitId !== actor.id) break;
           const out = await summonPhase(phase, actor, { choose: (spec) => chooseSummonType(actor, spec) });
           summoned = out.count;
-          applied.push({ summary: { id: "summon", name: `${out.count} summoned`, outcome: "applied", reason: null } });
+          // The dice and who came, on the card. It said "3 summoned" and
+          // nothing else, so the 1d6 and each 1d4 behind Medea's Warriors
+          // could not be checked (#193).
+          const count = (out.rolls ?? []).find((r) => r.id === "summonCount");
+          const types = (out.rolls ?? []).filter((r) => r.id.startsWith("summonType:"));
+          const rolled = count
+            ? ` (${count.formula} → ${count.total}${types.length ? `; ${types[0].formula} → ${types.map((r) => r.total).join(", ")}` : ""})`
+            : "";
+          const who = (out.created ?? []).map((a) => a.name).filter(Boolean).join(", ");
+          applied.push({ summary: {
+            id: "summon",
+            name: `${out.count} summoned${rolled}${who ? `: ${who}` : ""}`,
+            outcome: "applied", reason: null,
+          } });
           break;
         }
 
@@ -1290,7 +1314,12 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
       // Scáthach's Clairvoyance applies two of its three buffs at 80%.
       chance: spec.chance ?? rule.chance ?? null,
       ctx: skillEffectContext({
-        attacker: unitSnapshot(actor),
+        // The caster as the board projects it, auras included. A bare
+        // snapshot carries none, so Item Construction's +50 -- an aura on
+        // Medea herself -- was missing from every Skill's debuff: Atlas on
+        // Medusa rolled against 30% where the sheet makes it 80% (#193). The
+        // test beside this built its caster from the board and passed.
+        attacker: phaseCtx.self ?? unitFrom(currentBoard(), actor) ?? unitSnapshot(actor),
         def,
         options,
         roll: roll.total,
@@ -1986,7 +2015,11 @@ async function chooseSummonType(actor, spec) {
     title: game.i18n.localize("FGT.Summon.ChooseType"),
     hint: game.i18n.localize("FGT.Summon.ChooseTypeHint"),
     count: 1,
-    options: (spec.choiceFrom ?? []).map((id) => ({ id, name: id })),
+    // By NAME. The dialog showed "dragon-tooth-warrior-blade" (#193).
+    options: await Promise.all((spec.choiceFrom ?? []).map(async (id) => {
+      const { summonName } = await import("./summoning.mjs");
+      return { id, name: await summonName(id) };
+    })),
   });
   return picked?.[0] ?? null;
 }

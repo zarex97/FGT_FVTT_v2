@@ -197,7 +197,10 @@ export function applyEffect({
   // The roll, kept for a success too (#185): the card showed a resisted
   // chance's roll and nothing for one that landed, so half of every chance
   // Clause's differential could not be checked.
-  const rolled = automatic ? null : `rolled ${roll} vs ${chanceSpec.percent}%`;
+  // With the ability's own modifiers named, as the trace has them: Atlas's
+  // card read "rolled 52 vs 30%" and hid the two −25s it rolled against (#193).
+  const rolled = automatic ? null : `rolled ${roll} vs ${chanceSpec.percent}%`
+    + (matched.length > 0 ? ` [${matched.map((m) => `${m.source} ${m.value}`).join(", ")}]` : "");
   if (!succeeded) {
     return { outcome: "resisted", reason: rolled, chance: rolled, intents: [], trace };
   }

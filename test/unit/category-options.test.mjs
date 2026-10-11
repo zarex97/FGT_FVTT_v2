@@ -161,7 +161,10 @@ describe("categoryRankOf and the options ladder are one reader", () => {
       carriers += 1;
       if (!seen.self.has("self:skill:divinity")) disagreements.push(`${id}: categoryRankOf says ${seen.rank}, no self:skill:divinity`);
       for (const grade of LADDER) {
-        const held = Rank.gte(seen.rank, Rank.of(grade));
+        // At the LETTER: "B or higher" is met by B− (#193 reading 11), which is
+        // how the options ladder reads every rank.
+        const r = typeof seen.rank === "string" ? Rank.parse(seen.rank) : seen.rank;
+        const held = Rank.gte(Rank.of(r.grade), Rank.of(grade));
         if (seen.self.has(`self:skillRank:divinity:gte:${grade}`) !== held) {
           disagreements.push(`${id}: Divinity ${seen.rank}, gte:${grade} should be ${held}`);
         }

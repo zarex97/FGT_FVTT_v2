@@ -3833,13 +3833,72 @@ event. Ch. 27.
 **Reached: ZS.def.fail.** Erase is *"removed from the game"*; `io.defeat` treated it as any defeat and left the
 token under a skull. It now deletes the token and keeps the actor, defeated. Ch. 14.
 
-### X. A figure with no Base Attack met the crit roll, once per hit — **fixed** (#191 reading 14)
+### IY. A figure with no Base Attack met the crit roll, once per hit — **fixed** (#191 reading 14)
 
 **Reached: QF.dice, QF.inj.** Stage 2 took ±5d10 off each of Quickfire's 25s and stage 9 took the ZON penalty
 off each again, so six successes dealt 0. Attack± is a Base Attack plus or minus 5d10; a dice count and Barrel
 Bombing's flat 150 have none, so stage 2 now rolls nothing for them, and the ZON penalty is one roll carried
 across the hits. Unit tests that used `fixedValue` as a stand-in for a Base Attack of 200 now name a real
 source. Ch. 22.
+
+### IZ. Silence let through every Spell that was a Spell by category only — **fixed** (#193)
+
+**Reached: Medea HS.silence.use.** `costs.mjs#preventionActionFor` called an ability a Spell only by `isSpell`,
+which her two Damage Spells and EMIYA's Thaumaturgy carry. Argos, Keraino, Trofa, Atlas and Dragon Tooth Warriors
+carry `category: spell` alone, and High-Speed Divine Words finds her Spells by that category. Silenced, only Aero
+greyed. The category now counts as a Spell. Ch. 19.
+
+### JA. A Skill's debuff, and an event's, read a caster with no auras — **fixed** (#193)
+
+**Reached: Medea AT.stack, IC.out.** `skill-use.mjs#applyPhaseEffects` and `applier.mjs` handed `inflictBonusOf` a
+bare `unitSnapshot`, which has no auras. Item Construction is an aura Medea holds on herself, so Atlas on Medusa
+rolled against 30% where the sheet makes it 80%. The Skill-path test built its caster from the board and agreed with
+the code. Both take the board's unit now, and the chance line names the ability's own modifiers. Ch. 15.
+
+### JB. "A Rank of B or higher" left out B− — **fixed** (#193 reading 11)
+
+**Reached: Medea AT.mag.** `options.mjs#gradesClearedBy` compared the whole rank, so B− sat below B. The ladder is
+read at the letter now, for every `rank:` and `skillRank:` comparison in the corpus. Ch. 11.
+
+### JC. NP Regen ticked on the Turn it expired — **fixed** (#193 reading 7)
+
+**Reached: Medea CI.regen.tick.** `scheduler.mjs#npRegenOf` asked only whether `npCooldownRegen` was held. Every
+`periodic:` tick skips the Turn an instance expires on, and this second reader did not, so 1◈ took 1⅓◈ off. Ch. 25.
+
+### JD. Two cards hid what happened — **fixed** (#193)
+
+**Reached: Medea CI.debuffs, DT.count, DT.choice.** A `removeEffect` phase wrote nothing to the Skill card, so
+Teachings of Circe's removals were invisible. A summon's card read "3 summoned" without its dice. The summon-type
+choice listed content ids. Each now says what it did, by name. Ch. 37.
+
+### JE. A reaction ability could not leave the reaction open, nor Block follow a failed automatic Evade — **fixed** (#193 readings 8, 9)
+
+**Reached: Medea AR.atk, AR.notboth, TR.np.fail.** Any ability taken at the reaction rung advanced the ladder as
+"nothing". `reactionFree: true` (Argos) now keeps the rung open with the reaction abilities withdrawn, so Trofa
+cannot follow Argos. A failed automatic Evade (Trofa against a Noble Phantasm) offers Block beside accepting at the
+escape rung, after Lucky Evasion. Ch. 21, Ch. 23.
+
+### JF. Half Heal and Full Heal restored nothing — **fixed** (#193)
+
+**Reached: Medea RB.cs3.** `command-spells.mjs#deltaFor` read `unit.health.max`. The live context is the board
+snapshot, whose `health` is a number with `maxHealth` beside it, and the unit test's `{value, max}` pools agreed with
+the code. Every percent-of-maximum Command Spell in the game restored 0. It reads `max<Stat>` beside a number now,
+and the snapshot projects `maxAgility`. Ch. 33.
+
+### JG. A Servant could not be a Master — **fixed** (#193 readings 18–21)
+
+**Reached: Medea RB.give, RB.cs3, RB.zon, RB.tax.** Four readers assumed a Master is a `master` actor. Rule Breaker
+gave the Contract and spells to Medea's Master. A Servant had no `commandSpellsPerServant`. The multi-Servant tax
+billed only `master` Units. The freeing pass on a defeat returned for anyone else. And `zon.mjs` read a Servant
+Master's own annotated zone as a stated ZON, while `annotateZon` nulled every real Master's stated ZON for Servants
+annotated after it. All five are fixed: whoever holds a Contract is a Master. Ch. 06, Ch. 32.
+
+### JH. A dismissed summon left its world actor behind — **fixed** (#193 reading 15)
+
+**Reached: Medea DT.vanish.** `io.mjs#dismissSummon` deleted `resolve(id)`, which prefers an unlinked token's
+synthetic actor. That removed the token and left the world actor, and dismissing two in one go threw. Summons that go
+with their summoner (`leavesWithSummoner`) had no reader at all. Both are fixed, and the dismissal runs after the
+defeat is written. Ch. 31.
 
 ---
 
@@ -4115,6 +4174,21 @@ cooldown is priced per warrior conjured; *Trofa*'s *"50% chance against a Noble 
 reductions are two modifiers, so they stack as the sheet says they do.
 
 ---
+
+### 46.11.1 The live press — 94 of 94 Clauses (#193, 2026-10-10)
+
+**All 94 Clauses were Pressed or Observed on a live board**, on the VPS copy of `fgt2026`, after 21 readings were
+ruled on 2026-10-10. The September audit had traced her sheet and found almost all of it correct on paper. The board
+found eleven defects, and nine reach other Servants (§46.4-IZ to JH).
+
+**Why she finds what she finds.** She is the only Servant who becomes a Master, and every reader of "Master" had
+been written for the `master` actor: the Contract, the Command Spells, the ZON, the tax and the freeing on defeat all
+skipped her. Her Item Construction is an aura on herself, which a bare snapshot cannot carry, so her passive never
+reached her own Spells. And her summons and her two reaction Spells were the first to exercise a picker, a summoner's
+defeat and a reaction that is not the reaction.
+
+Her own, fixed in content: Rain of Light hits every Unit in its area (reading 12); Argos is `reactionFree`; the
+Dragon Tooth Warriors' panels are her owner's pick and they leave with her.
 
 ## 46.12 EMIYA — the Servant whose Range moves
 
@@ -4903,7 +4977,7 @@ War on an NP and the ally half of Hatred were pressed through the live board's e
 
 **All 105 of his Clauses were Pressed or Observed on a live board** (#191, 2026-10-10), on the VPS copy of
 `fgt2026`. Thirteen readings were ruled before the press on 2026-10-10, and a fourteenth after it: a dice
-count and a flat value roll no ±5d10, and the ZON penalty comes off once (§46.4-X). Live, six 6s dealt 150
+count and a flat value roll no ±5d10, and the ZON penalty comes off once (§46.4-IY). Live, six 6s dealt 150
 with one Injury Roll, 100 outside the ZON; Barrel Bombing dealt 150, 100 outside it.
 
 **Why he finds what he finds.** Zero Sail is the only pocket dimension in the game, and almost nothing about it
@@ -4926,7 +5000,7 @@ designed and unit-tested in its pure half and never driven.
 | Zero Sail could be clicked off inside | `nemo-zero-sail.yml`, `deactivation.byOwner: false` |
 | Quickfire's Evade override offered Lucky Evasion; its roll log never reached the card; a Counter never withheld its refund | `combat-process.mjs`, `engine/attack.mjs` |
 | Triton's Conch dealt every ring band 0 and rolled ring 0's chance | `attack.bandOf`, `declaredChance` |
-| General: §46.4-IQ to X | |
+| General: §46.4-IQ to IY | |
 
 ### 46.23.2 What was staged
 

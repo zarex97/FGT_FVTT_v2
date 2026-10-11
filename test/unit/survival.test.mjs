@@ -43,6 +43,7 @@ const text = (v) => (v == null ? v : String(v));
 /** Where each Authored Key on a Unit goes after the DataModel. */
 export const UNIT_ROUTES = {
   actsOncePerTurn: same("actsOncePerTurn"),
+  leavesWithSummoner: doc("module/engine/io.mjs", "read off the summon when its summoner is defeated"),
   alignment: same("alignment"),
   baseAttack: same("baseAttack"),
   baseHealth: same("baseHealth"),
@@ -173,6 +174,7 @@ export const ABILITY_ROUTES = {
   npTags: doc("module/engine/attack.mjs", "classifies the NP"),
   offersSpellCategory: doc("module/engine/attack.mjs", "offered at use"),
   oncePerRound: doc("module/rules/ability-use.mjs", "gates the use"),
+  reactionFree: doc("module/engine/attack.mjs", "keeps the reaction rung open after the ability"),
   oncePerTurn: doc("module/rules/ability-use.mjs", "gates the use"),
   opensDialog: doc("module/rules/ability-use.mjs", "the use opens a dialog"),
   parameterized: doc("tools/lib/content.mjs", "a template's slot list, consumed at compile"),

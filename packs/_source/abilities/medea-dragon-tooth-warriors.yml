@@ -31,7 +31,8 @@ phases:
         1: dragon-tooth-warrior-blade
         2: dragon-tooth-warrior-bow
         3: dragon-tooth-warrior-daggers
-      placement: { shape: square, size: 5, anchor: self }
+      # Her owner picks each Warrior's panel in the 5x5 (#193 reading 13).
+      placement: { shape: square, size: 5, anchor: self, chooser: owner }
       # Both clauses from the sheet, as summon properties rather than as rules
       # the engine would have to special-case for Medea.
       countsTowardBudget: false

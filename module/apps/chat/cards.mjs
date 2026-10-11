@@ -383,6 +383,11 @@ export function promptOptions(prompt, state = null) {
   if (prompt.kind === "acceptOrEscape") {
     return [
       { event: "accept", label: game.i18n.localize("FGT.Reaction.Accept"), hint: null },
+      // After a failed automatic Evade only: Trofa was her Evade, and she may
+      // still Block (#193 reading 9).
+      ...(state?.blockAfterAutoEvade
+        ? [{ event: "block", label: game.i18n.localize("FGT.Reaction.Block"), hint: game.i18n.localize("FGT.Reaction.BlockHint") }]
+        : []),
       { event: "cs", label: game.i18n.localize("FGT.Reaction.CommandSpell"), hint: null },
     ];
   }

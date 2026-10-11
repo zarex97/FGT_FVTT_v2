@@ -28,6 +28,10 @@ export class SummonData extends foundry.abstract.TypeDataModel {
       // Move/Attack once per Turn." Distinct from the budget exemption -- being
       // outside the Unit limit does not mean acting without limit.
       actsOncePerTurn: new fields.BooleanField({ initial: false }),
+      // Leaves the board when its summoner is defeated. Medea's Dragon Tooth
+      // Warriors go with her (#193 reading 15); a summon that outlives its
+      // summoner leaves this false.
+      leavesWithSummoner: new fields.BooleanField({ initial: false }),
       // Stats stated RELATIVE to the summoner. The Kagome Spirits are the
       // first: *"Agility: Pale Rider's plus 2"*, *"Luck: Same as Pale
       // Rider's"* -- numbers that cannot be written on the sheet because they
