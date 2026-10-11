@@ -3,7 +3,8 @@ id: 2026-10-10-acts-excludes-reactions
 found: user
 kind: precedent-carried-without-asking
 status: open
-reviewed: false
+reviewed: true
+pattern: precedent-carried-without-asking
 ---
 **Expected:** I recommended that Tenmōkaikai's upkeep, *"any Turn Raikou or any of her copies Acts"*, leave Evade and Block out. That matched #190 reading 6, which I took as settled.
 **Actual:** The user ruled that evading and blocking count as Acting. That contradicts #190 reading 6 for Penthesilea's Mad Enhancement drain.

@@ -1,9 +1,10 @@
 ---
 id: 2026-10-10-tax-skips-servant-master
 found: live press
-kind: assumed-shape
+kind: role-keyed-on-type
 status: fixed
-reviewed: false
+reviewed: true
+pattern: role-keyed-on-type
 ---
 **Expected:** Medea holds Medusa and Quetzalcoatl after two Rule Breakers. Both Act, and at the Turn's end she loses 25 (reading 21).
 **Actual:** Medea stayed at 750, and no tax line appeared.

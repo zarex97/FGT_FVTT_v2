@@ -3,7 +3,8 @@ id: 2026-10-10-summon-dismissal-hits-synthetic-actor
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** Medea's defeat dismisses her Dragon Tooth Warriors: tokens and actors gone (reading 15).
 **Actual:** First nothing was dismissed. Then, with the dismissal added, the defeat threw `undefined id [...] does not exist in the EmbeddedCollection collection`, Medea stayed undefeated, and the Warriors' world actors stayed behind with no tokens.

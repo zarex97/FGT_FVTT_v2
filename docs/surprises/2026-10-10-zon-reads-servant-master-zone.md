@@ -1,9 +1,10 @@
 ---
 id: 2026-10-10-zon-reads-servant-master-zone
 found: live press
-kind: name-collision-on-spread
+kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** Medusa, stolen by Medea, has a Rider's ZON of 2 around her (reading 19).
 **Actual:** `zon: 6`.

@@ -3,7 +3,8 @@ id: 2026-10-10-silence-misses-category-spells
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Silenced, Medea cannot cast any of her seven Spells.
 **Actual:** Only Aero greyed, with "Prevented". Argos and Atlas stayed lit, and so did Keraino, Trofa and Dragon Tooth Warriors when off cooldown.

@@ -3,7 +3,8 @@ id: 2026-10-10-opt-out-implies-default
 found: retraction
 kind: opt-out-implies-default
 status: fixed
-reviewed: false
+reviewed: true
+pattern: opt-out-implies-default
 ---
 **Expected:** I recommended one Injury Roll per target for Dohatsu Tenshou's five instances, if any one cleared the threshold.
 **Actual:** Asked to explain, I took it back. Quickfire's sheet has to opt out in writing, *"only performs an Injury Roll once, regardless of number of hits"*, so the default is one roll per hit. The user ruled each instance rolls on its own.
