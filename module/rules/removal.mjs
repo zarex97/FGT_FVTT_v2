@@ -34,6 +34,23 @@
  */
 
 /**
+ * Is this instance beyond any cleanse?
+ *
+ * The definition may say so (Appendix A's few), and so may the INSTANCE -- an
+ * `unremovable` apply, Burning's Burn. The two removal paths each asked
+ * `def.unremovable ?? instance` and the registry reports `false`, never `null`,
+ * so the instance was never read: Self-Suggestion cleansed an Unremovable Atk
+ * Dwn (#198, SS.unrem). One reader for both.
+ *
+ * @param {object|null|undefined} def the effect definition
+ * @param {object|null|undefined} instance the ActiveEffect
+ * @returns {boolean}
+ */
+export function isUnremovable(def, instance) {
+  return Boolean(def?.unremovable || instance?.system?.unremovable);
+}
+
+/**
  * How much this Unit resists having a buff taken off it.
  *
  * @param {object} unit a unit snapshot carrying `buffRemovalResist`

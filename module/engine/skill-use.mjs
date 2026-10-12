@@ -51,7 +51,7 @@ import { budgetActionFor } from "../rules/budget.mjs";
 import * as I from "./intents.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { expressionRefs, stacksHeld } from "../rules/snapshot.mjs";
-import { removalPlan, pendingRemovalRolls } from "../rules/removal.mjs";
+import { removalPlan, pendingRemovalRolls, isUnremovable } from "../rules/removal.mjs";
 import { resolveValue } from "../rules/elements.mjs";
 import { createField, regionSizedTargeting } from "./fields.mjs";
 import { chooseFor } from "./ask.mjs";
@@ -1962,7 +1962,7 @@ function removalCandidates(phase, doc) {
       return {
         defId: e.system.defId,
         polarity: def?.polarity,
-        unremovable: Boolean(def?.unremovable ?? e.system?.unremovable),
+        unremovable: isUnremovable(def, e),
       };
     });
 }
@@ -1981,7 +1981,8 @@ function removals(phase, doc) {
       if (selector.polarity && def.polarity !== selector.polarity) return false;
       // An unremovable effect stays: Appendix A marks a few that no cleanse
       // reaches, and a blanket "remove all debuffs" must not be the exception.
-      return !def.unremovable;
+      // The INSTANCE may say so too (`isUnremovable`, #198).
+      return !isUnremovable(def, e);
     })
     .map((e) => e.system.defId);
 }

@@ -38,9 +38,15 @@ rules:
   # `notOnApplyTurn` is *"except the Turn this Skill was activated"* -- without
   # it the buffs she gained a moment ago would each lose a charge before she had
   # swung once.
+  #
+  # `unlessUsedThisTurn` is the same exception read off the USE rather than the
+  # charges: a Monstrous Strength used with no stocks gains nothing, so nothing
+  # is re-stamped, and the Turn of that use still spent one (#198 reading 12:
+  # nothing comes off at the end of the Turn she used it, on any Turn).
   - key: OnEvent
     event: [turnEnd, actedTurnEnd]
     automatic: true
     notOnApplyTurn: true
+    unlessUsedThisTurn: { contentId: kingprotea-monstrous-strength }
     consumesUse: true
     then: []

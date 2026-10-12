@@ -102,6 +102,10 @@ Test: `test/unit/roll-records.test.mjs`.
 
 ## Open questions
 
+- **Open: two rolls others never see (#198, §46.4-KQ).** Territory Creation's 3d10+30 negation is on no Rolls list,
+  and a Contract Servant attempt reaches only the attempter's notification. A strip's roll now posts its line.
+
+
 - **Partly settled: the state is carried as a message flag, and both clients read the same document.**
   169 messages in the live world carry an `fgt.process` flag holding the full machine -- `attackerId`,
   `defenderId`, `attack`, `reaction`, `evaded`, `isAoE`, `groupId`, `isCounter`, `counterDepth`,

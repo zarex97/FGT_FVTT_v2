@@ -147,6 +147,34 @@ function onPreCreateToken(document) {
  */
 async function syncFootprint(actor) {
   if (!game.user.isGM) return;
+  // One resize at a time per actor. A stock arrives as an ActiveEffect AND as
+  // the Health write that pays its +400, two triggers in two microtasks, and
+  // while the first was waiting on the owner's corner the second saw the same
+  // small token and asked again: two "Kingprotea grows" dialogs (#198). The
+  // second waits for the first and then finds nothing left to do.
+  const pending = syncing.get(actor.id);
+  if (pending) {
+    await pending;
+    return syncFootprint(actor);
+  }
+  let release;
+  syncing.set(actor.id, new Promise((r) => { release = r; }));
+  try {
+    await resizeTokens(actor);
+  } finally {
+    syncing.delete(actor.id);
+    release();
+  }
+}
+
+/** Actors whose tokens are being resized, and the promise that settles it. */
+const syncing = new Map();
+
+/**
+ * @param {object} actor
+ * @returns {Promise<void>}
+ */
+async function resizeTokens(actor) {
   const size = footprintSize(actor);
   if (!size) return;
 

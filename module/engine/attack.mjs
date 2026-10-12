@@ -50,7 +50,7 @@ import { coveringServantsFor, coverFactor, shoveDestination, isCovering } from "
 import { absorb, refreshShield, landBarrier } from "./shield.mjs";
 import { attackIdentity, recordedAttack } from "../rules/revival.mjs";
 import { expressionRefs, stacksHeld, abilityRecordOf } from "../rules/snapshot.mjs";
-import { removalPlan, pendingRemovalRolls } from "../rules/removal.mjs";
+import { removalPlan, pendingRemovalRolls, isUnremovable } from "../rules/removal.mjs";
 import { isStrongestNP, isDamagingNP, harmlessToSelf, EXPECTED_ATTACK_ROLL } from "../rules/np-strength.mjs";
 import { currentHealth, isUndamageable } from "../domain/health.mjs";
 import * as process from "./combat-process.mjs";
@@ -1935,6 +1935,30 @@ function coverModifiersFor(state, defender) {
 }
 
 /**
+ * Wait until every other Process of this group has dealt its damage or ended.
+ *
+ * Bounded: a sibling left waiting on a player is not allowed to hold the rider
+ * for ever, and after the bound the rider lands as it always did.
+ *
+ * @param {object} state
+ * @param {number} [timeoutMs]
+ * @returns {Promise<void>}
+ */
+async function siblingsPastDamage(state, timeoutMs = 120_000) {
+  if (!state.groupId) return;
+  const PAST = new Set(["damage", "noDamage", "injury", "facing", "counter", "missed", "done"]);
+  const past = () => siblingMessages(state)
+    .map((m) => process.deserialize(m.getFlag("fgt", "process")))
+    .filter((s2) => s2 && s2.defenderId !== state.defenderId)
+    .every((s2) => PAST.has(s2.state) || (s2.history ?? []).some((h) => h.state === "damage"));
+  const until = Date.now() + timeoutMs;
+  while (!past() && Date.now() < until) await new Promise((r) => setTimeout(r, 250));
+}
+
+/** Before-damage self riders being paid, by group, attacker and phase. */
+const selfPayments = new Map();
+
+/**
  * Is this the first Process of its group to reach the Damage Step?
  *
  * For what an ability does to its user BEFORE its damage (#184): the defenders
@@ -2228,11 +2252,21 @@ async function stripOneBuff(action, bearer, bearerDoc) {
       .map((defId) => [defId, Math.ceil(Math.random() * 100)]),
   );
   const { removed } = removalPlan({ candidates: take, bearer, rolls });
+  // Said on the board either way: a strip, or a resist with its die (#198).
+  const name = (c) => EffectRegistry.get(c.defId)?.name ?? c.defId;
+  const lines = take.map((c) => game.i18n.format(
+    removed.includes(c.defId) ? "FGT.Removal.Stripped" : "FGT.Removal.StripResisted",
+    { name: bearerDoc.name, effect: name(c), roll: rolls[c.defId] ?? "—" },
+  ));
+  await ChatMessage.create({ content: lines.map((l) => `<p>${l}</p>`).join(""), speaker: { alias: game.i18n.localize("FGT.Removal.Title") } });
   if (removed.length === 0) return false;
 
+  // The DOCUMENT, not the definition: each Proliferation stock is its own buff,
+  // and removing by definition id took every stock for the one Suppression
+  // strips (#198, PS.buff).
   await applyBatch(
     take.filter((c) => removed.includes(c.defId))
-      .map((c) => I.removeEffect(bearerDoc.id, c.defId, "suppression")),
+      .map((c) => I.removeEffect(bearerDoc.id, c.documentId, "suppression")),
     "suppression",
   );
   return true;
@@ -4872,8 +4906,38 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     // order, and on a live board Troias's Atk Up landed with the last of three
     // hits, so the first two went without it (#184).
     if (phase.target === "self") {
-      const pays = when === "beforeDamage" ? isFirstToStrike(state) : isFirstOfGroup(state);
-      if (!pays) continue;
+      // Claimed in memory as well: the Processes of one group can reach their
+      // Damage Step together -- they all wait on the one Damage Step window --
+      // and none has a damage step in its history yet, so each read itself as
+      // the first to strike and Airavata's NP DmUp landed three times (#198).
+      // A sibling that does not pay WAITS for the payment, so its own damage
+      // is computed with the buff it stands behind: without the wait, two of
+      // Airavata's three hits went out without the NP DmUp.
+      if (when === "beforeDamage") {
+        const key = state.groupId ? `${state.groupId}|${state.attackerId}|${phases.indexOf(phase)}` : null;
+        if (key && selfPayments.has(key)) {
+          await selfPayments.get(key);
+          continue;
+        }
+        if (!isFirstToStrike(state)) continue;
+        const paying = applyDeclaredEffects(
+          effectSpecsOf(phase),
+          ability,
+          { ...state, defenderId: state.attackerId },
+          attackerUnit,
+        );
+        if (key) {
+          selfPayments.set(key, paying.catch(() => []));
+          setTimeout(() => selfPayments.delete(key), 120_000);
+        }
+        applied.push(...await paying);
+        continue;
+      }
+      if (!isFirstOfGroup(state)) continue;
+      // "THEN, apply Atk Up" comes after the whole attack: its siblings run
+      // beside it now, and Airavata's Atk Up landed between its hits, so the
+      // second target took +20% from a buff the NP grants afterwards (#198).
+      await siblingsPastDamage(state);
       applied.push(...await applyDeclaredEffects(
         effectSpecsOf(phase),
         ability,
@@ -6049,7 +6113,7 @@ async function removalIntents(phase, doc, bearer) {
         const def = EffectRegistry.get(e.system?.defId);
         if (!def) return false;
         if (selector?.polarity && def.polarity !== selector.polarity) return false;
-        return !def.unremovable;
+        return !isUnremovable(def, e);
       })
       .map((e) => e.system.defId);
 
@@ -6065,7 +6129,7 @@ async function removalIntents(phase, doc, bearer) {
       return {
         defId: e.system.defId,
         polarity: def?.polarity,
-        unremovable: Boolean(def?.unremovable ?? e.system?.unremovable),
+        unremovable: isUnremovable(def, e),
       };
     });
   const ignoresProtection = Boolean(phase.ignoresRemovalProtection);
@@ -6227,6 +6291,39 @@ async function offerAttackerWindow(state, window, message) {
   // Asked once per Process. Re-entry after a Command Spell interrupt would
   // otherwise offer the same cooldown twice for one attack.
   if (state.windowAbilities !== undefined) return state;
+
+  // ...and the group's Processes reach here TOGETHER. Airavata's three
+  // Processes each opened their own "Start of the Damage Step" before any had
+  // recorded an answer, so Monstrous Strength, taken in one, was refused by the
+  // other two and reached one target of the three (#198 reading 11). The first
+  // asks; its siblings wait for that answer.
+  const key = state.groupId ? `${state.groupId}|${state.attackerId}|${window}` : null;
+  if (key && openWindowPicks.has(key)) {
+    const carried = await openWindowPicks.get(key);
+    return { ...state, windowAbilities: carried };
+  }
+  if (!key) return askAttackerWindow(state, window, message);
+  const asking = askAttackerWindow(state, window, message).then((s) => s.windowAbilities ?? []);
+  openWindowPicks.set(key, asking);
+  try {
+    return { ...state, windowAbilities: await asking };
+  } finally {
+    // Kept until every sibling has read it, then cleared: the recorded pick on
+    // the message answers any Process that arrives later.
+    setTimeout(() => openWindowPicks.delete(key), 60_000);
+  }
+}
+
+/** Window answers still being asked, by group, attacker and window. */
+const openWindowPicks = new Map();
+
+/**
+ * @param {object} state
+ * @param {string} window
+ * @param {object} message
+ * @returns {Promise<object>}
+ */
+async function askAttackerWindow(state, window, message) {
 
   // ...and once per ATTACK. A fan-out is one Combat Phase and many Processes,
   // so a Riding Attack through three Units reached this three times, and

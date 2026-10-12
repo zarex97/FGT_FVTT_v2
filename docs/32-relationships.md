@@ -28,7 +28,7 @@ The **Overpower** mechanic governs when a Servant attacking a Master can instant
 
 ### Contracting and conquest
 
-A Master or Caster may attempt to contract a Servant by moving adjacent and rolling against it. An ally Servant contracts automatically; an enemy Servant requires 1d6 rolls at difficulty 5+, increased to 4 rolls for Independence Action A, 3 for B, and immune (Infinity) for A+ or EX (`module/rules/contract.mjs:93-138`). A successful contract grants three Command Spells scoped to that Servant and freeing the previous Master's contract chain (`module/rules/contract.mjs:227-235`).
+A Master or Caster may attempt to contract a Servant by moving adjacent and rolling against it. An ally Servant contracts automatically; an enemy Servant requires 1d6 rolls at difficulty 5+, increased to 4 rolls for Independence Action A, 3 for B, and immune (Infinity) for A+ or EX (`module/rules/contract.mjs:93-138`). A successful contract grants three Command Spells scoped to that Servant and freeing the previous Master's contract chain (`module/rules/contract.mjs:227-235`). A Caster is any Unit whose `servantClasses` holds `caster`; the rule read a `servantClass` field nothing projects, so no Caster could contract or claim a kill (#198).
 
 When a Master is killed, its Servants become Free **and** any Servant of the killer within 2 panels of its own Master immediately contracts to the killer in a **single transaction** — ensuring no Free state is observed (`module/rules/contract.mjs`).
 
