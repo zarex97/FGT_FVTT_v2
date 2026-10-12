@@ -3,7 +3,8 @@ id: 2026-10-12-secret-read-victims-concealment
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** Serenity concealed, her Turn ends, Zabaniya P2's aura inflicts Secret Poison on every Unit within 2.
 **Actual:** five Units took Poison, every instance `visibility: public`, `attributionHidden: false`, `sourceUnitId` hers. The Poison was open while she was concealed.

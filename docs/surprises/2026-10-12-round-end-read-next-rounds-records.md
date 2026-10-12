@@ -3,7 +3,8 @@ id: 2026-10-12-round-end-read-next-rounds-records
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** Serenity's Normal Attack lands on Heracles's Master in its Home Base in Round 9. At Round 9's end, E1's "unless it fought here" withholds the 100 Health.
 **Actual:** the Master took 160 Poison and went 151 → 91: Home Base healed 100 first. Its `roundState` read `{round: 9, combatInBaseThisRound: true}`; `currentBoard({round: 9})` projected `combatInBaseThisRound: false`.
