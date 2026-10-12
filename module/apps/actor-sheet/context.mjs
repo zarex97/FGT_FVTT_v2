@@ -843,12 +843,14 @@ function detailsContext(actor, snapshot) {
     // viewer sees, and falls back to the true portrait rather than nothing.
     defaultImageSrc: system.defaultImage || "icons/svg/mystery-man.svg",
 
-    // Damage taken from a cause this Unit is not allowed to see yet. Serenity's
-    // Secret Poison is the only thing that writes it, and the tally is what
-    // gets disclosed when her Presence Concealment ends -- so a GM has to be
-    // able to read it before then.
-    hiddenDamage: Object.entries(system.hiddenDamage ?? {})
-      .map(([cause, amount]) => ({ cause, amount })),
+    // Secret Poison banked against its inflicter, which lands when her
+    // Presence Concealment ends (#199 reading 10). The GM's alone: the victim's
+    // owner reading "Undisclosed damage 160" on their own sheet would be the
+    // very reveal the sheet withholds. Named by the inflicter, for the GM.
+    hiddenDamage: game.user?.isGM
+      ? Object.entries(system.hiddenDamage ?? {})
+        .map(([cause, amount]) => ({ cause: game.actors?.get(cause)?.name ?? cause, amount }))
+      : [],
 
     // History, not present state: EMIYA's Rho Aias and Battle Continuation both
     // ask whether Health has been above a fraction of its maximum SINCE a use,

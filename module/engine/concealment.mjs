@@ -128,21 +128,26 @@ export function attachConcealment() {
 }
 
 /**
- * Reveal every debt this Unit's concealment was hiding.
+ * Reveal every debt this Unit's concealment was hiding, and make it land.
  *
  * > *"They can be inflicted with **Secret Poison** instead, where the debuff
  * > and total Poison Damage taken is only revealed after Presence Concealment
  * > is deactivated."*
  *
- * Q47's reading, which the whole design turns on: the damage lands **on
- * schedule**, and only its *cause* is deferred. A genuinely deferred pool would
- * mean a Unit's displayed Health and its real Health disagree — a Servant
- * walking around already dead — and every other part of this system works to
- * prevent exactly that.
+ * Ruled on #199, and it replaces Q47's reading. The user's words: *"secret
+ * poison damage should 'explode' (thereby apply the accumulated rightful
+ * deductions that it would have done if it was a normal poison) when it is
+ * revealed only."* So the ticks were banked, not taken
+ * (`scheduler.mjs#tickPeriodics`, `I.bankSecret`), and here they land:
  *
- * So what is disclosed is the attribution and the tally: the hidden instances
- * become visible, and the running total of unattributed damage is posted and
- * cleared.
+ *   - every Secret Poison she inflicted, at once, one card per victim
+ *     (reading 14);
+ *   - the bank's total as ONE hit of Poison damage, through the ordinary
+ *     defeat chain so Guts and revivals answer, with nothing recomputed
+ *     (reading 15);
+ *   - a bank Pois Heal has netted below zero heals instead (reading 16);
+ *   - a bank survives a cleanse, which stopped only the later ticks. A victim
+ *     defeated before the reveal has none: `io.defeat` drops it (reading 16).
  *
  * @param {string} inflicterId the Unit whose concealment just ended
  * @returns {Promise<Array<{unitId: string, total: number}>>}
@@ -155,9 +160,9 @@ export async function discloseSecretPoison(inflicterId) {
     const hidden = victim.effects.filter(
       (e) => e.system?.attributionHidden && e.system?.sourceUnitId === inflicterId,
     );
-    const tally = victim.system?.hiddenDamage ?? {};
-    const total = Object.values(tally).reduce((a, b) => a + (b ?? 0), 0);
-    if (hidden.length === 0 && total === 0) continue;
+    const banked = victim.system?.hiddenDamage?.[inflicterId];
+    if (hidden.length === 0 && banked === undefined) continue;
+    const total = banked ?? 0;
 
     if (hidden.length > 0) {
       await victim.updateEmbeddedDocuments("ActiveEffect", hidden.map((e) => ({
@@ -167,50 +172,59 @@ export async function discloseSecretPoison(inflicterId) {
       })));
     }
     // Key by key. `{"system.hiddenDamage": {}}` MERGES an ObjectField rather
-    // than replacing it, so assigning an empty object is a no-op and the tally
-    // would be disclosed again -- and again -- on every subsequent concealment.
-    // Found live: the card was right and the ledger never cleared.
-    if (total > 0) {
-      await victim.update(Object.fromEntries(
-        Object.keys(tally).map((key) => [`system.hiddenDamage.-=${key}`, null]),
-      ));
+    // than replacing it, so assigning an empty object is a no-op and the bank
+    // would be revealed again on every later concealment. Only HER key: a
+    // second concealed Unit's bank waits for its own reveal.
+    if (banked !== undefined) {
+      await victim.update({ [`system.hiddenDamage.-=${inflicterId}`]: null });
     }
 
     disclosed.push({ unitId: victim.id, total });
   }
 
-  if (disclosed.length > 0) await announce(inflicterId, disclosed);
+  // Each card before its hit, so a defeat reads after the reason for it.
+  for (const { unitId, total } of disclosed) {
+    await announce(inflicterId, unitId, total);
+    const victim = game.actors.get(unitId);
+    if (!victim || victim.system?.defeated) continue;
+    if (total > 0) {
+      await applyWorldIntents([I.damage(unitId, total, null, {
+        periodic: true, defId: "poison", bypassModifiers: true, secretReveal: true,
+      })], "concealment:secretPoison");
+    } else if (total < 0) {
+      await applyWorldIntents([I.heal(unitId, -total, "poison")], "concealment:secretPoison");
+    }
+  }
   return disclosed;
 }
 
 /**
- * Say what was hidden, now that it can be said.
+ * Say what was hidden, now that it can be said: one card per victim.
  *
- * A secret that is never revealed is indistinguishable from a bug, and this one
- * has been taking Health off a player's Servant for several Rounds with an
- * unattributed log entry. §29's standard applies with more force here than
- * anywhere: the state **and its cause**.
+ * The PUBLIC name. Revealing the SOURCE of the poison is the point of this
+ * card; revealing who the Servant actually is, is a separate fact the rules
+ * never said this reveals.
  *
  * @param {string} inflicterId
- * @param {Array<{unitId: string, total: number}>} disclosed
+ * @param {string} unitId the victim
+ * @param {number} total the bank, signed
  * @returns {Promise<void>}
  */
-async function announce(inflicterId, disclosed) {
+async function announce(inflicterId, unitId, total) {
   const inflicter = game.actors.get(inflicterId);
-  const rows = disclosed.map(({ unitId, total }) => {
-    const name = game.actors.get(unitId)?.name ?? unitId;
-    return total > 0
-      ? `<li>${name} — <strong>${total}</strong> Poison damage</li>`
-      : `<li>${name} — Poison, revealed</li>`;
-  });
+  const victim = game.actors.get(unitId);
+  const name = victim ? publicIdentityOf(victim, currentBoard()).name : unitId;
+  const source = inflicter ? publicIdentityOf(inflicter, currentBoard()).name : "a concealed Unit";
+  const t = (key, data) => game.i18n.format(`FGT.SecretPoison.${key}`, data);
+  let line;
+  if (victim?.system?.defeated) line = t("Dropped", { name });
+  else if (total > 0) line = t("Damage", { name, amount: total });
+  else if (total < 0) line = t("Heal", { name, amount: -total });
+  else line = t("Nothing", { name });
 
   await ChatMessage.create({
-    // The PUBLIC name. Revealing the SOURCE of the poison is the point of this
-    // card; revealing who the Servant actually is, is a separate fact the
-    // rules never said this reveals.
-    content: `<p><strong>Secret Poison</strong> revealed: `
-      + `${inflicter ? publicIdentityOf(inflicter, currentBoard()).name : "a concealed Unit"}`
-      + ` was the source.</p><ul>${rows.join("")}</ul>`,
+    content: `<div class="fgt-card"><h3>${game.i18n.localize("FGT.SecretPoison.Title")}</h3>`
+      + `<p>${t("Source", { source })}</p><p>${line}</p></div>`,
     speaker: inflicter ? publicSpeakerFor(inflicter) : undefined,
   });
 }

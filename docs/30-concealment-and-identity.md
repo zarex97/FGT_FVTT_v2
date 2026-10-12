@@ -37,7 +37,16 @@ Six paths deactivate it: the Combat Process ends (attacked), a Discover roll suc
 
 ### Secret Poison disclosure
 
-When concealment ends, every Poison effect this unit inflicted whose `attributionHidden` flag is set becomes visible, and the running total of unattributed damage is posted to chat (`module/engine/concealment.mjs:151-185`). The damage landed on schedule — the pool never hid, only its cause did. Attribution and tally are revealed together, and the ledger is cleared (`module/engine/concealment.mjs:174-177`).
+Secret Poison **explodes** at the reveal (#199 reading 10, which replaces Q47). The user's ruling: the damage applies *"the accumulated rightful deductions that it would have done if it was a normal poison"*, and only when revealed.
+
+- **Banked, not taken.** A hidden Poison instance's tick is worked out at its real value (stage, Deadly Poison's doubling, the modifiers in force) and emitted as `bankSecret`, not `damage` (`module/engine/scheduler.mjs#tickPeriodics`). `io.bankSecret` adds it to `system.hiddenDamage[<inflicter id>]`. The victim's bar does not move, and no Round-end card names the tick.
+- **The reveal.** Any end of her concealment runs `discloseSecretPoison` (`module/engine/concealment.mjs`). Every victim of hers is handled at once: hidden instances turn public, her key leaves the bank, a card per victim says what landed, then the total lands as one `damage` intent (`periodic`, `defId: poison`, no recompute). It has no breakdown, so the applier runs `defeatIfLethal` and Guts and revivals answer.
+- **Pois Heal** banks a converted tick as a negative. A bank netted below zero heals at the reveal.
+- **A cleanse** removes the instance, so later ticks stop. The bank lives on the actor and still lands.
+- **A victim defeated first** loses its bank: `io.defeat` clears every key. Its card says so.
+- **Who sees the bank.** The sheet's *Undisclosed damage* row is the GM's alone (`module/apps/actor-sheet/context.mjs`), named by inflicter. Shown to the victim's owner it would be the reveal itself.
+
+Key by key, always: an ObjectField merges `{}` rather than replacing with it (below).
 
 ### Detect and identity
 

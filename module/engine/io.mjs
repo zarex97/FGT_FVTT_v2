@@ -119,32 +119,6 @@ function watermarks(actor, value) {
   return changed ? { "system.healthWatermarks": marks } : {};
 }
 
-/**
- * Accumulate damage the victim is not allowed to attribute yet.
- *
- * The Health is already coming off in the same write — Q47's ruling is that the
- * bar is always true — so this records only the *number that has to be revealed
- * later*: *"the debuff and total Poison Damage taken is only revealed after
- * Presence Concealment is deactivated."*
- *
- * Keyed by cause, so the disclosure can say what it was rather than posting a
- * bare figure, and cleared wholesale when `discloseSecretPoison` runs.
- *
- * @param {object} actor
- * @param {object[]} intents the damage intents this write is applying
- * @returns {object} an update patch fragment
- */
-function hiddenTally(actor, intents) {
-  const hidden = intents.filter((i) => i.attributionHidden && (i.amount ?? 0) > 0);
-  if (hidden.length === 0) return {};
-
-  const tally = { ...(actor.system?.hiddenDamage ?? {}) };
-  for (const i of hidden) {
-    const key = i.defId ?? "unknown";
-    tally[key] = (tally[key] ?? 0) + i.amount;
-  }
-  return { "system.hiddenDamage": tally };
-}
 
 /**
  * Which Health fractions any ability on this actor asks about.
@@ -265,7 +239,7 @@ export function worldIO() {
      * @param {string} unitId
      * @param {number} delta negative for damage
      */
-    async adjustHealth(unitId, delta, { intents = [] } = {}) {
+    async adjustHealth(unitId, delta) {
       const actor = resolve(unitId);
       if (!actor) return;
       const health = actor.system.health;
@@ -276,7 +250,6 @@ export function worldIO() {
       await actor.update({
         "system.health.value": next,
         ...watermarks(actor, next),
-        ...hiddenTally(actor, intents),
       });
     },
 
@@ -300,6 +273,26 @@ export function worldIO() {
       if (ids.length === 0) return;
       const { destroyPlatform } = await import("./platforms.mjs");
       for (const id of ids) await destroyPlatform({ platformId: id, reason: "ownerDefeat" });
+    },
+
+    /**
+     * Bank a Secret Poison tick against the Unit that inflicted it.
+     *
+     * Keyed by INFLICTER, because the reveal is hers: *"only revealed after
+     * Presence Concealment is deactivated"* -- every Secret Poison she
+     * inflicted, at once (#199 reading 14). Health is not touched here; the
+     * sum lands at the reveal (`engine/concealment.mjs#discloseSecretPoison`).
+     *
+     * @param {string} unitId the victim
+     * @param {string|null} inflicterId
+     * @param {number} amount signed: a Pois Heal tick banks as a negative
+     */
+    async bankSecret(unitId, inflicterId, amount) {
+      const actor = resolve(unitId);
+      if (!actor || !amount) return;
+      const key = inflicterId ?? "unknown";
+      const held = actor.system?.hiddenDamage?.[key] ?? 0;
+      await actor.update({ [`system.hiddenDamage.${key}`]: held + amount });
     },
 
     async defeatIfLethal(unitId) {
@@ -1159,7 +1152,12 @@ export function worldIO() {
       // Tooth Warriors stood on the board after she fell. Dismissed, not
       // defeated -- they are not killed, they stop being conjured.
       const goWithIt = game.actors.filter((a) => a.system?.summonerId === unitId && a.system?.leavesWithSummoner);
+      // A Secret Poison bank dies with its victim: *"a victim defeated first
+      // drops its bank"* (#199 reading 16). Key by key, because an ObjectField
+      // merges an empty object rather than replacing with it.
+      const banks = Object.keys(actor.system?.hiddenDamage ?? {});
       await actor.update({
+        ...Object.fromEntries(banks.map((key) => [`system.hiddenDamage.-=${key}`, null])),
         "system.defeated": true, "system.defeatCause": cause,
         // The first defeat's tick, kept by a second: the body's clock runs from
         // when it fell (#65, ruling 25).

@@ -56,12 +56,14 @@ notes: |
   shipped effects were inert twice over. Her poisoned daggers are three riders and would have
   been a fourth and fifth.
 
-  **Secret Poison follows Q47, not the literal sentence.** The Health comes off on schedule and
-  only the *cause* is deferred — the alternative reading, where the damage accumulates unseen,
-  means a Unit's displayed Health and its real Health diverge and a Servant can be walking
-  around already dead. What is hidden is the debuff itself (`visibility: gmOnly`) and the
-  running tally, and both are disclosed the moment her concealment ends.
+  **Secret Poison explodes at the reveal** (#199, reading 10, which replaces Q47). Each tick of
+  the aura's Poison is worked out at its real value and banked against her, and the victim's bar
+  does not move. When her concealment ends, by any of the six ways, every victim takes the bank
+  as one hit of Poison damage through the ordinary defeat chain, one card each. A cleanse stops
+  later ticks only. Pois Heal banks as a negative. A victim defeated first loses its bank.
 
-  Her Noble Phantasm is why the Magic-Resistance exemption matters: Base Attack (MAG) 100
-  against Base Attack (STR) 65, and *"not affected by Magic Resistance"*. Without the flag her
+  Her Noble Phantasm is why the Magic-Resistance exemption matters: Base Attack (MAG) 150
+  against Base Attack (STR) 75 by the tables (the sheet prints 100 and 65, #199 reading 1), and
+  *"not affected by Magic Resistance"*. Without the flag her
   only damaging Noble Phantasm is negated outright by any Magic Resistance of Rank C or better.
+  The exemption covers the whole NP, its debuffs and Instakill included (#199 reading 11).

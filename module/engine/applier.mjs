@@ -544,13 +544,17 @@ async function writeGroup(group, io) {
   const { t, unitId, intents } = group;
   switch (t) {
     case "damage":
-      await io.adjustHealth(unitId, -sum(intents, "amount"), { intents });
+      await io.adjustHealth(unitId, -sum(intents, "amount"));
       // Damage no attack dealt -- no breakdown -- has nobody else to resolve
       // its defeat; the attack path resolves its own (§46.4-CE).
       if (intents.some((i) => i.breakdown == null && !i.reflected)) await io.defeatIfLethal(unitId);
       break;
     case "heal":
-      await io.adjustHealth(unitId, sum(intents, "amount"), { intents });
+      await io.adjustHealth(unitId, sum(intents, "amount"));
+      break;
+    // Secret Poison's tick: banked, and the Health left alone (#199 reading 13).
+    case "bankSecret":
+      for (const i of intents) await io.bankSecret(unitId, i.inflicterId, i.amount);
       break;
     case "statDelta":
       for (const i of intents) await io.adjustStat(unitId, i.stat, i.delta, i.clamp, i.alsoCurrent);

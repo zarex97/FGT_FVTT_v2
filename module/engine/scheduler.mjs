@@ -1948,6 +1948,16 @@ export function tickPeriodics(units, when, ctx) {
 
       const amount = periodicDamageFor(e, u, ctx.effectDef);
       const converted = (u.effects ?? []).includes(spec.healConversion);
+      // Secret Poison: the tick is worked out now, at its real value -- the
+      // stage, Deadly Poison's doubling, the modifiers in force -- and BANKED
+      // against its inflicter instead of taken. The bar does not move until
+      // her concealment ends (#199 readings 10, 13). This replaces Q47's
+      // reading, which took the Health on schedule and hid only the cause.
+      // A tick Pois Heal turns into healing banks as a negative (reading 16).
+      if (e.attributionHidden) {
+        out.push(I.bankSecret(u.id, e.sourceUnitId ?? null, e.defId, converted ? -amount : amount));
+        continue;
+      }
       out.push(
         converted
           ? I.heal(u.id, amount, e.defId)
@@ -1955,10 +1965,6 @@ export function tickPeriodics(units, when, ctx) {
             periodic: true,
             defId: e.defId,
             bypassModifiers: true,
-            // Secret Poison: the Health comes off now, and the log says so
-            // without saying whose it was (Q47). The applier keeps the running
-            // total so the disclosure can name a number.
-            attributionHidden: Boolean(e.attributionHidden),
           }),
       );
     }

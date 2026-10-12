@@ -35,6 +35,9 @@ export const INTENT_TYPES = Object.freeze([
   "suspendSkill", "setStage", "event",
   // A defeated Unit's body leaving the board (#65, ruling 25).
   "clearBody",
+  // Secret Poison's tick, banked against its inflicter instead of taken
+  // (#199 reading 10).
+  "bankSecret",
 ]);
 
 /**
@@ -80,6 +83,8 @@ const ORDER = Object.freeze({
   // same batch that applies what got through it.
   shieldDelta: 2,
   recordAttack: 2,
+  // Bookkeeping: the bank moves no Health, so nothing has to wait on it.
+  bankSecret: 2,
   // Bookkeeping, and BEFORE anything that reads the mode back: Mad
   // Enhancement's forced deactivation has to land before the next pass
   // collects its active rules.
@@ -134,6 +139,24 @@ const ORDER = Object.freeze({
 
 export const damage = (unitId, amount, breakdown = null, meta = {}) =>
   ({ t: "damage", unitId, amount, breakdown, ...meta });
+
+/**
+ * Bank a Secret Poison tick against its inflicter, without touching Health.
+ *
+ * Serenity's sheet: *"the debuff and total Poison Damage taken is only
+ * revealed after Presence Concealment is deactivated"*. Ruled on #199 (reading
+ * 10, 13): the victim's bar does not move. Each tick is worked out at its real
+ * value and kept here until her concealment ends, when the whole sum lands as
+ * one hit of Poison damage. Signed: a tick Pois Heal turns into healing banks
+ * as a negative and nets out (reading 16).
+ *
+ * @param {string} unitId the victim
+ * @param {string|null} inflicterId whose concealment the bank waits on
+ * @param {string} defId the ticking effect
+ * @param {number} amount positive for damage, negative for converted healing
+ */
+export const bankSecret = (unitId, inflicterId, defId, amount) =>
+  ({ t: "bankSecret", unitId, inflicterId, defId, amount });
 
 /**
  * Restore Health.

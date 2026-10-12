@@ -75,10 +75,16 @@ export const PHASE_DESCRIPTORS = describeTable([
         // Anastasia's Ice Block Launcher is the only clause of the shape:
         // *"a 5% chance ... for each panel between Anastasia and the DU."*
         { key: "chancePerPanel", type: "number" },
+        // A resistance this one effect ignores: Kiritsugu's Mark, past Debuff
+        // Res Up.
+        { key: "ignoresResistanceFrom", type: "text" },
       ],
     },
     { key: "rules", type: "raw" },
     { key: "targeting", type: "raw" },
+    // A resistance every effect of the phase ignores, by its source's slug.
+    // Zabaniya: *"not affected by Magic Resistance"* (#199 reading 11).
+    { key: "ignoresResistanceFrom", type: "text" },
   ]),
   entry("damage", 90, "Deals damage to whoever this ability caught.", []),
   entry("cooldown", 80, "Changes a cooldown clock — its own, or somebody else's.", [
