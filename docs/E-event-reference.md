@@ -376,6 +376,12 @@ where the other unit exists. Scáthach's *Alpi* needs the second — *"if the DU
 when the contribution is collected. It is authored as **two handlers with opposite target
 predicates** rather than one with a conditional magnitude, which keeps each payout a flat fact.
 
+The set a `targetPredicate` is tested against is the caller's options plus the owner's own facts,
+**without any `attack:` option** (`scheduler.mjs#fireEvent`). A bare `rollOptionsFor` emits
+`attack:kind:normal` for an attack it was never given, so every *"Normal Attacks only"* rider read
+true on a Noble Phantasm too: Zabaniya took Projectile's Poison and Deadly Poison and Macabre's
+stage on the live board (#199, Ch. 46 §46.4-KS).
+
 `consumesUse` spends one charge of a count-limited effect each time the handler pays out — *Alpi*
 is *"for 1◈ Turns, **3 times**"*, and both limits apply: whichever ends first.
 

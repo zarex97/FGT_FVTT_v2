@@ -77,13 +77,14 @@ export function factionOfUser(userId = game.user.id) {
  *
  * @param {object} actor an `FGTActor`
  * @param {object} [token] the placed token, when the caller already has one
+ * @param {{round?: number|null}} [at] the Round to read Round records at; the live one when absent
  * @returns {object} a `UnitSnapshot`
  */
-export function unitSnapshot(actor, token = null) {
+export function unitSnapshot(actor, token = null, { round = undefined } = {}) {
   if (!actor) return null;
   const doc = token ?? activeToken(actor);
   return snapshotUnit(actor, {
-    token: doc, panel: panelOf(doc), tick: currentTick(), round: currentRound(),
+    token: doc, panel: panelOf(doc), tick: currentTick(), round: round === undefined ? currentRound() : round,
     ownerUserId: ownerUserOf(actor),
     // The war's Region, so a sheet opened with no board built still shows the
     // Ranks the rules are actually using. `snapshotBoard` runs the same applier
@@ -421,7 +422,14 @@ export function currentBoard(overrides = {}) {
     // `snapshotUnit` cannot.
     actors: (canvas?.tokens?.placeables ?? [])
       .filter((t) => t.actor)
-      .map((t) => ({ actor: t.actor, token: t.document, snapshot: unitSnapshot(t.actor, t.document) })),
+      // The Round the caller names, when it names one. A Round's END runs
+      // after `combat.round` has moved on, so a unit read at the live Round
+      // found its own Round's record stale: `combatInBaseThisRound` read false
+      // and Home Base healed a Master Serenity had just cut down in it (#199).
+      .map((t) => ({
+        actor: t.actor, token: t.document,
+        snapshot: unitSnapshot(t.actor, t.document, "round" in overrides ? { round: overrides.round } : {}),
+      })),
     settings: {
       boardSize: setting("boardSize", 13),
       turnsPerRound: setting("turnsPerRound", 3),

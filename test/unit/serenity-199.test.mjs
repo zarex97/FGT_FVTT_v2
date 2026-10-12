@@ -11,6 +11,10 @@
  * - reading 11: "not affected by Magic Resistance" covers the whole NP, its
  *   debuffs and Instakill included.
  *
+ * And what the press found: the aura asked whether the VICTIM was concealed,
+ * her "Normal Attacks only" riders fired on Zabaniya, and the Heel was offered
+ * on the GM's screen, and Home Base healed a Master who had fought in it.
+ *
  * And what the build found: the rider loop never read `ignoresResistanceFrom`,
  * so Kiritsugu's Mark has met Debuff Res Up since it was authored.
  */
@@ -18,11 +22,11 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
-import { tickPeriodics } from "../../module/engine/scheduler.mjs";
+import { tickPeriodics, endTurn, fireEvent } from "../../module/engine/scheduler.mjs";
 import { applyEffect } from "../../module/engine/effect-applier.mjs";
 import { INTENT_TYPES, order } from "../../module/engine/intents.mjs";
 import { effectDef } from "../helpers/effect-defs.mjs";
-import { prepareSubjects, subject } from "../helpers/subject.mjs";
+import { prepareSubjects, subject, withSubjects } from "../helpers/subject.mjs";
 
 const yml = (dir, id) => parse(readFileSync(`packs/_source/${dir}/${id}.yml`, "utf8"));
 const ZABANIYA = yml("abilities", "serenity-zabaniya");
@@ -105,5 +109,66 @@ describe("Zabaniya is not affected by Magic Resistance (reading 11)", () => {
     const source = readFileSync("module/engine/attack.mjs", "utf8");
     expect(source).toMatch(/\.\.\.\(phase\.ignoresResistanceFrom \?\? \[\]\)/);
     expect(source).toMatch(/\.\.\.\(spec\.ignoresResistanceFrom \?\? rule\.ignoresResistanceFrom \?\? \[\]\)/);
+  });
+});
+
+describe("the aura's Secret Poison reads HER concealment (press)", () => {
+  /** Serenity, concealed or not, with Drake one panel off; her Turn ends. */
+  const aura = (concealed) => withSubjects([
+    { from: "serenity", id: SERENITY, panel: { i: 5, j: 5 }, state: { factionId: "faction-1" },
+      effects: concealed ? [{ defId: "presenceConcealment", unremovable: true }] : [] },
+    { from: "drake", panel: { i: 5, j: 6 }, state: { factionId: "faction-2" } },
+  ], ({ board }) => endTurn(board, { tick: 5, turnsPerRound: 3, activeFactionId: "faction-1", options: new Set(), effectDef })
+    .filter((i) => i.t === "applyEffect" && i.unitId !== SERENITY && (i.effect?.defId ?? i.effect?.id) === "poison"));
+
+  it("hides the Poison while she is concealed", async () => {
+    const [poison] = await aura(true);
+    expect(poison.effect).toMatchObject({ attributionHidden: true, visibility: "gmOnly", sourceUnitId: SERENITY });
+  });
+
+  it("poisons openly when she is not", async () => {
+    const [poison] = await aura(false);
+    expect(poison.effect.attributionHidden).toBeUndefined();
+  });
+});
+
+describe("Normal-Attack riders stay off her Noble Phantasm (press)", () => {
+  /** What her own `damageDealt` handlers do for one attack's options. */
+  const riders = async (options) => {
+    const her = await subject({ from: "serenity", id: SERENITY, effects: [{ defId: "macabre" }] });
+    return fireEvent("damageDealt", [her], {
+      tick: 5, turnsPerRound: 3, options: new Set(options), victim: { unitId: "victim0000000001" }, rolls: {},
+    }).filter((i) => i.t === "applyEffect").map((i) => i.effect?.defId ?? i.effect?.id);
+  };
+
+  it("fires none of them on a Noble Phantasm that crits", async () => {
+    expect(await riders(["attack:kind:np", "attack:crit"])).toEqual([]);
+  });
+
+  it("fires Projectile's Poison and Macabre's stage on a Normal Attack crit", async () => {
+    expect(await riders(["attack:kind:normal", "attack:crit"])).toEqual(expect.arrayContaining(["poison"]));
+    expect((await riders(["attack:kind:normal", "attack:crit"])).filter((id) => id === "poison")).toHaveLength(2);
+  });
+});
+
+describe("the weak-point offer goes to the attacker's owner (press)", () => {
+  it("routes through chooseFor, not a local dialog", () => {
+    const source = readFileSync("module/engine/weak-point.mjs", "utf8");
+    expect(source).toMatch(/chooseFor\(attackerDoc,/);
+    expect(source).not.toMatch(/ChoiceDialog\.pick\(/);
+  });
+});
+
+describe("a Round's end reads that Round's records (press)", () => {
+  it("projects the board's units at the Round the caller names", () => {
+    const source = readFileSync("module/engine/board.mjs", "utf8");
+    expect(source).toMatch(/unitSnapshot\(t\.actor, t\.document, "round" in overrides \? \{ round: overrides\.round \} : \{\}\)/);
+  });
+
+  it("keeps a Master who fought in its base from E1's heal", async () => {
+    const { endOfRoundHomeBase } = await import("../../module/rules/environment.mjs");
+    const master = { id: "m", panel: { i: 0, j: 0 }, homeBase: { consecutiveRounds: 9, combatInBaseThisRound: true } };
+    const board = { zones: [], units: [master] };
+    expect(endOfRoundHomeBase([master], board).filter((o) => o.kind === "heal")).toEqual([]);
   });
 });

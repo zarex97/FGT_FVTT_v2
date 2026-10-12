@@ -4083,6 +4083,38 @@ her Acting coincide. `scheduler.mjs#endTurn` shares one `firedThisBoundary`. App
 
 **Reached: TC.taken, IA.contract.** Territory Creation's 3d10+30 is on no Rolls list, and a Contract Servant attempt
 reaches only the attempter's notification. Ch. 37.
+Reached again on Serenity (#199): Medea's four contract dice, `[1, 5, 5, 6]`, reached no card.
+
+### KR. The aura asked whether the victim was concealed — **fixed** (#199)
+
+**Reached: ZA.secret.** Zabaniya P2's Poison landed `public` on five Units while she was concealed:
+`concealedNow(u)` read the recipient a `nearby` action hands in as `u`, not the bearer. Ch. 30.
+
+### KS. Normal-Attack riders fired on a Noble Phantasm — **fixed** (#199)
+
+**Reached: ZA.poison.** Zabaniya's Stage 3 landed as stage 5: `fireEvent` tested `targetPredicate` against a bare
+`rollOptionsFor`, which emits `attack:kind:normal` for any attack, so Projectile's two riders and Macabre fired too.
+The owner's options now carry no `attack:` option. App. E.
+
+### KT. The Heel was offered on the GM's screen — **fixed** (#199)
+
+**Reached: PC.3.masters.** Her Attack on a guarded Master was redirected onto Achilles, and "Aim for Achilles's weak
+point?" opened on the GM's page. `offerWeakPoint` asks the attacker's owner through `chooseFor`. Ch. 45.
+
+### KU. A Round's end read the next Round's records — **fixed** (#199)
+
+**Reached: PC.4.master.** Heracles's Master, cut down in its Home Base, was healed 100 by E1 at the Round's end:
+`currentBoard` projected units at the live Round, already the next one, so `combatInBaseThisRound` read stale. Units
+are now projected at the Round the caller names. Ch. 29.
+
+### KV. The rider loop never read `ignoresResistanceFrom` — **fixed** (#199)
+
+**Reached: ZA.mr.all.** Found building reading 11: only the check path passed the key, so Kiritsugu's Mark has met
+Debuff Res Up since it was authored. Ch. 15.
+
+### KW. A kept Shapeshift break left no trace — **fixed** (#199)
+
+**Reached: SH.break.** Five kept rolls posted nothing. A kept roll is whispered to the GM and her owners. Ch. 30.
 
 ---
 
@@ -5321,3 +5353,36 @@ Territory Creation at EX for the tie; Kiritsugu given Suppression; her Master mo
 forced deactivation, healed to 100 and Mad Enhancement switched on directly for clause 5. Her walks past the first
 panels were driven by `TokenDocument#move` from Player1's client: the extension's drags moved her part of the way.
 
+## 46.27 Hassan of Serenity — the Servant whose poison waits
+
+**All 73 of her Clauses were Pressed or Observed on a live board** (#199, 2026-10-12), on the PC copy of `fgt2026`,
+scene *Serenity Audit*, after 16 readings were ruled the same day. Readings 10 and 11 changed built content
+(50a76fe). The board found five defects that reach other Servants (§46.4-KR to KU, KW), and the build one more (KV).
+
+**Why she finds what she finds.** Her sheet is about information: who can see her, who may answer her, and a debt
+that comes due later. Every hidden path she opens is a path that runs on somebody else's client or at somebody else's
+moment: an aura applied for her by the scheduler, a reveal driven from a document hook, a Round's end read after the
+Round has moved on.
+
+### 46.27.1 What she cost the engine
+
+| Finding | Where |
+|---|---|
+| Secret Poison banks its ticks and explodes at the reveal (reading 10) | `I.bankSecret`, `io.bankSecret`, `concealment.mjs#discloseSecretPoison` |
+| Zabaniya's riders ignore Magic Resistance (reading 11) | `ignoresResistanceFrom: [magicResistance]` on the rider phase |
+| General: §46.4-KR to KW | |
+
+**Readings, as built.** The bank is keyed by inflicter and signed. It lands as one hit of Poison damage with no
+breakdown, so the applier's `defeatIfLethal` runs and revivals answer: Heracles fell to 200 banked and Battle
+Continuation stood him up; at 2560 he fell for good. Her own Master stood in her aura and died to her reveal, which
+reading 9 allows. A victim defeated first leaves a card saying its Poison is gone. The bank row on the sheet is the
+GM's alone.
+
+### 46.27.2 What was staged
+
+Named in each evidence line: Presence Concealment, Shapeshift, Danse Macabre and Zabaniya cooldowns reset to press
+again; Presence Concealment's expiry moved to 12 to hold the second bank, and the instance laid directly twice for the
+AoE coin; Medea's attack budget and attacked flag cleared for each cast; Serenity's Health restored before each cast;
+units displaced into place, Drake out of the aura and back; Pois Heal laid on Achilles; Drake and Medea cleansed and
+Asterios defeated by engine damage; Nine Lives set to 4; two Poison probes on Heracles; Heracles's Master's Round flag
+written once to check §46.4-KU. Her walks were driven by `TokenDocument#move` from Player1's client.

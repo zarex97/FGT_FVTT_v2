@@ -91,10 +91,14 @@ export async function offerWeakPoint(state, { board = null } = {}) {
     });
   }
 
-  const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
-  // `min: 0` because declining is the common answer and a real one -- the
-  // attacker who does not aim low simply attacks.
-  const picked = await ChoiceDialog.pick({
+  // The ATTACKER's owner is asked, wherever this resolves. `ChoiceDialog.pick`
+  // opened on the client running the Process, so a player's Serenity, her
+  // Attack redirected onto Achilles by his Master's guard, had the Heel
+  // offered on the GM's screen (#199). `min: 0` because declining is the
+  // common answer and a real one -- the attacker who does not aim low simply
+  // attacks.
+  const { chooseFor } = await import("./ask.mjs");
+  const picked = await chooseFor(attackerDoc, {
     title: game.i18n.format("FGT.WeakPoint.Title", { name: defenderDoc.name }),
     hint: game.i18n.localize("FGT.WeakPoint.Optional"),
     count: 1,

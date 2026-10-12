@@ -246,7 +246,18 @@ async function rollConcealmentBreak(actor, ability, self) {
   if (chance <= 0 || !isConcealed(self)) return;
 
   const roll = await new Roll("1d100").evaluate();
-  if (roll.total > chance) return;
+  // A kept roll is said too, to the GM and her owners only: a die that left no
+  // trace could not be told from one never rolled (#199), and the enemy must
+  // not learn she is still concealed.
+  if (roll.total > chance) {
+    await ChatMessage.create({
+      content: `<p><strong>${ability.name}</strong>: rolled ${roll.total} vs ${chance}%.`
+        + ` Presence Concealment holds.</p>`,
+      speaker: publicSpeakerFor(actor),
+      whisper: game.users.filter((u) => u.isGM || actor.testUserPermission(u, "OWNER")).map((u) => u.id),
+    });
+    return;
+  }
 
   const { deactivateConcealment } = await import("./concealment.mjs");
   const { DEACTIVATION_REASONS } = await import("../rules/concealment.mjs");
