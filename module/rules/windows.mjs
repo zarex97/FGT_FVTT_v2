@@ -72,6 +72,14 @@ export const ABILITY_WINDOWS = Object.freeze({
     dispatched: true,
     hint: "When a Noble Phantasm is DECLARED against this Unit, before any Combat Process exists.",
   }),
+  // Declared by the engine on its bearer's behalf, never offered to a player:
+  // Mannanán's Fragarach Counter (`engine/attack.mjs#flushAutoCounters`). It
+  // sat on her bar as a button, though its own file says it is not one (#197).
+  automatic: Object.freeze({
+    id: "automatic",
+    dispatched: true,
+    hint: "Never chosen: the engine declares it when its trigger fires.",
+  }),
 });
 
 /** @type {readonly string[]} */
@@ -88,6 +96,9 @@ export const ALLY_WINDOW = ABILITY_WINDOWS.whenAllyAttacked.id;
  * Mannanán's Fragarach, which stops the Process from happening at all.
  */
 export const NP_DECLARATION_WINDOW = ABILITY_WINDOWS.whenTargetedByNP.id;
+
+/** Declared by the engine on its bearer's behalf; never a button. */
+export const AUTOMATIC_WINDOW = ABILITY_WINDOWS.automatic.id;
 
 /** The start of a Damage Step, on this Unit's own attack. */
 export const DAMAGE_STEP_WINDOW = ABILITY_WINDOWS.damageStep.id;

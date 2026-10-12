@@ -10,8 +10,10 @@
  * landing as something other than what was asked for.
  */
 
-import { describe, it, expect } from "vitest";
-import { withWorld, KNOWN_DROPS } from "../helpers/world.mjs";
+import { describe, it, expect, beforeAll } from "vitest";
+import { withWorld, KNOWN_DROPS, prepareWorld } from "../helpers/world.mjs";
+
+beforeAll(prepareWorld, 60_000);
 
 const servant = (system = {}, items = []) => ({
   id: "probe",

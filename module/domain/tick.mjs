@@ -112,7 +112,8 @@ export function parseTick(input) {
   if (s === "permanent" || s === "infinite") return { kind: "permanent" };
   if (s === "this turn" || s === "thisturn") return { kind: "thisTurn" };
 
-  const until = /^until\s+(.+)$/.exec(s);
+  // The event keeps its case: it is an event name, matched exactly when it fires.
+  const until = /^until\s+(.+)$/i.exec(raw);
   if (until) return { kind: "untilEvent", event: until[1].trim() };
 
   const uses = /^(\d+)\s*times?$/.exec(s);

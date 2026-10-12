@@ -507,6 +507,19 @@ export const NESTED_ROUTES = [
       { file: "module/engine/movement-hooks.mjs", why: "dropLeftFieldEffects reads sourceFieldId", as: "sourceFieldId" },
     ],
   },
+  // `until <event>`: parsed, and then nothing ever removed the instance -- the
+  // duration had no reader past the parser (#197).
+  {
+    key: "endsOn",
+    authored: [],
+    hops: [
+      { file: "module/engine/effect-applier.mjs", why: "the flow stamps it on the instance" },
+      { file: "module/engine/io.mjs", why: "createEffects writes it" },
+      { model: "ActiveEffect/fgtEffect", why: "EffectData declares it" },
+      { file: "module/rules/snapshot.mjs", why: "the instance projects it" },
+      { file: "module/engine/scheduler.mjs", why: "fireEvent removes the instance on its event" },
+    ],
+  },
   {
     key: "sourceTerrain",
     authored: [],

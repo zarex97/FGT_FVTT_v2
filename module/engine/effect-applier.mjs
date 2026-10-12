@@ -285,13 +285,19 @@ export function applyEffect({
   // HAS a default: Burn lasts 2◈ unless something says it does not, and an
   // emitted `null` means only that nobody stated a duration (#147).
   const authored = permanent ? null : (duration ?? def.defaultDuration ?? null);
-  const base = authored === null ? INFINITE : resolveTicks(parseTick(authored), ctx);
+  const parsed = authored === null ? null : parseTick(authored);
+  const base = authored === null ? INFINITE : resolveTicks(parsed, ctx);
+  // `until <event>` has no clock: the instance is removed when that event
+  // fires on its bearer (`engine/scheduler.mjs#fireEvent`).
+  const endsOn = parsed?.kind === "untilEvent" ? parsed.event : null;
   // Mannanán's *Tradition Carrier*: *"the duration of buffs are extended by ⅓◈
   // extra Turns when applied to Mannanán."* Applied HERE, to the resolved tick
   // count, before the expiry is stamped -- durations are stored as absolute
   // ticks (Ch. 04), so an extension anywhere later would be arithmetic on
   // a clock that has already started. An effect with no clock is not given one.
-  const ticks = base === INFINITE ? base : base + durationBonus(def, target, ctx);
+  // Only a ◈ length is extended (#197 reading 5): "this Turn" and an `until
+  // <event>` duration have none to add to.
+  const ticks = base === INFINITE || parsed?.kind !== "rounds" ? base : base + durationBonus(def, target, ctx);
   // `extend` (#23) adds to the instance already running rather than restamping
   // from now -- "does not stack, but duration is extended if reapplied" means
   // the clock the bearer already has, plus this one, not a fresh one.
@@ -327,6 +333,7 @@ export function applyEffect({
     // does not expire and cannot be removed"* while inside. `annotateTerrain`
     // sweeps on it exactly as `annotateFields` does on the field (#147).
     sourceTerrain: source?.terrain ?? null,
+    endsOn,
     polarity: def.polarity,
     volatility: def.volatility,
     // The intent's own flag ORs the definition's: Burn is removable in general

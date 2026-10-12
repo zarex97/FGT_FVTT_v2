@@ -16,9 +16,9 @@ import {
 } from "../../module/rules/windows.mjs";
 
 describe("the vocabulary", () => {
-  it("holds exactly the six windows an ability may name", () => {
+  it("holds exactly the seven windows an ability may name", () => {
     expect([...ABILITY_WINDOW_IDS].sort()).toEqual([
-      "combatPhaseStart", "damageStep", "ownTurn",
+      "automatic", "combatPhaseStart", "damageStep", "ownTurn",
       "whenAllyAttacked", "whenAttacked", "whenTargetedByNP",
     ]);
   });

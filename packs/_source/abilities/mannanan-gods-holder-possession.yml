@@ -9,7 +9,7 @@
 # A MODE with an entry price, and the first in the corpus: Mad Enhancement,
 # Presence Concealment and Riding's Active are all free switches, so the toggle
 # was a bare write with no gates and no phases. It is also a FIFTH kind of
-# revival (Ch. 45 lists four) -- optional, gated on a resource, and transforming
+# revival (Ch. 45 lists four) -- automatic, gated on a resource, and transforming
 # its bearer rather than only restoring Health.
 schema: 1
 id: mannanan-gods-holder-possession
@@ -22,6 +22,8 @@ isMode: true
 # without anybody being able to game it.
 cannotDeactivate: true
 maxUses: 1
+# Pressed during her own Turn, below 30% (#197 reading 15).
+timing: { window: ownTurn }
 requirements:
   # The two gates on the ACTIVE press. "Health is less than 30% of its maximum
   # value OR when she is defeated" -- a defeated Servant is at 0, which is below
@@ -73,18 +75,15 @@ phases:
 passiveRules:
   # ─── The entry, taken instead of dying ───────────────────────────────
   #
-  # A `RevivalSource`, and the first that is `optional`: it costs every token
-  # she holds and transforms her permanently, so a Mannanán with one token and
-  # a Noble Phantasm coming off cooldown may rationally prefer the defeat.
-  # `resolveDefeat` stays pure -- the orchestrator asks and drops the source if
-  # the answer is no.
+  # A `RevivalSource`, and NOT optional: *"when she is defeated ... she enters
+  # Holder Mode"*. At her defeat it is not offered; she revives through it
+  # whenever she holds a token (#197 reading 15).
   #
   # Priority 250: above generic Guts (200) and below Special Guts (300), which
   # is where Ch. 45 places it.
   - key: RevivalSource
     id: holderMode
     revivalPriority: 250
-    optional: true
     charges: 1
     consumesOnUse: false
     percentOfMax: 50
@@ -96,6 +95,10 @@ passiveRules:
     # her at exactly half.
     requires:
       - { kind: resourceAtLeast, key: fragarachTokens, amount: 1 }
+      # Once. Holder Mode is entered one time and never left, so a defeat in
+      # Holder Mode is a defeat: the source revived her a second time, re-ran
+      # its entry and raised her token ceiling to 9 (#197).
+      - { kind: modeInactive, mode: godsHolderPossession }
     enterMode: godsHolderPossession
     then:
       - { key: ResourceDelta, resource: fragarachTokens, set: 0 }

@@ -30,9 +30,11 @@ export const AWAIT_SITUATIONS = Object.freeze([
  *                   cannot be wrong, and therefore the fallback.
  */
 const POLICIES = Object.freeze({
-  // "none" -- take the hit. It never spends a resource the player might have
-  // wanted, which is the whole rule.
-  reaction: { defaultChoice: "none", onExpiry: "default", timeoutMs: 60_000, spends: false },
+  // "nothing" -- take the hit. It never spends a resource the player might have
+  // wanted, which is the whole rule. The ladder's own event name: "none" was
+  // refused as an illegal transition, so an absent defender's prompt threw
+  // instead of taking the hit (#197).
+  reaction: { defaultChoice: "nothing", onExpiry: "default", timeoutMs: 60_000, spends: false },
   luckCheck: { defaultChoice: "declined", onExpiry: "default", timeoutMs: 45_000, spends: false },
   commandSpell: { defaultChoice: "declined", onExpiry: "default", timeoutMs: 45_000, spends: false },
   counter: { defaultChoice: "declined", onExpiry: "default", timeoutMs: 45_000, spends: false },

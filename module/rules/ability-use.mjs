@@ -23,6 +23,7 @@
 
 import { test as testPredicate } from "./predicate.mjs";
 import { platformsSummonedBy } from "./platforms.mjs";
+import { AUTOMATIC_WINDOW } from "./windows.mjs";
 
 /**
  * @typedef {object} AbilityUse
@@ -256,6 +257,11 @@ function classifyUse(item) {
       kind: "dialog", isAttack: false, clickable: true, toggles: false,
       action: "openDialog", dialog: sys.opensDialog,
     };
+  }
+
+  // Declared by the engine, never by a player (#197): no button anywhere.
+  if (sys.timing?.window === AUTOMATIC_WINDOW) {
+    return { kind: AUTOMATIC_WINDOW, isAttack: false, clickable: false, toggles: false, action: "" };
   }
 
   // A mode is authored as one, and says so. It is neither an attack nor a

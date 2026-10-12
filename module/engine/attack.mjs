@@ -1530,11 +1530,26 @@ export async function flushAutoCounters(groupId = null) {
   if (pendingCount() === 0) return [];
   if (!game.user?.isGM) return [];
 
+  // Pairs the Phase still owes a Process: Toole's three hits, Dohatsu
+  // Tenshou's five instances. Their provocations wait for the last one.
+  const open = new Set();
+  if (groupId) {
+    for (const m of game.messages) {
+      const raw = m.getFlag("fgt", "process");
+      if (!raw) continue;
+      try {
+        const s = process.deserialize(raw);
+        if (s.groupId === groupId && !process.isComplete(s)) open.add(`${s.defenderId}:${s.attackerId}`);
+      } catch { /* not a Process */ }
+    }
+  }
+  const holds = (p) => open.has(`${p.bearerId}:${p.provokerId}`);
+
   return whileDraining(async () => {
     /** @type {Array<{messageId: string}>} */
     const opened = [];
 
-    for (const p of takePending()) {
+    for (const p of takePending(holds)) {
       const bearer = game.actors.get(p.bearerId);
       const provoker = game.actors.get(p.provokerId);
       const ability = bearer?.items?.get?.(p.abilityId)
@@ -1575,6 +1590,9 @@ export async function flushAutoCounters(groupId = null) {
         // where the debuff that provoked this opened no Phase at all.
         groupId,
       });
+      // A Counter is an Act (#107), the automatic one too: Holder Mode's
+      // token *"at the end of every Turn she Acts"* never heard of it (#197).
+      await applyBatch([I.markTurn(bearer.id, { acted: true })], "autoCounter:declared");
       await ChatMessage.create({
         content: `<p><strong>${p.source}</strong> — ${bearer.name} counters `
           + `${provoker.name} (${p.cause}).</p>`,
@@ -5736,7 +5754,10 @@ function withGrantedElement(attacker, facts) {
  * @returns {object}
  */
 export function attackFacts(attacker, defender, state, board = null) {
-  const range = attackDistance(attacker, defender);
+  // A Riding Attack strikes each Unit as it passes, so every hit of a ride is
+  // at Range 1 (#197 Q3). Measured from where the ride ended, Holder Mode gave
+  // a Unit struck two panels in her Range-3 band.
+  const range = state.attack?.ride ? 1 : attackDistance(attacker, defender);
   const kind = state.attack?.kind ?? "normal";
   // HOW THE DEFENDER REACTED, so a predicate can ask. `state.reaction` is set
   // as the ladder resolves; before it does, it is null and nothing is emitted
@@ -6919,6 +6940,8 @@ async function resolveNPCancellation({
     board,
     resume: false,
   });
+  // Using a Noble Phantasm is Acting, on any Turn (#197).
+  await applyBatch([I.markTurn(cancellerDoc.id, { acted: true })], "npCancelled:acted");
   // ...and everything the ability does to its USER. `payAbilityPrice` charges
   // the cooldown and the use record; the five Fragarach Tokens are a `resource`
   // phase, and the only other path that runs those is `declareProcesses` --
@@ -6964,21 +6987,25 @@ async function resolveNPCancellation({
         },
       });
       intents.push(...applied.intents);
-      outcome = game.i18n.format("FGT.CancelNP.Instakill", { name: attacker.name, effect: def.name });
+      // The roll and its outcome, both: a resisted Instakill read "inflicted"
+      // whatever the die said (#197).
+      const chance = applied.trace?.find((t) => t.step === "chance");
+      const landed = applied.outcome === "applied";
+      outcome = game.i18n.format(landed ? "FGT.CancelNP.Instakill" : "FGT.CancelNP.InstakillResisted", {
+        name: attacker.name, effect: def.name, detail: chance?.detail ?? `rolled ${roll.total}`,
+      });
     }
   } else if (spec.otherwise?.reflect) {
     // "The equivalent amount of damage that NP would have dealt is dealt to the
     // NP's user instead (only affects the user if it was an AoE NP)."
     //
-    // Against the CANCELLER for a single-target Noble Phantasm — "the damage
-    // that NP would have dealt" is the damage it would have dealt to her — and
-    // against the USER for an AoE one, which is the distinction the
-    // parenthesis is drawing: an area Noble Phantasm has several would-be
-    // victims and only its user is reflected onto.
-    const aoe = Boolean(ability.system?.targeting?.isDamagingAoE || ability.system?.damage?.isAoE);
+    // Against the USER's own defences, single-target or area: the call with
+    // the defender swapped (#197 reading 13). The parenthesis limits who takes
+    // it -- the user alone, never the allies an area would have caught -- and
+    // a single-target Noble Phantasm is reflected too.
     const amount = counterfactualDamage({
       attackerDoc: attacker, ability, board, options,
-      defenderUnit: aoe ? attackerUnit : canceller,
+      defenderUnit: attackerUnit,
     });
     if (amount > 0) intents.push(I.damage(attackerId, amount, cancellerDoc.id, { reflected: true }));
     outcome = game.i18n.format("FGT.CancelNP.Reflected", { name: attacker.name, amount });

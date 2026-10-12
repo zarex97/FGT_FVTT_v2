@@ -15,10 +15,12 @@
  * the first was refused.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
-import { withWorld } from "../helpers/world.mjs";
+import { withWorld, prepareWorld } from "../helpers/world.mjs";
+
+beforeAll(prepareWorld, 60_000);
 
 const BC = parse(readFileSync("packs/_source/class-skills/battle-continuation.yml", "utf8"));
 
