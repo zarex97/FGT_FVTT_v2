@@ -30,9 +30,12 @@ targeting:
   # "In any non-diagonal direction NEXT TO herself" -- the four cardinal
   # placements of a block adjacent to the caster, which is what
   # `selfEdgeAdjacent` offers and what Ch. 20's shape T8 names.
+  # Grown past 1x1, the block covers as much of her edge as it can: one
+  # placement a side at 1x1 and 3x3, two at 2x2 and 4x4 (#198 reading 3).
   anchor: { kind: selfEdgeAdjacent }
   shape: { kind: square, size: 3 }
-  selection: { relations: [enemy], chooser: all }
+  # Every Unit in the 3x3, allies too (#198 reading 2).
+  selection: { relations: [enemy, ally, neutral], chooser: all }
   isDamagingAoE: true
 damage:
   # "Base Attack (STR) is used" -- which is also her Normal Attack's component,

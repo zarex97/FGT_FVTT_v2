@@ -482,6 +482,21 @@ async function pickUpItemHere(unitId, combat, stopped = null) {
 }
 
 /**
+ * Carry out a shove plan, in its order: a displacement each, not a Move.
+ *
+ * @param {Array<{unitId: string, landing: {panel: {i: number, j: number}}}>} plan
+ * @returns {Promise<void>}
+ */
+export async function displacePlan(plan) {
+  for (const { unitId, landing } of plan) {
+    const token = canvas.tokens?.placeables?.find((t) => t.actor?.id === unitId);
+    if (!token) continue;
+    const point = canvas.grid.getTopLeftPoint(landing.panel);
+    await displaceToken(token.document, { x: point.x, y: point.y });
+  }
+}
+
+/**
  * May this Unit walk into occupied panels?
  *
  * Two sources and one question: the summon's own field (Bašmu) and the grant a
@@ -515,7 +530,7 @@ function ignoresOccupancy(unit) {
  * @returns {Promise<void>}
  */
 async function knockBackOccupants(moverId, movement = null) {
-  const { knockbackPlan, travelShovePlan, stepsBetween } = await import("../rules/movement.mjs");
+  const { knockbackPlan, travelShovePlan, stepsBetween, clearFootprintPlan } = await import("../rules/movement.mjs");
   let board = boardSnapshot(game.combats.active);
 
   // On the MOVER's own level: it knocks aside whoever it walks into, and it
@@ -570,6 +585,22 @@ async function knockBackOccupants(moverId, movement = null) {
         });
       }
     }
+    return;
+  }
+
+  // Kingprotea's Huge Scale (#198 reading 7): away from her along her travel,
+  // the last step she took; a Unit in the way pushed on; one against the edge
+  // to the nearest free panel. No damage, and not a Move by anyone pushed.
+  if (push.direction === "arrival") {
+    const origin = movement?.origin ? canvas.grid.getOffset(movement.origin) : mover.panel;
+    const path = [origin, ...pathOf(movement)];
+    let dir = { i: 0, j: 0 };
+    for (let n = path.length - 1; n > 0 && dir.i === 0 && dir.j === 0; n -= 1) {
+      dir = { i: Math.sign(path[n].i - path[n - 1].i), j: Math.sign(path[n].j - path[n - 1].j) };
+    }
+    if (dir.i !== 0 && dir.j !== 0) dir = { i: dir.i, j: 0 };
+    if (dir.i === 0 && dir.j === 0) dir = { i: 1, j: 0 };
+    await displacePlan(clearFootprintPlan(mover, footprint, () => dir, board));
     return;
   }
 

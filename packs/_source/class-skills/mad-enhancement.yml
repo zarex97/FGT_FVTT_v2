@@ -94,11 +94,12 @@ activeRules:
     value: 1
     isBuff: false
   # Clause 4's third part. `ZonBonus` is read by `rules/zon.mjs`, which takes
-  # the HIGHEST of the non-stacking bonuses -- which is why this one does not
-  # declare `stacks`: Mad Enhancement's +2 and a high-rank Master's +1 are not
-  # additive (Ch. 06).
+  # the HIGHEST of the non-stacking bonuses. This one STACKS: it is a different
+  # effect from Independent Action's, so Kingprotea's Master gets +4 while Mad
+  # Enhancement is Active (#198 reading 14).
   - key: ZonBonus
     value: 2
+    stacks: true
   # Clause 6: the unfavourable Evade table, always.
   - key: TableOverride
     check: evade

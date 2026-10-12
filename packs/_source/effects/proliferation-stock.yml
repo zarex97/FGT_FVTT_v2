@@ -1,12 +1,13 @@
 # Kingprotea, char_orig_sheets/Copia de Kingprotea.md · docs/45-case-studies.md
 #
-# A MARKER, deliberately carrying no rules of its own.
+# What a stock is worth -- Max Health, size, Range, MOV -- lives HERE, on the
+# stock: a Skill Seal on Huge Scale does not switch it off, and only removing a
+# stock removes its effect (#198 reading 8). Huge Scale's Passives 2 and 3 are
+# that Skill's own clauses and stay on it.
 #
-# Everything a stock is worth -- Max Health, NP damage taken, buff-removal
-# resistance, size, Range, MOV -- lives on `Huge Scale` as a `perStack` element
-# (`rules/elements.mjs`). It has to: an effect's rules are collected once per
-# INSTANCE, so a `perStack` element authored here would be collected n times and
-# scaled by n each time, and ten stocks would pay a hundredfold.
+# `rulesOncePerBearer` is what lets a `perStack` element live on the thing it
+# counts. An effect's rules are otherwise collected once per INSTANCE, and ten
+# stocks would pay a hundredfold; collected once, they scale by the count.
 #
 # `magnitudeStacks` is what makes each application its own document, which is
 # the sheet's *"each Proliferation stock counts as a separate buff"* -- and what
@@ -30,4 +31,36 @@ stacking: magnitudeStacks
 # is not an error, it simply has nothing left to give.
 maxStacks: 10
 baseChance: 100
-rules: []
+rulesOncePerBearer: true
+rules:
+  # "Max and current Health is increased by 20% of Kingprotea's ORIGINAL Max
+  # Health." The maximum is this, derived from the stock count on every
+  # preparation; the CURRENT is paid once by the handler that grants the stock
+  # (`effects/endless-proliferation.yml`), because a derived `alsoCurrent` would
+  # refill her every frame. A lost stock drops the maximum, and the current only
+  # to fit under it (#198 reading 5).
+  #
+  # `@self.baseHealth` and not `health.max`: her maximum has already grown by
+  # the time the second stock lands.
+  - key: MaxDelta
+    stat: health
+    value: "0.2 * @self.baseHealth"
+    perStack: { effect: proliferationStock }
+
+  # "For every 3 Proliferation stocks, Kingprotea's size will grow by 1 panel."
+  # `SizeStep` turns it into deltas on `footprint.w`/`footprint.h`, which is
+  # what the token, the board's occupancy and the platform rules all speak.
+  - key: SizeStep
+    value: 1
+    perStack: { effect: proliferationStock, each: 3 }
+
+  # "Each time Kingprotea grows, her Range is increased by 1 panel and her MOV
+  # is decreased by 1." Per GROWTH, so they share the `each: 3`.
+  - key: RangeDelta
+    value: 1
+    isBuff: false
+    perStack: { effect: proliferationStock, each: 3 }
+  - key: MovDelta
+    value: -1
+    isBuff: false
+    perStack: { effect: proliferationStock, each: 3 }

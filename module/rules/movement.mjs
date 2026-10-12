@@ -1045,6 +1045,100 @@ export function knockbackPlan(mover, footprint, board, opts = {}) {
 }
 
 /**
+ * Clear a footprint by shoving, one panel at a time, along a direction.
+ *
+ * Kingprotea's Huge Scale, ruled 2026-10-11 (#198 readings 6 and 7): a Unit on
+ * a panel she lands on or grows into is pushed away from her, along her travel
+ * or her growth, until it is off her. A Unit in the way is pushed on by one
+ * panel, and so on down the line (Ch. 05's cascade). A Unit that cannot be
+ * pushed -- the line runs into the board's edge -- goes instead to the nearest
+ * free panel off her. Allies too; no damage; not a Move by anyone pushed.
+ *
+ * Objects (platforms, structures) and Units sharing a panel are stood on, not
+ * shoved, as everywhere else.
+ *
+ * @param {{id: string, level?: number}} mover
+ * @param {GridOffset[]} footprint every panel she will occupy
+ * @param {(unit: object) => GridOffset} dirOf the cardinal step to push a Unit along
+ * @param {object} board
+ * @returns {Array<{unitId: string, landing: {panel: GridOffset, sidestepped: boolean}}>}
+ *   in the order to apply them, the front of each line first
+ */
+export function clearFootprintPlan(mover, footprint, dirOf, board) {
+  const level = mover?.level ?? 0;
+  const bounds = board?.bounds ?? null;
+  const key = (p) => `${p.i},${p.j}`;
+  const mine = new Set((footprint ?? []).map(key));
+  const solid = (u) => u.id !== mover.id && !u.defeated && (u.level ?? 0) === level
+    && u.kind !== "platform" && u.kind !== "structure" && !u.sharesPanel && u.panel;
+  const units = (board?.units ?? []).filter(solid);
+  /** @type {Map<string, GridOffset>} */
+  const at = new Map(units.map((u) => [u.id, { i: u.panel.i, j: u.panel.j }]));
+  const whoIsAt = (p) => [...at].find(([, q]) => q.i === p.i && q.j === p.j)?.[0] ?? null;
+  const plan = [];
+  const place = (id, panel, sidestepped = false) => {
+    at.set(id, panel);
+    plan.push({ unitId: id, landing: { panel, sidestepped } });
+  };
+
+  // The line from `panel` onward along `dir`: who stands on it, up to the
+  // first free panel. `null` when it runs off the board first.
+  const line = (panel, dir) => {
+    const chain = [];
+    let p = panel;
+    for (let guard = 0; guard < 200; guard += 1) {
+      if (!geo.inBounds(p, bounds)) return null;
+      const who = whoIsAt(p);
+      if (!who) return chain;
+      chain.push(who);
+      p = { i: p.i + dir.i, j: p.j + dir.j };
+    }
+    return null;
+  };
+
+  const nearestFree = (from) => {
+    for (let r = 1; r <= 60; r += 1) {
+      const ring = geo.ring(from, r, bounds)
+        .filter((p) => !mine.has(key(p)) && !whoIsAt(p))
+        .sort((a, b) => (Math.abs(a.i - from.i) + Math.abs(a.j - from.j)) - (Math.abs(b.i - from.i) + Math.abs(b.j - from.j))
+          || a.i - b.i || a.j - b.j);
+      if (ring.length > 0) return ring[0];
+    }
+    return null;
+  };
+
+  // Front first: the Unit nearest the side it is pushed out of clears first,
+  // so one behind it is not pushed into it.
+  const inside = units.filter((u) => mine.has(key(u.panel)));
+  const depth = (u) => {
+    const d = dirOf(u);
+    let n = 0;
+    for (let p = u.panel; mine.has(key(p)); p = { i: p.i + d.i, j: p.j + d.j }) n += 1;
+    return n;
+  };
+  inside.sort((a, b) => depth(a) - depth(b));
+
+  for (const u of inside) {
+    const dir = dirOf(u);
+    let target = at.get(u.id);
+    while (mine.has(key(target))) target = { i: target.i + dir.i, j: target.j + dir.j };
+    const chain = line(target, dir);
+    if (chain === null) {
+      const spot = nearestFree(at.get(u.id));
+      if (spot) place(u.id, spot, true);
+      continue;
+    }
+    // The far end moves first.
+    for (const id of chain.reverse()) {
+      const p = at.get(id);
+      place(id, { i: p.i + dir.i, j: p.j + dir.j });
+    }
+    place(u.id, target);
+  }
+  return plan;
+}
+
+/**
  * Every panel a move steps onto, in order, from `from` to `to` — one Chebyshev
  * step at a time, diagonal while both axes still differ. `from` is not listed;
  * `to` is.

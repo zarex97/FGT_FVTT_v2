@@ -6312,6 +6312,14 @@ async function offerAttackerWindow(state, window, message) {
   });
   if (intents.length > 0) await applyBatch(intents, `window:${window}`);
 
+  // A billed window use is a use. `useSkill` raises `abilityUsed` for a cast;
+  // nothing raised it here, so Giant Monster of the Great River never heard
+  // Monstrous Strength and no NP DmUp (GAO) was ever gained (#198).
+  if (billed.length > 0) {
+    const { fireAbilityUsed } = await import("./skill-use.mjs");
+    for (const id of billed) await fireAbilityUsed(actor, actor.items.get(id));
+  }
+
   for (const id of cast) {
     const { useSkill } = await import("./skill-use.mjs");
     const out = await useSkill({ actorId: actor.id, abilityId: id });

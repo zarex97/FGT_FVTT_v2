@@ -507,7 +507,10 @@ function terminalIntents(def, target, source = null) {
  * `create` adds beside what is there and `noop` never reaches the emit step, so
  * these three are the ones that must clear the old document first.
  */
-const REPLACING_ACTIONS = new Set(["refresh", "extend", "stage"]);
+// `count` too: the new instance carries the summed charges, so keeping the old
+// one counted them twice -- a second Monstrous Strength left two NP DmUp (GAO)
+// documents, and the Turn of the second use still decayed one (#198 reading 12).
+const REPLACING_ACTIONS = new Set(["refresh", "extend", "stage", "count"]);
 
 /**
  * Apply a batch of buffs from one ability.

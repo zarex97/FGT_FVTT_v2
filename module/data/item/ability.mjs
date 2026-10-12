@@ -516,6 +516,11 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // Proliferation is the first to state one: *"Kingprotea can only have a
       // maximum of 10 Proliferation stocks."*
       maxStacks: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true, min: 1 }),
+      // The definition's `rules` are collected ONCE for a bearer however many
+      // instances it holds, so a `perStack` element may live on the stock it
+      // counts. Kingprotea's Proliferation: a stock's effects belong to the
+      // stock, and a Skill Seal on Huge Scale does not take them (#198 reading 8).
+      rulesOncePerBearer: new fields.BooleanField({ required: false, initial: false }),
       // What a barrier effect absorbs, and where its pool lives (§A.3's
       // barrier tier). EMIYA's Rho Aias is the only instance.
       absorbs: new fields.ObjectField({ required: false, nullable: true, initial: null }),

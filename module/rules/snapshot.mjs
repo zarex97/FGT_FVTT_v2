@@ -1670,6 +1670,7 @@ export function contributionsOf(actor, { terrain = [], tick = null } = {}) {
 
   // Effects on the actor carry rule elements too, and they are active by
   // definition -- an effect that is present is in force.
+  const onceDefs = new Set();
   for (const effect of actor.effects ?? []) {
     if (effect.disabled || effect.isSuppressed) continue;
     // Resolved from the REGISTRY. This read `effect.system.def` -- a field
@@ -1679,6 +1680,13 @@ export function contributionsOf(actor, { terrain = [], tick = null } = {}) {
     // automatic evasion granted no evasion; both looked applied on the sheet.
     const def = EffectRegistry.get(effect.system?.defId) ?? null;
     if (!def?.rules?.length) continue;
+    // Once per bearer, for a definition that scales its own rules by how many
+    // instances there are (`perStack`): ten Proliferation stocks are ten
+    // documents and one set of rules (#198 reading 8).
+    if (def.rulesOncePerBearer) {
+      if (onceDefs.has(def.id)) continue;
+      onceDefs.add(def.id);
+    }
     abilities.push({
       id: effect.id, name: effect.name, rank: null, active: true,
       // WHICH definition this is, and that it is an effect at all. A

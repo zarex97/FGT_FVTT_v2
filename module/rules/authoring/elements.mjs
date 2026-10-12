@@ -287,7 +287,10 @@ export const ELEMENT_DESCRIPTORS = describeTable([
   entry("Knockback", "Forces a Unit out of the way when this one moves into it.", [
     // Achilles pushes along his TRAVEL; Kingprotea's cascade goes outward from
     // a centre. Same element, one field apart.
-    { key: "direction", type: "select", choices: ["travel", "outward"] },
+    // `arrival`: Kingprotea's -- off the panels she lands on, along her last
+    // step, the line pushed on, one against the edge to the nearest free panel
+    // (#198 reading 7).
+    { key: "direction", type: "select", choices: ["travel", "outward", "arrival"] },
     // "...that Unit is forcefully Moved to one of the panels to its sides, and
     // receives damage equivalent to a Normal Attack." Running out of room is a
     // different OUTCOME, not a failure.

@@ -58,6 +58,12 @@ export function expand(shape, anchor, opts = {}) {
       // Placement semantics depend on the anchor: a directional anchor projects
       // the block outward from the caster, everything else centres it.
       if (anchor.direction) {
+        // From a caster bigger than one panel, flush against her whole edge
+        // (#198 reading 3): Kingprotea grown to 2x2 has her 3x3 Airavata
+        // beside her side, not beside her top-left corner.
+        if ((anchor.casterPanels?.length ?? 0) > 1 && ["n", "e", "s", "w"].includes(anchor.direction)) {
+          return flat(footprintAdjacentRect(anchor.casterPanels, shape.w, shape.h, anchor.direction, anchor.shift ?? 0, bounds));
+        }
         return flat(orthogonalAdjacentRect(anchor.casterPanel ?? origin, shape.w, shape.h, anchor.direction, bounds));
       }
       if (shape.w % 2 === 1 && shape.h % 2 === 1) {
@@ -215,6 +221,70 @@ export function orthogonalAdjacentRect(c, w, h, d, bounds = null) {
           ? { i: c.i + di * step, j: c.j + off }
           : { i: c.i + off, j: c.j + dj * step },
       );
+    }
+  }
+  return geo.normalize(out, bounds);
+}
+
+/**
+ * Where a block `across` panels wide may sit along an edge `edge` panels long.
+ *
+ * Offsets from the edge's first panel, the ones that cover as much of the edge
+ * as the block can and, among those, sit nearest its middle (#198 reading 3).
+ * A 3-wide block on a 1- or 3-panel edge has one place, centred; on a 2- or
+ * 4-panel edge it has two.
+ *
+ * @param {number} edge the caster's side, in panels
+ * @param {number} across the block's width along that side
+ * @returns {number[]} the offsets, lowest first
+ */
+export function edgeOffsets(edge, across) {
+  const scored = [];
+  for (let off = -(across - 1); off <= edge - 1; off++) {
+    const overlap = Math.min(off + across, edge) - Math.max(off, 0);
+    const centre = Math.abs((off + (across - 1) / 2) - (edge - 1) / 2);
+    scored.push({ off, overlap, centre });
+  }
+  const best = Math.max(...scored.map((s) => s.overlap));
+  const top = scored.filter((s) => s.overlap === best);
+  const nearest = Math.min(...top.map((s) => s.centre));
+  return top.filter((s) => s.centre === nearest).map((s) => s.off);
+}
+
+/**
+ * The "M×N panel area in any non-diagonal direction next to X" block, from a
+ * caster who stands on several panels: flush against her side, placed by
+ * {@link edgeOffsets}, `shift` picking among equals.
+ *
+ * @param {GridOffset[]} footprint every panel the caster stands on
+ * @param {number} w
+ * @param {number} h
+ * @param {string} d a cardinal direction name
+ * @param {number} shift which of the equal placements, `0` the lowest offset
+ * @param {Bounds|null} [bounds]
+ * @returns {GridOffset[]}
+ */
+export function footprintAdjacentRect(footprint, w, h, d, shift = 0, bounds = null) {
+  const delta = DELTA[d];
+  if (!delta) throw new RangeError(`FGT | Unknown direction "${d}".`);
+  const is = footprint.map((p) => p.i);
+  const js = footprint.map((p) => p.j);
+  const top = Math.min(...is), bottom = Math.max(...is);
+  const left = Math.min(...js), right = Math.max(...js);
+  const vertical = delta.i !== 0;
+  const along = vertical ? h : w;
+  const across = vertical ? w : h;
+  const edge = vertical ? right - left + 1 : bottom - top + 1;
+  const offs = edgeOffsets(edge, across);
+  const off = offs[Math.min(Math.max(0, shift), offs.length - 1)];
+
+  /** @type {GridOffset[]} */
+  const out = [];
+  for (let step = 1; step <= along; step++) {
+    for (let k = 0; k < across; k++) {
+      out.push(vertical
+        ? { i: delta.i < 0 ? top - step : bottom + step, j: left + off + k }
+        : { i: top + off + k, j: delta.j < 0 ? left - step : right + step });
     }
   }
   return geo.normalize(out, bounds);

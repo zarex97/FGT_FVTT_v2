@@ -57,7 +57,7 @@ Magnitude factors — `magnitudeFactor` and `magnitudeRoundTo` — are applied h
 
 5. **Collection runs per-unit with the unit's own options only.** A predicate naming a target cannot be answered at collection time — there is no target. Board state like `self:inHomeBase` reads as "false" until the snapshot is built (`module/rules/elements.mjs:139-148`, history: `module/rules/elements.mjs:176-180`).
 
-6. **`PerStack` must live on something collected once.** An effect's rules are collected per instance, so authoring a `perStack` on the effect itself would be collected `n` times and scaled `n` times (`module/rules/elements.mjs:342-344`).
+6. **`PerStack` must live on something collected once.** An effect's rules are collected per instance, so authoring a `perStack` on the effect itself would be collected `n` times and scaled `n` times (`module/rules/elements.mjs:342-344`) — unless the definition says `rulesOncePerBearer: true`, and then its rules are collected once however many instances the bearer holds (`rules/snapshot.mjs#contributionsOf`). Kingprotea's Proliferation stock carries its own Max Health, size, Range and MOV that way, so a Skill Seal on Huge Scale does not shrink her (#198 reading 8).
 
 7. **Scripts never throw.** A malformed script entry logs a warning and returns `[]`; it does not stop the turn (`module/engine/scripts.mjs:56-62`).
 

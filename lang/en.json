@@ -1638,5 +1638,11 @@
   "FGT.MasterGuard.Held": "No guard reached {master}: the Attack proceeds.",
   "FGT.MasterGuard.Roll": "{name} Agility Check 1d20 → {roll}, {total} against {target}: {outcome}",
   "FGT.MasterGuard.Success": "success",
-  "FGT.MasterGuard.Fail": "failed"
+  "FGT.MasterGuard.Fail": "failed",
+  "FGT.Growth.Title": "{name} grows",
+  "FGT.Growth.Hint": "Pick the corner she grows from. Anyone where she grows to is knocked back. Against a wall or the board's edge she grows the other way.",
+  "FGT.Growth.Corner.nw": "From her top-left corner",
+  "FGT.Growth.Corner.ne": "From her top-right corner",
+  "FGT.Growth.Corner.sw": "From her bottom-left corner",
+  "FGT.Growth.Corner.se": "From her bottom-right corner"
 }
