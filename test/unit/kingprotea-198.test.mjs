@@ -14,6 +14,10 @@
  *   off her along one line, the line pushed on, one against the edge to the
  *   nearest free panel.
  * - reading 14: Mad Enhancement's ZON adds to Independent Action's.
+ *
+ * And what the press found: an Unremovable instance cleansed, a Caster that
+ * could not contract, a strip that took every stock, a fan-out's Processes
+ * racing at the Damage Step, two growth dialogs, GAO's exception at X = 0.
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
@@ -26,6 +30,8 @@ import { endTurn } from "../../module/engine/scheduler.mjs";
 import { zonRadius } from "../../module/rules/zon.mjs";
 import { clearFootprintPlan } from "../../module/rules/movement.mjs";
 import { prepareSubjects, subject } from "../helpers/subject.mjs";
+import { isUnremovable } from "../../module/rules/removal.mjs";
+import { canAttemptContract } from "../../module/rules/contract.mjs";
 
 const yml = (dir, id) => parse(readFileSync(`packs/_source/${dir}/${id}.yml`, "utf8"));
 const AIRAVATA = yml("abilities", "kingprotea-airavata-king-size");
@@ -168,5 +174,76 @@ describe("the shove off her footprint (readings 6 and 7)", () => {
   it("stands on objects and leaves the mover alone", () => {
     const board = { bounds, units: [{ id: "k", kind: "servant", panel: { i: 5, j: 5 } }, { id: "s", kind: "structure", panel: { i: 6, j: 6 } }] };
     expect(clearFootprintPlan({ id: "k" }, square(2), east, board)).toEqual([]);
+  });
+});
+
+/* ── Found by the press (#198) ──────────────────────────────────────────── */
+
+
+describe("an Unremovable instance survives a cleanse (SS.unrem)", () => {
+  it("reads the instance's flag where the definition's is false", () => {
+    expect(isUnremovable({ unremovable: false }, { system: { unremovable: true } })).toBe(true);
+    expect(isUnremovable({ unremovable: true }, { system: {} })).toBe(true);
+    expect(isUnremovable({ unremovable: false }, { system: { unremovable: false } })).toBe(false);
+  });
+
+  it("is the one reader both removal paths ask", () => {
+    for (const file of ["module/engine/skill-use.mjs", "module/engine/attack.mjs"]) {
+      const src = readFileSync(file, "utf8");
+      expect(src, file).not.toMatch(/def\??\.unremovable \?\? e\.system/);
+      expect(src, file).toMatch(/isUnremovable\(def, e\)/);
+    }
+  });
+});
+
+describe("a Caster can contract (IA.contract)", () => {
+  beforeAll(prepareSubjects, 120_000);
+
+  it("reads the class off the board's servantClasses", async () => {
+    const medea = await subject({ from: "medea", panel: { i: 5, j: 5 }, state: { factionId: "f2" } });
+    const free = { id: "k", kind: "servant", contract: "free", factionId: "f1", panel: { i: 5, j: 6 } };
+    expect(medea.servantClasses).toContain("caster");
+    expect(canAttemptContract(medea, free, { units: [medea, free] })).toMatchObject({ ok: true });
+  }, 60_000);
+});
+
+describe("one strip takes one stock (PS.buff)", () => {
+  it("removes the document it rolled for, and says so", () => {
+    const src = readFileSync("module/engine/attack.mjs", "utf8");
+    const body = src.slice(src.indexOf("async function stripOneBuff"), src.indexOf("async function offerPreAttackSpell"));
+    expect(body).toMatch(/I\.removeEffect\(bearerDoc\.id, c\.documentId/);
+    expect(body).toMatch(/FGT\.Removal\.StripResisted/);
+  });
+});
+
+describe("a fan-out's Processes reach the Damage Step together (MS.aoe, AK)", () => {
+  const src = readFileSync("module/engine/attack.mjs", "utf8");
+
+  it("asks the attacker's window once for the group", () => {
+    const body = src.slice(src.indexOf("async function offerAttackerWindow"), src.indexOf("async function askAttackerWindow"));
+    expect(body).toMatch(/openWindowPicks\.get\(key\)/);
+  });
+
+  it("pays a before-damage self rider once, and its siblings wait for it", () => {
+    expect(src).toMatch(/selfPayments\.has\(key\)\) \{\s*await selfPayments\.get\(key\)/);
+  });
+
+  it("holds an after-damage self rider until every hit has struck", () => {
+    expect(src).toMatch(/await siblingsPastDamage\(state\);\s*applied\.push/);
+  });
+});
+
+describe("one growth, one question (PS.grow)", () => {
+  it("serializes the footprint sync per actor", () => {
+    const src = readFileSync("module/engine/token-footprint.mjs", "utf8");
+    expect(src).toMatch(/const pending = syncing\.get\(actor\.id\)/);
+  });
+});
+
+describe("GAO's exception is the Turn of the use (reading 12)", () => {
+  it("is read off Monstrous Strength's use as well as the charges' stamp", () => {
+    const handler = yml("effects", "np-dm-up-gao").rules.find((r) => r.key === "OnEvent");
+    expect(handler.unlessUsedThisTurn).toEqual({ contentId: "kingprotea-monstrous-strength" });
+    expect(handler.notOnApplyTurn).toBe(true);
   });
 });

@@ -113,6 +113,11 @@ the reader — and the live world is the only place the first of them can be ver
 
 ## Open questions
 
+- **Open: a slot's verdict goes stale when another Unit moves (#198, §46.4-KP).** The bar renders on control. Her
+  Master walking back into her ZON left the Noble Phantasm slot refusing "Outside the Master's ZON" until she was
+  reselected.
+
+
 - **Confirmed live.** `pendingRowsFor` sorts on
   `(a.countdown?.ms ?? Infinity) - (b.countdown?.ms ?? Infinity)`
   (`module/apps/hud/pending-present.mjs:68`), and `Array.prototype.sort` has been stable by

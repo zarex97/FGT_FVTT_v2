@@ -210,7 +210,7 @@ export function conquestContract({ killer, deadMaster, board }) {
  * @returns {{ok: boolean, reason?: string, masterId?: string}}
  */
 function claimantFor(killer, board) {
-  if (killer?.kind === "master" || killer?.servantClass === "caster") {
+  if (killer?.kind === "master" || isCaster(killer)) {
     return { ok: true, masterId: killer.id };
   }
 
@@ -242,7 +242,19 @@ function grants(masterId, servantId, spells) {
 
 /** @param {object} unit @returns {boolean} */
 function isContractor(unit) {
-  return unit?.kind === "master" || unit?.servantClass === "caster";
+  return unit?.kind === "master" || isCaster(unit);
+}
+
+/**
+ * Is this Unit a Caster? The board carries `servantClasses`, a list: a
+ * `servantClass` field was read here that nothing projects, so no Caster in
+ * the game could contract a Servant or claim a kill (#198, IA.contract).
+ *
+ * @param {object} unit
+ * @returns {boolean}
+ */
+function isCaster(unit) {
+  return [...(unit?.servantClasses ?? [])].includes("caster");
 }
 
 /** @param {object} a @param {object} b @returns {boolean} */

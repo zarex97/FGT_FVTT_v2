@@ -62,14 +62,14 @@ describe("canAttemptContract", () => {
   });
 
   it("refuses a contractor that is neither a Master nor a Caster", () => {
-    const saber = { ...master(), kind: "servant", servantClass: "saber" };
+    const saber = { ...master(), kind: "servant", servantClasses: ["saber"] };
 
     expect(canAttemptContract(saber, s, board([saber, s])))
       .toMatchObject({ ok: false, reason: "notAContractor" });
   });
 
   it("allows a Caster to contract", () => {
-    const caster = { ...master(), kind: "servant", servantClass: "caster" };
+    const caster = { ...master(), kind: "servant", servantClasses: ["caster"] };
 
     expect(canAttemptContract(caster, s, board([caster, s]))).toMatchObject({ ok: true });
   });

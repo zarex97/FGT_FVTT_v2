@@ -4029,6 +4029,61 @@ off. Ch. 10.
 **Reached: eight files using `withWorld`.** Each failed alone, its first test timing out at 5 s. `prepareWorld`
 loads Foundry and the engine in `beforeAll`. Ch. 44.
 
+### KH. An Unremovable instance was cleansed — **fixed** (#198)
+
+**Reached: SS.unrem.** Self-Suggestion took a staged Unremovable Atk Dwn with the rest. Both removal paths read
+`def.unremovable ?? instance`, and the registry reports `false`, never `null`. One reader,
+`rules/removal.mjs#isUnremovable`. Ch. 15.
+
+### KI. Two growth dialogs for one growth — **fixed** (#198)
+
+**Reached: PS.grow.** A stock is an ActiveEffect and a Health write; each queued a resize, and the second asked the
+owner again while the first waited. `engine/token-footprint.mjs#syncFootprint` waits for a resize in progress. Ch. 05.
+
+### KJ. A fan-out's Processes raced at the Damage Step — **fixed** (#198)
+
+**Reached: MS.aoe, AK.npup, AK.atk.** Airavata's three Processes reach the Damage Step together. Three windows opened
+and Monstrous Strength reached one target; then the before-damage NP DmUp landed three times, then once and counted
+on one card; then the after-damage Atk Up landed between hits. The group's first asks and its siblings wait for that
+answer; the first to strike pays a before-damage self rider and its siblings wait for it; an after-damage self rider
+waits until every sibling is past its damage (`engine/attack.mjs`). Ch. 21.
+
+### KK. A strip took every stock and said nothing — **fixed** (#198)
+
+**Reached: PS.buff, HS.rem.** Suppression's one strip removed by definition id, so every Proliferation stock went.
+It removes the rolled document and posts *"Proliferation is removed from Kingprotea (removal roll 24)"* or the resist.
+Ch. 15, 37.
+
+### KL. No Caster could contract a Servant — **fixed** (#198)
+
+**Reached: IA.contract.** `rules/contract.mjs` read `servantClass`; the board carries `servantClasses`, and the tests
+built the read shape by hand. Medea was "notAContractor"; a Caster could not claim a kill either. Ch. 32.
+
+### KM. A billed Damage Step use raised no `abilityUsed` — **fixed** (#198)
+
+**Reached: GA.on.** Found building the rulings: Monstrous Strength is billed at the window, and that path fired no
+event, so Giant Monster of the Great River never heard it. App. E.
+
+### KN. A `count` re-application doubled its charges — **fixed** (#198)
+
+**Reached: GA.x.** `count` was not a replacing action, so a second NP DmUp (GAO) was created beside the first and both
+were counted. The instance is replaced by the sum, stamped with this Turn. Ch. 15.
+
+### KO. A handler on two Turn-end passes fired twice — **fixed** (#198)
+
+**Reached: GA.decay.** §E.2's deduplication was written down and never built: GAO lost two charges where her Turn and
+her Acting coincide. `scheduler.mjs#endTurn` shares one `firedThisBoundary`. App. E.
+
+### KP. A slot kept a ZON refusal after the Master came back — **open** (#198)
+
+**Reached: AK.** The action bar renders on control; her Master's move did not re-render it, and the NP slot refused
+"Outside the Master's ZON" until she was reselected. Ch. 34.
+
+### KQ. Rolls nobody else sees — **open** (#198)
+
+**Reached: TC.taken, IA.contract.** Territory Creation's 3d10+30 is on no Rolls list, and a Contract Servant attempt
+reaches only the attempter's notification. Ch. 37.
+
 ---
 
 ---
@@ -5225,3 +5280,44 @@ healed; Shock, Stun, Burn, Bleed and Crit Dwn cleared after Dohatsu Tenshou; Hol
 Fragarach and Possession; EMIYA moved to Faction 2 as Toole's target; defeated Masters and EMIYA stood back up;
 Medea given `outsider` for one preview. Round 4's Faction 2 Turn passed unused once, by the helper reading the
 mislabelled turn log.
+
+## 46.26 Kingprotea — the Servant who grows
+
+**All 102 of her Clauses were Pressed or Observed on a live board** (#198, 2026-10-12), on the PC copy of `fgt2026`,
+neutral Region, after 15 readings were ruled on 2026-10-11 and built (23b5621). The board found seven defects that
+reach other Servants (§46.4-KH to KO), two left open (KP, KQ), and one in her own content.
+
+**Why she finds what she finds.** She is the only Unit whose footprint changes, and the only Servant whose Noble
+Phantasm is an area that can hold several targets at every size. A footprint that grows asks a question at a Turn's
+end and moves other Units; an area hit by three Processes at once exposed every rule that had assumed its Processes
+arrive one after another.
+
+### 46.26.1 What she cost the engine
+
+| Finding | Where |
+|---|---|
+| Airavata from a grown footprint; two placements a side at 2x2 and 4x4 | `targeting/shapes.mjs#edgeOffsets`, `resolve.mjs#edgeShifts` |
+| A shove along one line, pinned to the nearest free panel | `rules/movement.mjs#clearFootprintPlan`, `Knockback { direction: arrival }` |
+| Growth from a corner her owner picks | `engine/token-footprint.mjs#growthPlacement` |
+| A stock's worth on the stock | `rulesOncePerBearer`, `effects/proliferation-stock.yml` |
+| Mad Enhancement's ZON stacks | `class-skills/mad-enhancement.yml` |
+| General: §46.4-KH to KO | |
+
+Her own, fixed in content: NP DmUp (GAO)'s exception is read off the use of Monstrous Strength as well, so a use with
+no stocks still spares the charge (reading 12).
+
+**Readings, as built.** One Huge Scale gives nine stocks, not ten: the first comes once a full ⅓◈ has passed and an
+effect does not act on the Turn it ends. Huge Scale's Passives 2 and 3 stay on the Skill, so suspending it takes the
+NP reduction and the removal resistance and leaves her size; a Skill Seal reaches no passive at all.
+
+### 46.26.2 What was staged
+
+Named in each evidence line: debuffs laid on her for the cleanse; NP, Monstrous Strength, Earth Mother's Wail,
+Self-Suggestion and Infantile Regression cooldowns reset to press again; targets healed and stood back up; her
+attacked flag and her faction's attack pool cleared; stocks applied through the live effect flow (to reach ten, to
+reach 4x4, three for Infantile Regression's ⅓◈); GAO set to 2 or 3; Medea, Kiritsugu, Van Gogh, Karna and Heracles
+moved into reach; Karna given `outsider` and Van Gogh's struck for one press each; Medea moved to Faction 1 with her
+Territory Creation at EX for the tie; Kiritsugu given Suppression; her Master moved into her ZON, set to 40 for the
+forced deactivation, healed to 100 and Mad Enhancement switched on directly for clause 5. Her walks past the first
+panels were driven by `TokenDocument#move` from Player1's client: the extension's drags moved her part of the way.
+

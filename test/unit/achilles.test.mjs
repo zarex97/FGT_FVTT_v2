@@ -887,7 +887,9 @@ describe("Troias's Atk Up stands before every hit (#184)", () => {
     // Live: three defenders answered in reverse order and only the last-declared
     // -- the one that answered last -- hit with the Atk Up.
     const src = readFileSync("module/engine/attack.mjs", "utf8");
-    expect(src).toMatch(/const pays = when === "beforeDamage" \? isFirstToStrike\(state\) : isFirstOfGroup\(state\);/);
+    // Since #198 the first to strike claims it in memory and its siblings
+    // wait for it, so Processes released together still pay it once.
+    expect(src).toMatch(/if \(!isFirstToStrike\(state\)\) continue;/);
     expect(src).toMatch(/function isFirstToStrike\(state\) \{[\s\S]{0,300}h\.state === "damage"/);
   });
 });
