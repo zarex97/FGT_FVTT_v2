@@ -1,6 +1,6 @@
 /**
  * @file Mannanán's audit rulings (#197) that changed the engine.
- * @see docs/33-case-mannanan.md
+ * @see docs/46-roster-re-audit.md §46.25
  *
  * - reading 3: Tradition Carrier's +30% lasts *"that Combat Phase"*, so a
  *   duration authored `until <event>` must end on that event. It never did:
