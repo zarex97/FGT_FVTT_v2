@@ -216,6 +216,8 @@ The contrast with unit tests is stark. Lint passes. All 629 tests pass. The cont
 
 ## Traps and anti-patterns
 
+**A test that reads source text reads it as checked out.** Git on Windows checks files out with CRLF, and `readdirSync` paths there use `\`. A scan that splits on `"\n"`, strips comments with `/\/\/.*$/`, or matches `"engine/board.mjs"` then sees `\r` at every line end and never matches a path, so it fails on the PC and passes on the VPS. Split on `/\r?\n/`, replace `\r\n` before a multi-line regex, and turn `\` into `/` before matching a path: `unit-view.test.mjs` and `raikou-195.test.mjs` do (`docs/surprises/2026-10-12-source-scan-test-fails-on-windows.md`).
+
 **Unit test isolation hides missing wiring.** A function can be thoroughly unit-tested, with high coverage and every scenario passing in isolation, while nothing in the engine supplies the inputs the test injects by hand. The test proves the function is correct *given that input*, but never proves the input arrives from anywhere. This defect hides so completely that coverage tools show no gaps.
 
 **The pattern of the trap:** A rules function reads a field (say, `x`). A unit test creates a fixture with that field set to a specific value, calls the function, and asserts the output. The test passes. But in the real engine, nothing ever writes `x` to the object. A linter cannot catch this, because `x` is a valid field. Coverage cannot catch it, because the test executed the line that reads `x`. Smoke tests might not catch it, if the match never triggers the condition that would need `x` to be non-default.

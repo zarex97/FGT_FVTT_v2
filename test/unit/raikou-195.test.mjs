@@ -118,7 +118,10 @@ describe("Tenmōkaikai's limit is a moment, not a state (#195)", () => {
   });
 
   it("while Mad Enhancement's states its limit at any moment", () => {
-    const src = readFileSync(new URL("../../packs/_source/class-skills/mad-enhancement.yml", import.meta.url), "utf8");
+    // LF whatever the checkout: Git on Windows writes CRLF, and `\n` then
+    // matched nothing.
+    const src = readFileSync(new URL("../../packs/_source/class-skills/mad-enhancement.yml", import.meta.url), "utf8")
+      .replace(/\r\n/g, "\n");
     expect(src).toMatch(/lteTable: madEnhancementDrain \}\n(\s+#.*\n)*\s+atAnyMoment: true/);
   });
 });

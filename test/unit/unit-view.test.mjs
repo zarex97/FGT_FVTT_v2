@@ -40,12 +40,15 @@ const code = (line) => line.replace(/\/\/.*$/, "").replace(/^\s*\*.*$/, "");
 describe("engine and interface code reads a Unit through the board", () => {
   it("leaves bare projections only where the list says why", () => {
     const found = new Set();
-    for (const file of [...sources("module/engine"), ...sources("module/apps")]) {
+    // Paths with `/` and lines without `\r`, whatever the checkout: on Windows
+    // the skip below never matched and `code()` kept every comment
+    // (`docs/surprises/2026-10-12-source-scan-test-fails-on-windows.md`).
+    for (const file of [...sources("module/engine"), ...sources("module/apps")].map((f) => f.replace(/\\/g, "/"))) {
       if (file.endsWith("engine/board.mjs")) continue;
       const src = readFileSync(file, "utf8");
       const rawSnapshot = /import\s*\{[^}]*\bsnapshotUnit\b[^}]*\}\s*from\s*"[./]*rules\/snapshot\.mjs"/.test(src);
-      const bare = src.split("\n").map(code).some((l) => /\bunitSnapshot\(/.test(l) || (rawSnapshot && /\bsnapshotUnit\(/.test(l)));
-      if (bare) found.add(file.replace(/\\/g, "/"));
+      const bare = src.split(/\r?\n/).map(code).some((l) => /\bunitSnapshot\(/.test(l) || (rawSnapshot && /\bsnapshotUnit\(/.test(l)));
+      if (bare) found.add(file);
     }
     expect([...found].sort()).toEqual(Object.keys(ALLOWED).sort());
   });
