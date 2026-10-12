@@ -3,7 +3,8 @@ id: 2026-10-12-rider-loop-ignored-resistance-exemption
 found: test
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Kiritsugu's Mark, authored `ignoresResistanceFrom: [debuffResUp]` on its rider spec, skips Debuff Res Up when it lands; adding the same key to Zabaniya's rider phase for #199 reading 11 would skip Magic Resistance.
 **Actual:** the post-damage rider loop never passed `ignoresResistanceFrom` to `applyEffect`. Only the check path did. `kiritsugu.test.mjs` asserted the authored key and nothing that read it, so the Mark has met Debuff Res Up since it was authored.
