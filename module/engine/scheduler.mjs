@@ -379,7 +379,12 @@ export function fireEvent(event, units, ctx) {
       if (handler.targetPredicate) {
         const options = new Set([
           ...(ctx.options ?? []),
-          ...rollOptionsFor({ attacker: u, defender: null }),
+          // The owner's facts, and none about an attack. A bare
+          // `rollOptionsFor` emits `attack:kind:normal` for the attack it was
+          // not given, so every "Normal Attacks only" rider fired on a Noble
+          // Phantasm too: Zabaniya's hit took Projectile's Poison and Deadly
+          // Poison and Macabre's extra stage (#199; #190 fixed the roll path).
+          ...[...rollOptionsFor({ attacker: u, defender: null })].filter((o) => !o.startsWith("attack:")),
           // Whose Turn this boundary is, for an `anyTurnEnd` handler that
           // treats its own Turn apart: Tenmōkaikai charges *"at the end of
           // Raikou's Turn and at the end of any Turn Raikou or any of her
@@ -1249,7 +1254,10 @@ const ACTIONS = Object.freeze({
       // Secret Poison. Hidden only while there is something to hide behind:
       // the disclosure trigger is the inflicter's concealment ending, so an
       // unconcealed inflicter poisons openly and the clause is self-limiting.
-      ...(a.secret && concealedNow(u) ? { visibility: "gmOnly", attributionHidden: true } : {}),
+      // The INFLICTER's concealment, `c.bearer`: for a `nearby` target `u` is
+      // the recipient, and reading it poisoned openly whenever the victim was
+      // not itself concealed -- every time, on the live board (#199).
+      ...(a.secret && concealedNow(c.bearer ?? u) ? { visibility: "gmOnly", attributionHidden: true } : {}),
     };
 
     // WHO it lands on. The action used to apply to the handler's owner and

@@ -29,7 +29,9 @@ A concealed Servant's **public identity** — the class and faction name shown o
 
 **Targeting a concealed Unit.** Clause 1 shuts a concealed Unit out of being targeted *"for an Attack or an enemy Unit's Skill"* — those two and nothing else. Targeting step 7 therefore drops it from a chosen or counted selection only when the ability is an Attack, or the Unit is not an ally of the caster; an allied Skill reaches it (`limits.forAttack`, `rules/ability-use.mjs#targetSpecFor`; Ch. 20 step 7). It used to drop every concealed Unit whatever its relation, so a concealed ally could not be healed or buffed by a single-target Skill (#133). The Unit's own Skills were never affected.
 
-An ability can restrict concealed use, but three exceptions hold: Attack Skills, damage-dealing Spells, Noble Phantasms, and explicitly marked ability (`usableWhileConcealed`) always go through. Serenity's Shapeshift is the sole instance in the corpus, paying 20% chance to break concealment (`module/rules/concealment.mjs:209-219`, `module/rules/concealment.mjs:251-253`).
+An ability can restrict concealed use, but three exceptions hold: Attack Skills, damage-dealing Spells, Noble Phantasms, and explicitly marked ability (`usableWhileConcealed`) always go through. Serenity's Shapeshift is the sole instance in the corpus, paying 20% chance to break concealment (`module/rules/concealment.mjs:209-219`, `module/rules/concealment.mjs:251-253`). The roll is made after the Skill resolves (`engine/skill-use.mjs#rollConcealmentBreak`). A break is posted publicly; a kept roll is whispered to the GM and her owners, so the die leaves a trace without telling the enemy she is still hidden (#199, §46.4-KW).
+
+**Whose concealment hides the aura's Poison.** The inflicter's: `concealedNow(c.bearer ?? u)` in the `ApplyEffect` action. For a `target: nearby` action `u` is each recipient, and asking it poisoned openly whenever the victim was not itself concealed (#199, §46.4-KR).
 
 ### Ending concealment
 
