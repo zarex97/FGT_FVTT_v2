@@ -22,9 +22,13 @@ rules:
   # OWNER's Turn (Ch. 04's `unitTurnEnd`), and this clause is every Turn. The
   # arithmetic settles it -- ten Turns of buff, ten stocks, which is the maximum
   # her sheet prints. Her own Turns alone would reach three.
+  #
+  # `notOnApplyTurn`: the Turn she uses Huge Scale gives none; the first stock
+  # comes once a full ⅓◈ has passed (#198 reading 4).
   - key: OnEvent
     event: anyTurnEnd
     automatic: true
+    notOnApplyTurn: true
     then:
       # The stock itself. `magnitudeStacks`, so this is a new document every
       # time and ten of them are ten buffs.

@@ -169,9 +169,80 @@ async function syncFootprint(actor) {
     // at the size it started from. Growing looked fine and SHRINKING did not --
     // Infantile Regression put her footprint back to 1x1 and left a 3x3 token
     // standing on the board.
-    await token.update(size, { fgtForced: true, animate: false });
+    // Growing, she grows from a corner her owner picks, and shoves whoever
+    // stands where she grows to (#198 reading 6). Shrinking keeps her top-left.
+    const grew = size.width > token.width || size.height > token.height;
+    const at = grew ? await growthPlacement(actor, token, size) : null;
+    await token.update({ ...size, ...(at ?? {}) }, { fgtForced: true, animate: false });
     refreshSize(token);
   }
+}
+
+/** The corner that stays put, and which way that grows her. */
+const CORNERS = Object.freeze({
+  nw: { down: true, right: true },
+  ne: { down: true, right: false },
+  sw: { down: false, right: true },
+  se: { down: false, right: false },
+});
+
+/**
+ * Where a growing Unit's token goes, after its owner picks the corner it grows
+ * from and the Units it grows into are shoved off it.
+ *
+ * Ruled 2026-10-11 (#198 reading 6): her owner picks the corner; a Unit in a
+ * panel she grows into is knocked back as Huge Scale's Passive 1 knocks it
+ * back, away from her; against a wall or the board's edge she grows the other
+ * way.
+ *
+ * @param {object} actor
+ * @param {object} token a `TokenDocument`
+ * @param {{width: number, height: number}} size the size she is growing to
+ * @returns {Promise<{x: number, y: number}|null>}
+ */
+async function growthPlacement(actor, token, size) {
+  if (!canvas?.grid) return null;
+  const { currentBoard } = await import("./board.mjs");
+  const { clearFootprintPlan } = await import("../rules/movement.mjs");
+  const { displacePlan } = await import("./movement-hooks.mjs");
+  const { chooseFor } = await import("./ask.mjs");
+
+  const board = currentBoard();
+  const from = canvas.grid.getOffset({ x: token.x, y: token.y });
+  const old = { i: from.i, j: from.j, h: token.height, w: token.width };
+
+  const picked = await chooseFor(actor, {
+    title: game.i18n.format("FGT.Growth.Title", { name: actor.name }),
+    hint: game.i18n.localize("FGT.Growth.Hint"),
+    count: 1,
+    options: Object.keys(CORNERS).map((id) => ({ id, name: game.i18n.localize(`FGT.Growth.Corner.${id}`) })),
+  });
+  const corner = CORNERS[picked?.[0]] ?? CORNERS.nw;
+
+  // Against a wall or the edge, the other way; failing both, as far as fits.
+  const b = board.bounds ?? null;
+  const fits = (lo, len, min, max) => lo >= min && lo + len - 1 <= max;
+  let i0 = corner.down ? old.i : old.i + old.h - size.height;
+  let j0 = corner.right ? old.j : old.j + old.w - size.width;
+  if (b) {
+    if (!fits(i0, size.height, b.iMin, b.iMax)) i0 = corner.down ? old.i + old.h - size.height : old.i;
+    if (!fits(j0, size.width, b.jMin, b.jMax)) j0 = corner.right ? old.j + old.w - size.width : old.j;
+    i0 = Math.min(Math.max(i0, b.iMin), b.iMax - size.height + 1);
+    j0 = Math.min(Math.max(j0, b.jMin), b.jMax - size.width + 1);
+  }
+
+  const footprint = [];
+  for (let di = 0; di < size.height; di += 1) for (let dj = 0; dj < size.width; dj += 1) footprint.push({ i: i0 + di, j: j0 + dj });
+  // Away from her old self, across the side it grew past.
+  const dirOf = (u) => {
+    if (u.panel.i < old.i) return { i: -1, j: 0 };
+    if (u.panel.i > old.i + old.h - 1) return { i: 1, j: 0 };
+    return u.panel.j < old.j ? { i: 0, j: -1 } : { i: 0, j: 1 };
+  };
+  const mover = board.units.find((u) => u.id === actor.id) ?? { id: actor.id };
+  await displacePlan(clearFootprintPlan(mover, footprint, dirOf, board));
+
+  return canvas.grid.getTopLeftPoint({ i: i0, j: j0 });
 }
 
 /**

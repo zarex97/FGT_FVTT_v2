@@ -31,10 +31,18 @@ const effect = (id) => parse(readFileSync(join("packs/_source/effects", `${id}.y
 const SHEET = parse(readFileSync("packs/_source/servants/kingprotea.yml", "utf8"));
 const HUGE_SCALE = ability("kingprotea-huge-scale");
 
-/** Her Huge Scale contributions at `n` Proliferation stocks. */
+const STOCK = effect("proliferation-stock");
+
+/**
+ * Her Huge Scale and stock contributions at `n` Proliferation stocks. The
+ * stock's rules are collected once however many she holds (#198 reading 8).
+ */
 function atStocks(n) {
   return collectContributions(
-    [{ id: "hs", name: "Huge Scale", rank: "B", passiveRules: HUGE_SCALE.passiveRules }],
+    [
+      { id: "hs", name: "Huge Scale", rank: "B", passiveRules: HUGE_SCALE.passiveRules },
+      ...(n > 0 ? [{ id: "stock", name: "Proliferation", active: true, fromEffect: true, rules: STOCK.rules }] : []),
+    ],
     { refs: { self: { baseHealth: 2000 } }, stacks: { proliferationStock: n } },
   );
 }
@@ -127,8 +135,8 @@ describe("Huge Scale", () => {
     // 20% of 2000 is 400, whatever her maximum has already grown to.
     expect(atStocks(1).statDeltas.find((d) => d.stat === "health.max").value).toBe(400);
     expect(atStocks(5).statDeltas.find((d) => d.stat === "health.max").value).toBe(2000);
-    // At zero stocks the element still contributes, and contributes nothing.
-    expect(atStocks(0).statDeltas.find((d) => d.stat === "health.max").value).toBe(0);
+    // At zero stocks there is no stock, and nothing is contributed.
+    expect(atStocks(0).statDeltas.find((d) => d.stat === "health.max")?.value ?? 0).toBe(0);
   });
 
   it("grows one panel every third stock, with Range up and MOV down", () => {
@@ -201,11 +209,11 @@ describe("Proliferation stocks", () => {
     expect(stock.maxStacks).toBe(10);
   });
 
-  it("carries no rules of its own", () => {
-    // Everything a stock is worth lives on Huge Scale. An effect's rules are
-    // collected once per INSTANCE, so a `perStack` element here would be
-    // collected n times and scaled by n each time.
-    expect(stock.rules).toEqual([]);
+  it("carries its own worth, collected once however many she holds (#198 reading 8)", () => {
+    expect(stock.rulesOncePerBearer).toBe(true);
+    expect(stock.rules.map((r) => r.key)).toEqual(["MaxDelta", "SizeStep", "RangeDelta", "MovDelta"]);
+    // ...and Huge Scale no longer carries them, so a Skill Seal on it leaves her size.
+    expect(HUGE_SCALE.passiveRules.map((r) => r.key)).not.toContain("SizeStep");
   });
 
   it("has no duration, because stocks outlive Endless Proliferation", () => {

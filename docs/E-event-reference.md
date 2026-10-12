@@ -101,7 +101,9 @@ Turn he only defended — most of them, for a Servant whose whole design is to b
 Ch. 46 §46.9. Attacking **is** involvement, so a Unit that both acted and fought is billed once.
 
 Deduplication: when both `unitTurnEnd` and `actedTurnEnd` would fire for the same unit on the
-same turn, each *effect* fires **once**, keyed by `(effectId, globalTurn)`.
+same turn, each handler fires **once**. `scheduler.mjs#endTurn` shares one `firedThisBoundary` set
+across its passes, so a handler on `[turnEnd, actedTurnEnd]` fires at the first and is skipped at the
+second. Nothing implemented this until NP DmUp (GAO) lost two charges for one sentence (#198 reading 12).
 
 ---
 
@@ -259,7 +261,9 @@ deterministic across clients despite subscription order varying.
 |---|---|---|
 | `fgt.abilityUsed` | A Unit finished using a Skill, Spell or Noble Phantasm | `{unitId, abilityId, contentId, category, isNP}` |
 
-Fired on **both** use paths, after the phases have resolved — "uses" is the sheet's word, and a
+Fired on **all three** use paths, after the phases have resolved: a cast, an attack, and a window
+use billed at the Damage Step or the Combat Phase's start, which raised nothing until Giant Monster
+of the Great River had to hear Monstrous Strength (#198). After, because "uses" is the sheet's word, and a
 Skill refused mid-resolution has not been used. It is the only event with a **subject**, so a
 handler may filter on it:
 

@@ -6,10 +6,9 @@
 # nouns -- "for each Proliferation stock, X" -- so they are six elements sharing
 # one field rather than six readers each counting stocks their own way.
 #
-# **They live here and not on the stock.** An effect's rules are collected once
-# per INSTANCE, so a `perStack` element authored on `proliferationStock` would
-# be collected n times and scaled by n each time: ten stocks would pay a
-# hundredfold. This Skill is collected once.
+# The stock's own worth -- Health, size, Range, MOV -- lives on the stock,
+# collected once per bearer (`rulesOncePerBearer`), so a Skill Seal here does
+# not take it (#198 reading 8). Passives 2 and 3 are this Skill's and stay.
 #
 # The sheet says "Endless Proliferation stock" in Passives 2 and 3 and
 # "Proliferation stock" everywhere else. They are the same thing --
@@ -63,40 +62,18 @@ passiveRules:
   - key: GrantedAbility
     abilities: [ignoresOccupancy]
     predicate: ["self:attribute:giant"]
+  # How they are knocked back (#198 reading 7): away from her along her travel,
+  # a Unit in the way pushed on in turn, one pinned against the edge to the
+  # nearest free panel. Allies too, no damage, and not a Move by anyone pushed.
+  - key: Knockback
+    direction: arrival
+    predicate: ["self:attribute:giant"]
 
   # ── What a Proliferation stock is worth ──────────────────────────────
-
-  # "Max and current Health is increased by 20% of Kingprotea's ORIGINAL Max
-  # Health." The maximum is this, derived and recomputed from the stock count on
-  # every preparation; the CURRENT is paid once by the handler that grants the
-  # stock (`effects/endless-proliferation.yml`), because a derived `alsoCurrent`
-  # would refill her every frame.
   #
-  # `@self.baseHealth` and not `health.max`: her maximum has already grown by
-  # the time the second stock lands.
-  - key: MaxDelta
-    stat: health
-    value: "0.2 * @self.baseHealth"
-    perStack: { effect: proliferationStock }
-
-  # "For every 3 Proliferation stocks, Kingprotea's size will grow by 1 panel."
-  # `each: 3` is the whole clause; `SizeStep` turns it into deltas on
-  # `footprint.w`/`footprint.h`, which is what the token, the board's occupancy
-  # and the platform rules all already speak.
-  - key: SizeStep
-    value: 1
-    perStack: { effect: proliferationStock, each: 3 }
-
-  # "Each time Kingprotea grows, her Range is increased by 1 panel and her MOV
-  # is decreased by 1." Per GROWTH, so they share the `each: 3`.
-  - key: RangeDelta
-    value: 1
-    isBuff: false
-    perStack: { effect: proliferationStock, each: 3 }
-  - key: MovDelta
-    value: -1
-    isBuff: false
-    perStack: { effect: proliferationStock, each: 3 }
+  # On the stock itself, not here: a Skill Seal on Huge Scale does not shrink
+  # her, and only removing a stock removes its effect (#198 reading 8). See
+  # `effects/proliferation-stock.yml`.
 
   # ── Passive 2 ────────────────────────────────────────────────────────
   #

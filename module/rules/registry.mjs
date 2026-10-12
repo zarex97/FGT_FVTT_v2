@@ -51,6 +51,8 @@ export const EffectRegistry = {
         // The ceiling on how many instances one Unit may hold, read by
         // `resolveStacking`'s `magnitudeStacks` branch.
         maxStacks: sys.maxStacks ?? null,
+        // Read by `rules/snapshot.mjs#contributionsOf` (#198 reading 8).
+        rulesOncePerBearer: Boolean(sys.rulesOncePerBearer),
         blocks: sys.blocks ?? [],
         blockedBy: sys.blockedBy ?? [],
         // Exclusion that resolves by replacement rather than by refusal.

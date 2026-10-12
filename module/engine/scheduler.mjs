@@ -61,7 +61,9 @@ export function endTurn(board, ctx) {
   // scheduler-hooks.mjs callers build `ctx` without a `board` field and pass
   // this function's own `board` parameter separately, so every handler fired
   // from a Turn/Round boundary saw `ctx.board` as `undefined`.
-  ctx = { ...ctx, board };
+  // `firedThisBoundary`: every pass below shares it, so a handler that listens
+  // to two of them fires once (§E.2).
+  ctx = { ...ctx, board, firedThisBoundary: new WeakSet() };
   // The living only. A defeat never removes the token, and a defeated Unit was
   // still ticked, drained and re-defeated at every boundary (§46.4-CN).
   const units = (board.units ?? []).filter((u) => !u.defeated);
@@ -424,6 +426,15 @@ export function fireEvent(event, units, ctx) {
       // `turnState.abilitiesUsed`, matched against the bearer's own abilities to
       // recover the category, because the record holds ids.
       if (handler.unlessUsedThisTurn && usedThisTurn(u, handler.unlessUsedThisTurn)) continue;
+
+      // One boundary, one firing. A handler on `[turnEnd, actedTurnEnd]` hears
+      // both passes when its bearer Acted on its own Turn, and the sentence is
+      // one clause: NP DmUp (GAO) lost two charges where its sheet says one
+      // (#198 reading 12; §E.2's deduplication, which nothing implemented).
+      if (ctx.firedThisBoundary) {
+        if (ctx.firedThisBoundary.has(handler)) continue;
+        ctx.firedThisBoundary.add(handler);
+      }
 
       // Actions in one `then:` list see each other's effects. Mad Enhancement
       // drains its Master and then asks whether that Master is now at or below

@@ -12,7 +12,7 @@
  */
 
 import * as geo from "../../domain/geometry.mjs";
-import { expand, DELTA } from "./shapes.mjs";
+import { expand, DELTA, edgeOffsets } from "./shapes.mjs";
 import { test as testPredicate } from "../predicate.mjs";
 import { rollOptionsFor } from "../options.mjs";
 import { compelledTargetsOf } from "../compulsion.mjs";
@@ -732,7 +732,11 @@ function resolveAnchor(spec, caster, board, placement, errors) {
       // affordance is the point: no free placement, no rule knowledge needed.
       const direction = placement.direction ?? spec.default ?? "n";
       if (!DELTA[direction]) errors.push(`Unknown direction "${direction}".`);
-      return { ...base, panel: casterPanel, direction };
+      // A caster on several panels: the block sits against her whole side,
+      // and `shift` picks between two equal placements (#198 reading 3).
+      return casterPanels.length > 1
+        ? { ...base, panel: casterPanel, direction, casterPanels, shift: placement.shift ?? 0 }
+        : { ...base, panel: casterPanel, direction };
     }
 
     case "withinRange": {
@@ -1071,7 +1075,8 @@ function candidatePlacements(spec, caster, board, max) {
       // unofferable. Ch. 45 reads it as a geometry gap; it was not.
       return (spec.shape?.directions === "all"
         ? ["n", "ne", "e", "se", "s", "sw", "w", "nw"]
-        : ["n", "e", "s", "w"]).map((direction) => ({ direction }));
+        : ["n", "e", "s", "w"]).flatMap((direction) => edgeShifts(spec, caster, direction)
+        .map((shift) => (shift === null ? { direction } : { direction, shift })));
 
     // Mode B. Every panel the anchor could legally sit on, plus the panels just
     // outside it -- the overlay needs to draw the boundary, not only its inside.
@@ -1126,6 +1131,28 @@ function candidatePlacements(spec, caster, board, max) {
  * @param {string} facing
  * @returns {GridOffset}
  */
+/**
+ * The `shift`s a direction offers: one for a one-panel caster (`null`, the
+ * placement it always had), and one per equal placement along a bigger
+ * caster's side (#198 reading 3).
+ *
+ * @param {object} spec
+ * @param {object} caster
+ * @param {string} direction
+ * @returns {Array<number|null>}
+ */
+function edgeShifts(spec, caster, direction) {
+  const panels = caster?.panels ?? [];
+  const shape = spec.shape ?? {};
+  const block = shape.kind === "square" ? { w: shape.size, h: shape.size }
+    : shape.kind === "rect" ? { w: shape.w, h: shape.h } : null;
+  if (panels.length <= 1 || !block || !["n", "e", "s", "w"].includes(direction)) return [null];
+  const vertical = direction === "n" || direction === "s";
+  const span = (key) => Math.max(...panels.map((p) => p[key])) - Math.min(...panels.map((p) => p[key])) + 1;
+  const count = edgeOffsets(vertical ? span("j") : span("i"), vertical ? block.w : block.h).length;
+  return Array.from({ length: count }, (_, k) => k);
+}
+
 function bowOf(platform, facing) {
   const panels = platform.panels?.length ? platform.panels : [platform.panel];
   const is = panels.map((p) => p.i); const js = panels.map((p) => p.j);

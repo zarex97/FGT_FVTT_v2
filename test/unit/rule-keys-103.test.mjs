@@ -209,8 +209,9 @@ describe("RangeDelta", () => {
 // that for an expression that STARTS with `@`, and this one starts with `0.2`.
 describe("MaxDelta", () => {
   it("scales per stock: 0, 200, 600 for 0, 1 and 3 stocks at a base of 1000", () => {
-    const skill = content("abilities/kingprotea-huge-scale.yml");
-    const el = skill.passiveRules.find((r) => r.key === "MaxDelta");
+    // On the stock since #198 reading 8.
+    const skill = content("effects/proliferation-stock.yml");
+    const el = skill.rules.find((r) => r.key === "MaxDelta");
     const at = (n) => contributions(
       { name: skill.name, passiveRules: [el] },
       { stacks: { proliferationStock: n }, refs: { self: { baseHealth: 1000 } } },

@@ -106,7 +106,7 @@ The stacking rule — `noneNoRefresh`, `noneRefresh`, `noneExtend`, `stage`, `ma
 - **`stage`:** Increment the stage by the application's stage count (normally 1, but Serenity's Zabaniya is *"Stage 3 Poison"* in one application, rolled once not three times). Create at stage 0 if absent.
 - **`magnitudeStacks`:** Create a new instance beside existing ones, summing magnitudes at read time. A max-stacks ceiling (Kingprotea: maximum 10 Proliferation stocks) returns no-op if at the ceiling.
 - **`highestOnly`:** Keep only the strongest magnitude; a weaker incoming application is a no-op.
-- **`count`:** Increment a charge counter (`uses`); each application adds charges specified by `def.uses` or the intent's `applyUses`.
+- **`count`:** Increment a charge counter (`uses`); each application adds charges specified by `def.uses` or the intent's `applyUses`. The instance is **replaced** by one carrying the sum, stamped with this Turn as `appliedTick`: it used to be created beside the old one, so a second Monstrous Strength left two NP DmUp (GAO) documents counted twice, and the Turn of that use still decayed one (#198 reading 12).
 
 Outcome: `create`, `refresh`, `extend`, `stage`, `replace`, `count`, or `noop`. If `noop`, the chain stops without creating.
 
