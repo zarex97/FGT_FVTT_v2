@@ -1647,5 +1647,11 @@
   "FGT.Growth.Corner.nw": "From her top-left corner",
   "FGT.Growth.Corner.ne": "From her top-right corner",
   "FGT.Growth.Corner.sw": "From her bottom-left corner",
-  "FGT.Growth.Corner.se": "From her bottom-right corner"
+  "FGT.Growth.Corner.se": "From her bottom-right corner",
+  "FGT.SecretPoison.Title": "Secret Poison revealed",
+  "FGT.SecretPoison.Source": "{source} was the source.",
+  "FGT.SecretPoison.Damage": "{name} takes {amount} Poison damage, banked while it was hidden.",
+  "FGT.SecretPoison.Heal": "{name} recovers {amount} Health: Pois Heal turned the hidden Poison into healing.",
+  "FGT.SecretPoison.Nothing": "{name} was poisoned. Nothing had ticked yet.",
+  "FGT.SecretPoison.Dropped": "{name} was defeated before the reveal. Its hidden Poison is gone."
 }

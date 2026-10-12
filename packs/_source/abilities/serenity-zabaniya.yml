@@ -1,13 +1,15 @@
 # Serenity, char_orig_sheets/Copia de Hassan (Serenity).md
 #
 # The cleanest example in the corpus of the Magic-Resistance exemption doing
-# real work: Base Attack (MAG) 100 against Base Attack (STR) 65, and *"not
+# real work: Base Attack (MAG) 150 against Base Attack (STR) 75 by the tables
+# (#199 reading 1), and *"not
 # affected by Magic Resistance"* — without that flag her only damaging Noble
 # Phantasm is negated outright by any Magic Resistance of Rank C or better.
 #
 # It is also where Secret Poison comes from. The passive cloud inflicts ordinary
-# Poison; while she is concealed, the same Poison is inflicted with its cause
-# hidden until her Presence Concealment ends (Ch. 45, **Q47**).
+# Poison; while she is concealed, the same Poison is inflicted hidden, its
+# ticks banked rather than taken, and the bank lands when her Presence
+# Concealment ends (#199 reading 10, replacing Ch. 45's Q47).
 schema: 1
 id: serenity-zabaniya
 name: "Zabaniya: Delusional Poison Body"
@@ -84,6 +86,11 @@ phases:
   # runs only if the damage landed.
   - kind: applyEffects
     target: reuse
+    # "Not affected by Magic Resistance" is the whole NP: its debuffs meet no
+    # Magic Resistance either, the ordinary resist as well as the
+    # Instakill/Death ladder (#199 reading 11). The damage block's flag covers
+    # the damage and the ladder only.
+    ignoresResistanceFrom: [magicResistance]
     effects:
       # "Stage 3 Poison": ONE application worth three stages. Three separate
       # applications would roll the chance three times and would each be

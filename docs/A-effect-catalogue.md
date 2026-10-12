@@ -473,7 +473,7 @@ Statuses are neither buffs nor debuffs: never removable by `Cure` or `Dispel`, n
 | Status | Source | Semantics |
 |---|---|---|
 | `Soaked` | Anastasia | (1) Ice damage carries an **additive** +25% `Freeze` chance. (2) Fire damage taken −50% Total, then `Soaked` is consumed. (3) Removed from every affected unit at the end of a **Day Round**. Explicitly neither buff nor debuff and Unremovable. |
-| `Secret Poison` | Serenity | `Poison`, applied and ticking normally, whose **cause** is hidden from the victim's controller until Presence Concealment deactivates. Damage lands immediately; only the attribution is deferred (Ch. 44 §44.4, **Q47**). |
+| `Secret Poison` | Serenity | `Poison`, hidden from the victim's controller while Presence Concealment is Active. Its ticks are **banked**, not taken, and the bank lands as one hit of Poison damage when her concealment ends (Ch. 30, #199 reading 10, replacing **Q47**). |
 | `Nameless Forest Token` | Nursery Rhyme | A **counter**, not a duration. Each token: Max Health −25, both Base Attacks −10, Max Luck −1 — the errata'd figures; the sheet strikes through 50 and 20 in their favour. Lost Health and Luck are **not** restored on removal. At ≥3 tokens the bearer rolls `1d12` at its own turn end and is **defeated** on a roll ≤ the token count, unless inside its Home Base. The only way out is the bearer's own Luck Check, once per Turn on its own Turn (`FGT.Action.ForestEscape`); success clears **every** token and applies `Nameless Forest Resistance`. The marker is `unremovable`, so no cleanse substitutes. |
 | `GotN` | Pale Rider | Stores an **unapplied effect bundle**. Discharges — applying `Atk Up`, `Regen` and `Dmg Cut` — when the bearer enters `Doomsday Come`, then removes itself. |
 | `AC` (Activated Circuits) | EMIYA | NP-cooldown economy. Mutually exclusive with `BC`. **Cascading removal**: dies when `Atk Up (Trace)` is removed. |
@@ -524,9 +524,9 @@ Added in `0.2.0` for Serenity's Secret Poison and Jack's Information Erasure.
 | `deferredUntil` | an event id, or `null` | Hide the effect **and its attribution in the log** until the event fires; then disclose retroactively |
 | `attributionHidden` | `true` / `false` | Apply the mechanical result immediately but show the *cause* as unattributed |
 
-**Secret Poison uses `attributionHidden`, not deferred damage.** Health drops on schedule; the
-log entry says *"−80 (source hidden)"*. This preserves state integrity at the cost of a weaker
-secret, which is the correct trade (Ch. 44 §44.4, **D44.10**).
+**Secret Poison uses `attributionHidden` and a bank.** Ruled on #199 (reading 10), replacing
+D44.10 and Q47: the victim's Health does not move while the Poison is secret. Each tick banks at its
+real value against the inflicter, and the bank lands when her concealment ends (Ch. 30).
 
 **All three fields now have readers.** `visibility` and `attributionHidden` shipped on the
 instance schema in `0.2.0` and **nothing anywhere read or wrote either** — `io.createEffects`
@@ -543,9 +543,9 @@ had no caller at all. Built for Serenity:
   by the concealment ending, which is one function rather than an event subscription — and adding
   a second, half-wired disclosure path would be the exact defect this appendix keeps recording.
 
-The tally the sheet promises to reveal (*"total Poison Damage taken"*) is `system.hiddenDamage`,
-keyed by cause, accumulated by `io.adjustHealth` from the intents of the write that takes the
-Health.
+The total the sheet promises to reveal (*"total Poison Damage taken"*) is `system.hiddenDamage`,
+keyed by **inflicter**, written by `io.bankSecret` from the scheduler's `bankSecret` intents. It is
+signed: Pois Heal banks a negative.
 
 ---
 

@@ -5026,6 +5026,17 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
           // by debuffs is reduced by 20%"* has therefore never reduced
           // anything, on this path or the check path; the applier's own
           // comment describes the loop as closed and it was not.
+          //
+          // A resistance this application is not subject to, named on the
+          // phase or on the one effect. Read on the check path only, so
+          // Kiritsugu's Mark resisted through Debuff Res Up from its first day
+          // and Zabaniya's riders met Magic Resistance its sheet says they do
+          // not -- *"not affected by Magic Resistance"* covers the whole NP,
+          // debuffs and Instakill included (#199 reading 11).
+          ignoresResistanceFrom: [
+            ...(phase.ignoresResistanceFrom ?? []),
+            ...(spec.ignoresResistanceFrom ?? rule.ignoresResistanceFrom ?? []),
+          ],
         },
       });
 

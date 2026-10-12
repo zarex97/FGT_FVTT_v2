@@ -120,15 +120,17 @@ describe("Deadly Poison", () => {
 });
 
 describe("Secret Poison's tick", () => {
-  it("carries the hidden flag so the tally can be kept", () => {
-    // Q47: the Health comes off on schedule and only the CAUSE is deferred, so
-    // displayed and real Health never diverge.
-    const unit = poisoned(1, { instance: { attributionHidden: true } });
-    expect(tickPeriodics([unit], "roundEnd", ctx)[0].attributionHidden).toBe(true);
+  it("is banked against its inflicter, not taken", () => {
+    // #199 reading 10 replaced Q47: the victim's bar does not move, and the
+    // bank lands when her concealment ends. More in `serenity-199.test.mjs`.
+    const unit = poisoned(1, { instance: { attributionHidden: true, sourceUnitId: "s" } });
+    expect(tickPeriodics([unit], "roundEnd", ctx)).toEqual([
+      { t: "bankSecret", unitId: "v", inflicterId: "s", defId: "poison", amount: 20 },
+    ]);
   });
 
-  it("leaves an ordinary Poison unmarked", () => {
-    expect(tickPeriodics([poisoned(1)], "roundEnd", ctx)[0].attributionHidden).toBe(false);
+  it("leaves an ordinary Poison dealing damage", () => {
+    expect(tickPeriodics([poisoned(1)], "roundEnd", ctx)[0].t).toBe("damage");
   });
 });
 

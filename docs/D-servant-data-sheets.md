@@ -752,8 +752,11 @@ All seven ship. Four mappings ended up different from the plan above.
   Skill's own 2◈, so a Servant could re-conceal the instant the first concealment lapsed.
 - **Secret Poison is a flag on the Poison instance, not a second effect.** `visibility: gmOnly`
   plus `attributionHidden: true`, set only when the inflicter is concealed — so an unconcealed
-  Serenity poisons openly and the clause is self-limiting. It follows **Q47**, not the literal
-  sentence: the Health comes off on schedule and only the *cause* is deferred.
+  Serenity poisons openly and the clause is self-limiting. Its ticks are **banked**, not taken,
+  and the bank lands at the reveal through the defeat chain (#199 reading 10, replacing Q47).
+- **Zabaniya's whole NP ignores Magic Resistance.** The damage block's `ignoresMagicResistance`
+  covers the damage and the Instakill ladder. The rider phase's `ignoresResistanceFrom:
+  [magicResistance]` covers its ordinary debuffs too (#199 reading 11).
 - **Zabaniya's cloud is `target: nearby`, not an `Aura`.** An aura contributes a modifier to
   whoever stands in it; this *applies* something, once, at a moment. Different shape, and one the
   action table had no way to express.

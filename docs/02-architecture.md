@@ -113,16 +113,20 @@ cannot quietly outlive the debt it records (`tools/check-layers.mjs:95-96`).
 
 ### The write boundary
 
-An **intent** is a plain object describing one change. The legal set is frozen at 33 types
-(`module/engine/intents.mjs:23-36`):
+An **intent** is a plain object describing one change. The legal set is frozen at 36 types
+(`module/engine/intents.mjs:23-41`):
 
 ```
 damage · heal · statDelta · applyEffect · removeEffect · move · setFacing · defeat
 dismissSummon · durationDelta · suppressRule · rewind · markGlassGameSpent · resource
-cooldown · spendCS · markTurn · prompt · log · itemQuantity · itemGrant · markContract
-grantCommandSpells · consumeUse · setMode · setStance · recordUse · extendEffect
-shieldDelta · recordAttack · suspendSkill · setStage · event
+cooldown · spendCS · markTurn · markRoundState · prompt · log · itemQuantity · itemGrant
+markContract · grantCommandSpells · consumeUse · setMode · setStance · recordUse
+extendEffect · shieldDelta · recordAttack · suspendSkill · setStage · event · clearBody
+bankSecret
 ```
+
+`bankSecret` is the newest: a Secret Poison tick banked against its inflicter instead of taken,
+so the victim's Health does not move until the reveal (Ch. 30, #199 reading 10).
 
 The comment above that list states the rule for extending it: *"A type here, a constructor below,
 an ORDER rank, and an applier case: all four, or `applyIntents` throws the whole batch out"*
