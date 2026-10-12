@@ -4,7 +4,7 @@ found: tooling
 kind: long-run-in-foreground
 status: fixed
 reviewed: true
-pattern: vps-drive-kit
+pattern: drive-kit
 ---
 **Expected:** `npx vitest run` piped through `grep` finishes inside a 600 s tool timeout.
 

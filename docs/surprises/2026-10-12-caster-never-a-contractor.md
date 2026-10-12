@@ -3,7 +3,8 @@ id: 2026-10-12-caster-never-a-contractor
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** Medea, a Caster, may attempt to contract Free Kingprotea.
 **Actual:** "notAContractor".

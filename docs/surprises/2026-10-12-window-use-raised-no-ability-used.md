@@ -3,7 +3,8 @@ id: 2026-10-12-window-use-raised-no-ability-used
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Giant Monster of the Great River hears Monstrous Strength.
 **Actual:** read while building the rulings: the Damage Step's billed use raised no `abilityUsed`; only a cast and an attack did.

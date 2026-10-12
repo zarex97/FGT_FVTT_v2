@@ -4,7 +4,7 @@ found: tooling
 kind: pattern-matches-its-own-command
 status: fixed
 reviewed: true
-pattern: vps-drive-kit
+pattern: drive-kit
 ---
 **Expected:** `pkill -f remote-debugging-port=9222` closes the headless Chrome and the command goes on.
 **Actual:** The Bash call died with `Exit code 144` twice, and three Chrome processes were still running.

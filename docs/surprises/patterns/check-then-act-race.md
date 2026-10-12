@@ -1,0 +1,8 @@
+---
+kind: check-then-act-race
+lesson: When several async flows can reach one decision together, claim it in memory and make the rest await the claim.
+landed: CLAUDE.md#Lessons
+---
+**Mechanism:** Several async flows reach the same decision at once and each decides from state the others have not written yet. Airavata's three Processes each opened the Damage Step window, each believed it was first to strike, and one paid an after-damage buff before its siblings had struck; a stock's two triggers each asked the owner for a growth corner.
+**Lesson:** Wherever a fan-out, a hook burst or a microtask queue can bring two flows to one question, decide it with an in-memory claim (a Map of promises keyed by group) and make the others await it. Do not read a record a sibling writes later. Press it with every sibling released together.
+**Surprises:** [2026-10-12-damage-step-window-per-process](../2026-10-12-damage-step-window-per-process.md) · [2026-10-12-self-buff-paid-per-process](../2026-10-12-self-buff-paid-per-process.md) · [2026-10-12-then-buff-between-hits](../2026-10-12-then-buff-between-hits.md) · [2026-10-12-growth-asked-twice](../2026-10-12-growth-asked-twice.md)

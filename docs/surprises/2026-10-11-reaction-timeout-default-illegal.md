@@ -3,7 +3,8 @@ id: 2026-10-11-reaction-timeout-default-illegal
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** when nobody answers a reaction prompt in time, the defender takes the hit. `rules/await-policy.mjs` says the default is "the option that spends nothing".
 **Actual:** at Mannanán's live press (#197), the prompt timed out and threw `Illegal Combat Process transition "react:none". Legal events from "react": nothing, block, evade.` from `applyExpiry`. The card stayed at its rung until it was clicked.

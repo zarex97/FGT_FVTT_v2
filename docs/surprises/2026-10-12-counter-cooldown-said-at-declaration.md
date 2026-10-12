@@ -3,7 +3,8 @@ id: 2026-10-12-counter-cooldown-said-at-declaration
 found: retraction
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** I told the user that the Fragarach Counter's c (NP cooldown −⅓◈) and d (+1 token) both run when the counter is declared, before its hit (#197, open question 2).
 **Actual:** only d does. `resource` is in `CASTER_PHASES`, so it is paid at declaration. `cooldown` was taken out of that set in §46.4-X. It runs in the post-damage loop with a and b, so a Dodge, which skips the damage step, skips c as well.

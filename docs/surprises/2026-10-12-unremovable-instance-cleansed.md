@@ -3,7 +3,8 @@ id: 2026-10-12-unremovable-instance-cleansed
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Self-Suggestion's cleanse leaves an Unremovable debuff, as its YAML comment says.
 **Actual:** the staged Unremovable Atk Dwn went with Burn and Def Dwn.

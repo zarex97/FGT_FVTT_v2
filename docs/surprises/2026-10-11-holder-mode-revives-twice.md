@@ -3,7 +3,8 @@ id: 2026-10-11-holder-mode-revives-twice
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** Possession takes Mannanán into Holder Mode once. "No duration, no way back" is the design's word, and the Skill has `maxUses: 1`.
 **Actual:** Dohatsu Tenshou defeated her at tick 9 and Holder Mode revived her. At tick 11 a Round-end Burn defeated her again, and the log reads a second `revive … God's Holder: Possession, amount 625`. That second entry re-ran `then:`, which emptied her tokens and raised her token ceiling from 7 to 9.

@@ -80,7 +80,7 @@ then `Ctrl-b d`. Keep `remain-on-exit` off in tmux, or a dead pane holds the uni
 
 ## Driving the board headless
 
-Lessons from driving Nemo's audit over CDP (`docs/surprises/patterns/vps-drive-kit.md`):
+Lessons from driving Nemo's audit over CDP (`docs/surprises/patterns/drive-kit.md`):
 
 - **Drags move no token** over CDP's `Input.dispatchMouseEvent`, though clicks work. Cause not found. Move
   with `TokenDocument#move`, the call a drag ends in, and record the Clause as `Pressed (engine)`.
