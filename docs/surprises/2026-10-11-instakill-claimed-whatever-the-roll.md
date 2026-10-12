@@ -3,7 +3,8 @@ id: 2026-10-11-instakill-claimed-whatever-the-roll
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Fragarach's card tells the players whether the Instakill on the cancelled Noble Phantasm's user landed. Reading 14 rules it is rolled against the user's resistances.
 **Actual:** the card read "Medusa's Noble Phantasm was their strongest — Instakill is inflicted on them." The roll was not shown, and the same words would have printed for a resisted Instakill.

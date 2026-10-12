@@ -3,7 +3,8 @@ id: 2026-10-12-drag-moves-part-way
 found: tooling
 kind: synthetic-drag-partial
 status: open
-reviewed: false
+reviewed: true
+pattern: drive-kit
 ---
 **Expected:** a claude-in-chrome drag of her token moves her to the drop panel.
 **Actual:** 8 panels dragged moved her 3, then 1; arrow keys panned the canvas.

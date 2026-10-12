@@ -3,7 +3,8 @@ id: 2026-10-12-then-buff-between-hits
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: check-then-act-race
 ---
 **Expected:** *Then, apply Atk Up* after the NP: none of its own hits carries it.
 **Actual:** Medea's card, the second hit of a 4x4 Airavata, read "Atk Up atkUp +20%".

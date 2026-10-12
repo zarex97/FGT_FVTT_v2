@@ -3,7 +3,8 @@ id: 2026-10-12-growth-asked-twice
 found: live press
 kind: unserialized-async-resize
 status: fixed
-reviewed: false
+reviewed: true
+pattern: check-then-act-race
 ---
 **Expected:** one "Kingprotea grows" dialog per growth.
 **Actual:** two dialogs at her sixth stock; both answers would resize and shove.

@@ -3,7 +3,8 @@ id: 2026-10-11-automatic-counter-on-the-bar
 found: live press
 kind: generic-path-escapes-special-case
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** the Fragarach Counter is declared only by the engine. Its own file opens with "NOT A BUTTON".
 **Actual:** it sat on Mannanán's action bar as an Attack Skill slot: "Fragarach Counter — Ready from Round 2", later "Prevented" under NP Seal. With no cooldown and no window, nothing marked it as engine-only.

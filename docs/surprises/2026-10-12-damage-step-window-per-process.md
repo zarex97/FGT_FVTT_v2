@@ -3,7 +3,8 @@ id: 2026-10-12-damage-step-window-per-process
 found: live press
 kind: siblings-race-at-shared-step
 status: fixed
-reviewed: false
+reviewed: true
+pattern: check-then-act-race
 ---
 **Expected:** one "Start of the Damage Step" for Airavata's three Processes (#188 reading 13: one answer for the attack).
 **Actual:** three dialogs at once; Monstrous Strength taken in one reached one target.

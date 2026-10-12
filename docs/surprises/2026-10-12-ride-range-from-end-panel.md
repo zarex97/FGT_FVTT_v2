@@ -3,7 +3,8 @@ id: 2026-10-12-ride-range-from-end-panel
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** a Unit struck in passing by a Riding Attack is struck where she meets it, at Range 1 (#197 Q3, ruled 2026-10-12).
 **Actual:** Holder Mode's range-banded Normal Attack measured from the panel where the ride ended. Medea, struck 2 panels into the ride, took the Range-3 BA(MAG) band.

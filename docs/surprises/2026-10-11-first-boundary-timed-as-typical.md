@@ -3,7 +3,8 @@ id: 2026-10-11-first-boundary-timed-as-typical
 found: retraction
 kind: vps-drive-kit
 status: fixed
-reviewed: false
+reviewed: true
+pattern: drive-kit
 ---
 **Expected:** I told the user Turn boundaries take about 4 to 8 seconds, from one or two samples per branch.
 **Actual:** Five timed boundaries per branch took 1.7–3.4 s for a Turn and 5–6 s for a Round. My earlier samples were first presses after a reload, which run slow or hang.

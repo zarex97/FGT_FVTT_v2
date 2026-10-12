@@ -3,7 +3,8 @@ id: 2026-10-12-gao-exception-read-off-charges
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** no GAO charge off at the end of the Turn she used Monstrous Strength, on any Turn (#198 reading 12).
 **Actual:** with no stocks the use gained nothing, nothing was re-stamped, and the Counter's Turn spent one (6 → 5).

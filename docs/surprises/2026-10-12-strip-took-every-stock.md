@@ -3,7 +3,8 @@ id: 2026-10-12-strip-took-every-stock
 found: live press
 kind: definition-id-for-instance
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** Suppression strips one buff: one Proliferation stock of two.
 **Actual:** both stocks went, and no card said anything.
