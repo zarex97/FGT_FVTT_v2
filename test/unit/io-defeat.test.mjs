@@ -23,8 +23,10 @@
  * without dragging in Conquest, `onMasterDefeated` and the Sustainability clock.
  */
 
-import { describe, it, expect } from "vitest";
-import { withWorld } from "../helpers/world.mjs";
+import { describe, it, expect, beforeAll } from "vitest";
+import { withWorld, prepareWorld } from "../helpers/world.mjs";
+
+beforeAll(prepareWorld, 60_000);
 
 const servant = (over = {}) => ({
   id: "heracles",

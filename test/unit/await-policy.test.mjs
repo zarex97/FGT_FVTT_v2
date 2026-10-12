@@ -12,7 +12,7 @@ describe("policyFor", () => {
   it("defaults a reaction to taking the hit", () => {
     // The safest default: it never spends a resource the player might have
     // wanted to keep.
-    expect(policyFor("reaction")).toMatchObject({ defaultChoice: "none" });
+    expect(policyFor("reaction")).toMatchObject({ defaultChoice: "nothing" });
   });
 
   it("declines every optional contest", () => {
@@ -56,7 +56,7 @@ describe("policyFor", () => {
 
 describe("expiryOutcome", () => {
   it("returns the default choice when the policy says to default", () => {
-    expect(expiryOutcome(policyFor("reaction"))).toMatchObject({ decided: true, choice: "none" });
+    expect(expiryOutcome(policyFor("reaction"))).toMatchObject({ decided: true, choice: "nothing" });
   });
 
   it("decides nothing on a hold", () => {
@@ -91,5 +91,16 @@ describe("formatCountdown", () => {
 
   it("renders zero rather than an empty string", () => {
     expect(formatCountdown(0)).toBe("0:00");
+  });
+});
+
+describe("every default a timeout takes is an event its rung accepts (#197)", () => {
+  it("names a legal transition for each prompting state", async () => {
+    const { PROMPTS, legalEvents } = await import("../../module/engine/combat-process.mjs");
+    for (const [state, prompt] of Object.entries(PROMPTS)) {
+      const policy = policyFor(prompt.kind);
+      if (policy.onExpiry !== "default") continue;
+      expect(legalEvents(state), `${state} (${prompt.kind})`).toContain(policy.defaultChoice);
+    }
   });
 });

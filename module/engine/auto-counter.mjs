@@ -107,11 +107,19 @@ export function provoke({ bearer, provokerId, cause }) {
  * in turn and each of those declarations writes, and a queue that is still
  * accepting entries while it is being read would grow under its own drain.
  *
+ * @param {(p: Provocation) => boolean} [holds] keeps a provocation queued
  * @returns {Provocation[]}
  */
-export function takePending() {
-  const out = [...pending.values()];
-  pending.clear();
+export function takePending(holds = () => false) {
+  const out = [];
+  for (const [key, p] of pending) {
+    // Held back while the provoker still has a Process open against the
+    // bearer in this Combat Phase: one Counter per attacker per Phase, after
+    // its last Process against her (#197 reading 11).
+    if (holds(p)) continue;
+    out.push(p);
+    pending.delete(key);
+  }
   return out;
 }
 

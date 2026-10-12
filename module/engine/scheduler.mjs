@@ -490,6 +490,11 @@ export function fireEvent(event, units, ctx) {
       if (handler.consumesUse && handler.defId) out.push(I.consumeUse(u.id, handler.defId));
       out.push(I.log({ kind: "event", event, unitId: u.id, source: handler.source, tick: ctx.tick }));
     }
+    // An `until <event>` duration ends here, after the handlers that heard the
+    // event have run, so an effect is still in force for the event that ends it.
+    for (const inst of u.effectInstances ?? []) {
+      if (inst.endsOn === event) out.push(I.removeEffect(u.id, inst.id, `ends on ${event}`));
+    }
   }
   return out;
 }

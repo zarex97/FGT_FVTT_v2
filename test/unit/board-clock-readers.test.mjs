@@ -23,8 +23,10 @@
  * test could see any of it; `spec.viewedCombat` is what separates them.
  */
 
-import { describe, it, expect } from "vitest";
-import { withWorld } from "../helpers/world.mjs";
+import { describe, it, expect, beforeAll } from "vitest";
+import { withWorld, prepareWorld } from "../helpers/world.mjs";
+
+beforeAll(prepareWorld, 60_000);
 
 const servant = (turnState, roundState) => ({
   id: "asterios",

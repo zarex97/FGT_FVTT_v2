@@ -362,9 +362,9 @@ describe("God's Holder: Possession", () => {
     ]);
   });
 
-  it("is an OPTIONAL revival, above Guts and below Special Guts", () => {
+  it("is an AUTOMATIC revival, above Guts and below Special Guts (#197 reading 15)", () => {
     const revival = possession.passiveRules.find((r) => r.key === "RevivalSource");
-    expect(revival.optional).toBe(true);
+    expect(revival.optional).toBeUndefined();
     expect(revival.revivalPriority).toBe(250);
     expect(revival.percentOfMax).toBe(50);
     expect(revival.enterMode).toBe("godsHolderPossession");
@@ -381,7 +381,7 @@ describe("God's Holder: Possession", () => {
     expect(possession.phases.find((p) => p.kind === "heal").toPercentOfMax).toBe(50);
   });
 
-  it("is withheld until somebody accepts it", () => {
+  it("takes her at her defeat without asking, while she holds a token", () => {
     const out = collectContributions([{
       id: "possession", name: "God's Holder: Possession",
       passiveRules: possession.passiveRules, fromEffect: false,
@@ -391,8 +391,11 @@ describe("God's Holder: Possession", () => {
       resources: { fragarachTokens: { value: 3, max: 5 } },
       abilities: [],
     };
-    expect(availableRevivals(unit)).toEqual([]);
-    expect(availableRevivals({ ...unit, acceptedRevivals: ["holderMode"] })).toHaveLength(1);
+    expect(availableRevivals(unit)).toHaveLength(1);
+  });
+
+  it("is pressed during her own Turn", () => {
+    expect(possession.timing).toEqual({ window: "ownTurn" });
   });
 
   it("is withheld when she holds no tokens, whatever the answer", () => {

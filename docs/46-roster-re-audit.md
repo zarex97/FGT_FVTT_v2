@@ -3989,6 +3989,46 @@ Twice, within about a minute of a page reload, a `nextTurn` ran no boundary, and
 same steps later worked. Recorded in `docs/surprises/2026-10-11-boundaries-skipped-after-reload.md`. Not reproduced
 without a reload.
 
+### JZ. A duration `until <event>` never ended — **fixed** (#197)
+
+**Reached: Mannanán TC.spend.dur; Anastasia's Watermelon.** `parseTick` read the form and lowercased the event; no
+module removed the instance, so Anastasia's Blind outlived its Combat Process by the match. The instance carries
+`endsOn`, and `fireEvent` removes it. Ch. 04.
+
+### KA. The automatic counter answered every Process — **fixed** (#197)
+
+**Reached: Mannanán FX.multi.** `flushAutoCounters` ran at each Process's end, so Dohatsu Tenshou owed five. A
+provocation now waits while its provoker has a Process open against the bearer in the same Phase. Ch. 23.
+
+### KB. The reaction timeout answered with an illegal event — **fixed** (#197)
+
+**Reached: every reaction prompt left unanswered.** `await-policy.mjs` defaulted to `none`; the ladder's event is
+`nothing`, so the prompt threw. Every default is now held against its rung's legal events. Ch. 23.
+
+### KC. An engine-declared counter was a button — **fixed** (#197)
+
+**Reached: Mannanán's bar.** The Fragarach Counter classified as a clickable Attack Skill. The `automatic` window
+classifies it unclickable. Ch. 17.
+
+### KD. An automatic counter and a cancellation were not Acts — **fixed** (#197)
+
+**Reached: Mannanán HM.act.** Only `runCounter` stamped `acted`. `flushAutoCounters` and `resolveNPCancellation` do
+now. Ch. 23.
+
+### KE. A cancelled NP's Instakill read "inflicted" whatever the roll — **fixed** (#197)
+
+**Reached: Mannanán FG.ik.** The card shows the roll and says "resisted" when it was. Ch. 33.
+
+### KF. Holder Mode revived her twice — **fixed** (#197)
+
+**Reached: Mannanán HM.max.** The revival source was not consumed and gated only on a token. It needs Holder Mode
+off. Ch. 10.
+
+### KG. A world test's first test paid Foundry's load — **fixed** (#197)
+
+**Reached: eight files using `withWorld`.** Each failed alone, its first test timing out at 5 s. `prepareWorld`
+loads Foundry and the engine in `beforeAll`. Ch. 44.
+
 ---
 
 ---
@@ -5142,3 +5182,46 @@ down by a damage write before Usui; and the two prompt timeouts raised to 300 s 
 then restored to 45 and 60. Her defeat for TK.defeat came from Medusa's Normal Attack: a damage write had defeated
 her without `unitDefeated`, which is not a press. Several `nextTurn` calls were repeated by the helper reading a
 stale log; see the open Surprise on Round boundaries.
+
+## 46.25 Mannanán mac Lir — the Servant who answers
+
+**All 128 of her Clauses were Pressed or Observed on a live board** (#197, 2026-10-11), on the VPS copy of
+`fgt2026`, after 15 readings were ruled the same day. The board found eight engine defects that reach other Servants
+(§46.4-JZ to KG) and four in her own content.
+
+**Why she finds what she finds.** Almost everything she does happens on somebody else's Turn: a counter on being
+attacked or debuffed, a cancel at another Unit's declaration, a revival at her own defeat, tokens at Turn ends that
+are not hers. Each of those is a door the engine opens on her behalf, and each door had skipped something the
+ordinary door does.
+
+### 46.25.1 What she cost the engine
+
+| Finding | Where |
+|---|---|
+| `until <event>` never ended | `domain/tick.mjs`, `effect-applier.mjs`, `scheduler.mjs#fireEvent` |
+| A counter per Process | `attack.mjs#flushAutoCounters`, `auto-counter.mjs#takePending` |
+| The reaction timeout threw | `rules/await-policy.mjs` |
+| The counter on her bar | `rules/windows.mjs`, `ability-use.mjs#classifyUse` |
+| Counters and cancels not Acts | `attack.mjs#flushAutoCounters`, `#resolveNPCancellation` |
+| A resisted Instakill read "inflicted" | `attack.mjs#resolveNPCancellation` |
+| Holder Mode revived twice | `mannanan-gods-holder-possession.yml` |
+| Tradition Carrier extended "this turn" | `effect-applier.mjs` (reading 5) |
+| A ride's hit measured from its end | `attack.mjs#attackFacts` (Q3) |
+
+Her own, fixed in content: the spend's Crit Up ends with the Combat Phase (reading 3); Holder Mode revives with no
+offer (reading 15); the reflect is computed against its user for a single-target Noble Phantasm too (reading 13).
+
+**The press's three questions, ruled 2026-10-12.** Q1: a Stun that lands with the hit stops the counter it provoked,
+as `flushAutoCounters` already did. Q2: the counter's c and d come from performing it, a and b from its hit. c is
+now `when: afterProcess`; pressed with Raikou Dodging, her NP cooldown fell 21 → 20 and her tokens rose 3 → 4, and
+neither Def Dwn (C) nor S.Crit Up landed. Q3: every hit of a ride is at Range 1; pressed with Medea struck one panel
+into a four-panel ride, the card read *"BA(STR) × 1 +150, BA(MAG) × 0.3 +75"*, the Range 1–2 band.
+
+### 46.25.2 What was staged
+
+Named in each evidence line: positions; the `fragarach` effect staged for the counter presses once Enbarr itself was
+pressed; tokens, cooldowns, Health and Turn records reset between presses; her Master moved back into her ZON and
+healed; Shock, Stun, Burn, Bleed and Crit Dwn cleared after Dohatsu Tenshou; Holder Mode switched off to press Toole
+Fragarach and Possession; EMIYA moved to Faction 2 as Toole's target; defeated Masters and EMIYA stood back up;
+Medea given `outsider` for one preview. Round 4's Faction 2 Turn passed unused once, by the helper reading the
+mislabelled turn log.

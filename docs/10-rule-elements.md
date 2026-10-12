@@ -150,6 +150,10 @@ executor actually reads, rather than of its descriptor's ids.
   Continuation, Divine Protection and Holder Mode restore their amount or destination whatever the
   overkill; the old general subtraction left a Guts 10 Servant dead to a 167 overkill (#172).
   `ignoresOverkill` is retired.
+- **`RevivalSource`** for Holder Mode is not optional and is taken once (#197 reading 15). At her
+  defeat Mannanán revives with no offer, and `requires: modeInactive godsHolderPossession` stops a
+  second revival: `consumesOnUse: false` and a token gate let a Round-end Burn revive her again in
+  Holder Mode and re-run its entry, raising her token ceiling to 9.
 - **`SustainabilityGain`** carries `targetPredicate` and listens for `unitKilled`, a new event fired on
   the killer (Appendix E). It had listened on `unitDefeated`, which the victim hears, and dropped the
   predicate: Jack and Medusa gained Sustainability when they themselves died, for anybody, and never

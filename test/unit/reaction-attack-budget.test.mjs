@@ -27,11 +27,13 @@
 
 import { readFileSync } from "node:fs";
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 
-import { withWorld } from "../helpers/world.mjs";
+import { withWorld, prepareWorld } from "../helpers/world.mjs";
 import { countsAsAttack } from "../../module/rules/ability-use.mjs";
 import { budgetActionFor } from "../../module/rules/budget.mjs";
+
+beforeAll(prepareWorld, 60_000);
 
 /** EMIYA, and a Rho Aias-shaped Noble Phantasm: no `countsAsAttack` of its own. */
 const RHO_AIAS = { system: { isNP: true, isPassive: false } };

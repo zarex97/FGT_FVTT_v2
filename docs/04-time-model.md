@@ -8,7 +8,7 @@ The system has **four duration kinds** besides ◈:
 
 - *Turns* — a literal turn count (e.g. *"2 turns"*).
 - *this turn* — expires immediately at turn end, carrying zero remaining turns (`module/domain/tick.mjs:221-222`).
-- *permanent*, *until <event>*, *N times* — not time-limited. `permanent` effects stay forever; `until <event>` are removed by an external trigger; use counts are removed by consumption. All resolve to `INFINITE` for comparison purposes (`module/domain/tick.mjs:223-228`).
+- *permanent*, *until <event>*, *N times* — not time-limited. `permanent` effects stay forever; `until <event>` carry the event on the instance (`endsOn`) and `fireEvent` removes them when it fires on their bearer, so Mannanán's Crit Up *"for that Combat Phase"* is `until combatPhaseEnd` (`module/engine/scheduler.mjs#fireEvent`). The event name keeps its case; use counts are removed by consumption. All resolve to `INFINITE` for comparison purposes (`module/domain/tick.mjs:223-228`).
 
 Fractions **always round down** (`module/domain/tick.mjs:68`), with one published exception: ½◈ at 3 turns per round is 2 turns, not 1. That exception lives in the source's own published table rather than in a rounding hack, so it stays visible (`module/domain/tick.mjs:29-33`).
 

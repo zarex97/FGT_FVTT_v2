@@ -88,6 +88,21 @@ import { loadFoundry, installSystem, sourceForm, firstMismatch } from "../../too
  */
 let REAL = null;
 
+/**
+ * Load Foundry's data layer once, ahead of the first `withWorld`.
+ *
+ * The first load, and the first import of the engine, take longer than a
+ * test's 5 s default, so a file that let its first test pay for them timed out
+ * there and failed every test after it (#197). `beforeAll(prepareWorld, 60_000)` pays it outside any test.
+ *
+ * @returns {Promise<void>}
+ */
+export async function prepareWorld() {
+  await loadReal();
+  // The engine's module graph, which the first test's own import paid for too.
+  await import("../../module/engine/io.mjs");
+}
+
 async function loadReal() {
   if (REAL) return REAL;
   const saved = Object.fromEntries(GLOBALS.map((k) => [k, globalThis[k]]));

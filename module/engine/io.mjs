@@ -439,6 +439,8 @@ export function worldIO() {
           sourceFieldId: e.sourceFieldId ?? null,
           // The terrain it dies with, beside the field it dies with (#147).
           sourceTerrain: e.sourceTerrain ?? null,
+          // The event it ends on (`until <event>`), beside the clock it does not have.
+          endsOn: e.endsOn ?? null,
           unremovable: Boolean(e.unremovable),
           // Ch. 15 / Appendix A §A.18. Both have been on the instance schema
           // since `0.2.0` and this writer dropped both, so an effect could be

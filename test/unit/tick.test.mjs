@@ -104,7 +104,7 @@ describe("non-◈ duration forms", () => {
     expect(ticks("until zeroSailEnds", ctx)).toBe(INFINITE);
     expect(ticks("3 times", ctx)).toBe(INFINITE);
     expect(parseTick("3 times")).toEqual({ kind: "uses", n: 3 });
-    expect(parseTick("until zeroSailEnds")).toEqual({ kind: "untilEvent", event: "zerosailends" });
+    expect(parseTick("until zeroSailEnds")).toEqual({ kind: "untilEvent", event: "zeroSailEnds" });
   });
 
   it("returns null for empty input rather than guessing", () => {

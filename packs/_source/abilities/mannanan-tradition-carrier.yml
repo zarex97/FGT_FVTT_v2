@@ -41,7 +41,7 @@ passiveRules:
     label: "+30% Crit Chance this Combat Phase"
     cost: { resource: fragarachTokens, amount: 1 }
     effects:
-      - { id: critUp, magnitude: 30, duration: "this turn" }
+      - { id: critUp, magnitude: 30, duration: "until combatPhaseEnd" }
 
   # Passive 3. The reason `@` expressions gained a scalar: the magnitude is a
   # function of a pool that changes several times a Round, so it cannot be a

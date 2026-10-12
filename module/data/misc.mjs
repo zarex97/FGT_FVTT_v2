@@ -76,6 +76,11 @@ export class EffectData extends foundry.data.ActiveEffectTypeDataModel {
       // swept on the panel the bearer stands on, never on an exit event, for
       // the argument above (#147).
       sourceTerrain: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+      // The event that ends this instance, for a duration authored as `until
+      // <event>`: Anastasia's Blind *"until the Combat Process ends"*, Mannanán's
+      // Crit Up *"for that Combat Phase"*. Parsed, and then nothing ever removed
+      // it -- the Blind outlived its Process by the rest of the match (#197).
+      endsOn: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
       // The field a tied instance LEFT and turned ordinary on leaving. Piedra
       // Del Sol's Burn *"is no longer permanent"* once its bearer leaves -- an
       // ordinary Burn from then on -- and walking back in makes that same Burn

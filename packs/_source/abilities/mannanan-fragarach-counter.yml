@@ -42,6 +42,8 @@ categorizedAsNP: true
 # own. `declareProcesses` sits below the budget spend, which is what makes that
 # true rather than something this file has to assert.
 countsAsAttack: false
+# Not a button: declared by the engine when the status is provoked (#197).
+timing: { window: automatic }
 description: |
   The automatic Counter the @effect[fragarach]{Fragarach} status performs. Deals 2.5x damage
   using Base Attack (STR), cannot be Blocked, and cannot be Evaded except with
@@ -91,7 +93,13 @@ phases:
       - { id: sCritUp, magnitude: 10, duration: "⅓◈" }
   # c. "Mannanán's NP Cooldown is reduced by ⅓◈ Turns." `scope: np` -- the
   # clause names no Noble Phantasm and she has three.
+  #
+  # c and d come from PERFORMING the counter, so a Dodge does not cancel them;
+  # a and b need the hit (#197 Q2). `afterProcess` runs once the ladder has
+  # closed, whatever it decided; d is a `resource` phase, which the caster pass
+  # pays at declaration.
   - kind: cooldown
+    when: afterProcess
     target: self
     changes:
       - { scope: np, ticks: "⅓◈", direction: down }
