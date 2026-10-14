@@ -12,7 +12,7 @@ The attack flow is **one process per defender** in an area attack, not one proce
 |---|---|
 | `module/engine/combat-process.mjs` | The state machine: states, transitions, and pure reducers |
 | `module/engine/attack.mjs` | Orchestration: declaration, card rendering, advancing through prompts |
-| `module/rules/miss.mjs` | Step 1.5: whether the attack misses before reaction |
+| `module/rules/miss.mjs` | Step 1.5: whether the attack misses before reaction — asked with the Attack Description against this defender, so a `Suppress` on `attack:range:lte:2` (Anastasia's Watermelon Splitting Master) can answer; it was asked with neither (Wave B) |
 | `module/rules/injury.mjs` | Step 4: whether damage triggers an Agility roll |
 | `module/rules/normal-attack.mjs` | Step 1: resolving which stat a Normal Attack uses |
 | `module/engine/weak-point.mjs` | Step 3 (override): offering Achilles' Heel and rolling it |

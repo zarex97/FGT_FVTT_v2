@@ -260,10 +260,7 @@ function casterUnitOf(ctx, board) {
  * @returns {Set<string>}
  */
 function optionsFor(caster, target, ctx) {
-  if (ctx.attack) return rollOptionsFor({ attacker: caster, defender: target, attack: ctx.attack });
-  const options = new Set(
-    [...rollOptionsFor({ attacker: caster, defender: target })].filter((o) => !o.startsWith("attack:")),
-  );
+  const options = rollOptionsFor({ attacker: caster, defender: target, attack: ctx.attack ?? null });
   for (const o of ctx.attackOptions ?? []) options.add(o);
   return options;
 }

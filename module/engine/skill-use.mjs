@@ -37,7 +37,7 @@ import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { currentBoard, unitFrom, unitOf, gateContext, turnRecordOf } from "./board.mjs";
 import { resourcePathFor } from "../domain/resources.mjs";
-import { rollOptionsFor } from "../rules/options.mjs";
+import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { transferableFrom, transferEffect, entryOf } from "../rules/effect-flow.mjs";
 import { evade, checkPlan } from "../rules/checks.mjs";
@@ -411,7 +411,9 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
   // expand its shape around, and the board-derived unit is the only projection
   // that carries one.
   const self = unitOf(actor, board);
-  const selfOptions = rollOptionsFor({ attacker: self });
+  // The caster's own facts. No attack is in scope here: Dohatsu Tenshou's
+  // `attack:kind:np` `setMode` must wait for the attack's own pass.
+  const selfOptions = new Set(ownerOptionsOf(self));
 
   for (const phase of effectivePhases(ability.system ?? {}, resolveSource)) {
     // "If this is NOT THE FIRST TIME EMIYA has used this Skill in this game,
