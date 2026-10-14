@@ -24,7 +24,10 @@ describe("hooks fire as Foundry fires them", () => {
       Hooks.on("updateActor", (_a, changes) => heard.push(["first", changes]));
       Hooks.on("updateActor", () => heard.push(["second"]));
       await w.actor("heracles").update({ "system.facing": "w" });
-      expect(heard).toEqual([["first", { system: { facing: "w" }, _id: "heracles" }], ["second"]]);
+      expect(heard).toEqual([
+        ["first", { system: { facing: "w" }, _stats: { modifiedTime: expect.any(Number) }, _id: "heracles" }],
+        ["second"],
+      ]);
     });
   });
 

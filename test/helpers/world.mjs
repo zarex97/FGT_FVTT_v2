@@ -267,7 +267,10 @@ function fire(hook, doc, diff, options = {}) {
   const operation = { diff: true, recursive: true, render: true, ...options };
   if (diff === null) return globalThis.Hooks?.callAll?.(hook, doc, operation, game.user?.id ?? null);
   if (foundry.utils.isEmpty(diff)) return undefined;
-  return globalThis.Hooks?.callAll?.(hook, doc, { ...diff, _id: doc.id }, operation, game.user?.id ?? null);
+  // The server stamps every update it accepts, and the client hears the stamp
+  // in the change (`_stats.modifiedTime`), as `check:world` measured.
+  const changes = { ...diff, _stats: { modifiedTime: Date.now() }, _id: doc.id };
+  return globalThis.Hooks?.callAll?.(hook, doc, changes, operation, game.user?.id ?? null);
 }
 
 /**
