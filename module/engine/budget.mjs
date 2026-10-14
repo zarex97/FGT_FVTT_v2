@@ -15,7 +15,8 @@
  */
 
 import { emptyBudget, canConsume, consume, canEndTurn, summarize, ACTION_KINDS, poolFor } from "../rules/budget.mjs";
-import { attacksPermitted } from "../rules/environment.mjs";
+import { attacksPermitted, attackForbiddenThisRound } from "../rules/environment.mjs";
+import { currentMoment } from "./board.mjs";
 
 const FLAG = "budgets";
 
@@ -46,6 +47,15 @@ export function budgetFor(combat, factionId) {
  */
 export function affordable(combat, unit, action) {
   warnUnknownAction(action, "affordable");
+  // The first Round forbids every Attack (Ch. 29 step 12), Counters included,
+  // so it is asked before the own-Turn exemption below. Here, where the bar
+  // asks, so every Attack slot greys with the rule as its tooltip instead of
+  // opening a targeting session the declaration then refuses (#204 LJ, ruled
+  // 2026-10-14). The preflight keeps its own gate as the backstop.
+  if (combat?.started && attackForbiddenThisRound(action, currentMoment().round ?? 1,
+    game.settings?.get?.("fgt", "noAttackRound") ?? 1)) {
+    return { ok: false, reason: FIRST_ROUND_REASON };
+  }
   // An Attack made outside its owner's Turn is not checked against the attack
   // pool at all. The budget on the flag is the one that faction spent on its
   // OWN last Turn -- `reset` clears it when their next Turn begins, not when
@@ -56,6 +66,9 @@ export function affordable(combat, unit, action) {
   const verdict = canConsume(budgetFor(combat, actingFactionOf(unit)), unit, action);
   return { ok: verdict.ok, reason: verdict.reason };
 }
+
+/** The first Round's refusal, in the budget's own lower-case voice. */
+export const FIRST_ROUND_REASON = "no attacks are permitted during the first Round";
 
 /**
  * Say so when a caller names an action the budget does not know.

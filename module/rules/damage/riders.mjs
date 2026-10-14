@@ -26,10 +26,10 @@
  * drifted apart from the day the second was written precisely because neither
  * had a name.
  *
- * **`damageStepEnd` is deliberately not routed through this.** Scáthach's Alpi
- * is *"at the end of the Damage Step when a successful Attack is performed"* —
- * a clause about the attack succeeding rather than about delivering an effect,
- * and widening it would be extending the ruling rather than applying it.
+ * **`damageStepEnd` is routed through this too** (ruled 2026-10-14, #204 LI).
+ * App. E said it fires at zero damage, the code fired it only above zero, and
+ * the author chose the reference. Alpi, paid once per Attack rather than per
+ * Unit hit, listens to `attackLanded` instead.
  */
 
 /**

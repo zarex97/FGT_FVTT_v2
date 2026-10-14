@@ -113,7 +113,7 @@ describe("counterRedirect", () => {
   // Master's Servant instead."
   const master = { id: "M", kind: "master", faction: "f1", panel: { i: 5, j: 5 } };
   const servant = (id, i, j, over = {}) => ({
-    id, kind: "servant", faction: "f1", panel: { i, j }, canAct: true, ...over,
+    id, kind: "servant", faction: "f1", masterId: "M", panel: { i, j }, canAct: true, ...over,
   });
   const board = (units) => ({ units });
 

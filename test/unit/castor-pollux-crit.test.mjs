@@ -49,3 +49,21 @@ describe("and without a Crit", () => {
     });
   });
 });
+
+describe("a hit for 0 is still a hit (#204 LI)", () => {
+  it("Pollux's pays though Invuln took every point", async () => {
+    // Ruled 2026-10-14: `damageStepEnd` fires at 0 damage, as App. E says. It
+    // read `result.total > 0`, so a Blocked or Invuln defender paid nothing.
+    await withSubjects([
+      { from: "heracles", id: H, state: { factionId: "A" }, panel: { i: 5, j: 5 }, effects: [{ defId: "polluxBuff" }] },
+      { from: "medea", id: M, state: { factionId: "B" }, panel: { i: 5, j: 6 }, effects: [{ defId: "invuln" }] },
+    ], async ({ world: w }) => {
+      w.dice.every(100);
+      const { declared } = await playAttack(w, { attacker: H, target: M, react: { [M]: ["nothing", "declined"] } });
+      expect(w.messages.get(declared.messageId).getFlag("fgt", "damage")).toBe(0);
+      const fired = (game.combat.getFlag("fgt", "log") ?? [])
+        .filter((e) => e.kind === "event" && e.event === "damageStepEnd").map((e) => e.source);
+      expect(fired).toContain("polluxBuff");
+    }, at);
+  });
+});

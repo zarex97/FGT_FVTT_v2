@@ -267,7 +267,8 @@ describe("an area that catches Jack alone still flips the coin (#185)", () => {
     const { readFileSync } = await import("node:fs");
     const src = readFileSync("module/engine/attack.mjs", "utf8");
     expect(src).toMatch(/filter\(\(t\) => t\.concealedAoE\)/);
-    expect(src).toMatch(/if \(\(state\.isAoE \|\| state\.caughtConcealed\) && isConcealed\(defender\)\) \{/);
+    // ...save against an attack only its own check avoids (#204 reading 15).
+    expect(src).toMatch(/if \(\(state\.isAoE \|\| state\.caughtConcealed\) && isConcealed\(defender\) && !state\.attack\?\.unavoidable\) \{/);
   });
 });
 

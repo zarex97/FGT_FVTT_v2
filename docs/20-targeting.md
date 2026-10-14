@@ -97,3 +97,9 @@ The algorithm is eleven steps plus two upfront checks. Each step narrows the sur
   it.
 
 - **Ch. 32 rule 4 describes a Master "getting caught in" an AoE while a Servant guards them, triggering Cover.** The filtering gated on `isChosen` allows this scenario to reach the area, but whether Cover itself fires correctly has not been confirmed in a running world.
+
+### The caster as a candidate (#204)
+
+`candidatePlacements` offers the caster for a `targetUnit` anchor by the resolver's own reading,
+`resolveIncludeSelf`: `relations` naming `ally` or `self` include her. Only an explicit `includeSelf` did, so Ár
+could never be cast on Scáthach herself.

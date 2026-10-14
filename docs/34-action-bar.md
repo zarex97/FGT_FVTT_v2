@@ -134,3 +134,14 @@ the reader — and the live world is the only place the first of them can be ver
   forced it: clearing the rung alone left `bar.token` pointing at the unit that had been offered the
   Counter, so *"the bar went on showing that Unit's abilities no matter who the player selected"* --
   found with one Servant selected and a defending Caster's entire kit on his bar.
+
+### Dialog abilities and a changed ability list (#204)
+
+An `opensDialog` ability on the bar opens its dialog through `FGTActorSheet.openAbilityDialog`, the sheet's door;
+`useSkill` refuses one. The bar refreshes on `createItem` and `deleteItem`, so a re-picked copy shows at once.
+
+### The first Round greys every Attack (#204 LJ)
+
+`engine/budget.mjs#affordable` asks `attackForbiddenThisRound` before anything else, so in the first Round every
+Attack slot, Spells and Noble Phantasms included, greys with *"no attacks are permitted during the first Round"*. The
+Mark stays open. A refused declaration's toast drops the engine's `FGT | ` prefix (`FGTActorSheet.declareAttack`).

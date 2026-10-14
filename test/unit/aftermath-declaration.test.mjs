@@ -40,7 +40,7 @@ describe("declareProcesses declares a use only when it is told to", () => {
   });
 
   it("gates the caster phases on it", () => {
-    expect(declare).toMatch(/if \(ability && declaresUse\) \{\s*const \{ runCasterPhases \}/);
+    expect(declare).toMatch(/if \(ability && declaresUse\) \{\s*const \{ runCasterPhases, postCard \}/);
   });
 
   it("gates `abilityUsed` on it", () => {

@@ -121,7 +121,7 @@ second. Nothing implemented this until NP DmUp (GAO) lost two charges for one se
 | `fgt.damageComputed` | The pipeline returned, before application | `{defenderId, result}` |
 | `fgt.damageTaken` | Damage applied to a unit | `{unitId, amount, sourceId, packet}` — **fired**, on the DEFENDER, once the damage has landed, with the attacker reachable as `ctx.victim`. The mirror of `damageDealt`, and it had no trigger at all — so every clause in the catalogue that pays out for *receiving* damage had no rung. `Def Dwn (C)` is the first content to need it: *"Agility is reduced by 1 when damage is received"* is a handler on the bearer, not on whoever hit them. Fires whenever the Damage Step **resolved**, including at a total of zero — a Unit hit for nothing was still hit (Ch. 12 §12.5). |
 | `fgt.damageDealt` | Damage dealt by a unit | `{unitId, amount, targetId}` — **fired**, on the *attacker*, once the damage has landed, with the Defending Unit reachable as `ctx.victim` and `attack:crit` in the option set. This is the rung every **on-hit rider** in Appendix A hangs from — *"Normal Attacks inflict X on the DU"* — and until Serenity nothing raised it, so `Bleed Atk`, `Queen's Poison` and both halves of her poisoned daggers were all inert. Fires whenever the Damage Step **resolved**, including at a total of zero; only a suppressed or concealment-veiled attack refuses it (`rules/damage/riders.mjs`, Ch. 12 §12.5). See §E.9b. |
-| `fgt.damageStepEnd` | End of Step 3 | `{attackerId, defenderIds, results}` — **fired**, on the *attacker*, once damage has landed. The Defending Unit travels in the option set rather than in the unit list, so a handler can pay out differently against them without the defender's own handlers firing for somebody else's attack. Scáthach's `Alpi` is the first content to use it. |
+| `fgt.damageStepEnd` | End of Step 3 | `{attackerId, defenderIds, results}` — **fired**, on the *attacker*, once the hit has landed, at 0 damage too (ruled 2026-10-14, §46.4-LI): it asks `rules/damage/riders.mjs#ridersFire`, as the on-hit riders do. The Defending Unit travels in the option set rather than in the unit list, so a handler can pay out differently against them without the defender's own handlers firing for somebody else's attack. Scáthach's `Alpi` is the first content to use it. |
 | `fgt.injuryRolled` | An Injury Roll resolved | `{unitId, roll, agilityAfter}` |
 | `fgt.facingChanged` | Step 5 | `{unitId, from, to, reason}` |
 | `fgt.counterOffered` | A counter opportunity was presented | `{defenderId, attackerId}` |
@@ -540,3 +540,9 @@ what skips *their* chain. `Death` is the precedent (*"ignores buffs and abilitie
 Unit after being defeated"*), and without it a one-sided revival leaves one twin alive with a dead
 partner, which the binding forbids. The partner's logged cause is `linkedDeath`, not the damage:
 they did not die of the hit.
+
+### `fgt.attackLanded` (#204 reading 12)
+
+Fired once per Attack, on its attacker, at the end of its Combat Phase, when at least one of the declaration's own
+Processes reached the damage step (not Evaded: a Block, a hit for 0 and an Instakill that skips the damage count). The
+option set is the union of the `target:` facts of every Unit it landed on. Scáthach's Alpi listens to it.

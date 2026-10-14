@@ -38,7 +38,7 @@ The reaction opens a **Luck ladder** if the defender chose Evade (`module/engine
 - **Steps 2.1–2.2:** Evade succeeded. Attacker rolls Lucky Hit (defender loses 1 Luck). If it succeeds, defender rolls Counter-Contest (defender loses 1 Luck). Both are contested rolls with `declined` edges; declining costs 1 Luck whether or not it succeeds (`module/engine/combat-process.mjs:115-116`, `module/engine/combat-process.mjs:48-50`).
 - **Steps 2.4–2.5:** Evade failed. Defender rolls Lucky Evasion (defender loses 1 Luck). If it fails, attacker rolls Counter-Contest (attacker loses 1 Luck). Again, both can be declined for 1 Luck (`module/engine/combat-process.mjs:118-119`, `module/engine/combat-process.mjs:56-62`).
 
-Both paths terminate at **Step 2.3 — Accept or Escape.** The defender accepts the hit, or uses a Command Spell to remove both units from the board (`module/engine/combat-process.mjs:64-65`).
+Both paths terminate at **Step 2.3 — Accept or Escape.** The defender accepts the hit, or its Master spends the Escape Command Spell the card offers at this window, which moves the pair to their Home Base (`engine/command-spells.mjs#interruptsOf`). The rung's own `cs` option escaped for free and is gone (ruled 2026-10-14, §46.4-LM).
 
 **An Evade the attack says is not rolled goes straight to damage (#191).** Quickfire's *"The enemy Unit Evades (instead of performing an Evade roll)"* advances `evadeRoll` on its own `overridden` edge (`evadeRoll:overridden → damage`), not on `fail`: there was no die, so neither Lucky Evasion nor the Accept-or-Escape Command Spell is offered. On `fail` the ladder offered both, and a passed Lucky Evasion leads to `noDamage`.
 
@@ -107,3 +107,11 @@ The process is **complete** when it reaches the `done` state (`module/engine/com
   at the moment of the test, leaving `heelResolve` still reads as unresolved and the rung *"would
   redirect into itself for ever"*. The source-state test is what makes the loop impossible; testing
   the flag alone would not.
+
+### An attack only its own check avoids (#204 reading 15)
+
+`damage.unavoidable` (Gate of Skye) closes the Evade rung at declaration, which also closes Lucky Evasion and the
+Command Spell escape that follow a failed Evade; an automatic evasion and Dodge meet an empty permit; Substitution does
+not halt it at stage 0; Presence Concealment's area coin is not flipped. A Block still answers, and cuts the damage of
+a passed check. A guarded Master's shove is offered when it answers the rung. A Command Spell bought on the card still
+beats it (ruled 2026-10-14): Escape or Teleport Servant carries the defender out, and the Process ends in `noDamage`.

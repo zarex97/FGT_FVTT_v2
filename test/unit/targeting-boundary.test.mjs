@@ -75,7 +75,7 @@ describe("exclusion reasons", () => {
     // question, pinned in `targeting.test.mjs`.
     const me = unit("me", "Heracles", at(6, 6), { faction: "red", factionId: "red" });
     const foe = unit("m", "Enemy Master", at(6, 7), { kind: "master", faction: "blue", factionId: "blue" });
-    const guard = unit("g", "Guard", at(6, 8), { faction: "blue", factionId: "blue" });
+    const guard = unit("g", "Guard", at(6, 8), { faction: "blue", factionId: "blue", masterId: "m" });
     const single = {
       ...AREA, selection: { ...AREA.selection, chooser: "chosen", count: 1 },
     };

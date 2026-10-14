@@ -15,18 +15,19 @@
  */
 
 import { Rank } from "../domain/rank.mjs";
+import { COPY_REASONS } from "../domain/enums.mjs";
 import { grantedAbility } from "./granted.mjs";
+import { isSpellAbility } from "./costs.mjs";
 
 /**
  * Every reason a copy can be refused.
  *
- * `physical` and `unique` come from the content — the exclusion list is
- * per-ability data, not a name list here, because "Skills a Servant is
+ * `physical`, `unique` and `named` come from the content — the exclusion list
+ * is per-ability data, not a name list here, because "Skills a Servant is
  * physically born with" is a judgement the author makes and the engine cannot.
+ * `named` is a family the grant's own sheet lists: Mana Burst (#204).
  */
-export const COPY_REFUSALS = Object.freeze([
-  "classSkill", "rankEX", "physical", "unique", "notActive", "notASkill",
-]);
+export const COPY_REFUSALS = Object.freeze([...COPY_REASONS, "notActive", "notASkill"]);
 
 /**
  * May this ability be copied?
@@ -38,6 +39,11 @@ export function canCopy(ability) {
   // A Noble Phantasm is not a Skill. The grant asks for Skills, and copying an
   // NP would hand over the most consequential thing a Servant owns.
   if (ability?.isNP) return { ok: false, reason: "notASkill" };
+
+  // Nor is a Spell (ruled 2026-10-14, #204): Medea's Aero, Argos, Atlas,
+  // Keraino, Rain of Light and Trofa were all offered to Wisdom of Dún Scáith,
+  // a whole spellbook for one Skill's slot. Her Skills stay copyable.
+  if (isSpellAbility(ability)) return { ok: false, reason: "spell" };
 
   // "excluding Class Skills" — in the grant itself rather than in the longer
   // exclusion list below, which is exactly how it gets lost.
@@ -85,8 +91,11 @@ export function copyCandidates(board, copier, { prefer = [] } = {}) {
   const out = [];
 
   for (const unit of board?.units ?? []) {
-    // "of all OTHER Servants on the field".
+    // "of all OTHER Servants on the field": a Servant's, on either side, and
+    // never a Master's, a Summon's or a Platform's (#204 reading 9). Every
+    // other Unit on the board used to be offered.
     if (unit.id === copier?.id) continue;
+    if (unit.kind !== "servant") continue;
 
     for (const ability of unit.abilities ?? []) {
       if (!canCopy(ability).ok) continue;

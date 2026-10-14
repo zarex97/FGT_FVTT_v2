@@ -25,7 +25,7 @@ const master = (over = {}) => ({
   id: "m", kind: "master", factionId: "a", panel: at(5, 5), ...over,
 });
 const servant = (over = {}) => ({
-  id: "s", kind: "servant", factionId: "a", panel: at(5, 6), canAct: true, ...over,
+  id: "s", kind: "servant", factionId: "a", masterId: "m", panel: at(5, 6), canAct: true, ...over,
 });
 const board = (units, over = {}) => ({ units, alliances: {}, ...over });
 
@@ -82,6 +82,14 @@ describe("coveringServantsFor", () => {
     const two = servant({ id: "two", panel: at(6, 6) });
     expect(coveringServantsFor(m, board([m, one, two]), area()).map((u) => u.id))
       .toEqual(["one", "two"]);
+  });
+
+  it("never takes another Master's Servant on the same side (#204)", () => {
+    // Live: Heracles shoved Medea's Master clear of Gate of Skye. Only the
+    // Master's own Servants guard it (ruled 2026-10-14).
+    const m = master();
+    const stranger = servant({ id: "h", masterId: "m2" });
+    expect(coveringServantsFor(m, board([m, stranger]), area())).toEqual([]);
   });
 
   it("hands the duty to a proxying Servant's summons", () => {
