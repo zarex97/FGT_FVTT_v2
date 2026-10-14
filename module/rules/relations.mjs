@@ -74,7 +74,11 @@ export function isFriendly(relation) {
  * The Units that stand as "this Master's Servant" for the Servant–Master
  * relationship rules (Ch. 32).
  *
- * Ordinarily the Master's own Servants. For a Servant carrying a
+ * The Master's OWN Servants, the ones contracted to it, and no other Servant
+ * on its side (ruled 2026-10-14, #204): *"the Servant performs an Agility
+ * Check"*. This read the whole side from the first targeting code, an
+ * engineering default nobody ruled, and Heracles shoved Medea's Master clear
+ * of Gate of Skye. For a Servant carrying a
  * `RelationshipProxy`, its live bound summons instead — Pale Rider:
  *
  * > *"The following Servant-Master Relationship Rules have no effect between
@@ -108,6 +112,7 @@ export function guardsOf(master, board) {
     // Its SIDE, not its faction: a charmed Servant is its own Master's enemy
     // for the Charm's duration and guards nobody (ruled 2026-10-04, #180).
     if (sideOf(unit) !== faction) continue;
+    if (!master?.id || unit.masterId !== master.id) continue;
 
     const proxy = (unit.suppressions ?? [])
       .find((s) => s?.scope === "relationship")?.proxy ?? null;

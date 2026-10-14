@@ -5,8 +5,12 @@
 # the DU has the 'Undead' or 'Divine' Attribute, it is reduced by 1◈ Turns
 # instead."
 #
-# The first content to use §E's `damageStepEnd`, which had been in the event
-# reference since it was written with nothing raising it.
+# Ruled per ATTACK (#204 reading 12): one charge for an area Noble Phantasm,
+# not one per target; 1◈ when any Unit it landed on is Undead or Divine; and
+# "successful" is "not Evaded" -- a Block, a hit for 0 and Gáe Bolg's Instakill
+# with no damage all pay. So it listens to `attackLanded`, fired once per
+# Attack at the end of its Combat Phase, and not to `damageStepEnd`, which
+# fires per target and only on damage dealt.
 schema: 1
 id: alpi
 name: "Alpi"
@@ -26,14 +30,15 @@ defaultDuration: "1◈"
 rules:
   # TWO handlers with opposite target predicates rather than one with a
   # conditional magnitude. `targetPredicate` is evaluated when the event fires,
-  # where the Defending Unit exists; a collection-time `predicate` could not
-  # see them at all.
+  # where the Units it landed on exist; a collection-time `predicate` could
+  # not see them at all. The event's `target:` facts are every such Unit's,
+  # so "any of them is Undead or Divine" is one `anyOf`.
   #
   # `scope: np` because the sheet names no ability and Scáthach has two Noble
   # Phantasms. Naming the owning ability would name the EFFECT, which is what
   # carries the rule element.
   - key: OnEvent
-    event: damageStepEnd
+    event: attackLanded
     automatic: true
     consumesUse: true
     targetPredicate:
@@ -44,7 +49,7 @@ rules:
         ticks: "½◈"
 
   - key: OnEvent
-    event: damageStepEnd
+    event: attackLanded
     automatic: true
     consumesUse: true
     targetPredicate:

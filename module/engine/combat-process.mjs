@@ -69,7 +69,6 @@ export const TRANSITIONS = Object.freeze({
   // Offered only after an automatic Evade failed (#193 reading 9): Medea's
   // Trofa against a Noble Phantasm was her Evade, and she may still Block.
   "s23_acceptOrEscape:block": "damage",
-  "s23_acceptOrEscape:cs": "noDamage",
 
   // The weak-point rung (Ch. 45). It is not reached by an event of its
   // own: `advance` redirects into it from whatever would have gone to `damage`,
@@ -121,7 +120,10 @@ export const PROMPTS = Object.freeze({
   react: { side: "defender", kind: "reaction", options: ["nothing", "block", "evade"] },
   s21_luckyHit: { side: "attacker", kind: "luckCheck", check: "luckyHit", cost: 1 },
   s22_duContest: { side: "defender", kind: "luckCheck", check: "counterContest", cost: 1 },
-  s23_acceptOrEscape: { side: "defender", kind: "acceptOrEscape", options: ["accept", "cs"] },
+  // The escape is the paid Escape the card offers at this window, not an
+  // option of the rung: a free `cs` event here cancelled the hit and charged
+  // nobody (ruled 2026-10-14, #204 §46.4-LM).
+  s23_acceptOrEscape: { side: "defender", kind: "acceptOrEscape", options: ["accept"] },
   s24_luckyEvasion: { side: "defender", kind: "luckCheck", check: "luckyEvasion", cost: 1 },
   s25_auContest: { side: "attacker", kind: "luckCheck", check: "counterContest", cost: 1 },
   counter: { side: "defender", kind: "counter", options: ["counter", "declined"] },
@@ -344,7 +346,12 @@ export function pendingPrompt(s) {
   // reached: by the time it matters its owner is inside somebody else's
   // Process. The orchestrator records what is usable, because deciding it
   // needs the documents and this file is pure.
-  const extra = s.reactionAbilities?.[unitId] ?? [];
+  //
+  // On the reaction rung only (ruled 2026-10-14, #204 §46.4-LO): an ability
+  // answers where Block and Evade do, and not after a failed Evade. Every rung
+  // of the unit listed them, so the escape rung offered Eye of the Mind
+  // (False) in its options, an `ability:` event its transitions refuse.
+  const extra = s.state === "react" ? (s.reactionAbilities?.[unitId] ?? []) : [];
   const options = p.options ? [...p.options, ...extra.map((a2) => `ability:${a2.id}`)] : p.options;
 
   // A rung with nothing left on it is not a rung. The same argument the counter

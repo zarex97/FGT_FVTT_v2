@@ -236,7 +236,9 @@ function stage0Precondition(s) {
   const { defender, attacker, attack } = s.ctx;
 
   // Order matters: Substitution beats Aim, Anti-Purge beats Pierce and Invuln.
-  if (has(defender, "substitution")) return s.halt("Substitution");
+  // Substitution does not beat an attack only its own check avoids: Gate of
+  // Skye's target who passes its Luck Check takes the damage (#204 reading 15).
+  if (has(defender, "substitution") && !attack?.unavoidable) return s.halt("Substitution");
   if (has(defender, "antiPurge")) return s.halt("Anti-Purge");
 
   // "cannot take damage" as a property of the unit, not a buff. Pale Rider and

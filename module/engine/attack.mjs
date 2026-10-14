@@ -18,7 +18,7 @@ import { expandInstances, damageBaseOf } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
 import { askOwner, chooseFor } from "./ask.mjs";
 import { resolveTargets, pendingChoiceErrors } from "../rules/targeting/resolve.mjs";
-import { currentBoard, unitFrom, unitOf, gateContext, roundRecordOf } from "./board.mjs";
+import { currentBoard, currentMoment, unitFrom, unitOf, gateContext, roundRecordOf } from "./board.mjs";
 import {
   evade as evadeCheck, luckCheck, chance, checkPlan, critChance, mergePlans,
   pendingCheckRolls, resolveCheck,
@@ -842,6 +842,16 @@ export function buildAttackSpec({
       // fail automatically unless the defender holds one of the named effects.
       unblockable: Boolean(block?.unblockable),
       evadableOnlyBy: [...(block?.evadableOnlyBy ?? [])],
+      // *"The only way to avoid it is passing the Luck Check it imposes"*
+      // (Scáthach's Gate of Skye, #204 reading 15). No Evade, Dodge, automatic
+      // evasion, Substitution or concealment coin saves its target; a Block
+      // still answers, and cuts the damage of a passed check.
+      unavoidable: Boolean(block?.unavoidable),
+      // *"If a Servant fails to shove their targeted Master out of the NP
+      // area, the effect of the NP is applied to the Master (Servant unable to
+      // interfere)."* The shove is still offered; a failed one is no Cover
+      // (#204 reading 18).
+      noCover: Boolean(block?.noCover),
       // *"If the DU Evades, its Evade Roll is increased by 3."* A penalty the
       // ability imposes, alongside the ones the attack's kind and the
       // defender's own effects impose (`evadeModifiers`).
@@ -1079,6 +1089,12 @@ async function declareProcesses({
           // `rules/concealment.mjs` rather than one being reimplemented here.
           ...agilityRefusals(ability, attackerId, state.defenderId, board),
           ...(state.attack?.unblockable ? ["block"] : []),
+          // Only its own check avoids it (#204 reading 15). Closing the rung
+          // closes what follows a failed Evade too: Lucky Evasion and that
+          // rung's escape. A Command Spell bought on the card still beats it
+          // (ruled 2026-10-14, Q6): Escape and Teleport Servant carry the
+          // defender out (`engine/command-spells.mjs#interruptsOf`).
+          ...(state.attack?.unavoidable ? ["evade"] : []),
           // Appendix A §A.3 `Accel`: *"Opponents cannot React to this unit's
           // attacks."*
           //
@@ -1209,11 +1225,11 @@ async function declareProcesses({
   // phases twice -- Xiuhcoatl's `zone` painted Burning twice -- and raised
   // `abilityUsed` twice (#137, the shape of §46.4-X).
   if (ability && declaresUse) {
-    const { runCasterPhases } = await import("./skill-use.mjs");
+    const { runCasterPhases, postCard } = await import("./skill-use.mjs");
     // The ride's own facts travel with the caster phases, because Troias
     // Tragōidia's Agility restore is "X" and X is how much movement he had
     // left -- a number that does not exist on any document.
-    await runCasterPhases(ability, attacker, board, {
+    const casterApplied = await runCasterPhases(ability, attacker, board, {
       ...(attackSpec.ride ? { ride: attackSpec.ride } : {}),
       // The panels this attack actually resolved against, for a `zone` phase
       // that paints *"the NP area"* rather than a shape of its own. Pyramid
@@ -1223,6 +1239,12 @@ async function declareProcesses({
       // for a Range-5 strike is the wrong square.
       areaPanels: targets.panels ?? [],
     });
+    // ...and what they did, on a card of their own (#204 LK, ruled
+    // 2026-10-14). The Skill path posted these lines and this one dropped
+    // them, so Troias Tragōidia's Agility restore was seen by nobody.
+    if ((casterApplied ?? []).some((a) => a.summary?.outcome === "applied")) {
+      await postCard(attacker, ability, [], casterApplied);
+    }
   }
 
   // The event two of EMIYA's passives listen for. On the ATTACK path as well as
@@ -1480,6 +1502,11 @@ async function answerRung({ event, abilityId = null, placement = null }, message
     }
     state = process.advance(state, "counter", { counterMessageId: counter?.messageId ?? null });
   } else {
+    // A Master cannot Evade an attack only its own check avoids, so its Evade
+    // has failed the moment it answers: its Servants' shove comes now, before
+    // the damage step (#204 reading 18). `resolveCover` asks whether this is
+    // an area Noble Phantasm on a guarded Master, and decides once per group.
+    if (state.state === "react" && state.attack?.unavoidable) await resolveCover(state, message);
     state = process.advance(state, event);
   }
   if (reacting && state.state !== "react") {
@@ -1907,6 +1934,30 @@ async function resolveCover(state, message) {
       kind: "cover", event: "shoved", unitId: master.id,
       by: servant.id, panel, rolls,
     })], "cover:shove");
+    return;
+  }
+
+  // Every Check failed, against a Noble Phantasm its Servants cannot
+  // interfere with: Gate of Skye (#204 reading 18). The Master takes it -- its
+  // Luck Check, then the Death or the damage -- and no Servant takes +100%.
+  // Recorded all the same, with nobody named, so the group decides once and
+  // a re-entered Process does not roll the shoves again.
+  if (state.attack?.noCover) {
+    const uncovered = { masterId: null, uncoveredMasterId: master.id, coveringIds: [], factor: 1 };
+    await broadcastCover(state, message, uncovered);
+    await applyBatch([I.log({
+      kind: "cover", event: "uncovered", unitId: master.id,
+      by: servants.map((u) => u.id), rolls,
+    })], "cover:uncovered");
+    // Said on the board: the shove was tried, and failed, and nobody covers.
+    await ChatMessage.create({
+      content: `<p>${game.i18n.format("FGT.Cover.Uncovered", {
+        servants: rolls.map((r) => r.name).join(", "),
+        master: master.name,
+        rolls: rolls.map((r) => r.roll).join(", "),
+      })}</p>`,
+      speaker: { alias: game.i18n.localize("FGT.Cover.Title") },
+    });
     return;
   }
 
@@ -2743,6 +2794,8 @@ async function fireCombatPhaseEnd(state) {
   });
   if (intents.length > 0) await applyBatch(intents, "combatPhaseEnd");
 
+  await fireAttackLanded(siblings);
+
   await grailUnderNP(state, siblings, board);
 
   // The Phase is over, so the once-per-Phase optional spend may be offered
@@ -2750,6 +2803,49 @@ async function fireCombatPhaseEnd(state) {
   // is keyed by `groupId` and a match is thousands of them.
   const { clearOptionalCostOffers } = await import("./optional-costs.mjs");
   clearOptionalCostOffers(state.groupId);
+}
+
+/**
+ * `attackLanded`: once per Attack, on its attacker, when it was not Evaded.
+ *
+ * Alpi pays *"at the end of the Damage Step when a successful Attack is
+ * performed"*, ruled per ATTACK and not per target (#204 reading 12): an area
+ * Noble Phantasm over five Units spends one charge, not five. "Successful" is
+ * "not Evaded": a Block, a hit for 0 and Gáe Bolg's Instakill that skips its
+ * damage all count, so it reads which Processes reached the damage step, not
+ * what they dealt. It pays 1◈ when ANY Unit it landed on is Undead or Divine,
+ * so the option set is the union of those Units' `target:` facts.
+ *
+ * Fired from the Combat Phase's end, which is already claimed once per
+ * group. The declaration's Processes only: a Counter in the group is the
+ * defender's attack, not hers.
+ *
+ * @param {ChatMessage[]} siblings every message of the group
+ * @returns {Promise<void>}
+ */
+async function fireAttackLanded(siblings) {
+  const declared = siblings.map((m) => process.deserialize(m.getFlag("fgt", "process"))).filter((s) => !s.isCounter);
+  const attackerId = declared[0]?.attackerId ?? null;
+  const attackerDoc = attackerId ? game.actors.get(attackerId) : null;
+  if (!attackerDoc) return;
+  const landed = declared.filter((s) => s.attackerId === attackerId && s.defenderId
+    && (s.history ?? []).some((h) => h.state === "damage"));
+  if (landed.length === 0) return;
+
+  const board = currentBoard();
+  const options = new Set(landed.flatMap((s) => {
+    const doc = game.actors.get(s.defenderId);
+    if (!doc) return [];
+    return [...rollOptionsFor({ attacker: null, defender: unitOf(doc, board) })].filter((o) => o.startsWith("target:"));
+  }));
+  const intents = fireEvent("attackLanded", [unitOf(attackerDoc, board)], {
+    tick: currentMoment().tick ?? 0,
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    board,
+    options,
+    rolls: {},
+  });
+  if (intents.length > 0) await applyBatch(intents, "attackLanded");
 }
 
 /**
@@ -2889,7 +2985,13 @@ async function runAutomaticStep(state, message) {
       // stayed invisible only because no content used it. Scáthach's Alpi is
       // the first: *"NP Cooldown is reduced by ½◈ Turns at the end of the
       // Damage Step when a successful Attack is performed."*
-      if (!skipped && result.total > 0) await fireDamageStepEnd(state, result);
+      //
+      // HIT, NOT HURT, as the riders below (ruled 2026-10-14, #204 LI): a Unit
+      // Blocked or cut to 0 was still hit, so Castor, Bašmu's Poison and the
+      // Circuits pay out as App. E always said. It read `result.total > 0`,
+      // and the reference and the code disagreed for every listener.
+      const riders = ridersFire({ skipped, result });
+      if (riders) await fireDamageStepEnd(state, result);
       // Terrain the attack itself changes (Ch. 26): Fire in a Forest makes
       // Burning on Tails, and a Meadow is consumed by the attack that used it.
       // `rules/terrain.mjs#terrainConversions` has computed both since terrain
@@ -2904,7 +3006,6 @@ async function runAutomaticStep(state, message) {
       // about a defender whose reductions reached zero, and every on-hit rider
       // in Appendix A was silent against exactly the targets worth riding.
       // `rules/damage/riders.mjs` is now the single decision, with the reasons.
-      const riders = ridersFire({ skipped, result });
       const riderRolls = riders ? await fireDamageDealt(state, result) : [];
       // ...and the mirror, on the Unit that took it.
       if (riders) await fireDamageTaken(state, result);
@@ -3086,6 +3187,10 @@ function reactionOverrideFor(state, rung) {
  * @returns {string[]|null}
  */
 function evadePermit(state) {
+  // An attack only its own check avoids. Its Evade rung is closed at
+  // declaration; this is the same refusal for an automatic evasion, Dodge
+  // included, which never asks the rung (#204 reading 15).
+  if (state.attack?.unavoidable) return [];
   const declared = state.attack?.evadableOnlyBy ?? [];
   if (state.attack?.noEvadeAfterFail && siblingEvadeFailed(state)) return [];
   return declared.length > 0 ? declared : null;
@@ -3417,11 +3522,11 @@ async function awaitInterrupt(message, state) {
   const seconds = game.settings.get("fgt", "commandSpellTimeout") ?? 45;
   if (seconds <= 0) return false;
 
-  const { offerCommands } = await import("./command-spells.mjs");
-  const window = process.windowFor(state);
-  const anyOffer = game.actors.some((a) =>
-    a.type === "master" && offerCommands({ masterId: a.id, window, context: { state: state.state, attack: state.attack } }).length > 0);
-  if (!anyOffer) return false;
+  // The card's own list (`processOffers`), so the wait and the buttons answer
+  // one question: it asked every Master in the world, on the board or not,
+  // for any command at all.
+  const { processOffers } = await import("./command-spells.mjs");
+  if (processOffers(state).length === 0) return false;
 
   // The baseline is the FLAG's current value, not the in-memory state.
   //
@@ -4341,11 +4446,19 @@ async function applyDamage(state, message) {
   // Ch. 32. Overpower can end the Master outright before damage matters;
   // Underpower halves a Master's own Total Damage. Both are Master-Servant
   // asymmetries and neither fires between two units of the same kind.
-  const overpowerRoll = (await new Roll("1d100").evaluate()).total;
-  const overpower = resolveOverpower({
-    attacker, defender, roll: overpowerRoll,
-    luckCheckPassed: Boolean(state.luckChecks?.overpower),
-  });
+  //
+  // Not on a Master its Servants sheltered. Shoved clear, it is out of the
+  // area; covered, it *"receives no damage and effects"*. Either way the
+  // Servant never "successfully Attacks" it, and the coin defeated a Master
+  // whose Servant had just shoved it out (found building #204 reading 18).
+  const sheltered = coverStateFor(state)?.masterId === state.defenderId;
+  const overpowerRoll = sheltered ? null : (await new Roll("1d100").evaluate()).total;
+  const overpower = sheltered
+    ? { defeated: false, survivesLethal: false, chance: 0, applies: false }
+    : resolveOverpower({
+      attacker, defender, roll: overpowerRoll,
+      luckCheckPassed: Boolean(state.luckChecks?.overpower),
+    });
   // The flip goes on the card, Heads or Tails (ruled 2026-10-02, #65 ruling
   // 21, #174). It used to defeat a Master with nothing on the card at all.
   if (overpower.applies) {
@@ -4402,7 +4515,9 @@ async function applyDamage(state, message) {
   // so it lands after every pipeline stage and after the Command Spell factor,
   // and before the barrier -- a shield in front of a Unit that took no damage
   // has nothing to absorb.
-  if ((state.isAoE || state.caughtConcealed) && isConcealed(defender)) {
+  // Not against an attack only its own check avoids: Heads is an avoidance
+  // (#204 reading 15).
+  if ((state.isAoE || state.caughtConcealed) && isConcealed(defender) && !state.attack?.unavoidable) {
     const coin = await new Roll("1d2").evaluate();
     const veil = aoeOutcome(coin.total);
     const before = result.total;
@@ -5128,11 +5243,9 @@ async function fireDamageStepEnd(state, result = null) {
  * MAG; and failing it is worse than succeeding, because success only means
  * taking 4x damage.
  *
- * `gateOfSkyeSaveModifier` is an **equality** table, not a threshold: *"if
- * their MAG is Rank B, reduce the value rolled by 2; if their MAG is Rank A,
- * reduce it by 4"*, and a `MAG A+` target gets nothing. It has sat in
- * `domain/tables.mjs` since the tables were transcribed with nothing reading
- * it.
+ * `gateOfSkyeSaveModifier` goes by letter: *"if their MAG is Rank B, reduce
+ * the value rolled by 2; if their MAG is Rank A, reduce it by 4"*, so B+ takes
+ * −2 and A+ or EX takes −4 (#204 reading 16).
  *
  * @param {object} phase
  * @param {object} ability

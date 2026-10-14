@@ -589,9 +589,9 @@ describe("Pale Rider", () => {
 
 describe("guardsOf", () => {
   const master = { id: "m", kind: "master", factionId: "a", panel: { i: 5, j: 5 } };
-  const ordinary = { id: "s", kind: "servant", factionId: "a", panel: { i: 5, j: 6 } };
+  const ordinary = { id: "s", kind: "servant", factionId: "a", masterId: "m", panel: { i: 5, j: 6 } };
   const proxying = {
-    id: "pale", kind: "servant", factionId: "a", panel: { i: 5, j: 6 },
+    id: "pale", kind: "servant", factionId: "a", masterId: "m", panel: { i: 5, j: 6 },
     suppressions: [{ scope: "relationship", proxy: "summons" }],
   };
   const spirit = {
@@ -601,6 +601,13 @@ describe("guardsOf", () => {
 
   it("is the Master's own Servants, ordinarily", () => {
     expect(guardsOf(master, { units: [master, ordinary] }).map((u) => u.id)).toEqual(["s"]);
+  });
+
+  it("is never another Master's Servant on the same side (#204)", () => {
+    // Live: Heracles shoved Medea's Master clear of Gate of Skye.
+    const other = { ...ordinary, id: "h", masterId: "m2" };
+    const free = { ...ordinary, id: "f", masterId: null };
+    expect(guardsOf(master, { units: [master, other, free, ordinary] }).map((u) => u.id)).toEqual(["s"]);
   });
 
   it("substitutes a proxying Servant's bound summons for the Servant itself", () => {

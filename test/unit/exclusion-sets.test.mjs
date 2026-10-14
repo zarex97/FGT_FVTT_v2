@@ -68,6 +68,12 @@ describe("authored exclusion sets", () => {
   it("a requirement naming a set joins that set too", () => {
     // Gating on a set you are not a member of is legal but almost always a
     // typo: it means "wait for THOSE others" rather than "one of us at a time".
+    // An ability that really waits on others is named here with its clause.
+    const WAITS_ON_OTHERS = {
+      // "Cannot be used if ... Wisdom of Dún Scáith ... [is] on Cooldown": any
+      // of her three Wisdom slots, and the Gate is none of them (#204 reading 19).
+      "scathach-gate-of-skye": "wisdomOfDunScaith",
+    };
     /** @type {string[]} */
     const odd = [];
 
@@ -75,6 +81,7 @@ describe("authored exclusion sets", () => {
       for (const holder of [doc, ...(doc?.abilities ?? [])]) {
         for (const req of holder?.requirements ?? []) {
           if (req?.kind !== "abilityOffCooldown" || !req.exclusionSet) continue;
+          if (WAITS_ON_OTHERS[holder.id] === req.exclusionSet) continue;
           if (holder.exclusionSet !== req.exclusionSet) {
             odd.push(`${path}: ${holder.id ?? holder.ref} gates on "${req.exclusionSet}" but joins "${holder.exclusionSet ?? "nothing"}"`);
           }

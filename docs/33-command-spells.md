@@ -111,3 +111,31 @@ Everything downstream of a spend — the `spendCS` intent, the applier case, `io
 - **Should per-Servant grants survive a Servant's death and re-contract?** When a Servant is revived, the grant pool outlives the death (it is on the Master, not the Servant), but whether the UI should show it as available before re-forming the contract is undefined. The Master keeps the spells in `commandSpellsPerServant[servantId]` whether or not the Servant is contracted, but poolsOf() only returns pools for contracted Servants or those with grants (`module/rules/cs-namespacing.mjs:94-109`).
 
 **A Command Spell in the Master's own Turn** (#190). Every command whose window is `ownTurn` -- Suspend Skill and the cooldown commands -- could be spent only from an attack card's interrupt, so a Master had no way to buy *"Hatred of Achilles can be disabled for 1◈ Turns by spending one Command Spell"*. The Master's bar offers **Command Spell** (`rules/actions.mjs`, `commandSpell`) while it holds one: it lists `offerCommands(window: ownTurn)`, then, for a command that reaches one Skill, the contracted Servant's Skills, and asks the GM to spend it. A spend outside any Process posts a card: *"{master} spends 1 Command Spell(s): Suspend Skill, on Penthesilea's Mad Enhancement."* A suspended Skill contributes no rules until its span passes (`rules/snapshot.mjs#contributionsOf`), passives included -- it was read only for a Mode, so Hatred's compulsion held on through a Command Spell -- and the forced modes are reconciled once the Turn change has moved the tick, so a suspension beside a Greek Male lapses on time rather than when somebody next moves.
+
+### Teleports land, and escape (#204 LL)
+
+Escape and Teleport Servant each author a `teleport`, and nothing ever sent the destination it needs: a spend from the
+card or the Master's bar was paid and moved nobody. Now:
+
+1. The player picks a panel first, from `rules/command-spells.mjs#teleportPanels`: a free panel of the Master's own Home
+   Base for Escape, a free panel within 2 of the Master for Teleport Servant. Cancelling costs nothing.
+2. `spendCommandSpell` refuses a teleport with no legal landing (`noDestination`) before it pays.
+3. `teleportLandings` puts the first mover on the panel and Escape's Servant on the nearest free one.
+4. On a Combat Process, a teleport that carries the defender away is the `escape` interrupt, for that card and every
+   sibling of the declaration whose defender it moves (`engine/command-spells.mjs#interruptsOf`). Ruled 2026-10-14:
+   this beats Gate of Skye.
+
+### Whose command, for whom (#204 LM, LN)
+
+Ruled 2026-10-14: a Command Spell is a spell for the Master's own contracted Servant, and targets nothing else.
+
+- `canSpend` refuses with `noServant` unless the Servant is alive on the board. The Master's bar shows no Command Spell
+  without one, and asks which Servant first when there are several.
+- `processOffers(state)` is the one list for an attack card and for `awaitInterrupt`: for each Master on the board,
+  each live Servant, each usable command. One that changes the attack (`processRoleOf`: Damage Block, Halve NP,
+  Survive Kill and Escape defend; Damage Up, NP Max, Force NP and Kill Humans attack) is kept only for the Servant on
+  that side; Escape also when the Master is the one attacked. Others show for every Servant, named on the button when
+  the Master has several.
+- On a card, `spendCommandSpell` refuses before it pays when the card does not offer that command for that Servant
+  (`notInThisAttack`) or can no longer be interrupted (`notInterruptible`).
+- The escape rung after a failed Evade has no free `cs` option any more: its escape is the paid Escape at that window.

@@ -560,8 +560,26 @@ function pursuitBreach(unit, pursuit, board) {
  * @returns {{ok: boolean, unmet: object[]}}
  */
 export function canEndTurn(units, board = null) {
-  const unmet = unmetCompulsions(units, board);
+  const unmet = [...unmetCompulsions(units, board), ...copyPicksOwed(board?.units ?? units)];
   return { ok: unmet.length === 0, unmet };
+}
+
+/**
+ * Wisdom of Dún Scáith's picks still owed, on EITHER side.
+ *
+ * *"If it is a war that is starting, before the 1st turn ends. If not, after
+ * summoning"* (#204 reading 8): the Turn the pick falls due in cannot end until
+ * it is made, whoever's Turn that is -- so this reads the whole board, not the
+ * acting faction's Units the compulsions read.
+ *
+ * @param {object[]} units every Unit on the board
+ * @returns {Array<{unitId: string, unitName: string, effect: string, message: string}>}
+ */
+export function copyPicksOwed(units) {
+  return (units ?? []).filter((u) => u.copyPickDue && !u.defeated).map((u) => ({
+    unitId: u.id, unitName: u.name, effect: "Wisdom of Dún Scáith",
+    message: `${u.name} must pick the two Skills Wisdom of Dún Scáith copies before this Turn ends.`,
+  }));
 }
 
 /**

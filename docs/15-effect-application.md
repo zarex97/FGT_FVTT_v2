@@ -222,3 +222,10 @@ steps must read, not just a label attached to the outcome.**
 - **The immunity downgrade does not refund resistance as resistance.** Sikera Ušum clause d's downgrade adds a flat resist percent at the chance step rather than keeping the instance un-immune. An alternative reading (reducing the immunity to immunity-light) would gate slightly differently; the current reading is what the code does.
 
 - **The downgrade is suppression-scoped, not field-scoped.** A field's `ImmunityDowngrade` produces suppressions at the time the target is snapshotted. A unit that moves out of the field does not lose the downgrade; the instance itself is neither field-tied nor re-annotated. This is the current behaviour; a future enhancement might tie immunity downgrades to the field's lifetime.
+
+### An unstated NP figure is the full figure (#204 reading 5)
+
+An effect instance that states no `npMagnitude` applies its full magnitude against a Noble Phantasm.
+`rules/snapshot.mjs#resolveRuleValues` leaves `npValue` undefined for it, so every reader falls back to `value`;
+it used to read the missing figure as 0, and Def Dwn 25% added nothing to an NP on eight Servants. The crit readers
+still treat a missing NP figure as none (#131).

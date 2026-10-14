@@ -14,6 +14,9 @@ name: "Mystic Eyes of Petrification: Cybele"
 kind: skill
 source: personal
 rank: "A+"
+# A Mystic Eye is part of the body: Wisdom of Dún Scáith names Mystic Eye
+# Skills among those it cannot copy (#204 reading 11).
+copyable: { allowed: false, reason: physical }
 cooldown: "4◈-⅓◈"
 # The FAMILY Blind's clause 3 names: *"'Mystic Eye' and 'Glam Sight' Skills
 # cannot be used."* Tagged rather than named by slug, so a second Mystic Eye

@@ -4116,6 +4116,126 @@ Debuff Res Up since it was authored. Ch. 15.
 
 **Reached: SH.break.** Five kept rolls posted nothing. A kept roll is whispered to the GM and her owners. Ch. 30.
 
+### KX. A copy carried nothing about its use — **fixed** (#204)
+
+**Reached: W1.effect.** Scáthach's two copies sat off her action bar: `classifyAbility` read each as passive. Only the
+phases resolved by reference (`effectivePhases`); the window, targeting and damage were the copy's own, empty. A copy
+now carries its source's use (`engine/copy.mjs#carriedUse`), and its phases still run from the source. Ch. 17.
+
+### KY. The bar's dialog button used the Skill — **fixed** (#204)
+
+**Reached: WD.redo.** Player1 pressed Wisdom of Dún Scáith on the bar: it spent a Servant move and posted "No effect".
+The sheet and the bar now share one door, `FGTActorSheet.openAbilityDialog`, and `useSkill` refuses an `opensDialog`
+ability. Ch. 34.
+
+### KZ. The copy list offered a Class Skill — **fixed** (#204)
+
+**Reached: WD.class.** "Medusa: Riding A+" was offered. Five Riding files carried no `copyable` refusal, which every
+other Class Skill file does. Ch. 17.
+
+### LA. The picker never offered the caster — **fixed** (#204)
+
+**Reached: AR.range, RU.ally.** Ár (`relations: [ally, self]`) could not pick Scáthach: hovering her own panel chose
+Nemo. The picker's candidates dropped the caster unless `includeSelf` was stated; the resolver's own
+`resolveIncludeSelf` said yes. The candidates now ask it. Ch. 20.
+
+### LB. The bar kept replaced abilities — **fixed** (#204)
+
+**Reached: GK.block.** After a re-pick replaced both copies, the bar showed the old ones, cooling, until the token was
+reselected. It now refreshes on `createItem` and `deleteItem`. Ch. 34.
+
+### LC. A copy carried its source's Passive part — **fixed** (#204)
+
+**Reached: W1.effect.** The Eye of the Mind copy refunded ⅓◈ on her Evade, its source's Passive (`passiveRules`).
+Reading 10 copies the Active part only. Ch. 17.
+
+### LD. A reaction ignored a group lock — **fixed** (#204)
+
+**Reached: W1.lock.** Karna's Brahmastra card offered the Eye of the Mind copy while the other copy cooled. A reaction
+checks a list of self requirements, and `abilityOffCooldown` was not on it. Ch. 23.
+
+### LE. A sheltered Master still took the Overpower coin — **fixed** (#204)
+
+**Reached: GK.cover.** A Master its Servant shoved clear took no damage and was defeated by the coin. A Master the cover
+record names is not flipped for. Ch. 32.
+
+### LF. A failed Evade opened two more escapes — **fixed** (#204)
+
+**Reached: GK.noevade.** An Evade that fails goes to Lucky Evasion and the Command Spell escape, both of which avoid the
+attack. An `unavoidable` attack closes its Evade rung instead. Ch. 21.
+
+### LG. The copy reasons were three lists — **fixed** (#204)
+
+**Reached: WD.unique.** The validator refused `named`, which the DataModel and the rule accepted. One `COPY_REASONS`
+in `domain/enums.mjs`. Ch. 17.
+
+### LH. A Master's guards were the whole side — **fixed** (#204)
+
+**Reached: GK.cover.** Heracles shoved Medea's Master: `guardsOf` returned every Servant of the side, an engineering
+default from the first targeting code (2026-08-14) that nobody ruled. Ruled 2026-10-14: only the Servants contracted to
+that Master guard it. One reader, so the protection, both step-ins, the shove and the Counter redirect all follow.
+Pressed: the Master of Lancer of Faction 2 was a legal Gáe Bolg target with Heracles beside him. Ch. 32.
+
+### LI. `damageStepEnd` fired only on damage — **fixed** (#204)
+
+**Reached: AL.half.** App. E said it fires at zero damage; the code fired it only above zero. Ruled 2026-10-14: the
+reference stands. It fires on a hit, not a hurt, through `rules/damage/riders.mjs#ridersFire`, the rule the on-hit
+riders already use. Alpi stays on `attackLanded`, once per Attack. Pressed: Nemo's Normal Attack on an Invuln Master,
+"0 · Negated by Invuln", paid Pollux's S.Crit Up. App. E.
+
+### LJ. The bar offered an Attack the first Round refuses — **fixed** (#204)
+
+**Reached: TH.spell.** Þurs stayed lit in Round 1, and the declaration refused it. The finding said the refusal was
+silent; re-pressed, it was a red toast, *"FGT | No attacks are permitted during the first Round."* Ruled 2026-10-14:
+`engine/budget.mjs#affordable` asks the first-Round rule, so every Attack slot greys with it as its tooltip, and the
+toast drops its `FGT | ` prefix. Ch. 34.
+
+### LK. A card left out what a resource phase did — **fixed** (#204)
+
+**Reached: AR.agi.** Ár's card read "Atk Up" over 4 Agility restored. Ruled 2026-10-14: a Skill card lists each
+resource change with its real numbers, *"Agility 10 → 14"* (`engine/skill-use.mjs#resourceLine`). The attack path ran
+the same caster phases and dropped every line; it now posts them on a card of their own. Ch. 37.
+
+### LL. Escape and Teleport Servant moved nobody — **fixed** (#204)
+
+**Reached: Q6.** Both commands author a `teleport`, which needs a destination, and no caller ever sent one: the card
+and the Master's bar paid the Command Spell, logged `commandNeedsDestination`, and left the attack running. The Process
+has had an `escape` interrupt since it was written, and no command made one. Now the player picks a panel before the
+spend, a spend with no legal landing is refused before it is paid, Escape's pair lands side by side, and a teleport
+that carries a Process's defender away escapes it and its siblings. Ruled 2026-10-14: this beats Gate of Skye.
+Pressed: Teleport Servant on Heracles's Gate card landed him beside his Master, `noDamage`, 1 Command Spell; Escape
+from the Master's bar put Scáthach's Master and Scáthach side by side in their Home Base. Ch. 33.
+
+### LM. The escape rung's Command Spell was free — **fixed** (#204)
+
+**Reached: Q6.** `s23_acceptOrEscape` offered "Spend a Command Spell", whose `cs` event went to `noDamage`, and nothing
+spent one. Ruled 2026-10-14: the button goes. The escape is the paid Escape the card already offers at that window.
+Ch. 21.
+
+### LN. A command was offered for a Servant that is not on the board — **fixed** (#204)
+
+**Reached: Q6.** The Gate's card offered Teleport Servant to Medea's Master, whose Servant was defeated and gone. Ruled
+2026-10-14, with two more that came out of it. A Command Spell is a spell for the Master's own contracted Servant:
+
+1. **Alive on the board, or nothing.** `canSpend` refuses `noServant`, and the Master's bar offers no Command Spell.
+2. **Only on its own attack.** A command that changes the attack is offered only for the Master's Servant in it, on
+   the side it acts for (`rules/command-spells.mjs#processRoleOf`, `servantsForProcess`). Every Faction 2 Master was
+   offered Damage Block on an attack on one Master. Commands that leave the attack alone show on any card.
+3. **The Servant the Master means.** Drake's Master holds Drake, Castor and Pollux, and every command acted on the
+   first the board listed. A card's button names its Servant; the bar asks first.
+
+A spend from a card is refused, before it charges, when that card does not offer it or can no longer be interrupted.
+The card and `attack.mjs#awaitInterrupt` read one list, `engine/command-spells.mjs#processOffers`. Ch. 33.
+Pressed: Nemo's attack on Heracles offered Damage Block and Escape to Heracles's Master alone, and Player1's two
+Masters only heals, Cure and Teleport Servant.
+
+### LO. Every rung listed the reaction abilities — **fixed** (#204)
+
+**Reached: LM.** Heracles's failed Evade reached the escape rung with Eye of the Mind (False) among the prompt's options,
+an `ability:` event that rung's transitions refuse, and the card drew Accept alone. Ruled 2026-10-14: an ability does
+not answer after a failed Evade. `combat-process.mjs#pendingPrompt` lists reaction abilities on the reaction rung only.
+Ch. 23.
+
 ---
 
 ---
@@ -5386,3 +5506,47 @@ AoE coin; Medea's attack budget and attacked flag cleared for each cast; Serenit
 units displaced into place, Drake out of the aura and back; Pois Heal laid on Achilles; Drake and Medea cleansed and
 Asterios defeated by engine damage; Nine Lives set to 4; two Poison probes on Heracles; Heracles's Master's Round flag
 written once to check §46.4-KU. Her walks were driven by `TokenDocument#move` from Player1's client.
+
+## 46.28 Scáthach — the Servant built from other Servants' parts
+
+**All 112 of her Clauses were Pressed or Observed** (#204, 2026-10-14), on the PC copy of `fgt2026`, scene *Scáthach
+Audit*, after 19 readings were ruled the same day. Nine readings changed built content: 5, 8, 9, 11, 12, 15, 16, 18
+and 19. The board found nine defects that reach other Servants (§46.4-KX to LG) and four open questions (LH to LK),
+ruled the same day with Medea's Spells and Gate against a Command Spell; building those found LL to LO.
+
+**Why she finds what she finds.** Half her kit is somebody else's: two Skills copied off the field, a Rune table of
+sixteen rows, a Noble Phantasm whose targets roll the save. Every borrowed part arrives through a path built for the
+owner, and each of those paths asked something only the owner could answer.
+
+### 46.28.1 What she cost the engine
+
+| Finding | Where |
+|---|---|
+| An unstated NP figure is the full figure (reading 5) | `rules/snapshot.mjs#resolveRuleValues` |
+| The copy pick falls due at the war's start or her summon; no Turn ends until it is made (reading 8) | `system.copyPick`, `engine/copy.mjs#markCopyPicksDue`, `rules/budget.mjs#copyPicksOwed` |
+| Copies from Servants only, frozen to the field the pick fell due on (readings 8, 9) | `rules/copy.mjs#copyCandidates`, `engine/copy.mjs#offerCopies` |
+| The named families refuse a copy (reading 11) | `copyable: { reason: named }` on Mana Burst, `physical` on the Mystic Eyes |
+| Alpi pays once per Attack (reading 12) | the `attackLanded` event, `attack.mjs#fireAttackLanded` |
+| Gate of Skye only its Luck Check avoids (reading 15) | `damage.unavoidable` |
+| MAG ranks by letter (reading 16) | `gateOfSkyeSaveModifier` banded |
+| A failed shove is no Cover (reading 18) | `damage.noCover`, the `uncovered` record |
+| Any Wisdom slot cooling blocks the Gate (reading 19) | a second `abilityOffCooldown` on the `wisdomOfDunScaith` set |
+| Only a Master's own Servants guard it (LH) | `rules/relations.mjs#guardsOf` |
+| `damageStepEnd` fires on a hit, 0 included (LI) | `attack.mjs`, through `ridersFire` |
+| Round 1 greys every Attack slot (LJ) | `engine/budget.mjs#affordable` |
+| A card lists resource changes (LK) | `skill-use.mjs#resourceLine`, `postCard` on the attack path |
+| A Spell is not a Skill to copy | `rules/costs.mjs#isSpellAbility`, `canCopy` |
+| Escape and Teleport Servant land, and beat Gate of Skye (LL) | `rules/command-spells.mjs#teleportLandings`, `interruptsOf` |
+| No free escape rung (LM) | `combat-process.mjs` `s23_acceptOrEscape` |
+| A Command Spell serves its own live Servant, on its own attack (LN) | `engine/command-spells.mjs#processOffers` |
+| Reaction abilities answer the reaction rung only (LO) | `combat-process.mjs#pendingPrompt` |
+| General: §46.4-KX to LO | |
+
+### 46.28.2 What was staged
+
+Named in each evidence line: tokens displaced into place, and two Masters moved into their Servants' ZON; her Agility
+set to 12 before Ár; the Rune's cooldown cleared between casts for the sixteen rows; the Wisdom slots', Gáe Bolg's,
+Ár's and Úr's cooldowns cleared to press again; her PRS set to 0 for the unpaid Ár and Úr; her Master's Health
+restored for Gáe Bolg's cost; Medea's Stun and a Burn removed from her. The Rune rows were cast through `useSkill` as
+her; each row 8 was picked on Player1's screen. Gáe Bolg's miss and Guts branches, and the failed shove, are pressed in
+the test world (`scathach-gate-arena.test.mjs`).

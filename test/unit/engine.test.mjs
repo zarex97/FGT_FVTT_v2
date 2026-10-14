@@ -355,7 +355,9 @@ describe("the reaction ladder", () => {
     s = advance(s, "fail");
     expect(s.state).toBe("s23_acceptOrEscape");
     expect(advance(s, "accept").state).toBe("damage");
-    expect(advance(s, "cs").state).toBe("noDamage");
+    // The escape is the paid Escape the card offers, not a free event of this
+    // rung (#204 §46.4-LM).
+    expect(() => advance(s, "cs")).toThrow(/Illegal Combat Process transition/);
   });
 
   it("walks the evade-fails branch: 2.4 → 2.5 → 2.3", () => {

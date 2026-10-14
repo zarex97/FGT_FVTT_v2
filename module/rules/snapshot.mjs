@@ -138,6 +138,9 @@ export function snapshotUnit(actor, {
     // document: the movement constraint and the field teardown.
     pursuitTargetId: sys.pursuitTargetId ?? null,
     boundToFieldId: sys.boundToFieldId ?? null,
+    // Wisdom of Dún Scáith's pick still owed: no Turn ends while it is
+    // (`rules/budget.mjs#unmetCompulsions`, #204 reading 8).
+    copyPickDue: sys.copyPick?.due === true,
     // Bašmu's *"cannot leave the HGoB"*. Stamped at the summons and read by
     // the teardown from the document, but never projected, so `canUnboard`
     // could not see it and the bar offered Bašmu a Jump (Ch. 46 §46.4-BL).
@@ -1563,7 +1566,14 @@ export function resolveRuleValues(rule, magnitude, npMagnitude) {
   const one = (node) => carriers({
     ...node,
     value: instanceValue(node.value, "@magnitude", magnitude ?? 0),
-    npValue: instanceValue(node.npValue, "@npMagnitude", npMagnitude),
+    // An instance with no NP figure has no reduced one: the sheet stated a
+    // single number, and it holds against a Noble Phantasm too (Scáthach #204
+    // reading 5). Read as 0 it made Def Dwn 25% add nothing to an NP on eight
+    // Servants. `undefined` lets every reader fall back to `value`; the crit
+    // reader still treats a missing NP figure as none (#131).
+    npValue: npMagnitude === null || npMagnitude === undefined
+      ? (typeof node.npValue === "string" && node.npValue.endsWith("@npMagnitude") ? undefined : node.npValue)
+      : instanceValue(node.npValue, "@npMagnitude", npMagnitude),
   });
 
   const out = one(rule);
@@ -2036,6 +2046,9 @@ function collectAbilities(actor, { tick = null, turnsPerRound = 3 } = {}) {
       passive: Boolean(i.system?.passive),
       hasPhases: (i.system?.phases ?? []).length > 0,
       copyable: i.system?.copyable ?? null,
+      // A Spell is not a Skill, so a copy may not take one (#204, ruled
+      // 2026-10-14). `category` above carries the other half of the answer.
+      isSpell: Boolean(i.system?.isSpell),
     }));
 }
 

@@ -360,7 +360,7 @@ describe("Master protection", () => {
     const board = boardWith([
       caster,
       unit("master", 6, 8, { kind: "master" }),
-      unit("guard", 6, 9),
+      unit("guard", 6, 9, { masterId: "master" }),
     ]);
     // A chosen selection hands back CANDIDATES and waits for the pick, so the
     // exclusion shows there rather than in `units`.
@@ -381,7 +381,7 @@ describe("Master protection", () => {
     const board = boardWith([
       caster,
       unit("master", 6, 8, { kind: "master" }),
-      unit("guard", 6, 9),
+      unit("guard", 6, 9, { masterId: "master" }),
     ]);
     const r = resolveTargets(spec, caster, board);
     expect(r.units.map((u) => u.unitId).sort()).toEqual(["guard", "master"]);
@@ -394,7 +394,7 @@ describe("Master protection", () => {
     const board = boardWith([
       caster,
       unit("master", 6, 8, { kind: "master" }),
-      unit("guard", 6, 9),
+      unit("guard", 6, 9, { masterId: "master" }),
     ]);
     const aimed = { ...spec, anchor: { kind: "targetUnit", range: 6 } };
     const r = resolveTargets(aimed, caster, board, { unitId: "master" });
@@ -410,7 +410,7 @@ describe("Master protection", () => {
     const board = boardWith([
       caster,
       unit("master", 6, 8, { kind: "master" }),
-      unit("guard", 6, 9),
+      unit("guard", 6, 9, { masterId: "master" }),
     ]);
     const concealed = { ...caster, bypassesMasterProtection: true };
     expect(resolveTargets(spec, concealed, board).units.map((u) => u.unitId).sort())

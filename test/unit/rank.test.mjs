@@ -87,8 +87,7 @@ describe("Rank.compare with unranked", () => {
 });
 
 describe("Rank.equals", () => {
-  it("is exact, so Gate of Skye gives EX nothing", () => {
-    // gateOfSkyeSaveModifier keys on MAG being *exactly* B or *exactly* A.
+  it("is exact: A+ is not A, and EX is not A", () => {
     expect(Rank.equals(Rank.parse("A"), Rank.parse("A"))).toBe(true);
     expect(Rank.equals(Rank.parse("EX"), Rank.parse("A"))).toBe(false);
     expect(Rank.equals(Rank.parse("A+"), Rank.parse("A"))).toBe(false);

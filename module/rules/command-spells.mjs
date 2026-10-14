@@ -26,7 +26,7 @@
 
 import { currentHealth } from "../domain/health.mjs";
 import { availableFor } from "./cs-namespacing.mjs";
-import { chebyshev } from "../domain/geometry.mjs";
+import { chebyshev, inBounds } from "../domain/geometry.mjs";
 import { paysHighColumn } from "./master-rank.mjs";
 import { isolationBlocks } from "./bounded-fields.mjs";
 
@@ -71,6 +71,11 @@ export function costOf(command, master, settings = {}) {
  */
 export function canSpend(command, ctx) {
   const cost = costOf(command, ctx.master, ctx.settings);
+  // A Command Spell is a spell for the Master's contracted Servant, and for
+  // nobody else (ruled 2026-10-14, #204): no live Servant on the board, no
+  // command. Medea's Master was offered Teleport Servant with Medea defeated
+  // and gone, a spend that would have paid and moved nobody (§46.4-LN).
+  if (!ctx.servant || ctx.servant.defeated) return { ok: false, reason: "noServant", cost };
   // Ch. 32: the pool is per RELATIONSHIP. A Master with three spells borrowed
   // for Archer cannot spend them on Lancer, and the flat count could not say so.
   if (availableFor(ctx.master, ctx.servant?.id ?? null) < cost) {
@@ -161,6 +166,139 @@ export function effectsOf(command, ctx) {
   }
 
   return out;
+}
+
+/**
+ * The Units a `teleport` effect moves: the Master and its Servant for Escape's
+ * `pair`, otherwise the one Unit it names.
+ *
+ * @param {object} effect one of `effectsOf`'s results
+ * @param {object} ctx
+ * @returns {string[]}
+ */
+export function teleportMovers(effect, ctx) {
+  if (effect?.target === "pair") return [ctx.master?.id, ctx.servant?.id].filter(Boolean);
+  return effect?.unitId ? [effect.unitId] : [];
+}
+
+/**
+ * Where a `teleport` effect may land (Ch. 33): any free panel of the Master's
+ * own Home Base for Escape (`anchor: homeBase`), any free panel within
+ * `withinPanels` of the Master for Teleport Servant (`anchor: master`).
+ *
+ * The movers' own panels count as free: they are leaving them. A defeated
+ * token still stands where it fell, so it still fills its panel.
+ *
+ * @param {object} effect
+ * @param {object} ctx `master`, `servant` and `board`
+ * @returns {Array<{i: number, j: number}>}
+ */
+export function teleportPanels(effect, ctx) {
+  const board = ctx.board ?? {};
+  const master = ctx.master;
+  if (!master) return [];
+  const movers = new Set(teleportMovers(effect, ctx));
+  const taken = new Set((board.units ?? [])
+    .filter((u) => !movers.has(u.id) && (u.level ?? 0) === 0)
+    .flatMap((u) => u.panels ?? (u.panel ? [u.panel] : []))
+    .map((p) => `${p.i},${p.j}`));
+  const free = (p) => !taken.has(`${p.i},${p.j}`);
+
+  if (effect?.anchor === "homeBase") {
+    const faction = master.faction ?? master.factionId ?? null;
+    return Object.values(board.zones ?? {})
+      .filter((z) => z.faction === faction)
+      .flatMap((z) => z.panels ?? [])
+      .filter(free);
+  }
+  if (effect?.anchor === "master" && master.panel) {
+    const n = effect.withinPanels ?? 2;
+    const out = [];
+    for (let di = -n; di <= n; di += 1) {
+      for (let dj = -n; dj <= n; dj += 1) {
+        const p = { i: master.panel.i + di, j: master.panel.j + dj };
+        if ((di !== 0 || dj !== 0) && inBounds(p, board.bounds ?? null) && free(p)) out.push(p);
+      }
+    }
+    return out;
+  }
+  return [];
+}
+
+/**
+ * Where each mover lands, given the panel the player chose. The first mover
+ * takes it; a second (Escape's Servant) takes the free offered panel nearest
+ * it. `null` when the choice is not offered or the pair cannot both land.
+ *
+ * @param {object} effect
+ * @param {object} ctx
+ * @param {{i: number, j: number}|null|undefined} destination
+ * @returns {Array<{unitId: string, panel: {i: number, j: number}}>|null}
+ */
+export function teleportLandings(effect, ctx, destination) {
+  if (!destination) return null;
+  const offered = teleportPanels(effect, ctx);
+  const at = (p) => offered.findIndex((o) => o.i === p.i && o.j === p.j);
+  if (at(destination) < 0) return null;
+  const [first, ...rest] = teleportMovers(effect, ctx);
+  if (!first) return null;
+  const out = [{ unitId: first, panel: { i: destination.i, j: destination.j } }];
+  let left = offered.filter((p) => p.i !== destination.i || p.j !== destination.j);
+  for (const id of rest) {
+    if (left.length === 0) return null;
+    const next = left.reduce((a, b) => (chebyshev(b, destination) < chebyshev(a, destination) ? b : a));
+    out.push({ unitId: id, panel: next });
+    left = left.filter((p) => p !== next);
+  }
+  return out;
+}
+
+/**
+ * Which side of an attack this command acts on, or `null` for one that does not
+ * change the attack at all (a heal, a cooldown, Teleport Servant).
+ *
+ * Read off the effects rather than authored, so a new command is placed by
+ * what it does: `modifyDamage` on the attacker's side and `overrideValidation`
+ * (Force Noble Phantasm, Kill Humans) serve the Servant attacking; any other
+ * `modifyDamage` (Damage Block, Halve Noble Phantasm), `survive` and Escape's
+ * pair `teleport` serve the Servant defending.
+ *
+ * @param {object} command
+ * @returns {"attacker"|"defender"|null}
+ */
+export function processRoleOf(command) {
+  const effects = command?.effect ?? [];
+  if (effects.some((e) => e.kind === "overrideValidation" || (e.kind === "modifyDamage" && e.side === "attacker"))) {
+    return "attacker";
+  }
+  if (effects.some((e) => e.kind === "modifyDamage" || e.kind === "survive" || (e.kind === "teleport" && e.target === "pair"))) {
+    return "defender";
+  }
+  return null;
+}
+
+/**
+ * The Master's Servants a command may serve on this Combat Process (ruled
+ * 2026-10-14, #204): a command that changes the attack only for the Servant in
+ * it, on the side it acts for; Escape also when the Master itself is the one
+ * attacked, since it moves the pair; a command that does not touch the attack,
+ * for any of them. Today any Master could Damage Block anyone's Servant.
+ *
+ * @param {object} command
+ * @param {{attackerId?: string, defenderId?: string}} state the Process
+ * @param {string} masterId
+ * @param {object[]} servants the Master's live Servants
+ * @returns {object[]}
+ */
+export function servantsForProcess(command, state, masterId, servants) {
+  const role = processRoleOf(command);
+  if (role === "attacker") return servants.filter((s) => s.id === state?.attackerId);
+  if (role === "defender") {
+    const pair = (command.effect ?? []).some((e) => e.kind === "teleport" && e.target === "pair");
+    if (pair && state?.defenderId === masterId) return servants;
+    return servants.filter((s) => s.id === state?.defenderId);
+  }
+  return servants;
 }
 
 /* -------------------------------------------------------------------------- */

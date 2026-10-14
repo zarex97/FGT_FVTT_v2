@@ -13,7 +13,7 @@ const ability = (over = {}) => ({
   phases: [{ kind: "StatDelta" }], ...over,
 });
 
-const unit = (over = {}) => ({ id: "u", name: "Karna", abilities: [], ...over });
+const unit = (over = {}) => ({ id: "u", name: "Karna", kind: "servant", abilities: [], ...over });
 
 describe("canCopy", () => {
   it("allows an ordinary active Personal Skill", () => {
@@ -85,6 +85,15 @@ describe("copyCandidates", () => {
 
     expect(ranked.every((c) => "preferred" in c)).toBe(true);
     expect(ranked.filter((c) => c.preferred)).toHaveLength(2);
+  });
+
+  it("offers only Servants' Skills, never a Master's or a Summon's (#204 reading 9)", () => {
+    const withOthers = { units: [
+      ...board.units,
+      unit({ id: "kiritsugu", kind: "master", abilities: [ability({ id: "m1" })] }),
+      unit({ id: "bull", kind: "summon", abilities: [ability({ id: "b1" })] }),
+    ] };
+    expect(copyCandidates(withOthers, scathach).map((c) => c.ability.id)).toEqual(["k1", "h1"]);
   });
 
   it("offers nothing on an empty field", () => {
@@ -197,6 +206,7 @@ describe("the board shape", () => {
         {
           id: "m",
           name: "Medea",
+          kind: "servant",
           abilities: [{
             id: "gf", name: "Golden Fleece", rank: null, isNP: false,
             kind: null, passive: false, hasPhases: true, copyable: null,

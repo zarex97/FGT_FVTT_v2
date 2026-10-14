@@ -173,3 +173,20 @@ An Effect Entry is what an ability writes to give an Effect: `{id, magnitude, du
 - **Who chooses when an optional cost is offered?** The Unit's owner answers; the GM is the fallback. The reference set has only one Unit with an optional cost (Mannanán), tested only by its author. `FGTSocket.ask` is a socket prompt, so the latency and answer path are system-level.
 
 **`usedWithNormalAttack`** (#195 reading 4). An Attack Skill that *"is used when [she] performs a Normal Attack"* — Raikou's Mana Burst — is offered by a Riding Attack's ride and, as an Attack, at a Counter. The field is declared on the ability DataModel and routed in `test/unit/survival.test.mjs`.
+
+### Wisdom of Dún Scáith's pick (#204)
+
+**When.** The pick falls due when the war is built (`engine/war-setup.mjs` calls `engine/copy.mjs#markCopyPicksDue`
+once the field is deployed) and when a copier's token enters a war already under way (the `copyPick` engine
+listener). The GM's list opens by itself, and again on the GM's load while a pick is owed. `system.copyPick` holds
+`{due, poolIds}`: no Turn ends while any Unit on the board owes one (`rules/budget.mjs#copyPicksOwed`), and the pool
+is the other Servants on the field at that moment, the only ones a pick or a GM's redo offers. Only the GM opens the
+list from the sheet or the bar.
+
+**What a copy is.** Servants' Skills only (`copyCandidates` keeps `kind: "servant"`). A copy takes Scáthach's A+ and
+`4◈-⅓◈`, and carries its source's use (`carriedUse`: window, targeting, damage, phases) minus its rank, cooldown,
+gates, `rules` and `passiveRules`: the Active part only. Its phases still run from the source by `copiedFrom`.
+Refusal reasons are one list, `domain/enums.mjs#COPY_REASONS`; `named` is a family her sheet names (Mana Burst).
+A Spell is not a Skill (ruled 2026-10-14): `canCopy` refuses one with `spell`, read by `rules/costs.mjs#isSpellAbility`
+(`isSpell`, or the `spell` category), the reader Silence uses. The board now projects `isSpell` for it. Medea's six
+Spells were all offered; her Active Skills still are.
