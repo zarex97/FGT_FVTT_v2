@@ -16,7 +16,7 @@ import { computeDamage, computeDamageHits, isNPAttack, INJURY_THRESHOLD } from "
 import { ridersFire } from "../rules/damage/riders.mjs";
 import { expandInstances, damageBaseOf } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
-import { askOwner } from "./ask.mjs";
+import { askOwner, chooseFor } from "./ask.mjs";
 import { resolveTargets, pendingChoiceErrors } from "../rules/targeting/resolve.mjs";
 import { currentBoard, unitFrom, unitOf, gateContext, currentTick, roundRecordOf } from "./board.mjs";
 import {
@@ -2293,10 +2293,15 @@ async function offerPreAttackSpell(owner, category) {
     && (i.system?.cooldown?.remaining ?? 0) === 0);
   if (candidates.length === 0) return;
 
-  const chosen = await askOwner(owner, {
+  // A `choose` question, which a client can draw. Asked with no kind, no client
+  // could: the prompt logged "No renderer for prompt kind undefined", answered
+  // null, and the spell was never cast. `min: 0`: he may shoot without one.
+  const [chosen] = await chooseFor(owner, {
     title: game.i18n.localize("FGT.Kiritsugu.PreShotSpell"),
+    count: 1,
+    min: 0,
     options: candidates.map((i) => ({ id: i.id, name: i.name })),
-  });
+  }) ?? [];
   if (!chosen) return;
 
   const { useSkill } = await import("./skill-use.mjs");
