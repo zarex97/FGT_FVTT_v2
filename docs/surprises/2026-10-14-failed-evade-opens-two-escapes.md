@@ -3,7 +3,8 @@ id: 2026-10-14-failed-evade-opens-two-escapes
 found: test
 kind: generic-path-escapes-special-case
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** Making Gate of Skye's Evade fail automatically (an empty `evadableOnlyBy` permit) leaves its Luck Check the only way to avoid it, as ruled (#204 reading 15).
 **Actual:** The arena test, after the failed Evade, was asked `s24_luckyEvasion` and then `acceptOrEscape: ["accept","cs"]`. Lucky Evasion and the Command Spell escape both lead to `noDamage`.

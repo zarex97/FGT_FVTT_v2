@@ -3,7 +3,8 @@ id: 2026-10-14-escape-rung-spends-nothing
 found: test
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** The escape rung's "Spend a Command Spell" button spends one.
 **Actual:** Its `cs` event advances `s23_acceptOrEscape` to `noDamage`, and no code anywhere spends a Command Spell for it.

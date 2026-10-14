@@ -3,7 +3,8 @@ id: 2026-10-14-bar-used-a-dialog-button
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Player1 pressing Wisdom of Dún Scáith on the action bar gets the sheet's answer: the GM opens that list.
 **Actual:** The press spent a Servant move ("Servant moves 1 / 4") and posted a card "Wisdom of Dún Scáith A+ — No effect".

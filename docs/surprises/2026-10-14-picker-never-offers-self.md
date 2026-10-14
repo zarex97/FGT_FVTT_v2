@@ -3,7 +3,8 @@ id: 2026-10-14-picker-never-offers-self
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Player1 casting Ár, `selection: { relations: [ally, self] }`, can pick Scáthach herself (#204 reading 2).
 **Actual:** Her own panel was not highlighted, and hovering or clicking it chose "Nemo" — "1 target(s) · Nemo · ✓ Legal".

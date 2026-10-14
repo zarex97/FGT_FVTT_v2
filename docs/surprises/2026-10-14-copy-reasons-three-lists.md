@@ -3,7 +3,8 @@ id: 2026-10-14-copy-reasons-three-lists
 found: test
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Adding the copy reason `named` to the DataModel's choices and to `COPY_REFUSALS` lets content author it.
 **Actual:** `npm run validate:content`: `copyable.allowed is false with reason "named" — expected one of physical, unique, classSkill, rankEX`, four errors. The suite was green.

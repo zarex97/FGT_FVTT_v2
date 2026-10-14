@@ -3,7 +3,8 @@ id: 2026-10-14-sheltered-master-still-overpowered
 found: test
 kind: generic-path-escapes-special-case
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** A Master its Servant shoved clear of an area Noble Phantasm takes nothing: it is out of the area, and its card shows no damage.
 **Actual:** The arena test's shoved Master took 0 damage and was defeated anyway. The write was `system.defeated: true` from `applyDamage`'s `I.defeat(…, "overpowered")`: the Overpower coin still flipped for a Master the Servant had shoved out, and a covered Master too.
