@@ -8,4 +8,4 @@ reviewed: false
 **Expected:** Great Ram Nautilus gives Aim and the extra NP DmUp only in Waterside, as its entries' `predicate` says.
 **Actual:** Out of the water Nemo still took Aim and the extra NP DmUp: the attack path's rider loop read no entry `predicate`; only the Skill path did.
 **Cause:** `module/engine/attack.mjs:5012 @ a436802` — the rider loop tested the phase predicate and never `effectGatePasses`.
-**Fix:** `module/engine/landing.mjs:197 @ uncommitted` — `landEntry` gates every entry, with the caster as the board sees it.
+**Fix:** `module/engine/landing.mjs:197 @ 1f1b099` — `landEntry` gates every entry, with the caster as the board sees it.
