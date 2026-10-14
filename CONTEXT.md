@@ -156,10 +156,19 @@ One Player's opportunity to act. A Turn moves several Units; it does not belong 
 **Round**:
 One Turn per Player, plus the GM's Turn.
 
-**Tick** (**◈**):
-The unit of duration, meaning "the number of Turns in a Round". It is a world setting, not a
-constant, so every duration expressed in ◈ resolves differently between worlds.
-_Avoid_: beat, tick-mark, diamond
+**Tick**:
+One Turn, taken as a length of time: a fraction of a Round. Every duration comes down to a whole
+number of Ticks, and the match counts the Ticks that have passed since it began.
+_Avoid_: beat, tick-mark
+
+**◈**:
+One Round's worth of Ticks, meaning "the number of Turns in a Round". It is a world setting, not a
+constant, so a duration written in ◈ (⅓◈, 1◈+⅔◈) comes to a different number of Ticks in each world.
+_Avoid_: diamond; calling ◈ a Tick
+
+**Moment**:
+A point in the match: a Round, and how many Ticks into the match. Whatever happens at a Round's or a
+Turn's end reads the Moment that ended, not the clock, which has already moved on.
 
 **Phase**:
 Whether the world is in Day or Night. Some abilities read it.
