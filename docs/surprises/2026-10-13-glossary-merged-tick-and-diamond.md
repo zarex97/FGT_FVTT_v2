@@ -3,7 +3,8 @@ id: 2026-10-13-glossary-merged-tick-and-diamond
 found: user
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** the code misuses "tick": the glossary says a Tick (◈) is "the number of Turns in a Round", a length, so `tick` as the match's Turn counter was a second meaning. I proposed renaming it in 135 places and three saved fields.
 **Actual:** the user: "◈ = Full Round (Numbers of turns in a round). Tick should be for turns, that basically are fractions of round." The code already agrees: `resolveTicks` returns a turn count and ◈ is `turnsPerRound`. Only the glossary merged the two words.

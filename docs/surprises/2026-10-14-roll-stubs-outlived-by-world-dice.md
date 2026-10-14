@@ -3,7 +3,8 @@ id: 2026-10-14-roll-stubs-outlived-by-world-dice
 found: test
 kind: stub-outlived-by-harness
 status: fixed
-reviewed: false
+reviewed: true
+pattern: passes-for-the-wrong-reason
 ---
 **Expected:** once the test world rolled Foundry's real dice, every test that stubbed `globalThis.Roll` would either keep its stub or fail.
 **Actual:** 13 tests in 5 files (`current-pools`, `effect-intent-permanence`, `field-or-trigger`, `field-turn-end-scope`, `poison-escalation`) went on passing with their stub ignored. Their premise, "every chance lands on 1" or "every d100 is 100", was replaced by the seed's luck. Only `roll-records` failed.

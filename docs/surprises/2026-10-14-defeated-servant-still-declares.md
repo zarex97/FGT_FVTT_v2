@@ -3,7 +3,8 @@ id: 2026-10-14-defeated-servant-still-declares
 found: live press
 kind: generic-path-escapes-special-case
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** a Servant defeated at Tick 30 (Serenity, masterless, her 8◈ Sustainability exhausted: `defeated: true, defeatedAt: 30`) can declare nothing.
 **Actual:** at Tick 31, before her body was cleared, Player1 declared her Normal Attack on Achilles and it resolved; at Tick 33, after her token was gone, her Presence Concealment was cast and applied (`useSkill` returned `ok: true`).

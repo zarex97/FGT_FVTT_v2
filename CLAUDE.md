@@ -47,6 +47,8 @@ One line per pattern `/review-surprises` confirmed, each linking its file in `do
 - **Hidden timing rule.** For every "first", "then", "if defeated" or "when X" clause, find the key that sets its timing and press the order live. A boundary reads the cycle that ended, not the live clock. [pattern](docs/surprises/patterns/hidden-timing-rule.md)
 - **Generic path escapes the special case.** When a sheet bends a generic mechanic, list every exit the generic path offers (edges, toggles, prompts, buttons, revivals) and close each one the sheet rules out. [pattern](docs/surprises/patterns/generic-path-escapes-special-case.md)
 - **Check-then-act race.** When several async flows can reach one decision together (a fan-out's Processes, a hook burst), claim it in memory and make the rest await the claim; never decide from a record a sibling writes later. [pattern](docs/surprises/patterns/check-then-act-race.md)
+- **Claim without reading.** A doc line, a glossary entry or a name is not evidence: read the code, or probe it, before telling the user what it does or proposing to change it, and read the rationale already recorded in the file you would restructure. [pattern](docs/surprises/patterns/claim-without-reading-the-path.md)
+- **Passes for the wrong reason.** A check asserts the reason it fails, not only that it failed; when the test world takes over something a test stubbed, the test fails out loud instead of passing on the new default. [pattern](docs/surprises/patterns/passes-for-the-wrong-reason.md)
 
 ### Two workplaces
 

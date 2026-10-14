@@ -3,7 +3,8 @@ id: 2026-10-14-round-end-logged-under-next-round
 found: test
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** the game log files the end of Round 9 under Round 9.
 **Actual:** played through a real Round boundary in the test world, the Round 9 `roundEnd` entry and the Turn-end poison tick were stamped `round: 10`, with `detail.round: 9`. The log viewer's Round filter showed them in Round 10.

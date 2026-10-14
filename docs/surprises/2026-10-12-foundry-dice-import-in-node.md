@@ -3,7 +3,8 @@ id: 2026-10-12-foundry-dice-import-in-node
 found: test
 kind: assumed-shape
 status: open
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** Foundry's `client/` layer does not import in Node, so tests cannot use the real `Roll`; the review planned a seeded fake.
 **Actual:** a probe imported `client/dice/_module.mjs` and evaluated `5d10 + 3`, `2d6+3` and `floor(1d20/2)` with the real `Roll`, faces set through `CONFIG.Dice.randomUniform`. It needed two things: `@common/` resolved to `app/common/`, and `grammar.pegjs` compiled by the `peggy` the Foundry copy already ships.
