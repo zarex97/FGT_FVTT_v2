@@ -3,7 +3,8 @@ id: 2026-10-14-entry-uses-unread-on-skills
 found: test
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Van Gogh's The Yellow House gives Evade 2 charges, as its entry `uses: 2` says.
 **Actual:** Evade arrived with 1 charge. `uses` was read only on the intent path; the Skill path read `times` as charges and nothing else.

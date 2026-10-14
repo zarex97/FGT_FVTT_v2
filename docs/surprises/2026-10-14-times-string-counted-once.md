@@ -3,7 +3,8 @@ id: 2026-10-14-times-string-counted-once
 found: test
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Gogh's `times: "@stageDelta"` grants one Atk Up per Curse stage a Crit removes: two.
 **Actual:** One Atk Up. `stackTimes` returned 1 for any string.

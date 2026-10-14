@@ -3,7 +3,8 @@ id: 2026-10-14-ci-foundry-copy-was-sparse
 found: test
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** the Wave A branch, green on the PC (6716 tests), is green in CI.
 **Actual:** CI failed 105 test files: `Failed to load url .foundry/app/client/dice/_module.mjs ... Does the file exist?`

@@ -3,7 +3,8 @@ id: 2026-10-14-editor-draft-was-the-live-model
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** The ability editor holds a working copy until Save; a field cleared in the form is removed on Save.
 **Actual:** Clearing Atlas's `chance` and saving left `chance: 80` on the document, and before Save the live Item already read the edited value.

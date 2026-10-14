@@ -3,7 +3,8 @@ id: 2026-10-14-soaked-ice-gate-dropped
 found: test
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Soaked raises Freeze's chance by 25 only when the Unit receives Ice damage, as its `predicate: ["attack:element:ice"]` says.
 **Actual:** Under a Fire attack and under no attack, a 50% Freeze read "rolled 99 vs 80%": the +25 applied every time.
