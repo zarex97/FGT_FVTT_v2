@@ -23,11 +23,10 @@
  */
 
 import { currentBoard, unitOf } from "./board.mjs";
-import { EffectRegistry } from "../rules/registry.mjs";
 import { resourcePathFor, resourceLabel } from "../domain/resources.mjs";
 import { applyWorldIntents } from "./applier.mjs";
-import { applyEffect } from "./effect-applier.mjs";
-import { rollOptionsFor } from "../rules/options.mjs";
+import { landEntry } from "./landing.mjs";
+import { entryOf } from "../rules/effect-flow.mjs";
 import * as I from "./intents.mjs";
 
 /**
@@ -196,28 +195,16 @@ async function spend({ actor, unit, spec }) {
     }),
   ];
 
+  // Through the one door. The buff it bought is the Unit's own, so the Unit is
+  // the caster too -- and its own outgoing bonuses count, where this path
+  // passed a hard 0.
   for (const wanted of spec.effects ?? []) {
-    const def = EffectRegistry.get(wanted.id ?? wanted.effect?.id);
-    if (!def) {
-      console.warn(`FGT | ${spec.source} applies unknown effect "${wanted.id}".`);
-      continue;
-    }
-    const outcome = applyEffect({
-      def,
+    await landEntry(entryOf(wanted), {
       target: unit,
-      magnitude: wanted.magnitude ?? def.defaultMagnitude ?? 0,
-      npMagnitude: wanted.npMagnitude ?? null,
-      duration: wanted.duration ?? def.defaultDuration,
       source: { unitId: actor.id, abilityId: null },
-      ctx: {
-        turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-        currentTick: game.combat?.system?.globalTurn ?? 0,
-        roll: (await new Roll("1d100").evaluate()).total,
-        inflictBonus: 0,
-        options: rollOptionsFor({ attacker: unit }),
-      },
-    });
-    intents.push(...outcome.intents);
+      caster: actor,
+      casterUnit: unit,
+    }, { write: async (landed) => { intents.push(...landed); } });
   }
 
   await applyWorldIntents(intents, "optionalCost");

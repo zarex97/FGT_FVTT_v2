@@ -10,19 +10,43 @@ Every step emits a trace entry — *"Curse resisted (rolled 78 vs 65%)"* or *"Ch
 
 | File | Role |
 |---|---|
+| `module/engine/landing.mjs` | **Landing** — the one door every Effect Entry comes through: `landEntry` (gate, count, applications) and `landEffect` (one application). The only caller of `applyEffect` |
+| `module/rules/effect-flow.mjs` | The Effect Entry: `ENTRY_KEYS`, `entryOf`, `chanceOf`, `timesOf`, `applicationsOf`, `effectGatePasses` |
 | `module/engine/effect-applier.mjs` | The seven-step pipeline and the public `applyEffect` entry point |
-| `module/engine/applier.mjs` | `resolveEffects` — the adapter that bridges bare intents to the full pipeline (`module/engine/applier.mjs:247-361`); `riderOptions` — the attack's options an event rider's effect is tested against (`attackOptions`, copied onto the effect by the scheduler's `ApplyEffect` action; Ch. 11, #127) |
+| `module/engine/applier.mjs` | `resolveEffects` — the adapter that hands an unresolved intent to Landing; `riderOptions` — the attack's options an event rider's effect is tested against (`attackOptions`, copied onto the effect by the scheduler's `ApplyEffect` action; Ch. 11, #127) |
 | `module/rules/removal.mjs` | Removal resistance and the logic for buff dispel — a _deletion_ pipeline with its own stacking (`module/rules/removal.mjs:1-27`) |
 | `module/rules/checks.mjs` | `applicationChance` — the function that computes landing chance at step 3 |
 | Domain primitives | `currentHealth`, `parseTick`, `resolveTicks` — read by step 6 (CONSTRUCT) |
 
 ## How it works
 
+### Landing: one door for every path
+
+An **Effect Entry** (CONTEXT.md) is what content authors to give an Effect, wherever it writes it: an ability's `applyEffects` phase, a check's outcome, an aftermath, a Riding self-rider, an optional cost, a handler's `ApplyEffect` action, a bounded field's interior rule. Eight paths used to each assemble `applyEffect`'s arguments, and each read a different subset of the entry: `uses` only on the intent path, `stages` not on a check's outcome, no ring or per-panel chance on a Skill, an entry `predicate` only on a Skill. About thirteen Surprises were that drift. Wave B (2026-10-14) put every path through `module/engine/landing.mjs`.
+
+`entryOf(raw, {phase, rule})` turns any authored shape into one entry, keeping only the keys `ENTRY_KEYS` lists (the inner `effect:` wins over what is written beside it; a phase's `ignoresResistanceFrom` is merged in). `landEntry(entry, ctx, {write, reread})` then, for one recipient:
+
+1. **Gate.** The entry's own `predicate`, asked with the caster **as the board sees it**, so a gate on where the caster stands can pass (Great Ram Nautilus's Aim only in Waterside).
+2. **Count.** `applications` separate applications; `times` is charges on a `count`-stacked effect and applications on any other (`timesOf`: a number, `{perStack}`, or an event field such as Gogh's `"@stageDelta"`, taken whole). The recipient is re-read between applications, after each is written.
+3. `landEffect` for each application:
+   - **magnitude**, resolved once (`countTargets`, then a number or an `@` expression against the caster, with a ride's facts; `npMagnitudeFactor`);
+   - **one option set** — `attack:` options only when an attack delivers the entry (or the `attackOptions` an intent carried);
+   - **chance** — `chanceOf`: per panel, then the ring, then the flat chance; the distance is caster to target unless the Combat Process measured it;
+   - **the die only when the chance can fail.** `applyEffect` is asked first with a die that always misses; a certain chance lands without a roll. A die a handler or a field already rolled (`rolled`) is used instead;
+   - `applyEffect` with every key;
+   - the **Prevention Luck Check** (below);
+   - `onApply` when the instance was created (Shock's −3 current Agility, on every path now), an `effectResisted` log line when resisted, and the emitter's own expiry (`mergeEmitted`) for an intent;
+   - **one summary row**, which is the line the card prints (`rules/card-visibility.mjs#effectLine`).
+
+`landEffect` decides and does not write; `landEntry` writes through the caller's `write`, so each path keeps its own batch source. `test/unit/landing-one-door.test.mjs` fails if anything but `landing.mjs` calls `applyEffect`, if the door reads a key `ENTRY_KEYS` does not list (or misses one it lists), or if content writes an entry key outside the list.
+
+**A field rolls one die.** A field's interior `ApplyEffect` rolls its stated chance for the field's card and forwards the die and the chance, so Landing subtracts the target's resistance from the same chance against the same die. Contagion rolled four dice for two chances and met resistance only on the second.
+
 ### Entry point
 
-The pipeline is exposed as `applyEffect()` (`module/engine/effect-applier.mjs:60-349`), which takes an effect definition, a target snapshot, and context including the chance roll. The caller must supply the roll; every step is deterministic given the roll.
+The pipeline is exposed as `applyEffect()` (`module/engine/effect-applier.mjs`), which takes an effect definition, a target snapshot, and context including the chance roll. The caller must supply the roll; every step is deterministic given the roll. Its only caller is Landing.
 
-For unresolved `applyEffect` intents that arrive at the applier boundary, `resolveEffects()` (`module/engine/applier.mjs:247-361`) fetches the definition, takes a snapshot of the target from the board (which includes field-scoped suppressions), rolls its own `1d100`, and calls `applyEffect`. This path exists because three call sites write effects without going through `applyWorldIntents` — the attack flow, the scheduler's boundary sequences, and the movement hook — and running the pipeline in one of them would leave the other two applying bare intents, repeating logic (`module/engine/applier.mjs:77-82`).
+For unresolved `applyEffect` intents that arrive at the applier boundary, `resolveEffects()` (`module/engine/applier.mjs`) reads the intent as an entry (`entryOfIntent`) and lands it with the target from the board (which includes field-scoped suppressions). This path exists because three call sites write effects without going through `applyWorldIntents` — the attack flow, the scheduler's boundary sequences, and the movement hook — and running the pipeline in one of them would leave the other two applying bare intents. `applyIntents({process})` carries the Combat Process a handler's rider lands inside (`damageDealt`, `damageTaken`, `damageStepEnd`), so its target may be offered Prevention too.
 
 **The attack path takes both subjects from the board too (#157).** `applyAbilityEffects` builds the attacker and the defender once per Combat Process with `riderSubjects(state)` (`unitFrom(boardSnapshot(), doc)`, which falls back to a standalone projection for a Unit the board has no row for), and `applyDeclaredEffects` takes its attacker from the board, so a bounded field's `ApplicationChance` and Immunity downgrade, and an aura's outgoing bonus, reach a rider: they are written only by `snapshotBoard`'s pass, which a bare `unitSnapshot` never ran. Doomsday Come's *chance of being inflicted by debuffs +50%* is the case that shows it (a 50% rider rolled at 60 is `resisted` on the bare snapshot and `applied` on the board's Unit); the same shape §46.4-AF fixed at `fireDamageStepEnd` and §46.4-AG at the intent path.
 
@@ -80,11 +104,17 @@ Outcome: `passed` or `resisted`. The trace records the roll and all modifiers in
 
 **A resisted rider says so** (#195). The rider's chance roll is filed after its effect has resolved: a resisted application logs `effectResisted`, and the card reads *"against 50%: resisted (rolled 39 vs 30%)"*. It was filed first and read "hit" while the target's resistance turned the same die away.
 
-### Step 4: Prevention window
+### Step 4: Prevention — in Landing, not here
 
-An offered prevention (`Luck Check`) pauses the application and returns a prompt intent. Only offered once per Combat Process and never against terminal effects (`module/engine/effect-applier.mjs:172-182`).
+The **Prevention Luck Check** (CONTEXT.md) asks the target's player a question, which a pure step cannot do, so it runs in `landing.mjs#offerPrevention` after `applyEffect` returns `applied`. The step that stood here was never offered: no caller set `preventionAvailable`. Ruled 2026-10-14:
 
-If not offered, execution continues to step 4b. If offered, the result is `noop` and intents carry a prompt request.
+- **debuffs only**, and never a terminal effect (Instakill, Death, Erase);
+- **only inside a Combat Process** (`ctx.process`), and **once per target per Process** (`state.prevented[unitId]`, kept on the Process state and serialised with it);
+- the **target's owner is asked on their own screen** (`askOwner`, prompt `luckCheck` / `prevention`); a decline costs nothing;
+- accepted, it **costs 1 Luck whatever the die says** and is the standard uncontested d20 `luckCheck`; a success drops the effect and the card reads *"Shock: prevented, Luck Check 1 vs 3: prevented"*, a failure lands it with the Luck spent;
+- **not offered** on Beginner or Intermediate (`luckChecksApply`), with no Luck, or where Luck Checks are blocked (`luckChecksBlocked`, Achilles's duel).
+
+Proved in `test/unit/prevention-luck-check.test.mjs`.
 
 ### Step 4b: Magnitude scale
 
@@ -177,11 +207,8 @@ steps must read, not just a label attached to the outcome.**
 
 ## Open questions
 
-- **Resolved: seven named steps, with 4 split into a gate and a scale.** The count is a naming
-  convention, not an ambiguity. Prevention (4) can return early, and when it does the magnitude
-  scale (4b) does not run — which is the right order, since an application that was prevented has no
-  magnitude to scale. Reading the switch confirms the sequence; there is no state in which 4b runs
-  without 4 having passed.
+- **Resolved: seven named steps.** Step 4 no longer runs inside `applyEffect`: Prevention moved
+  to Landing (Wave B), after the pipeline has decided the effect lands, so 4b always runs.
 
 - **Confirmed live: suppressions come from the board pass, and only from there.** Both projections
   carry a `suppressions` key, but it is the board re-pass that fills it —
@@ -193,7 +220,5 @@ steps must read, not just a label attached to the outcome.**
   how Sikera Ušum's immunity downgrade once failed to downgrade anything.
 
 - **The immunity downgrade does not refund resistance as resistance.** Sikera Ušum clause d's downgrade adds a flat resist percent at the chance step rather than keeping the instance un-immune. An alternative reading (reducing the immunity to immunity-light) would gate slightly differently; the current reading is what the code does.
-
-- **Seven or nine steps?** The Prevention Window (step 4) returns early, and Magnitude Scale (4b) is nested inside it. An alternative reading is 1-2-3-[4a-return]-[4b]-5-6-7, making five or six top-level steps. The code marks both and the file header claims seven, so this is the canonical reading, but an ADR would clarify the intended scope.
 
 - **The downgrade is suppression-scoped, not field-scoped.** A field's `ImmunityDowngrade` produces suppressions at the time the target is snapshotted. A unit that moves out of the field does not lose the downgrade; the instance itself is neither field-tied nor re-annotated. This is the current behaviour; a future enhancement might tie immunity downgrades to the field's lifetime.

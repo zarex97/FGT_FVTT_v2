@@ -125,7 +125,8 @@ describe("Fragarach's Instakill says what the die did (reading 14)", () => {
   it("words a resisted Instakill as resisted, with the roll", () => {
     const src = readFileSync("module/engine/attack.mjs", "utf8");
     const body = src.slice(src.indexOf("async function resolveNPCancellation"), src.indexOf("export function counterfactualAttack"));
-    expect(body).toMatch(/applied\.outcome === "applied"/);
+    // Three outcomes, three lines: a blocked Instakill read "resisted" too.
+    expect(body).toMatch(/applied: "FGT\.CancelNP\.Instakill", blocked: "FGT\.CancelNP\.InstakillBlocked"/);
     expect(body).toMatch(/FGT\.CancelNP\.InstakillResisted/);
     const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
     expect(lang["FGT.CancelNP.InstakillResisted"]).toMatch(/\{detail\}/);

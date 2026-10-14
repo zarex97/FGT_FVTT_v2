@@ -14,8 +14,6 @@ import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import { playAttack } from "../helpers/process.mjs";
 
 beforeAll(prepareSubjects, 120_000);
-
-const effectIds = (actor) => [...actor.effects].map((e) => e.system.defId);
 const round4 = (faction) => ({ tokens: true, combat: { round: 4, started: true, system: { globalTurn: 10 }, actingFactionId: faction } });
 
 describe("P1 — a phase's resistance exemption reaches its riders (#199 reading 11, fix 50a76fe)", () => {

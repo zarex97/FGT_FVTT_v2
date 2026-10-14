@@ -453,13 +453,13 @@ describe("Brahmastra Kundala", () => {
     expect(bk.alsoTriggers).toEqual([{ ability: "karna-mana-burst-flames" }]);
   });
 
-  it("inflicts a Def Dwn that is STRONGER against Noble Phantasms", () => {
+  it("inflicts a Def Dwn (B) that is STRONGER against Noble Phantasms", () => {
     // The one in the corpus whose NP magnitude is higher than its normal one --
     // the family's usual direction is the other way, so an omitted `npMagnitude`
     // would have silently applied 30% to Noble Phantasms.
     const defDwn = bk.phases
       .flatMap((p) => p.rules ?? [])
-      .find((r) => r.effect?.id === "defDwn");
+      .find((r) => r.effect?.id === "defDwnB");
     expect(defDwn.effect).toMatchObject({ magnitude: 30, npMagnitude: 40 });
   });
 });

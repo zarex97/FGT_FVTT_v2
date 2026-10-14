@@ -22,7 +22,7 @@ import { endOfRoundHomeBase, homeBaseResidencyUpdates, regionsAdjacent } from ".
 import { terrainPeriodics } from "../rules/terrain.mjs";
 import { multiServantTax } from "../rules/relationships.mjs";
 import { sideOf } from "../rules/relations.mjs";
-import { transferEffect, transferableFrom, removeStages, attackOptionsOf } from "../rules/effect-flow.mjs";
+import { transferEffect, transferableFrom, removeStages, attackOptionsOf, timesOf } from "../rules/effect-flow.mjs";
 import { forcedStanceFor } from "../rules/stance.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { currentHealth, maxHealth } from "../domain/health.mjs";
@@ -1199,8 +1199,11 @@ const ACTIONS = Object.freeze({
    */
   ApplyEffect: (a, u, h, c) => {
     // "X times, where X = ...". Resolved before anything is built, because a
-    // count of zero is not an application at all.
-    const applyTimes = a.times === undefined ? null : stackTimes(a.times, u);
+    // count of zero is not an application at all. An `@` field of the event
+    // too: Gogh's *"one Atk Up per stage removed"* is `times: "@stageDelta"`,
+    // which counted 1 for any string, so a Crit that took two paid one.
+    const applyTimes = a.times === undefined ? null
+      : typeof a.times === "string" ? timesOf(a.times, { event: c.event ?? null }) : stackTimes(a.times, u);
     if (applyTimes !== null && applyTimes <= 0) return [];
 
     const ticks = a.duration ? resolveTicks(parseTick(a.duration), c) : null;
@@ -1212,6 +1215,11 @@ const ACTIONS = Object.freeze({
       ...(a.effect ?? {}),
       defId: a.effect?.defId ?? a.effect?.id ?? a.defId,
       magnitude: a.effect?.magnitude ?? a.magnitude ?? 0,
+      // Beside the effect too, as `magnitude` is: an action-level NP magnitude
+      // was dropped here, so it never met a Noble Phantasm.
+      npMagnitude: a.effect?.npMagnitude ?? a.npMagnitude ?? null,
+      ...(a.unremovable || a.effect?.unremovable ? { unremovable: true } : {}),
+      ...(a.permanent || a.effect?.permanent ? { permanent: true } : {}),
       expiry: ticks === null || ticks === INFINITE ? (a.effect?.expiry ?? null) : (c.tick ?? 0) + ticks,
       // The HANDLER'S BEARER, not the recipient. `dispatch` fans a
       // `target: nearby` action over its set and hands each recipient in as
@@ -1245,11 +1253,11 @@ const ACTIONS = Object.freeze({
       // `resolveEffects` and not stored: `applyEffect` rebuilds the instance field
       // by field, so this is not on the effect DataModel.
       ...(attackOptions.length > 0 ? { attackOptions } : {}),
-      // ...and the same reading for CHARGES. *"Apply NP DmUp (GAO) to herself X
-      // times, where X = the number of Proliferation Stocks she has"* -- one
-      // application worth X, resolved here because only this pass can see how
-      // many she holds.
-      ...(applyTimes !== null ? { applyUses: applyTimes } : {}),
+      // ...and the COUNT, resolved here because only this pass can see the
+      // stacks she holds and what the event carried. Landing reads it as
+      // charges on a counted effect (*"Apply NP DmUp (GAO) to herself X
+      // times"*) and as applications on any other (Gogh's Atk Up per stage).
+      ...(applyTimes !== null ? { times: applyTimes } : {}),
       // Secret Poison. Hidden only while there is something to hide behind:
       // the disclosure trigger is the inflicter's concealment ending, so an
       // unconcealed inflicter poisons openly and the clause is self-limiting.

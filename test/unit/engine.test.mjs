@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { effectDef } from "../helpers/effect-defs.mjs";
 import { collectContributions } from "../../module/rules/elements.mjs";
 import * as I from "../../module/engine/intents.mjs";
-import { applyEffect, applyBatch } from "../../module/engine/effect-applier.mjs";
+import { applyEffect } from "../../module/engine/effect-applier.mjs";
 import {
   begin, advance, legalEvents, pendingPrompt, didHit, isComplete,
   canCounter, shouldUpdateFacing, laddersCollapse, serialize, deserialize, TRANSITIONS,
@@ -310,25 +310,25 @@ describe("step 6 — duration is an absolute expiry tick", () => {
     expect(r.intents.at(-1).effect.expiry).toBe(23); // 10 + 13
   });
 });
-
 describe("No Buff blocks a multi-buff ability wholesale", () => {
   it("fails all of them, not just the first", () => {
     // "If a single effect that applies multiple buffs is used on a Unit with
-    // No Buff, ALL of those buffs will fail to be applied."
+    // No Buff, ALL of those buffs will fail to be applied." Each buff meets the
+    // immunity gate on its own and each is refused, so all of them fail (the
+    // batch helper that said so once had no caller, and went with Landing).
     const defs = [
       def({ id: "atkUp", polarity: "buff", stacking: "magnitudeStacks" }),
       def({ id: "defUp", polarity: "buff", stacking: "magnitudeStacks" }),
       def({ id: "critUp", polarity: "buff", stacking: "magnitudeStacks" }),
     ];
-    const r = applyBatch({ defs, target: target({ effects: ["noBuff"] }), source: {}, ctx });
-    expect(r.blockedWholesale).toBe(true);
-    expect(r.intents).toEqual([]);
-    expect(r.results.every((x) => x.outcome === "blocked")).toBe(true);
+    const results = defs.map((d) => applyEffect({ def: d, target: target({ effects: ["noBuff"] }), source: {}, ctx }));
+    expect(results.every((x) => x.outcome === "blocked" && x.reason === "No Buff")).toBe(true);
+    expect(results.flatMap((x) => x.intents)).toEqual([]);
   });
 
   it("applies normally without No Buff", () => {
-    const defs = [def({ id: "atkUp", polarity: "buff", stacking: "magnitudeStacks" })];
-    expect(applyBatch({ defs, target: target(), source: {}, ctx }).intents.length).toBe(1);
+    const d = def({ id: "atkUp", polarity: "buff", stacking: "magnitudeStacks" });
+    expect(applyEffect({ def: d, target: target(), source: {}, ctx }).intents.length).toBe(1);
   });
 });
 

@@ -88,6 +88,8 @@ The process is **complete** when it reaches the `done` state (`module/engine/com
 
 4. **Damage riders fire only on hit.** The damage total must be greater than zero and not fully negated by concealment or other effects. "Hit" and "hurt" are distinct: a rider on-hit fires even if a Block reduced it; on-damage fires only if it got through (`module/engine/attack.mjs:2487-2510`, `module/rules/damage/riders.mjs`).
 
+4b. **A debuff landing inside a Process may be prevented.** Every rider of the Process — the ability's own, a check's outcome, and a handler's (`damageDealt`, `damageTaken`, `damageStepEnd`, through `applyBatch(..., {process: state})`) — lands through `engine/landing.mjs` with the Process state, which offers its target the Prevention Luck Check once per Process ([Ch. 15](15-effect-application.md), [Ch. 13](13-checks-and-randomness.md)). The targets that made one are kept on `state.prevented` and serialised with the Process.
+
 5. **Injury Roll reads the pipeline's threshold, not damage > 100.** `Def Crk` adds bonus damage that does not count toward Injury. The check reads `flags.exceededInjuryThreshold` from the pipeline, not a fresh comparison, so Def Crk does not trigger it (`module/rules/injury.mjs:40-44`).
 
 6. **A counter carries the parent's group but is a fresh ladder.** The counter process shares `groupId` with the parent to keep the Combat Phase intact while the counter resolves. All other state is new: it has its own history, its own Luck ladder, and its own facing change (`module/engine/combat-process.mjs:470-475`).

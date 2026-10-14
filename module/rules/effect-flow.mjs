@@ -368,3 +368,155 @@ export function effectGatePasses(spec, rule, ctx) {
   const options = ctx?.options instanceof Set ? ctx.options : new Set(ctx?.options ?? []);
   return testPredicate(predicate, { options });
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Ch. 15 The Effect Entry                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Every key an Effect Entry may author, and what it means.
+ *
+ * ONE list, for the three things that must agree about it: `entryOf` keeps
+ * these keys and no others, `engine/landing.mjs` reads them, and the ability
+ * editor offers them (`rules/authoring/phases.mjs`). Each path used to read
+ * its own subset, so the same entry meant one thing on a Noble Phantasm and
+ * another on a Skill: `uses` was read on the intent path alone, which left Van
+ * Gogh's Evade at one charge where *The Yellow House* states two.
+ *
+ * `type` is the editor's field type: `effect` (an effect id), `number`,
+ * `expression` (a number or an `@` expression), `duration` (a ◈ expression),
+ * `boolean`, `select` (with `choices`), and `json` for a list or a map the
+ * form edits as text.
+ */
+export const ENTRY_KEYS = Object.freeze({
+  id: { type: "effect", means: "The effect applied." },
+  magnitude: { type: "expression", means: "How much: a number, an @ expression, or { countTargets }." },
+  npMagnitude: { type: "expression", means: "The magnitude against a Noble Phantasm, when it differs." },
+  npMagnitudeFactor: { type: "number", means: "The NP magnitude as a factor of the resolved magnitude." },
+  perStack: { type: "json", means: "Scale the magnitude by a stack the caster carries." },
+  max: { type: "number", means: "A ceiling on an expression magnitude." },
+  duration: { type: "duration", means: "How long, as a ◈ expression; the definition's own when absent." },
+  permanent: { type: "boolean", means: "No expiry at all, whatever the definition says." },
+  unremovable: { type: "boolean", means: "Cannot be removed while it lasts." },
+  visibility: { type: "select", choices: ["public", "ownerOnly", "gmOnly"], means: "Who may see the instance." },
+  secret: { type: "boolean", means: "Hidden, with its cause, while the inflicter is concealed." },
+  chance: { type: "number", means: "The stated chance, in place of the definition's." },
+  chancePerPanel: { type: "number", means: "A chance per panel between the source and the target." },
+  bands: { type: "json", means: "A chance per ring, index-aligned with the targeting's bands." },
+  chanceModifiers: { type: "json", means: "Changes to the chance the ability itself states." },
+  bypassChanceModifiers: { type: "boolean", means: "A flat chance no bonus or resistance touches." },
+  stages: { type: "number", means: "Stages one application adds." },
+  uses: { type: "number", means: "Charges one application gives a counted effect." },
+  times: { type: "expression", means: "A count: charges on a counted effect, applications on any other." },
+  applications: { type: "number", means: "Separate applications, each rolled on its own." },
+  predicate: { type: "json", means: "Apply only to the recipients this matches." },
+  ignoresResistanceFrom: { type: "json", means: "Resistances this application is not subject to." },
+});
+
+/**
+ * One authored Effect Entry, in its one canonical shape.
+ *
+ * Content writes an entry three ways: bare (`{id, magnitude}`), wrapped
+ * (`{effect: {id}, duration}`, every Riding variant) and as a handler's
+ * `ApplyEffect` action (`{effect: {id, magnitude}, duration, chance}`). Each
+ * path unwrapped its own and each read a different subset, so a magnitude
+ * beside a nested `effect:` was dropped on one path and read on another.
+ *
+ * The inner effect wins over what is written beside it, as `effectSpecsOf`
+ * already decided. A RULE may supply what the entry leaves out -- the Skill
+ * path's rule-level `magnitude` and `duration` -- and a PHASE's own
+ * `ignoresResistanceFrom` is merged in, because *"not affected by Magic
+ * Resistance"* covers every effect the phase applies.
+ *
+ * Only {@link ENTRY_KEYS} survive. A key outside it is one no path reads, and
+ * `test/unit/landing-one-door.test.mjs` sweeps the corpus for any.
+ *
+ * @param {object|null} raw the entry, wrapped or bare
+ * @param {object} [where]
+ * @param {object|null} [where.phase] the phase it sits in
+ * @param {object|null} [where.rule] the rule it sits on, when `raw` is its inner effect
+ * @returns {object|null} the entry, or null when it names no effect
+ */
+export function entryOf(raw, { phase = null, rule = null } = {}) {
+  if (!raw || typeof raw !== "object") return null;
+  const inner = raw.effect && typeof raw.effect === "object" ? raw.effect : null;
+  const id = inner?.id ?? inner?.defId ?? raw.id ?? raw.defId ?? null;
+  if (!id) return null;
+
+  /** @type {Record<string, unknown>} */
+  const entry = { id };
+  for (const key of Object.keys(ENTRY_KEYS)) {
+    if (key === "id") continue;
+    const value = inner?.[key] ?? raw[key] ?? (rule && rule !== raw ? rule[key] : undefined);
+    if (value !== undefined) entry[key] = value;
+  }
+  // A handler states a staged effect's stage on the effect itself:
+  // `effect: { id: curse, stage: 1 }` is one application worth one stage.
+  if (entry.stages === undefined && typeof inner?.stage === "number" && inner.stage > 0) entry.stages = inner.stage;
+
+  const ignored = [
+    ...(phase?.ignoresResistanceFrom ?? []),
+    ...(entry.ignoresResistanceFrom ?? []),
+  ];
+  if (ignored.length > 0) entry.ignoresResistanceFrom = [...new Set(ignored)];
+  else delete entry.ignoresResistanceFrom;
+  return entry;
+}
+
+/**
+ * The chance an entry states against one target.
+ *
+ * In order: a chance per panel of distance (Anastasia's Ice Block Launcher),
+ * a chance per ring (Triton's Conch, index-aligned with the targeting's
+ * `bands`), then the flat `chance`. `null` leaves the definition's own
+ * `baseChance`. Moved here from the attack path's `declaredChance`, so a Skill
+ * reads a ring and a per-panel chance the same way a Noble Phantasm does.
+ *
+ * @param {object} entry
+ * @param {object} [at]
+ * @param {number|null} [at.distance] panels between the source and the target
+ * @param {number|null} [at.band] which ring of the targeting the target is in
+ * @returns {number|null}
+ */
+export function chanceOf(entry, { distance = null, band = null } = {}) {
+  if (entry?.chancePerPanel !== undefined) {
+    if (typeof distance !== "number" || !Number.isFinite(distance)) return 0;
+    return Math.min(100, Math.max(0, entry.chancePerPanel * distance));
+  }
+  const ring = entry?.bands?.[band ?? 0]?.chance;
+  if (typeof ring === "number") return ring;
+  return entry?.chance ?? null;
+}
+
+/**
+ * How many times an entry's `times` asks for, or null when it states none.
+ *
+ * Three spellings, each from a sheet:
+ *
+ * - a number;
+ * - `{ perStack: { effect, each } }`, one per `each` of a stack the bearer
+ *   holds (Kingprotea's *"X times, where X = the number of Proliferation
+ *   Stocks she has"*);
+ * - an `@` field of the event that fired the handler, its size taken whole.
+ *   Gogh's *"one Atk Up per stage removed"* is `times: "@stageDelta"`, and a
+ *   removal's delta is negative. Any string counted 1, so a Crit that took two
+ *   stages paid one Atk Up.
+ *
+ * @param {number|string|object|undefined} raw
+ * @param {object} [ctx]
+ * @param {Record<string, number>} [ctx.stacks] what the bearer holds, by effect id
+ * @param {object|null} [ctx.event] the event's payload
+ * @returns {number|null}
+ */
+export function timesOf(raw, { stacks = {}, event = null } = {}) {
+  if (raw === undefined || raw === null) return null;
+  if (typeof raw === "number") return Math.floor(raw);
+  if (typeof raw === "string") {
+    const field = raw.replace("-", "").replace("@", "").trim();
+    const value = event?.[field];
+    return typeof value === "number" ? Math.abs(Math.trunc(value)) : 0;
+  }
+  const spec = raw?.perStack ?? null;
+  if (!spec?.effect) return 1;
+  return Math.floor((stacks[spec.effect] ?? 0) / (spec.each ?? 1));
+}

@@ -33,7 +33,7 @@ requirements:
 description: |
   Cannot be used if @ability[karna-mana-burst-flames]{Mana Burst (Flames)} or Vasavi Shakti is on Cooldown. Range=5. Base Attack
   (STR) and Base Attack (MAG) combined is used. Hits a 7x7 panel area within Range for 4x damage
-  plus 100, and inflicts @effect[burn]{Burn} for 3◈ Turns to all affected Units. Then, inflicts @effect[defDwn]{Def Dwn} (B) on
+  plus 100, and inflicts @effect[burn]{Burn} for 3◈ Turns to all affected Units. Then, inflicts @effect[defDwnB]{Def Dwn (B)} on
   all affected Units for 1◈ Turns (all damage received is increased by 30%; if NP, 40%).
   Fire damage. Affected by @ability[class-magic-resistance]{Magic Resistance}. Karna is not affected by this NP if he is within
   the NP area.
@@ -77,9 +77,9 @@ phases:
       # defaulted -- the family's usual direction is the other way and an
       # omitted value would silently apply 30% to Noble Phantasms.
       #
-      # The "(B)" is the effect's Rank for Ch. 14's non-stacking comparison, not
-      # a magnitude.
+      # "Def Dwn (B)" is its own effect (`defDwnB`), as (A) and (C) are. It was
+      # written `defDwn` with a `rank: B` that nothing read (Wave B).
       - key: OnEvent
         event: damageDealt
-        effect: { id: defDwn, magnitude: 30, npMagnitude: 40, rank: B }
+        effect: { id: defDwnB, magnitude: 30, npMagnitude: 40 }
         duration: "1◈"

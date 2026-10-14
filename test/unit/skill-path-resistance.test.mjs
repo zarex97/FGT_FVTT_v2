@@ -37,27 +37,17 @@ const effectSpecOf = (world, actorId, contentId) => {
 const chanceLine = (caster, victim, contentId, roll) => withSubjects(
   [...new Set([caster, victim])].map((id) => ({ from: id, id })),
   async ({ unit, world }) => {
-    const { skillEffectContext } = await import("../../module/engine/skill-use.mjs");
-    const { applyEffect } = await import("../../module/engine/effect-applier.mjs");
-    const { EffectRegistry } = await import("../../module/rules/registry.mjs");
-    const { rollOptionsFor } = await import("../../module/rules/options.mjs");
+    // Through the door the Skill path lands every entry with
+    // (`engine/landing.mjs`), the die scripted.
+    const { landEffect } = await import("../../module/engine/landing.mjs");
+    const { entryOf } = await import("../../module/rules/effect-flow.mjs");
 
-    const spec = effectSpecOf(world, caster, contentId);
-    const def = EffectRegistry.get(spec.id);
-    const attacker = unit(caster);
-    const target = unit(victim);
-    const outcome = applyEffect({
-      def,
-      target,
-      magnitude: spec.magnitude ?? def.defaultMagnitude ?? 0,
-      duration: spec.duration ?? def.defaultDuration,
+    const outcome = await landEffect(entryOf(effectSpecOf(world, caster, contentId)), {
+      target: unit(victim),
       source: { unitId: caster, abilityId: contentId },
-      chanceModifiers: spec.chanceModifiers ?? [],
-      chance: spec.chance ?? null,
-      ctx: skillEffectContext({
-        attacker, def, roll, turnsPerRound: 3, currentTick: 0,
-        options: rollOptionsFor({ attacker, defender: target }),
-      }),
+      caster: world.actor(caster),
+      casterUnit: unit(caster),
+      rolled: roll,
     });
     return outcome.trace.find((t) => t.step === "chance").detail;
   },

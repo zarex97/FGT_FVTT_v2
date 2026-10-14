@@ -386,8 +386,11 @@ describe("curseStageChanged — the event her whole kit runs on", () => {
   it("carries a cause, so a listener can tell WHO moved it", () => {
     // Spec R2: Channel Marker Soul pays for any infliction but only for
     // removals the `gogh` buff made. Without a cause the two are one event.
-    const out = applyEffect({ def, target: target(0), magnitude: 0, ctx: { cause: "gogh" } });
-    expect(out.intents.find((i) => i.t === "event").payload.cause).toBe("gogh");
+    // An infliction has none; the `gogh` buff's removal names itself.
+    const out = applyEffect({ def, target: target(0), magnitude: 0, ctx: {} });
+    expect(out.intents.find((i) => i.t === "event").payload.cause).toBeNull();
+    const removed = removeStages({ defId: "curse", stage: 3 }, 2, "gogh");
+    expect(removed.event.cause).toBe("gogh");
   });
 
   it("does not fire for a non-staged effect", () => {
