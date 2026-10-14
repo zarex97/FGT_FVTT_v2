@@ -549,6 +549,10 @@ export function effectiveMov(unit) {
 export function validatePath(path, unit, board) {
   const reasons = [];
   const steps = path ?? [];
+  // A body does not walk. Forced movement -- a knockback, a shove -- is not
+  // validated here (`engine/movement-hooks.mjs#onPreMove`), so a defeated Unit
+  // can still be moved by somebody else.
+  if (unit?.defeated) reasons.push("A defeated Unit cannot Move.");
   let previous = unit.panel;
 
   for (const [index, panel] of steps.entries()) {

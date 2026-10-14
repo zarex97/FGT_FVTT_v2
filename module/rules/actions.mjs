@@ -43,11 +43,16 @@ const ACTING_KINDS = Object.freeze(["servant", "master", "civilian", "summon", "
 
 /**
  * Does this unit take actions at all?
+ *
+ * Not once it is defeated: its body stays on the board a Tick before it is
+ * cleared, and the bar offered it Attack, Move and Facing. `canUseAbility`
+ * refuses the use, and the bar is the other reader of the same rule.
+ *
  * @param {object|null} unit
  * @returns {boolean}
  */
 function acts(unit) {
-  return Boolean(unit) && ACTING_KINDS.includes(unit.kind);
+  return Boolean(unit) && ACTING_KINDS.includes(unit.kind) && !unit.defeated;
 }
 
 /**

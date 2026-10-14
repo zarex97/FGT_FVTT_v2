@@ -1238,18 +1238,56 @@ async function declareProcesses({
 }
 
 /**
+ * The rungs being answered right now: `messageId:history:state` → the answer in flight.
+ *
+ * A Process stores its next rung only once the answer has run -- a question, a
+ * roll, a write later -- so for that whole time the card still shows the rung
+ * it was answering. A second press of it (the GM's card and the player's both
+ * carry the button; a reaction timeout firing while the player's own answer is
+ * running) read that rung and ran it again: Kiritsugu's Return Fire was
+ * declared twice, and a Normal Attack dealt its damage twice. The first press
+ * claims the rung here, in memory, before anything awaits, and a second waits
+ * for it and does nothing (the check-then-act lesson).
+ *
+ * @type {Map<string, Promise<object>>}
+ */
+const answering = new Map();
+
+/**
  * Advance a waiting Combat Process by one human decision.
+ *
+ * Once per rung: a press of a rung that is already being answered waits for
+ * that answer and returns its state, running nothing. A call with no question
+ * pending -- the engine resuming the Process itself, after a Command Spell
+ * interrupt or a self-driving declaration -- is not an answer and claims nothing.
  *
  * @param {object} args
  * @param {string} args.messageId
  * @param {string} args.event  the ladder event: `"evade"`, `"success"`, `"declined"`, …
  * @returns {Promise<object>} the new state
  */
-export async function advanceAttack({ messageId, event, abilityId = null, placement = null }) {
-  const message = game.messages.get(messageId);
-  if (!message) throw new Error(`FGT | Unknown attack message ${messageId}`);
+export async function advanceAttack(args) {
+  const message = game.messages.get(args.messageId);
+  if (!message) throw new Error(`FGT | Unknown attack message ${args.messageId}`);
+  const state = process.deserialize(message.getFlag("fgt", "process"));
+  if (!process.pendingPrompt(state)) return answerRung(args, message, state);
 
-  let state = process.deserialize(message.getFlag("fgt", "process"));
+  const rung = `${args.messageId}:${state.history?.length ?? 0}:${state.state}`;
+  const inFlight = answering.get(rung);
+  if (inFlight) return inFlight;
+  const answer = answerRung(args, message, state).finally(() => answering.delete(rung));
+  answering.set(rung, answer);
+  return answer;
+}
+
+/**
+ * @param {object} args as {@link advanceAttack}
+ * @param {object} message the Process's chat message
+ * @param {object} read the state as read when the press arrived
+ * @returns {Promise<object>} the new state
+ */
+async function answerRung({ event, abilityId = null, placement = null }, message, read) {
+  let state = read;
 
   // A reaction ABILITY is used before the ladder moves on, and what it did then
   // shapes the rungs below: Medea's Trofa applies an AutoSucceed on Evade, and
@@ -6916,7 +6954,9 @@ async function resumeDeferredAttack(state, message) {
 
   const attacker = game.actors.get(deferred.attackerId);
   if (!attacker) return;
-  if (attacker.system?.defeated?.at || currentHealth(unitOf(attacker, null)) <= 0) {
+  // `system.defeated` is a flag, not a record: `defeated?.at` was never true,
+  // so a pre-empted attacker who fell to the pre-emption still swung.
+  if (attacker.system?.defeated === true || currentHealth(unitOf(attacker, null)) <= 0) {
     await applyBatch([I.log({
       kind: "attack", event: "preemptCancelled", unitId: deferred.attackerId,
       by: state.attackerId,

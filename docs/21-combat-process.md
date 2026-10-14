@@ -70,6 +70,8 @@ The process is **complete** when it reaches the `done` state (`module/engine/com
 
 ## Invariants & edge cases
 
+**A rung is answered once.** `advanceAttack` stores the next rung only after the answer has run — a question, a roll, a write later — so for that whole time the card still shows the rung being answered. The first press of a rung with a question pending claims it in memory (`messageId`, history length, state) before anything awaits; a second press of the same rung (the GM's card and the player's both carry the button, or a reaction timeout firing while the player's answer is running) waits for the first and runs nothing. A call with no question pending — the engine resuming the Process after a Command Spell interrupt, or a declaration driving itself — is not an answer and claims nothing. Pressed live in Wave A, Kiritsugu's Return Fire was declared twice; in the arena a doubled "nothing" dealt a Normal Attack's damage twice (`test/unit/rung-pressed-twice.test.mjs`).
+
 **A failed automatic Evade may still Block** (#193 reading 9). When an `autoEvade` fails — Trofa's 50% against a Noble Phantasm — the state carries `blockAfterAutoEvade`, and after Lucky Evasion the escape rung offers Block beside accepting: `s23_acceptOrEscape:block` → `damage`, with `reaction: block` for stage 14.
 
 **One Counter per target after a multi-instance attack** (#195 reading 17). `counterAvailable` is false for every instance but the last (`instanceIndex < instanceCount - 1`), so Dohatsu Tenshou's five Processes offer one Counter, after the Noble Phantasm.
