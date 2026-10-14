@@ -1448,15 +1448,23 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
 
       if (action.key === "ApplyEffect") {
         // *"Has a 50% chance of being inflicted with Poison."* A field's own
-        // probability, rolled here rather than left to the effect's
-        // `baseChance` -- Poison's is 100, and the number that varies is the
-        // FIELD's, which under Doomsday Come becomes 75.
+        // probability, in place of the effect's `baseChance` -- Poison's is
+        // 100, and the number that varies is the FIELD's, which under Doomsday
+        // Come becomes 75.
+        //
+        // ONE die. It is rolled here for the field's card and travels with the
+        // effect, so Landing subtracts the target's resistance from the same
+        // chance against the same die. It did not travel: Landing rolled a
+        // second die against the effect's own chance, so Contagion rolled four
+        // dice for two chances and met resistance only on the second.
         const effectId = action.effect?.id ?? action.effect?.defId ?? null;
+        let rolled = null;
         if (typeof action.chance === "number") {
           const roll = await new Roll("1d100").evaluate();
           const hit = chance(roll.total, action.chance);
           report(unit, { roll: { effect: effectId, formula: "1d100", total: roll.total, chance: action.chance, outcome: hit ? "hit" : "missed" } });
           if (!hit) continue;
+          rolled = roll.total;
         } else {
           report(unit, { effect: effectId });
         }
@@ -1474,6 +1482,10 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
         out.push(I.applyEffect(unit.id, {
           defId: action.effect?.id ?? action.effect?.defId,
           magnitude: action.effect?.magnitude ?? 0,
+          // Doomsday Come's discharge is *"+10% against NPs"* too; dropped here,
+          // so the instance carried the definition's own.
+          npMagnitude: action.effect?.npMagnitude ?? action.npMagnitude ?? null,
+          ...(rolled !== null ? { chance: action.chance, rolled } : {}),
           // *"…inflicted with permanent Stage 1 Curse."* A staged effect
           // applied by a field states its stage the way an ability's rider
           // does, and this writer did not carry it -- so every field-applied

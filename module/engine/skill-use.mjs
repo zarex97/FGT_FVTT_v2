@@ -31,16 +31,15 @@ import {
 } from "../rules/ability-use.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
 import { resolveTargets, pendingChoiceErrors } from "../rules/targeting/resolve.mjs";
-import { applyEffect, inflictBonusOf } from "./effect-applier.mjs";
+import { landEntry } from "./landing.mjs";
 import { summonPhase } from "./summoning.mjs";
 import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { currentBoard, unitFrom, unitOf, gateContext, turnRecordOf } from "./board.mjs";
-import { countTargetsMagnitude } from "../rules/effects/count-targets.mjs";
 import { resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { relationOf } from "../rules/relations.mjs";
-import { transferableFrom, transferEffect, applicationsOf, effectGatePasses } from "../rules/effect-flow.mjs";
+import { transferableFrom, transferEffect, entryOf } from "../rules/effect-flow.mjs";
 import { evade, checkPlan } from "../rules/checks.mjs";
 import { randomFreePanelIn, panelsOf, levelOf, castLevel } from "../rules/bounded-fields.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
@@ -1067,286 +1066,43 @@ async function postRollCard(actor, ability, target, results) {
 }
 
 /**
- * How many charges an application is worth.
+ * Land an `applyEffects` phase's entries on one recipient.
  *
- * A literal, or a count of what the caster is carrying:
- * `times: {perStack: {effect: proliferationStock}}`. The second is Kingprotea's
- * *Giant Monster of the Great River*, whose X is *"the number of Proliferation
- * Stocks she has"* — and where the answer is zero the application does not
- * happen at all, which is what "X times" means at X = 0.
+ * Through the one door (`engine/landing.mjs`), as a Noble Phantasm's riders
+ * are: the same entry means the same thing on both. This path read `times` as
+ * charges and nothing else read `uses`, had no ring and no per-panel chance,
+ * and kept its own copy of the magnitude resolver.
  *
- * @param {number|object} raw
- * @param {object} actor the caster
- * @returns {number}
- */
-function resolveTimes(raw, actor) {
-  if (typeof raw === "number") return raw;
-  const spec = raw?.perStack ?? null;
-  if (!spec?.effect) return 1;
-  const held = stacksHeld(actor)[spec.effect] ?? 0;
-  return Math.floor(held / (spec.each ?? 1));
-}
-
-/**
- * An authored magnitude, which may be a number or an `@` expression.
- *
- * `null` is passed through unchanged, because `npMagnitude` uses it to mean
- * "this effect has no reduced NP magnitude" and coercing that to 0 would make
- * every buff worth nothing against a Noble Phantasm.
- *
- * @param {number|string|null|undefined} raw
- * @param {object} actor the caster, which the expression resolves against
- * @returns {number|null}
- */
-/**
- * A magnitude counted off the phase's own target set, or `null`.
- *
- * See `rules/effects/count-targets.mjs` for why this is not `perStack`,
- * `countMatching` or the `@count(...)` expression that was rejected by name.
- *
- * @param {object} spec the effect spec or its rule
- * @param {object} actor the caster
- * @param {object} phaseCtx `{targets}` — the units this phase resolved to
- * @returns {number|null}
- */
-/**
- * An NP magnitude expressed as a FRACTION of the ordinary one.
- *
- * *"all damage dealt is increased by X0%; if NP, the value is halved"* —
- * where X is counted off the target set, so the halved figure cannot be
- * authored as an absolute. `DamageModifier.magnitudeFactor` is the same
- * relationship for Mad Enhancement's MAG halving.
- *
- * @param {object} spec
- * @param {object} rule
- * @param {number} magnitude the already-resolved ordinary magnitude
- * @returns {number|null}
- */
-function npFactorOf(spec, rule, magnitude) {
-  const factor = spec?.npMagnitudeFactor ?? rule?.npMagnitudeFactor ?? null;
-  if (typeof factor !== "number") return null;
-  return Math.floor(magnitude * factor);
-}
-
-function countTargetsOf(spec, actor, phaseCtx) {
-  const raw = spec?.magnitude;
-  if (!raw || typeof raw !== "object" || !raw.countTargets) return null;
-  return countTargetsMagnitude(raw.countTargets, phaseCtx?.targets ?? [], actor.id);
-}
-
-function authoredMagnitude(spec, actor, field = "magnitude") {
-  const raw = spec?.[field];
-  if (raw === null || raw === undefined) return null;
-  // Straight through unless the SPEC asks for more than a number: a literal
-  // with no `perStack` and no `max` cannot mean anything else.
-  if (typeof raw === "number" && !spec.perStack && spec.max === undefined) return raw;
-
-  const value = resolveValue(spec, null, {
-    refs: expressionRefs(actor, { tick: game.combat?.system?.globalTurn ?? null }),
-    // `perStack` on an effect spec, so a magnitude may scale with what the
-    // CASTER is carrying. Kingprotea's Airavata King Size is *"NP damage dealt
-    // is increased by X%"* where X is her size, and her size is one step per
-    // three Proliferation stocks -- the same count her growth reads, rather
-    // than a second reader of the footprint it produced.
-    stacks: stacksHeld(actor),
-  }, field);
-  return typeof value === "number" ? value : null;
-}
-
-/**
- * The context the Skill path hands `applyEffect`, in one place.
- *
- * Lifted out of the call so a test can see the keys the path REALLY sends: a
- * hand-written ctx confirms only itself.
- *
- * It carries NO `resist` key, and not `resist: 0`. `applyEffect` reads the
- * target's own resistance with `ctx.resist ?? resistanceOf(target)`, and
- * `0 ?? x` is `0`: an explicit zero here made every incoming `ApplicationChance`
- * inert on this path, so a debuff from a Skill that deals no damage (Jack's
- * Information Erasure, Medea's Atlas) landed as if its target resisted nothing.
- * `engine/attack.mjs` documents and avoids the same trap beside its own ctx
- * (#123); `test/unit/skill-path-resistance.test.mjs` fails on a literal `resist:`.
- *
- * @param {object} args
- * @param {object} args.attacker the user's snapshot
- * @param {object} args.def the effect's definition
- * @param {Set<string>} args.options the pair's roll options
- * @param {number} args.roll the d100 for this application
- * @param {number} args.turnsPerRound
- * @param {number} args.currentTick
- * @returns {object}
- */
-export function skillEffectContext({
-  attacker, def, options, roll, turnsPerRound, currentTick,
-}) {
-  return {
-    turnsPerRound,
-    currentTick,
-    roll,
-    // The attacker's own outgoing `ApplicationChance` contributions.
-    // Hardcoded to 0 until Medea's Item Construction needed it, which
-    // made every outgoing contribution in the game inert.
-    inflictBonus: inflictBonusOf(attacker, def),
-    // The predicates those modifiers test against. Without the option set
-    // every predicate is unsatisfiable, which is the shape of defect this
-    // codebase has produced more than once.
-    options,
-  };
-}
-
-/**
  * @param {object} phase
  * @param {object} ability
- * @param {object} actor
- * @param {object} target
+ * @param {object} actor the caster
+ * @param {object} target the recipient's snapshot
+ * @param {object} [phaseCtx] `{targets, self}`: the phase's recipients, and the caster as the board sees it
  * @returns {Promise<object[]>}
  */
 async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
+  const board = currentBoard();
+  // The caster as the BOARD sees it, auras included: a bare snapshot carried
+  // none, so Item Construction's +50 was missing from every Skill's debuff
+  // (#193), and a gate on where the caster stands never passed (#191).
+  const casterUnit = phaseCtx.self ?? unitOf(actor, board);
   /** @type {object[]} */
   const out = [];
-
   for (const rule of phase.rules ?? phase.effects ?? []) {
-    const spec = rule.effect ?? rule;
-    if (!spec?.id) continue;
-
-    const def = EffectRegistry.get(spec.id);
-    if (!def) {
-      // Loud: a missing definition means the ability silently does less than
-      // its text says, which is indistinguishable from the ability working.
-      console.warn(`FGT | ${ability.name} applies unknown effect "${spec.id}"`);
-      ui.notifications?.warn(game.i18n.format("FGT.Skill.UnknownEffect", { name: ability.name, id: spec.id }));
-      continue;
-    }
-
-    // The options this recipient is addressed by, built once: the per-effect
-    // gate below and the chance modifiers further down ask the same question
-    // of the same pair.
-    //
-    // The caster as the BOARD sees it when the caller has one: a bare snapshot
-    // carries no position-derived options, so an entry gated on where the
-    // caster stands -- Voyager of the Storm's *"if Nemo is within a 'Waterside'
-    // or 'Imaginary Numbers Space' area"* -- never passed, while the phase
-    // gates and the cooldown branch beside it, which read the board, did
-    // (#191).
-    const options = rollOptionsFor({ attacker: phaseCtx.self ?? unitOf(actor, currentBoard()), defender: target });
-
-    // A `predicate` on ONE ENTRY narrows that entry to a subset of the
-    // recipients the phase already resolved. De Sterrennacht clause 2 --
-    // "applies Crit DmUp AGAIN to all affected allied Units with the
-    // 'Existence Outside the Domain' Skill" -- is the first content to need
-    // it, and until it had a reader every ally took the second 100.
-    if (!effectGatePasses(spec, rule, { options })) continue;
-
-    // "X times, where X = ..." -- resolved before the application, because a
-    // count of zero is not an application at all. `null` means the effect
-    // states no count and the definition's own `uses` stands.
-    const times = spec.times === undefined ? null : resolveTimes(spec.times, actor);
-    if (times !== null && times <= 0) continue;
-
-    // Resolved once and named, because `npMagnitudeFactor` below is a factor
-    // OF it -- see the note there.
-    const resolvedMagnitude = countTargetsOf(spec, actor, phaseCtx)
-      ?? countTargetsOf(rule, actor, phaseCtx)
-      ?? authoredMagnitude(spec, actor)
-      ?? authoredMagnitude(rule, actor)
-      ?? def.defaultMagnitude ?? 0;
-
-    // "...3 times". N SEPARATE applications, each with its own chance roll and
-    // -- for a staged effect -- its own `curseStageChanged`, which is what
-    // Channel Marker Soul is paid per stage for. Defaults to one, so every
-    // effect entry in the corpus that states no count is untouched.
-    //
-    // Inside the loop and not outside it: a fresh `1d100` per application is
-    // the point. Rolling once and reusing it would make "3 times at 40%" an
-    // all-or-nothing gamble rather than three chances.
-    const applications = applicationsOf(spec, rule);
-    for (let application = 0; application < applications; application += 1) {
-    // RE-READ the recipient between applications. `applyEffect` decides the
-    // new stage from `target.effects`, so handing it the same snapshot three
-    // times computes Stage 1 three times and she ends on Stage 1 -- which is
-    // the failure this whole clause exists to avoid. Only for a repeat, and
-    // only when the snapshot names an actor we can find: the single-application
-    // path is byte-for-byte what it was.
-    const recipient = application === 0
-      ? target
-      : (unitOf(game.actors?.get(target?.id), currentBoard()) ?? target);
-
-    const roll = await new Roll("1d100").evaluate();
-    const outcome = applyEffect({
-      def,
-      target: recipient,
-      // An authored magnitude may be an `@` EXPRESSION rather than a number.
-      // Mannanán's Fragarach Enbarr is *"all damage dealt is increased by 5%
-      // for each Fragarach Counter on herself"* -- a magnitude that is a
-      // function of a pool she spends three other ways, so it cannot be a
-      // literal and cannot be a rank table. Resolved against the CASTER, at the
-      // moment of application, which is when the sheet counts them.
-      // `spec` first, then the RULE it sits on. The two shapes in the corpus
-      // are `{id, magnitude}` (Nemo's Voyager) and `{effect: {id}, magnitude}`
-      // (every Riding variant), and only the first was read -- so a magnitude
-      // authored beside a nested `effect:` was silently dropped and the
-      // definition's default stood.
-      //
-      // Found live: Drake's Riding B applied `ridingActive` with `magnitude:
-      // 4` and the instance carried 0, so her MOV Up was nothing at all. Note
-      // `npMagnitude` below has ALWAYS had this fallback; the asymmetry was
-      // the defect, not the fallback.
-      // `countTargets` first, because it is the only form whose answer no
-      // other resolver can reach: it is a property of the SET this phase is
-      // affecting, and `authoredMagnitude` sees one recipient at a time.
-      magnitude: resolvedMagnitude,
-      // The "if NP" half of Appendix A's damage family. Referenced by every
-      // such effect definition as `@npMagnitude`, against an instance that
-      // never carried it.
-      // An absolute `npMagnitude` first, then a FACTOR of whatever the
-      // magnitude resolved to.
-      //
-      // The factor exists because De Sterrennacht's base is COMPUTED --
-      // "increased by X0%, where X = 3 + the affected EOTD allies" -- and
-      // "if NP, the value is halved" cannot be written as an absolute when
-      // nobody knows the value until the targets resolve. `DamageModifier`
-      // already carries `magnitudeFactor` for Mad Enhancement's halving, which
-      // is the same relationship said the same way.
-      npMagnitude: authoredMagnitude(spec, actor, "npMagnitude")
-        ?? authoredMagnitude(rule, actor, "npMagnitude")
-        ?? npFactorOf(spec, rule, resolvedMagnitude),
-      // See `applyAbilityEffects`: one application worth N stages.
-      stages: spec.stages ?? rule.stages ?? 1,
-      // ...and one application worth N CHARGES, for a `count`-stacked effect
-      // whose count the sheet states. *"Apply NP DmUp (GAO) to herself X times,
-      // where X = the number of Proliferation Stocks she has"* (Kingprotea).
-      uses: times,
-      duration: rule.duration ?? spec.duration ?? def.defaultDuration,
+    out.push(...await landEntry(entryOf(rule, { phase }), {
+      target,
       source: { unitId: actor.id, abilityId: ability.id },
-      // Declared per effect by the ability (Ch. 17). Atlas's two reductions
-      // stack, which is why this is a list rather than a number.
-      chanceModifiers: spec.chanceModifiers ?? rule.chanceModifiers ?? [],
-      // The ability's own stated chance, overriding the effect's default.
-      // Scáthach's Clairvoyance applies two of its three buffs at 80%.
-      chance: spec.chance ?? rule.chance ?? null,
-      ctx: skillEffectContext({
-        // The caster as the board projects it, auras included. A bare
-        // snapshot carries none, so Item Construction's +50 -- an aura on
-        // Medea herself -- was missing from every Skill's debuff: Atlas on
-        // Medusa rolled against 30% where the sheet makes it 80% (#193). The
-        // test beside this built its caster from the board and passed.
-        attacker: phaseCtx.self ?? unitOf(actor, currentBoard()),
-        def,
-        options,
-        roll: roll.total,
-        turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-        currentTick: game.combat?.system?.globalTurn ?? 0,
-      }),
-    });
-
-    if (outcome.intents.length > 0) await applyWorldIntents(outcome.intents, "skillEffect");
-    out.push({
-      // The roll beside the name when there was one (#189): Imperial
-      // Privilege's two 60% chances showed a miss's roll and hid a hit's.
-      summary: { id: spec.id, name: def.name, outcome: outcome.outcome, reason: outcome.reason, chance: outcome.chance ?? null },
-      result: outcome,
-    });
-    }
+      caster: actor,
+      casterUnit,
+      targets: phaseCtx.targets ?? [],
+      board,
+    }, {
+      write: (intents) => applyWorldIntents(intents, "skillEffect"),
+      // RE-READ between applications: a staged effect decides its next stage
+      // from what the recipient carries, and three applications against one
+      // snapshot left Van Gogh on Stage 1.
+      reread: () => unitOf(game.actors?.get(target?.id), currentBoard()) ?? target,
+    }));
   }
   return out;
 }
@@ -2101,44 +1857,26 @@ export async function applySelfRiders(ability, actor, { ride = null, when = "bef
     .filter((p) => (p.target ?? "reuse") === "self");
   if (phases.length === 0) return;
 
-  const specs = phases.flatMap((p) => p.effects ?? []);
-  const out = applyBatchOfEffects(specs, actor, ride);
-  if (out.length > 0) await applyWorldIntents(out, `ride:${ability.id}:self`);
-}
-
-/**
- * Turn a list of authored effect specs into intents on the caster.
- *
- * @param {object[]} specs
- * @param {object} actor
- * @param {object|null} ride
- * @returns {import("./intents.mjs").Intent[]}
- */
-function applyBatchOfEffects(specs, actor, ride) {
-  const refs = expressionRefs(actor, { tick: game.combat?.system?.globalTurn ?? null, ...(ride ? { ride, hitCount: ride.hitCount } : {}) });
-  const magnitude = (spec, field) => {
-    const raw = spec?.[field];
-    if (raw === null || raw === undefined) return null;
-    if (typeof raw === "number") return raw;
-    const value = resolveValue(spec, null, { refs }, field);
-    return typeof value === "number" ? value : null;
-  };
-  const tick = game.combat?.system?.globalTurn ?? 0;
-  return specs.map((spec) => I.applyEffect(actor.id, {
-    defId: spec.id,
-    magnitude: magnitude(spec, "magnitude") ?? 0,
-    npMagnitude: magnitude(spec, "npMagnitude"),
-    stage: 0,
-    uses: spec.uses ?? 0,
-    // `resolveTicks` takes a PARSED expression, not the "⅓◈" the sheet writes.
-    expiry: spec.duration
-      ? tick + resolveTicks(parseTick(spec.duration), {
-        turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-      })
-      : null,
-    sourceUnitId: actor.id,
-    visibility: "public",
-  }, actor.id));
+  // Through the one door, as the same riders are when the ride reaches
+  // somebody. A hand-rolled translator built bare intents here and read three
+  // keys of the entry: no `stages`, no `chance`, no `times`.
+  const board = currentBoard();
+  const self = unitOf(actor, board);
+  for (const phase of phases) {
+    for (const rule of phase.rules ?? phase.effects ?? []) {
+      await landEntry(entryOf(rule, { phase }), {
+        target: self,
+        source: { unitId: actor.id, abilityId: ability.id },
+        caster: actor,
+        casterUnit: self,
+        ride,
+        board,
+      }, {
+        write: (intents) => applyWorldIntents(intents, `ride:${ability.id}:self`),
+        reread: () => unitOf(actor, currentBoard()),
+      });
+    }
+  }
 }
 
 /**

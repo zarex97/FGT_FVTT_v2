@@ -20,8 +20,8 @@ const at = (round, faction) => ({ tokens: true, combat: { round, started: true, 
 const instances = (actor, defId) => [...actor.effects].filter((e) => e.system.defId === defId);
 
 describe("an entry's own predicate gates it, on a rider aimed at the attacker", () => {
-  // Fails until Landing reads it on this path (Wave B).
-  it.fails("gives Nemo no Aim and no extra NP DmUp out of the water (Great Ram Nautilus)", async () => {
+  // An entry predicate the attack path did not read until Landing (Wave B).
+  it("gives Nemo no Aim and no extra NP DmUp out of the water (Great Ram Nautilus)", async () => {
     const N = "nemoCaptainNemo0", M = "masterOfNemo0000", H = "heraclesDefender";
     await withSubjects([
       { from: "nemo", id: N, state: { factionId: "A", masterId: M }, panel: { i: 5, j: 5 } },
@@ -58,8 +58,8 @@ describe("an effect's onApply runs whichever path lands it", () => {
 });
 
 describe("an entry's `uses` is its charges, on a Skill", () => {
-  // Fails until Landing reads it on this path (Wave B).
-  it.fails("gives Van Gogh's Evade 2 charges from The Yellow House", async () => {
+  // A key this path did not read until Landing (Wave B).
+  it("gives Van Gogh's Evade 2 charges from The Yellow House", async () => {
     const G = "vanGoghPainter00", H = "heraclesDefender";
     await withSubjects([
       { from: "van-gogh", id: G, state: { factionId: "A" }, panel: { i: 5, j: 5 } },
@@ -75,8 +75,8 @@ describe("an entry's `uses` is its charges, on a Skill", () => {
 });
 
 describe("a field's chance is one die", () => {
-  // Fails until Landing reads it on this path (Wave B).
-  it.fails("rolls one d100 per chance for Contagion's Poison and Charm", async () => {
+  // A key this path did not read until Landing (Wave B).
+  it("rolls one d100 per chance for Contagion's Poison and Charm", async () => {
     const PR = "paleRiderRecord1", FOE = "foeMedeaRecord01";
     const fields = await fieldsOf([{ ability: "pale-rider-contagion", owner: PR, faction: "A", panels: squareAround({ i: 6, j: 6 }, 5) }]);
     await withSubjects([
@@ -93,8 +93,8 @@ describe("a field's chance is one die", () => {
 });
 
 describe("a handler's ApplyEffect carries its NP magnitude", () => {
-  // Fails until Landing reads it on this path (Wave B).
-  it.fails("gives Enigma's Def Dwn (MAG) +40% against Noble Phantasms", async () => {
+  // A key this path did not read until Landing (Wave B).
+  it("gives Enigma's Def Dwn (MAG) +40% against Noble Phantasms", async () => {
     const H = "heraclesAttacker", M = "medeaDefender000";
     await withSubjects([
       { from: "heracles", id: H, state: { factionId: "A" }, panel: { i: 5, j: 5 }, effects: [{ defId: "enigma" }] },
@@ -103,6 +103,25 @@ describe("a handler's ApplyEffect carries its NP magnitude", () => {
       w.dice.every(50);
       await playAttack(w, { attacker: H, target: M, react: { [M]: ["nothing", "declined"] } });
       expect(instances(w.actor(M), "defDwnMag").map((e) => [e.system.magnitude, e.system.npMagnitude])).toEqual([[60, 40]]);
+    }, at(6, "A"));
+  });
+});
+
+describe("a handler's `times` reads the event it answers", () => {
+  // Gogh's *"remove 2 stages if a Crit, and one Atk Up per stage removed"*:
+  // `times: "@stageDelta"` counted 1 for any string (Wave B).
+  it("gives Van Gogh two Atk Up when a Crit takes two stages of Curse", async () => {
+    const G = "vanGoghPainter00", H = "heraclesDefender";
+    await withSubjects([
+      { from: "van-gogh", id: G, state: { factionId: "A" }, panel: { i: 5, j: 5 },
+        effects: [{ defId: "gogh" }, { defId: "curse", stage: 3 }] },
+      { from: "heracles", id: H, state: { factionId: "B" }, panel: { i: 5, j: 6 } },
+    ], async ({ world: w }) => {
+      // Every die on 1: the coin comes up for the Crit.
+      w.dice.every(1);
+      await playAttack(w, { attacker: G, target: H, react: { [H]: ["nothing", "declined"] } });
+      expect(instances(w.actor(G), "curse").map((e) => e.system.stage)).toEqual([1]);
+      expect(instances(w.actor(G), "atkUp").map((e) => e.system.magnitude)).toEqual([10, 10]);
     }, at(6, "A"));
   });
 });

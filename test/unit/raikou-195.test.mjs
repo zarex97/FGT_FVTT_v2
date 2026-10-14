@@ -100,7 +100,9 @@ describe("a rider the target resisted says so on the card (#195)", () => {
     expect(fn.indexOf("await applyBatch(intents")).toBeLessThan(fn.indexOf("rollLog.record("));
     expect(fn).toMatch(/resisted \(\$\{lost\.chance\}\)/);
     const applier = readFileSync(new URL("../../module/engine/applier.mjs", import.meta.url), "utf8");
-    expect(applier).toMatch(/result\.outcome === "resisted"\) \{\s*out\.push\(\{ t: "log", entry: \{\s*kind: "effectResisted"/);
+    expect(applier).toMatch(/landEntry\(/);
+    const landing = readFileSync(new URL("../../module/engine/landing.mjs", import.meta.url), "utf8");
+    expect(landing).toMatch(/if \(outcome === "resisted"\) \{[\s\S]{0,400}kind: "effectResisted"/);
   });
 });
 

@@ -1,0 +1,25 @@
+# Appendix A §A.9 / docs/14-effect-taxonomy.md — the second Def Dwn variant.
+#
+# "Def Dwn (B) | As Def Dwn, with NP damage taken further increased."
+# Its own effect, as (A) and (C) are: content that strips "one Def Dwn" must
+# not take this instead, and the letter is a name, not a magnitude. Karna's
+# Brahmastra Kundala wrote it as `defDwn` with a `rank: B` nothing read, and
+# Semiramis's Arrogant King's Poison as plain `defDwn` (Wave B).
+schema: 1
+id: defDwnB
+name: "Def Dwn (B)"
+description: "All damage taken is increased by X%; a greater magnitude applies to Noble Phantasms."
+polarity: debuff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+families: [defDwn]
+rules:
+  # Both inflicters state the NP figure, and it is the HIGHER one: *"all damage
+  # received is increased by 30%; IF NP, 40%"*.
+  - key: DamageModifier
+    modifierKey: defDwn
+    direction: taken
+    value: "@magnitude"
+    npValue: "@npMagnitude"

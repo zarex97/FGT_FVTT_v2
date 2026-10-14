@@ -112,6 +112,9 @@ describe("the attack path builds both subjects from the board", () => {
     // `applyAbilityEffects` loops over riders: the subjects are made above the
     // loop. (Its cooldown phase reads the board for its own reason.)
     expect((body("async function applyAbilityEffects").match(/riderSubjects\(/g) ?? []).length).toBe(1);
-    expect((body("async function applyDeclaredEffects").match(/boardSnapshot\(\)/g) ?? []).length).toBe(1);
+    // One board for the call. The second read is the recipient re-read AFTER
+    // a write, between two applications of one entry.
+    expect((body("async function applyDeclaredEffects").match(/const board = boardSnapshot\(\)/g) ?? []).length).toBe(1);
+    expect((body("async function applyDeclaredEffects").match(/boardSnapshot\(\)/g) ?? []).length).toBe(2);
   });
 });

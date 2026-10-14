@@ -18,7 +18,7 @@ import { expandInstances, damageBaseOf } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
 import { askOwner, chooseFor } from "./ask.mjs";
 import { resolveTargets, pendingChoiceErrors } from "../rules/targeting/resolve.mjs";
-import { currentBoard, unitFrom, unitOf, gateContext, currentTick, roundRecordOf } from "./board.mjs";
+import { currentBoard, unitFrom, unitOf, gateContext, roundRecordOf } from "./board.mjs";
 import {
   evade as evadeCheck, luckCheck, chance, checkPlan, critChance, mergePlans,
   pendingCheckRolls, resolveCheck,
@@ -36,9 +36,9 @@ import { counterRedirect, counterMustCatchAttacker, counterRefusal } from "../ru
 import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { inAttackRangeBetween, chebyshev } from "../domain/geometry.mjs";
-import { missChance, missSourceOf, chanceFromDistance } from "../rules/miss.mjs";
+import { missChance, missSourceOf } from "../rules/miss.mjs";
 import { rollOptionsFor, selfOptionsOf } from "../rules/options.mjs";
-import { collectContributions, resolveValue } from "../rules/elements.mjs";
+import { collectContributions } from "../rules/elements.mjs";
 import { test as testPredicate, explain as explainPredicate } from "../rules/predicate.mjs";
 import { thresholdFor, damageFromDice, thresholdModifiers } from "../rules/damage/dice-count.mjs";
 import { normalAttackAt } from "../rules/normal-attack.mjs";
@@ -49,7 +49,7 @@ import { GRANTS, hasGranted } from "../rules/granted.mjs";
 import { coveringServantsFor, coverFactor, shoveDestination, isCovering } from "../rules/cover.mjs";
 import { absorb, refreshShield, landBarrier } from "./shield.mjs";
 import { attackIdentity, recordedAttack } from "../rules/revival.mjs";
-import { expressionRefs, stacksHeld, abilityRecordOf } from "../rules/snapshot.mjs";
+import { abilityRecordOf } from "../rules/snapshot.mjs";
 import { removalPlan, pendingRemovalRolls, isUnremovable } from "../rules/removal.mjs";
 import { isStrongestNP, isDamagingNP, harmlessToSelf, EXPECTED_ATTACK_ROLL } from "../rules/np-strength.mjs";
 import { currentHealth, isUndamageable } from "../domain/health.mjs";
@@ -62,7 +62,8 @@ import { luckChecksBlocked } from "../rules/bounded-fields.mjs";
 import { attackCone, directionalEvade } from "../rules/targeting/facing.mjs";
 import { luckChecksApply } from "../rules/difficulty.mjs";
 import { renderAttackCard, updateAttackCard } from "../apps/chat/cards.mjs";
-import { applyEffect, inflictBonusOf } from "./effect-applier.mjs";
+import { landEffect, landEntry } from "./landing.mjs";
+import { entryOf } from "../rules/effect-flow.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import * as budget from "./budget.mjs";
 import { resolveDefeat, pendingRolls, fireEvent } from "./scheduler.mjs";
@@ -2225,22 +2226,15 @@ async function runDamageStepStartHandlers(state) {
         // the same document-for-snapshot confusion that made every attack in
         // the game throw when `buildAttackSpec` called `.includes()` on one.
         const onSelf = action.target === "self";
-        const def = EffectRegistry.get(action.effect?.id ?? action.effect);
-        if (!def) continue;
-        const outcome = applyEffect({
-          def,
+        await landEntry(entryOf(typeof action.effect === "string" ? { ...action, effect: { id: action.effect } } : action), {
           target: onSelf ? attacker : defender,
-          magnitude: action.effect?.magnitude ?? def.defaultMagnitude ?? 0,
-          npMagnitude: action.effect?.npMagnitude ?? null,
-          duration: action.duration ?? def.defaultDuration ?? null,
           source: { unitId: attacker.id, abilityId: handler.abilityId ?? null },
-          ctx: {
-            turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-            currentTick: game.combat?.system?.globalTurn ?? 0,
-            options,
-          },
-        });
-        if (outcome.intents.length > 0) await applyBatch(outcome.intents, "suppression");
+          caster: attackerDoc,
+          casterUnit: attacker,
+          attack: attackFacts(attacker, defender, state, board),
+          process: state,
+          board,
+        }, { write: (intents) => applyBatch(intents, "suppression") });
       }
     }
 
@@ -2474,7 +2468,7 @@ async function fireDamageDealt(state, result) {
   }
   const logged = () => (game.combat?.getFlag?.("fgt", "log") ?? []).length;
   const before = logged();
-  if (intents.length > 0) await applyBatch(intents, "damageDealt");
+  if (intents.length > 0) await applyBatch(intents, "damageDealt", { process: state });
   // What the target's resistance did to a die that came in under the stated
   // chance: "hit" alone hid it (#195).
   const resisted = (game.combat?.getFlag?.("fgt", "log") ?? []).slice(before)
@@ -2562,7 +2556,7 @@ async function fireDamageTaken(state, result) {
       isCrit: Boolean(result?.flags?.isCrit ?? result?.isCrit),
     },
   });
-  if (intents.length > 0) await applyBatch(intents, "damageTaken");
+  if (intents.length > 0) await applyBatch(intents, "damageTaken", { process: state });
 }
 
 /**
@@ -4758,35 +4752,19 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     // it rides on (#65, found live). An aftermath's riders follow its damage.
     if (when !== "afterDamage") return [];
     for (const rider of ability.system?.aftermath?.effects ?? []) {
-      const def = EffectRegistry.get(rider.id);
-      if (!def) {
-        console.error(`FGT | ${ability.name}'s aftermath names unknown effect "${rider.id}".`);
-        continue;
-      }
-      const roll = await new Roll("1d100").evaluate();
-      const outcome = applyEffect({
-        def,
+      // "with a 25% chance of inflicting NP Seal for 1◈ Turns" -- the rider's
+      // own stated chance, through the same door as every other entry.
+      applied.push(...await landEntry(entryOf(rider), {
         target: defender,
-        // "with a 25% chance of inflicting NP Seal for 1◈ Turns" -- the
-        // rider's own stated chance, which the applier folds in with the
-        // target's resistances rather than rolling separately from them.
-        chance: rider.chance ?? null,
-        magnitude: rider.magnitude ?? def.defaultMagnitude ?? 0,
-        duration: rider.duration ?? def.defaultDuration,
         source: { unitId: state.attackerId, abilityId: ability.id },
-        ctx: {
-          turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-          currentTick: game.combat?.system?.globalTurn ?? 0,
-          roll: roll.total,
-          inflictBonus: inflictBonusOf(attackerUnit, def),
-          options: rollOptions(attackerUnit, defender, state),
-        },
-      });
-      if (outcome.intents.length > 0) await applyBatch(outcome.intents, "aftermathEffect");
-      applied.push({
-        summary: { id: rider.id, name: def.name, outcome: outcome.outcome, reason: outcome.reason, chance: outcome.chance ?? null },
-        result: outcome,
-      });
+        caster: attackerDoc,
+        casterUnit: attackerUnit,
+        attack: attackFacts(attackerUnit, defender, state),
+        process: state,
+      }, {
+        write: (intents) => applyBatch(intents, "aftermathEffect"),
+        reread: () => unitFrom(boardSnapshot(), defenderDoc),
+      }));
     }
     return applied;
   }
@@ -4968,6 +4946,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
           ability,
           { ...state, defenderId: state.attackerId },
           attackerUnit,
+          { phase },
         );
         if (key) {
           selfPayments.set(key, paying.catch(() => []));
@@ -4986,6 +4965,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
         ability,
         { ...state, defenderId: state.attackerId },
         attackerUnit,
+        { phase },
       ));
       continue;
     }
@@ -5010,167 +4990,28 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     // Reading only `rules` silently dropped every rider on the newer shape --
     // Medea's Aero dealt its damage and inflicted no Bleed.
     for (const rule of phase.rules ?? phase.effects ?? []) {
-      const spec = rule.effect ?? rule;
-      if (!spec?.id) continue;
-
-      const def = EffectRegistry.get(spec.id);
-      if (!def) {
-        // Loud, because a missing definition means the ability silently does
-        // less than its text says.
-        console.warn(`FGT | ${ability.name} applies unknown effect "${spec.id}"`);
-        ui.notifications?.warn(`FGT | Unknown effect "${spec.id}" on ${ability.name}`);
-        continue;
-      }
-
-      const roll = await new Roll("1d100").evaluate();
-      const outcome = applyEffect({
-        def,
+      // Through the one door (`engine/landing.mjs`): the ring and per-panel
+      // chance, the phase's `ignoresResistanceFrom`, an entry's own gate and
+      // every count are read here exactly as a Skill reads them.
+      applied.push(...await landEntry(entryOf(rule, { phase }), {
         target: defender,
-        chanceModifiers: spec.chanceModifiers ?? rule.chanceModifiers ?? [],
-        // The ability's own stated chance, overriding the effect's default.
-        //
-        // `chancePerPanel` is the DISTANCE-SCALED form. Anastasia's Ice Block
-        // Launcher is the only clause of the shape in either roster: *"a 5%
-        // chance of inflicting Instakill for each panel between Anastasia and
-        // the DU."* The distance is the one the Combat Process already
-        // measured (`facts.range`, spread onto `state.attack`) -- recomputing
-        // it from panels here could disagree with the range the attack was
-        // declared at, which is the number the whole resolution used.
-        chance: declaredChance(spec, rule, state, defender),
-        // An authored magnitude may be an `@` EXPRESSION rather than a number
-        // (`rules/elements.mjs#resolveValue`), resolved against the CASTER at
-        // the moment of application. One rule for both use paths: the Skill
-        // path already did this, and an ability that resolves through the
-        // attack path instead -- every Noble Phantasm -- would otherwise apply
-        // the string itself as a magnitude and land nothing at all.
-        magnitude: authoredMagnitude(spec, attackerDoc, "magnitude", state.attack?.ride)
-          ?? def.defaultMagnitude ?? 0,
-        npMagnitude: authoredMagnitude(spec, attackerDoc, "npMagnitude", state.attack?.ride)
-          ?? authoredMagnitude(rule, attackerDoc, "npMagnitude", state.attack?.ride),
-        // How many stages one application is worth. *"Inflicts Stage 3 Poison
-        // on the DU"* is one application, not three -- three would roll the
-        // chance three times and be improved three times by a Debuff ChUp.
-        stages: spec.stages ?? rule.stages ?? 1,
-        duration: rule.duration ?? spec.duration ?? def.defaultDuration,
         source: { unitId: state.attackerId, abilityId: ability.id },
-        ctx: {
-          turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-          currentTick: game.combat?.system?.globalTurn ?? 0,
-          roll: roll.total,
-          // The attacker's own outgoing `ApplicationChance` contributions.
-          // Hardcoded to 0 until Medea's Item Construction needed it, which
-          // made every outgoing contribution in the game inert.
-          inflictBonus: inflictBonusOf(attackerUnit, def),
-          options: rollOptions(attackerUnit, defender, state),
-          // NOT `resist: 0`. `applyEffect` falls back to `resistanceOf(target)`
-          // when this is absent -- and `0 ?? x` is `0`, so an explicit zero
-          // here defeated that fallback and made the target's resistance
-          // universally inert. Magic Resistance's *"chance of being inflicted
-          // by debuffs is reduced by 20%"* has therefore never reduced
-          // anything, on this path or the check path; the applier's own
-          // comment describes the loop as closed and it was not.
-          //
-          // A resistance this application is not subject to, named on the
-          // phase or on the one effect. Read on the check path only, so
-          // Kiritsugu's Mark resisted through Debuff Res Up from its first day
-          // and Zabaniya's riders met Magic Resistance its sheet says they do
-          // not -- *"not affected by Magic Resistance"* covers the whole NP,
-          // debuffs and Instakill included (#199 reading 11).
-          ignoresResistanceFrom: [
-            ...(phase.ignoresResistanceFrom ?? []),
-            ...(spec.ignoresResistanceFrom ?? rule.ignoresResistanceFrom ?? []),
-          ],
-        },
-      });
-
-      if (outcome.intents.length > 0) await applyBatch(outcome.intents, "abilityEffect");
-      applied.push({
-        summary: { id: spec.id, name: def.name, outcome: outcome.outcome, reason: outcome.reason, chance: outcome.chance ?? null },
-        result: outcome,
-      });
+        caster: attackerDoc,
+        casterUnit: attackerUnit,
+        attack: attackFacts(attackerUnit, defender, state),
+        // The distance the Combat Process already measured: recomputing it
+        // here could disagree with the range the attack was declared at.
+        distance: state.attack?.range ?? null,
+        band: state.attack?.bandOf?.[defender?.id] ?? 0,
+        ride: state.attack?.ride ?? null,
+        process: state,
+      }, {
+        write: (intents) => applyBatch(intents, "abilityEffect"),
+        reread: () => unitFrom(boardSnapshot(), defenderDoc),
+      }));
     }
   }
   return applied;
-}
-
-/**
- * The chance an ability states for one effect against one defender.
- *
- * ONE reader for both effect paths -- the post-damage rider loop and
- * `applyDeclaredEffects`. Only the second read a ring's chance, so Triton's
- * Conch's Deafen was rolled at 100% against a Unit two panels out, where the
- * sheet says 50% (#191); and only the first read `chancePerPanel`. Two readers
- * of one rule drift (Ch. 46 §46.3).
- *
- * In order: a chance per panel of distance (Anastasia's Ice Block Launcher),
- * a chance per ring (Triton's Conch, index-aligned with the targeting's
- * `bands` and read off the same `bandOf` map stage 6 reads), then the flat
- * `chance`; `null` leaves the definition's own `baseChance`.
- *
- * @param {object} spec the effect entry
- * @param {object} rule the rule it sits on, which may carry the chance instead
- * @param {object} state the Combat Process
- * @param {object|null} defender
- * @returns {number|null}
- */
-function declaredChance(spec, rule, state, defender) {
-  if (spec.chancePerPanel !== undefined) return chanceFromDistance(spec.chancePerPanel, state.attack?.range ?? null);
-  const ring = spec.bands?.[state.attack?.bandOf?.[defender?.id] ?? 0]?.chance;
-  if (typeof ring === "number") return ring;
-  return spec.chance ?? rule?.chance ?? null;
-}
-
-/**
- * An authored magnitude, which may be a number or an `@` expression.
- *
- * The same helper `engine/skill-use.mjs` uses, for the same reason and against
- * the same facade — a magnitude that means two numbers depending on which path
- * resolved the ability would be worse than one that means nothing.
- *
- * `null` passes through: `npMagnitude` uses it to mean *"this effect has no
- * reduced NP magnitude"*, and coercing that to 0 would make every buff worth
- * nothing against a Noble Phantasm.
- *
- * @param {number|string|null|undefined} raw
- * @param {object} actor the caster
- * @returns {number|null}
- */
-function authoredMagnitude(spec, actor, field = "magnitude", ride = null) {
-  const raw = spec?.[field];
-  if (raw === null || raw === undefined) return null;
-  // Straight through unless the SPEC asks for more than a number: a literal
-  // with no `perStack` and no `max` cannot mean anything else.
-  if (typeof raw === "number" && !spec.perStack && spec.max === undefined) return raw;
-
-  const value = resolveValue(spec, null, {
-    // The ride's own facts, when there was one — and `@self.remainingMov`
-    // actually overridden with the pre-ride figure, which this comment has
-    // always claimed and no line ever did.
-    //
-    // `expressionRefs` honours `extras.self.remainingMov` ahead of the value it
-    // computes off the document. Nothing passed one: the ride went to a
-    // top-level `@ride` ref and `self` was never touched. So a rider phase
-    // authored `@self.remainingMov` read the POST-ride allowance — zero for a
-    // full-MOV ride — because `performRidingAttack` awaits its `markTurn`
-    // before the attack resolves. `riding.mjs` captures the figure before the
-    // ride for exactly this reason, and says so; it just had nowhere to hand it.
-    //
-    // The tick, so `@self.remainingMov` measures this Turn's walk rather than
-    // whatever the record last held — and `currentTick()`, not `game.combat`,
-    // which is the tracker being VIEWED rather than the match being played
-    // (#42).
-    refs: expressionRefs(actor, {
-      tick: currentTick(),
-      ...(ride ? { ride, hitCount: ride.hitCount, self: { remainingMov: ride.remainingMov } } : {}),
-    }),
-    // `perStack` on an effect spec, so a magnitude may scale with what the
-    // CASTER is carrying. Kingprotea's Airavata King Size is *"NP damage dealt
-    // is increased by X%"* where X is her size, and her size is one step per
-    // three Proliferation stocks -- the same count her growth reads, rather
-    // than a second reader of the footprint it produced.
-    stacks: stacksHeld(actor),
-  }, field);
-  return typeof value === "number" ? value : null;
 }
 
 /**
@@ -5201,6 +5042,7 @@ async function applyTargetedRider(phase, ability, state, attackerDoc) {
       ability,
       { ...state, defenderId: target.unitId },
       unitOf(doc, board),
+      { phase },
     ));
   }
   return out;
@@ -5347,7 +5189,7 @@ async function fireDamageStepEnd(state) {
     victim: { unitId: state.defenderId },
   });
 
-  if (intents.length > 0) await applyBatch(intents, "damageStepEnd");
+  if (intents.length > 0) await applyBatch(intents, "damageStepEnd", { process: state });
 }
 
 /**
@@ -5473,82 +5315,54 @@ export async function runCheckPhase(phase, ability, state, defender, depth = 0) 
   }
   if (!taken.effects?.length) return rows;
 
-  return [...rows, ...await applyDeclaredEffects(taken.effects, ability, state, defender, {
-    ignoresResistanceFrom: phase.ignoresResistanceFrom ?? [],
-  })];
+  return [...rows, ...await applyDeclaredEffects(taken.effects, ability, state, defender, { phase })];
 }
 
 /**
- * Apply a list of authored effect specs to the defender.
+ * Apply a list of authored effect entries to one Unit of this Combat Process.
  *
- * Extracted so the check phase and the ordinary rider path build the same
- * application with the same context — two constructions of `applyEffect`'s
- * argument object is two places for `inflictBonus` or the option set to go
- * missing, which is how outgoing contributions were inert once already.
+ * The check phase's outcomes, a `target: self` rider and a rider with its own
+ * `targeting:` all land here, through the same door the rider loop uses: the
+ * check path read no `stages` and no entry-level `ignoresResistanceFrom`, and
+ * an outcome's wrapped entry was handed over unflattened.
  *
  * @param {object[]} specs
  * @param {object} ability
  * @param {object} state
  * @param {object} defender
+ * @param {object} [where]
+ * @param {object|null} [where.phase] the phase the entries sit in
  * @returns {Promise<object[]>}
  */
-async function applyDeclaredEffects(specs, ability, state, defender, { ignoresResistanceFrom = [] } = {}) {
+async function applyDeclaredEffects(specs, ability, state, defender, { phase = null } = {}) {
   // The board's attacker: an aura's outgoing `ApplicationChance` is annotated by
   // `snapshotBoard` and a bare snapshot carries none (#157). One board per call.
-  const attacker = unitFrom(boardSnapshot(), game.actors.get(state.attackerId));
+  const board = boardSnapshot();
+  const attackerDoc = game.actors.get(state.attackerId);
+  const attacker = unitFrom(board, attackerDoc);
+  const recipientDoc = defender?.id ? game.actors.get(defender.id) : null;
   /** @type {object[]} */
   const out = [];
-
   for (const spec of specs) {
-    const def = EffectRegistry.get(spec.id);
-    if (!def) {
-      console.warn(`FGT | ${ability.name} applies unknown effect "${spec.id}"`);
-      continue;
-    }
-
-    const roll = await new Roll("1d100").evaluate();
-    const outcome = applyEffect({
-      def,
+    out.push(...await landEntry(entryOf(spec, { phase }), {
       target: defender,
-      // Resolved the same way the rider path resolves it, from the same
-      // helper -- `target: self` effects come through here (Bellerophon's own
-      // Crit Up, Mannanán's token-scaled Atk Up) and an authored expression
-      // must mean the same number on both.
-      magnitude: authoredMagnitude(spec, game.actors.get(state.attackerId), "magnitude", state.attack?.ride)
-        ?? def.defaultMagnitude ?? 0,
-      npMagnitude: authoredMagnitude(spec, game.actors.get(state.attackerId), "npMagnitude", state.attack?.ride),
-      duration: spec.duration ?? def.defaultDuration,
-      chanceModifiers: spec.chanceModifiers ?? [],
+      source: { unitId: state.attackerId, abilityId: ability.id },
+      caster: attackerDoc,
+      casterUnit: attacker,
+      attack: attackFacts(attacker, defender, state, board),
       // A chance that depends on WHICH RING the target stands in. Triton's
       // Conch: *"If the Unit was 2 panels away from Nemo, the chance of being
-      // inflicted with Deafen is 50% instead."*
-      //
-      // The band decides the effect chance as well as the damage multiplier,
-      // and it is read from the SAME map stage 6 reads -- a second geometry
-      // pass here could disagree with the one that chose these targets. Falls
-      // through to the flat `chance` for every other ability, which is all of
-      // them.
-      chance: declaredChance(spec, spec, state, defender),
-      source: { unitId: state.attackerId, abilityId: ability.id },
-      ctx: {
-        turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-        currentTick: game.combat?.system?.globalTurn ?? 0,
-        roll: roll.total,
-        inflictBonus: inflictBonusOf(attacker, def),
-        options: rollOptions(attacker, defender, state),
-        // Left undefined rather than 0 so the applier computes the target's
-        // own resistance: `ctx.resist ?? resistanceOf(...)` reads a literal 0
-        // as "no resistance", which is how an authored `Debuff Res Up` used to
-        // be ignored on this path.
-        ignoresResistanceFrom,
-      },
-    });
-
-    if (outcome.intents.length > 0) await applyBatch(outcome.intents, "npCheckEffect");
-    out.push({
-      summary: { id: spec.id, name: def.name, outcome: outcome.outcome, reason: outcome.reason, chance: outcome.chance ?? null },
-      result: outcome,
-    });
+      // inflicted with Deafen is 50% instead"* -- read from the same map
+      // stage 6 reads.
+      distance: state.attack?.range ?? null,
+      band: state.attack?.bandOf?.[defender?.id] ?? 0,
+      ride: state.attack?.ride ?? null,
+      process: state,
+      board,
+    }, {
+      write: (intents) => applyBatch(intents, "npCheckEffect"),
+      reread: () => (recipientDoc ? unitFrom(boardSnapshot(), recipientDoc) : null),
+    }));
   }
   return out;
 }
@@ -5604,12 +5418,15 @@ async function applyFacing(state) {
  * @param {object[]} intents
  * @param {string} source
  */
-async function applyBatch(intents, source) {
+async function applyBatch(intents, source, { process = null } = {}) {
   return applyIntents(intents, {
     io: worldIO(),
     canWrite: (unitId) => game.actors.get(unitId)?.isOwner ?? false,
     isGM: game.user.isGM,
     source,
+    // The Combat Process a handler's rider lands inside, so its target may
+    // answer a debuff with the Prevention Luck Check (`engine/landing.mjs`).
+    process,
   });
 }
 
@@ -7130,30 +6947,27 @@ async function resolveNPCancellation({
     // Resistance Instakill ladder still gets its say — and note that this
     // source deals no STR damage at all, which is exactly the case that ladder
     // is written to cover.
-    const def = EffectRegistry.get(spec.againstStrongest.effect);
-    if (def) {
-      const roll = await new Roll("1d100").evaluate();
-      const applied = applyEffect({
-        def,
-        target: attackerUnit,
-        chance: spec.againstStrongest.chance ?? null,
-        duration: null,
-        source: { unitId: cancellerDoc.id, abilityId: cancelling.id },
-        ctx: {
-          turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-          currentTick: game.combat?.system?.globalTurn ?? 0,
-          roll: roll.total,
-          inflictBonus: inflictBonusOf(canceller, def),
-          options: rollOptionsFor({ attacker: canceller, defender: attackerUnit }),
-        },
-      });
-      intents.push(...applied.intents);
-      // The roll and its outcome, both: a resisted Instakill read "inflicted"
-      // whatever the die said (#197).
-      const chance = applied.trace?.find((t) => t.step === "chance");
-      const landed = applied.outcome === "applied";
-      outcome = game.i18n.format(landed ? "FGT.CancelNP.Instakill" : "FGT.CancelNP.InstakillResisted", {
-        name: attacker.name, effect: def.name, detail: chance?.detail ?? `rolled ${roll.total}`,
+    const landed = await landEffect(entryOf({
+      id: spec.againstStrongest.effect,
+      ...(spec.againstStrongest.chance !== undefined ? { chance: spec.againstStrongest.chance } : {}),
+    }), {
+      target: attackerUnit,
+      source: { unitId: cancellerDoc.id, abilityId: cancelling.id },
+      caster: cancellerDoc,
+      casterUnit: canceller,
+      board,
+    });
+    if (landed.outcome !== "noop" || landed.reason !== "unknown effect") {
+      intents.push(...landed.intents);
+      // The roll and its outcome, all three: a resisted Instakill read
+      // "inflicted" whatever the die said (#197), and one an immunity blocked
+      // read "resisted".
+      const key = { applied: "FGT.CancelNP.Instakill", blocked: "FGT.CancelNP.InstakillBlocked" }[landed.outcome]
+        ?? "FGT.CancelNP.InstakillResisted";
+      const chance = landed.trace.find((t) => t.step === "chance");
+      outcome = game.i18n.format(key, {
+        name: attacker.name, effect: landed.summary.name,
+        detail: landed.outcome === "blocked" ? landed.reason : (chance?.detail ?? landed.reason ?? ""),
       });
     }
   } else if (spec.otherwise?.reflect) {

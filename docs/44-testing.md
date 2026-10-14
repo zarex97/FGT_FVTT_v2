@@ -123,6 +123,10 @@ A whole Turn or Round boundary plays in the arena too: `w.combat.passTurn({to, n
 
 `test/unit/clock-reads.test.mjs` counts the lines in `module/` that read the match's clock directly — its Round, `globalTurn`, `currentTick()`, `currentRound()` — outside `engine/board.mjs`, where `currentMoment()` is the one live reader. The count is pinned and may only go down: a new reader takes the Moment its caller names, and a change that removes reads lowers the pin to what the test reports. It also keeps "has this expired?" in one function, `domain/tick.mjs#expiryReached`. Ch. 04 has the reason.
 
+### The one-door guard
+
+`test/unit/landing-one-door.test.mjs` keeps every Effect on one path: only `engine/landing.mjs` calls `applyEffect`, the keys the door reads equal `ENTRY_KEYS`, and no content entry writes a key outside it. `landing-proofs.test.mjs` replays three fixes through the door (Kiritsugu's and Zabaniya's resistance exemption, Triton's Conch's ring chance, Zabaniya's Normal-Attack riders on an NP); each fails with its fix reverted. `landing-changes.test.mjs` plays the changes to play the door made, and `prevention-luck-check.test.mjs` the Prevention Luck Check on Player1's screen. `castSkill` (`test/helpers/process.mjs`) has its first users there.
+
 ### The survival test
 
 `test/unit/survival.test.mjs` holds Hop 4 of Ch. 07's Route: that what the DataModel keeps, the rules can

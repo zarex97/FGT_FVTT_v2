@@ -71,16 +71,18 @@ export function planApplication(intents, { canWrite, isGM = false }) {
  * @param {(unitId: string) => boolean} args.canWrite
  * @param {boolean} [args.isGM]
  * @param {string} [args.source] for the audit trail
+ * @param {object|null} [args.process] the Combat Process this batch belongs to,
+ *   which offers its debuffs' targets the Prevention Luck Check
  * @returns {Promise<{applied: number, proxied: number, prompted: number}>}
  */
-export async function applyIntents(intents, { io, canWrite, isGM = false, source = "unknown", moment = null }) {
+export async function applyIntents(intents, { io, canWrite, isGM = false, source = "unknown", moment = null, process = null }) {
   // HERE rather than in `applyWorldIntents`, because three call sites write to
   // the world without going through that helper -- the attack flow, the
   // scheduler's boundary sequences and the movement hook -- and putting the
   // step in one of them would leave the other two applying bare effect intents.
   // That is the same "two implementations of one rule" defect this file's own
   // header warns about.
-  const plan = planApplication(await resolveElements(await resolveEffects(intents)), { canWrite, isGM });
+  const plan = planApplication(await resolveElements(await resolveEffects(intents, { process })), { canWrite, isGM });
   if (plan.problems.length > 0) {
     throw new Error(
       `FGT | Refusing to apply a malformed intent batch from ${source}:\n  ${plan.problems.join("\n  ")}`,
@@ -287,7 +289,7 @@ async function resolveElements(intents) {
  * @param {Intent[]} intents
  * @returns {Promise<Intent[]>}
  */
-async function resolveEffects(intents) {
+async function resolveEffects(intents, { process = null } = {}) {
   const raw = intents.filter((i) => i.t === "applyEffect" && !i.resolved);
   if (raw.length === 0) return intents;
   // No world: this is a unit test applying against an injected `io`, and there
@@ -295,8 +297,8 @@ async function resolveEffects(intents) {
   // than failing -- the flow is exercised directly by its own tests.
   if (typeof game === "undefined" || !game?.actors) return intents;
 
-  const [{ applyEffect, inflictBonusOf, mergeEmitted }, { EffectRegistry }, { unitOf }] = await Promise.all([
-    import("./effect-applier.mjs"),
+  const [{ landEntry }, { EffectRegistry }, { unitOf }] = await Promise.all([
+    import("./landing.mjs"),
     import("../rules/registry.mjs"),
     import("./board.mjs"),
   ]);
@@ -308,12 +310,8 @@ async function resolveEffects(intents) {
   //
   // It is needed because the applier asks the target BOARD questions. A field's
   // `ImmunityDowngrade` writes `suppressions` onto the units standing in it,
-  // and `immunityDowngradeFor` reads them at the immunity gate -- but this path
-  // built its subject with `unitSnapshot`, an actor-only pass that has no
-  // suppressions at all. So Sikera Usum clause d (*"the Poison Immune effect is
-  // reduced to a Poison Resist effect"*) never downgraded anything: measured
-  // with Serenity, who is Immune to Poison, standing in the Throne Room and
-  // taking fourteen poisoning attacks without being poisoned once
+  // and `immunityDowngradeFor` reads them at the immunity gate -- a bare
+  // `unitSnapshot` has none, so Sikera Usum clause d never downgraded anything
   // (Ch. 46 §46.4-AG).
   const board = currentBoard();
   for (const intent of mergeStages(intents)) {
@@ -322,118 +320,69 @@ async function resolveEffects(intents) {
       continue;
     }
 
-    const def = EffectRegistry.get(intent.effect?.defId);
     const target = game.actors.get(intent.unitId);
     // Nothing to resolve it against: pass it through rather than dropping it,
     // because a missing definition is a content problem and losing the write
     // would hide it.
-    if (!def || !target) {
+    if (!EffectRegistry.get(intent.effect?.defId) || !target) {
       out.push(intent);
       continue;
     }
 
-    // The INFLICTER's own contributions. `inflictBonus` reaches
-    // `applicationChance` from the attack flow and the skill flow, and this
-    // third path -- everything an event handler applies -- passed none, so
-    // Serenity's Silent Dance (*"chance of inflicting debuffs is increased by
-    // 10%"*) would have been inert against exactly the effects her sheet inflicts
-    // through riders.
-    const inflicter = intent.effect?.sourceUnitId ?? intent.sourceId ?? null;
-    const inflicterDoc = inflicter ? game.actors.get(inflicter) : null;
-
-    const result = applyEffect({
-      def,
+    // Through the one door, like every other path. What the emitter stated
+    // and the door cannot know rides on `emitted`: the expiry it computed from
+    // the duration it was authored with, and its source (#147).
+    const effect = intent.effect;
+    await landEntry(entryOfIntent(effect), {
       target: unitOf(target, board),
-      magnitude: intent.effect.magnitude ?? 0,
-      npMagnitude: intent.effect.npMagnitude ?? null,
-      // An ability's stated chance beats the definition's `baseChance`. Carried
-      // on the instance because that is the only thing an intent has room for.
-      chance: intent.effect.chance ?? null,
-      bypassChanceModifiers: Boolean(intent.effect.bypassChanceModifiers),
-      stages: intent.effect.stages ?? intent.effect.stage ?? 1,
-      // How many CHARGES this one application is worth, for a `count`-stacked
-      // effect whose count the clause states. Kingprotea's *Giant Monster of
-      // the Great River* applies `NP DmUp (GAO)` *"X times, where X = the
-      // number of Proliferation Stocks she has"*, and the scheduler resolves X
-      // before the intent is emitted.
-      uses: intent.effect.applyUses ?? null,
-      visibility: intent.effect.visibility ?? "public",
-      attributionHidden: Boolean(intent.effect.attributionHidden),
-      // The effect's own `sourceUnitId` FIRST. The scheduler's `ApplyEffect`
-      // action passes the handler's *ability* id as the intent's `sourceId`, so
-      // reading that as the inflicter stamped an ability id into a field every
-      // reader treats as a Unit -- and Secret Poison's disclosure, which asks
-      // "which instances did this Unit inflict", could never match one.
+      // The effect's own `sourceUnitId` FIRST. The scheduler passes the
+      // handler's *ability* id as the intent's `sourceId`, and reading that as
+      // the inflicter stamped an ability id where a Unit belongs.
       source: {
-        unitId: intent.effect.sourceUnitId ?? intent.sourceId ?? null,
-        abilityId: intent.effect.sourceAbilityId ?? null,
-        // The bounded field that applied it, carried on the intent because a
-        // field is not a Unit and not an ability. `applyEffect` rebuilds the
-        // instance field by field, so anything the intent knows and this
-        // object does not is dropped here -- which is exactly what happened to
-        // the Complex's Curse the first time it was fired live.
-        fieldId: intent.effect.sourceFieldId ?? null,
-        // The terrain type that applied it, for the same reason (#147).
-        terrain: intent.effect.sourceTerrain ?? null,
+        unitId: effect.sourceUnitId ?? intent.sourceId ?? null,
+        abilityId: effect.sourceAbilityId ?? null,
+        // The bounded field that applied it: a field is not a Unit and not an
+        // ability, and the Complex's Curse lost it here the first time (#147).
+        fieldId: effect.sourceFieldId ?? null,
+        terrain: effect.sourceTerrain ?? null,
       },
-      // What the emitter states about the instance itself (#147): `permanent`
-      // is "no expiry at all" where `expiry: null` is only "not stated", and
-      // `unremovable` adds to the definition's own flag.
-      permanent: Boolean(intent.effect.permanent),
-      unremovable: Boolean(intent.effect.unremovable),
-      ctx: {
-        turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-        currentTick: game.combat?.system?.globalTurn ?? 0,
-        // The die the handler's chance gate already rolled, when it rolled one;
-        // a fresh one only for a chance nothing has decided yet (#191).
-        roll: typeof intent.effect.rolled === "number" ? intent.effect.rolled : (await new Roll("1d100").evaluate()).total,
-        // The inflicter as the BOARD projects it. A bare `unitSnapshot` has no
-        // auras, so Item Construction's +50 -- an aura Medea holds on herself --
-        // never reached a Spell's debuff: Atlas on Medusa rolled against 30%
-        // where the sheet makes it 80% (#193).
-        inflictBonus: inflicterDoc ? inflictBonusOf(unitOf(inflicterDoc, board), def) : 0,
-        // The attack that raised the event, where there was one.
-        options: riderOptions(intent.effect),
-      },
-    });
-
-    // The expiry was already computed by whoever emitted the intent, and it
-    // knows the duration this application was authored with; the flow recomputes
-    // from the definition's default, which is not the same thing.
-    out.push(...result.intents.map((i) => mergeEmitted(i, intent)));
-    // A resisted effect leaves a trace. Usui's Disable rolled 39 under its 50%,
-    // the card said "hit", and Mannanán's resistance took it to 30% with nothing
-    // anywhere saying so (#195). The rider's card reads this back.
-    if (result.outcome === "resisted") {
-      out.push({ t: "log", entry: {
-        kind: "effectResisted", unitId: intent.unitId, defId: def.id,
-        sourceUnitId: inflicter, chance: result.reason ?? null,
-        tick: game.combat?.system?.globalTurn ?? 0,
-      } });
-    }
-
-    // What the effect does as it LANDS, once: Shock's *"maximum and current
-    // Agility are reduced by 3"*. The maximum is derived and comes back when
-    // the effect goes; the current is stored, so its half is paid here rather
-    // than re-derived on every preparation -- which baked it into `_source`
-    // three more points per Agility write (#106). A refresh replaces an
-    // instance already paid for, and pays nothing.
-    const created = result.outcome === "applied" && !def.terminal
-      && !result.intents.some((i) => i.t === "removeEffect" && i.reason === "refreshed");
-    if (created && def.onApply?.length) {
-      const { dispatch } = await import("./scheduler.mjs");
-      const unit = unitOf(target, board);
-      const handler = { source: def.name ?? def.id, abilityId: null, defId: def.id };
-      const ctx = {
-        board,
-        tick: game.combat?.system?.globalTurn ?? 0,
-        turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-        effectDef: (id) => EffectRegistry.get(id),
-      };
-      out.push(...def.onApply.flatMap((a) => dispatch({ ...a, kind: a.kind ?? a.key }, unit, handler, ctx)));
-    }
+      // The attack that raised the event, where there was one (#127).
+      attackOptions: effect.attackOptions ?? [],
+      // The die a handler's chance gate already rolled; a fresh one only for a
+      // chance nothing has decided yet (#191).
+      rolled: typeof effect.rolled === "number" ? effect.rolled : null,
+      attributionHidden: Boolean(effect.attributionHidden),
+      emitted: intent,
+      process,
+      board,
+    }, { write: async (landed) => { out.push(...landed); } });
   }
   return out;
+}
+
+/**
+ * The Effect Entry an `applyEffect` intent carries.
+ *
+ * An intent is the one place an entry has already been half-resolved: its
+ * magnitude is a number, its count is a number, its secrecy is a visibility.
+ * What it states is read; what it computed (`expiry`) rides beside, on
+ * `emitted`.
+ *
+ * @param {object} effect the intent's effect
+ * @returns {object}
+ */
+function entryOfIntent(effect) {
+  const entry = { id: effect.defId, magnitude: effect.magnitude ?? 0 };
+  if (effect.npMagnitude !== undefined && effect.npMagnitude !== null) entry.npMagnitude = effect.npMagnitude;
+  if (effect.chance !== undefined) entry.chance = effect.chance;
+  if (effect.bypassChanceModifiers) entry.bypassChanceModifiers = true;
+  const stages = effect.stages ?? effect.stage;
+  if (typeof stages === "number" && stages > 0) entry.stages = stages;
+  if (typeof effect.times === "number") entry.times = effect.times;
+  if (effect.visibility) entry.visibility = effect.visibility;
+  if (effect.permanent) entry.permanent = true;
+  if (effect.unremovable) entry.unremovable = true;
+  return entry;
 }
 
 /**

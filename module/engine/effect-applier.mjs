@@ -205,17 +205,11 @@ export function applyEffect({
     return { outcome: "resisted", reason: rolled, chance: rolled, intents: [], trace };
   }
 
-  // ── 4. PREVENTION WINDOW ─────────────────────────────────────────────────
-  // Offered once per Combat Process, and never against terminal effects.
-  if (ctx.preventionAvailable && def.volatility !== "terminal") {
-    trace.push({ step: "prevention", outcome: "offered" });
-    return {
-      outcome: "noop",
-      reason: "awaiting Luck Check: Prevention",
-      intents: [I.prompt(ctx.targetUserId, { kind: "luckCheck", check: "prevention", defId: def.id })],
-      trace,
-    };
-  }
+  // ── 4. PREVENTION ────────────────────────────────────────────────────────
+  // Not here. The Prevention Luck Check asks the target's player a question,
+  // which a pure step cannot do, so it is `engine/landing.mjs`'s, after this
+  // returns "applied". The step that stood here was never offered: no caller
+  // set `preventionAvailable`.
 
   // ── 4b. MAGNITUDE SCALE ──────────────────────────────────────────────────
   //
@@ -392,15 +386,15 @@ export function applyEffect({
   //
   // `cause` lets a listener tell an infliction from a removal made by a
   // particular source: Channel Marker Soul pays for any infliction but only
-  // for removals the `gogh` buff made, and without a cause those are one event
-  // with a sign.
+  // for removals the `gogh` buff made. An infliction has none -- only
+  // `RemoveEffect` names one -- so it is always null here.
   if (def.stacking === "stage" && stack.stage !== priorStage) {
     intents.push(I.event("curseStageChanged", {
       unitId: target.id,
       defId: def.id,
       stageDelta: stack.stage - priorStage,
       newStage: stack.stage,
-      cause: ctx?.cause ?? null,
+      cause: null,
     }));
   }
 
@@ -511,45 +505,6 @@ function terminalIntents(def, target, source = null) {
 // one counted them twice -- a second Monstrous Strength left two NP DmUp (GAO)
 // documents, and the Turn of the second use still decayed one (#198 reading 12).
 const REPLACING_ACTIONS = new Set(["refresh", "extend", "stage", "count"]);
-
-/**
- * Apply a batch of buffs from one ability.
- *
- * `No Buff` is checked **once per applying ability**, not per buff, because the
- * source is explicit: *"If a single effect that applies multiple buffs is used
- * on a Unit with No Buff, all of those buffs will fail to be applied."*
- *
- * @param {object} args
- * @param {object[]} args.defs
- * @param {object} args.target
- * @param {object} args.source
- * @param {object} args.ctx
- * @param {Record<string, {magnitude?: number, duration?: string}>} [args.params]
- * @returns {{results: ApplicationResult[], intents: Intent[], blockedWholesale: boolean}}
- */
-export function applyBatch({ defs, target, source, ctx, params = {} }) {
-  const held = target.effects ?? [];
-  const buffs = defs.filter((d) => d.polarity === "buff");
-  if (buffs.length > 0 && held.includes("noBuff")) {
-    return {
-      results: buffs.map(() => ({ outcome: "blocked", reason: "No Buff", intents: [], trace: [] })),
-      intents: [],
-      blockedWholesale: true,
-    };
-  }
-
-  const results = defs.map((def) =>
-    applyEffect({
-      def,
-      target,
-      magnitude: params[def.id]?.magnitude ?? def.defaultMagnitude ?? 0,
-      duration: params[def.id]?.duration ?? null,
-      source,
-      ctx: { ...ctx, roll: ctx.rolls?.[def.id] ?? ctx.roll },
-    }),
-  );
-  return { results, intents: results.flatMap((r) => r.intents), blockedWholesale: false };
-}
 
 /* -------------------------------------------------------------------------- */
 

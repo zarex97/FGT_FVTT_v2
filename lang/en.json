@@ -712,6 +712,7 @@
   "FGT.CancelNP.Take": "Cancel it",
   "FGT.CancelNP.Instakill": "{name}'s Noble Phantasm was their strongest — {effect} is inflicted on them ({detail}).",
   "FGT.CancelNP.InstakillResisted": "{name}'s Noble Phantasm was their strongest — {effect} is resisted ({detail}).",
+  "FGT.CancelNP.InstakillBlocked": "{name}'s Noble Phantasm was their strongest — {effect} is blocked by {detail}.",
   "FGT.CancelNP.Reflected": "{amount} damage is dealt to {name} instead.",
   "FGT.Summon.GrantOverspent": "This Master may grant {budget} Parameter step(s); {spent} selected.",
   "FGT.Sheet.MasterRank": "Rank",
