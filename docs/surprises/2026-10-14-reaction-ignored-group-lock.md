@@ -3,7 +3,8 @@ id: 2026-10-14-reaction-ignored-group-lock
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** With the Monstrous Snake copy cooling, the Eye of the Mind copy is locked ("Cannot be used if Wisdom of Dún Scáith (Skill 2) … is on Cooldown"), as the bar said.
 **Actual:** Karna's Brahmastra card offered "Eye of the Mind (False) (copied)" as a reaction.

@@ -3,7 +3,8 @@ id: 2026-10-14-guards-are-the-whole-side
 found: live press
 kind: role-keyed-on-type
 status: fixed
-reviewed: false
+reviewed: true
+pattern: role-keyed-on-type
 ---
 **Expected:** Gate of Skye caught Medea's Master beside Medea: Ch. 32's cover is *"the Servant performs an Agility Check"*, her own Servant, Medea.
 **Actual:** The log: `{"kind":"cover","event":"shoved","unitId":"7NcSIiyvKvGvZGi8","by":"eu9u2mNAlRnY45ga",...,"name":"Heracles"}`. Heracles, another Master's Servant on her side, shoved her.

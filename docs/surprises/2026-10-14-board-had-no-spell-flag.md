@@ -3,7 +3,8 @@ id: 2026-10-14-board-had-no-spell-flag
 found: test
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** Refusing Spells in `canCopy` needed only the test Silence already uses: `isSpell`, or the `spell` category.
 **Actual:** `copyCandidates` reads the board's ability snapshots, which carried `category` but not `isSpell`, so Aero and Rain of Light, flagged only by `isSpell`, would still have been offered.

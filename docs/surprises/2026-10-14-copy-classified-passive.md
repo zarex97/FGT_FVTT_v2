@@ -1,9 +1,10 @@
 ---
 id: 2026-10-14-copy-classified-passive
 found: live press
-kind: producer-without-consumer
+kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Scáthach's two copies, granted from the GM's list, sit on her action bar as usable Skills, as their sources do.
 **Actual:** The bar showed seven Skills and no copy. `classifyAbility` on each copy: `{"kind":"passive","clickable":false}`; `timing: null`, no phases, no targeting.

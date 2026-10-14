@@ -3,7 +3,8 @@ id: 2026-10-14-teleport-commands-moved-nobody
 found: test
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Ruling Q6 needed only to keep Gate of Skye from closing the Command Spell escape: Escape bought on an attack card would carry the defender out.
 **Actual:** Escape and Teleport Servant never moved anyone anywhere. Both author `teleport`, which needs `ctx.destination`, and neither caller (the card, the Master's bar) ever sent one: the spend paid, logged `commandNeedsDestination`, and the Process recorded the teleport `applied: false`.

@@ -3,7 +3,8 @@ id: 2026-10-14-damage-step-end-doc-says-zero
 found: test
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** `docs/E-event-reference.md` §E.3: *"`fgt.damageStepEnd` fires **even when zero damage was dealt**"*, so Alpi on it pays for a Block or a hit for 0, as reading 12 rules.
 **Actual:** The code fires it only on damage: `if (!skipped && result.total > 0) await fireDamageStepEnd(state, result)`.

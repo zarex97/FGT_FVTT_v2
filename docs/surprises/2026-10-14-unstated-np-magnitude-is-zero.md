@@ -3,7 +3,8 @@ id: 2026-10-14-unstated-np-magnitude-is-zero
 found: test
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** A Def Dwn with no `npMagnitude` raises damage from a Noble Phantasm by its full magnitude. Primordial Rune's enemy row 2 says so in its comment, and Appendix A gives Def Dwn no reduced NP figure. The pipeline's own contract says `npValue` *"defaults to `value`"*.
 **Actual:** A probe of `resolveRuleValues` on Def Dwn at magnitude 25 with no NP magnitude gives `{"value":25,"npValue":0}`. Against an NP it adds 0%.

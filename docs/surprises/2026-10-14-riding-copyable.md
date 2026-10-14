@@ -1,9 +1,10 @@
 ---
 id: 2026-10-14-riding-copyable
 found: live press
-kind: producer-without-consumer
+kind: family-marker-missing
 status: fixed
-reviewed: false
+reviewed: true
+pattern: family-marker-missing
 ---
 **Expected:** The GM's Wisdom of Dún Scáith list offers no Class Skill ("excluding Class Skills").
 **Actual:** The live list offered "Medusa: Riding A+", a Class Skill on her sheet ("(Medusa) Class Skill: Riding — Rank: A+").

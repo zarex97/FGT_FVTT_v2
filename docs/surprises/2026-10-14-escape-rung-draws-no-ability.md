@@ -3,7 +3,8 @@ id: 2026-10-14-escape-rung-draws-no-ability
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** A reaction ability the escape rung's prompt offers is a button on the card, as on the reaction rung.
 **Actual:** Heracles's failed Evade reached `s23_acceptOrEscape` with `options: ["accept", "ability:fvdg1f2wcryb3yx8"]` (Eye of the Mind (False)), and the card drew Accept alone.

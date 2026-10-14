@@ -3,7 +3,8 @@ id: 2026-10-14-round-one-refusal-was-not-silent
 found: retraction
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** §46.4-LJ, as I wrote it: *"Þurs's Attack button in Round 1 closed the dialog with no message"*, and I told the user every refusal but the budget's was silent.
 **Actual:** Re-pressed as Player1 with the Round set to 1, the declaration posted a red toast: `FGT | No attacks are permitted during the first Round.` The press had looked for it after it faded.
