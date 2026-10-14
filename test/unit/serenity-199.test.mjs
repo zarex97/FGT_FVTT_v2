@@ -151,19 +151,13 @@ describe("Normal-Attack riders stay off her Noble Phantasm (press)", () => {
   });
 });
 
-describe("the weak-point offer goes to the attacker's owner (press)", () => {
-  it("routes through chooseFor, not a local dialog", () => {
-    const source = readFileSync("module/engine/weak-point.mjs", "utf8");
-    expect(source).toMatch(/chooseFor\(attackerDoc,/);
-    expect(source).not.toMatch(/ChoiceDialog\.pick\(/);
-  });
-});
+// The weak-point offer going to the attacker's owner is played, not read:
+// `weak-point-asked-on-owner.test.mjs` runs the attack in the test world and
+// checks the question is shown to Player1.
 
 describe("a Round's end reads that Round's records (press)", () => {
-  it("projects the board's units at the Round the caller names", () => {
-    const source = readFileSync("module/engine/board.mjs", "utf8");
-    expect(source).toMatch(/unitSnapshot\(t\.actor, t\.document, "round" in overrides \? \{ round: overrides\.round \} : \{\}\)/);
-  });
+  // Projected at the Round that ended: `home-base-round-end.test.mjs` builds
+  // the real Master at Round 10 and asks the Board for Round 9's Moment.
 
   it("keeps a Master who fought in its base from E1's heal", async () => {
     const { endOfRoundHomeBase } = await import("../../module/rules/environment.mjs");

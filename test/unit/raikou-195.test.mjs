@@ -238,6 +238,6 @@ describe("a Counter is its own fan-out, not its parent's (#195)", () => {
 describe("what a deferred handler did at the Turn's end is said too (#195)", () => {
   it("posts the Turn-end card for the deferred intents", () => {
     const src = readFileSync(new URL("../../module/engine/scheduler-hooks.mjs", import.meta.url), "utf8");
-    expect(src).toMatch(/const owed = scheduler\.runDeferred\(due, board, ctx\);\s*await run\(owed, "scheduler:deferred"\);[\s\S]{0,200}await postTurnEndReport\(owed\);/);
+    expect(src).toMatch(/const owed = scheduler\.runDeferred\(due, board, ctx\);\s*await run\(owed, "scheduler:deferred", ended\);[\s\S]{0,200}await postTurnEndReport\(owed\);/);
   });
 });

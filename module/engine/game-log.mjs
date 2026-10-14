@@ -22,17 +22,22 @@ import {
  * writing to it would race the GM's own writes. Everyone else's entries arrive
  * through the intent applier, which already proxies.
  *
+ * Stamped with the Moment it is about. A boundary names it -- the end of Round
+ * 9 runs after `combat.round` reads 10, and its entries were filed under Round
+ * 10 -- and anything else is filed at the live clock.
+ *
  * @param {object} fields see `rules/game-log.mjs` `entry`
  * @param {object} [combat]
+ * @param {import("../domain/moment.mjs").Moment|null} [at]
  * @returns {Promise<object|null>} the entry written, or null
  */
-export async function record(fields, combat = game.combat) {
+export async function record(fields, combat = game.combat, at = null) {
   if (!combat) return null;
 
   const current = combat.system?.log ?? [];
   const next = appendEntry(current, {
-    globalTurn: combat.system?.globalTurn ?? 0,
-    round: combat.round ?? 0,
+    globalTurn: at?.tick ?? combat.system?.globalTurn ?? 0,
+    round: at?.round ?? combat.round ?? 0,
     ...fields,
   });
 

@@ -665,18 +665,28 @@ class FakeCombat {
     // `engine/budget.mjs#attackOutsideOwnTurn` treats as "no other Turn to be
     // on", so an unset value cannot silently grant an exemption.
     this.actingFactionId = data.actingFactionId ?? null;
-    // Seeded flags, in the flat `scope.key` shape `getFlag` reads. Without this
-    // a spec could set a budget the code would never find: `budgetFor` would
-    // answer a fresh, EMPTY budget and a test asserting a refusal would pass
-    // because nothing was ever exhausted.
-    // Seeded in the flat `scope.key` shape, and held on the real document.
+    // Seeded flags, in the flat `scope.key` shape `getFlag` reads, held on the
+    // real document. Without this a spec could set a budget the code would
+    // never find: `budgetFor` would answer a fresh, EMPTY budget and a test
+    // asserting a refusal would pass because nothing was ever exhausted.
     for (const [path, value] of Object.entries(data.flags ?? {})) {
       const [scope, ...key] = path.split(".");
       this.doc.updateSource({ flags: { [scope]: { [key.join(".")]: value } } });
     }
+    // One combatant per faction, as `rules/turn-order` keys them: a Turn is a
+    // faction's, and `factionOfCombatant` reads `system.factionId`.
+    this.combatants = new DocumentCollection((data.factions ?? []).map((f) => [`c-${f}`, { id: `c-${f}`, system: { factionId: f } }]));
+    this.currentCombatantId = data.actingFactionId ? `c-${data.actingFactionId}` : null;
+    // Who read the Round while a boundary was running, for a test that asks
+    // whether the end of a Round read the Round that ended.
+    this.roundReads = null;
   }
 
-  get round() { return this.doc.round; }
+  get round() {
+    this.roundReads?.push(new Error().stack.split("\n").slice(2, 6).map((l) => l.trim()).join(" < "));
+    return this.doc.round;
+  }
+  get combatant() { return this.combatants.get(this.currentCombatantId) ?? null; }
   get system() { return this.doc.system; }
   get flags() { return this.doc.flags; }
   get _source() { return this.doc._source; }
@@ -687,6 +697,32 @@ class FakeCombat {
     this.doc.reset();
     fire("updateCombat", this, diff, options);
     return this;
+  }
+
+  /**
+   * End this faction's Turn and hand it to the next, as Foundry's `nextTurn`
+   * and `nextRound` do (`client/documents/combat.mjs`): a Round boundary fires
+   * `combatRound` BEFORE the Round is written; then the write, `updateCombat`,
+   * and `combatTurnChange` with the Turn that ended and the one that began. The
+   * system's scheduler runs every boundary from those two hooks.
+   *
+   * @param {{to: string, newRound?: boolean}} next the faction whose Turn begins
+   * @returns {Promise<void>} once the boundary has run and the world is quiet
+   */
+  async passTurn({ to, newRound = false }) {
+    const prior = { round: this.round, turn: 0, combatantId: this.currentCombatantId, tokenId: null };
+    if (newRound) {
+      const round = this.doc.round + 1;
+      globalThis.Hooks.callAll("combatRound", this, { round, turn: 0 }, { direction: 1 });
+      await this.update({ round, turn: 0 }, { direction: 1 });
+    } else {
+      await this.update({ turn: (this.doc.turn ?? 0) + 1 }, { direction: 1 });
+    }
+    this.currentCombatantId = `c-${to}`;
+    this.actingFactionId = to;
+    const current = { round: this.doc.round, turn: this.doc.turn, combatantId: this.currentCombatantId, tokenId: null };
+    globalThis.Hooks.callAll("combatTurnChange", this, prior, current);
+    await this.world.settle();
   }
 
   getFlag(scope, key) { return this.doc.flags?.[scope]?.[key]; }
@@ -1102,7 +1138,7 @@ export async function withWorld(own, fn) {
     ...REAL.game,
     actors: world.actors,
     combat: world.viewedCombat,
-    combats: { active: world.combat },
+    combats: { active: world.combat, get: (id) => [world.combat, world.viewedCombat].find((c) => c.id === id) ?? null },
     user: people[0],
     // A collection like Foundry's, iterable: `engine/board.mjs#ownerUserOf`
     // walks every user to find a Unit's non-GM owner, and `askOwner` asks them.
@@ -1138,8 +1174,14 @@ export async function withWorld(own, fn) {
       getOffset: ({ x, y }) => ({ i: Math.floor(y / 100), j: Math.floor(x / 100) }),
     },
     // No Regions on it: a scene a test builds has no terrain, home bases or fields
-    // until it says so.
-    scene: { grid: { size: 100 }, regions: [] },
+    // until it says so -- `regions: [{id, panels, behaviors: [{type, system}]}]`.
+    // A stand-in for a RegionDocument, answering only what the board asks of one.
+    scene: {
+      grid: { size: 100 },
+      regions: (spec.regions ?? []).map((r) => ({
+        id: r.id, behaviors: r.behaviors ?? [], getOccupiedGridSpaceOffsets: () => r.panels ?? [],
+      })),
+    },
   };
   globalThis.Hooks = await worldHooks(world);
   globalThis.ui = { notifications: { warn: () => {}, error: () => {}, info: () => {} } };

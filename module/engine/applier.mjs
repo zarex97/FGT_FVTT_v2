@@ -73,7 +73,7 @@ export function planApplication(intents, { canWrite, isGM = false }) {
  * @param {string} [args.source] for the audit trail
  * @returns {Promise<{applied: number, proxied: number, prompted: number}>}
  */
-export async function applyIntents(intents, { io, canWrite, isGM = false, source = "unknown" }) {
+export async function applyIntents(intents, { io, canWrite, isGM = false, source = "unknown", moment = null }) {
   // HERE rather than in `applyWorldIntents`, because three call sites write to
   // the world without going through that helper -- the attack flow, the
   // scheduler's boundary sequences and the movement hook -- and putting the
@@ -88,7 +88,7 @@ export async function applyIntents(intents, { io, canWrite, isGM = false, source
   }
 
   for (const group of I.batch(plan.local)) {
-    await writeGroup(group, io);
+    await writeGroup(group, io, { moment });
   }
 
   // Who has just been debuffed, and by whom.
@@ -540,7 +540,7 @@ function depthOf(effect) {
  * @param {object} io
  * @returns {Promise<void>}
  */
-async function writeGroup(group, io) {
+async function writeGroup(group, io, { moment = null } = {}) {
   const { t, unitId, intents } = group;
   switch (t) {
     case "damage":
@@ -724,7 +724,9 @@ async function writeGroup(group, io) {
         if (i.entry?.kind !== "banish") continue;
         await io.banish(i.entry.unitId, i.entry.untilTick, i.entry.fieldId);
       }
-      await io.log(intents.map((i) => i.entry));
+      // Filed at the Moment the batch is about: the end of Round 9 runs once the
+      // clock reads Round 10, and its entries belong to Round 9.
+      await io.log(intents.map((i) => i.entry), { moment });
       break;
     default:
       throw new RangeError(`FGT | No writer for intent type "${t}".`);
