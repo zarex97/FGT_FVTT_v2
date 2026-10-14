@@ -286,6 +286,21 @@ A named, timed change carried by a Unit.
 The authored description of an Effect — its polarity, volatility, stacking rule and magnitude
 shape. The definition is shared; what a Unit carries is an instance of it.
 
+**Effect Entry**:
+What content authors to give an Effect: its id and what to apply with it — magnitude, duration,
+chance, stages, uses, the conditions it waits for. Written in an ability's phases, a rider, an event
+handler or a field; the same entry means the same thing wherever it is written.
+_Avoid_: effect spec, rider spec
+
+**Landing**:
+Applying one Effect Entry to a Unit: its chance and its die, resistance and the exemptions from it,
+stacking, the Prevention Luck Check, and the line a player sees. Every path lands an Effect the
+same way.
+
+**Prevention Luck Check**:
+A Unit about to receive a debuff during a Combat Process may spend 1 Luck on a Luck Check to stop
+it, once per Combat Process. Never against a terminal Effect.
+
 **Magnitude**:
 How much of an Effect is applied. Distinct from its duration and from its Stage.
 
