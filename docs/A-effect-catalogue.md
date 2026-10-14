@@ -171,7 +171,7 @@ whole attack.
 | `Atk Dwn` | D | nv | O | mag | 4 | Damage dealt −X%. Family `atkDwn`. |
 | `Def Dwn` | D | nv | D | mag | 4 | Damage taken +X%. Family `defDwn`. |
 | `Def Dwn (A)` | D | nv | D | mag | 4 | As `Def Dwn`, plus **Luck −1** at the end of the Damage Step whenever **successfully Attacked** (not "damaged"). |
-| `Def Dwn (B)` | D | nv | D | mag | 4 | As `Def Dwn`, with NP damage taken further increased. |
+| `Def Dwn (B)` | D | nv | D | mag | 4 | As `Def Dwn`, with NP damage taken further increased. **Built 2026-10-14** (`packs/_source/effects/def-dwn-b.yml`) for Karna's Brahmastra Kundala and Semiramis's Arrogant King's Poison, which wrote it as plain `defDwn`. |
 | `Def Dwn (C)` | D | nv | D | mag | 4 | As `Def Dwn`, plus **Agility −1** on the same trigger as (A). |
 | `Def Dwn (MAG)` | D | nv | D | mag | 4 | As `Def Dwn`, but **only against MAG-component damage**. A distinct effect rather than a stronger one: the parenthesis names what is scoped, and content that strips "one Def Dwn" must be able to take this without taking an unscoped one instead. **Built 2026-09-16** (`packs/_source/effects/def-dwn-mag.yml`) for `Enigma`, which is the only thing that inflicts it. |
 | `Def Crk` | D | nv | D | mag | 16 | Damage taken +X **flat**, including NP. Categorized as `defDwn`. **Its addition does not count toward the Injury Roll threshold.** **Built** (`defCrk`). The subtle half was already enforced — stage 16 takes the injury snapshot *before* the addition, quoting this row — so only the effect that triggers it was missing. Needs an explicit `modifierKey`, because the default for a flat *taken* modifier is `flatReduction`, which subtracts. |

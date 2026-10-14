@@ -209,9 +209,11 @@ describe("a Caster can contract (IA.contract)", () => {
 
 describe("one strip takes one stock (PS.buff)", () => {
   it("removes the document it rolled for, and says so", () => {
+    // The strip is the scheduler's `StripBuff` now (Wave B), by instance;
+    // `suppression-strip.test.mjs` plays it. The caller posts the line.
+    expect(readFileSync("module/engine/scheduler.mjs", "utf8")).toMatch(/I\.removeEffect\(u\.id, t\.documentId/);
     const src = readFileSync("module/engine/attack.mjs", "utf8");
-    const body = src.slice(src.indexOf("async function stripOneBuff"), src.indexOf("async function offerPreAttackSpell"));
-    expect(body).toMatch(/I\.removeEffect\(bearerDoc\.id, c\.documentId/);
+    const body = src.slice(src.indexOf("async function fireDamageStepStart"), src.indexOf("async function offerPreAttackSpell"));
     expect(body).toMatch(/FGT\.Removal\.StripResisted/);
   });
 });

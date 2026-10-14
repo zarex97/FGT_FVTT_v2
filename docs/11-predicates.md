@@ -47,6 +47,8 @@ The engine calls `rollOptionsFor` once per attack with attacker, defender, and a
 
 **`revival:` is deferred (#191).** `unitRevived` carries `revival:source:<id>` in its own option set, which no collection-time pass can hold; a predicate naming it was answered there and its handler dropped, so Nemo's Indomited never paid. `DEFERRED_PREFIXES` (`rules/elements.mjs`) now lists `revival:` beside `target:` and `attack:`.
 
+**`attack:` options come only from an attack** (Wave B). `rollOptionsFor({attacker, defender})` with no `attack` emits no `attack:` option at all; it used to invent `attack:kind:normal`, so a Skill, a Turn boundary or a hearer with no attack in sight looked like a Normal Attack to every clause that asked (#190, #199). An attack that states no kind emits none, and `attackFacts` refuses one. A Unit's own facts alone are `ownerOptionsOf(unit)`, the one reader the scheduler's handler gate, `runPhases` and the damage rider gate share. Every reader of an attack asks through the Attack Description (`rollOptions` / `describeAttack`): the rider phases' gate, the Miss check, `killedBy`, and `damageStepEnd`, which now carries `attack:crit` as `damageDealt` does. A damage block may state `thrownWeapon: true` (`attack:thrownWeapon`, Rho Aias's floor); no content Noble Phantasm does yet.
+
 ### The facet table
 
 `FACETS` is an array of 45 descriptors, each declaring one option family (`module/rules/facets.mjs:76-424`). Each facet has:

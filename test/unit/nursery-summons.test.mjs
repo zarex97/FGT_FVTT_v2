@@ -715,6 +715,7 @@ describe("damageStepEnd names who was hit", () => {
     const src = readFileSync("module/engine/attack.mjs", "utf8");
     const at = src.indexOf('fireEvent("damageStepEnd"');
     expect(at).toBeGreaterThan(-1);
-    expect(src.slice(at, at + 900)).toContain("victim:");
+    // The call grew a crit option and its comment (Wave B): the window is wider.
+    expect(src.slice(at, at + 1400)).toContain("victim:");
   });
 });

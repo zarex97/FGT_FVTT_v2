@@ -46,6 +46,8 @@ Query methods are pure and synchronous: `get(id)` returns the `def` or `null`, `
 
 A **suppressed** instance does not count: a Stun that is not stunning anybody is not binding them either (`module/rules/effects/families.mjs:30-32`). `unitHasFamily(unit, family, registry)` reads the projected `effectFamilies` if the snapshot has one — computed once in `snapshotUnit` and cached (`module/rules/snapshot.mjs:347`) — or falls back to deriving it from live ids if given a bare unit with no snapshot.
 
+**A lettered variant is its own effect.** `Def Dwn (A)`, `(B)`, `(C)` and `(MAG)` are four definitions (`defDwnA`, `defDwnB`, `defDwnC`, `defDwnMag`), each `families: [defDwn]`, so "strip one Def Dwn" reaches them and a stronger plain Def Dwn is never mistaken for one. `defDwnB` (Karna's Brahmastra Kundala, Semiramis's Arrogant King's Poison) carries a higher NP magnitude than its normal one, 30% and 40%. Karna's entry wrote it as `defDwn` with a `rank: B` nothing read (Wave B).
+
 ### Taxonomy axes
 
 **Polarity** is one of three values (`module/data/misc.mjs:35`; see `docs/A-effect-catalogue.md` Pol column):

@@ -97,7 +97,7 @@ export const DAMAGE_BLOCK_KEYS = Object.freeze([
   "base", "sources", "component", "multiplier", "flatBonus", "conditionalMultipliers",
   "fixed", "fixedValue", "formula", "bands",
   // what it counts as
-  "element", "elementFraction", "aim", "pierce", "pierceOn",
+  "element", "elementFraction", "aim", "pierce", "pierceOn", "thrownWeapon",
   "ignoresMagicResistance", "ignoresDefUp", "ignoresAttackerIncreases", "isAoE",
   // how the modifiers treat it
   "bypassModifiers", "modifierSources", "excludeModifierSources", "totalModifiers",

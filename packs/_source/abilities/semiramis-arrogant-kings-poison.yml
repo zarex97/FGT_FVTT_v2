@@ -17,7 +17,7 @@ requirements:
   - { kind: itemAtLeast, contentId: semiramis-poison, amount: 3 }
 description: |
   (Active) Requires 3 @ability[semiramis-poison]{[Semiramis' Poison]} to use. Hits a 3x3 panel area within Range. Inflicts
-  @effect[poison]{Poison} on all affected Units, and also inflicts @effect[defDwn]{Def Dwn} (B) for 1◈ Turns, all damage received is
+  @effect[poison]{Poison} on all affected Units, and also inflicts @effect[defDwnB]{Def Dwn (B)} for 1◈ Turns, all damage received is
   increased by 30%; if NP, 40%. Cooldown: 4◈-⅓◈ Turns.
 targeting:
   anchor: { kind: withinRange, metric: chebyshev }
@@ -28,4 +28,5 @@ phases:
     target: reuse
     effects:
       - { id: poison }
-      - { id: defDwn, magnitude: 30, npMagnitude: 40, duration: "1◈" }
+      # "Def Dwn (B)": its own effect, as on Karna's Brahmastra Kundala.
+      - { id: defDwnB, magnitude: 30, npMagnitude: 40, duration: "1◈" }
