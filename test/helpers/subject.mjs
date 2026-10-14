@@ -86,6 +86,7 @@ function withoutKeys(value) {
  */
 export async function withSubjects(specs, fn, {
   round = null, tick = null, settings = {}, tokens = false, combat = undefined, worldSettings = undefined,
+  regions = undefined,
 } = {}) {
   await installSystem();
   const { library, docs, effects } = await corpus();
@@ -119,7 +120,7 @@ export async function withSubjects(specs, fn, {
       : []))
     : [];
 
-  return withWorld({ actors, tokens: placed, combat, settings: worldSettings }, async (world) => {
+  return withWorld({ actors, tokens: placed, combat, settings: worldSettings, regions }, async (world) => {
     for (const [n, spec] of specs.entries()) {
       if (!spec.effects?.length) continue;
       await world.actor(actors[n].id).createEmbeddedDocuments("ActiveEffect", spec.effects.map((system) => ({

@@ -2,7 +2,7 @@
 
 ## What it is
 
-F/GT measures durations in a unit called **◈** (the tick operator), which resolves to a variable number of Turns depending on the world's `turnsPerRound` setting. A **Round** is always an integer number of Turns; the authored form is one Round (*1◈*), fractions of a Round (*⅓◈*), or a mixture (*1◈+⅔◈*). The same content authored once resolves correctly in every variant of the game without re-writing, from the Great Holy Grail War (3 turns per round) through the Holy Grail War (8 turns per round) to post-True-Masters Snowfield (15 turns per round) (`module/domain/tick.mjs:7-9`).
+F/GT measures durations in **Ticks** and **◈**. A Tick is one Turn taken as a length of time — a fraction of a Round — and the match counts the Ticks that have passed (`combat.system.globalTurn`). **◈** is one Round's worth of Ticks, which resolves to a variable number of Turns depending on the world's `turnsPerRound` setting (`CONTEXT.md`). A **Moment** is a point in the match: a Round, and how many Ticks into it. A **Round** is always an integer number of Turns; the authored form is one Round (*1◈*), fractions of a Round (*⅓◈*), or a mixture (*1◈+⅔◈*). The same content authored once resolves correctly in every variant of the game without re-writing, from the Great Holy Grail War (3 turns per round) through the Holy Grail War (8 turns per round) to post-True-Masters Snowfield (15 turns per round) (`module/domain/tick.mjs:7-9`).
 
 The system has **four duration kinds** besides ◈:
 
@@ -23,6 +23,9 @@ Fractions **always round down** (`module/domain/tick.mjs:68`), with one publishe
 | `module/engine/effect-applier.mjs` | Compute effect expiry as an absolute tick number |
 | `module/engine/channel.mjs` | Resolve combat phase duration requirements |
 | `test/unit/tick.test.mjs` | Parsing, resolution, and format round-trip tests |
+| `module/domain/moment.mjs` | The Moment value, `{round, tick}` |
+| `module/engine/board.mjs#currentMoment` | The one reader of the live clock: the active match's Moment, or none before it starts |
+| `test/unit/clock-reads.test.mjs` | The guard on direct clock reads, and the one expiry comparison |
 
 ## How it works
 
@@ -62,6 +65,18 @@ The `turnsPerRound` setting is registered as a world-scoped, integer-valued numb
 
 The `ticks` wrapper function parses and resolves in one call (`module/domain/tick.mjs:249-251`).
 
+### A boundary reads the Moment that ended
+
+Foundry advances `combat.round` before the end-of-Round sequence runs, and the system advances `globalTurn` partway through it (`engine/scheduler-hooks.mjs#onTurnChange`). So anything that reads the live clock while a Turn or a Round is ending reads the NEXT one: Home Base healed a Master who had fought in it, because its Round 9 record read as stale against Round 10 (#199), and the end of Round 9 was filed in the game log under Round 10. A boundary therefore names its Moment and hands it down:
+
+- **The Board and the Unit view.** `currentBoard({moment})` projects every Unit at that Moment — Turn and Round Records alike — and takes the board's `round`, `tick`, `tickForTurnState` and `seed` from it; `unitSnapshot(actor, token, {moment})` the same for one Unit. With none named they read `currentMoment()`. The scheduler's `boardFor` names the ended Moment for the end half and the new one for the start half.
+- **The writes.** `applyIntents(intents, {moment})` files its log entries at the Moment named (`engine/game-log.mjs#record`); the scheduler passes the ended Moment for every write of the end half.
+- **Expiry.** One comparison, `domain/tick.mjs#expiryReached`, which `test/unit/clock-reads.test.mjs` keeps the only one.
+
+`clock-reads.test.mjs` also counts the lines outside `engine/board.mjs` that read the clock themselves, and the number may only go down: a new reader takes its caller's Moment, or `currentMoment()` when it truly means "now". The Unit view now also passes the world's `turnsPerRound` to the projection; it never had, so a ◈ lock or sustainability on a projected Unit was counted at three Turns a Round in every world.
+
+A Round's end still ends **fields** at the start of the expiry Tick and **effects** at its end (`expireFields(nextTick)` beside `expireEffects(tick)`); whether the rulebook means that is an open question below.
+
 ## Invariants & edge cases
 
 1. **◈ expressions resolve correctly in all world variants** without re-authoring. The test suite verifies this across 3, 8, and 15 turns per round (`test/unit/tick.test.mjs:53-67`).
@@ -95,6 +110,8 @@ floors any stated fraction to a **minimum of one tick**, never zero
 the smallest real duration instead of to zero.**
 
 ## Open questions
+
+- **Does a field end a Turn before an effect with the same expiry?** `expireFields` is handed the incoming Tick and `expireEffects` the one that ended, so a field and an effect stamped with expiry E end one Turn apart: the field at the start of Turn E, the effect at its end. Effects and terrain were reconciled in #161; no ruling covers fields. Left as it is until the rulebook says ([#200](https://github.com/zarex97/FGT_FVTT_v2/issues/200)).
 
 - **Confirmed live.** Absolute expiry is `currentTick + resolveTicks(...)`, stamped once and stored as an
   absolute tick rather than a countdown (`module/engine/effect-applier.mjs:255`). Verified against real

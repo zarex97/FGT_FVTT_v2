@@ -102,17 +102,9 @@ export class FGTActor extends Actor {
 
 export class FGTItem extends Item {}
 
-export class FGTEffect extends ActiveEffect {
-  /**
-   * Absolute expiry means "is it over?" is a comparison, not a countdown.
-   * @param {number} tick the combat's global turn index
-   * @returns {boolean}
-   */
-  isExpired(tick) {
-    const expiry = this.system?.expiry;
-    return expiry !== null && expiry !== undefined && expiry <= tick;
-  }
-}
+// An effect's expiry is read in one place, `domain/tick.mjs#expiryReached`; the
+// document carries no copy of that comparison (`isExpired` had no caller).
+export class FGTEffect extends ActiveEffect {}
 
 
 

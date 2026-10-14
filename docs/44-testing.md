@@ -117,6 +117,12 @@ Five live-only Surprises lived in code a hook runs, and the test world's `Hooks.
 
 `test/unit/arena-hooks.test.mjs` holds the model to Foundry's order and arguments. `tenmokaikai-cooldown.test.mjs` replays #195: Tenmōkaikai switched off must start its 22-Turn cooldown, and it fails with `onModeEnded`'s `updateItem` listener removed. Turning the movement hooks on found a live Silent Drop on their first suite run: every move wrote `system.seenUnitIds` to each Master, whose schema does not keep it.
 
+A whole Turn or Round boundary plays in the arena too: `w.combat.passTurn({to, newRound})` fires `combatRound` before the Round is written, then the write and `combatTurnChange`, as Foundry's `nextRound` does, and the system's scheduler runs the boundary from those hooks (`round-end-boundary.test.mjs`). A spec gives the Combat its factions (`factions: ["red", "blue"]`) and the scene its Regions (`regions: [{id, panels, behaviors}]`).
+
+### The clock guard
+
+`test/unit/clock-reads.test.mjs` counts the lines in `module/` that read the match's clock directly — its Round, `globalTurn`, `currentTick()`, `currentRound()` — outside `engine/board.mjs`, where `currentMoment()` is the one live reader. The count is pinned and may only go down: a new reader takes the Moment its caller names, and a change that removes reads lowers the pin to what the test reports. It also keeps "has this expired?" in one function, `domain/tick.mjs#expiryReached`. Ch. 04 has the reason.
+
 ### The survival test
 
 `test/unit/survival.test.mjs` holds Hop 4 of Ch. 07's Route: that what the DataModel keeps, the rules can
