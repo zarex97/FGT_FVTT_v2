@@ -12,7 +12,7 @@ The attack flow is **one process per defender** in an area attack, not one proce
 |---|---|
 | `module/engine/combat-process.mjs` | The state machine: states, transitions, and pure reducers |
 | `module/engine/attack.mjs` | Orchestration: declaration, card rendering, advancing through prompts |
-| `module/rules/miss.mjs` | Step 1.5: whether the attack misses before reaction |
+| `module/rules/miss.mjs` | Step 1.5: whether the attack misses before reaction — asked with the Attack Description against this defender, so a `Suppress` on `attack:range:lte:2` (Anastasia's Watermelon Splitting Master) can answer; it was asked with neither (Wave B) |
 | `module/rules/injury.mjs` | Step 4: whether damage triggers an Agility roll |
 | `module/rules/normal-attack.mjs` | Step 1: resolving which stat a Normal Attack uses |
 | `module/engine/weak-point.mjs` | Step 3 (override): offering Achilles' Heel and rolling it |
@@ -87,6 +87,8 @@ The process is **complete** when it reaches the `done` state (`module/engine/com
 3. **A ladder with no options is not a ladder.** If every reaction is forbidden (Block, Evade, and Counter all refused), the rung has no buttons and no player can dismiss it. The orchestrator skips it and advances to `nothing` automatically (`module/engine/attack.mjs:1003-1025`).
 
 4. **Damage riders fire only on hit.** The damage total must be greater than zero and not fully negated by concealment or other effects. "Hit" and "hurt" are distinct: a rider on-hit fires even if a Block reduced it; on-damage fires only if it got through (`module/engine/attack.mjs:2487-2510`, `module/rules/damage/riders.mjs`).
+
+4b. **A debuff landing inside a Process may be prevented.** Every rider of the Process — the ability's own, a check's outcome, and a handler's (`damageDealt`, `damageTaken`, `damageStepEnd`, through `applyBatch(..., {process: state})`) — lands through `engine/landing.mjs` with the Process state, which offers its target the Prevention Luck Check once per Process ([Ch. 15](15-effect-application.md), [Ch. 13](13-checks-and-randomness.md)). The targets that made one are kept on `state.prevented` and serialised with the Process.
 
 5. **Injury Roll reads the pipeline's threshold, not damage > 100.** `Def Crk` adds bonus damage that does not count toward Injury. The check reads `flags.exceededInjuryThreshold` from the pipeline, not a fresh comparison, so Def Crk does not trigger it (`module/rules/injury.mjs:40-44`).
 

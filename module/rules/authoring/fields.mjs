@@ -120,5 +120,8 @@ export function displayFieldValue(type, value) {
   if ((type === "tokenList" || type === "predicateList") && Array.isArray(value)) {
     return value.join(", ");
   }
+  // A `raw` field holds a list or a map, and a text box printed it as
+  // "[object Object]" -- which the form then saved back over the value.
+  if (type === "raw" && value !== null && typeof value === "object") return JSON.stringify(value);
   return value;
 }

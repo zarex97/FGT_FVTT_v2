@@ -299,6 +299,19 @@
                 anyone editing this file. --}}
           {{#each p.fields as |row|}}{{> fgt-editor-field row}}{{/each}}
 
+          {{#each p.effects as |e|}}
+            {{!-- One Effect Entry, one field per key Landing reads. --}}
+            <fieldset class="fgt-editor__entry">
+              <legend>{{localize "FGT.Editor.Effect"}} {{e.index}}
+                <button type="button" data-action="removeEffect" data-entry="{{e.index}}">✕</button>
+              </legend>
+              {{#each e.fields as |row|}}{{> fgt-editor-field row}}{{/each}}
+            </fieldset>
+          {{/each}}
+          {{#if p.hasEffects}}
+            <button type="button" class="fgt-editor__add" data-action="addEffect">{{localize "FGT.Editor.AddEffect"}}</button>
+          {{/if}}
+
           {{#each p.rules as |r|}}
             {{!-- The effect id is the field that decides whether an
                   applyEffects phase does anything at all, so it is a list of

@@ -48,7 +48,7 @@ const FUNNEL = new Set(["module/engine/board.mjs", "module/domain/moment.mjs", "
  * `currentMoment()` when it truly means "now". When a change removes direct
  * reads, lower this number to what the test reports.
  */
-const DIRECT_CLOCK_READS = 119;
+const DIRECT_CLOCK_READS = 107;
 
 describe("the live clock", () => {
   it(`is read directly in no more than ${DIRECT_CLOCK_READS} lines outside the funnel`, () => {

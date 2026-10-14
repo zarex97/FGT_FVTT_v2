@@ -105,10 +105,15 @@ describe("Zabaniya is not affected by Magic Resistance (reading 11)", () => {
     expect((await land("instakill", ["magicResistance"])).chance).toBe("rolled 100 vs 60%");
   });
 
-  it("is read on the rider loop, which read it on the check path only", () => {
+  it("is read on the rider loop, which read it on the check path only", async () => {
+    // The phase's and the entry's, merged into the one entry every path lands
+    // (`rules/effect-flow.mjs#entryOf`). The rider loop hands its phase over;
+    // `landing-proofs.test.mjs` P1 lands it through a real attack.
+    const { entryOf } = await import("../../module/rules/effect-flow.mjs");
+    const entry = entryOf({ id: "poison", ignoresResistanceFrom: ["a"] }, { phase: { ignoresResistanceFrom: ["magicResistance"] } });
+    expect(entry.ignoresResistanceFrom).toEqual(["magicResistance", "a"]);
     const source = readFileSync("module/engine/attack.mjs", "utf8");
-    expect(source).toMatch(/\.\.\.\(phase\.ignoresResistanceFrom \?\? \[\]\)/);
-    expect(source).toMatch(/\.\.\.\(spec\.ignoresResistanceFrom \?\? rule\.ignoresResistanceFrom \?\? \[\]\)/);
+    expect(source).toMatch(/landEntry\(entryOf\(rule, \{ phase \}\)/);
   });
 });
 

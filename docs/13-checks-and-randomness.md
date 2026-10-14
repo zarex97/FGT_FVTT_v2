@@ -32,6 +32,10 @@ The roll log records every roll made: the raw die, every modifier, and chains of
 
 **Percentage rolls** for effect application and crit chances use the generic `chance` function: roll is strictly *under* the percentage, so 0% never succeeds and 100% always does, with no off-by-one (`module/rules/checks.mjs:328-330`). The dice registry (Appendix C) names over 20 formulas used in the system; every formula in 0.2.0+ is stated, not inferred (`docs/C-dice-registry.md:1-42`).
 
+**The Prevention Luck Check** (CONTEXT.md) is the one Luck Check that stops an Effect. A Unit about to receive a debuff during a Combat Process is asked, on its owner's screen, whether to spend 1 Luck; accepted, it is an uncontested `luckCheck` on `1d20`, the Luck spent whatever the die says, and a success drops the debuff. Once per target per Combat Process, never against a terminal Effect, and not offered on Beginner or Intermediate, with no Luck, or under `luckChecksBlocked`. It runs in `engine/landing.mjs#offerPrevention` ([Ch. 15](15-effect-application.md)).
+
+**Every die is a Foundry `Roll`.** A die rolled with `Math.random` leaves no record and no test can script it: Suppression's removal die and Medea's Trofa coin against a Noble Phantasm were rolled that way until Wave B. `test/unit/dice-through-roll.test.mjs` refuses a new one; it lists the few uses that are not dice (an id, a random free panel).
+
 ### Check modifiers and forcing
 
 The system collects modifiers per check into a `CheckPlan`: numeric deltas, forced tables, automatic successes, and player-adjustable rolls (`module/rules/checks.mjs:57-128`). **A platform's Luck is its owner's.** The Quetzalcoatlus (*"Luck: Shared with Quetz's"*) and the Golden Hind (*"Luck: Shared with Drake"*) have no pool of their own: a Luck Check either makes reads her current Luck and spends 1 from hers (`engine/io.mjs#adjustStat` redirects the write; [Ch. 27](27-platforms-and-levels.md), #162).

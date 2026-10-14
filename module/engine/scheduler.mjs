@@ -22,18 +22,19 @@ import { endOfRoundHomeBase, homeBaseResidencyUpdates, regionsAdjacent } from ".
 import { terrainPeriodics } from "../rules/terrain.mjs";
 import { multiServantTax } from "../rules/relationships.mjs";
 import { sideOf } from "../rules/relations.mjs";
-import { transferEffect, transferableFrom, removeStages, attackOptionsOf } from "../rules/effect-flow.mjs";
+import { transferEffect, transferableFrom, removeStages, attackOptionsOf, timesOf } from "../rules/effect-flow.mjs";
 import { forcedStanceFor } from "../rules/stance.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { currentHealth, maxHealth } from "../domain/health.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
-import { rollOptionsFor } from "../rules/options.mjs";
+import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
 import * as I from "./intents.mjs";
 import { periodicOf } from "../rules/periodic.mjs";
 import { resolveRevival, pendingRevivalRolls } from "../rules/revival.mjs";
 import { resourcePathFor, resourceValue } from "../domain/resources.mjs";
 import { deathRollOutcome } from "../rules/nameless-forest.mjs";
 import { runScript } from "./scripts.mjs";
+import { removalPlan } from "../rules/removal.mjs";
 
 /**
  * @typedef {object} SchedulerContext
@@ -378,12 +379,10 @@ export function fireEvent(event, units, ctx) {
       if (handler.targetPredicate) {
         const options = new Set([
           ...(ctx.options ?? []),
-          // The owner's facts, and none about an attack. A bare
-          // `rollOptionsFor` emits `attack:kind:normal` for the attack it was
-          // not given, so every "Normal Attacks only" rider fired on a Noble
-          // Phantasm too: Zabaniya's hit took Projectile's Poison and Deadly
-          // Poison and Macabre's extra stage (#199; #190 fixed the roll path).
-          ...[...rollOptionsFor({ attacker: u, defender: null })].filter((o) => !o.startsWith("attack:")),
+          // The owner's facts, and none about an attack: the attack's are the
+          // caller's. Zabaniya's hit took Projectile's Poison when the owner's
+          // set carried an invented `attack:kind:normal` (#199).
+          ...ownerOptionsOf(u),
           // Whose Turn this boundary is, for an `anyTurnEnd` handler that
           // treats its own Turn apart: Tenmōkaikai charges *"at the end of
           // Raikou's Turn and at the end of any Turn Raikou or any of her
@@ -485,8 +484,11 @@ export function fireEvent(event, units, ctx) {
         continue;
       }
 
+      // What this handler's `StripBuff` did, for a `requiresRemoval` action
+      // after it and for the use it spends.
+      const strip = { tried: false, removed: false };
       for (const action of handler.actions ?? []) {
-        const produced = dispatch(action, u, handler, { ...ctx, pending });
+        const produced = dispatch(action, u, handler, { ...ctx, pending, strip });
         for (const i of produced) {
           if (i.t === "statDelta" && i.stat === "health.value") {
             pending.set(i.unitId, (pending.get(i.unitId) ?? 0) + i.delta);
@@ -502,7 +504,11 @@ export function fireEvent(event, units, ctx) {
       // increase her Sustainability by 1◈ Turns" -- had no payer.
       if (handler.sustainabilityGain) out.push(sustainabilityGain(u, `${handler.sustainabilityGain}◈`, ctx));
       // A count-limited handler spends a charge each time it pays out.
-      if (handler.consumesUse && handler.defId) out.push(I.consumeUse(u.id, handler.defId));
+      // ...except a strip that took nothing: Suppression's five uses are five
+      // buffs removed, and a shot at a Unit with none costs nothing.
+      if (handler.consumesUse && handler.defId && !(strip.tried && !strip.removed)) {
+        out.push(I.consumeUse(u.id, handler.defId));
+      }
       out.push(I.log({ kind: "event", event, unitId: u.id, source: handler.source, tick: ctx.tick }));
     }
     // An `until <event>` duration ends here, after the handlers that heard the
@@ -618,6 +624,10 @@ export function dispatch(action, unit, handler, ctx) {
   if (!run) {
     return [I.log({ kind: "unhandledAction", action: action.kind, unitId: unit.id, source: handler.source })];
   }
+  // *"IF a buff was successfully removed"*: an action that follows a strip
+  // pays only when the handler's `StripBuff` took something (`ctx.strip`,
+  // kept per handler by `fireEvent`).
+  if (action.requiresRemoval && !ctx?.strip?.removed) return [];
 
   // WHOSE the action is. Mad Enhancement's first clause is *"this Servant's
   // MASTER loses Health at the end of every Turn it Acts"* -- an effect on the
@@ -653,7 +663,7 @@ export function dispatch(action, unit, handler, ctx) {
   // One vocabulary, so `target:` means the same thing whichever action carries
   // it. `subjectOf` keeps the relationship hops, which are about a single Unit
   // and are what `subject:` has always named.
-  if (action.target === "nearby" || action.target === "victim") {
+  if (action.target === "nearby" || action.target === "victim" || action.target === "defender") {
     const ids = targetsOf(action, unit, ctx);
     // `bearer` so an action that needs to know WHO IS DOING THIS still can --
     // `ApplyEffect` stamps `sourceUnitId`, and an effect sourced to its own
@@ -1199,8 +1209,11 @@ const ACTIONS = Object.freeze({
    */
   ApplyEffect: (a, u, h, c) => {
     // "X times, where X = ...". Resolved before anything is built, because a
-    // count of zero is not an application at all.
-    const applyTimes = a.times === undefined ? null : stackTimes(a.times, u);
+    // count of zero is not an application at all. An `@` field of the event
+    // too: Gogh's *"one Atk Up per stage removed"* is `times: "@stageDelta"`,
+    // which counted 1 for any string, so a Crit that took two paid one.
+    const applyTimes = a.times === undefined ? null
+      : typeof a.times === "string" ? timesOf(a.times, { event: c.event ?? null }) : stackTimes(a.times, u);
     if (applyTimes !== null && applyTimes <= 0) return [];
 
     const ticks = a.duration ? resolveTicks(parseTick(a.duration), c) : null;
@@ -1212,6 +1225,11 @@ const ACTIONS = Object.freeze({
       ...(a.effect ?? {}),
       defId: a.effect?.defId ?? a.effect?.id ?? a.defId,
       magnitude: a.effect?.magnitude ?? a.magnitude ?? 0,
+      // Beside the effect too, as `magnitude` is: an action-level NP magnitude
+      // was dropped here, so it never met a Noble Phantasm.
+      npMagnitude: a.effect?.npMagnitude ?? a.npMagnitude ?? null,
+      ...(a.unremovable || a.effect?.unremovable ? { unremovable: true } : {}),
+      ...(a.permanent || a.effect?.permanent ? { permanent: true } : {}),
       expiry: ticks === null || ticks === INFINITE ? (a.effect?.expiry ?? null) : (c.tick ?? 0) + ticks,
       // The HANDLER'S BEARER, not the recipient. `dispatch` fans a
       // `target: nearby` action over its set and hands each recipient in as
@@ -1245,11 +1263,11 @@ const ACTIONS = Object.freeze({
       // `resolveEffects` and not stored: `applyEffect` rebuilds the instance field
       // by field, so this is not on the effect DataModel.
       ...(attackOptions.length > 0 ? { attackOptions } : {}),
-      // ...and the same reading for CHARGES. *"Apply NP DmUp (GAO) to herself X
-      // times, where X = the number of Proliferation Stocks she has"* -- one
-      // application worth X, resolved here because only this pass can see how
-      // many she holds.
-      ...(applyTimes !== null ? { applyUses: applyTimes } : {}),
+      // ...and the COUNT, resolved here because only this pass can see the
+      // stacks she holds and what the event carried. Landing reads it as
+      // charges on a counted effect (*"Apply NP DmUp (GAO) to herself X
+      // times"*) and as applications on any other (Gogh's Atk Up per stage).
+      ...(applyTimes !== null ? { times: applyTimes } : {}),
       // Secret Poison. Hidden only while there is something to hide behind:
       // the disclosure trigger is the inflicter's concealment ending, so an
       // unconcealed inflicter poisons openly and the clause is self-limiting.
@@ -1269,6 +1287,40 @@ const ACTIONS = Object.freeze({
     // -- doing so would re-centre the radius on each recipient in turn.
     const recipients = c.bearer ? [u.id] : targetsOf(a, u, c);
     return recipients.map((id) => I.applyEffect(id, { ...effect }, h.abilityId));
+  },
+
+  /**
+   * Take buffs off the Unit this action is aimed at, and say whether any came off.
+   *
+   * Kiritsugu's Suppression: *"remove 1 buff from the DU at the start of the
+   * Damage Step; if a buff was successfully removed, apply Atk Up"*. Not
+   * `RemoveEffect`, which names an effect: this takes whatever buff is there,
+   * newest first, and a removal resistance may turn it away -- the dice for
+   * that come from the caller (`ctx.rolls.removal[unitId][defId]`), so the
+   * decision stays pure. It ran in a runner of its own in `attack.mjs`, which
+   * re-implemented this event for one handler (Wave B).
+   *
+   * Each instance by its DOCUMENT id: each Proliferation stock is its own buff,
+   * and removing by definition took every stock for the one strip (#198).
+   */
+  StripBuff: (a, u, h, c) => {
+    if (c.strip) c.strip.tried = true;
+    const candidates = (u.effectInstances ?? [])
+      .filter((e) => e.polarity === "buff" && !e.unremovable && !e.suppressed)
+      .map((e) => ({ defId: e.defId, polarity: "buff", unremovable: false, documentId: e.id }));
+    if (candidates.length === 0) return [];
+    const take = candidates.slice(-(a.count ?? 1));
+    const rolls = c.rolls?.removal?.[u.id] ?? {};
+    const { removed } = removalPlan({ candidates: take, bearer: u, rolls });
+    if (c.strip) c.strip.removed = removed.length > 0;
+    return [
+      ...take.filter((t) => removed.includes(t.defId)).map((t) => I.removeEffect(u.id, t.documentId, h.source ?? "strip")),
+      // The line a player reads, posted by the caller: a strip, or a resist with its die.
+      ...take.map((t) => I.log({
+        kind: "strip", unitId: u.id, defId: t.defId, removed: removed.includes(t.defId),
+        roll: rolls[t.defId] ?? null, source: h.source ?? null,
+      })),
+    ];
   },
 
   /**
@@ -1429,7 +1481,10 @@ function stackTimes(raw, unit) {
  */
 function targetsOf(a, u, c) {
   switch (a.target ?? "self") {
+    // `defender` is the attack's word for the same Unit: Suppression strips
+    // the Defending Unit at the start of the Damage Step.
     case "victim":
+    case "defender":
       // Absent when the event carries no second party. Emitting nothing is
       // right: a rider with no victim has nobody to ride.
       return c.victim?.unitId ? [c.victim.unitId] : [];

@@ -18,7 +18,7 @@ import { expandInstances, damageBaseOf } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
 import { askOwner, chooseFor } from "./ask.mjs";
 import { resolveTargets, pendingChoiceErrors } from "../rules/targeting/resolve.mjs";
-import { currentBoard, unitFrom, unitOf, gateContext, currentTick, roundRecordOf } from "./board.mjs";
+import { currentBoard, unitFrom, unitOf, gateContext, roundRecordOf } from "./board.mjs";
 import {
   evade as evadeCheck, luckCheck, chance, checkPlan, critChance, mergePlans,
   pendingCheckRolls, resolveCheck,
@@ -36,9 +36,9 @@ import { counterRedirect, counterMustCatchAttacker, counterRefusal } from "../ru
 import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { inAttackRangeBetween, chebyshev } from "../domain/geometry.mjs";
-import { missChance, missSourceOf, chanceFromDistance } from "../rules/miss.mjs";
-import { rollOptionsFor, selfOptionsOf } from "../rules/options.mjs";
-import { collectContributions, resolveValue } from "../rules/elements.mjs";
+import { missChance, missSourceOf } from "../rules/miss.mjs";
+import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
+import { collectContributions } from "../rules/elements.mjs";
 import { test as testPredicate, explain as explainPredicate } from "../rules/predicate.mjs";
 import { thresholdFor, damageFromDice, thresholdModifiers } from "../rules/damage/dice-count.mjs";
 import { normalAttackAt } from "../rules/normal-attack.mjs";
@@ -49,7 +49,7 @@ import { GRANTS, hasGranted } from "../rules/granted.mjs";
 import { coveringServantsFor, coverFactor, shoveDestination, isCovering } from "../rules/cover.mjs";
 import { absorb, refreshShield, landBarrier } from "./shield.mjs";
 import { attackIdentity, recordedAttack } from "../rules/revival.mjs";
-import { expressionRefs, stacksHeld, abilityRecordOf } from "../rules/snapshot.mjs";
+import { abilityRecordOf } from "../rules/snapshot.mjs";
 import { removalPlan, pendingRemovalRolls, isUnremovable } from "../rules/removal.mjs";
 import { isStrongestNP, isDamagingNP, harmlessToSelf, EXPECTED_ATTACK_ROLL } from "../rules/np-strength.mjs";
 import { currentHealth, isUndamageable } from "../domain/health.mjs";
@@ -62,7 +62,8 @@ import { luckChecksBlocked } from "../rules/bounded-fields.mjs";
 import { attackCone, directionalEvade } from "../rules/targeting/facing.mjs";
 import { luckChecksApply } from "../rules/difficulty.mjs";
 import { renderAttackCard, updateAttackCard } from "../apps/chat/cards.mjs";
-import { applyEffect, inflictBonusOf } from "./effect-applier.mjs";
+import { landEffect, landEntry } from "./landing.mjs";
+import { entryOf } from "../rules/effect-flow.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import * as budget from "./budget.mjs";
 import { resolveDefeat, pendingRolls, fireEvent } from "./scheduler.mjs";
@@ -778,6 +779,11 @@ export function buildAttackSpec({
       // is why the corpus had no Pierce document at all.
       pierce: Boolean(block?.pierce)
         || attackerGrants(attacker, "pierce", view),
+      // *"If the NP is a 'thrown weapon', Rho Aias' Health cannot drop below
+      // 1."* The shield has asked `attack:thrownWeapon` since it was written and
+      // no attack ever carried it. A damage block says so; no content NP does
+      // yet -- which ones throw is the author's ruling to make (Wave B).
+      thrownWeapon: Boolean(block?.thrownWeapon),
       ignoresDefUp: Boolean(block?.ignoresDefUp)
         || attackerGrants(attacker, "ignoresDefUp", view),
       // How much damage SURVIVES an Invuln, for a clause that weakens it rather
@@ -1382,7 +1388,7 @@ async function answerRung({ event, abilityId = null, placement = null }, message
 
     // An auto-evade granted by what was just used takes the Evade rung without
     // a roll. Read AFTER the ability resolved, because that is what granted it.
-    const auto = autoEvadeFrom(state, defender);
+    const auto = await autoEvadeFrom(state, defender);
     if (auto.applies) {
       // A count-limited automatic evasion is SPENT here. `uses` was recorded on
       // every such effect and never decremented, so Medea's Trofa -- authored
@@ -2160,154 +2166,65 @@ function agilityRefusals(ability, attackerId, defenderId, board = boardSnapshot(
 }
 
 /**
- * Automatic rules that fire at the START of a Damage Step, before any number
- * is computed.
+ * Raise `damageStepStart` on the ATTACKER, and write what it decides before
+ * any number is computed.
  *
- * Distinct from `offerAttackerWindow`, which asks the player to spend
- * something. This pays out a rule that needs no asking — and the ORDERING is
- * the whole clause rather than a detail of it.
- *
- * Kiritsugu's Suppression is the only source: *"Successful Normal Attacks
+ * Kiritsugu's Suppression is the only handler: *"Successful Normal Attacks
  * remove 1 buff from the DU at the start of the Damage Step and if a buff was
- * successfully removed, apply Atk Up for 1◈ Turns to Kiritsugu."* Two things
- * follow that nothing else in the corpus needed together:
+ * successfully removed, apply Atk Up for 1◈ Turns to Kiritsugu."* The ORDER is
+ * the clause: the buff it takes may be the Def Up that would reduce this very
+ * hit, so the writes land here, awaited, before the pipeline reads the
+ * defender.
  *
- * 1. The strip must land before the pipeline reads the defender's modifiers,
- *    because the buff it takes may be the one that would have reduced this hit.
- *    `fireEvent` could not do it: it returns intents synchronously, so the
- *    strip would be applied after everything else the event produced.
- * 2. The follow-on is conditional on the strip having SUCCEEDED, which no
- *    intent list can express — the answer does not exist until the removal has
- *    been decided.
+ * Through `fireEvent` like every other event. A runner of its own here
+ * re-implemented it for this one handler; the scheduler now has the words the
+ * clause needs: `StripBuff` (target `defender`), `requiresRemoval` on the
+ * action after it, and a use spent only by a strip that took something. The
+ * removal-resistance dice are rolled here, with Foundry's dice, and handed in:
+ * the runner rolled them with `Math.random`, which no table could see.
  *
  * @param {object} state the Combat Process state
- * @param {object|null} [board] the board the attack is on; the live one when omitted
  * @returns {Promise<void>}
  */
-async function runDamageStepStartHandlers(state) {
+async function fireDamageStepStart(state) {
   const attackerDoc = game.actors.get(state.attackerId);
   const defenderDoc = state.defenderId ? game.actors.get(state.defenderId) : null;
   if (!attackerDoc || !defenderDoc) return;
 
-  const board = currentBoard();
-  const attacker = unitOf(attackerDoc, board);
-  const defender = unitOf(defenderDoc, board);
-  // The live attack is in scope, so `attack:kind:normal` can actually be
-  // answered — the omission that made every phase predicate in the game blind
-  // to the attack until it was fixed for Raikou.
-  // Through the attack's facts like every other event (range, reaction, a granted element).
-  const options = rollOptions(attacker, defender, state);
+  const board = boardSnapshot();
+  const attacker = unitFrom(board, attackerDoc);
+  const defender = unitFrom(board, defenderDoc);
+  if (!(attacker?.eventHandlers ?? []).some((h) => (h.events ?? []).includes("damageStepStart"))) return;
 
-  for (const handler of attacker.eventHandlers ?? []) {
-    if (!(handler.events ?? []).includes("damageStepStart")) continue;
-    if (handler.targetPredicate
-      && !testPredicate(handler.targetPredicate, { options })) continue;
-
-    let removed = false;
-    for (const action of handler.actions ?? []) {
-      // `normalizeActions` renames the authored `key` to `kind`. Reading `key`
-      // here found `undefined` on every action, so the handler fired, matched
-      // its predicate, iterated its two actions and did nothing with either --
-      // the strip silently never happened and the follow-on never fired.
-      // Both spellings accepted, because the authored documents say `key`.
-      const kind = action.kind ?? action.key;
-      if (kind === "StripBuff") {
-        removed = await stripOneBuff(action, defender, defenderDoc);
-        continue;
-      }
-      // "IF a buff was successfully removed." Against a target with nothing
-      // left to take, the shot still lands and this pays nothing.
-      if (action.requiresRemoval && !removed) continue;
-      if (kind === "ApplyEffect") {
-        // The applier takes a SNAPSHOT and returns intents; it does not write.
-        // Passing the Actor document would hand it `target.effects` as an
-        // EmbeddedCollection of documents where it expects a list of ids --
-        // the same document-for-snapshot confusion that made every attack in
-        // the game throw when `buildAttackSpec` called `.includes()` on one.
-        const onSelf = action.target === "self";
-        const def = EffectRegistry.get(action.effect?.id ?? action.effect);
-        if (!def) continue;
-        const outcome = applyEffect({
-          def,
-          target: onSelf ? attacker : defender,
-          magnitude: action.effect?.magnitude ?? def.defaultMagnitude ?? 0,
-          npMagnitude: action.effect?.npMagnitude ?? null,
-          duration: action.duration ?? def.defaultDuration ?? null,
-          source: { unitId: attacker.id, abilityId: handler.abilityId ?? null },
-          ctx: {
-            turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-            currentTick: game.combat?.system?.globalTurn ?? 0,
-            options,
-          },
-        });
-        if (outcome.intents.length > 0) await applyBatch(outcome.intents, "suppression");
-      }
-    }
-
-    // A use is spent by a SUCCESSFUL strip, not by every attack — which is why
-    // this is here rather than in `fireEvent`, where `consumesUse` is spent
-    // unconditionally the moment a handler fires.
-    if (removed && handler.consumesUse && handler.defId) {
-      await applyBatch([I.consumeUse(attacker.id, handler.defId)], "suppression");
-    }
+  // A die for every buff a resistance could keep, before anything is decided.
+  const buffs = (defender.effectInstances ?? [])
+    .filter((e) => e.polarity === "buff" && !e.unremovable && !e.suppressed)
+    .map((e) => ({ defId: e.defId, polarity: "buff", unremovable: false }));
+  const removal = {};
+  for (const defId of pendingRemovalRolls({ candidates: buffs, bearer: defender })) {
+    removal[defId] = (await new Roll("1d100").evaluate()).total;
   }
-}
 
-/**
- * Take one buff off a Unit, and say whether anything came off.
- *
- * Not `RemoveEffect`, which names an effect and takes it off its own bearer.
- * This takes whatever is there, off somebody else, and has to REPORT — the
- * follow-on depends on the answer.
- *
- * `removalPlan` decides what survives, so `Buff Removal Resist` applies here
- * exactly as it does to every other dispel in the game.
- *
- * @param {object} action `{count}`
- * @param {object} bearer the defender's snapshot
- * @param {object} bearerDoc the defender's Actor
- * @returns {Promise<boolean>} whether at least one buff was removed
- */
-async function stripOneBuff(action, bearer, bearerDoc) {
-  const candidates = [...(bearerDoc.effects ?? [])]
-    .filter((e) => !e.disabled && !e.isSuppressed)
-    .filter((e) => (e.system?.polarity ?? "buff") === "buff")
-    .filter((e) => !e.system?.unremovable)
-    .map((e) => ({
-      defId: e.system?.defId ?? e.name,
-      polarity: "buff",
-      unremovable: Boolean(e.system?.unremovable),
-      documentId: e.id,
-    }));
-  if (candidates.length === 0) return false;
+  const intents = fireEvent("damageStepStart", [attacker], {
+    tick: board.tick,
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    board,
+    // The live attack's facts, so `attack:kind:normal` is answered by the attack.
+    options: rollOptions(attacker, defender, state),
+    victim: { unitId: defender.id },
+    rolls: { removal: { [defender.id]: removal } },
+  });
+  if (intents.length === 0) return;
+  await applyBatch(intents, "damageStepStart", { process: state });
 
-  // Newest first: a dispel that always took the oldest buff would be
-  // predictable in a way no clause asks for, and the most recently applied is
-  // the one most likely to be the reason this attack is being answered.
-  const take = candidates.slice(-(action.count ?? 1));
-  const rolls = Object.fromEntries(
-    pendingRemovalRolls({ candidates: take, bearer })
-      .map((defId) => [defId, Math.ceil(Math.random() * 100)]),
-  );
-  const { removed } = removalPlan({ candidates: take, bearer, rolls });
   // Said on the board either way: a strip, or a resist with its die (#198).
-  const name = (c) => EffectRegistry.get(c.defId)?.name ?? c.defId;
-  const lines = take.map((c) => game.i18n.format(
-    removed.includes(c.defId) ? "FGT.Removal.Stripped" : "FGT.Removal.StripResisted",
-    { name: bearerDoc.name, effect: name(c), roll: rolls[c.defId] ?? "—" },
+  const lines = intents.filter((i) => i.t === "log" && i.entry?.kind === "strip").map((i) => game.i18n.format(
+    i.entry.removed ? "FGT.Removal.Stripped" : "FGT.Removal.StripResisted",
+    { name: defenderDoc.name, effect: EffectRegistry.get(i.entry.defId)?.name ?? i.entry.defId, roll: i.entry.roll ?? "—" },
   ));
-  await ChatMessage.create({ content: lines.map((l) => `<p>${l}</p>`).join(""), speaker: { alias: game.i18n.localize("FGT.Removal.Title") } });
-  if (removed.length === 0) return false;
-
-  // The DOCUMENT, not the definition: each Proliferation stock is its own buff,
-  // and removing by definition id took every stock for the one Suppression
-  // strips (#198, PS.buff).
-  await applyBatch(
-    take.filter((c) => removed.includes(c.defId))
-      .map((c) => I.removeEffect(bearerDoc.id, c.documentId, "suppression")),
-    "suppression",
-  );
-  return true;
+  if (lines.length > 0) {
+    await ChatMessage.create({ content: lines.map((l) => `<p>${l}</p>`).join(""), speaker: { alias: game.i18n.localize("FGT.Removal.Title") } });
+  }
 }
 
 /**
@@ -2450,7 +2367,7 @@ async function fireDamageDealt(state, result) {
       // `attack:kind:normal` for the attack it was not given, so every
       // "Normal Attacks only" rider was filed on a Noble Phantasm too: Karna's
       // Burn read "hit" on Brahmastra and applied nothing (#190).
-      options: new Set([...options, ...selfOptionsOf(hearer)]),
+      options: new Set([...options, ...ownerOptionsOf(hearer)]),
     })) continue;
     filed.push({ spec, hit: rolls[spec.key] <= spec.chance });
   }
@@ -2474,7 +2391,7 @@ async function fireDamageDealt(state, result) {
   }
   const logged = () => (game.combat?.getFlag?.("fgt", "log") ?? []).length;
   const before = logged();
-  if (intents.length > 0) await applyBatch(intents, "damageDealt");
+  if (intents.length > 0) await applyBatch(intents, "damageDealt", { process: state });
   // What the target's resistance did to a die that came in under the stated
   // chance: "hit" alone hid it (#195).
   const resisted = (game.combat?.getFlag?.("fgt", "log") ?? []).slice(before)
@@ -2562,7 +2479,7 @@ async function fireDamageTaken(state, result) {
       isCrit: Boolean(result?.flags?.isCrit ?? result?.isCrit),
     },
   });
-  if (intents.length > 0) await applyBatch(intents, "damageTaken");
+  if (intents.length > 0) await applyBatch(intents, "damageTaken", { process: state });
 }
 
 /**
@@ -2921,7 +2838,7 @@ async function runAutomaticStep(state, message) {
       // at the start of the Damage Step"*. The buff it takes may be the Def Up
       // that would otherwise reduce this very hit, so running it later leaves
       // it correct-looking and inert.
-      await runDamageStepStartHandlers(state);
+      await fireDamageStepStart(state);
 
       // "Used at the start of a Damage Step when performing an Attack" -- the
       // attacker's own window, asked before anything is computed, because what
@@ -2972,7 +2889,7 @@ async function runAutomaticStep(state, message) {
       // stayed invisible only because no content used it. Scáthach's Alpi is
       // the first: *"NP Cooldown is reduced by ½◈ Turns at the end of the
       // Damage Step when a successful Attack is performed."*
-      if (!skipped && result.total > 0) await fireDamageStepEnd(state);
+      if (!skipped && result.total > 0) await fireDamageStepEnd(state, result);
       // Terrain the attack itself changes (Ch. 26): Fire in a Forest makes
       // Burning on Tails, and a Meadow is consumed by the attack that used it.
       // `rules/terrain.mjs#terrainConversions` has computed both since terrain
@@ -4015,7 +3932,10 @@ function killedBy(victim, defeat, state, ctx) {
   const killer = unitFrom(board, game.actors.get(state.attackerId));
   if (!killer) return [];
   return fireEvent("unitKilled", [killer], {
-    ...ctx, board, options: rollOptionsFor({ attacker: killer, defender: victim }),
+    // The attack that killed, as the Attack Description describes it: a
+    // `unitKilled` clause may ask what did the killing, and this set used to be
+    // the bare pair, which then carried an invented `attack:kind:normal`.
+    ...ctx, board, options: rollOptions(killer, victim, state),
   });
 }
 
@@ -4758,35 +4678,19 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     // it rides on (#65, found live). An aftermath's riders follow its damage.
     if (when !== "afterDamage") return [];
     for (const rider of ability.system?.aftermath?.effects ?? []) {
-      const def = EffectRegistry.get(rider.id);
-      if (!def) {
-        console.error(`FGT | ${ability.name}'s aftermath names unknown effect "${rider.id}".`);
-        continue;
-      }
-      const roll = await new Roll("1d100").evaluate();
-      const outcome = applyEffect({
-        def,
+      // "with a 25% chance of inflicting NP Seal for 1◈ Turns" -- the rider's
+      // own stated chance, through the same door as every other entry.
+      applied.push(...await landEntry(entryOf(rider), {
         target: defender,
-        // "with a 25% chance of inflicting NP Seal for 1◈ Turns" -- the
-        // rider's own stated chance, which the applier folds in with the
-        // target's resistances rather than rolling separately from them.
-        chance: rider.chance ?? null,
-        magnitude: rider.magnitude ?? def.defaultMagnitude ?? 0,
-        duration: rider.duration ?? def.defaultDuration,
         source: { unitId: state.attackerId, abilityId: ability.id },
-        ctx: {
-          turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-          currentTick: game.combat?.system?.globalTurn ?? 0,
-          roll: roll.total,
-          inflictBonus: inflictBonusOf(attackerUnit, def),
-          options: rollOptions(attackerUnit, defender, state),
-        },
-      });
-      if (outcome.intents.length > 0) await applyBatch(outcome.intents, "aftermathEffect");
-      applied.push({
-        summary: { id: rider.id, name: def.name, outcome: outcome.outcome, reason: outcome.reason, chance: outcome.chance ?? null },
-        result: outcome,
-      });
+        caster: attackerDoc,
+        casterUnit: attackerUnit,
+        attack: attackFacts(attackerUnit, defender, state),
+        process: state,
+      }, {
+        write: (intents) => applyBatch(intents, "aftermathEffect"),
+        reread: () => unitFrom(boardSnapshot(), defenderDoc),
+      }));
     }
     return applied;
   }
@@ -4810,11 +4714,9 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
   //
   // Adding options only ever ADDS, so every phase predicate that passed before
   // passes now.
-  const casterOptions = rollOptionsFor({
-    attacker: attackerUnit,
-    defender,
-    attack: state.attack ?? {},
-  });
+  // Through the Attack Description, as every other reader of this attack:
+  // the stored declaration alone has no range, reaction or granted element.
+  const casterOptions = rollOptions(attackerUnit, defender, state);
 
   // Through `effectivePhases`, because a copy (Ch. 17) has none of its own --
   // reading `.phases` directly makes Scáthach's copies load and do nothing.
@@ -4968,6 +4870,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
           ability,
           { ...state, defenderId: state.attackerId },
           attackerUnit,
+          { phase },
         );
         if (key) {
           selfPayments.set(key, paying.catch(() => []));
@@ -4986,6 +4889,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
         ability,
         { ...state, defenderId: state.attackerId },
         attackerUnit,
+        { phase },
       ));
       continue;
     }
@@ -5010,167 +4914,28 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     // Reading only `rules` silently dropped every rider on the newer shape --
     // Medea's Aero dealt its damage and inflicted no Bleed.
     for (const rule of phase.rules ?? phase.effects ?? []) {
-      const spec = rule.effect ?? rule;
-      if (!spec?.id) continue;
-
-      const def = EffectRegistry.get(spec.id);
-      if (!def) {
-        // Loud, because a missing definition means the ability silently does
-        // less than its text says.
-        console.warn(`FGT | ${ability.name} applies unknown effect "${spec.id}"`);
-        ui.notifications?.warn(`FGT | Unknown effect "${spec.id}" on ${ability.name}`);
-        continue;
-      }
-
-      const roll = await new Roll("1d100").evaluate();
-      const outcome = applyEffect({
-        def,
+      // Through the one door (`engine/landing.mjs`): the ring and per-panel
+      // chance, the phase's `ignoresResistanceFrom`, an entry's own gate and
+      // every count are read here exactly as a Skill reads them.
+      applied.push(...await landEntry(entryOf(rule, { phase }), {
         target: defender,
-        chanceModifiers: spec.chanceModifiers ?? rule.chanceModifiers ?? [],
-        // The ability's own stated chance, overriding the effect's default.
-        //
-        // `chancePerPanel` is the DISTANCE-SCALED form. Anastasia's Ice Block
-        // Launcher is the only clause of the shape in either roster: *"a 5%
-        // chance of inflicting Instakill for each panel between Anastasia and
-        // the DU."* The distance is the one the Combat Process already
-        // measured (`facts.range`, spread onto `state.attack`) -- recomputing
-        // it from panels here could disagree with the range the attack was
-        // declared at, which is the number the whole resolution used.
-        chance: declaredChance(spec, rule, state, defender),
-        // An authored magnitude may be an `@` EXPRESSION rather than a number
-        // (`rules/elements.mjs#resolveValue`), resolved against the CASTER at
-        // the moment of application. One rule for both use paths: the Skill
-        // path already did this, and an ability that resolves through the
-        // attack path instead -- every Noble Phantasm -- would otherwise apply
-        // the string itself as a magnitude and land nothing at all.
-        magnitude: authoredMagnitude(spec, attackerDoc, "magnitude", state.attack?.ride)
-          ?? def.defaultMagnitude ?? 0,
-        npMagnitude: authoredMagnitude(spec, attackerDoc, "npMagnitude", state.attack?.ride)
-          ?? authoredMagnitude(rule, attackerDoc, "npMagnitude", state.attack?.ride),
-        // How many stages one application is worth. *"Inflicts Stage 3 Poison
-        // on the DU"* is one application, not three -- three would roll the
-        // chance three times and be improved three times by a Debuff ChUp.
-        stages: spec.stages ?? rule.stages ?? 1,
-        duration: rule.duration ?? spec.duration ?? def.defaultDuration,
         source: { unitId: state.attackerId, abilityId: ability.id },
-        ctx: {
-          turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-          currentTick: game.combat?.system?.globalTurn ?? 0,
-          roll: roll.total,
-          // The attacker's own outgoing `ApplicationChance` contributions.
-          // Hardcoded to 0 until Medea's Item Construction needed it, which
-          // made every outgoing contribution in the game inert.
-          inflictBonus: inflictBonusOf(attackerUnit, def),
-          options: rollOptions(attackerUnit, defender, state),
-          // NOT `resist: 0`. `applyEffect` falls back to `resistanceOf(target)`
-          // when this is absent -- and `0 ?? x` is `0`, so an explicit zero
-          // here defeated that fallback and made the target's resistance
-          // universally inert. Magic Resistance's *"chance of being inflicted
-          // by debuffs is reduced by 20%"* has therefore never reduced
-          // anything, on this path or the check path; the applier's own
-          // comment describes the loop as closed and it was not.
-          //
-          // A resistance this application is not subject to, named on the
-          // phase or on the one effect. Read on the check path only, so
-          // Kiritsugu's Mark resisted through Debuff Res Up from its first day
-          // and Zabaniya's riders met Magic Resistance its sheet says they do
-          // not -- *"not affected by Magic Resistance"* covers the whole NP,
-          // debuffs and Instakill included (#199 reading 11).
-          ignoresResistanceFrom: [
-            ...(phase.ignoresResistanceFrom ?? []),
-            ...(spec.ignoresResistanceFrom ?? rule.ignoresResistanceFrom ?? []),
-          ],
-        },
-      });
-
-      if (outcome.intents.length > 0) await applyBatch(outcome.intents, "abilityEffect");
-      applied.push({
-        summary: { id: spec.id, name: def.name, outcome: outcome.outcome, reason: outcome.reason, chance: outcome.chance ?? null },
-        result: outcome,
-      });
+        caster: attackerDoc,
+        casterUnit: attackerUnit,
+        attack: attackFacts(attackerUnit, defender, state),
+        // The distance the Combat Process already measured: recomputing it
+        // here could disagree with the range the attack was declared at.
+        distance: state.attack?.range ?? null,
+        band: state.attack?.bandOf?.[defender?.id] ?? 0,
+        ride: state.attack?.ride ?? null,
+        process: state,
+      }, {
+        write: (intents) => applyBatch(intents, "abilityEffect"),
+        reread: () => unitFrom(boardSnapshot(), defenderDoc),
+      }));
     }
   }
   return applied;
-}
-
-/**
- * The chance an ability states for one effect against one defender.
- *
- * ONE reader for both effect paths -- the post-damage rider loop and
- * `applyDeclaredEffects`. Only the second read a ring's chance, so Triton's
- * Conch's Deafen was rolled at 100% against a Unit two panels out, where the
- * sheet says 50% (#191); and only the first read `chancePerPanel`. Two readers
- * of one rule drift (Ch. 46 §46.3).
- *
- * In order: a chance per panel of distance (Anastasia's Ice Block Launcher),
- * a chance per ring (Triton's Conch, index-aligned with the targeting's
- * `bands` and read off the same `bandOf` map stage 6 reads), then the flat
- * `chance`; `null` leaves the definition's own `baseChance`.
- *
- * @param {object} spec the effect entry
- * @param {object} rule the rule it sits on, which may carry the chance instead
- * @param {object} state the Combat Process
- * @param {object|null} defender
- * @returns {number|null}
- */
-function declaredChance(spec, rule, state, defender) {
-  if (spec.chancePerPanel !== undefined) return chanceFromDistance(spec.chancePerPanel, state.attack?.range ?? null);
-  const ring = spec.bands?.[state.attack?.bandOf?.[defender?.id] ?? 0]?.chance;
-  if (typeof ring === "number") return ring;
-  return spec.chance ?? rule?.chance ?? null;
-}
-
-/**
- * An authored magnitude, which may be a number or an `@` expression.
- *
- * The same helper `engine/skill-use.mjs` uses, for the same reason and against
- * the same facade — a magnitude that means two numbers depending on which path
- * resolved the ability would be worse than one that means nothing.
- *
- * `null` passes through: `npMagnitude` uses it to mean *"this effect has no
- * reduced NP magnitude"*, and coercing that to 0 would make every buff worth
- * nothing against a Noble Phantasm.
- *
- * @param {number|string|null|undefined} raw
- * @param {object} actor the caster
- * @returns {number|null}
- */
-function authoredMagnitude(spec, actor, field = "magnitude", ride = null) {
-  const raw = spec?.[field];
-  if (raw === null || raw === undefined) return null;
-  // Straight through unless the SPEC asks for more than a number: a literal
-  // with no `perStack` and no `max` cannot mean anything else.
-  if (typeof raw === "number" && !spec.perStack && spec.max === undefined) return raw;
-
-  const value = resolveValue(spec, null, {
-    // The ride's own facts, when there was one — and `@self.remainingMov`
-    // actually overridden with the pre-ride figure, which this comment has
-    // always claimed and no line ever did.
-    //
-    // `expressionRefs` honours `extras.self.remainingMov` ahead of the value it
-    // computes off the document. Nothing passed one: the ride went to a
-    // top-level `@ride` ref and `self` was never touched. So a rider phase
-    // authored `@self.remainingMov` read the POST-ride allowance — zero for a
-    // full-MOV ride — because `performRidingAttack` awaits its `markTurn`
-    // before the attack resolves. `riding.mjs` captures the figure before the
-    // ride for exactly this reason, and says so; it just had nowhere to hand it.
-    //
-    // The tick, so `@self.remainingMov` measures this Turn's walk rather than
-    // whatever the record last held — and `currentTick()`, not `game.combat`,
-    // which is the tracker being VIEWED rather than the match being played
-    // (#42).
-    refs: expressionRefs(actor, {
-      tick: currentTick(),
-      ...(ride ? { ride, hitCount: ride.hitCount, self: { remainingMov: ride.remainingMov } } : {}),
-    }),
-    // `perStack` on an effect spec, so a magnitude may scale with what the
-    // CASTER is carrying. Kingprotea's Airavata King Size is *"NP damage dealt
-    // is increased by X%"* where X is her size, and her size is one step per
-    // three Proliferation stocks -- the same count her growth reads, rather
-    // than a second reader of the footprint it produced.
-    stacks: stacksHeld(actor),
-  }, field);
-  return typeof value === "number" ? value : null;
 }
 
 /**
@@ -5201,6 +4966,7 @@ async function applyTargetedRider(phase, ability, state, attackerDoc) {
       ability,
       { ...state, defenderId: target.unitId },
       unitOf(doc, board),
+      { phase },
     ));
   }
   return out;
@@ -5298,7 +5064,7 @@ async function applyTerrainConversions(state, result) {
  * @param {object} state
  * @returns {Promise<void>}
  */
-async function fireDamageStepEnd(state) {
+async function fireDamageStepEnd(state, result = null) {
   // From the BOARD, falling back to a bare snapshot only for a unit the board
   // has no row for.
   //
@@ -5333,7 +5099,10 @@ async function fireDamageStepEnd(state) {
     tick: game.combat?.system?.globalTurn ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
     board,
-    options: rollOptions(attacker, defender, state),
+    // WHETHER IT CRIT, from the Damage Step that just resolved, as
+    // `damageDealt` has it. Castor's *"a Normal Attack that is a Crit"* could
+    // never pay, and Pollux's *"not a Crit"* paid on every Crit too (Wave B).
+    options: rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) }),
     rolls,
     // WHO WAS HIT. This event fires on the ATTACKER, and every rider hung from
     // it is about the Unit on the other end -- `targetsOf` and `subjectOf` both
@@ -5347,7 +5116,7 @@ async function fireDamageStepEnd(state) {
     victim: { unitId: state.defenderId },
   });
 
-  if (intents.length > 0) await applyBatch(intents, "damageStepEnd");
+  if (intents.length > 0) await applyBatch(intents, "damageStepEnd", { process: state });
 }
 
 /**
@@ -5473,82 +5242,54 @@ export async function runCheckPhase(phase, ability, state, defender, depth = 0) 
   }
   if (!taken.effects?.length) return rows;
 
-  return [...rows, ...await applyDeclaredEffects(taken.effects, ability, state, defender, {
-    ignoresResistanceFrom: phase.ignoresResistanceFrom ?? [],
-  })];
+  return [...rows, ...await applyDeclaredEffects(taken.effects, ability, state, defender, { phase })];
 }
 
 /**
- * Apply a list of authored effect specs to the defender.
+ * Apply a list of authored effect entries to one Unit of this Combat Process.
  *
- * Extracted so the check phase and the ordinary rider path build the same
- * application with the same context — two constructions of `applyEffect`'s
- * argument object is two places for `inflictBonus` or the option set to go
- * missing, which is how outgoing contributions were inert once already.
+ * The check phase's outcomes, a `target: self` rider and a rider with its own
+ * `targeting:` all land here, through the same door the rider loop uses: the
+ * check path read no `stages` and no entry-level `ignoresResistanceFrom`, and
+ * an outcome's wrapped entry was handed over unflattened.
  *
  * @param {object[]} specs
  * @param {object} ability
  * @param {object} state
  * @param {object} defender
+ * @param {object} [where]
+ * @param {object|null} [where.phase] the phase the entries sit in
  * @returns {Promise<object[]>}
  */
-async function applyDeclaredEffects(specs, ability, state, defender, { ignoresResistanceFrom = [] } = {}) {
+async function applyDeclaredEffects(specs, ability, state, defender, { phase = null } = {}) {
   // The board's attacker: an aura's outgoing `ApplicationChance` is annotated by
   // `snapshotBoard` and a bare snapshot carries none (#157). One board per call.
-  const attacker = unitFrom(boardSnapshot(), game.actors.get(state.attackerId));
+  const board = boardSnapshot();
+  const attackerDoc = game.actors.get(state.attackerId);
+  const attacker = unitFrom(board, attackerDoc);
+  const recipientDoc = defender?.id ? game.actors.get(defender.id) : null;
   /** @type {object[]} */
   const out = [];
-
   for (const spec of specs) {
-    const def = EffectRegistry.get(spec.id);
-    if (!def) {
-      console.warn(`FGT | ${ability.name} applies unknown effect "${spec.id}"`);
-      continue;
-    }
-
-    const roll = await new Roll("1d100").evaluate();
-    const outcome = applyEffect({
-      def,
+    out.push(...await landEntry(entryOf(spec, { phase }), {
       target: defender,
-      // Resolved the same way the rider path resolves it, from the same
-      // helper -- `target: self` effects come through here (Bellerophon's own
-      // Crit Up, Mannanán's token-scaled Atk Up) and an authored expression
-      // must mean the same number on both.
-      magnitude: authoredMagnitude(spec, game.actors.get(state.attackerId), "magnitude", state.attack?.ride)
-        ?? def.defaultMagnitude ?? 0,
-      npMagnitude: authoredMagnitude(spec, game.actors.get(state.attackerId), "npMagnitude", state.attack?.ride),
-      duration: spec.duration ?? def.defaultDuration,
-      chanceModifiers: spec.chanceModifiers ?? [],
+      source: { unitId: state.attackerId, abilityId: ability.id },
+      caster: attackerDoc,
+      casterUnit: attacker,
+      attack: attackFacts(attacker, defender, state, board),
       // A chance that depends on WHICH RING the target stands in. Triton's
       // Conch: *"If the Unit was 2 panels away from Nemo, the chance of being
-      // inflicted with Deafen is 50% instead."*
-      //
-      // The band decides the effect chance as well as the damage multiplier,
-      // and it is read from the SAME map stage 6 reads -- a second geometry
-      // pass here could disagree with the one that chose these targets. Falls
-      // through to the flat `chance` for every other ability, which is all of
-      // them.
-      chance: declaredChance(spec, spec, state, defender),
-      source: { unitId: state.attackerId, abilityId: ability.id },
-      ctx: {
-        turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-        currentTick: game.combat?.system?.globalTurn ?? 0,
-        roll: roll.total,
-        inflictBonus: inflictBonusOf(attacker, def),
-        options: rollOptions(attacker, defender, state),
-        // Left undefined rather than 0 so the applier computes the target's
-        // own resistance: `ctx.resist ?? resistanceOf(...)` reads a literal 0
-        // as "no resistance", which is how an authored `Debuff Res Up` used to
-        // be ignored on this path.
-        ignoresResistanceFrom,
-      },
-    });
-
-    if (outcome.intents.length > 0) await applyBatch(outcome.intents, "npCheckEffect");
-    out.push({
-      summary: { id: spec.id, name: def.name, outcome: outcome.outcome, reason: outcome.reason, chance: outcome.chance ?? null },
-      result: outcome,
-    });
+      // inflicted with Deafen is 50% instead"* -- read from the same map
+      // stage 6 reads.
+      distance: state.attack?.range ?? null,
+      band: state.attack?.bandOf?.[defender?.id] ?? 0,
+      ride: state.attack?.ride ?? null,
+      process: state,
+      board,
+    }, {
+      write: (intents) => applyBatch(intents, "npCheckEffect"),
+      reread: () => (recipientDoc ? unitFrom(boardSnapshot(), recipientDoc) : null),
+    }));
   }
   return out;
 }
@@ -5604,12 +5345,15 @@ async function applyFacing(state) {
  * @param {object[]} intents
  * @param {string} source
  */
-async function applyBatch(intents, source) {
+async function applyBatch(intents, source, { process = null } = {}) {
   return applyIntents(intents, {
     io: worldIO(),
     canWrite: (unitId) => game.actors.get(unitId)?.isOwner ?? false,
     isGM: game.user.isGM,
     source,
+    // The Combat Process a handler's rider lands inside, so its target may
+    // answer a debuff with the Prevention Luck Check (`engine/landing.mjs`).
+    process,
   });
 }
 
@@ -5876,7 +5620,11 @@ export function attackFacts(attacker, defender, state, board = null) {
   // at Range 1 (#197 Q3). Measured from where the ride ended, Holder Mode gave
   // a Unit struck two panels in her Range-3 band.
   const range = state.attack?.ride ? 1 : attackDistance(attacker, defender);
-  const kind = state.attack?.kind ?? "normal";
+  // Every declaration stamps its kind (`buildAttackSpec`). One without a kind
+  // is no attack, and inventing "normal" for it is how a Skill read as a
+  // Normal Attack (#190, #199): refused loudly instead.
+  const kind = state.attack?.kind;
+  if (!kind) throw new Error("FGT | attackFacts was asked about an attack with no kind.");
   // HOW THE DEFENDER REACTED, so a predicate can ask. `state.reaction` is set
   // as the ladder resolves; before it does, it is null and nothing is emitted
   // -- which is correct, because a clause about the reaction is by definition
@@ -6546,7 +6294,13 @@ async function recordWindowPick(message, window, ids) {
  * @returns {Promise<object>} the Process, at `react` or at `missed`
  */
 async function runMissCheck(state, attacker, board) {
-  const chance = missChance(attacker, rollOptionsFor({ attacker, board }));
+  // Asked of THIS attack against THIS defender, through the Attack
+  // Description: Anastasia's *"does not have a chance of Missing"* at Range 1
+  // to 2 is a `Suppress` on `attack:range:lte:2`, and the check asked with no
+  // defender and no attack, so the range was never there (Wave B).
+  const defenderDoc = state.defenderId ? game.actors.get(state.defenderId) : null;
+  const defender = defenderDoc ? unitFrom(board, defenderDoc) : null;
+  const chance = missChance(attacker, rollOptions(attacker, defender, state));
   if (chance <= 0) return process.advance(state, "hit");
 
   const roll = await new Roll("1d100").evaluate();
@@ -6702,9 +6456,9 @@ function offeredReactions(defenderId, attack = null, isAoE = false, attackerId =
  *
  * @param {object} state
  * @param {object|null} defender
- * @returns {{applies: boolean, success?: boolean, outcome?: object}}
+ * @returns {Promise<{applies: boolean, success?: boolean, outcome?: object}>}
  */
-function autoEvadeFrom(state, defender) {
+async function autoEvadeFrom(state, defender) {
   if (!defender) return { applies: false };
 
   // Same reason as `rollEvade`: an auto-evasion granted by an aura or by a
@@ -6732,7 +6486,10 @@ function autoEvadeFrom(state, defender) {
   // A per-property chance: certain against anything ordinary, a coin against a
   // Noble Phantasm.
   const chance = chanceFor(auto, attackProperties);
-  const success = chance >= 100 || (Math.random() * 100) < chance;
+  // A real die, which the table and the test world can see. It was
+  // `Math.random`: Trofa's coin against a Noble Phantasm left no roll anywhere.
+  const roll = chance >= 100 ? null : (await new Roll("1d100").evaluate()).total;
+  const success = roll === null || roll <= chance;
 
   return {
     applies: true,
@@ -6743,7 +6500,7 @@ function autoEvadeFrom(state, defender) {
     // which of the defender's effects had just fired.
     consumes: auto.uses ? (auto.defId ?? null) : null,
     outcome: {
-      success, automatic: true, roll: null, total: 0,
+      success, automatic: true, roll, total: roll ?? 0,
       table: null, modifiers: [{ source: auto.source ?? "automatic evasion", value: 0 }],
       chance,
     },
@@ -7130,30 +6887,27 @@ async function resolveNPCancellation({
     // Resistance Instakill ladder still gets its say — and note that this
     // source deals no STR damage at all, which is exactly the case that ladder
     // is written to cover.
-    const def = EffectRegistry.get(spec.againstStrongest.effect);
-    if (def) {
-      const roll = await new Roll("1d100").evaluate();
-      const applied = applyEffect({
-        def,
-        target: attackerUnit,
-        chance: spec.againstStrongest.chance ?? null,
-        duration: null,
-        source: { unitId: cancellerDoc.id, abilityId: cancelling.id },
-        ctx: {
-          turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-          currentTick: game.combat?.system?.globalTurn ?? 0,
-          roll: roll.total,
-          inflictBonus: inflictBonusOf(canceller, def),
-          options: rollOptionsFor({ attacker: canceller, defender: attackerUnit }),
-        },
-      });
-      intents.push(...applied.intents);
-      // The roll and its outcome, both: a resisted Instakill read "inflicted"
-      // whatever the die said (#197).
-      const chance = applied.trace?.find((t) => t.step === "chance");
-      const landed = applied.outcome === "applied";
-      outcome = game.i18n.format(landed ? "FGT.CancelNP.Instakill" : "FGT.CancelNP.InstakillResisted", {
-        name: attacker.name, effect: def.name, detail: chance?.detail ?? `rolled ${roll.total}`,
+    const landed = await landEffect(entryOf({
+      id: spec.againstStrongest.effect,
+      ...(spec.againstStrongest.chance !== undefined ? { chance: spec.againstStrongest.chance } : {}),
+    }), {
+      target: attackerUnit,
+      source: { unitId: cancellerDoc.id, abilityId: cancelling.id },
+      caster: cancellerDoc,
+      casterUnit: canceller,
+      board,
+    });
+    if (landed.outcome !== "noop" || landed.reason !== "unknown effect") {
+      intents.push(...landed.intents);
+      // The roll and its outcome, all three: a resisted Instakill read
+      // "inflicted" whatever the die said (#197), and one an immunity blocked
+      // read "resisted".
+      const key = { applied: "FGT.CancelNP.Instakill", blocked: "FGT.CancelNP.InstakillBlocked" }[landed.outcome]
+        ?? "FGT.CancelNP.InstakillResisted";
+      const chance = landed.trace.find((t) => t.step === "chance");
+      outcome = game.i18n.format(key, {
+        name: attacker.name, effect: landed.summary.name,
+        detail: landed.outcome === "blocked" ? landed.reason : (chance?.detail ?? landed.reason ?? ""),
       });
     }
   } else if (spec.otherwise?.reflect) {

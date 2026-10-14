@@ -31,12 +31,18 @@ import { heldOn } from "./modes.mjs";
 import { categoriesOf } from "./items.mjs";
 
 /**
- * A hearer's own facts, and nothing about an attack it was not asked about.
+ * A Unit's own facts, as `self:` options, and nothing else.
+ *
+ * What a handler's hearer, a caster gating its own phases, or anything asking
+ * about one Unit alone is addressed by. Three places each filtered a full set
+ * down to this (the damage rider gate, the scheduler, `runPhases`), each for
+ * the same reason: `rollOptionsFor` used to invent `attack:kind:normal` for
+ * an attack nobody named (#190, #199).
  *
  * @param {object} unit
  * @returns {string[]}
  */
-export function selfOptionsOf(unit) {
+export function ownerOptionsOf(unit) {
   return [...rollOptionsFor({ attacker: unit, defender: null })].filter((o) => o.startsWith("self:"));
 }
 
@@ -46,10 +52,12 @@ export function selfOptionsOf(unit) {
  * @param {object} args
  * @param {object} args.attacker the attacker's snapshot
  * @param {object} args.defender the defender's snapshot
- * @param {object} [args.attack] `{kind, isAoE, component, range, aim, pierce}`
+ * @param {object|null} [args.attack] the Attack Description's facts
+ *   (`{kind, isAoE, component, range, aim, pierce}`), or null when there is no
+ *   attack -- and then no `attack:` option at all
  * @returns {Set<string>}
  */
-export function rollOptionsFor({ attacker, defender, attack = {}, withoutModeHeld = false }) {
+export function rollOptionsFor({ attacker, defender, attack = null, withoutModeHeld = false }) {
   /** @type {Set<string>} */
   const options = new Set();
 
@@ -57,7 +65,14 @@ export function rollOptionsFor({ attacker, defender, attack = {}, withoutModeHel
   add(options, "target", defender, withoutModeHeld);
   compareParameters(options, attacker, defender);
 
-  options.add(`attack:kind:${attack.kind ?? "normal"}`);
+  // `attack:` options ONLY FROM AN ATTACK. Every call that named none used to
+  // get `attack:kind:normal` anyway, so a Skill, a Turn boundary or a hearer
+  // with no attack in sight looked like a Normal Attack to every clause that
+  // asked: Karna's "Normal Attacks only" Burn was filed on Brahmastra (#190),
+  // and Zabaniya's NP rode Serenity's Normal-Attack riders (#199). And no kind
+  // is invented for an attack that states none.
+  if (!attack) return options;
+  if (attack.kind) options.add(`attack:kind:${attack.kind}`);
   // A RIDE is a kind too. Troias Tragoidia's passive is *"Riding Attack damage
   // is increased by 25%"*, authored `attack:kind:ridingAttack`, and nothing
   // emitted it: a ride's Normal Attack is `kind: normal`, so the +25% never
