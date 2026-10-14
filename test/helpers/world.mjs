@@ -70,6 +70,12 @@
  * - **The dice are Foundry's, the faces the test's.** `Roll` is the real class;
  *   each face comes from `w.dice` — set by the test, or a seeded twister — and
  *   every roll is logged in `rolls`.
+ * - **Hooks fire, and the engine listens.** `Hooks` is Foundry's own, a fresh
+ *   copy per world. A write fires what Foundry's client backend fires, and only
+ *   when it changed something; a token write that moves it fires the movement
+ *   hooks around it. The engine's listener list is bound in every world. Unlike
+ *   Foundry, a listener's promise is kept (`settle()`), and a listener that
+ *   throws or rejects is a failure.
  * - **Failures are thrown when the world closes.** A failure above is pushed to
  *   `failures` and thrown after `fn` returns, because the engine swallows what a
  *   window throws (`engine/ask.mjs:41`). Foundry would have said nothing.
@@ -95,7 +101,7 @@
 
 import { readdirSync } from "node:fs";
 import { loadFoundry, installSystem, sourceForm, firstMismatch } from "../../tools/lib/foundry.mjs";
-import { loadDice, diceConfig } from "./foundry-client.mjs";
+import { loadDice, diceConfig, freshHooks } from "./foundry-client.mjs";
 import { installClientApi, bindWorld, asUser } from "./client-api.mjs";
 
 /* -------------------------------------------------------------------------- */
@@ -233,8 +239,9 @@ const isKnownDrop = (document, path) => KNOWN_DROPS.some((d) => d.document === d
  */
 function loudUpdate(doc, patch, { label, writes }) {
   for (const [path, raw] of Object.entries(patch)) writes.push([label, path, raw]);
+  let diff;
   try {
-    doc.updateSource(structuredClone(sourceForm(patch)));
+    diff = doc.updateSource(structuredClone(sourceForm(patch)));
   } catch (err) {
     throw new Error(`${label}: Foundry refused ${JSON.stringify(Object.keys(patch))} — ${err.message}`, { cause: err });
   }
@@ -243,6 +250,24 @@ function loudUpdate(doc, patch, { label, writes }) {
     const miss = firstMismatch(requested, getProperty(doc._source, path), path);
     if (miss && !isKnownDrop(doc.documentName, path)) throw silentDrop(label, "write to", miss);
   }
+  return diff;
+}
+
+/**
+ * Tell the listeners, as Foundry's client backend does once a write has landed
+ * (`client/data/client-backend.mjs`): only for a write that changed something,
+ * with the diff and the document's id as `changes`, and the operation's options.
+ *
+ * @param {string} hook "updateActor", "deleteActiveEffect", ...
+ * @param {object} doc the wrapper the engine holds
+ * @param {object|null} diff `updateSource`'s return, for an update; `null` for a create or delete
+ * @param {object} [options] the caller's own options
+ */
+function fire(hook, doc, diff, options = {}) {
+  const operation = { diff: true, recursive: true, render: true, ...options };
+  if (diff === null) return globalThis.Hooks?.callAll?.(hook, doc, operation, game.user?.id ?? null);
+  if (foundry.utils.isEmpty(diff)) return undefined;
+  return globalThis.Hooks?.callAll?.(hook, doc, { ...diff, _id: doc.id }, operation, game.user?.id ?? null);
 }
 
 /**
@@ -323,13 +348,23 @@ class FakeItem {
   get system() { return this.doc.system; }
   get _source() { return this.doc._source; }
 
-  async update(patch) {
-    loudUpdate(this.doc, patch, { label: `Item(${this.name})`, writes: this.world.writes });
+  get parent() { return this.actor; }
+  get documentName() { return "Item"; }
+
+  async update(patch, options = {}) {
+    const diff = loudUpdate(this.doc, patch, { label: `Item(${this.name})`, writes: this.world.writes });
     this.doc.reset();
     this.actor?.prepare();
+    fire("updateItem", this, diff, options);
+    return this;
   }
 
-  async delete() { this.actor?.items.delete(this.id); this.actor?.prepare(); }
+  async delete(options = {}) {
+    this.actor?.items.delete(this.id);
+    this.actor?.prepare();
+    fire("deleteItem", this, null, options);
+    return this;
+  }
 
   toObject() { return this.doc.toObject(); }
 }
@@ -357,13 +392,23 @@ class FakeEffect {
   get showIcon() { return this.doc.showIcon; }
   get _source() { return this.doc._source; }
 
-  async update(patch) {
-    loudUpdate(this.doc, patch, { label: `Effect(${this.name})`, writes: this.world.writes });
+  get parent() { return this.actor; }
+  get documentName() { return "ActiveEffect"; }
+
+  async update(patch, options = {}) {
+    const diff = loudUpdate(this.doc, patch, { label: `Effect(${this.name})`, writes: this.world.writes });
     this.doc.reset();
     this.actor.prepare();
+    fire("updateActiveEffect", this, diff, options);
+    return this;
   }
 
-  async delete() { this.actor.effects.delete(this.id); this.actor.prepare(); }
+  async delete(options = {}) {
+    this.actor.effects.delete(this.id);
+    this.actor.prepare();
+    fire("deleteActiveEffect", this, null, options);
+    return this;
+  }
 
   toObject() { return this.doc.toObject(); }
 }
@@ -430,38 +475,60 @@ class FakeActor {
     writeDerived(this.system, applyStatDeltas(this.system, contributions.statDeltas));
   }
 
-  async update(patch) {
-    loudUpdate(this.doc, patch, { label: `Actor(${this.name})`, writes: this.world.writes });
+  get documentName() { return "Actor"; }
+  get prototypeToken() { return this.doc.prototypeToken; }
+  get isToken() { return false; }
+  getDependentTokens() { return this.world.tokensFor(this.id); }
+
+  async update(patch, options = {}) {
+    const diff = loudUpdate(this.doc, patch, { label: `Actor(${this.name})`, writes: this.world.writes });
     this.prepare();
+    fire("updateActor", this, diff, options);
+    return this;
   }
 
-  async createEmbeddedDocuments(type, dataArray) {
-    if (type === "Item") {
-      const made = dataArray.map((d) => new FakeItem(d, this, this.world));
-      for (const item of made) this.items.set(item.id, item);
-      this.prepare();
-      return made;
-    }
-    if (type === "ActiveEffect") {
-      const made = dataArray.map((d) => new FakeEffect(d, this, this.world));
-      for (const e of made) this.effects.set(e.id, e);
-      // Foundry re-prepares the parent when an embedded effect changes, and an
-      // effect's rules are contributions the prepare chain folds in.
-      this.prepare();
-      return made;
-    }
+  /** The collection and wrapper for an embedded type. */
+  #embedded(type) {
+    if (type === "Item") return { from: this.items, Wrapper: FakeItem };
+    if (type === "ActiveEffect") return { from: this.effects, Wrapper: FakeEffect };
     throw new Error(`Embedded document type "${type}" is not modelled.`);
   }
 
-  async deleteEmbeddedDocuments(type, ids) {
-    const from = type === "Item" ? this.items : type === "ActiveEffect" ? this.effects : null;
-    if (!from) throw new Error(`Embedded document type "${type}" is not modelled.`);
-    for (const id of ids) from.delete(id);
+  async createEmbeddedDocuments(type, dataArray, options = {}) {
+    const { from, Wrapper } = this.#embedded(type);
+    const made = dataArray.map((d) => new Wrapper(d, this, this.world));
+    for (const doc of made) from.set(doc.id, doc);
+    // Foundry re-prepares the parent before any listener hears of it, and an
+    // effect's rules are contributions the prepare chain folds in.
     this.prepare();
-    return [];
+    for (const doc of made) fire(`create${type}`, doc, null, options);
+    return made;
   }
 
-  async delete() { this.world.actors.delete(this.id); }
+  async updateEmbeddedDocuments(type, updates, options = {}) {
+    const { from } = this.#embedded(type);
+    const done = [];
+    for (const { _id, ...patch } of updates) {
+      const doc = from.get(_id);
+      if (doc) done.push(await doc.update(patch, options));
+    }
+    return done;
+  }
+
+  async deleteEmbeddedDocuments(type, ids, options = {}) {
+    const { from } = this.#embedded(type);
+    const gone = ids.map((id) => from.get(id)).filter(Boolean);
+    for (const doc of gone) from.delete(doc.id);
+    this.prepare();
+    for (const doc of gone) fire(`delete${type}`, doc, null, options);
+    return gone;
+  }
+
+  async delete(options = {}) {
+    this.world.actors.delete(this.id);
+    fire("deleteActor", this, null, options);
+    return this;
+  }
 
   getActiveTokens() { return this.world.tokensFor(this.id).map((t) => ({ document: t })); }
 
@@ -499,9 +566,20 @@ class FakeToken {
 
   get actor() { return this.world.actors.get(this.actorId) ?? null; }
 
-  async update(patch) {
-    loudUpdate(this.doc, patch, { label: `Token(${this.id})`, writes: this.world.writes });
-    this.doc.reset();
+  get documentName() { return "Token"; }
+  get width() { return this.doc.width; }
+  get height() { return this.doc.height; }
+  get sight() { return this.doc.sight; }
+  get texture() { return this.doc.texture; }
+  get lockRotation() { return this.doc.lockRotation; }
+  reset() { this.doc.reset(); }
+
+  /**
+   * An update; one that changes `x`, `y` or `elevation` is a movement, as it is
+   * to Foundry, and fires its movement hooks around the write.
+   */
+  async update(patch, options = {}) {
+    return this.#write(patch, options, this.world.writes);
   }
 
   /**
@@ -517,13 +595,59 @@ class FakeToken {
     if (options.animate !== false) return false;
     const patch = {};
     for (const k of ["x", "y", "elevation"]) if (waypoint?.[k] !== undefined) patch[k] = waypoint[k];
-    loudUpdate(this.doc, patch, { label: `Token(${this.id})`, writes: [] });
-    this.doc.reset();
+    const moved = await this.#write(patch, options, []);
     this.world.writes.push(["Token", "move", { id: this.id, ...waypoint }]);
-    return true;
+    return moved !== false;
   }
 
-  async delete() { this.world.tokens.delete(this.id); }
+  /**
+   * Foundry's order for a write that moves a token (`client/documents/token.mjs`):
+   * `preMoveToken` through `Hooks.call`, where a `false` strips the movement;
+   * then the write and `updateToken`; then `moveToken`, from the operation's end.
+   * The movement is the shape the system's listeners read
+   * (`engine/movement-hooks.mjs#pathOf`, `#panelsMoved`): one waypoint passed.
+   *
+   * @returns {Promise<FakeToken|false>} `false` when a listener refused the move
+   */
+  async #write(patch, options, writes) {
+    const origin = { x: this.x, y: this.y, elevation: this.elevation };
+    const destination = {
+      x: patch.x ?? origin.x, y: patch.y ?? origin.y, elevation: patch.elevation ?? origin.elevation,
+    };
+    const moving = ["x", "y", "elevation"].some((k) => k in patch && patch[k] !== origin[k]);
+    let movement = null;
+    if (moving) {
+      const grid = canvas.grid;
+      const a = grid.getOffset(origin);
+      const b = grid.getOffset(destination);
+      const spaces = Math.max(Math.abs(a.i - b.i), Math.abs(a.j - b.j));
+      movement = {
+        id: nextId("move"),
+        method: options.method ?? "api",
+        forced: Boolean(options.fgtForced),
+        origin,
+        destination,
+        pending: { waypoints: [] },
+        passed: { waypoints: [destination], spaces, cost: spaces },
+      };
+      if (globalThis.Hooks?.call?.("preMoveToken", this, movement, options) === false) {
+        for (const k of ["x", "y", "elevation"]) delete patch[k];
+        movement = null;
+        if (Object.keys(patch).length === 0) return false;
+      }
+    }
+    const diff = loudUpdate(this.doc, patch, { label: `Token(${this.id})`, writes });
+    this.doc.reset();
+    fire("updateToken", this, diff, options);
+    if (movement) globalThis.Hooks?.callAll?.("moveToken", this, movement, { ...options }, game.user ?? null);
+    return this;
+  }
+
+  async delete(options = {}) {
+    this.world.tokens.delete(this.id);
+    fire("deleteToken", this, null, options);
+    return this;
+  }
 }
 
 class FakeCombat {
@@ -545,23 +669,30 @@ class FakeCombat {
     // a spec could set a budget the code would never find: `budgetFor` would
     // answer a fresh, EMPTY budget and a test asserting a refusal would pass
     // because nothing was ever exhausted.
-    this.flags = { ...(data.flags ?? {}) };
+    // Seeded in the flat `scope.key` shape, and held on the real document.
+    for (const [path, value] of Object.entries(data.flags ?? {})) {
+      const [scope, ...key] = path.split(".");
+      this.doc.updateSource({ flags: { [scope]: { [key.join(".")]: value } } });
+    }
   }
 
   get round() { return this.doc.round; }
   get system() { return this.doc.system; }
+  get flags() { return this.doc.flags; }
   get _source() { return this.doc._source; }
+  get documentName() { return "Combat"; }
 
-  async update(patch) {
-    loudUpdate(this.doc, patch, { label: "Combat", writes: this.world.writes });
+  async update(patch, options = {}) {
+    const diff = loudUpdate(this.doc, patch, { label: "Combat", writes: this.world.writes });
     this.doc.reset();
+    fire("updateCombat", this, diff, options);
+    return this;
   }
 
-  getFlag(scope, key) { return this.flags[`${scope}.${key}`]; }
-  async setFlag(scope, key, value) {
-    this.flags[`${scope}.${key}`] = value;
-    this.world.writes.push(["Combat", `flag:${scope}.${key}`, value]);
-  }
+  getFlag(scope, key) { return this.doc.flags?.[scope]?.[key]; }
+  // A real `setFlag` is an `update` of `flags.<scope>.<key>`, and fires `updateCombat`.
+  setFlag(scope, key, value) { return this.update({ [`flags.${scope}.${key}`]: value }); }
+  unsetFlag(scope, key) { return this.update({ [`flags.${scope}.-=${key}`]: null }); }
 }
 
 /**
@@ -595,9 +726,10 @@ class FakeChatMessage {
   get _source() { return this.doc._source; }
   get documentName() { return "ChatMessage"; }
 
-  async update(patch) {
-    loudUpdate(this.doc, patch, { label: `ChatMessage(${this.id})`, writes: this.world.writes });
+  async update(patch, options = {}) {
+    const diff = loudUpdate(this.doc, patch, { label: `ChatMessage(${this.id})`, writes: this.world.writes });
     this.doc.reset();
+    fire("updateChatMessage", this, diff, options);
     return this;
   }
 
@@ -605,7 +737,11 @@ class FakeChatMessage {
   setFlag(scope, key, value) { return this.update({ [`flags.${scope}.${key}`]: value }); }
   unsetFlag(scope, key) { return this.update({ [`flags.${scope}.-=${key}`]: null }); }
 
-  async delete() { this.world.messages.delete(this.id); }
+  async delete(options = {}) {
+    this.world.messages.delete(this.id);
+    fire("deleteChatMessage", this, null, options);
+    return this;
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -632,6 +768,65 @@ function notModelled(what) {
       throw new Error(`${what}.${String(prop)} is not modelled by test/helpers/world.mjs. Add it there.`);
     },
   });
+}
+
+/**
+ * Foundry's real `Hooks`, a fresh copy for this world, with what Foundry does
+ * not do: every listener's returned promise is kept, so a test can wait for the
+ * work a hook started (`w.settle()`), and a listener that throws or rejects is
+ * a failure rather than a line in a console nobody reads.
+ *
+ * Foundry calls listeners in registration order, stops `call` at a `false`,
+ * removes a `once` before it runs, and never awaits anything; all of that is
+ * its own code here. `callAll` is also recorded in `w.hooks`.
+ *
+ * @param {object} world
+ * @returns {Promise<Function>} the class to install as `Hooks`
+ */
+async function worldHooks(world) {
+  const Hooks = await freshHooks();
+  const pending = new Set();
+  const track = (value) => {
+    if (typeof value?.then !== "function") return value;
+    const done = Promise.resolve(value)
+      .catch((err) => { world.failures.push(`A listener rejected: ${err?.stack ?? err}`); })
+      .finally(() => pending.delete(done));
+    pending.add(done);
+    return value;
+  };
+  const wrapped = new WeakMap();
+  const { on, off, callAll } = Hooks;
+  Hooks.on = function (hook, fn, options) {
+    const listener = (...args) => track(fn(...args));
+    wrapped.set(fn, listener);
+    return on.call(this, hook, listener, options);
+  };
+  Hooks.off = function (hook, fn) {
+    return off.call(this, hook, typeof fn === "function" ? (wrapped.get(fn) ?? fn) : fn);
+  };
+  Hooks.callAll = function (hook, ...args) {
+    world.hooks.push([hook, ...args]);
+    return callAll.call(this, hook, ...args);
+  };
+  // A listener that throws is caught by Foundry and reported through `error`.
+  Hooks.on("error", (location, error) => {
+    world.failures.push(`A listener threw (${location}): ${error?.message ?? error}`);
+  });
+  // Until the world goes quiet. A listener's returned promise is awaited; work a
+  // listener starts and does not return (`syncVision(...).catch(...)`, Foundry's
+  // own habit) is waited out instead: two turns of the event loop with no new
+  // write, hook or tracked promise.
+  world.settle = async () => {
+    let last = -1;
+    for (let quiet = 0, turns = 0; quiet < 2 && turns < 500; turns += 1) {
+      if (pending.size) await Promise.allSettled([...pending]);
+      await new Promise((resolve) => { setTimeout(resolve, 0); });
+      const now = world.writes.length + world.hooks.length + pending.size;
+      quiet = now === last ? quiet + 1 : 0;
+      last = now;
+    }
+  };
+  return Hooks;
 }
 
 /**
@@ -946,7 +1141,7 @@ export async function withWorld(own, fn) {
     // until it says so.
     scene: { grid: { size: 100 }, regions: [] },
   };
-  globalThis.Hooks = { callAll: (...args) => world.hooks.push(args), on: () => {}, once: () => {} };
+  globalThis.Hooks = await worldHooks(world);
   globalThis.ui = { notifications: { warn: () => {}, error: () => {}, info: () => {} } };
 
   // Foundry's real dice, every face from this world (`worldDice`).
@@ -964,9 +1159,10 @@ export async function withWorld(own, fn) {
     }
   };
   globalThis.ChatMessage = class ChatMessage {
-    static async create(data) {
+    static async create(data, options = {}) {
       const message = new FakeChatMessage(data, world);
       world.messages.set(message.id, message);
+      fire("createChatMessage", message, null, options);
       return message;
     }
 
@@ -980,9 +1176,15 @@ export async function withWorld(own, fn) {
   // answer from Player1's client comes back to the one that asked.
   const { FGTSocket } = await import("../../module/net/socket.mjs");
   FGTSocket.initialize();
+  // The engine's document listeners, the list `fgt.mjs` binds at ready. After
+  // the seeds, as a world's documents exist before its listeners do: loading a
+  // world fires no create hooks.
+  const { attachEngineListeners } = await import("../../module/engine/listeners.mjs");
+  world.listeners = attachEngineListeners({ skip: spec.skipListeners ?? [] });
 
   try {
     const result = await fn(world);
+    await world.settle();
     world.close();
     // A test that stubbed `Roll` before entering expected its stub to roll; in
     // here the world's real dice roll instead, and a test written for "every

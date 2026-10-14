@@ -126,15 +126,9 @@ describe("Tenmōkaikai's limit is a moment, not a state (#195)", () => {
   });
 });
 
-describe("a mode's end starts its countFrom-deactivation cooldown (#195)", () => {
-  it("is written where every end of a mode passes", () => {
-    const src = readFileSync(new URL("../../module/engine/scheduler-hooks.mjs", import.meta.url), "utf8");
-    const fn = src.slice(src.indexOf("async function onModeEnded("), src.indexOf("async function onTurnChange("));
-    expect(fn).toMatch(/cd\?\.countFrom === "deactivation"/);
-    expect(fn).toMatch(/I\.cooldown\(owner\.id, item\.id, ticks, "set"\)/);
-    expect(src).toMatch(/Hooks\.on\("updateItem", onModeEnded\)/);
-  });
-});
+// A mode's end starting its countFrom-deactivation cooldown is played, not
+// read: `tenmokaikai-cooldown.test.mjs` switches the mode off in the test world,
+// whose hooks now fire, and watches the cooldown land.
 
 describe("Tenmōkaikai's upkeep: her own Turn, and any Turn she or a copy Acts (#195)", () => {
   const handler = {
