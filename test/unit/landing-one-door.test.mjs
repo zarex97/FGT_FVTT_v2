@@ -146,4 +146,13 @@ describe("the editor offers what the door reads", () => {
     expect(entryValue("raw", "[{\"chance\": 100}]")).toEqual([{ chance: 100 }]);
     expect(entryValue("tickExpr", "")).toBeUndefined();
   });
+
+  it("shows a list or a map as JSON, which it saves back as itself", async () => {
+    // Atlas's two `chanceModifiers` printed "[object Object],[object Object]"
+    // in the live form, and that text is what the next change would have saved.
+    const { displayFieldValue } = await import("../../module/rules/authoring/fields.mjs");
+    const mods = [{ source: "MAG", value: -25 }];
+    expect(displayFieldValue("raw", mods)).toBe(JSON.stringify(mods));
+    expect(displayFieldValue("raw", "x")).toBe("x");
+  });
 });

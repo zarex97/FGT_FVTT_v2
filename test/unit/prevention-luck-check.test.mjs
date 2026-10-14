@@ -54,7 +54,8 @@ describe("the Prevention Luck Check", () => {
       expect(shocks(w)).toHaveLength(0);
       expect(w.actor(H).system.luck.value).toBe(luck - 1);
       const card = [...w.messages.values()].flatMap((m) => m.getFlag?.("fgt", "effects") ?? []);
-      expect(card.find((e) => e.id === "shock")).toMatchObject({ outcome: "prevented" });
+      // One "prevented", from the outcome; the reason says how.
+      expect(card.find((e) => e.id === "shock")).toMatchObject({ outcome: "prevented", reason: "Luck Check 1 vs 3" });
     });
   });
 
@@ -66,6 +67,9 @@ describe("the Prevention Luck Check", () => {
       await attack();
       expect(shocks(w)).toHaveLength(1);
       expect(w.actor(H).system.luck.value).toBe(luck - 1);
+      // The spent Luck has a line too, beside the effect that landed.
+      const card = [...w.messages.values()].flatMap((m) => m.getFlag?.("fgt", "effects") ?? []);
+      expect(card.find((e) => e.id === "shock").chance).toMatch(/^Luck Check 20 vs 3: failed$/);
     });
   });
 

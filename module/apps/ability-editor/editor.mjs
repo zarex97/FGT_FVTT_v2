@@ -142,7 +142,12 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ItemSheetV2) {
     const item = options?.documentName ? options : options?.document;
     super(options?.documentName ? { document: options } : options);
     this.#item = item;
-    this.#draft = foundry.utils.deepClone(item?.system ?? {});
+    // A PLAIN copy of the stored data. `deepClone` returns a DataModel as the
+    // same object, so the "working copy" was the live `item.system`: every
+    // keystroke changed the ability in play before Save, closing did not undo
+    // it, and Save diffed the model against itself, so a key cleared in the
+    // form was never removed from the document (Wave B, found live).
+    this.#draft = foundry.utils.deepClone(item?._source?.system ?? item?.system ?? {});
   }
 
   /**
@@ -904,7 +909,9 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ItemSheetV2) {
       const type = PHASE_DESCRIPTORS[phase.kind]?.fields?.find((f) => f.key === rest[0])?.type;
       phases[index] = {
         ...phase,
-        [rest[0]]: type === "tokenList" || type === "predicateList" ? coerceFieldValue(type, value) : numberOrRaw(value),
+        [rest[0]]: type === "tokenList" || type === "predicateList" || type === "raw"
+          ? (type === "raw" ? entryValue("raw", value) ?? value : coerceFieldValue(type, value))
+          : numberOrRaw(value),
       };
     }
 
