@@ -8,12 +8,13 @@
  * `foundry.applications is undefined` before a single export is reachable. That
  * is why this file's callers used to read the engine as TEXT.
  *
- * The stub is the least that lets the module load: an `api` whose mixin hands
- * its base back and whose every other member is an empty class. Nothing a test
- * reaches through it renders anything.
+ * The stub is the test world's window classes (`client-api.mjs`): a mixin that
+ * hands its base back, and an empty class for every other member. Nothing a
+ * test reaches through it draws anything.
  */
 
 import { installSystem } from "../../tools/lib/foundry.mjs";
+import { installClientApi } from "./client-api.mjs";
 
 /**
  * Import `module/engine/attack.mjs`, installing Foundry and the client stub
@@ -23,9 +24,6 @@ import { installSystem } from "../../tools/lib/foundry.mjs";
  */
 export async function importAttack() {
   await installSystem();
-  const api = new Proxy(function () {}, {
-    get: (_target, key) => (key === "HandlebarsApplicationMixin" ? (base) => base : class {}),
-  });
-  globalThis.foundry.applications ??= { api, ux: {}, handlebars: {}, sheets: {}, apps: {} };
+  installClientApi();
   return import("../../module/engine/attack.mjs");
 }

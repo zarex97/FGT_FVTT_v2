@@ -6,9 +6,10 @@
  * were Foundry's own `SchemaField` pruning a key the schema did not declare.
  * Nothing could see those while every test ran against an imitation of the
  * field classes, so the tests and the build import the real ones instead —
- * `common/` only, which is pure ESM and needs three globals to run. The
- * `client/` layer does not import in Node (DOM, PIXI, `@common` aliases) and is
- * not attempted here.
+ * `common/` only, which is pure ESM and needs three globals to run. Most of
+ * the `client/` layer does not import in Node (DOM, PIXI) and is not attempted
+ * here; its dice and its `Hooks` do, under vitest, through
+ * `foundry-client-plugin.mjs` and `test/helpers/foundry-client.mjs`.
  *
  * Foundry is proprietary and this repository is public, so the source is read
  * from `FOUNDRY_PATH`, defaulting to a sibling checkout of the private
@@ -141,12 +142,15 @@ export async function installSystem() {
   // Foundry's own page types, which a world has whatever the system declares;
   // the `rules` pack ships journal pages of the `text` type.
   documentTypes.JournalEntryPage ??= ["text", "image", "pdf", "video"];
+  // A chat message has only Foundry's base type; the test world builds them.
+  documentTypes.ChatMessage ??= [];
 
   globalThis.CONFIG ??= {};
   for (const [name, byType] of Object.entries(models)) {
     CONFIG[name] = { ...(CONFIG[name] ?? {}), dataModels: byType };
   }
   // `common/documents/token.mjs:131` reads this when a Token schema is built.
+  CONFIG.ChatMessage ??= { dataModels: {} };
   CONFIG.Token ??= {};
   CONFIG.Token.movement ??= { actions: {} };
 

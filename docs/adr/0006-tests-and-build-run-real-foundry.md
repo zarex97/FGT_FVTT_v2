@@ -32,6 +32,11 @@ guard would be absent from it.
   layer (the empty-diff skip before a write is sent, and `_preCreate` edits that never reach the
   server) does not import in Node, so those two traps are guarded by a lint rule and proved by live
   probes in `tools/check-world.mjs`.
+- Two corners of the client layer do import in Node, and run for real in the tests: the dice
+  (`client/dice/`) and `Hooks` (`client/helpers/hooks.mjs`). They need the `@common/` alias and the
+  Roll grammar compiled from its Peggy source, which `tools/lib/foundry-client-plugin.mjs` supplies
+  to vitest; `peggy` is a devDependency pinned at the copy's version, because the copy's own
+  `node_modules` are not in its repository. (Found while planning the test arena, 2026-10-12.)
 - The copy must track the Foundry version in `system.json`'s `compatibility.verified`. A Foundry
   upgrade means updating the private copy first, or the tests are checking last version's rules.
 - A fork cannot run the suite. This is a single-owner repository, and that is accepted.
