@@ -3,7 +3,8 @@ id: 2026-10-14-fields-end-a-turn-before-effects
 found: test
 kind: hidden-timing-rule
 status: open
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** a field and an effect stamped with the same expiry end at the same boundary, as effects and terrain do since #161.
 **Actual:** a field ends at the start of its expiry Turn and an effect at its end, one Turn apart.

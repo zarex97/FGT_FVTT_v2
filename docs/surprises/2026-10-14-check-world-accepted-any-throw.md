@@ -3,7 +3,8 @@ id: 2026-10-14-check-world-accepted-any-throw
 found: tooling
 kind: failure-dismissed-unread
 status: fixed
-reviewed: false
+reviewed: true
+pattern: passes-for-the-wrong-reason
 ---
 **Expected:** once the test world rolled Foundry's real dice, `npm run check:world` would still pass or fail on what it probes.
 **Actual:** in plain Node the world could not load the dice: `Cannot find package '@common/utils'`. Two probes failed, and three "divergence" probes still printed `ok`, because each accepted any throw from the model as the documented one.

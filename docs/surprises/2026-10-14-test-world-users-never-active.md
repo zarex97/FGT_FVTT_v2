@@ -3,7 +3,8 @@ id: 2026-10-14-test-world-users-never-active
 found: test
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** in the test world, a question routed by `askOwner` reaches a window, even if nothing then answers it.
 **Actual:** every routed question resolved `null` before reaching any window. `FGTSocket.ask` threw `USER_OFFLINE` and `askOwner` swallowed it.

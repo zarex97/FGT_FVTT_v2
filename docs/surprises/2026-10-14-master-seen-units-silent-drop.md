@@ -3,7 +3,8 @@ id: 2026-10-14-master-seen-units-silent-drop
 found: test
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** turning the test world's movement hooks on changes no outcome, because `onMove`'s sighting pass only writes records each Unit keeps.
 **Actual:** `riding-passenger.test.mjs` failed: `Actor(Master): write to "system.seenUnitIds" would be a Silent Drop — asked for ["karna"], Foundry kept undefined.`

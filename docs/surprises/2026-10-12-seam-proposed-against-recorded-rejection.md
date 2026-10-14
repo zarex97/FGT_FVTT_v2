@@ -3,7 +3,8 @@ id: 2026-10-12-seam-proposed-against-recorded-rejection
 found: retraction
 kind: proposal-against-recorded-decision
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** the architecture review's top candidate, a Combat Process store seam inside `module/engine/` with a Foundry adapter and a `world.mjs` adapter, was new ground.
 **Actual:** `test/helpers/world.mjs` already records the same kind of seam as considered and rejected: "Faking the globals costs no production code and makes all of them reachable." The report never cited it.

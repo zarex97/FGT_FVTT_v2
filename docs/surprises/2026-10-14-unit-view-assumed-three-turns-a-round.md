@@ -3,7 +3,8 @@ id: 2026-10-14-unit-view-assumed-three-turns-a-round
 found: test
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** a projected Unit counts a ◈ lock or sustainability in the world's own Round length, as the board does.
 **Actual:** in a world at eight Turns a Round, Mad Enhancement's 2◈ toggle lock read unlocked ten Turns after the toggle. 2◈ is sixteen Turns there; the Unit view counted six.
