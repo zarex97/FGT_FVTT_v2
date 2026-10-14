@@ -146,15 +146,20 @@ export async function landEffect(entry, ctx) {
   let { outcome, reason } = result;
   /** @type {object[]} */
   let intents = result.intents;
+  // The line the card prints beside the name: the die against its chance, and
+  // a Prevention Luck Check that was made. An applied effect shows this and no
+  // reason, so a failed check that cost a Luck would otherwise say nothing.
+  let line = result.chance ?? null;
 
   if (outcome === "applied") {
     const check = await offerPrevention(def, target, ctx, board);
     if (check?.prevented) {
       outcome = "prevented";
-      reason = `${check.line}: prevented`;
+      // The outcome says "prevented"; the reason says how.
+      reason = check.line;
       intents = [...check.spend, I.log({ kind: "effectPrevented", unitId: target.id, defId: def.id, tick })];
     } else if (check) {
-      reason = `${check.line}: failed`;
+      line = [line, `${check.line}: failed`].filter(Boolean).join("; ");
       intents = [...intents, ...check.spend];
     }
   }
@@ -175,11 +180,11 @@ export async function landEffect(entry, ctx) {
   return {
     outcome,
     reason,
-    chance: result.chance ?? null,
+    chance: line,
     intents,
     roll,
     trace: result.trace ?? [],
-    summary: { id: def.id, name: def.name, outcome, reason, chance: result.chance ?? null },
+    summary: { id: def.id, name: def.name, outcome, reason, chance: line },
   };
 }
 
