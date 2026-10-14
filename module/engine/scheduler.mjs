@@ -339,8 +339,7 @@ export function fireEvent(event, units, ctx) {
       // modifiers apply -- so its in-Turn handlers act too: Crit DmUp (Martial),
       // expiring at tick 4, scaled a crit at tick 4 and kept its use, because
       // this skipped the `damageDealt` handler that spends it (#195).
-      if (handler.expiry !== null && handler.expiry !== undefined
-        && handler.expiry <= (ctx.tick ?? 0) && isBoundaryEvent(event)) continue;
+      if (expiryReached(handler.expiry, ctx.tick ?? 0) && isBoundaryEvent(event)) continue;
 
       // ...and the mirror. *"At the end of this Unit's Turn EXCEPT the Turn
       // this Skill was activated"* -- Kingprotea's `NP DmUp (GAO)` decays one
@@ -1900,7 +1899,7 @@ function npRegenOf(unit, ability, held, ctx = {}) {
   // Turn Ends -- the one it was applied in and the three after -- so it took
   // 1⅓◈ off where the sheet gives 1◈ (#193 reading 7).
   const regen = (unit.effectInstances ?? []).some((e) => e.defId === "npCooldownRegen"
-    && !(e.expiry !== null && e.expiry !== undefined && e.expiry <= (ctx.tick ?? 0)))
+    && !expiryReached(e.expiry, ctx.tick ?? 0))
     || (!(unit.effectInstances ?? []).length && held.includes("npCooldownRegen"));
   return stacked + (regen ? 1 : 0);
 }
@@ -1952,7 +1951,7 @@ export function tickPeriodics(units, when, ctx) {
       if (spec.actedOnly && !u.acted) continue;
 
       // An effect does not tick on the turn it expires (Ch. 15).
-      if (e.expiry !== null && e.expiry !== undefined && e.expiry <= ctx.tick) continue;
+      if (expiryReached(e.expiry, ctx.tick)) continue;
 
       const amount = periodicDamageFor(e, u, ctx.effectDef);
       const converted = (u.effects ?? []).includes(spec.healConversion);

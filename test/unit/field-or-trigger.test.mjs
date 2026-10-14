@@ -12,13 +12,15 @@
 
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from "vitest";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
+import { worldDefaults } from "../helpers/world.mjs";
 import { fieldsOf, squareAround, prepareFields } from "../helpers/field.mjs";
 import { runFieldEvents } from "../../module/engine/fields.mjs";
 
 beforeAll(async () => { await prepareSubjects(); await prepareFields(); }, 120_000);
 // The Poison and Charm chances roll; the Health loss is what is counted.
-beforeEach(() => { globalThis.Roll = class { async evaluate() { return { total: 1 }; } }; });
-afterEach(() => { delete globalThis.Roll; });
+// Every chance lands: the world rolls Foundry's real dice, each face a 1.
+beforeEach(() => worldDefaults({ dice: { every: 1 } }));
+afterEach(() => worldDefaults());
 
 const PR = "paleRiderAct0001";
 const FOE = "foeMedeaActor001";

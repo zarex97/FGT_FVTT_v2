@@ -89,9 +89,39 @@ Three rules come with it, all from ADR-0006:
 
 - **A missing copy fails the run; it never skips.** A guard that quietly does not run is a Silent Drop of its own. Clone the copy beside this repository or set `FOUNDRY_PATH`. CI checks it out with the `FOUNDRY_SOURCE_TOKEN` secret.
 - **The copy must be the verified build.** `locateFoundry` compares the copy's `major.build` with `system.json`'s `compatibility.verified` before importing anything, since cleaning rules change between releases.
-- **Only `common/` is real.** The `client/` layer (DOM, PIXI, `@common` aliases) does not import in Node. The one client class `module/data` extends, `RegionBehaviorType`, is a bare `TypeDataModel` stand-in; the schemas built on it are still real. Client-side traps (the empty-diff skip before a write is sent, `_preCreate` edits that never reach the server) stay the job of lint and live probes.
+- **`common/` is real, and two corners of `client/`.** Most of the `client/` layer (DOM, PIXI) does not import in Node. Its dice (`client/dice/`) and its `Hooks` (`client/helpers/hooks.mjs`) do, once `@common/` resolves and the Roll grammar is compiled; `tools/lib/foundry-client-plugin.mjs` does both for vitest, and `tools/lib/foundry-client-hooks.mjs` as Node module hooks for a plain `node` run that builds the test world (`check:world`), both with the `peggy` this repository pins at the copy's version. The one client class `module/data` extends, `RegionBehaviorType`, is a bare `TypeDataModel` stand-in; the schemas built on it are still real. Client-side traps (the empty-diff skip before a write is sent, `_preCreate` edits that never reach the server) stay the job of lint and live probes.
 
 Foundry v14 needs Node 24 (its own `engines`), so CI and `package.json` say so.
+
+### The arena: chat, dice and questions
+
+Twenty-five of the sixty-seven Surprises found on a live press lived inside a Combat Process or a Skill use, and no test could run one: a Process keeps its state in a chat message between rungs, rolls Foundry's dice, and stops to ask people things. `test/helpers/world.mjs` now models all three, by faking Foundry's surroundings rather than adding a seam inside the engine (the reason is in the file's header):
+
+- **Chat.** `ChatMessage.create` builds a real `BaseChatMessage`; `setFlag`/`getFlag`/`unsetFlag` go through the loud prune like every other write, and `game.messages` is a collection. `renderTemplate` records the template and its data in `w.cards` instead of drawing.
+- **Dice.** `Roll` is Foundry's own class. Each face comes from `w.dice`: set by the test (`w.dice.set("d100", 95)`, or `w.dice.every(1)` for a file whose premise is that every chance lands), otherwise from a seeded twister, so an unset die is the same on every run. Every roll is logged in `w.rolls`. A set die never rolled is a failure.
+- **People.** The GM (`u1`, this client) and Player1 (`p1`). A question routed to Player1 crosses `game.socket` and is answered on "their" client; every window is logged in `w.asked` with who saw it, and answered from `w.answer({title, by, pick})`. A question the script did not expect, or one shown to the wrong person, fails the test when the world closes.
+
+`test/helpers/process.mjs#playAttack` plays an attack as the table does: it declares it, then presses each card's buttons from the test's script (`react: {defenderId: ["nothing", "declined"]}`), every Process of a fan-out at once. `test/unit/arena-attack.test.mjs` is the smallest whole attack. `check:world` holds the new pieces to the live world too: a chat flag round-trip, a Roll's parse, and `updateActor` firing for a changed write and not for a no-op. A documented divergence passes only when the model failed for its documented reason. Two proofs replay bugs only a live press had found: `weak-point-asked-on-owner.test.mjs` (#199: the Heel question opened on the GM's screen; it fails with `offerWeakPoint` put back to `ChoiceDialog.pick`), and `kiritsugu-pre-shot-spell.test.mjs`, which the arena found on its first run — the question had no `kind`, so no client could draw it.
+
+A test that stubs `globalThis.Roll` and then rolls inside a world is told so: the world rolls Foundry's dice, and a stub's "every chance lands on 1" would otherwise pass on the seed's luck.
+
+### Document hooks in the test world
+
+Five live-only Surprises lived in code a hook runs, and the test world's `Hooks.on` did nothing. Each world now installs a fresh copy of Foundry's own `Hooks` (`client/helpers/hooks.mjs`), fires the hooks Foundry's client backend fires on each write, and binds the engine's listener list (`module/engine/listeners.mjs`) — always on, the same list as the game:
+
+- **When a hook fires.** Only for a write that landed and changed something: `changes` is the diff with the document's `_id`, the options are Foundry's defaults with the caller's own, and the parent is re-prepared first. A refused write and a no-op write fire nothing. Seeds fire nothing, as loading a world fires nothing.
+- **Movement.** A token write that changes `x`, `y` or `elevation` is a movement: `preMoveToken` (a `false` keeps the token where it was), then `updateToken`, then `moveToken` with the path passed.
+- **Waiting.** Foundry never awaits a listener. The world keeps each listener's promise and `w.settle()` waits until the world goes quiet — no tracked promise and no new write or hook for two turns of the event loop — which also outwaits work a listener starts and does not return. Every world settles before it closes.
+- **Failures.** A listener that throws or rejects fails the test. Foundry would log it and carry on.
+- **Opting out.** `skipListeners: ["movement"]` leaves an entry unbound, for a test about the hook itself. A test that skips one says why.
+
+`test/unit/arena-hooks.test.mjs` holds the model to Foundry's order and arguments. `tenmokaikai-cooldown.test.mjs` replays #195: Tenmōkaikai switched off must start its 22-Turn cooldown, and it fails with `onModeEnded`'s `updateItem` listener removed. Turning the movement hooks on found a live Silent Drop on their first suite run: every move wrote `system.seenUnitIds` to each Master, whose schema does not keep it.
+
+A whole Turn or Round boundary plays in the arena too: `w.combat.passTurn({to, newRound})` fires `combatRound` before the Round is written, then the write and `combatTurnChange`, as Foundry's `nextRound` does, and the system's scheduler runs the boundary from those hooks (`round-end-boundary.test.mjs`). A spec gives the Combat its factions (`factions: ["red", "blue"]`) and the scene its Regions (`regions: [{id, panels, behaviors}]`).
+
+### The clock guard
+
+`test/unit/clock-reads.test.mjs` counts the lines in `module/` that read the match's clock directly — its Round, `globalTurn`, `currentTick()`, `currentRound()` — outside `engine/board.mjs`, where `currentMoment()` is the one live reader. The count is pinned and may only go down: a new reader takes the Moment its caller names, and a change that removes reads lowers the pin to what the test reports. It also keeps "has this expired?" in one function, `domain/tick.mjs#expiryReached`. Ch. 04 has the reason.
 
 ### The survival test
 

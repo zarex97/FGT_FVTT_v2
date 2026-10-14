@@ -30,8 +30,15 @@
  *   npm run check:world
  */
 
+import { join } from "node:path";
 import { evaluate } from "./lib/cdp.mjs";
+import { locateFoundry } from "./lib/foundry.mjs";
+import { registerFoundryClientHooks } from "./lib/foundry-client-hooks.mjs";
 import { withWorld } from "../test/helpers/world.mjs";
+
+// The model rolls Foundry's real dice, which need the `@common/` alias and the
+// compiled Roll grammar; vitest's plugin does both there, these hooks here.
+registerFoundryClientHooks(join(locateFoundry().path, "app"));
 
 /**
  * Probes.
@@ -65,7 +72,7 @@ const PROBES = [
     // value that landed is not the value written.
     agree: false,
     expectLive: (v) => v.after === 0,
-    expectFake: (v) => v.threw === true,
+    expectFake: (v) => v.threw === true && /Silent Drop|refused/.test(v.message ?? ""),
     divergence: "Foundry clamps silently; the model throws",
   },
   {
@@ -79,7 +86,7 @@ const PROBES = [
     `,
     agree: false,
     expectLive: (v) => v.after === true && v.type === "boolean",
-    expectFake: (v) => v.threw === true,
+    expectFake: (v) => v.threw === true && /Silent Drop|refused/.test(v.message ?? ""),
     divergence: "Foundry coerces 1 to true silently; the model throws",
   },
   {
@@ -110,7 +117,7 @@ const PROBES = [
     // nothing. The model now runs Foundry's own SetField, and throws.
     agree: false,
     expectLive: (v) => v.kept === 0,
-    expectFake: (v) => v.threw === true,
+    expectFake: (v) => v.threw === true && /Silent Drop|refused/.test(v.message ?? ""),
     divergence: "Foundry voids the write silently; the model throws",
   },
   {
@@ -127,15 +134,51 @@ const PROBES = [
         await a.update({ "system.__conformanceProbe": 42 });
         return { threw: false, readBack: a.system.__conformanceProbe ?? null };
       } catch (err) {
-        return { threw: true, message: String(err.message).slice(0, 60) };
+        return { threw: true, message: String(err.message).slice(0, 160) };
       }
     `,
     // Foundry discards it and says nothing; the model throws. Deliberate, and
     // the reason the model is worth having — see its header's loud prune.
     agree: false,
     expectLive: (v) => v.threw === false && v.readBack === null,
-    expectFake: (v) => v.threw === true,
+    expectFake: (v) => v.threw === true && /Silent Drop|refused/.test(v.message ?? ""),
     divergence: "Foundry discards silently; the model throws so a test can see it",
+  },
+  {
+    name: "a chat message's flag goes through the schema and back",
+    body: `
+      const m = await ChatMessage.create({ content: "FGT check:world probe", whisper: [game.user.id] });
+      await m.setFlag("fgt", "probe", JSON.stringify({ state: "react" }));
+      const read = m.getFlag("fgt", "probe");
+      await m.unsetFlag("fgt", "probe");
+      const after = m.getFlag("fgt", "probe") ?? null;
+      await m.delete();
+      return { read, after };
+    `,
+    agree: true,
+  },
+  {
+    name: "a Roll parses and rolls as Foundry's own",
+    body: `
+      const r = await new Roll("2d6+3").evaluate();
+      return { formula: r.formula, dice: r.dice.length, faces: r.dice[0].faces,
+        results: r.dice[0].results.length, inRange: r.total >= 5 && r.total <= 15 };
+    `,
+    agree: true,
+  },
+  {
+    name: "updateActor fires for a write that changed something, and not for one that did not",
+    body: `
+      const heard = [];
+      const id = Hooks.on("updateActor", (doc, changes) => { if (doc.id === a.id) heard.push(Object.keys(changes).sort()); });
+      const before = a.system.mov;
+      await a.update({ "system.mov": before });
+      await a.update({ "system.mov": before + 1 });
+      await a.update({ "system.mov": before });
+      Hooks.off("updateActor", id);
+      return { heard };
+    `,
+    agree: true,
   },
 ];
 
@@ -231,7 +274,7 @@ for (const probe of PROBES) {
   try {
     fake = await runFake(probe.body);
   } catch (err) {
-    fake = { threw: true, message: String(err.message).slice(0, 60) };
+    fake = { threw: true, message: String(err.message).slice(0, 160) };
   }
 
   const ok = probe.agree

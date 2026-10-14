@@ -182,6 +182,17 @@ export function canUseAbility({
 }) {
   const cost = npCost({ ability, unit, master });
 
+  // A defeated Unit is a body: it is passed through, it projects no reaction
+  // (`rules/reactions.mjs`), and it does nothing of its own. Its body stays on
+  // the board a Tick before it is cleared, and in that Tick a masterless
+  // Serenity, her Sustainability spent, declared a Normal Attack that resolved,
+  // and with her token gone cast Presence Concealment. Neither path asked.
+  // FIRST: every other refusal invites a fix -- wait, move, begin the match --
+  // and there is nothing a defeated Unit can wait for.
+  if (unit?.defeated) {
+    return { ok: false, reason: "defeated", detail: {}, cost };
+  }
+
   // No match, no clock -- and therefore no use. Every duration and every
   // cooldown in this game is measured against the match's tick, and the tick
   // only moves inside a started Combat: `engine/scheduler-hooks.mjs` bails on

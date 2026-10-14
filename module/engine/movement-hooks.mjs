@@ -15,6 +15,7 @@
  * authoritative check lives here (Ch. 05).
  */
 
+import { moment } from "../domain/moment.mjs";
 import {
   gateMovement, pursuitVerdict, decoyVerdict, hatredVerdict,
 } from "../rules/movement.mjs";
@@ -786,7 +787,7 @@ function panelsMoved(movement) {
  * @returns {object}
  */
 function boardSnapshot(combat) {
-  return currentBoard({ round: combat?.round ?? 1, tick: combat?.system?.globalTurn ?? 0 });
+  return currentBoard({ moment: moment(combat?.round ?? 1, combat?.system?.globalTurn ?? 0) });
 }
 
 /*

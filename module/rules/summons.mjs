@@ -22,6 +22,8 @@
  * fail to fire, and an expiry cannot."*
  */
 
+import { expiryReached } from "../domain/tick.mjs";
+
 /**
  * Which summons have outstayed their welcome.
  *
@@ -41,6 +43,6 @@ export function expiredSummonIds(board, tick) {
   return (board?.units ?? [])
     .filter((u) => u.kind === "summon")
     .filter((u) => typeof u.expiresAt === "number")
-    .filter((u) => u.expiresAt <= tick)
+    .filter((u) => expiryReached(u.expiresAt, tick))
     .map((u) => u.id);
 }

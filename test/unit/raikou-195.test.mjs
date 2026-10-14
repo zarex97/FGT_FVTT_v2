@@ -126,15 +126,9 @@ describe("Tenmōkaikai's limit is a moment, not a state (#195)", () => {
   });
 });
 
-describe("a mode's end starts its countFrom-deactivation cooldown (#195)", () => {
-  it("is written where every end of a mode passes", () => {
-    const src = readFileSync(new URL("../../module/engine/scheduler-hooks.mjs", import.meta.url), "utf8");
-    const fn = src.slice(src.indexOf("async function onModeEnded("), src.indexOf("async function onTurnChange("));
-    expect(fn).toMatch(/cd\?\.countFrom === "deactivation"/);
-    expect(fn).toMatch(/I\.cooldown\(owner\.id, item\.id, ticks, "set"\)/);
-    expect(src).toMatch(/Hooks\.on\("updateItem", onModeEnded\)/);
-  });
-});
+// A mode's end starting its countFrom-deactivation cooldown is played, not
+// read: `tenmokaikai-cooldown.test.mjs` switches the mode off in the test world,
+// whose hooks now fire, and watches the cooldown land.
 
 describe("Tenmōkaikai's upkeep: her own Turn, and any Turn she or a copy Acts (#195)", () => {
   const handler = {
@@ -244,6 +238,6 @@ describe("a Counter is its own fan-out, not its parent's (#195)", () => {
 describe("what a deferred handler did at the Turn's end is said too (#195)", () => {
   it("posts the Turn-end card for the deferred intents", () => {
     const src = readFileSync(new URL("../../module/engine/scheduler-hooks.mjs", import.meta.url), "utf8");
-    expect(src).toMatch(/const owed = scheduler\.runDeferred\(due, board, ctx\);\s*await run\(owed, "scheduler:deferred"\);[\s\S]{0,200}await postTurnEndReport\(owed\);/);
+    expect(src).toMatch(/const owed = scheduler\.runDeferred\(due, board, ctx\);\s*await run\(owed, "scheduler:deferred", ended\);[\s\S]{0,200}await postTurnEndReport\(owed\);/);
   });
 });

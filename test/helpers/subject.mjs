@@ -86,6 +86,7 @@ function withoutKeys(value) {
  */
 export async function withSubjects(specs, fn, {
   round = null, tick = null, settings = {}, tokens = false, combat = undefined, worldSettings = undefined,
+  regions = undefined,
 } = {}) {
   await installSystem();
   const { library, docs, effects } = await corpus();
@@ -107,6 +108,8 @@ export async function withSubjects(specs, fn, {
       type: source.type,
       system: { ...source.system, ...(spec.state ?? {}) },
       items: source.items.map((i) => ({ id: i._id, name: i.name, type: i.type, system: i.system })),
+      // Who plays it: `"p1"` for the world's Player1. Unowned, the GM is asked.
+      ...(spec.owner ? { owner: spec.owner } : {}),
     };
   }));
 
@@ -117,7 +120,7 @@ export async function withSubjects(specs, fn, {
       : []))
     : [];
 
-  return withWorld({ actors, tokens: placed, combat, settings: worldSettings }, async (world) => {
+  return withWorld({ actors, tokens: placed, combat, settings: worldSettings, regions }, async (world) => {
     for (const [n, spec] of specs.entries()) {
       if (!spec.effects?.length) continue;
       await world.actor(actors[n].id).createEmbeddedDocuments("ActiveEffect", spec.effects.map((system) => ({

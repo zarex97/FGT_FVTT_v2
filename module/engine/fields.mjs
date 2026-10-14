@@ -27,7 +27,7 @@ import {
   panelsOf, isExempt, legalRepaint, mayReshape, selectBranch, extensionFor, randomFreePanelIn,
   vulnerabilityTriggered, unitIdsOfTurn, castLevel, pushOutPlan, duelDecided,
 } from "../rules/bounded-fields.mjs";
-import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { parseTick, resolveTicks, expiryReached } from "../domain/tick.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { evade, checkPlan, chance } from "../rules/checks.mjs";
 import { applyWorldIntents } from "./applier.mjs";
@@ -920,7 +920,7 @@ export async function expireFields(tick) {
     // extended"*, and Chaos Labyrinthos burning Asterios's own Health to keep
     // the trap shut. Offered only when the CLOCK is what is closing it: a
     // field ended by its owner's defeat is not for sale.
-    const expired = field.expiry !== null && field.expiry !== undefined && field.expiry <= tick;
+    const expired = expiryReached(field.expiry, tick);
     if (expired && field.extension && await offerExtension(field, tick)) continue;
 
     if (await endField(field.id, closeReason(field, tick) ?? "ended")) {
@@ -1047,13 +1047,13 @@ function shouldClose(field, tick) {
  * @returns {"expired"|"forcedEnd"|"duelDecided"|"ownerDefeat"|null}
  */
 function closeReason(field, tick) {
-  if (field.expiry !== null && field.expiry !== undefined && field.expiry <= tick) return "expired";
+  if (expiryReached(field.expiry, tick)) return "expired";
 
   // A forced end that was SCHEDULED rather than immediate -- the Master's
   // defeat, two ticks ago. An absolute tick, stamped once by `stampForcedEnds`,
   // for the same reason every duration in this system is one.
   const forced = field.state?.forcedEnd ?? null;
-  if (forced !== null && forced !== undefined && forced <= tick) return "forcedEnd";
+  if (expiryReached(forced, tick)) return "forcedEnd";
 
   // Axis 6. "Owner defeat ends it" is the only vulnerability in the reference
   // set that resolves without a roll, and both authored fields carry it.

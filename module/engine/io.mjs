@@ -1362,8 +1362,10 @@ export function worldIO() {
 
     /**
      * @param {object[]} entries
+     * @param {{moment?: import("../domain/moment.mjs").Moment|null}} [at] the Moment
+     *   to file them at, when it is not the live one
      */
-    async log(entries) {
+    async log(entries, { moment = null } = {}) {
       const combat = game.combat;
       if (!combat) return;
 
@@ -1379,7 +1381,7 @@ export function worldIO() {
       for (const e of entries) {
         const classified = classifyLogEntry(e);
         if (!classified) continue;
-        await record(classified, combat);
+        await record(classified, combat, moment);
       }
 
       // A revival, said out loud. It was logged and nothing else: Divine
