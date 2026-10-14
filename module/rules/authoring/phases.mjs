@@ -30,6 +30,36 @@
  */
 
 import { describeTable } from "./contract.mjs";
+import { ENTRY_KEYS } from "../effect-flow.mjs";
+
+/** The editor control for each kind of Effect Entry key. */
+const ENTRY_CONTROL = Object.freeze({
+  effect: "effectId",
+  // A number or an `@` expression, so free text: a number input refuses
+  // Mannanán's `@self...` and saves nothing.
+  expression: "text",
+  number: "number",
+  duration: "tickExpr",
+  boolean: "checkbox",
+  select: "select",
+  json: "raw",
+});
+
+/**
+ * One editor field per key an Effect Entry may author, from the same list
+ * Landing reads (`rules/effect-flow.mjs#ENTRY_KEYS`). The form offered six
+ * keys and the door reads twenty-two; drawn from one list, the two cannot
+ * drift (`test/unit/landing-one-door.test.mjs`).
+ *
+ * `ignoresResistanceFrom` is a list of source slugs, so a `tokenList`: as
+ * `text` it saved a string, which Landing spread a character at a time.
+ */
+export const ENTRY_FIELDS = Object.freeze(Object.entries(ENTRY_KEYS).map(([key, spec]) => Object.freeze({
+  key,
+  type: key === "ignoresResistanceFrom" ? "tokenList" : ENTRY_CONTROL[spec.type],
+  ...(spec.choices ? { choices: spec.choices } : {}),
+  hint: spec.means,
+})));
 
 /** On every phase: who it lands on, and the gate that decides whether it runs. */
 const COMMON = Object.freeze([
@@ -63,28 +93,13 @@ const entry = (id, order, english, fields = []) => ({
 
 export const PHASE_DESCRIPTORS = describeTable([
   entry("applyEffects", 100, "Puts effects onto whoever this ability caught — the commonest phase by far.", [
-    {
-      key: "effects",
-      type: "objectList",
-      of: [
-        { key: "id", type: "effectId" },
-        { key: "duration", type: "tickExpr" },
-        { key: "magnitude", type: "number" },
-        { key: "uses", type: "number" },
-        // A chance stated PER PANEL of separation rather than as a flat figure.
-        // Anastasia's Ice Block Launcher is the only clause of the shape:
-        // *"a 5% chance ... for each panel between Anastasia and the DU."*
-        { key: "chancePerPanel", type: "number" },
-        // A resistance this one effect ignores: Kiritsugu's Mark, past Debuff
-        // Res Up.
-        { key: "ignoresResistanceFrom", type: "text" },
-      ],
-    },
+    // Each entry gets a row of its own in the editor, one field per key.
+    { key: "effects", type: "objectList", of: ENTRY_FIELDS },
     { key: "rules", type: "raw" },
     { key: "targeting", type: "raw" },
     // A resistance every effect of the phase ignores, by its source's slug.
     // Zabaniya: *"not affected by Magic Resistance"* (#199 reading 11).
-    { key: "ignoresResistanceFrom", type: "text" },
+    { key: "ignoresResistanceFrom", type: "tokenList" },
   ]),
   entry("damage", 90, "Deals damage to whoever this ability caught.", []),
   entry("cooldown", 80, "Changes a cooldown clock — its own, or somebody else's.", [

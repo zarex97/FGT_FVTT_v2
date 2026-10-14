@@ -1949,7 +1949,7 @@ export const EXECUTORS = Object.freeze({
    * `"outgoing"` improves what this unit inflicts. `valence` narrows it to
    * offensive or defensive effects, which is what "Off.Debuff ResUp" means.
    */
-  ApplicationChance(el, { rank, source, ability, out, ctx }) {
+  ApplicationChance(el, { rank, source, ability, out, ctx, deferred }) {
     out.applicationChances.push({
       direction: el.direction ?? "incoming",
       // WHICH polarity this contribution is about. Absent means "debuffs",
@@ -1972,7 +1972,10 @@ export const EXECUTORS = Object.freeze({
       // has to survive collection and be tested when the effect is applied.
       // `predicate` is consumed at collection time by `collectContributions`;
       // this is the deferred one, same convention as `Compulsion`.
-      predicate: el.attackPredicate ?? null,
+      // ...and an ordinary `predicate` that names the attack, which collection
+      // deferred (`deferredPredicate`) and this executor dropped: Soaked's
+      // `attack:element:ice` raised Freeze's chance under every attack (Wave B).
+      predicate: el.attackPredicate ?? deferred ?? null,
       value: scalar(resolveValue(el, rank, ctx)),
       source,
       // The STABLE identifier of the skill this resistance came from, beside

@@ -30,7 +30,7 @@ import { parseTick, resolveTicks } from "../../domain/tick.mjs";
 import {
   railRows, elementRows, requirementRows, timingRow, selectionRow, formRows,
 } from "./present.mjs";
-import { PHASE_DESCRIPTORS, phasesByUsage } from "../../rules/authoring/phases.mjs";
+import { PHASE_DESCRIPTORS, phasesByUsage, ENTRY_FIELDS } from "../../rules/authoring/phases.mjs";
 import { sheetFor } from "../sheet-choice.mjs";
 import { coerceFieldValue } from "../../rules/authoring/fields.mjs";
 import { builderRows, patchRows } from "./predicate-builder.mjs";
@@ -84,6 +84,8 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ItemSheetV2) {
     form: { handler: AbilityEditor.#onChange, submitOnChange: true, closeOnSubmit: false },
     actions: {
       addPhase: AbilityEditor.#onAddPhase,
+      addEffect: AbilityEditor.#onAddEffect,
+      removeEffect: AbilityEditor.#onRemoveEffect,
       removePhase: AbilityEditor.#onRemovePhase,
       movePhase: AbilityEditor.#onMovePhase,
       pickAnchor: AbilityEditor.#onPickAnchor,
@@ -370,7 +372,23 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ItemSheetV2) {
       // The old `PHASE_FIELDS` typed four kinds that appear in ZERO authored
       // abilities and left nine that content does use -- `createField` (8),
       // `zone` (4) -- to the raw pane.
-      fields: descriptor ? formRows(descriptor, phase, `phase.${index}`) : [],
+      // An `objectList` is drawn as rows of its own below, never as one text
+      // box: the box printed "[object Object]" and saved that string over the
+      // phase's whole `effects` list on the next keystroke.
+      fields: descriptor
+        ? formRows({ fields: descriptor.fields.filter((f) => f.type !== "objectList") }, phase, `phase.${index}`)
+        : [],
+
+      // One row per Effect Entry, one field per key Landing reads
+      // (`ENTRY_FIELDS`, from `rules/effect-flow.mjs#ENTRY_KEYS`). A wrapped
+      // entry shows its inner effect's keys, which win, as they do in Landing.
+      effects: (phase.kind === "applyEffects" || phase.kind === "applyEffect") && !phase.rules
+        ? (phase.effects ?? []).map((raw, e) => ({
+          index: e,
+          fields: formRows({ fields: ENTRY_FIELDS }, { ...raw, ...(raw?.effect ?? {}) }, `phase.${index}.effect.${e}`),
+        }))
+        : [],
+      hasEffects: phase.kind === "applyEffects" || phase.kind === "applyEffect",
 
       // `applyEffects` carries rule elements, and the effect id is the field
       // that decides whether the phase does anything at all.
@@ -838,6 +856,27 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ItemSheetV2) {
       const phase = phases[index];
       if (!phase || rest.length === 0 || rest[0] === "raw") continue;
 
+      if (rest[0] === "effect") {
+        const [, entryIndex, ...keyParts] = rest;
+        const effects = [...(phase.effects ?? [])];
+        const held = effects[Number(entryIndex)];
+        const key = keyParts.join(".");
+        const field = ENTRY_FIELDS.find((f) => f.key === key);
+        if (!held || !field) continue;
+        // A wrapped entry keeps its shape: the key is written where it is read.
+        const into = held.effect && typeof held.effect === "object" ? { ...held.effect } : { ...held };
+        const next = entryValue(field.type, value);
+        if (next === undefined) {
+          if (!Object.hasOwn(into, key)) continue;
+          delete into[key];
+        } else {
+          into[key] = next;
+        }
+        effects[Number(entryIndex)] = held.effect && typeof held.effect === "object" ? { ...held, effect: into } : into;
+        phases[index] = { ...phase, effects };
+        continue;
+      }
+
       if (rest[0] === "rule") {
         const [, ruleIndex, field] = rest;
         const rules = [...(phase.rules ?? [])];
@@ -861,10 +900,48 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ItemSheetV2) {
       const blank = String(value).trim() === "";
       if (blank && !Object.hasOwn(phase, rest[0])) continue;
 
-      phases[index] = { ...phase, [rest[0]]: numberOrRaw(value) };
+      // A list is an ARRAY in every authored phase; a text box gives a string.
+      const type = PHASE_DESCRIPTORS[phase.kind]?.fields?.find((f) => f.key === rest[0])?.type;
+      phases[index] = {
+        ...phase,
+        [rest[0]]: type === "tokenList" || type === "predicateList" ? coerceFieldValue(type, value) : numberOrRaw(value),
+      };
     }
 
     this.#draft.phases = phases;
+  }
+
+  /**
+   * Add an Effect Entry to an `applyEffects` phase.
+   *
+   * @this {AbilityEditor}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static #onAddEffect(_event, target) {
+    const index = Number(target.closest("[data-index]")?.dataset.index);
+    const phases = [...(this.#draft.phases ?? [])];
+    if (!phases[index]) return;
+    phases[index] = { ...phases[index], effects: [...(phases[index].effects ?? []), { id: "" }] };
+    this.#draft.phases = phases;
+    this.render();
+  }
+
+  /**
+   * Remove one Effect Entry from its phase.
+   *
+   * @this {AbilityEditor}
+   * @param {PointerEvent} _event
+   * @param {HTMLElement} target
+   */
+  static #onRemoveEffect(_event, target) {
+    const index = Number(target.closest("[data-index]")?.dataset.index);
+    const entry = Number(target.dataset.entry);
+    const phases = [...(this.#draft.phases ?? [])];
+    if (!phases[index]) return;
+    phases[index] = { ...phases[index], effects: (phases[index].effects ?? []).filter((_, k) => k !== entry) };
+    this.#draft.phases = phases;
+    this.render();
   }
 
   /** @this {AbilityEditor} */
@@ -1012,6 +1089,30 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ItemSheetV2) {
  * @param {string} value
  * @returns {string|number}
  */
+/**
+ * What one Effect Entry field's control stores, or `undefined` for "no key".
+ *
+ * A blank is no key at all, so an entry never gains `chance: ""` from a form
+ * submitted for some other field. An unticked box is no key too: every boolean
+ * an entry carries means something only when true.
+ *
+ * @param {string} type the field's `FIELD_TYPES` member
+ * @param {unknown} value what the form gave
+ * @returns {unknown}
+ */
+export function entryValue(type, value) {
+  if (type === "checkbox") return value === true || value === "true" || value === "on" ? true : undefined;
+  if (Array.isArray(value)) return value.length ? value : undefined;
+  const text = String(value ?? "").trim();
+  if (text === "") return undefined;
+  if (type === "tokenList" || type === "predicateList") return coerceFieldValue(type, text);
+  if (type === "raw") {
+    try { return JSON.parse(text); } catch { return text; }
+  }
+  if (type === "number" || type === "text") return numberOrRaw(text);
+  return text;
+}
+
 function numberOrRaw(value) {
   const text = String(value).trim();
   if (text === "" || Number.isNaN(Number(text))) return value;
