@@ -117,3 +117,33 @@ describe("content writes only keys an entry has", () => {
     expect(strays).toEqual([]);
   });
 });
+
+describe("the editor offers what the door reads", () => {
+  it("draws an applyEffects entry's fields from ENTRY_KEYS", async () => {
+    const { PHASE_DESCRIPTORS } = await import("../../module/rules/authoring/phases.mjs");
+    const effects = PHASE_DESCRIPTORS.applyEffects.fields.find((f) => f.key === "effects");
+    expect(effects.of.map((f) => f.key)).toEqual(Object.keys(ENTRY_KEYS));
+    // Every control is one the editor can draw.
+    const { FIELD_TYPES } = await import("../../module/rules/authoring/fields.mjs");
+    expect(effects.of.filter((f) => !FIELD_TYPES.includes(f.type))).toEqual([]);
+  });
+
+  it("stores what each control gives as the entry's own value", async () => {
+    // `editor.mjs` imports Foundry's application classes, so the pure
+    // conversion is read out of its source and run here.
+    const source = readFileSync("module/apps/ability-editor/editor.mjs", "utf8").replace(/\r\n/g, "\n");
+    const start = source.indexOf("export function entryValue(");
+    const end = source.indexOf("\n}\n", source.indexOf("function numberOrRaw(")) + 2;
+    const { coerceFieldValue } = await import("../../module/rules/authoring/fields.mjs");
+    const entryValue = new Function("coerceFieldValue",
+      `${source.slice(start, end).replace("export function", "function")}; return entryValue;`)(coerceFieldValue);
+    expect(entryValue("number", "50")).toBe(50);
+    expect(entryValue("text", "@self.tokens")).toBe("@self.tokens");
+    expect(entryValue("text", "30")).toBe(30);
+    expect(entryValue("checkbox", true)).toBe(true);
+    expect(entryValue("checkbox", false)).toBeUndefined();
+    expect(entryValue("tokenList", "magicResistance, itemConstruction")).toEqual(["magicResistance", "itemConstruction"]);
+    expect(entryValue("raw", "[{\"chance\": 100}]")).toEqual([{ chance: 100 }]);
+    expect(entryValue("tickExpr", "")).toBeUndefined();
+  });
+});

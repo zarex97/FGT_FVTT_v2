@@ -1088,6 +1088,7 @@
   "FGT.Editor.IsMode": "A mode: switched on and left on",
   "FGT.Editor.IsAttackSkill": "Counts as an Attack Skill",
   "FGT.Editor.Magnitude": "Magnitude",
+  "FGT.Editor.AddEffect": "Add an effect",
   "FGT.Editor.RawPhase": "Raw JSON — everything this form does not show",
   "FGT.Editor.RawPhaseOnly": "Unrecognised phase kind — edit it as JSON",
   "FGT.Editor.BadPhaseJSON": "Phase {index}: the JSON does not parse, so the edit was not applied.",
