@@ -106,6 +106,11 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     Hooks.on("controlToken", refresh);
     Hooks.on("updateActor", refresh);
     Hooks.on("updateItem", refresh);
+    // An ability gained or lost while the token stays selected: a Wisdom of
+    // Dún Scáith re-pick replaced both copies and the bar kept showing the old
+    // ones, cooldown and all, until the token was reselected (#204).
+    Hooks.on("createItem", refresh);
+    Hooks.on("deleteItem", refresh);
     Hooks.on("createActiveEffect", refresh);
     Hooks.on("deleteActiveEffect", refresh);
     Hooks.on("updateCombat", refresh);

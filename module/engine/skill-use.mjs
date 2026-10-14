@@ -84,6 +84,9 @@ export async function useSkill({
   const actor = game.actors.get(actorId);
   const ability = actor?.items?.get(abilityId);
   if (!actor || !ability) return { ok: false, reason: "notFound" };
+  // An ability whose use is a setup dialog is never USED: it spent a Servant
+  // action and posted "No effect" when the action bar sent it here (#204).
+  if (ability.system?.opensDialog) return { ok: false, reason: "opensDialog" };
 
   const board = currentBoard();
   const self = unitFrom(board, actor);
@@ -552,7 +555,12 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           );
           break;
 
-        case "resource":
+        case "resource": {
+          // On the card, with the real numbers (#204 LK, ruled 2026-10-14): Ár
+          // restored 4 Agility under a card that read "Atk Up" alone, and a
+          // restore the maximum clamped could not be seen at all.
+          const keys = (phase.changes ?? []).map((c) => c.key);
+          const before = keys.map((k) => resourceValue(game.actors.get(target.unitId), k));
           await applyWorldIntents(
             (phase.changes ?? []).map((c) => {
               // An ABSOLUTE write, for a clause that names the resulting number
@@ -578,7 +586,12 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
             }),
             `skill:${ability.id}:resource`,
           );
+          keys.forEach((k, n) => {
+            const line = resourceLine(k, before[n], resourceValue(game.actors.get(target.unitId), k));
+            if (line) applied.push({ unitId: target.unitId, summary: { id: "resource", name: line, outcome: "applied", reason: null } });
+          });
           break;
+        }
 
         case "cooldown": {
           const changes = phase.choose
@@ -1223,7 +1236,7 @@ function resolveSource(contentId) {
  * @param {object[]} targets
  * @param {object[]} applied
  */
-async function postCard(actor, ability, targets, applied) {
+export async function postCard(actor, ability, targets, applied) {
   // A chat message is ONE document every client reads identically, so it
   // shows the PUBLIC identity -- the class image and the class name while a
   // Servant is concealed. Using a Skill used to announce a concealed
@@ -1312,6 +1325,42 @@ export function checkLine(label, kind, outcome) {
 export function cooldownLine(name, before, after) {
   if (!name || !Number.isFinite(before) || !Number.isFinite(after) || before === after) return null;
   return `${name}: Cooldown ${before} → ${after}`;
+}
+
+/**
+ * A resource's current number on an actor: `agility.value`, `resources.prs.value`,
+ * or the bare name of a resource pool (`aria`, `fragarachTokens`).
+ *
+ * @param {object|null} doc
+ * @param {string} key
+ * @returns {number|null}
+ */
+export function resourceValue(doc, key) {
+  const sys = doc?.system ?? {};
+  let v = foundry.utils.getProperty(sys, key);
+  if (v && typeof v === "object") v = v.value;
+  if (v === undefined) v = sys.resources?.[key]?.value;
+  return Number.isFinite(v) ? v : null;
+}
+
+/**
+ * A resource change as a skill card prints it: `Agility 12 → 16`. The real
+ * numbers rather than the authored delta, so a restore the maximum clamped
+ * says so. Nothing when nothing moved or a number is unknown.
+ *
+ * @param {string} key
+ * @param {number|null} before
+ * @param {number|null} after
+ * @returns {string|null}
+ */
+export function resourceLine(key, before, after) {
+  if (!Number.isFinite(before) || !Number.isFinite(after)) return null;
+  const word = String(key).replace(/^resources\./, "").replace(/\.value$/, "");
+  // An acronym stays one: Scáthach's `prs` is "PRS".
+  const label = word.length <= 3
+    ? word.toUpperCase()
+    : word.charAt(0).toUpperCase() + word.slice(1).replace(/([a-z])([A-Z])/g, "$1 $2");
+  return before === after ? `${label} ${after} (no change)` : `${label} ${before} → ${after}`;
 }
 
 /**

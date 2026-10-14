@@ -580,8 +580,20 @@ function preventionActionFor(ability) {
   // Damage Spells and EMIYA's Thaumaturgy carry, so Silence stopped Aero and
   // let the other five through (#193). High-Speed Divine Words already finds
   // "all of Medea's Spells" by the category.
-  if (ability?.isSpell || ability?.category === "spell") return "spell";
+  if (isSpellAbility(ability)) return "spell";
   return "skill";
+}
+
+/**
+ * Is this ability a Spell? `isSpell`, or the `spell` category: Medea's Argos,
+ * Keraino, Trofa, Atlas and Dragon Tooth Warriors carry only the category
+ * (#193). One reader, for Silence and for what a copy may take (#204).
+ *
+ * @param {object} ability an ability spec or a board snapshot's ability
+ * @returns {boolean}
+ */
+export function isSpellAbility(ability) {
+  return Boolean(ability?.isSpell) || ability?.category === "spell";
 }
 
 /**

@@ -73,6 +73,10 @@ const SELF_REQUIREMENTS = new Set([
   "stance", "modeActive", "modeInactive", "notHasEffect", "hasSkill",
   "healthAbove", "healthBelow", "resourceAtLeast", "itemAtLeast",
   "roundAtLeast", "roundPhase", "inZon", "healthRestoredSince",
+  // Another of the Unit's own abilities cooling: Wisdom of Dún Scáith's slots
+  // gate on each other, and Brahmastra's card offered the Eye of the Mind
+  // copy while the other copy cooled (#204 W1.lock, found pressing).
+  "abilityOffCooldown",
 ]);
 
 /**
@@ -166,7 +170,9 @@ export function abilitiesAtWindow(unit, window) {
     // Only the requirements answerable from the Unit alone: a `targetHasEffect`
     // has no target at a window and must not refuse for lack of one.
     const gates = (sys.requirements ?? []).filter((r) => SELF_REQUIREMENTS.has(r.kind));
-    if (gates.length > 0 && !meetsRequirements(gates, { unit }).ok) return false;
+    // The ability itself, so a gate on its own group can leave itself out.
+    const self = { id: item.id, contentId: sys.contentId ?? null };
+    if (gates.length > 0 && !meetsRequirements(gates, { unit, ability: self }).ok) return false;
 
     return true;
   });

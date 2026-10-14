@@ -167,7 +167,7 @@ describe("occupancy is per LEVEL, not per panel", () => {
 
 describe("clause 4 — enemy Master protection", () => {
   const master = { id: "m", kind: "master", factionId: "b", panel: at(6, 9), effects: [] };
-  const guard = { id: "g", kind: "servant", factionId: "b", panel: at(6, 10), effects: [] };
+  const guard = { id: "g", kind: "servant", factionId: "b", masterId: "m", panel: at(6, 10), effects: [] };
 
   it("blocks the ring around a guarded Master", () => {
     expect(inEnemyMasterProtection(at(6, 8), mover(), board([master, guard]))).toBe(true);

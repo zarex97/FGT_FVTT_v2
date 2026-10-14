@@ -126,7 +126,7 @@
       <p class="fgt-card__prompt-label">{{localize "FGT.Prompt.commandSpell"}}</p>
       <div class="fgt-card__buttons">
         {{#each commandSpells as |cs|}}
-          <button type="button" data-fgt-cs="{{cs.id}}" data-fgt-master="{{cs.masterId}}">
+          <button type="button" data-fgt-cs="{{cs.id}}" data-fgt-master="{{cs.masterId}}" data-fgt-servant="{{cs.servantId}}">
             {{cs.name}}
             <small>{{cs.cost}} CS</small>
           </button>

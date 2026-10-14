@@ -313,3 +313,9 @@ six declared fields with neither reader nor writer.
 - **Why are only two golden tests documented?** The damage pipeline has worked examples in Ch. 22 and Ch. 22 that are validated by tests. Other chapters with worked examples are not similarly pinned. The scope of golden testing is underdefined.
 
 - **Should unit tests inject `game`?** The convergence hooks guard on `game` to allow engine tests to run (`module/engine/applier.mjs:120-122`). But tests never create a mock `game` object; they rely on it being undefined. This works because the check is `if (game && callback)`, but it is fragile — a future change that removes the guard would silence no warning in tests.
+
+### Scáthach's arena (#204)
+
+`test/unit/scathach-gate-arena.test.mjs` plays Gate of Skye and Gáe Bolg in the test world: no Evade, no Lucky Evasion
+or escape, Substitution passed through, the failed and the passed shove, Alpi's one charge, and Gáe Bolg's two
+branches. `targeting-limits-read.test.mjs` names any `targeting.limits` key no module code reads.

@@ -34,12 +34,102 @@ const DUN_SCAITH = Object.freeze({ rank: "A+", cooldown: "4◈-⅓◈", exclusio
  */
 export function offerCopies({ copierId, prefer = ["A", "B"] }) {
   const board = currentBoard();
-  const copier = unitFrom(board, game.actors.get(copierId));
+  const copierDoc = game.actors.get(copierId);
+  const copier = unitFrom(board, copierDoc);
   if (!copier) return [];
 
   // The snapshot's units carry ability *snapshots*; the candidate list is what
   // the GM dialog renders, so it carries the whole ability rather than an id.
-  return copyCandidates(board, copier, { prefer });
+  const all = copyCandidates(board, copier, { prefer });
+  // Only the Servants on the field when the pick fell due: "Servants summoned
+  // later are never added", a GM's redo included (#204 reading 8). No pool is
+  // a pick that never fell due -- a hand-built Servant -- and offers the field.
+  const pool = copierDoc?.system?.copyPick?.poolIds ?? [];
+  return pool.length > 0 ? all.filter((c) => pool.includes(c.unitId)) : all;
+}
+
+/**
+ * The ability on this actor that opens the copy dialog: Wisdom of Dún Scáith.
+ *
+ * @param {object|null} actor
+ * @returns {object|null}
+ */
+export function copyGrantOf(actor) {
+  return [...(actor?.items ?? [])].find((i) => i.system?.opensDialog === "copy") ?? null;
+}
+
+/**
+ * The name a grant's copies record as `grantedBy`, as the sheet passes it.
+ *
+ * @param {object} grant
+ * @returns {string}
+ */
+function grantName(grant) {
+  return grant.system?.contentId || grant.id;
+}
+
+/**
+ * Mark every copier on the board whose pick is owed, and open the GM's list.
+ *
+ * *"If it is a war that is starting, it should once before the 1st turn ends.
+ * If not, it should be after summoning"* (#204 reading 8). Called once when
+ * the war is built, and for a Servant whose token enters a war already under
+ * way. The pool is the OTHER Servants on the field now; the pick is due until
+ * the player makes it, and no Turn ends while it is
+ * (`rules/budget.mjs#copyPicksOwed`).
+ *
+ * A copier that already holds its copies, or already owes a pick, is left
+ * alone: a redo is the GM's, from the sheet.
+ *
+ * @param {{actorIds?: string[]|null, open?: boolean}} [options]
+ * @returns {Promise<Array<{copierId: string, grantedBy: string}>>}
+ */
+export async function markCopyPicksDue({ actorIds = null, open = true } = {}) {
+  if (!game.user?.isGM) return [];
+  const board = currentBoard();
+  const servants = (board.units ?? []).filter((u) => u.kind === "servant");
+  /** @type {Array<{copierId: string, grantedBy: string}>} */
+  const due = [];
+  for (const unit of board.units ?? []) {
+    if (actorIds && !actorIds.includes(unit.id)) continue;
+    const actor = game.actors.get(unit.id);
+    const grant = copyGrantOf(actor);
+    if (!grant || actor.system?.copyPick?.due) continue;
+    if (actor.items.some((i) => i.system?.grantedBy === grantName(grant))) continue;
+    const poolIds = servants.filter((s) => s.id !== unit.id).map((s) => s.id);
+    await actor.update({ "system.copyPick": { due: true, poolIds } });
+    due.push({ copierId: actor.id, grantedBy: grantName(grant) });
+  }
+  if (open && due.length > 0) {
+    const { CopyDialog } = await import("../apps/copy-dialog.mjs");
+    for (const d of due) CopyDialog.open(d);
+  }
+  return due;
+}
+
+/**
+ * A copier whose token enters a war already under way owes its pick then.
+ *
+ * GM only, and only once the war has started: the war's own build marks every
+ * copier itself, after the whole field is deployed (`engine/war-setup.mjs`).
+ */
+export function attachCopyPick() {
+  // A pick still owed when the GM's client loads -- a reload closed the list
+  // the war's start opened -- opens again, or nothing would ask for it.
+  if (game.user?.isGM) {
+    const owed = [...(game.actors ?? [])].filter((a) => a.system?.copyPick?.due && copyGrantOf(a));
+    if (owed.length > 0) {
+      import("../apps/copy-dialog.mjs").then(({ CopyDialog }) => {
+        for (const a of owed) CopyDialog.open({ copierId: a.id, grantedBy: grantName(copyGrantOf(a)) });
+      }).catch((err) => console.error("FGT | Copy pick:", err));
+    }
+  }
+  Hooks.on("createToken", (token) => {
+    if (!game.user?.isGM || !game.combats?.active?.started) return;
+    const actorId = token.actorId ?? token.actor?.id ?? null;
+    if (!copyGrantOf(game.actors.get(actorId))) return;
+    markCopyPicksDue({ actorIds: [actorId] }).catch((err) => console.error("FGT | Copy pick:", err));
+  });
 }
 
 /**
@@ -74,6 +164,13 @@ export async function grantCopies({ copierId, picks, slots = 2, grantedBy = "wis
       name: copy.name,
       type: "ability",
       system: {
+        // HOW it is used, carried from the source: its window, its targeting,
+        // its damage, its phases. Only the phases were resolved by reference
+        // (`rules/copy.mjs#effectivePhases`), and nothing else -- so a copy
+        // classified as passive, sat greyed on the bar and could not be used
+        // at all (found pressing #204 W1.effect). The phases still run from the
+        // source at execution, so a content fix reaches them.
+        ...carriedUse(source),
         rank: copy.rank,
         // `max`, not `value`. The schema has no `value`, so the DataModel
         // dropped it: on top of the unparseable expression above, the field
@@ -97,7 +194,36 @@ export async function grantCopies({ copierId, picks, slots = 2, grantedBy = "wis
   if (stale.length > 0) await copier.deleteEmbeddedDocuments("Item", stale);
 
   await copier.createEmbeddedDocuments("Item", data);
+  // The pick is made: the Turn it was holding may end (#204 reading 8).
+  if (copier.system?.copyPick?.due) await copier.update({ "system.copyPick.due": false });
   return { ok: true, created: data.length };
+}
+
+/**
+ * What a copy keeps of its source: everything about USING it, nothing about
+ * owning it. The copier's rank, cooldown and gates replace the source's, and
+ * the source's passive `rules` stay behind -- a copy carries "only the Active
+ * part" (#204 reading 10).
+ */
+const NOT_CARRIED = Object.freeze([
+  "rank", "cooldown", "requirements", "exclusionSet", "rules", "passive", "copyable",
+  // A Skill's "(Passive)" clauses, kept apart from its Active ones: Eye of the
+  // Mind (False)'s cooldown refund on an Evade came along with its Dodge.
+  "passiveRules",
+  "contentId", "contentVersion", "category", "sameTurnExclusive", "alsoTriggers",
+  "opensDialog", "copiedFrom", "grantedBy", "inheritedFrom",
+  // Runtime state of the source, not of the copy.
+  "active", "toggledAt", "lastUsedTick",
+]);
+
+/**
+ * @param {object} source the source ability Item
+ * @returns {object}
+ */
+function carriedUse(source) {
+  const system = foundry.utils.deepClone(source.toObject().system ?? {});
+  for (const key of NOT_CARRIED) delete system[key];
+  return system;
 }
 
 /**

@@ -110,6 +110,36 @@ describe("a Noble Phantasm and whose Turn it is", () => {
   });
 });
 
+describe("the first Round (#204 LJ)", () => {
+  const firstRound = (acting) => {
+    const w = world(acting);
+    return { ...w, combat: { ...w.combat, round: 1, flags: {} } };
+  };
+
+  it("refuses every Attack with the rule as its reason, on either side's Turn", async () => {
+    // Ruled 2026-10-14: the bar greys every Attack in Round 1. It asked the
+    // budget alone, which had the pool to spare, so Þurs stayed lit and only
+    // the declaration refused it.
+    for (const acting of ["f1", "theirs"]) {
+      await withWorld(firstRound(acting), async () => {
+        const budget = await import("../../module/engine/budget.mjs");
+        for (const action of ["attack", "np", "spell", "ridingAttack"]) {
+          expect(budget.affordable(game.combats.active, emiya, action)).toEqual({ ok: false, reason: budget.FIRST_ROUND_REASON });
+        }
+      });
+    }
+  });
+
+  it("leaves the Mark and every non-Attack open", async () => {
+    await withWorld(firstRound("f1"), async () => {
+      const budget = await import("../../module/engine/budget.mjs");
+      for (const action of ["mark", "move", "skill"]) {
+        expect(budget.affordable(game.combats.active, emiya, action).ok).toBe(true);
+      }
+    });
+  });
+});
+
 describe("how the rule is expressed", () => {
   it("is derived from the acting faction, not from a flag on the content", () => {
     const src = readFileSync("module/engine/budget.mjs", "utf8");

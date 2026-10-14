@@ -1112,7 +1112,11 @@ function candidatePlacements(spec, caster, board, max) {
     case "targetUnit":
     case "fieldEdge":
       return (board.units ?? [])
-        .filter((u) => u.id !== caster.id || spec.selection?.includeSelf)
+        // Self by the SAME reading the resolver applies (`resolveIncludeSelf`):
+        // `relations: [ally, self]` offers her own panel. Only an explicit
+        // `includeSelf` did, so Ár and the Rune's ally table could never be cast
+        // on Scáthach herself (#204 reading 2, found pressing AR.range).
+        .filter((u) => u.id !== caster.id || resolveIncludeSelf(spec.selection ?? {}, spec))
         .slice(0, max)
         .map((u) => ({ unitId: u.id }));
 

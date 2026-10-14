@@ -427,14 +427,18 @@ export const TABLES = Object.freeze({
   },
 
   /**
-   * Scáthach's Gate of Skye. **Equality**, not threshold — a `MAG EX` or
-   * `MAG A+` target receives no bonus at all. Do not "improve" this into a
-   * `gte`; the source says "exactly".
+   * Scáthach's Gate of Skye: *"if their MAG is Rank B, the value rolled is
+   * reduced by 2, and if their MAG is Rank A, by 4."* By LETTER (#204 reading
+   * 16): B, B+ and B++ take −2; A, A+, A++ and EX take −4. It was an equality
+   * table, so a MAG A+ or EX target, the strongest casters, got nothing.
    */
   gateOfSkyeSaveModifier: {
-    kind: "equality",
-    byRank: { B: -2, A: -4 },
-    default: 0,
+    kind: "banded",
+    bands: [
+      { grades: ["B"], value: -2 },
+      { grades: ["A", "EX"], value: -4 },
+    ],
+    fallback: 0,
   },
 });
 

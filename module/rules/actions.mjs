@@ -149,7 +149,10 @@ export const UNIT_ACTIONS = Object.freeze([
     icon: "fa-solid fa-hand-sparkles",
     label: "FGT.Action.CommandSpell",
     mode: "immediate",
-    available: (unit) => (acts(unit) && unit.kind === "master" && !unit.defeated && (unit.commandSpells ?? 0) > 0
+    // ...and only with a Servant to command, alive on the board (ruled
+    // 2026-10-14, #204): every command is a spell for one.
+    available: (unit, board) => (acts(unit) && unit.kind === "master" && !unit.defeated && (unit.commandSpells ?? 0) > 0
+      && (board?.units ?? []).some((u) => u.kind === "servant" && u.masterId === unit.id && !u.defeated)
       ? {} : null),
   },
   {

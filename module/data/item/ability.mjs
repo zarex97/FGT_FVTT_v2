@@ -4,6 +4,7 @@
  */
 
 import { RankField, TickField } from "../fields.mjs";
+import { COPY_REASONS } from "../../domain/enums.mjs";
 
 const fields = foundry.data.fields;
 
@@ -277,7 +278,9 @@ function abilityCommon() {
       allowed: new fields.BooleanField({ initial: true }),
       reason: new fields.StringField({
         required: false, nullable: true, initial: null, blank: false,
-        choices: ["physical", "unique", "classSkill", "rankEX"],
+        // `named`: a family the copier's own sheet lists by name, as Wisdom of
+        // Dún Scáith lists Mana Burst (#204 reading 11).
+        choices: [...COPY_REASONS],
       }),
     }),
     // A GM/player setup dialog this ability opens instead of targeting. The

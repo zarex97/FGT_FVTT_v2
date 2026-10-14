@@ -13,7 +13,7 @@ import { cardFor, skillEffectsFor, redactBreakdown, effectLine } from "../../rul
 import { countdownFor } from "../../engine/await-timeout.mjs";
 import { pendingPrompt, didHit, isComplete, PROMPTS, windowFor } from "../../engine/combat-process.mjs";
 import * as process from "../../engine/combat-process.mjs";
-import { offerCommands } from "../../engine/command-spells.mjs";
+import { processOffers, teleportDestinations } from "../../engine/command-spells.mjs";
 import { publicIdentityOf, publicSpeakerFor } from "../../engine/public-identity.mjs";
 import { currentBoard, luckOf } from "../../engine/board.mjs";
 import { ActionBar } from "../hud/action-bar.mjs";
@@ -299,7 +299,7 @@ function fillAttackCard(message, html) {
  * never appear, and the same argument covers cost.
  *
  * @param {object} state
- * @returns {Array<{id: string, name: string, cost: number, masterId: string}>}
+ * @returns {Array<{id: string, name: string, cost: number, masterId: string, servantId: string}>}
  */
 function offerableCommands(state) {
   const window = windowFor(state);
@@ -318,27 +318,20 @@ function offerableCommands(state) {
   // Command Spells from **eight**, six of them belonging to other setups
   // entirely — Drake's Master, Gogh's Master, an Archer's Master from a war that
   // was over.
-  const inMatch = new Set(
-    currentBoard().units.filter((u) => u.kind === "master").map((u) => u.id),
-  );
-
-  /** @type {Array<{id: string, name: string, cost: number, masterId: string}>} */
-  const out = [];
-  for (const master of game.actors.filter((a) => a.type === "master" && a.isOwner && inMatch.has(a.id))) {
-    for (const command of offerCommands({ masterId: master.id, window, context: attackContext(state) })) {
-      out.push({ id: command.id, name: command.name, cost: command.cost, masterId: master.id });
-    }
-  }
-  return out;
-}
-
-/**
- * The slice of the Process a command's requirements need to see.
- * @param {object} state
- * @returns {object}
- */
-function attackContext(state) {
-  return { state: state.state, attack: state.attack ?? null };
+  //
+  // And each for the Servant it serves, on an attack that Servant is in
+  // (ruled 2026-10-14, #204): every Faction 2 Master was offered Damage Block
+  // on an attack on another Master's Servant (`engine/command-spells.mjs#processOffers`).
+  return processOffers(state)
+    .filter((o) => game.actors.get(o.masterId)?.isOwner)
+    .map((o) => ({
+      id: o.command.id,
+      // A Master of several names the Servant on the button.
+      name: o.several ? `${o.command.name} (${o.servantName})` : o.command.name,
+      cost: o.command.cost,
+      masterId: o.masterId,
+      servantId: o.servantId,
+    }));
 }
 
 /**
@@ -388,7 +381,6 @@ export function promptOptions(prompt, state = null) {
       ...(state?.blockAfterAutoEvade
         ? [{ event: "block", label: game.i18n.localize("FGT.Reaction.Block"), hint: game.i18n.localize("FGT.Reaction.BlockHint") }]
         : []),
-      { event: "cs", label: game.i18n.localize("FGT.Reaction.CommandSpell"), hint: null },
     ];
   }
   // The counter is a free choice — it costs no budget, only the risk of
@@ -561,12 +553,34 @@ function bindCardEvents(message, html) {
     if (spell) {
       event.preventDefault();
       spell.disabled = true;
+      // Escape and Teleport Servant land where the player says, chosen BEFORE
+      // the spend, so a cancelled pick costs nothing (#204 Q6). They were sent
+      // with no destination at all, paid for, and moved nobody.
+      const servantId = spell.dataset.fgtServant || null;
+      const panels = teleportDestinations(spell.dataset.fgtMaster, spell.dataset.fgtCs, servantId);
+      let destination = null;
+      if (panels) {
+        if (panels.length === 0) {
+          spell.disabled = false;
+          ui.notifications.warn(game.i18n.localize("FGT.CommandSpell.NoDestination"));
+          return;
+        }
+        const { pickDestination } = await import("../canvas/targeting-layer.mjs");
+        destination = await pickDestination({
+          panels, label: spell.textContent.trim(), hint: game.i18n.localize("FGT.CommandSpell.ChooseLanding"),
+        });
+        if (!destination) {
+          spell.disabled = false;
+          return;
+        }
+      }
       const { FGTSocket } = await import("../../net/socket.mjs");
       try {
         const result = await FGTSocket.request("spendCommandSpell", {
           masterId: spell.dataset.fgtMaster,
           commandId: spell.dataset.fgtCs,
           messageId: message.id,
+          context: { servantId, ...(destination ? { destination } : {}) },
         });
         if (!result?.ok) {
           spell.disabled = false;

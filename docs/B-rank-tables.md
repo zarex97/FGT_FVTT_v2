@@ -430,15 +430,16 @@ Base: `1d12`, success on 12.
 Note the third row sits *between* the first two, which is why this is a threshold table with an
 explicit override rather than a pure ordinal scale.
 
-### `gateOfSkyeSaveModifier` — **equality**, not threshold
+### `gateOfSkyeSaveModifier` — banded, by letter
 
 | DU's MAG | Luck Check roll modifier |
 |---|---|
-| Rank B | −2 |
-| Rank A | −4 |
+| Rank B, B+, B++ | −2 |
+| Rank A, A+, A++, EX | −4 |
+| anything else | 0 |
 
-Exactly `B` and exactly `A`. A `Rank EX` MAG receives **no** bonus. This is the case the
-validator's `gte`-warning exists for (Ch. 05 §5.3).
+By letter, ruled on Scáthach's audit (#204 reading 16). It was an equality table, so a MAG A+
+or EX target, the strongest casters, received no bonus.
 
 ### `andreiasAmarantosByAttackerDivinity` — threshold, **defaulting to immunity**
 

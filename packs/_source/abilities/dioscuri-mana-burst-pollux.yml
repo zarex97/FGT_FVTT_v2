@@ -19,6 +19,9 @@ schema: 1
 id: dioscuri-mana-burst-pollux
 name: "Mana Burst (Light/Ancient)"
 rank: "A+"
+# Wisdom of Dún Scáith names Mana Burst Skills among those it cannot copy
+# (char_orig_sheets/Copia de Scáthach.md, #204 reading 11).
+copyable: { allowed: false, reason: named }
 kind: skill
 slug: manaBurst
 # An ATTACK SKILL: its Active performs a Normal Attack, so it opens a Combat

@@ -10,7 +10,7 @@
  * so nothing ever constructed the intent and no Command Spell was ever spent.
  */
 
-import { availableCommands, canSpend, effectsOf, costOf } from "../rules/command-spells.mjs";
+import { availableCommands, canSpend, effectsOf, costOf, teleportLandings, teleportMovers, teleportPanels, servantsForProcess } from "../rules/command-spells.mjs";
 import { CommandSpellRegistry } from "../rules/cs-registry.mjs";
 import { currentBoard, unitFrom } from "./board.mjs";
 import * as I from "./intents.mjs";
@@ -36,6 +36,68 @@ export function offerCommands({ masterId, window, context = {} }) {
   const ctx = contextFor(masterId, window, context);
   if (!ctx) return [];
   return availableCommands(CommandSpellRegistry.all(), ctx);
+}
+
+/**
+ * The Servants contracted to this Master, alive on the board: the only Units a
+ * Command Spell may serve (ruled 2026-10-14, #204).
+ *
+ * @param {string} masterId
+ * @param {object} board
+ * @returns {object[]}
+ */
+export function liveServantsOf(masterId, board) {
+  return (board?.units ?? []).filter((u) => u.kind === "servant" && u.masterId === masterId && !u.defeated);
+}
+
+/**
+ * Every Command Spell a Master in the match could spend on this Combat
+ * Process, each for one named Servant: the card's buttons, and the question
+ * `attack.mjs#awaitInterrupt` asks before holding a rung open.
+ *
+ * A command that changes the attack is offered only for the Master's Servant
+ * in it, on its side (`servantsForProcess`); one that does not is offered for
+ * each live Servant, so a Master of three heals the one it means.
+ *
+ * @param {object} state the Process
+ * @param {object} [board]
+ * @returns {Array<{command: object, masterId: string, servantId: string, servantName: string, several: boolean}>}
+ */
+export function processOffers(state, board = currentBoard()) {
+  const window = process.windowFor(state);
+  if (!window) return [];
+  const context = { state: state.state, attack: state.attack ?? null };
+  /** @type {object[]} */
+  const out = [];
+  for (const master of (board.units ?? []).filter((u) => u.kind === "master" && !u.defeated)) {
+    const servants = liveServantsOf(master.id, board);
+    for (const servant of servants) {
+      const ctx = contextFor(master.id, window, { ...context, servantId: servant.id }, board);
+      if (!ctx) continue;
+      for (const command of availableCommands(CommandSpellRegistry.all(), ctx)) {
+        if (!servantsForProcess(command, state, master.id, servants).some((s) => s.id === servant.id)) continue;
+        out.push({ command, masterId: master.id, servantId: servant.id, servantName: servant.name, several: servants.length > 1 });
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Where this command's teleport may land, for the player to choose from before
+ * it is bought; `null` when the command moves nobody.
+ *
+ * @param {string} masterId
+ * @param {string} commandId
+ * @param {string|null} [servantId] the Servant it is spent for
+ * @returns {Array<{i: number, j: number}>|null}
+ */
+export function teleportDestinations(masterId, commandId, servantId = null) {
+  const command = CommandSpellRegistry.get(commandId);
+  const ctx = command ? contextFor(masterId, null, servantId ? { servantId } : {}) : null;
+  if (!ctx) return null;
+  const teleport = effectsOf(command, ctx).find((e) => e.kind === "teleport");
+  return teleport ? teleportPanels(teleport, ctx) : null;
 }
 
 /**
@@ -70,8 +132,27 @@ export async function spendCommandSpell({ masterId, commandId, window, messageId
   const verdict = canSpend(command, ctx);
   if (!verdict.ok) return verdict;
 
+  // On a card, only what that card offers, and only while it can still be
+  // interrupted: both are asked BEFORE the spend (Ch. 33: validate, then pay).
+  // A Process that had moved on took the payment and changed nothing.
+  if (messageId) {
+    const flag = game.messages.get(messageId)?.getFlag("fgt", "process");
+    const state = flag ? process.deserialize(flag) : null;
+    if (!state || !process.interruptible(state)) return { ok: false, reason: "notInterruptible" };
+    const offered = processOffers(state, ctx.board)
+      .some((o) => o.command.id === command.id && o.masterId === masterId && o.servantId === ctx.servant?.id);
+    if (!offered) return { ok: false, reason: "notInThisAttack" };
+  }
+
   const cost = costOf(command, ctx.master, ctx.settings);
   const effects = effectsOf(command, ctx);
+  // A teleport with nowhere legal to land is refused BEFORE it is paid for
+  // (Ch. 33: validate, then pay). Escape and Teleport Servant were bought from
+  // an attack card with no destination at all, so each one cost a Command
+  // Spell, moved nobody and left the attack running (#204 Q6).
+  if (effects.some((e) => e.kind === "teleport" && !teleportLandings(e, ctx, ctx.destination))) {
+    return { ok: false, reason: "noDestination" };
+  }
   const intents = [
     I.spendCS(masterId, cost, command.id, ctx.servant?.id ?? null),
     // Ch. 33: the audit trail says who spent what, on whom, and when — a
@@ -94,7 +175,7 @@ export async function spendCommandSpell({ masterId, commandId, window, messageId
 
   // Interrupts land on the Process, not on the world. `effectIntents` above
   // already skipped them, so nothing is applied twice.
-  if (messageId) await interruptProcess(messageId, command, effects, masterId);
+  if (messageId) await interruptProcess(messageId, command, interruptsOf(effects, ctx), masterId);
   // ...and one spent in a Master's own Turn says so on a card. An interrupt
   // shows on the attack card it interrupted; this had nowhere at all (#190).
   else await postCommandSpellCard({ master: ctx.master, servant: ctx.servant, command, cost, abilityId: context.abilityId ?? null });
@@ -135,19 +216,26 @@ async function postCommandSpellCard({ master, servant, command, cost, abilityId 
  *
  * @param {string} masterId
  * @param {string|undefined} window
- * @param {object} context
+ * @param {object} context `servantId` names the Servant it is spent for
+ * @param {object} [board] the board to read, when the caller already holds one
  * @returns {object|null}
  */
-function contextFor(masterId, window, context) {
+function contextFor(masterId, window, context, board = currentBoard()) {
   const masterDoc = game.actors.get(masterId);
   if (!masterDoc) return null;
 
-  const board = currentBoard();
   const master = unitFrom(board, masterDoc);
   // The contracted Servant, from the board so ZON is already settled — the
   // requirement most commands carry is "Servant in ZON", and a Servant
   // re-projected alone always reports "inside", which would pass every time.
-  const servant = board.units.find((u) => u.masterId === masterId && u.kind === "servant") ?? null;
+  //
+  // The one the Master names (ruled 2026-10-14, #204): Drake's Master holds
+  // Drake, Castor and Pollux, and every command acted on whichever the board
+  // listed first. Alive and on the board, or none at all.
+  const servants = liveServantsOf(masterId, board);
+  const servant = context.servantId
+    ? (servants.find((u) => u.id === context.servantId) ?? null)
+    : (servants[0] ?? null);
 
   return {
     master: { ...master, commandSpells: masterDoc.system?.commandSpells ?? 0 },
@@ -271,19 +359,22 @@ function effectIntents(effects, ctx) {
       case "overrideValidation":
         break;
 
-      case "teleport":
+      case "teleport": {
         // A destination the caller chose. Without one this does nothing and
         // says so, rather than guessing a panel on the player's behalf — a
         // Command Spell that moves you somewhere you did not pick is worse
-        // than one that reports it could not.
-        if (!ctx.destination) {
+        // than one that reports it could not. `spendCommandSpell` refuses
+        // first, so this is the backstop.
+        const landings = teleportLandings(e, ctx, ctx.destination);
+        if (!landings) {
           out.push(I.log({ kind: "commandNeedsDestination", effect: e.kind, unitId: e.unitId }));
           break;
         }
-        for (const id of e.target === "pair" ? [ctx.master?.id, ctx.servant?.id] : [e.unitId]) {
-          if (id) out.push(I.move(id, [ctx.destination], true));
-        }
+        // Escape's pair lands side by side, never on one panel: the Master
+        // where the player chose, the Servant on the nearest free panel.
+        for (const { unitId, panel } of landings) out.push(I.move(unitId, [panel], true));
         break;
+      }
 
       default:
         // Named, never silent. A Command Spell that quietly does nothing is the
@@ -332,6 +423,26 @@ function ticksFrom(delta, ctx) {
 }
 
 /**
+ * The interrupts a command's effects make of a Combat Process.
+ *
+ * A `teleport` that carries the Process's defender away is an **escape**: the
+ * attack resolves against nobody (ruled 2026-10-14, #204 Q6 — a Command Spell
+ * beats even Gate of Skye, which nothing else avoids). `combat-process.mjs`
+ * has had the `escape` interrupt since it was written, and no command made
+ * one: Escape authors `teleport`, which the Process recorded as not applied.
+ *
+ * @param {object[]} effects
+ * @param {object} ctx
+ * @returns {(defenderId: string) => object[]}
+ */
+function interruptsOf(effects, ctx) {
+  return (defenderId) => effects.flatMap((e) => {
+    if (e.kind !== "teleport") return [e];
+    return teleportMovers(e, ctx).includes(defenderId) ? [{ kind: "escape" }] : [];
+  });
+}
+
+/**
  * Apply a command's interrupt effects to a Combat Process in flight.
  *
  * @param {string} messageId
@@ -340,22 +451,37 @@ function ticksFrom(delta, ctx) {
  * @param {string} masterId
  * @returns {Promise<void>}
  */
-async function interruptProcess(messageId, command, effects, masterId) {
+async function interruptProcess(messageId, command, effectsFor, masterId) {
   const message = game.messages.get(messageId);
   if (!message) return;
 
-  let state = process.deserialize(message.getFlag("fgt", "process"));
-  if (!process.interruptible(state)) return;
+  const first = process.deserialize(message.getFlag("fgt", "process"));
+  if (!process.interruptible(first)) return;
 
-  for (const e of effects) {
-    state = process.applyInterrupt(state, { ...e, command: command.id, masterId });
-  }
+  // The card it was bought on, and every sibling of that declaration the
+  // teleport carries a defender out of: Gate of Skye over a Master and its
+  // Servant is two Processes, and Escape moves them both (#204 Q6).
+  const siblings = first.groupId
+    ? game.messages.filter((m) => m.id !== messageId && m.getFlag?.("fgt", "process")
+      && process.deserialize(m.getFlag("fgt", "process")).groupId === first.groupId)
+    : [];
 
-  await message.setFlag("fgt", "process", process.serialize(state));
-  // Resume: the ladder continues from wherever the interrupt left it, which
-  // may be a different rung than the one it was suspended at (Ch. 33).
   const { advanceAttack } = await import("./attack.mjs");
-  if (!process.pendingPrompt(state) && !process.isComplete(state)) {
-    await advanceAttack({ messageId, event: "done" });
+  for (const msg of [message, ...siblings]) {
+    let state = process.deserialize(msg.getFlag("fgt", "process"));
+    if (!process.interruptible(state)) continue;
+    const effects = effectsFor(state.defenderId);
+    // A sibling only takes what reaches it; the card's own Process takes all.
+    if (msg !== message && !effects.some((e) => e.kind === "escape")) continue;
+    for (const e of msg === message ? effects : effects.filter((x) => x.kind === "escape")) {
+      state = process.applyInterrupt(state, { ...e, command: command.id, masterId });
+    }
+
+    await msg.setFlag("fgt", "process", process.serialize(state));
+    // Resume: the ladder continues from wherever the interrupt left it, which
+    // may be a different rung than the one it was suspended at (Ch. 33).
+    if (!process.pendingPrompt(state) && !process.isComplete(state)) {
+      await advanceAttack({ messageId: msg.id, event: "done" });
+    }
   }
 }

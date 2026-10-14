@@ -13,7 +13,7 @@
 
 import { createHash } from "node:crypto";
 import { Rank } from "../../module/domain/rank.mjs";
-import { SERVANT_CLASSES } from "../../module/domain/enums.mjs";
+import { SERVANT_CLASSES, COPY_REASONS as COPY_REASON_LIST } from "../../module/domain/enums.mjs";
 import { classifyAbility } from "../../module/rules/ability-use.mjs";
 import { rewriteReferences, parseMarkers, mentionsWithoutMarkers } from "./references.mjs";
 import { parseTick } from "../../module/domain/tick.mjs";
@@ -142,7 +142,7 @@ const POLARITIES = new Set(["buff", "debuff", "status"]);
 const DIALOGS = new Set(["copy"]);
 
 /** Why an ability may refuse to be copied (Ch. 17). */
-const COPY_REASONS = new Set(["physical", "unique", "classSkill", "rankEX"]);
+const COPY_REASONS = new Set(COPY_REASON_LIST);
 
 /** The two check tables, from docs/13-checks-and-randomness.md. Not rank tables. */
 const CHECK_TABLES = new Set(["favourable", "unfavourable"]);

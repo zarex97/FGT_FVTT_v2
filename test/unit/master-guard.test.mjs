@@ -27,7 +27,7 @@ const G2 = "guardCastor00001";
 const at = (guards, fn, extra = []) => withSubjects([
   { from: "heracles", id: AU, state: { factionId: "A" }, panel: { i: 2, j: 2 } },
   { from: "master-advanced", id: M, state: { factionId: "B" }, panel: { i: 2, j: 6 } },
-  ...guards.map(([id, from, i, j, state = {}]) => ({ from, id, state: { factionId: "B", ...state }, panel: { i, j } })),
+  ...guards.map(([id, from, i, j, state = {}]) => ({ from, id, state: { factionId: "B", masterId: M, ...state }, panel: { i, j } })),
   ...extra,
 ], fn);
 
@@ -70,9 +70,20 @@ describe("case 3: guards within 2, neither in Range nor adjacent", () => {
     const out = await withSubjects([
       { from: "heracles", id: AU, state: { factionId: "A" }, panel: { i: 2, j: 2 } },
       { from: "master-advanced", id: M, state: { factionId: "B" }, panel: { i: 2, j: 6 } },
-      { from: "castor", id: G2, state: { factionId: "B" }, panel: { i: 4, j: 4 }, effects: [{ defId: "immobilize" }] },
+      { from: "castor", id: G2, state: { factionId: "B", masterId: M }, panel: { i: 4, j: 4 }, effects: [{ defId: "immobilize" }] },
     ], ({ unit, board }) => guardCase(unit(M), unit(AU), board));
     expect(out).toEqual({ kind: "none" });
+  });
+
+  it("another Master's Servant on the same side guards nobody (#204)", async () => {
+    // Live: Heracles shoved Medea's Master clear of Gate of Skye. The same
+    // Castor, contracted to a second Master, would be checked if he were hers.
+    const other = "otherMaster00001";
+    const out = await at([[G2, "castor", 4, 4, { masterId: other }]], ({ unit, board }) => guardCase(unit(M), unit(AU), board),
+      [{ from: "master-advanced", id: other, state: { factionId: "B" }, panel: { i: 8, j: 8 } }]);
+    expect(out).toEqual({ kind: "none" });
+    const own = await at([[G2, "castor", 4, 4]], ({ unit, board }) => guardCase(unit(M), unit(AU), board));
+    expect(own).toEqual({ kind: "check", order: [G2] });
   });
 
   it("steps onto the free panel next to the Master nearest itself, ties nearest the attacker", async () => {
