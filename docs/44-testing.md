@@ -89,9 +89,21 @@ Three rules come with it, all from ADR-0006:
 
 - **A missing copy fails the run; it never skips.** A guard that quietly does not run is a Silent Drop of its own. Clone the copy beside this repository or set `FOUNDRY_PATH`. CI checks it out with the `FOUNDRY_SOURCE_TOKEN` secret.
 - **The copy must be the verified build.** `locateFoundry` compares the copy's `major.build` with `system.json`'s `compatibility.verified` before importing anything, since cleaning rules change between releases.
-- **Only `common/` is real.** The `client/` layer (DOM, PIXI, `@common` aliases) does not import in Node. The one client class `module/data` extends, `RegionBehaviorType`, is a bare `TypeDataModel` stand-in; the schemas built on it are still real. Client-side traps (the empty-diff skip before a write is sent, `_preCreate` edits that never reach the server) stay the job of lint and live probes.
+- **`common/` is real, and two corners of `client/`.** Most of the `client/` layer (DOM, PIXI) does not import in Node. Its dice (`client/dice/`) and its `Hooks` (`client/helpers/hooks.mjs`) do, once `@common/` resolves and the Roll grammar is compiled; `tools/lib/foundry-client-plugin.mjs` does both for vitest, with the `peggy` this repository pins at the copy's version. The one client class `module/data` extends, `RegionBehaviorType`, is a bare `TypeDataModel` stand-in; the schemas built on it are still real. Client-side traps (the empty-diff skip before a write is sent, `_preCreate` edits that never reach the server) stay the job of lint and live probes.
 
 Foundry v14 needs Node 24 (its own `engines`), so CI and `package.json` say so.
+
+### The arena: chat, dice and questions
+
+Twenty-five of the sixty-seven Surprises found on a live press lived inside a Combat Process or a Skill use, and no test could run one: a Process keeps its state in a chat message between rungs, rolls Foundry's dice, and stops to ask people things. `test/helpers/world.mjs` now models all three, by faking Foundry's surroundings rather than adding a seam inside the engine (the reason is in the file's header):
+
+- **Chat.** `ChatMessage.create` builds a real `BaseChatMessage`; `setFlag`/`getFlag`/`unsetFlag` go through the loud prune like every other write, and `game.messages` is a collection. `renderTemplate` records the template and its data in `w.cards` instead of drawing.
+- **Dice.** `Roll` is Foundry's own class. Each face comes from `w.dice`: set by the test (`w.dice.set("d100", 95)`, or `w.dice.every(1)` for a file whose premise is that every chance lands), otherwise from a seeded twister, so an unset die is the same on every run. Every roll is logged in `w.rolls`. A set die never rolled is a failure.
+- **People.** The GM (`u1`, this client) and Player1 (`p1`). A question routed to Player1 crosses `game.socket` and is answered on "their" client; every window is logged in `w.asked` with who saw it, and answered from `w.answer({title, by, pick})`. A question the script did not expect, or one shown to the wrong person, fails the test when the world closes.
+
+`test/helpers/process.mjs#playAttack` plays an attack as the table does: it declares it, then presses each card's buttons from the test's script (`react: {defenderId: ["nothing", "declined"]}`), every Process of a fan-out at once. `test/unit/arena-attack.test.mjs` is the smallest whole attack. Two proofs replay bugs only a live press had found: `weak-point-asked-on-owner.test.mjs` (#199: the Heel question opened on the GM's screen; it fails with `offerWeakPoint` put back to `ChoiceDialog.pick`), and `kiritsugu-pre-shot-spell.test.mjs`, which the arena found on its first run — the question had no `kind`, so no client could draw it.
+
+A test that stubs `globalThis.Roll` and then rolls inside a world is told so: the world rolls Foundry's dice, and a stub's "every chance lands on 1" would otherwise pass on the seed's luck.
 
 ### The survival test
 

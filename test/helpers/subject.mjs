@@ -107,6 +107,8 @@ export async function withSubjects(specs, fn, {
       type: source.type,
       system: { ...source.system, ...(spec.state ?? {}) },
       items: source.items.map((i) => ({ id: i._id, name: i.name, type: i.type, system: i.system })),
+      // Who plays it: `"p1"` for the world's Player1. Unowned, the GM is asked.
+      ...(spec.owner ? { owner: spec.owner } : {}),
     };
   }));
 

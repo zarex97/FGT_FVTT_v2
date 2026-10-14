@@ -16,6 +16,7 @@
 
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from "vitest";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
+import { worldDefaults } from "../helpers/world.mjs";
 
 beforeAll(prepareSubjects, 60_000);
 
@@ -25,10 +26,9 @@ beforeAll(prepareSubjects, 60_000);
  * still Poisoned"* states no chance -- so it must land on any roll, including
  * inside Sikera Ušum, where every Unit carries Poison Resist.
  */
-beforeEach(() => {
-  globalThis.Roll = class { async evaluate() { return { total: 100 }; } };
-});
-afterEach(() => { delete globalThis.Roll; });
+// Every die lands on its top face: the world rolls Foundry's real dice.
+beforeEach(() => worldDefaults({ dice: { every: 100 } }));
+afterEach(() => worldDefaults());
 
 /** Heracles carrying Poison at `stage`, after one Round start has run through the applier. */
 const afterRoundStart = (stage) => withSubjects(

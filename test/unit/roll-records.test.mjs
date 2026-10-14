@@ -32,8 +32,11 @@ describe("a field's Turn-end events", () => {
     const entries = await withSubjects([
       { from: "pale-rider", id: PR, state: { factionId: "A" }, panel: { i: 6, j: 6 } },
       { from: "medea", id: FOE, state: { factionId: "B" }, panel: { i: 6, j: 7 } },
-    ], async ({ board }) => fieldEventsIn(await runFieldEvents("turnEnd", { board, activeFactionId: "B" })),
-    { settings: { fields } });
+    ], async ({ board, world }) => {
+      // The world rolls Foundry's real dice; both chance dice land on 1.
+      world.dice.set("d100", 1, 1);
+      return fieldEventsIn(await runFieldEvents("turnEnd", { board, activeFactionId: "B" }));
+    }, { settings: { fields } });
     expect(entries).toEqual([
       expect.objectContaining({ fieldId: "pale-rider-contagion", unitId: FOE, healthLoss: 100 }),
       expect.objectContaining({ roll: expect.objectContaining({ effect: "poison", total: 1, chance: 50, outcome: "hit" }) }),

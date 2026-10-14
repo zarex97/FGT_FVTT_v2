@@ -21,6 +21,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { readFileSync } from "node:fs";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
+import { worldDefaults } from "../helpers/world.mjs";
 import { fieldsOf, squareAround, compiled, prepareFields } from "../helpers/field.mjs";
 import { runFieldEvents } from "../../module/engine/fields.mjs";
 import { unitIdsOfTurn } from "../../module/rules/bounded-fields.mjs";
@@ -28,11 +29,10 @@ import { unitIdsOfTurn } from "../../module/rules/bounded-fields.mjs";
 beforeAll(async () => { await prepareSubjects(); await prepareFields(); }, 120_000);
 
 // A die that always lands on 1. These tests are about WHOSE Turn it is, and
-// Contagion rolls a chance for its Poison and its Charm.
-beforeAll(() => {
-  globalThis.Roll = class { async evaluate() { this.total = 1; return this; } };
-});
-afterAll(() => { delete globalThis.Roll; });
+// Contagion rolls a chance for its Poison and its Charm. The world rolls
+// Foundry's real dice; every face is a 1.
+beforeAll(() => worldDefaults({ dice: { every: 1 } }));
+afterAll(() => worldDefaults());
 
 const hooks = readFileSync("module/engine/scheduler-hooks.mjs", "utf8");
 const turnHook = hooks.slice(hooks.indexOf("async function onTurnChange"), hooks.indexOf("async function onRoundChange"));
