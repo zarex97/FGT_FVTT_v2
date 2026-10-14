@@ -11,6 +11,7 @@
  * work rather than before the write.
  */
 
+import { moment } from "../domain/moment.mjs";
 import * as scheduler from "./scheduler.mjs";
 import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
@@ -140,9 +141,12 @@ async function onTurnChange(combat, prior, current) {
       [involvedUnits, "involvedTurnEnd"],
     ]),
   };
+  // The Moment that ENDED: every write below until the clock advances is about
+  // it, and the game log files it there rather than under the live Round.
+  const ended = moment(ctx.round, tick);
 
   const turnIntents = scheduler.endTurn(board, ctx);
-  await run(turnIntents, "scheduler:endTurn");
+  await run(turnIntents, "scheduler:endTurn", ended);
   // ...and say what it did to anybody's Health (#190).
   await postTurnEndReport(turnIntents);
 
@@ -157,7 +161,7 @@ async function onTurnChange(combat, prior, current) {
   if (due.length > 0) {
     await combat.setFlag("fgt", "deferred", deferred.filter((e) => e.at !== "turnEnd"));
     const owed = scheduler.runDeferred(due, board, ctx);
-    await run(owed, "scheduler:deferred");
+    await run(owed, "scheduler:deferred", ended);
     // Said on the card like the rest of the Turn's end: Tenmōkaikai ending on
     // the Turn she fell was silent (#195).
     await postTurnEndReport(owed);
@@ -182,7 +186,7 @@ async function onTurnChange(combat, prior, current) {
   // What the fields did this Turn end, gathered for one card per field (#182).
   const fieldEvents = [];
   const reported = (intents) => { fieldEvents.push(...fieldEventsIn(intents)); return intents; };
-  await run(reported(await fields.runFieldEvents("actedTurnEnd", { board, activeFactionId })), "field:actedTurnEnd");
+  await run(reported(await fields.runFieldEvents("actedTurnEnd", { board, activeFactionId })), "field:actedTurnEnd", ended);
 
   // …and the plain end of a Turn. Jack's Mist charges Poison BOTH ways --
   // "at the end of its Turn OR at the end of a Turn they Act while still
@@ -195,12 +199,13 @@ async function onTurnChange(combat, prior, current) {
   await run(
     reported(await fields.runFieldEvents("turnEnd", { board, activeFactionId })),
     "field:turnEnd",
+    ended,
   );
 
   // …and the clauses that mean EVERY Turn, whoever's. A Civilian has no faction
   // and so no Turn of its own: Blood Fort Andromeda's *"immediately dies"* and
   // the Complex's *"the Turn after entering"* are about it.
-  await run(reported(await fields.runFieldEvents("anyTurnEnd", { board })), "field:anyTurnEnd");
+  await run(reported(await fields.runFieldEvents("anyTurnEnd", { board })), "field:anyTurnEnd", ended);
 
   // A field's OWNER's Turn ending. Contagion trigger 1 is *"at the end of Pale
   // Rider's Turn: affects all enemy Units within the Contagion area"* -- every
@@ -218,6 +223,7 @@ async function onTurnChange(combat, prior, current) {
     await run(
       reported(await fields.runFieldEvents("unitTurnEnd", { fieldIds: ownedFields, board })),
       "field:unitTurnEnd",
+      ended,
     );
   }
   await postFieldReports(fieldEvents);
@@ -253,7 +259,7 @@ async function onTurnChange(combat, prior, current) {
   // off, so the +6 ran on through the enemy's Turns (#116). Before `globalTurn`
   // advances, so the Turn that is ending is the one asked about.
   const { turnEndModeIntents } = await import("./modes.mjs");
-  await run(turnEndModeIntents(board.units, tick), "scheduler:modeTurnEnd");
+  await run(turnEndModeIntents(board.units, tick), "scheduler:modeTurnEnd", ended);
 
   // The faction that just finished is frozen in the order: a Delay declared
   // from here on applies to the next Round, not to a turn already taken.
@@ -407,7 +413,7 @@ async function endRoundSequence(combat, round, tick) {
   };
 
   const roundIntents = scheduler.endRound(board, ctx);
-  await run(roundIntents, "scheduler:endRound");
+  await run(roundIntents, "scheduler:endRound", moment(round, tick));
   await postPeriodicReport(roundIntents, worldIO());
 
   // The second upkeep sweep, for tolls charged on the ROUND rather than on a
@@ -608,8 +614,7 @@ const SETTLE_MS = 120;
  */
 function boardFor(combat, round = null, tick = null) {
   return currentBoard({
-    round: round ?? combat.round ?? 1,
-    tick: tick ?? combat.system?.globalTurn ?? 0,
+    moment: moment(round ?? combat.round ?? 1, tick ?? combat.system?.globalTurn ?? 0),
   });
 }
 
@@ -627,14 +632,17 @@ function factionOf(combat, turnRef) {
 /**
  * @param {object[]} intents
  * @param {string} source
+ * @param {import("../domain/moment.mjs").Moment|null} [at] the Moment the writes
+ *   are about, when it is not the live one: the end of a Turn or a Round
  */
-async function run(intents, source) {
+async function run(intents, source, at = null) {
   if (intents.length === 0) return;
   await applyIntents(intents, {
     io: worldIO(),
     canWrite: () => true, // the active GM
     isGM: true,
     source,
+    moment: at,
   });
 }
 

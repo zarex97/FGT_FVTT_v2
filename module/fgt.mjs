@@ -25,8 +25,6 @@ import { explainDamage } from "./rules/explain.mjs";
 import * as intents from "./engine/intents.mjs";
 import * as combatProcess from "./engine/combat-process.mjs";
 import * as scheduler from "./engine/scheduler.mjs";
-import { Scheduler } from "./engine/scheduler-hooks.mjs";
-import { Hgob } from "./engine/hgob.mjs";
 import * as budget from "./engine/budget.mjs";
 import * as summon from "./engine/summon.mjs";
 import * as items from "./engine/items.mjs";
@@ -45,29 +43,23 @@ import { LogViewer } from "./apps/log-viewer.mjs";
 import { AbilityEditor } from "./apps/ability-editor/index.mjs";
 import { ContractDialog } from "./apps/contract-dialog.mjs";
 import { SetupWizard } from "./apps/setup-wizard.mjs";
-import { Movement } from "./engine/movement-hooks.mjs";
-import { Terrain } from "./engine/terrain.mjs";
-import { FactionOwnership } from "./engine/faction-ownership.mjs";
-import { TokenImage } from "./engine/token-image.mjs";
-import { TokenFootprint } from "./engine/token-footprint.mjs";
 import { TokenRotation } from "./engine/token-rotation.mjs";
 import { LevelExit } from "./engine/level-exit.mjs";
-import { TokenVision, backfillVision } from "./engine/token-vision.mjs";
+import { backfillVision } from "./engine/token-vision.mjs";
 import { registerTargetingLayer, pickTarget } from "./apps/canvas/targeting-layer.mjs";
 import { registerOverlayLayer, attachOverlays } from "./apps/canvas/overlay-layer.mjs";
 import { FGTToken as FGTTokenPlaceable } from "./apps/canvas/token.mjs";
 import { registerCombatTracker } from "./apps/combat/tracker.mjs";
 import { sweepTransientRegions } from "./apps/canvas/target-region.mjs";
-import { ensurePassiveFields, syncDerivedFields } from "./engine/fields.mjs";
+import { ensurePassiveFields } from "./engine/fields.mjs";
 import { ensureSetupRolls } from "./engine/summon.mjs";
 import { syncMarkVisibility } from "./engine/marks.mjs";
 import { ActionBar } from "./apps/hud/action-bar.mjs";
 import { resumeCounterArming } from "./apps/chat/cards.mjs";
 import { PendingPanel } from "./apps/hud/pending-panel.mjs";
 import { attachSummonEntries } from "./apps/summon-entry.mjs";
-import { attachInvalidation } from "./engine/invalidation-hooks.mjs";
-import { attachForcedModes, reconcileForcedModes } from "./engine/modes.mjs";
-import { attachConcealment } from "./engine/concealment.mjs";
+import { reconcileForcedModes } from "./engine/modes.mjs";
+import { attachEngineListeners } from "./engine/listeners.mjs";
 import { attachAwaitTimeouts } from "./engine/await-timeout.mjs";
 
 Hooks.once("init", () => {
@@ -263,36 +255,13 @@ Hooks.once("ready", async () => {
   const { onReady: migrateOnReady } = await import("./migration/runner.mjs");
   await migrateOnReady();
 
-  // GM client only; a no-op everywhere else.
-  Scheduler.attach();
-  // Semiramis's Hanging Gardens: listens for `channel.mjs`'s completion hook
-  // and for a platform's own destruction hook, both GM-gated internally.
-  Hgob.attach();
-  // Every client validates its own movement; the write is proxied as usual.
-  Movement.attach();
-  // Erases a painted terrain area when the effect that painted it ends --
-  // Quetzalcoatl's Sol. GM client only, internally gated.
-  Terrain.attach();
-  // Ch. 38: "a player owns their own Servants and Master." Keeps that true —
-  // GM client only, like the faction roster it reads.
-  FactionOwnership.attach();
-  // Ch. 06: a Servant's token shows its standard image until identityRevealed,
-  // then its true portrait — for every viewer at once, since a token texture
-  // has no per-viewer rendering the way the sheet's own portrait does. Every
-  // other unit type just follows its portrait.
-  TokenImage.attach();
-  // Ch. 27: a Platform's token is the size of the footprint it declares. The
-  // board reads occupancy off the TOKEN, so the two disagreeing is a rules
-  // contradiction, not a cosmetic one.
-  TokenFootprint.attach();
-  // Ch. 05: a unit's Detect radius IS its vision range, and until this was
-  // attached nothing ever wrote it to a token — so every token sat at
-  // Foundry's `sight.enabled: false`, and a scene with token vision on showed
-  // its players a black canvas with their own Servant invisible in it.
-  TokenVision.attach();
-  // Facing lives in `system.facing`, not in Foundry's `rotation` — so an
-  // unlocked token lets the artwork point somewhere the rules disagree with.
-  TokenRotation.attach();
+  // The engine's own listeners, in one list (`engine/listeners.mjs`), which the
+  // test world binds too: the Turn and Round boundaries, a mode's end, terrain,
+  // token footprint, vision and rotation, faction ownership, derived fields,
+  // Bloodmark sight, invalidation, forced modes and Presence Concealment's end.
+  attachEngineListeners();
+
+  // The listeners that only draw, bound after the engine's.
   // A client viewing a Level that is deleted goes where its selected token
   // landed, or to the ground (#176).
   LevelExit.attach();
@@ -302,47 +271,9 @@ Hooks.once("ready", async () => {
     if (!(changes.system && "facing" in changes.system)) return;
     for (const token of actor.getActiveTokens()) token.refreshFacing?.();
   });
-  // Everyone sees the budget; only the acting faction can spend it.
   // ZON rings, threat ranges and Master protection, drawn from selection and
   // hover. Context, never a control.
   attachOverlays();
-  // A targeting area is discarded in a `finally`, so the only way one survives
-  // is a client that stopped existing mid-decision. Sweep them once, here.
-  sweepTransientRegions();
-  // Ch. 28: a PASSIVE bounded field has no cast to open it. Pale Rider's
-  // Contagion is the area around him, full stop — so it is reconciled with the
-  // board here and at every Turn start rather than waiting for an activation
-  // that never comes. Idempotent and GM-gated internally.
-  ensurePassiveFields();
-  // A field's SIZE can change without anybody moving: Contagion's Active takes
-  // it from 5×5 to 9×9 by applying a marker, and Doomsday Come opening takes it
-  // over entirely. Movement needs no hook — a `followsUnit` field is attached
-  // to its anchor's token and Foundry translates it — but an effect does.
-  for (const hook of ["createActiveEffect", "deleteActiveEffect"]) {
-    Hooks.on(hook, (effect) => {
-      if (effect.parent?.documentName !== "Actor") return;
-      syncDerivedFields();
-    });
-  }
-  // Ch. 40's summon, reachable from the sidebar and the compendium. GM only,
-  // and it intercepts a bare compendium drop -- which would otherwise produce a
-  // Servant with the template's numbers instead of its own rolled ones.
-  attachSummonEntries();
-  // ...and a safety net behind it. Agility and Luck are ROLLED, not derived, so
-  // a Servant that reached the world by some other route -- duplicated, built
-  // by a macro, imported -- keeps the template's zeroes, and a maximum of 0 is
-  // a number no d20 can roll under: that Servant auto-fails every Evade and
-  // Luck Check in silence. GM-gated and idempotent internally.
-  ensureSetupRolls().catch((err) => console.error("FGT | Setup rolls:", err));
-  // Ch. 28: *"Bloodmarks can only be seen from a distance of 3 cells
-  // Maximum."* Presentation only, answered per viewer on every client
-  // (`apps/canvas/token.mjs#isVisible`), and re-asked whenever anybody moves
-  // -- the question is positional, exactly like the aura index above.
-  syncMarkVisibility().catch((err) => console.error("FGT | Mark visibility:", err));
-  Hooks.on("updateToken", (_doc, changes) => {
-    if (!("x" in changes) && !("y" in changes)) return;
-    syncMarkVisibility().catch((err) => console.error("FGT | Mark visibility:", err));
-  });
   // A platform's or a dimension's Level deleted under a client's feet. The
   // Storm Border surfacing moves everyone aboard to the ground and deletes its
   // Level in one breath, and the canvas was left not ready -- no board, no
@@ -356,27 +287,10 @@ Hooks.once("ready", async () => {
       setTimeout(() => { if (!canvas.ready) canvas.draw(); }, 500);
     });
   }
-  // Ch. 08's invalidation table, driving the canvas aura index and the overlays,
-  // plus Ch. 25's round-boundary desync check.
-  attachInvalidation();
-  // Penthesilea's Hatred of Achilles: "at any time, if there is a Greek Male
-  // Unit within a 4 panel area, her Mad Enhancement is IMMEDIATELY ACTIVATED".
-  // Nobody presses anything, so something has to be watching -- and it rides
-  // the same invalidation the aura index does, because the question is
-  // positional and changes whenever anybody moves.
-  attachForcedModes();
-
-  // Presence Concealment's aftermath: the cooldown that starts when the Skill
-  // ENDS, and the Secret Poison that becomes visible at the same moment.
-  attachConcealment();
-  // Once at load, for a world resumed mid-match with a Greek Male already
-  // standing beside her. A rule that only fires on a *change* would leave her
-  // calm until somebody happened to move.
-  reconcileForcedModes().catch((err) => console.error("FGT | Forced modes:", err));
-  // Once at load, for the tokens already on a board. The hooks above only
-  // catch a token being placed or an actor being edited, and every token in
-  // every world that predates Ch. 05's vision sync is sitting at range 0.
-  backfillVision().catch((err) => console.error("FGT | Token vision backfill:", err));
+  // Ch. 40's summon, reachable from the sidebar and the compendium. GM only,
+  // and it intercepts a bare compendium drop -- which would otherwise produce a
+  // Servant with the template's numbers instead of its own rolled ones.
+  attachSummonEntries();
   // Ch. 34: attack, move, the ability quick-bar, the facing dial and the budget
   // dot, on the token itself.
   ActionBar.attach();
@@ -384,14 +298,44 @@ Hooks.once("ready", async () => {
   // AoE already fans out to one ladder per defender, so a player with four
   // units can hold three prompts at once in a scrolling log.
   PendingPanel.attach();
+  // Ch. 23: a player who has closed their browser must not block the table, and
+  // the decision made for them must never spend anything.
+  attachAwaitTimeouts();
+
+  // Once at load. Each is async and not awaited, so each writes after every
+  // listener above is bound, as it did when they were interleaved.
+  // Facing lives in `system.facing`, not in Foundry's `rotation` — every token
+  // already placed is locked.
+  TokenRotation.lockExisting();
+  // A targeting area is discarded in a `finally`, so the only way one survives
+  // is a client that stopped existing mid-decision. Sweep them once, here.
+  sweepTransientRegions();
+  // Ch. 28: a PASSIVE bounded field has no cast to open it. Pale Rider's
+  // Contagion is the area around him, full stop — so it is reconciled with the
+  // board here and at every Turn start rather than waiting for an activation
+  // that never comes. Idempotent and GM-gated internally.
+  ensurePassiveFields();
+  // Agility and Luck are ROLLED, not derived, so a Servant that reached the
+  // world by some other route -- duplicated, built by a macro, imported --
+  // keeps the template's zeroes, and a maximum of 0 is a number no d20 can roll
+  // under: that Servant auto-fails every Evade and Luck Check in silence.
+  // GM-gated and idempotent internally.
+  ensureSetupRolls().catch((err) => console.error("FGT | Setup rolls:", err));
+  // Bloodmark sight for the board as it stands (`markSight` re-asks on moves).
+  syncMarkVisibility().catch((err) => console.error("FGT | Mark visibility:", err));
+  // For a world resumed mid-match with a Greek Male already standing beside
+  // Penthesilea. A rule that only fires on a *change* would leave her calm
+  // until somebody happened to move.
+  reconcileForcedModes().catch((err) => console.error("FGT | Forced modes:", err));
+  // For the tokens already on a board. The hooks above only catch a token
+  // being placed or an actor being edited, and every token in every world that
+  // predates Ch. 05's vision sync is sitting at range 0.
+  backfillVision().catch((err) => console.error("FGT | Token vision backfill:", err));
   // Ch. 21: a Counter rung that was already waiting when this client loaded. The
   // render hook that normally arms the bar fires before the bar exists, so a
   // player who reloads mid-exchange would otherwise see the prompt and have
   // nothing to answer it with.
   resumeCounterArming();
-  // Ch. 23: a player who has closed their browser must not block the table, and
-  // the decision made for them must never spend anything.
-  attachAwaitTimeouts();
   fgt.api = buildPublicAPI();
   console.log(`FGT | Ready — ${game.system.version}`);
 });

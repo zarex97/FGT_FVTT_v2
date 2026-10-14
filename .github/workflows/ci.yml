@@ -15,7 +15,9 @@ jobs:
       # Foundry's real data layer, which the tests and the pack build run
       # against (ADR-0006). The copy is private and this repository is not,
       # so it comes in with a read-only token. `app/common` is the data layer;
-      # the perception folder is read by jack.test.mjs for the v14 RenderFlags.
+      # the perception folder is read by jack.test.mjs for the v14 RenderFlags;
+      # the dice and `Hooks` are the two corners of the client the test world
+      # runs for real (`test/helpers/foundry-client.mjs`).
       - uses: actions/checkout@v4
         with:
           repository: zarex97/foundryVTT_copy
@@ -24,6 +26,8 @@ jobs:
           sparse-checkout: |
             app/common
             app/client/canvas/perception
+            app/client/dice
+            app/client/helpers
       - uses: actions/setup-node@v4
         with:
           # Foundry v14's own floor (its package.json `engines`).

@@ -19,10 +19,12 @@
 
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from "vitest";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
+import { worldDefaults } from "../helpers/world.mjs";
 
 beforeAll(prepareSubjects, 60_000);
-beforeEach(() => { globalThis.Roll = class { async evaluate() { return { total: 1 }; } }; });
-afterEach(() => { delete globalThis.Roll; });
+// Every chance lands: the world rolls Foundry's real dice, each face a 1.
+beforeEach(() => worldDefaults({ dice: { every: 1 } }));
+afterEach(() => worldDefaults());
 
 const io = async () => (await import("../../module/engine/io.mjs")).worldIO();
 

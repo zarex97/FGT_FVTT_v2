@@ -9,9 +9,12 @@
  * engine's largest file could not be imported by any test, and nothing in it could
  * be held to its own output.
  *
- * What is stubbed here is only the base classes those declarations extend. No
- * window is ever constructed, and nothing the rules read passes through them.
+ * What is stubbed here is only the base classes those declarations extend. They
+ * are the test world's own (`client-api.mjs`): a window nobody opens draws
+ * nothing, and one the engine opens inside a world is shown to that world.
  */
+
+import { installClientApi } from "./client-api.mjs";
 
 /**
  * Give `foundry.applications.api` the base classes a module-scope `class extends`
@@ -23,10 +26,5 @@
  * @returns {void}
  */
 export function installClientNamespace() {
-  const applications = (globalThis.foundry.applications ??= {});
-  applications.api ??= {
-    ApplicationV2: class ApplicationV2 {},
-    DialogV2: class DialogV2 {},
-    HandlebarsApplicationMixin: (Base) => class extends Base {},
-  };
+  installClientApi();
 }

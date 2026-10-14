@@ -43,6 +43,11 @@ export async function checkSightings({ board = null } = {}) {
 
     const actor = game.actors.get(seer.id);
     if (!actor) continue;
+    // Only a Unit whose schema keeps the record (`combatantCommon`): a Master's
+    // does not, and the write was a Silent Drop on every move -- Foundry pruned
+    // it, so the Master "saw" the same Units for the first time again and again.
+    // Nothing reads a Master's first sightings; Semiramis's Doves are a Servant's.
+    if (!("seenUnitIds" in (actor.system ?? {}))) continue;
 
     const updated = new Set([...(seer.seenUnitIds ?? []), ...newlySeen]);
     await actor.update({ "system.seenUnitIds": [...updated] });

@@ -21,6 +21,7 @@
 
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from "vitest";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
+import { worldDefaults } from "../helpers/world.mjs";
 import { fieldsOf, areasOf, squareAround, compiled, prepareFields } from "../helpers/field.mjs";
 import { runFieldEvents } from "../../module/engine/fields.mjs";
 import { zonePaintArgs } from "../../module/engine/skill-use.mjs";
@@ -30,8 +31,9 @@ import * as I from "../../module/engine/intents.mjs";
 beforeAll(async () => { await prepareSubjects(); await prepareFields(); }, 120_000);
 
 // A d100 that always lands on 1: Burn's chance is automatic, and the roll is not what this is about.
-beforeEach(() => { globalThis.Roll = class { async evaluate() { this.total = 1; return this; } }; });
-afterEach(() => { delete globalThis.Roll; });
+// Every chance lands: the world rolls Foundry's real dice, each face a 1.
+beforeEach(() => worldDefaults({ dice: { every: 1 } }));
+afterEach(() => worldDefaults());
 
 // Document ids: an effect's `sourceUnitId` is a real DocumentIdField, sixteen alphanumerics.
 const QZ = "quetzalcoatlAct1";

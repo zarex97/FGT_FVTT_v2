@@ -53,17 +53,42 @@
  * - **`update()` is synchronously visible.** Which matches the engine's
  *   assumptions everywhere except token movement, where Foundry holds the
  *   document at the origin until an animation finishes — see `move()` below.
- * - **No socket.** `isGM` defaults true, so `planApplication` keeps everything
- *   local and `io.proxy` is never reached. Pass `isGM: false` to exercise
- *   routing; the proxy is recorded, not delivered.
+ * - **Two people, one client.** This client is the GM (`u1`) and Player1 (`p1`)
+ *   is the other person at the table, owning what a spec gives them
+ *   (`owner: "p1"`). `isGM: false` turns it round: this client is the player,
+ *   and a request to the GM crosses the socket and is recorded in `proxied`,
+ *   not run.
+ * - **Questions are answered from the test's script.** A question routed to
+ *   Player1 crosses `game.socket`; the model plays Player1's client, opening the
+ *   real dialog there and sending the answer back. Every window is shown to a
+ *   user (`client-api.mjs`) and logged in `asked`. A question the script did not
+ *   expect, or one shown to the wrong user, is a failure — Foundry would wait for
+ *   a person instead.
+ * - **Chat cards are drawn as data.** `renderTemplate` records the template and
+ *   the data it was given in `cards` and returns no HTML. No engine code reads a
+ *   card's content back, so the data is what a test holds a card to.
+ * - **The dice are Foundry's, the faces the test's.** `Roll` is the real class;
+ *   each face comes from `w.dice` — set by the test, or a seeded twister — and
+ *   every roll is logged in `rolls`.
+ * - **Hooks fire, and the engine listens.** `Hooks` is Foundry's own, a fresh
+ *   copy per world. A write fires what Foundry's client backend fires, and only
+ *   when it changed something; a token write that moves it fires the movement
+ *   hooks around it. The engine's listener list is bound in every world. Unlike
+ *   Foundry, a listener's promise is kept (`settle()`), and a listener that
+ *   throws or rejects is a failure.
+ * - **Failures are thrown when the world closes.** A failure above is pushed to
+ *   `failures` and thrown after `fn` returns, because the engine swallows what a
+ *   window throws (`engine/ask.mjs:41`). Foundry would have said nothing.
  * - **Ids are the test's own.** A Foundry `_id` is sixteen alphanumerics, and
  *   tests name their actors `"heracles"`. The id lives on the wrapper and is
  *   never handed to the document, so a Token's `actorId` is likewise held beside
  *   its document rather than in it.
- * - **The client layer is absent.** `prepareData` is this file's own order
+ * - **The client layer is absent, but for two corners.** Foundry's dice and
+ *   `Hooks` run for real (`foundry-client.mjs`); its windows are stood in
+ *   (`client-api.mjs`). `prepareData` is this file's own order
  *   (restore, the type's base pass, rule elements, derived), mirroring
  *   `module/documents/index.mjs`; Combat's `started` and the acting faction are
- *   facts a test states. Only `common/` imports in Node.
+ *   facts a test states.
  *
  * Anything not modelled **throws** rather than returning `undefined`, so the
  * gap names itself instead of letting a test assert on nothing.
@@ -76,6 +101,8 @@
 
 import { readdirSync } from "node:fs";
 import { loadFoundry, installSystem, sourceForm, firstMismatch } from "../../tools/lib/foundry.mjs";
+import { loadDice, diceConfig, freshHooks } from "./foundry-client.mjs";
+import { installClientApi, bindWorld, asUser } from "./client-api.mjs";
 
 /* -------------------------------------------------------------------------- */
 /*  The data layer                                                            */
@@ -103,17 +130,35 @@ export async function prepareWorld() {
   await import("../../module/engine/io.mjs");
 }
 
-async function loadReal() {
-  if (REAL) return REAL;
+/** @type {Promise<object>|null} */
+let loading = null;
+
+/**
+ * Load it once. Memoised as a promise: `withSubjects` builds its subjects in
+ * parallel, and two loads interleaving swap `game` under each other.
+ *
+ * @returns {Promise<object>}
+ */
+function loadReal() {
+  loading ??= load();
+  return loading;
+}
+
+async function load() {
   const saved = Object.fromEntries(GLOBALS.map((k) => [k, globalThis[k]]));
   await loadFoundry();
   const models = await installSystem();
+  const dice = await loadDice();
+  globalThis.foundry.dice = dice;
+  installClientApi();
   REAL = {
     foundry: globalThis.foundry,
     CONST: globalThis.CONST,
     CONFIG: globalThis.CONFIG,
     game: { ...globalThis.game },
     models,
+    dice,
+    settingDefaults: await registeredSettingDefaults(),
   };
   for (const k of GLOBALS) {
     if (saved[k] === undefined) delete globalThis[k];
@@ -122,7 +167,37 @@ async function loadReal() {
   return REAL;
 }
 
-const GLOBALS = ["game", "canvas", "foundry", "Hooks", "ui", "CONFIG", "CONST"];
+const GLOBALS = ["game", "canvas", "foundry", "Hooks", "ui", "CONFIG", "CONST", "Roll", "ChatMessage"];
+
+/**
+ * Every `fgt` setting's default, as `module/settings.mjs` registers it.
+ *
+ * The real `registerSettings()` runs once against a `register` that keeps
+ * only the defaults, so a world holds what a fresh live world holds and a
+ * setting added to the system is in the model the day it is registered. A key
+ * nothing registers still throws when read.
+ *
+ * @returns {Promise<Record<string, unknown>>}
+ */
+async function registeredSettingDefaults() {
+  const defaults = {};
+  const before = globalThis.game;
+  globalThis.game = {
+    ...before,
+    settings: {
+      register: (scope, key, data) => { if (scope === "fgt") defaults[key] = structuredClone(data.default); },
+      registerMenu: () => {},
+    },
+    i18n: { localize: (k) => k, format: (k) => k },
+  };
+  try {
+    const { registerSettings } = await import("../../module/settings.mjs");
+    registerSettings();
+  } finally {
+    globalThis.game = before;
+  }
+  return defaults;
+}
 
 /**
  * Install the real `foundry`, `CONST` and `CONFIG`, and the part of `game` a
@@ -164,8 +239,9 @@ const isKnownDrop = (document, path) => KNOWN_DROPS.some((d) => d.document === d
  */
 function loudUpdate(doc, patch, { label, writes }) {
   for (const [path, raw] of Object.entries(patch)) writes.push([label, path, raw]);
+  let diff;
   try {
-    doc.updateSource(structuredClone(sourceForm(patch)));
+    diff = doc.updateSource(structuredClone(sourceForm(patch)));
   } catch (err) {
     throw new Error(`${label}: Foundry refused ${JSON.stringify(Object.keys(patch))} — ${err.message}`, { cause: err });
   }
@@ -174,6 +250,27 @@ function loudUpdate(doc, patch, { label, writes }) {
     const miss = firstMismatch(requested, getProperty(doc._source, path), path);
     if (miss && !isKnownDrop(doc.documentName, path)) throw silentDrop(label, "write to", miss);
   }
+  return diff;
+}
+
+/**
+ * Tell the listeners, as Foundry's client backend does once a write has landed
+ * (`client/data/client-backend.mjs`): only for a write that changed something,
+ * with the diff and the document's id as `changes`, and the operation's options.
+ *
+ * @param {string} hook "updateActor", "deleteActiveEffect", ...
+ * @param {object} doc the wrapper the engine holds
+ * @param {object|null} diff `updateSource`'s return, for an update; `null` for a create or delete
+ * @param {object} [options] the caller's own options
+ */
+function fire(hook, doc, diff, options = {}) {
+  const operation = { diff: true, recursive: true, render: true, ...options };
+  if (diff === null) return globalThis.Hooks?.callAll?.(hook, doc, operation, game.user?.id ?? null);
+  if (foundry.utils.isEmpty(diff)) return undefined;
+  // The server stamps every update it accepts, and the client hears the stamp
+  // in the change (`_stats.modifiedTime`), as `check:world` measured.
+  const changes = { ...diff, _stats: { modifiedTime: Date.now() }, _id: doc.id };
+  return globalThis.Hooks?.callAll?.(hook, doc, changes, operation, game.user?.id ?? null);
 }
 
 /**
@@ -254,13 +351,23 @@ class FakeItem {
   get system() { return this.doc.system; }
   get _source() { return this.doc._source; }
 
-  async update(patch) {
-    loudUpdate(this.doc, patch, { label: `Item(${this.name})`, writes: this.world.writes });
+  get parent() { return this.actor; }
+  get documentName() { return "Item"; }
+
+  async update(patch, options = {}) {
+    const diff = loudUpdate(this.doc, patch, { label: `Item(${this.name})`, writes: this.world.writes });
     this.doc.reset();
     this.actor?.prepare();
+    fire("updateItem", this, diff, options);
+    return this;
   }
 
-  async delete() { this.actor?.items.delete(this.id); this.actor?.prepare(); }
+  async delete(options = {}) {
+    this.actor?.items.delete(this.id);
+    this.actor?.prepare();
+    fire("deleteItem", this, null, options);
+    return this;
+  }
 
   toObject() { return this.doc.toObject(); }
 }
@@ -288,13 +395,23 @@ class FakeEffect {
   get showIcon() { return this.doc.showIcon; }
   get _source() { return this.doc._source; }
 
-  async update(patch) {
-    loudUpdate(this.doc, patch, { label: `Effect(${this.name})`, writes: this.world.writes });
+  get parent() { return this.actor; }
+  get documentName() { return "ActiveEffect"; }
+
+  async update(patch, options = {}) {
+    const diff = loudUpdate(this.doc, patch, { label: `Effect(${this.name})`, writes: this.world.writes });
     this.doc.reset();
     this.actor.prepare();
+    fire("updateActiveEffect", this, diff, options);
+    return this;
   }
 
-  async delete() { this.actor.effects.delete(this.id); this.actor.prepare(); }
+  async delete(options = {}) {
+    this.actor.effects.delete(this.id);
+    this.actor.prepare();
+    fire("deleteActiveEffect", this, null, options);
+    return this;
+  }
 
   toObject() { return this.doc.toObject(); }
 }
@@ -304,7 +421,9 @@ class FakeActor {
     this.id = data.id ?? nextId("actor");
     this.world = world;
     this.isOwner = data.isOwner ?? true;
-    this.ownership = data.ownership ?? {};
+    // Who owns it, by user id, as Foundry's ownership record holds it.
+    // `owner: "p1"` is shorthand for Player1 owning it outright.
+    this.ownership = { ...(data.ownership ?? {}), ...(data.owner ? { [data.owner]: 3 } : {}) };
 
     const type = data.type ?? "servant";
     this.model = REAL.models.Actor[type];
@@ -359,40 +478,77 @@ class FakeActor {
     writeDerived(this.system, applyStatDeltas(this.system, contributions.statDeltas));
   }
 
-  async update(patch) {
-    loudUpdate(this.doc, patch, { label: `Actor(${this.name})`, writes: this.world.writes });
+  get documentName() { return "Actor"; }
+  get prototypeToken() { return this.doc.prototypeToken; }
+  get isToken() { return false; }
+  getDependentTokens() { return this.world.tokensFor(this.id); }
+
+  async update(patch, options = {}) {
+    const diff = loudUpdate(this.doc, patch, { label: `Actor(${this.name})`, writes: this.world.writes });
     this.prepare();
+    fire("updateActor", this, diff, options);
+    return this;
   }
 
-  async createEmbeddedDocuments(type, dataArray) {
-    if (type === "Item") {
-      const made = dataArray.map((d) => new FakeItem(d, this, this.world));
-      for (const item of made) this.items.set(item.id, item);
-      this.prepare();
-      return made;
-    }
-    if (type === "ActiveEffect") {
-      const made = dataArray.map((d) => new FakeEffect(d, this, this.world));
-      for (const e of made) this.effects.set(e.id, e);
-      // Foundry re-prepares the parent when an embedded effect changes, and an
-      // effect's rules are contributions the prepare chain folds in.
-      this.prepare();
-      return made;
-    }
+  /** The collection and wrapper for an embedded type. */
+  #embedded(type) {
+    if (type === "Item") return { from: this.items, Wrapper: FakeItem };
+    if (type === "ActiveEffect") return { from: this.effects, Wrapper: FakeEffect };
     throw new Error(`Embedded document type "${type}" is not modelled.`);
   }
 
-  async deleteEmbeddedDocuments(type, ids) {
-    const from = type === "Item" ? this.items : type === "ActiveEffect" ? this.effects : null;
-    if (!from) throw new Error(`Embedded document type "${type}" is not modelled.`);
-    for (const id of ids) from.delete(id);
+  async createEmbeddedDocuments(type, dataArray, options = {}) {
+    const { from, Wrapper } = this.#embedded(type);
+    const made = dataArray.map((d) => new Wrapper(d, this, this.world));
+    for (const doc of made) from.set(doc.id, doc);
+    // Foundry re-prepares the parent before any listener hears of it, and an
+    // effect's rules are contributions the prepare chain folds in.
     this.prepare();
-    return [];
+    for (const doc of made) fire(`create${type}`, doc, null, options);
+    return made;
   }
 
-  async delete() { this.world.actors.delete(this.id); }
+  async updateEmbeddedDocuments(type, updates, options = {}) {
+    const { from } = this.#embedded(type);
+    const done = [];
+    for (const { _id, ...patch } of updates) {
+      const doc = from.get(_id);
+      if (doc) done.push(await doc.update(patch, options));
+    }
+    return done;
+  }
+
+  async deleteEmbeddedDocuments(type, ids, options = {}) {
+    const { from } = this.#embedded(type);
+    const gone = ids.map((id) => from.get(id)).filter(Boolean);
+    for (const doc of gone) from.delete(doc.id);
+    this.prepare();
+    for (const doc of gone) fire(`delete${type}`, doc, null, options);
+    return gone;
+  }
+
+  async delete(options = {}) {
+    this.world.actors.delete(this.id);
+    fire("deleteActor", this, null, options);
+    return this;
+  }
 
   getActiveTokens() { return this.world.tokensFor(this.id).map((t) => ({ document: t })); }
+
+  /**
+   * Foundry's `testUserPermission`: a GM holds every level; anyone else holds
+   * what the ownership record gives them, or its `default`.
+   *
+   * @param {{id: string, isGM?: boolean}} user
+   * @param {string|number} level "OWNER", "OBSERVER", ... or the number
+   * @returns {boolean}
+   */
+  testUserPermission(user, level) {
+    if (user?.isGM) return true;
+    const LEVELS = CONST.DOCUMENT_OWNERSHIP_LEVELS;
+    const want = typeof level === "number" ? level : LEVELS[level];
+    return (this.ownership[user?.id] ?? this.ownership.default ?? LEVELS.NONE) >= want;
+  }
 }
 
 class FakeToken {
@@ -413,9 +569,20 @@ class FakeToken {
 
   get actor() { return this.world.actors.get(this.actorId) ?? null; }
 
-  async update(patch) {
-    loudUpdate(this.doc, patch, { label: `Token(${this.id})`, writes: this.world.writes });
-    this.doc.reset();
+  get documentName() { return "Token"; }
+  get width() { return this.doc.width; }
+  get height() { return this.doc.height; }
+  get sight() { return this.doc.sight; }
+  get texture() { return this.doc.texture; }
+  get lockRotation() { return this.doc.lockRotation; }
+  reset() { this.doc.reset(); }
+
+  /**
+   * An update; one that changes `x`, `y` or `elevation` is a movement, as it is
+   * to Foundry, and fires its movement hooks around the write.
+   */
+  async update(patch, options = {}) {
+    return this.#write(patch, options, this.world.writes);
   }
 
   /**
@@ -431,13 +598,59 @@ class FakeToken {
     if (options.animate !== false) return false;
     const patch = {};
     for (const k of ["x", "y", "elevation"]) if (waypoint?.[k] !== undefined) patch[k] = waypoint[k];
-    loudUpdate(this.doc, patch, { label: `Token(${this.id})`, writes: [] });
-    this.doc.reset();
+    const moved = await this.#write(patch, options, []);
     this.world.writes.push(["Token", "move", { id: this.id, ...waypoint }]);
-    return true;
+    return moved !== false;
   }
 
-  async delete() { this.world.tokens.delete(this.id); }
+  /**
+   * Foundry's order for a write that moves a token (`client/documents/token.mjs`):
+   * `preMoveToken` through `Hooks.call`, where a `false` strips the movement;
+   * then the write and `updateToken`; then `moveToken`, from the operation's end.
+   * The movement is the shape the system's listeners read
+   * (`engine/movement-hooks.mjs#pathOf`, `#panelsMoved`): one waypoint passed.
+   *
+   * @returns {Promise<FakeToken|false>} `false` when a listener refused the move
+   */
+  async #write(patch, options, writes) {
+    const origin = { x: this.x, y: this.y, elevation: this.elevation };
+    const destination = {
+      x: patch.x ?? origin.x, y: patch.y ?? origin.y, elevation: patch.elevation ?? origin.elevation,
+    };
+    const moving = ["x", "y", "elevation"].some((k) => k in patch && patch[k] !== origin[k]);
+    let movement = null;
+    if (moving) {
+      const grid = canvas.grid;
+      const a = grid.getOffset(origin);
+      const b = grid.getOffset(destination);
+      const spaces = Math.max(Math.abs(a.i - b.i), Math.abs(a.j - b.j));
+      movement = {
+        id: nextId("move"),
+        method: options.method ?? "api",
+        forced: Boolean(options.fgtForced),
+        origin,
+        destination,
+        pending: { waypoints: [] },
+        passed: { waypoints: [destination], spaces, cost: spaces },
+      };
+      if (globalThis.Hooks?.call?.("preMoveToken", this, movement, options) === false) {
+        for (const k of ["x", "y", "elevation"]) delete patch[k];
+        movement = null;
+        if (Object.keys(patch).length === 0) return false;
+      }
+    }
+    const diff = loudUpdate(this.doc, patch, { label: `Token(${this.id})`, writes });
+    this.doc.reset();
+    fire("updateToken", this, diff, options);
+    if (movement) globalThis.Hooks?.callAll?.("moveToken", this, movement, { ...options }, game.user ?? null);
+    return this;
+  }
+
+  async delete(options = {}) {
+    this.world.tokens.delete(this.id);
+    fire("deleteToken", this, null, options);
+    return this;
+  }
 }
 
 class FakeCombat {
@@ -455,26 +668,118 @@ class FakeCombat {
     // `engine/budget.mjs#attackOutsideOwnTurn` treats as "no other Turn to be
     // on", so an unset value cannot silently grant an exemption.
     this.actingFactionId = data.actingFactionId ?? null;
-    // Seeded flags, in the flat `scope.key` shape `getFlag` reads. Without this
-    // a spec could set a budget the code would never find: `budgetFor` would
-    // answer a fresh, EMPTY budget and a test asserting a refusal would pass
-    // because nothing was ever exhausted.
-    this.flags = { ...(data.flags ?? {}) };
+    // Seeded flags, in the flat `scope.key` shape `getFlag` reads, held on the
+    // real document. Without this a spec could set a budget the code would
+    // never find: `budgetFor` would answer a fresh, EMPTY budget and a test
+    // asserting a refusal would pass because nothing was ever exhausted.
+    for (const [path, value] of Object.entries(data.flags ?? {})) {
+      const [scope, ...key] = path.split(".");
+      this.doc.updateSource({ flags: { [scope]: { [key.join(".")]: value } } });
+    }
+    // One combatant per faction, as `rules/turn-order` keys them: a Turn is a
+    // faction's, and `factionOfCombatant` reads `system.factionId`.
+    this.combatants = new DocumentCollection((data.factions ?? []).map((f) => [`c-${f}`, { id: `c-${f}`, system: { factionId: f } }]));
+    this.currentCombatantId = data.actingFactionId ? `c-${data.actingFactionId}` : null;
+    // Who read the Round while a boundary was running, for a test that asks
+    // whether the end of a Round read the Round that ended.
+    this.roundReads = null;
   }
 
-  get round() { return this.doc.round; }
+  get round() {
+    this.roundReads?.push(new Error().stack.split("\n").slice(2, 6).map((l) => l.trim()).join(" < "));
+    return this.doc.round;
+  }
+  get combatant() { return this.combatants.get(this.currentCombatantId) ?? null; }
   get system() { return this.doc.system; }
+  get flags() { return this.doc.flags; }
   get _source() { return this.doc._source; }
+  get documentName() { return "Combat"; }
 
-  async update(patch) {
-    loudUpdate(this.doc, patch, { label: "Combat", writes: this.world.writes });
+  async update(patch, options = {}) {
+    const diff = loudUpdate(this.doc, patch, { label: "Combat", writes: this.world.writes });
     this.doc.reset();
+    fire("updateCombat", this, diff, options);
+    return this;
   }
 
-  getFlag(scope, key) { return this.flags[`${scope}.${key}`]; }
-  async setFlag(scope, key, value) {
-    this.flags[`${scope}.${key}`] = value;
-    this.world.writes.push(["Combat", `flag:${scope}.${key}`, value]);
+  /**
+   * End this faction's Turn and hand it to the next, as Foundry's `nextTurn`
+   * and `nextRound` do (`client/documents/combat.mjs`): a Round boundary fires
+   * `combatRound` BEFORE the Round is written; then the write, `updateCombat`,
+   * and `combatTurnChange` with the Turn that ended and the one that began. The
+   * system's scheduler runs every boundary from those two hooks.
+   *
+   * @param {{to: string, newRound?: boolean}} next the faction whose Turn begins
+   * @returns {Promise<void>} once the boundary has run and the world is quiet
+   */
+  async passTurn({ to, newRound = false }) {
+    const prior = { round: this.round, turn: 0, combatantId: this.currentCombatantId, tokenId: null };
+    if (newRound) {
+      const round = this.doc.round + 1;
+      globalThis.Hooks.callAll("combatRound", this, { round, turn: 0 }, { direction: 1 });
+      await this.update({ round, turn: 0 }, { direction: 1 });
+    } else {
+      await this.update({ turn: (this.doc.turn ?? 0) + 1 }, { direction: 1 });
+    }
+    this.currentCombatantId = `c-${to}`;
+    this.actingFactionId = to;
+    const current = { round: this.doc.round, turn: this.doc.turn, combatantId: this.currentCombatantId, tokenId: null };
+    globalThis.Hooks.callAll("combatTurnChange", this, prior, current);
+    await this.world.settle();
+  }
+
+  getFlag(scope, key) { return this.doc.flags?.[scope]?.[key]; }
+  // A real `setFlag` is an `update` of `flags.<scope>.<key>`, and fires `updateCombat`.
+  setFlag(scope, key, value) { return this.update({ [`flags.${scope}.${key}`]: value }); }
+  unsetFlag(scope, key) { return this.update({ [`flags.${scope}.-=${key}`]: null }); }
+}
+
+/**
+ * A chat message: the card a player sees, and where a Combat Process keeps its
+ * state between rungs (`flags.fgt.process`, Ch. 21).
+ *
+ * Backed by a real `BaseChatMessage`, so a flag write goes through Foundry's
+ * own `updateSource` and the loud prune like every other write here. The
+ * speaker and whisper list are held beside the document, for the reason a
+ * Token's `actorId` is: they name the test's own ids, which are not Foundry's
+ * sixteen-character ones.
+ */
+class FakeChatMessage {
+  constructor(data, world) {
+    this.id = data.id ?? nextId("msg");
+    this.world = world;
+    this.speaker = { scene: null, actor: null, token: null, alias: "", ...(data.speaker ?? {}) };
+    this.whisper = [...(data.whisper ?? [])];
+    this.doc = realDocument("ChatMessage", {
+      ...documentData(data, ["content", "flavor", "title", "flags", "blind", "emote"]),
+      // The author is a user by Foundry id, and this world's users carry the
+      // test's own ids, so the document holds one well-formed stand-in.
+      author: "worldUserAuthor1",
+      timestamp: data.timestamp ?? world.clock(),
+    }, `ChatMessage(${this.id})`);
+  }
+
+  get content() { return this.doc.content; }
+  get flags() { return this.doc.flags; }
+  get timestamp() { return this.doc.timestamp; }
+  get _source() { return this.doc._source; }
+  get documentName() { return "ChatMessage"; }
+
+  async update(patch, options = {}) {
+    const diff = loudUpdate(this.doc, patch, { label: `ChatMessage(${this.id})`, writes: this.world.writes });
+    this.doc.reset();
+    fire("updateChatMessage", this, diff, options);
+    return this;
+  }
+
+  getFlag(scope, key) { return this.doc.flags?.[scope]?.[key]; }
+  setFlag(scope, key, value) { return this.update({ [`flags.${scope}.${key}`]: value }); }
+  unsetFlag(scope, key) { return this.update({ [`flags.${scope}.-=${key}`]: null }); }
+
+  async delete(options = {}) {
+    this.world.messages.delete(this.id);
+    fire("deleteChatMessage", this, null, options);
+    return this;
   }
 }
 
@@ -483,7 +788,16 @@ class FakeCombat {
 /* -------------------------------------------------------------------------- */
 
 /** The `core` settings Foundry's `common/` documents read, as a fresh world holds them. */
-const CORE_SETTINGS = { prototypeTokenOverrides: { base: {} } };
+const CORE_SETTINGS = { prototypeTokenOverrides: { base: {} }, diceConfiguration: {} };
+
+/** The world's own defaults, older than the registered ones and kept so no test's world changed under it. */
+const WORLD_SETTINGS = {
+  turnsPerRound: 3, npGateRound: 3, npGateRoundAssassin: 2, conquestSparesServants: true,
+  // Zero seconds: the Command Spell interrupt window is not waited on.
+  // `awaitInterrupt` polls every half second for this long when any Master
+  // could spend one, and a test answers the questions it means to.
+  commandSpellTimeout: 0,
+};
 
 /** Anything not modelled says so, rather than answering `undefined`. */
 function notModelled(what) {
@@ -493,6 +807,238 @@ function notModelled(what) {
       throw new Error(`${what}.${String(prop)} is not modelled by test/helpers/world.mjs. Add it there.`);
     },
   });
+}
+
+/**
+ * Foundry's real `Hooks`, a fresh copy for this world, with what Foundry does
+ * not do: every listener's returned promise is kept, so a test can wait for the
+ * work a hook started (`w.settle()`), and a listener that throws or rejects is
+ * a failure rather than a line in a console nobody reads.
+ *
+ * Foundry calls listeners in registration order, stops `call` at a `false`,
+ * removes a `once` before it runs, and never awaits anything; all of that is
+ * its own code here. `callAll` is also recorded in `w.hooks`.
+ *
+ * @param {object} world
+ * @returns {Promise<Function>} the class to install as `Hooks`
+ */
+async function worldHooks(world) {
+  const Hooks = await freshHooks();
+  const pending = new Set();
+  const track = (value) => {
+    if (typeof value?.then !== "function") return value;
+    const done = Promise.resolve(value)
+      .catch((err) => { world.failures.push(`A listener rejected: ${err?.stack ?? err}`); })
+      .finally(() => pending.delete(done));
+    pending.add(done);
+    return value;
+  };
+  const wrapped = new WeakMap();
+  const { on, off, callAll } = Hooks;
+  Hooks.on = function (hook, fn, options) {
+    const listener = (...args) => track(fn(...args));
+    wrapped.set(fn, listener);
+    return on.call(this, hook, listener, options);
+  };
+  Hooks.off = function (hook, fn) {
+    return off.call(this, hook, typeof fn === "function" ? (wrapped.get(fn) ?? fn) : fn);
+  };
+  Hooks.callAll = function (hook, ...args) {
+    world.hooks.push([hook, ...args]);
+    return callAll.call(this, hook, ...args);
+  };
+  // A listener that throws is caught by Foundry and reported through `error`.
+  Hooks.on("error", (location, error) => {
+    world.failures.push(`A listener threw (${location}): ${error?.message ?? error}`);
+  });
+  // Until the world goes quiet. A listener's returned promise is awaited; work a
+  // listener starts and does not return (`syncVision(...).catch(...)`, Foundry's
+  // own habit) is waited out instead: two turns of the event loop with no new
+  // write, hook or tracked promise.
+  world.settle = async () => {
+    let last = -1;
+    for (let quiet = 0, turns = 0; quiet < 2 && turns < 500; turns += 1) {
+      if (pending.size) await Promise.allSettled([...pending]);
+      await new Promise((resolve) => { setTimeout(resolve, 0); });
+      const now = world.writes.length + world.hooks.length + pending.size;
+      quiet = now === last ? quiet + 1 : 0;
+      last = now;
+    }
+  };
+  return Hooks;
+}
+
+/**
+ * Where every die's face comes from.
+ *
+ * A test sets the faces it cares about, per die size and in order
+ * (`w.dice.set("d100", 95, 12)`; a `5d10` takes five `d10`s). Every other face
+ * comes from Foundry's own Mersenne Twister seeded with the world's seed, so an
+ * unset die is the same on every run and a test never flickers. A face set and
+ * never rolled is a failure: the test was about a roll that did not happen.
+ *
+ * @param {number} seed
+ * @param {object} world
+ */
+function worldDice(seed, world) {
+  const twister = new REAL.dice.MersenneTwister(seed);
+  const queued = new Map();
+  const log = [];
+  let fixed = null;
+  return {
+    log,
+    /**
+     * @param {string|number} die "d100", "d20", or the face count
+     * @param {...number} faces
+     */
+    set(die, ...faces) {
+      const size = Number(String(die).replace(/^d/, ""));
+      for (const f of faces) {
+        if (!Number.isInteger(f) || f < 1 || f > size) throw new Error(`A d${size} has no face ${f}.`);
+      }
+      queued.set(size, [...(queued.get(size) ?? []), ...faces]);
+      return world;
+    },
+    face(term) {
+      const set = queued.get(term.faces);
+      // Chosen by the test, face by face or all at once, or else the seed's.
+      const scripted = Boolean(set?.length) || fixed !== null;
+      const result = set?.length ? set.shift()
+        : fixed !== null ? Math.min(fixed, term.faces)
+          : term.mapRandomFace(twister.random());
+      log.push({ faces: term.faces, result, scripted });
+      return result;
+    },
+    /**
+     * Every die not set otherwise lands on `face` (or its highest face, if smaller).
+     * @param {number} face
+     */
+    every(face) {
+      fixed = face;
+      return world;
+    },
+    leftovers() {
+      return [...queued].flatMap(([size, faces]) => faces.map((f) => `d${size} = ${f}`));
+    },
+  };
+}
+
+/**
+ * The people at the table, as far as the engine can ask them anything.
+ *
+ * A question reaches a window one of two ways, and both are Foundry's own:
+ * `FGTSocket.ask` to this client opens the dialog here; to Player1 it crosses
+ * `game.socket`, and the model plays Player1's client, opening the same real
+ * dialog there (`apps/prompt.mjs#renderPrompt`) and sending the answer back.
+ * Either way the window is shown to a user (`client-api.mjs`), and answered from
+ * the test's script: `w.answer({title, by, pick})`, `{title, by, decline: true}`,
+ * or for a yes/no dialog `{title, by, value}`.
+ *
+ * @param {object} world
+ * @returns {{socket: object, answer: Function, show: Function, dialog: Function, close: Function}}
+ */
+function questions(world) {
+  const script = [];
+  const listeners = [];
+
+  const take = (title, kind, by) => {
+    const at = script.findIndex((a) => a.title === title && (a.kind ?? kind) === kind);
+    if (at < 0) {
+      world.failures.push(`A question nobody scripted was shown to ${by}: "${title}" (${kind}).`);
+      return null;
+    }
+    const [answer] = script.splice(at, 1);
+    if (answer.by && answer.by !== by) {
+      world.failures.push(`"${title}" was shown to ${by}; the script expected ${answer.by}.`);
+    }
+    return answer;
+  };
+
+  /** Answer a real `ChoiceDialog` the way its player would: tick, then confirm. */
+  const answerChoice = async (app, by) => {
+    const context = await app._prepareContext();
+    const entry = { title: app.title, kind: "choose", by, options: context.options.map((o) => o.id) };
+    world.asked.push(entry);
+    const answer = take(entry.title, "choose", by);
+    if (!answer || answer.decline) return app.close();
+    const { actions } = app.constructor.DEFAULT_OPTIONS;
+    for (const id of answer.pick ?? []) {
+      if (!entry.options.includes(id)) {
+        world.failures.push(`"${entry.title}" offered ${JSON.stringify(entry.options)}; the script picked "${id}".`);
+        continue;
+      }
+      await actions.toggle.call(app, {}, { closest: () => ({ dataset: { optionId: id } }) });
+    }
+    await actions.confirm.call(app, {}, {});
+    if (app.rendered) {
+      world.failures.push(`"${entry.title}" refused the scripted answer ${JSON.stringify(answer.pick)}.`);
+      return app.close();
+    }
+    return undefined;
+  };
+
+  return {
+    socket: {
+      on: (_ns, fn) => { listeners.push(fn); },
+      off: () => {},
+      emit: (_ns, msg) => {
+        if (msg?.kind === "ask") {
+          // Player1's client: open the dialog there, and answer the asker.
+          Promise.resolve().then(() => asUser(msg.targetUserId, async () => {
+            let response;
+            try {
+              const { renderPrompt } = await import("../../module/apps/prompt.mjs");
+              response = { kind: "response", id: msg.id, ok: true, result: await renderPrompt(msg.spec) };
+            } catch (err) {
+              response = { kind: "response", id: msg.id, ok: false, error: { code: err.code ?? "ERROR", message: err.message } };
+            }
+            for (const fn of listeners) fn(response, msg.targetUserId);
+          }));
+        } else if (msg?.kind === "request") {
+          world.proxied.push(msg);
+        } else {
+          world.events.push(msg);
+        }
+      },
+    },
+    answer(answer) {
+      script.push(answer);
+      return world;
+    },
+    show(app, by) {
+      if (!app.constructor.DEFAULT_OPTIONS?.actions?.confirm) {
+        world.rendered.push(app.constructor.name);
+        return;
+      }
+      // After `render()` returns, as a person would: the asker is awaiting it.
+      Promise.resolve().then(() => answerChoice(app, by)).catch((err) => world.failures.push(String(err?.stack ?? err)));
+    },
+    dialog(kind, config, by) {
+      const title = config?.window?.title ?? "";
+      world.asked.push({ title, kind, by });
+      const answer = take(title, kind, by);
+      if (!answer || answer.decline) return null;
+      return answer.value ?? null;
+    },
+    close() {
+      for (const a of script) world.failures.push(`A scripted answer was never asked for: "${a.title}".`);
+      for (const f of world.dice.leftovers()) world.failures.push(`A scripted die was never rolled: ${f}.`);
+    },
+  };
+}
+
+/** What every world in a test file starts from, on top of its own spec; see {@link worldDefaults}. */
+let defaults = {};
+
+/**
+ * Give every world from here on a default spec — for a file whose premise is,
+ * say, "every chance lands on 1": `beforeEach(() => worldDefaults({dice: {every: 1}}))`.
+ * Pass nothing to clear it.
+ *
+ * @param {object|null} [spec]
+ */
+export function worldDefaults(spec = null) {
+  defaults = spec ?? {};
 }
 
 /**
@@ -519,7 +1065,8 @@ function notModelled(what) {
  * @param {(world: object) => Promise<unknown>} fn
  * @returns {Promise<unknown>}
  */
-export async function withWorld(spec, fn) {
+export async function withWorld(own, fn) {
+  const spec = { ...defaults, ...own };
   await loadReal();
   const saved = Object.fromEntries(GLOBALS.map((k) => [k, globalThis[k]]));
 
@@ -530,17 +1077,34 @@ export async function withWorld(spec, fn) {
   const world = {
     writes: [],
     hooks: [],
-    prompts: [],
     proxied: [],
+    events: [],
+    // What the table saw: the data each card was built from, every roll, every
+    // question and who it was shown to. Read by tests; written by the model.
+    cards: [],
+    rolls: [],
+    asked: [],
+    rendered: [],
+    // What went wrong where Foundry would have said nothing: an unscripted
+    // question, a question shown to the wrong user, a scripted die never rolled.
+    // Thrown when the world closes, because the engine swallows a throw from a
+    // window (`engine/ask.mjs:41`) and the test would pass on a `null`.
+    failures: [],
     derived,
     contributionsOf: snapshot.contributionsOf,
     actors: new DocumentCollection(),
     tokens: new DocumentCollection(),
-    settings: { turnsPerRound: 3, npGateRound: 3, npGateRoundAssassin: 2, conquestSparesServants: true, ...(spec.settings ?? {}) },
+    messages: new DocumentCollection(),
+    settings: { ...REAL.settingDefaults, ...WORLD_SETTINGS, ...(spec.settings ?? {}) },
+    selfUserId: "u1",
+    clock: ((t) => () => (t += 1000))(1_700_000_000_000),
     tokensFor(actorId) { return [...this.tokens.values()].filter((t) => t.actorId === actorId); },
     actor(name) { return [...this.actors.values()].find((a) => a.name === name || a.id === name) ?? null; },
     wrote(path) { return this.writes.filter(([, p]) => p === path); },
   };
+  world.dice = worldDice(spec.seed ?? 1, world);
+  if (spec.dice?.every !== undefined) world.dice.every(spec.dice.every);
+  Object.assign(world, questions(world));
 
   for (const a of spec.actors ?? []) {
     const actor = new FakeActor(a, world);
@@ -557,32 +1121,46 @@ export async function withWorld(spec, fn) {
     ? new FakeCombat(spec.viewedCombat, world)
     : world.combat;
 
+  // Two people at the table: this client, and one other. By default this client
+  // is the GM and the other is Player1, who owns whatever a spec gives them
+  // (`owner: "p1"`). `isGM: false` turns it round: this client is the player
+  // and the GM is elsewhere, so a request crosses the socket (recorded, not run).
+  const user = (id, name, isGM, isSelf) => ({
+    id, name, isGM, isSelf, active: true, hasPermission: () => false, getFlag: () => undefined,
+  });
+  const gmHere = spec.isGM ?? true;
+  const people = gmHere
+    ? [user("u1", "Gamemaster", true, true), user("p1", "Player1", false, false)]
+    : [user("u1", "Player1", false, true), user("g1", "Gamemaster", true, false)];
+  const users = Object.assign(new DocumentCollection(people.map((u) => [u.id, u])), {
+    activeGM: people.find((u) => u.isGM),
+  });
+
   globalThis.game = {
     // What a real Document reads while it constructs: release, system, model.
     ...REAL.game,
     actors: world.actors,
     combat: world.viewedCombat,
-    combats: { active: world.combat },
-    user: { id: "u1", isGM: spec.isGM ?? true },
-    // A collection like Foundry's, iterable, with the one user this world is
-    // seen by: `engine/board.mjs#ownerUserOf` walks every user to find a
-    // Unit's non-GM owner.
-    users: Object.assign(new DocumentCollection([["u1", { id: "u1", isGM: spec.isGM ?? true, isSelf: true }]]), {
-      activeGM: { isSelf: spec.isGM ?? true },
-    }),
+    combats: { active: world.combat, get: (id) => [world.combat, world.viewedCombat].find((c) => c.id === id) ?? null },
+    user: people[0],
+    // A collection like Foundry's, iterable: `engine/board.mjs#ownerUserOf`
+    // walks every user to find a Unit's non-GM owner, and `askOwner` asks them.
+    users,
     settings: {
       get(scope, key) {
-        // Foundry's own documents read one core setting while they update: the
-        // prototype-token overrides, empty in a fresh world.
+        // Foundry's own documents read core settings while they update and roll:
+        // the prototype-token overrides and the dice configuration, empty in a
+        // fresh world.
         if (scope === "core" && key in CORE_SETTINGS) return CORE_SETTINGS[key];
         if (!(key in world.settings)) throw new Error(`Setting "${key}" is not modelled by test/helpers/world.mjs.`);
         return world.settings[key];
       },
     },
+    socket: world.socket,
     packs: [],
-    messages: notModelled("game.messages"),
+    messages: world.messages,
     journal: notModelled("game.journal"),
-    i18n: { format: (k) => k, localize: (k) => k },
+    i18n: { format: (k) => k, localize: (k) => k, has: () => false },
   };
   globalThis.canvas = {
     tokens: {
@@ -599,15 +1177,72 @@ export async function withWorld(spec, fn) {
       getOffset: ({ x, y }) => ({ i: Math.floor(y / 100), j: Math.floor(x / 100) }),
     },
     // No Regions on it: a scene a test builds has no terrain, home bases or fields
-    // until it says so.
-    scene: { grid: { size: 100 }, regions: [] },
+    // until it says so -- `regions: [{id, panels, behaviors: [{type, system}]}]`.
+    // A stand-in for a RegionDocument, answering only what the board asks of one.
+    scene: {
+      grid: { size: 100 },
+      regions: (spec.regions ?? []).map((r) => ({
+        id: r.id, behaviors: r.behaviors ?? [], getOccupiedGridSpaceOffsets: () => r.panels ?? [],
+      })),
+    },
   };
-  globalThis.Hooks = { callAll: (...args) => world.hooks.push(args), on: () => {}, once: () => {} };
+  globalThis.Hooks = await worldHooks(world);
   globalThis.ui = { notifications: { warn: () => {}, error: () => {}, info: () => {} } };
 
+  // Foundry's real dice, every face from this world (`worldDice`).
+  CONFIG.debug ??= {};
+  CONFIG.Dice = diceConfig(REAL.dice, (term) => world.dice.face(term));
+  globalThis.Roll = class Roll extends REAL.dice.Roll {
+    async evaluate(options) {
+      await super.evaluate(options);
+      world.rolls.push({
+        formula: this.formula,
+        total: this.total,
+        faces: this.dice.flatMap((d) => d.results.map((r) => ({ faces: d.faces, result: r.result }))),
+      });
+      return this;
+    }
+  };
+  globalThis.ChatMessage = class ChatMessage {
+    static async create(data, options = {}) {
+      const message = new FakeChatMessage(data, world);
+      world.messages.set(message.id, message);
+      fire("createChatMessage", message, null, options);
+      return message;
+    }
+
+    static getSpeaker({ actor = null, token = null, alias = undefined } = {}) {
+      return { scene: null, actor: actor?.id ?? null, token: token?.id ?? null, alias: alias ?? actor?.name ?? "" };
+    }
+  };
+
+  bindWorld(world);
+  // The system's socket listener, as `fgt.mjs` registers it at init: how an
+  // answer from Player1's client comes back to the one that asked.
+  const { FGTSocket } = await import("../../module/net/socket.mjs");
+  FGTSocket.initialize();
+  // The engine's document listeners, the list `fgt.mjs` binds at ready. After
+  // the seeds, as a world's documents exist before its listeners do: loading a
+  // world fires no create hooks.
+  const { attachEngineListeners } = await import("../../module/engine/listeners.mjs");
+  world.listeners = attachEngineListeners({ skip: spec.skipListeners ?? [] });
+
   try {
-    return await fn(world);
+    const result = await fn(world);
+    await world.settle();
+    world.close();
+    // A test that stubbed `Roll` before entering expected its stub to roll; in
+    // here the world's real dice roll instead, and a test written for "every
+    // chance lands on 1" would be passing on the seed's luck.
+    if (saved.Roll && world.dice.log.some((d) => !d.scripted)) {
+      world.failures.push("This test stubs globalThis.Roll, but the world rolls Foundry's real dice: set faces with w.dice.set(), or w.dice.every().");
+    }
+    if (world.failures.length) {
+      throw new Error(`The world saw what Foundry would not have said:\n- ${world.failures.join("\n- ")}`);
+    }
+    return result;
   } finally {
+    bindWorld(null);
     for (const k of GLOBALS) {
       if (saved[k] === undefined) delete globalThis[k];
       else globalThis[k] = saved[k];

@@ -8,6 +8,7 @@
  * island. That is one builder now.
  */
 
+import { moment, NO_MOMENT } from "../domain/moment.mjs";
 import { snapshotBoard, snapshotUnit, turnStateAt, roundStateAt } from "../rules/snapshot.mjs";
 import { normalizeFactions, alliancesOf, factionChoices, factionForUser } from "../rules/factions.mjs";
 
@@ -75,16 +76,24 @@ export function factionOfUser(userId = game.user.id) {
  * Every caller in the engine and the interface should use this rather than
  * `snapshotUnit` directly.
  *
+ * A Moment, when the caller names one: a boundary reads the Unit at the Moment
+ * that ended, Turn and Round Records alike, rather than at the clock, which has
+ * moved on by then (`domain/moment.mjs`). Absent, it is the live Moment.
+ *
  * @param {object} actor an `FGTActor`
  * @param {object} [token] the placed token, when the caller already has one
- * @param {{round?: number|null}} [at] the Round to read Round records at; the live one when absent
+ * @param {{moment?: import("../domain/moment.mjs").Moment}} [at]
  * @returns {object} a `UnitSnapshot`
  */
-export function unitSnapshot(actor, token = null, { round = undefined } = {}) {
+export function unitSnapshot(actor, token = null, { moment: at = undefined } = {}) {
   if (!actor) return null;
   const doc = token ?? activeToken(actor);
+  const { round, tick } = at ?? currentMoment();
   return snapshotUnit(actor, {
-    token: doc, panel: panelOf(doc), tick: currentTick(), round: round === undefined ? currentRound() : round,
+    token: doc, panel: panelOf(doc), tick, round,
+    // The world's Round length, for a lock or a sustainability counted in ◈.
+    // Omitted, the projection assumed three Turns a Round in every world.
+    turnsPerRound: setting("turnsPerRound", 3),
     ownerUserId: ownerUserOf(actor),
     // The war's Region, so a sheet opened with no board built still shows the
     // Ranks the rules are actually using. `snapshotBoard` runs the same applier
@@ -150,17 +159,28 @@ function ownerUserOf(actor) {
 }
 
 /**
- * The Round a round state must carry to still be in force.
+ * The Moment the active match is at: its Round and the Tick of the match.
  *
- * `null` out of combat, for the same reason `currentTick` is: with no Rounds
- * there is nothing for the record to be stale against.
+ * The one reader of the live clock in this file. {@link NO_MOMENT} out of a
+ * started match: with no clock there is nothing for a record to be stale
+ * against, and a GM arranging the board should not have it silently forgotten.
+ * The ACTIVE match, never `game.combat`, which is whichever tracker is on screen.
+ *
+ * @returns {import("../domain/moment.mjs").Moment}
+ */
+export function currentMoment() {
+  const combat = game.combats?.active ?? null;
+  if (!combat?.started) return NO_MOMENT;
+  return moment(combat.round ?? null, combat.system?.globalTurn ?? 0);
+}
+
+/**
+ * The Round a round state must carry to still be in force: the live Moment's.
  *
  * @returns {number|null}
  */
 export function currentRound() {
-  const combat = game.combats?.active ?? null;
-  if (!combat?.started) return null;
-  return combat.round ?? null;
+  return currentMoment().round;
 }
 
 /**
@@ -183,17 +203,12 @@ export function clockRunning() {
 }
 
 /**
- * The ◈ tick a turn state must carry to still be in force.
- *
- * `null` out of combat: with no turns there is nothing for state to be stale
- * against, and a GM arranging the board should not have it silently forgotten.
+ * The Tick a turn state must carry to still be in force: the live Moment's.
  *
  * @returns {number|null}
  */
 export function currentTick() {
-  const combat = game.combats?.active ?? null;
-  if (!combat?.started) return null;
-  return combat.system?.globalTurn ?? 0;
+  return currentMoment().tick;
 }
 
 /**
@@ -412,9 +427,23 @@ export function gateContext() {
   };
 }
 
+/**
+ * The board as it stands, every Unit projected at one Moment.
+ *
+ * `overrides.moment` names it: a boundary passes the Moment that ENDED, because
+ * by the time a Round's end runs `combat.round` has moved on, and a Unit read at
+ * the live Round found its own Round's record stale -- `combatInBaseThisRound`
+ * read false and Home Base healed a Master Serenity had just cut down in it
+ * (#199). Absent, it is the live Moment. Every other override is a board setting.
+ *
+ * @param {{moment?: import("../domain/moment.mjs").Moment} & object} [overrides]
+ * @returns {object} a `BoardSnapshot`
+ */
 export function currentBoard(overrides = {}) {
+  const { moment: named, ...settingOverrides } = overrides;
   const combat = game.combats?.active ?? null;
   const scene = canvas?.scene ?? null;
+  const at = named ?? currentMoment();
   return snapshotBoard({
     scene: canvas?.scene,
     // Pre-resolved, so the board's units carry real panels rather than the
@@ -422,21 +451,16 @@ export function currentBoard(overrides = {}) {
     // `snapshotUnit` cannot.
     actors: (canvas?.tokens?.placeables ?? [])
       .filter((t) => t.actor)
-      // The Round the caller names, when it names one. A Round's END runs
-      // after `combat.round` has moved on, so a unit read at the live Round
-      // found its own Round's record stale: `combatInBaseThisRound` read false
-      // and Home Base healed a Master Serenity had just cut down in it (#199).
-      .map((t) => ({
-        actor: t.actor, token: t.document,
-        snapshot: unitSnapshot(t.actor, t.document, "round" in overrides ? { round: overrides.round } : {}),
-      })),
+      .map((t) => ({ actor: t.actor, token: t.document, snapshot: unitSnapshot(t.actor, t.document, { moment: at }) })),
     settings: {
       boardSize: setting("boardSize", 13),
       turnsPerRound: setting("turnsPerRound", 3),
       alliances: alliancesOf(factions()),
-      tickForTurnState: currentTick(),
-      round: combat?.round ?? 1,
-      tick: combat?.system?.globalTurn ?? 0,
+      tickForTurnState: at.tick,
+      // The match's own count where the Moment has none: a match not yet
+      // started still has a Round 0 or 1 for Day and Night to read.
+      round: at.round ?? combat?.round ?? 1,
+      tick: at.tick ?? combat?.system?.globalTurn ?? 0,
       phase: combat?.system?.phase ?? "day",
       // Whose Turn it is (#28). `null` out of combat, which reads as "no Turn
       // gate applies" -- the same answer the GM arranging a scene needs.
@@ -444,7 +468,7 @@ export function currentBoard(overrides = {}) {
       grandOrder: setting("grandOrder", false),
       // Seeded on the turn index so a replayed resolution picks the same
       // random targets as the original.
-      seed: combat?.system?.globalTurn ?? 0,
+      seed: at.tick ?? combat?.system?.globalTurn ?? 0,
       // Terrain areas and home bases, read off the scene's Regions. Until this
       // existed the rules read `board.terrain.areas` and nothing ever filled
       // it, so terrain was correct and permanently empty.
@@ -522,7 +546,7 @@ export function currentBoard(overrides = {}) {
       // uses them: native membership, native enter/exit, and an area that may
       // be any shape at all.
       fields: boundedFieldsOf(scene),
-      ...overrides,
+      ...settingOverrides,
     },
   });
 }

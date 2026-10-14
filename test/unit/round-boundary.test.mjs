@@ -28,13 +28,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 /** What happened, in order. */
 let events = [];
-/** Every board the hooks asked for, with the overrides it was built from. */
+/** Every board the hooks asked for, by the Moment it was built at. */
 let boards = [];
 
 vi.mock("../../module/engine/board.mjs", () => ({
-  currentBoard: (overrides = {}) => {
-    boards.push(overrides);
-    return { units: [], fields: [], ...overrides };
+  currentBoard: ({ moment = null, ...overrides } = {}) => {
+    const at = { round: moment?.round, tick: moment?.tick, ...overrides };
+    boards.push(at);
+    return { units: [], fields: [], ...at };
   },
 }));
 vi.mock("../../module/engine/io.mjs", () => ({ worldIO: () => ({}) }));

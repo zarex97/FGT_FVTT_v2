@@ -52,6 +52,7 @@ the subject of the first entry under *Traps and anti-patterns* below.
 | `tools/check-layers.mjs` | Enforces `ALLOWED`; runs as part of `npm run lint` |
 | `tools/check-writes.mjs` | Enforces the write allowlist, by file and category; runs as part of `npm run lint` |
 | `module/fgt.mjs` | System entry point — the init/setup/ready sequence |
+| `module/engine/listeners.mjs` | The engine's document listeners, in one ordered list that `fgt.mjs` binds at `ready` and the test world binds in every world |
 | `module/config.mjs` | `CONFIG.FGT` — the public configuration surface |
 | `module/settings.mjs` | Game settings registration |
 | `module/engine/intents.mjs` | The intent vocabulary, ordering and validation |
@@ -61,6 +62,10 @@ the subject of the first entry under *Traps and anti-patterns* below.
 | `module/net/socket.mjs`, `module/net/operations.mjs` | The GM proxy, for writes a client may not perform |
 
 ## How it works
+
+### The engine's listeners
+
+Much of the engine runs because Foundry fired a hook: a Turn changing (`combatTurnChange`) runs every boundary, a mode switched off (`updateItem`) starts its `countFrom: deactivation` cooldown, Presence Concealment's effect deleted (`deleteActiveEffect`) discloses Secret Poison. `module/engine/listeners.mjs` holds every one of those in `ENGINE_LISTENERS`, in the order they are bound, and `attachEngineListeners()` binds them. `fgt.mjs`'s `ready` calls it first, then binds the listeners that only draw (the action bar, the overlays, the pending panel, the Level redraw, the facing chevron), then runs the once-at-load passes, each async and unawaited, so each writes after every listener is bound. Order matters: Foundry calls a hook's listeners in registration order, and `updateActor`, `deleteActiveEffect` and `updateItem` each have several. The test world binds the same list (Ch. 44, *Document hooks in the test world*), so a listener is exercised by the suite rather than only by a live board.
 
 ### The layer boundary
 
