@@ -3,7 +3,8 @@ id: 2026-10-14-editor-raw-field-printed-object
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** The effect form shows an entry's `chanceModifiers` as editable data.
 **Actual:** The field read "[object Object],[object Object]", and that text is what the next change would have saved; the old `effects` list was drawn the same way.

@@ -3,7 +3,8 @@ id: 2026-10-14-thrown-weapon-never-produced
 found: test
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Rho Aias's floor answers a thrown Noble Phantasm (`poolFloorWhen: [attack:thrownWeapon]`).
 **Actual:** No attack ever carried `thrownWeapon`: the option had a reader in `options.mjs` and the shield, and no producer.

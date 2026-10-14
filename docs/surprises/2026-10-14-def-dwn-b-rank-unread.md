@@ -3,7 +3,8 @@ id: 2026-10-14-def-dwn-b-rank-unread
 found: test
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Karna's `rank: B` makes his Def Dwn the catalogue's Def Dwn (B).
 **Actual:** Nothing reads `rank` on an entry. Karna and Semiramis both landed plain `defDwn`; `Def Dwn (B)` existed only as a catalogue row.

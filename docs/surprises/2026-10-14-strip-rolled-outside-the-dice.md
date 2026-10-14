@@ -3,7 +3,8 @@ id: 2026-10-14-strip-rolled-outside-the-dice
 found: test
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: dice-outside-the-table
 ---
 **Expected:** Suppression's removal-resistance die is a die the table and the test world can see.
 **Actual:** `stripOneBuff` rolled it with `Math.random`: no roll record, and a scripted die could not reach it.

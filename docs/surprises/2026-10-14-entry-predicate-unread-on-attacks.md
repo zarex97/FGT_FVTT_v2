@@ -3,7 +3,8 @@ id: 2026-10-14-entry-predicate-unread-on-attacks
 found: test
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Great Ram Nautilus gives Aim and the extra NP DmUp only in Waterside, as its entries' `predicate` says.
 **Actual:** Out of the water Nemo still took Aim and the extra NP DmUp: the attack path's rider loop read no entry `predicate`; only the Skill path did.

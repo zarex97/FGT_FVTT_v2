@@ -3,7 +3,8 @@ id: 2026-10-14-prevention-never-offered
 found: user
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** The Prevention Luck Check exists: `applyEffect` has a step for it.
 **Actual:** No caller ever set `preventionAvailable`, so the step never ran; the rule was unplayable.

@@ -3,7 +3,8 @@ id: 2026-10-14-action-npmagnitude-dropped
 found: test
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Enigma's Def Dwn (MAG) carries its authored NP magnitude, 40.
 **Actual:** The instance carried `npMagnitude: null`: the scheduler built the intent's `magnitude` from the action level and the NP magnitude only from inside `effect`.

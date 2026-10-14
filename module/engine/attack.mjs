@@ -1388,7 +1388,7 @@ async function answerRung({ event, abilityId = null, placement = null }, message
 
     // An auto-evade granted by what was just used takes the Evade rung without
     // a roll. Read AFTER the ability resolved, because that is what granted it.
-    const auto = autoEvadeFrom(state, defender);
+    const auto = await autoEvadeFrom(state, defender);
     if (auto.applies) {
       // A count-limited automatic evasion is SPENT here. `uses` was recorded on
       // every such effect and never decremented, so Medea's Trofa -- authored
@@ -6456,9 +6456,9 @@ function offeredReactions(defenderId, attack = null, isAoE = false, attackerId =
  *
  * @param {object} state
  * @param {object|null} defender
- * @returns {{applies: boolean, success?: boolean, outcome?: object}}
+ * @returns {Promise<{applies: boolean, success?: boolean, outcome?: object}>}
  */
-function autoEvadeFrom(state, defender) {
+async function autoEvadeFrom(state, defender) {
   if (!defender) return { applies: false };
 
   // Same reason as `rollEvade`: an auto-evasion granted by an aura or by a
@@ -6486,7 +6486,10 @@ function autoEvadeFrom(state, defender) {
   // A per-property chance: certain against anything ordinary, a coin against a
   // Noble Phantasm.
   const chance = chanceFor(auto, attackProperties);
-  const success = chance >= 100 || (Math.random() * 100) < chance;
+  // A real die, which the table and the test world can see. It was
+  // `Math.random`: Trofa's coin against a Noble Phantasm left no roll anywhere.
+  const roll = chance >= 100 ? null : (await new Roll("1d100").evaluate()).total;
+  const success = roll === null || roll <= chance;
 
   return {
     applies: true,
@@ -6497,7 +6500,7 @@ function autoEvadeFrom(state, defender) {
     // which of the defender's effects had just fired.
     consumes: auto.uses ? (auto.defId ?? null) : null,
     outcome: {
-      success, automatic: true, roll: null, total: 0,
+      success, automatic: true, roll, total: roll ?? 0,
       table: null, modifiers: [{ source: auto.source ?? "automatic evasion", value: 0 }],
       chance,
     },
