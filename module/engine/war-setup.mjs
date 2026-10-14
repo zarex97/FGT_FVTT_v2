@@ -420,6 +420,12 @@ export async function commitWar(draft) {
   const { checkSightings } = await import("./vision.mjs");
   await checkSightings();
 
+  // Wisdom of Dún Scáith: with the whole field deployed, the GM's list opens
+  // for every copier, and the war's first Turn cannot end until each has
+  // picked (#204 reading 8).
+  const { markCopyPicksDue } = await import("./copy.mjs");
+  await markCopyPicksDue();
+
   await note(combat, `War built: ${servants.length} Servants, ${masters.length} Masters`);
   return { scene, masters, servants, combat };
 }

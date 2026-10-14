@@ -134,3 +134,14 @@ Fixing the site that found it fixed one site. `offeredReactions` and `offerNPCan
   `onExpiry: "gmDecides"`, and it alone returns `{decided: false, escalate: true}`. So an unanswered
   prompt never hangs the ladder in ordinary play -- the one situation that stays open is the one
   whose entire purpose is to require a human.
+
+### A reaction's gates include its group (#204)
+
+`abilityOffCooldown` is among the requirements a reaction checks against its owner alone, with the ability itself
+so a gate on its own group leaves itself out. Brahmastra's card offered a Wisdom copy while the other copy cooled.
+
+### A reaction ability answers the reaction rung only (#204 §46.4-LO)
+
+Ruled 2026-10-14: Eye of the Mind (False), Trofa and every other reaction ability answer where Block and Evade do, and
+not after a failed Evade. `combat-process.mjs#pendingPrompt` lists `s.reactionAbilities` on the `react` rung alone; the
+escape rung had listed them in its options, as `ability:` events its transitions refuse.

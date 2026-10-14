@@ -312,6 +312,9 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
    * @returns {Promise<void>}
    */
   static async useSkill(actor, ability) {
+    // A setup decision, not a use: nothing to spend, nothing to post.
+    if (classifyAbility(ability).kind === "dialog") return FGTActorSheet.openAbilityDialog(actor, ability);
+
     let placement = {};
 
     if (needsTargeting(ability)) {
@@ -374,7 +377,9 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         placement,
       });
     } catch (err) {
-      ui.notifications.error(err.message);
+      // The refusal in the rule's own words: the engine's `FGT | ` log prefix
+      // is for the console, not for a player (#204 LJ).
+      ui.notifications.error(String(err.message ?? err).replace(/^FGT \| /, ""));
     }
   }
 
@@ -391,13 +396,35 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
    */
   static async #onOpenDialog(_event, target) {
     const id = target.closest("[data-item-id]")?.dataset.itemId;
-    const item = this.document.items.get(id);
+    return FGTActorSheet.openAbilityDialog(this.document, this.document.items.get(id));
+  }
+
+  /**
+   * Open the setup dialog an ability declares: the one door, from the sheet
+   * and from the action bar alike.
+   *
+   * The bar sent Wisdom of Dún Scáith through `useSkill`, which spent a Servant
+   * action and posted "No effect" for a button that opens a list (found pressing
+   * #204 reading 8).
+   *
+   * @param {object} actor
+   * @param {object|null} item
+   * @returns {Promise<void>}
+   */
+  static async openAbilityDialog(actor, item) {
     const kind = item?.system?.opensDialog;
     if (!kind) return;
 
     if (kind === "copy") {
+      // The GM curates the list (Ch. 45), and after the pick only the GM may
+      // redo it, to fix a mistake (#204 reading 8). The game opens it by itself
+      // when the pick falls due.
+      if (!game.user.isGM) {
+        ui.notifications.warn(game.i18n.localize("FGT.Copy.GMOnly"));
+        return;
+      }
       const { CopyDialog } = await import("../copy-dialog.mjs");
-      CopyDialog.open({ copierId: this.document.id, grantedBy: item.system.contentId || item.id });
+      CopyDialog.open({ copierId: actor.id, grantedBy: item.system.contentId || item.id });
     }
   }
 

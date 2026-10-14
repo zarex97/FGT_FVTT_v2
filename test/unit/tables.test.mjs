@@ -137,11 +137,16 @@ describe("andreiasAmarantosByAttackerDivinity", () => {
 });
 
 describe("gateOfSkyeSaveModifier", () => {
-  it("is equality, not threshold — EX gets nothing", () => {
+  it("goes by letter: B and its pluses −2, A, its pluses and EX −4 (#204 reading 16)", () => {
     expect(lookup("gateOfSkyeSaveModifier", R("B"))).toBe(-2);
+    expect(lookup("gateOfSkyeSaveModifier", R("B+"))).toBe(-2);
+    expect(lookup("gateOfSkyeSaveModifier", R("B++"))).toBe(-2);
     expect(lookup("gateOfSkyeSaveModifier", R("A"))).toBe(-4);
-    expect(lookup("gateOfSkyeSaveModifier", R("EX"))).toBe(0);
-    expect(lookup("gateOfSkyeSaveModifier", R("A+"))).toBe(0);
+    expect(lookup("gateOfSkyeSaveModifier", R("A+"))).toBe(-4);
+    expect(lookup("gateOfSkyeSaveModifier", R("A++"))).toBe(-4);
+    expect(lookup("gateOfSkyeSaveModifier", R("EX"))).toBe(-4);
+    expect(lookup("gateOfSkyeSaveModifier", R("C"))).toBe(0);
+    expect(lookup("gateOfSkyeSaveModifier", null)).toBe(0);
   });
 });
 

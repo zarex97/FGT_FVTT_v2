@@ -219,14 +219,11 @@ export class Rank {
   /**
    * Exact rank equality — *not* grade equality.
    *
-   * Scáthach's *Gate of Skye* keys on the target's MAG being **exactly** `B` or
-   * **exactly** `A`; a `MAG EX` target gets nothing. This is the predicate that
-   * exists for it.
+   * A predicate's `rank:` term and Presence Concealment's "same rank" use it.
    *
    * @param {Rank|null} a
    * @param {Rank|null} b
    * @returns {boolean}
-   * @see docs/B-rank-tables.md `gateOfSkyeSaveModifier`
    */
   static equals(a, b) {
     return a !== null && b !== null && a === b;

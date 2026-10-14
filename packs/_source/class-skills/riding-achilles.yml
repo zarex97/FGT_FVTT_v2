@@ -20,6 +20,10 @@
 schema: 1
 id: class-riding-achilles
 name: "Riding"
+# A Class Skill on every sheet that carries it ("Class Skill: Riding"), which
+# Wisdom of Dún Scáith cannot copy. Medusa's was offered to Scáthach on the
+# live board (#204 WD.class).
+copyable: { allowed: false, reason: classSkill }
 source: class
 slug: riding
 parameterized: [rank]

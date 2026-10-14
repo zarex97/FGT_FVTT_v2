@@ -123,3 +123,8 @@ Test: `test/unit/roll-records.test.mjs`.
   that nothing can settle today, because no replayer exists to consume the format.
 
 - **Two visibility modes, one never chosen.** "Strict" creates separate whispered messages for security; "filtered" uses client-side rendering and is faster. The latter ships all the full result to every client that can read the flags, even those who should not see it. A compromised client or a careful look at the Foundry source could read fields the card template does not display. Most tables use "filtered" by default, making security opt-in and therefore not chosen (`module/rules/card-visibility.mjs:22-31`).
+
+**A resource change is a row** (#204 LK). A `resource` phase adds one per key with the real numbers, *"Agility 10 → 14"*,
+or *"(no change)"* when the maximum clamped it (`engine/skill-use.mjs#resourceLine`). The attack path runs the same
+caster phases (`runCasterPhases`) and dropped their rows; it now posts them on a Skill card of their own, so Toole
+Fragarach shows *"Fragarach Tokens 4 → 1"*.

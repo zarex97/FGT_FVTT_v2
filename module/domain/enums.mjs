@@ -151,3 +151,11 @@ export const GRADE_SET = asSet(GRADES);
 export const PARAMETER_SET = asSet(PARAMETERS);
 export const UNIT_KIND_SET = asSet(UNIT_KINDS);
 export const COMPONENT_SET = asSet(COMPONENTS);
+
+/**
+ * Why content may mark an ability uncopyable (Ch. 17). One list, read by the
+ * DataModel's choices, the content validator and the copy rule: it was three,
+ * and a fourth reason (`named`, the families Wisdom of Dún Scáith names, #204
+ * reading 11) reached one of them.
+ */
+export const COPY_REASONS = Object.freeze(["physical", "unique", "classSkill", "rankEX", "named"]);

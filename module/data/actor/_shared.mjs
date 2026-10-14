@@ -108,6 +108,15 @@ export function unitCommon() {
     }),
 
     pursuitTargetId: new fields.StringField({ required: false, nullable: true, initial: null }),
+    // Wisdom of Dún Scáith's pick (#204 reading 8). `due` from the war's start
+    // or the summon until the player picks: the Turn cannot end while it is.
+    // `poolIds` are the Servants on the field at that moment, the only ones a
+    // pick or a GM's redo offers -- "Servants summoned later are never added".
+    // Written by `engine/copy.mjs`, read by the snapshot and the offer.
+    copyPick: new fields.SchemaField({
+      due: new fields.BooleanField({ initial: false }),
+      poolIds: new fields.ArrayField(new fields.StringField({ blank: false })),
+    }),
     boundToFieldId: new fields.StringField({ required: false, nullable: true, initial: null }),
 
     mov: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),

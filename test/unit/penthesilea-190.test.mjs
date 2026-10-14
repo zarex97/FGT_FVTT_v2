@@ -227,10 +227,15 @@ describe("a Master spends a Command Spell in its own Turn (#190)", () => {
   it("offers the action to a Master holding one, and to nobody else", async () => {
     const { UNIT_ACTIONS } = await import("../../module/rules/actions.mjs");
     const cs = UNIT_ACTIONS.find((a) => a.id === "commandSpell");
-    expect(cs.available({ kind: "master", commandSpells: 2 })).toEqual({});
-    expect(cs.available({ kind: "master", commandSpells: 0 })).toBeNull();
-    expect(cs.available({ kind: "master", commandSpells: 2, defeated: true })).toBeNull();
-    expect(cs.available({ kind: "servant", commandSpells: 2 })).toBeNull();
+    // ...with a Servant of its own alive on the board to command (#204).
+    const m = { id: "m", kind: "master", commandSpells: 2 };
+    const board = { units: [m, { id: "s", kind: "servant", masterId: "m" }] };
+    expect(cs.available(m, board)).toEqual({});
+    expect(cs.available({ ...m, commandSpells: 0 }, board)).toBeNull();
+    expect(cs.available({ ...m, defeated: true }, board)).toBeNull();
+    expect(cs.available({ kind: "servant", commandSpells: 2 }, board)).toBeNull();
+    expect(cs.available(m, { units: [m] })).toBeNull();
+    expect(cs.available(m, { units: [m, { id: "s", kind: "servant", masterId: "m", defeated: true }] })).toBeNull();
   });
 
   it("says so on a card when it interrupts nothing", async () => {

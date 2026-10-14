@@ -136,3 +136,14 @@ before any step that mutates what it selects on.**
   live scene.
 
 - **Why the `grandOrder` setting?** A Grand Order is a multi-Master collaboration against a single threat, where the multi-Servant tax and intra-alliance Hatred would make cooperation expensive. The setting is checked in every place these rules fire, but no narrative document exists for when and why a GM should use it.
+
+### Cover against Gate of Skye, and the coin (#204)
+
+`damage.noCover`: a failed shove is no Cover. The group records `{masterId: null, uncoveredMasterId}`, a line on the
+board names the shove's rolls, and the Master takes its own Luck Check; no Servant takes +100%. A Master the cover
+record shelters (shoved clear, or covered) is not flipped for Overpower.
+
+**Who guards a Master** (ruled 2026-10-14, §46.4-LH): only the Servants contracted to it. `rules/relations.mjs#guardsOf`
+read the whole side from the first targeting code, so Heracles shoved another Master's Master clear. Every reader
+follows: the protection, both step-ins, the shove and the Counter redirect. Pale Rider's Spirits and the charmed
+Servant keep their rules.

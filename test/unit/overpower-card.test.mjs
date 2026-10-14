@@ -47,7 +47,7 @@ describe("the card", () => {
 
   it("the resolution stamps the flip on the result's flags whenever it applies", () => {
     const src = readFileSync("module/engine/attack.mjs", "utf8").replaceAll("\r\n", "\n");
-    const at = src.slice(src.indexOf("const overpower = resolveOverpower({"));
+    const at = src.slice(src.indexOf("const overpower = sheltered"));
     const block = at.slice(0, at.indexOf("const underpower"));
     expect(block).toMatch(/if \(overpower\.applies\)/);
     expect(block).toMatch(/overpower: \{\s*roll:/);

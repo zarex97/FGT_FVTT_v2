@@ -32,8 +32,14 @@ requirements:
   - kind: abilityOffCooldown
     abilityIds:
       - scathach-primordial-rune
-      - scathach-wisdom-of-dun-scaith
       - scathach-gae-bolg-alternative
+  # "Wisdom of Dún Scáith" is the three slots with a clock -- Skill 1, Skill 2
+  # and Clairvoyance -- and any one cooling blocks it (#204 reading 19). The
+  # grant this named before is the button that opens the curation dialog: it
+  # never cools, so a cooling slot never blocked the Gate. A second requirement
+  # because a gate names abilities OR a group, never both.
+  - kind: abilityOffCooldown
+    exclusionSet: wisdomOfDunScaith
 # "When this NP is used, Primordial Rune and Wisdom of Dún Scáith enter
 # Cooldown" -- the two it triggers, which are not the three it is blocked by.
 #
@@ -54,22 +60,34 @@ targeting:
   # of them the Noble Phantasm affects.
   selection: { relations: [enemy], chooser: all, choose: true }
   limits:
-    # "Masters can be targeted regardless of their distance from their Servant.
-    # If a Servant fails to shove their targeted Master out of the NP area, the
-    # effect is applied to the Master (Servant unable to interfere)."
-    ignoresMasterProtection: true
+    # "Masters can be targeted regardless of their distance from their Servant."
+    # The key `rules/targeting/resolve.mjs` reads; it was authored
+    # `ignoresMasterProtection`, which nothing read. An area already reaches a
+    # guarded Master -- her pick among those the area caught is not a "chosen"
+    # target there -- so the spelling changed nothing on the board. The half of
+    # the clause that did was the Cover one, `damage.noCover` (#204 reading 18).
+    bypassMasterProtection: true
 damage:
   multiplier: 4
   flatBonus: 100
   component: mag
+  # "The only way to avoid it is through succeeding at the Luck Check it
+  # imposes" (#204 reading 15). No Evade, Dodge, Substitution or concealment
+  # coin saves a target. A Block may answer: it cannot stop the check or the
+  # Death, and cuts the 4x damage after a pass.
+  unavoidable: true
+  # "If a Servant fails to shove their targeted Master out of the NP area, the
+  # effect of the NP is applied to the Master (Servant unable to interfere)."
+  # The shove is still offered; a failed one is no Cover (#204 reading 18).
+  noCover: true
   # No damage on a failed Check: that target took Death instead.
   skipIf: { effectApplied: death }
 phases:
   - kind: check
     when: beforeDamage
     check: luck
-    # An EQUALITY table, not a threshold: "if their MAG is Rank B, reduce by 2;
-    # if Rank A, reduce by 4" -- a MAG A+ or MAG EX target gets nothing.
+    # By letter: "if their MAG is Rank B, reduce by 2; if Rank A, reduce by 4".
+    # B+ takes -2, A+ and EX take -4 (#204 reading 16).
     modifierTable: gateOfSkyeSaveModifier
     modifierRank: mag
     onFail:

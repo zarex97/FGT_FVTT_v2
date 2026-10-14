@@ -67,10 +67,27 @@ export const ACTION_HANDLERS = Object.freeze({
   // Skill, WHICH Skill of the contracted Servant. The rules decide what is
   // offerable (`offerCommands`, window `ownTurn`); the GM pays and applies.
   commandSpell: async ({ actor }) => {
-    const { offerCommands } = await import("./command-spells.mjs");
-    const offered = offerCommands({ masterId: actor.id, window: "ownTurn" });
-    if (offered.length === 0) return { ok: false, reason: "noCommand" };
+    const { offerCommands, liveServantsOf } = await import("./command-spells.mjs");
+    const { currentBoard } = await import("./board.mjs");
     const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
+    // FOR WHOM, first (ruled 2026-10-14, #204): a Command Spell is a spell for
+    // one contracted Servant, alive on the board, and a Master of several says
+    // which. Every command acted on whichever Servant the board listed first.
+    const servants = liveServantsOf(actor.id, currentBoard());
+    if (servants.length === 0) return { ok: false, reason: "noServant" };
+    let servantId = servants[0].id;
+    if (servants.length > 1) {
+      [servantId] = (await ChoiceDialog.pick({
+        title: game.i18n.localize("FGT.Action.CommandSpell"),
+        hint: game.i18n.localize("FGT.Action.CommandSpellServant"),
+        count: 1,
+        min: 0,
+        options: servants.map((s) => ({ id: s.id, name: s.name })),
+      })) ?? [];
+      if (!servantId) return { ok: false, reason: "cancelled" };
+    }
+    const offered = offerCommands({ masterId: actor.id, window: "ownTurn", context: { servantId } });
+    if (offered.length === 0) return { ok: false, reason: "noCommand" };
     const [commandId] = (await ChoiceDialog.pick({
       title: game.i18n.localize("FGT.Action.CommandSpell"),
       hint: game.i18n.localize("FGT.Action.CommandSpellHint"),
@@ -81,9 +98,9 @@ export const ACTION_HANDLERS = Object.freeze({
     if (!commandId) return { ok: false, reason: "cancelled" };
 
     const command = offered.find((c) => c.id === commandId);
-    const context = {};
+    const context = { servantId };
     if ((command?.effect ?? []).some((e) => e.scope === "oneSkill")) {
-      const servant = game.actors.find((a) => a.type === "servant" && a.system?.masterId === actor.id);
+      const servant = game.actors.get(servantId);
       const skills = [...(servant?.items ?? [])].filter((i) => i.type === "ability" && !i.system?.isNP);
       if (skills.length === 0) return { ok: false, reason: "noSkill" };
       const [abilityId] = (await ChoiceDialog.pick({
@@ -95,6 +112,20 @@ export const ACTION_HANDLERS = Object.freeze({
       })) ?? [];
       if (!abilityId) return { ok: false, reason: "cancelled" };
       context.abilityId = abilityId;
+    }
+    // ...and for one that teleports, WHERE: Escape and Teleport Servant land
+    // where the player says, chosen before the spend (#204 Q6). Both were sent
+    // with no destination, paid for, and moved nobody.
+    const { teleportDestinations } = await import("./command-spells.mjs");
+    const panels = teleportDestinations(actor.id, commandId, servantId);
+    if (panels) {
+      if (panels.length === 0) return { ok: false, reason: "noLanding" };
+      const { pickDestination } = await import("../apps/canvas/targeting-layer.mjs");
+      const destination = await pickDestination({
+        panels, label: command.name, hint: game.i18n.localize("FGT.CommandSpell.ChooseLanding"),
+      });
+      if (!destination) return { ok: false, reason: "cancelled" };
+      context.destination = destination;
     }
 
     const { FGTSocket } = await import("../net/socket.mjs");

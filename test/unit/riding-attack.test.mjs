@@ -118,7 +118,7 @@ describe("ridingAttackPath — the gates a drag and an attack both pass (#114)",
 
   describe("an enemy Master whose Servant stands within 2 of it", () => {
     const master = unit("mstr", 3, 5, { kind: "master" });
-    const guard = unit("g", 3, 7);
+    const guard = unit("g", 3, 7, { masterId: "mstr" });
 
     it("refuses a ride that ends beside it", () => {
       // (4,5) is within 1 of the Master at (3,5): `canPassThrough` says no.
