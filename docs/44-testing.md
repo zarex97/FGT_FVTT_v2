@@ -105,6 +105,18 @@ Twenty-five of the sixty-seven Surprises found on a live press lived inside a Co
 
 A test that stubs `globalThis.Roll` and then rolls inside a world is told so: the world rolls Foundry's dice, and a stub's "every chance lands on 1" would otherwise pass on the seed's luck.
 
+### Document hooks in the test world
+
+Five live-only Surprises lived in code a hook runs, and the test world's `Hooks.on` did nothing. Each world now installs a fresh copy of Foundry's own `Hooks` (`client/helpers/hooks.mjs`), fires the hooks Foundry's client backend fires on each write, and binds the engine's listener list (`module/engine/listeners.mjs`) — always on, the same list as the game:
+
+- **When a hook fires.** Only for a write that landed and changed something: `changes` is the diff with the document's `_id`, the options are Foundry's defaults with the caller's own, and the parent is re-prepared first. A refused write and a no-op write fire nothing. Seeds fire nothing, as loading a world fires nothing.
+- **Movement.** A token write that changes `x`, `y` or `elevation` is a movement: `preMoveToken` (a `false` keeps the token where it was), then `updateToken`, then `moveToken` with the path passed.
+- **Waiting.** Foundry never awaits a listener. The world keeps each listener's promise and `w.settle()` waits until the world goes quiet — no tracked promise and no new write or hook for two turns of the event loop — which also outwaits work a listener starts and does not return. Every world settles before it closes.
+- **Failures.** A listener that throws or rejects fails the test. Foundry would log it and carry on.
+- **Opting out.** `skipListeners: ["movement"]` leaves an entry unbound, for a test about the hook itself. A test that skips one says why.
+
+`test/unit/arena-hooks.test.mjs` holds the model to Foundry's order and arguments. `tenmokaikai-cooldown.test.mjs` replays #195: Tenmōkaikai switched off must start its 22-Turn cooldown, and it fails with `onModeEnded`'s `updateItem` listener removed. Turning the movement hooks on found a live Silent Drop on their first suite run: every move wrote `system.seenUnitIds` to each Master, whose schema does not keep it.
+
 ### The survival test
 
 `test/unit/survival.test.mjs` holds Hop 4 of Ch. 07's Route: that what the DataModel keeps, the rules can

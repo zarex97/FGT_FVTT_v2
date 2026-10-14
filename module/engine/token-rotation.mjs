@@ -26,7 +26,10 @@
  */
 
 /**
- * Register the hooks. Idempotent.
+ * Register the hook, and lock what is already placed.
+ *
+ * `attach` only listens (`engine/listeners.mjs` binds it, in the game and in the
+ * test world); `lockExisting` is the once-at-load pass `fgt.mjs` runs beside it.
  */
 export const TokenRotation = {
   attach() {
@@ -37,9 +40,11 @@ export const TokenRotation = {
       if (document.lockRotation) return;
       document.updateSource({ lockRotation: true });
     });
-
-    lockExisting().catch((err) => console.error("FGT | Token rotation lock:", err));
     console.log("FGT | Token rotation lock attached");
+  },
+
+  lockExisting() {
+    return lockExisting().catch((err) => console.error("FGT | Token rotation lock:", err));
   },
 };
 
