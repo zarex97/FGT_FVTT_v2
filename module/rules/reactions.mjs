@@ -291,7 +291,8 @@ export function allyReactions({ defender, board, attack, attacker = null, actorF
       // What it answers. "About to be hit by a Noble Phantasm" is a
       // restriction, not a note: a barrier offered against every Normal Attack
       // would be a different ability entirely.
-      if (timing.againstKind && timing.againstKind !== (attack?.kind ?? "normal")) continue;
+      // The attack's own kind, never an invented one: no attack, no answer.
+      if (timing.againstKind && timing.againstKind !== (attack?.kind ?? null)) continue;
 
       // *"...an AoE Noble Phantasm of Rank A and above."* Achilles's barrier
       // answers a narrower set than EMIYA's: his gates on the incoming Noble

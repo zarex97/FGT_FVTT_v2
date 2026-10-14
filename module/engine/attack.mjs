@@ -37,7 +37,7 @@ import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { inAttackRangeBetween, chebyshev } from "../domain/geometry.mjs";
 import { missChance, missSourceOf } from "../rules/miss.mjs";
-import { rollOptionsFor, selfOptionsOf } from "../rules/options.mjs";
+import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
 import { collectContributions } from "../rules/elements.mjs";
 import { test as testPredicate, explain as explainPredicate } from "../rules/predicate.mjs";
 import { thresholdFor, damageFromDice, thresholdModifiers } from "../rules/damage/dice-count.mjs";
@@ -779,6 +779,11 @@ export function buildAttackSpec({
       // is why the corpus had no Pierce document at all.
       pierce: Boolean(block?.pierce)
         || attackerGrants(attacker, "pierce", view),
+      // *"If the NP is a 'thrown weapon', Rho Aias' Health cannot drop below
+      // 1."* The shield has asked `attack:thrownWeapon` since it was written and
+      // no attack ever carried it. A damage block says so; no content NP does
+      // yet -- which ones throw is the author's ruling to make (Wave B).
+      thrownWeapon: Boolean(block?.thrownWeapon),
       ignoresDefUp: Boolean(block?.ignoresDefUp)
         || attackerGrants(attacker, "ignoresDefUp", view),
       // How much damage SURVIVES an Invuln, for a clause that weakens it rather
@@ -2161,147 +2166,65 @@ function agilityRefusals(ability, attackerId, defenderId, board = boardSnapshot(
 }
 
 /**
- * Automatic rules that fire at the START of a Damage Step, before any number
- * is computed.
+ * Raise `damageStepStart` on the ATTACKER, and write what it decides before
+ * any number is computed.
  *
- * Distinct from `offerAttackerWindow`, which asks the player to spend
- * something. This pays out a rule that needs no asking — and the ORDERING is
- * the whole clause rather than a detail of it.
- *
- * Kiritsugu's Suppression is the only source: *"Successful Normal Attacks
+ * Kiritsugu's Suppression is the only handler: *"Successful Normal Attacks
  * remove 1 buff from the DU at the start of the Damage Step and if a buff was
- * successfully removed, apply Atk Up for 1◈ Turns to Kiritsugu."* Two things
- * follow that nothing else in the corpus needed together:
+ * successfully removed, apply Atk Up for 1◈ Turns to Kiritsugu."* The ORDER is
+ * the clause: the buff it takes may be the Def Up that would reduce this very
+ * hit, so the writes land here, awaited, before the pipeline reads the
+ * defender.
  *
- * 1. The strip must land before the pipeline reads the defender's modifiers,
- *    because the buff it takes may be the one that would have reduced this hit.
- *    `fireEvent` could not do it: it returns intents synchronously, so the
- *    strip would be applied after everything else the event produced.
- * 2. The follow-on is conditional on the strip having SUCCEEDED, which no
- *    intent list can express — the answer does not exist until the removal has
- *    been decided.
+ * Through `fireEvent` like every other event. A runner of its own here
+ * re-implemented it for this one handler; the scheduler now has the words the
+ * clause needs: `StripBuff` (target `defender`), `requiresRemoval` on the
+ * action after it, and a use spent only by a strip that took something. The
+ * removal-resistance dice are rolled here, with Foundry's dice, and handed in:
+ * the runner rolled them with `Math.random`, which no table could see.
  *
  * @param {object} state the Combat Process state
- * @param {object|null} [board] the board the attack is on; the live one when omitted
  * @returns {Promise<void>}
  */
-async function runDamageStepStartHandlers(state) {
+async function fireDamageStepStart(state) {
   const attackerDoc = game.actors.get(state.attackerId);
   const defenderDoc = state.defenderId ? game.actors.get(state.defenderId) : null;
   if (!attackerDoc || !defenderDoc) return;
 
-  const board = currentBoard();
-  const attacker = unitOf(attackerDoc, board);
-  const defender = unitOf(defenderDoc, board);
-  // The live attack is in scope, so `attack:kind:normal` can actually be
-  // answered — the omission that made every phase predicate in the game blind
-  // to the attack until it was fixed for Raikou.
-  // Through the attack's facts like every other event (range, reaction, a granted element).
-  const options = rollOptions(attacker, defender, state);
+  const board = boardSnapshot();
+  const attacker = unitFrom(board, attackerDoc);
+  const defender = unitFrom(board, defenderDoc);
+  if (!(attacker?.eventHandlers ?? []).some((h) => (h.events ?? []).includes("damageStepStart"))) return;
 
-  for (const handler of attacker.eventHandlers ?? []) {
-    if (!(handler.events ?? []).includes("damageStepStart")) continue;
-    if (handler.targetPredicate
-      && !testPredicate(handler.targetPredicate, { options })) continue;
-
-    let removed = false;
-    for (const action of handler.actions ?? []) {
-      // `normalizeActions` renames the authored `key` to `kind`. Reading `key`
-      // here found `undefined` on every action, so the handler fired, matched
-      // its predicate, iterated its two actions and did nothing with either --
-      // the strip silently never happened and the follow-on never fired.
-      // Both spellings accepted, because the authored documents say `key`.
-      const kind = action.kind ?? action.key;
-      if (kind === "StripBuff") {
-        removed = await stripOneBuff(action, defender, defenderDoc);
-        continue;
-      }
-      // "IF a buff was successfully removed." Against a target with nothing
-      // left to take, the shot still lands and this pays nothing.
-      if (action.requiresRemoval && !removed) continue;
-      if (kind === "ApplyEffect") {
-        // The applier takes a SNAPSHOT and returns intents; it does not write.
-        // Passing the Actor document would hand it `target.effects` as an
-        // EmbeddedCollection of documents where it expects a list of ids --
-        // the same document-for-snapshot confusion that made every attack in
-        // the game throw when `buildAttackSpec` called `.includes()` on one.
-        const onSelf = action.target === "self";
-        await landEntry(entryOf(typeof action.effect === "string" ? { ...action, effect: { id: action.effect } } : action), {
-          target: onSelf ? attacker : defender,
-          source: { unitId: attacker.id, abilityId: handler.abilityId ?? null },
-          caster: attackerDoc,
-          casterUnit: attacker,
-          attack: attackFacts(attacker, defender, state, board),
-          process: state,
-          board,
-        }, { write: (intents) => applyBatch(intents, "suppression") });
-      }
-    }
-
-    // A use is spent by a SUCCESSFUL strip, not by every attack — which is why
-    // this is here rather than in `fireEvent`, where `consumesUse` is spent
-    // unconditionally the moment a handler fires.
-    if (removed && handler.consumesUse && handler.defId) {
-      await applyBatch([I.consumeUse(attacker.id, handler.defId)], "suppression");
-    }
+  // A die for every buff a resistance could keep, before anything is decided.
+  const buffs = (defender.effectInstances ?? [])
+    .filter((e) => e.polarity === "buff" && !e.unremovable && !e.suppressed)
+    .map((e) => ({ defId: e.defId, polarity: "buff", unremovable: false }));
+  const removal = {};
+  for (const defId of pendingRemovalRolls({ candidates: buffs, bearer: defender })) {
+    removal[defId] = (await new Roll("1d100").evaluate()).total;
   }
-}
 
-/**
- * Take one buff off a Unit, and say whether anything came off.
- *
- * Not `RemoveEffect`, which names an effect and takes it off its own bearer.
- * This takes whatever is there, off somebody else, and has to REPORT — the
- * follow-on depends on the answer.
- *
- * `removalPlan` decides what survives, so `Buff Removal Resist` applies here
- * exactly as it does to every other dispel in the game.
- *
- * @param {object} action `{count}`
- * @param {object} bearer the defender's snapshot
- * @param {object} bearerDoc the defender's Actor
- * @returns {Promise<boolean>} whether at least one buff was removed
- */
-async function stripOneBuff(action, bearer, bearerDoc) {
-  const candidates = [...(bearerDoc.effects ?? [])]
-    .filter((e) => !e.disabled && !e.isSuppressed)
-    .filter((e) => (e.system?.polarity ?? "buff") === "buff")
-    .filter((e) => !e.system?.unremovable)
-    .map((e) => ({
-      defId: e.system?.defId ?? e.name,
-      polarity: "buff",
-      unremovable: Boolean(e.system?.unremovable),
-      documentId: e.id,
-    }));
-  if (candidates.length === 0) return false;
+  const intents = fireEvent("damageStepStart", [attacker], {
+    tick: board.tick,
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    board,
+    // The live attack's facts, so `attack:kind:normal` is answered by the attack.
+    options: rollOptions(attacker, defender, state),
+    victim: { unitId: defender.id },
+    rolls: { removal: { [defender.id]: removal } },
+  });
+  if (intents.length === 0) return;
+  await applyBatch(intents, "damageStepStart", { process: state });
 
-  // Newest first: a dispel that always took the oldest buff would be
-  // predictable in a way no clause asks for, and the most recently applied is
-  // the one most likely to be the reason this attack is being answered.
-  const take = candidates.slice(-(action.count ?? 1));
-  const rolls = Object.fromEntries(
-    pendingRemovalRolls({ candidates: take, bearer })
-      .map((defId) => [defId, Math.ceil(Math.random() * 100)]),
-  );
-  const { removed } = removalPlan({ candidates: take, bearer, rolls });
   // Said on the board either way: a strip, or a resist with its die (#198).
-  const name = (c) => EffectRegistry.get(c.defId)?.name ?? c.defId;
-  const lines = take.map((c) => game.i18n.format(
-    removed.includes(c.defId) ? "FGT.Removal.Stripped" : "FGT.Removal.StripResisted",
-    { name: bearerDoc.name, effect: name(c), roll: rolls[c.defId] ?? "—" },
+  const lines = intents.filter((i) => i.t === "log" && i.entry?.kind === "strip").map((i) => game.i18n.format(
+    i.entry.removed ? "FGT.Removal.Stripped" : "FGT.Removal.StripResisted",
+    { name: defenderDoc.name, effect: EffectRegistry.get(i.entry.defId)?.name ?? i.entry.defId, roll: i.entry.roll ?? "—" },
   ));
-  await ChatMessage.create({ content: lines.map((l) => `<p>${l}</p>`).join(""), speaker: { alias: game.i18n.localize("FGT.Removal.Title") } });
-  if (removed.length === 0) return false;
-
-  // The DOCUMENT, not the definition: each Proliferation stock is its own buff,
-  // and removing by definition id took every stock for the one Suppression
-  // strips (#198, PS.buff).
-  await applyBatch(
-    take.filter((c) => removed.includes(c.defId))
-      .map((c) => I.removeEffect(bearerDoc.id, c.documentId, "suppression")),
-    "suppression",
-  );
-  return true;
+  if (lines.length > 0) {
+    await ChatMessage.create({ content: lines.map((l) => `<p>${l}</p>`).join(""), speaker: { alias: game.i18n.localize("FGT.Removal.Title") } });
+  }
 }
 
 /**
@@ -2444,7 +2367,7 @@ async function fireDamageDealt(state, result) {
       // `attack:kind:normal` for the attack it was not given, so every
       // "Normal Attacks only" rider was filed on a Noble Phantasm too: Karna's
       // Burn read "hit" on Brahmastra and applied nothing (#190).
-      options: new Set([...options, ...selfOptionsOf(hearer)]),
+      options: new Set([...options, ...ownerOptionsOf(hearer)]),
     })) continue;
     filed.push({ spec, hit: rolls[spec.key] <= spec.chance });
   }
@@ -2915,7 +2838,7 @@ async function runAutomaticStep(state, message) {
       // at the start of the Damage Step"*. The buff it takes may be the Def Up
       // that would otherwise reduce this very hit, so running it later leaves
       // it correct-looking and inert.
-      await runDamageStepStartHandlers(state);
+      await fireDamageStepStart(state);
 
       // "Used at the start of a Damage Step when performing an Attack" -- the
       // attacker's own window, asked before anything is computed, because what
@@ -2966,7 +2889,7 @@ async function runAutomaticStep(state, message) {
       // stayed invisible only because no content used it. Scáthach's Alpi is
       // the first: *"NP Cooldown is reduced by ½◈ Turns at the end of the
       // Damage Step when a successful Attack is performed."*
-      if (!skipped && result.total > 0) await fireDamageStepEnd(state);
+      if (!skipped && result.total > 0) await fireDamageStepEnd(state, result);
       // Terrain the attack itself changes (Ch. 26): Fire in a Forest makes
       // Burning on Tails, and a Meadow is consumed by the attack that used it.
       // `rules/terrain.mjs#terrainConversions` has computed both since terrain
@@ -4009,7 +3932,10 @@ function killedBy(victim, defeat, state, ctx) {
   const killer = unitFrom(board, game.actors.get(state.attackerId));
   if (!killer) return [];
   return fireEvent("unitKilled", [killer], {
-    ...ctx, board, options: rollOptionsFor({ attacker: killer, defender: victim }),
+    // The attack that killed, as the Attack Description describes it: a
+    // `unitKilled` clause may ask what did the killing, and this set used to be
+    // the bare pair, which then carried an invented `attack:kind:normal`.
+    ...ctx, board, options: rollOptions(killer, victim, state),
   });
 }
 
@@ -4788,11 +4714,9 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
   //
   // Adding options only ever ADDS, so every phase predicate that passed before
   // passes now.
-  const casterOptions = rollOptionsFor({
-    attacker: attackerUnit,
-    defender,
-    attack: state.attack ?? {},
-  });
+  // Through the Attack Description, as every other reader of this attack:
+  // the stored declaration alone has no range, reaction or granted element.
+  const casterOptions = rollOptions(attackerUnit, defender, state);
 
   // Through `effectivePhases`, because a copy (Ch. 17) has none of its own --
   // reading `.phases` directly makes Scáthach's copies load and do nothing.
@@ -5140,7 +5064,7 @@ async function applyTerrainConversions(state, result) {
  * @param {object} state
  * @returns {Promise<void>}
  */
-async function fireDamageStepEnd(state) {
+async function fireDamageStepEnd(state, result = null) {
   // From the BOARD, falling back to a bare snapshot only for a unit the board
   // has no row for.
   //
@@ -5175,7 +5099,10 @@ async function fireDamageStepEnd(state) {
     tick: game.combat?.system?.globalTurn ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
     board,
-    options: rollOptions(attacker, defender, state),
+    // WHETHER IT CRIT, from the Damage Step that just resolved, as
+    // `damageDealt` has it. Castor's *"a Normal Attack that is a Crit"* could
+    // never pay, and Pollux's *"not a Crit"* paid on every Crit too (Wave B).
+    options: rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) }),
     rolls,
     // WHO WAS HIT. This event fires on the ATTACKER, and every rider hung from
     // it is about the Unit on the other end -- `targetsOf` and `subjectOf` both
@@ -5693,7 +5620,11 @@ export function attackFacts(attacker, defender, state, board = null) {
   // at Range 1 (#197 Q3). Measured from where the ride ended, Holder Mode gave
   // a Unit struck two panels in her Range-3 band.
   const range = state.attack?.ride ? 1 : attackDistance(attacker, defender);
-  const kind = state.attack?.kind ?? "normal";
+  // Every declaration stamps its kind (`buildAttackSpec`). One without a kind
+  // is no attack, and inventing "normal" for it is how a Skill read as a
+  // Normal Attack (#190, #199): refused loudly instead.
+  const kind = state.attack?.kind;
+  if (!kind) throw new Error("FGT | attackFacts was asked about an attack with no kind.");
   // HOW THE DEFENDER REACTED, so a predicate can ask. `state.reaction` is set
   // as the ladder resolves; before it does, it is null and nothing is emitted
   // -- which is correct, because a clause about the reaction is by definition
@@ -6363,7 +6294,13 @@ async function recordWindowPick(message, window, ids) {
  * @returns {Promise<object>} the Process, at `react` or at `missed`
  */
 async function runMissCheck(state, attacker, board) {
-  const chance = missChance(attacker, rollOptionsFor({ attacker, board }));
+  // Asked of THIS attack against THIS defender, through the Attack
+  // Description: Anastasia's *"does not have a chance of Missing"* at Range 1
+  // to 2 is a `Suppress` on `attack:range:lte:2`, and the check asked with no
+  // defender and no attack, so the range was never there (Wave B).
+  const defenderDoc = state.defenderId ? game.actors.get(state.defenderId) : null;
+  const defender = defenderDoc ? unitFrom(board, defenderDoc) : null;
+  const chance = missChance(attacker, rollOptions(attacker, defender, state));
   if (chance <= 0) return process.advance(state, "hit");
 
   const roll = await new Roll("1d100").evaluate();

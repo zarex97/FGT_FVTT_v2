@@ -175,12 +175,16 @@ describe("the Turn end says what it did to Health (#190)", () => {
 
 describe("a Normal-Attack-only rider is not filed on a Noble Phantasm (#190)", () => {
   it("takes only the hearer's self: facts into the filing test", async () => {
-    const { selfOptionsOf } = await import("../../module/rules/options.mjs");
-    const opts = selfOptionsOf({ id: "karna", kind: "servant", effects: ["vasaviActivated"] });
-    expect(opts.some((o) => o.startsWith("attack:"))).toBe(false);
+    const { ownerOptionsOf, rollOptionsFor } = await import("../../module/rules/options.mjs");
+    const opts = ownerOptionsOf({ id: "karna", kind: "servant", effects: ["vasaviActivated"] });
+    expect(opts.some((o) => !o.startsWith("self:"))).toBe(false);
     expect(opts).toContain("self:effect:vasaviActivated");
-    const { readFileSync } = await import("node:fs");
-    expect(readFileSync("module/engine/attack.mjs", "utf8")).toMatch(/options: new Set\(\[\.\.\.options, \.\.\.selfOptionsOf\(hearer\)\]\)/);
+    // The root: no attack named, no attack invented (#190, #199).
+    const bare = rollOptionsFor({ attacker: { id: "karna", kind: "servant" }, defender: null });
+    expect([...bare].filter((o) => o.startsWith("attack:"))).toEqual([]);
+    const np = rollOptionsFor({ attacker: { id: "karna", kind: "servant" }, defender: null, attack: { kind: "np" } });
+    expect(np.has("attack:kind:np")).toBe(true);
+    expect(np.has("attack:kind:normal")).toBe(false);
   });
 });
 
