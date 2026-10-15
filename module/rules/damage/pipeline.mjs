@@ -363,6 +363,20 @@ function stage1Base(s) {
     const label = `${src.contentId ?? src.unit} BA(${src.component.toUpperCase()}) × ${src.factor ?? 1}`;
     s.contribute(`base:${src.component}`, v, label, "attacker");
   }
+
+  // WHICH base this attack added up, as a fact every later stage's predicate
+  // can ask (`attack:usesBase:mag`). `attack:component` is what the attack
+  // COUNTS AS and Mana Burst declares `str` on purpose, so *"halved for Attacks
+  // which use Base Attack (MAG)"* read the wrong word and never reached it
+  // (#209 reading 3). Derived HERE, from the sources just summed, so the card,
+  // the preview and the counterfactual -- all of which run this pipeline --
+  // cannot disagree about it. By the source and not by its value: a holder
+  // whose BA(MAG) is 0 still USES it. A copy of the context, never the shared
+  // option set, which the caller owns and may hand to the next stage's reader.
+  const used = (spec.sources ?? []).filter((src) => (src.factor ?? 1) > 0).map((src) => `attack:usesBase:${src.component}`);
+  if (used.length > 0) {
+    s.predicateCtx = { ...s.predicateCtx, options: new Set([...s.predicateCtx.options, ...used]) };
+  }
   s.end(1);
 }
 

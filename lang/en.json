@@ -1600,6 +1600,8 @@
   "FGT.Predicate.Facet.isAoEHint": "The attack covers an area rather than one target.",
   "FGT.Predicate.Facet.component": "Component",
   "FGT.Predicate.Facet.componentHint": "The attack uses Base Attack (STR) or Base Attack (MAG).",
+  "FGT.Predicate.Facet.usesBase": "Uses Base",
+  "FGT.Predicate.Facet.usesBaseHint": "The attack's Base Attack includes Base Attack (STR) or Base Attack (MAG), whatever it counts as.",
   "FGT.Predicate.Facet.element": "Element",
   "FGT.Predicate.Facet.elementHint": "The attack deals damage of a named element.",
   "FGT.Predicate.Facet.npScale": "Np Scale",

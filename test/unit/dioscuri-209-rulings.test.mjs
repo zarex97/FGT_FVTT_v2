@@ -16,6 +16,11 @@ import {
 } from "../../module/rules/war-setup.mjs";
 import { fireEvent, advanceCooldowns, pendingRolls } from "../../module/engine/scheduler.mjs";
 import { sharedAcrossGroup, sharedCooldownIntents } from "../../module/engine/cooldown.mjs";
+import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
+import { GENERATED_EMITTABLE } from "../../module/rules/facets.mjs";
+import { canUseAbility } from "../../module/rules/costs.mjs";
+import { usageSpecFor } from "../../module/rules/ability-use.mjs";
+import { counterOffer } from "../../module/rules/counter.mjs";
 import { installClientNamespace } from "../helpers/client-namespace.mjs";
 
 beforeAll(prepareSubjects, 120_000);
@@ -454,6 +459,113 @@ describe("Self-Replenishment REDUCES the NP clock by 2 Turns (§46.4-D4, found w
       // RED before #219: `mode: "set", ticks: 0` -- the table's `amount` and `direction` met
       // neither `ticks` nor `delta`, so the Noble Phantasm's clock was WIPED at every Turn end.
       expect(mine).toEqual([expect.objectContaining({ mode: "reduce", ticks: 2 })]);
+    }, await twinSpecs());
+  });
+});
+
+/* ========================================================================== */
+/*  Reading 3 -- the fact the halving reads: the attack's Base Attack uses MAG  */
+/* ========================================================================== */
+
+describe("`attack:usesBase:mag` is the attack's base, not the component it declares (#209 reading 3)", () => {
+  /** Mad Enhancement's predicated pair, as the shared template authors it (Rank B-: 55, halved 25). */
+  const madEnhancement = [
+    { key: "atkUp", value: 55, source: "Mad Enhancement", predicate: ["not:attack:usesBase:mag"] },
+    { key: "atkUp", value: 25, source: "Mad Enhancement", predicate: ["attack:usesBase:mag"] },
+  ];
+  const hit = (sources, component) => computeDamage({
+    attacker: {
+      id: "castor", baseAttack: { str: 150, mag: 150 }, abilities: [],
+      modifiers: madEnhancement.map((m) => ({ ...m, direction: "dealt" })),
+    },
+    defender: { id: "foe", modifiers: [] },
+    base: { sources },
+    component,
+    attack: { kind: "normal", component },
+    options: new Set([`attack:component:${component}`]),
+    rolls: { attackMinus: 0 },
+  });
+  const offence = (r) => r.breakdown.find((s) => s.name === "combinedPercent")
+    .contributors.filter((c) => c.value > 0).map((c) => c.value);
+  const str = { unit: "self", component: "str", factor: 1 };
+  const mag = { unit: "self", component: "mag", factor: 1 };
+
+  it("is emittable, so a predicate may name it", () => {
+    expect(GENERATED_EMITTABLE.some((r) => r.test("attack:usesBase:mag"))).toBe(true);
+    expect(GENERATED_EMITTABLE.some((r) => r.test("attack:usesBase:str"))).toBe(true);
+    expect(GENERATED_EMITTABLE.some((r) => r.test("attack:usesBase:agi"))).toBe(false);
+  });
+
+  it("halves an attack whose base has a BA(MAG) source, whatever component it declares", () => {
+    // Mana Burst: BA(STR) + BA(MAG), declared `component: str` on purpose.
+    expect(offence(hit([str, mag], "str"))).toEqual([25]);
+  });
+
+  it("keeps the full figure for a STR base, and halves a MAG one as it always did", () => {
+    expect(offence(hit([str], "str"))).toEqual([55]);
+    expect(offence(hit([mag], "mag"))).toEqual([25]);
+  });
+
+  it("reads the base the stage added up: a MAG source worth nothing does not halve", () => {
+    expect(offence(hit([str, { ...mag, factor: 0 }], "str"))).toEqual([55]);
+  });
+
+  it("changes no attack of the six bearers but Castor's Mana Burst", async () => {
+    // The sweep behind that claim: of every damage block in the corpus, the ones
+    // whose base uses BA(MAG) while declaring another component. Only Castor holds
+    // Mad Enhancement among them (Raikou's Mana Burst refuses under it).
+    const { files } = await loadSource("packs/_source");
+    const blocks = (d) => [d.damage, ...(d.damage?.instances ?? []), ...(d.damage?.branches ?? [])].filter(Boolean);
+    const differs = files.flatMap(({ doc }) => blocks(doc).flatMap((b) => {
+      const sources = b.base?.sources ?? (b.component ? [{ component: b.component, factor: 1 }] : []);
+      const usesMag = sources.some((s) => s.component === "mag" && (s.factor ?? 1) > 0);
+      return usesMag !== ((b.component ?? sources[0]?.component) === "mag") ? [doc.id] : [];
+    })).sort();
+    expect(differs).toEqual([
+      "dioscuri-mana-burst-castor", "dioscuri-mana-burst-pollux", "karna-mana-burst-flames",
+      "mannanan-hallowed-sea-gods-sword", "quetz-xiuhcoatl", "raikou-mana-burst-lightning",
+    ]);
+    const bearers = files.filter(({ doc }) => (doc.abilities ?? []).some((a) => a?.ref === "class-mad-enhancement"))
+      .map(({ doc }) => doc.id).sort();
+    expect(bearers).toEqual(["asterios", "castor", "heracles", "kingprotea", "penthesilea", "raikou"]);
+    const held = new Set(files.filter(({ doc }) => bearers.includes(doc.id)).flatMap(({ doc }) => (doc.abilities ?? []).map((a) => a?.ref)));
+    // Of the six, one is held by a bearer; Raikou's refuses under Mad Enhancement.
+    expect([...held].filter((id) => differs.includes(id)).sort())
+      .toEqual(["dioscuri-mana-burst-castor", "raikou-mana-burst-lightning"]);
+  });
+});
+
+/* ========================================================================== */
+/*  Reading 4 -- Mana Burst is offered on a Counter (already built; pinned)     */
+/* ========================================================================== */
+
+describe("both twins' Mana Burst is offered on a Counter, and only a Counter lifts the own-Turn window (#209 reading 4)", () => {
+  const gate = (item, unit, ctx = {}) => canUseAbility({
+    ability: usageSpecFor(item), unit, round: 5, turnsPerRound: 3, ...ctx,
+  });
+
+  it("lists it beside the Normal Attack for each twin", async () => {
+    await twins(({ world }) => {
+      for (const [id, contentId] of [[CASTOR, "dioscuri-mana-burst-castor"], [POLLUX, "dioscuri-mana-burst-pollux"]]) {
+        const offer = counterOffer([...world.actor(id).items]);
+        const mb = abilityOf(world, id, contentId);
+        expect(offer.map((o) => o.id), id).toContain(mb.id);
+        expect(offer[0]).toMatchObject({ isNormalAttack: true });
+      }
+    }, await twinSpecs());
+  });
+
+  it("is usable on the enemy's Turn as a Counter, and refused there without one", async () => {
+    await twins(({ world, unit }) => {
+      for (const [id, contentId] of [[CASTOR, "dioscuri-mana-burst-castor"], [POLLUX, "dioscuri-mana-burst-pollux"]]) {
+        const mb = abilityOf(world, id, contentId);
+        const ctx = { actingFactionId: "B" };
+        // The exemption is the Counter's, not a loosened window.
+        expect(gate(mb, unit(id), { ...ctx, isCounter: true }).ok, id).toBe(true);
+        expect(gate(mb, unit(id), ctx), id).toMatchObject({ ok: false, reason: "notOwnTurn" });
+        // ...and on its own Turn it needs no Counter.
+        expect(gate(mb, unit(id), { actingFactionId: "A" }).ok, id).toBe(true);
+      }
     }, await twinSpecs());
   });
 });

@@ -357,6 +357,22 @@ export const FACETS = Object.freeze([
     prose: "the attack uses Base Attack ({component})",
   }),
   facet({
+    // The BASE the attack adds up, which `component` is not. `component` is
+    // what the attack COUNTS AS -- Mana Burst declares `str` on purpose, so
+    // that "not affected by Magic Resistance" is stated once and Magic
+    // Resistance's own Instakill exemption reads the same word -- while the
+    // base it sums is BA(STR) + BA(MAG). *"Halved for Attacks which use Base
+    // Attack (MAG)"* is a clause about the second, and Mad Enhancement read the
+    // first (#209 reading 3, ruled 2026-10-14). Derived by the damage pipeline
+    // from the sources stage 1 actually adds (`damage/pipeline.mjs#stage1Base`),
+    // never emitted by `rollOptionsFor`: the base is built beside it.
+    id: "usesBase",
+    subjects: ["attack"],
+    segments: [{ name: "component", value: closed("COMPONENTS") }],
+    english: "The attack's Base Attack includes Base Attack (STR) or Base Attack (MAG), whatever it counts as.",
+    prose: "the attack's base includes Base Attack ({component})",
+  }),
+  facet({
     id: "element",
     subjects: ["attack"],
     // CLOSED now. Karna's Mana Burst resists by element and a typo here

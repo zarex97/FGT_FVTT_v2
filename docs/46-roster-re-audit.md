@@ -5696,6 +5696,8 @@ copy that was asked; a Range was measured from whoever declared. Each was a read
 | A cut on the attack path prints a line for each copy that moved | `attack.mjs` (the `cooldown` rider), `skill-use.mjs#cooldownLine` |
 | Mana Burst's own cut and Shvibzik's were rule elements in an `applyEffects` phase and landed nowhere (§46.4-D1) | `abilities/{dioscuri-mana-burst-castor,anastasia-shvibzik}.yml` (now `cooldown` phases), `tools/lib/content.mjs` (the build refuses the shape; `PHASE_ACTIONS_STILL_DROPPED`) |
 | Self-Replenishment set the NP clock to 0 instead of cutting 2 Turns (§46.4-D4) | `scheduler.mjs#CooldownDelta` reads a table's `amount` and `direction` |
+| Mad Enhancement's +55% is halved on Mana Burst, which sums BA(MAG) while counting as STR: **25**, not the ticket's 27.5, because the template floors a halved figure to a multiple of 5 for every bearer (reading 3) | `damage/pipeline.mjs#stage1Base` (derives `attack:usesBase:<component>`), `facets.mjs` (`usesBase`), `class-skills/mad-enhancement.yml` |
+| Mana Burst is a Counter, as Raikou's is (reading 4): already built, now pinned | `rules/counter.mjs#answersACounter`, `rules/costs.mjs` (`isCounter` lifts the own-Turn window); `test/helpers/process.mjs#playProcess` |
 | General: §46.4-D1 to D5 | |
 
 **`classContainer` is seeded-then-owned** (`content/authored-fields.mjs`): a pair already in a world keeps "avenger" until it
