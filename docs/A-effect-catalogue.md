@@ -337,6 +337,17 @@ by a derivative (using the derivative's duration); a derivative cannot be replac
 > **`Def Dwn (A)` — built 2026-09-16** (`packs/_source/effects/def-dwn-a.yml`),
 > the mirror of `Def Dwn (C)`, for the Dioscuri's Noble Phantasm, which inflicts
 > both.
+>
+> **Luck −1 and Agility −1 are for damage received from an *Attack*** (#209 `DT.defa.luck`,
+> `DT.defc.agi`, #223). A field's damage, a toll and a cost never raise `damageTaken`, so
+> they drain nothing; the measured damage of a Knockback (Akhilleus Kosmos's sidestep, *"not
+> an Attack"*, #184 reading 8) does raise it, because it runs a Combat Process for the
+> arithmetic, and it is the one that drained. Both handlers carry
+> `predicate: ["not:attack:plainDamage"]`, the option a Process opened with
+> `placement.plainDamage` emits. This reaches every Servant who inflicts them: the Dioscuri's
+> Noble Phantasm (A and C), Anastasia's Snegleta (A), Van Gogh's Het Gele Huis and The Yellow
+> House (C) and Mannanán's Fragarach Counter (C). The +15% they add to damage taken is not
+> gated: a measured hit is still damage.
 
 > **`Enigma` — built 2026-09-16, and this row was wrong about whose attack it
 > reads.**
@@ -656,7 +667,7 @@ Two needed more.
 | `nvDebuff Immune` / `vDebuff Immune` / `Men.Debuff Immune` | the `scoped` table in `effect-applier.mjs`, keyed on the incoming effect's own **volatility** |
 | `Off.Debuff Immune` / `Def.Debuff Immune` | the same gate's two **valence** branches |
 | `No Buff` | that gate's one buff branch — `polarity === "buff"`, the single line in the function that asks about a buff |
-| `NP Lock` / `NP Degen` / `NP Lag` | three short-circuits at the top of `scheduler.cooldownRate` |
+| `NP Lock` / `NP Degen` / `NP Lag` | three short-circuits at the top of `scheduler.cooldownRate`; on a clock a linked group shares by name (the Dioscuri's NP) it is evaluated for a unit holding what either twin holds, so each acts on both copies (#209 reading 2). **`NP Degen`'s rate of -1 is never applied** (§46.4-D5, open): `advanceCooldowns` pushes a tick only for a rate above 0, so Degen stops the natural reduction and never adds the Turn its row promises |
 | `PoisHeal` / `CursHeal` / `FlamHeal` | **two** readers each: stage 0's element conversion *and* the `healConversion` on Poison's, Curse's and Burn's authored `periodic` |
 | `Luck Boost` / `Luck Loss` | four call sites, each `held.includes(id) \|\| plan.forceTable === …` |
 | `Stop` | `PREVENT_ALL`, plus **two** scheduler sweeps — durations and cooldowns are different passes |

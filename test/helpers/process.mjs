@@ -26,11 +26,15 @@ import * as process from "../../module/engine/combat-process.mjs";
  * @param {string|null} [play.ability] the ability's item id; `null` for a Normal Attack
  * @param {object} [play.placement] the targeting choices; built from `target` when absent
  * @param {string} [play.target] one target Unit's id, as the sheet sends a targeted token
- * @param {Record<string, string|string[]>} [play.react] by Unit id, the button(s) that Unit presses, in order
+ * @param {Record<string, Press|Press[]>} [play.react] by Unit id, the button(s) that Unit presses, in order.
+ *   A press is the ladder event (`"nothing"`, `"declined"`), or `{event, abilityId, placement}` for the one that
+ *   carries a choice: a Counter names the ability it answers with (`{event: "counter", abilityId}`).
  * @returns {Promise<{declared: object, processes: object[]}>}
+ *
+ * @typedef {string|{event: string, abilityId?: string|null, placement?: object|null}} Press
  */
 export async function playAttack(w, { attacker, ability = null, placement = undefined, target = undefined, react = {} }) {
-  const { resolveAttack, advanceAttack } = await import("../../module/engine/attack.mjs");
+  const { resolveAttack } = await import("../../module/engine/attack.mjs");
   const presses = Object.fromEntries(Object.entries(react).map(([id, e]) => [id, [e].flat()]));
   const declared = await resolveAttack({
     attackerId: attacker,
@@ -39,23 +43,40 @@ export async function playAttack(w, { attacker, ability = null, placement = unde
   });
   const ids = (declared.processes ?? [{ messageId: declared.messageId }]).map((p) => p.messageId).filter(Boolean);
 
-  const stateOf = (id) => process.deserialize(w.messages.get(id).getFlag("fgt", "process"));
-  const play = async (id) => {
-    for (let step = 0; step < 50; step += 1) {
-      const state = stateOf(id);
-      if (process.isComplete(state)) return state;
-      const prompt = process.pendingPrompt(state);
-      if (!prompt) return state;
-      const event = presses[prompt.unitId]?.shift();
-      if (!event) {
-        throw new Error(`Process ${id} asks ${prompt.unitId} (${prompt.kind}: ${JSON.stringify(prompt.options)}) and the script has no answer.`);
-      }
-      await advanceAttack({ messageId: id, event });
-    }
-    throw new Error(`Process ${id} did not finish in 50 presses.`);
-  };
+  const play = (id) => playProcess(w, id, presses);
   const processes = await Promise.all(ids.map(play));
   return { declared, processes };
+}
+
+/**
+ * Press the open questions of one Combat Process from the script, until it is done.
+ *
+ * What `playAttack` does for each Process it declares, and what a test needs for
+ * the one it did not: a Counter opens its own, on its own message.
+ *
+ * @param {object} w the test world
+ * @param {string} id the Process's chat message
+ * @param {Record<string, Press|Press[]>} react by Unit id, the button(s) that Unit presses, in order
+ * @returns {Promise<object>} the Process's state when it is done or waits on nobody
+ */
+export async function playProcess(w, id, react = {}) {
+  const { advanceAttack } = await import("../../module/engine/attack.mjs");
+  // An array is kept as it is, not copied: the presses are CONSUMED, and a script
+  // `playAttack` hands to every Process of a fan-out is one list they share.
+  const presses = Object.fromEntries(Object.entries(react).map(([unit, e]) => [unit, Array.isArray(e) ? e : [e]]));
+  const stateOf = () => process.deserialize(w.messages.get(id).getFlag("fgt", "process"));
+  for (let step = 0; step < 50; step += 1) {
+    const state = stateOf();
+    if (process.isComplete(state)) return state;
+    const prompt = process.pendingPrompt(state);
+    if (!prompt) return state;
+    const press = presses[prompt.unitId]?.shift();
+    if (!press) {
+      throw new Error(`Process ${id} asks ${prompt.unitId} (${prompt.kind}: ${JSON.stringify(prompt.options)}) and the script has no answer.`);
+    }
+    await advanceAttack({ messageId: id, ...(typeof press === "string" ? { event: press } : press) });
+  }
+  throw new Error(`Process ${id} did not finish in 50 presses.`);
 }
 
 /**

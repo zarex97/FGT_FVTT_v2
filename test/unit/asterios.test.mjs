@@ -53,12 +53,16 @@ function madEnhancement(rank = "B") {
     activeRules: [
       {
         key: "DamageModifier", modifierKey: "atkUp", direction: "dealt",
-        table: "madEnhancementOffence", predicate: ["not:attack:component:mag"],
+        // `usesBase`, not `component`, since #209 reading 3 (ruled 2026-10-14):
+        // the halving reads the base the attack adds up, which the damage
+        // pipeline derives (`stage1Base`) -- a STR or MAG attack of this file
+        // has exactly the base it declares, so its figures are unchanged.
+        table: "madEnhancementOffence", predicate: ["not:attack:usesBase:mag"],
       },
       {
         key: "DamageModifier", modifierKey: "atkUp", direction: "dealt",
         table: "madEnhancementOffence", magnitudeFactor: 0.5,
-        predicate: ["attack:component:mag"],
+        predicate: ["attack:usesBase:mag"],
       },
       {
         key: "DamageModifier", modifierKey: "defUp", direction: "taken",

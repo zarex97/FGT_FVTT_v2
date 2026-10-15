@@ -27,7 +27,8 @@ requirements:
   # Noble Phantasm. It had no writer until now.
   - { kind: counterpartAdjacent }
 description: |
-  Range=2. Can only be used when Castor and Pollux are directly next to each other. The Base Attack
+  Range=2, measured from either twin: a target within 2 panels of Castor or of Pollux can be chosen.
+  Can only be used when Castor and Pollux are directly next to each other. The Base Attack
   used is half of Castor's Base Attack (STR) and half of Pollux's Base Attack (STR) combined
   (BA=150). Deals 3.5x damage that has the @effect[pierce]{Pierce} and @effect[ignoreDef]{Ignore Def} effects. Then, inflicts
   @effect[defDwnA]{Def Dwn (A)} for 1◈ Turns, all damage received is increased by 15% and Luck is reduced by 1 whenever
@@ -38,7 +39,13 @@ description: |
   debuffs on both Castor and Pollux are combined when calculating damage for this NP.
   Cooldown: 6◈ Turns.
 targeting:
-  anchor: { kind: targetUnit, range: 2 }
+  # *"Range = 2"* from EITHER twin (#209 reading 6, ruled 2026-10-14): a target
+  # within 2 panels of Castor or of Pollux is a target, whoever declares it.
+  # `alsoFrom: partner` adds the declarer's linked partner as a second place the
+  # Range is measured from (`rules/targeting/resolve.mjs#resolveAnchor`); it
+  # mirrors `selection.alsoIncludes: partner` on the two party Skills, and the
+  # build refuses it on any anchor but `targetUnit`.
+  anchor: { kind: targetUnit, range: 2, alsoFrom: partner }
   shape: { kind: unit }
   selection: { relations: [enemy], chooser: chosen, count: 1 }
 damage:

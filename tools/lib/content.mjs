@@ -1556,6 +1556,19 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
         + `expected one of ${SHAPE_IDS.join(", ")}`,
       );
     }
+    // `alsoFrom` measures a `targetUnit` anchor's Range from the caster's linked
+    // partner too (#209 reading 6): the only value is `partner`, and no other
+    // anchor reads the key, so on any other it would be a Range clause that
+    // quietly did nothing -- the Silent Drop this check exists to refuse.
+    const alsoFrom = spec.anchor?.alsoFrom;
+    if (alsoFrom !== undefined) {
+      if (alsoFrom !== "partner") {
+        problems.push(`${path}: ${where}.anchor.alsoFrom is "${alsoFrom}"; the only value is "partner"`);
+      }
+      if (anchor !== "targetUnit") {
+        problems.push(`${path}: ${where}.anchor.alsoFrom is read by a "targetUnit" anchor only, not "${anchor}"`);
+      }
+    }
     // An anchor may state an ABSOLUTE reach or a RELATIVE one, and stating
     // both is always a mistake: `anchorRange` returns `spec.range` the moment
     // it is a number and never reaches `rangeBonus`, so the second field is
@@ -1606,7 +1619,51 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     if (id && !library.has(id)) {
       problems.push(`${path}: ${where} applies unknown effect "${id}"`);
     }
+
+    // An `applyEffects` phase LANDS EFFECTS, and every reader of it
+    // (`engine/skill-use.mjs`, `engine/attack.mjs`) reads an entry through
+    // `rules/effect-flow.mjs#entryOf`, which answers null for one that names no
+    // effect. A RULE ELEMENT written there -- `{ key: CooldownDelta, ... }` -- is
+    // no effect at all, so the clause it carries was dropped without a word:
+    // Castor's Mana Burst and Anastasia's Shvibzik had never turned the Noble
+    // Phantasm's clock (§46.4-D1, found by the Dioscuri audit, #219). A cooldown
+    // cut is a `cooldown` phase.
+    const names = spec.effect?.id ?? spec.effect?.defId ?? spec.id ?? spec.defId;
+    if (!names && typeof spec.key === "string" && !phaseActionStillDropped(doc.id, spec.key)) {
+      problems.push(
+        `${path}: ${where} is the rule element "${spec.key}" in an applyEffects phase, which lands effects `
+        + `and reads no rule element -- it would do nothing. A cooldown cut is a "cooldown" phase `
+        + `(§46.4-D1)`,
+      );
+    }
   }
+}
+
+/**
+ * The rule-element Clauses authored inside an `applyEffects` phase that are STILL
+ * dropped, each a Silent Drop found and not yet built (§46.4-D1).
+ *
+ * Jabberwock's *Alice Eater*: *"extends its period of existing on the board for
+ * 3◈ more Turns"* is `{ key: DurationDelta }` in an `applyEffects` phase, and no
+ * phase kind moves a summon's expiry, so the extension never happens. It needs a
+ * phase kind of its own, which is its own change; until then it is named here so
+ * the build keeps refusing every OTHER such entry. The list may only shrink
+ * (`test/unit/dioscuri-209-rulings.test.mjs`), and each entry must still be an
+ * id-less rule element there or the test calls it stale.
+ *
+ * @type {ReadonlyArray<{id: string, key: string}>}
+ */
+export const PHASE_ACTIONS_STILL_DROPPED = Object.freeze([
+  Object.freeze({ id: "jabberwock-alice-eater", key: "DurationDelta" }),
+]);
+
+/**
+ * @param {string} id the ability's content id
+ * @param {string} key the rule element's key
+ * @returns {boolean}
+ */
+function phaseActionStillDropped(id, key) {
+  return PHASE_ACTIONS_STILL_DROPPED.some((d) => d.id === id && d.key === key);
 }
 
 /**

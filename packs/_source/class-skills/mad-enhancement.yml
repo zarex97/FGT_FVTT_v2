@@ -63,7 +63,14 @@ activeRules:
     modifierKey: atkUp
     direction: dealt
     table: madEnhancementOffence
-    predicate: [not:attack:component:mag]
+    # *"Halved for Attacks which use Base Attack (MAG)"* is a clause about the
+    # BASE an attack adds up, not about the component it counts as: Mana Burst
+    # sums BA(STR) + BA(MAG) and declares `component: str` on purpose (#209
+    # reading 3, ruled 2026-10-14: Castor's +55% is halved on it). `usesBase` is
+    # derived by the damage pipeline from the sources stage 1 adds, so for an
+    # attack whose component and base agree -- every other Mad Enhancement attack
+    # -- nothing changes.
+    predicate: [not:attack:usesBase:mag]
   - key: DamageModifier
     modifierKey: atkUp
     direction: dealt
@@ -76,8 +83,11 @@ activeRules:
     # Every even rank is unaffected (60→30, 100→50); Kingprotea's A+ is the
     # first odd one and her sheet writes the answer out: *"halved for Attacks
     # which use Base Attack (MAG) **(40%)**"*, where 85/2 is 42.5.
+    #
+    # Castor's B- is 55, halved 27.5 and floored to 25 on Mana Burst: the ruling
+    # said 27.5, and the template's rounding is one rule for every bearer.
     magnitudeRoundTo: 5
-    predicate: [attack:component:mag]
+    predicate: [attack:usesBase:mag]
   # Clause 2. `madEnhancementDefence` is an `[normal, vsNP]` PAIR -- B is
   # `[40, 20]` -- and the second half is picked up by `DamageModifier` as the
   # modifier's `npValue`. It used to be dropped on the floor by `scalar()`, so

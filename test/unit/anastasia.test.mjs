@@ -342,8 +342,13 @@ describe("her three active skills", () => {
       .toMatchObject({ stat: "luck", delta: 3, clamp: true });
     expect(a.phases.find((p) => p.effects)?.effects[0])
       .toMatchObject({ id: "atkUp", magnitude: 30, npMagnitude: 20, duration: "1◈" });
-    expect(a.phases.at(-1).rules[0])
-      .toMatchObject({ key: "CooldownDelta", scope: "np", ticks: "1◈+⅔◈" });
+    // Overturned by §46.4-D1 (found by the Dioscuri audit, #219): this pinned a
+    // `CooldownDelta` rule element inside an `applyEffects` phase, which lands
+    // effects and read none of it, so the cut was never made. A `cooldown`
+    // phase now; `dioscuri-209-arena.test.mjs` plays it as Anastasia.
+    expect(a.phases.at(-1)).toMatchObject({ kind: "cooldown", target: "self" });
+    expect(a.phases.at(-1).changes[0])
+      .toMatchObject({ scope: "np", ticks: "1◈+⅔◈", direction: "down" });
   });
 
   it("Shvibzik's cooldown expressions both parse", () => {
