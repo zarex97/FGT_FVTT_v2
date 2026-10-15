@@ -29,6 +29,7 @@ import { referencedOptions } from "./predicate.mjs";
 import { stanceOf, mountedThisTurn } from "./stance.mjs";
 import { heldOn } from "./modes.mjs";
 import { categoriesOf } from "./items.mjs";
+import { isNPAttack } from "./damage/pipeline.mjs";
 
 /**
  * A Unit's own facts, as `self:` options, and nothing else.
@@ -84,6 +85,14 @@ export function rollOptionsFor({ attacker, defender, attack = null, withoutModeH
   // stays, as a ride's does, so Vasavi Shakti's Normal-Attack Divinity bonus
   // reaches it (#206 reading 5).
   if (attack.asNormalAttack) options.add("attack:kind:normal");
+  // "An NP that deals damage": a Noble Phantasm, or an ability the sheet
+  // CATEGORIZES as one (EMIYA's Overedge). `attack:kind:np` is the first only,
+  // so a clause that means both asks THIS, answered by the one definition the
+  // damage pipeline and the crit coin already share (`isNPAttack`). The
+  // existing `attack:kind:np` readers (NP DmUp, Rho Aias's scope, Nemo) stay as
+  // they are: whether they hear a categorized-as-NP attack is an open question
+  // (#208, §46.30).
+  if (isNPAttack(attack)) options.add("attack:isNP");
   if (attack.isAoE) options.add("attack:isAoE");
   // Whether this declaration ANSWERS an attack rather than starting one
   // (Ch. 21). Avenger's second half is the first clause to ask: *"If Castor

@@ -143,6 +143,10 @@ async function fireWriteEvent(name, unitId, payload) {
     // The payload IS the context for a handler that asks about the change
     // rather than about a unit -- see `eventFilterPasses`.
     event: payload,
+    // ...and the SUBJECT, for an event that is about an ability: `abilityUsed`
+    // raised by a rule (`AbilityUsed`) is heard by `ofCategory` handlers the
+    // way one raised by a cast is (`skill-use.mjs#fireAbilityUsed`).
+    subject: payload?.subject,
   });
   if (intents.length > 0) await applyWorldIntents(intents, `event:${name}`);
 }

@@ -763,6 +763,12 @@ export function buildAttackSpec({
       // A Skill whose attack IS the Normal Attack (#206 reading 5): its kind
       // stays its own, and `rollOptionsFor` adds `attack:kind:normal` beside it.
       asNormalAttack: Boolean(ability?.system?.countsAsNormalAttack),
+      // An ability the sheet CATEGORIZES as a Noble Phantasm (EMIYA's Overedge),
+      // stamped on the declaration so the option set can say `attack:isNP` from
+      // the one definition (`isNPAttack`). Read from the identity builder, which
+      // is the ONE place an ability's NP category is read (the pipeline got it
+      // there; the options were built before it was added -- #208).
+      categorizedAsNP: attackIdentityOf(ability, options).categorizedAsNP,
       // Which Base Attack this uses, and whether Magic Resistance sees it at all.
       // Both are read by Magic Resistance's Instakill/Death ladder, which is
       // exempted for *"an Attack/Attack Skill/Spell/NP that deals STR damage or

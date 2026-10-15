@@ -44,6 +44,12 @@ passiveRules:
       - key: ApplyEffect
         effect: { id: dualWieldGuard }
         duration: "⅓◈"
+      # "Used when EMIYA performs a Normal Attack at a Range of 2 or lower": it IS
+      # used, so the clauses that listen for a use hear it -- Magecraft's Range Up
+      # (Projection NPs count as Thaumaturgy Spells) and Atk Up (Trace)'s extension
+      # (ruled 2026-10-14, #208 reading 5). A passive has no button to raise
+      # `abilityUsed`, so the rule that decides it was used says so.
+      - { key: AbilityUsed }
 
   # The extension clause lives on OVEREDGE, not here, and that is not a filing
   # decision -- it is the only reading under which the sheet's two sentences

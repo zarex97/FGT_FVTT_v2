@@ -12,6 +12,11 @@ slug: overedge
 category: projection
 isAttackSkill: true
 categorizedAsNP: true
+# "EMIYA performs 2 Normal Attacks in a row": each swing IS a Normal Attack, so
+# it carries `attack:kind:normal` beside `attackSkill` and Clairvoyance,
+# Reinforcement and the Circuits hear it (ruled 2026-10-14, #208 reading 7).
+# Its own +50% and the K&B grant below keep reading `attackSkill`.
+countsAsNormalAttack: true
 cooldown: "2◈"
 timing: { window: ownTurn }
 negatedBy: [silence]
@@ -65,3 +70,11 @@ passiveRules:
       - key: ApplyEffect
         effect: { id: dualWieldGuard }
         duration: "⅓◈"
+      # ...and Kanshou & Bakuya is USED, by each of the two swings (ruled
+      # 2026-10-14, #208 readings 5 and 7). Named by content id, because K&B's
+      # own rule is negated while Overedge cools: exactly one of the two rules
+      # speaks for a swing. One Overedge is therefore three uses of Projection
+      # NPs -- its own, through the attack path, and one per swing -- which is
+      # three extensions of Atk Up (Trace) and three Range Up refreshes. A
+      # consequence of the rulings, not a defect (Ch. 46 §46.30).
+      - { key: AbilityUsed, ability: emiya-kanshou-and-bakuya }

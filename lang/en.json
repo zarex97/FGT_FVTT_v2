@@ -1598,6 +1598,8 @@
   "FGT.Predicate.Facet.kindHint": "The attack is a Normal Attack, a Skill or a Noble Phantasm.",
   "FGT.Predicate.Facet.isAoE": "Is Ao E",
   "FGT.Predicate.Facet.isAoEHint": "The attack covers an area rather than one target.",
+  "FGT.Predicate.Facet.isNP": "Is Noble Phantasm",
+  "FGT.Predicate.Facet.isNPHint": "The attack is a Noble Phantasm, or is categorized as one.",
   "FGT.Predicate.Facet.component": "Component",
   "FGT.Predicate.Facet.componentHint": "The attack uses Base Attack (STR) or Base Attack (MAG).",
   "FGT.Predicate.Facet.element": "Element",
