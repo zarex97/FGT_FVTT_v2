@@ -5692,7 +5692,11 @@ copy that was asked; a Range was measured from whoever declared. Each was a read
 |---|---|
 | Pollux is a Saber, Castor stays an Avenger; the pair's slot is Saber; both read Saber to an enemy before the reveal (readings 1, 8, 9) | `servants/{pollux,castor}.yml` (`servantClasses`, `classContainer`), `rules/war-setup.mjs#catalogueEntryOf` and `candidatesFor` (the companion is never drawn alone), `engine/summon.mjs#servantCatalogue` |
 | War setup gave the second twin no faction, no Contract and no token (§46.4-D3) | `engine/war-setup.mjs#seatPartners`, `deployTokens` |
-| General: §46.4-D1 to D3 | |
+| One Cooldown clock: a use starts it on both copies, a cut by either twin reaches both, the per-Turn tick runs at one rate (reading 2) | `engine/cooldown.mjs#sharedCooldownIntents` and `twinsOf`; `scheduler.mjs#CooldownDelta`, `#advanceCooldowns`; `skill-use.mjs#cooldownChanges`; `command-spells.mjs#effectIntents` |
+| A cut on the attack path prints a line for each copy that moved | `attack.mjs` (the `cooldown` rider), `skill-use.mjs#cooldownLine` |
+| Mana Burst's own cut and Shvibzik's were rule elements in an `applyEffects` phase and landed nowhere (§46.4-D1) | `abilities/{dioscuri-mana-burst-castor,anastasia-shvibzik}.yml` (now `cooldown` phases), `tools/lib/content.mjs` (the build refuses the shape; `PHASE_ACTIONS_STILL_DROPPED`) |
+| Self-Replenishment set the NP clock to 0 instead of cutting 2 Turns (§46.4-D4) | `scheduler.mjs#CooldownDelta` reads a table's `amount` and `direction` |
+| General: §46.4-D1 to D5 | |
 
 **`classContainer` is seeded-then-owned** (`content/authored-fields.mjs`): a pair already in a world keeps "avenger" until it
 is re-summoned or edited. `servantClasses` is pack-owned and updates. A fresh pair comes from war setup, which writes the slot.
@@ -5700,3 +5704,35 @@ is re-summoned or edited. `servantClasses` is pack-owned and updates. A fresh pa
 ### 46.31.2 What was staged
 
 Nothing: no live press. #224 presses the 115 Clauses.
+
+### D1. A rule element in an `applyEffects` phase did nothing — **fixed** for two (#219), **open** for one
+
+**Reached: Anastasia, the Jabberwock.** Castor's Mana Burst (*"Then, reduce Castor's NP Cooldown by 1◈ Turns"*) and
+Anastasia's Shvibzik (*"NP Cooldown is reduced by 1◈+⅔◈ Turns"*) wrote the cut as `{ key: CooldownDelta, … }` inside an
+`applyEffects` phase. That phase lands effects, every reader of it reads an entry through `entryOf`, and an entry with no
+effect id is `null`: the cut was dropped without a word, and neither Skill had ever turned a clock. Found on the first arena
+press of Mana Burst (the NP read 18 before and after). Both are `cooldown` phases now, and the build refuses the shape.
+**Open:** Jabberwock's Alice Eater (`{ key: DurationDelta }`, *"extends its period of existing for 3◈ more Turns"*) is
+dropped the same way (a probe: its Atk Up lands and `expiresAt` stays 40) and no phase kind moves a summon's expiry. It is
+the one name in `PHASE_ACTIONS_STILL_DROPPED`, which may only shrink. Ch. 17, 40.
+
+### D3. The second twin of a war-setup slot had nothing — **fixed** (#218)
+
+**Reached: only the Dioscuri (the one `summonTogether` group).** `commitWar` filled a slot with `commitSummon`, which
+summons the partner with no Master and no faction, and then wrote the faction, the Contract and the token of the drawn
+Servant alone: the second twin stood on no side, under no Master and off the board. `seatPartners` gives it the slot's side,
+container and Contract, and `deployTokens` puts it on the panel nearest its twin before the Master takes one. `commitWar` has
+no test of its own; the two pieces are held on their own. #224's live press should look at a wizard-built pair. Ch. 31, 32.
+
+### D4. Self-Replenishment (Mana) set the Noble Phantasm's clock to 0 — **fixed** (#219)
+
+**Reached: Castor.** *"At the end of Castor's Turn … NP Cooldown −2 Turns"* is `CooldownDelta` with a rank table and
+`direction: down`. The table's figure arrives as `amount`, which `StatDelta` reads and `CooldownDelta` did not, so the action
+had neither `ticks` nor `delta` and `set` the clock to 0: at every Turn end the Noble Phantasm came back. Seen as `mode:
+"set", ticks: 0` the moment the shared-clock test fired the event on real Castor. Ch. 17, B.3.
+
+### D5. NP Degen never adds its Turn — **open**
+
+**Reached: every Servant who inflicts it.** `cooldownRate` answers -1 for a Noble Phantasm under NP Degen (*"a negative rate
+is cooldown ADDED"*) and `advanceCooldowns` pushes a tick only for a rate above 0, so Degen stops the natural reduction and
+never lengthens the clock. Found while writing the shared-clock tick test; not part of any ruling here, so left. Ch. A.

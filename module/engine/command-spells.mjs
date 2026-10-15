@@ -14,6 +14,7 @@ import { suspendableSkills, availableCommands, canSpend, effectsOf, costOf, tele
 import { CommandSpellRegistry } from "../rules/cs-registry.mjs";
 import { currentBoard, unitFrom } from "./board.mjs";
 import * as I from "./intents.mjs";
+import { sharedCooldownIntents } from "./cooldown.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as process from "./combat-process.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
@@ -320,11 +321,12 @@ function effectIntents(effects, ctx) {
         // `oneSkill` needs the player to say which, so it arrives on the
         // context; without a choice this does nothing rather than guessing.
         const targets = cooldownTargets(unit, e, ctx);
-        for (const a of targets) {
-          out.push(e.mode === "clear"
-            ? I.cooldown(e.unitId, a.id, a.cooldownRemaining ?? 0, "reduce")
-            : I.cooldown(e.unitId, a.id, ticksFrom(e.delta, ctx), "reduce"));
-        }
+        const cuts = targets.map((a) => (e.mode === "clear"
+          ? I.cooldown(e.unitId, a.id, a.cooldownRemaining ?? 0, "reduce")
+          : I.cooldown(e.unitId, a.id, ticksFrom(e.delta, ctx), "reduce")));
+        // The clock a group shares by name is one clock (#209 reading 2): the
+        // Dioscuri's Skill cooled on Castor is cooled on Pollux.
+        out.push(...cuts, ...sharedCooldownIntents(cuts, unit, ctx.board));
         break;
       }
 
