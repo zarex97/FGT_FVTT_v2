@@ -57,9 +57,11 @@ const spellsUnder = (defId) => withSubjects(
 );
 
 describe("the sixteen Spells meet the prevention table at the gate (#155)", () => {
-  it("are all sixteen, with the Quetzalcoatlus Spells to join them", async () => {
+  it("are all fifteen, with the Quetzalcoatlus Spells to join them", async () => {
     const all = await spellsUnder(null);
-    expect(all.length).toBe(16);
+    // Sixteen until #208 reading 2, ruled 2026-10-14: Trace, On is a plain Skill, not a Spell.
+    expect(all.length).toBe(15);
+    expect(all.map((r) => r.id)).not.toContain("emiya-trace-on");
   });
 
   it("are spared by Seal -- not prevented, whatever else a Spell's own requirements say", async () => {

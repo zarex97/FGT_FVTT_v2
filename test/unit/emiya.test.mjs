@@ -349,8 +349,10 @@ describe("the Thaumaturgy family", () => {
   it("every Spell and Projection refuses under Silence, both ways", () => {
     // Two halves, and both are needed: the requirement stops it being used, and
     // `negatedBy` stops it working if Silence lands after declaration (Ch. 17).
+    // #208 reading 2, ruled 2026-10-14: Trace, On is a plain Skill, so it leaves this list
+    // (pinned the other way in `emiya-208-rulings.test.mjs`).
     const gated = [
-      "emiya-reinforcement", "emiya-tracing", "emiya-trace-on",
+      "emiya-reinforcement", "emiya-tracing",
       "emiya-caladbolg", "emiya-hrunting", "emiya-overedge", "emiya-rho-aias",
     ];
     for (const id of gated) {
