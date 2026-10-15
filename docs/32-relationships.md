@@ -76,6 +76,8 @@ Two Servants in a `linkedGroup` are one unit for counting purposes. Each carries
 
 When `zonSatisfaction` is `"any"`, one partner satisfying ZON satisfies both — unioned into `zonPartnerIds` so `zonStatus` can read it without change (`module/rules/linked-group.mjs:115-122`, `module/rules/zon.mjs:146-156`).
 
+A group summoned together (`summonTogether`) **shares one war slot** (#209 readings 1 and 8, ruled 2026-10-14): the Dioscuri sit in a Saber slot, Pollux drawn into it and Castor, an Avenger, arriving as her *companion* — never drawn alone, never an Avenger or `EXTRA` candidate (`rules/war-setup.mjs#catalogueEntryOf`, Ch. 31). Both carry `classContainer: saber`, so an enemy reads Saber on both until the True Names are revealed, and war setup seats the second twin on the first one's side, under the same Master and beside it (`engine/war-setup.mjs#seatPartners`, §46.4-D3).
+
 ## Traps and anti-patterns
 
 **A complete, tested rule that no engine path reached.** `conquestContract` was written, documented

@@ -52,8 +52,42 @@ export const EXTRA = "extra";
  * @property {string} contentId
  * @property {string} name
  * @property {string[]} [servantClasses]
+ * @property {string|null} [classContainer] the slot the sheet sits in
+ * @property {boolean} [summonTogether] summoned in one commit with its partners
+ * @property {boolean} [companion] seated in a partner's slot rather than its own: never drawn alone
  * @property {string} [packId]
  */
+
+/**
+ * The catalogue row of one Servant, from the compendium index entry the picker
+ * fetched. The one place a row is built, so the picker and the tests read the
+ * same fields (`engine/summon.mjs#servantCatalogue` asks the index for them).
+ *
+ * **The companion is a role of the relationship, not of a class** (#209 reading
+ * 8, ruled 2026-10-14): a Servant summoned together with its partners whose
+ * slot is not one of its own classes -- Castor, an Avenger who sits in his
+ * twin's Saber slot. He is the partner of the Servant the war draws, so he is
+ * never a candidate for any container of his own: drawing Pollux summons him
+ * (`engine/summon.mjs#commitSummon`).
+ *
+ * @param {object} entry a compendium index entry
+ * @returns {CatalogueEntry}
+ */
+export function catalogueEntryOf(entry) {
+  // A `SetField` arrives from the index as an array already, but a document
+  // that never stated any arrives as `undefined`.
+  const servantClasses = [...(entry.system?.servantClasses ?? [])];
+  const classContainer = entry.system?.classContainer || null;
+  const summonTogether = Boolean(entry.system?.linkedGroup?.summonTogether);
+  return {
+    contentId: entry.system?.contentId ?? entry._id,
+    name: entry.name,
+    servantClasses,
+    classContainer,
+    summonTogether,
+    companion: summonTogether && Boolean(classContainer) && !servantClasses.includes(classContainer),
+  };
+}
 
 /**
  * A blank container.
@@ -107,6 +141,9 @@ export function defaultContainers(factions, perFaction = CORE_CLASSES.length) {
  * Servant holding NO core class. A Servant with no classes at all is therefore
  * an `EXTRA` candidate, which is the right reading of a sheet that states none.
  *
+ * A **companion** is a candidate for nothing (`catalogueEntryOf`): the Servant
+ * he is summoned with fills the slot, and he arrives with it.
+ *
  * @param {Container} container
  * @param {CatalogueEntry[]} catalogue
  * @param {{policy?: string, taken?: string[]}} [options]
@@ -119,6 +156,7 @@ export function candidatesFor(container, catalogue, { policy = "duplicates", tak
   return (catalogue ?? [])
     .filter((entry) => {
       if (excluded.has(entry.contentId)) return false;
+      if (entry.companion) return false;
       const classes = entry.servantClasses ?? [];
       return wanted === EXTRA
         ? !classes.some((c) => CORE_CLASSES.includes(c))
