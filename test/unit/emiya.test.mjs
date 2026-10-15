@@ -386,7 +386,7 @@ describe("the Thaumaturgy family", () => {
     // Spells and never for the five Projections, which is most of what he does.
     expect(handler).toMatchObject({ event: "abilityUsed" });
     expect([handler.ofCategory].flat().sort()).toEqual(["projection", "thaumaturgy"]);
-    expect(handler.then[0].effect.id).toBe("rangeUp");
+    expect(handler.then[0].effect.id).toBe("rangeUpHawkeye"); // #208 reading 14, ruled 2026-10-14: its own effect, not the Range Up Kiritsugu applies
   });
 
   it("Reinforcement buffs Normal Attacks only", () => {

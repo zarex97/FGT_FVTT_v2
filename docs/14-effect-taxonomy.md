@@ -114,6 +114,12 @@ A **suppressed** instance does not count: a Stun that is not stunning anybody is
   (`module/engine/applier.mjs:351`), which computed it before knowing an instance existed. Nothing
   reads the existing instance's remaining time, so `extend` can only ever mean `now + duration` —
   which is refresh. **Today, authoring `noneExtend` gets you `noneRefresh`.**
+  *Since then:* the flow extends (`priorExpiry + ticks`, `effect-applier.mjs`), and a phase's
+  `applyEffects` reaches it. A handler's `ApplyEffect` still did not: `mergeEmitted` put the emitter's
+  `now + duration` over the flow's answer, so EMIYA's Magecraft left a second Spell's Range Up (Hawkeye)
+  at the expiry the first had set. The flow tags its extension (`extendsFrom`) and the merge adds the
+  emitter's span to it (#208 reading 14). Magecraft's is the only handler-applied `noneExtend` in the
+  corpus; Suppression, Webbed, Atk Up (Trace) and Kiritsugu's Range Up are applied by phases.
 
 - **Terminal effects skip the Prevention reaction but respect resistance.** They go through chance and `ApplicationChance` resistance checks like any other effect, but skip the Prevention Luck Check window and do not create a document; instead, they emit intents directly (`module/engine/effect-applier.mjs:173-174`, `module/engine/effect-applier.mjs:298-301`).
 

@@ -4379,6 +4379,13 @@ exclude `ownTurn` has no sheet button, and the use gate had no way to say so: on
 `notOwnTurn`) was refused. `canUseAbility` refuses it with `windowOnly` unless the engine says `atWindow` (the reaction,
 the window cast, the Noble Phantasm cancellation); the socket operations cannot. Ch. 17, 23.
 
+### E9. A handler's `noneExtend` restamped instead of extending — **fixed** (#208)
+
+**Reached: only EMIYA's Magecraft, the one handler-applied `noneExtend` in the corpus.** The flow extends (prior expiry +
+span); the merge of what the emitter stated laid `now + span` over it, so a second Spell in the same Turn changed
+nothing. The flow tags its extension and the merge adds the span to it. A phase's `applyEffects` always extended (Atk Up
+(Trace), Suppression). Closes the handler half of #23. Ch. 14, 15.
+
 ---
 
 ---
@@ -5760,3 +5767,5 @@ reader of a rule the first reader answered one way.
 | "For the rest of the Round" is `until roundEnd`, from an event handler's `ApplyEffect` (reading 12). The circuits had authored `duration: "thisRound"`, which `parseTick` throws on: the first damaging NP they were held for would have crashed the Damage Step | `engine/scheduler.mjs` (`ApplyEffect` stamps `duration` for an `until`), `engine/applier.mjs#entryOfIntent`; `content-ticks.test.mjs` reads `duration` too |
 | Atk Up (Trace) going, by any route, removes every piece (reading 13; ruled 2026-10-15: Cure and strip too, not only running out) | `engine/applier.mjs#resolveRemovals`; `scheduler.expireEffects` flags its removals `onRemoveRan`; `effects/atk-up-trace.yml` `onRemove` lists all seven |
 | Reinforcement is used at the start of any Combat Phase he is in, attacking or attacked, and not any time in his Turn; its +30% ends with that Combat Phase (readings 8, 9). The window-only half is general: an ability whose windows exclude `ownTurn` was pressable from the sheet at any time | `abilities/emiya-reinforcement.yml` (`[combatPhaseStart, defendingPhaseStart]`, `until combatPhaseEnd`); `rules/windows.mjs#usedOnlyAtWindows`, `rules/costs.mjs` `windowOnly`, `atWindow` from `useSkill`, `resolveAttack`, the NP cancellation; `lang` `FGT.Ability.Refused.windowOnly` |
+| Range Up (Hawkeye) is its own effect: it adds to another Range Up (Kiritsugu's Familiars) and reapplying it extends only itself (reading 14). A second cast in the same Turn used to change nothing: a handler's `ApplyEffect` restamped the clock from now over the flow's extension | `effects/range-up-hawkeye.yml`, `abilities/emiya-magecraft.yml`; `engine/effect-applier.mjs#mergeEmitted` (`extendsFrom`), `engine/landing.mjs` |
+| Any successful Evade cuts Eye of the Mind's shared Cooldown by ⅓◈, Dodge included, on both Ranks' mirrored clocks (reading 15, as built; pinned with a Dodge from the Skill itself and with a rolled Evade) | `engine/attack.mjs#autoEvadeFrom` / `fireEvadeSucceeded`; `emiya-208-arena.test.mjs` |

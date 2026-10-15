@@ -69,7 +69,7 @@ describe("Trace, On is a plain Skill, not a Thaumaturgy Spell (#208 reading 2, r
       // The Skill did its work ...
       expect(held(w, E, "atkUpTrace")).toHaveLength(1);
       // ... and Magecraft stayed silent.
-      expect(held(w, E, "rangeUp")).toHaveLength(0);
+      expect(held(w, E, "rangeUpHawkeye")).toHaveLength(0);
     }, OWN_TURN);
   }, 60_000);
 });
@@ -146,11 +146,11 @@ describe("Unlimited Blade Works is not a Projection (#208 reading 4, ruled 2026-
       await fireAbilityUsed(w.actor(E), abilityOf(w, E, "emiya-unlimited-blade-works"));
       // HEAD: 10 and a Range Up -- both handlers heard `category: projection`.
       expect(held(w, E, "atkUpTrace")[0].system.expiry).toBe(9);
-      expect(held(w, E, "rangeUp")).toHaveLength(0);
+      expect(held(w, E, "rangeUpHawkeye")).toHaveLength(0);
       // The control: a Projection that IS one still does both.
       await fireAbilityUsed(w.actor(E), abilityOf(w, E, "emiya-hrunting"));
       expect(held(w, E, "atkUpTrace")[0].system.expiry).toBe(10);
-      expect(held(w, E, "rangeUp")).toHaveLength(1);
+      expect(held(w, E, "rangeUpHawkeye")).toHaveLength(1);
     }, OWN_TURN);
   }, 60_000);
 });
@@ -470,4 +470,43 @@ describe("Reinforcement lasts that Combat Phase only (#208 reading 9, ruled 2026
     expect(doc.timing).toEqual({ window: ["combatPhaseStart", "defendingPhaseStart"] });
     expect(doc.phases[0].effects[0]).toMatchObject({ id: "nAtkUp", magnitude: 30, duration: "until combatPhaseEnd" });
   });
+});
+
+/* ========================================================================== */
+/*  Reading 14 -- Range Up (Hawkeye) is its own effect (#215)                   */
+/* ========================================================================== */
+
+describe("Range Up (Hawkeye) is its own effect, and stacks with another Range Up (#208 reading 14, ruled 2026-10-14)", () => {
+  it("Magecraft applies it and not Range Up", () => {
+    const handler = ability("emiya-magecraft").passiveRules[0];
+    // HEAD: `rangeUp`, the effect Kiritsugu's Familiars also applies: one shared instance.
+    expect(handler.then[0].effect.id).toBe("rangeUpHawkeye");
+    expect(ability("emiya-magecraft").description).toContain("@effect[rangeUpHawkeye]");
+  });
+
+  it("with Range Up (+2) and Range Up (Hawkeye) (+1) held, his Range is 4 + 2 + 1", async () => {
+    await withSubjects([
+      { from: "emiya", id: E, state: { factionId: "A" },
+        effects: [{ defId: "rangeUp", magnitude: 2 }, { defId: "rangeUpHawkeye", magnitude: 1 }] },
+    ], ({ unit }) => {
+      // HEAD: 6 -- `rangeUpHawkeye` is no effect there.
+      expect(unit(E).range).toBe(7);
+    });
+  });
+
+  it("reapplying it extends its own clock and leaves the other Range Up's alone", async () => {
+    await withSubjects([
+      { from: "emiya", id: E, state: { factionId: "A" }, panel: { i: 5, j: 5 },
+        effects: [{ defId: "rangeUp", magnitude: 2, expiry: 8 }, { defId: "rangeUpHawkeye", magnitude: 1, expiry: 9 }] },
+    ], async ({ world: w }) => {
+      const { fireAbilityUsed } = await import("../../module/engine/skill-use.mjs");
+      // A Thaumaturgy Spell used: Magecraft's rider, for 1◈ (3 ticks).
+      await fireAbilityUsed(w.actor(E), abilityOf(w, E, "emiya-reinforcement"));
+      expect(held(w, E, "rangeUpHawkeye")).toHaveLength(1);
+      expect(held(w, E, "rangeUpHawkeye")[0].system.expiry).toBe(12);
+      // HEAD: the shared `rangeUp` took the extension (8 + 3) and the Kiritsugu-style +2 grew with it.
+      expect(held(w, E, "rangeUp")).toHaveLength(1);
+      expect(held(w, E, "rangeUp")[0].system.expiry).toBe(8);
+    }, OWN_TURN);
+  }, 60_000);
 });
