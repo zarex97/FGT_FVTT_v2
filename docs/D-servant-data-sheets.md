@@ -1270,7 +1270,7 @@ Bounded field: **Unlimited Blade Works** (Ch. 43). NP copying: Ch. 44 §44.5.
 | Hawkeye (B+) | Active | RE (range-conditional crit chance and crit damage) |
 | Eye of the Mind (True) (B) | Passive + reaction | **RE+** `RankShift` triggered by a **health threshold** (<20%), swapping the **entire ability** for its EX version |
 | Eye of the Mind (True) (EX) | Conditional ability | RE (four clauses; usable on your turn *or* as a reaction) |
-| Magecraft (C) | Passive | RE (unlocks Thaumaturgy; each use applies `Range Up`, **extending rather than stacking**) |
+| Magecraft (C) | Passive | RE (unlocks Thaumaturgy; each use applies `Range Up (Hawkeye)`, **extending rather than stacking**). **Range Up (Hawkeye) is its own effect** (`rangeUpHawkeye`, ruled 2026-10-14, #208 reading 14), not the `Range Up` Kiritsugu's Familiars applies: the two add, and each refreshes only itself. Reapplied from the handler it adds its span to the clock it has, as a phase's `applyEffects` always did |
 | Thaumaturgy: Reinforcement | Spell | RE. **Used at the start of any Combat Phase he is in**, attacking or attacked, and not any time in his Turn (`[combatPhaseStart, defendingPhaseStart]`, no `ownTurn`: window-only, Ch. 17), and its N.Atk Up lasts that Combat Phase (`until combatPhaseEnd`), ruled 2026-10-14 (#208 readings 8, 9) |
 | Thaumaturgy: Tracing | Spell | **RE+** cooldown reduction selected by **ability-name substring** (`Projection`), with a two-for-one-each or one-for-two choice |
 | Projection Magic (A+) | Passive | RE (a `Silence` gate over a **named ability group**) |

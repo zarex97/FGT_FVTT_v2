@@ -1,0 +1,26 @@
+# EMIYA's Magecraft -- char_orig_sheets/Copia de EMIYA.md
+#
+# "Whenever EMIYA uses a Thaumaturgy Spell, apply Range Up (Hawkeye) for 1◈ Turns,
+# Range is increased by 1. Does not stack, but its duration is extended if
+# reapplied."
+#
+# Its OWN effect (ruled 2026-10-14, #208 reading 14). The sheet prints
+# "Range Up (Hawkeye)" under Magecraft and the audit read it as the effect's
+# name: a named variant, like Atk Up (Trace) or Crit Up (Hawkeye), not a use of
+# the plain `rangeUp` that Kiritsugu's Familiars also applies. On one shared id
+# the two were ONE instance: a Familiars cast and a Magecraft rider extended and
+# resized each other. As two, they add (Range +2 and +1 is +3) and each refreshes
+# only itself. "Does not stack, but extended if reapplied" is `noneExtend` on its
+# own instance, as it always was.
+schema: 1
+id: rangeUpHawkeye
+name: "Range Up (Hawkeye)"
+description: "Range is increased by X panels. Does not stack with itself; reapplying it extends its duration."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneExtend
+baseChance: 100
+rules:
+  - key: RangeDelta
+    value: "@magnitude"

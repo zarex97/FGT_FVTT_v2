@@ -1,6 +1,9 @@
-# Appendix A -- a Range modifier. EMIYA's Magecraft is the first content to
-# grant one: "whenever EMIYA uses a Thaumaturgy Spell, apply Range Up for 1
-# Turn, Range is increased by 1."
+# Appendix A -- a Range modifier. Kiritsugu's Familiars grants it: "applies Range
+# Up for 1◈ Turns, Range is increased by 2."
+#
+# EMIYA's Magecraft used to share this id, being the first content to grant a Range
+# Up. It is `Range Up (Hawkeye)` now, a named effect of its own (`rangeUpHawkeye`,
+# ruled 2026-10-14, #208 reading 14): the two stack, and each refreshes only itself.
 schema: 1
 id: rangeUp
 name: "Range Up"

@@ -50,18 +50,31 @@ const SLEEP_DERIVATIVES = Object.freeze(["nightmare", "coma"]);
  * - **`unremovable`**, ORed with the definition's.
  * - **The inflicter**, so Secret Poison can ask which instances a Unit inflicted.
  *
+ * **An extension starts from the clock the bearer already has.** The emitter
+ * stamps an absolute expiry from NOW, and for a `noneExtend` effect that is a
+ * restamp, not an extension: Magecraft's Range Up (Hawkeye) is *"extended if
+ * reapplied"*, and a second Spell in the same Turn left the first's expiry exactly
+ * where it was. The flow knew (`extendsFrom`, the expiry it extended) and the
+ * merge overwrote it; the span the emitter stated is added to that instead (#208
+ * reading 14). A phase's `applyEffects` never went wrong, which is why Atk Up
+ * (Trace) extended and its sibling on a handler did not.
+ *
  * @param {object} flowIntent an `applyEffect` intent `applyEffect` returned
  * @param {object} emitted the `applyEffect` intent that was resolved
+ * @param {{tick?: number|null}} [now] the tick the emitter stamped its expiry from
  * @returns {object}
  */
-export function mergeEmitted(flowIntent, emitted) {
+export function mergeEmitted(flowIntent, emitted, { tick = null } = {}) {
   if (flowIntent.t !== "applyEffect") return flowIntent;
   const stated = emitted.effect ?? {};
+  const statedExpiry = flowIntent.extendsFrom != null && stated.expiry != null && tick !== null
+    ? flowIntent.extendsFrom + Math.max(0, stated.expiry - tick)
+    : stated.expiry;
   return {
     ...flowIntent,
     effect: {
       ...flowIntent.effect,
-      expiry: stated.permanent ? null : (stated.expiry ?? flowIntent.effect.expiry),
+      expiry: stated.permanent ? null : (statedExpiry ?? flowIntent.effect.expiry),
       unremovable: Boolean(flowIntent.effect.unremovable) || Boolean(stated.unremovable),
       // The SOURCE has to survive the round trip: Secret Poison is disclosed by
       // asking "which instances did this Unit inflict", and an instance that
@@ -398,7 +411,12 @@ export function applyEffect({
     }));
   }
 
-  intents.push({ ...I.applyEffect(target.id, effect, source?.unitId ?? null), resolved: true });
+  intents.push({
+    ...I.applyEffect(target.id, effect, source?.unitId ?? null),
+    resolved: true,
+    // Where an extension starts from, for `mergeEmitted`: the clock the bearer already has.
+    ...(stack.action === "extend" && priorExpiry != null ? { extendsFrom: priorExpiry } : {}),
+  });
 
   return { outcome: "applied", reason: null, chance: rolled, intents, trace };
 }

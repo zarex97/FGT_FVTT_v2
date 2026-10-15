@@ -164,7 +164,7 @@ export async function landEffect(entry, ctx) {
     }
   }
 
-  if (ctx.emitted) intents = intents.map((i) => mergeEmitted(i, ctx.emitted));
+  if (ctx.emitted) intents = intents.map((i) => mergeEmitted(i, ctx.emitted, { tick }));
 
   if (outcome === "applied") intents.push(...landedIntents(def, target, result, board, tick, turnsPerRound));
   if (outcome === "resisted") {

@@ -35,7 +35,7 @@ describe("a close Normal Attack uses Kanshou & Bakuya (#208 reading 5, ruled 202
       await playAttack(w, { attacker: E, target: H, react: { [H]: ["nothing", "declined"] } });
       // HEAD: 9 and no Range Up -- the swords were projected and never "used".
       expect(held(w, E, "atkUpTrace")[0].system.expiry).toBe(10);
-      expect(held(w, E, "rangeUp")).toHaveLength(1);
+      expect(held(w, E, "rangeUpHawkeye")).toHaveLength(1);
     }, opts);
   }, 60_000);
 
@@ -45,7 +45,7 @@ describe("a close Normal Attack uses Kanshou & Bakuya (#208 reading 5, ruled 202
       w.dice.every(50);
       await playAttack(w, { attacker: E, target: H, react: { [H]: ["nothing", "declined"] } });
       expect(held(w, E, "atkUpTrace")[0].system.expiry).toBe(9);
-      expect(held(w, E, "rangeUp")).toHaveLength(0);
+      expect(held(w, E, "rangeUpHawkeye")).toHaveLength(0);
     }, opts);
   }, 60_000);
 });
@@ -91,7 +91,7 @@ describe("Overedge's two swings (#208 readings 5, 7, ruled 2026-10-14)", () => {
     await overedgeAt(3, ({ w }) => {
       // 9 + one third of a Round, three times. HEAD: 10, Overedge's own use alone.
       expect(held(w, E, "atkUpTrace")[0].system.expiry).toBe(9 + 3);
-      expect(held(w, E, "rangeUp")).toHaveLength(1);
+      expect(held(w, E, "rangeUpHawkeye")).toHaveLength(1);
       // Kanshou & Bakuya's effect reached the Range 3 swing (the grant rule's work, unchanged).
       expect(held(w, E, "dualWieldGuard")).toHaveLength(1);
     });
@@ -471,6 +471,58 @@ describe("Reinforcement at the start of the Combat Phase he is attacked in (#208
 
       // ...and the Phase over, it is gone. HEAD: it stood for the rest of the Turn.
       expect(held(w, E, "nAtkUp")).toHaveLength(0);
+    }, opts);
+  }, 60_000);
+});
+
+/* ========================================================================== */
+/*  Reading 15 -- any successful Evade cuts Eye of the Mind's Cooldown (#215)   */
+/* ========================================================================== */
+
+describe("a successful Evade cuts Eye of the Mind's shared Cooldown by one third of a Round (#208 reading 15, pinned: as built)", () => {
+  // Ruled 2026-10-14: any Evade that succeeds counts, Dodge included. Already how it is built
+  // (`attack.mjs#autoEvadeFrom` raises `evadeSucceeded` for a Dodge as for a rolled Evade); these pin it.
+  const FOE = "heraclesAttacker";
+  const board15 = () => [
+    { from: "heracles", id: FOE, state: { factionId: "A" }, panel: { i: 5, j: 5 } },
+    { from: "emiya", id: E, state: { factionId: "B" }, panel: { i: 5, j: 6 } },
+  ];
+
+  it("Dodge from the Skill itself: 4◈ is 12 ticks, minus one third of a Round is 11, on both Ranks' mirrored clocks", async () => {
+    await withSubjects(board15(), async ({ world: w }) => {
+      // Reinforcement is offered at the start of a Combat Phase he is attacked in (#214): not taken here.
+      w.answer({ title: "FGT.Window.defendingPhaseStart", decline: true });
+      w.dice.every(50);
+      const eye = itemOf(w, E, "emiya-eye-of-the-mind-true");
+      // His Health is above 20%, so the B form is the one offered.
+      await playAttack(w, {
+        attacker: FOE, target: E,
+        // The Skill's Dodge takes the Evade rung itself; the Lucky Hit is his foe's to decline, the Counter his.
+        react: { [E]: [`ability:${eye.id}`, "declined"], [FOE]: ["declined"] },
+      });
+      expect(itemOf(w, E, "emiya-eye-of-the-mind-true").system.cooldown.remaining).toBe(11);
+      expect(itemOf(w, E, "emiya-eye-of-the-mind-true-ex").system.cooldown.remaining).toBe(11);
+    }, opts);
+  }, 60_000);
+
+  it("a rolled Evade that succeeds cuts it too", async () => {
+    await withSubjects(board15(), async ({ world: w }) => {
+      // Reinforcement is offered at the start of a Combat Phase he is attacked in (#214): not taken here.
+      w.answer({ title: "FGT.Window.defendingPhaseStart", decline: true });
+      w.dice.every(50);
+      // Start from a running clock on both, as after an earlier use.
+      for (const id of ["emiya-eye-of-the-mind-true", "emiya-eye-of-the-mind-true-ex"]) {
+        await itemOf(w, E, id).update({ "system.cooldown.remaining": 12 });
+      }
+      // A roll UNDER his Agility succeeds, and the test world starts it at nothing.
+      await w.actor(E).update({ "system.agility.max": 20, "system.agility.value": 20 });
+      w.dice.set("d20", 1);
+      await playAttack(w, {
+        attacker: FOE, target: E,
+        react: { [E]: ["evade", "declined"], [FOE]: ["declined"] },
+      });
+      expect(itemOf(w, E, "emiya-eye-of-the-mind-true").system.cooldown.remaining).toBe(11);
+      expect(itemOf(w, E, "emiya-eye-of-the-mind-true-ex").system.cooldown.remaining).toBe(11);
     }, opts);
   }, 60_000);
 });
