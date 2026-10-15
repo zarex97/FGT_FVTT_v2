@@ -397,14 +397,21 @@ export function applicationChance({ base, inflictBonus = 0, resist = 0,
  *   `rules/damage/pipeline.mjs#isNPAttack` says. When absent it is read off the
  *   option `attack:kind:np`, which cannot see an attack the sheet only
  *   categorizes as one.
+ * @param {object[]} [options.alsoFrom] Units whose OUTGOING Crit Chance joins the
+ *   attacker's: the joint Noble Phantasm's partner (`damage.modifierSources`,
+ *   #209 reading 10, ruled 2026-10-14). Their figures are read exactly as the
+ *   attacker's are -- against a Noble Phantasm only where the clause STATES an NP
+ *   figure -- so a Crit Up with none, on either twin, still adds nothing. Only
+ *   the modifiers join: `No Crit` and `G.Crit` stay the attacker's own.
  * @returns {{percent: number, automatic: boolean, blocked: boolean, modifiers: object[]}}
  */
-export function critChance(attacker, defender = null, { base = BASE_CRIT_CHANCE, options = null, isNP = null } = {}) {
+export function critChance(attacker, defender = null, { base = BASE_CRIT_CHANCE, options = null, isNP = null, alsoFrom = [] } = {}) {
   const held = attacker?.effects ?? [];
   const np = isNP ?? Boolean(options?.has?.("attack:kind:np"));
 
   const modifiers = [
     ...critModifiers(attacker, "outgoing", options, np),
+    ...alsoFrom.flatMap((other) => critModifiers(other, "outgoing", options, np)),
     ...critModifiers(defender, "incoming", options, np),
   ];
   const percent = base + modifiers.reduce((a, m) => a + m.value, 0);

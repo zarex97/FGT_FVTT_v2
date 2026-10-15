@@ -792,7 +792,12 @@ function resolveAnchor(spec, caster, board, placement, errors) {
       // the anchor corner alone, Heracles beside the garden's middle was told
       // it was out of Range (Ch. 46 §46.4-BT).
       const targetPanels = unit.panels?.length ? unit.panels : [unit.panel];
-      if (!geo.inAttackRangeBetween(casterPanels, targetPanels, r)) {
+      // ...and from the caster's PARTNER too, when the anchor says so (#209
+      // reading 6, ruled 2026-10-14): the Dioscuri's joint Noble Phantasm is
+      // *"Range = 2"* from either twin. Spread, named `partnerIds`: a Unit's
+      // `partnerIds` is the board's own list and may arrive as a SetField.
+      const origins = [casterPanels, ...partnerPanelsOf(spec, caster, board)];
+      if (!origins.some((from) => geo.inAttackRangeBetween(from, targetPanels, r))) {
         errors.push(`${unit.name ?? "Target"} is out of Range (${r}).`);
       }
       // A minimum, which only the `withinRange` anchor honoured. EMIYA's
@@ -1065,6 +1070,28 @@ export function legalPlacements(spec, caster, board, { max = 400 } = {}) {
 function anchorRange(spec, caster) {
   if (typeof spec?.range === "number") return spec.range;
   return (caster?.range ?? 1) + (spec?.rangeBonus ?? 0);
+}
+
+/**
+ * The panels of the caster's linked partners, when the anchor measures Range
+ * from them too (`alsoFrom: partner`).
+ *
+ * The Dioscuri's joint Noble Phantasm: *"Range = 2"* is met from EITHER twin
+ * (#209 reading 6, ruled 2026-10-14). Nothing else authors the key, and the
+ * build refuses it anywhere but a `targetUnit` anchor. A defeated partner
+ * measures nothing, and a caster with no partner finds none.
+ *
+ * @param {object} spec the anchor
+ * @param {object} caster
+ * @param {object} board
+ * @returns {Array<Array<{i: number, j: number}>>} one list of panels per partner
+ */
+function partnerPanelsOf(spec, caster, board) {
+  if (spec?.alsoFrom !== "partner") return [];
+  const partnerIds = [...(caster?.partnerIds ?? [])];
+  return (board?.units ?? [])
+    .filter((u) => partnerIds.includes(u.id) && !u.defeated && u.panel)
+    .map((u) => (u.panels?.length ? u.panels : [u.panel]));
 }
 
 /**

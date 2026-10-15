@@ -5698,6 +5698,9 @@ copy that was asked; a Range was measured from whoever declared. Each was a read
 | Self-Replenishment set the NP clock to 0 instead of cutting 2 Turns (§46.4-D4) | `scheduler.mjs#CooldownDelta` reads a table's `amount` and `direction` |
 | Mad Enhancement's +55% is halved on Mana Burst, which sums BA(MAG) while counting as STR: **25**, not the ticket's 27.5, because the template floors a halved figure to a multiple of 5 for every bearer (reading 3) | `damage/pipeline.mjs#stage1Base` (derives `attack:usesBase:<component>`), `facets.mjs` (`usesBase`), `class-skills/mad-enhancement.yml` |
 | Mana Burst is a Counter, as Raikou's is (reading 4): already built, now pinned | `rules/counter.mjs#answersACounter`, `rules/costs.mjs` (`isCounter` lifts the own-Turn window); `test/helpers/process.mjs#playProcess` |
+| The joint NP counts an effect on both twins twice: two Divine Cores are +160 (reading 5): already built, now pinned | `damage/pipeline.mjs#activeMods` (concatenation, Ch. 41 Q12) |
+| The joint NP is in Range when either twin is within 2 of the target (reading 6) | `targeting/resolve.mjs#resolveAnchor`, `#partnerPanelsOf`; `alsoFrom: partner` on `dioscuri-tyndaridae.yml`; the build refuses it elsewhere (`tools/lib/content.mjs`) |
+| The Crit Chance the joint NP rolls against is both twins', by NP figure only (reading 10) | `checks.mjs#critChance` (`alsoFrom`), `damage/pipeline.mjs#modifierSourceUnits` (the one reader of which Units join), `attack.mjs` |
 | General: §46.4-D1 to D5 | |
 
 **`classContainer` is seeded-then-owned** (`content/authored-fields.mjs`): a pair already in a world keeps "avenger" until it
