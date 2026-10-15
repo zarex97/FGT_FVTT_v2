@@ -101,3 +101,89 @@ describe("Trace, On adds one third of a Round to Atk Up (Trace), once (#208 read
     }, OWN_TURN);
   }, 60_000);
 });
+
+/* ========================================================================== */
+/*  Readings 4 and 23 -- Unlimited Blade Works is not a Projection (#211)       */
+/* ========================================================================== */
+
+describe("Unlimited Blade Works is not a Projection (#208 reading 4, ruled 2026-10-14)", () => {
+  it("Tracing does not offer it, though it is cooling, and offers the Projections beside it", async () => {
+    await withSubjects([
+      { from: "emiya", id: E, state: { factionId: "A" }, panel: { i: 5, j: 5 } },
+    ], async ({ world: w }) => {
+      const ubw = abilityOf(w, E, "emiya-unlimited-blade-works");
+      const hrunting = abilityOf(w, E, "emiya-hrunting");
+      const caladbolg = abilityOf(w, E, "emiya-caladbolg");
+      for (const item of [ubw, hrunting, caladbolg]) await item.update({ "system.cooldown.remaining": 5 });
+      const tracing = abilityOf(w, E, "emiya-tracing");
+      // The same title twice: the shape, then the Projection.
+      w.answer({ title: tracing.name, pick: ["focus"] });
+      w.answer({ title: tracing.name, pick: [hrunting.id] });
+      const out = await castSkill(w, { caster: E, ability: tracing.id, placement: { unitId: E } });
+      expect(out.ok).toBe(true);
+      const offered = w.asked.find((a) => a.title === tracing.name && a.options.includes(hrunting.id));
+      expect(offered.options).toContain(caladbolg.id);
+      // HEAD: UBW was on this list (`category: projection`).
+      expect(offered.options).not.toContain(ubw.id);
+    }, OWN_TURN);
+  }, 60_000);
+
+  it("using it neither extends Atk Up (Trace) nor gives Range Up", async () => {
+    await withSubjects([
+      { from: "emiya", id: E, state: { factionId: "A" }, panel: { i: 5, j: 5 },
+        effects: [{ defId: "atkUpTrace", expiry: 9, magnitude: 60, npMagnitude: 40 }] },
+    ], async ({ world: w }) => {
+      const { fireAbilityUsed } = await import("../../module/engine/skill-use.mjs");
+      await fireAbilityUsed(w.actor(E), abilityOf(w, E, "emiya-unlimited-blade-works"));
+      // HEAD: 10 and a Range Up -- both handlers heard `category: projection`.
+      expect(held(w, E, "atkUpTrace")[0].system.expiry).toBe(9);
+      expect(held(w, E, "rangeUp")).toHaveLength(0);
+      // The control: a Projection that IS one still does both.
+      await fireAbilityUsed(w.actor(E), abilityOf(w, E, "emiya-hrunting"));
+      expect(held(w, E, "atkUpTrace")[0].system.expiry).toBe(10);
+      expect(held(w, E, "rangeUp")).toHaveLength(1);
+    }, OWN_TURN);
+  }, 60_000);
+});
+
+describe("Silence stops the Aria and nothing else of Unlimited Blade Works (#208 reading 23, ruled 2026-10-14)", () => {
+  const silenced = { from: "emiya", id: E, state: { factionId: "A", resources: { aria: { value: 6, max: 6 } } }, effects: [{ defId: "silence" }] };
+
+  it("opens with 6 Aria while Silenced", async () => {
+    await withSubjects([silenced], ({ world, unit }) => {
+      const verdict = canUseAbility({
+        ability: usageSpecFor(abilityOf(world, E, "emiya-unlimited-blade-works")),
+        unit: unit(E), round: 6, turnsPerRound: 3, actingFactionId: "A",
+      });
+      // HEAD refused with reason "prevented" (`negatedBy: [silence]`).
+      expect(verdict.reason).toBeUndefined();
+      expect(verdict.ok).toBe(true);
+    });
+  });
+
+  it("still needs the 6 Aria", async () => {
+    await withSubjects([{ ...silenced, state: { factionId: "A", resources: { aria: { value: 5, max: 6 } } } }], ({ world, unit }) => {
+      const verdict = canUseAbility({
+        ability: usageSpecFor(abilityOf(world, E, "emiya-unlimited-blade-works")),
+        unit: unit(E), round: 6, turnsPerRound: 3, actingFactionId: "A",
+      });
+      expect(verdict.ok).toBe(false);
+      expect(verdict.reason).toBe("resourceAtLeast");
+    });
+  });
+
+  it("gains no Aria at the end of a Combat Phase while Silenced, and one when not (pinned: as built)", async () => {
+    const { fireEvent } = await import("../../module/engine/scheduler.mjs");
+    const phaseEnd = (unit) => fireEvent("combatPhaseEnd", [unit], { tick: 7, turnsPerRound: 3, options: new Set() })
+      .filter((i) => i.t !== "log");
+    await withSubjects([{ ...silenced, state: { factionId: "A" }, effects: [{ defId: "silence" }] }], ({ unit }) => {
+      expect(phaseEnd(unit(E))).toEqual([]);
+    });
+    await withSubjects([{ from: "emiya", id: E, state: { factionId: "A" } }], ({ unit }) => {
+      const gained = phaseEnd(unit(E));
+      expect(gained).toHaveLength(1);
+      expect(gained[0]).toMatchObject({ unitId: E });
+      expect(JSON.stringify(gained[0])).toContain("aria");
+    });
+  });
+});
