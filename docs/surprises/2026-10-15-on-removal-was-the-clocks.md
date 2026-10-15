@@ -13,5 +13,5 @@ Circuits. (Shock's "current Agility +1 when max is restored" had the same blind 
 **Cause:** `module/engine/scheduler.mjs:2207 @ 7231295` — `expireEffects` was the only caller of `onRemoveIntents`.
 `applier.mjs`'s `removeEffect` case, where every removal meets, ran none.
 
-**Fix:** `module/engine/applier.mjs:304 @ 3cc6a34` — `resolveRemovals` pays the clause for every removal that is not an
+**Fix:** `module/engine/applier.mjs:304 @ d9a77c1` — `resolveRemovals` pays the clause for every removal that is not an
 expiry (flagged `onRemoveRan`), a refresh or a replacement. Ruled 2026-10-15: any removal removes AC and BC.

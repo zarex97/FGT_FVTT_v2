@@ -17,5 +17,5 @@ category in exactly one place` — `expected [ 'categorizedAsNP: Boolean(', …(
 itself. The identity builder carried the flag for the pipeline only; the option set is built from the
 declaration, which is why it was missing there, and the quick fix was a second reader of the same rule.
 
-**Fix:** `module/engine/attack.mjs:771 @ 3cc6a34` — `categorizedAsNP: attackIdentityOf(ability, options).categorizedAsNP`,
+**Fix:** `module/engine/attack.mjs:771 @ 2878817` — `categorizedAsNP: attackIdentityOf(ability, options).categorizedAsNP`,
 so the declaration, the pipeline and `isNPAttack` read one definition.

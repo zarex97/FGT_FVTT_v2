@@ -15,6 +15,6 @@ BC's +50 was absent from the breakdown. `validate:content` called the option wel
 (`engine/fields.mjs:223`: `fieldId: ability.system?.contentId`), `emiya-unlimited-blade-works`; `unlimitedBladeWorks` is
 the slug. Every other `inField:` in the corpus names a content id; only these two were wrong.
 
-**Fix:** both Circuits name `emiya-unlimited-blade-works` (`activated-circuits.yml:51 @ 3cc6a34`), and
-`test/unit/in-field-names.test.mjs @ 3cc6a34` fails for any `inField:` that is not the content id of an ability that
+**Fix:** both Circuits name `emiya-unlimited-blade-works` (`activated-circuits.yml:51 @ d9a77c1`), and
+`test/unit/in-field-names.test.mjs @ d9a77c1` fails for any `inField:` that is not the content id of an ability that
 opens a field.

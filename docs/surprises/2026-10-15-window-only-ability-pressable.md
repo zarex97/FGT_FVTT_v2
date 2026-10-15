@@ -17,7 +17,7 @@ the gate at 7231295 with `{ok: true}`.
 `ownTurn` on another Turn, and nothing refused the converse. The generic path (the use gate) offered an exit the sheet
 rules out.
 
-**Fix:** `module/rules/costs.mjs:263 @ 3cc6a34` — `windowOnly` unless the engine says `atWindow`
+**Fix:** `module/rules/costs.mjs:263 @ 459fb41` — `windowOnly` unless the engine says `atWindow`
 (`useSkill`, `resolveAttack`, the Noble Phantasm cancellation), never from a socket payload. Two tests needed the flag and
 now name why: `usage-spec.test.mjs` (the prevention table is asked at the window) and `jack.test.mjs` (a source-text
 pin).
