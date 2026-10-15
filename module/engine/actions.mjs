@@ -101,7 +101,14 @@ export const ACTION_HANDLERS = Object.freeze({
     const context = { servantId };
     if ((command?.effect ?? []).some((e) => e.scope === "oneSkill")) {
       const servant = game.actors.get(servantId);
-      const skills = [...(servant?.items ?? [])].filter((i) => i.type === "ability" && !i.system?.isNP);
+      const { suspendableSkills } = await import("../rules/command-spells.mjs");
+      const { currentBoard, unitFrom } = await import("./board.mjs");
+      const pool = [...(servant?.items ?? [])].filter((i) => i.type === "ability" && !i.system?.isNP);
+      // A Skill that may be bought off only while it binds is listed only then
+      // (Fated Rivals, #206 reading 2); the spend asks the same reader.
+      const skills = (command?.effect ?? []).some((e) => e.kind === "suspendSkill")
+        ? suspendableSkills(pool, unitFrom(currentBoard(), servant))
+        : pool;
       if (skills.length === 0) return { ok: false, reason: "noSkill" };
       const [abilityId] = (await ChoiceDialog.pick({
         title: command.name,

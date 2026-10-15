@@ -418,7 +418,8 @@ describe("Fated Rivals of the Mahabharata", () => {
     // collection time against Karna alone, which would drop the element before
     // any board exists.
     expect(compulsion.targetPredicate).toEqual(["target:contentId:arjuna"]);
-    expect(compulsion.within).toBe(2);
+    // His current Range, not a frozen 2 (#206 reading 2).
+    expect(compulsion.within).toBe("range");
   });
 
   it("matches a unit carrying that content id", () => {

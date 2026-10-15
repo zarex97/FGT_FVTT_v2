@@ -70,10 +70,11 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   // past to read, silently.
   "requiresHistory",
   "phases", "copyable", "copiedFrom", "opensDialog", "additionalCosts",
-  "npGateRound", "itemCost", "category", "kind", "passive", "countsAsAttack",
+  "npGateRound", "countsForNPSeal", "itemCost", "category", "kind", "passive", "countsAsAttack",
   "countsAsAct", "oncePerTurn", "oncePerRound", "alsoTriggers",
   "exclusionSet", "grantedBy", "sameTurnExclusive", "sameRoundExclusive",
-  "bypassesCategoryLimit", "refusesReactionsUnlessFaster", "offersSpellCategory", "reactionFree", "usedWithNormalAttack",
+  "bypassesCategoryLimit", "refusesReactionsUnlessFaster", "offersSpellCategory", "reactionFree",
+  "countsAsNormalAttack", "openingChoice",
   "freeAction",
   "timesUsed", "maxUses", "lastUsedTick", "recordedAttacks",
   "recordsAttacks", "shield", "shieldHealth", "negatedBy", "negatedWhile",

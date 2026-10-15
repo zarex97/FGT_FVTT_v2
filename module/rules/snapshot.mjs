@@ -141,6 +141,8 @@ export function snapshotUnit(actor, {
     // Wisdom of Dún Scáith's pick still owed: no Turn ends while it is
     // (`rules/budget.mjs#unmetCompulsions`, #204 reading 8).
     copyPickDue: sys.copyPick?.due === true,
+    // An opening choice still owed (#206 reading 3), read the same way.
+    openingChoiceDue: (sys.openingChoices?.due ?? []).length > 0,
     // Bašmu's *"cannot leave the HGoB"*. Stamped at the summons and read by
     // the teardown from the document, but never projected, so `canUnboard`
     // could not see it and the bar offered Bašmu a Jump (Ch. 46 §46.4-BL).

@@ -5,6 +5,9 @@ id: karna-discernment-of-the-poor
 name: "Discernment of the Poor"
 rank: A
 cooldown: "3◈"
+# "(Active) Used during your Turn." Without the window the own-Turn gate
+# asks nothing, and the Skill resolved on an enemy's Turn (#206).
+timing: { window: ownTurn }
 description: |
   (Active) Used during your Turn. Range=2. Used on an enemy Unit. Inflicts @effect[npSeal]{NP Seal} for ⅓◈
   Turns and inflicts @effect[debuffResDwn]{Debuff ResDwn} for ⅓◈ Turns (chance of being inflicted with debuffs is

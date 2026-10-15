@@ -413,6 +413,11 @@ async function offerPrevention(def, target, ctx, board) {
 
   const doc = game.actors.get(target.id);
   if (!doc) return null;
+  // Nothing left to protect. A rider lands after the damage that defeated its
+  // target, and the board Unit it was handed can predate that defeat: the live
+  // document is what knows. Asking a dead Master to spend Luck held the whole
+  // Process on the question (#206).
+  if (target.defeated || doc.system?.defeated) return null;
   const answer = await askOwner(doc, { kind: "luckCheck", check: "prevention", unitId: target.id, defId: def.id });
   if (!answer?.accepted) return null;
 

@@ -57,7 +57,9 @@ describe("the Prevention Luck Check", () => {
       // One "prevented", from the outcome; the reason says how.
       expect(card.find((e) => e.id === "shock")).toMatchObject({ outcome: "prevented", reason: "Luck Check 1 vs 3" });
     });
-  });
+    // The first attack in the file imports the engine, which alone outran 5 s
+    // with this file run by itself (pattern first-test-pays-setup).
+  }, 30_000);
 
   it("costs the Luck when it fails, and the debuff lands", async () => {
     await thurs("expert", async (w, attack) => {
@@ -129,6 +131,31 @@ describe("once per Combat Process", () => {
       expect((await land("shock")).outcome).toBe("prevented");
       expect((await land("burn")).outcome).toBe("applied");
       expect(process.prevented).toEqual({ [H]: true });
+    }, at(6, "A", "expert"));
+  });
+
+  it("is not offered to a Unit this Process has already defeated", async () => {
+    // Live, #206: Brahmastra Kundala overpowered a Master, its riders then
+    // asked that dead Master's owner to spend Luck, and the Process (and its
+    // card, still reading "Choose a reaction") waited on the answer. The board
+    // Unit is taken BEFORE the defeat, as a rider's target can be: the live
+    // document is what knows.
+    await withSubjects([
+      { from: "scathach", id: S, state: { factionId: "A" }, panel: { i: 5, j: 5 } },
+      { from: "heracles", id: H, owner: "p1", state: { factionId: "B" }, panel: { i: 5, j: 7 } },
+    ], async ({ world: w }) => {
+      const { landEffect } = await import("../../module/engine/landing.mjs");
+      const { currentBoard, unitOf } = await import("../../module/engine/board.mjs");
+      const { entryOf } = await import("../../module/rules/effect-flow.mjs");
+      await w.actor(H).update({ "system.luck.max": 3, "system.luck.value": 3 });
+      const target = unitOf(w.actor(H), currentBoard());
+      await w.actor(H).update({ "system.defeated": true, "system.health.value": 0 });
+      // An unscripted question fails the test: none is asked.
+      const out = await landEffect(entryOf({ id: "shock" }), {
+        target, source: { unitId: S, abilityId: null }, caster: w.actor(S), process: {},
+      });
+      expect(out.outcome).toBe("applied");
+      expect(w.actor(H).system.luck.value).toBe(3);
     }, at(6, "A", "expert"));
   });
 

@@ -20,6 +20,10 @@ slug: manaBurst
 # An ATTACK SKILL: its Active performs a Normal Attack, so it opens a Combat
 # Process and spends Castor's Attack for the Turn (Ch. 17).
 isAttackSkill: true
+# *"This Skill is used when performing a Normal Attack."* The attack IS the
+# Normal Attack, powered up, as Karna's (ruled 2026-10-14, #206): every clause
+# about Normal Attacks hears it. No Mana Burst is offered on a Riding Attack.
+countsAsNormalAttack: true
 element: light
 cooldown: "3◈-⅓◈"
 timing: { window: ownTurn }

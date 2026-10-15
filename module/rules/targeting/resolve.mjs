@@ -15,7 +15,7 @@ import * as geo from "../../domain/geometry.mjs";
 import { expand, DELTA, edgeOffsets } from "./shapes.mjs";
 import { test as testPredicate } from "../predicate.mjs";
 import { rollOptionsFor } from "../options.mjs";
-import { compelledTargetsOf } from "../compulsion.mjs";
+import { compulsionNarrowing } from "../compulsion.mjs";
 import { isolationBlocks, panelsOf } from "../bounded-fields.mjs";
 import { relationOf } from "../relations.mjs";
 import { guardsInRange, guardsNear } from "../master-guard.mjs";
@@ -195,10 +195,21 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   //
   // A resolution that cannot reach an enemy is not an attack, which is the
   // whole test: no new field, and no caller has to remember to pass one.
-  const compelled = relations.has("enemy") ? compelledTargetsOf(caster) : [];
-  if (compelled.length > 0) {
+  //
+  // Karna's Fated Rivals narrows differently (#206 reading 2): it binds Attacks
+  // only, and an AREA Attack need only contain Arjuna, its other Units still
+  // hit. Whether this is an Attack is the spec's own `limits.forAttack`
+  // (`rules/ability-use.mjs#markedForAttack`), else the reach the caller states.
+  const isAttackUse = spec.limits?.forAttack ?? ((placement.reach ?? "attack") === "attack");
+  const { narrow, include } = relations.has("enemy")
+    ? compulsionNarrowing(caster, { isAttack: isAttackUse, area: (spec.shape?.kind ?? "unit") !== "unit" })
+    : { narrow: [], include: [] };
+  if (narrow.length > 0) {
     survivors = survivors.filter((u) =>
-      compelled.includes(u.id) || drop(u, "the attacker is compelled to attack another unit"));
+      narrow.includes(u.id) || drop(u, "the attacker is compelled to attack another unit"));
+  }
+  if (include.length > 0 && !survivors.some((u) => include.includes(u.id))) {
+    survivors = survivors.filter((u) => drop(u, "in an area without the rival this attacker is bound to"));
   }
 
   // 4b-ii. FORCED TARGET. `ForceTarget` has been in the executor table since
@@ -652,7 +663,13 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     //
     // The caster excluding itself is not a diagnosis — it is what almost every
     // AoE does — so it is listed for the preview but never drives this message.
-    const notable = excluded.filter((e) => e.unitId !== caster.id);
+    //
+    // A defeated Unit is not a diagnosis either when something else was refused:
+    // Karna's area over two of the fallen and one Master read "Kingprotea is
+    // defeated", where the Master's reason (no rival in the area) was the
+    // sentence to fix (#206). Listed after the others, never dropped.
+    const notable = excluded.filter((e) => e.unitId !== caster.id)
+      .sort((a, b) => Number(a.reason === "defeated") - Number(b.reason === "defeated"));
     (spec.targetsRequired === false ? warnings : errors).push(
       notable.length === 0
         ? "No legal targets in the selected area."

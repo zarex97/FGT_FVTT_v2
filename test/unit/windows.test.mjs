@@ -18,7 +18,7 @@ import {
 describe("the vocabulary", () => {
   it("holds exactly the seven windows an ability may name", () => {
     expect([...ABILITY_WINDOW_IDS].sort()).toEqual([
-      "automatic", "combatPhaseStart", "damageStep", "ownTurn",
+      "automatic", "combatPhaseStart", "damageStep", "defendingPhaseStart", "ownTurn",
       "whenAllyAttacked", "whenAttacked", "whenTargetedByNP",
     ]);
   });

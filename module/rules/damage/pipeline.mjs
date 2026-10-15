@@ -1044,6 +1044,29 @@ function stage15TotalDamageModifiers(s) {
     s.contribute(m.key ?? "totalDamage", m.factor, m.source);
   }
 
+  // *"All TOTAL Fire Damage taken is reduced by 50%"* -- Karna's Mana Burst
+  // (Flames), Anastasia's Swimsuit (Water) and Soaked (Fire). Ruled 2026-10-14
+  // (#206 reading 6): a Total Damage cut, so here and multiplied, not pooled
+  // with Atk Up at stage 4 where a Ward had put it; and on the element's SHARE,
+  // so a half-Fire attack loses a quarter. Raikou's *"All Lightning damage
+  // taken"* says no "Total", and stays at stage 4b.
+  const element = s.ctx.attack?.element ?? null;
+  if (element) {
+    const fraction = elementFractionOf(s);
+    for (const m of activeMods(s, s.ctx.defender, ELEMENT_TOTAL_KEYS)) {
+      if (m.element !== element) continue;
+      if (bypassesDefence(s)) {
+        s.contribute(m.key, 1, `${m.source} (bypassed)`, "defender");
+        continue;
+      }
+      const v = magnitudeOf(m, s.isNP, s.ctx);
+      const factor = Math.max(0, 1 - (v * fraction) / 100);
+      s.scale(factor);
+      const share = fraction < 1 ? ` ×${fraction}` : "";
+      s.contribute(m.key, factor, `${m.source} (Total ${element}${share})`, "defender");
+    }
+  }
+
   // A defence whose magnitude is the ATTACKER's property (Ch. 45).
   // *Andreias Amarantos* is the only one: what it reads is the attacker's
   // Divinity Rank, and the table it reads it through returns the PERCENTAGE of
@@ -1217,6 +1240,11 @@ const FLAT_TAKEN_KEYS = new Set(["avenger"]);
  */
 const ELEMENT_ATTACK_KEYS = new Set(["elementAtkUp", "elementAtkDwn"]);
 const ELEMENT_DEFENCE_KEYS = new Set(["elementDefUp", "elementDefDwn"]);
+/**
+ * A defender's cut to the TOTAL damage of one element, read at stage 15 and
+ * scaled by the attack's share of that element (#206 reading 6).
+ */
+const ELEMENT_TOTAL_KEYS = new Set(["elementTotalDefUp"]);
 /** Element keys whose magnitude *reduces* the damage. */
 const ELEMENT_NEGATIVE_KEYS = new Set(["elementAtkDwn", "elementDefUp"]);
 
@@ -1239,6 +1267,7 @@ export const MODIFIER_KEYS = Object.freeze([
   ...ELEMENT_ATTACK_KEYS, ...ELEMENT_DEFENCE_KEYS,
   // Read by their own single-key lookups rather than through a bucket.
   "critDmUp", "critDmDwn", "critResUp", "critResDwn", "blockUp", "defCrk",
+  ...ELEMENT_TOTAL_KEYS,
   // Stage 15's own bucket. `engine/attack.mjs#totalModifiersFor` emits it from
   // an ability's `damage.totalModifiers`; it is deliberately in neither
   // `ATTACKER_BUCKET_KEYS` nor `DEFENDER_BUCKET_KEYS`, so a Total modifier is

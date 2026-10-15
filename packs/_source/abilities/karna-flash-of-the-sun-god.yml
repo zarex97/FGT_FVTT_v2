@@ -4,6 +4,9 @@ id: karna-flash-of-the-sun-god
 name: "Flash of the Sun God"
 rank: EX
 cooldown: "4◈"
+# "(Active) Used during your Turn." Without the window the own-Turn gate
+# asks nothing, and the Skill resolved on an enemy's Turn (#206).
+timing: { window: ownTurn }
 # "Cannot be used on the same Turn as Mana Burst (Flames)." Declared on BOTH
 # sides -- a one-sided exclusion is decided by whichever happens to be used
 # first, which is not a rule (Ch. 17).

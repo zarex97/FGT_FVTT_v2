@@ -20,9 +20,12 @@ slug: manaBurstLightning
 # An ATTACK SKILL: its Active performs a Normal Attack, so it opens a Combat
 # Process and spends her Attack for the Turn (Ch. 17).
 isAttackSkill: true
-# Used WITH a Normal Attack: a Riding Attack offers it, and every Unit the ride
-# hits takes it; the cooldown and the Dodge come once (#195 reading 4).
-usedWithNormalAttack: true
+# NOT offered on a Riding Attack: no Mana Burst is, ruled 2026-10-14 (#206),
+# which takes back #195 reading 4. It stays usable as a Counter.
+# *"This Skill is used when performing a Normal Attack."* The attack IS the
+# Normal Attack, powered up, as Karna's (ruled 2026-10-14, #206): every clause
+# about Normal Attacks hears it. No Mana Burst is offered on a Riding Attack.
+countsAsNormalAttack: true
 element: lightning
 cooldown: "3◈"
 timing: { window: ownTurn }

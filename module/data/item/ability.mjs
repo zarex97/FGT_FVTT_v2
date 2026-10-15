@@ -360,11 +360,21 @@ function abilityCommon() {
     // Trofa, which IS her Evade, leaves this false.
     reactionFree: new fields.BooleanField({ initial: false }),
 
-    // Used WITH a Normal Attack rather than as one of its own: Raikou's Mana
-    // Burst (Lightning) *"is used when Raikou performs a Normal Attack"*. A
-    // Riding Attack is a Normal Attack, so the ride offers it, and every Unit the
-    // ride hits takes it (#195 reading 4).
-    usedWithNormalAttack: new fields.BooleanField({ initial: false }),
+    // The attack this ability makes IS its user's Normal Attack, powered up:
+    // every clause about "Normal Attacks" hears it, while its own Skill
+    // mechanics (cooldown, Skill Seal) stay. All four Mana Bursts: Karna's, so
+    // Vasavi Shakti's Divinity bonus reaches it (ruled 2026-10-14, #206
+    // reading 5), then Raikou's and the Dioscuri's, whose sheets say the same.
+    // None is offered on a Riding Attack (ruled 2026-10-14, #206). The field
+    // that offered Raikou's there, `usedWithNormalAttack`, is gone with it.
+    countsAsNormalAttack: new fields.BooleanField({ initial: false }),
+
+    // A mode whose STARTING state its player chooses when the war starts, or
+    // right after the summon: `{off, on}`, a label for each state. Karna's
+    // Uncrowned Arms Mastership, *"at the start of the game, choose either
+    // Effect 1 or 2"* (ruled 2026-10-14, #206 reading 3). Read by
+    // `engine/opening-choice.mjs`.
+    openingChoice: new fields.ObjectField({ required: false, nullable: true, initial: null }),
 
     // The same limit one scale up, and the same argument `sameRoundExclusive`
     // makes against `sameTurnExclusive`: a Servant acts up to three times in a
@@ -430,6 +440,11 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // "Categorized as NP" is the mechanical dividing line for NP Seal, NP
       // DmUp and the Luck Check exclusions -- distinct from actually being one.
       categorizedAsNP: new fields.BooleanField({ initial: false }),
+      // Blocked by NP Seal and not by Skill Seal, without being an NP or counting
+      // as one anywhere else. Karna's Vasavi Shakti Activation is a free Skill
+      // that is part of a Noble Phantasm (ruled 2026-10-14, #206 reading 9). The
+      // editor offered the checkbox and nothing kept it.
+      countsForNPSeal: new fields.BooleanField({ initial: false }),
       // An open tag set: which CATEGORIES this ability also counts as. Jack's
       // Mist exempts "the Instinct Skill of Rank B or higher" and her sheet
       // then names five other skills that count as Instinct, so the list has

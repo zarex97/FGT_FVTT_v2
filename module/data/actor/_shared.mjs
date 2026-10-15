@@ -117,6 +117,13 @@ export function unitCommon() {
       due: new fields.BooleanField({ initial: false }),
       poolIds: new fields.ArrayField(new fields.StringField({ blank: false })),
     }),
+    // The modes whose starting state this Unit's player still owes a choice
+    // for (#206 reading 3): marked at the war's start or the summon, cleared
+    // by the pick. The Turn cannot end while any is owed. Written by
+    // `engine/opening-choice.mjs`, read by the snapshot.
+    openingChoices: new fields.SchemaField({
+      due: new fields.ArrayField(new fields.StringField({ blank: false })),
+    }),
     boundToFieldId: new fields.StringField({ required: false, nullable: true, initial: null }),
 
     mov: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),

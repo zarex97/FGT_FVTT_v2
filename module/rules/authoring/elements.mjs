@@ -379,13 +379,18 @@ export const ELEMENT_DESCRIPTORS = describeTable([
   ]),
   entry("Compulsion", "Forces a Unit to act against a particular target — Berserk, Decoy's pull.", [
     { key: "id", type: "text" },
-    { key: "within", type: "number" },
+    { key: "within", type: "text" },
     { key: "relations", type: "tokenList" },
     { key: "targetPredicate", type: "predicateList" },
     { key: "forcesTarget", type: "checkbox" },
     { key: "forcesSkill", type: "text" },
     { key: "pursues", type: "checkbox" },
     { key: "spareAlliesInGrandOrder", type: "checkbox" },
+    // Karna's Fated Rivals (#206 reading 2).
+    { key: "attacksOnly", type: "checkbox" },
+    { key: "restrictsOnly", type: "checkbox" },
+    { key: "areaMustInclude", type: "checkbox" },
+    { key: "suspendWhileBound", type: "checkbox" },
   ]),
   entry("GrantedAbility", "Hands the bearer an ability it does not otherwise have.", [
     { key: "abilities", type: "tokenList" },
