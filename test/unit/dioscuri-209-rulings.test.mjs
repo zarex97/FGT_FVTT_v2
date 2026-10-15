@@ -23,6 +23,7 @@ import { counterOffer } from "../../module/rules/counter.mjs";
 import { usageSpecFor, targetSpecFor } from "../../module/rules/ability-use.mjs";
 import { validate } from "../../module/rules/targeting/resolve.mjs";
 import { critChance } from "../../module/rules/checks.mjs";
+import { rollOptionsFor } from "../../module/rules/options.mjs";
 import { installClientNamespace } from "../helpers/client-namespace.mjs";
 
 beforeAll(prepareSubjects, 120_000);
@@ -688,5 +689,67 @@ describe("the joint NP's Crit Chance is both twins', where an NP figure is state
   it("counts the figure on ONE twin once, whichever of them declares", async () => {
     expect((await chance(CASTOR, await withNpFigure([POLLUX]))).percent).toBe(70);
     expect((await chance(POLLUX, await withNpFigure([POLLUX]))).percent).toBe(70);
+  });
+});
+
+/* ========================================================================== */
+/*  #223 -- Def Dwn (A) and (C): the Luck and Agility they take are for an Attack */
+/* ========================================================================== */
+
+describe("`attack:plainDamage` is how a Clause tells an Attack from measured damage (#223, §46.4-D2)", () => {
+  it("is emittable, so a predicate may name it", () => {
+    expect(GENERATED_EMITTABLE.some((r) => r.test("attack:plainDamage"))).toBe(true);
+  });
+
+  it("is emitted for a Process opened to measure damage, and for no other", () => {
+    const attacker = { id: "a", kind: "servant", effects: [], abilities: [], attributes: [] };
+    const defender = { id: "d", kind: "servant", effects: [], abilities: [], attributes: [] };
+    const options = (attack) => rollOptionsFor({ attacker, defender, attack: { kind: "normal", ...attack } });
+    expect(options({ plainDamage: true }).has("attack:plainDamage")).toBe(true);
+    expect(options({ plainDamage: false }).has("attack:plainDamage")).toBe(false);
+    expect(options({}).has("attack:plainDamage")).toBe(false);
+  });
+
+  it("is stamped on the declaration from the placement that asks for plain damage", async () => {
+    await twins(async ({ world }) => {
+      const { buildAttackSpec } = await import("../../module/engine/attack.mjs");
+      const castor = game.actors.get(CASTOR);
+      const spec = (placement) => buildAttackSpec({
+        attacker: castor, ability: null, abilityId: null, options: new Set(), placement, board: null,
+      });
+      expect(spec({ pathTargets: [FOE], plainDamage: true }).plainDamage).toBe(true);
+      expect(spec({ unitId: FOE }).plainDamage).toBe(false);
+      expect(spec(null).plainDamage).toBe(false);
+      void world;
+    }, await twinSpecs());
+  });
+
+  it("is what gates the Luck and the Agility of Def Dwn (A) and (C), and only those drains in the corpus", async () => {
+    const { files } = await loadSource("packs/_source");
+    const drains = [];
+    for (const { path, doc } of files) {
+      for (const rule of doc.rules ?? []) {
+        if (rule.key !== "OnEvent" || ![rule.event].flat().includes("damageTaken")) continue;
+        for (const action of rule.then ?? []) {
+          if (action.key === "StatDelta" && /^(luck|agility)\.value$/.test(action.stat)) {
+            drains.push({ id: doc.id, stat: action.stat, predicate: rule.predicate ?? [], path });
+          }
+        }
+      }
+    }
+    // Two handlers, each with the gate; a third, or one without it, is a new Silent Drop of #223's kind.
+    expect(drains.map(({ id, stat, predicate }) => ({ id, stat, predicate }))).toEqual([
+      { id: "defDwnA", stat: "luck.value", predicate: ["not:attack:plainDamage"] },
+      { id: "defDwnC", stat: "agility.value", predicate: ["not:attack:plainDamage"] },
+    ]);
+  });
+
+  it("is inherited by every Servant who inflicts them: they apply the effects, none restates the drain", async () => {
+    const { files } = await loadSource("packs/_source");
+    const inflictors = files.filter(({ dir, doc }) => dir === "abilities" && JSON.stringify(doc.phases ?? []).match(/defDwn[AC]/))
+      .map(({ doc }) => doc.id).sort();
+    expect(inflictors).toEqual([
+      "anastasia-snegleta", "dioscuri-tyndaridae", "gogh-het-gele-huis", "gogh-the-yellow-house", "mannanan-fragarach-counter",
+    ]);
   });
 });

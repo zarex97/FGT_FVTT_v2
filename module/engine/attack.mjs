@@ -765,6 +765,13 @@ export function buildAttackSpec({
       // A Skill whose attack IS the Normal Attack (#206 reading 5): its kind
       // stays its own, and `rollOptionsFor` adds `attack:kind:normal` beside it.
       asNormalAttack: Boolean(ability?.system?.countsAsNormalAttack),
+      // Damage only MEASURED as an attack's (#184 reading 8): Akhilleus Kosmos's
+      // sidestep *"receives damage equivalent to a Normal Attack"*, and the
+      // ruling is that it is not an Attack. The declaration already read it to
+      // close the reaction rungs; carried here so a Clause about "damage
+      // received from an Attack" can ask (`attack:plainDamage`) -- Def Dwn (A)
+      // and (C) do (#223).
+      plainDamage: Boolean(placement?.plainDamage),
       // Which Base Attack this uses, and whether Magic Resistance sees it at all.
       // Both are read by Magic Resistance's Instakill/Death ladder, which is
       // exempted for *"an Attack/Attack Skill/Spell/NP that deals STR damage or
