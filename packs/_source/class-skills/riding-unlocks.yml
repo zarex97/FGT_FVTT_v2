@@ -1,0 +1,49 @@
+# Riding whose Active unlocks all three passives, for the sheets that say so:
+#
+#   Karna  A  -- "Increases MOV by 5 panels for this Turn. Additionally, 'Double
+#   Raikou A+    Move', 'Riding Attack', and 'Passenger Seat' can be used on this
+#                Turn. Cooldown: 3◈ Turns" (Raikou: 3◈-⅓◈)
+#
+# Drake's Riding B says the same with 4 panels (`class-riding-drake`, spec R2:
+# "her Riding Active gates all three passives, Double Move included"). Both
+# rode on `class-riding`, which grants the three passives unconditionally, so
+# Karna rode with Riding switched off (#206, found live). The MOV is a
+# parameter, `mov`, so one file serves every sheet that prints this sentence.
+schema: 1
+id: class-riding-unlocks
+name: "Riding"
+copyable: { allowed: false, reason: classSkill }
+source: class
+slug: riding
+parameterized: [rank, cooldown, mov]
+rank: "@rank"
+cooldown: "@cooldown"
+# "(Active) Used during your Turn."
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Increases MOV for this Turn by the Riding table's value for this
+  rank. Additionally, 'Double Move', 'Riding Attack', and 'Passenger Seat' can be used on this
+  Turn.
+  (Passive 1) Double Move: can Move twice during its Turn, once before and once after Attacking;
+  total distance Moved cannot exceed the Unit's MOV.
+  (Passive 2) Riding Attack: can Attack all Units in its path while Moving in a straight line as
+  its Normal Attack during its Turn. Cannot Attack or Move after it has stopped. Can be combined
+  with Passenger Seat. If the Unit has already Moved this Turn, the panels it may Move for its
+  Riding Attack equal its MOV minus the panels already Moved.
+  (Passive 3) Passenger Seat: the Servant's Master can Move together with its Servant; after
+  Moving, both must be in the same orientation/position prior to the Move. Counts as only Moving
+  one Unit. Can be combined with Riding Attack.
+
+  The MOV bonus from the Active is NOT a buff: it cannot be removed by buff removal and is not
+  prevented by an effect that blocks buffs.
+passiveRules:
+  # ALL THREE gated on the Active's marker, as `class-riding-drake`.
+  - key: GrantedAbility
+    abilities: [doubleMove, ridingAttack, passengerSeat]
+    predicate: ["self:effect:ridingActive"]
+# Used, not toggled: `contributionsOf` collects `activeRules` only for a mode.
+phases:
+  - kind: applyEffects
+    target: self
+    rules:
+      - { effect: { id: ridingActive }, duration: "this turn", magnitude: "@mov" }

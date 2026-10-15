@@ -146,6 +146,19 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
    * @returns {Promise<void>}
    */
   static async toggleMode(actor, item) {
+    // An opening choice still owed is asked, not toggled: the press is the
+    // player's way back to a question they closed (#206 reading 3).
+    if ((actor.system?.openingChoices?.due ?? []).includes(item.id)) {
+      // Asked from the GM: the choice writes the Combat's log.
+      if (game.user.isGM) {
+        const { askOpeningChoices } = await import("../../engine/opening-choice.mjs");
+        await askOpeningChoices(actor.id);
+      } else {
+        const { FGTSocket } = await import("../../net/socket.mjs");
+        await FGTSocket.request("askOpeningChoice", { actorId: actor.id });
+      }
+      return;
+    }
     const active = !item.system.active;
     // `currentTick`, NOT `game.combat` -- the latter is the combat being
     // VIEWED, so this stamped the lockout against whatever tracker happened to

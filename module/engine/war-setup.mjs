@@ -425,6 +425,10 @@ export async function commitWar(draft) {
   // picked (#204 reading 8).
   const { markCopyPicksDue } = await import("./copy.mjs");
   await markCopyPicksDue();
+  // Uncrowned Arms Mastership's opening choice, asked the same way (#206
+  // reading 3).
+  const { markOpeningChoicesDue } = await import("./opening-choice.mjs");
+  await markOpeningChoicesDue();
 
   await note(combat, `War built: ${servants.length} Servants, ${masters.length} Masters`);
   return { scene, masters, servants, combat };

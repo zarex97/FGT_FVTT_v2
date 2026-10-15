@@ -28,7 +28,9 @@ const MASTER = "MasterAAAAAAAAAA";
  * @param {(ctx: object) => Promise<unknown>} fn
  */
 const rideWith = (servantState, fn) => withSubjects([
-  { from: "karna", id: "karna", panel: { i: 5, j: 5 }, state: { factionId: "red", masterId: MASTER, ...servantState } },
+  { from: "karna", id: "karna", panel: { i: 5, j: 5 }, state: { factionId: "red", masterId: MASTER, ...servantState },
+    // His Riding Active this Turn: it unlocks the ride (#206).
+    effects: [{ defId: "ridingActive", magnitude: 5 }] },
   { from: "master-advanced", id: MASTER, panel: { i: 5, j: 3 }, state: { factionId: "red" } },
 ], async ({ world }) => {
   const { performRidingAttack } = await import("../../module/engine/riding.mjs");
@@ -84,7 +86,9 @@ describe("a Riding Attack made with Passenger Seat", () => {
     // has caught up (`displaceToken` passes `animate: false`), so this is judged
     // against the board as it now is.
     await withSubjects([
-      { from: "karna", id: "karna", panel: { i: 5, j: 5 }, state: { factionId: "red", masterId: MASTER } },
+      { from: "karna", id: "karna", panel: { i: 5, j: 5 }, state: { factionId: "red", masterId: MASTER },
+        // His Riding Active this Turn: it unlocks the ride (#206).
+        effects: [{ defId: "ridingActive", magnitude: 5 }] },
       { from: "master-advanced", id: MASTER, panel: { i: 5, j: 4 }, state: { factionId: "red" } },
     ], async ({ world }) => {
       const { performRidingAttack } = await import("../../module/engine/riding.mjs");

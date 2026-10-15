@@ -36,6 +36,7 @@ import { attachInvalidation } from "./invalidation-hooks.mjs";
 import { attachForcedModes } from "./modes.mjs";
 import { attachConcealment } from "./concealment.mjs";
 import { attachCopyPick } from "./copy.mjs";
+import { attachOpeningChoice } from "./opening-choice.mjs";
 
 /**
  * A field's SIZE can change without anybody moving: Contagion's Active takes it
@@ -97,6 +98,9 @@ export const ENGINE_LISTENERS = Object.freeze([
   { id: "concealment", attach: attachConcealment },
   // Wisdom of Dún Scáith: a copier entering a war under way owes its pick.
   { id: "copyPick", attach: attachCopyPick },
+  // Uncrowned Arms Mastership: a Servant entering a war under way owes its
+  // opening choice (#206 reading 3).
+  { id: "openingChoice", attach: attachOpeningChoice },
 ]);
 
 /**

@@ -94,6 +94,7 @@ const ALLOWED = [
   { file: "engine/summon.mjs", category: "debt", why: "summon bookkeeping on the owner" },
   { file: "engine/concealment.mjs", category: "debt", why: "discovery budget and disclosure" },
   { file: "engine/copy.mjs", category: "debt", why: "rewrites a copier's embedded ability items wholesale" },
+  { file: "engine/opening-choice.mjs", category: "debt", why: "the opening choice owed, as copy.mjs marks a pick owed" },
   { file: "engine/hgob.mjs", category: "debt", why: "the Garden's own base attack and owner links" },
   { file: "engine/vision.mjs", category: "debt", why: "the seen-unit set" },
   { file: "engine/skill-use.mjs", category: "debt", why: "marks an ability expended" },

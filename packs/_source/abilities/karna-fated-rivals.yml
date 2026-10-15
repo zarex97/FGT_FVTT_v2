@@ -32,9 +32,20 @@ passiveRules:
   # the Servant named. `target:trueName:` is not a roll option; the identity is
   # matched on the CONTENT ID, which is what a future `arjuna.yml` will carry
   # and the only name of his that cannot be renamed in a world.
+  #
+  # Ruled 2026-10-14 (#206 reading 2): `within: range`, his current Range, not a
+  # frozen 2. Every Attack must target Arjuna, an area Attack must catch him and
+  # still hits the rest (`areaMustInclude`); Skills that are not Attacks stay
+  # free (`attacksOnly`); it never makes him Attack (`restrictsOnly`). Arjuna's
+  # side is Arjuna's own sheet. The Command Spell is Suspend Skill, offered on
+  # this Skill only while it binds him (`suspendWhileBound`).
   - key: Compulsion
     id: fatedRivals
-    within: 2
+    within: range
     relations: [enemy]
     targetPredicate: [target:contentId:arjuna]
     forcesTarget: true
+    attacksOnly: true
+    restrictsOnly: true
+    areaMustInclude: true
+    suspendWhileBound: true

@@ -4238,6 +4238,93 @@ Ch. 23.
 
 ---
 
+### LP. Three Skills said "during your Turn" and worked on any — **fixed** (#206)
+
+**Reached: the paper trace.** Discernment of the Poor, End of Charity and Flash of the Sun God print *"Used during your
+Turn"* and carried no window, so `canUseAbility` asked nothing. They take `timing: ownTurn`, and so does Vasavi Shakti's
+Activation (reading 9). Pressed: on Faction 2's Turn each slot read *"Only during your Turn."* Ch. 17.
+
+### LQ. Riding's Active did not gate its passives — **fixed** (#206)
+
+**Reached: RI.gate.** Karna's sheet: *"Additionally, 'Double Move', 'Riding Attack', and 'Passenger Seat' can be used on
+this Turn"*. He took the shared `class-riding`, which grants all three always, and rode with Riding off; Raikou prints
+the same sentence and took it too. `class-riding-unlocks` gates them on `ridingActive` as Drake's does, MOV a slot; her
+copies exclude it. Pressed: no ride offered with Riding off; Double Move, Passenger Seat and the ride with it on. Ch. 17.
+
+### LR. A player's move ran the GM's bookkeeping — **fixed** (#206)
+
+**Reached: RI.p1.** Player1 moved Karna and read *"User Player1 lacks permission to update Combat"*, and the GM's
+console *"Displacement of Master … did not complete"*: `moveToken` fires on every client and the owner ran the move's
+bookkeeping beside the GM. The active GM runs it, the owner only with no GM connected. Ch. 05.
+
+### LS. A Round's limit printed its key — **fixed** (#206)
+
+**Reached: UA.round.** The slot read *"Uncrowned Arms Mastership — oncePerRound"*: the reason had no wording, while
+`oncePerTurn` beside it had. *"Already used this Round"*. Ch. 34.
+
+### LT. A negated hit dropped its riders — **fixed** (#206)
+
+**Reached: MR.debuff.** Þurs on Karna read *"0 Negated by Magic Resistance"* with no Shock rolled, though Magic
+Resistance says other debuffs *"will still have their inflict chance reduced"*. `applyAbilityEffects` returned on any
+`negatedBy`; it asks `ridersFire` now, hit and not hurt, as §46.4-LI ruled for the event riders. Ch. 21.
+
+### LU. A branch was chosen before the defender — **fixed** (#206)
+
+**Reached: BR.2x.** Brahmastra on Heracles, whose STR, END and LUC beat Karna's, read *"4× damage"* and dealt 770 where
+the preview showed 2x. The declaration resolved `damage.branches` once with no defender and froze the block on every
+Process (the #195 Dohatsu fix). Resolved per target now: 2x on Heracles, 4x on a Master. Ch. 22.
+
+### LV. A sealed mode still switched — **fixed** (#206)
+
+**Reached: UA.seal.** Under Skill Seal, Uncrowned Arms Mastership lost its crit modifiers and Player1's press switched
+Effect 2 to 1. `canToggleMode` never read `negatedBy`; it refuses `negated` now. Ch. 24.
+
+### LW. The second rider on one die went unfiled — **fixed** (#206)
+
+**Reached: VA.4.** After the Activation his Normal Attack landed Burn with no line on the card. Mana Burst's 25% and
+Vasavi's 50% share one chance key, and the second was skipped as already rolled. Every spec whose clause applies is
+filed against the one die. Ch. 37.
+
+### LX. A defeated Unit was asked to spend Luck — **fixed** (#206)
+
+**Reached: BK.dd.** Brahmastra Kundala overpowered the Master of Lancer of Faction 2, and its riders asked the GM, once
+each, whether that Master would make a prevention Luck Check. The Process waited on the question with its card at
+*"Choose a reaction"*. Not offered to a defeated Unit (Wave B's Prevention, Ch. 15). Still open: a card is not rewritten
+while its Process waits on a question inside a rung.
+
+### LY. A choice window printed link codes — **fixed** (#206)
+
+**Reached: BK.** The Start-of-Combat-Phase window offered Uncrowned Arms Mastership as *"negated by
+@UUID[Compendium.fgt.effects.Item.…]{Skill Seal}"*. Every caller hands a raw description; the window reads each link as
+its label. Ch. 35.
+
+### LZ. An area refusal named a fallen Unit — **fixed** (#206)
+
+**Reached: FR.only.** Brahmastra Kundala over a Master and not the rival read *"No legal targets: Kingprotea is
+defeated (and 3 more excluded)"*. Defeated Units are listed last, and the rival's reason reads after "is". Ch. 20.
+
+### MA. A choice window's rows overlapped — **fixed** (#206)
+
+**Reached: FR.cs.** In the Command Spell window each option's line ran under the next, and a click on Suspend Skill
+took Reduce Cooldown (declined, nothing spent). Foundry gives a button one line; the option buttons are as tall as
+their text now. Ch. 35.
+
+### MB. Aim and the Evade action — **fixed** (#206)
+
+**Reached: BR.aim.** Appendix A says Aim *"Ignores Dodge and the Evade action"*. Brahmastra carries `aim: true`, Eye of
+the Mind (Dodge) was not offered, and Heracles still rolled Evade. Ruled 2026-10-14: an Aim attack cannot be Evaded at
+all, Block still answers, and Aim beats Trofa too. The Evade rung closes at declaration and the check fails first on
+Aim. Five attacks carry it: Brahmastra, Hrunting, Great Ram Nautilus, Ice Block Launcher and Spirit Eyes. Ch. 13, 21.
+
+### MC. A Mana Burst rode along — **fixed** (#206)
+
+**Reached: the ruling on Raikou.** Karna's Mana Burst was ruled off the ride (reading 5); Raikou's rode by #195 reading
+4. Ruled 2026-10-14: no Mana Burst rides. `usedWithNormalAttack` is gone, and the ride engine refused nothing it was
+handed, so a socket call rode with any ability; it refuses one that is not a ride now (`notARide`). All four Mana
+Bursts count as their user's Normal Attack. Ch. 17.
+
+---
+
 ---
 
 ## 46.5 The per-Servant checklist
@@ -4395,7 +4482,7 @@ and Divine-without-Divinity; Magic Resistance's Instakill/Death carve-out applie
 severities only and leaves **Erase completely unaffected**, because Erase carries its own severity
 and neither chance rule matches it; Mana Burst's *"Burn at 50% **instead of** 25%"* is a predicate
 on the 25% passive rather than a second roll; and `Fated Rivals` is inert with no Arjuna on the
-board, as designed.
+board, as designed (built against a stand-in in §46.29).
 
 **The defect.** `Kavacha and Kundala` charges *"20 Health at the end of every Turn that Karna is
 **involved in a Combat Phase**"*, authored as `event: actedTurnEnd` — which fires for a unit that
@@ -5372,7 +5459,7 @@ exercised a reader that had only ever seen the simple case.
 | Lightning resistance on the whole total | `raikou-mana-burst-lightning.yml`, `elements.mjs#DamageModifier` |
 | Upkeep on the wrong Turn ends; the limit read at any moment; no cooldown; no card | `raikou-tenmokaikai.yml`, `rules/modes.mjs#forcedOffNow`, `scheduler-hooks.mjs#onModeEnded`, `turn-report.mjs` |
 | The slot greyed while on; a queued End not cancellable | `action-bar.mjs#endVerdict`, `queued-ends.mjs#cancelEnd` |
-| Mana Burst on a ride; on a Counter without its Dodge | `action-bar.mjs#rideFrom`, `attack.mjs#siblingMessages` |
+| Mana Burst on a ride (taken back by #206 §46.4-MC); on a Counter without its Dodge | `action-bar.mjs#rideFrom`, `attack.mjs#siblingMessages` |
 | A resisted rider read "hit" | `applier.mjs`, `attack.mjs#fireDamageDealt` |
 | General: §46.4-JI to JX | |
 
@@ -5550,3 +5637,41 @@ set to 12 before Ár; the Rune's cooldown cleared between casts for the sixteen 
 restored for Gáe Bolg's cost; Medea's Stun and a Burn removed from her. The Rune rows were cast through `useSkill` as
 her; each row 8 was picked on Player1's screen. Gáe Bolg's miss and Guts branches, and the failed shove, are pressed in
 the test world (`scathach-gate-arena.test.mjs`).
+
+## 46.29 Karna — the Servant bound to a rival
+
+**All 118 of his Clauses were Pressed or Observed** (#206, 2026-10-14), on the PC copy of `fgt2026`, scene *Karna
+Audit*, after 11 readings were ruled the same day. Seven changed built content: 2, 3, 4, 5, 6, 9 and 11. The board found
+twelve defects that reach other Servants (§46.4-LP to MA), and two rulings after it that reach others (MB, MC). Reading 10, the MAG share alone
+meeting Magic Resistance, was already built; two tests pin it.
+
+**Why he finds what he finds.** Nearly every clause of his is a switch on another: an Activation that changes three
+abilities and loses a fourth, a Riding Active that unlocks three passives, an opening choice, a rival. Each switch is a
+second reader of a rule the first reader already answered.
+
+### 46.29.1 What he cost the engine
+
+| Finding | Where |
+|---|---|
+| Fated Rivals binds his Attacks to Arjuna within his current Range; an area must catch him; a Command Spell frees Karna 1◈ only while bound (reading 2) | Compulsion `within: range`, `attacksOnly`, `restrictsOnly`, `areaMustInclude`, `suspendWhileBound`; `rules/compulsion.mjs#compulsionNarrowing`, `rules/command-spells.mjs#suspendableSkills` |
+| The opening choice: at the war's start or his summon, free, no Turn ends without it (reading 3) | `openingChoice`, `engine/opening-choice.mjs`, `rules/budget.mjs#openingChoicesOwed`, `OPERATIONS.askOpeningChoice` |
+| Uncrowned Arms switches at the start of any Combat Phase he is in (reading 4) | the `defendingPhaseStart` window |
+| Mana Burst is his Normal Attack powered up (reading 5) | `countsAsNormalAttack` |
+| An element's Total Damage cut at stage 15, on its share (reading 6) | `elementTotalDefUp` |
+| NP Seal stops the Activation, Skill Seal does not (reading 9) | `countsForNPSeal` |
+| Riding's Active gates its passives (LQ) | `class-riding-unlocks` |
+| General: §46.4-LP to MC | |
+
+**Changed for others.** Raikou's Riding is `class-riding-unlocks` (her sheet prints Karna's sentence, LQ). Anastasia's
+swimsuit cut and Soaked are the same `elementTotalDefUp`, their wording being Karna's (reading 6). All three kept,
+ruled 2026-10-14. Raikou's Mana Burst no longer rides, and with the Dioscuri's counts as a Normal Attack (MC). Every
+Aim attack is unevadable (MB).
+
+### 46.29.2 What was staged
+
+Named in each evidence line: cooldowns cleared to press again (Brahmastra, Brahmastra Kundala, Vasavi Shakti, Mana
+Burst, End of Charity, Flash); his Turn record and Faction 1's Attack pool reset between attacks; his Master's Health
+restored for the Noble Phantasms' costs; Skill Seal, NP Seal and No Buff put on him; the Divine attribute on
+Scáthach; Achilles brought onto the board for Faction 2 as a Divinity C target, then Divine with his Divinity taken off,
+then as the stand-in Arjuna by his content id, each put back after; Kavacha and Kundala restored for one Turn. Debuff
+ResDwn's +50 was read by a probe that wrote nothing.

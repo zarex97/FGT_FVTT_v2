@@ -264,6 +264,27 @@ export const OPERATIONS = Object.freeze({
     },
   },
 
+  /**
+   * Ask an opening choice still owed, from the GM (#206 reading 3). A player's
+   * press of the mode lands here: the choice writes the Combat's log, which a
+   * player cannot. Not awaited, so the request does not wait on the question it
+   * starts; the question goes to the owner's screen.
+   */
+  askOpeningChoice: {
+    authorize: (payload, userId) => {
+      const user = game.users.get(userId);
+      const actor = game.actors.get(payload.actorId);
+      if (!user || !actor) return { allowed: false, reason: "Unknown actor." };
+      if (user.isGM || actor.testUserPermission(user, "OWNER")) return { allowed: true, reason: null };
+      return { allowed: false, reason: `${user.name} does not control ${actor.name}.` };
+    },
+    execute: async (payload) => {
+      const { askOpeningChoices } = await import("../engine/opening-choice.mjs");
+      askOpeningChoices(payload.actorId).catch((err) => console.error("FGT | Opening choice:", err));
+      return { ok: true };
+    },
+  },
+
   /** Take a queued Mode End back before its boundary (#195 reading 14). */
   cancelModeEnd: {
     authorize: (payload, userId) => {

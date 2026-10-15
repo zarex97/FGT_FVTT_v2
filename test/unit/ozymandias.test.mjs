@@ -122,7 +122,10 @@ describe("a Civilian an attack kills is no defender of its Processes (#189)", ()
   it("builds the fan-out from the Units left after the Civilians died", () => {
     const src2 = readFileSync("module/engine/attack.mjs", "utf8");
     expect(src2).toMatch(/const defenders = targets\.units\.filter\(\(t\) => !killedCivilians\.has\(t\.unitId\)\)/);
-    expect(src2).toMatch(/const targetIds = defenders\.flatMap/);
+    // Built per target since #206 (each target's own damage branch), and
+    // still from `defenders`, the Units left.
+    expect(src2).toMatch(/const perTarget = defenders\.map/);
+    expect(src2).toMatch(/const targetIds = perTarget\.flatMap/);
   });
 });
 

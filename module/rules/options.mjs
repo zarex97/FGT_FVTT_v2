@@ -79,6 +79,11 @@ export function rollOptionsFor({ attacker, defender, attack = null, withoutModeH
   // applied to any ride (#184, found live). Both, because a ride is still that
   // Unit's Normal Attack (or the Noble Phantasm it is) for everything else.
   if (attack.ride) options.add("attack:kind:ridingAttack");
+  // A Skill whose attack IS its user's Normal Attack, powered up: Karna's Mana
+  // Burst (Flames), *"used when performing a Normal Attack"*. Its own kind
+  // stays, as a ride's does, so Vasavi Shakti's Normal-Attack Divinity bonus
+  // reaches it (#206 reading 5).
+  if (attack.asNormalAttack) options.add("attack:kind:normal");
   if (attack.isAoE) options.add("attack:isAoE");
   // Whether this declaration ANSWERS an attack rather than starting one
   // (Ch. 21). Avenger's second half is the first clause to ask: *"If Castor

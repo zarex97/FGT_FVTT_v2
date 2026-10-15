@@ -112,7 +112,8 @@ The **Prevention Luck Check** (CONTEXT.md) asks the target's player a question, 
 - **only inside a Combat Process** (`ctx.process`), and **once per target per Process** (`state.prevented[unitId]`, kept on the Process state and serialised with it);
 - the **target's owner is asked on their own screen** (`askOwner`, prompt `luckCheck` / `prevention`); a decline costs nothing;
 - accepted, it **costs 1 Luck whatever the die says** and is the standard uncontested d20 `luckCheck`; a success drops the effect and the card reads *"Shock: prevented, Luck Check 1 vs 3: prevented"*, a failure lands it with the Luck spent;
-- **not offered** on Beginner or Intermediate (`luckChecksApply`), with no Luck, or where Luck Checks are blocked (`luckChecksBlocked`, Achilles's duel).
+- **not offered** on Beginner or Intermediate (`luckChecksApply`), with no Luck, or where Luck Checks are blocked (`luckChecksBlocked`, Achilles's duel);
+- **not offered to a defeated Unit**, read off the live document (#206): a rider lands after the damage that defeated its target, and Brahmastra Kundala's riders asked an overpowered Master to spend Luck, once per rider. A GM-owned Unit's question is a local dialog with no deadline, so the Process waited on it, its card still reading *"Choose a reaction"*.
 
 Proved in `test/unit/prevention-luck-check.test.mjs`.
 

@@ -84,7 +84,7 @@ and its implementation note. This is the authoritative reference the compendium 
 | Effect | Pol | Val | Stack | Semantics |
 |---|---|---|---|---|
 | `Dodge` | B | D | nr | Automatic successful Evade for the duration/count. **Cannot use the Evade action.** `Aim` ignores it. Fires on Evade rolls but **not** on other Agility Checks. |
-| `Aim` | B | O | nr | Ignores `Dodge` and the Evade action. Beaten by `Substitution`. |
+| `Aim` | B | O | nr | Ignores `Dodge` and the Evade action. Beaten by `Substitution`. **Read** (ruled 2026-10-14, #206 §46.4-MB): an Aim attack cannot be Evaded at all, by a roll, Dodge, the `Evade` buff or Trofa. Block still answers. |
 | `Pierce` | B | O | nr | Ignores `Invuln` and the Block action. **Does not ignore `Def Up` or `Dmg Cut`.** Beaten by `Anti-Purge`. |
 | `Substitution` | B | D | nr | Cannot be hit by anything, including NP and Fixed, even against `Aim`. Beats `Dodge`. **Built** (`substitution`), `rules: []` — stage 0 halts on it before the attack is measured, which is what makes the clause absolute. `aim.yml` withheld a `blockedBy` for it; that note is now corrected rather than fulfilled, because `blockedBy` gates *application* and these two ride opposite Units. |
 | `Insight` | B | OD | nr | 50% chance of automatically Evading any attack including NP; crit chance +25%. |
@@ -285,7 +285,8 @@ by a derivative (using the derivative's duration); a derivative cannot be replac
 >   whatever the attack already carried. `chanceContribution` already scoped by
 >   `effectId` and by an attack-time predicate.
 > - *"Total Fire Damage taken is reduced by 50%, then 'Soaked' is removed"* is an
->   element-scoped `Ward` plus an `OnEvent damageTaken`. And because
+>   element-scoped Total Damage cut (`elementTotalDefUp`, stage 15 on the Fire share;
+>   a `Ward` until #206 reading 6) plus an `OnEvent damageTaken`. And because
 >   `damageTaken` fires once the Damage Step has resolved **including at a total
 >   of zero**, it fires even when stage 0 halted on *"Freeze broken by Fire"* — so
 >   a Unit that is both Soaked and Frozen loses **both** to one Fire attack

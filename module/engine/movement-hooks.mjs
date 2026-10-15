@@ -322,7 +322,13 @@ async function onMove(document, movement, operation) {
     await sightingsAfter(combat);
     return;
   }
-  if (!game.users.activeGM?.isSelf && !document.actor?.isOwner) return;
+  // ONE client does the bookkeeping: the active GM, or the owner when no GM is
+  // connected. `moveToken` fires on every client, and this let the owner run
+  // it beside the GM: a player's every Move raised "User Player1 lacks
+  // permission to update Combat" from the budget write, and both clients
+  // carried the Master (#206, found live).
+  const gm = game.users.activeGM;
+  if (gm ? !gm.isSelf : !document.actor?.isOwner) return;
 
   const actor = document.actor;
   if (!actor) return;
