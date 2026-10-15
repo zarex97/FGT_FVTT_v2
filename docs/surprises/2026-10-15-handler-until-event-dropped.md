@@ -15,5 +15,5 @@ saw.
 **Cause:** `module/engine/scheduler.mjs:1219 @ 7231295` (`ticks` only) and `module/engine/applier.mjs:378 @ 7231295`
 (`entryOfIntent` copies no duration). Nothing authored a handler `until` before the Circuits, so nothing had read it.
 
-**Fix:** `module/engine/scheduler.mjs:1226 @ uncommitted` stamps `duration` for an `until <event>`;
-`module/engine/applier.mjs:390 @ uncommitted` forwards that one form, so the flow records `endsOn`.
+**Fix:** `module/engine/scheduler.mjs:1226 @ 3cc6a34` stamps `duration` for an `until <event>`;
+`module/engine/applier.mjs:390 @ 3cc6a34` forwards that one form, so the flow records `endsOn`.

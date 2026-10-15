@@ -15,5 +15,5 @@ neither.
 **Cause:** `module/engine/attack.mjs:1859 @ 7231295` — the event was written for Vasavi Shakti's upkeep, a clause with no
 predicate.
 
-**Fix:** `module/engine/attack.mjs:1886 @ uncommitted` — the attacker hears it with the attack's options and
-`attack:performed` (`module/rules/options.mjs @ uncommitted`); the defender hears it as before.
+**Fix:** `module/engine/attack.mjs:1886 @ 3cc6a34` — the attacker hears it with the attack's options and
+`attack:performed` (`module/rules/options.mjs @ 3cc6a34`); the defender hears it as before.

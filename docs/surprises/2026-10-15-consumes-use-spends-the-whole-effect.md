@@ -16,5 +16,5 @@ clause with it.
 **Cause:** `module/engine/scheduler.mjs:509 @ 7231295` — `consumesUse` spends the handler's own effect, and
 `module/engine/io.mjs:667 @ 7231295` deletes the document at 0. The charge and the lifetime are one thing.
 
-**Fix:** `packs/_source/effects/ac-next-np.yml @ uncommitted` and `bc-next-np.yml` — the one-shot is a document of its
+**Fix:** `packs/_source/effects/ac-next-np.yml @ 3cc6a34` and `bc-next-np.yml` — the one-shot is a document of its
 own, `uses: 1`; the persistent circuit carries no charge. Trace, On puts both on him.
