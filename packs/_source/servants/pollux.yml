@@ -4,11 +4,17 @@ id: pollux
 name: "Pollux"
 type: servant
 trueName: "Pollux"
-# Appendix D marks her class INFERRED: only Castor's sheet states Avenger, and
-# she carries none of the Avenger class skills. `classContainer` is
-# presentational, so nothing mechanical turns on it.
-servantClasses: [avenger]
-classContainer: avenger
+# Pollux is a SABER. Appendix D had marked her class INFERRED from Castor's
+# (*"Note: Castor is an Avenger-class Servant."*, the only class either sheet
+# states) and the build followed it; the Dioscuri audit ruled otherwise on
+# 2026-10-14 (#209 reading 1, #218): she is a Saber and Castor stays an
+# Avenger. The PAIR takes a Saber slot only and never an Avenger one (reading
+# 8: `rules/war-setup.mjs#candidatesFor` seats the pair through her, and the
+# companion Castor is never drawn alone), and both show Saber before the True
+# Names are revealed (reading 9: `classContainer`, here and on Castor's sheet,
+# is what `publicNameOf` and the class image read).
+servantClasses: [saber]
+classContainer: saber
 region: [greece, europe]
 alignment: { order: chaotic, morality: neutral }
 attributes: [female, servant, sky, humanoid]

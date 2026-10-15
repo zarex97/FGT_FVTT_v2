@@ -8,10 +8,17 @@ id: castor
 name: "Castor"
 type: servant
 trueName: "Castor"
-# *"Note: Castor is an Avenger-class Servant."* Stated on the sheet, unlike
-# Pollux's, which Appendix D marks inferred.
+# *"Note: Castor is an Avenger-class Servant."* His CLASS stays Avenger, and it
+# is what the class skill, the rules and the sheet read (`servantClasses`).
+# His SLOT is his twin's: the Dioscuri audit ruled on 2026-10-14 that Pollux is
+# a Saber and that the pair takes a Saber slot only, showing Saber to the enemy
+# before the True Names are revealed (#209 readings 1, 8, 9; #218).
+# `classContainer` is the slot a Servant sits in, so it is `saber` here too: it
+# is what `publicNameOf` and the class image read. A container that is not one
+# of his own classes, on a Servant summoned together, is what makes him the
+# COMPANION: `rules/war-setup.mjs#candidatesFor` never draws him alone.
 servantClasses: [avenger]
-classContainer: avenger
+classContainer: saber
 region: [greece, europe]
 alignment: { order: chaotic, morality: neutral }
 attributes: [male, servant, sky, humanoid]

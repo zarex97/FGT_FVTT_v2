@@ -5675,3 +5675,28 @@ restored for the Noble Phantasms' costs; Skill Seal, NP Seal and No Buff put on 
 Scáthach; Achilles brought onto the board for Faction 2 as a Divinity C target, then Divine with his Divinity taken off,
 then as the stand-in Arjuna by his content id, each put back after; Kavacha and Kundala restored for one Turn. Debuff
 ResDwn's +50 was read by a probe that wrote nothing.
+
+## 46.31 The Dioscuri — the Servant who is two
+
+**115 Clauses, 11 readings ruled 2026-10-14, 6 tickets built (#218 to #223), 0 Pressed** (#209): the audit's presses
+are #224's. Reading 7 (the leash of 2) is as built. The build found defects that reach other Servants (§46.4-D1 to
+D3, below as they are built).
+
+**Why they find what they find.** Two Servants who are one: every rule that asks "which Servant?" has two answers, and
+each reader had picked one. A slot was drawn by class and a class belongs to one of them; a Cooldown was cut on the
+copy that was asked; a Range was measured from whoever declared. Each was a reader that did not know the other twin.
+
+### 46.31.1 What they cost the engine
+
+| Finding | Where |
+|---|---|
+| Pollux is a Saber, Castor stays an Avenger; the pair's slot is Saber; both read Saber to an enemy before the reveal (readings 1, 8, 9) | `servants/{pollux,castor}.yml` (`servantClasses`, `classContainer`), `rules/war-setup.mjs#catalogueEntryOf` and `candidatesFor` (the companion is never drawn alone), `engine/summon.mjs#servantCatalogue` |
+| War setup gave the second twin no faction, no Contract and no token (§46.4-D3) | `engine/war-setup.mjs#seatPartners`, `deployTokens` |
+| General: §46.4-D1 to D3 | |
+
+**`classContainer` is seeded-then-owned** (`content/authored-fields.mjs`): a pair already in a world keeps "avenger" until it
+is re-summoned or edited. `servantClasses` is pack-owned and updates. A fresh pair comes from war setup, which writes the slot.
+
+### 46.31.2 What was staged
+
+Nothing: no live press. #224 presses the 115 Clauses.

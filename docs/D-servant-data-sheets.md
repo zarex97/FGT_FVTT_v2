@@ -31,7 +31,7 @@ Chapters 31–36; this appendix is the consolidated reference.
 | Mannanán mac Lir | Alter Ego | A | B | B | EX | D | 1250 | 6 | 1 | 150 | 250 | 2◈ |
 | Kingprotea | Alter Ego | EX | EX | A | D | B | 2000 | 7 | 1 | 200 | 125 | 7◈ |
 | Castor | Avenger | A | A++ | B | C | C | 1500 | 6 | 3 | 150 | 150 | 2◈ |
-| Pollux | Avenger¹ | A | A++ | B | C | C | 1500 | 5 | 1 | 200 | 150 | 2◈ |
+| Pollux | Saber⁵ | A | A++ | B | C | C | 1500 | 5 | 1 | 200 | 150 | 2◈ |
 | Semiramis | Caster/Assassin | E | D | D | A | A | 750 | 4 | 2 or 3² | 45 | 200 | 2◈/4◈² |
 | Scáthach | Lancer¹ | B | A | A | C | D | 1500 | 7 | 2 | 125 | 150 | 2◈ |
 | Karna | Lancer | B | C | A | B | D | 1000 | 7 | 2 | 125 | 175 | 2◈ |
@@ -42,6 +42,8 @@ Chapters 31–36; this appendix is the consolidated reference.
 | Heracles | Berserker¹ | A+ | A | A | B | A | 1500 | 6 | 1 | 160 | 175 | 2◈ |
 
 ¹ Class inferred from the ability set; not stated on the sheet.
+
+⁵ **Ruled, no longer inferred** (#209 reading 1, ruled 2026-10-14; Ch. 46 §46.31): Pollux is a Saber, and Castor stays an Avenger. The pair takes a Saber slot only and shows Saber to the enemy before the True Names are revealed.
 
 ⁴ The sheet's figure, and **overruled in play**: Ch. 41 Q50 settles that Base Attack is derived from the Rank, so his STR `D` gives **75**. Serenity's sheet prints 65 at the same Rank and is overruled the same way. The written value is kept so the deviation stays visible, and `validate:content` warns about it.
 ² Depends on the `Double Summon: Caster` coin flip.
@@ -187,6 +189,8 @@ the cheapest NP in the set, on the highest-END Servant. Deliberate.
 Full conversion: Ch. 34.
 
 ### Shared binding
+**Pollux is a Saber and Castor an Avenger** (#209 readings 1, 8 and 9, ruled 2026-10-14; Ch. 46 §46.31). Appendix D had marked her class inferred from his. The pair takes ONE slot, a Saber one: `classContainer` is `saber` on both sheets (the slot, and what `publicNameOf` and the class image read before the True Names are revealed), `servantClasses` stays `[avenger]` for Castor, and he is the *companion* (`catalogueEntryOf`): never drawn alone, summoned with Pollux (Ch. 31).
+
 `LinkedUnitGroup`: leash 2, linked death (ignoring revival), 0.5 budget weight, shared cooldowns
 by ability name, `zonSatisfaction: any`.
 
