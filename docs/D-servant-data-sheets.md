@@ -204,11 +204,11 @@ same ticket (§46.4-D4).
 | Avenger (B) | Class, passive | RE (damage taken **+80** flat; counter damage +80) |
 | Oblivion Correction (C) | Class, passive | RE (crit chance +15%) |
 | Self-Replenishment (Mana) (D) | Class, passive | RE (+40 HP, NP cooldown −2 **turns**, per own/acted turn end) |
-| Mad Enhancement (B−) | Class, mode | RE (35%/15% taken, 55% dealt; **halved Master drain when adjacent to Pollux**) |
+| Mad Enhancement (B−) | Class, mode | RE (35%/15% taken, 55% dealt — **halved to 25 on Mana Burst**, which sums BA(MAG), by `attack:usesBase:mag` and the template's floor-to-5 rounding, #209 reading 3; **halved Master drain when adjacent to Pollux**) |
 | Twin God's Divine Core (B) | Passive, `countsAs: divinity` | RE (+80 flat; 5% NP cooldown chance on successful normal attacks) |
 | Stars of the Chief God (A) | Active | RE (paired `Castor`/`Pollux` buffs on both twins) |
 | Guardians of Navigation (B) | Active | RE (3 party buffs incl. 1-time Debuff Immune) |
-| Mana Burst (Light/Ancient) (A+) | `whenAttacking` | **RE+** `kind: choice` phase |
+| Mana Burst (Light/Ancient) (A+) | `whenAttacking` | **RE+** `kind: choice` phase; its last clause is a `cooldown` phase (§46.4-D1); also a Counter (#209 reading 4) |
 
 ### Pollux
 

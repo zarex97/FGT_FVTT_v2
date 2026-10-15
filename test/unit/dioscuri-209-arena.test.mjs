@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, beforeAll } from "vitest";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
-import { playAttack } from "../helpers/process.mjs";
+import { playAttack, playProcess } from "../helpers/process.mjs";
 import { twinSpecs, CASTOR, POLLUX } from "../helpers/dioscuri.mjs";
 
 beforeAll(prepareSubjects, 120_000);
@@ -142,5 +142,120 @@ describe("a Command Spell cools the Skill on both twins (#209 reading 2, decisio
       expect(clock(w, CASTOR)).toBe(6);
       expect(clock(w, POLLUX)).toBe(6);
     }, MATCH);
+  });
+});
+
+/* ========================================================================== */
+/*  Reading 3 -- Mad Enhancement is halved on Mana Burst, which uses BA(MAG)    */
+/* ========================================================================== */
+
+describe("Mad Enhancement is halved on Mana Burst (#209 reading 3, ruled 2026-10-14)", () => {
+  const MEDEA = "medeaTarget00000";
+  const near = async () => [
+    ...await twinSpecs({ castor: { panel: { i: 5, j: 5 } }, pollux: { panel: { i: 5, j: 6 } } }),
+    { from: "medea", id: MEDEA, state: { factionId: "B" }, panel: { i: 5, j: 7 } },
+  ];
+
+  /** What Mad Enhancement adds to an attack's damage, off the stage-4 breakdown of its card. */
+  const offence = (w, declared) => {
+    const result = w.messages.get(declared.messageId).getFlag("fgt", "result");
+    const stage = result.breakdown.find((s) => s.name === "combinedPercent");
+    return stage.contributors
+      .filter((c) => c.value > 0 && /Mad Enhancement/.test(c.note ?? c.label ?? ""))
+      .map((c) => c.value);
+  };
+
+  /** Castor strikes Medea with Mad Enhancement on. */
+  const strike = async (ability) => {
+    let out;
+    await withSubjects(await near(), async ({ world: w }) => {
+      await abilityOf(w, CASTOR, "class-mad-enhancement").update({ "system.active": true });
+      const item = ability ? abilityOf(w, CASTOR, ability) : null;
+      if (ability === "dioscuri-mana-burst-castor") w.answer({ title: "Mana Burst (Light/Ancient)", pick: ["self"] });
+      const { declared } = await playAttack(w, {
+        attacker: CASTOR, ability: item?.id ?? null, target: MEDEA, react: { [MEDEA]: ["nothing", "declined"] },
+      });
+      out = offence(w, declared);
+    }, MATCH);
+    return out;
+  };
+
+  it("adds +55% to a Normal Attack and to the Noble Phantasm, in full", async () => {
+    expect(await strike(null)).toEqual([55]);
+    expect(await strike("dioscuri-tyndaridae")).toEqual([55]);
+  });
+
+  it("adds half of it to Mana Burst, rounded down to a multiple of 5 as the template rounds (27.5 is 25)", async () => {
+    // The ticket said +27.5%. The shared template floors a halved figure to a
+    // multiple of 5 (`magnitudeRoundTo: 5`, Kingprotea's 85 is 40 on her sheet),
+    // so Castor's 55 is 25 here: one rule, one rounding, not a rounding slot of
+    // his own. RED before #220: 55, the full figure.
+    expect(await strike("dioscuri-mana-burst-castor")).toEqual([25]);
+  });
+});
+
+/* ========================================================================== */
+/*  Reading 4 -- Mana Burst answers a Counter, as Raikou's does                 */
+/* ========================================================================== */
+
+describe("Mana Burst is a Counter too (#209 reading 4, ruled 2026-10-14: already built)", () => {
+  // The ticket read "own Turn only"; the code never did. `answersACounter` takes
+  // every Attack Skill, and the use gate exempts a Counter from "used during your
+  // Turn" (`costs.mjs`). These play it as the table would, so it cannot regress.
+  const ATTACKER = "heraclesAttacker";
+  const THEIRS = { tokens: true, combat: { round: 6, started: true, system: { globalTurn: 18 }, actingFactionId: "B" } };
+  const flanked = async () => [
+    ...await twinSpecs({ castor: { panel: { i: 5, j: 5 } }, pollux: { panel: { i: 5, j: 6 } } }),
+    { from: "heracles", id: ATTACKER, state: { factionId: "B" }, panel: { i: 5, j: 7 } },
+  ];
+
+  /**
+   * Heracles swings at `who`, who answers with their Mana Burst; the Counter's
+   * own Process is played out. Returns what the table sees of it.
+   */
+  const counterWith = async (who, contentId) => {
+    let seen;
+    await withSubjects(await flanked(), async ({ world: w }) => {
+      await startClocks(w);
+      const mb = abilityOf(w, who, contentId);
+      w.answer({ title: "Mana Burst (Light/Ancient)", pick: ["self"] });
+      await playAttack(w, {
+        attacker: ATTACKER, target: who,
+        react: { [who]: ["nothing", { event: "counter", abilityId: mb.id }] },
+      });
+      const process = await import("../../module/engine/combat-process.mjs");
+      const counter = [...w.messages.values()].find((m) => {
+        const flag = m.getFlag("fgt", "process");
+        return flag && process.deserialize(flag).isCounter;
+      });
+      expect(counter, "the Counter opens a Process of its own").toBeTruthy();
+      const state = await playProcess(w, counter.id, { [ATTACKER]: ["nothing", "declined"], [who]: ["declined"] });
+      const result = counter.getFlag("fgt", "result");
+      seen = {
+        state,
+        base: result.breakdown.find((s) => s.name === "base").contributors.map((c) => c.value),
+        bonuses: result.breakdown.find((s) => s.name === "flatAttackBonuses").contributors.map((c) => c.note ?? c.label),
+        lines: (counter.getFlag("fgt", "effects") ?? []).map((e) => e.id),
+        clocks: [npClock(w, CASTOR), npClock(w, POLLUX)],
+        evade: [...w.actor(POLLUX).effects].some((e) => e.system.defId === "evade"),
+      };
+    }, THEIRS);
+    return seen;
+  };
+
+  it("Pollux answers Heracles with it: aimed back at him, 150 + 150, and she Evades after", async () => {
+    const seen = await counterWith(POLLUX, "dioscuri-mana-burst-pollux");
+    expect(seen.state).toMatchObject({ isCounter: true, attackerId: POLLUX, defenderId: ATTACKER });
+    expect(seen.base).toEqual([150, 150]);
+    expect(seen.evade).toBe(true);
+    expect(seen.lines).toContain("blind");
+  });
+
+  it("Castor answers with it: the Avenger's +80 counts, and the Noble Phantasm's clock falls on both twins", async () => {
+    const seen = await counterWith(CASTOR, "dioscuri-mana-burst-castor");
+    expect(seen.state).toMatchObject({ isCounter: true, attackerId: CASTOR, defenderId: ATTACKER });
+    expect(seen.base).toEqual([150, 150]);
+    expect(seen.bonuses).toContain("Avenger");
+    expect(seen.clocks).toEqual([15, 15]);
   });
 });

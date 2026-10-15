@@ -393,13 +393,17 @@ describe("Mad Enhancement A+", () => {
 
   it("halves the MAG share to 40, not 42.5", () => {
     const me = forKingprotea();
-    const mag = me.activeRules.find((r) => r.predicate?.includes?.("attack:component:mag"));
+    // The halving reads the BASE an attack adds up (`attack:usesBase:mag`), no
+    // longer the component it counts as (#209 reading 3, ruled 2026-10-14:
+    // Castor's Mana Burst sums BA(MAG) and declares `str`). Her Wail has both,
+    // so her 40 is unchanged.
+    const mag = me.activeRules.find((r) => r.predicate?.includes?.("attack:usesBase:mag"));
     expect(mag.magnitudeFactor).toBe(0.5);
     expect(mag.magnitudeRoundTo).toBe(5);
 
     const out = collectContributions([{
       id: "me", name: "Mad Enhancement", rank: "A+", active: true, activeRules: me.activeRules,
-    }], { options: new Set(["attack:component:mag"]) });
+    }], { options: new Set(["attack:usesBase:mag"]) });
     const atk = out.modifiers.filter((m) => m.key === "atkUp");
     expect(atk.some((m) => m.value === 40)).toBe(true);
   });
