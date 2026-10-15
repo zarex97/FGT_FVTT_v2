@@ -25,7 +25,9 @@ beforeAll(prepareSubjects, 60_000);
  * @param {(ctx: {world: object, ride: Function, token: Function, turnState: Function}) => Promise<unknown>} fn
  */
 const inRound = (round, fn) => withSubjects([
-  { from: "karna", panel: { i: 5, j: 2 }, state: { factionId: "red" } },
+  { from: "karna", panel: { i: 5, j: 2 }, state: { factionId: "red" },
+    // His Riding Active this Turn: it unlocks the ride (#206).
+    effects: [{ defId: "ridingActive", magnitude: 5 }] },
   { from: "emiya", panel: { i: 5, j: 5 }, state: { factionId: "blue" } },
 ], async ({ world }) => {
   const { performRidingAttack } = await import("../../module/engine/riding.mjs");
@@ -76,7 +78,9 @@ describe("a Riding Attack that reaches nobody, in a Round when it may be made", 
   it("moves the Unit and spends the Turn, as it did", async () => {
     // The control for the two above: the order is what changed, not the ride.
     await withSubjects([
-      { from: "karna", panel: { i: 5, j: 2 }, state: { factionId: "red" } },
+      { from: "karna", panel: { i: 5, j: 2 }, state: { factionId: "red" },
+        // His Riding Active this Turn: it unlocks the ride (#206).
+        effects: [{ defId: "ridingActive", magnitude: 5 }] },
     ], async ({ world }) => {
       const { performRidingAttack } = await import("../../module/engine/riding.mjs");
       const out = await performRidingAttack({ unitId: "karna", destination: { i: 5, j: 7 } });
@@ -126,6 +130,29 @@ describe("a Noble Phantasm ridden onto an empty line still pays its price (#184)
       tokens: true,
       combat: { round: 3, started: true, actingFactionId: "red", system: { globalTurn: 9 } },
       worldSettings: { noAttackRound: 1, grandOrder: false, turnsPerRound: 3 },
+    });
+  });
+});
+
+describe("a Mana Burst does not ride along (#206, ruled 2026-10-14)", () => {
+  it("is refused by name, and nothing moves", async () => {
+    await withSubjects([
+      { from: "raikou", panel: { i: 5, j: 2 }, state: { factionId: "red" },
+        effects: [{ defId: "ridingActive", magnitude: 5 }] },
+      { from: "emiya", panel: { i: 5, j: 5 }, state: { factionId: "blue" } },
+    ], async ({ world }) => {
+      const { performRidingAttack } = await import("../../module/engine/riding.mjs");
+      const actor = world.actor("raikou");
+      const mb = actor.items.find((i) => i.system?.contentId === "raikou-mana-burst-lightning");
+      const { x, y } = world.tokens.get("token-raikou");
+      const out = await performRidingAttack({ unitId: "raikou", destination: { i: 5, j: 7 }, abilityId: mb.id });
+      expect(out).toEqual({ ok: false, reason: "notARide" });
+      expect(world.tokens.get("token-raikou")).toMatchObject({ x, y });
+      expect(actor.system.turnState.usedRidingAttack).toBeFalsy();
+    }, {
+      round: 2, tick: 6, tokens: true,
+      combat: { round: 2, started: true, actingFactionId: "red", system: { globalTurn: 6 } },
+      worldSettings: { noAttackRound: 1, grandOrder: false },
     });
   });
 });

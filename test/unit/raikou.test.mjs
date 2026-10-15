@@ -123,7 +123,9 @@ describe("the class skills she takes off the shelf", () => {
   });
 
   it("takes Riding at A+ with the ⅓◈ regen the sheet states, and adds nothing", () => {
-    expect(refs["class-riding"]).toEqual({ ref: "class-riding", rank: "A+", cooldown: "3◈-⅓◈" });
+    // The variant whose Active unlocks all three passives, as her sheet says
+    // (#206): `class-riding` granted them always.
+    expect(refs["class-riding-unlocks"]).toEqual({ ref: "class-riding-unlocks", rank: "A+", cooldown: "3◈-⅓◈", mov: 5 });
     expect(lookup("ridingMov", Rank.parse("A+"))).toBe(5);
     expect(lookup("ridingCooldown", Rank.parse("A+"))).toBe("3◈");
   });
@@ -1002,7 +1004,7 @@ describe("the four copies", () => {
     // `passiveRules` and have to be named, or a copy would get Double Move.
     expect(S.inherit.passives).toEqual({
       from: "summoner",
-      excludeAbilities: ["class-mad-enhancement", "class-riding"],
+      excludeAbilities: ["class-mad-enhancement", "class-riding-unlocks"],
     });
   });
 
@@ -1646,7 +1648,7 @@ describe("her whole sheet is authored", () => {
     const refs = SHEET.abilities.map((a) => a.ref);
     expect(refs).toEqual([
       "class-mad-enhancement",
-      "class-riding",
+      "class-riding-unlocks",
       "class-magic-resistance",
       "divinity",
       "raikou-genji-clan-martial-arts-discipline",

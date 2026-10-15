@@ -11,6 +11,11 @@ cooldown: "3◈"
 # An ATTACK SKILL: its Active performs a Normal Attack, so it opens a Combat
 # Process and spends Karna's Attack for the Turn (Ch. 17).
 isAttackSkill: true
+# *"This Skill is used when performing a Normal Attack."* Ruled 2026-10-14
+# (#206 reading 5): the attack IS his Normal Attack, powered up, so Vasavi
+# Shakti's Divinity bonus reaches it. One target, and not offered on a Riding
+# Attack (no `usedWithNormalAttack`).
+countsAsNormalAttack: true
 element: fire
 sameTurnExclusive: [karna-flash-of-the-sun-god]
 description: |
@@ -108,16 +113,14 @@ passiveRules:
     effect: burn
   # Passive 3. "All Total Fire Damage taken is reduced by 50% including NP."
   #
-  # `Ward`, not `defUp`: a Ward is the category-predicated reduction (Ch. 10
-  # Group 2) and lands in the same stage-4 bucket, which keeps it additive
-  # against Atk Up the way Ch. 22 requires. `npValue` equals `value` because the
-  # sheet says "including NP" rather than giving a reduced NP figure.
-  #
-  # `attack:element:fire` is a NEW roll option. The pipeline has read
-  # `ctx.attack.element` at stage 0 since it was written and no predicate could
-  # ask about it, so a resistance written against a damage type could not be
-  # authored at all.
-  - key: Ward
+  # Ruled 2026-10-14 (#206 reading 6): a TOTAL Damage cut on the Fire share.
+  # Stage 15 multiplies it in at the end, so an attacker's Atk Up no longer
+  # cancels it, and a half-Fire attack -- his own Mana Burst's kind -- loses a
+  # quarter. It was a `Ward` on `attack:element:fire`: pooled with Atk Up at
+  # stage 4, on the whole attack. `npValue` equals `value`: "including NP".
+  - key: DamageModifier
+    modifierKey: elementTotalDefUp
+    element: fire
+    direction: taken
     value: 50
     npValue: 50
-    predicate: [attack:element:fire]

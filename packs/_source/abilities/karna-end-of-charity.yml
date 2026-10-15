@@ -5,6 +5,9 @@ id: karna-end-of-charity
 name: "End of Charity"
 rank: null
 cooldown: "4◈"
+# "(Active) Used during your Turn." Without the window the own-Turn gate
+# asks nothing, and the Skill resolved on an enemy's Turn (#206).
+timing: { window: ownTurn }
 description: |
   (Active) Used during your Turn. Has the following effects-
   1. Applies the '@effect[charity]{Charity}' buff for 1◈ Turns; as long as Karna has this buff, both effects of

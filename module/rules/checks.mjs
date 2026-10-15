@@ -214,7 +214,9 @@ export function resolveCheck({ roll, target, table, modifiers = [] }) {
 /**
  * An Evade attempt.
  *
- * `Dodge` succeeds without rolling, and `Aim` beats `Dodge`. `Substitution`
+ * `Dodge` succeeds without rolling. `Aim` *"ignores Dodge and the Evade
+ * action"*: an Aim attack cannot be Evaded at all, by a die or by any
+ * automatic evasion (ruled 2026-10-14, #206 §46.4-MB). `Substitution`
  * beats `Aim`, but that is resolved earlier — at damage-pipeline stage 0 —
  * because it negates the attack outright rather than evading it.
  *
@@ -231,6 +233,16 @@ export function resolveCheck({ roll, target, table, modifiers = [] }) {
 export function evade({ roll, agility, hasDodge = false, attackHasAim = false,
   forceUnfavourable = false, modifiers = [], autoSucceed = null, attackProperties = [],
   evadableOnlyBy = null, held = [] }) {
+  // Aim first, and absolute: no permit, Dodge or granted auto-success gets
+  // past it. The Dodge line of Appendix A uses "the Evade action" for the
+  // rolled Evade, and so does Aim's.
+  if (attackHasAim) {
+    return {
+      success: false, roll, total: 0, target: agility, table: null,
+      modifiers: [{ source: "Aim: cannot be Evaded", value: 0 }],
+      automatic: true,
+    };
+  }
   // An attack that narrows the ladder. Mannanán's Fragarach Counter is the
   // first: *"cannot be Blocked, and cannot be Evaded except with Dodge."*
   //
@@ -260,7 +272,7 @@ export function evade({ roll, agility, hasDodge = false, attackHasAim = false,
     }
   }
 
-  if (hasDodge && !attackHasAim) {
+  if (hasDodge) {
     return {
       success: true, roll, total: 0, target: agility,
       table: "favourable", modifiers: [{ source: "Dodge", value: 0 }], automatic: true,

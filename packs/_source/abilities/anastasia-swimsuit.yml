@@ -8,15 +8,13 @@ passive: true
 description: |
   (Passive) All Total Water Damage taken is reduced by 50% including NP.
 passiveRules:
-  # A `Ward`, not a Def Up: a Ward is the category-predicated reduction (Ch. 10
-  # Group 2) and lands in the same stage-4 bucket, which keeps it additive
-  # against Atk Up the way Ch. 22 requires. Karna's fire resistance is the same
-  # rule with a different element, and `attack:element` became a roll option
-  # when he was authored.
-  #
-  # `npValue` equals `value` because the sheet says "including NP" rather than
-  # giving a reduced NP figure.
-  - key: Ward
+  # "All TOTAL Water Damage taken": a Total Damage cut on the Water share,
+  # multiplied in at stage 15, by the ruling on Karna's identical "All Total
+  # Fire Damage" (#206 reading 6). It was a Ward pooled with Atk Up at stage 4.
+  # `npValue` equals `value` because the sheet says "including NP".
+  - key: DamageModifier
+    modifierKey: elementTotalDefUp
+    element: water
+    direction: taken
     value: 50
     npValue: 50
-    predicate: ["attack:element:water"]

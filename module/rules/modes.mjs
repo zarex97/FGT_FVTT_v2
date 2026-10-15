@@ -78,6 +78,14 @@ export function canToggleMode(
     if (!offAnyTime) return { ok: false, reason: "notOwnTurn" };
   }
 
+  // NEGATED. Karna's Uncrowned Arms Mastership: *"The effects of this Skill
+  // are negated by Skill Seal"*. Its rules stopped contributing under the Seal
+  // (`rules/snapshot.mjs#negated`), and the switch went through anyway:
+  // pressed live under a staged Skill Seal, Effect 2 → 1 (#206). The window
+  // offer (`rules/reactions.mjs#abilitiesAtWindow`) already asked this.
+  const negatedBy = sys.negatedBy ?? [];
+  if (negatedBy.some((id) => (unit?.effects ?? []).includes(id))) return { ok: false, reason: "negated" };
+
   // ...and WHO. `byOwner: false` is a mode its owner cannot switch off at all.
   if (!active && sys.deactivation?.byOwner === false) return { ok: false, reason: "cannotDeactivate" };
 

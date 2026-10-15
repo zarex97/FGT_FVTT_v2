@@ -21,6 +21,7 @@ import { carryMasterAlong } from "./passenger-seat.mjs";
 import { displaceToken } from "./io.mjs";
 import { hasGranted, GRANTS } from "../rules/granted.mjs";
 import { turnPartnersOf } from "../rules/platforms.mjs";
+import { classifyAbility } from "../rules/ability-use.mjs";
 import { currentBoard } from "./board.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
@@ -63,6 +64,12 @@ export async function performRidingAttack({ unitId, destination, abilityId = nul
   // ability rather than a Normal Attack.
   const ability = abilityId ? actor.items.get(abilityId) : null;
   const ride = ability?.system?.ridingAttack ?? null;
+  // Only an ability that IS a ride may be named here. A Skill used with a
+  // Normal Attack rode along until #206: no Mana Burst is offered on a Riding
+  // Attack (ruled 2026-10-14), and the socket must not take one either. The
+  // sheet's own reader: every ability has a `ridingAttack` block, and only a
+  // number in it makes a ride.
+  if (ability && !classifyAbility(ability).ridesAsAttack) return { ok: false, reason: "notARide" };
   const plan = ridingAttackPath(unit, destination, board, {
     distanceOverride: typeof ride?.distance === "number" ? ride.distance : null,
     // A field's boundary opens for a big enough Noble Phantasm, so its tags

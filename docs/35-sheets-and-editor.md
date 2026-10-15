@@ -70,9 +70,11 @@ Statements the builder cannot model (a module operator, an option no facet admit
 
 3. **A pure layer, deliberately.** `present.mjs` is Layer 4 but has no `game`, no `canvas`, no `ui`. Everything here is a testable question: "what percentage is this bar", "how many turns left", "why is this disabled" (`module/apps/actor-sheet/present.mjs:1-10`).
 
-4. **`enrichHTML` is async; templates are not.** Enrichment happens in `_prepareContext` before render, never in a helper. Inline rolls `[[/r]]` are disabled — the engine resolves every die (`module/apps/enrich.mjs:24`).
+4. **A choice window prints words, not link codes** (#206). Its callers hand an ability's raw `description` as an option's `detail`, and a compiled description carries `@UUID[…]{Skill Seal}`; `apps/choice-dialog.mjs#plainLinks` reads each link as its label. Not live links: the detail sits inside the option's button. And an option is as tall as its text: Foundry gives a button one line, so the rows overlapped and a click on Suspend Skill took Reduce Cooldown (`styles/fgt.css`, `.fgt-choice__toggle`).
 
-5. **The predicate builder is an inverse.** Every predicate it renders, it must give back unchanged via round-trip test (`module/apps/ability-editor/predicate-builder.mjs:7-11`).
+5. **`enrichHTML` is async; templates are not.** Enrichment happens in `_prepareContext` before render, never in a helper. Inline rolls `[[/r]]` are disabled — the engine resolves every die (`module/apps/enrich.mjs:24`).
+
+6. **The predicate builder is an inverse.** Every predicate it renders, it must give back unchanged via round-trip test (`module/apps/ability-editor/predicate-builder.mjs:7-11`).
 
 ## Traps and anti-patterns
 

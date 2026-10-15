@@ -160,7 +160,7 @@ function compulsionsFor(unit, board) {
       if (other.id === unit.id) continue;
       // ...nor can a corpse (#168).
       if (other.defeated) continue;
-      if (chebyshev(other.panel ?? {}, unit.panel ?? {}) > (rule.within ?? 0)) continue;
+      if (chebyshev(other.panel ?? {}, unit.panel ?? {}) > reachOf(rule, unit)) continue;
       if (!relationAllowed(rule, unit, other, board)) continue;
       // *"No effect against allied Units"* in a Grand Order war.
       if (rule.spareAlliesInGrandOrder && board.grandOrder && allied(unit, other, board)) continue;
@@ -179,10 +179,52 @@ function compulsionsFor(unit, board) {
       out.push({
         id: rule.id, forcesTarget: Boolean(rule.forcesTarget), forcesSkill: rule.forcesSkill ?? null,
         pursues: Boolean(rule.pursues), targetIds: kept, source: rule.source,
+        attacksOnly: Boolean(rule.attacksOnly), restrictsOnly: Boolean(rule.restrictsOnly),
+        areaMustInclude: Boolean(rule.areaMustInclude),
       });
     }
   }
 
+  return out;
+}
+
+/**
+ * How far a compulsion reaches: its stated panels, or `range`, the bearer's
+ * current Range. Karna's Fated Rivals holds *"within Range of Karna"*, ruled
+ * his Range as it stands, not a fixed 2 (#206 reading 2).
+ *
+ * @param {object} rule
+ * @param {object} unit
+ * @returns {number}
+ */
+function reachOf(rule, unit) {
+  if (rule.within === "range") return typeof unit.range === "number" ? unit.range : (unit.range?.panels ?? 1);
+  // The editor writes a text field, so a number may arrive as "4".
+  const panels = Number(rule.within);
+  return Number.isFinite(panels) ? panels : 0;
+}
+
+/**
+ * The compulsions narrowing this resolution, split by how they narrow it.
+ *
+ * `narrow`: the targets an attack must choose from. `include`: targets an
+ * AREA must contain, whose other Units are still hit (Fated Rivals, #206
+ * reading 2). A compulsion that binds Attacks only lets a Skill through.
+ *
+ * @param {object} unit the caster
+ * @param {{isAttack: boolean, area: boolean}} use
+ * @returns {{narrow: string[], include: string[]}}
+ */
+export function compulsionNarrowing(unit, { isAttack, area }) {
+  /** @type {{narrow: string[], include: string[]}} */
+  const out = { narrow: [], include: [] };
+  for (const c of unit?.compulsions ?? []) {
+    if (!c.forcesTarget) continue;
+    if (c.attacksOnly && !isAttack) continue;
+    const ids = c.targetIds ?? [];
+    if (area && c.areaMustInclude) out.include.push(...ids);
+    else out.narrow.push(...ids);
+  }
   return out;
 }
 

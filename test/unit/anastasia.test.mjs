@@ -171,10 +171,10 @@ describe("Soaked (B6–B9, R2)", () => {
   });
 
   it("B7 — halves Total Fire Damage taken, including NP", () => {
-    const w = ruleOf("Ward");
-    expect(w.value).toBe(50);
-    expect(w.npValue).toBe(50);
-    expect(w.predicate).toContain("attack:element:fire");
+    // A Total Damage cut on the Fire share, by the ruling on Karna's identical
+    // clause (#206 reading 6); it was a Ward pooled with Atk Up at stage 4.
+    const w = ruleOf("DamageModifier", { modifierKey: "elementTotalDefUp" });
+    expect(w).toMatchObject({ element: "fire", direction: "taken", value: 50, npValue: 50 });
   });
 
   it("B7/R2 — removes itself on ANY Fire attack, even one Freeze negated", () => {
@@ -263,9 +263,9 @@ describe("her passive abilities", () => {
   const band = ["self:effect:blind", "attack:range:lte:2"];
 
   it("W1 — Swimsuit! halves Water damage taken, including NP", () => {
-    const ward = ability("anastasia-swimsuit").passiveRules.find((r) => r.key === "Ward");
-    expect(ward).toMatchObject({ value: 50, npValue: 50 });
-    expect(ward.predicate).toContain("attack:element:water");
+    // "All TOTAL Water Damage": a stage-15 cut on the Water share (#206 reading 6).
+    const cut = ability("anastasia-swimsuit").passiveRules.find((r) => r.modifierKey === "elementTotalDefUp");
+    expect(cut).toMatchObject({ element: "water", direction: "taken", value: 50, npValue: 50 });
   });
 
   it("F1/F2 — Fae Contract moves debuff chance in both directions by 5", () => {

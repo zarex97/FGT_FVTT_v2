@@ -22,7 +22,7 @@ The roll log records every roll made: the raw die, every modifier, and chains of
 
 ### The three check types
 
-**Agility Checks** (Evade) succeed when `roll ≤ agility`. The check has two special branches: a unit holding `Dodge` succeeds without rolling, unless the attacker holds `Aim`, which forces a roll anyway (`module/rules/checks.mjs:231-285`). A unit with an `AutoSucceed` behaves the same way, with a `beatenBy` list that can be arbitrary attack properties (`module/rules/checks.mjs:269-278`).
+**Agility Checks** (Evade) succeed when `roll ≤ agility`. The check has two special branches: a unit holding `Dodge` succeeds without rolling. An attack with `Aim` cannot be Evaded at all: no roll, no Dodge, no automatic evasion (ruled 2026-10-14, #206 §46.4-MB; `module/rules/checks.mjs#evade`). A unit with an `AutoSucceed` behaves the same way, with a `beatenBy` list that can be arbitrary attack properties (`module/rules/checks.mjs:269-278`).
 
 **A check a Skill demands is rolled.** Dodge and `AutoSucceed` belong to an Evade. A `check` phase (`engine/attack.mjs#runCheckPhase`) reads the check's modifiers and forced table, and never `checkPlan`'s `autoSucceed`. So Medusa's Mystic Eyes always roll its target's Agility Check, Dodge or not (ruled, #188 reading 12).
 
@@ -90,7 +90,7 @@ A wildcard row — *"your choice of any of the above"* — returns a question to
 
 3. **Debuffs win ties.** If a unit carries both `Luck Boost` and `Luck Loss`, unfavourable applies (`module/rules/checks.mjs:40-42`, `module/rules/checks.mjs:110-123`).
 
-4. **Dodge succeeds without rolling; Aim beats Dodge.** A unit with `Dodge` succeeds unless `attackHasAim` is true, which forces a roll. An `AutoSucceed` from an effect works the same way, with its own `beatenBy` list (`module/rules/checks.mjs:263-278`).
+4. **Dodge succeeds without rolling; Aim beats every Evade.** Aim *"ignores Dodge and the Evade action"*, and the catalogue's Dodge line uses "the Evade action" for the rolled Evade. So `attackHasAim` fails the check first, with the source *"Aim: cannot be Evaded"*, before Dodge or any `AutoSucceed` is asked. The engine closes the Evade rung at declaration too; Block still answers (ruled 2026-10-14, #206 §46.4-MB). An `AutoSucceed` from an effect keeps its own `beatenBy` list for other properties (`module/rules/checks.mjs#evade`).
 
 5. **A percentage roll is strictly under, never at-or-under.** `chance(100, 100)` succeeds; `chance(1, 0)` fails (`module/rules/checks.mjs:328-330`).
 

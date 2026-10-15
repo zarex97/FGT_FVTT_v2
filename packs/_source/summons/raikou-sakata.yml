@@ -47,7 +47,7 @@ inherit:
   # by construction.
   passives:
     from: summoner
-    excludeAbilities: [class-mad-enhancement, class-riding]
+    excludeAbilities: [class-mad-enhancement, class-riding-unlocks]
 # "Raikou's copies do not count towards the number of Units that Move and/or
 # Attack during your Turn. The same copy can only Move/Attack once per Turn."
 # Two different rules, and the second is why this is not simply "free": exempt

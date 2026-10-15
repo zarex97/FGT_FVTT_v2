@@ -750,25 +750,8 @@ export async function rideFrom(actor, { ability = null, context = {} } = {}) {
   });
   if (!destination) return;
 
-  // A ride IS a Normal Attack, so an ability used WITH one may ride along:
-  // Raikou's Mana Burst (#195 reading 4). Offered only when its gate passes.
-  if (!ability) {
-    const usable = [...actor.items].filter((i) => i.system?.usedWithNormalAttack && canUseAbility({
-      ability: usageSpecFor(i), unit, round: game.combat?.round ?? 1, board, ...gateContext(),
-      testPredicate: (p) => testPredicate(p, { options: rollOptionsFor({ attacker: unit }) }),
-    }).ok);
-    if (usable.length > 0) {
-      const { ChoiceDialog } = await import("../choice-dialog.mjs");
-      const picked = await ChoiceDialog.pick({
-        title: game.i18n.localize("FGT.Riding.WithAbility"),
-        hint: game.i18n.localize("FGT.Riding.WithAbilityHint"),
-        count: 1, min: 0,
-        options: usable.map((i) => ({ id: i.id, name: i.name })),
-      });
-      const chosen = picked?.[0] ? actor.items.get(picked[0]) : null;
-      if (chosen) ability = chosen;
-    }
-  }
+  // No Skill rides along with a plain ride: no Mana Burst is offered on a
+  // Riding Attack (ruled 2026-10-14, #206, taking back #195 reading 4).
 
   const { performAction } = await import("../../engine/actions.mjs");
   const result = await performAction("ridingAttack", {

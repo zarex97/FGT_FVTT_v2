@@ -77,7 +77,7 @@ import { attackPreflight, abilityKind } from "./attack-preflight.mjs";
 // Re-exported for the tests and callers that reach it through this module (#159).
 export { abilityKind };
 import {
-  NP_DECLARATION_WINDOW, DAMAGE_STEP_WINDOW, COMBAT_PHASE_START_WINDOW,
+  NP_DECLARATION_WINDOW, DAMAGE_STEP_WINDOW, COMBAT_PHASE_START_WINDOW, DEFENDING_PHASE_START_WINDOW,
 } from "../rules/windows.mjs";
 import {
   reactionAbilities, allyReactions, abilityFromOption, abilitiesAtWindow, windowSubject } from "../rules/reactions.mjs";
@@ -240,6 +240,21 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
       phaseWindow.windowAbilities,
     );
   }
+  // ...and the same moment for every Unit this attack is aimed at. Karna's
+  // Uncrowned Arms Mastership switches *"at the start of a Combat Phase"*, any
+  // he is in, defending included (#206 reading 4); "during your Turn" already
+  // covered his own attacks. Once per defender, before any Process exists, so
+  // the switch is in force for the crit coin and the damage of this exchange.
+  if (!resume && !plainDamage) {
+    const defenders = [...new Set(targets.units.map((t) => t.unitId))].filter((id) => id !== attackerId);
+    for (const defenderId of defenders) {
+      const answered = await offerAttackerWindow({ attackerId: defenderId }, DEFENDING_PHASE_START_WINDOW, null);
+      if ((answered.windowAbilities ?? []).length > 0) {
+        console.warn("FGT | defendingPhaseStart offered a non-mode ability; its rules reach no Combat Process:",
+          answered.windowAbilities);
+      }
+    }
+  }
 
   // Civilians never enter a Combat Process: "the Civilian is instantly killed"
   // -- no damage calculation, no reaction ladder, no Overpower (Ch. 06).
@@ -311,21 +326,32 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   const rolledRepeat = repeatSpec && typeof repeatSpec === "object" && repeatSpec.roll
     ? (await new Roll(repeatSpec.roll).evaluate()).total
     : null;
-  const instanceSpecs = expandInstances(
-    rolledRepeat === null ? resolved : { ...resolved, repeat: rolledRepeat },
-  );
+  // The block is chosen PER TARGET, with that target in the options: a
+  // `damage.branches` predicate may ask about the defender. Brahmastra's 4x/2x
+  // asks whether any of the DU's Parameters beats Karna's, and resolved once
+  // here with no defender in sight every `not:target:paramVsSelf:*:gt` held,
+  // so Heracles (STR A+) took the 4x the preview had shown as 2x (#206, found
+  // live). The repeat count stays the declaration's: one roll per attack.
+  const instancesFor = (unitId) => {
+    const defender = (board.units ?? []).find((u) => u.id === unitId) ?? null;
+    const block = defender
+      ? (resolvedDamage(ability, rollOptionsFor({ attacker: self, defender, attack: attackSpec })) ?? {})
+      : resolved;
+    return expandInstances(rolledRepeat === null ? block : { ...block, repeat: rolledRepeat });
+  };
+  const perTarget = defenders.map((t) => ({ t, specs: instancesFor(t.unitId) }));
   // One Combat Process per instance per target, INSTANCE-MAJOR within each
   // target, so the declared order reads down the chat log: a player matching
   // five cards to five sentences of Dohatsu Tenshou should find them in the
   // sheet's order.
-  const targetIds = defenders.flatMap((t) => instanceSpecs.map(() => t.unitId));
+  const targetIds = perTarget.flatMap(({ t, specs }) => specs.map(() => t.unitId));
   // The spec each of those processes resolves under, in the same order. The
   // whole instance travels as `instanceBlock` too, because the damage step
   // reads its multiplier, base and element from a BLOCK: it read the ability's
   // top-level block, so Dohatsu Tenshou's four 0.5x sub-attacks dealt 1x with
   // no element and its 3.5x+200 BA(MAG) part dealt 1x BA(STR) (#195).
-  const perProcess = defenders.flatMap(() => instanceSpecs.map((s, i) => ({
-    ...s, instanceBlock: s, instanceIndex: i, instanceCount: instanceSpecs.length,
+  const perProcess = perTarget.flatMap(({ specs }) => specs.map((s, i) => ({
+    ...s, instanceBlock: s, instanceIndex: i, instanceCount: specs.length,
   })));
 
   // WHICH RING each target stands in, carried forward from the geometry pass.
@@ -734,6 +760,9 @@ export function buildAttackSpec({
   return {
       abilityId,
       kind: ability ? abilityKind(ability) : "normal",
+      // A Skill whose attack IS the Normal Attack (#206 reading 5): its kind
+      // stays its own, and `rollOptionsFor` adds `attack:kind:normal` beside it.
+      asNormalAttack: Boolean(ability?.system?.countsAsNormalAttack),
       // Which Base Attack this uses, and whether Magic Resistance sees it at all.
       // Both are read by Magic Resistance's Instakill/Death ladder, which is
       // exempted for *"an Attack/Attack Skill/Spell/NP that deals STR damage or
@@ -1095,6 +1124,9 @@ async function declareProcesses({
           // (ruled 2026-10-14, Q6): Escape and Teleport Servant carry the
           // defender out (`engine/command-spells.mjs#interruptsOf`).
           ...(state.attack?.unavoidable ? ["evade"] : []),
+          // Aim *"ignores Dodge and the Evade action"*: no Evade at all,
+          // while Block stays (ruled 2026-10-14, #206 §46.4-MB).
+          ...(state.attack?.aim ? ["evade"] : []),
           // Appendix A §A.3 `Accel`: *"Opponents cannot React to this unit's
           // attacks."*
           //
@@ -2408,8 +2440,13 @@ async function fireDamageDealt(state, result) {
   // whether the attack crit is by definition asking about a resolved one.
   const options = rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) });
   for (const [hearer, spec] of hearers.flatMap((u) => pendingRolls(u, "damageDealt").map((s) => [u, s]))) {
-    if (!spec.formula || spec.key in rolls) continue;
-    rolls[spec.key] = (await new Roll(spec.formula).evaluate()).total;
+    if (!spec.formula) continue;
+    // One die per key, and every spec on it still FILED when its clause
+    // applies. Two handlers can share a key: Karna's Mana Burst 25% Burn and
+    // Vasavi Shakti's 50% "instead of" it are both `ApplyEffect burn`. The
+    // second was skipped outright, so after the Activation the 50% Burn landed
+    // with no line on the card at all (#206, found live).
+    if (!(spec.key in rolls)) rolls[spec.key] = (await new Roll(spec.formula).evaluate()).total;
     if (spec.chance === undefined) continue;
     // Filed only where its clause applies: a "15% on a Crit" roll on an attack
     // that did not Crit decided nothing, and the card said "missed" (#187).
@@ -2451,7 +2488,7 @@ async function fireDamageDealt(state, result) {
     const lost = hit ? resisted.find((e) => e.defId === spec.effectId && e.sourceUnitId === state.attackerId) : null;
     const verdict = !hit ? "missed" : lost ? `resisted (${lost.chance})` : "hit";
     records.push(rollLog.record({
-      id: `${state.attackerId}:${state.defenderId}:rider:${spec.key}:${tick}`,
+      id: `${state.attackerId}:${state.defenderId}:rider:${spec.key}:${spec.chance}:${tick}`,
       globalTurn: tick, entryId: "rider-", formula: spec.formula,
       raw: rolls[spec.key], total: rolls[spec.key],
       modifiers: [{ source: `against ${spec.chance}%: ${verdict}`, delta: 0, stage: "chance" }],
@@ -3191,6 +3228,8 @@ function evadePermit(state) {
   // declaration; this is the same refusal for an automatic evasion, Dodge
   // included, which never asks the rung (#204 reading 15).
   if (state.attack?.unavoidable) return [];
+  // Aim closes every automatic evasion too: Dodge, the Evade buff, Trofa.
+  if (state.attack?.aim) return [];
   const declared = state.attack?.evadableOnlyBy ?? [];
   if (state.attack?.noEvadeAfterFail && siblingEvadeFailed(state)) return [];
   return declared.length > 0 ? declared : null;
@@ -4773,10 +4812,15 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
   // otherwise land on a Master its Servants just took the blast for.
   if (coverStateFor(state)?.masterId === state.defenderId) return [];
 
-  // Nothing rides on an attack that dealt nothing. Invuln explicitly does NOT
-  // prevent rider debuffs, but it also does not zero the damage to zero via
-  // this path -- negation is what matters here.
-  if (damageResult.flags?.negatedBy) return [];
+  // HIT, NOT HURT, as the event-declared riders decide it (`rules/damage/
+  // riders.mjs`): only a complete negation -- Anti-Purge, Substitution -- or a
+  // veil refuses them. This read `flags.negatedBy` and returned for ANY of it,
+  // so a MAG hit Magic Resistance negated, or one Invuln took to 0, landed none
+  // of its debuffs: Scáthach's Þurs on Karna (MR C) dealt 0 and tried no
+  // Shock, where *"Other debuffs from Attacks ... will still have their
+  // inflict chance reduced from Magic Resistance"* says they are tried (#206,
+  // found live). The comment above it already said Invuln does not stop them.
+  if (!ridersFire({ skipped: null, result: damageResult })) return [];
 
   const { attacker: attackerUnit, defender } = riderSubjects(state);
   const applied = [];

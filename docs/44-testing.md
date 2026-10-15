@@ -319,3 +319,15 @@ six declared fields with neither reader nor writer.
 `test/unit/scathach-gate-arena.test.mjs` plays Gate of Skye and Gáe Bolg in the test world: no Evade, no Lucky Evasion
 or escape, Substitution passed through, the failed and the passed shove, Alpi's one charge, and Gáe Bolg's two
 branches. `targeting-limits-read.test.mjs` names any `targeting.limits` key no module code reads.
+
+### Karna's rulings and arena (#206)
+
+`test/unit/karna-206-rulings.test.mjs` holds the eleven readings: the MAG share against Magic Resistance, the Fire
+share's Total cut, the own-Turn Skills and the Seals, Mana Burst as a Normal Attack, the opening choice, Fated Rivals
+against a stand-in Arjuna authored inline, and the gated Riding. `karna-206-arena.test.mjs` plays what only a
+Process shows: a negated hit's riders, Brahmastra's branch per target, Vasavi's 50% Burn filed. An area test that
+asserted only an empty `units` passed on an area that reached nobody; it asserts the rival's reason now
+(*passes for the wrong reason*). Two rulings after the press (§46.4-MB, MC): the arena plays Brahmastra on Heracles
+with Evade forbidden and Block open, and on Medea whose Trofa evades nothing; `riding-attack-order.test.mjs` refuses
+Raikou's Mana Burst on a ride by name; the rulings file stamps all four Mana Bursts as Normal Attacks. Each was
+mutation-checked. `DIRECT_CLOCK_READS` fell to 106 with the ride offer's removal.

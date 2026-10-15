@@ -79,10 +79,28 @@ describe("Dodge and Aim", () => {
     expect(r.automatic).toBe(true);
   });
 
-  it("Aim beats Dodge and forces the roll", () => {
+  // Aim *"ignores Dodge and the Evade action"*: no Evade at all, by a die or
+  // by any automatic evasion (ruled 2026-10-14, #206 §46.4-MB).
+  it("Aim beats Dodge, and says Aim did it", () => {
     const r = evade({ roll: 20, agility: 1, hasDodge: true, attackHasAim: true });
     expect(r.success).toBe(false);
-    expect(r.automatic).toBe(false);
+    expect(r.automatic).toBe(true);
+    expect(r.modifiers[0].source).toMatch(/^Aim/);
+  });
+
+  it("Aim beats the rolled Evade: a natural roll that would succeed fails", () => {
+    expect(evade({ roll: 1, agility: 20 }).success).toBe(true);
+    const r = evade({ roll: 1, agility: 20, attackHasAim: true });
+    expect(r.success).toBe(false);
+    expect(r.modifiers[0].source).toMatch(/^Aim/);
+  });
+
+  it("Aim beats a granted auto-success that does not name it, Trofa's", () => {
+    const autoSucceed = { source: "Tροψα" };
+    expect(evade({ roll: 20, agility: 1, autoSucceed }).success).toBe(true);
+    const r = evade({ roll: 20, agility: 1, autoSucceed, attackHasAim: true, attackProperties: ["aim"] });
+    expect(r.success).toBe(false);
+    expect(r.modifiers[0].source).toMatch(/^Aim/);
   });
 });
 
