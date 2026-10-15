@@ -26,7 +26,7 @@ import {
 import * as rollLog from "../rules/roll-log.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
 import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
-import { cooldownChanges, statChangeLine, checkLine } from "./skill-use.mjs";
+import { cooldownChanges, cooldownLine, statChangeLine, checkLine } from "./skill-use.mjs";
 import { splitCooldownRider } from "../rules/cooldown-riders.mjs";
 import {
   classifyAbility, targetSpecFor as specForAbility, usageSpecFor, dealsNoDamage,
@@ -4970,7 +4970,20 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
           ? cooldownChanges({ ...phase, changes: oncePerPhase }, attackerDoc, cdBoard, ability, defenderDoc)
           : []),
       ];
-      if (intents.length > 0) await applyBatch(intents, `np:${ability.id}:cooldown`);
+      if (intents.length > 0) {
+        // On the card, one line per clock that moved, as a Skill's card prints
+        // it (`Name: Cooldown 18 → 15`): a cut the player cannot read is not
+        // built (#219, §46.4-D1 -- Mana Burst's never showed because it never
+        // happened). The Dioscuri's shows on BOTH twins' Noble Phantasm.
+        const remainingOf = (c) => game.actors.get(c.unitId)?.items?.get(c.abilityId)?.system?.cooldown?.remaining ?? 0;
+        const before = intents.map(remainingOf);
+        await applyBatch(intents, `np:${ability.id}:cooldown`);
+        intents.forEach((c, n) => {
+          const name = game.actors.get(c.unitId)?.items?.get(c.abilityId)?.name ?? null;
+          const line = cooldownLine(name, before[n], remainingOf(c));
+          if (line) applied.push({ unitId: c.unitId, summary: { id: "cooldown", name: line, outcome: "applied", reason: null, chance: null } });
+        });
+      }
       continue;
     }
     if (phase.kind === "setMode") {

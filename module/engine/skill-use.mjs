@@ -33,7 +33,7 @@ import { effectivePhases } from "../rules/copy.mjs";
 import { resolveTargets, pendingChoiceErrors } from "../rules/targeting/resolve.mjs";
 import { landEntry } from "./landing.mjs";
 import { summonPhase } from "./summoning.mjs";
-import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
+import { cooldownFor, alsoTriggered, sharedAcrossGroup, sharedCooldownIntents } from "./cooldown.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { currentBoard, unitFrom, unitOf, gateContext, turnRecordOf } from "./board.mjs";
 import { resourcePathFor } from "../domain/resources.mjs";
@@ -1413,7 +1413,8 @@ export function cooldownChanges(phase, doc, board = null, self = null, target = 
       // `set: 0` is "completely reduce", which is a set rather than a subtract:
       // a reduce of some large number would work by accident and read as a bug.
       if (change.set !== undefined) {
-        out.push(I.cooldown(subjectId, item.id, change.set, "set"));
+        const cut = I.cooldown(subjectId, item.id, change.set, "set");
+        out.push(cut, ...mirroredCuts([cut], subject, board));
         continue;
       }
       // A ◈ EXPRESSION as well as a raw turn count. Every cooldown a sheet
@@ -1430,10 +1431,29 @@ export function cooldownChanges(phase, doc, board = null, self = null, target = 
           : Math.abs(change.delta ?? 0));
       const down = change.ticks !== undefined ? (change.direction === "down")
         : change.countMatching ? true : (change.delta ?? 0) < 0;
-      out.push(I.cooldown(subjectId, item.id, turns, down ? "reduce" : "increase"));
+      const cut = I.cooldown(subjectId, item.id, turns, down ? "reduce" : "increase");
+      out.push(cut, ...mirroredCuts([cut], subject, board));
     }
   }
   return out;
+}
+
+/**
+ * The twin's copy of a cut, for a subject whose group shares its clocks (#209
+ * reading 2): whoever makes the cut -- the user, an ally, an enemy -- it is made
+ * on a clock both copies read.
+ *
+ * Asked of the document first: a lone projection of every caller's document is
+ * not free, and a Unit with no shared clock has nothing to mirror.
+ *
+ * @param {object[]} cuts
+ * @param {object} subject the actor document the cuts are about
+ * @param {object|null} board
+ * @returns {object[]}
+ */
+function mirroredCuts(cuts, subject, board) {
+  if (subject?.system?.linkedGroup?.sharedCooldowns !== "byName") return [];
+  return sharedCooldownIntents(cuts, unitOf(subject, board ?? null), board);
 }
 
 /**

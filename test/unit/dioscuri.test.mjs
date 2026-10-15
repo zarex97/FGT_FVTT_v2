@@ -343,8 +343,14 @@ describe("Mana Burst (Light/Ancient) — one name, two abilities", () => {
   it("C40/P19 — differ only in the last clause", () => {
     // His reduces his NP Cooldown by 1◈; hers applies Evade for ⅓◈. That
     // difference is the whole reason these are two documents.
+    //
+    // Overturned by §46.4-D1 (found by the Dioscuri audit, #219): this pinned a
+    // `CooldownDelta` rule element inside an `applyEffects` phase, a phase that
+    // lands effects and read none of it -- the cut was never made. It is a
+    // `cooldown` phase now, and `dioscuri-209-arena.test.mjs` plays it.
     const hisLast = his.phases.at(-1);
-    expect(hisLast.rules[0]).toMatchObject({ key: "CooldownDelta", scope: "np", ticks: "1◈" });
+    expect(hisLast).toMatchObject({ kind: "cooldown", target: "self" });
+    expect(hisLast.changes[0]).toMatchObject({ scope: "np", ticks: "1◈", direction: "down" });
     expect(hers.phases.at(-1).effects[0]).toMatchObject({ id: "evade", duration: "⅓◈" });
   });
 

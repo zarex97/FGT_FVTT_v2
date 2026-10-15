@@ -192,7 +192,10 @@ Full conversion: Ch. 34.
 **Pollux is a Saber and Castor an Avenger** (#209 readings 1, 8 and 9, ruled 2026-10-14; Ch. 46 §46.31). Appendix D had marked her class inferred from his. The pair takes ONE slot, a Saber one: `classContainer` is `saber` on both sheets (the slot, and what `publicNameOf` and the class image read before the True Names are revealed), `servantClasses` stays `[avenger]` for Castor, and he is the *companion* (`catalogueEntryOf`): never drawn alone, summoned with Pollux (Ch. 31).
 
 `LinkedUnitGroup`: leash 2, linked death (ignoring revival), 0.5 budget weight, shared cooldowns
-by ability name, `zonSatisfaction: any`.
+by ability name, `zonSatisfaction: any`. **One clock** (#209 reading 2, ruled 2026-10-14): a use
+and any cut by either twin reaches both copies — Mana Burst's own 1◈ cut was a dropped
+`CooldownDelta` until #219 (§46.4-D1), and Self-Replenishment's 2 Turns set the clock to 0 until the
+same ticket (§46.4-D4).
 
 ### Castor
 
