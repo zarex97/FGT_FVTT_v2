@@ -16,5 +16,5 @@ in the arena, `FGT | Cannot parse duration "thisRound"`). The guard was green th
 `ApplyEffect` hands `parseTick` its `duration`. `packs/_source/effects/activated-circuits.yml:55 @ 7231295` and
 `blazing-circuits.yml:40` authored the one string in the corpus that is neither a ◈ span nor a named event.
 
-**Fix:** `test/unit/content-ticks.test.mjs:19 @ uncommitted` — the guard reads `duration` and `defaultDuration` too (it
-finds exactly those two); the Circuits say `until roundEnd` (`packs/_source/effects/ac-next-np.yml @ uncommitted`).
+**Fix:** `test/unit/content-ticks.test.mjs:19 @ 3cc6a34` — the guard reads `duration` and `defaultDuration` too (it
+finds exactly those two); the Circuits say `until roundEnd` (`packs/_source/effects/ac-next-np.yml @ 3cc6a34`).

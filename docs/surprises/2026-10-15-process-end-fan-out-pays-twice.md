@@ -15,5 +15,5 @@ pay.
 **Cause:** `module/engine/attack.mjs:1845 @ 7231295` — `fireCombatProcessEnd` decided from `currentBoard()` and applied
 later, with nothing between two Processes of one attacker. The same shape as the Damage Step window (§46.4, 2026-10-12).
 
-**Fix:** `module/engine/attack.mjs:1845 @ uncommitted` — firings queue per attacker, so the second reads the board the
+**Fix:** `module/engine/attack.mjs:1845 @ 3cc6a34` — firings queue per attacker, so the second reads the board the
 first left. `emiya-208-arena.test.mjs` "Overedge's two swings spend the charge once" is red without it.

@@ -8,4 +8,4 @@ reviewed: false
 **Expected:** after EMIYA's Normal Attack, Unlimited Blade Works' slot says why it is closed, as Overedge's and Caladbolg's did.
 **Actual:** the slot showed no reason; the press toasted "Unlimited Blade Works: Infinite Creation of Swords cannot be used: this unit has already attacked this turn."
 **Cause:** `module/apps/hud/action-bar.mjs:282 @ 960496f` — the bar asked the budget only for abilities that open an Attack; `skill-use.mjs` bills a non-damaging NP as `np`.
-**Fix:** `module/rules/ability-use.mjs#useBudgetKind @ uncommitted` — one kind read by the bar and the use path; the slot reads "— this unit has already attacked this turn".
+**Fix:** `module/rules/ability-use.mjs#useBudgetKind @ 3cc6a34` — one kind read by the bar and the use path; the slot reads "— this unit has already attacked this turn".

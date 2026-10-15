@@ -15,5 +15,5 @@ the only thing that removes it is the event, and a Unit hears `combatPhaseEnd` o
 **Cause:** `module/engine/attack.mjs:2890 @ 7231295` — `fireCombatPhaseEnd` fires on the attacker and the defenders of the
 fan-out. A barrier raised by a third party reaches a 3x3 of allies, and the projector, who are none of them.
 
-**Fix:** `module/engine/attack.mjs:2931 @ uncommitted` — `barriersOfThisPhase` removes the effect from every Unit the
+**Fix:** `module/engine/attack.mjs:2931 @ 3cc6a34` — `barriersOfThisPhase` removes the effect from every Unit the
 Phase did not name that holds one cast by a Unit that took a reaction in it.
