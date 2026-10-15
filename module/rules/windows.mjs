@@ -175,3 +175,29 @@ export function usedOnlyDuringOwnTurn(ability) {
   const windows = windowsOf(ability?.timing);
   return windows.length > 0 && windows.every((w) => w === ABILITY_WINDOWS.ownTurn.id);
 }
+
+/**
+ * Is this ability usable at its windows and nowhere else?
+ *
+ * Every window but `ownTurn` is a MOMENT the engine offers it at (a reaction, a
+ * Damage Step, the start of a Combat Phase), and an ability that names no
+ * `ownTurn` has no sheet button to press: the engine casts it, at that moment.
+ * The use gate had no way to say so. {@link usedOnlyDuringOwnTurn} refuses an
+ * ability whose ONLY window is `ownTurn` on another Turn, and an ability with
+ * windows that exclude `ownTurn` was simply pressable from the sheet or the bar
+ * at any time -- Reinforcement ("used at the start of a Combat Phase") included,
+ * which is what #208 reading 8 is about. Trofa, Eye of the Mind (True) and Rho
+ * Aias were the same.
+ *
+ * `automatic` is not a window to be at: the engine declares such an ability on
+ * its bearer's behalf when its trigger fires (`engine/attack.mjs#flushAutoCounters`),
+ * and says so by not offering it.
+ *
+ * @param {object|null|undefined} ability an ability, or its usage spec
+ * @returns {boolean}
+ */
+export function usedOnlyAtWindows(ability) {
+  const windows = windowsOf(ability?.timing);
+  return windows.length > 0
+    && windows.every((w) => w !== ABILITY_WINDOWS.ownTurn.id && w !== ABILITY_WINDOWS.automatic.id);
+}

@@ -80,6 +80,11 @@ export async function useSkill({
   // owner's own Turn does count -- Kiritsugu's Lethal Gunfire Suppression
   // grants one free Thaumaturgy cast inside its own trigger and nowhere else.
   bypassesCategoryLimit = false,
+  // The ENGINE casting this at one of its own windows: a reaction, a Damage Step,
+  // the start of a Combat Phase. An ability whose windows exclude `ownTurn` has no
+  // sheet button, and the use gate refuses it anywhere else (`windowOnly`). Only
+  // the engine sets it; the socket operation never carries it (#208 reading 8).
+  atWindow = false,
 }) {
   const actor = game.actors.get(actorId);
   const ability = actor?.items?.get(abilityId);
@@ -110,6 +115,7 @@ export async function useSkill({
     board,
     // Ch. 04's Round gate, whose numbers are world settings Layer 2 cannot read.
     ...gateContext(),
+    atWindow,
     // The `predicate` requirement kind (`rules/items.mjs`) has been in
     // `meetsRequirement` since Ch. 17 was implemented and refused every use
     // that named it: `ctx.testPredicate` had no supplier here, so

@@ -56,7 +56,7 @@ const refuse = (message) => ({ ok: false, message });
  * @param {object} [args.combat] the active Combat
  * @returns {Preflight|{ok: false, message: string, budgetReason?: string}}
  */
-export function attackPreflight({ attacker, abilityId, placement = {}, board, combat, resume = false }) {
+export function attackPreflight({ attacker, abilityId, placement = {}, board, combat, resume = false, atWindow = false }) {
   // From the board, not projected alone: ZON is pairwise, so only the board
   // knows whether this Servant is inside its Master's zone -- and that is what
   // `limits.requiresZon` on every Noble Phantasm turns on.
@@ -131,6 +131,9 @@ export function attackPreflight({ attacker, abilityId, placement = {}, board, co
     // Ch. 04's Round gate: its numbers are world settings, which Layer 2 may not
     // read, so they travel with the call.
     ...gateContext(),
+    // The engine declaring a window-only attack at its window (Kiritsugu's shot,
+    // a reaction): the use gate refuses one anywhere else (#208 reading 8).
+    atWindow,
     // The rest of Ch. 17's requirement kinds need more than the unit: a
     // counterpart check reads the board, and a target-effect check reads the
     // target. Passing neither made those two kinds silently unsatisfiable.
