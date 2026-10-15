@@ -384,3 +384,88 @@ describe("the joint NP rolls its Crit against both twins' chance (#209 reading 1
     expect(await swing(null)).toBe(false);
   });
 });
+
+/* ========================================================================== */
+/*  Reading 11 -- a Counter against the joint NP answers the twin who used it   */
+/* ========================================================================== */
+
+describe("a Counter against the joint NP answers the twin who declared it (#209 reading 11, ruled 2026-10-14: already built)", () => {
+  // The ticket wanted it aimed at the declarer; `counterAvailable` and `runCounter`
+  // read `state.attackerId`, and `alsoCountsAsAttackFor` touches the budget alone.
+  // Pollux declares from (5,5), Castor beside her at (5,6), the foe at (5,8): 2
+  // from Castor, which is how the NP reaches it, and 3 from Pollux.
+  const THEM = "counterer0000000";
+  const standoff = async (from) => [
+    ...await twinSpecs({ castor: { panel: { i: 5, j: 6 } }, pollux: { panel: { i: 5, j: 5 } } }),
+    { from, id: THEM, state: { factionId: "B" }, panel: { i: 5, j: 8 } },
+  ];
+  const declare = async (w) => {
+    const { resolveAttack } = await import("../../module/engine/attack.mjs");
+    const declared = await resolveAttack({
+      attackerId: POLLUX, abilityId: abilityOf(w, POLLUX, "dioscuri-tyndaridae").id,
+      placement: { unitId: THEM, chosenIds: [THEM] },
+    });
+    return (declared.processes ?? [{ messageId: declared.messageId }])[0].messageId;
+  };
+  const state = async (w, id) => (await import("../../module/engine/combat-process.mjs"))
+    .deserialize(w.messages.get(id).getFlag("fgt", "process"));
+  const atCounterRung = async (w, id) => {
+    const { advanceAttack } = await import("../../module/engine/attack.mjs");
+    await advanceAttack({ messageId: id, event: "nothing" });
+    return state(w, id);
+  };
+
+  it("offers the Counter to a Servant who reaches Pollux, aimed at Pollux", async () => {
+    await withSubjects(await standoff("drake"), async ({ world: w }) => {
+      const id = await declare(w);
+      const rung = await atCounterRung(w, id);
+      expect(rung).toMatchObject({ state: "counter", counterAvailable: true, attackerId: POLLUX, defenderId: THEM });
+      // Pressed: the Counter's own Process is Drake against POLLUX, not Castor.
+      const { advanceAttack } = await import("../../module/engine/attack.mjs");
+      await advanceAttack({ messageId: id, event: "counter" });
+      const process = await import("../../module/engine/combat-process.mjs");
+      const counter = [...w.messages.values()].map((m) => m.getFlag("fgt", "process"))
+        .filter(Boolean).map(process.deserialize).find((s) => s.isCounter);
+      expect(counter).toMatchObject({ attackerId: THEM, defenderId: POLLUX, requiredTargetId: POLLUX });
+    }, MATCH);
+  });
+
+  it("refuses a Counter whose placement holds only Castor, and leaves the rung open", async () => {
+    await withSubjects(await standoff("raikou"), async ({ world: w }) => {
+      const id = await declare(w);
+      await atCounterRung(w, id);
+      const mb = abilityOf(w, THEM, "raikou-mana-burst-lightning");
+      const { advanceAttack } = await import("../../module/engine/attack.mjs");
+      const said = [];
+      ui.notifications.warn = (text) => said.push(text);
+      await advanceAttack({
+        messageId: id, event: "counter", abilityId: mb.id, placement: { unitId: CASTOR, chosenIds: [CASTOR] },
+      });
+      // Refused for the aim, not for the ability: the placement misses the declarer.
+      expect(said).toEqual(["FGT.Counter.MustIncludeAttacker"]);
+      // Nothing was declared and nothing was spent: the rung still waits on her.
+      const after = await state(w, id);
+      expect(after.state).toBe("counter");
+      const process = await import("../../module/engine/combat-process.mjs");
+      const counters = [...w.messages.values()].map((m) => m.getFlag("fgt", "process"))
+        .filter(Boolean).map(process.deserialize).filter((s) => s.isCounter);
+      expect(counters).toEqual([]);
+      expect(mb.system.cooldown.remaining).toBe(0);
+      await advanceAttack({ messageId: id, event: "declined" });
+    }, MATCH);
+  });
+
+  it("offers no Counter to a Servant who cannot reach Pollux, though the NP reached it through Castor", async () => {
+    await withSubjects(await standoff("karna"), async ({ world: w }) => {
+      // His Uncrowned Arms Mastership is offered as he is attacked (#206 reading 4).
+      w.answer({ title: "FGT.Window.defendingPhaseStart", decline: true });
+      const id = await declare(w);
+      const { advanceAttack } = await import("../../module/engine/attack.mjs");
+      await advanceAttack({ messageId: id, event: "nothing" });
+      const rung = await state(w, id);
+      // Karna's Range is 2 and Pollux stands 3 away: the Process runs on, unasked.
+      expect(rung.counterAvailable).toBe(false);
+      expect(rung.state).not.toBe("counter");
+    }, MATCH);
+  });
+});

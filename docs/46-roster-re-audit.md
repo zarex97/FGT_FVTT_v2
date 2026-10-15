@@ -5701,6 +5701,7 @@ copy that was asked; a Range was measured from whoever declared. Each was a read
 | The joint NP counts an effect on both twins twice: two Divine Cores are +160 (reading 5): already built, now pinned | `damage/pipeline.mjs#activeMods` (concatenation, Ch. 41 Q12) |
 | The joint NP is in Range when either twin is within 2 of the target (reading 6) | `targeting/resolve.mjs#resolveAnchor`, `#partnerPanelsOf`; `alsoFrom: partner` on `dioscuri-tyndaridae.yml`; the build refuses it elsewhere (`tools/lib/content.mjs`) |
 | The Crit Chance the joint NP rolls against is both twins', by NP figure only (reading 10) | `checks.mjs#critChance` (`alsoFrom`), `damage/pipeline.mjs#modifierSourceUnits` (the one reader of which Units join), `attack.mjs` |
+| A Counter against the joint NP answers the twin who declared it (reading 11): already built, now pinned, with the Range interaction of reading 6 | `attack.mjs#counterAvailable` and `#runCounter` (both read `state.attackerId`); `alsoCountsAsAttackFor` touches the budget alone |
 | General: §46.4-D1 to D5 | |
 
 **`classContainer` is seeded-then-owned** (`content/authored-fields.mjs`): a pair already in a world keeps "avenger" until it
