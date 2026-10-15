@@ -34,7 +34,7 @@ absorbs, onRemove, onApply, rules, bypassesImmunity,
 bypassesResistance
 ```
 
-`onRemove` runs when an instance expires; `onApply` runs once when one is created, never on a refresh.
+`onRemove` runs when an instance goes, **by any route** (#208 reading 13): expiry (`scheduler.expireEffects`, which flags its removals `onRemoveRan`) and every other removal, a Cure, a strip, a dispel, an `until <event>` (`engine/applier.mjs#resolveRemovals`, where every removal meets). A refresh or a replacement is the effect continuing and runs nothing. What a clause removes is itself a removal and comes back through. It had been expiry alone, so Atk Up (Trace) stripped left the Circuits standing, and Shock's *"current Agility +1 when max is restored"* was paid only by running out. `onApply` runs once when one is created, never on a refresh.
 `onApply` is where a clause that changes a STORED value lives, because a rule element is re-derived on
 every preparation (Ch. 08, invariant 9).
 

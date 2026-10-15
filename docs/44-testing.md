@@ -24,6 +24,8 @@ The boundary enforced in chapter 02 — that `domain/` and `rules/` import nothi
 | `test/unit/field-ledger.test.mjs` | Every declared field has a reader and a writer, and nothing reads an undeclared `system` path |
 | `test/helpers/subject.mjs` | Builds test subjects from authored content through the real compile, DataModel and projection |
 | `test/unit/rule-survival.test.mjs` | No normalizer or executor drops a key authored inside a rule element |
+| `test/unit/content-ticks.test.mjs` | Every authored `ticks`, `duration` and `defaultDuration` string parses. It read `ticks` alone, and EMIYA's Circuits' `duration: "thisRound"` threw in the Damage Step with the guard green (#208) |
+| `test/unit/in-field-names.test.mjs` | Every `self:inField:` / `target:inField:` names the content id of an ability that opens a field. The Circuits named the slug, which no field has, and `validate:content` calls the shape well formed (#208) |
 | `test/unit/survival.test.mjs` | Every Authored Key in the real corpus survives compile, DataModel and projection to a named route |
 | `test/helpers/world.mjs` | A world faithful enough to run `engine/io.mjs` against — `withWorld({...}, fn)`, restoring globals in a `finally` |
 | `test/helpers/client-namespace.mjs` | The base classes Foundry's *client* `foundry.applications.api` offers a module-scope `class extends`, so `engine/attack.mjs` (which reaches the HUD through the chat card) can be imported by a test; nothing is rendered (#124) |

@@ -304,10 +304,11 @@ describe("Overedge fires the Circuits' 'next NP that deals damage'; a close swin
         });
         return rollOptionsFor({ attacker: unit(E), defender: unit(H), attack: { ...declared, range } });
       };
-      for (const defId of ["activatedCircuits", "blazingCircuits"]) {
+      // The charge is its own document since #213 (a one-shot inside a persistent effect spends the effect).
+      for (const defId of ["acNextNp", "bcNextNp"]) {
         // The clause that spends the charge is the one carrying `consumesUse`.
         const clause = EffectRegistry.get(defId).rules.find((r) => r.consumesUse);
-        // HEAD: ["attack:kind:np"] -- Overedge is categorized as an NP and is not kind np.
+        // At 7231295 (as the Circuits themselves): ["attack:kind:np"] -- Overedge is categorized as an NP and is not kind np.
         expect(clause.predicate, defId).toEqual(["attack:isNP"]);
         expect(testPredicate(clause.predicate, { options: optionsOf("emiya-overedge", 3) }), `${defId} Overedge`).toBe(true);
         expect(testPredicate(clause.predicate, { options: optionsOf("emiya-hrunting", 4) }), `${defId} Hrunting`).toBe(true);
@@ -315,4 +316,87 @@ describe("Overedge fires the Circuits' 'next NP that deals damage'; a close swin
       }
     });
   });
+});
+
+/* ========================================================================== */
+/*  Reading 13 -- Atk Up (Trace) going takes the Circuits with it (#213)        */
+/* ========================================================================== */
+
+describe("Atk Up (Trace) removed from him removes every piece of the Circuits (#208 reading 13, ruled 2026-10-14/15)", () => {
+  const PIECES = ["activatedCircuits", "acNextNp", "acOverdrive", "blazingCircuits", "bcNextNp", "bcOverdrive", "circuitsPending"];
+  const everything = [
+    { defId: "atkUpTrace", expiry: 7, magnitude: 60, npMagnitude: 40 },
+    // The two circuits cannot both be held; the pieces are listed whole so none can be missed.
+    ...PIECES.map((defId) => ({ defId })),
+  ];
+
+  it("running out: the scheduler removes all seven (pinned: as built for the two circuits)", async () => {
+    const { expireEffects } = await import("../../module/engine/scheduler.mjs");
+    const { EffectRegistry } = await import("../../module/rules/registry.mjs");
+    await withSubjects([{ from: "emiya", id: E, state: { factionId: "A" }, effects: everything }], ({ unit }) => {
+      const ctx = { tick: 7, turnsPerRound: 3, effectDef: (id) => EffectRegistry.get(id) };
+      const intents = expireEffects([unit(E)], ctx);
+      const removed = intents.filter((i) => i.t === "removeEffect" && PIECES.includes(i.effectId)).map((i) => i.effectId);
+      // HEAD: activatedCircuits and blazingCircuits only -- the pieces did not exist.
+      expect([...new Set(removed)].sort()).toEqual([...PIECES].sort());
+    });
+  });
+
+  it("a Cure or a strip does the same: the clause runs for any removal", async () => {
+    const { applyWorldIntents } = await import("../../module/engine/applier.mjs");
+    const I = await import("../../module/engine/intents.mjs");
+    await withSubjects([
+      { from: "emiya", id: E, state: { factionId: "A" }, panel: { i: 5, j: 5 }, effects: everything },
+    ], async ({ world: w }) => {
+      await applyWorldIntents([I.removeEffect(E, "atkUpTrace", "cure")], "test:cure");
+      // HEAD: the circuits stayed -- `onRemove` was paid by expiry alone.
+      expect([...w.actor(E).effects].map((e) => e.system.defId)).toEqual([]);
+    }, OWN_TURN);
+  });
+
+  it("a refresh is not a removal: reapplying Atk Up (Trace) keeps the Circuits", async () => {
+    await withSubjects([
+      { from: "emiya", id: E, state: { factionId: "A" }, panel: { i: 5, j: 5 },
+        effects: [{ defId: "atkUpTrace", expiry: 9, magnitude: 60, npMagnitude: 40 }, { defId: "activatedCircuits" }, { defId: "acNextNp", uses: 1 }] },
+    ], async ({ world: w }) => {
+      // Trace, On again, with Atk Up (Trace) held: the buff extends and the circuits are chosen anew.
+      w.answer({ title: "Trace, On", pick: ["blazingCircuits"] });
+      const out = await castSkill(w, { caster: E, ability: abilityOf(w, E, "emiya-trace-on").id, placement: { unitId: E } });
+      expect(out.ok).toBe(true);
+      const held = [...w.actor(E).effects].map((e) => e.system.defId).sort();
+      // The swap: AC and its one-shot are replaced by BC and its own. Atk Up (Trace) stays, once.
+      expect(held).toEqual(["atkUpTrace", "bcNextNp", "blazingCircuits"]);
+    }, OWN_TURN);
+  }, 60_000);
+});
+
+describe("choosing a circuit puts its pieces on him (#208 readings 10 to 13)", () => {
+  it("Activated Circuits come with their one-shot, Blazing Circuits with theirs", async () => {
+    await withSubjects([
+      { from: "emiya", id: E, state: { factionId: "A" }, panel: { i: 5, j: 5 } },
+    ], async ({ world: w }) => {
+      w.answer({ title: "Trace, On", pick: ["activatedCircuits"] });
+      await castSkill(w, { caster: E, ability: abilityOf(w, E, "emiya-trace-on").id, placement: { unitId: E } });
+      expect(held(w, E, "activatedCircuits")).toHaveLength(1);
+      // HEAD: authored `uses: 1` on AC itself; the one-shot is its own document now.
+      expect(held(w, E, "acNextNp")).toHaveLength(1);
+      expect(held(w, E, "acNextNp")[0].system.uses).toBe(1);
+      expect(held(w, E, "blazingCircuits")).toHaveLength(0);
+    }, OWN_TURN);
+  }, 60_000);
+});
+
+describe("`on removal` is the effect's, whichever way it goes (#208 reading 13, found building it)", () => {
+  it("Shock's Agility +1 on removal is paid by a Cure as well as by running out", async () => {
+    const { applyWorldIntents } = await import("../../module/engine/applier.mjs");
+    const I = await import("../../module/engine/intents.mjs");
+    await withSubjects([
+      { from: "emiya", id: E, state: { factionId: "A" }, panel: { i: 5, j: 5 }, effects: [{ defId: "shock" }] },
+    ], async ({ world: w }) => {
+      await w.actor(E).update({ "system.agility.max": 12, "system.agility.value": 9 });
+      await applyWorldIntents([I.removeEffect(E, "shock", "cure")], "test:cure");
+      // Was 9 -- the clause belonged to the clock by accident.
+      expect(w.actor(E).system.agility.value).toBe(10);
+    }, OWN_TURN);
+  }, 60_000);
 });

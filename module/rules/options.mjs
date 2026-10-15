@@ -93,6 +93,11 @@ export function rollOptionsFor({ attacker, defender, attack = null, withoutModeH
   // they are: whether they hear a categorized-as-NP attack is an open question
   // (#208, §46.30).
   if (isNPAttack(attack)) options.add("attack:isNP");
+  // The HEARER made this attack. Every other `attack:` option is a fact about the
+  // attack, and an event fired on both combatants hands both the same set; this
+  // one is set only for a firing on the attacker (`combatProcessEnd`), so "an
+  // Attack he performs" can be asked apart from "an Attack he took" (#208 reading 10).
+  if (attack.performed) options.add("attack:performed");
   if (attack.isAoE) options.add("attack:isAoE");
   // Whether this declaration ANSWERS an attack rather than starting one
   // (Ch. 21). Avenger's second half is the first clause to ask: *"If Castor

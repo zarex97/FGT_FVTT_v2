@@ -259,16 +259,21 @@ describe("Trace, On", () => {
     // The sheet says both things at once: "EMIYA cannot have both the AC and BC
     // effects at the same time" AND "you can choose to swap from AC to BC or
     // vice-versa". `blocks` can only say the first, by refusing the swap.
-    expect(effect("activated-circuits").replaces).toEqual(["blazingCircuits"]);
-    expect(effect("blazing-circuits").replaces).toEqual(["activatedCircuits"]);
+    // #208 readings 10 to 13: each circuit is three documents (the persistent first clause, the
+    // one-shot "next NP", the Overdrive), and the other circuit's pieces go with a swap.
+    expect(effect("activated-circuits").replaces).toEqual(["blazingCircuits", "bcNextNp", "bcOverdrive"]);
+    expect(effect("blazing-circuits").replaces).toEqual(["activatedCircuits", "acNextNp", "acOverdrive"]);
     expect(effect("activated-circuits").blocks).toBeUndefined();
   });
 
   it("takes the circuits with it when its buff goes", () => {
     // "When Atk Up (Trace) is removed from EMIYA, remove the AC effect from him
-    // as well." The one thing that can remove an Unremovable effect.
-    expect(effect("atk-up-trace").onRemove.map((a) => a.effect))
-      .toEqual(["activatedCircuits", "blazingCircuits"]);
+    // as well." The one thing that can remove an Unremovable effect. EVERY piece, and for any
+    // removal (#208 reading 13, ruled 2026-10-14/15): the one-shots, the Overdrives and the marker.
+    expect(effect("atk-up-trace").onRemove.map((a) => a.effect).sort()).toEqual([
+      "acNextNp", "acOverdrive", "activatedCircuits",
+      "bcNextNp", "bcOverdrive", "blazingCircuits", "circuitsPending",
+    ]);
   });
 
   it("extends rather than stacking, and lengthens on a Thaumaturgy use", () => {

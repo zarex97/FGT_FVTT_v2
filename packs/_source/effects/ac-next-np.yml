@@ -1,0 +1,40 @@
+# EMIYA's Activated Circuits, second clause -- the one-shot half.
+#
+# "The next time EMIYA uses an NP that deals damage: 2 Luck restored; and for the
+# rest of the Round, each Attack he performs cuts his NP Cooldown by 2 Turns."
+#
+# Its own document because "the NEXT time" is a charge, and a charge on the
+# persistent `activatedCircuits` would delete AC itself when it was spent.
+#
+# USED, not landed (ruled 2026-10-15): the sheet says "uses an NP that deals
+# damage", so a Noble Phantasm that is Evaded counts. Heard at the end of the
+# Combat Process (`combatProcessEnd`, which a miss reaches), and `attack:isNP`
+# counts Overedge, which is categorized as one (reading 11), and not a plain
+# Kanshou & Bakuya swing (reading 22).
+schema: 1
+id: acNextNp
+name: "Activated Circuits: Next NP"
+description: "The next time EMIYA uses an NP that deals damage, 2 Luck is restored and the Overdrive begins."
+polarity: status
+volatility: nonVolatile
+valence: neutral
+stacking: noneRefresh
+baseChance: 500
+unremovable: true
+uses: 1
+rules:
+  - key: OnEvent
+    event: combatProcessEnd
+    automatic: true
+    consumesUse: true
+    predicate: ["attack:isNP"]
+    then:
+      - { key: ResourceDelta, resource: luck, delta: 2 }
+      # "From the NEXT Attack, not the NP that triggered it" (reading 12). The
+      # Overdrive is on from now on, and this marks that the NP's own Combat
+      # Processes (Overedge's second swing, the rest of an area) are not "the
+      # next Attack". It goes at the end of the Combat Phase.
+      - { key: ApplyEffect, effect: { id: circuitsPending }, duration: "until combatPhaseEnd" }
+      # "For the rest of the Round": until the Round's end event, which an
+      # event handler's `ApplyEffect` carries since #208 (it used to drop it).
+      - { key: ApplyEffect, effect: { id: acOverdrive }, duration: "until roundEnd" }

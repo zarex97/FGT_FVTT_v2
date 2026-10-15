@@ -1830,6 +1830,9 @@ async function runAfterProcessPhases(state) {
   if (intents.length > 0) await applyBatch(intents, "afterProcessCooldown");
 }
 
+/** The `combatProcessEnd` firings in flight, by attacker (see {@link fireCombatProcessEnd}). */
+const processEndQueue = new Map();
+
 /**
  * Raise `combatProcessEnd` on both combatants, once per Process.
  *
@@ -1849,20 +1852,66 @@ async function runAfterProcessPhases(state) {
  * @returns {Promise<void>}
  */
 async function fireCombatProcessEnd(state) {
-  const board = currentBoard();
-  const units = [...new Set([state.attackerId, state.defenderId].filter(Boolean))]
-    .map((id) => game.actors.get(id))
-    .filter(Boolean)
-    .map((a) => unitOf(a, board));
-  if (units.length === 0) return;
+  // One at a time per attacker. Two Processes of one declaration (Overedge's
+  // swings, an area Noble Phantasm's defenders) can reach their end together,
+  // and a handler that spends a charge (the Circuits' "next NP") decides from a
+  // snapshot the sibling has not yet written to: both would see the charge and
+  // both would pay. The second waits for the first's batch to land, so it reads
+  // the board the first left (#208, the check-then-act shape of §46.4).
+  const key = state.attackerId ?? "";
+  const run = (processEndQueue.get(key) ?? Promise.resolve())
+    .catch(() => undefined)
+    .then(() => raiseCombatProcessEnd(state));
+  processEndQueue.set(key, run);
+  try {
+    await run;
+  } finally {
+    if (processEndQueue.get(key) === run) processEndQueue.delete(key);
+  }
+}
 
-  const intents = fireEvent("combatProcessEnd", units, {
+/**
+ * The body of {@link fireCombatProcessEnd}.
+ *
+ * The ATTACKER hears it with the attack in its option set, so a clause about
+ * "an Attack he performed" can say so: EMIYA's Circuits cut his NP Cooldown at
+ * the end of every Attack, hit or miss (#208 reading 10), which `damageStepEnd`
+ * (a hit's event) could not. `attack:performed` marks it as the one whose
+ * hearer made the attack. The defender hears it as before, with none, so a
+ * handler with no predicate (Vasavi Shakti's upkeep) is unchanged.
+ *
+ * @param {object} state
+ * @returns {Promise<void>}
+ */
+async function raiseCombatProcessEnd(state) {
+  const board = currentBoard();
+  const unitIn = (id) => {
+    const doc = id ? game.actors.get(id) : null;
+    return doc ? unitOf(doc, board) : null;
+  };
+  const attacker = unitIn(state.attackerId);
+  const defender = state.defenderId && state.defenderId !== state.attackerId ? unitIn(state.defenderId) : null;
+  if (!attacker && !defender) return;
+
+  const ctx = () => ({
     tick: game.combat?.system?.globalTurn ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-    board: currentBoard(),
-    options: new Set(),
+    board,
     rolls: {},
   });
+
+  /** @type {object[]} */
+  const intents = [];
+  if (attacker) {
+    // No defender left to measure a distance to, or an attack that states no
+    // kind: the attacker hears the bare event, as it always has.
+    const target = defender ?? (state.defenderId === state.attackerId ? attacker : null);
+    const options = target && state.attack?.kind
+      ? rollOptions(attacker, target, state, { performed: true })
+      : new Set();
+    intents.push(...fireEvent("combatProcessEnd", [attacker], { ...ctx(), options }));
+  }
+  if (defender) intents.push(...fireEvent("combatProcessEnd", [defender], { ...ctx(), options: new Set() }));
   if (intents.length > 0) await applyBatch(intents, "combatProcessEnd");
 }
 
