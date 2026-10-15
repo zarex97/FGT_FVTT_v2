@@ -8,6 +8,10 @@ import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import { castSkill } from "../helpers/process.mjs";
 import { canUseAbility } from "../../module/rules/costs.mjs";
 import { usageSpecFor } from "../../module/rules/ability-use.mjs";
+import { rollOptionsFor } from "../../module/rules/options.mjs";
+import { test as testPredicate } from "../../module/rules/predicate.mjs";
+import { parseOption } from "../../module/rules/facets.mjs";
+import { installClientNamespace } from "../helpers/client-namespace.mjs";
 
 beforeAll(prepareSubjects, 120_000);
 
@@ -184,6 +188,131 @@ describe("Silence stops the Aria and nothing else of Unlimited Blade Works (#208
       expect(gained).toHaveLength(1);
       expect(gained[0]).toMatchObject({ unitId: E });
       expect(JSON.stringify(gained[0])).toContain("aria");
+    });
+  });
+});
+
+/* ========================================================================== */
+/*  Readings 5, 7, 11, 22 -- Kanshou & Bakuya and Overedge (#212)               */
+/* ========================================================================== */
+
+describe("a close Normal Attack uses Kanshou & Bakuya (#208 reading 5, ruled 2026-10-14)", () => {
+  const H = "heraclesTarget00";
+  const board = (j) => [
+    { from: "emiya", id: E, state: { factionId: "A" }, panel: { i: 5, j: 5 } },
+    { from: "heracles", id: H, state: { factionId: "B" }, panel: { i: 5, j } },
+  ];
+
+  /** The `abilityUsed` events K&B's `attackDeclared` rule raises for a Normal Attack at this range. */
+  const usesAt = async (j) => {
+    const { fireEvent } = await import("../../module/engine/scheduler.mjs");
+    return withSubjects(board(j), ({ unit }) => {
+      const options = rollOptionsFor({ attacker: unit(E), defender: unit(H), attack: { kind: "normal", range: j - 5 } });
+      return fireEvent("attackDeclared", [unit(E)], { tick: 7, turnsPerRound: 3, options, rolls: {} })
+        .filter((i) => i.t === "event" && i.event === "abilityUsed");
+    });
+  };
+
+  it("raises abilityUsed about the Projection NP at Range 2", async () => {
+    const used = await usesAt(7);
+    // HEAD: none -- the rule applied Kanshou & Bakuya's effect and never said it was used.
+    expect(used).toHaveLength(1);
+    expect(used[0].payload).toMatchObject({
+      unitId: E,
+      subject: { contentId: "emiya-kanshou-and-bakuya", category: "projection", isNP: true },
+    });
+  });
+
+  it("raises nothing at Range 3: it is not used", async () => {
+    expect(await usesAt(8)).toHaveLength(0);
+  });
+});
+
+describe("Overedge's swings are Normal Attacks and the Noble Phantasm the Circuits ask for (#208 readings 7, 11, 22)", () => {
+  const H = "heraclesTarget00";
+  /** The options a declared attack carries against Heracles at this range. */
+  const optionsOf = async (contentId, range) => {
+    installClientNamespace();
+    const { buildAttackSpec } = await import("../../module/engine/attack.mjs");
+    return withSubjects([
+      { from: "emiya", id: E, state: { factionId: "A" }, panel: { i: 5, j: 5 } },
+      { from: "heracles", id: H, state: { factionId: "B" }, panel: { i: 5, j: 5 + range } },
+    ], ({ world, unit, board }) => {
+      const item = contentId ? abilityOf(world, E, contentId) : null;
+      const declared = buildAttackSpec({
+        attacker: world.actor(E), ability: item, abilityId: item?.id ?? null,
+        options: rollOptionsFor({ attacker: unit(E), defender: unit(H) }), board,
+      });
+      return {
+        declared,
+        options: rollOptionsFor({ attacker: unit(E), defender: unit(H), attack: { ...declared, range } }),
+        clairvoyance: abilityOf(world, E, "emiya-clairvoyance").system.passiveRules[0].predicate,
+      };
+    });
+  };
+
+  it("Overedge: attack:kind:normal beside attackSkill, and attack:isNP (it is categorized as one)", async () => {
+    const { declared, options } = await optionsOf("emiya-overedge", 3);
+    // HEAD: neither `attack:kind:normal` (not countsAsNormalAttack) nor `attack:isNP` (no such option).
+    expect(declared.asNormalAttack).toBe(true);
+    expect(declared.categorizedAsNP).toBe(true);
+    expect(options.has("attack:kind:normal")).toBe(true);
+    expect(options.has("attack:kind:attackSkill")).toBe(true);
+    expect(options.has("attack:isNP")).toBe(true);
+  });
+
+  it("a bare close swing is a Normal Attack and not 'an NP that deals damage' (reading 22)", async () => {
+    const { options } = await optionsOf(null, 2);
+    expect(options.has("attack:kind:normal")).toBe(true);
+    expect(options.has("attack:isNP")).toBe(false);
+  });
+
+  it("a real Noble Phantasm carries attack:isNP too, and one definition decides (isNPAttack)", async () => {
+    const { options } = await optionsOf("emiya-hrunting", 4);
+    expect(options.has("attack:kind:np")).toBe(true);
+    expect(options.has("attack:isNP")).toBe(true);
+  });
+
+  it("Clairvoyance hears an Overedge swing at Range 3, and not one at Range 2", async () => {
+    const far = await optionsOf("emiya-overedge", 3);
+    const near = await optionsOf("emiya-overedge", 2);
+    expect(testPredicate(far.clairvoyance, { options: far.options })).toBe(true);
+    expect(testPredicate(near.clairvoyance, { options: near.options })).toBe(false);
+  });
+
+  it("the facet is registered, so a Clause may name it", () => {
+    expect(parseOption("attack:isNP")).not.toBeNull();
+  });
+});
+
+describe("Overedge fires the Circuits' 'next NP that deals damage'; a close swing does not (#208 readings 11, 22)", () => {
+  const H = "heraclesTarget00";
+
+  it("both Circuits ask attack:isNP for it, and an Overedge swing, Hrunting and no bare swing answers", async () => {
+    installClientNamespace();
+    const { buildAttackSpec } = await import("../../module/engine/attack.mjs");
+    const { EffectRegistry } = await import("../../module/rules/registry.mjs");
+    await withSubjects([
+      { from: "emiya", id: E, state: { factionId: "A" }, panel: { i: 5, j: 5 } },
+      { from: "heracles", id: H, state: { factionId: "B" }, panel: { i: 5, j: 7 } },
+    ], ({ world, unit, board }) => {
+      const optionsOf = (contentId, range) => {
+        const item = contentId ? abilityOf(world, E, contentId) : null;
+        const declared = buildAttackSpec({
+          attacker: world.actor(E), ability: item, abilityId: item?.id ?? null,
+          options: rollOptionsFor({ attacker: unit(E), defender: unit(H) }), board,
+        });
+        return rollOptionsFor({ attacker: unit(E), defender: unit(H), attack: { ...declared, range } });
+      };
+      for (const defId of ["activatedCircuits", "blazingCircuits"]) {
+        // The clause that spends the charge is the one carrying `consumesUse`.
+        const clause = EffectRegistry.get(defId).rules.find((r) => r.consumesUse);
+        // HEAD: ["attack:kind:np"] -- Overedge is categorized as an NP and is not kind np.
+        expect(clause.predicate, defId).toEqual(["attack:isNP"]);
+        expect(testPredicate(clause.predicate, { options: optionsOf("emiya-overedge", 3) }), `${defId} Overedge`).toBe(true);
+        expect(testPredicate(clause.predicate, { options: optionsOf("emiya-hrunting", 4) }), `${defId} Hrunting`).toBe(true);
+        expect(testPredicate(clause.predicate, { options: optionsOf(null, 2) }), `${defId} close swing`).toBe(false);
+      }
     });
   });
 });

@@ -278,7 +278,16 @@ handler may filter on it:
 A category rather than a list of ids, for the reason Medea's *High-Speed Divine Words* names one:
 a list goes stale the moment an eighth Spell is written. Both handlers in the reference set are
 EMIYA's — *Magecraft* widens his Range on any Thaumaturgy Spell, and *Atk Up (Trace)* lengthens
-itself on a Thaumaturgy **or** Projection.
+itself on a Thaumaturgy **or** Projection. Neither hears *Trace, On* (a plain Skill, no category) or
+*Unlimited Blade Works* (not a Projection): the category decides (#208 readings 2 and 4).
+
+**A passive's use is raised by a rule** (#208 reading 5). A passive Noble Phantasm has no press, so
+nothing raised the event for it. Kanshou & Bakuya *"is used when EMIYA performs a Normal Attack at a
+Range of 2 or lower"*: its `attackDeclared` rule ends with the `AbilityUsed` action, which returns an
+`event` intent about the ability, and `engine/applier.mjs#fireWriteEvent` passes the payload's
+`subject` into `fireEvent`, so the handlers above filter on it as they do on a cast. Overedge's grant
+rule names it too (`ability: emiya-kanshou-and-bakuya`), once per swing: one Overedge is three uses
+of Projection NPs, its own and one per swing.
 
 > **Implementation note (Ch. 45).** A third handler arrived with Kingprotea, and it names one
 > ability rather than a family: *"Whenever Kingprotea uses the **Monstrous Strength** Skill…"*.

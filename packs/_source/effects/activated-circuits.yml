@@ -46,7 +46,10 @@ rules:
     event: damageStepEnd
     automatic: true
     consumesUse: true
-    predicate: ["attack:kind:np"]
+    # "An NP that deals damage": a Noble Phantasm OR an ability categorized as
+    # one, so Overedge counts and a plain Kanshou & Bakuya swing does not (ruled
+    # 2026-10-14, #208 readings 11 and 22). `attack:kind:np` heard the first only.
+    predicate: ["attack:isNP"]
     then:
       - { key: ResourceDelta, resource: luck, delta: 2 }
       # Second half: the standing 2-Turn refund, "for the rest of the Round".

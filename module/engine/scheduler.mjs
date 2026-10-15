@@ -1396,6 +1396,35 @@ const ACTIONS = Object.freeze({
     return [I.extendEffect(u.id, held.defId, ticks, h.source)];
   },
 
+  /**
+   * Say that an ability was USED, when its own use raised nothing.
+   *
+   * A passive Noble Phantasm has no button: Kanshou & Bakuya *"is used when
+   * EMIYA performs a Normal Attack at a Range of 2 or lower"*, and nothing in
+   * the engine raised `abilityUsed` for it, so the two clauses that listen for
+   * a use (Magecraft's Range Up, Atk Up (Trace)'s extension) never heard it
+   * (#208 reading 5, ruled 2026-10-14). The rule that decides it was used says
+   * so with this, and the event is raised the way a cast raises it: about the
+   * ability, carrying its category, so an `ofCategory` handler can filter.
+   *
+   * `ability:` names a content id when the user is not the handler's own
+   * ability: Overedge's grant rule says Kanshou & Bakuya was used, because
+   * while Overedge cools Kanshou & Bakuya's own rule is negated.
+   *
+   * Said, not silent, when the ability is not held: a handler that cannot act
+   * must leave a line (`dispatch`).
+   */
+  AbilityUsed: (a, u, h) => {
+    const used = (u.abilities ?? []).find((x) => (a.ability ? x.contentId === a.ability : x.id === h.abilityId));
+    if (!used) {
+      return [I.log({ kind: "unhandledAction", action: "AbilityUsed", ability: a.ability ?? h.abilityId ?? null, unitId: u.id, source: h.source })];
+    }
+    return [I.event("abilityUsed", {
+      unitId: u.id,
+      subject: { id: used.id, contentId: used.contentId ?? null, category: used.category ?? null, isNP: Boolean(used.isNP) },
+    })];
+  },
+
   Message: (a, u, h) => [I.log({ kind: "message", text: a.text, unitId: u.id, source: h.source })],
 
   /**

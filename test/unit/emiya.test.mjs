@@ -229,6 +229,15 @@ describe("Overedge", () => {
     expect(overedge.isNP).toBeUndefined();
     // "Counts as EMIYA's Attack for the Turn."
     expect(countsAsAttack(asItem(overedge))).toBe(true);
+    // #208 reading 7, ruled 2026-10-14: "2 Normal Attacks in a row" -- each swing IS a Normal
+    // Attack, which Clairvoyance, Reinforcement and the Circuits hear.
+    expect(overedge.countsAsNormalAttack).toBe(true);
+  });
+
+  it("names Kanshou & Bakuya as used on each swing, since its own rule is negated while Overedge cools", () => {
+    // #208 readings 5 and 7, ruled 2026-10-14.
+    const grant = overedge.passiveRules.find((r) => r.event === "attackDeclared");
+    expect(grant.then).toContainEqual({ key: "AbilityUsed", ability: "emiya-kanshou-and-bakuya" });
   });
 });
 
