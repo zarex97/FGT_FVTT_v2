@@ -12,7 +12,7 @@ Three rules compose the budget and are easy to conflate:
 
 3. **The unit-counting rule** — the budget counts *units*, not actions (`module/rules/budget.mjs:19-22`). A Servant that moves and then uses an Active Skill has consumed **one** move slot, not two. Attacks are the sole exception: they draw from `servantAttack` in addition to the unit being counted.
 
-**Whose Turn.** An ability authored `timing: { window: ownTurn }` (*"Used during your Turn"*, 142 content files) is refused by `canUseAbility` on another faction's Turn, so the action bar's slot is dimmed with "Only during your Turn." and `useSkill` and `resolveAttack` refuse it (Ch. 17, #160). The budget itself is the acting faction's, so this is the same "whose Turn" the pools are kept by.
+**Whose Turn.** An ability authored `timing: { window: ownTurn }` (*"Used during your Turn"*, 142 content files) is refused by `canUseAbility` on another faction's Turn, so the action bar's slot is dimmed with "Only during your Turn." and `useSkill` and `resolveAttack` refuse it (Ch. 17, #160). The converse is refused too: an ability that names windows and no `ownTurn` is dimmed on every Turn (`windowOnly`) and cast by the engine when its moment comes (Ch. 17, #208 reading 8). The budget itself is the acting faction's, so this is the same "whose Turn" the pools are kept by.
 
 Prevention and compulsion run separately. A unit whose turn is blocked by an effect (stun, stop, silence, etc.) never gets to spend budget. A unit unmet by a compulsion at turn end (Berserk, Decoy, Hatred) blocks the End Turn button.
 

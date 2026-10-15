@@ -256,7 +256,10 @@ describe("the attack Jack pre-empts comes back (#185)", () => {
   it("a resumed declaration is not asked for a budget it already paid", async () => {
     const { readFileSync } = await import("node:fs");
     expect(readFileSync("module/engine/attack-preflight.mjs", "utf8")).toMatch(/if \(combat\?\.started && !free && !resume\) \{/);
-    expect(readFileSync("module/engine/attack.mjs", "utf8")).toMatch(/attackPreflight\(\{ attacker, abilityId, placement, board, combat, resume \}\)/);
+    // `resume` still goes in; since #208 reading 8 (window-only abilities) the call also carries
+    // `atWindow`, a resumed declaration having passed that gate when it was first made.
+    expect(readFileSync("module/engine/attack.mjs", "utf8"))
+      .toMatch(/attackPreflight\(\{\s*attacker, abilityId, placement, board, combat, resume, atWindow: atWindow \|\| resume,?\s*\}\)/);
   });
 });
 

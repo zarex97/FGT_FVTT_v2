@@ -37,6 +37,11 @@ const CASTERS = ["emiya", "kiritsugu", "medea", "nursery-rhyme", "scathach", "se
 /** What the gate says, as the surfaces ask it. */
 const verdictOf = (ability, unit) => canUseAbility({
   ability, unit, round: 6, turn: 18,
+  // At its window, as the engine casts a window-only Spell. Reinforcement has no `ownTurn` since
+  // #208 reading 8, so the bar refuses it with `windowOnly` before the prevention table is asked,
+  // and this suite is about the prevention table (Silence, Skill Seal, Seal), not about when a
+  // Spell may be cast. `windowOnly` itself is pinned in `emiya-208-rulings.test.mjs`.
+  atWindow: true,
   testPredicate: (p) => testPredicate(p, { options: rollOptionsFor({ attacker: unit }) }),
 });
 const brief = (v) => `${v.ok ? "ok" : v.reason}${v.detail?.by ? `:${v.detail.by}` : ""}`;

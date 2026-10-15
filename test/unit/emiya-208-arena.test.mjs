@@ -415,3 +415,62 @@ describe("one Round of EMIYA's, from Trace, On to the Round's end (#208, the who
     }, { ...opts, regions: [UBW] });
   }, 120_000);
 });
+
+/* ========================================================================== */
+/*  Readings 8 and 9 -- Reinforcement, on the Combat Phase he is attacked in (#214) */
+/* ========================================================================== */
+
+describe("Reinforcement at the start of the Combat Phase he is attacked in (#208 readings 8, 9)", () => {
+  const FOE = "heraclesAttacker";
+
+  /** Press a Process's open questions from a script until it is complete (the helper plays declared Processes only). */
+  const playOut = async (w, id, presses) => {
+    const process = await import("../../module/engine/combat-process.mjs");
+    const { advanceAttack } = await import("../../module/engine/attack.mjs");
+    for (let step = 0; step < 20; step += 1) {
+      const state = process.deserialize(w.messages.get(id).getFlag("fgt", "process"));
+      if (process.isComplete(state)) return state;
+      const prompt = process.pendingPrompt(state);
+      const event = presses[prompt?.unitId]?.shift();
+      if (!event) throw new Error(`Process ${id} asks ${prompt?.unitId} (${prompt?.kind}) and the script has no answer.`);
+      await advanceAttack({ messageId: id, event });
+    }
+    throw new Error(`Process ${id} did not finish.`);
+  };
+
+  it("is offered and cast on the enemy's Turn; his Counter carries N.Atk Up; it is gone with the Phase", async () => {
+    await withSubjects([
+      { from: "heracles", id: FOE, state: { factionId: "A" }, panel: { i: 5, j: 5 } },
+      { from: "emiya", id: E, state: { factionId: "B" }, panel: { i: 5, j: 6 } },
+    ], async ({ world: w }) => {
+      w.dice.every(50);
+      const reinforcement = itemOf(w, E, "emiya-reinforcement");
+      // The window question goes to its player, and the answer is the cast.
+      w.answer({ title: "FGT.Window.defendingPhaseStart", pick: [reinforcement.id] });
+      const { declared } = await playAttack(w, {
+        attacker: FOE, target: E, react: { [E]: ["nothing", "counter"] },
+      });
+      const process = await import("../../module/engine/combat-process.mjs");
+      const original = process.deserialize(w.messages.get(declared.messageId).getFlag("fgt", "process"));
+      const counterId = original.history.find((h) => h.state === "counter" && h.event === "counter")?.detail?.counterMessageId;
+      expect(counterId, "he Countered").toBeTruthy();
+
+      // Cast on the ENEMY's Turn, from the window: the engine said so (`atWindow`).
+      // HEAD: an expiry a third of a Round out; now it has no clock but the Phase's end.
+      const [buff] = held(w, E, "nAtkUp");
+      expect(buff.system.endsOn).toBe("combatPhaseEnd");
+      expect(buff.system.expiry).toBeNull();
+      expect(reinforcement.system.cooldown.remaining).toBe(3);
+
+      // The Phase is still open: the Counter waits on the foe. Finish it.
+      await playOut(w, counterId, { [FOE]: ["nothing", "declined"], [E]: ["declined"] });
+      const names = (w.messages.get(counterId).getFlag("fgt", "result")?.breakdown ?? [])
+        .flatMap((b) => (b.contributors ?? []).map((c) => c.note ?? c.source ?? "")).join(" | ");
+      // His Counter is a Normal Attack inside the Phase, and carries it.
+      expect(names).toMatch(/nAtkUp/);
+
+      // ...and the Phase over, it is gone. HEAD: it stood for the rest of the Turn.
+      expect(held(w, E, "nAtkUp")).toHaveLength(0);
+    }, opts);
+  }, 60_000);
+});

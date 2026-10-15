@@ -98,9 +98,13 @@ import { regionSizedTargeting } from "./fields.mjs";
  * @param {string} args.attackerId
  * @param {string} args.abilityId  `null` for a normal attack
  * @param {object} args.placement  the player's targeting choices
+ * @param {boolean} [args.atWindow] the engine declaring a window-only attack at its
+ *   window (Kiritsugu's shot, a reaction). Never set by the socket operation
  * @returns {Promise<{messageId: string, state: object}>}
  */
-export async function resolveAttack({ attackerId, abilityId, placement, resume = false, preflighted = null }) {
+export async function resolveAttack({
+  attackerId, abilityId, placement, resume = false, preflighted = null, atWindow = false,
+}) {
   const attacker = game.actors.get(attackerId);
   if (!attacker) throw new Error(`FGT | Unknown attacker ${attackerId}`);
 
@@ -115,7 +119,10 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // ride itself had changed: Troias Tragoidia carried Achilles four panels from
   // a Master who could not land beside him, was refused "outside its Master's
   // ZON", and left him moved, his ride spent and no attack made (#184).
-  const pre = preflighted ?? attackPreflight({ attacker, abilityId, placement, board, combat, resume });
+  // A RESUMED declaration passed every gate, this one included, when it was first made.
+  const pre = preflighted ?? attackPreflight({
+    attacker, abilityId, placement, board, combat, resume, atWindow: atWindow || resume,
+  });
   if (!pre.ok) {
     // TOLD, not just thrown. A refusal for want of budget was logged and
     // swallowed, so a Unit that had already attacked -- after Gather, most
@@ -1399,6 +1406,7 @@ async function answerRung({ event, abilityId = null, placement = null }, message
           attackerId: owner.id,
           abilityId: used.id,
           placement: { sourceUnitId: state.attackerId, unitId: aimedAt, targetId: aimedAt },
+          atWindow: true,
         }).catch((err) => {
           console.error("FGT | Triggered attack refused:", err);
           ui.notifications?.warn(game.i18n.format("FGT.Skill.Refused", {
@@ -1411,6 +1419,9 @@ async function answerRung({ event, abilityId = null, placement = null }, message
       const out = await useSkill({
         actorId: owner.id,
         abilityId: used.id,
+        // A reaction IS its window: the use gate refuses a window-only ability
+        // anywhere else (`windowOnly`, #208 reading 8).
+        atWindow: true,
         // `sourceUnitId` is what the `sourceOfAttack` ANCHOR resolves against,
         // and no caller in the codebase had ever set it -- so an ability
         // anchored on "whoever just attacked" failed with "No attacking unit in
@@ -6433,7 +6444,7 @@ async function askAttackerWindow(state, window, message) {
 
   for (const id of cast) {
     const { useSkill } = await import("./skill-use.mjs");
-    const out = await useSkill({ actorId: actor.id, abilityId: id });
+    const out = await useSkill({ actorId: actor.id, abilityId: id, atWindow: true });
     if (!out.ok) {
       ui.notifications?.warn(game.i18n.format("FGT.Skill.Refused", {
         name: actor.items.get(id)?.name ?? id, reason: out.reason,
@@ -7007,6 +7018,9 @@ async function offerNPCancellation({ attackerId, attacker, ability, targetIds, b
         round: game.combats.active?.round ?? 1,
         board,
         ...gateContext(),
+        // It IS the window (`whenTargetedByNP`): the use gate refuses a window-only
+        // ability anywhere else (#208 reading 8).
+        atWindow: true,
         target: self,
         testPredicate: requirementTester(defender, self),
       });
@@ -7063,7 +7077,7 @@ async function resolveNPCancellation({
     master: cancellerMaster,
     usage: canUseAbility({
       ability: abilityUsageSpec(cancelling), unit: canceller, master: cancellerMaster,
-      round: game.combats.active?.round ?? 1, board, ...gateContext(),
+      round: game.combats.active?.round ?? 1, board, ...gateContext(), atWindow: true,
       target: unitOf(attacker, board),
       testPredicate: requirementTester(canceller, unitOf(attacker, board)),
     }),

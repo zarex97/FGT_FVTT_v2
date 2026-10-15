@@ -12,11 +12,16 @@ import { rollOptionsFor } from "../../module/rules/options.mjs";
 import { test as testPredicate } from "../../module/rules/predicate.mjs";
 import { parseOption } from "../../module/rules/facets.mjs";
 import { installClientNamespace } from "../helpers/client-namespace.mjs";
+import { readFileSync } from "node:fs";
+import { parse } from "yaml";
 
 beforeAll(prepareSubjects, 120_000);
 
 const E = "emiyaCaster00000";
 const OWN_TURN = { tokens: true, combat: { round: 3, started: true, system: { globalTurn: 7 }, actingFactionId: "A" } };
+
+/** An authored ability document. */
+const ability = (name) => parse(readFileSync(`packs/_source/abilities/${name}.yml`, "utf8"));
 
 /** One of a Subject's abilities, by content id. */
 const abilityOf = (world, actorId, key) =>
@@ -399,4 +404,70 @@ describe("`on removal` is the effect's, whichever way it goes (#208 reading 13, 
       expect(w.actor(E).system.agility.value).toBe(10);
     }, OWN_TURN);
   }, 60_000);
+});
+
+/* ========================================================================== */
+/*  Readings 8 and 9 -- Reinforcement (#214)                                    */
+/* ========================================================================== */
+
+describe("Reinforcement is used at the start of a Combat Phase he is in, not any time in his Turn (#208 reading 8, ruled 2026-10-14)", () => {
+  it("is offered at the start of a Combat Phase he attacks in, and one he is attacked in; not as a reaction to the attack", async () => {
+    const { abilitiesAtWindow, windowSubject } = await import("../../module/rules/reactions.mjs");
+    await withSubjects([{ from: "emiya", id: E, state: { factionId: "A" } }], ({ world, unit }) => {
+      const subject = windowSubject(unit(E), world.actor(E).items);
+      const offeredAt = (window) => abilitiesAtWindow(subject, window).map((i) => i.system.contentId);
+      expect(offeredAt("combatPhaseStart")).toContain("emiya-reinforcement");
+      // HEAD: absent -- only Karna's Uncrowned Arms named the defender's side.
+      expect(offeredAt("defendingPhaseStart")).toContain("emiya-reinforcement");
+      expect(offeredAt("whenAttacked")).not.toContain("emiya-reinforcement");
+    });
+  });
+
+  it("is not pressable any time in his Turn: the sheet button is refused, outside a Combat Phase start", async () => {
+    await withSubjects([
+      { from: "emiya", id: E, state: { factionId: "A" } },
+      { from: "medea", id: "medeaWindowOnly0", state: { factionId: "A" } },
+    ], ({ world, unit }) => {
+      const item = abilityOf(world, E, "emiya-reinforcement");
+      const gate = (ctx = {}) => canUseAbility({
+        ability: usageSpecFor(item), unit: unit(E), round: 5, turnsPerRound: 3, actingFactionId: "A", ...ctx,
+      });
+      // HEAD: ok -- `ownTurn` was one of its windows. And after removing `ownTurn` alone it would
+      // still have been ok: an ability with windows that exclude `ownTurn` had no gate at all.
+      expect(gate()).toMatchObject({ ok: false, reason: "windowOnly" });
+      // At the window, as the engine uses it, it is allowed.
+      expect(gate({ atWindow: true }).ok).toBe(true);
+    });
+  });
+
+  it("the same gate reaches every window-only ability, and a Counter is exempt", async () => {
+    await withSubjects([
+      { from: "medea", id: "medeaWindowOnly0", state: { factionId: "A" } },
+    ], ({ world, unit }) => {
+      const trofa = abilityOf(world, "medeaWindowOnly0", "medea-trofa");
+      const gate = (ctx = {}) => canUseAbility({
+        ability: usageSpecFor(trofa), unit: unit("medeaWindowOnly0"), round: 5, turnsPerRound: 3, ...ctx,
+      });
+      expect(gate()).toMatchObject({ ok: false, reason: "windowOnly" });
+      expect(gate({ atWindow: true }).reason).not.toBe("windowOnly");
+      expect(gate({ isCounter: true }).reason).not.toBe("windowOnly");
+    });
+  });
+
+  it("an ability that also names ownTurn, or is automatic, is not window-only", async () => {
+    const { usedOnlyAtWindows } = await import("../../module/rules/windows.mjs");
+    expect(usedOnlyAtWindows({ timing: { window: ["ownTurn", "combatPhaseStart"] } })).toBe(false);
+    expect(usedOnlyAtWindows({ timing: { window: "ownTurn" } })).toBe(false);
+    expect(usedOnlyAtWindows({ timing: { window: "automatic" } })).toBe(false);
+    expect(usedOnlyAtWindows({ timing: null })).toBe(false);
+    expect(usedOnlyAtWindows({ timing: { window: ["combatPhaseStart", "defendingPhaseStart"] } })).toBe(true);
+  });
+});
+
+describe("Reinforcement lasts that Combat Phase only (#208 reading 9, ruled 2026-10-14)", () => {
+  it("applies N.Atk Up until the Combat Phase ends, not for a third of a Round", () => {
+    const doc = ability("emiya-reinforcement");
+    expect(doc.timing).toEqual({ window: ["combatPhaseStart", "defendingPhaseStart"] });
+    expect(doc.phases[0].effects[0]).toMatchObject({ id: "nAtkUp", magnitude: 30, duration: "until combatPhaseEnd" });
+  });
 });

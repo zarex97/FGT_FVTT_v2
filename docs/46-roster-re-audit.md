@@ -4370,6 +4370,15 @@ throws inside the Damage Step. The guard reads `duration` and `defaultDuration`.
 **Reached: only EMIYA's two Circuits, which asked the slug.** A field's id is its ability's content id;
 `test/unit/in-field-names.test.mjs` fails for any other name. Ch. 11, 44.
 
+### E8. A window-only ability was pressable any time — **fixed** (#208)
+
+**Reached: 14 abilities: Trofa, Eye of the Mind (True) at B and (False), Rho Aias, the three Monstrous Strengths, Runner
+Comet, Watermelon, Akhilleus Kosmos, Uncrowned Arms Mastership, Kiritsugu's shot, Scales of the Sacred Fish and
+Fragarach.** An ability whose windows
+exclude `ownTurn` has no sheet button, and the use gate had no way to say so: only the converse (`ownTurn` alone,
+`notOwnTurn`) was refused. `canUseAbility` refuses it with `windowOnly` unless the engine says `atWindow` (the reaction,
+the window cast, the Noble Phantasm cancellation); the socket operations cannot. Ch. 17, 23.
+
 ---
 
 ---
@@ -5750,3 +5759,4 @@ reader of a rule the first reader answered one way.
 | The cut and the +20% start with the next Attack, not the NP that opened them: a marker (`circuitsPending`, until the Combat Phase ends) keeps Overedge's second swing and an area NP's other Processes out (reading 12; BC mirrored, decided 2026-10-15). Firings of `combatProcessEnd` queue per attacker, or Overedge's two swings paid the one-shot twice | `effects/circuits-pending.yml`; `engine/attack.mjs#fireCombatProcessEnd` |
 | "For the rest of the Round" is `until roundEnd`, from an event handler's `ApplyEffect` (reading 12). The circuits had authored `duration: "thisRound"`, which `parseTick` throws on: the first damaging NP they were held for would have crashed the Damage Step | `engine/scheduler.mjs` (`ApplyEffect` stamps `duration` for an `until`), `engine/applier.mjs#entryOfIntent`; `content-ticks.test.mjs` reads `duration` too |
 | Atk Up (Trace) going, by any route, removes every piece (reading 13; ruled 2026-10-15: Cure and strip too, not only running out) | `engine/applier.mjs#resolveRemovals`; `scheduler.expireEffects` flags its removals `onRemoveRan`; `effects/atk-up-trace.yml` `onRemove` lists all seven |
+| Reinforcement is used at the start of any Combat Phase he is in, attacking or attacked, and not any time in his Turn; its +30% ends with that Combat Phase (readings 8, 9). The window-only half is general: an ability whose windows exclude `ownTurn` was pressable from the sheet at any time | `abilities/emiya-reinforcement.yml` (`[combatPhaseStart, defendingPhaseStart]`, `until combatPhaseEnd`); `rules/windows.mjs#usedOnlyAtWindows`, `rules/costs.mjs` `windowOnly`, `atWindow` from `useSkill`, `resolveAttack`, the NP cancellation; `lang` `FGT.Ability.Refused.windowOnly` |
