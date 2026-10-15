@@ -1280,7 +1280,7 @@ Bounded field: **Unlimited Blade Works** (Ch. 43). NP copying: Ch. 44 §44.5.
 | Caladbolg II (A, NP) | AoE NP | RE (3×3 **around the targeted unit**, `Pierce` on the primary only, **caster excluded from its own area**) |
 | Hrunting (A, NP) | Damaging NP | RE (`Aim`, MR-exempt, **minimum range** restriction) |
 | Rho Aias (?, NP) | Shared shield NP | **RE+** `shieldScope` / `bleedThrough` / `indestructibleAgainst` / decaying reuse (Ch. 44 §44.2) |
-| Unlimited Blade Works (E~A++, NP) | Bounded field | **RE+** field + the `Aria` resource (0/6, one per Combat Phase, spent entirely) |
+| Unlimited Blade Works (E~A++, NP) | Bounded field | **RE+** field + the `Aria` resource (0/6, one per Combat Phase, spent entirely). **Not a Projection** (ruled 2026-10-14, #208 readings 4 and 23): no `category`, so Tracing cannot pick it and opening it neither extends Atk Up (Trace) nor gives Range Up; **Silence stops the Aria gain and nothing else** — with 6 Aria it opens while Silenced |
 | Projection: Unlimited Blade Works | Runtime NP copying | **S** `emiya.brokenPhantasm` — *ruled out of the audit 2026-10-14 (#208 reading 1): an experimental piece, not to be built* |
 
 **Exercises:** ability-swapping rank shifts, statuses whose lifetime is bound to another effect,

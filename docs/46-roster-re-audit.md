@@ -5694,3 +5694,4 @@ reader of a rule the first reader answered one way.
 | Finding | Where |
 |---|---|
 | Trace, On is a plain Skill: no `category`, so Silence does not stop it and neither Magecraft nor Atk Up (Trace)'s extension hears it; the first use is ⅓◈ and a second adds exactly ⅓◈ (readings 2, 3) | `abilities/emiya-trace-on.yml` (`category`, `isSpell`, `negatedBy` and the Silence requirement removed) |
+| Unlimited Blade Works is not a Projection: Tracing cannot pick it, opening it extends nothing and gives no Range Up; Silence stops the Aria gain alone (readings 4, 23) | `abilities/emiya-unlimited-blade-works.yml` (`category`, `negatedBy` and the Silence requirement removed; the Aria handler keeps its own `not self:effect:silence`) |

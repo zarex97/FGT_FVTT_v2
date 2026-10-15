@@ -491,7 +491,7 @@ Statuses are neither buffs nor debuffs: never removable by `Cure` or `Dispel`, n
 
 | Resource | Source | Semantics |
 |---|---|---|
-| `Aria` | EMIYA | `0/6`. +1 at the end of every Combat Phase he was in; blocked by `Silence`; spent **entirely** to activate Unlimited Blade Works. A per-Servant `Resource` (Ch. 06 §6.2), not a counter. |
+| `Aria` | EMIYA | `0/6`. +1 at the end of every Combat Phase he was in; blocked by `Silence` — the gain only: with 6 Aria he opens Unlimited Blade Works while Silenced (#208 reading 23); spent **entirely** to activate Unlimited Blade Works. A per-Servant `Resource` (Ch. 06 §6.2), not a counter. |
 | `Hassans` | Hundred-Faced Hassan | `100/100`, tracked on the **Master's** sheet. Deployment draws from it; defeat decrements it; the NP costs `4d6`. The Servant is defeated at zero. |
 | `HGoB Construction` | Semiramis | (Existing.) Listed here because `Hassans` and `Aria` establish the pattern it was the sole instance of. |
 
