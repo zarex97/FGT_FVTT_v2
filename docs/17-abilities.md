@@ -201,3 +201,10 @@ Refusal reasons are one list, `domain/enums.mjs#COPY_REASONS`; `named` is a fami
 A Spell is not a Skill (ruled 2026-10-14): `canCopy` refuses one with `spell`, read by `rules/costs.mjs#isSpellAbility`
 (`isSpell`, or the `spell` category), the reader Silence uses. The board now projects `isSpell` for it. Medea's six
 Spells were all offered; her Active Skills still are.
+
+### A phase's target, and a self-only spec that includes a partner (#209 §46.4-NA, NC)
+
+`engine/skill-use.mjs#phaseTargets` reads three targets: `self`, `reuse` and `linkedGroup`, the caster and every other
+member of its group on the board (Mana Burst's *"restore 1 Agility and 1 Luck to both"*). `targetsSelfOnly` answers false
+for a spec with `selection.alsoIncludes`, so Stars of the Chief God reaches the twin. `test/unit/phase-targets.test.mjs`
+walks a `choose` option's phases too.

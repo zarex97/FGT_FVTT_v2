@@ -707,6 +707,9 @@ export function boundedFieldsOf(scene) {
         state: sys.state ?? { escapeHistory: {} },
         panels: panelsOfRegion(region),
         regionId: region.id,
+        // Its name for a player: the Region's, which `openField` names after
+        // the ability. A refusal printed the content id (#208, live).
+        name: region.name ?? null,
       });
     }
   }

@@ -83,7 +83,13 @@ async function cardContext({
   const prompt = pendingPrompt(state);
   const defender = game.actors.get(state.defenderId);
   // Computed BEFORE the breakdown, because the breakdown is redacted with it.
-  const visibility = result ? viewerVisibility(state, result, message?.getFlag?.("fgt", "effects") ?? []) : null;
+  // ...and from the effects alone when there is no damage to show: an
+  // Instakill skips the damage step, and Gáe Bolg Alternative's card said
+  // nothing of the Stun and the Instakill it landed (#208, live).
+  const effectRows = message?.getFlag?.("fgt", "effects") ?? [];
+  const visibility = (result || effectRows.length > 0)
+    ? viewerVisibility(state, result ?? { total: 0 }, effectRows)
+    : null;
   // For the public names below: `publicNameOf` reads a unit's faction to say
   // "Rider of Red", and only the board knows the factions.
   const board = currentBoard();

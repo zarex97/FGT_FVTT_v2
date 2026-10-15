@@ -230,3 +230,7 @@ An effect instance that states no `npMagnitude` applies its full magnitude again
 `rules/snapshot.mjs#resolveRuleValues` leaves `npValue` undefined for it, so every reader falls back to `value`;
 it used to read the missing figure as 0, and Def Dwn 25% added nothing to an NP on eight Servants. The crit readers
 still treat a missing NP figure as none (#131).
+
+**"For the rest of that Turn" is `until anyTurnEnd`** (#208 §46.4-MQ). Kanshou & Bakuya's guard was ⅓◈, which outlives the
+Turn when the enemy's Turn follows. `turnEnd` will not do either: it is heard by the active faction's Units alone, so a guard
+landed on a Counter in the enemy's Turn would outlive that Turn and the next. Both it and Overedge author `until anyTurnEnd`.

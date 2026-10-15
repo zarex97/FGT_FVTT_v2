@@ -113,3 +113,9 @@ Setting facing is free and does not cost a budget slot: its action entry declare
   match, which this world does not contain.
 
 - **Two sources of compulsion, one not applied.** Held effects (Berserk, Decoy) are checked in `unmetCompulsions`. Suppressions (like NP Seal from Innocent World) are checked in `preventedBy` so they stop actions immediately. Positional compulsions written by `rules/compulsion.mjs` are read but no fixture applies one; Hatred (Penthesilea) is annotated as a field-sourced compulsion, not as a held effect (`module/rules/budget.mjs:377-383`). It is correct in principle but never exercised in the test suite.
+
+**One budget kind for the bar and the use path** (#208 §46.4-MN). `rules/ability-use.mjs#useBudgetKind` says which pool an
+ability's use draws on; the bar asked it for Attack-path abilities only, so a non-damaging Noble Phantasm's slot stayed lit
+after the Unit had attacked and refused only when pressed. The bar asks each path's own kind: `abilityKind`
+(`engine/attack-preflight.mjs`) for an Attack-shaped ability, so a damaging Noble Phantasm under NP Seal greys, and
+`useBudgetKind` for any other; a free action bills nothing on either.

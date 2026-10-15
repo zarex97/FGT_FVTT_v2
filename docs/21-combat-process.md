@@ -127,3 +127,10 @@ beats it (ruled 2026-10-14): Escape or Teleport Servant carries the defender out
 `attack.aim` closes the Evade rung at declaration the same way, and `evadePermit` answers an empty permit, so Dodge,
 the Evade buff and Medea's Trofa evade nothing. Unlike `unavoidable`, Aim leaves the rest alone: Substitution still
 halts it at stage 0, and a Block still answers (ruled 2026-10-14). Pinned in `karna-206-arena.test.mjs`.
+
+### `damageTaken` comes before the riders (#209 §46.4-NE)
+
+The damage was received as it landed, before anything the attack inflicts "then". The Damage Step raises `damageTaken` on
+the defender before `applyAbilityEffects`, so a rider that listens for damage received (Def Dwn (A) and (C)) hears the next
+hit and not the one that inflicted it. `damageStepEnd` returns its cooldown rows and its chance dice for the card
+(§46.4-ND); `applyWithCooldownLines` is the one reader for the attack path's cuts.

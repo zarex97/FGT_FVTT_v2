@@ -90,3 +90,8 @@ The schema in `data/actor/_shared.mjs` and the spec in `domain/stamped-record.mj
 - **Board passes rewrite snapshots in place.** Calling `annotateZon(units)` twice on the same array is not idempotent — the second call reads fields the first wrote. No code documents whether this is safe or which passes depend on which others' outputs. The ordering comment (module/rules/snapshot.mjs:741-829) records the dependencies for reading only.
 
 **One way to look at a Unit.** Engine and interface code reads a Unit through `engine/board.mjs#unitOf(actor, board)`: the board's own row, carrying the auras, terrain, ZON and suppressions only the board can annotate. It needs a board (`null` on purpose for a read with none) and never builds one, since a board costs about 75 ms and a lone projection about 4. An actor the board has no row for gets a lone projection marked `projectedAlone`. `test/unit/unit-view.test.mjs` lists the few bare `unitSnapshot`/`snapshotUnit` reads left, each with its reason, and the list only shrinks.
+
+**A twin's partner distance reaches its compiled rules** (#209 §46.4-NB). `contributionsOf` takes `partnerDistance`
+beside `terrain`, and `snapshotBoard` re-collects a twin's `eventHandlers` once `annotateLinkedGroups` has settled it
+(`recollectForPartner`). A handler action's `tableFactor` reads `self:withinOfPartner:N` when the rules compile, so
+Mad Enhancement's drain never halved beside Pollux while the distance arrived after.

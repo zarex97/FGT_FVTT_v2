@@ -41,9 +41,11 @@ passiveRules:
     automatic: true
     predicate: ["attack:kind:normal", "attack:range:lte:2"]
     then:
+      # "For the REST OF THAT TURN": until the Turn ends, not ⅓◈, which runs
+      # through the next Turn -- live, Faction 2's Turn still read Rank C (#208).
       - key: ApplyEffect
         effect: { id: dualWieldGuard }
-        duration: "⅓◈"
+        duration: "until anyTurnEnd"
       # "Used when EMIYA performs a Normal Attack at a Range of 2 or lower": it IS
       # used, so the clauses that listen for a use hear it -- Magecraft's Range Up
       # (Projection NPs count as Thaumaturgy Spells) and Atk Up (Trace)'s extension

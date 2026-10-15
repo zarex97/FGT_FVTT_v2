@@ -1206,7 +1206,10 @@ const ACTIONS = Object.freeze({
       ? (u.abilities ?? []).filter((x) => x.isNP || x.categorizedAsNP).map((x) => x.id)
       : [a.ability ?? h.abilityId].filter(Boolean);
 
-    const own = ids.map((id) => I.cooldown(u.id, id, Math.abs(amount), amount < 0 ? "reduce" : "set"));
+    // `source` so the card that reports the Turn end can name it: Self-Replenishment's
+    // 2 Turns off both twins' Noble Phantasm happened under a card that named
+    // only its 40 Health (#209, live).
+    const own = ids.map((id) => ({ ...I.cooldown(u.id, id, Math.abs(amount), amount < 0 ? "reduce" : "set"), source: h.source }));
     // A Unit in a group that shares its clocks by name is cut on its twin's
     // copy too (#209 reading 2): the gate (the Divine Core's 5%, the Castor
     // buff's Crit) was the action's, so one decision cuts both.
@@ -1641,6 +1644,9 @@ export function pendingRolls(unit, event) {
           // a roll that decided something from one whose clause never applied
           // (#187: Drake's 15% token roll was printed on attacks that did not Crit).
           predicate: handler.targetPredicate ?? null,
+          // Whose die it is, for the card: the Divine Core's 5% read "Castor:
+          // rider" (#209, live).
+          source: handler.source ?? null,
         });
       }
     }

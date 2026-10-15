@@ -4325,9 +4325,7 @@ Bursts count as their user's Normal Attack. Ch. 17.
 
 ---
 
-*From EMIYA's audit (#208, §46.30). Labelled E1 to En for now; the lead renumbers them into the register.*
-
-### E1. A categorized-as-NP attack had no option of its own — **fixed** (#208)
+### MD. A categorized-as-NP attack had no option of its own — **fixed** (#208)
 
 **Reached: Overedge, and any later Attack Skill the sheet categorizes as a Noble Phantasm.** `isNPAttack` (kind `np`
 or `categorizedAsNP`) was the pipeline's and the crit coin's one definition; the option set had only `attack:kind:np`, so
@@ -4335,42 +4333,42 @@ no clause could ask "an NP" and hear Overedge. `attack:isNP` is emitted from the
 readers (NP DmUp, Rho Aias's scope, Nemo's) are unchanged; whether they should hear a categorized-as-NP attack is open.
 Ch. 11.
 
-### E2. A passive Noble Phantasm's use raised nothing — **fixed** (#208)
+### ME. A passive Noble Phantasm's use raised nothing — **fixed** (#208)
 
 **Reached: Kanshou & Bakuya, and any passive that "is used when ...".** A passive has no button, so `abilityUsed` was
 never raised for it and the two handlers that listen for a use (Magecraft, Atk Up (Trace)) never heard it. The
 `AbilityUsed` rule action says it, and the applier hands the event's subject to `fireEvent`. Ch. 10, E.9a.
 
-### E3. `onRemove` was paid by running out alone — **fixed** (#208)
+### MF. `onRemove` was paid by running out alone — **fixed** (#208)
 
 **Reached: every effect with an `onRemove`; today Atk Up (Trace) and Shock.** A Cure, a strip, a dispel or an
 `until <event>` took the effect and skipped its clause. `applier.mjs#resolveRemovals` pays it for every removal but an
 expiry (already paid) and a refresh or replacement. Shock's *"current Agility +1 when max is restored"* is now paid by a
 Cure too. Ch. 14, 15.
 
-### E4. A handler's `ApplyEffect until <event>` was permanent — **fixed** (#208)
+### MG. A handler's `ApplyEffect until <event>` was permanent — **fixed** (#208)
 
 **Reached: any handler authoring an `until` duration.** The action kept `expiry` and dropped the duration it was authored
 with. A phase's `applyEffects` carried it; an event handler's did not. Ch. 4, 15.
 
-### E5. `combatProcessEnd` carried no attack — **fixed** (#208)
+### MH. `combatProcessEnd` carried no attack — **fixed** (#208)
 
 **Reached: any clause about "an Attack he performs".** The event was raised on both combatants with no options, so a
 miss reached neither `damageStepEnd` (a hit's event) nor anything that could ask who attacked. The attacker hears it with
 the attack's options and `attack:performed`; firings queue per attacker, because two Processes of one declaration
 finished together and both spent a one-shot's charge. Ch. 21, E.
 
-### E6. A guard read `ticks` and the Damage Step read `duration` — **fixed** (#208)
+### MI. A guard read `ticks` and the Damage Step read `duration` — **fixed** (#208)
 
 **Reached: any `ApplyEffect` duration.** `content-ticks.test.mjs` parsed `ticks` keys only; `parseTick("thisRound")`
 throws inside the Damage Step. The guard reads `duration` and `defaultDuration`. Ch. 44.
 
-### E7. An `inField:` that is no field passes the validator — **fixed** (#208)
+### MJ. An `inField:` that is no field passes the validator — **fixed** (#208)
 
 **Reached: only EMIYA's two Circuits, which asked the slug.** A field's id is its ability's content id;
 `test/unit/in-field-names.test.mjs` fails for any other name. Ch. 11, 44.
 
-### E8. A window-only ability was pressable any time — **fixed** (#208)
+### MK. A window-only ability was pressable any time — **fixed** (#208)
 
 **Reached: 14 abilities: Trofa, Eye of the Mind (True) at B and (False), Rho Aias, the three Monstrous Strengths, Runner
 Comet, Watermelon, Akhilleus Kosmos, Uncrowned Arms Mastership, Kiritsugu's shot, Scales of the Sacred Fish and
@@ -4379,19 +4377,167 @@ exclude `ownTurn` has no sheet button, and the use gate had no way to say so: on
 `notOwnTurn`) was refused. `canUseAbility` refuses it with `windowOnly` unless the engine says `atWindow` (the reaction,
 the window cast, the Noble Phantasm cancellation); the socket operations cannot. Ch. 17, 23.
 
-### E9. A handler's `noneExtend` restamped instead of extending — **fixed** (#208)
+### ML. A handler's `noneExtend` restamped instead of extending — **fixed** (#208)
 
 **Reached: only EMIYA's Magecraft, the one handler-applied `noneExtend` in the corpus.** The flow extends (prior expiry +
 span); the merge of what the emitter stated laid `now + span` over it, so a second Spell in the same Turn changed
 nothing. The flow tags its extension and the merge adds the span to it. A phase's `applyEffects` always extended (Atk Up
 (Trace), Suppression). Closes the handler half of #23. Ch. 14, 15.
 
-### E10. An `until combatPhaseEnd` effect on a Unit the Phase never named stood for ever — **fixed** (#208)
+### MM. An `until combatPhaseEnd` effect on a Unit the Phase never named stood for ever — **fixed** (#208)
 
 **Reached: Rho Aias's 3x3 recipients and its projector; any effect a reaction puts on a Unit outside the fan-out.** The
 event is heard by the attacker and the defenders, so a barrier raised by a third party over a 3x3 of allies the Noble
 Phantasm did not hit had no clock. `attack.mjs#barriersOfThisPhase` takes it from the Units the Phase did not name, scoped
 to those holding an effect that one of the Phase's reactors cast. Ch. 23.
+
+*From the live press of EMIYA (#208, 2026-10-15, PC world `fgt2026`).*
+
+### MN. Unlimited Blade Works' slot stayed lit after his Attack — **fixed** (#208, live)
+
+**Reached: every non-damaging Noble Phantasm on the bar.** After EMIYA's Normal Attack the slot showed no reason, and the
+press toasted *"cannot be used: this unit has already attacked this turn"*. The bar asked the budget only for abilities
+that open an Attack; the use path bills a non-damaging NP as `np`. `rules/ability-use.mjs#useBudgetKind` is the one
+kind both read. Ch. 19, 34.
+
+### MO. Clairvoyance's die was rolled and shown nowhere — **fixed** (#208, live)
+
+**Reached: every chance a check plan rolls.** The Evade at Range 3 showed the d20 and not the 80% die that gated it.
+`checkPlan` returns its `chances`, and `rollLog.fromCheck` writes each: *"Clairvoyance: 1d100 → 43 against 80%, in
+force"*. Ch. 13, 37.
+
+### MP. A wall's refusal printed the field's id — **fixed** (#208, live)
+
+**Reached: every bounded field that separates.** The Marble's wall read *"separated by emiya-unlimited-blade-works"*. The
+board projects the Region's name, and the resolver says *"separated by {name}"*. Ch. 20, 28.
+
+### MQ. Kanshou & Bakuya's guard outlived the Turn — **fixed** (#208, live)
+
+**Reached: EMIYA.** *"For the rest of that Turn"* was authored ⅓◈, so Magic Resistance C still held on the enemy's Turn.
+Both K&B and Overedge author `until anyTurnEnd`: `turnEnd` is heard by the active faction alone, and a guard from a
+Counter in the enemy's Turn would outlive it. Ch. 15.
+
+### MR. An ally's reaction offer skipped its requirements — **fixed** (#208, live)
+
+**Reached: every ally reaction (Rho Aias first).** A second Rho Aias, Health never restored, was offered on the card and
+refused only when pressed, with a toast on the GM's screen. `allyReactions` asked no requirement, and the window offer
+lacked `lastUsedTick`. One `selfGatesPass` serves both, and `tellReactionRefused` whispers the owner in words. Ch. 23.
+
+### MS. A field's toll at the start of a Turn had no card — **fixed** (#208, live)
+
+**Reached: every `turnStart` field event.** The Marble took 25 and 50 from two Servants and no card, line or roll said so.
+`scheduler-hooks.mjs` reports them under *"{field}: start of the Turn"*. Ch. 28, 37.
+
+### MT. An attack whose damage was skipped showed none of its effects — **fixed** (#208, live)
+
+**Reached: every Instakill and pre-damage rider.** Gáe Bolg's card on Nemo showed only its ladder: the visibility was built
+from a damage result, and an Instakill skips the damage. `cards.mjs` builds it from the effects alone, and `attack.hbs`
+shows the damage block only with a result. Ch. 37.
+
+*From the Dioscuri's build (#218 to #223), and then from their live press (#209, 2026-10-15).*
+
+### MU. A rule element in an `applyEffects` phase did nothing — **fixed** for two (#219), **open** for one
+
+**Reached: Anastasia, the Jabberwock.** Castor's Mana Burst (*"Then, reduce Castor's NP Cooldown by 1◈ Turns"*) and
+Anastasia's Shvibzik (*"NP Cooldown is reduced by 1◈+⅔◈ Turns"*) wrote the cut as `{ key: CooldownDelta, … }` inside an
+`applyEffects` phase. That phase lands effects, every reader of it reads an entry through `entryOf`, and an entry with no
+effect id is `null`: the cut was dropped without a word, and neither Skill had ever turned a clock. Found on the first arena
+press of Mana Burst (the NP read 18 before and after). Both are `cooldown` phases now, and the build refuses the shape.
+**Open:** Jabberwock's Alice Eater (`{ key: DurationDelta }`, *"extends its period of existing for 3◈ more Turns"*) is
+dropped the same way (a probe: its Atk Up lands and `expiresAt` stays 40) and no phase kind moves a summon's expiry. It is
+the one name in `PHASE_ACTIONS_STILL_DROPPED`, which may only shrink. Ch. 17, 40.
+
+### MV. Def Dwn (A) and (C) drained Luck and Agility on a Knockback's damage — **fixed** (#223)
+
+**Reached: Anastasia, Van Gogh, Mannanán (every Servant who inflicts them).** *"Luck is reduced by 1 whenever damage is
+received from an Attack."* A field's damage, a toll and a cost never raise `damageTaken` (a bare `damage` intent drains
+nothing, now pinned). The one that did is the measured damage of Akhilleus Kosmos's Knockback, which runs a Combat Process
+for the arithmetic and is ruled *not an Attack* (#184 reading 8): the Process closed the reaction rungs and nothing else.
+The declaration carries `plainDamage` now, `rollOptionsFor` emits `attack:plainDamage`, and both handlers are gated on
+`not:attack:plainDamage`. The +15% damage they add is not gated. Ch. 21, A.
+
+### MW. The second twin of a war-setup slot had nothing — **fixed** (#218)
+
+**Reached: only the Dioscuri (the one `summonTogether` group).** `commitWar` filled a slot with `commitSummon`, which
+summons the partner with no Master and no faction, and then wrote the faction, the Contract and the token of the drawn
+Servant alone: the second twin stood on no side, under no Master and off the board. `seatPartners` gives it the slot's side,
+container and Contract, and `deployTokens` puts it on the panel nearest its twin before the Master takes one. `commitWar` has
+no test of its own; the two pieces are held on their own. The live press (#209) built a war with the wizard and found the
+pair seated, contracted and on the board. Ch. 31, 32.
+
+### MX. Self-Replenishment (Mana) set the Noble Phantasm's clock to 0 — **fixed** (#219)
+
+**Reached: Castor.** *"At the end of Castor's Turn … NP Cooldown −2 Turns"* is `CooldownDelta` with a rank table and
+`direction: down`. The table's figure arrives as `amount`, which `StatDelta` reads and `CooldownDelta` did not, so the action
+had neither `ticks` nor `delta` and `set` the clock to 0: at every Turn end the Noble Phantasm came back. Seen as `mode:
+"set", ticks: 0` the moment the shared-clock test fired the event on real Castor. Ch. 17, B.3.
+
+### MY. NP Degen never adds its Turn — **open**
+
+**Reached: every Servant who inflicts it.** `cooldownRate` answers -1 for a Noble Phantasm under NP Degen (*"a negative rate
+is cooldown ADDED"*) and `advanceCooldowns` pushes a tick only for a rate above 0, so Degen stops the natural reduction and
+never lengthens the clock. Found while writing the shared-clock tick test; not part of any ruling here, so left. Ch. A.
+
+### MZ. The leash read "occupied" over an empty panel — **fixed** (#209, live)
+
+**Reached: the Dioscuri.** Castor three from Pollux was refused with *"The destination panel is occupied."*
+`movement.mjs#leashBreakAt` is the one reader for `canStopOn` and the reason: *"Castor must stay within 2 panels of
+Pollux."* Ch. 05.
+
+### NA. Stars of the Chief God skipped the twin — **fixed** (#209, live)
+
+**Reached: every self-only Skill that also includes a partner.** *"2 effect(s) applied"*, both on Castor.
+`skill-use.mjs#targetsSelfOnly` short-cut the spec before the resolver's `alsoIncludes: partner`. Ch. 17, 20.
+
+### NB. Mad Enhancement's drain never halved beside Pollux — **fixed** (#209, live)
+
+**Reached: the Dioscuri.** Diagonally next to Pollux, the Master still lost 20. The halving is a `tableFactor` on
+`self:withinOfPartner:1`, settled when the rules compile, and they compiled in `snapshotUnit` before the board gave the twin
+a distance. `linked-group.test.mjs` handed the distance in by hand. `snapshot.mjs#recollectForPartner` re-collects a twin's
+handlers with it. Ch. 09, 32.
+
+### NC. Mana Burst's "both twins" restored the user alone — **fixed** (#209, live)
+
+**Reached: both Mana Bursts.** The branch's `target: linkedGroup` fell to the caster in `skill-use.mjs#phaseTargets`. It is
+the caster and its twin now, and `phase-targets.test.mjs` walks a `choose` branch's phases. Ch. 17.
+
+### ND. A handler's cooldown cut, and its die, showed nowhere — **fixed** (#209, live)
+
+**Reached: every `damageStepEnd` handler and every sourced Turn-end cut.** The Castor buff's Crit took the joint NP 7 → 6 on
+both copies under a card that said nothing, the Divine Core's 5% was filed nowhere, and Self-Replenishment's 2 Turns went
+unnamed at the Turn's end. `attack.mjs#applyWithCooldownLines` is one reader for the attack path's cuts; the Damage Step's
+end files its chances through the helpers `damageDealt` uses (`rollChances`, `chanceRecords`); `turn-report.mjs` names each
+sourced cut as what it took (`clocksBefore`). Ch. 21, 37.
+
+### NE. The joint NP's own hit drained the Def Dwn it inflicted after — **fixed** (#209, live)
+
+**Reached: every rider that listens for damage received.** *"Then, inflicts Def Dwn (A) and (C)"*, and both heard the hit
+that came before them: Heracles lost a Luck. `damageTaken` is raised as the damage lands, before the riders. Ch. 21.
+
+### NF. A guarded panel beside an enemy Master read "occupied" — **fixed** (#209, live)
+
+**Reached: every Unit.** The step said *"may not enter"* and the destination *"is occupied"*, over an empty panel.
+`movement.mjs#guardedMasterBeside` names the protection; "occupied" is said only when the step was allowed. Ch. 05.
+
+### NG. The restore card printed the authored delta — **fixed** (#209, live)
+
+**Reached: every `statChange` phase.** *"Luck +2"* at a full 9, and the twin's rows named nobody. The rows read the stat
+before and after, *"Luck 9 (no change)"*, and a row that is not the caster's names whose: *"Pollux: Agility 10 → 11"*.
+Ch. 37.
+
+### NH. The killing blow forced Mad Enhancement off before the defeat read it — **fixed** (#209, live)
+
+**Reached: every Mad Enhancement bearer.** Clause 5, *"Sustainability is reduced by 2◈ if its Master is defeated while
+Active"*, could never charge: the blow's own Health drop met the forced deactivation (0 ≤ 20) in `reconcileForcedModes`
+before the defeat path asked. The sweep leaves a Master at 0 to the defeat path (`forcedOffNow`'s `masterDefeatAnswers`); a
+compulsion still reads the valve. Decided 2026-10-15, for the author to confirm. Ch. 24, 32.
+
+### NI. A Sustainability defeat did not take the twin — **fixed** (#209, live)
+
+**Reached: the Dioscuri.** Castor ran out of Sustainability and Pollux stood on at 1383. Only the damage path's defeat chain
+emitted the binding; the Sustainability sweep, Instakill, Erase, Command Spells and fields wrote `defeat` without it.
+`io.mjs#defeat` carries it at the one door every defeat passes, and counts a Unit towards the Grail once however many
+writers defeat it. Ch. 32.
 
 ---
 
@@ -5753,9 +5899,8 @@ ResDwn's +50 was read by a probe that wrote nothing.
 
 ## 46.30 EMIYA — the Servant whose clauses name each other
 
-**143 Clauses, audited as #208** (2026-10-14, 24 readings ruled the same day), built as #210 to #216 on 2026-10-15
-before the board was pressed: this section records what the tests found, and the live press of the Clauses is still to
-come. The copy Spell, *Projection: Unlimited Blade Works*, is out of the audit (reading 1): an experimental piece, not to
+**143 Clauses, audited as #208** (2026-10-14, 24 readings ruled the same day), built as #210 to #216 on 2026-10-15,
+then pressed on the PC world the same day: all 143 Pressed or Observed, seven more findings (§46.4-MN to MT), all fixed. The copy Spell, *Projection: Unlimited Blade Works*, is out of the audit (reading 1): an experimental piece, not to
 be built. Readings 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 18, 19, 22 and 23 changed built content or engine; reading
 15 was built and is pinned (a Dodge, and a rolled Evade, each cut Eye of the Mind's Cooldown); 6, 16, 17, 20, 21 and 24
 were built as ruled and nothing here touched them.
@@ -5786,18 +5931,22 @@ the first Damage Step they were held for, and would have deleted themselves on t
 | Rho Aias protects against that one Noble Phantasm: the barrier stands until its Combat Phase ends, and the Phase takes it from the 3x3 recipients the NP never named (reading 19). Gáe Bolg Alternative is a thrown weapon, so Rho Aias holds at 1 against it, and no other NP is (reading 18) | `abilities/emiya-rho-aias.yml` (`until combatPhaseEnd`), `engine/attack.mjs#barriersOfThisPhase`; `damage.thrownWeapon` on `abilities/scathach-gae-bolg-alternative.yml` |
 | Range Up (Hawkeye) is its own effect: it adds to another Range Up (Kiritsugu's Familiars) and reapplying it extends only itself (reading 14). A second cast in the same Turn used to change nothing: a handler's `ApplyEffect` restamped the clock from now over the flow's extension | `effects/range-up-hawkeye.yml`, `abilities/emiya-magecraft.yml`; `engine/effect-applier.mjs#mergeEmitted` (`extendsFrom`), `engine/landing.mjs` |
 | Any successful Evade cuts Eye of the Mind's shared Cooldown by ⅓◈, Dodge included, on both Ranks' mirrored clocks (reading 15, as built; pinned with a Dodge from the Skill itself and with a rolled Evade) | `engine/attack.mjs#autoEvadeFrom` / `fireEvadeSucceeded`; `emiya-208-arena.test.mjs` |
-| General: §46.4-E1 to E10 | |
+| General: §46.4-MD to MM, and from the live press MN to MT | |
 
 **Changed for others.** Every Servant with a window-only ability: Trofa, Eye of the Mind (True) and (False), Rho Aias, the
 three Monstrous Strengths, Runner Comet, Watermelon, Akhilleus Kosmos, Uncrowned Arms Mastership, Kiritsugu's shot,
-Scales of the Sacred Fish and Fragarach are no longer sheet buttons (E8). Shock's *"current Agility +1"* is paid by a Cure
-too (E3). Scathach's Gáe Bolg Alternative is a thrown weapon (reading 18). Kiritsugu's Familiars and EMIYA's Magecraft no
+Scales of the Sacred Fish and Fragarach are no longer sheet buttons (§46.4-MK). Shock's *"current Agility +1"* is paid by a Cure
+too (§46.4-MF). Scathach's Gáe Bolg Alternative is a thrown weapon (reading 18). Kiritsugu's Familiars and EMIYA's Magecraft no
 longer share a Range Up.
 
 ### 46.30.2 What was staged, and what stays open
 
-The build and its tests ran in the test world only (`FOUNDRY_PATH` copy, no live board, `build:packs` not run): nothing
-here has been pressed by a player yet. Named in each test: Heracles as the foe, `w.dice.every(50)` (or 99 where an
+**The live press** (scene *EMIYA Audit*, 2026-10-15): every Clause by Player1's buttons or Observed with a differential,
+the log in #208. Staged and named there: forced moves, cooldowns, Health and Aria set by hand. Open from it: does Activated
+Circuits cut the Cooldown of the NP whose swing triggered it (Overedge 6 → 4)? Rho Aias's floor against Gáe Bolg
+Alternative is held by the arena test alone, because both live Gáe Bolgs Instakilled first.
+
+**The build** and its tests ran in the test world (`FOUNDRY_PATH` copy). Named in each test: Heracles as the foe, `w.dice.every(50)` (or 99 where an
 Instakill must not land); EMIYA's Luck maximum raised to 20 or 30 so a gain shows; Hrunting's Cooldown set to 21 to read
 a cut; Unlimited Blade Works as a static region whose field id is the Noble Phantasm's content id and whose panels are
 the 7x7 a real one stores; an `atkUp` of 900% on Scáthach and Anastasia for the size of an NP against Rho Aias's 1400;
@@ -5823,11 +5972,11 @@ Open, for the lead:
 
 ## 46.31 The Dioscuri — the Servant who is two
 
-**115 Clauses, 0 Pressed** (#209): the audit's presses are #224's. 11 readings were ruled 2026-10-14 and six tickets
+**115 Clauses, all 115 Pressed or Observed** (#209, live 2026-10-15, PC world `fgt2026`). 11 readings were ruled 2026-10-14 and six tickets
 built them (#218 to #223, 2026-10-15). Seven changed built content: 1, 2, 3, 6, 8, 9 and 10. Three were already built
 and are pinned by tests: 4 (Mana Burst on a Counter), 5 (an effect on both twins counted twice) and 11 (a Counter
 answers the declarer). Reading 7 (the leash of 2) is as built. The board found five defects that reach other Servants
-(§46.4-D1 to D5, below), and #223's ruling reaches every Servant who inflicts Def Dwn (A) or (C).
+(§46.4-MU to MY), and #223's ruling reaches every Servant who inflicts Def Dwn (A) or (C).
 
 **Why they find what they find.** Two Servants who are one: every rule that asks "which Servant?" has two answers, and
 each reader had picked one. A slot was drawn by class and a class belongs to one of them; a Cooldown was cut on the
@@ -5838,23 +5987,23 @@ copy that was asked; a Range was measured from whoever declared. Each was a read
 | Finding | Where |
 |---|---|
 | Pollux is a Saber, Castor stays an Avenger; the pair's slot is Saber; both read Saber to an enemy before the reveal (readings 1, 8, 9) | `servants/{pollux,castor}.yml` (`servantClasses`, `classContainer`), `rules/war-setup.mjs#catalogueEntryOf` and `candidatesFor` (the companion is never drawn alone), `engine/summon.mjs#servantCatalogue` |
-| War setup gave the second twin no faction, no Contract and no token (§46.4-D3) | `engine/war-setup.mjs#seatPartners`, `deployTokens` |
+| War setup gave the second twin no faction, no Contract and no token (§46.4-MW) | `engine/war-setup.mjs#seatPartners`, `deployTokens` |
 | One Cooldown clock: a use starts it on both copies, a cut by either twin reaches both, the per-Turn tick runs at one rate (reading 2) | `engine/cooldown.mjs#sharedCooldownIntents` and `twinsOf`; `scheduler.mjs#CooldownDelta`, `#advanceCooldowns`; `skill-use.mjs#cooldownChanges`; `command-spells.mjs#effectIntents` |
 | A cut on the attack path prints a line for each copy that moved | `attack.mjs` (the `cooldown` rider), `skill-use.mjs#cooldownLine` |
-| Mana Burst's own cut and Shvibzik's were rule elements in an `applyEffects` phase and landed nowhere (§46.4-D1) | `abilities/{dioscuri-mana-burst-castor,anastasia-shvibzik}.yml` (now `cooldown` phases), `tools/lib/content.mjs` (the build refuses the shape; `PHASE_ACTIONS_STILL_DROPPED`) |
-| Self-Replenishment set the NP clock to 0 instead of cutting 2 Turns (§46.4-D4) | `scheduler.mjs#CooldownDelta` reads a table's `amount` and `direction` |
+| Mana Burst's own cut and Shvibzik's were rule elements in an `applyEffects` phase and landed nowhere (§46.4-MU) | `abilities/{dioscuri-mana-burst-castor,anastasia-shvibzik}.yml` (now `cooldown` phases), `tools/lib/content.mjs` (the build refuses the shape; `PHASE_ACTIONS_STILL_DROPPED`) |
+| Self-Replenishment set the NP clock to 0 instead of cutting 2 Turns (§46.4-MX) | `scheduler.mjs#CooldownDelta` reads a table's `amount` and `direction` |
 | Mad Enhancement's +55% is halved on Mana Burst, which sums BA(MAG) while counting as STR: **25**, not the ticket's 27.5, because the template floors a halved figure to a multiple of 5 for every bearer (reading 3) | `damage/pipeline.mjs#stage1Base` (derives `attack:usesBase:<component>`), `facets.mjs` (`usesBase`), `class-skills/mad-enhancement.yml` |
 | Mana Burst is a Counter, as Raikou's is (reading 4): already built, now pinned | `rules/counter.mjs#answersACounter`, `rules/costs.mjs` (`isCounter` lifts the own-Turn window); `test/helpers/process.mjs#playProcess` |
 | The joint NP counts an effect on both twins twice: two Divine Cores are +160 (reading 5): already built, now pinned | `damage/pipeline.mjs#activeMods` (concatenation, Ch. 41 Q12) |
 | The joint NP is in Range when either twin is within 2 of the target (reading 6) | `targeting/resolve.mjs#resolveAnchor`, `#partnerPanelsOf`; `alsoFrom: partner` on `dioscuri-tyndaridae.yml`; the build refuses it elsewhere (`tools/lib/content.mjs`) |
 | The Crit Chance the joint NP rolls against is both twins', by NP figure only (reading 10) | `checks.mjs#critChance` (`alsoFrom`), `damage/pipeline.mjs#modifierSourceUnits` (the one reader of which Units join), `attack.mjs` |
 | A Counter against the joint NP answers the twin who declared it (reading 11): already built, now pinned, with the Range interaction of reading 6 | `attack.mjs#counterAvailable` and `#runCounter` (both read `state.attackerId`); `alsoCountsAsAttackFor` touches the budget alone |
-| Def Dwn (A)'s Luck −1 and (C)'s Agility −1 are for damage received from an *Attack*: a field's, a toll's and a cost's never raised `damageTaken`, a Knockback's measured damage did (#223, §46.4-D2) | `attack.mjs#buildAttackSpec` (`plainDamage`), `rules/options.mjs` and `rules/facets.mjs` (`attack:plainDamage`), `effects/def-dwn-{a,c}.yml` |
-| General: §46.4-D1 to D5 | |
+| Def Dwn (A)'s Luck −1 and (C)'s Agility −1 are for damage received from an *Attack*: a field's, a toll's and a cost's never raised `damageTaken`, a Knockback's measured damage did (#223, §46.4-MV) | `attack.mjs#buildAttackSpec` (`plainDamage`), `rules/options.mjs` and `rules/facets.mjs` (`attack:plainDamage`), `effects/def-dwn-{a,c}.yml` |
+| General: §46.4-MU to MY, and from the live press MZ to NI | |
 
-**What changed for others.** Anastasia's Shvibzik turns her NP clock now (D1). Every Servant who inflicts Def Dwn (A) or
+**What changed for others.** Anastasia's Shvibzik turns her NP clock now (§46.4-MU). Every Servant who inflicts Def Dwn (A) or
 (C) — Anastasia's Snegleta, Van Gogh's Het Gele Huis and The Yellow House, Mannanán's Fragarach Counter — no longer
-drains Luck or Agility from a Knockback's measured damage (D2). Mad Enhancement's halving reads the base an attack adds
+drains Luck or Agility from a Knockback's measured damage (§46.4-MV). Mad Enhancement's halving reads the base an attack adds
 up, which changes no attack of its other five bearers.
 
 **The ticket said 27.5; the engine gives 25.** Mad Enhancement's +55% halved on Mana Burst is 27.5, and the shared
@@ -5866,48 +6015,10 @@ is re-summoned or edited. `servantClasses` is pack-owned and updates. A fresh pa
 
 ### 46.31.2 What was staged
 
-Nothing: no live press. #224 presses the 115 Clauses.
-
-### D1. A rule element in an `applyEffects` phase did nothing — **fixed** for two (#219), **open** for one
-
-**Reached: Anastasia, the Jabberwock.** Castor's Mana Burst (*"Then, reduce Castor's NP Cooldown by 1◈ Turns"*) and
-Anastasia's Shvibzik (*"NP Cooldown is reduced by 1◈+⅔◈ Turns"*) wrote the cut as `{ key: CooldownDelta, … }` inside an
-`applyEffects` phase. That phase lands effects, every reader of it reads an entry through `entryOf`, and an entry with no
-effect id is `null`: the cut was dropped without a word, and neither Skill had ever turned a clock. Found on the first arena
-press of Mana Burst (the NP read 18 before and after). Both are `cooldown` phases now, and the build refuses the shape.
-**Open:** Jabberwock's Alice Eater (`{ key: DurationDelta }`, *"extends its period of existing for 3◈ more Turns"*) is
-dropped the same way (a probe: its Atk Up lands and `expiresAt` stays 40) and no phase kind moves a summon's expiry. It is
-the one name in `PHASE_ACTIONS_STILL_DROPPED`, which may only shrink. Ch. 17, 40.
-
-### D2. Def Dwn (A) and (C) drained Luck and Agility on a Knockback's damage — **fixed** (#223)
-
-**Reached: Anastasia, Van Gogh, Mannanán (every Servant who inflicts them).** *"Luck is reduced by 1 whenever damage is
-received from an Attack."* A field's damage, a toll and a cost never raise `damageTaken` (a bare `damage` intent drains
-nothing, now pinned). The one that did is the measured damage of Akhilleus Kosmos's Knockback, which runs a Combat Process
-for the arithmetic and is ruled *not an Attack* (#184 reading 8): the Process closed the reaction rungs and nothing else.
-The declaration carries `plainDamage` now, `rollOptionsFor` emits `attack:plainDamage`, and both handlers are gated on
-`not:attack:plainDamage`. The +15% damage they add is not gated. Ch. 21, A.
-
-### D3. The second twin of a war-setup slot had nothing — **fixed** (#218)
-
-**Reached: only the Dioscuri (the one `summonTogether` group).** `commitWar` filled a slot with `commitSummon`, which
-summons the partner with no Master and no faction, and then wrote the faction, the Contract and the token of the drawn
-Servant alone: the second twin stood on no side, under no Master and off the board. `seatPartners` gives it the slot's side,
-container and Contract, and `deployTokens` puts it on the panel nearest its twin before the Master takes one. `commitWar` has
-no test of its own; the two pieces are held on their own. #224's live press should look at a wizard-built pair. Ch. 31, 32.
-
-### D4. Self-Replenishment (Mana) set the Noble Phantasm's clock to 0 — **fixed** (#219)
-
-**Reached: Castor.** *"At the end of Castor's Turn … NP Cooldown −2 Turns"* is `CooldownDelta` with a rank table and
-`direction: down`. The table's figure arrives as `amount`, which `StatDelta` reads and `CooldownDelta` did not, so the action
-had neither `ticks` nor `delta` and `set` the clock to 0: at every Turn end the Noble Phantasm came back. Seen as `mode:
-"set", ticks: 0` the moment the shared-clock test fired the event on real Castor. Ch. 17, B.3.
-
-### D5. NP Degen never adds its Turn — **open**
-
-**Reached: every Servant who inflicts it.** `cooldownRate` answers -1 for a Noble Phantasm under NP Degen (*"a negative rate
-is cooldown ADDED"*) and `advanceCooldowns` pushes a tick only for a rate above 0, so Degen stops the natural reduction and
-never lengthens the clock. Found while writing the shared-clock tick test; not part of any ruling here, so left. Ch. A.
+The live press (scene *Dioscuri Audit*): both twins Player1's, on one Master of Saber, against Heracles, Medea, Drake and
+Scáthach. Staged and named in #209's log: cooldowns cleared to press a Skill twice, forced moves to open a riding lane and to
+put an attacker in reach, an Attack reset (`fgtStageReset`), the Master's Health set to reach Mad Enhancement's limit, and a
+damage or defeat intent to fell the Master in one blow and to replay the Sustainability sweep. Ten findings, §46.4-MZ to NI.
 
 ### 46.31.3 Left open
 
@@ -5915,8 +6026,8 @@ never lengthens the clock. Found while writing the shared-clock tick test; not p
   the defender Evades cuts no clock and grants no Evade. Not ruled; left as built.
 - **`No Crit` and `G.Crit` stay the declarer's.** The joint NP combines both twins' Crit Chance and Crit Damage modifiers
   (reading 10), not the flags that short-circuit them. Not ruled.
-- **Jabberwock's Alice Eater** (D1) needs a phase kind that moves a summon's expiry; **NP Degen** (D5) never adds its Turn.
+- **Jabberwock's Alice Eater** (§46.4-MU) needs a phase kind that moves a summon's expiry; **NP Degen** (§46.4-MY) never adds its Turn.
 - **`chosenCooldowns`** (EMIYA's Tracing) is the one cooldown cut not mirrored to a twin; nobody in a group has a chosen
   cooldown, so it is left unbuilt rather than built untested.
-- **A wizard-built pair has not been looked at.** D3's fix is held in pieces (`seatPartners`, `deployTokens`); `commitWar`
-  has no test of its own. #224's press should build a war and look at the second twin's side, Contract and token.
+- **A wizard-built pair was looked at live** (2026-10-15): `commitWar` seated both twins with one side, one Contract and two
+  tokens (§46.4-MW). `commitWar` still has no test of its own.
