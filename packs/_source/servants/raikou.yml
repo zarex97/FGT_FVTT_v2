@@ -106,7 +106,9 @@ abilities:
   # the Master's carry, and the clause her sheet restates at length, that a Riding
   # Attack after a Move gets MOV minus the panels already spent. "The Move Up effect ... is not a
   # buff" is already `isBuff: false`. She adds NOTHING to Riding.
-  - { ref: class-riding, rank: "A+", cooldown: "3◈-⅓◈" }
+  # Her Active unlocks all three passives "on this Turn", word for word Karna's
+  # (#206): `class-riding` granted them always.
+  - { ref: class-riding-unlocks, rank: "A+", cooldown: "3◈-⅓◈", mov: 5 }
   # "Class Skill: Magic Resistance — Rank: D". Her three paragraphs -- the rank
   # negation, the 20%, the 10% debuff resistance, the Instakill/Death ladder
   # with both its exemptions, and "Erase is completely unaffected" -- are the

@@ -43,6 +43,26 @@ export const WINDOWS = Object.freeze({
 });
 
 /**
+ * The Skills a Suspend Skill may name on this Servant.
+ *
+ * A Skill whose Compulsion says `suspendWhileBound` may be bought off only
+ * while that compulsion holds the Servant: Karna's Fated Rivals, *"negated for
+ * 1◈ Turns by spending a Command Spell"*, offered only while it binds him
+ * (ruled 2026-10-14, #206 reading 2). Every other Skill as before.
+ *
+ * @param {object[]} skills ability items (or anything with `system.passiveRules`)
+ * @param {object|null} unit the Servant's board unit, its compulsions settled
+ * @returns {object[]}
+ */
+export function suspendableSkills(skills, unit) {
+  return (skills ?? []).filter((s) => {
+    const bound = (s.system?.passiveRules ?? [])
+      .find((r) => r?.key === "Compulsion" && r.suspendWhileBound);
+    return !bound || (unit?.compulsions ?? []).some((c) => c.id === (bound.id ?? "compulsion"));
+  });
+}
+
+/**
  * What this command costs this Master.
  *
  * @param {object} command

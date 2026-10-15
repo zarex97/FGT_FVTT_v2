@@ -12,6 +12,25 @@
  */
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+/**
+ * An option's detail with its content links read as their labels.
+ *
+ * Callers hand an ability's description, and a compiled description carries
+ * `@UUID[Compendium.…]{Skill Seal}`: the attacker's window printed that raw
+ * (#206, Uncrowned Arms). The labels and not live links, because the detail
+ * sits inside the option's button, and a link in a button is two controls in
+ * one.
+ *
+ * @param {string|null|undefined} text
+ * @returns {string}
+ */
+export function plainLinks(text) {
+  if (!text) return "";
+  return String(text)
+    .replace(/@\w+\[[^\]]*\]\{([^}]*)\}/g, "$1")
+    .replace(/@\w+\[([^\]]*)\]/g, "$1");
+}
+
 
 export class ChoiceDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
@@ -114,7 +133,7 @@ export class ChoiceDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       optional: min === 0,
       remaining: Math.max(0, min - this.#picked.size),
       complete: this.#picked.size >= min,
-      options: (this.#spec.options ?? []).map((o) => ({ ...o, picked: this.#picked.has(o.id) })),
+      options: (this.#spec.options ?? []).map((o) => ({ ...o, detail: plainLinks(o.detail), picked: this.#picked.has(o.id) })),
     };
   }
 

@@ -43,13 +43,16 @@ rules:
     value: -25
     predicate: ["attack:element:ice"]
 
-  # Clause (b), first half. An element-scoped Ward -- the same shape Karna's
-  # fire resistance uses. `npValue` matches `value` because the sheet says
-  # "Total Fire Damage" with no NP carve-out.
-  - key: Ward
+  # Clause (b), first half. "Total Fire Damage taken is reduced by 50%": a
+  # Total Damage cut on the Fire share, at stage 15, by the ruling on Karna's
+  # identical clause (#206 reading 6). It was a Ward pooled with Atk Up at
+  # stage 4. `npValue` matches `value`: the sheet carves out no NP.
+  - key: DamageModifier
+    modifierKey: elementTotalDefUp
+    element: fire
+    direction: taken
     value: 50
     npValue: 50
-    predicate: ["attack:element:fire"]
 
   # Clause (b), second half -- and the user's ruling on Freeze.
   #

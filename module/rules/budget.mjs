@@ -475,8 +475,10 @@ export function unmetCompulsions(units, board = null) {
     // annotated onto the unit by `rules/compulsion.mjs` -- which is what
     // Penthesilea's Hatred of Achilles is, and what this loop could never see
     // before, because nothing ever applied a `hatred` effect.
+    // A compulsion that only RESTRICTS who may be attacked obliges nothing:
+    // Karna's Fated Rivals (#206 reading 2) never makes him Attack.
     const compelled = held.find((id) => ["berserk", "decoy:target", "hatred"].includes(id))
-      ?? (unit.compulsions ?? [])[0]?.id;
+      ?? (unit.compulsions ?? []).find((c) => !c.restrictsOnly)?.id;
     if (!compelled) continue;
     if (unit.turnState?.attacked) continue;
     // A unit that could not have attacked is not in breach.
@@ -560,7 +562,11 @@ function pursuitBreach(unit, pursuit, board) {
  * @returns {{ok: boolean, unmet: object[]}}
  */
 export function canEndTurn(units, board = null) {
-  const unmet = [...unmetCompulsions(units, board), ...copyPicksOwed(board?.units ?? units)];
+  const unmet = [
+    ...unmetCompulsions(units, board),
+    ...copyPicksOwed(board?.units ?? units),
+    ...openingChoicesOwed(board?.units ?? units),
+  ];
   return { ok: unmet.length === 0, unmet };
 }
 
@@ -579,6 +585,21 @@ export function copyPicksOwed(units) {
   return (units ?? []).filter((u) => u.copyPickDue && !u.defeated).map((u) => ({
     unitId: u.id, unitName: u.name, effect: "Wisdom of Dún Scáith",
     message: `${u.name} must pick the two Skills Wisdom of Dún Scáith copies before this Turn ends.`,
+  }));
+}
+
+/**
+ * Opening choices still owed, on EITHER side: Karna's Uncrowned Arms
+ * Mastership starts on the effect his player picks, and the Turn the pick falls
+ * due in cannot end until it is made (#206 reading 3), whoever's Turn it is.
+ *
+ * @param {object[]} units every Unit on the board
+ * @returns {Array<{unitId: string, unitName: string, effect: string, message: string}>}
+ */
+export function openingChoicesOwed(units) {
+  return (units ?? []).filter((u) => u.openingChoiceDue && !u.defeated).map((u) => ({
+    unitId: u.id, unitName: u.name, effect: "Opening choice",
+    message: `${u.name} must choose which effect a Skill starts with before this Turn ends.`,
   }));
 }
 

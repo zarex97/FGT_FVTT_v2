@@ -67,6 +67,17 @@ export const ABILITY_WINDOWS = Object.freeze({
     dispatched: true,
     hint: "At the start of a Combat Phase, on this Unit's own attack.",
   }),
+  // The other side of the same moment. Karna's Uncrowned Arms Mastership is
+  // *"used during your Turn or at the start of a Combat Phase"*, ruled any
+  // Combat Phase he is in, attacking or defending (#206 reading 4). Its own
+  // window, because every other "at the start of a Combat Phase" in the corpus
+  // (Reinforcement, Runner Comet, Watermelon, Tradition Carrier) is about the
+  // attack its user is making.
+  defendingPhaseStart: Object.freeze({
+    id: "defendingPhaseStart",
+    dispatched: true,
+    hint: "At the start of a Combat Phase in which this Unit is attacked.",
+  }),
   whenTargetedByNP: Object.freeze({
     id: "whenTargetedByNP",
     dispatched: true,
@@ -105,6 +116,9 @@ export const DAMAGE_STEP_WINDOW = ABILITY_WINDOWS.damageStep.id;
 
 /** The start of a Combat Phase, on this Unit's own attack. */
 export const COMBAT_PHASE_START_WINDOW = ABILITY_WINDOWS.combatPhaseStart.id;
+
+/** The start of a Combat Phase in which this Unit is attacked (#206). */
+export const DEFENDING_PHASE_START_WINDOW = ABILITY_WINDOWS.defendingPhaseStart.id;
 
 /**
  * The windows the **attacker's own** abilities may name.

@@ -662,6 +662,8 @@ export function usageSpecFor(ability) {
     // Fragarach Counter and the Hanging Gardens, which is exactly the set the
     // ruling put in scope.
     categorizedAsNP: Boolean(sys.categorizedAsNP),
+    // Which Seal stops it (`rules/costs.mjs#preventionActionFor`, #206).
+    countsForNPSeal: Boolean(sys.countsForNPSeal),
     cooldown: sys.cooldown ?? { remaining: 0, gatedDelay: 0 },
     // The bounded field this ability opens, whole, because the gate asks whether
     // it opens one AND counts its cooldown from deactivation: such a field

@@ -18,12 +18,19 @@ isMode: true
 # `oncePerTurn` it would be a free toggle three times a Round and the choice
 # between the two effects would stop being a choice.
 oncePerRound: true
+# "At the start of the game, choose either Effect 1 or 2." Ruled 2026-10-14
+# (#206 reading 3): his player is asked at the war's start or right after his
+# summon, free, and the Turn cannot end until the pick is made. Off is Effect 1
+# and on is Effect 2, as `isMode` below has always read them.
+openingChoice: { off: "FGT.Karna.UncrownedEffect1", on: "FGT.Karna.UncrownedEffect2" }
 # "Used during your Turn OR at the start of a Combat Phase." The first is the
 # sheet button (`isMode` above); the second is the attacker's own window
 # (`engine/attack.mjs#offerAttackerWindow`), which had no implementation --
 # every timing window in the system described a moment inside somebody else's
 # Combat Process.
-timing: { window: [combatPhaseStart] }
+# Any Combat Phase he is in, attacking or defending (ruled 2026-10-14, #206
+# reading 4): `defendingPhaseStart` is the second half.
+timing: { window: [combatPhaseStart, defendingPhaseStart] }
 # "The effects of this Skill are negated by Skill Seal." Both halves: the mode
 # cannot be switched, AND its rules stop contributing. The second half is
 # `rules/snapshot.mjs#negated`, which read `negatedWhile` only until Karna --

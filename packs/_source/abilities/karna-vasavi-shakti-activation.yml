@@ -31,6 +31,12 @@ slug: vasaviShaktiActivation
 # ability that can be pressed twice and does nothing the second time reads as
 # broken, and `canUseAbility` refuses it with `exhausted` instead.
 maxUses: 1
+# Ruled 2026-10-14 (#206 reading 9): on his own Turn only, at no other cost;
+# NP Seal stops it and Skill Seal does not, because it is part of a Noble
+# Phantasm. `countsForNPSeal` says the second without making it an NP, which
+# would bill his Master and put it behind the NP Round gate.
+timing: { window: ownTurn }
+countsForNPSeal: true
 # Refused once it has been done, from the other direction too, so the button
 # disappears rather than refusing when pressed (Ch. 33).
 requirements:

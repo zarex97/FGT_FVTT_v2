@@ -1912,6 +1912,17 @@ export const EXECUTORS = Object.freeze({
       // *"Hatred of Achilles has no effect against allied Units if Penthesilea
       // is summoned in a Grand Order Holy Grail War."*
       spareAlliesInGrandOrder: Boolean(el.spareAlliesInGrandOrder),
+      // Karna's Fated Rivals (#206 reading 2), three ways it is narrower than
+      // Hatred or Decoy. `within: range` is his current Range, not a number.
+      // `attacksOnly`: Skills that are not Attacks stay free. `restrictsOnly`:
+      // he may only Attack Arjuna, he is never made to Attack at all. And
+      // `areaMustInclude`: an area Attack must catch Arjuna, and everyone else
+      // caught is still hit.
+      attacksOnly: Boolean(el.attacksOnly),
+      restrictsOnly: Boolean(el.restrictsOnly),
+      areaMustInclude: Boolean(el.areaMustInclude),
+      // A Command Spell may buy it off only while it holds (#206 reading 2).
+      suspendWhileBound: Boolean(el.suspendWhileBound),
       source,
     });
   },

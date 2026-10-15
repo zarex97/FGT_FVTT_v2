@@ -574,7 +574,10 @@ function categoryLimitFor(ability, unit) {
  * @returns {string} `"np"`, `"spell"` or `"skill"`
  */
 function preventionActionFor(ability) {
-  if (ability?.isNP || ability?.categorizedAsNP) return "np";
+  // `countsForNPSeal`: a Skill that is part of a Noble Phantasm. Karna's Vasavi
+  // Shakti Activation is stopped by NP Seal and not by Skill Seal (#206
+  // reading 9).
+  if (ability?.isNP || ability?.categorizedAsNP || ability?.countsForNPSeal) return "np";
   // `category: spell` is a Spell too. Medea's Argos, Keraino, Trofa, Atlas and
   // Dragon Tooth Warriors carry the category and not `isSpell`, which her two
   // Damage Spells and EMIYA's Thaumaturgy carry, so Silence stopped Aero and

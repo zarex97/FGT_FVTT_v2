@@ -10,7 +10,7 @@
  * so nothing ever constructed the intent and no Command Spell was ever spent.
  */
 
-import { availableCommands, canSpend, effectsOf, costOf, teleportLandings, teleportMovers, teleportPanels, servantsForProcess } from "../rules/command-spells.mjs";
+import { suspendableSkills, availableCommands, canSpend, effectsOf, costOf, teleportLandings, teleportMovers, teleportPanels, servantsForProcess } from "../rules/command-spells.mjs";
 import { CommandSpellRegistry } from "../rules/cs-registry.mjs";
 import { currentBoard, unitFrom } from "./board.mjs";
 import * as I from "./intents.mjs";
@@ -152,6 +152,16 @@ export async function spendCommandSpell({ masterId, commandId, window, messageId
   // Spell, moved nobody and left the attack running (#204 Q6).
   if (effects.some((e) => e.kind === "teleport" && !teleportLandings(e, ctx, ctx.destination))) {
     return { ok: false, reason: "noDestination" };
+  }
+  // A Suspend Skill naming a Skill it may not buy off now, refused before it is
+  // paid for: Fated Rivals only while it binds (#206 reading 2). The picker
+  // lists by the same reader.
+  if (effects.some((e) => e.kind === "suspendSkill") && context.abilityId) {
+    const items = [...(game.actors.get(ctx.servant?.id)?.items ?? [])];
+    const named = items.filter((i) => i.id === context.abilityId);
+    if (named.length > 0 && suspendableSkills(named, ctx.servant).length === 0) {
+      return { ok: false, reason: "notBound" };
+    }
   }
   const intents = [
     I.spendCS(masterId, cost, command.id, ctx.servant?.id ?? null),
