@@ -1556,6 +1556,19 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
         + `expected one of ${SHAPE_IDS.join(", ")}`,
       );
     }
+    // `alsoFrom` measures a `targetUnit` anchor's Range from the caster's linked
+    // partner too (#209 reading 6): the only value is `partner`, and no other
+    // anchor reads the key, so on any other it would be a Range clause that
+    // quietly did nothing -- the Silent Drop this check exists to refuse.
+    const alsoFrom = spec.anchor?.alsoFrom;
+    if (alsoFrom !== undefined) {
+      if (alsoFrom !== "partner") {
+        problems.push(`${path}: ${where}.anchor.alsoFrom is "${alsoFrom}"; the only value is "partner"`);
+      }
+      if (anchor !== "targetUnit") {
+        problems.push(`${path}: ${where}.anchor.alsoFrom is read by a "targetUnit" anchor only, not "${anchor}"`);
+      }
+    }
     // An anchor may state an ABSOLUTE reach or a RELATIVE one, and stating
     // both is always a mistake: `anchorRange` returns `spec.range` the moment
     // it is a number and never reaches `rangeBonus`, so the second field is

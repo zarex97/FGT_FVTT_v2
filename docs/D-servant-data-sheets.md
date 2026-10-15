@@ -225,7 +225,7 @@ same ticket (§46.4-D4).
 
 | Ability | Mapping |
 |---|---|
-| Dioscures Tyndaridae (B, NP) | **RE+** `modifierSources: [castor, pollux]`; base = half of each twin's BA(STR); requires adjacency; counts as **both** twins' attack |
+| Dioscures Tyndaridae (B, NP) | **RE+** `modifierSources: [castor, pollux]`; base = half of each twin's BA(STR); requires adjacency; counts as **both** twins' attack; **Range 2 from either twin** (`anchor.alsoFrom: partner`, #209 reading 6); the two bags combine by concatenation, so an effect on both counts twice (two Divine Cores are +160, reading 5), and the Crit Chance rolled is both twins' where an NP figure is stated (reading 10) |
 
 **Exercises:** linked units, fractional budgets, shared cooldowns, cross-unit modifier
 combination, partner-conditional auras, mid-ability choice.

@@ -12,7 +12,9 @@
  * it back.
  */
 
-import { computeDamage, computeDamageHits, isNPAttack, INJURY_THRESHOLD } from "../rules/damage/pipeline.mjs";
+import {
+  computeDamage, computeDamageHits, isNPAttack, modifierSourceUnits, INJURY_THRESHOLD,
+} from "../rules/damage/pipeline.mjs";
 import { ridersFire } from "../rules/damage/riders.mjs";
 import { expandInstances, damageBaseOf } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
@@ -4343,7 +4345,17 @@ async function applyDamage(state, message) {
   // The pipeline's own definition of "is an NP", handed to the chance: the
   // option `attack:kind:np` cannot see an attack the sheet only categorizes as one
   // (#131). Crit Up and its kin do not affect a Noble Phantasm.
-  const critSpec = critChance(attacker, defender, { options, isNP: isNPAttack({ ...facts, ...identity }) });
+  //
+  // ...from the Units whose bags the attack JOINS to the attacker's
+  // (`damage.modifierSources`, the same reader the damage pipeline's union
+  // asks): the joint Noble Phantasm's Crit Chance is both twins' (#209 reading
+  // 10, ruled 2026-10-14). The damage half combined already; the chance read the
+  // attacker's `checkModifiers` alone.
+  const critSpec = critChance(attacker, defender, {
+    options,
+    isNP: isNPAttack({ ...facts, ...identity }),
+    alsoFrom: modifierSourceUnits(description.attack, namedUnits(attacker, board), attacker).map((s) => s.unit),
+  });
   const critRoll = await new Roll("1d100").evaluate();
   const isCrit = critSpec.blocked
     ? false

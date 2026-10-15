@@ -259,3 +259,128 @@ describe("Mana Burst is a Counter too (#209 reading 4, ruled 2026-10-14: already
     expect(seen.clocks).toEqual([15, 15]);
   });
 });
+
+/* ========================================================================== */
+/*  Reading 5 -- the joint NP counts an effect held by both twins twice         */
+/* ========================================================================== */
+
+describe("an effect on both twins counts twice in the joint NP (#209 reading 5, ruled 2026-10-14: already built)", () => {
+  // The ticket read the combination as a union; `pipeline.mjs#activeMods` has
+  // concatenated the partner's whole bag since Ch. 41 Q12 (the author's own
+  // answer: "DOUBLE-COUNTING IS INTENDED"). These play it, so it stays played.
+  const near = async () => [
+    ...await twinSpecs({ castor: { panel: { i: 5, j: 5 } }, pollux: { panel: { i: 5, j: 6 } } }),
+    { from: "medea", id: "medeaTarget00000", state: { factionId: "B" }, panel: { i: 5, j: 7 } },
+  ];
+
+  /** The contributors of one stage of a finished attack's card, as `[value, source]`. */
+  const stageOf = (w, declared, name) => w.messages.get(declared.messageId).getFlag("fgt", "result")
+    .breakdown.find((s) => s.name === name).contributors.map((c) => [c.value, c.note ?? c.label]);
+
+  /** Castor casts Guardians of Navigation (on both twins), then swings: the NP, or a Normal Attack. */
+  const swing = async (ability) => {
+    let out;
+    await withSubjects(await near(), async ({ world: w }) => {
+      const { castSkill } = await import("../helpers/process.mjs");
+      await castSkill(w, { caster: CASTOR, ability: abilityOf(w, CASTOR, "dioscuri-guardians-of-navigation").id });
+      const { declared } = await playAttack(w, {
+        attacker: CASTOR, ability: ability ? abilityOf(w, CASTOR, ability).id : null, target: "medeaTarget00000",
+        react: { medeaTarget00000: ["nothing", "declined"] },
+      });
+      out = { flat: stageOf(w, declared, "flatAttackBonuses"), percent: stageOf(w, declared, "combinedPercent") };
+    }, MATCH);
+    return out;
+  };
+
+  it("adds both Divine Cores, +160, and both Atk Ups and NP DmUps to the NP", async () => {
+    const { flat, percent } = await swing("dioscuri-tyndaridae");
+    expect(flat.filter(([, s]) => /Divine Core/.test(s)).map(([v]) => v)).toEqual([80, 80]);
+    // Guardians reached both: the NP takes each twin's Atk Up (5 for an NP) and NP DmUp (15).
+    expect(percent.filter(([, s]) => /^atkUp/.test(s)).map(([v]) => v)).toEqual([5, 5]);
+    expect(percent.filter(([, s]) => /^npDmUp/.test(s)).map(([v]) => v)).toEqual([15, 15]);
+  });
+
+  it("does not combine for a Normal Attack: Castor's own Divine Core and Atk Up, once", async () => {
+    const { flat, percent } = await swing(null);
+    expect(flat.filter(([, s]) => /Divine Core/.test(s)).map(([v]) => v)).toEqual([80]);
+    expect(percent.filter(([, s]) => /^atkUp/.test(s)).map(([v]) => v)).toEqual([15]);
+  });
+});
+
+/* ========================================================================== */
+/*  Reading 6 -- the joint NP is declared from either twin's reach              */
+/* ========================================================================== */
+
+describe("the joint NP is declared at a target either twin reaches (#209 reading 6, ruled 2026-10-14)", () => {
+  const at = async (foe) => [
+    ...await twinSpecs({ castor: { panel: { i: 5, j: 6 } }, pollux: { panel: { i: 5, j: 5 } } }),
+    { from: "heracles", id: FOE, state: { factionId: "B" }, panel: foe },
+  ];
+
+  it("Pollux declares it at a foe 2 from Castor and 3 from her, and it lands", async () => {
+    await withSubjects(await at({ i: 5, j: 8 }), async ({ world: w }) => {
+      const { declared } = await playAttack(w, {
+        attacker: POLLUX, ability: abilityOf(w, POLLUX, "dioscuri-tyndaridae").id, target: FOE,
+        react: { [FOE]: ["nothing", "declined"] },
+      });
+      // RED before #221: the declaration was refused, "out of Range (2)".
+      expect(w.messages.get(declared.messageId).getFlag("fgt", "result").total).toBeGreaterThan(0);
+      expect(npClock(w, POLLUX)).toBe(18);
+      expect(npClock(w, CASTOR)).toBe(18);
+    }, MATCH);
+  });
+
+  it("is refused for a foe 3 from both, and nothing is spent", async () => {
+    await withSubjects(await at({ i: 5, j: 9 }), async ({ world: w }) => {
+      const { resolveAttack } = await import("../../module/engine/attack.mjs");
+      await expect(resolveAttack({
+        attackerId: POLLUX, abilityId: abilityOf(w, POLLUX, "dioscuri-tyndaridae").id,
+        placement: { unitId: FOE, chosenIds: [FOE] },
+      })).rejects.toThrow(/Illegal attack: .*out of Range \(2\)/);
+      expect(npClock(w, POLLUX)).toBe(0);
+      expect(npClock(w, CASTOR)).toBe(0);
+    }, MATCH);
+  });
+});
+
+/* ========================================================================== */
+/*  Reading 10 -- the Crit Chance the Combat Process rolls against              */
+/* ========================================================================== */
+
+describe("the joint NP rolls its Crit against both twins' chance (#209 reading 10, ruled 2026-10-14)", () => {
+  // Pollux alone holds a Crit Up that states an NP figure (+30%, NP +20%); the
+  // die lands on 70. Castor's NP: 50 + Pollux's 20 = 70, a Crit. Castor's Normal
+  // Attack: 50 + Oblivion Correction's 15 = 65, none -- Pollux's Crit Up is not his.
+  const MEDEA = "medeaTarget00000";
+  const NP_FIGURE = {
+    id: "test-crit-with-np-figure", name: "Test Crit Up", kind: "skill", passive: true,
+    passiveRules: [{ key: "CritModifier", aspect: "chance", value: 30, npValue: 20 }],
+  };
+  const swing = async (ability) => {
+    const { loadSource } = await import("../../tools/lib/load.mjs");
+    const { files } = await loadSource("packs/_source");
+    const [castor, pollux] = await twinSpecs({
+      castor: { panel: { i: 5, j: 5 } }, pollux: { panel: { i: 5, j: 6 } },
+    });
+    const holder = { ...pollux, with: { abilities: [...files.find((f) => f.doc?.id === "pollux").doc.abilities, NP_FIGURE] } };
+    let crit;
+    await withSubjects([castor, holder, { from: "medea", id: MEDEA, state: { factionId: "B" }, panel: { i: 5, j: 7 } }], async ({ world: w }) => {
+      w.dice.every(70);
+      const { declared } = await playAttack(w, {
+        attacker: CASTOR, ability: ability ? abilityOf(w, CASTOR, ability).id : null, target: MEDEA,
+        react: { [MEDEA]: ["nothing", "declined"] },
+      });
+      crit = w.messages.get(declared.messageId).getFlag("fgt", "result").isCrit;
+    }, MATCH);
+    return crit;
+  };
+
+  it("crits the NP on a 70: 50 + Pollux's NP figure", async () => {
+    // RED before #221: 50 against a 70.
+    expect(await swing("dioscuri-tyndaridae")).toBe(true);
+  });
+
+  it("does not crit Castor's own Normal Attack on a 70: 65, the twin's Crit Up is not his", async () => {
+    expect(await swing(null)).toBe(false);
+  });
+});

@@ -19,8 +19,10 @@ import { sharedAcrossGroup, sharedCooldownIntents } from "../../module/engine/co
 import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { GENERATED_EMITTABLE } from "../../module/rules/facets.mjs";
 import { canUseAbility } from "../../module/rules/costs.mjs";
-import { usageSpecFor } from "../../module/rules/ability-use.mjs";
 import { counterOffer } from "../../module/rules/counter.mjs";
+import { usageSpecFor, targetSpecFor } from "../../module/rules/ability-use.mjs";
+import { validate } from "../../module/rules/targeting/resolve.mjs";
+import { critChance } from "../../module/rules/checks.mjs";
 import { installClientNamespace } from "../helpers/client-namespace.mjs";
 
 beforeAll(prepareSubjects, 120_000);
@@ -567,5 +569,124 @@ describe("both twins' Mana Burst is offered on a Counter, and only a Counter lif
         expect(gate(mb, unit(id), { actingFactionId: "A" }).ok, id).toBe(true);
       }
     }, await twinSpecs());
+  });
+});
+
+/* ========================================================================== */
+/*  Reading 6 -- the joint NP's Range: either twin within 2 of the target       */
+/* ========================================================================== */
+
+describe("the joint NP reaches a target either twin is within 2 of (#209 reading 6, ruled 2026-10-14)", () => {
+  // Pollux (5,5) and Castor (5,6) side by side, as the NP requires. A foe at
+  // (5,8) is 2 from Castor and 3 from Pollux; (5,9) is 3 and 4.
+  const pair = async (foe, extra = {}) => [
+    ...await twinSpecs({ castor: { panel: { i: 5, j: 6 } }, pollux: { panel: { i: 5, j: 5 } } }),
+    { from: "heracles", id: FOE, state: { factionId: "B" }, panel: foe, ...extra },
+  ];
+  /** The verdict of the joint NP's own targeting, declared by `who`, against the foe. */
+  const verdict = (who, specs) => withSubjects(specs, ({ unit, board, world }) => {
+    const spec = targetSpecFor(abilityOf(world, who, "dioscuri-tyndaridae"), unit(who).range);
+    return validate(spec, unit(who), board, { unitId: FOE, chosenIds: [FOE] });
+  });
+
+  it("lets Pollux declare it at a target only Castor is within 2 of", async () => {
+    // RED before #221: "out of Range (2)" -- measured from the declarer alone.
+    const out = await verdict(POLLUX, await pair({ i: 5, j: 8 }));
+    expect(out.reasons).toEqual([]);
+    expect(out.ok).toBe(true);
+  });
+
+  it("and the reverse: Castor declares it at a target only Pollux is within 2 of", async () => {
+    const specs = [
+      ...await twinSpecs({ castor: { panel: { i: 5, j: 5 } }, pollux: { panel: { i: 5, j: 6 } } }),
+      { from: "heracles", id: FOE, state: { factionId: "B" }, panel: { i: 5, j: 8 } },
+    ];
+    expect((await verdict(CASTOR, specs)).ok).toBe(true);
+  });
+
+  it("still refuses a target 3 from both twins, in the same words", async () => {
+    const out = await verdict(POLLUX, await pair({ i: 5, j: 9 }));
+    expect(out.ok).toBe(false);
+    expect(out.reasons.join(" ")).toMatch(/out of Range \(2\)/);
+  });
+
+  it("gives a caster with no twin no extra reach: the key finds a partner it does not have", async () => {
+    // Karna borrows the joint NP's targeting from (5,12): the foe at (5,8) is 4
+    // away, and the twins standing 2 and 3 from it are not HIS partners.
+    const out = await withSubjects([
+      ...await twinSpecs({ castor: { panel: { i: 5, j: 6 } }, pollux: { panel: { i: 5, j: 5 } } }),
+      { from: "heracles", id: FOE, state: { factionId: "B" }, panel: { i: 5, j: 8 } },
+      { from: "karna", id: "karnaAlone000000", state: { factionId: "A" }, panel: { i: 5, j: 12 } },
+    ], ({ unit, board, world }) => {
+      const spec = targetSpecFor(abilityOf(world, POLLUX, "dioscuri-tyndaridae"), 2);
+      return validate(spec, unit("karnaAlone000000"), board, { unitId: FOE, chosenIds: [FOE] });
+    });
+    expect(out.ok).toBe(false);
+    expect(out.reasons.join(" ")).toMatch(/out of Range \(2\)/);
+  });
+
+  it("keeps the key through the real compile and DataModel (a Hop of its own)", async () => {
+    await twins(({ world }) => {
+      for (const id of [CASTOR, POLLUX]) {
+        expect(abilityOf(world, id, "dioscuri-tyndaridae").system.targeting.anchor.alsoFrom, id).toBe("partner");
+      }
+    }, await twinSpecs());
+  });
+
+  it("is refused by the build anywhere but a targetUnit anchor, and for anyone but the partner", async () => {
+    const { files } = await loadSource("packs/_source");
+    const withAnchor = (anchor) => validateAll(files.map((f) => (f.doc?.id === "dioscuri-tyndaridae"
+      ? { ...f, doc: { ...f.doc, targeting: { ...f.doc.targeting, anchor } } } : f))).problems
+      .filter((p) => /alsoFrom/.test(p));
+    expect(withAnchor({ kind: "targetUnit", range: 2, alsoFrom: "partner" })).toEqual([]);
+    expect(withAnchor({ kind: "targetUnit", range: 2, alsoFrom: "everyone" })).toHaveLength(1);
+    expect(withAnchor({ kind: "withinRange", range: 2, alsoFrom: "partner" })).toHaveLength(1);
+  });
+});
+
+/* ========================================================================== */
+/*  Reading 10 -- the joint NP's Crit Chance combines, and reaches only an NP   */
+/*  figure                                                                     */
+/* ========================================================================== */
+
+describe("the joint NP's Crit Chance is both twins', where an NP figure is stated (#209 reading 10)", () => {
+  // Nothing in the Dioscuri's own kit states an NP figure for Crit Chance
+  // (Oblivion Correction 15, Pollux's Divine Core 5, S.Crit Up 10: all plain), so
+  // the one that does is authored here, on each twin, in the shape Crit Up (Viy)
+  // authors it: *"+30%; if NP, 20%"*.
+  const NP_FIGURE = {
+    id: "test-crit-with-np-figure", name: "Test Crit Up", kind: "skill", passive: true,
+    passiveRules: [{ key: "CritModifier", aspect: "chance", value: 30, npValue: 20 }],
+  };
+  /** The real twins, each carrying one extra Skill of that shape (`with` replaces the list: read it from the sheet). */
+  const withNpFigure = async (which) => {
+    const { files } = await loadSource("packs/_source");
+    const specs = await twinSpecs();
+    return specs.map((spec) => (which.includes(spec.id)
+      ? { ...spec, with: { abilities: [...files.find((f) => f.doc?.id === spec.from).doc.abilities, NP_FIGURE] } }
+      : spec));
+  };
+  /** The Crit Chance of `who` declaring the NP, or a Normal Attack, as the Attack Description hands it. */
+  const chance = (who, specs) => withSubjects(specs, ({ unit }) => critChance(unit(who), null, {
+    options: new Set(["attack:kind:np"]), isNP: true, alsoFrom: [unit(who === CASTOR ? POLLUX : CASTOR)],
+  }));
+
+  it("adds each twin's NP figure to the base 50", async () => {
+    const out = await chance(CASTOR, await withNpFigure([CASTOR, POLLUX]));
+    // RED before #221: 50 + Castor's 20 alone.
+    expect(out.percent).toBe(90);
+    expect(out.modifiers.map((m) => m.value).sort()).toEqual([0, 0, 20, 20].sort());
+  });
+
+  it("adds nothing for a twin whose Crit Up states no NP figure: no figure, no reach", async () => {
+    // Oblivion Correction (15) and Pollux's Divine Core (5) are Crit Chance, and neither states one.
+    const out = await chance(CASTOR, await twinSpecs());
+    expect(out.percent).toBe(50);
+    expect(out.modifiers.every((m) => m.value === 0)).toBe(true);
+  });
+
+  it("counts the figure on ONE twin once, whichever of them declares", async () => {
+    expect((await chance(CASTOR, await withNpFigure([POLLUX]))).percent).toBe(70);
+    expect((await chance(POLLUX, await withNpFigure([POLLUX]))).percent).toBe(70);
   });
 });
