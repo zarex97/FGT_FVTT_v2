@@ -6,8 +6,8 @@
  *
  * The shield has asked `attack:thrownWeapon` (`poolFloorWhen`) since it was
  * written, and no attack ever carried it. A damage block now states it
- * (`damage.thrownWeapon`). No content Noble Phantasm is marked yet -- which
- * ones throw is the author's ruling (Wave B) -- so the NP here is the test's own.
+ * (`damage.thrownWeapon`). Gáe Bolg Alternative alone is marked (ruled
+ * 2026-10-14, #208 reading 18); the NP in the first test is the test's own.
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
@@ -36,10 +36,12 @@ describe("a thrown Noble Phantasm", () => {
     }, { tokens: true });
   });
 
-  it("is marked on no content Noble Phantasm yet", async () => {
+  it("is marked on Gáe Bolg Alternative and on no other content Noble Phantasm", async () => {
+    // Was "marked on none yet". #208 reading 18, ruled 2026-10-14: Gáe Bolg Alternative is the
+    // game's one thrown weapon -- a spear -- and no other Noble Phantasm is.
     const { readdirSync, readFileSync } = await import("node:fs");
     const marked = readdirSync("packs/_source/abilities")
       .filter((f) => /thrownWeapon:\s*true/.test(readFileSync(`packs/_source/abilities/${f}`, "utf8")));
-    expect(marked).toEqual([]);
+    expect(marked).toEqual(["scathach-gae-bolg-alternative.yml"]);
   });
 });

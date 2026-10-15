@@ -290,7 +290,7 @@ Discussed: Ch. 36 §36.4.
 | — (Skill 1) / (Skill 2) | Granted, copied | RE (`GrantedAbility` with `copiedFrom`) |
 | — (Clairvoyance) | Active | RE (80%-chance Crit DmUp/Crit Up, Dodge) |
 | God Slayer (EX) | Passive + active | RE (+30% vs Undead/Divine; `Dmg Up (Gods)` +70%; `Alpi` 3-use NP cooldown buff) |
-| Gáe Bolg Alternative (B+, NP) | Damaging NP | RE (500% Stun, 75% Instakill, else 3.5× + 100) |
+| Gáe Bolg Alternative (B+, NP) | Damaging NP | RE (500% Stun, 75% Instakill, else 3.5× + 100). **A thrown weapon** (`damage.thrownWeapon`, ruled 2026-10-14, #208 reading 18): EMIYA's Rho Aias holds at 1 Health against it. The only one |
 | Gate of Skye (A+, NP) | AoE NP | **RE+** rank-**equality** save modifiers; chosen-subset targeting; `alsoTriggers` |
 
 **Exercises:** unranked abilities, random effect tables with a choice outcome, ability copying,
@@ -1279,7 +1279,7 @@ Bounded field: **Unlimited Blade Works** (Ch. 43). NP copying: Ch. 44 §44.5.
 | Overedge | Attack Skill, *categorized as NP* | RE (two Normal Attacks in a row, each +50%). **Each swing is a Normal Attack** (`countsAsNormalAttack`, #208 reading 7) and the grant rule says Kanshou & Bakuya was used per swing, so one Overedge is three uses of Projection NPs. It counts as the Circuits' "NP that deals damage" through `attack:isNP` (reading 11); a plain Kanshou & Bakuya swing does not (reading 22) |
 | Caladbolg II (A, NP) | AoE NP | RE (3×3 **around the targeted unit**, `Pierce` on the primary only, **caster excluded from its own area**) |
 | Hrunting (A, NP) | Damaging NP | RE (`Aim`, MR-exempt, **minimum range** restriction) |
-| Rho Aias (?, NP) | Shared shield NP | **RE+** `shieldScope` / `bleedThrough` / `indestructibleAgainst` / decaying reuse (Ch. 44 §44.2) |
+| Rho Aias (?, NP) | Shared shield NP | **RE+** `shieldScope` / `bleedThrough` / `indestructibleAgainst` / decaying reuse (Ch. 44 §44.2). **It protects against that one Noble Phantasm only** (`until combatPhaseEnd`, ruled 2026-10-14, #208 reading 19; it was ⅓◈): the Combat Phase takes it from the 3x3 around the protected Unit that the NP did not name. Gáe Bolg Alternative is thrown (reading 18) |
 | Unlimited Blade Works (E~A++, NP) | Bounded field | **RE+** field + the `Aria` resource (0/6, one per Combat Phase, spent entirely). **Not a Projection** (ruled 2026-10-14, #208 readings 4 and 23): no `category`, so Tracing cannot pick it and opening it neither extends Atk Up (Trace) nor gives Range Up; **Silence stops the Aria gain and nothing else** — with 6 Aria it opens while Silenced |
 | Projection: Unlimited Blade Works | Runtime NP copying | **S** `emiya.brokenPhantasm` — *ruled out of the audit 2026-10-14 (#208 reading 1): an experimental piece, not to be built* |
 

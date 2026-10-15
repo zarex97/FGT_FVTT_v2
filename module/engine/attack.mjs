@@ -2895,6 +2895,7 @@ async function fireCombatPhaseEnd(state) {
     damagedIds,
     rolls: {},
   });
+  intents.push(...barriersOfThisPhase(siblings, units));
   if (intents.length > 0) await applyBatch(intents, "combatPhaseEnd");
 
   await fireAttackLanded(siblings);
@@ -2906,6 +2907,43 @@ async function fireCombatPhaseEnd(state) {
   // is keyed by `groupId` and a match is thousands of them.
   const { clearOptionalCostOffers } = await import("./optional-costs.mjs");
   clearOptionalCostOffers(state.groupId);
+}
+
+/**
+ * Take what a third party raised in this Combat Phase off the Units that were never in it.
+ *
+ * An effect that lasts `until combatPhaseEnd` is removed when `combatPhaseEnd` fires
+ * on its bearer, and that event is heard by the attacker and the defenders of the
+ * fan-out. EMIYA's Rho Aias is raised by a Unit that is neither, over a 3x3 of
+ * allies the Noble Phantasm may not have hit: they hold the barrier and never hear
+ * the Phase end, so the barrier would have stood with no clock at all (#208
+ * reading 19). So the Phase takes them itself: every unit it did not name that
+ * holds an `until combatPhaseEnd` effect which one of this Phase's reactors cast.
+ * (Units it did name hear the event and lose theirs there.)
+ *
+ * Scoped to the reactors, not to every such effect on the board: another Combat
+ * Phase running beside this one has its own.
+ *
+ * @param {object[]} siblings every message of the group
+ * @param {object[]} heard the units `combatPhaseEnd` was fired on
+ * @returns {object[]} `removeEffect` intents
+ */
+function barriersOfThisPhase(siblings, heard) {
+  const states = siblings.map((m) => process.deserialize(m.getFlag("fgt", "process")));
+  const reactors = new Set(states.flatMap((s) => (s.history ?? []).flatMap((h) => {
+    const id = abilityFromOption(h.event);
+    if (!id) return [];
+    const offer = (s.reactionAbilities?.[s.defenderId] ?? []).find((a) => a.id === id);
+    return offer?.ownerId ? [offer.ownerId] : [];
+  })));
+  if (reactors.size === 0) return [];
+
+  const named = new Set(heard.map((u) => u.id));
+  return (currentBoard().units ?? [])
+    .filter((u) => !named.has(u.id))
+    .flatMap((u) => (u.effectInstances ?? [])
+      .filter((e) => e.endsOn === "combatPhaseEnd" && reactors.has(e.sourceUnitId))
+      .map((e) => I.removeEffect(u.id, e.id, "ends on combatPhaseEnd")));
 }
 
 /**
