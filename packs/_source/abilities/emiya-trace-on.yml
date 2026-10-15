@@ -58,13 +58,29 @@ phases:
   # Clause 2. Two effects that cannot coexist -- `blocks` on both sides, so
   # whichever is applied removes the other and the swap in the closing note is
   # the same write as the first choice.
+  #
+  # Each circuit is more than one effect now (#208 readings 10 to 13): the
+  # persistent first clause, and the one-shot "next NP" that is its second. An
+  # option names the pieces as phases, the form Mana Burst's choice uses, so
+  # picking a circuit puts all of them on him; the other circuit's go with it
+  # (`replaces`), which is what makes the swap in the closing note one write.
   - kind: choose
     target: self
     prompt: "FGT.Emiya.CircuitChoice"
     count: 1
     options:
-      - { id: activatedCircuits, label: "Activated Circuits (AC)" }
-      - { id: blazingCircuits, label: "Blazing Circuits (BC)" }
+      - id: activatedCircuits
+        label: "Activated Circuits (AC)"
+        phases:
+          - kind: applyEffects
+            target: self
+            effects: [{ id: activatedCircuits }, { id: acNextNp }]
+      - id: blazingCircuits
+        label: "Blazing Circuits (BC)"
+        phases:
+          - kind: applyEffects
+            target: self
+            effects: [{ id: blazingCircuits }, { id: bcNextNp }]
 
   # Clauses 3 and 4. Luck's MAXIMUM moves and current follows; Agility only
   # RESTORES, so it is clamped to the maximum he rolled at summon.

@@ -4325,6 +4325,53 @@ Bursts count as their user's Normal Attack. Ch. 17.
 
 ---
 
+*From EMIYA's audit (#208, §46.30). Labelled E1 to En for now; the lead renumbers them into the register.*
+
+### E1. A categorized-as-NP attack had no option of its own — **fixed** (#208)
+
+**Reached: Overedge, and any later Attack Skill the sheet categorizes as a Noble Phantasm.** `isNPAttack` (kind `np`
+or `categorizedAsNP`) was the pipeline's and the crit coin's one definition; the option set had only `attack:kind:np`, so
+no clause could ask "an NP" and hear Overedge. `attack:isNP` is emitted from the same function. The `attack:kind:np`
+readers (NP DmUp, Rho Aias's scope, Nemo's) are unchanged; whether they should hear a categorized-as-NP attack is open.
+Ch. 11.
+
+### E2. A passive Noble Phantasm's use raised nothing — **fixed** (#208)
+
+**Reached: Kanshou & Bakuya, and any passive that "is used when ...".** A passive has no button, so `abilityUsed` was
+never raised for it and the two handlers that listen for a use (Magecraft, Atk Up (Trace)) never heard it. The
+`AbilityUsed` rule action says it, and the applier hands the event's subject to `fireEvent`. Ch. 10, E.9a.
+
+### E3. `onRemove` was paid by running out alone — **fixed** (#208)
+
+**Reached: every effect with an `onRemove`; today Atk Up (Trace) and Shock.** A Cure, a strip, a dispel or an
+`until <event>` took the effect and skipped its clause. `applier.mjs#resolveRemovals` pays it for every removal but an
+expiry (already paid) and a refresh or replacement. Shock's *"current Agility +1 when max is restored"* is now paid by a
+Cure too. Ch. 14, 15.
+
+### E4. A handler's `ApplyEffect until <event>` was permanent — **fixed** (#208)
+
+**Reached: any handler authoring an `until` duration.** The action kept `expiry` and dropped the duration it was authored
+with. A phase's `applyEffects` carried it; an event handler's did not. Ch. 4, 15.
+
+### E5. `combatProcessEnd` carried no attack — **fixed** (#208)
+
+**Reached: any clause about "an Attack he performs".** The event was raised on both combatants with no options, so a
+miss reached neither `damageStepEnd` (a hit's event) nor anything that could ask who attacked. The attacker hears it with
+the attack's options and `attack:performed`; firings queue per attacker, because two Processes of one declaration
+finished together and both spent a one-shot's charge. Ch. 21, E.
+
+### E6. A guard read `ticks` and the Damage Step read `duration` — **fixed** (#208)
+
+**Reached: any `ApplyEffect` duration.** `content-ticks.test.mjs` parsed `ticks` keys only; `parseTick("thisRound")`
+throws inside the Damage Step. The guard reads `duration` and `defaultDuration`. Ch. 44.
+
+### E7. An `inField:` that is no field passes the validator — **fixed** (#208)
+
+**Reached: only EMIYA's two Circuits, which asked the slug.** A field's id is its ability's content id;
+`test/unit/in-field-names.test.mjs` fails for any other name. Ch. 11, 44.
+
+---
+
 ---
 
 ## 46.5 The per-Servant checklist
@@ -5698,3 +5745,8 @@ reader of a rule the first reader answered one way.
 | A close Normal Attack uses Kanshou & Bakuya, so Range Up and Atk Up (Trace)'s extension follow (reading 5) | the `AbilityUsed` rule action, `engine/scheduler.mjs`; the subject travels through `engine/applier.mjs#fireWriteEvent` into `fireEvent`'s `ctx.subject` |
 | Overedge's two swings are Normal Attacks, each with its own Kanshou & Bakuya use; one Overedge is three uses of Projection NPs, three Atk Up (Trace) extensions and three Range Up refreshes — a consequence of readings 5 and 7, pinned in `emiya-208-arena.test.mjs` (readings 5, 7) | `countsAsNormalAttack` on `abilities/emiya-overedge.yml`; its grant rule's `AbilityUsed` |
 | "An NP that deals damage" counts what is only categorized as one: Overedge yes, a plain close swing no (readings 11, 22) | `attack:isNP`, `rules/options.mjs` from `isNPAttack`; `categorizedAsNP` stamped by `engine/attack.mjs#buildAttackSpec`; facet in `rules/facets.mjs`; both Circuits' charge clause asks it |
+| The Circuits fire on any Normal Attack inside the Marble, hit or miss, at the end of its Combat Process; BC's +50 needs a hit (reading 10). They had **never** fired at all: both named the field `unlimitedBladeWorks`, the slug, and a field's id is its content id | `combatProcessEnd` heard by the attacker with the attack's options and `attack:performed` (`engine/attack.mjs#raiseCombatProcessEnd`, `rules/options.mjs`); `self:inField:emiya-unlimited-blade-works` in `effects/activated-circuits.yml`, `blazing-circuits.yml`; `test/unit/in-field-names.test.mjs` |
+| Each circuit is three documents: the persistent first clause, the one-shot "next NP that deals damage" (`acNextNp`, `bcNextNp`, `uses: 1`), and the Overdrive for the rest of the Round (`acOverdrive`, `bcOverdrive`). The next NP is *used*, not landed: an Evaded NP counts (decided 2026-10-15). AC and BC survive their own one-shot, which an authored `uses: 1` on the circuit itself would have spent with it | `effects/ac-next-np.yml`, `bc-next-np.yml`, `ac-overdrive.yml`, `bc-overdrive.yml`; Trace, On's `choose` options carry the pieces as phases |
+| The cut and the +20% start with the next Attack, not the NP that opened them: a marker (`circuitsPending`, until the Combat Phase ends) keeps Overedge's second swing and an area NP's other Processes out (reading 12; BC mirrored, decided 2026-10-15). Firings of `combatProcessEnd` queue per attacker, or Overedge's two swings paid the one-shot twice | `effects/circuits-pending.yml`; `engine/attack.mjs#fireCombatProcessEnd` |
+| "For the rest of the Round" is `until roundEnd`, from an event handler's `ApplyEffect` (reading 12). The circuits had authored `duration: "thisRound"`, which `parseTick` throws on: the first damaging NP they were held for would have crashed the Damage Step | `engine/scheduler.mjs` (`ApplyEffect` stamps `duration` for an `until`), `engine/applier.mjs#entryOfIntent`; `content-ticks.test.mjs` reads `duration` too |
+| Atk Up (Trace) going, by any route, removes every piece (reading 13; ruled 2026-10-15: Cure and strip too, not only running out) | `engine/applier.mjs#resolveRemovals`; `scheduler.expireEffects` flags its removals `onRemoveRan`; `effects/atk-up-trace.yml` `onRemove` lists all seven |

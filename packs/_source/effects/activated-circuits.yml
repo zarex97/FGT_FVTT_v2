@@ -4,14 +4,22 @@
 # its own effect." So: `status` polarity, so buff removal and Debuff Immune both
 # ignore it; `unremovable`, so nothing strips it; and the one thing that DOES
 # remove it lives on `atkUpTrace`, which is where the sheet puts it.
+#
+# The whole of it is THREE documents, not one (ruled 2026-10-14/15, #208 readings
+# 10 to 13), because the sheet's three sentences have three lifetimes and an
+# effect holds one: this persistent first clause; `acNextNp`, the one-shot "next
+# NP that deals damage"; and `acOverdrive`, "for the rest of the Round". A one-shot
+# INSIDE a persistent effect spends the effect (`consumesUse` deletes the document
+# at its last charge), which is what authoring them together did.
 schema: 1
 id: activatedCircuits
 name: "Activated Circuits (AC)"
 description: |
   While Unlimited Blade Works is Active, a Normal Attack restores 1 Luck and reduces EMIYA's NP
-  Cooldown by 1 Turn at the end of the Combat Process. The next time EMIYA uses an NP that
-  deals damage, restore 2 Luck; and for the rest of the Round, every Attack reduces his NP
-  Cooldown by 2 Turns at the end of the Combat Process.
+  Cooldown by 1 Turn at the end of the Combat Process, hit or miss. The next time EMIYA uses an
+  NP that deals damage, restore 2 Luck; and for the rest of the Round, each Attack he performs
+  reduces his NP Cooldown by 2 Turns at the end of its Combat Process, from the next Attack on
+  (see @effect[acNextNp]{the second clause} and @effect[acOverdrive]{its Overdrive}).
 polarity: status
 volatility: nonVolatile
 valence: neutral
@@ -25,35 +33,22 @@ unremovable: true
 # cannot have both the AC and BC effects at the same time" AND "you can
 # choose to swap from AC to BC or vice-versa" -- and `blocks` can only say
 # the first, by REFUSING the swap. Declared on both sides, so whichever is
-# applied wins and the swap is the same write as the first pick.
-replaces: [blazingCircuits]
+# applied wins and the swap is the same write as the first pick. The other
+# circuit's pieces go with it: they are part of it.
+replaces: [blazingCircuits, bcNextNp, bcOverdrive]
 rules:
-  # Clause 1. Gated on Unlimited Blade Works being up, which is a question about
-  # a field rather than about a buff -- `self:inField:` is the option the field
-  # annotation emits for the area a unit is standing in.
+  # Clause 1. "His Normal Attack while Unlimited Blade Works is Active ... at the
+  # end of the Combat Process": HIT OR MISS (ruled 2026-10-14, reading 10), so on
+  # `combatProcessEnd` heard by the attacker, not on `damageStepEnd`, which only a
+  # hit reaches. Gated on Unlimited Blade Works being up, which is a question
+  # about a field rather than about a buff -- `self:inField:` is the option the
+  # field annotation emits for the area a unit is standing in, and a field's id is
+  # its ability's CONTENT id. It was written with the slug, and no unit has ever
+  # stood in a field of that name (#208).
   - key: OnEvent
-    event: damageStepEnd
+    event: combatProcessEnd
     automatic: true
-    predicate: ["attack:kind:normal", "self:inField:unlimitedBladeWorks"]
+    predicate: ["attack:kind:normal", "self:inField:emiya-unlimited-blade-works"]
     then:
       - { key: ResourceDelta, resource: luck, delta: 1 }
       - { key: CooldownDelta, scope: np, delta: -1 }
-
-  # Clause 2, first half: "the NEXT time EMIYA uses an NP that deals damage" --
-  # once, hence `consumesUse`, and the charge is what makes "next" a rule rather
-  # than "every".
-  - key: OnEvent
-    event: damageStepEnd
-    automatic: true
-    consumesUse: true
-    # "An NP that deals damage": a Noble Phantasm OR an ability categorized as
-    # one, so Overedge counts and a plain Kanshou & Bakuya swing does not (ruled
-    # 2026-10-14, #208 readings 11 and 22). `attack:kind:np` heard the first only.
-    predicate: ["attack:isNP"]
-    then:
-      - { key: ResourceDelta, resource: luck, delta: 2 }
-      # Second half: the standing 2-Turn refund, "for the rest of the Round".
-      - key: ApplyEffect
-        effect: { id: acOverdrive }
-        duration: "thisRound"
-uses: 1

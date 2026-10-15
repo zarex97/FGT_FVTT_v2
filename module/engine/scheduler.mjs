@@ -1216,7 +1216,14 @@ const ACTIONS = Object.freeze({
       : typeof a.times === "string" ? timesOf(a.times, { event: c.event ?? null }) : stackTimes(a.times, u);
     if (applyTimes !== null && applyTimes <= 0) return [];
 
-    const ticks = a.duration ? resolveTicks(parseTick(a.duration), c) : null;
+    const parsed = a.duration ? parseTick(a.duration) : null;
+    const ticks = parsed ? resolveTicks(parsed, c) : null;
+    // `until <event>` has no clock, so no expiry: what ends it is the event, and
+    // the landing flow is the one that records which (`endsOn`). The action kept
+    // only `expiry` and dropped the duration it was authored with, so a handler's
+    // "until roundEnd" produced an effect with no end at all -- a phase's
+    // `applyEffects` carried it, an event handler's did not (#208 reading 12).
+    const endsOnEvent = parsed?.kind === "untilEvent" ? { duration: a.duration } : {};
     // The ATTACK that raised the event, when one did. Magic Resistance's Death
     // exemption is a clause about it, tested when the effect lands, by a path that
     // has only this intent to go on (#127).
@@ -1231,6 +1238,7 @@ const ACTIONS = Object.freeze({
       ...(a.unremovable || a.effect?.unremovable ? { unremovable: true } : {}),
       ...(a.permanent || a.effect?.permanent ? { permanent: true } : {}),
       expiry: ticks === null || ticks === INFINITE ? (a.effect?.expiry ?? null) : (c.tick ?? 0) + ticks,
+      ...endsOnEvent,
       // The HANDLER'S BEARER, not the recipient. `dispatch` fans a
       // `target: nearby` action over its set and hands each recipient in as
       // `u`, so the caster arrives separately as `c.bearer` -- and an effect
@@ -2208,7 +2216,11 @@ export function expireEffects(units, ctx, reason = "expired") {
 
       // Expiry is never blocked by Unremovable or by removal resistance —
       // those govern Cure and Dispel, not the clock.
-      out.push(I.removeEffect(u.id, e.id ?? e.defId, reason));
+      //
+      // `onRemoveRan` tells the applier its "on removal" clauses were just paid
+      // above: it pays them for every OTHER removal (`applier.mjs#resolveRemovals`),
+      // and this one must not pay twice.
+      out.push({ ...I.removeEffect(u.id, e.id ?? e.defId, reason), onRemoveRan: true });
     }
   }
   return out;
@@ -2226,7 +2238,7 @@ export function expireEffects(units, ctx, reason = "expired") {
  * @param {SchedulerContext} ctx carries `effectDef(id)`
  * @returns {Intent[]}
  */
-function onRemoveIntents(unit, instance, ctx) {
+export function onRemoveIntents(unit, instance, ctx) {
   const def = ctx.effectDef?.(instance.defId) ?? null;
   const actions = def?.onRemove ?? [];
   if (actions.length === 0) return [];

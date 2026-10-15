@@ -2,12 +2,13 @@
 #
 # A separate effect rather than more rules on `activatedCircuits`, because it
 # has a different LIFETIME: AC lasts until Atk Up (Trace) goes away, and this
-# lasts "for the rest of the Round". Folding the two together would make the
-# refund permanent or make AC expire at the Round boundary, and both are wrong.
+# lasts "for the rest of the Round" (`acNextNp` applies it `until roundEnd`).
+# Folding the two together would make the refund permanent or make AC expire at
+# the Round boundary, and both are wrong.
 schema: 1
 id: acOverdrive
 name: "Activated Circuits: Overdrive"
-description: "Whenever EMIYA performs an Attack, his NP Cooldown is reduced by 2 Turns at the end of the Combat Process."
+description: "Whenever EMIYA performs an Attack, his NP Cooldown is reduced by 2 Turns at the end of its Combat Process, hit or miss."
 polarity: status
 volatility: nonVolatile
 valence: neutral
@@ -15,9 +16,15 @@ stacking: noneRefresh
 baseChance: 500
 unremovable: true
 rules:
+  # "Each Attack he performs ... at the end of its Combat Process": any Attack (a
+  # Normal Attack, a Skill, an NP, a Counter), hit or miss. `attack:performed` is
+  # the firing on the attacker, because the same event is heard by the defender,
+  # and he is not performing an Attack then. And not while the NP that opened it
+  # is still resolving (`circuitsPending`): the cut starts with the next Attack.
   - key: OnEvent
-    event: damageStepEnd
+    event: combatProcessEnd
     automatic: true
+    predicate: ["attack:performed", { not: "self:effect:circuitsPending" }]
     then:
       # `scope: np` rather than a named ability: he has five Noble Phantasms and
       # naming one would pick a winner the sheet does not pick.

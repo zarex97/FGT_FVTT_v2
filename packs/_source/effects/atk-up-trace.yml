@@ -37,6 +37,16 @@ rules:
 # When this goes away it takes the Circuits with it. Authored HERE rather than
 # on the Circuits, because the sheet phrases it from this side -- and because an
 # `onRemove` on the Circuits would have to watch a buff that is not itself.
+#
+# ANY removal, not only running out (ruled 2026-10-15, #208 reading 13): a Cure,
+# a strip, a dispel. `onRemove` was paid by expiry alone; the applier pays it for
+# every removal now (`engine/applier.mjs#resolveRemovals`). Every PIECE goes: the
+# two circuits, their one-shots and Overdrives, and the marker between them.
 onRemove:
   - { key: RemoveEffect, effect: activatedCircuits }
+  - { key: RemoveEffect, effect: acNextNp }
+  - { key: RemoveEffect, effect: acOverdrive }
   - { key: RemoveEffect, effect: blazingCircuits }
+  - { key: RemoveEffect, effect: bcNextNp }
+  - { key: RemoveEffect, effect: bcOverdrive }
+  - { key: RemoveEffect, effect: circuitsPending }
