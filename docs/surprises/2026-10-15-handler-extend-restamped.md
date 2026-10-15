@@ -16,5 +16,5 @@ Turn left the expiry exactly where the first had put it. docs/14's open question
 `mergeEmitted` lays the emitter's absolute `now + duration` over it. A phase's `applyEffects` has no emitted expiry, so it
 extended; a handler's `ApplyEffect` always has one, so it restamped. Two readers of "extended if reapplied".
 
-**Fix:** `module/engine/effect-applier.mjs:57 @ 3cc6a34` — the flow tags its extension (`extendsFrom`) and
+**Fix:** `module/engine/effect-applier.mjs:57 @ ae1dc44` — the flow tags its extension (`extendsFrom`) and
 `mergeEmitted` adds the emitter's span to that. Magecraft's is the only handler-applied `noneExtend` in the corpus.
