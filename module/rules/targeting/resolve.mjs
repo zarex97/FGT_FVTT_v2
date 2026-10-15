@@ -279,7 +279,7 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     if (spec.anchor?.kind === "fieldEdge" && spec.anchor.fieldId === field.id) continue;
     survivors = survivors.filter((u) => {
       const verdict = isolationBlocks(field, caster, u, board, isolationCtx);
-      return !verdict.blocked || drop(u, `separated by ${field.id}`);
+      return !verdict.blocked || drop(u, `separated by ${field.name ?? field.id}`);
     });
   }
 

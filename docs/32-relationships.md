@@ -151,3 +151,8 @@ record shelters (shoved clear, or covered) is not flipped for Overpower.
 read the whole side from the first targeting code, so Heracles shoved another Master's Master clear. Every reader
 follows: the protection, both step-ins, the shove and the Counter redirect. Pale Rider's Spirits and the charmed
 Servant keep their rules.
+
+**The binding at the one door** (#209 §46.4-NI). `engine/io.mjs#defeat` defeats a `linkedDeath: ignoresRevival` Unit's
+partners (cause `linkedDeath`), whatever wrote the defeat: the Sustainability sweep, Instakill, Erase, a Command Spell, a
+field. The scheduler's `linkedDeathIntents` still logs the binding on the damage path; a partner already down is left. A
+Unit defeated twice is counted towards the Grail and frees its Servants once; its first cause stands.

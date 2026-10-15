@@ -103,3 +103,6 @@ The algorithm is eleven steps plus two upfront checks. Each step narrows the sur
 `candidatePlacements` offers the caster for a `targetUnit` anchor by the resolver's own reading,
 `resolveIncludeSelf`: `relations` naming `ally` or `self` include her. Only an explicit `includeSelf` did, so Ár
 could never be cast on Scáthach herself.
+
+**A separating field is named by its Region** (#208 §46.4-MP). `engine/board.mjs` projects each field's `name`, and the
+resolver's refusal reads *"separated by {name}"*; it printed the field's content id.

@@ -80,17 +80,27 @@ export function tableFor(own, opposing, forcing = {}) {
  * @returns {CheckPlan}
  */
 export function checkPlan(unit, check, { direction = "outgoing", options = null, rolls = {} } = {}) {
-  const relevant = (unit?.checkModifiers ?? [])
+  const answered = (unit?.checkModifiers ?? [])
     .filter((m) => m.check === check || m.check === "any")
     // A contribution whose clause is about the attack rather than about the
     // bearer travelled here unanswered, and answering it needs the option set.
     // Without one, an unconditional contribution still applies and a
     // conditional one does not -- the safe direction, and the same one
     // `collectContributions` takes.
-    .filter((m) => !m.predicate || (options ? testPredicate(m.predicate, { options }) : false))
-    // A forced table that is only PROBABLE. The caller rolls, keyed by source,
-    // exactly like every other roll in the system.
-    .filter((m) => passesChance(m, rolls));
+    .filter((m) => !m.predicate || (options ? testPredicate(m.predicate, { options }) : false));
+  // A forced table that is only PROBABLE. The caller rolls, keyed by source,
+  // exactly like every other roll in the system.
+  const relevant = answered.filter((m) => passesChance(m, rolls));
+  // ...and each of those dice, held or not, for the roll's record: Clairvoyance's
+  // 80% put Heracles on the unfavourable table and the card showed only the
+  // d20 (#208, live).
+  const chances = answered
+    .filter((m) => (m.direction ?? "outgoing") === direction && (m.chance ?? 100) < 100)
+    .map((m) => ({
+      source: m.source, chance: m.chance,
+      roll: typeof rolls?.[m.source] === "number" ? rolls[m.source] : null,
+      passed: passesChance(m, rolls),
+    }));
 
   const modifiers = relevant
     .filter((m) => (m.direction ?? "outgoing") === direction)
@@ -124,7 +134,7 @@ export function checkPlan(unit, check, { direction = "outgoing", options = null,
   const autoSucceed = (unit?.autoSucceeds ?? []).find((a) => a.check === check) ?? null;
   const adjustable = relevant.filter((m) => m.playerAdjustable);
 
-  return { modifiers, forceTable, autoSucceed, adjustable };
+  return { modifiers, forceTable, autoSucceed, adjustable, chances };
 }
 
 /**
@@ -156,6 +166,7 @@ export function mergePlans(own, imposed) {
     // target a free Evade.
     autoSucceed: own.autoSucceed,
     adjustable: own.adjustable,
+    chances: [...(own.chances ?? []), ...(imposed.chances ?? [])],
   };
 }
 

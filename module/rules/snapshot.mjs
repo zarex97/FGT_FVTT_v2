@@ -869,6 +869,12 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // Nemo's *Poseidon's Protection* is the clause that found it: its 50/100
   // reduction is collected only while he is in water, and it never was.
   recollectForTerrain(units, actors, settings.tickForTurnState ?? null);
+  // ...and for a twin, whose partner distance `annotateLinkedGroups` settled
+  // above. *"If Castor is directly next to Pollux ... his Master's Health lost
+  // ... are halved"* compiled against an option set with no distance in it, so
+  // the drain was 20 beside Pollux too (#209, found live). Terrain units were
+  // re-collected with the distance already.
+  recollectForPartner(units, actors, settings.tickForTurnState ?? null);
   // Which platform each unit is aboard, and the protection model the targeting
   // resolver enforces. Positional, so it settles here with the other passes.
   //
@@ -969,7 +975,7 @@ function recollectForTerrain(units, actors, tick = null) {
     const actor = entry?.actor ?? entry ?? null;
     if (!actor?.items) continue;
 
-    const again = contributionsOf(actor, { terrain: u.terrain, tick });
+    const again = contributionsOf(actor, { terrain: u.terrain, tick, partnerDistance: u.partnerDistance ?? null });
     // The terrain pass has already pushed its own modifiers onto `u.modifiers`
     // (Waterside's element bonuses), so the re-collected list is merged rather
     // than assigned -- assigning would drop the ground the unit is standing on
@@ -979,6 +985,36 @@ function recollectForTerrain(units, actors, tick = null) {
     u.damageNegation = again.damageNegation;
     u.eventHandlers = again.eventHandlers;
     u.suppressions = again.suppressions;
+  }
+}
+
+/**
+ * Re-run the contribution pass for a twin standing on open ground, now that its
+ * partner distance is known.
+ *
+ * Only `eventHandlers` is replaced: the one clause that reads the distance at
+ * compile time is a handler action's `tableFactor` (Mad Enhancement's drain,
+ * its floor and its threshold). Magic Resistance's *"Castor also receives it"*
+ * is an aura, settled on the board, and needs nothing here.
+ *
+ * @param {object[]} units
+ * @param {object[]} actors
+ * @param {number|null} [tick]
+ * @returns {void}
+ */
+function recollectForPartner(units, actors, tick = null) {
+  for (const u of units) {
+    if (typeof u.partnerDistance !== "number") continue;
+    if ((u.terrain ?? []).length > 0) continue;
+    // Only a twin whose compiled handlers ask the distance pays for the second
+    // pass: Castor with Mad Enhancement on, today (#209 review).
+    const asks = (u.eventHandlers ?? []).some((h) => (h.actions ?? []).some((a) =>
+      (a.tableFactor?.predicate ?? []).some((p) => String(p).includes("withinOfPartner"))));
+    if (!asks) continue;
+    const entry = actors.find((a) => (a.actor ?? a)?.id === u.id) ?? null;
+    const actor = entry?.actor ?? entry ?? null;
+    if (!actor?.items) continue;
+    u.eventHandlers = contributionsOf(actor, { tick, partnerDistance: u.partnerDistance }).eventHandlers;
   }
 }
 
@@ -1633,7 +1669,7 @@ export function abilityRecordOf(item, overrides = {}) {
  * @param {object} actor
  * @returns {object}
  */
-export function contributionsOf(actor, { terrain = [], tick = null } = {}) {
+export function contributionsOf(actor, { terrain = [], tick = null, partnerDistance = null } = {}) {
   const sys = actor.system ?? {};
   const abilities = [...(actor.items ?? [])]
     .filter((item) => !negated(item, actor))
@@ -1797,6 +1833,12 @@ export function contributionsOf(actor, { terrain = [], tick = null } = {}) {
       // whoever is hitting Nemo is standing in water. `rollNegation` does not
       // test predicates at all, so it would simply always apply.
       terrain: [...terrain],
+      // How far the other twin stands, threaded in by the board pass like the
+      // terrain above: `self:withinOfPartner:N` is a board fact, and Mad
+      // Enhancement's drain halves on it when the rules compile (`tableFactor`).
+      // `null` from `snapshotUnit`, which projects one actor and knows no
+      // partner; `recollectForPartner` asks again once the board does (#209, live).
+      partnerDistance,
       // What `rollOptionsFor` reads off an ability: its slug and whether it is on,
       // and -- for a Skill that COUNTS AS another -- the tags it is categorized
       // under, the Rank it holds them at and the effects that gate them. Without

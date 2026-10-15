@@ -80,6 +80,30 @@ const SELF_REQUIREMENTS = new Set([
 ]);
 
 /**
+ * Do the ability's own requirements that the bearer can answer alone pass?
+ *
+ * The one gate for every window offer: `abilitiesAtWindow` and `allyReactions`
+ * both ask it. `allyReactions` asked nothing, and `abilitiesAtWindow` handed the
+ * requirement an ability with no `lastUsedTick` -- so `healthRestoredSince`
+ * read "never used" and passed. Live, Rho Aias was offered again before
+ * EMIYA's Health had been restored, refused when pressed, and Nine Lives hit
+ * him unshielded (#208).
+ *
+ * @param {object} item an ability Item
+ * @param {object} unit the bearer, as the board projects it
+ * @returns {boolean}
+ */
+function selfGatesPass(item, unit) {
+  const sys = item.system ?? {};
+  const gates = (sys.requirements ?? []).filter((r) => SELF_REQUIREMENTS.has(r.kind));
+  if (gates.length === 0) return true;
+  // The ability itself, so a gate on its own group can leave itself out, and
+  // so a gate about its own history can read it.
+  const self = { id: item.id, contentId: sys.contentId ?? null, lastUsedTick: sys.lastUsedTick ?? null };
+  return meetsRequirements(gates, { unit, ability: self }).ok;
+}
+
+/**
  * The abilities this unit could use in response to being attacked.
  *
  * @param {object} unit an actor-shaped object with `items`
@@ -169,12 +193,7 @@ export function abilitiesAtWindow(unit, window) {
     //
     // Only the requirements answerable from the Unit alone: a `targetHasEffect`
     // has no target at a window and must not refuse for lack of one.
-    const gates = (sys.requirements ?? []).filter((r) => SELF_REQUIREMENTS.has(r.kind));
-    // The ability itself, so a gate on its own group can leave itself out.
-    const self = { id: item.id, contentId: sys.contentId ?? null };
-    if (gates.length > 0 && !meetsRequirements(gates, { unit, ability: self }).ok) return false;
-
-    return true;
+    return selfGatesPass(item, unit);
   });
 }
 
@@ -318,6 +337,8 @@ export function allyReactions({ defender, board, attack, attacker = null, actorF
       if ((sys.cooldown?.remaining ?? 0) > 0) continue;
       if (blockedThisTurn(item, used)) continue;
       if (isNegated(item, unit.effects ?? [])) continue;
+      // ...and its own requirements, read off the projector (#208).
+      if (!selfGatesPass(item, unit)) continue;
 
       out.push({ ability: item, ownerId: unit.id, ownerName: unit.name ?? doc.name });
     }

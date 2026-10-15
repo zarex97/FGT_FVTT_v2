@@ -28,6 +28,7 @@ import {
   targetSpecFor, countsAsAttack, countsAsAct, isNegated, blockedThisTurn, needsTargeting,
   classifyAbility,
   usageSpecFor,
+  useBudgetKind,
 } from "../rules/ability-use.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
 import { resolveTargets, pendingChoiceErrors } from "../rules/targeting/resolve.mjs";
@@ -149,9 +150,7 @@ export async function useSkill({
   // ...and a Noble Phantasm as one, now that a non-damaging NP comes here
   // rather than to the attack path (§46.4-CK): billed `np`, NP Seal refuses it,
   // and the Attack pool pays. A Spell is a `spell`, which Silence refuses.
-  const isNP = ability.type === "noblePhantasm" || ability.system?.isNP === true;
-  const budgetAction = budgetActionFor(isNP ? "np"
-    : asAttack ? (ability.system?.isSpell ? "damageSpell" : "normal") : "skill");
+  const budgetAction = budgetActionFor(useBudgetKind(ability));
   // An action that costs nothing. Doomsday Come's Drag is ruled (2026-10-04,
   // #180) an action the Noble Phantasm grants, neither an Attack nor a Skill:
   // no pool is asked or charged -- so no Seal on either refuses it -- and the
@@ -362,7 +361,18 @@ function phaseTargets(phase, resolved, actor, board) {
     );
     return out.units;
   }
-  return (phase.target ?? "reuse") === "self" ? [{ unitId: actor.id }] : resolved;
+  const target = phase.target ?? "reuse";
+  if (target === "self") return [{ unitId: actor.id }];
+  // The caster and every other member of its linked group, wherever they stand:
+  // Mana Burst's *"restore 1 Agility and 1 Luck to both Castor and Pollux"*.
+  // It fell to `reuse` here, the caster alone, so the twin was never restored
+  // (#209, live).
+  if (target === "linkedGroup") {
+    const members = unitOf(actor, board)?.linkedGroup?.memberIds ?? [];
+    const onBoard = members.filter((id) => id !== actor.id && (board?.units ?? []).some((u) => u.id === id));
+    return [{ unitId: actor.id }, ...onBoard.map((unitId) => ({ unitId }))];
+  }
+  return resolved;
 }
 
 /**
@@ -374,7 +384,10 @@ function phaseTargets(phase, resolved, actor, board) {
 function targetsSelfOnly(spec) {
   const anchor = spec?.anchor?.kind ?? spec?.anchor ?? "self";
   const relations = spec?.selection?.relations ?? ["self"];
-  return anchor === "self" && relations.every((r) => r === "self");
+  // ...and adds nobody: `alsoIncludes: partner` is the resolver's, and a spec
+  // short-cut to the caster never reached it -- Stars of the Chief God buffed
+  // Castor and not Pollux (#209, live).
+  return anchor === "self" && relations.every((r) => r === "self") && !spec?.selection?.alsoIncludes;
 }
 
 /**
@@ -538,11 +551,18 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
 
         case "statChange": {
           const changes = statChanges(phase, target.unitId, doc);
+          // The REAL numbers, read before and after, as `resourceLine` prints a
+          // resource: Castor's "+2 Luck" at a full 9 read "Luck +2" (#209, live).
+          const valueOf = (c) => resourceValue(game.actors.get(c.unitId), c.stat);
+          const before = changes.map(valueOf);
           await applyWorldIntents(changes, `skill:${ability.id}:stat`);
-          for (const c of changes) {
-            const line = statChangeLine(c);
-            if (line) applied.push({ unitId: target.unitId, summary: { id: "statChange", name: line, outcome: "applied", reason: null } });
-          }
+          // ...and WHOSE, when it is not the caster's: Mana Burst's "both twins"
+          // printed two "Agility +1" rows and named nobody (#209, live).
+          const whose = target.unitId === actor.id ? "" : `${game.actors.get(target.unitId)?.name ?? target.unitId}: `;
+          changes.forEach((c, n) => {
+            const line = statChangeLine(c, before[n], valueOf(c));
+            if (line) applied.push({ unitId: target.unitId, summary: { id: "statChange", name: `${whose}${line}`, outcome: "applied", reason: null } });
+          });
           break;
         }
 
@@ -1373,14 +1393,21 @@ export function resourceLine(key, before, after) {
  * A stat change as a skill card prints it: `Agility +1`.
  *
  * @param {object} intent a `statDelta` or `resource` intent
+ * @param {number|null} [before] the stat as read before the change
+ * @param {number|null} [after] the stat as read after it
  * @returns {string|null}
  */
-export function statChangeLine(intent) {
+export function statChangeLine(intent, before = null, after = null) {
   const key = intent?.stat ?? intent?.key ?? null;
   const delta = Number(intent?.delta);
   if (!key || !Number.isFinite(delta) || delta === 0) return null;
   const [word, part] = String(key).split(".");
   const label = word.charAt(0).toUpperCase() + word.slice(1) + (part === "max" ? " max" : "");
+  // The numbers when the caller read them, so a clamp says so; the authored
+  // delta otherwise.
+  if (Number.isFinite(before) && Number.isFinite(after)) {
+    return before === after ? `${label} ${after} (no change)` : `${label} ${before} → ${after}`;
+  }
   return `${label} ${delta > 0 ? "+" : ""}${delta}`;
 }
 

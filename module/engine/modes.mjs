@@ -89,7 +89,8 @@ export async function reconcileForcedModes(board = null) {
       // (#190 reading 13): an enemy dropping her Master to 30 ends the rage
       // there, before any drain.
       for (const item of [...actor.items].filter((i) => i.system?.isMode && i.system?.active)) {
-        if (!forcedOffNow(item, unit, snapshot)) continue;
+        // A Master at 0 is the defeat path's to answer (#209 §46.4-NH).
+        if (!forcedOffNow(item, unit, snapshot, { masterDefeatAnswers: true })) continue;
         intents.push(I.setMode(unit.id, item.system?.slug ?? item.id, false, "forcedDeactivation"));
         stopped.push({ unitId: unit.id, ability: item.name });
       }

@@ -208,3 +208,6 @@ her, around the stone, where it had opened on the deck and burned no ground enem
   boundary, whether or not a toll is due; see the Upkeep paragraph.)
 
 - **What happens to a field with no Region.** A field whose Region is deleted by hand exists on the projection (`board.fields`) but has an empty shape from `panelsOfRegion`. Its interior rules still apply to units at the cached location. Worth an ADR.
+
+**A field event at the start of a Turn is reported** (#208 §46.4-MS). `scheduler-hooks.mjs` posts `turnStart` field
+events through `postFieldReports` under *"{field}: start of the Turn"*; the Marble's toll took Health with no card.

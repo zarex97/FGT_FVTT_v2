@@ -19,7 +19,7 @@ import { currentBoard } from "./board.mjs";
 import { factionOfCombatant } from "./turn-order.mjs";
 import { sideOf } from "../rules/relations.mjs";
 import { fieldEventsIn, postFieldReports, postPeriodicReport } from "./field-report.mjs";
-import { postTurnEndReport } from "./turn-report.mjs";
+import { postTurnEndReport, clocksBefore, remainingOnActor } from "./turn-report.mjs";
 import * as budget from "./budget.mjs";
 import {
   grailContest, checkVictory, grailPanelCandidates,
@@ -146,9 +146,12 @@ async function onTurnChange(combat, prior, current) {
   const ended = moment(ctx.round, tick);
 
   const turnIntents = scheduler.endTurn(board, ctx);
+  // The clocks a sourced cut names, read before the writes: the card says what
+  // a cut took, and nothing of one that found the clock at 0 (#209 review).
+  const clocks = clocksBefore(turnIntents, remainingOnActor);
   await run(turnIntents, "scheduler:endTurn", ended);
   // ...and say what it did to anybody's Health (#190).
-  await postTurnEndReport(turnIntents);
+  await postTurnEndReport(turnIntents, clocks);
 
   // The Ends pressed during this Turn by an owner whose Turn it was not
   // (#65, ruling 19): *"…or at the start or end of any Round or Turn."*
@@ -161,10 +164,11 @@ async function onTurnChange(combat, prior, current) {
   if (due.length > 0) {
     await combat.setFlag("fgt", "deferred", deferred.filter((e) => e.at !== "turnEnd"));
     const owed = scheduler.runDeferred(due, board, ctx);
+    const owedClocks = clocksBefore(owed, remainingOnActor);
     await run(owed, "scheduler:deferred", ended);
     // Said on the card like the rest of the Turn's end: Tenmōkaikai ending on
     // the Turn she fell was silent (#195).
-    await postTurnEndReport(owed);
+    await postTurnEndReport(owed, owedClocks);
   }
 
   // What every Unit was like at the end of this Turn.
@@ -334,7 +338,12 @@ async function onTurnChange(combat, prior, current) {
   // A banished Kagome Spirit whose span has run out comes back, on a random
   // panel of the area it belongs to rather than where it fell.
   await fields.returnBanished(nextTick);
-  await run(await fields.runFieldEvents("turnStart"), "field:turnStart");
+  // ...and what it did, on a card: Unlimited Blade Works' toll took Health at
+  // every Turn's start and said so to nobody (#208, live). The Turn-end events
+  // are gathered above; these are the start's own.
+  const started = await fields.runFieldEvents("turnStart");
+  await run(started, "field:turnStart");
+  await postFieldReports(fieldEventsIn(started), { titleKey: "FGT.FieldReport.StartTitle" });
 }
 
 /**

@@ -145,3 +145,7 @@ so a gate on its own group leaves itself out. Brahmastra's card offered a Wisdom
 Ruled 2026-10-14: Eye of the Mind (False), Trofa and every other reaction ability answer where Block and Evade do, and
 not after a failed Evade. `combat-process.mjs#pendingPrompt` lists `s.reactionAbilities` on the `react` rung alone; the
 escape rung had listed them in its options, as `ability:` events its transitions refuse.
+
+**An ally's reaction passes the same gates as the defender's own** (#208 §46.4-MR). `rules/reactions.mjs#selfGatesPass`
+(requirements, `lastUsedTick`) serves `abilitiesAtWindow` and `allyReactions`. A refusal at press is whispered to the owner
+and the GM in the words of `FGT.Skill.Reason.*` (`attack.mjs#tellReactionRefused`).

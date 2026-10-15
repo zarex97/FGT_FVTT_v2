@@ -67,9 +67,10 @@ passiveRules:
     automatic: true
     predicate: ["attack:kind:attackSkill", "attack:range:lte:3"]
     then:
+      # The rest of that Turn, as Kanshou & Bakuya's own (#208, live).
       - key: ApplyEffect
         effect: { id: dualWieldGuard }
-        duration: "⅓◈"
+        duration: "until anyTurnEnd"
       # ...and Kanshou & Bakuya is USED, by each of the two swings (ruled
       # 2026-10-14, #208 readings 5 and 7). Named by content id, because K&B's
       # own rule is negated while Overedge cools: exactly one of the two rules

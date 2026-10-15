@@ -132,3 +132,6 @@ A wildcard row — *"your choice of any of the above"* — returns a question to
   unreached facility is this codebase's most frequent defect shape.
 
 - **Answered: the seed governs random target selection, and nothing else.** The whole path is three hops — `module/engine/board.mjs:319` derives `seed` from `combat.system.globalTurn`, `module/rules/snapshot.mjs:731` carries it onto the board projection, and `module/rules/targeting/resolve.mjs:425` consumes it in `seededShuffle` when a `random` chooser picks targets. That is its **only** consumer: `grep -rn seededShuffle module/` returns the definition and that one call. Dice are **not** seeded — every roll goes through Foundry's `Roll`, so a replay reproduces which targets were chosen but not what was rolled at them. Replaying a whole exchange deterministically would need the roll log's recorded values, not the seed.
+
+**A check's chances are filed** (#208 §46.4-MO). `checkPlan` returns the `chances` it rolls beside the d20, `mergePlans`
+concatenates them, and `rollLog.fromCheck` writes one line each: *"Clairvoyance: 1d100 → 43 against 80%, in force"*.

@@ -128,3 +128,11 @@ Test: `test/unit/roll-records.test.mjs`.
 or *"(no change)"* when the maximum clamped it (`engine/skill-use.mjs#resourceLine`). The attack path runs the same
 caster phases (`runCasterPhases`) and dropped their rows; it now posts them on a Skill card of their own, so Toole
 Fragarach shows *"Fragarach Tokens 4 → 1"*.
+
+**Rows say what moved, on whom** (#208 §46.4-MT, #209 §46.4-ND, NG). An attack card's visibility is built from its
+effects when the damage was skipped (an Instakill), and the damage block shows only with a result. A handler's cooldown cut
+is a row per copy (*"Name: Cooldown 7 → 6"*), its chance die is a roll record named for the clause, and the Turn-end card
+names a sourced cut (*"Castor's Dioscures Tyndaridae: Cooldown −2 Turn(s) (Self-Replenishment (Mana))"*) as what it took,
+read before the writes (`clocksBefore`): nothing for a clock already at 0. `damageDealt` and `damageStepEnd` file their dice
+through one pair, `rollChances` and `chanceRecords`, "resisted" included. A `statChange`
+row reads the stat before and after, *"Luck 9 (no change)"*, and names the Unit when it is not the caster.
