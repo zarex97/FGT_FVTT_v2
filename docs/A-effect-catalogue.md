@@ -337,6 +337,17 @@ by a derivative (using the derivative's duration); a derivative cannot be replac
 > **`Def Dwn (A)` — built 2026-09-16** (`packs/_source/effects/def-dwn-a.yml`),
 > the mirror of `Def Dwn (C)`, for the Dioscuri's Noble Phantasm, which inflicts
 > both.
+>
+> **Luck −1 and Agility −1 are for damage received from an *Attack*** (#209 `DT.defa.luck`,
+> `DT.defc.agi`, #223). A field's damage, a toll and a cost never raise `damageTaken`, so
+> they drain nothing; the measured damage of a Knockback (Akhilleus Kosmos's sidestep, *"not
+> an Attack"*, #184 reading 8) does raise it, because it runs a Combat Process for the
+> arithmetic, and it is the one that drained. Both handlers carry
+> `predicate: ["not:attack:plainDamage"]`, the option a Process opened with
+> `placement.plainDamage` emits. This reaches every Servant who inflicts them: the Dioscuri's
+> Noble Phantasm (A and C), Anastasia's Snegleta (A), Van Gogh's Het Gele Huis and The Yellow
+> House (C) and Mannanán's Fragarach Counter (C). The +15% they add to damage taken is not
+> gated: a measured hit is still damage.
 
 > **`Enigma` — built 2026-09-16, and this row was wrong about whose attack it
 > reads.**

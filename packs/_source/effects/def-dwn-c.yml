@@ -32,8 +32,15 @@ rules:
   # The second clause. `damageTaken` fires on the Unit that RECEIVED the damage
   # -- the mirror of `damageDealt`, and the reason it had to start firing: every
   # rider in the catalogue that pays out for being hit had no rung at all.
+  #
+  # *"whenever damage is received from an ATTACK"*: not a field's, a toll's or a
+  # cost's -- they never raise `damageTaken` at all -- and not the measured
+  # damage of a Knockback, which runs a Process for the arithmetic and is not an
+  # Attack (#184 reading 8). `attack:plainDamage` is what says so (#223, found by
+  # the Dioscuri audit; it reaches every Servant who inflicts Def Dwn).
   - key: OnEvent
     event: damageTaken
     automatic: true
+    predicate: ["not:attack:plainDamage"]
     then:
       - { key: StatDelta, stat: "agility.value", delta: -1 }

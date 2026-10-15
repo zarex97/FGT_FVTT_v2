@@ -92,6 +92,13 @@ export function rollOptionsFor({ attacker, defender, attack = null, withoutModeH
   // Counter is only ever declared at Combat Process step 6.
   if (attack.isCounter) options.add("attack:isCounter");
 
+  // Damage MEASURED as an attack's and dealt by none: a Knockback's
+  // *"receives damage equivalent to a Normal Attack"* (#184 reading 8). It runs
+  // a Combat Process for the arithmetic and is not an Attack, which Def Dwn (A)
+  // and (C) are about: Luck and Agility fall *"whenever damage is received from
+  // an Attack"* (#209, #223).
+  if (attack.plainDamage) options.add("attack:plainDamage");
+
   // HOW THE DEFENDER REACTED, once the ladder has closed. Emitted on `target`
   // because that is what the defender is called throughout this vocabulary.
   //

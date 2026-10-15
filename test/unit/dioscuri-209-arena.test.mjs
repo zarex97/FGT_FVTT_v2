@@ -469,3 +469,81 @@ describe("a Counter against the joint NP answers the twin who declared it (#209 
     }, MATCH);
   });
 });
+
+
+
+/* ========================================================================== */
+/*  §46.4-D2 / #223 -- Def Dwn (A) and (C) drain only on damage from an Attack  */
+/* ========================================================================== */
+
+describe("Def Dwn (A) and (C) drain Luck and Agility only on damage from an Attack (#223, DT.defa.luck, DT.defc.agi)", () => {
+  // A hit of 100 or more is also an Injury Roll, which spends Agility of its own
+  // (Medea read 8 -> 6 with no Def Dwn at all). So each strike is played TWICE
+  // with the same dice -- the victim bare, and wearing both -- and the drain is
+  // the difference between the two.
+  const VICTIM = "victimOfDefDwn00";
+  const worn = [{ defId: "defDwnA", magnitude: 15 }, { defId: "defDwnC", magnitude: 15 }];
+  const strikers = async (effects) => [
+    ...await twinSpecs({ castor: { panel: { i: 5, j: 5 } }, pollux: { panel: { i: 3, j: 3 } } }),
+    {
+      from: "medea", id: VICTIM, panel: { i: 5, j: 6 }, effects,
+      // Pools to spend from: a subject never went through war setup, where they are rolled.
+      state: { factionId: "B", luck: { value: 8, max: 8 }, agility: { value: 8, max: 8 } },
+    },
+  ];
+  const pools = (w) => ({ luck: w.actor(VICTIM).system.luck.value, agility: w.actor(VICTIM).system.agility.value });
+
+  /**
+   * What `strike` costs a victim in Luck and Agility, with and without Def Dwn (A) and (C).
+   * @returns {Promise<{bare: object, worn: object, health: number[]}>}
+   */
+  const drain = async (strike) => {
+    const out = {};
+    const health = [];
+    for (const [name, effects] of [["bare", []], ["worn", worn]]) {
+      await withSubjects(await strikers(effects), async ({ world: w }) => {
+        w.dice.every(60);
+        const before = pools(w);
+        const full = w.actor(VICTIM).system.health.value;
+        await strike(w);
+        health.push(full - w.actor(VICTIM).system.health.value);
+        const after = pools(w);
+        out[name] = { luck: before.luck - after.luck, agility: before.agility - after.agility };
+      }, MATCH);
+    }
+    return { ...out, health };
+  };
+  /** What the Def Dwn pair itself took: the worn victim's drain less the bare one's. */
+  const owed = ({ bare, worn: wearing }) => ({ luck: wearing.luck - bare.luck, agility: wearing.agility - bare.agility });
+
+  it("drains 1 Luck and 1 Agility when Castor's Normal Attack lands", async () => {
+    const out = await drain((w) => playAttack(w, {
+      attacker: CASTOR, target: VICTIM, react: { [VICTIM]: ["nothing", "declined"] },
+    }));
+    expect(out.health.every((h) => h > 0)).toBe(true);
+    expect(owed(out)).toEqual({ luck: 1, agility: 1 });
+  });
+
+  it("drains nothing from damage that is no Attack: a field's, a toll's, a cost's (a bare damage intent)", async () => {
+    const out = await drain(async () => {
+      const { applyWorldIntents } = await import("../../module/engine/applier.mjs");
+      const I = await import("../../module/engine/intents.mjs");
+      await applyWorldIntents([I.damage(VICTIM, 120, "someFieldId000000")], "field:interior");
+    });
+    expect(out.health).toEqual([120, 120]);
+    expect(owed(out)).toEqual({ luck: 0, agility: 0 });
+  });
+
+  it("drains nothing from the measured damage of a Knockback, which is not an Attack (#184 reading 8)", async () => {
+    // Akhilleus Kosmos's sidestep: *"receives damage equivalent to a Normal Attack"*, run as a Process
+    // with `plainDamage` so it has no Evade, Block or Counter. It was still damage taken from an Attack.
+    const out = await drain(async (w) => {
+      const { resolveAttack } = await import("../../module/engine/attack.mjs");
+      const declared = await resolveAttack({ attackerId: CASTOR, abilityId: null, placement: { pathTargets: [VICTIM], plainDamage: true } });
+      await playProcess(w, declared.processes[0].messageId, { [VICTIM]: ["nothing", "declined"] });
+    });
+    expect(out.health.every((h) => h > 0)).toBe(true);
+    // RED before #223: Luck 1 and Agility 1, the damage taken from "an Attack" that was none.
+    expect(owed(out)).toEqual({ luck: 0, agility: 0 });
+  });
+});

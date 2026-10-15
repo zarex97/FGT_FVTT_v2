@@ -303,6 +303,12 @@ export const FACETS = Object.freeze([
     prose: "the attack is a Counter",
   }),
   facet({
+    id: "plainDamage",
+    subjects: ["attack"],
+    english: "This damage is only measured as an attack's, as a Knockback's is: it is not an Attack.",
+    prose: "the damage is measured as an attack's but is not an Attack",
+  }),
+  facet({
     id: "withinOfPartner",
     segments: [{ name: "panels", value: number(1, 6) }],
     // The other member of a linked group (Ch. 32). Adjacency is `:1`,

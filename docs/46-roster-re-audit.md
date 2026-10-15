@@ -5678,9 +5678,11 @@ ResDwn's +50 was read by a probe that wrote nothing.
 
 ## 46.31 The Dioscuri — the Servant who is two
 
-**115 Clauses, 11 readings ruled 2026-10-14, 6 tickets built (#218 to #223), 0 Pressed** (#209): the audit's presses
-are #224's. Reading 7 (the leash of 2) is as built. The build found defects that reach other Servants (§46.4-D1 to
-D3, below as they are built).
+**115 Clauses, 0 Pressed** (#209): the audit's presses are #224's. 11 readings were ruled 2026-10-14 and six tickets
+built them (#218 to #223, 2026-10-15). Seven changed built content: 1, 2, 3, 6, 8, 9 and 10. Three were already built
+and are pinned by tests: 4 (Mana Burst on a Counter), 5 (an effect on both twins counted twice) and 11 (a Counter
+answers the declarer). Reading 7 (the leash of 2) is as built. The board found five defects that reach other Servants
+(§46.4-D1 to D5, below), and #223's ruling reaches every Servant who inflicts Def Dwn (A) or (C).
 
 **Why they find what they find.** Two Servants who are one: every rule that asks "which Servant?" has two answers, and
 each reader had picked one. A slot was drawn by class and a class belongs to one of them; a Cooldown was cut on the
@@ -5702,7 +5704,17 @@ copy that was asked; a Range was measured from whoever declared. Each was a read
 | The joint NP is in Range when either twin is within 2 of the target (reading 6) | `targeting/resolve.mjs#resolveAnchor`, `#partnerPanelsOf`; `alsoFrom: partner` on `dioscuri-tyndaridae.yml`; the build refuses it elsewhere (`tools/lib/content.mjs`) |
 | The Crit Chance the joint NP rolls against is both twins', by NP figure only (reading 10) | `checks.mjs#critChance` (`alsoFrom`), `damage/pipeline.mjs#modifierSourceUnits` (the one reader of which Units join), `attack.mjs` |
 | A Counter against the joint NP answers the twin who declared it (reading 11): already built, now pinned, with the Range interaction of reading 6 | `attack.mjs#counterAvailable` and `#runCounter` (both read `state.attackerId`); `alsoCountsAsAttackFor` touches the budget alone |
+| Def Dwn (A)'s Luck −1 and (C)'s Agility −1 are for damage received from an *Attack*: a field's, a toll's and a cost's never raised `damageTaken`, a Knockback's measured damage did (#223, §46.4-D2) | `attack.mjs#buildAttackSpec` (`plainDamage`), `rules/options.mjs` and `rules/facets.mjs` (`attack:plainDamage`), `effects/def-dwn-{a,c}.yml` |
 | General: §46.4-D1 to D5 | |
+
+**What changed for others.** Anastasia's Shvibzik turns her NP clock now (D1). Every Servant who inflicts Def Dwn (A) or
+(C) — Anastasia's Snegleta, Van Gogh's Het Gele Huis and The Yellow House, Mannanán's Fragarach Counter — no longer
+drains Luck or Agility from a Knockback's measured damage (D2). Mad Enhancement's halving reads the base an attack adds
+up, which changes no attack of its other five bearers.
+
+**The ticket said 27.5; the engine gives 25.** Mad Enhancement's +55% halved on Mana Burst is 27.5, and the shared
+template floors a halved figure to a multiple of 5 (`magnitudeRoundTo: 5`, Kingprotea's 85 is 40 on her sheet). One
+rounding for every bearer was decided on 2026-10-15, and a test names it.
 
 **`classContainer` is seeded-then-owned** (`content/authored-fields.mjs`): a pair already in a world keeps "avenger" until it
 is re-summoned or edited. `servantClasses` is pack-owned and updates. A fresh pair comes from war setup, which writes the slot.
@@ -5721,6 +5733,15 @@ press of Mana Burst (the NP read 18 before and after). Both are `cooldown` phase
 **Open:** Jabberwock's Alice Eater (`{ key: DurationDelta }`, *"extends its period of existing for 3◈ more Turns"*) is
 dropped the same way (a probe: its Atk Up lands and `expiresAt` stays 40) and no phase kind moves a summon's expiry. It is
 the one name in `PHASE_ACTIONS_STILL_DROPPED`, which may only shrink. Ch. 17, 40.
+
+### D2. Def Dwn (A) and (C) drained Luck and Agility on a Knockback's damage — **fixed** (#223)
+
+**Reached: Anastasia, Van Gogh, Mannanán (every Servant who inflicts them).** *"Luck is reduced by 1 whenever damage is
+received from an Attack."* A field's damage, a toll and a cost never raise `damageTaken` (a bare `damage` intent drains
+nothing, now pinned). The one that did is the measured damage of Akhilleus Kosmos's Knockback, which runs a Combat Process
+for the arithmetic and is ruled *not an Attack* (#184 reading 8): the Process closed the reaction rungs and nothing else.
+The declaration carries `plainDamage` now, `rollOptionsFor` emits `attack:plainDamage`, and both handlers are gated on
+`not:attack:plainDamage`. The +15% damage they add is not gated. Ch. 21, A.
 
 ### D3. The second twin of a war-setup slot had nothing — **fixed** (#218)
 
@@ -5742,3 +5763,15 @@ had neither `ticks` nor `delta` and `set` the clock to 0: at every Turn end the 
 **Reached: every Servant who inflicts it.** `cooldownRate` answers -1 for a Noble Phantasm under NP Degen (*"a negative rate
 is cooldown ADDED"*) and `advanceCooldowns` pushes a tick only for a rate above 0, so Degen stops the natural reduction and
 never lengthens the clock. Found while writing the shared-clock tick test; not part of any ruling here, so left. Ch. A.
+
+### 46.31.3 Left open
+
+- **An Evaded Mana Burst pays nothing.** Its NP cut (Castor's) and its Evade (Pollux's) ride `afterDamage`, so a Mana Burst
+  the defender Evades cuts no clock and grants no Evade. Not ruled; left as built.
+- **`No Crit` and `G.Crit` stay the declarer's.** The joint NP combines both twins' Crit Chance and Crit Damage modifiers
+  (reading 10), not the flags that short-circuit them. Not ruled.
+- **Jabberwock's Alice Eater** (D1) needs a phase kind that moves a summon's expiry; **NP Degen** (D5) never adds its Turn.
+- **`chosenCooldowns`** (EMIYA's Tracing) is the one cooldown cut not mirrored to a twin; nobody in a group has a chosen
+  cooldown, so it is left unbuilt rather than built untested.
+- **A wizard-built pair has not been looked at.** D3's fix is held in pieces (`seatPartners`, `deployTokens`); `commitWar`
+  has no test of its own. #224's press should build a war and look at the second twin's side, Contract and token.
