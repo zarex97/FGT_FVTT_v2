@@ -31,7 +31,7 @@ Chapters 31–36; this appendix is the consolidated reference.
 | Mannanán mac Lir | Alter Ego | A | B | B | EX | D | 1250 | 6 | 1 | 150 | 250 | 2◈ |
 | Kingprotea | Alter Ego | EX | EX | A | D | B | 2000 | 7 | 1 | 200 | 125 | 7◈ |
 | Castor | Avenger | A | A++ | B | C | C | 1500 | 6 | 3 | 150 | 150 | 2◈ |
-| Pollux | Avenger¹ | A | A++ | B | C | C | 1500 | 5 | 1 | 200 | 150 | 2◈ |
+| Pollux | Saber⁵ | A | A++ | B | C | C | 1500 | 5 | 1 | 200 | 150 | 2◈ |
 | Semiramis | Caster/Assassin | E | D | D | A | A | 750 | 4 | 2 or 3² | 45 | 200 | 2◈/4◈² |
 | Scáthach | Lancer¹ | B | A | A | C | D | 1500 | 7 | 2 | 125 | 150 | 2◈ |
 | Karna | Lancer | B | C | A | B | D | 1000 | 7 | 2 | 125 | 175 | 2◈ |
@@ -42,6 +42,8 @@ Chapters 31–36; this appendix is the consolidated reference.
 | Heracles | Berserker¹ | A+ | A | A | B | A | 1500 | 6 | 1 | 160 | 175 | 2◈ |
 
 ¹ Class inferred from the ability set; not stated on the sheet.
+
+⁵ **Ruled, no longer inferred** (#209 reading 1, ruled 2026-10-14; Ch. 46 §46.31): Pollux is a Saber, and Castor stays an Avenger. The pair takes a Saber slot only and shows Saber to the enemy before the True Names are revealed.
 
 ⁴ The sheet's figure, and **overruled in play**: Ch. 41 Q50 settles that Base Attack is derived from the Rank, so his STR `D` gives **75**. Serenity's sheet prints 65 at the same Rank and is overruled the same way. The written value is kept so the deviation stays visible, and `validate:content` warns about it.
 ² Depends on the `Double Summon: Caster` coin flip.
@@ -187,8 +189,13 @@ the cheapest NP in the set, on the highest-END Servant. Deliberate.
 Full conversion: Ch. 34.
 
 ### Shared binding
+**Pollux is a Saber and Castor an Avenger** (#209 readings 1, 8 and 9, ruled 2026-10-14; Ch. 46 §46.31). Appendix D had marked her class inferred from his. The pair takes ONE slot, a Saber one: `classContainer` is `saber` on both sheets (the slot, and what `publicNameOf` and the class image read before the True Names are revealed), `servantClasses` stays `[avenger]` for Castor, and he is the *companion* (`catalogueEntryOf`): never drawn alone, summoned with Pollux (Ch. 31).
+
 `LinkedUnitGroup`: leash 2, linked death (ignoring revival), 0.5 budget weight, shared cooldowns
-by ability name, `zonSatisfaction: any`.
+by ability name, `zonSatisfaction: any`. **One clock** (#209 reading 2, ruled 2026-10-14): a use
+and any cut by either twin reaches both copies — Mana Burst's own 1◈ cut was a dropped
+`CooldownDelta` until #219 (§46.4-D1), and Self-Replenishment's 2 Turns set the clock to 0 until the
+same ticket (§46.4-D4).
 
 ### Castor
 
@@ -197,11 +204,11 @@ by ability name, `zonSatisfaction: any`.
 | Avenger (B) | Class, passive | RE (damage taken **+80** flat; counter damage +80) |
 | Oblivion Correction (C) | Class, passive | RE (crit chance +15%) |
 | Self-Replenishment (Mana) (D) | Class, passive | RE (+40 HP, NP cooldown −2 **turns**, per own/acted turn end) |
-| Mad Enhancement (B−) | Class, mode | RE (35%/15% taken, 55% dealt; **halved Master drain when adjacent to Pollux**) |
+| Mad Enhancement (B−) | Class, mode | RE (35%/15% taken, 55% dealt — **halved to 25 on Mana Burst**, which sums BA(MAG), by `attack:usesBase:mag` and the template's floor-to-5 rounding, #209 reading 3; **halved Master drain when adjacent to Pollux**) |
 | Twin God's Divine Core (B) | Passive, `countsAs: divinity` | RE (+80 flat; 5% NP cooldown chance on successful normal attacks) |
 | Stars of the Chief God (A) | Active | RE (paired `Castor`/`Pollux` buffs on both twins) |
 | Guardians of Navigation (B) | Active | RE (3 party buffs incl. 1-time Debuff Immune) |
-| Mana Burst (Light/Ancient) (A+) | `whenAttacking` | **RE+** `kind: choice` phase |
+| Mana Burst (Light/Ancient) (A+) | `whenAttacking` | **RE+** `kind: choice` phase; its last clause is a `cooldown` phase (§46.4-D1); also a Counter (#209 reading 4) |
 
 ### Pollux
 
@@ -218,7 +225,7 @@ by ability name, `zonSatisfaction: any`.
 
 | Ability | Mapping |
 |---|---|
-| Dioscures Tyndaridae (B, NP) | **RE+** `modifierSources: [castor, pollux]`; base = half of each twin's BA(STR); requires adjacency; counts as **both** twins' attack |
+| Dioscures Tyndaridae (B, NP) | **RE+** `modifierSources: [castor, pollux]`; base = half of each twin's BA(STR); requires adjacency; counts as **both** twins' attack; **Range 2 from either twin** (`anchor.alsoFrom: partner`, #209 reading 6); the two bags combine by concatenation, so an effect on both counts twice (two Divine Cores are +160, reading 5), and the Crit Chance rolled is both twins' where an NP figure is stated (reading 10) |
 
 **Exercises:** linked units, fractional budgets, shared cooldowns, cross-unit modifier
 combination, partner-conditional auras, mid-ability choice.

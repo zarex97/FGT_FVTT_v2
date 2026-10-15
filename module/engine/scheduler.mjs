@@ -29,6 +29,7 @@ import { currentHealth, maxHealth } from "../domain/health.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
 import * as I from "./intents.mjs";
+import { sharedCooldownIntents, twinsOf } from "./cooldown.mjs";
 import { periodicOf } from "../rules/periodic.mjs";
 import { resolveRevival, pendingRevivalRolls } from "../rules/revival.mjs";
 import { resourcePathFor, resourceValue } from "../domain/resources.mjs";
@@ -1188,15 +1189,28 @@ const ACTIONS = Object.freeze({
     // neither on the ability nor on the unit.
     const fromEvent = typeof a.delta === "string" ? eventValue(a.delta, c.event, a.factor ?? 1) : null;
     if (typeof a.delta === "string" && fromEvent === null) return [];
+    // `amount` arrives from a rank table resolved at collection time and is
+    // always POSITIVE there, so `direction` says which way it moves -- the
+    // reading `StatDelta` has always had, and this one lacked: Self-Replenishment
+    // (Mana) is `table: selfReplenishmentCooldown, direction: down`, which met
+    // neither `ticks` nor `delta` and so cut NOTHING -- it SET the Noble
+    // Phantasm's clock to 0 at the end of every one of Castor's Turns (§46.4-D4).
+    const fromTable = typeof a.amount === "number"
+      ? (a.direction === "down" ? -Math.abs(a.amount) : Math.abs(a.amount))
+      : null;
     const amount = a.ticks !== undefined
       ? -resolveTicks(parseTick(a.ticks), c)
-      : (fromEvent ?? a.delta ?? 0);
+      : (fromTable ?? fromEvent ?? a.delta ?? 0);
 
     const ids = a.scope === "np"
       ? (u.abilities ?? []).filter((x) => x.isNP || x.categorizedAsNP).map((x) => x.id)
       : [a.ability ?? h.abilityId].filter(Boolean);
 
-    return ids.map((id) => I.cooldown(u.id, id, Math.abs(amount), amount < 0 ? "reduce" : "set"));
+    const own = ids.map((id) => I.cooldown(u.id, id, Math.abs(amount), amount < 0 ? "reduce" : "set"));
+    // A Unit in a group that shares its clocks by name is cut on its twin's
+    // copy too (#209 reading 2): the gate (the Divine Core's 5%, the Castor
+    // buff's Crit) was the action's, so one decision cuts both.
+    return [...own, ...sharedCooldownIntents(own, u, c.board)];
   },
 
   /**
@@ -1923,14 +1937,56 @@ export function advanceCooldowns(units, ctx) {
   /** @type {Intent[]} */
   const out = [];
   for (const u of units) {
-    if ((u.effects ?? []).includes("stop")) continue;
     for (const a of u.abilities ?? []) {
       if (a.cooldownRemaining <= 0) continue;
-      const rate = cooldownRate(u, a, ctx);
+      // A clock the group shares turns at ONE rate, for every copy of it.
+      const { holder, ability } = sharedClockOf(u, a, units);
+      if ((holder.effects ?? []).includes("stop")) continue;
+      const rate = cooldownRate(holder, ability, ctx);
       if (rate > 0) out.push(I.cooldown(u.id, a.id, rate, "reduce"));
     }
   }
   return out;
+}
+
+/**
+ * Who holds an ability's clock, and with what, when a group shares it by name
+ * (#209 reading 2, ruled 2026-10-14; the 2026-10-15 decision on NP Regen and
+ * NP Lag).
+ *
+ * The Dioscuri's Noble Phantasm is one clock with two copies. Both copies tick
+ * every Turn by their OWN rate, so an effect on one twin -- NP Regen, NP Lag,
+ * NP Lock, Stop -- moved that twin's copy and left the other where it was: two
+ * clocks, which is what the ruling says there is not. So the clock ticks as one
+ * unit holding what EITHER twin holds: their effects, their stat deltas and
+ * their effect instances together, and their abilities' own `regen` summed. Two
+ * Regens add, and Lock beats Regen, exactly as they do on a single bearer
+ * (`cooldownRate` is the one reader). A unit with no group, or no twin of this
+ * ability, holds its own clock alone.
+ *
+ * @param {object} unit
+ * @param {object} ability one of `unit.abilities`
+ * @param {object[]} units the living board
+ * @returns {{holder: object, ability: object}}
+ */
+function sharedClockOf(unit, ability, units) {
+  const twins = twinsOf(unit, ability.id, { units }).flatMap((t) => {
+    const member = units.find((x) => x.id === t.unitId);
+    const copy = member?.abilities?.find((x) => x.id === t.abilityId);
+    return member && copy ? [{ member, copy }] : [];
+  });
+  if (twins.length === 0) return { holder: unit, ability };
+
+  const members = twins.map((t) => t.member);
+  return {
+    holder: {
+      ...unit,
+      effects: [...(unit.effects ?? []), ...members.flatMap((m) => m.effects ?? [])],
+      statDeltas: [...(unit.statDeltas ?? []), ...members.flatMap((m) => m.statDeltas ?? [])],
+      effectInstances: [...(unit.effectInstances ?? []), ...members.flatMap((m) => m.effectInstances ?? [])],
+    },
+    ability: { ...ability, regen: (ability.regen ?? 0) + twins.reduce((n, t) => n + (t.copy.regen ?? 0), 0) },
+  };
 }
 
 /**

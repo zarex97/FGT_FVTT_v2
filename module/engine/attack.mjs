@@ -12,7 +12,9 @@
  * it back.
  */
 
-import { computeDamage, computeDamageHits, isNPAttack, INJURY_THRESHOLD } from "../rules/damage/pipeline.mjs";
+import {
+  computeDamage, computeDamageHits, isNPAttack, modifierSourceUnits, INJURY_THRESHOLD,
+} from "../rules/damage/pipeline.mjs";
 import { ridersFire } from "../rules/damage/riders.mjs";
 import { expandInstances, damageBaseOf } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
@@ -26,7 +28,7 @@ import {
 import * as rollLog from "../rules/roll-log.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
 import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
-import { cooldownChanges, statChangeLine, checkLine } from "./skill-use.mjs";
+import { cooldownChanges, cooldownLine, statChangeLine, checkLine } from "./skill-use.mjs";
 import { splitCooldownRider } from "../rules/cooldown-riders.mjs";
 import {
   classifyAbility, targetSpecFor as specForAbility, usageSpecFor, dealsNoDamage,
@@ -776,6 +778,13 @@ export function buildAttackSpec({
       // is the ONE place an ability's NP category is read (the pipeline got it
       // there; the options were built before it was added -- #208).
       categorizedAsNP: attackIdentityOf(ability, options).categorizedAsNP,
+      // Damage only MEASURED as an attack's (#184 reading 8): Akhilleus Kosmos's
+      // sidestep *"receives damage equivalent to a Normal Attack"*, and the
+      // ruling is that it is not an Attack. The declaration already read it to
+      // close the reaction rungs; carried here so a Clause about "damage
+      // received from an Attack" can ask (`attack:plainDamage`) -- Def Dwn (A)
+      // and (C) do (#223).
+      plainDamage: Boolean(placement?.plainDamage),
       // Which Base Attack this uses, and whether Magic Resistance sees it at all.
       // Both are read by Magic Resistance's Instakill/Death ladder, which is
       // exempted for *"an Attack/Attack Skill/Spell/NP that deals STR damage or
@@ -4447,7 +4456,17 @@ async function applyDamage(state, message) {
   // The pipeline's own definition of "is an NP", handed to the chance: the
   // option `attack:kind:np` cannot see an attack the sheet only categorizes as one
   // (#131). Crit Up and its kin do not affect a Noble Phantasm.
-  const critSpec = critChance(attacker, defender, { options, isNP: isNPAttack({ ...facts, ...identity }) });
+  //
+  // ...from the Units whose bags the attack JOINS to the attacker's
+  // (`damage.modifierSources`, the same reader the damage pipeline's union
+  // asks): the joint Noble Phantasm's Crit Chance is both twins' (#209 reading
+  // 10, ruled 2026-10-14). The damage half combined already; the chance read the
+  // attacker's `checkModifiers` alone.
+  const critSpec = critChance(attacker, defender, {
+    options,
+    isNP: isNPAttack({ ...facts, ...identity }),
+    alsoFrom: modifierSourceUnits(description.attack, namedUnits(attacker, board), attacker).map((s) => s.unit),
+  });
   const critRoll = await new Roll("1d100").evaluate();
   const isCrit = critSpec.blocked
     ? false
@@ -5074,7 +5093,20 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
           ? cooldownChanges({ ...phase, changes: oncePerPhase }, attackerDoc, cdBoard, ability, defenderDoc)
           : []),
       ];
-      if (intents.length > 0) await applyBatch(intents, `np:${ability.id}:cooldown`);
+      if (intents.length > 0) {
+        // On the card, one line per clock that moved, as a Skill's card prints
+        // it (`Name: Cooldown 18 → 15`): a cut the player cannot read is not
+        // built (#219, §46.4-D1 -- Mana Burst's never showed because it never
+        // happened). The Dioscuri's shows on BOTH twins' Noble Phantasm.
+        const remainingOf = (c) => game.actors.get(c.unitId)?.items?.get(c.abilityId)?.system?.cooldown?.remaining ?? 0;
+        const before = intents.map(remainingOf);
+        await applyBatch(intents, `np:${ability.id}:cooldown`);
+        intents.forEach((c, n) => {
+          const name = game.actors.get(c.unitId)?.items?.get(c.abilityId)?.name ?? null;
+          const line = cooldownLine(name, before[n], remainingOf(c));
+          if (line) applied.push({ unitId: c.unitId, summary: { id: "cooldown", name: line, outcome: "applied", reason: null, chance: null } });
+        });
+      }
       continue;
     }
     if (phase.kind === "setMode") {

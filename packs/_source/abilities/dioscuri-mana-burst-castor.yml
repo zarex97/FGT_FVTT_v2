@@ -88,7 +88,14 @@ phases:
       - { id: blind, duration: "1◈", chance: 50 }
   # "Then, reduce Castor's NP Cooldown by 1◈ Turns." `ticks`, not `delta`: this
   # one IS a ◈ expression, unlike Self-Replenishment's literal 2 Turns.
-  - kind: applyEffects
+  #
+  # A `cooldown` phase, NOT an `applyEffects` phase carrying a `CooldownDelta`
+  # rule element: that phase lands EFFECTS, reads each entry through `entryOf`,
+  # and an entry with no `id` is no effect at all -- the cut was dropped and this
+  # Skill had never turned the clock (§46.4-D1, found by the Dioscuri audit,
+  # #219). The cut reaches Pollux's copy too: the pair has one clock (#209
+  # reading 2, ruled 2026-10-14; `engine/cooldown.mjs#sharedCooldownIntents`).
+  - kind: cooldown
     target: self
-    rules:
-      - { key: CooldownDelta, scope: np, ticks: "1◈" }
+    changes:
+      - { scope: np, ticks: "1◈", direction: down }

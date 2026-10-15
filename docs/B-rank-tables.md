@@ -621,7 +621,11 @@ contradicted. Treated the same way as the `A+` override on
 The last of those is the one an author will get wrong. `CooldownDelta`
 distinguishes a ◈ expression from a raw turn count **by field**: `ticks` is
 resolved against the world's turns per Round, `delta` is the count itself. A
-`table:` on a `CooldownDelta` feeds `delta`.
+`table:` on a `CooldownDelta` is resolved to `amount` (always positive), and
+`direction: down` says it is a reduction — the reading `StatDelta` has always
+had. The action read neither, so Self-Replenishment (Mana) **set** the Noble
+Phantasm's clock to 0 at the end of every Turn instead of cutting 2 Turns off it
+(§46.4-D4, #219).
 
 **Avenger is net-negative in isolation**, which nothing else in §B.3 is. The +80
 is read at **stage 7** on the *defender's* side (`FLAT_TAKEN_KEYS`) rather than as

@@ -275,7 +275,8 @@ export async function createMasterFor(container, draft, roster = []) {
  * you do not get when the step throws.
  *
  * @param {object} draft
- * @returns {Promise<{scene: object, masters: object[], servants: object[], combat: object}>}
+ * @returns {Promise<{scene: object, masters: object[], servants: object[], partners: object[], combat: object}>}
+ *   `partners` are the Servants summoned with a drawn one (`seatPartners`)
  */
 export async function commitWar(draft) {
   const roster = factions();
@@ -353,6 +354,7 @@ export async function commitWar(draft) {
 
   /** @type {object[]} */ const masters = [];
   /** @type {object[]} */ const servants = [];
+  /** @type {object[][]} */ const companions = [];
 
   for (const container of draft.containers) {
     await note(combat, `Filling ${container.factionId} / ${container.classContainer}`,
@@ -393,6 +395,12 @@ export async function commitWar(draft) {
     // them, and Ch. 32's per-Servant Command Spell pools are keyed off the
     // Master's roster.
     await worldIO().setContract(servant.id, "contracted", master.id);
+
+    // The Servant summoned WITH this one (`commitSummon` cross-links them) is a
+    // full member of the slot: the same side, the same Contract, a token beside
+    // it. Without this the second twin of every pair stood on no side, under no
+    // Master and off the board (§46.4-D3, found by the Dioscuri audit, #218).
+    companions.push(await seatPartners(servant, container, master));
   }
 
   await combat.update({
@@ -402,7 +410,7 @@ export async function commitWar(draft) {
   });
 
   await note(combat, "Deploying units into their home bases");
-  await deployTokens(scene, draft, roster, masters, servants);
+  await deployTokens(scene, draft, roster, masters, servants, companions);
 
   // Everyone can see everyone their Detect reaches the moment they are placed,
   // and `unitFirstSeen` has to be asked here or it is never asked about the
@@ -430,8 +438,8 @@ export async function commitWar(draft) {
   const { markOpeningChoicesDue } = await import("./opening-choice.mjs");
   await markOpeningChoicesDue();
 
-  await note(combat, `War built: ${servants.length} Servants, ${masters.length} Masters`);
-  return { scene, masters, servants, combat };
+  await note(combat, `War built: ${servants.length + companions.flat().length} Servants, ${masters.length} Masters`);
+  return { scene, masters, servants, partners: companions.flat(), combat };
 }
 
 /**
@@ -450,9 +458,10 @@ export async function commitWar(draft) {
  * @param {Array<{id: string}>} roster
  * @param {object[]} masters
  * @param {object[]} servants
+ * @param {object[][]} [partners] by Servant, the Servants summoned with it (`seatPartners`)
  * @returns {Promise<void>}
  */
-async function deployTokens(scene, draft, roster, masters, servants) {
+export async function deployTokens(scene, draft, roster, masters, servants, partners = []) {
   const free = new Map(plannedBases(draft, roster).map((r) => [r.factionId, [...r.offsets]]));
   const size = scene.grid.size;
 
@@ -483,6 +492,17 @@ async function deployTokens(scene, draft, roster, masters, servants) {
     const servantToken = await servant.getTokenDocument({ x: here.j * size, y: here.i * size });
     data.push(servantToken.toObject());
 
+    // A Servant summoned with partners brings them to the same spot: each on
+    // the free panel nearest it, BEFORE the Master takes the next, so the pair
+    // starts directly next to each other (the Dioscuri's joint Noble Phantasm
+    // asks for that) and well inside the leash of 2, whatever the base's shape.
+    for (const partner of partners[n] ?? []) {
+      const next = take(panels, here);
+      if (!next) break;
+      const partnerToken = await partner.getTokenDocument({ x: next.j * size, y: next.i * size });
+      data.push(partnerToken.toObject());
+    }
+
     // The Master goes on the free panel NEAREST its own Servant, not on the
     // next one in the list. Walking the list in order straddles the end of a
     // row: on a 13-wide base the seventh pair landed at (0,12) and (1,0),
@@ -495,4 +515,40 @@ async function deployTokens(scene, draft, roster, masters, servants) {
     data.push(masterToken.toObject());
   }
   if (data.length > 0) await scene.createEmbeddedDocuments("Token", data);
+}
+
+/**
+ * Seat the Servants summoned WITH this one in its slot: the same side, the same
+ * class container, and a Contract to the same Master.
+ *
+ * `commitSummon` brings a group's partners in the same commit and cross-links
+ * their `memberIds`, and writes nothing about a war: a partner arrives with no
+ * Master, so Free, and no faction. The wizard wrote all of that for the Servant
+ * it drew and for nobody else, so the second twin of a pair stood on no side,
+ * under no Master and off the board (§46.4-D3). Only the Dioscuri summon
+ * together; every other Servant has no `memberIds` and this returns `[]`.
+ *
+ * The partner takes the SLOT's container, not its own class: the pair sits in
+ * one slot (#209 reading 8), and `classContainer` is the slot.
+ *
+ * @param {object} servant the Servant the container drew
+ * @param {{factionId: string, classContainer: string}} container
+ * @param {object} master the slot's Master
+ * @returns {Promise<object[]>} the partners, in `memberIds` order
+ */
+export async function seatPartners(servant, container, master) {
+  /** @type {object[]} */
+  const seated = [];
+  for (const id of [...(servant.system?.linkedGroup?.memberIds ?? [])]) {
+    const partner = game.actors.get(id);
+    if (!partner) continue;
+    await partner.update({
+      "system.factionId": container.factionId,
+      "system.classContainer": container.classContainer,
+    });
+    // The one place `masterId` and `Master.servantIds` are kept reciprocal.
+    await worldIO().setContract(partner.id, "contracted", master.id);
+    seated.push(partner);
+  }
+  return seated;
 }

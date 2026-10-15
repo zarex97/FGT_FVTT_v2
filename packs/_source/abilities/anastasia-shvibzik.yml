@@ -24,9 +24,14 @@ phases:
       # "increased by 30%; if NP, 20%" -- an ABSOLUTE NP figure, because the
       # sheet states both and 20 is not half of 30.
       - { id: atkUp, duration: "1◈", magnitude: 30, npMagnitude: 20 }
-  - kind: applyEffects
+  # `ticks`, not `delta`: "1◈+⅔◈" is a ◈ expression, and the tick parser takes
+  # the `a◈ ± b/c◈` family natively.
+  #
+  # A `cooldown` phase, NOT an `applyEffects` phase carrying a `CooldownDelta`
+  # rule element: that phase lands EFFECTS and an entry with no `id` is no
+  # effect, so the cut was dropped and this Skill never turned the NP clock
+  # (§46.4-D1, found by the Dioscuri audit, #219).
+  - kind: cooldown
     target: self
-    rules:
-      # `ticks`, not `delta`: "1◈+⅔◈" is a ◈ expression, and the tick parser
-      # takes the `a◈ ± b/c◈` family natively.
-      - { key: CooldownDelta, scope: np, ticks: "1◈+⅔◈" }
+    changes:
+      - { scope: np, ticks: "1◈+⅔◈", direction: down }
