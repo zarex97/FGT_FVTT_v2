@@ -4386,6 +4386,13 @@ span); the merge of what the emitter stated laid `now + span` over it, so a seco
 nothing. The flow tags its extension and the merge adds the span to it. A phase's `applyEffects` always extended (Atk Up
 (Trace), Suppression). Closes the handler half of #23. Ch. 14, 15.
 
+### E10. An `until combatPhaseEnd` effect on a Unit the Phase never named stood for ever — **fixed** (#208)
+
+**Reached: Rho Aias's 3x3 recipients and its projector; any effect a reaction puts on a Unit outside the fan-out.** The
+event is heard by the attacker and the defenders, so a barrier raised by a third party over a 3x3 of allies the Noble
+Phantasm did not hit had no clock. `attack.mjs#barriersOfThisPhase` takes it from the Units the Phase did not name, scoped
+to those holding an effect that one of the Phase's reactors cast. Ch. 23.
+
 ---
 
 ---
@@ -4721,6 +4728,11 @@ Silence gates were traced and pressed. *Rho Aias*, *Unlimited Blade Works*, *Tra
 AC/BC branches, *Eye of the Mind (True)*'s B→EX swap and the *Projection: Unlimited Blade Works*
 copy spell were read but not individually re-pressed; Ch. 45 records them as verified live when he
 was authored, and this pass did not contradict that.
+
+**Audited again against the Character Sheet's Clauses in §46.30** (#208, rulings of 2026-10-14, built 2026-10-15). That
+audit found Trace, On, Unlimited Blade Works, Reinforcement, Range Up (Hawkeye), Rho Aias and both Circuits built
+against the wrong reading, and the Circuits not working at all: the "AC/BC branches" Ch. 45 records as verified here
+named a field by its slug and had never fired.
 
 ---
 
@@ -5741,16 +5753,20 @@ ResDwn's +50 was read by a probe that wrote nothing.
 
 ## 46.30 EMIYA — the Servant whose clauses name each other
 
-**143 Clauses, audited as #208** (2026-10-14, 24 readings ruled the same day). The copy Spell, *Projection: Unlimited
-Blade Works*, is out of the audit (reading 1): an experimental piece, not to be built. Readings 2, 3, 4, 5, 7, 8, 9, 10,
-11, 12, 13, 14, 18, 19, 22 and 23 changed built content or engine; 6, 15, 16, 17, 20, 21 and 24 were built and are pinned
-(#210 to #216).
+**143 Clauses, audited as #208** (2026-10-14, 24 readings ruled the same day), built as #210 to #216 on 2026-10-15
+before the board was pressed: this section records what the tests found, and the live press of the Clauses is still to
+come. The copy Spell, *Projection: Unlimited Blade Works*, is out of the audit (reading 1): an experimental piece, not to
+be built. Readings 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 18, 19, 22 and 23 changed built content or engine; reading
+15 was built and is pinned (a Dodge, and a rolled Evade, each cut Eye of the Mind's Cooldown); 6, 16, 17, 20, 21 and 24
+were built as ruled and nothing here touched them.
 
 **Why he finds what he finds.** Almost every clause of his is a sentence about another clause: Magecraft listens for a
 *category* that Trace, On carried by accident, Atk Up (Trace) listens for the same category and extends itself, the
 Circuits take their cue from an NP that "deals damage" and are removed by the buff that Trace, On applies, and
 Reinforcement is a Spell whose timing nobody read twice. The categories and the events he names are each a second
-reader of a rule the first reader answered one way.
+reader of a rule the first reader answered one way. The Circuits are the clearest case: asked for in three sentences with
+three lifetimes, built as one document, they had never fired at all (they named a field by its slug), would have crashed
+the first Damage Step they were held for, and would have deleted themselves on the first NP.
 
 ### 46.30.1 What he cost the engine
 
@@ -5767,5 +5783,40 @@ reader of a rule the first reader answered one way.
 | "For the rest of the Round" is `until roundEnd`, from an event handler's `ApplyEffect` (reading 12). The circuits had authored `duration: "thisRound"`, which `parseTick` throws on: the first damaging NP they were held for would have crashed the Damage Step | `engine/scheduler.mjs` (`ApplyEffect` stamps `duration` for an `until`), `engine/applier.mjs#entryOfIntent`; `content-ticks.test.mjs` reads `duration` too |
 | Atk Up (Trace) going, by any route, removes every piece (reading 13; ruled 2026-10-15: Cure and strip too, not only running out) | `engine/applier.mjs#resolveRemovals`; `scheduler.expireEffects` flags its removals `onRemoveRan`; `effects/atk-up-trace.yml` `onRemove` lists all seven |
 | Reinforcement is used at the start of any Combat Phase he is in, attacking or attacked, and not any time in his Turn; its +30% ends with that Combat Phase (readings 8, 9). The window-only half is general: an ability whose windows exclude `ownTurn` was pressable from the sheet at any time | `abilities/emiya-reinforcement.yml` (`[combatPhaseStart, defendingPhaseStart]`, `until combatPhaseEnd`); `rules/windows.mjs#usedOnlyAtWindows`, `rules/costs.mjs` `windowOnly`, `atWindow` from `useSkill`, `resolveAttack`, the NP cancellation; `lang` `FGT.Ability.Refused.windowOnly` |
+| Rho Aias protects against that one Noble Phantasm: the barrier stands until its Combat Phase ends, and the Phase takes it from the 3x3 recipients the NP never named (reading 19). Gáe Bolg Alternative is a thrown weapon, so Rho Aias holds at 1 against it, and no other NP is (reading 18) | `abilities/emiya-rho-aias.yml` (`until combatPhaseEnd`), `engine/attack.mjs#barriersOfThisPhase`; `damage.thrownWeapon` on `abilities/scathach-gae-bolg-alternative.yml` |
 | Range Up (Hawkeye) is its own effect: it adds to another Range Up (Kiritsugu's Familiars) and reapplying it extends only itself (reading 14). A second cast in the same Turn used to change nothing: a handler's `ApplyEffect` restamped the clock from now over the flow's extension | `effects/range-up-hawkeye.yml`, `abilities/emiya-magecraft.yml`; `engine/effect-applier.mjs#mergeEmitted` (`extendsFrom`), `engine/landing.mjs` |
 | Any successful Evade cuts Eye of the Mind's shared Cooldown by ⅓◈, Dodge included, on both Ranks' mirrored clocks (reading 15, as built; pinned with a Dodge from the Skill itself and with a rolled Evade) | `engine/attack.mjs#autoEvadeFrom` / `fireEvadeSucceeded`; `emiya-208-arena.test.mjs` |
+| General: §46.4-E1 to E10 | |
+
+**Changed for others.** Every Servant with a window-only ability: Trofa, Eye of the Mind (True) and (False), Rho Aias, the
+three Monstrous Strengths, Runner Comet, Watermelon, Akhilleus Kosmos, Uncrowned Arms Mastership, Kiritsugu's shot,
+Scales of the Sacred Fish and Fragarach are no longer sheet buttons (E8). Shock's *"current Agility +1"* is paid by a Cure
+too (E3). Scathach's Gáe Bolg Alternative is a thrown weapon (reading 18). Kiritsugu's Familiars and EMIYA's Magecraft no
+longer share a Range Up.
+
+### 46.30.2 What was staged, and what stays open
+
+The build and its tests ran in the test world only (`FOUNDRY_PATH` copy, no live board, `build:packs` not run): nothing
+here has been pressed by a player yet. Named in each test: Heracles as the foe, `w.dice.every(50)` (or 99 where an
+Instakill must not land); EMIYA's Luck maximum raised to 20 or 30 so a gain shows; Hrunting's Cooldown set to 21 to read
+a cut; Unlimited Blade Works as a static region whose field id is the Noble Phantasm's content id and whose panels are
+the 7x7 a real one stores; an `atkUp` of 900% on Scáthach and Anastasia for the size of an NP against Rho Aias's 1400;
+the Round's end fired through `fireEvent("roundEnd")` and the applier, not the clock.
+
+Open, for the lead:
+
+- **Rho Aias and the riders of Gáe Bolg Alternative.** Its Stun and Instakill are tried `beforeDamage` on the protected
+  Unit whatever the barrier absorbed (pinned as built in the arena test). Whether Rho Aias also stops an NP's effects is a
+  rule nobody has ruled.
+- **`attack:kind:np` readers and Overedge.** NP DmUp, Rho Aias's scope (`againstKind: np`) and Nemo's clauses read
+  `attack:kind:np` and do not hear an Attack Skill that is only *categorized* as one. Left as built; `attack:isNP` is there
+  to move them if the answer is yes.
+- **One Overedge is three uses of Projection NPs**: three Atk Up (Trace) extensions and three Range Up (Hawkeye)
+  refreshes, its own and one per swing. A consequence of readings 5 and 7, pinned in the arena test. Worth a look on the
+  live board.
+- **A missed NP counts for the Circuits** ("uses an NP that deals damage" read as use, not hit; decided 2026-10-15), and a
+  Cure or a strip of Atk Up (Trace) takes AC and BC with it.
+- **A manual delete from the sheet** (`effect.delete()`, GM only) is not an intent and runs no `onRemove`, so a GM who
+  removes Atk Up (Trace) by hand leaves the Circuits.
+- **An `until combatPhaseEnd` buff whose Phase never opens.** Reinforcement is cast at the start of a Phase, and a
+  declaration refused after the window leaves its N.Atk Up with no end (Mannanán's Tradition Carrier is the same).

@@ -526,3 +526,76 @@ describe("a successful Evade cuts Eye of the Mind's shared Cooldown by one third
     }, opts);
   }, 60_000);
 });
+
+/* ========================================================================== */
+/*  Readings 18, 19 -- Rho Aias holds against Gáe Bolg Alternative, and lasts one NP (#216) */
+/* ========================================================================== */
+
+describe("Rho Aias against a thrown weapon, and for that one Noble Phantasm only (#208 readings 18, 19)", () => {
+  const SC = "scathachThrower0", ATT = "anastasiaThrower", D2 = "heraclesProtected", N = "medeaNeighbour00", M = "emiyasMaster0000";
+  const at = { tokens: true, combat: { round: 6, started: true, system: { globalTurn: 18 }, actingFactionId: "A" } };
+
+  /** `attacker` hits Heracles with a huge Atk Up while EMIYA, beside him, projects Rho Aias. */
+  const board = (attacker) => [
+    // A Servant's Base Attack is derived from her parameters, so the size is a damage multiplier: x10.
+    { from: attacker.from, id: attacker.id, state: { factionId: "A" }, panel: { i: 5, j: 5 },
+      effects: [{ defId: "atkUp", magnitude: 900, npMagnitude: 900 }] },
+    { from: "heracles", id: D2, state: { factionId: "B" }, panel: { i: 5, j: 9 } },
+    { from: "emiya", id: E, state: { factionId: "B", masterId: M }, panel: { i: 5, j: 10 } },
+    // Inside the 3x3 around the protected Unit and not the target: it receives the barrier and is not hit.
+    { from: "medea", id: N, state: { factionId: "B" }, panel: { i: 4, j: 9 } },
+    { from: "master-advanced", id: M, state: { factionId: "B" }, panel: { i: 5, j: 12 } },
+  ];
+
+  /** Play the attack with Rho Aias taken, and hand back what the board looks like. */
+  const withRhoAias = async (attacker, abilityContentId, check) => withSubjects(board(attacker), async ({ world: w }) => {
+    w.dice.every(99); // Instakill (75%) does not land; Stun (500%) does.
+    // Anastasia is offered Watermelon at the start of her Combat Phase; Scathach has nothing there.
+    if (attacker.from === "anastasia") w.answer({ title: "FGT.Window.combatPhaseStart", decline: true });
+    const rho = itemOf(w, E, "emiya-rho-aias");
+    const np = itemOf(w, attacker.id, abilityContentId);
+    const hp = w.actor(D2).system.health.value;
+    const emiyaHp = w.actor(E).system.health.value;
+    const { declared } = await playAttack(w, {
+      attacker: attacker.id, ability: np.id, target: D2,
+      react: { [D2]: [`ability:${rho.id}`, "declined"] },
+    });
+    await check({ w, declared, rho, hp, emiyaHp });
+  }, at);
+
+  it("Gáe Bolg Alternative is a thrown weapon: the barrier ends at 1 and the hit does nothing", async () => {
+    await withRhoAias({ from: "scathach", id: SC }, "scathach-gae-bolg-alternative", ({ w, declared, hp, emiyaHp }) => {
+      const result = w.messages.get(declared.messageId).getFlag("fgt", "result");
+      // HEAD: the barrier broke (pool 0) and the rest went through to Heracles.
+      expect(itemOf(w, E, "emiya-rho-aias").system.shieldHealth).toBe(1);
+      expect(result.total).toBe(0);
+      expect(w.actor(D2).system.health.value).toBe(hp);
+      // For every 200 it lost, EMIYA lost 100: 1399 lost is six hundreds.
+      expect(w.actor(E).system.health.value).toBe(emiyaHp - 600);
+      // OPEN (Ch. 46 §46.30): the NP's Stun and Instakill are tried `beforeDamage` on the protected Unit whatever the
+      // barrier absorbed, and whether Rho Aias also stops an NP's effects is a rule nobody has ruled. Recorded as built.
+      const rows = [...w.messages.values()].flatMap((m) => m.getFlag?.("fgt", "effects") ?? []);
+      expect(rows.find((e) => e.id === "stun")?.outcome).toBe("applied");
+      expect(rows.find((e) => e.id === "instakill")?.outcome).not.toBe("applied");
+    });
+  }, 90_000);
+
+  it("an ordinary Noble Phantasm of the same size breaks it and the rest goes through (pinned: as built)", async () => {
+    await withRhoAias({ from: "anastasia", id: ATT }, "anastasia-snegleta", ({ w, declared, hp, emiyaHp }) => {
+      expect(itemOf(w, E, "emiya-rho-aias").system.shieldHealth).toBe(0);
+      expect(w.messages.get(declared.messageId).getFlag("fgt", "result").total).toBeGreaterThan(0);
+      expect(w.actor(D2).system.health.value).toBeLessThan(hp);
+      expect(w.actor(E).system.health.value).toBe(emiyaHp - 700);
+    });
+  }, 90_000);
+
+  it("is gone with the Noble Phantasm it answered: from the Unit it covered and from the neighbours the NP did not hit", async () => {
+    await withRhoAias({ from: "scathach", id: SC }, "scathach-gae-bolg-alternative", ({ w }) => {
+      // HEAD: all three kept `rhoAias` for a third of a Round after the NP had been answered.
+      expect(held(w, D2, "rhoAias")).toHaveLength(0);
+      expect(held(w, E, "rhoAias")).toHaveLength(0);
+      // Never hit, never in the Process, and so never told the Combat Phase had ended.
+      expect(held(w, N, "rhoAias")).toHaveLength(0);
+    });
+  }, 90_000);
+});

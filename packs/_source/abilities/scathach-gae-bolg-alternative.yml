@@ -29,6 +29,12 @@ damage:
   # is exempt from Magic Resistance's Instakill clause, so the 75% below is not
   # reduced by it.
   component: str
+  # A THROWN WEAPON (ruled 2026-10-14, #208 reading 18): EMIYA's Rho Aias,
+  # *"if the NP is a 'thrown weapon', Rho Aias' Health cannot drop below 1"*,
+  # asks `attack:thrownWeapon`, and this is the one Noble Phantasm in the game
+  # that is one. It is a spear, thrown. Until now no attack carried the option,
+  # so the clause had never once applied to anything.
+  thrownWeapon: true
   # "If Instakill is not inflicted, this NP deals 3.5x damage plus 100." A
   # SUCCESSFUL Instakill suppresses the damage; a resisted one lets it through.
   skipIf: { effectApplied: instakill }
