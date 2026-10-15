@@ -3,20 +3,25 @@
 # Five clauses, and the second is a question: "apply ONE OF the following
 # effects OF YOUR CHOICE". The same `ChoiceDialog` Scáthach's Primordial Rune
 # wildcard opens, asked at resolution rather than at targeting.
+#
+# A PLAIN SKILL (ruled 2026-10-14, #208 readings 2 and 3). It was a Thaumaturgy
+# Spell -- `category: thaumaturgy`, `isSpell`, `negatedBy: [silence]` and a
+# `notHasEffect silence` requirement -- and the sheet never says so: it is an
+# Active Skill, and the note "Projection Skills and NP are treated as
+# Thaumaturgy Spells" names Projections, not this. The ruling: Silence does not
+# stop it and Magecraft does not hear it. Both fall out of the same absence.
+# Magecraft's Range Up and the Atk Up (Trace) extension filter on `category`,
+# and a Skill with none is heard by neither. That is also reading 3: the buff
+# this Skill applied was extending itself through its own `abilityUsed`.
 schema: 1
 id: emiya-trace-on
 name: "Trace, On"
 rank: EX
 kind: skill
 slug: traceOn
-category: thaumaturgy
-isSpell: true
 cooldown: "5◈"
 timing: { window: ownTurn }
 countsAsAttack: false
-negatedBy: [silence]
-requirements:
-  - { kind: notHasEffect, effectId: silence }
 description: |
   (Active) Used during your Turn. Has the following effects-
   1. If this is not the first time EMIYA has used this Skill in this game, reduce his Health

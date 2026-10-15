@@ -5675,3 +5675,22 @@ restored for the Noble Phantasms' costs; Skill Seal, NP Seal and No Buff put on 
 Scáthach; Achilles brought onto the board for Faction 2 as a Divinity C target, then Divine with his Divinity taken off,
 then as the stand-in Arjuna by his content id, each put back after; Kavacha and Kundala restored for one Turn. Debuff
 ResDwn's +50 was read by a probe that wrote nothing.
+
+## 46.30 EMIYA — the Servant whose clauses name each other
+
+**143 Clauses, audited as #208** (2026-10-14, 24 readings ruled the same day). The copy Spell, *Projection: Unlimited
+Blade Works*, is out of the audit (reading 1): an experimental piece, not to be built. Readings 2, 3, 4, 5, 7, 8, 9, 10,
+11, 12, 13, 14, 18, 19, 22 and 23 changed built content or engine; 6, 15, 16, 17, 20, 21 and 24 were built and are pinned
+(#210 to #216).
+
+**Why he finds what he finds.** Almost every clause of his is a sentence about another clause: Magecraft listens for a
+*category* that Trace, On carried by accident, Atk Up (Trace) listens for the same category and extends itself, the
+Circuits take their cue from an NP that "deals damage" and are removed by the buff that Trace, On applies, and
+Reinforcement is a Spell whose timing nobody read twice. The categories and the events he names are each a second
+reader of a rule the first reader answered one way.
+
+### 46.30.1 What he cost the engine
+
+| Finding | Where |
+|---|---|
+| Trace, On is a plain Skill: no `category`, so Silence does not stop it and neither Magecraft nor Atk Up (Trace)'s extension hears it; the first use is ⅓◈ and a second adds exactly ⅓◈ (readings 2, 3) | `abilities/emiya-trace-on.yml` (`category`, `isSpell`, `negatedBy` and the Silence requirement removed) |

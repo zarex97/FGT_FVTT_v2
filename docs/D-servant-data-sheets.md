@@ -1274,14 +1274,14 @@ Bounded field: **Unlimited Blade Works** (Ch. 43). NP copying: Ch. 44 §44.5.
 | Thaumaturgy: Reinforcement | Spell | RE |
 | Thaumaturgy: Tracing | Spell | **RE+** cooldown reduction selected by **ability-name substring** (`Projection`), with a two-for-one-each or one-for-two choice |
 | Projection Magic (A+) | Passive | RE (a `Silence` gate over a **named ability group**) |
-| Trace, On (EX) | Active | **RE+** `AC`/`BC` mutually-exclusive statuses with **cascading removal** (they die when a separate buff dies); an **escalating self-cost** (free the first time, 5% Max Health thereafter); and a **Max Luck** increase |
+| Trace, On (EX) | Active | **RE+** `AC`/`BC` mutually-exclusive statuses with **cascading removal** (they die when a separate buff dies); an **escalating self-cost** (free the first time, 5% Max Health thereafter); and a **Max Luck** increase. **A plain Skill, not a Spell** (ruled 2026-10-14, #208 readings 2 and 3): it carries no `category`, so Silence does not stop it, Magecraft's `Range Up (Hawkeye)` does not hear it, and the Atk Up (Trace) it applies no longer lengthens itself |
 | Kanshou & Bakuya (C−, NP) | Passive NP | RE (`RankShift` +1 on **his own Magic Resistance** for the turn; suppressed while Overedge is on cooldown) |
 | Overedge | Attack Skill, *categorized as NP* | RE (two Normal Attacks in a row, each +50%) |
 | Caladbolg II (A, NP) | AoE NP | RE (3×3 **around the targeted unit**, `Pierce` on the primary only, **caster excluded from its own area**) |
 | Hrunting (A, NP) | Damaging NP | RE (`Aim`, MR-exempt, **minimum range** restriction) |
 | Rho Aias (?, NP) | Shared shield NP | **RE+** `shieldScope` / `bleedThrough` / `indestructibleAgainst` / decaying reuse (Ch. 44 §44.2) |
 | Unlimited Blade Works (E~A++, NP) | Bounded field | **RE+** field + the `Aria` resource (0/6, one per Combat Phase, spent entirely) |
-| Projection: Unlimited Blade Works | Runtime NP copying | **S** `emiya.brokenPhantasm` |
+| Projection: Unlimited Blade Works | Runtime NP copying | **S** `emiya.brokenPhantasm` — *ruled out of the audit 2026-10-14 (#208 reading 1): an experimental piece, not to be built* |
 
 **Exercises:** ability-swapping rank shifts, statuses whose lifetime is bound to another effect,
 minimum ranges, self-exclusion from your own AoE, shields that protect third parties and damage
