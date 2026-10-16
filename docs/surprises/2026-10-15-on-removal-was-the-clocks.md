@@ -3,7 +3,8 @@ id: 2026-10-15-on-removal-was-the-clocks
 found: test
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** "when Atk Up (Trace) is removed from him, remove AC/BC" is `onRemove`, and it ran whenever the buff went.
 

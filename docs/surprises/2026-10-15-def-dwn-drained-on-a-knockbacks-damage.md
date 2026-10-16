@@ -3,7 +3,8 @@ id: 2026-10-15-def-dwn-drained-on-a-knockbacks-damage
 found: test
 kind: generic-path-escapes-special-case
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** the ticket (and the plan after reading `fields.mjs`): Def Dwn (A)'s Luck −1 and (C)'s Agility −1 drain on damage from a field, a toll or a cost. A bare `damage` intent was the suspect.
 **Actual:** a bare 120-point damage intent drained nothing: those paths never raise `damageTaken`. The leak was the measured damage of Akhilleus Kosmos's Knockback, which the engine rules is *not an Attack* (#184 reading 8): `resolveAttack` with `placement.plainDamage` took Luck 1 and Agility 1 (`expected { luck: 1, agility: 1 } to deeply equal { luck: +0, agility: +0 }`).

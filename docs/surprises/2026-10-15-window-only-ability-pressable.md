@@ -3,7 +3,8 @@ id: 2026-10-15-window-only-ability-pressable
 found: test
 kind: generic-path-escapes-special-case
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** removing `ownTurn` from Reinforcement's window list ("used at the start of a Combat Phase", not any time
 in his Turn) was the whole of reading 8 for the sheet button: with no `ownTurn` there is no button.

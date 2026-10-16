@@ -3,7 +3,8 @@ id: 2026-10-15-alice-eater-stay-never-extended
 found: test
 kind: producer-without-consumer
 status: open
-reviewed: false
+reviewed: true
+pattern: unknown-value-falls-to-default
 ---
 **Expected:** the corpus scan for id-less rule elements in `applyEffects` phases (written to find Castor's and Anastasia's) would find those two.
 **Actual:** it found a third: Jabberwock's Alice Eater, `{ key: DurationDelta, ticks: "3◈" }`, *"extends its period of existing on the board for 3◈ more Turns"*. Cast on a summon with `expiresAt: 40`, its Atk Up landed and `expiresAt` stayed 40.

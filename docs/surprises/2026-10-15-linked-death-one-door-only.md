@@ -3,7 +3,8 @@ id: 2026-10-15-linked-death-one-door-only
 found: live press
 kind: generic-path-escapes-special-case
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** Castor runs out of Sustainability at the Turn's end and is defeated. Pollux is defeated with him, "regardless of remaining Health".
 **Actual:** Castor defeated, cause `sustainabilityExhausted`. Pollux stood on at 1383 Health, not defeated.

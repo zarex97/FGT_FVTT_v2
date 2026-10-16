@@ -3,7 +3,8 @@ id: 2026-10-15-joint-np-union-already-double-counts
 found: test
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** the ticket's *"Differs: built as a union"* — two Divine Cores would count once.
 **Actual:** an arena press of Castor's Guardians of Navigation then the joint NP showed `[80, 80]` for the Divine Core and each twin's Atk Up and NP DmUp, with the partner's lines labelled "(Pollux)": counted twice, already.

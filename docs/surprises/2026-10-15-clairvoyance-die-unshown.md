@@ -3,7 +3,8 @@ id: 2026-10-15-clairvoyance-die-unshown
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Clairvoyance's 80% chance of Evade- shows its die on the Evade's Rolls.
 **Actual:** "Heracles evades EMIYA evade- 1d20 → 8 unfavourable table" and nothing else; the 1d100 was rolled and filed nowhere.

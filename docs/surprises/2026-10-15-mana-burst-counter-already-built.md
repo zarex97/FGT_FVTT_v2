@@ -3,7 +3,8 @@ id: 2026-10-15-mana-burst-counter-already-built
 found: test
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** the ticket: both Mana Bursts are "own Turn only" today, and need building to be usable on a Counter, as Raikou's is.
 **Actual:** pressed first, as Heracles attacking Pollux and then Castor, the Counter was already there: the Counter opens its own Process aimed back at him, the `choose` is asked once, 150 + 150, Pollux's Evade lands, Castor's Avenger +80 counts and his Noble Phantasm cut falls on both twins.

@@ -3,7 +3,8 @@ id: 2026-10-15-guarded-panel-read-occupied
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Castor refused a move onto the empty panel beside the enemy Master of Caster, whose Medea stood two from him, with a reason naming the Master's protection.
 **Actual:** "Step 3 passes through a panel this Unit may not enter." and "The destination panel is occupied." The panel was empty.

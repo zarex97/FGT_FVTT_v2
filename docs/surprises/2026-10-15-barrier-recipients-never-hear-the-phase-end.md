@@ -3,7 +3,8 @@ id: 2026-10-15-barrier-recipients-never-hear-the-phase-end
 found: test
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** with Rho Aias's duration changed from `⅓◈` to `until combatPhaseEnd`, the barrier is gone after the Noble
 Phantasm it answered, from everyone who holds it.

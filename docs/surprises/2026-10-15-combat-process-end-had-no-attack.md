@@ -3,7 +3,8 @@ id: 2026-10-15-combat-process-end-had-no-attack
 found: test
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** the Circuits could hang "each Attack he performs ... at the end of its Combat Process" on
 `combatProcessEnd`, which fires hit or miss.

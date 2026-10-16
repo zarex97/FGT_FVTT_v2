@@ -3,7 +3,8 @@ id: 2026-10-15-both-twins-restored-one
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: unknown-value-falls-to-default
 ---
 **Expected:** Pollux's Mana Burst, "Restore 1 Agility and 1 Luck to both twins": Pollux and Castor each +1 Agility and +1 Luck.
 **Actual:** Pollux 15 → 16 Agility, 8 → 9 Luck. Castor stayed at 14 of 18 Agility. The card read "Agility +1, Luck +1".

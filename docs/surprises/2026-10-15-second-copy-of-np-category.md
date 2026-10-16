@@ -3,7 +3,8 @@ id: 2026-10-15-second-copy-of-np-category
 found: test
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** stamping `categorizedAsNP` on the declared attack spec, beside `asNormalAttack`, was a one-line
 addition: `attack:isNP` needs the flag on the declaration, and `buildAttackSpec` already reads the ability.

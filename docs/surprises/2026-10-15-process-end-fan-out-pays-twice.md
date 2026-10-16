@@ -3,7 +3,8 @@ id: 2026-10-15-process-end-fan-out-pays-twice
 found: test
 kind: check-then-act-race
 status: fixed
-reviewed: false
+reviewed: true
+pattern: check-then-act-race
 ---
 **Expected:** with the Circuits' "next NP" moved to `combatProcessEnd`, Overedge's two swings spend its one charge once:
 Luck +2.

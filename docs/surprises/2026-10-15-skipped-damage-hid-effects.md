@@ -3,7 +3,8 @@ id: 2026-10-15-skipped-damage-hid-effects
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Gáe Bolg Alternative's card says it Stunned and Instakilled.
 **Actual:** the card showed only the ladder; the `effects` flag held "Stun" and "Instakill: rolled 7 vs 75%".

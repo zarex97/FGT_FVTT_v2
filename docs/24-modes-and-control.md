@@ -125,4 +125,5 @@ Foundry **ownership** must be kept in sync with faction assignment for a player 
 `forcedOffNow(..., { masterDefeatAnswers: true })` and does not force Mad Enhancement off for a Master whose Health reached
 0: the killing blow's own drop met the limit first, so clause 5 (*"Sustainability −2◈ if its Master is defeated while
 Active"*) never charged. The modes lock as they stand. A compulsion still reads the valve, so it never switches a mode on
-over a Master at 0 (`forcedModes`). Decided 2026-10-15, to confirm.
+over a Master at 0 (`forcedModes`). Ruled 2026-10-15 by the author: a Master felled in one blow leaves the mode on at the
+defeat, and the −2◈ charges.

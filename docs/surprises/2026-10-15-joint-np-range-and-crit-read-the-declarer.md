@@ -3,7 +3,8 @@ id: 2026-10-15-joint-np-range-and-crit-read-the-declarer
 found: test
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** the ticket: for the joint NP "an effect held by both twins counts twice", "either twin within 2 of the target is enough" and "Crit from both twins combines". Each reads as one change to the NP's combination.
 **Actual:** three different readers, one of them already right. The damage bag already concatenated the partner's (two Divine Cores are +160: a predicted-green pin that came up green). Range was measured from the declarer alone (`expected [ 'Heracles is out of Range (2).' ] to deeply equal []` for a foe only Castor reaches), and the Crit Chance rolled read the declarer's `checkModifiers` alone (`expected 70 to be 90`).

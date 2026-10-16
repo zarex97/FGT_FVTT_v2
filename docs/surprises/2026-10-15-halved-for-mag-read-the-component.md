@@ -3,7 +3,8 @@ id: 2026-10-15-halved-for-mag-read-the-component
 found: test
 kind: rule-word-read-one-way
 status: fixed
-reviewed: false
+reviewed: true
+pattern: rule-word-read-one-way
 ---
 **Expected:** *"halved for Attacks which use Base Attack (MAG)"* reaches Mana Burst, which sums BA(STR) + BA(MAG): Castor's +55% from Mad Enhancement is halved on it. The ticket assumed the halving was simply not applied; the plan assumed `component: mag` was the word to key on.
 **Actual:** the arena press of Castor's Mana Burst with Mad Enhancement on added the full figure: `expected [ 55 ] to deeply equal [ 25 ]` (the pure pipeline pin read the same).

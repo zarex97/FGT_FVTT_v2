@@ -3,7 +3,8 @@ id: 2026-10-15-this-round-is-not-a-duration
 found: test
 kind: passes-for-the-wrong-reason
 status: fixed
-reviewed: false
+reviewed: true
+pattern: passes-for-the-wrong-reason
 ---
 **Expected:** both Circuits' "for the rest of the Round" worked: they are authored `duration: "thisRound"`, and
 `content-ticks.test.mjs` is the guard that "every authored span parses" (#195).

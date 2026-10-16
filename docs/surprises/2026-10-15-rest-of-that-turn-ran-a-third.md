@@ -3,7 +3,8 @@ id: 2026-10-15-rest-of-that-turn-ran-a-third
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** Kanshou & Bakuya's Magic Resistance Rank C lasts "for the rest of that Turn".
 **Actual:** at Faction 2's Turn (tick 5) after his swing at tick 4, the board still read Rank C.

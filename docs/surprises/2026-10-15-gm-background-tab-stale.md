@@ -3,7 +3,8 @@ id: 2026-10-15-gm-background-tab-stale
 found: tooling
 kind: drive-kit
 status: fixed
-reviewed: false
+reviewed: true
+pattern: drive-kit
 ---
 **Expected:** the GM tab's board matches Player1's after a move, and a reload of the GM tab draws its canvas.
 **Actual:** the GM's TokenDocuments kept old x/y, so distances read wrong; once a reload stopped at "Loading" with "TokenRing UV generation failed", and every attack then refused "Choose a target." with an empty board. One drag on Player1 moved every controlled token at once.

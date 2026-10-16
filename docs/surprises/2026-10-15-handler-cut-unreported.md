@@ -3,7 +3,8 @@ id: 2026-10-15-handler-cut-unreported
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Castor's Normal Attack crits while he holds the Castor buff. The card says the joint NP lost a Turn on both twins, and shows the Divine Core's 5% die.
 **Actual:** the joint NP fell 7 → 6 on both copies. The card showed the damage and its ladder, nothing else. The Turn's end took 2 off both copies for Self-Replenishment, and its card named only "Castor regains 40 Health".
