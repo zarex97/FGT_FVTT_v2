@@ -3,7 +3,8 @@ id: 2026-10-16-cut-after-the-phase-said-nowhere
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Excalibur hits Scáthach and Medusa and its Cooldown takes ⅓◈ off per Unit affected, and a player reads the cut (#230 EX.cut; the #209 lesson, "a cut a handler makes is said where a player reads it").
 **Actual:** the clock went 23 → 21 and neither card, nor any other message, said so; the log held only "event: Arturia attackPerformed".

@@ -3,7 +3,8 @@ id: 2026-10-16-legion-offer-walked-every-actor
 found: live press
 kind: role-keyed-on-type
 status: fixed
-reviewed: false
+reviewed: true
+pattern: role-keyed-on-type
 ---
 **Expected:** a war with no Hassan in it never mentions Hassans.
 **Actual:** in Arturia's war, at the start of Rounds 2 and 3, Player1 was shown "Hassan 12 — Deploy up to 10 Hassans (34/100 remain). Pick a panel for each, or close to stop." on Arturia's board, again on every page load.

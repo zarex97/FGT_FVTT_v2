@@ -3,7 +3,8 @@ id: 2026-10-16-chance-die-filed-nowhere
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Arturia's Counter, Invisible Air off, wins Excalibur's 50% passive and the card shows the die beside "+25 Light" (#230 EX.p), as it shows every other die (Ch. 13, #190).
 **Actual:** stage 7 read "Excalibur: Sword of Promised Victory (light) 25"; the card's Rolls list was empty. A LOST die says "rolled 51 vs 50%" in the breakdown; a won one said nothing anywhere.

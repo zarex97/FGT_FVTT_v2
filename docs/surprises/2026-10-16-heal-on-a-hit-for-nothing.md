@@ -3,7 +3,8 @@ id: 2026-10-16-heal-on-a-hit-for-nothing
 found: live press
 kind: rule-word-read-one-way
 status: fixed
-reviewed: false
+reviewed: true
+pattern: rule-word-read-one-way
 ---
 **Expected:** Avalon in her Master heals him at "the end of a Damage Step that damaged" him (#230 reading 17); his own Avalon cutting Medusa's hit to 0 heals nothing.
 **Actual:** the log read "damage total 0" then "event: Master of Saber of Faction 1 … damageTaken, source [Avalon]": the handler ran. He stood at full Health, so nothing showed; one Health short, he would have gained 20%.

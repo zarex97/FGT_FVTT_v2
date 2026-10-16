@@ -3,7 +3,8 @@ id: 2026-10-16-instinct-asked-only-on-the-evade-rung
 found: live press
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** Medea's Normal Attack on Arturia rolls Instinct first: 70% she Evades automatically, otherwise the Combat Process goes on (#230 IN.1, IN.1.fail). My own Ch. 13 note said "every Attack rolls 70%".
 **Actual:** the card went straight to "Choose a reaction" with no roll. Read through: chosen, her Evade succeeded outright every time, at 100% and not 70.

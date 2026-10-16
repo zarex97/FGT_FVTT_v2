@@ -3,7 +3,8 @@ id: 2026-10-16-second-move-skipped-the-prevention
 found: live press
 kind: generic-path-escapes-special-case
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** Player1 rides Arturia one panel, places [Avalon] in her Master, and neither may Move after it (#230 AV.2.lock, reading 16).
 **Actual:** the Master's own drag was refused ("FGT | prevented by itemRite"), but Arturia's second drag went through and carried her Master with her: both stood two panels on.

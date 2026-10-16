@@ -3,7 +3,8 @@ id: 2026-10-16-string-rank-passed-the-threshold-test
 found: test
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** a MAG B attack against Magic Resistance A is negated, and my Anti-Dragon test (MR C against B, cut 25%) proved the weaker threshold.
 **Actual:** the plain case read "−50% MAG (MR A < attack B)". The Anti-Dragon case had passed for the wrong reason.

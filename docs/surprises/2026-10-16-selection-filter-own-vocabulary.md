@@ -3,7 +3,8 @@ id: 2026-10-16-selection-filter-own-vocabulary
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Arturia's Master, in his Home Base with Karna's Master beside him, hands [Avalon] on with "Avalon (pass to a Master)" (#230 AV.pass, reading 16).
 **Actual:** "No legal targets for this ability. Refused: … Master of Lancer of Faction 1 is excluded by this ability's target predicate."

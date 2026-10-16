@@ -3,7 +3,8 @@ id: 2026-10-16-bar-gated-a-free-np-switch
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Invisible Air, switched off in Round 1 as Player1, can be switched back on next Turn: "at any time, once per Turn" (#230 reading 10).
 **Actual:** the bar's Mode slot greyed "Invisible Air: Bounded Field of the Wind King — Ready from Round 2 (1 away)", while `system.active` had gone false through the same press.

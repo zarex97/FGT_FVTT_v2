@@ -3,7 +3,8 @@ id: 2026-10-16-preview-missed-the-instance-block
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Strike Air under Knight of Utopia previews at 300, "not affected by any damage modifying effects on her" (#230 SA.flat), as it lands.
 **Actual:** the targeting tooltip read "Scáthach 375"; the card dealt 300, stage 4 "atkUpCharismaUnit (bypassed by this attack) 0".
