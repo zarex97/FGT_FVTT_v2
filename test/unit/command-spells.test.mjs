@@ -108,6 +108,12 @@ describe("canSpend", () => {
     expect(canSpend(damageBlock, ctx({ attack: { kind: "normal" } }))).toMatchObject({ ok: true });
   });
 
+  it("refuses Damage Block against an attack only categorized as an NP (ruled 2026-10-16, #208)", () => {
+    // EMIYA's Overedge, Mannanán's Fragarach Counter, Magic Crest. At cf20cfc this read `kind` alone and allowed it.
+    expect(canSpend(damageBlock, ctx({ attack: { kind: "attackSkill", categorizedAsNP: true } })))
+      .toMatchObject({ ok: false, reason: "attackIsNotNP" });
+  });
+
   it("refuses Kill Yourself against a Servant that is immune to it", () => {
     // Van Gogh: "cannot be ordered to commit suicide, even with a Command Spell."
     expect(canSpend(killYourself, ctx({

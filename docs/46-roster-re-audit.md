@@ -4540,6 +4540,21 @@ emitted the binding; the Sustainability sweep, Instakill, Erase, Command Spells 
 `io.mjs#defeat` carries it at the one door every defeat passes, and counts a Unit towards the Grail once however many
 writers defeat it. Ch. 32.
 
+### NJ. Rho Aias stopped an NP's damage and let its riders through — **fixed** (#208, ruled 2026-10-16)
+
+**Reached: Rho Aias.** Gáe Bolg Alternative's Stun landed on the Unit the barrier covered, and its Instakill would have.
+*"To protect the allied Unit(s) from the Noble Phantasm"* is the whole NP. The `rhoAias` effect says `holdsRiders`;
+`shield.mjs#ridersHeldBy` is asked before the Damage Step computes anything, and `applyAbilityEffects` keeps the
+defender's riders back (`riders: "hold"`). Held, they are filed `blocked`; broken (`barrierBroken`), they land after the
+damage. A check the Unit fails is not held (Gate of Skye, #204 reading 15). Ch. 22, 23.
+
+### NK. An attack only categorized as an NP was not an NP to most NP rules — **fixed** (#208, ruled 2026-10-16)
+
+**Reached: Overedge, Fragarach Counter, Magic Crest.** The crit coin and the pipeline asked `isNPAttack`; the option
+`attack:kind:np`, Rho Aias's trigger, Damage Block's `attackIsNotNP`, the Evade +3, Magic Resistance's NP dice, the
+Injury Roll, Cover and the Grail asked `kind` alone. All now ask `isNPAttack`, and `attack:isNP` is retired into
+`attack:kind:np`. A Master's NP cost and NP uses stay real-NP only. Ch. 11, 17, 33, Appendix D.
+
 ---
 
 ---
@@ -5901,7 +5916,7 @@ ResDwn's +50 was read by a probe that wrote nothing.
 ## 46.30 EMIYA — the Servant whose clauses name each other
 
 **143 Clauses, audited as #208** (2026-10-14, 24 readings ruled the same day), built as #210 to #216 on 2026-10-15,
-then pressed on the PC world the same day: all 143 Pressed or Observed, seven more findings (§46.4-MN to MT), all fixed. The copy Spell, *Projection: Unlimited Blade Works*, is out of the audit (reading 1): an experimental piece, not to
+then pressed on the PC world the same day: all 143 Pressed or Observed, seven more findings (§46.4-MN to MT), all fixed. Its four open items were ruled on 2026-10-16 (§46.4-NJ, NK). The copy Spell, *Projection: Unlimited Blade Works*, is out of the audit (reading 1): an experimental piece, not to
 be built. Readings 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 18, 19, 22 and 23 changed built content or engine; reading
 15 was built and is pinned (a Dodge, and a rolled Evade, each cut Eye of the Mind's Cooldown); 6, 16, 17, 20, 21 and 24
 were built as ruled and nothing here touched them.
@@ -5955,12 +5970,13 @@ the Round's end fired through `fireEvent("roundEnd")` and the applier, not the c
 
 Open, for the lead:
 
-- **Rho Aias and the riders of Gáe Bolg Alternative.** Its Stun and Instakill are tried `beforeDamage` on the protected
-  Unit whatever the barrier absorbed (pinned as built in the arena test). Whether Rho Aias also stops an NP's effects is a
-  rule nobody has ruled.
-- **`attack:kind:np` readers and Overedge.** NP DmUp, Rho Aias's scope (`againstKind: np`) and Nemo's clauses read
-  `attack:kind:np` and do not hear an Attack Skill that is only *categorized* as one. Left as built; `attack:isNP` is there
-  to move them if the answer is yes.
+- **Rho Aias and an NP's riders: ruled 2026-10-16** (§46.4-NJ). It protects from the whole NP: held, the riders on a
+  covered Unit are dropped; broken, they land after the damage; kept back, they shape nothing. Gáe Bolg Alternative is
+  stopped whole. Not Gate of Skye's Death: only its Luck Check saves. Rho Aias is never offered against an NP with no damage.
+- **"Categorized as NP" for every NP rule: ruled 2026-10-16** (§46.4-NK). `attack:kind:np` carries it; `attack:isNP` is
+  retired.
+- **Overedge's own swings cut Overedge's Cooldown: ruled 2026-10-16**, as built (OE.cd, 6 → 4 live).
+- **RA.thrown live** waits for the next press: under the new ruling Gáe Bolg's damage branch always runs behind the barrier.
 - **One Overedge is three uses of Projection NPs**: three Atk Up (Trace) extensions and three Range Up (Hawkeye)
   refreshes, its own and one per swing. A consequence of readings 5 and 7, pinned in the arena test. Worth a look on the
   live board.

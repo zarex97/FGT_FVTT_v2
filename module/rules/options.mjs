@@ -85,14 +85,14 @@ export function rollOptionsFor({ attacker, defender, attack = null, withoutModeH
   // stays, as a ride's does, so Vasavi Shakti's Normal-Attack Divinity bonus
   // reaches it (#206 reading 5).
   if (attack.asNormalAttack) options.add("attack:kind:normal");
-  // "An NP that deals damage": a Noble Phantasm, or an ability the sheet
-  // CATEGORIZES as one (EMIYA's Overedge). `attack:kind:np` is the first only,
-  // so a clause that means both asks THIS, answered by the one definition the
-  // damage pipeline and the crit coin already share (`isNPAttack`). The
-  // existing `attack:kind:np` readers (NP DmUp, Rho Aias's scope, Nemo) stay as
-  // they are: whether they hear a categorized-as-NP attack is an open question
-  // (#208, §46.30).
-  if (isNPAttack(attack)) options.add("attack:isNP");
+  // "An NP" is a Noble Phantasm or an ability the sheet CATEGORIZES as one
+  // (EMIYA's Overedge, Mannanán's Fragarach Counter, Magic Crest), for every
+  // clause that asks (ruled 2026-10-16, #208): NP DmUp, Rho Aias, Nemo, the
+  // Circuits. Answered by the one definition the damage pipeline and the crit
+  // coin share (`isNPAttack`). It replaces `attack:isNP`, which said the same
+  // thing beside a narrower `attack:kind:np` -- two names for one question.
+  // Overedge keeps `attack:kind:normal` too: each swing is both (reading 7).
+  if (isNPAttack(attack)) options.add("attack:kind:np");
   // The HEARER made this attack. Every other `attack:` option is a fact about the
   // attack, and an event fired on both combatants hands both the same set; this
   // one is set only for a firing on the attacker (`combatProcessEnd`), so "an
