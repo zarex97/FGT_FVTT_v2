@@ -3,7 +3,8 @@ id: 2026-10-16-held-rider-die-moved-in-the-order
 found: test
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** `w.dice.set("d100", 1)` would land Snegleta's Def Dwn (A) both with and without Rho Aias.
 **Actual:** without the barrier "rolled 1 vs 55%" applied; behind a broken barrier `defDwnA` came back "resisted".
