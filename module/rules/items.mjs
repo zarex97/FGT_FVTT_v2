@@ -17,7 +17,7 @@ import { Rank } from "../domain/rank.mjs";
 import { currentHealth, maxHealth, watermarkKey } from "../domain/health.mjs";
 import { withinPlatformCentre } from "./platforms.mjs";
 import { stanceOf } from "./stance.mjs";
-import { phaseAt } from "./environment.mjs";
+import { phaseAt, inOwnHomeBase } from "./environment.mjs";
 
 /**
  * May this item move from one unit to another?
@@ -337,6 +337,9 @@ export const REQUIREMENT_KINDS = Object.freeze([
   "modeInactive", "predicate", "healthAbove", "healthRestoredSince", "itemAtLeast",
   "noAliveSummon", "withinPlatformCentre", "roundPhase", "fieldOpen", "stance",
   "masterHealthFraction", "legionAbove",
+  // Avalon's placing (#230): beside the Master, in the Home Base, neither of
+  // them having Attacked, and the Item held by the Master to take it back.
+  "besideMaster", "inHomeBase", "notAttackedThisTurn", "masterItemAtLeast",
 ]);
 
 /**
@@ -531,6 +534,19 @@ export function meetsRequirement(req, ctx) {
       return matched.every((a) => (a.cooldownRemaining ?? 0) <= 0);
     }
 
+    // *"Used on her Master, when Arturia is directly next to her Master and they
+    // are both in their Home Base ... both Arturia and her Master cannot Attack
+    // on the same Turn"* (Avalon, #230). Each a Unit's own fact; `who` names
+    // whose -- `self`, `master` or both -- and a missing Master fails.
+    case "besideMaster":
+      return Boolean(master?.panel && unit?.panel) && chebyshev(master.panel, unit.panel) <= 1;
+    case "inHomeBase":
+      return whoOf(req, unit, master).every((u) => u && inOwnHomeBase(u, board));
+    case "notAttackedThisTurn":
+      return whoOf(req, unit, master).every((u) => u && !u.turnState?.attacked);
+    case "masterItemAtLeast":
+      return ((master?.items ?? []).find((i) => i.contentId === req.contentId)?.quantity ?? 0) >= (req.amount ?? 1);
+
     case "itemAtLeast":
       // "Requires 3 [Semiramis' Poison] to use" -- a gate on the CASTER's own
       // held quantity, keyed by the stable content id the same way
@@ -638,4 +654,21 @@ export function meetsRequirements(requirements, ctx) {
     if (!meetsRequirement(req, ctx)) return { ok: false, reason: req.kind };
   }
   return { ok: true };
+}
+
+/**
+ * The Units a requirement's `who` names: `self` (the default), `master`, or
+ * `both`. A Master that is not there is `null`, and fails the requirement.
+ *
+ * @param {object} req
+ * @param {object} unit
+ * @param {object|null} master
+ * @returns {Array<object|null>}
+ */
+function whoOf(req, unit, master) {
+  switch (req.who ?? "self") {
+    case "master": return [master ?? null];
+    case "both": return [unit, master ?? null];
+    default: return [unit];
+  }
 }

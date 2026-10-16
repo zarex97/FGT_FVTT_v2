@@ -1,0 +1,22 @@
+# The DRC buff, owed: Dragon's Reactor Core applies it "at the end of the Turn
+# this Skill used" (#230 reading 9), so attacks later in that Turn do not get
+# it. One use, spent at the first Turn end after it lands -- the end of her own
+# Turn -- where it applies `drc` until the Round ends.
+schema: 1
+id: drcPending
+name: "DRC (at Turn's end)"
+description: "At the end of this Turn, this Unit gains the DRC buff for the rest of the Round."
+polarity: status
+volatility: nonVolatile
+valence: neither
+stacking: noneRefresh
+baseChance: 100
+unremovable: true
+uses: 1
+rules:
+  - key: OnEvent
+    event: turnEnd
+    automatic: true
+    consumesUse: true
+    then:
+      - { key: ApplyEffect, effect: { id: drc }, duration: "until roundEnd" }

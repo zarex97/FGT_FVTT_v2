@@ -741,6 +741,15 @@ function stage7FlatAttackBonuses(s) {
       s.contribute(m.key, 0, `${m.source} (${why} this attack)`, "attacker");
       continue;
     }
+    // A bonus that lands only on a chance, whose die the engine rolled once for
+    // this strike. Unrolled is not landed (#230, Excalibur's passive).
+    if (m.chance) {
+      const roll = s.ctx.rolls?.[m.chance.key];
+      if (typeof roll !== "number" || roll > m.chance.percent) {
+        s.contribute(m.key, 0, `${m.source} (rolled ${roll ?? "nothing"} vs ${m.chance.percent}%)`, "attacker");
+        continue;
+      }
+    }
     const value = magnitudeOf(m, s.isNP, s.ctx);
     // A flat bonus made of DIFFERENT STUFF from the attack it rides on.
     // Raikou's `Raikou` buff is *"Normal Attacks deal 40 bonus LIGHTNING
@@ -916,13 +925,18 @@ function stage11Resistance(s) {
   const attackRank = s.ctx.attack?.rank
     ?? Rank.parseOrNull(s.ctx.attack?.attackRank ?? null)
     ?? s.ctx.attacker?.parameters?.mag ?? null;
-  const mrRank = mr.rank instanceof Rank ? mr.rank : Rank.parseOrNull(mr.rank);
+  // A threshold that replaces the bearer's own against this kind of attack
+  // (Arturia's Anti-Dragon clause). The first that matches wins.
+  const variant = (mr.variants ?? []).find((v) => testPredicate(v.attackPredicate, s.predicateCtx));
+  const ruling = variant ?? mr;
+  if (variant) s.note("resistance", `${variant.source ?? "a variant"}: this attack meets the weaker threshold`, "defender");
+  const mrRank = ruling.rank instanceof Rank ? ruling.rank : Rank.parseOrNull(ruling.rank);
   if (Rank.gte(mrRank, attackRank, false)) {
     s.contribute("magicResistance", -s.mag, `negated: MR ${mrRank} ≥ attack ${attackRank}`, "defender");
     s.mag = 0;
     s.flags.negatedBy = "Magic Resistance";
   } else {
-    const pct = mr.percent ?? lookupNumber("magicResistancePercent", mrRank);
+    const pct = ruling.percent ?? lookupNumber("magicResistancePercent", mrRank);
     const lost = s.mag * (pct / 100);
     s.mag -= lost;
     // An attacker with no MAG Rank -- a Sphinx, a summon -- is named as such;

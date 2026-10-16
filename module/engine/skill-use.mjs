@@ -36,7 +36,7 @@ import { landEntry } from "./landing.mjs";
 import { summonPhase } from "./summoning.mjs";
 import { cooldownFor, alsoTriggered, sharedAcrossGroup, sharedCooldownIntents } from "./cooldown.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
-import { currentBoard, unitFrom, unitOf, gateContext, turnRecordOf } from "./board.mjs";
+import { currentBoard, currentMoment, unitFrom, unitOf, gateContext, turnRecordOf } from "./board.mjs";
 import { resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
 import { relationOf } from "../rules/relations.mjs";
@@ -194,6 +194,7 @@ export async function useSkill({
   // Unlimited Blade Works state their Master costs here too (Ch. 46 §46.4-T).
   const { charged } = applied.channelStarted ? { charged: [] } : resolveCosts([
     ...(usage.cost ? [{ ...usage.cost, id: "npCost" }] : []),
+    ...(usage.overCooldown ? [usage.overCooldown] : []),
     ...additionalCostsFor({ ability, self, master }),
     ...standingUpkeepCost(board, self, master),
   ]);
@@ -201,7 +202,8 @@ export async function useSkill({
   await applyWorldIntents([
     ...charged.flatMap((cost) => costIntents(cost, self)),
     ...itemCostIntents(ability, actor),
-    ...(applied.channelStarted ? [] : cooldownIntents(ability, actor, applied.summoned ?? 0, self)),
+    // A use ON the Cooldown leaves the clock alone (`rules/costs.mjs`).
+    ...(applied.channelStarted || usage.overCooldown ? [] : cooldownIntents(ability, actor, applied.summoned ?? 0, self)),
     I.markTurn(actorId, marks),
     // Recorded so a mutually-exclusive partner can see it went, at both
     // scales, and so a `maxUses` budget can be spent. One intent, shared with
@@ -303,7 +305,9 @@ export function resolveSkillTargets(ability, self, board, placement) {
   // see `engine/fields.mjs#regionSizedTargeting`. Applied here rather than in
   // `targetSpecFor`, which is pure and has no board to read the Region off.
   const spec = regionSizedTargeting(
-    targetSpecFor(ability, reach, rollOptionsFor({ attacker: self })),
+    // With the attack a reaction answers, when it answers one (#230): a branch
+    // may ask `attack:isAoE`.
+    targetSpecFor(ability, reach, rollOptionsFor({ attacker: self, attack: placement?.attack ?? null })),
     ability,
     board?.warRegion ?? null,
   );
@@ -536,6 +540,51 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           break;
         }
 
+        case "transferItem": {
+          // An Item handed WHOLE from one Unit to another, with its bond.
+          //
+          // > *"Arturia places [Avalon] inside her Master (this counts as
+          // > Arturia giving the [Avalon] Item to her Master); both Arturia and
+          // > her Master cannot Attack on the same Turn, and cannot Move after
+          // > Avalon is used in this way. The same process is used for Arturia to
+          // > reobtain [Avalon] from inside her Master."* (#230)
+          //
+          // `from` and `to` name the ends -- `self`, `master`, `target` -- `bind`
+          // records the caster as who placed it (and her Master), and `lock`
+          // the Units who may neither Attack nor Move for the rest of the Turn
+          // (`itemRite`). It counts as the giver's hand-over for the Turn.
+          const casterUnit = board.units.find((u) => u.id === actor.id);
+          const masterId = casterUnit?.masterId ?? actor.system?.masterId ?? null;
+          const ends = { self: actor.id, master: masterId, target: target.unitId };
+          const fromId = ends[phase.from ?? "self"] ?? null;
+          const toId = ends[phase.to ?? "target"] ?? null;
+          const fromDoc = fromId ? game.actors.get(fromId) : null;
+          const held = fromDoc?.items?.find((i) => i.system?.contentId === phase.item);
+          if (!held || !toId || fromId === toId) break;
+          const bond = phase.bind ? { bondUnitId: actor.id, bondMasterId: masterId } : null;
+          await applyWorldIntents([
+            I.moveItem(toId, fromId, phase.item, bond),
+            I.markTurn(fromId, { itemTransfers: (turnRecordOf(fromDoc).itemTransfers ?? 0) + 1 }),
+          ], `skill:${ability.id}:transferItem`);
+          for (const who of phase.lock ?? []) {
+            const lockId = ends[who];
+            const lockDoc = lockId ? game.actors.get(lockId) : null;
+            if (!lockDoc) continue;
+            // Each row names whose lock it is: the card read "Item Rite, Item
+            // Rite" and named nobody (#230, live).
+            const rows = await applyPhaseEffects({ effects: [{ id: "itemRite", duration: "this turn" }] },
+              ability, actor, unitOf(lockDoc, currentBoard()), { self });
+            applied.push(...rows.map((row) => ({ ...row, unitId: lockId })));
+          }
+          // The GIVER's row: "Master of Saber: [Avalon] → Master of Saber" named
+          // the receiver twice and the hand it left never (#230, live).
+          applied.push({
+            unitId: fromId,
+            summary: { id: "transferItem", name: `${held.name} → ${game.actors.get(toId)?.name ?? toId}`, outcome: "applied", reason: null },
+          });
+          break;
+        }
+
         case "applyEffects":
         case "applyEffect":
           applied.push(...await applyPhaseEffects(phase, ability, actor, snapshot, {
@@ -612,7 +661,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
         // and did nothing. Found live, twice over -- the `when` was wrong too.
         case "setMode":
           await applyWorldIntents(
-            [I.setMode(target.unitId, phase.ability, phase.active === true, `phase:${ability.id}`)],
+            [modeIntent(phase, target.unitId, `phase:${ability.id}`)],
             `skill:${ability.id}:setMode`,
           );
           break;
@@ -2151,6 +2200,30 @@ export async function runCasterPhases(ability, actor, board, extras = {}) {
   // to nobody, so the loop body never ran -- Unlimited Blade Works spent its
   // Aria (a `target: self` phase) and created no Reality Marble (which is not).
   return runPhases(ability, actor, [{ unitId: actor.id }], board, (phase) => CASTER_PHASES.has(phase.kind), extras);
+}
+
+/**
+ * The write a `setMode` phase makes, on either path: a Skill's, or a Noble
+ * Phantasm's after its damage (`engine/attack.mjs`).
+ *
+ * OFF FOR A SPAN, not only off: Arturia's Strike Air and Excalibur each end
+ * *"Invisible Air is deactivated for 1◈ (2◈) Turns after its use"* (#230). The
+ * Command Spell's suspension (`suspendSkill`) is already that write -- off, and
+ * barred from coming back until a tick.
+ *
+ * @param {object} phase the `setMode` phase
+ * @param {string} unitId whose mode
+ * @param {string} source
+ * @returns {object} an intent
+ */
+export function modeIntent(phase, unitId, source) {
+  if (phase.suspendFor) {
+    const span = resolveTicks(parseTick(phase.suspendFor), {
+      turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    });
+    return I.suspendSkill(unitId, phase.ability, (currentMoment().tick ?? 0) + span, source);
+  }
+  return I.setMode(unitId, phase.ability, phase.active === true, source);
 }
 
 /**

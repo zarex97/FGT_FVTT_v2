@@ -41,6 +41,8 @@ export const AUTHORED_ACTOR_KEYS = Object.freeze([
   // resolved at summon and is never authored.
   "linkedGroup",
   "summonVariant", "stanceSpec", "stance", "resources", "notes",
+  // Items a Servant may arrive with on a die (Arturia's Avalon, #230).
+  "summonItems",
   // A Platform's sheet text, which the allowlist never carried.
   "description",
 ]);
@@ -75,7 +77,10 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "exclusionSet", "grantedBy", "sameTurnExclusive", "sameRoundExclusive",
   "bypassesCategoryLimit", "refusesReactionsUnlessFaster", "offersSpellCategory", "reactionFree",
   "withdrawsFromAttack", "legionCost", "endsOnSkillSeal",
-  "countsAsNormalAttack", "openingChoice",
+  "countsAsNormalAttack", "openingChoice", "toggleWindow", "cooldownOverride",
+  // Avalon (#230): a Noble Phantasm that costs its Master nothing; an Item
+  // whose rules run while it is held, and the abilities it gives its holder.
+  "noMasterCost", "ignoresNPGate", "worksWhenHeld", "grants", "bondUnitId", "bondMasterId", "grantClocks",
   "freeAction",
   "timesUsed", "maxUses", "lastUsedTick", "recordedAttacks",
   "recordsAttacks", "shield", "shieldHealth", "negatedBy", "negatedWhile",
@@ -134,6 +139,11 @@ export const SEEDED_THEN_OWNED = Object.freeze({
   item: Object.freeze([
     "active", "timesUsed", "lastUsedTick", "recordedAttacks", "quantity",
     "copiedFrom", "grantedBy",
+    // Who bound an Item to its holder (Avalon, #230): written when it is
+    // placed, never authored.
+    "bondUnitId", "bondMasterId",
+    // ...and the clocks of what it grants, which travel with it (#230).
+    "grantClocks",
     // A barrier's pool, which play spends and Rho Aias's own decay shrinks.
     // Pack-owned, every reload refilled it (#109). The declared size is
     // `shield`, and that still follows the pack.

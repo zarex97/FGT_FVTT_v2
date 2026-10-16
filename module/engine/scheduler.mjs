@@ -1198,8 +1198,14 @@ const ACTIONS = Object.freeze({
     const fromTable = typeof a.amount === "number"
       ? (a.direction === "down" ? -Math.abs(a.amount) : Math.abs(a.amount))
       : null;
+    // "X TIMES": a cut paid per something the event counted. Arturia's Utopia
+    // is *"⅓◈ Turns for every Unit successfully hit"*, `ticks: ⅓◈, times:
+    // "@unitsHit"` (#230). A count of zero cuts nothing.
+    const times = a.times === undefined ? 1
+      : typeof a.times === "string" ? timesOf(a.times, { event: c.event ?? null }) : Number(a.times);
+    if (!(times > 0)) return [];
     const amount = a.ticks !== undefined
-      ? -resolveTicks(parseTick(a.ticks), c)
+      ? -resolveTicks(parseTick(a.ticks), c) * times
       : (fromTable ?? fromEvent ?? a.delta ?? 0);
 
     const ids = a.scope === "np"

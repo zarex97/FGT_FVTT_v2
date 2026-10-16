@@ -587,9 +587,11 @@ describe("held items (#30)", () => {
       },
     }]));
 
+    // `bondUnitId` and `bondMasterId` are nobody's on a plain Item: they name who
+    // placed one inside its holder (Avalon, #230).
     expect(u.items).toEqual([{
       contentId: "semiramis-poison", quantity: 2, consumable: true,
-      transferable: true, transferRange: 1,
+      transferable: true, transferRange: 1, bondUnitId: null, bondMasterId: null,
     }]);
   });
 

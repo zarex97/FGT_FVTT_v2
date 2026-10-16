@@ -248,6 +248,8 @@ export function applyEffect({
   let scaledNpMagnitude = npMagnitude;
   for (const scale of target.magnitudeScales ?? []) {
     if ((scale.direction ?? "incoming") !== "incoming") continue;
+    // A scale read live, not stamped (`rules/snapshot.mjs#readTimeScaled`).
+    if (scale.timing === "read") continue;
     const named = scale.effects
       ? scale.effects.includes(def.id)
       : Boolean(scale.family) && scale.family === def.family;

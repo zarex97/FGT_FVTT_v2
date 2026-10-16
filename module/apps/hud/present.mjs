@@ -38,6 +38,27 @@ export function portraitBlock(unit, { img, defaultImage, publicName, trueName, i
 }
 
 /**
+ * Which verdict a MODE's slot shows: the one its press would act on.
+ *
+ * The sheet's switch (`FGTActorSheet.toggleMode`) asks `rules/modes.mjs#
+ * canToggleMode` either way, and only a mode `pricedOnEntry` then goes through
+ * the use path. The bar asked the use gate for every switch ON, so it greyed
+ * Invisible Air "Ready from Round 2" while the press went through, and lit it
+ * through Strike Air's lockout while the press refused (#230, found live).
+ *
+ * @param {object} args
+ * @param {boolean} args.ending the mode is on and the press switches it off
+ * @param {{ok: boolean}} args.toggle `canToggleMode`'s verdict for this press
+ * @param {boolean} args.priced `rules/modes.mjs#pricedOnEntry`
+ * @param {() => {ok: boolean}} args.use the use gate, asked only when the press would ask it
+ * @returns {{ok: boolean}}
+ */
+export function modeSlotVerdict({ ending, toggle, priced, use }) {
+  if (ending || toggle?.ok === false || !priced) return toggle;
+  return use();
+}
+
+/**
  * One slot, with every state the bar draws.
  *
  * @param {object} ability a snapshot ability entry
@@ -62,6 +83,9 @@ export function slotFor(ability, { verdict, cost = null, turnsPerRound = 3, coun
   else if (ability?.active) ring = "on";
 
   const refused = verdict?.ok === false;
+  // Used ON its Cooldown at a price the gate accepted: Mana Burst inside the
+  // ZON, its Master paying 20 (#230). The clock still shows; the slot is live.
+  const overCooldown = !refused && verdict?.overCooldown ? verdict.overCooldown : null;
   // Ch. 21. While the bar is armed for a Counter, an ability that is not an
   // Attack is not a choice -- and it is DIMMED with a reason rather than
   // hidden, so a player can see that their buff exists and is simply not an
@@ -79,13 +103,14 @@ export function slotFor(ability, { verdict, cost = null, turnsPerRound = 3, coun
     // different question from whether it can be AFFORDED: an unaffordable
     // Noble Phantasm still glows, and still says why it is disabled.
     counter: Boolean(counter) && counter.isAttack === true,
-    disabled: refused || Boolean(cooldown) || notAnAttack,
+    disabled: refused || (Boolean(cooldown) && !overCooldown) || notAnAttack,
+    overCooldown,
     // The reason travels with the slot so the tooltip can say it. A dead
     // control with no explanation is how a player concludes the system is
     // broken (`rules/modes.mjs` states the same rule for `cannotDeactivate`).
     reason: notAnAttack
       ? "notAnAttack"
-      : (refused ? (verdict.reason ?? "unavailable") : (cooldown ? "cooldown" : null)),
+      : (refused ? (verdict.reason ?? "unavailable") : (cooldown && !overCooldown ? "cooldown" : null)),
   };
 }
 

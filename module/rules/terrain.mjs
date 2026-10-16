@@ -251,6 +251,8 @@ function onLevel(area, panel) {
 export function terrainEffects(unit, board) {
   const types = terrainAt(unit?.panel ?? { i: -1, j: -1 }, board);
   const held = unit?.attributes ?? [];
+  // Terrains whose penalties this Unit is spared (Vivian's Blessing, #230).
+  const spared = new Set(unit?.terrainPenaltyImmunities ?? []);
 
   const out = {
     movDelta: 0, evadeDelta: 0, agilityCheckDelta: 0, rangeDelta: 0, healingUp: 0,
@@ -264,6 +266,7 @@ export function terrainEffects(unit, board) {
     for (const effect of entry.effects) {
       if (effect.requires && !held.includes(effect.requires)) continue;
       if (effect.unless && held.includes(effect.unless)) continue;
+      if (spared.has(type) && isPenalty(effect)) continue;
 
       switch (effect.kind) {
         case "mov": out.movDelta += effect.value; break;
@@ -287,6 +290,26 @@ export function terrainEffects(unit, board) {
   }
 
   return out;
+}
+
+/**
+ * Is this terrain entry a PENALTY to whoever stands in it?
+ *
+ * A lower MOV, a smaller Range or less healing is one; so is a HIGHER Evade or
+ * Agility-check roll, because a higher roll is the worse one (Forest's *"Evade
+ * rolls -2 (easier)"*). A damage modifier is one when it is a weakness or a
+ * reduction: `elementDefDwn`, `defDwn`, `atkDwn`, `elementAtkDwn`. What is left
+ * -- an Atk Up, a resistance -- is a benefit.
+ *
+ * @param {{kind: string, value: number}} effect
+ * @returns {boolean}
+ */
+export function isPenalty(effect) {
+  switch (effect.kind) {
+    case "mov": case "range": case "healingUp": return effect.value < 0;
+    case "evade": case "agilityCheck": return effect.value > 0;
+    default: return /Dwn$/.test(effect.kind) || effect.value < 0;
+  }
 }
 
 /**

@@ -57,6 +57,10 @@ A painted area's `duration` is stored as an **absolute expiry tick**, like every
 
 An effect that created terrain is removed when the effect expires, dispels, or is cured. The delete hook finds every region tagged with `${defId}:${unitId}` and clears them (`module/engine/terrain.mjs:40-46`). The Meadow clause removes Meadow from specific panels via type, not tag, because it acts on map terrain (`module/engine/terrain.mjs:246-267`).
 
+**A terrain's penalties only (#230).** `TerrainPenaltyImmunity` spares its bearer a terrain's penalties and keeps its
+benefits (`terrain.mjs#isPenalty`): Vivian's Blessing drops Waterside's MOV -1, Evade +1 and Lightning/Ice weakness,
+and keeps its Water +25% and Fire resistance.
+
 ## Invariants & edge cases
 
 1. **Overlapping areas sum their effects.** Two MOV −1 areas cost two panels because they are two separate pieces of difficult ground, not one status applied twice (`module/rules/terrain.mjs:208`).

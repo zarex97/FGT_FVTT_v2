@@ -1,0 +1,52 @@
+# Avalon: The Everdistant Utopia, Rank EX -- Method 1 (#230).
+#
+# > "Can only be used 8 full Rounds after the start of the game (i.e. from the
+# > 9th Round onwards). Used when Arturia or an allied Unit directly next to
+# > Arturia is Attacked. Negate all damage and effects of that Attack including
+# > NP, on the Unit who was Attacked. If it was an AoE Attack, this NP affects
+# > all Units within a 1 panel area of Arturia. Using this NP does not reduce
+# > her Master's Health as a cost. Cooldown: 8◈ Turns."
+#
+# Akhilleus Kosmos is the shape: a barrier raised at the reaction rung, Anti-
+# Purge on whoever it covers, for that Attack. Only while she holds the Item
+# (reading 14). Against a targeted Attack it covers the Unit Attacked; against an
+# AoE, every Unit within 1 of her, enemies too (reading 15). An NP used on
+# somebody else's Turn spends no Attack (reading 24, §46.4-AZ).
+schema: 1
+id: arturia-avalon
+name: "Avalon: The Everdistant Utopia"
+rank: EX
+kind: noblePhantasm
+slug: avalon
+isNP: true
+npTags: [barrier]
+noMasterCost: true
+npGateRound: 9
+cooldown: "8◈"
+timing: { window: [whenAttacked, whenAllyAttacked], radius: 1 }
+copyable: { allowed: false, reason: named }
+requirements:
+  - { kind: itemAtLeast, contentId: avalon, amount: 1 }
+description: |
+  (Non-damaging) When Arturia is summoned, roll an eight-sided die. If an 8 is rolled, she is
+  summoned with the @ability[avalon]{[Avalon]} Item. Can be used in two different methods-
+  1. Can only be used 8 full Rounds after the start of the game (i.e. from the 9th Round
+  onwards). Used when Arturia or an allied Unit directly next to Arturia is Attacked. Negate all
+  damage and effects of that Attack including NP, on the Unit who was Attacked. If it was an AoE
+  Attack, this NP affects all Units within a 1 panel area of Arturia. Using this NP does not
+  reduce her Master's Health as a cost. Cooldown: 8◈ Turns.
+  2. Placing it inside her Master: @ability[arturia-avalon-place]{Avalon (place)}.
+targeting:
+  anchor: { kind: targetUnit, range: 1 }
+  shape: { kind: unit }
+  selection: { relations: [ally, self], includeSelf: true, chooser: all, count: 1 }
+  branches:
+    - predicate: ["attack:isAoE"]
+      anchor: { kind: self }
+      shape: { kind: square, size: 3 }
+      selection: { relations: [ally, enemy, neutral, self], includeSelf: true, chooser: all }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: antiPurge, duration: "until combatPhaseEnd", uses: 1 }

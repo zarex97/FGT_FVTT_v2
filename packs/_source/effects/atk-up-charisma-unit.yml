@@ -1,0 +1,28 @@
+# An Atk Up that IS a Charisma Skill's, held by the Unit it raises.
+#
+# Arturia's Knight of Utopia is "categorized as 'Charisma'" and applies Atk Up
+# to each ally within 2 of her (#230). Ruled 2026-10-16 (reading 23): those Atk
+# Ups are Atk Up (Charisma), so while she holds one her own Charisma's +20 is
+# off, as Penthesilea's and Proto Gil's go off while their Charisma Active runs.
+#
+# Not `atkUpCharisma`: that one is an AURA its holder carries for the allies
+# around her (Penthesilea's "Applies Atk Up (Charisma) to herself, all damage
+# dealt by allied Units within 2 ..."). This one raises its holder alone. Both
+# say what they are by family, `atkUpCharisma`, which is what every Charisma
+# passive asks (`self:effectFamily:atkUpCharisma`).
+schema: 1
+id: atkUpCharismaUnit
+name: "Atk Up (Charisma)"
+description: "All damage dealt is increased by X%; a reduced magnitude applies to Noble Phantasms. A Charisma Skill's Atk Up."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+families: [atkUpCharisma]
+rules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: "@magnitude"
+    npValue: "@npMagnitude"

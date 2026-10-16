@@ -42,6 +42,11 @@ Some authored keys the pack only **seeds**: play writes them, so the world's cop
 
 Items are matched by `contentId`, which is the stable name a pack document carries and a Foundry id is not. An item on the world copy that the template does not list is removed only if its `contentId` is in NO pack at all. If the ability still exists as content, its presence here is something play did and deleting it destroys a match. Items carrying `copiedFrom`, `grantedBy` or `inheritedFrom` (a summon's copy of its summoner's Ability, Raikou's copies' inherited passives; stamped and read by nothing until #104) are granted during play, not authored, and are protected even if they are not on the template (`module/migration/content-sync.mjs:135-182`).
 
+**An Item play placed is refreshed too (#230).** An item on an actor that is real content but not on its template —
+[Avalon] inside a Master, a crafted Poison — was kept and never compared again, so it froze at the day it was placed.
+It is refreshed from its own pack document (`runner.mjs#loadItemSources`, `content-sync.mjs#reconcileItems`), keeping
+what play wrote. An item with provenance (`copiedFrom`, `grantedBy`, `inheritedFrom`) is still only kept.
+
 ## Invariants & edge cases
 
 1. **A backup failure is fatal.** Writing the backup is non-negotiable, and if it fails, the migration aborts with the world unchanged (`module/migration/runner.mjs:71-73`).

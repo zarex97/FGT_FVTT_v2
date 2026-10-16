@@ -1,0 +1,57 @@
+# Knight of Utopia, Rank EX (#230).
+#
+# Quetzalcoatl's Charisma of the Sun is the shape (Atk Up 30/15 to every ally
+# within 2, then self-buffs), Tommy Thumb's attribute-filtered phase is the
+# Round Table one, and Ozymandias' Pharaoh of the Hot Sands is the "categorized
+# as 'Charisma'" Skill.
+#
+# Ruled 2026-10-16: her Atk Ups are Atk Up (Charisma) (reading 23), so her own
+# Charisma is off while she holds one; the two stack, +50% and NP +25% on her and
+# a Round Table ally (reading 4). "All allied Units" includes her.
+schema: 1
+id: arturia-knight-of-utopia
+name: "Knight of Utopia"
+rank: EX
+kind: skill
+slug: knightOfUtopia
+categorizedAs: [charisma]
+cooldown: "4◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[atkUpCharismaUnit]{Atk Up} for 1◈ Turns to all allied Units within a 2 panel area of
+     herself, all damage dealt is increased by 30%; if NP, 15%.
+  2. Applies @effect[atkUpCharismaUnit]{Atk Up} for 1◈ Turns to all allied Units within a 2 panel area of
+     herself with the 'Round Table' Attribute, all damage dealt is increased by 20%; if NP, 10%.
+  3. Applies @effect[dmgBoostUtopia]{Dmg Boost (Utopia)} for 1◈ Turns to herself- After Arturia performs 3
+     Attacks, her next Normal Attack deals 200% extra damage, then this buff is removed.
+  4. Applies the @effect[utopia]{Utopia} buff for 1◈ Turns to herself, whenever Arturia performs a
+     successful Attack, NP Cooldown is reduced by ⅓◈ Turns for every Unit successfully hit by
+     that Attack.
+  Cooldown: 4◈ Turns. This Skill is categorized as 'Charisma'.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: chebyshevRadius, r: 2 }
+  selection: { relations: [ally, self], includeSelf: true, chooser: all }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: atkUpCharismaUnit, magnitude: 30, npMagnitude: 15, duration: "1◈" }
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+      selection:
+        relations: [ally, self]
+        includeSelf: true
+        chooser: all
+        attributes: ["target:attribute:roundTable"]
+    effects:
+      - { id: atkUpCharismaUnit, magnitude: 20, npMagnitude: 10, duration: "1◈" }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: dmgBoostUtopia, duration: "1◈" }
+      - { id: utopia, duration: "1◈" }

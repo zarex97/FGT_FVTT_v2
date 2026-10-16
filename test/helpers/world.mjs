@@ -1157,7 +1157,9 @@ export async function withWorld(own, fn) {
       },
     },
     socket: world.socket,
-    packs: [],
+    // An Item compendium, when the world was given one (`withSubjects`'s
+    // `pack`): the content an Item grant reads (`engine/io.mjs#fromContent`).
+    packs: spec.packs ?? [],
     messages: world.messages,
     journal: notModelled("game.journal"),
     i18n: { format: (k) => k, localize: (k) => k, has: () => false },

@@ -524,7 +524,11 @@ describe("`attack:usesBase:mag` is the attack's base, not the component it decla
       const usesMag = sources.some((s) => s.component === "mag" && (s.factor ?? 1) > 0);
       return usesMag !== ((b.component ?? sources[0]?.component) === "mag") ? [doc.id] : [];
     })).sort();
+    // Arturia's Mana Burst joined the sweep (#230): BA(STR) + BA(MAG), declared
+    // `component: str` like Karna's. She holds no Mad Enhancement, so the
+    // assertions below are unchanged.
     expect(differs).toEqual([
+      "arturia-mana-burst",
       "dioscuri-mana-burst-castor", "dioscuri-mana-burst-pollux", "karna-mana-burst-flames",
       "mannanan-hallowed-sea-gods-sword", "quetz-xiuhcoatl", "raikou-mana-burst-lightning",
     ]);
@@ -686,10 +690,13 @@ describe("the joint NP's Crit Chance is both twins', where an NP figure is state
     expect(out.modifiers.every((m) => m.value === 0)).toBe(true);
   });
 
+  // Two whole worlds built in one test: about 2 s alone, and past vitest's 5 s
+  // under the full suite's load on both branches (#230). The arena tests' own
+  // budget, not a slower rule.
   it("counts the figure on ONE twin once, whichever of them declares", async () => {
     expect((await chance(CASTOR, await withNpFigure([POLLUX]))).percent).toBe(70);
     expect((await chance(POLLUX, await withNpFigure([POLLUX]))).percent).toBe(70);
-  });
+  }, 30_000);
 });
 
 /* ========================================================================== */
@@ -731,7 +738,9 @@ describe("`attack:plainDamage` is how a Clause tells an Attack from measured dam
       for (const rule of doc.rules ?? []) {
         if (rule.key !== "OnEvent" || ![rule.event].flat().includes("damageTaken")) continue;
         for (const action of rule.then ?? []) {
-          if (action.key === "StatDelta" && /^(luck|agility)\.value$/.test(action.stat)) {
+          // A DRAIN: a restore on taking damage -- Avalon's, inside a Master
+          // (#230) -- is not one.
+          if (action.key === "StatDelta" && /^(luck|agility)\.value$/.test(action.stat) && !(action.delta > 0)) {
             drains.push({ id: doc.id, stat: action.stat, predicate: rule.predicate ?? [], path });
           }
         }

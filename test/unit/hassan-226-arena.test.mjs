@@ -4,7 +4,7 @@
  * The projection-level halves are in `hassan-226.test.mjs`.
  * @see docs/46-roster-re-audit.md §46.32
  */
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import { castSkill } from "../helpers/process.mjs";
 import { loadSource } from "../../tools/lib/load.mjs";
@@ -75,5 +75,40 @@ describe("Librarian's Passive 2 reaches a concealed body, and names it (#226 rea
       expect(held).toEqual(expect.arrayContaining(["critUp", "buffChUp", "critDmUp"]));
       expect(rowsOf(w).filter((r) => r.endsWith("Crit Up"))).toEqual(["Crit Up", `${w.actor(H2).name}: Crit Up`]);
     }, MATCH);
+  });
+});
+
+describe("A Round's deployment asks only a legion in this war (#230, live)", () => {
+  // Found live in Arturia's war: at every Round's start Player1 was asked to
+  // deploy "Hassan 12" onto her board. The Hassan audit's Master, on another
+  // scene in another combat, still held his legion, and the offer walked every
+  // actor in the world.
+  it("a Master off this board is not asked, and nothing is deployed", async () => {
+    const pool = { size: 100, remaining: 34, fieldCap: 10, openingMax: 10, label: "Hassan", nextNumber: 12 };
+    const specs = [
+      { from: "arturia", id: "arturiaElsewhr01", panel: { i: 5, j: 5 }, state: { factionId: "A" } },
+      { from: "master-advanced", id: "hassanMasterOff1", owner: "p1", state: { factionId: "B", legions: { [H1]: pool } } },
+    ];
+    // Faction ids repeat from war to war, so his "B" finds this war's B base.
+    const base = (id, factionId, i) => ({
+      id, panels: [0, 1, 2].map((j) => ({ i, j })), behaviors: [{ type: "homeBase", system: { factionId } }],
+    });
+    await withSubjects(specs, async ({ world: w }) => {
+      const { offerLegionDeploys } = await import("../../module/engine/legion.mjs");
+      const { deployPanels } = await import("../../module/rules/linked-group.mjs");
+      const { currentBoard } = await import("../../module/engine/board.mjs");
+      // The offer WOULD find panels for him: only his absence from the war stops it.
+      expect(deployPanels(currentBoard(), "B").length).toBeGreaterThan(0);
+      expect(w.actor("hassanMasterOff1").system.legions[H1].remaining).toBe(34);
+      // The panel picker cannot open in the test world, so the question is caught
+      // where it fails: a prompt to his owner that nobody answers.
+      const warned = vi.spyOn(console, "warn");
+      const deployed = await offerLegionDeploys(3);
+      const prompts = warned.mock.calls.filter((c) => String(c[0]).includes("window prompt was not answered"));
+      warned.mockRestore();
+      expect(prompts).toEqual([]);
+      expect(w.asked).toEqual([]);
+      expect(deployed).toEqual([]);
+    }, { ...MATCH, regions: [base("hbA", "A", 0), base("hbB", "B", 12)] });
   });
 });

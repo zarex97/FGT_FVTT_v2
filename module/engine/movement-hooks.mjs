@@ -20,6 +20,8 @@ import {
   gateMovement, pursuitVerdict, decoyVerdict, hatredVerdict,
 } from "../rules/movement.mjs";
 import { carryMasterAlong } from "./passenger-seat.mjs";
+import { preventedBy } from "../rules/budget.mjs";
+import { EffectRegistry } from "../rules/registry.mjs";
 import { unitSnapshot, unitOf, currentBoard } from "./board.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
@@ -176,6 +178,19 @@ function onPreMove(document, movement, operation) {
   const hated = hatredVerdict(unit, route, board);
   if (!hated.ok) {
     ui.notifications.warn(`FGT | ${hated.reason}`);
+    return false;
+  }
+
+  // A prevention stops EVERY Move, the second as well as the first. It was
+  // asked only inside the budget below, which a Unit that has Moved already
+  // skips: Arturia rode one panel, placed [Avalon] (*"cannot Move after"*),
+  // and the next drag carried her and her Master on (#230, live). Named as the
+  // player reads the effect, not by its id.
+  const stopped = preventedBy(unit, "move");
+  if (stopped.prevented) {
+    ui.notifications.warn(game.i18n.format("FGT.Movement.Prevented", {
+      name: actor.name, effect: EffectRegistry.get(stopped.by)?.name ?? stopped.by,
+    }));
     return false;
   }
 

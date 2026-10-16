@@ -1,0 +1,27 @@
+# Radiant Road's third effect, on Arturia.
+#
+# > "Apply the 'Radiant' buff for 1◈ Turns to herself, all other allied Units
+# > within a 2 panel area of herself gain the effects of her 'Instinct' Skill.
+# > Note: If Arturia is inflicted with Skill Seal, Instinct will still have no
+# > effect for all Units." (#230)
+#
+# An aura that LENDS her Instinct (`lendsAbility`), so its numbers are stated
+# once, on the Skill. Both parts, the automatic Evade and the Crit (reading 8).
+# Her Skill Seal negates her Instinct, and a negated ability lends nothing, so the
+# Note needs no clause of its own. An ally with an Instinct of its own rolls once,
+# the likelier (`checks.mjs#checkPlan`).
+schema: 1
+id: radiant
+name: "Radiant"
+description: "All other allied Units within 2 panels of this Unit gain the effects of its Instinct Skill."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: Aura
+    radius: 2
+    relations: [ally]
+    lendsAbility: instinct
+    stacking: highestOnly

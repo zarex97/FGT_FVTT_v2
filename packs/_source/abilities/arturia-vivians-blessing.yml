@@ -1,0 +1,21 @@
+# Vivian's Blessing (#230).
+#
+# > "(Passive) Arturia receives no negative effects from being within a
+# > Waterside area."
+#
+# Ruled 2026-10-16 (reading 20): Waterside's penalties drop -- its MOV -1, its
+# Evade +1, its weakness to Lightning and Ice -- and its benefits stay
+# (`rules/terrain.mjs#terrainEffects`, `TerrainPenaltyImmunity`).
+schema: 1
+id: arturia-vivians-blessing
+name: "Vivian's Blessing"
+rank: null
+kind: skill
+slug: viviansBlessing
+passive: true
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive) Arturia receives no negative effects from being within a Waterside area.
+passiveRules:
+  - key: TerrainPenaltyImmunity
+    terrain: waterside

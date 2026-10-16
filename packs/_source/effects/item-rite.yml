@@ -1,0 +1,16 @@
+# The Turn an Item was placed, taken back or passed on.
+#
+# Avalon: "both Arturia and her Master cannot Attack on the same Turn, and
+# cannot Move after Avalon is used in this way" (#230). Applied by the
+# `transferItem` phase's `lock`, for the rest of the Turn. What it refuses is
+# `rules/budget.mjs`'s `PREVENTS.itemRite`: a Move and every kind of Attack.
+schema: 1
+id: itemRite
+name: "Item Rite"
+description: "This Unit cannot Attack or Move for the rest of this Turn."
+polarity: status
+volatility: nonVolatile
+valence: neither
+stacking: noneRefresh
+baseChance: 100
+unremovable: true

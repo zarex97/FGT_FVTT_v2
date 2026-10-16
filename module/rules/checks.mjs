@@ -131,7 +131,14 @@ export function checkPlan(unit, check, { direction = "outgoing", options = null,
     ? "unfavourable"
     : (forcing[0] ?? null);
 
-  const autoSucceed = (unit?.autoSucceeds ?? []).find((a) => a.check === check) ?? null;
+  // THE BEST one, when a Unit holds several: a sure thing beats a chance. One
+  // that rolls itself when its holder is Attacked (`whenAttacked`, Arturia's
+  // Instinct) is not the rung's to grant: it rolled at the rung's door
+  // (`engine/attack.mjs#instinctOf`), and chosen after it failed, the Evade is
+  // an ordinary roll (#230, found live: it made every chosen Evade certain).
+  const autoSucceed = (unit?.autoSucceeds ?? [])
+    .filter((a) => a.check === check && !a.whenAttacked)
+    .reduce((best, a) => (!best || (a.chance ?? 100) > (best.chance ?? 100) ? a : best), null);
   const adjustable = relevant.filter((m) => m.playerAdjustable);
 
   return { modifiers, forceTable, autoSucceed, adjustable, chances };

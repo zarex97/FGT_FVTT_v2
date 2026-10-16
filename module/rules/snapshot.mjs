@@ -27,6 +27,7 @@ import { EffectRegistry } from "./registry.mjs";
 import { familiesPresent } from "./effects/families.mjs";
 import { buildAuraIndex } from "./aura-index.mjs";
 import { annotateTerrain } from "./terrain.mjs";
+import { annotateBonds } from "./bonds.mjs";
 import {
   phase, phaseAt, darkModifiers, homeBaseModifiers, regionBonusFor, inOwnHomeBase,
 } from "./environment.mjs";
@@ -346,6 +347,12 @@ export function snapshotUnit(actor, {
     // the application pipeline (`engine/effect-applier.mjs`). Distinct from
     // `applicationChances` above, which changes how likely it is to land at all.
     magnitudeScales: contributions.magnitudeScales ?? [],
+    // Terrains whose penalties this Unit does not take (Arturia's Vivian's
+    // Blessing on Waterside, #230), read by `rules/terrain.mjs#terrainEffects`.
+    terrainPenaltyImmunities: contributions.terrainPenaltyImmunities ?? [],
+    // Shares of the maximum at or above which a lethal blow leaves 1 Health
+    // (Avalon, #230), read by `engine/attack.mjs#resolveDefeatOf`.
+    lethalFloors: contributions.lethalFloors ?? [],
     // Read by `engine/attack.mjs` before the Combat Processes are built, to
     // ask whether this unit may swing first at whoever just declared on it.
     preemptions: contributions.preemptions ?? [],
@@ -441,7 +448,8 @@ export function snapshotUnit(actor, {
     // for the same "why is my Rank B" trace `annotateRegionBonus` feeds too.
     statDeltas: [...contributions.statDeltas, ...grantedStepDeltas(sys.grantedSteps)],
 
-    magicResistance: contributions.magicResistance ?? magicResistanceOf(actor),
+    magicResistance: withVariants(contributions.magicResistance ?? magicResistanceOf(actor),
+      contributions.magicResistanceVariants),
 
     // Which component a normal attack draws on. The preview reads this to build
     // the same base spec the real attack will; without it a MAG attacker was
@@ -640,6 +648,10 @@ export function snapshotUnit(actor, {
         // decide whether a give is on offer (#32).
         transferable: Boolean(i.system?.transferable),
         transferRange: i.system?.transferRange ?? 1,
+        // Who bound it to this holder, if anyone (Avalon, #230): the board's
+        // bond pass reads it (`rules/bonds.mjs#annotateBonds`).
+        bondUnitId: i.system?.bondUnitId || null,
+        bondMasterId: i.system?.bondMasterId || null,
       })),
     acted: turnState.acted,
     // Hoisted beside `acted` for the same reason `acted` is: `scheduler#endTurn`
@@ -842,6 +854,9 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // The legion count each body reads: the Master's pool, from the world
   // (`settings.legions`, `engine/board.mjs`), and who of it stands here.
   annotateLegions(units, settings.legions ?? {});
+  // Items bound to their holder by another Unit (Avalon, #230): who, how far,
+  // whether she still stands.
+  annotateBonds(units);
 
   annotateZon(units, board, settings.zon ?? {});
 
@@ -1161,7 +1176,7 @@ export function applyBaseAttackModifiers(unit) {
   for (const m of mods) {
     for (const c of m.components ?? []) {
       if (typeof unit.baseAttack?.[c] !== "number") continue;
-      unit.baseAttack[c] = Math.floor(unit.baseAttack[c] * (m.factor ?? 1));
+      unit.baseAttack[c] = Math.floor(unit.baseAttack[c] * (m.factor ?? 1)) + (m.add ?? 0);
     }
   }
   unit.baseAttackModifiersApplied = true;
@@ -1696,7 +1711,9 @@ export function contributionsOf(actor, { terrain = [], tick = null, partnerDista
     //
     // Gated on the item TYPE, not on every item: an ability has no `equipped`
     // field, and reading one off it would switch off every passive in the game.
-    .filter((item) => item.type !== "equipment" || Boolean(item.system?.equipped))
+    // ...or HELD, for an Item whose rules run while it is held: Avalon is placed
+    // inside its holder, not worn (#230), and each of its rules names its holder.
+    .filter((item) => item.type !== "equipment" || Boolean(item.system?.equipped) || Boolean(item.system?.worksWhenHeld))
     // An EXPENDED ability contributes nothing. Akhilleus Kosmos: *"After that,
     // Akhilleus Kosmos is broken; ALL ITS EFFECTS ARE LOST and cannot be used
     // for the rest of the game"* -- found live (#184): the barrier was spent and
@@ -1773,6 +1790,11 @@ export function contributionsOf(actor, { terrain = [], tick = null, partnerDista
       // elements have to know how many uses are left, or the consumer cannot
       // tell a spent Trofa from a fresh one.
       uses: effect.system?.uses ?? 0,
+      // What a magnitude scale read live needs to resolve this instance again
+      // (`readTimeScaled` below): the definition and the stamped magnitudes.
+      scaleBasis: {
+        def, magnitude: effect.system?.magnitude ?? 0, npMagnitude: effect.system?.npMagnitude,
+      },
       // "@magnitude" on an effect definition resolves against the instance,
       // and "-@magnitude" against its negation -- at the top level of a rule
       // AND inside an Aura's nested `elements`, which is where Area CritUp
@@ -1801,6 +1823,14 @@ export function contributionsOf(actor, { terrain = [], tick = null, partnerDista
         kind: actor.type, servantClasses: sys.servantClasses ?? [], normalAttack: sys.normalAttack ?? null,
       }),
       effects: [...(actor.effects ?? [])].map((e) => e.system?.defId).filter(Boolean),
+      // ...and their FAMILIES, as the board projects them, so a `self:effectFamily:`
+      // clause can be answered from the bearer's own contributions. Charisma is
+      // *"negated if this Unit has Atk Up (Charisma)"*, asked by family (#230):
+      // the collection asked a set with no family in it, and the aura never went off.
+      effectFamilies: familiesPresent(
+        [...(actor.effects ?? [])].filter((e) => !e.disabled && !e.isSuppressed).map((e) => e.system?.defId).filter(Boolean),
+        EffectRegistry,
+      ),
       region: [...(sys.region ?? [])],
       variant: sys.variant ?? null,
       // `self:free`, and the `self:rank:<parameter>:gte:<grade>` ladder. Both
@@ -1864,7 +1894,7 @@ export function contributionsOf(actor, { terrain = [], tick = null, partnerDista
     defender: null,
   });
 
-  return collectContributions(abilities, {
+  const collectOptions = {
     options,
     refs: expressionRefs(actor),
     // Rules this Unit has had switched off BY NAME and permanently -- the
@@ -1876,6 +1906,45 @@ export function contributionsOf(actor, { terrain = [], tick = null, partnerDista
     // (`rules/elements.mjs`). Kingprotea's Proliferation is the reason it
     // exists and her NP DmUp (GAO) is the reason it counts two shapes.
     stacks: stacksHeld(actor),
+  };
+  return collectContributions(readTimeScaled(abilities, collectOptions), collectOptions);
+}
+
+/**
+ * Resolve the held effects again under the magnitude scales read live.
+ *
+ * Arturia's Invisible Air halves Crit Dwn on her while it is active and
+ * un-halves it when it is not (#230 reading 10). A stamped magnitude cannot
+ * follow a mode, so a scale authored `timing: read` is asked of the Unit's own
+ * rules -- by the one collector, over its abilities alone, because an effect's
+ * rules cannot scale another effect -- and each held effect it names is
+ * resolved again at the scaled magnitude. Rounded down, as the stamp is.
+ *
+ * Nothing to do, and no second collection, for a Unit with no such scale.
+ *
+ * @param {object[]} abilities the records, effects included
+ * @param {object} collectOptions
+ * @returns {object[]}
+ */
+function readTimeScaled(abilities, collectOptions) {
+  const authorsOne = (a) => [a.rules, a.passiveRules, a.activeRules].some((list) =>
+    (list ?? []).some((r) => r?.key === "EffectMagnitudeScale" && r.timing === "read"));
+  if (!abilities.some((a) => !a.fromEffect && authorsOne(a))) return abilities;
+
+  const scales = collectContributions(abilities.filter((a) => !a.fromEffect), collectOptions)
+    .magnitudeScales.filter((s) => s.timing === "read" && (s.direction ?? "incoming") === "incoming");
+  if (scales.length === 0) return abilities;
+
+  return abilities.map((record) => {
+    const basis = record.scaleBasis;
+    if (!record.fromEffect || !basis) return record;
+    const factor = scales
+      .filter((s) => (s.effects ? s.effects.includes(basis.def.id) : Boolean(s.family) && s.family === basis.def.family))
+      .reduce((f, s) => f * s.factor, 1);
+    if (factor === 1) return record;
+    const magnitude = Math.floor(basis.magnitude * factor);
+    const npMagnitude = typeof basis.npMagnitude === "number" ? Math.floor(basis.npMagnitude * factor) : basis.npMagnitude;
+    return { ...record, rules: basis.def.rules.map((r) => resolveRuleValues(r, magnitude, npMagnitude)) };
   });
 }
 
@@ -2175,6 +2244,20 @@ function chargesLeft(actor, revival) {
  * @param {object} actor
  * @returns {object|null}
  */
+/**
+ * Carry the thresholds that replace a Magic Resistance against one kind of
+ * attack on the resistance itself, so a reader holding the resistance holds
+ * them too (stage 11, `rules/damage/pipeline.mjs`). Without a resistance to
+ * replace there is nothing to carry.
+ * @param {object|null} mr
+ * @param {object[]} variants
+ * @returns {object|null}
+ */
+function withVariants(mr, variants) {
+  if (!mr || !(variants ?? []).length) return mr;
+  return { ...mr, variants };
+}
+
 function magicResistanceOf(actor) {
   const mr = actor.system?.classSkills?.magicResistance;
   if (!mr) return null;

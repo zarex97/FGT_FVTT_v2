@@ -151,6 +151,18 @@ export async function landEffect(entry, ctx) {
   // reason, so a failed check that cost a Luck would otherwise say nothing.
   let line = result.chance ?? null;
 
+  // A ward that negates debuffs its holder picks, before any Luck is spent on
+  // them: the Master's Avalon, *"negate up to Y additional negative effects
+  // (i.e. debuffs) from that Attack"*, the Master's pick (#230 reading 19).
+  if (outcome === "applied") {
+    const ward = await offerWard(def, target);
+    if (ward?.negated) {
+      outcome = "negated";
+      reason = ward.line;
+      intents = [...ward.spend, I.log({ kind: "effectNegated", unitId: target.id, defId: def.id, tick })];
+    }
+  }
+
   if (outcome === "applied") {
     const check = await offerPrevention(def, target, ctx, board);
     if (check?.prevented) {
@@ -404,6 +416,37 @@ function landedIntents(def, target, result, board, tick, turnsPerRound) {
   const handler = { source: def.name ?? def.id, abilityId: null, defId: def.id };
   const ctx = { board, tick, turnsPerRound, effectDef: (id) => EffectRegistry.get(id) };
   return def.onApply.flatMap((a) => dispatch({ ...a, kind: a.kind ?? a.key }, target, handler, ctx));
+}
+
+/**
+ * Offer a debuff's target the ward it holds: negate this one, at the cost of
+ * one of the ward's uses.
+ *
+ * `debuffWard`, with `uses` the number it may negate -- the Master's Avalon's Y
+ * (#230). Each debuff is asked as it lands, so the holder's owner picks which,
+ * up to Y (reading 19). A closed window negates nothing.
+ *
+ * @param {object} def
+ * @param {object} target
+ * @returns {Promise<{negated: boolean, spend: object[], line: string}|null>}
+ */
+async function offerWard(def, target) {
+  if (def.polarity !== "debuff") return null;
+  const ward = (target.effectInstances ?? []).find((i) => i.defId === "debuffWard" && (i.uses ?? 0) > 0);
+  if (!ward) return null;
+  const doc = game.actors.get(target.id);
+  if (!doc || target.defeated || doc.system?.defeated) return null;
+  const answer = await askOwner(doc, {
+    kind: "confirm",
+    title: game.i18n.localize("FGT.Ward.Title"),
+    hint: game.i18n.format("FGT.Ward.Ask", { name: doc.name, effect: def.name, left: ward.uses }),
+  });
+  if (!answer?.accepted) return null;
+  return {
+    negated: true,
+    spend: [I.consumeUse(target.id, "debuffWard")],
+    line: game.i18n.format("FGT.Ward.Negated", { left: ward.uses - 1 }),
+  };
 }
 
 /**

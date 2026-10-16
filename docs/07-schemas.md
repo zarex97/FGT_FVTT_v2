@@ -74,6 +74,14 @@ held while no body stands), are world state, written by `engine/legion.mjs` and 
 `legion` on each body (`rules/linked-group.mjs#annotateLegions`). Abilities gained `withdrawsFromAttack`,
 `legionCost` and `endsOnSkillSeal`; an Effect Entry gained `otherwise` and `restores` (Ch. 15).
 
+**Arturia's fields (#230).** Abilities: `cooldownOverride` (`{masterHealth, withinZon}`, a use ON the Cooldown
+at a price), `toggleWindow` (`any`: a mode switched on anybody's Turn), `noMasterCost` and `ignoresNPGate` (an NP
+that charges its Master nothing, one no Round gate holds). Equipment: `worksWhenHeld` (its rules run while held),
+`grants` (`{kinds, abilities}` its holder gains), `grantClocks` (each grant's ready Tick, carried as it
+moves), and the world-state bond `bondUnitId`/`bondMasterId`, written when
+an Item is placed, never authored. Servant: `summonItems` (`[{item, roll, on}]`, an Item on a summon die). A Unit
+projects `terrainPenaltyImmunities`, `lethalFloors`, and on the board `bonds` (`rules/bonds.mjs`).
+
 ## Invariants & edge cases
 
 1. **`null` and zero are not the same for Health.** Health `max` is `null` when the unit is intrinsically undamageable, and `value: null` when defeated. A Master refills to 250 if `max` is null or zero; a zero-max Servant comes back at 1 before revival bonuses land (`module/data/actor/_shared.mjs:40-52`, `module/data/actor/master.mjs:74-79`).

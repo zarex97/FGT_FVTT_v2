@@ -16,6 +16,17 @@ import * as I from "./intents.mjs";
 import { guardCase, guardLanding } from "../rules/master-guard.mjs";
 import { canStopOn } from "../rules/movement.mjs";
 import { checkPlan, resolveCheck, tableFor } from "../rules/checks.mjs";
+import { publicIdentityOf } from "./public-identity.mjs";
+
+/**
+ * A Unit as the table knows it. This line is public, and it named a concealed
+ * guard by her True Name: "Arturia stands next to Master of Saber" (#230, live).
+ *
+ * @param {object} unit
+ * @param {object} board
+ * @returns {string}
+ */
+const shownName = (unit, board) => publicIdentityOf(unit, board).name || unit.name;
 
 /**
  * Who the Attack lands on: the Master, or the guard that took it.
@@ -59,7 +70,7 @@ export async function guardMasterTarget({ attackerId, targetId }) {
       table: plan.forceTable ?? tableFor(guard.agility, attacker.agility),
       modifiers: plan.modifiers,
     });
-    rolls.push({ unitId: guard.id, name: guard.name, roll: roll.total, total: outcome.total, target: guard.agility, success: outcome.success });
+    rolls.push({ unitId: guard.id, name: shownName(guard, board), roll: roll.total, total: outcome.total, target: guard.agility, success: outcome.success });
     if (!outcome.success) continue;
 
     const token = game.actors.get(guard.id)?.getActiveTokens?.()[0]?.document
@@ -93,7 +104,7 @@ async function report(master, guardId, board, detail) {
     .map((r) => game.i18n.format("FGT.MasterGuard.Roll", { name: r.name, roll: r.roll, total: r.total, target: r.target, outcome: game.i18n.localize(r.success ? "FGT.MasterGuard.Success" : "FGT.MasterGuard.Fail") }))
     .map((line) => `<li>${line}</li>`).join("");
   const headline = guard
-    ? game.i18n.format(detail.case === 2 ? "FGT.MasterGuard.Redirected" : "FGT.MasterGuard.SteppedIn", { guard: guard.name, master: master.name })
-    : game.i18n.format("FGT.MasterGuard.Held", { master: master.name });
+    ? game.i18n.format(detail.case === 2 ? "FGT.MasterGuard.Redirected" : "FGT.MasterGuard.SteppedIn", { guard: shownName(guard, board), master: shownName(master, board) })
+    : game.i18n.format("FGT.MasterGuard.Held", { master: shownName(master, board) });
   await ChatMessage.create({ content: `<p>${headline}</p>${rolls ? `<ul>${rolls}</ul>` : ""}` });
 }

@@ -175,6 +175,12 @@ nothing. Its `restores` (`[{stat, delta}]`) is written as the application lands,
 decides both, so Buff ChUp raises it and No Buff stops it (Expert's *"70% chance of restoring 3 Agility ... If
 successful, also apply AGL Up"*). The Skill card prints what a landing wrote (§46.4-NP).
 
+**Three landing rules from Arturia (#230).** An `EffectMagnitudeScale` with `timing: read` scales a HELD magnitude
+for as long as its rule stands and un-scales it when it goes (Invisible Air halving Crit Dwn; `snapshot.mjs#readTimeScaled`);
+the applier leaves it alone. A `debuffWard` asks its holder's owner, as each debuff lands, whether to negate it, while
+its uses last (the Master's Avalon, `landing.mjs#offerWard`). A `FlatDamage` may carry a `chance`, one die per strike
+shared by its `chanceKey` (Excalibur's passive).
+
 ## Invariants & edge cases
 
 **The inflicter is the board's unit** (#193). Both live callers of `inflictBonusOf` — the Skill path and the event path — now hand it the board projection, auras included. A bare `unitSnapshot` carries none, so Medea's Item Construction never reached her own Spells. The chance line names the ability's own modifiers: *"rolled 69 vs 80% [target MAG B+ -25, Magic Resistance B+ -25]"*.

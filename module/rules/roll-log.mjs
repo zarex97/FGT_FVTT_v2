@@ -195,19 +195,27 @@ export function modifierDiceRecords(ctx, result, state, tick) {
   // A contributor names its modifier KEY as `source` and the ability as `note`;
   // both are matched, so the defender's Goddess of War cut does not file her
   // own, unused, Attack die beside it.
-  const used = new Set((result?.breakdown ?? []).flatMap((b) => (b.contributors ?? [])
-    .map((c) => `${c.source}|${c.note ?? c.source}`)));
+  const contributors = (result?.breakdown ?? []).flatMap((b) => b.contributors ?? []);
+  const used = new Set(contributors.map((c) => `${c.source}|${c.note ?? c.source}`));
+  // A flat bonus of another element notes itself "Name (light)": landed, under
+  // its name with the element beside it. A lost chance contributes 0 and is
+  // said in the breakdown already.
+  const landed = (m) => used.has(`${m.key}|${m.source}`) || contributors.some((c) => c.source === m.key
+    && c.value !== 0 && String(c.note ?? "").startsWith(`${m.source} (`));
   const seen = new Set();
   const out = [];
   for (const m of [...(ctx?.attacker?.modifiers ?? []), ...(ctx?.defender?.modifiers ?? [])]) {
-    const key = m.roll?.key;
-    if (!key || seen.has(key) || typeof ctx.rolls?.[key] !== "number" || !used.has(`${m.key}|${m.source}`)) continue;
+    // A rolled magnitude, or a CHANCE to land at all: Excalibur's passive won
+    // its 50% and the die was nowhere, though a lost one says "rolled 51 vs
+    // 50%" in the breakdown (#230, live). Filed only when it landed, as above.
+    const key = m.roll?.key ?? m.chance?.key;
+    if (!key || seen.has(key) || typeof ctx.rolls?.[key] !== "number" || !landed(m)) continue;
     seen.add(key);
     out.push(record({
       id: `${state.attackerId}:${state.defenderId}:modifier:${key}:${tick}`,
-      globalTurn: tick, entryId: "modifier", formula: m.roll.formula,
+      globalTurn: tick, entryId: "modifier", formula: m.roll?.formula ?? "1d100",
       raw: ctx.rolls[key], total: ctx.rolls[key],
-      modifiers: [],
+      modifiers: m.chance ? [{ source: `against ${m.chance.percent}%`, delta: 0, stage: "chance" }] : [],
       purpose: m.source,
       actorId: state.attackerId,
     }));

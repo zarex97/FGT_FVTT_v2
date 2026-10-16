@@ -78,6 +78,9 @@ globalThis.game = {
 
 const { Scheduler } = await import("../../module/engine/scheduler-hooks.mjs");
 Scheduler.attach();
+// The boundaries wait for the engine's listeners (`engine-ready.mjs`, #230);
+// this file binds only the Scheduler, so it says the engine is up itself.
+(await import("../../module/engine/engine-ready.mjs")).markEngineReady();
 
 /* -------------------------------------------------------------------------- */
 
