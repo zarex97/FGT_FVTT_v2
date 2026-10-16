@@ -29,6 +29,7 @@ import { availableFor } from "./cs-namespacing.mjs";
 import { chebyshev, inBounds } from "../domain/geometry.mjs";
 import { paysHighColumn } from "./master-rank.mjs";
 import { isolationBlocks } from "./bounded-fields.mjs";
+import { isNPAttack } from "./damage/pipeline.mjs";
 
 /** The interruptible points (Ch. 33). `anyTime` commands are offered at all of them. */
 export const WINDOWS = Object.freeze({
@@ -349,7 +350,8 @@ function meets(req, ctx) {
     case "servantInZon":
       return !servant?.outsideZon;
     case "attackIsNotNP":
-      return ctx.attack?.kind !== "np";
+      // A categorized NP is an NP here too (ruled 2026-10-16, #208).
+      return !isNPAttack(ctx.attack);
     case "targetNotImmune":
       // The immunity is a granted attribute, so content declares it and the
       // offer never shows the option (Ch. 33).

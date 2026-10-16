@@ -572,11 +572,11 @@ describe("Rho Aias against a thrown weapon, and for that one Noble Phantasm only
       expect(w.actor(D2).system.health.value).toBe(hp);
       // For every 200 it lost, EMIYA lost 100: 1399 lost is six hundreds.
       expect(w.actor(E).system.health.value).toBe(emiyaHp - 600);
-      // OPEN (Ch. 46 §46.30): the NP's Stun and Instakill are tried `beforeDamage` on the protected Unit whatever the
-      // barrier absorbed, and whether Rho Aias also stops an NP's effects is a rule nobody has ruled. Recorded as built.
+      // The barrier holds the NP's riders too (ruled 2026-10-16, #208): at cf20cfc Stun "applied" through it.
+      // `emiya-208-open.test.mjs` plays the rest of that ruling.
       const rows = [...w.messages.values()].flatMap((m) => m.getFlag?.("fgt", "effects") ?? []);
-      expect(rows.find((e) => e.id === "stun")?.outcome).toBe("applied");
-      expect(rows.find((e) => e.id === "instakill")?.outcome).not.toBe("applied");
+      expect(rows.find((e) => e.id === "stun")?.outcome).toBe("blocked");
+      expect(rows.find((e) => e.id === "instakill")?.outcome).toBe("blocked");
     });
   }, 90_000);
 

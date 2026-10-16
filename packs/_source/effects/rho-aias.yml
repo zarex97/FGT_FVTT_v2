@@ -24,3 +24,8 @@ unremovable: true
 absorbs:
   scope: np
   poolFrom: sourceAbility
+  # "To protect the allied Unit(s) from the Noble Phantasm": the whole NP. Its
+  # riders on a covered Unit wait for the barrier; held, they are dropped,
+  # broken, they land after the damage (ruled 2026-10-16, #208). A rider from a
+  # check the Unit fails is not held: only the check saves (Gate of Skye).
+  holdsRiders: true

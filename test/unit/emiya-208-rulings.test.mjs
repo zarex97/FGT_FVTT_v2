@@ -256,26 +256,26 @@ describe("Overedge's swings are Normal Attacks and the Noble Phantasm the Circui
     });
   };
 
-  it("Overedge: attack:kind:normal beside attackSkill, and attack:isNP (it is categorized as one)", async () => {
+  it("Overedge: attack:kind:normal beside attackSkill, and attack:kind:np (it is categorized as one)", async () => {
     const { declared, options } = await optionsOf("emiya-overedge", 3);
-    // HEAD: neither `attack:kind:normal` (not countsAsNormalAttack) nor `attack:isNP` (no such option).
+    // At cf20cfc `attack:kind:np` was the Noble Phantasms only and `attack:isNP` counted Overedge beside it; every NP
+    // rule hears a categorized NP now (ruled 2026-10-16, #208), so the one name says it.
     expect(declared.asNormalAttack).toBe(true);
     expect(declared.categorizedAsNP).toBe(true);
     expect(options.has("attack:kind:normal")).toBe(true);
     expect(options.has("attack:kind:attackSkill")).toBe(true);
-    expect(options.has("attack:isNP")).toBe(true);
+    expect(options.has("attack:kind:np")).toBe(true);
   });
 
   it("a bare close swing is a Normal Attack and not 'an NP that deals damage' (reading 22)", async () => {
     const { options } = await optionsOf(null, 2);
     expect(options.has("attack:kind:normal")).toBe(true);
-    expect(options.has("attack:isNP")).toBe(false);
+    expect(options.has("attack:kind:np")).toBe(false);
   });
 
-  it("a real Noble Phantasm carries attack:isNP too, and one definition decides (isNPAttack)", async () => {
+  it("a real Noble Phantasm carries attack:kind:np, and one definition decides (isNPAttack)", async () => {
     const { options } = await optionsOf("emiya-hrunting", 4);
     expect(options.has("attack:kind:np")).toBe(true);
-    expect(options.has("attack:isNP")).toBe(true);
   });
 
   it("Clairvoyance hears an Overedge swing at Range 3, and not one at Range 2", async () => {
@@ -285,15 +285,16 @@ describe("Overedge's swings are Normal Attacks and the Noble Phantasm the Circui
     expect(testPredicate(near.clairvoyance, { options: near.options })).toBe(false);
   });
 
-  it("the facet is registered, so a Clause may name it", () => {
-    expect(parseOption("attack:isNP")).not.toBeNull();
+  it("attack:isNP is retired: one name for one question (#208, 2026-10-16)", () => {
+    expect(parseOption("attack:isNP")).toBeNull();
+    expect(parseOption("attack:kind:np")).not.toBeNull();
   });
 });
 
 describe("Overedge fires the Circuits' 'next NP that deals damage'; a close swing does not (#208 readings 11, 22)", () => {
   const H = "heraclesTarget00";
 
-  it("both Circuits ask attack:isNP for it, and an Overedge swing, Hrunting and no bare swing answers", async () => {
+  it("both Circuits ask attack:kind:np for it, and an Overedge swing, Hrunting and no bare swing answers", async () => {
     installClientNamespace();
     const { buildAttackSpec } = await import("../../module/engine/attack.mjs");
     const { EffectRegistry } = await import("../../module/rules/registry.mjs");
@@ -313,8 +314,8 @@ describe("Overedge fires the Circuits' 'next NP that deals damage'; a close swin
       for (const defId of ["acNextNp", "bcNextNp"]) {
         // The clause that spends the charge is the one carrying `consumesUse`.
         const clause = EffectRegistry.get(defId).rules.find((r) => r.consumesUse);
-        // At 7231295 (as the Circuits themselves): ["attack:kind:np"] -- Overedge is categorized as an NP and is not kind np.
-        expect(clause.predicate, defId).toEqual(["attack:isNP"]);
+        // At 7231295 ["attack:kind:np"] heard no Overedge; at cf20cfc ["attack:isNP"] did. Now kind np counts it (#208).
+        expect(clause.predicate, defId).toEqual(["attack:kind:np"]);
         expect(testPredicate(clause.predicate, { options: optionsOf("emiya-overedge", 3) }), `${defId} Overedge`).toBe(true);
         expect(testPredicate(clause.predicate, { options: optionsOf("emiya-hrunting", 4) }), `${defId} Hrunting`).toBe(true);
         expect(testPredicate(clause.predicate, { options: optionsOf(null, 2) }), `${defId} close swing`).toBe(false);
