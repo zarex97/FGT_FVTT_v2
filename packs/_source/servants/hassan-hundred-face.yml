@@ -1,0 +1,67 @@
+# packs/_source/servants/hassan-hundred-face.yml
+# Conversion source: char_orig_sheets/Copia de Hassan (Hundred-Face).md
+# Audit: #226 (82 Clauses, 27 readings ruled 2026-10-16), Ch. 46 §46.32.
+schema: 1
+id: hassan-hundred-face
+name: "Hundred-Faced Hassan"
+type: servant
+
+# ─── Identity ──────────────────────────────────────────────────────────
+trueName: "Hassan-i-Sabbah"
+servantClasses: [assassin]
+classContainer: assassin
+alignment: { order: lawful, morality: evil }
+region: [middleEast]
+# "Male/Female": every body carries both, and a gender gate sees both (#226
+# reading 8). `[Man]` is the bracketed attribute, as on Jack and Serenity.
+attributes: [male, female, servant, man, humanoid, antiHero]
+
+# ─── Parameters and stats ──────────────────────────────────────────────
+parameters: { str: C, end: D, agi: A, mag: C, luc: E }
+baseHealth: 750
+mov: 7
+range: { panels: 3, targets: 1 }
+# The sheet prints 85 / 150. The STR/MAG tables give 100 / 150 and the table
+# wins (§46.6), as for Jack (#185).
+baseAttack: { str: 85, mag: 150 }
+sustainability: "2◈"
+
+# ─── The hundred ───────────────────────────────────────────────────────
+# One Servant who is many Units. Each body is a Servant actor of its own,
+# "Hassan N"; the count is on the Master's page (`engine/legion.mjs`). The
+# binding is `linkedGroup` (Ch. 32), with no leash and no linked death: a body's
+# defeat is its own until the last one (#226 readings 1, 20, 21).
+linkedGroup:
+  id: hundredFace
+  # "Skill & NP Cooldowns are shared between all Hassans except Presence
+  # Concealment & Battle Retreat" (#226 reading 9).
+  sharedCooldowns: byName
+  ownCooldowns: [presenceConcealment, battleRetreat]
+  # "one Hundred-Faced Hassan counts as 0.5 of a Unit" (#226 reading 7).
+  unitWeight: 0.5
+  # ZON is checked per body (#226 reading 17).
+  zonSatisfaction: all
+  legion:
+    size: 100
+    fieldCap: 10
+    # "the Master can start with more than 1 Hassan in its Home Base": 1 to
+    # 10, the Master's pick at war setup (#226 reading 3).
+    openingMax: 10
+    label: "Hassan"
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  # A+ as on Jack and Serenity: the rank tables give Evade +4, discovery 5%
+  # and the 2◈ cooldown from deactivation, which is what his sheet prints.
+  # `endsOnSkillSeal`: clause 8's last sentence, his sheet's alone (PC.8.seal).
+  - { ref: class-presence-concealment, rank: "A+", endsOnSkillSeal: true }
+  - { ref: hassan-librarian-of-stored-knowledge }
+  - { ref: hassan-expert-of-many-specializations }
+  - { ref: hassan-battle-retreat }
+  - { ref: hassan-zabaniya-delusional-illusion }
+
+notes: |
+  A hundred Units that are one Servant. The engine had a Servant made of two
+  Units (the Dioscuri) and none made of a reserve: here the count lives on the
+  Master, at most ten bodies stand on the field, more are deployed at a Round's
+  start, and his Noble Phantasm spends 4d6 of himself.

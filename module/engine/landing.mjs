@@ -167,6 +167,18 @@ export async function landEffect(entry, ctx) {
   if (ctx.emitted) intents = intents.map((i) => mergeEmitted(i, ctx.emitted, { tick }));
 
   if (outcome === "applied") intents.push(...landedIntents(def, target, result, board, tick, turnsPerRound));
+  // What this application restores as it lands, beside the effect. Expert of
+  // Many Specializations: *"a 70% chance of restoring 3 Agility ... If
+  // successful, also apply AGL Up"* -- one die, and the restore is the
+  // ENTRY's, not AGL Up's, which other sheets apply with no restore (#226).
+  // A restore: the maximum caps it.
+  if (outcome === "applied") {
+    for (const r of Array.isArray(entry.restores) ? entry.restores : []) {
+      if (typeof r?.stat === "string" && Number.isFinite(r.delta) && r.delta !== 0) {
+        intents.push(I.statDelta(target.id, r.stat, r.delta, true));
+      }
+    }
+  }
   if (outcome === "resisted") {
     // The card of a handler's rider reads this back (`attack.mjs#fireDamageDealt`):
     // Usui's Disable rolled under its 50% and Mannanán's resistance took it to
@@ -227,6 +239,18 @@ export async function landEntry(entry, ctx, { write, reread = null }) {
     const result = await landEffect(entry, { ...ctx, board, target, times: counted ? times : null });
     if (result.intents.length > 0) await write(result.intents);
     out.push({ summary: result.summary, result });
+    // The chance's other branch. Expert of Many Specializations: *"Applies
+    // Dodge with a 70% chance of applying it for ⅔◈ Turns, otherwise it is only
+    // applied for ⅓◈ Turns."* A failed die lands the shorter one, uncertain no
+    // longer; a blocked one (No Buff) lands nothing (#226 reading 11).
+    if (result.outcome === "resisted" && entry.otherwise && typeof entry.otherwise === "object") {
+      const { chance: _chance, otherwise: _otherwise, ...rest } = entry;
+      const fallback = await landEffect({ ...rest, ...entry.otherwise }, {
+        ...ctx, board, target: reread?.() ?? target, times: counted ? times : null,
+      });
+      if (fallback.intents.length > 0) await write(fallback.intents);
+      out.push({ summary: { ...fallback.summary, chance: fallback.summary.chance ?? "otherwise" }, result: fallback });
+    }
   }
   return out;
 }

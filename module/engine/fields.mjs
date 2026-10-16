@@ -1234,16 +1234,19 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
     // there is no partial outcome.
     if (spec.check === "evade") {
       const roll = await new Roll("1d20").evaluate();
+      // Outside any Combat Process: a granted adjustment may move it (#226).
+      const { offerRollAdjustment } = await import("./roll-adjust.mjs");
+      const moved = await offerRollAdjustment(unit, roll.total, { check: "evade", label: field.name ?? "" });
       const plan = checkPlan(unit, "evade");
       const outcome = evade({
-        roll: roll.total,
+        roll: moved.roll,
         agility: unit.agility,
         hasDodge: (unit.effects ?? []).includes("dodge"),
         forceUnfavourable: plan.forceTable === "unfavourable",
         autoSucceed: plan.autoSucceed,
         modifiers: plan.modifiers,
       });
-      report(unit, { roll: { check: "evade", formula: "1d20", total: roll.total, outcome: outcome.success ? "success" : "fail" } });
+      report(unit, { roll: { check: "evade", formula: "1d20", total: moved.roll, outcome: outcome.success ? "success" : "fail" } });
       if (outcome.success) continue;
     }
 

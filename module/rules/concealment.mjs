@@ -266,4 +266,5 @@ export const DEACTIVATION_REASONS = Object.freeze({
   skillUse: "skillUse",           // Shapeshift's 20%
   expired: "expired",             // the 2◈ ran out
   manual: "manual",               // the player switched it off
+  sealed: "sealed",               // Skill Seal landed, where the sheet says so (#226)
 });

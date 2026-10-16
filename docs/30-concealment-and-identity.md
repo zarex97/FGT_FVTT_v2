@@ -66,6 +66,16 @@ Detect range is written to every token's Foundry vision range (`sight.range`, in
 
 When a unit enters another's Detect range for the first time, `checkSightings` records it in `seenUnitIds` and fires a `unitFirstSeen` event that abilities like Familiar: Doves may handle (`module/engine/vision.mjs:34-72`).
 
+**A seventh way PC ends: `sealed` (#226).** A Presence Concealment whose reference carries
+`endsOnSkillSeal` ends the moment Skill Seal lands on its bearer, through `deactivateConcealment`, so its clock starts
+then. Only Hundred-Faced Hassan's sheet says so. A legion's body reads to the table as its class and number,
+"Assassin 3" (`publicNameOf`).
+
+**Through, not onto (#226 reading 28).** *"Move to any panel regardless of enemy Master-Servant positions"* lets a
+concealed Unit walk through occupied panels and past a guarded Master, never end its Move on another Unit, for every
+holder of Presence Concealment. `rules/movement.mjs#canStopOn` reads `STOPS_ON_OCCUPIED`, which holds Huge Scale
+only; `canPassThrough` and the Master-guard check still read `IGNORES_BLOCKING`. Since `c09981e` it could stop there.
+
 ## Invariants & edge cases
 
 1. **Concealment is an effect, not a boolean.** The effect carries duration, so the state can expire at a clock tick. The polarity is `status` with `unremovable: true` (`module/rules/concealment.mjs:16-20`).

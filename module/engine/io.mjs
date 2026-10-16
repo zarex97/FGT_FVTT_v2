@@ -767,6 +767,8 @@ export function worldIO() {
     async spendCommandSpells(unitId, count, _command, servantId = null) {
       const actor = resolve(unitId);
       if (!actor) return;
+      // A legion's body spends the hundred's pool (#226 reading 17).
+      servantId = (servantId && resolve(servantId)?.system?.legionKey) || servantId;
 
       // Ch. 32: draw from the per-Servant pool first. They are the restricted
       // ones, so keeping the flexible pool back is strictly better for the
@@ -1135,7 +1137,15 @@ export function worldIO() {
       // a twin's binding is emitted by the damage path and carried here too --
       // and the second write counted it towards the Grail again (#209 review).
       const already = Boolean(resolve(unitId)?.system?.defeated);
-      if (!already) {
+      // One body of a legion while others remain is not the Servant's defeat:
+      // *"Hassan is only defeated when all 100 Hassans are defeated"* (#226
+      // reading 1). Asked before the write, while the count still holds it.
+      const { survivesBody, bodyFell, poolOf, exhaustLegion } = await import("./legion.mjs");
+      const legionBody = Boolean(poolOf(resolve(unitId)));
+      // Sustainability is the hundred's, not one body's (#226 reading 17):
+      // when it runs out, the whole count goes and this body is the last.
+      if (!already && legionBody && cause === "sustainabilityExhausted") await exhaustLegion(resolve(unitId));
+      if (!already && !(legionBody && survivesBody(resolve(unitId)))) {
         await countTowardsGrail(unitId, cause);
         await freeContractedServants(unitId, killerId);
       }
@@ -1174,6 +1184,11 @@ export function worldIO() {
       // After the defeat is written, so a failed dismissal cannot leave the
       // summoner standing.
       for (const summon of goWithIt) await this.dismissSummon(summon.id, "summonerDefeated");
+      // A legion body leaves the count and the board (#226 reading 1).
+      if (!wasDefeated && legionBody) {
+        await bodyFell(actor);
+        return;
+      }
       // The binding, at the one door every defeat passes: *"If either is
       // defeated, the other is too, regardless of remaining Health."* The
       // damage path's defeat chain emitted it and no other writer of `defeat`

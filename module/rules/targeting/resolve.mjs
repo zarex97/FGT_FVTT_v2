@@ -381,6 +381,15 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     );
   }
 
+  // 6a. THE CASTER'S OWN LEGION. *"apply its Effects 3, 4, and 5 to up to two
+  //     other Hundred-Faced Hassans within a 2 panel area of the user"* names
+  //     the other bodies of one Servant, not allies at large (#226).
+  if (sel.sameLegion) {
+    survivors = survivors.filter((u) =>
+      (caster.legionKey && u.legionKey === caster.legionKey && u.id !== caster.id)
+      || drop(u, "not another body of this Servant"));
+  }
+
   // 6b. PARAMETER COMPARISON — a refusal keyed on how the target measures up
   //     to the CASTER, over a count of Parameters.
   //
@@ -1345,6 +1354,9 @@ function toTargeted(u, caster, bands, caught) {
     distance: geo.chebyshev(caster.panel, u.panel),
     band: bands?.get(geo.key(u.panel)) ?? 0,
     concealedAoE: Boolean(u.concealed) && caught,
+    // Caught by the shape rather than chosen: an AoE's, not a targeted
+    // Attack's (Battle Retreat leaves the one and cancels the other, #226).
+    caughtByArea: Boolean(caught),
     relation: u.id === caster.id ? "self" : (u.relation ?? "enemy"),
   };
 }

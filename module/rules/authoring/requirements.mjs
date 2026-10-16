@@ -101,6 +101,9 @@ export const REQUIREMENT_DESCRIPTORS = describeTable([
     { key: "above", type: "number" },
   ]),
   req("counterpartAdjacent", "Only while this Unit's counterpart is standing next to it."),
+  req("legionAbove", "Only while more than a count of this Servant's bodies remain, on the field and off.", [
+    { key: "count", type: "number" },
+  ]),
   req("targetHasEffect", "Only while the target carries a named effect.", [
     { key: "effectId", type: "effectId" },
   ]),

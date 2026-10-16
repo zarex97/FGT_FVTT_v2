@@ -124,8 +124,11 @@ export async function rerollSummonLine(prepared, lineId) {
   if (!line?.roll) return prepared;
 
   const result = await rollLine(line);
+  // A new die is seen anew: its adjustment starts again at 0.
+  const { [lineId]: _old, ...adjustments } = prepared.adjustments ?? {};
   return refresh({
     ...prepared,
+    adjustments,
     totals: { ...prepared.totals, [lineId]: result.total },
     signs: { ...prepared.signs, [lineId]: result.sign },
     rolls: [...prepared.rolls, ...result.rolls],
@@ -496,7 +499,13 @@ const SETUP_PATHS = Object.freeze({
  */
 function refresh(prepared) {
   const granted = mergeGrants(prepared.steps);
-  const resolved = resolveSetupPlan(prepared.plan, prepared.totals, prepared.signs);
+  // A player's adjustment of a seen roll, on top of the die (Expert of Many
+  // Specializations, #226 reading 25).
+  const totals = { ...prepared.totals };
+  for (const [lineId, delta] of Object.entries(prepared.adjustments ?? {})) {
+    if (typeof totals[lineId] === "number") totals[lineId] += delta;
+  }
+  const resolved = resolveSetupPlan(prepared.plan, totals, prepared.signs);
   return {
     ...prepared,
     granted,
@@ -697,4 +706,41 @@ function sheetSnapshot(source) {
   // The derived parameters, where a passive's `RankShift` has already landed.
   // Falls back to the written ones for a source with no prepared data.
   return { ...plain, parameters: { ...plain.parameters, ...(source.system?.parameters ?? {}) } };
+}
+
+/**
+ * How far a Servant may move one of its own setup rolls, or 0.
+ *
+ * Hundred-Faced Hassan's Expert of Many Specializations, Passive 1: *"Whenever
+ * Hassan performs a dice roll outside of Combat, you can reduce or increase the
+ * value of that dice roll by up to 3."* His setup rolls of Agility and Luck are
+ * such rolls (#226 reading 25). Read off the source's own abilities: a
+ * `RollAdjustment` scoped outside combat.
+ *
+ * @param {object} prepared
+ * @returns {number}
+ */
+export function setupAdjustment(prepared) {
+  const items = [...(prepared?.source?.items ?? [])];
+  const grants = items.flatMap((i) => i.system?.passiveRules ?? [])
+    .filter((r) => r?.key === "RollAdjustment" && (r.scope ?? "self") === "outsideCombat");
+  return grants.reduce((n, r) => Math.max(n, r.max ?? 3), 0);
+}
+
+/**
+ * Move one setup roll by up to the Servant's own adjustment.
+ *
+ * Only the rolled lines, and only the Agility and Luck maxima: they are the
+ * rolls the sheet names (#226 reading 25). Clamped, not refused.
+ *
+ * @param {object} prepared
+ * @param {string} lineId
+ * @param {number} delta
+ * @returns {object}
+ */
+export function adjustSummonLine(prepared, lineId, delta) {
+  const max = setupAdjustment(prepared);
+  if (max <= 0 || !["maxAgility", "maxLuck"].includes(lineId)) return prepared;
+  const clamped = Math.max(-max, Math.min(max, Math.trunc(Number(delta) || 0)));
+  return refresh({ ...prepared, adjustments: { ...(prepared.adjustments ?? {}), [lineId]: clamped } });
 }

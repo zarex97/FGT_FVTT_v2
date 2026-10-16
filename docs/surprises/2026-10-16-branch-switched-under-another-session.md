@@ -1,9 +1,10 @@
 ---
 id: 2026-10-16-branch-switched-under-another-session
 found: tooling
-kind: assumed-shape
+kind: shared-working-copy
 status: fixed
-reviewed: false
+reviewed: true
+pattern: shared-working-copy
 ---
 **Expected:** the working copy was this session's alone. The start-of-session status showed two
 edited Character Sheets on `claude/emiya-open-208`, so `git checkout -b claude/hundred-face-clauses`

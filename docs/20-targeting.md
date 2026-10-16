@@ -61,6 +61,11 @@ The algorithm is eleven steps plus two upfront checks. Each step narrows the sur
 
 **11. Result** — Add the linked partner if specified, after limits. The partner is guaranteed included despite limits, because the clause names them by identity, not as bystanders caught by the area (`module/rules/targeting/resolve.mjs:510-533`).
 
+**`selection.sameLegion` (#226).** Keeps only the other bodies of the caster's legion, not allies at large:
+Librarian's and Expert's Passive 2 name *"other Hundred-Faced Hassans"*. A phase's own targeting is resolved with
+`limits.forAttack: false` (§46.4-NO). Every target a resolver offers now carries `caughtByArea`, which Battle Retreat
+reads to tell an AoE from a targeted Attack.
+
 ## Invariants & edge cases
 
 1. **Every filter drops via `drop(u, reason)`, so the review dialog lists why each excluded unit was excluded.** The reason is captured at the decision point, not reconstructed later (`module/rules/targeting/resolve.mjs:75-86`).

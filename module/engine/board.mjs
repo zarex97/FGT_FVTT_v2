@@ -546,6 +546,10 @@ export function currentBoard(overrides = {}) {
       // uses them: native membership, native enter/exit, and an area that may
       // be any shape at all.
       fields: boundedFieldsOf(scene),
+      // Every legion pool in the world, by key (`engine/legion.mjs`). Off the
+      // actors rather than the tokens: the Master holding the count need not
+      // stand on the board, and nor need the reserve it counts.
+      legions: legionPoolsOf(game.actors),
       ...settingOverrides,
     },
   });
@@ -711,6 +715,23 @@ export function boundedFieldsOf(scene) {
         // the ability. A refusal printed the content id (#208, live).
         name: region.name ?? null,
       });
+    }
+  }
+  return out;
+}
+
+/**
+ * Every legion pool the world's actors hold, by legion key.
+ *
+ * @param {Iterable<object>} actors
+ * @returns {Record<string, object>}
+ */
+export function legionPoolsOf(actors) {
+  /** @type {Record<string, object>} */
+  const out = {};
+  for (const actor of actors ?? []) {
+    for (const [key, pool] of Object.entries(actor.system?.legions ?? {})) {
+      if (pool && typeof pool === "object") out[key] = { ...pool, holderId: actor.id };
     }
   }
   return out;

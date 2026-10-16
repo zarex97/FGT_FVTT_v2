@@ -1,0 +1,58 @@
+# Hundred-Faced Hassan, char_orig_sheets/Copia de Hassan (Hundred-Face).md
+# Audit #226: LSK.p1, LSK.when, LSK.1-5, LSK.cd, LSK.p2, LSK.p2.cap, LSK.p2.only.
+#
+# Three records on one sheet entry: a standing Crit Chance, the Active, and a
+# Passive 2 that hands three of the Active's five effects to other bodies.
+schema: 1
+id: hassan-librarian-of-stored-knowledge
+name: "Librarian of Stored Knowledge"
+rank: B
+kind: skill
+slug: librarianOfStoredKnowledge
+# One clock for the whole hundred: the shared name is what joins them (#226
+# reading 9).
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Passive 1) Crit Chance is increased by 20%.
+  (Active) Used during your Turn. Has the following effects-
+  1. NP Cooldown is reduced by 1◈ Turns.
+  2. Applies @effect[npRegen]{NP Regen} for 1◈ Turns, NP Cooldown is reduced by 1 Turn at the end of every Turn.
+  3. Applies @effect[critUp]{Crit Up} for 1◈ Turns, Crit Chance is increased by 20%.
+  4. Applies @effect[buffChUp]{Buff ChUp} for 1◈ Turns, chance of applying buffs is increased by 20%.
+  5. Applies @effect[critDmUp]{Crit DmUp} for 1◈ Turns, Crit Damage dealt is increased by 30%.
+  Cooldown: 4◈ Turns.
+  (Passive 2) When this Skill is used, apply its Effects 3, 4, and 5 to up to two other
+  Hundred-Faced Hassans within a 2 panel area of the user.
+passiveRules:
+  # Passive 1. Standing and unconditional, so not a buff he could be stripped of.
+  - key: CheckModifier
+    check: crit
+    direction: outgoing
+    value: 20
+phases:
+  # Effect 1. "NP Cooldown" names no NP and reaches every one (#197 reading 6).
+  - kind: cooldown
+    target: self
+    changes:
+      - { scope: np, ticks: "1◈", direction: down }
+  # Effects 2-5 on the user. Effects 1 and 2 stay with him (LSK.p2.only).
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: npRegen, duration: "1◈", magnitude: 1 }
+      - { id: critUp, duration: "1◈", magnitude: 20 }
+      - { id: buffChUp, duration: "1◈", magnitude: 20 }
+      - { id: critDmUp, duration: "1◈", magnitude: 30 }
+  # Passive 2: Effects 3, 4 and 5, to up to two OTHER bodies within 2 panels,
+  # the player's pick (#226 reading 13). `sameLegion` is "other Hundred-Faced
+  # Hassans"; `chooser: chosen` with `count: 2` is "up to two".
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+      selection: { relations: [ally], includeSelf: false, sameLegion: true, chooser: chosen, count: 2 }
+    effects:
+      - { id: critUp, duration: "1◈", magnitude: 20 }
+      - { id: buffChUp, duration: "1◈", magnitude: 20 }
+      - { id: critDmUp, duration: "1◈", magnitude: 30 }

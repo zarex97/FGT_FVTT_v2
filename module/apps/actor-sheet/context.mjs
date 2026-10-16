@@ -79,6 +79,19 @@ function masterContext(master) {
       pips: "●".repeat(Math.min(pool.total, 9)) + "○".repeat(Math.max(0, 3 - pool.total)),
     })),
     contracted: [...(master.system.servantIds ?? [])].map((id) => describeServant(id, master, board, self)),
+    // *"Add this onto the Master's page for easy reference- Hassans: 100/100"*
+    // (#226). One line per legion pool this Master holds.
+    // By the bodies this Master holds, not by who stores the count: a Caster's
+    // Conquest takes the whole hundred, and the count is then hers to read
+    // (#226, live).
+    legions: [...new Set(game.actors.filter((a) => a.system?.masterId === master.id && a.system?.legionKey)
+      .map((a) => a.system.legionKey))]
+      .map((key) => Object.values(game.actors.contents ?? [...game.actors])
+        .map((holder) => holder.system?.legions?.[key]).find(Boolean))
+      .filter((pool) => pool && typeof pool === "object")
+      .map((pool) => game.i18n.format("FGT.Legion.Count", {
+        label: pool.label, remaining: pool.remaining ?? 0, size: pool.size ?? 0,
+      })),
     // "a warning that it is lost on death" -- the Essence is the one thing on
     // this sheet whose loss is permanent.
     essences: [...(master.system.essences ?? [])],

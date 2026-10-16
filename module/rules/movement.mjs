@@ -22,8 +22,16 @@ import { actionSourceFor, withinFootprint, dimensionOf, interiorOf, withinInteri
 import { partnersOf } from "./linked-group.mjs";
 import { resolveTargets } from "./targeting/resolve.mjs";
 
-/** Effects that let a unit ignore occupancy and Master protection. */
+/** Effects that let a unit pass occupied panels and Master protection. */
 const IGNORES_BLOCKING = Object.freeze(["presenceConcealment", "hugeScale"]);
+
+/**
+ * Of those, the ones that also let it STOP on an occupied panel. Presence
+ * Concealment is not one: *"Move to any panel regardless of enemy
+ * Master-Servant positions"* lets it walk through Units and past a guarded
+ * Master, never end on another Unit (ruled 2026-10-16, #226).
+ */
+const STOPS_ON_OCCUPIED = Object.freeze(["hugeScale"]);
 
 /**
  * Unit kinds that are scenery rather than combatants for occupancy.
@@ -801,7 +809,7 @@ export function canStopOn(panel, unit, board) {
   // Platforms and Structures are stood on, not blocked by, and Huge Scale
   // overlaps by design.
   if (here.every((u) => OBJECT_KINDS.has(u.kind))) return true;
-  return ignoresBlocking(unit);
+  return stopsOnOccupied(unit);
 }
 
 /**
@@ -1364,6 +1372,16 @@ function isEnemy(unit, other, board) {
 function ignoresBlocking(unit) {
   const held = unit?.effects ?? [];
   if (IGNORES_BLOCKING.some((id) => held.includes(id))) return true;
+  return stopsOnOccupied(unit);
+}
+
+/**
+ * @param {object} unit
+ * @returns {boolean}
+ */
+function stopsOnOccupied(unit) {
+  const held = unit?.effects ?? [];
+  if (STOPS_ON_OCCUPIED.some((id) => held.includes(id))) return true;
   // The summon's own field (Bašmu), or a Skill that grants the capability
   // (Kingprotea's *Huge Scale*). The second is a grant rather than a field
   // because a Skill can be sealed and a sheet cannot.

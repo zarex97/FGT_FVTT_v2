@@ -58,7 +58,9 @@ export async function attemptForestEscape(unitId) {
     ...plan.modifiers,
   ];
 
-  const roll = (await new Roll("1d20").evaluate()).total;
+  // An escape is no Combat Process: a granted adjustment may move it (#226).
+  const { offerRollAdjustment } = await import("./roll-adjust.mjs");
+  const { roll } = await offerRollAdjustment(unit, (await new Roll("1d20").evaluate()).total, { check: "luck" });
   const result = luckCheck({
     roll,
     // A NUMBER on the board, not a `{value, max}` pair -- `rules/snapshot.mjs`

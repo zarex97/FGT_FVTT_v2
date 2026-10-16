@@ -92,6 +92,7 @@ const ALLOWED = [
   { file: "engine/channel.mjs", category: "debt", why: "channelled-ability state; no intent exists for it yet" },
   { file: "engine/shield.mjs", category: "debt", why: "shield pools, guarded by hand-rolled no-op checks" },
   { file: "engine/summon.mjs", category: "debt", why: "summon bookkeeping on the owner" },
+  { file: "engine/legion.mjs", category: "debt", why: "a legion's bodies, made, placed and removed, and its count on the Master (#226); no intent exists for either yet" },
   { file: "engine/concealment.mjs", category: "debt", why: "discovery budget and disclosure" },
   { file: "engine/copy.mjs", category: "debt", why: "rewrites a copier's embedded ability items wholesale" },
   { file: "engine/opening-choice.mjs", category: "debt", why: "the opening choice owed, as copy.mjs marks a pick owed" },

@@ -78,6 +78,8 @@ const SELF_REQUIREMENTS = new Set([
   // gate on each other, and Brahmastra's card offered the Eye of the Mind
   // copy while the other copy cooled (#204 W1.lock, found pressing).
   "abilityOffCooldown",
+  // The legion's count is the bearer's own (#226).
+  "legionAbove",
 ]);
 
 /**
