@@ -109,7 +109,7 @@ A declaration interrupts every channel its targets hold, except the declarer's o
 
 A Noble Phantasm is not usable until a Round gate is past. The general gate is Round 6, but Assassin-classed Servants open at Round 4 (`module/rules/np-gate.mjs:31`). A Master's Essence shifts the gate early: Kaleidoscope opens it 4 Rounds earlier, so Assassin reaches Round 2 if it holds one (`module/rules/np-gate.mjs:46-48`).
 
-An ability's gate is `isNP || categorizedAsNP` (`module/rules/np-gate.mjs:54-66`). Every other NP-scoped question uses the same predicate, so the scope is consistent. A Servant carrying two classes takes the earliest gate (`module/rules/np-gate.mjs:74-86`).
+An ability's gate is `isNP || categorizedAsNP` (`module/rules/np-gate.mjs:54-66`). Every other NP-scoped question uses the same predicate, so the scope is consistent. An attack asks it through `isNPAttack`, and the option `attack:kind:np` carries it, so a clause authored against Noble Phantasms hears a categorized one (ruled 2026-10-16, #208). A Servant carrying two classes takes the earliest gate (`module/rules/np-gate.mjs:74-86`).
 
 An NP Lock that hits before the gate opens does not cause the gate to activate. Instead, the cooldown increase composits additively with the gate delay: if a lock adds 5 Turns before Round 6 opens, the NP becomes usable at Round 6 + 5 Turns extra, not at the max of the two (`module/rules/np-gate.mjs:134-151`). Additive, not `max()`, because the rule's prose and its pseudocode disagree, and the prose prevents the caster wasting a Skill.
 

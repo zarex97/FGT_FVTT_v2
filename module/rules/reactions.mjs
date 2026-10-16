@@ -28,6 +28,7 @@ import {
 import { chebyshev } from "../domain/geometry.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { relationOf } from "./relations.mjs";
+import { isNPAttack } from "./damage/pipeline.mjs";
 
 /**
  * The windows the **attacker's own** abilities may name.
@@ -317,7 +318,11 @@ export function allyReactions({ defender, board, attack, attacker = null, actorF
       // restriction, not a note: a barrier offered against every Normal Attack
       // would be a different ability entirely.
       // The attack's own kind, never an invented one: no attack, no answer.
-      if (timing.againstKind && timing.againstKind !== (attack?.kind ?? null)) continue;
+      // "A Noble Phantasm" counts one the sheet only categorizes as one, as
+      // every NP rule does (ruled 2026-10-16, #208): Rho Aias answers Overedge.
+      // An NP with no damage never reaches this rung -- it opens no attack
+      // (`classifyAbility`) -- so Rho Aias is never offered against one (#208).
+      if (timing.againstKind === "np" ? !isNPAttack(attack) : (timing.againstKind && timing.againstKind !== (attack?.kind ?? null))) continue;
 
       // *"...an AoE Noble Phantasm of Rank A and above."* Achilles's barrier
       // answers a narrower set than EMIYA's: his gates on the incoming Noble

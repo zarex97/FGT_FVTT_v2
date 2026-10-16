@@ -594,7 +594,7 @@ signed: Pois Heal banks a negative.
 | `Weapon-type` NP | An NP classification EMIYA can copy. Unordered qualifier; disjoint from `Divine Construct`. |
 | `Divine Construct` | An NP classification that **cannot** be copied, with a per-NP `copyableException` (black Arondight). |
 | `Broken Phantasm` | A modifier applied to a *copied* NP's use: Range +1 (or AoE +1 each direction), Total Damage +100%, all applied effect magnitudes **doubled**, and the copy can never be created again. |
-| `Thrown weapon` | An NP sub-classification. Rho Aias cannot be broken by one: its Health cannot drop below 1 against it, and the whole attack is stopped. Authored as `damage.thrownWeapon: true` (`attack:thrownWeapon`); **Gáe Bolg Alternative is the one** (ruled 2026-10-14, #208 reading 18). |
+| `Thrown weapon` | An NP sub-classification. Rho Aias cannot be broken by one: its Health cannot drop below 1 against it, and the whole attack is stopped. Authored as `damage.thrownWeapon: true` (`attack:thrownWeapon`); **Gáe Bolg Alternative is the one** (ruled 2026-10-14, #208 reading 18). Rho Aias also holds the NP's riders while it stands, so against a thrown weapon they never land (ruled 2026-10-16, #208). |
 | `Heel Attack` | A declared sub-attack resolved **after** a failed Evade, with its own hit table. See `weakPoint`, Ch. 44 §44.2. |
 
 ---

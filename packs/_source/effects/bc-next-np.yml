@@ -24,7 +24,7 @@ rules:
     event: combatProcessEnd
     automatic: true
     consumesUse: true
-    predicate: ["attack:isNP"]
+    predicate: ["attack:kind:np"]
     then:
       - { key: ApplyEffect, effect: { id: circuitsPending }, duration: "until combatPhaseEnd" }
       - key: ApplyEffect

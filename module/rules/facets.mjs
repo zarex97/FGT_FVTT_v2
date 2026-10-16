@@ -356,12 +356,6 @@ export const FACETS = Object.freeze([
     prose: "the attack covers an area",
   }),
   facet({
-    id: "isNP",
-    subjects: ["attack"],
-    english: "The attack is a Noble Phantasm, or is categorized as one.",
-    prose: "the attack is a Noble Phantasm",
-  }),
-  facet({
     id: "performed",
     subjects: ["attack"],
     english: "The Unit hearing the event made the attack.",

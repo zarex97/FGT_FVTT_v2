@@ -36,6 +36,8 @@ import * as I from "./intents.mjs";
  * @property {number} absorbed  damage the barrier took
  * @property {object[]} intents the pool write and the owner's share
  * @property {string|null} source the barrier's name, for the card
+ * @property {boolean} broken this hit emptied the pool: the riders a holding
+ *   barrier kept back now land (ruled 2026-10-16, #208)
  */
 
 /**
@@ -59,7 +61,12 @@ export function landBarrier(result, barrier) {
       ...(result.breakdown ?? []),
       { stage: "barrier", label: `${barrier.source} absorbed ${barrier.absorbed}`, to: barrier.through },
     ],
-    flags: { ...result.flags, shieldAbsorbed: (result.flags?.shieldAbsorbed ?? 0) + barrier.absorbed },
+    flags: {
+      ...result.flags,
+      shieldAbsorbed: (result.flags?.shieldAbsorbed ?? 0) + barrier.absorbed,
+      // Read by the Damage Step: a barrier that broke releases the riders it held.
+      ...(barrier.broken ? { barrierBroken: true } : {}),
+    },
   };
 }
 
@@ -73,7 +80,7 @@ export function landBarrier(result, barrier) {
  * @returns {Absorption}
  */
 export function absorb(defender, total, ctx = {}) {
-  const none = { through: total, absorbed: 0, intents: [], source: null };
+  const none = { through: total, absorbed: 0, intents: [], source: null, broken: false };
   if (total <= 0) return none;
 
   const barrier = barrierOn(defender, ctx.options ?? new Set());
@@ -102,11 +109,37 @@ export function absorb(defender, total, ctx = {}) {
     through,
     absorbed,
     source: def.name ?? item.name,
+    // Broken when nothing is left of it. A floored barrier never is.
+    broken: floored === 0 && absorbed >= available,
     intents: [
       ...(lost > 0 ? [I.shieldDelta(owner.id, item.id, -lost)] : []),
       ...ownerShare(spec, lost, owner),
     ],
   };
+}
+
+/**
+ * The barrier that holds this attack's riders back from this defender, if any.
+ *
+ * EMIYA projects Rho Aias *"to protect the allied Unit(s) from the Noble
+ * Phantasm"* -- the whole NP, not only its damage (ruled 2026-10-16, #208).
+ * Its riders on a covered Unit wait for the barrier's answer: if it holds,
+ * they are dropped; if this hit breaks it, they land after the damage. While
+ * they wait they shape nothing, so a Def Down "first" does not raise the hit
+ * the barrier takes.
+ *
+ * Asked BEFORE the damage, so it reads the pool as it stands: a barrier an
+ * earlier Process of the same NP already emptied holds nothing back.
+ *
+ * @param {object} defender the defender's snapshot
+ * @param {ReadonlySet<string>} options the attack's roll options
+ * @returns {string|null} the barrier's name, or null
+ */
+export function ridersHeldBy(defender, options) {
+  const barrier = barrierOn(defender, options ?? new Set());
+  if (!barrier?.def?.absorbs?.holdsRiders) return null;
+  if (!((barrier.item.system?.shieldHealth ?? 0) > 0)) return null;
+  return barrier.def.name ?? barrier.item.name;
 }
 
 /**
@@ -158,6 +191,7 @@ function barrierOn(defender, options) {
     // "About to be hit by a NOBLE PHANTASM." An ordinary Attack passes straight
     // through a standing Rho Aias, which is easy to get wrong in the generous
     // direction and would make the barrier a permanent 1400-point buffer.
+    // `attack:kind:np` includes an ability categorized as one (#208, 2026-10-16).
     if (absorbs.scope === "np" && !options.has("attack:kind:np")) continue;
 
     const owner = game.actors.get(instance.sourceUnitId);
