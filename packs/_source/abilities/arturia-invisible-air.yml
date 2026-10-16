@@ -1,0 +1,58 @@
+# Invisible Air: Bounded Field of the Wind King, Rank C (#230).
+#
+# A mode she starts the game in (`active: true` is seeded, then play owns it).
+# Ruled 2026-10-16 (reading 10): switched at any time, an enemy's Turn included
+# (`toggleWindow: any`), once per Turn (`oncePerTurn`, one switch either way);
+# not back on while Strike Air's or Excalibur's lockout runs (their `setMode`
+# phases suspend it, `suspendedUntil`).
+#
+# Effect 1 is Jack's shape, a penalty on SOMEBODY ELSE'S roll (`direction:
+# imposed`), split by the DU's AGI Rank against hers. A Mana Burst and a Riding
+# Attack are Normal Attacks for it (reading 25).
+#
+# No Round gate holds the switch (`ignoresNPGate`): "at any time", and she starts
+# the game with it on, so its effects run from Round 1. Found live: switched off
+# in Round 1, the bar greyed it "Ready from Round 2" while the sheet's switch,
+# which asks `rules/modes.mjs` and no Round, went through.
+#
+# Effect 2 halves Crit Dwn on her for as long as the mode is on, and un-halves it
+# when it goes (`timing: read`, `rules/snapshot.mjs#readTimeScaled`).
+schema: 1
+id: arturia-invisible-air
+name: "Invisible Air: Bounded Field of the Wind King"
+rank: C
+kind: noblePhantasm
+slug: invisibleAir
+isNP: true
+isMode: true
+active: true
+ignoresNPGate: true
+toggleWindow: any
+oncePerTurn: true
+npTags: [antiUnit]
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive/Activation) Can be activated or deactivated at any time, once per Turn. When Arturia
+  is summoned, she starts the game with Invisible Air active.
+  Has the following effects while Active-
+  1. Whenever Arturia performs a Normal Attack and the DU Evades, the DU's Evade roll is
+     increased by 1 if its AGI Rank is higher than Arturia's, and is increased by 2 if its AGI
+     Rank is equal or lower than Arturia's.
+  2. The magnitude of @effect[critDwn]{Crit Dwn} is halved on Arturia. If Invisible Air is deactivated while
+     Arturia is affected by Crit Dwn effects, the magnitude of the Crit Dwn effects are
+     un-halved.
+activeRules:
+  - key: CheckModifier
+    check: evade
+    direction: imposed
+    value: 1
+    predicate: ["attack:kind:normal", "target:paramVsSelf:agi:gt"]
+  - key: CheckModifier
+    check: evade
+    direction: imposed
+    value: 2
+    predicate: ["attack:kind:normal", "not:target:paramVsSelf:agi:gt"]
+  - key: EffectMagnitudeScale
+    effects: [critDwn]
+    factor: 0.5
+    timing: read

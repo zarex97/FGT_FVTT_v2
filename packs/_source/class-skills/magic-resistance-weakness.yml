@@ -1,0 +1,36 @@
+# A Magic Resistance that is weaker against one kind of attack.
+#
+# Arturia's Passive 3: *"When Arturia receives MAG damage from an Attack with
+# the 'Anti-Dragon' Attribute, Magic Resistance only negates damage from a MAG
+# Rank of up to C, otherwise MAG damage taken is reduced by 25%. Also affects
+# NP."* (#230 reading 21).
+#
+# Its own document beside `class-magic-resistance` rather than a clause inside
+# it: eleven Servants carry that template and none of them has a weakness, and
+# a clause present for one bearer would need every other bearer to pass a
+# parameter saying it is absent. The two are read as one: this one REPLACES the
+# bearer's threshold against a matching attack (`magicResistance.variants`,
+# stage 11 of `rules/damage/pipeline.mjs`), so it means nothing without the
+# Magic Resistance it amends.
+#
+# Parameters: `tag`, the attack's tag (`attack:tag:<tag>`, read off its
+# `npTags`); `rank`, the threshold it falls to; `percent`, the reduction past it.
+schema: 1
+id: class-magic-resistance-weakness
+name: "Magic Resistance (weakness)"
+source: class
+slug: magicResistanceWeakness
+kind: classSkill
+passive: true
+copyable: { allowed: false, reason: classSkill }
+parameterized: [tag, rank, percent]
+description: |
+  (Passive) Against MAG damage from an Attack with the tag @tag, Magic Resistance only negates
+  damage from a MAG Rank of up to @rank, otherwise MAG damage taken is reduced by @percent%.
+  Also affects NP.
+passiveRules:
+  - key: Resistance
+    negatesUpToRank: "@rank"
+    value: "@percent"
+    includesNP: true
+    attackTag: "@tag"

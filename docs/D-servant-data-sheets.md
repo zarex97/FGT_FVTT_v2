@@ -1553,6 +1553,19 @@ with or without the ship, since the shipless clause exempts only the Range. `4 �
 either way, and the two Galleon bands act on **Total Damage** at stage 15 rather than on stage 4's
 additive bucket.
 
+## D.33d Arturia
+
+`STR B / END B / AGI B / MAG A / LUC A+` · Health 1250 · MOV 5 · Range 1/1 · BA 125 STR (the sheet prints 175; the
+table wins), 200 MAG · Sustainability 2◈ · Saber · Lawful Good · Britain, England ·
+`[Female, Servant, [Earth], Saberface, Dragon, King, Humanoid, Round Table]`
+
+**Built and pressed 2026-10-16 (#230), 119 Clauses (113 live, 6 in the engine), 25 readings.** Magic Resistance A with an Anti-Dragon weakness
+(`class-magic-resistance-weakness`), Riding B (`class-riding-unlocks`), Vivian's Blessing, Charisma B, Knight of
+Utopia, Instinct A, Radiant Road, Mana Burst A (usable on its Cooldown in the ZON for 20 of her Master's Health), Dragon's
+Reactor Core; the Noble Phantasms Invisible Air (a mode she starts in, switched any Turn once per Turn), Strike Air,
+Excalibur, and Avalon on an 8 of a d8: a barrier for her and those beside her, or an Item placed inside her Master. Ch. 46
+§46.33.
+
 ## D.33c Nursery Rhyme
 
 `STR E / END E / AGI C / MAG A / LUC B` · Health 500 · MOV 4 · Range 2/1 · BA 50 STR, 200 MAG ·

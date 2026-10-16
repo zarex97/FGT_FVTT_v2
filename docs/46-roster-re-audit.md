@@ -3983,11 +3983,13 @@ Ch. 34.
 **Reached: Raikou MB.na.counter.** `siblingMessages` grouped by `groupId`, which a Counter shares with its parent, so
 the counter's once-per-Phase self rider never paid. Siblings share the attacker too. Ch. 21.
 
-### JY. A turn-boundary hook can skip right after a page reload — **open** (#195)
+### JY. A turn-boundary hook can skip right after a page reload — **fixed** (#230; found #195)
 
 Twice, within about a minute of a page reload, a `nextTurn` ran no boundary, and once `onModeEnded` did nothing; the
-same steps later worked. Recorded in `docs/surprises/2026-10-11-boundaries-skipped-after-reload.md`. Not reproduced
-without a reload.
+same steps later worked. Recorded in `docs/surprises/2026-10-11-boundaries-skipped-after-reload.md`. Reproduced in
+Arturia's war and found: `ready` awaited the migration before binding the engine's listeners, so a Turn changed in
+those seconds had no listener. The Turn and Round hooks are bound first and wait for the engine
+(`engine/engine-ready.mjs`). A mode ended in that window is still unheard; no case has needed it. Ch. 04.
 
 ### JZ. A duration `until <event>` never ended — **fixed** (#197)
 
@@ -4587,6 +4589,106 @@ Hassan. A phase is resolved with `forAttack: false`, as the Skill's own targetin
 
 **Reached: Expert's restores, and any `onApply` stat on the Skill path** (Shock). The card printed the effect alone.
 `applyPhaseEffects` reads each landing stat before and after, and the row carries it (`after`). Ch. 15, 37.
+
+*From Arturia's build and live press (#230, 2026-10-16).*
+
+### NQ. A bearer's own clauses could not ask about an effect family — **fixed** (#230, test)
+
+**Reached: every `self:effectFamily:` clause collected by its own bearer** (Charisma's *"negated if this Unit has Atk
+Up (Charisma)"*, asked by family since #230). `contributionsOf` built the bearer's option set with its effects and no
+families, so the clause was false at collection while the board projection carried the families. The collection now
+carries them. Ch. 11.
+
+### NR. A survival floor was written before the damage it was meant to survive — **fixed** (#230, test)
+
+**Reached: CS Survive Kill, and Avalon's floor.** `resolveDefeatOf` returned a `statDelta` restore into the batch that
+also held the `damage`, and `statDelta` orders first: the restore landed, then the damage emptied the bar. Survive Kill
+had that shape since it was written and nothing played it. A floor now takes the damage down before the batch
+(`attack.mjs#survivalFloor`), as the recorded-attack floor already did. Ch. 21.
+
+### NS. A mode's slot asked the use gate; its switch asks the mode's rules — **fixed** (#230, live)
+
+**Reached: Invisible Air IA.lock.** Switched off in Round 1, its slot greyed *"Ready from Round 2"* while the switch went
+through; through Strike Air's lockout it stayed lit while the press refused *"is suspended and cannot be switched on
+yet."* A mode's slot now shows the verdict its press acts on (`apps/hud/present.mjs#modeSlotVerdict`): the switch's own
+rules, then the use gate for a mode priced on entry only. Invisible Air also carries `ignoresNPGate` (on from the
+summon). Ch. 34.
+
+### NT. A second Move skipped every prevention — **fixed** (#230, live)
+
+**Reached: Avalon AV.2.lock.** The move hook asked a prevention only inside the budget, which a Unit that has Moved
+already skips: Arturia placed [Avalon] after riding a panel and the next drag carried her and her Master on. Every
+Move now asks `preventedBy` first, and the banner names the effect (*"Arturia cannot Move: Item Rite."*). Ch. 05.
+
+### NU. A passive automatic Evade was granted on the Evade rung only — **fixed** (#230, live)
+
+**Reached: Instinct IN.1, IN.1.fail, IN.1.np.** No Instinct rolled unless she chose Evade, and then it never failed. An
+`AutoSucceed` marked `whenAttacked` rolls at the reaction rung's door (`attack.mjs#instinctOf`): a success is an
+Evade that succeeded, a failure a line on the card; the rung no longer grants it, so an Evade chosen after a failure
+is rolled. Radiant lends it whole. Ch. 13.
+
+### NV. Public card lines named a concealed Servant — **fixed** (#230, live)
+
+**Reached: Instinct, Avalon AV.1, Master-guard case 2.** Under a *"Lancer ⚔ Saber"* header the roll lines read
+*"Arturia's Instinct"* and *"Medusa evades Arturia"*, the guard line *"Arturia stands next to …"*, and an ally's offered
+reaction *"Avalon … (Arturia)"*. All four ask `publicIdentityOf` now (`attack.mjs#shownName`,
+`master-guard.mjs#shownName`). Ch. 30.
+
+### NW. A Round's legion deploy asked every actor in the world — **fixed** (#230, live)
+
+**Reached: no Clause; Arturia's war had no Hassan.** At each Round's start Player1 was offered *"Hassan 12"* onto her
+board: the Hassan audit's Master, in another war, still held his pool, and faction ids repeat. Only a holder on this
+board, or a legion with a living body on it, is offered. Ch. 32.
+
+### NX. Avalon healed after a hit for nothing — **fixed** (#230, live)
+
+**Reached: AV.b.when.** `damageTaken` fires on a hit for 0 (#204, riders), and Avalon's three heals listened with no
+amount. They carry `eventFilter: { amount: positive }`: a Damage Step that damaged him. Ch. 18.
+
+### NY. Content sync froze an Item play had placed — **fixed** (#230, live)
+
+**Reached: Avalon inside a Master.** An item on an actor that is real content but not on its template was kept and
+never compared again, so the [Avalon] inside her Master missed the pack's new filter through two rebuilds. It is
+refreshed from its own pack document now, keeping what play wrote; an item with provenance is still only kept. Ch. 41.
+
+### NZ. A cut made after the Combat Phase reached no card — **fixed** (#230, live)
+
+**Reached: EX.cut, KU.4.** `attackPerformed` cut the clocks with no line anywhere, though a Damage Step's cut prints
+(#209). Its cuts print on the attacker's last card of the Phase (`applyWithCooldownLines`). Ch. 21.
+
+### OA. A won chance die was filed nowhere — **fixed** (#230, live)
+
+**Reached: EX.p.** A lost 50% says *"rolled 51 vs 50%"* in the breakdown; a won one left no roll. A `FlatDamage`
+chance die is filed when its bonus lands (`roll-log.mjs#modifierDiceRecords`). Ch. 13.
+
+### OB. The bar greyed a use the gate allowed over its Cooldown — **fixed** (#230, live)
+
+**Reached: MB.oncd.** Mana Burst on its Cooldown, inside the ZON: the gate said yes at 20 of the Master's Health and the
+slot greyed *"Cooldown 1◈"*. A verdict with `overCooldown` keeps the slot lit and names the price. Ch. 34.
+
+### OC. The preview described an attack without its damage instance — **fixed** (#230, live)
+
+**Reached: SA.flat.** Strike Air previewed 375 under Knight of Utopia and dealt 300: `bypassModifiers` lives on the
+damage instance each Process spreads over its attack, and the preview never spread it. One reader of a defender's
+instances, `attack.mjs#instancesAgainst`, for the declaration and the preview; the sweep that holds the two together
+models the instance too. Ch. 22.
+
+### OD. A selection filter asked a vocabulary of its own — **fixed** (#230, live)
+
+**Reached: AV.pass.** Avalon's pass names `target:inHomeBase`, and `resolve.mjs#optionsForUnit` held only type,
+attribute and effect, so no Master was ever a legal target. The filter adds the candidate's whole target side from
+`rollOptionsFor`. Ch. 20.
+
+### OE. A summon's own Item was granted to a Unit not yet on the board — **fixed** (#230, live)
+
+**Reached: AV.gate.** The war built with an 8 on her die and no [Avalon]: `commitSummon` granted through the
+acquisition intent, which asks for the Unit on the board, before her token existed. A Servant's own starting Item is
+written straight onto her. Ch. 31.
+
+### OF. An Item hand-over's card named the receiver twice — **fixed** (#230, live)
+
+**Reached: AV.2.give.** *"Master of Saber of Faction 1: [Avalon] → Master of Saber of Faction 1"*, and two Item Rite rows
+naming nobody. The hand-over row is the giver's and each lock row its holder's. Ch. 18.
 
 ---
 
@@ -6129,3 +6231,55 @@ was restored, with Medea's conquest undone.
   forest escape and a drag's Evade carry it.
 - **Escape on a panel pick also opens Foundry's main menu.**
 - **A revived body keeps its number** (reading 27): built, unpressed; the war had no revival for a body.
+
+## 46.33 Arturia — the Servant who lends herself
+
+**119 Clauses: 113 Pressed or Observed live, 6 pressed in the engine** (#230, live 2026-10-16, PC world `fgt2026`,
+scene *Arturia Audit*). 28 readings were ruled 2026-10-16 (three after the press) and nothing of her existed before them. She is built from the
+pieces other sheets already use, widened where hers needed more: Penthesilea's Charisma family, Medea's Trofa, Nemo's
+bypass, Tommy Thumb's Round Table filter, Quetzalcoatl's S.Crit Up aura, Raikou's modes, the Vorpal Blade's
+suppression.
+
+**Why she finds what she finds.** Arturia lends: Radiant lends Instinct, Avalon lends itself to a Master and on to
+another, Knight of Utopia lends Atk Up to the allies beside her. Every lend is a second reader of a rule, and every
+second reader disagreed with the first somewhere: the bar with the switch, the preview with the resolution, the
+selection filter with the predicate grammar, content sync with the moved Item.
+
+### 46.33.1 What she cost the engine
+
+| Finding | Where |
+|---|---|
+| Four facets: `attack:tag:`, `attack:madeWith:`, `self:effectStacks:<id>:gte:<n>`, `self:bond`/`bondWithin` | `rules/options.mjs` |
+| Magic Resistance variants for an attack tag (Anti-Dragon, reading 21) | `rules/damage/pipeline.mjs` stage 11, `class-skills/magic-resistance-weakness.yml` |
+| A mode switched at any time, once per Turn; a `setMode` lockout on Skill and attack paths (readings 10, 11) | `rules/modes.mjs`, `engine/skill-use.mjs#modeIntent` |
+| A held magnitude scaled at read time (Invisible Air halving Crit Dwn) | `rules/snapshot.mjs#readTimeScaled` |
+| A use over its Cooldown at a price (Mana Burst in the ZON, reading 2) | `rules/costs.mjs` (`cooldownOverride`), `apps/hud/present.mjs` |
+| `attackPerformed` with Units hit; cuts per Unit (Utopia, Excalibur, readings 5, 7) | `engine/attack.mjs#fireAttackPerformed`, `CooldownDelta.times` |
+| A flat bonus on a chance (Excalibur's passive, reading 12) | `FlatDamage.chance`, `roll-log.mjs#modifierDiceRecords` |
+| An aura that lends an ability (Radiant, reading 8); a passive automatic Evade rolled when Attacked | `rules/auras.mjs`, `attack.mjs#instinctOf` |
+| Terrain penalties apart from benefits (Vivian's Blessing, reading 20) | `rules/terrain.mjs#isPenalty` |
+| A turnable `orientedRect`, both placements of an even block (Excalibur, reading 13) | `rules/targeting/resolve.mjs#edgeShifts` |
+| An Item worn by nobody: `worksWhenHeld`, `grants`, a bond; moved whole with its rite (readings 14 to 19, 22) | `rules/bonds.mjs`, `io.moveItem`, `transferItem` phase, `itemRite` |
+| Survival floors that cap the damage; no Overpower; a ward the holder's owner spends (reading 19) | `attack.mjs#survivalFloor`, `relationships.mjs#overpowerCheck`, `landing.mjs#offerWard` |
+| An Item carries the clocks of what it grants (`grantClocks`, readings 26 to 28) | `engine/io.mjs#moveItem`, `#syncItemGrants` |
+| A reaction's targeting branched on the attack it answers (Avalon against an AoE, reading 15) | `rules/ability-use.mjs#reactionPlacement` |
+| An Item on a summon die (reading 14) | `summon.mjs`, `setup-rolls.mjs#summonItemsGranted` |
+| General: §46.4-NQ to OF, and JY closed | |
+
+### 46.33.2 What was staged
+
+The war was built through the wizard against five Servants. Staged and named in #230's log: forced moves to put
+enemies in reach, keep a guard out of range, or line Jack up for a ride; the Round's NP clocks and the Primordial
+Rune's cleared; Crit Dwn, Radiant, Skill Seal, Dmg Boost (Utopia) and three counts created on her; the attribute
+`dark` on Medusa, Heracles and Jack; an Anti-Dragon tag on Scáthach's Úr; a Waterside painted under her and Karna;
+her Master's Health set to 30; the GM's dice fixed for Instinct, the Excalibur passive and Mana Burst's Counter. The
+packs were rebuilt three times mid-war (Foundry closed), each time the content changed.
+
+### 46.33.3 Left open
+
+- ~~A passed Avalon's Cooldown starts fresh~~: ruled after the press (readings 26 to 28), the 6◈ is the Item's,
+  apart from her Method 1's, and runs wherever it is; built (`grantClocks`) and pressed.
+- **A Master holds no AGI Rank**, so Invisible Air reads him as "not higher" and gives the +2.
+- **A Damage Step's automatic heals print no line** (Avalon's 20%, the Home Base's 100): the log has them, the chat
+  does not.
+- **DRC.3.mb is engine-pressed only**: DRC lives to the Round's end and her next Mana Burst is in the next Round.

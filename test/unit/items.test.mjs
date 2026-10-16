@@ -351,6 +351,9 @@ describe("meetsRequirement", () => {
       // "Cannot be used if you have 10 or less Hassans remaining" --
       // Zabaniya: Delusional Illusion, a gate on the legion's count (#226).
       "legionAbove",
+      // Avalon placed inside a Master and taken back (#230): beside the
+      // Master, in the Home Base, before either Attacks, the Master holding it.
+      "besideMaster", "inHomeBase", "notAttackedThisTurn", "masterItemAtLeast",
     ];
     expect([...REQUIREMENT_KINDS].sort()).toEqual(listed.sort());
   });

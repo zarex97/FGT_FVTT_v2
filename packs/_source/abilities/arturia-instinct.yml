@@ -1,0 +1,43 @@
+# Arturia's Instinct, Rank A (#230).
+#
+# > "(Passive 1) When this Unit is Attacked, it has a 70% chance of
+# > automatically Evading the Attack. If Instinct Fails, the Combat Process
+# > proceeds as normal. If the Attack is a Noble Phantasm, the chance of
+# > automatically Evading it is 35% instead. (Passive 2) Crit Chance is
+# > increased by 10%. This Skill is negated while inflicted with Skill Seal."
+#
+# Medea's Trofa is the same automatic Evade with a chance (`autoEvade`), held as
+# a one-use buff; this one is the passive form of it, with no uses: every Attack
+# rolls (`engine/attack.mjs#autoEvadeFrom`). A failed roll lets the Process go
+# on. Radiant Road lends this Skill to her allies by its slug (`radiant`), so
+# its numbers live here and nowhere else.
+#
+# `categorizedAs: [instinct]`: it IS an Instinct, which other sheets ask about
+# (Jack's Mist exempts a holder of an Instinct of Rank B or higher).
+schema: 1
+id: arturia-instinct
+name: "Instinct"
+rank: A
+kind: skill
+slug: instinct
+passive: true
+categorizedAs: [instinct]
+negatedBy: [skillSeal]
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive 1) When this Unit is Attacked, it has a 70% chance of automatically Evading the
+  Attack. If Instinct fails, the Combat Process proceeds as normal. If the Attack is a Noble
+  Phantasm, the chance is 35% instead.
+  (Passive 2) Crit Chance is increased by 10%.
+  This Skill is negated while inflicted with @effect[skillSeal]{Skill Seal}.
+passiveRules:
+  - key: AutoSucceed
+    check: evade
+    # Rolled when she is Attacked, before she reacts: not an Evade she chooses.
+    whenAttacked: true
+    chance: 70
+    chanceWhen:
+      - { predicate: ["np"], chance: 35 }
+  - key: CheckModifier
+    check: crit
+    value: 10

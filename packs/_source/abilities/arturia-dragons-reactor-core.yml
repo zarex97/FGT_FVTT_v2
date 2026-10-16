@@ -1,0 +1,30 @@
+# Dragon's Reactor Core, Rank B (#230).
+#
+# Two self-buffs now, and the 'DRC' buff owed at the end of this Turn
+# (`drcPending`, reading 9), lasting the rest of the Round. Not on the same Turn
+# as Mana Burst, both ways (`sameTurnExclusive`, as Karna's two are).
+schema: 1
+id: arturia-dragons-reactor-core
+name: "Dragon's Reactor Core"
+rank: B
+kind: skill
+slug: dragonsReactorCore
+cooldown: "4◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+sameTurnExclusive: [arturia-mana-burst]
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[atkUp]{Atk Up} for ⅓◈ Turns, all damage dealt is increased by 60%; if NP, 40%.
+  2. Applies @effect[npDmUp]{NP DmUp} for ⅓◈ Turns, NP damage dealt is increased by 30%.
+  3. Applies the @effect[drc]{DRC} buff for the rest of the Round at the end of the Turn this Skill used,
+     all damage dealt by Normal Attacks is increased by 25%. Normal Attacks performed with Mana
+     Burst are not affected by the DRC buff.
+  Cooldown: 4◈ Turns. Cannot be used on the same Turn as @ability[arturia-mana-burst]{Mana Burst}.
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUp, magnitude: 60, npMagnitude: 40, duration: "⅓◈" }
+      - { id: npDmUp, magnitude: 30, duration: "⅓◈" }
+      - { id: drcPending }

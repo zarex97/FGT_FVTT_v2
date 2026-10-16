@@ -62,6 +62,10 @@ const EARLY_CLASSES = Object.freeze(["assassin"]);
  * @returns {boolean}
  */
 export function isGated(ability) {
+  // A Noble Phantasm its sheet frees of the gate: the Master's Avalon, used
+  // whenever its holder is Attacked (#230 reading 19), and Invisible Air,
+  // switched "at any time" and on from the summon (#230).
+  if (ability?.ignoresNPGate) return false;
   return Boolean(ability?.isNP) || Boolean(ability?.categorizedAsNP);
 }
 

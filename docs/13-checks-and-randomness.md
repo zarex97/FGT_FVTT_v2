@@ -91,6 +91,14 @@ Specializations is its first content; his setup rolls of Agility and Luck are mo
 (`engine/summon.mjs#adjustSummonLine`), and the field's Evade, the forest escape and a drag's Evade offer it in play.
 `checkPlan` had returned the grant as `adjustable` with nobody reading it.
 
+**An automatic Evade as a passive (#230).** Arturia's Instinct is `AutoSucceed` with a chance on a Skill, not a
+one-use buff, marked `whenAttacked`: it rolls 70% (35% against an NP) at the reaction rung's door, before she reacts
+(`attack.mjs#instinctOf`); a success is an Evade that succeeded, a failure a line on the card, and the Process goes on.
+The rung itself never grants a `whenAttacked` success, so an Evade she chooses after a failure is rolled. Radiant lends it to
+allies by aura. A Unit holding two Instincts rolls once, the likeliest (`attack.mjs#instinctOf`). Invisible
+Air puts +1/+2 on the DU's Evade (`direction: imposed`, split by AGI Rank); Mana Burst's `evadeShift` moves her own
+by -2 for the Combat Phase.
+
 ## Invariants & edge cases
 
 1. **Success is at or under the target, not just under.** A roll equal to the stat succeeds (`module/rules/checks.mjs:205-211`).

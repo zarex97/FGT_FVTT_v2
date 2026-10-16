@@ -1,6 +1,7 @@
 import { pursuitOf } from "./compulsion.mjs";
 import { hasGranted, GRANTS } from "./granted.mjs";
 import { unitWeight } from "./linked-group.mjs";
+import { EffectRegistry } from "./registry.mjs";
 
 /**
  * @file The turn budget: four pools, per-unit limits, prevention and compulsion.
@@ -53,6 +54,9 @@ const PREVENTS = Object.freeze({
   silence: ["spell"],
   skillSeal: ["skill", "spell"],
   npSeal: ["np"],
+  // Avalon placed, taken back or passed on: *"both Arturia and her Master
+  // cannot Attack on the same Turn, and cannot Move after"* (#230).
+  itemRite: ["move", "attack", "np", "spell", "ridingAttack"],
 });
 
 /**
@@ -282,7 +286,10 @@ export function preventedBy(unit, action, { categorizedOnly = false } = {}) {
 export function canConsume(budget, unit, action) {
   const prevention = preventedBy(unit, action);
   if (prevention.prevented) {
-    return { ok: false, reason: `prevented by ${prevention.by}`, pool: null, free: false };
+    // Named as the player reads it: the bar printed "prevented by itemRite"
+    // (#230, live). A suppression's scope has no effect of its name, and stays.
+    const by = EffectRegistry.get(prevention.by)?.name ?? prevention.by;
+    return { ok: false, reason: `prevented by ${by}`, pool: null, free: false };
   }
 
   const state = unit?.turnState ?? {};

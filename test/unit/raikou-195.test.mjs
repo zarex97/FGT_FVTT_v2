@@ -210,7 +210,9 @@ describe("a mode's refusal reads as a sentence on the bar (#195)", () => {
 
   it("the bar shows that text for a mode it cannot end", () => {
     const src = readFileSync(new URL("../../module/apps/hud/action-bar.mjs", import.meta.url), "utf8");
-    expect(src).toMatch(/if \(ending && !verdict\.ok\) return \{ \.\.\.slot, group: "mode", tooltip: verdict\.text \};/);
+    // Either way now: a switch ON refused by the mode's own rules reads the
+    // same sentence (#230, Invisible Air's lockout).
+    expect(src).toMatch(/if \(toggle && verdict === toggle && !verdict\.ok\) return \{ \.\.\.slot, group: "mode", tooltip: verdict\.text \};/);
   });
 });
 

@@ -60,6 +60,19 @@ const RENDERERS = Object.freeze({
   },
 
   /**
+   * A yes/no question with no price in it: negate this debuff with the ward
+   * (the Master's Avalon, #230). A closed window is no.
+   */
+  confirm: async (spec) => {
+    const confirmed = await DialogV2.confirm({
+      window: { title: spec.title ?? "" },
+      content: `<p>${foundry.utils.escapeHTML(spec.hint ?? "")}</p>`,
+      rejectClose: false,
+    });
+    return { accepted: Boolean(confirmed) };
+  },
+
+  /**
    * Pick from a list — Scáthach's two copies, and anything later that offers a
    * curated set. `count` is enforced in the dialog rather than trusted from the
    * answer, because the answer crosses a socket.

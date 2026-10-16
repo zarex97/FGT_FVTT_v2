@@ -6,7 +6,7 @@
  * the same split `apps/actor-sheet/present.mjs` already uses.
  */
 import { describe, it, expect } from "vitest";
-import { portraitBlock, slotFor, rowsFor } from "../../module/apps/hud/present.mjs";
+import { portraitBlock, slotFor, rowsFor, modeSlotVerdict } from "../../module/apps/hud/present.mjs";
 
 const ability = (over = {}) => ({
   id: "a1", name: "Mystic Eyes", img: "art.webp", isNP: false,
@@ -63,6 +63,15 @@ describe("slotFor", () => {
     expect(s.disabled).toBe(true);
   });
 
+  it("stays lit on its Cooldown when the gate lets it be used over it, with the price (#230, live)", () => {
+    // Found live: Mana Burst on its Cooldown, in the ZON, the gate said yes at
+    // 20 of the Master's Health, and the slot greyed "Cooldown 1◈ (3 turns)".
+    const overCooldown = { kind: "masterHealth", amount: 20, unitId: "m", id: "overCooldown" };
+    const s = slotFor(ability({ cooldownRemaining: 3 }), { verdict: { ok: true, overCooldown }, turnsPerRound: 3 });
+    expect(s.cooldown).toEqual({ remaining: 3, label: "1◈" });
+    expect(s).toMatchObject({ disabled: false, reason: null, overCooldown });
+  });
+
   it("rings a mode that is switched on", () => {
     const s = slotFor(ability({ active: true }), { verdict: { ok: true } });
     expect(s.ring).toBe("on");
@@ -77,6 +86,30 @@ describe("slotFor", () => {
     // A dead control is how a player concludes the system is broken.
     const s = slotFor(ability(), { verdict: { ok: false, reason: "exhausted" } });
     expect(s).toMatchObject({ disabled: true, reason: "exhausted" });
+  });
+});
+
+describe("modeSlotVerdict: a mode's slot asks what its press asks (#230, live)", () => {
+  // Found live: Invisible Air, suspended by Strike Air, stayed lit on the bar;
+  // the press refused "is suspended and cannot be switched on yet". The bar
+  // asked the use gate for a switch the press asks `canToggleMode` about.
+  const used = (v) => () => v;
+  it("ending: the mode's own rules, always", () => {
+    const toggle = { ok: false, reason: "toggleLock" };
+    expect(modeSlotVerdict({ ending: true, toggle, priced: true, use: used({ ok: true }) })).toBe(toggle);
+  });
+  it("starting: a refusal of the switch is the slot's, priced or not", () => {
+    const toggle = { ok: false, reason: "suspended" };
+    expect(modeSlotVerdict({ ending: false, toggle, priced: false, use: used({ ok: true }) })).toBe(toggle);
+    expect(modeSlotVerdict({ ending: false, toggle, priced: true, use: used({ ok: true }) })).toBe(toggle);
+  });
+  it("starting a free mode: the switch alone, as its press", () => {
+    const toggle = { ok: true };
+    expect(modeSlotVerdict({ ending: false, toggle, priced: false, use: used({ ok: false, reason: "round" }) })).toBe(toggle);
+  });
+  it("starting a priced mode: then the use gate, which its press also runs", () => {
+    const use = { ok: false, reason: "cooldown" };
+    expect(modeSlotVerdict({ ending: false, toggle: { ok: true }, priced: true, use: used(use) })).toBe(use);
   });
 });
 

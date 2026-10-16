@@ -113,6 +113,9 @@ export async function migrateWorld() {
 export async function syncContent({ dryRun = false } = {}) {
   const templates = await loadTemplates();
   const knownContentIds = await loadKnownItemIds();
+  // The pack documents themselves, so an Item play placed is refreshed from its
+  // own source rather than frozen at the day it was placed (#230).
+  const contentSources = await loadItemSources();
   const changed = [];
   const skipped = [];
 
@@ -128,7 +131,7 @@ export async function syncContent({ dryRun = false } = {}) {
 
     const before = actor.toObject();
     const system = reconcileSystem("actor", before.system, template.system, { type: actor.type });
-    const items = reconcileItems(before.items ?? [], template.items, { knownContentIds });
+    const items = reconcileItems(before.items ?? [], template.items, { knownContentIds, contentSources });
 
     const systemChanged = !same(system, before.system);
 
@@ -188,6 +191,29 @@ export async function loadKnownItemIds() {
     const index = await pack.getIndex({ fields: ["system.contentId"] });
     for (const entry of index) {
       if (entry.system?.contentId) out.add(entry.system.contentId);
+    }
+  }
+  return out;
+}
+
+/**
+ * Every Item pack document, by `contentId`, as a source object.
+ *
+ * The documents `loadKnownItemIds` only names: content sync refreshes an Item
+ * play placed on an actor -- [Avalon] inside a Master, a crafted Poison -- from
+ * its own pack document (`content-sync.mjs#reconcileItems`, #230). fgt's packs
+ * first, so a module's document of the same `contentId` does not shadow ours.
+ *
+ * @returns {Promise<Map<string, object>>}
+ */
+export async function loadItemSources() {
+  const out = new Map();
+  const packs = [...game.packs].filter((p) => p.documentName === "Item")
+    .sort((a, b) => Number(b.metadata?.packageName === "fgt") - Number(a.metadata?.packageName === "fgt"));
+  for (const pack of packs) {
+    for (const doc of await pack.getDocuments()) {
+      const id = doc.system?.contentId;
+      if (id && !out.has(id)) out.set(id, doc.toObject());
     }
   }
   return out;

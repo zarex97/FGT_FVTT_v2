@@ -145,8 +145,11 @@ import { AUTOMATIC_WINDOW } from "./windows.mjs";
  * @param {string} [args.ownerId] the reaction's owner — kept for callers' clarity
  * @returns {{sourceUnitId: string, unitId: string}}
  */
-export function reactionPlacement({ attackerId, aimedAt }) {
-  return { sourceUnitId: attackerId, unitId: aimedAt };
+export function reactionPlacement({ attackerId, aimedAt, attack = null }) {
+  // The ATTACK it answers, so the reaction's targeting can branch on it:
+  // Avalon covers *"the Unit who was Attacked"*, and *"if it was an AoE Attack,
+  // ... all Units within a 1 panel area of Arturia"* (#230).
+  return { sourceUnitId: attackerId, unitId: aimedAt, ...(attack ? { attack } : {}) };
 }
 
 export function windowUseKind(item) {
@@ -683,6 +686,12 @@ export function usageSpecFor(ability) {
     // Which Seal stops it (`rules/costs.mjs#preventionActionFor`, #206).
     countsForNPSeal: Boolean(sys.countsForNPSeal),
     cooldown: sys.cooldown ?? { remaining: 0, gatedDelay: 0 },
+    // Used ON its Cooldown at a price (`rules/costs.mjs`, Arturia's Mana Burst).
+    cooldownOverride: sys.cooldownOverride ?? null,
+    // A Noble Phantasm that costs its Master nothing (Avalon, #230).
+    noMasterCost: Boolean(sys.noMasterCost),
+    // ...and one no Round gate holds back (the Master's Avalon, #230).
+    ignoresNPGate: Boolean(sys.ignoresNPGate),
     // The bounded field this ability opens, whole, because the gate asks whether
     // it opens one AND counts its cooldown from deactivation: such a field
     // starts no clock at the cast, so only its being open stops a second cast

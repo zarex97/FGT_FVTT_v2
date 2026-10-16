@@ -1,0 +1,51 @@
+# Avalon, as the Master holding it uses it (#230). Given by the Item to its
+# Master holder (`avalon.yml`'s `grants`).
+#
+# > "Used when this Unit is Attacked. Reduce the damage taken by X% including
+# > NP, and negate up to Y additional negative effects (i.e. debuffs) from that
+# > Attack, X & Y are as follows- Used by Arturia's Master, Arturia is at most 3
+# > panels away from it: X=80%, Y=3. Used by Arturia's Master, Arturia is more
+# > than 3 panels away from it or is defeated: X=60%, Y=2. Used by any Master
+# > other than Arturia's Master: X=40%, Y=1. Cooldown: 6◈ Turns"
+#
+# Ruled 2026-10-16 (reading 19): no Round gate, no Health cost; the Master picks
+# which debuffs to negate, up to Y (`debuffWard`, asked as each lands); its
+# Attack is spent on its own Turn only (reading 24). Which X and Y: the bond
+# (`rules/bonds.mjs`), asked of the Master when it is used.
+schema: 1
+id: avalon-master
+name: "Avalon: The Everdistant Utopia"
+rank: EX
+kind: noblePhantasm
+slug: avalonMaster
+isNP: true
+npTags: [barrier]
+noMasterCost: true
+ignoresNPGate: true
+cooldown: "6◈"
+timing: { window: whenAttacked }
+copyable: { allowed: false, reason: named }
+description: |
+  (Non-damaging) Used when this Unit is Attacked. Reduce the damage taken by X% including NP, and
+  negate up to Y additional negative effects (i.e. debuffs) from that Attack, this Master's pick:
+  Arturia's Master with Arturia at most 3 panels away: X=80%, Y=3. Arturia's Master with Arturia
+  farther or defeated: X=60%, Y=2. Any other Master: X=40%, Y=1. Cooldown: 6◈ Turns.
+phases:
+  - kind: applyEffects
+    target: self
+    predicate: ["self:bond:avalon:own", "self:bondWithin:avalon:3"]
+    effects:
+      - { id: avalonVeil, magnitude: 80, npMagnitude: 80, duration: "until combatPhaseEnd" }
+      - { id: debuffWard, times: 3, duration: "until combatPhaseEnd" }
+  - kind: applyEffects
+    target: self
+    predicate: ["self:bond:avalon:own", "not:self:bondWithin:avalon:3"]
+    effects:
+      - { id: avalonVeil, magnitude: 60, npMagnitude: 60, duration: "until combatPhaseEnd" }
+      - { id: debuffWard, times: 2, duration: "until combatPhaseEnd" }
+  - kind: applyEffects
+    target: self
+    predicate: ["not:self:bond:avalon:own"]
+    effects:
+      - { id: avalonVeil, magnitude: 40, npMagnitude: 40, duration: "until combatPhaseEnd" }
+      - { id: debuffWard, times: 1, duration: "until combatPhaseEnd" }

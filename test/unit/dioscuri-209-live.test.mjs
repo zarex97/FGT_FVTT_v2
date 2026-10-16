@@ -161,8 +161,12 @@ describe("a cut a handler makes is said where a player reads it (#209, live)", (
       const records = state.history.flatMap((h) => h.detail?.rollRecords ?? []);
       const notes = records.flatMap((r) => (r.modifiers ?? []).map((m) => m.source));
       expect(notes).toContain("against 5%: missed");
-      // Named for the clause, not "rider" (#209, live).
-      expect(records.map((r) => r.purpose)).toContain(`Castor: Twin God's Divine Core on ${w.actor(FOE).name}`);
+      // Named for the clause, not "rider" (#209, live), and each Unit as the
+      // table knows it: the line ships on a public card (#230, live).
+      const { publicIdentityOf } = await import("../../module/engine/public-identity.mjs");
+      const { currentBoard } = await import("../../module/engine/board.mjs");
+      const shown = (id) => publicIdentityOf(w.actor(id), currentBoard()).name;
+      expect(records.map((r) => r.purpose)).toContain(`${shown(CASTOR)}: Twin God's Divine Core on ${shown(FOE)}`);
     }, { tokens: true, combat: { round: 6, started: true, system: { globalTurn: 18 }, actingFactionId: "A" } });
   }, 120_000);
 

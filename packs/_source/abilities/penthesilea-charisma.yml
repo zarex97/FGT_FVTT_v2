@@ -44,7 +44,9 @@ passiveRules:
     stacking: highestOnly
     predicate:
       - "not:self:skillActive:madEnhancement"
-      - "not:self:effect:atkUpCharisma"
+      # By family: any Atk Up (Charisma), hers or one another Charisma Skill
+      # put on her (Arturia's Knight of Utopia, #230).
+      - "not:self:effectFamily:atkUpCharisma"
       - "not:self:effect:skillSeal"
 phases:
   - kind: applyEffects

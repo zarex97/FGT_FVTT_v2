@@ -60,6 +60,7 @@ import { PendingPanel } from "./apps/hud/pending-panel.mjs";
 import { attachSummonEntries } from "./apps/summon-entry.mjs";
 import { reconcileForcedModes } from "./engine/modes.mjs";
 import { attachEngineListeners } from "./engine/listeners.mjs";
+import { Scheduler } from "./engine/scheduler-hooks.mjs";
 import { attachAwaitTimeouts } from "./engine/await-timeout.mjs";
 
 Hooks.once("init", () => {
@@ -252,6 +253,10 @@ Hooks.once("ready", async () => {
   // Ch. 41, and FIRST in this callback: the shape of stored data, then its
   // content, before anything below reads either. GM-only and single-client,
   // because two clients migrating one world is a corrupted world.
+  // ...except the Turn and Round boundaries, bound before the migration's
+  // await and waiting for the engine: a Turn changed during it ran no boundary
+  // and was lost for good (#230, §46.4-JY).
+  Scheduler.attachBoundaries();
   const { onReady: migrateOnReady } = await import("./migration/runner.mjs");
   await migrateOnReady();
 

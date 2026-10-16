@@ -671,6 +671,9 @@ async function writeGroup(group, io, { moment = null } = {}) {
     case "durationDelta":
       await io.extendSummonStay(unitId, intents.reduce((n, i) => n + i.delta, 0));
       break;
+    case "moveItem":
+      for (const i of intents) await io.moveItem(i.fromId, unitId, i.contentId, i.bond ?? null);
+      break;
     case "itemQuantity":
       for (const i of intents) await io.adjustItemQuantity(unitId, i.itemId, i.delta);
       break;

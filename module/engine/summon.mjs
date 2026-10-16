@@ -17,7 +17,7 @@
  */
 
 import {
-  resolveSetupPlan, summonPlan, needsSetupRolls, plansFor,
+  resolveSetupPlan, summonPlan, needsSetupRolls, plansFor, summonItemsGranted,
 } from "../rules/setup-rolls.mjs";
 import { regionsAdjacent } from "../rules/environment.mjs";
 import { catalogueEntryOf } from "../rules/war-setup.mjs";
@@ -231,6 +231,17 @@ export async function commitSummon(prepared, { withPartners = true } = {}) {
     data.system.masterId = null;
   }
   const [actor] = await Actor.createDocuments([data]);
+
+  // The Items its own die gave it (Arturia's Avalon on an 8, #230). Written
+  // straight onto her: she ARRIVES with it, which is not an acquisition for
+  // `acquisitionTarget` to redirect -- and the board does not hold her yet, so
+  // the `itemGrant` intent refused her as nobody (found live, #230).
+  const items = summonItemsGranted(prepared.lines);
+  if (items.length > 0) {
+    const { worldIO } = await import("./io.mjs");
+    const io = worldIO();
+    for (const id of items) await io.grantItem(actor.id, id, 1);
+  }
 
   // *"Castor and Pollux are summoned as two separate Servants as one."*
   //
