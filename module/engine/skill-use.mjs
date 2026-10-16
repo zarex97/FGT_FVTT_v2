@@ -333,7 +333,7 @@ export function resolveSkillTargets(ability, self, board, placement) {
  * @param {object} actor the caster
  * @returns {object[]}
  */
-function phaseTargets(phase, resolved, actor, board) {
+async function phaseTargets(phase, resolved, actor, board) {
   // A phase whose reach differs from the ability's own. `self` and `reuse`
   // were the only two answers, and neither is "every ally within 2 panels of
   // me" -- least of all on a REACTION, where `reuse` resolves to whoever just
@@ -356,9 +356,29 @@ function phaseTargets(phase, resolved, actor, board) {
     const first = resolved?.[0]
       ? board.units.find((u) => u.id === resolved[0].unitId)
       : null;
-    const out = resolveTargets(
-      phase.targeting, self, board, { ...(first?.panel ? { panel: first.panel } : {}), reach: "effect" },
-    );
+    const placement = { ...(first?.panel ? { panel: first.panel } : {}), reach: "effect" };
+    // A Skill's phase is no Attack: a concealed ally is its to reach (§46.4-AK).
+    // Librarian's Passive 2 left out a concealed Hassan within 2 (#226, live).
+    const spec = { ...phase.targeting, limits: { ...(phase.targeting.limits ?? {}), forAttack: false } };
+    const out = resolveTargets(spec, self, board, placement);
+    // A phase whose recipients are the PLAYER'S pick. Librarian of Stored
+    // Knowledge's Passive 2: *"up to two other Hundred-Faced Hassans within a 2
+    // panel area of the user"*, the player picks (#226 reading 13). A chosen
+    // phase resolved with nobody picked reached nobody, in silence.
+    if (out.needsChoice) {
+      const count = phase.targeting.selection?.count ?? 1;
+      const picked = await chooseFor(actor, {
+        title: actor.name,
+        hint: game.i18n.format("FGT.Skill.ChoosePhaseTargets", { count }),
+        count: Math.min(count, out.candidates.length),
+        min: 0,
+        options: out.candidates.map((t) => ({
+          id: t.unitId, name: board.units.find((u) => u.id === t.unitId)?.name ?? t.unitId,
+        })),
+      });
+      if (!picked?.length) return [];
+      return resolveTargets(spec, self, board, { ...placement, chosenIds: picked }).units;
+    }
     return out.units;
   }
   const target = phase.target ?? "reuse";
@@ -462,7 +482,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
     // number of AFFECTED allied Units with the EOTD Skill", and computing it
     // per target would give the same answer more expensively or, worse, a
     // different one if the list were re-resolved mid-loop.
-    const phaseSet = phaseTargets(phase, targets, actor, board);
+    const phaseSet = await phaseTargets(phase, targets, actor, board);
     const phaseUnits = phaseSet
       .map((t) => board.units.find((u) => u.id === t.unitId))
       .filter(Boolean);
@@ -523,6 +543,18 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           }));
           break;
 
+        case "move": {
+          // *"Hassan is allowed to Move 7 panels"* -- up to that many, by an
+          // ordinary path, to the panel his owner picks; closing the window is
+          // staying put (Battle Retreat, #226 reading 12).
+          const to = await pickMoveDestination(doc, unitOf(doc, currentBoard()), currentBoard(), phase.panels ?? 0);
+          if (to) {
+            await applyWorldIntents([I.move(target.unitId, [to])], `skill:${ability.id}:move`);
+            applied.push({ unitId: target.unitId, summary: { id: "move", name: `Moved to (${to.i}, ${to.j})`, outcome: "applied", reason: null } });
+          }
+          break;
+        }
+
         case "heal": {
           // Of MAXIMUM, not of current: 30% of a nearly-dead Medea's current
           // Health is a rounding error, and the sheet says "of its maximum
@@ -541,10 +573,14 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
               ? Math.floor(max * (phase.percentOfMax / 100))
               : (phase.amount ?? 0));
           if (amount > 0) {
+            const before = game.actors.get(target.unitId)?.system?.health?.value ?? 0;
             await applyWorldIntents([I.heal(target.unitId, amount, ability.id)], `skill:${ability.id}:heal`);
             // On the card (#185): Surgical Procedure healed 50 under "No
-            // effects were applied", because only effects were counted.
-            applied.push({ unitId: target.unitId, summary: { id: "heal", name: `Health +${amount}`, outcome: "applied", reason: null } });
+            // effects were applied", because only effects were counted. The
+            // REAL change, as `resourceLine` prints a resource: Battle Retreat
+            // at full Health read "Health +300" (#226, live).
+            const after = game.actors.get(target.unitId)?.system?.health?.value ?? before;
+            applied.push({ unitId: target.unitId, summary: { id: "heal", name: `Health ${before} → ${after} (+${after - before})`, outcome: "applied", reason: null } });
           }
           break;
         }
@@ -851,9 +887,13 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           if (!field) break;
 
           const roll = await new Roll("1d20").evaluate();
+          // A roll outside any Combat Process, which a granted adjustment may
+          // move (Expert of Many Specializations, #226 reading 10).
+          const { offerRollAdjustment } = await import("./roll-adjust.mjs");
+          const moved = await offerRollAdjustment(snapshot, roll.total, { check: "evade", label: ability.name });
           const plan = checkPlan(snapshot, "evade");
           const outcome = evade({
-            roll: roll.total,
+            roll: moved.roll,
             agility: snapshot.agility,
             hasDodge: (snapshot.effects ?? []).includes("dodge"),
             forceUnfavourable: plan.forceTable === "unfavourable",
@@ -862,7 +902,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           });
           if (outcome.success) {
             applied.push({ summary: {
-              id: "dragInto", name: doc.name, outcome: "resisted", reason: `Evade ${roll.total}`,
+              id: "dragInto", name: doc.name, outcome: "resisted", reason: `Evade ${moved.roll}`,
             } });
             break;
           }
@@ -1130,7 +1170,18 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
   /** @type {object[]} */
   const out = [];
   for (const rule of phase.rules ?? phase.effects ?? []) {
-    out.push(...await landEntry(entryOf(rule, { phase }), {
+    // What an effect does as it lands, on the card: Expert's LUC Up restores 3
+    // Luck as it lands, and the card named the buff and not the restore (#226,
+    // live). Read before and after, as `resourceLine` prints a resource.
+    const entry = entryOf(rule, { phase });
+    const landsOn = [
+      ...(EffectRegistry.get(entry?.id)?.onApply ?? [])
+        .filter((a) => (a.kind ?? a.key) === "StatDelta" && typeof a.stat === "string").map((a) => a.stat),
+      ...(Array.isArray(entry?.restores) ? entry.restores : []).map((r) => r?.stat).filter((s) => typeof s === "string"),
+    ];
+    const valueOf = (stat) => resourceValue(game.actors.get(target?.id), stat.replace(/\.value$/, ""));
+    const before = landsOn.map(valueOf);
+    const landed = await landEntry(entry, {
       target,
       source: { unitId: actor.id, abilityId: ability.id },
       caster: actor,
@@ -1143,7 +1194,13 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
       // from what the recipient carries, and three applications against one
       // snapshot left Van Gogh on Stage 1.
       reread: () => unitOf(game.actors?.get(target?.id), currentBoard()) ?? target,
-    }));
+    });
+    for (const row of landed) {
+      if (row.summary?.outcome !== "applied" || landsOn.length === 0) continue;
+      const lines = landsOn.map((stat, n) => resourceLine(stat.replace(/\.value$/, ""), before[n], valueOf(stat))).filter(Boolean);
+      if (lines.length > 0) row.summary = { ...row.summary, after: lines.join("; ") };
+    }
+    out.push(...landed);
   }
   return out;
 }
@@ -1285,11 +1342,20 @@ export async function postCard(actor, ability, targets, applied) {
   // client that never runs the hook shows a count rather than the whole list.
   const rows = applied
     .filter((a) => a.summary.outcome === "applied")
-    .map((a) => ({
+    .map((a) => {
       // `effectLine`: the name, and the roll that landed it when there was one.
-      name: effectLine(a.summary),
-      controllers: ownersOf(game.actors.get(a.unitId)),
-    }));
+      const line = effectLine(a.summary);
+      // ...and WHOSE, when it is not the caster's: Librarian of Stored
+      // Knowledge's Passive 2 printed three "Crit Up" rows and named nobody
+      // (#226, live). The real name, as a stat change's row already says it: a
+      // row is shown only to its recipient's controllers (`controllers`).
+      const recipient = a.unitId && a.unitId !== actor.id ? game.actors.get(a.unitId) : null;
+      const who = recipient?.name ?? null;
+      return {
+        name: who && !line.startsWith(`${who}:`) ? `${who}: ${line}` : line,
+        controllers: ownersOf(game.actors.get(a.unitId)),
+      };
+    });
 
   const content = await foundry.applications.handlebars.renderTemplate(
     "systems/fgt/templates/chat/skill.hbs",
@@ -2585,4 +2651,36 @@ export const CASTER_PHASES = new Set([
 function ownersOf(actor) {
   if (!actor) return [];
   return game.users.filter((u) => !u.isGM && actor.testUserPermission(u, "OWNER")).map((u) => u.id);
+}
+
+/**
+ * Where a granted Move takes the Unit: a panel its owner picks among those an
+ * ordinary walk of `panels` reaches, or null to stay.
+ *
+ * The same reach and the same stopping rule a Turn's own Move has
+ * (`rules/movement.mjs#planMovement`), with the allowance the ability grants in
+ * place of the Unit's MOV.
+ *
+ * @param {object} doc the actor
+ * @param {object|null} unit its board snapshot
+ * @param {object} board
+ * @param {number} panels
+ * @returns {Promise<{i: number, j: number}|null>}
+ */
+async function pickMoveDestination(doc, unit, board, panels) {
+  if (!unit?.panel || panels <= 0) return null;
+  const { canPassThrough, canStopOn } = await import("../rules/movement.mjs");
+  const geo = await import("../domain/geometry.mjs");
+  const passable = geo.reachablePanels(unit.panel, panels,
+    (panel) => !canPassThrough(panel, unit, board), board.bounds ?? null);
+  const offered = [...passable.keys()].map((k) => geo.unkey(k))
+    .filter((p) => !(p.i === unit.panel.i && p.j === unit.panel.j) && canStopOn(p, unit, board));
+  if (offered.length === 0) return null;
+  const { askOwner } = await import("./ask.mjs");
+  const answer = await askOwner(doc, {
+    kind: "pickPanels", panels: offered, labels: [doc.name],
+    hint: game.i18n.format("FGT.Skill.MovePick", { panels }),
+  });
+  const at = answer?.panels?.[0] ?? null;
+  return at && offered.some((p) => p.i === at.i && p.j === at.j) ? { i: at.i, j: at.j } : null;
 }

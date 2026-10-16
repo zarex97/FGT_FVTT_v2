@@ -31,10 +31,24 @@
                   <i class="fa-solid fa-dice"></i>
                 </button>
               {{/if}}
+              {{#if line.adjust}}
+                <label class="fgt-setup__line-adjust" data-tooltip="{{localize 'FGT.Setup.AdjustRoll'}}">
+                  ±<input type="number" name="container.{{card.containerId}}.adjust.{{line.id}}"
+                          min="{{line.adjust.min}}" max="{{line.adjust.max}}" step="1"
+                          value="{{line.adjust.value}}" {{disabled @root.locked}}>
+                </label>
+              {{/if}}
               {{#if line.note}}<span class="fgt-setup__line-note">{{line.note}}</span>{{/if}}
             </li>
           {{/each}}
         </ul>
+        {{#if card.legion}}
+          <label class="fgt-setup__legion">
+            <span>{{localize "FGT.Setup.LegionOpening" label=card.legion.label}}</span>
+            <input type="number" name="container.{{card.containerId}}.legionOpening"
+                   min="1" max="{{card.legion.max}}" step="1" value="{{card.legion.value}}" {{disabled @root.locked}}>
+          </label>
+        {{/if}}
         {{#if card.npOptions.length}}
           <div class="fgt-setup__np">
             <span class="fgt-setup__np-label">{{localize "FGT.Setup.NPChoice"}}</span>

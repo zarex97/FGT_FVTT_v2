@@ -985,6 +985,7 @@ async function declareProcesses({
   // for an area that catches one Unit.
   const platformFactors = platformFactorsOf(targets);
   const caughtConcealed = new Set((targets?.units ?? []).filter((t) => t.concealedAoE).map((t) => t.unitId));
+  const caughtByArea = new Set((targets?.units ?? []).filter((t) => t.caughtByArea).map((t) => t.unitId));
   const spec = Object.keys(platformFactors).length > 0 ? { ...counterSpec, platformFactors } : counterSpec;
 
   // A resolution that caught no units is still a resolution — a ground-placed
@@ -1070,6 +1071,7 @@ async function declareProcesses({
       // alone is still an AoE Attack for Presence Concealment's coin, though
       // `isAoE` -- distinct defenders -- is false for it.
       if (caughtConcealed.has(withCone.defenderId)) withCone.caughtConcealed = true;
+      if (caughtByArea.has(withCone.defenderId)) withCone.caughtByArea = true;
       const withInstance = instance
         ? { ...withCone, attack: { ...withCone.attack, ...instance } }
         : withCone;
@@ -1370,6 +1372,10 @@ export async function advanceAttack(args) {
  */
 async function answerRung({ event, abilityId = null, placement = null }, message, read) {
   let state = read;
+  // Leaving an Attack is what a reaction ability does, never a button: a
+  // sibling of a cancelled Attack is withdrawn by `withdrawFromAttack`, which
+  // marks it first. A press of the bare event is refused.
+  if (event === "withdraw" && !state.withdrawnBy) return state;
 
   // A reaction ABILITY is used before the ladder moves on, and what it did then
   // shapes the rungs below: Medea's Trofa applies an AutoSucceed on Evade, and
@@ -1447,6 +1453,11 @@ async function answerRung({ event, abilityId = null, placement = null }, message
         }),
       });
       if (!out.ok) await tellReactionRefused(owner, used, out.reason);
+      // Battle Retreat: the defender leaves the Attack (#226 readings 12, 24).
+      // Its Move, heal and strip are the ability's own phases, run above.
+      else if (used.system?.withdrawsFromAttack) {
+        return closeRung(await withdrawFromAttack(state, used, message), message);
+      }
     }
 
     // A FREE reaction ability is not the reaction (#193 reading 8). Argos's
@@ -1569,6 +1580,50 @@ async function answerRung({ event, abilityId = null, placement = null }, message
     await applyBatch([I.markTurn(reacting, { acted: true })], "reaction:acted");
   }
 
+  return closeRung(state, message);
+}
+
+/**
+ * Take the defender out of the Attack.
+ *
+ * > *"Used when Hassan is Attacked by an enemy Unit. The enemy Unit's Attack is
+ * > canceled, Hassan is allowed to Move 7 panels, ..."*
+ *
+ * Against a targeted Attack the whole Attack is cancelled: every other Process
+ * of it still waiting at its reaction rung leaves too (Overedge's second swing,
+ * a second chosen target). Against an AoE he alone leaves, as if he had gone
+ * before it hit, and the Attack goes on for everyone else (#226 reading 12).
+ * The attacker's Attack is spent either way (#226 reading 24).
+ *
+ * @param {object} state this Process, at its reaction rung
+ * @param {object} used the reaction ability
+ * @param {object} message this Process's own card, which is not a sibling
+ * @returns {Promise<object>} this Process, withdrawn
+ */
+async function withdrawFromAttack(state, used, message) {
+  const next = { ...process.advance(state, "withdraw", { by: used.name }), withdrawnBy: used.name };
+  if (!state.caughtByArea) {
+    for (const sibling of siblingMessages(state)) {
+      if (sibling.id === message.id) continue;
+      const theirs = process.deserialize(sibling.getFlag("fgt", "process"));
+      if (theirs?.state !== "react") continue;
+      await sibling.setFlag("fgt", "process", process.serialize({ ...theirs, withdrawnBy: used.name }));
+      await advanceAttack({ messageId: sibling.id, event: "withdraw" });
+    }
+  }
+  return next;
+}
+
+/**
+ * Drive a Process through every rung that needs nobody, and close it when it
+ * is done. The tail of every answered rung, and of a defender who left the
+ * Attack (Battle Retreat, #226).
+ *
+ * @param {object} state
+ * @param {object} message
+ * @returns {Promise<object>}
+ */
+async function closeRung(state, message) {
   // Drive through every state that needs no human input — pausing at any rung
   // where somebody could interrupt with a Command Spell.
   while (!process.isComplete(state) && !process.pendingPrompt(state)) {
@@ -2146,7 +2201,7 @@ function coverModifiersFor(state, defender) {
  */
 async function siblingsPastDamage(state, timeoutMs = 120_000) {
   if (!state.groupId) return;
-  const PAST = new Set(["damage", "noDamage", "injury", "facing", "counter", "missed", "done"]);
+  const PAST = new Set(["damage", "noDamage", "injury", "facing", "counter", "missed", "withdrawn", "done"]);
   const past = () => siblingMessages(state)
     .map((m) => process.deserialize(m.getFlag("fgt", "process")))
     .filter((s2) => s2 && s2.defenderId !== state.defenderId)
@@ -2939,11 +2994,42 @@ async function fireCombatPhaseEnd(state) {
 
   await grailUnderNP(state, siblings, board);
 
+  await payLegionPriceOf(state, siblings);
+
   // The Phase is over, so the once-per-Phase optional spend may be offered
   // again next time. Cleared here rather than left to expire, because the guard
   // is keyed by `groupId` and a match is thousands of them.
   const { clearOptionalCostOffers } = await import("./optional-costs.mjs");
   clearOptionalCostOffers(state.groupId);
+}
+
+/**
+ * The price in bodies the declaration's ability charges, once its Combat Phase
+ * is over.
+ *
+ * > *"... and inflicts Def Dwn (A) for 1◈ Turns ... Then, reduce the number of
+ * > Hassans by 4d6."*
+ *
+ * "Then" is after the whole Noble Phantasm, every Process of it and any Counter
+ * it drew, so it is paid here, once per Phase, by the Unit that declared it
+ * (#226 reading 19). A Counter shares its parent's group, so the declaration
+ * is the sibling that is not one.
+ *
+ * @param {object} state
+ * @param {object[]} siblings every message of the group
+ * @returns {Promise<void>}
+ */
+async function payLegionPriceOf(state, siblings) {
+  const states = siblings.length > 0
+    ? siblings.map((m) => process.deserialize(m.getFlag("fgt", "process")))
+    : [state];
+  const declared = states.find((s) => !s.isCounter) ?? null;
+  const attacker = declared ? game.actors.get(declared.attackerId) : null;
+  const ability = attacker?.items?.get(declared?.attack?.abilityId ?? "") ?? null;
+  const formula = ability?.system?.legionCost ?? null;
+  if (!formula) return;
+  const { payLegionPrice } = await import("./legion.mjs");
+  await payLegionPrice(attacker, formula, ability.name);
 }
 
 /**

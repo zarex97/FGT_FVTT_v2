@@ -1,0 +1,60 @@
+# Hundred-Faced Hassan, char_orig_sheets/Copia de Hassan (Hundred-Face).md
+# Audit #226: EMS.p1, EMS.p1.not, EMS.when, EMS.1-4, EMS.cd, EMS.p2, EMS.p2.rolls.
+schema: 1
+id: hassan-expert-of-many-specializations
+name: "Expert of Many Specializations"
+rank: "A+"
+kind: skill
+slug: expertOfManySpecializations
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+description: |
+  (Passive 1) Whenever Hassan performs a dice roll outside of Combat, you can reduce or increase the
+  value of that dice roll by up to 3. This effect cannot be used with the Active effect of this Skill.
+  (Active) Used during your Turn. Has the following effects-
+  1. Has a 70% chance of restoring 3 Agility, this effect is treated as 'applying a buff'. If
+     successful, also apply @effect[aglUp]{AGL Up} for 1◈ Turns, Agility Check rolls are reduced by 3.
+  2. Has a 70% chance of restoring 3 Luck, this effect is treated as 'applying a buff'. If
+     successful, also apply @effect[lucUp]{LUC Up} for 1◈ Turns, Luck Check rolls are reduced by 3.
+  3. Has a 70% chance of applying @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 40%; if NP, 30%.
+  4. Applies @effect[dodge]{Dodge} with a 70% chance of applying it for ⅔◈ Turns, otherwise it is only applied for ⅓◈ Turns.
+  Cooldown: 4◈-⅓◈ Turns.
+  (Passive 2) When this Skill is used, apply its effects to all other Hundred-Faced Hassans within a
+  2 panel area of the user, but each Hassan has to perform their own respective rolls for applying
+  the Skill's effects.
+passiveRules:
+  # Passive 1: a -3..+3 prompt after a roll Hassan makes outside a Combat
+  # Process, his setup rolls of Agility and Luck included (#226 readings 10,
+  # 25). `scope: outsideCombat` is what keeps it off every roll inside one; the
+  # Active's own 70% dice are effect chances, which the adjustment never
+  # reaches (EMS.p1.not).
+  - key: RollAdjustment
+    check: any
+    max: 3
+    scope: outsideCombat
+phases:
+  # Effects 1 and 2: "restoring 3 Agility ... treated as 'applying a buff'. If
+  # successful, also apply AGL Up". One die per entry: `restores` rides the
+  # buff's landing, so Buff ChUp raises it and No Buff stops both (#226 reading
+  # 11).
+  # All four on the user, then on every other body within 2 (Passive 2), each
+  # body its own dice: one landing per recipient is one roll per recipient.
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: aglUp, duration: "1◈", magnitude: 3, chance: 70, restores: [{ stat: agility.value, delta: 3 }] }
+      - { id: lucUp, duration: "1◈", magnitude: 3, chance: 70, restores: [{ stat: luck.value, delta: 3 }] }
+      - { id: atkUp, duration: "1◈", magnitude: 40, npMagnitude: 30, chance: 70 }
+      # The length is a buff chance too (#226 reading 11).
+      - { id: dodge, duration: "⅔◈", chance: 70, otherwise: { duration: "⅓◈" } }
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+      selection: { relations: [ally], includeSelf: false, sameLegion: true, chooser: all }
+    effects:
+      - { id: aglUp, duration: "1◈", magnitude: 3, chance: 70, restores: [{ stat: agility.value, delta: 3 }] }
+      - { id: lucUp, duration: "1◈", magnitude: 3, chance: 70, restores: [{ stat: luck.value, delta: 3 }] }
+      - { id: atkUp, duration: "1◈", magnitude: 40, npMagnitude: 30, chance: 70 }
+      # The length is a buff chance too (#226 reading 11).
+      - { id: dodge, duration: "⅔◈", chance: 70, otherwise: { duration: "⅓◈" } }

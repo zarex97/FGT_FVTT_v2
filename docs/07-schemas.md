@@ -67,6 +67,13 @@ A new Authored Key is therefore four edits, and each one is checked: declare it 
 (Hop 2), author it (Hop 1 carries it), give it a route in `test/unit/survival.test.mjs` (Hop 4), and
 read it (Hop 5).
 
+**A legion's fields (#226).** `Servant.linkedGroup.legion` (`size`, `fieldCap`, `openingMax`, `label`; `size: 0` is no
+legion) and `linkedGroup.ownCooldowns` (slugs each body keeps a clock of its own for) are authored. `Servant.legionKey`
+and `legionNumber`, and `Master.legions` (the count by legion key, with the first body's `template` and the `clocks`
+held while no body stands), are world state, written by `engine/legion.mjs` and never authored. The board projects
+`legion` on each body (`rules/linked-group.mjs#annotateLegions`). Abilities gained `withdrawsFromAttack`,
+`legionCost` and `endsOnSkillSeal`; an Effect Entry gained `otherwise` and `restores` (Ch. 15).
+
 ## Invariants & edge cases
 
 1. **`null` and zero are not the same for Health.** Health `max` is `null` when the unit is intrinsically undamageable, and `value: null` when defeated. A Master refills to 250 if `max` is null or zero; a zero-max Servant comes back at 1 before revival bonuses land (`module/data/actor/_shared.mjs:40-52`, `module/data/actor/master.mjs:74-79`).

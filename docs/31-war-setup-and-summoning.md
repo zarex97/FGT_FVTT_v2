@@ -72,6 +72,12 @@ A summon-time coin flip may change a Servant's shape. `resolveSummonVariant` tak
 
 Mid-game, `attemptContract` rolls what the plan asks for. Allied contracts to already-contracted Servants are automatic; enemy contracts depend on Independent Action rank. One failure decides the attempt, but all rolls are kept for the log (`module/engine/contract.mjs:53-74`). `conquestIntents` applies the automatic contract when a Master dies, freeing its Servants **and** contracting them to the killer in one batch so no intermediate Free state is observable (`module/engine/contract.mjs:88-105`, `module/rules/contract.mjs:179-196`).
 
+**A legion at war setup (#226).** A Servant with `linkedGroup.legion` gets a "*Hassans* in the Home Base"
+field (1 to `openingMax`) on its card, and a ±3 on its Agility and Luck lines when one of its abilities grants a
+`RollAdjustment` outside combat. `commitWar` makes the summoned Servant body 1 (`engine/legion.mjs#startLegion`) and
+the rest of the opening count clones of it, seated and placed beside it like a summoned partner. From Round 2 each
+Round's start offers its Master's player free panels to deploy more (Ch. 32).
+
 ## Invariants & edge cases
 
 **A summon's panels can be its owner's pick, and it can leave with its summoner** (#193 readings 13, 15). `placement.chooser: owner` asks the owner, through `askOwner` and the `pickPanels` prompt, for one panel per summon among the free ones; a cancel places the rest. `leavesWithSummoner: true` dismisses the summon when `io.defeat` writes its summoner's defeat. `dismissSummon` deletes tokens by scene query and then the WORLD actor: `resolve` prefers an unlinked token's synthetic actor, and deleting that left the world actor behind. The card names the dice and who came, and the type choice lists names.

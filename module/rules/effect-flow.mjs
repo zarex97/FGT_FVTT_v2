@@ -411,6 +411,8 @@ export const ENTRY_KEYS = Object.freeze({
   applications: { type: "number", means: "Separate applications, each rolled on its own." },
   predicate: { type: "json", means: "Apply only to the recipients this matches." },
   ignoresResistanceFrom: { type: "json", means: "Resistances this application is not subject to." },
+  otherwise: { type: "json", means: "What lands instead when the chance fails, as entry keys over this one." },
+  restores: { type: "json", means: "Stats this application restores as it lands, as [{stat, delta}], capped at the maximum." },
 });
 
 /**

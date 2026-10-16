@@ -68,6 +68,12 @@ A **Structure defender answers nothing** (#188). A Structure takes no action at 
 
 The process is **complete** when it reaches the `done` state (`module/engine/combat-process.mjs:368-370`).
 
+**The `withdrawn` rung (#226).** `react:withdraw` → `withdrawn` → `done`: a defender who leaves the Attack,
+by a reaction with `withdrawsFromAttack` (Battle Retreat). Terminal like a miss: no damage, no effects, no Injury,
+no facing, no Counter; the attacker's Attack is still spent. Against a targeted Attack every other Process of the
+declaration still at its reaction rung leaves too; against an AoE (`caughtByArea`) he alone does. A bare `withdraw`
+event is refused unless the Process was marked by `withdrawFromAttack`.
+
 ## Invariants & edge cases
 
 **A rung is answered once.** `advanceAttack` stores the next rung only after the answer has run — a question, a roll, a write later — so for that whole time the card still shows the rung being answered. The first press of a rung with a question pending claims it in memory (`messageId`, history length, state) before anything awaits; a second press of the same rung (the GM's card and the player's both carry the button, or a reaction timeout firing while the player's answer is running) waits for the first and runs nothing. A call with no question pending — the engine resuming the Process after a Command Spell interrupt, or a declaration driving itself — is not an answer and claims nothing. Pressed live in Wave A, Kiritsugu's Return Fire was declared twice; in the arena a doubled "nothing" dealt a Normal Attack's damage twice (`test/unit/rung-pressed-twice.test.mjs`).

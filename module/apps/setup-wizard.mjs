@@ -24,7 +24,9 @@ import {
   defaultContainers, candidatesFor, validateRoster, CORE_CLASSES, EXTRA,
 } from "../rules/war-setup.mjs";
 import { plannedBases, gridMismatches, commitWar } from "../engine/war-setup.mjs";
-import { servantCatalogue, prepareSummon, rerollSummonLine } from "../engine/summon.mjs";
+import {
+  servantCatalogue, prepareSummon, rerollSummonLine, adjustSummonLine, setupAdjustment,
+} from "../engine/summon.mjs";
 import { describe, filterCatalogue } from "./summon-present.mjs";
 import { createFaction } from "../rules/factions.mjs";
 import * as board from "../engine/board.mjs";
@@ -290,7 +292,23 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         // Ch. 34: the arithmetic is shown, not the answer. "1163" tells a GM
         // nothing about whether to re-roll; "1250 - 87 (10d20)" tells them
         // everything.
-        lines: prepared ? prepared.lines.map(describe) : [],
+        lines: prepared ? prepared.lines.map((line) => {
+          // A setup roll the Servant's own Skill lets it move (#226 reading 25).
+          const max = ["maxAgility", "maxLuck"].includes(line.id) ? setupAdjustment(prepared) : 0;
+          return {
+            ...describe(line),
+            ...(max > 0 ? { adjust: { max, min: -max, value: prepared.adjustments?.[line.id] ?? 0 } } : {}),
+          };
+        }) : [],
+        // A Servant who is many Units: how many start in the Home Base, the
+        // Master's pick (#226 reading 3).
+        legion: (prepared?.sheet?.linkedGroup?.legion?.size ?? 0) > 0
+          ? {
+            max: prepared.sheet.linkedGroup.legion.openingMax ?? 1,
+            value: c.legionOpening ?? 1,
+            label: prepared.sheet.linkedGroup.legion.label || prepared.source?.name,
+          }
+          : null,
         // "Before play, select only one Noble Phantasm, either (a) or (b)."
         // Archer, Caster and Berserker only; every other Servant's list is
         // empty and the control does not render at all.
@@ -389,6 +407,11 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
       if (row.contentId !== undefined) container.contentId = row.contentId || null;
       if (row.query !== undefined) this.#queries[id] = row.query;
       if (row.npChoice !== undefined) container.npChoice = row.npChoice || null;
+      if (row.legionOpening !== undefined) container.legionOpening = Math.max(1, Math.floor(Number(row.legionOpening)) || 1);
+      for (const [lineId, delta] of Object.entries(row.adjust ?? {})) {
+        const prepared = this.draft.prepared[id];
+        if (prepared) this.draft.prepared[id] = adjustSummonLine(prepared, lineId, Number(delta));
+      }
     }
 
     // A ruleset change invalidates every draw: the two catalogues are disjoint,

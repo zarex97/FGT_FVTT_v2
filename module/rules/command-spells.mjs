@@ -99,7 +99,8 @@ export function canSpend(command, ctx) {
   if (!ctx.servant || ctx.servant.defeated) return { ok: false, reason: "noServant", cost };
   // Ch. 32: the pool is per RELATIONSHIP. A Master with three spells borrowed
   // for Archer cannot spend them on Lancer, and the flat count could not say so.
-  if (availableFor(ctx.master, ctx.servant?.id ?? null) < cost) {
+  // A legion's body reads the hundred's pool, namespaced to the legion (#226).
+  if (availableFor(ctx.master, ctx.servant?.legionKey || ctx.servant?.id || null) < cost) {
     return { ok: false, reason: "cost", cost };
   }
 

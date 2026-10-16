@@ -400,6 +400,9 @@
       </table>
 
       <h3 class="fgt-panel__title">{{localize "FGT.Master.Contracted"}}</h3>
+      {{#each legions as |line|}}
+        <p class="fgt-master__legion"><strong>{{line}}</strong></p>
+      {{/each}}
       {{#unless contracted.length}}
         <p class="fgt-empty">{{localize "FGT.Master.NoServants"}}</p>
       {{/unless}}

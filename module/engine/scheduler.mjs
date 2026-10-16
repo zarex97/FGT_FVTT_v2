@@ -1984,6 +1984,28 @@ function sharedClockOf(unit, ability, units) {
   if (twins.length === 0) return { holder: unit, ability };
 
   const members = twins.map((t) => t.member);
+  // A legion's NP Regen: *"If more than one Hassan has a NP Regen buff, only
+  // the one with the strongest magnitude takes effect"* (#226). The group's
+  // clock ticks by the strongest single body, never by the sum the Dioscuri's
+  // two copies add to.
+  if ((unit.linkedGroup?.legion?.size ?? 0) > 0) {
+    const regenOf = (m) => (m.statDeltas ?? []).filter((d) => d.stat === "npRegen")
+      .reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+    const all = [unit, ...members];
+    const strongest = all.reduce((best, m) => (regenOf(m) > regenOf(best) ? m : best), unit);
+    return {
+      holder: {
+        ...unit,
+        effects: [...new Set(all.flatMap((m) => m.effects ?? []))],
+        statDeltas: [
+          ...(unit.statDeltas ?? []).filter((d) => d.stat !== "npRegen"),
+          ...(strongest.statDeltas ?? []).filter((d) => d.stat === "npRegen"),
+        ],
+        effectInstances: all.flatMap((m) => m.effectInstances ?? []),
+      },
+      ability: { ...ability, regen: Math.max(ability.regen ?? 0, ...twins.map((t) => t.copy.regen ?? 0)) },
+    };
+  }
   return {
     holder: {
       ...unit,

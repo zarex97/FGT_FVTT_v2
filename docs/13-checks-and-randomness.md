@@ -84,6 +84,13 @@ Scáthach's *Primordial Rune* rolls `2d8` and looks up the results in a table, a
 
 A wildcard row — *"your choice of any of the above"* — returns a question to the caller rather than effects. The `choicesIn` function lists all non-wildcard rows so the interface can render choices (`module/rules/roll-table.mjs:69-86`).
 
+**A roll moved after it is seen (#226).** A `RollAdjustment` grant with `scope: outsideCombat` is read by
+`engine/roll-adjust.mjs#offerRollAdjustment`: after a roll its bearer makes outside a Combat Process, its owner is
+asked to move it by up to `max` either way (the `adjustRoll` prompt). Hundred-Faced Hassan's Expert of Many
+Specializations is its first content; his setup rolls of Agility and Luck are moved in the war's wizard
+(`engine/summon.mjs#adjustSummonLine`), and the field's Evade, the forest escape and a drag's Evade offer it in play.
+`checkPlan` had returned the grant as `adjustable` with nobody reading it.
+
 ## Invariants & edge cases
 
 1. **Success is at or under the target, not just under.** A roll equal to the stat succeeds (`module/rules/checks.mjs:205-211`).

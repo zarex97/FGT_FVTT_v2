@@ -4557,6 +4557,39 @@ Injury Roll, Cover and the Grail asked `kind` alone. All now ask `isNPAttack`, a
 
 ---
 
+*From Hundred-Faced Hassan's build and live press (#226, 2026-10-16).*
+
+### NL. A Skill's card listed effects on other Units without naming them — **fixed** (#226, live)
+
+**Reached: every Skill whose phase lands on somebody other than its caster** (Librarian's Passive 2, Expert's Passive 2,
+EMIYA's Eye of the Mind EX, Gogh's Het Gele Huis, Kiritsugu's Scapegoat). `postCard` printed each row's effect and
+dropped the recipient every row carried; only a stat change named one. A row on anyone but the caster now reads
+`<name>: <effect>`, the real name, since a row is shown only to its recipient's controllers. Ch. 37.
+
+### NM. A Caster's Conquest granted Command Spells per body of a legion — **fixed** (#226 reading 17, live)
+
+**Reached: Hundred-Faced Hassan.** `conquestContract` granted 3 Command Spells for every actor bound to the dead
+Master, so six bodies were 18. One grant per legion now, namespaced to its key, which `canSpend` and
+`io.spendCommandSpells` read for any body. Ch. 32, 33.
+
+### NN. A heal phase printed the amount asked, not the Health gained — **fixed** (#226, live)
+
+**Reached: every `heal` phase** (Battle Retreat, Surgical Procedure, Teachings of Circe). Battle Retreat at 750/750
+read "Health +300". The line is now `Health before → after (+gain)`. Ch. 17.
+
+### NO. A phase's own targeting refused a concealed ally — **fixed** (#226, live)
+
+**Reached: every Skill phase with targeting of its own.** It was resolved with no `limits.forAttack`, which the resolver
+reads as an Attack, so a concealed ally was dropped as for an enemy: Librarian's Passive 2 never offered a concealed
+Hassan. A phase is resolved with `forAttack: false`, as the Skill's own targeting already was (§46.4-AK). Ch. 20.
+
+### NP. What an application wrote as it landed never reached the card — **fixed** (#226, live)
+
+**Reached: Expert's restores, and any `onApply` stat on the Skill path** (Shock). The card printed the effect alone.
+`applyPhaseEffects` reads each landing stat before and after, and the row carries it (`after`). Ch. 15, 37.
+
+---
+
 ---
 
 ## 46.5 The per-Servant checklist
@@ -6048,3 +6081,51 @@ damage or defeat intent to fell the Master in one blow and to replay the Sustain
   cooldown, so it is left unbuilt rather than built untested.
 - **A wizard-built pair was looked at live** (2026-10-15): `commitWar` seated both twins with one side, one Contract and two
   tokens (§46.4-MW). `commitWar` still has no test of its own.
+
+## 46.32 Hundred-Faced Hassan — the Servant who is a hundred
+
+**82 Clauses: 81 Pressed or Observed, one not applicable** (#226, live 2026-10-16, PC world `fgt2026`, scene
+*Hassan Audit*). 29 readings were ruled 2026-10-16, and nothing of him existed before them: no Servant file, no
+abilities, and no engine for a Servant made of many Units drawn from a pool. He is now built and pressed end to end,
+from the war's setup to a count of 0. `PC.7` (an Active Skill aimed at an enemy) has no Skill on his sheet to press.
+
+**Why he finds what he finds.** One Servant, many actors: every rule that counts Servants, grants per Servant, or
+names one has to choose between the hundred and the body. The Conquest granted per body, the card named no body, and
+the count had to live where no body could take it with it when it fell.
+
+### 46.32.1 What he cost the engine
+
+| Finding | Where |
+|---|---|
+| The legion: the count on the Master (`legions`), bodies `Hassan N` built from the first body as summoned, the reserve as the count less the field, numbers never reused (readings 2, 5, 18, 27) | `engine/legion.mjs`, `rules/linked-group.mjs#annotateLegions`, `engine/board.mjs#legionPoolsOf`, `data/actor/{master,servant}.mjs` |
+| War setup: 1 to 10 bodies in the Home Base, the Master's pick; his own Agility and Luck rolls moved by ±3 in the wizard (readings 3, 25) | `engine/legion.mjs#startLegion`, `engine/war-setup.mjs#commitWar`, `apps/setup-wizard.mjs`, `engine/summon.mjs#adjustSummonLine` |
+| A Round's deploy from Round 2: free panels, the Master's half in a Great Holy Grail War (cut between the two Home Bases), within 2 of the base in any other; at most ten on the field (readings 4, 22, 23) | `rules/linked-group.mjs#deployPanels`, `engine/legion.mjs#offerLegionDeploys`, `scheduler-hooks.mjs#beginRoundSequence` |
+| A body's defeat is −1 and leaves the board; only the last is the Servant's, for the Grail too; none on the field with a reserve is alive off the board; Sustainability ends the hundred (readings 1, 17, 20 to 22) | `io.defeat`, `engine/legion.mjs#survivesBody`, `#bodyFell`, `#exhaustLegion` |
+| Shared clocks except PC and Battle Retreat (`ownCooldowns`); NP Regen ticks the shared clock by the strongest body; clocks held while no body stands (reading 9) | `engine/cooldown.mjs#twinsOf`, `scheduler.mjs#sharedClockOf`, `engine/legion.mjs#sharedClock` |
+| Zabaniya: gated on more than 10 remaining (`legionAbove`); 4d6 bodies paid at the Phase's end, reserve first, then field bodies the player picks, removed and not defeated; 0 defeats him (readings 2, 19, 20) | `rules/items.mjs`, `engine/attack.mjs#payLegionPriceOf`, `engine/legion.mjs#payLegionPrice` |
+| Battle Retreat leaves the Attack: a targeted Attack is cancelled for every Process, an AoE goes on without him; a `move` phase, the heal, the strip (readings 12, 24) | `combat-process.mjs` (`withdrawn`), `attack.mjs#withdrawFromAttack`, `skill-use.mjs` (`move`) |
+| Librarian's and Expert's Passive 2 reach other bodies (`sameLegion`), the first by the player's pick (reading 13) | `targeting/resolve.mjs`, `skill-use.mjs#phaseTargets` |
+| Expert's restores ride their buff's die (`restores`); a failed 70% Dodge lands the ⅓◈ one (`otherwise`) (reading 11) | `engine/landing.mjs`, `rules/effect-flow.mjs` (`ENTRY_KEYS`) |
+| Expert's Passive 1: the `RollAdjustment` grant `checkPlan` returned and nothing read, now a ±3 prompt after a roll outside a Combat Process (readings 10, 25) | `engine/roll-adjust.mjs`, `apps/prompt.mjs` (`adjustRoll`) |
+| Skill Seal ends his Presence Concealment at once, its clock starting then (`endsOnSkillSeal`, reading 16) | `engine/concealment.mjs`, `rules/concealment.mjs` (`sealed`) |
+| A body's public name is its class and number, "Assassin 3" | `rules/identity.mjs#publicNameOf` |
+| Every concealed Unit passes occupied panels and a guarded Master but never stops on another Unit (reading 28, all Presence Concealment); Huge Scale still does | `rules/movement.mjs#canStopOn` (`STOPS_ON_OCCUPIED`) |
+| Zabaniya keeps the attacker's narrowing: the confirm dialog may spare his own bodies, as any area may spare anyone (reading 29) | `rules/targeting/resolve.mjs` step 9b, unchanged |
+| General: §46.4-NL to NP | |
+
+### 46.32.2 What was staged
+
+The war was built through the wizard (four bodies, Luck +3 and Agility −1 on the setup rolls) on an old 21×21 scene
+the saved draft named, whose two stale fields were deleted. Staged and named in #226's log: forced moves to put
+enemies in reach; a Skill Seal, an NP Regen 2, an Atk Up and lost Health, Agility and Luck to give a press its
+differential; cooldowns cleared to press again; the count set to 10, 14, 4, 11 and 50 to reach the gate, a price
+from the field, an empty field, a count of 0 and a fresh deploy; the GM's dice fixed for three prices and one failed
+Expert; and the war type switched to a Holy Grail War for the deploy within 2. The Master fell to an Overpower and
+was restored, with Medea's conquest undone.
+
+### 46.32.3 Left open
+
+- **Expert's Passive 1 met no roll in play** outside a Combat Process besides the setup rolls; the field Evade, the
+  forest escape and a drag's Evade carry it.
+- **Escape on a panel pick also opens Foundry's main menu.**
+- **A revived body keeps its number** (reading 27): built, unpressed; the war had no revival for a body.

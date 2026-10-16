@@ -100,6 +100,20 @@ describe("clause 3 — through, not onto", () => {
     expect(canPassThrough(at(6, 7), sneaky, board([other("foe", 6, 7)]))).toBe(true);
   });
 
+  it("lets a concealed Unit pass an occupied panel but never stop on it (#226, ruled 2026-10-16)", () => {
+    const sneaky = mover({ effects: ["presenceConcealment"] });
+    const b = board([other("foe", 6, 7)]);
+    expect(canPassThrough(at(6, 7), sneaky, b)).toBe(true);
+    expect(canStopOn(at(6, 7), sneaky, b), "an occupied panel is not a place to end a Move").toBe(false);
+    const plan = planMovement(sneaky, b);
+    expect(plan.reachable.has(key(at(6, 8))), "reached through the enemy").toBe(true);
+    expect(plan.reachable.has(key(at(6, 7)))).toBe(false);
+  });
+
+  it("still lets Huge Scale stop on an occupied panel", () => {
+    expect(canStopOn(at(6, 7), mover({ effects: ["hugeScale"] }), board([other("foe", 6, 7)]))).toBe(true);
+  });
+
   it("lets any unit stop on a platform", () => {
     const platform = { id: "p", kind: "platform", factionId: "b", panel: at(6, 7) };
     expect(canStopOn(at(6, 7), mover(), board([platform]))).toBe(true);
