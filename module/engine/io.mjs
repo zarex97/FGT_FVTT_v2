@@ -1131,8 +1131,14 @@ export function worldIO() {
     },
 
     async defeat(unitId, cause, killerId = null) {
-      await countTowardsGrail(unitId, cause);
-      await freeContractedServants(unitId, killerId);
+      // Counted and freed ONCE. A Unit can be defeated by two writers at once --
+      // a twin's binding is emitted by the damage path and carried here too --
+      // and the second write counted it towards the Grail again (#209 review).
+      const already = Boolean(resolve(unitId)?.system?.defeated);
+      if (!already) {
+        await countTowardsGrail(unitId, cause);
+        await freeContractedServants(unitId, killerId);
+      }
       const actor = resolve(unitId);
       if (!actor) return;
       // Every defeat is logged, whoever caused it (#182). A Contagion loss that
@@ -1156,9 +1162,11 @@ export function worldIO() {
       // drops its bank"* (#199 reading 16). Key by key, because an ObjectField
       // merges an empty object rather than replacing with it.
       const banks = Object.keys(actor.system?.hiddenDamage ?? {});
+      const wasDefeated = Boolean(actor.system?.defeated);
       await actor.update({
         ...Object.fromEntries(banks.map((key) => [`system.hiddenDamage.-=${key}`, null])),
-        "system.defeated": true, "system.defeatCause": cause,
+        // The first defeat's cause stands, as its tick does below.
+        "system.defeated": true, "system.defeatCause": already ? (actor.system?.defeatCause ?? cause) : cause,
         // The first defeat's tick, kept by a second: the body's clock runs from
         // when it fell (#65, ruling 25).
         ...(actor.system?.defeated ? {} : { "system.defeatedAt": game.combat?.system?.globalTurn ?? null }),
@@ -1166,6 +1174,19 @@ export function worldIO() {
       // After the defeat is written, so a failed dismissal cannot leave the
       // summoner standing.
       for (const summon of goWithIt) await this.dismissSummon(summon.id, "summonerDefeated");
+      // The binding, at the one door every defeat passes: *"If either is
+      // defeated, the other is too, regardless of remaining Health."* The
+      // damage path's defeat chain emitted it and no other writer of `defeat`
+      // did, so Castor ran out of Sustainability and Pollux stood on at 1383
+      // (#209, found live); an Instakill, Erase, a Command Spell or a field's
+      // defeat were the same. A partner already down is left as it is.
+      const group = actor.system?.linkedGroup;
+      if (!wasDefeated && group?.linkedDeath === "ignoresRevival") {
+        for (const id of group.memberIds ?? []) {
+          const partner = resolve(id);
+          if (partner && !partner.system?.defeated) await this.defeat(id, "linkedDeath");
+        }
+      }
       // ERASE takes the Unit out of the game, so there is no body to leave
       // lying: *"Unit is removed from the game"* (Appendix A §A.16), and Zero
       // Sail's failed Luck Check *"their bodies disappear immediately"* (#191

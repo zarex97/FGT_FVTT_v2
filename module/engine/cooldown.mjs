@@ -248,6 +248,64 @@ function fractionOfRound(raw) {
  * @returns {Array<{actorId: string, abilityId: string, ticks: number}>}
  */
 export function sharedAcrossGroup(cooldowns, unit, board = null) {
+  /** @type {Array<{actorId: string, abilityId: string, ticks: number}>} */
+  const out = [];
+  for (const clock of cooldowns ?? []) {
+    for (const twin of twinsOf(unit, clock.abilityId, board)) {
+      out.push({ actorId: twin.unitId, abilityId: twin.abilityId, ticks: clock.ticks });
+    }
+  }
+  return out;
+}
+
+/**
+ * The same CUTS, on the other members of this unit's linked group (#209
+ * reading 2, ruled 2026-10-14).
+ *
+ * > *"One shared clock; any cut by either twin reaches both."*
+ *
+ * {@link sharedAcrossGroup} mirrors a USE -- the clock a Skill starts. This
+ * mirrors what happens to the clock afterwards: Self-Replenishment's 2 Turns,
+ * Mana Burst's 1◈, the Castor buff, the Divine Core's 5%, a Command Spell, and
+ * an enemy's increase alike, because each of them reached one copy of the Noble
+ * Phantasm and left the other where it was. One matcher (`twinsOf`), so a use
+ * and a cut find the same twin by the same name.
+ *
+ * Returns **additional** intents only, the same `mode` and `ticks` on each
+ * twin; a caller spreads it beside the cuts it already built. It is NOT the
+ * per-Turn tick: that turns every copy by its own rate already, and mirroring
+ * it would count each Turn twice (`scheduler.mjs#advanceCooldowns`).
+ *
+ * @param {Array<{t: string, unitId: string, abilityId: string, ticks: number, mode: string}>} intents
+ * @param {object} unit the snapshot of the Unit the intents are about
+ * @param {object|null} [board]
+ * @returns {Array<{t: string, unitId: string, abilityId: string, ticks: number, mode: string}>}
+ */
+export function sharedCooldownIntents(intents, unit, board = null) {
+  /** @type {object[]} */
+  const out = [];
+  for (const intent of intents ?? []) {
+    // Only a cut on THIS unit's clock is this unit's to share.
+    if (intent?.t !== "cooldown" || intent.unitId !== unit?.id) continue;
+    for (const twin of twinsOf(unit, intent.abilityId, board)) {
+      out.push({ ...intent, unitId: twin.unitId, abilityId: twin.abilityId });
+    }
+  }
+  return out;
+}
+
+/**
+ * The same-named ability on each other member of this unit's linked group.
+ *
+ * The one matcher a shared clock is found by: a use, a cut and the per-Turn
+ * tick all ask it.
+ *
+ * @param {object} unit the snapshot that holds `abilityId`
+ * @param {string} abilityId
+ * @param {object|null} [board]
+ * @returns {Array<{unitId: string, abilityId: string}>}
+ */
+export function twinsOf(unit, abilityId, board = null) {
   if (unit?.linkedGroup?.sharedCooldowns !== "byName") return [];
   // Spread: a caller may hand us a DOCUMENT-shaped unit, where the schema field
   // is still a SetField and `.includes` on one silently answers undefined.
@@ -260,17 +318,14 @@ export function sharedAcrossGroup(cooldowns, unit, board = null) {
   const members = membersOf(partnerIds, board);
   if (members.length === 0) return [];
 
-  /** @type {Array<{actorId: string, abilityId: string, ticks: number}>} */
+  const name = (unit.abilities ?? []).find((a) => a.id === abilityId)?.name;
+  if (!name) return [];
+
+  /** @type {Array<{unitId: string, abilityId: string}>} */
   const out = [];
-  for (const clock of cooldowns ?? []) {
-    const name = (unit.abilities ?? []).find((a) => a.id === clock.abilityId)?.name;
-    if (!name) continue;
-    for (const member of members) {
-      for (const twin of member.abilities ?? []) {
-        if (twin.name === name) {
-          out.push({ actorId: member.id, abilityId: twin.id, ticks: clock.ticks });
-        }
-      }
+  for (const member of members) {
+    for (const twin of member.abilities ?? []) {
+      if (twin.name === name) out.push({ unitId: member.id, abilityId: twin.id });
     }
   }
   return out;

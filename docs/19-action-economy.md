@@ -12,7 +12,7 @@ Three rules compose the budget and are easy to conflate:
 
 3. **The unit-counting rule** — the budget counts *units*, not actions (`module/rules/budget.mjs:19-22`). A Servant that moves and then uses an Active Skill has consumed **one** move slot, not two. Attacks are the sole exception: they draw from `servantAttack` in addition to the unit being counted.
 
-**Whose Turn.** An ability authored `timing: { window: ownTurn }` (*"Used during your Turn"*, 142 content files) is refused by `canUseAbility` on another faction's Turn, so the action bar's slot is dimmed with "Only during your Turn." and `useSkill` and `resolveAttack` refuse it (Ch. 17, #160). The budget itself is the acting faction's, so this is the same "whose Turn" the pools are kept by.
+**Whose Turn.** An ability authored `timing: { window: ownTurn }` (*"Used during your Turn"*, 142 content files) is refused by `canUseAbility` on another faction's Turn, so the action bar's slot is dimmed with "Only during your Turn." and `useSkill` and `resolveAttack` refuse it (Ch. 17, #160). The converse is refused too: an ability that names windows and no `ownTurn` is dimmed on every Turn (`windowOnly`) and cast by the engine when its moment comes (Ch. 17, #208 reading 8). The budget itself is the acting faction's, so this is the same "whose Turn" the pools are kept by.
 
 Prevention and compulsion run separately. A unit whose turn is blocked by an effect (stun, stop, silence, etc.) never gets to spend budget. A unit unmet by a compulsion at turn end (Berserk, Decoy, Hatred) blocks the End Turn button.
 
@@ -113,3 +113,9 @@ Setting facing is free and does not cost a budget slot: its action entry declare
   match, which this world does not contain.
 
 - **Two sources of compulsion, one not applied.** Held effects (Berserk, Decoy) are checked in `unmetCompulsions`. Suppressions (like NP Seal from Innocent World) are checked in `preventedBy` so they stop actions immediately. Positional compulsions written by `rules/compulsion.mjs` are read but no fixture applies one; Hatred (Penthesilea) is annotated as a field-sourced compulsion, not as a held effect (`module/rules/budget.mjs:377-383`). It is correct in principle but never exercised in the test suite.
+
+**One budget kind for the bar and the use path** (#208 §46.4-MN). `rules/ability-use.mjs#useBudgetKind` says which pool an
+ability's use draws on; the bar asked it for Attack-path abilities only, so a non-damaging Noble Phantasm's slot stayed lit
+after the Unit had attacked and refused only when pressed. The bar asks each path's own kind: `abilityKind`
+(`engine/attack-preflight.mjs`) for an Attack-shaped ability, so a damaging Noble Phantasm under NP Seal greys, and
+`useBudgetKind` for any other; a free action bills nothing on either.

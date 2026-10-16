@@ -24,7 +24,7 @@ import { isGated, gateRoundFor, npAvailableTurn, NP_GATE } from "./np-gate.mjs";
 import { isConcealed, canUseWhileConcealed } from "./concealment.mjs";
 import { paysHighColumn } from "./master-rank.mjs";
 import { preventedBy } from "./budget.mjs";
-import { usedOnlyDuringOwnTurn } from "./windows.mjs";
+import { usedOnlyDuringOwnTurn, usedOnlyAtWindows, windowsOf } from "./windows.mjs";
 import { standingPlatformOf } from "./platforms.mjs";
 
 /**
@@ -174,6 +174,8 @@ export function additionalCostsFor({ ability, self, master = null }) {
  *   `engine/board.mjs#gateContext`; `null` when none is (no match, the GM's slot)
  * @param {boolean} [args.isCounter] this use answers an attack, which is made on
  *   somebody else's Turn by definition
+ * @param {boolean} [args.atWindow] the engine is casting this at one of its own windows
+ *   (a reaction, a Damage Step, the start of a Combat Phase); never claimed by a client
  * @returns {{ok: boolean, reason?: string, detail?: object, cost: object|null}}
  */
 export function canUseAbility({
@@ -249,6 +251,16 @@ export function canUseAbility({
   if (acting && !ctx.isCounter && usedOnlyDuringOwnTurn(ability)) {
     const side = unit?.actingFactionId ?? unit?.factionId ?? null;
     if (side && side !== acting) return { ok: false, reason: "notOwnTurn", detail: {}, cost };
+  }
+
+  // *"Used at the start of a Combat Phase"*, *"when attacked"*: an ability whose
+  // windows exclude `ownTurn` is cast by the ENGINE at its moment (`ctx.atWindow`),
+  // and is not a sheet button. Without this the bar and the sheet offered it any
+  // time -- Reinforcement in the middle of his Turn, with no Combat Phase in
+  // sight (#208 reading 8, ruled 2026-10-14). A Counter is exempt for the reason
+  // above: it is made on the enemy's Turn by definition.
+  if (!ctx.atWindow && !ctx.isCounter && usedOnlyAtWindows(ability)) {
+    return { ok: false, reason: "windowOnly", detail: { windows: windowsOf(ability.timing) }, cost };
   }
 
   // *"The clones ... can only perform Normal Attacks."* Raikou's copies inherit

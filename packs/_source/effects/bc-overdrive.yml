@@ -1,9 +1,10 @@
 # EMIYA's Blazing Circuits, second clause -- the standing half.
-# Separate for the same reason `acOverdrive` is: a different lifetime.
+# Separate for the same reason `acOverdrive` is: a different lifetime ("for the
+# rest of the Round", `bcNextNp` applies it `until roundEnd`).
 schema: 1
 id: bcOverdrive
 name: "Blazing Circuits: Overdrive"
-description: "All damage dealt is increased by X% including NP."
+description: "All damage dealt is increased by X% including NP, from the next Attack on."
 polarity: status
 volatility: nonVolatile
 valence: neutral
@@ -14,8 +15,13 @@ rules:
   # "Including NP" at the SAME magnitude, which is why `npValue` repeats the
   # figure rather than being omitted: an omitted one falls back to `value`
   # anyway, but stating it is what records that the sheet gives no reduction.
+  #
+  # Not on the NP that opened it (ruled 2026-10-15, mirroring #208 reading 12):
+  # while `circuitsPending` stands, its own Combat Processes -- Overedge's second
+  # swing, the rest of an area -- are not "the rest of the Round".
   - key: DamageModifier
     modifierKey: atkUp
     direction: dealt
     value: "@magnitude"
     npValue: "@npMagnitude"
+    predicate: [{ not: "self:effect:circuitsPending" }]

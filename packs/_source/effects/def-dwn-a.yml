@@ -36,8 +36,15 @@ rules:
   # The second clause, and the only thing that distinguishes (A) from (C):
   # LUCK, where (C) takes Agility. `damageTaken` fires on the Unit that
   # RECEIVED the damage, which is the rung (C) already hangs from.
+  #
+  # *"whenever damage is received from an ATTACK"*: not a field's, a toll's or a
+  # cost's -- they never raise `damageTaken` at all -- and not the measured
+  # damage of a Knockback, which runs a Process for the arithmetic and is not an
+  # Attack (#184 reading 8). `attack:plainDamage` is what says so (#223, found by
+  # the Dioscuri audit; it reaches every Servant who inflicts Def Dwn).
   - key: OnEvent
     event: damageTaken
     automatic: true
+    predicate: ["not:attack:plainDamage"]
     then:
       - { key: StatDelta, stat: "luck.value", delta: -1 }

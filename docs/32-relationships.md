@@ -76,6 +76,10 @@ Two Servants in a `linkedGroup` are one unit for counting purposes. Each carries
 
 When `zonSatisfaction` is `"any"`, one partner satisfying ZON satisfies both — unioned into `zonPartnerIds` so `zonStatus` can read it without change (`module/rules/linked-group.mjs:115-122`, `module/rules/zon.mjs:146-156`).
 
+A group with `sharedCooldowns: byName` **has one clock per shared name** (#209 reading 2, ruled 2026-10-14): a use starts it on both copies, a cut by either twin — Self-Replenishment, Mana Burst, the Castor buff, the Divine Core's 5%, a Command Spell, an enemy's increase — reaches both, and the per-Turn tick runs at one rate for both, so NP Regen, NP Lag, NP Lock or Stop on one twin act on both (`engine/cooldown.mjs#sharedCooldownIntents`, `scheduler.mjs#advanceCooldowns`, Ch. 17).
+
+A group summoned together (`summonTogether`) **shares one war slot** (#209 readings 1 and 8, ruled 2026-10-14): the Dioscuri sit in a Saber slot, Pollux drawn into it and Castor, an Avenger, arriving as her *companion* — never drawn alone, never an Avenger or `EXTRA` candidate (`rules/war-setup.mjs#catalogueEntryOf`, Ch. 31). Both carry `classContainer: saber`, so an enemy reads Saber on both until the True Names are revealed, and war setup seats the second twin on the first one's side, under the same Master and beside it (`engine/war-setup.mjs#seatPartners`, §46.4-D3).
+
 ## Traps and anti-patterns
 
 **A complete, tested rule that no engine path reached.** `conquestContract` was written, documented
@@ -147,3 +151,8 @@ record shelters (shoved clear, or covered) is not flipped for Overpower.
 read the whole side from the first targeting code, so Heracles shoved another Master's Master clear. Every reader
 follows: the protection, both step-ins, the shove and the Counter redirect. Pale Rider's Spirits and the charmed
 Servant keep their rules.
+
+**The binding at the one door** (#209 §46.4-NI). `engine/io.mjs#defeat` defeats a `linkedDeath: ignoresRevival` Unit's
+partners (cause `linkedDeath`), whatever wrote the defeat: the Sustainability sweep, Instakill, Erase, a Command Spell, a
+field. The scheduler's `linkedDeathIntents` still logs the binding on the damage path; a partner already down is left. A
+Unit defeated twice is counted towards the Grail and frees its Servants once; its first cause stands.

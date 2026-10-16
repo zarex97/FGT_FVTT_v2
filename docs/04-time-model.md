@@ -8,7 +8,7 @@ The system has **four duration kinds** besides ◈:
 
 - *Turns* — a literal turn count (e.g. *"2 turns"*).
 - *this turn* — expires immediately at turn end, carrying zero remaining turns (`module/domain/tick.mjs:221-222`).
-- *permanent*, *until <event>*, *N times* — not time-limited. `permanent` effects stay forever; `until <event>` carry the event on the instance (`endsOn`) and `fireEvent` removes them when it fires on their bearer, so Mannanán's Crit Up *"for that Combat Phase"* is `until combatPhaseEnd` (`module/engine/scheduler.mjs#fireEvent`). The event name keeps its case; use counts are removed by consumption. All resolve to `INFINITE` for comparison purposes (`module/domain/tick.mjs:223-228`).
+- *permanent*, *until <event>*, *N times* — not time-limited. `permanent` effects stay forever; `until <event>` carry the event on the instance (`endsOn`) and `fireEvent` removes them when it fires on their bearer, so Mannanán's Crit Up *"for that Combat Phase"* is `until combatPhaseEnd` (`module/engine/scheduler.mjs#fireEvent`). An event handler's `ApplyEffect` carries it too (#208 reading 12): the action stamps `duration` for an `until <event>` and `engine/applier.mjs#entryOfIntent` forwards that one form, so EMIYA's Circuits last *"for the rest of the Round"* as `until roundEnd`. It had kept only `expiry` and dropped the duration, and the effect was permanent. A unit hears `combatPhaseEnd` only if the Phase involved it (the attacker and its defenders), so an effect that must end with the Phase is applied to those. The event name keeps its case; use counts are removed by consumption. All resolve to `INFINITE` for comparison purposes (`module/domain/tick.mjs:223-228`).
 
 Fractions **always round down** (`module/domain/tick.mjs:68`), with one published exception: ½◈ at 3 turns per round is 2 turns, not 1. That exception lives in the source's own published table rather than in a rounding hack, so it stays visible (`module/domain/tick.mjs:29-33`).
 
@@ -60,6 +60,7 @@ The `turnsPerRound` setting is registered as a world-scoped, integer-valued numb
 
 - **Scheduler** (`module/engine/scheduler.mjs:19`): Duration gates on turn-end and round-end event handlers (`module/engine/scheduler.mjs:372`, `module/engine/scheduler.mjs:394`).
 - **Cooldown flow** (`module/engine/cooldown.mjs:18`): Branch-selected cooldowns and conditional bonus cooldowns are resolved against the world setting (`module/engine/cooldown.mjs:104`, `module/engine/cooldown.mjs:115`, `module/engine/cooldown.mjs:135`).
+- **Shared clocks** (`module/engine/scheduler.mjs#advanceCooldowns`, #209 reading 2): a clock a linked group shares by name — the Dioscuri's Noble Phantasm — ticks at ONE rate for every copy, evaluated for a unit holding the effects of both twins, so NP Regen, NP Lag, NP Lock or Stop on either one moves both copies (Ch. 17).
 - **Effect applier** (`module/engine/effect-applier.mjs`): Authored expiry becomes an absolute tick number by adding the resolved turn count to the current tick.
 - **Combat phases** (`module/engine/channel.mjs`): Required tick counts for phase boundaries.
 

@@ -75,4 +75,11 @@ phases:
       # on each instance, which is what makes "the remaining damage is dealt to
       # the DUs accordingly" work across an area attack: seven defenders draw
       # down one 1400 in resolution order, instead of each getting their own.
-      - { id: rhoAias, duration: "⅓◈" }
+      #
+      # For that ONE Noble Phantasm (ruled 2026-10-14, #208 reading 19): the
+      # barrier is raised against the attack that is about to hit, and stands
+      # until its Combat Phase ends. It was ⅓◈, which outlived the NP it answered
+      # by the rest of the Turn and stopped the next one too. The 3x3 around the
+      # protected Unit receive it and are not all in the Process, so the Phase's
+      # end takes it from them as well (`engine/attack.mjs#fireCombatPhaseEnd`).
+      - { id: rhoAias, duration: "until combatPhaseEnd" }

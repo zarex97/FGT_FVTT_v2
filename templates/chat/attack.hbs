@@ -33,6 +33,9 @@
   {{/if}}
 
   {{#if visibility.involved}}
+  {{!-- The damage, when there was one: an Instakill skips the damage step,
+        and the effects below are still read (#208). --}}
+  {{#if result}}
     <section class="fgt-card__result">
       <div class="fgt-card__total">{{result.summary.total}}</div>
       {{#if result.summary.hasSplit}}
@@ -87,6 +90,7 @@
         </tr>
       {{/each}}
     </table>
+  {{/if}}
 
     {{!-- What landed, for those entitled to read it. A defender learns what was
           applied to them by name; everyone else learns only how many. --}}

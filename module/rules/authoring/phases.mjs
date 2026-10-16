@@ -69,7 +69,7 @@ const COMMON = Object.freeze([
   // on whatever `reuse` would have caught, silently. `test/unit/phase-targets`
   // holds the content against the executor from the other side; this is the
   // door, and it was open onto nothing.
-  { key: "target", type: "select", choices: ["reuse", "self"] },
+  { key: "target", type: "select", choices: ["reuse", "self", "linkedGroup"] },
   { key: "predicate", type: "predicateList" },
   { key: "when", type: "text" },
 ]);

@@ -16,7 +16,8 @@ import { rowsFor, slotFor, portraitBlock } from "./present.mjs";
 import { ticksLabel } from "../actor-sheet/present.mjs";
 import { availableActions } from "../../rules/actions.mjs";
 import { ridingDestinations, ridingRefusal } from "../../rules/movement.mjs";
-import { classifyAbility, usageSpecFor } from "../../rules/ability-use.mjs";
+import { classifyAbility, usageSpecFor, useBudgetKind } from "../../rules/ability-use.mjs";
+import { budgetActionFor } from "../../rules/budget.mjs";
 import { answersACounter, counterMustCatchAttacker } from "../../rules/counter.mjs";
 import { canUseAbility } from "../../rules/costs.mjs";
 import { canToggleMode } from "../../rules/modes.mjs";
@@ -28,6 +29,7 @@ import { currentBoard, unitFrom, unitOf, luckOf, gateContext } from "../../engin
 import * as budget from "../../engine/budget.mjs";
 import { mayDeactivate, ownTurnOf } from "../../engine/fields.mjs";
 import { isQueued } from "../../engine/queued-ends.mjs";
+import { abilityKind } from "../../engine/attack-preflight.mjs";
 import { mayReshape } from "../../rules/bounded-fields.mjs";
 import { deactivatablePlatforms } from "../../rules/platforms.mjs";
 import { FACINGS } from "../../domain/enums.mjs";
@@ -279,7 +281,22 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         // does, and is refused by the same sentence: Triton's Conch stayed lit
         // after a Riding Attack while the Attack slot beside it greyed, and its
         // targeting opened, offered "Attack", and the declaration threw (#191).
-        const spent = !this.counter && use.isAttack && !ending ? afford("attack") : { ok: true, reason: null };
+        //
+        // ...and one that is NOT an Attack still bills the Turn: a Noble
+        // Phantasm costs the Attack damage or not, a Skill its Skill. The bar
+        // asked only about Attacks, so Unlimited Blade Works stayed lit after
+        // EMIYA attacked and the press refused it (#208). The use path's own
+        // kind, through the one helper; a free action and a mode switch bill
+        // nothing there either.
+        //
+        // Each path's own kind: an Attack-shaped ability the attack path bills
+        // (`abilityKind`: a damaging Noble Phantasm is `np`, which NP Seal
+        // refuses), any other the use path (`useBudgetKind`). Asked as "attack",
+        // a damaging NP stayed lit under NP Seal (#209 review). A free action
+        // and a mode switch bill nothing on either path.
+        const free = Boolean(item.system?.freeAction) || use.toggles;
+        const spent = this.counter || ending || free ? { ok: true, reason: null }
+          : afford(budgetActionFor(use.isAttack ? abilityKind(item) : useBudgetKind(item)));
         if (!spent.ok) {
           return {
             ...slot, disabled: true,

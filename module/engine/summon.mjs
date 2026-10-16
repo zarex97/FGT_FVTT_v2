@@ -20,6 +20,7 @@ import {
   resolveSetupPlan, summonPlan, needsSetupRolls, plansFor,
 } from "../rules/setup-rolls.mjs";
 import { regionsAdjacent } from "../rules/environment.mjs";
+import { catalogueEntryOf } from "../rules/war-setup.mjs";
 
 /**
  * Roll one line of a plan.
@@ -404,18 +405,21 @@ export async function servantCatalogue({ ruleset = null } = {}) {
   // document. The container roster is the first caller that needs to.
   for (const pack of game.packs.filter((p) => p.metadata.type === "Actor")) {
     if (ruleset && rulesetOfPack(pack.collection) !== ruleset) continue;
-    const index = await pack.getIndex({ fields: ["system.contentId", "type", "system.servantClasses"] });
+    // `classContainer` and `summonTogether` are what tell a companion (Castor)
+    // from the Servant who fills the slot (`rules/war-setup.mjs#catalogueEntryOf`).
+    const index = await pack.getIndex({
+      fields: [
+        "system.contentId", "type", "system.servantClasses",
+        "system.classContainer", "system.linkedGroup.summonTogether",
+      ],
+    });
     for (const entry of index) {
       if (entry.type !== "servant") continue;
       out.push({
-        contentId: entry.system?.contentId ?? entry._id,
-        name: entry.name,
+        ...catalogueEntryOf(entry),
         img: entry.img,
         pack: pack.metadata.label,
         packId: pack.collection,
-        // A `SetField` arrives from the index as an array already, but a
-        // document that never stated any arrives as `undefined`.
-        servantClasses: [...(entry.system?.servantClasses ?? [])],
       });
     }
   }

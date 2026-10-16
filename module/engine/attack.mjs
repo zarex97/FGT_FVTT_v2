@@ -12,7 +12,9 @@
  * it back.
  */
 
-import { computeDamage, computeDamageHits, isNPAttack, INJURY_THRESHOLD } from "../rules/damage/pipeline.mjs";
+import {
+  computeDamage, computeDamageHits, isNPAttack, modifierSourceUnits, INJURY_THRESHOLD,
+} from "../rules/damage/pipeline.mjs";
 import { ridersFire } from "../rules/damage/riders.mjs";
 import { expandInstances, damageBaseOf } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
@@ -26,7 +28,7 @@ import {
 import * as rollLog from "../rules/roll-log.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
 import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
-import { cooldownChanges, statChangeLine, checkLine } from "./skill-use.mjs";
+import { cooldownChanges, cooldownLine, statChangeLine, checkLine } from "./skill-use.mjs";
 import { splitCooldownRider } from "../rules/cooldown-riders.mjs";
 import {
   classifyAbility, targetSpecFor as specForAbility, usageSpecFor, dealsNoDamage,
@@ -98,9 +100,13 @@ import { regionSizedTargeting } from "./fields.mjs";
  * @param {string} args.attackerId
  * @param {string} args.abilityId  `null` for a normal attack
  * @param {object} args.placement  the player's targeting choices
+ * @param {boolean} [args.atWindow] the engine declaring a window-only attack at its
+ *   window (Kiritsugu's shot, a reaction). Never set by the socket operation
  * @returns {Promise<{messageId: string, state: object}>}
  */
-export async function resolveAttack({ attackerId, abilityId, placement, resume = false, preflighted = null }) {
+export async function resolveAttack({
+  attackerId, abilityId, placement, resume = false, preflighted = null, atWindow = false,
+}) {
   const attacker = game.actors.get(attackerId);
   if (!attacker) throw new Error(`FGT | Unknown attacker ${attackerId}`);
 
@@ -115,7 +121,10 @@ export async function resolveAttack({ attackerId, abilityId, placement, resume =
   // ride itself had changed: Troias Tragoidia carried Achilles four panels from
   // a Master who could not land beside him, was refused "outside its Master's
   // ZON", and left him moved, his ride spent and no attack made (#184).
-  const pre = preflighted ?? attackPreflight({ attacker, abilityId, placement, board, combat, resume });
+  // A RESUMED declaration passed every gate, this one included, when it was first made.
+  const pre = preflighted ?? attackPreflight({
+    attacker, abilityId, placement, board, combat, resume, atWindow: atWindow || resume,
+  });
   if (!pre.ok) {
     // TOLD, not just thrown. A refusal for want of budget was logged and
     // swallowed, so a Unit that had already attacked -- after Gather, most
@@ -763,6 +772,19 @@ export function buildAttackSpec({
       // A Skill whose attack IS the Normal Attack (#206 reading 5): its kind
       // stays its own, and `rollOptionsFor` adds `attack:kind:normal` beside it.
       asNormalAttack: Boolean(ability?.system?.countsAsNormalAttack),
+      // An ability the sheet CATEGORIZES as a Noble Phantasm (EMIYA's Overedge),
+      // stamped on the declaration so the option set can say `attack:isNP` from
+      // the one definition (`isNPAttack`). Read from the identity builder, which
+      // is the ONE place an ability's NP category is read (the pipeline got it
+      // there; the options were built before it was added -- #208).
+      categorizedAsNP: attackIdentityOf(ability, options).categorizedAsNP,
+      // Damage only MEASURED as an attack's (#184 reading 8): Akhilleus Kosmos's
+      // sidestep *"receives damage equivalent to a Normal Attack"*, and the
+      // ruling is that it is not an Attack. The declaration already read it to
+      // close the reaction rungs; carried here so a Clause about "damage
+      // received from an Attack" can ask (`attack:plainDamage`) -- Def Dwn (A)
+      // and (C) do (#223).
+      plainDamage: Boolean(placement?.plainDamage),
       // Which Base Attack this uses, and whether Magic Resistance sees it at all.
       // Both are read by Magic Resistance's Instakill/Death ladder, which is
       // exempted for *"an Attack/Attack Skill/Spell/NP that deals STR damage or
@@ -1393,11 +1415,10 @@ async function answerRung({ event, abilityId = null, placement = null }, message
           attackerId: owner.id,
           abilityId: used.id,
           placement: { sourceUnitId: state.attackerId, unitId: aimedAt, targetId: aimedAt },
-        }).catch((err) => {
+          atWindow: true,
+        }).catch(async (err) => {
           console.error("FGT | Triggered attack refused:", err);
-          ui.notifications?.warn(game.i18n.format("FGT.Skill.Refused", {
-            name: used.name, reason: String(err?.message ?? err),
-          }));
+          await tellReactionRefused(owner, used, String(err?.message ?? err));
         });
         return state;
       }
@@ -1405,6 +1426,9 @@ async function answerRung({ event, abilityId = null, placement = null }, message
       const out = await useSkill({
         actorId: owner.id,
         abilityId: used.id,
+        // A reaction IS its window: the use gate refuses a window-only ability
+        // anywhere else (`windowOnly`, #208 reading 8).
+        atWindow: true,
         // `sourceUnitId` is what the `sourceOfAttack` ANCHOR resolves against,
         // and no caller in the codebase had ever set it -- so an ability
         // anchored on "whoever just attacked" failed with "No attacking unit in
@@ -1422,7 +1446,7 @@ async function answerRung({ event, abilityId = null, placement = null }, message
           attackerId: state.attackerId, aimedAt, ownerId: owner.id,
         }),
       });
-      if (!out.ok) ui.notifications?.warn(game.i18n.format("FGT.Skill.Refused", { name: used.name, reason: out.reason }));
+      if (!out.ok) await tellReactionRefused(owner, used, out.reason);
     }
 
     // A FREE reaction ability is not the reaction (#193 reading 8). Argos's
@@ -1824,6 +1848,9 @@ async function runAfterProcessPhases(state) {
   if (intents.length > 0) await applyBatch(intents, "afterProcessCooldown");
 }
 
+/** The `combatProcessEnd` firings in flight, by attacker (see {@link fireCombatProcessEnd}). */
+const processEndQueue = new Map();
+
 /**
  * Raise `combatProcessEnd` on both combatants, once per Process.
  *
@@ -1843,20 +1870,66 @@ async function runAfterProcessPhases(state) {
  * @returns {Promise<void>}
  */
 async function fireCombatProcessEnd(state) {
-  const board = currentBoard();
-  const units = [...new Set([state.attackerId, state.defenderId].filter(Boolean))]
-    .map((id) => game.actors.get(id))
-    .filter(Boolean)
-    .map((a) => unitOf(a, board));
-  if (units.length === 0) return;
+  // One at a time per attacker. Two Processes of one declaration (Overedge's
+  // swings, an area Noble Phantasm's defenders) can reach their end together,
+  // and a handler that spends a charge (the Circuits' "next NP") decides from a
+  // snapshot the sibling has not yet written to: both would see the charge and
+  // both would pay. The second waits for the first's batch to land, so it reads
+  // the board the first left (#208, the check-then-act shape of §46.4).
+  const key = state.attackerId ?? "";
+  const run = (processEndQueue.get(key) ?? Promise.resolve())
+    .catch(() => undefined)
+    .then(() => raiseCombatProcessEnd(state));
+  processEndQueue.set(key, run);
+  try {
+    await run;
+  } finally {
+    if (processEndQueue.get(key) === run) processEndQueue.delete(key);
+  }
+}
 
-  const intents = fireEvent("combatProcessEnd", units, {
+/**
+ * The body of {@link fireCombatProcessEnd}.
+ *
+ * The ATTACKER hears it with the attack in its option set, so a clause about
+ * "an Attack he performed" can say so: EMIYA's Circuits cut his NP Cooldown at
+ * the end of every Attack, hit or miss (#208 reading 10), which `damageStepEnd`
+ * (a hit's event) could not. `attack:performed` marks it as the one whose
+ * hearer made the attack. The defender hears it as before, with none, so a
+ * handler with no predicate (Vasavi Shakti's upkeep) is unchanged.
+ *
+ * @param {object} state
+ * @returns {Promise<void>}
+ */
+async function raiseCombatProcessEnd(state) {
+  const board = currentBoard();
+  const unitIn = (id) => {
+    const doc = id ? game.actors.get(id) : null;
+    return doc ? unitOf(doc, board) : null;
+  };
+  const attacker = unitIn(state.attackerId);
+  const defender = state.defenderId && state.defenderId !== state.attackerId ? unitIn(state.defenderId) : null;
+  if (!attacker && !defender) return;
+
+  const ctx = () => ({
     tick: game.combat?.system?.globalTurn ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-    board: currentBoard(),
-    options: new Set(),
+    board,
     rolls: {},
   });
+
+  /** @type {object[]} */
+  const intents = [];
+  if (attacker) {
+    // No defender left to measure a distance to, or an attack that states no
+    // kind: the attacker hears the bare event, as it always has.
+    const target = defender ?? (state.defenderId === state.attackerId ? attacker : null);
+    const options = target && state.attack?.kind
+      ? rollOptions(attacker, target, state, { performed: true })
+      : new Set();
+    intents.push(...fireEvent("combatProcessEnd", [attacker], { ...ctx(), options }));
+  }
+  if (defender) intents.push(...fireEvent("combatProcessEnd", [defender], { ...ctx(), options: new Set() }));
   if (intents.length > 0) await applyBatch(intents, "combatProcessEnd");
 }
 
@@ -2419,14 +2492,6 @@ async function fireDamageDealt(state, result) {
   // said nothing about it. Drake's *"15% chance of gaining 1 Galleon Token"* is
   // the first content to hang one here.
   /** @type {Record<string, number>} */
-  const rolls = {};
-  // The chance rolls, filed on this attack's card (#182, ruled 2026-10-04): a
-  // Kagome Spirit's *"5% chance of inflicting Death"* was rolled and nobody
-  // could see the die.
-  /** @type {object[]} */
-  const records = [];
-  /** @type {object[]} the chance rolls, filed once the effects have resolved */
-  const filed = [];
   const tick = game.combat?.system?.globalTurn ?? 0;
   // A mount that attacks IN PLACE of its driver attacks as her (#187 reading
   // 2): the Golden Hind's Attack is *"Drake's Normal Attack"*, replaced, so its
@@ -2439,26 +2504,10 @@ async function fireDamageDealt(state, result) {
   // `attack:crit` is in the set only here, which is right: a clause that asks
   // whether the attack crit is by definition asking about a resolved one.
   const options = rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) });
-  for (const [hearer, spec] of hearers.flatMap((u) => pendingRolls(u, "damageDealt").map((s) => [u, s]))) {
-    if (!spec.formula) continue;
-    // One die per key, and every spec on it still FILED when its clause
-    // applies. Two handlers can share a key: Karna's Mana Burst 25% Burn and
-    // Vasavi Shakti's 50% "instead of" it are both `ApplyEffect burn`. The
-    // second was skipped outright, so after the Activation the 50% Burn landed
-    // with no line on the card at all (#206, found live).
-    if (!(spec.key in rolls)) rolls[spec.key] = (await new Roll(spec.formula).evaluate()).total;
-    if (spec.chance === undefined) continue;
-    // Filed only where its clause applies: a "15% on a Crit" roll on an attack
-    // that did not Crit decided nothing, and the card said "missed" (#187).
-    if (spec.predicate && !testPredicate(spec.predicate, {
-      // Only the hearer's `self:` facts. A bare `rollOptionsFor` also emits
-      // `attack:kind:normal` for the attack it was not given, so every
-      // "Normal Attacks only" rider was filed on a Noble Phantasm too: Karna's
-      // Burn read "hit" on Brahmastra and applied nothing (#190).
-      options: new Set([...options, ...ownerOptionsOf(hearer)]),
-    })) continue;
-    filed.push({ spec, hit: rolls[spec.key] <= spec.chance });
-  }
+  // The chance rolls, filed on this attack's card (#182, ruled 2026-10-04): a
+  // Kagome Spirit's *"5% chance of inflicting Death"* was rolled and nobody
+  // could see the die.
+  const { rolls, filed } = await rollChances(hearers, "damageDealt", options);
 
   // A handler that throws is reported, and the Process goes on. The 'Raikou'
   // buff's "-⅓◈" threw here, the Damage Step never saved, and every retry of
@@ -2482,21 +2531,75 @@ async function fireDamageDealt(state, result) {
   if (intents.length > 0) await applyBatch(intents, "damageDealt", { process: state });
   // What the target's resistance did to a die that came in under the stated
   // chance: "hit" alone hid it (#195).
-  const resisted = (game.combat?.getFlag?.("fgt", "log") ?? []).slice(before)
+  return chanceRecords({ filed, rolls, state, attacker, defender, tick, logFrom: before, tag: "rider" });
+}
+
+/**
+ * Roll what a set of hearers' handlers on `event` need, and say which chances
+ * decided something.
+ *
+ * The caller rolls (`scheduler.pendingRolls`): `fireEvent` is pure and reads
+ * totals out of `ctx.rolls`. One reader for `damageDealt` and `damageStepEnd`,
+ * which had two copies of these rules and drifted (#209 review).
+ *
+ * @param {object[]} hearers
+ * @param {string} event
+ * @param {Set<string>} options the attack's options
+ * @returns {Promise<{rolls: Record<string, number>, filed: Array<{spec: object, hit: boolean}>}>}
+ */
+async function rollChances(hearers, event, options) {
+  /** @type {Record<string, number>} */
+  const rolls = {};
+  /** @type {Array<{spec: object, hit: boolean}>} the chances, filed once the effects have resolved */
+  const filed = [];
+  for (const [hearer, spec] of hearers.flatMap((u) => pendingRolls(u, event).map((s) => [u, s]))) {
+    if (!spec.formula) continue;
+    // One die per key, and every spec on it still FILED when its clause
+    // applies. Two handlers can share a key: Karna's Mana Burst 25% Burn and
+    // Vasavi Shakti's 50% "instead of" it are both `ApplyEffect burn`. The
+    // second was skipped outright, so after the Activation the 50% Burn landed
+    // with no line on the card at all (#206, found live).
+    if (!(spec.key in rolls)) rolls[spec.key] = (await new Roll(spec.formula).evaluate()).total;
+    if (spec.chance === undefined) continue;
+    // Filed only where its clause applies: a "15% on a Crit" roll on an attack
+    // that did not Crit decided nothing, and the card said "missed" (#187).
+    if (spec.predicate && !testPredicate(spec.predicate, {
+      // Only the hearer's `self:` facts. A bare `rollOptionsFor` also emits
+      // `attack:kind:normal` for the attack it was not given, so every
+      // "Normal Attacks only" rider was filed on a Noble Phantasm too: Karna's
+      // Burn read "hit" on Brahmastra and applied nothing (#190).
+      options: new Set([...options, ...ownerOptionsOf(hearer)]),
+    })) continue;
+    filed.push({ spec, hit: rolls[spec.key] <= spec.chance });
+  }
+  return { rolls, filed };
+}
+
+/**
+ * The roll records of the chances {@link rollChances} filed, read AFTER the
+ * batch they gated was applied: a die that came in under its chance and lost to
+ * the target's resistance says so, as "resisted (rolled N vs M%)", which "hit"
+ * alone hid (#195).
+ *
+ * @param {object} args
+ * @returns {object[]}
+ */
+function chanceRecords({ filed, rolls, state, attacker, defender, tick, logFrom, tag }) {
+  const resisted = (game.combat?.getFlag?.("fgt", "log") ?? []).slice(logFrom)
     .filter((e) => e.kind === "effectResisted" && e.unitId === state.defenderId);
-  for (const { spec, hit } of filed) {
+  return filed.map(({ spec, hit }) => {
     const lost = hit ? resisted.find((e) => e.defId === spec.effectId && e.sourceUnitId === state.attackerId) : null;
     const verdict = !hit ? "missed" : lost ? `resisted (${lost.chance})` : "hit";
-    records.push(rollLog.record({
-      id: `${state.attackerId}:${state.defenderId}:rider:${spec.key}:${spec.chance}:${tick}`,
+    return rollLog.record({
+      id: `${state.attackerId}:${state.defenderId}:${tag}:${spec.key}:${spec.chance}:${tick}`,
       globalTurn: tick, entryId: "rider-", formula: spec.formula,
       raw: rolls[spec.key], total: rolls[spec.key],
       modifiers: [{ source: `against ${spec.chance}%: ${verdict}`, delta: 0, stage: "chance" }],
-      purpose: `${attacker.name}: ${spec.label || "rider"} on ${defender.name}`,
+      // Named for its clause where the handler says which (#209: "Castor: rider").
+      purpose: `${attacker.name}: ${spec.source || spec.label || "rider"} on ${defender.name}`,
       actorId: state.attackerId,
-    }));
-  }
-  return records;
+    });
+  });
 }
 
 /**
@@ -2829,6 +2932,7 @@ async function fireCombatPhaseEnd(state) {
     damagedIds,
     rolls: {},
   });
+  intents.push(...barriersOfThisPhase(siblings, units));
   if (intents.length > 0) await applyBatch(intents, "combatPhaseEnd");
 
   await fireAttackLanded(siblings);
@@ -2840,6 +2944,43 @@ async function fireCombatPhaseEnd(state) {
   // is keyed by `groupId` and a match is thousands of them.
   const { clearOptionalCostOffers } = await import("./optional-costs.mjs");
   clearOptionalCostOffers(state.groupId);
+}
+
+/**
+ * Take what a third party raised in this Combat Phase off the Units that were never in it.
+ *
+ * An effect that lasts `until combatPhaseEnd` is removed when `combatPhaseEnd` fires
+ * on its bearer, and that event is heard by the attacker and the defenders of the
+ * fan-out. EMIYA's Rho Aias is raised by a Unit that is neither, over a 3x3 of
+ * allies the Noble Phantasm may not have hit: they hold the barrier and never hear
+ * the Phase end, so the barrier would have stood with no clock at all (#208
+ * reading 19). So the Phase takes them itself: every unit it did not name that
+ * holds an `until combatPhaseEnd` effect which one of this Phase's reactors cast.
+ * (Units it did name hear the event and lose theirs there.)
+ *
+ * Scoped to the reactors, not to every such effect on the board: another Combat
+ * Phase running beside this one has its own.
+ *
+ * @param {object[]} siblings every message of the group
+ * @param {object[]} heard the units `combatPhaseEnd` was fired on
+ * @returns {object[]} `removeEffect` intents
+ */
+function barriersOfThisPhase(siblings, heard) {
+  const states = siblings.map((m) => process.deserialize(m.getFlag("fgt", "process")));
+  const reactors = new Set(states.flatMap((s) => (s.history ?? []).flatMap((h) => {
+    const id = abilityFromOption(h.event);
+    if (!id) return [];
+    const offer = (s.reactionAbilities?.[s.defenderId] ?? []).find((a) => a.id === id);
+    return offer?.ownerId ? [offer.ownerId] : [];
+  })));
+  if (reactors.size === 0) return [];
+
+  const named = new Set(heard.map((u) => u.id));
+  return (currentBoard().units ?? [])
+    .filter((u) => !named.has(u.id))
+    .flatMap((u) => (u.effectInstances ?? [])
+      .filter((e) => e.endsOn === "combatPhaseEnd" && reactors.has(e.sourceUnitId))
+      .map((e) => I.removeEffect(u.id, e.id, "ends on combatPhaseEnd")));
 }
 
 /**
@@ -3010,6 +3151,14 @@ async function runAutomaticStep(state, message) {
       // by the same coin that refused the damage; applying them anyway would
       // make a complete negation the strongest debuff delivery in the game.
       const veiled = result.flags?.concealmentVeil?.effects === false;
+      // HIT, NOT HURT: see `ridersFire` below, where the rest of this decision is read.
+      const riders = ridersFire({ skipped, result });
+      // The damage was RECEIVED here, before anything this attack inflicts "then".
+      // Raised after the riders, it reached them: the Dioscuri's joint NP hit for
+      // 734, then inflicted Def Dwn (A) and (C), and both heard that same hit --
+      // Luck and Agility drained by the debuffs it had just applied (#209, live).
+      // *"Whenever damage is received"* is damage after they exist.
+      if (riders) await fireDamageTaken(state, result);
       const applied = (skipped || veiled) ? [] : await applyAbilityEffects(state, result);
       // ...and a rider can empty one too. Maria the Ripper's *"Then, has a 50%
       // chance of inflicting Instakill"* lands after the damage, and left
@@ -3027,8 +3176,7 @@ async function runAutomaticStep(state, message) {
       // Blocked or cut to 0 was still hit, so Castor, Bašmu's Poison and the
       // Circuits pay out as App. E always said. It read `result.total > 0`,
       // and the reference and the code disagreed for every listener.
-      const riders = ridersFire({ skipped, result });
-      if (riders) await fireDamageStepEnd(state, result);
+      const stepEnd = riders ? await fireDamageStepEnd(state, result) : { rows: [], records: [] };
       // Terrain the attack itself changes (Ch. 26): Fire in a Forest makes
       // Burning on Tails, and a Meadow is consumed by the attack that used it.
       // `rules/terrain.mjs#terrainConversions` has computed both since terrain
@@ -3044,13 +3192,13 @@ async function runAutomaticStep(state, message) {
       // in Appendix A was silent against exactly the targets worth riding.
       // `rules/damage/riders.mjs` is now the single decision, with the reasons.
       const riderRolls = riders ? await fireDamageDealt(state, result) : [];
-      // ...and the mirror, on the Unit that took it.
-      if (riders) await fireDamageTaken(state, result);
+      // Its mirror on the Unit that took it, `damageTaken`, is raised above,
+      // before the riders.
 
       await message.setFlag("fgt", "damage", result.total);
-      await message.setFlag("fgt", "effects", [...before, ...applied].map((a) => a.summary));
+      await message.setFlag("fgt", "effects", [...before, ...applied, ...stepEnd.rows].map((a) => a.summary));
       return process.advance(state, "done", {
-        total: result.total, rollRecords: [...(result.modifierRolls ?? []), ...riderRolls],
+        total: result.total, rollRecords: [...(result.modifierRolls ?? []), ...riderRolls, ...stepEnd.records],
       });
     }
     case "injury":
@@ -3177,7 +3325,7 @@ async function rollEvade(state) {
     formula: roll.formula,
     // Ch. 13: every roll files a record, so a failed Evade can be read back as
     // "the die was low" or "the wrong table was used" instead of one number.
-    rollRecord: rollLog.fromCheck(outcome, {
+    rollRecord: rollLog.fromCheck({ ...outcome, chances: plan.chances }, {
       id: `${state.attackerId}:${state.defenderId}:evade:${game.combat?.system?.globalTurn ?? 0}`,
       globalTurn: game.combat?.system?.globalTurn ?? 0,
       entryId: "evade-",
@@ -3186,6 +3334,36 @@ async function rollEvade(state) {
       actorId: state.defenderId,
     }),
   };
+}
+
+/**
+ * Say that a reaction ability was refused when pressed -- to the player who
+ * pressed it.
+ *
+ * The reaction resolves on the active GM, so a toast lands on the GM's screen
+ * and nowhere else: Rho Aias refused for want of restored Health showed
+ * Player1 nothing, and the Noble Phantasm simply hit (#208, live). A whisper
+ * to the owners and the GM, worded, plus the toast for whoever is running it.
+ *
+ * @param {object} owner the actor whose ability it is
+ * @param {object} used the ability Item
+ * @param {string} reason a refusal key or a sentence
+ * @returns {Promise<void>}
+ */
+async function tellReactionRefused(owner, used, reason) {
+  const key = `FGT.Skill.Reason.${reason}`;
+  const worded = game.i18n.has?.(key) ? game.i18n.localize(key) : String(reason);
+  // Escaped: a name or a thrown message is text, not markup (#209 review).
+  const escape = foundry.utils.escapeHTML;
+  const text = game.i18n.format("FGT.Skill.Refused", { name: escape(used.name), reason: escape(worded) });
+  ui.notifications?.warn(text);
+  const whisper = game.users
+    .filter((u) => u.isGM || owner?.testUserPermission?.(u, "OWNER"))
+    .map((u) => u.id);
+  // A whisper that fails to post is logged, not left as an unhandled rejection
+  // in the caller's `.catch` (#209 review).
+  await ChatMessage.create({ content: `<p>${text}</p>`, whisper, speaker: publicSpeakerFor(owner) })
+    .catch((err) => console.error("FGT | The refusal could not be posted:", err));
 }
 
 /**
@@ -4343,7 +4521,17 @@ async function applyDamage(state, message) {
   // The pipeline's own definition of "is an NP", handed to the chance: the
   // option `attack:kind:np` cannot see an attack the sheet only categorizes as one
   // (#131). Crit Up and its kin do not affect a Noble Phantasm.
-  const critSpec = critChance(attacker, defender, { options, isNP: isNPAttack({ ...facts, ...identity }) });
+  //
+  // ...from the Units whose bags the attack JOINS to the attacker's
+  // (`damage.modifierSources`, the same reader the damage pipeline's union
+  // asks): the joint Noble Phantasm's Crit Chance is both twins' (#209 reading
+  // 10, ruled 2026-10-14). The damage half combined already; the chance read the
+  // attacker's `checkModifiers` alone.
+  const critSpec = critChance(attacker, defender, {
+    options,
+    isNP: isNPAttack({ ...facts, ...identity }),
+    alsoFrom: modifierSourceUnits(description.attack, namedUnits(attacker, board), attacker).map((s) => s.unit),
+  });
   const critRoll = await new Roll("1d100").evaluate();
   const isCrit = critSpec.blocked
     ? false
@@ -4970,7 +5158,13 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
           ? cooldownChanges({ ...phase, changes: oncePerPhase }, attackerDoc, cdBoard, ability, defenderDoc)
           : []),
       ];
-      if (intents.length > 0) await applyBatch(intents, `np:${ability.id}:cooldown`);
+      if (intents.length > 0) {
+        // On the card, one line per clock that moved, as a Skill's card prints
+        // it (`Name: Cooldown 18 → 15`): a cut the player cannot read is not
+        // built (#219, §46.4-D1 -- Mana Burst's never showed because it never
+        // happened). The Dioscuri's shows on BOTH twins' Noble Phantasm.
+        applied.push(...await applyWithCooldownLines(intents, `np:${ability.id}:cooldown`));
+      }
       continue;
     }
     if (phase.kind === "setMode") {
@@ -5224,6 +5418,7 @@ async function applyTerrainConversions(state, result) {
  * @returns {Promise<void>}
  */
 async function fireDamageStepEnd(state, result = null) {
+  const none = { rows: [], records: [] };
   // From the BOARD, falling back to a bare snapshot only for a unit the board
   // has no row for.
   //
@@ -5245,23 +5440,24 @@ async function fireDamageStepEnd(state, result = null) {
   const defenderDoc = state.defenderId ? game.actors.get(state.defenderId) : null;
   const attacker = unitOf(attackerDoc, board);
   const defender = defenderDoc ? (unitOf(defenderDoc, board)) : null;
-  if (!defender) return;
+  if (!defender) return none;
 
+  // WHETHER IT CRIT, from the Damage Step that just resolved, as `damageDealt`
+  // has it. Castor's *"a Normal Attack that is a Crit"* could never pay, and
+  // Pollux's *"not a Crit"* paid on every Crit too (Wave B).
+  const options = rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) });
+  const tick = game.combat?.system?.globalTurn ?? 0;
   // The caller rolls (`scheduler.pendingRolls`). This event passed none, so a
   // chance on one of its actions could never pass: Castor's 5% NP-cooldown
-  // clause (#103).
-  const rolls = {};
-  for (const spec of pendingRolls(attacker, "damageStepEnd")) {
-    rolls[spec.key] ??= (await new Roll(spec.formula).evaluate()).total;
-  }
+  // clause (#103). Each chance is FILED on the card too, as `damageDealt`'s
+  // are: the Divine Core's 5% was rolled and shown nowhere (#209, live).
+  const { rolls, filed } = await rollChances([attacker], "damageStepEnd", options);
+  const logFrom = (game.combat?.getFlag?.("fgt", "log") ?? []).length;
   const intents = fireEvent("damageStepEnd", [attacker], {
-    tick: game.combat?.system?.globalTurn ?? 0,
+    tick,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
     board,
-    // WHETHER IT CRIT, from the Damage Step that just resolved, as
-    // `damageDealt` has it. Castor's *"a Normal Attack that is a Crit"* could
-    // never pay, and Pollux's *"not a Crit"* paid on every Crit too (Wave B).
-    options: rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) }),
+    options,
     rolls,
     // WHO WAS HIT. This event fires on the ATTACKER, and every rider hung from
     // it is about the Unit on the other end -- `targetsOf` and `subjectOf` both
@@ -5275,7 +5471,38 @@ async function fireDamageStepEnd(state, result = null) {
     victim: { unitId: state.defenderId },
   });
 
-  if (intents.length > 0) await applyBatch(intents, "damageStepEnd", { process: state });
+  // A clock a handler turned is a line on the card, one per copy: the Castor
+  // buff's Crit took the joint NP 7 -> 6 on both twins and the card said nothing
+  // (#209, live).
+  const rows = intents.length > 0
+    ? await applyWithCooldownLines(intents, "damageStepEnd", { process: state })
+    : [];
+  return { rows, records: chanceRecords({ filed, rolls, state, attacker, defender, tick, logFrom, tag: "stepEnd" }) };
+}
+
+/**
+ * Apply a batch, and say on the card what it did to each clock it turned.
+ *
+ * One line per clock that moved, as a Skill's card prints it (`Name: Cooldown
+ * 18 -> 15`). The real numbers, read before and after, so a floor at 0 says so.
+ * One reader for the attack path's two writers of a cut: an ability's own
+ * `cooldown` phase and a handler fired at the end of the Damage Step.
+ *
+ * @param {object[]} intents
+ * @param {string} source
+ * @param {object} [opts]
+ * @returns {Promise<Array<{unitId: string, summary: object}>>}
+ */
+async function applyWithCooldownLines(intents, source, opts = {}) {
+  const clocks = intents.filter((i) => i?.t === "cooldown");
+  const remainingOf = (c) => game.actors.get(c.unitId)?.items?.get(c.abilityId)?.system?.cooldown?.remaining ?? 0;
+  const before = clocks.map(remainingOf);
+  await applyBatch(intents, source, opts);
+  return clocks.flatMap((c, n) => {
+    const name = game.actors.get(c.unitId)?.items?.get(c.abilityId)?.name ?? null;
+    const line = cooldownLine(name, before[n], remainingOf(c));
+    return line ? [{ unitId: c.unitId, summary: { id: "cooldown", name: line, outcome: "applied", reason: null, chance: null } }] : [];
+  });
 }
 
 /**
@@ -6378,7 +6605,7 @@ async function askAttackerWindow(state, window, message) {
 
   for (const id of cast) {
     const { useSkill } = await import("./skill-use.mjs");
-    const out = await useSkill({ actorId: actor.id, abilityId: id });
+    const out = await useSkill({ actorId: actor.id, abilityId: id, atWindow: true });
     if (!out.ok) {
       ui.notifications?.warn(game.i18n.format("FGT.Skill.Refused", {
         name: actor.items.get(id)?.name ?? id, reason: out.reason,
@@ -6952,6 +7179,9 @@ async function offerNPCancellation({ attackerId, attacker, ability, targetIds, b
         round: game.combats.active?.round ?? 1,
         board,
         ...gateContext(),
+        // It IS the window (`whenTargetedByNP`): the use gate refuses a window-only
+        // ability anywhere else (#208 reading 8).
+        atWindow: true,
         target: self,
         testPredicate: requirementTester(defender, self),
       });
@@ -7008,7 +7238,7 @@ async function resolveNPCancellation({
     master: cancellerMaster,
     usage: canUseAbility({
       ability: abilityUsageSpec(cancelling), unit: canceller, master: cancellerMaster,
-      round: game.combats.active?.round ?? 1, board, ...gateContext(),
+      round: game.combats.active?.round ?? 1, board, ...gateContext(), atWindow: true,
       target: unitOf(attacker, board),
       testPredicate: requirementTester(canceller, unitOf(attacker, board)),
     }),

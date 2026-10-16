@@ -82,7 +82,10 @@ export async function applyIntents(intents, { io, canWrite, isGM = false, source
   // step in one of them would leave the other two applying bare effect intents.
   // That is the same "two implementations of one rule" defect this file's own
   // header warns about.
-  const plan = planApplication(await resolveElements(await resolveEffects(intents, { process })), { canWrite, isGM });
+  const plan = planApplication(
+    await resolveElements(await resolveEffects(await resolveRemovals(intents), { process })),
+    { canWrite, isGM },
+  );
   if (plan.problems.length > 0) {
     throw new Error(
       `FGT | Refusing to apply a malformed intent batch from ${source}:\n  ${plan.problems.join("\n  ")}`,
@@ -143,6 +146,10 @@ async function fireWriteEvent(name, unitId, payload) {
     // The payload IS the context for a handler that asks about the change
     // rather than about a unit -- see `eventFilterPasses`.
     event: payload,
+    // ...and the SUBJECT, for an event that is about an ability: `abilityUsed`
+    // raised by a rule (`AbilityUsed`) is heard by `ofCategory` handlers the
+    // way one raised by a cast is (`skill-use.mjs#fireAbilityUsed`).
+    subject: payload?.subject,
   });
   if (intents.length > 0) await applyWorldIntents(intents, `event:${name}`);
 }
@@ -270,6 +277,67 @@ async function resolveElements(intents) {
 }
 
 /**
+ * The removals that carry no "on removal" clause of their own: a refresh or a
+ * replacement REMOVES the instance to put its successor in, which is the effect
+ * continuing and not going.
+ */
+const CONTINUING_REMOVALS = new Set(["refreshed", "replaced"]);
+
+/**
+ * Run an effect's "on removal" clauses (`onRemove`) for EVERY way it can go.
+ *
+ * They ran for expiry alone (`scheduler.expireEffects`), so a Cure, a strip, a
+ * dispel or an `until <event>` took the effect and skipped the clause. EMIYA's
+ * Circuits are *"removed when Atk Up (Trace) is removed from him"* -- any removal,
+ * ruled 2026-10-15 (#208 reading 13) -- and Shock's *"current Agility +1 when max
+ * is restored"* is the other clause that was keyed to the clock by accident.
+ *
+ * Here because this is where every removal meets, whichever path produced it.
+ * An expiry carries `onRemoveRan` (its clause was paid when it was decided, with
+ * the effect still on the board), and a refresh or a replacement is not a
+ * removal. What a clause removes is itself a removal, so it comes back through.
+ *
+ * @param {Intent[]} intents
+ * @param {number} [depth]
+ * @returns {Promise<Intent[]>}
+ */
+async function resolveRemovals(intents, depth = 0) {
+  const due = (i) => i.t === "removeEffect" && !i.onRemoveRan && !CONTINUING_REMOVALS.has(i.reason);
+  if (depth > 4 || !intents.some(due)) return intents;
+  // No world: a unit test applying against an injected `io`.
+  if (typeof game === "undefined" || !game?.actors) return intents;
+
+  const [{ EffectRegistry }, { unitOf, currentMoment }, { onRemoveIntents }] = await Promise.all([
+    import("../rules/registry.mjs"),
+    import("./board.mjs"),
+    import("./scheduler.mjs"),
+  ]);
+  const board = currentBoard();
+  const ctx = {
+    board,
+    tick: currentMoment().tick ?? 0,
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    effectDef: (id) => EffectRegistry.get(id),
+  };
+
+  /** @type {Intent[]} */
+  const out = [];
+  for (const intent of intents) {
+    if (!due(intent)) {
+      out.push(intent);
+      continue;
+    }
+    const actor = game.actors.get(intent.unitId);
+    const unit = actor ? unitOf(actor, board) : null;
+    const going = (unit?.effectInstances ?? [])
+      .filter((e) => e.id === intent.effectId || e.defId === intent.effectId);
+    const clauses = going.flatMap((instance) => onRemoveIntents(unit, instance, ctx));
+    out.push(...await resolveRemovals(clauses, depth + 1), intent);
+  }
+  return out;
+}
+
+/**
  * Put every unresolved `applyEffect` through the effect flow first.
  *
  * `io.createEffects` is a bare create: it makes a document and asks nothing.
@@ -382,6 +450,10 @@ function entryOfIntent(effect) {
   if (effect.visibility) entry.visibility = effect.visibility;
   if (effect.permanent) entry.permanent = true;
   if (effect.unremovable) entry.unremovable = true;
+  // An `until <event>` duration only: it has no tick to ride beside in `expiry`,
+  // so the flow has to be told (`endsOn`). A counted span stays the emitter's
+  // `expiry`, which already stands -- handing the flow both would be two clocks.
+  if (typeof effect.duration === "string" && /^until\s/i.test(effect.duration.trim())) entry.duration = effect.duration;
   return entry;
 }
 

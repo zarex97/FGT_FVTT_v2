@@ -29,6 +29,7 @@ import { currentHealth, maxHealth } from "../domain/health.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
 import * as I from "./intents.mjs";
+import { sharedCooldownIntents, twinsOf } from "./cooldown.mjs";
 import { periodicOf } from "../rules/periodic.mjs";
 import { resolveRevival, pendingRevivalRolls } from "../rules/revival.mjs";
 import { resourcePathFor, resourceValue } from "../domain/resources.mjs";
@@ -1188,15 +1189,31 @@ const ACTIONS = Object.freeze({
     // neither on the ability nor on the unit.
     const fromEvent = typeof a.delta === "string" ? eventValue(a.delta, c.event, a.factor ?? 1) : null;
     if (typeof a.delta === "string" && fromEvent === null) return [];
+    // `amount` arrives from a rank table resolved at collection time and is
+    // always POSITIVE there, so `direction` says which way it moves -- the
+    // reading `StatDelta` has always had, and this one lacked: Self-Replenishment
+    // (Mana) is `table: selfReplenishmentCooldown, direction: down`, which met
+    // neither `ticks` nor `delta` and so cut NOTHING -- it SET the Noble
+    // Phantasm's clock to 0 at the end of every one of Castor's Turns (§46.4-D4).
+    const fromTable = typeof a.amount === "number"
+      ? (a.direction === "down" ? -Math.abs(a.amount) : Math.abs(a.amount))
+      : null;
     const amount = a.ticks !== undefined
       ? -resolveTicks(parseTick(a.ticks), c)
-      : (fromEvent ?? a.delta ?? 0);
+      : (fromTable ?? fromEvent ?? a.delta ?? 0);
 
     const ids = a.scope === "np"
       ? (u.abilities ?? []).filter((x) => x.isNP || x.categorizedAsNP).map((x) => x.id)
       : [a.ability ?? h.abilityId].filter(Boolean);
 
-    return ids.map((id) => I.cooldown(u.id, id, Math.abs(amount), amount < 0 ? "reduce" : "set"));
+    // `source` so the card that reports the Turn end can name it: Self-Replenishment's
+    // 2 Turns off both twins' Noble Phantasm happened under a card that named
+    // only its 40 Health (#209, live).
+    const own = ids.map((id) => ({ ...I.cooldown(u.id, id, Math.abs(amount), amount < 0 ? "reduce" : "set"), source: h.source }));
+    // A Unit in a group that shares its clocks by name is cut on its twin's
+    // copy too (#209 reading 2): the gate (the Divine Core's 5%, the Castor
+    // buff's Crit) was the action's, so one decision cuts both.
+    return [...own, ...sharedCooldownIntents(own, u, c.board)];
   },
 
   /**
@@ -1216,7 +1233,14 @@ const ACTIONS = Object.freeze({
       : typeof a.times === "string" ? timesOf(a.times, { event: c.event ?? null }) : stackTimes(a.times, u);
     if (applyTimes !== null && applyTimes <= 0) return [];
 
-    const ticks = a.duration ? resolveTicks(parseTick(a.duration), c) : null;
+    const parsed = a.duration ? parseTick(a.duration) : null;
+    const ticks = parsed ? resolveTicks(parsed, c) : null;
+    // `until <event>` has no clock, so no expiry: what ends it is the event, and
+    // the landing flow is the one that records which (`endsOn`). The action kept
+    // only `expiry` and dropped the duration it was authored with, so a handler's
+    // "until roundEnd" produced an effect with no end at all -- a phase's
+    // `applyEffects` carried it, an event handler's did not (#208 reading 12).
+    const endsOnEvent = parsed?.kind === "untilEvent" ? { duration: a.duration } : {};
     // The ATTACK that raised the event, when one did. Magic Resistance's Death
     // exemption is a clause about it, tested when the effect lands, by a path that
     // has only this intent to go on (#127).
@@ -1231,6 +1255,7 @@ const ACTIONS = Object.freeze({
       ...(a.unremovable || a.effect?.unremovable ? { unremovable: true } : {}),
       ...(a.permanent || a.effect?.permanent ? { permanent: true } : {}),
       expiry: ticks === null || ticks === INFINITE ? (a.effect?.expiry ?? null) : (c.tick ?? 0) + ticks,
+      ...endsOnEvent,
       // The HANDLER'S BEARER, not the recipient. `dispatch` fans a
       // `target: nearby` action over its set and hands each recipient in as
       // `u`, so the caster arrives separately as `c.bearer` -- and an effect
@@ -1394,6 +1419,35 @@ const ACTIONS = Object.freeze({
     const ticks = a.ticks !== undefined ? resolveTicks(parseTick(a.ticks), c) : (a.turns ?? 0);
     if (ticks <= 0) return [];
     return [I.extendEffect(u.id, held.defId, ticks, h.source)];
+  },
+
+  /**
+   * Say that an ability was USED, when its own use raised nothing.
+   *
+   * A passive Noble Phantasm has no button: Kanshou & Bakuya *"is used when
+   * EMIYA performs a Normal Attack at a Range of 2 or lower"*, and nothing in
+   * the engine raised `abilityUsed` for it, so the two clauses that listen for
+   * a use (Magecraft's Range Up, Atk Up (Trace)'s extension) never heard it
+   * (#208 reading 5, ruled 2026-10-14). The rule that decides it was used says
+   * so with this, and the event is raised the way a cast raises it: about the
+   * ability, carrying its category, so an `ofCategory` handler can filter.
+   *
+   * `ability:` names a content id when the user is not the handler's own
+   * ability: Overedge's grant rule says Kanshou & Bakuya was used, because
+   * while Overedge cools Kanshou & Bakuya's own rule is negated.
+   *
+   * Said, not silent, when the ability is not held: a handler that cannot act
+   * must leave a line (`dispatch`).
+   */
+  AbilityUsed: (a, u, h) => {
+    const used = (u.abilities ?? []).find((x) => (a.ability ? x.contentId === a.ability : x.id === h.abilityId));
+    if (!used) {
+      return [I.log({ kind: "unhandledAction", action: "AbilityUsed", ability: a.ability ?? h.abilityId ?? null, unitId: u.id, source: h.source })];
+    }
+    return [I.event("abilityUsed", {
+      unitId: u.id,
+      subject: { id: used.id, contentId: used.contentId ?? null, category: used.category ?? null, isNP: Boolean(used.isNP) },
+    })];
   },
 
   Message: (a, u, h) => [I.log({ kind: "message", text: a.text, unitId: u.id, source: h.source })],
@@ -1590,6 +1644,9 @@ export function pendingRolls(unit, event) {
           // a roll that decided something from one whose clause never applied
           // (#187: Drake's 15% token roll was printed on attacks that did not Crit).
           predicate: handler.targetPredicate ?? null,
+          // Whose die it is, for the card: the Divine Core's 5% read "Castor:
+          // rider" (#209, live).
+          source: handler.source ?? null,
         });
       }
     }
@@ -1886,14 +1943,56 @@ export function advanceCooldowns(units, ctx) {
   /** @type {Intent[]} */
   const out = [];
   for (const u of units) {
-    if ((u.effects ?? []).includes("stop")) continue;
     for (const a of u.abilities ?? []) {
       if (a.cooldownRemaining <= 0) continue;
-      const rate = cooldownRate(u, a, ctx);
+      // A clock the group shares turns at ONE rate, for every copy of it.
+      const { holder, ability } = sharedClockOf(u, a, units);
+      if ((holder.effects ?? []).includes("stop")) continue;
+      const rate = cooldownRate(holder, ability, ctx);
       if (rate > 0) out.push(I.cooldown(u.id, a.id, rate, "reduce"));
     }
   }
   return out;
+}
+
+/**
+ * Who holds an ability's clock, and with what, when a group shares it by name
+ * (#209 reading 2, ruled 2026-10-14; the 2026-10-15 decision on NP Regen and
+ * NP Lag).
+ *
+ * The Dioscuri's Noble Phantasm is one clock with two copies. Both copies tick
+ * every Turn by their OWN rate, so an effect on one twin -- NP Regen, NP Lag,
+ * NP Lock, Stop -- moved that twin's copy and left the other where it was: two
+ * clocks, which is what the ruling says there is not. So the clock ticks as one
+ * unit holding what EITHER twin holds: their effects, their stat deltas and
+ * their effect instances together, and their abilities' own `regen` summed. Two
+ * Regens add, and Lock beats Regen, exactly as they do on a single bearer
+ * (`cooldownRate` is the one reader). A unit with no group, or no twin of this
+ * ability, holds its own clock alone.
+ *
+ * @param {object} unit
+ * @param {object} ability one of `unit.abilities`
+ * @param {object[]} units the living board
+ * @returns {{holder: object, ability: object}}
+ */
+function sharedClockOf(unit, ability, units) {
+  const twins = twinsOf(unit, ability.id, { units }).flatMap((t) => {
+    const member = units.find((x) => x.id === t.unitId);
+    const copy = member?.abilities?.find((x) => x.id === t.abilityId);
+    return member && copy ? [{ member, copy }] : [];
+  });
+  if (twins.length === 0) return { holder: unit, ability };
+
+  const members = twins.map((t) => t.member);
+  return {
+    holder: {
+      ...unit,
+      effects: [...(unit.effects ?? []), ...members.flatMap((m) => m.effects ?? [])],
+      statDeltas: [...(unit.statDeltas ?? []), ...members.flatMap((m) => m.statDeltas ?? [])],
+      effectInstances: [...(unit.effectInstances ?? []), ...members.flatMap((m) => m.effectInstances ?? [])],
+    },
+    ability: { ...ability, regen: (ability.regen ?? 0) + twins.reduce((n, t) => n + (t.copy.regen ?? 0), 0) },
+  };
 }
 
 /**
@@ -2179,7 +2278,11 @@ export function expireEffects(units, ctx, reason = "expired") {
 
       // Expiry is never blocked by Unremovable or by removal resistance —
       // those govern Cure and Dispel, not the clock.
-      out.push(I.removeEffect(u.id, e.id ?? e.defId, reason));
+      //
+      // `onRemoveRan` tells the applier its "on removal" clauses were just paid
+      // above: it pays them for every OTHER removal (`applier.mjs#resolveRemovals`),
+      // and this one must not pay twice.
+      out.push({ ...I.removeEffect(u.id, e.id ?? e.defId, reason), onRemoveRan: true });
     }
   }
   return out;
@@ -2197,7 +2300,7 @@ export function expireEffects(units, ctx, reason = "expired") {
  * @param {SchedulerContext} ctx carries `effectDef(id)`
  * @returns {Intent[]}
  */
-function onRemoveIntents(unit, instance, ctx) {
+export function onRemoveIntents(unit, instance, ctx) {
   const def = ctx.effectDef?.(instance.defId) ?? null;
   const actions = def?.onRemove ?? [];
   if (actions.length === 0) return [];

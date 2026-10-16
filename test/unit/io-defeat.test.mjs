@@ -108,6 +108,17 @@ describe("io.defeat", () => {
     });
   });
 
+  it("counts a Unit once, however many writers defeat it (#209 review)", async () => {
+    // The damage path emits a twin's linked death, and `io.defeat` carries the
+    // binding too: the partner was defeated twice and counted twice.
+    await withWorld(world(), async (w) => {
+      const port = await io();
+      await port.defeat("heracles", "damage");
+      await port.defeat("heracles", "linkedDeath");
+      expect(w.combat.system.grailCounter).toBe(1);
+    });
+  });
+
   it("materialises the Grail when the threshold is reached, and says so once", async () => {
     await withWorld(world({ combat: { round: 2, system: { globalTurn: 4, grailCounter: 8, grailThreshold: 9 } } }), async (w) => {
       await (await io()).defeat("heracles", "damage");

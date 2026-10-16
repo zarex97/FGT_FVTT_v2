@@ -1,0 +1,21 @@
+# EMIYA's Circuits -- the marker between "the NP that opened the second clause" and
+# "the next Attack".
+#
+# "For the rest of the Round" starts with the NEXT Attack, not with the NP that
+# triggered it (#208 reading 12, and the same for Blazing Circuits' +20%). An NP
+# can be several Combat Processes (Overedge is two, an area Noble Phantasm one per
+# Unit), and the first to end opens the clause while its siblings are still to
+# end. This is on him from that moment until the Combat Phase is over, and the
+# Overdrive effects wait for it to go.
+#
+# It has no rules: the Overdrives ask for its ABSENCE.
+schema: 1
+id: circuitsPending
+name: "Circuits: Pending"
+description: "The Noble Phantasm that opened the Circuits' second clause is still resolving; its Combat Processes do not feel the Overdrive."
+polarity: status
+volatility: nonVolatile
+valence: neutral
+stacking: noneRefresh
+baseChance: 500
+unremovable: true

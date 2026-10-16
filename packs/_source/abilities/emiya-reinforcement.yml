@@ -8,9 +8,14 @@ slug: reinforcement
 category: thaumaturgy
 isSpell: true
 cooldown: "1◈"
-# "Used at the start of a Combat Phase" -- so it is offered where a reaction is,
-# and on his own Turn before he swings.
-timing: { window: [ownTurn, combatPhaseStart] }
+# "Used at the start of a Combat Phase" -- ANY Combat Phase he is in, attacking or
+# attacked, and not any time in his Turn (ruled 2026-10-14, #208 reading 8). It
+# was `[ownTurn, combatPhaseStart]`: `ownTurn` made it a sheet button, pressable
+# in the middle of his Turn with no Combat Phase in sight, and the Phase he was
+# ATTACKED in never offered it. The pair Karna's Uncrowned Arms Mastership uses:
+# his own attack's Phase and the one he defends in. With no `ownTurn` it has no
+# button at all; the engine offers it at the window (`windowOnly`, Ch. 17).
+timing: { window: [combatPhaseStart, defendingPhaseStart] }
 # A Spell, but not an attack: it buffs and resolves. Left to `countsAsAttack`
 # and it would spend his Attack for the Turn, because `isSpell` is one of the
 # three things that make an ability one.
@@ -33,7 +38,9 @@ phases:
       # Atk Up would quietly buff his Noble Phantasms too -- which is the whole
       # reason the two effects are separate in Appendix A.
       #
-      # "During this Combat Phase" is one exchange, and ⅓◈ is the shortest
-      # duration the tick grammar has: one Turn, which is the Turn the Combat
-      # Phase happens in.
-      - { id: nAtkUp, magnitude: 30, duration: "⅓◈" }
+      # "During this Combat Phase": until the Phase's end event, as Mannanán's
+      # Tradition Carrier is (ruled 2026-10-14, #208 reading 9). It was ⅓◈, the
+      # shortest span the tick grammar has, which outlived the Phase by the rest
+      # of the Turn and buffed Normal Attacks the sheet never named. EMIYA hears
+      # `combatPhaseEnd` as the attacker and as a defender alike.
+      - { id: nAtkUp, magnitude: 30, duration: "until combatPhaseEnd" }

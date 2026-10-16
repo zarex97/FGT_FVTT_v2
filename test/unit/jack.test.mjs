@@ -256,7 +256,10 @@ describe("the attack Jack pre-empts comes back (#185)", () => {
   it("a resumed declaration is not asked for a budget it already paid", async () => {
     const { readFileSync } = await import("node:fs");
     expect(readFileSync("module/engine/attack-preflight.mjs", "utf8")).toMatch(/if \(combat\?\.started && !free && !resume\) \{/);
-    expect(readFileSync("module/engine/attack.mjs", "utf8")).toMatch(/attackPreflight\(\{ attacker, abilityId, placement, board, combat, resume \}\)/);
+    // `resume` still goes in; since #208 reading 8 (window-only abilities) the call also carries
+    // `atWindow`, a resumed declaration having passed that gate when it was first made.
+    expect(readFileSync("module/engine/attack.mjs", "utf8"))
+      .toMatch(/attackPreflight\(\{\s*attacker, abilityId, placement, board, combat, resume, atWindow: atWindow \|\| resume,?\s*\}\)/);
   });
 });
 
@@ -346,7 +349,9 @@ describe("an attack card lists its riders and their rolls (#185)", () => {
   it("the card reads the flag the engine writes, and the applier keeps a landed roll", async () => {
     const { readFileSync } = await import("node:fs");
     const cards = readFileSync("module/apps/chat/cards.mjs", "utf8");
-    expect(cards).toMatch(/viewerVisibility\(state, result, message\?\.getFlag\?\.\("fgt", "effects"\) \?\? \[\]\)/);
+    // The flag, read once; a skipped damage step reads it too (#208, live).
+    expect(cards).toMatch(/const effectRows = message\?\.getFlag\?\.\("fgt", "effects"\) \?\? \[\];/);
+    expect(cards).toMatch(/viewerVisibility\(state, result \?\? \{ total: 0 \}, effectRows\)/);
     expect(cards.includes("(state.appliedEffects ?? [])")).toBe(false);
     expect(readFileSync("module/engine/attack.mjs", "utf8")).toMatch(/await message\.setFlag\("fgt", "effects"/);
     const applier = readFileSync("module/engine/effect-applier.mjs", "utf8");
@@ -368,7 +373,14 @@ describe("a healing Skill's card says what it did (#185)", () => {
     const { readFileSync } = await import("node:fs");
     const src = readFileSync("module/engine/skill-use.mjs", "utf8");
     expect(src).toMatch(/summary: \{ id: "heal", name: `Health \+\$\{amount\}`/);
-    expect(src).toMatch(/summary: \{ id: "statChange", name: line/);
+    // The row names whose stat it was, when it is not the caster's (#209, live).
+    expect(src).toMatch(/summary: \{ id: "statChange", name: `\$\{whose\}\$\{line\}`/);
+  });
+
+  it("words a stat change with the numbers it read, so a clamp says so (#209, live)", async () => {
+    const { statChangeLine } = await import("../../module/engine/skill-use.mjs");
+    expect(statChangeLine({ t: "statDelta", stat: "luck.value", delta: 2 }, 9, 9)).toBe("Luck 9 (no change)");
+    expect(statChangeLine({ t: "statDelta", stat: "agility.value", delta: 2 }, 14, 16)).toBe("Agility 14 → 16");
   });
 });
 

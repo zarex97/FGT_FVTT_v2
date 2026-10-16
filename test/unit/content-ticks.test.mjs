@@ -18,12 +18,20 @@ const files = (dir) => readdirSync(dir).flatMap((f) => {
   return statSync(p).isDirectory() ? files(p) : (p.endsWith(".yml") ? [p] : []);
 });
 
-/** Every `ticks` string under a document, with where it sits. */
+/**
+ * The keys that hold a span. `ticks` was the only one checked, and `duration` is
+ * the one an `ApplyEffect` hands `parseTick` inside the live Damage Step: EMIYA's
+ * two Circuits authored `duration: "thisRound"`, which throws, and no test saw it
+ * (#208, 2026-10-15). `defaultDuration` is the same grammar on an effect document.
+ */
+const SPAN_KEYS = new Set(["ticks", "duration", "defaultDuration"]);
+
+/** Every span string under a document, with where it sits. */
 function* spans(node, path = []) {
   if (Array.isArray(node)) { for (const [i, v] of node.entries()) yield* spans(v, [...path, i]); return; }
   if (!node || typeof node !== "object") return;
   for (const [k, v] of Object.entries(node)) {
-    if (k === "ticks" && typeof v === "string" && !v.startsWith("@")) yield [path.concat(k).join("."), v];
+    if (SPAN_KEYS.has(k) && typeof v === "string" && !v.startsWith("@")) yield [path.concat(k).join("."), v];
     else yield* spans(v, [...path, k]);
   }
 }

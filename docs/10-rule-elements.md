@@ -176,6 +176,15 @@ executor actually reads, rather than of its descriptor's ids.
   `scheduler.runDeferred` once `endTurn` has run. Raikou's Tenmōkaikai now ends at the close of the
   Turn she falls, not the instant she falls. The validator refuses any `at` but `turnEnd`, the only
   boundary drained.
+- **`AbilityUsed`** is an action that says an ability was used (#208 readings 5 and 7). A passive
+  Noble Phantasm has no button to raise `abilityUsed`, and EMIYA's Kanshou & Bakuya *"is used when he
+  performs a Normal Attack at a Range of 2 or lower"*, so the rule that decides the use says so:
+  `{ key: AbilityUsed }` names the handler's own ability, `{ key: AbilityUsed, ability: <content id> }`
+  another one the Unit holds (Overedge's grant rule names Kanshou & Bakuya, whose own rule is negated
+  while Overedge cools). It returns an `event` intent carrying `subject: { id, contentId, category,
+  isNP }`, and `engine/applier.mjs#fireWriteEvent` hands that subject to `fireEvent` as `ctx.subject`,
+  so an `ofCategory` handler (Magecraft's Range Up, Atk Up (Trace)'s extension) hears it as it hears a
+  cast. An ability the Unit does not hold logs `unhandledAction`.
 
 With that, `KNOWN_RULE_DROPS` is empty: every key inside every rule element reaches a reader.
 

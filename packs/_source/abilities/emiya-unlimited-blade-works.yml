@@ -14,15 +14,21 @@ isNP: true
 npTags: [antiArmy, boundedField, barrier]
 kind: noblePhantasm
 slug: unlimitedBladeWorks
-category: projection
+# NOT a Projection (ruled 2026-10-14, #208 readings 4 and 23): "the name decides",
+# and this one has no "Projection" in it. It carried `category: projection`, and
+# every reader of that category heard it -- Tracing could cut its Cooldown, Atk
+# Up (Trace) extended and Magecraft gave Range Up on opening it, and Projection
+# Magic's Silence gate covered it through `negatedBy` and a requirement. None of
+# those is on the sheet. Silence reaches ONE clause of this Noble Phantasm, the
+# Aria gain, and that clause carries its own `not self:effect:silence` below.
 cooldown: "7◈"
 timing: { window: ownTurn }
-negatedBy: [silence]
 description: |
   Rank: E~A++
 
   (Passive) At the end of every Combat Phase involving EMIYA, he gains 1 Aria. Maximum number
   of Aria stored is 6. EMIYA cannot gain Aria if he is inflicted with @effect[silence]{Silence}.
+  Silence stops only that: with 6 Aria he can open it while Silenced (ruled 2026-10-14).
 
   (Activation) Can only be used by consuming 6 Aria. Affects a 7x7 panel area around EMIYA.
   All Units within that 7x7 panel area are trapped and unable to leave; Units outside are
@@ -34,7 +40,6 @@ description: |
   inside it and vice versa.
   EMIYA's Master loses Health equivalent to if a B Rank NP is used. Cooldown: 7◈ Turns.
 requirements:
-  - { kind: notHasEffect, effectId: silence }
   # "Can only be used by consuming 6 Aria." A gate AND a cost -- the gate here,
   # the spend in the phases below, because a refusal that has already taken the
   # resource is worse than one that has not.

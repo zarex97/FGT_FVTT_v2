@@ -587,7 +587,7 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
       const result = await commitWar(this.draft);
       await game.settings.set("fgt", "setupDraft", {});
       ui.notifications.info(game.i18n.format("FGT.Setup.Committed", {
-        servants: result.servants.length,
+        servants: result.servants.length + result.partners.length,
       }));
       await this.close();
     } catch (err) {

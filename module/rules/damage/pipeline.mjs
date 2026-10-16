@@ -363,6 +363,20 @@ function stage1Base(s) {
     const label = `${src.contentId ?? src.unit} BA(${src.component.toUpperCase()}) × ${src.factor ?? 1}`;
     s.contribute(`base:${src.component}`, v, label, "attacker");
   }
+
+  // WHICH base this attack added up, as a fact every later stage's predicate
+  // can ask (`attack:usesBase:mag`). `attack:component` is what the attack
+  // COUNTS AS and Mana Burst declares `str` on purpose, so *"halved for Attacks
+  // which use Base Attack (MAG)"* read the wrong word and never reached it
+  // (#209 reading 3). Derived HERE, from the sources just summed, so the card,
+  // the preview and the counterfactual -- all of which run this pipeline --
+  // cannot disagree about it. By the source and not by its value: a holder
+  // whose BA(MAG) is 0 still USES it. A copy of the context, never the shared
+  // option set, which the caller owns and may hand to the next stage's reader.
+  const used = (spec.sources ?? []).filter((src) => (src.factor ?? 1) > 0).map((src) => `attack:usesBase:${src.component}`);
+  if (used.length > 0) {
+    s.predicateCtx = { ...s.predicateCtx, options: new Set([...s.predicateCtx.options, ...used]) };
+  }
   s.end(1);
 }
 
@@ -1310,6 +1324,28 @@ function bypassesDefence(s) {
 }
 
 /**
+ * The Units whose modifiers JOIN the attacker's for this attack: the names in
+ * `damage.modifierSources`, resolved through the map stage 1 reads a Base Attack
+ * source from.
+ *
+ * ONE reader for every bag the joint Noble Phantasm combines -- the damage
+ * modifiers `activeMods` unions, and the Crit Chance `rules/checks.mjs#critChance`
+ * sums (`engine/attack.mjs` hands it these Units). A name resolving to the
+ * attacker itself is skipped, because joining a bag to itself would double every
+ * modifier an ordinary attack already has (#209 readings 5, 10).
+ *
+ * @param {object|null|undefined} attack the attack, for its `modifierSources`
+ * @param {Record<string, object>|null|undefined} units `ctx.units`
+ * @param {object|null|undefined} self the attacker
+ * @returns {Array<{name: string, unit: object}>}
+ */
+export function modifierSourceUnits(attack, units, self) {
+  return (attack?.modifierSources ?? [])
+    .map((name) => ({ name, unit: units?.[name] }))
+    .filter(({ unit }) => unit && unit !== self && unit.id !== self?.id);
+}
+
+/**
  * Every modifier on `unit` whose key is wanted and whose predicate passes.
  * @param {PipelineState} s
  * @param {object|null|undefined} unit
@@ -1362,9 +1398,7 @@ function activeMods(s, unit, keys) {
   // 4b, 5, 7 and 12 and cannot fall out of step with any of them.
   const unioned = [];
   if (unit === s.ctx.attacker) {
-    for (const name of s.ctx.attack?.modifierSources ?? []) {
-      const other = s.ctx.units?.[name];
-      if (!other || other === unit || other.id === unit?.id) continue;
+    for (const { name, unit: other } of modifierSourceUnits(s.ctx.attack, s.ctx.units, unit)) {
       for (const m of other.modifiers ?? []) {
         unioned.push({
           ...m,

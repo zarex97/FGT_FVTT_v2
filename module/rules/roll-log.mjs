@@ -58,6 +58,11 @@ export function fromCheck(outcome, meta) {
         source: m.source, delta: m.value ?? 0, stage: m.stage ?? "modifier",
       })),
       ...(outcome.automatic ? [{ source: "automatic success", delta: 0, stage: "auto" }] : []),
+      // A probable contribution's own die, held or not (#208, live).
+      ...(outcome.chances ?? []).map((c) => ({
+        source: `${c.source}: 1d100 → ${c.roll ?? "—"} against ${c.chance}%, ${c.passed ? "in force" : "no effect"}`,
+        delta: 0, stage: "chance",
+      })),
     ],
   });
 }
