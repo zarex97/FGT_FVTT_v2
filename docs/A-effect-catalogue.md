@@ -89,11 +89,11 @@ and its implementation note. This is the authoritative reference the compendium 
 | `Substitution` | B | D | nr | Cannot be hit by anything, including NP and Fixed, even against `Aim`. Beats `Dodge`. **Built** (`substitution`), `rules: []` — stage 0 halts on it before the attack is measured, which is what makes the clause absolute. `aim.yml` withheld a `blockedBy` for it; that note is now corrected rather than fulfilled, because `blockedBy` gates *application* and these two ride opposite Units. |
 | `Insight` | B | OD | nr | 50% chance of automatically Evading any attack including NP; crit chance +25%. |
 | `Accel` | B | O | nr | Opponents cannot React to this unit's attacks. **Built** (`accel`), `rules: []` — and it needed engine work, because only the **Counter** rung was closed. See §A.21. |
-| `AGL Up` | B | D | mag | Agility Check rolls −X (easier). |
+| `AGL Up` | B | D | mag | Agility Check rolls −X (easier). **Built** (`aglUp`, #226): a `CheckModifier` on `agility` of −X; Expert of Many Specializations' "+3 Agility" is its entry's `restores`, not the effect's. |
 | `AGL Dwn` | D | — | mag | Agility Check rolls +X (harder). |
 | `Agility Boost` | B | D | nr | Always uses the favourable Agility table. |
 | `Luck Boost` | B | — | nr | Always uses the favourable Luck table (`1d20` rather than `1d20+4`), regardless of whose Luck is higher. Worth a flat 4 on every Luck Check. |
-| `LUC Up` | B | — | mag | Luck Check rolls −X. |
+| `LUC Up` | B | — | mag | Luck Check rolls −X. **Built** (`lucUp`, #226), the mirror of `AGL Up`. |
 | `TEC Up` / `Focus` | B | O | mag | Enemies evading this unit's attacks roll +X. |
 
 ## A.4 Buffs — crit

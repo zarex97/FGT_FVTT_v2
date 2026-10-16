@@ -1,0 +1,18 @@
+# Appendix A §A.2 — "LUC Up | Luck Check rolls −X."
+#
+# First applied by Hundred-Faced Hassan's Expert of Many Specializations
+# (#226): *"Luck Check rolls are reduced by 3"*. The mirror of `agl-up.yml`;
+# the Skill's "restoring 3 Luck" is its entry's `restores`.
+schema: 1
+id: lucUp
+name: "LUC Up"
+description: "Luck Check rolls are reduced by X."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: CheckModifier
+    check: luck
+    value: "-@magnitude"

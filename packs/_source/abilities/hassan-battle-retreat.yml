@@ -1,0 +1,35 @@
+# Hundred-Faced Hassan, char_orig_sheets/Copia de Hassan (Hundred-Face).md
+# Audit #226: BR.when, BR.cancel, BR.move, BR.heal, BR.strip, BR.cd.
+schema: 1
+id: hassan-battle-retreat
+name: "Battle Retreat"
+rank: B
+kind: skill
+slug: battleRetreat
+# Each body keeps its own clock (#226 reading 9): `ownCooldowns` on the Servant.
+cooldown: "3◈"
+# Used at the reaction rung (#226 reading 12).
+timing: { window: whenAttacked }
+# "The enemy Unit's Attack is canceled": against a targeted Attack the whole
+# Attack; against an AoE he alone leaves it, as if he had gone before it hit.
+# The attacker's Attack is spent either way (#226 readings 12, 24).
+# `engine/attack.mjs#withdrawFromAttack`.
+withdrawsFromAttack: true
+description: |
+  (Active) Used when Hassan is Attacked by an enemy Unit. The enemy Unit's Attack is canceled, Hassan
+  is allowed to Move 7 panels, restore its Health by 40% of its maximum value, then remove all buffs
+  from Hassan. Cooldown: 3◈ Turns.
+phases:
+  # "allowed to Move 7 panels": up to 7, his pick, by an ordinary path (#226
+  # reading 12). Declining is staying where he is.
+  - kind: move
+    target: self
+    panels: 7
+  - kind: heal
+    target: self
+    percentOfMax: 40
+  # "then remove all buffs". Presence Concealment is no buff, so it stays
+  # (#226 reading 12).
+  - kind: removeEffect
+    target: self
+    selector: { polarity: buff }

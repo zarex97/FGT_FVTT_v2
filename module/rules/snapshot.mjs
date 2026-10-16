@@ -21,7 +21,7 @@ import { Rank } from "../domain/rank.mjs";
 import { collectContributions, EFFECT_INSTANCE, EXECUTORS, empty } from "./elements.mjs";
 import { baseAttackAdjustment } from "./setup-rolls.mjs";
 import { annotateZon } from "./zon.mjs";
-import { annotateLinkedGroups } from "./linked-group.mjs";
+import { annotateLinkedGroups, annotateLegions } from "./linked-group.mjs";
 import { annotateAuras } from "./auras.mjs";
 import { EffectRegistry } from "./registry.mjs";
 import { familiesPresent } from "./effects/families.mjs";
@@ -493,6 +493,12 @@ export function snapshotUnit(actor, {
     // The linked group, flattened. `memberIds` becomes an array because every
     // reader iterates it and a `Set` does not survive the socket.
     linkedGroup: linkedGroupOf(sys),
+    // A legion body's pool and number. The pool itself is the Master's
+    // (`legions`), so `annotateLegions` finishes `legion` on the board.
+    legionKey: sys.legionKey || null,
+    legionNumber: sys.legionNumber ?? null,
+    // A Master's legion pools, as stored (`engine/legion.mjs`).
+    legions: sys.legions ? structuredClone(sys.legions) : null,
     zon: sys.zon ?? null,
     // Board annotations, not document fields: `annotateZon` and
     // `annotateEnvironment` fill them. Read off the actor they were always
@@ -833,6 +839,9 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // `annotateZon` reads on the very next line. Running these the other way
   // round would settle ZON against a partner list that did not exist yet.
   annotateLinkedGroups(units, board);
+  // The legion count each body reads: the Master's pool, from the world
+  // (`settings.legions`, `engine/board.mjs`), and who of it stands here.
+  annotateLegions(units, settings.legions ?? {});
 
   annotateZon(units, board, settings.zon ?? {});
 
@@ -2278,5 +2287,11 @@ function linkedGroupOf(sys) {
     zonSatisfaction: g.zonSatisfaction ?? "all",
     modifierCombination: g.modifierCombination ?? "separate",
     summonTogether: Boolean(g.summonTogether),
+    ownCooldowns: [...(g.ownCooldowns ?? [])],
+    // Always an object: `size: 0` is no legion, and every reader asks the size.
+    legion: {
+      size: g.legion?.size ?? 0, fieldCap: g.legion?.fieldCap ?? null,
+      openingMax: g.legion?.openingMax ?? 1, label: g.legion?.label ?? "",
+    },
   };
 }

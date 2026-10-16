@@ -373,7 +373,9 @@ describe("a healing Skill's card says what it did (#185)", () => {
   it("puts the heal and the stat change on the card's rows", async () => {
     const { readFileSync } = await import("node:fs");
     const src = readFileSync("module/engine/skill-use.mjs", "utf8");
-    expect(src).toMatch(/summary: \{ id: "heal", name: `Health \+\$\{amount\}`/);
+    // The REAL change, before and after: Battle Retreat at full Health read
+    // "Health +300" (#226, live, §46.4-NN).
+    expect(src).toMatch(/summary: \{ id: "heal", name: `Health \$\{before\} → \$\{after\} \(\+\$\{after - before\}\)`/);
     // The row names whose stat it was, when it is not the caster's (#209, live).
     expect(src).toMatch(/summary: \{ id: "statChange", name: `\$\{whose\}\$\{line\}`/);
   });

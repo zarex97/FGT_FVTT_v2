@@ -348,6 +348,9 @@ describe("meetsRequirement", () => {
       // stated as a fraction of a maximum rather than as a number, and the
       // first stated as a refusal rather than as a permission.
       "masterHealthFraction",
+      // "Cannot be used if you have 10 or less Hassans remaining" --
+      // Zabaniya: Delusional Illusion, a gate on the legion's count (#226).
+      "legionAbove",
     ];
     expect([...REQUIREMENT_KINDS].sort()).toEqual(listed.sort());
   });

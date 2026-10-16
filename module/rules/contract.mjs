@@ -195,9 +195,23 @@ export function conquestContract({ killer, deadMaster, board }) {
   // `contract: "free"` step first would let a watcher observe a Free Servant
   // that, by the rules, was never Free -- Ch. 32 requires both in one
   // transaction so no intermediate state exists.
+  // A legion is ONE Servant for its Contract: every body is claimed, and the
+  // spells are granted once, namespaced to the legion's key, which every body
+  // reads (#226 reading 17). Granting per body handed a Caster three Command
+  // Spells for each Hassan on the field (#226, live).
+  const granted = new Set();
   return {
     ok: true,
-    descriptors: theirs.flatMap((servant) => grants(claimant.masterId, servant.id, inherited)),
+    descriptors: theirs.flatMap((servant) => {
+      const pool = servant.legionKey || servant.id;
+      const first = !granted.has(pool);
+      granted.add(pool);
+      const out = grants(claimant.masterId, servant.id, inherited);
+      if (!servant.legionKey) return out;
+      return first
+        ? out.map((d) => (d.kind === "setContract" ? d : { ...d, servantId: pool }))
+        : out.filter((d) => d.kind === "setContract");
+    }),
   };
 }
 

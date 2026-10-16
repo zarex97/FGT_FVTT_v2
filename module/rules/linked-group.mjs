@@ -123,3 +123,165 @@ export function annotateLinkedGroups(units, board) {
   }
   return units;
 }
+
+/* -------------------------------------------------------------------------- */
+/*  A legion: one Servant who is many Units                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Finish each legion body's `legion` from its pool and the board.
+ *
+ * Hundred-Faced Hassan: *"Hassan's Master has a total of 100 Hassans. Hassan is
+ * only defeated when all 100 Hassans are defeated."* The pool is the Master's
+ * (`engine/legion.mjs`), and "remaining" counts every living Hassan, on the
+ * field and off (#226 reading 2). What stands HERE is a board fact, so it is
+ * settled here: a body with no panel is not on the field.
+ *
+ * `pools` is keyed by legion key: `{size, remaining, nextNumber, label, fieldCap}`.
+ * A body whose pool is missing reads as a legion of itself, so a gate on the
+ * count refuses rather than passing on an unknown number.
+ *
+ * @param {object[]} units
+ * @param {Record<string, object>} pools
+ * @returns {object[]} the same units, annotated
+ */
+export function annotateLegions(units, pools = {}) {
+  /** @type {Map<string, object[]>} */
+  const onField = new Map();
+  for (const unit of units ?? []) {
+    if (!unit?.legionKey || !unit.panel || unit.defeated) continue;
+    onField.set(unit.legionKey, [...(onField.get(unit.legionKey) ?? []), unit]);
+  }
+  for (const unit of units ?? []) {
+    if (!unit?.legionKey) continue;
+    const pool = pools?.[unit.legionKey] ?? null;
+    const here = onField.get(unit.legionKey) ?? [];
+    const remaining = pool?.remaining ?? 0;
+    unit.legion = {
+      key: unit.legionKey,
+      number: unit.legionNumber ?? null,
+      size: pool?.size ?? unit.linkedGroup?.legion?.size ?? 0,
+      remaining,
+      fieldCap: pool?.fieldCap ?? unit.linkedGroup?.legion?.fieldCap ?? null,
+      onField: here.length,
+      // Off the board and alive: what a Round's start may deploy, and what a
+      // Noble Phantasm's price takes first (#226 reading 19).
+      reserve: Math.max(0, remaining - here.length),
+      bodyIds: here.map((u) => u.id),
+    };
+  }
+  return units;
+}
+
+/**
+ * How many bodies may still be deployed onto the field now.
+ *
+ * *"There can only be a maximum of ten Hundred-Faced Hassans on the field."*
+ *
+ * @param {{remaining: number, onField: number, fieldCap: number|null}} legion
+ * @returns {number}
+ */
+export function deployable(legion) {
+  if (!legion) return 0;
+  const reserve = Math.max(0, (legion.remaining ?? 0) - (legion.onField ?? 0));
+  const room = legion.fieldCap === null || legion.fieldCap === undefined
+    ? Infinity
+    : Math.max(0, legion.fieldCap - (legion.onField ?? 0));
+  return Math.min(reserve, room);
+}
+
+/**
+ * Split a price in bodies between the reserve and the field.
+ *
+ * *"Then, reduce the number of Hassans by 4d6."* From the reserve first, then
+ * field bodies the player picks; they are removed, not defeated (#226
+ * reading 19). `fromField` is how many field bodies the player must name.
+ *
+ * @param {{remaining: number, onField: number}} legion
+ * @param {number} price
+ * @returns {{fromReserve: number, fromField: number, remainingAfter: number}}
+ */
+export function legionPrice(legion, price) {
+  const remaining = legion?.remaining ?? 0;
+  const reserve = Math.max(0, remaining - (legion?.onField ?? 0));
+  const paid = Math.min(Math.max(0, price), remaining);
+  const fromReserve = Math.min(reserve, paid);
+  return { fromReserve, fromField: paid - fromReserve, remainingAfter: remaining - paid };
+}
+
+/**
+ * The name of a legion's body. *"Each Hassan will be coded with a number (e.g.
+ * Hassan 1, Hassan 16, Hassan 47) in ascending order when they are deployed."*
+ *
+ * @param {string} label
+ * @param {number} number
+ * @returns {string}
+ */
+export function bodyName(label, number) {
+  return `${label || "Body"} ${number}`;
+}
+
+/**
+ * The free panels a legion's Master may deploy a body onto at a Round's start.
+ *
+ * > *"At the start of a Round, the Master can deploy additional Hassans onto
+ * > its half of the field (or within a 2 panel area from the border of its
+ * > Home Base)."*
+ *
+ * By war type (#226 reading 4): a Great Holy Grail War deploys onto the
+ * Master's half, every other war within 2 panels of its Home Base's border, the
+ * base included. Free panels only (#226 reading 23): a panel any Unit stands on
+ * is not offered.
+ *
+ * The half is the side of the board's centre line that holds the faction's
+ * Home Base, measured along the line between its base and the board's centre,
+ * so a base along any edge reads the same way. The centre line itself belongs
+ * to both halves.
+ *
+ * @param {object} board
+ * @param {string} factionId
+ * @returns {Array<{i: number, j: number}>}
+ */
+export function deployPanels(board, factionId) {
+  const bounds = board?.bounds ?? { iMin: 0, jMin: 0, iMax: 12, jMax: 12 };
+  const base = Object.values(board?.zones ?? {})
+    .filter((z) => z?.faction === factionId)
+    .flatMap((z) => z.panels ?? []);
+  if (base.length === 0) return [];
+
+  const taken = new Set((board?.units ?? [])
+    .filter((u) => !u.defeated && !u.sharesPanel)
+    .flatMap((u) => u.panels ?? (u.panel ? [u.panel] : []))
+    .filter((p) => (p.k ?? 0) === 0)
+    .map((p) => `${p.i},${p.j}`));
+
+  /** @type {Array<{i: number, j: number}>} */
+  const all = [];
+  for (let i = bounds.iMin; i <= bounds.iMax; i += 1) {
+    for (let j = bounds.jMin; j <= bounds.jMax; j += 1) all.push({ i, j });
+  }
+
+  let offered;
+  if ((board?.warType ?? "greatHolyGrailWar") === "greatHolyGrailWar") {
+    const centreOf = (panels) => ({
+      i: panels.reduce((n, p) => n + p.i, 0) / panels.length,
+      j: panels.reduce((n, p) => n + p.j, 0) / panels.length,
+    });
+    const centre = centreOf(base);
+    // The line between his base and the nearest enemy base, not the scene's
+    // centre: a war's board may sit inside a larger scene (#226, live, a
+    // 13x13 war on a 21x21 scene split its halves diagonally).
+    const enemies = Object.values(board?.zones ?? {})
+      .filter((z) => z?.faction && z.faction !== factionId && (z.panels ?? []).length > 0)
+      .map((z) => centreOf(z.panels));
+    const enemy = enemies.sort((a, b) => Math.hypot(a.i - centre.i, a.j - centre.j)
+      - Math.hypot(b.i - centre.i, b.j - centre.j))[0]
+      ?? { i: (bounds.iMin + bounds.iMax) - centre.i, j: (bounds.jMin + bounds.jMax) - centre.j };
+    const mid = { i: (centre.i + enemy.i) / 2, j: (centre.j + enemy.j) / 2 };
+    const toBase = { i: centre.i - mid.i, j: centre.j - mid.j };
+    offered = all.filter((p) => (p.i - mid.i) * toBase.i + (p.j - mid.j) * toBase.j >= 0);
+  } else {
+    offered = all.filter((p) => base.some((b) => geo.chebyshev(b, p) <= 2));
+  }
+  return offered.filter((p) => !taken.has(`${p.i},${p.j}`));
+}

@@ -166,6 +166,21 @@ export class ServantData extends foundry.abstract.TypeDataModel {
         sharedCooldowns: new fields.StringField({
           required: false, blank: true, initial: "", choices: ["", "byName"],
         }),
+        // The slugs each member keeps a clock of its own for. Hundred-Faced
+        // Hassan: *"Skill & NP Cooldowns are shared between all Hassans except
+        // Presence Concealment & Battle Retreat"* (#226 reading 9).
+        ownCooldowns: new fields.ArrayField(new fields.StringField({ blank: false })),
+        // A Servant who is many Units drawn from one pool (`engine/legion.mjs`).
+        // `size: 0` is no legion. Hundred-Faced Hassan: 100 in all, at most ten
+        // on the field, the opening count the Master's pick up to `openingMax`.
+        legion: new fields.SchemaField({
+          size: new fields.NumberField({ integer: true, initial: 0, min: 0 }),
+          fieldCap: new fields.NumberField({ required: false, nullable: true, integer: true, initial: null, min: 1 }),
+          openingMax: new fields.NumberField({ integer: true, initial: 1, min: 1 }),
+          // A body's name is `${label} ${number}`; the Master's page counts
+          // `${label}s`.
+          label: new fields.StringField({ required: false, blank: true, initial: "" }),
+        }),
         // What one member counts as wherever the rules count Units: the four
         // turn-budget pools, the multi-Servant tax, and the roster allowance.
         // *"each one counts as 0.5 Units"* qualifies none of them.
@@ -181,6 +196,12 @@ export class ServantData extends foundry.abstract.TypeDataModel {
         }),
         summonTogether: new fields.BooleanField({ initial: false }),
       }),
+      // Which legion pool this body belongs to, and its number in it: *"Each
+      // Hassan will be coded with a number (e.g. Hassan 1, Hassan 16, Hassan
+      // 47) in ascending order when they are deployed."* World state, written
+      // by `engine/legion.mjs`; a revived body keeps its number (#226 reading 27).
+      legionKey: new fields.StringField({ required: false, blank: true, initial: "" }),
+      legionNumber: new fields.NumberField({ required: false, nullable: true, integer: true, initial: null }),
 
       // "Before play, select only one Noble Phantasm, either (a) or (b). The
       // unselected Noble Phantasm is unusable." Normal's Archer, Caster and

@@ -137,6 +137,9 @@ export const PHASE_DESCRIPTORS = describeTable([
     { key: "selector", type: "raw" },
     { key: "ignoresRemovalProtection", type: "checkbox" },
   ]),
+  entry("move", 45, "Lets the Unit Move up to a number of panels, by an ordinary path, to a panel its owner picks.", [
+    { key: "panels", type: "number" },
+  ]),
   entry("heal", 50, "Restores Health, as a flat amount or a fraction of MAXIMUM.", [
     { key: "percentOfMax", type: "number" },
     { key: "toPercentOfMax", type: "number" },

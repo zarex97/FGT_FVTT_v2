@@ -1,9 +1,10 @@
 ---
 id: 2026-10-16-suite-red-from-another-sessions-files
 found: test
-kind: drive-kit
+kind: shared-working-copy
 status: open
-reviewed: false
+reviewed: true
+pattern: shared-working-copy
 ---
 **Expected:** the full suite green after the #208 rulings, as at `cf20cfc`.
 **Actual:** `clauses.test.mjs > names every opening Clause in the audit programme's scope`: "Arturia: expected [ 'IA.pre', 'AV.pre' ] to deeply equal []".

@@ -360,6 +360,23 @@ function abilityCommon() {
     // Trofa, which IS her Evade, leaves this false.
     reactionFree: new fields.BooleanField({ initial: false }),
 
+    // A reaction that takes its user OUT of the Attack. Hundred-Faced Hassan's
+    // Battle Retreat: *"The enemy Unit's Attack is canceled"* -- a targeted
+    // Attack whole, an AoE for him alone (#226 reading 12). Read by
+    // `engine/attack.mjs#answerRung` once the ability's phases have run.
+    withdrawsFromAttack: new fields.BooleanField({ initial: false }),
+
+    // Presence Concealment that Skill Seal ends at once: *"if this Unit is
+    // inflicted with Skill Seal while PC is Active, it is immediately
+    // deactivated"*. Hundred-Faced Hassan's sheet alone states it, so it is a
+    // parameter of his reference to the shared class skill (#226 reading 16).
+    endsOnSkillSeal: new fields.BooleanField({ initial: false }),
+
+    // A price in bodies, paid once the Combat Phase is over: Zabaniya's
+    // *"Then, reduce the number of Hassans by 4d6"* (#226 reading 19). A dice
+    // formula; `engine/legion.mjs#payLegionPrice` pays it.
+    legionCost: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+
     // The attack this ability makes IS its user's Normal Attack, powered up:
     // every clause about "Normal Attacks" hears it, while its own Skill
     // mechanics (cooldown, Skill Seal) stay. All four Mana Bursts: Karna's, so

@@ -57,6 +57,9 @@ Command Spells follow the system's core split: the rules layer (`module/rules/co
 
 Everything downstream of a spend — the `spendCS` intent, the applier case, `io.spendCommandSpells`, and `commandSpells` on the Master schema — already existed and was reachable end to end before this feature shipped. What did not exist was anything that decided *which* command a Master may use, *when*, or *what it does*. So nothing ever constructed the intent and no Command Spell was ever spent by anybody (`module/engine/command-spells.mjs:7-10`). The fix was to write the rules layer: `costOf`, `canSpend`, `availableCommands`, and `effectsOf`. These made the offer flow possible and built intents that the engine could apply.
 
+**A legion's pool (#226).** A Command Spell names one body; a Conquest grants its 3 once per legion,
+namespaced to the legion's key, and any body spends it (`canSpend`, `io.spendCommandSpells`; §46.4-NM).
+
 ## Invariants & edge cases
 
 **A percent-of-maximum command reads the board's shape** (#193). `deltaFor` finds the maximum as `pool.max` or as `max<Stat>` beside a number, which is what the board snapshot carries (`maxHealth`, `maxAgility`). It read only `health.max`, so Half Heal and Full Heal restored 0.

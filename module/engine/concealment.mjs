@@ -125,6 +125,18 @@ export function attachConcealment() {
     onConcealmentRemoved(unitId, reason)
       .catch((err) => console.error("FGT | Concealment aftermath:", err));
   });
+
+  // *"if this Unit is inflicted with Skill Seal while PC is Active, it is
+  // immediately deactivated."* Hundred-Faced Hassan's sheet alone says it, so
+  // his Presence Concealment carries `endsOnSkillSeal`; the clock starts the
+  // moment the seal ends it (#226 reading 16).
+  Hooks.on("createActiveEffect", (effect) => {
+    if (effect.system?.defId !== "skillSeal" || !game.user?.isGM) return;
+    const actor = effect.parent;
+    if (!actor || !concealmentSkill(actor)?.system?.endsOnSkillSeal) return;
+    deactivateConcealment(actor.id, DEACTIVATION_REASONS.sealed)
+      .catch((err) => console.error("FGT | Concealment sealed:", err));
+  });
 }
 
 /**
