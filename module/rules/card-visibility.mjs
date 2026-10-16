@@ -237,7 +237,10 @@ function canSeeRoll(roll, { isGM, viewerId, result }) {
 export function effectLine(e) {
   if (typeof e === "string") return e;
   const name = e?.name ?? e?.id ?? "?";
-  if (e?.outcome === "applied") return e.chance ? `${name} (${e.chance})` : name;
+  // What the landing changed besides the effect: Expert's LUC Up restores 3
+  // Luck as it lands (#226, live).
+  const after = e?.after ? `; ${e.after}` : "";
+  if (e?.outcome === "applied") return (e.chance ? `${name} (${e.chance})` : name) + after;
   const why = e?.reason ? `, ${e.reason}` : "";
   return `${name}: ${e?.outcome ?? "not applied"}${why}`;
 }

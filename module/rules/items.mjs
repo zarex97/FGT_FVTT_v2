@@ -336,7 +336,7 @@ export const REQUIREMENT_KINDS = Object.freeze([
   "masterHealthAbove", "targetHasEffect", "notHasEffect", "abilityOffCooldown",
   "modeInactive", "predicate", "healthAbove", "healthRestoredSince", "itemAtLeast",
   "noAliveSummon", "withinPlatformCentre", "roundPhase", "fieldOpen", "stance",
-  "masterHealthFraction",
+  "masterHealthFraction", "legionAbove",
 ]);
 
 /**
@@ -493,6 +493,12 @@ export function meetsRequirement(req, ctx) {
       if (req.above !== undefined) return currentHealth(master) > Math.floor(max * req.above);
       return currentHealth(master) >= Math.ceil(max * (req.atLeast ?? 0));
     }
+
+    case "legionAbove":
+      // Zabaniya: *"Cannot be used if you have 10 or less Hassans remaining."*
+      // Every living body, on the field and off (#226 reading 2). A Unit with
+      // no pool has none remaining and is refused.
+      return (unit?.legion?.remaining ?? 0) > (req.count ?? 0);
 
     case "counterpartAdjacent": {
       // The Dioscuri's Noble Phantasm needs the other twin beside it.

@@ -26,7 +26,7 @@ export const STATES = Object.freeze([
   "s21_luckyHit", "s22_duContest", "s23_acceptOrEscape",
   "s24_luckyEvasion", "s25_auContest",
   "heelResolve",
-  "damage", "noDamage", "injury", "facing", "counter", "missed", "done",
+  "damage", "noDamage", "injury", "facing", "counter", "missed", "withdrawn", "done",
 ]);
 
 /**
@@ -113,6 +113,15 @@ export const TRANSITIONS = Object.freeze({
   // The attack BUDGET is still spent, because the swing was declared -- that
   // is charged at declaration, above this rung, and nothing here refunds it.
   "missed:done": "done",
+
+  // A defender who LEAVES the Attack. Hundred-Faced Hassan's Battle Retreat:
+  // *"The enemy Unit's Attack is canceled"* against a targeted Attack, and
+  // against an AoE he is taken out of its targets as if he had gone before it
+  // hit (#226 readings 12, 24). Terminal like a miss: no damage, no effects, no
+  // Injury Roll, no facing change, no Counter. The attacker's Attack is still
+  // spent, charged at declaration above this rung.
+  "react:withdraw": "withdrawn",
+  "withdrawn:done": "done",
 });
 
 /** Which side answers each prompting state, and what it costs. */

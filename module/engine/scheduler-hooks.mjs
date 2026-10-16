@@ -475,6 +475,12 @@ async function beginRoundSequence(combat, round, tick) {
     }),
     "scheduler:beginRound",
   );
+
+  // *"At the start of a Round, the Master can deploy additional Hassans"*
+  // (#226 reading 4). After the Round's own start, so a body deployed now
+  // arrives into the Round it may act in.
+  const { offerLegionDeploys } = await import("./legion.mjs");
+  await offerLegionDeploys(round);
 }
 
 /**

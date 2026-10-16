@@ -133,6 +133,14 @@ Snegleta both listed their buffs and debuffs first and had them land after their
 
 An Effect Entry is what an ability writes to give an Effect: `{id, magnitude, duration, chance, ...}` in an `applyEffects` phase, a check's `onSuccess`/`onFail`, an `aftermath`, or wrapped as `{effect: {id}, duration}`. The keys an entry may carry are one list, `rules/effect-flow.mjs#ENTRY_KEYS`: `id`, `magnitude`, `npMagnitude`, `npMagnitudeFactor`, `perStack`, `max`, `duration`, `permanent`, `unremovable`, `visibility`, `secret`, `chance`, `chancePerPanel`, `bands`, `chanceModifiers`, `bypassChanceModifiers`, `stages`, `uses`, `times`, `applications`, `predicate`, `ignoresResistanceFrom`. Every key means the same thing on a Skill, a Noble Phantasm, a handler and a field, because every one of them lands through `engine/landing.mjs` ([Ch. 15](15-effect-application.md)). Three counts differ: `stages` is one application worth N stages, `uses` is one application worth N charges, `applications` is N applications each with its own die; `times` is charges on a `count`-stacked effect and applications on any other. An entry's `predicate` narrows it to the recipients that match, asked with the caster as the board sees it. `test/unit/landing-one-door.test.mjs` fails on an entry key outside the list.
 
+**Hundred-Faced Hassan's vocabulary (#226).** A requirement `legionAbove: {count}` (more than `count` bodies
+remain, field and reserve). A `move` phase (`panels`): the owner picks a panel an ordinary walk of that many reaches,
+or stays. `withdrawsFromAttack` on a reaction takes its user out of the Attack (Ch. 21). `legionCost` is a dice price
+in bodies paid when the declaration's Combat Phase ends (`engine/legion.mjs#payLegionPrice`). `endsOnSkillSeal` on a
+Presence Concealment reference ends it when Skill Seal lands (Ch. 30). A phase's own `targeting` may be
+`chooser: chosen`: the caster's owner picks up to `count` of the candidates, and a phase is never an Attack, so a
+concealed ally is a candidate (§46.4-NO). A `heal` line prints the real change (§46.4-NN).
+
 ## Invariants & edge cases
 
 1. **One refusal answers the question.** `canUseAbility` returns the first refusal in order, never all of them (`module/rules/costs.mjs:162-165`). A player pressing an ability sees one clear reason why not, not a list.

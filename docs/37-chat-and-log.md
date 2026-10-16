@@ -60,6 +60,11 @@ Test: `test/unit/roll-records.test.mjs`.
 
 `fullLog` reads back flushed entries from the journal and returns one continuous history (`module/engine/game-log.mjs:78-87`). `exportLog` produces a self-contained JSON export with the ruleset settings, roster setup rolls, and all recorded rolls — with them replay is exact; without them it is re-simulation, which proves nothing about the bug being reported (`module/engine/game-log.mjs:100-123`).
 
+**Whose row (#226).** A Skill card's row that landed on anyone but the caster is prefixed with that Unit's
+name (§46.4-NL), shown only to its controllers, and carries what the landing wrote besides the effect (`after`, §46.4-NP). A legion's count
+is announced under its Master: "Deployed Hassan 5, Hassan 6. Hassans: 100/100.", "Hassan 2 falls. Hassans:
+99/100.", "Zabaniya: 4d6 = 12. 9 from the reserve, 3 removed from the field."
+
 ## Invariants & edge cases
 
 **A Skill card names what it removed and what it rolled** (#193). A `removeEffect` phase adds a row per effect taken off (*"Burn removed"*), and a summon's row carries its dice and names (*"5 summoned (1d6 → 5; 1d4 → 4, 3, 3, 2, 1): …"*).

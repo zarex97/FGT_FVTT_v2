@@ -318,8 +318,12 @@ export function twinsOf(unit, abilityId, board = null) {
   const members = membersOf(partnerIds, board);
   if (members.length === 0) return [];
 
-  const name = (unit.abilities ?? []).find((a) => a.id === abilityId)?.name;
+  const own = (unit.abilities ?? []).find((a) => a.id === abilityId);
+  const name = own?.name;
   if (!name) return [];
+  // A clock each member keeps for itself: *"except Presence Concealment &
+  // Battle Retreat"* (#226 reading 9). Asked by slug, as the sheet names them.
+  if ((unit.linkedGroup.ownCooldowns ?? []).includes(own.slug)) return [];
 
   /** @type {Array<{unitId: string, abilityId: string}>} */
   const out = [];

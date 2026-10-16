@@ -135,11 +135,12 @@ describe("the price of the exemption", () => {
 });
 
 describe("the deactivation vocabulary", () => {
-  it("names all six ways it can end", () => {
+  it("names all seven ways it can end", () => {
     // Named rather than free text because the reason reaches the chat card, the
     // game log and the Secret Poison disclosure -- three readers that must
-    // agree about what happened.
+    // agree about what happened. The seventh is Hundred-Faced Hassan's: Skill
+    // Seal ends it at once (#226 reading 16).
     expect(Object.keys(DEACTIVATION_REASONS).sort())
-      .toEqual(["aoe", "attacked", "discovered", "expired", "manual", "skillUse"]);
+      .toEqual(["aoe", "attacked", "discovered", "expired", "manual", "sealed", "skillUse"]);
   });
 });

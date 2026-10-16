@@ -74,6 +74,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "countsAsAct", "oncePerTurn", "oncePerRound", "alsoTriggers",
   "exclusionSet", "grantedBy", "sameTurnExclusive", "sameRoundExclusive",
   "bypassesCategoryLimit", "refusesReactionsUnlessFaster", "offersSpellCategory", "reactionFree",
+  "withdrawsFromAttack", "legionCost", "endsOnSkillSeal",
   "countsAsNormalAttack", "openingChoice",
   "freeAction",
   "timesUsed", "maxUses", "lastUsedTick", "recordedAttacks",

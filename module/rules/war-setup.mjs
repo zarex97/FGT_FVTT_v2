@@ -45,6 +45,7 @@ export const EXTRA = "extra";
  * @property {string|null} servantId the actor, after commit
  * @property {string|null} masterId the actor, after commit
  * @property {string|null} npChoice Normal's "select NP (a) or (b)"
+ * @property {number} [legionOpening] how many bodies of a legion start in the Home Base (#226)
  */
 
 /**

@@ -908,7 +908,8 @@ roster carrying a *"requires GM comfort"* flag and a per-world disable.
 
 ## D.21 Hundred-Faced Hassan
 
-Unit shape: `membership: pool` (Ch. 44 §44.1). **Not built.** The table follows the Character Sheet as
+Unit shape: `membership: pool` (Ch. 44 §44.1). **Built and pressed** (#226, 2026-10-16; Ch. 46 §46.32): the pool is
+`linkedGroup.legion` and `engine/legion.mjs`, the count on the Master. The table follows the Character Sheet as
 revised in October 2026; the Clause list and its 27 rulings are in
 [the Hundred-Faced Hassan Clause list](superpowers/specs/2026-10-16-hundred-faced-hassan-clauses.md).
 

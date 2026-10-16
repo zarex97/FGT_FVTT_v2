@@ -169,6 +169,12 @@ Creates removal intents for replaced effects, an event intent if the stage chang
 
 Outcome: `applied`. The `intents` array carries every intent this application emitted.
 
+**What lands besides the effect (#226).** An Effect Entry's `otherwise` lands instead when its chance fails
+(Expert's *"70% chance of applying it for ⅔◈ Turns, otherwise it is only applied for ⅓◈"*); a blocked one lands
+nothing. Its `restores` (`[{stat, delta}]`) is written as the application lands, capped at the maximum: one die
+decides both, so Buff ChUp raises it and No Buff stops it (Expert's *"70% chance of restoring 3 Agility ... If
+successful, also apply AGL Up"*). The Skill card prints what a landing wrote (§46.4-NP).
+
 ## Invariants & edge cases
 
 **The inflicter is the board's unit** (#193). Both live callers of `inflictBonusOf` — the Skill path and the event path — now hand it the board projection, auras included. A bare `unitSnapshot` carries none, so Medea's Item Construction never reached her own Spells. The chance line names the ability's own modifiers: *"rolled 69 vs 80% [target MAG B+ -25, Magic Resistance B+ -25]"*.

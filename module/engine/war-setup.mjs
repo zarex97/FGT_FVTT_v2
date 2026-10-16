@@ -396,6 +396,14 @@ export async function commitWar(draft) {
     // Master's roster.
     await worldIO().setContract(servant.id, "contracted", master.id);
 
+    // A Servant who is many Units starts with the Master's pick of them in the
+    // Home Base (#226 reading 3). `startLegion` cross-links them as one group,
+    // so `seatPartners` below seats and places them beside the first.
+    {
+      const { startLegion } = await import("./legion.mjs");
+      await startLegion(servant, master, container.legionOpening ?? 1);
+    }
+
     // The Servant summoned WITH this one (`commitSummon` cross-links them) is a
     // full member of the slot: the same side, the same Contract, a token beside
     // it. Without this the second twin of every pair stood on no side, under no

@@ -1,0 +1,21 @@
+# Appendix A §A.2 — "AGL Up | Agility Check rolls −X (easier)."
+#
+# First applied by Hundred-Faced Hassan's Expert of Many Specializations
+# (#226): *"Agility Check rolls are reduced by 3"*. Its "restoring 3 Agility"
+# is the Skill's entry (`restores`), not this effect's: one die decides both,
+# and another sheet's AGL Up restores nothing (#226 reading 11).
+schema: 1
+id: aglUp
+name: "AGL Up"
+description: "Agility Check rolls are reduced by X."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  # A LOWER roll is better: an Agility Check is rolled under the Agility it
+  # tests (`rules/checks.mjs#resolveCheck`).
+  - key: CheckModifier
+    check: agility
+    value: "-@magnitude"

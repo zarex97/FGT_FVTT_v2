@@ -76,6 +76,16 @@ export function isIdentityRevealed(unit) {
  * @returns {string}
  */
 export function publicNameOf(unit, board, viewer = {}) {
+  // A legion's body is told apart by its number, which is no secret: *"Each
+  // Hassan will be coded with a number (e.g. Hassan 1, Hassan 16, Hassan
+  // 47)"*. Without it every body of Hundred-Faced Hassan read "Assassin" on one
+  // card, and nobody could say which got what (#226, live).
+  if (typeof unit?.legionNumber === "number") {
+    const known = viewer.isOwner || isIdentityRevealed(unit);
+    if (known) return unit.name || `${unit.trueName ?? "Servant"} ${unit.legionNumber}`;
+    const base = publicNameOf({ ...unit, legionNumber: null }, board, viewer);
+    return `${base} ${unit.legionNumber}`;
+  }
   if (viewer.isOwner || isIdentityRevealed(unit)) {
     // `name` before the class container, and before the literal "Servant":
     // every non-Servant takes this branch, and a Master with no `trueName`

@@ -80,6 +80,33 @@ A group with `sharedCooldowns: byName` **has one clock per shared name** (#209 r
 
 A group summoned together (`summonTogether`) **shares one war slot** (#209 readings 1 and 8, ruled 2026-10-14): the Dioscuri sit in a Saber slot, Pollux drawn into it and Castor, an Avenger, arriving as her *companion* — never drawn alone, never an Avenger or `EXTRA` candidate (`rules/war-setup.mjs#catalogueEntryOf`, Ch. 31). Both carry `classContainer: saber`, so an enemy reads Saber on both until the True Names are revealed, and war setup seats the second twin on the first one's side, under the same Master and beside it (`engine/war-setup.mjs#seatPartners`, §46.4-D3).
 
+### Legions: one Servant who is many Units
+
+A `linkedGroup` with a `legion` block (`size > 0`) is a Servant drawn from one pool of bodies (#226, Hundred-Faced
+Hassan, ruled 2026-10-16). The count is the **Master's**: `system.legions[key]` holds `size`, `remaining`,
+`nextNumber`, `fieldCap`, the `template` every body is made from, and `clocks` held while no body stands. The Master's
+page prints it as the sheet asks, *"Hassans: 57/100"*. Each body is a Servant actor of its own, `Hassan N` in the order
+it is deployed, carrying `legionKey` and `legionNumber`; a number is never reused, and a revived body keeps its own
+(reading 27). A body in reserve is not an actor: it is `remaining` less the bodies on the field
+(`rules/linked-group.mjs#annotateLegions`, from `engine/board.mjs#legionPoolsOf`).
+
+- **War setup** makes the summoned Servant body 1 and brings the Master's pick of 1 to `openingMax` into the Home Base,
+  every body with the one Agility and Luck roll the summon made (readings 3, 5, 18; `engine/legion.mjs#startLegion`).
+- **A Round's start**, from Round 2, offers the Master's player free panels by war type: a Great Holy Grail War, the
+  Master's half; any other, within 2 panels of the Home Base (readings 4, 23; `rules/linked-group.mjs#deployPanels`,
+  `engine/legion.mjs#offerLegionDeploys`). At most `fieldCap` stand at once. A new body arrives full, without Presence
+  Concealment, and on the hundred's shared clocks.
+- **A body that falls** goes through the whole defeat chain, Guts included; one that stays down is −1 and leaves the
+  board. Only the last is the Servant's defeat, for the Grail as for everything else (readings 1, 20, 21;
+  `io.defeat`, `engine/legion.mjs#survivesBody`, `#bodyFell`). With none on the field and some in reserve he is alive,
+  off the board, until the next Round's deploy (reading 22).
+- **One Servant, many Units.** A Command Spell names one body; the Contract, a Conquest and Sustainability are the
+  hundred's: a Free hundred whose Sustainability runs out ends whole (reading 17; `engine/legion.mjs#exhaustLegion`).
+  ZON is checked per body.
+- **Shared clocks** are `sharedCooldowns: byName` with `ownCooldowns` naming the slugs each body keeps for itself:
+  Presence Concealment and Battle Retreat (reading 9). NP Regen on several bodies ticks the shared clock by the
+  strongest, never the sum (`scheduler.mjs#sharedClockOf`).
+
 ## Traps and anti-patterns
 
 **A complete, tested rule that no engine path reached.** `conquestContract` was written, documented

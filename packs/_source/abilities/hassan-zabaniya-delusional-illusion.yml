@@ -1,0 +1,61 @@
+# Hundred-Faced Hassan, char_orig_sheets/Copia de Hassan (Hundred-Face).md
+# Audit #226: ZA.army, ZA.str, ZA.gate, ZA.area, ZA.dmg, ZA.critdwn, ZA.defdwn,
+# ZA.defdwn.luck, ZA.cost, ZA.cd. The Passive's clauses (the hundred) live on
+# the Servant's `linkedGroup.legion` and in `engine/legion.mjs`.
+schema: 1
+id: hassan-zabaniya-delusional-illusion
+name: "Zabaniya: Delusional Illusion"
+rank: "B++"
+isNP: true
+# The Active is Anti-Army, and scale checks read that; "Anti-Unit (Self)" names
+# the Passive (#226 reading 15).
+npTags: [antiArmy]
+kind: noblePhantasm
+slug: zabaniya
+cooldown: "6◈+⅔◈"
+timing: { window: ownTurn }
+requirements:
+  # "Cannot be used if you have 10 or less Hassans remaining." Every living
+  # Hassan, on the field and off (#226 reading 2).
+  - { kind: legionAbove, count: 10 }
+# "Then, reduce the number of Hassans by 4d6": paid once the Combat Phase is
+# over, reserve first, then field bodies the player picks, removed and not
+# defeated (#226 readings 19, 20). `engine/legion.mjs#payLegionPrice`.
+legionCost: "4d6"
+description: |
+  (Passive) Hassan's Master has a total of 100 Hassans. Hassan is only defeated when all 100 Hassans
+  are defeated. At the start of the game, the Master can start with more than 1 Hassan in its Home
+  Base. At the start of a Round, the Master can deploy additional Hassans onto its half of the field
+  (or within a 2 panel area from the border of its Home Base). There can only be a maximum of ten
+  Hundred-Faced Hassans on the field. Each Hassan is counted as a separate Unit, with its own Stats.
+  Each Hassan will be coded with a number in ascending order when they are deployed. Skill & NP
+  Cooldowns are shared between all Hassans except @ability[class-presence-concealment]{Presence Concealment} & @ability[hassan-battle-retreat]{Battle Retreat}. If more
+  than one Hassan has a @effect[npRegen]{NP Regen} buff, only the one with the strongest magnitude takes effect. When
+  counting the number of Units who Move/Attack during your Turn, one Hundred-Faced Hassan counts as
+  0.5 of a Unit. The same Hassan can only Move/Attack once per Turn.
+  (Active) [Anti-Army] Base Attack (STR) is used. Cannot be used if you have 10 or less Hassans
+  remaining. Hits a 3x3 panel area in any non-diagonal direction next to Hassan for 3.5x damage plus
+  200; then inflicts @effect[critDwn]{Crit Dwn} for 1◈ Turns, Crit Chance is decreased by 25%; and inflicts
+  @effect[defDwnA]{Def Dwn (A)} for 1◈ Turns, all damage received is increased by 20%, and Luck is reduced by 1
+  whenever damage is received from an Attack. Then, reduce the number of Hassans by 4d6.
+  Cooldown: 6◈+⅔◈ Turns.
+targeting:
+  # Flush against one of his four sides, centred on his row or column, and he
+  # is not inside it; it does not slide (#226 reading 26).
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 3, long: 3 }
+  # Every Unit in the 3x3, his own bodies included (#226 reading 14, #191
+  # reading 11).
+  selection: { relations: [enemy, ally, neutral], includeSelf: false, chooser: all }
+  limits: { requiresZon: true }
+damage:
+  multiplier: 3.5
+  flatBonus: 200
+  component: str
+phases:
+  - kind: damage
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: critDwn, duration: "1◈", magnitude: 25 }
+      - { id: defDwnA, duration: "1◈", magnitude: 20 }
