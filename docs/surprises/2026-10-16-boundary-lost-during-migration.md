@@ -3,7 +3,8 @@ id: 2026-10-16-boundary-lost-during-migration
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** after `node tools/fgt-reload.mjs` reported "World ready", the GM's `nextTurn` from Faction 2 to Faction 1 runs one boundary: `globalTurn` 7 -> 8, a fresh Turn budget for Faction 1.
 **Actual:** Foundry's turn moved and `globalTurn` stayed 7. Faction 1's tracker read "Servant attacks 2/2" before it attacked; `scheduleClaim.turn` still "r3t0". The open §46.4-JY / `2026-10-11-boundaries-skipped-after-reload` shape, reproduced.

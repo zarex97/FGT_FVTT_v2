@@ -3,7 +3,8 @@ id: 2026-10-16-mode-slot-asked-the-use-gate
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** with Invisible Air suspended by Strike Air until tick 19, its slot greys at tick 17 and says why (#230 IA.lock, SA.ia).
 **Actual:** the slot was lit; the press refused with "Invisible Air: Bounded Field of the Wind King is suspended and cannot be switched on yet." The second time in this audit the bar and the switch disagreed on one mode (Round 1's "Ready from Round 2" was the first, patched then with `ignoresNPGate` and the wider split left standing).

@@ -3,7 +3,8 @@ id: 2026-10-16-roll-lines-named-the-true-name
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** a concealed Arturia is "Saber" on every line of an attack card the table reads (Ch. 30).
 **Actual:** the header read "Lancer ⚔ Saber" and the roll lines under it "Arturia's Instinct: 50 against 70%" and, before that, "Medusa evades Arturia". A public GM line read "Arturia stands next to Master of Saber of Faction 1: the Attack is changed to Arturia." And an ally's reaction offered on Karna's card read "Avalon: The Everdistant Utopia (Arturia)".

@@ -3,7 +3,8 @@ id: 2026-10-16-transfer-card-named-the-receiver-twice
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Player1 places [Avalon] in her Master; the card says who gave it and whom each Item Rite locks (#230 AV.2.give, AV.2.lock).
 **Actual:** the card read "Item Rite · Item Rite · Master of Saber of Faction 1: [Avalon] → Master of Saber of Faction 1": the receiver named twice, the giver never, the two locks nobody's.

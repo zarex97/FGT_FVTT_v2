@@ -1,9 +1,10 @@
 ---
 id: 2026-10-16-effect-family-unasked-at-collection
 found: test
-kind: producer-without-consumer
+kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Arturia's Charisma, `not:self:effectFamily:atkUpCharisma`, goes off while she holds Knight of Utopia's Atk Up (Charisma) (#230 reading 23).
 **Actual:** the ally beside her kept the +20: "expected [ { key: 'flatDamage', … } ] to have a length of +0 but got 1".

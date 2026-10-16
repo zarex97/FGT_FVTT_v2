@@ -3,7 +3,8 @@ id: 2026-10-16-survival-restore-applied-before-damage
 found: test
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** Avalon's floor in a Master at 120/350, hit for far more, leaves it at 1 Health and standing (#230 reading 18).
 **Actual:** "expected 70 to be 1": the writes were Health 350, then 0, then the Damage Step's heal to 70. The floor's restore landed first and the damage emptied the bar after it.

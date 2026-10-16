@@ -3,7 +3,8 @@ id: 2026-10-16-bar-greyed-a-use-over-cooldown
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Mana Burst on its Cooldown, Arturia inside her Master's ZON: the bar lets Player1 use it for 20 of the Master's Health (#230 reading 2, MB.oncd).
 **Actual:** the slot greyed "Mana Burst — Cooldown 1◈ (3 turns)". The gate, asked on the GM, answered `{ok: true, overCooldown: {masterHealth 20}}`.
