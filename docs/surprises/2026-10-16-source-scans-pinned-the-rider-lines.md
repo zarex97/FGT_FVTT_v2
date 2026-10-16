@@ -3,7 +3,8 @@ id: 2026-10-16-source-scans-pinned-the-rider-lines
 found: test
 kind: source-scan-pins-text
 status: fixed
-reviewed: false
+reviewed: true
+pattern: source-scan-pins-text
 ---
 **Expected:** holding Rho Aias's riders would fail only the tests about Rho Aias.
 **Actual:** `jack.test.mjs` "expected -1 to be greater than 0" and `quetzalcoatl.test.mjs` "expected 'async function applyAbilityEffects(st…' to match /\{ when = "afterDamage" \}/".

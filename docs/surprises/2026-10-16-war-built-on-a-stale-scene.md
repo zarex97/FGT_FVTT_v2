@@ -3,7 +3,8 @@ id: 2026-10-16-war-built-on-a-stale-scene
 found: tooling
 kind: drive-kit
 status: wontfix
-reviewed: false
+reviewed: true
+pattern: drive-kit
 ---
 **Expected:** the setup wizard builds Hassan's war on a fresh 13x13 scene.
 **Actual:** it reused "Scene", an old 21x21 scene still holding Jack's Mist and Achilles' duel field; a Hassan move was refused with "passes through a panel this Unit may not enter", and the deploy half came out diagonal.
