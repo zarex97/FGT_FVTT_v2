@@ -121,6 +121,36 @@ export const FACETS = Object.freeze([
     prose: "{subject} has {effect}",
   }),
   facet({
+    id: "bond",
+    // An Item bound to its holder by another Unit (Avalon, #230): the holder
+    // is her Master, or she is defeated.
+    segments: [
+      { name: "item", value: open() },
+      { name: "relation", value: { kind: "closed", list: ["own", "defeated"] } },
+    ],
+    english: "Holds an Item another Unit bound to it: its binder's own Master, or its binder is defeated.",
+    prose: "{subject}'s {item} bond is {relation}",
+  }),
+  facet({
+    id: "bondWithin",
+    // ...and how far she stands, as a ladder: `within:3` holds at 0 to 3.
+    segments: [{ name: "item", value: open() }, { name: "panels", value: number() }],
+    english: "Holds an Item another Unit bound to it, and that Unit stands within a number of panels.",
+    prose: "{subject}'s {item} binder is within {panels}",
+  }),
+  facet({
+    id: "effectStacks",
+    // HOW MANY of an effect, as a ladder: *"after Arturia performs 3 Attacks"*
+    // (her Utopia count, #230) is a member at 3 and every count above.
+    segments: [
+      { name: "effect", value: registry("effects") },
+      { name: "gte", value: literal("gte") },
+      { name: "count", value: number() },
+    ],
+    english: "Is carrying at least a number of one named effect.",
+    prose: "{subject} has at least {count} of {effect}",
+  }),
+  facet({
     id: "effectFamily",
     segments: [{ name: "family", value: open() }],
     english: "Is carrying any effect from a named family.",
@@ -409,6 +439,25 @@ export const FACETS = Object.freeze([
     segments: [{ name: "attribute", value: open() }],
     english: "The attack is one that hits a named Attribute especially hard.",
     prose: "the attack is effective against {attribute}",
+  }),
+  facet({
+    id: "tag",
+    subjects: ["attack"],
+    // Every tag the attack carries, the qualifiers included: Arturia's Magic
+    // Resistance is weaker against *"an Attack with the 'Anti-Dragon'
+    // Attribute"* (#230), and `npScale` names the scale alone.
+    segments: [{ name: "tag", value: open() }],
+    english: "The attack carries a named tag, such as Anti-Dragon.",
+    prose: "the attack is {tag}",
+  }),
+  facet({
+    id: "madeWith",
+    subjects: ["attack"],
+    // WHICH ABILITY made the attack, by content id: *"Normal Attacks performed
+    // with Mana Burst"* (Arturia's DRC, #230). A bare Normal Attack has none.
+    segments: [{ name: "ability", value: open() }],
+    english: "The attack was made with a named ability.",
+    prose: "the attack is made with {ability}",
   }),
   facet({
     id: "ignoresMagicResistance",

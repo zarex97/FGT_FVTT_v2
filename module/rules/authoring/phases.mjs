@@ -128,9 +128,19 @@ export const PHASE_DESCRIPTORS = describeTable([
     { key: "changes", type: "raw" },
     { key: "afterFirstUse", type: "checkbox" },
   ]),
+  entry("transferItem", 50, "Hands an Item, whole, from one Unit to another, with who placed it.", [
+    { key: "item", type: "text" },
+    { key: "from", type: "select", choices: ["self", "master", "target"] },
+    { key: "to", type: "select", choices: ["self", "master", "target"] },
+    { key: "bind", type: "checkbox" },
+    { key: "lock", type: "tokenList" },
+  ]),
   entry("setMode", 50, "Switches a mode on or off - one ability ending another.", [
     { key: "ability", type: "text" },
     { key: "active", type: "checkbox" },
+    // Off for a span: the mode cannot be switched back on until it passes
+    // (Arturia's Strike Air and Excalibur on Invisible Air, #230).
+    { key: "suspendFor", type: "text" },
   ]),
   entry("removeEffect", 50, "Strips effects off whoever this ability caught.", [
     { key: "effects", type: "tokenList" },

@@ -101,6 +101,17 @@ export const REQUIREMENT_DESCRIPTORS = describeTable([
     { key: "above", type: "number" },
   ]),
   req("counterpartAdjacent", "Only while this Unit's counterpart is standing next to it."),
+  req("besideMaster", "Only while directly next to this Servant's Master."),
+  req("inHomeBase", "Only while standing in the own Home Base: this Unit, its Master, or both.", [
+    { key: "who", type: "select", choices: ["self", "master", "both"] },
+  ]),
+  req("notAttackedThisTurn", "Only if this Unit, its Master, or both have not Attacked this Turn.", [
+    { key: "who", type: "select", choices: ["self", "master", "both"] },
+  ]),
+  req("masterItemAtLeast", "Only while this Servant's Master holds a named Item.", [
+    { key: "contentId", type: "text" },
+    { key: "amount", type: "number" },
+  ]),
   req("legionAbove", "Only while more than a count of this Servant's bodies remain, on the field and off.", [
     { key: "count", type: "number" },
   ]),

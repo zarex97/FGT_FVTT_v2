@@ -104,6 +104,30 @@ describe("reconcileItems", () => {
     expect(out.kept).toEqual(["semiramis-poison-id"]);
   });
 
+  it("refreshes a placed Item from its OWN pack document, keeping what play wrote (#230, live)", () => {
+    // Found live: [Avalon], placed inside Arturia's Master, kept its heal with
+    // no amount filter after the pack gained one. Kept as "still real content",
+    // it was never compared with anything again.
+    const placed = item("avalon", { bondUnitId: "arturia", bondMasterId: "master", rules: [{ key: "OnEvent" }] });
+    const source = item("avalon", { rules: [{ key: "OnEvent", eventFilter: { amount: "positive" } }] });
+    const out = reconcileItems([placed], [], {
+      knownContentIds: new Set(["avalon"]),
+      contentSources: new Map([["avalon", source]]),
+    });
+    expect(out.remove).toEqual([]);
+    expect(out.create).toEqual([]);
+    expect(out.update).toHaveLength(1);
+    expect(out.update[0]._id).toBe("avalon-id");
+    expect(out.update[0].system.rules[0].eventFilter).toEqual({ amount: "positive" });
+    expect(out.update[0].system.bondUnitId).toBe("arturia");
+    // Semiramis' crafted Poison is the same case: its count is play's.
+    const crafted = reconcileItems([item("semiramis-poison", { quantity: 3 })], [], {
+      knownContentIds: new Set(["semiramis-poison"]),
+      contentSources: new Map([["semiramis-poison", item("semiramis-poison", { quantity: 1 })]]),
+    });
+    expect(crafted.update[0].system.quantity).toBe(3);
+  });
+
   it("NEVER removes an item granted during play", () => {
     // Wisdom of Dún Scáith copies a Noble Phantasm onto its caster. A content
     // update has no business sweeping it.

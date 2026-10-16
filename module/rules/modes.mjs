@@ -75,7 +75,18 @@ export function canToggleMode(
   // (#101). Switching it ON is still her Turn's business.
   if (ownTurn === false && clockRunning !== false) {
     const offAnyTime = !active && sys.deactivation?.window === "any";
-    if (!offAnyTime) return { ok: false, reason: "notOwnTurn" };
+    // BOTH WAYS, at any moment: Arturia's Invisible Air *"can be activated or
+    // deactivated at any time, once per Turn"* (#230 reading 10).
+    const anyTime = sys.toggleWindow === "any";
+    if (!offAnyTime && !anyTime) return { ok: false, reason: "notOwnTurn" };
+  }
+
+  // *"Once per Turn"* on the path a mode is switched by: one switch, either
+  // way, in any one Turn -- hers or anybody's. `toggledAt` is the tick of the
+  // last switch, written by every switch (`io.setMode`); a suspension does not
+  // write it, so a Strike Air ending the mode costs her no switch.
+  if (sys.oncePerTurn && clockRunning !== false && sys.toggledAt === tick) {
+    return { ok: false, reason: "oncePerTurn" };
   }
 
   // NEGATED. Karna's Uncrowned Arms Mastership: *"The effects of this Skill

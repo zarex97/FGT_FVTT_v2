@@ -141,6 +141,15 @@ Presence Concealment reference ends it when Skill Seal lands (Ch. 30). A phase's
 `chooser: chosen`: the caster's owner picks up to `count` of the candidates, and a phase is never an Attack, so a
 concealed ally is a candidate (§46.4-NO). A `heal` line prints the real change (§46.4-NN).
 
+**Arturia's vocabulary (#230).** `cooldownOverride` lets an ability be used ON its Cooldown at a price, the clock
+untouched (Mana Burst: in the ZON, the Master pays 20). `toggleWindow: any` and `oncePerTurn` on a mode (Invisible Air), which no Round gate holds (`ignoresNPGate`): the
+bar asks the use gate before a switch goes on, and a passive NP on from the summon has no Round to wait for.
+A `setMode` phase may `suspendFor` a span, on the Skill path and the attack path alike (`skill-use.mjs#modeIntent`). A
+`transferItem` phase hands an Item whole from `self`, `master` or `target` to another, with `bind` and `lock` (Avalon).
+An Aura may `lendsAbility` a slug, its bearer's own Skill, negated with it (Radiant). Requirements `besideMaster`,
+`inHomeBase`, `notAttackedThisTurn`, `masterItemAtLeast`. A reaction's targeting may branch on the attack it answers
+(`attack:isAoE`).
+
 ## Invariants & edge cases
 
 1. **One refusal answers the question.** `canUseAbility` returns the first refusal in order, never all of them (`module/rules/costs.mjs:162-165`). A player pressing an ability sees one clear reason why not, not a list.

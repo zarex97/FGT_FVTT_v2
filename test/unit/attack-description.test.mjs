@@ -62,7 +62,7 @@ describe("the preview describes an attack as the resolution does", () => {
       [{ from: owner, id: owner, panel: { i: 5, j: 5 } }, { from: defender, id: defender, panel: { i: 5, j: 6 } }],
       async ({ unit, board, world }) => {
         installClientNamespace();
-        const { previewContext, buildAttackSpec, describeAttack } = await import("../../module/engine/attack.mjs");
+        const { previewContext, buildAttackSpec, describeAttack, instancesAgainst } = await import("../../module/engine/attack.mjs");
         const caster = unit(owner);
         const target = unit(defender);
         const doc = world.actor(owner);
@@ -76,8 +76,11 @@ describe("the preview describes an attack as the resolution does", () => {
             attacker: doc, ability, abilityId: ability?.id ?? null,
             options: rollOptionsFor({ attacker: caster, defender: target }), board,
           });
+          // ...with its first instance spread over it, as the first Process's
+          // attack is (`declareProcesses`, #230: a block's own keys live there).
+          const instance = instancesAgainst(ability, caster, target, declared)[0] ?? {};
           const resolution = describeAttack({
-            state: { attack: { ...declared, kind: isNP ? "np" : declared.kind } },
+            state: { attack: { ...declared, ...instance, instanceBlock: instance, kind: isNP ? "np" : declared.kind } },
             attacker: caster, defender: target, board, ability,
           }).attack;
           const pick = (a) => ({

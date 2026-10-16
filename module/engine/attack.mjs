@@ -343,10 +343,7 @@ export async function resolveAttack({
   // live). The repeat count stays the declaration's: one roll per attack.
   const instancesFor = (unitId) => {
     const defender = (board.units ?? []).find((u) => u.id === unitId) ?? null;
-    const block = defender
-      ? (resolvedDamage(ability, rollOptionsFor({ attacker: self, defender, attack: attackSpec })) ?? {})
-      : resolved;
-    return expandInstances(rolledRepeat === null ? block : { ...block, repeat: rolledRepeat });
+    return instancesAgainst(ability, self, defender, attackSpec, { fallback: resolved, repeat: rolledRepeat });
   };
   const perTarget = defenders.map((t) => ({ t, specs: instancesFor(t.unitId) }));
   // One Combat Process per instance per target, INSTANCE-MAJOR within each
@@ -614,7 +611,9 @@ export async function payAbilityPrice({ ability, attackerId, attacker, self, mas
   // `channelStarted` here for the same reason as the cost above: the clock on
   // an ability that has not gone off yet starts when it does, in
   // `completeChannel`.
-  if (ability && !resume && !channelStarted) {
+  // A use ON the Cooldown leaves the clock as it was: *"using it in this way
+  // does not reset Cooldown"* (Arturia's Mana Burst, #230).
+  if (ability && !resume && !channelStarted && !usage?.overCooldown) {
     const plan = cooldownFor(ability, attackerId, { unit: self });
     // *"When either Castor or Pollux uses a Skill, the Skill enters Cooldown
     // for both of them."* Spread beside `alsoTriggered` so the shared clocks
@@ -917,6 +916,11 @@ export function buildAttackSpec({
       // [Anti-World] NP, its vulnerability ends on one, and its interior halves
       // that one's damage -- all three keyed on tags the attack never carried.
       npTags: [...(ability?.system?.npTags ?? [])],
+      // WHICH ABILITY made this attack, by content id; none for a bare Normal
+      // Attack. Arturia's DRC is *"Normal Attacks performed with Mana Burst are
+      // not affected"*, and a Mana Burst is a Normal Attack by its own flag
+      // (`attack:kind:normal`), so nothing could tell the two apart (#230).
+      sourceContentId: ability?.system?.contentId ?? null,
       // The Noble Phantasm's own RANK, beside its tags. Achilles's barrier
       // answers *"an AoE Noble Phantasm of Rank A and above"* -- a threshold on
       // the rank rather than on the scale tag, which is a different axis
@@ -1450,6 +1454,7 @@ async function answerRung({ event, abilityId = null, placement = null }, message
         // (Ch. 46 §46.4-S).
         placement: reactionPlacement({
           attackerId: state.attackerId, aimedAt, ownerId: owner.id,
+          attack: { kind: state.attack?.kind ?? null, isAoE: Boolean(state.isAoE) },
         }),
       });
       if (!out.ok) await tellReactionRefused(owner, used, out.reason);
@@ -2651,7 +2656,7 @@ function chanceRecords({ filed, rolls, state, attacker, defender, tick, logFrom,
       raw: rolls[spec.key], total: rolls[spec.key],
       modifiers: [{ source: `against ${spec.chance}%: ${verdict}`, delta: 0, stage: "chance" }],
       // Named for its clause where the handler says which (#209: "Castor: rider").
-      purpose: `${attacker.name}: ${spec.source || spec.label || "rider"} on ${defender.name}`,
+      purpose: `${shownName(attacker)}: ${spec.source || spec.label || "rider"} on ${shownName(defender)}`,
       actorId: state.attackerId,
     });
   });
@@ -2990,6 +2995,8 @@ async function fireCombatPhaseEnd(state) {
   intents.push(...barriersOfThisPhase(siblings, units));
   if (intents.length > 0) await applyBatch(intents, "combatPhaseEnd");
 
+  await fireAttackPerformed(siblings);
+
   await fireAttackLanded(siblings);
 
   await grailUnderNP(state, siblings, board);
@@ -3001,6 +3008,64 @@ async function fireCombatPhaseEnd(state) {
   // is keyed by `groupId` and a match is thousands of them.
   const { clearOptionalCostOffers } = await import("./optional-costs.mjs");
   clearOptionalCostOffers(state.groupId);
+}
+
+/**
+ * Raise `attackPerformed` on each Unit that made an Attack in this Combat Phase,
+ * once per Attack, with how many Units it hit.
+ *
+ * Arturia's Utopia buff is *"whenever Arturia performs a successful Attack, NP
+ * Cooldown is reduced by ⅓◈ Turns for every Unit successfully hit by that
+ * Attack"*, Excalibur cuts its own clock by *"the number of Units affected by
+ * this NP × ⅓"*, and Dmg Boost (Utopia) counts *"3 Attacks"* (#230). Each is a
+ * question about the whole Attack -- an AoE is one Attack over many Processes
+ * -- and `combatProcessEnd` is per Process while `combatPhaseEnd` carries no
+ * attack at all.
+ *
+ * An Attack is one attacker's Processes in the phase: the declaration's, or a
+ * Counter's. A Unit HIT is one whose Process reached its Damage Step and was not
+ * negated, a Block included (ruled 2026-10-16, #230 reading 7); an Evade leaves
+ * no result, and a negation records `negatedBy`.
+ *
+ * @param {object[]} siblings the phase's Process messages
+ * @returns {Promise<void>}
+ */
+async function fireAttackPerformed(siblings) {
+  const byAttacker = new Map();
+  for (const m of siblings) {
+    const st = process.deserialize(m.getFlag("fgt", "process"));
+    if (!st?.attackerId || !st.attack?.kind) continue;
+    if (!byAttacker.has(st.attackerId)) byAttacker.set(st.attackerId, []);
+    byAttacker.get(st.attackerId).push({ st, result: m.getFlag("fgt", "result") ?? null, message: m });
+  }
+  const board = currentBoard();
+  for (const [attackerId, processes] of byAttacker) {
+    const attacker = unitOf(game.actors.get(attackerId), board);
+    if (!attacker) continue;
+    const hit = new Set(processes
+      .filter((p) => p.result && !p.result.flags?.negatedBy)
+      .map((p) => p.st.defenderId));
+    const first = processes[0].st;
+    const defender = first.defenderId ? unitOf(game.actors.get(first.defenderId), board) : null;
+    const intents = fireEvent("attackPerformed", [attacker], {
+      tick: currentMoment().tick ?? 0,
+      turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+      board,
+      options: defender ? rollOptions(attacker, defender, first, { performed: true }) : new Set(),
+      event: { unitsHit: hit.size },
+      subject: { contentId: first.attack?.sourceContentId ?? null, isNP: first.attack?.kind === "np" },
+      rolls: {},
+    });
+    if (intents.length === 0) continue;
+    // A clock the Attack turned is a line on its card, as the Damage Step's
+    // are (#209): Excalibur took 23 -> 21 off its own two Units and no card
+    // said so (#230, live). On the attacker's last card of the Phase.
+    const rows = await applyWithCooldownLines(intents, "attackPerformed");
+    if (rows.length === 0) continue;
+    const { message, st } = processes.at(-1);
+    await message.setFlag("fgt", "effects", [...(message.getFlag("fgt", "effects") ?? []), ...rows.map((r) => r.summary)]);
+    await updateAttackCard(message, st);
+  }
 }
 
 /**
@@ -3436,7 +3501,7 @@ async function rollEvade(state) {
       globalTurn: game.combat?.system?.globalTurn ?? 0,
       entryId: "evade-",
       formula: roll.formula,
-      purpose: `${defender.name} evades ${attacker.name}`,
+      purpose: `${shownName(defender)} evades ${shownName(attacker)}`,
       actorId: state.defenderId,
     }),
   };
@@ -3621,7 +3686,7 @@ async function rollLuck(state) {
       globalTurn: game.combat?.system?.globalTurn ?? 0,
       entryId: "luck",
       formula: roll.formula,
-      purpose: `${unit.name} contests ${opponent.name}`,
+      purpose: `${shownName(unit)} contests ${shownName(opponent)}`,
       actorId: prompt.unitId,
     }),
   };
@@ -3675,6 +3740,8 @@ function pendingCosts({ usage, ability, self, master, board }) {
   const out = [];
 
   if (usage.cost) out.push({ ...usage.cost, id: "npCost" });
+  // The price of a use ON its Cooldown (Arturia's Mana Burst).
+  if (usage.overCooldown) out.push(usage.overCooldown);
 
   // Standing per-use costs the ability declares, each with its own id so
   // something else can name it in `supersedes`. Expanded in the RULES layer so
@@ -4239,6 +4306,38 @@ function siblingInjuryTotals(state) {
  * @returns {Promise<object[]>} intents: a revive, or a defeat, or neither
  */
 /**
+ * What a lethal blow leaves a Unit standing on, if anything saves it.
+ *
+ * CS: Survive Kill, declared earlier in this Process: *"The Servant survives
+ * with 5% of its Health"* -- three Command Spells outrank a skill. Then a floor
+ * held at or above a share of the maximum (`SurviveLethal`): Avalon inside a
+ * Master, *"If Arturia's Master would be defeated while its Health is at 10% of
+ * its maximum value or higher, it is not defeated and its Health drops to 1"*
+ * (#230). The Health is the snapshot's, from before the blow; the floor's
+ * predicate is asked now, of the Unit as the board sees it. Every time
+ * (reading 18).
+ *
+ * @param {object} defender the defender's snapshot, from before the damage
+ * @param {number} damage
+ * @param {object} state
+ * @returns {{left: number, source: string, kind: string}|null}
+ */
+function survivalFloor(defender, damage, state) {
+  if (isUndamageable(defender) || damage <= 0) return null;
+  const current = currentHealth(defender);
+  if (current - damage > 0) return null;
+  const max = typeof defender.health === "object" ? (defender.health?.max ?? 0) : (defender.maxHealth ?? 0);
+  if (state.survive) {
+    return { left: Math.max(1, Math.floor(max * state.survive)), source: "Survive Kill", kind: "surviveKill" };
+  }
+  const floor = (defender.lethalFloors ?? []).find((f) => {
+    if (f.predicate && !testPredicate(f.predicate, { options: new Set(ownerOptionsOf(defender)) })) return false;
+    return current >= Math.ceil(max * (f.atOrAbovePercent / 100));
+  });
+  return floor ? { left: 1, source: floor.source, kind: "surviveLethal" } : null;
+}
+
+/**
  * The defeat chain for a Unit at 0 Health that no attack put there -- a Poison
  * tick, a fall, a drain (Ch. 46 §46.4-CE). The same chain an attack runs, with
  * nobody as the killer.
@@ -4263,17 +4362,6 @@ async function resolveDefeatOf(defender, damage, state = {}) {
   if (isUndamageable(defender)) return [];
   const remaining = currentHealth(defender) - damage;
   if (remaining > 0) return [];
-
-  // CS: Survive Kill, declared earlier in this Process. "The Servant survives
-  // with 5% of its Health" — so it is never defeated, and the revive handlers
-  // below are not consulted at all. Three Command Spells outrank a skill.
-  if (state.survive) {
-    const restored = Math.max(1, Math.floor((defender.health?.max ?? 0) * state.survive));
-    return [
-      I.statDelta(defender.id, "health.value", -remaining + restored, true),
-      I.log({ kind: "surviveKill", unitId: defender.id, restored }),
-    ];
-  }
 
   const combat = game.combat;
   const ctx = {
@@ -4895,9 +4983,25 @@ async function applyDamage(state, message) {
     ];
   }
 
+  // Survival floors: the blow lands, and leaves the Unit standing. Taken off the
+  // DAMAGE, as the recorded-attack floor above is, because a restore written
+  // beside it is applied first (`statDelta` orders before `damage`) and the
+  // damage then empties the bar anyway -- which is what CS: Survive Kill did,
+  // unseen, until Avalon's floor was pressed (#230).
+  const floor = survivalFloor(defender, result.total, state);
+  if (floor) {
+    const before = result.total;
+    result.total = Math.max(0, currentHealth(defender) - floor.left);
+    result.breakdown = [
+      ...(result.breakdown ?? []),
+      { stage: "survives", label: `${floor.source}: survives at ${floor.left}`, from: before, to: result.total },
+    ];
+  }
+
   await applyBatch(
     [
       ...barrier.intents,
+      ...(floor ? [I.log({ kind: floor.kind, unitId: state.defenderId, restored: floor.left, source: floor.source })] : []),
       I.damage(state.defenderId, result.total, result.breakdown),
       ...(result.flags.defeatedOutright ? [I.defeat(state.defenderId, "petrify", state.attackerId ?? null)] : []),
       I.log({ kind: "damage", attackerId: state.attackerId, defenderId: state.defenderId, total: result.total }),
@@ -4995,6 +5099,11 @@ async function rollModifierDice(units) {
     // and the comment above already named Goddess of War, whose clause 3 is
     // one (Ch. 46 §46.4-N).
     for (const m of [...(unit?.modifiers ?? []), ...(unit?.checkModifiers ?? [])]) {
+      // A flat bonus that lands only on a chance: one d100 per strike, shared
+      // by every modifier naming the same key (Excalibur's two branches, #230).
+      if (m.chance?.key && out[m.chance.key] === undefined) {
+        out[m.chance.key] = (await new Roll("1d100").evaluate()).total;
+      }
       if (!m.roll?.formula || out[m.roll.key] !== undefined) continue;
       out[m.roll.key] = (await new Roll(m.roll.formula).evaluate()).total;
     }
@@ -5322,10 +5431,10 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
     }
     if (phase.kind === "setMode") {
       if (heldOnly) continue;
-      await applyBatch(
-        [I.setMode(state.attackerId, phase.ability, phase.active === true, `np:${ability.id}`)],
-        `np:setMode:${phase.ability}`,
-      );
+      // Through the one writer the Skill path uses, so a span (`suspendFor`)
+      // holds here too (#230).
+      const { modeIntent } = await import("./skill-use.mjs");
+      await applyBatch([modeIntent(phase, state.attackerId, `np:${ability.id}`)], `np:setMode:${phase.ability}`);
       continue;
     }
     // NOT `summon` (nor `resource`/`statChange`/etc): those are "everything
@@ -6233,6 +6342,29 @@ export function attackFacts(attacker, defender, state, board = null) {
  * @param {boolean} args.isNP
  * @returns {object}
  */
+/**
+ * The damage instances an ability deals one defender, in the sheet's order.
+ *
+ * The block is chosen with that defender in the options (a `damage.branches`
+ * predicate may ask about it, #206) and expanded into its instances; each
+ * Process's attack is the declaration with one of these spread over it
+ * (`declareProcesses`). The preview asks the same, so the two cannot describe
+ * different attacks (#230: Strike Air's `bypassModifiers` lives here).
+ *
+ * @param {object|null} ability
+ * @param {object} attacker the attacker's board unit
+ * @param {object|null} defender
+ * @param {object} declared the declaration (`buildAttackSpec`)
+ * @param {{fallback?: object|null, repeat?: number|null}} [opts] the block with no defender, and a rolled repeat
+ * @returns {object[]}
+ */
+export function instancesAgainst(ability, attacker, defender, declared, { fallback = null, repeat = null } = {}) {
+  const block = defender
+    ? (resolvedDamage(ability, rollOptionsFor({ attacker, defender, attack: declared })) ?? {})
+    : (fallback ?? resolvedDamage(ability, null) ?? {});
+  return expandInstances(repeat === null ? block : { ...block, repeat });
+}
+
 export function previewContext({ caster: given, defender, ability, board, isNP }) {
   const caster = (board?.units ?? []).find((u) => u.id === given?.id) ?? given;
   // The preview declares the attack the way a press does (`buildAttackSpec`)
@@ -6245,7 +6377,15 @@ export function previewContext({ caster: given, defender, ability, board, isNP }
     attacker: casterDoc, ability, abilityId: ability?.id ?? null,
     options: rollOptionsFor({ attacker: caster, defender }), board,
   });
-  const state = { attack: { ...declared, kind: isNP ? "np" : declared.kind } };
+  // ...and carries the damage block's first instance, as each Process's attack
+  // does (`declareProcesses`, `...s, instanceBlock: s`): how the modifiers
+  // treat it lives there. Strike Air's `bypassModifiers` was missing, and its
+  // tooltip promised 375 under Knight of Utopia for a card that dealt 300
+  // (#230, found live).
+  const instance = instancesAgainst(ability, caster, defender, declared)[0] ?? {};
+  const state = {
+    attack: { ...declared, ...instance, instanceBlock: instance, kind: isNP ? "np" : declared.kind },
+  };
   const { facts, options, block, attack } = describeAttack({ state, attacker: caster, defender, board, ability });
 
   return {
@@ -6845,13 +6985,13 @@ async function runMissCheck(state, attacker, board) {
   const defenderDoc = state.defenderId ? game.actors.get(state.defenderId) : null;
   const defender = defenderDoc ? unitFrom(board, defenderDoc) : null;
   const chance = missChance(attacker, rollOptions(attacker, defender, state));
-  if (chance <= 0) return process.advance(state, "hit");
+  if (chance <= 0) return instinctOf(process.advance(state, "hit"), defender);
 
   const roll = await new Roll("1d100").evaluate();
   const missed = roll.total <= chance;
   const source = missSourceOf(attacker);
 
-  return process.advance(state, missed ? "miss" : "hit", {
+  const advanced = process.advance(state, missed ? "miss" : "hit", {
     rollRecord: {
       check: "miss",
       label: game.i18n.localize("FGT.Card.MissCheck"),
@@ -6862,6 +7002,86 @@ async function runMissCheck(state, attacker, board) {
       unitId: attacker.id,
     },
   });
+  return missed ? advanced : instinctOf(advanced, defender);
+}
+
+/**
+ * The name a roll's line prints: the PUBLIC one.
+ *
+ * A Process's rolls ship on the card every client reads, and their lines named
+ * the real Servant ("Arturia's Instinct", "Medusa evades Arturia") under a
+ * header that said "Lancer ⚔ Saber" (#230, found live). The header already
+ * asks `publicIdentityOf`; the lines ask it too.
+ *
+ * @param {object|null} unit a board unit or an actor
+ * @returns {string}
+ */
+function shownName(unit) {
+  return unit ? publicIdentityOf(unit, currentBoard()).name || unit.name : "";
+}
+
+/**
+ * An automatic Evade that rolls itself the moment its holder is Attacked.
+ *
+ * > *"When this Unit is Attacked, it has a 70% chance of automatically Evading
+ * > the Attack. If Instinct Fails, the Combat Process proceeds as normal."*
+ * > (Arturia's Instinct, #230)
+ *
+ * Rolled at the reaction rung's door, before the defender chooses: a success is
+ * an Evade that succeeded, a failure is written on the card and the defender
+ * reacts as ever. It was asked only on the Evade rung, so it never rolled unless
+ * she chose to Evade, and then it never failed (#230, found live). A holder of
+ * two rolls once, the likeliest (reading 8). An attack that closes the Evade
+ * rung, or beats the evasion, is not asked.
+ *
+ * @param {object} state a Process just past the miss check
+ * @param {object|null} defender the defender's board unit
+ * @returns {Promise<object>}
+ */
+async function instinctOf(state, defender) {
+  if (state.state !== "react" || !defender) return state;
+  const auto = (defender.autoSucceeds ?? [])
+    .filter((a) => a.check === "evade" && a.whenAttacked)
+    .reduce((best, a) => (!best || (a.chance ?? 100) > (best.chance ?? 100) ? a : best), null);
+  if (!auto) return state;
+  if ((state.forbiddenReactions ?? []).includes("evade") || evadePermit(state)) return state;
+  const attackProperties = [];
+  if (state.attack?.aim) attackProperties.push("aim");
+  if (isNPAttack(state.attack)) attackProperties.push("np");
+  if ((auto.beatenBy ?? []).some((p) => attackProperties.includes(p))) return state;
+
+  const chance = chanceFor(auto, attackProperties);
+  const roll = (await new Roll("1d100").evaluate()).total;
+  const success = roll <= chance;
+  // A full roll record, with its own id: the log drops a second record under
+  // one id, and the miss check's carries none.
+  const turn = currentMoment().tick ?? 0;
+  const name = auto.source ?? "Instinct";
+  const rollRecord = {
+    ...rollLog.record({
+      id: `${state.attackerId}:${defender.id}:instinct:${turn}`,
+      globalTurn: turn,
+      entryId: "instinct",
+      formula: "1d100",
+      raw: roll,
+      total: roll,
+      modifiers: [{ source: `${name}: ${chance}%`, delta: 0, stage: "chance" }],
+      // In the words the other roll lines use (`evades`, `contests`).
+      purpose: `${shownName(defender)}'s ${name}: ${roll} against ${chance}%, `
+        + (success ? "Evaded automatically" : "failed; the Attack goes on"),
+      actorId: defender.id,
+    }),
+    check: "instinct", target: chance, outcome: success ? "success" : "fail",
+  };
+  if (!success) return { ...state, rolls: rollLog.append(state.rolls ?? [], rollRecord) };
+
+  let out = process.advance(state, "evade");
+  out = process.advance(out, "success", {
+    success: true, automatic: true, roll, total: roll, table: null, chance,
+    modifiers: [{ source: auto.source ?? "Instinct", value: 0 }], rollRecord,
+  });
+  await fireEvadeSucceeded(out);
+  return out;
 }
 
 /**
@@ -6980,7 +7200,9 @@ function offeredReactions(defenderId, attack = null, isAoE = false, attackerId =
     actorFor: (id) => game.actors.get(id),
   }).map((a) => ({
     id: a.ability.id,
-    name: `${a.ability.name} (${a.ownerName})`,
+    // Its owner as the table knows them: the card is public, and it read
+    // "Avalon: The Everdistant Utopia (Arturia)" under a concealed Saber (#230).
+    name: `${a.ability.name} (${shownName(board.units.find((u) => u.id === a.ownerId) ?? { id: a.ownerId, name: a.ownerName })})`,
     ownerId: a.ownerId,
   }));
 

@@ -155,6 +155,13 @@ export function expand(shape, anchor, opts = {}) {
       const along = (d === "n" || d === "s") !== Boolean(shape.turnable && anchor.transverse);
       const w = along ? shape.short : shape.long;
       const h = along ? shape.long : shape.short;
+      // Placed along her side by `shift` when there is a choice to make: a
+      // caster on several panels, or a block too even to centre on one
+      // (Excalibur's 6x3, #230 reading 13). The default placement is the one
+      // `orthogonalAdjacentRect` always gave.
+      if (anchor.casterPanels?.length && typeof anchor.shift === "number" && ["n", "e", "s", "w"].includes(d)) {
+        return flat(footprintAdjacentRect(anchor.casterPanels, w, h, d, anchor.shift, bounds));
+      }
       return flat(orthogonalAdjacentRect(anchor.casterPanel ?? origin, w, h, d, bounds));
     }
 

@@ -1,0 +1,27 @@
+# Dragon's Reactor Core's third effect.
+#
+# > "Applies the 'DRC' buff for the rest of the Round at the end of the Turn
+# > this Skill used, all damage dealt by Normal Attacks is increased by 25%.
+# > Normal Attacks performed with Mana Burst are not affected by the DRC buff."
+# > (#230)
+#
+# Applied by `drcPending` at the end of the Turn it was used (reading 9), lasting
+# until the Round ends. A Riding Attack is a Normal Attack for it (reading 25);
+# a Mana Burst is one too, and the sheet takes it out by name
+# (`attack:madeWith:arturia-mana-burst`).
+schema: 1
+id: drc
+name: "DRC"
+description: "All damage dealt by Normal Attacks is increased by 25%, except Normal Attacks performed with Mana Burst."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 25
+    npValue: 25
+    predicate: ["attack:kind:normal", "not:attack:madeWith:arturia-mana-burst"]

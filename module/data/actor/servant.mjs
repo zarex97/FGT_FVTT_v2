@@ -88,6 +88,11 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       // the chosen branch's `overrides` into the committed sheet patch, and
       // writes the result below.
       summonVariant: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      // Items a Servant may arrive with on a die: `[{item, roll, on}]`.
+      // Arturia's Avalon: *"When Arturia is summoned, roll an eight-sided die.
+      // If an 8 is rolled, she is summoned with the [Avalon] Item"* (#230). A
+      // line of the summon plan (`rules/setup-rolls.mjs`), granted at commit.
+      summonItems: new fields.ArrayField(new fields.ObjectField()),
 
       // The RESOLVED result of `summonVariant`, once and for ever from summon --
       // `"dsc"` or `"noDsc"` for Semiramis. `null` for every Servant without a

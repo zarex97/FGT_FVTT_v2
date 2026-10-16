@@ -307,7 +307,12 @@ describe("a non-damaging Noble Phantasm", () => {
       // The duel, the thirteenth. Its one phase opens a bounded field, and
       // everything the Noble Phantasm does is that area's doing.
       "achilles-diatrekhon-aster-lonkhe",
+      // Avalon, both of them (#230): Arturia's is a barrier raised at the
+      // reaction rung, Kosmos's shape; her Master's cuts the damage and wards
+      // its debuffs. Neither swings.
+      "arturia-avalon",
       "asterios-chaos-labyrinthos",
+      "avalon-master",
       // Golden Hind: Wild Hunt. "(Non-damaging/Passive/Activation)" is the
       // first thing its sheet entry says, and its one phase puts a ship on the
       // board -- every rule that follows is the platform's, not the NP's.

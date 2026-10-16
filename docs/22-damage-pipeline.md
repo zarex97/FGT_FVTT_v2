@@ -82,6 +82,11 @@ Fixed damage bypasses stages 2–15 entirely and goes straight to stage 16 (`mod
 
 **One Attack Description** (CONTEXT.md). `describeAttack({ state, attacker, defender, board, ability })` returns the facts, the option set, the damage block, the identity and the `attack` object the pipeline reads. The resolution (`applyDamage`), the targeting preview (`previewContext`) and the counterfactual (`counterfactualDescription`) all call it; the preview and the counterfactual first declare the attack through `buildAttackSpec`, as a press does. `test/unit/attack-description.test.mjs` sweeps seven Servants' damage abilities and Normal Attacks for agreement, and fails if an element's share is written anywhere else.
 
+**The preview spreads the instance too (#230).** A Process's attack is its declaration with one damage instance spread
+over it, and the keys for how modifiers treat it (`bypassModifiers`, `modifierSources`, `totalModifiers`) live on the
+instance. `attack.mjs#instancesAgainst` is the one reader of a defender's instances, for `declareProcesses` and
+`previewContext` both: Strike Air previewed 375 and dealt 300 before it.
+
 ## Invariants & edge cases
 
 1. **The `5d10` roll belongs to stage 2, not stage 1.** It is not a base-attack factor; it scales the base before the ability multiplier. Placing it after the multiplier reverses the author's reference calculation (`module/rules/damage/pipeline.mjs:284-287`).

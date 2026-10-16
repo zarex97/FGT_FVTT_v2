@@ -50,6 +50,7 @@ import { orderElements } from "./ordering.mjs";
  * @property {string[]} refusesReactions  rungs a unit this one attacks may not take
  * @property {string[]} attributes       attributes granted by an ability
  * @property {object|null} magicResistance
+ * @property {object[]} magicResistanceVariants  thresholds that replace it against a named kind of attack
  * @property {string|null} variantOverride
  * @property {string|null} revealsEffect
  * @property {object[]} vulnerabilityAmplifiers
@@ -71,14 +72,14 @@ export function empty() {
   return {
     modifiers: [], statDeltas: [], checkModifiers: [], immunities: [],
     suppressions: [], grantedAbilities: [], autoSucceeds: [], eventHandlers: [], revivals: [],
-    attributes: [], magicResistance: null, variantOverride: null, revealsEffect: null, damageNegation: [], zonBonuses: [],
+    attributes: [], magicResistance: null, magicResistanceVariants: [], variantOverride: null, revealsEffect: null, damageNegation: [], zonBonuses: [],
     vulnerabilityAmplifiers: [], periodicOverrides: [],
     abilityRankShifts: [],
     auras: [], applicationChances: [], compulsions: [], preemptions: [], damageFloors: [],
     excludesOpponentSources: [], unhandled: [],
     autoCounters: [], forbiddenReactions: [], refusesReactions: [], durationExtensions: [], optionalCosts: [],
     buffRemovalResist: [], knockback: null,
-    forcedModeRules: [], magnitudeScales: [], attackProperties: [],
+    forcedModeRules: [], magnitudeScales: [], attackProperties: [], terrainPenaltyImmunities: [], lethalFloors: [],
     categoryUseLimits: [], baseAttackModifiers: [],
   };
 }
@@ -99,6 +100,13 @@ export function collectContributions(abilities, ctx = {}) {
   const suppressedScopes = ctx.suppressedScopes ?? [];
 
   const shifts = abilityRankShifts(abilities, predicateCtx);
+  // The bearer's own abilities by slug, for an Aura that LENDS one of them
+  // (`Aura.lendsAbility`, Arturia's Radiant). An ability negated on its bearer
+  // is not in `abilities` at all, so it lends nothing either: *"If Arturia is
+  // inflicted with Skill Seal, Instinct will still have no effect for all
+  // Units"* (#230) falls out of the negation rather than being restated.
+  const lendable = new Map((abilities ?? []).filter((a) => !a.fromEffect).map((a) => [a.slug ?? a.id, a]));
+  const runCtx = { ...ctx, lendable };
 
   for (const ability of abilities ?? []) {
     const rank = shiftedRank(ability, shifts);
@@ -156,7 +164,7 @@ export function collectContributions(abilities, ctx = {}) {
         continue;
       }
       const before = ability.fromEffect ? bucketLengths(out) : null;
-      execute(el, { rank, source, ability, out, ctx, deferred });
+      execute(el, { rank, source, ability, out, ctx: runCtx, deferred });
       if (before) stampInstance(out, before, ability.id);
     }
   }
@@ -822,6 +830,36 @@ function rollSpec(table, rank) {
 }
 
 /**
+ * The elements an Aura delivers: its own, or those of an ability its bearer
+ * LENDS.
+ *
+ * Arturia's Radiant: *"all other allied Units within a 2 panel area of herself
+ * gain the effects of her 'Instinct' Skill"* (#230). Copying Instinct's numbers
+ * into the buff would be a second statement of one Skill, and the two would
+ * drift; `lendsAbility` names it and reads its rules off the bearer, at its
+ * Rank. An ability the bearer does not have, or has negated, lends nothing.
+ *
+ * @param {object} el the Aura element
+ * @param {Rank|null} rank the owning ability's rank
+ * @param {object} ctx the collection context, with `lendable`
+ * @param {string} source
+ * @param {object} ability
+ * @returns {object[]|null}
+ */
+function auraElementsOf(el, rank, ctx, source, ability) {
+  if (el.lendsAbility) {
+    const lent = ctx?.lendable?.get?.(el.lendsAbility) ?? null;
+    if (!lent) return [];
+    const lentRank = lent.rank ? Rank.parseOrNull(lent.rank) : rank;
+    const rules = [...(lent.rules ?? []), ...(lent.passiveRules ?? []), ...(lent.active ? (lent.activeRules ?? []) : [])];
+    return rules.map((e) => auraElement(e, lentRank, ctx, lent.name ?? source, lent));
+  }
+  return el.elements
+    ? el.elements.map((e) => auraElement(e, el.rank ? Rank.parse(el.rank) : rank, ctx, source, ability))
+    : null;
+}
+
+/**
  * One element nested inside an `Aura`, with its rank table resolved.
  *
  * `rules/auras.mjs` hands a nested element to the recipient as authored --
@@ -860,6 +898,18 @@ function auraElement(el, rank, ctx, source, ability = null) {
   }
   // A crit clause lands in two different buckets depending on its aspect, and
   // Area Crit Up's raw `{key: CritModifier}` landed in neither (#103).
+  // A check modifier and an automatic success, through their executors, so a
+  // LENT ability reaches its recipient as it reaches its bearer: Radiant hands
+  // Arturia's Instinct -- a 70% automatic Evade and Crit Chance +10% -- to the
+  // allies beside her (#230), and both landed raw in `modifiers`, where the
+  // check reader never looks.
+  if (el?.key === "CheckModifier" || el?.key === "AutoSucceed") {
+    const scratch = { checkModifiers: [], autoSucceeds: [] };
+    EXECUTORS[el.key](el, { rank, source, ability, out: scratch, ctx });
+    return el.key === "CheckModifier"
+      ? { key: "checkModifier", ...scratch.checkModifiers[0] }
+      : { key: "autoSucceed", ...scratch.autoSucceeds[0] };
+  }
   if (el?.key === "CritModifier") {
     const scratch = { modifiers: [], checkModifiers: [] };
     EXECUTORS.CritModifier(el, { rank, source, ability, out: scratch, ctx });
@@ -1000,6 +1050,15 @@ export const EXECUTORS = Object.freeze({
       // with no element at all. Stage 7 routes it through the element's own
       // share so a Lightning ward meets the 40 and nothing else.
       element: el.element ?? null,
+      // A CHANCE to be added at all, rolled once per strike by the engine
+      // (`engine/attack.mjs#rollModifierDice`) and read at stage 7. Excalibur's
+      // passive: *"Arturia's Normal Attacks have a 50% chance of dealing 25
+      // extra Light damage to the DU, 50 if the DU has the 'Dark' Attribute"*
+      // (#230). Keyed by `chanceKey`, so the two branches of one clause share
+      // one die.
+      ...(typeof el.chance === "number"
+        ? { chance: { percent: el.chance, key: `chance:${el.chanceKey ?? source}` } }
+        : {}),
       predicate: deferred,
       source,
     });
@@ -1010,6 +1069,28 @@ export const EXECUTORS = Object.freeze({
    * version can negate outright, the dice version never can.
    */
   Resistance(el, { rank, source, out, ctx }) {
+    // A threshold that REPLACES the bearer's own against one kind of attack.
+    // Arturia's Passive 3: *"When Arturia receives MAG damage from an Attack
+    // with the 'Anti-Dragon' Attribute, Magic Resistance only negates damage
+    // from a MAG Rank of up to C, otherwise MAG damage taken is reduced by
+    // 25%"* (#230 reading 21). Not a second `magicResistance`: the stronger of
+    // two would win, and this one is the weaker on purpose.
+    // `attackTag` is the short form a parameterized template can fill: a
+    // placeholder is substituted only as a whole string, never inside one.
+    const attackPredicate = el.attackPredicate ?? (el.attackTag ? [`attack:tag:${el.attackTag}`] : null);
+    if (attackPredicate) {
+      // A template's unfilled `"@rank"` is no rank (`rule-survival` runs the
+      // executors over the templates themselves).
+      const threshold = typeof el.negatesUpToRank === "string" && el.negatesUpToRank.startsWith("@")
+        ? null : Rank.parseOrNull(el.negatesUpToRank ?? null);
+      out.magicResistanceVariants.push({
+        rank: threshold,
+        percent: scalar(resolveValue(el, rank, ctx)),
+        attackPredicate,
+        source,
+      });
+      return;
+    }
     if (el.mode === "dice") {
       out.magicResistance = {
         mode: "dice", formula: el.formula, npDiceDoubled: el.npDiceDoubled ?? true, source,
@@ -1493,6 +1574,9 @@ export const EXECUTORS = Object.freeze({
       // proceed as normal, which is why this is a roll and not a refusal.
       chance: el.chance ?? 100,
       chanceWhen: el.chanceWhen ?? [],
+      // Rolled by itself the moment its holder is Attacked, before it reacts,
+      // rather than granted when it chooses to Evade (Arturia's Instinct, #230).
+      whenAttacked: el.whenAttacked === true,
     });
   },
 
@@ -1792,9 +1876,7 @@ export const EXECUTORS = Object.freeze({
       // Semiramis's Territory Creation is Rank EX and carries a second aura
       // declaring `rank: C` -- her ground Home Base -- so resolving both
       // against the ability would hand the C clause EX's dice.
-      elements: el.elements
-        ? el.elements.map((e) => auraElement(e, el.rank ? Rank.parse(el.rank) : rank, ctx, source, ability))
-        : null,
+      elements: auraElementsOf(el, rank, ctx, source, ability),
       // A named ROLE the recipient must hold, relative to the bearer. Pollux's
       // *"Castor also receives the effect of this Skill"* is `linkedPartner`.
       // Dropped here, the aura reached every adjacent ally instead (#102).
@@ -1883,12 +1965,53 @@ export const EXECUTORS = Object.freeze({
    * FAMILIES on purpose — `effects/atk-dwn.yml` records why, and buff removal
    * strips one and cannot touch the other — and her sheet names Atk Dwn.
    */
+  /**
+   * A terrain whose PENALTIES this Unit does not take, its benefits kept.
+   *
+   * Arturia's Vivian's Blessing: *"Arturia receives no negative effects from
+   * being within a Waterside area"* (#230 reading 20) -- not Waterside's MOV
+   * -1, its Evade +1 or its weakness to Lightning and Ice; still its +25% to
+   * Water and its Fire resistance. Read by `rules/terrain.mjs#terrainEffects`,
+   * which knows which of a terrain's entries are penalties.
+   */
+  /**
+   * Not defeated by a blow taken at or above a share of the maximum: Health
+   * drops to 1 instead.
+   *
+   * Avalon inside a Master: *"If Arturia's Master would be defeated while its
+   * Health is at 10% of its maximum value or higher, it is not defeated and its
+   * Health drops to 1 instead"* -- 5% once she is defeated, or in another
+   * Master (#230). Read when the defeat is decided
+   * (`engine/attack.mjs#resolveDefeatOf`), with the Health from before the
+   * blow, every time (reading 18). The predicate waits for then: which floor
+   * holds turns on where she stands.
+   */
+  SurviveLethal(el, { source, out, deferred = null }) {
+    out.lethalFloors.push({
+      atOrAbovePercent: typeof el.atOrAbovePercent === "number" ? el.atOrAbovePercent : 0,
+      predicate: deferred ?? el.predicate ?? null,
+      source,
+    });
+  },
+
+  TerrainPenaltyImmunity(el, { out }) {
+    if (el.terrain) out.terrainPenaltyImmunities.push(el.terrain);
+  },
+
   EffectMagnitudeScale(el, { source, out }) {
     out.magnitudeScales.push({
       direction: el.direction ?? "incoming",
       effects: el.effects ?? null,
       family: el.family ?? null,
       factor: typeof el.factor === "number" ? el.factor : 1,
+      // `read`: scales a HELD magnitude for as long as this rule stands, and
+      // stops when it goes. Arturia's Invisible Air: *"The magnitude of Crit
+      // Dwn is halved on Arturia. If Invisible Air is deactivated while Arturia
+      // is affected by Crit Dwn effects, the magnitude of the Crit Dwn effects
+      // are un-halved"* (#230). A stamp cannot be taken back, so the snapshot
+      // applies these when it resolves the effect (`rules/snapshot.mjs`), and
+      // the applier leaves them alone.
+      timing: el.timing ?? "apply",
       source,
     });
   },
@@ -2122,6 +2245,9 @@ export const EXECUTORS = Object.freeze({
   BaseAttackModifier(el, { source, out }) {
     out.baseAttackModifiers.push({
       factor: el.factor ?? 1,
+      // A flat addition after the factor: Avalon's *"Base Attack (STR & MAG) is
+      // increased by 50"* (#230).
+      add: typeof el.add === "number" ? el.add : 0,
       components: el.components ?? ["str", "mag"],
       source,
     });

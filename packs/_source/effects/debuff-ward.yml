@@ -1,0 +1,16 @@
+# Negate debuffs the holder picks, up to its uses.
+#
+# The Master's Avalon: "negate up to Y additional negative effects (i.e.
+# debuffs) from that Attack" (#230), the Master's pick (reading 19). Each debuff
+# that would land asks the holder's owner, while uses remain
+# (`engine/landing.mjs#offerWard`); a yes negates it and spends one.
+schema: 1
+id: debuffWard
+name: "Debuff Ward"
+description: "Negates up to X debuffs, the holder's pick."
+polarity: status
+volatility: nonVolatile
+valence: defensive
+stacking: count
+baseChance: 100
+unremovable: true

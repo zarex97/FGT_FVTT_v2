@@ -1,0 +1,112 @@
+# [Avalon], the Item (#230).
+#
+# Arturia arrives with it on an 8 of a d8 (`summonItems`, reading 14). She does
+# not wear it: she places it INSIDE her Master, and it works there. So its rules
+# run while it is held (`worksWhenHeld`) and every one of them names its holder
+# a Master (`self:type:master`): on Arturia it does nothing but let her use it.
+#
+# What it does inside a Master turns on her (`rules/bonds.mjs`): her own Master
+# with her within 3 (`own`, `within:3`), her own Master with her farther or
+# defeated, or another Master it was passed to. `bondMasterId`, written when she
+# places it, is what "her Master" means for the rest of the war.
+#
+# It cannot be Stolen or dropped: nothing in the game steals or drops an Item
+# but Pale Rider's redirect, which never names it. If she falls holding it, it
+# stays with her (reading 22).
+schema: 1
+id: avalon
+name: "[Avalon]"
+type: equipment
+quantity: 1
+transferable: false
+worksWhenHeld: true
+# A Master holding it may use it (`avalon-master`) and pass it on (`avalon-pass`).
+grants: { kinds: [master], abilities: [avalon-master, avalon-pass] }
+description: |
+  While [Avalon] is inside a Master:
+  a. Max Health is increased by 100; Max Luck is increased by 2, and Base Attack (STR & MAG) is
+     increased by 50.
+  b. At the end of its Turn, at the end of any Turn it Acts, and at the end of a Damage Step
+     whenever it takes damage, its Health is restored by 20% of its maximum value and Agility by
+     2 if Arturia is at most 3 panels away; 10% and 1 if she is farther or defeated; 5% and 1 in
+     any other Master.
+  c. If it would be defeated while its Health is at 10% of its maximum value or higher (5% once
+     Arturia is defeated, or in any other Master), it is not defeated and its Health drops to 1.
+  d. It is immune to Death and Erase.
+  e. It cannot be Overpowered.
+  [Avalon] cannot be Stolen or dropped.
+rules:
+  # a.
+  - { key: MaxDelta, stat: health, value: 100, predicate: ["self:type:master"] }
+  - { key: MaxDelta, stat: luck, value: 2, predicate: ["self:type:master"] }
+  - { key: BaseAttackModifier, add: 50, components: [str, mag], predicate: ["self:type:master"] }
+  # c. The floor that holds is asked when the blow lands: 10% for her own
+  # Master while she stands, 5% otherwise. Exactly one of the two can pass.
+  - key: SurviveLethal
+    atOrAbovePercent: 10
+    predicate: ["self:type:master", "self:bond:avalon:own", "not:self:bond:avalon:defeated"]
+    defer: true
+  - key: SurviveLethal
+    atOrAbovePercent: 5
+    predicate:
+      - "self:type:master"
+      - { or: ["not:self:bond:avalon:own", "self:bond:avalon:defeated"] }
+    defer: true
+  # d. and e.
+  - { key: Immunity, effects: [death, erase], predicate: ["self:type:master"] }
+  - { key: Suppress, scope: overpower, predicate: ["self:type:master"] }
+  # b. The end of its own Turn and the end of any Turn it Acts are one heal at
+  # one Turn's end, never two (reading 17): one handler hears both passes.
+  - key: OnEvent
+    event: [turnEnd, actedTurnEnd]
+    automatic: true
+    targetPredicate: ["self:type:master", "self:bond:avalon:own", "self:bondWithin:avalon:3"]
+    then:
+      - { key: Heal, percentOfMax: 20 }
+      - { key: StatDelta, stat: agility.value, delta: 2 }
+  - key: OnEvent
+    event: [turnEnd, actedTurnEnd]
+    automatic: true
+    targetPredicate: ["self:type:master", "self:bond:avalon:own", "not:self:bondWithin:avalon:3"]
+    then:
+      - { key: Heal, percentOfMax: 10 }
+      - { key: StatDelta, stat: agility.value, delta: 1 }
+  - key: OnEvent
+    event: [turnEnd, actedTurnEnd]
+    automatic: true
+    targetPredicate: ["self:type:master", "not:self:bond:avalon:own"]
+    then:
+      - { key: Heal, percentOfMax: 5 }
+      - { key: StatDelta, stat: agility.value, delta: 1 }
+  # ...and after a Damage Step that damaged it: an Attack's, not a Knockback's
+  # measured damage (#223).
+  - key: OnEvent
+    event: damageTaken
+    # A Damage Step that DAMAGED him: a hit cut to 0 is a hit for the riders
+    # (#204), never a heal here (#230, live).
+    eventFilter: { amount: positive }
+    automatic: true
+    targetPredicate: ["not:attack:plainDamage", "self:type:master", "self:bond:avalon:own", "self:bondWithin:avalon:3"]
+    then:
+      - { key: Heal, percentOfMax: 20 }
+      - { key: StatDelta, stat: agility.value, delta: 2 }
+  - key: OnEvent
+    event: damageTaken
+    # A Damage Step that DAMAGED him: a hit cut to 0 is a hit for the riders
+    # (#204), never a heal here (#230, live).
+    eventFilter: { amount: positive }
+    automatic: true
+    targetPredicate: ["not:attack:plainDamage", "self:type:master", "self:bond:avalon:own", "not:self:bondWithin:avalon:3"]
+    then:
+      - { key: Heal, percentOfMax: 10 }
+      - { key: StatDelta, stat: agility.value, delta: 1 }
+  - key: OnEvent
+    event: damageTaken
+    # A Damage Step that DAMAGED him: a hit cut to 0 is a hit for the riders
+    # (#204), never a heal here (#230, live).
+    eventFilter: { amount: positive }
+    automatic: true
+    targetPredicate: ["not:attack:plainDamage", "self:type:master", "not:self:bond:avalon:own"]
+    then:
+      - { key: Heal, percentOfMax: 5 }
+      - { key: StatDelta, stat: agility.value, delta: 1 }

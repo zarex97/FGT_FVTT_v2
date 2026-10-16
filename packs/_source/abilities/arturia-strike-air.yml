@@ -1,0 +1,37 @@
+# Strike Air: Hammer of the Wind King, Rank C (#230).
+#
+# Nemo's Barrel Bombing is the shape: a fixed figure that her own modifiers do
+# not touch (`bypassModifiers.attacker`), the defender's still do. Ruled
+# 2026-10-16 (reading 11): it is not MAG damage, so Magic Resistance never cuts
+# it, and it works with Invisible Air on or off. After it, Invisible Air is off
+# and barred for 1◈.
+schema: 1
+id: arturia-strike-air
+name: "Strike Air: Hammer of the Wind King"
+rank: C
+kind: noblePhantasm
+slug: strikeAir
+isNP: true
+npTags: [antiUnit]
+element: wind
+cooldown: { max: "5◈" }
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+description: |
+  Range=3. Deals 300 damage to 1 target. Not affected by any damage modifying effects on Arturia.
+  Wind damage. Strike Air deactivates @np[arturia-invisible-air]{Invisible Air} for 1◈ Turns after its use.
+  Cooldown: 5◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 3 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  base: { fixedValue: 300 }
+  component: str
+  element: wind
+  bypassModifiers: { attacker: true, defender: false }
+phases:
+  - kind: damage
+  - kind: setMode
+    ability: invisibleAir
+    suspendFor: "1◈"

@@ -1,0 +1,39 @@
+# Avalon -- Method 2, placing it inside her Master (#230).
+#
+# > "Used on her Master, when Arturia is directly next to her Master and they
+# > are both in their Home Base. Arturia places [Avalon] inside her Master (this
+# > counts as Arturia giving the [Avalon] Item to her Master); both Arturia and
+# > her Master cannot Attack on the same Turn, and cannot Move after Avalon is
+# > used in this way."
+#
+# Ruled 2026-10-16 (reading 16): on her own Turn, before either of them
+# Attacks; after it neither Attacks nor Moves (`itemRite`); not held back by the
+# NP Round gate, and so not an NP use. `bind` records her as who placed it, and
+# her Master, for everything Avalon then does there (`rules/bonds.mjs`).
+schema: 1
+id: arturia-avalon-place
+name: "Avalon (place in Master)"
+kind: skill
+slug: avalonPlace
+rank: EX
+countsAsAttack: false
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+requirements:
+  - { kind: itemAtLeast, contentId: avalon, amount: 1 }
+  - { kind: besideMaster }
+  - { kind: inHomeBase, who: both }
+  - { kind: notAttackedThisTurn, who: both }
+description: |
+  (Avalon, Method 2) Used on her Master, when Arturia is directly next to her Master and they are
+  both in their Home Base. Arturia places @ability[avalon]{[Avalon]} inside her Master (this counts as Arturia
+  giving the Item to her Master); both Arturia and her Master cannot Attack on the same Turn, and
+  cannot Move after.
+phases:
+  - kind: transferItem
+    target: self
+    item: avalon
+    from: self
+    to: master
+    bind: true
+    lock: [self, master]

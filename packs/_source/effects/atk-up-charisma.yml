@@ -18,6 +18,10 @@ volatility: nonVolatile
 valence: offensive
 stacking: magnitudeStacks
 baseChance: 100
+# The family every Charisma passive asks about (`self:effectFamily:atkUpCharisma`):
+# this aura, and the Atk Up (Charisma) a Unit holds itself (`atkUpCharismaUnit`,
+# Arturia's Knight of Utopia, #230).
+families: [atkUpCharisma]
 rules:
   - key: Aura
     modifierKey: atkUp

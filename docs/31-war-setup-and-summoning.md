@@ -78,6 +78,10 @@ field (1 to `openingMax`) on its card, and a ±3 on its Agility and Luck lines w
 the rest of the opening count clones of it, seated and placed beside it like a summoned partner. From Round 2 each
 Round's start offers its Master's player free panels to deploy more (Ch. 32).
 
+**An Item on a summon die (#230).** A Servant's `summonItems` adds a line per Item to the summon plan, shown and
+re-rollable like the rest; `commitSummon` grants the Item on a listed face (`setup-rolls.mjs#summonItemsGranted`).
+Arturia arrives with [Avalon] on an 8 of a d8.
+
 ## Invariants & edge cases
 
 **A summon's panels can be its owner's pick, and it can leave with its summoner** (#193 readings 13, 15). `placement.chooser: owner` asks the owner, through `askOwner` and the `pickPanels` prompt, for one panel per summon among the free ones; a cancel places the rest. `leavesWithSummoner: true` dismisses the summon when `io.defeat` writes its summoner's defeat. `dismissSummon` deletes tokens by scene query and then the WORLD actor: `resolve` prefers an unlinked token's synthetic actor, and deleting that left the world actor behind. The card names the dice and who came, and the type choice lists names.

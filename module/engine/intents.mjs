@@ -35,6 +35,9 @@ export const INTENT_TYPES = Object.freeze([
   "suspendSkill", "setStage", "event",
   // A defeated Unit's body leaving the board (#65, ruling 25).
   "clearBody",
+  // An Item handed from one Unit to another WHOLE, its bond with it (Avalon,
+  // #230): not a quantity moved, the one document moved.
+  "moveItem",
   // Secret Poison's tick, banked against its inflicter instead of taken
   // (#199 reading 10).
   "bankSecret",
@@ -70,6 +73,9 @@ const ORDER = Object.freeze({
   // bearer is still gone. Same rank as the other bookkeeping writes.
   itemQuantity: 2,
   itemGrant: 2,
+  // Beside the other item writes: what a Unit holds decides which rules it
+  // collects next.
+  moveItem: 2,
   // A contract and its spells are bookkeeping, and they must land together:
   // Ch. 32 requires no intermediate state between freeing and contracting.
   markContract: 2,
@@ -522,6 +528,20 @@ export const itemQuantity = (unitId, itemId, delta) =>
  */
 export const itemGrant = (unitId, contentId, delta = 1, dropAt = null) =>
   ({ t: "itemGrant", unitId, contentId, delta, ...(dropAt ? { dropAt } : {}) });
+
+/**
+ * Move one Item, whole, from its holder to another Unit, and record who bound it
+ * there. Arturia places Avalon inside her Master, takes it back, and her Master
+ * passes it to another allied Master (#230). Keyed on the RECEIVER as `unitId`,
+ * so the batch writes it where it lands.
+ *
+ * @param {string} unitId the receiver
+ * @param {string} fromId the holder now
+ * @param {string} contentId
+ * @param {{bondUnitId?: string|null, bondMasterId?: string|null}} [bond] left as it was when absent
+ */
+export const moveItem = (unitId, fromId, contentId, bond = null) =>
+  ({ t: "moveItem", unitId, fromId, contentId, ...(bond ? { bond } : {}) });
 
 /**
  * Set a unit's contract state and its Master (Ch. 32).

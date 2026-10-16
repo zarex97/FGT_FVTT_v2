@@ -22,6 +22,7 @@
  */
 
 import { Scheduler } from "./scheduler-hooks.mjs";
+import { markEngineReady } from "./engine-ready.mjs";
 import { Hgob } from "./hgob.mjs";
 import { Movement } from "./movement-hooks.mjs";
 import { Terrain } from "./terrain.mjs";
@@ -116,5 +117,7 @@ export function attachEngineListeners({ skip = [] } = {}) {
     attach();
     bound.push(id);
   }
+  // A boundary heard before now has been waiting for this (`engine-ready.mjs`).
+  markEngineReady();
   return bound;
 }

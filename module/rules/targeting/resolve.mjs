@@ -375,7 +375,7 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   if (sel.attributes) {
     survivors = survivors.filter((u) =>
       testPredicate(sel.attributes, {
-        options: optionsForUnit(u),
+        options: optionsForUnit(u, caster),
         refs: { self: caster, target: u, board },
       }) || drop(u, "excluded by this ability's target predicate"),
     );
@@ -760,7 +760,9 @@ function resolveAnchor(spec, caster, board, placement, errors) {
       if (!DELTA[direction]) errors.push(`Unknown direction "${direction}".`);
       // A caster on several panels: the block sits against her whole side,
       // and `shift` picks between two equal placements (#198 reading 3).
-      return casterPanels.length > 1
+      // And from one panel when the player picked a placement (#230): an
+      // even-wide oriented block beside a single panel sits one of two ways.
+      return casterPanels.length > 1 || typeof placement.shift === "number"
         ? { ...base, panel: casterPanel, direction, casterPanels, shift: placement.shift ?? 0 }
         : { ...base, panel: casterPanel, direction };
     }
@@ -1128,8 +1130,16 @@ function candidatePlacements(spec, caster, board, max) {
       // unofferable. Ch. 45 reads it as a geometry gap; it was not.
       return (spec.shape?.directions === "all"
         ? ["n", "ne", "e", "se", "s", "sw", "w", "nw"]
-        : ["n", "e", "s", "w"]).flatMap((direction) => edgeShifts(spec, caster, direction)
-        .map((shift) => (shift === null ? { direction } : { direction, shift })));
+        : ["n", "e", "s", "w"]).flatMap((direction) => (turnable(spec) ? [false, true] : [false])
+        // A turnable block beside her offers both turns in every direction,
+        // and the long side across her a placement each way when it cannot
+        // centre: Excalibur's *"3x6 or 6x3 ... next to Arturia"* (#230 reading 13).
+        .flatMap((transverse) => edgeShifts(spec, caster, direction, transverse)
+          .map((shift) => ({
+            direction,
+            ...(transverse ? { transverse: true } : {}),
+            ...(shift === null ? {} : { shift }),
+          }))));
 
     // Mode B. Every panel the anchor could legally sit on, plus the panels just
     // outside it -- the overlay needs to draw the boundary, not only its inside.
@@ -1198,14 +1208,24 @@ function candidatePlacements(spec, caster, board, max) {
  * @param {string} direction
  * @returns {Array<number|null>}
  */
-function edgeShifts(spec, caster, direction) {
-  const panels = caster?.panels ?? [];
+function edgeShifts(spec, caster, direction, transverse = false) {
+  const panels = caster?.panels?.length ? caster.panels : [caster?.panel].filter(Boolean);
   const shape = spec.shape ?? {};
-  const block = shape.kind === "square" ? { w: shape.size, h: shape.size }
-    : shape.kind === "rect" ? { w: shape.w, h: shape.h } : null;
-  if (panels.length <= 1 || !block || !["n", "e", "s", "w"].includes(direction)) return [null];
+  if (!["n", "e", "s", "w"].includes(direction)) return [null];
   const vertical = direction === "n" || direction === "s";
   const span = (key) => Math.max(...panels.map((p) => p[key])) - Math.min(...panels.map((p) => p[key])) + 1;
+  // An oriented block's width ACROSS her side is its short side, or its long
+  // one turned (`shapes.mjs`'s `orientedRect`). From one panel too: a 6-wide
+  // block has no centre beside a single panel, so it sits one of two ways.
+  if (shape.kind === "orientedRect") {
+    if (panels.length === 0) return [null];
+    const across = transverse ? shape.long : shape.short;
+    const count = edgeOffsets(vertical ? span("j") : span("i"), across).length;
+    return count > 1 ? Array.from({ length: count }, (_, k) => k) : [null];
+  }
+  const block = shape.kind === "square" ? { w: shape.size, h: shape.size }
+    : shape.kind === "rect" ? { w: shape.w, h: shape.h } : null;
+  if (panels.length <= 1 || !block) return [null];
   const count = edgeOffsets(vertical ? span("j") : span("i"), vertical ? block.w : block.h).length;
   return Array.from({ length: count }, (_, k) => k);
 }
@@ -1393,13 +1413,25 @@ function parametersBelowBy(caster, target, steps) {
 }
 
 /**
+ * What a candidate IS, for a selection's `attributes` predicate.
+ *
+ * Its type, attributes and effects, and then the whole target side every other
+ * reader asks (`rules/options.mjs#rollOptionsFor`): Avalon's pass names
+ * `target:inHomeBase`, which this small set never held, so no Master was ever
+ * a legal target and the press said "excluded by this ability's target
+ * predicate" (#230, found live).
+ *
  * @param {object} u
+ * @param {object|null} [caster]
  * @returns {Set<string>}
  */
-function optionsForUnit(u) {
+function optionsForUnit(u, caster = null) {
   const out = new Set([`target:type:${u.kind}`]);
   for (const a of u.attributes ?? []) out.add(`target:attribute:${a}`);
   for (const e of u.effects ?? []) out.add(`target:effect:${e}`);
+  for (const o of rollOptionsFor({ attacker: caster, defender: u })) {
+    if (o.startsWith("target:")) out.add(o);
+  }
   return out;
 }
 

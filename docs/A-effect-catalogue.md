@@ -476,6 +476,11 @@ but they are ordinary catalogue entries in every other respect and are counted i
 | `Crit DmUp (Martial)` | B | O | cnt | 2 | Crit Damage +X%, **three uses or 1◈ Turns, whichever ends first** (R1). The first count-limited modifier in the corpus that fires inside the damage pipeline rather than on an event rung, so its charge is spent by a paired `damageDealt` handler predicated on `attack:crit` — the one moment that option is in the set. A `CritModifier` without that twin is an infinite buff. | Raikou |
 | `Dmg Up (Gods)` | B | O | mag | 4 | Damage dealt to Units with the `Undead` or `Divine` Attribute +X%, **including NP** — `dmgUp`, not `atkUp`, precisely because it takes no reduced NP magnitude. | Scáthach |
 | `Alpi` | B | O | cnt | — | Count-limited (3): at the **end of the Damage Step** of a successful Attack, NP cooldown −½◈ — or −1◈ if the DU is `Undead` or `Divine`. The first content to use §E's `damageStepEnd`, and the first handler with a `targetPredicate`. | Scáthach |
+| `Atk Up (Charisma)` held (id `atkUpCharismaUnit`) | B | O | mag | 4 | Atk Up on its own holder, of the `atkUpCharisma` family, so every Charisma passive goes quiet under it. Knight of Utopia's two, which stack (#230 readings 4, 23). | Arturia |
+| `Dmg Boost (Utopia)` | B | O | nr | 4 | After 3 Attacks (counted per Attack, `utopiaCount`), the next Normal Attack +200%, then removed, the count with it. A ride is one Normal Attack (#230 readings 5, 6, 25). | Arturia |
+| `Utopia` | B | O | nr | — | Each Attack's end (`attackPerformed`): NP Cooldown −⅓◈ per Unit it hit, a Block included (#230 reading 7). | Arturia |
+| `Radiant` | B | D | nr | — | An aura lending her `Instinct` to the other allies within 2 (`lendsAbility`); her Skill Seal lends nothing (#230 reading 8). | Arturia |
+| `DRC` | B | O | nr | 4 | Normal Attack damage +25% until the Round ends, applied at the end of the Turn its Skill was used (`drcPending`); not on a Mana Burst (`attack:madeWith`, #230 readings 9, 25). | Arturia |
 
 ### A.17.2 New statuses
 
@@ -497,6 +502,12 @@ Statuses are neither buffs nor debuffs: never removable by `Cure` or `Dispel`, n
 | `circuitsPending` | EMIYA | A marker with no rules, on him from the end of the first Combat Process of the NP that spent a one-shot to the end of its Combat Phase. The Overdrives ask for its absence. |
 | `Range Up` | Kiritsugu | Range +X panels (`rangeUp`, Familiars: +2 for 1◈). `noneExtend`: reapplied, its duration is extended. EMIYA's Magecraft used to share this id and no longer does. |
 | `Range Up (Hawkeye)` | EMIYA | Range +1 for 1◈ whenever he uses a Thaumaturgy Spell or a Projection Skill/NP (`rangeUpHawkeye`, applied by Magecraft). **Its own effect** (ruled 2026-10-14, #208 reading 14): it adds to another Range Up (Range +2 and +1 is +3), and reapplying it extends only itself. `noneExtend`: a second Spell adds its span to the clock it has (a handler's `ApplyEffect` restamped it from now before, so a second cast in the same Turn changed nothing). |
+| `evadeShift` | Arturia | The holder's own Evade rolls moved by X, the sign carried: Mana Burst's −2 for its Combat Phase (#230). Unremovable. |
+| `utopiaCount` | Arturia | One Attack counted towards `Dmg Boost (Utopia)`, each its own document; taken with the buff. |
+| `drcPending` | Arturia | One use, spent at the first Turn end: applies `DRC` until the Round ends (#230 reading 9). |
+| `itemRite` | Arturia | Avalon placed, taken back or passed on: no Attack and no Move for the rest of the Turn (`PREVENTS.itemRite`, #230 reading 16). |
+| `avalonVeil` | Arturia | The Master's Avalon: damage taken −X% including NP, for the Combat Phase (#230 reading 19). |
+| `debuffWard` | Arturia | Negates up to X debuffs as they land, the holder's pick each time (`landing.mjs#offerWard`); a count of charges (#230 reading 19). |
 | `heelWounded` | Achilles | **Permanent and incurable.** Suppresses `Andreias Amarantos` outright and re-parameterizes `Dromeus Komētēs` and `Runner Comet` (MOV −1, Evade +1, buff magnitudes → 10%). The only effect in the corpus that rewrites its bearer's other abilities and cannot be undone. |
 | `Utnapishtim` mark | Proto Gil | A **panel** marker, not a unit effect. Anchors `Enki`'s detonation 7◈ later; survives the caster leaving, but not the caster dying. |
 | `Bloodmark` | Medusa | A panel marker placed as a turn action. Four of them at the corners of a 5×5/7×7/9×9 complete `Blood Fort Andromeda`. Visible only within 3 panels; destroyable **only by Masters**. |

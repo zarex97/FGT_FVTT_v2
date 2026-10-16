@@ -16,6 +16,8 @@
 
   "Achilles": { "DK.pre": "DK.gate" },
 
+  "Arturia": { "IA.pre": "IA.lock", "AV.pre": "AV.gate" },
+
   "Asterios": { "ME.pre": "ME.lock", "CL.pre": "CL.geom" },
 
   "Dioscuri": {

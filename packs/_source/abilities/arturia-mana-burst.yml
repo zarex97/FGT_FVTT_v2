@@ -1,0 +1,54 @@
+# Mana Burst, Rank A (#230). Karna's, without the fire.
+#
+# > "(Active) This Skill is used when Arturia performs a Normal Attack. For that
+# > Combat Process, Arturia's Base Attack used is her BA(STR) and BA(MAG)
+# > combined (BA=375); and for that Combat Phase, Arturia's Evade Rolls are
+# > reduced by 2. Not affected by Magic Resistance. Can be used while on
+# > Cooldown, but she has to be within her Master's Servant Range and her Master
+# > loses 20 Health; using it in this way does not reset Cooldown. Cooldown: 3◈
+# > Turns. Cannot be used on the same Turn as Dragon's Reactor Core."
+#
+# 125 + 200 = 325 by the tables, not the printed 375 (reading 1). The Servant
+# Range is the ZON (reading 2): `cooldownOverride` is the price of a use ON the
+# Cooldown, which leaves the clock as it was (`rules/costs.mjs`). The Evade rider
+# lands on her before the hit and lasts the Combat Phase (`evadeShift`, -2: a
+# lower roll is the better one, as Achilles' "reduced by 4"). No Mana Burst
+# rides a Riding Attack (#206).
+schema: 1
+id: arturia-mana-burst
+name: "Mana Burst"
+rank: A
+kind: skill
+slug: manaBurst
+copyable: { allowed: false, reason: named }
+cooldown: "3◈"
+isAttackSkill: true
+countsAsNormalAttack: true
+timing: { window: ownTurn }
+sameTurnExclusive: [arturia-dragons-reactor-core]
+cooldownOverride: { masterHealth: 20, withinZon: true }
+description: |
+  (Active) This Skill is used when Arturia performs a Normal Attack. For that Combat Process,
+  Arturia's Base Attack used is her BA(STR) and BA(MAG) combined (BA=325); and for that Combat
+  Phase, Arturia's Evade Rolls are reduced by 2. Not affected by @ability[class-magic-resistance]{Magic Resistance}.
+  Can be used while on Cooldown, but she has to be within her Master's Servant Range (ZON) and her
+  Master loses 20 Health; using it in this way does not reset Cooldown.
+  Cooldown: 3◈ Turns. Cannot be used on the same Turn as @ability[arturia-dragons-reactor-core]{Dragon's Reactor Core}.
+targeting:
+  anchor: { kind: targetUnit }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  base:
+    sources:
+      - { unit: self, component: str, factor: 1 }
+      - { unit: self, component: mag, factor: 1 }
+  component: str
+  ignoresMagicResistance: true
+phases:
+  - kind: applyEffects
+    target: self
+    when: beforeDamage
+    effects:
+      - { id: evadeShift, magnitude: -2, duration: "until combatPhaseEnd" }
+  - kind: damage
