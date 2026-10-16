@@ -86,7 +86,7 @@ function withoutKeys(value) {
  */
 export async function withSubjects(specs, fn, {
   round = null, tick = null, settings = {}, tokens = false, combat = undefined, worldSettings = undefined,
-  regions = undefined,
+  regions = undefined, pack = [],
 } = {}) {
   await installSystem();
   const { library, docs, effects } = await corpus();
@@ -120,7 +120,12 @@ export async function withSubjects(specs, fn, {
       : []))
     : [];
 
-  return withWorld({ actors, tokens: placed, combat, settings: worldSettings, regions }, async (world) => {
+  // An Item compendium of the content ids named, compiled as the pack builder
+  // would: what an Item grant reads (Avalon granted, moved and giving its
+  // Master abilities, #230).
+  const packs = pack.length ? [await itemPack(pack, library, docs)] : [];
+
+  return withWorld({ actors, tokens: placed, combat, settings: worldSettings, regions, packs }, async (world) => {
     for (const [n, spec] of specs.entries()) {
       if (!spec.effects?.length) continue;
       await world.actor(actors[n].id).createEmbeddedDocuments("ActiveEffect", spec.effects.map((system) => ({
@@ -144,6 +149,34 @@ export async function withSubjects(specs, fn, {
     const unit = (id) => board.units.find((u) => u.id === id) ?? null;
     return fn({ units, unit, board, world });
   });
+}
+
+/**
+ * A compendium of Items, as `game.packs` holds one: an index by `_id` and
+ * `system.contentId`, and documents to copy.
+ *
+ * @param {string[]} ids content ids
+ * @param {Map<string, {doc: object, dir: string}>} library
+ * @param {Map<string, object>} docs
+ * @returns {Promise<object>}
+ */
+async function itemPack(ids, library, docs) {
+  const data = new Map();
+  for (const id of ids) {
+    const entry = library.get(id);
+    if (!entry) throw new Error(`No Item "${id}" in packs/_source.`);
+    const compiled = withoutKeys(compileDocument(entry.doc, entry.dir, docs));
+    data.set(id, { ...(await keptByModel("Item", compiled)), _id: id });
+  }
+  const index = [...data.values()].map((d) => ({ _id: d._id, system: { contentId: d.system?.contentId ?? d._id } }));
+  return {
+    metadata: { type: "Item" },
+    getIndex: async () => Object.assign(index, { get: (id) => index.find((e) => e._id === id) }),
+    getDocument: async (id) => {
+      const d = data.get(id);
+      return d ? { toObject: () => structuredClone(d) } : null;
+    },
+  };
 }
 
 /**

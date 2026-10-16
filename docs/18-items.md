@@ -74,6 +74,15 @@ Ruled 2026-10-04 (#180, reading 12). Pale Rider's sheet: *"…otherwise the Item
 
 The pickup asks about the panel the token's DOCUMENT stopped on: the board reads the canvas placeables, which lag while the token animates, and live Pale Rider walked onto two dropped Poisons with nobody picking them up. Test: `test/unit/item-drop.test.mjs`.
 
+**An Item placed inside a Unit (#230).** Avalon is the first Item worn by nobody: `worksWhenHeld`, every rule naming
+its holder `self:type:master`. It arrives on Arturia by a summon die (`summonItems`), moves whole between holders
+(`moveItem`, `io.moveItem`) with its bond, and gives a Master holder the abilities in `grants` (`io.syncItemGrants`,
+`grantedBy: item:<id>`), taken away with it. The bond (`rules/bonds.mjs`) is board fact: the binder's own Master, the
+binder defeated, the binder's distance. Its heal after a Damage Step asks `eventFilter: { amount: positive }`: `damageTaken` fires on a hit
+for 0 too (#204), and that damaged nobody. The clocks of what it grants travel with it (`grantClocks`, the Tick each is
+ready at): the Master's Avalon Cooldown is the Item's, passed on where it stood and running while she holds it (#230
+readings 26 to 28).
+
 ## Invariants & edge cases
 
 1. **`itemQuantity` requires an existing document.** It finds the item by `itemId` or `contentId` and updates its quantity; if the item is not held, nothing happens (`module/engine/io.mjs:972-975`).

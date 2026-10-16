@@ -43,6 +43,8 @@ import { standingPlatformOf } from "./platforms.mjs";
  */
 export function npCost({ ability, unit, master }) {
   if (!ability?.isNP) return null;
+  // *"Using this NP does not reduce her Master's Health as a cost"* (Avalon, #230).
+  if (ability.noMasterCost) return null;
   return npCostAt({ rank: ability.rank, unit, master });
 }
 
@@ -306,7 +308,25 @@ export function canUseAbility({
   // Cooldown first: it is the most common refusal and the easiest to
   // understand, and every other gate is irrelevant while it is running.
   const remaining = ability?.cooldown?.remaining ?? 0;
-  if (remaining > 0) return { ok: false, reason: "cooldown", detail: { remaining }, cost };
+  // ...unless it may be used ON its Cooldown, at a price. Arturia's Mana Burst:
+  // *"Can be used while on Cooldown, but she has to be within her Master's
+  // Servant Range and her Master loses 20 Health; using it in this way does
+  // not reset Cooldown"* (#230; the Servant Range is the ZON, reading 2). The
+  // price is a cost like any other, paid with the rest (`overCooldown`), and
+  // the clock it leaves alone is the caller's to skip.
+  let overCooldown = null;
+  if (remaining > 0) {
+    const over = ability?.cooldownOverride ?? null;
+    if (!over) return { ok: false, reason: "cooldown", detail: { remaining }, cost };
+    if (!master || (over.withinZon !== false && unit?.outsideZon)) {
+      return { ok: false, reason: "cooldownOutsideZon", detail: { remaining }, cost };
+    }
+    overCooldown = {
+      kind: "masterHealth", amount: over.masterHealth ?? 0, unitId: master.id ?? null, id: "overCooldown",
+    };
+    const unpayable = cannotPay(overCooldown, unit, master);
+    if (unpayable) return { ok: false, reason: unpayable, detail: { remaining }, cost };
+  }
 
   // A field whose clock counts FROM DEACTIVATION starts no cooldown at the cast
   // -- `cooldownFor` writes none -- so nothing above stops a second cast while
@@ -510,7 +530,7 @@ export function canUseAbility({
   const unpayable = cannotPay(cost, unit, master);
   if (unpayable) return { ok: false, reason: unpayable, cost };
 
-  return { ok: true, cost };
+  return { ok: true, cost, ...(overCooldown ? { overCooldown } : {}) };
 }
 
 /* -------------------------------------------------------------------------- */

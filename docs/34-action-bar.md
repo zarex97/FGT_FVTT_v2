@@ -69,6 +69,11 @@ Rows are sorted by soonest deadline first, so a player with three prompts and on
 
 The panel shows 8 rows, and everything beyond is a count `+N more` — a GM in a long match can have 100+ pending prompts, which would cover the canvas. The list is a call to ACTION, so it shows what is urgent and hides noise while scrolling stays available (`module/apps/hud/pending-panel.mjs:188`).
 
+**A slot live on its Cooldown (#230).** A verdict carrying `overCooldown` (a `cooldownOverride` the gate accepted: Mana
+Burst inside the ZON) keeps the slot lit with its clock shown, and the tooltip names the price: *"On its Cooldown (1◈):
+usable, its Master pays 20 Health"*. A Switch ON of a free NP mode asks the same gate, so Invisible Air carries
+`ignoresNPGate` (it is on from the summon).
+
 ## Invariants & edge cases
 
 1. **One snapshot per render.** The bar threads a single `unitSnapshot(actor, token.document)` through every builder so all decisions see consistent data, even if Combat changes mid-preparation (`module/apps/hud/action-bar.mjs:129-131`).

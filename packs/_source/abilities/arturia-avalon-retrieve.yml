@@ -1,0 +1,32 @@
+# Avalon -- taking it back from inside her Master (#230).
+#
+# > "The same process is used for Arturia to reobtain [Avalon] from inside her
+# > Master."
+#
+# The same conditions and the same lock as placing it (reading 16), the other
+# way round. It comes back to her as the Item she holds, the bond with it.
+schema: 1
+id: arturia-avalon-retrieve
+name: "Avalon (take back)"
+kind: skill
+slug: avalonRetrieve
+rank: EX
+countsAsAttack: false
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+requirements:
+  - { kind: masterItemAtLeast, contentId: avalon, amount: 1 }
+  - { kind: besideMaster }
+  - { kind: inHomeBase, who: both }
+  - { kind: notAttackedThisTurn, who: both }
+description: |
+  (Avalon, Method 2) Arturia reobtains @ability[avalon]{[Avalon]} from inside her Master, by the same process:
+  directly next to her Master, both in their Home Base; neither can Attack on the same Turn, and
+  neither can Move after.
+phases:
+  - kind: transferItem
+    target: self
+    item: avalon
+    from: master
+    to: self
+    lock: [self, master]

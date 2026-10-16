@@ -30,7 +30,7 @@ import { spendPlan } from "../rules/cs-namespacing.mjs";
 import { snapshotUnit, turnWrite, roundWrite } from "../rules/snapshot.mjs";
 // The shared document→projection door and the two clock readers behind it.
 // `board.mjs` imports only from `rules/`, so this is acyclic.
-import { turnRecordOf, roundRecordOf, currentTick, currentRound } from "./board.mjs";
+import { turnRecordOf, roundRecordOf, currentTick, currentRound, currentMoment } from "./board.mjs";
 import { isGated, gateTurnFor } from "../rules/np-gate.mjs";
 import { clampToMax, watermarkKey } from "../domain/health.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
@@ -1272,6 +1272,19 @@ export function worldIO() {
         await held.update({ "system.quantity": (held.system?.quantity ?? 0) + delta });
         return;
       }
+      await this.createHeldItem(actor, contentId, delta);
+    },
+
+    /**
+     * Create an Item on its holder from the content, and the abilities it gives
+     * a holder of that kind (`grants`).
+     *
+     * @param {object} actor
+     * @param {string} contentId
+     * @param {number} delta
+     * @param {object} [system] fields to write over the content's
+     */
+    async createHeldItem(actor, contentId, delta = 1, system = {}) {
 
       const source = await fromContent(contentId);
       if (!source) {
@@ -1280,7 +1293,87 @@ export function worldIO() {
       }
       const data = source.toObject();
       data.system.quantity = delta;
+      Object.assign(data.system, system);
       await actor.createEmbeddedDocuments("Item", [data]);
+      await this.syncItemGrants(actor);
+    },
+
+    /**
+     * Move an Item, whole, from one holder to another: Avalon placed inside a
+     * Master, taken back, passed on (#230). The receiver's copy is built from
+     * the content, with the bond written on it; the giver's is deleted. Both
+     * holders' granted abilities follow (`syncItemGrants`).
+     *
+     * @param {string} fromId
+     * @param {string} toId
+     * @param {string} contentId
+     * @param {{bondUnitId?: string|null, bondMasterId?: string|null}|null} bond
+     */
+    async moveItem(fromId, toId, contentId, bond = null) {
+      const from = resolve(fromId);
+      const to = resolve(toId);
+      const item = from?.items?.find((i) => i.system?.contentId === contentId);
+      if (!from || !to || !item) return;
+      // The clocks of what it granted the giver go with it, as the Tick each is
+      // ready at: the Master's Avalon Cooldown is the Item's, and runs wherever
+      // the Item is (#230 readings 26, 28). Passed on, it arrived at 0.
+      const tick = currentMoment().tick ?? 0;
+      const clocks = { ...(item.system?.grantClocks ?? {}) };
+      for (const granted of from.items.filter((i) => i.system?.grantedBy === `item:${contentId}`)) {
+        clocks[granted.system.contentId] = tick + (granted.system?.cooldown?.remaining ?? 0);
+      }
+      const keep = {
+        bondUnitId: item.system?.bondUnitId ?? null,
+        bondMasterId: item.system?.bondMasterId ?? null,
+        grantClocks: clocks,
+        ...(bond ?? {}),
+      };
+      await this.createHeldItem(to, contentId, item.system?.quantity ?? 1, keep);
+      await item.delete();
+      await this.syncItemGrants(from);
+      await this.log([{ kind: "item", event: "itemMoved", itemId: contentId, from: fromId, to: toId }]);
+    },
+
+    /**
+     * The abilities a holder's Items give it, and nothing they no longer give.
+     *
+     * An Item's `grants` is `{kinds, abilities}`: whom it reaches by actor type,
+     * and the content ids it gives. Avalon gives a MASTER its own Avalon and the
+     * right to pass it on, and its Servant nothing (#230). A granted ability
+     * carries `grantedBy`, the Item's content id, so it leaves with the Item.
+     *
+     * @param {object} actor
+     */
+    async syncItemGrants(actor) {
+      if (!actor?.items) return;
+      const wanted = new Map();
+      for (const item of actor.items) {
+        const g = item.type === "equipment" ? item.system?.grants : null;
+        if (!g?.abilities?.length) continue;
+        if (g.kinds?.length && !g.kinds.includes(actor.type)) continue;
+        for (const id of g.abilities) wanted.set(id, { by: `item:${item.system?.contentId ?? item.id}`, item });
+      }
+      // Only what an ITEM gave (`grantedBy: item:<id>`): a copied ability also
+      // records `grantedBy`, and is not this function's to take away.
+      const stale = actor.items.filter((i) => String(i.system?.grantedBy ?? "").startsWith("item:")
+        && !wanted.has(i.system?.contentId));
+      if (stale.length) await actor.deleteEmbeddedDocuments("Item", stale.map((i) => i.id));
+      for (const [id, { by, item }] of wanted) {
+        if (actor.items.some((i) => i.system?.contentId === id)) continue;
+        const source = await fromContent(id);
+        if (!source) {
+          console.warn(`FGT | An Item grants unknown ability "${id}".`);
+          continue;
+        }
+        const data = source.toObject();
+        data.system.grantedBy = by;
+        // Where the Item's clock for it has got to (#230 reading 26).
+        const readyAt = item.system?.grantClocks?.[id];
+        if (typeof readyAt === "number") {
+          data.system.cooldown = { ...(data.system.cooldown ?? {}), remaining: Math.max(0, readyAt - (currentMoment().tick ?? 0)) };
+        }
+        await actor.createEmbeddedDocuments("Item", [data]);
+      }
     },
 
     /**

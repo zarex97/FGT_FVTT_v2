@@ -170,8 +170,32 @@ export function servantSetupPlan(sheet) {
         base: lucBase(luc),
         roll: { formula: "1d4" },
       },
+      // An Item she may arrive with, on a die: Arturia's *"roll an eight-sided
+      // die. If an 8 is rolled, she is summoned with the [Avalon] Item"* (#230).
+      // A line like the rest, so the wizard shows the die and the GM may roll it
+      // again; `engine/summon.mjs#commitSummon` grants the Item on a hit.
+      ...(sheet?.summonItems ?? []).map((s) => ({
+        id: `summonItem:${s.item}`,
+        label: s.label ?? `[${s.item}] on ${(s.on ?? []).join(", ")}`,
+        base: 0,
+        roll: { formula: s.roll ?? "1d8" },
+        summonItem: { item: s.item, on: [...(s.on ?? [])] },
+      })),
     ],
   };
+}
+
+/**
+ * The Items a resolved summon plan grants: each `summonItem` line whose die
+ * came up on one of its faces.
+ *
+ * @param {object[]} lines resolved lines
+ * @returns {string[]} content ids
+ */
+export function summonItemsGranted(lines) {
+  return (lines ?? [])
+    .filter((l) => l.summonItem && (l.summonItem.on ?? []).includes(l.value))
+    .map((l) => l.summonItem.item);
 }
 
 /**

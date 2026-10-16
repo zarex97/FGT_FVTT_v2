@@ -71,6 +71,17 @@ function abilityCommon() {
     // state. Ozymandias's Complex says the same thing about a FIELD
     // (`field.deactivation`), which is where the shape comes from.
     deactivation: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+    // WHEN the owner may switch it, both ways. `any`: on anybody's Turn, at any
+    // moment -- Arturia's Invisible Air (#230). Unset is her own Turn only.
+    // Usable ON its Cooldown, at a price, without restarting it: `{masterHealth,
+    // withinZon}` (Arturia's Mana Burst, #230). Read by `rules/costs.mjs`.
+    cooldownOverride: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+    // *"Using this NP does not reduce her Master's Health as a cost"* (Arturia's
+    // Avalon, #230). Read by `rules/costs.mjs#npCost`.
+    noMasterCost: new fields.BooleanField({ initial: false }),
+    // No Round gate (`rules/np-gate.mjs#isGated`): the Master's Avalon (#230).
+    ignoresNPGate: new fields.BooleanField({ initial: false }),
+    toggleWindow: new fields.StringField({ required: false, blank: true, initial: "", choices: ["", "any"] }),
     toggledAt: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
     // The tick a Command-Spell suspension lifts at; null when nothing has
     // suspended this ability. Read by `rules/modes.mjs#canToggleMode`, which
@@ -716,6 +727,24 @@ export class EquipmentData extends foundry.abstract.TypeDataModel {
       contentVersion: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       description: new fields.HTMLField({ required: false, blank: true }),
       equipped: new fields.BooleanField({ initial: false }),
+      // Its rules run while it is HELD, equipped or not: Avalon is not worn, it
+      // is placed inside its holder (#230). Each rule says whom it is for.
+      worksWhenHeld: new fields.BooleanField({ initial: false }),
+      // Abilities its holder gains while holding it: `{kinds, abilities}`, the
+      // holder's types it reaches and the content ids it grants. Avalon gives a
+      // Master its own Avalon and the right to pass it on (#230).
+      grants: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      // The Unit that bound it to its holder (Avalon: Arturia, who placed it).
+      // Read by the board's bond pass (`rules/bonds.mjs`).
+      bondUnitId: new fields.StringField({ required: false, nullable: true, initial: null, blank: true }),
+      // ...and whose Master that Unit was when it did, so the bond outlives her
+      // leaving the board.
+      bondMasterId: new fields.StringField({ required: false, nullable: true, initial: null, blank: true }),
+      // The clocks of the abilities it grants, as the Tick each is ready at:
+      // `{ "avalon-master": 41 }`. The Master's Avalon Cooldown is the Item's,
+      // carried from holder to holder and running wherever it is (#230
+      // readings 26, 28). Written as it moves, never authored.
+      grantClocks: new fields.ObjectField({ required: false, nullable: true, initial: null }),
 
       // "Items are an ability with a quantity" (Ch. 17), and the default is that
       // they CANNOT be passed: "Items cannot be traded/given/passed to other

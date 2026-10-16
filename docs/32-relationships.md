@@ -95,7 +95,8 @@ it is deployed, carrying `legionKey` and `legionNumber`; a number is never reuse
 - **A Round's start**, from Round 2, offers the Master's player free panels by war type: a Great Holy Grail War, the
   Master's half; any other, within 2 panels of the Home Base (readings 4, 23; `rules/linked-group.mjs#deployPanels`,
   `engine/legion.mjs#offerLegionDeploys`). At most `fieldCap` stand at once. A new body arrives full, without Presence
-  Concealment, and on the hundred's shared clocks.
+  Concealment, and on the hundred's shared clocks. Only a legion in this war is offered: its holder or a living body on
+  this board (#230: a Master from another war's scene was asked at every Round of Arturia's).
 - **A body that falls** goes through the whole defeat chain, Guts included; one that stays down is −1 and leaves the
   board. Only the last is the Servant's defeat, for the Grail as for everything else (readings 1, 20, 21;
   `io.defeat`, `engine/legion.mjs#survivesBody`, `#bodyFell`). With none on the field and some in reserve he is alive,
@@ -122,6 +123,10 @@ Servants whose remaining consequences still had to be decided. Invisible while t
 them (they are owed nothing) and a silent skip the moment a table switches `conquestSparesServants`
 off. Measured live, in the one configuration that shows it. **Collect the set you are iterating
 before any step that mutates what it selects on.**
+
+**A Master who cannot be Overpowered (#230).** A `Suppress` of scope `overpower` on the Master answers Overpower with
+*does not apply* (`relationships.mjs#overpowerCheck`), as the Vorpal Blade's `underpower` does the other way: Avalon
+inside a Master.
 
 ## Invariants & edge cases
 

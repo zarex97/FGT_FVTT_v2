@@ -66,6 +66,14 @@ Librarian's and Expert's Passive 2 name *"other Hundred-Faced Hassans"*. A phase
 `limits.forAttack: false` (§46.4-NO). Every target a resolver offers now carries `caughtByArea`, which Battle Retreat
 reads to tell an AoE from a targeted Attack.
 
+**An even block beside one panel (#230).** Excalibur's *"3x6 or 6x3 ... next to Arturia"*: a turnable
+`orientedRect` offers both turns in every direction, and the 6-wide one, which cannot centre on a single panel, both of
+its placements (`resolve.mjs#edgeShifts`, `shift` on `orientedRect`). Six ghost previews a side, cycled with Tab.
+
+**A selection's `attributes` asks the whole target side (#230).** The filter tested a candidate against three facets
+of its own (type, attribute, effect); it now adds every `target:` option `rollOptionsFor` emits, so a predicate written
+in the grammar (`target:inHomeBase`, Avalon's pass) means what it says there.
+
 ## Invariants & edge cases
 
 1. **Every filter drops via `drop(u, reason)`, so the review dialog lists why each excluded unit was excluded.** The reason is captured at the decision point, not reconstructed later (`module/rules/targeting/resolve.mjs:75-86`).

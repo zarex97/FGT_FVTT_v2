@@ -111,6 +111,10 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "component", type: "select", choices: ["str", "mag"] },
     // A bonus made of a different damage type from the attack it rides on.
     { key: "element", type: "text" },
+    // A chance to add it at all, one die per strike, shared by `chanceKey`
+    // (Excalibur's passive, #230).
+    { key: "chance", type: "number" },
+    { key: "chanceKey", type: "text" },
   ]),
   entry("Resistance", "Magic Resistance. The rank mode can negate outright; the dice mode never can.", [
     ...SCALED,
@@ -120,6 +124,11 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "npDiceDoubled", type: "checkbox" },
     { key: "includesNP", type: "checkbox" },
     { key: "component", type: "select", choices: ["str", "mag"] },
+    // A threshold that REPLACES the bearer's own against a matching attack
+    // (Arturia's Anti-Dragon clause, #230): the attack it applies to, as a
+    // predicate or as one of the attack's tags.
+    { key: "attackPredicate", type: "predicateList" },
+    { key: "attackTag", type: "text" },
   ]),
   entry("DamageNegation", "Reduces the damage dice themselves — Battle Continuation's clause.", [
     ...SCALED,
@@ -153,6 +162,8 @@ export const ELEMENT_DESCRIPTORS = describeTable([
   entry("BlockModifier", "Percentage points onto the flat 25% a Block removes.", [...SCALED]),
   entry("BaseAttackModifier", "Multiplies a Unit's Base Attack, per component.", [
     { key: "factor", type: "number" },
+    // A flat addition after the factor (Avalon's +50, #230).
+    { key: "add", type: "number" },
     { key: "components", type: "tokenList" },
   ]),
   entry("AttackProperty", "A property of the attack, granted by a buff on the attacker.", [
@@ -218,6 +229,7 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "uses", type: "number" },
     { key: "chance", type: "number" },
     { key: "chanceWhen", type: "predicateList" },
+    { key: "whenAttacked", type: "checkbox" },
   ]),
   entry("TableOverride", "Rolls a different table for a check, or forces one outright.", [
     { key: "table", type: "text" },
@@ -252,11 +264,21 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     // is pressed, so it travels with the rule under its own name.
     { key: "when", type: "predicateList" },
   ]),
+  entry("SurviveLethal", "A lethal blow taken at or above a share of the maximum leaves 1 Health instead.", [
+    { key: "atOrAbovePercent", type: "number" },
+  ]),
+  entry("TerrainPenaltyImmunity", "This Unit takes none of a terrain's penalties, and keeps its benefits.", [
+    { key: "terrain", type: "text" },
+  ]),
   entry("EffectMagnitudeScale", "Scales the magnitude of named effects landing on this Unit.", [
     { key: "direction", type: "select", choices: ["incoming", "outgoing"] },
     { key: "effects", type: "tokenList" },
     { key: "family", type: "text" },
     { key: "factor", type: "number" },
+    // `apply` (the default) stamps the landing magnitude; `read` scales a held
+    // one for as long as the rule stands, so it un-scales when the rule goes
+    // (Arturia's Invisible Air on Crit Dwn, #230).
+    { key: "timing", type: "select", choices: ["apply", "read"] },
   ]),
   entry("TargetabilityModifier", "Changes who may legally target the Units around this one.", [
     { key: "radius", type: "number" },

@@ -226,6 +226,9 @@ export const ROUTES = Object.freeze({
   // by 4 except himself"* — a clause this file's own header already cites as
   // the reason an aura may exclude its bearer.
   checkModifier: "checkModifiers",
+  // An automatic success, read by `checks.mjs#checkPlan` off `unit.autoSucceeds`:
+  // Arturia's Instinct lent by Radiant (#230).
+  autoSucceed: "autoSucceeds",
 });
 
 /* -------------------------------------------------------------------------- */

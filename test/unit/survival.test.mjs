@@ -119,6 +119,7 @@ export const UNIT_ROUTES = {
   passiveRules: doc("module/documents/index.mjs", "collected into the Unit's rule elements"),
   activeRules: doc("module/documents/index.mjs", "collected into the Unit's rule elements"),
   summonVariant: doc("module/rules/summon-variant.mjs", "resolved once, at summon"),
+  summonItems: doc("module/rules/setup-rolls.mjs", "an Item on a summon die (#230)"),
   undamageable: doc("module/domain/health.mjs", "decides whether a Health exists at all"),
 };
 
@@ -182,6 +183,12 @@ export const ABILITY_ROUTES = {
   endsOnSkillSeal: doc("module/engine/concealment.mjs", "Skill Seal ends Presence Concealment (#226)"),
   countsAsNormalAttack: doc("module/engine/attack.mjs", "stamped on the attack as a Normal Attack"),
   openingChoice: doc("module/engine/opening-choice.mjs", "asked when the war starts"),
+  cooldownOverride: doc("module/rules/ability-use.mjs", "the price of a use on the Cooldown (#230)"),
+  toggleWindow: doc("module/rules/modes.mjs", "when a mode may be switched (#230)"),
+  noMasterCost: doc("module/rules/ability-use.mjs", "an NP that costs its Master nothing (#230)"),
+  ignoresNPGate: doc("module/rules/ability-use.mjs", "an NP no Round gate holds back (#230)"),
+  worksWhenHeld: doc("module/rules/snapshot.mjs", "an Item's rules run while it is held (#230)"),
+  grants: doc("module/engine/io.mjs", "the abilities an Item gives its holder (#230)"),
   oncePerTurn: doc("module/rules/ability-use.mjs", "gates the use"),
   opensDialog: doc("module/rules/ability-use.mjs", "the use opens a dialog"),
   parameterized: doc("tools/lib/content.mjs", "a template's slot list, consumed at compile"),

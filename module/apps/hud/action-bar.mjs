@@ -12,7 +12,7 @@
  * no rules at all.
  */
 
-import { rowsFor, slotFor, portraitBlock } from "./present.mjs";
+import { rowsFor, slotFor, portraitBlock, modeSlotVerdict } from "./present.mjs";
 import { ticksLabel } from "../actor-sheet/present.mjs";
 import { availableActions } from "../../rules/actions.mjs";
 import { ridingDestinations, ridingRefusal } from "../../rules/movement.mjs";
@@ -20,7 +20,7 @@ import { classifyAbility, usageSpecFor, useBudgetKind } from "../../rules/abilit
 import { budgetActionFor } from "../../rules/budget.mjs";
 import { answersACounter, counterMustCatchAttacker } from "../../rules/counter.mjs";
 import { canUseAbility } from "../../rules/costs.mjs";
-import { canToggleMode } from "../../rules/modes.mjs";
+import { canToggleMode, pricedOnEntry } from "../../rules/modes.mjs";
 import { test as testPredicate } from "../../rules/predicate.mjs";
 import { rollOptionsFor } from "../../rules/options.mjs";
 import { publicNameOf } from "../../rules/identity.mjs";
@@ -256,7 +256,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         // Master cannot pay the Health cost" while it ran, so nothing could end
         // it (#195 reading 14). Switching off costs nothing.
         const ending = use.toggles && Boolean(item.system?.active);
-        const verdict = ending ? endVerdict(item, actor, board) : canUseAbility({
+        const useVerdict = () => canUseAbility({
           ability: usageSpecFor(item), unit, master, board, ...gateContext(),
           // Armed for a Counter, which is made on the enemy's Turn by
           // definition: an ability used only "during your Turn" still answers
@@ -264,6 +264,11 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
           isCounter: Boolean(this.counter),
           testPredicate: (p) => testPredicate(p, { options: rollOptionsFor({ attacker: unit }) }),
         });
+        // A mode's slot shows what its press would do, either way (#230).
+        const toggle = use.toggles ? switchVerdict(item, actor, board, !ending) : null;
+        const verdict = toggle
+          ? modeSlotVerdict({ ending, toggle, priced: pricedOnEntry(item), use: useVerdict })
+          : useVerdict();
         const slot = slotFor({
           ...entry,
           img: item.img,
@@ -304,7 +309,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
             tooltip: `${item.name} — ${spent.reason}`,
           };
         }
-        if (ending && !verdict.ok) return { ...slot, group: "mode", tooltip: verdict.text };
+        if (toggle && verdict === toggle && !verdict.ok) return { ...slot, group: "mode", tooltip: verdict.text };
         // A Mode whose End waits for the boundary says so, and a press takes
         // it back (#195 reading 14).
         if (ending && isQueued(item.id)) {
@@ -703,7 +708,9 @@ function refusalText(reason) {
 }
 
 /**
- * Whether a mode that is on may be switched off now, as the use gate's shape.
+ * Whether a mode may be switched now, either way, as the use gate's shape:
+ * the question its press asks (`FGTActorSheet.toggleMode`), so a lockout greys
+ * the slot that would refuse (#230).
  *
  * With the refusal in the sheet's own words (`FGT.Mode.*`): the use gate's
  * mapping has no entry for a mode's reasons, and the slot read
@@ -712,12 +719,13 @@ function refusalText(reason) {
  * @param {object} item
  * @param {object} actor
  * @param {object} board the render's board
+ * @param {boolean} active the state the press would switch it TO
  * @returns {{ok: boolean, reason: string|null, text: string|null}}
  */
-function endVerdict(item, actor, board) {
+function switchVerdict(item, actor, board, active) {
   const self = unitOf(actor, board);
   const v = canToggleMode(item, self, {
-    active: false,
+    active,
     tick: game.combat?.system?.globalTurn ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
     round: game.combats?.active?.round ?? null,
@@ -1002,6 +1010,12 @@ function counterTooltip(slot, item, verdict, entry, turnsPerRound) {
   }
   if (slot.reason === "notAnAttack") {
     return `${item.name} \u2014 ${game.i18n.localize("FGT.Counter.NotAnAttack")}`;
+  }
+  // Live on its Cooldown, at a price: say both (#230).
+  if (slot.overCooldown && slot.cooldown) {
+    return `${item.name} \u2014 ${game.i18n.format("FGT.Ability.OverCooldown", {
+      ticks: slot.cooldown.label, amount: slot.overCooldown.amount,
+    })}`;
   }
   return slot.disabled
     ? `${item.name} \u2014 ${abilityRefusal(verdict, entry, turnsPerRound, item.parent)}`

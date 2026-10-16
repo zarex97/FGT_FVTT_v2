@@ -1,0 +1,41 @@
+# Avalon, passed from one Master to another allied Master (#230). Given by the
+# Item to its Master holder (`avalon.yml`'s `grants`).
+#
+# > "If Arturia's Master has [Avalon] inside him/her, he can give [Avalon] to
+# > another allied Master (uses the same process as Arturia placing Avalon
+# > inside her Master)."
+#
+# The same process (reading 16): directly next to the other Master, both in
+# their Home Base, before either Attacks; after it neither Attacks nor Moves.
+# The bond stays as it was: she is still who placed it, and her Master still
+# "Arturia's Master", so it works in the other Master at its weaker values.
+schema: 1
+id: avalon-pass
+name: "Avalon (pass to a Master)"
+kind: skill
+slug: avalonPass
+countsAsAttack: false
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+requirements:
+  - { kind: itemAtLeast, contentId: avalon, amount: 1 }
+  - { kind: inHomeBase, who: self }
+  - { kind: notAttackedThisTurn, who: self }
+description: |
+  Give @ability[avalon]{[Avalon]} to another allied Master directly next to this one, both in their Home Base,
+  neither having Attacked this Turn. Neither can Attack on the same Turn, nor Move after.
+targeting:
+  anchor: { kind: targetUnit, range: 1 }
+  shape: { kind: unit }
+  selection:
+    relations: [ally]
+    chooser: chosen
+    count: 1
+    attributes: ["target:type:master", "target:inHomeBase"]
+phases:
+  - kind: transferItem
+    target: reuse
+    item: avalon
+    from: self
+    to: target
+    lock: [self, target]

@@ -1,0 +1,23 @@
+# A Unit's own Evade rolls moved by a stated amount, for as long as it lasts.
+#
+# Arturia's Mana Burst: "for that Combat Phase, Arturia's Evade Rolls are
+# reduced by 2" (#230), applied before the hit and gone at the Phase's end. A
+# lower Evade roll is the better one (a higher roll fails), as Achilles' Dromeus
+# Kometes reads "Evade rolls are reduced by 4". The magnitude carries the sign.
+#
+# A STATUS, not a buff: the sheet names no buff, and a Mana Burst's own rider is
+# not something buff removal takes away in the middle of its Combat Phase.
+schema: 1
+id: evadeShift
+name: "Evade Roll Shift"
+description: "This Unit's Evade rolls are changed by X."
+polarity: status
+volatility: nonVolatile
+valence: neither
+stacking: magnitudeStacks
+baseChance: 100
+unremovable: true
+rules:
+  - key: CheckModifier
+    check: evade
+    value: "@magnitude"

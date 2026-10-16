@@ -87,6 +87,12 @@ The ability editor offers dropdowns instead of typing. `builderRows` renders a p
 
 Comparisons offer `@`-paths scoped to the context: `ownerOnly` has only `self`, while the damage pipeline's `exchange` context has `self`, `target`, `attack`, and `board` (`module/rules/facets.mjs:507-515`). The two `self` shapes disagree — `@self.health` is `{value, max}` under `expressionRefs` and a **number** under a unit snapshot — so the picker must scope its paths or emit references that cannot resolve (`module/apps/ability-editor/predicate-builder.mjs:34-80`).
 
+**Four facets for Arturia (#230).** `attack:tag:<tag>` names any tag an attack carries, the qualifiers included
+(Anti-Dragon); `attack:madeWith:<contentId>` the ability that made it (a Mana Burst is a Normal Attack and DRC leaves
+it out by name); `self:effectStacks:<id>:gte:<n>` how many of an effect, as a ladder (Utopia's three Attacks);
+`self:bond:<item>:own|defeated` and `self:bondWithin:<item>:<n>` an Item's bond to who placed it (Avalon). The
+bearer's own collection now asks `self:effectFamily:` as the board does (§46.4-NQ).
+
 ## Invariants & edge cases
 
 **Rank comparisons read the letter** (#193 reading 11). `gradesClearedBy` emits `rank:<p>:gte:B` for B−, B and B+ alike: *"a Rank of B or higher"* is met by B−. It compared whole ranks before, so B− sat below B.

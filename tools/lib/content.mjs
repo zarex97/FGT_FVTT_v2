@@ -72,6 +72,10 @@ export const RULE_ELEMENT_KEYS = new Set([
   // Raikou -- a mode held on by a condition rather than by a neighbour, and a
   // modifier whose subject is another modifier's magnitude.
   "ForceMode", "EffectMagnitudeScale",
+  // Arturia -- a terrain whose penalties she does not take (#230).
+  "TerrainPenaltyImmunity",
+  // Avalon -- not defeated by a blow taken at or above a share of the maximum.
+  "SurviveLethal",
   // Mannanán — the automatic Counter, the rung it trades away, the buff-clock
   // extension and the spend she is OFFERED at a timing window.
   "AutoCounter", "ForbidReaction", "ForbidCreating", "DurationExtension", "OptionalCost",

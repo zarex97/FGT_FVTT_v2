@@ -1,0 +1,31 @@
+# Arturia's Charisma, Rank B (#230). The passive half of Penthesilea's.
+#
+# > "(Passive) All damage dealt by other allied Units within a 2 panel area of
+# > herself is increased by 20 including NP. This effect is negated if this Unit
+# > has Atk Up (Charisma) or is inflicted with Skill Seal."
+#
+# "Other": not her own damage (`relations: [ally]`). Atk Up (Charisma) is asked
+# by family, so the one Knight of Utopia puts on her (reading 23) and the aura
+# another Charisma Active gives her both switch it off.
+schema: 1
+id: arturia-charisma
+name: "Charisma"
+rank: B
+kind: skill
+slug: charisma
+passive: true
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive) All damage dealt by other allied Units within a 2 panel area of herself is increased
+  by 20 including NP. This effect is negated if this Unit has @effect[atkUpCharisma]{Atk Up (Charisma)} or is
+  inflicted with @effect[skillSeal]{Skill Seal}.
+passiveRules:
+  - key: Aura
+    modifierKey: flatDamage
+    radius: 2
+    relations: [ally]
+    value: 20
+    stacking: highestOnly
+    predicate:
+      - "not:self:effectFamily:atkUpCharisma"
+      - "not:self:effect:skillSeal"

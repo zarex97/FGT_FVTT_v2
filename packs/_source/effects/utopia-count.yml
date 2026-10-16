@@ -1,0 +1,14 @@
+# One Attack Arturia has performed under Dmg Boost (Utopia) (#230). Counted, not
+# read: the buff asks `self:effectStacks:utopiaCount:gte:3`, and takes these with
+# it when it goes (`dmgBoostUtopia`'s `onRemove`). Each in its own document, so
+# the count is the number held.
+schema: 1
+id: utopiaCount
+name: "Utopia (Attack counted)"
+description: "One Attack counted towards Dmg Boost (Utopia)."
+polarity: status
+volatility: nonVolatile
+valence: neither
+stacking: magnitudeStacks
+baseChance: 100
+unremovable: true

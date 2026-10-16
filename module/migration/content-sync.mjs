@@ -133,11 +133,20 @@ function applyVariantOverrides(out, packSystem) {
  *
  * @param {object[]} worldItems the world document's items, as source objects
  * @param {object[]} packItems the pack template's items, as source objects
- * @param {{knownContentIds?: Set<string>|null}} [options] every contentId any
- *   pack defines; without it, nothing outside the template is protected
+ * An item play PLACED -- crafted, transferred, put inside a Master -- is
+ * refreshed from its OWN pack document when `contentSources` holds it, as a
+ * template's items are, keeping what play wrote (`quantity`, a bond). It was
+ * only kept, and so frozen: [Avalon] inside Arturia's Master kept a heal the
+ * pack had since narrowed (#230, live). An item with provenance is still only
+ * kept: a copy is the Active part of its source, not the source.
+ *
+ * @param {{knownContentIds?: Set<string>|null, contentSources?: Map<string, object>|null}} [options]
+ *   `knownContentIds`: every contentId any pack defines; without it, nothing
+ *   outside the template is protected. `contentSources`: those pack documents,
+ *   by contentId, to refresh a placed item from
  * @returns {{update: object[], create: object[], remove: string[], kept: string[]}}
  */
-export function reconcileItems(worldItems, packItems, { knownContentIds = null } = {}) {
+export function reconcileItems(worldItems, packItems, { knownContentIds = null, contentSources = null } = {}) {
   const byContent = new Map();
   for (const item of packItems ?? []) {
     const id = item?.system?.contentId;
@@ -160,8 +169,15 @@ export function reconcileItems(worldItems, packItems, { knownContentIds = null }
 
     const template = byContent.get(contentId);
     if (!template) {
-      // Still real content, just not on this template: play put it here.
-      if (knownContentIds?.has(contentId)) kept.push(held._id);
+      // Still real content, just not on this template: play put it here. Kept,
+      // and refreshed from its own pack document when there is one to hand.
+      const own = knownContentIds?.has(contentId) ? contentSources?.get(contentId) : null;
+      if (own) {
+        update.push({
+          ...held, _id: held._id, name: own.name ?? held.name, img: own.img ?? held.img,
+          system: reconcileSystem("item", held.system, own.system),
+        });
+      } else if (knownContentIds?.has(contentId)) kept.push(held._id);
       else remove.push(held._id);
       continue;
     }

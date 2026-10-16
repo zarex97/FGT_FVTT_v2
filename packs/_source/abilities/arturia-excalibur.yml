@@ -1,0 +1,91 @@
+# Excalibur: Sword of Promised Victory, Rank A++ (#230).
+#
+# Ozymandias' Mesektet is the damage: MAG ×4 +200, Light, and the Dark doubling
+# inside the bracket (#189). The area is the block beside her that the player
+# turns and places (`orientedRect`, `turnable`): 3 wide and 6 deep, or 6 wide and
+# 3 deep in one of its two placements (reading 13). Every Unit in it is hit
+# (#191 reading 11).
+#
+# Then its own clock is cut ⅓◈ for each Unit it hit (`attackPerformed`'s
+# `unitsHit`; allies count too, reading 7), and Invisible Air is off and barred
+# for 2◈.
+#
+# The Passive: while Invisible Air is off, a plain Normal Attack -- not a Mana
+# Burst, not a Riding Attack (reading 12) -- has a 50% chance of 25 extra Light
+# damage, 50 against Dark. One die per strike, shared by both branches.
+schema: 1
+id: arturia-excalibur
+name: "Excalibur: Sword of Promised Victory"
+rank: "A++"
+kind: noblePhantasm
+slug: excalibur
+isNP: true
+npTags: [antiFortress]
+element: light
+cooldown: { max: "7◈+⅔◈" }
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+requirements:
+  - { kind: modeInactive, mode: invisibleAir }
+description: |
+  (Passive) When @np[arturia-invisible-air]{Invisible Air} is deactivated, Arturia's Normal Attacks have a 50% chance of
+  dealing 25 extra Light damage to the DU, 50 if the DU has the 'Dark' Attribute.
+  (Active) Can only be used when Invisible Air is deactivated.
+  Base Attack (MAG) is used. Hits a 3x6 or 6x3 panel area in any non-diagonal direction next to
+  Arturia for 4x damage plus 200. Has a 40% chance of inflicting @effect[blind]{Blind} for 1◈ Turns. Deals
+  extra damage to Units with the 'Dark' Attribute, damage dealt is further increased by 100%.
+  Light damage. Then, Excalibur's NP Cooldown is reduced by X◈ Turns, X being (the number of
+  Units affected by this NP * ⅓). Cooldown: 7◈+⅔◈ Turns.
+  After Excalibur is used, Invisible Air is deactivated for 2◈ Turns after its use.
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 3, long: 6, turnable: true }
+  selection: { relations: [enemy, ally, neutral], includeSelf: false, chooser: all }
+  isDamagingAoE: true
+damage:
+  component: mag
+  multiplier: 4
+  flatBonus: 200
+  element: light
+  conditionalMultipliers:
+    - { factor: 2, predicate: ["target:attribute:dark"], source: "Dark (+100%)" }
+phases:
+  - kind: damage
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: blind, duration: "1◈", chance: 40 }
+  - kind: setMode
+    ability: invisibleAir
+    suspendFor: "2◈"
+passiveRules:
+  - key: FlatDamage
+    modifierKey: flatDamage
+    element: light
+    value: 25
+    chance: 50
+    chanceKey: excaliburPassive
+    predicate:
+      - "not:self:skillActive:invisibleAir"
+      - "attack:kind:normal"
+      - "not:attack:kind:ridingAttack"
+      - "not:attack:madeWith:arturia-mana-burst"
+      - "not:target:attribute:dark"
+  - key: FlatDamage
+    modifierKey: flatDamage
+    element: light
+    value: 50
+    chance: 50
+    chanceKey: excaliburPassive
+    predicate:
+      - "not:self:skillActive:invisibleAir"
+      - "attack:kind:normal"
+      - "not:attack:kind:ridingAttack"
+      - "not:attack:madeWith:arturia-mana-burst"
+      - "target:attribute:dark"
+  - key: OnEvent
+    event: attackPerformed
+    automatic: true
+    ofContentId: [arturia-excalibur]
+    then:
+      - { key: CooldownDelta, ticks: "⅓◈", times: "@unitsHit" }

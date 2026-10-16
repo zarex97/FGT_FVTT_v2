@@ -1,0 +1,25 @@
+# Knight of Utopia's fourth effect.
+#
+# > "Applies the 'Utopia' buff for 1◈ Turns to herself, whenever Arturia
+# > performs a successful Attack, NP Cooldown is reduced by ⅓◈ Turns for every
+# > Unit successfully hit by that Attack." (#230)
+#
+# Once per Attack, at its end (`attackPerformed`), with the count of Units that
+# took the hit, a Block included and an Evade or a negation not (reading 7). An
+# Attack that hit nobody cuts nothing. "NP Cooldown" naming no NP reaches every
+# NP (#197 reading 6).
+schema: 1
+id: utopia
+name: "Utopia"
+description: "Whenever this Unit performs a successful Attack, its NP Cooldown is reduced by ⅓◈ Turns for every Unit hit by that Attack."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: OnEvent
+    event: attackPerformed
+    automatic: true
+    then:
+      - { key: CooldownDelta, scope: np, ticks: "⅓◈", times: "@unitsHit" }

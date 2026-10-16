@@ -1,0 +1,34 @@
+# Radiant Road, Rank EX (#230).
+#
+# A cooldown phase on herself (Tommy Thumb's shape), S.Crit Up held by her as an
+# aura (#132, Quetzalcoatl's), and the 'Radiant' buff that lends her Instinct to
+# the allies beside her (reading 8). "Arturia's NP Cooldown" names no NP and
+# reaches every one of hers (#197 reading 6).
+schema: 1
+id: arturia-radiant-road
+name: "Radiant Road"
+rank: EX
+kind: skill
+slug: radiantRoad
+cooldown: "4◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Reduce Arturia's NP Cooldown by 1◈ Turns.
+  2. Apply @effect[sCritUp]{S.Crit Up} to all allied Units within a 2 panel area of Arturia for ⅓◈ Turns,
+     Crit Chance is increased by 15%.
+  3. Apply the @effect[radiant]{Radiant} buff for 1◈ Turns to herself, all other allied Units within a 2
+     panel area of herself gain the effects of her 'Instinct' Skill. Note: If Arturia is
+     inflicted with Skill Seal, Instinct will still have no effect for all Units.
+  Cooldown: 4◈ Turns.
+phases:
+  - kind: cooldown
+    target: self
+    changes:
+      - { unit: self, scope: np, ticks: "1◈", direction: down }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: sCritUp, magnitude: 15, duration: "⅓◈" }
+      - { id: radiant, duration: "1◈" }

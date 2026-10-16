@@ -76,6 +76,11 @@ concealed Unit walk through occupied panels and past a guarded Master, never end
 holder of Presence Concealment. `rules/movement.mjs#canStopOn` reads `STOPS_ON_OCCUPIED`, which holds Huge Scale
 only; `canPassThrough` and the Master-guard check still read `IGNORES_BLOCKING`. Since `c09981e` it could stop there.
 
+**A roll line is public too (#230).** A Process's roll records ship on the card every client reads, so their lines
+name each Unit as the table knows it (`attack.mjs#shownName`, through `publicIdentityOf`): "Saber's Instinct: 50
+against 70%", never the True Name under a "Lancer ⚔ Saber" header. The Master-guard line does the same
+(`master-guard.mjs#shownName`): "Saber stands next to Master of Saber of Faction 1".
+
 ## Invariants & edge cases
 
 1. **Concealment is an effect, not a boolean.** The effect carries duration, so the state can expire at a clock tick. The polarity is `status` with `unremovable: true` (`module/rules/concealment.mjs:16-20`).

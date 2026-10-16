@@ -31,13 +31,28 @@ import { recordTurn, historyOf, setHistory } from "./state-history.mjs";
 import { boundaryKey, alreadyClaimed, tokenField } from "../rules/schedule-claim.mjs";
 import { payQueuedEnds } from "./queued-ends.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { whenEngineReady } from "./engine-ready.mjs";
+
+/** The `Hooks` the boundaries are bound on: once each, and a fresh test world binds its own. */
+const boundariesOn = new WeakSet();
 
 export const Scheduler = {
-  /** Register the hooks. Idempotent. */
-  attach() {
+  /**
+   * The Turn and Round boundaries. Bound at the very start of `ready`, before
+   * the world migrates, and waiting for the engine (`engine-ready.mjs`): a Turn
+   * changed during the migration ran no boundary at all (#230, §46.4-JY).
+   */
+  attachBoundaries() {
+    if (boundariesOn.has(Hooks)) return;
+    boundariesOn.add(Hooks);
     Hooks.on("combatTurnChange", onTurnChange);
     Hooks.on("combatRound", onRoundChange);
     Hooks.on("deleteCombat", onCombatEnd);
+  },
+
+  /** Register the hooks. Idempotent. */
+  attach() {
+    this.attachBoundaries();
     Hooks.on("updateItem", onModeEnded);
     console.log("FGT | Scheduler attached");
   },
@@ -104,6 +119,9 @@ async function onTurnChange(combat, prior, current) {
   // Whether `combatRound` announced this as a Round boundary, and which Rounds
   // it ended and began. Taken synchronously: it is consumed once.
   const roundEntry = takePendingRound(combat, beganRound);
+  // Heard during the world's migration, it waits for the engine rather than
+  // being lost (`engine-ready.mjs`). Everything above is read synchronously.
+  await whenEngineReady();
   if (!isScheduler()) return;
   if (!combat?.started) return;
 

@@ -74,6 +74,11 @@ Both callers ask the same things: the `passengerSeat` grant, the Servant's own `
 
 **Kingprotea shoves along one line** (#198 readings 6 and 7, `rules/movement.mjs#clearFootprintPlan`). A Unit on a panel she lands on is pushed away from her along her last step, until it is off her; one in the way is pushed on by one panel, and so on down the line; one whose line runs off the board goes instead to the nearest free panel off her. Allies too, no damage, and not a Move by anyone pushed. Huge Scale says so with `Knockback { direction: arrival }`. Her growth uses the same plan: her owner picks the corner she grows from (`engine/token-footprint.mjs#growthPlacement`), a Unit she grows into is pushed away across the side she grew past, and against a wall or the edge she grows the other way. Shrinking keeps her top-left. One resize runs at a time per actor (`syncFootprint`): a stock arrives as an effect and as a Health write, and each used to ask the owner for a corner.
 
+**A prevention stops every Move (#230).** The move hook asks `preventedBy(unit, "move")` of each Move before the
+budget, because the budget is skipped for a Unit that has Moved already this Turn: a lock that lands after the
+first Move (Avalon's Item Rite, a Stun) stopped nothing. The refusal names the effect: *"Arturia cannot Move: Item
+Rite."*
+
 ## Invariants & edge cases
 
 1. **Panels are always measured from the whole footprint, not the anchor alone.** `chebyshevFromAny` and `inAttackRangeFromAny` check all panels a unit occupies and return the minimum distance or a boolean (`module/domain/geometry.mjs:68-89`). Single-panel units still use these; they are correct whether the unit occupies one panel or nine.

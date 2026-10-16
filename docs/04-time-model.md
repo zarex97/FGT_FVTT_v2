@@ -78,6 +78,11 @@ Foundry advances `combat.round` before the end-of-Round sequence runs, and the s
 
 A Round's end still ends **fields** at the start of the expiry Tick and **effects** at its end (`expireFields(nextTick)` beside `expireEffects(tick)`); whether the rulebook means that is an open question below.
 
+**No boundary lost to a reload (#230).** `ready` migrates the world before it binds the engine's listeners, and that
+takes seconds. The Turn and Round hooks are bound before it (`Scheduler.attachBoundaries`) and wait for the engine
+(`engine/engine-ready.mjs#whenEngineReady`, resolved by `attachEngineListeners`): a Turn changed in those seconds runs
+its boundary late, never not at all, and `globalTurn` cannot stand still under a faction change (§46.4-JY).
+
 ## Invariants & edge cases
 
 1. **◈ expressions resolve correctly in all world variants** without re-authoring. The test suite verifies this across 3, 8, and 15 turns per round (`test/unit/tick.test.mjs:53-67`).

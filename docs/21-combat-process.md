@@ -74,6 +74,13 @@ no facing, no Counter; the attacker's Attack is still spent. Against a targeted 
 declaration still at its reaction rung leaves too; against an AoE (`caughtByArea`) he alone does. A bare `withdraw`
 event is refused unless the Process was marked by `withdrawFromAttack`.
 
+**`attackPerformed`, once per Attack (#230).** Raised at the Combat Phase's end on each Unit that made an Attack in
+it -- the declaration's or a Counter's -- with `unitsHit`: a Unit whose Process reached its Damage Step un-negated, a
+Block included. Utopia and Excalibur cut Cooldown per Unit by it (`CooldownDelta.times`), each cut a line on the attacker's last card of
+the Phase (`applyWithCooldownLines`, as the Damage Step's); Dmg Boost (Utopia) counts by
+it. **Survival floors cap the damage** (`attack.mjs#survivalFloor`): CS Survive Kill and `SurviveLethal` (Avalon's
+10%/5%) leave the Unit standing by taking the blow down, because a restore beside the damage lands first (§46.4-NR).
+
 ## Invariants & edge cases
 
 **A rung is answered once.** `advanceAttack` stores the next rung only after the answer has run — a question, a roll, a write later — so for that whole time the card still shows the rung being answered. The first press of a rung with a question pending claims it in memory (`messageId`, history length, state) before anything awaits; a second press of the same rung (the GM's card and the player's both carry the button, or a reaction timeout firing while the player's answer is running) waits for the first and runs nothing. A call with no question pending — the engine resuming the Process after a Command Spell interrupt, or a declaration driving itself — is not an answer and claims nothing. Pressed live in Wave A, Kiritsugu's Return Fire was declared twice; in the arena a doubled "nothing" dealt a Normal Attack's damage twice (`test/unit/rung-pressed-twice.test.mjs`).

@@ -56,6 +56,11 @@ export function overpowerCheck(attacker, defender) {
   // Invuln and Shield are absolute, not modifiers — a Master carrying either
   // cannot be Overpowered at all.
   if (held.includes("invuln")) return { applies: false, chance: 0, reason: "invuln" };
+  // *"Arturia's Master cannot be Overpowered"* (Avalon, #230): a rule that says
+  // so by name, as the Vorpal Blade's says it of Underpower.
+  if ((defender.suppressions ?? []).some((s) => s.scope === "overpower")) {
+    return { applies: false, chance: 0, reason: "cannotBeOverpowered" };
+  }
   if (held.includes("shield")) return { applies: false, chance: 0, reason: "shield" };
   // And the two that beat Invuln: an attack Anti-Purge or Substitution negated
   // at stage 0 never "successfully Attacks" the Master at all. Found live

@@ -1,0 +1,19 @@
+# The Master's Avalon, on the Attack it answers: "Reduce the damage taken by
+# X% including NP" (#230). For that Combat Phase. X is 80, 60 or 40 by who holds
+# it and where Arturia stands (`avalon-master`).
+schema: 1
+id: avalonVeil
+name: "Avalon"
+description: "All damage taken is reduced by X%, NP included."
+polarity: status
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+unremovable: true
+rules:
+  - key: DamageModifier
+    modifierKey: defUp
+    direction: taken
+    value: "@magnitude"
+    npValue: "@npMagnitude"

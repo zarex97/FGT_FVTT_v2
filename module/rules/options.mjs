@@ -153,6 +153,14 @@ export function rollOptionsFor({ attacker, defender, attack = null, withoutModeH
       if (tag === scale) break;
     }
   }
+  // EVERY TAG, the qualifiers included. *"An Attack with the 'Anti-Dragon'
+  // Attribute"* (Arturia's Magic Resistance, #230 reading 21) asks about a tag
+  // that is no scale, and nothing emitted one: the ladder above stops at the
+  // scale, so a qualifier was unaskable.
+  for (const tag of attack.npTags ?? []) options.add(`attack:tag:${tag}`);
+  // WHICH ABILITY made it (`attack.sourceContentId`): *"Normal Attacks performed
+  // with Mana Burst"* (Arturia's DRC, #230). A bare Normal Attack has none.
+  if (attack.sourceContentId) options.add(`attack:madeWith:${attack.sourceContentId}`);
   // WHAT THE ATTACK IS GOOD AGAINST. *"An Attack that deals extra damage to
   // Units with the 'Dark' or 'Spirit' Attribute"* is not a property an ability
   // declares -- it is a property of the attacker's own active damage
@@ -310,6 +318,15 @@ function add(options, side, unit, withoutModeHeld = false) {
   if (unit.contentId) options.add(`${side}:contentId:${unit.contentId}`);
   for (const a of unit.attributes ?? []) options.add(`${side}:attribute:${a}`);
   for (const e of unit.effects ?? []) options.add(`${side}:effect:${e}`);
+  // HOW MANY of each, as a ladder, the way the rank comparison is: a predicate
+  // can only test membership, so *"after Arturia performs 3 Attacks"* (her
+  // Utopia count, #230) has to already be a member at 3, 4 and onwards.
+  // `effects` lists one id per instance.
+  const held = new Map();
+  for (const e of unit.effects ?? []) held.set(e, (held.get(e) ?? 0) + 1);
+  for (const [e, n] of held) {
+    for (let k = 1; k <= Math.min(n, 20); k += 1) options.add(`${side}:effectStacks:${e}:gte:${k}`);
+  }
   // The umbrella, beside the members. Medusa's `Dmg Up (Bind)` is
   // *"all damage dealt to Units inflicted with Bind effects"* -- one predicate
   // over ten effects, which naming each of them could not keep current.
@@ -401,6 +418,15 @@ function add(options, side, unit, withoutModeHeld = false) {
   // Distinct from the `counterpartAdjacent` REQUIREMENT kind, which gates
   // whether an ability may be used at all; this modifies a rule already in
   // force.
+  // An Item's bond to whoever placed it (`rules/bonds.mjs`, Avalon #230): the
+  // holder is her Master, she is defeated, or she stands within N, as a ladder.
+  for (const b of unit.bonds ?? []) {
+    if (b.own) options.add(`${side}:bond:${b.contentId}:own`);
+    if (b.defeated) options.add(`${side}:bond:${b.contentId}:defeated`);
+    if (typeof b.distance === "number") {
+      for (let n = Math.max(0, b.distance); n <= 30; n++) options.add(`${side}:bondWithin:${b.contentId}:${n}`);
+    }
+  }
   if (typeof unit.partnerDistance === "number") {
     for (let n = Math.max(1, unit.partnerDistance); n <= 6; n++) {
       options.add(`${side}:withinOfPartner:${n}`);

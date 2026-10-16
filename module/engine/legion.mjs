@@ -237,10 +237,18 @@ function sharedClock(found, item, like) {
  */
 export async function offerLegionDeploys(round) {
   if ((round ?? 1) < 2 || !game.user?.isGM) return [];
+  // Only a legion IN THIS WAR: its holder, or a body of it, on this board.
+  // Every actor in the world was asked, so the Hassan audit's Master, on
+  // another scene in another combat, was offered "Hassan 12" onto Arturia's
+  // board at each Round's start -- war faction ids repeat, so his "faction-2"
+  // found this war's base (#230, found live).
+  const onBoard = new Set((currentBoard().units ?? []).map((u) => u.id));
+  const inWar = (holder, key) => onBoard.has(holder.id) || livingBodies(key).length > 0;
   /** @type {object[]} */
   const out = [];
   for (const holder of [...(game.actors ?? [])]) {
     for (const key of Object.keys(holder.system?.legions ?? {})) {
+      if (!inWar(holder, key)) continue;
       out.push(...await offerDeploy(key));
     }
   }
