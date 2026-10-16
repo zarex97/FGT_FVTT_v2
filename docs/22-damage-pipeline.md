@@ -136,3 +136,10 @@ Fixed damage bypasses stages 2–15 entirely and goes straight to stage 16 (`mod
   claims -- *"an area Noble Phantasm hitting four protected Units draws all four down one 1400 in
   resolution order, rather than meeting four fresh barriers"* (`module/engine/shield.mjs:23-27`).
   What remains unexercised is the ordering under a genuine four-target NP, which needs that board.
+
+- **A barrier may hold the NP's riders too** (Rho Aias, ruled 2026-10-16, #208). `absorb` reports `broken` when the hit
+  empties the pool (never when floored), and `landBarrier` puts `barrierBroken` on the result. The Damage Step asks
+  `ridersHeldBy` before anything is computed; while a holding barrier stands, `applyAbilityEffects` runs with
+  `riders: "hold"` and the defender's riders are kept back, so they shape nothing. Broken, they land after the damage
+  (`riders: "heldOnly"`); held, they are filed as `blocked`. `test/unit/emiya-208-open.test.mjs` plays Gáe Bolg
+  Alternative, Snegleta (broken and held) and Gate of Skye.

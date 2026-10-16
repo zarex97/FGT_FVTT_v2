@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { absorb, refreshShield, landBarrier } from "../../module/engine/shield.mjs";
+import { absorb, refreshShield, landBarrier, ridersHeldBy } from "../../module/engine/shield.mjs";
 import { EffectRegistry } from "../../module/rules/registry.mjs";
 
 const NP = new Set(["attack:kind:np"]);
@@ -220,5 +220,47 @@ describe("landBarrier", () => {
     const both = landBarrier({ ...result, flags: { shieldAbsorbed: 20 } }, { through: 100, absorbed: 56, source: "Rho Aias" });
     expect(both.flags.shieldAbsorbed).toBe(76);
     expect(landBarrier(result, { through: 176, absorbed: 0, source: null })).toBe(result);
+  });
+});
+
+describe("the riders a barrier holds back (ruled 2026-10-16, #208)", () => {
+  const THROWN = new Set(["attack:kind:np", "attack:thrownWeapon"]);
+  const holding = () => vi.spyOn(EffectRegistry, "get").mockImplementation((id) =>
+    (id === "rhoAias" ? { name: "Rho Aias", absorbs: { scope: "np", poolFrom: "sourceAbility", holdsRiders: true } } : null));
+
+  it("Rho Aias holds an NP's riders while it has a pool", () => {
+    holding();
+    world(1400);
+    expect(ridersHeldBy(defender(), NP)).toBe("Rho Aias");
+  });
+
+  it("holds nothing back from a Normal Attack, a spent pool, a Unit it does not cover, or a barrier that only absorbs", () => {
+    holding();
+    world(1400);
+    expect(ridersHeldBy(defender(), new Set(["attack:kind:normal"]))).toBeNull();
+    expect(ridersHeldBy({ id: "ally", effectInstances: [] }, NP)).toBeNull();
+    world(0);
+    expect(ridersHeldBy(defender(), NP)).toBeNull();
+    // The default mock: `absorbs` without `holdsRiders` (Scales of the Sacred Fish's shape).
+    vi.restoreAllMocks();
+    vi.spyOn(EffectRegistry, "get").mockImplementation((id) =>
+      (id === "rhoAias" ? { name: "Rho Aias", absorbs: { scope: "np", poolFrom: "sourceAbility" } } : null));
+    world(1400);
+    expect(ridersHeldBy(defender(), NP)).toBeNull();
+  });
+
+  it("is broken by a hit that empties it, held by one that does not, and never broken when floored", () => {
+    world(1400);
+    expect(absorb(defender(), 1400, { options: NP }).broken).toBe(true);
+    world(1400);
+    expect(absorb(defender(), 1399, { options: NP }).broken).toBe(false);
+    world(1400);
+    expect(absorb(defender(), 99999, { options: THROWN }).broken).toBe(false);
+  });
+
+  it("puts a break on the result the Damage Step reads", () => {
+    const result = { total: 2000, breakdown: [], flags: {} };
+    expect(landBarrier(result, { through: 600, absorbed: 1400, source: "Rho Aias", broken: true }).flags.barrierBroken).toBe(true);
+    expect(landBarrier(result, { through: 0, absorbed: 900, source: "Rho Aias", broken: false }).flags.barrierBroken).toBeUndefined();
   });
 });

@@ -49,7 +49,7 @@ import {
 } from "../rules/platforms.mjs";
 import { GRANTS, hasGranted } from "../rules/granted.mjs";
 import { coveringServantsFor, coverFactor, shoveDestination, isCovering } from "../rules/cover.mjs";
-import { absorb, refreshShield, landBarrier } from "./shield.mjs";
+import { absorb, refreshShield, landBarrier, ridersHeldBy } from "./shield.mjs";
 import { attackIdentity, recordedAttack } from "../rules/revival.mjs";
 import { abilityRecordOf } from "../rules/snapshot.mjs";
 import { removalPlan, pendingRemovalRolls, isUnremovable } from "../rules/removal.mjs";
@@ -773,7 +773,7 @@ export function buildAttackSpec({
       // stays its own, and `rollOptionsFor` adds `attack:kind:normal` beside it.
       asNormalAttack: Boolean(ability?.system?.countsAsNormalAttack),
       // An ability the sheet CATEGORIZES as a Noble Phantasm (EMIYA's Overedge),
-      // stamped on the declaration so the option set can say `attack:isNP` from
+      // stamped on the declaration so the option set can say `attack:kind:np` from
       // the one definition (`isNPAttack`). Read from the identity builder, which
       // is the ONE place an ability's NP category is read (the pipeline got it
       // there; the options were built before it was added -- #208).
@@ -1959,7 +1959,7 @@ async function resolveCover(state, message) {
   // AoE Noble Phantasms only. The sheet offers the same process for a non-NP
   // AoE and makes it *optional* there; that prompt is not built, and Ch. 32
   // records it.
-  if (state.attack?.kind !== "np" || !state.isAoE) return;
+  if (!isNPAttack(state.attack) || !state.isAoE) return;
   // Not the breaking's (ruled 2026-10-04, #180 reading 7, Q9): a Unit caught
   // only because an [Anti-World] NP broke Doomsday Come takes it like anyone,
   // and a single-target NP is not made an area attack for cover by it.
@@ -3042,7 +3042,7 @@ async function fireAttackLanded(siblings) {
  * @returns {Promise<void>}
  */
 async function grailUnderNP(state, siblings, board) {
-  if (state.attack?.kind !== "np") return;
+  if (!isNPAttack(state.attack)) return;
   const dealt = Math.max(0, ...siblings.map((m) => m.getFlag("fgt", "result")?.total ?? 0));
   const roll = (await new Roll("1d100").evaluate()).total;
   const strike = grailStrike({ grail: board.grail, areaPanels: state.attack?.areaPanels ?? [], dealt, roll });
@@ -3127,7 +3127,17 @@ async function runAutomaticStep(state, message) {
       // deals 3.5x damage plus 100."* The branch cannot be expressed as a
       // rider, because a rider fires after a damage step that should not have
       // happened.
-      const before = await applyAbilityEffects(state, { flags: {} }, { when: "beforeDamage" });
+      //
+      // A barrier that holds riders (Rho Aias) keeps back what this NP would
+      // put on the defender, here and after the damage, until it knows whether
+      // it held (ruled 2026-10-16, #208). Kept back, they shape nothing: a held
+      // Instakill is not inflicted, so Gáe Bolg Alternative's damage runs and
+      // the barrier takes it.
+      const heldBy = barrierHolding(state);
+      /** @type {object[]} */
+      let held = [];
+      const holding = { riders: heldBy ? "hold" : "land", heldBy, held };
+      const before = await applyAbilityEffects(state, { flags: {} }, { when: "beforeDamage", ...holding });
       const skipped = damageSuppressedBy(state, before);
 
       // A pre-damage phase can empty a Health bar without any damage being
@@ -3159,7 +3169,17 @@ async function runAutomaticStep(state, message) {
       // Luck and Agility drained by the debuffs it had just applied (#209, live).
       // *"Whenever damage is received"* is damage after they exist.
       if (riders) await fireDamageTaken(state, result);
-      const applied = (skipped || veiled) ? [] : await applyAbilityEffects(state, result);
+      // Broken: what was kept back lands now, after the damage, then the rest.
+      // Held: it is dropped, and the card says so.
+      const broke = Boolean(heldBy) && result.flags?.barrierBroken === true;
+      const released = broke && !(skipped || veiled)
+        ? await applyAbilityEffects(state, result, { when: "beforeDamage", riders: "heldOnly" })
+        : [];
+      if (broke) held = [];
+      const applied = (skipped || veiled) ? [] : [
+        ...released,
+        ...await applyAbilityEffects(state, result, heldBy && !broke ? { riders: "hold", heldBy, held } : {}),
+      ];
       // ...and a rider can empty one too. Maria the Ripper's *"Then, has a 50%
       // chance of inflicting Instakill"* lands after the damage, and left
       // Medusa at 0 Health, undefeated, on the board (#185).
@@ -3196,7 +3216,7 @@ async function runAutomaticStep(state, message) {
       // before the riders.
 
       await message.setFlag("fgt", "damage", result.total);
-      await message.setFlag("fgt", "effects", [...before, ...applied, ...stepEnd.rows].map((a) => a.summary));
+      await message.setFlag("fgt", "effects", [...before, ...applied, ...held, ...stepEnd.rows].map((a) => a.summary));
       return process.advance(state, "done", {
         total: result.total, rollRecords: [...(result.modifierRolls ?? []), ...riderRolls, ...stepEnd.records],
       });
@@ -3301,7 +3321,7 @@ async function rollEvade(state) {
   );
   const attackProperties = [];
   if (state.attack?.aim) attackProperties.push("aim");
-  if (state.attack?.kind === "np") attackProperties.push("np");
+  if (isNPAttack(state.attack)) attackProperties.push("np");
 
   const outcome = evadeCheck({
       roll: roll.total,
@@ -3458,7 +3478,7 @@ function evadeModifiers(state, attacker, defender) {
       : "the attack";
     mods.push({ source, value: state.attack.evadeModifier });
   }
-  if (state.attack?.kind === "np") mods.push({ source: "attack is an NP", value: 3 });
+  if (isNPAttack(state.attack)) mods.push({ source: "attack is an NP", value: 3 });
   if (state.isAoE) mods.push({ source: "attack is AoE", value: 2 });
   // Appendix C.1, from the side +1 and from behind +2 -- single-target attacks
   // only, from the cone stamped at the declaration (#184).
@@ -4034,7 +4054,7 @@ async function applyInjury(state, message) {
     damage,
     healthAfter: defenderDoc.system?.health?.value ?? 0,
     defender: unitFrom(boardSnapshot(), defenderDoc),
-    isNP: state.attack?.kind === "np",
+    isNP: isNPAttack(state.attack),
     // NOTE: no rung of the reaction ladder offers `Light Wound` yet (Ch. 46
     // D3), so this is always false today. It is read rather than hard-coded so
     // that adding the rung is the only change needed — but it is a gap, and it
@@ -4619,7 +4639,7 @@ async function applyDamage(state, message) {
     luckChecks: {},
     rolls: {
       [isCrit ? "attackPlus" : "attackMinus"]: attackRoll.total,
-      negation: await rollNegation(defender, state.attack?.kind === "np"),
+      negation: await rollNegation(defender, isNPAttack(state.attack)),
       // Ch. 32's ZON penalty: *"when a Servant deals damage with an Attack while
       // outside of its Master's ZON, damage dealt is reduced by 5d10"*.
       //
@@ -4969,6 +4989,19 @@ function doubleDice(formula) {
  * @param {object|null} [board] the board the attack is on; the live one when omitted
  * @returns {{attacker: object|null, defender: object|null}}
  */
+/**
+ * The barrier that holds this Process's riders back from its defender, if any
+ * (Rho Aias, ruled 2026-10-16, #208).
+ *
+ * @param {object} state
+ * @returns {string|null} the barrier's name
+ */
+function barrierHolding(state) {
+  const { attacker, defender } = riderSubjects(state);
+  if (!defender) return null;
+  return ridersHeldBy(defender, rollOptions(attacker, defender, state));
+}
+
 function riderSubjects(state) {
   const board = boardSnapshot();
   const attackerDoc = game.actors.get(state.attackerId);
@@ -4984,11 +5017,30 @@ function riderSubjects(state) {
  * are all honoured -- and every step's outcome is recorded, so the card can say
  * "Burn resisted (rolled 78 vs 65%)" rather than silently doing nothing.
  *
+ * A barrier that holds riders (Rho Aias, ruled 2026-10-16, #208) splits the
+ * loop by audience. `riders: "hold"` runs everything but what lands on the
+ * defender, and writes what it kept back into `held`; `riders: "heldOnly"`
+ * runs only what lands on the defender, for the barrier that broke. A check the
+ * defender makes is never held: Gate of Skye's Death is avoided by passing the
+ * Luck Check and by nothing else (#204 reading 15), so it runs in "hold" and
+ * not again in "heldOnly".
+ *
  * @param {object} state
  * @param {object} damageResult
+ * @param {object} [opts]
+ * @param {"beforeDamage"|"afterDamage"} [opts.when]
+ * @param {"land"|"hold"|"heldOnly"} [opts.riders]
+ * @param {string|null} [opts.heldBy] the barrier's name, for the card
+ * @param {object[]} [opts.held] collects the summaries of what was kept back
  * @returns {Promise<Array<{summary: object, result: object}>>}
  */
-async function applyAbilityEffects(state, damageResult, { when = "afterDamage" } = {}) {
+async function applyAbilityEffects(state, damageResult, { when = "afterDamage", riders = "land", heldBy = null, held = [] } = {}) {
+  const holding = riders === "hold";
+  const heldOnly = riders === "heldOnly";
+  // What a held rider says on the card when the barrier does not break.
+  const keep = (id, name) => held.push({
+    summary: { id, name, outcome: "blocked", reason: game.i18n.format("FGT.Barrier.Holds", { name: heldBy ?? "" }), chance: null },
+  });
   const attackerDoc = game.actors.get(state.attackerId);
   const ability = state.attack?.abilityId ? attackerDoc?.items.get(state.attack.abilityId) : null;
   const defenderDoc = game.actors.get(state.defenderId);
@@ -5024,6 +5076,13 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     // the splash rolled its 25% NP Seal twice and Burn landed before the damage
     // it rides on (#65, found live). An aftermath's riders follow its damage.
     if (when !== "afterDamage") return [];
+    if (holding) {
+      for (const rider of ability.system?.aftermath?.effects ?? []) {
+        const id = entryOf(rider)?.id;
+        if (id) keep(id, EffectRegistry.get(id)?.name ?? id);
+      }
+      return [];
+    }
     for (const rider of ability.system?.aftermath?.effects ?? []) {
       // "with a 25% chance of inflicting NP Seal for 1◈ Turns" -- the rider's
       // own stated chance, through the same door as every other entry.
@@ -5096,13 +5155,17 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     // Medea's Rule Breaker: "removes all buffs from the DU", and then cuts the
     // Contract if the DU is a Servant that FAILED to Evade.
     if (phase.kind === "removeEffect") {
+      if (holding) { keep("removeEffect", game.i18n.localize("FGT.Barrier.HeldRemoval")); continue; }
       await applyBatch(await removalIntents(phase, defenderDoc, defender), "np:removeEffect");
       continue;
     }
     if (phase.kind === "cutContract") {
+      if (holding) { keep("cutContract", game.i18n.localize("FGT.Barrier.HeldContract")); continue; }
       applied.push(...await cutContract(phase, state, defenderDoc));
       continue;
     }
+    // The defender's own check is never held, and runs once (see above).
+    if (heldOnly && phase.kind !== "applyEffects" && phase.kind !== "applyEffect" && phase.kind !== "cooldown") continue;
     // A CHECK the defender makes, which branches the Noble Phantasm. Scáthach's
     // Gate of Skye: *"All targeted Units perform a Luck Check ... If the
     // targeted Unit's Luck Check fails, it is inflicted with Death. If the
@@ -5148,7 +5211,11 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     // each has its own defender, and a caster-directed one runs in exactly one,
     // or a four-Unit Noble Phantasm turns its own clock four times.
     if (phase.kind === "cooldown") {
-      const { perDefender, oncePerPhase } = splitCooldownRider(phase);
+      const split = splitCooldownRider(phase);
+      // What reaches the defender's clocks waits for the barrier; the caster's own does not.
+      if (holding && split.perDefender.length > 0) keep("cooldown", game.i18n.localize("FGT.Barrier.HeldCooldown"));
+      const perDefender = holding ? [] : split.perDefender;
+      const oncePerPhase = heldOnly ? [] : split.oncePerPhase;
       const cdBoard = boardSnapshot();
       const intents = [
         ...(perDefender.length > 0
@@ -5168,6 +5235,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
       continue;
     }
     if (phase.kind === "setMode") {
+      if (heldOnly) continue;
       await applyBatch(
         [I.setMode(state.attackerId, phase.ability, phase.active === true, `np:${ability.id}`)],
         `np:setMode:${phase.ability}`,
@@ -5204,6 +5272,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     // order, and on a live board Troias's Atk Up landed with the last of three
     // hits, so the first two went without it (#184).
     if (phase.target === "self") {
+      if (heldOnly) continue;
       // Claimed in memory as well: the Processes of one group can reach their
       // Damage Step together -- they all wait on the one Damage Step window --
       // and none has a damage step in its history yet, so each read itself as
@@ -5258,7 +5327,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     // the same reason `target: self` is: an area attack fans out into a Process
     // each, and a magnitude-stacking buff applied per Process would multiply.
     if (phase.targeting) {
-      if (!isFirstOfGroup(state)) continue;
+      if (heldOnly || !isFirstOfGroup(state)) continue;
       applied.push(...await applyTargetedRider(phase, ability, state, attackerDoc));
       continue;
     }
@@ -5267,6 +5336,11 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage" }
     // Reading only `rules` silently dropped every rider on the newer shape --
     // Medea's Aero dealt its damage and inflicted no Bleed.
     for (const rule of phase.rules ?? phase.effects ?? []) {
+      if (holding) {
+        const id = entryOf(rule, { phase })?.id;
+        if (id) keep(id, EffectRegistry.get(id)?.name ?? id);
+        continue;
+      }
       // Through the one door (`engine/landing.mjs`): the ring and per-panel
       // chance, the phase's `ignoresResistanceFrom`, an entry's own gate and
       // every count are read here exactly as a Skill reads them.
@@ -6864,7 +6938,7 @@ async function autoEvadeFrom(state, defender) {
 
   const attackProperties = [];
   if (state.attack?.aim) attackProperties.push("aim");
-  if (state.attack?.kind === "np") attackProperties.push("np");
+  if (isNPAttack(state.attack)) attackProperties.push("np");
   if ((auto.beatenBy ?? []).some((p) => attackProperties.includes(p))) return { applies: false };
 
   // A per-property chance: certain against anything ordinary, a coin against a

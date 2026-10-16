@@ -515,14 +515,17 @@ describe("Xiuhcoatl's splash is its own resolution (#136)", () => {
     const engine = readFileSync("module/engine/attack.mjs", "utf8").replaceAll("\r\n", "\n");
     const from = engine.indexOf("async function applyAbilityEffects");
     const body = engine.slice(from, engine.indexOf("\n}\n", from));
-    expect(body).toMatch(/\{ when = "afterDamage" \}/);
+    // `riders` and its barrier fields joined the options on 2026-10-16 (#208); the default window is unchanged.
+    expect(body).toMatch(/\{ when = "afterDamage"[,} ]/);
     const branch = body.slice(body.indexOf("if (state.attack?.isAftermath)"));
     const loop = branch.indexOf("for (const rider of ability.system?.aftermath?.effects");
     expect(loop).toBeGreaterThan(0);
     expect(branch.slice(0, loop)).toMatch(/if \(when !== "afterDamage"\) return \[\];/);
     const callers = engine.split("\n").filter((line) => line.includes("await applyAbilityEffects("));
     const windows = callers.map((line) => line.match(/when: "(\w+)"/)?.[1] ?? "afterDamage");
-    expect(windows.sort()).toEqual(["afterDamage", "beforeDamage"]);
+    // A third call since 2026-10-16 (#208): a broken Rho Aias releases the before-damage riders it held, after the
+    // damage. An aftermath answers it with nothing, as it answers the first before-damage call.
+    expect(windows.sort()).toEqual(["afterDamage", "beforeDamage", "beforeDamage"]);
   });
 });
 
