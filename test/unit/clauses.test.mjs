@@ -71,7 +71,7 @@ describe("Asterios reproduces the list his audit was run against", () => {
     const inScope = readdirSync(SHEET_DIR)
       .filter((f) => f.endsWith(".md"))
       .map((f) => f.replace(/^Copia de /, "").replace(/\.md$/, ""))
-      .filter((n) => !["Hassan (Hundred-Face)", "Katō Danzō", "Proto Gil", "Yan Qing"].includes(n));
+      .filter((n) => !["Katō Danzō", "Proto Gil", "Yan Qing"].includes(n));
     for (const name of inScope) {
       const unnamed = allClauses(named(name)).filter((c) => c.ref.endsWith(".pre"));
       expect(unnamed.map((c) => c.ref), name).toEqual([]);

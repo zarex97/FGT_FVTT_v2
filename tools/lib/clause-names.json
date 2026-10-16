@@ -28,6 +28,8 @@
 
   "Francis Drake": { "BU.pre": "BU.scope" },
 
+  "Hassan (Hundred-Face)": { "PC.pre": "PC.dur" },
+
   "Hassan (Serenity)": { "PC.pre": "PC.dur" },
 
   "Jack the Ripper": { "PC.pre": "PC.dur", "MI.pre": "MI.geom" },

@@ -908,27 +908,29 @@ roster carrying a *"requires GM comfort"* flag and a per-world disable.
 
 ## D.21 Hundred-Faced Hassan
 
-Unit shape: `membership: pool` (Ch. 44 §44.1).
+Unit shape: `membership: pool` (Ch. 44 §44.1). **Not built.** The table follows the Character Sheet as
+revised in October 2026; the Clause list and its 27 rulings are in
+[the Hundred-Faced Hassan Clause list](superpowers/specs/2026-10-16-hundred-faced-hassan-clauses.md).
 
 | Ability | Type | Mapping |
 |---|---|---|
-| Presence Concealment (A+) | Class, mode | RE — plus a **unique ninth clause**: `Skill Seal` deactivates PC immediately |
-| Librarian of Stored Knowledge (C) | Passive + active | RE (crit +20% passive, +20% active, `NP Regen`) |
-| Expert of Many Specializations (A+) — passive | Passive | **RE+** `RollAdjustment`: modify **any out-of-combat roll** by up to ±3, for herself or allies within 2. A player-facing prompt on an arbitrary roll |
-| Expert of Many Specializations (A+) — active | Active | RE (`kind: choice` **or** `kind: roll`, player's option, `4` grants all three — and the **cooldown differs by branch**) |
-| Battle Retreat (B) | Reaction | RE (cancel the attack, move 7, heal 40%, then **strip her own buffs**) |
-| Zabaniya: Delusional Illusion (B++, NP) | Pool + AoE NP | **RE+** the 100-body pool; active hits 3×3 orthogonal-adjacent for 3.5× + 200 and **costs `4d6` bodies** |
+| Presence Concealment (A+) | Class, mode | RE — the shared A+ block plus **one Clause on trial**: `Skill Seal` deactivates PC immediately |
+| Librarian of Stored Knowledge (B) | Passive + active + passive | RE (crit +20% passive; NP Cooldown −1◈, `NP Regen`, Crit Up, Buff ChUp, Crit DmUp; Effects 3–5 spread to up to two other bodies within 2, the player's pick) |
+| Expert of Many Specializations (A+) — passive 1 | Passive | **RE+** `RollAdjustment`: move **his own** out-of-Combat roll by up to ±3, a prompt after the roll; not the Active's own rolls |
+| Expert of Many Specializations (A+) — active | Active + passive 2 | RE (four 70% buff chances: +3 Agility with AGL Up, +3 Luck with LUC Up, Atk Up, Dodge ⅔◈ or ⅓◈; every other body within 2 rolls its own) |
+| Battle Retreat (B) | Reaction | RE (cancel a targeted Attack, or leave an AoE's targets; move up to 7, heal 40%, then **strip his own buffs**; PC stays) |
+| Zabaniya: Delusional Illusion (B++, NP) | Pool + AoE NP | **RE+** the 100-body pool; at most ten on the field; Skill and NP cooldowns shared but PC and Battle Retreat per body; each body weighs 0.5; the Active hits a 3×3 orthogonally adjacent for 3.5× + 200 and **costs `4d6` bodies**, which can end him |
 
-**Exercises:** unit pools, per-group linked-death and shared-cooldown inversions, fractional
-turn-budget weights, choice-or-roll ability phases, resource costs denominated in *units*, and a
-player prompt that can retroactively adjust another unit's die roll.
-**Scripts: 0.**
+**Exercises:** unit pools, per-pool shared cooldowns with per-body exceptions, fractional
+turn-budget weights, deployment that depends on the war type, buff chances that spread to every
+body in reach, resource costs denominated in *units*, and a player prompt that adjusts a roll after
+it is seen.
+**Scripts: 0** (planned).
 
-**Note.** Her sheet carries two open bracket-questions — *"maximum of ten (twenty?)"* and
-*"0.5 (0.25?) of a Unit"*. Both ship as ruleset settings defaulting to the un-bracketed value
-(**Q46**). She is also the only Servant whose Presence Concealment text differs from the shared
-block, which is why PC is modelled as a **parameterized template** with per-Servant overrides
-rather than as one shared effect.
+**Note.** The two bracket-questions the older sheet carried — *"ten (twenty?)"* and *"0.5 (0.25?)"* —
+are gone: ten and 0.5. **Q46**'s settings are no longer needed for them. His Presence Concealment
+differs from the shared block by one Clause, which is why PC is modelled as a **parameterized
+template** with per-Servant overrides rather than as one shared effect.
 
 ---
 
