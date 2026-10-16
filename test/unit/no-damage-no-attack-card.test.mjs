@@ -43,7 +43,11 @@ describe("which abilities open a Combat Process", () => {
 describe("the price of one", () => {
   const src = readFileSync("module/engine/skill-use.mjs", "utf8");
   const body = src.slice(src.indexOf("export async function useSkill"), src.indexOf("const targets = resolveSkillTargets"));
-  it("is billed as a Noble Phantasm, which NP Seal refuses and the Attack pool pays", () => {
-    expect(body).toMatch(/isNP \? "np"/);
+  it("is billed as a Noble Phantasm, which NP Seal refuses and the Attack pool pays", async () => {
+    // The kind lives in `useBudgetKind` now, which the bar reads too: the slot
+    // stayed lit after an Attack while the press refused (#208 §46.4-MN).
+    expect(body).toMatch(/budgetActionFor\(useBudgetKind\(ability\)\)/);
+    const { useBudgetKind } = await import("../../module/rules/ability-use.mjs");
+    expect(useBudgetKind({ type: "noblePhantasm", system: {} })).toBe("np");
   });
 });

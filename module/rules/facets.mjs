@@ -303,6 +303,12 @@ export const FACETS = Object.freeze([
     prose: "the attack is a Counter",
   }),
   facet({
+    id: "plainDamage",
+    subjects: ["attack"],
+    english: "This damage is only measured as an attack's, as a Knockback's is: it is not an Attack.",
+    prose: "the damage is measured as an attack's but is not an Attack",
+  }),
+  facet({
     id: "withinOfPartner",
     segments: [{ name: "panels", value: number(1, 6) }],
     // The other member of a linked group (Ch. 32). Adjacency is `:1`,
@@ -350,11 +356,39 @@ export const FACETS = Object.freeze([
     prose: "the attack covers an area",
   }),
   facet({
+    id: "isNP",
+    subjects: ["attack"],
+    english: "The attack is a Noble Phantasm, or is categorized as one.",
+    prose: "the attack is a Noble Phantasm",
+  }),
+  facet({
+    id: "performed",
+    subjects: ["attack"],
+    english: "The Unit hearing the event made the attack.",
+    prose: "the Unit performed the attack",
+  }),
+  facet({
     id: "component",
     subjects: ["attack"],
     segments: [{ name: "component", value: closed("COMPONENTS") }],
     english: "The attack uses Base Attack (STR) or Base Attack (MAG).",
     prose: "the attack uses Base Attack ({component})",
+  }),
+  facet({
+    // The BASE the attack adds up, which `component` is not. `component` is
+    // what the attack COUNTS AS -- Mana Burst declares `str` on purpose, so
+    // that "not affected by Magic Resistance" is stated once and Magic
+    // Resistance's own Instakill exemption reads the same word -- while the
+    // base it sums is BA(STR) + BA(MAG). *"Halved for Attacks which use Base
+    // Attack (MAG)"* is a clause about the second, and Mad Enhancement read the
+    // first (#209 reading 3, ruled 2026-10-14). Derived by the damage pipeline
+    // from the sources stage 1 actually adds (`damage/pipeline.mjs#stage1Base`),
+    // never emitted by `rollOptionsFor`: the base is built beside it.
+    id: "usesBase",
+    subjects: ["attack"],
+    segments: [{ name: "component", value: closed("COMPONENTS") }],
+    english: "The attack's Base Attack includes Base Attack (STR) or Base Attack (MAG), whatever it counts as.",
+    prose: "the attack's base includes Base Attack ({component})",
   }),
   facet({
     id: "element",

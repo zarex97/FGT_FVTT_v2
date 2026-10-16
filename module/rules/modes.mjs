@@ -352,9 +352,11 @@ export function forcedModes(unit, items, { tick = 0, board = null } = {}) {
  * @param {object} item the mode, as a document or `{system}`
  * @param {object} unit its bearer's board snapshot
  * @param {object} board
+ * @param {object} [opts]
+ * @param {boolean} [opts.masterDefeatAnswers] the engine's sweep: a Master at 0 is the defeat path's
  * @returns {boolean}
  */
-export function forcedOffNow(item, unit, board) {
+export function forcedOffNow(item, unit, board, { masterDefeatAnswers = false } = {}) {
   const sys = item?.system ?? {};
   if (!sys.isMode) return false;
   for (const rule of sys.activeRules ?? []) {
@@ -376,6 +378,15 @@ export function forcedOffNow(item, unit, board) {
         limit *= factor.value ?? 1;
       }
       const health = currentHealth(subject);
+      // A MASTER at 0 has been defeated, not merely brought low, and the
+      // engine's sweep leaves that to the defeat path: Mad Enhancement's
+      // *"Sustainability is reduced by 2◈ if its Master is defeated while
+      // Active"* reads the mode at that moment. Forced off by the sweep first,
+      // the killing blow's own Health drop switched it off and clause 5 could
+      // never charge anybody (#209, found live); the modes then lock as they
+      // stand (Ch. 32). Asked by the sweep alone: a compulsion still may not
+      // switch a mode ON over a Master at 0 (`forcedModes`, #209 review).
+      if (masterDefeatAnswers && gate.subject === "master" && typeof health === "number" && health <= 0) continue;
       if (typeof health === "number" && health <= limit) return true;
     }
   }

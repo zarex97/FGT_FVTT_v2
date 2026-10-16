@@ -31,7 +31,7 @@ Chapters 31–36; this appendix is the consolidated reference.
 | Mannanán mac Lir | Alter Ego | A | B | B | EX | D | 1250 | 6 | 1 | 150 | 250 | 2◈ |
 | Kingprotea | Alter Ego | EX | EX | A | D | B | 2000 | 7 | 1 | 200 | 125 | 7◈ |
 | Castor | Avenger | A | A++ | B | C | C | 1500 | 6 | 3 | 150 | 150 | 2◈ |
-| Pollux | Avenger¹ | A | A++ | B | C | C | 1500 | 5 | 1 | 200 | 150 | 2◈ |
+| Pollux | Saber⁵ | A | A++ | B | C | C | 1500 | 5 | 1 | 200 | 150 | 2◈ |
 | Semiramis | Caster/Assassin | E | D | D | A | A | 750 | 4 | 2 or 3² | 45 | 200 | 2◈/4◈² |
 | Scáthach | Lancer¹ | B | A | A | C | D | 1500 | 7 | 2 | 125 | 150 | 2◈ |
 | Karna | Lancer | B | C | A | B | D | 1000 | 7 | 2 | 125 | 175 | 2◈ |
@@ -42,6 +42,8 @@ Chapters 31–36; this appendix is the consolidated reference.
 | Heracles | Berserker¹ | A+ | A | A | B | A | 1500 | 6 | 1 | 160 | 175 | 2◈ |
 
 ¹ Class inferred from the ability set; not stated on the sheet.
+
+⁵ **Ruled, no longer inferred** (#209 reading 1, ruled 2026-10-14; Ch. 46 §46.31): Pollux is a Saber, and Castor stays an Avenger. The pair takes a Saber slot only and shows Saber to the enemy before the True Names are revealed.
 
 ⁴ The sheet's figure, and **overruled in play**: Ch. 41 Q50 settles that Base Attack is derived from the Rank, so his STR `D` gives **75**. Serenity's sheet prints 65 at the same Rank and is overruled the same way. The written value is kept so the deviation stays visible, and `validate:content` warns about it.
 ² Depends on the `Double Summon: Caster` coin flip.
@@ -187,8 +189,13 @@ the cheapest NP in the set, on the highest-END Servant. Deliberate.
 Full conversion: Ch. 34.
 
 ### Shared binding
+**Pollux is a Saber and Castor an Avenger** (#209 readings 1, 8 and 9, ruled 2026-10-14; Ch. 46 §46.31). Appendix D had marked her class inferred from his. The pair takes ONE slot, a Saber one: `classContainer` is `saber` on both sheets (the slot, and what `publicNameOf` and the class image read before the True Names are revealed), `servantClasses` stays `[avenger]` for Castor, and he is the *companion* (`catalogueEntryOf`): never drawn alone, summoned with Pollux (Ch. 31).
+
 `LinkedUnitGroup`: leash 2, linked death (ignoring revival), 0.5 budget weight, shared cooldowns
-by ability name, `zonSatisfaction: any`.
+by ability name, `zonSatisfaction: any`. **One clock** (#209 reading 2, ruled 2026-10-14): a use
+and any cut by either twin reaches both copies — Mana Burst's own 1◈ cut was a dropped
+`CooldownDelta` until #219 (§46.4-D1), and Self-Replenishment's 2 Turns set the clock to 0 until the
+same ticket (§46.4-D4).
 
 ### Castor
 
@@ -197,11 +204,11 @@ by ability name, `zonSatisfaction: any`.
 | Avenger (B) | Class, passive | RE (damage taken **+80** flat; counter damage +80) |
 | Oblivion Correction (C) | Class, passive | RE (crit chance +15%) |
 | Self-Replenishment (Mana) (D) | Class, passive | RE (+40 HP, NP cooldown −2 **turns**, per own/acted turn end) |
-| Mad Enhancement (B−) | Class, mode | RE (35%/15% taken, 55% dealt; **halved Master drain when adjacent to Pollux**) |
+| Mad Enhancement (B−) | Class, mode | RE (35%/15% taken, 55% dealt — **halved to 25 on Mana Burst**, which sums BA(MAG), by `attack:usesBase:mag` and the template's floor-to-5 rounding, #209 reading 3; **halved Master drain when adjacent to Pollux**) |
 | Twin God's Divine Core (B) | Passive, `countsAs: divinity` | RE (+80 flat; 5% NP cooldown chance on successful normal attacks) |
 | Stars of the Chief God (A) | Active | RE (paired `Castor`/`Pollux` buffs on both twins) |
 | Guardians of Navigation (B) | Active | RE (3 party buffs incl. 1-time Debuff Immune) |
-| Mana Burst (Light/Ancient) (A+) | `whenAttacking` | **RE+** `kind: choice` phase |
+| Mana Burst (Light/Ancient) (A+) | `whenAttacking` | **RE+** `kind: choice` phase; its last clause is a `cooldown` phase (§46.4-D1); also a Counter (#209 reading 4) |
 
 ### Pollux
 
@@ -218,7 +225,7 @@ by ability name, `zonSatisfaction: any`.
 
 | Ability | Mapping |
 |---|---|
-| Dioscures Tyndaridae (B, NP) | **RE+** `modifierSources: [castor, pollux]`; base = half of each twin's BA(STR); requires adjacency; counts as **both** twins' attack |
+| Dioscures Tyndaridae (B, NP) | **RE+** `modifierSources: [castor, pollux]`; base = half of each twin's BA(STR); requires adjacency; counts as **both** twins' attack; **Range 2 from either twin** (`anchor.alsoFrom: partner`, #209 reading 6); the two bags combine by concatenation, so an effect on both counts twice (two Divine Cores are +160, reading 5), and the Crit Chance rolled is both twins' where an NP figure is stated (reading 10) |
 
 **Exercises:** linked units, fractional budgets, shared cooldowns, cross-unit modifier
 combination, partner-conditional auras, mid-ability choice.
@@ -290,7 +297,7 @@ Discussed: Ch. 36 §36.4.
 | — (Skill 1) / (Skill 2) | Granted, copied | RE (`GrantedAbility` with `copiedFrom`) |
 | — (Clairvoyance) | Active | RE (80%-chance Crit DmUp/Crit Up, Dodge) |
 | God Slayer (EX) | Passive + active | RE (+30% vs Undead/Divine; `Dmg Up (Gods)` +70%; `Alpi` 3-use NP cooldown buff) |
-| Gáe Bolg Alternative (B+, NP) | Damaging NP | RE (500% Stun, 75% Instakill, else 3.5× + 100) |
+| Gáe Bolg Alternative (B+, NP) | Damaging NP | RE (500% Stun, 75% Instakill, else 3.5× + 100). **A thrown weapon** (`damage.thrownWeapon`, ruled 2026-10-14, #208 reading 18): EMIYA's Rho Aias holds at 1 Health against it. The only one |
 | Gate of Skye (A+, NP) | AoE NP | **RE+** rank-**equality** save modifiers; chosen-subset targeting; `alsoTriggers` |
 
 **Exercises:** unranked abilities, random effect tables with a choice outcome, ability copying,
@@ -1270,18 +1277,18 @@ Bounded field: **Unlimited Blade Works** (Ch. 43). NP copying: Ch. 44 §44.5.
 | Hawkeye (B+) | Active | RE (range-conditional crit chance and crit damage) |
 | Eye of the Mind (True) (B) | Passive + reaction | **RE+** `RankShift` triggered by a **health threshold** (<20%), swapping the **entire ability** for its EX version |
 | Eye of the Mind (True) (EX) | Conditional ability | RE (four clauses; usable on your turn *or* as a reaction) |
-| Magecraft (C) | Passive | RE (unlocks Thaumaturgy; each use applies `Range Up`, **extending rather than stacking**) |
-| Thaumaturgy: Reinforcement | Spell | RE |
+| Magecraft (C) | Passive | RE (unlocks Thaumaturgy; each use applies `Range Up (Hawkeye)`, **extending rather than stacking**). **Range Up (Hawkeye) is its own effect** (`rangeUpHawkeye`, ruled 2026-10-14, #208 reading 14), not the `Range Up` Kiritsugu's Familiars applies: the two add, and each refreshes only itself. Reapplied from the handler it adds its span to the clock it has, as a phase's `applyEffects` always did |
+| Thaumaturgy: Reinforcement | Spell | RE. **Used at the start of any Combat Phase he is in**, attacking or attacked, and not any time in his Turn (`[combatPhaseStart, defendingPhaseStart]`, no `ownTurn`: window-only, Ch. 17), and its N.Atk Up lasts that Combat Phase (`until combatPhaseEnd`), ruled 2026-10-14 (#208 readings 8, 9) |
 | Thaumaturgy: Tracing | Spell | **RE+** cooldown reduction selected by **ability-name substring** (`Projection`), with a two-for-one-each or one-for-two choice |
 | Projection Magic (A+) | Passive | RE (a `Silence` gate over a **named ability group**) |
-| Trace, On (EX) | Active | **RE+** `AC`/`BC` mutually-exclusive statuses with **cascading removal** (they die when a separate buff dies); an **escalating self-cost** (free the first time, 5% Max Health thereafter); and a **Max Luck** increase |
-| Kanshou & Bakuya (C−, NP) | Passive NP | RE (`RankShift` +1 on **his own Magic Resistance** for the turn; suppressed while Overedge is on cooldown) |
-| Overedge | Attack Skill, *categorized as NP* | RE (two Normal Attacks in a row, each +50%) |
+| Trace, On (EX) | Active | **RE+** `AC`/`BC` mutually-exclusive statuses with **cascading removal** (they die when a separate buff dies); an **escalating self-cost** (free the first time, 5% Max Health thereafter); and a **Max Luck** increase. **A plain Skill, not a Spell** (ruled 2026-10-14, #208 readings 2 and 3): it carries no `category`, so Silence does not stop it, Magecraft's `Range Up (Hawkeye)` does not hear it, and the Atk Up (Trace) it applies no longer lengthens itself. **Each circuit is three documents** (#208 readings 10 to 13): the persistent first clause (a Normal Attack inside the Marble, hit or miss, at the end of its Combat Process), the one-shot "next NP that deals damage" (`acNextNp` / `bcNextNp`, used, hit or not; Overedge counts) and the Overdrive for the rest of the Round (`acOverdrive` / `bcOverdrive`, from the next Attack on). Atk Up (Trace) going by any route removes all of them |
+| Kanshou & Bakuya (C−, NP) | Passive NP | RE (`RankShift` +1 on **his own Magic Resistance** for the turn; suppressed while Overedge is on cooldown). **A close Normal Attack is a use** (ruled 2026-10-14, #208 reading 5): its rule ends with the `AbilityUsed` action, so Magecraft's Range Up and Atk Up (Trace)'s extension hear it |
+| Overedge | Attack Skill, *categorized as NP* | RE (two Normal Attacks in a row, each +50%). **Each swing is a Normal Attack** (`countsAsNormalAttack`, #208 reading 7) and the grant rule says Kanshou & Bakuya was used per swing, so one Overedge is three uses of Projection NPs. It counts as the Circuits' "NP that deals damage" through `attack:isNP` (reading 11); a plain Kanshou & Bakuya swing does not (reading 22) |
 | Caladbolg II (A, NP) | AoE NP | RE (3×3 **around the targeted unit**, `Pierce` on the primary only, **caster excluded from its own area**) |
 | Hrunting (A, NP) | Damaging NP | RE (`Aim`, MR-exempt, **minimum range** restriction) |
-| Rho Aias (?, NP) | Shared shield NP | **RE+** `shieldScope` / `bleedThrough` / `indestructibleAgainst` / decaying reuse (Ch. 44 §44.2) |
-| Unlimited Blade Works (E~A++, NP) | Bounded field | **RE+** field + the `Aria` resource (0/6, one per Combat Phase, spent entirely) |
-| Projection: Unlimited Blade Works | Runtime NP copying | **S** `emiya.brokenPhantasm` |
+| Rho Aias (?, NP) | Shared shield NP | **RE+** `shieldScope` / `bleedThrough` / `indestructibleAgainst` / decaying reuse (Ch. 44 §44.2). **It protects against that one Noble Phantasm only** (`until combatPhaseEnd`, ruled 2026-10-14, #208 reading 19; it was ⅓◈): the Combat Phase takes it from the 3x3 around the protected Unit that the NP did not name. Gáe Bolg Alternative is thrown (reading 18) |
+| Unlimited Blade Works (E~A++, NP) | Bounded field | **RE+** field + the `Aria` resource (0/6, one per Combat Phase, spent entirely). **Not a Projection** (ruled 2026-10-14, #208 readings 4 and 23): no `category`, so Tracing cannot pick it and opening it neither extends Atk Up (Trace) nor gives Range Up; **Silence stops the Aria gain and nothing else** — with 6 Aria it opens while Silenced |
+| Projection: Unlimited Blade Works | Runtime NP copying | **S** `emiya.brokenPhantasm` — *ruled out of the audit 2026-10-14 (#208 reading 1): an experimental piece, not to be built* |
 
 **Exercises:** ability-swapping rank shifts, statuses whose lifetime is bound to another effect,
 minimum ranges, self-exclusion from your own AoE, shields that protect third parties and damage

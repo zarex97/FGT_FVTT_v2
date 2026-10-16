@@ -29,6 +29,7 @@ import { referencedOptions } from "./predicate.mjs";
 import { stanceOf, mountedThisTurn } from "./stance.mjs";
 import { heldOn } from "./modes.mjs";
 import { categoriesOf } from "./items.mjs";
+import { isNPAttack } from "./damage/pipeline.mjs";
 
 /**
  * A Unit's own facts, as `self:` options, and nothing else.
@@ -84,6 +85,19 @@ export function rollOptionsFor({ attacker, defender, attack = null, withoutModeH
   // stays, as a ride's does, so Vasavi Shakti's Normal-Attack Divinity bonus
   // reaches it (#206 reading 5).
   if (attack.asNormalAttack) options.add("attack:kind:normal");
+  // "An NP that deals damage": a Noble Phantasm, or an ability the sheet
+  // CATEGORIZES as one (EMIYA's Overedge). `attack:kind:np` is the first only,
+  // so a clause that means both asks THIS, answered by the one definition the
+  // damage pipeline and the crit coin already share (`isNPAttack`). The
+  // existing `attack:kind:np` readers (NP DmUp, Rho Aias's scope, Nemo) stay as
+  // they are: whether they hear a categorized-as-NP attack is an open question
+  // (#208, §46.30).
+  if (isNPAttack(attack)) options.add("attack:isNP");
+  // The HEARER made this attack. Every other `attack:` option is a fact about the
+  // attack, and an event fired on both combatants hands both the same set; this
+  // one is set only for a firing on the attacker (`combatProcessEnd`), so "an
+  // Attack he performs" can be asked apart from "an Attack he took" (#208 reading 10).
+  if (attack.performed) options.add("attack:performed");
   if (attack.isAoE) options.add("attack:isAoE");
   // Whether this declaration ANSWERS an attack rather than starting one
   // (Ch. 21). Avenger's second half is the first clause to ask: *"If Castor
@@ -91,6 +105,13 @@ export function rollOptionsFor({ attacker, defender, attack = null, withoutModeH
   // Countering."* "After receiving an Attack" needs no separate test -- a
   // Counter is only ever declared at Combat Process step 6.
   if (attack.isCounter) options.add("attack:isCounter");
+
+  // Damage MEASURED as an attack's and dealt by none: a Knockback's
+  // *"receives damage equivalent to a Normal Attack"* (#184 reading 8). It runs
+  // a Combat Process for the arithmetic and is not an Attack, which Def Dwn (A)
+  // and (C) are about: Luck and Agility fall *"whenever damage is received from
+  // an Attack"* (#209, #223).
+  if (attack.plainDamage) options.add("attack:plainDamage");
 
   // HOW THE DEFENDER REACTED, once the ladder has closed. Emitted on `target`
   // because that is what the defender is called throughout this vocabulary.

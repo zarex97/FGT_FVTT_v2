@@ -1,0 +1,32 @@
+# EMIYA's Blazing Circuits, second clause -- the one-shot half.
+#
+# "The next time EMIYA uses an NP that deals damage, all damage he deals is
+# increased by 20% including NP for the rest of the Round." Its own document for
+# the reason `acNextNp` is: "the NEXT time" is a charge, and a charge on the
+# persistent `blazingCircuits` would delete BC itself when it was spent.
+#
+# USED, not landed, and Overedge counts (see `acNextNp`). The +20% begins after
+# the NP's Combat Process (ruled 2026-10-15): `circuitsPending` keeps it off the
+# NP's own swings.
+schema: 1
+id: bcNextNp
+name: "Blazing Circuits: Next NP"
+description: "The next time EMIYA uses an NP that deals damage, all damage he deals is increased by 20% for the rest of the Round."
+polarity: status
+volatility: nonVolatile
+valence: neutral
+stacking: noneRefresh
+baseChance: 500
+unremovable: true
+uses: 1
+rules:
+  - key: OnEvent
+    event: combatProcessEnd
+    automatic: true
+    consumesUse: true
+    predicate: ["attack:isNP"]
+    then:
+      - { key: ApplyEffect, effect: { id: circuitsPending }, duration: "until combatPhaseEnd" }
+      - key: ApplyEffect
+        effect: { id: bcOverdrive, magnitude: 20, npMagnitude: 20 }
+        duration: "until roundEnd"

@@ -105,3 +105,10 @@ Both callers ask the same things: the `passengerSeat` grant, the Servant's own `
   w=3 → columns 4,5,6 (1 either side); **w=4 → 3,4,5,6 (two negative, one positive)**; w=5 → 3–7 (2 and 2);
   **w=6 → 2–7 (three negative, two positive)**. Odd widths are symmetric; even widths take the extra panel
   on the negative side. The block never contains the caster's own panel.
+
+### A refusal names its rule (#209 §46.4-MZ, NF)
+
+`rules/movement.mjs#validatePath` says why a panel is refused in the rule's own words. A leash break reads *"Castor must
+stay within 2 panels of Pollux."* (`leashBreakAt`, the one reader `canStopOn` shares). A step beside a guarded enemy
+Master reads *"Step N is beside an enemy Master, and its Servant guards that panel."* (`guardedMasterBeside`). "The
+destination panel is occupied." is said only when the step itself was allowed, so an empty panel never reads occupied.

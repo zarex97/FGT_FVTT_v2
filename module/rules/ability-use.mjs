@@ -537,6 +537,24 @@ export function countsAsAttack(item) {
 }
 
 /**
+ * Which action a used ability bills the Turn's budget, read by the use path
+ * (`engine/skill-use.mjs`) and by the bar that offers it.
+ *
+ * Two readers and one rule: the bar asked the budget only about abilities that
+ * open an Attack, so a Noble Phantasm that deals no damage stayed lit after its
+ * Unit had attacked, and the press refused it. Live: EMIYA attacked Medea, and
+ * Unlimited Blade Works' slot showed no reason (#208).
+ *
+ * @param {object} item
+ * @returns {"np"|"damageSpell"|"normal"|"skill"} a kind `budgetActionFor` maps
+ */
+export function useBudgetKind(item) {
+  if (item?.type === "noblePhantasm" || item?.system?.isNP === true) return "np";
+  if (countsAsAttack(item)) return item?.system?.isSpell ? "damageSpell" : "normal";
+  return "skill";
+}
+
+/**
  * Does using this count as the Unit's **Act** for the turn?
  *
  * Broader than `countsAsAttack`: a self-buff is not an attack and is still the

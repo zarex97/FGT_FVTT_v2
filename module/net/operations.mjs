@@ -133,7 +133,11 @@ export const OPERATIONS = Object.freeze({
     },
     execute: async (payload) => {
       const { resolveAttack } = await import("../engine/attack.mjs");
-      return resolveAttack(payload);
+      // `atWindow` is the ENGINE saying it is declaring a window-only attack at its
+      // window (#208 reading 8); a payload that claimed it would press a reaction
+      // at any time.
+      const { atWindow: _claimed, ...asked } = payload;
+      return resolveAttack(asked);
     },
   },
 

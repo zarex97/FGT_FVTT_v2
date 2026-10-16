@@ -30,8 +30,27 @@ function ymlUnder(dir) {
   });
 }
 
-/** The two the executor implements. Anything else is a typo that lands wrongly. */
-const TARGETS = new Set(["self", "reuse"]);
+/**
+ * The three the executor implements. Anything else is a typo that lands wrongly.
+ * `linkedGroup` is the caster and its twin (Mana Burst's "both", #209 live).
+ */
+const TARGETS = new Set(["self", "reuse", "linkedGroup"]);
+
+/**
+ * Every phase a holder authors, a `choose` option's branch included: Mana
+ * Burst's `target: linkedGroup` sat one level down, where this guard never
+ * looked, and the executor never read it (#209, live).
+ *
+ * @param {object[]} phases
+ * @param {string} at
+ * @returns {Array<[string, object]>}
+ */
+function allPhases(phases, at) {
+  return (phases ?? []).flatMap((phase, index) => [
+    [`${at}[${index}]`, phase],
+    ...(phase?.options ?? []).flatMap((o, n) => allPhases(o?.phases, `${at}[${index}].options[${n}].phases`)),
+  ]);
+}
 
 /**
  * Does this ability resolve through `resolveAttack` rather than `useSkill`?
@@ -53,10 +72,10 @@ describe("authored phases", () => {
 
     for (const { path, doc } of docs) {
       for (const holder of [doc, ...(doc?.abilities ?? [])]) {
-        for (const [index, phase] of (holder?.phases ?? []).entries()) {
+        for (const [at, phase] of allPhases(holder?.phases, "phases")) {
           if (phase?.target === undefined) continue;
           if (!TARGETS.has(phase.target)) {
-            bad.push(`${path}: ${holder.id ?? holder.ref}.phases[${index}] targets "${phase.target}"`);
+            bad.push(`${path}: ${holder.id ?? holder.ref}.${at} targets "${phase.target}"`);
           }
         }
       }

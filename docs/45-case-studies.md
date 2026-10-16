@@ -118,7 +118,7 @@ totalModifiers:
 Sheet clause spans six axes:
 > *"Affects a 7x7 panel area around EMIYA. All Units within that 7x7 panel area are trapped and unable to leave; Units outside are unable to enter. Within Unlimited Blade Works, EMIYA's Base Attack (STR) is increased by 50. At the start of every Turn, all enemy Servants within perform an Evade roll. If failed, that Unit receives (25 x 1d4) STR damage. Enemy Units outside are unable to Attack Units inside and vice versa."*
 
-The field block in the YAML (`packs/_source/abilities/emiya-unlimited-blade-works.yml:68-114`) declares six independent axes:
+The field block in the YAML (`packs/_source/abilities/emiya-unlimited-blade-works.yml:73-119`) declares six independent axes:
 1. **Geometry** — shape and anchoring
 2. **Membership** — entry/exit rules (sealed both ways, no escape ladder)
 3. **Isolation** — cross-boundary targeting rules

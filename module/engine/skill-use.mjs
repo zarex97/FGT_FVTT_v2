@@ -28,12 +28,13 @@ import {
   targetSpecFor, countsAsAttack, countsAsAct, isNegated, blockedThisTurn, needsTargeting,
   classifyAbility,
   usageSpecFor,
+  useBudgetKind,
 } from "../rules/ability-use.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
 import { resolveTargets, pendingChoiceErrors } from "../rules/targeting/resolve.mjs";
 import { landEntry } from "./landing.mjs";
 import { summonPhase } from "./summoning.mjs";
-import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
+import { cooldownFor, alsoTriggered, sharedAcrossGroup, sharedCooldownIntents } from "./cooldown.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { currentBoard, unitFrom, unitOf, gateContext, turnRecordOf } from "./board.mjs";
 import { resourcePathFor } from "../domain/resources.mjs";
@@ -80,6 +81,11 @@ export async function useSkill({
   // owner's own Turn does count -- Kiritsugu's Lethal Gunfire Suppression
   // grants one free Thaumaturgy cast inside its own trigger and nowhere else.
   bypassesCategoryLimit = false,
+  // The ENGINE casting this at one of its own windows: a reaction, a Damage Step,
+  // the start of a Combat Phase. An ability whose windows exclude `ownTurn` has no
+  // sheet button, and the use gate refuses it anywhere else (`windowOnly`). Only
+  // the engine sets it; the socket operation never carries it (#208 reading 8).
+  atWindow = false,
 }) {
   const actor = game.actors.get(actorId);
   const ability = actor?.items?.get(abilityId);
@@ -110,6 +116,7 @@ export async function useSkill({
     board,
     // Ch. 04's Round gate, whose numbers are world settings Layer 2 cannot read.
     ...gateContext(),
+    atWindow,
     // The `predicate` requirement kind (`rules/items.mjs`) has been in
     // `meetsRequirement` since Ch. 17 was implemented and refused every use
     // that named it: `ctx.testPredicate` had no supplier here, so
@@ -143,9 +150,7 @@ export async function useSkill({
   // ...and a Noble Phantasm as one, now that a non-damaging NP comes here
   // rather than to the attack path (§46.4-CK): billed `np`, NP Seal refuses it,
   // and the Attack pool pays. A Spell is a `spell`, which Silence refuses.
-  const isNP = ability.type === "noblePhantasm" || ability.system?.isNP === true;
-  const budgetAction = budgetActionFor(isNP ? "np"
-    : asAttack ? (ability.system?.isSpell ? "damageSpell" : "normal") : "skill");
+  const budgetAction = budgetActionFor(useBudgetKind(ability));
   // An action that costs nothing. Doomsday Come's Drag is ruled (2026-10-04,
   // #180) an action the Noble Phantasm grants, neither an Attack nor a Skill:
   // no pool is asked or charged -- so no Seal on either refuses it -- and the
@@ -356,7 +361,18 @@ function phaseTargets(phase, resolved, actor, board) {
     );
     return out.units;
   }
-  return (phase.target ?? "reuse") === "self" ? [{ unitId: actor.id }] : resolved;
+  const target = phase.target ?? "reuse";
+  if (target === "self") return [{ unitId: actor.id }];
+  // The caster and every other member of its linked group, wherever they stand:
+  // Mana Burst's *"restore 1 Agility and 1 Luck to both Castor and Pollux"*.
+  // It fell to `reuse` here, the caster alone, so the twin was never restored
+  // (#209, live).
+  if (target === "linkedGroup") {
+    const members = unitOf(actor, board)?.linkedGroup?.memberIds ?? [];
+    const onBoard = members.filter((id) => id !== actor.id && (board?.units ?? []).some((u) => u.id === id));
+    return [{ unitId: actor.id }, ...onBoard.map((unitId) => ({ unitId }))];
+  }
+  return resolved;
 }
 
 /**
@@ -368,7 +384,10 @@ function phaseTargets(phase, resolved, actor, board) {
 function targetsSelfOnly(spec) {
   const anchor = spec?.anchor?.kind ?? spec?.anchor ?? "self";
   const relations = spec?.selection?.relations ?? ["self"];
-  return anchor === "self" && relations.every((r) => r === "self");
+  // ...and adds nobody: `alsoIncludes: partner` is the resolver's, and a spec
+  // short-cut to the caster never reached it -- Stars of the Chief God buffed
+  // Castor and not Pollux (#209, live).
+  return anchor === "self" && relations.every((r) => r === "self") && !spec?.selection?.alsoIncludes;
 }
 
 /**
@@ -532,11 +551,18 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
 
         case "statChange": {
           const changes = statChanges(phase, target.unitId, doc);
+          // The REAL numbers, read before and after, as `resourceLine` prints a
+          // resource: Castor's "+2 Luck" at a full 9 read "Luck +2" (#209, live).
+          const valueOf = (c) => resourceValue(game.actors.get(c.unitId), c.stat);
+          const before = changes.map(valueOf);
           await applyWorldIntents(changes, `skill:${ability.id}:stat`);
-          for (const c of changes) {
-            const line = statChangeLine(c);
-            if (line) applied.push({ unitId: target.unitId, summary: { id: "statChange", name: line, outcome: "applied", reason: null } });
-          }
+          // ...and WHOSE, when it is not the caster's: Mana Burst's "both twins"
+          // printed two "Agility +1" rows and named nobody (#209, live).
+          const whose = target.unitId === actor.id ? "" : `${game.actors.get(target.unitId)?.name ?? target.unitId}: `;
+          changes.forEach((c, n) => {
+            const line = statChangeLine(c, before[n], valueOf(c));
+            if (line) applied.push({ unitId: target.unitId, summary: { id: "statChange", name: `${whose}${line}`, outcome: "applied", reason: null } });
+          });
           break;
         }
 
@@ -1367,14 +1393,21 @@ export function resourceLine(key, before, after) {
  * A stat change as a skill card prints it: `Agility +1`.
  *
  * @param {object} intent a `statDelta` or `resource` intent
+ * @param {number|null} [before] the stat as read before the change
+ * @param {number|null} [after] the stat as read after it
  * @returns {string|null}
  */
-export function statChangeLine(intent) {
+export function statChangeLine(intent, before = null, after = null) {
   const key = intent?.stat ?? intent?.key ?? null;
   const delta = Number(intent?.delta);
   if (!key || !Number.isFinite(delta) || delta === 0) return null;
   const [word, part] = String(key).split(".");
   const label = word.charAt(0).toUpperCase() + word.slice(1) + (part === "max" ? " max" : "");
+  // The numbers when the caller read them, so a clamp says so; the authored
+  // delta otherwise.
+  if (Number.isFinite(before) && Number.isFinite(after)) {
+    return before === after ? `${label} ${after} (no change)` : `${label} ${before} → ${after}`;
+  }
   return `${label} ${delta > 0 ? "+" : ""}${delta}`;
 }
 
@@ -1413,7 +1446,8 @@ export function cooldownChanges(phase, doc, board = null, self = null, target = 
       // `set: 0` is "completely reduce", which is a set rather than a subtract:
       // a reduce of some large number would work by accident and read as a bug.
       if (change.set !== undefined) {
-        out.push(I.cooldown(subjectId, item.id, change.set, "set"));
+        const cut = I.cooldown(subjectId, item.id, change.set, "set");
+        out.push(cut, ...mirroredCuts([cut], subject, board));
         continue;
       }
       // A ◈ EXPRESSION as well as a raw turn count. Every cooldown a sheet
@@ -1430,10 +1464,29 @@ export function cooldownChanges(phase, doc, board = null, self = null, target = 
           : Math.abs(change.delta ?? 0));
       const down = change.ticks !== undefined ? (change.direction === "down")
         : change.countMatching ? true : (change.delta ?? 0) < 0;
-      out.push(I.cooldown(subjectId, item.id, turns, down ? "reduce" : "increase"));
+      const cut = I.cooldown(subjectId, item.id, turns, down ? "reduce" : "increase");
+      out.push(cut, ...mirroredCuts([cut], subject, board));
     }
   }
   return out;
+}
+
+/**
+ * The twin's copy of a cut, for a subject whose group shares its clocks (#209
+ * reading 2): whoever makes the cut -- the user, an ally, an enemy -- it is made
+ * on a clock both copies read.
+ *
+ * Asked of the document first: a lone projection of every caller's document is
+ * not free, and a Unit with no shared clock has nothing to mirror.
+ *
+ * @param {object[]} cuts
+ * @param {object} subject the actor document the cuts are about
+ * @param {object|null} board
+ * @returns {object[]}
+ */
+function mirroredCuts(cuts, subject, board) {
+  if (subject?.system?.linkedGroup?.sharedCooldowns !== "byName") return [];
+  return sharedCooldownIntents(cuts, unitOf(subject, board ?? null), board);
 }
 
 /**

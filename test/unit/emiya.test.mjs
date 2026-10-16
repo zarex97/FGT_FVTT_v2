@@ -229,6 +229,15 @@ describe("Overedge", () => {
     expect(overedge.isNP).toBeUndefined();
     // "Counts as EMIYA's Attack for the Turn."
     expect(countsAsAttack(asItem(overedge))).toBe(true);
+    // #208 reading 7, ruled 2026-10-14: "2 Normal Attacks in a row" -- each swing IS a Normal
+    // Attack, which Clairvoyance, Reinforcement and the Circuits hear.
+    expect(overedge.countsAsNormalAttack).toBe(true);
+  });
+
+  it("names Kanshou & Bakuya as used on each swing, since its own rule is negated while Overedge cools", () => {
+    // #208 readings 5 and 7, ruled 2026-10-14.
+    const grant = overedge.passiveRules.find((r) => r.event === "attackDeclared");
+    expect(grant.then).toContainEqual({ key: "AbilityUsed", ability: "emiya-kanshou-and-bakuya" });
   });
 });
 
@@ -250,16 +259,21 @@ describe("Trace, On", () => {
     // The sheet says both things at once: "EMIYA cannot have both the AC and BC
     // effects at the same time" AND "you can choose to swap from AC to BC or
     // vice-versa". `blocks` can only say the first, by refusing the swap.
-    expect(effect("activated-circuits").replaces).toEqual(["blazingCircuits"]);
-    expect(effect("blazing-circuits").replaces).toEqual(["activatedCircuits"]);
+    // #208 readings 10 to 13: each circuit is three documents (the persistent first clause, the
+    // one-shot "next NP", the Overdrive), and the other circuit's pieces go with a swap.
+    expect(effect("activated-circuits").replaces).toEqual(["blazingCircuits", "bcNextNp", "bcOverdrive"]);
+    expect(effect("blazing-circuits").replaces).toEqual(["activatedCircuits", "acNextNp", "acOverdrive"]);
     expect(effect("activated-circuits").blocks).toBeUndefined();
   });
 
   it("takes the circuits with it when its buff goes", () => {
     // "When Atk Up (Trace) is removed from EMIYA, remove the AC effect from him
-    // as well." The one thing that can remove an Unremovable effect.
-    expect(effect("atk-up-trace").onRemove.map((a) => a.effect))
-      .toEqual(["activatedCircuits", "blazingCircuits"]);
+    // as well." The one thing that can remove an Unremovable effect. EVERY piece, and for any
+    // removal (#208 reading 13, ruled 2026-10-14/15): the one-shots, the Overdrives and the marker.
+    expect(effect("atk-up-trace").onRemove.map((a) => a.effect).sort()).toEqual([
+      "acNextNp", "acOverdrive", "activatedCircuits",
+      "bcNextNp", "bcOverdrive", "blazingCircuits", "circuitsPending",
+    ]);
   });
 
   it("extends rather than stacking, and lengthens on a Thaumaturgy use", () => {
@@ -349,8 +363,10 @@ describe("the Thaumaturgy family", () => {
   it("every Spell and Projection refuses under Silence, both ways", () => {
     // Two halves, and both are needed: the requirement stops it being used, and
     // `negatedBy` stops it working if Silence lands after declaration (Ch. 17).
+    // #208 reading 2, ruled 2026-10-14: Trace, On is a plain Skill, so it leaves this list
+    // (pinned the other way in `emiya-208-rulings.test.mjs`).
     const gated = [
-      "emiya-reinforcement", "emiya-tracing", "emiya-trace-on",
+      "emiya-reinforcement", "emiya-tracing",
       "emiya-caladbolg", "emiya-hrunting", "emiya-overedge", "emiya-rho-aias",
     ];
     for (const id of gated) {
@@ -370,7 +386,7 @@ describe("the Thaumaturgy family", () => {
     // Spells and never for the five Projections, which is most of what he does.
     expect(handler).toMatchObject({ event: "abilityUsed" });
     expect([handler.ofCategory].flat().sort()).toEqual(["projection", "thaumaturgy"]);
-    expect(handler.then[0].effect.id).toBe("rangeUp");
+    expect(handler.then[0].effect.id).toBe("rangeUpHawkeye"); // #208 reading 14, ruled 2026-10-14: its own effect, not the Range Up Kiritsugu applies
   });
 
   it("Reinforcement buffs Normal Attacks only", () => {

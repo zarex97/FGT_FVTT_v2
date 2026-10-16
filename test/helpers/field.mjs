@@ -59,9 +59,9 @@ function withGrid(fn) {
   }
 }
 
-/** A Region as the board reads one: an id, behaviours, and the panels it covers. */
-const regionOf = (id, behavior, panels) => ({
-  id, behaviors: [behavior], getOccupiedGridSpaceOffsets: () => panels.map(({ i, j }) => ({ i, j })),
+/** A Region as the board reads one: an id, a name, behaviours, and the panels it covers. */
+const regionOf = (id, behavior, panels, name = id) => ({
+  id, name, behaviors: [behavior], getOccupiedGridSpaceOffsets: () => panels.map(({ i, j }) => ({ i, j })),
 });
 
 /** The square of panels `size` wide around `(i, j)`. */
@@ -112,7 +112,8 @@ export async function fieldsOf(casts) {
     data.createdAt = cast.createdAt ?? 0;
     data.state = { escapeHistory: {}, ...(cast.state ?? {}) };
     const system = new models.RegionBehavior.npField(structuredClone(data), { strict: true }).toObject();
-    regions.push(regionOf(`field${n}`, { type: "npField", system }, cast.panels));
+    // Named as `openField` names the live Region: after the ability.
+    regions.push(regionOf(`field${n}`, { type: "npField", system }, cast.panels, ability.name));
   }
   const { boundedFieldsOf } = await import("../../module/engine/board.mjs");
   return withGrid(() => boundedFieldsOf({ regions }));

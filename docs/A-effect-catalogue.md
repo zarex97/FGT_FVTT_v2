@@ -337,6 +337,17 @@ by a derivative (using the derivative's duration); a derivative cannot be replac
 > **`Def Dwn (A)` — built 2026-09-16** (`packs/_source/effects/def-dwn-a.yml`),
 > the mirror of `Def Dwn (C)`, for the Dioscuri's Noble Phantasm, which inflicts
 > both.
+>
+> **Luck −1 and Agility −1 are for damage received from an *Attack*** (#209 `DT.defa.luck`,
+> `DT.defc.agi`, #223). A field's damage, a toll and a cost never raise `damageTaken`, so
+> they drain nothing; the measured damage of a Knockback (Akhilleus Kosmos's sidestep, *"not
+> an Attack"*, #184 reading 8) does raise it, because it runs a Combat Process for the
+> arithmetic, and it is the one that drained. Both handlers carry
+> `predicate: ["not:attack:plainDamage"]`, the option a Process opened with
+> `placement.plainDamage` emits. This reaches every Servant who inflicts them: the Dioscuri's
+> Noble Phantasm (A and C), Anastasia's Snegleta (A), Van Gogh's Het Gele Huis and The Yellow
+> House (C) and Mannanán's Fragarach Counter (C). The +15% they add to damage taken is not
+> gated: a measured hit is still damage.
 
 > **`Enigma` — built 2026-09-16, and this row was wrong about whose attack it
 > reads.**
@@ -477,8 +488,15 @@ Statuses are neither buffs nor debuffs: never removable by `Cure` or `Dispel`, n
 | `Secret Poison` | Serenity | `Poison`, hidden from the victim's controller while Presence Concealment is Active. Its ticks are **banked**, not taken, and the bank lands as one hit of Poison damage when her concealment ends (Ch. 30, #199 reading 10, replacing **Q47**). |
 | `Nameless Forest Token` | Nursery Rhyme | A **counter**, not a duration. Each token: Max Health −25, both Base Attacks −10, Max Luck −1 — the errata'd figures; the sheet strikes through 50 and 20 in their favour. Lost Health and Luck are **not** restored on removal. At ≥3 tokens the bearer rolls `1d12` at its own turn end and is **defeated** on a roll ≤ the token count, unless inside its Home Base. The only way out is the bearer's own Luck Check, once per Turn on its own Turn (`FGT.Action.ForestEscape`); success clears **every** token and applies `Nameless Forest Resistance`. The marker is `unremovable`, so no cleanse substitutes. |
 | `GotN` | Pale Rider | Stores an **unapplied effect bundle**. Discharges — applying `Atk Up`, `Regen` and `Dmg Cut` — when the bearer enters `Doomsday Come`, then removes itself. |
-| `AC` (Activated Circuits) | EMIYA | NP-cooldown economy. Mutually exclusive with `BC`. **Cascading removal**: dies when `Atk Up (Trace)` is removed. |
-| `BC` (Blazing Circuits) | EMIYA | Damage economy. Mutually exclusive with `AC`. Same cascading removal. |
+| `AC` (Activated Circuits) | EMIYA | NP-cooldown economy. Mutually exclusive with `BC` (a swap replaces the other circuit's pieces too). **Cascading removal**: dies when `Atk Up (Trace)` is removed, by any route. Clause 1 is its own: a Normal Attack inside Unlimited Blade Works, hit or miss, restores 1 Luck and cuts every NP Cooldown by 1 at the end of the Combat Process (`self:inField:emiya-unlimited-blade-works`, the field's content id). Clause 2 is two more documents, below (#208 readings 10 to 13). |
+| `acNextNp` | EMIYA | `uses: 1`, spent by the first Noble Phantasm (or Overedge) he *uses*, hit or miss: 2 Luck, then `circuitsPending` until the Combat Phase ends and `acOverdrive` until the Round ends. A one-shot of its own because `consumesUse` on a clause of a persistent effect deletes the effect. |
+| `acOverdrive` | EMIYA | "For the rest of the Round": every Attack he performs cuts his NP Cooldown by 2 Turns at the end of its Combat Process, hit or miss, from the next Attack on (not while `circuitsPending`). Removed at the Round's end. |
+| `BC` (Blazing Circuits) | EMIYA | Damage economy. Mutually exclusive with `AC`. Same cascading removal. +50 flat damage on a Normal Attack that hits inside Unlimited Blade Works. |
+| `bcNextNp` | EMIYA | `uses: 1`, as `acNextNp`: `circuitsPending` and `bcOverdrive` until the Round ends. |
+| `bcOverdrive` | EMIYA | All damage dealt +20% including NP for the rest of the Round, from the next Attack on: not on the swings of the NP that opened it (`circuitsPending`). |
+| `circuitsPending` | EMIYA | A marker with no rules, on him from the end of the first Combat Process of the NP that spent a one-shot to the end of its Combat Phase. The Overdrives ask for its absence. |
+| `Range Up` | Kiritsugu | Range +X panels (`rangeUp`, Familiars: +2 for 1◈). `noneExtend`: reapplied, its duration is extended. EMIYA's Magecraft used to share this id and no longer does. |
+| `Range Up (Hawkeye)` | EMIYA | Range +1 for 1◈ whenever he uses a Thaumaturgy Spell or a Projection Skill/NP (`rangeUpHawkeye`, applied by Magecraft). **Its own effect** (ruled 2026-10-14, #208 reading 14): it adds to another Range Up (Range +2 and +1 is +3), and reapplying it extends only itself. `noneExtend`: a second Spell adds its span to the clock it has (a handler's `ApplyEffect` restamped it from now before, so a second cast in the same Turn changed nothing). |
 | `heelWounded` | Achilles | **Permanent and incurable.** Suppresses `Andreias Amarantos` outright and re-parameterizes `Dromeus Komētēs` and `Runner Comet` (MOV −1, Evade +1, buff magnitudes → 10%). The only effect in the corpus that rewrites its bearer's other abilities and cannot be undone. |
 | `Utnapishtim` mark | Proto Gil | A **panel** marker, not a unit effect. Anchors `Enki`'s detonation 7◈ later; survives the caster leaving, but not the caster dying. |
 | `Bloodmark` | Medusa | A panel marker placed as a turn action. Four of them at the corners of a 5×5/7×7/9×9 complete `Blood Fort Andromeda`. Visible only within 3 panels; destroyable **only by Masters**. |
@@ -491,7 +509,7 @@ Statuses are neither buffs nor debuffs: never removable by `Cure` or `Dispel`, n
 
 | Resource | Source | Semantics |
 |---|---|---|
-| `Aria` | EMIYA | `0/6`. +1 at the end of every Combat Phase he was in; blocked by `Silence`; spent **entirely** to activate Unlimited Blade Works. A per-Servant `Resource` (Ch. 06 §6.2), not a counter. |
+| `Aria` | EMIYA | `0/6`. +1 at the end of every Combat Phase he was in; blocked by `Silence` — the gain only: with 6 Aria he opens Unlimited Blade Works while Silenced (#208 reading 23); spent **entirely** to activate Unlimited Blade Works. A per-Servant `Resource` (Ch. 06 §6.2), not a counter. |
 | `Hassans` | Hundred-Faced Hassan | `100/100`, tracked on the **Master's** sheet. Deployment draws from it; defeat decrements it; the NP costs `4d6`. The Servant is defeated at zero. |
 | `HGoB Construction` | Semiramis | (Existing.) Listed here because `Hassans` and `Aria` establish the pattern it was the sole instance of. |
 
@@ -576,7 +594,7 @@ signed: Pois Heal banks a negative.
 | `Weapon-type` NP | An NP classification EMIYA can copy. Unordered qualifier; disjoint from `Divine Construct`. |
 | `Divine Construct` | An NP classification that **cannot** be copied, with a per-NP `copyableException` (black Arondight). |
 | `Broken Phantasm` | A modifier applied to a *copied* NP's use: Range +1 (or AoE +1 each direction), Total Damage +100%, all applied effect magnitudes **doubled**, and the copy can never be created again. |
-| `Thrown weapon` | An NP sub-classification. Rho Aias cannot be broken by one. |
+| `Thrown weapon` | An NP sub-classification. Rho Aias cannot be broken by one: its Health cannot drop below 1 against it, and the whole attack is stopped. Authored as `damage.thrownWeapon: true` (`attack:thrownWeapon`); **Gáe Bolg Alternative is the one** (ruled 2026-10-14, #208 reading 18). |
 | `Heel Attack` | A declared sub-attack resolved **after** a failed Evade, with its own hit table. See `weakPoint`, Ch. 44 §44.2. |
 
 ---
@@ -649,7 +667,7 @@ Two needed more.
 | `nvDebuff Immune` / `vDebuff Immune` / `Men.Debuff Immune` | the `scoped` table in `effect-applier.mjs`, keyed on the incoming effect's own **volatility** |
 | `Off.Debuff Immune` / `Def.Debuff Immune` | the same gate's two **valence** branches |
 | `No Buff` | that gate's one buff branch — `polarity === "buff"`, the single line in the function that asks about a buff |
-| `NP Lock` / `NP Degen` / `NP Lag` | three short-circuits at the top of `scheduler.cooldownRate` |
+| `NP Lock` / `NP Degen` / `NP Lag` | three short-circuits at the top of `scheduler.cooldownRate`; on a clock a linked group shares by name (the Dioscuri's NP) it is evaluated for a unit holding what either twin holds, so each acts on both copies (#209 reading 2). **`NP Degen`'s rate of -1 is never applied** (§46.4-D5, open): `advanceCooldowns` pushes a tick only for a rate above 0, so Degen stops the natural reduction and never adds the Turn its row promises |
 | `PoisHeal` / `CursHeal` / `FlamHeal` | **two** readers each: stage 0's element conversion *and* the `healConversion` on Poison's, Curse's and Burn's authored `periodic` |
 | `Luck Boost` / `Luck Loss` | four call sites, each `held.includes(id) \|\| plan.forceTable === …` |
 | `Stop` | `PREVENT_ALL`, plus **two** scheduler sweeps — durations and cooldowns are different passes |

@@ -120,3 +120,10 @@ Foundry **ownership** must be kept in sync with faction assignment for a player 
 **A mode's end starts its `countFrom: deactivation` cooldown** (#195). `scheduler-hooks.mjs#onModeEnded` sets it on the item update that switches any such mode off, beside dismissing its `leavesWithMode` summons. Only a field, a platform and Zero Sail's dimension had written it.
 
 **A queued End can be taken back** (#195 reading 14). Pressed outside the owner's Turn, a `window: any` mode's End is queued for the boundary (#65); pressed again while queued, the sheet asks the GM for `cancelModeEnd` and the queue drops it.
+
+**A Master at 0 is the defeat path's** (#209 §46.4-NH). The engine's sweep (`reconcileForcedModes`) asks
+`forcedOffNow(..., { masterDefeatAnswers: true })` and does not force Mad Enhancement off for a Master whose Health reached
+0: the killing blow's own drop met the limit first, so clause 5 (*"Sustainability −2◈ if its Master is defeated while
+Active"*) never charged. The modes lock as they stand. A compulsion still reads the valve, so it never switches a mode on
+over a Master at 0 (`forcedModes`). Ruled 2026-10-15 by the author: a Master felled in one blow leaves the mode on at the
+defeat, and the −2◈ charges.

@@ -563,18 +563,31 @@ export function validatePath(path, unit, board) {
       reasons.push(`Step ${index + 1} leaves the board.`);
     }
     if (!canPassThrough(panel, unit, board)) {
-      reasons.push(`Step ${index + 1} passes through a panel this Unit may not enter.`);
+      // The Master's protection said as itself: its panel looks empty, and the
+      // generic line read like a bug (#209, live).
+      reasons.push(guardedMasterBeside(panel, unit, board)
+        ? `Step ${index + 1} is beside an enemy Master, and its Servant guards that panel.`
+        : `Step ${index + 1} passes through a panel this Unit may not enter.`);
     }
     previous = panel;
   }
 
   const destination = steps.at(-1);
+  // The partner the destination leaves out of the leash's reach, asked once.
+  const leashPartner = destination ? leashBreakAt(destination, unit, board) : null;
   // Past a pocket dimension's 5x5 is not "occupied", it is nowhere: said so,
   // or a Unit held at the Storm Border's edge read a reason that was false (#191).
   const dimension = dimensionOf(unit, board);
   if (destination && dimension && !withinInterior(interiorOf(dimension.spec, dimension.centre), destination)) {
     reasons.push("The Storm Border's 5x5 is the only floor in there; this panel is past its edge.");
-  } else if (destination && !canStopOn(destination, unit, board)) {
+  } else if (leashPartner) {
+    // The leash, said as the leash: this read "occupied" over an empty panel
+    // when Castor stepped three from Pollux (#209, live).
+    const partner = leashPartner;
+    reasons.push(`${unit.name ?? "This Unit"} must stay within ${unit.linkedGroup.leash} panels of ${partner.name ?? "its partner"}.`);
+  } else if (destination && canPassThrough(destination, unit, board) && !canStopOn(destination, unit, board)) {
+    // Only when the step itself was allowed: a panel refused above has said
+    // why already, and "occupied" over an empty one is false (#209, live).
     reasons.push("The destination panel is occupied.");
   }
 
@@ -710,6 +723,23 @@ function blockedByFieldExit(panel, unit, board) {
 }
 
 /**
+ * The partner this panel would put out of the leash's reach, or `null`.
+ *
+ * One reader for `canStopOn`, which refuses the panel, and `validatePath`,
+ * which says why (#209).
+ *
+ * @param {GridOffset} panel
+ * @param {object} unit
+ * @param {object} board
+ * @returns {object|null}
+ */
+function leashBreakAt(panel, unit, board) {
+  const leash = unit?.linkedGroup?.leash;
+  if (leash === null || leash === undefined) return null;
+  return partnersOf(unit, board).find((partner) => geo.chebyshev(panel, partner.panel) > leash) ?? null;
+}
+
+/**
  * May this unit *end* its move on the panel? Clause 7 on top of 3–5.
  *
  * @param {GridOffset} panel
@@ -753,12 +783,7 @@ export function canStopOn(panel, unit, board) {
   // solid. Forced displacement may still break it -- Ch. 45 takes that
   // DECISION, because dragging the partner along would produce a knockback
   // that pulls a unit toward its attacker.
-  const leash = unit?.linkedGroup?.leash;
-  if (leash !== null && leash !== undefined) {
-    for (const partner of partnersOf(unit, board)) {
-      if (geo.chebyshev(panel, partner.panel) > leash) return false;
-    }
-  }
+  if (leashBreakAt(panel, unit, board)) return false;
 
   const here = occupantsAt(panel, board, unit.level).filter((u) => u.id !== unit.id);
   if (here.length === 0) return true;
@@ -891,6 +916,25 @@ export function decoyVerdict(unit, path, board) {
   return after <= before
     ? { ok: true }
     : { ok: false, reason: `${unit.name ?? "This Unit"} cannot Move away from ${decoy.name ?? "the Decoy"}.` };
+}
+
+/**
+ * Is this step refused by an enemy Master's protection, rather than by anything else?
+ *
+ * A Unit that shares panels is refused a step for that reason alone
+ * (`canPassThrough`), so it says so too (#209 review).
+ *
+ * @param {GridOffset} panel
+ * @param {object} unit
+ * @param {object} board
+ * @returns {boolean}
+ */
+function guardedMasterBeside(panel, unit, board) {
+  if (ignoresBlocking(unit)) return false;
+  if (unit?.sharesPanel) return inEnemyMasterProtection(panel, unit, board);
+  const occupied = occupantsAt(panel, board, unit.level)
+    .some((o) => !OBJECT_KINDS.has(o.kind) && !o.defeated && isEnemy(unit, o, board));
+  return !occupied && inEnemyMasterProtection(panel, unit, board);
 }
 
 /**

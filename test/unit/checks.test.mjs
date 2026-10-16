@@ -198,7 +198,8 @@ describe("checkPlan — the bridge from rule elements to a die roll", () => {
 
   it("returns an empty plan for a unit with no contributions", () => {
     const plan = checkPlan({}, "evade");
-    expect(plan).toEqual({ modifiers: [], forceTable: null, autoSucceed: null, adjustable: [] });
+    // `chances`: each probable contribution's die, for the roll's record (#208, live).
+    expect(plan).toEqual({ modifiers: [], forceTable: null, autoSucceed: null, adjustable: [], chances: [] });
   });
 
   it("survives a null unit", () => {
