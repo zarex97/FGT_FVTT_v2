@@ -3,7 +3,8 @@ id: 2026-10-15-two-users-one-cookie
 found: tooling
 kind: drive-kit
 status: fixed
-reviewed: false
+reviewed: true
+pattern: drive-kit
 ---
 **Expected:** the GM page (chrome-devtools) and Player1's tab (claude-in-chrome) stay two users.
 **Actual:** after a reload both were Player1 ("User Player1 lacks permission to update Combat"); `fgt-eval` picked Player1's page too.

@@ -3,7 +3,8 @@ id: 2026-10-15-ticket-said-27-5-the-template-floors-to-25
 found: user
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** the ticket's acceptance line, *"Mana Burst under Mad Enhancement gets +27.5%"* (55 halved).
 **Actual:** the shared template halves with `magnitudeRoundTo: 5`, a floor to a multiple of 5 that Kingprotea's sheet confirms (85 halves to 40, not 42.5): the engine gives **25**. The plan flagged it before any code was written and the coordinator decided on 2026-10-15: build 25, one rounding for every bearer, and say so.

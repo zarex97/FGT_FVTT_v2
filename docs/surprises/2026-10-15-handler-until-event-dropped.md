@@ -3,7 +3,8 @@ id: 2026-10-15-handler-until-event-dropped
 found: test
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: unknown-value-falls-to-default
 ---
 **Expected:** a handler's `ApplyEffect` with `duration: "until roundEnd"` lasts to the Round's end, as a phase's
 `applyEffects` with the same string does (Mannanán's Tradition Carrier, Watermelon's Blind).

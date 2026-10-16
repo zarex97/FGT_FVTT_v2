@@ -3,7 +3,8 @@ id: 2026-10-15-consumes-use-spends-the-whole-effect
 found: test
 kind: generic-path-escapes-special-case
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** "the next time he uses an NP that deals damage" is a one-shot clause of a persistent effect: authored
 `uses: 1` and `consumesUse` on the clause, AC stays and the clause is spent.

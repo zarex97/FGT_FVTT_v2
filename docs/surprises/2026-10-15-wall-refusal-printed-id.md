@@ -3,7 +3,8 @@ id: 2026-10-15-wall-refusal-printed-id
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** a target refused by a field's wall names the field.
 **Actual:** "Refused: No legal targets: Nemo is separated by emiya-unlimited-blade-works."

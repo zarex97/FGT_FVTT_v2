@@ -3,7 +3,8 @@ id: 2026-10-15-def-dwn-test-first-reads-were-wrong
 found: test
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** a Normal Attack by Castor on a victim wearing Def Dwn (A) and (C) takes exactly 1 Luck and 1 Agility; a `plainDamage` Process resolves on its own, since it forbids every reaction.
 **Actual:** Agility fell by 3 (`expected { luck: 1, agility: 3 } to deeply equal { luck: 1, agility: 1 }`), and the Knockback Process stood at the `react` rung with its health untouched (`expected 750 to be less than 750`).

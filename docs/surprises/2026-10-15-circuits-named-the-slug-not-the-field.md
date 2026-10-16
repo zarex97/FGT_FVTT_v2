@@ -3,7 +3,8 @@ id: 2026-10-15-circuits-named-the-slug-not-the-field
 found: test
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** AC.ubw and BC.ubw (`self:inField:unlimitedBladeWorks`) fired on a hit inside the Reality Marble; only a
 miss was missing (reading 10).

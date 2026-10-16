@@ -3,7 +3,8 @@ id: 2026-10-15-np-slot-lit-after-attack
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** after EMIYA's Normal Attack, Unlimited Blade Works' slot says why it is closed, as Overedge's and Caladbolg's did.
 **Actual:** the slot showed no reason; the press toasted "Unlimited Blade Works: Infinite Creation of Swords cannot be used: this unit has already attacked this turn."

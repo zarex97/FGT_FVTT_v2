@@ -3,7 +3,8 @@ id: 2026-10-15-second-twin-seated-with-nothing
 found: test
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** a war built by the setup wizard seats both Dioscuri: each on its side, under the slot's Master, with a token on the board. The audit's plan took the `commitSummon` summon-together path as "the pair arrives".
 **Actual:** only the drawn Servant was seated. Calling `deployTokens` with the drawn twin, its Master and the partner placed two tokens, not three (`expected [ 'masterA', 'pollux' ] to deeply equal [ 'castor', 'masterA', 'pollux' ]`); the partner `commitSummon` brings has no Master (so Free) and no faction, and nothing wrote either.

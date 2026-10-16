@@ -4530,7 +4530,8 @@ Ch. 37.
 **Reached: every Mad Enhancement bearer.** Clause 5, *"Sustainability is reduced by 2◈ if its Master is defeated while
 Active"*, could never charge: the blow's own Health drop met the forced deactivation (0 ≤ 20) in `reconcileForcedModes`
 before the defeat path asked. The sweep leaves a Master at 0 to the defeat path (`forcedOffNow`'s `masterDefeatAnswers`); a
-compulsion still reads the valve. Decided 2026-10-15, for the author to confirm. Ch. 24, 32.
+compulsion still reads the valve. Ruled 2026-10-15 by the author: a Master felled in one blow leaves Mad Enhancement on at
+the defeat, and the −2◈ charges. Ch. 24, 32.
 
 ### NI. A Sustainability defeat did not take the twin — **fixed** (#209, live)
 

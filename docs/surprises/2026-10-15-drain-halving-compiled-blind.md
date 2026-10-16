@@ -3,7 +3,8 @@ id: 2026-10-15-drain-halving-compiled-blind
 found: live press
 kind: passes-for-the-wrong-reason
 status: fixed
-reviewed: false
+reviewed: true
+pattern: passes-for-the-wrong-reason
 ---
 **Expected:** Castor countered in Faction 2's Turn, diagonally next to Pollux. The Turn's end halves Mad Enhancement's drain: his Master loses 10.
 **Actual:** "Master of Saber of Faction 1 loses 20 Health (Mad Enhancement)."

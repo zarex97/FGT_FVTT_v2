@@ -3,7 +3,8 @@ id: 2026-10-15-np-degen-never-adds-its-turn
 found: test
 kind: producer-without-consumer
 status: open
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** a shared-clock test for NP Degen on Pollux would see the pair's NP clock grow by 1 Turn per Turn (`np-degen.yml`: *"a negative rate is cooldown ADDED"*).
 **Actual:** `advanceCooldowns` emitted nothing for a Noble Phantasm under NP Degen on a single bearer, so the test I drafted (`both(-1)`) had nothing to compare to.

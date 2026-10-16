@@ -3,7 +3,8 @@ id: 2026-10-15-rider-heard-its-own-hit
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** the joint NP hits Heracles for 734, "then" inflicts Def Dwn (A) and (C). Their Luck and Agility drains wait for the next damage he receives.
 **Actual:** the log showed `damageTaken` heard by `defDwnA` and `defDwnC` from that same hit. Luck 20 → 19, and Agility one past what the Injury took.

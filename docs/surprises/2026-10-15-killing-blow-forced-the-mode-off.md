@@ -3,7 +3,8 @@ id: 2026-10-15-killing-blow-forced-the-mode-off
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** the Master of Saber falls with Castor's Mad Enhancement on: Castor's Sustainability −2◈ (clause 5), Pollux's untouched.
 **Actual:** live, the Master staged to 1 was forced off at once ("its Master's Health is at its limit"). In the arena, one blow from 148: the card read "Mad Enhancement forcibly deactivated", and Castor's `sustainabilityRemaining` stayed null.

@@ -3,7 +3,8 @@ id: 2026-10-15-handler-extend-restamped
 found: test
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Magecraft's Range Up (Hawkeye) is `noneExtend`: a second Spell while it is held adds its span to the clock
 (a rider held to 9 and reapplied for 1◈ is 12). Atk Up (Trace) already does that.

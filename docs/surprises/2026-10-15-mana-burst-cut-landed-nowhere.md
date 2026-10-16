@@ -3,7 +3,8 @@ id: 2026-10-15-mana-burst-cut-landed-nowhere
 found: test
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: unknown-value-falls-to-default
 ---
 **Expected:** Castor's Mana Burst, *"Then, reduce Castor's NP Cooldown by 1◈ Turns"*, turns the Noble Phantasm's clock. The audit's plan read the authored `CooldownDelta` and predicted only that Pollux's copy would be missed.
 **Actual:** the first arena press of Castor's Mana Burst left his NP at 18 before and after (`expected 18 to be 15`); neither copy moved. Anastasia's Shvibzik, authored the same way, left every NP at 18 (`expected [ 18, 18 ] to deeply equal [ 13, 13 ]`).
