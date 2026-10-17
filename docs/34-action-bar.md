@@ -84,7 +84,9 @@ usable, its Master pays 20 Health"*. A Switch ON of a free NP mode asks the same
 
 4. **The pending panel shows only what this viewer can answer.** Ownership, GM status, and Command Spell access are the three gates. A row visible means this viewer has business with it — either they own it or they can spend into it (`module/apps/hud/pending-present.mjs:42-69`).
 
-5. **Prompts have no second set of buttons here.** The cards hold the buttons and their refusal reasons; a second UI would be a second place to keep in sync. A jump opens the card where the real buttons live (`module/apps/hud/pending-panel.mjs:207-213`).
+5. **The bar and every offer ask one use gate** (#244). The bar asks `canUseAbility`, and a negating effect is now the gate's own refusal (*"Negated by Poison"*): `useSkill` alone asked it, so the bar lit what the press refused. The engine's offers (a window, a reaction rung, a prompt) ask the same gate through `engine/press-gate.mjs#offerable`, with the context their press passes (Ch. 23).
+
+6. **Prompts have no second set of buttons here.** The cards hold the buttons and their refusal reasons; a second UI would be a second place to keep in sync. A jump opens the card where the real buttons live (`module/apps/hud/pending-panel.mjs:207-213`).
 
 ## Traps and anti-patterns
 

@@ -301,7 +301,11 @@ describe("Doomsday Come — the drag-in", () => {
   it("a free action on the Skill path is neither checked against nor charged to a pool", async () => {
     const { readFileSync } = await import("node:fs");
     const src = readFileSync("module/engine/skill-use.mjs", "utf8");
-    expect(src).toMatch(/const free = Boolean\(ability\.system\?\.freeAction\);\s*if \(combat\?\.started && !free\) \{\s*const verdict = budget\.affordable/);
+    // Checked in the press gate the use path asks since #244; spent here.
+    const gate = readFileSync("module/engine/press-gate.mjs", "utf8");
+    expect(gate).toMatch(/const free = Boolean\(item\?\.system\?\.freeAction\);/);
+    expect(gate).toMatch(/billsBudget && combat\?\.started && !free\s*\? budget\.affordable/);
+    expect(src).toMatch(/const free = Boolean\(ability\.system\?\.freeAction\);/);
     expect(src).toMatch(/if \(combat\?\.started && !free\) await budget\.spend/);
     expect(src).toMatch(/\.\.\.\(free \? \{\} : asAttack \? \{ attacked: true \} : \{ usedActiveSkill: true \}\)/);
   });

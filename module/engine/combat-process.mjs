@@ -276,7 +276,8 @@ export function advance(s, event, detail = undefined) {
   // Block (Bab-ilu's second Attack, #232 reading 24) may still answer with a
   // reaction NP, so only the three standing rungs are refused here.
   const asked = String(event).startsWith("ability:") ? null : normalized;
-  if (s.state === "react" && asked && (s.forbiddenReactions ?? []).includes(asked)) {
+  // What the rung has left is `rungOptions`'s to say, as the card's is (#244).
+  if (s.state === "react" && asked && PROMPTS.react.options.includes(asked) && !rungOptions(s).includes(asked)) {
     throw new RangeError(
       `FGT | "${normalized}" is not available against this attack.`,
     );
@@ -338,6 +339,27 @@ export function legalEvents(state) {
 }
 
 /**
+ * What is left to press on a rung: its options, less what this attack refuses,
+ * with the reaction abilities beside them on the react rung.
+ *
+ * The one reader of it (#244). `pendingPrompt`, the card, the timeout and the
+ * transition guard each answered it, and drifted: the unanswerable-rung guard
+ * counted the list the card had already filtered, and was dead (#243).
+ *
+ * @param {ProcessState} s
+ * @returns {string[]} events, `ability:<id>` for an ability
+ */
+export function rungOptions(s) {
+  const p = PROMPTS[s?.state];
+  if (!p?.options) return [];
+  if (s.state !== "react") return [...p.options];
+  const forbidden = s.forbiddenReactions ?? [];
+  const unitId = p.side === "attacker" ? s.attackerId : s.defenderId;
+  const abilities = (s.reactionAbilities?.[unitId] ?? []).map((a) => `ability:${a.id}`);
+  return [...p.options.filter((o) => !forbidden.includes(o)), ...abilities];
+}
+
+/**
  * Who, if anyone, must answer right now.
  * @param {ProcessState} s
  * @returns {{side: string, kind: string, unitId: string}|null}
@@ -365,7 +387,7 @@ export function pendingPrompt(s) {
   // of the unit listed them, so the escape rung offered Eye of the Mind
   // (False) in its options, an `ability:` event its transitions refuse.
   const extra = s.state === "react" ? (s.reactionAbilities?.[unitId] ?? []) : [];
-  const options = p.options ? [...p.options, ...extra.map((a2) => `ability:${a2.id}`)] : p.options;
+  const options = p.options ? rungOptions(s) : p.options;
 
   // A rung with nothing left on it is not a rung. The same argument the counter
   // guard above makes -- *"offering it to a defender who cannot counter would
@@ -386,9 +408,8 @@ export function pendingPrompt(s) {
   // *"instantly"* landed whenever that player got round to it, after the
   // Attack it answered (#243 reading 7). Only "Do nothing" left, and no
   // ability beside it, is no question.
-  const forbidden = s.state === "react" ? (s.forbiddenReactions ?? []) : [];
-  const left = (p.options ?? []).filter((o) => o !== "nothing" && !forbidden.includes(o));
-  if (s.state === "react" && left.length === 0 && extra.length === 0) return null;
+  // Asked of `rungOptions`, the one reader the card and the timeout ask (#244).
+  if (s.state === "react" && options.every((o) => o === "nothing")) return null;
 
   return { ...p, options, unitId, abilities: extra };
 }

@@ -19,7 +19,7 @@ import { hasGranted, GRANTS } from "./granted.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { Rank } from "../domain/rank.mjs";
-import { meetsRequirements } from "./items.mjs";
+import { meetsRequirements, SELF_REQUIREMENTS } from "./items.mjs";
 import { isGated, gateRoundFor, npAvailableTurn, NP_GATE } from "./np-gate.mjs";
 import { isConcealed, canUseWhileConcealed } from "./concealment.mjs";
 import { paysHighColumn } from "./master-rank.mjs";
@@ -455,6 +455,16 @@ export function canUseAbility({
     return { ok: false, reason: "prevented", detail: { by: sealed.by }, cost };
   }
 
+  // Switched off by an effect its owner carries: Medea's High-Speed Divine
+  // Words *"cannot be used ... while inflicted with Silence"*. Asked by
+  // `useSkill` alone, so the bar and every offer, which ask this, lit what the
+  // press refused (#244). Below the Seals, so a Silenced Spell still says
+  // which effect prevents it.
+  const negatedBy = (ability?.negatedBy ?? []).find((id) => (unit?.effects ?? []).includes(id));
+  if (negatedBy) {
+    return { ok: false, reason: "negated", detail: { by: negatedBy }, cost };
+  }
+
   // The same question one scale WIDER: a cap on a whole CATEGORY rather than on
   // one ability. Kiritsugu's Magecraft is *"Only one Thaumaturgy Spell can be
   // used per Turn"*, which no per-ability field can say -- and which
@@ -537,7 +547,12 @@ export function canUseAbility({
 
   // Everything else Ch. 17 lists. Checked after the gates above because those
   // three are the common refusals and this is the long tail.
-  const met = meetsRequirements(ability?.requirements ?? [], {
+  // An offer whose target is not known yet (a window, Scapegoat's pick) judges
+  // only what the Unit can answer alone: a requirement about a target must not
+  // refuse for want of one (`ctx.selfOnly`, #244).
+  const requirements = (ability?.requirements ?? [])
+    .filter((r) => !ctx.selfOnly || SELF_REQUIREMENTS.has(r.kind));
+  const met = meetsRequirements(requirements, {
     unit, master, target: ctx.target ?? null, board: ctx.board ?? null,
     round, testPredicate: ctx.testPredicate,
     // The declaring ability, so `abilityOffCooldown` can exclude it. Without

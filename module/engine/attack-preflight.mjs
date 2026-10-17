@@ -14,17 +14,13 @@
  * and a gate that cannot be run cannot be tested.
  */
 
-import { canUseAbility } from "../rules/costs.mjs";
-import { usageSpecFor, classifyAbility } from "../rules/ability-use.mjs";
 import { budgetActionFor } from "../rules/budget.mjs";
 import { attackForbiddenThisRound } from "../rules/environment.mjs";
 import { mayOrderAnotherServant, multiServantRule } from "../rules/relationships.mjs";
 import { GRANTS, hasGranted } from "../rules/granted.mjs";
 import { actionSourceFor } from "../rules/platforms.mjs";
-import { rollOptionsFor } from "../rules/options.mjs";
-import { test as testPredicate } from "../rules/predicate.mjs";
-import { unitFrom, gateContext } from "./board.mjs";
-import * as budget from "./budget.mjs";
+import { unitFrom } from "./board.mjs";
+import { pressGate, abilityKind } from "./press-gate.mjs";
 
 /**
  * @typedef {object} Preflight
@@ -105,8 +101,22 @@ export function attackPreflight({ attacker, abilityId, placement = {}, board, co
   // it was first declared; asking again found it already spent and refused it,
   // so the attack Jack struck first against never came back (#185, found live:
   // "this unit has already attacked this turn").
-  if (combat?.started && !free && !resume) {
-    const verdict = budget.affordable(combat, self, actionKind);
+  // The aimed Unit. A placement from the canvas names it `unitId`; `targetId`
+  // is the older spelling some callers still use. Reading only `targetId`
+  // left every target requirement unsatisfiable from the interface: Maria
+  // Method 2 was refused on a Female inside the Mist at Night (#185).
+  const aimedId = placement?.unitId ?? placement?.targetId ?? null;
+  const aimed = aimedId ? unitFrom(board, game.actors.get(aimedId)) : null;
+  // The gate every offer of this press asks too (`press-gate.mjs`, #244): the
+  // Turn's budget and `canUseAbility`, priced against the aimed Unit. The
+  // `predicate` requirement reads the defender as well: `target:attribute:female`,
+  // the second of the three gates on Jack's Maria the Ripper, was unsatisfiable
+  // while the option set was built from the attacker alone.
+  const gate = pressGate(attacker, ability, {
+    board, combat, atWindow, target: aimed, asAttack: true, billsBudget: !free && !resume,
+  });
+  if (!gate.budget.ok) {
+    const verdict = gate.budget;
     // `budgetReason` is how `resolveAttack` knows to TELL the player as well as
     // refuse: a Unit that had already attacked -- after Gather, most naturally --
     // clicked Attack, was shown `✓ Legal`, confirmed, and got silence
@@ -118,47 +128,10 @@ export function attackPreflight({ attacker, abilityId, placement = {}, board, co
   // (Ch. 17): cancelling during targeting must cost nothing, and no rule
   // requires otherwise. So this refuses early, and the payment is below.
   const master = self.masterId ? unitFrom(board, game.actors.get(self.masterId)) : null;
-  // The aimed Unit. A placement from the canvas names it `unitId`; `targetId`
-  // is the older spelling some callers still use. Reading only `targetId`
-  // left every target requirement unsatisfiable from the interface: Maria
-  // Method 2 was refused on a Female inside the Mist at Night (#185).
-  const aimedId = placement?.unitId ?? placement?.targetId ?? null;
-  const aimed = aimedId ? unitFrom(board, game.actors.get(aimedId)) : null;
-  const usage = canUseAbility({
-    ability: usageSpecFor(ability),
-    unit: self,
-    master,
-    round: combat?.round ?? 1,
-    // Ch. 04's Round gate: its numbers are world settings, which Layer 2 may not
-    // read, so they travel with the call.
-    ...gateContext(),
-    // The engine declaring a window-only attack at its window (Kiritsugu's shot,
-    // a reaction): the use gate refuses one anywhere else (#208 reading 8).
-    atWindow,
-    // The rest of Ch. 17's requirement kinds need more than the unit: a
-    // counterpart check reads the board, and a target-effect check reads the
-    // target. Passing neither made those two kinds silently unsatisfiable.
-    board,
-    target: aimed,
-    // The same gap `engine/skill-use.mjs`'s `useSkill` had: the `predicate`
-    // requirement kind (`rules/items.mjs`) refused every use on the ATTACK
-    // path too, unconditionally, for the same reason -- nothing ever
-    // supplied `ctx.testPredicate`. Semiramis's Summoning: Bašmu is the
-    // first damage-dealing ability that names one.
-    // The DEFENDER too, when the declaration already names one. A `predicate`
-    // requirement mentioning `target:` was unsatisfiable in EVERY case: this
-    // built the option set from the attacker alone, so
-    // `target:attribute:female` -- the second of the three gates on Jack's
-    // Maria the Ripper -- could never be true. The target is resolved a few
-    // lines above for the other requirement kinds that need it, and was simply
-    // never handed to this one.
-    testPredicate: (p) => testPredicate(p, {
-      options: rollOptionsFor({
-        attacker: self,
-        defender: aimed,
-      }),
-    }),
-  });
+  // The engine declaring a window-only attack at its window (Kiritsugu's shot,
+  // a reaction) passed `atWindow` above: the use gate refuses one anywhere else
+  // (#208 reading 8).
+  const usage = gate.usage;
   // CS: Force Noble Phantasm bypasses the cooldown and uses-exhausted gates.
   // It explicitly cannot bypass the Round gate, so `overrides` is consulted per
   // reason rather than as a blanket "skip validation".
@@ -228,49 +201,13 @@ function usageRefusal(usage) {
       // sheet and the bar already word every kind under this key. Printed
       // raw it read "Cannot use this ability: roundPhase" (#185).
       const key = `FGT.Ability.Refused.${usage.reason}`;
-      if (usage.reason && globalThis.game?.i18n?.has?.(key)) return game.i18n.localize(key);
+      // Formatted with the refusal's detail: "Cannot be used on the same Turn as
+      // {partner}" printed its placeholder (#244 review).
+      if (usage.reason && globalThis.game?.i18n?.has?.(key)) return game.i18n.format(key, usage.detail ?? {});
       return usage.reason ?? "unknown reason.";
     }
   }
 }
 
-/**
- * Does this ability deal no damage at all?
- *
- * An ability that declares **phases** and does not declare a `damage` one is
- * saying what it does, exhaustively. Asterios's *Chaos Labyrinthos* opens with
- * the word *"(Non-damaging)"*; EMIYA's *Unlimited Blade Works* creates a Reality
- * Marble whose toll is an interior event; Semiramis's *Hanging Gardens* is a
- * platform and her *Sikera Ušum* is an area of poison. None of them hits
- * anybody at the moment they are used.
- *
- * All five did. `classifyAbility` routes every Noble Phantasm through
- * `resolveAttack` deliberately -- a non-damaging NP still costs the Servant its
- * Attack -- and the Combat Process always runs its damage stage, where
- * `baseSpecFor` falls back to the caster's **Normal Attack** for an ability with
- * no `damage:` block. So opening the Labyrinth dealt Asterios's full BA(STR) 170
- * plus a crit roll to whichever Unit the fan-out picked. Measured live at 203.
- *
- * The alternative was five content files each carrying
- * `{fixed: true, base: {fixedValue: 0}}`, which is the same statement made five
- * times in a vocabulary that already contains it once, and a sixth author would
- * have had to know to write it.
- *
- * A `damage:` block still wins: Summoning: Bašmu's summon branch selects
- * `{fixed: true, fixedValue: 0}` explicitly, and an ability that declares a
- * damage BLOCK without a damage PHASE (Gáe Bolg Alternative, whose damage is
- * conditional on its Instakill missing) means it.
- *
- * @param {object|null} ability
- * @returns {boolean}
- */
-function abilityKind(ability) {
-  if (ability.type === "noblePhantasm" || ability.system?.isNP) return "np";
-  if (ability.system?.isAttackSkill) return "attackSkill";
-  if (ability.system?.isSpell) return "damageSpell";
-  // A skill that is not an attack still resolves through this flow when it has
-  // phases to run; the budget maps it to a move slot, not an attack slot.
-  return classifyAbility(ability).isAttack ? "normal" : "skill";
-}
-
+// `abilityKind` moved to `press-gate.mjs`, which the gate below and this share (#244).
 export { abilityKind };
