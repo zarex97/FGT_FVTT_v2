@@ -1,6 +1,6 @@
 # Appendix A — Effect Catalogue
 
-> **Authored so far (Ch. 45).** **157 of 154** effect definitions exist as content in
+> **Authored so far (Ch. 45).** **186 of 154** effect definitions exist as content in
 > `packs/_source/effects/`. This block previously claimed 70 while §A.20 claimed 34 and the
 > directory held 126 — three tallies that disagreed with each other and with the disk, which is
 > why the count is now stated once, here, and derived from `ls packs/_source/effects/`.
@@ -481,6 +481,14 @@ but they are ordinary catalogue entries in every other respect and are counted i
 | `Utopia` | B | O | nr | — | Each Attack's end (`attackPerformed`): NP Cooldown −⅓◈ per Unit it hit, a Block included (#230 reading 7). | Arturia |
 | `Radiant` | B | D | nr | — | An aura lending her `Instinct` to the other allies within 2 (`lendsAbility`); her Skill Seal lends nothing (#230 reading 8). | Arturia |
 | `DRC` | B | O | nr | 4 | Normal Attack damage +25% until the Round ends, applied at the end of the Turn its Skill was used (`drcPending`); not on a Mana Burst (`attack:madeWith`, #230 readings 9, 25). | Arturia |
+| `Buff ChDwn` | D | S | mag | 4 | Chance of applying buffs to others −X% (`buffChDwn`), the mirror of `Buff ChUp`. | Proto Gil (Bab-ilu 8) |
+| `AGL Dwn` | D | D | mag | 4 | Agility Check rolls +X, the Evade included (`aglDwn`; #232 reading 15). | Proto Gil (Bab-ilu 12) |
+| `LUC Dwn` | D | D | mag | 4 | Luck Check rolls +X (`lucDwn`). | Proto Gil (Bab-ilu 13) |
+| `MOV Dwn` | D | D | mag | 4 | MOV −X, never below 1 (`movDwn`). | Proto Gil (Bab-ilu 14) |
+| `TEC Dwn` | D | O | mag | 4 | Enemies Evading this Unit's Attacks roll −X (`tecDwn`), imposed as Presence Concealment's +4 is. | Proto Gil (Bab-ilu 15) |
+| `Bal Dwn` | D | D | mag | 4 | Attacks against this Unit have Crit Chance +X%, not NP (`balDwn`). | Proto Gil (Bab-ilu 16) |
+| `Heal Dwn` | D | D | mag | 4 | Healing received −X%, not the Home Base's; a Command Spell's heal is a Health change and never scaled (`healDwn`, `HealingReceived`; #232 reading 18). | Proto Gil (Bab-ilu 17) |
+| `Drowning` | D | O | nnr | 4 | Built as its row (#232 reading 19): healing received −100; −50 Health at the end of its own Turn and of any Turn it Acts; an 80% miss of its own (no Blind ladder), on Attacks and on Skills aimed at an enemy, whose failure spends no Cooldown; MOV −1. Swimsuit's −20% to inflict is stated on Enki's entry. | Proto Gil (Enki) |
 
 ### A.17.2 New statuses
 
@@ -503,6 +511,7 @@ Statuses are neither buffs nor debuffs: never removable by `Cure` or `Dispel`, n
 | `Range Up` | Kiritsugu | Range +X panels (`rangeUp`, Familiars: +2 for 1◈). `noneExtend`: reapplied, its duration is extended. EMIYA's Magecraft used to share this id and no longer does. |
 | `Range Up (Hawkeye)` | EMIYA | Range +1 for 1◈ whenever he uses a Thaumaturgy Spell or a Projection Skill/NP (`rangeUpHawkeye`, applied by Magecraft). **Its own effect** (ruled 2026-10-14, #208 reading 14): it adds to another Range Up (Range +2 and +1 is +3), and reapplying it extends only itself. `noneExtend`: a second Spell adds its span to the clock it has (a handler's `ApplyEffect` restamped it from now before, so a second cast in the same Turn changed nothing). |
 | `evadeShift` | Arturia | The holder's own Evade rolls moved by X, the sign carried: Mana Burst's −2 for its Combat Phase (#230). Unremovable. |
+| `cannotAct` | Proto Gil | Cannot Move, Attack, use Skills or Noble Phantasms, Evade, Block or Counter: Enki's price for 1◈ (#232 reading 10). In `budget.mjs`'s PREVENT_ALL; its reactions forbidden, so an Attack on him is taken. Unremovable. |
 | `utopiaCount` | Arturia | One Attack counted towards `Dmg Boost (Utopia)`, each its own document; taken with the buff. |
 | `drcPending` | Arturia | One use, spent at the first Turn end: applies `DRC` until the Round ends (#230 reading 9). |
 | `itemRite` | Arturia | Avalon placed, taken back or passed on: no Attack and no Move for the rest of the Turn (`PREVENTS.itemRite`, #230 reading 16). |
@@ -628,7 +637,7 @@ signed: Pois Heal banks a negative.
 
 Each becomes one YAML file under `packs/_source/effects/` (Ch. 37 §37.1).
 
-**Authored so far: 157 files against 154 named rows** — the count lives in this appendix's header block and is read
+**Authored so far: 186 files against 154 named rows** — the count lives in this appendix's header block and is read
 off the directory rather than incremented by hand, because three hand-kept tallies had already
 drifted apart. Scáthach brought fifteen at once, which is more than any other
 Servant and not a coincidence: her *Primordial Rune* is a sixteen-row table of ordinary buffs and

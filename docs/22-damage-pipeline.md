@@ -148,3 +148,8 @@ instance. `attack.mjs#instancesAgainst` is the one reader of a defender's instan
   `riders: "hold"` and the defender's riders are kept back, so they shape nothing. Broken, they land after the damage
   (`riders: "heldOnly"`); held, they are filed as `blocked`. `test/unit/emiya-208-open.test.mjs` plays Gáe Bolg
   Alternative, Snegleta (broken and held) and Gate of Skye.
+
+**A fixed flat bonus** (#232 reading 16). A `FlatDamage` with `fixed` is gated at stage 7 like any flat bonus
+(a bypass or an unrolled chance still drops it) and added at stage 16, after Def Crk and after the Injury
+snapshot: no modifier on either side changes it, Invuln and a successful Evade still stop it, and
+`flags.fixedExtra` lets a multi-hit sum and a `singleInjuryRoll` total leave it out of the Injury Roll.

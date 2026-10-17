@@ -1,0 +1,28 @@
+# Appendix A §A.17: "Drowning — Health cannot be restored; −50 Health per
+# own/acted turn end; 80% chance of attacks and enemy-affecting abilities
+# failing (no cooldown on failure); MOV −1." Ruled as written (#232 reading
+# 19). Enki is the first source.
+#
+# - "Health cannot be restored": healing received −100, no source spared.
+# - −50 at the end of its own Turn and of any Turn it Acts: Bleed's clock.
+# - the 80% is its OWN miss source (`rules/miss.mjs`), not Blind's: Eye of the
+#   Mind and Clairvoyance do not reach it, and a failure refunds the Cooldown.
+# - MOV −1.
+schema: 1
+id: drowning
+name: "Drowning"
+description: |
+  Health cannot be restored. Loses 50 Health at the end of its Turn and at the end of any Turn it
+  Acts. 80% chance of its Attacks and enemy-affecting abilities failing; a failure spends no
+  Cooldown. MOV −1.
+polarity: debuff
+volatility: volatile
+valence: offensive
+stacking: noneNoRefresh
+baseChance: 100
+periodic: { when: turnEnd, amount: 50, actedOnly: true, bypassModifiers: true }
+rules:
+  - key: HealingReceived
+    value: -100
+  - key: MovDelta
+    value: -1

@@ -1,0 +1,87 @@
+# Enki: Sword of the End, Rank EX (#232). A Noble Phantasm activated now that
+# lands 7◈ later (`schedule`, `engine/schedule.mjs`).
+#
+# Activation: half his Master's maximum Health, in place of the normal cost,
+# refused at half or below (Ozymandias's Ramesseum Tentyris); once in the game
+# (Pyramid Drop); 'Cannot Act' for 1◈, Evade and Block included (reading 10);
+# the 'Utnapishtim' mark where he stands.
+#
+# 7◈ later, as an effect's 7◈ runs out (reading 11): a 13x13 around the mark,
+# 5x + 700 BA(MAG), Water, Drowning at 500% for 3◈, resolved as his NP Attack
+# with what he holds then; each Unit may Evade or Block. Everybody in it is
+# hit -- allies too (reading 23) -- but him, his Master by contract,
+# 'Levitating' Units, and Noah with Noah's allies within 2 (reading 21). Then
+# the area becomes Waterside for 7◈, painted once the Combat Phase is over so
+# it neither raises the Water damage nor worsens an Evade against it.
+#
+# Cancelled if he falls first: the use stays spent and the Health stays lost
+# (readings 12, 22). Only Golden Rule's fallback shortens the count (14).
+schema: 1
+id: proto-gil-enki
+name: "Enki: Sword of the End"
+rank: EX
+isNP: true
+kind: noblePhantasm
+slug: enki
+maxUses: 1
+expendsPermanently: true
+timing: { window: ownTurn }
+schedule: { after: "7◈", mark: utnapishtim }
+description: |
+  Surge of Utnapishtim. When this NP is Activated, Proto Gil's Master's Health is reduced by half
+  of its maximum value (instead of the normal Master's Health cost); this NP cannot be used when
+  his Master's Health is below or equal to half of its maximum value; and Proto Gil cannot Act for
+  1◈ Turns after this NP is Activated. When used, the panel which Proto Gil was standing on gains
+  the 'Utnapishtim' mark. 7◈ Turns after Enki was Activated, it hits a 13x13 panel area centered on
+  the 'Utnapishtim' panel for 5x damage plus 700 (Base Attack (MAG) is used) and has a 500% chance
+  of inflicting @effect[drowning]{Drowning} for 3◈ Turns. Water damage. Then, the area affected by this NP
+  becomes a 'Waterside' area for 7◈ Turns. Proto Gil, his Master, Units with the 'Levitating'
+  Attribute, Noah and all Noah's allied Units within a 2 panel area of Noah are not affected by
+  this NP. Can only be used once during the entire game. If Proto Gil is defeated during those 7◈
+  Turns after Enki's Activation (and before it hits the board), the NP is cancelled.
+additionalCosts:
+  - { id: enkiMasterHealth, kind: masterHealthFractionOfMax, fraction: 0.5, supersedes: [npCost] }
+targeting:
+  anchor: { kind: self }
+  shape: { kind: square, size: 13 }
+  selection:
+    relations: [enemy, ally, neutral]
+    chooser: all
+    includeSelf: false
+    excludeOwnMaster: true
+    attributes: [{ not: "target:attribute:levitating" }]
+    spares: [{ contentId: noah, alliesWithin: 2 }]
+  limits:
+    requirements:
+      - { kind: masterHealthFraction, above: 0.5 }
+  isDamagingAoE: true
+damage:
+  component: mag
+  multiplier: 5
+  flatBonus: 700
+  element: water
+phases:
+  - kind: applyEffects
+    target: self
+    when: activation
+    effects:
+      - { id: cannotAct, duration: "1◈" }
+  - kind: damage
+    target: reuse
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - id: drowning
+        duration: "3◈"
+        chance: 500
+        # "Swimsuit reduces the inflict chance by 20%" (Appendix A §A.17).
+        chanceModifiers:
+          - { predicate: ["target:skill:swimsuit"], value: -20, source: "Swimsuit" }
+  - kind: zone
+    when: afterPhase
+    spec:
+      terrain: [waterside]
+      shape: reuse
+      duration: "7◈"
+      followsSource: false
+      tag: "enki:@self.id"

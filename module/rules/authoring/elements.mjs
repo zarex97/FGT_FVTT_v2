@@ -115,6 +115,9 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     // (Excalibur's passive, #230).
     { key: "chance", type: "number" },
     { key: "chanceKey", type: "text" },
+    // Added after every modifier, outside the Injury Roll; a string labels it
+    // (Proto Gil's Fixed Divine Damage, #232).
+    { key: "fixed", type: "text" },
   ]),
   entry("Resistance", "Magic Resistance. The rank mode can negate outright; the dice mode never can.", [
     ...SCALED,
@@ -266,6 +269,14 @@ export const ELEMENT_DESCRIPTORS = describeTable([
   ]),
   entry("SurviveLethal", "A lethal blow taken at or above a share of the maximum leaves 1 Health instead.", [
     { key: "atOrAbovePercent", type: "number" },
+  ]),
+  entry("FollowUpAttack", "After an Attack the predicate matches, this Unit may Move beside the DU and make an additional Normal Attack.", [
+    { key: "move", type: "select", choices: ["adjacent"] },
+    { key: "lockReaction", type: "checkbox" },
+  ]),
+  entry("HealingReceived", "Changes the healing this Unit receives, in percent; named sources may be spared.", [
+    ...SCALED,
+    { key: "exceptSources", type: "tokenList" },
   ]),
   entry("TerrainPenaltyImmunity", "This Unit takes none of a terrain's penalties, and keeps its benefits.", [
     { key: "terrain", type: "text" },

@@ -527,7 +527,20 @@ export function canUseAbility({
   });
   if (!met.ok) return { ok: false, reason: met.reason, cost };
 
-  const unpayable = cannotPay(cost, unit, master);
+  // What the use will CHARGE, which is not always the table's NP cost: an
+  // ability's own cost may supersede it. Enki's Master pays half his maximum
+  // *"instead of the normal Master's Health cost"*, and this asked whether a
+  // Master on 95 could pay an EX Rank's 100 (#232, found live). The same
+  // resolution the payment makes (`resolveCosts`), so the gate and the price
+  // cannot disagree.
+  const ownCosts = additionalCostsFor({
+    ability: { system: { additionalCosts: ability?.additionalCosts ?? ability?.system?.additionalCosts ?? [] } },
+    self: unit, master,
+  });
+  const charged = ownCosts.length > 0
+    ? resolveCosts([...(cost ? [{ ...cost, id: "npCost" }] : []), ...ownCosts]).charged
+    : (cost ? [cost] : []);
+  const unpayable = chargedUnpayable(charged, unit, master);
   if (unpayable) return { ok: false, reason: unpayable, cost };
 
   return { ok: true, cost, ...(overCooldown ? { overCooldown } : {}) };
@@ -656,6 +669,29 @@ function firstUsed(exclusive, used) {
  * @param {object|null} master
  * @returns {string|null}
  */
+/**
+ * Why the costs a use will charge cannot be met together, or `null`.
+ *
+ * Summed per pool: two costs on one Master are one Health loss.
+ *
+ * @param {object[]} charged
+ * @param {object} unit
+ * @param {object|null} master
+ * @returns {string|null}
+ */
+function chargedUnpayable(charged, unit, master) {
+  const totals = new Map();
+  for (const c of charged ?? []) {
+    if (!c?.kind) continue;
+    totals.set(c.kind, (totals.get(c.kind) ?? 0) + (c.amount ?? 0));
+  }
+  for (const [kind, amount] of totals) {
+    const why = cannotPay({ kind, amount }, unit, master);
+    if (why) return why;
+  }
+  return null;
+}
+
 function cannotPay(cost, unit, master) {
   if (!cost) return null;
   switch (cost.kind) {

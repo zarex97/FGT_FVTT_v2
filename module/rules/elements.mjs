@@ -80,7 +80,7 @@ export function empty() {
     autoCounters: [], forbiddenReactions: [], refusesReactions: [], durationExtensions: [], optionalCosts: [],
     buffRemovalResist: [], knockback: null,
     forcedModeRules: [], magnitudeScales: [], attackProperties: [], terrainPenaltyImmunities: [], lethalFloors: [],
-    categoryUseLimits: [], baseAttackModifiers: [],
+    categoryUseLimits: [], baseAttackModifiers: [], healingReceived: [], followUps: [],
   };
 }
 
@@ -1059,6 +1059,11 @@ export const EXECUTORS = Object.freeze({
       ...(typeof el.chance === "number"
         ? { chance: { percent: el.chance, key: `chance:${el.chanceKey ?? source}` } }
         : {}),
+      // FIXED: added at stage 16, past every modifier and the Injury snapshot;
+      // a string names the damage on the card. Proto Gil's Divinity, *"dealt as
+      // Fixed Divine Damage and does not count towards the amount required for
+      // an Injury Roll"* (#232 reading 16).
+      ...(el.fixed ? { fixed: el.fixed } : {}),
       predicate: deferred,
       source,
     });
@@ -1990,6 +1995,45 @@ export const EXECUTORS = Object.freeze({
     out.lethalFloors.push({
       atOrAbovePercent: typeof el.atOrAbovePercent === "number" ? el.atOrAbovePercent : 0,
       predicate: deferred ?? el.predicate ?? null,
+      source,
+    });
+  },
+
+  /**
+   * An additional Normal Attack after an Attack of this Unit's.
+   *
+   * Bab-ilu's passive: *"Whenever Proto Gil Attacks an enemy Unit at a Range
+   * of 2 or higher, he can Move to any panel that is directly next to the DU
+   * and perform an additional Normal Attack on that DU; if the DU Blocked the
+   * first Attack, it also has to Block the second Attack, while if the DU
+   * successfully Evaded the first Attack, it has a choice to Block or Evade the
+   * second Attack"* (#232 readings 1 to 3, 24). The predicate is asked of the
+   * finished Attack, so it is deferred whole. Read by
+   * `engine/follow-up.mjs#offerFollowUp`.
+   */
+  FollowUpAttack(el, { source, ability, out }) {
+    out.followUps.push({
+      predicate: el.predicate ?? null,
+      move: el.move ?? null,
+      lockReaction: Boolean(el.lockReaction),
+      abilityId: ability?.contentId ?? ability?.id ?? null,
+      source,
+    });
+  },
+
+  /**
+   * A change to the healing this Unit RECEIVES, in percent.
+   *
+   * Heal Dwn (Bab-ilu's 17th row, #232 reading 18): *"Healing received −X%"*,
+   * which, as Heal Up's catalogue row says, does not reach Home Base or Command
+   * Spell healing unless stated (`exceptSources`). Drowning is the same at
+   * −100 with no exception: *"Health cannot be restored"* (reading 19). Read
+   * at the one door every heal passes (`engine/applier.mjs#resolveHealing`).
+   */
+  HealingReceived(el, { rank, source, out, ctx }) {
+    out.healingReceived.push({
+      value: scalar(resolveValue(el, rank, ctx)),
+      exceptSources: [...(el.exceptSources ?? [])],
       source,
     });
   },

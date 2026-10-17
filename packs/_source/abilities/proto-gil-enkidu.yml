@@ -1,0 +1,102 @@
+# Enkidu: Chains of Heaven, Rank ??? (#232).
+#
+# An NP that costs his Master nothing (reading 6): the Round gate, NP Seal and
+# every NP Cooldown cut reach it, and it spends his Attack on his own Turn.
+# Range 3, one DU, BA(STR), Stun at 50%.
+#
+# The ladder keys on the DU's Divinity (Karna's Vasavi Shakti's predicates,
+# exclusive bands), and a 'Divine' DU with no Divinity reads as Rank A. Ruled
+# (reading 7): the damage is added like an Atk Up -- a `DamageModifier` in the
+# Atk Up bucket while this NP is the Attack -- and the Stun chance adds in
+# points (Medea's Atlas's `chanceModifiers`, here positive). Against a Divine
+# DU no immunity stops the Stun, one naming Stun included; resistance still
+# cuts it (`bypassesImmunity`).
+schema: 1
+id: proto-gil-enkidu
+name: "Enkidu: Chains of Heaven"
+rank: null
+isNP: true
+npTags: [antiUnit, antiDivine]
+kind: noblePhantasm
+slug: enkidu
+cooldown: "5◈"
+timing: { window: ownTurn }
+noMasterCost: true
+description: |
+  Rank: ???
+
+  Range=3. Base Attack (STR) is used. Deals normal damage and has a 50% chance of inflicting
+  @effect[stun]{Stun} for 1◈ Turns. Damage dealt and chance of inflicting Stun increases the higher the
+  Divinity Rank of the DU.
+  Rank EX: Damage dealt increased by 150%, chance of inflicting Stun increased by 100%.
+  Rank A: Damage dealt increased by 100%, chance of inflicting Stun increased by 50%.
+  Rank B: Damage dealt increased by 80%, chance of inflicting Stun increased by 40%.
+  Rank C: Damage dealt increased by 60%, chance of inflicting Stun increased by 30%.
+  Rank D: Damage dealt increased by 40%, chance of inflicting Stun increased by 20%.
+  Rank E: Damage dealt increased by 20%, chance of inflicting Stun increased by 10%.
+  If the DU has the 'Divine' Attribute but no 'Divinity' Skill, treat it as if it has Rank A
+  Divinity. Additionally, if the DU has the 'Divine' Attribute, Debuff Immune effects cannot
+  prevent Stun from being inflicted, even those which specifically affect Stun (Debuff Resist can
+  still reduce the chance).
+  Does not decrease Master's Health when used.
+  Cooldown: 5◈ Turns
+passiveRules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    value: 150
+    npValue: 150
+    predicate: ["attack:madeWith:proto-gil-enkidu", "target:skillRank:divinity:gte:EX"]
+  - key: DamageModifier
+    modifierKey: atkUp
+    value: 100
+    npValue: 100
+    predicate: ["attack:madeWith:proto-gil-enkidu", "target:skillRank:divinity:gte:A", "not:target:skillRank:divinity:gte:EX"]
+  - key: DamageModifier
+    modifierKey: atkUp
+    value: 100
+    npValue: 100
+    predicate: ["attack:madeWith:proto-gil-enkidu", "target:attribute:divine", "not:target:skill:divinity"]
+  - key: DamageModifier
+    modifierKey: atkUp
+    value: 80
+    npValue: 80
+    predicate: ["attack:madeWith:proto-gil-enkidu", "target:skillRank:divinity:gte:B", "not:target:skillRank:divinity:gte:A"]
+  - key: DamageModifier
+    modifierKey: atkUp
+    value: 60
+    npValue: 60
+    predicate: ["attack:madeWith:proto-gil-enkidu", "target:skillRank:divinity:gte:C", "not:target:skillRank:divinity:gte:B"]
+  - key: DamageModifier
+    modifierKey: atkUp
+    value: 40
+    npValue: 40
+    predicate: ["attack:madeWith:proto-gil-enkidu", "target:skillRank:divinity:gte:D", "not:target:skillRank:divinity:gte:C"]
+  - key: DamageModifier
+    modifierKey: atkUp
+    value: 20
+    npValue: 20
+    predicate: ["attack:madeWith:proto-gil-enkidu", "target:skill:divinity", "not:target:skillRank:divinity:gte:D"]
+targeting:
+  anchor: { kind: targetUnit, range: 3 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+damage:
+  component: str
+  multiplier: 1
+phases:
+  - kind: damage
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - id: stun
+        duration: "1◈"
+        chance: 50
+        bypassesImmunity: { predicate: ["target:attribute:divine"] }
+        chanceModifiers:
+          - { predicate: ["target:skillRank:divinity:gte:EX"], value: 100, source: "Divinity EX" }
+          - { predicate: ["target:skillRank:divinity:gte:A", "not:target:skillRank:divinity:gte:EX"], value: 50, source: "Divinity A" }
+          - { predicate: ["target:attribute:divine", "not:target:skill:divinity"], value: 50, source: "Divine, no Divinity (as A)" }
+          - { predicate: ["target:skillRank:divinity:gte:B", "not:target:skillRank:divinity:gte:A"], value: 40, source: "Divinity B" }
+          - { predicate: ["target:skillRank:divinity:gte:C", "not:target:skillRank:divinity:gte:B"], value: 30, source: "Divinity C" }
+          - { predicate: ["target:skillRank:divinity:gte:D", "not:target:skillRank:divinity:gte:C"], value: 20, source: "Divinity D" }
+          - { predicate: ["target:skill:divinity", "not:target:skillRank:divinity:gte:D"], value: 10, source: "Divinity E" }

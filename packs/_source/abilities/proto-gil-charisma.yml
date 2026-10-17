@@ -1,0 +1,44 @@
+# Proto Gil's Charisma, Rank A+ (#232). Penthesilea's, at his numbers.
+#
+# > "(Passive) All damage dealt by other allied Units within a 2 panel area of
+# > himself is increased by 27 including NP. This effect is negated if this Unit
+# > has Atk Up (Charisma) or is inflicted with Skill Seal.
+# > (Active) Used during your Turn. Applies Atk Up (Charisma) for 1◈ Turns to
+# > himself, all damage dealt by allied Units within a 2 panel area of herself is
+# > increased by 25%; if NP, 10%. Cooldown: 4◈-⅓◈ Turns."
+#
+# The Active's Atk Up (Charisma) is an aura he carries (`atkUpCharisma`), and
+# *"allied Units"* says no "other", so it reaches him too. While he holds it the
+# flat +27 is off, asked by family.
+schema: 1
+id: proto-gil-charisma
+name: "Charisma"
+rank: "A+"
+kind: skill
+slug: charisma
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive) All damage dealt by other allied Units within a 2 panel area of himself is increased
+  by 27 including NP. This effect is negated if this Unit has @effect[atkUpCharisma]{Atk Up (Charisma)} or is
+  inflicted with @effect[skillSeal]{Skill Seal}.
+  (Active) Used during your Turn. Applies @effect[atkUpCharisma]{Atk Up (Charisma)} for 1◈ Turns to himself, all
+  damage dealt by allied Units within a 2 panel area of himself is increased by 25%; if NP, 10%.
+  Cooldown: 4◈-⅓◈ Turns.
+passiveRules:
+  - key: Aura
+    modifierKey: flatDamage
+    radius: 2
+    relations: [ally]
+    value: 27
+    stacking: highestOnly
+    predicate:
+      - "not:self:effectFamily:atkUpCharisma"
+      - "not:self:effect:skillSeal"
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUpCharisma, magnitude: 25, npMagnitude: 10, duration: "1◈" }

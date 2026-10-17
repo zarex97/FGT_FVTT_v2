@@ -272,7 +272,11 @@ export function advance(s, event, detail = undefined) {
   // but the card is a client and the transition is the boundary: a stale card,
   // a macro, or a second player's window must not be able to declare an Evade
   // that Presence Concealment or a Command Spell retarget already took away.
-  if (s.state === "react" && (s.forbiddenReactions ?? []).includes(normalized)) {
+  // A reaction ABILITY is not the "nothing" it resolves as: a DU that must
+  // Block (Bab-ilu's second Attack, #232 reading 24) may still answer with a
+  // reaction NP, so only the three standing rungs are refused here.
+  const asked = String(event).startsWith("ability:") ? null : normalized;
+  if (s.state === "react" && asked && (s.forbiddenReactions ?? []).includes(asked)) {
     throw new RangeError(
       `FGT | "${normalized}" is not available against this attack.`,
     );

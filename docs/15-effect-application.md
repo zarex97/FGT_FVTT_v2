@@ -246,3 +246,10 @@ still treat a missing NP figure as none (#131).
 **"For the rest of that Turn" is `until anyTurnEnd`** (#208 §46.4-MQ). Kanshou & Bakuya's guard was ⅓◈, which outlives the
 Turn when the enemy's Turn follows. `turnEnd` will not do either: it is heard by the active faction's Units alone, so a guard
 landed on a Counter in the enemy's Turn would outlive that Turn and the next. Both it and Overedge author `until anyTurnEnd`.
+
+**What one application may say about itself** (#232). An Effect Entry may state `stacking`, in place of the
+definition's, and `bypassesImmunity`, `true` or a predicate. Bab-ilu's die table is the first user of both
+halves of *"for debuffs which do not stack, its duration is extended instead"* (`noneExtend` on a row whose
+effect refreshes) and of No Buff counted per 9 (`count`, one charge each): a No Buff with charges spends one
+for every buff it stops, and one with none is the Duration-only kind it always was. Enkidu's Stun on a Divine
+DU passes every immunity, one naming Stun included, and still meets resistance.

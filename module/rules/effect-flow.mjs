@@ -413,6 +413,15 @@ export const ENTRY_KEYS = Object.freeze({
   ignoresResistanceFrom: { type: "json", means: "Resistances this application is not subject to." },
   otherwise: { type: "json", means: "What lands instead when the chance fails, as entry keys over this one." },
   restores: { type: "json", means: "Stats this application restores as it lands, as [{stat, delta}], capped at the maximum." },
+  stacking: {
+    type: "select",
+    choices: ["noneNoRefresh", "noneRefresh", "noneExtend", "stage", "magnitudeStacks", "highestOnly", "count"],
+    means: "How this application stacks, in place of the definition's (Bab-ilu's repeated rows).",
+  },
+  bypassesImmunity: {
+    type: "json",
+    means: "true, or a predicate: no immunity stops this application, even one naming the effect; resistance still reduces it.",
+  },
 });
 
 /**

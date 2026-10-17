@@ -1183,6 +1183,19 @@ const ACTIONS = Object.freeze({
    * `ticks` is a ◈ expression resolved against the world's turns per Round;
    * `delta` stays for a raw turn count.
    */
+  /**
+   * Move the fire tick of every strike this Unit has scheduled.
+   *
+   * Golden Rule: *"If none of his NP are on Cooldown, reduce the Turn count of
+   * Enki by 1 Turn if it has been activated"* (#232 reading 14). `delta` is a
+   * raw Turn count, as `CooldownDelta`'s is; `ticks` the ◈ form. A Unit with
+   * no strike pending is moved nothing, which the applier finds for itself.
+   */
+  ScheduleDelta: (a, u, h, c) => {
+    const delta = a.ticks !== undefined ? -resolveTicks(parseTick(a.ticks), c) : (a.delta ?? 0);
+    return delta === 0 ? [] : [I.scheduleDelta(u.id, delta, h.source)];
+  },
+
   CooldownDelta: (a, u, h, c) => {
     // A magnitude that names the event's own payload. Channel Marker Soul's
     // number is the size of the stage change that just happened, which is
