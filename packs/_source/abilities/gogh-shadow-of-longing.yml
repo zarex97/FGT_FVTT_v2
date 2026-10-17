@@ -38,7 +38,10 @@ targeting:
   shape: { kind: chebyshevRadius, r: 2 }
   # ONE ally, chosen -- not the whole radius. "Used on an allied Unit."
   # `chosen`, not `player`: the corpus has exactly two chooser values.
-  selection: { relations: [ally], chooser: chosen, count: 1 }
+  # Herself included (#239 reading 4): Scáthach's Primordial Rune says the same
+  # words, *"on an allied Unit within a 2 panel area of herself"*, and may rune
+  # herself (`rules/relations.mjs#isFriendly`).
+  selection: { relations: [ally, self], includeSelf: true, chooser: chosen, count: 1 }
 phases:
   - kind: applyEffects
     target: reuse
@@ -49,7 +52,13 @@ phases:
     target: self
     effects:
       - { id: gogh, duration: "1◈" }
-  # Spec R3. ALL Units -- allies AND enemies -- and the stages travel intact.
+  # Spec R3. ALL Units -- allies AND enemies, and Civilians, who are neutral
+  # (#239 reading 7) -- and the stages travel intact. Her own Curse stays put and
+  # pays nothing (reading 6a); the arrival is *"apply"*, not a chance, so it
+  # lands with no roll, her resistances untouched, and an immunity on her drops
+  # it, the others' Curse already gone (readings 6b, 6c:
+  # `rules/effect-flow.mjs#transferEffect`). Each stage that arrives pays
+  # Channel Marker Soul (6d, R1).
   - kind: transfer
     # `target: self` explicitly: the ABILITY targets a chosen ally, and a phase
     # on an outward-targeting ability that means the caster has to say so --
@@ -57,4 +66,4 @@ phases:
     target: self
     defId: curse
     radius: 3
-    relations: [ally, enemy, self]
+    relations: [ally, enemy, neutral]

@@ -4753,6 +4753,72 @@ ask `publicIdentityOf`. Ch. 30.
 overlapped the option below: a click on "Suspend Skill" picked Reduce Cooldown (closed unspent). The option is as
 tall as what it says (`styles/src/_apps.scss`).
 
+### OQ. What a handler did was said on no card — **fixed** (#202, #239, live)
+
+**Reached: SL.g, CM.2, DS.terror.stun, HG.e2.agi; every handler in the game.** The 'Gogh' buff ate a Curse stage and
+gained Atk Up under a card reading *"Foreigner ⚔ Lancer, Normal Attack, 28"*. An effect a handler lands goes through
+`applier.mjs#resolveEffects`, which threw the landing's summary away; a stage it took, a clock it cut and a stat it
+moved were said nowhere either, and the handlers a write raises (Channel Marker Soul on `curseStageChanged`) applied
+deeper still. `applyIntents` returns them as `lines`; the attack path, a Skill and a boundary print them. An attack
+card's row says whose it is, so the attacker reads her own gains and the defender a count. Ch. 37.
+
+### OR. A named amplifier applied only to a Unit "weak to" its effect — **fixed** (#239, live)
+
+**Reached: CM.1.** Channel Marker Soul's *"Curse Damage taken is halved"* never halved a tick: Van Gogh took Stage 5's
+125 beside Medea's 125. `scheduler.mjs#amplify` multiplied a named `VulnerabilityAmplifier` only `if (isWeakTo(...))`,
+Sikera Ušum clause e's condition written into the reader every holder shares. The gate is the amplifier's own
+`ifWeak`, authored on Sikera Ušum's interior rule alone. Ch. 15.
+
+### OS. A floor scoped to one source never met a periodic tick — **fixed** (#239, live)
+
+**Reached: SC.2.** Sunflower's Curse (`DamageFloor`, defId curse) was read at stage 16 of the damage pipeline, keyed on
+the attack; a Curse tick is a bare periodic damage intent and never entered it. `scheduler.mjs#flooredTick` holds a
+tick to the Unit's floors for its effect: *"Foreigner takes 59 from Curse"* from 60. Ch. 15.
+
+### OT. A Turn's periodic damage was said nowhere — **fixed** (#239, live)
+
+**Reached: CM.1.** Curse ticks at every Turn's end and the periodic card posted at the Round's end only: 125 off two
+Servants with no line. The Turn's end posts it too, the effect by its name. Ch. 37.
+
+### OU. A Skill card's rows named True Names to the caster's player — **fixed** (#239, live)
+
+**Reached: HG.** *"Karna: Def Dwn · Proto Gil: Def Dwn (C)"* to Van Gogh's player. `postCard` prefixed each row with
+`recipient?.name`, reasoned shown only to the recipient's controllers; `skillEffectsFor` shows every row to the
+caster's controllers too, and #235 had marked the stat row safe on the same reason. Both say `shownName`; the guard
+reads `recipient`. Two tests that asserted the True Name assert the public one. Ch. 30.
+
+### OV. The Evade rung spent no use of an automatic evasion — **fixed** (#239, live)
+
+**Reached: HG.a1; every count-limited Evade or Dodge (Mannanán's, Pollux's).** Het Gele Huis's *"Evade … 1 time"*
+evaded Asterios and kept its use: the plain rung takes a plan's `AutoSucceed` and spent nothing; only the
+reaction-ability path (Trofa) did. `rollEvade` returns `spends` and the rung consumes it. Ch. 21, Appendix A.
+
+### OW. Terror's flat chance met resistance — **fixed** (#239, live)
+
+**Reached: DS.terror.stun.** *"Lancer: Stun: resisted, rolled 74 vs 45%"*: since #191 an action's die is decided at the
+landing, and Terror's file still reasoned that nothing stood between its 60 and the roll. It states
+`bypassChanceModifiers`, Queen's Poison's flag. Appendix A.
+
+### OX. A moved effect rolled as a new infliction — **fixed** (#239, test)
+
+**Reached: SL.pull.apply.** Shadow of Longing's arrival went through the landing door at 100% less Van Gogh's own 60
+(her two resistances), once for every stage gathered, after the others' Curse was already removed: 40% to keep any of
+it. A transfer arrives with `bypassChanceModifiers` (reading 6b). Found reading the path for reading 6; pressed live
+after the fix (four stages through her 60%). Ch. 15.
+
+### OZ. Def Dwn (A) and (C) drained per hit, and "successful" meant three things — **ruled and built** (#239 reading 3)
+
+**Reached: HG.e2.agi, YH.e2.agi; every Def Dwn (A) and (C), Alpi, the 'Gogh' buff.** The drains hung from
+`damageTaken`, once per hit and never on an Instakill that skipped the damage; Alpi counted a completely negated Attack.
+Ruled 2026-10-17 for all of them: one test, `riders.mjs#successfullyAttacked` (hit, not hurt, plus the Instakill's skip;
+not a complete negation or a concealment coin); Def Dwn (A) and (C) drain once per Attack on `attackReceived`, whatever
+their sheet's wording. Overedge's two swings drained 2 and drain 1 (`def-dwn-239-arena.test.mjs`). Ch. 21, Appendix E.
+
+### OY. A revival named its effect by its id — **fixed** (#239, live)
+
+**Reached: IN.1.revive.** *"Foreigner is defeated and revived by guts"*. The revival card names an effect source by
+the effect's name, as the Turn's card does (§46.4-ON).
+
 ---
 
 ---
@@ -6433,3 +6499,40 @@ lived. Asterios fell to Pashupata's Death on a natural 10.
 - **Agni Gandiva's Burn landed only in the engine**: live, Karna is Burn-immune and was the one Magic Resistance
   target in reach.
 - **"An ability it depends on is still cooling."** names no ability; Agni Gandiva's slot could say Mana Burst (Flames).
+
+## 46.36 Van Gogh — the Servant whose debuff is her fuel
+
+**84 Clauses: 84 Pressed or Observed** (#239, live 2026-10-17, PC world `fgt2026`, scene *Van
+Gogh Audit*). Built 2026-09-14 (design `docs/superpowers/specs/2026-09-14-van-gogh-design.md`, rulings R1 to R10), audited
+here: 9 readings ruled 2026-10-17, reading 3 twice (its first premise was retracted, §46.4-OZ). Her pieces are
+others' or became others': Medea's Item Construction aura, the table's Divinity, Scáthach's mutual
+`abilityOffCooldown`, Appendix A's Regen, Terror and Def Dwn (C), and her own `curseStageChanged`, `transfer` phase,
+`DamageFloor`, `countTargets` and `NegateOpponentSource`, which Arjuna's Area CritUp and Alter Ego already reuse.
+
+**Why she finds what she finds.** Her kit runs on handlers: a buff that eats a stage on an Attack, a passive that pays
+on a stage change, a Skill that moves Curse between Units, a debuff that drains on a hit. Every one of them was an
+outcome no card said, and three of their numbers were wrong where only a live tick shows them.
+
+### 46.36.1 What she cost the engine
+
+| Finding | Where |
+|---|---|
+| #202: a handler's landings, stages, clocks and stats on the card that raised them; a row says whose it is | `engine/applier.mjs#applyIntents` (`lines`, `sink`), `attack.mjs#applyWithLines`, `skill-use.mjs` (per phase), `scheduler-hooks.mjs`, `rules/card-visibility.mjs#effectsFor` |
+| 'Gogh' buff on a successful Attack, once per Attack; a Crit when any Unit it landed on was critted (reading 2) | `effects/gogh.yml` on `attackLanded`, `attack.mjs#fireAttackLanded` (`attack:crit`) |
+| Shadow of Longing on herself (reading 4); the pull reaches Civilians (7), lands with no roll (6b) | `abilities/gogh-shadow-of-longing.yml`, `rules/effect-flow.mjs#transferEffect` |
+| General: §46.4-OQ to OZ | |
+
+### 46.36.2 What was staged
+
+The war through `commitWar` (Van Gogh and Medea against Asterios, Karna and Proto Gil, no Region); Curse stages on Medea,
+Karna, a Civilian token and her; NP clocks set to read cuts; Asterios's Mad Enhancement switched for the differential;
+Karna given Outsider, then Existence Outside the Domain, on the board copy for `EO.3`; her Health to 60 for the floor;
+Terror on Karna and Proto Gil after the fix; Medea moved for Item Construction's two readings; dice staged high on the GM
+page for an ordinary hit. Her Master fell to The Yellow House's own Curse and its Health cost, which is her sheet.
+
+### 46.36.3 Left open
+
+- **Curse ticks at every Turn's end** (Appendix A's *"every ⅓◈"* with three Turns a Round); `curse.yml`'s own
+  description says *"the affected unit's turn"*. Not hers to rule; the two disagree.
+- **"An ability it depends on is still cooling."** still names no ability (§46.35.3).
+- **A Curse tick at the floor prints "takes 0"**; harmless, worded as what it took.

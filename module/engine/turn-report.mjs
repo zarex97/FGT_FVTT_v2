@@ -8,6 +8,8 @@
  * card said why (#190).
  */
 
+import { effectLine } from "../rules/card-visibility.mjs";
+
 /** The line for each way a clock can turn. */
 const COOLDOWN_KEYS = Object.freeze({
   reduce: "FGT.TurnReport.CooldownCut",
@@ -79,7 +81,7 @@ export function healthBefore(intents, healthOf) {
  *   it knows is said as what it took, and not at all when it took nothing
  * @returns {string|null}
  */
-export function turnEndCard(intents, nameOfUnit, t, nameOfAbility = (_u, a) => a, before = null, health = null, titleKey = "FGT.TurnReport.Title") {
+export function turnEndCard(intents, nameOfUnit, t, nameOfAbility = (_u, a) => a, before = null, health = null, titleKey = "FGT.TurnReport.Title", landed = []) {
   const changes = (intents ?? []).filter((i) => i?.t === "statDelta" && i.stat === "health.value" && i.delta);
   // A heal is said too, as what it gave (#234): Regen healed at every boundary
   // and no card said so, because the card read Health deltas alone and a heal
@@ -103,7 +105,10 @@ export function turnEndCard(intents, nameOfUnit, t, nameOfAbility = (_u, a) => a
     return i.mode === "reduce" && Number.isFinite(was) ? Math.min(i.ticks, was) : i.ticks;
   };
   const clocks = (intents ?? []).filter((i) => i?.t === "cooldown" && i.source && taken(i) > 0);
-  if (changes.length === 0 && ended.length === 0 && clocks.length === 0 && heals.length === 0) return null;
+  // What a boundary's handlers landed (#202): Terror's Stun at the end of a
+  // Turn, by the Unit's public name. Each row is the landing's own line.
+  const effects = (landed ?? []).filter((l) => l?.summary);
+  if (changes.length === 0 && ended.length === 0 && clocks.length === 0 && heals.length === 0 && effects.length === 0) return null;
   const lines = [
     ...changes.map((i) => t(i.delta < 0 ? "FGT.TurnReport.Loses" : "FGT.TurnReport.Gains", {
       who: nameOfUnit(i.unitId),
@@ -119,6 +124,7 @@ export function turnEndCard(intents, nameOfUnit, t, nameOfAbility = (_u, a) => a
     ...clocks.map((i) => t(COOLDOWN_KEYS[i.mode] ?? COOLDOWN_KEYS.reduce, {
       who: nameOfUnit(i.unitId), ability: nameOfAbility(i.unitId, i.abilityId), ticks: taken(i), source: i.source,
     })),
+    ...effects.map((l) => `${nameOfUnit(l.unitId)}: ${effectLine(l.summary)}`),
   ];
   return `<div class="fgt-card fgt-card--turn-report"><h3>${t(titleKey)}</h3>`
     + `<ul>${lines.map((l) => `<li>${l}</li>`).join("")}</ul></div>`;
@@ -154,7 +160,7 @@ export function healthOnActor(unitId) {
   return h ? { value: Number(h.value), max: Number(h.max) } : null;
 }
 
-export async function postTurnEndReport(intents, before = null, health = null, titleKey = "FGT.TurnReport.Title") {
+export async function postTurnEndReport(intents, before = null, health = null, titleKey = "FGT.TurnReport.Title", landed = []) {
   if (!game.users?.activeGM?.isSelf) return;
   const escape = foundry.utils.escapeHTML;
   // The name the table knows: "Archer regains 161 Health (Regen)", never his
@@ -174,6 +180,7 @@ export async function postTurnEndReport(intents, before = null, health = null, t
   const { EffectRegistry } = await import("../rules/registry.mjs");
   const named = (intents ?? []).map((i) => (i?.source && EffectRegistry.get(i.source)?.name
     ? { ...i, source: escape(EffectRegistry.get(i.source).name) } : i));
-  const content = turnEndCard(named, nameOfUnit, t, nameOfAbility, before, health, titleKey);
+  const escaped = (landed ?? []).map((l) => ({ ...l, summary: { ...l.summary, name: escape(String(l.summary?.name ?? "")), reason: l.summary?.reason ? escape(String(l.summary.reason)) : null } }));
+  const content = turnEndCard(named, nameOfUnit, t, nameOfAbility, before, health, titleKey, escaped);
   if (content) await ChatMessage.create({ content, flags: { fgt: { turnReport: true } } });
 }

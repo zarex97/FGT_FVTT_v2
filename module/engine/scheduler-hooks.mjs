@@ -168,9 +168,13 @@ async function onTurnChange(combat, prior, current) {
   // a cut took, and nothing of one that found the clock at 0 (#209 review).
   const clocks = clocksBefore(turnIntents, remainingOnActor);
   const healthTurn = healthBefore(turnIntents, healthOnActor);
-  await run(turnIntents, "scheduler:endTurn", ended);
-  // ...and say what it did to anybody's Health (#190), heals included (#234).
-  await postTurnEndReport(turnIntents, clocks, healthTurn);
+  const landedTurn = await run(turnIntents, "scheduler:endTurn", ended);
+  // A Turn's periodic ticks, said as the Round's are: Curse ticks at the end of
+  // its bearer's Turn, and its damage showed on no card (#239, live).
+  await postPeriodicReport(turnIntents, worldIO(), "FGT.TurnReport.Title");
+  // ...and say what it did to anybody's Health (#190), heals included (#234),
+  // and what its handlers landed (#202).
+  await postTurnEndReport(turnIntents, clocks, healthTurn, undefined, landedTurn);
 
   // The Ends pressed during this Turn by an owner whose Turn it was not
   // (#65, ruling 19): *"…or at the start or end of any Round or Turn."*
@@ -184,10 +188,10 @@ async function onTurnChange(combat, prior, current) {
     await combat.setFlag("fgt", "deferred", deferred.filter((e) => e.at !== "turnEnd"));
     const owed = scheduler.runDeferred(due, board, ctx);
     const owedClocks = clocksBefore(owed, remainingOnActor);
-    await run(owed, "scheduler:deferred", ended);
+    const landedOwed = await run(owed, "scheduler:deferred", ended);
     // Said on the card like the rest of the Turn's end: Tenmōkaikai ending on
     // the Turn she fell was silent (#195).
-    await postTurnEndReport(owed, owedClocks);
+    await postTurnEndReport(owed, owedClocks, null, undefined, landedOwed);
   }
 
   // What every Unit was like at the end of this Turn.
@@ -449,11 +453,12 @@ async function endRoundSequence(combat, round, tick) {
 
   const roundIntents = scheduler.endRound(board, ctx);
   const healthRound = healthBefore(roundIntents, healthOnActor);
-  await run(roundIntents, "scheduler:endRound", moment(round, tick));
+  const landedRound = await run(roundIntents, "scheduler:endRound", moment(round, tick));
   await postPeriodicReport(roundIntents, worldIO());
   // A Round's end heals too (Regen *"and at the end of the Round"*): said on
-  // its own card, the heals alone, since the periodic card says the rest (#234).
-  await postTurnEndReport(roundIntents.filter((i) => i?.t === "heal"), null, healthRound, "FGT.TurnReport.RoundTitle");
+  // its own card, the heals alone, since the periodic card says the rest (#234),
+  // with what its handlers landed (#202).
+  await postTurnEndReport(roundIntents.filter((i) => i?.t === "heal"), null, healthRound, "FGT.TurnReport.RoundTitle", landedRound);
 
   // The second upkeep sweep, for tolls charged on the ROUND rather than on a
   // tick period. The Golden Hind is the only one: *"At the end of every
@@ -679,16 +684,18 @@ function factionOf(combat, turnRef) {
  * @param {string} source
  * @param {import("../domain/moment.mjs").Moment|null} [at] the Moment the writes
  *   are about, when it is not the live one: the end of a Turn or a Round
+ * @returns {Promise<object[]>} what the batch's handlers landed, for the card (#202)
  */
 async function run(intents, source, at = null) {
-  if (intents.length === 0) return;
-  await applyIntents(intents, {
+  if (intents.length === 0) return [];
+  const result = await applyIntents(intents, {
     io: worldIO(),
     canWrite: () => true, // the active GM
     isGM: true,
     source,
     moment: at,
   });
+  return result?.lines ?? [];
 }
 
 /**

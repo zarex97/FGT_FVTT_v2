@@ -39,6 +39,7 @@ export async function postRevival(entry) {
   // Name on a card every player reads.
   const { shownName } = await import("./public-identity.mjs");
   const { currentBoard } = await import("./board.mjs");
+  const { EffectRegistry } = await import("../rules/registry.mjs");
   const board = currentBoard();
   const nameOfUnit = (id) => {
     const actor = game.actors.get(id);
@@ -52,7 +53,10 @@ export async function postRevival(entry) {
       const item = actor.items?.find((i) => i.system?.contentId === source || i.id === source);
       if (item) return escape(item.name);
     }
-    return escape(String(source));
+    // ...or by the EFFECT, as the Turn's card names one (#234): Guts read
+    // "revived by guts", its id (#239, live).
+    const effect = EffectRegistry.get(source);
+    return escape(String(effect?.name ?? source));
   };
   const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
   await ChatMessage.create({ content: revivalCard(entry, nameOfUnit, nameOfSource, t), flags: { fgt: { revival: entry.unitId } } });

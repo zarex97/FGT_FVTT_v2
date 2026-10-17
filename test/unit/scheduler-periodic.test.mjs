@@ -54,8 +54,10 @@ describe("Sikera Ušum clause e — the field's VulnerabilityAmplifier", () => {
   // (populated by `rules/bounded-fields.mjs`'s `annotateFields` for a unit
   // standing in a matching field) only ever widens a weakness the unit
   // independently carries.
+  // `ifWeak`: the field's own condition, authored on its interior rule since
+  // #239 -- it had been every named amplifier's.
   const inField = (over = {}) => ({
-    effects: ["poison"], vulnerabilityAmplifiers: [{ effectId: "poison", factor: 2 }], ...over,
+    effects: ["poison"], vulnerabilityAmplifiers: [{ effectId: "poison", factor: 2, ifWeak: true }], ...over,
   });
 
   it("doubles Poison damage for a unit with a standing weakTo marker", () => {
@@ -68,6 +70,13 @@ describe("Sikera Ušum clause e — the field's VulnerabilityAmplifier", () => {
       applicationChances: [{ direction: "incoming", effectId: "poison", value: -20 }],
     });
     expect(periodicDamageFor({ defId: "poison", stage: 1 }, unit, effectDef)).toBe(40);
+  });
+
+  it("an amplifier with no weakness gate applies outright: Channel Marker Soul halves Curse (#239)", () => {
+    // Found live: Stage 5 dealt Van Gogh 125, the same as Medea beside her.
+    const gogh = { effects: ["curse"], vulnerabilityAmplifiers: [{ effectId: "curse", factor: 0.5, ifWeak: false }] };
+    expect(periodicDamageFor({ defId: "curse", stage: 5 }, gogh, effectDef)).toBe(63);
+    expect(periodicDamageFor({ defId: "curse", stage: 5 }, { effects: ["curse"] }, effectDef)).toBe(125);
   });
 
   it("does nothing for an ordinary unit standing in the same field", () => {

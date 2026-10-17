@@ -68,10 +68,27 @@ export function transferEffect(instance, from, to) {
       // Stage travels with it: Van Gogh's Shadow of Longing gathers Curse from
       // everyone nearby, and "apply all stages accordingly" means the stages
       // arrive, not that the effect restarts at one.
-      effect: { ...instance, expiry: rebased },
+      //
+      // And it ARRIVES: a move is not a new infliction, so no die and no
+      // resistance (#239 reading 6b). It went through the landing door as a
+      // fresh 100% less hers, 40%, all or nothing, after the others' Curse was
+      // already gone. An immunity still refuses it (reading 6c).
+      effect: { ...withoutChance(instance), expiry: rebased, bypassChanceModifiers: true },
       sourceId: from.id,
     },
   ];
+}
+
+/**
+ * An instance with no chance of its own: what a move carries is the effect,
+ * not the odds it once landed at.
+ *
+ * @param {object} instance
+ * @returns {object}
+ */
+function withoutChance(instance) {
+  const { chance: _chance, rolled: _rolled, ...rest } = instance ?? {};
+  return rest;
 }
 
 /**

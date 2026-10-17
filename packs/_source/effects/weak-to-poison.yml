@@ -32,10 +32,8 @@ valence: defensive
 stacking: noneRefresh
 baseChance: 100
 rules:
-  # Gated on `isWeakTo` inside `amplify`, which this effect's own presence
-  # satisfies -- so the clause is self-consistent rather than circular: the
-  # amplifier asks "is the bearer weak to Poison?" and the bearer is weak to
-  # Poison because it holds this.
+  # Unconditional: holding this IS the weakness, so it needs no `ifWeak` gate
+  # (only Sikera Ušum's amplifier asks whether the bearer is weak, #239).
   - key: VulnerabilityAmplifier
     effectId: poison
     factor: 1.5

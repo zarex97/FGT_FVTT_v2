@@ -739,7 +739,8 @@ describe("`attack:plainDamage` is how a Clause tells an Attack from measured dam
     const drains = [];
     for (const { path, doc } of files) {
       for (const rule of doc.rules ?? []) {
-        if (rule.key !== "OnEvent" || ![rule.event].flat().includes("damageTaken")) continue;
+        // `attackReceived` since #239 (once per successful Attack), `damageTaken` before.
+        if (rule.key !== "OnEvent" || ![rule.event].flat().some((e) => e === "damageTaken" || e === "attackReceived")) continue;
         for (const action of rule.then ?? []) {
           // A DRAIN: a restore on taking damage -- Avalon's, inside a Master
           // (#230) -- is not one.
