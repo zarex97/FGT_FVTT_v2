@@ -447,7 +447,9 @@
         <p class="fgt-empty">{{localize "FGT.Master.NoEssence"}}</p>
       {{/unless}}
       <ul class="fgt-master__essences">
-        {{#each essences as |e|}}<li>{{e}}</li>{{/each}}
+        {{#each essences as |e|}}
+          <li data-tooltip="{{e.description}}"><strong>{{e.rank}}</strong> · {{e.name}}{{#if e.uses}} <small>{{e.uses}}</small>{{/if}}</li>
+        {{/each}}
       </ul>
       {{#if essences.length}}
         <p class="fgt-warning">{{localize "FGT.Master.EssenceLost"}}</p>

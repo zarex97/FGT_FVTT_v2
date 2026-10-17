@@ -28,8 +28,12 @@ function ymlUnder(dir) {
   });
 }
 
-/** Command Spells have their own vocabulary and their own guard. */
-const SOURCE = ymlUnder("packs/_source").filter((p) => !p.includes("command-spells"));
+/**
+ * Command Spells have their own vocabulary and their own guard, and so do the
+ * Master Essences, whose one use speaks it (#241).
+ */
+const SOURCE = ymlUnder("packs/_source")
+  .filter((p) => !p.includes("command-spells") && !p.includes("master-essences"));
 
 describe("authored ability requirements", () => {
   /** @type {Array<{path: string, doc: object}>} */

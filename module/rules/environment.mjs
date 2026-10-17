@@ -570,6 +570,9 @@ export function regionsAdjacent(a, b) {
 export function mayAttackCivilian(attacker, ctx = {}) {
   if (attacker?.alignment?.morality !== "good") return { ok: true };
   if ((ctx.overrides ?? []).includes("goodAligned")) return { ok: true };
+  // *"After this Command is used, a Servant with the 'Good' Alignment will kill
+  // Civilians"*: Kill Humans' mark, for good (#241).
+  if ((attacker?.effects ?? []).includes("killHumans")) return { ok: true };
   return { ok: false, reason: "goodAligned" };
 }
 

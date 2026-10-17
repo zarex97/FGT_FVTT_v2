@@ -339,6 +339,8 @@ function offerableCommands(state) {
       // A Master of several names the Servant on the button.
       name: o.several ? `${o.command.name} (${o.servantName})` : o.command.name,
       cost: o.command.cost,
+      // A Master Essence's one use costs no Command Spell (#241).
+      essence: Boolean(o.command.essence),
       masterId: o.masterId,
       servantId: o.servantId,
     }));
@@ -599,6 +601,23 @@ function bindCardEvents(message, html) {
         }
       } catch (err) {
         spell.disabled = false;
+        ui.notifications.error(err.message);
+        throw err;
+      }
+      return;
+    }
+
+    // The declaration window's Continue (#241): the attack goes ahead with
+    // whatever was bought. On the GM, which holds the wait.
+    const close = target.closest("[data-fgt-declaration-close]");
+    if (close) {
+      event.preventDefault();
+      close.disabled = true;
+      const { FGTSocket } = await import("../../net/socket.mjs");
+      try {
+        await FGTSocket.request("closeDeclarationWindow", { messageId: message.id });
+      } catch (err) {
+        close.disabled = false;
         ui.notifications.error(err.message);
         throw err;
       }

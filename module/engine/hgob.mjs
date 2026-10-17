@@ -405,6 +405,32 @@ async function applyOwnerBuff(owner, platformId) {
 }
 
 /**
+ * The clock a new Contract restarts, for a Semiramis whose Gardens stand.
+ *
+ * A Free or Unbound Servant contracted again starts a fresh clock (ruled
+ * 2026-10-17, #241): `io.setContract` clears what was left. The Gardens'
+ * *"Sustainability is increased by 2◈"* lives in that same field, written when
+ * they were built and taken back when they fall, so while they stand the
+ * restart keeps it: the full clock plus 2◈. `null` -- a full clock, read off
+ * the sheet -- for everybody else.
+ *
+ * @param {object} sys the Servant's system data
+ * @param {number} turnsPerRound
+ * @returns {number|null}
+ */
+export function restartedClock(sys, turnsPerRound) {
+  // `zonExempt` is the Gardens' own mark on their owner, set and cleared with
+  // the Sustainability bump (`applyOwnerBuff`, `onPlatformDestroyed`).
+  if (!sys?.zonExempt || sys.sustainability === null || sys.sustainability === undefined) return null;
+  try {
+    return resolveTicks(parseTick(sys.sustainability), { turnsPerRound })
+      + resolveTicks(parseTick(SUSTAINABILITY_BONUS), { turnsPerRound });
+  } catch {
+    return null;
+  }
+}
+
+/**
  * @param {object} platform a board unit snapshot (`fgtPlatformDestroyed`'s payload)
  */
 async function onPlatformDestroyed(platform) {

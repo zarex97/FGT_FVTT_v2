@@ -61,6 +61,7 @@ const ALLOWED = [
   // an intent vocabulary would be ceremony with no reader.
   { file: "engine/attack.mjs", category: "message-flag", why: "the Combat Process state machine lives on its chat card" },
   { file: "engine/command-spells.mjs", category: "message-flag", why: "the spend dialog's card state" },
+  { file: "engine/declaration-window.mjs", category: "message-flag", why: "the declaration window's card: its content and the Process-shaped state its boosts are bought into (#241)" },
   { file: "engine/await-timeout.mjs", category: "message-flag", why: "stamps when a prompt card started waiting" },
 
   // ── Scene-embedded document lifecycle ────────────────────────────────────
@@ -96,6 +97,7 @@ const ALLOWED = [
   { file: "engine/legion.mjs", category: "debt", why: "a legion's bodies, made, placed and removed, and its count on the Master (#226); no intent exists for either yet" },
   { file: "engine/concealment.mjs", category: "debt", why: "discovery budget and disclosure" },
   { file: "engine/copy.mjs", category: "debt", why: "rewrites a copier's embedded ability items wholesale" },
+  { file: "engine/master-essence.mjs", category: "debt", why: "a Master Essence's copy on its Servant, made and removed with the Contract, and the current values it caps (#241); no intent copies an Item from one Unit to another" },
   { file: "engine/opening-choice.mjs", category: "debt", why: "the opening choice owed, as copy.mjs marks a pick owed" },
   { file: "engine/hgob.mjs", category: "debt", why: "the Garden's own base attack and owner links" },
   { file: "engine/vision.mjs", category: "debt", why: "the seen-unit set" },

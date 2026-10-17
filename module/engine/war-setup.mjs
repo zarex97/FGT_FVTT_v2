@@ -19,6 +19,9 @@ import {
 } from "./summon.mjs";
 import { factions } from "./board.mjs";
 import { worldIO } from "./io.mjs";
+import {
+  essenceCatalogue, essenceDraftOptions, essenceDocument, draftsEssences, syncEssences,
+} from "./master-essence.mjs";
 import { record } from "./game-log.mjs";
 
 /**
@@ -229,6 +232,14 @@ export async function createMasterFor(container, draft, roster = []) {
   const data = source.toObject();
   delete data._id;
 
+  // The Master's Essence decides its Rank, and the Rank its Base Attack (MAG),
+  // ZON and the rest (#241). Written BEFORE the setup plan, which reads it.
+  const essence = container.essenceId && draftsEssences(draft) ? await essenceDocument(container.essenceId) : null;
+  if (essence) {
+    data.system = { ...data.system, rank: essence.system?.rank ?? "" };
+    data.items = [...(data.items ?? []), (() => { const e = essence.toObject(); delete e._id; return e; })()];
+  }
+
   const mode = game.settings.get("fgt", "masterMode");
   // The DRAFT's ruleset, not the world's: the wizard has not committed it to
   // the match yet, so `warRuleset()` would still read the previous war's.
@@ -281,7 +292,9 @@ export async function createMasterFor(container, draft, roster = []) {
 export async function commitWar(draft) {
   const roster = factions();
   const catalogue = await servantCatalogue({ ruleset: draft.ruleset });
-  const refusals = validateRoster(draft.containers, roster, catalogue, { policy: draft.drawPolicy });
+  const essences = await essenceCatalogue();
+  const refusals = validateRoster(draft.containers, roster, catalogue,
+    { policy: draft.drawPolicy, essences: essenceDraftOptions(draft, essences) });
   if (refusals.length > 0) {
     throw new Error(`The roster is not ready: ${refusals.map((r) => r.code).join(", ")}`);
   }
@@ -367,7 +380,11 @@ export async function commitWar(draft) {
     // Re-preparing here would throw those dice away and hand the table numbers
     // nobody looked at.
     const prepared = draft.prepared?.[container.id]
-      ?? await prepareSummon({ contentId: container.contentId, region: draft.region || null });
+      ?? await prepareSummon({
+        contentId: container.contentId, region: draft.region || null,
+        // The High Rank Master's `+` (#241 reading 17).
+        masterGrants: container.paramPlus ? { [container.paramPlus]: 1 } : {},
+      });
     if (!prepared) throw new Error(`Cannot summon "${container.contentId}".`);
 
     const servant = await commitSummon(prepared);
@@ -395,6 +412,9 @@ export async function commitWar(draft) {
     // them, and Ch. 32's per-Servant Command Spell pools are keyed off the
     // Master's roster.
     await worldIO().setContract(servant.id, "contracted", master.id);
+    // The Master's Essence onto its Servant, and the Servant full at the new
+    // maxima: the summon is the one moment it starts full (#241 reading 6).
+    await syncEssences(servant, { fill: true });
 
     // A Servant who is many Units starts with the Master's pick of them in the
     // Home Base (#226 reading 3). `startLegion` cross-links them as one group,

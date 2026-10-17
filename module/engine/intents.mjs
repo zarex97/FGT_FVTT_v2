@@ -43,6 +43,9 @@ export const INTENT_TYPES = Object.freeze([
   "bankSecret",
   // A scheduled strike's fire tick moved (Golden Rule shortening Enki, #232).
   "scheduleDelta",
+  // A Master Essence's one use, spent (#241): *"1 use only, Player decides
+  // when it's used."*
+  "spendEssence",
 ]);
 
 /**
@@ -116,6 +119,8 @@ const ORDER = Object.freeze({
   move: 6,
   setFacing: 7,
   spendCS: 8,
+  // Beside `spendCS`: the Master's other spend, paid after what it buys.
+  spendEssence: 8,
   defeat: 9,
   // Beside `defeat`, and for the same reason: a summon leaving the board is the
   // last thing that happens to it, after every write aimed at it has landed.
@@ -498,6 +503,15 @@ export const cooldown = (unitId, abilityId, ticks, mode = "reduce") =>
 
 export const spendCS = (masterId, count, command, servantId = null) =>
   ({ t: "spendCS", masterId, count, command, servantId });
+
+/**
+ * Spend a Master Essence's one use (#241). On the Master's own Essence Item,
+ * never on the Servant's copy: the use is the Master's.
+ * @param {string} masterId @param {string} itemId
+ * @returns {Intent}
+ */
+export const spendEssence = (masterId, itemId) =>
+  ({ t: "spendEssence", unitId: masterId, itemId });
 
 export const prompt = (userId, spec) =>
   ({ t: "prompt", userId, prompt: spec });

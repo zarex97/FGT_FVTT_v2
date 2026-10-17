@@ -44,7 +44,10 @@ const SPELLS_GRANTED = 3;
  */
 export function canAttemptContract(contractor, servant, board) {
   if (!isContractor(contractor)) return { ok: false, reason: "notAContractor" };
-  if (servant?.contract === "contracted") return { ok: false, reason: "alreadyContracted" };
+  if (servant?.contract === "contracted" && !servant?.unbound) return { ok: false, reason: "alreadyContracted" };
+  // Kill Humans: *"the Servant will refuse to make a new Contract with its old
+  // Master"*, the one who ordered it (#241 reading 16).
+  if (refusesContractWith(servant, contractor)) return { ok: false, reason: "refusesContract" };
 
   if (!contractor?.panel || !servant?.panel) return { ok: false, reason: "notAdjacent" };
   if (chebyshev(contractor.panel, servant.panel) > 1) return { ok: false, reason: "notAdjacent" };
@@ -77,7 +80,8 @@ export function contractPlan(contractor, servant, board) {
   if (!legal.ok) return { ...legal, servantId: servant?.id ?? null, contractorId: contractor?.id ?? null };
 
   const allied = !isEnemy(servant, contractor);
-  const unbound = servant.contract === "unbound";
+  // Derived on the board from its Master's pools (`snapshot.mjs`, #241).
+  const unbound = servant.contract === "unbound" || Boolean(servant.unbound);
 
   // Ch. 32's table. The one row that is neither a roll nor an automatic success
   // is an ally reaching for an Unbound Servant, which is forbidden outright.
@@ -187,7 +191,9 @@ export function conquestContract({ killer, deadMaster, board }) {
   // contracted in its own right. Ch. 32 says "its Servants", and the freeing
   // half has always refused anything that is not one.
   const theirs = (board?.units ?? []).filter(
-    (u) => u.masterId === deadMaster?.id && u.kind === "servant",
+    (u) => u.masterId === deadMaster?.id && u.kind === "servant"
+      // ...and never one that refuses this Master (Kill Humans, #241).
+      && !refusesContractWith(u, { id: claimant.masterId }),
   );
   const inherited = deadMaster?.commandSpells ?? 0;
 
@@ -252,6 +258,19 @@ function grants(masterId, servantId, spells) {
     { kind: "grantCommandSpells", masterId, servantId, count: spells },
     { kind: "log", event: "contractFormed", masterId, servantId, spellsGranted: spells },
   ];
+}
+
+/**
+ * Does this Servant refuse a Contract with this contractor? Kill Humans' mark,
+ * whose source is the Master that ordered it (#241).
+ *
+ * @param {object} servant
+ * @param {object} contractor
+ * @returns {boolean}
+ */
+function refusesContractWith(servant, contractor) {
+  return (servant?.effectInstances ?? [])
+    .some((e) => e.defId === "killHumans" && e.sourceUnitId && e.sourceUnitId === contractor?.id);
 }
 
 /** @param {object} unit @returns {boolean} */

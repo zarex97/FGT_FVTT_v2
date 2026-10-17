@@ -16,6 +16,7 @@
  */
 
 import { SERVANT_CLASSES } from "../domain/enums.mjs";
+import { essenceRefusals } from "./master-essence.mjs";
 
 /**
  * The seven classes a war always has a container for.
@@ -46,6 +47,8 @@ export const EXTRA = "extra";
  * @property {string|null} masterId the actor, after commit
  * @property {string|null} npChoice Normal's "select NP (a) or (b)"
  * @property {number} [legionOpening] how many bodies of a legion start in the Home Base (#226)
+ * @property {string|null} [essenceId] the Master's Essence (#241)
+ * @property {string|null} [paramPlus] the High Rank Master's `+`, a parameter key (#241)
  */
 
 /**
@@ -204,7 +207,7 @@ export function drawPlan(containers, catalogue, { policy = "duplicates", taken =
  * @param {{policy?: string}} [options]
  * @returns {Array<{containerId: string|null, code: string, message: string}>}
  */
-export function validateRoster(containers, factions, catalogue, { policy = "duplicates" } = {}) {
+export function validateRoster(containers, factions, catalogue, { policy = "duplicates", essences = null } = {}) {
   /** @type {Array<{containerId: string|null, code: string, message: string}>} */
   const out = [];
   const rows = containers ?? [];
@@ -232,6 +235,10 @@ export function validateRoster(containers, factions, catalogue, { policy = "dupl
       say(null, "emptyFaction");
     }
   }
+
+  // The Master Essence draft, when the table plays with Essences (#241): one per
+  // container, within the Faction's limits.
+  if (essences) out.push(...essenceRefusals(rows, factions, essences));
 
   if (policy === "unique") {
     const seen = new Set();

@@ -683,13 +683,15 @@ export function usageSpecFor(ability) {
     // Fragarach Counter and the Hanging Gardens, which is exactly the set the
     // ruling put in scope.
     categorizedAsNP: Boolean(sys.categorizedAsNP),
-    // Which Seal stops it (`rules/costs.mjs#preventionActionFor`, #206).
+    // Which Seal stops it (`rules/costs.mjs#preventionActionsFor`, #206).
     countsForNPSeal: Boolean(sys.countsForNPSeal),
     cooldown: sys.cooldown ?? { remaining: 0, gatedDelay: 0 },
     // Used ON its Cooldown at a price (`rules/costs.mjs`, Arturia's Mana Burst).
     cooldownOverride: sys.cooldownOverride ?? null,
     // A Noble Phantasm that costs its Master nothing (Avalon, #230).
     noMasterCost: Boolean(sys.noMasterCost),
+    // A Free Servant's price its sheet states (the Normal ruleset, #241).
+    freeServantCost: sys.freeServantCost ?? null,
     // The ability's OWN costs, which may replace the NP cost (`supersedes`):
     // the gate must weigh what the use will charge, not the table's figure
     // (Enki's half of the Master's maximum in place of an EX Rank's 100, #232).
@@ -753,7 +755,7 @@ export function usageSpecFor(ability) {
     usableWhileConcealed: Boolean(sys.usableWhileConcealed),
     // The three keys the gate reads that this spec did not carry (#155).
     // `isSpell`: Seal spares a Spell, Silence and Skill Seal refuse it
-    // (`costs.mjs#preventionActionFor`). `categorizedAs`: Blind clause 3,
+    // (`costs.mjs#preventionActionsFor`). `categorizedAs`: Blind clause 3,
     // *"'Mystic Eye' Skills cannot be used"*. `creates`: Nemo's Storm Border,
     // *"cannot use Skills ... that creates a Unit/Item/object that has the
     // 'Large' or 'Giant' Attribute"*. Only the action bar passed the raw

@@ -1,0 +1,16 @@
+# docs/Master Essences.md, Rank C Master
+#
+# > "Pendant: Servant's Normal Attacks/Skills/Spells deal 15% extra damage."
+#
+# Every Normal Attack, Attack Skill and Damage Spell, never an NP nor what is
+# categorized as one (#241 reading 8): `npValue: 0` says so, as the Vorpal
+# Blade's does.
+schema: 1
+id: me-pendant
+name: "Pendant"
+type: masterEssence
+rank: C
+description: |
+  Servant's Normal Attacks/Skills/Spells deal 15% extra damage.
+rules:
+  - { key: DamageModifier, modifierKey: dmgUp, direction: dealt, value: 15, npValue: 0 }

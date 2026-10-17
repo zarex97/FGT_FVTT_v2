@@ -25,7 +25,7 @@ import { alsoTriggered } from "../../engine/cooldown.mjs";
 import { detectRangeOf } from "../../rules/identity.mjs";
 import { hasGranted, GRANTS } from "../../rules/granted.mjs";
 import { tierOf } from "../../rules/master-rank.mjs";
-import { actedWeight, MULTI_SERVANT_COST } from "../../rules/relationships.mjs";
+import { actedWeight, multiServantRule } from "../../rules/relationships.mjs";
 import { EffectRegistry } from "../../rules/registry.mjs";
 import {
   resourceBar, parameterTiles, baseAttackTiles, abilityState, abilityCost, abilityNamesOf,
@@ -94,12 +94,22 @@ function masterContext(master) {
       })),
     // "a warning that it is lost on death" -- the Essence is the one thing on
     // this sheet whose loss is permanent.
-    essences: [...(master.system.essences ?? [])],
+    // The Master's own Essence Items (#241). `system.essences` was a set nothing
+    // ever wrote, so this panel said "No Essence." on every Master.
+    essences: [...master.items].filter((i) => i.type === "masterEssence" && !i.system?.grantedBy)
+      .map((i) => ({
+        name: i.name, rank: i.system?.rank ?? "", description: i.system?.description ?? "",
+        uses: (i.system?.effect ?? []).length > 0
+          ? game.i18n.format("FGT.Master.EssenceUses", {
+            left: Math.max(0, (i.system?.maxUses ?? 1) - (i.system?.timesUsed ?? 0)), max: i.system?.maxUses ?? 1,
+          })
+          : null,
+      })),
     // Ch. 32: at the tax's own figure or less a Master cannot order more than
     // one Servant to Act, and the tax has already been charged by the time
     // anyone looks. `MULTI_SERVANT_COST` rather than a `25` literal -- the same
     // threshold `mayOrderAnotherServant` refuses on, said once.
-    taxWarning: (master.system.health?.value ?? 0) <= MULTI_SERVANT_COST,
+    taxWarning: (master.system.health?.value ?? 0) <= multiServantRule(board.ruleset).floor,
     // The weighted count the tax itself uses, off the board. This read
     // `master.system.turnState.servantsActed` -- a field no schema declares and
     // nothing writes -- so the badge was permanently 0 and the one warning a
@@ -120,7 +130,8 @@ function masterContext(master) {
     // leaving a boolean to imply it. The tax fires above one weighted Unit
     // (`multiServantTax` in `rules/relationships.mjs`), which is the same
     // comparison rendered here rather than a second reading of the rule.
-    multiServantCost: MULTI_SERVANT_COST,
+    // By ruleset: Normal's is 20 per additional Servant (#241 reading 15).
+    multiServantCost: multiServantRule(board.ruleset).cost,
   };
 }
 

@@ -30,23 +30,6 @@
  */
 export const NP_GATE = Object.freeze({ round: 6, assassinRound: 4 });
 
-/**
- * Master Essences that open the gate early, and by how many Rounds.
- *
- * > *"Kaleidoscope: Servant NP is usable 4 Rounds earlier (Round 2 onwards)."*
- *
- * The seam for an unbuilt subsystem (spec §2). `MasterData.essences` is a
- * `SetField` that nothing writes and nothing reads, and there is no content
- * pack — so `essenceShift` returns 0 in every world today. When the essence
- * subsystem is built it populates that set and this begins working with no
- * change here.
- *
- * @type {Readonly<Record<string, number>>}
- */
-export const ESSENCE_SHIFT = Object.freeze({
-  kaleidoscope: 4, imaginaryNumber: 3, leyline: 2, harvest: 1,
-});
-
 /** Classes whose gate opens early. Assassin is the only one Ch. 04 names. */
 const EARLY_CLASSES = Object.freeze(["assassin"]);
 
@@ -90,33 +73,42 @@ export function baseGateRound(unit, gates = NP_GATE) {
 }
 
 /**
- * How many Rounds early this Master's Essence opens its Servant's gate.
+ * How many Rounds early this Unit's gate opens.
  *
- * The **largest** when a Master somehow carries two. One essence per Master is
- * the rule, and summing them would let two small ones reach Round 0 — a gate of
- * zero reads as no gate at all, which is the one outcome no essence buys.
+ * Read off the Unit's OWN `NpGateShift` contributions: a Master Essence's
+ * *"Servant NP is usable 4 Rounds earlier"* reaches its Servant as a copy the
+ * Servant holds while the Contract stands (#241, `engine/master-essence.mjs`).
+ * This read `master.essences`, a set nothing wrote, against a table of four
+ * names, so no Essence ever opened anything.
  *
- * @param {object|null|undefined} master a Master's snapshot
+ * The **largest**, not the sum: one Essence per Master is the rule, and two
+ * shifts from two sources are not stated to add.
+ *
+ * @param {object|null|undefined} unit a unit snapshot
  * @returns {number}
  */
-export function essenceShift(master) {
-  const held = [...(master?.essences ?? [])].map((id) => ESSENCE_SHIFT[id] ?? 0);
-  return held.length > 0 ? Math.max(...held) : 0;
+export function essenceShift(unit) {
+  const held = (unit?.npGateShifts ?? []).map((s) => Number(s?.rounds ?? 0));
+  return held.length > 0 ? Math.max(0, ...held) : 0;
 }
 
 /**
  * The Round this unit's Noble Phantasms actually open in.
  *
- * Never earlier than Round 1: Round 0 does not exist, and a gate of 0 would
- * read as "no gate" to every comparison downstream.
+ * A shift may reach Round 0 or below (ruled 2026-10-17, #241 reading 10:
+ * Kaleidoscope on an Assassin): the NP is open from the war's first Round.
+ * Round 1 is the floor because it is the first Round there is; Round 1's
+ * no-Attack rule still bars an NP that Attacks.
+ *
+ * `master` is no longer read; it stays in the signature for its callers.
  *
  * @param {object|null|undefined} unit
- * @param {object|null|undefined} master
+ * @param {object|null|undefined} _master
  * @param {{round: number, assassinRound: number}} [gates]
  * @returns {number}
  */
-export function gateRoundFor(unit, master, gates = NP_GATE) {
-  return Math.max(1, baseGateRound(unit, gates) - essenceShift(master));
+export function gateRoundFor(unit, _master, gates = NP_GATE) {
+  return Math.max(1, baseGateRound(unit, gates) - essenceShift(unit));
 }
 
 /**

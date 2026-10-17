@@ -205,7 +205,7 @@ export async function useSkill({
   const { charged } = applied.channelStarted ? { charged: [] } : resolveCosts([
     ...(usage.cost ? [{ ...usage.cost, id: "npCost" }] : []),
     ...(usage.overCooldown ? [usage.overCooldown] : []),
-    ...additionalCostsFor({ ability, self, master }),
+    ...additionalCostsFor({ ability, self, master, turnsPerRound: game.settings.get("fgt", "turnsPerRound") }),
     ...standingUpkeepCost(board, self, master),
   ]);
 
@@ -1381,6 +1381,9 @@ export function costIntents(cost, self) {
   // triggers (Ch. 06). Same reason as the attack path.
   if (!cost?.unitId) return [];
   const note = I.log({ kind: "cost", cost: cost.kind, amount: cost.amount, unitId: cost.unitId });
+  // Paid by leaving the board when the Combat Phase ends (`engine/attack.mjs`,
+  // #241): nothing to write now.
+  if (cost.kind === "disappear") return [note];
   if (cost.kind === "sustainability") {
     // An ABSOLUTE write, from `self.sustainability` -- see `costIntents` in
     // `engine/attack.mjs` for why a relative delta against the raw stored

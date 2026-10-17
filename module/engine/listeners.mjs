@@ -38,6 +38,7 @@ import { attachForcedModes } from "./modes.mjs";
 import { attachConcealment } from "./concealment.mjs";
 import { attachCopyPick } from "./copy.mjs";
 import { attachOpeningChoice } from "./opening-choice.mjs";
+import { MasterEssences } from "./master-essence.mjs";
 
 /**
  * A field's SIZE can change without anybody moving: Contagion's Active takes it
@@ -102,6 +103,9 @@ export const ENGINE_LISTENERS = Object.freeze([
   // Uncrowned Arms Mastership: a Servant entering a war under way owes its
   // opening choice (#206 reading 3).
   { id: "openingChoice", attach: attachOpeningChoice },
+  // A Master Essence's copy on its Servant follows the Contract and ends with
+  // the Master (#241).
+  { id: "masterEssences", attach: () => MasterEssences.attach() },
 ]);
 
 /**

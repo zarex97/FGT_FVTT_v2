@@ -1,0 +1,17 @@
+# docs/Master Essences.md, Rank B Master
+#
+# > "Imaginary Number: Servant NP is usable 3 Rounds earlier (Round 3 onwards)."
+#
+# Read by `rules/np-gate.mjs#gateRoundFor` off the Servant's copy. It may reach
+# Round 0 (#241 reading 10): open from the war's first Round, where Round 1's
+# no-Attack rule still bars an NP that Attacks. A gate the ability states for
+# itself (Ozymandias's, the Magic Crest's) is not moved.
+schema: 1
+id: me-imaginary-number
+name: "Imaginary Number"
+type: masterEssence
+rank: B
+description: |
+  Servant NP is usable 3 Rounds earlier (Round 3 onwards).
+rules:
+  - { key: NpGateShift, rounds: 3 }

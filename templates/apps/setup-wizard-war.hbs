@@ -45,4 +45,21 @@
       </select>
     </label>
   </div>
+
+  {{!-- The Master Essence limits per Faction (#241). A custom war sets its own;
+        the others show the published ones, disabled with the war type as the
+        reason. --}}
+  {{#if essencesOn}}
+    <fieldset class="fgt-setup__essence-limits">
+      <legend>{{localize "FGT.Setup.EssenceLimits"}}</legend>
+      {{#each essenceLimits as |l|}}
+        <label>
+          <span>{{localize "FGT.Setup.EssenceRank" rank=l.rank}}</span>
+          <input type="number" name="draft.essenceLimits.{{l.rank}}" min="0" value="{{l.value}}"
+                 {{disabled l.disabled}}
+                 {{#unless l.editable}}data-tooltip="{{localize 'FGT.Setup.EssenceLimitsFixed'}}"{{/unless}}>
+        </label>
+      {{/each}}
+    </fieldset>
+  {{/if}}
 </section>

@@ -119,3 +119,8 @@ ability's use draws on; the bar asked it for Attack-path abilities only, so a no
 after the Unit had attacked and refused only when pressed. The bar asks each path's own kind: `abilityKind`
 (`engine/attack-preflight.mjs`) for an Attack-shaped ability, so a damaging Noble Phantasm under NP Seal greys, and
 `useBudgetKind` for any other; a free action bills nothing on either.
+
+### An ability that is two things is refused by either Seal (#241)
+
+`costs.mjs#preventionActionsFor` returns every action an ability is: the Magic Crest, a Damage Spell categorized as
+NP, is both `np` and `spell`, and Silence or NP Seal each refuse it. It answered `np` alone, and Silence let it through.

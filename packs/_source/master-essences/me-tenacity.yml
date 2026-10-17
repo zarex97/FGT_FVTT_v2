@@ -1,0 +1,16 @@
+# docs/Master Essences.md, Rank D Master
+#
+# > "Tenacity: All damage taken by Servant is reduced by 10%; if NP, 5%."
+#
+# A passive, not an Effect (#241 reading 7): no removal, theft or buff line
+# reaches it. `defUp`, the bucket every "damage taken is reduced by X%" Class
+# Skill passive uses (Existence Outside the Domain).
+schema: 1
+id: me-tenacity
+name: "Tenacity"
+type: masterEssence
+rank: D
+description: |
+  All damage taken by Servant is reduced by 10%; if NP, 5%.
+rules:
+  - { key: DamageModifier, modifierKey: defUp, direction: taken, value: 10, npValue: 5 }

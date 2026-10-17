@@ -211,6 +211,9 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "fromStat", type: "text" },
     { key: "stacks", type: "checkbox" },
   ]),
+  entry("NpGateShift", "Opens this Unit's Noble Phantasm gate a number of Rounds earlier: a Master Essence (#241).", [
+    { key: "rounds", type: "number" },
+  ]),
   entry("RankShift", "Moves a rank up or down — a parameter, an ability's rank, or a whole grade.", [
     { key: "ability", type: "text" },
     { key: "parameter", type: "text" },

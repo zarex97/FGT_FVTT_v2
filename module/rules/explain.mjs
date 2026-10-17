@@ -125,7 +125,23 @@ export function summarize(result) {
       : Boolean(flags.exceededInjuryThreshold) && (result.total ?? 0) > 0,
     defeatedOutright: Boolean(flags.defeatedOutright),
     overpower: overpowerText(flags.overpower),
+    underpower: underpowerText(flags.underpower),
   };
+}
+
+/**
+ * The Underpower flip, as the card says it: *"If Tails, the Total Damage dealt
+ * to the Servant is reduced by 50% including NP."* Shown either way, as
+ * Overpower is (#241).
+ *
+ * @param {{roll: number, chance: number, halved: boolean}|null|undefined} flip
+ * @returns {string|null}
+ */
+export function underpowerText(flip) {
+  if (!flip) return null;
+  return flip.halved
+    ? `Underpower: Tails (${flip.roll} ≤ ${flip.chance}) — damage halved`
+    : `Underpower: Heads (${flip.roll} > ${flip.chance}) — damage as rolled`;
 }
 
 /**

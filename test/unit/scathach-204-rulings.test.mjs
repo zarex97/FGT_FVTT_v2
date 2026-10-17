@@ -223,8 +223,11 @@ describe("a Command Spell serves its own Master's Servant (LM, LN, Q3, Q4)", () 
       expect(list).toContain(`${M}:cs-damage-block:${D}`);
       expect(list).not.toContain(`${M}:cs-damage-block:${C}`);
       expect(list.filter((o) => o.startsWith(`${M2}:cs-damage-block`))).toEqual([]);
-      // A heal does not touch the attack: each Master, for each of its Servants.
-      expect(list).toEqual(expect.arrayContaining([`${M}:cs-half-heal:${D}`, `${M}:cs-half-heal:${C}`, `${M2}:cs-half-heal:${E}`]));
+      // A heal does not touch the attack: Drake's Master, for each of its
+      // Servants. EMIYA's Master is in no Contract with a Unit of this attack,
+      // and offers nothing on its card (ruled 2026-10-17, #241).
+      expect(list).toEqual(expect.arrayContaining([`${M}:cs-half-heal:${D}`, `${M}:cs-half-heal:${C}`]));
+      expect(list.filter((o) => o.startsWith(`${M2}:`))).toEqual([]);
     });
   }, 60_000);
 

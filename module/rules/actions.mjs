@@ -156,6 +156,19 @@ export const UNIT_ACTIONS = Object.freeze([
       ? {} : null),
   },
   {
+    // A Master Essence's one use (#241): *"1 use only, Player decides when it's
+    // used."* Divine Banquet and its kin are spent here; Heaven's Feel and its
+    // kin on the Noble Phantasm's card. While a use is left, with a Servant.
+    id: "masterEssence",
+    kind: null,
+    icon: "fa-solid fa-gem",
+    label: "FGT.Action.MasterEssence",
+    mode: "immediate",
+    available: (unit, board) => (acts(unit) && unit.kind === "master" && !unit.defeated && (unit.essenceUsesLeft ?? 0) > 0
+      && (board?.units ?? []).some((u) => u.kind === "servant" && u.masterId === unit.id && !u.defeated)
+      ? {} : null),
+  },
+  {
     // *"At the end of any Turn, Nemo can choose to resurface the Storm
     // Border."* Pressed at any moment, on anybody's Turn, and carried out at
     // the next Turn End (#191 reading 5). Bills nothing: it is not an Action of

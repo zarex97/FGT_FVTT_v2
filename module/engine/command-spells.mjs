@@ -10,9 +10,9 @@
  * so nothing ever constructed the intent and no Command Spell was ever spent.
  */
 
-import { suspendableSkills, availableCommands, canSpend, effectsOf, costOf, teleportLandings, teleportMovers, teleportPanels, servantsForProcess } from "../rules/command-spells.mjs";
+import { suspendableSkills, availableCommands, canSpend, effectsOf, costOf, teleportLandings, teleportMovers, teleportPanels, servantsForProcess, essenceCommand } from "../rules/command-spells.mjs";
 import { CommandSpellRegistry } from "../rules/cs-registry.mjs";
-import { currentBoard, unitFrom } from "./board.mjs";
+import { currentBoard, unitFrom, gateContext } from "./board.mjs";
 import * as I from "./intents.mjs";
 import { sharedCooldownIntents } from "./cooldown.mjs";
 import { applyWorldIntents } from "./applier.mjs";
@@ -36,7 +36,35 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
 export function offerCommands({ masterId, window, context = {} }) {
   const ctx = contextFor(masterId, window, context);
   if (!ctx) return [];
-  return availableCommands(CommandSpellRegistry.all(), ctx);
+  return availableCommands(catalogueOf(masterId), ctx);
+}
+
+/**
+ * What this Master may spend: every Command Spell, and the one use of its own
+ * Master Essence while it has one left (#241). One list, so the attack card,
+ * the interrupt wait and the Master's bar offer both through one reader.
+ *
+ * @param {string} masterId
+ * @returns {object[]}
+ */
+export function catalogueOf(masterId) {
+  const essences = [...(game.actors.get(masterId)?.items ?? [])]
+    .filter((i) => i.type === "masterEssence")
+    .map(essenceCommand)
+    .filter(Boolean);
+  return [...CommandSpellRegistry.all(), ...essences];
+}
+
+/**
+ * Resolve a command id for this Master: a Command Spell, or its Essence.
+ * @param {string} masterId
+ * @param {string} commandId
+ * @returns {object|null}
+ */
+function commandFor(masterId, commandId) {
+  return CommandSpellRegistry.get(commandId)
+    ?? catalogueOf(masterId).find((c) => c.essence && c.id === commandId)
+    ?? null;
 }
 
 /**
@@ -68,14 +96,23 @@ export function processOffers(state, board = currentBoard()) {
   const window = process.windowFor(state);
   if (!window) return [];
   const context = { state: state.state, attack: state.attack ?? null };
+  // The Masters in a Contract with a Unit of THIS Process, or in it themselves
+  // (ruled 2026-10-17, #241): an attack card is not every Master's on the
+  // board. A Great War player holding seven Masters was offered seven Half
+  // Heals, Full Heals and Cure Servants on one attack, six of them for
+  // Servants nowhere near it. It is the Master–Servant relationship that
+  // decides, never the player who happens to hold several.
+  const involved = new Set([state.attackerId, state.defenderId].filter(Boolean));
+  const inThis = (master) => involved.has(master.id)
+    || (board.units ?? []).some((u) => involved.has(u.id) && u.masterId === master.id);
   /** @type {object[]} */
   const out = [];
-  for (const master of (board.units ?? []).filter((u) => u.kind === "master" && !u.defeated)) {
+  for (const master of (board.units ?? []).filter((u) => u.kind === "master" && !u.defeated && inThis(u))) {
     const servants = liveServantsOf(master.id, board);
     for (const servant of servants) {
       const ctx = contextFor(master.id, window, { ...context, servantId: servant.id }, board);
       if (!ctx) continue;
-      for (const command of availableCommands(CommandSpellRegistry.all(), ctx)) {
+      for (const command of availableCommands(catalogueOf(master.id), ctx)) {
         if (!servantsForProcess(command, state, master.id, servants).some((s) => s.id === servant.id)) continue;
         // fgt-name-ok: the Master's own player's Command Spell list
         out.push({ command, masterId: master.id, servantId: servant.id, servantName: servant.name, several: servants.length > 1 });
@@ -125,10 +162,21 @@ export function teleportDestinations(masterId, commandId, servantId = null) {
  * @returns {Promise<{ok: boolean, reason?: string, cost?: number}>}
  */
 export async function spendCommandSpell({ masterId, commandId, window, messageId, context = {} }) {
-  const command = CommandSpellRegistry.get(commandId);
+  const command = commandFor(masterId, commandId);
   if (!command) return { ok: false, reason: "unknownCommand" };
 
-  const ctx = contextFor(masterId, window, context);
+  // On a card, the Process it was bought on: its rung and its attack are what
+  // the requirements ask about. The card offered by them (`processOffers`) and
+  // the spend asked without them, so an `attackIsNP` gate refused what the card
+  // had just offered, and `attackIsNotNP` passed Damage Up on a Noble Phantasm
+  // (#241, live: Heaven's Feel refused on Pollux's NP card).
+  // Or the declaration window's, Process-shaped, before any Process exists (#241).
+  const flagged = messageId ? game.messages.get(messageId) : null;
+  const flag = flagged?.getFlag("fgt", "process") ?? flagged?.getFlag("fgt", "declaration") ?? null;
+  const state = flag ? process.deserialize(flag) : null;
+  const ctx = contextFor(masterId, window, state
+    ? { state: state.state, attack: state.attack ?? null, ...context }
+    : context);
   if (!ctx) return { ok: false, reason: "noMaster" };
 
   const verdict = canSpend(command, ctx);
@@ -138,8 +186,6 @@ export async function spendCommandSpell({ masterId, commandId, window, messageId
   // interrupted: both are asked BEFORE the spend (Ch. 33: validate, then pay).
   // A Process that had moved on took the payment and changed nothing.
   if (messageId) {
-    const flag = game.messages.get(messageId)?.getFlag("fgt", "process");
-    const state = flag ? process.deserialize(flag) : null;
     if (!state || !process.interruptible(state)) return { ok: false, reason: "notInterruptible" };
     const offered = processOffers(state, ctx.board)
       .some((o) => o.command.id === command.id && o.masterId === masterId && o.servantId === ctx.servant?.id);
@@ -166,12 +212,15 @@ export async function spendCommandSpell({ masterId, commandId, window, messageId
     }
   }
   const intents = [
-    I.spendCS(masterId, cost, command.id, ctx.servant?.id ?? null),
+    // An Essence pays its own one use, never a Command Spell (#241).
+    command.essence
+      ? I.spendEssence(masterId, command.itemId)
+      : I.spendCS(masterId, cost, command.id, ctx.servant?.id ?? null),
     // Ch. 33: the audit trail says who spent what, on whom, and when — a
     // Command Spell is the most consequential thing a Master can do and the
     // one most likely to be argued about afterwards.
     I.log({
-      kind: "commandSpell",
+      kind: command.essence ? "masterEssence" : "commandSpell",
       command: command.id,
       name: command.name,
       masterId,
@@ -183,14 +232,14 @@ export async function spendCommandSpell({ masterId, commandId, window, messageId
     ...effectIntents(effects, ctx),
   ];
 
-  await applyWorldIntents(intents, `commandSpell:${command.id}`);
+  const { lines = [] } = (await applyWorldIntents(intents, `commandSpell:${command.id}`, { lines: true })) ?? {};
 
   // Interrupts land on the Process, not on the world. `effectIntents` above
   // already skipped them, so nothing is applied twice.
   if (messageId) await interruptProcess(messageId, command, interruptsOf(effects, ctx), masterId);
   // ...and one spent in a Master's own Turn says so on a card. An interrupt
   // shows on the attack card it interrupted; this had nowhere at all (#190).
-  else await postCommandSpellCard({ master: ctx.master, servant: ctx.servant, command, cost, abilityId: context.abilityId ?? null });
+  else await postCommandSpellCard({ master: ctx.master, servant: ctx.servant, command, cost, abilityId: context.abilityId ?? null, lines });
 
   return { ok: true, cost };
 }
@@ -210,7 +259,7 @@ export async function spendCommandSpell({ masterId, commandId, window, messageId
  * @param {string|null} args.abilityId the Skill it reached, when it reaches one
  * @returns {Promise<void>}
  */
-async function postCommandSpellCard({ master, servant, command, cost, abilityId }) {
+async function postCommandSpellCard({ master, servant, command, cost, abilityId, lines = [] }) {
   const escape = foundry.utils.escapeHTML;
   const skill = abilityId ? game.actors.get(servant?.id)?.items.get(abilityId)?.name ?? null : null;
   // The Servant's public name: a card every player reads said *"on Arjuna's
@@ -219,7 +268,9 @@ async function postCommandSpellCard({ master, servant, command, cost, abilityId 
   const { shownName } = await import("./public-identity.mjs");
   const servantDoc = servant?.id ? game.actors.get(servant.id) : null;
   const servantName = servantDoc ? shownName(servantDoc, currentBoard()) : "";
-  const text = game.i18n.format(skill ? "FGT.CommandSpell.SpentOn" : "FGT.CommandSpell.Spent", {
+  const key = command.essence ? "FGT.MasterEssence.Used"
+    : (skill ? "FGT.CommandSpell.SpentOn" : "FGT.CommandSpell.Spent");
+  const text = game.i18n.format(key, {
     master: escape(master?.name ?? ""), cost, name: escape(command.name),
     servant: escape(servantName), skill: escape(skill ?? ""),
   });
@@ -227,6 +278,21 @@ async function postCommandSpellCard({ master, servant, command, cost, abilityId 
     content: `<div class="fgt-card fgt-card--command-spell"><p>${text}</p></div>`,
     flags: { fgt: { commandSpell: command.id } },
   });
+  // The real change, to whoever controls the Servant it reached: *"Gáe Bolg:
+  // Cooldown 9 → 0"* names a Noble Phantasm, which the public line must not
+  // (Ch. 30). Without it the card said an Essence was used and not what it did.
+  // A CardLine's `summary` is the attack card's effect row, `{id, name,
+  // outcome}`: the sentence is its `name` (#241, live: the rows read
+  // "[object Object]").
+  const rows = lines.map((l) => (typeof l?.summary === "string" ? l.summary : l?.summary?.name)).filter(Boolean);
+  if (rows.length > 0 && servantDoc) {
+    const owners = game.users.filter((u) => u.isGM || servantDoc.testUserPermission(u, "OWNER")).map((u) => u.id);
+    await ChatMessage.create({
+      content: `<div class="fgt-card fgt-card--command-spell"><ul>${rows.map((r) => `<li>${escape(r)}</li>`).join("")}</ul></div>`,
+      whisper: owners,
+      flags: { fgt: { commandSpell: command.id } },
+    });
+  }
 }
 
 /**
@@ -269,6 +335,9 @@ function contextFor(masterId, window, context, board = currentBoard()) {
     // Spell was spent, the mode switched off, and the reconciler switched it
     // straight back on.
     tick: game.combat?.system?.globalTurn ?? 0,
+    // The Round and the NP gate's numbers, for an Essence refused before the
+    // gate opens (#241 reading 12).
+    gate: gateContext(),
     settings: { allMastersRankless: allMastersRankless(board) },
     ...context,
   };
@@ -336,6 +405,13 @@ function effectIntents(effects, ctx) {
         out.push(...cuts, ...sharedCooldownIntents(cuts, unit, ctx.board));
         break;
       }
+
+      case "applyEffect":
+        // A mark the command leaves, its Master the source: Kill Humans (#241).
+        out.push(I.applyEffect(e.unitId, {
+          defId: e.effect, magnitude: 0, expiry: null, sourceUnitId: ctx.master?.id ?? null,
+        }, ctx.master?.id ?? null));
+        break;
 
       case "suspendSkill": {
         // Switch one named Skill off and bar it from returning for a span.
@@ -473,6 +549,23 @@ function interruptsOf(effects, ctx) {
 async function interruptProcess(messageId, command, effectsFor, masterId) {
   const message = game.messages.get(messageId);
   if (!message) return;
+
+  // The declaration window (#241): no Process yet, and nothing to resume. The
+  // boost is recorded on its card, and every Process of the declaration starts
+  // with it (`declaration-window.mjs#carryDeclarationBoosts`).
+  const declared = message.getFlag("fgt", "declaration");
+  if (declared) {
+    let state = process.deserialize(declared);
+    for (const e of effectsFor(null)) {
+      state = process.applyInterrupt(state, { ...e, command: command.id, masterId });
+    }
+    const last = state.interrupts?.at(-1);
+    if (last) last.name = command.name;
+    await message.setFlag("fgt", "declaration", process.serialize(state));
+    const { refreshDeclarationWindow } = await import("./declaration-window.mjs");
+    await refreshDeclarationWindow(message);
+    return;
+  }
 
   const first = process.deserialize(message.getFlag("fgt", "process"));
   if (!process.interruptible(first)) return;

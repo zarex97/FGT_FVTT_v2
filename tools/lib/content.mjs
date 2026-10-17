@@ -53,6 +53,8 @@ export const RULE_ELEMENT_KEYS = new Set([
   // Group 1 — stat and derived-value modifiers
   "StatDelta", "RankShift", "MaxDelta", "MovDelta", "RangeDelta", "SizeStep",
   "ZonBonus",
+  // A Master Essence's *"Servant NP is usable N Rounds earlier"* (#241).
+  "NpGateShift",
   // Group 2 — damage contributors
   "DamageModifier", "FlatDamage", "DamageNegation", "Resistance", "Ward",
   // Proto Gil (#232): Heal Dwn and Drowning's healing received; Bab-ilu's
@@ -114,6 +116,8 @@ export const RULE_ELEMENT_KEYS = new Set([
 export const CS_REQUIREMENT_KINDS = new Set([
   "servantInZon", "attackIsNotNP", "targetNotImmune", "servantWithin", "servantNotWithin",
   "highRankMaster", "inZone", "notInZone", "noOtherRevival", "damageWouldDefeatServant",
+  // A Master Essence's one use, read by the same `meets` (#241).
+  "attackIsNP", "npGateOpen", "npCooling", "notMarked",
 ]);
 
 /**
@@ -1522,7 +1526,8 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
   // with no warning anywhere.
   // A Command Spell is checked by its own reader against its own vocabulary,
   // so which list applies depends on which document this is.
-  const isCommandSpell = dir === "command-spells";
+  // A Master Essence's one use speaks the Command Spell's vocabulary (#241).
+  const isCommandSpell = dir === "command-spells" || dir === "master-essences";
   const kinds = isCommandSpell ? CS_REQUIREMENT_KINDS : new Set(ABILITY_REQUIREMENT_KINDS);
 
   for (const [index, req] of (doc.requirements ?? []).entries()) {

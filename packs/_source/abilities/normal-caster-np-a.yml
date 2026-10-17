@@ -3,6 +3,10 @@
 # > of Caster for 3x damage. Can be used twice. Cooldown: 2◈ Turns."
 schema: 1
 id: normal-caster-np-a
+# *"If a Free Archer or Caster uses its Noble Phantasm (a), its Sustainability is
+# reduced by 2◈ Turns"* (Normal Great Holy Grail War, Contracts & Sustainability;
+# #241).
+freeServantCost: { kind: sustainability, rounds: 2 }
 name: "Noble Phantasm (a)"
 isNP: true
 kind: noblePhantasm
