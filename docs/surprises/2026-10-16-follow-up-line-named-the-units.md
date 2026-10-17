@@ -3,7 +3,8 @@ id: 2026-10-16-follow-up-line-named-the-units
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** a line Bab-ilu's additional Normal Attack posts names its Units as the table knows them, as the
 attack card under it does (*"Archer ⚔ Assassin"*, #230 §46.4-NV).

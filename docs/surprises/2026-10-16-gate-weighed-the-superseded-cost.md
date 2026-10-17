@@ -3,7 +3,8 @@ id: 2026-10-16-gate-weighed-the-superseded-cost
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Enki costs its Master half his maximum *"instead of the normal Master's Health cost"*, so a Master on
 95 of 115 can pay its 57 and the bar offers it (#232).

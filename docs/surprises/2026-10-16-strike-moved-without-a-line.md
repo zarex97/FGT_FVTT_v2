@@ -3,7 +3,8 @@ id: 2026-10-16-strike-moved-without-a-line
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Golden Rule's Crit with no NP on Cooldown brings Enki a Turn closer, and the table sees it happen
 (#232 reading 14).
