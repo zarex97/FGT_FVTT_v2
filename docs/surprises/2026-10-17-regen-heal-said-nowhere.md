@@ -3,7 +3,8 @@ id: 2026-10-17-regen-heal-said-nowhere
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Arjuna's Regen heals 15% at the end of his Turn and the table sees it, as the End of the Turn card
 says every Health loss (#190).

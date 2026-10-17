@@ -3,7 +3,8 @@ id: 2026-10-16-regen-percent-was-a-literal
 found: test
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Arjuna's Regen heals 15% and Van Gogh's two Regens 5%, each the magnitude their ability states
 (#234 reading 6).
