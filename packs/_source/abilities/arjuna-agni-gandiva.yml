@@ -1,0 +1,49 @@
+# Arjuna, char_orig_sheets/Copia de Arjuna.md
+# Brahmastra's `aim` with Brahmastra Kundala's combined base, requirement and
+# `alsoTriggers`; the Magic Resistance it meets is halved (#234 reading 10).
+schema: 1
+id: arjuna-agni-gandiva
+name: "Agni Gandiva: Flame God's Yell"
+isNP: true
+rank: A
+npTags: [antiUnit]
+kind: noblePhantasm
+slug: agniGandiva
+cooldown: "7◈"
+sameTurnExclusive: [arjuna-mana-burst-flames]
+alsoTriggers:
+  - { ability: arjuna-mana-burst-flames }
+element: fire
+requirements:
+  - { kind: abilityOffCooldown, abilityIds: [arjuna-mana-burst-flames] }
+description: |
+  Cannot be used on the same Turn as @ability[arjuna-mana-burst-flames]{Mana Burst (Flames)}, or if Mana Burst
+  (Flames) is in Cooldown. Base Attack (STR) and Base Attack (MAG) combined (e.g. BA=325) is used, effect
+  of @ability[class-magic-resistance]{Magic Resistance} is halved. Range=7. Has the Aim effect. Deals 4x damage
+  and inflicts @effect[burn]{Burn} for 2◈ Turns on the DU. Fire damage. Cooldown: 7◈ Turns. When Agni Gandiva
+  is used, Mana Burst (Flames) also enters Cooldown.
+targeting:
+  anchor: { kind: targetUnit, range: 7 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+  limits: { requiresZon: true }
+damage:
+  base:
+    sources:
+      - { unit: self, component: str, factor: 1 }
+      - { unit: self, component: mag, factor: 1 }
+  component: mag
+  aim: true
+  multiplier: 4
+  # Damage only: a negating Resistance takes half the MAG share, a cutting one
+  # half its percent. Its cut to the Burn's chance is untouched (reading 10).
+  magicResistanceFactor: 0.5
+  element: fire
+phases:
+  - kind: damage
+  - kind: applyEffects
+    rules:
+      - key: OnEvent
+        event: damageDealt
+        effect: { id: burn }
+        duration: "2◈"

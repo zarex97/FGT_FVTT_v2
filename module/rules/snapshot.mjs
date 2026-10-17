@@ -1589,6 +1589,24 @@ function instanceValue(raw, ref, value) {
  * @param {number|null|undefined} npMagnitude
  * @returns {object}
  */
+/**
+ * An instance's magnitude, or its definition's default when it states none.
+ *
+ * Regen is the one definition with a default (10, #234 reading 6), and an
+ * instance landed before it had one carries 0: a Regen of 0% heals nothing, so
+ * a 0 there reads as "none stated". Every other definition has no default and
+ * keeps its instance's number, 0 included.
+ *
+ * @param {object} effect the ActiveEffect
+ * @param {object} def its definition
+ * @returns {number}
+ */
+function instanceMagnitude(effect, def) {
+  const own = effect.system?.magnitude;
+  if (typeof def?.defaultMagnitude === "number" && def.defaultMagnitude !== 0 && !own) return def.defaultMagnitude;
+  return own ?? 0;
+}
+
 export function resolveRuleValues(rule, magnitude, npMagnitude) {
   const mine = (raw) => instanceValue(raw, "@magnitude", magnitude ?? 0);
 
@@ -1628,6 +1646,11 @@ export function resolveRuleValues(rule, magnitude, npMagnitude) {
     if (node.restore && typeof node.restore === "object" && node.restore.percentOfMax !== undefined) {
       out.restore = { ...node.restore, percentOfMax: mine(node.restore.percentOfMax) };
     }
+    // A `Heal` action's percent may be the instance's too: Regen is *"restored
+    // by X% of its maximum"*, 15 on Arjuna's Awarded Hero and 5 on Van Gogh's
+    // (#234 reading 6). Left as authored, the string reached `Heal`, which
+    // reads a number, and healed nothing.
+    if (node.percentOfMax !== undefined) out.percentOfMax = mine(node.percentOfMax);
     return out;
   };
 
@@ -1799,14 +1822,14 @@ export function contributionsOf(actor, { terrain = [], tick = null, partnerDista
       // What a magnitude scale read live needs to resolve this instance again
       // (`readTimeScaled` below): the definition and the stamped magnitudes.
       scaleBasis: {
-        def, magnitude: effect.system?.magnitude ?? 0, npMagnitude: effect.system?.npMagnitude,
+        def, magnitude: instanceMagnitude(effect, def), npMagnitude: effect.system?.npMagnitude,
       },
       // "@magnitude" on an effect definition resolves against the instance,
       // and "-@magnitude" against its negation -- at the top level of a rule
       // AND inside an Aura's nested `elements`, which is where Area CritUp
       // puts its Crit Chance and where the resolution used not to reach.
       rules: def.rules.map((r) => resolveRuleValues(
-        r, effect.system?.magnitude ?? 0, effect.system?.npMagnitude,
+        r, instanceMagnitude(effect, def), effect.system?.npMagnitude,
       )),
     });
   }

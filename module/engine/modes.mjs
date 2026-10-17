@@ -185,7 +185,8 @@ async function announce(switched, board) {
     const unit = (board.units ?? []).find((u) => u.id === unitId);
     const cause = (unit?.compulsions ?? [])[0];
     const culprits = (cause?.targetIds ?? [])
-      .map((id) => game.actors.get(id)?.name)
+      // The culprits by their public names too (#234), as the bearer already is.
+      .map((id) => { const a = game.actors.get(id); return a ? (publicIdentityOf(a, board).name || a.name) : null; })
       .filter(Boolean);
 
     await ChatMessage.create({

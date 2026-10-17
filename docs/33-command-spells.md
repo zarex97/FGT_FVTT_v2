@@ -142,3 +142,8 @@ Ruled 2026-10-14: a Command Spell is a spell for the Master's own contracted Ser
 - On a card, `spendCommandSpell` refuses before it pays when the card does not offer that command for that Servant
   (`notInThisAttack`) or can no longer be interrupted (`notInterruptible`).
 - The escape rung after a failed Evade has no free `cs` option any more: its escape is the paid Escape at that window.
+
+**Arjuna's Fated Rivals is a second `suspendWhileBound` Skill** (#234 reading 2): his own Master's Suspend Skill,
+offered while the compulsion binds him, frees Arjuna alone for 1◈ (Karna stays bound). Pressed live: the choice list's
+options drew over each other until the toggle grew to its text (§46.4-OP), and the card names the Servant publicly
+(§46.4-OO).

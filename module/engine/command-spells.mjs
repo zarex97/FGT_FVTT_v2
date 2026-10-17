@@ -212,9 +212,15 @@ export async function spendCommandSpell({ masterId, commandId, window, messageId
 async function postCommandSpellCard({ master, servant, command, cost, abilityId }) {
   const escape = foundry.utils.escapeHTML;
   const skill = abilityId ? game.actors.get(servant?.id)?.items.get(abilityId)?.name ?? null : null;
+  // The Servant's public name: a card every player reads said *"on Arjuna's
+  // Fated Rivals"* under an Archer the table knew only as Archer (#234, as
+  // every engine line since #230 §46.4-NV).
+  const { publicIdentityOf } = await import("./public-identity.mjs");
+  const servantDoc = servant?.id ? game.actors.get(servant.id) : null;
+  const servantName = servantDoc ? (publicIdentityOf(servantDoc, currentBoard()).name || servantDoc.name) : (servant?.name ?? "");
   const text = game.i18n.format(skill ? "FGT.CommandSpell.SpentOn" : "FGT.CommandSpell.Spent", {
     master: escape(master?.name ?? ""), cost, name: escape(command.name),
-    servant: escape(servant?.name ?? ""), skill: escape(skill ?? ""),
+    servant: escape(servantName), skill: escape(skill ?? ""),
   });
   await ChatMessage.create({
     content: `<div class="fgt-card fgt-card--command-spell"><p>${text}</p></div>`,

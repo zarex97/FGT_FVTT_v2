@@ -125,3 +125,8 @@ A boundary is named by **Foundry's own counters** (`round` and `turn`), not by `
   acts nor survives. The two halves agree, and equality means expired.
 - **Does Delay ever get lost mid-Round?** `carryDelaysForward` (called once, at round end) filters out delays on factions that have acted. But if a faction delays backward (negative), then acts before its delayed tick, the delay is discarded at round end. Whether this ever happens in authored content is unknown.
 - **Turn ownership on the GM slot.** The GM combatant returns `null` for faction id (`factionOfCombatant` at `module/engine/turn-order.mjs:58`), so the budget resets to an empty set and nothing happens on its turn. Is the GM slot intended to be playable, or is it purely ceremonial?
+
+**The boundary cards say heals** (#234, §46.4-ON). `turn-report.mjs#turnEndCard` reads `heal` intents beside Health
+deltas, as what each gave: the Health before the batch is read first (`healthBefore`), so Arjuna's Regen at 1089 of
+1250 reads *"Archer regains 161 Health (Regen)"*, and a heal at full reads nothing. A Round's end posts its heals on an
+"End of the Round" card. Units are named by `publicIdentityOf`, a heal's source by its effect's name.

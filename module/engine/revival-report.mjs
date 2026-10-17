@@ -35,7 +35,15 @@ export function revivalCard(entry, nameOfUnit, nameOfSource, t) {
 export async function postRevival(entry) {
   if (!game.users?.activeGM?.isSelf) return;
   const escape = foundry.utils.escapeHTML;
-  const nameOfUnit = (id) => escape(game.actors.get(id)?.name ?? id);
+  // The public name (#234): "Heracles is defeated and revived" named a True
+  // Name on a card every player reads.
+  const { publicIdentityOf } = await import("./public-identity.mjs");
+  const { currentBoard } = await import("./board.mjs");
+  const board = currentBoard();
+  const nameOfUnit = (id) => {
+    const actor = game.actors.get(id);
+    return escape(actor ? (publicIdentityOf(actor, board).name || actor.name) : id);
+  };
   const nameOfSource = (source) => {
     const region = canvas?.scene?.regions?.find((r) =>
       r.behaviors?.some((b) => b.type === "npField" && b.system?.fieldId === source));

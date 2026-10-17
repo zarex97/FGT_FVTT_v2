@@ -140,6 +140,22 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     caster: caster.panel,
   });
 
+  // 2b. THE RANGE WALL. *"Hits a 5x5 panel area within Arjuna's Range"*: every
+  //     panel the area would affect must be within Range, not only its anchor;
+  //     a panel beyond is not affected, as if a wall contained the area. Ruled
+  //     2026-10-16 for every ability with this wording (#234 readings 13, 16-18),
+  //     each panel measured as the anchor is. One list, so the hits, the effects,
+  //     the preview and the painted terrain all stop at the same wall. Before it,
+  //     only the anchor was measured, and Brahmastra Kundala's 7x7 reached three
+  //     panels past Range 5.
+  if (spec.anchor?.kind === "withinRange" && anchor.panel) {
+    const from = originPanels(spec.anchor, caster, board);
+    const r = anchorRange(spec.anchor, caster);
+    const inside = panels.filter((p) => withinAnchorRange(spec.anchor, from, p, r));
+    panels.length = 0;
+    panels.push(...inside);
+  }
+
   // 3. OCCUPANCY — a multi-panel unit is included if ANY of its panels intersect.
   const panelKeys = new Set(panels.map(geo.key));
   const occupants = [];
@@ -751,11 +767,7 @@ function resolveAnchor(spec, caster, board, placement, errors) {
   // then measured from the mount's whole footprint: the Range was already the
   // mount's, and the panel it was measured from was still her one (#171). Only
   // that spec carries it, so what she casts herself measures from her own.
-  const origin = spec.originUnitId
-    ? (board.units ?? []).find((u) => u.id === spec.originUnitId)
-    : null;
-  const from = origin ?? caster;
-  const casterPanels = from.panels?.length ? from.panels : [from.panel ?? casterPanel];
+  const casterPanels = originPanels(spec, caster, board);
   // A turnable shape's quarter turn, chosen in the preview (#187 reading 6).
   const base = { casterPanel, ...(placement?.transverse === true ? { transverse: true } : {}) };
 
@@ -795,10 +807,7 @@ function resolveAnchor(spec, caster, board, placement, errors) {
       }
       const r = anchorRange(spec, caster);
       const reach = geo.chebyshevFromAny(casterPanels, panel);
-      const inRange = spec.metric === "chebyshev"
-        ? reach <= r
-        : geo.inAttackRangeFromAny(casterPanels, panel, r);
-      if (!inRange) {
+      if (!withinAnchorRange(spec, casterPanels, panel, r)) {
         errors.push(`Anchor panel is ${reach} panels away; Range is ${r}.`);
       }
       if (spec.minRange && reach < spec.minRange) {
@@ -1098,6 +1107,40 @@ export function legalPlacements(spec, caster, board, { max = 400 } = {}) {
  * @param {object} caster
  * @returns {number}
  */
+/**
+ * The panels Range is measured from: the caster's whole footprint, or the
+ * mount's when the swing is the mount's (`anchor.originUnitId`, #171).
+ *
+ * @param {object} spec the anchor
+ * @param {object} caster
+ * @param {object} board
+ * @returns {Array<{i: number, j: number}>}
+ */
+function originPanels(spec, caster, board) {
+  const origin = spec?.originUnitId
+    ? (board.units ?? []).find((u) => u.id === spec.originUnitId)
+    : null;
+  const from = origin ?? caster;
+  return from.panels?.length ? from.panels : [from.panel ?? caster.panel];
+}
+
+/**
+ * Is this panel within the anchor's Range? The ONE measure the anchor and the
+ * Range wall share (#234 reading 17): Chebyshev when the anchor says so, the
+ * attack-range rule otherwise, from any panel of the origin.
+ *
+ * @param {object} spec the anchor
+ * @param {Array<{i: number, j: number}>} from
+ * @param {{i: number, j: number}} panel
+ * @param {number} r
+ * @returns {boolean}
+ */
+function withinAnchorRange(spec, from, panel, r) {
+  return spec?.metric === "chebyshev"
+    ? geo.chebyshevFromAny(from, panel) <= r
+    : geo.inAttackRangeFromAny(from, panel, r);
+}
+
 function anchorRange(spec, caster) {
   if (typeof spec?.range === "number") return spec.range;
   return (caster?.range ?? 1) + (spec?.rangeBonus ?? 0);
