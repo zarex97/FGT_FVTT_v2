@@ -122,23 +122,27 @@ export function periodicTicksIn(intents, nameOf = () => null, tick = 0) {
  * @param {(key: string, data?: object) => string} t a formatter
  * @returns {string|null} the card's content, or `null` when nothing ticked
  */
-export function periodicCard(ticks, t) {
+export function periodicCard(ticks, t, titleKey = "FGT.FieldReport.RoundTitle", effectName = (id) => id) {
   if (!ticks?.length) return null;
   const lines = ticks.map((e) => t("FGT.FieldReport.Periodic", {
-    who: e.unitName ?? e.unitId, amount: e.amount, effect: e.defId,
+    who: e.unitName ?? e.unitId, amount: e.amount, effect: effectName(e.defId),
   }));
-  return `<div class="fgt-card fgt-card--field-report"><h3>${t("FGT.FieldReport.RoundTitle")}</h3>`
+  return `<div class="fgt-card fgt-card--field-report"><h3>${t(titleKey)}</h3>`
     + `<ul>${lines.map((l) => `<li>${l}</li>`).join("")}</ul></div>`;
 }
 
 /**
  * Log the Round end's ticks and post its card, when anything ticked.
  *
- * @param {object[]} intents what `scheduler.endRound` returned
+ * A Turn's end posts one too (#239): Curse ticks at the end of its bearer's Turn,
+ * and Van Gogh lost 125 to it with no card saying so.
+ *
+ * @param {object[]} intents what `scheduler.endRound` or `endTurn` returned
  * @param {{log: (entries: object[]) => Promise<void>}} io
+ * @param {string} [titleKey] the card's title
  * @returns {Promise<void>}
  */
-export async function postPeriodicReport(intents, io) {
+export async function postPeriodicReport(intents, io, titleKey = "FGT.FieldReport.RoundTitle") {
   if (!game.users?.activeGM?.isSelf) return;
   // The public name (#234): Burn's tick on a concealed Servant named his True
   // Name on a card every player reads.
@@ -153,7 +157,10 @@ export async function postPeriodicReport(intents, io) {
   if (ticks.length === 0) return;
   await io.log(ticks);
   const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
-  await ChatMessage.create({ content: periodicCard(ticks, t), flags: { fgt: { periodicReport: true } } });
+  // The effect's name, "Curse", where the card said its id.
+  const { EffectRegistry } = await import("../rules/registry.mjs");
+  const effectName = (id) => foundry.utils.escapeHTML(EffectRegistry.get(id)?.name ?? id ?? "");
+  await ChatMessage.create({ content: periodicCard(ticks, t, titleKey, effectName), flags: { fgt: { periodicReport: true } } });
 }
 
 /**

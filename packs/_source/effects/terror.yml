@@ -4,12 +4,12 @@
 # chance/resist effects." Every other probability in the game passes through
 # `ApplicationChance`; this one must not.
 #
-# Which is why it is an ACTION's `chance` rather than the Stun's own: an
-# action's chance is a flat 1d100 gathered by `pendingRolls` and tested in
-# `dispatch`, with nothing between it and the roll. Authoring it as
-# `ApplyEffect { effect: { id: stun, chance: 60 } }` would route it through the
-# applier, where Van Gogh's own Item Construction would sharpen it by 35%
-# against the enemies standing inside her aura.
+# An action's `chance` is rolled by `pendingRolls`, and since #191 that die is
+# decided where the Stun LANDS, against the target's resistance and the
+# inflicter's bonus. So the action states `bypassChanceModifiers`: nothing
+# between the 60 and the die, neither a Magic Resistance nor Van Gogh's own
+# Item Construction. It said "nothing between it and the roll" and had not
+# been true since #191: Karna rolled against 45% (#239, live).
 #
 # `PERIODICS` is the other thing this is not: that table is damage, and Terror
 # deals none.
@@ -30,9 +30,12 @@ rules:
     automatic: true
     then:
       # The flat roll. `chance` on an ACTION is gathered as a 1d100 by
-      # `pendingRolls` and tested in `dispatch`; a die that never arrived
-      # refuses rather than firing.
-      - { key: ApplyEffect, effect: { id: stun }, duration: "1◈", chance: "@magnitude" }
+      # `pendingRolls`, and the die travels to the landing (#191), which decides
+      # it against the target's resistance and the inflicter's bonus -- so
+      # `bypassChanceModifiers`, Queen's Poison's flat 50%, is what keeps it 60.
+      # Without it Karna and Proto Gil rolled against 45%, their Magic
+      # Resistance taken off (#239, live).
+      - { key: ApplyEffect, effect: { id: stun }, duration: "1◈", chance: "@magnitude", bypassChanceModifiers: true }
       # "then Terror is removed" -- whether or not the Stun landed. The sheet
       # gives it one roll, not one per Turn until it works.
       - { key: RemoveEffect, effect: terror }

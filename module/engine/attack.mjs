@@ -15,7 +15,7 @@
 import {
   computeDamage, computeDamageHits, isNPAttack, modifierSourceUnits, INJURY_THRESHOLD,
 } from "../rules/damage/pipeline.mjs";
-import { ridersFire } from "../rules/damage/riders.mjs";
+import { ridersFire, successfullyAttacked } from "../rules/damage/riders.mjs";
 import { expandInstances, damageBaseOf } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
 import { askOwner, chooseFor } from "./ask.mjs";
@@ -28,7 +28,7 @@ import {
 import * as rollLog from "../rules/roll-log.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
 import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
-import { cooldownChanges, cooldownLine, statChangeLine, checkLine } from "./skill-use.mjs";
+import { cooldownChanges, statChangeLine, checkLine } from "./skill-use.mjs";
 import { splitCooldownRider } from "../rules/cooldown-riders.mjs";
 import {
   classifyAbility, targetSpecFor as specForAbility, usageSpecFor, dealsNoDamage,
@@ -1610,6 +1610,10 @@ async function answerRung({ event, abilityId = null, placement = null }, message
   } else if (state.state === "react" && event === "evade") {
     state = process.advance(state, "evade");
     const outcome = await rollEvade(state);
+    // A count-limited automatic evasion is SPENT on this rung too, as on the
+    // reaction ability's (`autoEvadeFrom`): Het Gele Huis's *"Evade for 1◈
+    // Turns, 1 time"* evaded Asterios and kept its one use (#239, live).
+    if (outcome.spends) await applyBatch([I.consumeUse(state.defenderId, outcome.spends)], "autoEvade");
     state = process.advance(state, outcome.success ? "success" : "fail", outcome);
     if (outcome.success) await fireEvadeSucceeded(state);
     // Ch. 32 rule 4. A Master who fails to Evade an AoE Noble Phantasm gets one
@@ -2476,12 +2480,12 @@ function agilityRefusals(ability, attackerId, defenderId, board = boardSnapshot(
 async function fireDamageStepStart(state) {
   const attackerDoc = game.actors.get(state.attackerId);
   const defenderDoc = state.defenderId ? game.actors.get(state.defenderId) : null;
-  if (!attackerDoc || !defenderDoc) return;
+  if (!attackerDoc || !defenderDoc) return [];
 
   const board = boardSnapshot();
   const attacker = unitFrom(board, attackerDoc);
   const defender = unitFrom(board, defenderDoc);
-  if (!(attacker?.eventHandlers ?? []).some((h) => (h.events ?? []).includes("damageStepStart"))) return;
+  if (!(attacker?.eventHandlers ?? []).some((h) => (h.events ?? []).includes("damageStepStart"))) return [];
 
   // A die for every buff a resistance could keep, before anything is decided.
   const buffs = (defender.effectInstances ?? [])
@@ -2501,8 +2505,9 @@ async function fireDamageStepStart(state) {
     victim: { unitId: defender.id },
     rolls: { removal: { [defender.id]: removal } },
   });
-  if (intents.length === 0) return;
-  await applyBatch(intents, "damageStepStart", { process: state });
+  if (intents.length === 0) return [];
+  // What it landed is a line on this card (#202): Suppression's Atk Up.
+  const rows = await applyWithLines(intents, "damageStepStart", { process: state });
 
   // Said on the board either way: a strip, or a resist with its die (#198).
   const lines = intents.filter((i) => i.t === "log" && i.entry?.kind === "strip").map((i) => game.i18n.format(
@@ -2512,6 +2517,7 @@ async function fireDamageStepStart(state) {
   if (lines.length > 0) {
     await ChatMessage.create({ content: lines.map((l) => `<p>${l}</p>`).join(""), speaker: { alias: game.i18n.localize("FGT.Removal.Title") } });
   }
+  return rows;
 }
 
 /**
@@ -2612,7 +2618,7 @@ async function fireDamageDealt(state, result) {
   const board = currentBoard();
   const attacker = unitOf(game.actors.get(state.attackerId), board);
   const defender = state.defenderId ? unitOf(game.actors.get(state.defenderId), board) : null;
-  if (!attacker || !defender) return [];
+  if (!attacker || !defender) return { records: [], rows: [] };
 
   // Whatever this attacker's `damageDealt` handlers need to roll, rolled here
   // on the same "caller rolls" contract every other event honours: `fireEvent`
@@ -2659,10 +2665,11 @@ async function fireDamageDealt(state, result) {
   }
   const logged = () => (game.combat?.getFlag?.("fgt", "log") ?? []).length;
   const before = logged();
-  if (intents.length > 0) await applyBatch(intents, "damageDealt", { process: state });
+  // What the handlers landed, took or cut is a line on this card (#202).
+  const rows = intents.length > 0 ? await applyWithLines(intents, "damageDealt", { process: state }) : [];
   // What the target's resistance did to a die that came in under the stated
   // chance: "hit" alone hid it (#195).
-  return chanceRecords({ filed, rolls, state, attacker, defender, tick, logFrom: before, tag: "rider" });
+  return { records: chanceRecords({ filed, rolls, state, attacker, defender, tick, logFrom: before, tag: "rider" }), rows };
 }
 
 /**
@@ -2770,7 +2777,7 @@ async function fireDamageTaken(state, result) {
   const board = currentBoard();
   const attacker = unitFrom(board, game.actors.get(state.attackerId));
   const defender = state.defenderId ? unitFrom(board, game.actors.get(state.defenderId)) : null;
-  if (!attacker || !defender) return;
+  if (!attacker || !defender) return [];
 
   const intents = fireEvent("damageTaken", [defender], {
     tick: game.combat?.system?.globalTurn ?? 0,
@@ -2801,7 +2808,61 @@ async function fireDamageTaken(state, result) {
       isCrit: Boolean(result?.flags?.isCrit ?? result?.isCrit),
     },
   });
-  if (intents.length > 0) await applyBatch(intents, "damageTaken", { process: state });
+  // Def Dwn (C)'s Agility, a Jabberwock's heal: a line on this card (#202).
+  return intents.length > 0 ? applyWithLines(intents, "damageTaken", { process: state }) : [];
+}
+
+/**
+ * The Attacks that have already raised `attackReceived` on a Unit: once per
+ * Attack, claimed in memory before the event fires, so two Processes of one
+ * Attack on one Unit cannot both decide they were first.
+ *
+ * @type {Set<string>}
+ */
+const RECEIVED = new Set();
+
+/**
+ * Claim this Attack's `attackReceived` on this Process's defender.
+ *
+ * @param {object} state
+ * @param {object} message the Process's message, the Attack's key when it has no group
+ * @returns {boolean} whether this Process is the first to claim it
+ */
+function claimReceived(state, message) {
+  const key = `${state.groupId ?? message?.id}:${state.attackerId}:${state.defenderId}:${state.isCounter ? "c" : "a"}`;
+  if (RECEIVED.has(key)) return false;
+  RECEIVED.add(key);
+  if (RECEIVED.size > 500) RECEIVED.delete(RECEIVED.values().next().value);
+  return true;
+}
+
+/**
+ * Raise `attackReceived` on the DEFENDER: it was successfully Attacked.
+ *
+ * > *"Agility is reduced by 1 whenever this Unit is successfully Attacked."*
+ *
+ * Once per Attack (#239 reading 3b): an Attack that hits a Unit five times runs
+ * five Processes and drained five; the sheet counts Attacks. Every Def Dwn (A) and
+ * (C) listens to it (reading 3c), whatever its sheet's wording.
+ *
+ * @param {object} state
+ * @param {object} result the finished damage result (an Instakill's skip has none)
+ * @returns {Promise<object[]>} the card's lines (#202)
+ */
+async function fireAttackReceived(state, result) {
+  const board = currentBoard();
+  const attacker = unitFrom(board, game.actors.get(state.attackerId));
+  const defender = state.defenderId ? unitFrom(board, game.actors.get(state.defenderId)) : null;
+  if (!attacker || !defender) return [];
+  const intents = fireEvent("attackReceived", [defender], {
+    tick: currentMoment().tick ?? 0,
+    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    board,
+    options: rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) }),
+    victim: { unitId: state.attackerId },
+    rolls: {},
+  });
+  return intents.length > 0 ? applyWithLines(intents, "attackReceived", { process: state }) : [];
 }
 
 /**
@@ -3184,10 +3245,10 @@ async function fireAttackPerformed(siblings) {
     // A clock the Attack turned is a line on its card, as the Damage Step's
     // are (#209): Excalibur took 23 -> 21 off its own two Units and no card
     // said so (#230, live). On the attacker's last card of the Phase.
-    const rows = await applyWithCooldownLines(intents, "attackPerformed");
+    const rows = await applyWithLines(intents, "attackPerformed");
     if (rows.length === 0) continue;
     const { message, st } = processes.at(-1);
-    await message.setFlag("fgt", "effects", [...(message.getFlag("fgt", "effects") ?? []), ...rows.map((r) => r.summary)]);
+    await message.setFlag("fgt", "effects", [...(message.getFlag("fgt", "effects") ?? []), ...cardRows(rows)]);
     await updateAttackCard(message, st);
   }
 }
@@ -3264,9 +3325,9 @@ function barriersOfThisPhase(siblings, heard) {
  * Alpi pays *"at the end of the Damage Step when a successful Attack is
  * performed"*, ruled per ATTACK and not per target (#204 reading 12): an area
  * Noble Phantasm over five Units spends one charge, not five. "Successful" is
- * "not Evaded": a Block, a hit for 0 and Gáe Bolg's Instakill that skips its
- * damage all count, so it reads which Processes reached the damage step, not
- * what they dealt. It pays 1◈ when ANY Unit it landed on is Undead or Divine,
+ * `riders.mjs#successfullyAttacked` (#239 reading 3a): a Block, a hit for 0 and
+ * Gáe Bolg's Instakill that skips its damage count; a complete negation and a
+ * concealment coin's "no damage and effects" do not. It pays 1◈ when ANY Unit it landed on is Undead or Divine,
  * so the option set is the union of those Units' `target:` facts.
  *
  * Fired from the Combat Phase's end, which is already claimed once per
@@ -3277,13 +3338,20 @@ function barriersOfThisPhase(siblings, heard) {
  * @returns {Promise<void>}
  */
 async function fireAttackLanded(siblings) {
-  const declared = siblings.map((m) => process.deserialize(m.getFlag("fgt", "process"))).filter((s) => !s.isCounter);
-  const attackerId = declared[0]?.attackerId ?? null;
+  const declared = siblings.map((m) => ({ st: process.deserialize(m.getFlag("fgt", "process")), message: m }))
+    .filter(({ st }) => !st.isCounter);
+  const attackerId = declared[0]?.st.attackerId ?? null;
   const attackerDoc = attackerId ? game.actors.get(attackerId) : null;
   if (!attackerDoc) return;
-  const landed = declared.filter((s) => s.attackerId === attackerId && s.defenderId
-    && (s.history ?? []).some((h) => h.state === "damage"));
-  if (landed.length === 0) return;
+  // Reached the Damage Step AND successfully Attacked (#239 reading 3a, the
+  // one reader Def Dwn (A) and (C) share): a Block, a hit for 0 and an Instakill
+  // that skipped the damage count (that one leaves no result), a complete
+  // negation or a concealment coin's "no damage and effects" does not.
+  const landedOn = declared.filter(({ st: s, message: m }) => s.attackerId === attackerId && s.defenderId
+    && (s.history ?? []).some((h) => h.state === "damage")
+    && successfullyAttacked({ skipped: m.getFlag("fgt", "result") ? null : "skipped", result: m.getFlag("fgt", "result") }));
+  if (landedOn.length === 0) return;
+  const landed = landedOn.map(({ st }) => st);
 
   const board = currentBoard();
   const options = new Set(landed.flatMap((s) => {
@@ -3291,6 +3359,9 @@ async function fireAttackLanded(siblings) {
     if (!doc) return [];
     return [...rollOptionsFor({ attacker: null, defender: unitOf(doc, board) })].filter((o) => o.startsWith("target:"));
   }));
+  // A Crit when any Unit it landed on was critted (#239 reading 2): the 'Gogh'
+  // buff takes two stages *"if the Attack was a Crit"*, once per Attack.
+  if (landedOn.some(({ message }) => message.getFlag("fgt", "result")?.flags?.isCrit)) options.add("attack:crit");
   const intents = fireEvent("attackLanded", [unitOf(attackerDoc, board)], {
     tick: currentMoment().tick ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
@@ -3298,7 +3369,13 @@ async function fireAttackLanded(siblings) {
     options,
     rolls: {},
   });
-  if (intents.length > 0) await applyBatch(intents, "attackLanded");
+  if (intents.length === 0) return;
+  // On the Attack's last card, as `attackPerformed`'s lines are (#202).
+  const rows = await applyWithLines(intents, "attackLanded");
+  if (rows.length === 0) return;
+  const { message, st } = landedOn.at(-1);
+  await message.setFlag("fgt", "effects", [...(message.getFlag("fgt", "effects") ?? []), ...cardRows(rows)]);
+  await updateAttackCard(message, st);
 }
 
 /**
@@ -3387,7 +3464,7 @@ async function runAutomaticStep(state, message) {
       // at the start of the Damage Step"*. The buff it takes may be the Def Up
       // that would otherwise reduce this very hit, so running it later leaves
       // it correct-looking and inert.
-      await fireDamageStepStart(state);
+      const startRows = await fireDamageStepStart(state);
 
       // "Used at the start of a Damage Step when performing an Attack" -- the
       // attacker's own window, asked before anything is computed, because what
@@ -3443,7 +3520,13 @@ async function runAutomaticStep(state, message) {
       // 734, then inflicted Def Dwn (A) and (C), and both heard that same hit --
       // Luck and Agility drained by the debuffs it had just applied (#209, live).
       // *"Whenever damage is received"* is damage after they exist.
-      if (riders) await fireDamageTaken(state, result);
+      const takenRows = riders ? await fireDamageTaken(state, result) : [];
+      // ...and `attackReceived`, once per Attack on each Unit it successfully
+      // Attacked, at that Unit's first such Process and before its riders, so a
+      // Def Dwn this Attack inflicts does not hear the Attack that inflicted it
+      // (#239 readings 3a, 3b). A Knockback's measured damage is not an Attack.
+      const receivedRows = successfullyAttacked({ skipped, result }) && !state.attack?.plainDamage
+        && claimReceived(state, message) ? await fireAttackReceived(state, result) : [];
       // Broken: what was kept back lands now, after the damage, then the rest.
       // Held: it is dropped, and the card says so.
       const broke = Boolean(heldBy) && result.flags?.barrierBroken === true;
@@ -3486,14 +3569,16 @@ async function runAutomaticStep(state, message) {
       // about a defender whose reductions reached zero, and every on-hit rider
       // in Appendix A was silent against exactly the targets worth riding.
       // `rules/damage/riders.mjs` is now the single decision, with the reasons.
-      const riderRolls = riders ? await fireDamageDealt(state, result) : [];
+      const dealt = riders ? await fireDamageDealt(state, result) : { records: [], rows: [] };
       // Its mirror on the Unit that took it, `damageTaken`, is raised above,
       // before the riders.
 
       await message.setFlag("fgt", "damage", result.total);
-      await message.setFlag("fgt", "effects", [...before, ...applied, ...held, ...stepEnd.rows].map((a) => a.summary));
+      await message.setFlag("fgt", "effects", cardRows([
+        ...startRows, ...before, ...applied, ...held, ...takenRows, ...receivedRows, ...dealt.rows, ...stepEnd.rows,
+      ]));
       return process.advance(state, "done", {
-        total: result.total, rollRecords: [...(result.modifierRolls ?? []), ...riderRolls, ...stepEnd.records],
+        total: result.total, rollRecords: [...(result.modifierRolls ?? []), ...dealt.records, ...stepEnd.records],
       });
     }
     case "injury":
@@ -3617,6 +3702,7 @@ async function rollEvade(state) {
 
   return {
     ...outcome,
+    spends: spentBy(outcome, plan, defender),
     formula: roll.formula,
     // Ch. 13: every roll files a record, so a failed Evade can be read back as
     // "the die was low" or "the wrong table was used" instead of one number.
@@ -3629,6 +3715,26 @@ async function rollEvade(state) {
       actorId: state.defenderId,
     }),
   };
+}
+
+/**
+ * The effect an automatic Evade spends a use of, when it had uses to spend.
+ *
+ * `evadeCheck` takes Dodge first, then the plan's `AutoSucceed`; a charge-less
+ * one (a timed Evade with no count) spends nothing.
+ *
+ * @param {object} outcome `evadeCheck`'s
+ * @param {object} plan the merged check plan
+ * @param {object} defender the defender's board unit
+ * @returns {string|null} the effect document's id, or its definition's
+ */
+function spentBy(outcome, plan, defender) {
+  if (!outcome?.automatic || !outcome.success) return null;
+  if (outcome.modifiers?.[0]?.source === "Dodge") {
+    const dodge = (defender?.effectInstances ?? []).find((e) => e.defId === "dodge" && (e.uses ?? 0) > 0);
+    return dodge ? "dodge" : null;
+  }
+  return plan.autoSucceed?.uses ? (plan.autoSucceed.defId ?? null) : null;
 }
 
 /**
@@ -5553,7 +5659,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
         // it (`Name: Cooldown 18 → 15`): a cut the player cannot read is not
         // built (#219, §46.4-D1 -- Mana Burst's never showed because it never
         // happened). The Dioscuri's shows on BOTH twins' Noble Phantasm.
-        applied.push(...await applyWithCooldownLines(intents, `np:${ability.id}:cooldown`));
+        applied.push(...await applyWithLines(intents, `np:${ability.id}:cooldown`));
       }
       continue;
     }
@@ -5939,34 +6045,41 @@ async function fireDamageStepEnd(state, result = null) {
   // buff's Crit took the joint NP 7 -> 6 on both twins and the card said nothing
   // (#209, live).
   const rows = intents.length > 0
-    ? await applyWithCooldownLines(intents, "damageStepEnd", { process: state })
+    ? await applyWithLines(intents, "damageStepEnd", { process: state })
     : [];
   return { rows, records: chanceRecords({ filed, rolls, state, attacker, defender, tick, logFrom, tag: "stepEnd" }) };
 }
 
 /**
- * Apply a batch, and say on the card what it did to each clock it turned.
+ * Apply a batch, and say on the card what it did.
  *
  * One line per clock that moved, as a Skill's card prints it (`Name: Cooldown
- * 18 -> 15`). The real numbers, read before and after, so a floor at 0 says so.
- * One reader for the attack path's two writers of a cut: an ability's own
- * `cooldown` phase and a handler fired at the end of the Damage Step.
+ * 18 -> 15`), the real numbers read before and after, so a floor at 0 says so;
+ * and, for a handler's batch, what it landed and what stage it took (#202):
+ * the 'Gogh' buff ate a Curse stage and gained Atk Up, and the card said only
+ * the damage. The lines are `engine/applier.mjs#applyIntents`'s, which hears
+ * the handlers a write raises too (Channel Marker Soul's cut).
  *
  * @param {object[]} intents
  * @param {string} source
  * @param {object} [opts]
  * @returns {Promise<Array<{unitId: string, summary: object}>>}
  */
-async function applyWithCooldownLines(intents, source, opts = {}) {
-  const clocks = intents.filter((i) => i?.t === "cooldown");
-  const remainingOf = (c) => game.actors.get(c.unitId)?.items?.get(c.abilityId)?.system?.cooldown?.remaining ?? 0;
-  const before = clocks.map(remainingOf);
-  await applyBatch(intents, source, opts);
-  return clocks.flatMap((c, n) => {
-    const name = game.actors.get(c.unitId)?.items?.get(c.abilityId)?.name ?? null;
-    const line = cooldownLine(name, before[n], remainingOf(c));
-    return line ? [{ unitId: c.unitId, summary: { id: "cooldown", name: line, outcome: "applied", reason: null, chance: null } }] : [];
-  });
+async function applyWithLines(intents, source, opts = {}) {
+  const { lines } = await applyBatch(intents, source, { ...opts, lines: true });
+  return lines ?? [];
+}
+
+/**
+ * Card rows for the `effects` flag: each row's summary with WHOSE it is, so the
+ * card shows a row by name to that Unit's controllers (`rules/card-visibility.mjs`).
+ * A row with no Unit is the defender's, as every row was before (#202).
+ *
+ * @param {Array<{unitId?: string, summary: object}>} rows
+ * @returns {object[]}
+ */
+function cardRows(rows) {
+  return rows.map((a) => ({ ...a.summary, unitId: a.unitId ?? a.summary?.unitId ?? null }));
 }
 
 /**
@@ -6193,7 +6306,7 @@ async function applyFacing(state) {
  * @param {object[]} intents
  * @param {string} source
  */
-async function applyBatch(intents, source, { process = null } = {}) {
+async function applyBatch(intents, source, { process = null, lines = false } = {}) {
   return applyIntents(intents, {
     io: worldIO(),
     canWrite: (unitId) => game.actors.get(unitId)?.isOwner ?? false,
@@ -6202,6 +6315,7 @@ async function applyBatch(intents, source, { process = null } = {}) {
     // The Combat Process a handler's rider lands inside, so its target may
     // answer a debuff with the Prevention Luck Check (`engine/landing.mjs`).
     process,
+    lines,
   });
 }
 

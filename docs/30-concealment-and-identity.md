@@ -142,3 +142,8 @@ green fixed the refusal banner and the targeting resolver's reasons, the targeti
 panel's roster, the Dimension and Hanging Gardens offers, and the cards for an automatic Counter, a cancelled NP, an
 escape, a boarding and a fall, a legion's deploy and fall, an optional cost, a forced mode, a transfer, a drag and a
 summoning. Three private copies of the reader (`attack.mjs`, `master-guard.mjs`, `schedule.mjs`) fold into it.
+
+**A row's reader is the caster's too** (#239, §46.4-OU). A Skill card's row was prefixed with its recipient's real
+name and marked safe, *"a row is shown only to its recipient's controllers"*; `skillEffectsFor` shows every row to the
+caster's controllers as well, so Het Gele Huis read *"Karna: Def Dwn"* to Van Gogh's player. Rows and stat lines say
+`shownName`, and the guard reads `recipient`, the holder that hid it.

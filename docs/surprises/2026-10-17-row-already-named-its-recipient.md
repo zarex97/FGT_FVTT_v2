@@ -3,7 +3,8 @@ id: 2026-10-17-row-already-named-its-recipient
 found: test
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** a stat change's row on a skill card names the twin it moved by its public name, as every card should
 (#235).

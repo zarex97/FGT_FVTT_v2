@@ -754,11 +754,13 @@ describe("Van Gogh — Shadow of Longing EX (spec R3)", () => {
   const sol = src("abilities", "gogh-shadow-of-longing.yml");
   const transfer = sol.phases.find((p) => p.kind === "transfer");
 
-  it("is EX on a 4◈ cooldown, used on ONE chosen ally within 2", () => {
+  it("is EX on a 4◈ cooldown, used on ONE chosen ally within 2, herself included", () => {
     expect(sol.rank).toBe("EX");
     expect(sol.cooldown).toBe("4◈");
     expect(sol.targeting.shape).toEqual({ kind: "chebyshevRadius", r: 2 });
-    expect(sol.targeting.selection.relations).toEqual(["ally"]);
+    // Herself too (#239 reading 4), as Scáthach's Primordial Rune's same words.
+    expect(sol.targeting.selection.relations).toEqual(["ally", "self"]);
+    expect(sol.targeting.selection.includeSelf).toBe(true);
     // `chosen`, not `all` -- "Used on an allied Unit", singular.
     expect(sol.targeting.selection.chooser).toBe("chosen");
     expect(sol.targeting.selection.count).toBe(1);
@@ -771,12 +773,13 @@ describe("Van Gogh — Shadow of Longing EX (spec R3)", () => {
     expect(by("critUp")).toMatchObject({ duration: "1◈", magnitude: 60 });
   });
 
-  it("pulls Curse from ALL Units within 3, enemies included", () => {
+  it("pulls Curse from ALL Units within 3, enemies and Civilians included", () => {
     // The sheet bolds "all". She cleanses her opponents to fuel herself, and
-    // that is a trade rather than an oversight.
+    // that is a trade rather than an oversight. A Civilian is `neutral` (#239
+    // reading 7); her own Curse stays put, so `self` is not a source (6a).
     expect(transfer.defId).toBe("curse");
     expect(transfer.radius).toBe(3);
-    expect(transfer.relations).toEqual(["ally", "enemy", "self"]);
+    expect(transfer.relations).toEqual(["ally", "enemy", "neutral"]);
   });
 
   it("gathers onto HER, not onto the ally the ability targeted", () => {
@@ -833,7 +836,8 @@ describe("removeStages — taking a stage off without taking the effect off", ()
 
 describe("Van Gogh — the `gogh` buff", () => {
   const gogh = src("effects", "gogh.yml");
-  const onAttack = gogh.rules.filter((r) => r.event === "damageDealt");
+  // `attackLanded`: once per Attack not Evaded, Alpi's reading (#239 reading 2).
+  const onAttack = gogh.rules.filter((r) => r.event === "attackLanded");
   const onStage = gogh.rules.find((r) => r.event === "curseStageChanged");
 
   it("eats one stage on an ordinary attack and two on a Crit", () => {
@@ -1046,7 +1050,8 @@ describe("the `gogh` buff's Crit clause REPLACES its ordinary one", () => {
   // The sheet is an either/or: "remove one stage ... IF the Attack was a Crit,
   // remove 2 stages", so the ordinary clause has to stand down on a Crit.
   const gogh = src("effects", "gogh.yml");
-  const onAttack = gogh.rules.filter((r) => r.event === "damageDealt");
+  // `attackLanded`: once per Attack not Evaded, Alpi's reading (#239 reading 2).
+  const onAttack = gogh.rules.filter((r) => r.event === "attackLanded");
   const asText = (r) => JSON.stringify(r.predicate ?? []);
 
   it("has exactly the two halves", () => {
