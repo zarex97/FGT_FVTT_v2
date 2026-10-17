@@ -28,6 +28,7 @@ import { applyWorldIntents } from "./applier.mjs";
 import { landEntry } from "./landing.mjs";
 import { entryOf } from "../rules/effect-flow.mjs";
 import * as I from "./intents.mjs";
+import { shownName } from "./public-identity.mjs";
 
 /**
  * Guards against re-entry.
@@ -150,6 +151,7 @@ async function accepted(actor, unit, spec) {
       kind: "choose",
       title: spec.source,
       hint: game.i18n.format("FGT.OptionalCost.Hint", {
+        // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
         name: actor.name,
         amount: spec.cost.amount ?? 1,
         resource: poolName(spec.cost.resource),
@@ -166,6 +168,7 @@ async function accepted(actor, unit, spec) {
     });
     return (picked ?? []).includes("spend");
   } catch (err) {
+    // fgt-name-ok: console text for the GM and the developer
     console.warn(`FGT | ${actor.name}'s optional spend was not answered:`, err);
     return false;
   }
@@ -209,7 +212,7 @@ async function spend({ actor, unit, spec }) {
 
   await applyWorldIntents(intents, "optionalCost");
   await ChatMessage.create({
-    content: `<p><strong>${spec.source}</strong> — ${actor.name} spends `
+    content: `<p><strong>${spec.source}</strong> — ${shownName(actor)} spends `
       + `${spec.cost.amount ?? 1} × ${poolName(spec.cost.resource)}.</p>`,
   });
 }

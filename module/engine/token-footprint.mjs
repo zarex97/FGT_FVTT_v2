@@ -240,6 +240,7 @@ async function growthPlacement(actor, token, size) {
   const old = { i: from.i, j: from.j, h: token.height, w: token.width };
 
   const picked = await chooseFor(actor, {
+    // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
     title: game.i18n.format("FGT.Growth.Title", { name: actor.name }),
     hint: game.i18n.localize("FGT.Growth.Hint"),
     count: 1,

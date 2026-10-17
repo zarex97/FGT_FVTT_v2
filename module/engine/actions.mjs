@@ -18,6 +18,7 @@ import { attemptEscape } from "./escape.mjs";
 import { boardPlatform, jumpOff } from "./platforms.mjs";
 import { attemptForestEscape } from "./nameless-forest.mjs";
 import { useItem as consumeHeldItem, giveItem } from "./items.mjs";
+import { shownNameById } from "./public-identity.mjs";
 
 /**
  * id → handler. Held against `rules/actions.mjs`'s registry by
@@ -112,6 +113,7 @@ export const ACTION_HANDLERS = Object.freeze({
       if (skills.length === 0) return { ok: false, reason: "noSkill" };
       const [abilityId] = (await ChoiceDialog.pick({
         title: command.name,
+        // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
         hint: game.i18n.format("FGT.Action.CommandSpellSkill", { name: servant.name }),
         count: 1,
         min: 0,
@@ -149,6 +151,7 @@ export const ACTION_HANDLERS = Object.freeze({
     await actor.update({ "system.carriesMaster": !on });
     ui.notifications?.info(game.i18n.format(
       on ? "FGT.Action.CarryMasterOff" : "FGT.Action.CarryMasterOn",
+      // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
       { name: actor.name },
     ));
     return { ok: true };
@@ -244,7 +247,7 @@ export const ACTION_HANDLERS = Object.freeze({
 
     const toId = await ask(
       game.i18n.localize("FGT.Action.GiveItemTo"),
-      candidates.map((u) => ({ id: u.id, name: game.actors.get(u.id)?.name ?? u.id })),
+      candidates.map((u) => ({ id: u.id, name: shownNameById(u.id) })),
     );
     if (!toId) return { ok: false, reason: "cancelled" };
 

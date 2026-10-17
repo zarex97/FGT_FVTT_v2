@@ -77,6 +77,7 @@ export function processOffers(state, board = currentBoard()) {
       if (!ctx) continue;
       for (const command of availableCommands(CommandSpellRegistry.all(), ctx)) {
         if (!servantsForProcess(command, state, master.id, servants).some((s) => s.id === servant.id)) continue;
+        // fgt-name-ok: the Master's own player's Command Spell list
         out.push({ command, masterId: master.id, servantId: servant.id, servantName: servant.name, several: servants.length > 1 });
       }
     }
@@ -215,9 +216,9 @@ async function postCommandSpellCard({ master, servant, command, cost, abilityId 
   // The Servant's public name: a card every player reads said *"on Arjuna's
   // Fated Rivals"* under an Archer the table knew only as Archer (#234, as
   // every engine line since #230 §46.4-NV).
-  const { publicIdentityOf } = await import("./public-identity.mjs");
+  const { shownName } = await import("./public-identity.mjs");
   const servantDoc = servant?.id ? game.actors.get(servant.id) : null;
-  const servantName = servantDoc ? (publicIdentityOf(servantDoc, currentBoard()).name || servantDoc.name) : (servant?.name ?? "");
+  const servantName = servantDoc ? shownName(servantDoc, currentBoard()) : "";
   const text = game.i18n.format(skill ? "FGT.CommandSpell.SpentOn" : "FGT.CommandSpell.Spent", {
     master: escape(master?.name ?? ""), cost, name: escape(command.name),
     servant: escape(servantName), skill: escape(skill ?? ""),

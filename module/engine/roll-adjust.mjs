@@ -50,6 +50,7 @@ export async function offerRollAdjustment(unit, roll, { check, label = "" }) {
   if (max <= 0 || !actor) return { roll, delta: 0 };
   const answer = await askOwner(actor, {
     kind: "adjustRoll", roll, max,
+    // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
     title: label || actor.name,
     hint: game.i18n.format("FGT.Roll.AdjustHint", { roll, max }),
   });

@@ -31,6 +31,7 @@ import { showArea, discardArea } from "./target-region.mjs";
 import { reviewTargets, REAIM } from "./target-review.mjs";
 import { faction as factionById } from "../../engine/board.mjs";
 import { chebyshev } from "../../domain/geometry.mjs";
+import { shownName } from "../../engine/public-identity.mjs";
 
 const LEGAL = 0x4488ff;
 const ILLEGAL = 0xff4444;
@@ -570,7 +571,7 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
           // the ship, out of Range).
           const own = (refused.resolved?.excluded ?? []).find((e) => e.unitId === unit?.id)?.reason;
           ui.notifications.warn(game.i18n.format("FGT.Targeting.NotThisUnit", {
-            name: unit?.name ?? "?",
+            name: unit ? shownName(unit) : "?",
             reason: own ?? (refused.reasons ?? [])[0] ?? game.i18n.localize("FGT.Targeting.Illegal"),
           }));
         }

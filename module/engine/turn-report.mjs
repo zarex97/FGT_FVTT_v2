@@ -159,12 +159,12 @@ export async function postTurnEndReport(intents, before = null, health = null, t
   const escape = foundry.utils.escapeHTML;
   // The name the table knows: "Archer regains 161 Health (Regen)", never his
   // True Name (#234, as every engine line since #230 §46.4-NV).
-  const { publicIdentityOf } = await import("./public-identity.mjs");
+  const { shownName } = await import("./public-identity.mjs");
   const { currentBoard } = await import("./board.mjs");
   const board = currentBoard();
   const nameOfUnit = (id) => {
     const actor = game.actors.get(id);
-    return escape(actor ? (publicIdentityOf(actor, board).name || actor.name) : id);
+    return escape(actor ? shownName(actor, board) : id);
   };
   const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
   const nameOfAbility = (unitId, abilityId) => escape(game.actors.get(unitId)?.items?.find((i) =>

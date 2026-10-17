@@ -75,6 +75,22 @@ export function isIdentityRevealed(unit) {
  *   the player running the unit
  * @returns {string}
  */
+/**
+ * What a player-facing line in the rules layer calls a unit: its public name,
+ * no viewer exempted (#235). A refusal names its target as the card will.
+ *
+ * @param {object|null} unit a board unit
+ * @param {object|null} [board]
+ * @returns {string}
+ */
+export function shownNameOf(unit, board = null) {
+  // A unit with nothing to call it by stays nameless, so a caller's own
+  // fallback ("Target", "That unit") still reads: `publicNameOf` would answer
+  // "Servant" for it.
+  if (!unit || !(unit.name || unit.trueName || unit.classContainer)) return "";
+  return publicNameOf(unit, board, {});
+}
+
 export function publicNameOf(unit, board, viewer = {}) {
   // A legion's body is told apart by its number, which is no secret: *"Each
   // Hassan will be coded with a number (e.g. Hassan 1, Hassan 16, Hassan

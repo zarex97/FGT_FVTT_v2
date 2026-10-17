@@ -37,12 +37,12 @@ export async function postRevival(entry) {
   const escape = foundry.utils.escapeHTML;
   // The public name (#234): "Heracles is defeated and revived" named a True
   // Name on a card every player reads.
-  const { publicIdentityOf } = await import("./public-identity.mjs");
+  const { shownName } = await import("./public-identity.mjs");
   const { currentBoard } = await import("./board.mjs");
   const board = currentBoard();
   const nameOfUnit = (id) => {
     const actor = game.actors.get(id);
-    return escape(actor ? (publicIdentityOf(actor, board).name || actor.name) : id);
+    return escape(actor ? shownName(actor, board) : id);
   };
   const nameOfSource = (source) => {
     const region = canvas?.scene?.regions?.find((r) =>

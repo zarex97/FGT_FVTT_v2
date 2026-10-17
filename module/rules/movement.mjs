@@ -21,6 +21,7 @@ import { guardsOf, relationOf, sideOf } from "./relations.mjs";
 import { actionSourceFor, withinFootprint, dimensionOf, interiorOf, withinInterior } from "./platforms.mjs";
 import { partnersOf } from "./linked-group.mjs";
 import { resolveTargets } from "./targeting/resolve.mjs";
+import { shownNameOf } from "./identity.mjs";
 
 /** Effects that let a unit pass occupied panels and Master protection. */
 const IGNORES_BLOCKING = Object.freeze(["presenceConcealment", "hugeScale"]);
@@ -592,6 +593,7 @@ export function validatePath(path, unit, board) {
     // The leash, said as the leash: this read "occupied" over an empty panel
     // when Castor stepped three from Pollux (#209, live).
     const partner = leashPartner;
+    // fgt-name-ok: a Move refusal shown to the moving Unit's own player about that Unit
     reasons.push(`${unit.name ?? "This Unit"} must stay within ${unit.linkedGroup.leash} panels of ${partner.name ?? "its partner"}.`);
   } else if (destination && canPassThrough(destination, unit, board) && !canStopOn(destination, unit, board)) {
     // Only when the step itself was allowed: a panel refused above has said
@@ -863,7 +865,8 @@ export function pursuitVerdict(unit, path, board) {
   // not a speed, and a Spirit already adjacent has nowhere closer to go.
   return after <= before
     ? { ok: true }
-    : { ok: false, reason: `${unit.name ?? "This summon"} must Move towards ${prey.name ?? "its target"}.` };
+    // fgt-name-ok: a Move refusal shown to the moving Unit's own player about that Unit
+    : { ok: false, reason: `${unit.name ?? "This summon"} must Move towards ${shownNameOf(prey, board) || "its target"}.` };
 }
 
 /**
@@ -892,7 +895,8 @@ export function hatredVerdict(unit, path, board) {
   const ok = before > range ? after < before : after <= before;
   return ok
     ? { ok: true }
-    : { ok: false, reason: `${unit.name ?? "This Unit"} can only Move towards ${target.name ?? "the Unit she hates"}.` };
+    // fgt-name-ok: a Move refusal shown to the moving Unit's own player about that Unit
+    : { ok: false, reason: `${unit.name ?? "This Unit"} can only Move towards ${shownNameOf(target, board) || "the Unit she hates"}.` };
 }
 
 /**
@@ -927,7 +931,8 @@ export function decoyVerdict(unit, path, board) {
   const after = geo.chebyshev(path[path.length - 1], decoy.panel);
   return after <= before
     ? { ok: true }
-    : { ok: false, reason: `${unit.name ?? "This Unit"} cannot Move away from ${decoy.name ?? "the Decoy"}.` };
+    // fgt-name-ok: a Move refusal shown to the moving Unit's own player about that Unit
+    : { ok: false, reason: `${unit.name ?? "This Unit"} cannot Move away from ${shownNameOf(decoy, board) || "the Decoy"}.` };
 }
 
 /**

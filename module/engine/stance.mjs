@@ -34,6 +34,7 @@ export async function offerStanceTransition(unitId, at) {
   if (open.length === 0) return null;
 
   const picked = await chooseFor(actor, {
+    // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
     title: game.i18n.format("FGT.Stance.Transition.Title", { name: actor.name }),
     hint: game.i18n.localize(`FGT.Stance.Transition.Hint.${at}`),
     count: 1,

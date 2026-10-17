@@ -387,6 +387,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         img: actor.img,
         defaultImage: actor.system?.defaultImage ?? null,
         publicName: publicNameOf(unit, board, { id: game.user.id }),
+        // fgt-name-ok: the bar of the player's own Unit
         trueName: actor.name,
         isOwner: actor.isOwner,
       }),

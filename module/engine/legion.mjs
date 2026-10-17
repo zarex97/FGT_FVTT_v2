@@ -27,6 +27,7 @@ import { askOwner, chooseFor } from "./ask.mjs";
 import {
   bodyName, deployable, deployPanels, legionPrice,
 } from "../rules/linked-group.mjs";
+import { shownName } from "./public-identity.mjs";
 
 /**
  * The pool a body belongs to, and the actor that holds it.
@@ -121,6 +122,7 @@ export async function startLegion(servant, master, opening = 1) {
   const spec = servant.system?.linkedGroup?.legion;
   if (!spec || (spec.size ?? 0) <= 0 || !master) return [];
   const key = servant.id;
+  // fgt-name-ok: the legion's authored label; its bodies are numbered in public (#226)
   const label = spec.label || servant.name;
   const count = Math.max(1, Math.min(Math.floor(opening) || 1, spec.openingMax ?? 1, spec.size));
 
@@ -319,7 +321,7 @@ export async function deployBodies(key, panels) {
   }
   await syncMembers(key);
   await announce(found, game.i18n.format("FGT.Legion.Deployed", {
-    names: created.map((a) => a.name).join(", "),
+    names: created.map((a) => shownName(a)).join(", "),
     label: found.pool.label, remaining: found.pool.remaining, size: found.pool.size,
   }));
   return created;
@@ -378,7 +380,7 @@ export async function bodyFell(actor) {
   await worldIO().clearBody(actor.id);
   await syncMembers(found.key);
   await announce(found, game.i18n.format("FGT.Legion.Fell", {
-    name: actor.name, label: found.pool.label, remaining, size: found.pool.size,
+    name: shownName(actor), label: found.pool.label, remaining, size: found.pool.size,
   }));
   return { remaining };
 }
@@ -430,6 +432,7 @@ export async function payLegionPrice(user, formula, source) {
       hint: game.i18n.format("FGT.Legion.PickRemoved", { count: price.fromField, label: found.pool.label }),
       count: price.fromField,
       min: price.fromField,
+      // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
       options: living.map((a) => ({ id: a.id, name: a.name })),
     });
     const chosen = new Set((picked ?? []).filter((id) => living.some((a) => a.id === id)));

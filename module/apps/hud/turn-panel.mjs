@@ -19,6 +19,7 @@
 import * as budget from "../../engine/budget.mjs";
 import { remainingMovement, effectiveMov, segmentCheck } from "../../rules/movement.mjs";
 import { currentBoard, factionOfUser, faction as factionById } from "../../engine/board.mjs";
+import { shownName } from "../../engine/public-identity.mjs";
 
 /**
  * The turn panel's context: the acting faction, its budget, and the End Turn
@@ -59,7 +60,7 @@ export async function turnContext() {
     rows: budget.rows(combat, factionId),
     units: units.map((u) => ({
       id: u.id,
-      name: u.name,
+      name: shownName(u),
       moved: Boolean(u.turnState?.moved),
       attacked: Boolean(u.turnState?.attacked),
       movementLeft: remainingMovement(u),

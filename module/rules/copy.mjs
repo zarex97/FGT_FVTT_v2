@@ -101,6 +101,7 @@ export function copyCandidates(board, copier, { prefer = [] } = {}) {
       if (!canCopy(ability).ok) continue;
       out.push({
         unitId: unit.id,
+        // fgt-name-ok: the copy picker, the GM's (#204 reading 8)
         unitName: unit.name,
         ability,
         preferred: prefer.includes(Rank.parseOrNull(ability.rank)?.grade ?? ""),

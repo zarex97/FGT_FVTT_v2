@@ -86,6 +86,7 @@ export class CopyDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     const shown = this.#preferredOnly ? candidates.filter((c) => c.preferred) : candidates;
 
     return {
+      // fgt-name-ok: the copy picker, the GM's (#204 reading 8)
       copier: game.actors.get(this.#copierId)?.name ?? this.#copierId,
       slots: this.#slots,
       preferredOnly: this.#preferredOnly,
