@@ -116,7 +116,10 @@ describe("the three new effects", () => {
     // nobody; this assertion is the reason that was caught.
     const events = rules.flatMap((r) => (Array.isArray(r.event) ? r.event : [r.event]));
     expect(events).toEqual(["turnEnd", "actedTurnEnd", "roundEnd"]);
-    expect(rules[0].then[0]).toMatchObject({ key: "Heal", percentOfMax: 10 });
+    // The percent is the instance's own since #234 reading 6, 10 when the
+    // entry states none -- which Pale Rider's does: his Regen still heals 10%.
+    expect(rules[0].then[0]).toMatchObject({ key: "Heal", percentOfMax: "@magnitude" });
+    expect(effect("regen").defaultMagnitude).toBe(10);
   });
 
   it("Dmg Cut is a flat negation that spends one of three uses", () => {

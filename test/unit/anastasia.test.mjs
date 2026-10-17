@@ -293,7 +293,9 @@ describe("her passive abilities", () => {
 
     const props = rules.filter((r) => r.key === "AttackProperty").map((r) => r.property);
     expect(props).toContain("pierce");
-    expect(props).toContain("ignoreDef");
+    // `ignoresDefUp`, the name the attack spec reads. Authored `ignoreDef`, it
+    // was granted and read by nobody (#234; the validator now refuses it).
+    expect(props).toContain("ignoresDefUp");
 
     const evade = rules.find((r) => r.key === "CheckModifier");
     expect(evade).toMatchObject({ check: "evade", direction: "imposed", value: 4 });

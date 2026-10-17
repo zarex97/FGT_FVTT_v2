@@ -1,0 +1,21 @@
+# Arjuna's Clairvoyance (Bowman) -- char_orig_sheets/Copia de Arjuna.md
+#
+# "Applies Range Up (Clairvoyance) for 1◈ Turns, Range is increased by 1 panel,
+# does not stack."
+#
+# Its OWN effect, as Range Up (Hawkeye) is EMIYA's (#208 reading 14): a named
+# variant adds to the other Range Ups (#234 reading 5). "Does not stack" is with
+# itself, and unlike Hawkeye's sheet his says nothing of extending: reapplying
+# it resets it to its new duration.
+schema: 1
+id: rangeUpClairvoyance
+name: "Range Up (Clairvoyance)"
+description: "Range is increased by X panels. Does not stack with itself; reapplying it refreshes its duration."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: RangeDelta
+    value: "@magnitude"

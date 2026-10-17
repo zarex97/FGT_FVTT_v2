@@ -26,7 +26,8 @@ passiveRules:
   # `predicate` is evaluated at collection time against Karna alone -- which
   # would make the element vanish, silently, before any board exists.
   #
-  # INERT UNTIL ARJUNA IS AUTHORED, and deliberately so: Ch. 45's DECISION is
+  # Live since Arjuna was authored (#234, 2026-10-16; his half is
+  # `arjuna-fated-rivals`). Until then inert, deliberately: Ch. 45's DECISION is
   # that a cross-Servant reference resolves by a stable slug and produces a
   # warning rather than an error, because a match legitimately may not include
   # the Servant named. `target:trueName:` is not a roll option; the identity is

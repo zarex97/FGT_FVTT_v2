@@ -9,17 +9,23 @@
 #
 # Of MAXIMUM, not of current -- the same reading `skill-use.mjs`'s `heal` phase
 # already makes for Medea, and the reason `Heal` gained `percentOfMax`.
+#
+# The percent is the instance's own (#234 reading 6): Arjuna's Awarded Hero
+# states 15, Van Gogh's two Regens 5, Pale Rider's none, so 10. Written as a
+# literal 10 until 2026-10-16, every Regen healed 10% and Van Gogh's 5% was a
+# Silent Drop at the switch.
 schema: 1
 id: regen
 name: "Regen"
 description: |
-  Health is restored by 10% of its maximum value at the end of the Unit's Turn, the end of any
+  Health is restored by X% (10% unless stated) of its maximum value at the end of the Unit's Turn, the end of any
   Turn the Unit Acts, and at the end of the Round.
 polarity: buff
 volatility: nonVolatile
 valence: defensive
 stacking: noneRefresh
 baseChance: 100
+defaultMagnitude: 10
 rules:
   - key: OnEvent
     # `event`, which may be an ARRAY -- `normalizeHandler` reads `el.event`
@@ -29,7 +35,7 @@ rules:
     event: [turnEnd, actedTurnEnd, roundEnd]
     automatic: true
     then:
-      - { key: Heal, percentOfMax: 10 }
+      - { key: Heal, percentOfMax: "@magnitude" }
 notes: |
   "Does not fire on the turn it ends" (Appendix A, and Ch. 15 generally) is enforced by
   the engine, not by this file: a handler contributed by an effect carries that effect's

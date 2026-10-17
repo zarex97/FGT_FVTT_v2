@@ -4717,6 +4717,42 @@ lands in N Turn(s)."* Ch. 21.
 Assassin, and the offer named the DU the same way; the Enki lines read `actor.name` too. All ask `publicIdentityOf`.
 Ch. 30.
 
+### OK. A granted attack property ignored its condition — **fixed** (#234, test)
+
+**Reached: Agni RF.4.fire.** `AttackProperty` stores its predicate deferred, and no reader ever answered it:
+Anastasia's Watermelon, *"at a Range of 1 to 2 while inflicted with Blind"*, granted Pierce to every Attack she made,
+and Agni's Fire, *"Normal Attacks"*, would have reached Pashupata. The declaration reads the unconditional grants; the
+conditional ones are decided per defender in `attackFacts` (`conditionalGrants`). Ch. 10.
+
+### OL. Watermelon granted a property nobody reads — **fixed** (#234, test)
+
+**Reached: OK.** `property: ignoreDef` beside every reader's `ignoresDefUp`: stored, read by nobody, validated clean.
+The names are a closed set now (`tools/lib/content.mjs#ATTACK_PROPERTIES`). Ch. 10.
+
+### OM. Every Regen healed 10% — **fixed** (#234, test)
+
+**Reached: AH.2.** `regen.yml` healed a literal 10: Van Gogh's two `magnitude: 5` Regens healed 10%. The percent is
+the instance's, 10 by `defaultMagnitude`, read by landing and by the projection for an instance stating none. Ch. 15,
+Appendix A.
+
+### ON. A heal at a Turn's or a Round's end was said nowhere — **fixed** (#234, live)
+
+**Reached: AH.2.when.** Arjuna went 1089 -> 1250 at his Turn's end under a card naming only Kavacha's toll: the card
+read Health deltas, a heal is its own intent, and a Round's end posted no Health card. Both say heals as what they
+gave (*"Archer regains 66 Health (Regen)."*, clamped at the maximum). Ch. 25.
+
+### OO. Four more cards named True Names — **fixed** (#234, live)
+
+**Reached: FR.cs.** *"…Suspend Skill, on Arjuna's Fated Rivals of the Mahabharata."* on a public card; the Turn and
+Round end cards, the periodic card, the revival card and a compulsion's culprits read `actor.name` the same way. All
+ask `publicIdentityOf`. Ch. 30.
+
+### OP. A choice's option drew over the next one — **fixed** (#234, live)
+
+**Reached: FR.cs.** In the Command Spell list each option kept Foundry's one-line button height and its detail line
+overlapped the option below: a click on "Suspend Skill" picked Reduce Cooldown (closed unspent). The option is as
+tall as what it says (`styles/src/_apps.scss`).
+
 ---
 
 ---
@@ -6357,3 +6393,43 @@ and NP Seal on him for a moment; a strike record owned by a defeated Unit for th
 - **An attacker's card shows "N effect(s) applied" for a debuff he landed**, by `cardFor`'s rule that only the
   defender reads names: as designed, noted because Bab-ilu's 20 rows are a reason to revisit it.
 - **The 13x13 spares were pressed at the activation's targeting**, not at the landing: the stand-ins were gone by then.
+
+## 46.35 Arjuna — the Servant who is Karna's mirror
+
+**74 Clauses: 66 Pressed or Observed live, 8 pressed in the engine** (#234, live 2026-10-17, PC world `fgt2026`,
+scene *Arjuna Audit*). 18 readings ruled 2026-10-16. Nearly all of him is Karna's: Fated Rivals, Magic Resistance C,
+Mana Burst (Flames), Flash of the Sun God for Roar of the Flame God, Brahmastra's Aim and Kundala's combined base for
+Agni Gandiva; with Kiritsugu's Independent Action A, Proto Gil's Fixed Divine Damage, EMIYA's Evade−, Van Gogh's Area
+CritUp, Raikou's counted buff, Karna's Divinity count on Enkidu's chance ladder.
+
+**Why he finds what he finds.** Built almost wholly from others' pieces, he pressed those pieces again from a new
+side: a buff granting an element by condition found that no condition on a granted property was ever read; a Regen
+of 15 found that every Regen was 10; a Command Spell spent on his own Skill found the card naming him.
+
+### 46.35.1 What he cost the engine
+
+| Finding | Where |
+|---|---|
+| The Range wall: an area *"within Range"* keeps only panels in Range (readings 13, 16–18) | `rules/targeting/resolve.mjs#withinAnchorRange`, the one `panels` list |
+| Magic Resistance halved (reading 10) | damage block `magicResistanceFactor`, pipeline stage 11 |
+| Regen's own percent (reading 6) | `effects/regen.yml`, `defaultMagnitude`, `snapshot.mjs#instanceMagnitude` |
+| A conditional granted element (reading 15) | `engine/attack.mjs#conditionalGrants` |
+| Range Up (Clairvoyance), Area CritUp (Awarded), Agni (readings 5, 7, 8) | `effects/range-up-clairvoyance.yml`, `area-crit-up-awarded.yml`, `agni.yml` |
+| Fated Rivals' second half, Karna's live since #206 | `abilities/arjuna-fated-rivals.yml` |
+| General: §46.4-OK to OP | |
+
+### 46.35.2 What was staged
+
+The war through `commitWar` from the GM (the wizard's draft shape): Arjuna and Medusa against Karna, Medea, Proto Gil
+and Asterios. Positions by forced moves; his Luck at 15; Agni Gandiva's clock at 0 twice (to read the slot) and
+restored; a Range Up (Clairvoyance) before the second Clairvoyance; Def Up 50 on Medusa so the ally Pashupata caught
+lived. Asterios fell to Pashupata's Death on a natural 10.
+
+### 46.35.3 Left open
+
+- **The targeting preview and the refusal banner name True Names** (*"Asterios cannot be targeted: the attacker is
+  compelled to attack another unit"*, *"Medea 640 – 820"*): older than him (§46.34.3); a sweep of every remaining
+  `actor.name` reader (`dimension.mjs`'s offers among them) is owed.
+- **Agni Gandiva's Burn landed only in the engine**: live, Karna is Burn-immune and was the one Magic Resistance
+  target in reach.
+- **"An ability it depends on is still cooling."** names no ability; Agni Gandiva's slot could say Mana Burst (Flames).

@@ -1,0 +1,50 @@
+# Arjuna, char_orig_sheets/Copia de Arjuna.md
+# The Death ladder is Karna's Divinity count (`vasaviActivated`: one row per
+# grade cleared, E 1 ... A 5, EX 6) on Enkidu's `chanceModifiers` (#234
+# reading 11). "Divine" with no Divinity adds nothing.
+schema: 1
+id: arjuna-pashupata
+name: "Pashupata: Raised Arm of the Destruction God"
+isNP: true
+rank: "A+"
+npTags: [antiUnit]
+kind: noblePhantasm
+slug: pashupata
+cooldown: "7◈+⅓◈"
+description: |
+  Base Attack (MAG) is used. Hits a 5x5 panel area within Arjuna's Range for 4x damage plus 100. Has a
+  30% chance of inflicting @effect[death]{Death} on the DU. For every Rank in Divinity the DU has, the chance
+  of inflicting Death is increased by 10% (example: Divinity Rank C, 30% + 30% = 60%). Then, inflicts
+  @effect[defDwn]{Def Dwn} on all affected Units for 1◈ Turns, all damage received is increased by 40%.
+  Cooldown: 7◈+⅓◈ Turns.
+targeting:
+  # "Within Arjuna's Range": his current one, Range Ups included, and every
+  # panel of the 5x5 inside it (the Range wall, #234 reading 13).
+  anchor: { kind: withinRange }
+  shape: { kind: square, size: 5 }
+  # No relation named: every Unit in it, allies too, but never Arjuna
+  # (#234 reading 12, as Karna's Kundala spares Karna).
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  limits: { requiresZon: true }
+  isDamagingAoE: true
+damage:
+  component: mag
+  multiplier: 4
+  flatBonus: 100
+phases:
+  - kind: damage
+  - kind: applyEffects
+    target: reuse
+    effects:
+      # Each Unit hit rolls its own Death (reading 12).
+      - id: death
+        chance: 30
+        chanceModifiers:
+          - { predicate: ["target:skillRank:divinity:gte:E"], value: 10, source: "Divinity E" }
+          - { predicate: ["target:skillRank:divinity:gte:D"], value: 10, source: "Divinity D" }
+          - { predicate: ["target:skillRank:divinity:gte:C"], value: 10, source: "Divinity C" }
+          - { predicate: ["target:skillRank:divinity:gte:B"], value: 10, source: "Divinity B" }
+          - { predicate: ["target:skillRank:divinity:gte:A"], value: 10, source: "Divinity A" }
+          - { predicate: ["target:skillRank:divinity:gte:EX"], value: 10, source: "Divinity EX" }
+      # "Then": after the Death roll. No NP figure: 40 against an NP too.
+      - { id: defDwn, magnitude: 40, duration: "1◈" }

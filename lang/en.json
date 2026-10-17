@@ -721,6 +721,7 @@
   "FGT.Revival.Card": "{name} is defeated and revived by {source}, with {amount} Health.",
   "FGT.Revival.UnknownSource": "an effect",
   "FGT.TurnReport.Title": "End of the Turn",
+  "FGT.TurnReport.RoundTitle": "End of the Round",
   "FGT.TurnReport.Loses": "{who} loses {amount} Health ({source}).",
   "FGT.TurnReport.Gains": "{who} regains {amount} Health ({source}).",
   "FGT.TurnReport.ModeEnded": "{ability} ends on {who} ({source}).",

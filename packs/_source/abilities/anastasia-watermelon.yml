@@ -40,7 +40,7 @@ passiveRules:
     property: pierce
     predicate: ["self:effect:blind", "attack:range:lte:2"]
   - key: AttackProperty
-    property: ignoreDef
+    property: ignoresDefUp
     predicate: ["self:effect:blind", "attack:range:lte:2"]
 
   # M4. `direction: imposed` is the axis `engine/attack.mjs:2517` already merges

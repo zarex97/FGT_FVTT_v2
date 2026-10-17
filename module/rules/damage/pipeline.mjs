@@ -945,17 +945,23 @@ function stage11Resistance(s) {
   const ruling = variant ?? mr;
   if (variant) s.note("resistance", `${variant.source ?? "a variant"}: this attack meets the weaker threshold`, "defender");
   const mrRank = ruling.rank instanceof Rank ? ruling.rank : Rank.parseOrNull(ruling.rank);
+  // *"Effect of Magic Resistance is halved"* (Agni Gandiva, #234 reading 10):
+  // a Resistance that would negate takes that share of the MAG, one that cuts a
+  // percent cuts that share of its percent. 1 everywhere else.
+  const factor = typeof s.ctx.attack?.magicResistanceFactor === "number" ? s.ctx.attack.magicResistanceFactor : 1;
+  const scaled = factor === 1 ? "" : ` × ${factor} (this attack)`;
   if (Rank.gte(mrRank, attackRank, false)) {
-    s.contribute("magicResistance", -s.mag, `negated: MR ${mrRank} ≥ attack ${attackRank}`, "defender");
-    s.mag = 0;
-    s.flags.negatedBy = "Magic Resistance";
+    const lost = s.mag * factor;
+    s.contribute("magicResistance", -lost, `negated: MR ${mrRank} ≥ attack ${attackRank}${scaled}`, "defender");
+    s.mag -= lost;
+    if (factor === 1) s.flags.negatedBy = "Magic Resistance";
   } else {
-    const pct = ruling.percent ?? lookupNumber("magicResistancePercent", mrRank);
+    const pct = (ruling.percent ?? lookupNumber("magicResistancePercent", mrRank)) * factor;
     const lost = s.mag * (pct / 100);
     s.mag -= lost;
     // An attacker with no MAG Rank -- a Sphinx, a summon -- is named as such;
     // the row read "attack null" (#189).
-    s.contribute("magicResistance", -lost, `−${pct}% MAG (MR ${mrRank} < attack ${attackRank ?? "with no MAG Rank"})`, "defender");
+    s.contribute("magicResistance", -lost, `−${pct}% MAG (MR ${mrRank} < attack ${attackRank ?? "with no MAG Rank"})${scaled}`, "defender");
   }
   s.end(11);
 }

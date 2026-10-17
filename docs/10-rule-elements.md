@@ -203,6 +203,8 @@ With that, `KNOWN_RULE_DROPS` is empty: every key inside every rule element reac
 
 **`AttackProperty` carries a string, and `DamageModifier` its element** (#195). Tenmōkaikai grants `AttackProperty element lightning` beside `elementFraction 0.5`; the executor kept only numbers and booleans. `DamageModifier` passes `element` through, which an `elementDefUp`/`elementAtkUp` needs for stage 4b to match it (Ch. 22).
 
+**An `AttackProperty`'s predicate is decided per defender** (#234). A predicate on one is about the attack (Watermelon's *"at a Range of 1 to 2 while inflicted with Blind"*, Agni's Normal Attacks not made with Mana Burst), which the declaration cannot answer: it knows no defender and no Range. The declaration reads only the unconditional grants (`attack.mjs#unconditional`); `attackFacts` adds the conditional ones whose predicate this attack on this defender meets (`conditionalGrants`), for `pierce`, `ignoresDefUp`, `invulnFactor` and a granted `element`. Before it, the predicate was read by nobody: Watermelon's Pierce reached every Attack Anastasia made, Blind or not, at any Range, and Agni would have made Pashupata Fire. **The property names are a closed set** (`tools/lib/content.mjs#ATTACK_PROPERTIES`: `pierce`, `ignoresDefUp`, `invulnFactor`, `element`, `elementFraction`); the validator refuses any other. Watermelon granted `ignoreDef`, which no reader asked for, so its Ignore Def never applied.
+
 **Two elements for Proto Gil (#232).** `HealingReceived {value, exceptSources}` changes the healing its bearer
 receives, in percent, read at the one door every heal passes (`engine/applier.mjs#resolveHealing`): Heal Dwn
 is −X sparing the Home Base, Drowning −100 sparing nothing. `FollowUpAttack {predicate, move, lockReaction}` is
