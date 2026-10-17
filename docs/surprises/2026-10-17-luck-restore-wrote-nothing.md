@@ -3,7 +3,8 @@ id: 2026-10-17-luck-restore-wrote-nothing
 found: live press
 kind: unknown-value-falls-to-default
 status: fixed
-reviewed: false
+reviewed: true
+pattern: unknown-value-falls-to-default
 ---
 **Expected:** Player1 pressed Lethal Gunfire Suppression at Luck 19/22: *"Restore 4 Luck"* makes it 22.
 **Actual:** The card read *"Luck 19 (no change)"*; Luck stayed 19. Atk Up and Suppression landed.

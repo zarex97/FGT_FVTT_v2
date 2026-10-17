@@ -3,7 +3,8 @@ id: 2026-10-17-instakill-rode-a-hit-for-zero
 found: retraction
 kind: passes-for-the-wrong-reason
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** Mystery Bisection's *"35% chance of inflicting Instakill if damage was dealt"* rolls only on damage.
 `kiritsugu.test.mjs` said the rider gate already refused a hit that dealt nothing, so no `requiresDamage` was needed.

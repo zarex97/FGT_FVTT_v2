@@ -3,7 +3,8 @@ id: 2026-10-17-counter-rung-ignored-the-shot
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Kiritsugu's shot *"cannot be Reacted to unless the AU's AGI Rank is higher"*: Karna (lower) gets no
 Block, no Evade and no Counter.

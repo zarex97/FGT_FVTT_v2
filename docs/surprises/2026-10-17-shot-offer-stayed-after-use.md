@@ -3,7 +3,8 @@ id: 2026-10-17-shot-offer-stayed-after-use
 found: retraction
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** One shot per Attack (#243 reading 8): once Kiritsugu fires, the rung no longer offers it.
 **Actual:** Read building reading 7: the attacking-reaction branch resolved the shot and returned the state unchanged,

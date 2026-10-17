@@ -3,7 +3,8 @@ id: 2026-10-17-window-offered-what-it-refused
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** A window offers only what its owner may use, and a card says a Unit used what it used.
 **Actual:** *"Start of the Combat Phase"* offered Reinforcement under the spent cap; picked, the use gate refused it,
