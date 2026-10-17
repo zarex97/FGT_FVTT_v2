@@ -65,6 +65,7 @@ const NOT_A_SYSTEM_FIELD = {
   aria: "an ARIA attribute set, not a document",
   version: "game.system.version",
   fgt: "a socket message's system namespace",
+  phaseTargeting: "the usage spec's projection of each phase's targeting (`usageSpecFor`), read by Presence Concealment clause 7 (#243)",
 };
 
 /**

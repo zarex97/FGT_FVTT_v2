@@ -89,7 +89,7 @@ it. **Survival floors cap the damage** (`attack.mjs#survivalFloor`): CS Survive 
 
 **A failed automatic Evade may still Block** (#193 reading 9). When an `autoEvade` fails — Trofa's 50% against a Noble Phantasm — the state carries `blockAfterAutoEvade`, and after Lucky Evasion the escape rung offers Block beside accepting: `s23_acceptOrEscape:block` → `damage`, with `reaction: block` for stage 14.
 
-**One Counter per target after a multi-instance attack** (#195 reading 17). `counterAvailable` is false for every instance but the last (`instanceIndex < instanceCount - 1`), so Dohatsu Tenshou's five Processes offer one Counter, after the Noble Phantasm.
+**The Counter rung reads the attack's own refusals** (#243): `counterAvailable` adds the Process's `forbiddenReactions` to the Units' own, so Kiritsugu's shot, which refuses a Counter unless its target is faster, offers none. **One Counter per target after a multi-instance attack** (#195 reading 17). `counterAvailable` is false for every instance but the last (`instanceIndex < instanceCount - 1`), so Dohatsu Tenshou's five Processes offer one Counter, after the Noble Phantasm.
 
 **A Counter is its own fan-out** (#195). A Counter shares its parent's `groupId` (one Combat Phase), and `siblingMessages` now also matches the attacker. Grouped by `groupId` alone, the parent's first message was the counter's "first of group": Raikou's Mana Burst Counter never paid its own Dodge, and the counter could have read the parent's Cover and window picks.
 

@@ -213,7 +213,12 @@ export function canUseWhileConcealed(item, { targetsEnemy = null } = {}) {
   if (sys.isAttackSkill || sys.damage) return { ok: true };
   if (sys.isNP) return { ok: true };
 
-  const aimed = targetsEnemy ?? touchesEnemy(sys.targeting);
+  // The ability's own targeting, and every phase's that reaches further:
+  // Affection of the Holy Grail targets only Kiritsugu and inflicts Debuff
+  // ResDwn on *"all Units within a 2 panel area"* from a phase of its own, and
+  // was usable while concealed (#243, live).
+  // (`phaseTargeting`, which `usageSpecFor` projects: the gate reads the spec.)
+  const aimed = targetsEnemy ?? (touchesEnemy(sys.targeting) || (sys.phaseTargeting ?? []).some((t) => touchesEnemy(t)));
   if (!aimed) return { ok: true };
   return { ok: false, reason: "presenceConcealment" };
 }

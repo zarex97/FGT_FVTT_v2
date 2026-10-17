@@ -1190,7 +1190,17 @@ function stage16AbsorptionAndClamp(s) {
   }
 
   if (has(d, "invuln") && !s.ctx.attack?.pierce) {
-    // The NP halving already happened at stage 15; what remains is negation.
+    // *"Against a Noble Phantasm, damage is reduced by 50% instead"* (Appendix
+    // A). This said "the NP halving already happened at stage 15", and nothing
+    // there or anywhere read Invuln: an NP met no Invuln at all, 300 in, 300
+    // taken (#243, found building reading 11). Penetration halves this cut as
+    // it halves the negation: 50% becomes 25% (#243 reading 11).
+    if (s.isNP && s.total > 0) {
+      const factor = s.ctx.attack?.invulnFactor ?? 0;
+      const removed = -s.total * 0.5 * (1 - factor);
+      s.contribute("invuln", removed, factor > 0 ? "Invuln (halved)" : "Invuln", "defender");
+      s.addProportional(removed);
+    }
     if (!s.isNP) {
       // Ordinarily total. Kiritsugu's Penetration is the first clause in the
       // game that WEAKENS Invuln rather than bypassing it -- *"halves the

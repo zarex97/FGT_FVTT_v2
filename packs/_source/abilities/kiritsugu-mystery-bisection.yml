@@ -32,11 +32,19 @@ damage:
   component: str
 phases:
   - kind: applyEffects
-    # AFTER the damage, and gated on it: "if damage was dealt".
+    # AFTER the damage, and gated on HURT: "if damage was dealt" -- against the
+    # hit-not-hurt rule every other rider follows (#243 reading 15). Its own
+    # phase, so the gate takes the Instakill and not the mark.
     when: afterDamage
+    requiresDamage: true
     target: reuse
     effects:
       - { id: instakill, chance: 35 }
+  - kind: applyEffects
+    # "Then, apply the 'Kiritsugu' debuff": on any hit (#243 reading 16).
+    when: afterDamage
+    target: reuse
+    effects:
       # "this effect ignores Debuff Resist and Debuff Immune effects" -- the
       # immunity half rides the effect (`bypassesImmunity`), the resistance half
       # is named here, because resistance is a property of the APPLICATION.
