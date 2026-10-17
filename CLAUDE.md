@@ -52,7 +52,7 @@ One line per pattern `/review-surprises` confirmed, each linking its file in `do
 - **Unknown value falls to default.** When content gains a value, find the executor's switch and its default branch: an unknown value refuses out loud, and the guard walks every nesting where it can sit. [pattern](docs/surprises/patterns/unknown-value-falls-to-default.md)
 - **Press as a player.** Press every player-facing button as Player1, not only as the GM; every write a press makes runs on the active GM, the owner only when no GM is connected. [pattern](docs/surprises/patterns/live-client-only.md)
 - **Rule word read one way.** When a sheet phrase can be read two ways, grep the same document's other uses of the term, then put both readings to the user before building; a list two rules share is a reading too, and so is an event's name, read against the clause that listens to it. [pattern](docs/surprises/patterns/rule-word-read-one-way.md)
-- **Shared working copy.** When another session may be live in a directory, work in your own worktree and never switch its branch; before blaming a red test, check `git status` for files that are not yours. [pattern](docs/surprises/patterns/shared-working-copy.md)
+- **Shared working copy.** Work in the main checkout on a branch, so Foundry runs what you build; no worktree. Before blaming a red test or committing, run `git status` and name the files that are not yours. [pattern](docs/surprises/patterns/shared-working-copy.md)
 
 ### Two workplaces
 
