@@ -10,4 +10,4 @@ reviewed: false
 so the same rung still listed *"Lethal Gunfire Suppression: Return Fire"*, pressable again.
 **Cause:** `module/engine/attack.mjs:1499 @ a27e058f` withdrew offers only on the free and the non-attacking paths;
 the shot's path produced an Attack and told the rung nothing.
-**Fix:** `module/engine/attack.mjs:1514 @ uncommitted` removes the shot's offer and saves the rung.
+**Fix:** `module/engine/attack.mjs:1514 @ 5101f86f` removes the shot's offer and saves the rung.

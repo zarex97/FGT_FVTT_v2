@@ -11,6 +11,6 @@ Magecraft Passive 2 extends Suppression by 1◈, to tick 7.
 **Cause:** `packs/_source/abilities/kiritsugu-magecraft.yml:45 @ a27e058f` named `DurationExtension`, a standing
 element, as a handler action; `module/engine/scheduler.mjs#dispatch` knows `ExtendEffect` and logged
 "unhandledAction". `kiritsugu.test.mjs` asserted the authored key, so it passed.
-**Fix:** `packs/_source/abilities/kiritsugu-magecraft.yml:48 @ uncommitted` names `ExtendEffect`;
-`module/engine/scheduler.mjs:1521 @ uncommitted` exports `ACTION_KINDS`, and a test walks every `OnEvent` in the
+**Fix:** `packs/_source/abilities/kiritsugu-magecraft.yml:48 @ 5101f86f` names `ExtendEffect`;
+`module/engine/scheduler.mjs:1521 @ 5101f86f` exports `ACTION_KINDS`, and a test walks every `OnEvent` in the
 content against it.

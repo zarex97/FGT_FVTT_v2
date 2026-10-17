@@ -12,5 +12,5 @@ drew; the attacker at 1 Health kept its Attack.
 **Cause:** `module/engine/combat-process.mjs:381 @ a27e058f` asked `options.length === 0` of the three standing rungs,
 which never filters `forbiddenReactions`; the card (`cards.mjs#promptOptions`) does. Two readers of "what is left on
 this rung", one of them dead.
-**Fix:** `module/engine/combat-process.mjs:390 @ uncommitted` asks what is left after `forbiddenReactions`: only "Do
+**Fix:** `module/engine/combat-process.mjs:390 @ 5101f86f` asks what is left after `forbiddenReactions`: only "Do
 nothing" and no ability is no question.
