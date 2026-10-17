@@ -279,6 +279,12 @@ function abilityCommon() {
     // `damage`, or it catches nobody / inherits the primary's numbers), and a
     // rigid schema would reject a shape a module introduces.
     aftermath: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+    // A Noble Phantasm that LANDS LATER: `{after, mark}`. Proto Gil's Enki is
+    // the first -- *"7◈ Turns after Enki was Activated, it hits a 13x13 panel
+    // area centered on the 'Utnapishtim' panel"* (#232). Read by
+    // `engine/attack.mjs#resolveAttack`, which records the strike instead of
+    // declaring it (`engine/schedule.mjs`).
+    schedule: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     element: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
 
     // Whether Scáthach may copy this (Ch. 17). Authored per ability because

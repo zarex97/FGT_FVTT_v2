@@ -1,0 +1,15 @@
+# Appendix A: "LUC Dwn — Check rolls +X." The mirror of `luc-up.yml`: a higher
+# Luck roll is worse. Bab-ilu's 13th row is the first source (#232).
+schema: 1
+id: lucDwn
+name: "LUC Dwn"
+description: "Luck Check rolls are increased by X."
+polarity: debuff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: CheckModifier
+    check: luck
+    value: "@magnitude"

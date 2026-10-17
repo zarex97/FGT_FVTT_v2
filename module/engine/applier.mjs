@@ -83,7 +83,7 @@ export async function applyIntents(intents, { io, canWrite, isGM = false, source
   // That is the same "two implementations of one rule" defect this file's own
   // header warns about.
   const plan = planApplication(
-    await resolveElements(await resolveEffects(await resolveRemovals(intents), { process })),
+    await resolveHealing(await resolveElements(await resolveEffects(await resolveRemovals(intents), { process }))),
     { canWrite, isGM },
   );
   if (plan.problems.length > 0) {
@@ -274,6 +274,49 @@ async function resolveElements(intents) {
     }
   }
   return out;
+}
+
+/**
+ * Scale every heal by what its receiver's `HealingReceived` says.
+ *
+ * The one door every heal passes, whatever made it: a Skill's phase, a field,
+ * a periodic tick, an Avalon, the Home Base. Heal Dwn (#232 reading 18) is
+ * *"Healing received −X%"*, sparing the Home Base as Heal Up's catalogue row
+ * does; Drowning's *"Health cannot be restored"* is −100 (reading 19). A
+ * revival is not a heal: Guts restores a defeated Unit, which Drowning does not
+ * speak to. Rounded down, never below 0.
+ *
+ * @param {Intent[]} intents
+ * @returns {Promise<Intent[]>}
+ */
+async function resolveHealing(intents) {
+  const heal = (i) => i.t === "heal" && !i.revival && i.unitId && i.amount > 0;
+  if (!intents.some(heal)) return intents;
+  if (typeof game === "undefined" || !game?.actors) return intents;
+  const { unitOf, currentBoard } = await import("./board.mjs");
+  const board = currentBoard();
+  return intents.map((intent) => {
+    if (!heal(intent)) return intent;
+    const actor = game.actors.get(intent.unitId);
+    if (!actor) return intent;
+    const percent = healingPercent(unitOf(actor, board), intent.source);
+    if (percent === 0) return intent;
+    return { ...intent, amount: Math.max(0, Math.floor(intent.amount * (1 + percent / 100))), healingScaled: percent };
+  });
+}
+
+/**
+ * The summed change to a heal from this source, in percent, floored at −100.
+ *
+ * @param {object} unit a board unit
+ * @param {string|null} source the heal's source
+ * @returns {number}
+ */
+export function healingPercent(unit, source) {
+  const total = (unit?.healingReceived ?? [])
+    .filter((m) => !(m.exceptSources ?? []).includes(source))
+    .reduce((sum, m) => sum + (Number(m.value) || 0), 0);
+  return Math.max(-100, total);
 }
 
 /**
@@ -596,6 +639,11 @@ async function writeGroup(group, io, { moment = null } = {}) {
     case "consumeUse":
       for (const i of intents) await io.consumeUse(unitId, i.defId, i.count);
       break;
+    case "scheduleDelta": {
+      const { shiftStrikes } = await import("./schedule.mjs");
+      for (const i of intents) await shiftStrikes(unitId, i.delta, i.source ?? null);
+      break;
+    }
     case "suspendSkill":
       for (const i of intents) await io.suspendSkill(unitId, i.abilityId, i.untilTick);
       break;

@@ -55,6 +55,8 @@ Effect expiry runs **after** the final periodic tick so an effect ending this tu
 
 After those ten, and before `globalTurn` advances, the hook switches off every mode whose duration was *"this Turn"* (`engine/modes.mjs#turnEndModeIntents`, Ch. 24): Riding's Active is a mode, its `MovDelta` states `duration: "this turn"`, and a derived delta lasts as long as its source, `system.active` (#116).
 
+**Scheduled strikes land after terrain expires** (#232). An ability with `schedule: {after, mark}` (Enki) pays and declares its use when activated, then stores a strike on the Combat (`fgt.scheduledStrikes`) with an absolute fire tick. At each boundary, after `expireTerrain`, `engine/schedule.mjs#runScheduledStrikes(tick)` cancels a strike whose owner is defeated and fires one whose `expiryReached` is met, through `resolveAttack` with `placement.scheduled`. Each strike is claimed in memory before the await. `ScheduleDelta` (Golden Rule) moves the fire tick and posts a line.
+
 ### The begin-of-turn sequence
 
 `beginTurn` logs the boundary once and fires `turnStart` for every unit in the match (Shock can roll on anyone's turn start, not just its owner's) (`module/engine/scheduler.mjs:149-167`). It also fires `turnStart` for terrain.

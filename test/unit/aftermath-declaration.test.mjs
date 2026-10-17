@@ -78,8 +78,12 @@ describe("declareAftermath is a second resolution, not a second declaration", ()
 });
 
 describe("the primary path still declares the use", () => {
-  it("resolveAttack's own call does not pass `declaresUse`", () => {
+  // One exception, and it is not a second declaration either: a scheduled
+  // strike LANDING (Enki, #232). Its use was its activation, which declared it
+  // (`engine/schedule.mjs#scheduleStrike` raises `abilityUsed`); the landing is
+  // the same use resolving later, as an aftermath is a second resolution.
+  it("resolveAttack's own call declares it, but for a scheduled strike landing", () => {
     const resolve = body("export async function resolveAttack");
-    expect(resolve).not.toMatch(/declaresUse/);
+    expect(resolve.match(/declaresUse:[^,\n]*/g) ?? []).toEqual(["declaresUse: !placement?.scheduled"]);
   });
 });

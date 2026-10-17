@@ -1,0 +1,17 @@
+# Proto Gil, char_orig_sheets/Copia de Proto Gil.md (#232)
+#
+# "When used, the panel which Proto Gil was standing on gains the
+# 'Utnapishtim' mark." The panel Enki lands on 7◈ later, centre of its 13x13
+# (`engine/schedule.mjs`). A mark, not an obstacle: undamageable, shared with
+# whoever stands there (Proto Gil himself, the moment it appears), and gone
+# when Enki lands or is cancelled.
+schema: 1
+id: utnapishtim
+name: "Utnapishtim"
+type: structure
+attributes: [structure, mark]
+baseHealth: null
+undamageable: true
+mov: 0
+range: { panels: 0 }
+sharesPanel: true

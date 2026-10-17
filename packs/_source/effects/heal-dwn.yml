@@ -1,0 +1,18 @@
+# Appendix A: "Heal Dwn — Healing received −X%", which, as Heal Up's row says,
+# does not apply to Home Base or Command Spell healing unless stated (#232
+# reading 18). A Command Spell's heal is a Health change, not a heal, so it is
+# never scaled; the Home Base's is spared by name. Bab-ilu's 17th row is the
+# first source. Read at `engine/applier.mjs#resolveHealing`.
+schema: 1
+id: healDwn
+name: "Heal Dwn"
+description: "Healing received is reduced by X%. Does not affect Home Base or Command Spell healing."
+polarity: debuff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: HealingReceived
+    value: "-@magnitude"
+    exceptSources: ["Home Base"]

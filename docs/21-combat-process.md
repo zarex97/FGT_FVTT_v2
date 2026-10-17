@@ -147,3 +147,15 @@ The damage was received as it landed, before anything the attack inflicts "then"
 the defender before `applyAbilityEffects`, so a rider that listens for damage received (Def Dwn (A) and (C)) hears the next
 hit and not the one that inflicted it. `damageStepEnd` returns its cooldown rows and its chance dice for the card
 (§46.4-ND); `applyWithCooldownLines` is the one reader for the attack path's cuts.
+
+**An Attack that lands later, and one that follows another** (#232). A Noble Phantasm with `schedule` is
+recorded at its activation and resolved by `resolveAttack` itself when its fire tick is reached at a Turn
+boundary, from its mark, as a resumed declaration that does not declare the use again (`engine/schedule.mjs`);
+its caster's defeat first cancels it. Bab-ilu's passive offers an additional Normal Attack once the whole first
+Attack has closed and before its Combat Phase ends (`engine/follow-up.mjs`): any single-target Attack at Range 2
+or more, never an area one and never itself. The second Process forbids what the first answer rules out: a DU
+that Blocked has no Evade and no `nothing`, one that Evaded no `nothing` (reading 24). A reaction ability is not
+the `nothing` it resolves as, so it is never refused by that, and a timeout takes the first rung left open.
+
+**A missed swing is closed at its declaration** (#232, §46.4-OH). Step 1.5's miss leaves the Process at `missed`,
+whose one legal event is `done`; the declaration sends it, and only an unanswerable `react` rung is sent `nothing`.

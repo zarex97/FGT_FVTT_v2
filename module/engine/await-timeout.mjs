@@ -134,10 +134,19 @@ export async function applyExpiry(message) {
     return;
   }
 
+  // A rung the Process refuses is no default: a DU that must Block (Bab-ilu's
+  // second Attack, #232) cannot be timed into taking the hit. The first rung it
+  // may take stands in, in the card's own order.
+  const state = readProcessFlag(message?.getFlag("fgt", "process"));
+  const refused = state?.forbiddenReactions ?? [];
+  const choice = policy.prompt?.kind === "reaction" && refused.includes(outcome.choice)
+    ? (["nothing", "block", "evade"].find((r) => !refused.includes(r)) ?? outcome.choice)
+    : outcome.choice;
+
   const { advanceAttack } = await import("./attack.mjs");
   await advanceAttack({
     messageId: message.id,
-    event: outcome.choice,
+    event: choice,
     respondingUnitId: policy.prompt.unitId,
     // The card and the log both say this was a timeout, not a choice.
     timedOut: true,

@@ -1,0 +1,18 @@
+# Appendix A: "TEC Dwn / Distracted — Enemies evading this unit's attacks roll
+# −X": an Evade against it is EASIER (a lower roll is better). Imposed on whoever
+# it Attacks, the shape Presence Concealment's +4 already uses. Bab-ilu's 15th
+# row is the first source (#232).
+schema: 1
+id: tecDwn
+name: "TEC Dwn"
+description: "Enemies Evading this Unit's Attacks roll X lower."
+polarity: debuff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: CheckModifier
+    check: evade
+    direction: incoming
+    value: "-@magnitude"

@@ -116,6 +116,11 @@ export function applyEffect({
   chanceModifiers = [], chance = null, stages = 1, bypassChanceModifiers = false,
   visibility = "public", attributionHidden = false, uses = null,
   permanent = false, unremovable = false,
+  // This APPLICATION's own stacking, in place of the definition's (#232).
+  stacking = null,
+  // This application passes every immunity, one naming the effect included;
+  // resistance still reduces it (Enkidu's Stun on a Divine DU, #232).
+  bypassesImmunity = false,
 }) {
   /** @type {Array<{step: string, outcome: string, detail?: string}>} */
   const trace = [];
@@ -129,7 +134,7 @@ export function applyEffect({
   // other.
 
   // ── 1. IMMUNITY GATE ─────────────────────────────────────────────────────
-  const immunity = findImmunity(def, target, held);
+  const immunity = bypassesImmunity ? null : findImmunity(def, target, held);
   // Sikera Ušum clause d: "the Poison Immune effect is reduced to a Poison
   // Resist effect" -- a downgrade FROM immune TO merely resistant, not a
   // second, separate refusal. The gate still runs; it just does not block
@@ -137,6 +142,13 @@ export function applyEffect({
   const downgrade = immunity ? immunityDowngradeFor(def, target) : null;
   if (immunity && !downgrade) {
     trace.push({ step: "immunity", outcome: "blocked", detail: immunity });
+    // No Buff with charges spends one for each buff it stops: Bab-ilu's *"No
+    // Buff (1 time per number of dice which rolled a 9)"* (#232 reading 5). A
+    // No Buff with none is the Duration-only one, and spends nothing.
+    if (immunity === "No Buff") {
+      const nb = instances.find((e) => e.defId === "noBuff");
+      if ((nb?.uses ?? 0) > 0) return { ...blocked(immunity, trace), intents: [I.consumeUse(target.id, "noBuff", 1)] };
+    }
     return blocked(immunity, trace);
   }
   trace.push({
@@ -193,7 +205,7 @@ export function applyEffect({
       : (ctx.resist ?? resistanceOf(target, def, ctx.options, ctx.ignoresResistanceFrom))
         + (downgrade?.resistPercent ?? 0),
     immune: false,
-    bypassesImmunity: Boolean(def.bypassesImmunity),
+    bypassesImmunity: Boolean(def.bypassesImmunity) || Boolean(bypassesImmunity),
   });
   const automatic = chanceSpec.percent >= 100;
   const roll = ctx.roll ?? 1;
@@ -270,7 +282,7 @@ export function applyEffect({
   // Captured BEFORE the resolution, because the event below needs the jump and
   // not just the destination -- Channel Marker Soul is paid per stage.
   const priorStage = existing[0]?.stage ?? 0;
-  const stack = resolveStacking(def, existing, scaledMagnitude, stages, uses);
+  const stack = resolveStacking(stacking ? { ...def, stacking } : def, existing, scaledMagnitude, stages, uses);
   trace.push({ step: "stacking", outcome: stack.action, detail: stack.detail });
   if (stack.action === "noop") {
     return { outcome: "noop", reason: "already present, does not refresh", intents: [], trace };

@@ -55,6 +55,9 @@ export const RULE_ELEMENT_KEYS = new Set([
   "ZonBonus",
   // Group 2 — damage contributors
   "DamageModifier", "FlatDamage", "DamageNegation", "Resistance", "Ward",
+  // Proto Gil (#232): Heal Dwn and Drowning's healing received; Bab-ilu's
+  // additional Normal Attack.
+  "HealingReceived", "FollowUpAttack",
   "CritModifier", "BlockModifier", "AttackerPropertyTier",
   // Kiritsugu -- a property of the ATTACK granted by a buff on the attacker.
   // Until now `attack.pierce` could only come from an ability's own damage

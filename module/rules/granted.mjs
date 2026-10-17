@@ -81,6 +81,18 @@ export const GRANTS = Object.freeze({
    * which is the one place the question is asked.
    */
   ignoresOccupancy: "ignoresOccupancy",
+
+  /**
+   * Proto Gil's *Levitation*: *"When Proto Gil Moves, he can Move through
+   * obstacles (e.g. enemy Units) but still cannot enter the area around an
+   * enemy Master."*
+   *
+   * Narrower than `ignoresOccupancy`: nobody is knocked aside, he cannot stop
+   * on an occupied panel, and an enemy Master's area and a field's walls still
+   * hold (#232 reading 9). A grant, so NP Seal's negation of Levitation takes
+   * it away with the rest. Read by `rules/movement.mjs#canPassThrough`.
+   */
+  passesThroughUnits: "passesThroughUnits",
 });
 
 /**
