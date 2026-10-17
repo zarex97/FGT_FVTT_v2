@@ -123,6 +123,10 @@ field:
     - key: VulnerabilityAmplifier
       effectId: poison
       factor: 2
+      # "Units in the NP area who are WEAK TO Poison": only on a Unit already
+      # weak to it (`engine/scheduler.mjs#isWeakTo`). Stated here since #239,
+      # where the gate had been every amplifier's.
+      ifWeak: true
       relations: [ally, enemy, self]
     - key: PeriodicOverride
       effectId: poison

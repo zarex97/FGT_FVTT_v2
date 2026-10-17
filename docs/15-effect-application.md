@@ -263,3 +263,21 @@ DU passes every immunity, one naming Stun included, and still meets resistance.
 literal in `regen.yml`), and Pale Rider's unstated Regen 10%. A Regen landed before the change
 carries 0 and reads as the default, since a 0% Regen heals nothing. A `then` action's
 `percentOfMax` resolves against the instance like a chance does (`resolveRuleValues`).
+
+### A moved effect arrives; a flat chance stays flat (#239)
+
+**A transfer is not an infliction** (reading 6). `rules/effect-flow.mjs#transferEffect` moves an instance with its
+stage and its clock, and the arrival carries `bypassChanceModifiers` and no chance of its own, so landing gives it its
+base 100 with neither the mover's bonus nor the bearer's resistance. Shadow of Longing's *"then apply them to herself"*
+landed at 100% less Van Gogh's 25 and 35, all or nothing, after the others' Curse was gone. An immunity still refuses
+the arrival; the Curse it took is lost (6c). Each stage arriving is a stage gained, so `curseStageChanged` pays Channel
+Marker Soul (6d). The caster's own instance is never a source (6a).
+
+**A flat chance says so on the action.** Since #191 an action's `chance` is rolled by `pendingRolls` and decided where
+the effect lands, against resistance and bonus. A clause whose chance *"is not modified by debuff chance or resist
+effects"* states `bypassChanceModifiers`, as Queen's Poison does and Terror's Stun does now (§46.4-OW).
+
+**A named amplifier applies outright** unless it states `ifWeak` (§46.4-OR). Sikera Ušum's *"Units ... who are weak to
+Poison"* is the one that does; Channel Marker Soul's *"Curse Damage taken is halved"* halves every tick. A periodic tick
+is held to the Unit's `DamageFloor` for that effect (`scheduler.mjs#flooredTick`, §46.4-OS): Sunflower's Curse floors a
+Curse tick at 1, which the attack pipeline's stage 16 alone did before.

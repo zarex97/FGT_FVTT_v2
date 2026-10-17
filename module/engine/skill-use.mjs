@@ -46,7 +46,7 @@ import { evade, checkPlan } from "../rules/checks.mjs";
 import { randomFreePanelIn, panelsOf, levelOf, castLevel } from "../rules/bounded-fields.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { tableFor, entriesFor, choicesIn, effectsOf } from "../rules/roll-table.mjs";
-import { applyWorldIntents } from "./applier.mjs";
+import { applyWorldIntents, cooldownLine, statChangeLine } from "./applier.mjs";
 import * as budget from "./budget.mjs";
 import { budgetActionFor } from "../rules/budget.mjs";
 import * as I from "./intents.mjs";
@@ -468,6 +468,10 @@ function targetsSelfOnly(spec) {
 async function runPhases(ability, actor, targets, board, only = null, extras = {}) {
   /** @type {object[]} */
   const applied = [];
+  // Every write this use makes says what the handlers it raises did (#202).
+  /** @type {object[]} */
+  const sink = [];
+  const applyWorld = (intents, source) => applyWorldIntents(intents, source, { sink });
   // How many were conjured, for a cooldown that scales with the roll that just
   // happened -- Dragon Tooth Warriors is the only such cost in the set.
   let summoned = 0;
@@ -560,7 +564,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // "all". She cleanses her opponents to fuel herself, and that is a
           // trade rather than an oversight.
           const self = board.units.find((u) => u.id === actor.id);
-          const wanted = new Set(phase.relations ?? ["ally", "enemy", "self"]);
+          const wanted = new Set(phase.relations ?? ["ally", "enemy", "neutral"]);
           const from = (board.units ?? []).filter((other) => {
             if (other.id === actor.id) return false;
             if (!self?.panel || !other.panel) return false;
@@ -569,7 +573,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           });
           const moves = transferableFrom(from, { defId: phase.defId ?? null })
             .flatMap(({ unit: owner, instance }) => transferEffect(instance, owner, self));
-          await applyWorldIntents(
+          await applyWorld(
             moves.map((d) => (d.kind === "removeEffect"
               ? I.removeEffect(d.unitId, d.effectId, d.reason)
               : I.applyEffect(d.unitId, d.effect, ability.id))),
@@ -600,7 +604,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           const held = fromDoc?.items?.find((i) => i.system?.contentId === phase.item);
           if (!held || !toId || fromId === toId) break;
           const bond = phase.bind ? { bondUnitId: actor.id, bondMasterId: masterId } : null;
-          await applyWorldIntents([
+          await applyWorld([
             I.moveItem(toId, fromId, phase.item, bond),
             I.markTurn(fromId, { itemTransfers: (turnRecordOf(fromDoc).itemTransfers ?? 0) + 1 }),
           ], `skill:${ability.id}:transferItem`);
@@ -611,7 +615,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
             // Each row names whose lock it is: the card read "Item Rite, Item
             // Rite" and named nobody (#230, live).
             const rows = await applyPhaseEffects({ effects: [{ id: "itemRite", duration: "this turn" }] },
-              ability, actor, unitOf(lockDoc, currentBoard()), { self });
+              ability, actor, unitOf(lockDoc, currentBoard()), { self, sink });
             applied.push(...rows.map((row) => ({ ...row, unitId: lockId })));
           }
           // The GIVER's row: "Master of Saber: [Avalon] → Master of Saber" named
@@ -626,7 +630,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
         case "applyEffects":
         case "applyEffect":
           applied.push(...await applyPhaseEffects(phase, ability, actor, snapshot, {
-            targets: phaseUnits, self,
+            targets: phaseUnits, self, sink,
           }));
           break;
 
@@ -636,7 +640,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // staying put (Battle Retreat, #226 reading 12).
           const to = await pickMoveDestination(doc, unitOf(doc, currentBoard()), currentBoard(), phase.panels ?? 0);
           if (to) {
-            await applyWorldIntents([I.move(target.unitId, [to])], `skill:${ability.id}:move`);
+            await applyWorld([I.move(target.unitId, [to])], `skill:${ability.id}:move`);
             applied.push({ unitId: target.unitId, summary: { id: "move", name: `Moved to (${to.i}, ${to.j})`, outcome: "applied", reason: null } });
           }
           break;
@@ -661,7 +665,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
               : (phase.amount ?? 0));
           if (amount > 0) {
             const before = game.actors.get(target.unitId)?.system?.health?.value ?? 0;
-            await applyWorldIntents([I.heal(target.unitId, amount, ability.id)], `skill:${ability.id}:heal`);
+            await applyWorld([I.heal(target.unitId, amount, ability.id)], `skill:${ability.id}:heal`);
             // On the card (#185): Surgical Procedure healed 50 under "No
             // effects were applied", because only effects were counted. The
             // REAL change, as `resourceLine` prints a resource: Battle Retreat
@@ -678,11 +682,11 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // resource: Castor's "+2 Luck" at a full 9 read "Luck +2" (#209, live).
           const valueOf = (c) => resourceValue(game.actors.get(c.unitId), c.stat);
           const before = changes.map(valueOf);
-          await applyWorldIntents(changes, `skill:${ability.id}:stat`);
+          await applyWorld(changes, `skill:${ability.id}:stat`);
           // ...and WHOSE, when it is not the caster's: Mana Burst's "both twins"
-          // printed two "Agility +1" rows and named nobody (#209, live).
-          // fgt-name-ok: a row is shown only to its recipient's controllers (`postCard`), who know the name
-          const whose = target.unitId === actor.id ? "" : `${game.actors.get(target.unitId)?.name ?? target.unitId}: `;
+          // printed two "Agility +1" rows and named nobody (#209, live). By its
+          // public name: the CASTER's controllers read every row (#239).
+          const whose = target.unitId === actor.id ? "" : `${shownNameById(target.unitId)}: `;
           changes.forEach((c, n) => {
             const line = statChangeLine(c, before[n], valueOf(c));
             if (line) applied.push({ unitId: target.unitId, summary: { id: "statChange", name: `${whose}${line}`, outcome: "applied", reason: null } });
@@ -699,7 +703,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
         // skips anything else, so a `SetMode` authored there compiled, loaded
         // and did nothing. Found live, twice over -- the `when` was wrong too.
         case "setMode":
-          await applyWorldIntents(
+          await applyWorld(
             [modeIntent(phase, target.unitId, `phase:${ability.id}`)],
             `skill:${ability.id}:setMode`,
           );
@@ -711,7 +715,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // restore the maximum clamped could not be seen at all.
           const keys = (phase.changes ?? []).map((c) => c.key);
           const before = keys.map((k) => resourceValue(game.actors.get(target.unitId), k));
-          await applyWorldIntents(
+          await applyWorld(
             (phase.changes ?? []).map((c) => {
               // An ABSOLUTE write, for a clause that names the resulting number
               // rather than a change. *"Remove all Fragarach Counters from
@@ -749,7 +753,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
             : cooldownChanges(phase, actor, board, ability, doc);
           const remainingOf = (c) => game.actors.get(c.unitId)?.items?.get(c.abilityId)?.system?.cooldown?.remaining ?? 0;
           const before = changes.map(remainingOf);
-          await applyWorldIntents(changes, `skill:${ability.id}:cooldown`);
+          await applyWorld(changes, `skill:${ability.id}:cooldown`);
           // On the card. Blood Temple's read *"NP Regen"* and nothing else: the
           // ⅔◈ it took off the Noble Phantasm left no line (#188).
           changes.forEach((c, n) => {
@@ -762,7 +766,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
 
         case "removeEffect": {
           const removed = await resolveRemoval(phase, doc, snapshot);
-          await applyWorldIntents(
+          await applyWorld(
             removed.map((id) => I.removeEffect(target.unitId, id, "skill")),
             `skill:${ability.id}:remove`,
           );
@@ -802,7 +806,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
             ? (await new Roll(phase.roll).evaluate()).total
             : (phase.delta ?? 1);
           if (amount > 0) {
-            await applyWorldIntents(
+            await applyWorld(
               [
                 I.itemGrant(target.unitId, phase.contentId, amount),
                 I.log({ kind: "itemGrant", contentId: phase.contentId, unitId: target.unitId, amount }),
@@ -1101,7 +1105,13 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
 
       for (let i = from; i < applied.length; i += 1) applied[i].unitId ??= target.unitId;
     }
+    // What the handlers this phase raised did, on its card (#202), after the
+    // phase's own rows and before the next phase's: Channel Marker Soul's cut on
+    // each Curse Imaginary Numbers Arts lands comes before the cut its third
+    // effect makes, as it happened.
+    applied.push(...sink.splice(0));
   }
+  applied.push(...sink.splice(0));
   return Object.assign(applied, { summoned, channelStarted });
 }
 
@@ -1277,7 +1287,7 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
       targets: phaseCtx.targets ?? [],
       board,
     }, {
-      write: (intents) => applyWorldIntents(intents, "skillEffect"),
+      write: (intents) => applyWorldIntents(intents, "skillEffect", { sink: phaseCtx.sink ?? null }),
       // RE-READ between applications: a staged effect decides its next stage
       // from what the recipient carries, and three applications against one
       // snapshot left Van Gogh on Stage 1.
@@ -1435,10 +1445,11 @@ export async function postCard(actor, ability, targets, applied) {
       const line = effectLine(a.summary);
       // ...and WHOSE, when it is not the caster's: Librarian of Stored
       // Knowledge's Passive 2 printed three "Crit Up" rows and named nobody
-      // (#226, live). The real name, as a stat change's row already says it: a
-      // row is shown only to its recipient's controllers (`controllers`).
+      // (#226, live). By its PUBLIC name: a row is shown to its recipient's
+      // controllers AND to the caster's (`skillEffectsFor`), so a Def Dwn on an
+      // enemy read "Karna: Def Dwn" to Van Gogh's player (#239, live).
       const recipient = a.unitId && a.unitId !== actor.id ? game.actors.get(a.unitId) : null;
-      const who = recipient?.name ?? null;
+      const who = recipient ? shownName(recipient) : null;
       return {
         name: who && !line.startsWith(`${who}:`) ? `${who}: ${line}` : line,
         controllers: ownersOf(game.actors.get(a.unitId)),
@@ -1493,19 +1504,9 @@ export function checkLine(label, kind, outcome) {
   return `${name} ${outcome.total} vs ${outcome.target}: ${outcome.success ? "success" : "failure"}`;
 }
 
-/**
- * A cooldown change as a skill card prints it: `Bellerophon: Cooldown 22 → 20`.
- * `null` when nothing moved -- a reduction on an ability already ready.
- *
- * @param {string|null} name the ability's name
- * @param {number} before remaining Turns before the change
- * @param {number} after remaining Turns after it
- * @returns {string|null}
- */
-export function cooldownLine(name, before, after) {
-  if (!name || !Number.isFinite(before) || !Number.isFinite(after) || before === after) return null;
-  return `${name}: Cooldown ${before} → ${after}`;
-}
+// A cooldown change as a card prints it, `Bellerophon: Cooldown 22 → 20`: one
+// reader in `engine/applier.mjs`, which says a handler's clocks too (#202).
+export { cooldownLine };
 
 /**
  * A resource's current number on an actor: `agility.value`, `resources.prs.value`,
@@ -1543,27 +1544,9 @@ export function resourceLine(key, before, after) {
   return before === after ? `${label} ${after} (no change)` : `${label} ${before} → ${after}`;
 }
 
-/**
- * A stat change as a skill card prints it: `Agility +1`.
- *
- * @param {object} intent a `statDelta` or `resource` intent
- * @param {number|null} [before] the stat as read before the change
- * @param {number|null} [after] the stat as read after it
- * @returns {string|null}
- */
-export function statChangeLine(intent, before = null, after = null) {
-  const key = intent?.stat ?? intent?.key ?? null;
-  const delta = Number(intent?.delta);
-  if (!key || !Number.isFinite(delta) || delta === 0) return null;
-  const [word, part] = String(key).split(".");
-  const label = word.charAt(0).toUpperCase() + word.slice(1) + (part === "max" ? " max" : "");
-  // The numbers when the caller read them, so a clamp says so; the authored
-  // delta otherwise.
-  if (Number.isFinite(before) && Number.isFinite(after)) {
-    return before === after ? `${label} ${after} (no change)` : `${label} ${before} → ${after}`;
-  }
-  return `${label} ${delta > 0 ? "+" : ""}${delta}`;
-}
+// A stat change as a card prints it, `Agility 10 → 11`: one reader in
+// `engine/applier.mjs`, which says a handler's stat changes too (#202).
+export { statChangeLine };
 
 /**
  * The cooldown intents a phase produces.

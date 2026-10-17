@@ -8,7 +8,10 @@
 # Ruled per ATTACK (#204 reading 12): one charge for an area Noble Phantasm,
 # not one per target; 1◈ when any Unit it landed on is Undead or Divine; and
 # "successful" is "not Evaded" -- a Block, a hit for 0 and Gáe Bolg's Instakill
-# with no damage all pay. So it listens to `attackLanded`, fired once per
+# with no damage all pay; a complete negation (Anti-Purge, Substitution) and a
+# concealment coin's "no damage and effects" do not (#239 reading 3a, which set
+# one reading of "successful" for every clause; `riders.mjs#successfullyAttacked`).
+# So it listens to `attackLanded`, fired once per
 # Attack at the end of its Combat Phase, and not to `damageStepEnd`, which
 # fires per target and only on damage dealt.
 schema: 1

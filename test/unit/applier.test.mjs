@@ -143,7 +143,8 @@ describe("applyIntents", () => {
       [I.damage("a", 10), I.damage("b", 20), I.prompt("u", {})],
       { io, canWrite: ownsA },
     );
-    expect(r).toEqual({ applied: 1, proxied: 1, prompted: 1 });
+    // `lines`: what the batch's handlers did, for a card (#202); none here.
+    expect(r).toEqual({ applied: 1, proxied: 1, prompted: 1, lines: [] });
     expect(io.calls.some(([n]) => n === "proxy")).toBe(true);
     expect(io.calls.some(([n]) => n === "prompt")).toBe(true);
   });

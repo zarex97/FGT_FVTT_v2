@@ -297,9 +297,11 @@ describe("Mana Burst's restore card says what moved, and on whom (#209, live)", 
       .toEqual(["Agility 14 → 16", "Luck 9 (no change)"]);
   }, 120_000);
 
-  it("the twin's rows name the twin", async () => {
+  it("the twin's rows name the twin, by the name the table knows", async () => {
+    // "Saber", not "Pollux": the caster's player reads every row of the card,
+    // so a row names its Unit publicly (#239, found live naming Karna).
     expect(await play("both", { agility: { value: 10, max: 18 }, luck: { value: 5, max: 9 } }))
-      .toEqual(["Agility 10 → 11", "Luck 5 → 6", "Pollux: Agility 10 → 11", "Pollux: Luck 5 → 6"]);
+      .toEqual(["Agility 10 → 11", "Luck 5 → 6", "Saber: Agility 10 → 11", "Saber: Luck 5 → 6"]);
   }, 120_000);
 });
 

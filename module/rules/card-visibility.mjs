@@ -64,13 +64,45 @@ export function cardFor(result, viewer) {
     // The defender learns what was applied to them, by name. Everyone else
     // learns only how many -- enough to see something happened, not enough to
     // plan around it.
-    effects: isDefender || seesAll ? [...(result.effects ?? [])] : (result.effects ?? []).length,
+    //
+    // By ROW when a row says whose it is (#202): a handler's line can be the
+    // ATTACKER's -- the 'Gogh' buff's Atk Up, a clock it cut -- and that is the
+    // attacker's business, as a Servant's buff on itself is on a Skill card. A
+    // row with no Unit is the defender's, as every row was.
+    ...effectsFor(result, { seesAll, isDefender, viewerId: viewer?.id }),
 
     // Each roll carries its own visibility; a GM-only Discover roll on a card
     // everyone can read gives away the Assassin's panel for free.
     rolls: (result.rolls ?? []).filter((r) => canSeeRoll(r, { isGM, viewerId: viewer?.id, result })),
 
     isGM, isAttacker, isDefender, involved, seesAll,
+  };
+}
+
+/**
+ * The effect rows of an attack card one viewer reads by name, and how many
+ * more it only counts.
+ *
+ * `effects` keeps its two shapes: the names when the viewer may read any, the
+ * count when none. `effectsHidden` is what is left over beside the names.
+ *
+ * @param {object} result
+ * @param {{seesAll: boolean, isDefender: boolean, viewerId: string|undefined}} viewer
+ * @returns {{effects: string[]|number, effectsHidden: number}}
+ */
+function effectsFor(result, { seesAll, isDefender, viewerId }) {
+  const rows = result.effects ?? [];
+  const owners = result.effectOwners ?? [];
+  const mine = (n) => {
+    if (seesAll) return true;
+    const unitId = owners[n] ?? null;
+    if (!unitId) return isDefender;
+    return (result.controllersByActor?.[unitId] ?? []).includes(viewerId);
+  };
+  const shown = rows.filter((_, n) => mine(n));
+  return {
+    effects: shown.length === 0 && rows.length > 0 ? rows.length : shown,
+    effectsHidden: rows.length - shown.length,
   };
 }
 

@@ -30,6 +30,20 @@ A single card is read by many viewers, and each reads a different version of the
 
 `cardFor` determines what one viewer should see, given a result and their role (`module/rules/card-visibility.mjs:44-75`). The attacker and defender see the header and their own damage total; a bystander sees only the header. The breakdown is shown only to those involved; the defender learns what effects landed by name (`module/rules/card-visibility.mjs:55-67`). Each roll carries its own visibility flag; a GM-only Discover roll on a card everyone can read would give away the Assassin's panel for free, so rolls are filtered per-viewer (`module/rules/card-visibility.mjs:71`).
 
+**A row says whose it is** (#202, #239). An attack card's effect rows carry the Unit they landed on, and a viewer
+reads by name the rows of Units they control (the GM and an open table read all); a row with no Unit is the
+defender's, as every row was. The rest are a count beside the names. So the attacker reads the 'Gogh' buff's Atk Up
+it just gained, and the defender only that something was gained. A Skill card's rows go to the caster's controllers
+and each recipient's; both name a Unit by its public name, since the caster's player reads every row.
+
+**What a handler did is a line** (#202). `engine/applier.mjs#applyIntents` returns `lines`: what a handler's batch
+landed (the landing's own summary, applied or resisted), the stages it took (`Curse: Stage 10 → 8`), the clocks it cut
+(`Name: Cooldown 12 → 10`) and the stats it moved (`Agility 16 → 15`), and what the handlers its writes raise did in
+turn (Channel Marker Soul's cut on each Curse landing). The attack path prints them on the Process card
+(`damageStepStart`, `damageDealt`, `damageTaken`, `damageStepEnd`, `attackLanded`, `attackPerformed`), a Skill on its
+card after the phase that raised them, and a Turn's or a Round's end on its card. A Turn's end posts the periodic card
+too (*"End of the Turn — Foreigner takes 63 from Curse"*), by the effect's name.
+
 `redactBreakdown` removes side-specific contributors but preserves the arithmetic: stage deltas and running totals stay visible so a viewer can check the numbers add up (`module/rules/card-visibility.mjs:139-155`). Contributors with no side are board facts and remain visible to everyone. `hiddenContributors` is a count rather than silence — something happened here and it was not yours (`module/rules/card-visibility.mjs:150-152`).
 
 ### The game log

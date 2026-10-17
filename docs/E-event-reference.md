@@ -553,5 +553,16 @@ they did not die of the hit.
 ### `fgt.attackLanded` (#204 reading 12)
 
 Fired once per Attack, on its attacker, at the end of its Combat Phase, when at least one of the declaration's own
-Processes reached the damage step (not Evaded: a Block, a hit for 0 and an Instakill that skips the damage count). The
-option set is the union of the `target:` facts of every Unit it landed on. Scáthach's Alpi listens to it.
+Processes successfully Attacked its Unit (`rules/damage/riders.mjs#successfullyAttacked`, #239 reading 3a: a Block, a
+hit for 0 and an Instakill that skips the damage count; an Evade, a complete negation and a concealment coin do not). The
+option set is the union of the `target:` facts of every Unit it landed on, and `attack:crit` when any of them was
+critted (#239 reading 2). Scáthach's Alpi listens to it, and Van Gogh's 'Gogh' buff (*"whenever Gogh performs a
+successful Attack … if the Attack was a Crit"*).
+
+### `fgt.attackReceived` (#239 readings 3a to 3c)
+
+Fired once per Attack on each Unit it successfully Attacked (the test above), at that Unit's first such Process and
+before that Process's riders, so a debuff this Attack inflicts does not hear it. Not for a Knockback's measured damage
+(`plainDamage`). The other party travels as `victim`; the option set is the Process's, `attack:crit` included. Claimed in
+memory per Attack and Unit, so two Processes cannot both fire it. Def Dwn (A) and (C) listen to it: *"whenever this Unit
+is successfully Attacked"*, one Luck or Agility per Attack however many hits it made.

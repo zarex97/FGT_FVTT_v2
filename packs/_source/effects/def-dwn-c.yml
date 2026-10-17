@@ -6,7 +6,7 @@
 schema: 1
 id: defDwnC
 name: "Def Dwn (C)"
-description: "All damage taken is increased by X%; Agility is reduced by 1 whenever damage is received."
+description: "All damage taken is increased by X%; Agility is reduced by 1 whenever this Unit is successfully Attacked."
 polarity: debuff
 volatility: nonVolatile
 valence: defensive
@@ -38,8 +38,17 @@ rules:
   # damage of a Knockback, which runs a Process for the arithmetic and is not an
   # Attack (#184 reading 8). `attack:plainDamage` is what says so (#223, found by
   # the Dioscuri audit; it reaches every Servant who inflicts Def Dwn).
+  #
+  # ONCE PER ATTACK, on `attackReceived` (#239, ruled 2026-10-17 for every Def Dwn
+  # (A) and (C), whatever the sheet's wording): a successful Attack -- a Block, a
+  # hit for 0 and an Instakill that skipped the damage count; an Evade, a complete
+  # negation and a concealment coin do not -- drains one, however many hits it
+  # made. It listened to `damageTaken`, once per hit and never on a skip. The
+  # event fires before the Attack's riders, so this Attack's own Def Dwn does not
+  # hear it (#209), and never for a Knockback's measured damage, which is not an
+  # Attack (#184 reading 8, #223); the predicate stays as the second guard.
   - key: OnEvent
-    event: damageTaken
+    event: attackReceived
     automatic: true
     predicate: ["not:attack:plainDamage"]
     then:
