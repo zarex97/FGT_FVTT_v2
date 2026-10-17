@@ -12,6 +12,6 @@ to a Poison tick. Once the tax did defeat, the Turn-end card still read only *"l
 **Cause:** `module/engine/scheduler.mjs:2546 @ e2b42d22`: the tax's `statDelta` carried no `defeatsAtZero`, which
 is the one flag `applier.mjs#statDelta` asks before running the defeat chain; only a field's toll set it. And
 `turn-report.mjs#turnEndCard` read Health deltas, never who they killed.
-**Fix:** `module/engine/scheduler.mjs:2550 @ uncommitted` sets `defeatsAtZero` (ruled 2026-10-17). `module/engine/turn-report.mjs#postTurnEndReport @ uncommitted`
+**Fix:** `module/engine/scheduler.mjs:2550 @ b0313abf` sets `defeatsAtZero` (ruled 2026-10-17). `module/engine/turn-report.mjs#postTurnEndReport @ b0313abf`
 names the Units its losses defeated. Live: *"Caster loses 25 Health (Multi-Servant tax). Caster is defeated."*,
 both Scáthachs Free.
