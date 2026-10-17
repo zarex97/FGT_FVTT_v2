@@ -1,0 +1,32 @@
+# Arjuna, char_orig_sheets/Copia de Arjuna.md
+schema: 1
+id: arjuna-awarded-hero
+name: "The Awarded Hero"
+rank: "A+"
+kind: skill
+slug: awardedHero
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. NP Cooldown is reduced by 1◈+⅓◈ Turns.
+  2. Applies @effect[regen]{Regen} for 1◈+⅔◈ Turns, Health is restored by 15% of its maximum value at
+  the end of his Turn, at the end of any Turn he Acts, and at the end of the Round.
+  3. Applies @effect[areaCritUpAwarded]{Area CritUp (Awarded)} for 1◈+⅔◈ Turns, Crit Chance is increased by
+  10% for himself; and 5% for other allied Units within a 2 panel area of this Unit.
+  4. Applies @effect[npRegen]{NP Regen} for 1◈+⅔◈ Turns, NP Cooldown is reduced by 1 Turn at the end of every Turn.
+  Cooldown: 4◈-⅓◈ Turns.
+phases:
+  # "NP Cooldown" names no NP: both of his (#197 reading 6).
+  - kind: cooldown
+    target: self
+    changes:
+      - { unit: self, scope: np, ticks: "1◈+⅓◈", direction: down }
+  - kind: applyEffects
+    target: self
+    effects:
+      # `regen` reads its own percent, 10 when none is stated (#234 reading 6).
+      - { id: regen, magnitude: 15, duration: "1◈+⅔◈" }
+      - { id: areaCritUpAwarded, duration: "1◈+⅔◈" }
+      - { id: npRegen, magnitude: 1, duration: "1◈+⅔◈" }

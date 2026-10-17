@@ -527,7 +527,10 @@ describe("`attack:usesBase:mag` is the attack's base, not the component it decla
     // Arturia's Mana Burst joined the sweep (#230): BA(STR) + BA(MAG), declared
     // `component: str` like Karna's. She holds no Mad Enhancement, so the
     // assertions below are unchanged.
+    // Arjuna's Mana Burst joined it (#234): Karna's combined base, declared
+    // `component: str`. He holds no Mad Enhancement.
     expect(differs).toEqual([
+      "arjuna-mana-burst-flames",
       "arturia-mana-burst",
       "dioscuri-mana-burst-castor", "dioscuri-mana-burst-pollux", "karna-mana-burst-flames",
       "mannanan-hallowed-sea-gods-sword", "quetz-xiuhcoatl", "raikou-mana-burst-lightning",

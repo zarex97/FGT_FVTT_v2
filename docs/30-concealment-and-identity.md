@@ -125,3 +125,8 @@ against 70%", never the True Name under a "Lancer ⚔ Saber" header. The Master-
 
 **Lines the engine posts for a Unit read its public name** (#232, §46.4-OJ): Bab-ilu's follow-up offer and line, and
 every Enki line, ask `publicIdentityOf` and speak through `publicSpeakerFor`.
+
+**Four more cards ask `publicIdentityOf`** (#234, §46.4-OO): the Command Spell card (*"…Suspend Skill, on Archer's
+Fated Rivals of the Mahabharata"*), the Turn and Round end cards, the periodic card and the revival card, and a
+compulsion's culprits. Still reading `actor.name`: the targeting preview, the refusal banner and `dimension.mjs`'s
+offers (§46.35.3).

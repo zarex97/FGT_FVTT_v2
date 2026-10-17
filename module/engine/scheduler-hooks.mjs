@@ -19,7 +19,7 @@ import { currentBoard } from "./board.mjs";
 import { factionOfCombatant } from "./turn-order.mjs";
 import { sideOf } from "../rules/relations.mjs";
 import { fieldEventsIn, postFieldReports, postPeriodicReport } from "./field-report.mjs";
-import { postTurnEndReport, clocksBefore, remainingOnActor } from "./turn-report.mjs";
+import { postTurnEndReport, clocksBefore, remainingOnActor, healthBefore, healthOnActor } from "./turn-report.mjs";
 import * as budget from "./budget.mjs";
 import {
   grailContest, checkVictory, grailPanelCandidates,
@@ -167,9 +167,10 @@ async function onTurnChange(combat, prior, current) {
   // The clocks a sourced cut names, read before the writes: the card says what
   // a cut took, and nothing of one that found the clock at 0 (#209 review).
   const clocks = clocksBefore(turnIntents, remainingOnActor);
+  const healthTurn = healthBefore(turnIntents, healthOnActor);
   await run(turnIntents, "scheduler:endTurn", ended);
-  // ...and say what it did to anybody's Health (#190).
-  await postTurnEndReport(turnIntents, clocks);
+  // ...and say what it did to anybody's Health (#190), heals included (#234).
+  await postTurnEndReport(turnIntents, clocks, healthTurn);
 
   // The Ends pressed during this Turn by an owner whose Turn it was not
   // (#65, ruling 19): *"…or at the start or end of any Round or Turn."*
@@ -447,8 +448,12 @@ async function endRoundSequence(combat, round, tick) {
   };
 
   const roundIntents = scheduler.endRound(board, ctx);
+  const healthRound = healthBefore(roundIntents, healthOnActor);
   await run(roundIntents, "scheduler:endRound", moment(round, tick));
   await postPeriodicReport(roundIntents, worldIO());
+  // A Round's end heals too (Regen *"and at the end of the Round"*): said on
+  // its own card, the heals alone, since the periodic card says the rest (#234).
+  await postTurnEndReport(roundIntents.filter((i) => i?.t === "heal"), null, healthRound, "FGT.TurnReport.RoundTitle");
 
   // The second upkeep sweep, for tolls charged on the ROUND rather than on a
   // tick period. The Golden Hind is the only one: *"At the end of every

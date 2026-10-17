@@ -1,0 +1,35 @@
+# Arjuna, char_orig_sheets/Copia de Arjuna.md
+# The passive is EMIYA's Clairvoyance at 90 (#234 reading 14).
+schema: 1
+id: arjuna-clairvoyance-bowman
+name: "Clairvoyance (Bowman)"
+rank: "B+"
+kind: skill
+slug: clairvoyance
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+description: |
+  (Passive) When Arjuna performs a Normal Attack at a Range of 3 or higher, the DU has a 90% chance
+  of using Evade- when Evading. Otherwise, the Combat Process proceeds as normal.
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[critUp]{Crit Up} for 1◈ Turns, Crit Chance is increased by 25%.
+  2. Applies @effect[debuffImmune]{Debuff Immune} for 1◈+⅔◈ Turns, does not affect Instakill/Death/Erase.
+  3. Applies @effect[rangeUpClairvoyance]{Range Up (Clairvoyance)} for 1◈ Turns, Range is increased by 1 panel, does not stack.
+  Cooldown: 4◈-⅓◈ Turns.
+passiveRules:
+  # Mana Burst and Agni-buffed swings are Normal Attacks; his NPs and Skills
+  # are not. The Range is the one the attack was declared at.
+  - key: TableOverride
+    check: evade
+    forceTable: unfavourable
+    direction: imposed
+    chance: 90
+    predicate: ["attack:kind:normal", "attack:range:gte:3"]
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: critUp, magnitude: 25, duration: "1◈" }
+      - { id: debuffImmune, duration: "1◈+⅔◈" }
+      - { id: rangeUpClairvoyance, magnitude: 1, duration: "1◈" }

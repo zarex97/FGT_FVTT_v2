@@ -1,0 +1,40 @@
+# Arjuna, char_orig_sheets/Copia de Arjuna.md
+# Karna's Mana Burst (Flames) Active, without Karna's passive: a combined base,
+# not affected by Magic Resistance, its own Burn.
+schema: 1
+id: arjuna-mana-burst-flames
+name: "Mana Burst (Flames)"
+rank: A
+copyable: { allowed: false, reason: named }
+cooldown: "3◈"
+isAttackSkill: true
+countsAsNormalAttack: true
+element: fire
+sameTurnExclusive: [arjuna-roar-of-the-flame-god]
+description: |
+  (Active) This Skill is used when Arjuna performs a Normal Attack. For that Combat Process, Arjuna's
+  Base Attack used is his BA(STR) and BA(MAG) combined (e.g. BA=325). Has a 50% chance of inflicting
+  @effect[burn]{Burn} for 2◈ Turns on the DU. Not affected by @ability[class-magic-resistance]{Magic Resistance}.
+  Fire Damage. Cooldown: 3◈ Turns. Cannot be used on the same Turn as @ability[arjuna-roar-of-the-flame-god]{Roar of the Flame God}.
+targeting:
+  anchor: { kind: targetUnit }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  base:
+    sources:
+      - { unit: self, component: str, factor: 1 }
+      - { unit: self, component: mag, factor: 1 }
+  component: str
+  ignoresMagicResistance: true
+  # "Fire Damage", no "(half)": the whole swing is Fire (#234 reading 15).
+  element: fire
+phases:
+  - kind: damage
+  - kind: applyEffects
+    rules:
+      - key: OnEvent
+        event: damageDealt
+        effect: { id: burn }
+        chance: 50
+        duration: "2◈"

@@ -1,0 +1,36 @@
+# Arjuna's Roar of the Flame God, clause 4 -- char_orig_sheets/Copia de Arjuna.md
+#
+# "Applies the 'Agni' buff for 1◈ Turns, 3 times, Normal Attacks deal Fire
+# damage with a 30% chance of inflicting Burn for 1◈ Turns; does not apply to
+# & is not consumed by Attacks used with Mana Burst (Flames)."
+#
+# Raikou's counted buff (`raikouBuff`): three uses or 1◈, whichever ends first
+# (`critDmUpMartial`). A charge is spent by a Normal Attack that deals damage
+# (#234 reading 8). The whole swing is Fire (reading 15), granted through the
+# attacker's `attackProperties`, read only when the predicate holds: without
+# it an element-less Pashupata would have turned Fire too.
+schema: 1
+id: agni
+name: "Agni"
+description: |
+  Normal Attacks deal Fire damage with a 30% chance of inflicting @effect[burn]{Burn} for 1◈ Turns. Three uses.
+  Does not apply to, and is not consumed by, Attacks made with Mana Burst (Flames).
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: count
+uses: 3
+defaultDuration: "1◈"
+baseChance: 100
+rules:
+  - key: AttackProperty
+    property: element
+    value: fire
+    predicate: ["attack:kind:normal", "not:attack:madeWith:arjuna-mana-burst-flames"]
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: ["attack:kind:normal", "not:attack:madeWith:arjuna-mana-burst-flames"]
+    consumesUse: true
+    then:
+      - { key: ApplyEffect, target: victim, effect: { id: burn }, chance: 30, duration: "1◈" }

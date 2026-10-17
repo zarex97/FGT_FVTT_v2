@@ -46,7 +46,7 @@ A unit can force its own checks onto the unfavourable table with `Luck Loss` or 
 
 EMIYA's *Clairvoyance* is the system's sole example of an *imposed* check modifier: an ability on one unit that forces another unit's checks onto a table (`module/rules/checks.mjs:130-160`). It is applied through `mergePlans`, which combines the checking unit's own modifiers with those imposed by the opponent.
 
-Some modifiers have a chance of applying — EMIYA's Clairvoyance is 80% likely to impose the unfavourable table. These are resolved through a `1d100` roll keyed by the modifier's source; the roll arrives from the caller (`module/rules/checks.mjs:412-431`).
+Some modifiers have a chance of applying — EMIYA's Clairvoyance is 80% likely to impose the unfavourable table. Arjuna's Clairvoyance (Bowman) is the same element at 90 (#234 reading 14): his Normal Attacks at Range 3 or more, Mana Burst and Agni-buffed swings included. These are resolved through a `1d100` roll keyed by the modifier's source; the roll arrives from the caller (`module/rules/checks.mjs:412-431`).
 
 ### Contested checks
 

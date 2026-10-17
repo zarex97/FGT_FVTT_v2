@@ -45,6 +45,26 @@ export function clocksBefore(intents, remainingOf) {
 }
 
 /**
+ * Each healed Unit's Health BEFORE the batch, so the card can say what a heal
+ * gave rather than what it was authored to give.
+ *
+ * Arjuna's Regen is 15% of 1250, 187, and at 1089 of 1250 it gave 161 (#234).
+ *
+ * @param {object[]} intents
+ * @param {(unitId: string) => {value: number, max: number}|null} healthOf
+ * @returns {Map<string, {value: number, max: number}>}
+ */
+export function healthBefore(intents, healthOf) {
+  const out = new Map();
+  for (const i of intents ?? []) {
+    if (i?.t !== "heal" || out.has(i.unitId)) continue;
+    const h = healthOf(i.unitId);
+    if (h && Number.isFinite(h.value) && Number.isFinite(h.max)) out.set(i.unitId, { ...h });
+  }
+  return out;
+}
+
+/**
  * The card's words for the Turn end's Health changes and the modes it ended,
  * or `null` when none.
  *
@@ -59,8 +79,20 @@ export function clocksBefore(intents, remainingOf) {
  *   it knows is said as what it took, and not at all when it took nothing
  * @returns {string|null}
  */
-export function turnEndCard(intents, nameOfUnit, t, nameOfAbility = (_u, a) => a, before = null) {
+export function turnEndCard(intents, nameOfUnit, t, nameOfAbility = (_u, a) => a, before = null, health = null, titleKey = "FGT.TurnReport.Title") {
   const changes = (intents ?? []).filter((i) => i?.t === "statDelta" && i.stat === "health.value" && i.delta);
+  // A heal is said too, as what it gave (#234): Regen healed at every boundary
+  // and no card said so, because the card read Health deltas alone and a heal
+  // is its own intent. Clamped at the maximum when the Health before is known,
+  // and not said at all when it gave nothing; a revival is the revival's line.
+  const left = new Map([...(health ?? new Map())].map(([id, h]) => [id, { ...h }]));
+  const heals = (intents ?? []).filter((i) => i?.t === "heal" && i.amount > 0 && !i.revival).map((i) => {
+    const h = left.get(i.unitId);
+    if (!h) return { ...i, gave: i.amount };
+    const gave = Math.max(0, Math.min(i.amount, h.max - h.value));
+    h.value += gave;
+    return { ...i, gave };
+  }).filter((i) => i.gave > 0);
   const ended = (intents ?? []).filter((i) => i?.t === "setMode" && i.active === false && i.source);
   // A clock a handler turned, named by its handler: Self-Replenishment's 2 Turns
   // off both twins' Noble Phantasm (#209, live). The Turn's own tick names no
@@ -71,12 +103,15 @@ export function turnEndCard(intents, nameOfUnit, t, nameOfAbility = (_u, a) => a
     return i.mode === "reduce" && Number.isFinite(was) ? Math.min(i.ticks, was) : i.ticks;
   };
   const clocks = (intents ?? []).filter((i) => i?.t === "cooldown" && i.source && taken(i) > 0);
-  if (changes.length === 0 && ended.length === 0 && clocks.length === 0) return null;
+  if (changes.length === 0 && ended.length === 0 && clocks.length === 0 && heals.length === 0) return null;
   const lines = [
     ...changes.map((i) => t(i.delta < 0 ? "FGT.TurnReport.Loses" : "FGT.TurnReport.Gains", {
       who: nameOfUnit(i.unitId),
       amount: Math.abs(i.delta),
       source: i.source ?? t("FGT.Revival.UnknownSource"),
+    })),
+    ...heals.map((i) => t("FGT.TurnReport.Gains", {
+      who: nameOfUnit(i.unitId), amount: i.gave, source: i.source ?? t("FGT.Revival.UnknownSource"),
     })),
     ...ended.map((i) => t("FGT.TurnReport.ModeEnded", {
       ability: nameOfAbility(i.unitId, i.abilityId), who: nameOfUnit(i.unitId), source: i.source,
@@ -85,7 +120,7 @@ export function turnEndCard(intents, nameOfUnit, t, nameOfAbility = (_u, a) => a
       who: nameOfUnit(i.unitId), ability: nameOfAbility(i.unitId, i.abilityId), ticks: taken(i), source: i.source,
     })),
   ];
-  return `<div class="fgt-card fgt-card--turn-report"><h3>${t("FGT.TurnReport.Title")}</h3>`
+  return `<div class="fgt-card fgt-card--turn-report"><h3>${t(titleKey)}</h3>`
     + `<ul>${lines.map((l) => `<li>${l}</li>`).join("")}</ul></div>`;
 }
 
@@ -108,13 +143,37 @@ export function remainingOnActor(unitId, abilityId) {
   return Number.isFinite(n) ? n : null;
 }
 
-export async function postTurnEndReport(intents, before = null) {
+/**
+ * A Unit's Health off the world's actor, for {@link healthBefore}.
+ *
+ * @param {string} unitId
+ * @returns {{value: number, max: number}|null}
+ */
+export function healthOnActor(unitId) {
+  const h = game.actors?.get(unitId)?.system?.health;
+  return h ? { value: Number(h.value), max: Number(h.max) } : null;
+}
+
+export async function postTurnEndReport(intents, before = null, health = null, titleKey = "FGT.TurnReport.Title") {
   if (!game.users?.activeGM?.isSelf) return;
   const escape = foundry.utils.escapeHTML;
-  const nameOfUnit = (id) => escape(game.actors.get(id)?.name ?? id);
+  // The name the table knows: "Archer regains 161 Health (Regen)", never his
+  // True Name (#234, as every engine line since #230 §46.4-NV).
+  const { publicIdentityOf } = await import("./public-identity.mjs");
+  const { currentBoard } = await import("./board.mjs");
+  const board = currentBoard();
+  const nameOfUnit = (id) => {
+    const actor = game.actors.get(id);
+    return escape(actor ? (publicIdentityOf(actor, board).name || actor.name) : id);
+  };
   const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
   const nameOfAbility = (unitId, abilityId) => escape(game.actors.get(unitId)?.items?.find((i) =>
     i.system?.slug === abilityId || i.system?.contentId === abilityId || i.id === abilityId)?.name ?? abilityId);
-  const content = turnEndCard(intents, nameOfUnit, t, nameOfAbility, before);
+  // A handler names its source by the effect's id ("regen"); the card says the
+  // effect's name, as the rest of the game does ("Regen", #234).
+  const { EffectRegistry } = await import("../rules/registry.mjs");
+  const named = (intents ?? []).map((i) => (i?.source && EffectRegistry.get(i.source)?.name
+    ? { ...i, source: escape(EffectRegistry.get(i.source).name) } : i));
+  const content = turnEndCard(named, nameOfUnit, t, nameOfAbility, before, health, titleKey);
   if (content) await ChatMessage.create({ content, flags: { fgt: { turnReport: true } } });
 }

@@ -721,7 +721,40 @@ function rideFacts(placement) {
  */
 function attackerProperties(attacker, board) {
   if (!attacker) return [];
-  return unitOf(attacker, board)?.attackProperties ?? [];
+  return unconditional(unitOf(attacker, board)?.attackProperties ?? []);
+}
+
+/**
+ * The granted properties that hold whatever the attack: no predicate.
+ *
+ * A predicate on an `AttackProperty` is about the attack (Anastasia's
+ * Watermelon: *"at a Range of 1 to 2 while inflicted with Blind"*; Arjuna's
+ * Agni: Normal Attacks not made with Mana Burst), and the declaration knows no
+ * defender and no Range. Read here unasked, Watermelon's Pierce reached every
+ * Attack she made and Agni would have made Pashupata Fire (#234). The
+ * conditional ones are decided per defender, in `attackFacts`.
+ *
+ * @param {Array<{property: string, value: unknown, predicate?: string[]|null}>} props
+ * @returns {Array<object>}
+ */
+function unconditional(props) {
+  return props.filter((p) => !(Array.isArray(p.predicate) && p.predicate.length));
+}
+
+/**
+ * The granted properties whose predicate this attack, on this defender, meets.
+ *
+ * @param {object} attacker attacker snapshot
+ * @param {object} defender defender snapshot
+ * @param {object} facts the attack's facts so far
+ * @returns {Array<object>}
+ */
+function conditionalGrants(attacker, defender, facts) {
+  const props = (attacker?.attackProperties ?? [])
+    .filter((p) => Array.isArray(p.predicate) && p.predicate.length);
+  if (!props.length) return [];
+  const options = rollOptionsFor({ attacker, defender, attack: facts });
+  return props.filter((p) => testPredicate(p.predicate, { options }));
 }
 
 /**
@@ -890,6 +923,9 @@ export function buildAttackSpec({
       ignoresMagicResistance: Boolean(
         block?.ignoresMagicResistance,
       ),
+      // *"Effect of Magic Resistance is halved"* (Agni Gandiva, #234 reading
+      // 10): how much of the Resistance this attack meets, read at stage 11.
+      magicResistanceFactor: typeof block?.magicResistanceFactor === "number" ? block.magicResistanceFactor : undefined,
       // *"Damage dealt is not affected by Atk Up or other damage increasing
       // effects on Ozymandias."* Narrower than `bypassModifiers`, which skips
       // the whole middle of the pipeline for both sides: this drops the
@@ -6397,11 +6433,11 @@ export function describeAttack({ state, attacker, defender, board, ability = nul
  * @param {object} facts
  * @returns {object}
  */
-function withGrantedElement(attacker, facts) {
+function withGrantedElement(attacker, facts, met = []) {
   if (facts.element) return facts;
   const doc = facts.abilityId ? globalThis.game?.actors?.get(attacker?.id)?.items?.get(facts.abilityId) : null;
   if (doc && (doc.system?.element ?? doc.system?.damage?.element)) return facts;
-  const granted = grantedElementIn(attacker?.attackProperties ?? []);
+  const granted = grantedElementIn([...unconditional(attacker?.attackProperties ?? []), ...met]);
   if (!granted.element) return facts;
   return { ...facts, element: granted.element, elementFraction: facts.elementFraction ?? granted.fraction, grantedElement: true };
 }
@@ -6440,10 +6476,21 @@ export function attackFacts(attacker, defender, state, board = null) {
   // Nemo's Quickfire reads it twice: once for "+1 if the enemy Unit Evades",
   // and once for the cooldown refund "if the enemy Unit does not perform a
   // Counter".
-  const facts = withGrantedElement(attacker, {
+  const base = {
     ...(state.attack ?? {}), kind, isAoE: Boolean(state.isAoE), range,
     reaction: state.reaction ?? null,
-  });
+  };
+  // The attacker's conditional grants, decided against THIS defender and Range
+  // (`conditionalGrants`); the unconditional ones are on the spec already.
+  const met = conditionalGrants(attacker, defender, base);
+  const has = (property) => met.some((p) => p.property === property && p.value !== false && p.value !== 0);
+  const numbers = met.filter((p) => p.property === "invulnFactor" && typeof p.value === "number").map((p) => p.value);
+  const facts = withGrantedElement(attacker, {
+    ...base,
+    pierce: Boolean(base.pierce) || has("pierce"),
+    ignoresDefUp: Boolean(base.ignoresDefUp) || has("ignoresDefUp"),
+    ...(numbers.length ? { invulnFactor: Math.max(base.invulnFactor ?? 0, ...numbers) } : {}),
+  }, met);
 
   // A Normal Attack that changes shape with distance decides two of these
   // fields itself, and only here -- the declaration cannot, because the
