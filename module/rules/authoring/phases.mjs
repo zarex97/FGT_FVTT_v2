@@ -176,6 +176,10 @@ export const PHASE_DESCRIPTORS = describeTable([
   ]),
   entry("rollTable", 20, "Rolls dice against a table and applies what comes up.", [
     { key: "tables", type: "raw" },
+    // ONE table whoever is hit, where `tables` splits it by relation: Bab-ilu's
+    // twenty debuffs land on every DU alike (#232). `rules/roll-table.mjs#tableFor`
+    // has read it since the tables were written; nothing declared it.
+    { key: "entries", type: "raw" },
     { key: "count", type: "number" },
     { key: "faces", type: "number" },
   ]),

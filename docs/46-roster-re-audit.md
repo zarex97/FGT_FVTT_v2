@@ -4690,6 +4690,33 @@ written straight onto her. Ch. 31.
 **Reached: AV.2.give.** *"Master of Saber of Faction 1: [Avalon] → Master of Saber of Faction 1"*, and two Item Rite rows
 naming nobody. The hand-over row is the giver's and each lock row its holder's. Ch. 18.
 
+### OG. The use gate weighed a cost the use does not charge — **fixed** (#232, live)
+
+**Reached: Enki EK.cost.** His Master on 95 of 115, the slot greyed *"The Master cannot pay the Health cost"*: the
+gate weighed the EX table's 100, the payment charges half the maximum *"instead of the normal Master's Health
+cost"* (`supersedes: [npCost]`). The gate now resolves the charged costs as the payment does, summed per pool; the
+usage spec carries `additionalCosts`. Ramesseum Tentyris carries the same `supersedes`. Ch. 17.
+
+### OH. A swing that missed was sent `nothing` and threw — **fixed** (#232, live)
+
+**Reached: Drowning EK.drown.** Karna under Drowning missed Gil and the declaration threw *"Illegal Combat Process
+transition "missed:nothing""*, leaving the Process at `missed` and its Phase open. The guard that answers an
+unanswerable rung (Kiritsugu's) reached every Process with no prompt, a missed one too: every Blind or Drowning miss.
+A missed Process is closed with `done`; its roll line printed *"undefined undefined → undefined"* and names its die
+now. Ch. 21.
+
+### OI. A strike's clock moved with no line — **fixed** (#232, live)
+
+**Reached: GR.p.enki.** Golden Rule's Crit brought Enki a Turn closer and nothing said so: the clock is on no
+document a player opens. The move posts *"Enki: Sword of the End comes a Turn closer (Golden Rule): Archer's strike
+lands in N Turn(s)."* Ch. 21.
+
+### OJ. The follow-up's line named the Units — **fixed** (#232, live)
+
+**Reached: BI.p.** *"Proto Gil makes an additional Normal Attack on Jack the Ripper"* under cards reading Archer and
+Assassin, and the offer named the DU the same way; the Enki lines read `actor.name` too. All ask `publicIdentityOf`.
+Ch. 30.
+
 ---
 
 ---
@@ -6283,3 +6310,50 @@ packs were rebuilt three times mid-war (Foundry closed), each time the content c
 - **A Damage Step's automatic heals print no line** (Avalon's 20%, the Home Base's 100): the log has them, the chat
   does not.
 - **DRC.3.mb is engine-pressed only**: DRC lives to the Round's end and her next Mana Burst is in the next Round.
+
+## 46.34 Proto Gil — the Servant who acts later
+
+**103 Clauses: 68 Pressed or Observed live, 35 pressed in the engine** (#232, live 2026-10-16, PC world `fgt2026`,
+scene *Proto Gil Audit*). 22 readings ruled 2026-10-16 against the sheet as edited that day; nothing of him existed
+before them. Built from the pieces other sheets use: Ozymandias's statblock and Ramesseum costs, Penthesilea's
+Charisma, Drake's Golden Rule, Arturia's Radiant Road, EMIYA's rank range, Nursery Rhyme's 3x3, Scáthach's die
+table, Karna's Vasavi Shakti ladder, Medea's Atlas chances, Pyramid Drop's `zone`.
+
+**Why he finds what he finds.** Gilgamesh acts at a distance from his own act: a strike that lands seven Rounds'
+worth of Turns later, a second Attack that follows the first, a Divinity bonus that arrives after every modifier.
+Every one of them is a path the engine had walked only once, at once, and the press found what the second walk
+missed: the gate and the price disagreeing about a cost, a miss the declaration could not close, a clock with no line.
+
+### 46.34.1 What he cost the engine
+
+| Finding | Where |
+|---|---|
+| A fixed flat bonus, past every modifier and the Injury snapshot (reading 16) | `FlatDamage.fixed`, `rules/damage/pipeline.mjs` stage 16, `flags.fixedExtra` |
+| Passing Units without stopping on them, the Master's area still closed (reading 9) | `GRANTS.passesThroughUnits`, `rules/movement.mjs#canPassThrough` |
+| An additional Normal Attack, an optional Move beside the DU, a forced Block (readings 1 to 3, 24) | `FollowUpAttack`, `engine/follow-up.mjs`, `placement.forbidReactions` |
+| A die table on the attack path; an entry's own `stacking`; No Buff with charges (reading 5) | `attack.mjs#rollTableAgainst`, `effect-flow.mjs#ENTRY_KEYS`, `effect-applier.mjs` |
+| Seven debuffs from Appendix A, healing received at one door (readings 18, 20) | `effects/*-dwn.yml`, `HealingReceived`, `applier.mjs#resolveHealing` |
+| An immunity bypass behind a predicate, resistance kept (Enkidu) | entry `bypassesImmunity`, `landing.mjs`, `effect-applier.mjs` |
+| Drowning: heal block, its own miss with a Cooldown refund, on Skills too (reading 19) | `effects/drowning.yml`, `rules/miss.mjs#PLAIN_MISS`, `attack.mjs#refundPlainMiss`, `skill-use.mjs#rollSkillFailure` |
+| Cannot Act, Evade and Block included (reading 10) | `effects/cannot-act.yml`, `budget.mjs` PREVENT_ALL |
+| A scheduled strike: a mark, an absolute fire tick, a landing through `resolveAttack`, a cancel (readings 11, 12, 22) | `engine/schedule.mjs`, `schedule` on the ability, `fgt.scheduledStrikes` |
+| A Crit cut with a fallback onto that strike (reading 14) | `self:npOnCooldown`, `ScheduleDelta`, `scheduleDelta` intent |
+| Who an area spares: the own Master by contract, a named Unit and its allies (readings 21, 23) | `selection.excludeOwnMaster`, `selection.spares` |
+| Terrain painted after the Combat Phase | `zone` with `when: afterPhase`, `attack.mjs#paintAfterPhase` |
+| General: §46.4-OG to OJ | |
+
+### 46.34.2 What was staged
+
+The war was built through the wizard: Proto Gil and Medusa against Karna, Medea, Jack and Heracles. Staged and named
+in #232's log: positions; NP Cooldowns set (9, 5, 0) for Treasury, Golden Rule and its fallback; the GM's dice fixed
+for an Evade, three crits and Bab-ilu's three 10s; Debuff Immune on Heracles; a Noah and a Levitating stand-in (copies
+of Medea; both left the board before Enki landed, having no Master); his Master's Health at 57 and back; Skill Seal
+and NP Seal on him for a moment; a strike record owned by a defeated Unit for the cancel; a heal of 100 on Karna.
+
+### 46.34.3 Left open
+
+- **The targeting preview names a concealed Servant's True Name** to the attacker's player (*"Jack the Ripper 190 –
+  325"* under cards reading Assassin): older than him, not fixed here.
+- **An attacker's card shows "N effect(s) applied" for a debuff he landed**, by `cardFor`'s rule that only the
+  defender reads names: as designed, noted because Bab-ilu's 20 rows are a reason to revisit it.
+- **The 13x13 spares were pressed at the activation's targeting**, not at the landing: the stand-ins were gone by then.

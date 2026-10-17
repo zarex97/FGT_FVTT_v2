@@ -144,3 +144,8 @@ load-bearing in this domain** — `health: null` means undamageable, not zero, a
   all. This is the sharp edge of the trap below, and it is why the build's model check exists.
 
 - **Relative stats have no schema constraint on which fields may be relative.** `inherit: {str: "summoner + 2"}` is valid by shape alone; whether `str` is legal for a Summon type is an authoring convention checked by the validator, not by the schema.
+
+**`schedule`** (#232) is an ability's `{after, mark}`: a Noble Phantasm activated now that lands later
+(`engine/schedule.mjs`). Declared on the ability DataModel, allowlisted in `content/authored-fields.mjs`, routed
+in `survival.test.mjs` to its reader. The strike it records lives on the active Combat's `fgt.scheduledStrikes`
+flag, not on the caster: a caster whose token has left must still be found to be cancelled.

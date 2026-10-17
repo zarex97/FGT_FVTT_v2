@@ -1,0 +1,49 @@
+# Golden Rule, Rank A (#232). Drake's Crit cut and Penthesilea's NP Regen.
+#
+# > "(Passive) Whenever Gilgamesh performs a Crit, reduce his NP Cooldown by 1
+# > Turn. If none of his NP are on Cooldown, reduce the Turn count of Enki by 1
+# > Turn if it has been activated.
+# > (Active) Used during your Turn. Applies NP Regen for 1◈ Turns, NP Cooldown
+# > is reduced by 2 Turns at the end of every Turn. Cooldown: 4◈ Turns."
+#
+# Each Crit counts (reading 8): `damageDealt` fires per DU struck. "His NP
+# Cooldown" names no NP and reaches every one (#197 reading 6). The fallback
+# moves Enki's pending strike, and nothing else does (reading 14); with no
+# strike pending it moves nothing. NP Regen 2 is on top of the natural 1, as
+# Penthesilea's and Drake's 1 is (reading 17).
+#
+# The passive lives on the ability: a passive's rules run whatever the
+# ability's own clock says.
+schema: 1
+id: proto-gil-golden-rule
+name: "Golden Rule"
+rank: A
+kind: skill
+slug: goldenRule
+cooldown: "4◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive) Whenever Gilgamesh performs a Crit, reduce his NP Cooldown by 1 Turn. If none of his
+  NP are on Cooldown, reduce the Turn count of Enki by 1 Turn if it has been activated.
+  (Active) Used during your Turn. Applies @effect[npRegen]{NP Regen} for 1◈ Turns, NP Cooldown is reduced by
+  2 Turns at the end of every Turn. Cooldown: 4◈ Turns.
+passiveRules:
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: ["attack:crit", "self:npOnCooldown"]
+    then:
+      - { key: CooldownDelta, scope: np, delta: -1 }
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: ["attack:crit", "not:self:npOnCooldown"]
+    then:
+      - { key: ScheduleDelta, delta: -1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: npRegen, duration: "1◈", magnitude: 2 }

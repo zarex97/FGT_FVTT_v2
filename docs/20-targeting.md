@@ -119,3 +119,9 @@ could never be cast on Scáthach herself.
 
 **A separating field is named by its Region** (#208 §46.4-MP). `engine/board.mjs` projects each field's `name`, and the
 resolver's refusal reads *"separated by {name}"*; it printed the field's content id.
+
+**Who an area spares** (#232). `selection.excludeOwnMaster` drops the caster's Master by contract (`masterId`),
+never every Master; `selection.spares: [{contentId, alliesWithin}]` drops a named Unit and the allies standing
+within N of it. Enki is the first: *"Proto Gil, his Master, Units with the 'Levitating' Attribute, Noah and all
+Noah's allied Units within a 2 panel area of Noah are not affected"*. No Noah exists yet (reading 21); the
+rule is in place for the day one does.

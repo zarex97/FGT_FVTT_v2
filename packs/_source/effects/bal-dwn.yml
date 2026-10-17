@@ -1,0 +1,18 @@
+# Appendix A: "Bal Dwn (X%) — Attacks against this unit have crit chance +X%.
+# Not NP." Imposed on whoever Attacks it, with no NP figure, so a Noble
+# Phantasm's crit chance meets nothing (#131). Bab-ilu's 16th row is the first
+# source (#232).
+schema: 1
+id: balDwn
+name: "Bal Dwn"
+description: "Attacks against this Unit have Crit Chance increased by X%. Not NP."
+polarity: debuff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: CheckModifier
+    check: crit
+    direction: incoming
+    value: "@magnitude"

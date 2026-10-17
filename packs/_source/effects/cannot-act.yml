@@ -1,0 +1,26 @@
+# "Proto Gil cannot Act for 1◈ Turns after this NP is Activated." (Enki, #232)
+#
+# Acting is everything a Unit does of its own: Moving, Attacking, Skills and
+# Noble Phantasms, and its reactions too -- *"Evading and Blocking are
+# Acting"* (#232 reading 10). So the rung still comes and its only answer is
+# to take the hit; an ally may still interpose for him, which is the ally
+# acting, not him.
+#
+# A STATUS, not Stun: it is the price of his own Noble Phantasm, not something
+# done to him, so Debuff Immune, resistance and a Cure have nothing to say to
+# it. `preventsAction` is the snapshot's `canAct`; the id is in
+# `rules/budget.mjs`'s PREVENT_ALL, the door every action passes.
+schema: 1
+id: cannotAct
+name: "Cannot Act"
+description: "Cannot Move, Attack, use Skills or Noble Phantasms, Evade, Block or Counter."
+polarity: status
+volatility: nonVolatile
+valence: neither
+stacking: noneRefresh
+baseChance: 100
+unremovable: true
+preventsAction: true
+rules:
+  - key: ForbidReaction
+    reactions: [evade, block, counter]

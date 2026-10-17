@@ -150,3 +150,11 @@ by -2 for the Combat Phase.
 
 **A check's chances are filed** (#208 §46.4-MO). `checkPlan` returns the `chances` it rolls beside the d20, `mergePlans`
 concatenates them, and `rollLog.fromCheck` writes one line each: *"Clairvoyance: 1d100 → 43 against 80%, in force"*.
+
+**Drowning's miss, and a Skill's** (#232 reading 19). `rules/miss.mjs` holds a second source, `drowning`, at 80%
+and *plain*: none of Blind's ladder (Eye of the Mind, Clairvoyance) reaches it, and an Attack every Process of
+which failed to it leaves its ability's Cooldown unspent (`engine/attack.mjs#refundPlainMiss`). Both sources'
+*"…and enemy-affecting abilities"* is now rolled on the Skill path too, once per use of a Skill whose targets
+include an enemy (`engine/skill-use.mjs#rollSkillFailure`): a failure applies nothing, and a plain one spends no
+Cooldown. An **Agility Check includes the Evade** (reading 15): Levitation's −3 and AGL Dwn's +3 each carry both
+of the engine's names for it, `agility` and `evade`.

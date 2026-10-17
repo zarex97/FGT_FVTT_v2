@@ -690,6 +690,10 @@ export function usageSpecFor(ability) {
     cooldownOverride: sys.cooldownOverride ?? null,
     // A Noble Phantasm that costs its Master nothing (Avalon, #230).
     noMasterCost: Boolean(sys.noMasterCost),
+    // The ability's OWN costs, which may replace the NP cost (`supersedes`):
+    // the gate must weigh what the use will charge, not the table's figure
+    // (Enki's half of the Master's maximum in place of an EX Rank's 100, #232).
+    additionalCosts: [...(sys.additionalCosts ?? [])],
     // ...and one no Round gate holds back (the Master's Avalon, #230).
     ignoresNPGate: Boolean(sys.ignoresNPGate),
     // The bounded field this ability opens, whole, because the gate asks whether

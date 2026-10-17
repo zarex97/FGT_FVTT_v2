@@ -141,3 +141,6 @@ bearer's own collection now asks `self:effectFamily:` as the board does (§46.4-
   bulk in `module/engine/attack.mjs` (15) and `module/engine/skill-use.mjs` (5), each constructing the set
   from whatever attacker, defender and attack facts that site holds. The consequence is the useful one:
   an option set can never be stale, because none is ever stored. The cost is recomputation, paid per call.
+
+**`self:npOnCooldown`** (#232): a Noble Phantasm of the unit's own is on its Cooldown; an NP spent for the game
+has none to run. Golden Rule's fallback turns on it: a Crit with no NP on Cooldown shortens Enki's count instead.

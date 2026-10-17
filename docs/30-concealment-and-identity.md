@@ -122,3 +122,6 @@ against 70%", never the True Name under a "Lancer ⚔ Saber" header. The Master-
 - **Do Discover attempts scale with faction strength?** The current budget is flat (three per faction per Turn). A faction with one Servant gets three attempts; a faction with six gets three shared. The rules as written pay no attention to outnumbering, which is intentional (the cap is what prevents it), but the interaction at large tables is untested.
 
 - **Should identity revelation be per-viewer?** Currently all viewers see the same name, because tokens and chat cards are one document every client reads identically. Per-viewer rendering would require the shadow-actor pattern, which the authority chapter defers rather than specifies. The plan-era roadmap that held the deferral has no successor, so this is genuinely undecided rather than scheduled.
+
+**Lines the engine posts for a Unit read its public name** (#232, §46.4-OJ): Bab-ilu's follow-up offer and line, and
+every Enki line, ask `publicIdentityOf` and speak through `publicSpeakerFor`.

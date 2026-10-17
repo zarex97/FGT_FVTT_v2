@@ -1,0 +1,83 @@
+# Bab-ilu: Key of the King's Law To Enshrine, Rank E~A++ (#232).
+#
+# The passive is an additional Normal Attack (`FollowUpAttack`,
+# `engine/follow-up.mjs`): after any single-target Attack of his at Range 2 or
+# more (reading 1), he may Move beside the DU, at no cost, and swing again
+# (2, 3); a DU that Blocked must Block, one that Evaded picks Block or Evade
+# (24). NP Seal does not touch a passive NP unless it says so.
+#
+# The Active is Nursery Rhyme's 3x3 within Range at EMIYA's rank range and E
+# cost, and a die table every DU it hits rolls for itself (Scáthach's Rune,
+# here on the attack path). A number rolled twice lands twice: a stacking
+# debuff stacks, one that does not has its Duration extended, and No Buff
+# counts its 9s (reading 5). The rows stating no NP figure apply in full
+# (#204 reading 5); Atk Dwn states one.
+schema: 1
+id: proto-gil-bab-ilu
+name: "Bab-ilu: Key of the King's Law To Enshrine"
+rank: null
+isNP: true
+npTags: [antiUnit]
+kind: noblePhantasm
+slug: babIlu
+cooldown: "3◈"
+timing: { window: ownTurn }
+description: |
+  Rank: E~A++
+
+  (Passive) Whenever Proto Gil Attacks an enemy Unit at a Range of 2 or higher, he can Move to any
+  panel that is directly next to the DU and perform an additional Normal Attack on that DU; if the
+  DU Blocked the first Attack, it also has to Block the second Attack, while if the DU successfully
+  Evaded the first Attack, it has a choice to Block or Evade the second Attack.
+  (Active) Base Attack (STR) is used. Hits a 3x3 panel area within Range for 3x damage. Then, all
+  affected DUs roll 3 twenty-sided dice and are inflicted with the corresponding debuffs for 1◈
+  Turns- 1. Atk Dwn 30%; if NP, 15% 2. Def Dwn 30% 3. Crit Dwn 30% 4. Crit DmDwn 30% 5. NP DmDwn 30%
+  6. Debuff ResDwn 30% 7. Debuff ChDwn 30% 8. Buff ChDwn 30% 9. No Buff (1 time per number of dice
+  which rolled a 9) 10. NP Seal 11. Skill Seal 12. AGL Dwn (+3) 13. LUC Dwn (+3) 14. MOV Dwn (-3)
+  15. TEC Dwn (-3) 16. Bal Dwn 30% 17. Heal Dwn 30% 18. NP Degen 19. Terror 30% 20. Decoy.
+  If the same number is rolled, that debuff is applied the same amount of times its number is
+  rolled; for debuffs which do not stack, its duration is extended instead.
+  Gilgamesh's Master loses Health equivalent to if an E Rank NP is used. Cooldown: 3◈ Turns.
+additionalCosts:
+  - { id: babIluNP, kind: masterHealthByNPRank, rank: E }
+passiveRules:
+  - key: FollowUpAttack
+    predicate: ["attack:range:gte:2"]
+    move: adjacent
+    lockReaction: true
+targeting:
+  anchor: { kind: withinRange, range: 5, metric: chebyshev }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  isDamagingAoE: true
+damage:
+  component: str
+  multiplier: 3
+phases:
+  - kind: damage
+    target: reuse
+  - kind: rollTable
+    target: reuse
+    count: 3
+    faces: 20
+    entries:
+      1: { effects: [{ id: atkDwn, magnitude: 30, npMagnitude: 15, duration: "1◈" }] }
+      2: { effects: [{ id: defDwn, magnitude: 30, duration: "1◈" }] }
+      3: { effects: [{ id: critDwn, magnitude: 30, duration: "1◈" }] }
+      4: { effects: [{ id: critDmDwn, magnitude: 30, duration: "1◈" }] }
+      5: { effects: [{ id: npDmDwn, magnitude: 30, duration: "1◈" }] }
+      6: { effects: [{ id: debuffResDwn, magnitude: 30, duration: "1◈" }] }
+      7: { effects: [{ id: debuffChDwn, magnitude: 30, duration: "1◈" }] }
+      8: { effects: [{ id: buffChDwn, magnitude: 30, duration: "1◈" }] }
+      9: { effects: [{ id: noBuff, duration: "1◈", stacking: count, uses: 1 }] }
+      10: { effects: [{ id: npSeal, duration: "1◈", stacking: noneExtend }] }
+      11: { effects: [{ id: skillSeal, duration: "1◈", stacking: noneExtend }] }
+      12: { effects: [{ id: aglDwn, magnitude: 3, duration: "1◈" }] }
+      13: { effects: [{ id: lucDwn, magnitude: 3, duration: "1◈" }] }
+      14: { effects: [{ id: movDwn, magnitude: 3, duration: "1◈" }] }
+      15: { effects: [{ id: tecDwn, magnitude: 3, duration: "1◈" }] }
+      16: { effects: [{ id: balDwn, magnitude: 30, duration: "1◈" }] }
+      17: { effects: [{ id: healDwn, magnitude: 30, duration: "1◈" }] }
+      18: { effects: [{ id: npDegen, duration: "1◈", stacking: noneExtend }] }
+      19: { effects: [{ id: terror, magnitude: 30, duration: "1◈", stacking: noneExtend }] }
+      20: { effects: [{ id: decoy, duration: "1◈", stacking: noneExtend }] }

@@ -1,0 +1,30 @@
+# A VARIANT of `divinity`, the way `independent-action-viy` is one of
+# `class-independent-action`: the same table and the same `divine` attribute,
+# with one sentence more on the sheet.
+#
+# Proto Gil's Divinity B (#232): *"All damage dealt is increased by 40 including
+# NP. This extra damage is dealt as Fixed Divine Damage and does not count
+# towards the amount required for an Injury Roll."* `fixed` sends the flat bonus
+# past every modifier on either side and the Injury snapshot
+# (`rules/damage/pipeline.mjs` stage 16, reading 16); "Divine" is the label the
+# card shows, which nothing reads yet.
+#
+# Categorised `divinity`, so Enkidu, Vasavi Shakti and Andreias Amarantos find
+# its Rank as they find the shared document's.
+schema: 1
+id: divinity-fixed
+name: "Divinity"
+source: passive
+slug: divinity
+parameterized: [rank]
+rank: "@rank"
+description: "All damage dealt is increased by the table value, including NP. This extra damage is dealt as Fixed Divine Damage and does not count towards the amount required for an Injury Roll."
+categorizedAs: [divinity]
+passiveRules:
+  - key: FlatDamage
+    table: divinity
+    includesNP: true
+    fixed: Divine
+  - key: StatDelta
+    stat: attributes
+    add: [divine]

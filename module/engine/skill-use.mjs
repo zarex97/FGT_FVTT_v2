@@ -39,6 +39,7 @@ import { EffectRegistry } from "../rules/registry.mjs";
 import { currentBoard, currentMoment, unitFrom, unitOf, gateContext, turnRecordOf } from "./board.mjs";
 import { resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
+import { missChance, missSourceOf, PLAIN_MISS } from "../rules/miss.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { transferableFrom, transferEffect, entryOf } from "../rules/effect-flow.mjs";
 import { evade, checkPlan } from "../rules/checks.mjs";
@@ -177,9 +178,17 @@ export async function useSkill({
   // holding her own buff and taking an ordinary Normal Attack: 750 -> 733, with
   // `shieldHealth: 0` against a declared 200 (Ch. 46 §46.4-AE). `refreshShield`
   // even carries a default written for this very ability.
-  if (ability?.system?.shield) await refreshShield(ability);
+  // *"80% chance of Missing on attacks and ENEMY-AFFECTING ABILITIES"* -- Blind's
+  // clause 1 and Drowning's, whose failure *"spends no Cooldown"* (#232 reading
+  // 19). The attack path has rolled it at Combat Process step 1.5 since Blind was
+  // built; a Skill aimed at an enemy never rolled it at all. One reader of the
+  // chance (`rules/miss.mjs#missChance`), asked once per use, before anything
+  // lands.
+  const failure = await rollSkillFailure(ability, self, targets);
 
-  const applied = await runPhases(ability, actor, targets.units, board);
+  if (ability?.system?.shield && !failure) await refreshShield(ability);
+
+  const applied = failure ? [] : await runPhases(ability, actor, targets.units, board);
 
   const marks = {
     ...(countsAsAct(ability) ? { acted: true } : {}),
@@ -203,7 +212,7 @@ export async function useSkill({
     ...charged.flatMap((cost) => costIntents(cost, self)),
     ...itemCostIntents(ability, actor),
     // A use ON the Cooldown leaves the clock alone (`rules/costs.mjs`).
-    ...(applied.channelStarted || usage.overCooldown ? [] : cooldownIntents(ability, actor, applied.summoned ?? 0, self)),
+    ...(applied.channelStarted || usage.overCooldown || failure?.refundsCooldown ? [] : cooldownIntents(ability, actor, applied.summoned ?? 0, self)),
     I.markTurn(actorId, marks),
     // Recorded so a mutually-exclusive partner can see it went, at both
     // scales, and so a `maxUses` budget can be spent. One intent, shared with
@@ -222,6 +231,15 @@ export async function useSkill({
   if (combat?.started && !free) await budget.spend({ combat, unit: self, action: budgetAction });
   await fireAbilityUsed(actor, ability);
   await rollConcealmentBreak(actor, ability, self);
+  if (failure) {
+    await ChatMessage.create({
+      content: `<p>${game.i18n.format("FGT.Miss.SkillFailed", {
+        name: ability.name, source: failure.source, roll: failure.roll, chance: failure.chance,
+      })}</p>`,
+      speaker: publicSpeakerFor(actor),
+    });
+    return { ok: true, applied, failed: failure };
+  }
   await postCard(actor, ability, targets.units, applied);
 
   // A debuff this Skill inflicted may have provoked an automatic counter, and a
@@ -232,6 +250,24 @@ export async function useSkill({
   await flushAutoCounters();
 
   return { ok: true, applied };
+}
+
+/**
+ * Roll whether a Skill aimed at an enemy fails outright to a miss source.
+ *
+ * @param {object} ability
+ * @param {object} self the user, as the board sees it
+ * @param {{units: object[]}} targets
+ * @returns {Promise<{source: string, roll: number, chance: number, refundsCooldown: boolean}|null>}
+ */
+async function rollSkillFailure(ability, self, targets) {
+  if (!(targets.units ?? []).some((t) => t.relation === "enemy")) return null;
+  const chance = missChance(self, new Set(ownerOptionsOf(self)));
+  if (chance <= 0) return null;
+  const roll = (await new Roll("1d100").evaluate()).total;
+  if (roll > chance) return null;
+  const source = missSourceOf(self);
+  return { source, roll, chance, refundsCooldown: PLAIN_MISS.includes(source) };
 }
 
 /**
@@ -2199,7 +2235,27 @@ export async function runCasterPhases(ability, actor, board, extras = {}) {
   // every phase that had not written `target: self` resolve to `reuse` and then
   // to nobody, so the loop body never ran -- Unlimited Blade Works spent its
   // Aria (a `target: self` phase) and created no Reality Marble (which is not).
-  return runPhases(ability, actor, [{ unitId: actor.id }], board, (phase) => CASTER_PHASES.has(phase.kind), extras);
+  // Not a phase that waits for the Combat Phase to end (`when: afterPhase`):
+  // Enki's *"Then, the area affected by this NP becomes a 'Waterside' area"*
+  // paints after its damage, or its own Waterside would raise its Water damage
+  // and worsen every Evade against it (#232). `runAfterPhaseZones` runs those.
+  return runPhases(ability, actor, [{ unitId: actor.id }], board,
+    (phase) => CASTER_PHASES.has(phase.kind) && phase.when !== "afterPhase", extras);
+}
+
+/**
+ * The `zone` phases an attacking ability paints once its Combat Phase has
+ * ended, over the area it resolved against.
+ *
+ * @param {object} ability
+ * @param {object} actor the caster
+ * @param {object[]} areaPanels the panels the attack resolved against
+ * @returns {Promise<object[]>} what the phases applied
+ */
+export async function runAfterPhaseZones(ability, actor, areaPanels) {
+  const board = currentBoard();
+  return runPhases(ability, actor, [{ unitId: actor.id }], board,
+    (phase) => phase.kind === "zone" && phase.when === "afterPhase", { areaPanels });
 }
 
 /**
@@ -2252,7 +2308,7 @@ export function modeIntent(phase, unitId, source) {
  * @param {object} board
  * @returns {Promise<object|null>} the created Actor, or null
  */
-async function createStructure(phase, ability, actor, board) {
+export async function createStructure(phase, ability, actor, board) {
   const scene = canvas?.scene;
   const self = board.units.find((u) => u.id === actor.id);
   if (!self?.panel || !scene) return null;

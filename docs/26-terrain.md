@@ -87,3 +87,6 @@ and keeps its Water +25% and Fire resistance.
   lookups are written.
 
 - **Why not a panel property?** Regions support non-contiguous membership, overlaps, and native `tokenEnter`/`tokenExit` hooks out of the box. A panel array would require re-implementing membership and contact callbacks.
+
+**Terrain an Attack paints after itself** (#232). Enki's Waterside is a `zone` phase with `when: afterPhase`,
+painted once its Combat Phase has ended (Ch. 17), over its 13x13, for 7◈.

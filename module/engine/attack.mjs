@@ -38,7 +38,7 @@ import { counterRedirect, counterMustCatchAttacker, counterRefusal } from "../ru
 import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { inAttackRangeBetween, chebyshev } from "../domain/geometry.mjs";
-import { missChance, missSourceOf } from "../rules/miss.mjs";
+import { missChance, missSourceOf, PLAIN_MISS } from "../rules/miss.mjs";
 import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
 import { collectContributions } from "../rules/elements.mjs";
 import { test as testPredicate, explain as explainPredicate } from "../rules/predicate.mjs";
@@ -66,6 +66,8 @@ import { luckChecksApply } from "../rules/difficulty.mjs";
 import { renderAttackCard, updateAttackCard } from "../apps/chat/cards.mjs";
 import { landEffect, landEntry } from "./landing.mjs";
 import { entryOf } from "../rules/effect-flow.mjs";
+import { tableFor, entriesFor } from "../rules/roll-table.mjs";
+import { relationOf } from "../rules/relations.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import * as budget from "./budget.mjs";
 import { resolveDefeat, pendingRolls, fireEvent } from "./scheduler.mjs";
@@ -213,6 +215,15 @@ export async function resolveAttack({
   // and none of the budget above.
   await payAbilityPrice({ ability, attackerId, attacker, self, master, usage, board, resume });
 
+  // A Noble Phantasm that LANDS LATER (`engine/schedule.mjs`). Enki's use is its
+  // activation: paid in full above, its mark placed and its clock started here,
+  // and nothing declared until the clock runs out (#232 reading 11).
+  if (ability?.system?.schedule && !placement?.scheduled) {
+    const { scheduleStrike } = await import("./schedule.mjs");
+    const strike = await scheduleStrike({ ability, attacker, self });
+    return { scheduled: true, strike };
+  }
+
   // "Used during your Turn OR at the start of a Combat Phase" -- the attacker's
   // second window, offered once for the whole Phase rather than per Process,
   // because a Combat Phase is one exchange however many defenders it catches
@@ -309,6 +320,8 @@ export async function resolveAttack({
   // silently 1x. Measured that way: stage 3 read "Ability multiplier --".
   const attackSpec = {
     ...buildAttackSpec({ attacker, ability, abilityId: ability?.id ?? null, options, placement, board }),
+    // An additional Normal Attack (Bab-ilu, #232): it never earns another.
+    ...(placement?.followUp ? { followUp: true } : {}),
     // The panels this declaration resolved against. Two clauses ask for the
     // area and neither ever got it: Fire in a Forest *"If the attack's area
     // is larger than 3x3, the whole attack area converts"* (`terrainConversions`
@@ -429,6 +442,9 @@ export async function resolveAttack({
   // shared with the Ch. 21 Counter path, which needs every step of it.
   const primary = await declareProcesses({
     attackerId, attacker, ability, attackSpec, targetIds, targets, placement, board, perProcess,
+    // A scheduled strike landing was USED at its activation: its caster phases
+    // ran and `abilityUsed` was raised there (`engine/schedule.mjs`).
+    declaresUse: !placement?.scheduled,
   });
 
   await declareAftermath({
@@ -1180,6 +1196,9 @@ async function declareProcesses({
           // them (#68).
           ...defenderRefusals(state.defenderId, board),
           ...(placement?.plainDamage ? ["evade", "block", "counter"] : []),
+          // The second Attack of Bab-ilu's passive: *"if the DU Blocked the
+          // first Attack, it also has to Block the second"* (#232 reading 24).
+          ...(placement?.forbidReactions ?? []),
         ])],
         // A Structure takes no action at all (`rules/actions.mjs`), so it
         // answers no rung (`process.inertAnswer`). A Master's swing at a
@@ -1257,7 +1276,14 @@ async function declareProcesses({
     // ...and a Unit that is only the subject of its own ability, which does it
     // no harm, has nothing to react to (§46.4-CK).
     const ownSubject = advanced.defenderId && advanced.defenderId === advanced.attackerId && harmlessToSelf(ability);
-    if (!process.pendingPrompt(advanced) || ownSubject) {
+    // A swing that MISSED (step 1.5) is over: its one legal event is `done`,
+    // which closes it and ends its Combat Phase. The guard below sent it
+    // `nothing`, an illegal transition, so every Blind or Drowning miss threw at
+    // the declaration and its Phase never ended (#232, found live: Karna under
+    // Drowning).
+    if (advanced.state === "missed") {
+      await advanceAttack({ messageId: message.id, event: "done" });
+    } else if (!process.pendingPrompt(advanced) || ownSubject) {
       await advanceAttack({ messageId: message.id, event: "nothing" });
     }
 
@@ -1666,6 +1692,12 @@ async function closeRung(state, message) {
     // counter per Process it opened against her, which is what the sheet says
     // and what makes standing under a Decoy so expensive for the attacker.
     await noteAttackProvocation(state);
+    // Bab-ilu's additional Normal Attack, offered once the whole first Attack
+    // has closed and before its Combat Phase ends (`engine/follow-up.mjs`).
+    {
+      const { offerFollowUp } = await import("./follow-up.mjs");
+      await offerFollowUp(state, { rollOptions, resolveAttack });
+    }
     await flushAutoCounters(state.groupId);
     await fireCombatPhaseEnd(state);
     // Last, so the deferred half sees a board on which this Process has fully
@@ -2892,6 +2924,49 @@ async function fireEvadeSucceeded(state) {
 }
 
 /**
+ * Give back the Cooldown of an Attack that failed outright to a plain miss.
+ *
+ * @param {object[]} states every Process of the Combat Phase
+ * @returns {Promise<void>}
+ */
+async function refundPlainMiss(states) {
+  const declared = states.filter((s) => !s.isCounter);
+  const abilityId = declared[0]?.attack?.abilityId ?? null;
+  if (!abilityId || declared.length === 0) return;
+  const plainMissed = (s) => (s.rolls ?? [])
+    .some((r) => r.check === "miss" && r.outcome === "miss" && PLAIN_MISS.includes(r.source));
+  if (!declared.every(plainMissed)) return;
+  const attackerId = declared[0].attackerId;
+  const item = game.actors.get(attackerId)?.items?.get(abilityId) ?? null;
+  if (!item || !((item.system?.cooldown?.remaining ?? 0) > 0)) return;
+  await applyBatch([{ ...I.cooldown(attackerId, abilityId, 0, "set"), source: "Drowning" }], "plainMiss:refund");
+  await ChatMessage.create({
+    content: `<p>${game.i18n.format("FGT.Miss.Refunded", { name: item.name })}</p>`,
+    speaker: publicSpeakerFor(game.actors.get(attackerId)),
+  });
+}
+
+/**
+ * Paint what an attacking ability paints once its Combat Phase has ended.
+ *
+ * @param {object|null} declared the declaring Process's state
+ * @returns {Promise<void>}
+ */
+async function paintAfterPhase(declared) {
+  const abilityId = declared?.attack?.abilityId ?? null;
+  if (!abilityId || declared.isCounter) return;
+  const attackerDoc = game.actors.get(declared.attackerId);
+  const ability = attackerDoc?.items?.get(abilityId) ?? null;
+  const phases = ability?.system?.phases ?? [];
+  if (!phases.some((p) => p.kind === "zone" && p.when === "afterPhase")) return;
+  const { runAfterPhaseZones, postCard } = await import("./skill-use.mjs");
+  const applied = await runAfterPhaseZones(ability, attackerDoc, declared.attack?.areaPanels ?? []);
+  if ((applied ?? []).some((a) => a.summary?.outcome === "applied")) {
+    await postCard(attackerDoc, ability, [], applied);
+  }
+}
+
+/**
  * Raise `combatPhaseEnd`, once, when every Process in the fan-out has finished.
  *
  * A Combat **Phase** is the whole exchange; a Combat **Process** is one
@@ -2932,6 +3007,16 @@ async function fireCombatPhaseEnd(state) {
   const marker = siblings[0] ?? null;
   if (marker?.getFlag("fgt", "phaseEnded")) return;
   if (marker) await marker.setFlag("fgt", "phaseEnded", true);
+
+  // *"Then, the area affected by this NP becomes a 'Waterside' area"* -- an
+  // attacking ability's terrain painted once its Combat Phase is over, over the
+  // area it resolved against (Enki, #232). The declaring Process's own attack,
+  // not a Counter's that shares the group.
+  await paintAfterPhase(marker ? process.deserialize(marker.getFlag("fgt", "process")) : state);
+  // *"(no cooldown on failure)"*: an Attack every Process of which failed to a
+  // plain miss source (Drowning, #232 reading 19) leaves its ability's clock
+  // where it stood before the use.
+  await refundPlainMiss(siblings.map((m) => process.deserialize(m.getFlag("fgt", "process"))));
 
   const involved = [
     state.attackerId,
@@ -4199,7 +4284,7 @@ async function applyInjury(state, message) {
     // hit's stage-16 addition; a `singleInjuryRoll` attack's total is a sum
     // of already-settled `result.total` values with nothing further to add,
     // so comparing the sum directly is the correct fresh threshold check.
-    exceededThreshold = siblings.total > INJURY_THRESHOLD;
+    exceededThreshold = siblings.counted > INJURY_THRESHOLD;
   }
 
   const verdict = injuryCheck({
@@ -4272,6 +4357,7 @@ function alreadyInjuryRolled(state, message) {
  */
 function siblingInjuryTotals(state) {
   let total = 0;
+  let counted = 0;
   let pending = 0;
   for (const m of game.messages) {
     const raw = m.getFlag("fgt", "process");
@@ -4290,8 +4376,11 @@ function siblingInjuryTotals(state) {
       continue;
     }
     total += result.total;
+    // A FIXED bonus (Proto Gil's Divinity, #232 reading 16) is damage taken but
+    // not damage counted toward the Injury Roll; the pipeline records it.
+    counted += result.total - (result.flags?.fixedExtra ?? 0);
   }
-  return { total, pending };
+  return { total, counted, pending };
 }
 
 /**
@@ -5060,7 +5149,6 @@ async function tallyDamageAgainstFields(defender, attacker, total, board) {
 
   const { vulnerabilityTriggered } = await import("../rules/bounded-fields.mjs");
   const { deactivateField, tallyAgainstField, lockOutField } = await import("./fields.mjs");
-  const { relationOf } = await import("../rules/relations.mjs");
 
   for (const fieldId of inside) {
     const field = (board.fields ?? []).find((f) => f.id === fieldId);
@@ -5448,6 +5536,18 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
     // `CASTER_PHASES` deliberately excludes -- `damage` IS the Combat
     // Process, and `applyEffects` is its post-damage rider step, both of
     // which resolve per DEFENDER rather than once per caster.
+    // A die table EACH Unit the attack hit rolls for itself. Bab-ilu: *"all
+    // affected DUs roll 3 twenty-sided dice and are inflicted with the
+    // corresponding debuffs for 1◈ Turns"* (#232). Once per Process, so once
+    // per DU; each row lands through the one door, with this attack in reach,
+    // so an "if NP" figure reads as one. The Skill path's table
+    // (`skill-use.mjs#runRollTable`) rolled here and this loop skipped it.
+    if (phase.kind === "rollTable") {
+      if (heldOnly) continue;
+      if (holding) { keep("rollTable", ability.name); continue; }
+      applied.push(...await rollTableAgainst(phase, ability, state, attackerDoc, attackerUnit, defender, defenderDoc));
+      continue;
+    }
     if (phase.kind !== "applyEffects" && phase.kind !== "applyEffect") continue;
 
     // A rider aimed at the ATTACKER. Bellerophon is the first: *"Then, applies
@@ -5557,6 +5657,60 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
       }));
     }
   }
+  return applied;
+}
+
+/**
+ * Roll a `rollTable` phase for one defender and land what it selects.
+ *
+ * @param {object} phase
+ * @param {object} ability
+ * @param {object} state the Process
+ * @param {object} attackerDoc
+ * @param {object} attackerUnit
+ * @param {object} defender the defender's unit
+ * @param {object} defenderDoc
+ * @returns {Promise<object[]>}
+ */
+async function rollTableAgainst(phase, ability, state, attackerDoc, attackerUnit, defender, defenderDoc) {
+  const table = tableFor(phase, relationOf(attackerUnit, defender, boardSnapshot()));
+  if (!table) {
+    console.error(`FGT | ${ability.name} has a rollTable phase with no table for ${defender?.name ?? "this target"}.`);
+    return [];
+  }
+  const faces = phase.faces ?? 20;
+  const count = phase.count ?? 1;
+  const results = [];
+  for (let k = 0; k < count; k++) results.push((await new Roll(`1d${faces}`).evaluate()).total);
+
+  /** @type {object[]} */
+  const applied = [];
+  for (const { roll, entry } of entriesFor(table, results)) {
+    if (!entry) {
+      console.error(`FGT | ${ability.name} rolled ${roll}, which its table has no row for.`);
+      continue;
+    }
+    for (const rule of entry.effects ?? []) {
+      applied.push(...await landEntry(entryOf(rule, { phase }), {
+        target: unitFrom(boardSnapshot(), defenderDoc) ?? defender,
+        source: { unitId: state.attackerId, abilityId: ability.id },
+        caster: attackerDoc,
+        casterUnit: attackerUnit,
+        attack: attackFacts(attackerUnit, defender, state),
+        distance: state.attack?.range ?? null,
+        process: state,
+      }, {
+        write: (intents) => applyBatch(intents, "abilityEffect:rollTable"),
+        reread: () => unitFrom(boardSnapshot(), defenderDoc),
+      }));
+    }
+  }
+  await ChatMessage.create({
+    content: `<p>${game.i18n.format("FGT.RollTable.Rolled", {
+      name: ability.name, unit: shownName(defender), results: results.join(", "),
+    })}</p>`,
+    speaker: publicSpeakerFor(attackerDoc),
+  });
   return applied;
 }
 
@@ -6995,6 +7149,11 @@ async function runMissCheck(state, attacker, board) {
     rollRecord: {
       check: "miss",
       label: game.i18n.localize("FGT.Card.MissCheck"),
+      // The fields every other roll line prints (formula, face, purpose): the
+      // miss line read "undefined undefined → undefined" (#232, found live).
+      purpose: game.i18n.localize("FGT.Card.MissCheck"),
+      formula: "1d100",
+      raw: roll.total,
       total: roll.total,
       target: chance,
       outcome: missed ? "miss" : "hit",
