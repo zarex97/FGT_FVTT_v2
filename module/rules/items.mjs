@@ -641,6 +641,27 @@ function gatedAbilities(unit, req, self = null) {
 }
 
 /**
+ * Requirements answerable from the bearer alone.
+ *
+ * A window offer has no target and no attack, so a gate that needs one cannot
+ * be judged here and must not refuse for lack of it — the offer would then be
+ * silently missing rather than honestly refused.
+ *
+ * @type {ReadonlySet<string>}
+ */
+export const SELF_REQUIREMENTS = new Set([
+  "stance", "modeActive", "modeInactive", "notHasEffect", "hasSkill",
+  "healthAbove", "healthBelow", "resourceAtLeast", "itemAtLeast",
+  "roundAtLeast", "roundPhase", "inZon", "healthRestoredSince",
+  // Another of the Unit's own abilities cooling: Wisdom of Dún Scáith's slots
+  // gate on each other, and Brahmastra's card offered the Eye of the Mind
+  // copy while the other copy cooled (#204 W1.lock, found pressing).
+  "abilityOffCooldown",
+  // The legion's count is the bearer's own (#226).
+  "legionAbove",
+]);
+
+/**
  * The first requirement this ability fails, if any.
  *
  * Reports **one**, by kind, so a refusal names a single thing to fix.
