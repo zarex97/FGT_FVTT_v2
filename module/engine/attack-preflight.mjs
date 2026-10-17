@@ -83,6 +83,7 @@ export function attackPreflight({ attacker, abilityId, placement = {}, board, co
   // which an Attack Skill or a Spell could still spend, and a zero Range would
   // have refused those too.
   if (!ability && hasGranted(self, GRANTS.noNormalAttack)) {
+    // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
     return refuse(`${attacker.name} cannot perform Normal Attacks.`);
   }
 

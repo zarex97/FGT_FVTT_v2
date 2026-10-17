@@ -31,6 +31,7 @@ import * as rollLog from "../rules/roll-log.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { occupantsAt } from "../rules/movement.mjs";
 import { interiorOf, withinInterior } from "../rules/platforms.mjs";
+import { shownNameById } from "./public-identity.mjs";
 
 export { interiorOf, withinInterior };
 
@@ -436,7 +437,7 @@ async function chooseEntrants(ownerDoc, eligible) {
     min: 0,
     count: eligible.length,
     preselected: eligible,
-    options: eligible.map((id) => ({ id, name: game.actors.get(id)?.name ?? id })),
+    options: eligible.map((id) => ({ id, name: shownNameById(id) })),
   });
   return picked ?? [];
 }
@@ -455,6 +456,7 @@ async function askAttempts(eligible, spec) {
     if (!doc) return null;
     const picked = await askOwner(doc, {
       kind: "choose",
+      // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
       title: game.i18n.format("FGT.Dimension.AttemptTitle", { name: doc.name }),
       hint: game.i18n.format("FGT.Dimension.AttemptHint", { successOn }),
       min: 0,
@@ -578,7 +580,7 @@ export async function enterDimension({ ownerId, platformId, chosenAllyIds = [] }
 
   // Said on the chat log, every attempt with its die: a 15% door that only the
   // flag log knew about was a roll the table never saw (#191).
-  const name = (id) => game.actors.get(id)?.name ?? id;
+  const name = (id) => shownNameById(id);
   await postDimensionCard([
     game.i18n.format("FGT.Dimension.Entered", {
       names: manifest.entering.map(name).join(", "),

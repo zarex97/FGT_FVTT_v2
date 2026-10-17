@@ -13,6 +13,7 @@
  */
 
 import { contractCandidates, attemptContract } from "../engine/contract.mjs";
+import { shownNameById } from "../engine/public-identity.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -54,6 +55,7 @@ export class ContractDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     const candidates = contractCandidates(this.#contractorId);
 
     return {
+      // fgt-name-ok: a Master conceals nothing (Ch. 30)
       contractor: game.actors.get(this.#contractorId)?.name ?? this.#contractorId,
       isEmpty: candidates.length === 0,
       candidates: candidates.map((c) => ({
@@ -86,7 +88,7 @@ export class ContractDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       return;
     }
 
-    const name = game.actors.get(servantId)?.name ?? servantId;
+    const name = shownNameById(servantId);
     if (out.success) ui.notifications.info(game.i18n.format("FGT.Contract.Succeeded", { name }));
     else ui.notifications.warn(game.i18n.format("FGT.Contract.Failed", { rolls: out.rolls.join(", ") }));
 

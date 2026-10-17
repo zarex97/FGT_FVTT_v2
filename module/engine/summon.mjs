@@ -362,6 +362,7 @@ export async function ensureSetupRolls() {
       "system.agility": { max: agility, value: agility },
       "system.luck": { max: luck, value: luck },
     });
+    // fgt-name-ok: the summoning's report to the GM and the summoning player
     done.push({ id: actor.id, name: actor.name, agility, luck });
   }
 
@@ -437,6 +438,7 @@ export async function servantCatalogue({ ruleset = null } = {}) {
       });
     }
   }
+  // fgt-name-ok: the summon catalogue: content names the GM picks from
   return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 

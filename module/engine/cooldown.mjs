@@ -196,6 +196,7 @@ function triggeredBy(entry, actor) {
   if (items.length === 0) {
     // Loud: a group that matches nothing is either a typo or a Servant who has
     // not been given her copies yet, and the two look identical from here.
+    // fgt-name-ok: console text for the GM and the developer
     console.warn(`FGT | ${actor.name}: alsoTriggers ${JSON.stringify(entry)} matched no abilities.`);
   }
   return items;

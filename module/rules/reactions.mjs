@@ -29,6 +29,7 @@ import { chebyshev } from "../domain/geometry.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { relationOf } from "./relations.mjs";
 import { isNPAttack } from "./damage/pipeline.mjs";
+import { shownNameOf } from "./identity.mjs";
 
 /**
  * The windows the **attacker's own** abilities may name.
@@ -347,7 +348,7 @@ export function allyReactions({ defender, board, attack, attacker = null, actorF
       // ...and its own requirements, read off the projector (#208).
       if (!selfGatesPass(item, unit)) continue;
 
-      out.push({ ability: item, ownerId: unit.id, ownerName: unit.name ?? doc.name });
+      out.push({ ability: item, ownerId: unit.id, ownerName: shownNameOf(unit, board) });
     }
   }
   return out;

@@ -132,6 +132,7 @@ function onPreMove(document, movement, operation) {
     const side = unit.actingFactionId ?? unit.factionId;
     if (side && acting && side !== acting) {
       ui.notifications.warn(game.i18n.format("FGT.Movement.NotYourTurn", {
+        // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
         name: actor.name,
         faction: combat.combatant?.name ?? acting,
       }));
@@ -189,6 +190,7 @@ function onPreMove(document, movement, operation) {
   const stopped = preventedBy(unit, "move");
   if (stopped.prevented) {
     ui.notifications.warn(game.i18n.format("FGT.Movement.Prevented", {
+      // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
       name: actor.name, effect: EffectRegistry.get(stopped.by)?.name ?? stopped.by,
     }));
     return false;

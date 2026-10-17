@@ -20,6 +20,7 @@ import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import { createLevel, moveToLevel, teardown, dropToGround } from "./scene-levels.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { shownName } from "./public-identity.mjs";
 
 /**
  * Attempt to board a platform.
@@ -147,9 +148,9 @@ async function announceBoarding(unit, platform, r) {
   ].filter(Boolean).join(" ");
   await ChatMessage.create({
     content: `<div class="fgt boarding-card">${game.i18n.format(key, {
-      name: unit.name ?? "", platform: platform.name ?? "", die: r.die, roll: r.roll, target: r.target,
+      name: shownName(unit), platform: platform.name ?? "", die: r.die, roll: r.roll, target: r.target,
     })}${extra ? ` ${extra}` : ""}</div>`,
-    speaker: { alias: unit.name },
+    speaker: { alias: shownName(unit) },
   });
 }
 
@@ -263,7 +264,7 @@ export async function knockOff({ unitId, platformId, passedAgility = null, serva
  * @returns {Promise<void>}
  */
 async function announceFall(unit, platform, { own, rescue, passed, rescued, choice }) {
-  const base = { name: unit.name ?? "", platform: platform.name ?? "", roll: own.roll ?? "—", target: own.target ?? "—" };
+  const base = { name: shownName(unit), platform: platform.name ?? "", roll: own.roll ?? "—", target: own.target ?? "—" };
   let text;
   if (passed) {
     text = game.i18n.format("FGT.Platform.FallPassed", base)
@@ -278,7 +279,7 @@ async function announceFall(unit, platform, { own, rescue, passed, rescued, choi
       text += ` ${game.i18n.format("FGT.Platform.FallRescueMissed", { servant: rescue.name ?? "", servantRoll: rescue.roll ?? "—" })}`;
     }
   }
-  await ChatMessage.create({ content: `<div class="fgt fall-card">${text}</div>`, speaker: { alias: unit.name } });
+  await ChatMessage.create({ content: `<div class="fgt fall-card">${text}</div>`, speaker: { alias: shownName(unit) } });
 }
 
 /**
@@ -358,6 +359,7 @@ async function askWhereToGo(unit, platform) {
   const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
   const picked = await ChoiceDialog.pick({
     title: game.i18n.format("FGT.Platform.KnockedOffTitle", {
+      // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
       name: game.actors.get(unit.id)?.name ?? unit.id,
     }),
     hint: game.i18n.localize("FGT.Platform.KnockedOffHint"),
@@ -368,6 +370,7 @@ async function askWhereToGo(unit, platform) {
         id: "stay",
         name: game.i18n.localize("FGT.Platform.KnockedOffStay"),
         detail: game.i18n.format("FGT.Platform.KnockedOffStayHint", {
+          // fgt-name-ok: a platform is what it appears to be (Ch. 30)
           name: game.actors.get(platform.id)?.name ?? platform.id,
         }),
       },
@@ -506,6 +509,7 @@ async function askBringMaster(master, kind = "Jump") {
   const picked = await ChoiceDialog.pick({
     title: game.i18n.localize(`FGT.Platform.${kind}CarryTitle`),
     hint: game.i18n.format(`FGT.Platform.${kind}CarryHint`, {
+      // fgt-name-ok: a Master conceals nothing (Ch. 30)
       name: game.actors.get(master.id)?.name ?? master.id,
     }),
     count: 1,
@@ -618,7 +622,9 @@ export async function destroyPlatform({ platformId, saves = null, reason = "dest
   if (doc) {
     const out = await teardown(doc);
     if (!out.ok) {
+      // fgt-name-ok: console text for the GM and the developer
       console.error(`FGT | Could not tear down ${doc.name}: ${out.reason}`, out.stranded);
+      // fgt-name-ok: a GM-only notice
       ui.notifications?.error(game.i18n.format("FGT.Platform.TeardownFailed", { name: doc.name }));
     }
   }

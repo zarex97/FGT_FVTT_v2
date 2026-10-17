@@ -463,6 +463,7 @@ async function offerWard(def, target) {
   const answer = await askOwner(doc, {
     kind: "confirm",
     title: game.i18n.localize("FGT.Ward.Title"),
+    // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
     hint: game.i18n.format("FGT.Ward.Ask", { name: doc.name, effect: def.name, left: ward.uses }),
   });
   if (!answer?.accepted) return null;
