@@ -30,6 +30,7 @@ import { chebyshev, inBounds } from "../domain/geometry.mjs";
 import { paysHighColumn } from "./master-rank.mjs";
 import { isolationBlocks } from "./bounded-fields.mjs";
 import { isNPAttack } from "./damage/pipeline.mjs";
+import { gateRoundFor, NP_GATE } from "./np-gate.mjs";
 
 /** The interruptible points (Ch. 33). `anyTime` commands are offered at all of them. */
 export const WINDOWS = Object.freeze({
@@ -73,6 +74,9 @@ export function suspendableSkills(skills, unit) {
  * @returns {number}
  */
 export function costOf(command, master, settings = {}) {
+  // A Master Essence's use costs no Command Spell: it is paid by its own
+  // `maxUses` (#241).
+  if (command?.essence) return 0;
   const variant = command.costByMasterRank;
   if (!variant) return command.cost ?? 1;
   // "If all Masters are Rankless, the Kill Yourself command only costs one."
@@ -91,6 +95,7 @@ export function costOf(command, master, settings = {}) {
  * @returns {{ok: boolean, reason?: string, cost: number}}
  */
 export function canSpend(command, ctx) {
+  if (command?.essence) return canUseEssence(command, ctx);
   const cost = costOf(command, ctx.master, ctx.settings);
   // A Command Spell is a spell for the Master's contracted Servant, and for
   // nobody else (ruled 2026-10-14, #204): no live Servant on the board, no
@@ -131,6 +136,46 @@ export function canSpend(command, ctx) {
   }
 
   return { ok: true, cost };
+}
+
+/**
+ * A Master Essence's one use, in the shape a command has (#241).
+ *
+ * *"1 use only, Player decides when it's used."* Heaven's Feel and Divine
+ * Banquet are not Command Spells -- no Command Spell is paid, and neither ZON
+ * nor a field sealed against Command Spells stops one -- but they are offered,
+ * spent and applied by the same path: `timing.window`, `requirements` and
+ * `effect` are authored in the Command Spell's vocabulary, so one reader holds
+ * both and a new Essence needs no new code.
+ *
+ * @param {{id: string, name: string, system: object}} item the Master's own Essence
+ * @returns {object|null} `null` for an Essence with no use
+ */
+export function essenceCommand(item) {
+  const sys = item?.system ?? {};
+  if (!(sys.effect ?? []).length || sys.grantedBy) return null;
+  return {
+    id: sys.contentId || item.id, name: item.name, essence: true, itemId: item.id,
+    description: sys.description ?? "",
+    timing: sys.timing ?? null, requirements: sys.requirements ?? [], effect: sys.effect ?? [],
+    maxUses: sys.maxUses ?? 1, timesUsed: sys.timesUsed ?? 0,
+  };
+}
+
+/**
+ * Whether a Master Essence's use may be spent now (#241).
+ *
+ * @param {object} command from {@link essenceCommand}
+ * @param {object} ctx
+ * @returns {{ok: boolean, reason?: string, cost: number}}
+ */
+export function canUseEssence(command, ctx) {
+  if (!ctx.servant || ctx.servant.defeated) return { ok: false, reason: "noServant", cost: 0 };
+  if ((command.timesUsed ?? 0) >= (command.maxUses ?? 1)) return { ok: false, reason: "spent", cost: 0 };
+  for (const req of command.requirements ?? []) {
+    if (!meets(req, ctx)) return { ok: false, reason: req.kind, cost: 0 };
+  }
+  return { ok: true, cost: 0 };
 }
 
 /**
@@ -300,6 +345,20 @@ export function processRoleOf(command) {
 }
 
 /**
+ * Whether one spend of this command reaches every Process of its declaration:
+ * an increase of the attacker's Total Damage. *"Servant NP deals 200% extra
+ * damage"* boosts the Noble Phantasm, not one of its targets (ruled 2026-10-17,
+ * #241). Offered once, on the declaration's first card; a cut a defender's
+ * Master buys stays on its own Servant's card.
+ *
+ * @param {object} command
+ * @returns {boolean}
+ */
+export function reachesDeclaration(command) {
+  return (command?.effect ?? []).some((e) => e.kind === "modifyDamage" && e.side === "attacker");
+}
+
+/**
  * The Master's Servants a command may serve on this Combat Process (ruled
  * 2026-10-14, #204): a command that changes the attack only for the Servant in
  * it, on the side it acts for; Escape also when the Master itself is the one
@@ -353,6 +412,22 @@ function meets(req, ctx) {
     case "attackIsNotNP":
       // A categorized NP is an NP here too (ruled 2026-10-16, #208).
       return !isNPAttack(ctx.attack);
+    case "attackIsNP":
+      // Heaven's Feel and its kin: *"Servant NP deals 200% extra damage"* (#241).
+      return Boolean(ctx.attack) && isNPAttack(ctx.attack);
+    case "npGateOpen": {
+      // Divine Banquet and its kin are refused before the gate opens: there is
+      // no Cooldown yet to cut (#241 reading 12).
+      const gate = ctx.gate ?? {};
+      return gateRoundFor(servant, null, gate.gates ?? NP_GATE) <= (gate.round ?? ctx.board?.round ?? 1);
+    }
+    case "notMarked":
+      // Kill Humans is spent once: a Servant already carrying its mark is not
+      // offered it again (#241).
+      return !(servant?.effects ?? []).includes(req.effect);
+    case "npCooling":
+      // ...and while an NP is cooling, which is the only time they do anything.
+      return (servant?.abilities ?? []).some((a) => a.isNP && (a.cooldownRemaining ?? 0) > 0);
     case "targetNotImmune":
       // The immunity is a granted attribute, so content declares it and the
       // offer never shows the option (Ch. 33).
@@ -393,6 +468,7 @@ export const REQUIREMENT_KINDS = Object.freeze([
   "servantInZon", "attackIsNotNP", "targetNotImmune",
   "servantWithin", "servantNotWithin", "highRankMaster",
   "inZone", "notInZone", "noOtherRevival",
+  "attackIsNP", "npGateOpen", "npCooling", "notMarked",
 ]);
 
 /**

@@ -14,6 +14,10 @@ source: class
 slug: magicCrest
 kind: skill
 categorizedAsNP: true
+# *"Damage Spell"*: a Spell (#241 reading 14), so Silence and Spell Seal refuse
+# it as they refuse every Damage Spell. It was a plain Skill. Every Master
+# carries it, Advanced as well as Normal (#241 reading 13).
+isSpell: true
 # "Magic Crest -- usable after 2 full Rounds, from Round 3" (Ch. 04's own
 # table row). It is `categorizedAsNP`, so the global Noble Phantasm gate covers
 # it -- and this line is what keeps it usable three Rounds before that.

@@ -56,13 +56,24 @@ Underpower applies when a Master attacks a Servant: 50% chance its Total Damage 
 
 ### Sustainability
 
-A Free Servant spends Sustainability to use a Noble Phantasm, charged by the NP's rank: E=1, D=2, C=3, B=4, A=5 (`module/domain/tables.mjs`). Contracted Servants draw this cost from their Master's Health instead; the Master does not have a Sustainability clock.
+A Free Servant spends Sustainability to use a Noble Phantasm, charged by the NP's rank: E 1◈, D 2◈, C 3◈, B 4◈, A 5◈, EX 6◈, in Turns against the clock (`module/domain/tables.mjs`; it charged the bare number, a third of the price, until #241). Contracted Servants draw this cost from their Master's Health instead; the Master does not have a Sustainability clock.
 
 When a Master is defeated, `onMasterDefeated` frees every contracted Servant and resolves its clock. A Servant with `sustainability: null` (authored as no clock) stays indefinitely; one with `0` disappears immediately; one with a number counts down and disappears at zero (`module/rules/relationships.mjs:161-201`). If Mad Enhancement is active, the clock costs an additional 2 turns (`module/rules/relationships.mjs:194-199`). The Sustainability field is a `TickField`, stored as an expression like `"2◈"` and resolved to turns at snapshot time (`module/data/actor/_shared.mjs:290`).
 
 ### The multi-Servant tax
 
-At the end of a Turn, if more than one Servant has Acted, the Master loses 25 Health as a loss (not damage), bypassing all reduction effects (`module/rules/relationships.mjs:236-253`). The tax is **flat**, not per-Servant — acting with five Servants costs the same 25 as acting with two. Units are counted by `unitWeight`: a Dioscuri member is 0.5, so the pair acting together does not trigger it.
+At the end of a Turn, if more than one Servant has Acted, the Master loses 25 Health as a loss (not damage); in the Normal ruleset, 20 per additional Servant, banned at 20 (`multiServantRule`, #241 reading 15). In a Grand
+Order war neither applies; the tax and the ban both read the board's `grandOrder` (§46.4-PN). A tax that empties a
+Master defeats it (`defeatsAtZero`, ruled 2026-10-17): nobody's kill, so no Conquest, and its Servants go Free. The
+ban does not prevent it: a Normal Master at 21 may order three Servants, and an Advanced one may be hit between the
+order and the Turn's end. The Turn-end card says the death (`turn-report.mjs`, §46.4-PP).
+
+**A new Contract restarts the Free clock** (ruled 2026-10-17, #241): *"the number of Turns a Servant can remain on
+the field before disappearing after its Master is killed"*, once per death. `io.setContract` clears
+`sustainabilityRemaining` when a Free or Unbound Servant is contracted to a Master it did not serve, so the next death
+reads the sheet's Sustainability, plus that Master's High Rank +1◈ or less Mad Enhancement's −2◈. Semiramis keeps her
+Hanging Gardens' +2◈ while they stand (`hgob.mjs#restartedClock`). A Scáthach freed twice went Free again with what was
+left of her first clock (§46.4-PQ), bypassing all reduction effects (`module/rules/relationships.mjs:236-253`). The tax is **flat**, not per-Servant — acting with five Servants costs the same 25 as acting with two. Units are counted by `unitWeight`: a Dioscuri member is 0.5, so the pair acting together does not trigger it.
 
 A Master with 25 Health or less cannot order a second Servant to Act if one has already (`module/rules/relationships.mjs:267-279`). This prohibition is the flip side of the tax: it prevents a Master from spending to zero in the same Turn.
 
@@ -188,3 +199,24 @@ Servant keep their rules.
 partners (cause `linkedDeath`), whatever wrote the defeat: the Sustainability sweep, Instakill, Erase, a Command Spell, a
 field. The scheduler's `linkedDeathIntents` still logs the binding on the damage path; a partner already down is left. A
 Unit defeated twice is counted towards the Grail and frees its Servants once; its first cause stands.
+
+### Master content (#241)
+
+- **An Essence follows the Contract.** Its Master holds the Essence; the Servant holds a copy, `grantedBy` its Master
+  (`engine/master-essence.mjs#syncEssences`), made and removed by one hook on `system.masterId` and `system.defeated`.
+  A new Contract brings the new Master's Essence; a Master's death takes it. Losing a maximum cuts the stored current
+  to it and no lower; a gain mid-war raises the maximum only; the summon starts the Servant full (readings 3, 5, 6). A
+  whispered line names what was gained or lost. A Master never collects its own Essence's rules.
+- **A High Rank Master's +1◈ Sustainability** is added at its death, to the clock that death starts (reading 4,
+  `onMasterDefeated`, netted with Mad Enhancement's −2◈ in one write).
+- **A Normal Free Servant's NP** states its own price (`freeServantCost`): it disappears as the Combat Phase ends,
+  with a line (`attack.mjs#freeServantAftermath`), or its Archer's and Caster's NP (a) costs 2◈. An Advanced Free
+  Servant with no clock pays in its own Health and is never refused; reaching 0, it disappears at the Phase's end
+  (Appendix B).
+- **Kill Humans' Contract half** (reading 16): a spend that leaves the marked Servant Unbound frees it at once, with a
+  line (`io.spendCommandSpells`); `canAttemptContract` and a Conquest refuse the Master who ordered it.
+- **An Unbound Servant is derived, never stored** (`snapshot.mjs#annotateMasterRank`, from `isUnbound`): the
+  Contract rule and dialog read the board's `unbound`, so an ally is refused and an enemy contracts it on a 6 (§46.4-PM).
+- **A Contract attempt runs on the GM** (`attemptContract` socket operation): from a player's client it could not write
+  the match log and failed in silence (§46.4-PG).
+- **The Underpower coin is on the card**, Heads or Tails, as Overpower's (§46.4-PJ).

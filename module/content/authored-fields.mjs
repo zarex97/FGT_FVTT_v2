@@ -80,7 +80,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "countsAsNormalAttack", "openingChoice", "toggleWindow", "cooldownOverride",
   // Avalon (#230): a Noble Phantasm that costs its Master nothing; an Item
   // whose rules run while it is held, and the abilities it gives its holder.
-  "noMasterCost", "ignoresNPGate", "worksWhenHeld", "grants", "bondUnitId", "bondMasterId", "grantClocks",
+  "noMasterCost", "freeServantCost", "ignoresNPGate", "worksWhenHeld", "grants", "bondUnitId", "bondMasterId", "grantClocks",
   "freeAction",
   "timesUsed", "maxUses", "lastUsedTick", "recordedAttacks",
   "recordsAttacks", "shield", "shieldHealth", "negatedBy", "negatedWhile",

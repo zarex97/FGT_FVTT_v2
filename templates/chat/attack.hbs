@@ -52,6 +52,9 @@
       {{#if result.summary.overpower}}
         <div class="fgt-card__flag">{{result.summary.overpower}}</div>
       {{/if}}
+      {{#if result.summary.underpower}}
+        <div class="fgt-card__flag">{{result.summary.underpower}}</div>
+      {{/if}}
       {{#if result.summary.shieldAbsorbed}}
         <div class="fgt-card__flag">Shield absorbed {{result.summary.shieldAbsorbed}}</div>
       {{/if}}
@@ -133,7 +136,7 @@
         {{#each commandSpells as |cs|}}
           <button type="button" data-fgt-cs="{{cs.id}}" data-fgt-master="{{cs.masterId}}" data-fgt-servant="{{cs.servantId}}">
             {{cs.name}}
-            <small>{{cs.cost}} CS</small>
+            {{#if cs.essence}}<small>{{localize "FGT.Master.Essence"}}</small>{{else}}<small>{{cs.cost}} CS</small>{{/if}}
           </button>
         {{/each}}
       </div>

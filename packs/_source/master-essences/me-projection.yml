@@ -1,0 +1,15 @@
+# docs/Master Essences.md, Rank B Master
+#
+# > "Projection: Servant Max Luck +3."
+#
+# The maximum only (#241 reading 6): a summon starts the Servant full; a loss
+# cuts the current value to the new maximum and no lower.
+schema: 1
+id: me-projection
+name: "Projection"
+type: masterEssence
+rank: B
+description: |
+  Servant Max Luck +3.
+rules:
+  - { key: MaxDelta, stat: luck, value: 3 }

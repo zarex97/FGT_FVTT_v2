@@ -1,0 +1,14 @@
+# docs/Master Essences.md, Rank B Master
+#
+# > "Elegance: Servant Crit Chance is increased by 20% (Base Crit Chance=70%). Does not affect NP."
+#
+# No NP figure, so it never reaches an NP (#131): "Does not affect NP."
+schema: 1
+id: me-elegance
+name: "Elegance"
+type: masterEssence
+rank: B
+description: |
+  Servant Crit Chance is increased by 20% (Base Crit Chance=70%). Does not affect NP.
+rules:
+  - { key: CritModifier, aspect: chance, value: 20 }

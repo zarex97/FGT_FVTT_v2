@@ -62,6 +62,8 @@ export class FGTActor extends Actor {
     const out = [];
     for (const item of this.items) {
       const sys = item.system ?? {};
+      // A Master's own Essence is its Servant's, through the copy (#241).
+      if (item.type === "masterEssence" && !sys.grantedBy) continue;
       for (const el of [...(sys.rules ?? []), ...(sys.passiveRules ?? [])]) {
         out.push({ ...el, source: el.source ?? item.name });
       }

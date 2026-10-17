@@ -129,3 +129,12 @@ Arturia arrives with [Avalon] on an 8 of a d8.
   offers none. Recovering would mean re-running the cross-link, not re-summoning.
 
 - ~~When does `summonedAt` matter?~~ Answered by #104: it did not. Nothing read it, and it is deleted.
+
+### The Master Essence draft (#241)
+
+With `masterMode: essences` and the Advanced ruleset, each container's row offers its Master an Essence (Rank first)
+and, for a Rank A or B one, the High Rank Master's `+` to one Parameter. `validateRoster` refuses a container with none
+and a Faction over its limits: 1 A, 2 B, 2 C, 2 D, a lower Rank filling a higher slot (`rules/master-essence.mjs#fitsLimits`);
+a custom war sets its own on the War tab. `createMasterFor` writes the Essence's Rank before the setup plan, so Base
+Attack (MAG) follows, and embeds the Essence; `commitWar` copies it onto the Servant and starts the Servant full. Every
+Master carries the Normal sheet's Magic Crest, a Damage Spell categorized as NP (readings 13, 14).

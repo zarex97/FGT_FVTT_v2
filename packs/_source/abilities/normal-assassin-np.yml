@@ -14,6 +14,9 @@
 # standard Assassin gate (Ch. 04) restated on the Normal sheet.
 schema: 1
 id: normal-assassin-np
+# *"When a Free Servant uses its Noble Phantasm, it immediately disappears after
+# use"* (Normal Great Holy Grail War, Contracts & Sustainability; #241).
+freeServantCost: { kind: disappear }
 name: "Noble Phantasm"
 isNP: true
 kind: noblePhantasm

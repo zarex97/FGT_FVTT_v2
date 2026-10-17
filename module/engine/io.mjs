@@ -24,9 +24,10 @@ import { FGTSocket } from "../net/socket.mjs";
 import { registerDefeat } from "../rules/environment.mjs";
 import { interiorOf } from "../rules/platforms.mjs";
 import { onMasterDefeated } from "../rules/relationships.mjs";
+import { isHighRank } from "../rules/master-rank.mjs";
 import { conquestContract } from "../rules/contract.mjs";
 import { record } from "./game-log.mjs";
-import { spendPlan } from "../rules/cs-namespacing.mjs";
+import { spendPlan, availableFor } from "../rules/cs-namespacing.mjs";
 import { snapshotUnit, turnWrite, roundWrite } from "../rules/snapshot.mjs";
 // The shared document→projection door and the two clock readers behind it.
 // `board.mjs` imports only from `rules/`, so this is acyclic.
@@ -764,6 +765,19 @@ export function worldIO() {
      * @param {string} unitId a Master
      * @param {number} count
      */
+    /**
+     * Spend one use of a Master Essence (#241): its `timesUsed` against
+     * `maxUses`, on the Master's own Essence.
+     *
+     * @param {string} unitId a Master
+     * @param {string} itemId the Essence Item
+     */
+    async spendEssence(unitId, itemId) {
+      const item = resolve(unitId)?.items.get(itemId);
+      if (!item) return;
+      await item.update({ "system.timesUsed": (item.system?.timesUsed ?? 0) + 1 });
+    },
+
     async spendCommandSpells(unitId, count, _command, servantId = null) {
       const actor = resolve(unitId);
       if (!actor) return;
@@ -784,6 +798,24 @@ export function worldIO() {
         update["system.commandSpellsPerServant"] = pools;
       }
       await actor.update(update);
+
+      // Kill Humans: *"if said Servant ever becomes an Unbound Servant, the
+      // Servant will abandon the Master and become a Free Servant"* (#241
+      // reading 16). Unbound is derived from the pools (`isUnbound`), and a
+      // spend is the one write that empties them, so it is asked here, after.
+      for (const servant of game.actors.filter((a) => a.system?.masterId === unitId)) {
+        const marked = servant.effects.some((e) => e.system?.defId === "killHumans" && e.system?.sourceUnitId === unitId);
+        if (!marked || availableFor(actor.system, servant.id) > 0) continue;
+        await this.setContract(servant.id, "free", null);
+        const { shownName } = await import("./public-identity.mjs");
+        const { currentBoard } = await import("./board.mjs");
+        const escape = foundry.utils.escapeHTML;
+        await ChatMessage.create({
+          content: `<div class="fgt-card"><p>${game.i18n.format("FGT.Contract.Abandoned", {
+            servant: escape(shownName(servant, currentBoard())),
+          })}</p></div>`,
+        });
+      }
     },
 
     /**
@@ -1455,7 +1487,19 @@ export function worldIO() {
       // A contracted Servant serves its Master's side (#190).
       const side = masterId ? (resolve(masterId)?.system?.factionId ?? servant.system?.factionId ?? null)
         : (servant.system?.factionId ?? null);
-      await servant.update({ "system.contract": contract, "system.masterId": masterId, "system.factionId": side });
+      // A new Contract restarts the Free clock (ruled 2026-10-17, #241):
+      // *"the number of Turns a Servant can remain on the field before
+      // disappearing after its Master is killed"*, once per death. A Scáthach
+      // freed twice went Free again with what was left of her first clock.
+      // Free or Unbound, contracted to a Master it did not serve.
+      const renewed = contract === "contracted" && masterId
+        && (servant.system?.contract !== "contracted" || previous !== masterId);
+      const clock = {};
+      if (renewed && servant.system?.sustainability !== undefined) {
+        const { restartedClock } = await import("./hgob.mjs");
+        clock["system.sustainabilityRemaining"] = restartedClock(servant.system, game.settings.get("fgt", "turnsPerRound") || 3);
+      }
+      await servant.update({ "system.contract": contract, "system.masterId": masterId, "system.factionId": side, ...clock });
 
       if (previous && previous !== masterId) {
         const old = resolve(previous);
@@ -1726,6 +1770,9 @@ async function freeContractedServants(unitId, killerId = null) {
     };
     for (const d of onMasterDefeated(snapshot, {
       conquered: conquered.has(actor.id), spares, turnsPerRound,
+      // *"Servant's Sustainability +1◈ Turns"* for a High Rank Master, added
+      // to the clock its death starts (#241 reading 4).
+      highRankMaster: isHighRank(master?.system),
     })) {
       if (d.kind === "setContract") await actor.update({ "system.contract": d.contract, "system.masterId": null });
       else if (d.kind === "defeat") {

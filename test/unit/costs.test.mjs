@@ -49,10 +49,14 @@ describe("npCost", () => {
       .toMatchObject({ amount: 53 });
   });
 
-  it("costs a Free Servant Sustainability instead of its Master's Health", () => {
-    // A Free Servant has no Master to charge (Ch. 32).
-    expect(npCost({ ability: np(), unit: servant({ contract: "free", sustainability: 8 }), master: null }))
-      .toMatchObject({ kind: "sustainability", amount: 5 });
+  it("costs a Free Servant Sustainability instead of its Master's Health, in ◈", () => {
+    // A Free Servant has no Master to charge (Ch. 32), and an A Rank NP costs
+    // it 5◈ (Appendix B): 15 Turns at three to the Round, against a clock kept
+    // in Turns. It was charged 5 Turns (#241).
+    expect(npCost({ ability: np(), unit: servant({ contract: "free", sustainability: 20 }), master: null }))
+      .toMatchObject({ kind: "sustainability", amount: 15 });
+    expect(npCost({ ability: np(), unit: servant({ contract: "free", sustainability: 20 }), master: null, turnsPerRound: 8 }))
+      .toMatchObject({ kind: "sustainability", amount: 40 });
   });
 
   it("costs a Free Servant with no Sustainability clock double its own Health", () => {

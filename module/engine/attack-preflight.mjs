@@ -18,7 +18,7 @@ import { canUseAbility } from "../rules/costs.mjs";
 import { usageSpecFor, classifyAbility } from "../rules/ability-use.mjs";
 import { budgetActionFor } from "../rules/budget.mjs";
 import { attackForbiddenThisRound } from "../rules/environment.mjs";
-import { mayOrderAnotherServant } from "../rules/relationships.mjs";
+import { mayOrderAnotherServant, multiServantRule } from "../rules/relationships.mjs";
 import { GRANTS, hasGranted } from "../rules/granted.mjs";
 import { actionSourceFor } from "../rules/platforms.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
@@ -169,8 +169,12 @@ export function attackPreflight({ attacker, abilityId, placement = {}, board, co
   // Servants to Act. Enforced here, where it composes with the ordinary budget.
   if (master && combat?.started) {
     const siblings = board.units.filter((u) => u.masterId === master.id && u.id !== self.id);
-    const allowed = mayOrderAnotherServant(master, siblings, { grandOrder: game.settings.get("fgt", "grandOrder") });
-    if (!allowed.ok) return refuse("This Master is at 25 Health or less and cannot order a second Servant to Act.");
+    const allowed = mayOrderAnotherServant(master, siblings, {
+      grandOrder: game.settings.get("fgt", "grandOrder"), ruleset: board.ruleset,
+    });
+    if (!allowed.ok) {
+      return refuse(`This Master is at ${multiServantRule(board.ruleset).floor} Health or less and cannot order a second Servant to Act.`);
+    }
   }
 
   // "During the first Round, neither Player/Faction is allowed to Attack"

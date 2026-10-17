@@ -1,0 +1,17 @@
+# docs/Master Essences.md, Rank D Master
+#
+# > "Harvest: Servant NP usable 1 Round earlier (Round 5 onwards)."
+#
+# Read by `rules/np-gate.mjs#gateRoundFor` off the Servant's copy. It may reach
+# Round 0 (#241 reading 10): open from the war's first Round, where Round 1's
+# no-Attack rule still bars an NP that Attacks. A gate the ability states for
+# itself (Ozymandias's, the Magic Crest's) is not moved.
+schema: 1
+id: me-harvest
+name: "Harvest"
+type: masterEssence
+rank: D
+description: |
+  Servant NP usable 1 Round earlier (Round 5 onwards).
+rules:
+  - { key: NpGateShift, rounds: 1 }

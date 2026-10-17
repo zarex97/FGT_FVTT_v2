@@ -4819,6 +4819,127 @@ their sheet's wording. Overedge's two swings drained 2 and drain 1 (`def-dwn-239
 **Reached: IN.1.revive.** *"Foreigner is defeated and revived by guts"*. The revival card names an effect source by
 the effect's name, as the Turn's card does (§46.4-ON).
 
+### PA. The Master Essences were a seam with nothing behind it — **ruled and built** (#241 readings 1 to 13)
+
+**Reached: every `ME.*`, `HR.*` and `E.*` Clause.** `MasterData.essences` was a set nothing wrote, the
+`master-essences` pack had no source, `np-gate.mjs#ESSENCE_SHIFT` named four Essences nobody could hold, and under the
+default `masterMode` every Master was Rankless. Built: thirty-five Essences in `packs/_source/master-essences/`; the
+wizard drafts one per container under the Faction's limits (`rules/master-essence.mjs#fitsLimits`, a custom war's own);
+the Master holds the Item and its Rank; its Servant holds a copy (`engine/master-essence.mjs`), made and removed by one
+hook on `masterId` and `defeated`, so the Essence follows the Contract and ends with the Master. The one-use Essences are
+commands, spent through the Command Spell path at no Command Spell. Ch. 31, Ch. 32, Ch. 33.
+
+### PB. A High Rank Master's +1◈ Sustainability never reached a Free clock — **fixed** (#241 reading 4, live)
+
+**Reached: HR.sus, NM.hr.** The board added +1 TURN while the Master lived (`snapshot.mjs#annotateMasterRank`), and a
+Servant's clock only counts once its Master is dead. Now `relationships.mjs#onMasterDefeated` adds a Round of Turns to
+the clock the death starts, netted with Mad Enhancement's −2◈ in one write. Live: Scáthach 6 → 9, the Normal Archer 15
+→ 18. Ch. 32.
+
+### PC. A Free Servant's Noble Phantasm cost a third of its price — **fixed** (#241, live)
+
+**Reached: SU.np.** Appendix B's table is ◈ (*"EX 6◈ ... E 1◈"*), the clock it is charged against is Turns, and
+`npCostAt` charged the bare number. Now ◈ × `turnsPerRound`. Free test subjects stand with a long clock
+(`test/helpers/subject.mjs`), since most tests are about something else. Ch. 32, Appendix B.
+
+### PD. The window before an attack was never on a card — **fixed** (#241, live)
+
+**Reached: E.heavensFeel and kin; Damage Up and Noble Phantasm Max as well.** A declaration is driven `declare →
+missCheck` before its card is rendered, so `beforeAttack` never sat on one and every command timed to it was offered by
+the rules and by nothing on screen. The damage commands were offered on the card's first rung (`timing.states:
+[react]`), until the declaration window took them (§46.4-PO). Noble Phantasm Max now asks `attackIsNP`: it was offered
+on every attack. Ch. 33.
+
+### PE. A spend on a card asked its requirements without the card's attack — **fixed** (#241, live)
+
+**Reached: E.heavensFeel.use.** `processOffers` asked with the Process's rung and attack; `spendCommandSpell` asked
+with the click's payload, which carries neither. Heaven's Feel was refused *"attackIsNP"* from the button just offered,
+and Damage Up's `attackIsNotNP` passed on a Noble Phantasm. The spend reads its card's Process first. Ch. 33.
+
+### PF. A card offered every Master's commands — **ruled and fixed** (#241, the user, live)
+
+**Reached: every card.** Seven unnamed "Half Heal", "Full Heal" and "Cure Servant" buttons on Pollux's Noble Phantasm:
+`processOffers` walked every live Master on the board. Ruled 2026-10-17: a Master offers on a card only when it is in a
+Contract with a Unit of that Process, or in it itself; it is the Master–Servant relationship, never the player. #204's
+naming stands. Ch. 33.
+
+### PG. A player's Contract attempt ran on the player's client — **fixed** (#241, live)
+
+**Reached: CT.fr.ally, CT.cs.** The dialog called `attemptContract` where it was pressed; its batch writes the match log
+on the Combat, which only the GM may: *"User Player1 lacks permission to update Combat"*, and the dialog said nothing.
+Now the `attemptContract` socket operation, run on the GM, authorized for the contractor's owner. Ch. 32.
+
+### PH. A Master collected its own Essence's rules — **fixed** (#241, live)
+
+**Reached: ME.bind.** *"Dmg Up Pendant"* in the breakdown of its Master's own Magic Crest: `contributionsOf` and the
+document's `ruleElements` collect every Item a Unit holds. An Essence contributes only as a Servant's copy. Ch. 08.
+
+### PI. The Magic Crest was read as an NP alone, and Silence let it through — **fixed** (#241 reading 14, live)
+
+**Reached: MC.spell.** The Seal gate asked one action per ability, and `categorizedAsNP` answered `np` before `isSpell`
+was asked. `costs.mjs#preventionActionsFor` returns every action an ability is; Silence and NP Seal each refuse the
+Crest. Ch. 19.
+
+### PJ. The Underpower coin was said only on Tails — **fixed** (#241, live)
+
+**Reached: MC.under.** A Master's attack on a Servant flipped the coin and kept no record unless it halved the damage.
+The flip is stamped on the result and the card prints it either way, as Overpower's (#174). Ch. 32.
+
+### PK. The Normal ruleset paid the Advanced Contract rules — **ruled and built** (#241 reading 15, live)
+
+**Reached: NC.tax, NC.ban, NC.np, NC.np.a, NC.np.b.** The tax was 25 flat in every ruleset (`multiServantRule`: Normal
+is 20 per additional Servant, the ban at 20), and a Free Normal Servant paid the Advanced Rank table. Now every Normal
+NP states `freeServantCost` (`disappear`, or `sustainability` 2◈ for the Archer's and Caster's NP (a)), and
+`attack.mjs#freeServantAftermath` takes a Servant that paid with itself off the board as its Combat Phase ends, with a
+line. Found live: the aftermath read the Phase's messages as Processes and found nobody. Ch. 32.
+
+### PL. Kill Humans could not be spent, and its Contract half was read by nothing — **ruled and built** (#241 reading 16, live)
+
+**Reached: CT.kh.** Authored at a `validationFailure` window nothing offered, with an `overridesValidation` and a
+`permanentConsequence` nothing read. Now an own-Turn command that lays the `killHumans` mark, its Master the source:
+the mark lets a Good Servant kill Civilians, a spend that leaves the Servant Unbound frees it with a line
+(`io.spendCommandSpells`), and `canAttemptContract` and a Conquest refuse its old Master. Ch. 33, Ch. 32.
+
+### PM. An Unbound Servant could never be contracted — **fixed** (#241, live)
+
+**Reached: CT.ub.ally, CT.ub.roll.** Unbound is derived from its Master's pools and never stored
+(`cs-namespacing.mjs#isUnbound`); `contract.mjs` read the stored word, which says "contracted", and the dialog
+answered *"Already contracted"* for every Master. The board now derives `unbound` (`snapshot.mjs#annotateMasterRank`),
+and the Contract rule and the dialog read it; the dialog no longer labels an Unbound Servant "contracted". Not stored as
+`contract: "unbound"`, whose readers would price an NP and run a clock as for a Free Servant. Ch. 32.
+
+### PN. A Grand Order war lifted the ban and still charged the tax — **fixed** (#241, live)
+
+**Reached: CT.go.** The Turn-end context never carried `grandOrder` (`scheduler-hooks.mjs`); the Round's did, and the
+ban reads the board's. Live, a Master at 25 ordered a second Servant and paid 25 at the Turn's end, left at 0. The tax
+now reads the board's `grandOrder`, the one the ban reads (`scheduler.mjs#endTurn`). The test had asked the rule, never
+the boundary. Ch. 32.
+
+### PO. A boost bought on one card of an area NP reached one target — **ruled and built** (#241, the user, live)
+
+**Reached: E.heavensFeel and kin, Noble Phantasm Max, Damage Up.** An area NP opens a Combat Process per target, and the
+boosts were offered on each defender's card: Heaven's Feel boosted one target of five, and an Essence, one use, could
+never cover the rest. Ruled 2026-10-17: one spend boosts every target. I began a first-card offer with the other cards
+waiting for it; the user proposed a window of its own after targeting and before the ladder, which Ch. 33's
+`beforeAttack` already named and no card had shown. Built: `engine/declaration-window.mjs`, a whispered card held
+until Continue, and every Process starts with what it bought. Live: Excalibur over two Masters, Noble Phantasm Max and
+Angel's Song bought once, both cards *"Total Damage x3.5"*, 3892 and 3696. Ch. 33.
+
+### PP. A multi-Servant tax left a Master at 0 Health, alive — **ruled and fixed** (#241, live)
+
+**Reached: CT.tax, NC.tax.** The tax is a loss, and only a field's toll asked whether a loss was lethal: a Master at 25
+paid 25 and stood at 0, undefeated. Ruled 2026-10-17: it defeats, nobody's kill. The tax's `statDelta` carries
+`defeatsAtZero`, and the Turn-end card names the death, which it did not: *"Caster loses 25 Health (Multi-Servant tax).
+Caster is defeated."* Ch. 32.
+
+### PQ. A re-Contracted Servant went Free again on what was left of its first clock — **ruled and fixed** (#241, live)
+
+**Reached: SU.clock.** Semiramis's two conquered Scáthachs went Free at her death with 8 and 6 Turns: one had kept
+what was left of her first Free period, since nothing reset `sustainabilityRemaining` on a Contract. Ruled 2026-10-17:
+the clock restarts once per Master's death. `io.setContract` clears it for a Free or Unbound Servant contracted again,
+keeping Hanging Gardens' +2◈ while they stand. Live: the Scáthach at 5 Turns, contracted by Player1's Master of Archer,
+read a full 6. Ch. 32.
+
 ---
 
 ---
@@ -6536,3 +6657,48 @@ page for an ordinary hit. Her Master fell to The Yellow House's own Curse and it
   description says *"the affected unit's turn"*. Not hers to rule; the two disagree.
 - **"An ability it depends on is still cooling."** still names no ability (§46.35.3).
 - **A Curse tick at the floor prints "takes 0"**; harmless, worded as what it took.
+
+## 46.37 Master content — the rules a Master's life governs
+
+**110 Clauses** (#241, live 2026-10-17, PC world `fgt2026`): the Master Essences, the Magic Crest, and the Contract and
+Sustainability rules. Masters were out of #112's roster; this is their audit. Clausified from `docs/Master Essences.md`,
+the Normal Master sheets and *Normal Great Holy Grail War*, and Ch. 32, 33 and Appendix B for the Advanced Contract text.
+17 readings ruled 2026-10-17; one ruled again live (§46.4-PF). Spec
+`docs/superpowers/specs/2026-10-17-master-content-clauses.md`.
+
+**Built to be reused.** An Essence is an Item and a copy, not a new kind of thing: its passive half is rule elements the
+engine already reads (`MaxDelta`, `DamageModifier`, `ApplicationChance`, `CritModifier`, and one new, `NpGateShift`);
+its one use is a command in the Command Spell's own vocabulary, offered and spent by the same path. The copy follows
+the Contract by one hook, so every way a Contract changes reaches it without being named.
+
+### 46.37.1 What the Masters cost the engine
+
+| Finding | Where |
+|---|---|
+| The Essence draft, the copy, the one use (readings 1 to 13) | `rules/master-essence.mjs`, `engine/master-essence.mjs`, `rules/command-spells.mjs#essenceCommand`, `apps/setup-wizard.mjs` |
+| Every Master carries the Normal sheet's Magic Crest, a Spell (13, 14) | `masters/master-advanced.yml`, `abilities/normal-magic-crest.yml` |
+| Increases of one Total Damage add (11) | `combat-process.mjs#damageFactorOf`, `percent` on Damage Up and Noble Phantasm Max |
+| General: §46.4-PA to PQ | |
+
+### 46.37.2 What was pressed, and how
+
+Two wars through the wizard. A Great Holy Grail War, Advanced, with fourteen Essences: the limits refused and accepted
+on the Confirm tab, a custom war's own limits, the `+` on a High Rank row; Player1 spent Divine Banquet from a Master's
+bar and Heaven's Feel on Pollux's Noble Phantasm card (*"Total Damage x3"*), contracted a Free Scáthach, spent Kill
+Humans and a Full Heal to empty a Master, and cast two Magic Crests. Then a small Normal war: the Normal Masters' rolls
+and ZON, a Free Archer's NP (a) at −2◈, the tax of 20 at a Turn's end, the ban at 20, and a Free Saber gone after its NP.
+Masters' deaths were staged through the defeat intent, NP clocks and Rounds set to read the cuts and gates; the world's
+`npGateRound` is 2, so the gates read 1 and 2. Then the 47 Clauses first shown by tests alone, each pressed or observed
+live: every Essence swapped onto a Master and read on its Servant, the one-use NP and Cooldown Essences spent on cards
+and bars (*"Total Damage x3.5"* with Noble Phantasm Max), the Contract rolls and Conquests, the tax, the ban at 25 and
+Grand Order (§46.4-PN), a Free Servant with no clock paying in Health. Evidence per Clause on #241.
+
+### 46.37.3 Left open
+
+- **The targeting preview says "Legal" for an attack the multi-Servant ban refuses**; the refusal comes at the
+  declaration. The preview is a reader of the same rule.
+- **"Interrupt with a Command Spell?"** heads the card's buttons, an Essence's among them.
+- **The live Master of Caster of Faction 1** carried a current Health over its maximum after §46.4-PH; the board caps it.
+- **The declaration window opens before every boostable attack.** Damage Up is offered on any Normal Attack of a
+  Servant whose Master has a Command Spell, so at the default `commandSpellTimeout` of 45 the window asks once per such
+  attack, until Continue. `fgt2026` was at 0, which opened none; it is back at 45.

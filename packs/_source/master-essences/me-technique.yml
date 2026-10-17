@@ -1,0 +1,15 @@
+# docs/Master Essences.md, Rank D Master
+#
+# > "Technique: Servant Max Luck +1."
+#
+# The maximum only (#241 reading 6): a summon starts the Servant full; a loss
+# cuts the current value to the new maximum and no lower.
+schema: 1
+id: me-technique
+name: "Technique"
+type: masterEssence
+rank: D
+description: |
+  Servant Max Luck +1.
+rules:
+  - { key: MaxDelta, stat: luck, value: 1 }

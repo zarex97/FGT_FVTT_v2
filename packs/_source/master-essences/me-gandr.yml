@@ -1,0 +1,15 @@
+# docs/Master Essences.md, Rank B Master
+#
+# > "Gandr: Servant Max Agility +3."
+#
+# The maximum only (#241 reading 6): a summon starts the Servant full; a loss
+# cuts the current value to the new maximum and no lower.
+schema: 1
+id: me-gandr
+name: "Gandr"
+type: masterEssence
+rank: B
+description: |
+  Servant Max Agility +3.
+rules:
+  - { key: MaxDelta, stat: agility, value: 3 }

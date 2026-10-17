@@ -1,0 +1,21 @@
+# docs/Master Essences.md, Rank B Master
+#
+# > "Divine Banquet: Reduces Servant's NP Cooldown by 3◈ Turns. 1 use only, player decides when it's used."
+#
+# One use, from the Master's bar, while an NP is cooling; it cuts every NP's
+# clock (#197 reading 6) and is refused before the NP gate opens (#241
+# reading 12). A Command Spell's vocabulary, read by the same offer and spend.
+schema: 1
+id: me-divine-banquet
+name: "Divine Banquet"
+type: masterEssence
+rank: B
+description: |
+  Reduces Servant's NP Cooldown by 3◈ Turns. 1 use only, player decides when it's used.
+maxUses: 1
+timing: { window: ownTurn }
+requirements:
+  - { kind: npGateOpen }
+  - { kind: npCooling }
+effect:
+  - { kind: cooldownDelta, scope: theNP, delta: "-3◈", target: contractedServant }

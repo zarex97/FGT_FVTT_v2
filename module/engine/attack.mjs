@@ -1163,11 +1163,22 @@ async function declareProcesses({
     });
   }
 
+  // The declaration window (ruled 2026-10-17, #241): after targeting, before
+  // any Process exists, the attacker's Masters may boost the attack -- Noble
+  // Phantasm Max, Damage Up, the NP damage Essences -- and every Process starts
+  // with what they bought. Offered on each defender's card, a boost reached one
+  // target of an area NP. Not for damage only measured as an attack.
+  const { openDeclarationWindow, carryDeclarationBoosts } = await import("./declaration-window.mjs");
+  const boostWindow = placement?.plainDamage ? null : await openDeclarationWindow({
+    attackerId, attack: spec, abilityName: ability?.name ?? game.i18n.localize("FGT.Chat.NormalAttack"),
+  });
+
   /** @type {Array<{messageId: string, state: object}>} */
   const processes = [];
   // Who this declaration attacked, recorded once each on their Turn Record.
   const attackedByRecorded = new Set();
-  for (const state of states) {
+  for (const declared of states) {
+    const state = carryDeclarationBoosts(declared, boostWindow);
     // What this defender could answer with, beyond Block and Evade. Recorded on
     // the state because `pendingPrompt` is pure and cannot read documents, and
     // recorded ONCE at creation because the offer is decided by the moment the
@@ -2311,6 +2322,8 @@ function isFirstToStrike(state) {
 }
 
 
+
+
 /**
  * Is this the Process a once-per-Phase effect should be paid on?
  *
@@ -3188,11 +3201,58 @@ async function fireCombatPhaseEnd(state) {
 
   await payLegionPriceOf(state, siblings);
 
+  await freeServantAftermath(siblings);
+
   // The Phase is over, so the once-per-Phase optional spend may be offered
   // again next time. Cleared here rather than left to expire, because the guard
   // is keyed by `groupId` and a match is thousands of them.
   const { clearOptionalCostOffers } = await import("./optional-costs.mjs");
   clearOptionalCostOffers(state.groupId);
+}
+
+/**
+ * A Free Servant that paid its Noble Phantasm with itself leaves the board as
+ * the Combat Phase ends (#241): the Normal ruleset's *"When a Free Servant uses
+ * its Noble Phantasm, it immediately disappears after use"* (`freeServantCost:
+ * disappear`), and Appendix B's Free Servant with no clock, whose Health cost
+ * reached 0, *"disappearance at the end of the Combat Process"*.
+ *
+ * @param {object[]} siblings every chat message of the Combat Phase
+ * @returns {Promise<void>}
+ */
+async function freeServantAftermath(siblings) {
+  const seen = new Set();
+  const intents = [];
+  // The Phase's chat messages, each carrying its Process: read off the flag. A
+  // message has no `attackerId`, and this found nobody (#241, live).
+  const states = (siblings ?? []).map((m) => m?.getFlag?.("fgt", "process"))
+    .filter(Boolean).map((raw) => process.deserialize(raw));
+  for (const s of states) {
+    const id = s.attackerId;
+    const item = id ? game.actors.get(id)?.items?.get(s.attack?.abilityId ?? "") : null;
+    if (!item || seen.has(id)) continue;
+    const actor = item.parent;
+    // Free as the price that was paid read it (`rules/snapshot.mjs`, `costs.mjs#isFree`):
+    // no Master is Free, whatever the stored word says.
+    const contract = actor.system?.masterId ? (actor.system?.contract ?? "contracted") : "free";
+    if (actor.type !== "servant" || !["free", "unbound"].includes(contract) || actor.system?.defeated) continue;
+    if (!(item.type === "noblePhantasm" || item.system?.isNP)) continue;
+    seen.add(id);
+    const disappears = item.system?.freeServantCost?.kind === "disappear";
+    const spent = actor.system?.sustainability == null && (actor.system?.health?.value ?? 1) <= 0;
+    if (disappears || spent) intents.push(I.defeat(id, "sustainabilityExhausted"));
+  }
+  if (intents.length === 0) return;
+  await applyBatch(intents, "freeServant:disappear");
+  // Said: a Servant gone from the board with no line reads as a bug (#241).
+  const board = currentBoard();
+  for (const { unitId } of intents) {
+    await ChatMessage.create({
+      content: `<div class="fgt-card"><p>${game.i18n.format("FGT.Contract.FreeNPDisappears", {
+        servant: foundry.utils.escapeHTML(shownName(game.actors.get(unitId), board)),
+      })}</p></div>`,
+    });
+  }
 }
 
 /**
@@ -3977,7 +4037,7 @@ function pendingCosts({ usage, ability, self, master, board }) {
   // something else can name it in `supersedes`. Expanded in the RULES layer so
   // the Skill path pays them too -- it did not, and four abilities across three
   // Servants declare costs and resolve that way (Ch. 46 §46.4-T).
-  out.push(...additionalCostsFor({ ability, self, master }));
+  out.push(...additionalCostsFor({ ability, self, master, turnsPerRound: game.settings.get("fgt", "turnsPerRound") }));
 
   // A platform this Servant owns may replace the NP cost outright (Ch. 27).
   const platform = (board.units ?? []).find(
@@ -4080,7 +4140,8 @@ function usageRefusal(usage) {
       // The strict comparison is the surprising half, so it is spelled out.
       return `its Master needs MORE than ${usage.cost.amount} Health to pay for it.`;
     case "selfHealth": return `it needs more than ${usage.cost.amount} Health to pay for it.`;
-    case "sustainability": return `it needs more than ${usage.cost.amount}◈ of Sustainability.`;
+    // The amount is in TURNS, the clock's own unit (#241).
+    case "sustainability": return `it needs more than ${usage.cost.amount} Turns of Sustainability.`;
     default: return usage.reason ?? "unknown reason.";
   }
 }
@@ -5126,9 +5187,14 @@ async function applyDamage(state, message) {
       },
     };
   }
-  const underpower = resolveUnderpower({
-    attacker, defender, roll: (await new Roll("1d100").evaluate()).total,
-  });
+  const underpowerRoll = (await new Roll("1d100").evaluate()).total;
+  const underpower = resolveUnderpower({ attacker, defender, roll: underpowerRoll });
+  // The coin on the card, Heads or Tails, as Overpower's is (#174): a Master's
+  // Magic Crest on a Servant flipped it and said nothing unless it halved the
+  // damage (#241, live).
+  if (underpower.chance > 0 || underpower.underpowered) {
+    result.flags = { ...result.flags, underpower: { roll: underpowerRoll, chance: underpower.chance, halved: underpower.underpowered } };
+  }
   if (underpower.underpowered) {
     const before = result.total;
     result.total = Math.max(0, Math.round(result.total * underpower.factor));
@@ -5154,7 +5220,8 @@ async function applyDamage(state, message) {
     result.total = Math.max(0, Math.round(result.total * csFactor));
     result.breakdown = [
       ...(result.breakdown ?? []),
-      { stage: "commandSpell", label: `Command Spell x${csFactor}`, from: before, to: result.total },
+      // "Command Spell" alone named a Master Essence's Heaven's Feel wrongly (#241).
+      { stage: "commandSpell", label: `Total Damage x${csFactor}`, from: before, to: result.total },
     ];
   }
 

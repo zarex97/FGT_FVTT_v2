@@ -124,7 +124,9 @@ export function contractCandidates(contractorId) {
       return {
         id: servant.id,
         name: shownNameById(servant.id),
-        contract: servant.contract,
+        // Unbound is derived on the board (#241): the stored word still says
+        // "contracted", and the dialog showed it so.
+        contract: servant.unbound ? "unbound" : servant.contract,
         // Offered even when refused, with the reason: "why can I not contract
         // that one" is the question the dialog exists to answer, and hiding the
         // row answers it with silence.

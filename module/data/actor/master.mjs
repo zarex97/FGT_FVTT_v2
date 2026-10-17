@@ -61,7 +61,6 @@ export class MasterData extends foundry.abstract.TypeDataModel {
       // would break every world that already has one.
       commandSpellsPerServant: new fields.ObjectField({ required: true, initial: () => ({}) }),
       zon: new fields.NumberField({ required: true, integer: true, initial: 2, min: 0 }),
-      essences: new fields.SetField(new fields.StringField({ blank: false })),
       servantIds: new fields.SetField(new fields.DocumentIdField()),
       // A Servant who is many Units, counted here (`engine/legion.mjs`).
       // Hundred-Faced Hassan: *"Add this onto the Master's page for easy

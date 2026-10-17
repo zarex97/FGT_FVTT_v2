@@ -79,6 +79,13 @@ function abilityCommon() {
     // *"Using this NP does not reduce her Master's Health as a cost"* (Arturia's
     // Avalon, #230). Read by `rules/costs.mjs#npCost`.
     noMasterCost: new fields.BooleanField({ initial: false }),
+    // What a FREE Servant pays to use this NP, when its sheet states it rather
+    // than the Rank table: the Normal ruleset's *"When a Free Servant uses its
+    // Noble Phantasm, it immediately disappears after use"* (`{kind:
+    // "disappear"}`), and its Archer's and Caster's NP (a), *"Sustainability is
+    // reduced by 2◈ Turns"* (`{kind: "sustainability", rounds: 2}`), #241.
+    // Read by `rules/costs.mjs#npCost`.
+    freeServantCost: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     // No Round gate (`rules/np-gate.mjs#isGated`): the Master's Avalon (#230).
     ignoresNPGate: new fields.BooleanField({ initial: false }),
     toggleWindow: new fields.StringField({ required: false, blank: true, initial: "", choices: ["", "any"] }),
@@ -717,7 +724,23 @@ export class MasterEssenceData extends foundry.abstract.TypeDataModel {
       contentVersion: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
       description: new fields.HTMLField({ required: false, blank: true }),
       rank: new RankField(),
+      // The passive half: what the Essence does to its Master's Servant. Read
+      // off the COPY the Servant holds (`engine/master-essence.mjs`), never off
+      // the Master, so the sheet's maxima, the damage pipeline and the NP gate
+      // all read it as any passive of their own.
       rules: new fields.ArrayField(new fields.ObjectField()),
+      // The one-use half (*"1 use only, Player decides when it's used"*), in a
+      // Command Spell's own vocabulary so the same offer and spend read it:
+      // `timing.window`, `requirements`, `effect`. Empty on a passive Essence.
+      timing: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      requirements: new fields.ArrayField(new fields.ObjectField()),
+      effect: new fields.ArrayField(new fields.ObjectField()),
+      maxUses: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true, min: 0 }),
+      // World state on the Master's own Essence: spent once, gone (#241).
+      timesUsed: new fields.NumberField({ required: true, initial: 0, integer: true, min: 0 }),
+      // On a Servant's copy: the Master whose Essence it is. Null on the
+      // Master's own. The copy is the Contract's, and goes when it does.
+      grantedBy: new fields.StringField({ required: false, nullable: true, initial: null }),
     };
   }
 }

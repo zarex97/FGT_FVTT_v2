@@ -94,6 +94,16 @@ export async function withSubjects(specs, fn, {
   const { snapshotUnit, snapshotBoard } = await import("../../module/rules/snapshot.mjs");
   EffectRegistry.load(effects.map((e) => ({ name: e.name, img: e.img, system: e.system })));
 
+  // A Servant subject with no Master is a FREE Servant (`snapshot.mjs`), and a
+  // Free Servant pays its Noble Phantasm in Sustainability, in ◈ (#241: it was
+  // charged the bare table number, a third of the price). Most subjects stand
+  // with no Master because the test is about something else; they are given a
+  // clock long enough that the NP's price is not what the test decides. A test
+  // about the clock states `sustainabilityRemaining`, or a Master, itself.
+  const freeClock = (source, spec) => (source.type === "servant"
+    && source.system?.sustainability != null
+    && spec.state?.masterId === undefined && spec.state?.sustainabilityRemaining === undefined
+    ? { sustainabilityRemaining: 99 } : {});
   const actors = await Promise.all(specs.map(async (spec) => {
     const base = typeof spec.from === "string" ? library.get(spec.from) : null;
     if (typeof spec.from === "string" && !base) throw new Error(`No Unit "${spec.from}" in packs/_source.`);
@@ -106,7 +116,7 @@ export async function withSubjects(specs, fn, {
       id: spec.id ?? authored.id,
       name: source.name,
       type: source.type,
-      system: { ...source.system, ...(spec.state ?? {}) },
+      system: { ...source.system, ...freeClock(source, spec), ...(spec.state ?? {}) },
       items: source.items.map((i) => ({ id: i._id, name: i.name, type: i.type, system: i.system })),
       // Who plays it: `"p1"` for the world's Player1. Unowned, the GM is asked.
       ...(spec.owner ? { owner: spec.owner } : {}),

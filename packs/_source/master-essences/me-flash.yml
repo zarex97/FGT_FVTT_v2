@@ -1,0 +1,16 @@
+# docs/Master Essences.md, Rank D Master
+#
+# > "Flash: Servant's Normal Attacks/Skills/Spells deal 10% extra damage."
+#
+# Every Normal Attack, Attack Skill and Damage Spell, never an NP nor what is
+# categorized as one (#241 reading 8): `npValue: 0` says so, as the Vorpal
+# Blade's does.
+schema: 1
+id: me-flash
+name: "Flash"
+type: masterEssence
+rank: D
+description: |
+  Servant's Normal Attacks/Skills/Spells deal 10% extra damage.
+rules:
+  - { key: DamageModifier, modifierKey: dmgUp, direction: dealt, value: 10, npValue: 0 }

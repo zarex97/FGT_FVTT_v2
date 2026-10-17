@@ -1,0 +1,28 @@
+# The mark Command Spell: Kill Humans leaves on its Servant (#241).
+#
+# > "Kill Humans: After this Command is used, a Servant with the 'Good' Alignment
+# > will kill Civilians. However, if said Servant ever becomes an Unbound
+# > Servant, the Servant will abandon the Master and become a Free Servant. In
+# > this case, the Servant will refuse to make a new Contract with its old
+# > Master." (`cs-kill-humans.yml`'s own description)
+#
+# An Effect because three readers ask about it, and an Effect is what the board
+# already shows, projects and keeps: `rules/environment.mjs#mayAttackCivilian`
+# (it kills Civilians), `engine/io.mjs#spendCommandSpells` (becoming Unbound
+# frees it) and `rules/contract.mjs#canAttemptContract` (never again with the
+# Master who ordered it, its `sourceUnitId`). Permanent and unremovable: the
+# sheet names no way out of it.
+schema: 1
+id: killHumans
+name: "Kill Humans"
+description: |
+  This Servant will kill Civilians. If it ever becomes Unbound, it abandons its Master, becomes Free,
+  and refuses a new Contract with that Master.
+polarity: status
+volatility: nonVolatile
+valence: neither
+stacking: noneNoRefresh
+baseChance: 100
+unremovable: true
+bypassesImmunity: true
+bypassesResistance: true
