@@ -38,6 +38,7 @@ import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
 import { publicSpeakerFor } from "./public-identity.mjs";
 import { publicIdentityOf } from "./public-identity.mjs";
+import { shownNameById } from "./public-identity.mjs";
 
 /**
  * Guards against re-entry.
@@ -186,7 +187,7 @@ async function announce(switched, board) {
     const cause = (unit?.compulsions ?? [])[0];
     const culprits = (cause?.targetIds ?? [])
       // The culprits by their public names too (#234), as the bearer already is.
-      .map((id) => { const a = game.actors.get(id); return a ? (publicIdentityOf(a, board).name || a.name) : null; })
+      .map((id) => (game.actors.get(id) ? shownNameById(id, board) : null))
       .filter(Boolean);
 
     await ChatMessage.create({
@@ -229,7 +230,7 @@ async function announceStopped(stopped) {
   if (!game.users?.activeGM?.isSelf) return;
   const escape = foundry.utils.escapeHTML;
   const lines = stopped.map((s) => game.i18n.format("FGT.Mode.ForcedOff", {
-    ability: escape(s.ability), name: escape(game.actors.get(s.unitId)?.name ?? s.unitId),
+    ability: escape(s.ability), name: escape(shownNameById(s.unitId)),
   }));
   await ChatMessage.create({ content: `<div class="fgt-card fgt-card--mode"><p>${lines.join("<br>")}</p></div>` });
 }

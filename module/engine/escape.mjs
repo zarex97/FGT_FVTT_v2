@@ -33,6 +33,7 @@ import { relationOf } from "../rules/relations.mjs";
 import { currentBoard } from "./board.mjs";
 import { behaviorFor } from "./fields.mjs";
 import { displaceToken } from "./io.mjs";
+import { shownName } from "./public-identity.mjs";
 
 /**
  * Attempt to escape the field this unit is standing in.
@@ -161,12 +162,12 @@ async function announce(unit, field, verdict) {
 
   await ChatMessage.create({
     content: `<div class="fgt escape-card">${game.i18n.format(key, {
-      name: unit.name ?? "",
+      name: shownName(unit),
       field: field.name ?? field.id,
       roll: verdict.roll ?? "",
       chance: verdict.chance ?? 0,
       next: (verdict.chance ?? 0) + (field.membership?.escape?.chanceIncreasePerFailure ?? 0),
     })}</div>`,
-    speaker: { alias: unit.name },
+    speaker: { alias: shownName(unit) },
   });
 }

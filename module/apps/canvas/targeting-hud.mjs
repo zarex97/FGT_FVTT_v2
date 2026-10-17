@@ -14,6 +14,7 @@
 
 import { formatRange } from "../../rules/preview.mjs";
 import { unitsShown } from "../../rules/targeting/resolve.mjs";
+import { shownName } from "../../engine/public-identity.mjs";
 
 export class TargetingHUD {
   /** @type {HTMLElement|null} */
@@ -147,7 +148,7 @@ export class TargetingHUD {
    */
   #row(target) {
     const actor = game.actors.get(target.unitId);
-    const name = escape(actor?.name ?? target.unitId);
+    const name = escape(actor ? shownName(actor) : target.unitId);
     const range = this.#damageFor?.(target.unitId) ?? null;
     const damage = range ? `<span class="fgt-preview__damage">${escape(formatRange(range))}</span>` : "";
     const band = target.band ? `<span class="fgt-preview__band">band ${target.band}</span>` : "";

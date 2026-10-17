@@ -224,6 +224,7 @@ export class SummonDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     const actor = await commitSummon(this.#prepared);
+    // fgt-name-ok: the summoner's own notice
     ui.notifications.info(game.i18n.format("FGT.Summon.Created", { name: actor.name }));
     // Opened rather than only announced: the GM's next action is almost always
     // to look at the sheet they just made.

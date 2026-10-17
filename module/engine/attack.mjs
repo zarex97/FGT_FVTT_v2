@@ -93,6 +93,9 @@ import {
 import { selectBranch, isNestedCheck, MAX_CHECK_DEPTH } from "../rules/checks/branches.mjs";
 import { publicSpeakerFor, publicIdentityOf } from "./public-identity.mjs";
 import { regionSizedTargeting } from "./fields.mjs";
+// The name a line prints is the PUBLIC one (#230 rolls, #235 every card):
+// the one door is `public-identity.mjs#shownName`.
+import { shownName } from "./public-identity.mjs";
 
 /**
  * Declare an attack. Runs on the GM client (Model B — contested outcomes are
@@ -1849,8 +1852,8 @@ export async function flushAutoCounters(groupId = null) {
       // token *"at the end of every Turn she Acts"* never heard of it (#197).
       await applyBatch([I.markTurn(bearer.id, { acted: true })], "autoCounter:declared");
       await ChatMessage.create({
-        content: `<p><strong>${p.source}</strong> — ${bearer.name} counters `
-          + `${provoker.name} (${p.cause}).</p>`,
+        content: `<p><strong>${p.source}</strong> — ${shownName(bearer)} counters `
+          + `${shownName(provoker)} (${p.cause}).</p>`,
         speaker: publicSpeakerFor(bearer),
       });
       opened.push({ messageId: out.messageId });
@@ -2133,7 +2136,7 @@ async function resolveCover(state, message) {
       table: plan.forceTable === "unfavourable" ? "unfavourable" : "favourable",
       modifiers: plan.modifiers,
     });
-    rolls.push({ unitId: servant.id, name: servant.name, roll: roll.total, success: outcome.success });
+    rolls.push({ unitId: servant.id, name: shownName(servant), roll: roll.total, success: outcome.success });
     if (!outcome.success) continue;
 
     // "The Servant shoves (Moves) its Master out of the NP area."
@@ -4615,7 +4618,7 @@ async function resolveDimensionalDefeat(defender, ctx) {
   // On the chat log, with its die: the check that decides whether everyone
   // aboard is Erased reached only the flag log (#191).
   await postDimensionCard(game.i18n.format(check.success ? "FGT.Dimension.LuckPassed" : "FGT.Dimension.LuckFailed", {
-    name: defender.name ?? "Nemo", roll: roll.total, luck: defender.luck ?? 0,
+    name: shownName(defender) || "Nemo", roll: roll.total, luck: defender.luck ?? 0,
   }));
   const verdict = onOwnerDefeat(spec, {
     owner: defender, succeeded: check.success, occupants,
@@ -4673,6 +4676,7 @@ async function acceptedOptionalRevivals(unit) {
     const picked = await askOwner(actor, {
       kind: "choose",
       title: source.source,
+      // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
       hint: game.i18n.format("FGT.Revival.OptionalHint", { name: actor.name, source: source.source }),
       min: 0,
       count: 1,
@@ -5711,6 +5715,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
 async function rollTableAgainst(phase, ability, state, attackerDoc, attackerUnit, defender, defenderDoc) {
   const table = tableFor(phase, relationOf(attackerUnit, defender, boardSnapshot()));
   if (!table) {
+    // fgt-name-ok: console text for the GM and the developer
     console.error(`FGT | ${ability.name} has a rollTable phase with no table for ${defender?.name ?? "this target"}.`);
     return [];
   }
@@ -7036,6 +7041,7 @@ async function askAttackerWindow(state, window, message) {
   const picked = await askOwner(actor, {
     kind: "choose",
     title: game.i18n.localize(`FGT.Window.${window}`),
+    // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
     hint: game.i18n.format("FGT.Window.Hint", { name: actor.name }),
     // `min: 0` -- keeping the cooldown is a legitimate play, and a dialog that
     // forces a pick would make "at the start of a Damage Step" mandatory.
@@ -7043,6 +7049,7 @@ async function askAttackerWindow(state, window, message) {
     count: offers.length,
     options: offers.map((a) => ({
       id: a.id,
+      // fgt-name-ok: an ability's name, not a Unit's
       name: a.name,
       detail: a.system?.description ?? "",
     })),
@@ -7212,21 +7219,6 @@ async function runMissCheck(state, attacker, board) {
 }
 
 /**
- * The name a roll's line prints: the PUBLIC one.
- *
- * A Process's rolls ship on the card every client reads, and their lines named
- * the real Servant ("Arturia's Instinct", "Medusa evades Arturia") under a
- * header that said "Lancer ⚔ Saber" (#230, found live). The header already
- * asks `publicIdentityOf`; the lines ask it too.
- *
- * @param {object|null} unit a board unit or an actor
- * @returns {string}
- */
-function shownName(unit) {
-  return unit ? publicIdentityOf(unit, currentBoard()).name || unit.name : "";
-}
-
-/**
  * An automatic Evade that rolls itself the moment its holder is Attacked.
  *
  * > *"When this Unit is Attacked, it has a 70% chance of automatically Evading
@@ -7383,6 +7375,7 @@ function offeredReactions(defenderId, attack = null, isAoE = false, attackerId =
   // answers `null` to every question the snapshot would have answered, which is
   // how five of Achilles's abilities were never offered at their one window.
   const own = reactionAbilities(windowSubject(snapshot, actor.items))
+    // fgt-name-ok: an ability's name, not a Unit's
     .map((a) => ({ id: a.id, name: a.name, ownerId: defenderId }));
 
   // Plus anything a nearby ALLY could interpose. EMIYA's Rho Aias is the only
@@ -7782,7 +7775,7 @@ async function offerNPCancellation({ attackerId, attacker, ability, targetIds, b
       kind: "choose",
       title: item.name,
       hint: game.i18n.format("FGT.CancelNP.Hint", {
-        name: defenderDoc.name, attacker: attacker.name, np: ability.name,
+        name: defenderDoc.name, attacker: shownName(attacker), np: ability.name,
       }),
       min: 0,
       count: 1,
@@ -7881,7 +7874,7 @@ async function resolveNPCancellation({
         ?? "FGT.CancelNP.InstakillResisted";
       const chance = landed.trace.find((t) => t.step === "chance");
       outcome = game.i18n.format(key, {
-        name: attacker.name, effect: landed.summary.name,
+        name: shownName(attacker), effect: landed.summary.name,
         detail: landed.outcome === "blocked" ? landed.reason : (chance?.detail ?? landed.reason ?? ""),
       });
     }
@@ -7898,7 +7891,7 @@ async function resolveNPCancellation({
       defenderUnit: attackerUnit,
     });
     if (amount > 0) intents.push(I.damage(attackerId, amount, cancellerDoc.id, { reflected: true }));
-    outcome = game.i18n.format("FGT.CancelNP.Reflected", { name: attacker.name, amount });
+    outcome = game.i18n.format("FGT.CancelNP.Reflected", { name: shownName(attacker), amount });
   }
 
   await applyBatch(intents, "npCancelled");

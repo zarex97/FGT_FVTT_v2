@@ -23,6 +23,7 @@
  */
 
 import { formatRange } from "../../rules/preview.mjs";
+import { shownNameById } from "../../engine/public-identity.mjs";
 
 /** "Put it somewhere else." A third outcome, distinct from `[]` and from `null`. */
 export const REAIM = Symbol("re-aim");
@@ -93,7 +94,7 @@ export async function reviewTargets({
   }
 
   const rows = units.map((t) => {
-    const name = game.actors.get(t.unitId)?.name ?? t.unitId;
+    const name = shownNameById(t.unitId);
     const range = damageFor?.(t.unitId) ?? null;
     return `<li class="fgt-review__row" data-unit-id="${t.unitId}">
       <label>

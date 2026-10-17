@@ -142,12 +142,12 @@ export async function postPeriodicReport(intents, io) {
   if (!game.users?.activeGM?.isSelf) return;
   // The public name (#234): Burn's tick on a concealed Servant named his True
   // Name on a card every player reads.
-  const { publicIdentityOf } = await import("./public-identity.mjs");
+  const { shownName } = await import("./public-identity.mjs");
   const { currentBoard } = await import("./board.mjs");
   const board = currentBoard();
   const nameOf = (id) => {
     const actor = game.actors.get(id);
-    return actor ? (publicIdentityOf(actor, board).name || actor.name) : null;
+    return actor ? shownName(actor, board) : null;
   };
   const ticks = periodicTicksIn(intents, nameOf, game.combat?.system?.globalTurn ?? 0);
   if (ticks.length === 0) return;

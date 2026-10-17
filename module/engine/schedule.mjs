@@ -35,10 +35,9 @@ import { currentBoard, currentMoment, unitOf } from "./board.mjs";
 import { parseTick, resolveTicks, expiryReached } from "../domain/tick.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
-import { publicIdentityOf, publicSpeakerFor } from "./public-identity.mjs";
+import { shownName, publicSpeakerFor } from "./public-identity.mjs";
 
 /** The name the table knows a Unit by (#232: a concealed caster is its class). */
-const shownName = (actor) => (actor ? publicIdentityOf(actor, currentBoard()).name || actor.name : "");
 
 const FLAG = "scheduledStrikes";
 

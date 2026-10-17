@@ -17,6 +17,7 @@ import { processOffers, teleportDestinations } from "../../engine/command-spells
 import { publicIdentityOf, publicSpeakerFor } from "../../engine/public-identity.mjs";
 import { currentBoard, luckOf } from "../../engine/board.mjs";
 import { ActionBar } from "../hud/action-bar.mjs";
+import { shownName } from "../../engine/public-identity.mjs";
 
 /**
  * Create the card for a newly declared attack.
@@ -375,6 +376,7 @@ export function promptOptions(prompt, state = null) {
     // your rung is otherwise indistinguishable from your own.
     return [...rungs, ...(prompt.abilities ?? []).map((a) => ({
       event: `ability:${a.id}`,
+      // fgt-name-ok: an ability's name, not a Unit's
       label: a.name,
       hint: null,
     }))];
@@ -636,7 +638,7 @@ function visibilityInput(state, result, effects = []) {
   const defender = game.actors.get(state.defenderId);
 
   return {
-    summary: `${attacker?.name ?? "?"} → ${defender?.name ?? "?"}`,
+    summary: `${attacker ? shownName(attacker) : "?"} → ${defender ? shownName(defender) : "?"}`,
     attackerId: state.attackerId,
     defenderIds: [state.defenderId],
     attackerControllers: ownersOf(attacker),

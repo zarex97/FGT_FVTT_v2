@@ -18,6 +18,7 @@ import {
 import { currentBoard } from "./board.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
+import { shownNameById } from "./public-identity.mjs";
 
 /**
  * What contracting this Servant would take, without doing it.
@@ -122,7 +123,7 @@ export function contractCandidates(contractorId) {
       const plan = legal.ok ? contractPlan(contractor, servant, board) : legal;
       return {
         id: servant.id,
-        name: game.actors.get(servant.id)?.name ?? servant.id,
+        name: shownNameById(servant.id),
         contract: servant.contract,
         // Offered even when refused, with the reason: "why can I not contract
         // that one" is the question the dialog exists to answer, and hiding the

@@ -48,6 +48,7 @@ const RENDERERS = Object.freeze({
     const confirmed = await DialogV2.confirm({
       window: { title: game.i18n.localize("FGT.Prompt.luckCheck") },
       content: `<p>${game.i18n.format("FGT.Prompt.LuckCheckBody", {
+        // fgt-name-ok: the Unit's own player's prompt; its owner knows the name
         name: unit?.name ?? game.i18n.localize("FGT.Unit"),
         check: game.i18n.localize(`FGT.Check.${spec.check ?? "generic"}`),
         // The board's Luck, not the actor's: a platform sharing its summoner's

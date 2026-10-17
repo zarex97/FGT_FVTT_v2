@@ -24,6 +24,7 @@ import { applyIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
 import { hasGranted, GRANTS } from "../rules/granted.mjs";
 import { passengerLanding } from "../rules/movement.mjs";
+import { shownNameById } from "./public-identity.mjs";
 
 /**
  * Carry a Servant's Master by the delta the Servant just travelled.
@@ -65,6 +66,7 @@ export async function carryMasterAlong({ servantId, from, to }) {
   // Master is to keep him inside the ZON and out of reach. Told once, in the
   // words of the rule that refused.
   const say = (reason) => ui.notifications?.warn(game.i18n.format("FGT.Movement.MasterNotCarried", {
+    // fgt-name-ok: a Master conceals nothing (Ch. 30)
     master: game.actors.get(master.id)?.name ?? "The Master",
     reason: game.i18n.localize(reason),
   }));
@@ -93,8 +95,9 @@ export async function carryMasterAlong({ servantId, from, to }) {
     from: { ...master.panel },
     to: { ...landing },
     text: game.i18n.format("FGT.Movement.MasterCarried", {
+      // fgt-name-ok: a Master conceals nothing (Ch. 30)
       master: game.actors.get(master.id)?.name ?? "The Master",
-      servant: game.actors.get(servant.id)?.name ?? servant.id,
+      servant: shownNameById(servant.id),
     }),
   })], { io: worldIO(), canWrite: () => true, isGM: game.user.isGM, source: "passengerSeat" });
 }

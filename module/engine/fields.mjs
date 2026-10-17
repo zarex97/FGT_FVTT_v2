@@ -38,6 +38,7 @@ import * as I from "./intents.mjs";
 import { splitPool } from "../rules/fields/pool.mjs";
 import { clearTerrain, clearTerrainBoundTo } from "./terrain.mjs";
 import { chooseFor, askOwner } from "./ask.mjs";
+import { shownName } from "./public-identity.mjs";
 
 /**
  * A field's shape, grown or shrunk by the war Region it is cast in.
@@ -182,12 +183,14 @@ async function agreesToField(ability, actor, targetId) {
   // The CHALLENGED Unit's player is asked, wherever the cast is running: the
   // consent is theirs to give, not the caster's or the GM's (#130).
   const picked = await chooseFor(target, {
-    title: game.i18n.format("FGT.Duel.Title", { challenger: actor.name, name: target.name }),
+    // fgt-name-ok: the challenged Unit's own player: the challenger is named publicly
+    title: game.i18n.format("FGT.Duel.Title", { challenger: shownName(actor), name: target.name }),
     hint: game.i18n.localize("FGT.Duel.Hint"),
     count: 1,
     min: 0,
     options: [{
       id: "accept",
+      // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
       name: game.i18n.format("FGT.Duel.Accept", { name: target.name }),
       detail: game.i18n.localize("FGT.Duel.AcceptHint"),
     }],
@@ -983,6 +986,7 @@ async function offerExtension(field, tick) {
     kind: "choose",
     title: game.i18n.localize("FGT.Field.ExtendTitle"),
     hint: game.i18n.format("FGT.Field.ExtendHint", {
+      // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
       name: doc.name, amount: verdict.amount, grants: spec.grants,
     }),
     // `min: 0` -- letting it close is a legitimate play, and a dialog that
@@ -1224,6 +1228,7 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
   // asks for a differential on every chance Clause.
   const report = (unit, detail) => out.push(I.log({
     kind: "fieldEvent", fieldId: field.id, event: spec.event ?? null,
+    // fgt-name-ok: the field log, read in the GM's log viewer
     unitId: unit.id, unitName: unit.name ?? null,
     tick: game.combat?.system?.globalTurn ?? 0, ...detail,
   }));
@@ -1378,6 +1383,7 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
         out.push(action.key === "Heal"
           ? I.heal(who, Math.abs(action.amount ?? 0), field.id)
           : I.statDelta(who, action.stat ?? "health.value", action.delta ?? 0));
+        // fgt-name-ok: the field log, read in the GM's log viewer
         const recipient = { id: who, name: game.actors.get(who)?.name ?? null };
         if (action.key === "Heal") report(recipient, { heal: Math.abs(action.amount ?? 0) });
         else {
@@ -1527,6 +1533,7 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
     const first = beneficiaries.length === 2 ? await askSplit(field, pool, beneficiaries) : null;
     for (const heal of splitPool(pool, beneficiaries, first)) {
       out.push(I.heal(heal.unitId, heal.amount, field.id));
+      // fgt-name-ok: the field log, read in the GM's log viewer
       report({ id: heal.unitId, name: game.actors.get(heal.unitId)?.name ?? null }, { heal: heal.amount });
     }
   }
@@ -1558,7 +1565,7 @@ async function rewardRecipient(field, victim, branch, memo) {
     const picked = await chooseFor(ownerDoc, {
       title: game.i18n.localize("FGT.Field.HealWhoTitle"),
       hint: game.i18n.format("FGT.Field.HealWhoHint", {
-        victim: victim.name ?? "", field: fieldName(field),
+        victim: shownName(victim), field: fieldName(field),
         amount: Math.abs(heal?.amount ?? 0), agility: stat?.delta ?? 0,
       }),
       count: 1,
@@ -1613,9 +1620,9 @@ async function askSplit(field, pool, beneficiaries) {
     pool,
     title: game.i18n.localize("FGT.Field.SplitTitle"),
     hint: game.i18n.format("FGT.Field.SplitHint", {
-      field: fieldName(field), pool, first: a.name, second: b.name,
+      field: fieldName(field), pool, first: shownName(a), second: shownName(b),
     }),
-    label: game.i18n.format("FGT.Field.SplitLabel", { first: a.name }),
+    label: game.i18n.format("FGT.Field.SplitLabel", { first: shownName(a) }),
   });
   return Number.isFinite(answer?.first) ? answer.first : null;
 }
@@ -2235,6 +2242,7 @@ export async function offerReshape(board) {
     const picked = await FGTSocket.ask(user.id, {
       kind: "choose",
       title: game.i18n.localize("FGT.Paint.OfferTitle"),
+      // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
       hint: game.i18n.format("FGT.Paint.OfferHint", { name: doc.name }),
       // `min: 0` -- keeping the shape is a legitimate play, and a dialog that
       // forced a redraw would make an optional clause mandatory.

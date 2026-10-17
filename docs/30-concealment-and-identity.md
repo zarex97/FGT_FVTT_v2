@@ -130,3 +130,15 @@ every Enki line, ask `publicIdentityOf` and speak through `publicSpeakerFor`.
 Fated Rivals of the Mahabharata"*), the Turn and Round end cards, the periodic card and the revival card, and a
 compulsion's culprits. Still reading `actor.name`: the targeting preview, the refusal banner and `dimension.mjs`'s
 offers (§46.35.3).
+
+**A guard keeps every player-facing name public** (#235). `tools/check-public-names.mjs`, run by `npm run lint`,
+refuses a Unit's `.name` read raw (off `game.actors.get(…)` or a variable holding a Unit: `actor`, `unit`, `defender`,
+…) anywhere in `module/engine`, `module/apps` or `module/rules`. A line names a Unit through the one reader,
+`engine/public-identity.mjs#shownName` (an Actor or a board unit) or `rules/identity.mjs#shownNameOf` (a board unit, in
+the rules layer), or says why its read is safe on that line or the one above: `// fgt-name-ok: <reason>` (the
+Unit's own player's prompt, console text, a Master, an ability's name). A file whose every read is GM-facing is
+allowlisted in the script with its reason. It slipped three times before (§46.4-NV, -OJ, -OO); the sweep that made it
+green fixed the refusal banner and the targeting resolver's reasons, the targeting preview and review, the turn
+panel's roster, the Dimension and Hanging Gardens offers, and the cards for an automatic Counter, a cancelled NP, an
+escape, a boarding and a fall, a legion's deploy and fall, an optional cost, a forced mode, a transfer, a drag and a
+summoning. Three private copies of the reader (`attack.mjs`, `master-guard.mjs`, `schedule.mjs`) fold into it.
