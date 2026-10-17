@@ -344,6 +344,9 @@ export function worldIO() {
       }
 
       const current = foundry.utils.getProperty(actor, path) ?? 0;
+      // A path that names a POOL, not its value, is refused out loud: `luck`
+      // added 4 to `{value, max}` and wrote nothing a player could see (#243).
+      if (typeof current !== "number") throw new Error(`FGT | adjustStat: "${path}" is not a number on ${actor.name}`);
       const max = foundry.utils.getProperty(actor, `${path.replace(/\.value$/, "")}.max`);
       const next = clamp && typeof max === "number"
         ? Math.clamp(current + delta, 0, max)
@@ -841,7 +844,7 @@ export function worldIO() {
      * @param {number} [count] charges spent against `maxUses`; >1 only for a
      *   cascading revival, whose Turn and Round records stay a single entry
      */
-    async recordUse(unitId, abilityId, contentId = null, count = 1) {
+    async recordUse(unitId, abilityId, contentId = null, count = 1, categoryExempt = false) {
       const actor = resolve(unitId);
       if (!actor) return;
 
@@ -878,6 +881,8 @@ export function worldIO() {
       const stamped = {
         ...flatten("system.turnState", turnWrite(actor.system?.turnState, tick, {
           abilitiesUsed: [...new Set([...turn.abilitiesUsed, name])],
+          // A use the category cap does not count (#243 reading 9).
+          ...(categoryExempt ? { categoryExempt: [...new Set([...(turn.categoryExempt ?? []), name])] } : {}),
         })),
         ...flatten("system.roundState", roundWrite(actor.system?.roundState, round, {
           abilitiesUsed: [...new Set([...byRound.abilitiesUsed, name])],

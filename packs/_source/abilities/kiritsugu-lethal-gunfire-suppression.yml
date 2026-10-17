@@ -26,7 +26,7 @@ phases:
       # "RESTORE 4 Luck", not "grant" -- `clampToMax` is the whole difference,
       # and it is why Golden Fleece cannot push a Servant above what it rolled
       # at summon.
-      - { key: luck, delta: 4, clampToMax: true }
+      - { key: luck.value, delta: 4, clampToMax: true }
   - kind: applyEffects
     target: self
     effects:

@@ -42,6 +42,9 @@ passiveRules:
     automatic: true
     ofCategory: thaumaturgy
     then:
-      - key: DurationExtension
+      # `ExtendEffect`, the handler action: `DurationExtension` is a standing
+      # element and no action, so this logged "unhandledAction" and extended
+      # nothing -- Suppression kept its 1◈ after Familiars (#243, live).
+      - key: ExtendEffect
         effect: suppression
         ticks: "1◈"

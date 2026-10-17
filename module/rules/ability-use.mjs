@@ -750,6 +750,10 @@ export function usageSpecFor(ability) {
     // aimed at an enemy, and the three escapes the clause itself names --
     // "unless stated", Attack Skills, and Spells that deal damage.
     targeting: sys.targeting ?? null,
+    // ...and every phase's own reach, which clause 7 reads beside the
+    // ability's: Affection of the Holy Grail targets himself and inflicts on
+    // all Units within 2 from a phase (#243, live).
+    phaseTargeting: (sys.phases ?? []).map((p) => p?.targeting).filter(Boolean),
     isAttackSkill: Boolean(sys.isAttackSkill),
     damage: sys.damage ?? null,
     usableWhileConcealed: Boolean(sys.usableWhileConcealed),

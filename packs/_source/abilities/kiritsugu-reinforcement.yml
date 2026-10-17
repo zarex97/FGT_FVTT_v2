@@ -12,9 +12,11 @@ slug: reinforcement
 category: thaumaturgy
 isSpell: true
 cooldown: "2◈"
-# "Used at the start of a Combat Phase" -- so it is offered where a reaction is,
-# and on his own Turn before he swings.
-timing: { window: [ownTurn, combatPhaseStart] }
+# "Used at the start of a Combat Phase" -- ANY Combat Phase he is in, attacking or
+# attacked, as EMIYA's identical sentence was ruled (#208 reading 8, carried to
+# him by #243 reading 1). It was `[ownTurn, combatPhaseStart]`: a sheet button
+# pressable mid-Turn with no Combat Phase, and never offered when attacked.
+timing: { window: [combatPhaseStart, defendingPhaseStart] }
 # A Spell, but not an attack: it buffs and resolves. Left to `countsAsAttack`
 # and it would spend his Attack for the Turn, because `isSpell` is one of the
 # three things that make an ability one.
@@ -37,6 +39,6 @@ phases:
       # Atk Up would quietly buff both his Noble Phantasms -- which is the whole
       # reason the two effects are separate in Appendix A.
       #
-      # "During this Combat Phase" is one exchange, and ⅓◈ is the shortest the
-      # tick grammar has: one Turn, the Turn the Combat Phase happens in.
-      - { id: nAtkUp, magnitude: 40, duration: "⅓◈" }
+      # "During this Combat Phase": it ends with the Phase, not the Turn
+      # (#208 reading 9, carried by #243 reading 1). It was ⅓◈.
+      - { id: nAtkUp, magnitude: 40, duration: "until combatPhaseEnd" }

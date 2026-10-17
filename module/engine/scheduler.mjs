@@ -1518,6 +1518,9 @@ const ACTIONS = Object.freeze({
   },
 });
 
+/** The action vocabulary a handler's `then:` may name; content is held against it (#243). */
+export const ACTION_KINDS = Object.freeze(Object.keys(ACTIONS));
+
 /**
  * How many charges an `ApplyEffect` action is worth.
  *
