@@ -30,7 +30,7 @@ import * as process from "./combat-process.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { canStopOn } from "../rules/movement.mjs";
-import { publicIdentityOf, publicSpeakerFor } from "./public-identity.mjs";
+import { shownName, publicSpeakerFor } from "./public-identity.mjs";
 import { chebyshev, inBounds } from "../domain/geometry.mjs";
 
 /** Groups whose follow-up has been offered, claimed before any await. */
@@ -99,7 +99,7 @@ export async function offerFollowUp(state, { rollOptions, resolveAttack }) {
   const panels = spec.move === "adjacent" ? besideFree(defender, attacker, board) : [];
   // PUBLIC names, on the offer and on the card: a concealed DU is its class to
   // the table, and the card under this one says so (#232, found live).
-  const shown = publicIdentityOf(defenderDoc, board).name || defender.name;
+  const shown = shownName(defenderDoc, board);
   const stay = { id: "stay", name: game.i18n.format("FGT.FollowUp.Stay", { target: shown }) };
   const picked = await chooseFor(attackerDoc, {
     title: game.i18n.format("FGT.FollowUp.Title", { name: spec.source }),
@@ -127,7 +127,7 @@ export async function offerFollowUp(state, { rollOptions, resolveAttack }) {
   const forbid = spec.lockReaction ? lockedReactions(mine.at(-1) ?? state) : [];
   await ChatMessage.create({
     content: `<p>${game.i18n.format("FGT.FollowUp.Declared", {
-      name: spec.source, unit: publicIdentityOf(attackerDoc, board).name || attackerDoc.name, target: shown,
+      name: spec.source, unit: shownName(attackerDoc, board), target: shown,
     })}</p>`,
     speaker: publicSpeakerFor(attackerDoc, board),
   });

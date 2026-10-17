@@ -17,6 +17,7 @@ import { displaceToken } from "./io.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { shownName, shownNameById } from "./public-identity.mjs";
 
 /** The compendium content id `packs/_source/platforms/hanging-gardens.yml` compiles to. */
 const PLATFORM_CONTENT_ID = "hanging-gardens-of-babylon";
@@ -70,7 +71,7 @@ async function chooseRiderPanels(ownerId, allyIds) {
     const options = riderPanelOptions(self.panel, footprint, Object.values(chosen));
     const picked = await askOwner(owner, {
       kind: "choose",
-      title: game.i18n.format("FGT.Hgob.RiderPanelTitle", { name: game.actors.get(allyId)?.name ?? allyId }),
+      title: game.i18n.format("FGT.Hgob.RiderPanelTitle", { name: shownNameById(allyId) }),
       hint: game.i18n.localize("FGT.Hgob.RiderPanelHint"),
       min: 0,
       count: 1,
@@ -157,7 +158,7 @@ async function chooseRiders(ownerId) {
     count: eligible.length,
     options: eligible.map((u) => ({
       id: u.id,
-      name: u.name,
+      name: shownName(u),
       subtitle: game.i18n.format("FGT.Hgob.RiderAt", { i: u.panel.i, j: u.panel.j }),
     })),
   });
@@ -273,6 +274,7 @@ async function seatRiders(platform, origin, riders, chosen) {
     // came to be left on the rim twice: the arithmetic above is right, the
     // caller is right, and the whole failure fits in one falsy `token`.
     if (!token) {
+      // fgt-name-ok: console text for the GM and the developer
       console.warn(`FGT | Hanging Gardens: no token to seat for ${game.actors.get(unitId)?.name ?? unitId}.`);
       continue;
     }

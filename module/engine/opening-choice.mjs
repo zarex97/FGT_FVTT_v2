@@ -82,6 +82,7 @@ export async function askOpeningChoices(actorId) {
     };
     const picked = await chooseFor(actor, {
       title: item.name,
+      // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
       hint: game.i18n.format("FGT.OpeningChoice.Hint", { name: actor.name, ability: item.name }),
       count: 1,
       min: 1,
@@ -122,6 +123,7 @@ async function applyChoice(actor, item, active, label) {
     .filter((u) => u.isGM || actor.testUserPermission(u, "OWNER"))
     .map((u) => u.id);
   await ChatMessage.create({
+    // fgt-name-ok: whispered to the GM and the Unit's owners
     content: `<p>${game.i18n.format("FGT.OpeningChoice.Chosen", { name: actor.name, ability: item.name, choice: label })}</p>`,
     whisper,
   });

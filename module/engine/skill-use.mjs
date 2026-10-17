@@ -65,6 +65,7 @@ import { isConcealed, concealmentBreakChance } from "../rules/concealment.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import { publicIdentityOf, publicSpeakerFor } from "./public-identity.mjs";
 import { effectLine } from "../rules/card-visibility.mjs";
+import { shownName, shownNameById } from "./public-identity.mjs";
 
 /**
  * Use an active Skill.
@@ -408,6 +409,7 @@ async function phaseTargets(phase, resolved, actor, board) {
     if (out.needsChoice) {
       const count = phase.targeting.selection?.count ?? 1;
       const picked = await chooseFor(actor, {
+        // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
         title: actor.name,
         hint: game.i18n.format("FGT.Skill.ChoosePhaseTargets", { count }),
         count: Math.min(count, out.candidates.length),
@@ -616,7 +618,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // the receiver twice and the hand it left never (#230, live).
           applied.push({
             unitId: fromId,
-            summary: { id: "transferItem", name: `${held.name} → ${game.actors.get(toId)?.name ?? toId}`, outcome: "applied", reason: null },
+            summary: { id: "transferItem", name: `${held.name} → ${shownNameById(toId)}`, outcome: "applied", reason: null },
           });
           break;
         }
@@ -679,6 +681,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           await applyWorldIntents(changes, `skill:${ability.id}:stat`);
           // ...and WHOSE, when it is not the caster's: Mana Burst's "both twins"
           // printed two "Agility +1" rows and named nobody (#209, live).
+          // fgt-name-ok: a row is shown only to its recipient's controllers (`postCard`), who know the name
           const whose = target.unitId === actor.id ? "" : `${game.actors.get(target.unitId)?.name ?? target.unitId}: `;
           changes.forEach((c, n) => {
             const line = statChangeLine(c, before[n], valueOf(c));
@@ -987,7 +990,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           });
           if (outcome.success) {
             applied.push({ summary: {
-              id: "dragInto", name: doc.name, outcome: "resisted", reason: `Evade ${moved.roll}`,
+              id: "dragInto", name: shownName(doc), outcome: "resisted", reason: `Evade ${moved.roll}`,
             } });
             break;
           }
@@ -995,7 +998,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           const panel = randomFreePanelIn(field, board);
           if (!panel) {
             applied.push({ summary: {
-              id: "dragInto", name: doc.name, outcome: "failed", reason: "no free panel inside",
+              id: "dragInto", name: shownName(doc), outcome: "failed", reason: "no free panel inside",
             } });
             break;
           }
@@ -1016,7 +1019,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // well ran Kagome Kagome twice, and live the dragged Master got a
           // Beast AND a Sword on one panel (#180).
           applied.push({ summary: {
-            id: "dragInto", name: doc.name, outcome: "applied", reason: `Evade ${roll.total}`,
+            id: "dragInto", name: shownName(doc), outcome: "applied", reason: `Evade ${roll.total}`,
           } });
           break;
         }
@@ -1035,7 +1038,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           const rolled = count
             ? ` (${count.formula} → ${count.total}${types.length ? `; ${types[0].formula} → ${types.map((r) => r.total).join(", ")}` : ""})`
             : "";
-          const who = (out.created ?? []).map((a) => a.name).filter(Boolean).join(", ");
+          const who = (out.created ?? []).map((a) => shownName(a)).filter(Boolean).join(", ");
           applied.push({ summary: {
             id: "summon",
             name: `${out.count} summoned${rolled}${who ? `: ${who}` : ""}`,
@@ -1225,7 +1228,7 @@ function effectLabel(spec) {
  */
 async function postRollCard(actor, ability, target, results) {
   await ChatMessage.create({
-    content: `<p><strong>${ability.name}</strong> on ${target.name ?? "the target"}: `
+    content: `<p><strong>${ability.name}</strong> on ${shownName(target) || "the target"}: `
       + `rolled ${results.join(", ")}.</p>`,
     speaker: publicSpeakerFor(actor),
   });
@@ -1961,7 +1964,7 @@ async function resolveRemoval(phase, doc, bearer) {
     // from a dispel that was never wired up -- which is what this whole path
     // was until now.
     ui.notifications?.info(game.i18n.format("FGT.Removal.Resisted", {
-      name: doc.name, effect: EffectRegistry.get(r.defId)?.name ?? r.defId,
+      name: shownName(doc), effect: EffectRegistry.get(r.defId)?.name ?? r.defId,
       chance: r.chance, roll: r.roll,
     }));
   }
@@ -2807,6 +2810,7 @@ async function pickMoveDestination(doc, unit, board, panels) {
   if (offered.length === 0) return null;
   const { askOwner } = await import("./ask.mjs");
   const answer = await askOwner(doc, {
+    // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
     kind: "pickPanels", panels: offered, labels: [doc.name],
     hint: game.i18n.format("FGT.Skill.MovePick", { panels }),
   });

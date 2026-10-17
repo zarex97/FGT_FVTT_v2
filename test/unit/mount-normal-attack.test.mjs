@@ -116,7 +116,8 @@ describe("the Range of her Normal Attack is measured from the mount's footprint 
   it("refuses a target out of reach of the whole footprint", async () => {
     const out = await aimAt({ i: 9, j: 6, k: 0 });
     // 3 from (6,6) and 4 from her own panel. The resolver names the refusal; the placement is illegal.
-    expect(out.errors.join(" ")).toMatch(/Heracles is out of Range \(2\)/);
+    // By his public name, Berserker (#235).
+    expect(out.errors.join(" ")).toMatch(/Berserker is out of Range \(2\)/);
   });
 
   it("names the mount as the origin of her Normal Attack only, and not of what she casts herself", async () => {

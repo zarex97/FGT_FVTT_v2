@@ -83,6 +83,39 @@ export function publicIdentityOf(actor, board) {
  * @param {object} [board]
  * @returns {object}
  */
+/**
+ * The name a player-facing line prints for a Unit: its public name.
+ *
+ * One door for every card, prompt, banner and preview that names a Unit
+ * (#235): an Actor document or a board unit, the board optional. A Servant
+ * whose identity is not revealed is its class; anything else is itself. The
+ * lint guard `tools/check-public-names.mjs` refuses a Unit's `.name` read
+ * wherever this should have been asked.
+ *
+ * @param {object|null} subject an Actor document or a board unit
+ * @param {object|null} [board]
+ * @returns {string}
+ */
+export function shownName(subject, board = null) {
+  if (!subject) return "";
+  if (subject.documentName === "Actor" || subject.system) {
+    return publicIdentityOf(subject, board).name || subject.name || ""; // fgt-name-ok: the public name's own fallback
+  }
+  return publicNameOf(subject, board, {}) || subject.name || ""; // fgt-name-ok: the public name's own fallback
+}
+
+/**
+ * {@link shownName} by actor id; the id itself when no actor answers.
+ *
+ * @param {string} id
+ * @param {object|null} [board]
+ * @returns {string}
+ */
+export function shownNameById(id, board = null) {
+  const actor = globalThis.game?.actors?.get?.(id);
+  return actor ? shownName(actor, board) : String(id ?? "");
+}
+
 export function publicSpeakerFor(actor, board = null) {
   const speaker = ChatMessage.getSpeaker(actor ? { actor } : {});
   if (!actor) return speaker;

@@ -49,10 +49,13 @@ describe("exclusion reasons", () => {
     const ally = unit("ally", "Karna", at(6, 7));
     const r = resolveTargets(AREA, me, boardWith([me, ally]));
 
+    // By the PUBLIC name (#235): an unrevealed Servant with no class container
+    // is "Servant" to the table, and the refusal says what the table knows.
     expect(others(r)).toEqual([
-      { unitId: "ally", name: "Karna", reason: expect.stringContaining("an ally") },
+      { unitId: "ally", name: "Servant", reason: expect.stringContaining("an ally") },
     ]);
-    expect(r.errors[0]).toMatch(/No legal targets: Karna is an ally/);
+    expect(r.errors[0]).toMatch(/No legal targets: Servant is an ally/);
+    expect(r.errors[0]).not.toMatch(/Karna/);
   });
 
   it("points an unassigned faction at the roster, which is where it is fixed", () => {
@@ -184,8 +187,9 @@ describe("an unplaced caster is said to be unplaced", () => {
       shape: { kind: "unit" },
       selection: { relations: ["enemy"], chooser: "all" },
     };
+    // The public name (#235): the True Name never reaches the refusal.
     expect(resolveTargets(spec, me, boardWith([me, foe]), { unitId: "f" }).errors[0])
-      .toMatch(/Karna is not placed on the board/);
+      .toMatch(/^Servant is not placed on the board/);
   });
 });
 

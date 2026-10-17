@@ -39,6 +39,7 @@ export async function askOwner(actor, spec) {
     const { FGTSocket } = await import("../net/socket.mjs");
     return await FGTSocket.ask(owner.id, spec);
   } catch (err) {
+    // fgt-name-ok: console text for the GM and the developer
     console.warn(`FGT | ${actor.name}'s window prompt was not answered:`, err);
     return null;
   }

@@ -16,7 +16,7 @@ import * as I from "./intents.mjs";
 import { guardCase, guardLanding } from "../rules/master-guard.mjs";
 import { canStopOn } from "../rules/movement.mjs";
 import { checkPlan, resolveCheck, tableFor } from "../rules/checks.mjs";
-import { publicIdentityOf } from "./public-identity.mjs";
+import { shownName } from "./public-identity.mjs";
 
 /**
  * A Unit as the table knows it. This line is public, and it named a concealed
@@ -26,7 +26,6 @@ import { publicIdentityOf } from "./public-identity.mjs";
  * @param {object} board
  * @returns {string}
  */
-const shownName = (unit, board) => publicIdentityOf(unit, board).name || unit.name;
 
 /**
  * Who the Attack lands on: the Master, or the guard that took it.

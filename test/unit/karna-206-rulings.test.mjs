@@ -306,7 +306,8 @@ describe("Fated Rivals of the Mahabharata (#206 reading 2)", () => {
       // One on Heracles's side alone, columns 0-4, is refused with its reason.
       const without = area({ i: 5, j: 2 });
       expect(without.units).toEqual([]);
-      expect(without.errors[0]).toMatch(/Heracles is in an area without the rival this attacker is bound to/);
+      // Heracles by his public name, Berserker (#235).
+      expect(without.errors[0]).toMatch(/Berserker is in an area without the rival this attacker is bound to/);
     });
   });
 
@@ -320,7 +321,7 @@ describe("Fated Rivals of the Mahabharata (#206 reading 2)", () => {
         selection: { relations: ["enemy"], chooser: "all" }, limits: { forAttack: true },
       }, unit("karna"), board, { panel: { i: 5, j: 2 } });
       expect(out.excluded.map((e) => e.reason)).toContain("defeated");
-      expect(out.errors[0]).toMatch(/^No legal targets: Heracles is in an area without the rival/);
+      expect(out.errors[0]).toMatch(/^No legal targets: Berserker is in an area without the rival/);
     });
   });
 

@@ -2,6 +2,7 @@ import { pursuitOf } from "./compulsion.mjs";
 import { hasGranted, GRANTS } from "./granted.mjs";
 import { unitWeight } from "./linked-group.mjs";
 import { EffectRegistry } from "./registry.mjs";
+import { shownNameOf } from "./identity.mjs";
 
 /**
  * @file The turn budget: four pools, per-unit limits, prevention and compulsion.
@@ -501,6 +502,7 @@ export function unmetCompulsions(units, board = null) {
     const pursuit = pursuitOf(unit);
     if (pursuit) {
       const breach = pursuitBreach(unit, pursuit, board);
+      // fgt-name-ok: a turn requirement shown to the acting player about their own Unit
       if (breach) unmet.push({ unitId: unit.id, unitName: unit.name, effect: "Hatred", message: breach });
       continue;
     }
@@ -511,14 +513,18 @@ export function unmetCompulsions(units, board = null) {
       // form when the player attacked with nobody at all.
       if (!anyoneAttacked && !unit.turnState?.moved) {
         unmet.push({
+          // fgt-name-ok: a turn requirement shown to the acting player about their own Unit
           unitId: unit.id, unitName: unit.name, effect: "Berserk",
+          // fgt-name-ok: a turn requirement shown to the acting player about their own Unit
           message: `${unit.name} is Berserked and must Move and Attack this turn.`,
         });
         continue;
       }
       if (anyoneAttacked) {
         unmet.push({
+          // fgt-name-ok: a turn requirement shown to the acting player about their own Unit
           unitId: unit.id, unitName: unit.name, effect: "Berserk",
+          // fgt-name-ok: a turn requirement shown to the acting player about their own Unit
           message: `${unit.name} is Berserked. You attacked with ${attackers.length} unit(s) this turn, so ${unit.name} must be one of the attackers.`,
         });
       }
@@ -527,7 +533,9 @@ export function unmetCompulsions(units, board = null) {
 
     if (anyoneAttacked) {
       unmet.push({
+        // fgt-name-ok: a turn requirement shown to the acting player about their own Unit
         unitId: unit.id, unitName: unit.name, effect: compelled === "hatred" ? "Hatred" : "Decoy",
+        // fgt-name-ok: a turn requirement shown to the acting player about their own Unit
         message: `${unit.name} must attack the unit compelling it. You attacked with ${attackers.length} unit(s) this turn, so ${unit.name} must be one of the attackers.`,
       });
     }
@@ -549,17 +557,19 @@ export function unmetCompulsions(units, board = null) {
  */
 function pursuitBreach(unit, pursuit, board) {
   const target = (board?.units ?? []).find((u) => u.id === pursuit.targetIds[0]);
-  const name = target?.name ?? "the Unit she hates";
+  const name = shownNameOf(target, board) || "the Unit she hates";
   const range = unit.range?.panels ?? unit.range ?? 1;
   const reach = target?.panel && unit.panel ? chebyshevOf(unit.panel, target.panel) : 0;
   if (reach <= range) {
     // Not in a Round that forbids every Attack: she has closed on him, and that
     // is all she could do.
     if (board?.attacksForbidden) return null;
+    // fgt-name-ok: a turn requirement shown to the acting player about their own Unit
     return `${unit.name} must Attack ${name} (Hatred of Achilles).`;
   }
   const left = (unit.mov ?? 0) - (unit.turnState?.movedPanels ?? 0);
   if (left > 0 && !preventedBy(unit, "move").prevented) {
+    // fgt-name-ok: a turn requirement shown to the acting player about their own Unit
     return `${unit.name} must Move towards ${name} with all her MOV (Hatred of Achilles).`;
   }
   return null;
@@ -593,7 +603,9 @@ export function canEndTurn(units, board = null) {
  */
 export function copyPicksOwed(units) {
   return (units ?? []).filter((u) => u.copyPickDue && !u.defeated).map((u) => ({
+    // fgt-name-ok: a turn requirement shown to the acting player about their own Unit
     unitId: u.id, unitName: u.name, effect: "Wisdom of Dún Scáith",
+    // fgt-name-ok: a turn requirement shown to the acting player about their own Unit
     message: `${u.name} must pick the two Skills Wisdom of Dún Scáith copies before this Turn ends.`,
   }));
 }
@@ -608,7 +620,9 @@ export function copyPicksOwed(units) {
  */
 export function openingChoicesOwed(units) {
   return (units ?? []).filter((u) => u.openingChoiceDue && !u.defeated).map((u) => ({
+    // fgt-name-ok: a turn requirement shown to the acting player about their own Unit
     unitId: u.id, unitName: u.name, effect: "Opening choice",
+    // fgt-name-ok: a turn requirement shown to the acting player about their own Unit
     message: `${u.name} must choose which effect a Skill starts with before this Turn ends.`,
   }));
 }

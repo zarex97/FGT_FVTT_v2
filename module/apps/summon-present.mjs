@@ -73,6 +73,7 @@ export function describeStep(step) {
     case "contract":
       return {
         label: game.i18n.localize("FGT.Summon.StepContract"),
+        // fgt-name-ok: a Master conceals nothing (Ch. 30)
         detail: game.actors.get(step.masterId)?.name ?? step.masterId,
       };
     default:

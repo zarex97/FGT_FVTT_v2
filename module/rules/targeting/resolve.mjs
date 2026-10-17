@@ -22,6 +22,7 @@ import { guardsInRange, guardsNear } from "../master-guard.mjs";
 import { crossLevelLegal, interiorOf } from "../platforms.mjs";
 import { Rank } from "../../domain/rank.mjs";
 import { facingAllows, pathClear } from "./facing.mjs";
+import { shownNameOf } from "../identity.mjs";
 
 /**
  * @typedef {import("../../domain/geometry.mjs").GridOffset} GridOffset
@@ -83,7 +84,7 @@ export function resolveTargets(spec, caster, board, placement = {}) {
    * @returns {false}
    */
   const drop = (u, reason) => {
-    excluded.push({ unitId: u.id, name: u.name ?? u.id, reason });
+    excluded.push({ unitId: u.id, name: shownNameOf(u, board) || u.id, reason });
     return false;
   };
 
@@ -91,6 +92,7 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   //    distance from {0,0}, so every range check failed and the only symptom
   //    was an empty target list.
   if (!caster.panel) {
+    // fgt-name-ok: the caster, named to the caster's own player
     errors.push(`${caster.name ?? "The attacker"} is not placed on the board.`);
     return { units: [], panels: [], anchor: {}, warnings, errors, needsChoice: false, candidates: [], excluded };
   }
@@ -529,6 +531,7 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   if (limits.requiresFacing) {
     survivors = survivors.filter(
       (u) => facingAllows(caster, u)
+        // fgt-name-ok: the caster, named to the caster's own player
         || drop(u, `not in front of ${caster.name ?? "the attacker"}`),
     );
   }
@@ -823,7 +826,7 @@ function resolveAnchor(spec, caster, board, placement, errors) {
         return { ...base, panel: casterPanel };
       }
       if (!unit.panel) {
-        errors.push(`${unit.name ?? "That unit"} is not placed on the board.`);
+        errors.push(`${shownNameOf(unit, board) || "That unit"} is not placed on the board.`);
         return { ...base, panel: casterPanel };
       }
       const r = anchorRange(spec, caster);
@@ -838,14 +841,14 @@ function resolveAnchor(spec, caster, board, placement, errors) {
       // `partnerIds` is the board's own list and may arrive as a SetField.
       const origins = [casterPanels, ...partnerPanelsOf(spec, caster, board)];
       if (!origins.some((from) => geo.inAttackRangeBetween(from, targetPanels, r))) {
-        errors.push(`${unit.name ?? "Target"} is out of Range (${r}).`);
+        errors.push(`${shownNameOf(unit, board) || "Target"} is out of Range (${r}).`);
       }
       // A minimum, which only the `withinRange` anchor honoured. EMIYA's
       // Hrunting "cannot be used on a Unit directly next to EMIYA" and picks a
       // UNIT, so the one anchor that could express the rule was the one it
       // could not use.
       if (spec.minRange && Math.min(...targetPanels.map((p) => geo.chebyshevFromAny(casterPanels, p))) < spec.minRange) {
-        errors.push(`${unit.name ?? "Target"} is too close; this ability has a minimum Range of ${spec.minRange}.`);
+        errors.push(`${shownNameOf(unit, board) || "Target"} is too close; this ability has a minimum Range of ${spec.minRange}.`);
       }
       return { ...base, panel: unit.panel, panels: unit.panels ?? [unit.panel], unitId: unit.id };
     }
@@ -891,7 +894,7 @@ function resolveAnchor(spec, caster, board, placement, errors) {
       if (!nearest) {
         errors.push("That area covers no panels.");
       } else if (edge === 0 && !spec.allowInside) {
-        errors.push(`${unit.name ?? "That Unit"} is already inside.`);
+        errors.push(`${shownNameOf(unit, board) || "That Unit"} is already inside.`);
       } else if (edge > 0) {
         // *"…and also has a Range of 4 panels away from the border of Ramesseum
         // Tentyris (if diagonal, 3 panels)."* A shorter reach on the diagonal,
@@ -904,7 +907,7 @@ function resolveAnchor(spec, caster, board, placement, errors) {
         const limit = diagonal ? (spec.diagonalRange ?? r) : r;
         if (edge > limit) {
           errors.push(
-            `${unit.name ?? "Target"} is ${edge} panels from the area; `
+            `${shownNameOf(unit, board) || "Target"} is ${edge} panels from the area; `
             + `Range is ${limit}${diagonal ? " on the diagonal" : ""}.`,
           );
         }
@@ -1371,6 +1374,7 @@ function resolveIncludeSelf(sel, spec) {
 function relationReason(relation, caster, unit, wanted) {
   const wants = [...wanted].join(" or ");
   if (relation === "ally" && caster.faction && caster.faction === unit.faction) {
+    // fgt-name-ok: the caster, named to the caster's own player
     return `an ally — same faction as ${caster.name ?? "the attacker"} (${caster.faction}); this ability targets ${wants}`;
   }
   if (relation === "ally") return `an ally by alliance; this ability targets ${wants}`;
