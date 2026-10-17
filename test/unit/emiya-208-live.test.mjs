@@ -176,7 +176,8 @@ describe("a reaction ability refused when pressed is said to its player (#208, l
   // reaction resolves; Player1, who pressed it, saw nothing (*press as a player*).
   it("both refusals go through one notice that whispers the owner, worded", () => {
     const src = readFileSync("module/engine/attack.mjs", "utf8");
-    expect(src).toMatch(/async function tellReactionRefused\(owner, used, reason\)/);
+    // A refusal's detail rides along for the bar's words since #244.
+    expect(src).toMatch(/async function tellReactionRefused\(owner, used, reason, detail = \{\}\)/);
     expect(src).toMatch(/FGT\.Skill\.Reason\.\$\{reason\}/);
     expect(src.match(/await tellReactionRefused\(owner, used,/g) ?? []).toHaveLength(2);
   });

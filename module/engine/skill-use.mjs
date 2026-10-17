@@ -21,13 +21,13 @@
  * deals damage directly, not its Attack.
  */
 
-import { canUseAbility, additionalCostsFor, resolveCosts } from "../rules/costs.mjs";
+import { additionalCostsFor, resolveCosts } from "../rules/costs.mjs";
+import { pressGate } from "./press-gate.mjs";
 import { refreshShield } from "./shield.mjs";
 import { displaceToken } from "./io.mjs";
 import {
-  targetSpecFor, countsAsAttack, countsAsAct, isNegated, blockedThisTurn, needsTargeting,
+  targetSpecFor, countsAsAttack, countsAsAct, needsTargeting,
   classifyAbility,
-  usageSpecFor,
   useBudgetKind,
 } from "../rules/ability-use.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
@@ -36,7 +36,7 @@ import { landEntry } from "./landing.mjs";
 import { summonPhase } from "./summoning.mjs";
 import { cooldownFor, alsoTriggered, sharedAcrossGroup, sharedCooldownIntents } from "./cooldown.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
-import { currentBoard, currentMoment, unitFrom, unitOf, gateContext, turnRecordOf } from "./board.mjs";
+import { currentBoard, currentMoment, unitFrom, unitOf, turnRecordOf } from "./board.mjs";
 import { resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
 import { missChance, missSourceOf, PLAIN_MISS } from "../rules/miss.mjs";
@@ -107,46 +107,20 @@ export async function useSkill({
   const master = self.masterId ? unitFrom(board, game.actors.get(self.masterId)) : null;
   const combat = game.combats?.active;
 
-  // The same gates an attack passes, because they are gates on *using an
-  // ability* rather than on attacking: cooldown, round, cost, and Ch. 17's
-  // requirement list.
-  const usage = canUseAbility({
-    // Spread FIRST, then OR: an ability may carry the flag on its own document,
-    // and writing `bypassesCategoryLimit` unconditionally would overwrite that
-    // with `false` on every ordinary call.
-    ability: (() => {
-      const spec = usageSpec(ability);
-      return bypassesCategoryLimit ? { ...spec, bypassesCategoryLimit: true } : spec;
-    })(),
-    unit: self,
-    master,
-    round: combat?.round ?? 1,
-    board,
-    // Ch. 04's Round gate, whose numbers are world settings Layer 2 cannot read.
-    ...gateContext(),
-    atWindow,
-    anyMoment,
-    // The `predicate` requirement kind (`rules/items.mjs`) has been in
-    // `meetsRequirement` since Ch. 17 was implemented and refused every use
-    // that named it: `ctx.testPredicate` had no supplier here, so
-    // `typeof undefined === "function"` failed and the gate always lost.
-    // Semiramis's Sikera Ušum is the first content that needs it --
-    // `self:variant:noDsc`, gating clause 1 off from clause 2's Throne-Room
-    // branch -- and self-only, the same scope a rule element's own
-    // `predicate` gets at collection time.
-    testPredicate: (p) => testPredicate(p, { options: rollOptionsFor({ attacker: self }) }),
+  // The gate this press runs, and the one every offer of it asks (#244):
+  // cooldown, round, cost, Ch. 17's requirements, an effect that negates it,
+  // and the Turn's budget. `target: null` is this press's own: a Skill's
+  // requirements are judged before its targets are resolved.
+  //
+  // `negated` and `sameTurnExclusive` were asked here and nowhere else, so the
+  // bar and every offer lit what this refused. Both are the use gate's now.
+  // `asAttack: false`: this press bills the use path's kind (`useBudgetKind`),
+  // the one spent below, whatever phases the ability carries.
+  const gate = pressGate(actor, ability, {
+    board, combat, atWindow, anyMoment, bypassesCategoryLimit, target: null, asAttack: false,
   });
-  if (!usage.ok) return { ok: false, reason: usage.reason };
-
-  // Negated outright by an effect the Unit is carrying. Medea's High-Speed
-  // Divine Words is "negated while inflicted with Silence", and that is a
-  // different question from a requirement -- Silence can land between the
-  // declaration and this moment.
-  if (isNegated(ability, self.effects ?? [])) return { ok: false, reason: "negated" };
-
-  // Its mutually-exclusive partner already went this Turn.
-  const blocker = blockedThisTurn(ability, usedThisTurn(actor));
-  if (blocker) return { ok: false, reason: "sameTurnExclusive", blocker };
+  const usage = gate.usage;
+  if (!gate.ok) return { ok: false, reason: gate.reason };
 
   // A Skill spends the skill budget, not an attack (Ch. 19). `countsAsAttack`
   // is consulted rather than assumed: a damaging Attack Skill spends both.
@@ -159,6 +133,7 @@ export async function useSkill({
   // ...and a Noble Phantasm as one, now that a non-damaging NP comes here
   // rather than to the attack path (§46.4-CK): billed `np`, NP Seal refuses it,
   // and the Attack pool pays. A Spell is a `spell`, which Silence refuses.
+  // Asked of the budget by `pressGate` above, and spent below.
   const budgetAction = budgetActionFor(useBudgetKind(ability));
   // An action that costs nothing. Doomsday Come's Drag is ruled (2026-10-04,
   // #180) an action the Noble Phantasm grants, neither an Attack nor a Skill:
@@ -166,10 +141,6 @@ export async function useSkill({
   // Unit is marked as having Acted and nothing more. The same flag the attack
   // path reads for Kiritsugu's free Normal Attack (`attack-preflight.mjs`).
   const free = Boolean(ability.system?.freeAction);
-  if (combat?.started && !free) {
-    const verdict = budget.affordable(combat, self, budgetAction);
-    if (!verdict.ok) return { ok: false, reason: verdict.reason };
-  }
 
   const targets = resolveSkillTargets(ability, self, board, placement);
   if (targets.errors.length > 0) return { ok: false, reason: targets.errors[0] };
@@ -1434,15 +1405,6 @@ export function costIntents(cost, self) {
   return [I.statDelta(cost.unitId, "health.value", -cost.amount, false), note];
 }
 
-/** @param {object} ability @returns {object} */
-function usageSpec(ability) {
-  // One implementation, shared with `resolveAttack` (`rules/ability-use.mjs`).
-  // The two used to be separate and disagreed about which fields a gate could
-  // see, so a requirement authored on an ability was honoured on one use path
-  // and dropped on the other.
-  return usageSpecFor(ability);
-}
-
 /** @param {string} contentId @returns {object|null} */
 function resolveSource(contentId) {
   for (const actor of game.actors ?? []) {
@@ -1927,6 +1889,7 @@ async function chosenCooldowns(phase, ability, doc) {
     i.system?.category === spec.category && (i.system?.cooldown?.remaining ?? 0) > 0);
   if (candidates.length === 0) return [];
 
+  // fgt-offer-ok: picks whose Cooldown to cut, which is no use of them
   const chosen = await chooseFor(doc, {
     title: ability.name,
     hint: game.i18n.format("FGT.Skill.ChooseCooldownTargets", { turns }),
@@ -2037,20 +2000,6 @@ function removals(phase, doc) {
       return !isUnremovable(def, e);
     })
     .map((e) => e.system.defId);
-}
-
-/**
- * Which abilities this Unit has already used this Turn.
- *
- * Read as **stale-by-tick** like the rest of turn state: a list stamped with an
- * earlier tick is spent whatever it says, so a missed reset cannot leave a
- * Servant permanently unable to use half its Skills.
- *
- * @param {object} actor
- * @returns {string[]}
- */
-function usedThisTurn(actor) {
-  return turnRecordOf(actor).abilitiesUsed;
 }
 
 /**

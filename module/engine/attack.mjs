@@ -20,7 +20,7 @@ import { expandInstances, damageBaseOf } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
 import { askOwner, chooseFor } from "./ask.mjs";
 import { resolveTargets, pendingChoiceErrors } from "../rules/targeting/resolve.mjs";
-import { currentBoard, currentMoment, unitFrom, unitOf, gateContext, roundRecordOf } from "./board.mjs";
+import { currentBoard, currentMoment, unitFrom, unitOf, roundRecordOf } from "./board.mjs";
 import {
   evade as evadeCheck, luckCheck, chance, checkPlan, critChance, mergePlans,
   pendingCheckRolls, resolveCheck,
@@ -31,7 +31,7 @@ import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
 import { cooldownChanges, statChangeLine, checkLine } from "./skill-use.mjs";
 import { splitCooldownRider } from "../rules/cooldown-riders.mjs";
 import {
-  classifyAbility, targetSpecFor as specForAbility, usageSpecFor, dealsNoDamage,
+  classifyAbility, targetSpecFor as specForAbility, dealsNoDamage,
   effectSpecsOf, windowUseKind, reactionPlacement, hasChannelPhase, interruptedByDeclaration,
 } from "../rules/ability-use.mjs";
 import { counterRedirect, counterMustCatchAttacker, counterRefusal } from "../rules/counter.mjs";
@@ -75,8 +75,9 @@ import { terrainConversions } from "../rules/terrain.mjs";
 import { paintTerrain, removeTerrainType } from "./terrain.mjs";
 import { injuryCheck, INJURY_STAT } from "../rules/injury.mjs";
 import { meetsRequirement } from "../rules/items.mjs";
-import { canUseAbility, resolveCosts, additionalCostsFor } from "../rules/costs.mjs";
+import { resolveCosts, additionalCostsFor } from "../rules/costs.mjs";
 import { attackPreflight, abilityKind } from "./attack-preflight.mjs";
+import { pressGate, offerable, pressesAsAttack } from "./press-gate.mjs";
 
 // Re-exported for the tests and callers that reach it through this module (#159).
 export { abilityKind };
@@ -2666,8 +2667,11 @@ async function fireDamageStepStart(state) {
  * @returns {Promise<void>}
  */
 async function offerPreAttackSpell(owner, category) {
-  const candidates = [...(owner.items ?? [])].filter((i) => i.system?.category === category
-    && (i.system?.cooldown?.remaining ?? 0) === 0);
+  // What the cast below would let through, asked with the cast's own context
+  // (#244): this listed every Spell of the category off Cooldown, and a
+  // Silenced Kiritsugu was asked to pick among Spells his cast refused.
+  const ofCategory = [...(owner.items ?? [])].filter((i) => i.system?.category === category);
+  const candidates = offerable(owner, ofCategory, { anyMoment: true, bypassesCategoryLimit: true, target: null });
   if (candidates.length === 0) return;
 
   // A `choose` question, which a client can draw. Asked with no kind, no client
@@ -3932,9 +3936,12 @@ function spentBy(outcome, plan, defender) {
  * @param {string} reason a refusal key or a sentence
  * @returns {Promise<void>}
  */
-async function tellReactionRefused(owner, used, reason) {
+async function tellReactionRefused(owner, used, reason, detail = {}) {
   const key = `FGT.Skill.Reason.${reason}`;
-  const worded = game.i18n.has?.(key) ? game.i18n.localize(key) : String(reason);
+  // ...else the words the bar and the sheet give the same reason (#244 review).
+  const barKey = `FGT.Ability.Refused.${reason}`;
+  const worded = game.i18n.has?.(key) ? game.i18n.localize(key)
+    : game.i18n.has?.(barKey) ? game.i18n.format(barKey, detail ?? {}) : String(reason);
   // Escaped: a name or a thrown message is text, not markup (#209 review).
   const escape = foundry.utils.escapeHTML;
   const text = game.i18n.format("FGT.Skill.Refused", { name: escape(used.name), reason: escape(worded) });
@@ -4121,20 +4128,6 @@ function civilianIntents(descriptors, killerId = null) {
 }
 
 /**
- * The ability as the cost rules want to see it.
- *
- * `requiresRound` is read from `targeting.limits`, the same untyped authored
- * object `requiresZon` already lives in — so a round gate is something content
- * can write today, rather than a schema field waiting to be invented.
- *
- * @param {object|null} ability an ability item
- * @returns {object|null}
- */
-function abilityUsageSpec(ability) {
-  return usageSpecFor(ability);
-}
-
-/**
  * Every cost this use would incur, before supersession.
  *
  * The Noble Phantasm cost is the one the rules layer computes; the rest are
@@ -4217,21 +4210,6 @@ function totalModifiersFor(ability, options, self, block = undefined) {
     });
   }
   return out;
-}
-
-/**
- * The evaluator a `kind: "predicate"` requirement needs (`rules/items.mjs`).
- *
- * Without one the requirement refuses by design -- *"a gate nobody can answer is
- * not an open gate"* -- so every `canUseAbility` call on this path carries one
- * (`test/unit/can-use-ability-callsites.test.mjs`).
- *
- * @param {object} unit the one using the ability
- * @param {object|null} [target] the Unit it is aimed at, when there is one
- * @returns {(predicate: object[]) => boolean}
- */
-function requirementTester(unit, target = null) {
-  return (p) => testPredicate(p, { options: rollOptionsFor({ attacker: unit, defender: target }) });
 }
 
 /**
@@ -4475,15 +4453,12 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
   // one would refuse every predicate-gated Counter.
   const master = self.masterId ? unitFrom(board, game.actors.get(self.masterId)) : null;
   const counterTarget = unitFrom(board, required);
-  const usage = canUseAbility({
-    ability: abilityUsageSpec(ability), unit: self, master,
-    round: game.combats.active?.round ?? 1, board, ...gateContext(),
-    target: counterTarget,
-    testPredicate: requirementTester(self, counterTarget),
-    // A Counter is made on the enemy's Turn by definition, so an ability
-    // whose only window is `ownTurn` is not refused for that (#160).
-    isCounter: true,
-  });
+  // The gate every press asks (`press-gate.mjs`, #244): a Counter is made on
+  // the enemy's Turn by definition, so an ability whose only window is
+  // `ownTurn` is not refused for that (#160). Its budget is the rung's own.
+  const usage = pressGate(counterer, ability, {
+    board, isCounter: true, target: counterTarget, billsBudget: false,
+  }).usage;
   const refusal = counterRefusal(ability, usage);
   if (refusal) return { refused: refusal, detail: usage.detail ?? null };
 
@@ -7345,7 +7320,13 @@ async function askAttackerWindow(state, window, message) {
   // `stance.mjs#stanceOf` can only answer from `stanceSpec`. Assembled by hand,
   // the subject answered `null` and every *"can only be used when Unmounted"*
   // ability was refused before it could be offered (Ch. 46 §46.4-V).
-  const offers = abilitiesAtWindow(windowSubject(unitOf(actor, boardSnapshot()), actor.items), window);
+  // ...and of those, what its use lets through (#244): a cast is pressed through
+  // `useSkill`, with no target; a billed use (Monstrous Strength) has no press of
+  // its own, is billed below without the Turn's budget, and is judged on what
+  // the Unit can answer alone.
+  const board = boardSnapshot();
+  const offers = offerable(actor, abilitiesAtWindow(windowSubject(unitOf(actor, board), actor.items), window),
+    (item) => windowGateContext(item, board));
   if (offers.length === 0) return { ...state, windowAbilities: [] };
 
   const picked = await askOwner(actor, {
@@ -7391,11 +7372,26 @@ async function askAttackerWindow(state, window, message) {
   // `useSkill` charges the Cooldown and records the use itself, so a cast is
   // routed there WHOLE rather than double-billed here.
   const cast = chosen.filter((id) => windowUseKind(actor.items.get(id)) === "cast");
-  const billed = chosen.filter((id) => !cast.includes(id));
+  // A billed use asks its gate again when it is billed: a sibling's answer or a
+  // Command Spell may have changed the board since the offer, and nothing else
+  // stands between the pick and the bill (#244). A refusal is said, as a cast's is.
+  const refused = [];
+  const afterPick = boardSnapshot();
+  const billed = [];
+  for (const id of chosen) {
+    if (cast.includes(id)) continue;
+    const item = actor.items.get(id);
+    const gate = pressGate(actor, item, windowGateContext(item, afterPick));
+    if (gate.ok) billed.push(id);
+    else {
+      refused.push(id);
+      await tellReactionRefused(actor, item, gate.reason, gate.usage?.detail);
+    }
+  }
 
   const intents = billed.flatMap((id) => {
     const item = actor.items.get(id);
-    const self = unitOf(actor, boardSnapshot());
+    const self = unitOf(actor, afterPick);
     const plan = cooldownFor(item, actor.id, { unit: self });
     const toggles = classifyAbility(item).toggles;
     return [
@@ -7421,15 +7417,13 @@ async function askAttackerWindow(state, window, message) {
     for (const id of billed) await fireAbilityUsed(actor, actor.items.get(id));
   }
 
-  const refused = [];
   for (const id of cast) {
     const { useSkill } = await import("./skill-use.mjs");
     const out = await useSkill({ actorId: actor.id, abilityId: id, atWindow: true });
     if (!out.ok) {
       refused.push(id);
-      ui.notifications?.warn(game.i18n.format("FGT.Skill.Refused", {
-        name: actor.items.get(id)?.name ?? id, reason: out.reason,
-      }));
+      // To its owner, in words, as a reaction's refusal is (#244 review).
+      await tellReactionRefused(actor, actor.items.get(id), out.reason);
     }
   }
 
@@ -7438,7 +7432,7 @@ async function askAttackerWindow(state, window, message) {
   // the next snapshot, which is every snapshot after this batch. Nor is a cast:
   // its phases landed as effects, and carrying it set off the "non-mode
   // ability ... reaches no Combat Process" warning for every Reinforcement.
-  const carried = chosen.filter((id) => !cast.includes(id) && !classifyAbility(actor.items.get(id)).toggles);
+  const carried = billed.filter((id) => !classifyAbility(actor.items.get(id)).toggles);
 
   // Only what was used is said to be. A cast the gate refused read *"Assassin
   // uses Thaumaturgy: Reinforcement."* over a buff that never landed (#243).
@@ -7453,6 +7447,19 @@ async function askAttackerWindow(state, window, message) {
 
   await recordWindowPick(message, window, carried);
   return { ...state, windowAbilities: carried };
+}
+
+/**
+ * The context a window use's gate is asked with, by how it is used.
+ *
+ * @param {object} item
+ * @param {object} board
+ * @returns {object}
+ */
+function windowGateContext(item, board) {
+  return windowUseKind(item) === "cast"
+    ? { board, atWindow: true, target: null, asAttack: false }
+    : { board, atWindow: true, selfOnly: true, billsBudget: false };
 }
 
 /**
@@ -7693,7 +7700,19 @@ function offeredReactions(defenderId, attack = null, isAoE = false, attackerId =
   // Ch. 23 and Ch. 24 condemn by name: a subject assembled from loose fields
   // answers `null` to every question the snapshot would have answered, which is
   // how five of Achilles's abilities were never offered at their one window.
-  const own = reactionAbilities(windowSubject(snapshot, actor.items))
+  const attackerUnit = attackerId ? (board.units.find((u) => u.id === attackerId) ?? null) : null;
+  // Each offer asks the gate its press will run (#244): a reaction that attacks
+  // is pressed through the attack flow, aimed at whoever its sheet names; any
+  // other through `useSkill`, which judges it with no target. A Silenced Medea
+  // was offered Trofa, and a Skill-Sealed Kiritsugu his shot, and each press
+  // refused what the rung had drawn.
+  const pressedAs = (item) => ({
+    board, atWindow: true,
+    target: pressesAsAttack(item)
+      ? (item.system?.timing?.radiusTo === "attacker" ? attackerUnit : snapshot)
+      : null,
+  });
+  const own = offerable(actor, reactionAbilities(windowSubject(snapshot, actor.items)), pressedAs)
     // fgt-name-ok: an ability's name, not a Unit's
     .map((a) => ({ id: a.id, name: a.name, ownerId: defenderId }));
 
@@ -7714,9 +7733,9 @@ function offeredReactions(defenderId, attack = null, isAoE = false, attackerId =
     // For the offers whose reach is measured to the ATTACKER -- Kiritsugu
     // shoots the Unit that swung, so what must be in his Range is the shooter's
     // target and not the ally he is protecting.
-    attacker: attackerId ? (board.units.find((u) => u.id === attackerId) ?? null) : null,
+    attacker: attackerUnit,
     actorFor: (id) => game.actors.get(id),
-  }).map((a) => ({
+  }).filter((a) => pressGate(game.actors.get(a.ownerId), a.ability, pressedAs(a.ability)).ok).map((a) => ({
     id: a.ability.id,
     // Its owner as the table knows them: the card is public, and it read
     // "Avalon: The Everdistant Utopia (Arturia)" under a concealed Saber (#230).
@@ -8072,20 +8091,10 @@ async function offerNPCancellation({ attackerId, attacker, ability, targetIds, b
       NP_DECLARATION_WINDOW,
     ).filter((item) => {
       if (!item.system?.cancelsNP) return false;
-      const usage = canUseAbility({
-        ability: abilityUsageSpec(item),
-        unit: defender,
-        master: defender.masterId ? unitFrom(board, game.actors.get(defender.masterId)) : null,
-        round: game.combats.active?.round ?? 1,
-        board,
-        ...gateContext(),
-        // It IS the window (`whenTargetedByNP`): the use gate refuses a window-only
-        // ability anywhere else (#208 reading 8).
-        atWindow: true,
-        target: self,
-        testPredicate: requirementTester(defender, self),
-      });
-      return usage.ok;
+      // The gate its use runs (`resolveNPCancellation`), which bills no Turn
+      // budget. It IS the window (`whenTargetedByNP`): the use gate refuses a
+      // window-only ability anywhere else (#208 reading 8).
+      return pressGate(defenderDoc, item, { board, atWindow: true, target: self, billsBudget: false }).ok;
     });
     if (usable.length === 0) continue;
 
@@ -8136,12 +8145,10 @@ async function resolveNPCancellation({
     attacker: cancellerDoc,
     self: canceller,
     master: cancellerMaster,
-    usage: canUseAbility({
-      ability: abilityUsageSpec(cancelling), unit: canceller, master: cancellerMaster,
-      round: game.combats.active?.round ?? 1, board, ...gateContext(), atWindow: true,
-      target: unitOf(attacker, board),
-      testPredicate: requirementTester(canceller, unitOf(attacker, board)),
-    }),
+    // The gate its offer asked (`offerNPCancellation`), priced here (#244).
+    usage: pressGate(cancellerDoc, cancelling, {
+      board, atWindow: true, target: unitOf(attacker, board), billsBudget: false,
+    }).usage,
     board,
     resume: false,
   });

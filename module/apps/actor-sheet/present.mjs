@@ -245,6 +245,11 @@ export function abilityState(verdict, { turnsPerRound = 3, nameOf = null } = {})
       detail.by = EffectRegistry.get(detail.by)?.name ?? detail.by;
       return { ok: false, label: "FGT.Ability.PreventedBy", detail };
 
+    // ...and what negates it, by the same name (#244).
+    case "negated":
+      detail.by = EffectRegistry.get(detail.by)?.name ?? detail.by;
+      return { ok: false, label: "FGT.Ability.NegatedBy", detail };
+
     case "round":
       // How far away, not just which Round: "Round 6" makes a player count.
       detail.away = Math.max(0, (detail.requiresRound ?? 0) - (detail.round ?? 0));

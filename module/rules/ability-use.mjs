@@ -575,28 +575,6 @@ export function countsAsAct(item) {
 }
 
 /**
- * Which mutually-exclusive partner already went, if any.
- *
- * Medea's Keraino and Trofa may not both be used in one Turn, and the exclusion
- * is declared on **both** sides. A one-sided declaration would be decided by
- * whichever happened to be used first, which is not a rule.
- *
- * Matched against both the document id and the content id, because turn state
- * records whatever the caller had and both are legitimate identifiers.
- *
- * @param {object} item
- * @param {string[]} usedThisTurn ability ids already used
- * @returns {string|null} the blocking ability, or null
- */
-export function blockedThisTurn(item, usedThisTurn) {
-  const exclusive = item?.system?.sameTurnExclusive ?? [];
-  if (exclusive.length === 0) return null;
-
-  const used = new Set(usedThisTurn ?? []);
-  return exclusive.find((id) => used.has(id)) ?? null;
-}
-
-/**
  * The same question one scale up.
  *
  * *"Caladbolg II cannot be used on the same Round as Hrunting and vice versa."*
@@ -614,24 +592,6 @@ export function blockedThisRound(item, usedThisRound) {
 
   const used = new Set(usedThisRound ?? []);
   return exclusive.find((id) => used.has(id)) ?? null;
-}
-
-/**
- * Is this ability switched off by an effect the Unit is carrying?
- *
- * Distinct from a requirement, and both halves are needed. Medea's High-Speed
- * Divine Words "cannot be used **and its effects are negated** while inflicted
- * with Silence": the requirement covers the first, and this covers the second —
- * which matters because Silence can land between declaration and resolution.
- *
- * @param {object} item
- * @param {string[]} effects the bearer's active effect ids
- * @returns {boolean}
- */
-export function isNegated(item, effects) {
-  const negatedBy = item?.system?.negatedBy ?? [];
-  if (negatedBy.length === 0) return false;
-  return negatedBy.some((id) => (effects ?? []).includes(id));
 }
 
 /**
@@ -713,6 +673,9 @@ export function usageSpecFor(ability) {
     // Both exclusion scales, and the whole-match budget. A gate the attack path
     // could not see was a gate only half the abilities in the game obeyed.
     sameTurnExclusive: [...(sys.sameTurnExclusive ?? [])],
+    // Effects that switch it off while carried. Asked by `useSkill` alone, so
+    // the bar and every offer lit what the press refused (#244).
+    negatedBy: [...(sys.negatedBy ?? [])],
     // Exempts a use from its category's per-Turn cap. Kiritsugu's Magecraft
     // caps `thaumaturgy` at one a Turn and his Lethal Gunfire Suppression
     // grants a cast that "does not count towards" it -- an exemption

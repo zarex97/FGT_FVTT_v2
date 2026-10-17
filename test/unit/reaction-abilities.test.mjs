@@ -11,6 +11,8 @@
 
 import { describe, it, expect } from "vitest";
 import { reactionAbilities, reactionOptions } from "../../module/rules/reactions.mjs";
+import { canUseAbility } from "../../module/rules/costs.mjs";
+import { usageSpecFor } from "../../module/rules/ability-use.mjs";
 
 const ability = (over = {}) => ({
   id: "a", name: "Ability", system: { cooldown: { remaining: 0 }, ...over },
@@ -48,18 +50,23 @@ describe("reactionAbilities", () => {
     expect(reactionAbilities(unit([cooling]))).toEqual([]);
   });
 
-  it("does not offer one its same-turn partner has already used", () => {
+  // The two below are the use gate's since #244, which every offer of this list
+  // asks (`engine/press-gate.mjs#offerable`): asked here too, the window list was
+  // a second reader of each, and the offers that skipped it lit what the press refused.
+  const gate = (item, u) => canUseAbility({ ability: usageSpecFor(item), unit: u, round: 5, atWindow: true });
+
+  it("leaves one its same-turn partner has already used to the use gate, which refuses it", () => {
     // Medea: Trofa "cannot be used on the same Turn as Κεραινο".
     const trofaX = { ...trofa, system: { ...trofa.system, sameTurnExclusive: ["medea-keraino"] } };
     const spent = unit([trofaX], { turnState: { abilitiesUsed: ["medea-keraino"] } });
 
-    expect(reactionAbilities(spent)).toEqual([]);
+    expect(gate(trofaX, spent)).toMatchObject({ ok: false, reason: "sameTurnExclusive" });
   });
 
-  it("does not offer one negated by an effect the Unit carries", () => {
-    const silenced = { ...trofa, system: { ...trofa.system, negatedBy: ["silence"] } };
+  it("leaves one negated by an effect the Unit carries to the use gate, which refuses it", () => {
+    const silenced = { ...trofa, system: { ...trofa.system, negatedBy: ["burn"] } };
 
-    expect(reactionAbilities(unit([silenced], { effects: ["silence"] }))).toEqual([]);
+    expect(gate(silenced, unit([silenced], { effects: ["burn"] }))).toMatchObject({ ok: false, reason: "negated" });
   });
 });
 

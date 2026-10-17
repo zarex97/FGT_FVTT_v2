@@ -52,6 +52,7 @@ the subject of the first entry under *Traps and anti-patterns* below.
 | `tools/check-layers.mjs` | Enforces `ALLOWED`; runs as part of `npm run lint` |
 | `tools/check-writes.mjs` | Enforces the write allowlist, by file and category; runs as part of `npm run lint` |
 | `tools/check-public-names.mjs` | Refuses a Unit's True Name read raw where a player may read it: `shownName`/`shownNameOf`, or `// fgt-name-ok: <reason>` (Ch. 30, #235); runs as part of `npm run lint` |
+| `tools/check-offers.mjs` | Refuses a prompt listing a Unit's abilities that no gate was asked about: `offerable`, or `// fgt-offer-ok: <reason>` (Ch. 23, #244); runs as part of `npm run lint` |
 | `module/fgt.mjs` | System entry point — the init/setup/ready sequence |
 | `module/engine/listeners.mjs` | The engine's document listeners, in one ordered list that `fgt.mjs` binds at `ready` and the test world binds in every world |
 | `module/config.mjs` | `CONFIG.FGT` — the public configuration surface |
