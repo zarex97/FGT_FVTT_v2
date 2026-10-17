@@ -154,7 +154,9 @@ async function completeChannel(actor, unit) {
   // "Only when HGoB successfully activates" -- the NP cost this ability
   // would ordinarily have paid at use, deferred until now.
   if (ability?.system?.isNP) {
-    const cost = npCostAt({ rank: ability.system?.rank, unit: self, master });
+    const cost = npCostAt({
+      rank: ability.system?.rank, unit: self, master, turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    });
     const { costIntents } = await import("./skill-use.mjs");
     intents.push(...costIntents(cost, self));
   }

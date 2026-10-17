@@ -506,13 +506,13 @@ axes and this is the one ability that keys on the former). Recorded as **Q44**.
 
 | Rank | Essence | Reduction |
 |---|---|---|
-| A | Divine Banquet | 3◈ |
-| B | — | — |
+| A | — | — |
+| B | Divine Banquet | 3◈ |
 | C | Crystal | 2◈ |
 | D | Concentration | 1◈ |
 
-Note Rank B's `Divine Banquet` is listed at 3◈ in the source under Rank B, not Rank A — the Rank
-A list has `Heaven's Feel` (NP damage) instead. Table transcribed as printed.
+Rank A has no cooldown Essence: its list has `Heaven's Feel` (NP damage) instead. The table put Divine
+Banquet under A until #241; `docs/Master Essences.md` lists it under Rank B.
 
 ### `masterEssenceNPDamage` — one use only
 
@@ -554,7 +554,9 @@ Harvest (NP 1 round earlier) · Concentration (NP cooldown −1◈, 1 use) ·
 Oracle (NP +50% damage, 1 use).
 
 A player may substitute a higher-rank slot with a lower-rank essence. Effects are **lost if the
-Master is defeated** and are not transferred on re-contract.
+Master is defeated** (#241 reading 3), and an Essence **follows the Contract** (reading 5): a Servant contracted to a
+new Master holds that Master's. Grimoire is +10%, as its line says (reading 9). The pack is
+`packs/_source/master-essences/`, thirty-five Essences.
 
 ---
 

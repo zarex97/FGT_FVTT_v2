@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from "vitest";
 import {
-  NP_GATE, ESSENCE_SHIFT, isGated, baseGateRound, essenceShift,
+  NP_GATE, isGated, baseGateRound, essenceShift,
   gateRoundFor, gateTurnFor, npAvailableTurn,
 } from "../../module/rules/np-gate.mjs";
 
@@ -18,12 +18,6 @@ const servant = (classes) => ({ id: "s", kind: "servant", servantClasses: classe
 describe("the published defaults", () => {
   it("are Ch. 04's own numbers", () => {
     expect(NP_GATE).toEqual({ round: 6, assassinRound: 4 });
-  });
-
-  it("name the four essences that move the gate", () => {
-    expect(ESSENCE_SHIFT).toEqual({
-      kaleidoscope: 4, imaginaryNumber: 3, leyline: 2, harvest: 1,
-    });
   });
 });
 
@@ -75,43 +69,45 @@ describe("baseGateRound", () => {
   });
 });
 
+// The shift is the SERVANT's: a Master Essence reaches it as a copy it holds
+// while the Contract stands (#241), carrying `NpGateShift`. It read the
+// Master's `essences`, a set nothing wrote.
+const shifted = (classes, ...rounds) => ({
+  ...servant(classes), npGateShifts: rounds.map((r) => ({ rounds: r, source: "Essence" })),
+});
+
 describe("essenceShift", () => {
-  it("is zero for every Master in the game today", () => {
-    // The seam. `MasterData.essences` is a SetField that nothing writes and
-    // nothing reads; the essence subsystem is unbuilt (spec §2).
-    expect(essenceShift({ id: "m", essences: [] })).toBe(0);
-    expect(essenceShift({ id: "m" })).toBe(0);
+  it("is zero for a Servant whose Master holds no gate Essence", () => {
+    expect(essenceShift(servant(["saber"]))).toBe(0);
     expect(essenceShift(null)).toBe(0);
   });
 
-  it("reads the table when a Master carries one", () => {
-    expect(essenceShift({ essences: ["kaleidoscope"] })).toBe(4);
-    expect(essenceShift({ essences: ["harvest"] })).toBe(1);
+  it("reads the Servant's own shift", () => {
+    expect(essenceShift(shifted(["saber"], 4))).toBe(4);
+    expect(essenceShift(shifted(["saber"], 1))).toBe(1);
   });
 
-  it("takes the LARGEST when a Master somehow carries two", () => {
-    // One essence per Master is the rule; the arithmetic must not silently
-    // stack two into a Round-0 gate if the setup UI ever admits both.
-    expect(essenceShift({ essences: ["harvest", "kaleidoscope"] })).toBe(4);
-  });
-
-  it("ignores an essence that does not shift the gate", () => {
-    expect(essenceShift({ essences: ["formalcraft"] })).toBe(0);
+  it("takes the LARGEST of two, never the sum", () => {
+    expect(essenceShift(shifted(["saber"], 1, 4))).toBe(4);
   });
 });
 
 describe("gateRoundFor", () => {
   it("subtracts the shift", () => {
-    expect(gateRoundFor(servant(["saber"]), { essences: ["kaleidoscope"] })).toBe(2);
-    expect(gateRoundFor(servant(["assassin"]), { essences: ["leyline"] })).toBe(2);
+    expect(gateRoundFor(shifted(["saber"], 4), null)).toBe(2);
+    expect(gateRoundFor(shifted(["assassin"], 2), null)).toBe(2);
   });
 
-  it("never returns a Round before the first", () => {
-    // Round 0 does not exist, and a gate of 0 would read as "no gate".
-    expect(gateRoundFor(servant(["assassin"]), { essences: ["kaleidoscope"] })).toBe(1);
+  it("opens from the first Round when the shift reaches Round 0 (#241 reading 10)", () => {
+    // Kaleidoscope on an Assassin: 4 - 4 = 0, ruled open from the war's start.
+    expect(gateRoundFor(shifted(["assassin"], 4), null)).toBe(1);
   });
 
-  it("is the base gate for a Servant with no Master", () => {
+  it("does not read the Master: a Master's Essence reaches only through the copy", () => {
+    expect(gateRoundFor(servant(["saber"]), { essences: ["kaleidoscope"] })).toBe(6);
+  });
+
+  it("is the base gate for a Servant with no shift", () => {
     expect(gateRoundFor(servant(["saber"]), null)).toBe(6);
   });
 });

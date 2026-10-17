@@ -7,6 +7,9 @@
 # is which, which is exactly what "3x2 or 2x3" means.
 schema: 1
 id: normal-berserker-np-a
+# *"When a Free Servant uses its Noble Phantasm, it immediately disappears after
+# use"* (Normal Great Holy Grail War, Contracts & Sustainability; #241).
+freeServantCost: { kind: disappear }
 name: "Noble Phantasm (a)"
 isNP: true
 kind: noblePhantasm

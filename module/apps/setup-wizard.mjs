@@ -25,8 +25,10 @@ import {
 } from "../rules/war-setup.mjs";
 import { plannedBases, gridMismatches, commitWar } from "../engine/war-setup.mjs";
 import {
-  servantCatalogue, prepareSummon, rerollSummonLine, adjustSummonLine, setupAdjustment,
+  servantCatalogue, prepareSummon, rerollSummonLine, adjustSummonLine, setupAdjustment, reviseSummon,
 } from "../engine/summon.mjs";
+import { essenceCatalogue, essenceDraftOptions, draftsEssences } from "../engine/master-essence.mjs";
+import { grantsParameter, ESSENCE_LIMITS, ESSENCE_RANKS } from "../rules/master-essence.mjs";
 import { describe, filterCatalogue } from "./summon-present.mjs";
 import { createFaction } from "../rules/factions.mjs";
 import * as board from "../engine/board.mjs";
@@ -48,6 +50,9 @@ const BLANK_DRAFT = Object.freeze({
   sceneName: "",
   containers: [],
   prepared: {},
+  // A custom war's own Essence limits (#241 reading 1). The published ones
+  // otherwise.
+  essenceLimits: { ...ESSENCE_LIMITS },
 });
 
 /** Turns per round, defaulted from the war type (Ch. 04). */
@@ -86,6 +91,17 @@ function worldDefaults() {
   };
 }
 
+
+/**
+ * The Parameter steps a container's Master grants its Servant: the High Rank
+ * Master's one `+` (#241 reading 17), or none.
+ *
+ * @param {object} container
+ * @returns {Record<string, number>}
+ */
+function grantsOf(container) {
+  return container?.paramPlus ? { [container.paramPlus]: 1 } : {};
+}
 
 export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
@@ -139,6 +155,9 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
   /** @type {Array<object>} */
   #catalogue = [];
 
+  /** Every Master Essence, for the container rows (#241). @type {Array<object>} */
+  #essences = [];
+
   /** Per-container search text. Not part of the draft — it is not a decision. */
   #queries = {};
 
@@ -169,6 +188,8 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this.#catalogue.length === 0) {
       this.#catalogue = await servantCatalogue({ ruleset: this.draft.ruleset });
     }
+    if (this.#essences.length === 0) this.#essences = await essenceCatalogue();
+    const essencesOn = draftsEssences(this.draft);
     const context = await super._prepareContext(options);
     const roster = board.factions();
     const locked = Boolean(game.combat?.started);
@@ -195,6 +216,16 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
       fillChoices: { random: "FGT.Setup.FillRandom", fixed: "FGT.Setup.FillFixed" },
       scenes: Object.fromEntries(game.scenes.map((s) => [s.id, s.name])),
       masterMode: game.settings.get("fgt", "masterMode"),
+      // The Master Essence draft (#241): one per container, Rank first.
+      essencesOn,
+      essenceChoices: this.#essences.map((e) => ({ id: e.contentId, label: `${e.rank} · ${e.name}` })),
+      paramChoices: Object.fromEntries(["str", "end", "agi", "mag", "luc"].map((p) => [p, `FGT.Param.${p}`])),
+      // A custom war sets its own limits; the others show the published ones.
+      essenceLimits: ESSENCE_RANKS.map((r) => ({
+        rank: r, value: (this.draft.essenceLimits ?? ESSENCE_LIMITS)[r] ?? ESSENCE_LIMITS[r],
+        editable: this.draft.warType === "custom",
+        disabled: locked || this.draft.warType !== "custom",
+      })),
       players: game.users.filter((u) => !u.isGM).map((u) => ({ id: u.id, name: u.name })),
       hasFactions: roster.length > 0,
 
@@ -210,10 +241,10 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         : [],
 
       refusals: validateRoster(this.draft.containers, roster, this.#catalogue,
-        { policy: this.draft.drawPolicy })
+        { policy: this.draft.drawPolicy, essences: essenceDraftOptions(this.draft, this.#essences) })
         .map((r) => ({
           ...r,
-          text: game.i18n.format(r.message, { class: this.#classLabel(r.containerId) }),
+          text: game.i18n.format(r.message, { class: this.#classLabel(r.containerId), ...(r.detail ?? {}) }),
         })),
     };
   }
@@ -252,9 +283,13 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
       const candidates = candidatesFor(c, this.#catalogue, { policy, taken });
       const query = this.#queries[c.id] ?? "";
       const empty = candidates.length === 0;
+      const essenceRank = this.#essences.find((e) => e.contentId === c.essenceId)?.rank ?? null;
       return {
         ...c,
         factionName: roster.find((f) => f.id === c.factionId)?.name ?? c.factionId,
+        // A High Rank Master's `+` to one Parameter, offered once its Essence
+        // makes it one (#241 reading 17). The wizard never granted it.
+        offersParam: grantsParameter(essenceRank),
         candidateCount: candidates.length,
         // Ch. 34: an unavailable control is DISABLED WITH ITS REASON, never
         // hidden. The reference roster holds no Saber, so this is not a corner
@@ -384,6 +419,10 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     this.draft.homeBaseDepth = Number(this.draft.homeBaseDepth);
     this.draft.grailThreshold = Number(this.draft.grailThreshold);
     this.draft.turnsPerRound = Number(this.draft.turnsPerRound);
+    if (data.draft?.essenceLimits) {
+      this.draft.essenceLimits = Object.fromEntries(ESSENCE_RANKS.map((r) => [r,
+        Math.max(0, Math.floor(Number(data.draft.essenceLimits[r])) || 0)]));
+    }
 
     // The war type picks the ◈, and a GM who has not overridden it should not
     // have to notice.
@@ -407,6 +446,18 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
       if (row.contentId !== undefined) container.contentId = row.contentId || null;
       if (row.query !== undefined) this.#queries[id] = row.query;
       if (row.npChoice !== undefined) container.npChoice = row.npChoice || null;
+      // The Master's Essence and, for a High Rank one, the `+` it grants (#241).
+      // The grant reaches a Servant already rolled without re-rolling it: Ch. 40
+      // applies grants after the rolls.
+      if (row.essenceId !== undefined || row.paramPlus !== undefined) {
+        if (row.essenceId !== undefined) container.essenceId = row.essenceId || null;
+        if (row.paramPlus !== undefined) container.paramPlus = row.paramPlus || null;
+        const rank = this.#essences.find((e) => e.contentId === container.essenceId)?.rank ?? null;
+        if (!grantsParameter(rank)) container.paramPlus = null;
+        if (this.draft.prepared[id]) {
+          this.draft.prepared[id] = reviseSummon(this.draft.prepared[id], { masterGrants: grantsOf(container) });
+        }
+      }
       if (row.legionOpening !== undefined) container.legionOpening = Math.max(1, Math.floor(Number(row.legionOpening)) || 1);
       for (const [lineId, delta] of Object.entries(row.adjust ?? {})) {
         const prepared = this.draft.prepared[id];
@@ -570,7 +621,9 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     // No `masterId` here: the Master does not exist until commit, and its rank
     // grant applies AFTER the rolls, so nothing about it can change a die
     // already thrown. That is the summon dialog's rule, for its reason.
-    const prepared = await prepareSummon({ contentId, region: this.draft.region || null });
+    const prepared = await prepareSummon({
+      contentId, region: this.draft.region || null, masterGrants: grantsOf(container),
+    });
     if (!prepared) return;
     this.draft.prepared[container.id] = prepared;
 
@@ -589,7 +642,7 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const roster = board.factions();
     const refusals = validateRoster(this.draft.containers, roster, this.#catalogue,
-      { policy: this.draft.drawPolicy });
+      { policy: this.draft.drawPolicy, essences: essenceDraftOptions(this.draft, this.#essences) });
     if (refusals.length > 0) {
       ui.notifications.warn(game.i18n.format("FGT.Setup.CannotCommit", { n: refusals.length }));
       return;

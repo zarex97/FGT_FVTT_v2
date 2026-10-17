@@ -12,7 +12,7 @@
  * enemy-proximity rule in particular is invisible on the board.
  */
 
-import { contractCandidates, attemptContract } from "../engine/contract.mjs";
+import { contractCandidates } from "../engine/contract.mjs";
 import { shownNameById } from "../engine/public-identity.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -82,7 +82,9 @@ export class ContractDialog extends HandlebarsApplicationMixin(ApplicationV2) {
     const servantId = target.closest("[data-servant-id]")?.dataset.servantId;
     if (!servantId) return;
 
-    const out = await attemptContract({ contractorId: this.#contractorId, servantId });
+    // Through the GM, who may write the log and the contractor's spells (#241).
+    const { FGTSocket } = await import("../net/socket.mjs");
+    const out = await FGTSocket.request("attemptContract", { contractorId: this.#contractorId, servantId });
     if (!out.ok) {
       ui.notifications.warn(game.i18n.localize(`FGT.Contract.Refusal.${out.reason}`));
       return;

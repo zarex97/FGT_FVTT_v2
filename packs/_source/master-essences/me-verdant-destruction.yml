@@ -1,0 +1,15 @@
+# docs/Master Essences.md, Rank B Master
+#
+# > "Verdant Destruction: Servant Max Health+150."
+#
+# The maximum only (#241 reading 6): a summon starts the Servant full; a loss
+# cuts the current value to the new maximum and no lower.
+schema: 1
+id: me-verdant-destruction
+name: "Verdant Destruction"
+type: masterEssence
+rank: B
+description: |
+  Servant Max Health+150.
+rules:
+  - { key: MaxDelta, stat: health, value: 150 }

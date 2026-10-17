@@ -1,0 +1,15 @@
+# docs/Master Essences.md, Rank C Master
+#
+# > "Black Keys (B): Servant Max Luck +2."
+#
+# The maximum only (#241 reading 6): a summon starts the Servant full; a loss
+# cuts the current value to the new maximum and no lower.
+schema: 1
+id: me-black-keys-b
+name: "Black Keys (B)"
+type: masterEssence
+rank: C
+description: |
+  Servant Max Luck +2.
+rules:
+  - { key: MaxDelta, stat: luck, value: 2 }

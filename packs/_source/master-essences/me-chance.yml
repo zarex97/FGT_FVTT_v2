@@ -1,0 +1,14 @@
+# docs/Master Essences.md, Rank D Master
+#
+# > "Chance: Servant Crit Chance is increased by 10% (Base Crit Chance=60%). Does not affect NP."
+#
+# No NP figure, so it never reaches an NP (#131): "Does not affect NP."
+schema: 1
+id: me-chance
+name: "Chance"
+type: masterEssence
+rank: D
+description: |
+  Servant Crit Chance is increased by 10% (Base Crit Chance=60%). Does not affect NP.
+rules:
+  - { key: CritModifier, aspect: chance, value: 10 }

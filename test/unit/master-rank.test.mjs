@@ -10,6 +10,7 @@ import { npCostAt } from "../../module/rules/costs.mjs";
 import { costOf } from "../../module/rules/command-spells.mjs";
 import { masterSetupPlan, resolveSetupPlan } from "../../module/rules/setup-rolls.mjs";
 import { zonRadius } from "../../module/rules/zon.mjs";
+import { onMasterDefeated } from "../../module/rules/relationships.mjs";
 import { snapshotBoard } from "../../module/rules/snapshot.mjs";
 
 const master = (rank) => ({ id: "m1", kind: "master", rank });
@@ -201,14 +202,33 @@ describe("High Rank Master grants — Sustainability", () => {
 
   const sustainabilityOf = (board) => board.units.find((u) => u.id === "s1").sustainability;
 
-  it("adds a turn for a living High Rank Master", () => {
-    expect(sustainabilityOf(build("A", 250))).toBe(sustainabilityOf(build("C", 250)) + 1);
+  // The +1◈ is added at the Master's death, to the clock that death starts
+  // (#241 reading 4): the board added +1 TURN while the Master lived, and no
+  // Free clock ever read it. The board adds nothing now, alive or dead.
+  it("is not on the board while the Master lives", () => {
+    expect(sustainabilityOf(build("A", 250))).toBe(sustainabilityOf(build("C", 250)));
   });
 
-  it("lapses the moment the Master is dead", () => {
-    // "+1◈ WHILE ALIVE" -- the bonus ends at the same instant the Free-Servant
-    // clock starts, which is what the two rules together describe.
-    expect(sustainabilityOf(build("A", 0))).toBe(sustainabilityOf(build("C", 250)));
+  it("is added at the Master's death: +1◈, in Turns", () => {
+    const servant = { id: "s1", kind: "servant", sustainability: 6, abilities: [] };
+    expect(onMasterDefeated(servant, { highRankMaster: true, turnsPerRound: 3 }))
+      .toContainEqual({ kind: "resource", unitId: "s1", key: "sustainability", delta: 3 });
+    expect(onMasterDefeated(servant, { highRankMaster: false, turnsPerRound: 3 })
+      .some((d) => d.kind === "resource")).toBe(false);
+  });
+
+  it("keeps a 0◈ Servant on the board: the +1◈ is its whole clock", () => {
+    const servant = { id: "s1", kind: "servant", sustainability: 0, abilities: [] };
+    expect(onMasterDefeated(servant, { highRankMaster: true }).some((d) => d.kind === "defeat")).toBe(false);
+    expect(onMasterDefeated(servant, { highRankMaster: false }).some((d) => d.kind === "defeat")).toBe(true);
+  });
+
+  it("nets against Mad Enhancement's -2◈ in ONE write", () => {
+    const servant = { id: "s1", kind: "servant", sustainability: 9,
+      abilities: [{ slug: "madEnhancement", active: true }] };
+    const writes = onMasterDefeated(servant, { highRankMaster: true, turnsPerRound: 3 })
+      .filter((d) => d.kind === "resource");
+    expect(writes).toEqual([{ kind: "resource", unitId: "s1", key: "sustainability", delta: -3 }]);
   });
 
   it("gives a Rankless Master's Servant nothing", () => {

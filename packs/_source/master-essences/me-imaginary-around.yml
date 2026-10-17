@@ -1,0 +1,15 @@
+# docs/Master Essences.md, Rank A Master
+#
+# > "Imaginary Around: Servant Max Agility+4."
+#
+# The maximum only (#241 reading 6): a summon starts the Servant full; a loss
+# cuts the current value to the new maximum and no lower.
+schema: 1
+id: me-imaginary-around
+name: "Imaginary Around"
+type: masterEssence
+rank: A
+description: |
+  Servant Max Agility+4.
+rules:
+  - { key: MaxDelta, stat: agility, value: 4 }

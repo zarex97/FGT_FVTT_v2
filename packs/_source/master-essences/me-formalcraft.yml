@@ -1,0 +1,15 @@
+# docs/Master Essences.md, Rank A Master
+#
+# > "Formalcraft: Servant Max Luck +4."
+#
+# The maximum only (#241 reading 6): a summon starts the Servant full; a loss
+# cuts the current value to the new maximum and no lower.
+schema: 1
+id: me-formalcraft
+name: "Formalcraft"
+type: masterEssence
+rank: A
+description: |
+  Servant Max Luck +4.
+rules:
+  - { key: MaxDelta, stat: luck, value: 4 }

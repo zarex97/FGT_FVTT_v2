@@ -1,0 +1,15 @@
+# docs/Master Essences.md, Rank A Master
+#
+# > "Limited/Zero Over: Servant Max Health+200."
+#
+# The maximum only (#241 reading 6): a summon starts the Servant full; a loss
+# cuts the current value to the new maximum and no lower.
+schema: 1
+id: me-limited-zero-over
+name: "Limited/Zero Over"
+type: masterEssence
+rank: A
+description: |
+  Servant Max Health+200.
+rules:
+  - { key: MaxDelta, stat: health, value: 200 }

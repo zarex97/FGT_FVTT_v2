@@ -625,18 +625,25 @@ export function interruptible(s) {
 }
 
 /**
- * The accumulated Command Spell damage factor.
+ * The accumulated Command Spell and Master Essence damage factor.
  *
- * **Multiplicative**, and that is not a stylistic choice: Halve Noble Phantasm
- * (×0.5) followed by Noble Phantasm Max (×2) must come back to ×1 in either
- * order. Summing the deltas would give −50% +100% = +50%, which is wrong both
- * ways round.
+ * **The increases add, and the total multiplies with the cuts.** Halve Noble
+ * Phantasm (×0.5) against Noble Phantasm Max (+100%) still comes back to ×1 in
+ * either order -- summing a cut with an increase (−50% +100%) would be wrong
+ * both ways round. Two increases of one Total Damage are one bucket: Noble
+ * Phantasm Max and Heaven's Feel are +300%, ×4 (#241 reading 11).
  *
  * @param {ProcessState} s
  * @returns {number}
  */
 export function damageFactorOf(s) {
-  return (s?.damageFactors ?? []).reduce((a, b) => a * b, 1);
+  // Increases ADD, reductions multiply (#241 reading 11): Noble Phantasm Max's
+  // +100% and Heaven's Feel's +200% are x4 together, not x6. Each states "the
+  // Total Damage is increased by X%", one bucket; Damage Block's and Halve
+  // Noble Phantasm's cuts are the factors they always were.
+  const increase = (s?.damagePercents ?? []).reduce((a, b) => a + b, 0);
+  const factor = (s?.damageFactors ?? []).reduce((a, b) => a * b, 1);
+  return (1 + increase / 100) * factor;
 }
 
 /**
@@ -674,6 +681,9 @@ export function applyInterrupt(s, interrupt) {
       return { ...base, state: "noDamage" };
 
     case "modifyDamage":
+      if (typeof interrupt.percent === "number") {
+        return { ...base, damagePercents: [...(s.damagePercents ?? []), interrupt.percent] };
+      }
       return { ...base, damageFactors: [...(s.damageFactors ?? []), interrupt.factor ?? 1] };
 
     case "retarget":

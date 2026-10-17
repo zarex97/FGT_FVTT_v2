@@ -11,6 +11,9 @@
 # once made with granted parameter steps.
 schema: 1
 id: normal-berserker-np-b
+# *"When a Free Servant uses its Noble Phantasm, it immediately disappears after
+# use"* (Normal Great Holy Grail War, Contracts & Sustainability; #241).
+freeServantCost: { kind: disappear }
 name: "Noble Phantasm (b)"
 isNP: true
 kind: noblePhantasm

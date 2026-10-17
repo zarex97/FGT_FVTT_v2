@@ -1,0 +1,17 @@
+# docs/Master Essences.md, Rank A Master
+#
+# > "Kaleidoscope: Servant NP is usable 4 Rounds earlier (Round 2 onwards)."
+#
+# Read by `rules/np-gate.mjs#gateRoundFor` off the Servant's copy. It may reach
+# Round 0 (#241 reading 10): open from the war's first Round, where Round 1's
+# no-Attack rule still bars an NP that Attacks. A gate the ability states for
+# itself (Ozymandias's, the Magic Crest's) is not moved.
+schema: 1
+id: me-kaleidoscope
+name: "Kaleidoscope"
+type: masterEssence
+rank: A
+description: |
+  Servant NP is usable 4 Rounds earlier (Round 2 onwards).
+rules:
+  - { key: NpGateShift, rounds: 4 }

@@ -79,9 +79,12 @@ export function healthBefore(intents, healthOf) {
  * @param {(unitId: string, abilityId: string) => string} [nameOfAbility]
  * @param {Map<string, number>|null} [before] {@link clocksBefore}; a cut on a clock
  *   it knows is said as what it took, and not at all when it took nothing
+ * @param {string[]} [fell] the Units this boundary's losses defeated: the
+ *   multi-Servant tax empties a Master and kills it (ruled 2026-10-17, #241), and
+ *   the card said only what it took
  * @returns {string|null}
  */
-export function turnEndCard(intents, nameOfUnit, t, nameOfAbility = (_u, a) => a, before = null, health = null, titleKey = "FGT.TurnReport.Title", landed = []) {
+export function turnEndCard(intents, nameOfUnit, t, nameOfAbility = (_u, a) => a, before = null, health = null, titleKey = "FGT.TurnReport.Title", landed = [], fell = []) {
   const changes = (intents ?? []).filter((i) => i?.t === "statDelta" && i.stat === "health.value" && i.delta);
   // A heal is said too, as what it gave (#234): Regen healed at every boundary
   // and no card said so, because the card read Health deltas alone and a heal
@@ -108,13 +111,15 @@ export function turnEndCard(intents, nameOfUnit, t, nameOfAbility = (_u, a) => a
   // What a boundary's handlers landed (#202): Terror's Stun at the end of a
   // Turn, by the Unit's public name. Each row is the landing's own line.
   const effects = (landed ?? []).filter((l) => l?.summary);
-  if (changes.length === 0 && ended.length === 0 && clocks.length === 0 && heals.length === 0 && effects.length === 0) return null;
+  if (changes.length === 0 && ended.length === 0 && clocks.length === 0 && heals.length === 0 && effects.length === 0
+    && (fell ?? []).length === 0) return null;
   const lines = [
     ...changes.map((i) => t(i.delta < 0 ? "FGT.TurnReport.Loses" : "FGT.TurnReport.Gains", {
       who: nameOfUnit(i.unitId),
       amount: Math.abs(i.delta),
       source: i.source ?? t("FGT.Revival.UnknownSource"),
     })),
+    ...(fell ?? []).map((id) => t("FGT.TurnReport.Defeated", { who: nameOfUnit(id) })),
     ...heals.map((i) => t("FGT.TurnReport.Gains", {
       who: nameOfUnit(i.unitId), amount: i.gave, source: i.source ?? t("FGT.Revival.UnknownSource"),
     })),
@@ -181,6 +186,12 @@ export async function postTurnEndReport(intents, before = null, health = null, t
   const named = (intents ?? []).map((i) => (i?.source && EffectRegistry.get(i.source)?.name
     ? { ...i, source: escape(EffectRegistry.get(i.source).name) } : i));
   const escaped = (landed ?? []).map((l) => ({ ...l, summary: { ...l.summary, name: escape(String(l.summary?.name ?? "")), reason: l.summary?.reason ? escape(String(l.summary.reason)) : null } }));
-  const content = turnEndCard(named, nameOfUnit, t, nameOfAbility, before, health, titleKey, escaped);
+  // Who a loss here emptied and the defeat chain took: alive before the batch,
+  // by the Health read before it, and defeated now.
+  const fell = [...new Set((intents ?? [])
+    .filter((i) => i?.t === "statDelta" && i.stat === "health.value" && i.delta < 0 && i.defeatsAtZero)
+    .map((i) => i.unitId))]
+    .filter((id) => game.actors.get(id)?.system?.defeated);
+  const content = turnEndCard(named, nameOfUnit, t, nameOfAbility, before, health, titleKey, escaped, fell);
   if (content) await ChatMessage.create({ content, flags: { fgt: { turnReport: true } } });
 }

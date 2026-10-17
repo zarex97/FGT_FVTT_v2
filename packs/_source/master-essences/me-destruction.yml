@@ -1,0 +1,15 @@
+# docs/Master Essences.md, Rank D Master
+#
+# > "Destruction: Servant Max Health+50."
+#
+# The maximum only (#241 reading 6): a summon starts the Servant full; a loss
+# cuts the current value to the new maximum and no lower.
+schema: 1
+id: me-destruction
+name: "Destruction"
+type: masterEssence
+rank: D
+description: |
+  Servant Max Health+50.
+rules:
+  - { key: MaxDelta, stat: health, value: 50 }

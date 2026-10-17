@@ -41,11 +41,21 @@ import { standingPlatformOf } from "./platforms.mjs";
  * @param {object|null} args.master its Master, if it has one
  * @returns {{kind: string, amount: number, unitId?: string}|null}
  */
-export function npCost({ ability, unit, master }) {
+export function npCost({ ability, unit, master, turnsPerRound = 3 }) {
   if (!ability?.isNP) return null;
   // *"Using this NP does not reduce her Master's Health as a cost"* (Avalon, #230).
   if (ability.noMasterCost) return null;
-  return npCostAt({ rank: ability.rank, unit, master });
+  // A Free Servant's price its sheet states instead of the Rank table: every
+  // Normal Noble Phantasm (#241). `disappear` is paid by the Servant itself,
+  // which leaves the board when the Combat Phase that used it ends.
+  const stated = ability.freeServantCost;
+  if (stated && isFree(unit)) {
+    if (stated.kind === "disappear") return { kind: "disappear", amount: 0, unitId: unit.id };
+    if (stated.kind === "sustainability") {
+      return { kind: "sustainability", amount: Number(stated.rounds ?? 0) * turnsPerRound, unitId: unit.id };
+    }
+  }
+  return npCostAt({ rank: ability.rank, unit, master, turnsPerRound });
 }
 
 /**
@@ -68,7 +78,7 @@ export function npCost({ ability, unit, master }) {
  * @param {object|null} args.master
  * @returns {{kind: string, amount: number, unitId?: string}}
  */
-export function npCostAt({ rank, unit, master }) {
+export function npCostAt({ rank, unit, master, turnsPerRound = 3 }) {
   const npRank = Rank.parseOrNull(rank);
   const [high, low] = columnsFor(npRank);
 
@@ -81,7 +91,10 @@ export function npCostAt({ rank, unit, master }) {
     }
     return {
       kind: "sustainability",
-      amount: Number(lookup("freeServantNPSustainabilityCost", npRank) ?? 0),
+      // In TURNS, like the clock it is charged against: the table is ◈
+      // (Appendix B, *"EX 6◈ ... E 1◈"*), and the bare number charged an EX
+      // NP 6 Turns where its sheet says 6 Rounds (#241).
+      amount: Number(lookup("freeServantNPSustainabilityCost", npRank) ?? 0) * turnsPerRound,
       unitId: unit.id,
     };
   }
@@ -113,7 +126,7 @@ export function npCostAt({ rank, unit, master }) {
  * @param {object|null} args.master the user's Master, if any
  * @returns {object[]} costs, ready for `resolveCosts`
  */
-export function additionalCostsFor({ ability, self, master = null }) {
+export function additionalCostsFor({ ability, self, master = null, turnsPerRound = 3 }) {
   /** @type {object[]} */
   const out = [];
 
@@ -140,7 +153,7 @@ export function additionalCostsFor({ ability, self, master = null }) {
     // Master who does not exist.
     if (extra.kind === "masterHealthByNPRank") {
       out.push({
-        ...npCostAt({ rank: extra.rank, unit: self, master }),
+        ...npCostAt({ rank: extra.rank, unit: self, master, turnsPerRound }),
         id: extra.id,
         supersedes: extra.supersedes ?? [],
       });
@@ -184,7 +197,7 @@ export function canUseAbility({
   ability, unit, master = null, round = 1, turn = null,
   gates = NP_GATE, turnsPerRound = 3, clockRunning = true, ...ctx
 }) {
-  const cost = npCost({ ability, unit, master });
+  const cost = npCost({ ability, unit, master, turnsPerRound });
 
   // A defeated Unit is a body: it is passed through, it projects no reaction
   // (`rules/reactions.mjs`), and it does nothing of its own. Its body stays on
@@ -428,9 +441,14 @@ export function canUseAbility({
   // before this. Asked HERE for the reason the block below already gives: a
   // player who presses something and watches nothing happen has been shown a
   // bug, not told a rule.
-  const sealed = preventedBy(unit, preventionActionFor(ability), {
-    categorizedOnly: !ability?.isNP && Boolean(ability?.categorizedAsNP),
-  });
+  // Every action the ability IS: the Magic Crest is a Damage Spell categorized
+  // as NP, so Silence and NP Seal each stop it (#241 reading 14). One answer,
+  // `np`, let Silence through (#241, live).
+  const sealed = preventionActionsFor(ability)
+    .map((action) => preventedBy(unit, action, {
+      categorizedOnly: !ability?.isNP && Boolean(ability?.categorizedAsNP),
+    }))
+    .find((v) => v.prevented) ?? { prevented: false };
   if (sealed.prevented) {
     return { ok: false, reason: "prevented", detail: { by: sealed.by }, cost };
   }
@@ -535,7 +553,7 @@ export function canUseAbility({
   // cannot disagree.
   const ownCosts = additionalCostsFor({
     ability: { system: { additionalCosts: ability?.additionalCosts ?? ability?.system?.additionalCosts ?? [] } },
-    self: unit, master,
+    self: unit, master, turnsPerRound,
   });
   const charged = ownCosts.length > 0
     ? resolveCosts([...(cost ? [{ ...cost, id: "npCost" }] : []), ...ownCosts]).charged
@@ -618,18 +636,21 @@ function categoryLimitFor(ability, unit) {
  * @param {object} ability
  * @returns {string} `"np"`, `"spell"` or `"skill"`
  */
-function preventionActionFor(ability) {
+function preventionActionsFor(ability) {
+  const out = [];
   // `countsForNPSeal`: a Skill that is part of a Noble Phantasm. Karna's Vasavi
   // Shakti Activation is stopped by NP Seal and not by Skill Seal (#206
   // reading 9).
-  if (ability?.isNP || ability?.categorizedAsNP || ability?.countsForNPSeal) return "np";
+  if (ability?.isNP || ability?.categorizedAsNP || ability?.countsForNPSeal) out.push("np");
   // `category: spell` is a Spell too. Medea's Argos, Keraino, Trofa, Atlas and
   // Dragon Tooth Warriors carry the category and not `isSpell`, which her two
   // Damage Spells and EMIYA's Thaumaturgy carry, so Silence stopped Aero and
   // let the other five through (#193). High-Speed Divine Words already finds
   // "all of Medea's Spells" by the category.
-  if (isSpellAbility(ability)) return "spell";
-  return "skill";
+  // ...and a Spell that is ALSO categorized as an NP is both: the Magic Crest
+  // (#241 reading 14).
+  if (isSpellAbility(ability)) out.push("spell");
+  return out.length > 0 ? out : ["skill"];
 }
 
 /**
@@ -698,7 +719,10 @@ function cannotPay(cost, unit, master) {
     case "masterHealth":
       return currentHealth(master) > cost.amount ? null : "masterHealth";
     case "selfHealth":
-      return currentHealth(unit) > cost.amount ? null : "selfHealth";
+      // Never refused: a Free Servant with no clock pays in its own Health, and
+      // *"Reaching 0 means disappearance at the end of the Combat Process"*
+      // (Appendix B §B.2, #241). It was refused at or below the cost.
+      return null;
     case "sustainability":
       return (unit?.sustainability ?? 0) > cost.amount ? null : "sustainability";
     default:

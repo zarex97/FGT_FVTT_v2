@@ -149,3 +149,10 @@ load-bearing in this domain** — `health: null` means undamageable, not zero, a
 (`engine/schedule.mjs`). Declared on the ability DataModel, allowlisted in `content/authored-fields.mjs`, routed
 in `survival.test.mjs` to its reader. The strike it records lives on the active Combat's `fgt.scheduledStrikes`
 flag, not on the caster: a caster whose token has left must still be found to be cancelled.
+
+### Master Essences and the Free Servant's price (#241)
+
+`MasterEssenceData` holds `rules` (the passive half, read off a Servant's copy), `timing`, `requirements`, `effect`
+and `maxUses` (the one use, a Command Spell's vocabulary), `timesUsed`, and `grantedBy` (the Master, on a copy).
+`MasterData.essences` is gone: a set nothing wrote. `abilityCommon` gains `freeServantCost`, a Free Servant's NP price
+its sheet states (the Normal ruleset).
