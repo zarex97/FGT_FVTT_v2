@@ -11,5 +11,5 @@ the shot's Combat Phase: the free Spell *"does not count towards the one Thaumat
 **Cause:** `module/engine/skill-use.mjs:228 @ a27e058f` recorded the free use like any other, and
 `module/rules/costs.mjs#categoryLimitFor @ a27e058f` counted every recorded use: the exemption covered the free use's
 own gate and not the count the next use reads.
-**Fix:** `module/engine/io.mjs#recordUse @ uncommitted` keeps `turnState.categoryExempt`, declared on the DataModel and
-`TURN_RECORD`; `module/rules/costs.mjs#categoryLimitFor @ uncommitted` reads it off.
+**Fix:** `module/engine/io.mjs#recordUse @ 5101f86f` keeps `turnState.categoryExempt`, declared on the DataModel and
+`TURN_RECORD`; `module/rules/costs.mjs#categoryLimitFor @ 5101f86f` reads it off.

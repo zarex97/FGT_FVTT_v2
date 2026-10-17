@@ -11,5 +11,5 @@ reviewed: false
 because it asserted that the key was absent, not what a 0 hit did.
 **Cause:** `module/engine/attack.mjs#applyAbilityEffects @ a27e058f` gates riders on `ridersFire` (hit), and
 `packs/_source/abilities/kiritsugu-mystery-bisection.yml @ a27e058f` stated no gate of its own.
-**Fix:** `module/engine/attack.mjs:5889 @ uncommitted` reads `requiresDamage` on a phase; the Instakill has its own
+**Fix:** `module/engine/attack.mjs:5889 @ 5101f86f` reads `requiresDamage` on a phase; the Instakill has its own
 phase with it, the mark none (#243 readings 15, 16).

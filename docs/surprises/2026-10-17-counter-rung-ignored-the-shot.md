@@ -12,4 +12,4 @@ had rightly offered nothing.
 **Cause:** `module/engine/attack.mjs#counterAvailable @ a27e058f` asked the Units' own `forbiddenReactions` and
 concealment, never the Process's `forbiddenReactions`, where the declaration wrote the shot's refusals. Two readers
 of "may this defender Counter".
-**Fix:** `module/engine/attack.mjs#counterAvailable @ uncommitted` adds the Process's own list to `defenderForbids`.
+**Fix:** `module/engine/attack.mjs#counterAvailable @ 5101f86f` adds the Process's own list to `defenderForbids`.

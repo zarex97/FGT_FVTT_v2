@@ -11,5 +11,5 @@ and the chat read *"Assassin uses Thaumaturgy: Reinforcement."* over a buff that
 **Cause:** `module/rules/reactions.mjs#abilitiesAtWindow @ a27e058f` re-implements the use gates and never asked the
 category cap; `module/engine/attack.mjs#offerAttackerWindow @ a27e058f` announced every pick, refused or not, and
 carried casts as contributions.
-**Fix:** `module/rules/reactions.mjs#abilitiesAtWindow @ uncommitted` asks `costs.mjs#categoryLimitFor`;
-`offerAttackerWindow @ uncommitted` announces only the uses that landed and carries no cast.
+**Fix:** `module/rules/reactions.mjs#abilitiesAtWindow @ 5101f86f` asks `costs.mjs#categoryLimitFor`;
+`offerAttackerWindow @ 5101f86f` announces only the uses that landed and carries no cast.

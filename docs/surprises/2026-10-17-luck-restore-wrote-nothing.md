@@ -10,6 +10,6 @@ reviewed: false
 **Cause:** `packs/_source/abilities/kiritsugu-lethal-gunfire-suppression.yml:29 @ a27e058f` named the pool `luck`, and
 `module/engine/skill-use.mjs:770 @ a27e058f` passed a clamped change's key raw to `statDelta`; `io.mjs#adjustStat`
 added 4 to `{value, max}` and wrote nothing usable, in silence. The unclamped path maps keys through `resourcePathFor`.
-**Fix:** `module/engine/skill-use.mjs:774 @ uncommitted` maps the clamped key through `resourcePathFor` too;
-`module/engine/io.mjs:349 @ uncommitted` refuses a non-number path out loud; the key is `luck.value`. A content test
+**Fix:** `module/engine/skill-use.mjs:774 @ 5101f86f` maps the clamped key through `resourcePathFor` too;
+`module/engine/io.mjs:349 @ 5101f86f` refuses a non-number path out loud; the key is `luck.value`. A content test
 walks every clamped restore.
