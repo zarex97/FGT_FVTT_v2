@@ -146,7 +146,19 @@ halts it at stage 0, and a Block still answers (ruled 2026-10-14). Pinned in `ka
 The damage was received as it landed, before anything the attack inflicts "then". The Damage Step raises `damageTaken` on
 the defender before `applyAbilityEffects`, so a rider that listens for damage received (Def Dwn (A) and (C)) hears the next
 hit and not the one that inflicted it. `damageStepEnd` returns its cooldown rows and its chance dice for the card
-(§46.4-ND); `applyWithCooldownLines` is the one reader for the attack path's cuts.
+(§46.4-ND). `applyWithLines` is the one reader for what every Damage-Step event's handlers did (#202): each of
+`damageStepStart`, `damageTaken`, `damageDealt`, `damageStepEnd` returns its lines to the Process card, and
+`attackLanded` and `attackPerformed` to the Attack's last card.
+
+**Successfully Attacked, once per Attack** (#239 reading 3, §46.4-OZ). `rules/damage/riders.mjs#successfullyAttacked`
+is the one test: hit, not hurt (a Block and a hit for 0), plus a hit whose damage an Instakill skipped; not an Evade, a
+complete negation or a concealment coin. `attackLanded` (the attacker's, at the Phase's end) and `attackReceived` (each
+Unit's, at its first such Process) both read it; Def Dwn (A) and (C) drain on the second, once per Attack.
+
+**An automatic Evade spends its use** (#239, §46.4-OV). The Evade rung's `rollEvade` returns `spends`, the effect a
+count-limited automatic success came from (Dodge first, as `evadeCheck` takes it, then the plan's `AutoSucceed`), and
+the rung consumes one use. Only the reaction-ability path (`autoEvadeFrom`, Trofa) spent one before: Het Gele Huis's
+*"Evade … 1 time"* evaded every Attack for its 1◈.
 
 **An Attack that lands later, and one that follows another** (#232). A Noble Phantasm with `schedule` is
 recorded at its activation and resolved by `resolveAttack` itself when its fire tick is reached at a Turn

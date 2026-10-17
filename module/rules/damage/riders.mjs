@@ -50,3 +50,24 @@ export function ridersFire({ skipped, result }) {
   if (["Anti-Purge", "Substitution"].includes(result?.flags?.negatedBy)) return false;
   return result?.flags?.concealmentVeil?.effects !== false;
 }
+
+/**
+ * Was the Unit *successfully Attacked* by this Process?
+ *
+ * Ruled 2026-10-17 (#239 reading 3a) for every clause with that wording: Def Dwn
+ * (A) and (C), Alpi, the 'Gogh' buff. Hit, not hurt, as the riders read it: a
+ * Block and a hit for 0 count; an Evade never reaches here; a complete negation
+ * (Anti-Purge, Substitution) and a concealment coin that says *"no damage and
+ * effects are received"* do not. And one more than the riders: a hit whose
+ * damage an Instakill skipped (Gáe Bolg Alternative) was a successful Attack,
+ * though nothing rides it.
+ *
+ * @param {object} args
+ * @param {string|null|undefined} args.skipped what suppressed the damage, if anything
+ * @param {object|null|undefined} args.result the finished damage result
+ * @returns {boolean}
+ */
+export function successfullyAttacked({ skipped, result }) {
+  if (skipped) return true;
+  return ridersFire({ skipped: null, result });
+}

@@ -246,6 +246,9 @@ function viewerVisibility(state, result, effects = []) {
     ...card,
     effectNames: names,
     effectCount: Array.isArray(card.effects) ? names.length : (card.effects ?? 0),
+    // Rows beside the names this viewer only counts: the attacker's own Atk Up
+    // on a card the defender reads (#202).
+    effectsHidden: Array.isArray(card.effects) ? (card.effectsHidden ?? 0) : 0,
   };
 }
 
@@ -636,6 +639,11 @@ export { PROMPTS };
 function visibilityInput(state, result, effects = []) {
   const attacker = game.actors.get(state.attackerId);
   const defender = game.actors.get(state.defenderId);
+  // Whose each row is, where it says (#202): a third Unit's line is shown to
+  // its own controllers, as on a Skill card.
+  const effectOwners = (effects ?? []).map((e) => (typeof e === "object" ? e?.unitId ?? null : null));
+  const others = Object.fromEntries(effectOwners.filter((id) => id && id !== state.attackerId && id !== state.defenderId)
+    .map((id) => [id, ownersOf(game.actors.get(id))]));
 
   return {
     summary: `${attacker ? shownName(attacker) : "?"} → ${defender ? shownName(defender) : "?"}`,
@@ -644,6 +652,7 @@ function visibilityInput(state, result, effects = []) {
     attackerControllers: ownersOf(attacker),
     defenderControllers: ownersOf(defender),
     controllersByActor: {
+      ...others,
       [state.attackerId]: ownersOf(attacker),
       [state.defenderId]: ownersOf(defender),
     },
@@ -658,6 +667,7 @@ function visibilityInput(state, result, effects = []) {
     // nothing has ever written, so no attack card listed an effect: Maria's
     // Instakill and its roll were in the flags and nowhere on the card.
     effects: (effects ?? []).map(effectLine),
+    effectOwners,
     rolls: state.rolls ?? [],
   };
 }

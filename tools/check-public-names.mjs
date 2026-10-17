@@ -37,6 +37,8 @@ const DIRS = ["engine", "apps", "rules"].map((d) => join(ROOT, "module", d));
 const HOLDERS = [
   "actor", "servant", "defender", "attacker", "unit", "u", "target", "owner", "caster", "summoner",
   "victim", "bearer", "holder", "doc", "prey", "decoy", "partner", "provoker", "a", "b",
+  // A Skill card's row named its recipient through this one, unseen (#239).
+  "recipient",
 ];
 
 /** A Unit's display name, read raw. */

@@ -51,7 +51,7 @@ describe("the buckets are genuinely filled, so the projection has something to c
       rules: [{ key: "VulnerabilityAmplifier", effectId: "poison", factor: 1.5 }],
     }]);
     expect(out.vulnerabilityAmplifiers).toEqual([
-      { effectId: "poison", polarity: null, factor: 1.5, source: "Poison Weakness" },
+      { effectId: "poison", polarity: null, factor: 1.5, ifWeak: false, source: "Poison Weakness" },
     ]);
   });
 

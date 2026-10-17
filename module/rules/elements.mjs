@@ -1159,6 +1159,12 @@ export const EXECUTORS = Object.freeze({
       // debuff at once, which no list of ids could keep up with.
       polarity: el.polarity ?? null,
       factor: el.factor ?? 2,
+      // Only on a Unit already weak to the effect: Sikera Ušum clause e's
+      // *"Units ... who are weak to Poison"*. Its own condition, stated where it
+      // is meant. It was applied to EVERY named amplifier, so Channel Marker
+      // Soul's *"Curse Damage taken is halved"* never halved a tick: Van Gogh
+      // took Stage 5's 125 beside Medea's 125 (#239, live).
+      ifWeak: el.ifWeak === true,
       source,
     });
   },

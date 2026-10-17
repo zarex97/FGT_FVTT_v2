@@ -28,6 +28,14 @@ valence: offensive
 stacking: noneRefresh
 baseChance: 100
 rules:
+  # "A successful Attack" is Alpi's (#239 reading 2, #204 reading 12): once per
+  # Attack, when it was not Evaded -- a Block, a hit for 0 and an Instakill that
+  # skipped the damage count; a complete negation and a concealment coin do not
+  # (reading 3a, `riders.mjs#successfullyAttacked`). So both
+  # halves listen to `attackLanded`, which carries `attack:crit` when any Unit
+  # the Attack landed on was critted. They listened to `damageDealt`, once per
+  # Unit dealt damage, until 2026-10-17.
+  #
   # The eating. ONE action, not two: `stages` carries the count, so a Crit
   # takes two in a single decrement and reports -2 -- where two separate
   # removals would raise two events and pay her twice for the same swing at
@@ -40,13 +48,13 @@ rules:
   # Stage 1 left her holding TWO Atk Up. The sheet's "one stage ... IF a Crit,
   # 2 stages" is an either/or, so this half stands down on a Crit.
   - key: OnEvent
-    event: damageDealt
+    event: attackLanded
     automatic: true
     predicate: [{ not: "attack:crit" }]
     then:
       - { key: RemoveEffect, effect: curse, stages: 1, cause: gogh }
   - key: OnEvent
-    event: damageDealt
+    event: attackLanded
     automatic: true
     predicate: ["attack:crit"]
     then:
@@ -54,7 +62,9 @@ rules:
 
   # The paying. Fires off the EVENT the removal raised, so it cannot grant a
   # buff for a stage that was not there -- and `times` makes it one Atk Up per
-  # stage actually taken, which is how a Crit that ate two grants two.
+  # stage actually taken, which is how a Crit that ate two grants two. Each is
+  # its own document (`atkUp` is `magnitudeStacks`), so each lasts its own 1◈
+  # and they stack (#239 reading 5).
   - key: OnEvent
     event: curseStageChanged
     automatic: true

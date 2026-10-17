@@ -73,9 +73,23 @@ export function planApplication(intents, { canWrite, isGM = false }) {
  * @param {string} [args.source] for the audit trail
  * @param {object|null} [args.process] the Combat Process this batch belongs to,
  *   which offers its debuffs' targets the Prevention Luck Check
- * @returns {Promise<{applied: number, proxied: number, prompted: number}>}
+ * @param {object[]|null} [args.sink] where the batch's {@link CardLine}s go, for
+ *   a caller that will print them; one is made when none is given
+ * @param {boolean} [args.lines] also say what this batch's OWN clocks and stage
+ *   removals did. A caller whose batch is a handler's says it; one whose batch is
+ *   its own phase already prints its clocks (#202)
+ * @returns {Promise<{applied: number, proxied: number, prompted: number, lines: CardLine[]}>}
  */
-export async function applyIntents(intents, { io, canWrite, isGM = false, source = "unknown", moment = null, process = null }) {
+export async function applyIntents(intents, {
+  io, canWrite, isGM = false, source = "unknown", moment = null, process = null, sink = null, lines = false,
+}) {
+  // What the batch did that its caller did not decide, for a card (#202): an
+  // effect a handler landed, a clock a handler turned, a stage a handler took.
+  // Riders and a Skill's own phases land through the door themselves and print
+  // their own rows; these went through this function and printed nowhere.
+  const said = sink ?? [];
+  const clocks = lines ? clocksBeforeBatch(intents) : [];
+  const stats = lines ? statsBeforeBatch(intents) : [];
   // HERE rather than in `applyWorldIntents`, because three call sites write to
   // the world without going through that helper -- the attack flow, the
   // scheduler's boundary sequences and the movement hook -- and putting the
@@ -83,7 +97,7 @@ export async function applyIntents(intents, { io, canWrite, isGM = false, source
   // That is the same "two implementations of one rule" defect this file's own
   // header warns about.
   const plan = planApplication(
-    await resolveHealing(await resolveElements(await resolveEffects(await resolveRemovals(intents), { process }))),
+    await resolveHealing(await resolveElements(await resolveEffects(await resolveRemovals(intents), { process, sink: said }))),
     { canWrite, isGM },
   );
   if (plan.problems.length > 0) {
@@ -93,7 +107,7 @@ export async function applyIntents(intents, { io, canWrite, isGM = false, source
   }
 
   for (const group of I.batch(plan.local)) {
-    await writeGroup(group, io, { moment });
+    await writeGroup(group, io, { moment, sink: said, lines });
   }
 
   // Who has just been debuffed, and by whom.
@@ -116,7 +130,118 @@ export async function applyIntents(intents, { io, canWrite, isGM = false, source
   if (plan.remote.length > 0) await io.proxy(plan.remote, { source });
   for (const p of plan.prompts) await io.prompt(p.userId, p.prompt);
 
-  return { applied: plan.local.length, proxied: plan.remote.length, prompted: plan.prompts.length };
+  said.push(...clockLines(clocks), ...statLines(stats));
+  return { applied: plan.local.length, proxied: plan.remote.length, prompted: plan.prompts.length, lines: said };
+}
+
+/**
+ * One line a card prints for something a batch did: the shape a rider's row
+ * has, so `effectLine` and a Skill card's filter read it unchanged.
+ *
+ * @typedef {object} CardLine
+ * @property {string} unitId whose it is, so the card shows it to that Unit's controllers
+ * @property {{id: string, name: string, outcome: string, reason: string|null, chance: *}} summary
+ */
+
+/**
+ * A clock's line, `Name: Cooldown 18 → 15`, or `null` when it did not move.
+ *
+ * @param {string|null} name
+ * @param {number} before
+ * @param {number} after
+ * @returns {string|null}
+ */
+export function cooldownLine(name, before, after) {
+  if (!name || !Number.isFinite(before) || !Number.isFinite(after) || before === after) return null;
+  return `${name}: Cooldown ${before} → ${after}`;
+}
+
+/**
+ * A stat change as a card prints it: `Agility 19 → 18`, or the authored delta
+ * when the numbers were not read.
+ *
+ * @param {object} intent a `statDelta` or `resource` intent
+ * @param {number|null} [before] the stat as read before the change
+ * @param {number|null} [after] the stat as read after it
+ * @returns {string|null}
+ */
+export function statChangeLine(intent, before = null, after = null) {
+  const key = intent?.stat ?? intent?.key ?? null;
+  const delta = Number(intent?.delta);
+  if (!key || !Number.isFinite(delta) || delta === 0) return null;
+  const [word, part] = String(key).split(".");
+  const label = word.charAt(0).toUpperCase() + word.slice(1) + (part === "max" ? " max" : "");
+  // The numbers when the caller read them, so a clamp says so; the authored
+  // delta otherwise.
+  if (Number.isFinite(before) && Number.isFinite(after)) {
+    return before === after ? `${label} ${after} (no change)` : `${label} ${before} → ${after}`;
+  }
+  return `${label} ${delta > 0 ? "+" : ""}${delta}`;
+}
+
+/**
+ * The stats a batch's `statDelta` intents move, read before it is written: Def
+ * Dwn (C)'s Agility −1 on the Unit it was hit on (#202).
+ *
+ * @param {Intent[]} intents
+ * @returns {Array<{intent: Intent, before: number|null}>}
+ */
+function statsBeforeBatch(intents) {
+  if (typeof game === "undefined" || !game?.actors) return [];
+  return (intents ?? []).filter((i) => i?.t === "statDelta" && i.unitId && i.stat)
+    .map((intent) => ({ intent, before: statOf(intent.unitId, intent.stat) }));
+}
+
+/** @param {string} unitId @param {string} stat @returns {number|null} */
+function statOf(unitId, stat) {
+  const n = Number(foundry.utils.getProperty(game.actors.get(unitId)?.system ?? {}, stat));
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Each stat a handler moved, as a card line, read after the writes.
+ *
+ * @param {Array<{intent: Intent, before: number|null}>} stats
+ * @returns {CardLine[]}
+ */
+function statLines(stats) {
+  return stats.flatMap(({ intent, before }) => {
+    const line = statChangeLine(intent, before, statOf(intent.unitId, intent.stat));
+    return line ? [{ unitId: intent.unitId, summary: { id: "statChange", name: line, outcome: "applied", reason: null, chance: null } }] : [];
+  });
+}
+
+/**
+ * The clocks a batch's `cooldown` intents name, read before it is written.
+ *
+ * @param {Intent[]} intents
+ * @returns {Array<{unitId: string, abilityId: string, before: number}>}
+ */
+function clocksBeforeBatch(intents) {
+  if (typeof game === "undefined" || !game?.actors) return [];
+  return (intents ?? []).filter((i) => i?.t === "cooldown").map((i) => ({
+    unitId: i.unitId, abilityId: i.abilityId, before: remainingOf(i.unitId, i.abilityId),
+  }));
+}
+
+/** @param {string} unitId @param {string} abilityId @returns {number} */
+function remainingOf(unitId, abilityId) {
+  return game.actors.get(unitId)?.items?.get(abilityId)?.system?.cooldown?.remaining ?? 0;
+}
+
+/**
+ * Each clock that moved, as a card line, read after the writes: what it did,
+ * so a cut on a clock at 0 says nothing.
+ *
+ * @param {Array<{unitId: string, abilityId: string, before: number}>} clocks
+ * @returns {CardLine[]}
+ */
+function clockLines(clocks) {
+  return clocks.flatMap((c) => {
+    const name = game.actors.get(c.unitId)?.items?.get(c.abilityId)?.name ?? null;
+    const line = cooldownLine(name, c.before, remainingOf(c.unitId, c.abilityId));
+    return line ? [{ unitId: c.unitId, summary: { id: "cooldown", name: line, outcome: "applied", reason: null, chance: null } }] : [];
+  });
 }
 
 /**
@@ -129,7 +254,7 @@ export async function applyIntents(intents, { io, canWrite, isGM = false, source
  * @param {Intent[]} intents the intents that were actually written
  * @returns {Promise<void>}
  */
-async function fireWriteEvent(name, unitId, payload) {
+async function fireWriteEvent(name, unitId, payload, { sink = null } = {}) {
   if (typeof game === "undefined" || !game?.actors) return;
   const { fireEvent } = await import("./scheduler.mjs");
   const { currentBoard } = await import("./board.mjs");
@@ -151,7 +276,23 @@ async function fireWriteEvent(name, unitId, payload) {
     // way one raised by a cast is (`skill-use.mjs#fireAbilityUsed`).
     subject: payload?.subject,
   });
-  if (intents.length > 0) await applyWorldIntents(intents, `event:${name}`);
+  // A handler's batch: its clocks and stages are news to whoever reads the card
+  // of what raised it (#202). Channel Marker Soul's cut on a Curse landing is one.
+  if (intents.length > 0) await applyWorldIntents(intents, `event:${name}`, { sink, lines: true });
+}
+
+/**
+ * A staged effect's removal, as a card line: `Curse: Stage 2 → 1`.
+ *
+ * @param {string} unitId
+ * @param {{defId: string, stageDelta: number, newStage: number}} payload
+ * @returns {Promise<CardLine>}
+ */
+async function stageLine(unitId, payload) {
+  const { EffectRegistry } = await import("../rules/registry.mjs");
+  const name = EffectRegistry.get(payload.defId)?.name ?? payload.defId;
+  const was = payload.newStage - payload.stageDelta;
+  return { unitId, summary: { id: payload.defId, name: `${name}: Stage ${was} → ${payload.newStage}`, outcome: "applied", reason: null, chance: null } };
 }
 
 /**
@@ -218,9 +359,12 @@ async function noteDebuffs(intents) {
  *
  * @param {Intent[]} intents
  * @param {string} source for the audit trail
- * @returns {Promise<{applied: number, proxied: number, prompted: number}>}
+ * @param {object} [opts]
+ * @param {object[]|null} [opts.sink] {@link applyIntents}'s
+ * @param {boolean} [opts.lines] {@link applyIntents}'s
+ * @returns {Promise<{applied: number, proxied: number, prompted: number, lines: CardLine[]}>}
  */
-export async function applyWorldIntents(intents, source) {
+export async function applyWorldIntents(intents, source, { sink = null, lines = false } = {}) {
   // Imported lazily to keep applier → io → socket → operations → applier from
   // being a static cycle; `net/operations.mjs` breaks the same loop the same
   // way.
@@ -230,6 +374,8 @@ export async function applyWorldIntents(intents, source) {
     canWrite: (unitId) => game.actors.get(unitId)?.isOwner ?? false,
     isGM: game.user.isGM,
     source,
+    sink,
+    lines,
   });
 }
 
@@ -400,7 +546,7 @@ async function resolveRemovals(intents, depth = 0) {
  * @param {Intent[]} intents
  * @returns {Promise<Intent[]>}
  */
-async function resolveEffects(intents, { process = null } = {}) {
+async function resolveEffects(intents, { process = null, sink = null } = {}) {
   const raw = intents.filter((i) => i.t === "applyEffect" && !i.resolved);
   if (raw.length === 0) return intents;
   // No world: this is a unit test applying against an injected `io`, and there
@@ -444,7 +590,7 @@ async function resolveEffects(intents, { process = null } = {}) {
     // and the door cannot know rides on `emitted`: the expiry it computed from
     // the duration it was authored with, and its source (#147).
     const effect = intent.effect;
-    await landEntry(entryOfIntent(effect), {
+    const rows = await landEntry(entryOfIntent(effect), {
       target: unitOf(target, board),
       // The effect's own `sourceUnitId` FIRST. The scheduler passes the
       // handler's *ability* id as the intent's `sourceId`, and reading that as
@@ -467,6 +613,10 @@ async function resolveEffects(intents, { process = null } = {}) {
       process,
       board,
     }, { write: async (landed) => { out.push(...landed); } });
+    // What it did, for the card of whatever raised it (#202). A bare intent is
+    // a handler's or a transfer's; a rider's and a phase's were resolved by
+    // their own caller, which prints its own rows.
+    for (const row of rows ?? []) if (row?.summary) sink?.push({ unitId: intent.unitId, summary: row.summary });
   }
   return out;
 }
@@ -604,7 +754,7 @@ function depthOf(effect) {
  * @param {object} io
  * @returns {Promise<void>}
  */
-async function writeGroup(group, io, { moment = null } = {}) {
+async function writeGroup(group, io, { moment = null, sink = null, lines = false } = {}) {
   const { t, unitId, intents } = group;
   switch (t) {
     case "damage":
@@ -781,7 +931,13 @@ async function writeGroup(group, io, { moment = null } = {}) {
       // `eventSubject`, not `unitId`: `batch()` files an addressless intent
       // under `null`, so the group cannot say who this is about. The payload
       // can.
-      for (const i of intents) await fireWriteEvent(i.event, I.eventSubject(i, unitId), i.payload);
+      for (const i of intents) {
+        // A stage a handler TOOK is said here, where the number is: the 'Gogh'
+        // buff ate a stage of Curse and no card said so (#202). A stage gained
+        // is the landing's own line.
+        if (lines && i.payload?.stageDelta < 0) sink?.push(await stageLine(I.eventSubject(i, unitId), i.payload));
+        await fireWriteEvent(i.event, I.eventSubject(i, unitId), i.payload, { sink });
+      }
       break;
 
     case "log":

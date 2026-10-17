@@ -73,7 +73,9 @@ describe("Librarian's Passive 2 reaches a concealed body, and names it (#226 rea
       expect(out.ok).toBe(true);
       const held = [...w.actor(H2).effects].map((e) => e.system.defId);
       expect(held).toEqual(expect.arrayContaining(["critUp", "buffChUp", "critDmUp"]));
-      expect(rowsOf(w).filter((r) => r.endsWith("Crit Up"))).toEqual(["Crit Up", `${w.actor(H2).name}: Crit Up`]);
+      // Its PUBLIC name, as the title says: this read the True Name and passed,
+      // the caster's player reading every row (#239).
+      expect(rowsOf(w).filter((r) => r.endsWith("Crit Up"))).toEqual(["Crit Up", "Assassin 2: Crit Up"]);
     }, MATCH);
   });
 });

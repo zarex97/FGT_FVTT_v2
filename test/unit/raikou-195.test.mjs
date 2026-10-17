@@ -243,6 +243,6 @@ describe("what a deferred handler did at the Turn's end is said too (#195)", () 
   it("posts the Turn-end card for the deferred intents", () => {
     const src = readFileSync(new URL("../../module/engine/scheduler-hooks.mjs", import.meta.url), "utf8");
     // The clocks are read before the run since #209's review, so the card says what a cut took.
-    expect(src).toMatch(/const owed = scheduler\.runDeferred\(due, board, ctx\);\s*const owedClocks = clocksBefore\(owed, remainingOnActor\);\s*await run\(owed, "scheduler:deferred", ended\);[\s\S]{0,200}await postTurnEndReport\(owed, owedClocks\);/);
+    expect(src).toMatch(/const owed = scheduler\.runDeferred\(due, board, ctx\);\s*const owedClocks = clocksBefore\(owed, remainingOnActor\);\s*const landedOwed = await run\(owed, "scheduler:deferred", ended\);[\s\S]{0,200}await postTurnEndReport\(owed, owedClocks, null, undefined, landedOwed\);/);
   });
 });

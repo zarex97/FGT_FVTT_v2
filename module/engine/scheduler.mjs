@@ -2116,6 +2116,8 @@ export function tickPeriodics(units, when, ctx) {
   const out = [];
   for (const u of units) {
     if ((u.effects ?? []).includes("stop")) continue;
+    // Health left as the ticks are taken, for a floor scoped to one of them.
+    let left = typeof u.health === "number" ? u.health : null;
     for (const e of u.effectInstances ?? []) {
       const spec = periodicOf(ctx.effectDef?.(e.defId));
       if (!spec) continue;
@@ -2148,8 +2150,13 @@ export function tickPeriodics(units, when, ctx) {
       // An effect does not tick on the turn it expires (Ch. 15).
       if (expiryReached(e.expiry, ctx.tick)) continue;
 
-      const amount = periodicDamageFor(e, u, ctx.effectDef);
       const converted = (u.effects ?? []).includes(spec.healConversion);
+      // A floor scoped to this effect: Sunflower's Curse, *"Gogh's Health
+      // cannot drop below 1 due to the effects of Curse"*. It sat in the attack
+      // pipeline alone (stage 16), and a Curse tick is no attack, so it never
+      // floored one (#239, live). Read here, where the tick is decided.
+      const amount = converted ? periodicDamageFor(e, u, ctx.effectDef) : flooredTick(periodicDamageFor(e, u, ctx.effectDef), e.defId, u, left);
+      if (!converted && left !== null) left -= amount;
       // Secret Poison: the tick is worked out now, at its real value -- the
       // stage, Deadly Poison's doubling, the modifiers in force -- and BANKED
       // against its inflicter instead of taken. The bar does not move until
@@ -2170,6 +2177,26 @@ export function tickPeriodics(units, when, ctx) {
           }),
       );
     }
+  }
+  return out;
+}
+
+/**
+ * A periodic tick held to the Unit's floors for that effect: no more than takes
+ * it to the floor, and nothing at or below it.
+ *
+ * @param {number} amount
+ * @param {string} defId
+ * @param {object} unit
+ * @param {number|null} left the Health the earlier ticks of this boundary left
+ * @returns {number}
+ */
+export function flooredTick(amount, defId, unit, left) {
+  if (left === null) return amount;
+  let out = amount;
+  for (const f of unit?.damageFloors ?? []) {
+    if (f.defId && f.defId !== defId) continue;
+    out = Math.min(out, Math.max(0, left - (f.floor ?? 1)));
   }
   return out;
 }
@@ -2225,7 +2252,10 @@ function amplify(amount, defId, unit, effectDef = null) {
       continue;
     }
     if (amp.effectId !== defId) continue;
-    if (isWeakTo(unit, defId)) out *= amp.factor;
+    // The weakness gate is the amplifier's own (`ifWeak`), Sikera Ušum's: a
+    // passive that says the damage is halved or doubled says so outright
+    // (Channel Marker Soul, #239).
+    if (!amp.ifWeak || isWeakTo(unit, defId)) out *= amp.factor;
   }
   return Math.round(out);
 }

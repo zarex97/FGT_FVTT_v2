@@ -97,6 +97,7 @@
     {{#if visibility.effectNames.length}}
       <ul class="fgt-card__effects">
         {{#each visibility.effectNames as |e|}}<li>{{e}}</li>{{/each}}
+        {{#if visibility.effectsHidden}}<li class="fgt-card__hidden">{{localize "FGT.Skill.HiddenEffects" n=visibility.effectsHidden}}</li>{{/if}}
       </ul>
     {{else}}
       {{#if visibility.effectCount}}
