@@ -19,7 +19,7 @@
  */
 
 import { policyFor, expiryOutcome, formatCountdown, remainingMs } from "../rules/await-policy.mjs";
-import { pendingPrompt, deserialize } from "./combat-process.mjs";
+import { pendingPrompt, deserialize, rungOptions } from "./combat-process.mjs";
 
 /** messageId → timer handle. */
 const timers = new Map();
@@ -138,9 +138,8 @@ export async function applyExpiry(message) {
   // second Attack, #232) cannot be timed into taking the hit. The first rung it
   // may take stands in, in the card's own order.
   const state = readProcessFlag(message?.getFlag("fgt", "process"));
-  const refused = state?.forbiddenReactions ?? [];
-  const choice = policy.prompt?.kind === "reaction" && refused.includes(outcome.choice)
-    ? (["nothing", "block", "evade"].find((r) => !refused.includes(r)) ?? outcome.choice)
+  const choice = policy.prompt?.kind === "reaction" && state
+    ? timeoutReaction(state, outcome.choice)
     : outcome.choice;
 
   const { advanceAttack } = await import("./attack.mjs");
@@ -151,6 +150,25 @@ export async function applyExpiry(message) {
     // The card and the log both say this was a timeout, not a choice.
     timedOut: true,
   });
+}
+
+/**
+ * The rung a timed-out reaction takes: the policy's choice when the rung still
+ * has it, else the first rung left, in the card's own order. Asked of
+ * `rungOptions`, which the card asks too (#244).
+ *
+ * @param {object} state the Process
+ * @param {string} choice the policy's default
+ * @returns {string}
+ */
+export function timeoutReaction(state, choice) {
+  const left = rungOptions(state);
+  if (left.includes(choice)) return choice;
+  // A standing rung first; when the attack has refused all three, the rung is
+  // answered only by an ability, and the first one is the one move the
+  // transition takes (#244 review: the policy's refused rung threw, and the
+  // Process waited for ever).
+  return left.find((o) => !o.startsWith("ability:")) ?? left[0] ?? choice;
 }
 
 /**

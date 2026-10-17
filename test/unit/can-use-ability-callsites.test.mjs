@@ -37,9 +37,9 @@ import { describe, it, expect } from "vitest";
 const CALLERS = [
   "module/apps/hud/action-bar.mjs",
   "module/apps/actor-sheet/context.mjs",
-  "module/engine/attack.mjs",
-  "module/engine/attack-preflight.mjs",
-  "module/engine/skill-use.mjs",
+  // The gate a press runs, which the attack preflight, `useSkill` and every
+  // offer of either ask (#244): their own calls moved here.
+  "module/engine/press-gate.mjs",
 ];
 
 /**
@@ -85,13 +85,13 @@ describe("canUseAbility call sites", () => {
   }
 
   it("sees every call in the attack path, not only the first", () => {
-    // resolveAttack, runCounter, the Noble Phantasm cancellation's offer and
-    // its price.
-    // resolveAttack's gate moved to `attack-preflight.mjs` so a Riding Attack can ask it before it
-    // moves the token (#114): the path is the two files together.
-    const path = ["module/engine/attack.mjs", "module/engine/attack-preflight.mjs"]
+    // One: the press gate's, which resolveAttack's preflight, runCounter, the
+    // Noble Phantasm cancellation's offer and its price all ask (#244). Four
+    // before: resolveAttack's (in `attack-preflight.mjs` since #114), runCounter's,
+    // and the cancellation's two.
+    const path = ["module/engine/attack.mjs", "module/engine/attack-preflight.mjs", "module/engine/press-gate.mjs"]
       .map((f) => callArguments(readFileSync(f, "utf8")).length);
-    expect(path.reduce((a, b) => a + b, 0)).toBe(4);
+    expect(path).toEqual([0, 0, 1]);
   });
 
   it("the sheet's cards gate on the board's Unit, as the bar does (#158)", () => {

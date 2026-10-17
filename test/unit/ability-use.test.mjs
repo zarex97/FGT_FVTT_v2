@@ -7,7 +7,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import {
   classifyAbility, targetSpecFor, needsTargeting, countsAsAttack, countsAsAct,
-  blockedThisTurn, isNegated, usageSpecFor,
+  usageSpecFor,
 } from "../../module/rules/ability-use.mjs";
 
 beforeAll(prepareSubjects, 60_000);
@@ -305,46 +305,9 @@ describe("countsAsAttack / countsAsAct", () => {
   });
 });
 
-describe("blockedThisTurn — sameTurnExclusive", () => {
-  const keraino = { id: "k", system: { sameTurnExclusive: ["medea-trofa"], contentId: "medea-keraino" } };
-
-  it("allows it when the partner has not been used", () => {
-    expect(blockedThisTurn(keraino, [])).toBe(null);
-  });
-
-  it("blocks it once the partner has been used this Turn", () => {
-    // Medea: "Cannot be used on the same Turn as Tρoψα."
-    expect(blockedThisTurn(keraino, ["medea-trofa"])).toBe("medea-trofa");
-  });
-
-  it("does not block on an unrelated ability", () => {
-    expect(blockedThisTurn(keraino, ["medea-aero"])).toBe(null);
-  });
-
-  it("matches on content id as well as document id", () => {
-    // Turn state records whatever the caller had; both are legitimate.
-    expect(blockedThisTurn(keraino, ["k"])).toBe(null);
-    expect(blockedThisTurn({ id: "x", system: { sameTurnExclusive: ["k"] } }, ["k"])).toBe("k");
-  });
-});
-
-describe("isNegated", () => {
-  it("is false with no negating effect present", () => {
-    expect(isNegated({ system: { negatedBy: ["silence"] } }, ["burn"])).toBe(false);
-  });
-
-  it("is true while the negating effect is on the Unit", () => {
-    // Medea: High-Speed Divine Words "cannot be used and its effects are
-    // negated while inflicted with Silence". The second half matters because
-    // Silence can land between declaration and resolution.
-    expect(isNegated({ system: { negatedBy: ["silence"] } }, ["silence"])).toBe(true);
-  });
-
-  it("is false for an ability nothing negates", () => {
-    expect(isNegated({ system: {} }, ["silence"])).toBe(false);
-  });
-});
-
+/* `blockedThisTurn` and `isNegated` went into the use gate (#244): `canUseAbility`
+   refuses `sameTurnExclusive` and `negated` itself, tested in `offer-gate-244.test.mjs`,
+   `kiritsugu.test.mjs` and `medusa.test.mjs`. */
 describe("a passive Noble Phantasm", () => {
   it("is not a button", () => {
     // Penthesilea's Goddess of War: "(Passive) The effect of this Noble

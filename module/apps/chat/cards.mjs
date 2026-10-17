@@ -11,7 +11,7 @@ import { explainDamage } from "../../rules/explain.mjs";
 import { visibleTo, renderBreakdown } from "../../rules/roll-log.mjs";
 import { cardFor, skillEffectsFor, redactBreakdown, effectLine } from "../../rules/card-visibility.mjs";
 import { countdownFor } from "../../engine/await-timeout.mjs";
-import { pendingPrompt, didHit, isComplete, PROMPTS, windowFor } from "../../engine/combat-process.mjs";
+import { pendingPrompt, didHit, isComplete, PROMPTS, windowFor, rungOptions } from "../../engine/combat-process.mjs";
 import * as process from "../../engine/combat-process.mjs";
 import { processOffers, teleportDestinations } from "../../engine/command-spells.mjs";
 import { publicIdentityOf, publicSpeakerFor } from "../../engine/public-identity.mjs";
@@ -358,12 +358,13 @@ export function promptOptions(prompt, state = null) {
     // Command Spells shipped and read by NOTHING, so a Servant pulled into an
     // attack it never saw coming could still Block and Evade it -- Ch. 23's own
     // rule, inert. Presence Concealment writes the same field.
-    const refused = state?.forbiddenReactions ?? [];
+    // What the rung has left is `rungOptions`'s, through the prompt that carries it (#244).
+    const left = prompt.options ?? (state ? rungOptions(state) : ["nothing", "block", "evade"]);
     const rungs = [
       { event: "nothing", label: game.i18n.localize("FGT.Reaction.Nothing"), hint: null },
       { event: "block", label: game.i18n.localize("FGT.Reaction.Block"), hint: game.i18n.localize("FGT.Reaction.BlockHint") },
       { event: "evade", label: game.i18n.localize("FGT.Reaction.Evade"), hint: null },
-    ].filter((o) => !refused.includes(o.event));
+    ].filter((o) => left.includes(o.event));
 
     // The reaction ABILITIES, beside the three standing rungs. `pendingPrompt`
     // has assembled them onto the prompt since the Combat Process was written

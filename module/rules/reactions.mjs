@@ -16,8 +16,7 @@
  * a missing option does not teach faster.
  */
 
-import { blockedThisTurn, isNegated } from "./ability-use.mjs";
-import { meetsRequirements } from "./items.mjs";
+import { meetsRequirements, SELF_REQUIREMENTS } from "./items.mjs";
 import { categoryLimitFor } from "./costs.mjs";
 // The windows themselves live in `rules/windows.mjs` -- one list, held against
 // these dispatchers by a drift test in both directions. `ATTACKER_WINDOWS` is
@@ -63,26 +62,8 @@ export { ATTACKER_WINDOWS };
 /* `ALLY_WINDOW` is imported above; the note stands because it explains the
    call site below rather than the window itself. */
 
-/**
- * Requirements answerable from the bearer alone.
- *
- * A window offer has no target and no attack, so a gate that needs one cannot
- * be judged here and must not refuse for lack of it — the offer would then be
- * silently missing rather than honestly refused.
- *
- * @type {ReadonlySet<string>}
- */
-const SELF_REQUIREMENTS = new Set([
-  "stance", "modeActive", "modeInactive", "notHasEffect", "hasSkill",
-  "healthAbove", "healthBelow", "resourceAtLeast", "itemAtLeast",
-  "roundAtLeast", "roundPhase", "inZon", "healthRestoredSince",
-  // Another of the Unit's own abilities cooling: Wisdom of Dún Scáith's slots
-  // gate on each other, and Brahmastra's card offered the Eye of the Mind
-  // copy while the other copy cooled (#204 W1.lock, found pressing).
-  "abilityOffCooldown",
-  // The legion's count is the bearer's own (#226).
-  "legionAbove",
-]);
+/* `SELF_REQUIREMENTS` lives in `rules/items.mjs`, beside the requirement kinds,
+   because the use gate asks it too when an offer has no target yet (#244). */
 
 /**
  * Do the ability's own requirements that the bearer can answer alone pass?
@@ -132,6 +113,11 @@ export function reactionAbilities(unit) {
  * to be true of: Karna's *Uncrowned Arms Mastership* is *"can only be used once
  * per Round"*, which is the only limit on it — it has no cooldown at all.
  *
+ * This is what a window offers AT ALL. Whether a press would let one through is
+ * the use gate's, which every engine offer of this list asks through
+ * `engine/press-gate.mjs#offerable` (#244): a Silenced Medea was offered Trofa
+ * here, and the press refused it.
+ *
  * @param {object} unit an actor-shaped object with `items`
  * @param {string} window
  * @returns {object[]}
@@ -166,7 +152,6 @@ export function windowSubject(snapshot, items) {
 export function abilitiesAtWindow(unit, window) {
   const used = unit?.turnState?.abilitiesUsed ?? [];
   const usedThisRound = unit?.roundState?.abilitiesUsed ?? [];
-  const effects = unit?.effects ?? [];
 
   return [...(unit?.items ?? [])].filter((item) => {
     const sys = item.system ?? {};
@@ -178,8 +163,8 @@ export function abilitiesAtWindow(unit, window) {
     if (!windowsOf(sys.timing).includes(window)) return false;
 
     if ((sys.cooldown?.remaining ?? 0) > 0) return false;
-    if (blockedThisTurn(item, used)) return false;
-    if (isNegated(item, effects)) return false;
+    // An exclusive partner and a negating effect are the use gate's to say,
+    // which every offer of this list asks (`engine/press-gate.mjs#offerable`, #244).
 
     if (sys.oncePerTurn && used.some((id) => id === item.id || id === sys.contentId)) return false;
     // A category's per-Turn cap, asked of the one reader the use gate asks:
@@ -285,7 +270,6 @@ export function allyReactions({ defender, board, attack, attacker = null, actorF
 
     const doc = actorFor(unit.id);
     if (!doc) continue;
-    const used = unit.turnState?.abilitiesUsed ?? [];
 
     for (const item of doc.items ?? []) {
       const sys = item.system ?? {};
@@ -348,8 +332,8 @@ export function allyReactions({ defender, board, attack, attacker = null, actorF
       if (sys.expended) continue;
 
       if ((sys.cooldown?.remaining ?? 0) > 0) continue;
-      if (blockedThisTurn(item, used)) continue;
-      if (isNegated(item, unit.effects ?? [])) continue;
+      // An exclusive partner and a negating effect: the use gate's, which the
+      // rung asks of each offer (`engine/press-gate.mjs`, #244).
       // ...and its own requirements, read off the projector (#208).
       if (!selfGatesPass(item, unit)) continue;
 

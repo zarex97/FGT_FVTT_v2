@@ -255,7 +255,8 @@ describe("the pre-emptive strike goes through the miss check (#185)", () => {
 describe("the attack Jack pre-empts comes back (#185)", () => {
   it("a resumed declaration is not asked for a budget it already paid", async () => {
     const { readFileSync } = await import("node:fs");
-    expect(readFileSync("module/engine/attack-preflight.mjs", "utf8")).toMatch(/if \(combat\?\.started && !free && !resume\) \{/);
+    // The budget is asked through the press gate since #244, told not to bill a resumed one.
+    expect(readFileSync("module/engine/attack-preflight.mjs", "utf8")).toMatch(/billsBudget: !free && !resume,/);
     // `resume` still goes in; since #208 reading 8 (window-only abilities) the call also carries
     // `atWindow`, a resumed declaration having passed that gate when it was first made.
     expect(readFileSync("module/engine/attack.mjs", "utf8"))
@@ -313,7 +314,8 @@ describe("the preflight knows who was aimed at (#185)", () => {
     const src = readFileSync("module/engine/attack-preflight.mjs", "utf8");
     expect(src).toMatch(/const aimedId = placement\?\.unitId \?\? placement\?\.targetId \?\? null;/);
     expect(src).toMatch(/target: aimed,/);
-    expect(src).toMatch(/defender: aimed,/);
+    // The predicate reads the aimed Unit as the defender inside the press gate (#244).
+    expect(readFileSync("module/engine/press-gate.mjs", "utf8")).toMatch(/defender: target/);
     expect(src).not.toMatch(/placement\?\.targetId \? unitFrom/);
   });
 });

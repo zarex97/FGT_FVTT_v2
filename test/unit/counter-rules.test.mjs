@@ -274,7 +274,9 @@ describe("runCounter refuses before it pays (#156)", async () => {
 
   it("asks the gate with an evaluator, and refuses on its answer", () => {
     expect(body).toMatch(/counterRefusal\(/);
-    expect(body).toMatch(/testPredicate:/);
+    // Through the press gate since #244, which carries the evaluator.
+    expect(body).toMatch(/pressGate\(counterer, ability, \{[^}]*isCounter: true/);
+    expect(readFileSync("module/engine/press-gate.mjs", "utf8")).toMatch(/testPredicate: \(p\) => testPredicate/);
   });
 
   it("refuses before `payAbilityPrice`, so nothing is spent", () => {
