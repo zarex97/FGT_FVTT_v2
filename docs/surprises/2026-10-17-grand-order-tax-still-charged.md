@@ -13,6 +13,6 @@ Turn's end: *"Master of Assassin of Faction 1 loses 25 Health (Multi-Servant tax
 **Cause:** `module/engine/scheduler-hooks.mjs:142 @ e2b42d22`: the Turn-end context never set `grandOrder`, so
 `scheduler.mjs#multiServantIntents` read `undefined`. The Round boundaries carried it; the Turn's did not. The ban
 reads the board's `grandOrder`; the tax read the context's. The test asked the rule, never the boundary.
-**Fix:** `module/engine/scheduler.mjs:135 @ uncommitted`: the tax reads the board's `grandOrder`, the one the ban
+**Fix:** `module/engine/scheduler.mjs:135 @ b0313abf`: the tax reads the board's `grandOrder`, the one the ban
 reads. `master-content-241.test.mjs` runs `endTurn` through subjects with the setting on and off. Pressed again:
 Jack and Serenity both attacked, Health 200 → 200, no tax line.
