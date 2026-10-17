@@ -3,7 +3,8 @@ id: 2026-10-17-magecraft-extended-nothing
 found: live press
 kind: unknown-value-falls-to-default
 status: fixed
-reviewed: false
+reviewed: true
+pattern: unknown-value-falls-to-default
 ---
 **Expected:** Player1 pressed Lethal Gunfire Suppression (Suppression to tick 4), then Familiars, a Thaumaturgy Spell:
 Magecraft Passive 2 extends Suppression by 1◈, to tick 7.

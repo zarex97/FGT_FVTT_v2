@@ -3,7 +3,8 @@ id: 2026-10-17-unanswerable-guard-counted-the-list
 found: test
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Kiritsugu's shot refuses Block, Evade and Counter, so its rung needs nobody and the shot lands
 *"instantly"*, before the Attack it answers (#243 reading 7).

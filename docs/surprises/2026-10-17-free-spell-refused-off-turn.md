@@ -3,7 +3,8 @@ id: 2026-10-17-free-spell-refused-off-turn
 found: retraction
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Lethal Gunfire Suppression's free Thaumaturgy Spell, offered before the shot on an enemy's Turn, casts.
 **Actual:** Read for the grill: the prompt lists all three Spells and the use gate refuses each, Penetration and

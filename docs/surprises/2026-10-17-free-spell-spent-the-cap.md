@@ -3,7 +3,8 @@ id: 2026-10-17-free-spell-spent-the-cap
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** On Faction 2's Turn Player1 took Return Fire with Penetration as the free Spell, then Reinforcement at
 the shot's Combat Phase: the free Spell *"does not count towards the one Thaumaturgy Spell usage per Turn"*.

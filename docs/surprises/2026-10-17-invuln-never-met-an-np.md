@@ -3,7 +3,8 @@ id: 2026-10-17-invuln-never-met-an-np
 found: test
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** Invuln cuts an NP by 50% (Appendix A), so Penetration's *"halves the effect of Invuln"* would only need
 to halve that cut (#243 reading 11).
