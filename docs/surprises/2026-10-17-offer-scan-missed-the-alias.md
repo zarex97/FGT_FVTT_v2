@@ -10,7 +10,7 @@ matrix written before it could not have held, if its list stopped asking `offera
 **Actual:** With `offerable(` renamed in `attack.mjs`, the scan reported the window alone. The free-Spell prompt
 maps `candidates`, built from `ofCategory`, which is built from `owner.items`, and the scan read only the list's
 own declaration: green, because it could not see.
-**Cause:** `tools/check-offers.mjs#abilityOffers @ uncommitted` tested `.items` on the mapped list's declaration
+**Cause:** `tools/check-offers.mjs#abilityOffers @ dd853c6f` tested `.items` on the mapped list's declaration
 alone, never on the lists it is built from.
-**Fix:** `tools/check-offers.mjs#listOf @ uncommitted` follows the declaration back three lists deep;
+**Fix:** `tools/check-offers.mjs#listOf @ dd853c6f` follows the declaration back three lists deep;
 `offer-gate-244.test.mjs` asserts the aliased prompt is refused and passes once it asks `offerable`.
