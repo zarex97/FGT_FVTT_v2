@@ -813,6 +813,10 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
     case "setFacing":
       await io.setFacing(unitId, intents.at(-1).facing);
       break;
+    case "spendEssence":
+      for (const i of intents) await io.spendEssence(unitId, i.itemId);
+      break;
+
     case "spendCS":
       // The Servant travels with the intent, because Ch. 32's pools are keyed by
       // it -- without it the writer cannot tell which pool to draw from.

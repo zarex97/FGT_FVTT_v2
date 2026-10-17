@@ -29,6 +29,20 @@
               <span class="fgt-setup__count">{{localize "FGT.Setup.Candidates"}}: {{row.candidateCount}}</span>
             {{/if}}
 
+            {{!-- The Master's Essence, and a High Rank Master's `+` (#241). --}}
+            {{#if @root.essencesOn}}
+              <select name="container.{{row.id}}.essenceId" aria-label="{{localize 'FGT.Master.Essence'}}">
+                <option value="">{{localize "FGT.Setup.PickEssence"}}</option>
+                {{selectOptions @root.essenceChoices selected=row.essenceId valueAttr="id" labelAttr="label"}}
+              </select>
+              {{#if row.offersParam}}
+                <select name="container.{{row.id}}.paramPlus" aria-label="{{localize 'FGT.Setup.ParamPlus'}}">
+                  <option value="">{{localize "FGT.Setup.ParamPlus"}}</option>
+                  {{selectOptions @root.paramChoices selected=row.paramPlus localize=true}}
+                </select>
+              {{/if}}
+            {{/if}}
+
             <button type="button" data-action="deleteContainer"
                     data-tooltip="{{localize 'FGT.Setup.DeleteContainer'}}"
                     aria-label="{{localize 'FGT.Setup.DeleteContainer'}}">

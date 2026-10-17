@@ -1,11 +1,16 @@
 # docs/33-command-spells.md — cost 1
 #
-# The catalogue is explicitly OPEN: "if you can think of any other use for
-# Command Spells, feel free to mention it and use it if the GM/majority of
-# players approve." So this is the reference set, not a closed enum.
-# "Cannot be used during a Damage Step if the damage would defeat the Servant."
-# 1 for a High Rank Master, 2 for a Low Rank one. `cost` is the fallback for
-# anything that reads the flat field.
+# > "Kill Humans: After this Command is used, a Servant with the 'Good' Alignment
+# > will kill Civilians. However, if said Servant ever becomes an Unbound
+# > Servant, the Servant will abandon the Master and become a Free Servant. In
+# > this case, the Servant will refuse to make a new Contract with its old
+# > Master."
+#
+# Spent in the Master's own Turn, and it lasts: *"After this Command is used"*.
+# It was authored at a `validationFailure` window nothing ever offered, with an
+# `overridesValidation` and a `permanentConsequence` nothing ever read, so it
+# could not be spent and its Contract half did nothing (#241). It now lays the
+# `killHumans` mark, which the three rules read (`effects/kill-humans.yml`).
 schema: 1
 id: cs-kill-humans
 name: "Kill Humans"
@@ -16,13 +21,8 @@ description: |
 
   PERMANENT CONSEQUENCE: if the Servant ever becomes Unbound it abandons this Master and
   refuses to re-contract.
-requirements: []
-timing: { window: validationFailure }
-overridesValidation: [alignmentRefusal]
+requirements:
+  - { kind: notMarked, effect: killHumans }
+timing: { window: ownTurn }
 effect:
-  - kind: overrideValidation
-    reason: alignmentRefusal
-permanentConsequence:
-  - kind: mark
-    target: contractedServant
-    flag: refusesToRecontractWith
+  - { kind: applyEffect, effect: killHumans, target: contractedServant }

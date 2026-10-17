@@ -34,7 +34,7 @@ import {
 import { annotateCompulsions } from "./compulsion.mjs";
 import { annotateControl } from "./control.mjs";
 import { tierOf } from "./master-rank.mjs";
-import { currentHealth } from "../domain/health.mjs";
+import { isUnbound } from "./cs-namespacing.mjs";
 import { closeAttributes } from "../domain/attributes.mjs";
 import { rollOptionsFor } from "./options.mjs";
 import { platformsOn, luckOwnerOf } from "./platforms.mjs";
@@ -384,6 +384,12 @@ export function snapshotUnit(actor, {
     // by `annotateMasterRank`, which needs the board: a Servant's tier is its
     // MASTER's, and only the board knows who that is.
     rank: sys.rank ?? null,
+    // How many Master Essence uses this Master has left (#241): its OWN
+    // Essence, not a Servant's copy, with a use still unspent. The bar offers
+    // the Essence button on it.
+    essenceUsesLeft: [...(actor.items ?? [])].filter((i) => i.type === "masterEssence"
+      && !i.system?.grantedBy && (i.system?.effect?.length ?? 0) > 0
+      && (i.system?.timesUsed ?? 0) < (i.system?.maxUses ?? 1)).length,
 
     effects: effectIds,
     // The FAMILIES those effects put the unit in (§A). Computed once here
@@ -502,6 +508,7 @@ export function snapshotUnit(actor, {
     servantClasses: [...(sys.servantClasses ?? [])],
     masterId: sys.masterId ?? null,
     zonBonuses: contributions.zonBonuses ?? [],
+    npGateShifts: contributions.npGateShifts ?? [],
     zonExempt: Boolean(sys.zonExempt),
     zonPartnerIds: [...(sys.zonPartnerIds ?? [])],
     // The linked group, flattened. `memberIds` becomes an array because every
@@ -1236,13 +1243,16 @@ function annotateMasterRank(units) {
     }
     const master = u.masterId ? units.find((m) => m.id === u.masterId) : null;
     u.masterTier = master ? tierOf({ rank: master.rank }) : null;
-
-    // "WHILE ALIVE". A dead Master grants nothing, and its Servant is already
-    // spending the clock this would have lengthened.
-    const alive = master ? currentHealth(master) > 0 : false;
-    if (alive && u.masterTier === "high" && typeof u.sustainability === "number") {
-      u.sustainability += 1;
-    }
+    // Unbound, derived from its Master's pools and never stored (Ch. 33): the
+    // Contract rule reads it. A separate flag, not `contract: "unbound"`: the
+    // readers of that word price an NP and run a clock as for a Free Servant,
+    // and an Unbound Servant's Master still pays and still stands (#241, live:
+    // no Unbound Servant could ever be contracted).
+    u.unbound = Boolean(master) && u.kind === "servant" && isUnbound(master, u.legionKey || u.id);
+    // The High Rank's +1◈ Sustainability is NOT added here: it was +1 Turn,
+    // only while the Master lived, so no Free clock ever saw it. It is added at
+    // the Master's death, to the clock that death starts (#241 reading 4,
+    // `relationships.mjs#onMasterDefeated`).
   }
 }
 
@@ -1750,6 +1760,11 @@ export function contributionsOf(actor, { terrain = [], tick = null, partnerDista
     // people. The war setup's unselected NP choice is the same word, and *"is
     // unusable"* does not leave its passives running either.
     .filter((item) => !item.system?.expended)
+    // A Master's OWN Essence is its Servant's passive, never the Master's: its
+    // rules reach the Servant through the copy the Servant holds
+    // (`engine/master-essence.mjs`). Collected here, Pendant raised the Master's
+    // own Magic Crest and Black Keys (R) its own Health (#241, live).
+    .filter((item) => item.type !== "masterEssence" || Boolean(item.system?.grantedBy))
     // ...nor a Skill SUSPENDED by a Command Spell, until its span has passed.
     // `suspendedUntil` was read only for a Mode, which it also switches off; a
     // passive bought off the same way kept every rule running -- Hatred of

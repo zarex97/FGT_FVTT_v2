@@ -187,6 +187,7 @@ export const ABILITY_ROUTES = {
   cooldownOverride: doc("module/rules/ability-use.mjs", "the price of a use on the Cooldown (#230)"),
   toggleWindow: doc("module/rules/modes.mjs", "when a mode may be switched (#230)"),
   noMasterCost: doc("module/rules/ability-use.mjs", "an NP that costs its Master nothing (#230)"),
+  freeServantCost: doc("module/rules/ability-use.mjs", "a Free Servant's NP price its sheet states (#241)"),
   ignoresNPGate: doc("module/rules/ability-use.mjs", "an NP no Round gate holds back (#230)"),
   worksWhenHeld: doc("module/rules/snapshot.mjs", "an Item's rules run while it is held (#230)"),
   grants: doc("module/engine/io.mjs", "the abilities an Item gives its holder (#230)"),

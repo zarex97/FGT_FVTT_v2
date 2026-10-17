@@ -72,7 +72,7 @@ export function empty() {
   return {
     modifiers: [], statDeltas: [], checkModifiers: [], immunities: [],
     suppressions: [], grantedAbilities: [], autoSucceeds: [], eventHandlers: [], revivals: [],
-    attributes: [], magicResistance: null, magicResistanceVariants: [], variantOverride: null, revealsEffect: null, damageNegation: [], zonBonuses: [],
+    attributes: [], magicResistance: null, magicResistanceVariants: [], variantOverride: null, revealsEffect: null, damageNegation: [], zonBonuses: [], npGateShifts: [],
     vulnerabilityAmplifiers: [], periodicOverrides: [],
     abilityRankShifts: [],
     auras: [], applicationChances: [], compulsions: [], preemptions: [], damageFloors: [],
@@ -1442,6 +1442,15 @@ export const EXECUTORS = Object.freeze({
       stacks: el.stacks === true,
       source,
     });
+  },
+
+  /**
+   * Open this Unit's Noble Phantasm gate earlier: a Master Essence's *"Servant
+   * NP is usable 4 Rounds earlier"* (#241). On the Servant's own copy of its
+   * Master's Essence, so it lapses with the Contract.
+   */
+  NpGateShift(el, { source, out }) {
+    out.npGateShifts.push({ rounds: Number(el.rounds ?? 0), source });
   },
 
   RankShift(el, { source, out }) {

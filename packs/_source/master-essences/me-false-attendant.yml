@@ -1,0 +1,15 @@
+# docs/Master Essences.md, Rank C Master
+#
+# > "False Attendant: Servant's chance of being inflicted by debuffs is reduced by 15%. Does not affect Instakill, Death, & Erase."
+#
+# Magic Resistance's channel (#241 reading 7). `severity: normal` is the
+# exemption: Instakill, Death and Erase are other tiers.
+schema: 1
+id: me-false-attendant
+name: "False Attendant"
+type: masterEssence
+rank: C
+description: |
+  Servant's chance of being inflicted by debuffs is reduced by 15%. Does not affect Instakill, Death, & Erase.
+rules:
+  - { key: ApplicationChance, direction: incoming, severity: normal, value: 15 }

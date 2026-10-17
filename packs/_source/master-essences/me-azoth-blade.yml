@@ -1,0 +1,16 @@
+# docs/Master Essences.md, Rank C Master
+#
+# > "Azoth Blade: All damage taken by Servant is reduced by 15%; if NP, 10%"
+#
+# A passive, not an Effect (#241 reading 7): no removal, theft or buff line
+# reaches it. `defUp`, the bucket every "damage taken is reduced by X%" Class
+# Skill passive uses (Existence Outside the Domain).
+schema: 1
+id: me-azoth-blade
+name: "Azoth Blade"
+type: masterEssence
+rank: C
+description: |
+  All damage taken by Servant is reduced by 15%; if NP, 10%
+rules:
+  - { key: DamageModifier, modifierKey: defUp, direction: taken, value: 15, npValue: 10 }

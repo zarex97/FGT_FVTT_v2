@@ -1,0 +1,15 @@
+# docs/Master Essences.md, Rank C Master
+#
+# > "Black Keys (R): Servant Max Health+100."
+#
+# The maximum only (#241 reading 6): a summon starts the Servant full; a loss
+# cuts the current value to the new maximum and no lower.
+schema: 1
+id: me-black-keys-r
+name: "Black Keys (R)"
+type: masterEssence
+rank: C
+description: |
+  Servant Max Health+100.
+rules:
+  - { key: MaxDelta, stat: health, value: 100 }

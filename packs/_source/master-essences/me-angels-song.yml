@@ -1,0 +1,22 @@
+# docs/Master Essences.md, Rank B Master
+#
+# > "Angel's Song: Servant NP deals 150% extra damage. 1 use only, Player decides when it's used."
+#
+# One use, offered on the Servant's NP card in Noble Phantasm Max's window
+# (#241 reading 11). `percent` adds to Noble Phantasm Max's +100% rather than
+# multiplying it.
+schema: 1
+id: me-angels-song
+name: "Angel's Song"
+type: masterEssence
+rank: B
+description: |
+  Servant NP deals 150% extra damage. 1 use only, Player decides when it's used.
+maxUses: 1
+# Offered once, on the declaration window's card, before any Combat Process
+# exists: one spend boosts every target of the attack (ruled 2026-10-17, #241).
+timing: { window: beforeAttack }
+requirements:
+  - { kind: attackIsNP }
+effect:
+  - { kind: modifyDamage, percent: 150, side: attacker, target: contractedServant }

@@ -210,3 +210,8 @@ receives, in percent, read at the one door every heal passes (`engine/applier.mj
 is −X sparing the Home Base, Drowning −100 sparing nothing. `FollowUpAttack {predicate, move, lockReaction}` is
 Bab-ilu's additional Normal Attack, read by `engine/follow-up.mjs#offerFollowUp`. `FlatDamage` gains `fixed`:
 the bonus is added at stage 16, after every modifier and the Injury snapshot (Divinity's Fixed Divine Damage).
+
+### `NpGateShift` (#241)
+
+`{ key: NpGateShift, rounds: N }` opens its bearer's Noble Phantasm gate N Rounds earlier, collected into
+`npGateShifts` and read by `np-gate.mjs#essenceShift`. A Master Essence's, on its Servant's copy.

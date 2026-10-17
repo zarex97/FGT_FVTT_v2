@@ -121,6 +121,53 @@ export const OPERATIONS = Object.freeze({
     },
   },
 
+  /**
+   * Close a declaration window (#241): the Masters who could boost the attack
+   * press Continue, and the declaration goes on. On the GM, which holds the
+   * wait; a player may not write the card's flag.
+   */
+  closeDeclarationWindow: {
+    authorize: (payload, userId) => {
+      const message = game.messages.get(payload.messageId);
+      const user = game.users.get(userId);
+      if (!message || !user) return { allowed: false, reason: "Unknown window." };
+      const masters = message.getFlag("fgt", "masterIds") ?? [];
+      if (user.isGM || masters.some((id) => game.actors.get(id)?.testUserPermission(user, "OWNER"))) {
+        return { allowed: true, reason: null };
+      }
+      return { allowed: false, reason: `${user.name} holds no Master in this window.` };
+    },
+    execute: async (payload) => {
+      const message = game.messages.get(payload.messageId);
+      if (!message?.getFlag("fgt", "declarationOpen")) return { ok: false };
+      await message.setFlag("fgt", "declarationOpen", false);
+      return { ok: true };
+    },
+  },
+
+  /**
+   * Attempt a Contract (Ch. 32). On the GM client: it rolls, writes the
+   * Servant, the contractor's Command Spells and the match log, and a player
+   * may write none of the last. Run on Player1's own client it threw *"User
+   * Player1 lacks permission to update Combat"* and the dialog said nothing
+   * (#241, live).
+   */
+  attemptContract: {
+    authorize: (payload, userId) => {
+      const contractor = game.actors.get(payload.contractorId);
+      const user = game.users.get(userId);
+      if (!contractor || !user) return { allowed: false, reason: "Unknown contractor." };
+      if (!user.isGM && !contractor.testUserPermission(user, "OWNER")) {
+        return { allowed: false, reason: `${user.name} does not control ${contractor.name}.` };
+      }
+      return { allowed: true, reason: null };
+    },
+    execute: async (payload) => {
+      const { attemptContract } = await import("../engine/contract.mjs");
+      return attemptContract(payload);
+    },
+  },
+
   resolveAttack: {
     authorize: (payload, userId) => {
       const attacker = game.actors.get(payload.attackerId);

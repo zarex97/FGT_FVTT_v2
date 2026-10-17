@@ -134,8 +134,9 @@ Ruled 2026-10-14: a Command Spell is a spell for the Master's own contracted Ser
 
 - `canSpend` refuses with `noServant` unless the Servant is alive on the board. The Master's bar shows no Command Spell
   without one, and asks which Servant first when there are several.
-- `processOffers(state)` is the one list for an attack card and for `awaitInterrupt`: for each Master on the board,
-  each live Servant, each usable command. One that changes the attack (`processRoleOf`: Damage Block, Halve NP,
+- `processOffers(state)` is the one list for an attack card and for `awaitInterrupt`: for each Master in a Contract
+  with a Unit of that Process, or in it itself (ruled 2026-10-17, #241: it walked every Master on the board, and a
+  Great War player saw seven unnamed Half Heals), each live Servant, each usable command. One that changes the attack (`processRoleOf`: Damage Block, Halve NP,
   Survive Kill and Escape defend; Damage Up, NP Max, Force NP and Kill Humans attack) is kept only for the Servant on
   that side; Escape also when the Master is the one attacked. Others show for every Servant, named on the button when
   the Master has several.
@@ -147,3 +148,28 @@ Ruled 2026-10-14: a Command Spell is a spell for the Master's own contracted Ser
 offered while the compulsion binds him, frees Arjuna alone for 1◈ (Karna stays bound). Pressed live: the choice list's
 options drew over each other until the toggle grew to its text (§46.4-OP), and the card names the Servant publicly
 (§46.4-OO).
+
+### A Master Essence's one use, and the window before an attack (#241)
+
+- **An Essence's one use is a command** (`rules/command-spells.mjs#essenceCommand`): its `timing`, `requirements` and
+  `effect` are a Command Spell's vocabulary, `catalogueOf(masterId)` adds the Master's unspent Essence to the registry's
+  commands, and `canUseEssence` gates it on its `maxUses` and its requirements, never on a pool, ZON or a sealed field.
+  Paid by the `spendEssence` intent. Heaven's Feel and its kin in the declaration window; Divine Banquet and its kin from the
+  Master's bar (**Master Essence**), refused unless an NP is cooling and the NP gate has opened.
+- **Increases add, cuts multiply** (`combat-process.mjs#damageFactorOf`): Damage Up and Noble Phantasm Max author
+  `percent: 100`, Heaven's Feel `percent: 200`, ×4 together (reading 11). Noble Phantasm Max asks `attackIsNP`; it was
+  offered on every attack.
+- **`beforeAttack` is the declaration window** (`engine/declaration-window.mjs`, ruled 2026-10-17, §46.4-PO). After
+  targeting is confirmed and before any Combat Process exists, a card is whispered to the GM and the owners of the
+  attacker's Masters, offering the boosts of the attack (`rules/command-spells.mjs#reachesDeclaration`: a `modifyDamage`
+  on the attacker's side): Noble Phantasm Max, Damage Up, Heaven's Feel, Angel's Song, Dragonkind, Oracle. It holds
+  until **Continue** (`closeDeclarationWindow`), until nothing is left to buy, or for `commandSpellTimeout`; at 0, and
+  when no Master could boost the attack, no card opens. 0 turns every wait off (ruled 2026-10-17): no offer holds an
+  attack and the six boosts cannot be bought. The setting's hint said *"0 disables the timeout"*, which reads as a
+  wait with no limit; it now says what the code does. What it bought is recorded on the card as a Process-shaped
+  state, and every Process of the declaration starts with it (`carryDeclarationBoosts`): one spend reaches every target
+  of an area NP. The six no longer show on a defender's card; a defender's cuts (Damage Block, Halve Noble Phantasm)
+  stay there. Force Noble Phantasm also names `beforeAttack` and keeps its own path.
+- **A spend on a card asks with the card's attack** (`spendCommandSpell` reads the Process first, §46.4-PE).
+- **Kill Humans** is an own-Turn command that lays the `killHumans` mark (`effects/kill-humans.yml`), its Master the
+  source; `notMarked` keeps it from being offered twice. Its Contract half is Ch. 32.

@@ -1,0 +1,16 @@
+# docs/Master Essences.md, Rank B Master
+#
+# > "Steel Training: All damage taken by Servant is reduced by 20%; if NP, 15%."
+#
+# A passive, not an Effect (#241 reading 7): no removal, theft or buff line
+# reaches it. `defUp`, the bucket every "damage taken is reduced by X%" Class
+# Skill passive uses (Existence Outside the Domain).
+schema: 1
+id: me-steel-training
+name: "Steel Training"
+type: masterEssence
+rank: B
+description: |
+  All damage taken by Servant is reduced by 20%; if NP, 15%.
+rules:
+  - { key: DamageModifier, modifierKey: defUp, direction: taken, value: 20, npValue: 15 }

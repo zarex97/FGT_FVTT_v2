@@ -15,8 +15,12 @@ description: +100% Total Damage of the Servant's Normal Attack, Attack Skill or 
 requirements:
   - { kind: servantInZon }
   - { kind: attackIsNotNP }
+# Offered once, on the declaration window's card, before any Combat Process
+# exists: one spend boosts every target of the attack (ruled 2026-10-17, #241).
 timing: { window: beforeAttack }
 effect:
   - kind: modifyDamage
-    factor: 2
+    # An increase, which ADDS to another increase of the same Total Damage
+    # (#241 reading 11): +100% beside Heaven's Feel's +200% is x4.
+    percent: 100
     side: attacker

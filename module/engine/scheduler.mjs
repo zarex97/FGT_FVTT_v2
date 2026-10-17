@@ -131,8 +131,12 @@ export function endTurn(board, ctx) {
 
   // 8. The multi-Servant tax (Ch. 32). Flat 25 Health per Master whose Servants
   //    acted more than once this Turn, and a LOSS rather than damage, so
-  //    nothing reduces it.
-  intents.push(...multiServantIntents(units, ctx));
+  //    nothing reduces it. Grand Order is the board's, the one the ban reads:
+  //    the Turn-end context never carried it, and a Grand Order war that
+  //    lifted the ban still charged the tax (#241, live).
+  intents.push(...multiServantIntents(units, {
+    ...ctx, grandOrder: Boolean(board?.grandOrder ?? ctx.grandOrder), ruleset: board?.ruleset ?? "advanced",
+  }));
 
   // 9. A stance is dropped when its owner's Turn ends. *"Achilles is always
   //    Dismounted when it is not his Turn"* (Ch. 45) -- a statement about
@@ -2539,10 +2543,13 @@ function multiServantIntents(units, ctx) {
   );
   for (const master of acting) {
     const servants = units.filter((u) => u.masterId === master.id);
-    for (const d of multiServantTax(master, servants, { grandOrder: ctx.grandOrder })) {
+    for (const d of multiServantTax(master, servants, { grandOrder: ctx.grandOrder, ruleset: ctx.ruleset })) {
       // `statDelta`, not `damage`: a loss bypasses every reduction effect.
       // Named, so the Turn-end card says why: it read "(an effect)" (#193).
-      out.push({ ...I.statDelta(d.unitId, d.stat, d.delta), source: d.source });
+      // A Master it empties is defeated, as any loss that empties a Health bar
+      // is (ruled 2026-10-17, #241): it left a Master at 0, alive. Nobody's
+      // kill, so no Conquest; its Servants go Free.
+      out.push({ ...I.statDelta(d.unitId, d.stat, d.delta), source: d.source, defeatsAtZero: true });
       out.push(I.log({ kind: "multiServantTax", unitId: d.unitId, amount: -d.delta }));
     }
   }

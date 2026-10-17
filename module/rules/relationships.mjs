@@ -27,6 +27,22 @@ const BASE_FLIP = 50;
  */
 export const MULTI_SERVANT_COST = 25;
 
+/**
+ * The tax by ruleset (ruled 2026-10-17, #241 reading 15). Advanced: *"that
+ * Master loses 25 Health"*, flat, and the ban at 25 (Ch. 32). Normal: *"that
+ * Master loses 20 Health per additional Servant. If a Master has 20 Health or
+ * less, it cannot order more than one of its Servants to Act"*. Both rulesets
+ * paid the Advanced 25 flat.
+ *
+ * @param {string} [ruleset]
+ * @returns {{cost: number, floor: number, perAdditional: boolean}}
+ */
+export function multiServantRule(ruleset = "advanced") {
+  return ruleset === "normal"
+    ? { cost: 20, floor: 20, perAdditional: true }
+    : { cost: MULTI_SERVANT_COST, floor: MULTI_SERVANT_COST, perAdditional: false };
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Ch. 32 Overpower and Underpower                                            */
 /* -------------------------------------------------------------------------- */
@@ -194,7 +210,9 @@ export function resolveUnderpower({ attacker, defender, roll }) {
  * @param {boolean} [options.spares] whether conquest spares it the consequences
  * @returns {object[]} descriptors
  */
-export function onMasterDefeated(servant, { conquered = false, spares = true, turnsPerRound = 3 } = {}) {
+export function onMasterDefeated(servant, {
+  conquered = false, spares = true, turnsPerRound = 3, highRankMaster = false,
+} = {}) {
   if (servant?.kind !== "servant") return [];
   if (conquered && spares) return [];
 
@@ -214,7 +232,12 @@ export function onMasterDefeated(servant, { conquered = false, spares = true, tu
     // NaN arithmetic that silently defeats a Servant with time left.
     return out;
   }
-  if (servant.sustainability <= 0) {
+  // A High Rank Master's +1◈ (#241 reading 4), in Turns like the clock, and
+  // here, at the death that starts the clock: it is the only moment the bonus
+  // can matter. The board added +1 TURN while the Master lived, which no
+  // Free clock ever read.
+  const bonus = highRankMaster ? turnsPerRound : 0;
+  if (servant.sustainability + bonus <= 0) {
     out.push({ kind: "defeat", unitId: servant.id, cause: "sustainabilityExhausted" });
     return out;
   }
@@ -231,7 +254,10 @@ export function onMasterDefeated(servant, { conquered = false, spares = true, tu
   const madEnhancement = (servant.abilities ?? []).some(
     (a) => (a.slug === "madEnhancement" || a.id === "madEnhancement") && a.active,
   );
-  if (madEnhancement) {
+  // ONE resource descriptor: the caller writes each against the clock it read
+  // before any of them, so two would leave only the last.
+  const delta = bonus + (madEnhancement ? -2 * turnsPerRound : 0);
+  if (delta !== 0) {
     // *"…Sustainability is reduced by **2◈ Turns**"*, and `servant.sustainability`
     // is the clock this function has just insisted is RESOLVED — 6 for a 2◈
     // Servant at three Turns to the Round. A bare `-2` against it charged two
@@ -239,10 +265,7 @@ export function onMasterDefeated(servant, { conquered = false, spares = true, tu
     // what his sheet says and survived a Master's death he should not have.
     // One denomination for the whole descriptor stream: the caller adds no
     // arithmetic of its own, which is how the two came apart the last time.
-    out.push({
-      kind: "resource", unitId: servant.id, key: "sustainability",
-      delta: -2 * turnsPerRound,
-    });
+    out.push({ kind: "resource", unitId: servant.id, key: "sustainability", delta });
   }
   return out;
 }
@@ -303,11 +326,16 @@ export function actedWeight(servants) {
 export function multiServantTax(master, servants, settings = {}) {
   if (settings.grandOrder) return [];
 
-  if (actedWeight(servants) <= 1) return [];
+  const weight = actedWeight(servants);
+  if (weight <= 1) return [];
 
+  const rule = multiServantRule(settings.ruleset);
+  // Normal's "per additional Servant": every Servant past the first. Advanced
+  // charges once however many Acted.
+  const cost = rule.perAdditional ? rule.cost * (Math.ceil(weight) - 1) : rule.cost;
   return [{
     kind: "statDelta", unitId: master.id, stat: "health.value",
-    delta: -MULTI_SERVANT_COST, isLoss: true, source: "Multi-Servant tax",
+    delta: -cost, isLoss: true, source: "Multi-Servant tax",
   }];
 }
 
@@ -325,7 +353,7 @@ export function multiServantTax(master, servants, settings = {}) {
  */
 export function mayOrderAnotherServant(master, servants, settings = {}) {
   if (settings.grandOrder) return { ok: true };
-  if (currentHealth(master) > MULTI_SERVANT_COST) return { ok: true };
+  if (currentHealth(master) > multiServantRule(settings.ruleset).floor) return { ok: true };
 
   // The same weight as the tax, and for the same reason: one twin having Acted
   // is half a Unit, so ordering the other is still one order.

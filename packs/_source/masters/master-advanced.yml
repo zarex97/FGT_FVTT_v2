@@ -28,6 +28,12 @@ rank: ""
 commandSpells: 3
 zon: 2
 
+# Every Master carries the Normal sheet's Magic Crest (ruled 2026-10-17, #241
+# reading 13): only that sheet states one, and the Advanced Master had no
+# Attack but its Normal Attack.
+abilities:
+  - { ref: normal-magic-crest }
+
 notes: |
   Named `Master` rather than `Master of X`: the setup wizard renames each copy
   after the container it is assigned to, because a Master's public identity is

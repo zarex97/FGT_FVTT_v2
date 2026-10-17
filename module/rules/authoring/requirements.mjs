@@ -150,7 +150,7 @@ export const REQUIREMENT_DESCRIPTORS = describeTable([
 /** @type {readonly string[]} */
 export const REQUIREMENT_IDS = Object.freeze(Object.keys(REQUIREMENT_DESCRIPTORS));
 
-/** The 9 kinds `rules/command-spells.mjs#meets` answers. */
+/** The 13 kinds `rules/command-spells.mjs#meets` answers. */
 export const CS_REQUIREMENT_DESCRIPTORS = describeTable([
   csReq("servantInZon", "Only while the Servant is inside its Master's ZON."),
   csReq("attackIsNotNP", "Only when the attack being resolved is not a Noble Phantasm."),
@@ -177,6 +177,13 @@ export const CS_REQUIREMENT_DESCRIPTORS = describeTable([
     { key: "who", type: "select", choices: ["master", "servant", "pair"] },
   ]),
   csReq("noOtherRevival", "Only if the Servant would not have come back anyway."),
+  // A Master Essence's one use, and Kill Humans (#241).
+  csReq("attackIsNP", "Only when the attack being resolved is a Noble Phantasm."),
+  csReq("npGateOpen", "Only once the Servant's Noble Phantasm gate has opened."),
+  csReq("npCooling", "Only while one of the Servant's Noble Phantasms is cooling down."),
+  csReq("notMarked", "Only while the Servant does not already carry a named mark.", [
+    { key: "effect", type: "text" },
+  ]),
 ]);
 
 /** @type {readonly string[]} */
