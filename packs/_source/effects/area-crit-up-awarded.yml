@@ -1,0 +1,25 @@
+# Arjuna's The Awarded Hero -- char_orig_sheets/Copia de Arjuna.md
+#
+# "Applies Area CritUp (Awarded) for 1◈+⅔◈ Turns, Crit Chance is increased by
+# 10% for himself; and 5% for other allied Units within a 2 panel area of this
+# Unit."
+#
+# Van Gogh's Area CritUp with two figures: its own effect (#234 reading 7), so
+# it adds to hers and to Crit Up. The bearer's 10 is his own CritModifier, the
+# others' 5 an Aura that leaves him out (`relations: [ally]`).
+schema: 1
+id: areaCritUpAwarded
+name: "Area CritUp (Awarded)"
+description: "Crit Chance is increased by 10% for this Unit, and by 5% for other allied Units within a 2 panel area of it."
+polarity: buff
+volatility: nonVolatile
+valence: supportive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - { key: CritModifier, aspect: chance, value: 10 }
+  - key: Aura
+    radius: 2
+    relations: [ally]
+    elements:
+      - { key: CritModifier, aspect: chance, value: 5 }

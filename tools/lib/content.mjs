@@ -153,6 +153,8 @@ const COPY_REASONS = new Set(COPY_REASON_LIST);
 
 /** The two check tables, from docs/13-checks-and-randomness.md. Not rank tables. */
 const CHECK_TABLES = new Set(["favourable", "unfavourable"]);
+/** Every property an `AttackProperty` may grant: the names `engine/attack.mjs` reads. */
+const ATTACK_PROPERTIES = new Set(["pierce", "ignoresDefUp", "invulnFactor", "element", "elementFraction"]);
 const VOLATILITIES = new Set(["nonVolatile", "volatile", "mental", "terminal", "none"]);
 
 /**
@@ -1390,6 +1392,13 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     // these shapes.
     for (const [field, id] of actionTables(el)) {
       if (!(id in TABLES)) problems.push(`${path}: ${where} ${field} references unknown table "${id}"`);
+    }
+    // The properties an attack spec reads by name (`engine/attack.mjs`). Any
+    // other name authors cleanly and is read by nobody: Watermelon's
+    // `ignoreDef` beside the reader's `ignoresDefUp` (#234).
+    if (el.key === "AttackProperty" && !ATTACK_PROPERTIES.has(el.property)) {
+      problems.push(`${path}: ${where} grants unknown attack property "${el.property}" — `
+        + `known: ${[...ATTACK_PROPERTIES].join(", ")}`);
     }
     if (el.forceTable !== undefined) {
       if (el.key !== "TableOverride") {

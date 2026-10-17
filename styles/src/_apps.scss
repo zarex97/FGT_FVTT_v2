@@ -356,6 +356,7 @@
   &__toggle {
     display: flex; flex-direction: column; align-items: flex-start;
     width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+    height: auto; min-height: 0; line-height: 1.25; padding: 0.2rem 0;
   }
   &__name { font-weight: 600; }
   &__meta { font-size: 0.72rem; opacity: 0.75; }
@@ -371,6 +372,11 @@
   &__toggle {
     display: flex; flex-direction: column; align-items: flex-start;
     width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+    // Foundry gives every button one line's height. An option with a detail
+    // line overflowed it and drew over the next option, so a click on "Suspend
+    // Skill" picked "Reduce Cooldown" (#234, found live). The option is as tall
+    // as what it says.
+    height: auto; min-height: 0; line-height: 1.25; padding: 0.2rem 0;
   }
   &__name { font-weight: 600; }
   &__subtitle { font-size: 0.72rem; opacity: 0.75; }

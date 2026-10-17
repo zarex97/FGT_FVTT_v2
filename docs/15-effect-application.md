@@ -253,3 +253,13 @@ halves of *"for debuffs which do not stack, its duration is extended instead"* (
 effect refreshes) and of No Buff counted per 9 (`count`, one charge each): a No Buff with charges spends one
 for every buff it stops, and one with none is the Duration-only kind it always was. Enkidu's Stun on a Divine
 DU passes every immunity, one naming Stun included, and still meets resistance.
+
+### A definition's default magnitude (#234 reading 6)
+
+`defaultMagnitude` on an effect definition is the magnitude an entry that states none lands with
+(`landing.mjs`), and the projection reads it too for an instance that carries none
+(`snapshot.mjs#instanceMagnitude`). Regen is the one definition with a default, 10: its percent is
+`"@magnitude"` now, so Arjuna's Awarded Hero heals 15%, Van Gogh's Regens 5% (they healed 10%, a
+literal in `regen.yml`), and Pale Rider's unstated Regen 10%. A Regen landed before the change
+carries 0 and reads as the default, since a 0% Regen heals nothing. A `then` action's
+`percentOfMax` resolves against the instance like a chance does (`resolveRuleValues`).

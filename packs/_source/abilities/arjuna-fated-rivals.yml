@@ -1,0 +1,35 @@
+# Arjuna, char_orig_sheets/Copia de Arjuna.md
+# Karna's own side is `karna-fated-rivals`; a sheet binds only its owner, so
+# this file is Arjuna's half and nothing more.
+schema: 1
+id: arjuna-fated-rivals
+name: "Fated Rivals of the Mahabharata"
+slug: fatedRivals
+passive: true
+# Not a technique and not a body: it is a relationship between two specific
+# Heroic Spirits (Karna's file says why it cannot be copied).
+copyable: { allowed: false, reason: unique }
+description: |
+  (Passive) If Karna is in the opposing Faction and within Range of Arjuna, they will only Attack
+  each other. Arjuna's Master can spend one Command Spell to negate this effect for 1◈ Turns, but
+  it will only affect Arjuna.
+passiveRules:
+  # Karna's `Compulsion`, mirrored (#234 readings 2, 3, as #206 reading 2):
+  # within Arjuna's current Range; every Attack must target Karna; an area
+  # Attack must catch Karna and still hits the rest; Skills that are not
+  # Attacks stay free; it never makes him Attack. The identity is the CONTENT
+  # ID, the one name of Karna's a world cannot rename.
+  #
+  # The sheet reads "Karna's Master can spend one Command Spell": a slip for
+  # his own Master, ruled 2026-10-16 (#234 reading 2). Suspend Skill on this
+  # Skill, offered only while it binds him, frees Arjuna alone.
+  - key: Compulsion
+    id: fatedRivals
+    within: range
+    relations: [enemy]
+    targetPredicate: [target:contentId:karna]
+    forcesTarget: true
+    attacksOnly: true
+    restrictsOnly: true
+    areaMustInclude: true
+    suspendWhileBound: true

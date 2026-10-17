@@ -1,0 +1,31 @@
+# Arjuna, char_orig_sheets/Copia de Arjuna.md
+# Karna's Flash of the Sun God with Luck for Agility, and the Agni buff
+# (Raikou's counted buff, `effects/agni.yml`).
+schema: 1
+id: arjuna-roar-of-the-flame-god
+name: "Roar of the Flame God"
+rank: EX
+cooldown: "4◈"
+timing: { window: ownTurn }
+sameTurnExclusive: [arjuna-mana-burst-flames]
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Restores 3 Luck.
+  2. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 40%; if NP, 30%.
+  3. Applies @effect[npDmUp]{NP DmUp} for 1◈ Turns, NP damage dealt is increased by 20%.
+  4. Applies the @effect[agni]{'Agni'} buff for 1◈ Turns, 3 times, Normal Attacks deal Fire damage with a 30%
+  chance of inflicting @effect[burn]{Burn} for 1◈ Turns; does not apply to & is not consumed by Attacks used with
+  @ability[arjuna-mana-burst-flames]{Mana Burst (Flames)}.
+  Cooldown: 4◈ Turns.
+  Cannot be used on the same Turn as Mana Burst (Flames).
+phases:
+  - kind: resource
+    target: self
+    changes:
+      - { key: luck.value, delta: 3, clampToMax: true }
+  - kind: applyEffects
+    target: self
+    rules:
+      - { effect: { id: atkUp, magnitude: 40, npMagnitude: 30 }, duration: "1◈" }
+      - { effect: { id: npDmUp, magnitude: 20 }, duration: "1◈" }
+      - { effect: { id: agni }, duration: "1◈" }

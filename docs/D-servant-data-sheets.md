@@ -335,7 +335,7 @@ Discussed: Ch. 36 §36.1.
 
 | Ability | Type | Mapping |
 |---|---|---|
-| Fated Rivals of the Mahabharata | Passive | RE (`Compulsion` with `target:contentId:arjuna`; CS-negatable). **Inert by design** — Arjuna is not in the reference set (§36.1). |
+| Fated Rivals of the Mahabharata | Passive | RE (`Compulsion` with `target:contentId:arjuna`; CS-negatable). Inert by design until Arjuna was built (#234, 2026-10-16); live since, beside his own half (§D.33e). |
 | Magic Resistance (C) | Class, passive | RE |
 | Riding (A) | Class | RE (MOV +5, 3 passives) |
 | Divinity (A) | Passive | RE (+50 flat) |
@@ -594,6 +594,7 @@ Seventeen Servants added in `0.2.0`.
 | Quetzalcoatl | Rider | B | B | B+ | EX | A+ | 1250 | 7 | 2 | 125 | 250 | 2◈ |
 | EMIYA | Archer¹ | D | C | C | B | E | 1000 | 4 | 4 | 75 | 175 | 7◈ |
 | Proto Gil | Archer¹ | C | C | B | A | A | 1000 | 6 (5)⁸ | 5 | 100 | 200 | **N/A**⁷ |
+| Arjuna | Archer¹ | A | B | B | B | A++ | 1250 | 5 | 4 | 150 | 175 | 8◈ |
 | Asterios | Berserker | A++ | A++ | C | D | E | 1500 | 4 | 2 | 170 | 125 | 2◈ |
 | Raikou | Berserker | A | B | D | A | C | 1250 | 4 | 4 | 150 | 200 | 2◈ |
 
@@ -656,12 +657,12 @@ authoring began.
 | Attribute | Bearers |
 |---|---|
 | `Female` | Nursery, Serenity, Jack, Danzō, Medea, Medusa, Anastasia, Quetzalcoatl, Raikou |
-| `Male` | Yan Qing, Achilles, Ozymandias, EMIYA, Proto Gil, Asterios |
+| `Male` | Yan Qing, Achilles, Ozymandias, EMIYA, Proto Gil, Arjuna, Asterios |
 | `Male/Female` | Hundred-Faced Hassan (the pool contains both) |
 | *(no gender)* | Pale Rider |
 | `[Man]` | Nursery, Serenity, Jack, Yan Qing, Danzō, H-F Hassan, Anastasia, EMIYA |
 | `[Earth]` | Medea, Achilles, Medusa, Asterios |
-| `[Sky]` | Ozymandias, Quetzalcoatl, Proto Gil, Raikou |
+| `[Sky]` | Ozymandias, Quetzalcoatl, Proto Gil, Arjuna, Raikou |
 | `[-]` | Pale Rider — an explicit **null** axis, not an absent one |
 | `King` | Ozymandias, Quetzalcoatl, Proto Gil |
 | `Humanoid` | all but Pale Rider |
@@ -671,7 +672,7 @@ authoring began.
 | `Animalistic` | Asterios |
 | `Child` | Nursery |
 | `Anti-Hero` | Serenity, Jack, H-F Hassan, Medea, Medusa, EMIYA, Asterios |
-| `Divine` (via Divinity) | Achilles (C), Ozymandias (B), Medusa (E−), Proto Gil (B), Raikou (C), Quetzalcoatl (Divine Core EX) |
+| `Divine` (via Divinity) | Achilles (C), Ozymandias (B), Medusa (E−), Proto Gil (B), Arjuna (B), Raikou (C), Quetzalcoatl (Divine Core EX) |
 
 **New attribute values introduced:** `Fairytale` (Nursery), `Wraith` (Jack), `Liangshan`
 (Yan Qing), `Gorgon` (Medusa), `Demonic Beast` (Asterios), and — on summons rather than on
@@ -1565,6 +1566,19 @@ Utopia, Instinct A, Radiant Road, Mana Burst A (usable on its Cooldown in the ZO
 Reactor Core; the Noble Phantasms Invisible Air (a mode she starts in, switched any Turn once per Turn), Strike Air,
 Excalibur, and Avalon on an 8 of a d8: a barrier for her and those beside her, or an Item placed inside her Master. Ch. 46
 §46.33.
+
+## D.33e Arjuna
+
+`STR A / END B / AGI B / MAG B / LUC A++` · Health 1250 · MOV 5 · Range 4/1 · BA 150 STR, 175 MAG · Sustainability 8◈ ·
+Archer (the sheet names none, #234 reading 1) · Lawful Neutral · India · `[Male, Servant, [Sky], Humanoid]`
+
+**Built 2026-10-16 and pressed 2026-10-17 (#234), 74 Clauses (66 live, 8 in the engine), 18 readings.** Karna's mirror, from Karna's pieces: Fated Rivals (his half,
+`target:contentId:karna`, Suspend Skill by his own Master), Independent Action A, Magic Resistance C, Divinity B
+(`divinity-fixed`), Clairvoyance (Bowman) B+ (EMIYA's Evade− at 90; Crit Up, Debuff Immune, Range Up (Clairvoyance)),
+The Awarded Hero A+ (an NP cut, Regen 15%, Area CritUp (Awarded), NP Regen), Mana Burst (Flames) A, Roar of the Flame
+God EX (Luck, Atk Up, NP DmUp, the counted Agni buff); the Noble Phantasms Agni Gandiva (Aim, combined base, Magic
+Resistance halved, cools Mana Burst) and Pashupata (a 5x5 within his Range, Death 30% + 10% a Divinity grade, Def Dwn).
+His sheet ruled the Range wall: an area *"within Range"* stops at Range, for every ability (reading 13). Ch. 46 §46.35.
 
 ## D.33c Nursery Rhyme
 

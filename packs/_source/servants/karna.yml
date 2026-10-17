@@ -73,9 +73,9 @@ notes: |
   also gives the player two buttons, which is the honest presentation of a one-way decision that
   permanently deletes his best defensive clause.
 
-  `Fated Rivals of the Mahabharata` is authored and **inert by design**: Arjuna is not in the
-  reference set. Ch. 45's DECISION is that a cross-Servant reference resolves by slug and warns
-  rather than erroring, because a match legitimately may not include the Servant named.
+  `Fated Rivals of the Mahabharata` waited, inert by design, until Arjuna was built (#234,
+  2026-10-16): it binds Karna whenever an enemy `arjuna` stands within his Range. Arjuna's own
+  half is `arjuna-fated-rivals`.
 
   Note 2 on the sheet — *"when Karna uses a NP that deals damage, his Master's Health loss from
   him using the NP overwrites the 20 Health loss from when Karna would normally Act/Attack"* — is

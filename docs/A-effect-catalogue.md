@@ -1,6 +1,6 @@
 # Appendix A — Effect Catalogue
 
-> **Authored so far (Ch. 45).** **186 of 154** effect definitions exist as content in
+> **Authored so far (Ch. 45).** **189 of 154** effect definitions exist as content in
 > `packs/_source/effects/`. This block previously claimed 70 while §A.20 claimed 34 and the
 > directory held 126 — three tallies that disagreed with each other and with the disk, which is
 > why the count is now stated once, here, and derived from `ls packs/_source/effects/`.
@@ -110,7 +110,7 @@ and its implementation note. This is the authoritative reference the compendium 
 
 | Effect | Pol | Val | Stack | Semantics |
 |---|---|---|---|---|
-| `Regen` | B | — | mag | Restores Health at declared intervals. **Does not fire on the turn it ends.** **Built** (`regen`): an `OnEvent` on `turnEnd`/`actedTurnEnd`/`roundEnd` healing `percentOfMax`. The final-turn exclusion holds — an effect-borne handler now carries its instance's expiry and `fireEvent` skips it on the tick it runs out (Ch. 11 §11.9), which had been true of `periodic:` effects and of nothing else. Regen is also the corpus's **first multi-event handler**, which is how a second defect surfaced: the field is `event`, holding an array. Authored as `events:` it compiled, loaded, and subscribed to `undefined` — the validator now refuses an `OnEvent` that names no event. |
+| `Regen` | B | — | mag | Restores Health at declared intervals. **Does not fire on the turn it ends.** **Built** (`regen`): an `OnEvent` on `turnEnd`/`actedTurnEnd`/`roundEnd` healing `percentOfMax` — **the instance's own percent** (`"@magnitude"`, `defaultMagnitude: 10`; #234 reading 6): Arjuna's 15, Van Gogh's 5, Pale Rider's unstated 10. It was a literal 10 until 2026-10-16, so Van Gogh's 5% Regens healed 10%; an instance landed before then carries 0 and reads as the default (`snapshot.mjs#instanceMagnitude`). The final-turn exclusion holds — an effect-borne handler now carries its instance's expiry and `fireEvent` skips it on the tick it runs out (Ch. 11 §11.9), which had been true of `periodic:` effects and of nothing else. Regen is also the corpus's **first multi-event handler**, which is how a second defect surfaced: the field is `event`, holding an array. Authored as `events:` it compiled, loaded, and subscribed to `undefined` — the validator now refuses an `OnEvent` that names no event. |
 | `NP Regen` | B | — | mag | NP cooldown −X per interval, **in addition to** the natural reduction. Does not fire on its final turn. Affects *categorized as NP* abilities. |
 | `Dmged NP Regen` | B | — | mag | NP cooldown −X at the end of a Damage Step in which this unit was successfully attacked. |
 | `Drain` | B | O | mag | Restores Health by X% of damage dealt on a successful attack. May carry a cap. |
@@ -512,6 +512,9 @@ Statuses are neither buffs nor debuffs: never removable by `Cure` or `Dispel`, n
 | `Range Up (Hawkeye)` | EMIYA | Range +1 for 1◈ whenever he uses a Thaumaturgy Spell or a Projection Skill/NP (`rangeUpHawkeye`, applied by Magecraft). **Its own effect** (ruled 2026-10-14, #208 reading 14): it adds to another Range Up (Range +2 and +1 is +3), and reapplying it extends only itself. `noneExtend`: a second Spell adds its span to the clock it has (a handler's `ApplyEffect` restamped it from now before, so a second cast in the same Turn changed nothing). |
 | `evadeShift` | Arturia | The holder's own Evade rolls moved by X, the sign carried: Mana Burst's −2 for its Combat Phase (#230). Unremovable. |
 | `cannotAct` | Proto Gil | Cannot Move, Attack, use Skills or Noble Phantasms, Evade, Block or Counter: Enki's price for 1◈ (#232 reading 10). In `budget.mjs`'s PREVENT_ALL; its reactions forbidden, so an Attack on him is taken. Unremovable. |
+| `Range Up (Clairvoyance)` | Arjuna | Range +1 for 1◈ from Clairvoyance (Bowman) (`rangeUpClairvoyance`). Its own effect, as Range Up (Hawkeye) is (#234 reading 5): it adds to other Range Ups; his sheet says *"does not stack"* and nothing of extending, so reapplying it refreshes (`noneRefresh`). |
+| `Area CritUp (Awarded)` | Arjuna | Crit Chance +10% on the bearer and +5% on other allied Units within 2 (`areaCritUpAwarded`): the bearer's own `CritModifier` and an `Aura` with `relations: [ally]`. Its own effect, so it adds to Van Gogh's Area CritUp (#234 reading 7). |
+| `Agni` | Arjuna | Roar of the Flame God's counted buff (`agni`): 3 uses or 1◈; his Normal Attacks are wholly Fire (`AttackProperty element`, honoured only where its predicate holds) and roll 30% `Burn` for 1◈; a hit spends a charge (#234 readings 8, 15). Not granted to, nor spent by, a Mana Burst (Flames) swing. Raikou's `raikouBuff` shape. |
 | `utopiaCount` | Arturia | One Attack counted towards `Dmg Boost (Utopia)`, each its own document; taken with the buff. |
 | `drcPending` | Arturia | One use, spent at the first Turn end: applies `DRC` until the Round ends (#230 reading 9). |
 | `itemRite` | Arturia | Avalon placed, taken back or passed on: no Attack and no Move for the rest of the Turn (`PREVENTS.itemRite`, #230 reading 16). |
@@ -637,7 +640,7 @@ signed: Pois Heal banks a negative.
 
 Each becomes one YAML file under `packs/_source/effects/` (Ch. 37 §37.1).
 
-**Authored so far: 186 files against 154 named rows** — the count lives in this appendix's header block and is read
+**Authored so far: 189 files against 154 named rows** — the count lives in this appendix's header block and is read
 off the directory rather than incremented by hand, because three hand-kept tallies had already
 drifted apart. Scáthach brought fifteen at once, which is more than any other
 Servant and not a coincidence: her *Primordial Rune* is a sixteen-row table of ordinary buffs and
