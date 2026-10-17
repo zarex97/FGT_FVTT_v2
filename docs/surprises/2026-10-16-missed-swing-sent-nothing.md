@@ -1,9 +1,10 @@
 ---
 id: 2026-10-16-missed-swing-sent-nothing
 found: live press
-kind: generic-path-escapes-special-case
+kind: unknown-value-falls-to-default
 status: fixed
-reviewed: false
+reviewed: true
+pattern: unknown-value-falls-to-default
 ---
 **Expected:** Karna under Drowning swings at Proto Gil, the 80% miss lands, and the card says she missed (#232
 reading 19), as a Blind miss has said since step 1.5 was built.

@@ -3,7 +3,8 @@ id: 2026-10-16-area-attack-counted-as-single-target
 found: test
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** Bab-ilu's passive answers only a single-target Attack (#232 reading 1), so its own 3x3 Active,
 catching one DU, offers no additional Normal Attack.
