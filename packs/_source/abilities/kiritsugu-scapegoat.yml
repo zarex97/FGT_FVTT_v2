@@ -14,8 +14,18 @@ cooldown: "3◈"
 # `radius` is not decoration: `reactions.mjs` gates the ally-window offer on
 # `timing.radius ?? 0`, so omitting it offers this ONLY when Kiritsugu is
 # himself the defender -- which is the one case the clause does not cover.
-timing: { window: [ownTurn, whenAllyAttacked], radius: 2 }
+timing:
+  window: [ownTurn, whenAllyAttacked]
+  radius: 2
+  # "Used on an allied Unit within a 2 panel area of Kiritsugu" is its own
+  # phrase, not "on that Unit": at the rung the player picks any ally within 2,
+  # himself included, not only the Unit in peril (#243 reading 5).
+  aimedAt: chosen
 countsAsAttack: false
+# He answers for his ally; the ally still answers for itself. A reaction ability
+# takes the rung as "Do nothing" unless it is free, so without this the Decoy
+# cost the attacked ally its Block and Evade (#243 reading 19, Argos's #193 r8).
+reactionFree: true
 description: |
   (Active) Used during your Turn or when an allied Unit within a 2 panel area of Kiritsugu is
   Attacked. Used on an allied Unit within a 2 panel area of Kiritsugu. Applies
@@ -25,7 +35,9 @@ description: |
 targeting:
   anchor: { kind: targetUnit, range: 2 }
   shape: { kind: unit }
-  selection: { relations: [ally], chooser: all, count: 1 }
+  # `self` too: "an allied Unit within a 2 panel area of Kiritsugu" includes
+  # him, as Van Gogh's and Scáthach's identical phrase does (#243 reading 4).
+  selection: { relations: [ally, self], chooser: all, count: 1 }
 phases:
   - kind: applyEffects
     target: reuse

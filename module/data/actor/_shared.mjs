@@ -532,6 +532,13 @@ export function turnStateField() {
     // Which abilities went this Turn, for `sameTurnExclusive` (Medea's
     // Keraino and Trofa). Stale-by-tick like everything else here.
     abilitiesUsed: new fields.ArrayField(new fields.StringField({ blank: false })),
+    // The uses above that a category's per-Turn cap does not count. Lethal
+    // Gunfire Suppression's free Thaumaturgy Spell *"does not count towards the
+    // one Thaumaturgy Spell usage per Turn"*: recorded as used (it enters
+    // Cooldown, and every other gate sees it), and read off by the cap alone.
+    // Without it the free Penetration refused the Reinforcement after it
+    // (#243, live). Written by `io.recordUse`, read by `costs.mjs`.
+    categoryExempt: new fields.ArrayField(new fields.StringField({ blank: false })),
     // *"Once per Turn during its own Turn it may attempt a Luck Check."*
     // Nursery Rhyme's Nameless Forest, and the reason this is a COUNT rather
     // than a flag is only symmetry with `itemTransfers` -- one is the limit.

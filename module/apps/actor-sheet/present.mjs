@@ -14,6 +14,7 @@
 
 import { periodicDamageFor } from "../../engine/scheduler.mjs";
 import { currentHealth } from "../../domain/health.mjs";
+import { EffectRegistry } from "../../rules/registry.mjs";
 
 /**
  * The five parameters, in the order every reference sheet prints them.
@@ -235,6 +236,14 @@ export function abilityState(verdict, { turnsPerRound = 3, nameOf = null } = {})
 
     case "exhausted":
       return { ok: false, label: "FGT.Ability.Exhausted", detail };
+
+    // WHAT prevents it, as Skill Seal's own refusal already says: a Silenced
+    // Spell's button read a bare "Prevented" where a Skill-Sealed one read
+    // "prevented by Skill Seal" (#243, live).
+    case "prevented":
+      if (!detail.by) return { ok: false, label: "FGT.Ability.Refused.prevented", detail };
+      detail.by = EffectRegistry.get(detail.by)?.name ?? detail.by;
+      return { ok: false, label: "FGT.Ability.PreventedBy", detail };
 
     case "round":
       // How far away, not just which Round: "Round 6" makes a player count.

@@ -18,6 +18,7 @@
 
 import { blockedThisTurn, isNegated } from "./ability-use.mjs";
 import { meetsRequirements } from "./items.mjs";
+import { categoryLimitFor } from "./costs.mjs";
 // The windows themselves live in `rules/windows.mjs` -- one list, held against
 // these dispatchers by a drift test in both directions. `ATTACKER_WINDOWS` is
 // re-exported below because it was exported from here first, and an importer
@@ -181,6 +182,10 @@ export function abilitiesAtWindow(unit, window) {
     if (isNegated(item, effects)) return false;
 
     if (sys.oncePerTurn && used.some((id) => id === item.id || id === sys.contentId)) return false;
+    // A category's per-Turn cap, asked of the one reader the use gate asks:
+    // Reinforcement was offered at the shot's Combat Phase after a Spell had
+    // gone that Turn, refused when picked, and announced as used (#243, live).
+    if (categoryLimitFor({ id: item.id, contentId: sys.contentId, category: sys.category }, unit)) return false;
     if (sys.oncePerRound && usedThisRound.some((id) => id === item.id || id === sys.contentId)) return false;
 
     const maxUses = sys.maxUses ?? null;

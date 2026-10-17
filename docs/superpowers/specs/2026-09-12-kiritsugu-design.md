@@ -106,7 +106,7 @@ Attack would read identically in every unit test and be wrong in every actual ga
 
 **Authorial ruling.** Under Skill Seal, **all** of the following hold at once:
 
-1. The `RankShift` to EX **stops applying** — his LUC falls back to **E** and Max Luck drops with it.
+1. The `RankShift` to EX **stops applying** — his LUC falls back to **E**. ~~Max Luck drops with it.~~ **Overruled 2026-10-17 (#243 reading 2):** the sheet says *"instead of reducing his Max Luck"*; his Max Luck stays, only the rank reads E. Max Luck is rolled once and stored, so nothing moved it.
 2. The +4 aura on nearby Units **stops**.
 3. His Skills and Spells **remain sealed** — the ordinary Skill Seal lockout is untouched.
 4. He additionally takes **+20 to every Luck Check roll he makes**.

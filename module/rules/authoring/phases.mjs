@@ -100,6 +100,10 @@ export const PHASE_DESCRIPTORS = describeTable([
     // A resistance every effect of the phase ignores, by its source's slug.
     // Zabaniya: *"not affected by Magic Resistance"* (#199 reading 11).
     { key: "ignoresResistanceFrom", type: "tokenList" },
+    // Riders land on a hit, not a hurt (§46.4-LI), unless the sheet says
+    // otherwise: Mystery Bisection's Instakill comes *"if damage was dealt"*
+    // (#243 reading 15).
+    { key: "requiresDamage", type: "checkbox" },
   ]),
   entry("damage", 90, "Deals damage to whoever this ability caught.", []),
   entry("cooldown", 80, "Changes a cooldown clock — its own, or somebody else's.", [

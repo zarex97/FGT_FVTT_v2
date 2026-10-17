@@ -4940,6 +4940,91 @@ the clock restarts once per Master's death. `io.setContract` clears it for a Fre
 keeping Hanging Gardens' +2◈ while they stand. Live: the Scáthach at 5 Turns, contracted by Player1's Master of Archer,
 read a full 6. Ch. 32.
 
+### PR. An NP met no Invuln at all — **fixed** (#243)
+
+**Reached: PE.invuln.** Ruling reading 11 asked what Penetration does to Invuln's 50% cut against an NP, and there was
+no cut: the pipeline's comment said *"the NP halving already happened at stage 15"*, and nothing anywhere read Invuln
+against an NP, 300 in, 300 taken. Stage 16 now cuts an NP by 50%, by 25% under Penetration. Reaches Anastasia's
+Freezing Summertime and every Invuln. Ch. 22, Appendix A.
+
+### PS. A rung with only "Do nothing" left on it still asked — **fixed** (#243)
+
+**Reached: LG.react, LG.shot.** `pendingPrompt` counted the three standing rungs, never what `forbiddenReactions` left,
+so its guard for an unanswerable rung never fired. Kiritsugu's shot, which refuses all three, waited on its defender
+to press the one button drawn, and landed after the Attack it answers. Reaches a Knockback's measured damage and every
+attack that refuses every reaction. Ch. 23.
+
+### PT. A use granted at another ability's moment met the used ability's own — **ruled and fixed** (#243)
+
+**Reached: LG.spell.** The free Thaumaturgy Spell before the shot was refused on the enemy's Turn it is taken on:
+Penetration and Familiars by `notOwnTurn` (#160), Reinforcement by `windowOnly` (#208 reading 8). Ruled: the trigger is
+the Spell's moment (reading 9). `useSkill({anyMoment})`, set by the engine only. Ch. 17.
+
+### PU. What a free reaction made answerable was never offered — **ruled and built** (#243)
+
+**Reached: SG.ally, LG.trigger.** A rung's offers are decided at the declaration, so a Decoy given at the rung never
+added the shot on that Attack. Ruled: it does (reading 6). After a free reaction the offers are asked again and only
+the never-offered are added; Trofa still cannot follow Argos. Ch. 23.
+
+### PV. A reaction could land only on the Unit in peril — **ruled and built** (#243)
+
+**Reached: SG.ally, SG.who.** Scapegoat is used *"when an allied Unit within 2 is Attacked"* and *"on an allied Unit
+within a 2 panel area"*: any of them (reading 5), himself included (reading 4). `timing.aimedAt: chosen` asks its
+player, through `legalSkillTargets`, the reader the use passes. Ch. 23.
+
+### PW. A rider the sheet gates on hurt rode a hit for 0 — **ruled and built** (#243)
+
+**Reached: MB.ik.gate.** Mystery Bisection's Instakill comes *"if damage was dealt"*; since §46.4-LI riders land on a
+hit, so a Block to 0 rolled it, and the test that said no gate was needed asserted an absent key. `requiresDamage` on
+an `applyEffects` phase (reading 15); the mark keeps the hit (16). Ch. 17.
+
+### PX. A shot stayed on the rung, and its victim kept its Attack — **ruled and fixed** (#243)
+
+**Reached: LG.shot.** An attacking reaction left its offer on the rung, pressable again; one per Attack now (reading
+8). It lands *"instantly"*: an attacker it defeats loses that Attack on every Process still open, said on the board
+(*"falls before its Attack lands"*, reading 7). Ch. 23.
+
+### PY. A clamped restore that named a pool wrote nothing — **fixed** (#243, live)
+
+**Reached: LA.luck.** Player1 pressed Lethal Gunfire Suppression at Luck 19/22 and the card read *"Luck 19 (no
+change)"*: the content named `luck`, the pool, and a clamped change passed its key raw to `statDelta`, which added 4 to
+`{value, max}` in silence. The clamped change goes through `resourcePathFor`, as the unclamped one did; `adjustStat`
+refuses a path that is not a number out loud; a test walks every clamped restore in the content. Ch. 17.
+
+### PZ. A handler named an element as its action, and did nothing — **fixed** (#243, live)
+
+**Reached: MC.ext.** Magecraft's `then:` named `DurationExtension`, a standing element; the scheduler runs
+`ExtendEffect` and logged "unhandledAction", so Suppression kept 1◈ after a Spell. `scheduler.mjs` exports
+`ACTION_KINDS`, and a test walks every `OnEvent` in the content against it. A handler's extension is now a card line
+(*"Suppression: 6 → 9 Turns left"*), as its clocks and stats are (#202). Ch. 10.
+
+### QA. A free use was counted by the cap it was free of — **fixed** (#243, live)
+
+**Reached: LG.spell.cap.** The free Spell before the shot was recorded like any use, and the per-Turn category cap
+counted it: Reinforcement at the shot's Combat Phase was refused *"categoryUseLimit"*. The Turn record keeps
+`categoryExempt`, declared on the DataModel and `TURN_RECORD`, and the cap reads it off. Ch. 17.
+
+### QB. A window offered what its gate refused, and said it was used — **fixed** (#243, live)
+
+**Reached: RE.when.** `abilitiesAtWindow` re-implements the use gates and never asked the category cap; a refused cast
+was still announced (*"Assassin uses Thaumaturgy: Reinforcement."*) and carried as a contribution. The window asks
+`costs.mjs#categoryLimitFor`, the use gate's own reader; only a use that landed is announced, and no cast is carried.
+Ch. 23.
+
+### QC. The Counter rung did not read the attack's own refusals — **fixed** (#243, live)
+
+**Reached: LG.react.** The shot refused Block, Evade and Counter at its declaration, and its card then asked Karna
+*"Counter-attack?"*: `counterAvailable` asked the Units and concealment, never the Process's `forbiddenReactions`. It
+does now. Reaches every attack that refuses a Counter by its own clause (Fragarach's *"cannot be Blocked"* rides the
+same list). Ch. 21.
+
+### QD. Clause 7 of Presence Concealment read only the ability's own targeting — **fixed** (#243, live)
+
+**Reached: PC.7.** Concealed, Kiritsugu used Affection of the Holy Grail, whose Debuff ResDwn reaches *"all Units
+within a 2 panel area"* from a phase of its own. `usageSpecFor` projects every phase's targeting (`phaseTargeting`)
+and clause 7 reads it; the bar reads *"Presence Concealment forbids this while concealed"*. A Spell a Silence stops
+now says so (*"Prevented by Silence"*), as one a Skill Seal stops did. Ch. 30, Ch. 34.
+
 ---
 
 ---
@@ -6702,3 +6787,52 @@ Grand Order (§46.4-PN), a Free Servant with no clock paying in Health. Evidence
 - **The declaration window opens before every boostable attack.** Damage Up is offered on any Normal Attack of a
   Servant whose Master has a Command Spell, so at the default `commandSpellTimeout` of 45 the window asks once per such
   attack, until Continue. `fgt2026` was at 0, which opened none; it is back at 45.
+
+## 46.38 Kiritsugu — the Servant who answers for others
+
+**99 Clauses** (#243, live 2026-10-17, PC world `fgt2026`, scenes *Kiritsugu Audit* and *Kiritsugu Audit II*), all
+`Pressed` or `Observed`: the statblock, Presence Concealment A+ and Independent Action A, Magecraft and three
+Thaumaturgy Spells, Affection of the Holy Grail, Scapegoat, Lethal Gunfire Suppression and its Suppression buff, and
+two Noble Phantasms. Built 2026-09-12 and never audited. 19 readings ruled by grilling 2026-10-17; nine differed from
+the build. Spec `docs/superpowers/specs/2026-10-17-kiritsugu-clauses.md`.
+
+**Built to be reused.** His class skills are the shared refs; Reinforcement is EMIYA's Spell at 40% and now his
+window and length too (reading 1); his Spells' cap is the category's. What he added is generic: a reaction its user
+aims (`timing.aimedAt: chosen`), a use granted at another's moment (`anyMoment`), a rider gated on hurt
+(`requiresDamage`), a free reaction that re-offers what it opened, an attacking reaction that lands first and is
+offered once, and a rung with only "Do nothing" left that asks nobody.
+
+### 46.38.1 What he cost the engine
+
+| Finding | Where |
+|---|---|
+| Reinforcement at any Combat Phase he is in, for that Phase (reading 1) | `abilities/kiritsugu-reinforcement.yml` |
+| Scapegoat on himself, on any ally at the rung, free (readings 4, 5, 19) | `kiritsugu-scapegoat.yml`, `attack.mjs#chooseReactionTarget`, `skill-use.mjs#legalSkillTargets` |
+| The shot on the same Attack, once, first (readings 6, 7, 8) | `attack.mjs#newlyOffered`, `loseAttackOfFallen`, `combat-process.mjs#pendingPrompt` |
+| The free Spell at the trigger's moment (reading 9) | `skill-use.mjs#useSkill({anyMoment})`, `costs.mjs` |
+| Invuln against an NP, halved by Penetration (reading 11) | `damage/pipeline.mjs` stage 16 |
+| Mystery Bisection's Instakill on hurt, its mark on hit (readings 15, 16) | `kiritsugu-mystery-bisection.yml`, `requiresDamage` |
+| His Region: Japan and the Far East | `servants/kiritsugu.yml` |
+| General: §46.4-PR to QD | |
+
+### 46.38.2 What was pressed, and how
+
+A Great Holy Grail War, Advanced, Kiritsugu beside Medea and Arturia against Achilles, Karna and Heracles. The first
+board found two content defects (§46.4-PY, PZ) and a missing Region, so the war was built again from the rebuilt pack.
+Player1 pressed every Skill from the bar and every reaction on its card: Scapegoat at Medea's rung, picked from
+*"Caster, Assassin, Saber"*, the rung kept open and Return Fire offered on that Attack; the free Spell (Penetration,
+then Familiars) on Faction 2's Turn; Reinforcement at the shot's Combat Phase; a Master at 30 Health shot dead with
+*"falls before its Attack lands. The Attack is lost."* Chronos Rose put every NP of Karna's at 1◈; Mystery Bisection
+halved Karna's Base Attack through Debuff Immune and Res Up, killed him at 60%, and on Heracles under a Dmg Cut of
+2000 dealt 0, rolled no Instakill and still marked. Concealed, he was refused as a target, struck Heracles for
++100% and +50%, took Heads twice and Tails once under Medea's Rain of Light, and stood between Karna and its Master.
+Skill Seal, Silence, Invuln, the Decoy and Debuff Immune were staged; cooldowns, the faction's Attack budget and a
+Master's Health were reset between presses. Evidence per Clause on #243.
+
+### 46.38.3 Left open
+
+- **A Discover that fails says nothing**, by rule (GM-only rolls). PC.6 is pressed on the spent attempt; the
+  discovered branch was pressed on Serenity (#199).
+- **While the shot's own Process waits on a Counter or Command Spell window, the rung it answers stays open** and can
+  be answered, by a player or its timeout, before the shot's damage lands. Reading 7 held where the shot resolved at
+  once (the Master at 30 Health); the order is not enforced while the shot waits.

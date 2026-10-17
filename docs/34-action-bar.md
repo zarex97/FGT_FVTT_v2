@@ -46,7 +46,7 @@ The registry marks three actions `targeted`. **Attack** opens the targeting sess
 `present.mjs` exists because the bar must render exactly what the rules decide, with no asymmetry between the bar and the sheet. Three pure functions build state without Foundry:
 
 - **`portraitBlock`** returns which image and name the viewer is entitled to, applying Presence Concealment (`module/apps/hud/present.mjs:31-38`).
-- **`slotFor`** builds one ability or action slot's state: cost, cooldown, ring (on/built), disabled flag, and reason why if it is disabled (`module/apps/hud/present.mjs:52-90`). A slot carries its refusal reason so the tooltip never lies.
+- **`slotFor`** builds one ability or action slot's state: cost, cooldown, ring (on/built), disabled flag, and reason why if it is disabled (`module/apps/hud/present.mjs:52-90`). A slot carries its refusal reason so the tooltip never lies; a prevented use names what prevents it (*"Prevented by Silence"*, #243).
 - **`rowsFor`** groups abilities into rows (pinned, skills, noble phantasms, modes), omits empty rows, and lists action buttons (`module/apps/hud/present.mjs:107-128`). Pins are shortcuts that duplicate an ability into the pinned row; they never hide it.
 
 Because these are pure, every slot state is testable with literals (`test/unit/action-bar-present.test.mjs`). The bar rendering becomes a dumb template spraying the result.

@@ -16,7 +16,7 @@
 
 import * as I from "./intents.mjs";
 import { acquisitionTarget } from "../rules/items.mjs";
-import { currentBoard } from "./board.mjs";
+import { currentBoard, currentMoment } from "./board.mjs";
 
 /**
  * @typedef {object} ApplicationPlan
@@ -90,6 +90,7 @@ export async function applyIntents(intents, {
   const said = sink ?? [];
   const clocks = lines ? clocksBeforeBatch(intents) : [];
   const stats = lines ? statsBeforeBatch(intents) : [];
+  const spans = lines ? spansBeforeBatch(intents) : [];
   // HERE rather than in `applyWorldIntents`, because three call sites write to
   // the world without going through that helper -- the attack flow, the
   // scheduler's boundary sequences and the movement hook -- and putting the
@@ -130,7 +131,7 @@ export async function applyIntents(intents, {
   if (plan.remote.length > 0) await io.proxy(plan.remote, { source });
   for (const p of plan.prompts) await io.prompt(p.userId, p.prompt);
 
-  said.push(...clockLines(clocks), ...statLines(stats));
+  said.push(...clockLines(clocks), ...statLines(stats), ...await spanLines(spans));
   return { applied: plan.local.length, proxied: plan.remote.length, prompted: plan.prompts.length, lines: said };
 }
 
@@ -208,6 +209,48 @@ function statLines(stats) {
   return stats.flatMap(({ intent, before }) => {
     const line = statChangeLine(intent, before, statOf(intent.unitId, intent.stat));
     return line ? [{ unitId: intent.unitId, summary: { id: "statChange", name: line, outcome: "applied", reason: null, chance: null } }] : [];
+  });
+}
+
+/**
+ * The effects a batch's `extendEffect` intents name, with their expiry before.
+ *
+ * Magecraft's *"extend the duration of the 'Suppression' buff by 1◈"* moved a
+ * clock no card showed (#243, live): a handler's extension is news too.
+ *
+ * @param {Intent[]} intents
+ * @returns {Array<{unitId: string, defId: string, before: number|null}>}
+ */
+function spansBeforeBatch(intents) {
+  if (typeof game === "undefined" || !game?.actors) return [];
+  return (intents ?? []).filter((i) => i?.t === "extendEffect")
+    .map((i) => ({ unitId: i.unitId, defId: i.defId, before: expiryOf(i.unitId, i.defId) }));
+}
+
+/** @param {string} unitId @param {string} defId @returns {number|null} */
+function expiryOf(unitId, defId) {
+  const e = game.actors.get(unitId)?.effects?.find((x) => x.system?.defId === defId);
+  return typeof e?.system?.expiry === "number" ? e.system.expiry : null;
+}
+
+/**
+ * Each effect a handler extended, as a card line: Turns left before and after.
+ *
+ * @param {Array<{unitId: string, defId: string, before: number|null}>} spans
+ * @returns {Promise<CardLine[]>}
+ */
+async function spanLines(spans) {
+  if (spans.length === 0) return [];
+  const { EffectRegistry } = await import("../rules/registry.mjs");
+  const now = currentMoment().tick ?? 0;
+  return spans.flatMap(({ unitId, defId, before }) => {
+    const after = expiryOf(unitId, defId);
+    if (before === null || after === null || after === before) return [];
+    // The effect's name, not its id: the document's own name is the id it was
+    // created under, and the card read "suppression: 4 → 7 Turns left" (#243).
+    const name = EffectRegistry.get(defId)?.name ?? defId;
+    const line = game.i18n.format("FGT.Effect.Extended", { name, before: Math.max(0, before - now), after: Math.max(0, after - now) });
+    return [{ unitId, summary: { id: "extendEffect", name: line, outcome: "applied", reason: null, chance: null } }];
   });
 }
 
@@ -840,7 +883,7 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
       for (const i of intents) await io.extendEffect(unitId, i.defId, i.turns);
       break;
     case "recordUse":
-      for (const i of intents) await io.recordUse(unitId, i.abilityId, i.contentId, i.count);
+      for (const i of intents) await io.recordUse(unitId, i.abilityId, i.contentId, i.count, Boolean(i.categoryExempt));
       break;
     case "defeat":
       await io.defeat(unitId, intents[0].cause, intents[0].killerId ?? null);

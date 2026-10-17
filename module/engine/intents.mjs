@@ -458,8 +458,8 @@ export const setStance = (unitId, stance, source = null) =>
  * @param {number} [count] charges spent against `maxUses`
  * @returns {Intent}
  */
-export const recordUse = (unitId, abilityId, contentId = null, count = 1) =>
-  ({ t: "recordUse", unitId, abilityId, contentId, count });
+export const recordUse = (unitId, abilityId, contentId = null, count = 1, categoryExempt = false) =>
+  ({ t: "recordUse", unitId, abilityId, contentId, count, ...(categoryExempt ? { categoryExempt: true } : {}) });
 
 /**
  * Move a barrier's own Health pool.

@@ -65,7 +65,8 @@ describe("#202: what a handler does reaches a card", () => {
     const S = await import("../../module/engine/skill-use.mjs");
     expect(S.statChangeLine).toBe(A.statChangeLine);
     expect(A.statChangeLine({ stat: "agility.value", delta: -1 }, 19, 18)).toBe("Agility 19 → 18");
-    expect(code("engine/applier.mjs")).toMatch(/said\.push\(\.\.\.clockLines\(clocks\), \.\.\.statLines\(stats\)\);/);
+    // ...and an extension's span beside them, since #243 (Magecraft's 1◈ on Suppression).
+    expect(code("engine/applier.mjs")).toMatch(/said\.push\(\.\.\.clockLines\(clocks\), \.\.\.statLines\(stats\), \.\.\.await spanLines\(spans\)\);/);
   });
 
   const input = (effects, effectOwners) => ({

@@ -95,7 +95,7 @@ import { publicSpeakerFor, publicIdentityOf } from "./public-identity.mjs";
 import { regionSizedTargeting } from "./fields.mjs";
 // The name a line prints is the PUBLIC one (#230 rolls, #235 every card):
 // the one door is `public-identity.mjs#shownName`.
-import { shownName } from "./public-identity.mjs";
+import { shownName, shownNameById } from "./public-identity.mjs";
 
 /**
  * Declare an attack. Runs on the GM client (Model B — contested outcomes are
@@ -1489,7 +1489,12 @@ async function answerRung({ event, abilityId = null, placement = null }, message
       // Kiritsugu's target is whoever swung -- and says so with the same field
       // its reach is measured by.
       const pointsAtAttacker = used.system?.timing?.radiusTo === "attacker";
-      const aimedAt = pointsAtAttacker ? state.attackerId : state.defenderId;
+      // ...or at a Unit its user picks: Scapegoat is used *"when an allied Unit
+      // ... is Attacked"* and *"on an allied Unit within a 2 panel area"*, two
+      // phrases, so any legal target, the Unit in peril first (#243 reading 5).
+      const aimedAt = pointsAtAttacker ? state.attackerId
+        : used.system?.timing?.aimedAt === "chosen" ? await chooseReactionTarget(owner, used, state)
+          : state.defenderId;
       // An ability that ATTACKS resolves through the attack flow, not through
       // `useSkill` -- which refuses a `damage` phase outright and says so in
       // the console: *"countsAsAttack should have routed this to
@@ -1506,6 +1511,21 @@ async function answerRung({ event, abilityId = null, placement = null }, message
           console.error("FGT | Triggered attack refused:", err);
           await tellReactionRefused(owner, used, String(err?.message ?? err));
         });
+        // One shot per Attack (#243 reading 8): the offer leaves the rung. It
+        // stayed, so the same shot could be pressed again on the same Attack.
+        state = {
+          ...state,
+          reactionAbilities: {
+            ...(state.reactionAbilities ?? {}),
+            [state.defenderId]: (state.reactionAbilities?.[state.defenderId] ?? []).filter((a) => a.id !== used.id),
+          },
+        };
+        // *"Instantly"*: the shot lands before the Attack it answers, and an
+        // attacker it defeats loses that Attack (#243 reading 7). It went on
+        // and hit from beyond the grave.
+        if (attackerFell(state)) return closeRung(await loseAttackOfFallen(state, message), message);
+        await message.setFlag("fgt", "process", process.serialize(state));
+        await updateAttackCard(message, state);
         return state;
       }
 
@@ -1548,7 +1568,17 @@ async function answerRung({ event, abilityId = null, placement = null }, message
     if (used?.system?.reactionFree) {
       state = {
         ...state,
-        reactionAbilities: { ...(state.reactionAbilities ?? {}), [state.defenderId]: [] },
+        // Withdrawn, all but what this ability itself just made answerable.
+        // Scapegoat gives the Unit in peril the Decoy, and *"whenever a Unit
+        // inflicted with Decoy (Scapegoat) is Attacked"* is true of this Attack
+        // now: the shot is offered on it (#243 reading 6). Offers are decided at
+        // the declaration, so it never was. One that was offered before stays
+        // withdrawn: Trofa cannot follow Argos (#193 reading 8).
+        reactionAbilities: {
+          ...(state.reactionAbilities ?? {}),
+          [state.defenderId]: newlyOffered(state, used.id),
+        },
+        reactionsOffered: offeredIds(state),
         history: [...state.history, { state: "react", event, detail: { free: true } }],
       };
       await message.setFlag("fgt", "process", process.serialize(state));
@@ -1666,6 +1696,92 @@ async function answerRung({ event, abilityId = null, placement = null }, message
   }
 
   return closeRung(state, message);
+}
+
+/**
+ * Every reaction ever offered on this Process's rung, by owner and ability.
+ *
+ * @param {object} state
+ * @returns {string[]}
+ */
+function offeredIds(state) {
+  const now = (state.reactionAbilities?.[state.defenderId] ?? []).map((a) => `${a.ownerId}:${a.id}`);
+  return [...new Set([...(state.reactionsOffered ?? []), ...now])];
+}
+
+/**
+ * The reactions a free reaction ability has just made answerable: offered now,
+ * never offered on this rung before, and not the ability itself.
+ *
+ * @param {object} state
+ * @param {string} usedId
+ * @returns {object[]}
+ */
+function newlyOffered(state, usedId) {
+  const seen = new Set(offeredIds(state));
+  return offeredReactions(state.defenderId, state.attack, state.isAoE, state.attackerId)
+    .filter((a) => a.id !== usedId && !seen.has(`${a.ownerId}:${a.id}`));
+}
+
+/**
+ * Whom a reaction whose target its user picks lands on (`timing.aimedAt:
+ * chosen`). The Unit in peril is listed first; a prompt left unanswered keeps
+ * it, so the reaction is never lost to a closed window.
+ *
+ * @param {object} owner
+ * @param {object} used the ability
+ * @param {object} state
+ * @returns {Promise<string>} unit id
+ */
+async function chooseReactionTarget(owner, used, state) {
+  const { legalSkillTargets } = await import("./skill-use.mjs");
+  const ids = legalSkillTargets(used, owner, { sourceUnitId: state.attackerId });
+  const ordered = [state.defenderId, ...ids.filter((id) => id !== state.defenderId)]
+    .filter((id) => ids.includes(id));
+  if (ordered.length <= 1) return ordered[0] ?? state.defenderId;
+  const [picked] = await chooseFor(owner, {
+    // fgt-name-ok: an ability's name, not a Unit's
+    title: used.name,
+    hint: game.i18n.format("FGT.Reaction.ChooseTarget", { ability: used.name }),
+    count: 1,
+    min: 0,
+    options: ordered.map((id) => ({ id, name: shownNameById(id) })),
+  }) ?? [];
+  return picked ?? state.defenderId;
+}
+
+/**
+ * Has the attacker this Process answers fallen?
+ *
+ * @param {object} state
+ * @returns {boolean}
+ */
+function attackerFell(state) {
+  const attacker = game.actors.get(state.attackerId);
+  return Boolean(attacker) && (attacker.system?.defeated === true || currentHealth(unitOf(attacker, null)) <= 0);
+}
+
+/**
+ * The Attack of an attacker who fell at the rung is lost, on every Process it
+ * still has open: Kiritsugu's shot lands *"instantly"*, before it (#243
+ * reading 7). Said once, on the board.
+ *
+ * @param {object} state
+ * @param {object} message
+ * @returns {Promise<object>} this Process, withdrawn
+ */
+async function loseAttackOfFallen(state, message) {
+  const why = game.i18n.format("FGT.Attack.AttackerFell", { name: shownNameById(state.attackerId) });
+  const next = { ...process.advance(state, "withdraw", { by: why }), withdrawnBy: why };
+  for (const sibling of siblingMessages(state)) {
+    if (sibling.id === message.id) continue;
+    const theirs = process.deserialize(sibling.getFlag("fgt", "process"));
+    if (theirs?.state !== "react") continue;
+    await sibling.setFlag("fgt", "process", process.serialize({ ...theirs, withdrawnBy: why }));
+    await advanceAttack({ messageId: sibling.id, event: "withdraw" });
+  }
+  await ChatMessage.create({ content: `<p>${why}</p>`, speaker: { alias: game.i18n.localize("FGT.Attack.LostTitle") } });
+  return next;
 }
 
 /**
@@ -2566,7 +2682,12 @@ async function offerPreAttackSpell(owner, category) {
   if (!chosen) return;
 
   const { useSkill } = await import("./skill-use.mjs");
-  await useSkill({ actorId: owner.id, abilityId: chosen, bypassesCategoryLimit: true });
+  // `anyMoment`: the trigger is the Spell's moment, whatever its own says --
+  // Penetration's and Familiars' *"Used during your Turn"* and Reinforcement's
+  // Combat Phase window refused all three on the enemy's Turn the shot is taken
+  // on (#243 reading 9). A refusal is said, not swallowed.
+  const out = await useSkill({ actorId: owner.id, abilityId: chosen, bypassesCategoryLimit: true, anyMoment: true });
+  if (!out?.ok) await tellReactionRefused(owner, owner.items.get(chosen), out?.reason ?? "");
 }
 
 /**
@@ -4282,7 +4403,11 @@ function counterAvailable(state) {
     // The general form: whatever the defender is carrying that says which rungs
     // it may not take (`ForbidReaction`).
     // Plus what the ATTACKER takes from its target (#103).
-    defenderForbids: [...(defender.forbiddenReactions ?? []), ...(attacker.refusesReactions ?? [])],
+    // ...and what THIS attack refused at its declaration, the Process's own
+    // list: Kiritsugu's shot *"cannot be Reacted to unless the AU's AGI Rank is
+    // higher"* closed Block, Evade and Counter there, and the Counter rung,
+    // asking only the Units, offered Karna a Counter all the same (#243, live).
+    defenderForbids: [...(defender.forbiddenReactions ?? []), ...(attacker.refusesReactions ?? []), ...(state.forbiddenReactions ?? [])],
     // AGI **Rank**, not the Agility pool. The pool is a spendable resource that
     // two Servants of the same Rank disagree about constantly, so a Servant who
     // had paid for a few Evades became blockable mid-match for no stated reason.
@@ -5762,6 +5887,10 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
       continue;
     }
     if (phase.kind !== "applyEffects" && phase.kind !== "applyEffect") continue;
+    // A rider the sheet gates on HURT, not hit: Mystery Bisection's *"35% chance
+    // of inflicting Instakill if damage was dealt"* (#243 reading 15). A Block
+    // to 0 or an Invuln still lands the phases beside it.
+    if (phase.requiresDamage && !((damageResult?.total ?? 0) > 0)) continue;
 
     // A rider aimed at the ATTACKER. Bellerophon is the first: *"Then, applies
     // Crit Up for 1◈ Turns"* -- to Medusa, after her own damage lands. This
@@ -7292,10 +7421,12 @@ async function askAttackerWindow(state, window, message) {
     for (const id of billed) await fireAbilityUsed(actor, actor.items.get(id));
   }
 
+  const refused = [];
   for (const id of cast) {
     const { useSkill } = await import("./skill-use.mjs");
     const out = await useSkill({ actorId: actor.id, abilityId: id, atWindow: true });
     if (!out.ok) {
+      refused.push(id);
       ui.notifications?.warn(game.i18n.format("FGT.Skill.Refused", {
         name: actor.items.get(id)?.name ?? id, reason: out.reason,
       }));
@@ -7304,14 +7435,21 @@ async function askAttackerWindow(state, window, message) {
 
   // A mode's switch is its whole effect, so it is not carried forward as a
   // contribution: `contributionsOf` will read the new state off the document on
-  // the next snapshot, which is every snapshot after this batch.
-  const carried = chosen.filter((id) => !classifyAbility(actor.items.get(id)).toggles);
+  // the next snapshot, which is every snapshot after this batch. Nor is a cast:
+  // its phases landed as effects, and carrying it set off the "non-mode
+  // ability ... reaches no Combat Process" warning for every Reinforcement.
+  const carried = chosen.filter((id) => !cast.includes(id) && !classifyAbility(actor.items.get(id)).toggles);
 
-  await ChatMessage.create({
-    content: `<p><strong>${publicIdentityOf(actor, currentBoard()).name}</strong> uses `
-      + `${chosen.map((id) => actor.items.get(id)?.name ?? id).join(", ")}.</p>`,
-    speaker: publicSpeakerFor(actor),
-  });
+  // Only what was used is said to be. A cast the gate refused read *"Assassin
+  // uses Thaumaturgy: Reinforcement."* over a buff that never landed (#243).
+  const used = chosen.filter((id) => !refused.includes(id));
+  if (used.length > 0) {
+    await ChatMessage.create({
+      content: `<p><strong>${publicIdentityOf(actor, currentBoard()).name}</strong> uses `
+        + `${used.map((id) => actor.items.get(id)?.name ?? id).join(", ")}.</p>`,
+      speaker: publicSpeakerFor(actor),
+    });
+  }
 
   await recordWindowPick(message, window, carried);
   return { ...state, windowAbilities: carried };

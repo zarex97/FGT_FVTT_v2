@@ -184,7 +184,7 @@ executor actually reads, rather than of its descriptor's ids.
   while Overedge cools). It returns an `event` intent carrying `subject: { id, contentId, category,
   isNP }`, and `engine/applier.mjs#fireWriteEvent` hands that subject to `fireEvent` as `ctx.subject`,
   so an `ofCategory` handler (Magecraft's Range Up, Atk Up (Trace)'s extension) hears it as it hears a
-  cast. An ability the Unit does not hold logs `unhandledAction`.
+  cast. An ability the Unit does not hold logs `unhandledAction`. The action vocabulary is exported (`scheduler.mjs#ACTION_KINDS`) and a test holds every `OnEvent`'s `then:` in the content against it: Magecraft named the element `DurationExtension` where the action is `ExtendEffect`, and extended nothing (#243).
 
 With that, `KNOWN_RULE_DROPS` is empty: every key inside every rule element reaches a reader.
 
