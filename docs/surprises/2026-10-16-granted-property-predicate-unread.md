@@ -3,7 +3,8 @@ id: 2026-10-16-granted-property-predicate-unread
 found: test
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Agni's `AttackProperty element: fire`, predicated on `attack:kind:normal`, makes Arjuna's Normal
 Attacks Fire and leaves Pashupata, which has no element, alone (#234 reading 15).

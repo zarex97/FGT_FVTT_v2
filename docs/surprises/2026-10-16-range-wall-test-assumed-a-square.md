@@ -3,7 +3,8 @@ id: 2026-10-16-range-wall-test-assumed-a-square
 found: test
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** a 5x5 centred two panels from Arjuna lies wholly inside Range 4, and one centred four away keeps 15
 panels behind the wall.

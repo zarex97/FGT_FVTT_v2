@@ -3,7 +3,8 @@ id: 2026-10-17-engine-cards-named-the-true-name
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** every card the engine posts names a Unit as the table knows it (`publicIdentityOf`, #230 §46.4-NV;
 the Proto Gil lesson widened CLAUDE.md to say so).

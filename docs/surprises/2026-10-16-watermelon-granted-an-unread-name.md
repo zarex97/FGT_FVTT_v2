@@ -3,7 +3,8 @@ id: 2026-10-16-watermelon-granted-an-unread-name
 found: test
 kind: unknown-value-falls-to-default
 status: fixed
-reviewed: false
+reviewed: true
+pattern: unknown-value-falls-to-default
 ---
 **Expected:** Watermelon grants Ignore Def beside Pierce, and the attack spec carries it.
 **Actual:** `packs/_source/abilities/anastasia-watermelon.yml` granted `property: ignoreDef`; every reader asks

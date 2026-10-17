@@ -3,7 +3,8 @@ id: 2026-10-17-choice-option-overlapped-the-next
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** Player1 clicks "Suspend Skill" in the Command Spell list and Suspend Skill is picked.
 **Actual:** live, Round 5 tick 13 (window 1568x698): the next dialog read *"Reduce Cooldown — Which of Arjuna's
