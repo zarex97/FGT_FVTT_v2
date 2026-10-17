@@ -32,6 +32,7 @@
 import { applyEffect, inflictBonusOf, mergeEmitted } from "./effect-applier.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
+import { test as testPredicate } from "../rules/predicate.mjs";
 import { applicationsOf, chanceOf, effectGatePasses, timesOf } from "../rules/effect-flow.mjs";
 import { resolveValue } from "../rules/elements.mjs";
 import { expressionRefs, stacksHeld } from "../rules/snapshot.mjs";
@@ -116,7 +117,15 @@ export async function landEffect(entry, ctx) {
     chance: stated,
     stages: entry.stages ?? 1,
     // Charges, for a counted effect: what the entry states, or its `times`.
-    uses: def.stacking === "count" ? (entry.uses ?? ctx.times ?? null) : (entry.uses ?? null),
+    uses: (entry.stacking ?? def.stacking) === "count" ? (entry.uses ?? ctx.times ?? null) : (entry.uses ?? null),
+    // How THIS application stacks, where the entry says: Bab-ilu's *"for
+    // debuffs which do not stack, its duration is extended instead"* and its
+    // No Buff counted *"1 time per number of dice which rolled a 9"* (#232).
+    stacking: entry.stacking ?? null,
+    // Enkidu: *"if the DU has the 'Divine' Attribute, Debuff Immune effects
+    // cannot prevent Stun from being inflicted, even those which specifically
+    // affect Stun (Debuff Resist can still reduce the chance!)"* (#232).
+    bypassesImmunity: bypassesImmunityFor(entry, options),
     bypassChanceModifiers: Boolean(entry.bypassChanceModifiers),
     visibility: hidden ? "gmOnly" : (entry.visibility ?? "public"),
     attributionHidden: hidden || Boolean(ctx.attributionHidden),
@@ -213,6 +222,21 @@ export async function landEffect(entry, ctx) {
 }
 
 /**
+ * Whether this application passes every immunity: `true`, or a predicate
+ * tested against the landing's options (Enkidu's, on a `Divine` DU).
+ *
+ * @param {object} entry
+ * @param {Set<string>} options
+ * @returns {boolean}
+ */
+function bypassesImmunityFor(entry, options) {
+  const spec = entry?.bypassesImmunity;
+  if (!spec) return false;
+  if (spec === true) return true;
+  return testPredicate(Array.isArray(spec) ? spec : spec.predicate ?? [], { options });
+}
+
+/**
  * Land an entry on one recipient: its gate, its count, and every application.
  *
  * Writes between applications, because a staged effect decides its next stage
@@ -241,7 +265,7 @@ export async function landEntry(entry, ctx, { write, reread = null }) {
   const def = EffectRegistry.get(entry.id);
   const times = timesOf(entry.times, { stacks: ctx.caster ? stacksHeld(ctx.caster) : {}, event: ctx.event ?? null });
   if (times !== null && times <= 0) return [];
-  const counted = def?.stacking === "count";
+  const counted = (entry.stacking ?? def?.stacking) === "count";
   const applications = applicationsOf(entry) * (times !== null && !counted ? times : 1);
 
   /** @type {Array<{summary: object, result: LandingResult}>} */

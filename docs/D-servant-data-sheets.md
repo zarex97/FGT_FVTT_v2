@@ -1339,31 +1339,31 @@ be storing a Rank the sheet does not claim. The Master's cost is stated separate
 
 ## D.30 Proto Gil
 
-Bounded field: **Enki** (`kind: schedule`, Ch. 43 §43.9). Defence: Ch. 44 §44.2.
+**Built 2026-10-16 (#232)**, from the sheet as edited that day, at `packs/_source/servants/proto-gil.yml`. The
+edit replaced the `3d20` Magic Resistance this section first mapped with the ordinary Rank C one, made Divinity's
++40 Fixed Divine Damage, set Charisma's Active at 25%/10% on 4◈−⅓◈, read Levitation's −3 on Agility Checks and
+gave it the 'Levitating' Attribute, and spared Noah from Enki. 22 readings ruled by grilling
+(`docs/superpowers/specs/2026-10-16-proto-gil-clauses.md`).
 
 | Ability | Type | Mapping |
 |---|---|---|
-| Independent Action (A+) | Class, passive | RE (no Sustainability; ZON +3; **absolute** contract immunity) |
-| Magic Resistance C (E) | Class, passive | **RE+** `mode: dice` — `3d20`, doubled dice vs NP, **never negates**. Also the second instance of the `displayRank (baseRank)` notation |
-| Divinity (B) | Passive | RE (+40 flat) |
-| Charisma (A+) | Passive + active | RE — note the magnitudes are **27** flat and **27%** / 12%, the only non-round values in the corpus |
-| Golden Rule (A) | Passive + active | **RE+** a **fallback target** for cooldown reduction: crits reduce his NP cooldown, and when nothing is on cooldown the reduction is redirected to `Enki`'s countdown |
-| Treasury of Babylon (EX) | Active | RE |
-| Levitation | Passive | **RE+** the `Levitating` attribute; MOV +1; move-through-obstacles (but not past Master protection); Evade −3; **all of it negated by `NP Seal`** — a passive that a *debuff* switches off |
-| Bab-ilu (E~A++, NP) | Passive + AoE NP | **RE+** the passive is a **mid-phase reposition and second attack** with a `reactionLock` (Ch. 44 §44.3); the active is `3d20` against a **twenty-entry** debuff table with stacking duplicates and one count-scaled entry |
-| Enkidu (???) | NP-adjacent attack | RE (a six-step Divinity-rank ladder for both damage and Stun chance; the `Divine` attribute without a Divinity skill is **treated as Rank A**; against `Divine` units, `Debuff Immune` cannot prevent the Stun — but `Debuff Resist` still reduces its chance) |
-| Enki (EX, NP) | Scheduled detonation | **RE+** `kind: schedule`: marks a panel, then **7◈ later** hits 13×13 from that mark for 5× + 700 with a 500% `Drowning` chance, converts the area to `Waterside` for 7◈, exempts `Levitating` units, and is **cancelled outright if he dies first** |
+| Independent Action (A+) | Class, passive | `class-independent-action` at A+: no Sustainability (`sustainability: null`), ZON +3 (`independentActionZon`), absolute contract immunity (`rules/contract.mjs`) |
+| Magic Resistance C (E) | Class, passive | `class-magic-resistance {rank: C}`: negates up to MAG C, −30% past it, −15% to debuffs |
+| Divinity (B) | Passive | `divinity-fixed`: +40 as `FlatDamage.fixed`, added at stage 16 past every modifier and the Injury snapshot (reading 16) |
+| Charisma (A+) | Passive + active | Penthesilea's: +27 aura to other allies, `atkUpCharisma` 25/10 on 4◈−⅓◈ |
+| Golden Rule (A) | Passive + active | Drake's Crit cut on every NP; with none on Cooldown, `ScheduleDelta` moves Enki's strike a Turn closer (`self:npOnCooldown`, reading 14); NP Regen 2 on top of the natural 1 (reading 17) |
+| Treasury of Babylon (EX) | Active | Radiant Road's shape: NP Cooldown −1◈, then Crit Up 60% |
+| Levitation | Passive | MOV +1, `passesThroughUnits`, `agility` and `evade` −3, the `levitating` attribute, all `negatedBy: [npSeal]` |
+| Bab-ilu (E~A++, NP) | Passive + AoE NP | `FollowUpAttack` (`engine/follow-up.mjs`): after a single-target Attack at Range 2+, an optional Move beside the DU and a free Normal Attack; a Block forces a Block (reading 24). The Active is a 3x3 within 5, 3x BA(STR), E cost, then a 3d20 `rollTable` every DU rolls on the attack path, repeated rows stacking or extending (`stacking` on the entry), No Buff counted per 9 |
+| Enkidu (???, NP) | NP, no Master cost | Range 3, BA(STR); a Divinity ladder as Atk Up in the bucket (reading 7) and as Stun chance points; a Divine DU's immunity cannot stop the Stun (`bypassesImmunity` on the entry) |
+| Enki (EX, NP) | Scheduled strike | `schedule: {after: 7◈, mark: utnapishtim}` (`engine/schedule.mjs`): half the Master's maximum, refused at half; Cannot Act 1◈; at 7◈ a 13x13 from the mark, 5x + 700 BA(MAG), Water, Drowning 500% 3◈, sparing him, his Master, Levitating Units and Noah's group; Waterside 7◈ after the Combat Phase; cancelled by his defeat, the use spent |
 
-**Exercises:** dice-based resistance that never negates, elevated ranks with a recorded base,
-cooldown reduction with an overflow target, passives disabled by a debuff, defender reaction
-locking, twenty-entry random tables, immunity that is bypassed while resistance is not, and
-scheduled area effects decoupled from the caster's continued presence.
-**Scripts: 0.**
+**Exercises:** a fixed bonus outside the Injury Roll, passing Units without stopping on them, a passive switched
+off by a debuff, a follow-up Attack that locks the defender's reaction, a twenty-row table on the attack path, an
+immunity bypassed while resistance is not, and an Attack that lands seven Rounds' worth of Turns after it was used.
 
-**Note.** The `500%` Drowning chance is not a typo in our transcription — it is the sheet's way
-of saying "certain, and it stays certain after every reduction in the game has been applied".
-The `d100 < percent` convention (Appendix C §C.4) handles it without a special case, which is
-why chances are stored uncapped and clamped only at roll time.
+**Note.** The `500%` Drowning chance is certain and stays certain after every reduction in the game: the
+`d100 < percent` convention (Appendix C §C.4) handles it without a special case.
 
 ---
 

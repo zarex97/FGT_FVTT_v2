@@ -347,6 +347,13 @@ async function onTurnChange(combat, prior, current) {
   // reason: a `duration` nothing sweeps is decoration. Only PAINTED areas
   // carry an expiry, so a GM's hand-drawn terrain is never touched.
   await expireTerrain(tick);
+  // A strike whose clock ran out with the Turn that ended lands now, and one
+  // whose caster has fallen is cancelled (Enki, #232). Asked of the ENDED
+  // tick, as every expiry here is, so 7◈ reads as an effect's 7◈ does.
+  {
+    const { runScheduledStrikes } = await import("./schedule.mjs");
+    await runScheduledStrikes(tick);
+  }
   // A passive field has no cast to open it and no expiry to close it, so the
   // Turn boundary is where it is reconciled with the board: a Servant summoned
   // mid-match gets his area, one who left the board loses it. Idempotent, and

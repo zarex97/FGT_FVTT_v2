@@ -165,7 +165,9 @@ export function computeDamageHits(ctx) {
   const total = sum("total");
   const flags = { ...hits[0].flags };
   flags.shieldAbsorbed = round4(hits.reduce((t, r) => t + (r.flags?.shieldAbsorbed ?? 0), 0));
-  flags.exceededInjuryThreshold = total > INJURY_THRESHOLD;
+  const fixedExtra = hits.reduce((t, r) => t + (r.flags?.fixedExtra ?? 0), 0);
+  flags.exceededInjuryThreshold = total - fixedExtra > INJURY_THRESHOLD;
+  flags.fixedExtra = fixedExtra;
   flags.defeatedOutright = hits.some((r) => r.flags?.defeatedOutright);
   flags.removeFreeze = hits.some((r) => r.flags?.removeFreeze);
   flags.negatedBy = hits.every((r) => r.flags?.negatedBy) ? hits[0].flags.negatedBy : null;
@@ -751,6 +753,18 @@ function stage7FlatAttackBonuses(s) {
       }
     }
     const value = magnitudeOf(m, s.isNP, s.ctx);
+    // A FIXED bonus is set aside here and added at stage 16, after every
+    // modifier on either side and after the Injury snapshot. Proto Gil's
+    // Divinity: *"This extra damage is dealt as Fixed Divine Damage and does not
+    // count towards the amount required for an Injury Roll"* (#232 reading 16).
+    // Collected and gated here, so a bypass or an unrolled chance still drops
+    // it; only what happens to the number afterwards changes.
+    if (m.fixed) {
+      s.fixedLate = (s.fixedLate ?? 0) + value;
+      const label = typeof m.fixed === "string" ? `Fixed ${m.fixed}` : "Fixed";
+      s.contribute(m.key, value, `${m.source} (${label}, added after every modifier)`, "attacker");
+      continue;
+    }
     // A flat bonus made of DIFFERENT STUFF from the attack it rides on.
     // Raikou's `Raikou` buff is *"Normal Attacks deal 40 bonus LIGHTNING
     // damage"*, and her Normal Attack is BA(STR) with no element at all.
@@ -1139,6 +1153,15 @@ function stage16AbsorptionAndClamp(s) {
   for (const m of activeMods(s, d, new Set(["defCrk"]))) {
     s.addProportional(m.value);
     s.contribute("defCrk", m.value, m.source, "defender");
+  }
+
+  // Stage 7's FIXED bonuses, past every modifier and the Injury snapshot. A
+  // negation below (Freeze, Invuln) still takes them: nothing lands (#232
+  // reading 16). `fixedExtra` lets a multi-hit sum leave them out too.
+  if (s.fixedLate && !s.converted) {
+    s.addProportional(s.fixedLate);
+    s.flags.fixedExtra = s.fixedLate;
+    s.note("fixedFlat", `+${s.fixedLate} added after every modifier, outside the Injury Roll`, "attacker");
   }
 
   // Freeze's absorption clause needs the total, which is why it is here and not

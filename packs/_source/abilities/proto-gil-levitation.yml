@@ -1,0 +1,46 @@
+# Levitation (#232). Four passives a debuff switches off together.
+#
+# > "(Passive 1) Proto Gil's MOV is increased by 1 (5 panels to 6).
+# > (Passive 2) When Proto Gil Moves, he can Move through obstacles (e.g. enemy
+# > Units) but still cannot enter the area around an enemy Master...
+# > (Passive 3) Proto Gil's Agility Check rolls are reduced by 3.
+# > (Passive 4) Proto Gil gains the 'Levitating' Attribute.
+# > These effects are negated if Proto Gil is inflicted with NP Seal."
+#
+# `negatedBy: [npSeal]` drops the whole document from the snapshot, so all four
+# go at once: his MOV falls to the Servant's own 5, the grant and the attribute
+# leave. An Evade is an Agility Check, so Passive 3 is two modifiers, the
+# Agility Checks the engine names `agility` and the Evade it names `evade`; a
+# lower roll is better (reading 15).
+schema: 1
+id: proto-gil-levitation
+name: "Levitation"
+kind: skill
+slug: levitation
+passive: true
+negatedBy: [npSeal]
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive 1) Proto Gil's MOV is increased by 1 (5 panels to 6).
+  (Passive 2) When Proto Gil Moves, he can Move through obstacles (e.g. enemy Units) but still
+  cannot enter the area around an enemy Master if…see 'Master-Servant Relationships'.
+  (Passive 3) Proto Gil's Agility Check rolls are reduced by 3.
+  (Passive 4) Proto Gil gains the 'Levitating' Attribute.
+  These effects are negated if Proto Gil is inflicted with @effect[npSeal]{NP Seal}.
+passiveRules:
+  - key: StatDelta
+    stat: mov
+    value: 1
+  - key: GrantedAbility
+    abilities: [passesThroughUnits]
+  - key: CheckModifier
+    check: agility
+    direction: outgoing
+    value: -3
+  - key: CheckModifier
+    check: evade
+    direction: outgoing
+    value: -3
+  - key: StatDelta
+    stat: attributes
+    add: [levitating]

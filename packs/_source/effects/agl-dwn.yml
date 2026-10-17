@@ -1,0 +1,20 @@
+# Appendix A: "AGL Dwn — Agility Check rolls +X (harder)." The mirror of
+# `agl-up.yml`: a HIGHER roll is worse, an Agility Check being rolled under the
+# Agility it tests. An Evade is an Agility Check (#232 reading 15), so both of
+# the engine's names for one carry it. Bab-ilu's 12th row is the first source.
+schema: 1
+id: aglDwn
+name: "AGL Dwn"
+description: "Agility Check rolls, Evade included, are increased by X."
+polarity: debuff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: CheckModifier
+    check: agility
+    value: "@magnitude"
+  - key: CheckModifier
+    check: evade
+    value: "@magnitude"

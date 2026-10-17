@@ -1,0 +1,16 @@
+# Appendix A §A.4: "Buff ChDwn — Chance of applying buffs to others −X%."
+# The mirror of `buff-ch-up.yml`. Bab-ilu's 8th row is the first source (#232).
+schema: 1
+id: buffChDwn
+name: "Buff ChDwn"
+description: "The chance of buffs this Unit applies landing is reduced by X%."
+polarity: debuff
+volatility: nonVolatile
+valence: supportive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: ApplicationChance
+    direction: outgoing
+    polarity: buff
+    value: "-@magnitude"

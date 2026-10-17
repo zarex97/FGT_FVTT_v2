@@ -316,6 +316,11 @@ export const FACETS = Object.freeze([
     prose: "it is {subject}'s own Turn",
   }),
   facet({
+    id: "npOnCooldown",
+    english: "A Noble Phantasm of its own is on its Cooldown.",
+    prose: "a Noble Phantasm of {subject}'s is on its Cooldown",
+  }),
+  facet({
     id: "lastOfSummonGroup",
     english: "Is the only summon of its summoner still on the board.",
     prose: "{subject} is the last of its summoner's summons",

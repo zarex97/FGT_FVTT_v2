@@ -225,3 +225,14 @@ Spells were all offered; her Active Skills still are.
 member of its group on the board (Mana Burst's *"restore 1 Agility and 1 Luck to both"*). `targetsSelfOnly` answers false
 for a spec with `selection.alsoIncludes`, so Stars of the Chief God reaches the twin. `test/unit/phase-targets.test.mjs`
 walks a `choose` option's phases too.
+
+**Three phase timings and a table on the attack path** (#232). An `applyEffects` phase with `when: activation`
+lands on its caster when a scheduled Noble Phantasm is activated (Enki's *"cannot Act for 1◈"*), and never at
+its landing. A `zone` phase with `when: afterPhase` paints once the Combat Phase is over, over the area the
+attack resolved against (`attack.mjs#paintAfterPhase`): Enki's Waterside must not raise its own Water damage
+or worsen an Evade against it. A `rollTable` phase rolls on the attack path too, once per Unit hit, each row
+landing through the one door; `entries` names one table for every DU where `tables` splits it by relation.
+
+**The gate weighs what the use will charge** (#232, §46.4-OG). An ability's own costs may replace the NP cost
+(`supersedes: [npCost]`); `canUseAbility` resolves them as the payment does (`resolveCosts`) and refuses only what the
+charged costs, summed per pool, cannot meet. Enki's half of the Master's maximum, not an EX Rank's 100.

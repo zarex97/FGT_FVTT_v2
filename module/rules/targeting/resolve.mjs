@@ -390,6 +390,26 @@ export function resolveTargets(spec, caster, board, placement = {}) {
       || drop(u, "not another body of this Servant"));
   }
 
+  // 6a'. WHO AN AREA SPARES. Enki: *"Proto Gil, his Master, Units with the
+  //      'Levitating' Attribute, Noah and all Noah's allied Units within a 2
+  //      panel area of Noah are not affected by this NP"* (#232). The Master is
+  //      the caster's by CONTRACT (`masterId`), never every Master; a spared
+  //      Unit is named by content, with the allies standing within N of it.
+  if (sel.excludeOwnMaster && caster.masterId) {
+    survivors = survivors.filter((u) => u.id !== caster.masterId || drop(u, "the caster's own Master"));
+  }
+  for (const spare of sel.spares ?? []) {
+    const named = (board.units ?? []).filter((n) => n.contentId === spare.contentId && !n.defeated && n.panel);
+    if (named.length === 0) continue;
+    const within = spare.alliesWithin ?? null;
+    survivors = survivors.filter((u) => {
+      const by = named.find((n) => n.id === u.id
+        || (within !== null && u.panel && relationOf(n, u, board) === "ally"
+          && geo.chebyshev(n.panel, u.panel) <= within));
+      return !by || drop(u, `spared beside ${by.name ?? spare.contentId}`);
+    });
+  }
+
   // 6b. PARAMETER COMPARISON — a refusal keyed on how the target measures up
   //     to the CASTER, over a count of Parameters.
   //

@@ -26,7 +26,14 @@ import { test as testPredicate } from "./predicate.mjs";
  * (`Pigify`, `Toad`) reduce accuracy by other means and a second entry here is
  * how a future one would arrive.
  */
-export const MISS_SOURCES = Object.freeze({ blind: 80 });
+export const MISS_SOURCES = Object.freeze({ blind: 80, drowning: 80 });
+
+/**
+ * Sources whose miss is their own: none of Blind's ladder reaches them, and a
+ * failure spends no Cooldown. Drowning: *"80% chance of attacks and
+ * enemy-affecting abilities failing (no cooldown on failure)"* (#232 reading 19).
+ */
+export const PLAIN_MISS = Object.freeze(["drowning"]);
 
 /** With Clairvoyance, Blind's miss drops from 80% to 40% (Appendix A clause 4). */
 const CLAIRVOYANCE_MISS = 40;
@@ -59,6 +66,10 @@ const EXEMPT_SKILLS = Object.freeze(["eyeOfTheMind", "eyeOfTheMindFalse"]);
  */
 export function missChance(attacker, options = new Set()) {
   const held = attacker?.effects ?? [];
+  // A plain source first: its chance is its own whatever else is held, and
+  // Blind's exemptions below do not reach it (#232 reading 19).
+  const plain = PLAIN_MISS.find((id) => held.includes(id));
+  if (plain) return MISS_SOURCES[plain];
   const source = Object.keys(MISS_SOURCES).find((id) => held.includes(id));
   if (!source) return 0;
 
@@ -100,7 +111,8 @@ export function missChance(attacker, options = new Set()) {
  */
 export function missSourceOf(attacker) {
   const held = attacker?.effects ?? [];
-  return Object.keys(MISS_SOURCES).find((id) => held.includes(id)) ?? null;
+  return PLAIN_MISS.find((id) => held.includes(id))
+    ?? Object.keys(MISS_SOURCES).find((id) => held.includes(id)) ?? null;
 }
 
 /**

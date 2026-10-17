@@ -35,6 +35,9 @@ export const DEFAULT_MAXIMA = Object.freeze({
 /** Effects that stop a unit acting at all. */
 const PREVENT_ALL = Object.freeze([
   "stun", "stop", "freeze", "petrify", "sleep", "nightmare", "coma", "webbed", "crystalfreeze",
+  // Enki's price: *"Proto Gil cannot Act for 1◈ Turns after this NP is
+  // Activated"* (#232).
+  "cannotAct",
 ]);
 
 /** Effect → what it prevents, for the partial preventions. */

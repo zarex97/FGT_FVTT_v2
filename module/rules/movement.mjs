@@ -676,7 +676,11 @@ export function canPassThrough(panel, unit, board, { throughEnemies = false } = 
   // not a panel to stop on (`canStopOn`; ruled 2026-10-02, #65, ruling 25).
   const blocking = occupantsAt(panel, board, unit.level)
     .some((o) => !OBJECT_KINDS.has(o.kind) && !o.defeated && isEnemy(unit, o, board));
-  if (blocking && !throughEnemies) return false;
+  // Levitation: *"he can Move through obstacles (e.g. enemy Units) but still
+  // cannot enter the area around an enemy Master"* (#232 reading 9). Only the
+  // occupant stops being in the way: the Master's area and the fields below
+  // still hold, and `canStopOn` still refuses an occupied panel.
+  if (blocking && !throughEnemies && !hasGranted(unit, GRANTS.passesThroughUnits)) return false;
   if (inEnemyMasterProtection(panel, unit, board)) return false;
   if (blockedByFieldExit(panel, unit, board)) return false;
   if (blockedByFieldEntry(panel, unit, board)) return false;
@@ -939,7 +943,7 @@ export function decoyVerdict(unit, path, board) {
  */
 function guardedMasterBeside(panel, unit, board) {
   if (ignoresBlocking(unit)) return false;
-  if (unit?.sharesPanel) return inEnemyMasterProtection(panel, unit, board);
+  if (unit?.sharesPanel || hasGranted(unit, GRANTS.passesThroughUnits)) return inEnemyMasterProtection(panel, unit, board);
   const occupied = occupantsAt(panel, board, unit.level)
     .some((o) => !OBJECT_KINDS.has(o.kind) && !o.defeated && isEnemy(unit, o, board));
   return !occupied && inEnemyMasterProtection(panel, unit, board);

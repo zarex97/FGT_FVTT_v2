@@ -41,6 +41,8 @@ export const INTENT_TYPES = Object.freeze([
   // Secret Poison's tick, banked against its inflicter instead of taken
   // (#199 reading 10).
   "bankSecret",
+  // A scheduled strike's fire tick moved (Golden Rule shortening Enki, #232).
+  "scheduleDelta",
 ]);
 
 /**
@@ -67,6 +69,8 @@ const ORDER = Object.freeze({
   // never expires.
   consumeUse: 1,
   statDelta: 2,
+  // Bookkeeping, beside a cooldown cut: Golden Rule's Crit does one or the other.
+  scheduleDelta: 2,
   resource: 2,
   cooldown: 2,
   // An item is spent before whatever it does, so a consumable that kills its
@@ -364,6 +368,15 @@ export const setResource = (unitId, key, value) =>
  * @param {number} [count]
  * @returns {object}
  */
+/**
+ * Move every strike this Unit has scheduled by `delta` ticks.
+ *
+ * Golden Rule's *"reduce the Turn count of Enki by 1 Turn"* (#232 reading 14):
+ * the strike's absolute fire tick on the match (`engine/schedule.mjs`).
+ */
+export const scheduleDelta = (unitId, delta, source = null) =>
+  ({ t: "scheduleDelta", unitId, delta, ...(source ? { source } : {}) });
+
 export const consumeUse = (unitId, defId, count = 1) =>
   ({ t: "consumeUse", unitId, defId, count });
 
@@ -726,6 +739,7 @@ const NUMERIC_FIELDS = Object.freeze({
   itemGrant: ["delta"],
   grantCommandSpells: ["count"],
   consumeUse: ["count"],
+  scheduleDelta: ["delta"],
 });
 
 /**

@@ -1,0 +1,51 @@
+# packs/_source/servants/proto-gil.yml
+# Conversion source: char_orig_sheets/Copia de Proto Gil.md (as edited 2026-10-16)
+# Audit: #232 (docs/superpowers/specs/2026-10-16-proto-gil-clauses.md) · data sheet: docs/D-servant-data-sheets.md §D.30
+#
+# Built to be reused: every Ability below is the generic piece another sheet
+# already uses, or an extension of it the next sheet with the same words gets
+# for free (docs/superpowers/plans/2026-10-16-proto-gil-build.md).
+#
+# Every printed figure agrees with its table: STR C -> 100, MAG A -> 200,
+# END C -> 1000.
+schema: 1
+id: proto-gil
+name: Proto Gil
+type: servant
+
+trueName: Gilgamesh
+servantClasses: [archer]
+classContainer: archer
+alignment: { order: chaotic, morality: good }
+# "Ancient Mesopotamia, Middle East": Semiramis's two nodes.
+region: [mesopotamia, middleEast]
+# "Male, Servant, [Sky], King, Humanoid". NO `divine`: his Divinity grants it,
+# and NO `levitating`: Levitation grants it while no NP Seal holds it off.
+attributes: [male, servant, sky, king, humanoid]
+
+parameters: { str: C, end: C, agi: B, mag: A, luc: A }
+baseHealth: 1000
+# "MOV: 6 (5)": 5 of his own, 6 with Levitation, which NP Seal takes away.
+mov: 5
+range: { panels: 5, targets: 1 }
+baseAttack: { str: 100, mag: 200 }
+normalAttack: { mode: fixed, component: str }
+# "Sustainability: N/A" -- Independent Action A+, Passive 1.
+sustainability: null
+
+abilities:
+  - ref: class-independent-action
+    rank: "A+"
+    description: |
+      (Passive 1) Sustainability does not apply.
+      (Passive 2) Master's ZON is increased by 3 panels.
+      (Passive 3) Cannot be contracted by enemy Casters and Masters.
+  - { ref: class-magic-resistance, rank: C }
+  - { ref: divinity-fixed, rank: B }
+  - { ref: proto-gil-charisma }
+  - { ref: proto-gil-golden-rule }
+  - { ref: proto-gil-treasury-of-babylon }
+  - { ref: proto-gil-levitation }
+  - { ref: proto-gil-bab-ilu }
+  - { ref: proto-gil-enkidu }
+  - { ref: proto-gil-enki }

@@ -379,6 +379,14 @@ function add(options, side, unit, withoutModeHeld = false) {
   // gated on this is what makes that so -- see `annotateSummonsActed`.
   if (unit.selfOrSummonsActed) options.add(`${side}:selfOrSummonsActed`);
 
+  // A Noble Phantasm of this unit's is on its Cooldown. Golden Rule's fallback
+  // turns on it: *"If none of his NP are on Cooldown, reduce the Turn count of
+  // Enki by 1 Turn"* (#232 reading 14). An NP spent for the game is not on
+  // a Cooldown: it has none to run.
+  if ((unit.abilities ?? []).some((a) => (a.isNP || a.categorizedAsNP) && (a.cooldownRemaining ?? 0) > 0)) {
+    options.add(`${side}:npOnCooldown`);
+  }
+
   // The LAST summon of its summoner's group still standing. Raikou's copies:
   // the one that dies last is what ends Tenmōkaikai and starts its cooldown,
   // and it has to know that about itself because the handler fires from the

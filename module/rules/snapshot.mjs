@@ -353,6 +353,12 @@ export function snapshotUnit(actor, {
     // Shares of the maximum at or above which a lethal blow leaves 1 Health
     // (Avalon, #230), read by `engine/attack.mjs#resolveDefeatOf`.
     lethalFloors: contributions.lethalFloors ?? [],
+    // Changes to the healing this Unit receives (Heal Dwn, Drowning, #232),
+    // read by `engine/applier.mjs#resolveHealing`.
+    healingReceived: contributions.healingReceived ?? [],
+    // An additional Normal Attack after one of this Unit's (Bab-ilu, #232),
+    // read by `engine/follow-up.mjs#offerFollowUp`.
+    followUps: contributions.followUps ?? [],
     // Read by `engine/attack.mjs` before the Combat Processes are built, to
     // ask whether this unit may swing first at whoever just declared on it.
     preemptions: contributions.preemptions ?? [],

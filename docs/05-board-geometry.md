@@ -117,3 +117,9 @@ Rite."*
 stay within 2 panels of Pollux."* (`leashBreakAt`, the one reader `canStopOn` shares). A step beside a guarded enemy
 Master reads *"Step N is beside an enemy Master, and its Servant guards that panel."* (`guardedMasterBeside`). "The
 destination panel is occupied." is said only when the step itself was allowed, so an empty panel never reads occupied.
+
+**Passing Units without stopping on them** (#232). Proto Gil's Levitation, *"he can Move through obstacles
+(e.g. enemy Units) but still cannot enter the area around an enemy Master"*, is the grant `passesThroughUnits`
+(`rules/granted.mjs`): `canPassThrough` lets the mover past an enemy's panel, and nothing else changes: an enemy
+Master's area, a field's walls and `canStopOn`'s refusal of an occupied panel all hold (reading 9). Narrower than
+`ignoresOccupancy`, which knocks the occupant aside. NP Seal takes the grant with the rest of Levitation.
