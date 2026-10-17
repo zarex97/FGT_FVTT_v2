@@ -265,15 +265,20 @@ describe("The Thaumaturgy Spells share a shape", () => {
     // Atk Up would quietly buff both his Noble Phantasms.
     expect(eff.id).toBe("nAtkUp");
     expect(eff.magnitude).toBe(40);
-    expect(eff.duration).toBe("⅓◈");
+    // That Combat Phase, not ⅓◈ (#243 reading 1, EMIYA's #208 reading 9).
+    expect(eff.duration).toBe("until combatPhaseEnd");
     expect(a.cooldown).toBe("2◈");
-    expect(a.timing.window).toContain("combatPhaseStart");
+    // Any Combat Phase he is in, attacking or attacked; no sheet button.
+    expect(a.timing.window).toEqual(["combatPhaseStart", "defendingPhaseStart"]);
   });
 
   it("is EMIYA's Reinforcement at a higher number", () => {
     const k = src("abilities", "kiritsugu-reinforcement.yml");
     const e = src("abilities", "emiya-reinforcement.yml");
     expect(k.phases[0].effects[0].id).toBe(e.phases[0].effects[0].id);
+    // The same sentence, the same moment and length (#243 reading 1).
+    expect(k.timing).toEqual(e.timing);
+    expect(k.phases[0].effects[0].duration).toBe(e.phases[0].effects[0].duration);
     expect(k.phases[0].effects[0].magnitude).toBeGreaterThan(e.phases[0].effects[0].magnitude);
   });
 
@@ -749,7 +754,10 @@ describe("Magecraft — Passive 2 extends the clock, not the uses", () => {
   it("extends rather than reapplies", () => {
     expect(ev.ofCategory).toBe("thaumaturgy");
     const [then] = ev.then;
-    expect(then.key).toBe("DurationExtension");
+    // `ExtendEffect`, an action the scheduler runs. This asserted the
+    // authored `DurationExtension`, an element no handler executes, and passed
+    // while the clock never moved (#243, live).
+    expect(then.key).toBe("ExtendEffect");
     expect(then.effect).toBe("suppression");
     expect(then.ticks).toBe("1◈");
     // A reapplication would refill the five uses.
@@ -762,7 +770,9 @@ describe("Lethal Gunfire Suppression — the Active", () => {
 
   it("RESTORES 4 Luck without exceeding his maximum", () => {
     const [change] = a.phases.find((p) => p.kind === "resource").changes;
-    expect(change.key).toBe("luck");
+    // `luck.value`, the pool's value: `luck` named the pool, and the clamped
+    // write added 4 to an object and restored nothing (#243, live).
+    expect(change.key).toBe("luck.value");
     expect(change.delta).toBe(4);
     expect(change.clampToMax).toBe(true);
   });
@@ -1013,7 +1023,9 @@ describe("A Seal is visible on the button, not only at the bill (R2)", () => {
     [{ from: "kiritsugu", effects: effects.map((defId) => ({ defId })) }],
     ({ units, world }) => [...world.actor("kiritsugu").items]
       .filter((item) => item.system.isSpell)
-      .map((item) => canUseAbility({ ability: usageSpecFor(item), unit: units[0], round: 6, turn: 18 })),
+      // At a window: Reinforcement is window-only now (#243 reading 1), and a
+      // `windowOnly` refusal would answer before the seal this asks about.
+      .map((item) => canUseAbility({ ability: usageSpecFor(item), unit: units[0], round: 6, turn: 18, atWindow: true })),
   );
 
   it("refuses a Spell under Skill Seal, and under Silence", async () => {
@@ -1062,34 +1074,29 @@ describe("An OnEvent's interior actions are `kind` once normalized", () => {
   });
 });
 
-describe("Mystery Bisection — 'if damage was dealt' is inherited, not authored", () => {
+describe("Mystery Bisection — 'if damage was dealt' gates the Instakill only", () => {
   const a = src("abilities", "kiritsugu-mystery-bisection.yml");
+  const phaseOf = (id) => a.phases.find((p) => (p.effects ?? []).some((x) => x.id === id));
 
   it("puts both riders AFTER the damage", () => {
     // The opposite of Scáthach's Gáe Bolg Alternative, which rolls first and
     // lets a success SUPPRESS the damage. Here the damage is the precondition.
-    const phase = a.phases.find((p) => (p.effects ?? []).some((x) => x.id === "instakill"));
-    expect(phase.when).toBe("afterDamage");
-    expect(phase.effects.map((e) => e.id)).toEqual(["instakill", "kiritsuguMark"]);
+    expect(phaseOf("instakill").when).toBe("afterDamage");
+    expect(phaseOf("kiritsuguMark").when).toBe("afterDamage");
   });
 
-  it("relies on the rider gate rather than restating it", () => {
-    // `applyAbilityEffects` already refuses every rider on a negated attack --
-    // "Nothing rides on an attack that dealt nothing" -- so the clause needs no
-    // `requiresDamage` of its own, and authoring one would be a second place
-    // for the same rule to be wrong.
-    //
-    // Measured live: against `antiPurge`, which halts the pipeline at stage 0,
-    // eight uses produced 0 Instakills and 0 marks where ~3 Instakills would be
-    // expected at 35%. Against an ordinary target, 30 uses produced 12
-    // Instakills (40%) and 30 marks.
-    const phase = a.phases.find((p) => (p.effects ?? []).some((x) => x.id === "instakill"));
-    expect(phase.requiresDamage).toBeUndefined();
+  it("states the hurt gate on the Instakill, and not on the mark", () => {
+    // This test once said the rider gate made `requiresDamage` redundant. It
+    // stopped being true when riders came to land on a hit, not a hurt
+    // (§46.4-LI): a Block to 0 rolled the Instakill. His sheet says "if damage
+    // was dealt" (#243 reading 15); the mark's "Then, apply" has no gate (16).
+    expect(phaseOf("instakill").requiresDamage).toBe(true);
+    expect(phaseOf("kiritsuguMark").requiresDamage).toBeUndefined();
   });
 
   it("does not let a successful Instakill suppress the mark", () => {
-    // Both riders sit in one `afterDamage` phase with no `skipIf` between them,
-    // so a landed Instakill does not stop the debuff. Measured: the mark landed
+    // Two `afterDamage` phases with no `skipIf` between them, so a landed
+    // Instakill does not stop the debuff. Measured: the mark landed
     // on all 30 uses, including all 12 that killed.
     expect(a.damage.skipIf).toBeUndefined();
   });

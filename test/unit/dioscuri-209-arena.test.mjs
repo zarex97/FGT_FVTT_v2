@@ -540,7 +540,8 @@ describe("Def Dwn (A) and (C) drain Luck and Agility only on damage from an Atta
     const out = await drain(async (w) => {
       const { resolveAttack } = await import("../../module/engine/attack.mjs");
       const declared = await resolveAttack({ attackerId: CASTOR, abilityId: null, placement: { pathTargets: [VICTIM], plainDamage: true } });
-      await playProcess(w, declared.processes[0].messageId, { [VICTIM]: ["nothing", "declined"] });
+      // No "nothing": a rung with no reaction left on it asks nobody now (#243 reading 7).
+      await playProcess(w, declared.processes[0].messageId, { [VICTIM]: ["declined"] });
     });
     expect(out.health.every((h) => h > 0)).toBe(true);
     // RED before #223: Luck 1 and Agility 1, the damage taken from "an Attack" that was none.

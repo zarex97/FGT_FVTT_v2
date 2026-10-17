@@ -378,7 +378,17 @@ export function pendingPrompt(s) {
   // *"cannot be Reacted to unless the AU's AGI Rank is higher"* refuses Block,
   // Counter AND Evade together, where every earlier `ForbidReaction` in the
   // corpus took at most two of the three.
-  if (s.state === "react" && options?.length === 0) return null;
+  //
+  // Asked of the rungs LEFT, not of the list: `options` always holds the three
+  // standing rungs, so `length === 0` was never true and the guard was dead. A
+  // shot that refused Block, Evade and Counter still waited on its defender to
+  // press "Do nothing", the only button the card drew -- and Kiritsugu's
+  // *"instantly"* landed whenever that player got round to it, after the
+  // Attack it answered (#243 reading 7). Only "Do nothing" left, and no
+  // ability beside it, is no question.
+  const forbidden = s.state === "react" ? (s.forbiddenReactions ?? []) : [];
+  const left = (p.options ?? []).filter((o) => o !== "nothing" && !forbidden.includes(o));
+  if (s.state === "react" && left.length === 0 && extra.length === 0) return null;
 
   return { ...p, options, unitId, abilities: extra };
 }

@@ -94,6 +94,18 @@ export const AGAINST_FIELDS = Object.freeze([
     english: "Only when the Unit in peril carries this effect.",
   },
   {
+    key: "aimedAt",
+    // WHOM an ally-window ability lands on. By default the Unit in peril: Rho
+    // Aias goes in front of it. Kiritsugu's Scapegoat is used *"when an allied
+    // Unit ... is Attacked"* and *"on an allied Unit within a 2 panel area"* --
+    // two phrases, so its player picks any legal target (#243 reading 5).
+    type: "select",
+    choices: ["peril", "chosen"],
+    label: "FGT.Authoring.Timing.aimedAt",
+    hint: "FGT.Authoring.Timing.aimedAtHint",
+    english: "Whether it lands on the Unit in peril or on a target its user picks.",
+  },
+  {
     key: "radius",
     type: "number",
     label: "FGT.Authoring.Timing.radius",

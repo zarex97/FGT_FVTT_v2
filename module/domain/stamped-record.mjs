@@ -146,6 +146,9 @@ export const TURN_RECORD = stampedRecord({
     reshapedField: false,
     itemTransfers: 0,
     abilitiesUsed: [],
+    // Uses a category's per-Turn cap does not count: Lethal Gunfire
+    // Suppression's free Thaumaturgy Spell (#243 reading 9).
+    categoryExempt: [],
     namelessForestAttempts: 0,
     mounted: false,
   },

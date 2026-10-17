@@ -88,6 +88,12 @@ export async function useSkill({
   // sheet button, and the use gate refuses it anywhere else (`windowOnly`). Only
   // the engine sets it; the socket operation never carries it (#208 reading 8).
   atWindow = false,
+  // A use granted at a moment of the GRANTER's choosing, which overrides the
+  // used ability's own: Lethal Gunfire Suppression's *"Kiritsugu can use a
+  // Thaumaturgy Spell once before performing this Normal Attack"*, on an
+  // enemy's Turn, whatever *"Used during your Turn"* the Spell says (#243
+  // reading 9). Only the engine sets it.
+  anyMoment = false,
 }) {
   const actor = game.actors.get(actorId);
   const ability = actor?.items?.get(abilityId);
@@ -119,6 +125,7 @@ export async function useSkill({
     // Ch. 04's Round gate, whose numbers are world settings Layer 2 cannot read.
     ...gateContext(),
     atWindow,
+    anyMoment,
     // The `predicate` requirement kind (`rules/items.mjs`) has been in
     // `meetsRequirement` since Ch. 17 was implemented and refused every use
     // that named it: `ctx.testPredicate` had no supplier here, so
@@ -218,7 +225,9 @@ export async function useSkill({
     // Recorded so a mutually-exclusive partner can see it went, at both
     // scales, and so a `maxUses` budget can be spent. One intent, shared with
     // the attack path, which used to keep no record at all.
-    I.recordUse(actorId, ability.id, ability.system?.contentId ?? null),
+    // Exempt from its category's per-Turn count when the use was granted free
+    // of it: the cap reads this off (#243 reading 9).
+    I.recordUse(actorId, ability.id, ability.system?.contentId ?? null, 1, bypassesCategoryLimit),
     I.log({
       kind: "ability", event: "skillUsed",
       unitId: actorId, abilityId, name: ability.name,
@@ -230,7 +239,9 @@ export async function useSkill({
   // The SAME action the check above asked about. Two spellings here is how a
   // use gets checked against one pool and charged to another.
   if (combat?.started && !free) await budget.spend({ combat, unit: self, action: budgetAction });
-  await fireAbilityUsed(actor, ability);
+  // What the use's own handlers did is a line on this card (#202): Magecraft's
+  // extension of Suppression on a Spell was on no card (#243, live).
+  applied.push(...await fireAbilityUsed(actor, ability));
   await rollConcealmentBreak(actor, ability, self);
   if (failure) {
     await ChatMessage.create({
@@ -364,6 +375,32 @@ export function resolveSkillTargets(ability, self, board, placement) {
   // A choice still owed refuses. Without this a Skill called from a macro ran
   // its phases against nobody and still paid its cost and cooldown (#129).
   return { units: resolved.units, errors: [...resolved.errors, ...pendingChoiceErrors(resolved)] };
+}
+
+/**
+ * Every Unit an ability may be aimed at, from where its owner stands now.
+ *
+ * Asked by a reaction whose target its user picks (`timing.aimedAt: chosen`):
+ * Kiritsugu's Scapegoat is used *"when an allied Unit within a 2 panel area of
+ * Kiritsugu is Attacked"* and *"on an allied Unit within a 2 panel area"* --
+ * any of them, himself included, not only the Unit in peril (#243 readings 4,
+ * 5). Each candidate is tried through `resolveSkillTargets`, the one reader
+ * the use itself passes, so the list cannot offer a Unit the use refuses.
+ *
+ * @param {object} ability the Item
+ * @param {object} actor its owner
+ * @param {object} [placement] what the reaction already knows (attacker, attack)
+ * @returns {string[]} unit ids
+ */
+export function legalSkillTargets(ability, actor, placement = {}) {
+  const board = currentBoard();
+  const self = unitFrom(board, actor);
+  return (board.units ?? [])
+    .filter((u) => {
+      const out = resolveSkillTargets(ability, self, board, { ...placement, unitId: u.id });
+      return out.errors.length === 0 && out.units.some((t) => t.unitId === u.id);
+    })
+    .map((u) => u.id);
 }
 
 /**
@@ -734,8 +771,12 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
               // `clampToMax` is the difference between "restores 3 Agility" and
               // "grants 3 Agility": Golden Fleece restores, so it cannot push a
               // Servant above the maximum it rolled at summon.
+              // Through the one path reader: `luck` is `luck.value` here as it
+              // is for the unclamped write. Kiritsugu's *"Restore 4 Luck"* was
+              // authored `luck`, the bare pool, and restored nothing while its
+              // card read "Luck 19 (no change)" (#243, live).
               return c.clampToMax
-                ? I.statDelta(target.unitId, c.key, delta, true)
+                ? I.statDelta(target.unitId, resourcePathFor(c.key, game.actors.get(target.unitId)?.system ?? null), delta, true)
                 : I.resource(target.unitId, c.key, delta);
             }),
             `skill:${ability.id}:resource`,
@@ -2054,9 +2095,10 @@ async function chooseSummonType(actor, spec) {
  *
  * @param {object} actor
  * @param {object} ability
- * @returns {Promise<void>}
+ * @returns {Promise<object[]>} the card lines its handlers left
  */
 export async function fireAbilityUsed(actor, ability) {
+  const sink = [];
   const board = currentBoard();
   const unit = unitOf(actor, board);
   const intents = fireEvent("abilityUsed", [unit], {
@@ -2072,7 +2114,8 @@ export async function fireAbilityUsed(actor, ability) {
       isNP: ability?.type === "noblePhantasm" || Boolean(ability?.system?.isNP),
     },
   });
-  if (intents.length > 0) await applyWorldIntents(intents, "abilityUsed");
+  if (intents.length > 0) await applyWorldIntents(intents, "abilityUsed", { sink, lines: true });
+  return sink;
 }
 
 /**

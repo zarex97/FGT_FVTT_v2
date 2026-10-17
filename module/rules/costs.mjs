@@ -263,7 +263,9 @@ export function canUseAbility({
   // Above the cooldown: "on cooldown for 4 Turns" would invite a player to wait
   // for a Turn on which the Skill still could not be used.
   const acting = ctx.actingFactionId ?? null;
-  if (acting && !ctx.isCounter && usedOnlyDuringOwnTurn(ability)) {
+  // A use granted at another ability's moment answers to that moment instead
+  // (`ctx.anyMoment`, #243 reading 9): the free Spell inside Kiritsugu's shot.
+  if (acting && !ctx.isCounter && !ctx.anyMoment && usedOnlyDuringOwnTurn(ability)) {
     const side = unit?.actingFactionId ?? unit?.factionId ?? null;
     if (side && side !== acting) return { ok: false, reason: "notOwnTurn", detail: {}, cost };
   }
@@ -274,7 +276,7 @@ export function canUseAbility({
   // time -- Reinforcement in the middle of his Turn, with no Combat Phase in
   // sight (#208 reading 8, ruled 2026-10-14). A Counter is exempt for the reason
   // above: it is made on the enemy's Turn by definition.
-  if (!ctx.atWindow && !ctx.isCounter && usedOnlyAtWindows(ability)) {
+  if (!ctx.atWindow && !ctx.anyMoment && !ctx.isCounter && usedOnlyAtWindows(ability)) {
     return { ok: false, reason: "windowOnly", detail: { windows: windowsOf(ability.timing) }, cost };
   }
 
@@ -609,7 +611,7 @@ function usedThisRound(unit) {
  * @param {object} unit
  * @returns {{category: string, perTurn: number, source: string}|null}
  */
-function categoryLimitFor(ability, unit) {
+export function categoryLimitFor(ability, unit) {
   if (!ability?.category || ability.bypassesCategoryLimit) return null;
   const limit = (unit?.categoryUseLimits ?? []).find((l) => l.category === ability.category);
   if (!limit) return null;
@@ -620,7 +622,11 @@ function categoryLimitFor(ability, unit) {
       .flatMap((a) => [a.id, a.contentId])
       .filter(Boolean),
   );
-  const used = usedThisTurn(unit).filter((id) => sameFamily.has(id));
+  // Not the uses the cap was told to skip: the free Spell *"does not count
+  // towards the one Thaumaturgy Spell usage per Turn"* (#243 reading 9). It
+  // refused the Reinforcement after it on the board.
+  const exempt = new Set(unit?.turnState?.categoryExempt ?? []);
+  const used = usedThisTurn(unit).filter((id) => sameFamily.has(id) && !exempt.has(id));
 
   return used.length >= limit.perTurn ? limit : null;
 }
