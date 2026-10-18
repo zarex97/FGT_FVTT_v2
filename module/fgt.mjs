@@ -49,6 +49,7 @@ import { backfillVision } from "./engine/token-vision.mjs";
 import { registerTargetingLayer, pickTarget } from "./apps/canvas/targeting-layer.mjs";
 import { registerOverlayLayer, attachOverlays } from "./apps/canvas/overlay-layer.mjs";
 import { FGTToken as FGTTokenPlaceable } from "./apps/canvas/token.mjs";
+import { FGTTile } from "./apps/canvas/decoy.mjs";
 import { registerCombatTracker } from "./apps/combat/tracker.mjs";
 import { sweepTransientRegions } from "./apps/canvas/target-region.mjs";
 import { ensurePassiveFields } from "./engine/fields.mjs";
@@ -119,6 +120,8 @@ Hooks.once("init", () => {
   // rule (Ch. 27). Registered at init, because the canvas reads this when it
   // builds the token layer.
   CONFIG.Token.objectClass = FGTTokenPlaceable;
+  // A ghost's stand-in body, seen per viewer (#249 reading 33).
+  CONFIG.Tile.objectClass = FGTTile;
 
   // There is no initiative. Turn order is a 1d100 per faction, re-rolled every
   // Round, plus Delay (Ch. 25).

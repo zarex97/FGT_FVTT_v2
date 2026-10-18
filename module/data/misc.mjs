@@ -42,6 +42,12 @@ export class EffectData extends foundry.data.ActiveEffectTypeDataModel {
       npMagnitude: new fields.NumberField({ required: false, nullable: true, initial: null }),
       stage: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
       uses: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
+      // What THIS instance's definition reads off it, beyond a magnitude: a
+      // Presence Concealment granted by Dongyū carries its own Rank and Evade
+      // (`{rank: "C+", evade: 2}`), because the Unit it lands on has no Skill to
+      // read them from (#249 readings 2, 4). Keys are checked per definition
+      // (`rules/effect-flow.mjs#EFFECT_PARAMS`).
+      params: new fields.ObjectField({ required: false, nullable: true, initial: null }),
 
       // An ABSOLUTE expiry tick, never a countdown. That is what makes Stop's
       // clock freeze expressible -- it shifts expiries rather than skipping

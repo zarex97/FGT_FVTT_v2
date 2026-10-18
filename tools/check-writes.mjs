@@ -73,6 +73,7 @@ const ALLOWED = [
   { file: "engine/summoning.mjs", category: "scene-lifecycle", why: "places the tokens a summon puts on the board" },
   { file: "engine/war-setup.mjs", category: "scene-lifecycle", why: "places the war's starting tokens" },
   { file: "engine/marks.mjs", category: "scene-lifecycle", why: "a Mark is a placed token; visibility rides its document" },
+  { file: "engine/feigned-defeat.mjs", category: "scene-lifecycle", why: "a Feigned Defeat's stand-in body is a Tile, placed and cleared (#249)" },
   { file: "engine/escape.mjs", category: "scene-lifecycle", why: "writes the RegionBehavior that holds a Unit inside a Field" },
   { file: "engine/token-vision.mjs", category: "scene-lifecycle", why: "vision is token configuration, not unit state" },
   { file: "engine/token-footprint.mjs", category: "scene-lifecycle", why: "footprint is token geometry" },

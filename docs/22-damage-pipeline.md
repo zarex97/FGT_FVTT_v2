@@ -89,6 +89,11 @@ instance. `attack.mjs#instancesAgainst` is the one reader of a defender's instan
 
 **An NP's Base Attack keeps what an item says it does not touch** (#247 reading 12). `BaseAttackModifier` with `exceptNP` records its change in `npBaseAttackOffset`, and stage 1 adds it back for an NP or an Attack Categorized as NP: the Vorpal Blade's +50 BA(STR) reaches every other Attack. **A defeated defender rolls no Injury**, whatever its Health reads: the Glass Game's second effect writes Nursery's Health back and she stays defeated, and her card read *"635 Injury Roll required"* (`rules/injury.mjs#injuryCheck` asks `defeated`).
 
+**A base read off the defender** (#249 reading 22). A damage source `{unit: target, stat: currentHealth}` adds up the
+DU's current Health in stage 1 (`stage1Base`): Yuugao's *"damage equivalent to the DU's current Health"*, then the
+whole pipeline. An unknown `unit` used to fall through to the attacker; the build now refuses any but `self`,
+`target`, `mount` and `partner` (`tools/lib/content.mjs#damageBlocksAreKnown`).
+
 ## Invariants & edge cases
 
 1. **The `5d10` roll belongs to stage 2, not stage 1.** It is not a base-attack factor; it scales the base before the ability multiplier. Placing it after the multiplier reverses the author's reference calculation (`module/rules/damage/pipeline.mjs:284-287`).

@@ -1,0 +1,39 @@
+# Karakuri Genpō: Kawarimi (#249, KW.*).
+#
+# A reaction at the rung, before any Evade, as Battle Retreat (reading 14):
+# `whenAllyAttacked` within 2, which counts her too when she is the one
+# Attacked. `aimedAt: chosenIfSelf`: Attacked herself, she picks any other Unit
+# within 2 but the AU -- enemies, allies, Masters, summons, a large footprint
+# too (readings 12, 38); an ally Attacked, the partner is that ally.
+#
+# `swapsPositions`: the two trade panels and the Combat Process goes on against
+# whoever stands where it struck, its Range not rechecked, that Unit reacting
+# as usual -- `reactionFree`, the rung stays (reading 13). An AoE's panels stay
+# put; a partner it caught too trades Processes with her (reading 36).
+#
+# Concealed, a swap with an enemy is refused (PC.7, reading 14); stepping in for
+# an ally she takes the hit, with no coin, and PC ends with that Process
+# (reading 32). Barred while Fubatsu or Kirihanasu is cooling (reading 20).
+schema: 1
+id: danzo-kawarimi
+name: "Karakuri Genpō: Kawarimi"
+kind: skill
+slug: kawarimi
+cooldown: "3◈-⅓◈"
+timing: { window: whenAllyAttacked, radius: 2, aimedAt: chosenIfSelf }
+reactionFree: true
+swapsPositions: true
+requirements:
+  - { kind: abilityOffCooldown, abilityIds: [danzo-fubatsu, danzo-kirihanasu] }
+description: |
+  (Active) Mechanical Illusion: Substitution. Used when Attacked, or an allied Unit within a 2 panel area
+  of Danzō is Attacked.
+  1. If Danzō is the one being Attacked, she can swap herself with any other Unit within a 2 panel area of
+  herself except the AU. The Combat Process continues as normal.
+  2. If the allied Unit is the one being Attacked, she can swap herself with that allied Unit. The Combat
+  Process continues as normal.
+  Cannot be used if @ability[danzo-fubatsu]{Fubatsu} and/or @ability[danzo-kirihanasu]{Kirihanasu} is on Cooldown. Cooldown: 3◈-⅓◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy, ally, neutral], includeSelf: false, excludeAttacker: true, chooser: all, count: 1 }

@@ -1,0 +1,59 @@
+# Karakuri Genpō: Kirihanasu (#249, KH.*).
+#
+# A Feigned Defeat (CONTEXT.md). `whenFatallyHit`: an Attack's hit that would
+# bring her to 0 after every floor, offered to her owner alone before it lands;
+# not Instakill, Death or a tick (reading 15). `insteadOfDamage`: she receives
+# neither the hit nor its riders, and the Attack ends for her (reading 16).
+#
+# Her phases, in order. The marker first, so the escape Move already follows
+# the ghost's rules (reading 25); then Presence Concealment with no expiry,
+# applied whatever its Skill's Cooldown (KH.pc.cd, reading 18); then the escape,
+# up to her current MOV, Slow included (reading 39). What the table sees -- a
+# defeat card and a skulled body for every player but hers, the truth for her
+# and the GM -- is `engine/feigned-defeat.mjs#stageFeignedDefeat` (readings 17,
+# 33, 34). `freeAction`: nothing a ghost does spends her side's budget, the
+# escape included (reading 35).
+#
+# Cooldown 3◈-⅓◈, and her Health above 75% since (reading 37). Fubatsu and
+# Kawarimi read both halves as "on Cooldown" (reading 20); Kirihanasu itself
+# names no gate.
+schema: 1
+id: danzo-kirihanasu
+name: "Karakuri Genpō: Kirihanasu"
+kind: skill
+slug: kirihanasu
+cooldown: "3◈-⅓◈"
+timing: { window: whenFatallyHit }
+insteadOfDamage: true
+freeAction: true
+requirements:
+  - { kind: healthRestoredSince, fraction: 0.75 }
+description: |
+  (Active) Mechanical Illusion: Detachment. Used when Danzō is Attacked and receives fatal damage (i.e.
+  Health would be reduced to 0). First, the Player privately informs the GM that it wants to use this Skill.
+  Instead of taking damage, the player Moves Danzō to another panel on the board as per her Move, and
+  @ability[class-presence-concealment]{Presence Concealment} is Activated, regardless of Cooldown; the GM
+  makes a note of the panel on the game board where Danzō has Moved to. Meanwhile, the opposing Player is
+  shown and informed that Danzō has been defeated.
+  From this point on, an invisible (Presence Concealed) Danzō is being secretly controlled by her Player by
+  informing the GM of her Moves; she does not apply to the number of Units that Move during a Turn in this
+  case. The Presence Concealment activated by Kirihanasu is Active until Danzō Attacks, and her survived
+  existence is revealed to all other players at this point.
+  Cooldown: 3◈-⅓◈ Turns, and Danzō's Health must have been restored back to above 75% of its maximum value
+  since using Kirihanasu.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: feignedDefeat }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: presenceConcealment, permanent: true }
+  - kind: move
+    target: self
+    panels: "@self.mov"

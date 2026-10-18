@@ -121,6 +121,8 @@ export function applyEffect({
   // This application passes every immunity, one naming the effect included;
   // resistance still reduces it (Enkidu's Stun on a Divine DU, #232).
   bypassesImmunity = false,
+  // What the instance carries for its definition's readers (#249).
+  params = null,
 }) {
   /** @type {Array<{step: string, outcome: string, detail?: string}>} */
   const trace = [];
@@ -365,6 +367,7 @@ export function applyEffect({
     // Secret Poison had a place to live and no way to get there.
     visibility,
     attributionHidden: Boolean(attributionHidden),
+    params: params ?? null,
   };
 
   // ── 7. EMIT ──────────────────────────────────────────────────────────────

@@ -277,6 +277,11 @@ An effect an attack delivers alongside its damage, on the condition that the att
 **Cover**:
 A Servant taking a Noble Phantasm in place of its Master.
 
+**Feigned Defeat**:
+A defeat every other player is shown while the Unit lives on, hidden from them. No defeat rule
+fires: no on-defeat Clause, no kill credit, and its Contract stands. It ends when the Unit is revealed.
+_Avoid_: fake death, shadow state, survived defeat
+
 ## Effects
 
 **Effect**:

@@ -83,6 +83,15 @@ export const ABILITY_WINDOWS = Object.freeze({
     dispatched: true,
     hint: "When a Noble Phantasm is DECLARED against this Unit, before any Combat Process exists.",
   }),
+  // Kirihanasu (#249 reading 15): an Attack's hit that would bring its bearer
+  // to 0 after every floor, offered privately before it lands
+  // (`engine/feigned-defeat.mjs#offerFeignedDefeat`). Never Instakill, Death or
+  // a tick: none of them reaches the Damage Step's write.
+  whenFatallyHit: Object.freeze({
+    id: "whenFatallyHit",
+    dispatched: true,
+    hint: "When an Attack's hit would reduce this Unit's Health to 0, before it lands.",
+  }),
   // Declared by the engine on its bearer's behalf, never offered to a player:
   // Mannanán's Fragarach Counter (`engine/attack.mjs#flushAutoCounters`). It
   // sat on her bar as a button, though its own file says it is not one (#197).
@@ -119,6 +128,9 @@ export const COMBAT_PHASE_START_WINDOW = ABILITY_WINDOWS.combatPhaseStart.id;
 
 /** The start of a Combat Phase in which this Unit is attacked (#206). */
 export const DEFENDING_PHASE_START_WINDOW = ABILITY_WINDOWS.defendingPhaseStart.id;
+
+/** An Attack's fatal hit, before it lands (Kirihanasu, #249). */
+export const FATAL_HIT_WINDOW = ABILITY_WINDOWS.whenFatallyHit.id;
 
 /**
  * The windows the **attacker's own** abilities may name.

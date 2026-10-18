@@ -20,6 +20,7 @@
  * without this module having to remember anything.
  */
 
+import { GRANTS, hasGranted } from "../rules/granted.mjs";
 import { currentBoard, unitOf, unitActor } from "./board.mjs";
 import { displaceToken } from "./io.mjs";
 import { currentHealth } from "../domain/health.mjs";
@@ -1174,6 +1175,8 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
     // dispatched separately. No clause acts on the dead; one that ever does
     // authors a key for it (#153).
     !u.defeated
+    // A ghost: no field touches it (#249 reading 28).
+    && !hasGranted(u, GRANTS.ignoresBoundedFields)
     && (!unitIds || unitIds.includes(u.id))
     // `assumeInside` is the CONTACT path, and it is not a shortcut: at
     // `moveToken` the board still places the mover on the panel it left --

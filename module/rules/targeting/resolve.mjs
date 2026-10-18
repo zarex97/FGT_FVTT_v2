@@ -11,6 +11,7 @@
  * composes rather than extends.
  */
 
+import { untouchableBy } from "../untouchable.mjs";
 import * as geo from "../../domain/geometry.mjs";
 import { expand, DELTA, edgeOffsets } from "./shapes.mjs";
 import { test as testPredicate } from "../predicate.mjs";
@@ -176,6 +177,9 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   const includeSelf = resolveIncludeSelf(sel, spec);
   survivors = survivors.filter((u) => {
     if (u.id === caster.id) return includeSelf || drop(u, "the attacker itself");
+    // A Feigned Defeat's ghost (#249 reading 19): out of every reach but its
+    // own, and dropped WITHOUT a reason -- a listed one would say it is there.
+    if (untouchableBy(u, caster.id)) return false;
     // A defeat never removes the token, so a corpse stands in the area like
     // anybody else. It is listed, with its reason, and never a target: no
     // ability in the corpus acts on the defeated, and one that ever does
@@ -187,6 +191,11 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     // `primaryTargetId`, which every ordinary resolution is.
     if (sel.excludePrimaryTarget && placement?.primaryTargetId === u.id) {
       return drop(u, "the Unit this Noble Phantasm already targeted");
+    }
+    // *"...any other Unit within a 2 panel area of herself except the AU"*
+    // (Kawarimi, #249): a reaction's own attacker, named by the placement.
+    if (sel.excludeAttacker && placement?.sourceUnitId === u.id) {
+      return drop(u, "the Unit Attacking");
     }
     const relation = relationOf(caster, u, board);
     // `civilian`: a neutral Civilian, and nothing else neutral. Mystic Eyes is

@@ -101,6 +101,8 @@ export function snapshotUnit(unit, globalTurn) {
       sourceUnitId: e.sourceUnitId ?? null,
       sourceAbilityId: e.sourceAbilityId ?? null,
       unremovable: Boolean(e.unremovable),
+      // A granted PC rewound must still know its Rank (#249).
+      params: e.params ?? null,
     })),
     cooldowns: Object.fromEntries((unit?.abilities ?? [])
       .filter((a) => a?.id)

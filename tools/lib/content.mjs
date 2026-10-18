@@ -34,6 +34,7 @@ import { ABILITY_WINDOW_IDS, windowsOf } from "../../module/rules/windows.mjs";
 import { isEmittableOption } from "../../module/rules/options.mjs";
 import { predicateSitesIn } from "../../module/rules/authoring/predicates.mjs";
 import { ABILITY_KINDS } from "../../module/rules/authoring/ability.mjs";
+import { ENTRY_KEYS, EFFECT_PARAMS } from "../../module/rules/effect-flow.mjs";
 
 /** The schema version every source file must declare. */
 export const SCHEMA_VERSION = 1;
@@ -986,8 +987,23 @@ function damageBlocksAreKnown(doc, path, problems) {
         + `happen. The keys the engine reads off a damage block: ${DAMAGE_BLOCK_KEYS.join(", ")}.`,
       );
     }
+    // Whose base a source adds up. `stage1Base` reads `self`, `target` (with a
+    // `stat`), a `contentId`, or a Unit the attack names (`mount`, `partner`);
+    // any other word used to fall through to the attacker in silence (#249).
+    for (const [i, src] of (block.base?.sources ?? block.sources ?? []).entries()) {
+      if (src?.contentId) continue;
+      if (!SOURCE_UNITS.includes(src?.unit)) {
+        problems.push(`${path}: ${where} source ${i} reads unit "${src?.unit}" -- expected one of ${SOURCE_UNITS.join(", ")}, or a contentId`);
+      }
+      if (src?.unit === "target" && src.stat !== "currentHealth") {
+        problems.push(`${path}: ${where} source ${i} reads the target and states no stat it knows -- expected stat: currentHealth`);
+      }
+    }
   }
 }
+
+/** The Units a damage source may read (`rules/damage/pipeline.mjs#stage1Base`, `attack.mjs#namedUnits`). */
+const SOURCE_UNITS = ["self", "target", "mount", "partner"];
 
 /**
  * Every `anyOf` holds bare option STRINGS, and nothing else.
@@ -1641,6 +1657,30 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     const id = spec.effect?.id ?? spec.id;
     if (id && !library.has(id)) {
       problems.push(`${path}: ${where} applies unknown effect "${id}"`);
+    }
+
+    // A closed vocabulary on an entry (`otherwiseOn`, `stacking`, `visibility`):
+    // a value the door does not know would fall to a default in silence (#249).
+    for (const [key, meta] of Object.entries(ENTRY_KEYS)) {
+      if (meta.type !== "select") continue;
+      const value = spec.effect?.[key] ?? spec[key];
+      if (value !== undefined && !meta.choices.includes(value)) {
+        problems.push(`${path}: ${where} states ${key} "${value}" -- expected one of ${meta.choices.join(", ")}`);
+      }
+    }
+
+    // `params` an effect's definition reads, and only those (#249): a key its
+    // readers do not know would ride the instance and change nothing.
+    const params = spec.effect?.params ?? spec.params;
+    if (params !== undefined) {
+      const allowed = EFFECT_PARAMS[id] ?? [];
+      const unknown = Object.keys(params ?? {}).filter((k) => !allowed.includes(k));
+      if (typeof params !== "object" || params === null || unknown.length > 0) {
+        problems.push(`${path}: ${where} gives "${id}" params ${JSON.stringify(params)} -- it reads ${allowed.length ? allowed.join(", ") : "none"}`);
+      }
+      if (params?.rank !== undefined && !Rank.parseOrNull(params.rank)) {
+        problems.push(`${path}: ${where} gives "${id}" the Rank "${params.rank}", which is no Rank`);
+      }
     }
 
     // An `applyEffects` phase LANDS EFFECTS, and every reader of it

@@ -21,6 +21,7 @@
  * deals damage directly, not its Attack.
  */
 
+import { effectiveMov } from "../rules/movement.mjs";
 import { additionalCostsFor, resolveCosts } from "../rules/costs.mjs";
 import { pressGate } from "./press-gate.mjs";
 import { refreshShield } from "./shield.mjs";
@@ -61,7 +62,7 @@ import { activatePlatform } from "./platforms.mjs";
 import { summonAnchor, masterSeat } from "../rules/platforms.mjs";
 import { expand } from "../rules/targeting/shapes.mjs";
 import { fireEvent, regionScale, dispatch, ACTION_KINDS } from "./scheduler.mjs";
-import { isConcealed, concealmentBreakChance } from "../rules/concealment.mjs";
+import { isConcealed, concealmentBreakChance, canUseWhileConcealed } from "../rules/concealment.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import { publicIdentityOf, publicSpeakerFor } from "./public-identity.mjs";
 import { effectLine } from "../rules/card-visibility.mjs";
@@ -206,6 +207,7 @@ export async function useSkill({
       applied: applied.map((a) => a.summary),
     }),
   ], `skill:${abilityId}`);
+  await postCostCards(charged, { ability, self });
 
   // The SAME action the check above asked about. Two spellings here is how a
   // use gets checked against one pool and charged to another.
@@ -264,14 +266,18 @@ async function rollSkillFailure(ability, self, targets) {
  * the reference set that buys one. Rolled **after** the Skill has resolved, so
  * a bad roll never costs the Skill itself.
  *
+ * An Attack rolls it ON USE instead, before its Combat Process (`attack.mjs#
+ * payAbilityPrice`): Funshindan's held roll keeps PC through that Attack and past
+ * PC.5, a broken one sends the Attack without PC (#249 readings 9, 9b).
+ *
  * @param {object} actor
  * @param {object} ability
  * @param {object} self the user's snapshot
- * @returns {Promise<void>}
+ * @returns {Promise<{rolled: boolean, kept: boolean}>} `kept`: a roll was made and PC held
  */
-async function rollConcealmentBreak(actor, ability, self) {
+export async function rollConcealmentBreak(actor, ability, self) {
   const chance = concealmentBreakChance(ability);
-  if (chance <= 0 || !isConcealed(self)) return;
+  if (chance <= 0 || !isConcealed(self)) return { rolled: false, kept: false };
 
   const roll = await new Roll("1d100").evaluate();
   // A kept roll is said too, to the GM and her owners only: a die that left no
@@ -284,7 +290,7 @@ async function rollConcealmentBreak(actor, ability, self) {
       speaker: publicSpeakerFor(actor),
       whisper: game.users.filter((u) => u.isGM || actor.testUserPermission(u, "OWNER")).map((u) => u.id),
     });
-    return;
+    return { rolled: true, kept: true };
   }
 
   const { deactivateConcealment } = await import("./concealment.mjs");
@@ -296,6 +302,7 @@ async function rollConcealmentBreak(actor, ability, self) {
       + ` rolled ${roll.total} vs ${chance}%. Presence Concealment ends.</p>`,
     speaker: publicSpeakerFor(actor),
   });
+  return { rolled: true, kept: false };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -343,9 +350,21 @@ export function resolveSkillTargets(ability, self, board, placement) {
 
   // An EFFECT, not an Attack: a platform may bar one and let the other through (#138).
   const resolved = resolveTargets(spec, self, board, { ...placement, reach: "effect" });
+  // PC.7 per target (#249 reading 14): a concealed caster's Skill that may not
+  // reach an enemy drops the enemies it caught, and refuses one it was aimed
+  // at. The one reader the use and the offered pick (`legalSkillTargets`) share.
+  const veiled = isConcealed(self) && !canUseWhileConcealed(ability, { targetsEnemy: true }).ok;
+  const enemy = (t) => {
+    const u = (board?.units ?? []).find((x) => x.id === t.unitId);
+    return u ? relationOf(self, u, board) === "enemy" : false;
+  };
+  const units = veiled ? resolved.units.filter((t) => !enemy(t)) : resolved.units;
+  const refused = veiled && units.length < resolved.units.length && placement?.unitId
+    && resolved.units.some((t) => t.unitId === placement.unitId && enemy(t))
+    ? [game.i18n.localize("FGT.Ability.Refused.presenceConcealment")] : [];
   // A choice still owed refuses. Without this a Skill called from a macro ran
   // its phases against nobody and still paid its cost and cooldown (#129).
-  return { units: resolved.units, errors: [...resolved.errors, ...pendingChoiceErrors(resolved)] };
+  return { units, errors: [...resolved.errors, ...refused, ...pendingChoiceErrors(resolved)] };
 }
 
 /**
@@ -646,7 +665,12 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // *"Hassan is allowed to Move 7 panels"* -- up to that many, by an
           // ordinary path, to the panel his owner picks; closing the window is
           // staying put (Battle Retreat, #226 reading 12).
-          const to = await pickMoveDestination(doc, unitOf(doc, currentBoard()), currentBoard(), phase.panels ?? 0);
+          // `@self.mov`: *"as per her Move"*, her current MOV, Slow included
+          // (Kirihanasu, #249 reading 39), read after the phases before it --
+          // a ghost's marker landed first, so the escape follows its rules.
+          const mover = unitOf(doc, currentBoard());
+          const reach = phase.panels === "@self.mov" ? effectiveMov(mover) : (phase.panels ?? 0);
+          const to = await pickMoveDestination(doc, mover, currentBoard(), reach);
           if (to) {
             await applyWorld([I.move(target.unitId, [to])], `skill:${ability.id}:move`);
             applied.push({ unitId: target.unitId, summary: { id: "move", name: `Moved to (${to.i}, ${to.j})`, outcome: "applied", reason: null } });
@@ -1427,6 +1451,7 @@ export function costIntents(cost, self) {
   // Paid by leaving the board when the Combat Phase ends (`engine/attack.mjs`,
   // #241): nothing to write now.
   if (cost.kind === "disappear") return [note];
+  if (cost.kind === "commandSpell") return commandSpellCostIntents(cost, self);
   if (cost.kind === "sustainability") {
     // An ABSOLUTE write, from `self.sustainability` -- see `costIntents` in
     // `engine/attack.mjs` for why a relative delta against the raw stored
@@ -1434,6 +1459,60 @@ export function costIntents(cost, self) {
     return [I.setResource(cost.unitId, "sustainabilityRemaining", self.sustainability - cost.amount), note];
   }
   return [I.statDelta(cost.unitId, "health.value", -cost.amount, false), note];
+}
+
+/**
+ * A Command Spell an ability costs, spent from its user's Contract.
+ *
+ * *"Can only be used by expending a Command Spell"* (Yuugao, #249 reading 24):
+ * the same spend and the same log line a Command Spell spent on its own writes
+ * (`engine/command-spells.mjs#spendCommandSpell`), so anything that listens for
+ * a Command Spell being used hears this one. Spent at the declaration and kept
+ * on a miss. The cost's `unitId` is the Master's (`rules/costs.mjs#additionalCostsFor`).
+ *
+ * @param {{unitId: string, amount?: number}} cost
+ * @param {object} self the user's snapshot
+ * @returns {object[]}
+ */
+export function commandSpellCostIntents(cost, self) {
+  const count = cost.amount ?? 1;
+  return [
+    I.spendCS(cost.unitId, count, "abilityCost", self?.id ?? null),
+    I.log({
+      kind: "commandSpell", command: "abilityCost", masterId: cost.unitId, servantId: self?.id ?? null,
+      cost: count, tick: currentMoment().tick ?? 0,
+    }),
+  ];
+}
+
+/**
+ * The card a cost every player must know of posts: a Command Spell spent on a
+ * Noble Phantasm. A Master's pool is public, and a spend nobody is told about
+ * reads as a count that dropped by itself. Named by the Servant's public name
+ * and never by the Noble Phantasm's (Ch. 30).
+ *
+ * @param {object[]} charged the costs just paid
+ * @param {{ability: object|null, self: object}} ctx
+ * @returns {Promise<void>}
+ */
+export async function postCostCards(charged, { ability, self }) {
+  for (const cost of charged ?? []) {
+    if (cost?.kind !== "commandSpell") continue;
+    const master = cost.unitId ? unitActor(cost.unitId) : null;
+    const servant = self?.id ? unitActor(self.id) : null;
+    const { shownName } = await import("./public-identity.mjs");
+    const escape = foundry.utils.escapeHTML;
+    const text = game.i18n.format("FGT.CommandSpell.SpentAsCost", {
+      master: escape(master?.name ?? ""), cost: cost.amount ?? 1,
+      servant: escape(servant ? shownName(servant, currentBoard()) : ""),
+      kind: game.i18n.localize(ability?.system?.isNP || ability?.type === "noblePhantasm"
+        ? "FGT.CommandSpell.CostOfNP" : "FGT.CommandSpell.CostOfSkill"),
+    });
+    await ChatMessage.create({
+      content: `<div class="fgt-card fgt-card--command-spell"><p>${text}</p></div>`,
+      flags: { fgt: { commandSpell: "abilityCost" } },
+    });
+  }
 }
 
 /** @param {string} contentId @returns {object|null} */
@@ -1508,6 +1587,10 @@ export async function postCard(actor, ability, targets, applied) {
       // its card said "No effects were applied" over a +6 MOV that stands on
       // the Unit for the Turn (#116).
       modeOn: classifyAbility(ability).toggles,
+      // A swap's use is the trade itself, said on the line that follows it:
+      // Kawarimi's card read "No effects were applied" over two Units that had
+      // just traded places (#249, live).
+      swaps: Boolean(ability.system?.swapsPositions),
       // A refusal is shown too: an effect the target was immune to is a fact
       // the player needs, and an empty card reads as a skill that did nothing.
       refused: applied
@@ -1522,9 +1605,14 @@ export async function postCard(actor, ability, targets, applied) {
     },
   );
 
+  // A ghost's Skill is told to its owners and the GM alone (#249 reading 27),
+  // Kirihanasu's own card included: it ran on the enemy's Turn and its public
+  // card would have said, to everyone just shown her defeat, that she lived.
+  const ghost = [...(actor.effects ?? [])].some((e) => e.system?.defId === "feignedDefeat");
   await ChatMessage.create({
     content,
     speaker: publicSpeakerFor(actor, board),
+    ...(ghost ? { whisper: game.users.filter((u) => u.isGM || actor.testUserPermission(u, "OWNER")).map((u) => u.id) } : {}),
     // Ch. 38's `filtered` mode: one message every client renders differently.
     // The flags carry the full list, which is the documented trade -- a
     // filtered card ships the whole result to every client that can read them,

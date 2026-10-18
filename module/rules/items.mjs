@@ -485,12 +485,7 @@ export function meetsRequirement(req, ctx) {
       // EMIYA's Rho Aias states it, and so does Battle Continuation's revival
       // -- whose gate has always been the cooldown alone, so the second half of
       // that clause has never been enforced either.
-      const last = ctx.ability?.lastUsedTick ?? null;
-      // Never used: vacuously satisfied. The clause is "since the last usage",
-      // and there has not been one.
-      if (last === null) return true;
-      const at = unit?.healthWatermarks?.[watermarkKey(req.fraction ?? 0.5)] ?? null;
-      return at !== null && at >= last;
+      return restoredSince(unit, ctx.ability, req.fraction ?? 0.5);
     }
 
     case "masterHealthAbove":
@@ -544,7 +539,9 @@ export function meetsRequirement(req, ctx) {
       // Vacuously true when nothing matched. A Scathach who has not yet copied
       // anything has no Wisdom slots to be blocked BY, and a gate that refused
       // on an empty set would make Clairvoyance unusable until she copied.
-      return matched.every((a) => (a.cooldownRemaining ?? 0) <= 0);
+      // "On Cooldown" is the other ability's WHOLE cooldown, its restore gate
+      // included (`isCooling`, #249 reading 20).
+      return matched.every((a) => !isCooling(a, unit));
     }
 
     // *"Used on her Master, when Arturia is directly next to her Master and they
@@ -705,4 +702,44 @@ function whoOf(req, unit, master) {
     case "both": return [unit, master ?? null];
     default: return [unit];
   }
+}
+
+/**
+ * Whether enough Health has been restored since this ability was last used.
+ *
+ * *"Health must have been restored back to above N% of its maximum value since
+ * using"* it: a question about history, answered by the Unit's watermark for N
+ * (`engine/io.mjs#watchedFractions`). Never used: vacuously satisfied, since
+ * there has not been a last usage. Above N at any moment after the use counts;
+ * no drop is needed first (#249 reading 37).
+ *
+ * @param {object} unit
+ * @param {object|null} ability the ability's snapshot, with `lastUsedTick`
+ * @param {number} fraction
+ * @returns {boolean}
+ */
+export function restoredSince(unit, ability, fraction) {
+  const last = ability?.lastUsedTick ?? null;
+  if (last === null) return true;
+  const at = unit?.healthWatermarks?.[watermarkKey(fraction)] ?? null;
+  return at !== null && at >= last;
+}
+
+/**
+ * Whether an ability is "on Cooldown", as another ability's gate asks it.
+ *
+ * Its clock, and the restore gate its own Cooldown line states. Kirihanasu:
+ * *"Cooldown: 3◈-⅓◈ Turns, and Danzō's Health must have been restored back to
+ * above 75%"* -- one Cooldown, so Fubatsu's and Kawarimi's *"cannot be used if
+ * Kirihanasu is on Cooldown"* read both halves (#249 reading 20). The one reader
+ * of that question.
+ *
+ * @param {object} ability an ability's snapshot (`snapshot.mjs#collectAbilities`)
+ * @param {object} unit its bearer
+ * @returns {boolean}
+ */
+export function isCooling(ability, unit) {
+  if ((ability?.cooldownRemaining ?? 0) > 0) return true;
+  const gate = ability?.restoreGate ?? null;
+  return gate ? !restoredSince(unit, ability, gate.fraction) : false;
 }

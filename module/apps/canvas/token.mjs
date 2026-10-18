@@ -206,6 +206,7 @@ export class FGTToken extends Token {
         userId: game.user?.id ?? null,
         isGM: Boolean(game.user?.isGM),
         isOwner: actor.testUserPermission(game.user, "OBSERVER"),
+        isTrueOwner: actor.testUserPermission(game.user, "OWNER"),
       },
       factions(),
     );

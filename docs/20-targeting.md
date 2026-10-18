@@ -76,6 +76,12 @@ its placements (`resolve.mjs#edgeShifts`, `shift` on `orientedRect`). Six ghost 
 of its own (type, attribute, effect); it now adds every `target:` option `rollOptionsFor` emits, so a predicate written
 in the grammar (`target:inHomeBase`, Avalon's pass) means what it says there.
 
+**`selection.excludeAttacker`** (#249) drops the Unit the placement names as the source of the Attack being
+answered (`placement.sourceUnitId`): Kawarimi's *"any other Unit ... except the AU"*. **PC.7 is judged per chosen
+target**: an ability that picks one Unit among relations that are not only enemies passes the use gate while its
+user is concealed, and `skill-use.mjs#resolveSkillTargets` drops the enemies it caught and refuses one it was aimed
+at (#249 reading 14). No ability authored before Kawarimi changed behaviour.
+
 ## Invariants & edge cases
 
 1. **Every filter drops via `drop(u, reason)`, so the review dialog lists why each excluded unit was excluded.** The reason is captured at the decision point, not reconstructed later (`module/rules/targeting/resolve.mjs:75-86`).

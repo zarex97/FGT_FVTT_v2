@@ -18,10 +18,12 @@ import { pursuitOf } from "./compulsion.mjs";
 import { hasGranted, GRANTS } from "./granted.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { currentHealth } from "../domain/health.mjs";
+import { availableFor } from "./cs-namespacing.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { meetsRequirements, SELF_REQUIREMENTS } from "./items.mjs";
 import { isGated, gateRoundFor, npAvailableTurn, NP_GATE } from "./np-gate.mjs";
 import { isConcealed, canUseWhileConcealed } from "./concealment.mjs";
+import { ghostMayUse } from "./untouchable.mjs";
 import { paysHighColumn } from "./master-rank.mjs";
 import { preventedBy } from "./budget.mjs";
 import { usedOnlyDuringOwnTurn, usedOnlyAtWindows, windowsOf } from "./windows.mjs";
@@ -537,6 +539,9 @@ export function canUseAbility({
     const veiled = canUseWhileConcealed(ability);
     if (!veiled.ok) return { ok: false, reason: "presenceConcealment", cost };
   }
+  // A Feigned Defeat's ghost: its Attacks, which reveal it, and Skills that
+  // touch it alone (#249 reading 27).
+  if (!ghostMayUse(unit, ability)) return { ok: false, reason: "feignedDefeat", cost };
 
   // A Noble Phantasm needs its user inside its Master's ZON. The targeting
   // resolver has always refused this; asking here too means one call answers
@@ -746,6 +751,11 @@ function cannotPay(cost, unit, master) {
       return null;
     case "sustainability":
       return (unit?.sustainability ?? 0) > cost.amount ? null : "sustainability";
+    case "commandSpell":
+      // *"Can only be used by expending a Command Spell"* (Yuugao, #249 reading
+      // 24): one from its Contract, the pools `availableFor` sums. No Master, or
+      // none left, and the button stays off.
+      return availableFor(master, unit?.id) >= (cost.amount ?? 1) ? null : "commandSpell";
     default:
       return null;
   }
