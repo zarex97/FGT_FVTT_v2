@@ -1,0 +1,45 @@
+# Karakuri Ninpou: Fuuma Funshindan (#249, FF.*).
+#
+# Quetzalcoatl's 3x3 at Range 4, and every Unit in it, Danzō herself if the
+# centre is within 1 of her: the sheet names no relation (#191 reading 11, as
+# Medea's #193 reading 12). *"50% extra damage"* is the Skill's own ×1.5 inside
+# the bracket, on BA(STR) as her Normal Attack (readings 7, 8). Burn rides the
+# hit, as Vasavi Shakti's does.
+#
+# *"Can be used when Presence Concealment is Active, has a 50% chance of
+# deactivating Presence Concealment when used"*: rolled on use, before the
+# Combat Process. A broken roll sends the Attack without PC; a held one keeps
+# PC through this Attack, past PC.5 (readings 9, 9b). Reading 10: Funshindan
+# names no exclusion, so nothing refuses it after Tobikatō or Harisenbon.
+schema: 1
+id: danzo-funshindan
+name: "Karakuri Ninpou: Fuuma Funshindan"
+kind: skill
+isAttackSkill: true
+slug: funshindan
+cooldown: "3◈"
+element: fire
+timing: { window: ownTurn }
+usableWhileConcealed: true
+concealmentBreakChance: 50
+description: |
+  Attack Skill. Range=4. Hits a 3x3 panel area for 50% extra damage and a 50% chance of inflicting
+  @effect[burn]{Burn} for 2◈ Turns. Fire damage. Cooldown: 3◈ Turns. Can be used when Presence
+  Concealment is Active, has a 50% chance of deactivating Presence Concealment when used.
+targeting:
+  anchor: { kind: withinRange, range: 4, metric: chebyshev }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: true }
+  isDamagingAoE: true
+damage:
+  component: str
+  multiplier: 1.5
+  element: fire
+phases:
+  - kind: damage
+  - kind: applyEffects
+    rules:
+      - key: OnEvent
+        event: damageDealt
+        effect: { id: burn, chance: 50 }
+        duration: "2◈"

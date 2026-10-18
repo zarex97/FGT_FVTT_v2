@@ -446,6 +446,8 @@ export function worldIO() {
           // schema declares and the writer does not mention.
           visibility: e.visibility ?? "public",
           attributionHidden: Boolean(e.attributionHidden),
+          // What its definition reads off it: a granted PC's Rank (#249).
+          params: e.params ?? null,
         },
       }));
       await actor.createEmbeddedDocuments("ActiveEffect", data);
@@ -586,12 +588,12 @@ export function worldIO() {
      *
      * @param {string} unitId @param {string} defId @param {number} turns
      */
-    async extendEffect(unitId, defId, turns) {
+    async extendEffect(unitId, defId, turns, startAt = null) {
       const actor = resolve(unitId);
       if (!actor) return;
 
       const effect = actor.effects.find((e) => e.system?.defId === defId);
-      const expiry = effect?.system?.expiry ?? null;
+      const expiry = effect?.system?.expiry ?? startAt;
       if (!effect || expiry === null || expiry === undefined) return;
 
       await effect.update({ "system.expiry": expiry + turns });
@@ -1138,6 +1140,12 @@ export function worldIO() {
     },
 
     async defeat(unitId, cause, killerId = null) {
+      // A ghost a tick brings to 0 is revealed, then defeated for real (#249
+      // reading 26): the table is told it lived, then that it fell.
+      {
+        const { revealFeignedDefeat } = await import("./feigned-defeat.mjs");
+        await revealFeignedDefeat(unitId, { relocate: false });
+      }
       // Counted and freed ONCE. A Unit can be defeated by two writers at once --
       // a twin's binding is emitted by the damage path and carried here too --
       // and the second write counted it towards the Grail again (#209 review).
@@ -1160,6 +1168,10 @@ export function worldIO() {
       // emptied Asterios's Health defeated him at tick 14 with no entry at all.
       if (!actor.system?.defeated) {
         await this.log([{ kind: "defeat", event: "defeated", unitId, cause, killerId, tick: game.combat?.system?.globalTurn ?? 0 }]);
+        // ...and a card every player reads (#249 reading 33): the log entry was
+        // all a defeat ever left, and a Feigned Defeat must look like one.
+        const { postDefeatCard } = await import("./defeat-card.mjs");
+        await postDefeatCard(unitId, killerId);
       }
       // A Structure is destroyed, not left lying: *"Only Masters can destroy a
       // Bloodmark, and it is done by simply Attacking it."* A broken mark stayed
@@ -1937,6 +1949,9 @@ function classifyLogEntry(e) {
     cost: "ability", revive: "ability", event: "effect", poisonStage: "effect",
     commandSpell: "commandSpell", multiServantTax: "commandSpell",
     surviveKill: "defeat", disappear: "defeat",
+    // The defeat itself: logged since #182 and left out of the structured log
+    // until #249, so the log said when a body was cleared and never when it fell.
+    defeat: "defeat",
     // A body leaving the board one tick after it fell (#65, ruling 25).
     bodyCleared: "defeat",
     boarding: "movement", platformStep: "movement",

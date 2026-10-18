@@ -83,6 +83,10 @@ The HUD shows unmet compulsions immediately, even mid-turn, so the player can pl
 
 Setting facing is free and does not cost a budget slot: its action entry declares `kind: null`, so it bills no ActionKind at all and cannot end the turn (`module/rules/actions.mjs:196-202`). Achilles alone carries a stanceSpec with Mounted/Dismounted states and transition windows (`module/rules/stance.mjs:38-40`). The declaration window — when the unit's action is chosen — permits switching between any two states. Once the unit has acted, only transition rules fire (`module/rules/stance.mjs:81-99`). Achilles is forced Dismounted when it is not his turn (`module/rules/stance.mjs:118`).
 
+**A Unit off the budget** (#249 reading 35). `unit.exemptFromBudget`, read by `rules/budget.mjs#poolFor` since it was
+written and never set, is projected now from the `offBudget` grant: a Feigned Defeat's ghost spends nothing, its
+Moves and self-only Skills alike. Kirihanasu itself is a `freeAction`. The revealing Attack spends as any other.
+
 ## Invariants & edge cases
 
 **`category: spell` is a Spell to Silence, Seal and Skill Seal** (#193). `preventionActionFor` reads `isSpell` or the category; Medea's five non-damaging Spells carry only the category.

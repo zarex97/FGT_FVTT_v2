@@ -1,0 +1,51 @@
+# packs/_source/servants/kato-danzo.yml
+# Conversion source: char_orig_sheets/Copia de Katō Danzō.md
+#
+# #249. 135 Clauses and 40 rulings in
+# docs/superpowers/specs/2026-10-17-kato-danzo-clauses.md.
+schema: 1
+id: kato-danzo
+name: "Katō Danzō"
+type: servant
+
+# ─── Identity ──────────────────────────────────────────────────────────
+trueName: "Katō Danzō"
+# Reading 1: the sheet names no class; Presence Concealment is the Assassin's.
+servantClasses: [assassin]
+classContainer: assassin
+alignment: { order: neutral, morality: neutral }
+region: [japan]
+attributes: [female, servant, man, humanoid, mechanical]
+
+# ─── Parameters and stats ──────────────────────────────────────────────
+parameters: { str: D, end: D, agi: A, mag: C, luc: B }
+baseHealth: 750
+mov: 7
+range: { panels: 3, targets: 1 }
+# As printed. The STR table answers 75 at STR D and wins (§46.6), as for
+# Serenity's identical 65.
+baseAttack: { str: 65, mag: 150 }
+sustainability: "2◈"
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  # Rank A: the tables give her 10% discovery, +4 Evade and 2◈ from
+  # deactivation, all three as her sheet prints them.
+  - { ref: class-presence-concealment, rank: A }
+  - { ref: danzo-synthetic-limbs }
+  - { ref: danzo-tobikato }
+  - { ref: danzo-harisenbon }
+  - { ref: danzo-funshindan }
+  - { ref: danzo-fubatsu }
+  - { ref: danzo-kawarimi }
+  - { ref: danzo-kirihanasu }
+  - { ref: danzo-dongyu-concealment }
+  - { ref: danzo-dongyu-storm }
+  - { ref: danzo-yuugao }
+  - { ref: danzo-subversive-activities }
+
+notes: |
+  Built to be reused (#249). Presence Concealment is the shared class skill; Synthetic Limbs'
+  immunity is Karna's `Immunity` rule; Tobikatō's three Dodges are the entry's `uses`, Dodge being
+  a counted effect; Subversive Activities is Zabaniya's 3x3 next to her, enemies only, and
+  `usableWhileConcealed` as Serenity's Shapeshift.

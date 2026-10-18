@@ -14,9 +14,9 @@
  */
 
 import { chebyshev } from "../domain/geometry.mjs";
-import { Rank } from "../domain/rank.mjs";
 import { inPocketDimension } from "./environment.mjs";
 import { sideOf } from "./relations.mjs";
+import { concealmentProfile } from "./concealment.mjs";
 
 /**
  * Detect, and therefore vision range, **by class container**.
@@ -278,18 +278,10 @@ export function newlySeenBy(seer, board) {
  * @returns {number} percent
  */
 export function discoverChance(concealedUnit) {
-  const skill = (concealedUnit?.abilities ?? []).find((a) => a.slug === "presenceConcealment");
-  if (!skill) return 100;
-
-  const rank = skill.rank instanceof Rank ? skill.rank : Rank.parseOrNull(skill.rank);
-  if (!rank) return 100;
-
-  const byGrade = { EX: 0, A: 10, B: 20, C: 40, D: 60, E: 80 };
-  const base = byGrade[rank.grade];
-  if (base === undefined) return 100;
-
-  // A `+` step makes the concealment better, so it lowers the discovery chance.
-  return Math.max(0, Math.min(100, base - 5 * rank.steps));
+  // The rank table, through the one reader of PC's numbers: a Unit granted
+  // PC C+ by Dongyū carries its Rank on the instance and is found 35% of the
+  // time, where this read only the Skill and found it 100% (#249).
+  return concealmentProfile(concealedUnit).discover;
 }
 
 /**

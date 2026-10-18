@@ -81,6 +81,11 @@ is announced under its Master: "Deployed Hassan 5, Hassan 6. Hassans: 100/100.",
 
 **What a handler or the scheduler does to a Unit is said** (#247). Logged and shown nowhere until now: the Nameless Forest's escape (*"escapes the Nameless Forest: rolled 16 (Home Base −3) = 13 vs Luck 14. Every Token is removed…"*) and its death die, in each of its three outcomes (`engine/nameless-forest.mjs#postEscape`, `#postDeathRoll`); the Glass Game's rewind, naming whom it turned back (`glass-game.mjs#postGlassGame`); an Item taken or refused (Ch. 18). A handler's batch also prints an Item it spent and a rule it took away for good (`applier.mjs#itemLines`, `#suppressionLines`), worded from `FGT.Item.Gone.<item>` and `FGT.Suppressed.<slug>` when the language file has them, never the slug. Health lines read the Unit's own document (`unitActor`, Ch. 08).
 
+**A defeat posts a card** (#249 reading 33). `io.defeat`, the one door every defeat passes, posts a public card on
+the first defeat (`engine/defeat-card.mjs#postDefeatCard`), naming the Unit and its killer by their public names,
+and the structured log now carries the `defeat` entry it always wrote (`classifyLogEntry`). A Feigned Defeat shows
+every player but its own the same card, whispered, so the two cannot be told apart (Ch. 30).
+
 ## Invariants & edge cases
 
 **A Skill card names what it removed and what it rolled** (#193). A `removeEffect` phase adds a row per effect taken off (*"Burn removed"*), and a summon's row carries its dice and names (*"5 summoned (1d6 → 5; 1d4 → 4, 3, 3, 2, 1): …"*).

@@ -21,6 +21,7 @@
  * entry keeps the table readable against the chapter it was transcribed from.
  */
 
+import { GRANTS, hasGranted } from "./granted.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 
 /**
@@ -258,6 +259,8 @@ export function terrainEffects(unit, board) {
     movDelta: 0, evadeDelta: 0, agilityCheckDelta: 0, rangeDelta: 0, healingUp: 0,
     modifiers: /** @type {object[]} */ ([]), types,
   };
+  // A ghost: *"She also is not affected by terrain"* (#249 reading 28).
+  if (hasGranted(unit, GRANTS.ignoresTerrain)) return out;
 
   for (const type of types) {
     const entry = TERRAIN[type];

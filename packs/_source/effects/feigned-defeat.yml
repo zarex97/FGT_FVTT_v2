@@ -1,0 +1,28 @@
+# Feigned Defeat (CONTEXT.md), the state Kirihanasu leaves (#249 readings 17-19,
+# 25-35).
+#
+# Every player but hers was shown a defeat; she lives on, hidden, until she
+# Attacks. Neither a buff nor a debuff, Unremovable, and no expiry: only her
+# Attack, or a tick that brings her to 0, ends it (`engine/feigned-defeat.mjs`).
+# Its rules are grants, each a rule of its own a later sheet may take alone
+# (`rules/granted.mjs`): untouchable but by her own abilities, sharing panels,
+# out of Terrain's and Bounded Fields' reach, off her side's budget, and using
+# only Skills that touch herself. Hidden from every player but her owner is the
+# token's own reading of this effect (`rules/concealment.mjs#hiddenFromViewer`).
+schema: 1
+id: feignedDefeat
+name: "Feigned Defeat"
+description: |
+  Every other player was shown this Unit's defeat. It lives on, hidden from all but its owner and the GM:
+  nothing but its own abilities targets, catches or affects it; it may share panels, Terrain and Bounded
+  Fields do not affect it, nothing it does spends its side's budget, and it may use only Skills that touch
+  itself. Its next Attack reveals it. Neither a buff nor a debuff, and Unremovable.
+polarity: status
+volatility: nonVolatile
+valence: neither
+stacking: noneNoRefresh
+baseChance: 100
+unremovable: true
+rules:
+  - key: GrantedAbility
+    abilities: [untouchable, sharesPanels, ignoresTerrain, ignoresBoundedFields, offBudget, selfOnlySkills]

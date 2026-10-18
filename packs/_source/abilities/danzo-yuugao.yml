@@ -1,0 +1,57 @@
+# Youjutsu Zanhou・Yuugao, Rank C (#249, YY.*).
+#
+# *"Can only be used by expending a Command Spell"*: an `additionalCosts` of
+# kind `commandSpell`, one from her Contract, spent at the declaration and kept
+# on a miss; with none left the button stays off (reading 24,
+# `rules/costs.mjs#cannotPay`). The spend is a Command Spell use, logged and
+# carded as one.
+#
+# *"Deals damage equivalent to the DU's current Health"*: a base read off the
+# defender (`unit: target, stat: currentHealth`), and the whole pipeline after
+# it -- her PC +50%, Atk Up and Crit raise it, the DU's reductions but Def Up
+# lower it. The sheet states no exemption, as Strike Air's does (reading 22).
+# Ignore Def is `ignoresDefUp`; Pierce closes Block and Invuln.
+#
+# *"This NP can only be Evaded with a Luck Check (Lucky Evasion)"*:
+# `evadeOnlyByLuck`, so every Evade fails, Dodge included, and Lucky Evasion is
+# the one way out. A Counter stays (reading 23). Instakill on damage dealt, its
+# base 100%, resisted as usual (Ch. 15).
+schema: 1
+id: danzo-yuugao
+name: "Youjutsu Zanhou・Yuugao"
+rank: C
+isNP: true
+npTags: [antiUnit]
+kind: noblePhantasm
+slug: yuugao
+cooldown: "5◈"
+timing: { window: ownTurn }
+additionalCosts:
+  - { kind: commandSpell, amount: 1 }
+description: |
+  Black Arts Decapitation Method: Moonflower. Can only be used by expending a Command Spell. Range=3.
+  Used on an enemy Unit. Has the @effect[pierce]{Pierce} effect. Deals damage equivalent to the DU's
+  current Health that has the @effect[ignoreDef]{Ignore Def} effect, and inflicts
+  @effect[instakill]{Instakill} if damage is dealt. This NP misses/fails if the DU Successfully Evades;
+  this NP can only be Evaded with a Luck Check (Lucky Evasion). Cooldown: 5◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 3 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+  limits: { requiresZon: true }
+damage:
+  base:
+    sources:
+      - { unit: target, stat: currentHealth, component: str, factor: 1 }
+  component: str
+  pierce: true
+  ignoresDefUp: true
+  evadeOnlyByLuck: true
+phases:
+  - kind: damage
+  - kind: applyEffects
+    when: afterDamage
+    requiresDamage: true
+    target: reuse
+    effects:
+      - { id: instakill }

@@ -383,6 +383,14 @@ function abilityCommon() {
     // Def Up, and she then still Blocks, Evades or takes it (#193 reading 8).
     // Trofa, which IS her Evade, leaves this false.
     reactionFree: new fields.BooleanField({ initial: false }),
+    // Kawarimi: the user and the Unit it is aimed at trade places at the
+    // reaction rung, and the Attack goes on against whoever stands where it
+    // struck (`engine/attack.mjs#swapIntoAttack`, #249).
+    swapsPositions: new fields.BooleanField({ initial: false }),
+    // Kirihanasu: used at an Attack's fatal hit, IN PLACE of the damage -- it
+    // and its riders are not received, and the Attack ends for its user
+    // (`engine/feigned-defeat.mjs#offerFeignedDefeat`, #249).
+    insteadOfDamage: new fields.BooleanField({ initial: false }),
 
     // A reaction that takes its user OUT of the Attack. Hundred-Faced Hassan's
     // Battle Retreat: *"The enemy Unit's Attack is canceled"* -- a targeted

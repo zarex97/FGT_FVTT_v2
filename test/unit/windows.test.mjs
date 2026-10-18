@@ -16,10 +16,12 @@ import {
 } from "../../module/rules/windows.mjs";
 
 describe("the vocabulary", () => {
-  it("holds exactly the seven windows an ability may name", () => {
+  // Eight with Kirihanasu's fatal hit (#249). The title said seven while the
+  // list held eight from `defendingPhaseStart` (#206) on.
+  it("holds exactly the windows an ability may name", () => {
     expect([...ABILITY_WINDOW_IDS].sort()).toEqual([
       "automatic", "combatPhaseStart", "damageStep", "defendingPhaseStart", "ownTurn",
-      "whenAllyAttacked", "whenAttacked", "whenTargetedByNP",
+      "whenAllyAttacked", "whenAttacked", "whenFatallyHit", "whenTargetedByNP",
     ]);
   });
 

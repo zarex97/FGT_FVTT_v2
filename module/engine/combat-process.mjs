@@ -121,6 +121,9 @@ export const TRANSITIONS = Object.freeze({
   // Injury Roll, no facing change, no Counter. The attacker's Attack is still
   // spent, charged at declaration above this rung.
   "react:withdraw": "withdrawn",
+  // Kirihanasu taken at the fatal hit: nothing lands, and the Attack ends for her
+  // with no Injury Roll, no facing and no Counter (#249 readings 15, 16).
+  "damage:feigned": "withdrawn",
   "withdrawn:done": "done",
 });
 

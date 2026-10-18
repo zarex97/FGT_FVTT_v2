@@ -27,6 +27,7 @@
  */
 
 import { Rank } from "../domain/rank.mjs";
+import { lookup } from "../domain/tables.mjs";
 import { alliancesOf, factionForUser } from "./factions.mjs";
 
 /** The effect id that *is* the state. */
@@ -43,6 +44,43 @@ export const CONCEALMENT_SLUG = "presenceConcealment";
  */
 export function isConcealed(unit) {
   return (unit?.effects ?? []).includes(CONCEALMENT);
+}
+
+/**
+ * The numbers this Unit's Presence Concealment runs on: the one reader of them.
+ *
+ * From the INSTANCE first, then the Skill. Dongyū grants PC Rank C+ to Units
+ * that have no Skill to read it from, and her sheet prints its Evade as +2
+ * where the table says +3 (#249 readings 2, 4), so a granted instance carries
+ * `params: {rank, evade}`. Three readers used to find the Skill by slug each:
+ * the Evade bonus fell back to a literal 4, `discoverChance` kept its own copy
+ * of the table and answered 100% without a Skill, and the cooldown read the
+ * table a third time.
+ *
+ * `discover` and `evade` are the rank tables' (`presenceConcealmentDiscover`,
+ * `presenceConcealmentEvade`) unless the instance states its own Evade. A
+ * grant starts no clock when it ends (`cooldown: null`). With no Rank anywhere
+ * it is found at once and gives +4, the reference set's A/A+ figure.
+ *
+ * @param {object|null} unit a unit snapshot
+ * @returns {{rank: string|null, evade: number, discover: number, cooldown: string|null, granted: boolean}}
+ */
+export function concealmentProfile(unit) {
+  const instance = (unit?.effectInstances ?? []).find((e) => e.defId === CONCEALMENT) ?? null;
+  const params = instance?.params ?? null;
+  const granted = Boolean(params?.rank);
+  const skill = (unit?.abilities ?? []).find((a) => a.slug === CONCEALMENT_SLUG) ?? null;
+  const raw = granted ? params.rank : skill?.rank ?? null;
+  const rank = raw instanceof Rank ? raw : Rank.parseOrNull(raw);
+  const evade = Number.isFinite(params?.evade) ? params.evade : null;
+  if (!rank) return { rank: null, evade: evade ?? 4, discover: 100, cooldown: null, granted };
+  return {
+    rank: String(rank),
+    evade: evade ?? Number(lookup("presenceConcealmentEvade", rank) ?? 4),
+    discover: Math.max(0, Math.min(100, Number(lookup("presenceConcealmentDiscover", rank) ?? 100))),
+    cooldown: granted ? null : (lookup("presenceConcealmentCooldown", rank) ?? null),
+    granted,
+  };
 }
 
 /**
@@ -72,13 +110,19 @@ export function isConcealed(unit) {
  * it be tested without a world.
  *
  * @param {object|null} unit `{factionId, effects}` -- the actor's own system data
- * @param {{userId: string, isGM: boolean, isOwner: boolean}} viewer
+ * @param {{userId: string, isGM: boolean, isOwner: boolean, isTrueOwner?: boolean}} viewer `isTrueOwner`:
+ *   OWNER permission, where `isOwner` is OBSERVER
  * @param {object[]} factions the normalized faction roster
  * @returns {boolean}
  */
 export function hiddenFromViewer(unit, viewer, factions) {
   if (!unit) return false;
-  if (viewer?.isGM || viewer?.isOwner) return false;
+  if (viewer?.isGM) return false;
+  // A Feigned Defeat: every player but its OWNER was shown a defeat, its own
+  // side's included (#249 readings 17, 34). OWNER, not the OBSERVER the token
+  // reads below, which every teammate may hold.
+  if ((unit.effects ?? []).includes("feignedDefeat")) return !viewer?.isTrueOwner;
+  if (viewer?.isOwner) return false;
   if (!(unit.effects ?? []).includes(CONCEALMENT)) return false;
 
   const mine = factionForUser(factions ?? [], viewer?.userId);
@@ -218,9 +262,34 @@ export function canUseWhileConcealed(item, { targetsEnemy = null } = {}) {
   // ResDwn on *"all Units within a 2 panel area"* from a phase of its own, and
   // was usable while concealed (#243, live).
   // (`phaseTargeting`, which `usageSpecFor` projects: the gate reads the spec.)
+  // An ability that CHOOSES one Unit, any relation, is judged by the Unit it
+  // is aimed at: Kawarimi's swap partner may be an ally or an enemy, and only
+  // an enemy is refused while she is concealed (#249 reading 14). The pick
+  // drops enemies (`engine/skill-use.mjs#resolveSkillTargets`), so the gate,
+  // which knows no target yet, lets it through.
+  if (targetsEnemy === null && choosesOneOfAnyRelation(sys.targeting)
+    && !(sys.phaseTargeting ?? []).some((t) => touchesEnemy(t))) {
+    return { ok: true };
+  }
   const aimed = targetsEnemy ?? (touchesEnemy(sys.targeting) || (sys.phaseTargeting ?? []).some((t) => touchesEnemy(t)));
   if (!aimed) return { ok: true };
   return { ok: false, reason: "presenceConcealment" };
+}
+
+/**
+ * Does this targeting pick ONE Unit, among relations that are not only enemies?
+ *
+ * @param {object|null} targeting
+ * @returns {boolean}
+ */
+function choosesOneOfAnyRelation(targeting) {
+  const sel = targeting?.selection;
+  if (!sel) return false;
+  // A pick from a list, or a Unit the anchor names and the shape is (Scapegoat's
+  // and Kawarimi's `targetUnit` + `unit`).
+  const one = (["chosen", "one"].includes(sel.chooser) && (sel.count ?? 1) === 1)
+    || (targeting.anchor?.kind === "targetUnit" && targeting.shape?.kind === "unit");
+  return one && (sel.relations ?? []).some((r) => r !== "enemy");
 }
 
 /**

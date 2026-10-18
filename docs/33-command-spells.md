@@ -60,6 +60,13 @@ Everything downstream of a spend — the `spendCS` intent, the applier case, `io
 **A legion's pool (#226).** A Command Spell names one body; a Conquest grants its 3 once per legion,
 namespaced to the legion's key, and any body spends it (`canSpend`, `io.spendCommandSpells`; §46.4-NM).
 
+**An ability may cost a Command Spell** (#249 reading 24). Yuugao *"can only be used by expending a Command Spell"*:
+`additionalCosts: [{kind: commandSpell, amount: 1}]`. `rules/costs.mjs#cannotPay` refuses it unless its Contract
+holds one (`availableFor`, the per-Servant pool first), so the button stays off with none left
+(`FGT.Ability.Refused.commandSpell`). Paid at the declaration, kept on a miss, by the same `I.spendCS` and
+`commandSpell` log a spend writes (`skill-use.mjs#commandSpellCostIntents`, called by both paths' `costIntents`),
+and carded for every player by `postCostCards`, naming the Servant publicly and never the Noble Phantasm.
+
 ## Invariants & edge cases
 
 **A percent-of-maximum command reads the board's shape** (#193). `deltaFor` finds the maximum as `pool.max` or as `max<Stat>` beside a number, which is what the board snapshot carries (`maxHealth`, `maxAgility`). It read only `health.max`, so Half Heal and Full Heal restored 0.

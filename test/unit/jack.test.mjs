@@ -260,7 +260,7 @@ describe("the attack Jack pre-empts comes back (#185)", () => {
     // `resume` still goes in; since #208 reading 8 (window-only abilities) the call also carries
     // `atWindow`, a resumed declaration having passed that gate when it was first made.
     expect(readFileSync("module/engine/attack.mjs", "utf8"))
-      .toMatch(/attackPreflight\(\{\s*attacker, abilityId, placement, board, combat, resume, atWindow: atWindow \|\| resume,?\s*\}\)/);
+      .toMatch(/attackPreflight\(\{\s*attacker, abilityId, placement, board: b, combat, resume, atWindow: atWindow \|\| resume,?\s*\}\)/);
   });
 });
 
@@ -272,7 +272,8 @@ describe("an area that catches Jack alone still flips the coin (#185)", () => {
     const src = readFileSync("module/engine/attack.mjs", "utf8");
     expect(src).toMatch(/filter\(\(t\) => t\.concealedAoE\)/);
     // ...save against an attack only its own check avoids (#204 reading 15).
-    expect(src).toMatch(/if \(\(state\.isAoE \|\| state\.caughtConcealed\) && isConcealed\(defender\) && !state\.attack\?\.unavoidable\) \{/);
+    // `!state.steppedIn` since #249: a Unit that stepped into the Attack while concealed takes it whole.
+    expect(src).toMatch(/if \(\(state\.isAoE \|\| state\.caughtConcealed\) && isConcealed\(defender\) && !state\.attack\?\.unavoidable && !state\.steppedIn\) \{/);
   });
 });
 

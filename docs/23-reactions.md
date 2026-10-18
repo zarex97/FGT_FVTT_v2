@@ -74,6 +74,13 @@ The shove is a Move to the nearest panel outside the area, not anywhere outsideâ
 
 **Any effect that prevents Acting takes Block, Evade and Counter off the rung** (#247 readings 4, 17, 18). `forbiddenReactions` read only `ForbidReaction` contributions while `canAct` read `preventsAction`: Disable, Stun, Stop, Freeze and the rest refused the Counter and left Block and Evade. The projection adds all three for any effect that prevents Acting; `cannotAct` drops its own line.
 
+**`aimedAt: chosenIfSelf`** (#249, Kawarimi). Attacked herself, the user picks the Unit her reaction is aimed at
+(`chooseReactionTarget`, never herself); an ally Attacked, it is aimed at that ally. Kawarimi's swap is that
+reaction's whole effect (Ch. 21).
+
+**`whenFatallyHit`** (#249). Not at the rung: at the Damage Step's write, once the hit's total and every floor are
+known, for an ability with `insteadOfDamage` (Kirihanasu, Ch. 30). Asked of the defender's owner privately.
+
 ## Invariants & edge cases
 
 **A reaction ability can leave the reaction open** (#193 reading 8). An ability with `reactionFree: true` (Medea's Argos) resolves at the rung and the rung stays: the defender still chooses Do nothing, Block or Evade, and every reaction ability is withdrawn for that Attack, so Trofa cannot follow Argos. Without the flag (Trofa) the ability is the reaction. **What a free reaction made answerable is offered at once** (#243 reading 6): the rung's offers are decided at the declaration, so Kiritsugu's Scapegoat giving the Unit in peril its Decoy never added the shot that answers *"whenever a Unit inflicted with Decoy (Scapegoat) is Attacked"*. After a free reaction the offers are asked again and only those never offered on that rung are added (`attack.mjs#newlyOffered`, `reactionsOffered` on the state), so Trofa still cannot follow Argos. Scapegoat is free (reading 19): the attacked ally keeps its Block and Evade. **A reaction may land on a Unit its user picks** (`timing.aimedAt: chosen`, reading 5): Scapegoat asks its player for any legal target, the Unit in peril listed first, through `skill-use.mjs#legalSkillTargets`, the reader the use itself passes. **A reaction that attacks is offered once per Attack** (reading 8) and lands *before* the Attack it answers: an attacker it defeats loses that Attack on every Process still open (`loseAttackOfFallen`, reading 7), said on the board. **A rung with only "Do nothing" left on it asks nobody** (`combat-process.mjs#pendingPrompt`): the guard counted the standing rungs, never the ones left after `forbiddenReactions`, so it never fired, and the shot waited on its defender pressing the one button drawn.

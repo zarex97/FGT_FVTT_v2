@@ -1,0 +1,37 @@
+# Karakuri Genpō: Fubatsu (#249, FB.*).
+#
+# Tobikatō's shape with Invuln for Dodge. *"Invuln for 1◈ Turns, 3 times"* is a
+# COUNTED Invuln: `stacking: count` and `uses: 3` on the entry, so the shared
+# definition stays uncounted for Anastasia's. A charge is spent on every hit
+# Invuln touches, a halved NP included; a pierced hit spends none (reading 40,
+# `attack.mjs#applyDamage`).
+#
+# *"Cannot be used if Kawarimi and/or Kirihanasu is on Cooldown"*: Scáthach's
+# `abilityOffCooldown`, plural ids. "On Cooldown" is the whole Cooldown line,
+# Kirihanasu's 75% restore gate included (`rules/items.mjs#isCooling`,
+# reading 20).
+schema: 1
+id: danzo-fubatsu
+name: "Karakuri Genpō: Fubatsu"
+kind: skill
+slug: fubatsu
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+requirements:
+  - { kind: abilityOffCooldown, abilityIds: [danzo-kawarimi, danzo-kirihanasu] }
+description: |
+  (Active) Mechanical Illusion: Steadfast. Used on your Turn. Used on an allied Unit within a 2 panel
+  area of herself. Applies @effect[invuln]{Invuln} for 1◈ Turns, 3 times; and applies
+  @effect[critUp]{Crit Up} for 1◈ Turns, Crit Chance is increased by 25%. Cannot be used if
+  @ability[danzo-kawarimi]{Kawarimi} and/or @ability[danzo-kirihanasu]{Kirihanasu} is on Cooldown.
+  Cooldown: 4◈-⅓◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: chebyshevRadius, r: 2 }
+  selection: { relations: [ally, self], includeSelf: true, chooser: chosen, count: 1 }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: invuln, duration: "1◈", uses: 3, stacking: count }
+      - { id: critUp, duration: "1◈", magnitude: 25 }

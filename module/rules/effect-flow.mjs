@@ -405,6 +405,18 @@ export function effectGatePasses(spec, rule, ctx) {
  * `boolean`, `select` (with `choices`), and `json` for a list or a map the
  * form edits as text.
  */
+/**
+ * The `params` each effect definition reads off an instance, by effect id.
+ *
+ * A closed list per definition, so an authored key nothing reads is refused at
+ * the build rather than carried in silence (`tools/lib/content.mjs`).
+ * Presence Concealment granted at a Rank (Dongyū, #249): `rank` its Rank,
+ * `evade` an Evade bonus its sheet states over the table's.
+ */
+export const EFFECT_PARAMS = Object.freeze({
+  presenceConcealment: Object.freeze(["rank", "evade"]),
+});
+
 export const ENTRY_KEYS = Object.freeze({
   id: { type: "effect", means: "The effect applied." },
   magnitude: { type: "expression", means: "How much: a number, an @ expression, or { countTargets }." },
@@ -429,7 +441,13 @@ export const ENTRY_KEYS = Object.freeze({
   predicate: { type: "json", means: "Apply only to the recipients this matches." },
   ignoresResistanceFrom: { type: "json", means: "Resistances this application is not subject to." },
   otherwise: { type: "json", means: "What lands instead when the chance fails, as entry keys over this one." },
+  otherwiseOn: {
+    type: "select",
+    choices: ["resisted", "notLanded"],
+    means: "When `otherwise` lands: the failed chance alone (resisted), or any way the first did not land (notLanded).",
+  },
   restores: { type: "json", means: "Stats this application restores as it lands, as [{stat, delta}], capped at the maximum." },
+  params: { type: "json", means: "Parameters the instance carries for its definition's readers, as EFFECT_PARAMS lists them." },
   stacking: {
     type: "select",
     choices: ["noneNoRefresh", "noneRefresh", "noneExtend", "stage", "magnitudeStacks", "highestOnly", "count"],

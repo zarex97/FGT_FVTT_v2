@@ -17,6 +17,8 @@
  * alliance to answer differently depending on which one asked.
  */
 
+import { isUntouchable } from "./untouchable.mjs";
+
 /**
  * The side a Unit is on: its charmer's while it is charmed, its own otherwise.
  *
@@ -109,6 +111,9 @@ export function guardsOf(master, board) {
     // the protection, the Counter redirect, the zone denial or the cover that
     // read this list (#168).
     if (unit.defeated) continue;
+    // ...and a ghost, which the table believes defeated, guards nobody either
+    // (#249 reading 26): it no longer stands by its Master.
+    if (isUntouchable(unit)) continue;
     // Its SIDE, not its faction: a charmed Servant is its own Master's enemy
     // for the Charm's duration and guards nobody (ruled 2026-10-04, #180).
     if (sideOf(unit) !== faction) continue;

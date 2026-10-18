@@ -165,6 +165,7 @@ describe("a ride's gates are the declaration's, judged before it moves (#184)", 
     // Live: Troias carried Achilles out of his Master's ZON, and the second
     // asking refused the Noble Phantasm after the ride had been spent.
     expect(riding).toMatch(/preflighted: preflight,/);
-    expect(attack).toMatch(/const pre = preflighted \?\? attackPreflight\(/);
+    // Asked again only after a ghost's reveal (#249), and then too it is the ride's.
+    expect(attack).toMatch(/const gates = \(b\) => preflighted \?\? attackPreflight\(/);
   });
 });

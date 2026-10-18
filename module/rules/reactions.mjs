@@ -16,6 +16,7 @@
  * a missing option does not teach faster.
  */
 
+import { isUntouchable } from "./untouchable.mjs";
 import { meetsRequirements, SELF_REQUIREMENTS } from "./items.mjs";
 import { categoryLimitFor } from "./costs.mjs";
 // The windows themselves live in `rules/windows.mjs` -- one list, held against
@@ -263,6 +264,9 @@ export function allyReactions({ defender, board, attack, attacker = null, actorF
     // A defeated Unit projects no reaction: a dead EMIYA raises no Rho Aias
     // (#168).
     if (!unit.panel || unit.defeated) continue;
+    // A ghost touches nobody but itself (#249 reading 27): it raises no
+    // reaction for an ally.
+    if (isUntouchable(unit) && unit.id !== defender.id) continue;
     // "Any allied Unit (INCLUDING EMIYA)" -- the projector may itself be the
     // defender, which is why `self` counts and the id is not excluded.
     const relation = unit.id === defender.id ? "self" : relationOf(unit, defender, board);

@@ -1098,6 +1098,8 @@ export async function withWorld(own, fn) {
     contributionsOf: snapshot.contributionsOf,
     actors: new DocumentCollection(),
     tokens: new DocumentCollection(),
+    // The scene's Tiles, which only a Feigned Defeat's body makes (#249).
+    tiles: [],
     messages: new DocumentCollection(),
     settings: { ...REAL.settingDefaults, ...WORLD_SETTINGS, ...(spec.settings ?? {}) },
     selfUserId: "u1",
@@ -1190,6 +1192,25 @@ export async function withWorld(own, fn) {
       regions: (spec.regions ?? []).map((r) => ({
         id: r.id, behaviors: r.behaviors ?? [], getOccupiedGridSpaceOffsets: () => r.panels ?? [],
       })),
+      // Tiles: a Feigned Defeat's stand-in body is two (#249). Only what the
+      // engine asks of a TileDocument: its data, its flags, create and delete.
+      tiles: world.tiles,
+      async createEmbeddedDocuments(type, data) {
+        if (type !== "Tile") throw new Error(`The test world's scene creates Tiles only, not ${type}.`);
+        return data.map((d) => {
+          const tile = { ...d, id: `tile${String(world.tiles.length + 1).padStart(4, "0")}`,
+            getFlag: (scope, key) => d.flags?.[scope]?.[key] };
+          world.tiles.push(tile);
+          return tile;
+        });
+      },
+      async deleteEmbeddedDocuments(type, ids) {
+        if (type !== "Tile") throw new Error(`The test world's scene deletes Tiles only, not ${type}.`);
+        for (const id of ids) {
+          const at = world.tiles.findIndex((t) => t.id === id);
+          if (at >= 0) world.tiles.splice(at, 1);
+        }
+      },
     },
   };
   globalThis.Hooks = await worldHooks(world);
