@@ -844,8 +844,10 @@ describe("Akhilleus Kosmos's shove is damage, not an Attack (#184 reading 8)", (
     const pre = readFileSync("module/engine/attack-preflight.mjs", "utf8");
     expect(pre).toMatch(/const free = Boolean\(ability\?\.system\?\.freeAction\) \|\| Boolean\(placement\?\.plainDamage\);/);
     const attack = readFileSync("module/engine/attack.mjs", "utf8");
-    expect(attack).toMatch(/\.\.\.\(placement\?\.plainDamage \? \["evade", "block", "counter"\] : \[\]\)/);
-    expect(attack).toMatch(/\[state\.defenderId\]: placement\?\.plainDamage\s*\? \[\]/);
+    // Through `defenderFields` since #249, which a swap asks again: the placement's say rides as `declared`.
+    expect(attack).toMatch(/plainDamage: Boolean\(placement\?\.plainDamage\)/);
+    expect(attack).toMatch(/\.\.\.\(declared\.plainDamage \? \["evade", "block", "counter"\] : \[\]\)/);
+    expect(attack).toMatch(/\[defenderId\]: declared\.plainDamage\s*\? \[\]/);
     // No Combat Phase: neither the Dismount nor the window is offered.
     expect(attack).toMatch(/if \(!resume && !plainDamage\) \{/);
     expect(attack).toMatch(/const phaseWindow = resume \|\| plainDamage/);

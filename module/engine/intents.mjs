@@ -209,12 +209,17 @@ export const removeEffect = (unitId, effectId, reason) =>
  * length. EMIYA's Atk Up (Trace) is *"extended by ⅓◈ Turns"* on top of
  * whatever is left, which is an addition to an absolute expiry tick.
  *
+ * A held effect with no expiry has nothing to add to unless `startAt` names a
+ * tick: Kirihanasu's permanent concealment becomes an ordinary one, 2◈ from
+ * its reveal (#249 reading 31).
+ *
  * @param {string} unitId @param {string} defId @param {number} turns
  * @param {string|null} [source]
+ * @param {number|null} [startAt] the tick a permanent effect's span counts from
  * @returns {Intent}
  */
-export const extendEffect = (unitId, defId, turns, source = null) =>
-  ({ t: "extendEffect", unitId, defId, turns, source });
+export const extendEffect = (unitId, defId, turns, source = null, startAt = null) =>
+  ({ t: "extendEffect", unitId, defId, turns, source, ...(startAt === null ? {} : { startAt }) });
 
 export const move = (unitId, path, forced = false) =>
   ({ t: "move", unitId, path, forced });

@@ -30,7 +30,10 @@ The rulebook's six steps are implemented as a state machine with automatic and p
 
 **The preflight reads the aimed Unit from either key (#185).** The canvas names it `placement.unitId`, and `attackPreflight` read only `targetId`, so every `target:` requirement failed from the interface: Maria the Ripper's Method 2 was refused on a Female inside the Mist at Night. A failed requirement is worded from `FGT.Ability.Refused.<kind>`, as the sheet and the bar word it; it printed the raw kind (*"roundPhase"*).
 
-**A pre-emptive strike is a Process like any other (#185).** Jack's Murderer of the Misty Night lets her Attack first when declared on: `offerPreemption` defers the attacker's declaration, and `runPreemption` opens her own Process. That Process goes through `runMissCheck` before its card, as every declaration does; it was advanced to `missCheck` and left there, so her strike sat with no buttons. When it finishes, the deferred attack resumes with `resume: true`, which `attackPreflight` reads to skip the budget gate: the declaration paid its budget before she struck, and asking again refused it as *"already attacked this turn"*. The Luck Check it requires by day reads her own phase (`defender.phase`), not the board's.
+**A pre-emptive strike is a Process like any other (#185).** Jack's Murderer of the Misty Night lets her Attack first when declared on: `offerPreemption` defers the attacker's declaration, and `runPreemption` opens her own Process. That Process goes through `runMissCheck` before its card, as every declaration does; it was advanced to `missCheck` and left there, so her strike sat with no buttons. When it finishes, the deferred attack resumes with `resume: true`, which `attackPreflight` reads to skip the budget gate: the declaration paid its budget before she struck, and asking again refused it as *"already attacked this turn"*. The Luck Check it requires by day reads her own phase (`defender.phase`), not the board's. **Only an enemy's Attack
+is pre-empted (#249, found live).** The sheet says *"Attacked by an enemy Unit"*. `offerPreemption` read only her
+Range, so Danzō's Dongyū (Concealment), an ally's area that conceals her, asked *"Attack first?"*. It now skips an
+attacker that is not her enemy.
 
 **Step 2 — Reaction.** The defender chooses Block, Evade, or nothing at the `react` state (`module/engine/combat-process.mjs:114`). Certain effects forbid reactions — `Accel` forbids all three, `Presence Concealment` forbids Block and Counter, and an attack's `unblockable` field forbids Block alone (`module/engine/attack.mjs:950-972`). Block does not avoid damage; it reduces it at step 3 (`module/engine/combat-process.mjs:42`).
 
@@ -84,6 +87,24 @@ it. **Survival floors cap the damage** (`attack.mjs#survivalFloor`): CS Survive 
 10%/5%) leave the Unit standing by taking the blow down, because a restore beside the damage lands first (§46.4-NR).
 
 **One driver per Process** (#247). A Process stores its state when its run ends, so a run held at a question (a prevention Luck Check, a Command Spell window) leaves its card at the rung, and a timeout re-armed meanwhile answered that rung again: A Tale for Somebody's Sake hit a defeated Drake a second time (699, then 1070). `advanceAttack` claims the rung before it awaits and queues every run behind the last (`serialized`); an answer to a rung the Process has left, or a resume with nothing to drive, does nothing.
+
+**What ends with "the Combat Process" may mean the declaration** (#249). PC.5's *"at the end of the Combat Process"*
+is read once per declaration per attacker: PC ends when the attacker's last open Process of the group closes, and a
+held Funshindan roll (`attack.keepsConcealment`) skips it (Ch. 30).
+
+**Evaded only by a Luck Check** (#249 reading 23). A damage block's `evadeOnlyByLuck` gives `evadePermit` an empty
+list: every Evade fails, Dodge and any automatic Evade included, and the ladder goes on to Lucky Evasion (step
+2.4), the one way out. A Counter is untouched (Yuugao's sheet names none, as Fragarach's does).
+
+**A Process can change its defender: a swap** (#249, Kawarimi). An ability with `swapsPositions` trades its user's
+and its partner's panels at the reaction rung (`attack.mjs#swapIntoAttack`, `rules/swap.mjs#swapPlan`), and every
+Process of the declaration still at its rung whose panel either stood on is **rebound** to whoever stands there now
+(`rebindDefender`): each Process records its `panel` at declaration, and `defenderFields` is the one reader both the
+declaration and the rebind ask for what a defender may answer with. The Attack's Range is not rechecked, the new
+defender reacts as usual (the swap is `reactionFree`), an area's panels stay put, and two Units an area caught trade
+Processes, each hit once (readings 13, 36). A larger partner is placed to cover the user's panel with the most of
+its old footprint, and anybody under it is knocked back. A concealed user stepping into an Attack for an ally
+(`steppedIn`) takes it with no coin, and PC ends with that Process (reading 32). One public line names both Units.
 
 ## Invariants & edge cases
 

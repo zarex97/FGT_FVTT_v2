@@ -28,7 +28,7 @@ import {
 import * as rollLog from "../rules/roll-log.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
 import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
-import { cooldownChanges, statChangeLine, checkLine } from "./skill-use.mjs";
+import { cooldownChanges, statChangeLine, checkLine, rollConcealmentBreak, commandSpellCostIntents, postCostCards } from "./skill-use.mjs";
 import { splitCooldownRider } from "../rules/cooldown-riders.mjs";
 import {
   classifyAbility, targetSpecFor as specForAbility, dealsNoDamage,
@@ -89,7 +89,7 @@ import {
 import { mayAttackCivilian, civilianKill, inOwnHomeBase, grailStrike } from "../rules/environment.mjs";
 import { resolveOverpower, resolveUnderpower } from "../rules/relationships.mjs";
 import {
-  reactionsRefused, reactionRefusedByAgility, aoeOutcome, isConcealed,
+  reactionsRefused, reactionRefusedByAgility, aoeOutcome, isConcealed, concealmentProfile,
 } from "../rules/concealment.mjs";
 import { selectBranch, isNestedCheck, MAX_CHECK_DEPTH } from "../rules/checks/branches.mjs";
 import { publicSpeakerFor, publicIdentityOf } from "./public-identity.mjs";
@@ -117,7 +117,7 @@ export async function resolveAttack({
   const attacker = unitActor(attackerId);
   if (!attacker) throw new Error(`FGT | Unknown attacker ${attackerId}`);
 
-  const board = boardSnapshot();
+  let board = boardSnapshot();
   // Every gate a declaration passes before anything is spent or written lives in
   // `engine/attack-preflight.mjs`, so a Riding Attack can ask them BEFORE it
   // moves the token (#114). It returns the Unit, the ability it resolved to and
@@ -129,60 +129,82 @@ export async function resolveAttack({
   // a Master who could not land beside him, was refused "outside its Master's
   // ZON", and left him moved, his ride spent and no attack made (#184).
   // A RESUMED declaration passed every gate, this one included, when it was first made.
-  const pre = preflighted ?? attackPreflight({
-    attacker, abilityId, placement, board, combat, resume, atWindow: atWindow || resume,
+  const gates = (b) => preflighted ?? attackPreflight({
+    attacker, abilityId, placement, board: b, combat, resume, atWindow: atWindow || resume,
   });
-  if (!pre.ok) {
+  const refuse = (verdict) => {
     // TOLD, not just thrown. A refusal for want of budget was logged and
     // swallowed, so a Unit that had already attacked -- after Gather, most
     // naturally -- clicked Attack, was shown `✓ Legal`, confirmed, and got
     // silence (§46.4-AW). The throw stays: callers depend on it.
-    if (pre.budgetReason) {
-      ui.notifications?.warn(`${game.i18n.localize("FGT.Action.Attack")} — ${pre.budgetReason}`);
+    if (verdict.budgetReason) {
+      ui.notifications?.warn(`${game.i18n.localize("FGT.Action.Attack")} — ${verdict.budgetReason}`);
     }
-    throw new Error(`FGT | ${pre.message}`);
+    throw new Error(`FGT | ${verdict.message}`);
+  };
+  let pre = gates(board);
+  if (!pre.ok) refuse(pre);
+  // Aimed from where the attacker stands: asked again after a ghost's reveal.
+  const aim = (verdict, b) => {
+    const { self, ability } = verdict;
+    // The caster's own options, for `targeting.branches`/`cooldown.branches`/
+    // `damage.branches` (Summoning: Bašmu) -- computed once here rather than
+    // per call site, since `self` does not change across this declaration.
+    const options = rollOptionsFor({ attacker: self });
+
+    // A Riding Attack supplies its own target list: *"Can Attack all Units in
+    // its path while Moving in a straight line as its Normal Attack"*, and a
+    // Normal Attack's own spec picks ONE unit. The path decided who is hit
+    // before this was called, so the shape is a straight-line multi-target for
+    // this declaration only -- not a change to what a Normal Attack is.
+    const spec = placement?.pathTargets
+      ? {
+        anchor: { kind: "self" },
+        shape: { kind: "unit" },
+        selection: { relations: ["enemy"], chooser: "all" },
+        pathTargets: placement.pathTargets,
+      }
+      : targetSpecFor(attacker, ability, options, b);
+    // The scale travels with the placement so the isolation filter can honour a
+    // field's `piercedBy` -- see `rules/targeting/resolve.mjs` step 4c.
+    const targets = spec.pathTargets
+      ? {
+        units: spec.pathTargets.map((id) => ({ unitId: id, distance: 0, band: 0, relation: "enemy" })),
+        panels: [], anchor: {}, warnings: [], errors: [], needsChoice: false,
+        candidates: [], excluded: [],
+      }
+      : resolveTargets(spec, self, b, {
+        // An ATTACK: a platform's protection of its occupants is read against what
+        // is being done, and it bars an Attack where it may let a Skill through.
+        ...placement, npTags: [...(ability?.system?.npTags ?? [])], reach: "attack",
+      });
+
+    // A choice still owed is a refusal, not a quiet return: the interface settles
+    // it before anything is sent (`rules/targeting/resolve.mjs#validate`, the
+    // review dialog), so one that arrives here came from a path that never asked,
+    // and returning `{needsChoice}` made it do nothing and say nothing (#129).
+    const refusals = [...targets.errors, ...pendingChoiceErrors(targets)];
+    if (refusals.length > 0) {
+      throw new Error(`FGT | Illegal attack: ${refusals.join(" ")}`);
+    }
+    return { options, targets };
+  };
+  let aimed = aim(pre, board);
+  // A ghost's Attack reveals it (#249 readings 18, 27, 29) -- once the Attack
+  // is legal, its targets included, so one refused out of Range reveals nothing
+  // (found live): off a shared panel, the marker gone, then aimed again from
+  // where it now stands, spending the budget as any other.
+  if (!resume) {
+    const { revealFeignedDefeat } = await import("./feigned-defeat.mjs");
+    if (await revealFeignedDefeat(attackerId)) {
+      board = boardSnapshot();
+      pre = gates(board);
+      if (!pre.ok) refuse(pre);
+      aimed = aim(pre, board);
+    }
   }
   const { self, ability, actionKind, free, master, usage } = pre;
-  // The caster's own options, for `targeting.branches`/`cooldown.branches`/
-  // `damage.branches` (Summoning: Bašmu) -- computed once here rather than
-  // per call site, since `self` does not change across this declaration.
-  const options = rollOptionsFor({ attacker: self });
-
-  // A Riding Attack supplies its own target list: *"Can Attack all Units in
-  // its path while Moving in a straight line as its Normal Attack"*, and a
-  // Normal Attack's own spec picks ONE unit. The path decided who is hit
-  // before this was called, so the shape is a straight-line multi-target for
-  // this declaration only -- not a change to what a Normal Attack is.
-  const spec = placement?.pathTargets
-    ? {
-      anchor: { kind: "self" },
-      shape: { kind: "unit" },
-      selection: { relations: ["enemy"], chooser: "all" },
-      pathTargets: placement.pathTargets,
-    }
-    : targetSpecFor(attacker, ability, options, board);
-  // The scale travels with the placement so the isolation filter can honour a
-  // field's `piercedBy` -- see `rules/targeting/resolve.mjs` step 4c.
-  const targets = spec.pathTargets
-    ? {
-      units: spec.pathTargets.map((id) => ({ unitId: id, distance: 0, band: 0, relation: "enemy" })),
-      panels: [], anchor: {}, warnings: [], errors: [], needsChoice: false,
-      candidates: [], excluded: [],
-    }
-    : resolveTargets(spec, self, board, {
-      // An ATTACK: a platform's protection of its occupants is read against what
-      // is being done, and it bars an Attack where it may let a Skill through.
-      ...placement, npTags: [...(ability?.system?.npTags ?? [])], reach: "attack",
-    });
-
-  // A choice still owed is a refusal, not a quiet return: the interface settles
-  // it before anything is sent (`rules/targeting/resolve.mjs#validate`, the
-  // review dialog), so one that arrives here came from a path that never asked,
-  // and returning `{needsChoice}` made it do nothing and say nothing (#129).
-  const refusals = [...targets.errors, ...pendingChoiceErrors(targets)];
-  if (refusals.length > 0) {
-    throw new Error(`FGT | Illegal attack: ${refusals.join(" ")}`);
-  }
+  const { options, targets } = aimed;
 
   // Declaring the attack is what spends the budget, not landing it: a Noble
   // Phantasm that misses still consumed the Servant's attack for the turn, and
@@ -218,7 +240,11 @@ export async function resolveAttack({
   // The ability's OWN price -- its shield refresh, its use record, its costs
   // and its cooldown. Shared with the Ch. 21 Counter path, which pays all of it
   // and none of the budget above.
-  await payAbilityPrice({ ability, attackerId, attacker, self, master, usage, board, resume });
+  const price = await payAbilityPrice({ ability, attackerId, attacker, self, master, usage, board, resume });
+  // A held concealment roll survives a pre-emption: the resume pays nothing and
+  // rolls nothing, so the placement carries it (#249 reading 9b).
+  const keepsConcealment = Boolean(price?.keepsConcealment || (resume && placement?.keepsConcealment));
+  if (keepsConcealment) placement = { ...(placement ?? {}), keepsConcealment: true };
 
   // A Noble Phantasm that LANDS LATER (`engine/schedule.mjs`). Enki's use is its
   // activation: paid in full above, its mark placed and its clock started here,
@@ -327,6 +353,12 @@ export async function resolveAttack({
     ...buildAttackSpec({ attacker, ability, abilityId: ability?.id ?? null, options, placement, board }),
     // An additional Normal Attack (Bab-ilu, #232): it never earns another.
     ...(placement?.followUp ? { followUp: true } : {}),
+    // Funshindan's held roll: PC.5 passes this Attack by (#249 reading 9b).
+    ...(keepsConcealment ? { keepsConcealment: true } : {}),
+    // PC.5 is *"after an Attack while PC is Active"*: read once its price is
+    // paid. A concealment the Attack itself lands on its user -- Danzō's
+    // Kawarimi into her own Dongyū (ruled 2026-10-18) -- is not ended by it.
+    concealedAtDeclaration: isConcealed(unitOf(attacker, boardSnapshot())),
     // The panels this declaration resolved against. Two clauses ask for the
     // area and neither ever got it: Fire in a Forest *"If the attack's area
     // is larger than 3x3, the whole attack area converts"* (`terrainConversions`
@@ -624,6 +656,7 @@ export async function payAbilityPrice({ ability, attackerId, attacker, self, mas
   const { charged, superseded } = resolveCosts(pending);
 
   for (const cost of charged) await applyBatch(costIntents(cost, self), "attack:cost");
+  await postCostCards(charged, { ability, self });
 
   // The cooldown, at the same moment as the cost and for the same reason: the
   // ability has been committed. `resolveAttack` never did this, so every Attack
@@ -662,6 +695,14 @@ export async function payAbilityPrice({ ability, attackerId, attacker, self, mas
       "attack:cost",
     );
   }
+
+  // *"Can be used when Presence Concealment is Active, has a 50% chance of
+  // deactivating Presence Concealment when used"* -- on use, before any Process
+  // exists, so a broken roll sends the Attack without PC (no +100%, Block and
+  // Counter open) and a held one keeps PC through it (#249 readings 9, 9b).
+  // Here and not in `resolveAttack`, so a Counter declared with it rolls too.
+  const held = ability ? await rollConcealmentBreak(attacker, ability, self) : null;
+  return { keepsConcealment: Boolean(held?.kept) };
 }
 /**
  * The `attack` descriptor a Combat Process carries.
@@ -949,6 +990,10 @@ export function buildAttackSpec({
       // fail automatically unless the defender holds one of the named effects.
       unblockable: Boolean(block?.unblockable),
       evadableOnlyBy: [...(block?.evadableOnlyBy ?? [])],
+      // *"This NP can only be Evaded with a Luck Check (Lucky Evasion)"*
+      // (Yuugao, #249 reading 23): no Evade succeeds, Dodge included, and the
+      // failed Evade's own rung, Lucky Evasion, is the one way out.
+      evadeOnlyByLuck: Boolean(block?.evadeOnlyByLuck),
       // *"The only way to avoid it is passing the Luck Check it imposes"*
       // (Scáthach's Gate of Skye, #204 reading 15). No Evade, Dodge, automatic
       // evasion, Substitution or concealment coin saves its target; a Block
@@ -985,6 +1030,227 @@ export function buildAttackSpec({
       rank: ability?.system?.rank ?? null,
   };
 }
+/**
+ * What one defender may answer an attack with, decided for that Unit.
+ *
+ * Extracted from `declareProcesses` so the two places a Process gains a
+ * defender ask one reader: the declaration, and a swap that puts another Unit
+ * on the attacked panel (Kawarimi, `rebindDefender`, #249). Everything here is
+ * a fact about THIS defender against THIS attack; what belongs to the panel or
+ * the Process (`caughtByArea`, `bandOf`, the primary target's Pierce) is not.
+ *
+ * @param {object} args
+ * @param {string} args.attackerId
+ * @param {string} args.defenderId
+ * @param {object} args.attack the Process's attack spec
+ * @param {boolean} args.isAoE
+ * @param {object|null} args.ability the declaring ability Item
+ * @param {object} args.board
+ * @param {{plainDamage?: boolean, forbidReactions?: string[]}} [args.declared] the placement's own say
+ * @returns {{reactionAbilities: Record<string, object[]>, forbiddenReactions: string[], defenderInert: boolean}}
+ */
+function defenderFields({ attackerId, defenderId, attack, isAoE, ability, board, declared = {} }) {
+  return {
+    // Damage only MEASURED as a Normal Attack has nothing to react to:
+    // Akhilleus Kosmos's shove (#184 reading 8). No Evade, no Block, no
+    // Counter, and no reaction ability offered against it.
+    reactionAbilities: {
+      [defenderId]: declared.plainDamage
+        ? []
+        : offeredReactions(defenderId, attack, isAoE, attackerId, board),
+    },
+    // Presence Concealment clause 2: *"This Unit's Attacks cannot be
+    // Blocked or Countered unless the DU's current AGI Rank is equal to or
+    // higher than it."* Decided once, at declaration, alongside the offer --
+    // the same moment and for the same reason.
+    //
+    // Plus whatever the ATTACK itself forbids. A Fragarach Counter *"cannot
+    // be Blocked"*, and the rung is where that has to be said: the card
+    // filters the buttons, and `process.advance` refuses the event, so a
+    // stale card or a macro cannot Block one anyway.
+    forbiddenReactions: [...new Set([
+      ...concealmentRefusals(attackerId, defenderId, board),
+      // An ABILITY that narrows the ladder by a rank comparison rather than
+      // by naming rungs. Kiritsugu's Lethal Gunfire Suppression: *"cannot
+      // be Reacted to unless the AU's AGI Rank is higher than Kiritsugu's."*
+      // One boundary apart from concealment's, which is why both live in
+      // `rules/concealment.mjs` rather than one being reimplemented here.
+      ...agilityRefusals(ability, attackerId, defenderId, board),
+      ...(attack?.unblockable ? ["block"] : []),
+      // Only its own check avoids it (#204 reading 15). Closing the rung
+      // closes what follows a failed Evade too: Lucky Evasion and that
+      // rung's escape. A Command Spell bought on the card still beats it
+      // (ruled 2026-10-14, Q6): Escape and Teleport Servant carry the
+      // defender out (`engine/command-spells.mjs#interruptsOf`).
+      ...(attack?.unavoidable ? ["evade"] : []),
+      // Aim *"ignores Dodge and the Evade action"*: no Evade at all,
+      // while Block stays (ruled 2026-10-14, #206 §46.4-MB).
+      ...(attack?.aim ? ["evade"] : []),
+      // Appendix A §A.3 `Accel`: *"Opponents cannot React to this unit's
+      // attacks."*
+      //
+      // REACT, not "counter". `combat-process.mjs#canCounter` has taken an
+      // `attackerHasAccel` flag since the Counter rung was written, and
+      // `engine/attack.mjs` has passed it -- so the third rung was closed
+      // and the first two were not, which made Accel a strictly weaker
+      // effect than the catalogue describes. Nothing noticed because no
+      // content could apply it: `accel` had no effect document until now,
+      // and authoring one is what put a Unit on the near side of the gap.
+      //
+      // Here rather than beside the counter flag because THIS is where the
+      // ladder is narrowed for every other reason -- concealment, an AGI
+      // comparison, an unblockable attack -- and a rung closed in two
+      // places is a rung that can be reopened in one.
+      ...(accelRefusals(attackerId, board) ),
+      // Whatever the ATTACKER carries that takes rungs from its target:
+      // Normal Presence Concealment's Hidden Strike (#103).
+      ...attackerRefusals(attackerId, board),
+      // ...and the rungs the DEFENDER may not take itself. Invuln's
+      // "cannot Block" and the Hanging Gardens' "cannot Evade, Block" were
+      // read only by the counter check, so the react rung still offered
+      // them (#68).
+      ...defenderRefusals(defenderId, board),
+      ...(declared.plainDamage ? ["evade", "block", "counter"] : []),
+      // The second Attack of Bab-ilu's passive: *"if the DU Blocked the
+      // first Attack, it also has to Block the second"* (#232 reading 24).
+      ...(declared.forbidReactions ?? []),
+    ])],
+    // A Structure takes no action at all (`rules/actions.mjs`), so it
+    // answers no rung (`process.inertAnswer`). A Master's swing at a
+    // Bloodmark stopped to ask the Bloodmark to Block or Evade (#188).
+    defenderInert: unitActor(defenderId)?.type === "structure",
+  };
+}
+
+/**
+ * Put the Unit now standing on this Process's panel in its defender's place.
+ *
+ * Kawarimi (#249 readings 13, 36): after a swap the Attack lands on whoever
+ * stands on the attacked panel, its Range not rechecked, and that Unit reacts
+ * as usual. Everything decided per defender is asked again of the one reader
+ * the declaration used (`defenderFields`); what belongs to the panel or the
+ * Process -- `caughtByArea`, the primary target's Pierce -- stays, and the
+ * per-defender maps on the attack are re-keyed. Only at the reaction rung,
+ * before anything but a free reaction has been taken. A rung key that moves
+ * (`history`) is what lets the new defender answer.
+ *
+ * @param {object} state
+ * @param {string} newId
+ * @param {object} board
+ * @param {{steppedIn?: boolean}} [opts] `steppedIn`: the new defender chose to
+ *   take this Attack while concealed (reading 32): no coin, and PC ends with it
+ * @returns {object} the rebound state
+ */
+function rebindDefender(state, newId, board, { steppedIn = false } = {}) {
+  const oldId = state.defenderId;
+  if (!oldId || oldId === newId || state.state !== "react") return state;
+  const attacker = (board?.units ?? []).find((u) => u.id === state.attackerId) ?? null;
+  const defender = (board?.units ?? []).find((u) => u.id === newId) ?? null;
+  const ability = state.attack?.abilityId ? unitActor(state.attackerId)?.items?.get(state.attack.abilityId) ?? null : null;
+  const rekey = (map) => {
+    if (!map || !(oldId in map)) return map;
+    const { [oldId]: v, ...rest } = map;
+    return { ...rest, [newId]: v };
+  };
+  return {
+    ...state,
+    defenderId: newId,
+    ...defenderFields({
+      attackerId: state.attackerId, defenderId: newId, attack: state.attack, isAoE: state.isAoE,
+      ability, board, declared: state.declared ?? {},
+    }),
+    reactionsOffered: [],
+    reaction: null,
+    evaded: false,
+    cone: attackCone(defender, attacker),
+    caughtConcealed: Boolean(state.caughtByArea && isConcealed(defender)),
+    ...(steppedIn ? { steppedIn: true } : {}),
+    attack: {
+      ...state.attack,
+      ...(state.attack?.bandOf ? { bandOf: rekey(state.attack.bandOf) } : {}),
+      ...(state.attack?.platformFactors ? { platformFactors: rekey(state.attack.platformFactors) } : {}),
+    },
+    history: [...state.history, { state: "react", event: "rebound", detail: { from: oldId, to: newId } }],
+  };
+}
+
+/**
+ * Two Units trade places at the reaction rung, and the Attack goes on.
+ *
+ * Kawarimi (#249 readings 12-14, 32, 36, 38). The moves are forced, as every
+ * engine displacement is; then every Process of this declaration still at its
+ * reaction rung whose panel either Unit stood on is rebound to whoever stands
+ * there now, so an area that caught both trades their Processes and each is
+ * hit once. One public line names both. Never `withdrawFromAttack`, which
+ * cancels a targeted Attack's siblings.
+ *
+ * @param {object} args
+ * @param {object} args.state this Process
+ * @param {object} args.message its card
+ * @param {string} args.ownerId the Unit who swaps
+ * @param {string} args.partnerId the Unit swapped with
+ * @returns {Promise<object>} this Process, rebound
+ */
+async function swapIntoAttack({ state, message, ownerId, partnerId }) {
+  const board = currentBoard();
+  const owner = (board.units ?? []).find((u) => u.id === ownerId);
+  const partner = (board.units ?? []).find((u) => u.id === partnerId);
+  if (!owner?.panel || !partner?.panel || ownerId === partnerId) return state;
+  const { swapPlan } = await import("../rules/swap.mjs");
+  const plan = swapPlan(owner, partner, board);
+  if (!plan) return state;
+
+  const ownerFrom = owner.panel;
+  const partnerFrom = (partner.panels ?? []).length > 0 ? partner.panels : [partner.panel];
+  await applyBatch([I.move(ownerId, [plan.mover], true), I.move(partnerId, [plan.partner], true)], "swap");
+  if (plan.knockback.length > 0) {
+    const { displacePlan } = await import("./movement-hooks.mjs");
+    await displacePlan(plan.knockback);
+  }
+
+  const after = currentBoard();
+  const standsOn = (panel) => {
+    const key = `${panel?.i},${panel?.j}`;
+    if (`${ownerFrom.i},${ownerFrom.j}` === key) return partnerId;
+    if (partnerFrom.some((p) => `${p.i},${p.j}` === key)) return ownerId;
+    return null;
+  };
+  // Concealed and stepping in for an ally (reading 32): she takes the Attack,
+  // with no coin, and PC ends with this Process.
+  const stepsIn = (newId) => newId === ownerId && isConcealed((after.units ?? []).find((u) => u.id === ownerId));
+
+  const { shownName } = await import("./public-identity.mjs");
+  // The card remembers its defender's public name; a rebound card names the new one.
+  const retitle = async (m, newId) => {
+    await m.setFlag("fgt", "defenderId", newId);
+    await m.setFlag("fgt", "names", { ...(m.getFlag("fgt", "names") ?? {}), defender: shownName(unitActor(newId), after) });
+  };
+
+  let mine = state;
+  const others = siblingMessages(state).filter((m) => m.id !== message.id);
+  for (const m of [message, ...others]) {
+    const theirs = m.id === message.id ? state : process.deserialize(m.getFlag("fgt", "process"));
+    if (theirs?.state !== "react" || theirs.attackerId !== state.attackerId) continue;
+    // This Process's own defender is the partner's whatever its panel says: a
+    // targeted Attack keeps no panel of its own before #249's declarations.
+    const newId = standsOn(theirs.panel) ?? (m.id === message.id ? (state.defenderId === ownerId ? partnerId : ownerId) : null);
+    if (!newId || newId === theirs.defenderId) continue;
+    const rebound = rebindDefender(theirs, newId, after, { steppedIn: stepsIn(newId) });
+    await retitle(m, newId);
+    if (m.id === message.id) { mine = rebound; continue; }
+    await m.setFlag("fgt", "process", process.serialize(rebound));
+    await updateAttackCard(m, rebound);
+  }
+
+  await ChatMessage.create({
+    content: `<p>${game.i18n.format("FGT.Swap.Traded", {
+      a: foundry.utils.escapeHTML(shownName(unitActor(ownerId), after)),
+      b: foundry.utils.escapeHTML(shownName(unitActor(partnerId), after)),
+    })}</p>`,
+  });
+  return mine;
+}
+
 /**
  * Turn resolved targets into live Combat Processes: one per defender, each with
  * its reaction offer, its card, its flags and its events.
@@ -1175,6 +1441,10 @@ async function declareProcesses({
     attackerId, attack: spec, abilityName: ability?.name ?? game.i18n.localize("FGT.Chat.NormalAttack"),
   });
 
+  const placementSays = {
+    plainDamage: Boolean(placement?.plainDamage),
+    forbidReactions: [...(placement?.forbidReactions ?? [])],
+  };
   /** @type {Array<{messageId: string, state: object}>} */
   const processes = [];
   // Who this declaration attacked, recorded once each on their Turn Record.
@@ -1188,74 +1458,15 @@ async function declareProcesses({
     const withReactions = state.defenderId
       ? {
         ...state,
-        // Damage only MEASURED as a Normal Attack has nothing to react to:
-        // Akhilleus Kosmos's shove (#184 reading 8). No Evade, no Block, no
-        // Counter, and no reaction ability offered against it.
-        reactionAbilities: {
-          [state.defenderId]: placement?.plainDamage
-            ? []
-            : offeredReactions(state.defenderId, state.attack, state.isAoE, state.attackerId, board),
-        },
-        // Presence Concealment clause 2: *"This Unit's Attacks cannot be
-        // Blocked or Countered unless the DU's current AGI Rank is equal to or
-        // higher than it."* Decided once, at declaration, alongside the offer --
-        // the same moment and for the same reason.
-        //
-        // Plus whatever the ATTACK itself forbids. A Fragarach Counter *"cannot
-        // be Blocked"*, and the rung is where that has to be said: the card
-        // filters the buttons, and `process.advance` refuses the event, so a
-        // stale card or a macro cannot Block one anyway.
-        forbiddenReactions: [...new Set([
-          ...concealmentRefusals(attackerId, state.defenderId, board),
-          // An ABILITY that narrows the ladder by a rank comparison rather than
-          // by naming rungs. Kiritsugu's Lethal Gunfire Suppression: *"cannot
-          // be Reacted to unless the AU's AGI Rank is higher than Kiritsugu's."*
-          // One boundary apart from concealment's, which is why both live in
-          // `rules/concealment.mjs` rather than one being reimplemented here.
-          ...agilityRefusals(ability, attackerId, state.defenderId, board),
-          ...(state.attack?.unblockable ? ["block"] : []),
-          // Only its own check avoids it (#204 reading 15). Closing the rung
-          // closes what follows a failed Evade too: Lucky Evasion and that
-          // rung's escape. A Command Spell bought on the card still beats it
-          // (ruled 2026-10-14, Q6): Escape and Teleport Servant carry the
-          // defender out (`engine/command-spells.mjs#interruptsOf`).
-          ...(state.attack?.unavoidable ? ["evade"] : []),
-          // Aim *"ignores Dodge and the Evade action"*: no Evade at all,
-          // while Block stays (ruled 2026-10-14, #206 §46.4-MB).
-          ...(state.attack?.aim ? ["evade"] : []),
-          // Appendix A §A.3 `Accel`: *"Opponents cannot React to this unit's
-          // attacks."*
-          //
-          // REACT, not "counter". `combat-process.mjs#canCounter` has taken an
-          // `attackerHasAccel` flag since the Counter rung was written, and
-          // `engine/attack.mjs` has passed it -- so the third rung was closed
-          // and the first two were not, which made Accel a strictly weaker
-          // effect than the catalogue describes. Nothing noticed because no
-          // content could apply it: `accel` had no effect document until now,
-          // and authoring one is what put a Unit on the near side of the gap.
-          //
-          // Here rather than beside the counter flag because THIS is where the
-          // ladder is narrowed for every other reason -- concealment, an AGI
-          // comparison, an unblockable attack -- and a rung closed in two
-          // places is a rung that can be reopened in one.
-          ...(accelRefusals(attackerId, board) ),
-          // Whatever the ATTACKER carries that takes rungs from its target:
-          // Normal Presence Concealment's Hidden Strike (#103).
-          ...attackerRefusals(attackerId, board),
-          // ...and the rungs the DEFENDER may not take itself. Invuln's
-          // "cannot Block" and the Hanging Gardens' "cannot Evade, Block" were
-          // read only by the counter check, so the react rung still offered
-          // them (#68).
-          ...defenderRefusals(state.defenderId, board),
-          ...(placement?.plainDamage ? ["evade", "block", "counter"] : []),
-          // The second Attack of Bab-ilu's passive: *"if the DU Blocked the
-          // first Attack, it also has to Block the second"* (#232 reading 24).
-          ...(placement?.forbidReactions ?? []),
-        ])],
-        // A Structure takes no action at all (`rules/actions.mjs`), so it
-        // answers no rung (`process.inertAnswer`). A Master's swing at a
-        // Bloodmark stopped to ask the Bloodmark to Block or Evade (#188).
-        defenderInert: unitActor(state.defenderId)?.type === "structure",
+        ...defenderFields({
+          attackerId: state.attackerId, defenderId: state.defenderId, attack: state.attack, isAoE: state.isAoE,
+          ability, board, declared: placementSays,
+        }),
+        // What the placement said, kept so a swap can ask `defenderFields` again.
+        declared: placementSays,
+        // The panel this Process strikes (#249 reading 13): a swap rebinds it
+        // to whoever stands there.
+        panel: (board?.units ?? []).find((u) => u.id === state.defenderId)?.panel ?? null,
       }
       : state;
     // A weak point the attacker may aim at (Ch. 45). Offered here, at
@@ -1536,8 +1747,13 @@ async function answerRung({ event, abilityId = null, placement = null }, message
       // ...or at a Unit its user picks: Scapegoat is used *"when an allied Unit
       // ... is Attacked"* and *"on an allied Unit within a 2 panel area"*, two
       // phrases, so any legal target, the Unit in peril first (#243 reading 5).
+      // `chosenIfSelf`: Kawarimi's partner is the user's pick when SHE is the
+      // Unit Attacked, and the ally Attacked otherwise (#249 reading 12).
+      const aimedMode = used.system?.timing?.aimedAt;
+      const picks = aimedMode === "chosen" || (aimedMode === "chosenIfSelf" && owner.id === state.defenderId);
       const aimedAt = pointsAtAttacker ? state.attackerId
-        : used.system?.timing?.aimedAt === "chosen" ? await chooseReactionTarget(owner, used, state)
+        // Kawarimi's partner is never herself; Scapegoat may pick himself (#243 reading 4).
+        : picks ? await chooseReactionTarget(owner, used, state, { exclude: aimedMode === "chosenIfSelf" ? owner.id : null })
           : state.defenderId;
       // An ability that ATTACKS resolves through the attack flow, not through
       // `useSkill` -- which refuses a `damage` phase outright and says so in
@@ -1598,6 +1814,11 @@ async function answerRung({ event, abilityId = null, placement = null }, message
         }),
       });
       if (!out.ok) await tellReactionRefused(owner, used, out.reason);
+      // Kawarimi: the user and her partner trade places, and the Attack goes on
+      // against whoever stands where it struck (#249 readings 12-14).
+      else if (used.system?.swapsPositions && aimedAt && aimedAt !== owner.id) {
+        state = await swapIntoAttack({ state, message, ownerId: owner.id, partnerId: aimedAt });
+      }
       // Battle Retreat: the defender leaves the Attack (#226 readings 12, 24).
       // Its Move, heal and strip are the ability's own phases, run above.
       else if (used.system?.withdrawsFromAttack) {
@@ -1777,9 +1998,9 @@ function newlyOffered(state, usedId) {
  * @param {object} state
  * @returns {Promise<string>} unit id
  */
-async function chooseReactionTarget(owner, used, state) {
+async function chooseReactionTarget(owner, used, state, { exclude = null } = {}) {
   const { legalSkillTargets } = await import("./skill-use.mjs");
-  const ids = legalSkillTargets(used, owner, { sourceUnitId: state.attackerId });
+  const ids = legalSkillTargets(used, owner, { sourceUnitId: state.attackerId }).filter((id) => id !== exclude);
   const ordered = [state.defenderId, ...ids.filter((id) => id !== state.defenderId)]
     .filter((id) => ids.includes(id));
   if (ordered.length <= 1) return ordered[0] ?? state.defenderId;
@@ -3157,10 +3378,34 @@ function countedHit(field, npTags, window, triggered, meets) {
   return { triggered: false };
 }
 
+/**
+ * PC.5: *"After performing an Attack while PC is Active, PC is deactivated at
+ * the end of the Combat Process."*
+ *
+ * A counter is the defender attacking; it ends the counterer's concealment on
+ * the same terms, so this asks about whoever swung rather than about roles.
+ *
+ * An area Attack is one declaration and many Processes, and its defenders
+ * answer at their own pace: PC ends when the attacker's LAST open Process of
+ * the declaration closes. Ended by the first, it was gone before a slower
+ * defender's damage step, which lost PC's +100% (#249, a Surprise).
+ *
+ * @param {object} state the Process that just closed
+ * @returns {Promise<void>}
+ */
 async function endConcealmentAfterAttack(state) {
-  // A counter is the defender attacking; it ends the counterer's concealment on
-  // the same terms, so this asks about whoever swung rather than about roles.
-  if (!process.didHit(state) && !state.evaded && state.state !== "done") return;
+  // A defender who stepped into this Attack while concealed: PC ends with the
+  // Process, as PC.5 ends it after her own Attack (#249 reading 32).
+  if (state.steppedIn && state.defenderId) {
+    const { deactivateConcealment } = await import("./concealment.mjs");
+    const { DEACTIVATION_REASONS } = await import("../rules/concealment.mjs");
+    await deactivateConcealment(state.defenderId, DEACTIVATION_REASONS.attacked);
+  }
+  if (state.attack?.keepsConcealment) return;
+  // Not concealed when it attacked: nothing for PC.5 to end. Unstated (a
+  // Counter's spec, a Process from before the flag) keeps the old reading.
+  if (state.attack?.concealedAtDeclaration === false) return;
+  if (siblingStillOpen(state)) return;
   const { deactivateConcealment } = await import("./concealment.mjs");
   const { DEACTIVATION_REASONS } = await import("../rules/concealment.mjs");
   await deactivateConcealment(state.attackerId, DEACTIVATION_REASONS.attacked);
@@ -3733,6 +3978,12 @@ async function runAutomaticStep(state, message) {
       const result = skipped
         ? { total: 0, flags: { suppressedBy: skipped }, breakdown: [] }
         : await applyDamage(state, message);
+      // A Feigned Defeat: she received nothing, riders included, and the
+      // Attack is over for her (#249 reading 16). The card shows the hit.
+      if (result.flags?.feigned) {
+        await message.setFlag("fgt", "damage", result.shown);
+        return process.advance(state, "feigned");
+      }
 
       // Riders declared in the ability's phases land only if the damage did.
       // "Deals 4x damage plus 100. Then inflicts Def Dwn" -- the "then" is
@@ -4040,6 +4291,9 @@ function evadePermit(state) {
   if (state.attack?.unavoidable) return [];
   // Aim closes every automatic evasion too: Dodge, the Evade buff, Trofa.
   if (state.attack?.aim) return [];
+  // Only a Luck Check evades it (Yuugao): every Evade fails, an automatic one
+  // included, and the ladder goes on to Lucky Evasion (#249 reading 23).
+  if (state.attack?.evadeOnlyByLuck) return [];
   const declared = state.attack?.evadableOnlyBy ?? [];
   if (state.attack?.noEvadeAfterFail && siblingEvadeFailed(state)) return [];
   return declared.length > 0 ? declared : null;
@@ -4056,6 +4310,28 @@ function evadePermit(state) {
  * @param {object} state
  * @returns {boolean}
  */
+/**
+ * Whether another Process of this declaration, by the same attacker, is still open.
+ *
+ * Read from the messages, as `siblingEvadeFailed` is: `closeRung` writes a
+ * Process's own flag before it asks, so of two closing together the second
+ * always sees the first done.
+ *
+ * @param {object} state
+ * @returns {boolean}
+ */
+function siblingStillOpen(state) {
+  if (!state.groupId) return false;
+  return game.messages.some((m) => {
+    const raw = m.getFlag("fgt", "process");
+    if (!raw) return false;
+    const sibling = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return sibling.groupId === state.groupId
+      && sibling.attackerId === state.attackerId
+      && !process.isComplete(sibling);
+  });
+}
+
 function siblingEvadeFailed(state) {
   return game.messages.some((m) => {
     const raw = m.getFlag("fgt", "process");
@@ -4105,11 +4381,11 @@ function evadeModifiers(state, attacker, defender) {
   // `domain/tables.mjs` since the tables were transcribed with nothing reading
   // it, and the corpus uses the skill at five different ranks. Serenity's A+ is
   // 4 and would have been right by accident; Yan Qing's C is 3.
+  // A GRANTED concealment carries its own Rank and Evade (Dongyū's C+ at +2,
+  // #249): `concealmentProfile` is the one reader of both.
   if (isConcealed(attacker)) {
-    const skill = (attacker.abilities ?? []).find((a) => a.slug === "presenceConcealment");
-    const rank = skill?.rank instanceof Rank ? skill.rank : Rank.parseOrNull(skill?.rank ?? null);
-    const value = rank ? Number(lookup("presenceConcealmentEvade", rank) ?? 4) : 4;
-    mods.push({ source: `Presence Concealment ${rank ?? ""}`.trim(), value });
+    const { rank, evade } = concealmentProfile(attacker);
+    mods.push({ source: `Presence Concealment ${rank ?? ""}`.trim(), value: evade });
   }
   return mods;
 }
@@ -4314,6 +4590,8 @@ function costIntents(cost, self) {
       // of how much it actually had (same defect `checkRemovals` had; see its
       // comment in `scheduler.mjs`).
       return [I.setResource(cost.unitId, "sustainabilityRemaining", self.sustainability - cost.amount), note];
+    case "commandSpell":
+      return commandSpellCostIntents(cost, self);
     default:
       return [note];
   }
@@ -4529,7 +4807,7 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
   // declared with costs what it always costs; for most of them the cooldown is
   // the only price there is, and skipping it would let a Servant answer every
   // attack with its Noble Phantasm forever.
-  await payAbilityPrice({
+  const price = await payAbilityPrice({
     ability,
     attackerId: counterer.id,
     attacker: counterer,
@@ -4541,6 +4819,7 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
     board,
     resume: false,
   });
+  if (price?.keepsConcealment) attackSpec.keepsConcealment = true;
 
   // A Counter is an Act (#107, ruled by the game's author). Every clause keyed
   // on Acting reads this flag -- Bleed and Sap tick on it, Sikera Ušum poisons
@@ -5306,6 +5585,17 @@ async function applyDamage(state, message) {
     }
   }
 
+  // Invuln *"3 times"* (Fubatsu, #249 reading 40): a counted Invuln spends a
+  // charge on every hit it touched, a halved Noble Phantasm included; a pierced
+  // hit never reached it. Only a COUNTED one: an Invuln applied with no `uses`
+  // lasts its duration, and spending it would delete it.
+  const invulnTouched = (result.breakdown ?? [])
+    .some((b) => (b.contributors ?? []).some((c) => c.source === "invuln" && c.value !== 0));
+  if (invulnTouched) {
+    const invuln = unitActor(defender.id)?.effects?.find((e) => e.system?.defId === "invuln");
+    if ((invuln?.system?.uses ?? 0) > 0) await applyBatch([I.consumeUse(defender.id, "invuln")], "invuln");
+  }
+
   // Ch. 32. Overpower can end the Master outright before damage matters;
   // Underpower halves a Master's own Total Damage. Both are Master-Servant
   // asymmetries and neither fires between two units of the same kind.
@@ -5386,7 +5676,9 @@ async function applyDamage(state, message) {
   // has nothing to absorb.
   // Not against an attack only its own check avoids: Heads is an avoidance
   // (#204 reading 15).
-  if ((state.isAoE || state.caughtConcealed) && isConcealed(defender) && !state.attack?.unavoidable) {
+  // A concealed Unit that stepped into this Attack for an ally takes it whole:
+  // no coin (Kawarimi, #249 reading 32).
+  if ((state.isAoE || state.caughtConcealed) && isConcealed(defender) && !state.attack?.unavoidable && !state.steppedIn) {
     const coin = await new Roll("1d2").evaluate();
     const veil = aoeOutcome(coin.total);
     const before = result.total;
@@ -5444,6 +5736,23 @@ async function applyDamage(state, message) {
       ...(result.breakdown ?? []),
       { stage: "survives", label: `${floor.source}: survives at ${floor.left}`, from: before, to: result.total },
     ];
+  }
+
+  // Kirihanasu (#249 readings 15-17): a hit that would still empty the bar,
+  // after every floor, is offered to its holder's owner before it lands. Taken,
+  // nothing is written -- no damage, no defeat, no kill credit -- and the card
+  // keeps the lethal figure every other player is meant to read.
+  if (!result.flags.defeatedOutright && !overpower.defeated) {
+    const { offerFeignedDefeat, stageFeignedDefeat } = await import("./feigned-defeat.mjs");
+    const feigned = await offerFeignedDefeat({ state, defender, total: result.total });
+    if (feigned) {
+      await message.setFlag("fgt", "result", {
+        total: result.total, magical: result.magical, physical: result.physical,
+        breakdown: result.breakdown, flags: result.flags, isCrit,
+      });
+      await stageFeignedDefeat({ unitId: state.defenderId, killerId: state.attackerId ?? null, fellAt: feigned.fellAt });
+      return { ...result, shown: result.total, total: 0, flags: { ...result.flags, feigned: true } };
+    }
   }
 
   await applyBatch(
@@ -7919,6 +8228,10 @@ async function offerPreemption({ attackerId, abilityId, placement, targetIds, bo
     const defender = defenderDoc ? unitFrom(board, defenderDoc) : null;
     const rule = (defender?.preemptions ?? [])[0];
     if (!rule) continue;
+    // *"Whenever Jack is Attacked by an ENEMY Unit"*: an ally's area that
+    // caught him -- Danzō's Dongyū conceals him -- is no exchange to win
+    // first (#249, found live).
+    if (relationOf(defender, self, board) !== "enemy") continue;
 
     // "…and the AU is within JACK'S Range." The pre-empter's range, not the
     // attacker's: she is the one about to swing, so a sniper hitting her from

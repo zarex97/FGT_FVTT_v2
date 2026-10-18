@@ -24,6 +24,7 @@
 import { Rank } from "../../domain/rank.mjs";
 import { damageModifiersApply } from "../difficulty.mjs";
 import { lookupNumber, lookup } from "../../domain/tables.mjs";
+import { currentHealth } from "../../domain/health.mjs";
 import { categoryRankOf } from "../items.mjs";
 import { test as testPredicate } from "../predicate.mjs";
 
@@ -338,6 +339,19 @@ function stage1Base(s) {
   }
 
   for (const src of spec.sources ?? []) {
+    // A base read off the DEFENDER's own state, not anybody's Base Attack.
+    // Yuugao: *"Deals damage equivalent to the DU's current Health"* (#249
+    // reading 22) -- the figure the rest of the pipeline then works on, her
+    // increases and the DU's reductions alike. `unit: target` used to fall
+    // through to the attacker in silence; it names the defender now, and a
+    // source that reads it states which `stat`.
+    if (src.unit === "target") {
+      const v = src.stat === "currentHealth" ? currentHealth(s.ctx.defender) * (src.factor ?? 1) : 0;
+      if (src.component === "mag") s.mag += v;
+      else s.phys += v;
+      s.contribute(`base:${src.component ?? "str"}`, v, `the DU's current Health × ${src.factor ?? 1}`, "defender");
+      continue;
+    }
     // `contentId` reads a COMPENDIUM document's authored Base Attack rather
     // than a unit on the board.
     //

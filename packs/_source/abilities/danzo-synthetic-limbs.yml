@@ -1,0 +1,35 @@
+# Synthetic Limbs (Doll), Rank A++ (#249, SL.*).
+#
+# The Passive is Karna's and Raikou's shape: an `Immunity` rule. The
+# `Mechanical` Attribute halves nothing here (Appendix D said it did; it halves
+# Pale Rider's Contagion). The Active is Runner Comet's `resource` phase, then
+# an Atk Up with its NP figure.
+schema: 1
+id: danzo-synthetic-limbs
+name: "Synthetic Limbs (Doll)"
+rank: "A++"
+kind: skill
+slug: syntheticLimbs
+cooldown: "4◈-⅔◈"
+timing: { window: ownTurn }
+description: |
+  Not just limbs, her whole body is a karakuri doll.
+  (Passive) Danzō is Immune to @effect[sap]{Sap}/@effect[bleed]{Bleed}.
+  (Active) Used during your Turn. Restore 3 Agility, and applies @effect[atkUp]{Atk Up} for 1◈ Turns,
+  all damage dealt is increased by 40%; if NP, 30%.
+  Cooldown: 4◈-⅔◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: resource
+    target: self
+    changes:
+      - { key: agility.value, delta: 3, clampToMax: true }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUp, duration: "1◈", magnitude: 40, npMagnitude: 30 }
+passiveRules:
+  - { key: Immunity, effects: [sap, bleed] }

@@ -29,6 +29,7 @@
  * `applyEffect`.
  */
 
+import { untouchableBy } from "../rules/untouchable.mjs";
 import { applyEffect, inflictBonusOf, mergeEmitted } from "./effect-applier.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
@@ -129,6 +130,7 @@ export async function landEffect(entry, ctx) {
     bypassChanceModifiers: Boolean(entry.bypassChanceModifiers),
     visibility: hidden ? "gmOnly" : (entry.visibility ?? "public"),
     attributionHidden: hidden || Boolean(ctx.attributionHidden),
+    params: entry.params ?? null,
   };
   const flowCtx = {
     turnsPerRound,
@@ -252,6 +254,10 @@ function bypassesImmunityFor(entry, options) {
  */
 export async function landEntry(entry, ctx, { write, reread = null }) {
   if (!entry) return [];
+  // A ghost is reached by its own abilities alone, and silently: no row, which
+  // would say it is there (#249 reading 26). The backstop for every path that
+  // picks recipients without asking the targeting.
+  if (untouchableBy(ctx.target, ctx.source?.unitId ?? null)) return [];
   const board = ctx.board ?? currentBoard();
   const caster = casterUnitOf(ctx, board);
   // The entry's own gate, asked of each recipient (De Sterrennacht clause 2),
@@ -279,8 +285,13 @@ export async function landEntry(entry, ctx, { write, reread = null }) {
     // Dodge with a 70% chance of applying it for ⅔◈ Turns, otherwise it is only
     // applied for ⅓◈ Turns."* A failed die lands the shorter one, uncertain no
     // longer; a blocked one (No Buff) lands nothing (#226 reading 11).
-    if (result.outcome === "resisted" && entry.otherwise && typeof entry.otherwise === "object") {
-      const { chance: _chance, otherwise: _otherwise, ...rest } = entry;
+    //
+    // `otherwiseOn: notLanded` widens it to every way the first did not land.
+    // Harisenbon: *"If Disable fails, inflicts Slow"*, ruled to read the outcome,
+    // not the die: resisted, blocked by an Immunity, stopped by a Prevention Luck
+    // Check, negated by a ward, or already held (#249 reading 11).
+    if (otherwiseFires(entry, result.outcome) && entry.otherwise && typeof entry.otherwise === "object") {
+      const { chance: _chance, otherwise: _otherwise, otherwiseOn: _on, ...rest } = entry;
       const fallback = await landEffect({ ...rest, ...entry.otherwise }, {
         ...ctx, board, target: reread?.() ?? target, times: counted ? times : null,
       });
@@ -289,6 +300,30 @@ export async function landEntry(entry, ctx, { write, reread = null }) {
     }
   }
   return out;
+}
+
+/**
+ * Outcomes an entry's `otherwise` answers, by its `otherwiseOn`.
+ *
+ * `resisted`, the default, is the die alone (Expert of Many Specializations,
+ * #226 reading 11). `notLanded` is every outcome but `applied` (#249 reading 11).
+ */
+export const OTHERWISE_ON = Object.freeze({
+  resisted: Object.freeze(["resisted"]),
+  notLanded: Object.freeze(["resisted", "blocked", "prevented", "negated", "noop"]),
+});
+
+/**
+ * Whether this outcome sends the entry to its `otherwise`.
+ *
+ * @param {object} entry
+ * @param {string} outcome
+ * @returns {boolean}
+ */
+export function otherwiseFires(entry, outcome) {
+  const on = OTHERWISE_ON[entry?.otherwiseOn ?? "resisted"];
+  if (!on) throw new Error(`otherwiseOn "${entry.otherwiseOn}" is not one of ${Object.keys(OTHERWISE_ON).join(", ")}.`);
+  return on.includes(outcome);
 }
 
 /* -------------------------------------------------------------------------- */

@@ -1,0 +1,48 @@
+# Karakuri Genpō: Dongyū, Method 2 (#249, DG2.*).
+#
+# The Normal Lancer's line, 1x5 and 1x4 on the diagonal, next to her, every
+# Unit in it. *"Damage dealt is further increased by 200% (tripled) to Units
+# with the 'Demon' or 'Beast' Attribute"* is a conditional multiplier inside the
+# bracket, as Vasavi Shakti's Divinity ladder; 'Demon' is `demonic` and
+# `demonicBeast`, 'Beast' is `beast` and `demonicBeast` (reading 6). *"Then"*,
+# her own Atk Up, landed whatever the line caught.
+#
+# One clock with Method 1 (`alsoTriggers`, reading 5).
+schema: 1
+id: danzo-dongyu-storm
+name: "Karakuri Genpō: Dongyū (Storm)"
+rank: "C+"
+isNP: true
+npTags: [antiBeast]
+kind: noblePhantasm
+slug: dongyuStorm
+cooldown: "5◈+⅓◈"
+timing: { window: ownTurn }
+element: wind
+alsoTriggers:
+  - { ability: danzo-dongyu-concealment }
+description: |
+  Mechanical Illusory Art: Bull Swallowing - Evil Wind Death Storm. Can be used in 2 different methods-
+  2. Base Attack (STR) is used. Hits a 1x5 or 5x1 panel area in any direction (if diagonal, 1x4 or 4x1)
+  next to Danzō for 3x damage plus 100. Damage dealt is further increased by 200% (tripled) to Units with
+  the 'Demon' or 'Beast' Attribute. Wind damage. Then, applies @effect[atkUp]{Atk Up} for 1◈ Turns, all
+  damage dealt is increased by 30%; if NP, 20%. Cooldown: 5◈+⅓◈ Turns.
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: line, length: 5, diagonalLength: 4 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  limits: { requiresZon: true }
+  isDamagingAoE: true
+damage:
+  component: str
+  multiplier: 3
+  flatBonus: 100
+  element: wind
+  conditionalMultipliers:
+    - { factor: 3, predicate: [{ or: ["target:attribute:demonic", "target:attribute:demonicBeast", "target:attribute:beast"] }], source: "Demon or Beast (+200%)" }
+phases:
+  - kind: damage
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUp, duration: "1◈", magnitude: 30, npMagnitude: 20 }

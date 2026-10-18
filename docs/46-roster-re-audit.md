@@ -5171,6 +5171,64 @@ alone. `injuryCheck` asks `defeated`. Ch. 22.
 **Reached: FO.mag.** *"(MAG A −2, namelessForest −2)"*: the marker authored the ladder as `check: luck`
 CheckModifiers and the engine added `escapeModifiers`. The marker carries none. Ch. 13.
 
+### RG. Presence Concealment ended with an area Attack's first Process — **fixed** (#249)
+
+**Reached: FF.pc.break.** PC.5 ran as each Process closed, so a defender who answered after the first lost PC's +100%
+and its Block/Counter refusal; every concealed area Attack in the roster did it. PC ends when the attacker's last open
+Process of the declaration closes (`attack.mjs#siblingStillOpen`). Ch. 21, Ch. 30.
+
+### RH. A Unit granted Presence Concealment was found every time — **fixed** (#249)
+
+**Reached: PCC.6.** Three readers found PC's Rank on the Skill only; `discoverChance` kept its own table and answered
+100% without one, the Evade bonus fell back to 4. One reader, `concealmentProfile`, instance first (`EffectData.params`).
+Ch. 07, Ch. 30.
+
+### RI. A damage source naming the target read the attacker — **fixed** (#249)
+
+**Reached: YY.dmg.** `stage1Base` sent any `unit` it did not know to the attacker. `unit: target` reads the defender
+(`stat: currentHealth`), and the build refuses any other unit. Ch. 22.
+
+### RJ. An Attack Skill's concealment break chance was never rolled — **fixed** (#249)
+
+**Reached: FF.pc.break.** `rollConcealmentBreak` had one caller, the Skill path. `payAbilityPrice` rolls it on use for
+a declaration and a Counter; a held roll keeps PC past PC.5 (`keepsConcealment`). Ch. 30.
+
+### RK. Invuln "N times" spent nothing — **fixed** (#249)
+
+**Reached: FB.invuln.times.** A counted Invuln held its charges and the Invuln stage never spent one. A charge goes on
+every hit Invuln touches, a halved NP included, none on a pierced one. Appendix A.
+
+### RL. A defeat posted no card — **fixed** (#249)
+
+**Reached: KH.shown.** `io.defeat` logged and drew a skull; the log entry never reached the structured log either.
+Every first defeat posts a public card (`engine/defeat-card.mjs`), which a Feigned Defeat shows in its place. Ch. 37.
+
+### RM. A swap's card said nothing happened — **fixed** (#249)
+
+**Reached: KW.continue, live.** Kawarimi's Skill card read *"No effects were applied"* beside the trade line: a swap
+lands no effect. The card says *"Two Units trade places."* (`FGT.Skill.Swaps`). Ch. 37.
+
+### RN. A ghost's Skill card told every player — **fixed** (#249)
+
+**Reached: KH.secret, live.** Kirihanasu's own card and a ghost's later Skills posted publicly, naming her. A
+Feigned Defeat's Skill cards go to the GM and her owners only (`engine/skill-use.mjs`). Ch. 30.
+
+### RO. An Attack refused out of Range still revealed the ghost — **fixed** (#249)
+
+**Reached: YY.range, live.** Range is refused by `resolveTargets`, after the preflight, and the reveal ran before
+both. It now waits for the gates and the aim, then asks both again from where she steps. Ch. 30.
+
+### RP. An ally's area offered Jack his pre-emption — **fixed**
+
+**Reached: DG1.area, live.** *"Attacked by an enemy Unit"*: `offerPreemption` checked his Range only, so Danzō's
+Dongyū (Concealment) asked *"Attack first?"* for an allied Jack. A non-enemy attacker is skipped. Ch. 21.
+
+### RQ. PC.5 ended a Presence Concealment the Attack itself landed — **fixed** (#249)
+
+**Reached: reading 41.** Kawarimi into her own Dongyū (Concealment) put its C+ on her, and PC.5 ended it at the
+Process's end: it ended the attacker's PC whether or not she held one when she attacked. The spec records
+`concealedAtDeclaration`, and PC.5 reads it. Ch. 30.
+
 ---
 
 ---
@@ -7034,3 +7092,48 @@ staged; cooldowns, budgets and a Master's Health were reset between presses. Evi
 - **The Forest Escape button stays lit after the Turn's attempt**; pressing it says why (*"This unit has already
   attempted the escape this Turn."*), as Jump does.
 - **The test world links every token**: the `unitActor` sweep is held by a source guard, not by behaviour (Ch. 44).
+
+## 46.40 Katō Danzō — the Servant who feigns her defeat
+
+**135 Clauses** (#249, built and pressed live 2026-10-18, PC world `fgt2026`, scene *Danzō Build*): 134 `Pressed` or
+`Observed`, PC.7 unit-tested. The statblock, Presence Concealment A, Synthetic Limbs, Tobikatō, Harisenbon,
+Funshindan, Fubatsu, Kawarimi, Kirihanasu, Subversive Activities, Dongyū's two methods, the Presence Concealment C+ it
+grants, and Yuugao. Nothing of hers existed. 40 readings ruled by grilling 2026-10-17/18, a 41st after the presses. Spec
+`docs/superpowers/specs/2026-10-17-kato-danzo-clauses.md`.
+
+**Built to be reused.** Every new mechanic is a key, an element or a grant, never her id: an `otherwise` that fires
+on any landing that failed, `params` an effect instance carries, a counted Invuln, a Command Spell cost, a damage
+source read from the target, Evade by Luck only, a position swap that rebinds a Process, a fatal-hit window, a hit
+taken instead of received, and the six grants of a Feigned Defeat (`CONTEXT.md`).
+
+### 46.40.1 What she cost the engine
+
+| Finding | Where |
+|---|---|
+| Slow whenever Disable does not land, an Immunity's block included (reading 11) | `engine/landing.mjs`, `otherwiseOn` |
+| An Attack Skill's 50% concealment break, held or broken (readings 7–9) | `engine/attack.mjs#payAbilityPrice` |
+| PC ends with a declaration's last Process, not its first (PC.5) | `attack.mjs#endConcealmentAfterAttack` |
+| Invuln "3 times": a charge per hit it touches (reading 40) | `rules/damage/pipeline.mjs`, `attack.mjs` |
+| PC granted at C+, its numbers on the instance (readings 2–5) | `rules/concealment.mjs#concealmentProfile` |
+| Yuugao: a Command Spell, the DU's current Health, Luck-only Evade (readings 22–24) | `rules/costs.mjs`, `damage/pipeline.mjs#stage1Base` |
+| Kawarimi: two Units trade places, the Process rebound, an area's two Processes traded (readings 12–14, 32, 36, 38) | `rules/swap.mjs`, `attack.mjs#swapIntoAttack` |
+| A public card for every defeat (reading 33) | `engine/defeat-card.mjs` |
+| Kirihanasu: a Feigned Defeat, the ghost and its reveal (readings 15–19, 25–31, 34, 35, 39) | `engine/feigned-defeat.mjs`, `rules/untouchable.mjs` |
+| Kawarimi into her own Attack: PC.5 leaves a PC that Attack landed (reading 41) | `attack.mjs#endConcealmentAfterAttack` |
+| General: §46.4-RG to RQ | |
+
+### 46.40.2 What was pressed, and how
+
+Danzō, Player1's, with Jack and Medea beside her, against Asterios, Medea, Scáthach and Kingprotea, Masters on the
+board. Player1 pressed every Skill and Noble Phantasm through the socket the bar uses, every reaction on its card,
+the fatal-hit offer, the escape Move's pick and the reveal's step-off pick on the canvas, and her Moves as her own
+token moves. The enemy's Attacks were the GM's, Player2 being offline; Faction 2's Rain of Light was pressed on its
+own Turn. Granted PCs and her own ran out at real Turn boundaries. Cooldowns, budgets, Health and a revived Medea
+were staged between presses; a Master was moved within Range for PC.3. Evidence per Clause on #249.
+
+### 46.40.3 Left open
+
+- **A rung answered again after the GM's client reloads deals its damage again.** A Process stores its state when its
+  run ends, after the damage write (Surprise `2026-10-18-reanswered-rung-dealt-damage-twice`). Not hers.
+- **Seen in tests only:** PC.7's enemy pick refused, a large-footprint swap, an area trade, a successful Lucky
+  Evasion against Yuugao, and a non-owning teammate's view of the ghost. `fgt2026` has no second faction-1 user.

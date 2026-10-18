@@ -102,7 +102,7 @@ export const DAMAGE_BLOCK_KEYS = Object.freeze([
   // how the modifiers treat it
   "bypassModifiers", "modifierSources", "excludeModifierSources", "totalModifiers",
   // what the defender may answer it with
-  "unblockable", "unavoidable", "noCover", "evadableOnlyBy", "evadeModifier", "noEvadeAfterFail", "singleInjuryRoll", "skipIf",
+  "unblockable", "unavoidable", "noCover", "evadableOnlyBy", "evadeOnlyByLuck", "evadeModifier", "noEvadeAfterFail", "singleInjuryRoll", "skipIf",
   // how it fans out
   "repeat", "instances", "branches", "predicate", "kind",
 ]);

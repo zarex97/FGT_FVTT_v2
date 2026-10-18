@@ -15,6 +15,7 @@
  *     the active player's, because `Sap` fires "at the end of any turn it Acts".
  */
 
+import { untouchableBy } from "../rules/untouchable.mjs";
 import { INFINITE } from "../domain/enums.mjs";
 import { parseTick, resolveTicks, expiryReached } from "../domain/tick.mjs";
 import { expiredSummonIds } from "../rules/summons.mjs";
@@ -1580,6 +1581,8 @@ function targetsOf(a, u, c) {
         // A body is no Unit to reach: it stands one Turn (`clearBodies`), and
         // the forest rolled on Heracles' at a Round's end (#247, live).
         .filter((other) => !other.defeated)
+        // A ghost is reached by its own handlers alone (#249 reading 26).
+        .filter((other) => !untouchableBy(other, u.id))
         .filter((other) => chebyshevish(other.panel, u.panel) <= radius)
         .filter((other) => matchesRelation(other, u, relations))
         .map((other) => other.id);

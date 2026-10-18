@@ -154,6 +154,13 @@ An Aura may `lendsAbility` a slug, its bearer's own Skill, negated with it (Radi
 
 **A phase rule that is an action runs as one** (#247). `applyPhaseEffects` treated every rule without an effect entry as nothing; Alice Eater's `DurationDelta` extended no stay. A rule whose kind is in `ACTION_KINDS` is dispatched on its target and its intents applied; one that is neither logs an error. Its row says what it did (*"Stay on the board: 18 → 27 Turns left"*). **A first-time-only phase says nothing on a later use**: a spent `once` structure is skipped, and the second Jabberwock's card no longer reads *"vorpal-blade-cache — couldNotPlace"*. A Skill card's refused reasons are worded from `FGT.Skill.Reason.*`.
 
+**"On Cooldown" is the whole Cooldown line** (#249 reading 20). Kirihanasu's Cooldown is *"3◈-⅓◈ Turns, and Danzō's
+Health must have been restored back to above 75%"*, and Fubatsu and Kawarimi are barred *"if Kirihanasu is on
+Cooldown"*. `rules/items.mjs#isCooling` is the one reader: the clock, or the ability's own `healthRestoredSince`
+unmet (`restoredSince`, the case that requirement always read). `abilityOffCooldown` asks it, and the board projects
+the gate as `restoreGate` (`snapshot.mjs#collectAbilities`). Above the fraction at any moment after the use satisfies
+it; no drop is needed first (#249 reading 37).
+
 ## Invariants & edge cases
 
 1. **One refusal answers the question.** `canUseAbility` returns the first refusal in order, never all of them (`module/rules/costs.mjs:162-165`). A player pressing an ability sees one clear reason why not, not a list.

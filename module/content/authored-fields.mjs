@@ -76,7 +76,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "countsAsAct", "oncePerTurn", "oncePerRound", "alsoTriggers",
   "exclusionSet", "grantedBy", "sameTurnExclusive", "sameRoundExclusive",
   "bypassesCategoryLimit", "refusesReactionsUnlessFaster", "offersSpellCategory", "reactionFree",
-  "withdrawsFromAttack", "legionCost", "endsOnSkillSeal",
+  "withdrawsFromAttack", "legionCost", "endsOnSkillSeal", "swapsPositions", "insteadOfDamage",
   "countsAsNormalAttack", "openingChoice", "toggleWindow", "cooldownOverride",
   // Avalon (#230): a Noble Phantasm that costs its Master nothing; an Item
   // whose rules run while it is held, and the abilities it gives its holder.

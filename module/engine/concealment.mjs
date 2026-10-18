@@ -17,6 +17,7 @@
  * have no reason to know about.
  */
 
+import { isUntouchable } from "../rules/untouchable.mjs";
 import { CONCEALMENT, CONCEALMENT_SLUG, DEACTIVATION_REASONS } from "../rules/concealment.mjs";
 import { discoverAttempts, sees } from "../rules/identity.mjs";
 import { lookup } from "../domain/tables.mjs";
@@ -77,14 +78,18 @@ const pending = new Map();
  *
  * @param {string} unitId
  * @param {string} [reason]
+ * @param {{granted?: boolean}} [opts] `granted`: the instance carried its own Rank (Dongyū)
  * @returns {Promise<void>}
  */
-export async function onConcealmentRemoved(unitId, reason = DEACTIVATION_REASONS.expired) {
+export async function onConcealmentRemoved(unitId, reason = DEACTIVATION_REASONS.expired, { granted = false } = {}) {
   const actor = unitActor(unitId);
   if (!actor) return;
 
+  // A GRANTED concealment (Dongyū's, with its own Rank on the instance) was not
+  // the Unit's Skill used, so its end starts no clock on that Skill (#249
+  // reading 4). The disclosure and the announcement below still run.
   const skill = concealmentSkill(actor);
-  const ticks = cooldownTicks(skill);
+  const ticks = granted ? 0 : cooldownTicks(skill);
   if (skill && ticks > 0) {
     await applyWorldIntents(
       [
@@ -122,7 +127,7 @@ export function attachConcealment() {
     pending.delete(unitId);
     // Not awaited: this reacts to a document change and blocking the hook would
     // block the write that fired it, exactly as `attachForcedModes` does.
-    onConcealmentRemoved(unitId, reason)
+    onConcealmentRemoved(unitId, reason, { granted: Boolean(effect.system?.params?.rank) })
       .catch((err) => console.error("FGT | Concealment aftermath:", err));
   });
 
@@ -303,6 +308,9 @@ export async function runDiscoverChecks(unitId) {
   const actor = unitActor(unitId);
   const board = currentBoard();
   const unit = unitOf(actor, board);
+  // A ghost is not looked for: the table believes it defeated, and only its
+  // own Attack ends its Presence Concealment (#249 reading 18).
+  if (isUntouchable(unit)) return { attempts: 0, discoveredBy: null };
 
   // The per-Turn budget, and the arrival order it is spent in. Both are read
   // before the attempts are computed and written after, because a Discover that

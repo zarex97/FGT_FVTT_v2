@@ -150,6 +150,9 @@ Pale Rider's Contagion is cast neither at an ability's use nor ended by a cooldo
 
 The same pass keeps a standing passive field's rules current. A field copies its ability's rule axes when it opens: isolation, interior, interiorEvents, extension, vulnerabilities, onEnd, countsAsHomeBase, upkeep and deactivation. A passive field opens once and stands for the whole war, so a content change never reached it. Live (#180), Contagion opened at tick 0, its content then gained `notOnOwnTurn`, and the field went on charging an enemy twice at the end of its own Turn. Now `staleRuleAxes` compares each axis with the ability's current spec, and `refreshPassiveField` writes the ones that differ. Geometry, membership and state are left alone: they are where the area is and what has happened in it, not what it does. Test: `test/unit/passive-field-refresh.test.mjs`.
 
+**A Unit no field touches** (#249 reading 28). The `ignoresBoundedFields` grant takes a Unit out of
+`annotateFields`' membership, `haltIndex`'s stop and `runFieldEvent`'s contact and interior events.
+
 ## Invariants & edge cases
 
 **A field is on one Scene Level.** `contains` checks a panel's level against the field's: a

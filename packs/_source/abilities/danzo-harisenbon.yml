@@ -1,0 +1,38 @@
+# Ninjutsu: Harisenbon (#249, HS.*).
+#
+# *"Has a 50% chance of inflicting Disable ... If Disable fails, inflicts Slow"*:
+# the entry's `otherwise`, with `otherwiseOn: notLanded` because the fallback
+# reads the outcome, not the die. A Disable stopped by an Immunity, a
+# Prevention Luck Check or a ward lands the Slow too (reading 11).
+#
+# *"Can be used when Presence Concealment is Active, has a 50% chance of
+# deactivating Presence Concealment when used"* is Serenity's Shapeshift:
+# `usableWhileConcealed` and `concealmentBreakChance`. A held roll keeps PC
+# (reading 9). Reading 10: the exclusion is one-way, as written.
+schema: 1
+id: danzo-harisenbon
+name: "Ninjutsu: Harisenbon"
+kind: skill
+slug: harisenbon
+cooldown: "4◈"
+timing: { window: ownTurn }
+sameTurnExclusive: [danzo-tobikato, danzo-funshindan]
+usableWhileConcealed: true
+concealmentBreakChance: 50
+description: |
+  (Active) Thousand Needles. Used on your Turn. Used on an enemy Unit within a 2 panel area of herself.
+  Has a 50% chance of inflicting @effect[disable]{Disable} for 1◈+⅓◈ Turns. If Disable fails, inflicts
+  @effect[slow]{Slow} for 1◈+⅓◈ Turns. Regardless of which was inflicted, the DU is also inflicted
+  @effect[defDwn]{Def Dwn} for 1◈ Turns, all damage taken is increased by 10%. Cannot be used on the same
+  Turn as Tobikatō or Funshindan. Cooldown: 4◈ Turns. Can be used when Presence Concealment is Active,
+  has a 50% chance of deactivating Presence Concealment when used.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: chebyshevRadius, r: 2 }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: disable, duration: "1◈+⅓◈", chance: 50, otherwise: { id: slow }, otherwiseOn: notLanded }
+      - { id: defDwn, duration: "1◈", magnitude: 10 }

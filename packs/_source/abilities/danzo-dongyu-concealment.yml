@@ -1,0 +1,43 @@
+# Karakuri Genpō: Dongyū, Method 1 (#249, DG.*, DG1.*, PCC.*).
+#
+# One Noble Phantasm in two records, as Mannanán's two swords and Jack's two
+# Maria the Rippers are: a record per method, each naming the other in
+# `alsoTriggers`, so either method starts the one clock (reading 5).
+#
+# Zabaniya's 3x3 next to her, and every Unit in it, enemies and Masters
+# included: the sheet writes "allied" and "enemy" wherever it means them
+# (reading 3). Each gets Presence Concealment at Rank C+, carried on the
+# instance because most of them have no Skill to read a Rank from:
+# `params: {rank: "C+", evade: 2}`, the sheet's +2 over the table's +3
+# (reading 2), discovery 35% by the table. `noneNoRefresh` skips a Unit whose
+# own PC is Active, and the grant ends starting no clock (reading 4,
+# `engine/concealment.mjs#onConcealmentRemoved`).
+schema: 1
+id: danzo-dongyu-concealment
+name: "Karakuri Genpō: Dongyū (Concealment)"
+rank: "C+"
+isNP: true
+npTags: [antiBeast]
+kind: noblePhantasm
+slug: dongyuConcealment
+cooldown: "5◈+⅓◈"
+timing: { window: ownTurn }
+alsoTriggers:
+  - { ability: danzo-dongyu-storm }
+description: |
+  Mechanical Illusory Art: Bull Swallowing - Evil Wind Death Storm. Can be used in 2 different methods-
+  1. Used on a 3x3 panel area in any non-diagonal direction next to Danzō. Applies the effects of
+  @effect[presenceConcealment]{Presence Concealment} — Rank: C+ to all affected Units for 2◈ Turns. The
+  effect is lost after the Skill duration ends. Cooldown: 5◈+⅓◈ Turns.
+  Presence Concealment — Rank: C+: as Presence Concealment, with the DU's Evade Roll increased by 2 and a
+  35% chance of being discovered.
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 3, long: 3 }
+  selection: { relations: [enemy, ally, neutral], includeSelf: false, chooser: all }
+  limits: { requiresZon: true }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: presenceConcealment, duration: "2◈", stacking: noneNoRefresh, params: { rank: "C+", evade: 2 } }

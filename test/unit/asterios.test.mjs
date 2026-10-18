@@ -316,6 +316,9 @@ describe("a non-damaging Noble Phantasm", () => {
       // Golden Hind: Wild Hunt. "(Non-damaging/Passive/Activation)" is the
       // first thing its sheet entry says, and its one phase puts a ship on the
       // board -- every rule that follows is the platform's, not the NP's.
+      // Dongyū's first method (#249): it conceals every Unit in a 3x3 next to
+      // her and swings at none of them; its second method is a record of its own.
+      "danzo-dongyu-concealment",
       "drake-golden-hind-wild-hunt",
       "emiya-rho-aias",
       "emiya-unlimited-blade-works",
