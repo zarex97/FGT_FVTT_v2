@@ -141,6 +141,7 @@ Ruled 2026-10-14: a Command Spell is a spell for the Master's own contracted Ser
 
 - `canSpend` refuses with `noServant` unless the Servant is alive on the board. The Master's bar shows no Command Spell
   without one, and asks which Servant first when there are several.
+- `awaitInterrupt` shows the rung it holds before it waits (Ch. 21, *One driver per Process*): the card's **Interrupt with a Command Spell?** section is the offer the wait is for.
 - `processOffers(state)` is the one list for an attack card and for `awaitInterrupt`: for each Master in a Contract
   with a Unit of that Process, or in it itself (ruled 2026-10-17, #241: it walked every Master on the board, and a
   Great War player saw seven unnamed Half Heals), each live Servant, each usable command. One that changes the attack (`processRoleOf`: Damage Block, Halve NP,

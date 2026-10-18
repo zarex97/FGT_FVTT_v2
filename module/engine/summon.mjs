@@ -100,7 +100,14 @@ export async function prepareSummon({ contentId, masterId = null, region = null,
   const warRegion = region ?? (game.settings.get("fgt", "region") || null);
   const master = masterId ? unitActor(masterId) : null;
 
-  const plan = plansFor(warRuleset()).servant(sheet);
+  // The SERVANT's ruleset, read off its pack -- the discriminator
+  // `rulesetOfPack` names -- and not the match's. The wizard rolls before its
+  // war exists, so `warRuleset()` read the world setting or the PREVIOUS war: a
+  // Normal war set up in an Advanced world rolled its Normal Servants on the
+  // Advanced plan, Health flat and Agility 1d2 instead of 10d20 and 1d10+10
+  // (found live, 2026-10-18). A Servant from the other ruleset's pack is still
+  // refused at commit; this only stops it being rolled on the wrong dice.
+  const plan = plansFor(rulesetOfPack(source.pack ?? "")).servant(sheet);
   const { totals, signs, rolls } = await rollSetupPlan(plan);
 
   return refresh({

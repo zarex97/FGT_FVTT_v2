@@ -50,7 +50,7 @@ Home bases are painted as Foundry Regions with grid shapes, one per faction, tag
 
 For each container, `createMasterFor` rolls the Master's setup lines (Health, Agility, Luck, Rank, Command Spells, Base Attack MAG) off the plan returned by `plansFor(ruleset).master` (`module/engine/war-setup.mjs:213-263`). A Normal Master's ZON is looked up by container class; an Advanced Master takes the template's 2 (`module/engine/war-setup.mjs:191-193`).
 
-`prepareSummon` readies a Servant, rolls setup lines (Health, Agility, Luck), and returns the plan WITHOUT writing (`module/engine/summon.mjs:88-108`). `commitSummon` creates the actor, applies setup line values (a Servant that cannot be damaged gets no Health at all, #180) and grants, and sets the Master and faction (`module/engine/summon.mjs:170-274`). Partners (linked groups marked `summonTogether`) are summoned in the same commit, cross-linking their `memberIds` (`module/engine/summon.mjs:250-271`).
+`prepareSummon` readies a Servant, rolls setup lines (Health, Agility, Luck), and returns the plan WITHOUT writing (`module/engine/summon.mjs:88-108`). **The plan is the Servant's own ruleset's**, read off its pack (`rulesetOfPack`), not the match's: the wizard rolls before its war's Combat exists, so `warRuleset()` read the world setting or the previous war, and a Normal war set up in an Advanced world rolled its Servants on the Advanced plan, Health flat and Agility 1d2 (found live 2026-10-18; `test/unit/summon-plan-ruleset.test.mjs`). A Normal Lancer rolls Max Luck as `−2 + 1d20`, which can come up −1; nothing floors it (open question). `commitSummon` creates the actor, applies setup line values (a Servant that cannot be damaged gets no Health at all, #180) and grants, and sets the Master and faction (`module/engine/summon.mjs:170-274`). Partners (linked groups marked `summonTogether`) are summoned in the same commit, cross-linking their `memberIds` (`module/engine/summon.mjs:250-271`).
 
 `commitWar` then **seats the Servants summoned with the drawn one** (`seatPartners`, §46.4-D3): `commitSummon` brings the second twin with no Master and no faction, and the wizard used to write the faction, the Contract and the token of the drawn Servant alone, so the second twin of every war-setup pair stood on no side, under no Master and off the board. The partner takes the slot's faction and `classContainer`, and a Contract to the slot's Master through `setContract`; a Servant summoned alone has no `memberIds` and seats nobody.
 
@@ -131,6 +131,12 @@ Arturia arrives with [Avalon] on an 8 of a d8.
   offers none. Recovering would mean re-running the cross-link, not re-summoning.
 
 - ~~When does `summonedAt` matter?~~ Answered by #104: it did not. Nothing read it, and it is deleted.
+
+### What the wizard shows
+
+The Factions tab names each faction's players (`playerNames`, from `userIds`), and the Confirm tab names the war type, ruleset, difficulty and Master setup mode by their labels, as the War tab does: both printed raw ids and keys before (found live 2026-10-18).
+
+Each tab scrolls on its own when its content outgrows the window (`.fgt-setup__tab` is the flex child with `overflow-y: auto`, `styles/src/_apps.scss`). The part's `scrollable: [""]` alone only names the container for ApplicationV2's scroll restore; it gives the tab no height, so the Containers and Servants tabs ran past the window's bottom and could not be scrolled (found live 2026-10-18).
 
 ### The Master Essence draft (#241)
 

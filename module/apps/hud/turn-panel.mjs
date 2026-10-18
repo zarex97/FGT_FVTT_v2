@@ -160,7 +160,13 @@ function actingFaction(combat) {
  * @returns {string}
  */
 function factionLabel(combat, factionId) {
-  return combat?.combatant?.name ?? factionId ?? game.i18n.localize("FGT.HUD.NoFaction");
+  // The slot's OWN name. This read `combat.combatant`, the combatant acting
+  // now, so the order strip named every slot after whoever's Turn it was
+  // ("Faction 2 · Faction 2 · Faction 2"). An order entry is a faction id, or
+  // a combatant id for the GM's slot; only the header asks with no id, during
+  // the GM's own Turn.
+  if (!factionId) return combat?.combatant?.name ?? game.i18n.localize("FGT.HUD.NoFaction");
+  return factionById(factionId)?.name ?? combat?.combatants?.get?.(factionId)?.name ?? factionId;
 }
 
 /**
@@ -210,7 +216,7 @@ function turnsPerRound() {
  * @param {object} combat
  * @returns {Array<{id: string, name: string, acted: boolean, active: boolean, delay: number}>}
  */
-function turnOrderRows(combat) {
+export function turnOrderRows(combat) {
   const order = combat?.system?.turnOrder ?? [];
   const taken = new Set(combat?.system?.takenThisRound ?? []);
   const delays = combat?.system?.delays ?? {};

@@ -9,7 +9,7 @@
       </legend>
       <div class="fgt-factions__players">
         <span class="fgt-factions__players-label">{{localize "FGT.Factions.Players"}}</span>
-        {{#each faction.userIds as |uid|}}<span class="fgt-setup__player">{{uid}}</span>{{/each}}
+        {{#each faction.playerNames as |name|}}<span class="fgt-setup__player">{{name}}</span>{{/each}}
         {{#unless faction.userIds.length}}
           <span class="fgt-setup__none">{{localize "FGT.Setup.NoPlayersAssigned"}}</span>
         {{/unless}}

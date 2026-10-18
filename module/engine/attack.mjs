@@ -2098,10 +2098,11 @@ async function closeRung(state, message) {
       // Somebody spent. Re-read: the interrupt may have moved the Process to a
       // different rung entirely (Ch. 33, "RESUME, possibly at a different state").
       const reread = process.deserialize(message.getFlag("fgt", "process"));
-      // Guard against re-reading BACKWARDS. The flag is only written at the end
-      // of this function, so a spurious interrupt would otherwise restore the
-      // rung we started from and lose everything since -- which is exactly the
-      // freeze this pair of comments describes.
+      // Guard against re-reading BACKWARDS. The flag is written at the end of
+      // this function, and before a held rung (`awaitInterrupt`), never after
+      // each automatic step, so a spurious interrupt would otherwise restore an
+      // earlier rung and lose everything since -- which is exactly the freeze
+      // this pair of comments describes.
       if (reread.history.length >= state.history.length) state = reread;
       continue;
     }
@@ -4628,6 +4629,18 @@ async function awaitInterrupt(message, state) {
   // for any command at all.
   const { processOffers } = await import("./command-spells.mjs");
   if (processOffers(state).length === 0) return false;
+
+  // Show the rung being held BEFORE holding it. The flag and the card are
+  // otherwise written only when `closeRung` ends, so for the whole wait the
+  // card still showed the question just answered: a player pressed Block, saw
+  // nothing happen for 45 seconds a rung, and the Command Spells this wait is
+  // FOR were never on screen (found live, 2026-10-18). A later answer to the
+  // old rung is refused as stale by `advanceAttack`, which reads this flag.
+  const shown = process.deserialize(message.getFlag("fgt", "process"));
+  if (shown.state !== state.state || (shown.history?.length ?? 0) !== (state.history?.length ?? 0)) {
+    await message.setFlag("fgt", "process", process.serialize(state));
+    await updateAttackCard(message, state);
+  }
 
   // The baseline is the FLAG's current value, not the in-memory state.
   //
