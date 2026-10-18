@@ -148,6 +148,9 @@ async function onTurnChange(combat, prior, current) {
     // testable without a compendium. It is what lets an expiring effect run
     // its own "on removal" clause -- Shock's Agility restoration.
     effectDef: (id) => EffectRegistry.get(id),
+    // The match's recorded states, which a rewind reads: the Glass Game fired
+    // at a Turn's end and found nothing to go back to (#247, live).
+    history: historyOf(combat),
     // The other half of `scheduler.pendingRolls`'s "caller rolls" contract
     // (module/engine/scheduler.mjs), which `attack.mjs` already honours for
     // `unitDefeated` -- this hook never did, for the boundary events it
@@ -448,6 +451,7 @@ async function endRoundSequence(combat, round, tick) {
     // Switches off the multi-Servant tax (Ch. 32). Read here rather than in the
     // rules layer, which has no settings.
     grandOrder: setting("grandOrder", false),
+    history: historyOf(combat),
     rolls: await gatherRolls([[board.units, "roundEnd"]]),
   };
 

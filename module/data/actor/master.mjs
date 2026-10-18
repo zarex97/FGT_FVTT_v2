@@ -4,6 +4,7 @@
  */
 
 import { unitCommon, combatantCommon } from "./_shared.mjs";
+import { penalizedBaseAttack } from "../../domain/base-attack.mjs";
 
 const fields = foundry.data.fields;
 
@@ -32,13 +33,16 @@ export class MasterData extends foundry.abstract.TypeDataModel {
     // Unfindable until now only because nothing in the Advanced corpus depends
     // on a Master's own attack being non-zero; Normal states one on every
     // Master sheet and gives each of them a Magic Crest.
-    const { turnState, roundState, baseAttack } = combatantCommon();
+    // ...and `baseAttackPenalty`, which a Master lacked: the forest's *"Base
+    // Attack (both) by 10"* was dropped on every Master it caught (#247, live).
+    const { turnState, roundState, baseAttack, baseAttackPenalty } = combatantCommon();
 
     return {
       ...unitCommon(),
       turnState,
       roundState,
       baseAttack,
+      baseAttackPenalty,
       // A–D (Ch. 06), or blank for Rankless — a real state with rules of
       // its own (Ch. 33 prices an all-Rankless table differently), not a
       // missing value.
@@ -83,5 +87,12 @@ export class MasterData extends foundry.abstract.TypeDataModel {
       // derivation carried.
       if (this.health.value === null) this.health.value = 250;
     }
+  }
+
+  /** @inheritdoc */
+  prepareDerivedData() {
+    // The stored figure less the forest's permanent loss; the source keeps the
+    // rolled number, so nothing is written away.
+    this.baseAttack = penalizedBaseAttack(this.baseAttack, this.baseAttackPenalty);
   }
 }

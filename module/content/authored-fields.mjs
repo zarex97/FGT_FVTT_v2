@@ -100,6 +100,8 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "bypassesImmunity", "bypassesResistance",
   // A current value paid once when an effect lands (#106).
   "onApply",
+  // ...or on every landing, a refresh included (#247 D3).
+  "onApplyEachLanding",
 ]);
 
 /**

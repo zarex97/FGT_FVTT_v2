@@ -494,6 +494,13 @@ export const FACETS = Object.freeze([
     english: "The attack critically hit.",
     prose: "the attack is a critical hit",
   }),
+  // Damage dealt, not only a hit: Nursery's Enigma (#247 reading 2).
+  facet({
+    id: "dealtDamage",
+    subjects: ["attack"],
+    english: "The attack dealt damage.",
+    prose: "the attack dealt damage",
+  }),
   facet({
     id: "range",
     subjects: ["attack"],

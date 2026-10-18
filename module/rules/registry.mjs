@@ -75,6 +75,8 @@ export const EffectRegistry = {
         onRemove: sys.onRemove ?? [],
         // ...and when it lands, once: Shock's "current Agility -3" (#106).
         onApply: sys.onApply ?? [],
+        // ...every time it lands, a refresh included (the Nameless Forest, #247 D3).
+        onApplyEachLanding: Boolean(sys.onApplyEachLanding),
         rules: sys.rules ?? [],
         bypassesImmunity: sys.bypassesImmunity ?? false,
         // ...and past Debuff Resist too (#98).

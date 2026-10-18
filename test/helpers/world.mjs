@@ -473,6 +473,10 @@ class FakeActor {
     const { restoreModifiable, applyStatDeltas, writeDerived } = this.world.derived;
     restoreModifiable(this.system, this._source.system);
     this.system.prepareBaseData?.();
+    // ...and the type's own derived pass, which Foundry runs before the
+    // document's (`client-document.mjs#prepareData`, step 7). Skipped here, a
+    // Master's Base Attack ignored the forest's penalty in every test (#247).
+    this.system.prepareDerivedData?.();
     this.system.ruleElements = this.ruleElements;
     const contributions = this.world.contributionsOf(this);
     writeDerived(this.system, applyStatDeltas(this.system, contributions.statDeltas));

@@ -44,18 +44,19 @@ passiveRules:
   # quotation of this same sheet. It is DEFINED as the first Turn end at which
   # an enemy stands within her 3-panel ring, derived from the clause's own next
   # sentence: the RESET is keyed on that predicate, so the START must be too.
+  #
+  # Its own Script, with the clock: `nurseryRhyme.rewind` ran at every Turn end
+  # she heard, and the params that carried the clock and the ring were read by
+  # nothing (#247 D1). Heard at EVERY Turn's end, any faction's -- 3◈ is nine
+  # Turns of the match -- and at the Round's end, where an empty ring resets it.
+  # After it fires it starts again (#247 reading 7). She is not among those it
+  # rewinds: effect 2 adds "(includes herself)" because effect 1 does not
+  # (#247 reading 8).
   - key: Script
-    script: nurseryRhyme.rewind
-    event: turnEnd
+    script: nurseryRhyme.glassGame
+    event: [anyTurnEnd, roundEnd]
     params:
       rewind: "3◈"
-      # "all Units within a 3 panel area" -- she is not excluded by effect 1's
-      # text, but she is not named either; effect 2 adds "(includes herself)"
-      # precisely because effect 1 does not.
-      includesSelf: false
-      requiresEnemyInRing: true
-      afterTicks: "3◈"
-      resetWhenRingEmpty: true
 
   # EFFECT 2. `finalDefeat`, NOT `unitDefeated` -- that event fires at the TOP of
   # `resolveDefeat`, before the revival query, and its own comment says so:

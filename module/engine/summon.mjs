@@ -21,6 +21,7 @@ import {
 } from "../rules/setup-rolls.mjs";
 import { regionsAdjacent } from "../rules/environment.mjs";
 import { catalogueEntryOf } from "../rules/war-setup.mjs";
+import { unitActor } from "./board.mjs";
 
 /**
  * Roll one line of a plan.
@@ -97,7 +98,7 @@ export async function prepareSummon({ contentId, masterId = null, region = null,
   // array, so the conversion belongs here rather than in each of them.
   const sheet = sheetSnapshot(source);
   const warRegion = region ?? (game.settings.get("fgt", "region") || null);
-  const master = masterId ? game.actors.get(masterId) : null;
+  const master = masterId ? unitActor(masterId) : null;
 
   const plan = plansFor(warRuleset()).servant(sheet);
   const { totals, signs, rolls } = await rollSetupPlan(plan);
@@ -150,7 +151,7 @@ export async function rerollSummonLine(prepared, lineId) {
 export function reviseSummon(prepared, { masterId, warRegion, masterGrants }) {
   const master = masterId === undefined
     ? prepared.master
-    : (masterId ? game.actors.get(masterId) : null);
+    : (masterId ? unitActor(masterId) : null);
 
   const next = {
     ...prepared,
@@ -382,7 +383,7 @@ export async function ensureSetupRolls() {
  * @returns {Promise<{ok: boolean, reason?: string, lines?: object[]}>}
  */
 export async function rollMasterSetup({ masterId, confirm = true }) {
-  const actor = game.actors.get(masterId);
+  const actor = unitActor(masterId);
   if (!actor) return { ok: false, reason: "notFound" };
 
   // Ch. 13's three modes. The setting existed from the day settings were

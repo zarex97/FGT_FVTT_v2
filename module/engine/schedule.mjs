@@ -31,7 +31,7 @@
  * still be found to be cancelled.
  */
 
-import { currentBoard, currentMoment, unitOf } from "./board.mjs";
+import { currentBoard, currentMoment, unitOf, unitActor } from "./board.mjs";
 import { parseTick, resolveTicks, expiryReached } from "../domain/tick.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
@@ -134,7 +134,7 @@ export async function shiftStrikes(ownerId, delta, source = null) {
   // Said where the table reads it: a strike a Turn closer is a change every
   // player must plan around, and the clock is on no sheet (#232, found live).
   const tick = currentMoment().tick ?? 0;
-  const owner = game.actors.get(ownerId);
+  const owner = unitActor(ownerId);
   for (const s of next.filter((x) => x.ownerId === ownerId)) {
     await ChatMessage.create({
       content: `<p>${game.i18n.format("FGT.Schedule.Shifted", {
@@ -164,7 +164,7 @@ export async function runScheduledStrikes(tick) {
   const due = [];
   const keep = [];
   for (const s of strikes) {
-    const owner = game.actors.get(s.ownerId);
+    const owner = unitActor(s.ownerId);
     if (!owner || owner.system?.defeated) due.push({ s, cancel: true });
     else if (expiryReached(s.fireAt, tick)) due.push({ s, cancel: false });
     else keep.push(s);
@@ -178,7 +178,7 @@ export async function runScheduledStrikes(tick) {
       out.cancelled.push(s.id);
       await ChatMessage.create({
         content: `<p>${game.i18n.format("FGT.Schedule.Cancelled", {
-          name: s.name, unit: shownName(game.actors.get(s.ownerId)),
+          name: s.name, unit: shownName(unitActor(s.ownerId)),
         })}</p>`,
       });
       continue;
@@ -202,7 +202,7 @@ export async function runScheduledStrikes(tick) {
  * @returns {Promise<object|null>}
  */
 async function fireStrike(strike) {
-  const attacker = game.actors.get(strike.ownerId);
+  const attacker = unitActor(strike.ownerId);
   const ability = attacker?.items?.get(strike.abilityId) ?? null;
   if (!attacker || !ability) return null;
   const board = currentBoard();
@@ -243,7 +243,7 @@ async function fireStrike(strike) {
  */
 async function removeMark(strike) {
   if (!strike.markId) return;
-  const mark = game.actors.get(strike.markId);
+  const mark = unitActor(strike.markId);
   if (!mark) return;
   const scene = canvas?.scene ?? null;
   const tokens = scene ? scene.tokens.filter((t) => t.actorId === mark.id).map((t) => t.id) : [];

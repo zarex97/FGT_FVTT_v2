@@ -22,7 +22,7 @@ import { displaceToken } from "./io.mjs";
 import { hasGranted, GRANTS } from "../rules/granted.mjs";
 import { turnPartnersOf } from "../rules/platforms.mjs";
 import { classifyAbility } from "../rules/ability-use.mjs";
-import { currentBoard } from "./board.mjs";
+import { currentBoard, unitActor } from "./board.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
@@ -45,7 +45,7 @@ export async function performRidingAttack({ unitId, destination, abilityId = nul
     return FGTSocket.request("ridingAttack", { unitId, destination, abilityId });
   }
 
-  const actor = game.actors.get(unitId);
+  const actor = unitActor(unitId);
   if (!actor) return { ok: false, reason: "notFound" };
 
   const board = currentBoard();

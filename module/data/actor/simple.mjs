@@ -6,6 +6,7 @@
  */
 
 import { unitCommon, combatantCommon, normalAttackField, turnStateField } from "./_shared.mjs";
+import { penalizedBaseAttack } from "../../domain/base-attack.mjs";
 
 const fields = foundry.data.fields;
 
@@ -102,6 +103,13 @@ export class SummonData extends foundry.abstract.TypeDataModel {
       // destroyed. See `data/actor/servant.mjs` for the defect this closes.
       if (this.health.value === null) this.health.value = this.baseHealth;
     }
+  }
+
+  /** @inheritdoc */
+  prepareDerivedData() {
+    // A summon's statblock Base Attack less the forest's permanent loss: the
+    // penalty was stored on a Trump Soldier and read by nothing (#247).
+    this.baseAttack = penalizedBaseAttack(this.baseAttack, this.baseAttackPenalty);
   }
 }
 

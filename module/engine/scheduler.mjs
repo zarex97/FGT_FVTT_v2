@@ -480,6 +480,9 @@ export function fireEvent(event, units, ctx) {
 
       if (handler.script) {
         out.push(...runScript(handler.script, {
+          // Which boundary this is: the Glass Game's clock advances at a Turn's
+          // end and resets at a Round's (#247 D1).
+          event,
           self: u, board: ctx.board, history: ctx.history ?? {},
           tick: ctx.tick ?? 0, turnsPerRound: ctx.turnsPerRound ?? 3,
           params: handler.params ?? {},
@@ -1574,6 +1577,9 @@ function targetsOf(a, u, c) {
       const relations = a.relations ?? ["enemy"];
       const near = (c.board?.units ?? [])
         .filter((other) => other.id !== u.id)
+        // A body is no Unit to reach: it stands one Turn (`clearBodies`), and
+        // the forest rolled on Heracles' at a Round's end (#247, live).
+        .filter((other) => !other.defeated)
         .filter((other) => chebyshevish(other.panel, u.panel) <= radius)
         .filter((other) => matchesRelation(other, u, relations))
         .map((other) => other.id);
@@ -1841,7 +1847,11 @@ function glassGameOnDefeat(unit, ctx) {
   return [
     ...intents,
     I.markGlassGameSpent(unit.id),
-    I.log({ kind: "glassGameRewind", unitId: unit.id, source: handler.source }),
+    I.log({
+      kind: "glassGameRewind", unitId: unit.id, source: handler.source, effect: 2,
+      turns: resolveTicks(parseTick(handler.params?.rewind ?? "6◈"), ctx),
+      rewound: intents.filter((i) => i.t === "rewind").map((i) => i.unitId),
+    }),
   ];
 }
 

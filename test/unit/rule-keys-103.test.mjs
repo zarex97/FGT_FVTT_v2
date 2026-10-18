@@ -43,9 +43,10 @@ const hit = (modifiers, { kind = "normal" } = {}) => computeDamage({
 const flatOf = (modifiers, opts) => hit(modifiers, opts).total - hit([], opts).total;
 
 describe("FlatDamage", () => {
-  it("carries npValue: Vorpal Blade's +50 adds nothing to a Noble Phantasm", () => {
-    const blade = content("abilities/vorpal-blade.yml");
-    const [bonus] = contributions({ name: blade.name, rules: [blade.rules[0]] }).modifiers;
+  it("carries npValue: a +50 that adds nothing to a Noble Phantasm", () => {
+    // The Vorpal Blade's was the example until #247 moved it to its Base Attack
+    // (`BaseAttackModifier`, `exceptNP`); the key's own behaviour stands.
+    const [bonus] = contributions({ name: "Probe", rules: [{ key: "FlatDamage", modifierKey: "flatDamage", value: 50, npValue: 0 }] }).modifiers;
     expect(bonus).toMatchObject({ value: 50, npValue: 0 });
     expect(flatOf([{ ...bonus, predicate: null }], { kind: "np" })).toBe(0);
   });

@@ -34,7 +34,9 @@ export function injuryCheck({
 }) {
   // Survival first: the rule is written for a unit that *survives* the attack,
   // and a defeated one has no Agility left to lose.
-  if ((healthAfter ?? 0) <= 0) return { roll: false, reason: "defeated" };
+  // ...and a Unit defeated whatever its Health reads: the Glass Game's effect 2
+  // writes hers back and *"she stays defeated"* (#247, live).
+  if ((healthAfter ?? 0) <= 0 || defender?.defeated) return { roll: false, reason: "defeated" };
   if ((damage ?? 0) <= 0) return { roll: false, reason: "noDamage" };
 
   // The threshold is the pipeline's, not a fresh comparison against 100. Def

@@ -52,6 +52,7 @@ import { orderElements } from "./ordering.mjs";
  * @property {object|null} magicResistance
  * @property {object[]} magicResistanceVariants  thresholds that replace it against a named kind of attack
  * @property {string|null} variantOverride
+ * @property {"str"|"mag"|null} normalAttackComponent an Item's override of the Unit's own (#247)
  * @property {string|null} revealsEffect
  * @property {object[]} vulnerabilityAmplifiers
  * @property {object[]} periodicOverrides
@@ -72,7 +73,7 @@ export function empty() {
   return {
     modifiers: [], statDeltas: [], checkModifiers: [], immunities: [],
     suppressions: [], grantedAbilities: [], autoSucceeds: [], eventHandlers: [], revivals: [],
-    attributes: [], magicResistance: null, magicResistanceVariants: [], variantOverride: null, revealsEffect: null, damageNegation: [], zonBonuses: [], npGateShifts: [],
+    attributes: [], magicResistance: null, magicResistanceVariants: [], variantOverride: null, normalAttackComponent: null, revealsEffect: null, damageNegation: [], zonBonuses: [], npGateShifts: [],
     vulnerabilityAmplifiers: [], periodicOverrides: [],
     abilityRankShifts: [],
     auras: [], applicationChances: [], compulsions: [], preemptions: [], damageFloors: [],
@@ -2308,8 +2309,23 @@ export const EXECUTORS = Object.freeze({
       // increased by 50"* (#230).
       add: typeof el.add === "number" ? el.add : 0,
       components: el.components ?? ["str", "mag"],
+      // Not for a Noble Phantasm: the Vorpal Blade's *"the above Stat boosts do
+      // not affect NP & Attacks Categorized as NP"* (#247 reading 12). The
+      // snapshot keeps what an NP must give back (`npBaseAttackOffset`).
+      exceptNP: Boolean(el.exceptNP),
       source,
     });
+  },
+
+  /**
+   * Which Base Attack a Unit's Normal Attacks use, whatever its own sheet says.
+   *
+   * The Vorpal Blade's *"Normal Attacks with this Item Equipped use Base Attack
+   * (STR)"* (#247 D4). Part 2 planned it and nothing carried it, so a Unit whose
+   * Normal Attacks use MAG kept MAG with the Blade in hand.
+   */
+  NormalAttackComponent(el, { out }) {
+    if (el.component === "str" || el.component === "mag") out.normalAttackComponent = el.component;
   },
 
   /**

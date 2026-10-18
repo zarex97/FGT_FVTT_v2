@@ -259,13 +259,21 @@ describe("E3 — an Item lying on a panel", () => {
     // the pickup is one a future trade or reward would not inherit.
     const b = board();
     b.units[2].panel = { i: 3, j: 3 };
-    expect(itemPickupIntents(b.units[2], b)).toEqual([]);
+    // Nothing granted and the cache kept; the one entry is the refusal's line
+    // a player reads (#247, live: it said nothing).
+    const out = itemPickupIntents(b.units[2], b);
+    expect(out.filter((d) => d.kind !== "log")).toEqual([]);
+    expect(out.map((d) => [d.event, d.reason])).toEqual([["itemRefused", "barred"]]);
   });
 
   it("REFUSES her Master too, and still leaves it there", () => {
     const b = board();
     b.units[3].panel = { i: 3, j: 3 };
-    expect(itemPickupIntents(b.units[3], b)).toEqual([]);
+    // Nothing granted and the cache kept; the one entry is the refusal's line
+    // a player reads (#247, live: it said nothing).
+    const out = itemPickupIntents(b.units[3], b);
+    expect(out.filter((d) => d.kind !== "log")).toEqual([]);
+    expect(out.map((d) => [d.event, d.reason])).toEqual([["itemRefused", "barred"]]);
   });
 
   it("ignores a structure that carries nothing", () => {
@@ -516,12 +524,13 @@ describe("[Vorpal Blade] (B1–B8, R4, R5)", () => {
     expect(b().transferable).toBe(false);
   });
 
-  it("B1 — +50 to a STR Normal Attack, and nothing to a Noble Phantasm", () => {
-    // A flat addition rather than a change to the printed Base Attack:
-    // `BaseAttackModifier` is a FACTOR, and "increase by 50" is not one.
-    const r = rule((x) => x.key === "FlatDamage");
-    expect(r).toMatchObject({ value: 50, npValue: 0 });
-    expect(r.predicate).toEqual(expect.arrayContaining(["attack:kind:normal", "attack:component:str"]));
+  it("B1 — +50 to BA(STR) itself, and nothing to a Noble Phantasm", () => {
+    // The Base Attack itself, for every Attack but an NP's (#247 reading 12): it
+    // was a flat +50 on STR Normal Attacks only. `BaseAttackModifier` gained an
+    // `add` for Avalon (#230) and `exceptNP` for this.
+    const r = rule((x) => x.key === "BaseAttackModifier");
+    expect(r).toMatchObject({ add: 50, components: ["str"], exceptNP: true });
+    expect(rule((x) => x.key === "FlatDamage")).toBeUndefined();
   });
 
   it("B2 — Range reduced TO 1, absolutely", () => {
@@ -564,20 +573,23 @@ describe("[Vorpal Blade] (B1–B8, R4, R5)", () => {
     expect(b().barredFrom).toMatchObject({ ofUnit: "nursery-rhyme", roles: ["self", "master"] });
   });
 
-  it("R5/B7 — one attack: the lifesteal goes, and the Blade breaks", () => {
-    const r = rule((x) => x.event === "damageStepEnd");
-    expect(r.predicate).toContain("target:contentId:jabberwock");
-    expect(r.then).toEqual(expect.arrayContaining([
-      expect.objectContaining({ key: "SuppressRule", subject: "victim", scope: "jabberwockLifesteal" }),
-      expect.objectContaining({ key: "ItemDelta", item: "vorpal-blade", delta: -1 }),
-    ]));
+  it("R5/B7 — one attack: the lifesteal goes before the blow lands, and the Blade breaks after", () => {
+    // Ruled 2026-10-17 (#247 §46.4-QV): the blow that removes the lifesteal
+    // heals nothing. Live, the removal at the Damage Step's end let that blow
+    // heal it 678 ("Health 95 → 773"). So the removal is at its start, before
+    // `damageTaken`; the Blade breaks at its end, after the 3× it gives.
+    const start = rule((x) => x.event === "damageStepStart");
+    const end = rule((x) => x.event === "damageStepEnd");
+    for (const r of [start, end]) expect(r.predicate).toEqual(expect.arrayContaining(["target:contentId:jabberwock", "attack:kind:normal"]));
+    expect(start.then).toEqual([expect.objectContaining({ key: "SuppressRule", subject: "victim", scope: "jabberwockLifesteal" })]);
+    expect(end.then).toEqual([expect.objectContaining({ key: "ItemDelta", item: "vorpal-blade", delta: -1 })]);
   });
 
   it("R5 — and the slug it suppresses is the one the monster actually carries", () => {
     // Without this pairing the removal aims at nothing and the monster keeps
     // healing -- silently, which is the whole shape of defect this part found
     // four of.
-    const suppressed = rule((x) => x.event === "damageStepEnd")
+    const suppressed = rule((x) => x.event === "damageStepStart")
       .then.find((a) => a.key === "SuppressRule").scope;
     expect(summon("jabberwock").passiveRules.some((r) => r.slug === suppressed)).toBe(true);
   });

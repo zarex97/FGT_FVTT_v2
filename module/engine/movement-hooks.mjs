@@ -22,7 +22,7 @@ import {
 import { carryMasterAlong } from "./passenger-seat.mjs";
 import { preventedBy } from "../rules/budget.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
-import { unitSnapshot, unitOf, currentBoard } from "./board.mjs";
+import { unitSnapshot, unitOf, currentBoard, unitActor } from "./board.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
@@ -498,7 +498,7 @@ async function pickUpItemHere(unitId, combat, stopped = null) {
   );
 
   for (const d of descriptors.filter((d) => d.kind === "dismiss")) {
-    const cache = game.actors.get(d.unitId);
+    const cache = unitActor(d.unitId);
     if (!cache) continue;
     for (const token of cache.getActiveTokens?.() ?? []) await token.document.delete();
     await cache.delete();

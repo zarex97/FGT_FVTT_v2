@@ -22,6 +22,7 @@
  */
 
 import { displaceToken } from "./io.mjs";
+import { unitActor } from "./board.mjs";
 
 /** The elevation band each platform level occupies, above the ground. */
 const LEVEL_HEIGHT = 10;
@@ -154,7 +155,7 @@ export async function sweepOrphanLevels(scene = canvas.scene) {
   const orphans = scene.levels.contents.filter((l) => {
     const platformId = l.flags?.fgt?.platformId ?? null;
     if (!platformId) return false; // not ours; the ground and any GM level
-    return !game.actors.get(platformId); // the platform is gone
+    return !unitActor(platformId); // the platform is gone
   });
   if (orphans.length === 0) return [];
 
@@ -367,7 +368,7 @@ async function removePlatform(platform, scene = canvas.scene) {
  * @returns {Promise<void>}
  */
 export async function reverseOwnerEffects(platform) {
-  const owner = platform?.system?.ownerId ? game.actors.get(platform.system.ownerId) : null;
+  const owner = platform?.system?.ownerId ? unitActor(platform.system.ownerId) : null;
   if (!owner) return;
 
   const granted = owner.effects.filter((e) => e.system?.sourceUnitId === platform.id);

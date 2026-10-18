@@ -9,6 +9,7 @@
  */
 
 import { effectLine } from "../rules/card-visibility.mjs";
+import { unitActor } from "./board.mjs";
 
 /** The line for each way a clock can turn. */
 const COOLDOWN_KEYS = Object.freeze({
@@ -150,7 +151,7 @@ export function turnEndCard(intents, nameOfUnit, t, nameOfAbility = (_u, a) => a
  * @returns {number|null}
  */
 export function remainingOnActor(unitId, abilityId) {
-  const n = game.actors?.get(unitId)?.items?.get(abilityId)?.system?.cooldown?.remaining;
+  const n = unitActor(unitId)?.items?.get(abilityId)?.system?.cooldown?.remaining;
   return Number.isFinite(n) ? n : null;
 }
 
@@ -161,7 +162,7 @@ export function remainingOnActor(unitId, abilityId) {
  * @returns {{value: number, max: number}|null}
  */
 export function healthOnActor(unitId) {
-  const h = game.actors?.get(unitId)?.system?.health;
+  const h = unitActor(unitId)?.system?.health;
   return h ? { value: Number(h.value), max: Number(h.max) } : null;
 }
 
@@ -174,11 +175,11 @@ export async function postTurnEndReport(intents, before = null, health = null, t
   const { currentBoard } = await import("./board.mjs");
   const board = currentBoard();
   const nameOfUnit = (id) => {
-    const actor = game.actors.get(id);
+    const actor = unitActor(id);
     return escape(actor ? shownName(actor, board) : id);
   };
   const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
-  const nameOfAbility = (unitId, abilityId) => escape(game.actors.get(unitId)?.items?.find((i) =>
+  const nameOfAbility = (unitId, abilityId) => escape(unitActor(unitId)?.items?.find((i) =>
     i.system?.slug === abilityId || i.system?.contentId === abilityId || i.id === abilityId)?.name ?? abilityId);
   // A handler names its source by the effect's id ("regen"); the card says the
   // effect's name, as the rest of the game does ("Regen", #234).
@@ -191,7 +192,7 @@ export async function postTurnEndReport(intents, before = null, health = null, t
   const fell = [...new Set((intents ?? [])
     .filter((i) => i?.t === "statDelta" && i.stat === "health.value" && i.delta < 0 && i.defeatsAtZero)
     .map((i) => i.unitId))]
-    .filter((id) => game.actors.get(id)?.system?.defeated);
+    .filter((id) => unitActor(id)?.system?.defeated);
   const content = turnEndCard(named, nameOfUnit, t, nameOfAbility, before, health, titleKey, escaped, fell);
   if (content) await ChatMessage.create({ content, flags: { fgt: { turnReport: true } } });
 }

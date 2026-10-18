@@ -327,7 +327,8 @@ describe("E4 — the Script registry the element has always promised", () => {
     // Ch. 45 budgets four across ~130 abilities and the tally has stood
     // at zero. This is the first. If this list grows past what Ch. 45 budgets,
     // that is a design conversation and not a merge.
-    expect(Object.keys(SCRIPTS)).toEqual(["nurseryRhyme.rewind"]);
+    // Two since #247 D1: effect 1 needs its clock, which the bare rewind never ran.
+    expect(Object.keys(SCRIPTS)).toEqual(["nurseryRhyme.rewind", "nurseryRhyme.glassGame"]);
   });
 
   it("the Script element emits `events`, plural, which is what listensFor reads", () => {
@@ -433,7 +434,7 @@ describe("G4/G9 — who the rewind reaches", () => {
 describe("The Queen's Glass Game (G1–G10)", () => {
   const a = () => parse(readFileSync("packs/_source/abilities/nursery-queens-glass-game.yml", "utf8"));
   const servant = (id) => parse(readFileSync(`packs/_source/servants/${id}.yml`, "utf8"));
-  const one = () => a().passiveRules.find((r) => r.event === "turnEnd");
+  const one = () => a().passiveRules.find((r) => r.script === "nurseryRhyme.glassGame");
   const two = () => a().passiveRules.find((r) => r.event === "finalDefeat");
 
   it("G1 — Rank C, NP, Anti-Self/Anti-World, PASSIVE", () => {
@@ -448,10 +449,12 @@ describe("The Queen's Glass Game (G1–G10)", () => {
     expect(a().requiresHistory).toBe(true);
   });
 
-  it("both effects are Scripts, and both name the same one", () => {
+  it("both effects are Scripts: effect 1 its clocked one, effect 2 the bare rewind", () => {
+    // Effect 1's handler ran the bare rewind at every Turn end, and its clock
+    // and ring params were read by nothing (#247 D1).
     expect(one().key).toBe("Script");
     expect(two().key).toBe("Script");
-    expect(one().script).toBe("nurseryRhyme.rewind");
+    expect(one().script).toBe("nurseryRhyme.glassGame");
     expect(two().script).toBe("nurseryRhyme.rewind");
   });
 
@@ -460,12 +463,14 @@ describe("The Queen's Glass Game (G1–G10)", () => {
     expect(Object.keys(SCRIPTS)).toContain(one().script);
   });
 
-  it("G2 — effect 1 reaches back 3◈ and fires at the Turn end", () => {
-    expect(one().params).toMatchObject({ rewind: "3◈", afterTicks: "3◈" });
+  it("G2 — effect 1 reaches back 3◈, heard at every Turn's end and every Round's", () => {
+    // Every Turn of the match, not three of hers: 3◈ is nine Turns (#247 D1).
+    expect(one().params).toMatchObject({ rewind: "3◈" });
+    expect(one().event).toEqual(["anyTurnEnd", "roundEnd"]);
   });
 
-  it("G7/R4 — and resets when the ring empties", () => {
-    expect(one().params.resetWhenRingEmpty).toBe(true);
+  it("G7/R4 — and resets when the ring empties (the clock, `nursery-247-rulings.test.mjs`)", () => {
+    expect(glassGameClock({ ticks: 5 }, [], { roundEnd: true }).ticks).toBe(0);
   });
 
   it("G8/G9 — effect 2 reaches back 6◈ and includes her", () => {
@@ -487,7 +492,9 @@ describe("The Queen's Glass Game (G1–G10)", () => {
 
   it("effect 1 does NOT include her, and effect 2 does", () => {
     // Effect 2 adds "(includes herself)" precisely because effect 1 does not.
-    expect(one().params.includesSelf).toBe(false);
+    // Effect 1's Script leaves her out itself (`glassGameScript`); the
+    // behaviour is held in `nursery-247-rulings.test.mjs` (#247 reading 8).
+    expect(one().params.includesSelf).toBeUndefined();
     expect(two().params.includesSelf).toBe(true);
   });
 

@@ -168,6 +168,11 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     // A flat addition after the factor (Avalon's +50, #230).
     { key: "add", type: "number" },
     { key: "components", type: "tokenList" },
+    // Not for a Noble Phantasm (the Vorpal Blade's +50, #247).
+    { key: "exceptNP", type: "checkbox" },
+  ]),
+  entry("NormalAttackComponent", "Which Base Attack the Unit's Normal Attacks use, whatever its own sheet says.", [
+    { key: "component", type: "select", choices: ["str", "mag"] },
   ]),
   entry("AttackProperty", "A property of the attack, granted by a buff on the attacker.", [
     { key: "property", type: "text" },

@@ -23,7 +23,7 @@ import { lookup } from "../domain/tables.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { applyWorldIntents } from "./applier.mjs";
-import { currentBoard, unitOf } from "./board.mjs";
+import { currentBoard, unitOf, unitActor } from "./board.mjs";
 import * as I from "./intents.mjs";
 import { publicSpeakerFor } from "./public-identity.mjs";
 import { publicIdentityOf } from "./public-identity.mjs";
@@ -39,7 +39,7 @@ import { publicIdentityOf } from "./public-identity.mjs";
  * @returns {Promise<boolean>} whether anything was actually switched off
  */
 export async function deactivateConcealment(unitId, reason) {
-  const actor = game.actors.get(unitId);
+  const actor = unitActor(unitId);
   if (!actor) return false;
 
   const instance = actor.effects.find((e) => e.system?.defId === CONCEALMENT && !e.disabled);
@@ -80,7 +80,7 @@ const pending = new Map();
  * @returns {Promise<void>}
  */
 export async function onConcealmentRemoved(unitId, reason = DEACTIVATION_REASONS.expired) {
-  const actor = game.actors.get(unitId);
+  const actor = unitActor(unitId);
   if (!actor) return;
 
   const skill = concealmentSkill(actor);
@@ -197,7 +197,7 @@ export async function discloseSecretPoison(inflicterId) {
   // Each card before its hit, so a defeat reads after the reason for it.
   for (const { unitId, total } of disclosed) {
     await announce(inflicterId, unitId, total);
-    const victim = game.actors.get(unitId);
+    const victim = unitActor(unitId);
     if (!victim || victim.system?.defeated) continue;
     if (total > 0) {
       await applyWorldIntents([I.damage(unitId, total, null, {
@@ -223,8 +223,8 @@ export async function discloseSecretPoison(inflicterId) {
  * @returns {Promise<void>}
  */
 async function announce(inflicterId, unitId, total) {
-  const inflicter = game.actors.get(inflicterId);
-  const victim = game.actors.get(unitId);
+  const inflicter = unitActor(inflicterId);
+  const victim = unitActor(unitId);
   const name = victim ? publicIdentityOf(victim, currentBoard()).name : unitId;
   const source = inflicter ? publicIdentityOf(inflicter, currentBoard()).name : "a concealed Unit";
   const t = (key, data) => game.i18n.format(`FGT.SecretPoison.${key}`, data);
@@ -300,7 +300,7 @@ function cooldownTicks(skill) {
 export async function runDiscoverChecks(unitId) {
   if (!game.user?.isGM) return { attempts: 0, discoveredBy: null };
 
-  const actor = game.actors.get(unitId);
+  const actor = unitActor(unitId);
   const board = currentBoard();
   const unit = unitOf(actor, board);
 
@@ -402,6 +402,6 @@ async function saveBudget(actor, budget) {
  * @returns {string|null}
  */
 function publicNameFor(unitId) {
-  const actor = game.actors.get(unitId);
+  const actor = unitActor(unitId);
   return actor ? publicIdentityOf(actor, currentBoard()).name : null;
 }

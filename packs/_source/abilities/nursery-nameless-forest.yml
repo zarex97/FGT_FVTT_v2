@@ -37,60 +37,15 @@ passiveRules:
     # whose actions reach somebody else.
     predicate: [{ not: "self:effect:npSeal" }]
     then:
-      # The marker FIRST, so the ladder and the death roll are in place before
-      # the token that makes them matter. Reversed, a Unit's first token would
-      # sit on a Unit with no way out and no die.
+      # The marker, and with it everything a landing costs: its `onApply` pays
+      # the Token and the four permanent losses each time it lands, a Round's
+      # refresh included. ONE landing per Unit, so the one chance the escape
+      # resistance lowers gates the Token and the losses together. They were six
+      # actions dispatched one by one, and a Unit that resisted the marker still
+      # gained the Token and lost the Health -- with no escape and no die (#247 D3).
       - key: ApplyEffect
         target: nearby
         radius: 2
         relations: [enemy]
         effect: { id: namelessForest }
         duration: permanent
-
-      # THE TOKEN, and the three permanent reductions, as ONE action list.
-      #
-      # Not a `MaxDelta` scaled by the held count: "(Health and Luck that are
-      # lost from the effects of this NP are not restored)". A contribution
-      # would spring back the instant the tokens left, which is precisely what
-      # that parenthesis forbids -- and it would look correct.
-      - key: ResourceDelta
-        target: nearby
-        radius: 2
-        relations: [enemy]
-        resource: namelessForestTokens
-        delta: 1
-
-      # `alsoCurrent` clamps the current value to the new ceiling rather than
-      # moving it by the same delta, so a Unit at full Health does not sit above
-      # its own maximum and a wounded one is not healed on the way down.
-      - key: StatDelta
-        target: nearby
-        radius: 2
-        relations: [enemy]
-        stat: "health.max"
-        delta: -25
-        alsoCurrent: true
-
-      # Base Attack is DERIVED on every prepare, so it cannot be written to. The
-      # penalty is what `domain/base-attack.mjs` subtracts, and it is the only
-      # shape that is both permanent and stable under recomputation.
-      - key: StatDelta
-        target: nearby
-        radius: 2
-        relations: [enemy]
-        stat: "baseAttackPenalty.str"
-        delta: 10
-      - key: StatDelta
-        target: nearby
-        radius: 2
-        relations: [enemy]
-        stat: "baseAttackPenalty.mag"
-        delta: 10
-
-      - key: StatDelta
-        target: nearby
-        radius: 2
-        relations: [enemy]
-        stat: "luck.max"
-        delta: -1
-        alsoCurrent: true

@@ -65,6 +65,8 @@ The rule lives in `domain/` rather than here for two reasons. It is not a projec
 
 The schema in `data/actor/_shared.mjs` and the spec in `domain/stamped-record.mjs` are two spellings of one field list, held together by a drift test in `test/unit/master-data.test.mjs` rather than generated one from the other. [ADR 0003](adr/0003-the-record-schema-is-guarded-not-generated.md) records why, and names the condition that would flip it.
 
+**The projection carries what its writers' readers need** (#247): `expiresAt`, so a summon's stay is dismissed and Alice Eater can extend it; `maxLuck` beside `maxHealth` and `maxAgility`, so a recorded pool keeps its maximum (Ch. 42); and `storedParameters`, the sheet's letters, for the one reader that writes Parameters back.
+
 ## Invariants & edge cases
 
 1. **Numeric fields extract `.value` in UnitSnapshot.** `health`, `agility`, `luck` are stored as `{value, max}` on actors but extracted as plain numbers (module/rules/snapshot.mjs:181, 183-184). The separate `maxHealth`, `maxLuck` fields carry the maximum.

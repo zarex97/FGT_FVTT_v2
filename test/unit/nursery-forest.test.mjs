@@ -298,22 +298,25 @@ describe("the Nameless Forest marker (F8–F14)", () => {
     expect(f().unremovable).toBe(true);
   });
 
-  it("F10 — the MAG ladder, read off the BEARER's own parameter", () => {
-    const mag = f().rules.find((r) => r.table === "namelessForestEscape");
-    expect(mag).toMatchObject({ key: "CheckModifier", check: "luck", rankFrom: "@self.parameters.mag" });
+  // The ladder is the ESCAPE's, read by `escapeModifiers` alone (#247, live):
+  // the marker also carried it as a `check: luck` CheckModifier, which counted
+  // it twice on the escape -- "(MAG A −2, namelessForest −2)" -- and eased
+  // every other Luck Check a caught Unit made.
+  const ladder = (unit) => escapeModifiers(unit, lookup, (g) => Rank.parseOrNull(g));
+
+  it("F10 — the MAG ladder, read off the BEARER's own parameter, on the escape only", () => {
+    expect(ladder({ parameters: { mag: "A" } })).toEqual([{ source: "MAG A", value: -2 }]);
+    expect(f().rules.filter((r) => r.key === "CheckModifier")).toEqual([]);
   });
 
   it("F11/R4 — and the Home Base term, summed with it", () => {
-    const home = f().rules.find((r) => r.key === "CheckModifier" && r.predicate);
-    expect(home).toMatchObject({ check: "luck", value: -3 });
-    expect(home.predicate).toContain("self:inHomeBase");
+    expect(ladder({ parameters: { mag: "EX" }, inHomeBase: true }).map((m) => m.value)).toEqual([-3, -3]);
   });
 
   it("F11/R3 — both terms are NEGATIVE, so both help", () => {
     // The coherence check: the sheet separately refuses to delete a Unit at
     // home, so safety and magical power point the same way.
-    const home = f().rules.find((r) => r.key === "CheckModifier" && r.predicate);
-    expect(home.value).toBeLessThan(0);
+    expect(ladder({ parameters: {}, inHomeBase: true })[0].value).toBeLessThan(0);
     expect(lookup("namelessForestEscape", Rank.parse("EX"))).toBeLessThan(0);
   });
 
@@ -372,6 +375,10 @@ describe("R7 — the resistance an escape leaves behind", () => {
 describe("Nursery Rhyme: Nameless Forest (F1–F7)", () => {
   const a = () => ability("nursery-nameless-forest");
   const grant = () => a().passiveRules.find((r) => r.event === "roundEnd");
+  // What a landing costs lives on the MARKER since #247 D3: its `onApply`, paid
+  // on every landing, so the one chance the escape resistance lowers gates the
+  // Token and the losses together. The grant is the marker alone.
+  const landing = () => effect("nameless-forest").onApply;
 
   it("F1 — Rank C, NP, Anti-Unit, and PASSIVE", () => {
     expect(a()).toMatchObject({ rank: "C", isNP: true, isPassive: true });
@@ -405,35 +412,37 @@ describe("Nursery Rhyme: Nameless Forest (F1–F7)", () => {
 
   it("F3 — the marker lands BEFORE the token that makes it matter", () => {
     // Reversed, a Unit's first token would sit on a Unit with no ladder and no
-    // die.
-    const kinds = grant().then.map((x) => x.key);
-    expect(kinds.indexOf("ApplyEffect")).toBeLessThan(kinds.indexOf("ResourceDelta"));
+    // die. The Token is the marker's own landing now (#247 D3), so it cannot
+    // come first.
+    expect(grant().then.map((x) => x.key)).toEqual(["ApplyEffect"]);
+    expect(effect("nameless-forest").onApplyEachLanding).toBe(true);
+    expect(landing().find((x) => x.key === "ResourceDelta")).toMatchObject({ resource: "resources.namelessForestTokens.value", delta: 1 });
   });
 
   it("F5/R1 — Max Health −25 per token, and never the struck-through 50", () => {
-    const hp = grant().then.find((x) => x.stat === "health.max");
+    const hp = landing().find((x) => x.stat === "health.max");
     expect(hp).toMatchObject({ delta: -25, alsoCurrent: true });
   });
 
   it("F6/R1 — BOTH Base Attacks −10, through the penalty the derivation reads", () => {
     // A write to `baseAttack` would be recomputed away on the next prepare.
-    const str = grant().then.find((x) => x.stat === "baseAttackPenalty.str");
-    const mag = grant().then.find((x) => x.stat === "baseAttackPenalty.mag");
+    const str = landing().find((x) => x.stat === "baseAttackPenalty.str");
+    const mag = landing().find((x) => x.stat === "baseAttackPenalty.mag");
     expect(str.delta).toBe(10);
     expect(mag.delta).toBe(10);
   });
 
   it("F7 — Max Luck −1 per token", () => {
-    expect(grant().then.find((x) => x.stat === "luck.max")).toMatchObject({ delta: -1, alsoCurrent: true });
+    expect(landing().find((x) => x.stat === "luck.max")).toMatchObject({ delta: -1, alsoCurrent: true });
   });
 
   it("R2 — and NOTHING in the grant is a contribution that could spring back", () => {
     // The clause the whole part is arranged around. Every reduction is a
     // StatDelta -- a write -- and none is a MaxDelta scaled by the held count,
     // which would restore everything the instant a Unit escaped.
-    const writes = grant().then.filter((x) => x.key === "StatDelta");
+    const writes = landing().filter((x) => x.key === "StatDelta");
     expect(writes).toHaveLength(4);
-    expect(grant().then.some((x) => x.key === "MaxDelta")).toBe(false);
+    expect(landing().some((x) => x.key === "MaxDelta")).toBe(false);
   });
 
   it("her Servant file gains exactly one ref", () => {

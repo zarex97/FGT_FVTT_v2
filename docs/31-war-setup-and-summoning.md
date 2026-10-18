@@ -82,6 +82,8 @@ Round's start offers its Master's player free panels to deploy more (Ch. 32).
 re-rollable like the rest; `commitSummon` grants the Item on a listed face (`setup-rolls.mjs#summonItemsGranted`).
 Arturia arrives with [Avalon] on an 8 of a d8.
 
+**A summon killed has disappeared** (#247 reading 11). Both doors a summon leaves by, its stay running out and its defeat with a living summoner, go through `io.mjs#rememberDeparture`: the summoner's `fieldSummonStats` (Health full if killed, suppressed rules kept) and the `countFrom: destroyed` cooldown. A killed Jabberwock started no cooldown before. **A summon's guard is authored on its statblock**: the Jabberwock carries the Trump Soldier's `TargetabilityModifier` word for word (D2).
+
 ## Invariants & edge cases
 
 **A summon's panels can be its owner's pick, and it can leave with its summoner** (#193 readings 13, 15). `placement.chooser: owner` asks the owner, through `askOwner` and the `pickPanels` prompt, for one panel per summon among the free ones; a cancel places the rest. `leavesWithSummoner: true` dismisses the summon when `io.defeat` writes its summoner's defeat. `dismissSummon` deletes tokens by scene query and then the WORLD actor: `resolve` prefers an unlinked token's synthetic actor, and deleting that left the world actor behind. The card names the dice and who came, and the type choice lists names.

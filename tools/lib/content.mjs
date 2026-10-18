@@ -68,6 +68,8 @@ export const RULE_ELEMENT_KEYS = new Set([
   // Kiritsugu -- a multiplier on Base Attack itself, applied in the projection
   // so BOTH components move and the victim's own sheet shows it.
   "BaseAttackModifier",
+  // An Item's word on which Base Attack Normal Attacks use (the Vorpal Blade, #247).
+  "NormalAttackComponent",
   // Group 3 — check contributors
   "CheckModifier", "AutoSucceed", "TableOverride", "RollAdjustment",
   // Jack the Ripper — pre-emption, and a Detect ceiling a bounded field imposes.

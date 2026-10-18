@@ -19,7 +19,7 @@
  * channel it is this moment closing).
  */
 
-import { currentBoard, unitFrom } from "./board.mjs";
+import { currentBoard, unitFrom, unitActor } from "./board.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import { npCostAt } from "../rules/costs.mjs";
@@ -95,7 +95,7 @@ export function channelProgress(channel, tick) {
 export async function advanceChannels(units, tick) {
   for (const unit of units) {
     if (!unit.channel) continue;
-    const actor = game.actors.get(unit.id);
+    const actor = unitActor(unit.id);
     if (!actor) continue;
 
     const { elapsed, complete } = channelProgress(unit.channel, tick);
@@ -120,7 +120,7 @@ export async function advanceChannels(units, tick) {
  */
 export async function interruptChannels(defenderIds) {
   for (const id of new Set(defenderIds)) {
-    const actor = game.actors.get(id);
+    const actor = unitActor(id);
     if (!actor?.system?.channel) continue;
     await clearChannel(actor);
     await applyWorldIntents(
@@ -145,7 +145,7 @@ async function completeChannel(actor, unit) {
 
   const board = currentBoard();
   const self = unitFrom(board, actor);
-  const master = self.masterId ? unitFrom(board, game.actors.get(self.masterId)) : null;
+  const master = self.masterId ? unitFrom(board, unitActor(self.masterId)) : null;
   const ability = abilityId ? actor.items.get(abilityId) : null;
 
   /** @type {object[]} */

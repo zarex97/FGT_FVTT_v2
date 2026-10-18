@@ -9,6 +9,7 @@
  */
 
 import { validate as validateIntents } from "../engine/intents.mjs";
+import { unitActor } from "../engine/board.mjs";
 
 /**
  * Which intents a user may ask the GM to apply.
@@ -104,7 +105,7 @@ export const OPERATIONS = Object.freeze({
    */
   spendCommandSpell: {
     authorize: (payload, userId) => {
-      const master = game.actors.get(payload.masterId);
+      const master = unitActor(payload.masterId);
       const user = game.users.get(userId);
       if (!master || !user) return { allowed: false, reason: "Unknown Master." };
       // Only the Master's owner may spend its Command Spells -- they are that
@@ -132,7 +133,7 @@ export const OPERATIONS = Object.freeze({
       const user = game.users.get(userId);
       if (!message || !user) return { allowed: false, reason: "Unknown window." };
       const masters = message.getFlag("fgt", "masterIds") ?? [];
-      if (user.isGM || masters.some((id) => game.actors.get(id)?.testUserPermission(user, "OWNER"))) {
+      if (user.isGM || masters.some((id) => unitActor(id)?.testUserPermission(user, "OWNER"))) {
         return { allowed: true, reason: null };
       }
       return { allowed: false, reason: `${user.name} holds no Master in this window.` };
@@ -154,7 +155,7 @@ export const OPERATIONS = Object.freeze({
    */
   attemptContract: {
     authorize: (payload, userId) => {
-      const contractor = game.actors.get(payload.contractorId);
+      const contractor = unitActor(payload.contractorId);
       const user = game.users.get(userId);
       if (!contractor || !user) return { allowed: false, reason: "Unknown contractor." };
       if (!user.isGM && !contractor.testUserPermission(user, "OWNER")) {
@@ -170,7 +171,7 @@ export const OPERATIONS = Object.freeze({
 
   resolveAttack: {
     authorize: (payload, userId) => {
-      const attacker = game.actors.get(payload.attackerId);
+      const attacker = unitActor(payload.attackerId);
       const user = game.users.get(userId);
       if (!attacker || !user) return { allowed: false, reason: "Unknown attacker." };
       if (!user.isGM && !attacker.testUserPermission(user, "OWNER")) {
@@ -197,7 +198,7 @@ export const OPERATIONS = Object.freeze({
    */
   ridingAttack: {
     authorize: (payload, userId) => {
-      const rider = game.actors.get(payload.unitId);
+      const rider = unitActor(payload.unitId);
       const user = game.users.get(userId);
       if (!rider || !user) return { allowed: false, reason: "Unknown rider." };
       if (!user.isGM && !rider.testUserPermission(user, "OWNER")) {
@@ -229,7 +230,7 @@ export const OPERATIONS = Object.freeze({
   useSkill: {
     authorize: (payload, userId) => {
       const user = game.users.get(userId);
-      const actor = game.actors.get(payload.actorId);
+      const actor = unitActor(payload.actorId);
       if (!user || !actor) return { allowed: false, reason: "Unknown actor." };
       if (user.isGM) return { allowed: true, reason: null };
       if (!actor.testUserPermission(user, "OWNER")) {
@@ -264,7 +265,7 @@ export const OPERATIONS = Object.freeze({
   deactivateField: {
     authorize: (payload, userId) => {
       const user = game.users.get(userId);
-      const actor = game.actors.get(payload.actorId);
+      const actor = unitActor(payload.actorId);
       if (!user || !actor) return { allowed: false, reason: "Unknown actor." };
       if (user.isGM) return { allowed: true, reason: null };
       if (!actor.testUserPermission(user, "OWNER")) {
@@ -302,13 +303,13 @@ export const OPERATIONS = Object.freeze({
   queueModeEnd: {
     authorize: (payload, userId) => {
       const user = game.users.get(userId);
-      const actor = game.actors.get(payload.actorId);
+      const actor = unitActor(payload.actorId);
       if (!user || !actor) return { allowed: false, reason: "Unknown actor." };
       if (user.isGM || actor.testUserPermission(user, "OWNER")) return { allowed: true, reason: null };
       return { allowed: false, reason: `${user.name} does not control ${actor.name}.` };
     },
     execute: async (payload) => {
-      const item = game.actors.get(payload.actorId)?.items.get(payload.itemId);
+      const item = unitActor(payload.actorId)?.items.get(payload.itemId);
       if (!item?.system?.active || item.system?.deactivation?.window !== "any") return { ok: false, reason: "mayNotDeactivate" };
       const { queueEnd } = await import("../engine/queued-ends.mjs");
       return { ok: await queueEnd({ kind: "mode", id: item.id, ownerId: payload.actorId }), queued: true };
@@ -324,7 +325,7 @@ export const OPERATIONS = Object.freeze({
   askOpeningChoice: {
     authorize: (payload, userId) => {
       const user = game.users.get(userId);
-      const actor = game.actors.get(payload.actorId);
+      const actor = unitActor(payload.actorId);
       if (!user || !actor) return { allowed: false, reason: "Unknown actor." };
       if (user.isGM || actor.testUserPermission(user, "OWNER")) return { allowed: true, reason: null };
       return { allowed: false, reason: `${user.name} does not control ${actor.name}.` };
@@ -340,13 +341,13 @@ export const OPERATIONS = Object.freeze({
   cancelModeEnd: {
     authorize: (payload, userId) => {
       const user = game.users.get(userId);
-      const actor = game.actors.get(payload.actorId);
+      const actor = unitActor(payload.actorId);
       if (!user || !actor) return { allowed: false, reason: "Unknown actor." };
       if (user.isGM || actor.testUserPermission(user, "OWNER")) return { allowed: true, reason: null };
       return { allowed: false, reason: `${user.name} does not control ${actor.name}.` };
     },
     execute: async (payload) => {
-      const item = game.actors.get(payload.actorId)?.items.get(payload.itemId);
+      const item = unitActor(payload.actorId)?.items.get(payload.itemId);
       if (!item) return { ok: false, reason: "mayNotDeactivate" };
       const { cancelEnd } = await import("../engine/queued-ends.mjs");
       return { ok: await cancelEnd(item.id), cancelled: true };
@@ -359,7 +360,7 @@ export const OPERATIONS = Object.freeze({
       const user = game.users.get(userId);
       if (user?.isGM) return { allowed: true, reason: null };
       // Only the side the machine is waiting on may answer.
-      const unit = game.actors.get(payload.respondingUnitId);
+      const unit = unitActor(payload.respondingUnitId);
       if (!unit?.testUserPermission(user, "OWNER")) {
         return { allowed: false, reason: "Not your decision to make." };
       }
@@ -385,7 +386,7 @@ export const OPERATIONS = Object.freeze({
       const user = game.users.get(userId);
       if (user?.isGM) return { allowed: true, reason: null };
 
-      const unit = game.actors.get(payload.respondingUnitId);
+      const unit = unitActor(payload.respondingUnitId);
       if (!unit?.testUserPermission(user, "OWNER")) {
         return { allowed: false, reason: "Not your decision to make." };
       }
@@ -498,11 +499,11 @@ export const OPERATIONS = Object.freeze({
     authorize: (payload, userId) => {
       const user = game.users.get(userId);
       if (!user) return { allowed: false, reason: "Unknown user." };
-      const platform = game.actors.get(payload.platformId);
+      const platform = unitActor(payload.platformId);
       if (!platform) return { allowed: false, reason: "Unknown platform." };
       if (user.isGM) return { allowed: true, reason: null };
 
-      const owner = game.actors.get(platform.system?.ownerId);
+      const owner = unitActor(platform.system?.ownerId);
       if (!owner?.testUserPermission(user, "OWNER")) {
         return { allowed: false, reason: `${user.name} does not own ${platform.name}.` };
       }
@@ -526,10 +527,10 @@ export const OPERATIONS = Object.freeze({
     authorize: (payload, userId) => {
       const user = game.users.get(userId);
       if (!user) return { allowed: false, reason: "Unknown user." };
-      const platform = game.actors.get(payload.platformId);
+      const platform = unitActor(payload.platformId);
       if (!platform?.system?.dimension) return { allowed: false, reason: "Unknown dimension." };
       if (user.isGM) return { allowed: true, reason: null };
-      const owner = game.actors.get(platform.system?.ownerId);
+      const owner = unitActor(platform.system?.ownerId);
       if (!owner?.testUserPermission(user, "OWNER")) {
         return { allowed: false, reason: `${user.name} does not own ${platform.name}.` };
       }

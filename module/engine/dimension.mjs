@@ -25,7 +25,7 @@ import { chooseFor, askOwner } from "./ask.mjs";
 import { applyIntents } from "./applier.mjs";
 import { chebyshev, inBounds } from "../domain/geometry.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
-import { currentBoard } from "./board.mjs";
+import { currentBoard, unitActor } from "./board.mjs";
 import { activatePlatform } from "./platforms.mjs";
 import * as rollLog from "../rules/roll-log.mjs";
 import { relationOf } from "../rules/relations.mjs";
@@ -51,7 +51,7 @@ export { interiorOf, withinInterior };
 async function applyBatch(intents, source) {
   return applyIntents(intents, {
     io: worldIO(),
-    canWrite: (unitId) => game.actors.get(unitId)?.isOwner ?? false,
+    canWrite: (unitId) => unitActor(unitId)?.isOwner ?? false,
     isGM: game.user.isGM,
     source,
   });
@@ -452,7 +452,7 @@ async function chooseEntrants(ownerDoc, eligible) {
 async function askAttempts(eligible, spec) {
   const successOn = spec.entry?.enemies?.successOn ?? 18;
   const answers = await Promise.all(eligible.map(async (id) => {
-    const doc = game.actors.get(id);
+    const doc = unitActor(id);
     if (!doc) return null;
     const picked = await askOwner(doc, {
       kind: "choose",
@@ -494,7 +494,7 @@ export async function enterDimension({ ownerId, platformId, chosenAllyIds = [] }
   // A previous submersion leaves its actor behind, so an existing one is
   // reused rather than duplicated.
   let platform = game.actors.find((a) => a.system?.contentId === platformId && a.system?.ownerId === ownerId)
-    ?? game.actors.get(platformId);
+    ?? unitActor(platformId);
   if (!platform) {
     const { actorFromPacks } = await import("./skill-use.mjs");
     const source = await actorFromPacks(platformId);
@@ -509,7 +509,7 @@ export async function enterDimension({ ownerId, platformId, chosenAllyIds = [] }
   if (!spec) return { ok: false, reason: "notADimension" };
 
   const probe = manifestFor(spec, { owner, board, chosenAllyIds: [], rolls: {} });
-  const ownerDoc = game.actors.get(ownerId);
+  const ownerDoc = unitActor(ownerId);
 
   // *"Nemo and ANY NUMBER of allied Units within a 2 panel area"* -- his
   // player's choice, every ally in reach ticked to start (#191 reading 1). The
@@ -619,7 +619,7 @@ export async function enterDimension({ ownerId, platformId, chosenAllyIds = [] }
  * @returns {Promise<{ok: boolean, reason?: string, distance?: number, moved?: string[], at?: object}>}
  */
 export async function resurface({ platformId, plan = null, forced = false, ownerPanel = null }) {
-  const platform = game.actors.get(platformId)
+  const platform = unitActor(platformId)
     ?? game.actors.find((a) => a.system?.contentId === platformId);
   const spec = platform?.system?.dimension;
   if (!spec) return { ok: false, reason: "notADimension" };
@@ -698,7 +698,7 @@ export async function resurface({ platformId, plan = null, forced = false, owner
  * @returns {Promise<void>}
  */
 async function endZeroSail(platform) {
-  const owner = platform.system?.ownerId ? game.actors.get(platform.system.ownerId) : null;
+  const owner = platform.system?.ownerId ? unitActor(platform.system.ownerId) : null;
   const contentId = platform.system?.contentId;
   const ability = owner?.items?.find?.((i) => (i.system?.phases ?? [])
     .some((p) => p.kind === "enterDimension" && p.platformId === contentId));
@@ -744,7 +744,7 @@ export async function postDimensionCard(text) {
  * @returns {Promise<{ok: boolean, reason?: string}>}
  */
 export async function scheduleResurface({ platformId, plan, by = null }) {
-  const platform = game.actors.get(platformId);
+  const platform = unitActor(platformId);
   const spec = platform?.system?.dimension;
   if (!spec || platform.system?.activatedAt === null || platform.system?.activatedAt === undefined) {
     return { ok: false, reason: "notSubmerged" };

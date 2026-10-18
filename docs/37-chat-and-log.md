@@ -79,6 +79,8 @@ name (§46.4-NL), shown only to its controllers, and carries what the landing wr
 is announced under its Master: "Deployed Hassan 5, Hassan 6. Hassans: 100/100.", "Hassan 2 falls. Hassans:
 99/100.", "Zabaniya: 4d6 = 12. 9 from the reserve, 3 removed from the field."
 
+**What a handler or the scheduler does to a Unit is said** (#247). Logged and shown nowhere until now: the Nameless Forest's escape (*"escapes the Nameless Forest: rolled 16 (Home Base −3) = 13 vs Luck 14. Every Token is removed…"*) and its death die, in each of its three outcomes (`engine/nameless-forest.mjs#postEscape`, `#postDeathRoll`); the Glass Game's rewind, naming whom it turned back (`glass-game.mjs#postGlassGame`); an Item taken or refused (Ch. 18). A handler's batch also prints an Item it spent and a rule it took away for good (`applier.mjs#itemLines`, `#suppressionLines`), worded from `FGT.Item.Gone.<item>` and `FGT.Suppressed.<slug>` when the language file has them, never the slug. Health lines read the Unit's own document (`unitActor`, Ch. 08).
+
 ## Invariants & edge cases
 
 **A Skill card names what it removed and what it rolled** (#193). A `removeEffect` phase adds a row per effect taken off (*"Burn removed"*), and a summon's row carries its dice and names (*"5 summoned (1d6 → 5; 1d4 → 4, 3, 3, 2, 1): …"*).

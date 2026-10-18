@@ -12,7 +12,7 @@
  */
 
 import { canCopy, copyCandidates, copyAbility } from "../rules/copy.mjs";
-import { currentBoard, unitFrom } from "./board.mjs";
+import { currentBoard, unitFrom, unitActor } from "./board.mjs";
 
 /**
  * Wisdom of Dún Scáith's own rank and cooldown, which every copy takes.
@@ -34,7 +34,7 @@ const DUN_SCAITH = Object.freeze({ rank: "A+", cooldown: "4◈-⅓◈", exclusio
  */
 export function offerCopies({ copierId, prefer = ["A", "B"] }) {
   const board = currentBoard();
-  const copierDoc = game.actors.get(copierId);
+  const copierDoc = unitActor(copierId);
   const copier = unitFrom(board, copierDoc);
   if (!copier) return [];
 
@@ -92,7 +92,7 @@ export async function markCopyPicksDue({ actorIds = null, open = true } = {}) {
   const due = [];
   for (const unit of board.units ?? []) {
     if (actorIds && !actorIds.includes(unit.id)) continue;
-    const actor = game.actors.get(unit.id);
+    const actor = unitActor(unit.id);
     const grant = copyGrantOf(actor);
     if (!grant || actor.system?.copyPick?.due) continue;
     if (actor.items.some((i) => i.system?.grantedBy === grantName(grant))) continue;
@@ -127,7 +127,7 @@ export function attachCopyPick() {
   Hooks.on("createToken", (token) => {
     if (!game.user?.isGM || !game.combats?.active?.started) return;
     const actorId = token.actorId ?? token.actor?.id ?? null;
-    if (!copyGrantOf(game.actors.get(actorId))) return;
+    if (!copyGrantOf(unitActor(actorId))) return;
     markCopyPicksDue({ actorIds: [actorId] }).catch((err) => console.error("FGT | Copy pick:", err));
   });
 }
@@ -143,14 +143,14 @@ export function attachCopyPick() {
  * @returns {Promise<{ok: boolean, reason?: string, created?: number}>}
  */
 export async function grantCopies({ copierId, picks, slots = 2, grantedBy = "wisdomOfDunScaith" }) {
-  const copier = game.actors.get(copierId);
+  const copier = unitActor(copierId);
   if (!copier) return { ok: false, reason: "notFound" };
   if ((picks ?? []).length > slots) return { ok: false, reason: "tooManyPicks" };
 
   /** @type {object[]} */
   const data = [];
   for (const pick of picks ?? []) {
-    const source = game.actors.get(pick.unitId)?.items?.get(pick.abilityId);
+    const source = unitActor(pick.unitId)?.items?.get(pick.abilityId);
     if (!source) return { ok: false, reason: "unknownAbility" };
 
     // Checked again here even though `offerCopies` filtered: the offer and the
