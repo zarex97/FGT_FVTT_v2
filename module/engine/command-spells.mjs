@@ -12,7 +12,7 @@
 
 import { suspendableSkills, availableCommands, canSpend, effectsOf, costOf, teleportLandings, teleportMovers, teleportPanels, servantsForProcess, essenceCommand } from "../rules/command-spells.mjs";
 import { CommandSpellRegistry } from "../rules/cs-registry.mjs";
-import { currentBoard, unitFrom, gateContext } from "./board.mjs";
+import { currentBoard, unitFrom, gateContext, unitActor } from "./board.mjs";
 import * as I from "./intents.mjs";
 import { sharedCooldownIntents } from "./cooldown.mjs";
 import { applyWorldIntents } from "./applier.mjs";
@@ -48,7 +48,7 @@ export function offerCommands({ masterId, window, context = {} }) {
  * @returns {object[]}
  */
 export function catalogueOf(masterId) {
-  const essences = [...(game.actors.get(masterId)?.items ?? [])]
+  const essences = [...(unitActor(masterId)?.items ?? [])]
     .filter((i) => i.type === "masterEssence")
     .map(essenceCommand)
     .filter(Boolean);
@@ -205,7 +205,7 @@ export async function spendCommandSpell({ masterId, commandId, window, messageId
   // paid for: Fated Rivals only while it binds (#206 reading 2). The picker
   // lists by the same reader.
   if (effects.some((e) => e.kind === "suspendSkill") && context.abilityId) {
-    const items = [...(game.actors.get(ctx.servant?.id)?.items ?? [])];
+    const items = [...(unitActor(ctx.servant?.id)?.items ?? [])];
     const named = items.filter((i) => i.id === context.abilityId);
     if (named.length > 0 && suspendableSkills(named, ctx.servant).length === 0) {
       return { ok: false, reason: "notBound" };
@@ -261,12 +261,12 @@ export async function spendCommandSpell({ masterId, commandId, window, messageId
  */
 async function postCommandSpellCard({ master, servant, command, cost, abilityId, lines = [] }) {
   const escape = foundry.utils.escapeHTML;
-  const skill = abilityId ? game.actors.get(servant?.id)?.items.get(abilityId)?.name ?? null : null;
+  const skill = abilityId ? unitActor(servant?.id)?.items.get(abilityId)?.name ?? null : null;
   // The Servant's public name: a card every player reads said *"on Arjuna's
   // Fated Rivals"* under an Archer the table knew only as Archer (#234, as
   // every engine line since #230 §46.4-NV).
   const { shownName } = await import("./public-identity.mjs");
-  const servantDoc = servant?.id ? game.actors.get(servant.id) : null;
+  const servantDoc = servant?.id ? unitActor(servant.id) : null;
   const servantName = servantDoc ? shownName(servantDoc, currentBoard()) : "";
   const key = command.essence ? "FGT.MasterEssence.Used"
     : (skill ? "FGT.CommandSpell.SpentOn" : "FGT.CommandSpell.Spent");
@@ -305,7 +305,7 @@ async function postCommandSpellCard({ master, servant, command, cost, abilityId,
  * @returns {object|null}
  */
 function contextFor(masterId, window, context, board = currentBoard()) {
-  const masterDoc = game.actors.get(masterId);
+  const masterDoc = unitActor(masterId);
   if (!masterDoc) return null;
 
   const master = unitFrom(board, masterDoc);

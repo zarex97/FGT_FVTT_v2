@@ -9,7 +9,9 @@ type: servant
 trueName: "Nursery Rhyme, Alice"
 servantClasses: [caster]
 classContainer: caster
-region: [england, europe]
+# The Region her sheet prints, and only it: Drake's "England" is [england] too
+# (#247 D5).
+region: [england]
 alignment: { order: "true", morality: neutral }
 # `fairytale` and `child` are new tags and need no schema change -- `attributes`
 # is an open set. Both are read by her OWN Tommy Thumb clauses 5 and 6, so a

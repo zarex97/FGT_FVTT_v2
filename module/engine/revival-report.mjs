@@ -8,6 +8,8 @@
  * stood on with new Health and no word of why (#189).
  */
 
+import { unitActor } from "./board.mjs";
+
 /**
  * The card's words for one `revive` log entry.
  *
@@ -42,7 +44,7 @@ export async function postRevival(entry) {
   const { EffectRegistry } = await import("../rules/registry.mjs");
   const board = currentBoard();
   const nameOfUnit = (id) => {
-    const actor = game.actors.get(id);
+    const actor = unitActor(id);
     return escape(actor ? shownName(actor, board) : id);
   };
   const nameOfSource = (source) => {

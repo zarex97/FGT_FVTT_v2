@@ -17,7 +17,7 @@ import { plansFor, resolveSetupPlan } from "../rules/setup-rolls.mjs";
 import {
   prepareSummon, commitSummon, servantCatalogue, rollSetupPlan, setWarRegion,
 } from "./summon.mjs";
-import { factions } from "./board.mjs";
+import { factions, unitActor } from "./board.mjs";
 import { worldIO } from "./io.mjs";
 import {
   essenceCatalogue, essenceDraftOptions, essenceDocument, draftsEssences, syncEssences,
@@ -568,7 +568,7 @@ export async function seatPartners(servant, container, master) {
   /** @type {object[]} */
   const seated = [];
   for (const id of [...(servant.system?.linkedGroup?.memberIds ?? [])]) {
-    const partner = game.actors.get(id);
+    const partner = unitActor(id);
     if (!partner) continue;
     await partner.update({
       "system.factionId": container.factionId,

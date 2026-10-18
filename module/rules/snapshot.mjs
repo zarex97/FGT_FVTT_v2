@@ -185,6 +185,13 @@ export function snapshotUnit(actor, {
     // `resolveDefeat` reads it off the snapshot it is handed, and a flag the
     // board cannot see is a flag that clause would spend twice.
     glassGameSpent: Boolean(sys.glassGameSpent),
+    // ...and effect 1's clock, which its Script advances (#247 D1).
+    glassGameClock: sys.glassGameClock ?? 0,
+    // When a summon's stay runs out. Read by the Round end's dismissal
+    // (`rules/summons.mjs`) and by Alice Eater's `DurationDelta` off this
+    // board unit, and the board never carried it: the Jabberwock never left
+    // and its stay could not be extended (#247, live).
+    expiresAt: sys.expiresAt ?? null,
 
     // GRID OFFSETS, never pixels. `doc.x`/`doc.y` are pixel coordinates, and
     // reading them as offsets made two adjacent tokens a hundred panels apart.
@@ -212,6 +219,10 @@ export function snapshotUnit(actor, {
     // and Full Heal restore "Agility by 50% of maximum" (#193).
     maxAgility: sys.agility?.max ?? 0,
     luck: sys.luck?.value ?? 0,
+    // ...and its maximum, as Agility's: a rewind writes the pool back whole,
+    // and a pool recorded from its value alone came back with its maximum cut
+    // to what was left (#247, live).
+    maxLuck: sys.luck?.max ?? 0,
     mov: sys.mov ?? 0,
     // The NUMBER of panels, not the `{panels, targets}` schema object. Every
     // consumer compares it against a distance, and comparing a distance to an
@@ -254,6 +265,10 @@ export function snapshotUnit(actor, {
     // (`engine/summon.mjs#commitSummon`), which counted it twice on a board and
     // labelled it as the Master's on a sheet.
     parameters: applyGrantedSteps(parseParameters(sys.parameters), sys.grantedSteps),
+    // ...and the letters the sheet stores, for the one reader that writes them
+    // back: a rewind (`rules/history.mjs#snapshotUnit`). The Ranks above carry
+    // the granted steps and clone to {} in a flag (#247, live).
+    storedParameters: { ...(sys.parameters ?? {}) },
     baseAttack: { str: sys.baseAttack?.str ?? 0, mag: sys.baseAttack?.mag ?? 0 },
     // The AUTHORED maximum Health, which is not `health.max` once anything has
     // grown it. Kingprotea's Proliferation pays *"20% of Kingprotea's ORIGINAL
@@ -376,7 +391,16 @@ export function snapshotUnit(actor, {
     // Rungs of the reaction ladder something has taken away. `canCounter` had
     // one of these as a named special case (`defenderHasFragarach`); the
     // general list is what lets the ladder say WHICH effect refused.
-    forbiddenReactions: [...new Set(contributions.forbiddenReactions ?? [])],
+    //
+    // ...and every rung an effect that prevents Acting takes: Evading, Blocking
+    // and Countering are Acting (#232 reading 10), and Disable, which leaves
+    // only Move, takes them too (#247 readings 4, 17, 18). One door, read off the
+    // definitions as `canAct` below is: only `cannotAct` said so, by a line of
+    // its own, and a Stunned Unit still Evaded.
+    forbiddenReactions: [...new Set([
+      ...(contributions.forbiddenReactions ?? []),
+      ...(effectIds.some((id) => EffectRegistry.get(id)?.preventsAction) ? ["evade", "block", "counter"] : []),
+    ])],
     // ...and the rungs this Unit takes from whoever it attacks (#103).
     refusesReactions: [...new Set(contributions.refusesReactions ?? [])],
     alignment: sys.alignment ?? null,
@@ -468,7 +492,10 @@ export function snapshotUnit(actor, {
     // previewed as a STR one.
     normalAttack: {
       mode: variantOverride?.normalAttack?.mode ?? sys.normalAttack?.mode ?? "fixed",
-      component: variantOverride?.normalAttack?.component ?? sys.normalAttack?.component ?? "str",
+      // An Item's word first: the Vorpal Blade's *"Normal Attacks with this Item
+      // Equipped use Base Attack (STR)"* (#247 D4).
+      component: contributions.normalAttackComponent
+        ?? variantOverride?.normalAttack?.component ?? sys.normalAttack?.component ?? "str",
       // The damage TYPE. Declared on the schema, authored on the sheet, stored
       // on the document -- and dropped HERE, because this projection rebuilds
       // `normalAttack` field by field rather than spreading it. Ozymandias's
@@ -1189,7 +1216,14 @@ export function applyBaseAttackModifiers(unit) {
   for (const m of mods) {
     for (const c of m.components ?? []) {
       if (typeof unit.baseAttack?.[c] !== "number") continue;
-      unit.baseAttack[c] = Math.floor(unit.baseAttack[c] * (m.factor ?? 1)) + (m.add ?? 0);
+      const before = unit.baseAttack[c];
+      unit.baseAttack[c] = Math.floor(before * (m.factor ?? 1)) + (m.add ?? 0);
+      // What a Noble Phantasm gives back: the Blade's +50 is not its (#247
+      // reading 12). Read by stage 1 of the pipeline for an NP's own Base Attack.
+      if (m.exceptNP) {
+        unit.npBaseAttackOffset = { ...(unit.npBaseAttackOffset ?? {}) };
+        unit.npBaseAttackOffset[c] = (unit.npBaseAttackOffset[c] ?? 0) + before - unit.baseAttack[c];
+      }
     }
   }
   unit.baseAttackModifiersApplied = true;

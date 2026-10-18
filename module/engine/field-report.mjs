@@ -9,6 +9,8 @@
  * the `fieldEvent` log entries `runFieldEvent` files.
  */
 
+import { unitActor } from "./board.mjs";
+
 /**
  * The `fieldEvent` log entries among a batch of intents.
  *
@@ -150,7 +152,7 @@ export async function postPeriodicReport(intents, io, titleKey = "FGT.FieldRepor
   const { currentBoard } = await import("./board.mjs");
   const board = currentBoard();
   const nameOf = (id) => {
-    const actor = game.actors.get(id);
+    const actor = unitActor(id);
     return actor ? shownName(actor, board) : null;
   };
   const ticks = periodicTicksIn(intents, nameOf, game.combat?.system?.globalTurn ?? 0);

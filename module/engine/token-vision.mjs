@@ -32,6 +32,7 @@ import { placedTokensOf } from "./token-sync.mjs";
 import { detectRangeOf } from "../rules/identity.mjs";
 import { snapshotUnit } from "../rules/snapshot.mjs";
 import { CONCEALMENT } from "../rules/concealment.mjs";
+import { unitActor } from "./board.mjs";
 
 /**
  * The Actor types that are units on the board. A journal or a stock Foundry
@@ -55,7 +56,7 @@ export const TokenVision = {
 
     // A Caster's radius depends on where it is standing (`DETECT_BY_CLASS`).
     Hooks.on("fgtUnitMoved", (unit) => {
-      const actor = game.actors.get(unit?.id ?? unit?.unitId);
+      const actor = unitActor(unit?.id ?? unit?.unitId);
       if (!actor || !UNIT_TYPES.has(actor.type)) return;
       syncVision(actor).catch((err) => console.error("FGT | Token vision sync:", err));
     });

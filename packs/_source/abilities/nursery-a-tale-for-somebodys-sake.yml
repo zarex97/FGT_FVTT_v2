@@ -22,7 +22,11 @@ description: |
 targeting:
   anchor: { kind: withinRange, range: 4, metric: chebyshev }
   shape: { kind: square, size: 3 }
-  selection: { relations: [enemy], chooser: all }
+  # Every Unit in the area but her (#247 reading 1): the Normal Archer, Lancer and
+  # Saber NPs say the same words, "Hits a 3x3 panel area", and hit everyone in it.
+  # A damaging area NP leaves its user out (Note 11, `isDamagingAoE`).
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  isDamagingAoE: true
 damage:
   component: mag
   multiplier: 3

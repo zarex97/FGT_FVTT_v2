@@ -15,7 +15,7 @@
 
 import { newlySeenBy } from "../rules/identity.mjs";
 import { fireEvent } from "./scheduler.mjs";
-import { currentBoard } from "./board.mjs";
+import { currentBoard, unitActor } from "./board.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 
 /**
@@ -41,7 +41,7 @@ export async function checkSightings({ board = null } = {}) {
     const newlySeen = newlySeenBy(seer, b);
     if (newlySeen.length === 0) continue;
 
-    const actor = game.actors.get(seer.id);
+    const actor = unitActor(seer.id);
     if (!actor) continue;
     // Only a Unit whose schema keeps the record (`combatantCommon`): a Master's
     // does not, and the write was a Silent Drop on every move -- Foundry pruned

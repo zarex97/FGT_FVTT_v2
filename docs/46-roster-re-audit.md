@@ -5025,6 +5025,152 @@ within a 2 panel area"* from a phase of its own. `usageSpecFor` projects every p
 and clause 7 reads it; the bar reads *"Presence Concealment forbids this while concealed"*. A Spell a Silence stops
 now says so (*"Prevented by Silence"*), as one a Skill Seal stops did. Ch. 30, Ch. 34.
 
+### QE. The forest's Token was written to the root of `system` — **fixed** (#247, test)
+
+**Reached: FO.token.** `resourcePathFor` sends a key the Unit does not hold to the root, and the forest named
+`namelessForestTokens`; the test world refused it as a Silent Drop, a live world would have dropped it in silence. The
+marker names `resources.namelessForestTokens.value`. Ch. 07.
+
+### QF. A resistance to a status was never subtracted — **fixed** (#247, test)
+
+**Reached: FO.resist.** `chanceContribution` skipped every contribution about a non-debuff, and the forest's marker is
+a status. A contribution that names its effect skips the polarity filter. Ch. 15.
+
+### QG. The forest's losses landed past its resistance — **fixed** (#247, retraction)
+
+**Reached: FO.hp, FO.ba, FO.luck.** Six actions, one chance: only the marker's `ApplyEffect` was gated, so a Unit that
+resisted lost its Health, Base Attack and Luck anyway. The Token and losses are the marker's `onApply`, paid on every
+landing (`onApplyEachLanding`). Ch. 15.
+
+### QH. The Glass Game's clock was read by nothing — **fixed** (#247, retraction)
+
+**Reached: GG.1.when, GG.1.cond, GG.1.reset, GG.1.again.** Its handler rewound everyone within 3 at every Turn end she
+heard; `rules/glass-game.mjs#glassGameClock` was tested and never called. `glassGameScript` keeps the clock on her
+actor (D1, readings 7, 8). Ch. 42.
+
+### QI. The Jabberwock's guard was never authored — **fixed** (#247, retraction)
+
+**Reached: JW.guard.** The Trump Soldier carried the guard and the Jabberwock's statblock did not. It carries it word for
+word (D2). Ch. 31.
+
+### QJ. The Vorpal Blade worked in no hand — **fixed** (#247, retraction)
+
+**Reached: VB.ba, VB.str.** Contributions are collected from an Item only while `equipped`, which nothing writes, and
+*"Normal Attacks … use Base Attack (STR)"* was never authored. `worksWhenHeld`, `BaseAttackModifier` with `exceptNP`,
+`NormalAttackComponent` (readings 12, 14; D4). Ch. 18, Ch. 22.
+
+### QK. Disable left Block and Evade on the rung — **fixed** (#247, user)
+
+**Reached: PW.disable, PA.rungs.** Two readers of "may this Unit act": `forbiddenReactions` read `ForbidReaction`,
+`canAct` read `preventsAction`. Any effect that prevents Acting now forbids all three rungs (readings 4, 17, 18). Ch. 23.
+
+### QL. A killed Jabberwock started no cooldown — **fixed** (#247, retraction)
+
+**Reached: JW.cd, JW.again.** Only the timed departure wrote the summoner's record and started the clock.
+`io.mjs#rememberDeparture` runs at both doors (reading 11). Ch. 31.
+
+### QM. A Tale hit a defeated Drake twice — **fixed** (#247, live)
+
+**Reached: TA.area.** A timeout answered a rung a held run was still answering: 699, Drake defeated, then 1070 on the
+same Process. One driver per Process (`serialized`); a stale answer does nothing. Ch. 21.
+
+### QN. Alice Eater extended nothing — **fixed** (#247, live)
+
+**Reached: AE.stay.** `applyPhaseEffects` dropped a phase rule with no effect entry, and the board carried no
+`expiresAt` to extend. Action rules are dispatched; the projection carries `expiresAt`. Ch. 09, Ch. 17.
+
+### QO. The Jabberwock's stay was never on the board — **fixed** (#247, test)
+
+**Reached: JW.stay.** The summon wrote `system.expiresAt` and the projection never carried it, so the Round's end never
+dismissed it. Projected. Ch. 09.
+
+### QP. Alice Eater's card printed the action's key — **fixed** (#247, live)
+
+**Reached: AE.stay.** *"Atk UpDurationDelta"*: the new action row named its kind. It reads *"Stay on the board: 18 →
+27 Turns left"*. Ch. 17.
+
+### QQ. The Jabberwock knocked Heracles sideways — **fixed** (#247, live)
+
+**Reached: JW.move.** Moving right onto him sent him up: the default push fans out from the mover's centre. The
+statblock carries Kingprotea's `Knockback` `direction: arrival`; re-pressed, he went straight on (reading 10). Ch. 05.
+
+### QR. A summon's card read its world statblock — **fixed** (#247, live)
+
+**Reached: JW.steal.** The lifesteal healed 746 → 936 and the card said *"Health 1500 (no change)"*: an unlinked
+token's synthetic actor shares the statblock's id. `board.mjs#unitActor`. Ch. 08.
+
+### QS. A dead Jabberwock was offered a Counter and an Injury Roll — **fixed** (#247, live)
+
+**Reached: JW.cd.** `counterAvailable` and the injury rung read the statblock, alive at 1500. 258 engine reads go
+through `unitActor`; a guard refuses a new raw one. Ch. 08.
+
+### QT. Taking or being refused an Item said nothing — **fixed** (#247, live)
+
+**Reached: JW.blade.take, VB.barred.** The grant was logged and read by nobody; a refusal returned nothing, and a
+Trump Soldier's refusal shared Nursery's reason. `item-report.mjs`; `notItsKind`. Ch. 18.
+
+### QU. The Blade's blow said nothing of what it took — **fixed** (#247, live)
+
+**Reached: VB.jw.steal, VB.break.** A handler's `itemQuantity` and `suppressRule` printed nothing. `itemLines`,
+`suppressionLines`. Ch. 37.
+
+### QV. The Blade's blow still healed the Jabberwock — **fixed** (#247, live)
+
+**Reached: VB.jw.steal.** 905 dealt and *"Health 95 → 773"*: the lifesteal's `damageTaken` ran before the Blade's
+`damageStepEnd` removal. Ruled 2026-10-17: the blow that removes the lifesteal heals nothing. The removal is at
+`damageStepStart`, the break stays at the end, both on a Normal Attack as the 3× is. Re-pressed: 439 dealt, 1000 → 561,
+*"Its lifesteal is removed for good"*. Ch. 18.
+
+### QW. The second Jabberwock's card reported a Blade it rightly did not place — **fixed** (#247, live)
+
+**Reached: JW.blade.** *"vorpal-blade-cache — couldNotPlace"*: a spent `once` phase read as a failure, by content id,
+with a raw reason. Skipped; named; worded. Ch. 17.
+
+### QX. The forest left a Master's Base Attack — **fixed** (#247, live)
+
+**Reached: FO.ba.** A Master declared no `baseAttackPenalty`; a summon stored it and nothing subtracted it.
+`penalizedBaseAttack` in both models' derived pass; the test world runs it (Ch. 44). Re-pressed: 100/100 → 90/90. Ch. 06.
+
+### QY. The forest's escape and death die said nothing — **fixed** (#247, live)
+
+**Reached: FO.escape, FO.death, FO.death.home.** Both were logged and read by nobody. `postEscape`, `postDeathRoll`.
+Ch. 37.
+
+### QZ. The forest rolled on a body — **fixed** (#247, live)
+
+**Reached: FO.who.** *"Berserker: Nameless Forest: resisted, rolled 97 vs 90%"* on Heracles' body. `nearby` leaves
+defeated Units out. Ch. 25.
+
+### RA. The Glass Game rewound nothing on the board — **fixed** (#247, live)
+
+**Reached: GG.1.rewind.** No boundary or defeat context carried `history`; every test handed it to the script.
+`historyOf(combat)` in all three. Ch. 42.
+
+### RB. A rewind's update was dropped whole — **fixed** (#247, live)
+
+**Reached: GG.1.rewind.** The buffer recorded Ranks, cloned to `{}`, and `"system.parameters": {str: {}, …}` voided the
+update, Health with it. `storedParameters`; `io.rewind` writes letters only. Ch. 42.
+
+### RC. A rewind stripped the forest's marker — **fixed** (#247, live)
+
+**Reached: GG.1.nft.** The Token stayed and its marker went, so nothing read the Token. `REWIND_EXCLUDED_EFFECTS`
+(reading 6). Ch. 42.
+
+### RD. A rewind cut Van Gogh's Max Health to what was left — **fixed** (#247, live)
+
+**Reached: GG.1.rewind.** 599/1250 → 299/299: a flattened pool was recorded as `{value: n, max: n}`. Each pool's
+maximum from the projection, `maxLuck` projected. Ch. 09, Ch. 42.
+
+### RE. A defeated Nursery rolled an Injury — **fixed** (#247, live)
+
+**Reached: GG.2.stay.** Effect 2 wrote her Health back to 350 before the injury rung, which judged defeat by Health
+alone. `injuryCheck` asks `defeated`. Ch. 22.
+
+### RF. The forest's escape ladder was counted twice — **fixed** (#247, live)
+
+**Reached: FO.mag.** *"(MAG A −2, namelessForest −2)"*: the marker authored the ladder as `check: luck`
+CheckModifiers and the engine added `escapeModifiers`. The marker carries none. Ch. 13.
+
 ---
 
 ---
@@ -6836,3 +6982,55 @@ Master's Health were reset between presses. Evidence per Clause on #243.
 - **While the shot's own Process waits on a Counter or Command Spell window, the rung it answers stays open** and can
   be answered, by a player or its timeout, before the shot's damage lands. Reading 7 held where the shot resolved at
   once (the Master at 30 Health); the order is not enforced while the shot waits.
+
+## 46.39 Nursery Rhyme — the Servant who rewinds the board
+
+**118 Clauses** (#247, live 2026-10-17, PC world `fgt2026`, scene *Nursery Audit*), all `Pressed` or `Observed`: the
+statblock, Territory Creation, Self-Modification, Shapeshift, Tommy Thumb's Secret Picture Book, Meanwhile…, three
+Spells, the White Queen's Enigma, Trump Soldiers, the Jabberwock and Alice Eater, the Vorpal Blade, the Nameless
+Forest, A Tale for Somebody's Sake and the Queen's Glass Game. Built 2026-09-16 and never audited. 18 readings ruled by
+grilling 2026-10-17; 15 Clauses differed from the build. Spec `docs/superpowers/specs/2026-10-17-nursery-rhyme-clauses.md`.
+
+**Built to be reused.** Her pieces are the shared ones: the Trump Soldier's guard on the Jabberwock, Kingprotea's
+arrival push, Bašmu's occupancy, the Tale as the Normal NPs' area. What she added is generic: an Item that works once
+held, a Base Attack modifier an NP ignores, a Normal Attack component an Item sets, a landing that pays its `onApply`
+each time, an action rule in a Skill phase, and a card line for an Item taken or refused, an Item spent, a rule
+removed, an escape, a death die and a rewind.
+
+### 46.39.1 What she cost the engine
+
+| Finding | Where |
+|---|---|
+| The Tale hits every Unit in its 3x3 but her (reading 1) | `abilities/nursery-a-tale-for-somebodys-sake.yml` |
+| Enigma's Def Dwn (MAG) only when damage was dealt (reading 2) | `effects/enigma.yml`, `attack:dealtDamage` |
+| Disable and every effect that prevents Acting: no attack, Block, Evade or Counter (readings 4, 17, 18) | `rules/snapshot.mjs#forbiddenReactions` |
+| The Glass Game keeps the forest's losses; effect 1 on its clock, without her (readings 6, 7, 8; D1) | `engine/glass-game.mjs`, `state-history.mjs` |
+| The Jabberwock's push, guard, death and return (readings 10, 11; D2) | `summons/jabberwock.yml`, `io.mjs#rememberDeparture` |
+| The Blade: BA(STR) +50 but for an NP, STR Normal Attacks, held is equipped, Servants and Masters only (readings 12–14; D4) | `abilities/vorpal-blade.yml`, `rules/items.mjs` |
+| Her Region: England (D5) | `servants/nursery-rhyme.yml` |
+| A summon's document is its token's actor | `engine/board.mjs#unitActor`, 43 engine files |
+| History reaches a rewind, and writes back what the sheet stores | `scheduler-hooks.mjs`, `rules/history.mjs`, `io.mjs#rewind` |
+| General: §46.4-QE to RF | |
+
+### 46.39.2 What was pressed, and how
+
+A Great Holy Grail War, Advanced, Nursery beside Van Gogh against Arturia, Heracles and a defeated Drake. Player1
+pressed every Skill and Noble Phantasm from the bar and every reaction on its card; the Jabberwock's and the Trump
+Soldiers' moves and the Blade's pickups were Player1's own token moves, the drive tool's mouse drags onto an occupied
+panel not registering. Faction 2's escapes were pressed on the GM's bar on its Turn. The Round's end, the Turn's end,
+the death die and both Glass Game effects were observed at real boundaries, thirty-six Turns of them; the Glass Game
+clock and one death die were staged to their edge. A natural death die killed Master of Berserker at 4 Tokens, which
+left Heracles Masterless and emptied the ring, and the clock reset. Arturia's Excalibur defeated Nursery for effect 2.
+Silence, Skill Seal, NP Seal, Def Dwn (MAG), a Demonic attribute, a second Territory Creation and fresh Blades were
+staged; cooldowns, budgets and a Master's Health were reset between presses. Evidence per Clause on #247.
+
+### 46.39.3 Left open
+
+- **An attack card hides from the attacker the debuffs it landed** (*"1 effect(s) applied"* on her own Frenzied March
+  Hare and Normal Attack), where a Skill card names them to the caster (`card-visibility.mjs#effectsFor` against
+  `#skillEffectsFor`). Ch. 38 policy, left as built.
+- **The forest's Round-end card names the effect, not the losses** (*"Saber: Nameless Forest"*); the marker's
+  description carries them.
+- **The Forest Escape button stays lit after the Turn's attempt**; pressing it says why (*"This unit has already
+  attempted the escape this Turn."*), as Jump does.
+- **The test world links every token**: the `unitActor` sweep is held by a source guard, not by behaviour (Ch. 44).

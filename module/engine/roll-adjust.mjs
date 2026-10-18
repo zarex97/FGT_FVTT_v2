@@ -19,6 +19,7 @@
  */
 
 import { askOwner } from "./ask.mjs";
+import { unitActor } from "./board.mjs";
 
 /**
  * How far this Unit may move a roll of this check outside combat, or 0.
@@ -46,7 +47,7 @@ export function adjustmentFor(unit, check) {
  */
 export async function offerRollAdjustment(unit, roll, { check, label = "" }) {
   const max = adjustmentFor(unit, check);
-  const actor = unit?.id ? game.actors.get(unit.id) : null;
+  const actor = unit?.id ? unitActor(unit.id) : null;
   if (max <= 0 || !actor) return { roll, delta: 0 };
   const answer = await askOwner(actor, {
     kind: "adjustRoll", roll, max,

@@ -31,7 +31,7 @@ import { spendPlan, availableFor } from "../rules/cs-namespacing.mjs";
 import { snapshotUnit, turnWrite, roundWrite } from "../rules/snapshot.mjs";
 // The shared document→projection door and the two clock readers behind it.
 // `board.mjs` imports only from `rules/`, so this is acyclic.
-import { turnRecordOf, roundRecordOf, currentTick, currentRound, currentMoment } from "./board.mjs";
+import { turnRecordOf, roundRecordOf, currentTick, currentRound, currentMoment, unitActor } from "./board.mjs";
 import { isGated, gateTurnFor } from "../rules/np-gate.mjs";
 import { clampToMax, watermarkKey } from "../domain/health.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
@@ -82,7 +82,7 @@ function gateSettings() {
  */
 function masterSnapshotOf(actor) {
   const id = actor?.system?.masterId ?? null;
-  const master = id ? game.actors.get(id) : null;
+  const master = id ? unitActor(id) : null;
   return master ? snapshotUnit(master) : null;
 }
 
@@ -992,44 +992,7 @@ export function worldIO() {
 
       // A summon gone with its summoner leaves no record: its kind is conjured
       // fresh next time, and a remembered 12 Health would follow a new Warrior.
-      if (owner && contentId && reason !== "summonerDefeated") {
-        // The SAME record `engine/fields.mjs` writes when a field closes over
-        // its Sphinxes, and the same one `placeSummons` reads back. Kept on the
-        // owner because it is the only thing that outlives the summon.
-        await owner.update({
-          [`system.fieldSummonStats.${contentId}`]: {
-            health: { value: summon.system.health?.value ?? null, max: summon.system.health?.max ?? null },
-            agility: { value: summon.system.agility?.value ?? null, max: summon.system.agility?.max ?? null },
-            // ...and what has been PERMANENTLY taken from it.
-            //
-            // This is the subtle half of the Vorpal Blade. A suppression that
-            // lives on the summon dies with the summon, and the Jabberwock
-            // comes back "with the same Stats as when it disappeared" -- so
-            // without this the Blade's sacrifice is undone by the next
-            // summoning, which is precisely the interaction the sheet spends a
-            // sentence on.
-            suppressedScopes: [...(summon.system?.suppressedScopes ?? [])],
-          },
-        });
-
-        // *"5◈ Turns AFTER the Jabberwock disappears."* The same `countFrom`
-        // `engine/platforms.mjs#setCooldownOnDestruction` starts for a mount,
-        // and the defect its comment records is the one this prevents: *"the
-        // mount may stand for twenty Turns and the clock has not begun."*
-        const ability = owner.items?.find?.(
-          (i) => (i.system?.phases ?? []).some(
-            (ph) => ph.kind === "summon"
-              && Object.values(ph.spec?.types ?? {}).includes(contentId),
-          ),
-        );
-        const cd = ability?.system?.cooldown ?? null;
-        if (cd?.countFrom === "destroyed" && cd.max) {
-          const ticks = resolveTicks(parseTick(String(cd.max)), {
-            turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-          });
-          if (ticks > 0) await ability.update({ "system.cooldown.remaining": ticks });
-        }
-      }
+      if (owner && contentId && reason !== "summonerDefeated") await rememberDeparture(summon, owner, { killed: false });
 
       // Recorded before the document goes, because afterwards there is nothing
       // to name. `reason` distinguishes a timed departure from the field-close
@@ -1116,11 +1079,16 @@ export function worldIO() {
       if (!actor || !state) return;
 
       /** @type {Record<string, unknown>} */
+      // The sheet's letters only. A record made before #247 held projected
+      // Ranks, cloned to {} by the flag, and an update carrying them was
+      // dropped whole: Arturia kept her 900 Health through the Glass Game.
+      const letters = Object.values(state.parameters ?? {});
+      const lettersOk = letters.length > 0 && letters.every((v) => typeof v === "string");
       const update = {
         "system.health": state.stats?.health,
         "system.agility": state.stats?.agility,
         "system.luck": state.stats?.luck,
-        "system.parameters": state.parameters,
+        ...(lettersOk ? { "system.parameters": state.parameters } : {}),
         "system.grantedSteps": state.grantedSteps,
         "system.baseAttackPenalty": state.baseAttackPenalty,
       };
@@ -1221,6 +1189,11 @@ export function worldIO() {
       // After the defeat is written, so a failed dismissal cannot leave the
       // summoner standing.
       for (const summon of goWithIt) await this.dismissSummon(summon.id, "summonerDefeated");
+      // A summon KILLED has disappeared too (#247 reading 11): what it leaves
+      // behind is written as its timed departure writes it, at full Health.
+      const owner = !wasDefeated && actor.type === "summon" && actor.system?.summonerId
+        ? resolve(actor.system.summonerId) : null;
+      if (owner && !owner.system?.defeated) await rememberDeparture(actor, owner, { killed: true });
       // A legion body leaves the count and the board (#226 reading 1).
       if (!wasDefeated && legionBody) {
         await bodyFell(actor);
@@ -1569,6 +1542,26 @@ export function worldIO() {
         const { postRevival } = await import("./revival-report.mjs");
         await postRevival(e);
       }
+      // ...and an escape from the Nameless Forest, roll and outcome (#247, live).
+      for (const e of entries.filter((x) => x?.kind === "namelessForestEscape")) {
+        const { postEscape } = await import("./nameless-forest.mjs");
+        await postEscape(e);
+      }
+      // ...and the Glass Game's rewind, whom it turned back (#247, live).
+      for (const e of entries.filter((x) => x?.kind === "glassGameRewind")) {
+        const { postGlassGame } = await import("./glass-game.mjs");
+        await postGlassGame(e);
+      }
+      // ...and the forest's death die, whatever came of it (#247, live).
+      for (const e of entries.filter((x) => x?.kind === "namelessForestDeathRoll")) {
+        const { postDeathRoll } = await import("./nameless-forest.mjs");
+        await postDeathRoll(e);
+      }
+      // ...and an Item taken off the ground or refused (#247, live).
+      for (const e of entries.filter((x) => x?.event === "itemPickedUp" || x?.event === "itemRefused")) {
+        const { postItemLine } = await import("./item-report.mjs");
+        await postItemLine(e);
+      }
     },
 
     /**
@@ -1636,9 +1629,7 @@ function resolve(unitId) {
   //
   // For a linked token the two are the same document, so this changes nothing
   // in the common case and fixes the unlinked one.
-  const fromToken = canvas?.tokens?.get(unitId)?.actor
-    ?? canvas?.tokens?.placeables?.find((t) => t.actor?.id === unitId)?.actor;
-  return fromToken ?? game.actors?.get(unitId) ?? null;
+  return unitActor(unitId);
 }
 
 /**
@@ -1672,6 +1663,59 @@ function resolveToken(unitId) {
 }
 
 /**
+ * What a summon leaves behind it on its summoner when it goes: the Stats it is
+ * summoned back with, and its summoner's `countFrom: "destroyed"` clock.
+ *
+ * > *"When the Jabberwock is summoned again after disappearing, its Stats will be
+ * > the same as when it disappeared. Cooldown: 5◈ Turns after the Jabberwock
+ * > disappears."*
+ *
+ * Both doors a summon leaves by: its stay running out, and being killed. Killing
+ * it is disappearing (#247 reading 11): the clock starts, and it comes back at
+ * FULL Health, still without what the Vorpal Blade took. Only the timed door
+ * wrote this, so a killed Jabberwock started no cooldown and came back with
+ * its lifesteal.
+ *
+ * @param {object} summon the summon's Actor
+ * @param {object} owner its summoner's Actor
+ * @param {{killed: boolean}} how
+ * @returns {Promise<void>}
+ */
+async function rememberDeparture(summon, owner, { killed }) {
+  const contentId = summon.system?.contentId ?? null;
+  if (!contentId) return;
+  const health = summon.system.health ?? {};
+  // The SAME record `engine/fields.mjs` writes when a field closes over its
+  // Sphinxes, and the same one `placeSummons` reads back. Kept on the owner
+  // because it is the only thing that outlives the summon.
+  await owner.update({
+    [`system.fieldSummonStats.${contentId}`]: {
+      health: { value: killed ? (health.max ?? null) : (health.value ?? null), max: health.max ?? null },
+      agility: { value: summon.system.agility?.value ?? null, max: summon.system.agility?.max ?? null },
+      // ...and what has been PERMANENTLY taken from it: the subtle half of the
+      // Vorpal Blade, which the next summoning would otherwise undo.
+      suppressedScopes: [...(summon.system?.suppressedScopes ?? [])],
+    },
+  });
+
+  // *"5◈ Turns AFTER the Jabberwock disappears."* The same `countFrom`
+  // `engine/platforms.mjs#setCooldownOnDestruction` starts for a mount: *"the
+  // mount may stand for twenty Turns and the clock has not begun."*
+  const ability = owner.items?.find?.(
+    (i) => (i.system?.phases ?? []).some(
+      (ph) => ph.kind === "summon" && Object.values(ph.spec?.types ?? {}).includes(contentId),
+    ),
+  );
+  const cd = ability?.system?.cooldown ?? null;
+  if (cd?.countFrom === "destroyed" && cd.max) {
+    const ticks = resolveTicks(parseTick(String(cd.max)), {
+      turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    });
+    if (ticks > 0) await ability.update({ "system.cooldown.remaining": ticks });
+  }
+}
+
+/**
  * Count a removal towards the Grail's materialization.
  *
  * *"A disappeared Servant counts towards the number of Servants needed for the
@@ -1688,7 +1732,7 @@ async function countTowardsGrail(unitId, cause) {
   const combat = game.combats?.active;
   if (!combat || !game.user.isGM) return;
 
-  const actor = game.actors.get(unitId) ?? canvas?.tokens?.get(unitId)?.actor;
+  const actor = unitActor(unitId) ?? canvas?.tokens?.get(unitId)?.actor;
   const next = registerDefeat(
     {
       threshold: combat.system?.grailThreshold ?? 9,
@@ -1727,7 +1771,7 @@ async function countTowardsGrail(unitId, cause) {
  * @returns {Promise<void>}
  */
 async function freeContractedServants(unitId, killerId = null) {
-  const master = game.actors.get(unitId);
+  const master = unitActor(unitId);
   // Whoever holds a Contract, not only a `master` actor: Medea's Servants
   // taken by Rule Breaker stayed contracted to her body (#193 reading 18).
   const holds = master?.type === "master" || game.actors.some((a) => a.system?.masterId === unitId);
@@ -1917,7 +1961,7 @@ function classifyLogEntry(e) {
  * @returns {string}
  */
 function summaryOf(e) {
-  const who = e.unitId ? game.actors.get(e.unitId)?.name ?? e.unitId : null;
+  const who = e.unitId ? unitActor(e.unitId)?.name ?? e.unitId : null;
   const amount = e.amount !== undefined ? ` (${e.amount})` : "";
   return who ? `${e.kind}: ${who}${amount}` : `${e.kind}${amount}`;
 }

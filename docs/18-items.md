@@ -48,7 +48,7 @@ Distinct from consuming it, and the distinction is load-bearing: an ability may 
 
 The rulebook placed the first item on a board via `[Vorpal Blade]`: *"…the [Vorpal Blade] Item appears on a random panel on the game board, this Item can be picked up by a Unit walking onto its panel."* This triggers automatically whenever a unit finishes moving (`module/engine/movement-hooks.mjs:282-295`). The item is carried by a **structure** — a unit with `kind: "structure"` and a `carriesItemId` field — that occupies the same panel.
 
-`itemPickupIntents` finds a structure at the unit's new position and asks `acquisitionTarget` whether the unit may actually obtain it (`module/rules/items.mjs:147-167`). If the answer is yes, the intents are an `itemGrant`, a `dismiss` to delete the structure, and a log entry. If the answer is no (e.g., `[Vorpal Blade]` refuses Nursery), nothing happens — the sword stays exactly where it lies (`module/rules/items.mjs:138-141`).
+`itemPickupIntents` finds a structure at the unit's new position and asks `acquisitionTarget` whether the unit may actually obtain it (`module/rules/items.mjs:147-167`). If the answer is yes, the intents are an `itemGrant`, a `dismiss` to delete the structure, and a log entry. If the answer is no (e.g., `[Vorpal Blade]` refuses Nursery), the sword stays exactly where it lies and the only intent is an `itemRefused` log entry with its reason, which `engine/item-report.mjs` words on a card (#247).
 
 ### Acquisition targeting
 
@@ -82,6 +82,8 @@ binder defeated, the binder's distance. Its heal after a Damage Step asks `event
 for 0 too (#204), and that damaged nobody. The clocks of what it grants travel with it (`grantClocks`, the Tick each is
 ready at): the Master's Avalon Cooldown is the Item's, passed on where it stood and running while she holds it (#230
 readings 26 to 28).
+
+**An Item a Unit may hold works once held** (`worksWhenHeld`, #247 reading 14): nothing writes `equipped`, so the Vorpal Blade did nothing in any hand. Its bar names the kinds of Unit that may take it (`barredFrom.onlyKinds`), with its own refusal reason (`notItsKind`) apart from Nursery's bar (`barred`). **Taking an Item, or being refused it, is said on a card** (`engine/item-report.mjs`): *"Berserker picks up [Vorpal Blade], and wields it"*, *"Trump Soldier cannot take [Vorpal Blade]: only a Servant or a Master can, and it stays where it lies"*. An Item a handler spends says so too (*"[Vorpal Blade] breaks and can no longer be used"*, Ch. 37). **The Blade's blow heals nothing** (ruled 2026-10-17): the lifesteal is removed at the Damage Step's start, before `damageTaken`, and the Blade breaks at its end, after the 3× it gives.
 
 ## Invariants & edge cases
 

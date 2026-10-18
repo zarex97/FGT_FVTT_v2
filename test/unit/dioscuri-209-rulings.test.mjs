@@ -7,7 +7,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import { twinSpecs, CASTOR, POLLUX } from "../helpers/dioscuri.mjs";
 import { loadSource } from "../../tools/lib/load.mjs";
-import { validateAll, phaseEffects, PHASE_ACTIONS_STILL_DROPPED } from "../../tools/lib/content.mjs";
+import { validateAll, phaseEffects } from "../../tools/lib/content.mjs";
 import { loadAssets } from "../../tools/lib/load.mjs";
 import { unitImages } from "../../tools/lib/content.mjs";
 import { publicNameOf } from "../../module/rules/identity.mjs";
@@ -425,17 +425,16 @@ describe("the build refuses a rule element in an applyEffects phase (§46.4-D1)"
     expect(problems[0]).toMatch(/dioscuri-mana-burst-castor\.yml/);
   });
 
-  it("is only ever told of Jabberwock's Alice Eater, and the list only shrinks", async () => {
-    // The one Clause of this kind still dropped: a stay-extension needs a phase
-    // kind of its own. Lower this when it is built.
-    expect(PHASE_ACTIONS_STILL_DROPPED.length).toBeLessThanOrEqual(1);
-    const files = await corpus();
-    for (const d of PHASE_ACTIONS_STILL_DROPPED) {
-      const doc = files.find((f) => f.doc?.id === d.id)?.doc;
-      expect(doc, `${d.id} is a file in the corpus`).toBeTruthy();
-      // Stale once it is anything but an id-less rule element in such a phase.
-      const stillDropped = phaseEffects(doc).some(([, spec]) => spec.key === d.key && !spec.id && !spec.effect);
-      expect(stillDropped, `${d.id} ${d.key} is still dropped`).toBe(true);
+  it("lets a Skill's phase name a scheduler action, and that action is one the scheduler runs", async () => {
+    // Alice Eater's DurationDelta was the one drop this list named (§46.4-D1);
+    // a Skill's phases dispatch scheduler actions since #247, so the build
+    // accepts one there and this asks that it is an action the scheduler has.
+    const { ACTION_KINDS } = await import("../../module/engine/scheduler.mjs");
+    for (const { doc } of await corpus()) {
+      if (doc?.damage) continue;
+      for (const [, spec] of phaseEffects(doc)) {
+        if (!(spec.effect?.id ?? spec.effect?.defId ?? spec.id ?? spec.defId) && spec.key) expect(ACTION_KINDS, `${doc.id} ${spec.key}`).toContain(spec.key);
+      }
     }
   });
 

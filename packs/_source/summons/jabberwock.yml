@@ -32,6 +32,21 @@ movesOntoOccupiedPanels: true
 abilities:
   - { ref: jabberwock-alice-eater }
 passiveRules:
+  # Which way (#247 reading 10): *"knocked 1 panel straight away from it"*.
+  # Bašmu's push fans out to the nearest free panel, and live the Jabberwock
+  # moving right onto Heracles sent him UP. Kingprotea's arrival push is the
+  # one that reads its travel: on along its last step, a Unit in the way pushed
+  # on in turn, one against the edge to the nearest free panel.
+  - key: Knockback
+    direction: arrival
+  # "Enemy Units cannot Attack Nursery or her Master if the Jabberwock are
+  # directly next to them." The Trump Soldier's guard, word for word; Part 2
+  # planned it (J17) and the statblock never carried it (#247 D2).
+  - key: TargetabilityModifier
+    radius: 1
+    relations: [ally, self]
+    recipientRoles: [summoner, summonerMaster]
+
   # "Whenever the Jabberwock receives damage from Servants, its Health is
   # restored by 75% of the damage received."
   #

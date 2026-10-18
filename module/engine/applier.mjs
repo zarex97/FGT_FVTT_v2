@@ -16,7 +16,7 @@
 
 import * as I from "./intents.mjs";
 import { acquisitionTarget } from "../rules/items.mjs";
-import { currentBoard, currentMoment } from "./board.mjs";
+import { currentBoard, currentMoment, unitActor } from "./board.mjs";
 
 /**
  * @typedef {object} ApplicationPlan
@@ -91,6 +91,7 @@ export async function applyIntents(intents, {
   const clocks = lines ? clocksBeforeBatch(intents) : [];
   const stats = lines ? statsBeforeBatch(intents) : [];
   const spans = lines ? spansBeforeBatch(intents) : [];
+  const held = lines ? itemsBeforeBatch(intents) : [];
   // HERE rather than in `applyWorldIntents`, because three call sites write to
   // the world without going through that helper -- the attack flow, the
   // scheduler's boundary sequences and the movement hook -- and putting the
@@ -131,7 +132,7 @@ export async function applyIntents(intents, {
   if (plan.remote.length > 0) await io.proxy(plan.remote, { source });
   for (const p of plan.prompts) await io.prompt(p.userId, p.prompt);
 
-  said.push(...clockLines(clocks), ...statLines(stats), ...await spanLines(spans));
+  said.push(...clockLines(clocks), ...statLines(stats), ...await spanLines(spans), ...itemLines(held), ...suppressionLines(lines ? plan.local : []));
   return { applied: plan.local.length, proxied: plan.remote.length, prompted: plan.prompts.length, lines: said };
 }
 
@@ -195,7 +196,7 @@ function statsBeforeBatch(intents) {
 
 /** @param {string} unitId @param {string} stat @returns {number|null} */
 function statOf(unitId, stat) {
-  const n = Number(foundry.utils.getProperty(game.actors.get(unitId)?.system ?? {}, stat));
+  const n = Number(foundry.utils.getProperty(unitActor(unitId)?.system ?? {}, stat));
   return Number.isFinite(n) ? n : null;
 }
 
@@ -229,7 +230,7 @@ function spansBeforeBatch(intents) {
 
 /** @param {string} unitId @param {string} defId @returns {number|null} */
 function expiryOf(unitId, defId) {
-  const e = game.actors.get(unitId)?.effects?.find((x) => x.system?.defId === defId);
+  const e = unitActor(unitId)?.effects?.find((x) => x.system?.defId === defId);
   return typeof e?.system?.expiry === "number" ? e.system.expiry : null;
 }
 
@@ -255,6 +256,72 @@ async function spanLines(spans) {
 }
 
 /**
+ * The Items a batch's `itemQuantity` intents name, with how many were held.
+ *
+ * @param {Intent[]} intents
+ * @returns {Array<{unitId: string, itemId: string, name: string|null, before: number}>}
+ */
+function itemsBeforeBatch(intents) {
+  if (typeof game === "undefined" || !game?.actors) return [];
+  return (intents ?? []).filter((i) => i?.t === "itemQuantity" && i.unitId && i.itemId).map((i) => {
+    const item = heldItem(i.unitId, i.itemId);
+    return { unitId: i.unitId, itemId: i.itemId, name: item?.name ?? null, before: quantityOf(item) };
+  });
+}
+
+/** @param {string} unitId @param {string} itemId a document or content id @returns {object|null} */
+function heldItem(unitId, itemId) {
+  const items = unitActor(unitId)?.items;
+  return items?.get?.(itemId) ?? items?.find?.((x) => x.system?.contentId === itemId) ?? null;
+}
+
+/** @param {object|null} item @returns {number} */
+function quantityOf(item) {
+  if (!item) return 0;
+  const n = Number(item.system?.quantity);
+  return Number.isFinite(n) ? n : 1;
+}
+
+/**
+ * Each Item a handler spent, as a card line. The sheet's own words when the
+ * language file keys them by the Item (*"the Vorpal Blade breaks"*); the count
+ * otherwise. The Blade left Heracles' hands and the card said nothing (#247,
+ * live).
+ *
+ * @param {Array<{unitId: string, itemId: string, name: string|null, before: number}>} held
+ * @returns {CardLine[]}
+ */
+function itemLines(held) {
+  return held.flatMap(({ unitId, itemId, name, before }) => {
+    const after = quantityOf(heldItem(unitId, itemId));
+    if (after === before) return [];
+    const item = name ?? itemId;
+    const content = heldItem(unitId, itemId)?.system?.contentId ?? itemId;
+    const gone = `FGT.Item.Gone.${content}`;
+    const line = after === 0 && game.i18n.has?.(gone)
+      ? game.i18n.format(gone, { item })
+      : game.i18n.format("FGT.Item.Count", { item, before, after });
+    return [{ unitId, summary: { id: "itemQuantity", name: line, outcome: "applied", reason: null, chance: null } }];
+  });
+}
+
+/**
+ * Each rule a handler took away for good, as a card line: the lifesteal the
+ * Blade removed went with no word (#247, live). Keyed by the rule's slug, so
+ * the line is the sheet's words and never the slug.
+ *
+ * @param {Intent[]} written
+ * @returns {CardLine[]}
+ */
+function suppressionLines(written) {
+  return (written ?? []).filter((i) => i?.t === "suppressRule" && i.scope).map((i) => {
+    const key = `FGT.Suppressed.${i.scope}`;
+    const line = game.i18n.has?.(key) ? game.i18n.localize(key) : game.i18n.localize("FGT.Suppressed.Generic");
+    return { unitId: i.unitId, summary: { id: "suppressRule", name: line, outcome: "applied", reason: null, chance: null } };
+  });
+}
+
+/**
  * The clocks a batch's `cooldown` intents name, read before it is written.
  *
  * @param {Intent[]} intents
@@ -269,7 +336,7 @@ function clocksBeforeBatch(intents) {
 
 /** @param {string} unitId @param {string} abilityId @returns {number} */
 function remainingOf(unitId, abilityId) {
-  return game.actors.get(unitId)?.items?.get(abilityId)?.system?.cooldown?.remaining ?? 0;
+  return unitActor(unitId)?.items?.get(abilityId)?.system?.cooldown?.remaining ?? 0;
 }
 
 /**
@@ -281,7 +348,7 @@ function remainingOf(unitId, abilityId) {
  */
 function clockLines(clocks) {
   return clocks.flatMap((c) => {
-    const name = game.actors.get(c.unitId)?.items?.get(c.abilityId)?.name ?? null;
+    const name = unitActor(c.unitId)?.items?.get(c.abilityId)?.name ?? null;
     const line = cooldownLine(name, c.before, remainingOf(c.unitId, c.abilityId));
     return line ? [{ unitId: c.unitId, summary: { id: "cooldown", name: line, outcome: "applied", reason: null, chance: null } }] : [];
   });
@@ -414,7 +481,7 @@ export async function applyWorldIntents(intents, source, { sink = null, lines = 
   const { worldIO } = await import("./io.mjs");
   return applyIntents(intents, {
     io: worldIO(),
-    canWrite: (unitId) => game.actors.get(unitId)?.isOwner ?? false,
+    canWrite: (unitId) => unitActor(unitId)?.isOwner ?? false,
     isGM: game.user.isGM,
     source,
     sink,
@@ -452,7 +519,7 @@ async function resolveElements(intents) {
   /** @type {Intent[]} */
   const out = [];
   for (const intent of intents) {
-    const target = bare(intent) ? game.actors.get(intent.unitId) : null;
+    const target = bare(intent) ? unitActor(intent.unitId) : null;
     const exit = target ? elementalEarlyExit(unitOf(target, board), intent.element) : null;
     if (exit?.kind === "heal") {
       out.push(I.heal(intent.unitId, intent.amount, intent.source ?? exit.by));
@@ -486,7 +553,7 @@ async function resolveHealing(intents) {
   const board = currentBoard();
   return intents.map((intent) => {
     if (!heal(intent)) return intent;
-    const actor = game.actors.get(intent.unitId);
+    const actor = unitActor(intent.unitId);
     if (!actor) return intent;
     const percent = healingPercent(unitOf(actor, board), intent.source);
     if (percent === 0) return intent;
@@ -559,7 +626,7 @@ async function resolveRemovals(intents, depth = 0) {
       out.push(intent);
       continue;
     }
-    const actor = game.actors.get(intent.unitId);
+    const actor = unitActor(intent.unitId);
     const unit = actor ? unitOf(actor, board) : null;
     const going = (unit?.effectInstances ?? [])
       .filter((e) => e.id === intent.effectId || e.defId === intent.effectId);
@@ -620,7 +687,7 @@ async function resolveEffects(intents, { process = null, sink = null } = {}) {
       continue;
     }
 
-    const target = game.actors.get(intent.unitId);
+    const target = unitActor(intent.unitId);
     // Nothing to resolve it against: pass it through rather than dropping it,
     // because a missing definition is a content problem and losing the write
     // would hide it.

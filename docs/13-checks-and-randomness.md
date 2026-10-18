@@ -99,6 +99,8 @@ allies by aura. A Unit holding two Instincts rolls once, the likeliest (`attack.
 Air puts +1/+2 on the DU's Evade (`direction: imposed`, split by AGI Rank); Mana Burst's `evadeShift` moves her own
 by -2 for the Combat Phase.
 
+**A check's own modifiers belong to that check** (#247). The Nameless Forest's escape ladder (MAG Rank, and −3 within its Home Base) is read by `rules/nameless-forest.mjs#escapeModifiers` for the escape alone. It was also authored on the marker as `check: luck` CheckModifiers, so the escape counted it twice (*"(MAG A −2, namelessForest −2)"*) and every other Luck Check a caught Unit made was eased; the marker carries none now.
+
 ## Invariants & edge cases
 
 1. **Success is at or under the target, not just under.** A roll equal to the stat succeeds (`module/rules/checks.mjs:205-211`).

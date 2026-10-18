@@ -22,7 +22,7 @@
  * Fragarach Counter is the whole point of standing there.
  */
 
-import { currentBoard, unitOf } from "./board.mjs";
+import { currentBoard, unitOf, unitActor } from "./board.mjs";
 import { resourcePathFor, resourceLabel } from "../domain/resources.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import { landEntry } from "./landing.mjs";
@@ -64,7 +64,7 @@ export async function offerOptionalCosts({ unitIds, timing, groupId = null }) {
   const taken = [];
 
   for (const unitId of [...new Set(unitIds)].filter(Boolean)) {
-    const actor = game.actors.get(unitId);
+    const actor = unitActor(unitId);
     if (!actor) continue;
     const unit = unitOf(actor, board);
 

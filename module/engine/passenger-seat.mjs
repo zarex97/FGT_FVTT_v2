@@ -18,7 +18,7 @@
  * exist.
  */
 
-import { currentBoard } from "./board.mjs";
+import { currentBoard, unitActor } from "./board.mjs";
 import { displaceToken, worldIO } from "./io.mjs";
 import { applyIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
@@ -67,7 +67,7 @@ export async function carryMasterAlong({ servantId, from, to }) {
   // words of the rule that refused.
   const say = (reason) => ui.notifications?.warn(game.i18n.format("FGT.Movement.MasterNotCarried", {
     // fgt-name-ok: a Master conceals nothing (Ch. 30)
-    master: game.actors.get(master.id)?.name ?? "The Master",
+    master: unitActor(master.id)?.name ?? "The Master",
     reason: game.i18n.localize(reason),
   }));
   if (!verdict.ok) {
@@ -76,7 +76,7 @@ export async function carryMasterAlong({ servantId, from, to }) {
   const landing = verdict.panel;
   if (landing.i === master.panel.i && landing.j === master.panel.j) return;
 
-  const token = game.actors.get(master.id)?.getActiveTokens?.()[0]?.document;
+  const token = unitActor(master.id)?.getActiveTokens?.()[0]?.document;
   if (!token) return;
   const size = canvas.scene.grid.size;
   // Displacement, not a Move of its own -- *"counts as only Moving one Unit"*,
@@ -96,7 +96,7 @@ export async function carryMasterAlong({ servantId, from, to }) {
     to: { ...landing },
     text: game.i18n.format("FGT.Movement.MasterCarried", {
       // fgt-name-ok: a Master conceals nothing (Ch. 30)
-      master: game.actors.get(master.id)?.name ?? "The Master",
+      master: unitActor(master.id)?.name ?? "The Master",
       servant: shownNameById(servant.id),
     }),
   })], { io: worldIO(), canWrite: () => true, isGM: game.user.isGM, source: "passengerSeat" });

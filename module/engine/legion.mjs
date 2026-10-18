@@ -21,7 +21,7 @@
  */
 
 import { record } from "./game-log.mjs";
-import { currentBoard, currentMoment } from "./board.mjs";
+import { currentBoard, currentMoment, unitActor } from "./board.mjs";
 import { worldIO } from "./io.mjs";
 import { askOwner, chooseFor } from "./ask.mjs";
 import {
@@ -36,7 +36,7 @@ import { shownName } from "./public-identity.mjs";
  * @returns {{holder: object, key: string, pool: object}|null}
  */
 export function poolOf(body) {
-  const actor = typeof body === "string" ? game.actors.get(body) : body;
+  const actor = typeof body === "string" ? unitActor(body) : body;
   const key = actor?.system?.legionKey || null;
   return key ? poolByKey(key) : null;
 }
@@ -476,7 +476,7 @@ async function removeBody(found, body) {
   await worldIO().clearBody(body.id);
   await worldIO().log([{ kind: "legionRemoved", unitId: body.id, name: body.name }]);
   const masterId = body.system?.masterId ?? null;
-  const master = masterId ? game.actors.get(masterId) : null;
+  const master = masterId ? unitActor(masterId) : null;
   if (master) {
     await master.update({ "system.servantIds": [...(master.system.servantIds ?? [])].filter((id) => id !== body.id) });
   }

@@ -19,6 +19,7 @@ import { boardPlatform, jumpOff } from "./platforms.mjs";
 import { attemptForestEscape } from "./nameless-forest.mjs";
 import { useItem as consumeHeldItem, giveItem } from "./items.mjs";
 import { shownNameById } from "./public-identity.mjs";
+import { unitActor } from "./board.mjs";
 
 /**
  * id → handler. Held against `rules/actions.mjs`'s registry by
@@ -262,7 +263,7 @@ async function spendFromBar(actor, { essence }) {
   const command = offered.find((c) => c.id === commandId);
   const context = { servantId };
   if ((command?.effect ?? []).some((e) => e.scope === "oneSkill")) {
-    const servant = game.actors.get(servantId);
+    const servant = unitActor(servantId);
     const { suspendableSkills } = await import("../rules/command-spells.mjs");
     const { currentBoard, unitFrom } = await import("./board.mjs");
     const pool = [...(servant?.items ?? [])].filter((i) => i.type === "ability" && !i.system?.isNP);
