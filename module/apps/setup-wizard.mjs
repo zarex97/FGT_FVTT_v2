@@ -197,7 +197,11 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     return {
       ...context,
       draft: this.draft,
-      factions: roster,
+      // A player is shown by name: the roster stores user ids, and a GM reading
+      // "yVevT9Da3egFpXeO" cannot tell which friend that is.
+      factions: roster.map((f) => ({
+        ...f, playerNames: f.userIds.map((id) => game.users.get(id)?.name ?? id),
+      })),
       locked,
       lockedReason: locked ? game.i18n.localize("FGT.Setup.LockedReason") : null,
       warTypes: {
@@ -216,6 +220,10 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
       fillChoices: { random: "FGT.Setup.FillRandom", fixed: "FGT.Setup.FillFixed" },
       scenes: Object.fromEntries(game.scenes.map((s) => [s.id, s.name])),
       masterMode: game.settings.get("fgt", "masterMode"),
+      // The Confirm tab names each choice as the War tab does, not by its key.
+      masterModes: {
+        essences: "FGT.MasterMode.Essences", coinFlip: "FGT.MasterMode.CoinFlip", rankless: "FGT.MasterMode.Rankless",
+      },
       // The Master Essence draft (#241): one per container, Rank first.
       essencesOn,
       essenceChoices: this.#essences.map((e) => ({ id: e.contentId, label: `${e.rank} · ${e.name}` })),
