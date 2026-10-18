@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F/GT Beginner's Guide</title>
+<style>
+  :root {
+    --bg: #faf7f2; --ink: #1d1b22; --muted: #5d5866; --line: #ddd5c8;
+    --accent: #9c2b23; --accent-soft: #f3e3df; --note: #fff6dc; --note-line: #e2c25a;
+    --code: #efe9df; --shot-bg: #16141c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17151b; --ink: #ece7df; --muted: #a59fae; --line: #34303b;
+      --accent: #e0705f; --accent-soft: #2c1d1c; --note: #2a2516; --note-line: #8a7330;
+      --code: #24212a; --shot-bg: #0e0d12;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.6 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  }
+  main { max-width: 920px; margin: 0 auto; padding: 32px 16px 80px; }
+  header.cover { padding: 48px 0 24px; border-bottom: 3px solid var(--accent); margin-bottom: 32px; }
+  header.cover h1 { font-size: 2.4rem; line-height: 1.15; margin: 0 0 8px; }
+  header.cover p { color: var(--muted); margin: 4px 0; }
+  h2 { font-size: 1.6rem; margin: 56px 0 12px; padding-top: 8px; border-top: 1px solid var(--line); }
+  h3 { font-size: 1.2rem; margin: 32px 0 8px; }
+  p, li { max-width: 72ch; }
+  a { color: var(--accent); }
+  code, kbd { background: var(--code); padding: 1px 6px; border-radius: 4px; font-size: .92em; }
+  .ui { font-weight: 600; white-space: nowrap; }
+  .toc { columns: 2; column-gap: 32px; padding-left: 20px; }
+  .toc li { break-inside: avoid; }
+  @media (max-width: 640px) { .toc { columns: 1; } header.cover h1 { font-size: 1.8rem; } }
+  figure { margin: 20px 0 28px; }
+  figure img {
+    display: block; max-width: 100%; height: auto; border-radius: 8px;
+    background: var(--shot-bg); border: 1px solid var(--line);
+  }
+  figure.narrow img { max-width: 420px; }
+  figure.mid img { max-width: 640px; }
+  figcaption { color: var(--muted); font-size: .9rem; margin-top: 6px; }
+  .note {
+    background: var(--note); border-left: 4px solid var(--note-line);
+    padding: 10px 14px; border-radius: 4px; margin: 16px 0;
+  }
+  .warn { background: var(--accent-soft); border-left: 4px solid var(--accent); padding: 10px 14px; border-radius: 4px; margin: 16px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0 20px; font-size: .95rem; }
+  th, td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .table-wrap { overflow-x: auto; }
+  ol.steps > li { margin-bottom: 6px; }
+  .part { color: var(--accent); text-transform: uppercase; letter-spacing: .08em; font-size: .8rem; font-weight: 700; margin-top: 64px; }
+  @media print {
+    @page { size: A4; margin: 16mm 14mm; }
+    body { font-size: 11pt; background: #fff; color: #000; }
+    main { max-width: none; padding: 0; }
+    h2 { break-before: page; border-top: none; margin-top: 0; }
+    figure, .note, .warn, table { break-inside: avoid; }
+    figure img { border-color: #ccc; }
+    a { color: #000; text-decoration: none; }
+    .part { margin-top: 0; break-before: page; break-after: avoid; }
+    .part + h2 { break-before: avoid; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+<header class="cover">
+  <h1>Fate/Grail Tactics on Foundry<br>Beginner's Guide</h1>
+  <p>How to join, play and run a war in the F/GT system for Foundry VTT.</p>
+  <p>Written for the Normal ruleset, Great Holy Grail War, two factions. October 2026.</p>
+</header>
+
+<nav aria-label="Contents">
+  <strong>Contents</strong>
+  <ol class="toc">
+    <li><a href="#join">Joining the game</a></li>
+    <li><a href="#basics">The game in two minutes</a></li>
+    <li><a href="#screen">Your screen</a></li>
+    <li><a href="#turn">Your Turn: move and attack</a></li>
+    <li><a href="#defend">When you are attacked</a></li>
+    <li><a href="#cards">Reading an attack card</a></li>
+    <li><a href="#cs">Masters and Command Spells</a></li>
+    <li><a href="#gm-prep">GM: before the session</a></li>
+    <li><a href="#gm-war">GM: building a war</a></li>
+    <li><a href="#gm-run">GM: running the match</a></li>
+    <li><a href="#stuck">When something seems stuck</a></li>
+    <li><a href="#ref">Quick reference</a></li>
+  </ol>
+</nav>
+
+<div class="part">Part 1 · Everyone</div>
+
+<h2 id="join">1. Joining the game</h2>
+<p>Your GM sends you a link that ends in <code>/join</code>. Open it in Chrome, Edge or Firefox on a computer. A screen at least 1024&nbsp;×&nbsp;768 is needed; 1920&nbsp;×&nbsp;1080 is best.</p>
+<ol class="steps">
+  <li>Pick your user name in the first box, for example <span class="ui">Player2</span>.</li>
+  <li>Type the password the GM gave you.</li>
+  <li>Press <span class="ui">Join Game Session</span>.</li>
+</ol>
+<figure class="mid">
+  <img src="img/pl-01-join.png" alt="The Foundry join screen with Player2 selected, a password box and the Join Game Session button.">
+  <figcaption>The join screen. Pick your user, type the password, join.</figcaption>
+</figure>
+<p>The first time you join, Foundry may open a <span class="ui">User Configuration</span> window. You can close it.</p>
+
+<h2 id="basics">2. The game in two minutes</h2>
+<p>F/GT is a tactical wargame on a square grid. Each square is a <strong>panel</strong>. Two <strong>factions</strong> fight; each player controls one faction.</p>
+<ul>
+  <li><strong>Servants</strong> are your fighters: Saber, Archer, Lancer, Rider, Caster, Assassin and Berserker.</li>
+  <li>Each Servant has a <strong>Master</strong>. Masters are weak, but they hold Command Spells and keep their Servant strong. A Servant far from its Master fights worse.</li>
+  <li>Each faction starts in its <strong>home base</strong>: the coloured rows at its edge of the board.</li>
+  <li>A <strong>Turn</strong> belongs to a faction, not to one unit. In your Turn you move and attack with several units.</li>
+  <li>A <strong>Round</strong> is one Turn for each faction, plus a short GM slot. The order is rolled again every Round.</li>
+  <li>Durations are written in <strong>◈</strong>. One ◈ is one Round's worth of Turns, 3 in this war.</li>
+</ul>
+<h3>How you win</h3>
+<ul>
+  <li><strong>Elimination.</strong> Your faction is the last one standing.</li>
+  <li><strong>The Holy Grail.</strong> After 9 Servants are defeated, the Grail appears on the board. Hold a unit next to it for a full Round, with no enemy within 2 panels, and you win.</li>
+</ul>
+<h3>The numbers on a unit</h3>
+<div class="table-wrap"><table>
+  <tr><th>Stat</th><th>What it does</th></tr>
+  <tr><td>Health</td><td>Damage taken comes off this. At 0 the unit is defeated.</td></tr>
+  <tr><td>Agility</td><td>Used to Evade. A big hit also drains it.</td></tr>
+  <tr><td>Luck</td><td>Spent on Luck Checks, 1 per try.</td></tr>
+  <tr><td>MOV</td><td>How many panels the unit can move in one Move.</td></tr>
+  <tr><td>Range</td><td>How far its Normal Attack reaches.</td></tr>
+  <tr><td>BA (STR) / BA (MAG)</td><td>Base Attack: the starting damage of its attacks.</td></tr>
+  <tr><td>Sustainability</td><td>How long a Servant survives without a Master.</td></tr>
+</table></div>
+
+<div class="part">Part 2 · Players</div>
+
+<h2 id="screen">3. Your screen</h2>
+<figure>
+  <img src="img/pl-02-player-view.png" alt="The player view: a dark board with the player's Saber selected, its vision lit, and the action bar along the bottom.">
+  <figcaption>Player2 with their Saber selected. You only see what your units can see.</figcaption>
+</figure>
+<ul>
+  <li><strong>The board</strong> fills the middle. Dark areas are out of sight. Click one of your tokens to see through it.</li>
+  <li><strong>The action bar</strong> runs along the bottom when you select one of your units.</li>
+  <li><strong>The turn panel</strong> sits at the right end of the action bar. It shows whose Turn it is and what your faction has left.</li>
+  <li><strong>The sidebar</strong> on the far right holds the chat log. Attack cards appear there.</li>
+</ul>
+<h3>The action bar</h3>
+<figure>
+  <img src="img/pl-03-action-bar.png" alt="The action bar: portrait and Health, Agility, Luck on the left, Actions and Noble Phantasms buttons in the middle, the turn panel on the right.">
+  <figcaption>Left: the selected unit. Middle: what it can do. Right: the turn panel.</figcaption>
+</figure>
+<ul>
+  <li><span class="ui">Actions</span>: Attack, Move, Facing and more.</li>
+  <li><span class="ui">Noble Phantasms</span>: the Servant's big moves. They unlock in Round 6 (Assassin in Round 4).</li>
+  <li>A greyed button tells you why when you hover it, for example <em>"no attacks are permitted during the first Round"</em>.</li>
+</ul>
+<h3>The unit sheet</h3>
+<p>Double-click a token to open its sheet. It shows every stat, its Master and what it did this Turn.</p>
+<figure class="mid">
+  <img src="img/pl-06-servant-sheet.png" alt="A Servant sheet for Saber: Health, Agility and Luck bars, Combat stats such as BA, MOV and Range, Status with Contract and Master, and This Turn.">
+  <figcaption>The Saber's sheet. <span class="ui">This Turn</span> shows it already moved.</figcaption>
+</figure>
+
+<h2 id="turn">4. Your Turn: move and attack</h2>
+<p>The turn panel says <span class="ui">Turn 1 of 3 — Round 2</span> and lists your faction's budget for this Turn:</p>
+<div class="table-wrap"><table>
+  <tr><th>Budget</th><th>Per Turn</th></tr>
+  <tr><td>Servant moves</td><td>up to 4 Servants may move</td></tr>
+  <tr><td>Master moves</td><td>up to 3 Masters may move</td></tr>
+  <tr><td>Servant attacks</td><td>up to 2 Servants may attack</td></tr>
+</table></div>
+<p>Each unit gets <strong>one Move and one Attack</strong> per Turn, in either order: Move then Attack, or Attack then Move. Never Move, Attack and Move again. Using an active Skill counts as that unit's move.</p>
+<div class="note"><strong>Round 1 has no attacks.</strong> Use it to move into position. Attacks open in Round 2.</div>
+
+<h3>Moving</h3>
+<ol class="steps">
+  <li>Click <span class="ui">Move</span> on the action bar, or just start dragging.</li>
+  <li>Drag the token to its new panel. A label shows how many panels the path uses.</li>
+  <li>Let go. The move is checked step by step; an illegal move is refused.</li>
+</ol>
+<figure class="mid">
+  <img src="img/pl-04-move-drag.png" alt="A Saber token being dragged three panels up, with a label reading 3 panels.">
+  <figcaption>Dragging a Saber three panels. Movement counts straight steps, not diagonals.</figcaption>
+</figure>
+<div class="note">If you are controlling several tokens, Foundry drags all of them. Click an empty spot first, then drag one token.</div>
+
+<h3>Attacking</h3>
+<ol class="steps">
+  <li>Select your Servant and click <span class="ui">Attack</span>.</li>
+  <li>Hover an enemy. A preview shows the damage range and <span class="ui">✓ Legal — click to confirm</span>, or why it is not legal.</li>
+  <li>Click the target. A review window opens.</li>
+  <li>Press <span class="ui">Attack</span>. <span class="ui">Re-aim</span> picks again; <span class="ui">Cancel</span> spends nothing.</li>
+</ol>
+<p>Right-click or <kbd>Esc</kbd> cancels while you aim. <kbd>Tab</kbd> cycles through legal targets.</p>
+<figure class="mid">
+  <img src="img/pl-07-attack-target.png" alt="Aiming a Normal Attack at an enemy Lancer; a tooltip shows 1 target, damage 0 to 113, and Legal — click to confirm.">
+  <figcaption>Aiming. The tooltip shows the possible damage before you commit.</figcaption>
+</figure>
+<figure class="narrow">
+  <img src="img/pl-08-attack-review.png" alt="The Normal Attack review window listing the Lancer target with 0 to 113 damage and the buttons Attack, Re-aim and Cancel.">
+  <figcaption>The review window.</figcaption>
+</figure>
+
+<h3>Ending your Turn</h3>
+<p>When you are done, press <span class="ui">End Turn</span> at the bottom of the turn panel. On a small screen, scroll the turn panel down to reach it.</p>
+<figure class="narrow">
+  <img src="img/pl-05-end-turn.png" alt="The bottom of the turn panel: each unit with M and A badges, the turn order Faction 2, Faction 1, GM, and the End Turn button.">
+  <figcaption><span class="ui">M</span> lights up when a unit moved, <span class="ui">A</span> when it attacked. The strip shows the order this Round.</figcaption>
+</figure>
+<p>End Turn is greyed out while a rule forces you to do something first. The panel lists what is still owed.</p>
+
+<h2 id="defend">5. When you are attacked</h2>
+<p>An attack creates a card in the chat log. If the decision is yours, the <span class="ui">Awaiting you</span> panel appears near the top of the screen with a countdown. Click a row to jump to its card.</p>
+<figure class="narrow">
+  <img src="img/pl-10-awaiting-you.png" alt="The Awaiting you panel: one row reading Lancer, Choose a reaction, 0:46.">
+  <figcaption>Something is waiting on you, and how long you have.</figcaption>
+</figure>
+<figure class="narrow">
+  <img src="img/pl-09-reaction-card.png" alt="An attack card: Lancer versus Lancer, Normal Attack, with Choose a reaction: Do nothing, Block −25% Total Damage, Evade, and an Interrupt with a Command Spell section.">
+  <figcaption>Choose a reaction on the card itself.</figcaption>
+</figure>
+<div class="table-wrap"><table>
+  <tr><th>Button</th><th>What happens</th></tr>
+  <tr><td><span class="ui">Do nothing</span></td><td>Take the hit.</td></tr>
+  <tr><td><span class="ui">Block</span></td><td>Take the hit, but 25% less damage.</td></tr>
+  <tr><td><span class="ui">Evade</span></td><td>Roll against Agility. On a success the attack misses. On a failure you take the full hit.</td></tr>
+</table></div>
+<p>You have <strong>60 seconds</strong> to react. If time runs out, the game picks the option that costs nothing, which is <span class="ui">Do nothing</span>.</p>
+<p>After a failed Evade the card may ask <span class="ui">Accept the hit, or spend a Command Spell?</span> Press <span class="ui">Accept</span>, or spend a Command Spell to escape.</p>
+<figure class="narrow">
+  <img src="img/pl-12-luck-contest.png" alt="An attack card asking Contest with a Luck Check?, with Contest (costs 1 Luck) and Decline buttons.">
+  <figcaption>A Luck Check offer. Contesting costs 1 Luck whether it works or not.</figcaption>
+</figure>
+<div class="note">On <strong>Intermediate</strong> difficulty, the one this war uses, Luck Checks are switched off. If a Luck contest still shows up, it is declined for you within seconds. You do not need to press anything.</div>
+<p>If your Servant survives and the attacker is in its Range, the card may then offer <span class="ui">Counter</span>. A Counter is an attack back; it cannot itself be countered.</p>
+
+<h2 id="cards">6. Reading an attack card</h2>
+<p>When the attack is resolved, the card shows the damage in large numbers. Press <span class="ui">Damage breakdown</span> to see every step.</p>
+<figure class="narrow">
+  <img src="img/pl-13-damage-card.png" alt="A finished attack card showing 99 damage, with the damage breakdown open: Base 125, Crit +29, ZON penalty −32, Flat reductions −23.">
+  <figcaption>99 damage. The ZON penalty line shows the attacker was too far from its Master.</figcaption>
+</figure>
+<ul>
+  <li><span class="ui">Damage breakdown</span>: every modifier, in order.</li>
+  <li><span class="ui">Rolls</span>: the dice that were rolled.</li>
+  <li><span class="ui">Ladder</span>: each step of the exchange, such as react → evade, evadeRoll → fail.</li>
+  <li>Some numbers belong to the other side. The card says <em>"1 hidden — the other side's"</em> instead of showing them.</li>
+</ul>
+
+<h2 id="cs">7. Masters and Command Spells</h2>
+<p>Keep each Master near its Servant. A Servant outside its Master's <strong>ZON</strong> loses 5d10 damage on attacks and cannot use its Noble Phantasm. A Master's attacks on Servants are weak, and a Servant's hit can defeat a Master outright.</p>
+<h3>Command Spells</h3>
+<p>Each Master holds a few <strong>Command Spells</strong>. They are single-use orders: heal, teleport, boost damage, block damage and more. They are shown on the Master's sheet.</p>
+<ul>
+  <li><strong>On your own Turn:</strong> select the Master and press <span class="ui">Command Spell</span> on its action bar.</li>
+  <li><strong>Before your attack:</strong> a <span class="ui">Before the attack</span> card offers boosts such as <span class="ui">Damage Up</span>. Press one, or <span class="ui">Continue</span>.</li>
+  <li><strong>During an attack:</strong> the card shows <span class="ui">Interrupt with a Command Spell?</span> with the commands that are legal right now.</li>
+</ul>
+<figure class="mid">
+  <img src="img/pl-16-master-bar.png" alt="A Master's action bar with Attack, Move, Command Spell and Facing buttons and a Magic Crest skill.">
+  <figcaption>A Master's action bar. The hand icon is <span class="ui">Command Spell</span>.</figcaption>
+</figure>
+<figure class="narrow">
+  <img src="img/pl-14-before-attack-cs.png" alt="A Before the attack card: Archer is about to attack with Normal Attack. Boost it now: Damage Up 1 CS, Continue.">
+  <figcaption>The attacker's Master may boost the attack first.</figcaption>
+</figure>
+<figure class="narrow">
+  <img src="img/pl-15-cs-window.png" alt="An attack card paused at Interrupt with a Command Spell?, offering Teleport Servant for 1 CS.">
+  <figcaption>The card pauses so a Master can step in.</figcaption>
+</figure>
+<div class="note">Each Command Spell window waits up to <strong>45 seconds</strong>, then moves on by itself. Nobody needs to press anything. A timeout never spends a Command Spell.</div>
+
+<div class="part">Part 3 · The GM</div>
+
+<h2 id="gm-prep">8. GM: before the session</h2>
+<h3>Give every user a password</h3>
+<p>The join link is public. Anyone who has it can pick a user, so set a password on <strong>every</strong> user, the Gamemaster first. Leaving the Gamemaster without one hands out full control.</p>
+<ol class="steps">
+  <li>From the game, open the <span class="ui">Settings</span> tab of the sidebar, then <span class="ui">User Management</span> under Game Access. Or go to <code>/players</code>.</li>
+  <li>Type a password in each row.</li>
+  <li>Press <span class="ui">Save and Return</span>, then send each player their own password.</li>
+</ol>
+<figure class="mid">
+  <img src="img/gm-00-user-management.png" alt="The User Management screen with Gamemaster, Player1 and Player2 rows, password boxes and roles.">
+  <figcaption>User Management. One row per user.</figcaption>
+</figure>
+<h3>Factions and players</h3>
+<p>Each faction lists the users who play it. Change colours, players and alliances under <span class="ui">Settings → Game Settings → Fate/Grail Tactics → Manage Factions</span>. In this world Player1 plays Faction 1 and Player2 plays Faction 2.</p>
+<h3>Optional: clear the chat</h3>
+<p>Old test wars leave many cards in the chat log. Clearing it before a session makes new cards easy to find.</p>
+
+<h2 id="gm-war">9. GM: building a war</h2>
+<p>Everything starts from the <span class="ui">Actors</span> tab of the sidebar. The F/GT buttons sit at its top.</p>
+<figure class="narrow">
+  <img src="img/gm-01-actors-buttons.png" alt="The Actors sidebar header with Summon, Game log, Configure War and Clean up buttons.">
+  <figcaption><span class="ui">Configure War</span> opens the setup wizard. <span class="ui">Game log</span> and <span class="ui">Clean up</span> are covered below.</figcaption>
+</figure>
+<p>The wizard has six tabs. Work left to right.</p>
+<h3>War</h3>
+<figure class="mid">
+  <img src="img/gm-02-wizard-war.png" alt="The War tab: War type Great Holy Grail War, Ruleset Normal, Board size 13 by 13, Turns per Round 3, Difficulty Intermediate, Region empty, Servants defeated before Grail materialization 9, Random draw allow duplicates.">
+  <figcaption>The settings used for this war.</figcaption>
+</figure>
+<ul>
+  <li><strong>Ruleset Normal</strong> uses the seven generic class Servants. <strong>Advanced</strong> uses the named Servants.</li>
+  <li><strong>Difficulty</strong>: Beginner removes damage modifiers and Luck Checks; Intermediate removes Luck Checks; Expert removes nothing.</li>
+  <li>Leave <strong>Region</strong> empty for a neutral board.</li>
+</ul>
+<h3>Factions and Containers</h3>
+<figure class="mid">
+  <img src="img/gm-03-wizard-factions.png" alt="The Factions tab: Faction 1 with Player1, Faction 2 with Player2, and an Add Faction button.">
+  <figcaption>Who plays which side.</figcaption>
+</figure>
+<figure class="mid">
+  <img src="img/gm-04-wizard-containers.png" alt="The Containers tab: seven class rows per faction, each set to Random.">
+  <figcaption>One container per class and faction. <span class="ui">Random</span> draws a Servant; <span class="ui">Fixed</span> lets you pick.</figcaption>
+</figure>
+<h3>Servants</h3>
+<p>Press <span class="ui">Roll all</span>. Each Servant's Health, Agility and Luck are rolled and shown with the dice. Re-roll a single line with its dice button, or a whole Servant with <span class="ui">Draw another</span>.</p>
+<figure>
+  <img src="img/gm-05-wizard-servants.png" alt="The Servants tab after Roll all: each Servant card shows Max Health, Max Agility and Max Luck with the dice that produced them.">
+  <figcaption>Normal Servants roll Health as base ± 10d20, Agility 10 + 1d10 and Luck 1d20, with class bonuses.</figcaption>
+</figure>
+<p>Archer, Caster and Berserker have two Noble Phantasms. Pick one for each before you build; the other becomes unusable.</p>
+<figure>
+  <img src="img/gm-06-wizard-np-choice.png" alt="An Archer card with Noble Phantasm (choose one): option a selected, option b not.">
+  <figcaption>Choose a Noble Phantasm. Ask the player which one they want.</figcaption>
+</figure>
+<h3>Board and Confirm</h3>
+<figure class="mid">
+  <img src="img/gm-07-wizard-board.png" alt="The Board tab: Scene create a new one, Home base depth 3, Faction 1 rows 0 to 2 and Faction 2 rows 10 to 12.">
+  <figcaption>Leave the scene on <span class="ui">— create a new one —</span>. Each home base is 3 rows deep.</figcaption>
+</figure>
+<figure class="mid">
+  <img src="img/gm-08-wizard-confirm.png" alt="The Confirm tab: a summary of the war and Ready to build, with the Build the war button.">
+  <figcaption>Check the summary, then press <span class="ui">Build the war</span> and confirm.</figcaption>
+</figure>
+<p>The wizard creates the scene, paints both home bases, creates the 28 actors and places their tokens.</p>
+<figure>
+  <img src="img/gm-09-board-built.png" alt="The finished board: Faction 1's Servants and Masters along the red top rows, Faction 2's along the blue bottom rows.">
+  <figcaption>The built war. Red home base at the top, blue at the bottom.</figcaption>
+</figure>
+<div class="note">The wizard locks once a match has started. To build another war, the old match must be ended first.</div>
+
+<h2 id="gm-run">10. GM: running the match</h2>
+<h3>Starting</h3>
+<p>Open the <span class="ui">Combat</span> tab of the sidebar. It lists Faction 1, Faction 2 and GM. Press <span class="ui">Start Combat</span> when everyone is in. The turn order is rolled and Round 1 begins.</p>
+<figure class="narrow">
+  <img src="img/gm-10-combat-tracker.png" alt="The combat tracker, Not Started, listing Faction 1, Faction 2 and GM, with Start Combat at the bottom.">
+  <figcaption>Before the start.</figcaption>
+</figure>
+<figure>
+  <img src="img/gm-11-match-started.png" alt="Round 1 in progress: the tracker shows Faction 2 acting first, the board with both home bases filled.">
+  <figcaption>Round 1 has started. Faction 2 won the roll and goes first.</figcaption>
+</figure>
+<h3>Each Round</h3>
+<ol class="steps">
+  <li>Each player takes their Turn and presses <span class="ui">End Turn</span>.</li>
+  <li>The last slot of every Round is the <strong>GM</strong>. Press the <span class="ui">→</span> (Next Turn) arrow at the bottom of the tracker to finish it.</li>
+  <li>The next Round starts and the order is rolled again. The GM is always last.</li>
+</ol>
+<figure class="narrow">
+  <img src="img/gm-12-gm-turn-next.png" alt="The tracker on the GM's slot, with the Next Turn arrow beside End Combat at the bottom.">
+  <figcaption>On the GM slot, press the right arrow to start the next Round.</figcaption>
+</figure>
+<div class="warn">Only press <span class="ui">End Combat</span> to end the war. Do not use the back arrows mid-match unless you are correcting a mistake; going back does not undo what already happened.</div>
+<h3>While the players play</h3>
+<ul>
+  <li>Keep your GM tab open and in front. Every rule runs on the GM's browser. If the GM leaves, the game stops.</li>
+  <li>Use one GM tab only.</li>
+  <li>The GM sees every waiting decision in <span class="ui">Awaiting you</span>. Each waiting card has <span class="ui">Decide for them</span> if a player is away.</li>
+  <li>If an end-of-Turn window opens, answer it before doing anything else.</li>
+</ul>
+<h3>The Game log</h3>
+<p><span class="ui">Game log</span> on the Actors tab lists everything that happened, by Round. Filter by Round, kind or unit. <span class="ui">Export for a bug report</span> saves it for a developer.</p>
+<figure>
+  <img src="img/gm-13-game-log.png" alt="The Game Log window with Round, Kind, Unit and Search filters and a list of setup entries.">
+  <figcaption>The Game log after building the war.</figcaption>
+</figure>
+
+<h2 id="stuck">11. When something seems stuck</h2>
+<ul>
+  <li><strong>A card says "Waiting for…".</strong> Someone has a decision open. Check <span class="ui">Awaiting you</span>. Each window closes by itself: 60 seconds for a reaction, 45 for the rest.</li>
+  <li><strong>A card sits on "Interrupt with a Command Spell?".</strong> That is normal. It moves on after 45 seconds.</li>
+  <li><strong>Nothing moves for several minutes.</strong> The GM reloads their browser tab (<kbd>F5</kbd>). The attack resumes from where it stopped.</li>
+  <li><strong>A player cannot move a token.</strong> It is not their Turn, or that unit already used its move. The token's message says which.</li>
+  <li><strong>A player's screen looks wrong.</strong> They reload their own tab and join again.</li>
+</ul>
+
+<h2 id="ref">12. Quick reference</h2>
+<h3>Timers</h3>
+<div class="table-wrap"><table>
+  <tr><th>Window</th><th>Time</th><th>If nobody answers</th></tr>
+  <tr><td>Reaction (Do nothing, Block, Evade)</td><td>60 s</td><td>Do nothing</td></tr>
+  <tr><td>Luck Check, Counter, Command Spell</td><td>45 s</td><td>Decline; nothing is spent</td></tr>
+</table></div>
+<h3>Key Rounds</h3>
+<div class="table-wrap"><table>
+  <tr><th>When</th><th>What</th></tr>
+  <tr><td>Round 1</td><td>No attacks of any kind. Move into position.</td></tr>
+  <tr><td>Round 4</td><td>Assassin's Noble Phantasm unlocks.</td></tr>
+  <tr><td>Round 6</td><td>Every other Noble Phantasm unlocks.</td></tr>
+  <tr><td>After 9 Servants fall</td><td>The Holy Grail appears.</td></tr>
+</table></div>
+<h3>The Normal Servants</h3>
+<div class="table-wrap"><table>
+  <tr><th>Class</th><th>Base Health</th><th>MOV</th><th>Range</th><th>BA STR / MAG</th><th>Sustainability</th></tr>
+  <tr><td>Saber</td><td>1250</td><td>4</td><td>1</td><td>200 / 150</td><td>2◈</td></tr>
+  <tr><td>Archer</td><td>750</td><td>4</td><td>4</td><td>100 / 125</td><td>5◈</td></tr>
+  <tr><td>Lancer</td><td>1000</td><td>5</td><td>2</td><td>125 / 125</td><td>2◈</td></tr>
+  <tr><td>Rider</td><td>1000</td><td>8</td><td>1</td><td>100 / 150</td><td>2◈</td></tr>
+  <tr><td>Caster</td><td>750</td><td>5</td><td>3</td><td>50 / 150</td><td>4◈</td></tr>
+  <tr><td>Assassin</td><td>500</td><td>6</td><td>2</td><td>50 / 100</td><td>1◈</td></tr>
+  <tr><td>Berserker</td><td>750</td><td>3</td><td>2</td><td>100 / 125</td><td>2◈</td></tr>
+</table></div>
+<p>Base Health is before the setup roll of ± 10d20.</p>
+<h3>Controls</h3>
+<div class="table-wrap"><table>
+  <tr><th>To</th><th>Do</th></tr>
+  <tr><td>Select a unit</td><td>Click its token</td></tr>
+  <tr><td>Open its sheet</td><td>Double-click its token</td></tr>
+  <tr><td>Move</td><td>Drag the token</td></tr>
+  <tr><td>Cycle targets while aiming</td><td><kbd>Tab</kbd></td></tr>
+  <tr><td>Cancel aiming</td><td>Right-click or <kbd>Esc</kbd></td></tr>
+  <tr><td>Pan the board</td><td>Right-drag on empty board</td></tr>
+  <tr><td>Zoom</td><td>Mouse wheel</td></tr>
+</table></div>
+
+</main>
+</body>
+</html>
