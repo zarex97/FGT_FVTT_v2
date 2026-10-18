@@ -14,6 +14,7 @@
  * space; nothing here is named after a Servant.
  */
 
+import { GRANTS, hasGranted } from "./granted.mjs";
 import { chebyshev, inBounds } from "../domain/geometry.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { currentHealth } from "../domain/health.mjs";
@@ -264,6 +265,7 @@ export function contains(field, panel, board) {
  */
 export function haltIndex(path, unit, board) {
   if (!unit || !(path ?? []).length) return null;
+  if (hasGranted(unit, GRANTS.ignoresBoundedFields)) return null;
   let first = null;
   for (const field of board.fields ?? []) {
     const halts = (field.interiorEvents ?? []).some((spec) =>
@@ -1253,6 +1255,8 @@ export function annotateFields(units, board) {
     // stable name content predicates on.
     u.ownedFields = fields.filter((f) => f.ownerId === u.id).map((f) => f.id);
     if (fields.length === 0) continue;
+    // A ghost stands in no field: none holds, halts or touches it (#249 reading 28).
+    if (hasGranted(u, GRANTS.ignoresBoundedFields)) continue;
 
     /** @type {object[]} */
     const gained = [];

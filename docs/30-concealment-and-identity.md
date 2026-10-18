@@ -37,6 +37,26 @@ A concealed Servant's **public identity** — the class and faction name shown o
 
 Six paths deactivate it: the Combat Process ends (attacked), a Discover roll succeeds (discovered), AoE coin came up Tails (aoe), an ability's own break chance fires (skillUse), the 2◈ expire (expired), or a player toggles it manually (manual) (`module/rules/concealment.mjs:262-269`). Every path invokes `deactivateConcealment`, which removes the effect and queues a reason for the aftermath (`module/engine/concealment.mjs:42-55`). The aftermath runs from the document hook, not the callers, so the cooldown and disclosure reach every path including the one that expires the duration `module/engine/concealment.mjs:83-105`). The skill's cooldown starts from deactivation tick, not its use, and reads from the rank table when not authored (`module/engine/concealment.mjs:232-255`).
 
+**PC.5 ends PC once per declaration, not per Process** (#249, a Surprise). An area Attack is one declaration and
+many Processes, answered at each defender's pace; `endConcealmentAfterAttack` ran as each Process closed, so a
+defender who answered after the first lost PC's +100% and its Block/Counter refusal. It now waits for the
+attacker's last open Process of the group (`attack.mjs#siblingStillOpen`). Jack's, Hassan's and Serenity's
+concealed area Attacks all changed with it. **Only a PC Active when the Attack was declared** (ruled 2026-10-18):
+the spec records `concealedAtDeclaration` once its price is paid. Danzō's Kawarimi into her own Dongyū
+(Concealment) lands its C+ on her, and PC.5 no longer ends what her own Attack just gave her.
+
+**Presence Concealment granted at a Rank** (#249 readings 2-4). Dongyū's Method 1 lands PC `C+` on every Unit in its
+3x3, most of which have no Skill to read a Rank from. The instance carries it (`params: {rank, evade}`, Ch. 07), and
+`rules/concealment.mjs#concealmentProfile` is the one reader of PC's numbers, instance first and Skill second: the
+Evade bonus, `rules/identity.mjs#discoverChance` (whose hand-copied table is gone: a Unit with no Skill was found
+100% of the time) and the cooldown. A grant lands `noneNoRefresh`, so a Unit whose own PC is Active keeps it, and
+its end starts no clock on the Unit's own Skill (`onConcealmentRemoved`'s `granted`).
+
+**A break chance on an Attack is rolled on use** (#249 readings 9, 9b). `rollConcealmentBreak` ran only on the Skill
+path, after the Skill; an Attack Skill never rolled it. `payAbilityPrice` rolls it now, before any Process exists,
+for a declaration and for a Counter alike. Broken: PC ends (`skillUse`) and the Attack goes without it. Held: the
+attack spec carries `keepsConcealment`, and PC.5 passes that Attack by, so Danzō's Funshindan leaves her concealed.
+
 ### Secret Poison disclosure
 
 Secret Poison **explodes** at the reveal (#199 reading 10, which replaces Q47). The user's ruling: the damage applies *"the accumulated rightful deductions that it would have done if it was a normal poison"*, and only when revealed.
@@ -80,6 +100,37 @@ only; `canPassThrough` and the Master-guard check still read `IGNORES_BLOCKING`.
 name each Unit as the table knows it (`attack.mjs#shownName`, through `publicIdentityOf`): "Saber's Instinct: 50
 against 70%", never the True Name under a "Lancer ⚔ Saber" header. The Master-guard line does the same
 (`master-guard.mjs#shownName`): "Saber stands next to Master of Saber of Faction 1".
+
+### A Feigned Defeat (#249)
+
+**Kirihanasu** (Katō Danzō) is offered at an Attack's fatal hit, after every floor, to her owner alone
+(`engine/feigned-defeat.mjs#offerFeignedDefeat`, window `whenFatallyHit`). Taken, nothing is written -- no damage, no
+`io.defeat`, no Grail count, no kill credit, her Contract stands -- and the Process ends for her
+(`damage:feigned → withdrawn`). Her phases land the `feignedDefeat` marker first, then Presence Concealment with no
+expiry, then an escape Move up to her current MOV (`move` phase `panels: "@self.mov"`), which already follows the
+ghost's rules.
+
+**What the table sees** (`stageFeignedDefeat`): every player but her OWNERS, teammates included, is whispered the
+same card a real defeat posts and sees a skulled stand-in body where she fell (two Tiles flagged `decoyOf`, drawn
+per viewer by `apps/canvas/decoy.mjs`, cleared once a Turn passes); her token is hidden from them
+(`hiddenFromViewer` reads the marker, with an OWNER fact the token now passes beside OBSERVER). Her owners and the
+GM get a truth card.
+
+**The ghost** is the marker's grants (`rules/granted.mjs`): `untouchable` (nothing but her own abilities targets,
+catches or affects her, allies included, through one predicate, `rules/untouchable.mjs#untouchableBy`, asked by
+targeting, auras, handler reach, `landEntry`, ally reactions, Discover and Master guards, which drop her
+silently), `sharesPanels` (projected as `sharesPanel`), `ignoresTerrain`, `ignoresBoundedFields`, `offBudget`
+(projected as `exemptFromBudget`, which `budget.mjs#poolFor` always read) and `selfOnlySkills` (the use gate allows
+her Attacks and Skills that touch her alone).
+
+**The reveal** (`revealFeignedDefeat`): her Attack, at its declaration, steps her off a shared panel to the
+nearest free one she picks, removes the marker and the body, posts a public card, and turns her permanent PC into
+an ordinary one with 2◈ from now (one batch: `removeEffect`, then `extendEffect` with `startAt`, the tick a permanent
+effect's span counts from); PC.5 then ends it after the Process, unless a held Funshindan roll keeps it. A
+tick that empties her bar reveals her and then defeats her for real (`io.defeat`). **Only a legal Attack reveals her
+(found live).** `resolveAttack` asks the gates and aims first. Range is not a preflight gate: `resolveTargets` refuses
+it. So the reveal waits for both, and the Attack is gated and aimed again from the panel she steps to. Before, a
+Yuugao pressed out of Range was refused and still posted *"Assassin was never defeated: she lives."*
 
 ## Invariants & edge cases
 

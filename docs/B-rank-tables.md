@@ -281,8 +281,12 @@ From the expanded roster: Serenity, Jack and Hundred-Faced Hassan `A+` → 5% �
 10% ✓; Danzō's `Dongyū` grant at `C+` → 35% ✓; Yan Qing `C` → 40% ✓, raised to `A` → 10% by
 `Espionage` ✓, and his no-Fog-of-War `Doppelganger` fallback at `B+` → 20 − 5 = 15% ✓.
 
-**Eight independent confirmations across seven Servants.** The one deviation is textual, not
-numeric: Hundred-Faced Hassan's sheet adds a ninth clause — `Skill Seal` deactivates PC
+**One numeric deviation, on a grant** (#249 reading 2). Dongyū's PC `C+` prints its Evade bonus as **+2**, where
+the table (and Semiramis's own `C+`) says +3. Ruled: the sheet's +2, on Dongyū's grant only, carried on the
+instance as `params: {rank: "C+", evade: 2}`; the table stays for every Skill. `rules/concealment.mjs#concealmentProfile`
+is the one reader of all three numbers, instance first.
+
+**Eight independent confirmations across seven Servants.** The one textual deviation: Hundred-Faced Hassan's sheet adds a ninth clause — `Skill Seal` deactivates PC
 immediately — which no other bearer has. Presence Concealment is therefore a **parameterized
 template with per-Servant clause overrides**, not one shared effect document.
 

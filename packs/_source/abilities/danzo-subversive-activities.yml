@@ -1,0 +1,28 @@
+# Subversive Activities, Rank C (#249, SA.*).
+#
+# Zabaniya's 3x3 *"in any non-diagonal direction next to"* her (#226 reading
+# 26), enemies only as the sheet says. *"Can be used when Presence Concealment
+# is Active"* is `usableWhileConcealed`, and with no break chance stated it
+# costs her nothing.
+schema: 1
+id: danzo-subversive-activities
+name: "Subversive Activities"
+rank: C
+kind: skill
+slug: subversiveActivities
+cooldown: "3◈"
+timing: { window: ownTurn }
+usableWhileConcealed: true
+description: |
+  (Active) Used on your Turn. Affects all enemy Units within a 3x3 panel area in any non-diagonal
+  direction next to Danzō. Inflicts @effect[atkDwn]{Atk Dwn} for 1◈ Turns, all damage dealt is reduced
+  by 10%; if NP, 5%. Cooldown: 3◈ Turns. Can be used when Presence Concealment is Active.
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 3, long: 3 }
+  selection: { relations: [enemy], includeSelf: false, chooser: all }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: atkDwn, duration: "1◈", magnitude: 10, npMagnitude: 5 }

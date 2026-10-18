@@ -180,6 +180,8 @@ export const ABILITY_ROUTES = {
   oncePerRound: doc("module/rules/ability-use.mjs", "gates the use"),
   reactionFree: doc("module/engine/attack.mjs", "keeps the reaction rung open after the ability"),
   withdrawsFromAttack: doc("module/engine/attack.mjs", "takes the defender out of the Attack (#226)"),
+  swapsPositions: doc("module/engine/attack.mjs", "trades the user's and its partner's panels at the reaction rung (#249)"),
+  insteadOfDamage: doc("module/engine/feigned-defeat.mjs", "offers it at an Attack's fatal hit, in place of the damage (#249)"),
   legionCost: doc("module/engine/attack.mjs", "the price in bodies, paid at the Combat Phase's end (#226)"),
   endsOnSkillSeal: doc("module/engine/concealment.mjs", "Skill Seal ends Presence Concealment (#226)"),
   countsAsNormalAttack: doc("module/engine/attack.mjs", "stamped on the attack as a Normal Attack"),
@@ -532,6 +534,23 @@ export const NESTED_ROUTES = [
       { model: "ActiveEffect/fgtEffect", why: "EffectData declares it" },
       { file: "module/rules/snapshot.mjs", why: "the instance projects it" },
       { file: "module/engine/scheduler.mjs", why: "fireEvent removes the instance on its event" },
+    ],
+  },
+  // A Presence Concealment granted at a Rank carries that Rank on the instance:
+  // the Unit it lands on has no Skill to read it from (#249 readings 2, 4).
+  {
+    key: "params",
+    authored: ["packs/_source/abilities/danzo-dongyu-concealment.yml"],
+    hops: [
+      { file: "module/rules/effect-flow.mjs", why: "ENTRY_KEYS lists it, so entryOf carries it" },
+      { file: "module/engine/landing.mjs", why: "the door hands it to the flow" },
+      { file: "module/engine/effect-applier.mjs", why: "the flow writes it on the instance" },
+      { file: "module/engine/applier.mjs", why: "entryOfIntent keeps it on a stored intent" },
+      { file: "module/engine/io.mjs", why: "createEffects writes it" },
+      { model: "ActiveEffect/fgtEffect", why: "EffectData declares it" },
+      { file: "module/rules/snapshot.mjs", why: "the instance projects it" },
+      { file: "module/rules/history.mjs", why: "a rewind keeps it" },
+      { file: "module/rules/concealment.mjs", why: "concealmentProfile reads the Rank and Evade off it" },
     ],
   },
   {

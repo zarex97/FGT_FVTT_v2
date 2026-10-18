@@ -82,6 +82,13 @@ moves), and the world-state bond `bondUnitId`/`bondMasterId`, written when
 an Item is placed, never authored. Servant: `summonItems` (`[{item, roll, on}]`, an Item on a summon die). A Unit
 projects `terrainPenaltyImmunities`, `lethalFloors`, and on the board `bonds` (`rules/bonds.mjs`).
 
+**An effect instance's `params` (#249).** `EffectData.params`, an `ObjectField`, carries what an instance's
+definition reads beyond a magnitude: Dongyū's granted Presence Concealment is `{rank: "C+", evade: 2}`. Its Route is
+an Effect Entry key (`ENTRY_KEYS`) → `landing.mjs` → `effect-applier.mjs` → the `applyEffect` intent
+(`applier.mjs#entryOfIntent`) → `io.mjs#createEffects` → `EffectData` → `snapshot.mjs#effectInstances` →
+`history.mjs` (a rewind keeps it) → `rules/concealment.mjs#concealmentProfile`, routed in `survival.test.mjs`. The
+keys each definition reads are a closed list (`effect-flow.mjs#EFFECT_PARAMS`), and the build refuses any other.
+
 **A resource a Unit does not hold yet is written by its full path** (#247). `resourcePathFor` sends an unknown key to the root of `system`, so the forest's `namelessForestTokens` was a Silent Drop on every Unit not already holding one; the marker names `resources.namelessForestTokens.value`. The Master now declares `baseAttackPenalty` (Ch. 06).
 
 ## Invariants & edge cases

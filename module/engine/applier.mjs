@@ -753,6 +753,7 @@ function entryOfIntent(effect) {
   if (effect.visibility) entry.visibility = effect.visibility;
   if (effect.permanent) entry.permanent = true;
   if (effect.unremovable) entry.unremovable = true;
+  if (effect.params) entry.params = effect.params;
   // An `until <event>` duration only: it has no tick to ride beside in `expiry`,
   // so the flow has to be told (`endsOn`). A counted span stays the emitter's
   // `expiry`, which already stands -- handing the flow both would be two clocks.
@@ -947,7 +948,7 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
       for (const i of intents) await io.adjustShield(unitId, i.abilityId, i.delta);
       break;
     case "extendEffect":
-      for (const i of intents) await io.extendEffect(unitId, i.defId, i.turns);
+      for (const i of intents) await io.extendEffect(unitId, i.defId, i.turns, i.startAt ?? null);
       break;
     case "recordUse":
       for (const i of intents) await io.recordUse(unitId, i.abilityId, i.contentId, i.count, Boolean(i.categoryExempt));

@@ -1,0 +1,32 @@
+# Ninjutsu: Tobikatō (#249, TK.*).
+#
+# Shadow of Longing's targeting: *"on an allied Unit within a 2 panel area of
+# herself"* lets her choose herself (#239 reading 4). "Dodge ... 3 times" is the
+# entry's `uses`: Dodge is a counted effect, so one application holds three
+# charges and each automatic Evade spends one.
+#
+# Reading 10: the exclusion is one-way, as written. Each ability refuses only the
+# partners it names, so Funshindan, which names neither, may follow this.
+schema: 1
+id: danzo-tobikato
+name: "Ninjutsu: Tobikatō"
+kind: skill
+slug: tobikato
+cooldown: "4◈"
+timing: { window: ownTurn }
+sameTurnExclusive: [danzo-harisenbon, danzo-funshindan]
+description: |
+  (Active) Kite Katō. Used on your Turn. Used on an allied Unit within a 2 panel area of herself.
+  Applies @effect[dodge]{Dodge} for 1◈ Turns, 3 times; and applies @effect[critUp]{Crit Up} for 1◈ Turns,
+  Crit Chance is increased by 25%. Cannot be used on the same Turn as Harisenbon or Funshindan.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: chebyshevRadius, r: 2 }
+  selection: { relations: [ally, self], includeSelf: true, chooser: chosen, count: 1 }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: dodge, duration: "1◈", uses: 3 }
+      - { id: critUp, duration: "1◈", magnitude: 25 }

@@ -24,6 +24,7 @@
  * ("everyone except himself") — say so, and drop `"self"` from the list.
  */
 
+import { untouchableBy } from "./untouchable.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { candidatesAt } from "./aura-index.mjs";
@@ -82,6 +83,8 @@ export function collectAuras(unit, board, index = null) {
     // an unbounded aura crossed a boundary that refuses every attack
     // (Ch. 46 §46.4-I).
     if (anyBoundaryBlocksEffect(source, unit, board)) continue;
+    // A ghost is reached by its own auras alone (#249 reading 26).
+    if (untouchableBy(unit, source.id)) continue;
 
     // A condition on the RECIPIENT rather than on the source. Territory
     // Creation reduces damage taken by "allied Units who are in THEIR Home

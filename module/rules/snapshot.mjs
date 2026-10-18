@@ -435,7 +435,11 @@ export function snapshotUnit(actor, {
     // knocked back" -- `rules/movement.mjs`'s `ignoresBlocking` already reads
     // this generic flag, unset until now because nothing needed it.
     ignoresOccupancy: Boolean(sys.movesOntoOccupiedPanels),
-    sharesPanel: Boolean(sys.sharesPanel),
+    // ...or granted it: a Feigned Defeat's ghost (#249 reading 19).
+    sharesPanel: Boolean(sys.sharesPanel) || (contributions.grantedAbilities ?? []).includes("sharesPanels"),
+    // Nothing a ghost does spends its side's budget (#249 reading 35). Read by
+    // `rules/budget.mjs#poolFor` since it was written; projected now.
+    exemptFromBudget: (contributions.grantedAbilities ?? []).includes("offBudget"),
     eventHandlers: contributions.eventHandlers,
     immunities: contributions.immunities,
     grantedAbilities: contributions.grantedAbilities,
@@ -1543,6 +1547,8 @@ function effectInstances(actor) {
       // her concealment ends.
       visibility: e.system?.visibility ?? "public",
       attributionHidden: Boolean(e.system?.attributionHidden),
+      // A granted Presence Concealment's own Rank and Evade (#249).
+      params: e.system?.params ?? null,
       suppressed: Boolean(e.isSuppressed),
       };
     });
@@ -2166,6 +2172,17 @@ function lockedAt(sys, tick, turnsPerRound) {
   return tick - sys.toggledAt < resolveTicks(parseTick(sys.toggleLock), { turnsPerRound });
 }
 
+/**
+ * The `healthRestoredSince` an ability states on itself, as `{fraction}`.
+ *
+ * @param {object[]|undefined} requirements
+ * @returns {{fraction: number}|null}
+ */
+function restoreGateOf(requirements) {
+  const req = (requirements ?? []).find((r) => r?.kind === "healthRestoredSince");
+  return req ? { fraction: req.fraction ?? 0.5 } : null;
+}
+
 function collectAbilities(actor, { tick = null, turnsPerRound = 3 } = {}) {
   return [...(actor.items ?? [])]
     .filter((i) => i.type === "ability" || i.type === "noblePhantasm")
@@ -2218,6 +2235,9 @@ function collectAbilities(actor, { tick = null, turnsPerRound = 3 } = {}) {
       timesUsed: i.system?.timesUsed ?? 0,
       maxUses: i.system?.maxUses ?? null,
       lastUsedTick: i.system?.lastUsedTick ?? null,
+      // The restore half of its own Cooldown line, for another ability's
+      // "while X is on Cooldown" (`rules/items.mjs#isCooling`, #249 reading 20).
+      restoreGate: restoreGateOf(i.system?.requirements),
       // God Hand's ledger. A pool that stores IDENTITIES rather than a number
       // is a set field, not a Ch. 06 Resource -- which is the line Ch. 06 draws
       // and names this ability while drawing it.

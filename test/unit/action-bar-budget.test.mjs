@@ -87,13 +87,13 @@ describe("where that refusal surfaces", () => {
     expect(preflight).toMatch(/budgetReason: verdict\.reason/);
 
     const src = readFileSync("module/engine/attack.mjs", "utf8");
-    const at = src.indexOf("throw new Error(`FGT | ${pre.message}`)");
+    const at = src.indexOf("throw new Error(`FGT | ${verdict.message}`)");
     expect(at, "the throw site moved").toBeGreaterThan(0);
     // The notification comes FIRST: a throw alone reaches a log and no human.
     const before = src.slice(Math.max(0, at - 900), at);
     expect(before, "a refused attack must reach the player, not only the console")
       .toMatch(/ui\.notifications\?\.warn/);
-    expect(before).toMatch(/pre\.budgetReason/);
+    expect(before).toMatch(/verdict\.budgetReason/);
   });
 });
 

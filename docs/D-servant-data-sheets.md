@@ -883,27 +883,26 @@ untargetable *and* unidentifiable at once.
 
 ## D.20 Katō Danzō
 
+**Being built** (#249, 2026-10-18). The Clause list and its 40 rulings are in
+`docs/superpowers/specs/2026-10-17-kato-danzo-clauses.md`. This table was written before the sheet was read
+line by line and was wrong twice: the `Mechanical` Attribute halves nothing of Sap or Bleed (it halves Pale
+Rider's Contagion, `engine/fields.mjs`), and the three Karakuri Genpō Skills do not gate each other all ways
+(Fubatsu and Kawarimi each name the other two; Kirihanasu names neither).
+
 | Ability | Type | Mapping |
 |---|---|---|
-| Presence Concealment (A) | Class, mode | RE |
-| Synthetic Limbs (Doll) (A++) | Passive + active | RE (`Sap`/`Bleed` immunity — the `Mechanical` attribute already halves the chance; this makes it absolute) |
-| Ninjutsu (A) / Karakuri Genpō (B+) | Grouping headers | No mechanics — modelled as ability **tags**, which is what the mutual-exclusion clauses key on |
-| Ninjutsu: Tobikatō | Active | RE (`Dodge` ×3 + `Crit Up`; same-turn exclusion with two siblings) |
-| Ninjutsu: Harisenbon | Active | RE (**fallback chain**: 50% `Disable`, else `Slow`; `usableWhileConcealed` at 50%) |
-| Karakuri Ninpou: Fuuma Funshindan | Attack Skill | RE (3×3 within Range 4, Fire, 50% `Burn`) |
-| Karakuri Genpō: Fubatsu | Active | RE (`Invuln` ×3; **cross-ability cooldown gating** — blocked while either sibling is on cooldown) |
-| Karakuri Genpō: Kawarimi | Reaction | **RE+** `SwapPositions` mid-Combat-Process, in two forms (self-swap, ally-swap) |
-| Karakuri Genpō: Kirihanasu | Reaction on fatal damage | **RE+** `FakeDefeat` — the GM-mediated shadow state (Ch. 44 §44.1). Cooldown gated on a **health threshold** as well as a duration |
-| Subversive Activities (C) | Active | RE (3×3 orthogonal-adjacent) |
-| Karakuri Genpō: Dongyū (C+, NP) | Two-mode NP | **RE+** mode 1 grants Presence Concealment to an *area*; mode 2 is a line whose **length shortens on the diagonal** (1×5 cardinal, 1×4 diagonal) |
-| Youjutsu Zanhou・Yuugao (C, NP) | Command-Spell NP | **RE+** `commandSpellCost` on an ability; damage equal to the DU's **current Health**; evadable only by Lucky Evasion |
-
-**Exercises:** three mutually-gating reactions sharing one cooldown pool, position swapping,
-deliberate client desynchronization, diagonal length shortening, granting a class-skill status
-to other units, an NP that costs a Command Spell, and damage defined as a fraction of the
-target's own state.
-**Scripts: 0** — `Kirihanasu` is a **protocol**, not a script; it is the one mechanic in either
-roster carrying a *"requires GM comfort"* flag and a per-world disable.
+| Presence Concealment (A) | Class, active | The shared class skill: the rank tables give 10%, +4 and 2◈ |
+| Synthetic Limbs (Doll) (A++) | Passive + active | `Immunity` to `Sap` and `Bleed`, Karna's shape; restore 3 Agility, Atk Up 40/30 |
+| Ninjutsu (A) / Karakuri Genpō (B+) | Grouping headers | Not Clauses. Nothing reads their Ranks |
+| Ninjutsu: Tobikatō | Active | `Dodge` with `uses: 3` and `Crit Up`; `sameTurnExclusive` one way, as written (reading 10) |
+| Ninjutsu: Harisenbon | Active | 50% `Disable`, `otherwise` `Slow` whenever Disable does not land (reading 11); `usableWhileConcealed` with a 50% break |
+| Karakuri Ninpou: Fuuma Funshindan | Attack Skill | 3×3 within Range 4, ×1.5 on BA(STR), Fire, 50% `Burn`; the 50% break rolled on use, a held roll keeping PC past PC.5 (readings 7–9) |
+| Karakuri Genpō: Fubatsu | Active | `Invuln` ×3, a charge per hit it touches (reading 40); barred while Kawarimi or Kirihanasu is cooling |
+| Karakuri Genpō: Kawarimi | Reaction | **RE+** a generic swap that rebinds the Process's defender by panel (readings 12–14, 32, 36, 38) |
+| Karakuri Genpō: Kirihanasu | Reaction on a fatal hit | **RE+** a **Feigned Defeat** (`CONTEXT.md`) and the ghost it leaves (readings 15–19, 25–35, 39) |
+| Subversive Activities (C) | Active | Zabaniya's 3×3 next to her, enemies only, Atk Dwn 10/5 |
+| Karakuri Genpō: Dongyū (C+, NP) | Two NP records, one clock | Method 1 grants PC C+ (Evade +2, 35%) to every Unit in its 3×3; Method 2 is a 1×5 line, 1×4 on the diagonal, ×3 against `demonic`, `demonicBeast` and `beast` |
+| Youjutsu Zanhou・Yuugao (C, NP) | Command-Spell NP | **RE+** a Command Spell cost; a base read from the DU's current Health through the whole pipeline; Evaded only by Lucky Evasion |
 
 ---
 

@@ -93,6 +93,24 @@ export const GRANTS = Object.freeze({
    * it away with the rest. Read by `rules/movement.mjs#canPassThrough`.
    */
   passesThroughUnits: "passesThroughUnits",
+
+  /*
+   * The ghost a Feigned Defeat leaves (Kirihanasu, #249 readings 19, 25-28, 34,
+   * 35): *"Think of it like she was a ghost."* Each a grant of its own so a
+   * later sheet can take one without the rest; `feignedDefeat` grants all.
+   */
+  /** Nothing targets, catches or affects it but its own abilities (`rules/untouchable.mjs#untouchableBy`). */
+  untouchable: "untouchable",
+  /** It may stand on a panel another Unit holds; projected as `sharesPanel`. */
+  sharesPanels: "sharesPanels",
+  /** Terrain affects it not at all: no MOV change, no effect (`rules/terrain.mjs#terrainEffects`). */
+  ignoresTerrain: "ignoresTerrain",
+  /** Bounded Fields neither hold, halt nor touch it. */
+  ignoresBoundedFields: "ignoresBoundedFields",
+  /** Nothing it does spends its side's shared budget; projected as `exemptFromBudget`. */
+  offBudget: "offBudget",
+  /** Of its Skills only those touching itself alone may be used; an Attack reveals it. */
+  selfOnlySkills: "selfOnlySkills",
 });
 
 /**

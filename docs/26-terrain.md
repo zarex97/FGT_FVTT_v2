@@ -61,6 +61,9 @@ An effect that created terrain is removed when the effect expires, dispels, or i
 benefits (`terrain.mjs#isPenalty`): Vivian's Blessing drops Waterside's MOV -1, Evade +1 and Lightning/Ice weakness,
 and keeps its Water +25% and Fire resistance.
 
+**A Unit Terrain does not touch** (#249 reading 28). The `ignoresTerrain` grant (a Feigned Defeat's ghost) makes
+`rules/terrain.mjs#terrainEffects` answer nothing for it: no MOV change and no effect.
+
 ## Invariants & edge cases
 
 1. **Overlapping areas sum their effects.** Two MOV −1 areas cost two panels because they are two separate pieces of difficult ground, not one status applied twice (`module/rules/terrain.mjs:208`).

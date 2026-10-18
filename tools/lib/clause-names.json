@@ -36,6 +36,8 @@
 
   "Jack the Ripper": { "PC.pre": "PC.dur", "MI.pre": "MI.geom" },
 
+  "Katō Danzō": { "PC.pre": "PC.dur", "KG3.pre": "KG3.when" },
+
   "Kingprotea": { "ME.pre": "ME.lock" },
 
   "Kiritsugu": { "PC.pre": "PC.dur" },
