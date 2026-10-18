@@ -1,9 +1,10 @@
 ---
 id: 2026-10-18-reanswered-rung-dealt-damage-twice
 found: tooling
-kind: check-then-act-race
+kind: write-before-store
 status: open
-reviewed: false
+reviewed: true
+pattern: write-before-store
 ---
 **Expected:** a rung answered once deals its damage once, even if the GM's client reloads while the run waits on a later window.
 **Actual:** Rain of Light's Processes wrote Kingprotea's damage, then waited 45s on the Command Spell and Counter windows. I reloaded the GM page twice and answered `react` again each time: Kingprotea went 1700 → 986 → 487 and Jack, hit again too, was killed.

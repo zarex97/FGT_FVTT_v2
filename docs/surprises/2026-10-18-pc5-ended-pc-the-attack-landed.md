@@ -3,7 +3,8 @@ id: 2026-10-18-pc5-ended-pc-the-attack-landed
 found: test
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** reading 41: Kawarimi into her own Dongyū (Concealment) leaves her with its C+. PC.5 is *"after an Attack while PC is Active"*, and she was not concealed when she declared it.
 **Actual:** the Process recorded *"Presence Concealment applied"* on her, and she held none after it. Nothing said it ended.

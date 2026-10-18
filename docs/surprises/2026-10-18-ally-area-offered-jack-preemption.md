@@ -1,9 +1,10 @@
 ---
 id: 2026-10-18-ally-area-offered-jack-preemption
 found: live press
-kind: relation-qualifier-unread
+kind: qualifier-quoted-not-checked
 status: fixed
-reviewed: false
+reviewed: true
+pattern: qualifier-quoted-not-checked
 ---
 **Expected:** *"Whenever Jack is Attacked by an enemy Unit … Jack can Attack first instead"*: an ally's area that catches him offers nothing.
 **Actual:** Danzō's Dongyū (Concealment), which conceals her allies, asked Player1 *"Attack first? Katō Danzō has declared an Attack on Jack the Ripper. Murderer of the Misty Night lets Jack the Ripper Attack first instead."*

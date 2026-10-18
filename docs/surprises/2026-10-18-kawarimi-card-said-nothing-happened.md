@@ -3,7 +3,8 @@ id: 2026-10-18-kawarimi-card-said-nothing-happened
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Kawarimi's card says what the press did: two Units traded places.
 **Actual:** Player1 pressed Kawarimi on Kingprotea's attack card; its Skill card read *"Karakuri Genpō: Kawarimi — Assassin on Lancer — No effects were applied."*, above the separate line *"Assassin and Lancer trade places."*

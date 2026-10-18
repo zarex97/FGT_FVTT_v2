@@ -3,7 +3,8 @@ id: 2026-10-17-yuugao-borrowed-strike-air-clause
 found: retraction
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** Danzō's grill, Round 1 Q21: Yuugao's damage takes Strike Air's shape, a fixed figure "none of her modifiers apply" to, and Ignore Def leaves every other defender reduction on.
 **Actual:** Strike Air's sheet states its own exemption, *"Not affected by any damage modifying effects on Arturia"*; Yuugao's states none, only *"Deals damage equivalent to the DU's current Health that has the Ignore Def effect"*. And Ignore Def is *"Attacks by this Unit ignore the target's Def Up"*, not every defence.

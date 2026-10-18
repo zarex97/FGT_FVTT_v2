@@ -3,7 +3,8 @@ id: 2026-10-18-refused-attack-revealed-the-ghost
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** *"…until Danzō Attacks, and her survived existence is revealed … at this point"* (#249 reading 18): an Attack she makes reveals her; one refused before it is made does not.
 **Actual:** Player1 pressed Yuugao on Asterios out of Range: refused *"Berserker is out of Range (3)."*, and the public card *"Assassin was never defeated: she lives."* went out with the marker removed.
