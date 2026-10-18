@@ -8,6 +8,16 @@ restate it.
 
 ## The war and its participants
 
+**War**:
+One match, from setup to the Holy Grail, fought on its own Board by its own Factions under its own
+War Rules. A world may hold several Wars, each on its own scene, played at the same time.
+_Avoid_: match, game, campaign, combat
+
+**War Rules**:
+The choices that shape one War: its ruleset, its war type, its Round gates, its timeouts and the
+like. They belong to the War; the world holds only the defaults a new War starts from.
+_Avoid_: settings, world settings, options
+
 **Unit**:
 Anything that occupies panels on the board and can be targeted. The six kinds are Servant, Master,
 Civilian, Summon, Platform and Structure. A rule reads a Unit as the Board sees it: with the auras,
@@ -23,7 +33,7 @@ The human participant who summons and commands a Servant, and who holds Command 
 A ranked non-combatant, though not a defenceless one.
 
 **Faction**:
-The side a Unit fights for. Alliances between Factions are declared, not implied.
+The side a Unit fights for, in one War. Alliances between Factions are declared, not implied.
 _Avoid_: team, side, army
 
 **Player**:
@@ -162,8 +172,8 @@ number of Ticks, and the match counts the Ticks that have passed since it began.
 _Avoid_: beat, tick-mark
 
 **◈**:
-One Round's worth of Ticks, meaning "the number of Turns in a Round". It is a world setting, not a
-constant, so a duration written in ◈ (⅓◈, 1◈+⅔◈) comes to a different number of Ticks in each world.
+One Round's worth of Ticks, meaning "the number of Turns in a Round". It is a War Rule, not a
+constant, so a duration written in ◈ (⅓◈, 1◈+⅔◈) comes to a different number of Ticks in each War.
 _Avoid_: diamond; calling ◈ a Tick
 
 **Moment**:
