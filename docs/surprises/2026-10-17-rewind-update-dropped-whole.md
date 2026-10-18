@@ -3,7 +3,8 @@ id: 2026-10-17-rewind-update-dropped-whole
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** With history wired, the rewind writes Arturia's recorded Health back.
 **Actual:** The rewind's own intent read `health {value: 1225, max: 1225}`, and after it her Health was still 900. `actor.update({"system.health": …})` alone worked; with `"system.parameters": {str: {}, end: {}, …}` beside it, nothing in the update landed.

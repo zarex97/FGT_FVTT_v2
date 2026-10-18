@@ -3,7 +3,8 @@ id: 2026-10-17-forest-token-written-to-the-root
 found: test
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** A Round's end beside Nursery gives an enemy Drake one Nameless Forest Token.
 **Actual:** The test world refused the write: *"Actor(Francis Drake): write to "system.namelessForestTokens.value" would be a Silent Drop — asked for 1, Foundry kept undefined."* A live world drops it in silence, and the Token that arms the escape check and the death roll never lands on a Unit that has not held one.

@@ -3,7 +3,8 @@ id: 2026-10-17-jabberwock-knocked-heracles-sideways
 found: live press
 kind: generic-path-escapes-special-case
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** Ruled (#247 reading 10): a Unit on the panel the Jabberwock moves onto is knocked 1 panel straight away from it.
 **Actual:** Player1 moved the Jabberwock right, (9,11) to Heracles on (9,12). Heracles landed on (8,12): up, at a right angle to its travel.

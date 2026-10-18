@@ -3,7 +3,8 @@ id: 2026-10-17-blade-blow-said-nothing-of-its-cost
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** The Blade's blow on the Jabberwock says its two other consequences: the sword breaks, the lifesteal is gone for good.
 **Actual:** Heracles' card read *"905 … Health 95 → 773"* and nothing else. The Blade was gone from his items and `suppressedScopes` read `[jabberwockLifesteal]`.

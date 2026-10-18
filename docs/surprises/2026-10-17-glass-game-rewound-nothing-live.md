@@ -3,7 +3,8 @@ id: 2026-10-17-glass-game-rewound-nothing-live
 found: live press
 kind: passes-for-the-wrong-reason
 status: fixed
-reviewed: false
+reviewed: true
+pattern: passes-for-the-wrong-reason
 ---
 **Expected:** The Glass Game's effect 1, firing at a Turn's end, returns every Unit within 3 of her (not her) to how it stood 3◈ before.
 **Actual:** It fired at tick 31 (`glassGameRewind` logged, the clock back to 0) and Arturia kept her staged 900 Health and her Def Dwn; Van Gogh's Health did not move. No card said anything had happened.

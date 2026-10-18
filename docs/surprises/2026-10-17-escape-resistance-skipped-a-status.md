@@ -3,7 +3,8 @@ id: 2026-10-17-escape-resistance-skipped-a-status
 found: test
 kind: generic-path-escapes-special-case
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** A Unit whose escapes put its Nameless Forest Resistance at 100 is never caught again (Part 3 R7: 10% per escape, from 100%).
 **Actual:** The marker landed on it anyway. The resistance was collected (`applicationChances` held `effectId: namelessForest, value: 100`) and never subtracted.

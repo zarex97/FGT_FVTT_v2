@@ -3,7 +3,8 @@ id: 2026-10-17-second-jabberwock-card-said-could-not-place
 found: live press
 kind: generic-path-escapes-special-case
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Summoning the Jabberwock a second time places no Blade and says nothing of one: *"When the Jabberwock is summoned for the first time"*.
 **Actual:** Player1's card read *"vorpal-blade-cache — couldNotPlace"*: the content id and a raw reason, a failure where the clause had worked.

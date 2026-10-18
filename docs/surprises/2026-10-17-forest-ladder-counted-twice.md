@@ -3,7 +3,8 @@ id: 2026-10-17-forest-ladder-counted-twice
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** An escape's Luck Check carries its MAG Rank term once, and only the escape carries it: *"If the Unit is within its Home Base: −3 … MAG Rank EX: −3, A: −2…"* are the escape's modifiers.
 **Actual:** Arturia's escape read *"rolled 8 (MAG A −2, namelessForest −2) = 4 vs Luck 20"*: the ladder twice.

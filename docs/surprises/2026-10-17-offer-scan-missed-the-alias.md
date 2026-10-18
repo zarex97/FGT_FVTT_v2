@@ -3,7 +3,8 @@ id: 2026-10-17-offer-scan-missed-the-alias
 found: test
 kind: passes-for-the-wrong-reason
 status: fixed
-reviewed: false
+reviewed: true
+pattern: passes-for-the-wrong-reason
 ---
 **Expected:** `tools/check-offers.mjs` would refuse the free-Spell prompt, the very site #244 names as the one a
 matrix written before it could not have held, if its list stopped asking `offerable`.

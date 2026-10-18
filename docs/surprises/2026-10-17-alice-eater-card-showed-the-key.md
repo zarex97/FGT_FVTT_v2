@@ -3,7 +3,8 @@ id: 2026-10-17-alice-eater-card-showed-the-key
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Alice Eater's card tells the player the Jabberwock's stay grew by 3◈.
 **Actual:** Player1's card read *"Alice Eater Jabberwock Atk UpDurationDelta"*: the action's raw key, glued to the Atk Up row.

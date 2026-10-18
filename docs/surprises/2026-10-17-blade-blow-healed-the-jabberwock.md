@@ -3,7 +3,8 @@ id: 2026-10-17-blade-blow-healed-the-jabberwock
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** Ruled 2026-09-16 (2 R5): *"The Blade's three consequences fire together, once."* One attack: triple damage, the lifesteal gone, the Item destroyed.
 **Actual:** Heracles' Blade blow dealt 905 and the same blow healed the Jabberwock by 678: *"Health 95 → 773"*. The lifesteal's `damageTaken` handler ran before the Blade's `damageStepEnd` removal.

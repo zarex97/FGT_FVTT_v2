@@ -3,7 +3,8 @@ id: 2026-10-17-dead-summon-offered-a-counter
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** A Jabberwock killed by Heracles' Normal Attack is defeated: no Injury Roll, no Counter offered.
 **Actual:** Its card read *"341 Injury Roll required"* and the Process stopped at *"Counter-attack? … Waiting for Counter-attack?"*, on a token at Health 0 with the `dead` status.

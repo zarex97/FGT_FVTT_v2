@@ -3,7 +3,8 @@ id: 2026-10-17-killed-jabberwock-started-no-cooldown
 found: retraction
 kind: generic-path-escapes-special-case
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** Ruled (#247 reading 11): a killed Jabberwock has disappeared: the 5◈ cooldown starts, and it returns at full Health, still without the lifesteal the Vorpal Blade took.
 **Actual:** Read for the ruling: only the timed departure (`io.dismissSummon`) wrote the summoner's `fieldSummonStats` and started the `countFrom: destroyed` clock. A killed one left by `defeat` and `clearBody`: no cooldown, so she could summon it again at once, and the Blade's removal was lost.

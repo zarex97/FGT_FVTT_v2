@@ -3,7 +3,8 @@ id: 2026-10-17-jabberwock-guard-never-authored
 found: retraction
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** *"Enemy Units cannot Attack Nursery or her Master if the Jabberwock are directly next to them"*, as the Trump Soldiers' identical sentence does.
 **Actual:** Read for the Clause list: the Trump Soldier carries the `TargetabilityModifier`; the Jabberwock's statblock carries none. Part 2's inventory marked it FREE (J17).

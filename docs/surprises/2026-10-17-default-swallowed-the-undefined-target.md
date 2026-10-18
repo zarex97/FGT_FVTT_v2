@@ -3,7 +3,8 @@ id: 2026-10-17-default-swallowed-the-undefined-target
 found: test
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** `pressGate(actor, item, { target: undefined })` would judge only the requirements the Unit can
 answer alone, the mode a billed window use (Monstrous Strength) is offered in, before anyone is aimed at.

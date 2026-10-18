@@ -3,7 +3,8 @@ id: 2026-10-17-forest-escape-and-death-said-nothing
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** A Unit's escape from the Nameless Forest, and its death die, each show the table the roll and the outcome; the code's own comment says the death roll is logged so that *"a player who watches a 1 come up and survives it has been told something true"*.
 **Actual:** Heracles escaped: Tokens 1 → 0, the Resistance landed, and no card at all. The death roll's `namelessForestDeathRoll` entry and the escape's `namelessForestEscape` entry had no reader anywhere in `module/`.

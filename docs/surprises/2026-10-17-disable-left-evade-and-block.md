@@ -3,7 +3,8 @@ id: 2026-10-17-disable-left-evade-and-block
 found: user
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Ruled (#247 readings 4, 17, 18): a Unit under Disable, or under any effect forbidding all Actions, can neither attack, Block nor Evade.
 **Actual:** Only `cannotAct` said so, by a `ForbidReaction` line of its own; Stun, Stop, Freeze, Petrify, Sleep, Nightmare, Coma, Webbed, Crystalfreeze and Disable refused the Counter through `canAct` and left Block and Evade on the rung.

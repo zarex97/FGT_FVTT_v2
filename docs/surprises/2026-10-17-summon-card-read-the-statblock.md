@@ -3,7 +3,8 @@ id: 2026-10-17-summon-card-read-the-statblock
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** The lifesteal card says what the Jabberwock's Health did: 1000 → 746 on the hit, back to 936.
 **Actual:** Its card said *"Health 1500 (no change)"*. The token's actor held 936; `game.actors.get("IZr1RpOwRBJvILac")` held 1500, the world statblock.

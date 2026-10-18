@@ -3,7 +3,8 @@ id: 2026-10-17-rewind-stripped-the-forest-marker
 found: live press
 kind: generic-path-escapes-special-case
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** Ruled (#247 reading 6): a rewind leaves the forest's Tokens and what they took.
 **Actual:** After the rewind Arturia held 1 Token and no `namelessForest` marker. The escape button and the death die both hang from the marker, so the Token was now read by nothing.
