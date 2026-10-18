@@ -3,7 +3,8 @@ id: 2026-10-17-dead-nursery-rolled-an-injury
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** A Unit an attack defeats rolls no Injury: *"a defeated one has no Agility left to lose"* (`rules/injury.mjs`).
 **Actual:** Excalibur defeated her; the Glass Game's effect 2 wrote her Health back to 350, as *"she stays defeated"* allows; her card then read *"635 Injury Roll required"* and the log held `injury … amount 2` on her.

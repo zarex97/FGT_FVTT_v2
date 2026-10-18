@@ -3,7 +3,8 @@ id: 2026-10-17-rewind-cut-van-goghs-max-health
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** A rewind returns each Unit's Health to what it was, its maximum included.
 **Actual:** The Glass Game, working at last, wrote Van Gogh from 599/1250 to *299/299*: his recorded state at tick 24 read `{value: 299, max: 299}`.

@@ -3,7 +3,8 @@ id: 2026-10-17-item-pickup-said-nothing
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** A Unit walking onto the Vorpal Blade is told what happened: it took the sword, or why it could not.
 **Actual:** Heracles took it: BA(STR) 160 → 210, Range 2 → 1, the cache gone, and no card. A Trump Soldier and her Master stood on it and nothing at all happened that a player could read.

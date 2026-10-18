@@ -3,7 +3,8 @@ id: 2026-10-17-alice-eater-extended-nothing
 found: live press
 kind: unknown-value-falls-to-default
 status: fixed
-reviewed: false
+reviewed: true
+pattern: unknown-value-falls-to-default
 ---
 **Expected:** Player1 pressed Alice Eater on the Jabberwock: Atk Up 50% and its stay extended by 3◈, 27 to 36.
 **Actual:** The card read *"Alice Eater — 1 effect(s) applied"*; Atk Up landed and the stay stayed at 27.

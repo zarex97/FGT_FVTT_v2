@@ -3,7 +3,8 @@ id: 2026-10-17-vorpal-blade-never-equipped
 found: retraction
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** A Unit that picks up the Vorpal Blade swings it: BA(STR) +50, Range 1, Normal Attacks on BA(STR).
 **Actual:** Read for the ruling: `contributionsOf` collects an Item's rules only while `equipped`, and nothing in the system writes `equipped`. The Blade did nothing in any hand. Its *"Normal Attacks … use Base Attack (STR)"* was never authored either (B5).

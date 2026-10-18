@@ -3,7 +3,8 @@ id: 2026-10-17-forest-left-a-masters-base-attack
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** The forest's *"Base Attack (both) by 10"* lands on every enemy it catches, Masters and summons included (FO.who).
 **Actual:** At the Round's end Master of Berserker took the Token, Max Health 161 → 136 and Max Luck 15 → 14, and kept BA 100/100. Heracles lost his 10 each.

@@ -3,7 +3,8 @@ id: 2026-10-17-tale-hit-a-defeated-drake-twice
 found: live press
 kind: check-then-act-race
 status: fixed
-reviewed: false
+reviewed: true
+pattern: check-then-act-race
 ---
 **Expected:** A Tale for Somebody's Sake on Drake and Van Gogh deals its damage to each once.
 **Actual:** Player1's Tale: Drake's Process logged *"damage … total 699"*, Drake defeated, then *"damage … total 1070"* on the same Process before Van Gogh's resolved; the GM console carried two `Uncaught (in promise)` from `combat-process.mjs#advance` via `await-timeout.mjs#applyExpiry`.
