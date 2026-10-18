@@ -20,7 +20,7 @@ import { usageSpecFor, classifyAbility, useBudgetKind } from "../rules/ability-u
 import { budgetActionFor } from "../rules/budget.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
-import { currentBoard, unitFrom, gateContext } from "./board.mjs";
+import { currentBoard, unitFrom, gateContext, unitActor } from "./board.mjs";
 import * as budget from "./budget.mjs";
 
 /**
@@ -85,7 +85,7 @@ export function pressGate(actor, item, {
   target = null, selfOnly = false, billsBudget = true, asAttack = pressesAsAttack(item),
 } = {}) {
   const self = unitFrom(board, actor);
-  const master = self.masterId ? unitFrom(board, game.actors.get(self.masterId)) : null;
+  const master = self.masterId ? unitFrom(board, unitActor(self.masterId)) : null;
   const spec = usageSpecFor(item);
   const usage = canUseAbility({
     // Spread FIRST, then OR: an ability may carry the flag on its own document.

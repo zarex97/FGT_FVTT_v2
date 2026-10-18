@@ -10,7 +10,7 @@
  * `zonExempt`, the Sustainability bump) nothing else has a reason to know.
  */
 
-import { currentBoard, unitOf } from "./board.mjs";
+import { currentBoard, unitOf, unitActor } from "./board.mjs";
 import { activatePlatform } from "./platforms.mjs";
 import { askOwner } from "./ask.mjs";
 import { displaceToken } from "./io.mjs";
@@ -59,7 +59,7 @@ async function onChannelComplete({ actorId, onComplete }) {
  * @returns {Promise<Record<string, {i: number, j: number}>>}
  */
 async function chooseRiderPanels(ownerId, allyIds) {
-  const owner = game.actors.get(ownerId);
+  const owner = unitActor(ownerId);
   const self = currentBoard().units.find((u) => u.id === ownerId);
   if (!owner || !self?.panel || allyIds.length === 0) return {};
 
@@ -137,7 +137,7 @@ export function riderPanelOptions(origin, footprint, taken = []) {
  * @returns {Promise<string[]>} the allied Units to bring aboard
  */
 async function chooseRiders(ownerId) {
-  const owner = game.actors.get(ownerId);
+  const owner = unitActor(ownerId);
   const self = currentBoard().units.find((u) => u.id === ownerId);
   if (!owner || !self) return [];
 
@@ -186,7 +186,7 @@ async function chooseRiders(ownerId) {
  * @returns {Promise<{ok: boolean, reason?: string, platformId?: string}>}
  */
 export async function activateHangingGardens(semiramisId, { allyIds = [], allyPanels = {} } = {}) {
-  const owner = game.actors.get(semiramisId);
+  const owner = unitActor(semiramisId);
   if (!owner) return { ok: false, reason: "notFound" };
 
   const board = currentBoard();
@@ -210,7 +210,7 @@ export async function activateHangingGardens(semiramisId, { allyIds = [], allyPa
 
   // "Base Attack (MAG): Uses Semiramis'" -- a one-shot mirror of her POST-buff
   // figure, not a live one; see hanging-gardens.yml's own note on why.
-  await platform.update({ "system.baseAttack.mag": game.actors.get(owner.id)?.system?.baseAttack?.mag ?? 0 });
+  await platform.update({ "system.baseAttack.mag": unitActor(owner.id)?.system?.baseAttack?.mag ?? 0 });
 
   const footprint = platform.system?.footprint ?? { w: 9, h: 9 };
   const token = await platform.getTokenDocument({
@@ -275,7 +275,7 @@ async function seatRiders(platform, origin, riders, chosen) {
     // caller is right, and the whole failure fits in one falsy `token`.
     if (!token) {
       // fgt-name-ok: console text for the GM and the developer
-      console.warn(`FGT | Hanging Gardens: no token to seat for ${game.actors.get(unitId)?.name ?? unitId}.`);
+      console.warn(`FGT | Hanging Gardens: no token to seat for ${unitActor(unitId)?.name ?? unitId}.`);
       continue;
     }
     // Through `displaceToken` for the reason `engine/io.mjs` records: a rider
@@ -344,7 +344,7 @@ export function seatingPlan(origin, footprint, riders, chosen = {}) {
  */
 function tokenDocumentFor(unitId) {
   return canvas.scene?.tokens?.find((t) => t.actorId === unitId)
-    ?? game.actors.get(unitId)?.getActiveTokens?.(false, true)?.[0]
+    ?? unitActor(unitId)?.getActiveTokens?.(false, true)?.[0]
     ?? null;
 }
 
@@ -437,7 +437,7 @@ async function onPlatformDestroyed(platform) {
   if (!game.users.activeGM?.isSelf) return;
   if (platform?.contentId !== PLATFORM_CONTENT_ID) return;
 
-  const owner = platform.ownerId ? game.actors.get(platform.ownerId) : null;
+  const owner = platform.ownerId ? unitActor(platform.ownerId) : null;
   if (!owner) return;
 
   // "its Construction is reduced to 0" -- she may rebuild from scratch.

@@ -37,7 +37,10 @@ rules:
   - key: OnEvent
     event: damageStepEnd
     automatic: true
-    predicate: ["attack:kind:normal", "attack:component:str"]
+    # "...which DEALS STR damage": damage dealt, ruled against the hit-not-hurt
+    # rule (#247 reading 2), as Kiritsugu's "if damage was dealt" was (#243
+    # reading 15). A Block to 0 plants nothing.
+    predicate: ["attack:kind:normal", "attack:component:str", "attack:dealtDamage"]
     then:
       - key: ApplyEffect
         target: victim

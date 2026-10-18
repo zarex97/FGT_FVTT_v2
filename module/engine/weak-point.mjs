@@ -19,7 +19,7 @@
 import { weakPointChance, weakPointOffered } from "../rules/weak-point.mjs";
 import { luckChecksBlocked } from "../rules/bounded-fields.mjs";
 import { luckCheck } from "../rules/checks.mjs";
-import { currentBoard, unitOf } from "./board.mjs";
+import { currentBoard, unitOf, unitActor } from "./board.mjs";
 import * as I from "./intents.mjs";
 import * as rollLog from "../rules/roll-log.mjs";
 
@@ -51,8 +51,8 @@ export function exposedWeakPoint(defender, attacker, state, board = null) {
  * @returns {Promise<object>} the state, with `heel` set when it was taken
  */
 export async function offerWeakPoint(state, { board = null } = {}) {
-  const attackerDoc = game.actors.get(state.attackerId);
-  const defenderDoc = game.actors.get(state.defenderId);
+  const attackerDoc = unitActor(state.attackerId);
+  const defenderDoc = unitActor(state.defenderId);
   if (!attackerDoc || !defenderDoc) return state;
 
   const view = board ?? currentBoard();
@@ -133,8 +133,8 @@ export async function offerWeakPoint(state, { board = null } = {}) {
  * @returns {Promise<{event: string, detail: object}>}
  */
 export async function resolveWeakPoint(state, { board = null } = {}) {
-  const attackerDoc = game.actors.get(state.attackerId);
-  const defenderDoc = game.actors.get(state.defenderId);
+  const attackerDoc = unitActor(state.attackerId);
+  const defenderDoc = unitActor(state.defenderId);
   const view = board ?? currentBoard();
   const attacker = unitOf(attackerDoc, view);
   const defender = unitOf(defenderDoc, view);

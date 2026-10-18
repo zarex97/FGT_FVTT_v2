@@ -69,12 +69,21 @@ export function historyWanted(board) {
 export function snapshotUnit(unit, globalTurn) {
   return {
     globalTurn,
+    // Each pool with its own maximum. The board flattens a pool to its value
+    // and keeps the maximum beside it; `pool` alone made one of the other, and
+    // the Glass Game wrote Van Gogh back to a Max Health of 299 (#247, live).
     stats: {
-      health: pool(unit?.health),
-      agility: pool(unit?.agility),
-      luck: pool(unit?.luck),
+      health: pool(unit?.health, unit?.maxHealth),
+      agility: pool(unit?.agility, unit?.maxAgility),
+      luck: pool(unit?.luck, unit?.maxLuck),
     },
-    parameters: { ...(unit?.parameters ?? {}) },
+    // The sheet's own letters: what `io.rewind` writes back to
+    // `system.parameters`. The projection's `parameters` are Ranks with the
+    // granted steps folded in; a flag clones a Rank to {}, and the update that
+    // carried {str: {}, ...} was dropped whole -- Arturia kept her 900 Health
+    // through the Glass Game (#247, live). A document's `system` passes its
+    // strings straight through.
+    parameters: { ...(unit?.storedParameters ?? unit?.parameters ?? {}) },
     grantedSteps: { ...(unit?.grantedSteps ?? {}) },
     baseAttackPenalty: { ...(unit?.baseAttackPenalty ?? {}) },
     effects: (unit?.effectInstances ?? []).map((e) => ({
@@ -112,10 +121,11 @@ export function snapshotUnit(unit, globalTurn) {
  * two different shapes on two different paths.
  *
  * @param {number|{value: number, max: number}|null|undefined} raw
+ * @param {number|null} [max] the maximum the board keeps beside a flattened value
  * @returns {{value: number, max: number}}
  */
-function pool(raw) {
-  if (typeof raw === "number") return { value: raw, max: raw };
+function pool(raw, max = null) {
+  if (typeof raw === "number") return { value: raw, max: typeof max === "number" ? max : raw };
   return { value: raw?.value ?? 0, max: raw?.max ?? 0 };
 }
 

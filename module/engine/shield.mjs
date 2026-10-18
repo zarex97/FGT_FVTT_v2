@@ -29,6 +29,7 @@
 import { EffectRegistry } from "../rules/registry.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import * as I from "./intents.mjs";
+import { unitActor } from "./board.mjs";
 
 /**
  * @typedef {object} Absorption
@@ -194,7 +195,7 @@ function barrierOn(defender, options) {
     // `attack:kind:np` includes an ability categorized as one (#208, 2026-10-16).
     if (absorbs.scope === "np" && !options.has("attack:kind:np")) continue;
 
-    const owner = game.actors.get(instance.sourceUnitId);
+    const owner = unitActor(instance.sourceUnitId);
     const item = owner?.items?.find((i) => i.system?.shield);
     if (!item) continue;
 

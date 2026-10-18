@@ -17,8 +17,12 @@ quantity: 1
 transferable: false
 # "Cannot be obtained by Nursery or her Master." A role pair against a CONTENT
 # id: a Foundry actor id is random per world and would not survive the Servant
-# being placed twice.
-barredFrom: { ofUnit: nursery-rhyme, roles: [self, master] }
+# being placed twice. `onlyKinds`: *"picked up by a Unit walking onto its
+# panel"* is a Servant's or a Master's walk, not a summon's (#247 reading 14).
+barredFrom: { ofUnit: nursery-rhyme, roles: [self, master], onlyKinds: [servant, master] }
+# Picking it up equips it (#247 reading 14): nothing in the system equips an
+# Item, so a Blade that waited to be "Equipped" did nothing in any hand.
+worksWhenHeld: true
 description: |
   When Equipped, increase the Unit's Base Attack (STR) by 50, but Range is reduced to 1 panel; and
   Normal Attack damage dealt to Units with the 'Demonic' Attribute is increased by 50%. The above
@@ -29,16 +33,16 @@ description: |
   the Jabberwock; then the Vorpal Blade breaks and can no longer be used.
   Cannot be obtained by Nursery or her Master.
 rules:
-  # B1. A flat addition to a Normal Attack's damage rather than a change to the
-  # printed Base Attack: `BaseAttackModifier` is a FACTOR, and "increase by 50"
-  # is not one. `npValue: 0` is B4, stated rather than defaulted -- "the above
-  # Stat boosts do not affect NP & Attacks Categorized as NP" is a sentence on
-  # the sheet and deserves to be visible in the file.
-  - key: FlatDamage
-    modifierKey: flatDamage
-    value: 50
-    npValue: 0
-    predicate: ["attack:kind:normal", "attack:component:str"]
+  # B1. "Increase the Unit's Base Attack (STR) by 50": the Base Attack itself,
+  # so every Attack that draws on it gains, an Attack Skill's 2x twice over
+  # (#247 reading 12). It was a flat +50 on STR Normal Attacks only.
+  # `exceptNP` is B4: "the above Stat boosts do not affect NP & Attacks
+  # Categorized as NP", so a Noble Phantasm draws the Base Attack without it.
+  - { key: BaseAttackModifier, add: 50, components: [str], exceptNP: true }
+
+  # B5. "Normal Attacks with this Item Equipped use Base Attack (STR)": a Unit
+  # whose own Normal Attacks use MAG swings the Blade's STR (#247 D4).
+  - { key: NormalAttackComponent, component: str }
 
   # B2. `set`, not a delta. "Range is reduced TO 1 panel" -- a Servant at Range
   # 4 and a Servant at Range 2 both end at 1, which no single delta expresses.
@@ -74,17 +78,27 @@ rules:
   # Servants" -- Ch. 32's x0.5, refused outright rather than made less likely.
   - { key: Suppress, scope: underpower }
 
-  # B7's other two consequences, on the one attack that lands.
+  # B7's other two consequences, on the one Normal Attack that lands, as the
+  # 3x is (R5: they fire together).
+  #
+  # "...the lifesteal effect is PERMANENTLY REMOVED from the Jabberwock." At the
+  # Damage Step's START, so the blow that removes it heals nothing (ruled
+  # 2026-10-17, #247 §46.4-QV): removed at its end, the lifesteal's
+  # `damageTaken` ran first and the blow healed it 678 ("Health 95 → 773").
+  # By the rule's own slug, and the removal rides home on the summoner's
+  # fieldSummonStats so it survives the monster disappearing and being summoned
+  # again -- which is precisely the interaction the sheet spends a sentence on.
+  - key: OnEvent
+    event: damageStepStart
+    automatic: true
+    predicate: ["target:contentId:jabberwock", "attack:kind:normal"]
+    then:
+      - { key: SuppressRule, subject: victim, scope: jabberwockLifesteal }
+  # "...then the Vorpal Blade breaks and can no longer be used." At the END:
+  # broken at the start, it would take its own 3x with it.
   - key: OnEvent
     event: damageStepEnd
     automatic: true
-    predicate: ["target:contentId:jabberwock"]
+    predicate: ["target:contentId:jabberwock", "attack:kind:normal"]
     then:
-      # "...the lifesteal effect is PERMANENTLY REMOVED from the Jabberwock."
-      # By the rule's own slug, and the removal rides home on the summoner's
-      # fieldSummonStats so it survives the monster disappearing and being
-      # summoned again -- which is precisely the interaction the sheet spends a
-      # sentence on.
-      - { key: SuppressRule, subject: victim, scope: jabberwockLifesteal }
-      # "...then the Vorpal Blade breaks and can no longer be used."
       - { key: ItemDelta, item: vorpal-blade, delta: -1 }

@@ -20,7 +20,8 @@ valence: neither
 stacking: noneRefresh
 baseChance: 100
 unremovable: true
+# Its rungs too: Evade, Block and Counter go for every effect that prevents
+# Acting, at one door (`rules/snapshot.mjs`, #247 reading 18). This file said it
+# by a line of its own, and was the only one that did.
 preventsAction: true
-rules:
-  - key: ForbidReaction
-    reactions: [evade, block, counter]
+rules: []

@@ -89,7 +89,9 @@ describe("when the duel ends", () => {
     const at = src.indexOf("await closeDecidedDuels();");
     expect(at).toBeGreaterThan(src.indexOf("if (process.isComplete(state)) {\n    await endConcealmentAfterAttack(state);"));
     const fields = readFileSync("module/engine/fields.mjs", "utf8");
-    expect(fields).toMatch(/game\.actors\.get\(id\)\?\.system\?\.defeated/);
+    // The Unit's own document, its token's actor first (#247: a summon's world
+    // statblock is never the one that died).
+    expect(fields).toMatch(/unitActor\(id\)\?\.system\?\.defeated/);
   });
 });
 

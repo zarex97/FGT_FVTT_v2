@@ -79,6 +79,8 @@ budget, because the budget is skipped for a Unit that has Moved already this Tur
 first Move (Avalon's Item Rite, a Stun) stopped nothing. The refusal names the effect: *"Arturia cannot Move: Item
 Rite."*
 
+**A mover that lands on a Unit pushes it along its own travel when it says so** (#247 reading 10). The default push fans out from the mover's centre, so a 1×1 mover landing on a Unit sends it to the first free panel of up, down, left, right: the Jabberwock moving right onto Heracles sent him up. A statblock that names `Knockback` with `direction: arrival` (Kingprotea's push) shoves on along its last step instead, a Unit in the way pushed on, one at the edge to the nearest free panel; the Jabberwock carries it (`movement-hooks.mjs#knockBackOccupants`, `rules/movement.mjs#clearFootprintPlan`).
+
 ## Invariants & edge cases
 
 1. **Panels are always measured from the whole footprint, not the anchor alone.** `chebyshevFromAny` and `inAttackRangeFromAny` check all panels a unit occupies and return the minimum distance or a boolean (`module/domain/geometry.mjs:68-89`). Single-panel units still use these; they are correct whether the unit occupies one panel or nine.

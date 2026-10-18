@@ -121,6 +121,8 @@ asks about it (`module/rules/granted.mjs:1-18`). The drag gate (`segmentCheck`),
 (`canConsume`) and `planMovement` all ask this one question; a name match on an item called Riding
 used to be a second, disagreeing answer for Pollux, Drake and Pale Rider and has been deleted (#117).
 
+**A Unit's document is its token's actor first** (#247). A summon's token is unlinked (`LINKED_TYPES`), and its synthetic actor shares the id of the world statblock it came from, so `game.actors.get(id)` answers the statblock. The engine read it in 258 places: a lifesteal card printed *"Health 1500 (no change)"*, and a dead Jabberwock was offered a Counter and an Injury Roll because the statblock was alive at 1500. Every engine and `net/operations.mjs` read goes through `engine/board.mjs#unitActor` (the token's actor, then the world actor); only the resolver and the deletion of a summon's statblock name the world actor, and `nursery-247-rulings.test.mjs` refuses a new raw read. The test world links every token, so no behaviour test can show the difference (Ch. 44).
+
 ## Invariants & edge cases
 
 1. **Stored values are restored before `prepareBaseData` runs.** The restoration puts back every field

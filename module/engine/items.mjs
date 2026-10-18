@@ -11,7 +11,7 @@
  */
 
 import { canTransferItem, transferItem, consumeItem, acquisitionTarget } from "../rules/items.mjs";
-import { currentBoard, unitFrom, turnRecordOf } from "./board.mjs";
+import { currentBoard, unitFrom, turnRecordOf, unitActor } from "./board.mjs";
 import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
@@ -28,8 +28,8 @@ import { INFINITE } from "../domain/enums.mjs";
  * @returns {Promise<{ok: boolean, reason?: string}>}
  */
 export async function giveItem({ fromId, toId, itemId, count = 1 }) {
-  const fromDoc = game.actors.get(fromId);
-  const toDoc = game.actors.get(toId);
+  const fromDoc = unitActor(fromId);
+  const toDoc = unitActor(toId);
   const item = fromDoc?.items?.get(itemId);
   if (!fromDoc || !toDoc || !item) return { ok: false, reason: "notFound" };
 
@@ -89,7 +89,7 @@ export async function giveItem({ fromId, toId, itemId, count = 1 }) {
  * @returns {Promise<{ok: boolean, reason?: string}>}
  */
 export async function useItem({ unitId, itemId }) {
-  const actor = game.actors.get(unitId);
+  const actor = unitActor(unitId);
   // By EITHER key, the convention `io.adjustItemQuantity` already follows. A
   // Foundry id is random per world, so the action bar addresses items by their
   // stable content id and nothing else should have to know which it was given.

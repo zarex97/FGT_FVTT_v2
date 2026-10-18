@@ -20,7 +20,7 @@
  * without this module having to remember anything.
  */
 
-import { currentBoard, unitOf } from "./board.mjs";
+import { currentBoard, unitOf, unitActor } from "./board.mjs";
 import { displaceToken } from "./io.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import {
@@ -178,7 +178,7 @@ export async function createField(ability, actor, board = null, { targetId = nul
  * @returns {Promise<boolean>}
  */
 async function agreesToField(ability, actor, targetId) {
-  const target = targetId ? game.actors.get(targetId) : null;
+  const target = targetId ? unitActor(targetId) : null;
   if (!target) return false;
   // The CHALLENGED Unit's player is asked, wherever the cast is running: the
   // consent is theirs to give, not the caster's or the GM's (#130).
@@ -432,7 +432,7 @@ async function openField(ability, actor, snapshot, spec, { panels: givenPanels =
     ? (specGeometry.unitRef === "ownerMaster" ? actor.system?.masterId : actor.id)
     : null;
   const anchorToken = anchorActorId
-    ? game.actors.get(anchorActorId)?.getActiveTokens?.()[0]?.document ?? null
+    ? unitActor(anchorActorId)?.getActiveTokens?.()[0]?.document ?? null
     : null;
 
   const [region] = await scene.createEmbeddedDocuments("Region", [{
@@ -535,7 +535,7 @@ export async function returnBanished(tick) {
     for (const [unitId, until] of Object.entries(field.state?.banished ?? {})) {
       if (until > tick) continue;
 
-      const actor = game.actors.get(unitId);
+      const actor = unitActor(unitId);
       const token = actor?.getActiveTokens?.(false, true)?.[0]
         ?? canvas?.tokens?.placeables?.find((t) => t.actor?.id === unitId)?.document;
       // *"...reappears on a random panel within."* Its own field, not wherever
@@ -579,7 +579,7 @@ export async function ensurePassiveFields() {
 
   for (const unit of board.units ?? []) {
     if (!unit.panel || unit.defeated) continue;
-    const actor = game.actors.get(unit.id);
+    const actor = unitActor(unit.id);
     if (!actor) continue;
 
     for (const ability of actor.items ?? []) {
@@ -719,7 +719,7 @@ export async function endField(fieldId, reason = "ended", { logged = false } = {
     //
     // Remembered on the OWNER, which is the only place that outlives the field.
     // Keyed by content id, so the Queen's Health comes back to the Queen.
-    const owner = game.actors.get(summon.system?.summonerId);
+    const owner = unitActor(summon.system?.summonerId);
     if (owner && summon.system?.contentId) {
       // The TOKEN's actor: a summon's token is unlinked, so its Health and
       // Agility live there, and the base actor still reads its sheet's full
@@ -785,7 +785,7 @@ export async function endField(fieldId, reason = "ended", { logged = false } = {
  * @returns {Promise<void>}
  */
 async function setCooldownOnDeactivation(field) {
-  const owner = game.actors.get(field.ownerId);
+  const owner = unitActor(field.ownerId);
   // `field.id` IS `ability.system.contentId ?? ability.id` -- exactly how
   // `createField` stamped it as `fieldId` -- so the same lookup finds the
   // ability back (`board.mjs`'s `boundedFieldsOf` projects it as `id`).
@@ -887,7 +887,7 @@ export async function closeDecidedDuels() {
   /** @type {string[]} */
   const closed = [];
   for (const field of currentBoard().fields ?? []) {
-    if (!duelDecided(field, (id) => Boolean(game.actors.get(id)?.system?.defeated))) continue;
+    if (!duelDecided(field, (id) => Boolean(unitActor(id)?.system?.defeated))) continue;
     // `deactivateField`, as a pierced field is closed: it logs the reason.
     if (await deactivateField(field.id, "duelDecided")) closed.push(field.id);
   }
@@ -963,7 +963,7 @@ async function offerExtension(field, tick) {
   if (!spec.repeatable && field.lastExtendedAt !== null && field.lastExtendedAt !== undefined) return false;
 
   const payerId = (spec.cost?.payer ?? "owner") === "ownerMaster" ? field.ownerMasterId : field.ownerId;
-  const doc = payerId ? game.actors.get(payerId) : null;
+  const doc = payerId ? unitActor(payerId) : null;
   if (!doc || doc.system?.defeated) return false;
 
   // The payer AS THE BOARD SEES THEM, not as `game.actors` does. For an
@@ -1062,7 +1062,7 @@ function closeReason(field, tick) {
   // Axis 6. "Owner defeat ends it" is the only vulnerability in the reference
   // set that resolves without a roll, and both authored fields carry it.
   // The duel's default end: a duellist's defeat that stuck (#184 reading 4).
-  if (duelDecided(field, (id) => Boolean(game.actors.get(id)?.system?.defeated))) return "duelDecided";
+  if (duelDecided(field, (id) => Boolean(unitActor(id)?.system?.defeated))) return "duelDecided";
 
   return endsForOwnerDefeat(field) ? "ownerDefeat" : null;
 }
@@ -1078,7 +1078,7 @@ function endsForOwnerDefeat(field) {
     (v) => v.kind === "ownerDefeat" && v.result === "end",
   );
   if (!onOwnerDefeat) return false;
-  return Boolean(game.actors.get(field.ownerId)?.system?.defeated);
+  return Boolean(unitActor(field.ownerId)?.system?.defeated);
 }
 
 /**
@@ -1384,7 +1384,7 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
           ? I.heal(who, Math.abs(action.amount ?? 0), field.id)
           : I.statDelta(who, action.stat ?? "health.value", action.delta ?? 0));
         // fgt-name-ok: the field log, read in the GM's log viewer
-        const recipient = { id: who, name: game.actors.get(who)?.name ?? null };
+        const recipient = { id: who, name: unitActor(who)?.name ?? null };
         if (action.key === "Heal") report(recipient, { heal: Math.abs(action.amount ?? 0) });
         else {
           const { statChangeLine } = await import("./skill-use.mjs");
@@ -1413,7 +1413,7 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
       // if that enemy Unit was previously within Doomsday Come."* It outlives
       // the field, so it is written on the OWNER rather than on the area.
       if (action.key === "SummonBound") {
-        const ownerDoc = game.actors.get(field.ownerId);
+        const ownerDoc = unitActor(field.ownerId);
         if (!ownerDoc) continue;
 
         // One Spirit per enemy, not one per contact: an enemy who steps out
@@ -1534,7 +1534,7 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
     for (const heal of splitPool(pool, beneficiaries, first)) {
       out.push(I.heal(heal.unitId, heal.amount, field.id));
       // fgt-name-ok: the field log, read in the GM's log viewer
-      report({ id: heal.unitId, name: game.actors.get(heal.unitId)?.name ?? null }, { heal: heal.amount });
+      report({ id: heal.unitId, name: unitActor(heal.unitId)?.name ?? null }, { heal: heal.amount });
     }
   }
   return out;
@@ -1556,8 +1556,8 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
  */
 async function rewardRecipient(field, victim, branch, memo) {
   if (memo.has(victim.id)) return memo.get(victim.id);
-  const ownerDoc = game.actors.get(field.ownerId);
-  const masterDoc = field.ownerMasterId ? game.actors.get(field.ownerMasterId) : null;
+  const ownerDoc = unitActor(field.ownerId);
+  const masterDoc = field.ownerMasterId ? unitActor(field.ownerMasterId) : null;
   let who = field.ownerId;
   if (ownerDoc && masterDoc && !masterDoc.system?.defeated) {
     const heal = (branch.onFail ?? []).find((a) => a.key === "Heal");
@@ -1612,8 +1612,8 @@ function fieldName(field) {
  * @returns {Promise<number|null>}
  */
 async function askSplit(field, pool, beneficiaries) {
-  const ownerDoc = game.actors.get(field.ownerId);
-  const [a, b] = beneficiaries.map((x) => game.actors.get(x.unitId));
+  const ownerDoc = unitActor(field.ownerId);
+  const [a, b] = beneficiaries.map((x) => unitActor(x.unitId));
   if (!ownerDoc || !a || !b || b.system?.defeated) return b?.system?.defeated ? pool : null;
   const answer = await askOwner(ownerDoc, {
     kind: "split",
@@ -1706,8 +1706,8 @@ export async function runUpkeep(tick, { round = null } = {}) {
     if (!verdict.due && !upkeep.closeWhen) continue;
     const payerId = upkeep.cost?.payer === "owner"
       ? field.ownerId
-      : (field.ownerMasterId ?? game.actors.get(field.ownerId)?.system?.masterId ?? null);
-    const payer = payerId ? game.actors.get(payerId) : null;
+      : (field.ownerMasterId ?? unitActor(field.ownerId)?.system?.masterId ?? null);
+    const payer = payerId ? unitActor(payerId) : null;
     const amount = Number(upkeep.cost?.amount ?? 0);
     // Read live, not off `board`: an earlier field in this same loop may have
     // just charged this payer, and the board was built before it did.
@@ -1786,7 +1786,7 @@ async function stampUpkeep(field, tick, round = null) {
   // A platform's clock lives on the ACTOR; a field's lives on the Region
   // behaviour that backs it. Same fact, two document types.
   if (field.kind === "platform") {
-    await game.actors.get(field.id)?.update(stamp);
+    await unitActor(field.id)?.update(stamp);
     return;
   }
   const behavior = behaviorFor(field.id);
@@ -1849,7 +1849,7 @@ async function stampForcedEnds(tick) {
     const hit = vulnerabilityTriggered(field, { kind: "masterDefeat" });
     if (!hit.triggered) continue;
 
-    const master = field.ownerMasterId ? game.actors.get(field.ownerMasterId) : null;
+    const master = field.ownerMasterId ? unitActor(field.ownerMasterId) : null;
     if (!master?.system?.defeated) continue;
 
     const ticks = hit.delay
@@ -1936,7 +1936,7 @@ export async function resetFieldWindows() {
  * @returns {Promise<void>}
  */
 export async function lockOutField(field) {
-  const owner = game.actors.get(field.ownerId);
+  const owner = unitActor(field.ownerId);
   const ability = owner?.items?.find?.((i) => i.system?.contentId === field.id);
   if (!ability) return;
   await ability.update({ "system.expended": true });
@@ -2059,7 +2059,7 @@ export function ownTurnOf(field) {
   const acting = combat.actingFactionId ?? null;
   if (acting === null) return false;
   const faction = field?.ownerFaction ?? field?.factionId ?? field?.faction
-    ?? game.actors?.get(field?.ownerId)?.system?.factionId ?? null;
+    ?? unitActor(field?.ownerId)?.system?.factionId ?? null;
   return faction === acting;
 }
 
@@ -2233,7 +2233,7 @@ export async function offerReshape(board) {
     // still asked to reshape the Mist her defeat was closing.
     if (!owner?.acted || owner.defeated || !mayReshape(field, owner)) continue;
 
-    const doc = game.actors.get(owner.id);
+    const doc = unitActor(owner.id);
     if (!doc) continue;
 
     const user = game.users.find((u) => u.active && !u.isGM && doc.testUserPermission(u, "OWNER"))

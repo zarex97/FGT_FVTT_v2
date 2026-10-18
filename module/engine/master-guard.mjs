@@ -9,7 +9,7 @@
  * succeeds, moves next to its Master and takes the Attack.
  */
 
-import { currentBoard } from "./board.mjs";
+import { currentBoard, unitActor } from "./board.mjs";
 import { displaceToken } from "./io.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
@@ -72,7 +72,7 @@ export async function guardMasterTarget({ attackerId, targetId }) {
     rolls.push({ unitId: guard.id, name: shownName(guard, board), roll: roll.total, total: outcome.total, target: guard.agility, success: outcome.success });
     if (!outcome.success) continue;
 
-    const token = game.actors.get(guard.id)?.getActiveTokens?.()[0]?.document
+    const token = unitActor(guard.id)?.getActiveTokens?.()[0]?.document
       ?? canvas?.scene?.tokens?.find((t) => t.actorId === guard.id) ?? null;
     if (token) {
       await displaceToken(token, { x: landing.j * canvas.scene.grid.size, y: landing.i * canvas.scene.grid.size });

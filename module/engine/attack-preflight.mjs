@@ -19,7 +19,7 @@ import { attackForbiddenThisRound } from "../rules/environment.mjs";
 import { mayOrderAnotherServant, multiServantRule } from "../rules/relationships.mjs";
 import { GRANTS, hasGranted } from "../rules/granted.mjs";
 import { actionSourceFor } from "../rules/platforms.mjs";
-import { unitFrom } from "./board.mjs";
+import { unitFrom, unitActor } from "./board.mjs";
 import { pressGate, abilityKind } from "./press-gate.mjs";
 
 /**
@@ -106,7 +106,7 @@ export function attackPreflight({ attacker, abilityId, placement = {}, board, co
   // left every target requirement unsatisfiable from the interface: Maria
   // Method 2 was refused on a Female inside the Mist at Night (#185).
   const aimedId = placement?.unitId ?? placement?.targetId ?? null;
-  const aimed = aimedId ? unitFrom(board, game.actors.get(aimedId)) : null;
+  const aimed = aimedId ? unitFrom(board, unitActor(aimedId)) : null;
   // The gate every offer of this press asks too (`press-gate.mjs`, #244): the
   // Turn's budget and `canUseAbility`, priced against the aimed Unit. The
   // `predicate` requirement reads the defender as well: `target:attribute:female`,
@@ -127,7 +127,7 @@ export function attackPreflight({ attacker, abilityId, placement = {}, board, co
   // Costs are **validated** at declaration and **paid** at confirmation
   // (Ch. 17): cancelling during targeting must cost nothing, and no rule
   // requires otherwise. So this refuses early, and the payment is below.
-  const master = self.masterId ? unitFrom(board, game.actors.get(self.masterId)) : null;
+  const master = self.masterId ? unitFrom(board, unitActor(self.masterId)) : null;
   // The engine declaring a window-only attack at its window (Kiritsugu's shot,
   // a reaction) passed `atWindow` above: the use gate refuses one anywhere else
   // (#208 reading 8).

@@ -18,7 +18,7 @@
  */
 
 import { completedSquare } from "../rules/bloodmarks.mjs";
-import { currentBoard } from "./board.mjs";
+import { currentBoard, unitActor } from "./board.mjs";
 import { affordable, spend } from "./budget.mjs";
 import { openFieldFromMarks } from "./fields.mjs";
 import * as I from "./intents.mjs";
@@ -50,7 +50,7 @@ export function marksOf(ownerId) {
  * @returns {Promise<{ok: boolean, reason?: string, opened?: string, marks?: number}>}
  */
 export async function placeMark({ unitId, abilityId }) {
-  const actor = game.actors.get(unitId);
+  const actor = unitActor(unitId);
   const ability = actor?.items?.get(abilityId);
   if (!actor || !ability) return { ok: false, reason: "notFound" };
 
@@ -126,7 +126,7 @@ export async function placeMark({ unitId, abilityId }) {
  * @returns {Promise<{ok: boolean}>}
  */
 export async function destroyMark(markId) {
-  const mark = typeof markId === "string" ? game.actors.get(markId) : markId;
+  const mark = typeof markId === "string" ? unitActor(markId) : markId;
   if (!mark) return { ok: false };
   for (const token of mark.getActiveTokens?.() ?? []) await token.document.delete();
   await mark.delete();

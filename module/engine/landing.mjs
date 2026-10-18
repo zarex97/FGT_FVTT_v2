@@ -41,7 +41,7 @@ import { checkPlan, luckCheck } from "../rules/checks.mjs";
 import { luckChecksApply } from "../rules/difficulty.mjs";
 import { luckChecksBlocked } from "../rules/bounded-fields.mjs";
 import { chebyshevFromAny } from "../domain/geometry.mjs";
-import { currentBoard, currentTick, unitFrom } from "./board.mjs";
+import { currentBoard, currentTick, unitFrom, unitActor } from "./board.mjs";
 import { askOwner } from "./ask.mjs";
 import { dispatch } from "./scheduler.mjs";
 import * as I from "./intents.mjs";
@@ -307,7 +307,7 @@ export async function landEntry(entry, ctx, { write, reread = null }) {
 function casterUnitOf(ctx, board) {
   if (ctx.casterUnit) return ctx.casterUnit;
   const id = ctx.source?.unitId ?? ctx.caster?.id ?? null;
-  const doc = ctx.caster ?? (id ? game.actors.get(id) : null);
+  const doc = ctx.caster ?? (id ? unitActor(id) : null);
   return doc ? unitFrom(board, doc) : null;
 }
 
@@ -434,8 +434,10 @@ function concealed(unit) {
  * @returns {object[]}
  */
 function landedIntents(def, target, result, board, tick, turnsPerRound) {
-  const created = !def.terminal
-    && !result.intents.some((i) => i.t === "removeEffect" && i.reason === "refreshed");
+  const refreshed = result.intents.some((i) => i.t === "removeEffect" && i.reason === "refreshed");
+  // ...or on every landing, a refresh included: the Nameless Forest's marker is
+  // a new Token each Round it lands (`onApplyEachLanding`, #247 D3).
+  const created = !def.terminal && (!refreshed || def.onApplyEachLanding);
   if (!created || !def.onApply?.length) return [];
   const handler = { source: def.name ?? def.id, abilityId: null, defId: def.id };
   const ctx = { board, tick, turnsPerRound, effectDef: (id) => EffectRegistry.get(id) };
@@ -458,7 +460,7 @@ async function offerWard(def, target) {
   if (def.polarity !== "debuff") return null;
   const ward = (target.effectInstances ?? []).find((i) => i.defId === "debuffWard" && (i.uses ?? 0) > 0);
   if (!ward) return null;
-  const doc = game.actors.get(target.id);
+  const doc = unitActor(target.id);
   if (!doc || target.defeated || doc.system?.defeated) return null;
   const answer = await askOwner(doc, {
     kind: "confirm",
@@ -503,7 +505,7 @@ async function offerPrevention(def, target, ctx, board) {
   const luck = target.luck ?? 0;
   if (luck <= 0) return null;
 
-  const doc = game.actors.get(target.id);
+  const doc = unitActor(target.id);
   if (!doc) return null;
   // Nothing left to protect. A rider lands after the damage that defeated its
   // target, and the board Unit it was handed can predate that defeat: the live

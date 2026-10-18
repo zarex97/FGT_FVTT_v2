@@ -241,7 +241,7 @@ export const EFFECT_ROUTES = {
     "families", "suppressesOtherEffects", "defaultMagnitude", "defaultDuration", "unremovable",
     "maxStacks", "rulesOncePerBearer", "blocks", "blockedBy", "replaces", "periodic",
     "terminal", "uses", "absorbs", "onRemove", "rules", "bypassesImmunity", "bypassesResistance",
-    "onApply",
+    "onApply", "onApplyEachLanding",
   ].map((k) => [k, same(k)])),
   contentId: same("id"),
   description: doc("module/apps/actor-sheet/context.mjs", "the effect's text on the sheet"),

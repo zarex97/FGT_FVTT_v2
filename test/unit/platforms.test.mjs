@@ -1101,7 +1101,8 @@ describe("a successful boarding", () => {
     // so handing it the snapshot silently assigns nobody.
     const from = src.indexOf("async function comeAboard");
     const body = src.slice(from, src.indexOf("\n}\n", from));
-    expect(body).toMatch(/game\.actors\.get\(platformId\)/);
+    // Through the one resolver, its token's actor first (#247).
+    expect(body).toMatch(/unitActor\(platformId\)/);
     expect(body).toMatch(/moveToLevel\(unitIds, platform\)/);
   });
 });

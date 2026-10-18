@@ -26,7 +26,7 @@
 import { parseTick, resolveTicks, expiryReached } from "../domain/tick.mjs";
 import { chebyshevDisc } from "../domain/geometry.mjs";
 import { leftTerrainEffects } from "../rules/terrain.mjs";
-import { currentBoard } from "./board.mjs";
+import { currentBoard, unitActor } from "./board.mjs";
 
 export const Terrain = {
   /** Register the hooks. Idempotent per Foundry session; GM-gated internally. */
@@ -251,7 +251,7 @@ export async function dropStrandedTerrainEffects() {
   const board = currentBoard();
   let dropped = 0;
   for (const unit of board.units ?? []) {
-    const actor = game.actors?.get(unit.id);
+    const actor = unitActor(unit.id);
     if (actor) dropped += await dropLeftTerrainEffects(actor, unit.panel, board);
   }
   return dropped;

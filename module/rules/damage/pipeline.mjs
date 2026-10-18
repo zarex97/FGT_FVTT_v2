@@ -355,7 +355,10 @@ function stage1Base(s) {
       s.contribute(`base:${src.component}`, 0, `unknown content ${src.contentId}`, "attacker");
       continue;
     }
-    const base = unit?.baseAttack?.[src.component] ?? 0;
+    // A boost that skips Noble Phantasms comes off again for one (the Vorpal
+    // Blade's +50, #247 reading 12): `npBaseAttackOffset` is what it added.
+    const npOffset = isNPAttack(s.ctx.attack) ? (unit?.npBaseAttackOffset?.[src.component] ?? 0) : 0;
+    const base = (unit?.baseAttack?.[src.component] ?? 0) + npOffset;
     const v = base * (src.factor ?? 1);
     if (src.component === "mag") s.mag += v;
     else s.phys += v;

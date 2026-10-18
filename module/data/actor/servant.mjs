@@ -128,6 +128,10 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       // Command Spell and defeated again gets nothing. World state, so it is
       // not an authored key.
       glassGameSpent: new fields.BooleanField({ initial: false }),
+      // ...and its first effect's clock: Turn ends counted since an enemy came
+      // within 3 of her, reset at a Round's end with none there, and after it
+      // fires (#247 D1, reading 7). World state, not authored.
+      glassGameClock: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
 
       // ZON exceptions, both from the reference set (Ch. 32). Semiramis
       // aboard the Hanging Gardens is exempt outright; the Dioscuri satisfy ZON

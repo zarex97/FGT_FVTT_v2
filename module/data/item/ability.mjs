@@ -564,6 +564,10 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // refreshed. Shock's "current Agility -3": a current value is stored, so
       // a clause that changes it pays once rather than deriving (#106).
       onApply: new fields.ArrayField(new fields.ObjectField()),
+      // ...or every time it LANDS, a refresh included: the Nameless Forest's
+      // marker lands each Round, and each landing is a new Token and a new loss,
+      // gated by the one chance the escape resistance lowers (#247 D3).
+      onApplyEachLanding: new fields.BooleanField({ initial: false }),
       defaultMagnitude: new fields.NumberField({ required: false, nullable: true, initial: null }),
       // How many charges an instance starts with, for count-stacked effects.
       // Read by `resolveStacking` since it was written, against a schema that

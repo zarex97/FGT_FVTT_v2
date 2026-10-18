@@ -14,7 +14,7 @@
  * records what it owes, the GM's client asks, a reload asks again.
  */
 
-import { currentBoard } from "./board.mjs";
+import { currentBoard, unitActor } from "./board.mjs";
 import { chooseFor } from "./ask.mjs";
 
 /**
@@ -42,7 +42,7 @@ export async function markOpeningChoicesDue({ actorIds = null, ask = true } = {}
   const marked = [];
   for (const unit of currentBoard().units ?? []) {
     if (actorIds && !actorIds.includes(unit.id)) continue;
-    const actor = game.actors.get(unit.id);
+    const actor = unitActor(unit.id);
     const ids = openingChoicesOf(actor).map((i) => i.id);
     if (ids.length === 0 || (actor.system?.openingChoices?.due ?? []).length > 0) continue;
     await actor.update({ "system.openingChoices.due": ids });
@@ -68,7 +68,7 @@ export async function markOpeningChoicesDue({ actorIds = null, ask = true } = {}
  * @returns {Promise<boolean>} whether nothing is owed any more
  */
 export async function askOpeningChoices(actorId) {
-  const actor = game.actors.get(actorId);
+  const actor = unitActor(actorId);
   if (!actor) return true;
   for (const itemId of [...(actor.system?.openingChoices?.due ?? [])]) {
     const item = actor.items.get(itemId);
@@ -152,7 +152,7 @@ export function attachOpeningChoice() {
   Hooks.on("createToken", (token) => {
     if (!game.user?.isGM || !game.combats?.active?.started) return;
     const actorId = token.actorId ?? token.actor?.id ?? null;
-    if (openingChoicesOf(game.actors.get(actorId)).length === 0) return;
+    if (openingChoicesOf(unitActor(actorId)).length === 0) return;
     markOpeningChoicesDue({ actorIds: [actorId] }).catch((err) => console.error("FGT | Opening choice:", err));
   });
 }
