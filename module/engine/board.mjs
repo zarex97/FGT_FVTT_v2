@@ -428,6 +428,28 @@ export function gateContext() {
 }
 
 /**
+ * The document a Unit's id names: its token's actor first, the world actor
+ * only when no token holds it.
+ *
+ * A summon's token is unlinked (`documents/index.mjs#LINKED_TYPES`), so its
+ * actor is a synthetic one with the SAME id as the world statblock it came
+ * from, and `game.actors.get(id)` answers the statblock. The Jabberwock healed
+ * 1000 -> 745 -> 936 and its card said "Health 1500 (no change)" (#247, live).
+ * For a linked token the two are one document.
+ *
+ * @param {string} unitId
+ * @returns {object|null}
+ */
+export function unitActor(unitId) {
+  // Off `globalThis`: a caller with no canvas (a test, a headless check)
+  // asks the world actor, and a bare `canvas` there is a ReferenceError.
+  const tokens = globalThis.canvas?.tokens;
+  const fromToken = tokens?.get?.(unitId)?.actor
+    ?? tokens?.placeables?.find?.((t) => t.actor?.id === unitId)?.actor;
+  return fromToken ?? globalThis.game?.actors?.get(unitId) ?? null;
+}
+
+/**
  * The board as it stands, every Unit projected at one Moment.
  *
  * `overrides.moment` names it: a boundary passes the Moment that ENDED, because

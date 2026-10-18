@@ -190,6 +190,11 @@ export function rollOptionsFor({ attacker, defender, attack = null, withoutModeH
   // Serenity's `Macabre` is the first: *"Normal Attack Crits inflict an
   // additional Stage of Poison on the DU"*.
   if (attack.crit) options.add("attack:crit");
+  // WHETHER IT HURT: damage was dealt, not only a hit landed. Known once the
+  // Damage Step has resolved, like the crit. Nursery's Enigma is *"a Normal
+  // Attack which deals STR damage"*, ruled to need damage dealt (#247 reading 2),
+  // against the hit-not-hurt rule riders follow.
+  if (attack.dealtDamage) options.add("attack:dealtDamage");
 
   // HOW FAR. EMIYA is written almost entirely in terms of it -- his Normal
   // Attack changes component at 3, *Clairvoyance* and *Hawkeye* turn on at 3,

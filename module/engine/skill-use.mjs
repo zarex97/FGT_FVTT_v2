@@ -36,7 +36,7 @@ import { landEntry } from "./landing.mjs";
 import { summonPhase } from "./summoning.mjs";
 import { cooldownFor, alsoTriggered, sharedAcrossGroup, sharedCooldownIntents } from "./cooldown.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
-import { currentBoard, currentMoment, unitFrom, unitOf, turnRecordOf } from "./board.mjs";
+import { currentBoard, currentMoment, unitFrom, unitOf, turnRecordOf, unitActor } from "./board.mjs";
 import { resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
 import { missChance, missSourceOf, PLAIN_MISS } from "../rules/miss.mjs";
@@ -60,7 +60,7 @@ import { paintTerrain } from "./terrain.mjs";
 import { activatePlatform } from "./platforms.mjs";
 import { summonAnchor, masterSeat } from "../rules/platforms.mjs";
 import { expand } from "../rules/targeting/shapes.mjs";
-import { fireEvent, regionScale } from "./scheduler.mjs";
+import { fireEvent, regionScale, dispatch, ACTION_KINDS } from "./scheduler.mjs";
 import { isConcealed, concealmentBreakChance } from "../rules/concealment.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import { publicIdentityOf, publicSpeakerFor } from "./public-identity.mjs";
@@ -95,7 +95,7 @@ export async function useSkill({
   // reading 9). Only the engine sets it.
   anyMoment = false,
 }) {
-  const actor = game.actors.get(actorId);
+  const actor = unitActor(actorId);
   const ability = actor?.items?.get(abilityId);
   if (!actor || !ability) return { ok: false, reason: "notFound" };
   // An ability whose use is a setup dialog is never USED: it spent a Servant
@@ -104,7 +104,7 @@ export async function useSkill({
 
   const board = currentBoard();
   const self = unitFrom(board, actor);
-  const master = self.masterId ? unitFrom(board, game.actors.get(self.masterId)) : null;
+  const master = self.masterId ? unitFrom(board, unitActor(self.masterId)) : null;
   const combat = game.combats?.active;
 
   // The gate this press runs, and the one every offer of it asks (#244):
@@ -542,7 +542,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
       .filter(Boolean);
 
     for (const target of phaseSet) {
-      const doc = game.actors.get(target.unitId);
+      const doc = unitActor(target.unitId);
       if (!doc) continue;
       const snapshot = unitOf(doc, board);
       // Where the entries below land, stamped once here rather than at each of
@@ -608,7 +608,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           const ends = { self: actor.id, master: masterId, target: target.unitId };
           const fromId = ends[phase.from ?? "self"] ?? null;
           const toId = ends[phase.to ?? "target"] ?? null;
-          const fromDoc = fromId ? game.actors.get(fromId) : null;
+          const fromDoc = fromId ? unitActor(fromId) : null;
           const held = fromDoc?.items?.find((i) => i.system?.contentId === phase.item);
           if (!held || !toId || fromId === toId) break;
           const bond = phase.bind ? { bondUnitId: actor.id, bondMasterId: masterId } : null;
@@ -618,7 +618,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           ], `skill:${ability.id}:transferItem`);
           for (const who of phase.lock ?? []) {
             const lockId = ends[who];
-            const lockDoc = lockId ? game.actors.get(lockId) : null;
+            const lockDoc = lockId ? unitActor(lockId) : null;
             if (!lockDoc) continue;
             // Each row names whose lock it is: the card read "Item Rite, Item
             // Rite" and named nobody (#230, live).
@@ -672,13 +672,13 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
               ? Math.floor(max * (phase.percentOfMax / 100))
               : (phase.amount ?? 0));
           if (amount > 0) {
-            const before = game.actors.get(target.unitId)?.system?.health?.value ?? 0;
+            const before = unitActor(target.unitId)?.system?.health?.value ?? 0;
             await applyWorld([I.heal(target.unitId, amount, ability.id)], `skill:${ability.id}:heal`);
             // On the card (#185): Surgical Procedure healed 50 under "No
             // effects were applied", because only effects were counted. The
             // REAL change, as `resourceLine` prints a resource: Battle Retreat
             // at full Health read "Health +300" (#226, live).
-            const after = game.actors.get(target.unitId)?.system?.health?.value ?? before;
+            const after = unitActor(target.unitId)?.system?.health?.value ?? before;
             applied.push({ unitId: target.unitId, summary: { id: "heal", name: `Health ${before} → ${after} (+${after - before})`, outcome: "applied", reason: null } });
           }
           break;
@@ -688,7 +688,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           const changes = statChanges(phase, target.unitId, doc);
           // The REAL numbers, read before and after, as `resourceLine` prints a
           // resource: Castor's "+2 Luck" at a full 9 read "Luck +2" (#209, live).
-          const valueOf = (c) => resourceValue(game.actors.get(c.unitId), c.stat);
+          const valueOf = (c) => resourceValue(unitActor(c.unitId), c.stat);
           const before = changes.map(valueOf);
           await applyWorld(changes, `skill:${ability.id}:stat`);
           // ...and WHOSE, when it is not the caster's: Mana Burst's "both twins"
@@ -722,7 +722,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           // restored 4 Agility under a card that read "Atk Up" alone, and a
           // restore the maximum clamped could not be seen at all.
           const keys = (phase.changes ?? []).map((c) => c.key);
-          const before = keys.map((k) => resourceValue(game.actors.get(target.unitId), k));
+          const before = keys.map((k) => resourceValue(unitActor(target.unitId), k));
           await applyWorld(
             (phase.changes ?? []).map((c) => {
               // An ABSOLUTE write, for a clause that names the resulting number
@@ -747,13 +747,13 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
               // authored `luck`, the bare pool, and restored nothing while its
               // card read "Luck 19 (no change)" (#243, live).
               return c.clampToMax
-                ? I.statDelta(target.unitId, resourcePathFor(c.key, game.actors.get(target.unitId)?.system ?? null), delta, true)
+                ? I.statDelta(target.unitId, resourcePathFor(c.key, unitActor(target.unitId)?.system ?? null), delta, true)
                 : I.resource(target.unitId, c.key, delta);
             }),
             `skill:${ability.id}:resource`,
           );
           keys.forEach((k, n) => {
-            const line = resourceLine(k, before[n], resourceValue(game.actors.get(target.unitId), k));
+            const line = resourceLine(k, before[n], resourceValue(unitActor(target.unitId), k));
             if (line) applied.push({ unitId: target.unitId, summary: { id: "resource", name: line, outcome: "applied", reason: null } });
           });
           break;
@@ -763,13 +763,13 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           const changes = phase.choose
             ? await chosenCooldowns(phase, ability, doc)
             : cooldownChanges(phase, actor, board, ability, doc);
-          const remainingOf = (c) => game.actors.get(c.unitId)?.items?.get(c.abilityId)?.system?.cooldown?.remaining ?? 0;
+          const remainingOf = (c) => unitActor(c.unitId)?.items?.get(c.abilityId)?.system?.cooldown?.remaining ?? 0;
           const before = changes.map(remainingOf);
           await applyWorld(changes, `skill:${ability.id}:cooldown`);
           // On the card. Blood Temple's read *"NP Regen"* and nothing else: the
           // ⅔◈ it took off the Noble Phantasm left no line (#188).
           changes.forEach((c, n) => {
-            const name = game.actors.get(c.unitId)?.items?.get(c.abilityId)?.name ?? null;
+            const name = unitActor(c.unitId)?.items?.get(c.abilityId)?.name ?? null;
             const line = cooldownLine(name, before[n], remainingOf(c));
             if (line) applied.push({ unitId: c.unitId, summary: { id: "cooldown", name: line, outcome: "applied", reason: null } });
           });
@@ -870,10 +870,15 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
         case "createStructure": {
           // Once per use, from the caster: one object, not one per target.
           if (target.unitId !== actor.id) break;
+          // *"For the first time"* only: a later use places nothing and says
+          // nothing. The second Jabberwock's card read "vorpal-blade-cache —
+          // couldNotPlace", the clause working, as a failure (#247, live).
+          if (phase.once && (ability.system?.placedStructures ?? []).includes(phase.structureId)) break;
           const placed = await createStructure(phase, ability, actor, board);
           applied.push({
             summary: {
-              id: "createStructure", name: phase.structureId,
+              // Its name, as the board shows it, never its content id.
+              id: "createStructure", name: placed?.name ?? (await actorFromPacks(phase.structureId))?.name ?? phase.structureId,
               outcome: placed ? "applied" : "failed",
               reason: placed ? null : "couldNotPlace",
             },
@@ -1280,6 +1285,32 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
   /** @type {object[]} */
   const out = [];
   for (const rule of phase.rules ?? phase.effects ?? []) {
+    // An ACTION, not an effect: Alice Eater's *"extends its period of existing
+    // on the board for 3◈ more Turns"* is `DurationDelta`, which `entryOf`
+    // read as an effect with no id and landed as nothing, in silence (#247,
+    // live). Dispatched as the scheduler runs it, on the recipient; anything
+    // that is neither refuses out loud.
+    if (!entryOf(rule, { phase })) {
+      const kind = rule?.kind ?? rule?.key ?? null;
+      if (kind && ACTION_KINDS.includes(kind)) {
+        const tick = currentMoment().tick ?? 0;
+        const stayOf = () => unitOf(unitActor(target?.id), currentBoard())?.expiresAt ?? null;
+        const before = stayOf();
+        const intents = dispatch({ ...rule, kind }, target, { source: ability.name, abilityId: ability.id }, {
+          board, tick, turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+        });
+        if (intents.length > 0) await applyWorldIntents(intents, "skillEffect", { sink: phaseCtx.sink ?? null });
+        // In words, not the key: the card read "Atk UpDurationDelta" (#247, live).
+        const after = stayOf();
+        const name = kind === "DurationDelta" && typeof before === "number" && typeof after === "number"
+          ? game.i18n.format("FGT.Skill.StayExtended", { before: Math.max(0, before - tick), after: Math.max(0, after - tick) })
+          : game.i18n.format("FGT.Skill.ActionTookEffect", { ability: ability.name });
+        out.push({ unitId: target?.id, summary: { id: kind, name, outcome: intents.length > 0 ? "applied" : "noEffect", reason: null } });
+        continue;
+      }
+      console.error(`FGT | ${ability.name}: a phase entry that is neither an effect nor an action did nothing:`, rule);
+      continue;
+    }
     // What an effect does as it lands, on the card: Expert's LUC Up restores 3
     // Luck as it lands, and the card named the buff and not the restore (#226,
     // live). Read before and after, as `resourceLine` prints a resource.
@@ -1289,7 +1320,7 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
         .filter((a) => (a.kind ?? a.key) === "StatDelta" && typeof a.stat === "string").map((a) => a.stat),
       ...(Array.isArray(entry?.restores) ? entry.restores : []).map((r) => r?.stat).filter((s) => typeof s === "string"),
     ];
-    const valueOf = (stat) => resourceValue(game.actors.get(target?.id), stat.replace(/\.value$/, ""));
+    const valueOf = (stat) => resourceValue(unitActor(target?.id), stat.replace(/\.value$/, ""));
     const before = landsOn.map(valueOf);
     const landed = await landEntry(entry, {
       target,
@@ -1303,7 +1334,7 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
       // RE-READ between applications: a staged effect decides its next stage
       // from what the recipient carries, and three applications against one
       // snapshot left Van Gogh on Stage 1.
-      reread: () => unitOf(game.actors?.get(target?.id), currentBoard()) ?? target,
+      reread: () => unitOf(unitActor(target?.id), currentBoard()) ?? target,
     });
     for (const row of landed) {
       if (row.summary?.outcome !== "applied" || landsOn.length === 0) continue;
@@ -1436,7 +1467,7 @@ export async function postCard(actor, ability, targets, applied) {
     // this list goes into a message every client reads, so naming a concealed
     // Servant here reveals it to the table.
     .map((t) => {
-      const target = game.actors.get(t.unitId);
+      const target = unitActor(t.unitId);
       return target ? publicIdentityOf(target, board).name : t.unitId;
     })
     .filter((n) => n !== self.name);
@@ -1454,11 +1485,11 @@ export async function postCard(actor, ability, targets, applied) {
       // (#226, live). By its PUBLIC name: a row is shown to its recipient's
       // controllers AND to the caster's (`skillEffectsFor`), so a Def Dwn on an
       // enemy read "Karna: Def Dwn" to Van Gogh's player (#239, live).
-      const recipient = a.unitId && a.unitId !== actor.id ? game.actors.get(a.unitId) : null;
+      const recipient = a.unitId && a.unitId !== actor.id ? unitActor(a.unitId) : null;
       const who = recipient ? shownName(recipient) : null;
       return {
         name: who && !line.startsWith(`${who}:`) ? `${who}: ${line}` : line,
-        controllers: ownersOf(game.actors.get(a.unitId)),
+        controllers: ownersOf(unitActor(a.unitId)),
       };
     });
 
@@ -1481,7 +1512,13 @@ export async function postCard(actor, ability, targets, applied) {
       // the player needs, and an empty card reads as a skill that did nothing.
       refused: applied
         .filter((a) => a.summary.outcome !== "applied")
-        .map((a) => ({ name: a.summary.name, reason: a.summary.reason })),
+        // In words when the language file has the key, as a refused reaction's
+        // toast is: the card read "vorpal-blade-cache — couldNotPlace" (#247).
+        .map((a) => ({
+          name: a.summary.name,
+          reason: game.i18n.has?.(`FGT.Skill.Reason.${a.summary.reason}`)
+            ? game.i18n.localize(`FGT.Skill.Reason.${a.summary.reason}`) : a.summary.reason,
+        })),
     },
   );
 

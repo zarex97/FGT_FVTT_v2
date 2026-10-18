@@ -181,6 +181,8 @@ the applier leaves it alone. A `debuffWard` asks its holder's owner, as each deb
 its uses last (the Master's Avalon, `landing.mjs#offerWard`). A `FlatDamage` may carry a `chance`, one die per strike
 shared by its `chanceKey` (Excalibur's passive).
 
+**A resistance that names its effect is read whatever that effect's polarity** (#247). `chanceContribution` skipped every contribution about a non-debuff, and the forest's marker is a status, so a Unit's Nameless Forest Resistance was collected and never subtracted. A contribution naming an `effectId` now skips the polarity filter. **An effect's `onApply` may run on every landing** (`onApplyEachLanding`): the forest's Token and its four losses are the marker's `onApply`, so the one chance that gates the marker gates them all, and a refreshed landing pays them again (`landing.mjs#landedIntents`).
+
 ## Invariants & edge cases
 
 **The inflicter is the board's unit** (#193). Both live callers of `inflictBonusOf` — the Skill path and the event path — now hand it the board projection, auras included. A bare `unitSnapshot` carries none, so Medea's Item Construction never reached her own Spells. The chance line names the ability's own modifiers: *"rolled 69 vs 80% [target MAG B+ -25, Magic Resistance B+ -25]"*.

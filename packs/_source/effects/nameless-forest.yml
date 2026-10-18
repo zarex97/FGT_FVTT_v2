@@ -22,26 +22,34 @@ volatility: nonVolatile
 stacking: noneRefresh
 baseChance: 100
 unremovable: true
+# What each landing costs, paid on every landing, a refresh included: one
+# Token, and the four permanent losses its sheet ties to a Token (#247 D3).
+onApplyEachLanding: true
+onApply:
+  # THE TOKEN. A full path: `resourcePathFor` sends a key the Unit does not
+  # hold yet to the root of `system`, and a Drake's first Token was a write to
+  # `system.namelessForestTokens` the model dropped (#247, test).
+  - { key: ResourceDelta, resource: resources.namelessForestTokens.value, delta: 1 }
+  # ...and how many the forest has ever given: never removed by an escape and
+  # never rewound, so the Glass Game can leave the forest's losses standing
+  # with its Tokens (#247 reading 6).
+  - { key: ResourceDelta, resource: resources.namelessForestCaught.value, delta: 1 }
+  # Not a `MaxDelta` scaled by the held count: "(Health and Luck that are lost
+  # from the effects of this NP are not restored)". A contribution would spring
+  # back the instant the Tokens left. `alsoCurrent` clamps the current value to
+  # the new ceiling and does not move a wounded one (#247 reading 5).
+  - { key: StatDelta, stat: "health.max", delta: -25, alsoCurrent: true }
+  # Base Attack is DERIVED on every prepare; the penalty is what
+  # `domain/base-attack.mjs` subtracts, permanent and stable.
+  - { key: StatDelta, stat: "baseAttackPenalty.str", delta: 10 }
+  - { key: StatDelta, stat: "baseAttackPenalty.mag", delta: 10 }
+  - { key: StatDelta, stat: "luck.max", delta: -1, alsoCurrent: true }
 rules:
-  # THE LADDER. Read against the BEARER's own MAG parameter, not against this
-  # Noble Phantasm's Rank C -- which is what every other table in the corpus
-  # does, and which gives 0 at every grade and silently does nothing.
-  #
-  # Signs as written: a high Rank escapes MORE easily, because `resolveCheck`
-  # succeeds on `roll + mods <= target`. That reads backwards until you notice
-  # the Home Base term below does the same thing and that the sheet separately
-  # refuses to delete a Unit at home.
-  - key: CheckModifier
-    check: luck
-    table: namelessForestEscape
-    rankFrom: "@self.parameters.mag"
-
-  # "(stacks with the MAG Rank modifiers as seen below)" -- a second modifier,
-  # summed rather than replacing. A MAG EX Unit at home rolls at -6.
-  - key: CheckModifier
-    check: luck
-    value: -3
-    predicate: ["self:inHomeBase"]
+  # THE LADDER (MAG Rank, and -3 within its Home Base) is NOT here. It is the
+  # escape's alone, and `rules/nameless-forest.mjs#escapeModifiers` reads it
+  # for the escape. Authored as a `check: luck` CheckModifier it reached every
+  # Luck Check a caught Unit made, and the escape counted it twice: Arturia's
+  # read "(MAG A −2, namelessForest −2)" (#247, live).
 
   # THE DEATH ROLL. `turnEnd` fires for the units of the faction whose Turn is
   # ending -- "at the end of the UNIT'S Turn", not Nursery's, and not the

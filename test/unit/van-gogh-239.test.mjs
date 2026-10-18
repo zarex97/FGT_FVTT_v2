@@ -65,8 +65,9 @@ describe("#202: what a handler does reaches a card", () => {
     const S = await import("../../module/engine/skill-use.mjs");
     expect(S.statChangeLine).toBe(A.statChangeLine);
     expect(A.statChangeLine({ stat: "agility.value", delta: -1 }, 19, 18)).toBe("Agility 19 → 18");
-    // ...and an extension's span beside them, since #243 (Magecraft's 1◈ on Suppression).
-    expect(code("engine/applier.mjs")).toMatch(/said\.push\(\.\.\.clockLines\(clocks\), \.\.\.statLines\(stats\), \.\.\.await spanLines\(spans\)\);/);
+    // ...and an extension's span beside them, since #243 (Magecraft's 1◈ on Suppression),
+    // then an Item spent and a rule taken away for good, since #247 (the Vorpal Blade's blow).
+    expect(code("engine/applier.mjs")).toMatch(/said\.push\(\.\.\.clockLines\(clocks\), \.\.\.statLines\(stats\), \.\.\.await spanLines\(spans\), \.\.\.itemLines\(held\), \.\.\.suppressionLines\(lines \? plan\.local : \[\]\)\);/);
   });
 
   const input = (effects, effectOwners) => ({

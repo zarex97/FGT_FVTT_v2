@@ -23,6 +23,7 @@
  */
 
 import { limitsFor } from "../rules/master-essence.mjs";
+import { unitActor } from "./board.mjs";
 
 const STATS = Object.freeze(["health", "agility", "luck"]);
 
@@ -45,7 +46,7 @@ export function ownEssences(actor) {
  */
 export function wantedEssences(servant) {
   const masterId = servant?.system?.masterId ?? null;
-  const master = masterId ? game.actors.get(masterId) : null;
+  const master = masterId ? unitActor(masterId) : null;
   if (!master || master.system?.defeated) return { master: null, wanted: [] };
   return { master, wanted: ownEssences(master) };
 }

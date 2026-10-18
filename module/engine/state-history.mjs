@@ -14,6 +14,7 @@
  */
 
 import { historyWanted, snapshotUnit, diffSnapshots, applyPatch } from "../rules/history.mjs";
+import { EffectRegistry } from "../rules/registry.mjs";
 
 const FLAG = "stateHistory";
 
@@ -46,7 +47,57 @@ export function RETENTION_TURNS(turnsPerRound) {
  *
  * One named pool, not "resources are excluded" — every other pool comes back.
  */
-export const REWIND_EXCLUDED_RESOURCES = Object.freeze(["namelessForestTokens"]);
+export const REWIND_EXCLUDED_RESOURCES = Object.freeze(["namelessForestTokens", "namelessForestCaught"]);
+
+/**
+ * ...and the effects that ride on them: the marker the escape and the death die
+ * read, and the Resistance an escape earns. Kept as they stand now, whatever
+ * the recorded state held. A rewind past the landing stripped Arturia's marker
+ * and left her Token, which nothing then read (#247, live).
+ */
+export const REWIND_EXCLUDED_EFFECTS = Object.freeze(["namelessForest", "namelessForestResistance"]);
+
+/**
+ * What one landing of the Nameless Forest takes, read off its marker's own
+ * `onApply` so the figures live in the content and nowhere else.
+ *
+ * > *"Does not affect Nameless Forest Tokens."* Ruled (#247 reading 6): the
+ * > forest's losses stay with its Tokens. The rewind restored Max Health, Base
+ * > Attack and Max Luck with every other Stat, and handed back what the Tokens
+ * > had taken while the Tokens stayed.
+ *
+ * @returns {Array<{stat: string, delta: number}>}
+ */
+function forestLossPerLanding() {
+  return (EffectRegistry.get("namelessForest")?.onApply ?? [])
+    .filter((a) => (a.key ?? a.kind) === "StatDelta" && typeof a.delta === "number")
+    .map((a) => ({ stat: a.stat, delta: a.delta }));
+}
+
+/**
+ * A rewound state with the forest's losses since then kept: the landings
+ * between the snapshot and now, each taking what one landing takes.
+ *
+ * @param {object} state the snapshot rewound to
+ * @param {object|null} unit the Unit as it stands now
+ * @returns {object}
+ */
+function keepForestLosses(state, unit) {
+  const count = (pool) => (typeof pool === "number" ? pool : (pool?.value ?? 0));
+  const landings = count(unit?.resources?.namelessForestCaught) - count(state.resources?.namelessForestCaught);
+  if (!(landings > 0)) return state;
+  const out = { ...state, stats: { ...(state.stats ?? {}) }, baseAttackPenalty: { ...(state.baseAttackPenalty ?? {}) } };
+  for (const { stat, delta } of forestLossPerLanding()) {
+    const [pool, key] = stat.split(".");
+    if (pool === "baseAttackPenalty") {
+      out.baseAttackPenalty[key] = (out.baseAttackPenalty[key] ?? 0) + delta * landings;
+    } else if (key === "max" && out.stats[pool]) {
+      const max = Math.max(0, (out.stats[pool].max ?? 0) + delta * landings);
+      out.stats[pool] = { value: Math.min(out.stats[pool].value ?? 0, max), max };
+    }
+  }
+  return out;
+}
 
 /**
  * Record every unit's state for this turn, if anything asked for one.
@@ -124,8 +175,9 @@ export function rewindIntents(board, history, unitIds, toTurn) {
   const out = [];
 
   for (const unitId of unitIds) {
-    const state = stateAt(history, unitId, toTurn);
-    if (!state) continue;
+    const rewound = stateAt(history, unitId, toTurn);
+    if (!rewound) continue;
+    const state = keepForestLosses(rewound, (board?.units ?? []).find((u) => u.id === unitId) ?? null);
 
     // *"Does not affect Nameless Forest Tokens."*
     const resources = Object.fromEntries(Object.entries(state.resources ?? {})
@@ -138,7 +190,12 @@ export function rewindIntents(board, history, unitIds, toTurn) {
     const present = new Set((board?.units ?? []).map((u) => u.id));
     /** @type {object[]} */
     const effects = [];
+    const now = (board?.units ?? []).find((u) => u.id === unitId);
+    for (const e of now?.effectInstances ?? []) {
+      if (REWIND_EXCLUDED_EFFECTS.includes(e.defId)) effects.push({ ...e });
+    }
     for (const e of state.effects ?? []) {
+      if (REWIND_EXCLUDED_EFFECTS.includes(e.defId)) continue;
       if (e.sourceUnitId && !present.has(e.sourceUnitId)) {
         out.push({
           kind: "log", event: "rewindDroppedOrphan",

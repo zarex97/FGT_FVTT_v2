@@ -242,6 +242,8 @@ Smoke tests run locally before release, alongside `npm run check:release`. An un
 
 The contrast with unit tests is stark. Lint passes. All 629 tests pass. The content validator passes. But if a schema change breaks the world, nothing in vitest would catch it—only a smoke test, because only a smoke test loads a world.
 
+**The test world runs a type's derived pass** (#247). `world.mjs#prepare` ran `prepareBaseData` and never `system.prepareDerivedData`, which Foundry runs before the document's own (`client-document.mjs#prepareData`, step 7); a Master's Base Attack ignored its penalty in every test. It runs now. **The test world links every token**, so a read of a summon's world statblock instead of its token's actor passes in every test; a source guard holds the engine to `unitActor` until the world models an unlinked token.
+
 ## Invariants & edge cases
 
 1. **Domain and rules layers are testable without Foundry.** They import nothing but each other, and they take no Foundry globals or documents. Tests hand them plain objects and assert on return values (`vitest.config.mjs:6-9`).

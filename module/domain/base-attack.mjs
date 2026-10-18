@@ -11,6 +11,24 @@
 import { Rank } from "./rank.mjs";
 import { lookup } from "./tables.mjs";
 
+/**
+ * A stored Base Attack less its permanent penalty, floored at zero: the
+ * Nameless Forest's *"Base Attack (both) by 10"* on a Unit whose Base Attack is
+ * written rather than derived -- a Master's rolled figure, a summon's statblock.
+ * A Servant's derivation below subtracts the same field (#247, live: Master of
+ * Berserker kept BA 100/100 under a Token).
+ *
+ * @param {{str?: number, mag?: number}|null|undefined} baseAttack
+ * @param {{str?: number, mag?: number}|null|undefined} penalty
+ * @returns {{str: number, mag: number}}
+ */
+export function penalizedBaseAttack(baseAttack, penalty) {
+  return {
+    str: Math.max(0, (baseAttack?.str ?? 0) - (penalty?.str ?? 0)),
+    mag: Math.max(0, (baseAttack?.mag ?? 0) - (penalty?.mag ?? 0)),
+  };
+}
+
 /** Which table each component's parameter is read from. */
 const COMPONENTS = Object.freeze([
   ["str", "baseAttackStrByStr"],

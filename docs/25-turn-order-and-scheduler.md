@@ -87,6 +87,8 @@ When a boundary fires, the active GM client claims it by writing a random token 
 
 A boundary is named by **Foundry's own counters** (`round` and `turn`), not by `system.globalTurn`. If something threw between the claim and the counter advance, the claim was already written and the counter still pointed at the old boundary; every later client would read the same tick, find it already claimed, and freeze the scheduler for the life of the world (`module/rules/schedule-claim.mjs:19-29`).
 
+**A radius reaches Units, not bodies** (#247). `targetsOf`'s `nearby` filtered by distance and relation; a defeated Unit's body stands one Turn (`clearBodies`), so the Nameless Forest rolled on Heracles' at a Round's end. Defeated Units are left out. **A boundary hands its handlers the match's history** (`historyOf(combat)`, Ch. 42), as the defeat context in `attack.mjs` does.
+
 ## Invariants & edge cases
 
 **NP Regen does not tick on the Turn it expires** (#193 reading 7). `npRegenOf` skips an `npCooldownRegen` instance whose expiry is the Turn ending, as `tickPeriodics` does for every `periodic:` effect, so 1◈ takes 1◈ off.

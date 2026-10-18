@@ -15,7 +15,7 @@ import { ROUND_RECORD } from "../domain/stamped-record.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { resolveOverpower } from "../rules/relationships.mjs";
 import { remainingMovement } from "../rules/movement.mjs";
-import { currentBoard, currentRound } from "./board.mjs";
+import { currentBoard, currentRound, unitActor } from "./board.mjs";
 import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import { createLevel, moveToLevel, teardown, dropToGround } from "./scene-levels.mjs";
@@ -178,7 +178,7 @@ async function comeAboard(unitIds, platformId) {
   if (unitIds.length === 0) return;
   // The ACTOR, not the board snapshot: `levelOf` reads `system.levelId`, which
   // the projection does not carry.
-  const platform = game.actors.get(platformId);
+  const platform = unitActor(platformId);
   if (!platform) return;
   await moveToLevel(unitIds, platform);
 }
@@ -360,7 +360,7 @@ async function askWhereToGo(unit, platform) {
   const picked = await ChoiceDialog.pick({
     title: game.i18n.format("FGT.Platform.KnockedOffTitle", {
       // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
-      name: game.actors.get(unit.id)?.name ?? unit.id,
+      name: unitActor(unit.id)?.name ?? unit.id,
     }),
     hint: game.i18n.localize("FGT.Platform.KnockedOffHint"),
     count: 1,
@@ -371,7 +371,7 @@ async function askWhereToGo(unit, platform) {
         name: game.i18n.localize("FGT.Platform.KnockedOffStay"),
         detail: game.i18n.format("FGT.Platform.KnockedOffStayHint", {
           // fgt-name-ok: a platform is what it appears to be (Ch. 30)
-          name: game.actors.get(platform.id)?.name ?? platform.id,
+          name: unitActor(platform.id)?.name ?? platform.id,
         }),
       },
       {
@@ -510,7 +510,7 @@ async function askBringMaster(master, kind = "Jump") {
     title: game.i18n.localize(`FGT.Platform.${kind}CarryTitle`),
     hint: game.i18n.format(`FGT.Platform.${kind}CarryHint`, {
       // fgt-name-ok: a Master conceals nothing (Ch. 30)
-      name: game.actors.get(master.id)?.name ?? master.id,
+      name: unitActor(master.id)?.name ?? master.id,
     }),
     count: 1,
     min: 0,
@@ -618,7 +618,7 @@ export async function destroyPlatform({ platformId, saves = null, reason = "dest
   // rather than by preference: `TokenDocument#level` is required and
   // non-nullable and Foundry does not re-parent on delete, so scatter must
   // finish before the level goes.
-  const doc = game.actors.get(platformId);
+  const doc = unitActor(platformId);
   if (doc) {
     const out = await teardown(doc);
     if (!out.ok) {
@@ -651,7 +651,7 @@ export async function destroyPlatform({ platformId, saves = null, reason = "dest
  * @returns {Promise<void>}
  */
 async function setCooldownOnDestruction(platform) {
-  const owner = platform?.ownerId ? game.actors.get(platform.ownerId) : null;
+  const owner = platform?.ownerId ? unitActor(platform.ownerId) : null;
   if (!owner) return;
 
   // The ability whose `summonPlatform` phase named this platform's content id.
@@ -693,7 +693,7 @@ async function setCooldownOnDestruction(platform) {
  * @returns {Promise<{ok: boolean, reason?: string}>}
  */
 export async function activatePlatform({ platformId, initialUnitIds = [] }) {
-  const platform = game.actors.get(platformId);
+  const platform = unitActor(platformId);
   if (!platform) return { ok: false, reason: "notFound" };
 
   const level = await createLevel(platform);

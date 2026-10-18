@@ -20,7 +20,7 @@ import { expandInstances, damageBaseOf } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
 import { askOwner, chooseFor } from "./ask.mjs";
 import { resolveTargets, pendingChoiceErrors } from "../rules/targeting/resolve.mjs";
-import { currentBoard, currentMoment, unitFrom, unitOf, roundRecordOf } from "./board.mjs";
+import { currentBoard, currentMoment, unitFrom, unitOf, roundRecordOf, unitActor } from "./board.mjs";
 import {
   evade as evadeCheck, luckCheck, chance, checkPlan, critChance, mergePlans,
   pendingCheckRolls, resolveCheck,
@@ -97,6 +97,7 @@ import { regionSizedTargeting } from "./fields.mjs";
 // The name a line prints is the PUBLIC one (#230 rolls, #235 every card):
 // the one door is `public-identity.mjs#shownName`.
 import { shownName, shownNameById } from "./public-identity.mjs";
+import { historyOf } from "./state-history.mjs";
 
 /**
  * Declare an attack. Runs on the GM client (Model B — contested outcomes are
@@ -113,7 +114,7 @@ import { shownName, shownNameById } from "./public-identity.mjs";
 export async function resolveAttack({
   attackerId, abilityId, placement, resume = false, preflighted = null, atWindow = false,
 }) {
-  const attacker = game.actors.get(attackerId);
+  const attacker = unitActor(attackerId);
   if (!attacker) throw new Error(`FGT | Unknown attacker ${attackerId}`);
 
   const board = boardSnapshot();
@@ -842,7 +843,7 @@ export function buildAttackSpec({
       // exempted for *"an Attack/Attack Skill/Spell/NP that deals STR damage or
       // that is not affected by Magic Resistance"* -- a property of the attack,
       // so it has to travel with the attack.
-      component: componentOf(attacker, ability, options, block),
+      component: componentOf(attacker, ability, options, block, view ? unitOf(attacker, view) : null),
       // Facts that do not exist until the ride has happened. Troias Tragōidia
       // reads two of them — how much MOV he had left when he used it, and how
       // many Units he actually reached — and neither can come off a document.
@@ -1254,7 +1255,7 @@ async function declareProcesses({
         // A Structure takes no action at all (`rules/actions.mjs`), so it
         // answers no rung (`process.inertAnswer`). A Master's swing at a
         // Bloodmark stopped to ask the Bloodmark to Block or Evade (#188).
-        defenderInert: game.actors.get(state.defenderId)?.type === "structure",
+        defenderInert: unitActor(state.defenderId)?.type === "structure",
       }
       : state;
     // A weak point the attacker may aim at (Ch. 45). Offered here, at
@@ -1289,7 +1290,7 @@ async function declareProcesses({
     // exactly one possible outcome at every rung past step 2, so the whole
     // ladder collapses into a single prompt (Ch. 21). Asked per defender,
     // because one of four may collapse while the others do not.
-    const defenderDoc = game.actors.get(advanced.defenderId);
+    const defenderDoc = unitActor(advanced.defenderId);
     const collapse = defenderDoc ? process.laddersCollapse(unitOf(defenderDoc, board)) : true;
 
     await message.setFlag("fgt", "process", process.serialize(advanced));
@@ -1434,15 +1435,57 @@ const answering = new Map();
 export async function advanceAttack(args) {
   const message = game.messages.get(args.messageId);
   if (!message) throw new Error(`FGT | Unknown attack message ${args.messageId}`);
-  const state = process.deserialize(message.getFlag("fgt", "process"));
-  if (!process.pendingPrompt(state)) return answerRung(args, message, state);
+  const read = process.deserialize(message.getFlag("fgt", "process"));
+  const asked = Boolean(process.pendingPrompt(read));
+  // The same rung pressed twice: the second waits for the first and runs
+  // nothing. Claimed BEFORE anything awaits.
+  const rung = `${args.messageId}:${read.history?.length ?? 0}:${read.state}`;
+  if (asked && answering.has(rung)) return answering.get(rung);
 
-  const rung = `${args.messageId}:${state.history?.length ?? 0}:${state.state}`;
-  const inFlight = answering.get(rung);
-  if (inFlight) return inFlight;
-  const answer = answerRung(args, message, state).finally(() => answering.delete(rung));
-  answering.set(rung, answer);
-  return answer;
+  // ...and ONE driver per Process at a time, whatever it was asked. A Process
+  // stores its state only when its run ends, so a run held at a question (a
+  // prevention Luck Check, a Command Spell window) leaves its card at the rung
+  // it is answering, and a timeout re-armed meanwhile answered that rung again
+  // from the stale read: A Tale for Somebody's Sake hit a Drake it had already
+  // defeated a second time, 699 and then 1070 (#247, live). Queued behind the
+  // run, and the state read again AFTER it.
+  const run = serialized(args.messageId, async () => {
+    const state = process.deserialize(message.getFlag("fgt", "process"));
+    // An answer to a rung the Process has since left answers nothing: the run
+    // it waited for moved past it. A late timeout threw an illegal transition.
+    if (asked && `${args.messageId}:${state.history?.length ?? 0}:${state.state}` !== rung) return state;
+    // ...and the engine resuming a Process (a Command Spell's interrupt) that
+    // the run it queued behind already drove on has nothing left to drive.
+    if (!asked && (process.pendingPrompt(state) || process.isComplete(state))) return state;
+    return answerRung(args, message, state);
+  });
+  if (asked) {
+    answering.set(rung, run);
+    run.finally(() => answering.delete(rung)).catch(() => null);
+  }
+  return run;
+}
+
+/** The run each Process is in the middle of, by message. */
+const driving = new Map();
+
+/**
+ * Run `fn` once nothing else is driving this Process: calls for one message
+ * queue, calls for different messages run side by side (a fan-out's siblings
+ * wait on each other at their own rungs, never on this lock).
+ *
+ * @template T
+ * @param {string} messageId
+ * @param {() => Promise<T>} fn
+ * @returns {Promise<T>}
+ */
+export function serialized(messageId, fn) {
+  const prior = driving.get(messageId) ?? Promise.resolve();
+  const run = prior.catch(() => null).then(fn);
+  const settled = run.catch(() => null);
+  driving.set(messageId, settled);
+  settled.then(() => { if (driving.get(messageId) === settled) driving.delete(messageId); });
+  return run;
 }
 
 /**
@@ -1464,13 +1507,13 @@ async function answerRung({ event, abilityId = null, placement = null }, message
   // resolves here rather than being recorded and applied afterwards.
   const reactionAbilityId = abilityFromOption(event);
   if (state.state === "react" && reactionAbilityId) {
-    const defender = game.actors.get(state.defenderId);
+    const defender = unitActor(state.defenderId);
     // The ability may belong to somebody else entirely -- Rho Aias is projected
     // by a third party standing up to three panels away -- so the owner is read
     // off the offer rather than assumed to be the defender.
     const offer = (state.reactionAbilities?.[state.defenderId] ?? [])
       .find((a) => a.id === reactionAbilityId) ?? null;
-    const owner = game.actors.get(offer?.ownerId ?? state.defenderId) ?? defender;
+    const owner = unitActor(offer?.ownerId ?? state.defenderId) ?? defender;
     const used = owner?.items?.get(reactionAbilityId);
     if (used) {
       const { useSkill } = await import("./skill-use.mjs");
@@ -1758,7 +1801,7 @@ async function chooseReactionTarget(owner, used, state) {
  * @returns {boolean}
  */
 function attackerFell(state) {
-  const attacker = game.actors.get(state.attackerId);
+  const attacker = unitActor(state.attackerId);
   return Boolean(attacker) && (attacker.system?.defeated === true || currentHealth(unitOf(attacker, null)) <= 0);
 }
 
@@ -1940,8 +1983,8 @@ export async function flushAutoCounters(groupId = null) {
     const opened = [];
 
     for (const p of takePending(holds)) {
-      const bearer = game.actors.get(p.bearerId);
-      const provoker = game.actors.get(p.provokerId);
+      const bearer = unitActor(p.bearerId);
+      const provoker = unitActor(p.provokerId);
       const ability = bearer?.items?.get?.(p.abilityId)
         ?? [...(bearer?.items ?? [])].find((i) => i.system?.contentId === p.abilityId);
       if (!bearer || !provoker || !ability) {
@@ -2073,7 +2116,7 @@ async function rollDiceCount(ability, options, { attacker, defender, facts }, st
 async function runAfterProcessPhases(state) {
   const abilityId = state.attack?.abilityId;
   if (!abilityId) return;
-  const attackerDoc = game.actors.get(state.attackerId);
+  const attackerDoc = unitActor(state.attackerId);
   const ability = attackerDoc?.items.get(abilityId);
   if (!ability) return;
 
@@ -2083,7 +2126,7 @@ async function runAfterProcessPhases(state) {
 
   const board = currentBoard();
   const attacker = unitFrom(board, attackerDoc);
-  const defender = unitFrom(board, game.actors.get(state.defenderId));
+  const defender = unitFrom(board, unitActor(state.defenderId));
   // The reaction is in THIS option set and in no earlier one -- `attackFacts`
   // carries `state.reaction`, which is null until the ladder resolves it.
   const options = rollOptions(attacker, defender, state);
@@ -2167,7 +2210,7 @@ async function fireCombatProcessEnd(state) {
 async function raiseCombatProcessEnd(state) {
   const board = currentBoard();
   const unitIn = (id) => {
-    const doc = id ? game.actors.get(id) : null;
+    const doc = id ? unitActor(id) : null;
     return doc ? unitOf(doc, board) : null;
   };
   const attacker = unitIn(state.attackerId);
@@ -2274,7 +2317,7 @@ async function resolveCover(state, message) {
     // "The Servant shoves (Moves) its Master out of the NP area."
     const panel = shoveDestination(master, areaPanels, board);
     if (!panel) break;                       // nowhere to go: the shove fails
-    const token = game.actors.get(master.id)?.getActiveTokens?.()[0]?.document;
+    const token = unitActor(master.id)?.getActiveTokens?.()[0]?.document;
     if (!token) break;
     // Displacement, not movement: it spends none of the Master's own budget
     // and is not re-validated as a voluntary step.
@@ -2523,8 +2566,8 @@ function coverStateFor(state) {
  */
 async function fireAttacked(state) {
   const board = currentBoard();
-  const attacker = unitOf(game.actors.get(state.attackerId), board);
-  const defender = state.defenderId ? unitOf(game.actors.get(state.defenderId), board) : null;
+  const attacker = unitOf(unitActor(state.attackerId), board);
+  const defender = state.defenderId ? unitOf(unitActor(state.defenderId), board) : null;
   if (!attacker || !defender) return;
 
   // The coin the Kagome Spirits' banishment flips, pre-rolled on the same
@@ -2557,8 +2600,8 @@ async function fireAttacked(state) {
  */
 async function fireAttackDeclared(state) {
   const board = currentBoard();
-  const attacker = unitOf(game.actors.get(state.attackerId), board);
-  const defender = state.defenderId ? unitOf(game.actors.get(state.defenderId), board) : null;
+  const attacker = unitOf(unitActor(state.attackerId), board);
+  const defender = state.defenderId ? unitOf(unitActor(state.defenderId), board) : null;
   if (!attacker || !defender) return;
 
   const intents = fireEvent("attackDeclared", [attacker], {
@@ -2580,8 +2623,8 @@ async function fireAttackDeclared(state) {
  */
 function agilityRefusals(ability, attackerId, defenderId, board = boardSnapshot()) {
   if (!ability?.system?.refusesReactionsUnlessFaster) return [];
-  const attacker = game.actors.get(attackerId);
-  const defender = game.actors.get(defenderId);
+  const attacker = unitActor(attackerId);
+  const defender = unitActor(defenderId);
   if (!attacker || !defender) return [];
   return reactionRefusedByAgility(unitOf(attacker, board), unitOf(defender, board));
 }
@@ -2608,8 +2651,8 @@ function agilityRefusals(ability, attackerId, defenderId, board = boardSnapshot(
  * @returns {Promise<void>}
  */
 async function fireDamageStepStart(state) {
-  const attackerDoc = game.actors.get(state.attackerId);
-  const defenderDoc = state.defenderId ? game.actors.get(state.defenderId) : null;
+  const attackerDoc = unitActor(state.attackerId);
+  const defenderDoc = state.defenderId ? unitActor(state.defenderId) : null;
   if (!attackerDoc || !defenderDoc) return [];
 
   const board = boardSnapshot();
@@ -2706,17 +2749,17 @@ async function offerPreAttackSpell(owner, category) {
  * @returns {string[]}
  */
 function defenderRefusals(defenderId, board = boardSnapshot()) {
-  const defender = defenderId ? game.actors.get(defenderId) : null;
+  const defender = defenderId ? unitActor(defenderId) : null;
   return defender ? (unitOf(defender, board).forbiddenReactions ?? []).filter((r) => r !== "counter") : [];
 }
 
 function attackerRefusals(attackerId, board = boardSnapshot()) {
-  const attacker = game.actors.get(attackerId);
+  const attacker = unitActor(attackerId);
   return attacker ? (unitOf(attacker, board).refusesReactions ?? []) : [];
 }
 
 function accelRefusals(attackerId, board = boardSnapshot()) {
-  const attacker = game.actors.get(attackerId);
+  const attacker = unitActor(attackerId);
   if (!attacker) return [];
   return (unitOf(attacker, board).effects ?? []).includes("accel") ? ["block", "evade"] : [];
 }
@@ -2729,8 +2772,8 @@ function accelRefusals(attackerId, board = boardSnapshot()) {
  * @returns {string[]}
  */
 function concealmentRefusals(attackerId, defenderId, board = boardSnapshot()) {
-  const attacker = game.actors.get(attackerId);
-  const defender = game.actors.get(defenderId);
+  const attacker = unitActor(attackerId);
+  const defender = unitActor(defenderId);
   if (!attacker || !defender) return [];
   return reactionsRefused(unitOf(attacker, board), unitOf(defender, board));
 }
@@ -2754,8 +2797,8 @@ function concealmentRefusals(attackerId, defenderId, board = boardSnapshot()) {
  */
 async function fireDamageDealt(state, result) {
   const board = currentBoard();
-  const attacker = unitOf(game.actors.get(state.attackerId), board);
-  const defender = state.defenderId ? unitOf(game.actors.get(state.defenderId), board) : null;
+  const attacker = unitOf(unitActor(state.attackerId), board);
+  const defender = state.defenderId ? unitOf(unitActor(state.defenderId), board) : null;
   if (!attacker || !defender) return { records: [], rows: [] };
 
   // Whatever this attacker's `damageDealt` handlers need to roll, rolled here
@@ -2775,7 +2818,7 @@ async function fireDamageDealt(state, result) {
   const drivers = attacker.kind === "platform"
     ? turnPartnersOf(attacker, board, "attack")
     : [];
-  const hearers = [attacker, ...drivers.map((d) => unitOf(game.actors.get(d.id), board) ?? d)];
+  const hearers = [attacker, ...drivers.map((d) => unitOf(unitActor(d.id), board) ?? d)];
   // `attack:crit` is in the set only here, which is right: a clause that asks
   // whether the attack crit is by definition asking about a resolved one.
   const options = rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) });
@@ -2913,8 +2956,8 @@ async function fireDamageTaken(state, result) {
   // `unitFrom` takes the board's projection when there is one, which is built
   // from `canvas.tokens.placeables` like everything else.
   const board = currentBoard();
-  const attacker = unitFrom(board, game.actors.get(state.attackerId));
-  const defender = state.defenderId ? unitFrom(board, game.actors.get(state.defenderId)) : null;
+  const attacker = unitFrom(board, unitActor(state.attackerId));
+  const defender = state.defenderId ? unitFrom(board, unitActor(state.defenderId)) : null;
   if (!attacker || !defender) return [];
 
   const intents = fireEvent("damageTaken", [defender], {
@@ -2989,8 +3032,8 @@ function claimReceived(state, message) {
  */
 async function fireAttackReceived(state, result) {
   const board = currentBoard();
-  const attacker = unitFrom(board, game.actors.get(state.attackerId));
-  const defender = state.defenderId ? unitFrom(board, game.actors.get(state.defenderId)) : null;
+  const attacker = unitFrom(board, unitActor(state.attackerId));
+  const defender = state.defenderId ? unitFrom(board, unitActor(state.defenderId)) : null;
   if (!attacker || !defender) return [];
   const intents = fireEvent("attackReceived", [defender], {
     tick: currentMoment().tick ?? 0,
@@ -3142,9 +3185,9 @@ async function endConcealmentAfterAttack(state) {
  */
 async function fireEvadeSucceeded(state) {
   const board = currentBoard();
-  const defender = state.defenderId ? unitOf(game.actors.get(state.defenderId), board) : null;
+  const defender = state.defenderId ? unitOf(unitActor(state.defenderId), board) : null;
   if (!defender) return;
-  const attacker = unitOf(game.actors.get(state.attackerId), board);
+  const attacker = unitOf(unitActor(state.attackerId), board);
 
   const intents = fireEvent("evadeSucceeded", [defender], {
     tick: game.combat?.system?.globalTurn ?? 0,
@@ -3175,12 +3218,12 @@ async function refundPlainMiss(states) {
     .some((r) => r.check === "miss" && r.outcome === "miss" && PLAIN_MISS.includes(r.source));
   if (!declared.every(plainMissed)) return;
   const attackerId = declared[0].attackerId;
-  const item = game.actors.get(attackerId)?.items?.get(abilityId) ?? null;
+  const item = unitActor(attackerId)?.items?.get(abilityId) ?? null;
   if (!item || !((item.system?.cooldown?.remaining ?? 0) > 0)) return;
   await applyBatch([{ ...I.cooldown(attackerId, abilityId, 0, "set"), source: "Drowning" }], "plainMiss:refund");
   await ChatMessage.create({
     content: `<p>${game.i18n.format("FGT.Miss.Refunded", { name: item.name })}</p>`,
-    speaker: publicSpeakerFor(game.actors.get(attackerId)),
+    speaker: publicSpeakerFor(unitActor(attackerId)),
   });
 }
 
@@ -3193,7 +3236,7 @@ async function refundPlainMiss(states) {
 async function paintAfterPhase(declared) {
   const abilityId = declared?.attack?.abilityId ?? null;
   if (!abilityId || declared.isCounter) return;
-  const attackerDoc = game.actors.get(declared.attackerId);
+  const attackerDoc = unitActor(declared.attackerId);
   const ability = attackerDoc?.items?.get(abilityId) ?? null;
   const phases = ability?.system?.phases ?? [];
   if (!phases.some((p) => p.kind === "zone" && p.when === "afterPhase")) return;
@@ -3263,7 +3306,7 @@ async function fireCombatPhaseEnd(state) {
   ].filter(Boolean);
   let board = currentBoard();
   const units = [...new Set(involved)]
-    .map((id) => game.actors.get(id))
+    .map((id) => unitActor(id))
     .filter(Boolean)
     .map((a) => unitOf(a, board));
   if (units.length === 0) return;
@@ -3354,7 +3397,7 @@ async function freeServantAftermath(siblings) {
     .filter(Boolean).map((raw) => process.deserialize(raw));
   for (const s of states) {
     const id = s.attackerId;
-    const item = id ? game.actors.get(id)?.items?.get(s.attack?.abilityId ?? "") : null;
+    const item = id ? unitActor(id)?.items?.get(s.attack?.abilityId ?? "") : null;
     if (!item || seen.has(id)) continue;
     const actor = item.parent;
     // Free as the price that was paid read it (`rules/snapshot.mjs`, `costs.mjs#isFree`):
@@ -3374,7 +3417,7 @@ async function freeServantAftermath(siblings) {
   for (const { unitId } of intents) {
     await ChatMessage.create({
       content: `<div class="fgt-card"><p>${game.i18n.format("FGT.Contract.FreeNPDisappears", {
-        servant: foundry.utils.escapeHTML(shownName(game.actors.get(unitId), board)),
+        servant: foundry.utils.escapeHTML(shownName(unitActor(unitId), board)),
       })}</p></div>`,
     });
   }
@@ -3410,13 +3453,13 @@ async function fireAttackPerformed(siblings) {
   }
   const board = currentBoard();
   for (const [attackerId, processes] of byAttacker) {
-    const attacker = unitOf(game.actors.get(attackerId), board);
+    const attacker = unitOf(unitActor(attackerId), board);
     if (!attacker) continue;
     const hit = new Set(processes
       .filter((p) => p.result && !p.result.flags?.negatedBy)
       .map((p) => p.st.defenderId));
     const first = processes[0].st;
-    const defender = first.defenderId ? unitOf(game.actors.get(first.defenderId), board) : null;
+    const defender = first.defenderId ? unitOf(unitActor(first.defenderId), board) : null;
     const intents = fireEvent("attackPerformed", [attacker], {
       tick: currentMoment().tick ?? 0,
       turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
@@ -3459,7 +3502,7 @@ async function payLegionPriceOf(state, siblings) {
     ? siblings.map((m) => process.deserialize(m.getFlag("fgt", "process")))
     : [state];
   const declared = states.find((s) => !s.isCounter) ?? null;
-  const attacker = declared ? game.actors.get(declared.attackerId) : null;
+  const attacker = declared ? unitActor(declared.attackerId) : null;
   const ability = attacker?.items?.get(declared?.attack?.abilityId ?? "") ?? null;
   const formula = ability?.system?.legionCost ?? null;
   if (!formula) return;
@@ -3526,7 +3569,7 @@ async function fireAttackLanded(siblings) {
   const declared = siblings.map((m) => ({ st: process.deserialize(m.getFlag("fgt", "process")), message: m }))
     .filter(({ st }) => !st.isCounter);
   const attackerId = declared[0]?.st.attackerId ?? null;
-  const attackerDoc = attackerId ? game.actors.get(attackerId) : null;
+  const attackerDoc = attackerId ? unitActor(attackerId) : null;
   if (!attackerDoc) return;
   // Reached the Damage Step AND successfully Attacked (#239 reading 3a, the
   // one reader Def Dwn (A) and (C) share): a Block, a hit for 0 and an Instakill
@@ -3540,7 +3583,7 @@ async function fireAttackLanded(siblings) {
 
   const board = currentBoard();
   const options = new Set(landed.flatMap((s) => {
-    const doc = game.actors.get(s.defenderId);
+    const doc = unitActor(s.defenderId);
     if (!doc) return [];
     return [...rollOptionsFor({ attacker: null, defender: unitOf(doc, board) })].filter((o) => o.startsWith("target:"));
   }));
@@ -3613,7 +3656,7 @@ async function runAutomaticStep(state, message) {
     if (!luckChecksApply(boardSnapshot()?.difficulty)) {
       return process.advance(state, "declined", { reason: "luckChecksRemoved" });
     }
-    const asked = game.actors.get(prompt.unitId);
+    const asked = unitActor(prompt.unitId);
     if (asked && luckChecksBlocked(unitOf(asked, boardSnapshot()))) {
       return process.advance(state, "declined", { reason: "luckChecksBlocked" });
     }
@@ -3790,7 +3833,7 @@ async function runAutomaticStep(state, message) {
       // cannot disagree about who is being protected.
       const rungBoard = boardSnapshot();
       const redirectId = available
-        ? counterRedirect(unitFrom(rungBoard, game.actors.get(state.attackerId)), rungBoard)
+        ? counterRedirect(unitFrom(rungBoard, unitActor(state.attackerId)), rungBoard)
         : null;
       await message.setFlag("fgt", "counter", { available, redirectId });
       const marked = { ...state, counterAvailable: available, counterRedirectId: redirectId };
@@ -3842,8 +3885,8 @@ async function rollEvade(state) {
   // World says +4 on two of its six branches. All of it landed on the
   // snapshot and none of it on the die.
   const board = currentBoard();
-  const attacker = unitFrom(board, game.actors.get(state.attackerId));
-  const defender = unitFrom(board, game.actors.get(state.defenderId));
+  const attacker = unitFrom(board, unitActor(state.attackerId));
+  const defender = unitFrom(board, unitActor(state.defenderId));
   const roll = await new Roll("1d20").evaluate();
 
   // Everything the defender's own abilities have to say about Evade -- Mad
@@ -3971,7 +4014,7 @@ async function tellReactionRefused(owner, used, reason, detail = {}) {
 function reactionOverrideFor(state, rung) {
   const abilityId = state.attack?.abilityId;
   if (!abilityId) return null;
-  const ability = game.actors.get(state.attackerId)?.items.get(abilityId);
+  const ability = unitActor(state.attackerId)?.items.get(abilityId);
   return ability?.system?.reactionOverride?.[rung] ?? null;
 }
 
@@ -4043,7 +4086,7 @@ function evadeModifiers(state, attacker, defender) {
     // appeared. `abilityId` is on the state; the document may be gone by the
     // time a log is read, so the fallback is honest rather than absent.
     const source = state.attack.abilityId
-      ? (game.actors.get(state.attackerId)?.items?.get(state.attack.abilityId)?.name ?? "the attack")
+      ? (unitActor(state.attackerId)?.items?.get(state.attack.abilityId)?.name ?? "the attack")
       : "the attack";
     mods.push({ source, value: state.attack.evadeModifier });
   }
@@ -4079,9 +4122,9 @@ async function rollLuck(state) {
   const prompt = process.pendingPrompt(state);
   // From the board, for the reason `rollEvade` records above.
   const board = currentBoard();
-  const unit = unitFrom(board, game.actors.get(prompt.unitId));
+  const unit = unitFrom(board, unitActor(prompt.unitId));
   const opponentId = prompt.side === "attacker" ? state.defenderId : state.attackerId;
-  const opponent = unitFrom(board, game.actors.get(opponentId));
+  const opponent = unitFrom(board, unitActor(opponentId));
   const roll = await new Roll("1d20").evaluate();
 
   const plan = checkPlan(unit, "luck");
@@ -4350,8 +4393,8 @@ function counterAvailable(state) {
   // Attacks", and each offered its own Counter, five per target (#195 reading 17).
   if ((state.attack?.instanceCount ?? 1) > 1 && (state.attack?.instanceIndex ?? 0) < state.attack.instanceCount - 1) return false;
   const board = boardSnapshot();
-  const attackerDoc = game.actors.get(state.attackerId);
-  const defenderDoc = game.actors.get(state.defenderId);
+  const attackerDoc = unitActor(state.attackerId);
+  const defenderDoc = unitActor(state.defenderId);
   if (!attackerDoc || !defenderDoc) return false;
 
   const attacker = unitFrom(board, attackerDoc);
@@ -4428,8 +4471,8 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
   const requiredId = state.counterRedirectId ?? state.attackerId;
   const excludeUnitIds = state.counterRedirectId ? [state.attackerId] : [];
 
-  const counterer = game.actors.get(state.defenderId);
-  const required = game.actors.get(requiredId);
+  const counterer = unitActor(state.defenderId);
+  const required = unitActor(requiredId);
   if (!counterer || !required) return null;
 
   const ability = abilityId ? counterer.items.get(abilityId) : null;
@@ -4451,7 +4494,7 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
   // WITH `testPredicate`: a `predicate` requirement refuses without an evaluator
   // by design (`rules/items.mjs`, §46.4-AX), so refusing on `!usage.ok` without
   // one would refuse every predicate-gated Counter.
-  const master = self.masterId ? unitFrom(board, game.actors.get(self.masterId)) : null;
+  const master = self.masterId ? unitFrom(board, unitActor(self.masterId)) : null;
   const counterTarget = unitFrom(board, required);
   // The gate every press asks (`press-gate.mjs`, #244): a Counter is made on
   // the enemy's Turn by definition, so an ability whose only window is
@@ -4545,7 +4588,7 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
  */
 async function applyInjury(state, message) {
   const result = message.getFlag("fgt", "result");
-  const defenderDoc = game.actors.get(state.defenderId);
+  const defenderDoc = unitActor(state.defenderId);
   if (!result || !defenderDoc) return;
 
   // Dragon Wing Warriors: "1d6+4 instances... each can be separately Evaded
@@ -4565,7 +4608,7 @@ async function applyInjury(state, message) {
   // that is the only point the full total is known. Earlier siblings defer
   // (`singleInjuryRollPending`); later ones find the real verdict already
   // recorded and skip (`singleInjuryRoll`).
-  const attackerDoc = game.actors.get(state.attackerId);
+  const attackerDoc = unitActor(state.attackerId);
   const ability = state.attack?.abilityId ? attackerDoc?.items.get(state.attack.abilityId) : null;
   let damage = result.total;
   let exceededThreshold = Boolean(result.flags?.exceededInjuryThreshold);
@@ -4762,6 +4805,9 @@ async function resolveDefeatOf(defender, damage, state = {}) {
   const ctx = {
     tick: combat?.system?.globalTurn ?? 0,
     turnsPerRound: game.settings.get("fgt", "turnsPerRound") || 3,
+    // What the Glass Game's second effect rewinds to: absent, her defeat
+    // found no state to go back to (#247, live).
+    history: historyOf(combat),
     // How much damage was left over once the Health ran out. God Hand's first
     // passive spends charges against it -- "if the damage of the Attack that
     // defeated Heracles exceeds his current Health, the excess damage is
@@ -4840,7 +4886,7 @@ async function resolveDefeatOf(defender, damage, state = {}) {
 function killedBy(victim, defeat, state, ctx) {
   if (!state.attackerId || !defeat.some((i) => i.t === "defeat" && i.unitId === victim.id)) return [];
   const board = boardSnapshot();
-  const killer = unitFrom(board, game.actors.get(state.attackerId));
+  const killer = unitFrom(board, unitActor(state.attackerId));
   if (!killer) return [];
   return fireEvent("unitKilled", [killer], {
     // The attack that killed, as the Attack Description describes it: a
@@ -4930,7 +4976,7 @@ async function acceptedOptionalRevivals(unit) {
   const optional = (unit.revivals ?? []).filter((r) => r.optional);
   if (optional.length === 0) return [];
 
-  const actor = game.actors.get(unit.id);
+  const actor = unitActor(unit.id);
   if (!actor) return [];
 
   /** @type {string[]} */
@@ -4971,7 +5017,7 @@ function recordIntents(defender, state) {
   if (!state.attackerId) return [];
 
   const identity = attackIdentity(state.attack ?? {}, state.attackerId);
-  const doc = game.actors.get(defender.id);
+  const doc = unitActor(defender.id);
   /** @type {object[]} */
   const out = [];
 
@@ -5072,8 +5118,8 @@ export async function primeContentBaseAttacks() {
  * @returns {Promise<object>}
  */
 async function applyDamage(state, message) {
-  const attackerDoc = game.actors.get(state.attackerId);
-  const defenderDoc = game.actors.get(state.defenderId);
+  const attackerDoc = unitActor(state.attackerId);
+  const defenderDoc = unitActor(state.defenderId);
   const board = boardSnapshot();
   // Stage 9 subtracts 5d10 when the attacker is outside its Master's ZON, which
   // only the board can answer.
@@ -5600,8 +5646,8 @@ function barrierHolding(state) {
 
 function riderSubjects(state) {
   const board = boardSnapshot();
-  const attackerDoc = game.actors.get(state.attackerId);
-  const defenderDoc = state.defenderId ? game.actors.get(state.defenderId) : null;
+  const attackerDoc = unitActor(state.attackerId);
+  const defenderDoc = state.defenderId ? unitActor(state.defenderId) : null;
   return { attacker: unitFrom(board, attackerDoc), defender: unitFrom(board, defenderDoc) };
 }
 
@@ -5637,9 +5683,9 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
   const keep = (id, name) => held.push({
     summary: { id, name, outcome: "blocked", reason: game.i18n.format("FGT.Barrier.Holds", { name: heldBy ?? "" }), chance: null },
   });
-  const attackerDoc = game.actors.get(state.attackerId);
+  const attackerDoc = unitActor(state.attackerId);
   const ability = state.attack?.abilityId ? attackerDoc?.items.get(state.attack.abilityId) : null;
-  const defenderDoc = game.actors.get(state.defenderId);
+  const defenderDoc = unitActor(state.defenderId);
   if (!ability || !defenderDoc) return [];
 
   // Ch. 32 rule 4: *"the Master receives no damage AND EFFECTS"*. The damage
@@ -6053,7 +6099,7 @@ async function applyTargetedRider(phase, ability, state, attackerDoc) {
   /** @type {object[]} */
   const out = [];
   for (const target of resolved.units ?? []) {
-    const doc = game.actors.get(target.unitId);
+    const doc = unitActor(target.unitId);
     if (!doc) continue;
     out.push(...await applyDeclaredEffects(
       effectSpecsOf(phase),
@@ -6073,7 +6119,7 @@ async function applyTargetedRider(phase, ability, state, attackerDoc) {
  * @returns {Promise<void>}
  */
 async function resolveEmptiedDefender(state) {
-  const doc = game.actors.get(state.defenderId);
+  const doc = unitActor(state.defenderId);
   if (!doc) return;
 
   const defender = unitFrom(boardSnapshot(), doc);
@@ -6177,8 +6223,8 @@ async function fireDamageStepEnd(state, result = null) {
   // The DEFENDER too, for `target:inField:` and its neighbours: the event fires
   // on the attacker, but half of what a rider asks is about who was hit.
   const board = currentBoard();
-  const attackerDoc = game.actors.get(state.attackerId);
-  const defenderDoc = state.defenderId ? game.actors.get(state.defenderId) : null;
+  const attackerDoc = unitActor(state.attackerId);
+  const defenderDoc = state.defenderId ? unitActor(state.defenderId) : null;
   const attacker = unitOf(attackerDoc, board);
   const defender = defenderDoc ? (unitOf(defenderDoc, board)) : null;
   if (!defender) return none;
@@ -6186,7 +6232,11 @@ async function fireDamageStepEnd(state, result = null) {
   // WHETHER IT CRIT, from the Damage Step that just resolved, as `damageDealt`
   // has it. Castor's *"a Normal Attack that is a Crit"* could never pay, and
   // Pollux's *"not a Crit"* paid on every Crit too (Wave B).
-  const options = rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) });
+  const options = rollOptions(attacker, defender, state, {
+    crit: Boolean(result?.flags?.isCrit ?? result?.isCrit),
+    // Damage dealt, not only a hit (`attack:dealtDamage`, #247 reading 2).
+    dealtDamage: (result?.total ?? 0) > 0,
+  });
   const tick = game.combat?.system?.globalTurn ?? 0;
   // The caller rolls (`scheduler.pendingRolls`). This event passed none, so a
   // chance on one of its actions could never pass: Castor's 5% NP-cooldown
@@ -6276,7 +6326,7 @@ export async function runCheckPhase(phase, ability, state, defender, depth = 0) 
   // *"If Failed, roll again"* is one more roll, not a loop.
   if (depth >= MAX_CHECK_DEPTH) return [];
 
-  const attackerDoc = game.actors.get(state.attackerId);
+  const attackerDoc = unitActor(state.attackerId);
   const attacker = unitOf(attackerDoc, boardSnapshot());
 
   // WHICH outcome this target gets, before anything is rolled. Medusa's Mystic
@@ -6397,9 +6447,9 @@ async function applyDeclaredEffects(specs, ability, state, defender, { phase = n
   // The board's attacker: an aura's outgoing `ApplicationChance` is annotated by
   // `snapshotBoard` and a bare snapshot carries none (#157). One board per call.
   const board = boardSnapshot();
-  const attackerDoc = game.actors.get(state.attackerId);
+  const attackerDoc = unitActor(state.attackerId);
   const attacker = unitFrom(board, attackerDoc);
-  const recipientDoc = defender?.id ? game.actors.get(defender.id) : null;
+  const recipientDoc = defender?.id ? unitActor(defender.id) : null;
   /** @type {object[]} */
   const out = [];
   for (const spec of specs) {
@@ -6441,7 +6491,7 @@ async function applyDeclaredEffects(specs, ability, state, defender, { phase = n
  * @returns {string|null} the effect that suppressed it
  */
 function damageSuppressedBy(state, before) {
-  const attackerDoc = game.actors.get(state.attackerId);
+  const attackerDoc = unitActor(state.attackerId);
   const ability = state.attack?.abilityId ? attackerDoc?.items.get(state.attack.abilityId) : null;
   const skipIf = ability?.system?.damage?.skipIf ?? null;
   if (!skipIf?.effectApplied) return null;
@@ -6457,8 +6507,8 @@ function damageSuppressedBy(state, before) {
  */
 async function applyFacing(state) {
   const board = currentBoard();
-  const attacker = unitOf(game.actors.get(state.attackerId), board);
-  const defender = unitOf(game.actors.get(state.defenderId), board);
+  const attacker = unitOf(unitActor(state.attackerId), board);
+  const defender = unitOf(unitActor(state.defenderId), board);
   if (!attacker?.panel || !defender?.panel) return;
   // The nearest of EIGHT, not four (#184): a defender attacked from a diagonal
   // looks at the attacker, not along an axis beside it. Runs after the
@@ -6480,7 +6530,7 @@ async function applyFacing(state) {
 async function applyBatch(intents, source, { process = null, lines = false } = {}) {
   return applyIntents(intents, {
     io: worldIO(),
-    canWrite: (unitId) => game.actors.get(unitId)?.isOwner ?? false,
+    canWrite: (unitId) => unitActor(unitId)?.isOwner ?? false,
     isGM: game.user.isGM,
     source,
     // The Combat Process a handler's rider lands inside, so its target may
@@ -6976,10 +7026,12 @@ function attackDistance(attacker, defender) {
  * @param {object|null} ability
  * @returns {"str"|"mag"}
  */
-function componentOf(attacker, ability, options = null, block = undefined) {
+function componentOf(attacker, ability, options = null, block = undefined, unit = null) {
   const dmg = block === undefined ? resolvedDamage(ability, options) : block;
   const declared = dmg?.component ?? damageBaseOf(dmg)?.sources?.[0]?.component;
-  return declared ?? attacker?.system?.normalAttack?.component ?? "str";
+  // The Unit as the board projects it first: an Item may change it (the Vorpal
+  // Blade's BA(STR), #247 D4), and the document cannot know.
+  return declared ?? unit?.normalAttack?.component ?? attacker?.system?.normalAttack?.component ?? "str";
 }
 
 /**
@@ -7153,8 +7205,8 @@ async function cutContract(phase, state, defenderDoc) {
     return [{ summary: { id: "cutContract", name: "Rule Breaker", outcome: "blocked", reason: "evaded" } }];
   }
 
-  const oldMaster = defenderDoc.system?.masterId ? game.actors.get(defenderDoc.system.masterId) : null;
-  const caster = game.actors.get(state.attackerId);
+  const oldMaster = defenderDoc.system?.masterId ? unitActor(defenderDoc.system.masterId) : null;
+  const caster = unitActor(state.attackerId);
   // MEDEA receives the Contract, not her Master: *"the Servant's Contract,
   // along with three Command Spells, will be given to Medea"* (#193 reading
   // 18). This gave both to her Master, so the stolen Servant's ZON, its Noble
@@ -7312,7 +7364,7 @@ async function askAttackerWindow(state, window, message) {
   const decided = groupWindowPick(state, window);
   if (decided) return { ...state, windowAbilities: decided };
 
-  const actor = game.actors.get(state.attackerId);
+  const actor = unitActor(state.attackerId);
   if (!actor) return { ...state, windowAbilities: [] };
 
   // The SNAPSHOT, not a handful of loose fields. `abilitiesAtWindow` checks the
@@ -7516,7 +7568,7 @@ async function runMissCheck(state, attacker, board) {
   // Description: Anastasia's *"does not have a chance of Missing"* at Range 1
   // to 2 is a `Suppress` on `attack:range:lte:2`, and the check asked with no
   // defender and no attack, so the range was never there (Wave B).
-  const defenderDoc = state.defenderId ? game.actors.get(state.defenderId) : null;
+  const defenderDoc = state.defenderId ? unitActor(state.defenderId) : null;
   const defender = defenderDoc ? unitFrom(board, defenderDoc) : null;
   const chance = missChance(attacker, rollOptions(attacker, defender, state));
   if (chance <= 0) return instinctOf(process.advance(state, "hit"), defender);
@@ -7681,7 +7733,7 @@ async function resolveChoosePhases(phases, attackerDoc) {
  * @returns {Array<{id: string, name: string}>}
  */
 function offeredReactions(defenderId, attack = null, isAoE = false, attackerId = null, board = boardSnapshot()) {
-  const actor = game.actors.get(defenderId);
+  const actor = unitActor(defenderId);
   if (!actor) return [];
 
   // Pale Rider and the Kagome Spirits: *"cannot Evade, Block, or Counter."*
@@ -7734,8 +7786,8 @@ function offeredReactions(defenderId, attack = null, isAoE = false, attackerId =
     // shoots the Unit that swung, so what must be in his Range is the shooter's
     // target and not the ally he is protecting.
     attacker: attackerUnit,
-    actorFor: (id) => game.actors.get(id),
-  }).filter((a) => pressGate(game.actors.get(a.ownerId), a.ability, pressedAs(a.ability)).ok).map((a) => ({
+    actorFor: (id) => unitActor(id),
+  }).filter((a) => pressGate(unitActor(a.ownerId), a.ability, pressedAs(a.ability)).ok).map((a) => ({
     id: a.ability.id,
     // Its owner as the table knows them: the card is public, and it read
     // "Avalon: The Everdistant Utopia (Arturia)" under a concealed Saber (#230).
@@ -7858,12 +7910,12 @@ function chanceFor(auto, attackProperties) {
  * @returns {Promise<{messageId: string}|null>}
  */
 async function offerPreemption({ attackerId, abilityId, placement, targetIds, board, self }) {
-  const attackerDoc = game.actors.get(attackerId);
+  const attackerDoc = unitActor(attackerId);
   if (!attackerDoc) return null;
 
   for (const defenderId of new Set(targetIds)) {
     if (defenderId === attackerId) continue;
-    const defenderDoc = game.actors.get(defenderId);
+    const defenderDoc = unitActor(defenderId);
     const defender = defenderDoc ? unitFrom(board, defenderDoc) : null;
     const rule = (defender?.preemptions ?? [])[0];
     if (!rule) continue;
@@ -7954,8 +8006,8 @@ async function preemptionLuckCheck(defenderDoc, attackerId) {
  * @returns {Promise<{messageId: string}|null>}
  */
 async function runPreemption({ preempterId, attackerId, abilityId, placement, targetIds }) {
-  const preempter = game.actors.get(preempterId);
-  const target = game.actors.get(attackerId);
+  const preempter = unitActor(preempterId);
+  const target = unitActor(attackerId);
   if (!preempter || !target) return null;
 
   // A NORMAL Attack. The clause says "Attack", and a Servant's Attack with no
@@ -8012,7 +8064,7 @@ async function resumeDeferredAttack(state, message) {
   // second time.
   await message.unsetFlag("fgt", "deferredAttack");
 
-  const attacker = game.actors.get(deferred.attackerId);
+  const attacker = unitActor(deferred.attackerId);
   if (!attacker) return;
   // `system.defeated` is a flag, not a record: `defeated?.at` was never true,
   // so a pre-empted attacker who fell to the pre-emption still swung.
@@ -8074,7 +8126,7 @@ async function resumeDeferredAttack(state, message) {
 async function offerNPCancellation({ attackerId, attacker, ability, targetIds, board, self, options }) {
   for (const defenderId of new Set(targetIds)) {
     if (defenderId === attackerId) continue;
-    const defenderDoc = game.actors.get(defenderId);
+    const defenderDoc = unitActor(defenderId);
     if (!defenderDoc) continue;
 
     const defender = unitOf(defenderDoc, board);
@@ -8136,7 +8188,7 @@ async function resolveNPCancellation({
   // `unitId` -- an intent the applier refuses, which took the whole
   // cancellation down with it.
   const cancellerMaster = canceller.masterId
-    ? unitFrom(board, game.actors.get(canceller.masterId))
+    ? unitFrom(board, unitActor(canceller.masterId))
     : null;
 
   await payAbilityPrice({
@@ -8315,7 +8367,7 @@ function counterfactualDamage({ attackerDoc, ability, board, options, defenderUn
  * @returns {Promise<void>}
  */
 async function resolveEmptiedUnit(unitId) {
-  const doc = game.actors.get(unitId);
+  const doc = unitActor(unitId);
   if (!doc) return;
   const unit = unitOf(doc, boardSnapshot());
   if (currentHealth(unit) > 0) return;

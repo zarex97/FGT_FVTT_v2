@@ -35,7 +35,10 @@ describe("walking onto ground Items", () => {
   });
 
   it("leaves them where they lie for Pale Rider with his Master away", () => {
-    expect(itemPickupIntents(rider, { units: [rider, far, cache("c1", "potion", 3)] })).toEqual([]);
+    // Nothing granted; the one entry is the refusal's line a player reads (#247).
+    const out = itemPickupIntents(rider, { units: [rider, far, cache("c1", "potion", 3)] });
+    expect(out.filter((d) => d.kind !== "log")).toEqual([]);
+    expect(out.map((d) => [d.event, d.reason])).toEqual([["itemRefused", "cannotHoldItems"]]);
   });
 });
 

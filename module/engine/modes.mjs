@@ -33,7 +33,7 @@
  */
 
 import { forcedModes, forcedOffNow, modesEndedByTurn } from "../rules/modes.mjs";
-import { currentBoard } from "./board.mjs";
+import { currentBoard, unitActor } from "./board.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
 import { publicSpeakerFor } from "./public-identity.mjs";
@@ -83,7 +83,7 @@ export async function reconcileForcedModes(board = null) {
       // would have collected, the refusal in `canToggleMode` would have
       // worked, and the half that WRITES would never have run: her Mad
       // Enhancement would refuse to switch off and refuse to switch itself on.
-      const actor = game.actors.get(unit.id);
+      const actor = unitActor(unit.id);
       if (!actor) continue;
 
       // A mode switched OFF the moment its own forced deactivation holds
@@ -142,7 +142,7 @@ export function turnEndModeIntents(units, tick) {
   /** @type {object[]} */
   const intents = [];
   for (const unit of units ?? []) {
-    const actor = game.actors?.get(unit.id);
+    const actor = unitActor(unit.id);
     if (!actor) continue;
     for (const item of modesEndedByTurn([...actor.items], tick)) {
       intents.push(I.setMode(unit.id, item.id, false, "turnEnd"));
@@ -182,12 +182,12 @@ function compulsionSource(unit, slug) {
  */
 async function announce(switched, board) {
   for (const { unitId, ability } of switched) {
-    const actor = game.actors.get(unitId);
+    const actor = unitActor(unitId);
     const unit = (board.units ?? []).find((u) => u.id === unitId);
     const cause = (unit?.compulsions ?? [])[0];
     const culprits = (cause?.targetIds ?? [])
       // The culprits by their public names too (#234), as the bearer already is.
-      .map((id) => (game.actors.get(id) ? shownNameById(id, board) : null))
+      .map((id) => (unitActor(id) ? shownNameById(id, board) : null))
       .filter(Boolean);
 
     await ChatMessage.create({

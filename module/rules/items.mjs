@@ -103,6 +103,12 @@ export function acquisitionTarget(unit, board, item = null) {
   // BEFORE the redirect, not after: a barred Servant who redirects to their
   // Master would otherwise hand the sword straight to the second person the
   // clause names.
+  // Only these kinds of Unit may hold it at all: the Vorpal Blade is *"picked up
+  // by a Unit walking onto its panel"*, a Servant's or a Master's (#247 reading
+  // 14), and a Trump Soldier stepping on it took it. Its own reason, so the
+  // line a player reads does not call a Trump Soldier barred by Nursery.
+  const kinds = item?.barredFrom?.onlyKinds ?? [];
+  if (kinds.length > 0 && !kinds.includes(unit.kind)) return { ok: false, reason: "notItsKind" };
   if (item?.barredFrom && barredBy(unit, board, item.barredFrom)) {
     return { ok: false, reason: "barred" };
   }
@@ -167,8 +173,15 @@ export function itemPickupIntents(unit, board) {
   for (const cache of caches) {
     const to = acquisitionTarget(unit, board, cache.carriesItem ?? { contentId: cache.carriesItemId });
     // Refused -- the Vorpal Blade's bar, or Pale Rider with his Master away --
-    // and the Item stays exactly where it lies.
-    if (!to.ok) continue;
+    // and the Item stays exactly where it lies. Said, with why: a Trump Soldier
+    // and her Master stood on the Blade and nothing a player could read
+    // happened (#247, live).
+    if (!to.ok) {
+      if (to.reason !== "notFound") {
+        out.push({ kind: "log", event: "itemRefused", itemId: cache.carriesItemId, itemName: cache.name ?? null, by: unit.id, reason: to.reason });
+      }
+      continue;
+    }
     const count = Math.max(1, cache.carriesItemCount ?? 1);
     out.push(
       {
@@ -177,7 +190,7 @@ export function itemPickupIntents(unit, board) {
         barredFrom: cache.carriesItem?.barredFrom ?? null,
       },
       { kind: "dismiss", unitId: cache.id, reason: "itemTaken" },
-      { kind: "log", event: "itemPickedUp", itemId: cache.carriesItemId, by: to.unitId, count },
+      { kind: "log", event: "itemPickedUp", itemId: cache.carriesItemId, itemName: cache.name ?? null, by: to.unitId, count },
     );
   }
   return out;
@@ -196,7 +209,7 @@ export function itemPickupIntents(unit, board) {
  *
  * @param {object} unit
  * @param {object} board
- * @param {{ofUnit: string, roles: string[]}} spec
+ * @param {{ofUnit: string, roles: string[], onlyKinds?: string[]}} spec
  * @returns {boolean}
  */
 function barredBy(unit, board, spec) {

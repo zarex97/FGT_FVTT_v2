@@ -103,3 +103,81 @@ export async function attemptForestEscape(unitId) {
   await applyWorldIntents(intents, "namelessForest:escape");
   return { ok: true, success: result.success, result };
 }
+
+/**
+ * The card's words for one escape attempt: who, the roll and each modifier,
+ * the Luck it was against, and whether every Token went. An attempt was
+ * logged and shown nowhere: Heracles escaped and no player read a word of it
+ * (#247, live).
+ *
+ * @param {{unitId: string, roll: number, total: number, target: number, success: boolean,
+ *   modifiers?: Array<{source: string, value: number}>}} entry a `namelessForestEscape` log entry
+ * @param {(id: string) => string} nameOfUnit
+ * @param {(key: string, data?: object) => string} t
+ * @returns {string}
+ */
+export function escapeLine(entry, nameOfUnit, t) {
+  const mods = (entry.modifiers ?? []).filter((m) => m?.value)
+    .map((m) => `${m.source} ${m.value > 0 ? "+" : "−"}${Math.abs(m.value)}`).join(", ");
+  const data = {
+    name: nameOfUnit(entry.unitId), roll: entry.roll, total: entry.total, target: entry.target,
+    modifiers: mods ? ` (${mods})` : "",
+  };
+  return `<div class="fgt-card fgt-card--forest"><p>${t(entry.success ? "FGT.Forest.Escaped" : "FGT.Forest.EscapeFailed", data)}</p></div>`;
+}
+
+/**
+ * Post it, naming the Unit as the table knows it (#234).
+ *
+ * @param {object} entry a `namelessForestEscape` log entry
+ * @returns {Promise<void>}
+ */
+export async function postEscape(entry) {
+  if (!game.users?.activeGM?.isSelf) return;
+  const escape = foundry.utils.escapeHTML;
+  const { shownName } = await import("./public-identity.mjs");
+  const { unitActor } = await import("./board.mjs");
+  const board = currentBoard();
+  const nameOfUnit = (id) => {
+    const actor = unitActor(id);
+    return escape(actor ? shownName(actor, board) : id);
+  };
+  const t = (key, data) => game.i18n.format(key, { ...data, modifiers: escape(String(data.modifiers ?? "")) });
+  await ChatMessage.create({ content: escapeLine(entry, nameOfUnit, t), flags: { fgt: { forestEscape: entry.unitId } } });
+}
+
+/**
+ * The card's words for one death roll: who, the die against the Tokens held,
+ * and what came of it. *"The roll is LOGGED whether or not it kills"*, and
+ * nothing read the log (#247, live).
+ *
+ * @param {{unitId: string, roll: number, tokens: number, deleted: boolean, reason: string|null}} entry
+ * @param {(id: string) => string} nameOfUnit
+ * @param {(key: string, data?: object) => string} t
+ * @returns {string}
+ */
+export function deathRollLine(entry, nameOfUnit, t) {
+  const outcome = entry.deleted ? "deleted" : (entry.reason ?? "survived");
+  const data = { name: nameOfUnit(entry.unitId), roll: entry.roll, tokens: entry.tokens };
+  return `<div class="fgt-card fgt-card--forest"><p>${t(`FGT.Forest.DeathRoll.${outcome}`, data)}</p></div>`;
+}
+
+/**
+ * Post it, naming the Unit as the table knows it (#234).
+ *
+ * @param {object} entry a `namelessForestDeathRoll` log entry
+ * @returns {Promise<void>}
+ */
+export async function postDeathRoll(entry) {
+  if (!game.users?.activeGM?.isSelf) return;
+  const escape = foundry.utils.escapeHTML;
+  const { shownName } = await import("./public-identity.mjs");
+  const { unitActor } = await import("./board.mjs");
+  const board = currentBoard();
+  const nameOfUnit = (id) => {
+    const actor = unitActor(id);
+    return escape(actor ? shownName(actor, board) : id);
+  };
+  const t = (key, data) => game.i18n.format(key, data);
+  await ChatMessage.create({ content: deathRollLine(entry, nameOfUnit, t), flags: { fgt: { forestDeathRoll: entry.unitId } } });
+}

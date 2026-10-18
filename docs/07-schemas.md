@@ -82,6 +82,8 @@ moves), and the world-state bond `bondUnitId`/`bondMasterId`, written when
 an Item is placed, never authored. Servant: `summonItems` (`[{item, roll, on}]`, an Item on a summon die). A Unit
 projects `terrainPenaltyImmunities`, `lethalFloors`, and on the board `bonds` (`rules/bonds.mjs`).
 
+**A resource a Unit does not hold yet is written by its full path** (#247). `resourcePathFor` sends an unknown key to the root of `system`, so the forest's `namelessForestTokens` was a Silent Drop on every Unit not already holding one; the marker names `resources.namelessForestTokens.value`. The Master now declares `baseAttackPenalty` (Ch. 06).
+
 ## Invariants & edge cases
 
 1. **`null` and zero are not the same for Health.** Health `max` is `null` when the unit is intrinsically undamageable, and `value: null` when defeated. A Master refills to 250 if `max` is null or zero; a zero-max Servant comes back at 1 before revival bonuses land (`module/data/actor/_shared.mjs:40-52`, `module/data/actor/master.mjs:74-79`).

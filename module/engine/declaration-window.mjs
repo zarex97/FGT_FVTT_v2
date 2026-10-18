@@ -21,6 +21,7 @@
 import * as process from "./combat-process.mjs";
 import { reachesDeclaration } from "../rules/command-spells.mjs";
 import { processOffers } from "./command-spells.mjs";
+import { unitActor } from "./board.mjs";
 
 /** The flag holding the window's state, Process-shaped so the spend reads it as one. */
 export const DECLARATION_FLAG = "declaration";
@@ -77,7 +78,7 @@ export async function openDeclarationWindow({ attackerId, attack, abilityName })
 
   const masterIds = [...new Set(offers.map((o) => o.masterId))];
   const whisper = game.users
-    .filter((u) => u.isGM || masterIds.some((id) => game.actors.get(id)?.testUserPermission(u, "OWNER")))
+    .filter((u) => u.isGM || masterIds.some((id) => unitActor(id)?.testUserPermission(u, "OWNER")))
     .map((u) => u.id);
   const message = await ChatMessage.create({
     content: renderWindow(state, offers, { attackerId, abilityName, open: true }),
@@ -129,7 +130,7 @@ export async function refreshDeclarationWindow(message) {
 function renderWindow(state, offers, { attackerId, abilityName, open }) {
   const escape = foundry.utils.escapeHTML;
   // fgt-name-ok: whispered to the GM and the owners of the attacker's own Masters, who know their Servant
-  const servant = game.actors.get(attackerId)?.name ?? "";
+  const servant = unitActor(attackerId)?.name ?? "";
   const bought = (state.interrupts ?? []).filter((r) => r.applied).map((r) => r.name ?? r.command);
   const lead = game.i18n.format("FGT.Declaration.Lead", { servant: escape(servant), name: escape(abilityName ?? "") });
   const boughtLine = bought.length > 0

@@ -14,7 +14,7 @@
  * her defeat would be the same feature built the hard way.
  */
 
-import { currentBoard, unitFrom } from "./board.mjs";
+import { currentBoard, unitFrom, unitActor } from "./board.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as budget from "./budget.mjs";
@@ -44,7 +44,7 @@ function baseAmount(unit, owner) {
  * @returns {Promise<{ok: boolean, reason?: string, amount?: number}>}
  */
 export async function gather({ actorId }) {
-  const actor = game.actors.get(actorId);
+  const actor = unitActor(actorId);
   if (!actor) return { ok: false, reason: "notFound" };
 
   const board = currentBoard();

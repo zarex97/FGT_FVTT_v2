@@ -23,7 +23,7 @@
  * a design conversation, not a merge.
  */
 
-import { rewindScript } from "./glass-game.mjs";
+import { rewindScript, glassGameScript } from "./glass-game.mjs";
 
 /**
  * Every script content may name, by name.
@@ -42,6 +42,9 @@ export const SCRIPTS = Object.freeze({
    * has.
    */
   "nurseryRhyme.rewind": rewindScript,
+  // Effect 1, with its clock: 3◈ of Turn ends with an enemy within 3, reset at
+  // a Round's end with none there, and again after it fires (#247 D1).
+  "nurseryRhyme.glassGame": glassGameScript,
 });
 
 /**

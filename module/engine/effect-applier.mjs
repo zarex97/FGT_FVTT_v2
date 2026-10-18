@@ -805,7 +805,12 @@ function chanceContribution(unit, def, direction, options = null, ignoreSources 
     // A contribution that NAMES a polarity is about that one; an unqualified
     // one still means debuffs. `Buff ChUp` is the first that says otherwise,
     // and it says so outright.
-    if (def.polarity !== (c.polarity ?? "debuff")) continue;
+    //
+    // ...and a contribution that NAMES its effect is about that effect, whatever
+    // its polarity: the Nameless Forest's marker is a status, and the escape
+    // resistance that names it was skipped here as "not a debuff", so three
+    // escapes never once lowered the chance of being caught again (#247, test).
+    if (!c.effectId && def.polarity !== (c.polarity ?? "debuff")) continue;
     if (c.valence && c.valence !== def.valence) continue;
     // Appendix A's classification, which is what "Mental Debuffs" names.
     // Heracles's Bravery is the only content that uses it, and naming the

@@ -23,7 +23,7 @@
  * two clients closing the same rung must not offer it twice.
  */
 
-import { currentBoard, unitOf } from "./board.mjs";
+import { currentBoard, unitOf, unitActor } from "./board.mjs";
 import { displaceToken } from "./io.mjs";
 import { chooseFor } from "./ask.mjs";
 import * as process from "./combat-process.mjs";
@@ -59,8 +59,8 @@ export async function offerFollowUp(state, { rollOptions, resolveAttack }) {
   if (!game.user?.isGM) return null;
   if (!state?.attackerId || !state?.defenderId || state.attack?.followUp) return null;
 
-  const attackerDoc = game.actors.get(state.attackerId);
-  const defenderDoc = game.actors.get(state.defenderId);
+  const attackerDoc = unitActor(state.attackerId);
+  const defenderDoc = unitActor(state.defenderId);
   if (!attackerDoc || !defenderDoc) return null;
   // Asked of the documents before a board is built: this runs as every Process
   // in the game closes, and almost no attacker carries the rule.

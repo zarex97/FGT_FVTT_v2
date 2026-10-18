@@ -90,6 +90,8 @@ Every combatant has a turn state and round state (`module/data/actor/_shared.mjs
 
 Rules evaluate against a **snapshot** — a plain object flattening a document into a single object, with Health flattened to a number (`module/domain/health.mjs:10-11`). The snapshot carries all the fields a rule needs to read, plus the closed attribute set and derived turn state, so a rule never has to reach into the document or re-close attributes itself. Six rules read `unit.health.value` directly, which works against a document and reads as zero against a snapshot — the `?? 0` beside each one turned that into the wrong answer (`module/domain/health.mjs:17-23`). `currentHealth(unit)` is the one reader that handles both shapes.
 
+**A permanent Base Attack loss reaches every kind of Unit** (#247). The Nameless Forest's *"Base Attack (both) by 10"* is a stored `baseAttackPenalty`. A Servant's derivation subtracts it (`domain/base-attack.mjs#baseAttackFor`); a Master and a summon store their Base Attack instead, so their `prepareDerivedData` subtracts it through `penalizedBaseAttack`. Before, a Master declared no such field and the write was dropped, and a summon stored it and nothing read it: Master of Berserker kept BA 100/100 under a Token.
+
 ## Invariants & edge cases
 
 **A Servant can be a Master, and its Servant's ZON is the class figure around it** (#193 reading 19). Medea holds the Servants Rule Breaker takes. `zon.mjs#zonRadius` adds a stated ZON and the High Rank bonus only for a Master that is not a Servant, and `annotateZon` writes `zon` only on Servants, so a real Master's stated ZON is no longer nulled for Servants annotated after it.
