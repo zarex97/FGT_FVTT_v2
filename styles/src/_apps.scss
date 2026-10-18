@@ -1083,8 +1083,18 @@
 
   /* One scroll container per tab, not one for the window: ApplicationV2
      restores scroll position per part, and `.window-content` has a fixed
-     height with no overflow of its own. */
-  .fgt-setup__tab { padding: 0.6rem 0.75rem; }
+     height with no overflow of its own. The part's `scrollable: [""]` only
+     names the tab as the container: Foundry's `.window-content` is a column
+     flexbox with `overflow: hidden`, so a tab with no flex size and no
+     overflow of its own grew past the window and its bottom was cut off
+     (Containers and Servants, 2026-10-18). `min-height: 0` lets the flex item
+     shrink below its content, which is what gives it something to scroll. */
+  .fgt-setup__tab {
+    padding: 0.6rem 0.75rem;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
 }
 
 /* "Before play, select only one Noble Phantasm, either (a) or (b)." */
