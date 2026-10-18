@@ -3,7 +3,8 @@ id: 2026-10-18-pc-ended-by-the-first-process
 found: test
 kind: declaration-or-process
 status: fixed
-reviewed: false
+reviewed: true
+pattern: declaration-or-process
 ---
 **Expected:** PC.5, *"After performing an Attack while PC is Active, PC is deactivated at the end of the Combat Process"*: a concealed area Attack keeps PC's +100% and its Block/Counter refusal for every defender it caught, and PC ends when the Attack is over.
 **Actual:** Danzō's Funshindan caught two Jacks; the first answered and closed while the second had not answered yet, and PC was gone before the second Process reached its damage step (`danzo-249-arena.test.mjs`, "PC still up while the second Process is open: expected false to be true"). Every concealed area Attack in the roster (Jack, Hassan, Serenity) lost PC for whoever answered after the first.

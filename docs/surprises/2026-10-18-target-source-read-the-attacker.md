@@ -3,7 +3,8 @@ id: 2026-10-18-target-source-read-the-attacker
 found: test
 kind: unknown-value-falls-to-default
 status: fixed
-reviewed: false
+reviewed: true
+pattern: unknown-value-falls-to-default
 ---
 **Expected:** Yuugao's base, *"damage equivalent to the DU's current Health"*, authored as a damage source `{unit: target, stat: currentHealth}`, adds up the defender's Health (#249 reading 22).
 **Actual:** `stage1Base` resolved `src.unit` as `"self"` → the attacker, a named Unit (`mount`, `partner`) → that Unit, and anything else → the attacker again, and only ever read `baseAttack[component]`. A `unit: target` source would have been Danzō's own BA(STR), with no word from the build.
