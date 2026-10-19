@@ -41,7 +41,8 @@ describe("the sheet asks the GM to use a Skill", () => {
 
   it("so does a mode whose switch-on is a use", () => {
     const body = between(sheet, "if (active && pricedOnEntry(item)) {", "// Stamped on BOTH directions");
-    expect(body).toContain("#relaySkill(actor, item)");
+    // With the placement a mode that picks on entry chose (#253).
+    expect(body).toMatch(/#relaySkill\(actor, item(, placement)?\)/);
     expect(body).not.toContain("skill-use.mjs");
   });
 

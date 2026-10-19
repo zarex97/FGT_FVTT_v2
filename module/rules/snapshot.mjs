@@ -383,6 +383,9 @@ export function snapshotUnit(actor, {
     // Spends this Unit may be OFFERED at a timing window, rather than charged
     // (`engine/optional-costs.mjs`).
     optionalCosts: contributions.optionalCosts ?? [],
+    // Shifts aimed at an ability's own Rank, for a reader after collection:
+    // Espionage raises Presence Concealment from C to A (#253 reading 4).
+    abilityRankShifts: contributions.abilityRankShifts ?? [],
     // How hard this Unit's buffs are to dispel (`rules/removal.mjs`).
     buffRemovalResist: contributions.buffRemovalResist ?? [],
     // Counters this Unit performs without being asked, and what provokes each

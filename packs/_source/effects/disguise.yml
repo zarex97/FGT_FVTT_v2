@@ -1,0 +1,19 @@
+# Appendix A's `Disguise`, worn: Yan Qing's Doppelganger (#253 readings 10-14).
+#
+# "It is only the appearance." The instance carries the look it copied
+# (`params: {as, name, img, disposition}`, written by the `disguise` phase), and
+# the readers are the presentation alone: the token's face, name and border per
+# viewer (`apps/canvas/token.mjs`) and every card's name
+# (`engine/public-identity.mjs`). No rule reads it; his owner and the GM see
+# through it. It ends with the mode that put it on.
+schema: 1
+id: disguise
+name: "Disguise"
+description: "This Unit looks like another to everyone but its owner and the GM. Only the appearance changes."
+polarity: status
+volatility: nonVolatile
+valence: neither
+stacking: noneRefresh
+baseChance: 100
+unremovable: true
+rules: []

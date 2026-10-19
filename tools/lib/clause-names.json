@@ -44,6 +44,8 @@
 
   "Nemo": { "JG.pre": "JG.scope" },
 
+  "Yan Qing": { "PC.pre": "PC.dur", "DO.pre": "DP.look" },
+
   "Ozymandias": { "OZ.PHS.pre": "OZ.PHS.scope" },
 
   "Pale Rider": { "IW.pre": "IW.scope", "GN.pre": "GN.scope", "KK.pre": "KK.summon" },

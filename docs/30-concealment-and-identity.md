@@ -52,6 +52,32 @@ Evade bonus, `rules/identity.mjs#discoverChance` (whose hand-copied table is gon
 100% of the time) and the cooldown. A grant lands `noneNoRefresh`, so a Unit whose own PC is Active keeps it, and
 its end starts no clock on the Unit's own Skill (`onConcealmentRemoved`'s `granted`).
 
+**A Disguise** (#253 readings 5, 10-14). Yan Qing's Doppelganger: *"Yan Qing can disguise himself as any other
+character (figurine), including Masters and Servants. However, it is only the appearance."* This system has Fog of
+War (`engine/token-vision.mjs`), so the sheet's no-fog fallback, PC B+, is not built. He picks any Unit on his
+War's board of his own size, any side, Servants, Masters, Civilians and summons, never himself. The `disguise`
+effect carries the look it copied (`params: {as, name, img, disposition}`), so a copy later defeated or gone leaves
+it standing. `rules/disguise.mjs` is the reader: `disguiseOf` for the look, `seesTruth` for the viewer, true for
+the GM and his owner alone (an OWNER check: teammates are fooled, as for Danzō's Feigned Defeat). The token shows
+the copy's face, name and disposition colour per viewer (`apps/canvas/token.mjs`); every card, prompt and list
+names the copy through `engine/public-identity.mjs`, one string every client reads. No rule reads it. Taking it is
+a private card. It ends with its mode: by his press, paying Doppelganger's four rewards, or when one Attack takes
+10% of his Max Health or more (`engine/disguise.mjs#noteHitOnDisguised`, summed over the Attack's hits), paying
+nothing. Either way a public line says who he was.
+
+**PC.7 per target rides on the spec** (#253, found live). `rules/concealment.mjs#veiledSpec` marks a concealed caster's
+Skill spec (`selection.veiledFromEnemies`), and `rules/targeting/resolve.mjs` step 4 drops every enemy from it with
+the PC reason. The use (`skill-use.mjs#resolveSkillTargets`) and the aiming session (`sheet.mjs#pickPlacementFor`)
+both build their spec through it: the session had read the bare spec and called an enemy "Legal" for Doppelganger's
+look, where the use refused it.
+
+**A Rank raised by a buff** (#253 reading 4). Yan Qing's Espionage, *"Yan Qing's Presence Concealment Rank is
+increased from C to A"*, is a buff carrying `RankShift {ability: presenceConcealment, to: A}`, Penthesilea's shape.
+The snapshot carries the shifts the collection recorded (`abilityRankShifts`), and `concealmentProfile` reads the
+Skill's Rank through `rules/elements.mjs#rankWithShifts`, live: a PC already Active reads A at once, one switched on
+within the buff's 1◈ reads A, and the buff ending mid-PC drops it back to C. The cooldown after deactivation stays the
+Skill's own, unshifted Rank (C's 1◈, not A's 2◈), in the profile and in `engine/concealment.mjs#cooldownTicks`.
+
 **A break chance on an Attack is rolled on use** (#249 readings 9, 9b). `rollConcealmentBreak` ran only on the Skill
 path, after the Skill; an Attack Skill never rolled it. `payAbilityPrice` rolls it now, before any Process exists,
 for a declaration and for a Counter alike. Broken: PC ends (`skillUse`) and the Attack goes without it. Held: the

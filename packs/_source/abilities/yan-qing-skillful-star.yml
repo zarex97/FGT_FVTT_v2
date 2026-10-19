@@ -1,0 +1,31 @@
+# Skillful Star, Rank A+ (#253, SS.*).
+#
+# First the price on himself, then the aura for his allies (`sCritUpOthers`,
+# S.Crit Up with its holder left out). Reading 8: the sheet's "for 1◈ Turns
+# ... increased by ⅓◈ Turns" is S.Crit Up for 1◈ at 15%.
+schema: 1
+id: yan-qing-skillful-star
+name: "Skillful Star"
+rank: "A+"
+kind: skill
+slug: skillfulStar
+cooldown: "3◈-⅓◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Inflicts @effect[critDwn]{Crit Dwn} on himself for this Turn, Crit
+  Chance is reduced by 50%; then apply @effect[sCritUpOthers]{S.Crit Up} for 1◈ Turns to all allied
+  Units within a 2 panel area of himself except himself, Crit Chance is increased by 15%.
+  Cooldown: 3◈-⅓◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: critDwn, duration: "this turn", magnitude: 50 }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: sCritUpOthers, duration: "1◈", magnitude: 15 }

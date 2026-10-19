@@ -96,6 +96,22 @@ export const FACETS = Object.freeze([
     prose: "{subject} has the {attribute} attribute",
   }),
   facet({
+    id: "order",
+    // The first half of an Alignment: Lawful, Neutral, Chaotic. OPEN, as
+    // `attribute` is: the morality half already holds "Summer" (Anastasia's
+    // *"Chaotic Summer"*), so a closed list would be wrong on its first sheet.
+    // Yan Qing Fist's *"Units with the 'Lawful' Alignment"* (#253 reading 1).
+    segments: [{ name: "order", value: open() }],
+    english: "Its Alignment's order is this: Lawful, Neutral or Chaotic.",
+    prose: "{subject} is {order}",
+  }),
+  facet({
+    id: "morality",
+    segments: [{ name: "morality", value: open() }],
+    english: "Its Alignment's morality is this: Good, Neutral or Evil.",
+    prose: "{subject} is {morality}",
+  }),
+  facet({
     id: "variant",
     segments: [{ name: "variant", value: open() }],
     english: "Is in a named summon variant — Semiramis's Double Summon shapes.",

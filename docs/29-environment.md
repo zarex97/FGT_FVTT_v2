@@ -38,7 +38,7 @@ A Dark unit takes symmetric modifiers: *"During a Day Round, all damage received
 
 ### The Region graph
 
-`REGION_ADJACENCY` (`module/rules/environment.mjs`) is the curated list of which Regions border which: *"directly next to"* is geography the source does not tabulate. It is **symmetric** (a test enforces it, so Semiramis's Construction counter cannot depend on the order two Regions are compared in), `moon` has an entry with no neighbours so "no entry" and "no neighbours" stay distinguishable, and its keys are the Regions the summon dialog offers (Ch. 31) and the ids a Servant's `region` may name. It now holds `centralAmerica` and `southAmerica` (bordering each other) and `russia` (bordering `europe`); none touches the Middle East, so Semiramis's counter is unchanged. Any other border is data the author can edit (#121).
+`REGION_ADJACENCY` (`module/rules/environment.mjs`) is the curated list of which Regions border which: *"directly next to"* is geography the source does not tabulate. It is **symmetric** (a test enforces it, so Semiramis's Construction counter cannot depend on the order two Regions are compared in), `moon` has an entry with no neighbours so "no entry" and "no neighbours" stay distinguishable, and its keys are the Regions the summon dialog offers (Ch. 31) and the ids a Servant's `region` may name. It now holds `centralAmerica` and `southAmerica` (bordering each other) and `russia` (bordering `europe`); none touches the Middle East, so Semiramis's counter is unchanged. Any other border is data the author can edit (#121). `china` joined it for Yan Qing (#253), bordering `india`, `farEast` and `russia`; Zhang Jue's sheet names it too.
 
 ### Home Base zones and effects
 

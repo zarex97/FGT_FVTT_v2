@@ -1,0 +1,21 @@
+# Yan Qing's Espionage, clause 2 (#253 reading 4).
+#
+# "Yan Qing's Presence Concealment Rank is increased from C to A." A `RankShift`
+# aimed at an ability, Penthesilea's Goddess of War shape, carried by a buff, so
+# it holds while the buff does. `rules/concealment.mjs#concealmentProfile` reads
+# the shifted Rank for discovery and the Evade bonus, live: a PC already Active
+# is raised at once, one switched on later within the 1◈ is raised too, and the
+# buff ending mid-PC drops it back to C. PC's cooldown stays the Skill's own C.
+schema: 1
+id: espionage
+name: "Espionage"
+description: "This Unit's Presence Concealment Rank is increased from C to A."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: RankShift
+    ability: presenceConcealment
+    to: A

@@ -511,7 +511,7 @@ export function worldIO() {
      * @param {string} abilityId
      * @param {boolean} active
      */
-    async setMode(unitId, abilityId, active) {
+    async setMode(unitId, abilityId, active, endedBy = null) {
       const actor = resolve(unitId);
       if (!actor) return;
 
@@ -549,6 +549,9 @@ export function worldIO() {
       await item.update({
         "system.active": active,
         "system.toggledAt": currentWar()?.system?.globalTurn ?? 0,
+        // How it ended, for `onModeEnded`: a forced switch says so, and a
+        // switch ON clears the last word (#253).
+        "system.endedBy": active ? null : (endedBy ?? "forced"),
       });
     },
 

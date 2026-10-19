@@ -178,6 +178,8 @@ export const PHASE_DESCRIPTORS = describeTable([
     { key: "options", type: "raw" },
     { key: "count", type: "number" },
   ]),
+  // Doppelganger (#253 readings 10-12): the target's look, put on the caster.
+  entry("disguise", 25, "Puts the chosen Unit's appearance on the caster, for everyone but its own side's owner and the GM.", []),
   entry("rollTable", 20, "Rolls dice against a table and applies what comes up.", [
     { key: "tables", type: "raw" },
     // ONE table whoever is hit, where `tables` splits it by relation: Bab-ilu's
@@ -186,6 +188,11 @@ export const PHASE_DESCRIPTORS = describeTable([
     { key: "entries", type: "raw" },
     { key: "count", type: "number" },
     { key: "faces", type: "number" },
+    // What a repeated face does: Scáthach's "apply the effect twice" (the
+    // default) or Yan Qing's "reroll it until the number is not a duplicate"
+    // (#253 reading 9). Rows may carry `all: true` and `target: self`
+    // (`rules/roll-table.mjs`).
+    { key: "duplicates", type: "select", choices: ["twice", "reroll"] },
   ]),
   entry("itemGrant", 20, "Hands over a quantity of an item, possibly rolled.", [
     { key: "contentId", type: "text" },

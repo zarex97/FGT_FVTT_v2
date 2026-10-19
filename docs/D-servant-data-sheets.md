@@ -862,10 +862,10 @@ skills, which puts the list in the content pack where it can be extended without
 |---|---|---|
 | Presence Concealment (C) | Class, mode | RE (40% discover — the worst in the corpus) |
 | Zhōng Guó Quán Fǎ (EX) | Passive | RE — but note the **◈-dependent magnitude**: NP cooldown −1 turn, or −2 **if ◈ > 4** |
-| Yan Qing Fist (EX) | Active | RE (`Dmg Up (Lawful)` **flat 30**, `Dmg Up (Evil)` **30%** — alignment-predicated, and the two clauses are deliberately different kinds) |
+| Yan Qing Fist (EX) | Active | RE (`Dmg Up (Lawful)` and `Dmg Up (Evil)`, **both 30%**, alignment-predicated. The sheet prints the Lawful one *"30\."* with no `%`, the only such figure in the corpus; ruled a typo, #253 reading 1. This row used to call it a deliberate flat 30.) |
 | Ruffian (A) | Passive | **RE+** `OptionalCost` paying **Agility** for damage (+5% per point, cap 5, excluded from NP) |
 | Espionage (A) | Active | **RE+** `RankShift` applied to **his own Presence Concealment** (C → A) |
-| Doppelganger (B+) | Active | **RE+** `Disguise` (Ch. 44 §44.4), with a stated no-Fog-of-War fallback |
+| Doppelganger (B+) | Active | **RE+** `Disguise`. The sheet's no-Fog-of-War fallback (PC B+) is not built: Foundry's fog is live (`engine/token-vision.mjs`), #253 reading 5 |
 | Skillful Star (A+) | Active | RE (self `Crit Dwn` paid for an ally `S.Crit Up`) |
 | Shí Miàn Mái Fú (EX, NP) | Damaging NP | RE (`kind: roll`, `2d4`, `duplicateBehaviour: reroll`, "a 4 applies all three") |
 

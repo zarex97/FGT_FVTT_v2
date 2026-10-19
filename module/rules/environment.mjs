@@ -497,9 +497,9 @@ export const REGION_ADJACENCY = Object.freeze({
   // one-way edge would make Semiramis's Construction counter depend on the
   // order the two regions happened to be compared in.
   egypt: { adjacent: ["middleEast", "mesopotamia", "greece"] },
-  india: { adjacent: ["middleEast", "mesopotamia", "eastIndia", "farEast"] },
+  india: { adjacent: ["middleEast", "mesopotamia", "eastIndia", "farEast", "china"] },
   eastIndia: { adjacent: ["india", "farEast"] },
-  farEast: { adjacent: ["india", "eastIndia", "japan"] },
+  farEast: { adjacent: ["india", "eastIndia", "japan", "china"] },
   japan: { adjacent: ["farEast"] },
   // Quetzalcoatl (`[centralAmerica, southAmerica]`) and Anastasia (`[russia,
   // europe]`) carry three ids the graph did not hold, and the summon dialog's
@@ -509,7 +509,11 @@ export const REGION_ADJACENCY = Object.freeze({
   // is unchanged. Any other border is data the author can edit.
   centralAmerica: { adjacent: ["southAmerica"] },
   southAmerica: { adjacent: ["centralAmerica"] },
-  russia: { adjacent: ["europe"] },
+  russia: { adjacent: ["europe", "china"] },
+  // Yan Qing (#253) and Zhang Jue are from China, which the graph did not
+  // hold. Curated like the rest: it borders India, the Far East and Russia, and
+  // touches no Middle East edge, so Semiramis's counter is unchanged.
+  china: { adjacent: ["india", "farEast", "russia"] },
   // The Moon borders nothing. Stated rather than omitted, so "no entry" and
   // "no neighbours" stay distinguishable.
   moon: { adjacent: [] },

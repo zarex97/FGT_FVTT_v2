@@ -403,8 +403,8 @@ export const consumeUse = (unitId, defId, count = 1) =>
  * @param {string|null} [source]
  * @returns {object}
  */
-export const setMode = (unitId, abilityId, active, source = null) =>
-  ({ t: "setMode", unitId, abilityId, active, source });
+export const setMode = (unitId, abilityId, active, source = null, endedBy = null) =>
+  ({ t: "setMode", unitId, abilityId, active, source, ...(endedBy ? { endedBy } : {}) });
 
 /**
  * Switch a mode off and bar it from returning until a tick.

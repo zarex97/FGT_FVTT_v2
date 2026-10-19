@@ -1,0 +1,29 @@
+# Espionage, Rank A (#253, ES.*).
+#
+# Crit Up and the 'Espionage' buff on himself. The buff raises his Presence
+# Concealment Rank (effects/espionage.yml); the sheet's Rank A block is the
+# class skill read at A, so it authors nothing of its own.
+schema: 1
+id: yan-qing-espionage
+name: "Espionage"
+rank: A
+kind: skill
+slug: espionage
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[critUp]{Crit Up} for 1◈ Turns, Crit Chance is increased by 40%.
+  2. Applies the @effect[espionage]{Espionage} buff for 1◈ Turns, Yan Qing's Presence Concealment
+     Rank is increased from C to A.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: critUp, duration: "1◈", magnitude: 40 }
+      - { id: espionage, duration: "1◈" }

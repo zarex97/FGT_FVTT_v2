@@ -82,6 +82,8 @@ A branch can be another check rather than a final outcome — *"if Failed, roll 
 
 Scáthach's *Primordial Rune* rolls `2d8` and looks up the results in a table, applying entries per die (so two 6s produce two applications) (`module/rules/roll-table.mjs:42-67`). A table may be conditional on the target's relation (ally vs. enemy); one table is the common case (`module/rules/roll-table.mjs:23-40`).
 
+Yan Qing's Noble Phantasm (#253 reading 9) added three keys any table may carry. `duplicates: reroll` rolls a later die again until it differs from every earlier one (*"If the second die is a duplicate number, reroll it until the number is not a duplicate"*); `twice`, Scáthach's, stays the default, and an unknown word throws rather than falling to it. A row with `all: true` applies every ordinary row once, **instead** of what the other dice rolled (*"If a 4 is rolled on any of the dice, apply all three effects instead"*). A row with `target: self` lands on the user, where the table's other rows land on the target (*"Applies Crit DmUp for 1◈ Turns to himself"*). Both paths roll through one function, `rollFaces`, with the path's own default dice (an attack's `1d20`, a Skill's `2d8`). On the attack path the table is a rider, so it rolls only when the hit's riders fire: never on an Evade.
+
 A wildcard row — *"your choice of any of the above"* — returns a question to the caller rather than effects. The `choicesIn` function lists all non-wildcard rows so the interface can render choices (`module/rules/roll-table.mjs:69-86`).
 
 **A roll moved after it is seen (#226).** A `RollAdjustment` grant with `scope: outsideCombat` is read by

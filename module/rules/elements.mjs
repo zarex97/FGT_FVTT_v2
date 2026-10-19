@@ -339,22 +339,52 @@ export function abilityRankShifts(abilities, predicateCtx) {
       if (el?.key !== "RankShift" || !el.ability) continue;
       if (el.suppressed) continue;
       if (el.predicate && !testPredicate(el.predicate, predicateCtx)) continue;
-
-      const prior = shifts.get(el.ability) ?? { steps: 0, grades: 0, to: null };
-      shifts.set(el.ability, {
-        // Only when neither a destination nor a GRADE shift was named, and
-        // `steps` defaults to 1 only then -- otherwise "one Rank" would also
-        // add a modifier step on top of the grade it moved.
-        steps: prior.steps + (el.to || el.grades ? 0 : (el.steps ?? 1)),
-        // Whole grades: "increased by one Rank" is D to C, not D to D+.
-        grades: prior.grades + (el.to ? 0 : (el.grades ?? 0)),
-        // A named destination wins over accumulated steps: "to A" is an
-        // instruction about where to end up, not an adjustment.
-        to: el.to ?? prior.to,
-      });
+      addShift(shifts, el);
     }
   }
   return shifts;
+}
+
+/**
+ * Fold one shift into the map, by the ability it aims at.
+ *
+ * @param {Map<string, {steps: number, grades: number, to: string|null}>} shifts
+ * @param {{ability: string, steps?: number|null, grades?: number|null, to?: string|null}} el
+ * @returns {void}
+ */
+function addShift(shifts, el) {
+  const prior = shifts.get(el.ability) ?? { steps: 0, grades: 0, to: null };
+  shifts.set(el.ability, {
+    // Only when neither a destination nor a GRADE shift was named, and
+    // `steps` defaults to 1 only then -- otherwise "one Rank" would also
+    // add a modifier step on top of the grade it moved.
+    steps: prior.steps + (el.to || el.grades ? 0 : (el.steps ?? 1)),
+    // Whole grades: "increased by one Rank" is D to C, not D to D+.
+    grades: prior.grades + (el.to ? 0 : (el.grades ?? 0)),
+    // A named destination wins over accumulated steps: "to A" is an
+    // instruction about where to end up, not an adjustment.
+    to: el.to ?? prior.to,
+  });
+}
+
+/**
+ * An ability's Rank with the shifts a Unit's contributions recorded applied.
+ *
+ * The same answer the collection's pre-pass gives, for a reader after it: the
+ * snapshot carries `abilityRankShifts`, and Presence Concealment's numbers are
+ * read off the shifted Rank. Espionage's *"Yan Qing's Presence Concealment Rank
+ * is increased from C to A"* is a buff, so it lives on an effect and reaches the
+ * Skill only this way (#253 reading 4).
+ *
+ * @param {object|null} ability a projected ability (`slug`, `id`, `rank`)
+ * @param {object[]} entries `contributions.abilityRankShifts`
+ * @returns {Rank|null}
+ */
+export function rankWithShifts(ability, entries) {
+  if (!ability) return null;
+  const shifts = new Map();
+  for (const entry of entries ?? []) if (entry?.ability) addShift(shifts, entry);
+  return shiftedRank(ability, shifts);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1782,12 +1812,19 @@ export const EXECUTORS = Object.freeze({
    * The `then:` list is the same effect vocabulary a phase authors, applied by
    * `engine/optional-costs.mjs` once the spend is accepted.
    */
-  OptionalCost(el, { source, out }) {
+  OptionalCost(el, { source, out, deferred = null }) {
     out.optionalCosts.push({
       timing: el.timing ?? "combatPhaseStart",
       cost: el.cost ?? null,
       effects: [...(el.effects ?? [])],
       label: el.label ?? null,
+      // An `attack:` clause can only be answered when the offer is made: Ruffian's
+      // *"Cannot be used with Noble Phantasm"* (#253 reading 2).
+      predicate: deferred,
+      // *"For every Agility point spent in this way, damage dealt is increased
+      // by 5%"*: each effect's magnitude is per unit spent, with
+      // `cost.amount: chosen` (#253 reading 2).
+      scalesWithSpend: Boolean(el.scalesWithSpend),
       source,
     });
   },
@@ -2354,6 +2391,9 @@ export const EXECUTORS = Object.freeze({
   Suppress(el, { source, out }) {
     out.suppressions.push({
       scope: el.scope, predicate: el.predicate ?? null, source,
+      // The abilities a lock spares, by slug: Doppelganger bars *"Skills and
+      // Noble Phantasms except Presence Concealment"* (#253 reading 6).
+      ...(el.except ? { except: [...el.except] } : {}),
       // God's Curse spares what is only Categorized as a Noble Phantasm (#189).
       ...(el.sparesCategorizedNP ? { sparesCategorizedNP: true } : {}),
     });

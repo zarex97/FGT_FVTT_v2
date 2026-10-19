@@ -1,0 +1,19 @@
+# Yan Qing Fist, clause 2 (#253 reading 1).
+# Dmg Up (Gods)'s shape on the order half of an Alignment. The sheet prints
+# "increased by 30\." with no `%`; ruled a typo, 30%.
+schema: 1
+id: dmgUpLawful
+name: "Dmg Up (Lawful)"
+description: "All damage dealt to Units with the 'Lawful' Alignment is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  # `dmgUp`, so it reaches a Noble Phantasm at its full value, as Dmg Up (Gods).
+  - key: DamageModifier
+    modifierKey: dmgUp
+    direction: dealt
+    value: "@magnitude"
+    predicate: ["target:order:lawful"]

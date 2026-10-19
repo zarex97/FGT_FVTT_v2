@@ -1,0 +1,17 @@
+# Yan Qing Fist, clause 3; Lanceturia's sheet carries the same Dmg Up (Evil).
+# Dmg Up (Gods)'s shape on the morality half of an Alignment.
+schema: 1
+id: dmgUpEvil
+name: "Dmg Up (Evil)"
+description: "All damage dealt to Units with the 'Evil' Alignment is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: dmgUp
+    direction: dealt
+    value: "@magnitude"
+    predicate: ["target:morality:evil"]
