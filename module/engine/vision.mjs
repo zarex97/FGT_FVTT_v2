@@ -17,6 +17,7 @@ import { newlySeenBy } from "../rules/identity.mjs";
 import { fireEvent } from "./scheduler.mjs";
 import { currentBoard, unitActor } from "./board.mjs";
 import { applyWorldIntents } from "./applier.mjs";
+import { warRule, currentWar } from "./war.mjs";
 
 /**
  * Check every unit's Detect range against the board and fire `unitFirstSeen`
@@ -53,8 +54,8 @@ export async function checkSightings({ board = null } = {}) {
     await actor.update({ "system.seenUnitIds": [...updated] });
 
     const fireCtx = {
-      tick: game.combat?.system?.globalTurn ?? 0,
-      turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+      tick: currentWar()?.system?.globalTurn ?? 0,
+      turnsPerRound: warRule("turnsPerRound"),
       board: b,
     };
     for (const seenId of newlySeen) {

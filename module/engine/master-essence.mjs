@@ -24,6 +24,7 @@
 
 import { limitsFor } from "../rules/master-essence.mjs";
 import { unitActor } from "./board.mjs";
+import { warRule, isWarGM, warOfUnit } from "./war.mjs";
 
 const STATS = Object.freeze(["health", "agility", "luck"]);
 
@@ -179,17 +180,18 @@ export const MasterEssences = {
   attach() {
     const run = (servant) => syncEssences(servant)
       .catch((err) => console.error("FGT | Master Essence sync:", err));
-    const gm = () => Boolean(game.users?.activeGM?.isSelf);
+    // The GM of the actor's own War: these hooks fire on every client.
+    const gm = (actor) => isWarGM(warOfUnit(actor));
 
     Hooks.on("updateActor", (actor, changes) => {
-      if (!gm()) return;
+      if (!gm(actor)) return;
       const sys = changes?.system ?? {};
       if (actor.type === "servant" && ("masterId" in sys || "contract" in sys)) run(actor);
       if (actor.type !== "servant" && "defeated" in sys) servantsOf(actor).forEach(run);
     });
     for (const hook of ["createItem", "deleteItem"]) {
       Hooks.on(hook, (item) => {
-        if (!gm() || item.type !== "masterEssence" || item.system?.grantedBy) return;
+        if (!gm(item.parent) || item.type !== "masterEssence" || item.system?.grantedBy) return;
         if (item.parent?.documentName !== "Actor") return;
         servantsOf(item.parent).forEach(run);
       });
@@ -235,7 +237,9 @@ export function essenceDraftOptions(draft, catalogue) {
  * @returns {boolean}
  */
 export function draftsEssences(draft) {
-  const mode = game.settings.get("fgt", "masterMode") ?? "essences";
+  // The DRAFT's mode when it carries one: the War being set up is not the War
+  // on the scene the GM is looking at.
+  const mode = draft?.masterMode ?? warRule("masterMode") ?? "essences";
   return mode === "essences" && (draft?.ruleset ?? "advanced") === "advanced";
 }
 

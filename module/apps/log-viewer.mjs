@@ -17,6 +17,7 @@
 
 import { fullLog, query, exportLog, override } from "../engine/game-log.mjs";
 import { LOG_KINDS, isOverride, summarizeLog } from "../rules/game-log.mjs";
+import { currentWar } from "../engine/war.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api;
 
@@ -104,7 +105,7 @@ export class LogViewer extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   static async #onExport() {
     const json = await exportLog();
-    const name = `fgt-log-${game.combat?.id ?? "match"}-${Date.now()}.json`;
+    const name = `fgt-log-${currentWar()?.id ?? "match"}-${Date.now()}.json`;
 
     // Foundry's own saver, namespaced: the bare global is deprecated in v13+
     // and removed in v14, and the artifact viewer blocks a page-driven download

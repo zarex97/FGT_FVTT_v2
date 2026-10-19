@@ -3,7 +3,42 @@
  * @see docs/15-effect-application.md, docs/25-turn-order-and-scheduler.md
  */
 
+import { WAR_RULES } from "../domain/war-rules.mjs";
+
 const fields = foundry.data.fields;
+
+/**
+ * One field per War Rule, from `rules/war-rules.mjs`.
+ * @returns {Record<string, foundry.data.fields.DataField>}
+ */
+function warRuleFields() {
+  /** @type {Record<string, foundry.data.fields.DataField>} */
+  const out = {};
+  for (const spec of WAR_RULES) {
+    const choices = spec.choices ? Object.keys(spec.choices) : undefined;
+    if (spec.type === "number") {
+      out[spec.key] = new fields.NumberField({
+        // No `choices` on a number: the closed lists (the ◈'s three rows, the
+        // two board sizes) are the controls' job, and a stored value outside
+        // them is the GM's earlier choice, not a document to refuse.
+        required: true, integer: true, initial: spec.initial,
+        ...(spec.range?.min !== undefined ? { min: spec.range.min } : {}),
+        ...(spec.range?.max !== undefined ? { max: spec.range.max } : {}),
+      });
+    } else if (spec.type === "boolean") {
+      out[spec.key] = new fields.BooleanField({ initial: spec.initial });
+    } else if (spec.type === "string") {
+      out[spec.key] = new fields.StringField({
+        required: !spec.nullable, nullable: Boolean(spec.nullable), initial: spec.initial,
+        ...(choices ? { choices } : {}),
+      });
+    } else {
+      // The roster: a shape `rules/factions.mjs#normalizeFactions` owns.
+      out[spec.key] = new fields.ArrayField(new fields.ObjectField());
+    }
+  }
+  return out;
+}
 
 /**
  * One ActiveEffect subtype, not one per effect. The effect's identity lives in
@@ -153,21 +188,13 @@ export class MatchData extends foundry.abstract.TypeDataModel {
       // applied next Round instead.
       takenThisRound: new fields.ArrayField(new fields.StringField()),
 
-      // The war's Region (Ch. 29). Grants every Servant from it a
-      // parameter step, which is why it lives on the match rather than on a
-      // setting: it is chosen once, at setup, and never changes mid-war.
-      region: new fields.StringField({ required: false, nullable: true, initial: null }),
-
-      // The war being fought. `turnsPerRound` being 3 or 8 was the only trace
-      // of this distinction anywhere in the system, and only in a hint string.
-      warType: new fields.StringField({
-        initial: "greatHolyGrailWar",
-        choices: ["greatHolyGrailWar", "holyGrailWar", "custom"],
-      }),
-      // Advanced Servants carry parameter ranks and derive their numbers from
-      // tables; Normal ones state flat numbers. Two stat scales, and a board
-      // holds one.
-      ruleset: new fields.StringField({ initial: "advanced", choices: ["advanced", "normal"] }),
+      // The War Rules (`rules/war-rules.mjs`): the War's Region, type,
+      // ruleset, ◈, Round gates, timeouts, optional rules and Faction roster.
+      // They live on the War rather than in world settings because a world
+      // holds several Wars at once and a setting hit them all (2026-10-18).
+      // Built from the one table, so a key, an initial value or a choice list
+      // cannot drift between the schema, the wizard and the migration.
+      ...warRuleFields(),
       homeBaseDepth: new fields.NumberField({ required: true, integer: true, initial: 3, min: 1 }),
       // The war's slot roster: which containers exist, who owns them, and what
       // is in each. An ObjectField for the same reason `resources` is one --
@@ -175,8 +202,6 @@ export class MatchData extends foundry.abstract.TypeDataModel {
       // name every future field before the wizard could write one.
       containers: new fields.ArrayField(new fields.ObjectField()),
 
-      difficulty: new fields.StringField({ initial: "intermediate",
-        choices: ["beginner", "intermediate", "expert", "lunatic"] }),
 
       // The Holy Grail (Ch. 29). `grailCounter` counted defeated Servants
       // and nothing ever incremented or read it; the rest of the state had
@@ -191,7 +216,6 @@ export class MatchData extends foundry.abstract.TypeDataModel {
       logJournalId: new fields.StringField({ required: false, nullable: true, initial: null }),
 
       grailCounter: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
-      grailThreshold: new fields.NumberField({ required: true, integer: true, initial: 9, min: 1 }),
       grailMaterialized: new fields.BooleanField({ initial: false }),
       grailDestroyed: new fields.BooleanField({ initial: false }),
       grailPosition: new fields.ObjectField({ required: false, nullable: true, initial: null }),

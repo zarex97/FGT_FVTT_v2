@@ -35,7 +35,9 @@ function codeLines(path) {
  * A direct read of the match's clock: its Round, or its Tick (`globalTurn`),
  * or the two live readers in `engine/board.mjs`.
  */
-const CLOCK_READ = /\bsystem\??\.globalTurn\b|\bcombat\??\.round\b|\bcombats\??\.active\??\.round\b|\b(?:currentTick|currentRound|nowTick)\(\)/;
+// `currentWar()?.round` is the same read as `game.combats.active.round` was:
+// the War this client is in (`engine/war.mjs`, 2026-10-18).
+const CLOCK_READ = /\bsystem\??\.globalTurn\b|\bcombat\??\.round\b|\bcombats\??\.active\??\.round\b|\bcurrentWar\(\)\??\.round\b|\b(?:currentTick|currentRound|nowTick)\(\)/;
 
 /** Where the clock is allowed to be read: the Moment's own funnel, and the Combat's getter. */
 const FUNNEL = new Set(["module/engine/board.mjs", "module/domain/moment.mjs", "module/documents/combat.mjs"]);

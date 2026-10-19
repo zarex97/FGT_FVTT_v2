@@ -18,6 +18,7 @@
 
 import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
+import { currentWar } from "./war.mjs";
 
 const FLAG = "queuedEnds";
 
@@ -33,7 +34,7 @@ const FLAG = "queuedEnds";
  * @param {object} [combat]
  * @returns {QueuedEnd[]}
  */
-export function queuedEnds(combat = game.combats?.active) {
+export function queuedEnds(combat = currentWar()) {
   return combat?.getFlag?.("fgt", FLAG) ?? [];
 }
 
@@ -43,7 +44,7 @@ export function queuedEnds(combat = game.combats?.active) {
  * @param {object} [combat]
  * @returns {boolean}
  */
-export function isQueued(id, combat = game.combats?.active) {
+export function isQueued(id, combat = currentWar()) {
   return queuedEnds(combat).some((e) => e.id === id);
 }
 
@@ -53,7 +54,7 @@ export function isQueued(id, combat = game.combats?.active) {
  * @param {object} [combat]
  * @returns {Promise<boolean>}
  */
-export async function queueEnd(entry, combat = game.combats?.active) {
+export async function queueEnd(entry, combat = currentWar()) {
   if (!combat) return false;
   if (isQueued(entry.id, combat)) return true;
   const tick = combat.system?.globalTurn ?? 0;
@@ -73,7 +74,7 @@ export async function queueEnd(entry, combat = game.combats?.active) {
  * @param {object} [combat]
  * @returns {Promise<boolean>} whether there was one to cancel
  */
-export async function cancelEnd(id, combat = game.combats?.active) {
+export async function cancelEnd(id, combat = currentWar()) {
   if (!combat || !isQueued(id, combat)) return false;
   const entry = queuedEnds(combat).find((e) => e.id === id);
   await combat.setFlag("fgt", FLAG, queuedEnds(combat).filter((e) => e.id !== id));

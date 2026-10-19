@@ -35,6 +35,7 @@ import { deactivatablePlatforms } from "../../rules/platforms.mjs";
 import { FACINGS } from "../../domain/enums.mjs";
 import { resourceLabel } from "../../domain/resources.mjs";
 import { turnContext, TURN_ACTIONS } from "./turn-panel.mjs";
+import { warRule, currentWar } from "../../engine/war.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -146,7 +147,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     // snapshot lacks auras, terrain and ZON).
     const unit = unitOf(actor, board);
     const snapshot = unit;
-    const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
+    const turnsPerRound = warRule("turnsPerRound");
     const openFields = new Set((board.fields ?? []).map((f) => f.id));
 
     // What the action budget says about each action, BEFORE it is offered.
@@ -159,7 +160,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     // at all: `engine/attack.mjs` throws, the rejection is logged, and the
     // player is told by no one. Gather is the natural way to meet it, because
     // it spends a Unit's Attack without looking like an attack (§46.4-AW).
-    const combat = game.combats?.active ?? null;
+    const combat = currentWar() ?? null;
     const afford = (kind) => {
       if (!combat?.started || !kind) return { ok: true, reason: null };
       try {
@@ -360,7 +361,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
     // Quetzalcoatlus and the Golden Hind both author `deactivation: { byOwner }`
     // and nothing reached a player (#141). A mount inside its lockout is shown
     // greyed with the moment it opens, rather than not shown.
-    const tick = game.combat?.system?.globalTurn ?? 0;
+    const tick = currentWar()?.system?.globalTurn ?? 0;
     for (const { platform, verdict } of deactivatablePlatforms(unit, board, {
       // Her platforms are hers, so whose Turn it is is asked of her.
       tick, turnsPerRound, ownTurn: ownTurnOf(unit),
@@ -727,9 +728,9 @@ function switchVerdict(item, actor, board, active) {
   const self = unitOf(actor, board);
   const v = canToggleMode(item, self, {
     active,
-    tick: game.combat?.system?.globalTurn ?? 0,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
-    round: game.combats?.active?.round ?? null,
+    tick: currentWar()?.system?.globalTurn ?? 0,
+    turnsPerRound: warRule("turnsPerRound"),
+    round: currentWar()?.round ?? null,
     ownTurn: ownTurnOf(self),
   });
   if (v.ok) return { ok: true, reason: null, text: null };
@@ -840,7 +841,7 @@ async function resurfaceFrom(actor, context) {
   if (!dimension) return;
   const { landingOptions } = await import("../../engine/dimension.mjs");
   const options = landingOptions(dimension, board, {
-    now: game.combat?.system?.globalTurn ?? 0, turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    now: currentWar()?.system?.globalTurn ?? 0, turnsPerRound: warRule("turnsPerRound"),
   });
   if (options.length === 0) {
     ui.notifications.warn(game.i18n.localize("FGT.Dimension.Reason.noRoom"));

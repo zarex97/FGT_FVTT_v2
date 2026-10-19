@@ -21,6 +21,7 @@ import { buildContext } from "./context.mjs";
 import { editImage } from "../image-edit.mjs";
 import { factionOfCombatant } from "../../engine/turn-order.mjs";
 import { enrichAbilityCards } from "../enrich.mjs";
+import { warRule, currentWar } from "../../engine/war.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -101,8 +102,8 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onSetStance(_event, target) {
     const to = target.dataset.stance;
     const unit = unitOf(this.document, currentBoard());
-    const at = game.combat?.started ? "declare" : "free";
-    const acting = game.combats?.active?.actingFactionId ?? null;
+    const at = currentWar()?.started ? "declare" : "free";
+    const acting = currentWar()?.actingFactionId ?? null;
     const verdict = mayChangeStance(unit, to, {
       at,
       acted: Boolean(unit.turnState?.acted),
@@ -119,7 +120,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // Declared Mounted on his own Turn: the Turn record remembers it, so the
     // toll of a Turn he Acts Mounted survives a Dismount later in it (#184).
     await this.document.update({ "system.stance": to });
-    if (to === "mounted" && game.combat?.started) {
+    if (to === "mounted" && currentWar()?.started) {
       const { applyWorldIntents } = await import("../../engine/applier.mjs");
       const I = await import("../../engine/intents.mjs");
       await applyWorldIntents([I.markTurn(this.document.id, { mounted: true })], "stance:declare");
@@ -170,13 +171,13 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // only one that existed and the other two -- the 2◈ lockout and a
     // compulsion holding the mode on -- had nowhere to live.
     const verdict = canToggleMode(item, unitOf(actor, currentBoard()), {
-      active, tick, turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+      active, tick, turnsPerRound: warRule("turnsPerRound"),
       // A lockout is measured against the match's clock, so it cannot be
       // stamped when there is no match to measure it against.
       clockRunning: clockRunning(),
       // The Round this press happens in, so a use recorded in an earlier one
       // does not bite in this one (Ch. 46 §46.4-L).
-      round: game.combats?.active?.round ?? null,
+      round: currentWar()?.round ?? null,
       // Whose Turn it is, when a faction's is (#101). The GM's own slot, and a
       // table with no match, answer nothing.
       ownTurn: ownTurnOf(actor),
@@ -191,7 +192,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // Switched OFF during somebody else's Turn -- the GM's slot included -- a
     // `window: any` Mode waits for that Turn's end (#65, ruling 19). Asked of
     // the GM, who keeps the queue on the Combat.
-    if (!active && item.system?.deactivation?.window === "any" && game.combats?.active?.started
+    if (!active && item.system?.deactivation?.window === "any" && currentWar()?.started
       && ownTurnOf(actor) !== true) {
       const { FGTSocket } = await import("../../net/socket.mjs");
       // Pressed again while it waits: the End is taken back (#195 reading 14).
@@ -701,7 +702,7 @@ export async function pickPlacementFor(actor, ability, { requireUnitId = null, e
  * @returns {boolean|undefined}
  */
 function ownTurnOf(actor) {
-  const combat = game.combats?.active;
+  const combat = currentWar();
   if (!combat?.started) return undefined;
   const faction = factionOfCombatant(combat.combatant);
   if (faction === null) return undefined;

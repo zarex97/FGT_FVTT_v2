@@ -22,6 +22,7 @@ import * as process from "./combat-process.mjs";
 import { reachesDeclaration } from "../rules/command-spells.mjs";
 import { processOffers } from "./command-spells.mjs";
 import { unitActor } from "./board.mjs";
+import { warRule } from "./war.mjs";
 
 /** The flag holding the window's state, Process-shaped so the spend reads it as one. */
 export const DECLARATION_FLAG = "declaration";
@@ -70,7 +71,7 @@ export function carryDeclarationBoosts(state, window) {
  */
 export async function openDeclarationWindow({ attackerId, attack, abilityName }) {
   if (!game.user?.isGM) return null;
-  const seconds = game.settings.get("fgt", "commandSpellTimeout") ?? 45;
+  const seconds = warRule("commandSpellTimeout") ?? 45;
   if (seconds <= 0) return null;
   const state = process.begin({ attackerId, defenderId: null, attack });
   const offers = declarationOffers(state);

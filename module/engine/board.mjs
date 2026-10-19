@@ -11,40 +11,56 @@
 import { moment, NO_MOMENT } from "../domain/moment.mjs";
 import { snapshotBoard, snapshotUnit, turnStateAt, roundStateAt } from "../rules/snapshot.mjs";
 import { normalizeFactions, alliancesOf, factionChoices, factionForUser } from "../rules/factions.mjs";
+import { warRule, currentWar } from "./war.mjs";
 
-/** The world setting the roster lives in. */
+/**
+ * The world setting holding the roster a NEW War starts from. A War holds its
+ * own (`MatchData.factions`, a War Rule): two Wars on two scenes have two
+ * rosters, and the other table's players are on neither.
+ */
 export const FACTIONS_SETTING = "factions";
 
 /**
- * The faction roster, normalized.
+ * The faction roster of a War, normalized: the current War's by default, or
+ * the world's default roster when there is no War at all.
+ *
+ * @param {object|null} [war]
  * @returns {import("../rules/factions.mjs").Faction[]}
  */
-export function factions() {
+export function factions(war = currentWar()) {
   try {
-    return normalizeFactions(game.settings.get("fgt", FACTIONS_SETTING));
+    return normalizeFactions(warRule(FACTIONS_SETTING, war));
   } catch {
-    // Before `init` completes, or in a world where the setting was never
-    // written. An empty roster is a legal state, not an error.
+    // Before `init` completes. An empty roster is a legal state, not an error.
     return [];
   }
 }
 
 /**
- * Write the roster back. GM only — the settings menu is the only caller.
+ * Write a roster back: onto the War, or onto the world's default roster when
+ * there is no War. GM only -- the roster editor is the only caller.
+ *
  * @param {object[]} list
+ * @param {object|null} [war]
  * @returns {Promise<void>}
  */
-export async function setFactions(list) {
-  await game.settings.set("fgt", FACTIONS_SETTING, normalizeFactions(list));
-  Hooks.callAll("fgtFactionsChanged", factions());
+export async function setFactions(list, war = currentWar()) {
+  const roster = normalizeFactions(list);
+  if (war) await war.update({ "system.factions": roster });
+  else await game.settings.set("fgt", FACTIONS_SETTING, roster);
+  // Re-render anything showing a faction, as the setting's `onChange` does for
+  // the world roster: the sheets' selects and the roster editor itself.
+  if (war) for (const app of foundry.applications.instances.values()) app.render?.({ force: false });
+  Hooks.callAll("fgtFactionsChanged", factions(war), war);
 }
 
 /**
  * @param {string} id
+ * @param {object|null} [war]
  * @returns {import("../rules/factions.mjs").Faction|null}
  */
-export function faction(id) {
-  return factions().find((f) => f.id === id) ?? null;
+export function faction(id, war = currentWar()) {
+  return factions(war).find((f) => f.id === id) ?? null;
 }
 
 /**
@@ -93,7 +109,7 @@ export function unitSnapshot(actor, token = null, { moment: at = undefined } = {
     token: doc, panel: panelOf(doc), tick, round,
     // The world's Round length, for a lock or a sustainability counted in ◈.
     // Omitted, the projection assumed three Turns a Round in every world.
-    turnsPerRound: setting("turnsPerRound", 3),
+    turnsPerRound: warRule("turnsPerRound"),
     ownerUserId: ownerUserOf(actor),
     // The war's Region, so a sheet opened with no board built still shows the
     // Ranks the rules are actually using. `snapshotBoard` runs the same applier
@@ -111,18 +127,16 @@ export function unitSnapshot(actor, token = null, { moment: at = undefined } = {
  */
 export function currentWarRegion() {
   try {
-    // The ACTIVE match, not the viewed one -- the third instance of the same
-    // confusion in this file, and the one with the widest reach: `currentBoard`
-    // twenty lines below reads `game.combats?.active` for the war's type,
-    // ruleset, difficulty and Grail, so with another Combat on screen the
-    // Region came off a different match than every other fact in the same
-    // snapshot. A Region decides every Servant's Ranks and Base Attack
-    // (Ch. 46 §46.4-AO), so the disagreement is a rank on every parameter.
+    // The War's own Region (`engine/war.mjs`), `null` included: a War fought
+    // in no Region never falls through to anything else, which is what once
+    // played a neutral war on Greece ground (`engine/war-setup.mjs`). The same
+    // War `currentBoard` reads its type, ruleset and Grail off, so every fact
+    // in one snapshot comes from one War. A Region decides every Servant's
+    // Ranks and Base Attack (Ch. 46 §46.4-AO).
     //
-    // No `started` gate, unlike the two projectors above: a war's Region is
-    // decided at setup and `commitWar` writes it before the clock exists, so
-    // gating on `started` would blank it for the whole of setup.
-    return game.combats?.active?.system?.region || setting("region", null) || null;
+    // No `started` gate: a war's Region is decided at setup and `commitWar`
+    // writes it before the clock exists.
+    return warRule("region") || null;
   } catch {
     return null;
   }
@@ -164,12 +178,12 @@ function ownerUserOf(actor) {
  * The one reader of the live clock in this file. {@link NO_MOMENT} out of a
  * started match: with no clock there is nothing for a record to be stale
  * against, and a GM arranging the board should not have it silently forgotten.
- * The ACTIVE match, never `game.combat`, which is whichever tracker is on screen.
+ * The current War (`engine/war.mjs#currentWar`), never `game.combat`, which is whichever tracker is on screen.
  *
  * @returns {import("../domain/moment.mjs").Moment}
  */
 export function currentMoment() {
-  const combat = game.combats?.active ?? null;
+  const combat = currentWar();
   if (!combat?.started) return NO_MOMENT;
   return moment(combat.round ?? null, combat.system?.globalTurn ?? 0);
 }
@@ -199,7 +213,7 @@ export function currentRound() {
  * @returns {boolean}
  */
 export function clockRunning() {
-  return Boolean(game.combats?.active?.started);
+  return Boolean(currentWar()?.started);
 }
 
 /**
@@ -394,10 +408,10 @@ export function luckOf(board, actor) {
 export function gateContext() {
   return {
     gates: {
-      round: setting("npGateRound", 6),
-      assassinRound: setting("npGateRoundAssassin", 4),
+      round: warRule("npGateRound"),
+      assassinRound: warRule("npGateRoundAssassin"),
     },
-    turnsPerRound: setting("turnsPerRound", 3),
+    turnsPerRound: warRule("turnsPerRound"),
     // `currentTick`, NOT `game.combat` -- `game.combat` is the combat being
     // VIEWED, so this read the tick of whatever tracker happened to be on
     // screen and disagreed with every other clock reader in the system.
@@ -416,14 +430,12 @@ export function gateContext() {
     //
     // Carried here rather than fixed at that one call site, so the omission
     // cannot recur. Every other caller passes the same value explicitly.
-    round: game.combats?.active?.round ?? 1,
+    round: currentWar()?.round ?? 1,
     // WHOSE Turn it is, for an ability whose only window is `ownTurn` (#160).
     // `null` before the match has started, or on the GM's own slot, which asks
     // nothing of an ability -- the same answer `canToggleMode` gives. Read off
-    // the ACTIVE combat for the reason `round` is.
-    actingFactionId: game.combats?.active?.started
-      ? (game.combats.active.actingFactionId ?? null)
-      : null,
+    // the current War for the reason `round` is.
+    actingFactionId: currentWar()?.started ? (currentWar().actingFactionId ?? null) : null,
   };
 }
 
@@ -463,7 +475,7 @@ export function unitActor(unitId) {
  */
 export function currentBoard(overrides = {}) {
   const { moment: named, ...settingOverrides } = overrides;
-  const combat = game.combats?.active ?? null;
+  const combat = currentWar();
   const scene = canvas?.scene ?? null;
   const at = named ?? currentMoment();
   return snapshotBoard({
@@ -475,8 +487,8 @@ export function currentBoard(overrides = {}) {
       .filter((t) => t.actor)
       .map((t) => ({ actor: t.actor, token: t.document, snapshot: unitSnapshot(t.actor, t.document, { moment: at }) })),
     settings: {
-      boardSize: setting("boardSize", 13),
-      turnsPerRound: setting("turnsPerRound", 3),
+      boardSize: warRule("boardSize"),
+      turnsPerRound: warRule("turnsPerRound"),
       alliances: alliancesOf(factions()),
       tickForTurnState: at.tick,
       // The match's own count where the Moment has none: a match not yet
@@ -487,7 +499,7 @@ export function currentBoard(overrides = {}) {
       // Whose Turn it is (#28). `null` out of combat, which reads as "no Turn
       // gate applies" -- the same answer the GM arranging a scene needs.
       actingFactionId: combat?.actingFactionId ?? null,
-      grandOrder: setting("grandOrder", false),
+      grandOrder: warRule("grandOrder"),
       // Seeded on the turn index so a replayed resolution picks the same
       // random targets as the original.
       seed: at.tick ?? combat?.system?.globalTurn ?? 0,
@@ -495,23 +507,6 @@ export function currentBoard(overrides = {}) {
       // existed the rules read `board.terrain.areas` and nothing ever filled
       // it, so terrain was correct and permanently empty.
       terrain: { areas: terrainAreasOf(scene) },
-      // The war's Region and the Grail live on the match: chosen once at
-      // setup, and read by every Servant from that region thereafter.
-      //
-      // Falling back to the WORLD SETTING, which is where a Region is actually
-      // chosen. `MatchData.region` is declared on the schema and **nothing in
-      // this system has ever written it** -- no setup flow, no sheet, no API --
-      // while `fgt.region` is a registered setting the GM sets and which
-      // `engine/summon.mjs` already reads. So `warRegion` was permanently
-      // `null` in every world, and everything keyed on it was inert:
-      // `annotateRegionBonus` (Ch. 03's Region Parameter grants, a core rule),
-      // `regionScale` (the Hanging Gardens' Construction multiplier) and
-      // Asterios's *"if the Region is Greece, it affects an 11x11 panel area
-      // instead"*.
-      //
-      // The match field stays first because a per-match override is the right
-      // shape once something writes one; the setting is the default rather than
-      // a replacement.
       // The Scene Levels that are pocket dimensions (#177). Read off the
       // platform ACTORS, because a dimension has no ground footprint and so no
       // token: its passengers are never stamped with its `platformId`.
@@ -536,25 +531,24 @@ export function currentBoard(overrides = {}) {
         })),
       // Optional rules the table has switched off (Ch. 05 clause 4 today).
       rules: {
-        masterProtection: setting("masterProtection", true) !== false,
+        masterProtection: warRule("masterProtection", combat) !== false,
         // Ch. 46 §46.4-AN. Read here rather than in `rules/identity.mjs`, which
         // is Layer 2 and has no settings -- the same route `masterProtection`
         // above takes.
-        discoverAttemptsPerFaction: setting("discoverAttemptsPerFaction", 3),
+        discoverAttemptsPerFaction: warRule("discoverAttemptsPerFaction"),
         // #65 ruling 18: the eight lines, or rows and columns only.
-        ridingAttackLines: setting("ridingAttackLines", "eight"),
+        ridingAttackLines: warRule("ridingAttackLines"),
         // #187 reading 4: what Range makes an Attack "ranged".
-        rangedMinimumRange: setting("rangedMinimumRange", 2),
+        rangedMinimumRange: warRule("rangedMinimumRange"),
       },
+      // The War's Region, type and ruleset: chosen once at setup and read by
+      // every Servant thereafter (`engine/war.mjs`).
       warRegion: currentWarRegion(),
-      warType: combat?.system?.warType ?? setting("warType", "greatHolyGrailWar"),
-      ruleset: combat?.system?.ruleset ?? setting("ruleset", "advanced"),
-      drawPolicy: setting("drawPolicy", "duplicates"),
+      warType: warRule("warType", combat),
+      ruleset: warRule("ruleset", combat),
+      drawPolicy: warRule("drawPolicy", combat),
       homeBaseDepth: combat?.system?.homeBaseDepth ?? 3,
-      // The SETTING as the fallback, which it never was: this read
-      // `?? "intermediate"` outright, so the registered `fgt.difficulty`
-      // control was consulted by nothing at all and changing it did nothing.
-      difficulty: combat?.system?.difficulty ?? setting("difficulty", "intermediate"),
+      difficulty: warRule("difficulty", combat),
       grail: {
         threshold: combat?.system?.grailThreshold ?? 9,
         defeatedCount: combat?.system?.grailCounter ?? 0,
@@ -575,19 +569,6 @@ export function currentBoard(overrides = {}) {
       ...settingOverrides,
     },
   });
-}
-
-/**
- * @param {string} key
- * @param {unknown} fallback
- * @returns {unknown}
- */
-function setting(key, fallback) {
-  try {
-    return game.settings.get("fgt", key) ?? fallback;
-  } catch {
-    return fallback;
-  }
 }
 
 /**

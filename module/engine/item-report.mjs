@@ -1,3 +1,4 @@
+import { isWarGM } from "./war.mjs";
 /**
  * @file An Item taken off the ground, or refused, said on a card.
  * @see docs/37-chat-and-log.md
@@ -32,7 +33,7 @@ export function itemLine(entry, nameOfUnit, t) {
  * @returns {Promise<void>}
  */
 export async function postItemLine(entry) {
-  if (!game.users?.activeGM?.isSelf) return;
+  if (!isWarGM()) return;
   const escape = foundry.utils.escapeHTML;
   const { shownName } = await import("./public-identity.mjs");
   const { currentBoard, unitActor } = await import("./board.mjs");

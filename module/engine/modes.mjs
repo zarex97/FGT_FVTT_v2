@@ -39,6 +39,7 @@ import * as I from "./intents.mjs";
 import { publicSpeakerFor } from "./public-identity.mjs";
 import { publicIdentityOf } from "./public-identity.mjs";
 import { shownNameById } from "./public-identity.mjs";
+import { currentWar, isWarGM } from "./war.mjs";
 
 /**
  * Guards against re-entry.
@@ -73,7 +74,7 @@ export async function reconcileForcedModes(board = null) {
     /** @type {Array<{unitId: string, ability: string}>} */
     const stopped = [];
 
-    const tick = game.combat?.system?.globalTurn ?? 0;
+    const tick = currentWar()?.system?.globalTurn ?? 0;
 
     for (const unit of snapshot.units ?? []) {
       // BOTH sources, not just the first. This read `unit.compulsions` alone,
@@ -227,7 +228,7 @@ export function attachForcedModes() {
  * @returns {Promise<void>}
  */
 async function announceStopped(stopped) {
-  if (!game.users?.activeGM?.isSelf) return;
+  if (!isWarGM()) return;
   const escape = foundry.utils.escapeHTML;
   const lines = stopped.map((s) => game.i18n.format("FGT.Mode.ForcedOff", {
     ability: escape(s.ability), name: escape(shownNameById(s.unitId)),

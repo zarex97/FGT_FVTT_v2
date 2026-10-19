@@ -22,6 +22,7 @@ import { rollOptionsFor } from "../rules/options.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import { currentBoard, unitFrom, gateContext, unitActor } from "./board.mjs";
 import * as budget from "./budget.mjs";
+import { currentWar } from "./war.mjs";
 
 /**
  * The budget's name for an Attack an ability makes.
@@ -80,7 +81,7 @@ export function pressesAsAttack(item) {
  * @returns {{ok: boolean, reason: string|null, usage: object, budget: {ok: boolean, reason: string|null}}}
  */
 export function pressGate(actor, item, {
-  board = currentBoard(), combat = game.combats?.active ?? null,
+  board = currentBoard(), combat = currentWar() ?? null,
   atWindow = false, anyMoment = false, bypassesCategoryLimit = false, isCounter = false,
   target = null, selfOnly = false, billsBudget = true, asAttack = pressesAsAttack(item),
 } = {}) {

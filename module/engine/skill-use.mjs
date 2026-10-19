@@ -67,6 +67,7 @@ import { test as testPredicate } from "../rules/predicate.mjs";
 import { publicIdentityOf, publicSpeakerFor } from "./public-identity.mjs";
 import { effectLine } from "../rules/card-visibility.mjs";
 import { shownName, shownNameById } from "./public-identity.mjs";
+import { warRule, currentWar } from "./war.mjs";
 
 /**
  * Use an active Skill.
@@ -106,7 +107,7 @@ export async function useSkill({
   const board = currentBoard();
   const self = unitFrom(board, actor);
   const master = self.masterId ? unitFrom(board, unitActor(self.masterId)) : null;
-  const combat = game.combats?.active;
+  const combat = currentWar();
 
   // The gate this press runs, and the one every offer of it asks (#244):
   // cooldown, round, cost, Ch. 17's requirements, an effect that negates it,
@@ -184,7 +185,7 @@ export async function useSkill({
   const { charged } = applied.channelStarted ? { charged: [] } : resolveCosts([
     ...(usage.cost ? [{ ...usage.cost, id: "npCost" }] : []),
     ...(usage.overCooldown ? [usage.overCooldown] : []),
-    ...additionalCostsFor({ ability, self, master, turnsPerRound: game.settings.get("fgt", "turnsPerRound") }),
+    ...additionalCostsFor({ ability, self, master, turnsPerRound: warRule("turnsPerRound") }),
     ...standingUpkeepCost(board, self, master),
   ]);
 
@@ -761,7 +762,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
               // applier refuses a non-finite delta outright, which is how this
               // was found rather than silently restoring nothing.
               const delta = typeof c.delta === "string"
-                ? resolveValue({ value: c.delta }, null, { refs: expressionRefs(actor, { tick: game.combat?.system?.globalTurn ?? null, ...extras }) })
+                ? resolveValue({ value: c.delta }, null, { refs: expressionRefs(actor, { tick: currentWar()?.system?.globalTurn ?? null, ...extras }) })
                 : c.delta;
               // `clampToMax` is the difference between "restores 3 Agility" and
               // "grants 3 Agility": Golden Fleece restores, so it cannot push a
@@ -1321,7 +1322,7 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
         const stayOf = () => unitOf(unitActor(target?.id), currentBoard())?.expiresAt ?? null;
         const before = stayOf();
         const intents = dispatch({ ...rule, kind }, target, { source: ability.name, abilityId: ability.id }, {
-          board, tick, turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+          board, tick, turnsPerRound: warRule("turnsPerRound"),
         });
         if (intents.length > 0) await applyWorldIntents(intents, "skillEffect", { sink: phaseCtx.sink ?? null });
         // In words, not the key: the card read "Atk UpDurationDelta" (#247, live).
@@ -1726,7 +1727,7 @@ export function cooldownChanges(phase, doc, board = null, self = null, target = 
         ? Math.floor((stacksHeld(doc)[change.perStack.effect] ?? 0) / (change.perStack.each ?? 1))
         : 1;
       const turns = perStack * (change.ticks !== undefined
-        ? resolveTicks(parseTick(change.ticks), { turnsPerRound: game.settings.get("fgt", "turnsPerRound") })
+        ? resolveTicks(parseTick(change.ticks), { turnsPerRound: warRule("turnsPerRound") })
         : change.countMatching
           ? countMatchingTurns(change, doc, board)
           : Math.abs(change.delta ?? 0));
@@ -1784,7 +1785,7 @@ function countMatchingTurns(change, doc, board) {
 
   if (change.maxTicks === undefined) return count;
   const cap = resolveTicks(
-    parseTick(change.maxTicks), { turnsPerRound: game.settings.get("fgt", "turnsPerRound") },
+    parseTick(change.maxTicks), { turnsPerRound: warRule("turnsPerRound") },
   );
   return Math.min(count, cap);
 }
@@ -2004,7 +2005,7 @@ async function chosenCooldowns(phase, ability, doc) {
 
   const picked = options.find((o) => o.id === shape);
   const turns = resolveTicks(parseTick(picked.ticks), {
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    turnsPerRound: warRule("turnsPerRound"),
   });
 
   // Only abilities with something to reduce. Offering one at zero would let the
@@ -2176,8 +2177,8 @@ export async function fireAbilityUsed(actor, ability) {
   const board = currentBoard();
   const unit = unitOf(actor, board);
   const intents = fireEvent("abilityUsed", [unit], {
-    tick: game.combat?.system?.globalTurn ?? 0,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    tick: currentWar()?.system?.globalTurn ?? 0,
+    turnsPerRound: warRule("turnsPerRound"),
     board,
     options: new Set(),
     rolls: {},
@@ -2381,7 +2382,7 @@ export async function runAfterPhaseZones(ability, actor, areaPanels) {
 export function modeIntent(phase, unitId, source) {
   if (phase.suspendFor) {
     const span = resolveTicks(parseTick(phase.suspendFor), {
-      turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+      turnsPerRound: warRule("turnsPerRound"),
     });
     return I.suspendSkill(unitId, phase.ability, (currentMoment().tick ?? 0) + span, source);
   }
@@ -2567,7 +2568,7 @@ async function summonPlatform(phase, actor, board) {
   // The lockout and the upkeep period both count from here, and neither can be
   // recovered afterwards -- a platform that forgot when it was raised could be
   // switched off immediately or charge its Master on the wrong beat.
-  data.system.activatedAt = game.combat?.system?.globalTurn ?? 0;
+  data.system.activatedAt = currentWar()?.system?.globalTurn ?? 0;
 
   // "Luck: Shared with Quetz's" -- resolved from the summoner's LIVE values,
   // the same rule and the same moment `engine/summoning.mjs` uses for the

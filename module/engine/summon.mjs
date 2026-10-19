@@ -22,6 +22,7 @@ import {
 import { regionsAdjacent } from "../rules/environment.mjs";
 import { catalogueEntryOf } from "../rules/war-setup.mjs";
 import { unitActor } from "./board.mjs";
+import { warRule, currentWar } from "./war.mjs";
 
 /**
  * Roll one line of a plan.
@@ -83,7 +84,7 @@ export async function rollSetupPlan(plan) {
  * @param {object} args
  * @param {string} args.contentId
  * @param {string} [args.masterId]
- * @param {string|null} [args.region] defaults to the world setting
+ * @param {string|null} [args.region] defaults to the current War's Region
  * @param {Record<string, number>} [args.masterGrants]
  * @returns {Promise<object|null>} null when the Servant is not in any pack
  */
@@ -97,7 +98,7 @@ export async function prepareSummon({ contentId, masterId = null, region = null,
   // Servant was summoned. Every rules function downstream is entitled to an
   // array, so the conversion belongs here rather than in each of them.
   const sheet = sheetSnapshot(source);
-  const warRegion = region ?? (game.settings.get("fgt", "region") || null);
+  const warRegion = region ?? (warRule("region") || null);
   const master = masterId ? unitActor(masterId) : null;
 
   // The SERVANT's ruleset, read off its pack -- the discriminator
@@ -218,8 +219,8 @@ export async function commitSummon(prepared, { withPartners = true } = {}) {
   // on the first re-summon after the grant was un-baked.
   //
   // A war has ONE Region, so this is not a per-summon field that happens to be
-  // asked at summon time -- it is the war's, and `settings.mjs` already
-  // declares `fgt.region` for it. Writing it here also switches on everything
+  // asked at summon time -- it is the War's (`MatchData.region`, a War Rule).
+  // Writing it here also switches on everything
   // else keyed to the war Region that has been inert for want of a writer:
   // `regionScale` (the Hanging Gardens' Construction multiplier) and Asterios's
   // *"if the Region is Greece"* clause.
@@ -293,25 +294,25 @@ export async function commitSummon(prepared, { withPartners = true } = {}) {
 }
 
 /**
- * Record the war's Region, unless it is already what it should be.
+ * Record the War's Region on the War, unless it is already what it should be.
  *
- * A world setting rather than the Combat document because `engine/board.mjs`
- * reads the match first and this second, and a match may not exist yet at
- * summon time. GM-only: a player summoning cannot write world settings, and
- * failing loudly here would abort an otherwise valid summon.
- *
- * Exported for `engine/war-setup.mjs`, which writes the war's Region at the
- * moment the war is committed. Two spellings of this write is how the setting
- * and the match came to disagree in the first place.
+ * On the WAR, not the world setting: a world holds several Wars at once, and a
+ * Region asked for in one table's summon dialog once became every War's
+ * (2026-10-18). With no War at all there is nothing to record it on, and the
+ * world's default for new Wars is not a summon's to change. GM-only: a player
+ * summoning cannot write the War, and failing loudly here would abort an
+ * otherwise valid summon.
  *
  * @param {string} region `""` for a war fought in no Region at all
+ * @param {object|null} [war]
  * @returns {Promise<void>}
  */
-export async function setWarRegion(region) {
+export async function setWarRegion(region, war = currentWar()) {
   try {
-    if (!game.user?.isGM) return;
-    if (game.settings.get("fgt", "region") === region) return;
-    await game.settings.set("fgt", "region", region);
+    if (!game.user?.isGM || !war) return;
+    const next = region || null;
+    if ((war.system?.region ?? null) === next) return;
+    await war.update({ "system.region": next });
   } catch (err) {
     console.warn("FGT | Could not record the war Region:", err);
   }
@@ -396,7 +397,7 @@ export async function rollMasterSetup({ masterId, confirm = true }) {
   // Ch. 13's three modes. The setting existed from the day settings were
   // written and nothing read it, so every Master was ranked by essence
   // whatever the world was configured for.
-  const mode = game.settings.get("fgt", "masterMode") ?? "essences";
+  const mode = warRule("masterMode") ?? "essences";
   const { lines } = await rollSetupPlan(plansFor(warRuleset()).master(actor.system, { mode }));
   if (!confirm) return { ok: true, lines };
 
@@ -481,7 +482,7 @@ export function rulesetOfPack(collection) {
  */
 function warRuleset() {
   try {
-    return game.combat?.system?.ruleset ?? game.settings.get("fgt", "ruleset") ?? "advanced";
+    return currentWar()?.system?.ruleset ?? warRule("ruleset") ?? "advanced";
   } catch {
     return "advanced";
   }

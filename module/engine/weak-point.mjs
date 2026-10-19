@@ -22,6 +22,7 @@ import { luckCheck } from "../rules/checks.mjs";
 import { currentBoard, unitOf, unitActor } from "./board.mjs";
 import * as I from "./intents.mjs";
 import * as rollLog from "../rules/roll-log.mjs";
+import { currentWar } from "./war.mjs";
 
 /**
  * The weak point this defender exposes to this attack, or `null`.
@@ -164,7 +165,7 @@ export async function resolveWeakPoint(state, { board = null } = {}) {
   // On the card, with its working (#184). The Heel roll decides the whole
   // attack -- a miss is an Evade -- and it filed no record, so a failed Heel
   // left a card that said nothing but "noDamage" in its ladder.
-  const tick = game.combat?.system?.globalTurn ?? 0;
+  const tick = currentWar()?.system?.globalTurn ?? 0;
   const rollRecord = rollLog.record({
     id: `${state.attackerId}:${state.defenderId}:heel:${tick}`,
     globalTurn: tick,

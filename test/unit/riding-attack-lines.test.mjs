@@ -52,13 +52,12 @@ describe("rows and columns only", () => {
 });
 
 describe("the setting reaches the rules", () => {
-  it("is a GM world setting, eight by default", () => {
-    const src = readFileSync("module/settings.mjs", "utf8").replaceAll("\r\n", "\n");
-    const block = src.slice(src.indexOf('s("ridingAttackLines"'));
-    expect(block.slice(0, block.indexOf("});"))).toMatch(/default: "eight"/);
+  it("is a War Rule, eight by default", async () => {
+    const { warRuleSpec } = await import("../../module/domain/war-rules.mjs");
+    expect(warRuleSpec("ridingAttackLines")?.initial).toBe("eight");
   });
 
   it("the live board carries it on board.rules", () => {
-    expect(readFileSync("module/engine/board.mjs", "utf8")).toMatch(/ridingAttackLines: setting\("ridingAttackLines", "eight"\)/);
+    expect(readFileSync("module/engine/board.mjs", "utf8")).toMatch(/ridingAttackLines: warRule\("ridingAttackLines"\)/);
   });
 });

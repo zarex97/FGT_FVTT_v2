@@ -35,6 +35,7 @@ import {
 } from "../rules/bounded-fields.mjs";
 import { repaintFollowing, dropLeftTerrainEffects } from "./terrain.mjs";
 import { displaceToken } from "./io.mjs";
+import { warRule, currentWar, isWarGM, gmForWar, warOfScene } from "./war.mjs";
 
 export const Movement = {
   /** Register the hooks. */
@@ -58,7 +59,7 @@ export const Movement = {
  * @returns {boolean} `false` rejects it
  */
 function onPreMove(document, movement, operation) {
-  const combat = game.combats.active;
+  const combat = currentWar();
   if (!combat?.started) return true;
   if (movement?.method === "undo" || movement?.method === "reset") return true;
   // Forced movement -- knockback, Gather, a platform carrying its passengers --
@@ -256,7 +257,10 @@ export function levelOfToken(document) {
  * @returns {Promise<void>}
  */
 async function onMove(document, movement, operation) {
-  const combat = game.combats.active;
+  // The War of the scene this token moved on, not the War on this client's
+  // screen: `moveToken` fires on every client, and with two Wars in play each
+  // War's GM must answer for its own board only (`engine/war.mjs#gmForWar`).
+  const combat = (document.parent ? warOfScene(document.parent) : null) ?? currentWar();
   if (!combat?.started) return;
   // A level change is not a step, so it costs nothing (see `onPreMove`) and it
   // crosses no boundary in the plane either. It can still bring a Unit into
@@ -270,7 +274,7 @@ async function onMove(document, movement, operation) {
     // From the ONE active GM, like the two below: `moveToken` fires on every
     // connected client, a player's client is refused the Region writes, and two
     // GM-role clients would race to delete and re-create the same area (#130).
-    if (document.actor && canvas?.grid && game.users.activeGM?.isSelf) {
+    if (document.actor && canvas?.grid && isWarGM(combat)) {
       const here = canvas.grid.getOffset({ x: document.x, y: document.y });
       const landed = { i: here.i, j: here.j, k: levelOfToken(document) };
       await dropLeftTerrainEffects(document.actor, landed, currentBoard());
@@ -301,7 +305,7 @@ async function onMove(document, movement, operation) {
   // destination comes off the movement payload for the reason `fieldsAt`
   // documents (#147). The active GM's, for the reason the repaint below is
   // (#130): it deletes documents, and `moveToken` fires on every client.
-  if (document.actor && movement?.destination && canvas?.grid && game.users.activeGM?.isSelf) {
+  if (document.actor && movement?.destination && canvas?.grid && isWarGM(combat)) {
     const to = canvas.grid.getOffset(movement.destination);
     await dropLeftTerrainEffects(document.actor, { i: to.i, j: to.j, k: levelOfToken(document) }, currentBoard());
   }
@@ -319,7 +323,7 @@ async function onMove(document, movement, operation) {
   // refused (Foundry allows only a GM to create a Region with a Behaviour), and
   // two GM-role clients race. `Terrain.attach` gates its own delete hook the
   // same way (#130).
-  if (document.actor && game.users.activeGM?.isSelf) {
+  if (document.actor && isWarGM(combat)) {
     const landed = movement?.destination ? canvas.grid.getOffset(movement.destination) : null;
     await repaintFollowing(
       document.actor.id, landed ? { i: landed.i, j: landed.j, k: levelOfToken(document) } : null,
@@ -339,12 +343,12 @@ async function onMove(document, movement, operation) {
     await sightingsAfter(combat);
     return;
   }
-  // ONE client does the bookkeeping: the active GM, or the owner when no GM is
-  // connected. `moveToken` fires on every client, and this let the owner run
+  // ONE client does the bookkeeping: this War's GM (the active GM looking at
+  // its scene), or the owner when no GM is connected. `moveToken` fires on every client, and this let the owner run
   // it beside the GM: a player's every Move raised "User Player1 lacks
   // permission to update Combat" from the budget write, and both clients
   // carried the Master (#206, found live).
-  const gm = game.users.activeGM;
+  const gm = gmForWar(combat);
   if (gm ? !gm.isSelf : !document.actor?.isOwner) return;
 
   const actor = document.actor;
@@ -555,7 +559,7 @@ function ignoresOccupancy(unit) {
  */
 async function knockBackOccupants(moverId, movement = null) {
   const { knockbackPlan, travelShovePlan, stepsBetween, clearFootprintPlan } = await import("../rules/movement.mjs");
-  let board = boardSnapshot(game.combats.active);
+  let board = boardSnapshot(currentWar());
 
   // On the MOVER's own level: it knocks aside whoever it walks into, and it
   // cannot walk into somebody standing twenty feet above it.
@@ -650,7 +654,7 @@ async function knockBackOccupants(moverId, movement = null) {
       if (canUnboard(occupant, under).reason === "boundToPlatform") continue;
       const { knockOff } = await import("./platforms.mjs");
       const fell = await knockOff({ unitId: occupant.id, platformId: under.id });
-      board = boardSnapshot(game.combats.active);
+      board = boardSnapshot(currentWar());
       // Not knocked OFF is not "not knocked back": a Master its Servant caught,
       // or a Unit that kept its footing, still has to clear the square the
       // mover is arriving at (Ch. 46 §46.4-CC).
@@ -662,7 +666,7 @@ async function knockBackOccupants(moverId, movement = null) {
         if (token) {
           const point = canvas.grid.getTopLeftPoint(spot);
           await displaceToken(token.document, { x: point.x, y: point.y });
-          board = boardSnapshot(game.combats.active);
+          board = boardSnapshot(currentWar());
         }
       }
       continue;
@@ -991,7 +995,7 @@ function offsetDelta(from, to) {
  * @returns {Promise<void>}
  */
 export async function runContactEvents(unitIds, fieldIds = null) {
-  if (!game.users.activeGM?.isSelf) return;
+  if (!isWarGM()) return;
   if (fieldIds && fieldIds.length === 0) return;
   const { runFieldEvents, stampFieldEntries } = await import("./fields.mjs");
   // WHEN they came in, before anything asks how long they have been here.
@@ -1040,8 +1044,8 @@ async function dropLeftFieldEffects(actor, document, movement) {
   // Its field is still open -- a closing field takes its own in `endField`.
   const { EffectRegistry } = await import("../rules/registry.mjs");
   const fieldsById = new Map((board.fields ?? []).map((f) => [f.id, f]));
-  const tick = game.combat?.system?.globalTurn ?? 0;
-  const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
+  const tick = currentWar()?.system?.globalTurn ?? 0;
+  const turnsPerRound = warRule("turnsPerRound");
   const reverting = gone.filter((e) => revertingActionFor(fieldsById.get(e.system.sourceFieldId), e.system.defId));
   const ending = gone.filter((e) => !reverting.includes(e));
 

@@ -80,7 +80,7 @@ describe("the writers", () => {
 
   it("a defeat stamps its tick once, and keeps the first", () => {
     const defeat = io.slice(io.indexOf("async defeat(unitId, cause, killerId = null)"));
-    expect(defeat.slice(0, defeat.indexOf("// The skull."))).toMatch(/actor\.system\?\.defeated \? \{\} : \{ "system\.defeatedAt": game\.combat\?\.system\?\.globalTurn/);
+    expect(defeat.slice(0, defeat.indexOf("// The skull."))).toMatch(/actor\.system\?\.defeated \? \{\} : \{ "system\.defeatedAt": currentWar\(\)\?\.system\?\.globalTurn/);
   });
 
   it("a Master's fall that defeats a Servant stamps it too", () => {

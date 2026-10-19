@@ -24,8 +24,38 @@
  */
 
 import { factions } from "../../engine/board.mjs";
+import { currentWar } from "../../engine/war.mjs";
 
 export class FGTCombatTracker extends foundry.applications.sidebar.tabs.CombatTracker {
+  /**
+   * Show the War of the scene on screen when the tracker would otherwise pick.
+   *
+   * Foundry infers the tracked combat from the ACTIVE one, else a combat on the
+   * globally activated scene. A world holds several Wars, each bound to its own
+   * scene (2026-10-18), so the inference showed a stray active combat -- or the
+   * other table's War -- above the board of this one. A combat the GM chose by
+   * hand (`options.combat`) still wins.
+   *
+   * @inheritdoc
+   */
+  _configureRenderOptions(options) {
+    const inferring = ("combat" in options) ? options.combat === null : !this.viewed;
+    if (!this.isPopout && inferring) {
+      const war = currentWar();
+      if (war) options.combat = war;
+    }
+    super._configureRenderOptions(options);
+  }
+
+  /** Follow the War of each scene the client switches to. Idempotent. */
+  static followSceneWar() {
+    if (FGTCombatTracker.#following) return;
+    FGTCombatTracker.#following = true;
+    Hooks.on("canvasReady", () => ui.combat?.render({ combat: currentWar() ?? null }));
+  }
+
+  static #following = false;
+
   /** @inheritdoc */
   _getCombatContextOptions() {
     const options = super._getCombatContextOptions();
@@ -126,4 +156,5 @@ async function promptForFaction(combat) {
 /** Register the tracker. Called at `init`. */
 export function registerCombatTracker() {
   CONFIG.ui.combat = FGTCombatTracker;
+  FGTCombatTracker.followSceneWar();
 }

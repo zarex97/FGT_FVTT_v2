@@ -10,6 +10,7 @@
 
 import { effectLine } from "../rules/card-visibility.mjs";
 import { unitActor } from "./board.mjs";
+import { isWarGM } from "./war.mjs";
 
 /** The line for each way a clock can turn. */
 const COOLDOWN_KEYS = Object.freeze({
@@ -167,7 +168,7 @@ export function healthOnActor(unitId) {
 }
 
 export async function postTurnEndReport(intents, before = null, health = null, titleKey = "FGT.TurnReport.Title", landed = []) {
-  if (!game.users?.activeGM?.isSelf) return;
+  if (!isWarGM()) return;
   const escape = foundry.utils.escapeHTML;
   // The name the table knows: "Archer regains 161 Health (Regen)", never his
   // True Name (#234, as every engine line since #230 §46.4-NV).

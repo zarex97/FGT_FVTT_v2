@@ -82,3 +82,26 @@ way, is untouched*. Pressed with two Wars on two scenes.
 
 **Wave 1 (scroll) done, 2026-10-18.** `WZ.scroll.*` Pressed live as the GM: at a 380px window Containers, Servants and Confirm overflow and scroll to their last row; War, Factions and Board fit and show no scrollbar. Every `WR.*` Clause is `Untouched`: wave 2, with ruling 13 (Q14 (B)): each War is run by its own GM client viewing its scene; a press for a War no GM is viewing is refused with a message.
 
+**Wave 2 built and pressed, 2026-10-18.** Live on `fgt2026` with two Wars at once: War A, "Great Holy Grail
+War" (`2SYtb3A7ObpJ92mI`, Normal, 3 Turns a Round), and War B, built by the wizard on its own scene
+(`Hx56fhkhIr8yvrh3`, Holy Grail War, 8 Turns a Round), run by two GM clients (Gamemaster on A, a password-less
+test user "Gamemaster 2" on B) with Player2 pressing in B.
+
+| Clause | Status | Evidence |
+|---|---|---|
+| WR.migrate | Pressed | Schema 2 → 3 on load after the backup; War A bound to its scene; its world-only rules copied (timeouts 15, Master mode coin flip, Riding lines orthogonal); `ruleset: normal` kept. Failed once first (Surprise `migration-scene-link-refused-in-replace`). |
+| WR.seed | Pressed | Wizard opened on the world's defaults; Confirm tab listed all 23 War Rules by label. |
+| WR.commit | Pressed | War B holds `turnsPerRound 8`, `commandSpellTimeout 30`, `closedInfo false`, `warType holyGrailWar`, its own roster. |
+| WR.unit | Pressed | All six War B Units, partners included, carry `warId`. |
+| WR.scene | Pressed | Each GM's tracker and turn panel show its scene's War (after Surprise `tracker-inferred-the-wrong-war`). |
+| WR.second | Pressed | War B built while A exists; the activated scene did not change, so A's players stayed put. |
+| WR.factions | Pressed | B's faction-1 owned by Player2 only; A's faction-1 Units still owned by Player1. |
+| WR.window | Pressed | Scale button → window "The War on The Field"; `commandSpellTimeout` 20 on B, A still 15, world 15. |
+| WR.lock | Pressed | B started: ◈ row disabled with its reason; `setWarRules` refused `turnsPerRound`, applied `closedInfo`. |
+| WR.world | Pressed | Defaults window `reactionTimeout` 90: A and B kept 15. Restored. |
+| WR.press | Pressed | Player2's Move in B booked by Gamemaster 2 only; Player2's Skill in B executed by Gamemaster 2 (card author); with no GM on B's scene, refused: "No Game Master is looking at this War's scene…". |
+| WR.turnsPerRound | Pressed | The Skill's 4◈ cooldown read 32 Turns on B (8 a Round); A's board reads 3. |
+| WR.commandSpellTimeout | Observed | `warRule` 15 on Gamemaster's client (A), 20 on Gamemaster 2's (B). |
+| Other `WR.<key>` | Unit + guard | Every reader asks `warRule(key)` (`war-rules-readers.test.mjs` proves no other reader); `war-rules.test.mjs` presses the two-War differential for the ◈, the Command Spell wait and closed information. Not pressed one by one live. |
+
+

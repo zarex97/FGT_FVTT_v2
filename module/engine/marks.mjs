@@ -23,6 +23,7 @@ import { affordable, spend } from "./budget.mjs";
 import { openFieldFromMarks } from "./fields.mjs";
 import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
+import { currentWar } from "./war.mjs";
 
 /** The Structure content every Bloodmark is made from. */
 const MARK_CONTENT_ID = "bloodmark";
@@ -77,7 +78,7 @@ export async function placeMark({ unitId, abilityId }) {
   // Home Base check: *"Bloodmarks can be placed on any panel, even within enemy
   // Home Bases"* is an explicit exemption from Ch. 05's restriction.
   // The first Round does NOT forbid it: `FIRST_ROUND_EXEMPT` (#188 reading 16).
-  const verdict = affordable(game.combats.active, self, "mark");
+  const verdict = affordable(currentWar(), self, "mark");
   if (!verdict.ok) return { ok: false, reason: verdict.reason ?? "cannotAct" };
 
   const existing = marksOf(unitId);
@@ -86,7 +87,7 @@ export async function placeMark({ unitId, abilityId }) {
   }
 
   await createMark(actor, panel, fieldId);
-  await spend({ combat: game.combats.active, unit: self, action: "mark" });
+  await spend({ combat: currentWar(), unit: self, action: "mark" });
   // *"and counts as her Attack for the Turn."* `spend` bills the faction's
   // pool; the unit's own turn record is a separate write, and without it she
   // could Mark and then still Attack -- the pool is per faction and she is not
