@@ -36,6 +36,21 @@ export class FGTSocket {
   /** @type {Map<string, {resolve: Function, reject: Function, timer: number}>} */
   static #pending = new Map();
 
+  /**
+   * Which War this client is in, and which GM runs a War. Handed in by
+   * `fgt.mjs` from `engine/war.mjs`, because `net/` sits below the engine
+   * (`tools/check-layers.mjs`). The defaults are a world of one War: no War,
+   * and the active GM for it.
+   */
+  static #router = { warFor: () => null, gmFor: () => game.users.activeGM };
+
+  /**
+   * @param {{warFor: () => object|null, gmFor: (war: object|null) => object|null}} router
+   */
+  static setRouter(router) {
+    this.#router = router;
+  }
+
   static initialize() {
     game.socket.on(this.NS, this.#onReceive.bind(this));
   }
@@ -67,9 +82,18 @@ export class FGTSocket {
       throw new FGTError("NO_ACTIVE_GM", "No Game Master is connected. This action requires a GM.");
     }
 
-    // We are the GM: execute locally. A client never receives its own broadcast,
-    // so routing through the socket here would hang.
-    if (game.users.activeGM.isSelf) return this.#execute(op, payload, game.user.id);
+    // To the GM running THIS client's War: the one looking at its scene
+    // (`engine/war.mjs#gmForWar`, via `setRouter`). Each War of several played at once is run
+    // by its own GM client (ruled 2026-10-18, Q14 (B)), because the engine
+    // reads the board off that client's canvas. A War no GM is looking at is
+    // refused out loud: run on another GM it would resolve on another board.
+    const war = this.#router.warFor();
+    const gm = this.#router.gmFor(war);
+    if (!gm) throw new FGTError("NO_WAR_GM", game.i18n.localize("FGT.WarRules.NoGM"));
+
+    // We are that GM: execute locally. A client never receives its own
+    // broadcast, so routing through the socket here would hang.
+    if (gm.isSelf) return this.#execute(op, payload, game.user.id);
 
     const id = foundry.utils.randomID();
     const promise = new Promise((resolve, reject) => {
@@ -91,7 +115,9 @@ export class FGTSocket {
       this.#pending.set(id, { resolve, reject, timer });
     });
 
-    game.socket.emit(this.NS, { kind: "request", id, op, payload, userId: game.user.id });
+    game.socket.emit(this.NS, {
+      kind: "request", id, op, payload, userId: game.user.id, targetUserId: gm.id, warId: war?.id ?? null,
+    });
     return promise;
   }
 
@@ -167,8 +193,9 @@ export class FGTSocket {
   static async #onReceive(msg, senderId) {
     switch (msg?.kind) {
       case "request":
-        // Exactly one client handles each request.
-        if (!game.users.activeGM?.isSelf) return;
+        // Exactly one client handles each request: the GM it was sent to, or
+        // the active GM for a request from before requests named one.
+        if (msg.targetUserId ? msg.targetUserId !== game.user.id : !game.users.activeGM?.isSelf) return;
         return this.#handleRequest(msg, senderId);
       case "ask":
         // Exactly one client answers, and it is not the sender.
@@ -189,6 +216,11 @@ export class FGTSocket {
   static async #handleRequest(msg) {
     let response;
     try {
+      // The War it was sent for must still be the War this GM is looking at:
+      // a GM who switched scenes since would resolve it on the other board.
+      if (msg.warId && this.#router.warFor()?.id !== msg.warId) {
+        throw new FGTError("NO_WAR_GM", game.i18n.localize("FGT.WarRules.NoGM"));
+      }
       const result = await this.#execute(msg.op, msg.payload, msg.userId);
       response = { kind: "response", id: msg.id, ok: true, result };
     } catch (err) {

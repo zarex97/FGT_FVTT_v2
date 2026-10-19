@@ -126,15 +126,23 @@ describe("the field ledger", () => {
     const templates = walk("templates", [".hbs"]).map((p) => readFileSync(p, "utf8")).join("\n");
     const content = walk("packs/_source", [".yml"]).map((p) => readFileSync(p, "utf8")).join("\n");
     const compiler = readFileSync("tools/lib/content.mjs", "utf8");
+    const warRulesTable = readFileSync("module/domain/war-rules.mjs", "utf8");
     dynamicPaths = (code.match(/["'`]system\.["'`]\s*\+|`system\.\$\{/g) ?? []).length;
 
     for (const key of declared.keys()) {
       const read = new RegExp(String.raw`\??\.${key}\b(?!\s*=(?!=))`).test(code)
-        || new RegExp(String.raw`\b${key}\b`).test(templates);
+        || new RegExp(String.raw`\b${key}\b`).test(templates)
+        // A War Rule is read by its key through the one reader of a War's
+        // rules (`engine/war.mjs#warRule`), never as `.key` (2026-10-18).
+        || new RegExp(String.raw`\bwarRule\("${key}"`).test(code);
       const written = new RegExp(String.raw`["'\x60]system\.${key}\b|\.${key}\s*=(?!=)|\b${key}\s*:`).test(code)
         || new RegExp(String.raw`name="system\.${key}\b`).test(templates)
         || new RegExp(String.raw`(^|[\s{,])${key}:`, "m").test(content)
-        || new RegExp(String.raw`\b${key}\b`).test(compiler);
+        || new RegExp(String.raw`\b${key}\b`).test(compiler)
+        // A War Rule is written by its key from the one table
+        // (`engine/war-setup.mjs#commitWar`, `engine/war.mjs#setWarRules`, the
+        // schema-3 migration all walk `WAR_RULE_KEYS`).
+        || warRulesTable.includes(`key: "${key}"`);
       if (!read && !READ_ELSEWHERE[key]) found.unread.push(key);
       if (!written && !WRITTEN_ELSEWHERE[key]) found.unwritten.push(key);
     }

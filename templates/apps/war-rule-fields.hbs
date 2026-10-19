@@ -1,0 +1,24 @@
+{{!-- One control per War Rule (`apps/war-rules.mjs#warRuleRows`). The War
+      rules window and the setup wizard's War tab both render this, so a rule
+      is offered one way. A locked rule is disabled WITH its reason (Ch. 34). --}}
+{{#each rows as |row|}}
+  <label class="fgt-war-rule{{#if row.disabled}} is-locked{{/if}}" data-rule="{{row.key}}"
+         {{#if row.lockedReason}}data-tooltip="{{row.lockedReason}}"{{/if}}>
+    <span class="fgt-war-rule__label">{{row.label}}</span>
+    {{#if row.isBoolean}}
+      <input type="checkbox" name="{{row.name}}" {{checked row.checked}} {{disabled row.disabled}}>
+    {{else if row.isSelect}}
+      <select name="{{row.name}}" {{disabled row.disabled}}>
+        {{#each row.options as |o|}}
+          <option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>
+        {{/each}}
+      </select>
+    {{else if row.isNumber}}
+      <input type="number" name="{{row.name}}" value="{{row.value}}"
+             {{#if row.min includeZero=true}}min="{{row.min}}"{{/if}} {{#if row.max}}max="{{row.max}}"{{/if}} {{disabled row.disabled}}>
+    {{else}}
+      <input type="text" name="{{row.name}}" value="{{row.value}}" {{disabled row.disabled}}>
+    {{/if}}
+    {{#if row.hint}}<small class="fgt-war-rule__hint">{{row.hint}}</small>{{/if}}
+  </label>
+{{/each}}

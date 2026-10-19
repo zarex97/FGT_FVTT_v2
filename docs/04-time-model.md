@@ -17,7 +17,8 @@ Fractions **always round down** (`module/domain/tick.mjs:68`), with one publishe
 | File | Role |
 |---|---|
 | `module/domain/tick.mjs` | Parse and resolve ◈ expressions to integer turn counts |
-| `module/settings.mjs` | Register the `turnsPerRound` game setting |
+| `module/domain/war-rules.mjs` | `turnsPerRound` as a War Rule: each War holds its own ◈ |
+| `module/engine/war.mjs` | `warRule("turnsPerRound")`, the one reader of a War's ◈ |
 | `module/engine/scheduler.mjs` | Invoke `resolveTicks` for event handler durations and cooldown rewinding |
 | `module/engine/cooldown.mjs` | Resolve ability cooldowns from ◈ expressions |
 | `module/engine/effect-applier.mjs` | Compute effect expiry as an absolute tick number |
@@ -56,7 +57,7 @@ The fraction resolution calls `TICK_OVERRIDES` first — the source's own except
 
 ### Setting and consumers
 
-The `turnsPerRound` setting is registered as a world-scoped, integer-valued number field with a minimum of 2 and default of 3 (`module/settings.mjs:23-26`). It is read at runtime by:
+`turnsPerRound` is a **War Rule** (2026-10-18): each War holds its own (`MatchData.turnsPerRound`, built from `module/domain/war-rules.mjs`), so two Wars on two scenes, played at once, can run at 3 and at 8 Turns a Round. The world setting of the same key only seeds a new War in the setup wizard. Every reader asks `warRule("turnsPerRound")` (`module/engine/war.mjs`), which reads the War of the scene the client is looking at. It is read at runtime by:
 
 - **Scheduler** (`module/engine/scheduler.mjs:19`): Duration gates on turn-end and round-end event handlers (`module/engine/scheduler.mjs:372`, `module/engine/scheduler.mjs:394`).
 - **Cooldown flow** (`module/engine/cooldown.mjs:18`): Branch-selected cooldowns and conditional bonus cooldowns are resolved against the world setting (`module/engine/cooldown.mjs:104`, `module/engine/cooldown.mjs:115`, `module/engine/cooldown.mjs:135`).
@@ -97,7 +98,7 @@ its boundary late, never not at all, and `globalTurn` cannot stand still under a
 
 6. **A bare ◈ is strictly parsed.** Invalid input throws a `RangeError` naming the expected forms, so typos are caught at content build time rather than at runtime (`module/domain/tick.mjs:121-124`).
 
-7. **The setting is guarded.** Changing `turnsPerRound` mid-match is refused because it would invalidate every stored absolute tick on the board (`module/settings.mjs:26`).
+7. **The ◈ is locked once its War starts.** Changing a War's `turnsPerRound` after it has started is refused, because it would invalidate every stored absolute tick on that War's board (`locked` in `module/domain/war-rules.mjs`, refused by `module/engine/war.mjs#setWarRules`). A world default may change at any time: it changes no War in play.
 
 ## Traps and anti-patterns
 
@@ -109,8 +110,8 @@ override was backwards. Worse, `turnsPerRound` accepted any integer ≥ 2 with n
 uncovered value was one GM setting away — measured live, `1/3◈` at `turnsPerRound: 2` resolved to
 **0 turns**, not a short duration but no duration at all
 (`packs/_source/abilities/semiramis-familiar-doves.yml:22` authors exactly that fraction). Filed and
-fixed as [#21](https://github.com/zarex97/FGT_FVTT_v2/issues/21): the setting is now constrained to
-`choices: {3, 8, 15}` (`module/settings.mjs`), and as a second, independent backstop, `fractionTicks`
+fixed as [#21](https://github.com/zarex97/FGT_FVTT_v2/issues/21): the rule's controls are now constrained to
+`choices: {3, 8, 15}` (`module/domain/war-rules.mjs`), and as a second, independent backstop, `fractionTicks`
 floors any stated fraction to a **minimum of one tick**, never zero
 (`module/domain/tick.mjs:65-73`). **A stated duration must never round away to nothing — floor it to
 the smallest real duration instead of to zero.**

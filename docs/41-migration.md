@@ -32,6 +32,12 @@ The schema version is persisted in a world-scoped game setting (`module/migratio
 
 With the backup safe, migrations are applied in order: each entry runs its handlers for actors, items, scenes, and combats in turn (`module/migration/runner.mjs:78-93`). A migration that declares no handler for a kind returns the source unchanged — the same object — so the runner can skip writes when nothing changed (`module/migration/migrations.mjs:73-76`).
 
+### Schema 3: the War Rules move onto each War (2026-10-18)
+
+The first migration that changes where a value LIVES. The ◈, the Round gates, the timeouts, the optional rules and the Faction roster were world settings read live; they are now War Rules, one copy per War (`module/domain/war-rules.mjs`, Ch. 31). The `combat` handler copies the world's current values onto every War for the rules a War never stored, so no board changes on the day it runs: every War was already playing under exactly those values. The five a War did store (`warType`, `ruleset`, `region`, `difficulty`, `grailThreshold`) keep the War's value, except a Region of none, which the board used to read through to the world's.
+
+"Never stored" cannot be seen on a loaded document: Foundry fills a missing field with the schema's initial value as it constructs the source, so `missingWarRules` (absent key) is right for a raw source and wrong for `doc.toObject()`. The handler therefore copies the never-stored keys outright, which is still idempotent: a second run copies the same values. The runner hands the world's values in as `ctx.warDefaults`, and `ctx.warScenes` binds each War from before the move (`scene: null`) to the scene most of its containers' Units stand on; a War whose Units stand nowhere stays global and answers for any scene with no War of its own.
+
 ### Content sync: separating world from pack
 
 After migrations fix the SHAPE, content sync reconciles CONTENT — every world document is checked against its pack template and brought into conformity (`module/migration/runner.mjs:273-289`). The compendium is the whole source of truth; a world copy is an instance of pack content plus everything the match has written to it, and sync is the machinery for telling them apart.
@@ -84,8 +90,8 @@ implementation is narrower, the doc was right and the code was the bug.**
 
 ## Open questions
 
-- **Still a policy question, though the first migration has now shipped.** `SCHEMA_VERSION` is `2`
-  (`module/migration/migrations.mjs:22`), with one entry: a data-repair backfill for Masters stranded
+- **Still a policy question, though two migrations have now shipped.** `SCHEMA_VERSION` is `3`
+  (`module/migration/migrations.mjs`); schema 3 moves the War Rules onto each War (above). Schema 2 is a data-repair backfill for Masters stranded
   at `baseAttack: {str: 0, mag: 0}` by the schema defect #20 fixed. That is neither a schema change
   nor a rule correction — it is a third kind, repairing data a past defect corrupted — so it does not
   settle the original question. A genuine rule correction still leaves old documents readable and

@@ -26,6 +26,7 @@ import { currentBoard, unitActor } from "./board.mjs";
 import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
+import { currentWar } from "./war.mjs";
 
 /**
  * Ride through a line of enemies, attacking each.
@@ -84,7 +85,7 @@ export async function performRidingAttack({ unitId, destination, abilityId = nul
   // Noble Phantasm ride on cooldown. A refused ride left the token on its
   // destination with `usedRidingAttack: true` and no attack made (#114).
   const preflight = attackPreflight({
-    attacker: actor, abilityId, placement: {}, board, combat: game.combats.active,
+    attacker: actor, abilityId, placement: {}, board, combat: currentWar(),
   });
   if (!preflight.ok) return { ok: false, reason: preflight.message };
 
@@ -137,7 +138,7 @@ export async function performRidingAttack({ unitId, destination, abilityId = nul
   // and `resolveAttack` stamps `attacked` and bills the pool itself.
   if (plan.hits.length === 0) {
     // A ride that reached nobody still spends the action.
-    await budget.spend({ combat: game.combats.active, unit, action: "ridingAttack" });
+    await budget.spend({ combat: currentWar(), unit, action: "ridingAttack" });
     await applyWorldIntents(
       [I.markTurn(unitId, { attacked: true }), ...partners.map((p) => I.markTurn(p.id, { attacked: true }))],
       "ridingAttack:spent",
@@ -203,6 +204,6 @@ export async function performRidingAttack({ unitId, destination, abilityId = nul
  */
 function affordableRide(unit) {
   if (unit.turnState?.attacked) return { ok: false, reason: "alreadyAttacked" };
-  const verdict = budget.affordable(game.combats.active, unit, "ridingAttack");
+  const verdict = budget.affordable(currentWar(), unit, "ridingAttack");
   return verdict.ok ? { ok: true } : { ok: false, reason: verdict.reason ?? "cannotAct" };
 }

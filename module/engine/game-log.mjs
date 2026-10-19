@@ -14,6 +14,8 @@
 import {
   appendEntry, overrideEntry, splitForFlush, exportPayload, filterLog,
 } from "../rules/game-log.mjs";
+import { currentWar, warRule } from "./war.mjs";
+import { WAR_RULE_KEYS } from "../domain/war-rules.mjs";
 
 /**
  * Record an entry on the active Combat.
@@ -31,7 +33,7 @@ import {
  * @param {import("../domain/moment.mjs").Moment|null} [at]
  * @returns {Promise<object|null>} the entry written, or null
  */
-export async function record(fields, combat = game.combat, at = null) {
+export async function record(fields, combat = currentWar(), at = null) {
   if (!combat) return null;
 
   const current = combat.system?.log ?? [];
@@ -57,7 +59,7 @@ export async function record(fields, combat = game.combat, at = null) {
  * @param {object} args
  * @returns {Promise<boolean>}
  */
-export async function override(seq, { original, changed, reason, combat = game.combat }) {
+export async function override(seq, { original, changed, reason, combat = currentWar() }) {
   if (!combat) return false;
 
   const next = overrideEntry(combat.system?.log ?? [], seq, {
@@ -80,7 +82,7 @@ export async function override(seq, { original, changed, reason, combat = game.c
  * @param {object} [combat]
  * @returns {Promise<object[]>}
  */
-export async function fullLog(combat = game.combat) {
+export async function fullLog(combat = currentWar()) {
   if (!combat) return [];
 
   const journal = combat.system?.logJournalId ? game.journal.get(combat.system.logJournalId) : null;
@@ -102,11 +104,11 @@ export async function fullLog(combat = game.combat) {
  * @param {object} [combat]
  * @returns {Promise<string>}
  */
-export async function exportLog(combat = game.combat) {
+export async function exportLog(combat = currentWar()) {
   const payload = exportPayload({
     log: await fullLog(combat),
     systemVersion: game.system?.version ?? null,
-    settings: settingsSnapshot(),
+    settings: settingsSnapshot(combat),
     roster: rosterSnapshot(combat),
   });
   payload.exportedAt = new Date().toISOString();
@@ -119,7 +121,7 @@ export async function exportLog(combat = game.combat) {
  * @param {object} [combat]
  * @returns {Promise<object[]>}
  */
-export async function query(filter, combat = game.combat) {
+export async function query(filter, combat = currentWar()) {
   return filterLog(await fullLog(combat), filter);
 }
 
@@ -183,19 +185,16 @@ function parseEntries(page) {
   }
 }
 
-/** @returns {object} */
-function settingsSnapshot() {
-  /** @type {Record<string, unknown>} */
-  const out = {};
-  for (const key of ["difficulty", "region", "grailThreshold", "masterMode", "turnsPerRound", "grandOrder"]) {
-    try {
-      out[key] = game.settings.get("fgt", key);
-    } catch {
-      // A setting this world never registered. Absent rather than null, so a
-      // reader can tell "not set" from "set to nothing".
-    }
-  }
-  return out;
+/**
+ * The exported War's rules. Its OWN, not the world's: a world holds several
+ * Wars, and the world settings only seed the next one (`engine/war.mjs`).
+ * Still exported under `settings`, the key a replay reads.
+ *
+ * @param {object|null} combat
+ * @returns {object}
+ */
+function settingsSnapshot(combat) {
+  return Object.fromEntries(WAR_RULE_KEYS.filter((k) => k !== "factions").map((k) => [k, warRule(k, combat)]));
 }
 
 /**

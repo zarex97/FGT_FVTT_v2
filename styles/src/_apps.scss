@@ -437,6 +437,16 @@
   // read as part of it.
   &__tick { font-variant-numeric: tabular-nums; opacity: 0.8; }
 
+  // The GM's door to this War's rules: small, beside the clock it governs.
+  &__rules {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 0;
+    padding: 0 0.3rem;
+    line-height: 1.4;
+    font-size: 0.75rem;
+  }
+
   &__pools { display: flex; flex-direction: column; gap: 0.2rem; }
 
   &__pool {
@@ -1210,3 +1220,45 @@
     &[disabled] { opacity: 0.45; }
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/*  The War rules window (`apps/war-rules.mjs`)                                */
+/* -------------------------------------------------------------------------- */
+
+.war-rules {
+  .fgt-war-rules {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .fgt-war-rules__scope { margin: 0; font-style: italic; opacity: 0.85; }
+
+  /* The rows scroll, the scope line above them stays: the same flex-child
+     rule the wizard's tabs needed (`.fgt-setup__tab`). */
+  .fgt-war-rules__rows {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+}
+
+.fgt-war-rule {
+  display: grid;
+  grid-template-columns: 1fr minmax(8rem, 12rem);
+  align-items: center;
+  gap: 0.15rem 0.5rem;
+
+  &.is-locked { opacity: 0.6; }
+  &__hint { grid-column: 1 / -1; opacity: 0.7; font-size: 0.75rem; }
+}
+
+.fgt-setup__more-rules .fgt-setup__grid { align-items: start; }
+
+/* The new War's roster: the swatch beside the name it colours, not above it. */
+.fgt-setup__faction > legend { display: flex; align-items: center; gap: 0.4rem; }

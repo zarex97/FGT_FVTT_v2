@@ -28,6 +28,7 @@ import { currentBoard, unitOf, unitActor } from "./board.mjs";
 import * as I from "./intents.mjs";
 import { publicSpeakerFor } from "./public-identity.mjs";
 import { publicIdentityOf } from "./public-identity.mjs";
+import { warRule, currentWar } from "./war.mjs";
 
 /**
  * End a Unit's concealment.
@@ -96,7 +97,7 @@ export async function onConcealmentRemoved(unitId, reason = DEACTIVATION_REASONS
         I.cooldown(unitId, skill.id, ticks, "set"),
         I.log({
           kind: "concealmentEnded", unitId, reason,
-          tick: game.combat?.system?.globalTurn ?? 0,
+          tick: currentWar()?.system?.globalTurn ?? 0,
         }),
       ],
       `concealment:${reason}`,
@@ -280,7 +281,7 @@ function cooldownTicks(skill) {
   const expression = authored || (rank ? lookup("presenceConcealmentCooldown", rank) : null);
   if (!expression) return 0;
   return resolveTicks(parseTick(expression), {
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    turnsPerRound: warRule("turnsPerRound"),
   });
 }
 
@@ -315,7 +316,7 @@ export async function runDiscoverChecks(unitId) {
   // The per-Turn budget, and the arrival order it is spent in. Both are read
   // before the attempts are computed and written after, because a Discover that
   // fails still costs the watcher its go for the Turn (Ch. 46 §46.4-AN).
-  const tick = game.combat?.system?.globalTurn ?? 0;
+  const tick = currentWar()?.system?.globalTurn ?? 0;
   const budget = budgetFor(actor, tick);
   const acquiredAt = { ...(budget.acquiredAt ?? {}) };
   recordArrivals(unit, board, acquiredAt, tick);

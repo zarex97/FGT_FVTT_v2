@@ -46,6 +46,14 @@
     </label>
   </div>
 
+  {{!-- The rest of this War's rules, from the same table the War rules window
+        renders. They are the new War's own: the War on the scene the GM is
+        looking at keeps its own. --}}
+  <fieldset class="fgt-setup__more-rules">
+    <legend>{{localize "FGT.WarRules.MoreRules"}}</legend>
+    <div class="fgt-setup__grid">{{> fgt-war-rule-fields rows=moreRules}}</div>
+  </fieldset>
+
   {{!-- The Master Essence limits per Faction (#241). A custom war sets its own;
         the others show the published ones, disabled with the war type as the
         reason. --}}

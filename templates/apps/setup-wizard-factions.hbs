@@ -1,15 +1,24 @@
 <section class="tab fgt-setup__tab {{tab.cssClass}}" data-tab="{{tab.id}}" data-group="{{tab.group}}">
   {{#unless hasFactions}}<p class="fgt-setup__empty">{{localize "FGT.Setup.NoFactions"}}</p>{{/unless}}
 
+  {{!-- The NEW War's own roster, edited here: the roster editor edits the War
+        on the scene the GM is looking at, which is not this one. Players are
+        ticked per faction (a faction holds a list of them). --}}
   {{#each factions as |faction|}}
-    <fieldset class="fgt-setup__faction">
+    <fieldset class="fgt-setup__faction" data-faction-id="{{faction.id}}">
       <legend>
         <span class="fgt-factions__swatch" style="background: {{faction.color}}"></span>
-        {{faction.name}}
+        <input type="text" name="faction.{{faction.id}}.name" value="{{faction.name}}" {{disabled @root.locked}}>
       </legend>
       <div class="fgt-factions__players">
         <span class="fgt-factions__players-label">{{localize "FGT.Factions.Players"}}</span>
-        {{#each faction.playerNames as |name|}}<span class="fgt-setup__player">{{name}}</span>{{/each}}
+        {{#each faction.players as |player|}}
+          <label class="fgt-factions__player">
+            <input type="checkbox" name="faction.{{faction.id}}.userIds.{{player.id}}"
+                   {{checked player.assigned}} {{disabled @root.locked}}>
+            <span class="fgt-setup__player">{{player.name}}</span>
+          </label>
+        {{/each}}
         {{#unless faction.userIds.length}}
           <span class="fgt-setup__none">{{localize "FGT.Setup.NoPlayersAssigned"}}</span>
         {{/unless}}
@@ -18,7 +27,7 @@
   {{/each}}
 
   <footer class="fgt-setup__footer">
-    <button type="button" data-action="addFaction">{{localize "FGT.Factions.Add"}}</button>
+    <button type="button" data-action="addFaction" {{disabled locked}}>{{localize "FGT.Factions.Add"}}</button>
     <p class="fgt-setup__hint">{{localize "FGT.Setup.FactionsHint"}}</p>
   </footer>
 </section>

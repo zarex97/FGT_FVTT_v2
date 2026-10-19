@@ -27,6 +27,7 @@ import { mayAttemptEscape, escapeModifiers } from "../rules/nameless-forest.mjs"
 import { currentBoard } from "./board.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
+import { isWarGM } from "./war.mjs";
 
 /**
  * Roll a caught Unit's once-per-Turn escape.
@@ -133,7 +134,7 @@ export function escapeLine(entry, nameOfUnit, t) {
  * @returns {Promise<void>}
  */
 export async function postEscape(entry) {
-  if (!game.users?.activeGM?.isSelf) return;
+  if (!isWarGM()) return;
   const escape = foundry.utils.escapeHTML;
   const { shownName } = await import("./public-identity.mjs");
   const { unitActor } = await import("./board.mjs");
@@ -169,7 +170,7 @@ export function deathRollLine(entry, nameOfUnit, t) {
  * @returns {Promise<void>}
  */
 export async function postDeathRoll(entry) {
-  if (!game.users?.activeGM?.isSelf) return;
+  if (!isWarGM()) return;
   const escape = foundry.utils.escapeHTML;
   const { shownName } = await import("./public-identity.mjs");
   const { unitActor } = await import("./board.mjs");

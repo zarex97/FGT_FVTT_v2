@@ -2,221 +2,62 @@
  * @file Game settings registration.
  * @see docs/02-architecture.md
  *
- * Settings that change rules are LOCKED once a match is in progress. Changing
- * the fixed-operator mid-game would invalidate every stored absolute expiry on
- * the board, so `onChange` refuses and explains rather than silently corrupting
- * durations.
+ * **The War Rules are not world settings any more.** A world holds several
+ * Wars, each on its own scene and played at the same time, so a rule a world
+ * setting held hit every War at once (2026-10-18). Each War holds its own
+ * (`MatchData`, built from `rules/war-rules.mjs`), and the world keeps the same
+ * keys only as the DEFAULTS a new War starts from: hidden from the settings
+ * window and edited through the "Defaults for new Wars" menu, read by
+ * `engine/war.mjs#worldDefault` and nothing else. Changing one changes no War
+ * in play, which is why the old mid-match lock on them is gone: the lock lives
+ * on the War now (`apps/war-rules.mjs`).
  */
 
 import { registerFactionMenu } from "./apps/faction-config.mjs";
 import { SetupWizard } from "./apps/setup-wizard.mjs";
+import { WarRulesApp } from "./apps/war-rules.mjs";
+import { WAR_RULES } from "./domain/war-rules.mjs";
 
-const RULE_SETTINGS = ["turnsPerRound", "difficulty", "activeSkillBudget", "boardSize",
-                       "warType", "ruleset",
-                       // Moving a Round gate mid-match changes when every Noble
-                       // Phantasm in the world becomes usable.
-                       "npGateRound", "npGateRoundAssassin", "noAttackRound"];
+/** A setting's type, from a War Rule's. */
+const SETTING_TYPE = { number: Number, boolean: Boolean, string: String, roster: Array };
 
 export function registerSettings() {
   const s = (key, data) => game.settings.register("fgt", key, { scope: "world", config: true, ...data });
 
-  s("turnsPerRound", {
-    name: "FGT.Settings.TurnsPerRound", hint: "FGT.Settings.TurnsPerRoundHint",
-    // `TICK_OVERRIDES` (domain/tick.mjs) only has rows for the three
-    // published rulesets; a `min: 2` NumberField with no `choices` let a GM
-    // pick any of them, and an uncovered value could floor a stated fraction
-    // to zero turns (#21). Closed to exactly the rulesets the table covers.
-    type: Number,
-    choices: {
-      3: "FGT.TurnsPerRound.GreatHolyGrailWar",
-      8: "FGT.TurnsPerRound.HolyGrailWar",
-      15: "FGT.TurnsPerRound.Snowfield",
-    },
-    default: 3, requiresReload: false, onChange: () => guardRuleChange("turnsPerRound"),
+  // The War Rules' world defaults, one per rule. `config: false`: they are
+  // edited in the War rules window's defaults mode, which states what they
+  // are, instead of a settings window that would read as if they ruled the
+  // Wars in play. The roster is registered below, with its own editor.
+  for (const spec of WAR_RULES) {
+    if (spec.key === "factions") continue;
+    s(spec.key, {
+      name: spec.name, hint: spec.hint, config: false,
+      type: SETTING_TYPE[spec.type],
+      // A setting holds no `null`: a Region of none is the empty string,
+      // which `worldDefault` reads back as `null`.
+      default: spec.initial ?? "",
+      ...(spec.choices ? { choices: spec.choices } : {}),
+      ...(spec.range ? { range: spec.range } : {}),
+    });
+  }
+  game.settings.registerMenu("fgt", "warDefaults", {
+    name: "FGT.WarRules.DefaultsMenuName",
+    label: "FGT.WarRules.DefaultsMenuLabel",
+    hint: "FGT.WarRules.DefaultsMenuHint",
+    icon: "fa-solid fa-scale-balanced",
+    type: WarRulesApp.Defaults,
+    restricted: true,
   });
-  // Ch. 04's round-indexed gates. All four numbers have been in
-  // `CONFIG.FGT.gates` since that file was written and NOTHING read the object
-  // -- so a Noble Phantasm was usable in Round 1 in every world. Settings
-  // rather than constants so `settings-are-read.test.mjs` holds each of them to
-  // having a reader, which is the guard that would have caught this.
-  s("npGateRound", {
-    name: "FGT.Settings.NpGateRound", hint: "FGT.Settings.NpGateRoundHint",
-    type: new foundry.data.fields.NumberField({ required: true, integer: true, min: 1, initial: 6 }),
-    default: CONFIG.FGT?.gates?.npRound ?? 6, requiresReload: false,
-    onChange: () => guardRuleChange("npGateRound"),
-  });
-  // "Assassin: after 3 -- from Round 4."
-  s("npGateRoundAssassin", {
-    name: "FGT.Settings.NpGateRoundAssassin", hint: "FGT.Settings.NpGateRoundAssassinHint",
-    type: new foundry.data.fields.NumberField({ required: true, integer: true, min: 1, initial: 4 }),
-    default: CONFIG.FGT?.gates?.npRoundAssassin ?? 4, requiresReload: false,
-    onChange: () => guardRuleChange("npGateRoundAssassin"),
-  });
-  // "Neither faction may Attack during Round 1." `0` switches the ban off.
-  s("noAttackRound", {
-    name: "FGT.Settings.NoAttackRound", hint: "FGT.Settings.NoAttackRoundHint",
-    type: new foundry.data.fields.NumberField({ required: true, integer: true, min: 0, initial: 1 }),
-    default: CONFIG.FGT?.gates?.noAttackRound ?? 1, requiresReload: false,
-    onChange: () => guardRuleChange("noAttackRound"),
-  });
-  // Ch. 33: "An offer that blocks resolution indefinitely is unacceptable in a
-  // game with seven players." After this many seconds the ladder continues as
-  // if the offer were declined, with a chat note -- a disconnected player sees
-  // that they missed an opportunity rather than silently losing it.
-  s("commandSpellTimeout", {
-    name: "FGT.Settings.CommandSpellTimeout", hint: "FGT.Settings.CommandSpellTimeoutHint",
-    type: new foundry.data.fields.NumberField({ required: true, integer: true, min: 0, initial: 45 }),
-    default: 45, requiresReload: false,
-  });
-  // A Grand Order war switches off two rules that assume rival Masters: the
-  // multi-Servant tax (Ch. 32) and Hatred of Achilles against allies (Ch. 45).
-  // Ch. 32's Conquest spares the Servants it claims (#27). A conquered Servant
-  // never becomes Free, so it takes none of the consequences of being Free:
-  // no mode lock, no Mad Enhancement Sustainability charge, and -- the visible
-  // one -- no instant defeat for a Servant already at zero, which means
-  // conquest SAVES a Servant that would otherwise vanish with its Master.
-  //
-  // Default TRUE because it is the rule as written: Sustainability is the cost
-  // of spending outside a Contract, and a conquered Servant is Contracted from
-  // the same instant. A table preferring the harsher reading sets it off.
-  //
-  // NOT in RULE_SETTINGS: that guard is for settings whose change invalidates
-  // stored state, and this one only decides how the next death resolves.
-  s("conquestSparesServants", {
-    name: "FGT.Settings.ConquestSparesServants", hint: "FGT.Settings.ConquestSparesServantsHint",
-    type: Boolean, default: true, requiresReload: false,
-  });
-  s("grandOrder", {
-    name: "FGT.Settings.GrandOrder", hint: "FGT.Settings.GrandOrderHint",
-    type: Boolean, default: false, requiresReload: false,
-  });
-  s("boardSize", {
-    name: "FGT.Settings.BoardSize", type: Number, default: 13,
-    choices: { 13: "13 × 13", 25: "25 × 25" },
-    onChange: () => guardRuleChange("boardSize"),
-  });
-  // The rulebook's four, and only these four. This offered
-  // `beginner | standard | expert` while `MatchData` accepted
-  // `beginner | intermediate | expert | lunatic` and `engine/board.mjs`
-  // defaulted to "intermediate" WITHOUT consulting the setting at all -- so
-  // this control could not produce the value the board assumed, and the board
-  // never read the control. Three vocabularies, none of which met.
-  //
-  // A world holding "standard" reads as "intermediate".
-  s("difficulty", {
-    name: "FGT.Settings.Difficulty", type: String, default: "intermediate",
-    choices: {
-      beginner: "FGT.Difficulty.Beginner",
-      intermediate: "FGT.Difficulty.Intermediate",
-      expert: "FGT.Difficulty.Expert",
-      lunatic: "FGT.Difficulty.Lunatic",
-    },
-    onChange: () => guardRuleChange("difficulty"),
-  });
-  s("warType", {
-    name: "FGT.Settings.WarType", hint: "FGT.Settings.WarTypeHint",
-    type: String, default: "greatHolyGrailWar",
-    choices: {
-      greatHolyGrailWar: "FGT.WarType.Great",
-      holyGrailWar: "FGT.WarType.Regular",
-      custom: "FGT.WarType.Custom",
-    },
-    onChange: () => guardRuleChange("warType"),
-  });
-  s("ruleset", {
-    name: "FGT.Settings.Ruleset", hint: "FGT.Settings.RulesetHint",
-    type: String, default: "advanced",
-    choices: { advanced: "FGT.Ruleset.Advanced", normal: "FGT.Ruleset.Normal" },
-    onChange: () => guardRuleChange("ruleset"),
-  });
-  s("drawPolicy", {
-    name: "FGT.Settings.DrawPolicy", hint: "FGT.Settings.DrawPolicyHint",
-    type: String, default: "duplicates",
-    choices: { duplicates: "FGT.DrawPolicy.Duplicates", unique: "FGT.DrawPolicy.Unique" },
-  });
-  // Ch. 05 clause 4, as an OPTIONAL rule. It is the one movement clause that
-  // refuses a step onto a panel that looks empty, so a table that finds it more
-  // trouble than it is worth can switch it off -- and then it stops applying
-  // everywhere at once, reachability included. Default TRUE: it is a rule as
-  // written, not a house rule.
-  s("masterProtection", {
-    name: "FGT.Settings.MasterProtection", hint: "FGT.Settings.MasterProtectionHint",
-    type: Boolean, default: true,
-    onChange: () => guardRuleChange("masterProtection"),
-  });
-  // Which straight lines a Riding Attack may run along. The eight grid lines,
-  // diagonals included, are the default; a GM may hold it to rows and columns
-  // (ruled 2026-10-02, #65, ruling 18). NOT in RULE_SETTINGS: nothing stored
-  // depends on it, it only decides the next ride.
-  s("ridingAttackLines", {
-    name: "FGT.Settings.RidingAttackLines", hint: "FGT.Settings.RidingAttackLinesHint",
-    type: String, default: "eight",
-    choices: { eight: "FGT.RidingAttackLines.Eight", orthogonal: "FGT.RidingAttackLines.Orthogonal" },
-  });
-  // Ch. 46 §46.4-AN. How many Discover attempts ONE faction gets per Turn
-  // against one concealed Unit -- not per Servant, and not shared across the
-  // board. Three is the rule as written; a table may raise it, lower it, or set
-  // **0** to make Presence Concealment absolute.
-  //
-  // A number rather than a toggle because the interesting house rules are the
-  // middle ones: at six a concealed Servant walking a line is found 92% of the
-  // time, and at one the Skill is close to unbreakable.
-  // What a "ranged Attack" is, for every platform rule that allows only ranged
-  // Attacks across its levels: the Golden Hind and the Hanging Gardens. The
-  // minimum Range that counts. 2 is the reading ruled 2026-10-05 (#187
-  // reading 4); a table may raise it. Nothing stored depends on it.
-  s("rangedMinimumRange", {
-    name: "FGT.Settings.RangedMinimumRange", hint: "FGT.Settings.RangedMinimumRangeHint",
-    type: Number, default: 2, range: { min: 2, max: 10, step: 1 },
-  });
-  s("discoverAttemptsPerFaction", {
-    name: "FGT.Settings.DiscoverAttempts", hint: "FGT.Settings.DiscoverAttemptsHint",
-    type: Number, default: 3, range: { min: 0, max: 10, step: 1 },
-    onChange: () => guardRuleChange("discoverAttemptsPerFaction"),
-  });
-  s("region", { name: "FGT.Settings.Region", type: String, default: "" });
-  s("grailThreshold", { name: "FGT.Settings.GrailThreshold", type: Number, default: 9 });
-  // Ch. 38 ON, a chat card is redacted per viewer: each side reads its
-  // own contributing modifiers and the effects that landed on its own units,
-  // and the damage of an exchange it was not part of stays hidden. OFF, every
-  // card reads the way the GM's does. Default TRUE, because the rulebook's
-  // information rules are rules rather than a house style -- and because the
-  // switch spent its whole life registered and read by nothing, which is
-  // indistinguishable from it not existing.
-  s("closedInfo", {
-    name: "FGT.Settings.ClosedInfo", hint: "FGT.Settings.ClosedInfoHint",
-    type: Boolean, default: true,
-  });
-  // Ch. 21. Rule 1 -- the unit a Counter was aimed at never answers it -- is NOT
-  // configurable; it is what stops two Servants countering each other to death.
-  // This governs only the bystander an AREA counter caught on its way to
-  // somebody else. Default `strict`: NO Counter begins as the product of a
-  // Counter, so a Counter is always the last attack of an exchange and the
-  // ladder a player is reading has an end they can see from the first rung.
-  // `collateral` is the more permissive reading and is defensible -- the
-  // bystander was not the one being countered -- so the engine implements it
-  // in full and a table can turn it on. It is off by default because it turns
-  // one attack into a branching tree of them, and the branches are not visible
-  // at the moment the first Counter is declared.
-  s("counterChain", {
-    name: "FGT.Settings.CounterChain", hint: "FGT.Settings.CounterChainHint",
-    type: String, default: "strict",
-    choices: { strict: "FGT.CounterChain.Strict", collateral: "FGT.CounterChain.Collateral" },
-  });
-  s("masterMode", {
-    name: "FGT.Settings.MasterMode", type: String, default: "essences",
-    choices: { essences: "FGT.MasterMode.Essences", coinFlip: "FGT.MasterMode.CoinFlip", rankless: "FGT.MasterMode.Rankless" },
-  });
+
+  // KNOWN INERT (`test/unit/settings-are-read.test.mjs`): registered and read
+  // by nothing, so it is not a War Rule -- moving a switch nothing reads would
+  // give every War a field nothing reads.
   s("activeSkillBudget", { name: "FGT.Settings.ActiveSkillBudget", type: String, default: "move" });
-  s("interruptTimeout", { name: "FGT.Settings.InterruptTimeout", type: Number, default: 45 });
-  // Ch. 23: reactions get longer than optional contests, because a reaction is
-  // the decision a player most needs to think about and the one whose default
-  // (take the hit) costs them the most.
-  s("reactionTimeout", { name: "FGT.Settings.ReactionTimeout", type: Number, default: 60 });
   s("devMode", { name: "FGT.Settings.DevMode", type: Boolean, default: false });
 
-  // The faction roster. Edited through the menu below rather than a text box,
-  // because the ids in it are what every actor stores.
+  // The roster a NEW War starts from; each War holds its own
+  // (`MatchData.factions`). Edited through the menu below rather than a text
+  // box, because the ids in it are what every actor stores.
   game.settings.register("fgt", "factions", {
     scope: "world", config: false, type: Array, default: [],
     // Re-render anything showing a faction: the sheets' selects and the
@@ -277,14 +118,4 @@ export function registerSettings() {
     hint: "FGT.Settings.ShowOverlaysHint", type: Boolean, default: true,
     onChange: () => canvas?.fgtOverlays?.refresh(),
   });
-}
-
-/**
- * Refuse a rules change while a match is running.
- * @param {string} key
- */
-function guardRuleChange(key) {
-  if (!RULE_SETTINGS.includes(key)) return;
-  if (!game.combat?.started) return;
-  ui.notifications.error(game.i18n.format("FGT.Settings.LockedDuringMatch", { key }));
 }

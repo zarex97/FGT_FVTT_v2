@@ -21,6 +21,7 @@ import * as budget from "./budget.mjs";
 import * as I from "./intents.mjs";
 import { resourcePathFor } from "../domain/resources.mjs";
 import { regionScale } from "./scheduler.mjs";
+import { currentWar } from "./war.mjs";
 
 /**
  * The Construction gain this unit's own Gather is worth, before the Region
@@ -49,7 +50,7 @@ export async function gather({ actorId }) {
 
   const board = currentBoard();
   const unit = unitFrom(board, actor);
-  const combat = game.combats?.active;
+  const combat = currentWar();
 
   // "Semiramis OR any ALLIED Unit" -- the Servant whose Construction this
   // feeds must be found on the board, and must not be an enemy of the one

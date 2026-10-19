@@ -20,6 +20,7 @@ import * as budget from "../../engine/budget.mjs";
 import { remainingMovement, effectiveMov, segmentCheck } from "../../rules/movement.mjs";
 import { currentBoard, factionOfUser, faction as factionById } from "../../engine/board.mjs";
 import { shownName } from "../../engine/public-identity.mjs";
+import { warRule, currentWar } from "../../engine/war.mjs";
 
 /**
  * The turn panel's context: the acting faction, its budget, and the End Turn
@@ -37,7 +38,7 @@ import { shownName } from "../../engine/public-identity.mjs";
  * @returns {Promise<object>}
  */
 export async function turnContext() {
-  const combat = game.combats.active;
+  const combat = currentWar();
   const factionId = actingFaction(combat);
   const board = currentBoard();
   const units = factionUnits(factionId, board);
@@ -72,6 +73,9 @@ export async function turnContext() {
     unmet: verdict.unmet,
     canEndTurn: verdict.ok,
     isMyTurn: controlsFaction(factionId),
+    // The GM's door to THIS War's rules (`apps/war-rules.mjs`): the War of the
+    // scene on screen, and no other.
+    canEditRules: Boolean(game.user?.isGM && combat),
 
     // Turn order, with the delay each faction has declared. Shown to
     // everybody: Delay is a public declaration, and a player deciding whether
@@ -85,7 +89,7 @@ export async function turnContext() {
 }
 
 /**
- * The panel's three controls, for the bar to spread into its own `actions`.
+ * The panel's controls, for the bar to spread into its own `actions`.
  *
  * Plain functions rather than static privates: they never used `this`, and the
  * application that owns them is now the bar.
@@ -94,11 +98,18 @@ export const TURN_ACTIONS = Object.freeze({
   endTurn: onEndTurn,
   panTo: onPanTo,
   delay: onDelay,
+  warRules: onWarRules,
 });
 
 /** @param {PointerEvent} _event */
+async function onWarRules(_event) {
+  const { WarRulesApp } = await import("../war-rules.mjs");
+  WarRulesApp.open();
+}
+
+/** @param {PointerEvent} _event */
 async function onEndTurn(_event) {
-  const combat = game.combats.active;
+  const combat = currentWar();
   const factionId = actingFaction(combat);
   const verdict = budget.endTurnVerdict(combat, factionId, currentBoard().units ?? []);
   if (!verdict.ok) {
@@ -120,7 +131,7 @@ async function onEndTurn(_event) {
  * @param {HTMLElement} target
  */
 async function onDelay(_event, target) {
-  const combat = game.combats.active;
+  const combat = currentWar();
   const factionId = actingFaction(combat);
   const positions = Number(
     target.closest(".fgt-hud__delay")?.querySelector("select")?.value ?? 0,
@@ -204,7 +215,7 @@ function controlsFaction(factionId) {
  * @returns {number}
  */
 function turnsPerRound() {
-  return game.settings.get("fgt", "turnsPerRound") || 3;
+  return warRule("turnsPerRound") || 3;
 }
 
 /**

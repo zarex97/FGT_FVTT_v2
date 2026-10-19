@@ -18,6 +18,7 @@ import { sharedCooldownIntents } from "./cooldown.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as process from "./combat-process.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { currentWar } from "./war.mjs";
 
 /**
  * The commands this Master may use at this moment.
@@ -227,7 +228,7 @@ export async function spendCommandSpell({ masterId, commandId, window, messageId
       servantId: ctx.servant?.id ?? null,
       cost,
       window: window ?? null,
-      tick: game.combat?.system?.globalTurn ?? 0,
+      tick: currentWar()?.system?.globalTurn ?? 0,
     }),
     ...effectIntents(effects, ctx),
   ];
@@ -334,7 +335,7 @@ function contextFor(masterId, window, context, board = currentBoard()) {
     // that expired before it was bought. Measured live at tick 4: the Command
     // Spell was spent, the mode switched off, and the reconciler switched it
     // straight back on.
-    tick: game.combat?.system?.globalTurn ?? 0,
+    tick: currentWar()?.system?.globalTurn ?? 0,
     // The Round and the NP gate's numbers, for an Essence refused before the
     // gate opens (#241 reading 12).
     gate: gateContext(),

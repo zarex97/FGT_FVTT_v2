@@ -10,6 +10,7 @@ import * as documents from "./documents/index.mjs";
 import { registerSheets } from "./apps/index.mjs";
 import { activateChatListeners } from "./apps/chat/cards.mjs";
 import { FGTSocket } from "./net/socket.mjs";
+import { currentWar, gmForWar } from "./engine/war.mjs";
 
 import { Rank } from "./domain/rank.mjs";
 import { parseTick, resolveTicks } from "./domain/tick.mjs";
@@ -140,6 +141,8 @@ Hooks.once("init", () => {
   // restart. Without it the server never registers the namespace and every
   // emit silently does nothing.
   FGTSocket.initialize();
+  // Each request goes to the GM running the requester's War (Q14 (B), 2026-10-18).
+  FGTSocket.setRouter({ warFor: currentWar, gmFor: gmForWar });
   activateChatListeners();
 
   // Let compendium browsers filter without loading every document.
@@ -165,6 +168,9 @@ Hooks.once("setup", async () => {
     "fgt-editor-field": "systems/fgt/templates/apps/ability-editor-field.hbs",
     // Recursive: a predicate group renders it again for each child.
     "fgt-predicate-row": "systems/fgt/templates/apps/predicate-builder.hbs",
+    // One control per War Rule: the War rules window and the setup wizard's
+    // War tab render the same rows (`apps/war-rules.mjs#warRuleRows`).
+    "fgt-war-rule-fields": "systems/fgt/templates/apps/war-rule-fields.hbs",
   });
 
   // Packs are not readable during `init`; `setup` runs after they are indexed

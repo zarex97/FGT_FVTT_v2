@@ -35,6 +35,7 @@ import { turnRecordOf, roundRecordOf, currentTick, currentRound, currentMoment, 
 import { isGated, gateTurnFor } from "../rules/np-gate.mjs";
 import { clampToMax, watermarkKey } from "../domain/health.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { warRule, currentWar } from "./war.mjs";
 
 /**
  * Build a write adapter bound to the current world.
@@ -66,8 +67,8 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
  */
 function gateSettings() {
   return {
-    round: game.settings.get("fgt", "npGateRound"),
-    assassinRound: game.settings.get("fgt", "npGateRoundAssassin"),
+    round: warRule("npGateRound"),
+    assassinRound: warRule("npGateRoundAssassin"),
   };
 }
 
@@ -104,7 +105,7 @@ function watermarks(actor, value) {
   const max = actor.system?.health?.max ?? 0;
   if (max <= 0) return {};
 
-  const tick = game.combat?.system?.globalTurn ?? 0;
+  const tick = currentWar()?.system?.globalTurn ?? 0;
   // Keyed by `watermarkKey` -- `"50"`, not `0.5`, whose dot Foundry expands
   // into `{0: {5: tick}}` (#184). The whole object is written, so a stale
   // key from before the fix is carried rather than mangled further.
@@ -547,7 +548,7 @@ export function worldIO() {
       // than of whose hand moved it.
       await item.update({
         "system.active": active,
-        "system.toggledAt": game.combat?.system?.globalTurn ?? 0,
+        "system.toggledAt": currentWar()?.system?.globalTurn ?? 0,
       });
     },
 
@@ -654,7 +655,7 @@ export function worldIO() {
      * @param {object} entry a `deferred` log entry
      */
     async defer(entry) {
-      const combat = game.combat;
+      const combat = currentWar();
       if (!combat) return;
       await combat.setFlag("fgt", "deferred", [...(combat.getFlag("fgt", "deferred") ?? []), entry]);
     },
@@ -716,9 +717,9 @@ export function worldIO() {
       if (mode === "increase" && ticks > 0 && isGated(item.system)) {
         const gateTurn = gateTurnFor(snapshotUnit(actor), masterSnapshotOf(actor), {
           gates: gateSettings(),
-          turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+          turnsPerRound: warRule("turnsPerRound"),
         });
-        if ((game.combat?.system?.globalTurn ?? 0) < gateTurn) {
+        if ((currentWar()?.system?.globalTurn ?? 0) < gateTurn) {
           update["system.cooldown.gatedDelay"] = (item.system.cooldown?.gatedDelay ?? 0) + ticks;
         }
       }
@@ -923,7 +924,7 @@ export function worldIO() {
       // `turnWrite`, which blanks the rest of the record when it belongs to an
       // earlier Turn. Writing only the tick and the patch left every other
       // stale field looking current (#32).
-      const now = game.combat?.system?.globalTurn ?? 0;
+      const now = currentWar()?.system?.globalTurn ?? 0;
       await actor.update(flatten("system.turnState", turnWrite(actor.system?.turnState, now, patch)));
     },
 
@@ -944,7 +945,7 @@ export function worldIO() {
     async markRoundState(unitId, patch) {
       const actor = resolve(unitId);
       if (!actor) return;
-      const now = game.combats?.active?.round ?? null;
+      const now = currentWar()?.round ?? null;
       await actor.update(flatten("system.roundState", roundWrite(actor.system?.roundState, now, patch)));
     },
 
@@ -1167,7 +1168,7 @@ export function worldIO() {
       // Every defeat is logged, whoever caused it (#182). A Contagion loss that
       // emptied Asterios's Health defeated him at tick 14 with no entry at all.
       if (!actor.system?.defeated) {
-        await this.log([{ kind: "defeat", event: "defeated", unitId, cause, killerId, tick: game.combat?.system?.globalTurn ?? 0 }]);
+        await this.log([{ kind: "defeat", event: "defeated", unitId, cause, killerId, tick: currentWar()?.system?.globalTurn ?? 0 }]);
         // ...and a card every player reads (#249 reading 33): the log entry was
         // all a defeat ever left, and a Feigned Defeat must look like one.
         const { postDefeatCard } = await import("./defeat-card.mjs");
@@ -1196,7 +1197,7 @@ export function worldIO() {
         "system.defeated": true, "system.defeatCause": already ? (actor.system?.defeatCause ?? cause) : cause,
         // The first defeat's tick, kept by a second: the body's clock runs from
         // when it fell (#65, ruling 25).
-        ...(actor.system?.defeated ? {} : { "system.defeatedAt": game.combat?.system?.globalTurn ?? null }),
+        ...(actor.system?.defeated ? {} : { "system.defeatedAt": currentWar()?.system?.globalTurn ?? null }),
       });
       // After the defeat is written, so a failed dismissal cannot leave the
       // summoner standing.
@@ -1455,7 +1456,7 @@ export function worldIO() {
      * @param {{i: number, j: number}|null} panel
      */
     async setGrailPosition(panel) {
-      await game.combat?.update({ "system.grailPosition": panel });
+      await currentWar()?.update({ "system.grailPosition": panel });
     },
 
     /**
@@ -1487,7 +1488,7 @@ export function worldIO() {
       const clock = {};
       if (renewed && servant.system?.sustainability !== undefined) {
         const { restartedClock } = await import("./hgob.mjs");
-        clock["system.sustainabilityRemaining"] = restartedClock(servant.system, game.settings.get("fgt", "turnsPerRound") || 3);
+        clock["system.sustainabilityRemaining"] = restartedClock(servant.system, warRule("turnsPerRound") || 3);
       }
       await servant.update({ "system.contract": contract, "system.masterId": masterId, "system.factionId": side, ...clock });
 
@@ -1529,7 +1530,7 @@ export function worldIO() {
      *   to file them at, when it is not the live one
      */
     async log(entries, { moment = null } = {}) {
-      const combat = game.combat;
+      const combat = currentWar();
       if (!combat) return;
 
       // Two records, deliberately. The flag is the raw intent trail, keyed by
@@ -1721,7 +1722,7 @@ async function rememberDeparture(summon, owner, { killed }) {
   const cd = ability?.system?.cooldown ?? null;
   if (cd?.countFrom === "destroyed" && cd.max) {
     const ticks = resolveTicks(parseTick(String(cd.max)), {
-      turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+      turnsPerRound: warRule("turnsPerRound"),
     });
     if (ticks > 0) await ability.update({ "system.cooldown.remaining": ticks });
   }
@@ -1741,7 +1742,7 @@ async function rememberDeparture(summon, owner, { killed }) {
  * @returns {Promise<void>}
  */
 async function countTowardsGrail(unitId, cause) {
-  const combat = game.combats?.active;
+  const combat = currentWar();
   if (!combat || !game.user.isGM) return;
 
   const actor = unitActor(unitId) ?? canvas?.tokens?.get(unitId)?.actor;
@@ -1804,9 +1805,9 @@ async function freeContractedServants(unitId, killerId = null) {
   // way live.
   const bound = game.actors.filter((a) => a.system?.masterId === unitId);
   const conquered = await resolveConquest(unitId, killerId);
-  const spares = game.settings.get("fgt", "conquestSparesServants") !== false;
+  const spares = warRule("conquestSparesServants") !== false;
 
-  const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
+  const turnsPerRound = warRule("turnsPerRound");
 
   for (const actor of bound) {
     // ONE projection, and `abilities` off it rather than a hand-rolled `modes`.
@@ -1839,7 +1840,7 @@ async function freeContractedServants(unitId, killerId = null) {
       else if (d.kind === "defeat") {
         await actor.update({
           "system.defeated": true, "system.defeatCause": d.cause,
-          ...(actor.system?.defeated ? {} : { "system.defeatedAt": game.combat?.system?.globalTurn ?? null }),
+          ...(actor.system?.defeated ? {} : { "system.defeatedAt": currentWar()?.system?.globalTurn ?? null }),
         });
       }
       else if (d.kind === "resource") {

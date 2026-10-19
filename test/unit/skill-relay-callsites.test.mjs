@@ -83,11 +83,11 @@ describe("a following area is repainted by one client", () => {
   const hooks = read("module/engine/movement-hooks.mjs");
   const onMove = hooks.slice(hooks.indexOf("async function onMove"));
 
-  it("gates every repaint on the active GM", () => {
+  it("gates every repaint on the GM of the token's own War", () => {
     const calls = [...onMove.matchAll(/await repaintFollowing\(/g)].map((m) => m.index);
     expect(calls.length).toBeGreaterThanOrEqual(2);
     for (const at of calls) {
-      expect(onMove.slice(Math.max(0, at - 700), at), `a repaintFollowing at ${at}`).toMatch(/activeGM\?\.isSelf/);
+      expect(onMove.slice(Math.max(0, at - 700), at), `a repaintFollowing at ${at}`).toMatch(/isWarGM\(combat\)/);
     }
   });
 
@@ -95,7 +95,7 @@ describe("a following area is repainted by one client", () => {
     const calls = [...onMove.matchAll(/await dropLeftTerrainEffects\(/g)].map((m) => m.index);
     expect(calls.length).toBeGreaterThanOrEqual(2);
     for (const at of calls) {
-      expect(onMove.slice(Math.max(0, at - 700), at), `a dropLeftTerrainEffects at ${at}`).toMatch(/activeGM\?\.isSelf/);
+      expect(onMove.slice(Math.max(0, at - 700), at), `a dropLeftTerrainEffects at ${at}`).toMatch(/isWarGM\(combat\)/);
     }
   });
 });

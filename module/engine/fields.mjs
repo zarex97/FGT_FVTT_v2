@@ -40,6 +40,7 @@ import { splitPool } from "../rules/fields/pool.mjs";
 import { clearTerrain, clearTerrainBoundTo } from "./terrain.mjs";
 import { chooseFor, askOwner } from "./ask.mjs";
 import { shownName } from "./public-identity.mjs";
+import { warRule, currentWar, isWarGM } from "./war.mjs";
 
 /**
  * A field's shape, grown or shrunk by the war Region it is cast in.
@@ -238,7 +239,7 @@ export function fieldDataOf({ ability, actor, faction, spec, geometry, membershi
     vulnerabilities: spec.vulnerabilities ?? [],
     onEnd: spec.onEnd ?? [],
     countsAsHomeBase: spec.countsAsHomeBase ?? null,
-    createdAt: game.combat?.system?.globalTurn ?? 0,
+    createdAt: currentWar()?.system?.globalTurn ?? 0,
     upkeep: spec.upkeep ?? null,
     deactivation: spec.deactivation ?? null,
     // Carried so `ensurePassiveFields` can recognise its own on a later pass:
@@ -401,7 +402,7 @@ async function openField(ability, actor, snapshot, spec, { panels: givenPanels =
   // for whoever walks in later.
   {
     const panelKeys = new Set(panels.map((p) => `${p.i},${p.j}`));
-    const tick = game.combat?.system?.globalTurn ?? 0;
+    const tick = currentWar()?.system?.globalTurn ?? 0;
     field.state.enteredAt = Object.fromEntries((snapshot.units ?? [])
       .filter((u) => u.panel && panelKeys.has(`${u.panel.i},${u.panel.j}`))
       .map((u) => [u.id, tick]));
@@ -529,7 +530,7 @@ async function openField(ability, actor, snapshot, spec, { panels: givenPanels =
  * @returns {Promise<void>}
  */
 export async function returnBanished(tick) {
-  if (!game.users?.activeGM?.isSelf) return;
+  if (!isWarGM()) return;
   const board = currentBoard();
 
   for (const field of board.fields ?? []) {
@@ -572,7 +573,7 @@ export async function returnBanished(tick) {
  * @returns {Promise<void>}
  */
 export async function ensurePassiveFields() {
-  if (!game.users?.activeGM?.isSelf) return;
+  if (!isWarGM()) return;
   if (!canvas?.scene) return;
 
   const board = currentBoard();
@@ -795,7 +796,7 @@ async function setCooldownOnDeactivation(field) {
   if (!cd || cd.countFrom !== "deactivation" || !cd.max) return;
 
   const ticks = resolveTicks(parseTick(String(cd.max)), {
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    turnsPerRound: warRule("turnsPerRound"),
   });
   if (ticks <= 0) return;
 
@@ -813,9 +814,9 @@ async function setCooldownOnDeactivation(field) {
 function expiryOf(duration) {
   if (!duration) return null;
   const turns = resolveTicks(parseTick(duration), {
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    turnsPerRound: warRule("turnsPerRound"),
   });
-  return (game.combat?.system?.globalTurn ?? 0) + turns;
+  return (currentWar()?.system?.globalTurn ?? 0) + turns;
 }
 
 /**
@@ -998,7 +999,7 @@ async function offerExtension(field, tick) {
   }).catch(() => null);
   if (!(picked ?? []).includes("extend")) return false;
 
-  const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
+  const turnsPerRound = warRule("turnsPerRound");
   const ticks = resolveTicks(parseTick(String(spec.grants)), { turnsPerRound });
 
   /** @type {object[]} */
@@ -1011,7 +1012,7 @@ async function offerExtension(field, tick) {
     if (side.kind !== "applyEffect" || side.target !== "enemiesInside") continue;
     const owner = (board.units ?? []).find((u) => u.id === field.ownerId) ?? null;
     const expiry = side.duration
-      ? (game.combat?.system?.globalTurn ?? 0) + resolveTicks(parseTick(String(side.duration)), { turnsPerRound })
+      ? (currentWar()?.system?.globalTurn ?? 0) + resolveTicks(parseTick(String(side.duration)), { turnsPerRound })
       : null;
     for (const unit of board.units ?? []) {
       if (!(unit.fields ?? []).includes(field.id)) continue;
@@ -1195,7 +1196,7 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
     // is why that record exists. Absent means the clause fires on the first
     // qualifying Turn, which is every other interior event in the corpus.
     && (!spec.afterTurnsInside
-      || ((game.combat?.system?.globalTurn ?? 0) - (field.state?.enteredAt?.[u.id] ?? 0))
+      || ((currentWar()?.system?.globalTurn ?? 0) - (field.state?.enteredAt?.[u.id] ?? 0))
         >= spec.afterTurnsInside)
     && (!kinds || kinds.has(u.kind))
     // An interior EVENT may be exempted the same way an interior RULE is.
@@ -1233,7 +1234,7 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
     kind: "fieldEvent", fieldId: field.id, event: spec.event ?? null,
     // fgt-name-ok: the field log, read in the GM's log viewer
     unitId: unit.id, unitName: unit.name ?? null,
-    tick: game.combat?.system?.globalTurn ?? 0, ...detail,
+    tick: currentWar()?.system?.globalTurn ?? 0, ...detail,
   }));
 
   for (const unit of inside) {
@@ -1354,8 +1355,8 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
             by: killer.id, field: field.id, victimKind: unit.kind,
           }));
           out.push(...fireEvent("unitKilled", [killer], {
-            tick: game.combat?.system?.globalTurn ?? 0, board,
-            turnsPerRound: game.settings.get("fgt", "turnsPerRound") || 3,
+            tick: currentWar()?.system?.globalTurn ?? 0, board,
+            turnsPerRound: warRule("turnsPerRound") || 3,
             options: rollOptionsFor({ attacker: killer, defender: unit }),
           }));
         }
@@ -1487,7 +1488,7 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
         // no longer be assumed.
         const ticks = action.duration
           ? resolveTicks(parseTick(String(action.duration)), {
-            turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+            turnsPerRound: warRule("turnsPerRound"),
           })
           : null;
 
@@ -1503,7 +1504,7 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
           // does, and this writer did not carry it -- so every field-applied
           // Poison and Curse arrived at stage 0.
           stage: action.effect?.stage ?? 0,
-          expiry: ticks === null ? null : (game.combat?.system?.globalTurn ?? 0) + ticks,
+          expiry: ticks === null ? null : (currentWar()?.system?.globalTurn ?? 0) + ticks,
           // *"…this Burn debuff is permanent as long as the Unit is within the
           // area."* A `duration` the action AUTHORS as `null` is "never";
           // an absent one is "the definition's own" -- and the emitted
@@ -1659,7 +1660,7 @@ async function askSplit(field, pool, beneficiaries) {
 export async function runUpkeep(tick, { round = null } = {}) {
   const atRoundBoundary = round !== null;
   const board = currentBoard();
-  const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
+  const turnsPerRound = warRule("turnsPerRound");
 
   // Fields AND platforms. A platform's `upkeep` was read in exactly one place
   // -- `engine/attack.mjs`, as an NP COST REPLACEMENT -- which is a different
@@ -1857,7 +1858,7 @@ async function stampForcedEnds(tick) {
 
     const ticks = hit.delay
       ? resolveTicks(parseTick(String(hit.delay)), {
-        turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+        turnsPerRound: warRule("turnsPerRound"),
       })
       : 0;
     await behaviorFor(field.id)?.update({ "system.state.forcedEnd": tick + ticks });
@@ -1897,7 +1898,7 @@ export async function tallyAgainstField(fieldId, { npTags = null, damage = 0 } =
   const behavior = behaviorFor(fieldId);
   if (!behavior) return { tags: [], damage: 0 };
 
-  const round = game.combat?.round ?? 0;
+  const round = currentWar()?.round ?? 0;
   const held = behavior.system?.state?.window ?? {};
   const fresh = held.round === round ? held : { round, damage: 0, tags: [] };
 
@@ -1920,7 +1921,7 @@ export async function tallyAgainstField(fieldId, { npTags = null, damage = 0 } =
  * @returns {Promise<void>}
  */
 export async function resetFieldWindows() {
-  const round = game.combat?.round ?? 0;
+  const round = currentWar()?.round ?? 0;
   for (const field of currentBoard().fields ?? []) {
     await behaviorFor(field.id)?.update({ "system.state.window": { round, damage: 0, tags: [] } });
   }
@@ -1962,7 +1963,7 @@ export async function lockOutField(field) {
  */
 export async function stampFieldEntries(unitIds, fieldIds = null) {
   const board = currentBoard();
-  const tick = game.combat?.system?.globalTurn ?? 0;
+  const tick = currentWar()?.system?.globalTurn ?? 0;
 
   for (const field of board.fields ?? []) {
     if (fieldIds && !fieldIds.includes(field.id)) continue;
@@ -2057,7 +2058,7 @@ export function mayDeactivate(field, unitId) {
  * @returns {boolean|undefined}
  */
 export function ownTurnOf(field) {
-  const combat = game.combats?.active;
+  const combat = currentWar();
   if (!combat?.started) return undefined;
   const acting = combat.actingFactionId ?? null;
   if (acting === null) return false;
@@ -2081,10 +2082,10 @@ export function deactivationReason(field, unitId) {
   // `queued` rides along: allowed now, ended at the Turn's end (#65, ruling 19).
   return deactivationVerdict(field?.deactivation, {
     createdAt: field?.createdAt ?? field?.activatedAt ?? 0,
-    tick: game.combat?.system?.globalTurn ?? 0,
+    tick: currentWar()?.system?.globalTurn ?? 0,
     unitId,
     ownerId: field?.ownerId,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    turnsPerRound: warRule("turnsPerRound"),
     // A block that states no `window` is the owner's own Turn (#150).
     ownTurn: ownTurnOf(field),
   });
@@ -2196,7 +2197,7 @@ async function redraw(field, panels) {
  * @returns {Promise<void>}
  */
 export async function syncDerivedFields() {
-  if (!game.users?.activeGM?.isSelf) return;
+  if (!isWarGM()) return;
   if (!canvas?.scene) return;
 
   for (const field of currentBoard().fields ?? []) {
@@ -2228,7 +2229,7 @@ export async function syncDerivedFields() {
  * @returns {Promise<void>}
  */
 export async function offerReshape(board) {
-  if (!game.users.activeGM?.isSelf) return;
+  if (!isWarGM()) return;
 
   for (const field of board.fields ?? []) {
     const owner = (board.units ?? []).find((u) => u.id === field.ownerId);
