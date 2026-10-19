@@ -3,7 +3,8 @@ id: 2026-10-19-alignment-read-as-moral
 found: test
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** the Good-aligned Civilian rule ("Good-aligned Servants will not use an AoE Noble Phantasm with a Civilian in range") reads the Alignment a Servant carries, as its test said it did.
 **Actual:** it read `caster.alignment?.moral`. A Servant's Alignment is `{order, morality}` (`data/actor/servant.mjs:72`, projected whole at `rules/snapshot.mjs:406`), so no live Servant could ever trip it. Its test built `alignment: { moral: "good" }` by hand and passed on the shape it invented.

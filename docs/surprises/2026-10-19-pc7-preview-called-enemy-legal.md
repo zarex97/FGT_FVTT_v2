@@ -3,7 +3,8 @@ id: 2026-10-19-pc7-preview-called-enemy-legal
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** concealed, Yan Qing's Doppelganger pick offers no enemy, as PC.7 per target (#249 reading 14) refuses one at the use.
 **Actual:** Player1's aiming session hovered Arturia and said "✓ Legal — click to confirm"; Use then refused "Doppelganger cannot be used: Presence Concealment forbids this while concealed."

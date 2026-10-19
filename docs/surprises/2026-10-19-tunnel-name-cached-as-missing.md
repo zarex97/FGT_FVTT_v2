@@ -3,7 +3,8 @@ id: 2026-10-19-tunnel-name-cached-as-missing
 found: tooling
 kind: drive-kit
 status: fixed
-reviewed: false
+reviewed: true
+pattern: drive-kit
 ---
 **Expected:** a fresh Cloudflare quick tunnel answers on its `trycloudflare.com` name within a minute, so polling it right away and retrying shows when it is live.
 **Actual:** three tunnels in a row read "Could not resolve host" for over two minutes each, on the system resolver, `1.1.1.1` and `8.8.8.8`. Two were restarted for nothing. The third resolved at once on `9.9.9.9`, `208.67.222.222` and `1.0.0.1`, and Windows `curl.exe` pinned to that IP got `200` on `/join`.
