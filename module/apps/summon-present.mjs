@@ -40,6 +40,13 @@ export function describe(line) {
     parts.push(`${line.applied < 0 ? "−" : "+"} ${Math.abs(line.applied)} (${line.roll.formula})`);
   }
   if (line.granted) parts.push(`+ ${line.granted} granted`);
+  // The floor, when it bit (the Normal Lancer's Luck, ruled 2026-10-18): the
+  // arithmetic is shown, not the answer, and "−2 + 1" beside a 0 is an answer
+  // the arithmetic does not reach.
+  const sum = typeof line.base === "number" && typeof line.applied === "number" ? line.base + line.applied : null;
+  if (typeof line.min === "number" && sum !== null && sum < line.min) {
+    parts.push(globalThis.game?.i18n?.format("FGT.Summon.Floored", { min: line.min }) ?? `→ floored at ${line.min}`);
+  }
 
   return {
     id: line.id,
