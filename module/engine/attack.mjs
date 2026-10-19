@@ -66,7 +66,7 @@ import { luckChecksApply } from "../rules/difficulty.mjs";
 import { renderAttackCard, updateAttackCard } from "../apps/chat/cards.mjs";
 import { landEffect, landEntry } from "./landing.mjs";
 import { entryOf } from "../rules/effect-flow.mjs";
-import { tableFor, entriesFor } from "../rules/roll-table.mjs";
+import { tableFor, entriesFor, rollFaces } from "../rules/roll-table.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import * as budget from "./budget.mjs";
@@ -2453,8 +2453,11 @@ async function raiseCombatProcessEnd(state) {
     // No defender left to measure a distance to, or an attack that states no
     // kind: the attacker hears the bare event, as it always has.
     const target = defender ?? (state.defenderId === state.attackerId ? attacker : null);
+    // Whether it HURT, read off the Damage Step's own record: a clause paid
+    // "whenever he deals damage ... at the end of the Combat Process" needs it
+    // here, after the Process, not only at `damageStepEnd` (#253 reading 3).
     const options = target && state.attack?.kind
-      ? rollOptions(attacker, target, state, { performed: true })
+      ? rollOptions(attacker, target, state, { performed: true, dealtDamage: process.damageDealtIn(state) > 0 })
       : new Set();
     intents.push(...fireEvent("combatProcessEnd", [attacker], { ...ctx(), options }));
   }
@@ -3977,9 +3980,36 @@ async function runAutomaticStep(state, message) {
       // the reason the two are separate effects.
       if (skipped) await resolveEmptiedDefender(state);
 
+      // The attacker's own spend before the damage it raises: Ruffian's
+      // *"whenever Yan Qing deals damage with an Attack, he can spend X
+      // Agility"*, once per Process, after the DU's reaction (#253 reading 2).
+      // Not when the damage was already refused: there is nothing to raise.
+      if (!skipped) {
+        const { offerOptionalCosts } = await import("./optional-costs.mjs");
+        const attackerDoc = unitActor(state.attackerId);
+        const defenderDoc = state.defenderId ? unitActor(state.defenderId) : null;
+        const board = currentBoard();
+        const attackerUnit = attackerDoc ? unitOf(attackerDoc, board) : null;
+        const defenderUnit = defenderDoc ? unitOf(defenderDoc, board) : null;
+        if (attackerUnit?.optionalCosts?.some((c) => c.timing === DAMAGE_STEP_WINDOW)) {
+          await offerOptionalCosts({
+            unitIds: [state.attackerId],
+            timing: DAMAGE_STEP_WINDOW,
+            groupId: state.groupId ?? null,
+            scope: message.id,
+            options: rollOptions(attackerUnit, defenderUnit, state),
+          });
+        }
+      }
+
       const result = skipped
         ? { total: 0, flags: { suppressedBy: skipped }, breakdown: [] }
         : await applyDamage(state, message);
+      // A Disguise ends under one Attack's 10% of Max Health (#253 reading 13).
+      if (!skipped && (result.total ?? 0) > 0) {
+        const { noteHitOnDisguised } = await import("./disguise.mjs");
+        await noteHitOnDisguised(state, result, (intents, cause) => applyBatch(intents, cause));
+      }
       // A Feigned Defeat: she received nothing, riders included, and the
       // Attack is over for her (#249 reading 16). The card shows the hit.
       if (result.flags?.feigned) {
@@ -6365,10 +6395,8 @@ async function rollTableAgainst(phase, ability, state, attackerDoc, attackerUnit
     console.error(`FGT | ${ability.name} has a rollTable phase with no table for ${defender?.name ?? "this target"}.`);
     return [];
   }
-  const faces = phase.faces ?? 20;
-  const count = phase.count ?? 1;
-  const results = [];
-  for (let k = 0; k < count; k++) results.push((await new Roll(`1d${faces}`).evaluate()).total);
+  const results = await rollFaces(phase, async (faces) => (await new Roll(`1d${faces}`).evaluate()).total,
+    { faces: 20, count: 1 });
 
   /** @type {object[]} */
   const applied = [];
@@ -6377,9 +6405,13 @@ async function rollTableAgainst(phase, ability, state, attackerDoc, attackerUnit
       console.error(`FGT | ${ability.name} rolled ${roll}, which its table has no row for.`);
       continue;
     }
+    // A row aimed at the user lands on the attacker: Yan Qing's 3 is *"Crit
+    // DmUp ... to himself"* in a table whose other rows land on the DU (#253).
+    const onSelf = entry.target === "self";
+    const landOn = onSelf ? attackerDoc : defenderDoc;
     for (const rule of entry.effects ?? []) {
       applied.push(...await landEntry(entryOf(rule, { phase }), {
-        target: unitFrom(boardSnapshot(), defenderDoc) ?? defender,
+        target: unitFrom(boardSnapshot(), landOn) ?? (onSelf ? attackerUnit : defender),
         source: { unitId: state.attackerId, abilityId: ability.id },
         caster: attackerDoc,
         casterUnit: attackerUnit,
@@ -6388,7 +6420,7 @@ async function rollTableAgainst(phase, ability, state, attackerDoc, attackerUnit
         process: state,
       }, {
         write: (intents) => applyBatch(intents, "abilityEffect:rollTable"),
-        reread: () => unitFrom(boardSnapshot(), defenderDoc),
+        reread: () => unitFrom(boardSnapshot(), landOn),
       }));
     }
   }

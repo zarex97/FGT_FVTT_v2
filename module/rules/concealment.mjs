@@ -28,6 +28,7 @@
 
 import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
+import { rankWithShifts } from "./elements.mjs";
 import { alliancesOf, factionForUser } from "./factions.mjs";
 
 /** The effect id that *is* the state. */
@@ -70,15 +71,21 @@ export function concealmentProfile(unit) {
   const params = instance?.params ?? null;
   const granted = Boolean(params?.rank);
   const skill = (unit?.abilities ?? []).find((a) => a.slug === CONCEALMENT_SLUG) ?? null;
-  const raw = granted ? params.rank : skill?.rank ?? null;
+  // The Skill's Rank as raised by any shift standing on the Unit now: Espionage
+  // makes Yan Qing's C an A while it lasts, and C again when it ends (#253
+  // reading 4). A grant carries its own Rank and no shift reaches it.
+  const raw = granted ? params.rank : (skill ? rankWithShifts(skill, unit?.abilityRankShifts) : null);
   const rank = raw instanceof Rank ? raw : Rank.parseOrNull(raw);
   const evade = Number.isFinite(params?.evade) ? params.evade : null;
   if (!rank) return { rank: null, evade: evade ?? 4, discover: 100, cooldown: null, granted };
+  // The cooldown is the Skill's own, at its unshifted Rank: Yan Qing's PC ending
+  // under Espionage starts C's 1◈, not A's 2◈ (#253 reading 4).
+  const ownRank = skill ? Rank.parseOrNull(skill.rank instanceof Rank ? String(skill.rank) : skill.rank) : null;
   return {
     rank: String(rank),
     evade: evade ?? Number(lookup("presenceConcealmentEvade", rank) ?? 4),
     discover: Math.max(0, Math.min(100, Number(lookup("presenceConcealmentDiscover", rank) ?? 100))),
-    cooldown: granted ? null : (lookup("presenceConcealmentCooldown", rank) ?? null),
+    cooldown: granted ? null : (lookup("presenceConcealmentCooldown", ownRank ?? rank) ?? null),
     granted,
   };
 }
@@ -250,6 +257,25 @@ export function aoeOutcome(coin) {
  * @param {boolean} [opts.targetsEnemy] whether this use is aimed at an enemy
  * @returns {{ok: boolean, reason?: string}}
  */
+/**
+ * A Skill's targeting spec, with PC.7 per target on it when its caster is
+ * concealed: every enemy is dropped (#249 reading 14).
+ *
+ * The one place the rule reaches a spec, so the aiming session and the use
+ * resolve the same Units: the session's preview read a bare spec and called
+ * an enemy "Legal" for Doppelganger's look, and the use refused it (#253, live).
+ *
+ * @param {object} spec a targeting spec
+ * @param {object|null} ability the Item, or its system
+ * @param {object|null} caster the caster's board unit
+ * @returns {object}
+ */
+export function veiledSpec(spec, ability, caster) {
+  if (!spec || !isConcealed(caster)) return spec;
+  if (canUseWhileConcealed(ability, { targetsEnemy: true }).ok) return spec;
+  return { ...spec, selection: { ...(spec.selection ?? {}), veiledFromEnemies: true } };
+}
+
 export function canUseWhileConcealed(item, { targetsEnemy = null } = {}) {
   const sys = item?.system ?? item ?? {};
   if (sys.usableWhileConcealed) return { ok: true };

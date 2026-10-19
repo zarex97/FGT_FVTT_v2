@@ -467,7 +467,11 @@ export function needsTargeting(item) {
   // An attack always picks something, even a self-targeting one -- it opens a
   // Combat Process against a defender.
   if (use.isAttack) return true;
-  if (use.kind === "mode" || use.kind === "passive" || use.kind === "dialog") return false;
+  if (use.kind === "passive" || use.kind === "dialog") return false;
+  // A mode picks nothing, unless it declares what it aims at: Doppelganger's
+  // look is a Unit on the board, picked when it is switched on (#253, found
+  // live -- the switch relayed an empty placement and was refused).
+  if (use.kind === "mode" && !sys.targeting) return false;
 
   const spec = sys.targeting ?? null;
   if (!spec) {
@@ -635,6 +639,9 @@ export function usageSpecFor(ability) {
     // What `sameTurnExclusive`, `abilityOffCooldown` and the turn record all
     // name. An id-only spec cannot answer a gate written against content.
     contentId: sys.contentId ?? null,
+    // ...and a lock's `except` names a slug: Doppelganger spares Presence
+    // Concealment by its slug (#253 reading 6).
+    slug: sys.slug ?? null,
     rank: sys.rank ?? null,
     isNP: ability.type === "noblePhantasm" || Boolean(sys.isNP),
     // The availability gate covers `isNP || categorizedAsNP` (Ch. 04,

@@ -19,7 +19,7 @@ import { rewriteReferences, parseMarkers, mentionsWithoutMarkers } from "./refer
 import { parseTick } from "../../module/domain/tick.mjs";
 import { TABLES, lookup } from "../../module/domain/tables.mjs";
 import { PRIORITY_BANDS } from "../../module/rules/ordering.mjs";
-import { ANCHOR_IDS, SHAPE_IDS, CHOOSER_IDS } from "../../module/rules/targeting/vocabulary.mjs";
+import { ANCHOR_IDS, SHAPE_IDS, CHOOSER_IDS, RELATION_IDS } from "../../module/rules/targeting/vocabulary.mjs";
 import { MODIFIER_KEYS } from "../../module/rules/damage/pipeline.mjs";
 import { DAMAGE_BLOCK_KEYS } from "../../module/rules/damage/instances.mjs";
 import { ROUTES as AURA_ROUTES } from "../../module/rules/auras.mjs";
@@ -1636,6 +1636,17 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
         `${path}: ${where} uses unknown chooser "${chooser}" — `
         + `expected one of ${CHOOSER_IDS.join(", ")}`,
       );
+    }
+
+    // The RELATIONS, for the same reason: an unknown word is no relation any
+    // Unit stands in, so the ability targets nobody and says so only when used.
+    for (const relation of spec.selection?.relations ?? []) {
+      if (!RELATION_IDS.includes(relation)) {
+        problems.push(
+          `${path}: ${where} names unknown relation "${relation}" — `
+          + `expected one of ${RELATION_IDS.join(", ")}`,
+        );
+      }
     }
   }
 

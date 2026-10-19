@@ -1,0 +1,80 @@
+# Doppelganger, Rank B+ (#253, DP.*).
+#
+# A mode: switched on with a look picked from the board, switched off by its
+# owner's hand or by a blow (readings 5, 6, 10-14). The sheet's no-Fog-of-War
+# fallback (PC B+) is not built: this system has Fog of War (reading 5).
+schema: 1
+id: yan-qing-doppelganger
+name: "Doppelganger"
+rank: "B+"
+kind: skill
+slug: doppelganger
+isMode: true
+# "Cooldown: 4◈-⅓◈ Turns after deactivation": the clock starts at the end,
+# whichever way it came (`engine/scheduler-hooks.mjs#onModeEnded`).
+cooldown: { max: "4◈-⅓◈", countFrom: deactivation }
+timing: { window: ownTurn }
+# "Espionage cannot be used if Doppelganger is Active and vice versa." This
+# half: not while the 'Espionage' buff stands (DP.excl). The other half is the
+# lock below.
+requirements:
+  - { kind: notHasEffect, effectId: espionage }
+# Reading 15: concealed, he may still take an enemy's look. The look is a target
+# but nothing reaches it, so PC.7's bar on Skills "targeting/affecting an enemy"
+# does not apply (ruled 2026-10-19).
+usableWhileConcealed: true
+# Reading 6: "can be deactivated at any time" -- whenever he could act, other
+# sides' Turns included, at once; never inside a Combat Process.
+deactivation: { window: anyTime }
+description: |
+  (Active) Used during your Turn. When this Skill is used, Yan Qing can disguise himself as any
+  other character (figurine), including Masters and Servants. However, it is only the appearance.
+  All of Yan Qing's Parameters and Stats remain the same. Skills and Noble Phantasms except
+  Presence Concealment cannot be used while Doppelganger is Active. Can be deactivated at any
+  time; and is automatically deactivated when Yan Qing takes damage equal to 10% of his Max Health
+  or more in one Attack.
+  When Doppelganger is manually deactivated by Yan Qing, apply the following effects to himself-
+  1. Restore 3 Agility.
+  2. Apply @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 30% after
+     calculation; if NP, 20%.
+  3. Apply @effect[critUp]{Crit Up} for 1◈ Turns, Crit Chance is increased by 30%.
+  4. Apply @effect[critDmUp]{Crit DmUp} for 1◈ Turns, Crit Damage dealt is increased by 30% after
+     calculation.
+  Cooldown: 4◈-⅓◈ Turns after deactivation.
+  Note: Espionage cannot be used if Doppelganger is Active and vice versa.
+# Reading 10: any Unit on his War's board, of any side, but himself: Servants,
+# Masters, Civilians and summons, of his own size. Not Platforms or structures:
+# "character (figurine)" names characters.
+targeting:
+  anchor: { kind: targetUnit, range: board }
+  shape: { kind: unit }
+  selection:
+    relations: [enemy, ally, neutral]
+    includeSelf: false
+    chooser: chosen
+    count: 1
+    kinds: [servant, master, civilian, summon]
+    sameSizeAsCaster: true
+phases:
+  # On the Unit picked: its look goes on the caster.
+  - kind: disguise
+    target: reuse
+# Reading 6: "Skills and Noble Phantasms except Presence Concealment cannot be
+# used while Doppelganger is Active". Normal Attacks and passives are no
+# ability use and stay. Espionage is refused by it (ES.excl).
+activeRules:
+  - { key: Suppress, scope: abilityUse, except: [presenceConcealment] }
+# Reading 7: ordinary Atk Up and Crit DmUp, "after calculation" read as the
+# bracket every other bonus sums in. Paid only on a manual end (reading 13).
+onDeactivate:
+  manual:
+    - kind: resource
+      target: self
+      changes:
+        - { key: agility.value, delta: 3, clampToMax: true }
+    - kind: applyEffects
+      target: self
+      effects:
+        - { id: atkUp, duration: "1◈", magnitude: 30, npMagnitude: 20 }
+        - { id: critUp, duration: "1◈", magnitude: 30 }
+        - { id: critDmUp, duration: "1◈", magnitude: 30 }

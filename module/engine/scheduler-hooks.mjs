@@ -88,14 +88,34 @@ async function onModeEnded(item, changes) {
     ? game.actors.filter((a) => a.system?.summonerId === owner.id && a.system?.leavesWithMode === slug)
     : [];
   intents.push(...leaving.map((a) => I.dismissSummon(a.id, "modeEnded")));
+  // A Disguise comes off with the mode that put it on, and the table is told
+  // who it was (#253 readings 13-14).
+  const look = [...(owner.effects ?? [])].find((e) => e.system?.defId === "disguise") ?? null;
+  if (look && (item.system?.phases ?? []).some((p) => p.kind === "disguise")) {
+    intents.push(I.removeEffect(owner.id, "disguise", "modeEnded"));
+  }
   const cd = item.system?.cooldown ?? null;
   if (item.system?.isMode && cd?.countFrom === "deactivation" && cd.max && !(cd.remaining > 0)) {
     const ticks = resolveTicks(parseTick(String(cd.max)), { turnsPerRound: warRule("turnsPerRound") });
     if (ticks > 0) intents.push(I.cooldown(owner.id, item.id, ticks, "set"));
   }
-  if (intents.length === 0) return;
+  const endedBy = changes?.system?.endedBy ?? item.system?.endedBy ?? null;
+  const pays = Boolean(endedBy && item.system?.onDeactivate?.[endedBy]?.length);
+  if (intents.length === 0 && !pays) return;
   const { applyWorldIntents } = await import("./applier.mjs");
-  await applyWorldIntents(intents, `mode:${slug ?? item.id}:ended`);
+  if (intents.length > 0) await applyWorldIntents(intents, `mode:${slug ?? item.id}:ended`);
+  if (look) {
+    const { shownName } = await import("./public-identity.mjs");
+    await ChatMessage.create({
+      content: `<p>${game.i18n.format(endedBy === "hit" ? "FGT.Disguise.EndedByHit" : "FGT.Disguise.Ended", {
+        name: shownName(owner), as: look.system?.params?.name ?? "",
+      })}</p>`,
+    });
+  }
+  if (pays) {
+    const { runDeactivationPayout } = await import("./skill-use.mjs");
+    await runDeactivationPayout(item, owner, endedBy);
+  }
 }
 
 /**

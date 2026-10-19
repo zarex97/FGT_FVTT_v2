@@ -188,6 +188,7 @@ export const ABILITY_ROUTES = {
   openingChoice: doc("module/engine/opening-choice.mjs", "asked when the war starts"),
   cooldownOverride: doc("module/rules/ability-use.mjs", "the price of a use on the Cooldown (#230)"),
   toggleWindow: doc("module/rules/modes.mjs", "when a mode may be switched (#230)"),
+  onDeactivate: doc("module/engine/scheduler-hooks.mjs", "what a mode's end pays, by how it ended (#253)"),
   noMasterCost: doc("module/rules/ability-use.mjs", "an NP that costs its Master nothing (#230)"),
   freeServantCost: doc("module/rules/ability-use.mjs", "a Free Servant's NP price its sheet states (#241)"),
   ignoresNPGate: doc("module/rules/ability-use.mjs", "an NP no Round gate holds back (#230)"),

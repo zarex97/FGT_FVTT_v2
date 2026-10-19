@@ -596,6 +596,47 @@ export function laddersCollapse(defender) {
 }
 
 /**
+ * Is any of these chat messages a Combat Process still running?
+ *
+ * Doppelganger may be switched off at any moment but never inside a Combat
+ * Process (#253 reading 6): asked of the recent messages, where every Process
+ * keeps its state.
+ *
+ * @param {Iterable<object>} messages
+ * @returns {boolean}
+ */
+export function processOpenIn(messages) {
+  for (const m of messages ?? []) {
+    const raw = m?.getFlag?.("fgt", "process");
+    if (!raw) continue;
+    try {
+      if (!isComplete(deserialize(raw))) return true;
+    } catch {
+      // An unreadable Process is not an open one.
+    }
+  }
+  return false;
+}
+
+/**
+ * The damage this Process dealt, summed from its Damage Step's record.
+ *
+ * `advance(state, "done", {total})` files the Damage Step's total in the
+ * history, so a reader after the Process (its `combatProcessEnd`) can ask
+ * whether the Attack hurt without the damage being carried anywhere else.
+ * Zhōng Guó Quán Fǎ's *"whenever Yan Qing deals damage with a Normal Attack
+ * ... at the end of the Combat Process"* (#253 reading 3).
+ *
+ * @param {ProcessState} s
+ * @returns {number}
+ */
+export function damageDealtIn(s) {
+  return (s?.history ?? [])
+    .filter((h) => h.state === "damage" && Number.isFinite(h.detail?.total))
+    .reduce((sum, h) => sum + h.detail.total, 0);
+}
+
+/**
  * Serialize for storage in a chat-message flag between rungs.
  * @param {ProcessState} s
  * @returns {string}

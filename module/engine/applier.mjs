@@ -911,7 +911,7 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
       break;
 
     case "setMode":
-      for (const i of intents) await io.setMode(unitId, i.abilityId, i.active);
+      for (const i of intents) await io.setMode(unitId, i.abilityId, i.active, i.endedBy ?? null);
       break;
     case "setStance":
       await io.setStance(unitId, intents.at(-1).stance);

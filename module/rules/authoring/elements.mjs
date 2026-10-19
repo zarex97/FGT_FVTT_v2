@@ -386,6 +386,7 @@ export const ELEMENT_DESCRIPTORS = describeTable([
   ]),
   entry("Suppress", "Switches off a named scope of effect while this applies.", [
     { key: "scope", type: "text" },
+    { key: "except", type: "raw" },
   ]),
   entry("EffectVisibility", "Decides who can see an effect this Unit carries.", [
     { key: "visibility", type: "select", choices: ["all", "owner", "gm"] },
@@ -450,6 +451,7 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "cost", type: "raw" },
     { key: "effects", type: "raw" },
     { key: "label", type: "text" },
+    { key: "scalesWithSpend", type: "checkbox" },
   ]),
   entry("RevivalSource", "A way back from zero Health, with a stated order when a Unit has several.", [
     { key: "id", type: "text" },
