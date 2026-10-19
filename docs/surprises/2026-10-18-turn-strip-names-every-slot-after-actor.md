@@ -3,7 +3,8 @@ id: 2026-10-18-turn-strip-names-every-slot-after-actor
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** the turn panel's order strip lists Round 1 of a two-faction war as "Faction 2 · Faction 1 · GM", the order `system.turnOrder` holds.
 **Actual:** Player2 saw "Faction 2 · Faction 2 · Faction 2" on Faction 2's Turn, while `turnOrder` was `["faction-2", "faction-1", <GM combatant>]`.

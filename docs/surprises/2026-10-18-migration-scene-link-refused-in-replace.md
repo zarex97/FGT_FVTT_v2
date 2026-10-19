@@ -3,7 +3,8 @@ id: 2026-10-18-migration-scene-link-refused-in-replace
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** schema 3 binds a War from before the move (`scene: null`) to its board in the runner's ordinary whole-document write, as every earlier migration wrote its documents.
 **Actual:** the first live load backed the world up, migrated one War and stopped: "FGT | Migration failed: Error: The value provided to a ForeignDocumentField must be a BaseScene instance." `schemaVersion` stayed 2. The same id written by a plain `combat.update({scene})` was accepted.

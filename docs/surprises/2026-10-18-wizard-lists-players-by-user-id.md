@@ -3,7 +3,8 @@ id: 2026-10-18-wizard-lists-players-by-user-id
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** the setup wizard's Factions tab names each faction's players, "Player1" and "Player2".
 **Actual:** it printed raw user ids: "Players yVevT9Da3egFpXeO" and "Players vL77HYG9fUm8uOwI", seen while shooting the beginner's guide.

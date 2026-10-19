@@ -3,7 +3,8 @@ id: 2026-10-18-accept-the-hit-never-reached-gm
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** a defender's answer ("Block", "Accept") moves the card on at once; a rung the GM holds open for a Command Spell shows that offer while it waits.
 **Actual:** Player2 pressed Block and the card still read "Choose a reaction … Waiting for Choose a reaction (0:59)" for about 90 seconds, then jumped to the result. Player1's "Accept" did the same and the console said "No reply from the Gamemaster for "advanceProcess" within 60s." The GM's flag sat at the answered rung throughout; nothing was waiting on a question (`FGTSocket.ask` was never called). Tutorial Demo war, Round 2, Normal Attacks between the Lancers and the Archer.

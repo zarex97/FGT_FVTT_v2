@@ -3,7 +3,8 @@ id: 2026-10-18-wizard-confirm-shows-raw-keys
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** the setup wizard's Confirm tab names the war as the War tab does: "Great Holy Grail War", "Normal", "Intermediate — the Luck Check removed", "Essences".
 **Actual:** it printed the stored keys: "greatHolyGrailWar", "normal", "intermediate", "essences", seen while shooting the beginner's guide.
