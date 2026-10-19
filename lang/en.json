@@ -358,6 +358,7 @@
   "FGT.Summon.StepContract": "Contract to",
   "FGT.Summon.StepConfirm": "Confirm and write",
   "FGT.Summon.Locked": "The match has started, so the setup rolls are locked.",
+  "FGT.Summon.Floored": "→ floored at {min}",
   "FGT.Summon.Created": "{name} summoned.",
   "FGT.Summon.Unknown": "No Servant with the content id \"{id}\" is in any compendium.",
   "FGT.Summon.DropRefused": "A Servant dragged straight from a compendium would carry the template's numbers, not its own. Opening the summon dialog instead.",
