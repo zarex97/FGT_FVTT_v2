@@ -395,7 +395,11 @@ export function fireEvent(event, units, ctx) {
           // copies Acts"* (#195).
           ...(ctx.activeFactionId != null && sideOf(u) === ctx.activeFactionId ? ["self:ownTurn"] : []),
         ]);
-        if (!testPredicate(handler.targetPredicate, { options })) continue;
+        // The War's ◈ as a number a comparison can read: Zhōng Guó Quán Fǎ's
+        // *"2 Turns if ◈ is greater than 4"* is `{gt: ["@turnsPerRound", 4]}`
+        // (#253 reading 3). Every boundary and Process end carries it.
+        const refs = { turnsPerRound: ctx.turnsPerRound ?? null };
+        if (!testPredicate(handler.targetPredicate, { options, refs })) continue;
       }
 
       // The event's SUBJECT, for events that have one. `abilityUsed` fires for

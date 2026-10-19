@@ -32,6 +32,7 @@ import { boundaryKey, alreadyClaimed, tokenField } from "../rules/schedule-claim
 import { payQueuedEnds } from "./queued-ends.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { whenEngineReady } from "./engine-ready.mjs";
+import { warRule, isWarGM, warOfUnit } from "./war.mjs";
 
 /** The `Hooks` the boundaries are bound on: once each, and a fresh test world binds its own. */
 const boundariesOn = new WeakSet();
@@ -76,7 +77,8 @@ export const Scheduler = {
  */
 async function onModeEnded(item, changes) {
   if (changes?.system?.active !== false) return;
-  if (!game.users?.activeGM?.isSelf) return;
+  // The War of the mode's owner: `updateItem` fires on every client.
+  if (!isWarGM(warOfUnit(item.parent))) return;
   const owner = item.parent;
   const slug = item.system?.slug;
   if (!owner) return;
@@ -86,14 +88,34 @@ async function onModeEnded(item, changes) {
     ? game.actors.filter((a) => a.system?.summonerId === owner.id && a.system?.leavesWithMode === slug)
     : [];
   intents.push(...leaving.map((a) => I.dismissSummon(a.id, "modeEnded")));
+  // A Disguise comes off with the mode that put it on, and the table is told
+  // who it was (#253 readings 13-14).
+  const look = [...(owner.effects ?? [])].find((e) => e.system?.defId === "disguise") ?? null;
+  if (look && (item.system?.phases ?? []).some((p) => p.kind === "disguise")) {
+    intents.push(I.removeEffect(owner.id, "disguise", "modeEnded"));
+  }
   const cd = item.system?.cooldown ?? null;
   if (item.system?.isMode && cd?.countFrom === "deactivation" && cd.max && !(cd.remaining > 0)) {
-    const ticks = resolveTicks(parseTick(String(cd.max)), { turnsPerRound: game.settings.get("fgt", "turnsPerRound") });
+    const ticks = resolveTicks(parseTick(String(cd.max)), { turnsPerRound: warRule("turnsPerRound") });
     if (ticks > 0) intents.push(I.cooldown(owner.id, item.id, ticks, "set"));
   }
-  if (intents.length === 0) return;
+  const endedBy = changes?.system?.endedBy ?? item.system?.endedBy ?? null;
+  const pays = Boolean(endedBy && item.system?.onDeactivate?.[endedBy]?.length);
+  if (intents.length === 0 && !pays) return;
   const { applyWorldIntents } = await import("./applier.mjs");
-  await applyWorldIntents(intents, `mode:${slug ?? item.id}:ended`);
+  if (intents.length > 0) await applyWorldIntents(intents, `mode:${slug ?? item.id}:ended`);
+  if (look) {
+    const { shownName } = await import("./public-identity.mjs");
+    await ChatMessage.create({
+      content: `<p>${game.i18n.format(endedBy === "hit" ? "FGT.Disguise.EndedByHit" : "FGT.Disguise.Ended", {
+        name: shownName(owner), as: look.system?.params?.name ?? "",
+      })}</p>`,
+    });
+  }
+  if (pays) {
+    const { runDeactivationPayout } = await import("./skill-use.mjs");
+    await runDeactivationPayout(item, owner, endedBy);
+  }
 }
 
 /**
@@ -122,7 +144,7 @@ async function onTurnChange(combat, prior, current) {
   // Heard during the world's migration, it waits for the engine rather than
   // being lost (`engine-ready.mjs`). Everything above is read synchronously.
   await whenEngineReady();
-  if (!isScheduler()) return;
+  if (!isScheduler(combat)) return;
   if (!combat?.started) return;
 
   const tick = combat.system?.globalTurn ?? 0;
@@ -142,7 +164,7 @@ async function onTurnChange(combat, prior, current) {
   const ctx = {
     tick,
     round: endedRound ?? combat.round ?? 1,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    turnsPerRound: warRule("turnsPerRound"),
     activeFactionId,
     // Injected rather than imported by the scheduler, so the scheduler stays
     // testable without a compendium. It is what lets an expiring effect run
@@ -399,7 +421,7 @@ async function onTurnChange(combat, prior, current) {
  * @param {object} options
  */
 async function onRoundChange(combat, updateData, options) {
-  if (!isScheduler()) return;
+  if (!isScheduler(combat)) return;
   if (!combat?.started) return;
   // Only fire on a forward round change; rewinding is a GM correction.
   if ((options?.direction ?? 1) < 0) return;
@@ -445,12 +467,12 @@ async function endRoundSequence(combat, round, tick) {
   const ctx = {
     tick,
     round,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    turnsPerRound: warRule("turnsPerRound"),
     activeFactionId: null,
     effectDef: (id) => EffectRegistry.get(id),
     // Switches off the multi-Servant tax (Ch. 32). Read here rather than in the
     // rules layer, which has no settings.
-    grandOrder: setting("grandOrder", false),
+    grandOrder: warRule("grandOrder"),
     history: historyOf(combat),
     rolls: await gatherRolls([[board.units, "roundEnd"]]),
   };
@@ -506,10 +528,10 @@ async function beginRoundSequence(combat, round, tick) {
     scheduler.beginRound(startingBoard, {
       tick,
       round,
-      turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+      turnsPerRound: warRule("turnsPerRound"),
       activeFactionId: null,
       effectDef: (id) => EffectRegistry.get(id),
-      grandOrder: setting("grandOrder", false),
+      grandOrder: warRule("grandOrder"),
       rolls: await gatherRolls([[startingBoard.units, "roundStart"]]),
     }),
     "scheduler:beginRound",
@@ -526,7 +548,7 @@ async function beginRoundSequence(combat, round, tick) {
  * @param {object} combat
  */
 function onCombatEnd(combat) {
-  if (!isScheduler()) return;
+  if (!isScheduler(combat)) return;
   console.log(`FGT | Match ended after ${combat.system?.globalTurn ?? 0} turns`);
 }
 
@@ -574,7 +596,7 @@ async function recordHistory(combat, board) {
     board,
     combat?.system?.globalTurn ?? 0,
     historyOf(combat),
-    game.settings.get("fgt", "turnsPerRound"),
+    warRule("turnsPerRound"),
   );
   if (next) await setHistory(combat, next);
 }
@@ -587,10 +609,14 @@ async function recordHistory(combat, board) {
  * *every connection that user holds*, so this alone does not pick a single
  * client. {@link claimBoundary} is the half that does.
  *
+ * @param {object|null} combat the War whose boundary this is
  * @returns {boolean}
  */
-function isScheduler() {
-  return Boolean(game.users.activeGM?.isSelf);
+function isScheduler(combat) {
+  // This War's GM: with two Wars in play, each War's boundaries run on the GM
+  // looking at its scene (`engine/war.mjs#gmForWar`), and `combatTurnChange`
+  // fires on every client for every War.
+  return isWarGM(combat);
 }
 
 /**
@@ -748,18 +774,4 @@ async function advanceGrail(combat, board) {
       + (victory.faction ? `<p>${game.i18n.format("FGT.Victory.faction", { faction: victory.faction })}</p>` : ""),
   });
   Hooks.callAll("fgtVictory", victory);
-}
-
-/**
- * A world setting, tolerating a world where it was never registered.
- * @param {string} key
- * @param {unknown} fallback
- * @returns {unknown}
- */
-function setting(key, fallback) {
-  try {
-    return game.settings.get("fgt", key) ?? fallback;
-  } catch {
-    return fallback;
-  }
 }

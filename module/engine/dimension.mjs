@@ -32,6 +32,7 @@ import { relationOf } from "../rules/relations.mjs";
 import { occupantsAt } from "../rules/movement.mjs";
 import { interiorOf, withinInterior } from "../rules/platforms.mjs";
 import { shownNameById } from "./public-identity.mjs";
+import { warRule, currentWar, isWarGM } from "./war.mjs";
 
 export { interiorOf, withinInterior };
 
@@ -531,8 +532,8 @@ export async function enterDimension({ ownerId, platformId, chosenAllyIds = [] }
     const roll = await new Roll(spec.entry?.enemies?.roll ?? "1d20").evaluate();
     rolls[id] = roll.total;
     records.push(rollLog.record({
-      id: `${id}:enterStormBorder:${game.combat?.system?.globalTurn ?? 0}`,
-      globalTurn: game.combat?.system?.globalTurn ?? 0,
+      id: `${id}:enterStormBorder:${currentWar()?.system?.globalTurn ?? 0}`,
+      globalTurn: currentWar()?.system?.globalTurn ?? 0,
       entryId: "enterStormBorder",
       formula: roll.formula,
       raw: roll.total,
@@ -560,7 +561,7 @@ export async function enterDimension({ ownerId, platformId, chosenAllyIds = [] }
   }
 
   await platform.update({
-    "system.activatedAt": game.combat?.system?.globalTurn ?? 0,
+    "system.activatedAt": currentWar()?.system?.globalTurn ?? 0,
     "system.ownerId": ownerId,
     // WHERE IT SUBMERGED. The travel allowance is measured from here, and
     // `resurface` read a field nothing wrote -- so it fell back to the owner's
@@ -573,7 +574,7 @@ export async function enterDimension({ ownerId, platformId, chosenAllyIds = [] }
     records.map((r) => I.log({
       kind: "ability", unitId: r.actorId, roll: r.total,
       detail: `Storm Border entry: ${r.total} vs ${spec.entry?.enemies?.successOn}+`,
-      tick: game.combat?.system?.globalTurn ?? 0,
+      tick: currentWar()?.system?.globalTurn ?? 0,
     })),
     "stormBorderEntry",
   );
@@ -625,8 +626,8 @@ export async function resurface({ platformId, plan = null, forced = false, owner
   if (!spec) return { ok: false, reason: "notADimension" };
 
   const board = currentBoard();
-  const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
-  const now = game.combat?.system?.globalTurn ?? 0;
+  const turnsPerRound = warRule("turnsPerRound");
+  const now = currentWar()?.system?.globalTurn ?? 0;
   const turnsInside = Math.max(0, now - (platform.system?.activatedAt ?? now));
   const distance = travelDistance(spec, { turnsInside, turnsPerRound });
 
@@ -706,7 +707,7 @@ async function endZeroSail(platform) {
   const intents = [I.setMode(owner.id, ability.id, false, "resurfaced")];
   const cd = ability.system?.cooldown ?? null;
   if (cd?.countFrom === "deactivation" && cd.max) {
-    const ticks = resolveTicks(parseTick(String(cd.max)), { turnsPerRound: game.settings.get("fgt", "turnsPerRound") });
+    const ticks = resolveTicks(parseTick(String(cd.max)), { turnsPerRound: warRule("turnsPerRound") });
     if (ticks > 0) intents.push(I.cooldown(owner.id, ability.id, ticks, "set"));
   }
   await applyBatch(intents, "stormBorder:resurfaced");
@@ -719,7 +720,7 @@ async function endZeroSail(platform) {
  * @returns {Promise<void>}
  */
 export async function postDimensionCard(text) {
-  if (!game.users?.activeGM?.isSelf) return;
+  if (!isWarGM()) return;
   const escape = foundry.utils.escapeHTML;
   await ChatMessage.create({
     content: `<div class="fgt-card fgt-card--dimension"><p>${escape(text)}</p></div>`,
@@ -755,8 +756,8 @@ export async function scheduleResurface({ platformId, plan, by = null }) {
   }
   const from = platform.system?.submergedFrom;
   const board = currentBoard();
-  const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
-  const now = game.combat?.system?.globalTurn ?? 0;
+  const turnsPerRound = warRule("turnsPerRound");
+  const now = currentWar()?.system?.globalTurn ?? 0;
   const distance = travelDistance(spec, { turnsInside: Math.max(0, now - platform.system.activatedAt), turnsPerRound });
   const occupants = (board.units ?? []).filter((u) => u.levelId === platform.system?.levelId && u.panel);
   const check = landingPlan(spec, {
@@ -826,7 +827,7 @@ export function landingOptions(dimension, board, { now, turnsPerRound }) {
  * @returns {Promise<void>}
  */
 export async function runDimensionClock(tick) {
-  if (!game.users?.activeGM?.isSelf) return;
+  if (!isWarGM()) return;
 
   const open = (game.actors?.contents ?? []).filter(
     (a) => a.type === "platform" && a.system?.dimension && a.system?.activatedAt !== null
@@ -834,7 +835,7 @@ export async function runDimensionClock(tick) {
   );
   if (open.length === 0) return;
 
-  const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
+  const turnsPerRound = warRule("turnsPerRound");
   const ceiling = resolveTicks({ kind: "rounds", whole: 2, frac: null, sign: 1 }, { turnsPerRound });
 
   for (const platform of open) {

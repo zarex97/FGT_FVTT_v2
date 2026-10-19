@@ -1,14 +1,8 @@
 <section class="tab fgt-setup__tab {{tab.cssClass}}" data-tab="{{tab.id}}" data-group="{{tab.group}}">
+  {{!-- Every War Rule the commit writes onto the new War, by its label: the
+        last place a GM can notice which rules this War will be played under. --}}
   <dl class="fgt-setup__summary">
-    <dt>{{localize "FGT.Settings.WarType"}}</dt><dd>{{draft.warType}}</dd>
-    <dt>{{localize "FGT.Settings.Ruleset"}}</dt><dd>{{draft.ruleset}}</dd>
-    <dt>{{localize "FGT.Settings.BoardSize"}}</dt><dd>{{draft.boardSize}} × {{draft.boardSize}}</dd>
-    <dt>{{localize "FGT.Settings.TurnsPerRound"}}</dt><dd>{{draft.turnsPerRound}}</dd>
-    <dt>{{localize "FGT.Settings.Difficulty"}}</dt><dd>{{draft.difficulty}}</dd>
-    {{!-- Read-only: the rank mode is a world setting, and this is the last
-          place a GM can notice which of the three is in force before every
-          Master in the war is rolled under it. --}}
-    <dt>{{localize "FGT.Settings.MasterMode"}}</dt><dd>{{masterMode}}</dd>
+    {{#each confirmRules as |r|}}<dt>{{r.label}}</dt><dd>{{r.value}}</dd>{{/each}}
   </dl>
 
   {{#if refusals.length}}

@@ -22,6 +22,7 @@ import {
   filterCandidates, purgePlan, danglingReferences, orphanTokens, NO_SCENE,
 } from "../rules/purge.mjs";
 import { factions as rosterFactions } from "../engine/board.mjs";
+import { currentWar } from "../engine/war.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api;
 
@@ -351,7 +352,7 @@ function gatherCandidates() {
  * @returns {Promise<void>}
  */
 async function repairReferences(deletedIds) {
-  const combat = game.combats?.active ?? null;
+  const combat = currentWar() ?? null;
   const fixes = danglingReferences(
     game.actors.map((a) => ({ id: a.id, type: a.type, system: a.system })),
     deletedIds,

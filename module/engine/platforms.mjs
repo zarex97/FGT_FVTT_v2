@@ -21,6 +21,7 @@ import { applyWorldIntents } from "./applier.mjs";
 import { createLevel, moveToLevel, teardown, dropToGround } from "./scene-levels.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { shownName } from "./public-identity.mjs";
+import { warRule, currentWar } from "./war.mjs";
 
 /**
  * Attempt to board a platform.
@@ -549,8 +550,8 @@ export async function deactivatePlatform({ platformId }) {
 
   const { ownTurnOf } = await import("./fields.mjs");
   const verdict = platformDeactivation(platform, platform.ownerId, {
-    tick: game.combat?.system?.globalTurn ?? 0,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    tick: currentWar()?.system?.globalTurn ?? 0,
+    turnsPerRound: warRule("turnsPerRound"),
     ownTurn: ownTurnOf(platform),
   });
   if (!verdict.ok) return verdict;
@@ -671,7 +672,7 @@ async function setCooldownOnDestruction(platform) {
   if (!cd || !["destroyed", "deactivation"].includes(cd.countFrom) || !cd.max) return;
 
   const ticks = resolveTicks(parseTick(String(cd.max)), {
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    turnsPerRound: warRule("turnsPerRound"),
   });
   if (ticks <= 0) return;
 

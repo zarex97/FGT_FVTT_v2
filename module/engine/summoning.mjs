@@ -21,6 +21,7 @@ import { chebyshevDisc, inBounds } from "../domain/geometry.mjs";
 import { currentBoard } from "./board.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { orthogonalPanels, SHEET_ORDER } from "../rules/targeting/orthogonal.mjs";
+import { warRule, currentWar } from "./war.mjs";
 
 /**
  * Run a `summon` phase.
@@ -486,8 +487,8 @@ export async function placeSummons(contentIds, panels, summoner, scene, spec, st
     // writing it; `rules/summons.mjs#expiredSummonIds` is the reader, added in
     // the same commit.
     if (spec.duration) {
-      const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
-      const now = game.combat?.system?.globalTurn ?? 0;
+      const turnsPerRound = warRule("turnsPerRound");
+      const now = currentWar()?.system?.globalTurn ?? 0;
       data.system.expiresAt = now + resolveTicks(parseTick(spec.duration), { turnsPerRound });
     }
 

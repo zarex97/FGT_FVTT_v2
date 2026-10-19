@@ -30,8 +30,10 @@ import {
 import { essenceCatalogue, essenceDraftOptions, draftsEssences } from "../engine/master-essence.mjs";
 import { grantsParameter, ESSENCE_LIMITS, ESSENCE_RANKS } from "../rules/master-essence.mjs";
 import { describe, filterCatalogue } from "./summon-present.mjs";
-import { createFaction } from "../rules/factions.mjs";
-import * as board from "../engine/board.mjs";
+import { createFaction, normalizeFactions } from "../rules/factions.mjs";
+import { WAR_RULE_KEYS, coerceWarRule } from "../domain/war-rules.mjs";
+import { worldDefaults as worldWarDefaults, allWars, sceneIdOfWar } from "../engine/war.mjs";
+import { warRuleRows } from "./war-rules.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -48,6 +50,10 @@ const BLANK_DRAFT = Object.freeze({
   drawPolicy: "duplicates",
   sceneId: "",
   sceneName: "",
+  // The new War's own roster (a War Rule). Seeded from the world's default
+  // roster and written onto the War at commit, never onto the War the GM is
+  // looking at while building this one.
+  factions: [],
   containers: [],
   prepared: {},
   // A custom war's own Essence limits (#241 reading 1). The published ones
@@ -59,38 +65,44 @@ const BLANK_DRAFT = Object.freeze({
 const TURNS_BY_WAR = Object.freeze({ greatHolyGrailWar: 3, holyGrailWar: 8, custom: 3 });
 
 /**
- * The world settings, as the draft's opening values.
+ * The rules the wizard puts on the War tab by hand, in its grid. Every other
+ * War Rule is rendered from the table under them (`warRuleRows`).
+ */
+const GRID_RULES = Object.freeze(["warType", "ruleset", "boardSize", "turnsPerRound", "difficulty",
+  "region", "grailThreshold", "drawPolicy"]);
+
+/**
+ * The world's defaults for a new War, as the draft's opening values: every
+ * War Rule and the roster (`engine/war.mjs#worldDefaults`).
  *
- * The settings ARE the world's defaults -- that is the whole shape `region` and
- * `difficulty` already use, where the setting is the default and the match
- * holds this match's copy. Without this the wizard opened on Advanced in a
- * world whose ruleset setting said Normal, and the GM had to notice and change
- * a control that already had the right answer somewhere else.
+ * The world settings ARE only that -- the defaults a new War starts from --
+ * and the War built here keeps its own copy (`commitWar`). Without this the
+ * wizard opened on Advanced in a world whose default said Normal.
  *
  * @returns {object}
  */
 function worldDefaults() {
-  const get = (key, fallback) => {
-    try {
-      const v = game.settings.get("fgt", key);
-      return v === undefined || v === null || v === "" ? fallback : v;
-    } catch {
-      return fallback;
-    }
-  };
-  const warType = get("warType", BLANK_DRAFT.warType);
+  const d = worldWarDefaults();
+  const warType = d.warType ?? BLANK_DRAFT.warType;
   return {
-    warType,
-    ruleset: get("ruleset", BLANK_DRAFT.ruleset),
-    boardSize: Number(get("boardSize", BLANK_DRAFT.boardSize)),
-    difficulty: get("difficulty", BLANK_DRAFT.difficulty),
-    region: get("region", ""),
-    grailThreshold: Number(get("grailThreshold", BLANK_DRAFT.grailThreshold)),
-    drawPolicy: get("drawPolicy", BLANK_DRAFT.drawPolicy),
-    turnsPerRound: Number(get("turnsPerRound", TURNS_BY_WAR[warType] ?? 3)),
+    ...d,
+    region: d.region ?? "",
+    turnsPerRound: Number(d.turnsPerRound ?? TURNS_BY_WAR[warType] ?? 3),
+    factions: normalizeFactions(d.factions ?? []),
   };
 }
 
+/**
+ * The War already bound to a scene, if one is. Strict: a War from before the
+ * move, bound to no scene, is not on this one.
+ *
+ * @param {string|null} sceneId
+ * @returns {object|null}
+ */
+function warOnScene(sceneId) {
+  if (!sceneId) return null;
+  return allWars().find((w) => sceneIdOfWar(w) === sceneId) ?? null;
+}
 
 /**
  * The Parameter steps a container's Master grants its Servant: the High Rank
@@ -191,15 +203,24 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this.#essences.length === 0) this.#essences = await essenceCatalogue();
     const essencesOn = draftsEssences(this.draft);
     const context = await super._prepareContext(options);
-    const roster = board.factions();
-    const locked = Boolean(game.combat?.started);
+    const roster = normalizeFactions(this.draft.factions ?? []);
+    // Locked only when the CHOSEN scene already holds a started War: a world
+    // holds several Wars at once, and a second one is built on its own scene
+    // while the first is played (ruled 2026-10-18). A new scene is never locked.
+    const locked = this.#locked();
 
     return {
       ...context,
       draft: this.draft,
-      factions: roster,
+      // A player is shown by name: the roster stores user ids, and a GM reading
+      // "yVevT9Da3egFpXeO" cannot tell which friend that is.
+      factions: roster.map((f) => ({
+        ...f, playerNames: f.userIds.map((id) => game.users.get(id)?.name ?? id),
+        // Ticked per faction: the new War's roster is edited here.
+        players: game.users.filter((u) => !u.isGM).map((u) => ({ id: u.id, name: u.name, assigned: f.userIds.includes(u.id) })),
+      })),
       locked,
-      lockedReason: locked ? game.i18n.localize("FGT.Setup.LockedReason") : null,
+      lockedReason: locked ? game.i18n.localize("FGT.Setup.SceneTaken") : null,
       warTypes: {
         greatHolyGrailWar: "FGT.WarType.Great",
         holyGrailWar: "FGT.WarType.Regular",
@@ -215,7 +236,25 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
       classChoices: Object.fromEntries([...CORE_CLASSES, EXTRA].map((c) => [c, `FGT.Class.${c}`])),
       fillChoices: { random: "FGT.Setup.FillRandom", fixed: "FGT.Setup.FillFixed" },
       scenes: Object.fromEntries(game.scenes.map((s) => [s.id, s.name])),
-      masterMode: game.settings.get("fgt", "masterMode"),
+      masterMode: this.draft.masterMode,
+      // Every War Rule the grid above does not show, from the one table the War
+      // rules window renders too.
+      moreRules: warRuleRows((key) => this.draft[key], {
+        keys: WAR_RULE_KEYS.filter((k) => !GRID_RULES.includes(k) && k !== "factions"),
+        prefix: "draft.", locked,
+      }),
+      // The Confirm tab names every War Rule the commit will write.
+      confirmRules: warRuleRows((key) => this.draft[key], {
+        keys: WAR_RULE_KEYS.filter((k) => k !== "factions"), prefix: "confirm.", locked: true,
+      }).map((r) => ({
+        label: r.label,
+        value: r.isBoolean ? game.i18n.localize(r.checked ? "Yes" : "No")
+          : r.isSelect ? (r.options.find((o) => o.selected)?.label ?? r.value) : (r.value === "" ? "—" : r.value),
+      })),
+      // The Confirm tab names each choice as the War tab does, not by its key.
+      masterModes: {
+        essences: "FGT.MasterMode.Essences", coinFlip: "FGT.MasterMode.CoinFlip", rankless: "FGT.MasterMode.Rankless",
+      },
       // The Master Essence draft (#241): one per container, Rank first.
       essencesOn,
       essenceChoices: this.#essences.map((e) => ({ id: e.contentId, label: `${e.rank} · ${e.name}` })),
@@ -419,6 +458,12 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     this.draft.homeBaseDepth = Number(this.draft.homeBaseDepth);
     this.draft.grailThreshold = Number(this.draft.grailThreshold);
     this.draft.turnsPerRound = Number(this.draft.turnsPerRound);
+    // Every War Rule in its own type: a `<select>` hands back "3", and a ◈ of
+    // "3" is a string no Tick arithmetic accepts.
+    for (const key of WAR_RULE_KEYS) {
+      if (key !== "factions" && key in this.draft) this.draft[key] = coerceWarRule(key, this.draft[key]);
+    }
+    if (this.draft.region === null) this.draft.region = "";
     if (data.draft?.essenceLimits) {
       this.draft.essenceLimits = Object.fromEntries(ESSENCE_RANKS.map((r) => [r,
         Math.max(0, Math.floor(Number(data.draft.essenceLimits[r])) || 0)]));
@@ -429,6 +474,19 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     if (data.draft?.warType && data.draft.warType !== previousRuleset
       && !Number.isFinite(Number(data.draft.turnsPerRound))) {
       this.draft.turnsPerRound = TURNS_BY_WAR[this.draft.warType] ?? 3;
+    }
+
+    // The new War's roster: a name and a list of players per faction.
+    if (data.faction) {
+      this.draft.factions = normalizeFactions((this.draft.factions ?? []).map((f) => {
+        const row = data.faction[f.id];
+        if (!row) return f;
+        return {
+          ...f,
+          name: row.name ?? f.name,
+          userIds: row.userIds ? Object.entries(row.userIds).filter(([, on]) => on).map(([uid]) => uid) : f.userIds,
+        };
+      }));
     }
 
     for (const [id, row] of Object.entries(data.container ?? {})) {
@@ -490,9 +548,12 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
    * @this {SetupWizard}
    */
   static async #onAddFaction() {
-    const existing = board.factions();
+    // Onto the draft's roster: the War being built is not the War on the scene
+    // the GM is looking at, whose roster the roster editor edits.
+    const existing = normalizeFactions(this.draft.factions ?? []);
     const name = game.i18n.format("FGT.Factions.NewName", { n: existing.length + 1 });
-    await board.setFactions([...existing, createFaction(name, existing)]);
+    this.draft.factions = [...existing, createFaction(name, existing)];
+    await this.#persist();
     this.render();
   }
 
@@ -584,9 +645,17 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
    * @returns {boolean} true if the action was refused
    */
   #refuseWhenLocked() {
-    if (!game.combat?.started) return false;
-    ui.notifications.warn(game.i18n.localize("FGT.Summon.Locked"));
+    if (!this.#locked()) return false;
+    ui.notifications.warn(game.i18n.localize("FGT.Setup.SceneTaken"));
     return true;
+  }
+
+  /**
+   * Whether the chosen scene already holds a started War.
+   * @returns {boolean}
+   */
+  #locked() {
+    return Boolean(warOnScene(this.draft.sceneId || null)?.started);
   }
 
   /**
@@ -640,7 +709,7 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onCommit() {
     if (this.#refuseWhenLocked()) return;
 
-    const roster = board.factions();
+    const roster = normalizeFactions(this.draft.factions ?? []);
     const refusals = validateRoster(this.draft.containers, roster, this.#catalogue,
       { policy: this.draft.drawPolicy, essences: essenceDraftOptions(this.draft, this.#essences) });
     if (refusals.length > 0) {

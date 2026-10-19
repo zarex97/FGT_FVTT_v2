@@ -26,6 +26,7 @@ import { windowsOf, FATAL_HIT_WINDOW } from "../rules/windows.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { FEIGNED_DEFEAT } from "../rules/untouchable.mjs";
 import { postDefeatCard } from "./defeat-card.mjs";
+import { warRule } from "./war.mjs";
 
 /** The flag a body's stand-in carries, on the Tiles that draw it. */
 const DECOY_FLAG = "decoyOf";
@@ -202,7 +203,7 @@ export async function revealFeignedDefeat(unitId, { relocate = true } = {}) {
   const intents = [I.removeEffect(actor.id, marker.id, "revealed")];
   if (pc) {
     const { parseTick, resolveTicks } = await import("../domain/tick.mjs");
-    const span = resolveTicks(parseTick("2◈"), { turnsPerRound: game.settings.get("fgt", "turnsPerRound") });
+    const span = resolveTicks(parseTick("2◈"), { turnsPerRound: warRule("turnsPerRound") });
     intents.push(I.extendEffect(actor.id, "presenceConcealment", span, FEIGNED_DEFEAT, currentMoment().tick ?? 0));
   }
   const { applyWorldIntents } = await import("./applier.mjs");

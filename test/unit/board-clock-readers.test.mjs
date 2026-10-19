@@ -91,15 +91,16 @@ describe("the clock readers agree with each other", () => {
     });
   });
 
-  it("still falls back to the world setting when the match names no Region", async () => {
-    // The fallback `commitWar` now keeps in step (Ch. 46 §46.4-AO) — the match
-    // is authoritative, and the setting answers only when it says nothing.
+  it("never falls through a War fought in no Region to the world's default", async () => {
+    // The world's Region only seeds a NEW War (2026-10-18): a War holding
+    // `region: null` was set up in no Region, and reading through it to the
+    // world played a neutral War on whatever ground the world last named.
     await withWorld(twoCombats({
       combat: { started: true, round: 3, system: { globalTurn: 9, region: null } },
       settings: { region: "ireland" },
     }), async () => {
       const { currentWarRegion } = await board();
-      expect(currentWarRegion()).toBe("ireland");
+      expect(currentWarRegion()).toBe(null);
     });
   });
 

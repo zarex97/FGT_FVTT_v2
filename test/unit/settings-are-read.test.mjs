@@ -15,6 +15,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { WAR_RULES, warRuleSpec } from "../../module/domain/war-rules.mjs";
 
 /** Every `.mjs` under `module/`. */
 function sources(dir = "module") {
@@ -28,7 +29,12 @@ function sources(dir = "module") {
 }
 
 const settingsFile = readFileSync("module/settings.mjs", "utf8");
-const registered = [...settingsFile.matchAll(/\bs\(\s*"([a-zA-Z0-9]+)"/g)].map((m) => m[1]);
+// The literal registrations, plus the War Rules' world defaults, which
+// `registerSettings` registers in a loop over `domain/war-rules.mjs`.
+const registered = [
+  ...[...settingsFile.matchAll(/\bs\(\s*"([a-zA-Z0-9]+)"/g)].map((m) => m[1]),
+  ...WAR_RULES.filter((r) => r.key !== "factions").map((r) => r.key),
+];
 
 /**
  * Settings whose only consumer is Foundry itself or the setup UI, and which
@@ -69,7 +75,8 @@ describe("registered settings", () => {
   it("keeps closed-information play on by default", () => {
     // The rulebook's information rules are rules, not a house style. A group
     // that wants an open table switches it off knowingly.
-    expect(settingsFile).toMatch(/"closedInfo"[\s\S]{0,400}?default: true/);
+    // A War Rule now: each War holds its own, the world only its default.
+    expect(warRuleSpec("closedInfo")?.initial).toBe(true);
   });
 });
 
@@ -83,7 +90,6 @@ describe("registered settings", () => {
  */
 describe("defaults that are rules", () => {
   it("ships counterChain as strict, so no Counter may be Countered", () => {
-    const block = settingsFile.slice(settingsFile.indexOf('s("counterChain"'));
-    expect(block.slice(0, 220)).toMatch(/default:\s*"strict"/);
+    expect(warRuleSpec("counterChain")?.initial).toBe("strict");
   });
 });

@@ -18,6 +18,7 @@ import { publicIdentityOf, publicSpeakerFor } from "../../engine/public-identity
 import { currentBoard, luckOf } from "../../engine/board.mjs";
 import { ActionBar } from "../hud/action-bar.mjs";
 import { shownName } from "../../engine/public-identity.mjs";
+import { warRule } from "../../engine/war.mjs";
 
 /**
  * Create the card for a newly declared attack.
@@ -188,7 +189,7 @@ async function cardContext({
  * @returns {boolean}
  */
 function openTable() {
-  return !game.settings.get("fgt", "closedInfo");
+  return !warRule("closedInfo");
 }
 
 /**

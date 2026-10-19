@@ -1695,7 +1695,7 @@ describe("a Command Spell whose effect has a duration knows what time it is", ()
   it("carries `tick` in the command-spell context", async () => {
     const src = readFileSync("module/engine/command-spells.mjs", "utf8");
     const contextFor = src.slice(src.indexOf("function contextFor"));
-    expect(contextFor).toMatch(/tick:\s*game\.combat/);
+    expect(contextFor).toMatch(/tick:\s*currentWar\(\)/);
   });
 
   it("stamps the suspension in the FUTURE, relative to the current tick", () => {

@@ -38,6 +38,7 @@ import { ELEMENT_DESCRIPTORS } from "../../rules/authoring/elements.mjs";
 import {
   REQUIREMENT_DESCRIPTORS, CS_REQUIREMENT_DESCRIPTORS,
 } from "../../rules/authoring/requirements.mjs";
+import { warRule } from "../../engine/war.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ItemSheetV2 } = foundry.applications.sheets;
@@ -455,7 +456,7 @@ export class AbilityEditor extends HandlebarsApplicationMixin(ItemSheetV2) {
    */
   #tickHint(raw) {
     if (!raw) return null;
-    const perRound = game.settings.get("fgt", "turnsPerRound") ?? 3;
+    const perRound = warRule("turnsPerRound") ?? 3;
     try {
       const turns = resolveTicks(parseTick(String(raw)), { turnsPerRound: perRound });
       return game.i18n.format("FGT.Editor.DurationHint", { turns, perRound });

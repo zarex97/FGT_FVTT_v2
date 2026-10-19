@@ -26,6 +26,7 @@ import { buildAuraIndex } from "../rules/aura-index.mjs";
 import { boardChecksum, compareChecksums } from "../rules/desync.mjs";
 import { currentBoard } from "./board.mjs";
 import { FGTSocket } from "../net/socket.mjs";
+import { currentWar } from "./war.mjs";
 
 /** The canvas-side aura index. Rebuilt lazily, read by the overlays. */
 let auraIndex = null;
@@ -143,7 +144,7 @@ function attachDesyncDetector() {
     invalidate(invalidationsFor("roundAdvanced", {}));
     if (!game.user.isGM) return;
     FGTSocket.broadcast("boardChecksum", {
-      round: game.combat?.round ?? 0,
+      round: currentWar()?.round ?? 0,
       checksum: boardChecksum(currentBoard()),
     });
   });

@@ -115,9 +115,20 @@ An ability's gate is `isNP || categorizedAsNP` (`module/rules/np-gate.mjs:54-66`
 
 An NP Lock that hits before the gate opens does not cause the gate to activate. Instead, the cooldown increase composits additively with the gate delay: if a lock adds 5 Turns before Round 6 opens, the NP becomes usable at Round 6 + 5 Turns extra, not at the max of the two (`module/rules/np-gate.mjs:134-151`). Additive, not `max()`, because the rule's prose and its pseudocode disagree, and the prose prevents the caster wasting a Skill.
 
+### A mode that picks, locks and pays on its end (#253)
+
+Yan Qing's Doppelganger is a mode with four things no mode had together.
+
+- **It picks on entry.** A mode with phases goes through the use path when it is switched on (`pricedOnEntry`); one whose `targeting` needs a choice now opens the same targeting session a Skill does before the switch (`apps/actor-sheet/sheet.mjs#toggleMode`). Its `disguise` phase puts the chosen Unit's look on the caster (Ch. 30). `anchor.range: board` reaches any panel, and `selection.sameSizeAsCaster` keeps a footprint to the caster's size.
+- **It locks the rest.** An `activeRules` `Suppress` of scope `abilityUse` with `except: [presenceConcealment]` refuses every other ability in the use gate (`abilityLocked`); a Normal Attack is no ability and is never asked.
+- **It ends at any moment.** `deactivation.window: anyTime` switches it off at once on any Turn, where `any` waits for the Turn's end; never while a Combat Process is open (`inCombatProcess`, read off the recent chat messages by `combat-process.mjs#processOpenIn`).
+- **Its end pays by how it ended.** Every switch off writes `endedBy`: `manual` from its owner's press, `hit` from the blow that breaks it, `forced` from any other forced switch. `onDeactivate: {manual: [phases]}` runs on the owner from `engine/scheduler-hooks.mjs#onModeEnded` (`skill-use.mjs#runDeactivationPayout`), with its own card. The deactivation clock (`countFrom: deactivation`) starts either way.
+
 ### Optional costs
 
 A passive may offer a Unit a choice to spend a resource at a timing window (`module/engine/optional-costs.mjs:1-23`). Mannanán's Fragarach Tokens can be spent for 30% crit chance at the start of a Combat Phase. The spend is offered to both sides (attacker and defender) of the exchange, because she counts when she counters too. Refusing the offer is a real choice because the same tokens are worth something else.
+
+A spend may also be **the attacker's own, at its Damage Step** (`timing: damageStep`), asked once per Process after the defender's reaction and before the damage is computed, so an Evade, which never reaches the Damage Step, is never asked. It may carry an `attack:` `predicate`, answered when it is offered, and **a chosen amount** (`cost.amount: chosen`): the player picks 1 up to what the Unit holds, a pool in `resources` or a stat pool by name (`agility`, `luck`). With `scalesWithSpend`, each effect's magnitude is per unit spent. Yan Qing's Ruffian is all three: *"he can spend X Agility … for every Agility point spent in this way, damage dealt is increased by 5%. Cannot be used with Noble Phantasm"* is `{timing: damageStep, cost: {resource: agility, amount: chosen}, scalesWithSpend: true, predicate: ["not:attack:kind:np"]}` buying `dmgUp` 5 until the Combat Process ends, with no cap (#253 reading 2).
 
 An optional cost's effect goes through immunity, exclusivity, and duration extension exactly as one from a Skill does — all the same rules apply (`module/engine/optional-costs.mjs:177-182`).
 

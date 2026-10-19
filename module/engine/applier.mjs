@@ -17,6 +17,7 @@
 import * as I from "./intents.mjs";
 import { acquisitionTarget } from "../rules/items.mjs";
 import { currentBoard, currentMoment, unitActor } from "./board.mjs";
+import { warRule, currentWar } from "./war.mjs";
 
 /**
  * @typedef {object} ApplicationPlan
@@ -373,8 +374,8 @@ async function fireWriteEvent(name, unitId, payload, { sink = null } = {}) {
   if (!unit) return;
 
   const intents = fireEvent(name, [unit], {
-    tick: game.combat?.system?.globalTurn ?? 0,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    tick: currentWar()?.system?.globalTurn ?? 0,
+    turnsPerRound: warRule("turnsPerRound"),
     board,
     options: new Set(),
     rolls: {},
@@ -615,7 +616,7 @@ async function resolveRemovals(intents, depth = 0) {
   const ctx = {
     board,
     tick: currentMoment().tick ?? 0,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    turnsPerRound: warRule("turnsPerRound"),
     effectDef: (id) => EffectRegistry.get(id),
   };
 
@@ -910,7 +911,7 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
       break;
 
     case "setMode":
-      for (const i of intents) await io.setMode(unitId, i.abilityId, i.active);
+      for (const i of intents) await io.setMode(unitId, i.abilityId, i.active, i.endedBy ?? null);
       break;
     case "setStance":
       await io.setStance(unitId, intents.at(-1).stance);

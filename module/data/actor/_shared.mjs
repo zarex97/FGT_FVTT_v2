@@ -22,6 +22,12 @@ export function unitCommon() {
     // claiming a version the pack never issued is the confusion it exists to end.
     contentVersion: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
     factionId: new fields.StringField({ required: false, nullable: true, initial: null }),
+    // The War this Unit was built into (`engine/war-setup.mjs#commitWar`), so
+    // a Unit's rules and roster are its own War's even off its scene: a
+    // world holds several Wars at once, and two of them both have a
+    // "faction-1" (`engine/war.mjs#warOfUnit`). `null` for a Unit made outside
+    // the wizard, which belongs to the War on its token's scene.
+    warId: new fields.StringField({ required: false, nullable: true, initial: null }),
 
     // Standing rule elements authored directly on the UNIT rather than on an
     // ability item -- a summon with no separate "class skill" to carry its

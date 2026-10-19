@@ -36,6 +36,7 @@ import { parseTick, resolveTicks, expiryReached } from "../domain/tick.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
 import { shownName, publicSpeakerFor } from "./public-identity.mjs";
+import { warRule, currentWar } from "./war.mjs";
 
 /** The name the table knows a Unit by (#232: a concealed caster is its class). */
 
@@ -47,7 +48,7 @@ const FLAG = "scheduledStrikes";
  * @param {object|null} [combat]
  * @returns {object[]}
  */
-export function pendingStrikes(combat = game.combats?.active ?? null) {
+export function pendingStrikes(combat = currentWar() ?? null) {
   return [...(combat?.getFlag?.("fgt", FLAG) ?? [])];
 }
 
@@ -61,13 +62,13 @@ export function pendingStrikes(combat = game.combats?.active ?? null) {
  * @returns {Promise<object|null>} the strike recorded
  */
 export async function scheduleStrike({ ability, attacker, self }) {
-  const combat = game.combats?.active ?? null;
+  const combat = currentWar() ?? null;
   const spec = ability?.system?.schedule ?? null;
   if (!combat || !spec || !self?.panel) return null;
 
   const tick = currentMoment().tick ?? 0;
   const ticks = resolveTicks(parseTick(spec.after ?? "1◈"), {
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    turnsPerRound: warRule("turnsPerRound"),
   });
   const panel = { i: self.panel.i, j: self.panel.j };
 
@@ -120,7 +121,7 @@ export async function scheduleStrike({ ability, attacker, self }) {
  * @returns {Promise<number>} how many strikes moved
  */
 export async function shiftStrikes(ownerId, delta, source = null) {
-  const combat = game.combats?.active ?? null;
+  const combat = currentWar() ?? null;
   const strikes = pendingStrikes(combat);
   if (!combat || delta === 0) return 0;
   let moved = 0;
@@ -156,7 +157,7 @@ export async function shiftStrikes(ownerId, delta, source = null) {
  * @returns {Promise<{fired: string[], cancelled: string[]}>}
  */
 export async function runScheduledStrikes(tick) {
-  const combat = game.combats?.active ?? null;
+  const combat = currentWar() ?? null;
   const strikes = pendingStrikes(combat);
   const out = { fired: [], cancelled: [] };
   if (!combat || strikes.length === 0) return out;

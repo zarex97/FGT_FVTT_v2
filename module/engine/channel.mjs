@@ -24,6 +24,7 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import { npCostAt } from "../rules/costs.mjs";
 import * as I from "./intents.mjs";
+import { warRule, currentWar } from "./war.mjs";
 
 /**
  * Open a channel.
@@ -39,13 +40,13 @@ export async function startChannel(actor, ability, phase) {
   if (actor.system?.channel) return false;
 
   const required = resolveTicks(parseTick(phase.ticks ?? "1◈"), {
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    turnsPerRound: warRule("turnsPerRound"),
   });
   await actor.update({
     "system.channel": {
       abilityId: ability.id,
       contentId: ability.system?.contentId ?? ability.id,
-      startedTick: game.combat?.system?.globalTurn ?? 0,
+      startedTick: currentWar()?.system?.globalTurn ?? 0,
       ticksRequired: required,
       elapsedTicks: 0,
       // Carried through unchanged to `completeChannel` -- content-authored,
@@ -155,7 +156,7 @@ async function completeChannel(actor, unit) {
   // would ordinarily have paid at use, deferred until now.
   if (ability?.system?.isNP) {
     const cost = npCostAt({
-      rank: ability.system?.rank, unit: self, master, turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+      rank: ability.system?.rank, unit: self, master, turnsPerRound: warRule("turnsPerRound"),
     });
     const { costIntents } = await import("./skill-use.mjs");
     intents.push(...costIntents(cost, self));

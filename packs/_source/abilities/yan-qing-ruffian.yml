@@ -1,0 +1,34 @@
+# Ruffian, Rank A (#253, RF.*).
+schema: 1
+id: yan-qing-ruffian
+name: "Ruffian"
+rank: A
+kind: skill
+slug: ruffian
+passive: true
+description: |
+  (Passive 1) Crit Damage dealt is increased by 15%.
+  (Passive 2) Whenever Yan Qing deals damage with an Attack, he can spend X Agility to increase
+  the damage dealt. For every Agility point spent in this way, damage dealt is increased by 5%.
+  Cannot be used with Noble Phantasm.
+passiveRules:
+  # Passive 1. Crit damage, which never reaches a Noble Phantasm unless stated
+  # (#131).
+  - key: CritModifier
+    aspect: damage
+    modifierKey: critDmUp
+    value: 15
+
+  # Passive 2 (reading 2). An `OptionalCost`, as Mannanán's Tradition Carrier,
+  # asked at his own Damage Step: after the DU's reaction, so nothing is spent on
+  # an Evade, and before the damage it raises. No cap, overruling the sheet's
+  # own "(maximum 5 Agility?)": any amount up to his current Agility. "Damage
+  # dealt is increased" is `dmgUp` for this Process alone.
+  - key: OptionalCost
+    timing: damageStep
+    label: "+{total}% damage dealt this Combat Process"
+    cost: { resource: agility, amount: chosen }
+    scalesWithSpend: true
+    predicate: ["not:attack:kind:np"]
+    effects:
+      - { id: dmgUp, magnitude: 5, duration: "until combatProcessEnd" }

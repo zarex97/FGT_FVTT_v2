@@ -15,7 +15,7 @@ import { gridShape } from "../domain/geometry.mjs";
 import { validateRoster } from "../rules/war-setup.mjs";
 import { plansFor, resolveSetupPlan } from "../rules/setup-rolls.mjs";
 import {
-  prepareSummon, commitSummon, servantCatalogue, rollSetupPlan, setWarRegion,
+  prepareSummon, commitSummon, servantCatalogue, rollSetupPlan,
 } from "./summon.mjs";
 import { factions, unitActor } from "./board.mjs";
 import { worldIO } from "./io.mjs";
@@ -23,6 +23,9 @@ import {
   essenceCatalogue, essenceDraftOptions, essenceDocument, draftsEssences, syncEssences,
 } from "./master-essence.mjs";
 import { record } from "./game-log.mjs";
+import { allWars, sceneIdOfWar } from "./war.mjs";
+import { WAR_RULE_KEYS, coerceWarRule } from "../domain/war-rules.mjs";
+import { normalizeFactions } from "../rules/factions.mjs";
 
 /**
  * Ch. 05, as data.
@@ -66,10 +69,11 @@ export function gridMismatches(scene) {
 /**
  * The scene a war is fought on, created or corrected.
  *
- * @param {{size: number, name: string, sceneId?: string|null}} options
+ * @param {{size: number, name: string, sceneId?: string|null, activate?: boolean}} options
+ *   `activate: false` views the scene without pulling every player to it
  * @returns {Promise<object>} the Scene
  */
-export async function ensureScene({ size, name, sceneId = null }) {
+export async function ensureScene({ size, name, sceneId = null, activate = true }) {
   if (sceneId) {
     const existing = game.scenes.get(sceneId);
     if (!existing) throw new Error(`No such scene: ${sceneId}`);
@@ -77,7 +81,8 @@ export async function ensureScene({ size, name, sceneId = null }) {
     if (wrong.length > 0) {
       await existing.update(Object.fromEntries(wrong.map(({ key, want }) => [key, want])));
     }
-    if (!existing.active) await existing.activate();
+    if (activate && !existing.active) await existing.activate();
+    else if (!activate) await existing.view?.();
     return existing;
   }
 
@@ -96,7 +101,10 @@ export async function ensureScene({ size, name, sceneId = null }) {
       diagonals: GRID_REQUIREMENTS["grid.diagonals"],
     },
   }]);
-  await scene.activate();
+  // Activating pulls EVERY player to the scene. With another War in play its
+  // players stay where they are; the GM views the new board alone.
+  if (activate) await scene.activate();
+  else await scene.view?.();
   return scene;
 }
 
@@ -240,7 +248,8 @@ export async function createMasterFor(container, draft, roster = []) {
     data.items = [...(data.items ?? []), (() => { const e = essence.toObject(); delete e._id; return e; })()];
   }
 
-  const mode = game.settings.get("fgt", "masterMode");
+  // The DRAFT's mode: the War being built, not the War on the GM's screen.
+  const mode = draft.masterMode ?? "essences";
   // The DRAFT's ruleset, not the world's: the wizard has not committed it to
   // the match yet, so `warRuleset()` would still read the previous war's.
   const plan = plansFor(draft.ruleset).master(data.system, { mode });
@@ -256,6 +265,7 @@ export async function createMasterFor(container, draft, roster = []) {
   data.system = {
     ...data.system,
     factionId: container.factionId,
+    warId: draft.warId ?? null,
     health: { value: value("maxHealth"), max: value("maxHealth") },
     agility: { value: value("maxAgility"), max: value("maxAgility") },
     luck: { value: value("maxLuck"), max: value("maxLuck") },
@@ -290,7 +300,9 @@ export async function createMasterFor(container, draft, roster = []) {
  *   `partners` are the Servants summoned with a drawn one (`seatPartners`)
  */
 export async function commitWar(draft) {
-  const roster = factions();
+  // The new War's own roster, from the draft; a draft built before the roster
+  // moved onto the War falls back to the roster of the War on screen.
+  const roster = normalizeFactions(draft.factions ?? factions());
   const catalogue = await servantCatalogue({ ruleset: draft.ruleset });
   const essences = await essenceCatalogue();
   const refusals = validateRoster(draft.containers, roster, catalogue,
@@ -299,63 +311,52 @@ export async function commitWar(draft) {
     throw new Error(`The roster is not ready: ${refusals.map((r) => r.code).join(", ")}`);
   }
 
+  // A scene that already holds a started War is refused: a world holds several
+  // Wars, each on its own board (ruled 2026-10-18).
+  const taken = draft.sceneId ? allWars().find((w) => sceneIdOfWar(w) === draft.sceneId && w.started) : null;
+  if (taken) throw new Error(game.i18n.localize("FGT.Setup.SceneTaken"));
+  // Another War already being played keeps its players where they are.
+  const othersInPlay = allWars().some((w) => w.started);
+
   const scene = await ensureScene({
     size: draft.boardSize,
     name: draft.sceneName || game.i18n.localize("FGT.Setup.SceneName"),
     sceneId: draft.sceneId || null,
+    activate: !othersInPlay,
   });
 
-  // `scene: null`, NOT the board's scene. Foundry's `CombatEncounters#active`
-  // only returns a combat whose scene is the one currently being VIEWED
-  // (`client/documents/collections/combat-encounters.mjs`), so a match bound to
-  // the board scene DISAPPEARS the moment the GM looks at any other scene:
-  // `currentBoard` then reads no phase, no tick, no difficulty, no war type
-  // and no Grail, and `clockRunning` says the match has not started. A null
-  // scene makes it global, which is what "the Combat is the whole match"
-  // (Ch. 25) means -- the war is not an encounter on one map.
-  const combat = await Combat.implementation.create({ type: "match", scene: null });
-  // ACTIVATE it. `currentBoard()` reads `game.combats.active`, and
-  // `Combat.create` leaves `active: false` -- `game.combat` is only the combat
-  // being VIEWED. Without this the board is match-blind: no phase, no tick, no
-  // difficulty, no war type and no Grail, all silently at their defaults. Found
-  // live, where a match carrying `grailMaterialized: true` projected
-  // `materialized: false` and the Grail could not appear.
+  // Bound to its board scene. A world holds several Wars at once, each on its
+  // own scene (2026-10-18), and `engine/war.mjs#currentWar` finds a client's
+  // War by the scene it is looking at. A War was once `scene: null` -- global
+  // -- because `CombatEncounters#active` only answers for the ACTIVATED scene
+  // and the board went match-blind whenever the GM looked elsewhere; nothing
+  // reads `game.combats.active` for "the match" any more.
+  const combat = await Combat.implementation.create({ type: "match", scene: scene.id });
+  // Activated, so the combat tracker on its scene shows it.
   await combat.activate();
-  await combat.syncFactions({ withGM: true });
+  draft = { ...draft, warId: combat.id };
 
-  // The match describes itself BEFORE anything is built into it. Everything
-  // downstream reads the war's shape off `game.combat` -- `warRuleset()` most
-  // of all -- and a Combat created with the schema's defaults SHADOWS the world
-  // settings the wizard was seeded from. Writing these after the summon loop
-  // meant `commitSummon` saw `ruleset: "advanced"` on a Normal war and refused
-  // every one of its own Servants. `containers` still comes last: it carries
-  // the actor ids, which do not exist yet.
+  // Every War Rule and the roster, BEFORE anything is built into it: the
+  // combatants are this roster's factions, and everything downstream reads
+  // the War's shape off it -- `warRuleset()` most of all. A Combat created
+  // with the schema's defaults SHADOWED the wizard's choices once: a Normal
+  // war's `commitSummon` saw `ruleset: "advanced"` and refused every one of
+  // its own Servants. `turnsPerRound` was never written at all, so a war set
+  // up at 8 Turns a Round played at whatever the world said (found
+  // 2026-10-18). `containers` still comes last: it carries the actor ids,
+  // which do not exist yet.
+  /** @type {Record<string, unknown>} */
+  const rules = {};
+  for (const key of WAR_RULE_KEYS) {
+    if (key === "factions") continue;
+    if (key in draft) rules[`system.${key}`] = coerceWarRule(key, draft[key]);
+  }
   await combat.update({
-    "system.warType": draft.warType,
-    "system.ruleset": draft.ruleset,
+    ...rules,
+    "system.factions": roster,
     "system.homeBaseDepth": draft.homeBaseDepth,
-    "system.region": draft.region || null,
-    "system.difficulty": draft.difficulty,
-    "system.grailThreshold": draft.grailThreshold,
   });
-
-  // The war's Region, in BOTH places that hold it, before anything is summoned.
-  //
-  // `currentWarRegion()` is `match || setting`, and the match's value for a war
-  // fought in no Region is `null` -- which is falsy, so it falls straight
-  // through to the setting, and `commitSummon` has made that setting sticky
-  // since it was written. A GM who runs a Greece war and then sets up a neutral
-  // one therefore gets a neutral MATCH played on Greece GROUND: every Servant a
-  // rank up on every parameter, +10 Base Attack per STR/MAG step, and an END
-  // step baked into the rolled Max Health for good. Nothing says so -- the
-  // wizard's own record says the Region is none.
-  //
-  // Writing it here rather than teaching `currentWarRegion` to distinguish
-  // "none" from "unset": `prepareSummon` reads the SETTING too (`region ??
-  // setting`), so a precedence fix alone would leave the summon grants wrong
-  // while making the board right, which is a worse disagreement than the one it
-  // replaces. One writer, at the one moment the war's Region is decided.
-  await setWarRegion(draft.region || "");
+  await combat.syncFactions({ withGM: true });
 
   await note(combat, `War setup began: ${draft.warType}, ${draft.ruleset} ruleset`, {
     warType: draft.warType, ruleset: draft.ruleset,
@@ -393,6 +394,7 @@ export async function commitWar(draft) {
     await servant.update({
       "system.factionId": container.factionId,
       "system.classContainer": container.classContainer,
+      "system.warId": combat.id,
     });
     // "The unselected Noble Phantasm is unusable." `expended` is the existing
     // way to say that, and the rejected option stays ON the sheet greyed out
@@ -573,6 +575,8 @@ export async function seatPartners(servant, container, master) {
     await partner.update({
       "system.factionId": container.factionId,
       "system.classContainer": container.classContainer,
+      // The War this slot was built into (`commitWar` writes it on the draft).
+      "system.warId": container.warId ?? master?.system?.warId ?? null,
     });
     // The one place `masterId` and `Master.servantIds` are kept reciprocal.
     await worldIO().setContract(partner.id, "contracted", master.id);

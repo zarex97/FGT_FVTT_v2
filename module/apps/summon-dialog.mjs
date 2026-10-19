@@ -24,6 +24,7 @@ import { grantBudget } from "../rules/master-rank.mjs";
 import { REGION_ADJACENCY } from "../rules/environment.mjs";
 import { currentWarRegion } from "../engine/board.mjs";
 import { describe, describeStep } from "./summon-present.mjs";
+import { currentWar } from "../engine/war.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -118,7 +119,7 @@ export class SummonDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       // "Once the match starts, the rolls are locked." Shown as a disabled
       // control with a reason rather than a hidden one, so a GM who expected a
       // re-roll button learns why it is not there.
-      locked: Boolean(game.combat?.started),
+      locked: Boolean(currentWar()?.started),
       canRoll: Boolean(this.#form.contentId),
     };
   }
@@ -184,7 +185,7 @@ export class SummonDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   static async #onReroll(_event, target) {
     const id = target.closest("[data-line-id]")?.dataset.lineId;
     if (!this.#prepared || !id) return;
-    if (game.combat?.started) {
+    if (currentWar()?.started) {
       ui.notifications.warn(game.i18n.localize("FGT.Summon.Locked"));
       return;
     }

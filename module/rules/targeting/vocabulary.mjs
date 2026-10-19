@@ -199,3 +199,12 @@ export const ANCHOR_IDS = Object.freeze(TARGET_ANCHORS.map((a) => a.id));
  * reads perfectly and does not exist.
  */
 export const CHOOSER_IDS = Object.freeze(["all", "nearest", "random", "chosen"]);
+
+/**
+ * The relations a targeting `selection` may name: `resolveTargets` step 4
+ * reads these and refuses every Unit for any other word. `civilian` is a
+ * neutral Civilian alone (Mystic Eyes, #188 reading 15). `any` is NOT one: it
+ * is the scheduler's `nearby` handler's word (Zabaniya's cloud), and a
+ * selection that wrote it targeted nobody (#253, Doppelganger's first draft).
+ */
+export const RELATION_IDS = Object.freeze(["self", "ally", "enemy", "neutral", "civilian"]);

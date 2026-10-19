@@ -19,6 +19,7 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { canSpend, resourcePath } from "../domain/resources.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
+import { warRule } from "./war.mjs";
 
 /**
  * The cooldown a use produces, and what paying to avoid it costs.
@@ -207,7 +208,7 @@ function triggeredBy(entry, actor) {
 /** @returns {number} */
 function turnsPerRound() {
   try {
-    return game.settings.get("fgt", "turnsPerRound") ?? 3;
+    return warRule("turnsPerRound") ?? 3;
   } catch {
     return 3;
   }

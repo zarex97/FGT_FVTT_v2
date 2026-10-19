@@ -1,0 +1,44 @@
+# Zhōng Guó Quán Fǎ, Rank EX (#253, ZG.*).
+#
+# The NP cut is Raikou's `CooldownDelta` (effects/raikou-buff.yml), heard at
+# the end of the Combat Process rather than at the damage.
+schema: 1
+id: yan-qing-zhong-guo-quan-fa
+name: "Zhōng Guó Quán Fǎ"
+rank: EX
+kind: skill
+slug: zhongGuoQuanFa
+passive: true
+description: |
+  (Passive) Chinese Boxing. Crit Chance is increased by 15%. Whenever Yan Qing deals damage with a
+  Normal Attack, reduce his NP Cooldown by 1 Turns at the end of the Combat Process (2 Turns if ◈
+  is greater than 4).
+passiveRules:
+  - key: CheckModifier
+    check: crit
+    value: 15
+
+  # Reading 3. Only a Normal Attack that dealt more than 0 (`attack:dealtDamage`,
+  # Nursery's Enigma, #247 reading 2); a Counter made with one counts, being a
+  # Normal Attack. "Turns" are plain Turns, so `delta` and not `ticks`. "◈" is
+  # the War's Turns per Round, read when the Process ends.
+  - key: OnEvent
+    event: combatProcessEnd
+    automatic: true
+    predicate:
+      - "attack:performed"
+      - "attack:kind:normal"
+      - "attack:dealtDamage"
+      - { lte: ["@turnsPerRound", 4] }
+    then:
+      - { key: CooldownDelta, scope: np, delta: -1 }
+  - key: OnEvent
+    event: combatProcessEnd
+    automatic: true
+    predicate:
+      - "attack:performed"
+      - "attack:kind:normal"
+      - "attack:dealtDamage"
+      - { gt: ["@turnsPerRound", 4] }
+    then:
+      - { key: CooldownDelta, scope: np, delta: -2 }

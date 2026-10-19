@@ -18,6 +18,7 @@ import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { shownName, shownNameById } from "./public-identity.mjs";
+import { warRule, isWarGM } from "./war.mjs";
 
 /** The compendium content id `packs/_source/platforms/hanging-gardens.yml` compiles to. */
 const PLATFORM_CONTENT_ID = "hanging-gardens-of-babylon";
@@ -38,7 +39,7 @@ export const Hgob = {
  * @param {{actorId: string, onComplete: object|null}} args
  */
 async function onChannelComplete({ actorId, onComplete }) {
-  if (!game.users.activeGM?.isSelf) return;
+  if (!isWarGM()) return;
   if (onComplete?.kind !== "activateHangingGardens") return;
   const allyIds = await chooseRiders(actorId);
   const allyPanels = await chooseRiderPanels(actorId, allyIds);
@@ -366,7 +367,7 @@ const contains = (p, origin, w, h) =>
  */
 async function applyOwnerBuff(owner, platformId) {
   const self = unitOf(owner, currentBoard());
-  const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
+  const turnsPerRound = warRule("turnsPerRound");
   const bonus = resolveTicks(parseTick(SUSTAINABILITY_BONUS), { turnsPerRound });
 
   await applyWorldIntents(
@@ -434,7 +435,7 @@ export function restartedClock(sys, turnsPerRound) {
  * @param {object} platform a board unit snapshot (`fgtPlatformDestroyed`'s payload)
  */
 async function onPlatformDestroyed(platform) {
-  if (!game.users.activeGM?.isSelf) return;
+  if (!isWarGM()) return;
   if (platform?.contentId !== PLATFORM_CONTENT_ID) return;
 
   const owner = platform.ownerId ? unitActor(platform.ownerId) : null;
@@ -442,7 +443,7 @@ async function onPlatformDestroyed(platform) {
 
   // "its Construction is reduced to 0" -- she may rebuild from scratch.
   const self = unitOf(owner, currentBoard());
-  const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
+  const turnsPerRound = warRule("turnsPerRound");
   const bonus = resolveTicks(parseTick(SUSTAINABILITY_BONUS), { turnsPerRound });
 
   await owner.update({

@@ -4,7 +4,7 @@
 
 The **action bar** is one persistent panel showing the controlled unit's options: available actions (Move, Attack, etc.), clickable abilities (Skills and Noble Phantasms), toggleable modes, and field control buttons. It exists only when the player owns the selected token.
 
-The **turn panel** is the action bar's right-hand segment, displaying the acting faction's budget state as pips, unmet compulsions (if any) that block End Turn, and the turn order with declared delays.
+The **turn panel** is the action bar's right-hand segment, displaying the acting faction's budget state as pips, unmet compulsions (if any) that block End Turn, and the turn order with declared delays. Each slot of the order strip is named by its own faction, or by its combatant for the GM's slot (`turnOrderRows`); it once named every slot after the faction acting now (found live 2026-10-18; `test/unit/turn-order-strip.test.mjs`).
 
 The **pending-decisions panel** is a separate floating list, showing every prompt awaiting this player's answer — Counters, Reactions, Luck Checks — ordered by soonest deadline first and linked to the chat cards that hold the buttons and their refusal reasons.
 

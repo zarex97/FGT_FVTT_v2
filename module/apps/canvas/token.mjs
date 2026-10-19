@@ -29,6 +29,7 @@ import { hiddenFromViewer } from "../../rules/concealment.mjs";
 import { factions, currentBoard } from "../../engine/board.mjs";
 import { seesThroughOwnField } from "../../rules/identity.mjs";
 import { markSeenBy } from "../../rules/bloodmarks.mjs";
+import { disguiseOf, seesTruth } from "../../rules/disguise.mjs";
 
 /**
  * Units the viewer's own Units see through a field of theirs, rebuilt at most
@@ -106,6 +107,24 @@ const { Token } = foundry.canvas.placeables;
  * @param {object} actor
  * @returns {string[]}
  */
+/**
+ * The look this client is shown for a disguised Unit, or `null`: his owner and
+ * the GM see the truth (#253 readings 11-12).
+ *
+ * @param {object|null} actor
+ * @returns {{as: string, name: string, img: string, disposition: number|null}|null}
+ */
+function shownLook(actor) {
+  if (!actor) return null;
+  const effectInstances = [...(actor.effects ?? [])]
+    .filter((e) => !e.disabled)
+    .map((e) => ({ defId: e.system?.defId, params: e.system?.params ?? null }));
+  const look = disguiseOf({ effectInstances });
+  if (!look) return null;
+  const viewer = { isGM: Boolean(game.user?.isGM), isTrueOwner: actor.testUserPermission(game.user, "OWNER") };
+  return seesTruth(viewer) ? null : look;
+}
+
 function heldEffects(actor) {
   return [...(actor.effects ?? [])]
     .filter((e) => !e.disabled)
@@ -126,6 +145,25 @@ const HEADINGS = Object.freeze({
  * token's own square and collided with the neighbouring panel's art.
  */
 const MARKER_SCALE = 0.15;
+
+/**
+ * Redraw a Unit's tokens when a Disguise goes on or comes off, on every client:
+ * the face is loaded in `_draw`, which nothing else re-runs (#253 reading 12).
+ * Idempotent.
+ *
+ * @returns {void}
+ */
+export function followDisguises() {
+  if (followingDisguises) return;
+  followingDisguises = true;
+  const redraw = (effect) => {
+    if (effect?.system?.defId !== "disguise") return;
+    for (const token of effect.parent?.getActiveTokens?.() ?? []) token.renderFlags?.set?.({ redraw: true });
+  };
+  Hooks.on("createActiveEffect", redraw);
+  Hooks.on("deleteActiveEffect", redraw);
+}
+let followingDisguises = false;
 
 export class FGTToken extends Token {
   /**
@@ -236,11 +274,50 @@ export class FGTToken extends Token {
   /** @inheritdoc */
   async _draw(options) {
     await super._draw(options);
+    // A Disguise, per viewer: the copied Unit's face on this client's mesh.
+    // The document is untouched, so every other client keeps its own answer
+    // (#253 reading 12).
+    const look = shownLook(this.actor);
+    if (look?.img && this.mesh && !this.mesh.destroyed) {
+      const texture = await foundry.canvas.loadTexture(look.img, { fallback: CONST.DEFAULT_TOKEN });
+      if (texture && this.mesh && !this.mesh.destroyed) {
+        this.texture = texture;
+        this.mesh.texture = texture;
+      }
+    }
     // After `super`, so the marker is added on top of the mesh rather than
     // being wiped by the redraw that creates it.
     this.#facing = this.addChild(new PIXI.Graphics());
     this.#facing.eventMode = "none";
     this.refreshFacing();
+  }
+
+  /** @inheritdoc */
+  _refreshNameplate() {
+    super._refreshNameplate();
+    // ...and the copied Unit's name, to everyone the disguise fools.
+    const look = shownLook(this.actor);
+    if (look?.name && this.nameplate) this.nameplate.text = look.name;
+  }
+
+  /**
+   * The copied Unit's disposition colour, to everyone the disguise fools: an
+   * enemy who looks like your ally is outlined as your ally (#253 reading 12).
+   *
+   * @inheritdoc
+   */
+  getDispositionColor() {
+    const look = shownLook(this.actor);
+    if (!look || !Number.isFinite(look.disposition)) return super.getDispositionColor();
+    const colors = CONFIG.Canvas.dispositionColors;
+    const D = CONST.TOKEN_DISPOSITIONS;
+    switch (look.disposition) {
+      case D.SECRET: return colors.SECRET;
+      case D.HOSTILE: return colors.HOSTILE;
+      case D.NEUTRAL: return colors.NEUTRAL;
+      case D.FRIENDLY: return colors.FRIENDLY;
+      default: return colors.INACTIVE;
+    }
   }
 
   /** @inheritdoc */

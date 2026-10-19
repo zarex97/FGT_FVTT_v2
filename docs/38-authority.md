@@ -65,7 +65,7 @@ The scheduler hook in the engine layer reads the boundary's numbers *before* the
 
 ### Ownership and factions
 
-A player owns their Servants through faction assignment. `FactionOwnership` keeps every actor's Foundry `ownership` object in sync with `game.settings.get("fgt", "factions")` (`module/engine/faction-ownership.mjs:44-75`). When a faction is assigned a player via `setFactions`, or when an actor's `factionId` changes, `syncOne` rewrites that actor's ownership to grant the owning player full permission and revoke everyone else's (`module/engine/faction-ownership.mjs:40-42`).
+A player owns their Servants through faction assignment. `FactionOwnership` keeps every actor's Foundry `ownership` object in sync with its own War's roster (`MatchData.factions`, read by `board.factions(war)`; the world setting `factions` only seeds a new War). A roster change resyncs only that War's Units (`warOfUnit`), because two Wars both have a "faction-1" and resyncing the world against one roster handed one table's players the other's Servants (`module/engine/faction-ownership.mjs:44-75`). When a faction is assigned a player via `setFactions`, or when an actor's `factionId` changes, `syncOne` rewrites that actor's ownership to grant the owning player full permission and revoke everyone else's (`module/engine/faction-ownership.mjs:40-42`).
 
 The sync is GM-only: a player assignment takes effect only on the GM's client, because only the GM can write ownership on behalf of another user (`module/engine/faction-ownership.mjs:18`). Hooks fire on all connected clients and no-op for players.
 
@@ -77,13 +77,14 @@ The sync is GM-only: a player assignment takes effect only on the GM's client, b
 
 3. **Log entries carry no authority.** They are written by whoever produced them, duplicating one is harmless, and dropping one loses audit history. A player writes `log` intents locally even if they target units they do not own (`module/engine/applier.mjs:51-53`).
 
-4. **Only the active GM's requests execute.** The receiver checks `game.users.activeGM?.isSelf` before handling a request, so requests from a player or a backgrounded GM tab are silently dropped (`module/net/socket.mjs:156-157`).
+4. **A request runs on the GM of the requester's War.** Each War of several played at once is run by its own GM client, the active GM looking at the War's scene (`module/engine/war.mjs#gmForWar`, ruled 2026-10-18), because the engine reads the board off that client's canvas. `FGTSocket.request` names that GM (`targetUserId`) and the War (`warId`); only the named GM handles it, and refuses it with `NO_WAR_GM` if it is no longer looking at that War. A War whose scene no GM is looking at is refused before sending, out loud, rather than resolved on another War's board. A world of one War routes to the active GM, as before. `net/` sits below the engine, so `fgt.mjs` hands the router in (`FGTSocket.setRouter`).
+4a. **GM-side hooks run on the War's GM.** Every `activeGM.isSelf` gate became `isWarGM(war)`, with the War of the document the hook fired for (a token's scene, an actor's `warId`, the Combat itself): these hooks fire on every client, and with two GMs connected each must answer only for its own War.
 
 5. **Prompts route through the GM.** `io.prompt` calls `FGTSocket.request("prompt", ...)` instead of asking the user directly, because the question is usually being asked by a rule resolving on the GM client (`module/engine/io.mjs:1112-1114`).
 
 6. **A `null` response to a prompt means the player declined.** The promise resolves to `null` rather than rejecting (`module/net/operations.mjs:339-346`).
 
-7. **Faction ownership is written by the GM.** A player's faction assignment is read from the settings and written to every actor's ownership by sync hooks that fire on all clients and no-op for anyone but the GM (`module/engine/faction-ownership.mjs:18`, `module/engine/faction-ownership.mjs:35-42`).
+7. **Faction ownership is written by the GM.** A player's faction assignment is read from its War's roster and written to every actor's ownership by sync hooks that fire on all clients and no-op for anyone but the GM (`module/engine/faction-ownership.mjs:18`, `module/engine/faction-ownership.mjs:35-42`).
 
 ## Traps and anti-patterns
 

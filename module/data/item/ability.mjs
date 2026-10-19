@@ -90,6 +90,15 @@ function abilityCommon() {
     ignoresNPGate: new fields.BooleanField({ initial: false }),
     toggleWindow: new fields.StringField({ required: false, blank: true, initial: "", choices: ["", "any"] }),
     toggledAt: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+    // HOW the mode last ended: `manual` (its owner's press), `hit`, or a forced
+    // switch's own word. Written with `active: false`; read by `onModeEnded`,
+    // which pays `onDeactivate[endedBy]` (#253 reading 14).
+    endedBy: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+    // What a mode's END pays, by how it ended: Doppelganger's *"When
+    // Doppelganger is manually deactivated by Yan Qing, apply the following
+    // effects to himself"* is `{manual: [phases]}` (#253). Phases run on the
+    // owner, as a self-targeted Skill's would.
+    onDeactivate: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     // The tick a Command-Spell suspension lifts at; null when nothing has
     // suspended this ability. Read by `rules/modes.mjs#canToggleMode`, which
     // gives it precedence over `ForceMode` -- and that precedence IS Raikou's

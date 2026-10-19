@@ -13,6 +13,7 @@
  */
 
 import * as board from "../engine/board.mjs";
+import { currentWar, sceneIdOfWar } from "../engine/war.mjs";
 import { createFaction, FACTION_COLORS } from "../rules/factions.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -39,7 +40,15 @@ export class FactionConfig extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext() {
     const factions = board.factions();
     const players = game.users.filter((u) => !u.isGM).map((u) => ({ id: u.id, name: u.name }));
+    // Whose roster this is: the War on the scene on screen, or, with no War,
+    // the default a new War starts from. Two Wars have two rosters.
+    const war = currentWar();
+    const scene = war ? game.scenes.get(sceneIdOfWar(war) ?? "") : null;
+    const scope = war
+      ? game.i18n.format("FGT.Factions.ScopeWar", { war: scene?.name ?? war.name ?? war.id })
+      : game.i18n.localize("FGT.Factions.ScopeDefault");
     return {
+      scope,
       factions: factions.map((f) => ({
         ...f,
         // Ticked per faction rather than shared, because a player's state

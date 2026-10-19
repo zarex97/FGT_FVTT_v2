@@ -198,6 +198,11 @@ export function resolveTargets(spec, caster, board, placement = {}) {
       return drop(u, "the Unit Attacking");
     }
     const relation = relationOf(caster, u, board);
+    // PC.7 per target (#249 reading 14): a concealed caster's Skill that may not
+    // reach an enemy drops every enemy, the aiming session's and the use's
+    // alike (`rules/concealment.mjs#veiledSpec`). The preview once said "Legal"
+    // where the use refused (#253, live).
+    if (sel.veiledFromEnemies && relation === "enemy") return drop(u, "Presence Concealment forbids this while concealed");
     // `civilian`: a neutral Civilian, and nothing else neutral. Mystic Eyes is
     // *"used on an enemy Unit"* and its first tier is *"Humans (including
     // Masters)"*, which only makes sense if Civilians are in it (#188 reading 15).
@@ -367,6 +372,13 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     }
   }
 
+  // 4c. SIZE. *"Only units of his same size"* (#253 reading 10): a footprint of
+  // as many panels as the caster's, so a 1x1 Servant cannot be a 3x3 Bašmu.
+  if (sel.sameSizeAsCaster) {
+    const size = (u) => (u.panels?.length || 1);
+    survivors = survivors.filter((u) => size(u) === size(caster) || drop(u, "not the caster's size"));
+  }
+
   // 5. KIND FILTER — platforms and structures are excluded unless asked for.
   const kinds = sel.kinds ?? null;
   survivors = survivors.filter((u) => {
@@ -388,7 +400,7 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     if (u.kind === "platform" || u.kind === "structure") return drop(u, `a ${u.kind}`);
     return true;
   });
-  if (limits.forbidCivilians === "ifGoodAligned" && caster.alignment?.moral === "good") {
+  if (limits.forbidCivilians === "ifGoodAligned" && caster.alignment?.morality === "good") {
     const civilians = survivors.filter((u) => u.kind === "civilian");
     if (civilians.length > 0) {
       errors.push(
@@ -1155,6 +1167,9 @@ function withinAnchorRange(spec, from, panel, r) {
 
 function anchorRange(spec, caster) {
   if (typeof spec?.range === "number") return spec.range;
+  // Anywhere on the board: Doppelganger's *"any other character"* is not a
+  // reach the sheet states, and no number stands for it (#253 reading 10).
+  if (spec?.range === "board") return Infinity;
   return (caster?.range ?? 1) + (spec?.rangeBonus ?? 0);
 }
 

@@ -50,7 +50,7 @@ Home bases are painted as Foundry Regions with grid shapes, one per faction, tag
 
 For each container, `createMasterFor` rolls the Master's setup lines (Health, Agility, Luck, Rank, Command Spells, Base Attack MAG) off the plan returned by `plansFor(ruleset).master` (`module/engine/war-setup.mjs:213-263`). A Normal Master's ZON is looked up by container class; an Advanced Master takes the template's 2 (`module/engine/war-setup.mjs:191-193`).
 
-`prepareSummon` readies a Servant, rolls setup lines (Health, Agility, Luck), and returns the plan WITHOUT writing (`module/engine/summon.mjs:88-108`). `commitSummon` creates the actor, applies setup line values (a Servant that cannot be damaged gets no Health at all, #180) and grants, and sets the Master and faction (`module/engine/summon.mjs:170-274`). Partners (linked groups marked `summonTogether`) are summoned in the same commit, cross-linking their `memberIds` (`module/engine/summon.mjs:250-271`).
+`prepareSummon` readies a Servant, rolls setup lines (Health, Agility, Luck), and returns the plan WITHOUT writing (`module/engine/summon.mjs:88-108`). **The plan is the Servant's own ruleset's**, read off its pack (`rulesetOfPack`), not the match's: the wizard rolls before its war's Combat exists, so `warRuleset()` read the world setting or the previous war, and a Normal war set up in an Advanced world rolled its Servants on the Advanced plan, Health flat and Agility 1d2 (found live 2026-10-18; `test/unit/summon-plan-ruleset.test.mjs`). A Normal Lancer rolls Max Luck as `−2 + 1d20`; a rolled 1 is floored at 0 (ruled 2026-10-18: the plan line's `min`, applied by `resolveSetupPlan`). `commitSummon` creates the actor, applies setup line values (a Servant that cannot be damaged gets no Health at all, #180) and grants, and sets the Master and faction (`module/engine/summon.mjs:170-274`). Partners (linked groups marked `summonTogether`) are summoned in the same commit, cross-linking their `memberIds` (`module/engine/summon.mjs:250-271`).
 
 `commitWar` then **seats the Servants summoned with the drawn one** (`seatPartners`, §46.4-D3): `commitSummon` brings the second twin with no Master and no faction, and the wizard used to write the faction, the Contract and the token of the drawn Servant alone, so the second twin of every war-setup pair stood on no side, under no Master and off the board. The partner takes the slot's faction and `classContainer`, and a Contract to the slot's Master through `setContract`; a Servant summoned alone has no `memberIds` and seats nobody.
 
@@ -102,9 +102,23 @@ Arturia arrives with [Avalon] on an 8 of a d8.
 
 6. **Conquest contracts are atomic.** Freeing and contracting are one descriptor list so no intermediate Free state exists (`module/rules/contract.mjs:188-191`).
 
-7. **The war's Region is a world setting, not a match property.** The summon dialog asks for it; `setWarRegion` writes it so it survives the war and fuels Region-based grants live (`module/engine/summon.mjs:287-295`). **The dialog's Region list is `Object.keys(REGION_ADJACENCY)`** (`module/apps/summon-dialog.mjs`), so a Region a Servant is from but the graph does not hold cannot be chosen there: Quetzalcoatl's `centralAmerica` and `southAmerica` and Anastasia's `russia` were missing, and a war giving either her +1 rank could be made only by typing the exact id into the wizard's free-text field (#121). `test/unit/environment-rest.test.mjs` holds every `region` id in `packs/_source/servants` to being a key of the graph.
+7. **The war's Region is the War's, like every War Rule.** The wizard writes it onto the War at commit; the summon dialog asks for it and `setWarRegion` writes it onto the current War, never onto the world (`module/engine/summon.mjs#setWarRegion`). A War holding `region: null` was set up in no Region and is never read through to the world's default. **The dialog's Region list is `Object.keys(REGION_ADJACENCY)`** (`module/apps/summon-dialog.mjs`), so a Region a Servant is from but the graph does not hold cannot be chosen there: Quetzalcoatl's `centralAmerica` and `southAmerica` and Anastasia's `russia` were missing, and a war giving either her +1 rank could be made only by typing the exact id into the wizard's free-text field (#121). `test/unit/environment-rest.test.mjs` holds every `region` id in `packs/_source/servants` to being a key of the graph.
+
+## War Rules and several Wars at once
+
+A world holds several **Wars**, each bound to its board scene and played at the same time (`CONTEXT.md`). Every choice that shapes a War is a **War Rule** (`module/domain/war-rules.mjs`, 23 rules and the Faction roster): the war type, ruleset, ◈, board size, difficulty, Region, Grail threshold, draw policy, Master mode, the three Round gates, the three timeouts, Conquest, Grand Order, Master Protection, Riding Attack lines, the ranged minimum, Discover attempts, closed information and Counter chains.
+
+1. **Each War holds its own.** `MatchData` declares one field per rule, built from the table. `warRule(key)` (`module/engine/war.mjs`) is the one reader: the War of the scene this client is looking at, else a War from before the move (bound to no scene), else the world's default when there is no War at all. `test/unit/war-rules-readers.test.mjs` fails any other reader of these world settings, and any reader of `game.combat` or `game.combats.active`.
+2. **The world settings are defaults for a new War.** Hidden from the settings window; edited in the "Defaults for new Wars" menu (`WarRulesApp.Defaults`). Changing one changes no War in play, so they carry no mid-match lock.
+3. **The wizard writes every rule and its own roster.** The War tab shows eight rules in its grid and the rest under "Rules of this War" (the `fgt-war-rule-fields` partial); the Factions tab edits the new War's roster, seeded from the world's default roster; the Confirm tab names every War Rule. `commitWar` binds the War to its scene and writes every rule, `turnsPerRound` included (once dropped), the roster, and each Unit's `warId`.
+4. **A second War is built on another scene while the first runs.** The wizard locks only when the chosen scene already holds a started War. With another War in play the new scene is viewed, not activated, so the other table's players stay where they are.
+5. **The War rules window edits one War.** Opened from the turn panel's scale button (GM only), it edits the War of the scene on screen; a `locked` rule is disabled with its reason once that War has started, and `setWarRules` refuses it out loud if pressed.
+6. **Each War is run by its own GM client** (ruled 2026-10-18). The engine reads the board off `canvas`, so a press resolves on the GM looking at its War's scene (`gmForWar`, `docs/38-authority.md`).
+7. **Schema 3 migrates a world from before.** Every War gets the world's values for the rules it never stored, keeps the five it did (a Region of none reads through to the world's, as the board did), and is bound to the scene most of its Units stand on (`module/migration/migrations.mjs`).
 
 ## Traps and anti-patterns
+
+**A wizard field that nothing writes.** The War tab's "Turns per Round" was edited, shown on the Confirm tab and dropped: `commitWar` wrote six of the draft's fields and `turnsPerRound` was not one, so a war set up at 8 played at the world's ◈ (found 2026-10-18). `commitWar` now walks `WAR_RULE_KEYS`, so a rule added to the table is written without a second list to forget it in.
 
 **Masters' ZON was baked into Base Attack at setup.** A Normal Master's ZON is looked up by container class, and it was once added to the Master's Base Attack during `createMasterFor`, leaving an Advanced Master's 2 to flow through derivation. Every Servant's class-based ZON radius is then derived from Base Attack, so a Servant paired with a Normal Master started with raised ZON and every attack within it at +5d10. When a war switched rulesets mid-setup, Normal Masters already created carried an inflated Base Attack that did not survive a Servant re-summon (ruled out by the commit guard at `module/engine/summon.mjs:180-189`), and Servants re-rolled against the war's new ruleset ended up with mismatched ZON. **Write ZON on the Master, not Base Attack** (`module/engine/war-setup.mjs:257-259`) — it is a Master's own property and should not flow through to a Servant's derivation.
 
@@ -119,7 +133,7 @@ Arturia arrives with [Avalon] on an 8 of a d8.
   player can observe only by their effects. Whether that is a UX gap or a deliberate fog is a design
   question, but it is not an accident of wiring: nothing was ever built to display it.
 
-- **Why is the Region a world setting rather than a match property?** Every war has exactly one Region, and `board.warRegion` reads it. Moving it to `Combat.system.region` would colocate it with `warType`, `ruleset`, and `difficulty` — but the Region's effect on ranks must be computed live, and a setting survives a match, which a property does not.
+- **Answered (2026-10-18): the Region is the War's.** A world holds several Wars at once, so a Region held in a world setting became every War's. It lives on the War with the other War Rules; the world setting only seeds the next War.
 
 - **Answered: it is not atomic, and it cannot be with this ordering.** `memberIds` is cross-linked
   after every partner exists, because that is *"the only moment every actor's id exists"* --
@@ -131,6 +145,12 @@ Arturia arrives with [Avalon] on an 8 of a d8.
   offers none. Recovering would mean re-running the cross-link, not re-summoning.
 
 - ~~When does `summonedAt` matter?~~ Answered by #104: it did not. Nothing read it, and it is deleted.
+
+### What the wizard shows
+
+The Factions tab names each faction's players (`playerNames`, from `userIds`), and the Confirm tab names the war type, ruleset, difficulty and Master setup mode by their labels, as the War tab does: both printed raw ids and keys before (found live 2026-10-18).
+
+Each tab scrolls on its own when its content outgrows the window (`.fgt-setup__tab` is the flex child with `overflow-y: auto`, `styles/src/_apps.scss`). The part's `scrollable: [""]` alone only names the container for ApplicationV2's scroll restore; it gives the tab no height, so the Containers and Servants tabs ran past the window's bottom and could not be scrolled (found live 2026-10-18).
 
 ### The Master Essence draft (#241)
 

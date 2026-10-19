@@ -2,7 +2,7 @@
 
 ## What it is
 
-The scheduler runs the game's clock. A **match** is a sequence of **Rounds**, each comprising a fixed number of **Turns** (the ◈ value from `module/settings.mjs:23`). On each turn boundary, the active unit's temporary effects end or tick forward, handlers listening to `turnEnd` or `roundEnd` fire to charge abilities and resolve standing rules, and the **next faction** in turn order is elected.
+The scheduler runs the game's clock. A **match** is a sequence of **Rounds**, each comprising a fixed number of **Turns** (the ◈, a War Rule each War holds: `warRule("turnsPerRound")`, `module/engine/war.mjs`). On each turn boundary, the active unit's temporary effects end or tick forward, handlers listening to `turnEnd` or `roundEnd` fire to charge abilities and resolve standing rules, and the **next faction** in turn order is elected.
 
 Turn order is **rolled per Round**, not once at setup (`module/documents/combat.mjs:126-128`). Ties are re-rolled among the tied factions only, for the contested positions only. The GM always takes the last slot and does not roll. A faction may **delay** its own turn to reorder itself within the pending queue without losing its turn entirely (`module/engine/turn-order.mjs:63-81`).
 

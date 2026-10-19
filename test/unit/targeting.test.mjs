@@ -706,7 +706,8 @@ describe("limits and legality", () => {
   });
 
   it("blocks a good-aligned Servant's AoE NP when a Civilian is in the area", () => {
-    const good = { ...caster, alignment: { moral: "good" } };
+    // The live shape (`data/actor/servant.mjs`): `morality`, never `moral`.
+    const good = { ...caster, alignment: { order: "lawful", morality: "good" } };
     const board = boardWith([good, unit("civ", 6, 7, { kind: "civilian", faction: null })]);
     const r = resolveTargets(
       { ...spec, limits: { forbidCivilians: "ifGoodAligned" },

@@ -1,0 +1,22 @@
+# Yan Qing's Skillful Star (#253 reading 8).
+#
+# S.Crit Up as ruled in #132, an aura its caster holds, with its holder left
+# out: "to all allied Units within a 2 panel area of himself EXCEPT HIMSELF".
+# A sibling of `sCritUpPollux`, which widens the same aura; this one narrows it.
+schema: 1
+id: sCritUpOthers
+name: "S.Crit Up"
+description: "Crit Chance of all allied Units within a 2 panel area of this Unit, but not this Unit, is increased by X%. Removed only from this Unit, which ends it for all of them."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+bypassesImmunity: true
+rules:
+  - key: Aura
+    radius: 2
+    relations: [ally]
+    stacking: magnitudeStacks
+    elements:
+      - { key: CritModifier, aspect: chance, value: "@magnitude" }

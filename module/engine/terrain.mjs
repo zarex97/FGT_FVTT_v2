@@ -27,6 +27,7 @@ import { parseTick, resolveTicks, expiryReached } from "../domain/tick.mjs";
 import { chebyshevDisc } from "../domain/geometry.mjs";
 import { leftTerrainEffects } from "../rules/terrain.mjs";
 import { currentBoard, unitActor } from "./board.mjs";
+import { warRule, currentWar, isWarGM, warOfUnit } from "./war.mjs";
 
 export const Terrain = {
   /** Register the hooks. Idempotent per Foundry session; GM-gated internally. */
@@ -40,7 +41,8 @@ export const Terrain = {
     // deleting it by hand. There is no route by which the buff goes and the
     // ground stays.
     Hooks.on("deleteActiveEffect", async (effect) => {
-      if (!game.users.activeGM?.isSelf) return;
+      // The bearer's War's GM: the hook fires on every client.
+      if (!isWarGM(warOfUnit(effect?.parent))) return;
       const defId = effect?.system?.defId;
       const unitId = effect?.parent?.id;
       if (!defId || !unitId) return;
@@ -85,7 +87,7 @@ export function terrainRegionsFor(tag) {
  * @returns {number}
  */
 function nowTick() {
-  return game.combat?.system?.globalTurn ?? 0;
+  return currentWar()?.system?.globalTurn ?? 0;
 }
 
 /**
@@ -159,7 +161,7 @@ export async function paintTerrain({
         // An expiry rather than a countdown, for the reason Ch. 04 gives.
         duration
           ? tick + resolveTicks(parseTick(duration), {
-            turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+            turnsPerRound: warRule("turnsPerRound"),
           })
           : null,
       ),

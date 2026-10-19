@@ -1,0 +1,18 @@
+# Appendix A's `Dmg Up` with no category: "damage dealt is increased by X%".
+# Ruffian's Agility spend buys it for one Combat Process (#253 reading 2).
+# `dmgUp`, not `atkUp`: it takes no reduced magnitude against a Noble Phantasm,
+# as Dmg Up (Gods); Ruffian's own clause keeps it off his NP by its predicate.
+schema: 1
+id: dmgUp
+name: "Dmg Up"
+description: "All damage dealt is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: dmgUp
+    direction: dealt
+    value: "@magnitude"

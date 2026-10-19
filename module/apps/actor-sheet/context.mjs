@@ -31,6 +31,7 @@ import {
   resourceBar, parameterTiles, baseAttackTiles, abilityState, abilityCost, abilityNamesOf,
   groupEffects, describeModifier, remainingTurns,
 } from "./present.mjs";
+import { warRule, currentWar } from "../../engine/war.mjs";
 
 /**
  * Present one ability to the sheet.
@@ -212,7 +213,7 @@ export function buildContext(actor, sheet) {
     snapshot,
     tick,
     round,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    turnsPerRound: warRule("turnsPerRound"),
 
     // Classified, so the template renders a toggle for a mode, a button for an
     // attack, and plain text for a passive -- rather than one button that opens
@@ -240,14 +241,14 @@ export function buildContext(actor, sheet) {
     // that always refuses is worse than none, as the line above says.
     canNormalAttack: !hasGranted(snapshot, GRANTS.noNormalAttack),
     canRollSetup: isMaster && game.user.isGM,
-    setupLocked: Boolean(game.combat?.started),
+    setupLocked: Boolean(currentWar()?.started),
 
     // The snapshot's parameters are the third argument: the tile shows the
     // written Rank and the Rank in force together, and only the projection
     // knows the second one.
     parameters: parameterTiles(system.parameters, system.grantedSteps, snapshot?.parameters),
     overview: overviewContext(actor, snapshot),
-    abilityCards: abilitiesContext(actor, snapshot, game.settings.get("fgt", "turnsPerRound")),
+    abilityCards: abilitiesContext(actor, snapshot, warRule("turnsPerRound")),
     effects: effectsContext(actor, snapshot, tick),
     details: detailsContext(actor, snapshot),
     header: headerContext(actor, snapshot),

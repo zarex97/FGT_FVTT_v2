@@ -73,7 +73,9 @@ describe("the boundary claim", () => {
   });
 
   it("still elects a single user first, which is the cheap half", () => {
-    expect(source).toMatch(/game\.users\.activeGM\?\.isSelf/);
+    // This War's GM (`engine/war.mjs#isWarGM`): the active GM in a world of one
+    // War, the GM looking at the War's scene when several are played at once.
+    expect(source).toMatch(/function isScheduler\(combat\) \{[\s\S]{0,400}?return isWarGM\(combat\);/);
   });
 
   it("carries the claim on the match, where both connections can see it", () => {

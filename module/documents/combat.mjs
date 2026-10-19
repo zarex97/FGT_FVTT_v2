@@ -13,6 +13,7 @@
 
 import { resolveTurnOrder, computeTurnOrder, factionOfCombatant, carryDelaysForward } from "../engine/turn-order.mjs";
 import { factions as rosterFactions, faction as factionById } from "../engine/board.mjs";
+import { warRule } from "../engine/war.mjs";
 
 export class FGTCombat extends Combat {
   /* ------------------------------------------------------------------------ */
@@ -32,7 +33,7 @@ export class FGTCombat extends Combat {
    * @returns {Promise<object|null>} the created Combatant
    */
   async addFaction(factionId) {
-    const faction = factionById(factionId);
+    const faction = factionById(factionId, this);
     if (!faction) {
       ui.notifications.warn(game.i18n.format("FGT.Combat.UnknownFaction", { id: factionId }));
       return null;
@@ -77,7 +78,8 @@ export class FGTCombat extends Combat {
    */
   async syncFactions({ withGM = false } = {}) {
     const present = new Set(this.combatants.map((c) => c.system?.factionId).filter(Boolean));
-    const missing = rosterFactions().filter((f) => !present.has(f.id));
+    // This War's roster, not the one on whatever scene the GM is looking at.
+    const missing = rosterFactions(this).filter((f) => !present.has(f.id));
 
     if (missing.length > 0) {
       await this.createEmbeddedDocuments("Combatant", missing.map((f) => ({
@@ -97,7 +99,7 @@ export class FGTCombat extends Combat {
 
   /** How many turns a Round lasts — the ◈ value. */
   get turnsPerRound() {
-    return game.settings.get("fgt", "turnsPerRound");
+    return warRule("turnsPerRound", this);
   }
 
   /**

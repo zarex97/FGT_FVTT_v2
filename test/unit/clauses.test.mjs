@@ -65,13 +65,22 @@ describe("Asterios reproduces the list his audit was run against", () => {
     expect(parsed.warnings).toEqual([]);
   });
 
+  // Sheets copied in on 2026-10-19 for Servants still to come. The scan reads
+  // the whole folder, so a sheet joins it the day it lands, before anyone has
+  // named its Clauses. A name leaves this list when its audit issue opens.
+  const NOT_YET_AUDITED = [
+    "Anastasia", "Chiron", "Cú Chulainn", "Diarmuid", "Durga", "Gawain", "Gilles",
+    "Gilles de Rais", "Iskandar", "Lanceturia", "Rama", "Shakespeare", "Sieg",
+    "Siegfried", "Zhang Jue",
+  ];
+
   it("names every opening Clause in the audit programme's scope", () => {
     // 31 across the roster, and a `.pre` left in an issue body is a ref that
     // will have to be renamed after findings already cite it.
     const inScope = readdirSync(SHEET_DIR)
       .filter((f) => f.endsWith(".md"))
       .map((f) => f.replace(/^Copia de /, "").replace(/\.md$/, ""))
-      .filter((n) => !["Proto Gil", "Yan Qing"].includes(n));
+      .filter((n) => !["Proto Gil", ...NOT_YET_AUDITED].includes(n));
     for (const name of inScope) {
       const unnamed = allClauses(named(name)).filter((c) => c.ref.endsWith(".pre"));
       expect(unnamed.map((c) => c.ref), name).toEqual([]);

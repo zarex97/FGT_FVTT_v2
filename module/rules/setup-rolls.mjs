@@ -331,7 +331,10 @@ export function resolveSetupPlan(plan, rolls, signs = {}) {
     // -- `resolveSummonVariant`'s one caller here. `line.base + signed` would
     // string-concatenate rather than add, so a mapped string is the value
     // outright; every other line's `map` entries are numbers, unaffected.
-    const value = typeof signed === "string" ? signed : line.base + signed;
+    const sum = typeof signed === "string" ? signed : line.base + signed;
+    // A line's floor (`min`): a rolled maximum never goes below it (the
+    // Normal Lancer's Luck, ruled 2026-10-18).
+    const value = typeof sum === "number" && typeof line.min === "number" ? Math.max(line.min, sum) : sum;
     resolved[line.id] = value;
     return { ...line, rolled: mapped, applied: signed, value };
   });

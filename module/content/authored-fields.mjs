@@ -78,6 +78,8 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "bypassesCategoryLimit", "refusesReactionsUnlessFaster", "offersSpellCategory", "reactionFree",
   "withdrawsFromAttack", "legionCost", "endsOnSkillSeal", "swapsPositions", "insteadOfDamage",
   "countsAsNormalAttack", "openingChoice", "toggleWindow", "cooldownOverride",
+  // What a mode's end pays, by how it ended (#253, Doppelganger).
+  "onDeactivate",
   // Avalon (#230): a Noble Phantasm that costs its Master nothing; an Item
   // whose rules run while it is held, and the abilities it gives its holder.
   "noMasterCost", "freeServantCost", "ignoresNPGate", "worksWhenHeld", "grants", "bondUnitId", "bondMasterId", "grantClocks",

@@ -56,11 +56,14 @@ the subject of the first entry under *Traps and anti-patterns* below.
 | `module/fgt.mjs` | System entry point — the init/setup/ready sequence |
 | `module/engine/listeners.mjs` | The engine's document listeners, in one ordered list that `fgt.mjs` binds at `ready` and the test world binds in every world |
 | `module/config.mjs` | `CONFIG.FGT` — the public configuration surface |
-| `module/settings.mjs` | Game settings registration |
+| `module/settings.mjs` | Game settings registration; the War Rules' world defaults (a new War's seed, not a running War's rules) |
 | `module/engine/intents.mjs` | The intent vocabulary, ordering and validation |
 | `module/engine/applier.mjs` | The write choke point |
 | `module/engine/io.mjs` | The concrete write adapter — the `io` the applier calls |
 | `module/domain/stamped-record.mjs` | The Turn and Round Records — a rule both the schema and the write path derive from |
+| `module/domain/war-rules.mjs` | The War Rules: every choice that shapes one War, as one table the schema, wizard, window and migration read |
+| `module/engine/war.mjs` | Which War this is (the scene's), its rules (`warRule`), and which GM runs it (`gmForWar`) |
+| `module/apps/war-rules.mjs` | The War rules window: one War's rules, or the defaults a new War starts from |
 | `module/net/socket.mjs`, `module/net/operations.mjs` | The GM proxy, for writes a client may not perform |
 
 ## How it works

@@ -41,7 +41,8 @@ describe("the sheet asks the GM to use a Skill", () => {
 
   it("so does a mode whose switch-on is a use", () => {
     const body = between(sheet, "if (active && pricedOnEntry(item)) {", "// Stamped on BOTH directions");
-    expect(body).toContain("#relaySkill(actor, item)");
+    // With the placement a mode that picks on entry chose (#253).
+    expect(body).toMatch(/#relaySkill\(actor, item(, placement)?\)/);
     expect(body).not.toContain("skill-use.mjs");
   });
 
@@ -83,11 +84,11 @@ describe("a following area is repainted by one client", () => {
   const hooks = read("module/engine/movement-hooks.mjs");
   const onMove = hooks.slice(hooks.indexOf("async function onMove"));
 
-  it("gates every repaint on the active GM", () => {
+  it("gates every repaint on the GM of the token's own War", () => {
     const calls = [...onMove.matchAll(/await repaintFollowing\(/g)].map((m) => m.index);
     expect(calls.length).toBeGreaterThanOrEqual(2);
     for (const at of calls) {
-      expect(onMove.slice(Math.max(0, at - 700), at), `a repaintFollowing at ${at}`).toMatch(/activeGM\?\.isSelf/);
+      expect(onMove.slice(Math.max(0, at - 700), at), `a repaintFollowing at ${at}`).toMatch(/isWarGM\(combat\)/);
     }
   });
 
@@ -95,7 +96,7 @@ describe("a following area is repainted by one client", () => {
     const calls = [...onMove.matchAll(/await dropLeftTerrainEffects\(/g)].map((m) => m.index);
     expect(calls.length).toBeGreaterThanOrEqual(2);
     for (const at of calls) {
-      expect(onMove.slice(Math.max(0, at - 700), at), `a dropLeftTerrainEffects at ${at}`).toMatch(/activeGM\?\.isSelf/);
+      expect(onMove.slice(Math.max(0, at - 700), at), `a dropLeftTerrainEffects at ${at}`).toMatch(/isWarGM\(combat\)/);
     }
   });
 });
