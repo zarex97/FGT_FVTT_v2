@@ -3,7 +3,8 @@ id: 2026-10-19-relation-any-passed-validation
 found: test
 kind: unknown-value-falls-to-default
 status: fixed
-reviewed: false
+reviewed: true
+pattern: unknown-value-falls-to-default
 ---
 **Expected:** Doppelganger's `selection: { relations: [any] }` either targets every Unit, as Serenity's Zabaniya cloud reads `any`, or `npm run validate:content` refuses it.
 **Actual:** validation passed, and every use refused: "No legal targets: Caster is enemy; this ability targets any." Two readers of one word: the scheduler's `nearby` handler accepts `any` (`engine/scheduler.mjs#matchesRelation`), the targeting resolver never did (`rules/targeting/resolve.mjs` step 4), and the validator checked neither.

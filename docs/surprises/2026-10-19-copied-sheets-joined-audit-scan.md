@@ -1,9 +1,10 @@
 ---
 id: 2026-10-19-copied-sheets-joined-audit-scan
 found: test
-kind: source-scan-pins-text
+kind: scope-read-from-folder
 status: fixed
-reviewed: false
+reviewed: true
+pattern: scope-read-from-folder
 ---
 **Expected:** copying fifteen new Character Sheets into `char_orig_sheets/` changes nothing until one of them is audited; unskipping Yan Qing in `clauses.test.mjs` is the only change that test should see.
 **Actual:** `names every opening Clause in the audit programme's scope` failed with "Anastasia: expected [ 'MEC.pre', 'SH.pre', 'SK.pre' ] to deeply equal []".

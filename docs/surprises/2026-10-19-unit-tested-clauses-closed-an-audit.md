@@ -3,7 +3,8 @@ id: 2026-10-19-unit-tested-clauses-closed-an-audit
 found: user
 kind: live-client-only
 status: fixed
-reviewed: false
+reviewed: true
+pattern: live-client-only
 ---
 **Expected:** Yan Qing's audit could close with 71 Clauses pressed or observed and 4 "unit-tested" (DP.size, NP.dup, NP.1.agi, PC.1.tails), as Danzō's closed with one (#249 PC.7).
 **Actual:** the user: "that's unacceptable, everything must be pressed or observed."

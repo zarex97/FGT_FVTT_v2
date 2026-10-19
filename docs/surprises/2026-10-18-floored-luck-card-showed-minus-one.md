@@ -3,7 +3,8 @@ id: 2026-10-18-floored-luck-card-showed-minus-one
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** a Normal Lancer whose Luck die came up 1 shows Max Luck 0 on the wizard card, with arithmetic that reaches 0.
 **Actual:** live, `prepareSummon` floored the value to 0, but the card's arithmetic read "-2 + 1 (1d20)" beside the 0: an answer its own working does not reach.
