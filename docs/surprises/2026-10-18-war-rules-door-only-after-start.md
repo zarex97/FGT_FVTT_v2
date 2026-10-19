@@ -3,7 +3,8 @@ id: 2026-10-18-war-rules-door-only-after-start
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** the GM opens a War's rules from the turn panel at any time, above all before the War starts, when the locked rules can still change.
 **Actual:** on the new War before it started, no scale button was on screen: `document.querySelector('[data-action="warRules"]')` was null.

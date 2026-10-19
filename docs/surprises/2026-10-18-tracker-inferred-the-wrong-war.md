@@ -3,7 +3,8 @@ id: 2026-10-18-tracker-inferred-the-wrong-war
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** with every reader asking `currentWar()`, each scene's viewers see that scene's War in the combat tracker too.
 **Actual:** on "Great Holy Grail War" the GM's tracker showed `aRHzNDQHp68Hhs52`, a stray empty global combat, while the turn panel and the rules read War `2SYtb3A7ObpJ92mI`.

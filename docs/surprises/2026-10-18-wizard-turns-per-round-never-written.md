@@ -3,7 +3,8 @@ id: 2026-10-18-wizard-turns-per-round-never-written
 found: test
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** the War tab's "Turns per Round" field sets the ◈ of the war it builds.
 **Actual:** the field is edited, shown on the Confirm tab, and then dropped. `commitWar` writes `warType`, `ruleset`, `homeBaseDepth`, `region`, `difficulty` and `grailThreshold` to the match, and nothing writes `turnsPerRound` anywhere. Every Tick reader keeps reading the world setting (`game.settings.get("fgt", "turnsPerRound")`, 69 sites), so a war set up at 8 plays at whatever the world says.

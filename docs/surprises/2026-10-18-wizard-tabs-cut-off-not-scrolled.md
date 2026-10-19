@@ -3,7 +3,8 @@ id: 2026-10-18-wizard-tabs-cut-off-not-scrolled
 found: user
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** every setup-wizard tab marked `scrollable: [""]` scrolls when its content is taller than the window.
 **Actual:** the user could not reach the bottom of the Containers tab or of the Servants tab after Roll all; the rows ran past the window and no scrollbar appeared.

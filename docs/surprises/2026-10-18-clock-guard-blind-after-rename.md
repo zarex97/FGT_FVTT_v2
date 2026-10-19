@@ -3,7 +3,8 @@ id: 2026-10-18-clock-guard-blind-after-rename
 found: test
 kind: passes-for-the-wrong-reason
 status: fixed
-reviewed: false
+reviewed: true
+pattern: passes-for-the-wrong-reason
 ---
 **Expected:** replacing `game.combats.active` with `currentWar()` leaves `test/unit/clock-reads.test.mjs`'s count of direct clock reads at 101: the reads are the same reads.
 **Actual:** "Direct clock reads fell to 95: lower DIRECT_CLOCK_READS to it." Lowering it as the message says would have hidden six live clock reads from the guard for good.
