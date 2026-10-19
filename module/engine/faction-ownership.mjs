@@ -25,12 +25,13 @@
  */
 
 import { factions } from "./board.mjs";
+import { warOfUnit, currentWar } from "./war.mjs";
 
 export const FactionOwnership = {
   /** Register the hooks. Idempotent. */
   attach() {
-    Hooks.on("fgtFactionsChanged", (rows) => {
-      syncAll(rows).catch((err) => console.error("FGT | Faction ownership sync:", err));
+    Hooks.on("fgtFactionsChanged", (rows, war) => {
+      syncAll(rows, war).catch((err) => console.error("FGT | Faction ownership sync:", err));
     });
     // A Servant's faction can change after creation -- the sheet's own
     // dropdown, or a summon assigning one post-roll -- and each such change
@@ -56,11 +57,19 @@ export const FactionOwnership = {
  * ordinary way to trigger it; this is here for a console-driven repair.
  *
  * @param {import("../rules/factions.mjs").Faction[]} [rows]
+ * @param {object|null} [war] the War whose roster `rows` is
  * @returns {Promise<void>}
  */
-export async function syncAll(rows = factions()) {
+export async function syncAll(rows = factions(), war = currentWar()) {
   if (!game.user.isGM) return;
-  for (const actor of game.actors) await syncOne(actor, rows);
+  // Only this War's Units. Two Wars both have a "faction-1", and resyncing
+  // every actor in the world against one War's roster handed War A's players
+  // War B's Servants (and took them from War B's).
+  for (const actor of game.actors) {
+    const own = warOfUnit(actor);
+    if (own && war && own !== war) continue;
+    await syncOne(actor, rows);
+  }
 }
 
 /**
@@ -75,7 +84,7 @@ export async function syncAll(rows = factions()) {
  * @param {import("../rules/factions.mjs").Faction[]} [rows]
  * @returns {Promise<void>}
  */
-export async function syncOne(actor, rows = factions()) {
+export async function syncOne(actor, rows = factions(warOfUnit(actor) ?? currentWar())) {
   if (!game.user.isGM) return;
 
   // A SET of owners, not one id. While this read a singular field, six of the

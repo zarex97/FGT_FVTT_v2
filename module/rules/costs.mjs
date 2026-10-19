@@ -247,6 +247,17 @@ export function canUseAbility({
     return { ok: false, reason: "suppressedCategory", detail: { category: suppressedCategory }, cost };
   }
 
+  // Every ability barred but the ones a lock names. Doppelganger: *"Skills and
+  // Noble Phantasms except Presence Concealment cannot be used while
+  // Doppelganger is Active"* (#253 reading 6). A Normal Attack is no ability
+  // and is never asked; a passive is never used.
+  // The gate is asked with no ability for a Normal Attack: nothing to bar.
+  const lock = ability ? (unit?.suppressions ?? []).find((sup) => sup.scope === "abilityUse"
+    && !(sup.except ?? []).some((slug) => slug === ability.slug || slug === ability.contentId)) : null;
+  if (lock) {
+    return { ok: false, reason: "abilityLocked", detail: { by: lock.source ?? "" }, cost };
+  }
+
   if (clockRunning === false) {
     return { ok: false, reason: "noMatch", detail: {}, cost };
   }

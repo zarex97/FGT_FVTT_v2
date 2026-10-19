@@ -10,6 +10,7 @@
  */
 
 import { unitActor } from "./board.mjs";
+import { currentWar, isWarGM } from "./war.mjs";
 
 /**
  * The `fieldEvent` log entries among a batch of intents.
@@ -89,7 +90,7 @@ export function fieldReportCards(entries, nameOf, t, titleKey = "FGT.FieldReport
  * @returns {Promise<void>}
  */
 export async function postFieldReports(entries, { titleKey } = {}) {
-  if (!entries?.length || !game.users?.activeGM?.isSelf) return;
+  if (!entries?.length || !isWarGM()) return;
   const nameOf = (fieldId) => canvas?.scene?.regions?.find((r) =>
     r.behaviors?.some((b) => b.type === "npField" && b.system?.fieldId === fieldId))?.name ?? fieldId;
   const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));
@@ -145,7 +146,7 @@ export function periodicCard(ticks, t, titleKey = "FGT.FieldReport.RoundTitle", 
  * @returns {Promise<void>}
  */
 export async function postPeriodicReport(intents, io, titleKey = "FGT.FieldReport.RoundTitle") {
-  if (!game.users?.activeGM?.isSelf) return;
+  if (!isWarGM()) return;
   // The public name (#234): Burn's tick on a concealed Servant named his True
   // Name on a card every player reads.
   const { shownName } = await import("./public-identity.mjs");
@@ -155,7 +156,7 @@ export async function postPeriodicReport(intents, io, titleKey = "FGT.FieldRepor
     const actor = unitActor(id);
     return actor ? shownName(actor, board) : null;
   };
-  const ticks = periodicTicksIn(intents, nameOf, game.combat?.system?.globalTurn ?? 0);
+  const ticks = periodicTicksIn(intents, nameOf, currentWar()?.system?.globalTurn ?? 0);
   if (ticks.length === 0) return;
   await io.log(ticks);
   const t = (key, data) => (data ? game.i18n.format(key, data) : game.i18n.localize(key));

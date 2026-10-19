@@ -20,6 +20,7 @@
 
 import { publicNameOf } from "../rules/identity.mjs";
 import { snapshotUnit } from "../rules/snapshot.mjs";
+import { disguiseOf } from "../rules/disguise.mjs";
 
 /**
  * The image every viewer's screen should show for this unit.
@@ -61,6 +62,11 @@ export function publicImageOf(actor) {
 export function publicIdentityOf(actor, board) {
   if (!actor) return { name: "", img: "" };
   const unit = (board?.units ?? []).find((u) => u.id === actor.id) ?? snapshotUnit(actor);
+  // A Disguise: every card and line names the Unit he copied, as it was named
+  // when he took its look (#253 reading 12). One string every client reads, so
+  // his owner and the GM read it too; the truth is on their token.
+  const look = disguiseOf(unit);
+  if (look) return { name: look.name, img: look.img || publicImageOf(actor) };
   return {
     name: publicNameOf(unit, board, {}),
     img: publicImageOf(actor),
@@ -101,6 +107,8 @@ export function shownName(subject, board = null) {
   if (subject.documentName === "Actor" || subject.system) {
     return publicIdentityOf(subject, board).name || subject.name || ""; // fgt-name-ok: the public name's own fallback
   }
+  const look = disguiseOf(subject);
+  if (look) return look.name;
   return publicNameOf(subject, board, {}) || subject.name || ""; // fgt-name-ok: the public name's own fallback
 }
 

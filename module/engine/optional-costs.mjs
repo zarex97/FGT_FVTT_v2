@@ -29,6 +29,7 @@ import { landEntry } from "./landing.mjs";
 import { entryOf } from "../rules/effect-flow.mjs";
 import * as I from "./intents.mjs";
 import { shownName } from "./public-identity.mjs";
+import { test as testPredicate } from "../rules/predicate.mjs";
 
 /**
  * Guards against re-entry.
@@ -48,19 +49,27 @@ const offered = new Set();
 /**
  * Offer every optional spend these Units have at a timing window.
  *
+ * `damageStep` is the attacker's own, once per Process: Ruffian's *"whenever
+ * Yan Qing deals damage with an Attack, he can spend X Agility"* is asked after
+ * the DU's reaction and before the damage, so an Evade, which never reaches the
+ * Damage Step, is never asked (#253 reading 2). `scope` names the Process, so
+ * the once-per guard is per Process there and per Phase everywhere else.
+ *
  * @param {object} args
  * @param {string[]} args.unitIds everybody in the exchange, attacker first
  * @param {string} args.timing the window, e.g. `combatPhaseStart`
  * @param {string|null} [args.groupId] the Combat Phase, for the once-per guard
- * @returns {Promise<Array<{unitId: string, source: string}>>} what was spent
+ * @param {string|null} [args.scope] a narrower once-per key inside the Phase
+ * @param {Set<string>|null} [args.options] the attack's options, for a spend's `attack:` clause
+ * @returns {Promise<Array<{unitId: string, source: string, amount: number}>>} what was spent
  */
-export async function offerOptionalCosts({ unitIds, timing, groupId = null }) {
-  const key = `${groupId ?? "none"}:${timing}`;
+export async function offerOptionalCosts({ unitIds, timing, groupId = null, scope = null, options = null }) {
+  const key = `${groupId ?? "none"}:${timing}${scope ? `:${scope}` : ""}`;
   if (groupId && offered.has(key)) return [];
   if (groupId) offered.add(key);
 
   const board = currentBoard();
-  /** @type {Array<{unitId: string, source: string}>} */
+  /** @type {Array<{unitId: string, source: string, amount: number}>} */
   const taken = [];
 
   for (const unitId of [...new Set(unitIds)].filter(Boolean)) {
@@ -69,11 +78,15 @@ export async function offerOptionalCosts({ unitIds, timing, groupId = null }) {
     const unit = unitOf(actor, board);
 
     for (const spec of (unit.optionalCosts ?? []).filter((c) => c.timing === timing)) {
+      // An `attack:` clause the offer could not answer at collection. No attack
+      // in hand means the clause cannot be true, so nothing is offered.
+      if (spec.predicate && !(options && testPredicate(spec.predicate, { options }))) continue;
       if (!canPay(unit, spec.cost)) continue;
-      if (!await accepted(actor, unit, spec)) continue;
+      const amount = await accepted(actor, unit, spec);
+      if (!(amount > 0)) continue;
 
-      await spend({ actor, unit, spec });
-      taken.push({ unitId, source: spec.source });
+      await spend({ actor, unit, spec, amount });
+      taken.push({ unitId, source: spec.source, amount });
     }
   }
   return taken;
@@ -125,7 +138,37 @@ function poolName(key) {
  */
 function canPay(unit, cost) {
   if (!cost?.resource) return false;
-  return (unit.resources?.[cost.resource]?.value ?? 0) >= (cost.amount ?? 1);
+  return heldOf(unit, cost.resource) >= (isChosen(cost) ? 1 : (cost.amount ?? 1));
+}
+
+/**
+ * A spend's label with its `{total}` filled for this many units spent: the
+ * first effect's magnitude times the amount.
+ *
+ * @param {object} spec
+ * @param {number} amount
+ * @returns {string}
+ */
+function labelWith(spec, amount) {
+  const per = spec.effects?.[0]?.magnitude ?? 0;
+  return String(spec.label ?? "").replace("{total}", String(per * (spec.scalesWithSpend ? amount : 1)));
+}
+
+/** `amount: chosen`: the player picks how much, from 1 up to what is held. */
+const isChosen = (cost) => cost?.amount === "chosen";
+
+/**
+ * What the Unit holds of a spend's resource: a Ch. 06 pool, or a stat pool the
+ * snapshot carries by name (`agility`, `luck`). Ruffian spends Agility, which
+ * is not in `resources` (#253 reading 2).
+ *
+ * @param {object} unit
+ * @param {string} key
+ * @returns {number}
+ */
+function heldOf(unit, key) {
+  if (unit.resources?.[key]) return unit.resources[key].value ?? 0;
+  return Number.isFinite(unit[key]) ? unit[key] : 0;
 }
 
 /**
@@ -135,42 +178,62 @@ function canPay(unit, cost) {
  * saving on purpose, and a timeout that spends it is worse than one that does
  * not.
  *
+ * A chosen amount is asked as one option per amount, 1 up to what is held:
+ * Ruffian has no cap (#253 reading 2), and Agility is a pool of about twenty.
+ *
  * @param {object} actor
  * @param {object} unit
  * @param {object} spec
- * @returns {Promise<boolean>}
+ * @returns {Promise<number>} how much to spend; 0 for no
  */
 async function accepted(actor, unit, spec) {
-  const held = unit.resources?.[spec.cost.resource]?.value ?? 0;
+  const held = heldOf(unit, spec.cost.resource);
   const owner = game.users.find((u) => u.active && !u.isGM && actor.testUserPermission(u, "OWNER"))
     ?? game.user;
+  const chosen = isChosen(spec.cost);
+  const resource = poolName(spec.cost.resource);
+  // A scaling label names its `{total}` on the card; asked before anything is
+  // spent, it names one unit's worth, per unit (#253, found live).
+  const effect = spec.scalesWithSpend && spec.label
+    ? game.i18n.format("FGT.OptionalCost.PerUnit", { effect: labelWith(spec, 1) })
+    : (spec.label ?? spec.source);
 
   try {
     const { FGTSocket } = await import("../net/socket.mjs");
     const picked = await FGTSocket.ask(owner.id, {
       kind: "choose",
       title: spec.source,
-      hint: game.i18n.format("FGT.OptionalCost.Hint", {
+      hint: game.i18n.format(chosen ? "FGT.OptionalCost.HintChosen" : "FGT.OptionalCost.Hint", {
         // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
         name: actor.name,
-        amount: spec.cost.amount ?? 1,
-        resource: poolName(spec.cost.resource),
+        amount: chosen ? held : (spec.cost.amount ?? 1),
+        resource,
         held,
-        effect: spec.label ?? spec.source,
+        effect,
       }),
       min: 0,
       count: 1,
-      options: [{
-        id: "spend",
-        name: game.i18n.localize("FGT.OptionalCost.Spend"),
-        detail: `${held} available`,
-      }],
+      options: chosen
+        ? Array.from({ length: held }, (_, k) => ({
+          id: String(k + 1),
+          name: game.i18n.format("FGT.OptionalCost.SpendN", { amount: k + 1, resource }),
+          detail: `${held} available`,
+        }))
+        : [{
+          id: "spend",
+          name: game.i18n.localize("FGT.OptionalCost.Spend"),
+          detail: `${held} available`,
+        }],
     });
-    return (picked ?? []).includes("spend");
+    const first = (picked ?? [])[0];
+    if (!first) return 0;
+    if (!chosen) return first === "spend" ? (spec.cost.amount ?? 1) : 0;
+    const n = Number(first);
+    return Number.isInteger(n) && n >= 1 && n <= held ? n : 0;
   } catch (err) {
     // fgt-name-ok: console text for the GM and the developer
     console.warn(`FGT | ${actor.name}'s optional spend was not answered:`, err);
-    return false;
+    return 0;
   }
 }
 
@@ -186,22 +249,27 @@ async function accepted(actor, unit, spec) {
  * @param {object} args.actor
  * @param {object} args.unit
  * @param {object} args.spec
+ * @param {number} args.amount how much the player chose to spend
  * @returns {Promise<void>}
  */
-async function spend({ actor, unit, spec }) {
+async function spend({ actor, unit, spec, amount }) {
   /** @type {object[]} */
   const intents = [
-    I.resource(actor.id, resourcePathFor(spec.cost.resource, unit), -(spec.cost.amount ?? 1)),
+    I.resource(actor.id, resourcePathFor(spec.cost.resource, unit), -amount),
     I.log({
       kind: "optionalCost", unitId: actor.id, source: spec.source,
-      resource: spec.cost.resource, amount: spec.cost.amount ?? 1,
+      resource: spec.cost.resource, amount,
     }),
   ];
 
   // Through the one door. The buff it bought is the Unit's own, so the Unit is
   // the caster too -- and its own outgoing bonuses count, where this path
-  // passed a hard 0.
-  for (const wanted of spec.effects ?? []) {
+  // passed a hard 0. A spend that scales multiplies each magnitude by what was
+  // spent: 7 Agility at 5% each is one +35% (#253 reading 2).
+  for (const authored of spec.effects ?? []) {
+    const wanted = spec.scalesWithSpend && Number.isFinite(authored.magnitude)
+      ? { ...authored, magnitude: authored.magnitude * amount }
+      : authored;
     await landEntry(entryOf(wanted), {
       target: unit,
       source: { unitId: actor.id, abilityId: null },
@@ -211,8 +279,10 @@ async function spend({ actor, unit, spec }) {
   }
 
   await applyWorldIntents(intents, "optionalCost");
+  // What it bought, on the card: a scaling spend names its total (#253).
+  const bought = spec.label ? `: ${labelWith(spec, amount)}` : "";
   await ChatMessage.create({
     content: `<p><strong>${spec.source}</strong> — ${shownName(actor)} spends `
-      + `${spec.cost.amount ?? 1} × ${poolName(spec.cost.resource)}.</p>`,
+      + `${amount} × ${poolName(spec.cost.resource)}${bought}.</p>`,
   });
 }

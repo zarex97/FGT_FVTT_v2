@@ -17,6 +17,7 @@ import { guardCase, guardLanding } from "../rules/master-guard.mjs";
 import { canStopOn } from "../rules/movement.mjs";
 import { checkPlan, resolveCheck, tableFor } from "../rules/checks.mjs";
 import { shownName } from "./public-identity.mjs";
+import { currentWar } from "./war.mjs";
 
 /**
  * A Unit as the table knows it. This line is public, and it named a concealed
@@ -97,7 +98,7 @@ async function report(master, guardId, board, detail) {
   const guard = guardId ? (board.units ?? []).find((u) => u.id === guardId) : null;
   await applyWorldIntents([I.log({
     kind: "masterGuard", event: guard ? "redirected" : "held", masterId: master.id, guardId, ...detail,
-    tick: game.combat?.system?.globalTurn ?? 0,
+    tick: currentWar()?.system?.globalTurn ?? 0,
   })], "masterGuard");
   const rolls = (detail.rolls ?? [])
     .map((r) => game.i18n.format("FGT.MasterGuard.Roll", { name: r.name, roll: r.roll, total: r.total, target: r.target, outcome: game.i18n.localize(r.success ? "FGT.MasterGuard.Success" : "FGT.MasterGuard.Fail") }))

@@ -1,0 +1,48 @@
+# Shí Miàn Mái Fú: Xíng Rú Wú Yǐng, Rank EX (#253, NP.*).
+#
+# One target within his own Range: the sheet states none, so none is authored
+# (§46 audit, "Absolute where the sheet is silent").
+schema: 1
+id: yan-qing-np
+name: "Shí Miàn Mái Fú: Xíng Rú Wú Yǐng"
+rank: EX
+isNP: true
+npTags: [antiUnit]
+kind: noblePhantasm
+slug: shiMianMaiFu
+cooldown: "8◈"
+timing: { window: ownTurn }
+description: |
+  Ambushed from Ten Sides - As If There Was No Shadow. Base Attack (STR) is used. Deals 5x damage,
+  then roll 2 four-sided dice and apply the following effects, depending on the numbers rolled-
+  1. Inflict @effect[defDwnC]{Def Dwn (C)} for 1◈ Turns on the DU, all damage taken is increased by
+     20%; and Agility is reduced by 1 whenever damage is received from an Attack.
+  2. Inflict @effect[critDwn]{Crit Dwn} for 1◈ Turns on the DU, Crit Chance is reduced by 40%.
+  3. Applies @effect[critDmUp]{Crit DmUp} for 1◈ Turns to himself, Crit Damage dealt is increased
+     by 50%.
+  If the second die is a duplicate number, reroll it until the number is not a duplicate. If a 4 is
+  rolled on any of the dice, apply all three effects instead.
+  Cooldown: 8◈ Turns.
+targeting:
+  anchor: { kind: targetUnit }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+  limits: { requiresZon: true }
+damage:
+  base: { sources: [{ unit: self, component: str, factor: 1 }] }
+  multiplier: 5
+phases:
+  - kind: damage
+  # Reading 9: rolled only when the hit's riders fire (a hit, not hurt; never on
+  # an Evade or a complete negation), and his own row 3 with them. Two separate
+  # d4s; a second die equal to the first is rolled again; a 4 on either applies
+  # rows 1-3 once each instead.
+  - kind: rollTable
+    count: 2
+    faces: 4
+    duplicates: reroll
+    entries:
+      1: { effects: [{ id: defDwnC, magnitude: 20, duration: "1◈" }] }
+      2: { effects: [{ id: critDwn, magnitude: 40, duration: "1◈" }] }
+      3: { target: self, effects: [{ id: critDmUp, magnitude: 50, duration: "1◈" }] }
+      4: { all: true }

@@ -14,6 +14,7 @@
 import { SCHEMA_VERSION, pendingFrom, applyMigration } from "./migrations.mjs";
 import { collectWorldDocuments, writeBackup } from "./backup.mjs";
 import { reconcileSystem, reconcileItems } from "./content-sync.mjs";
+import { worldDefaults } from "../engine/war.mjs";
 
 /**
  * Where the schema version lives.
@@ -52,6 +53,33 @@ function worldVersion() {
 }
 
 /**
+ * The board scene of every War from before Wars were bound to scenes.
+ *
+ * The scene holding the most tokens of the War's own Units (its containers'
+ * Servants and Masters). A War none of whose Units stand anywhere is left out,
+ * and stays global.
+ *
+ * @returns {Record<string, string>} War id → scene id
+ */
+function warScenesOfGlobalWars() {
+  /** @type {Record<string, string>} */
+  const out = {};
+  for (const war of game.combats) {
+    if (war.type !== "match" || war._source?.scene) continue;
+    const ids = new Set((war.system?.containers ?? []).flatMap((c) => [c.servantId, c.masterId]).filter(Boolean));
+    if (ids.size === 0) continue;
+    let best = null;
+    let bestCount = 0;
+    for (const scene of game.scenes) {
+      const count = scene.tokens.filter((t) => ids.has(t.actorId)).length;
+      if (count > bestCount) { best = scene; bestCount = count; }
+    }
+    if (best) out[war.id] = best.id;
+  }
+  return out;
+}
+
+/**
  * Apply every pending schema migration, backing the world up first.
  *
  * @returns {Promise<{ran: boolean, from?: number, to?: number, touched?: number, backup?: string}>}
@@ -72,7 +100,13 @@ export async function migrateWorld() {
   // "continue anyway" -- migrations are the highest-risk thing this system does.
   const backup = await writeBackup(collectWorldDocuments(), "schema");
 
-  const ctx = { globalTurn: game.combats.active?.system?.globalTurn ?? 0 };
+  const ctx = {
+    globalTurn: game.combats.active?.system?.globalTurn ?? 0,
+    // Schema 3: the world's War Rules and roster as they stand, and the scene
+    // each global War's Units stand on.
+    warDefaults: worldDefaults(),
+    warScenes: warScenesOfGlobalWars(),
+  };
   let touched = 0;
 
   const walk = async (collection, kind) => {
@@ -81,6 +115,15 @@ export async function migrateWorld() {
       let next = source;
       for (const entry of pending) next = applyMigration(entry, kind, next, ctx);
       if (next === source) continue;
+      // A Combat's scene is linked by its own ordinary update. Foundry's server
+      // refuses the link inside a whole-document replace: binding a War from
+      // `scene: null` to its board in the `diff: false` write below threw "The
+      // value provided to a ForeignDocumentField must be a BaseScene instance"
+      // from `Combat#_preUpdate` and aborted schema 3 (found live, 2026-10-18).
+      // Once linked, the replace below carries the same id and passes.
+      if (kind === "combat" && (next.scene ?? null) !== (source.scene ?? null)) {
+        await doc.update({ scene: next.scene });
+      }
       await doc.update(next, { diff: false, recursive: false });
       touched += 1;
     }

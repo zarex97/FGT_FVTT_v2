@@ -437,6 +437,16 @@
   // read as part of it.
   &__tick { font-variant-numeric: tabular-nums; opacity: 0.8; }
 
+  // The GM's door to this War's rules: small, beside the clock it governs.
+  &__rules {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 0;
+    padding: 0 0.3rem;
+    line-height: 1.4;
+    font-size: 0.75rem;
+  }
+
   &__pools { display: flex; flex-direction: column; gap: 0.2rem; }
 
   &__pool {
@@ -1083,8 +1093,18 @@
 
   /* One scroll container per tab, not one for the window: ApplicationV2
      restores scroll position per part, and `.window-content` has a fixed
-     height with no overflow of its own. */
-  .fgt-setup__tab { padding: 0.6rem 0.75rem; }
+     height with no overflow of its own. The part's `scrollable: [""]` only
+     names the tab as the container: Foundry's `.window-content` is a column
+     flexbox with `overflow: hidden`, so a tab with no flex size and no
+     overflow of its own grew past the window and its bottom was cut off
+     (Containers and Servants, 2026-10-18). `min-height: 0` lets the flex item
+     shrink below its content, which is what gives it something to scroll. */
+  .fgt-setup__tab {
+    padding: 0.6rem 0.75rem;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
 }
 
 /* "Before play, select only one Noble Phantasm, either (a) or (b)." */
@@ -1200,3 +1220,45 @@
     &[disabled] { opacity: 0.45; }
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/*  The War rules window (`apps/war-rules.mjs`)                                */
+/* -------------------------------------------------------------------------- */
+
+.war-rules {
+  .fgt-war-rules {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .fgt-war-rules__scope { margin: 0; font-style: italic; opacity: 0.85; }
+
+  /* The rows scroll, the scope line above them stays: the same flex-child
+     rule the wizard's tabs needed (`.fgt-setup__tab`). */
+  .fgt-war-rules__rows {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+}
+
+.fgt-war-rule {
+  display: grid;
+  grid-template-columns: 1fr minmax(8rem, 12rem);
+  align-items: center;
+  gap: 0.15rem 0.5rem;
+
+  &.is-locked { opacity: 0.6; }
+  &__hint { grid-column: 1 / -1; opacity: 0.7; font-size: 0.75rem; }
+}
+
+.fgt-setup__more-rules .fgt-setup__grid { align-items: start; }
+
+/* The new War's roster: the swatch beside the name it colours, not above it. */
+.fgt-setup__faction > legend { display: flex; align-items: center; gap: 0.4rem; }

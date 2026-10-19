@@ -174,8 +174,8 @@ describe("crossLevelLegal", () => {
   });
 
   it("the setting reaches the board", () => {
-    expect(readFileSync("module/engine/board.mjs", "utf8")).toMatch(/rangedMinimumRange: setting\("rangedMinimumRange", 2\)/);
-    expect(readFileSync("module/settings.mjs", "utf8")).toMatch(/s\("rangedMinimumRange", \{/);
+    expect(readFileSync("module/engine/board.mjs", "utf8")).toMatch(/rangedMinimumRange: warRule\("rangedMinimumRange"\)/);
+    expect(readFileSync("module/domain/war-rules.mjs", "utf8")).toMatch(/key: "rangedMinimumRange", type: "number", initial: 2/);
   });
 
   it("always allows the platform itself to be targeted", () => {

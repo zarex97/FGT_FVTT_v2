@@ -21,6 +21,9 @@ import { buildContext } from "./context.mjs";
 import { editImage } from "../image-edit.mjs";
 import { factionOfCombatant } from "../../engine/turn-order.mjs";
 import { enrichAbilityCards } from "../enrich.mjs";
+import { warRule, currentWar } from "../../engine/war.mjs";
+import { processOpenIn } from "../../engine/combat-process.mjs";
+import { veiledSpec } from "../../rules/concealment.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -101,8 +104,8 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onSetStance(_event, target) {
     const to = target.dataset.stance;
     const unit = unitOf(this.document, currentBoard());
-    const at = game.combat?.started ? "declare" : "free";
-    const acting = game.combats?.active?.actingFactionId ?? null;
+    const at = currentWar()?.started ? "declare" : "free";
+    const acting = currentWar()?.actingFactionId ?? null;
     const verdict = mayChangeStance(unit, to, {
       at,
       acted: Boolean(unit.turnState?.acted),
@@ -119,7 +122,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // Declared Mounted on his own Turn: the Turn record remembers it, so the
     // toll of a Turn he Acts Mounted survives a Dismount later in it (#184).
     await this.document.update({ "system.stance": to });
-    if (to === "mounted" && game.combat?.started) {
+    if (to === "mounted" && currentWar()?.started) {
       const { applyWorldIntents } = await import("../../engine/applier.mjs");
       const I = await import("../../engine/intents.mjs");
       await applyWorldIntents([I.markTurn(this.document.id, { mounted: true })], "stance:declare");
@@ -170,16 +173,19 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // only one that existed and the other two -- the 2◈ lockout and a
     // compulsion holding the mode on -- had nowhere to live.
     const verdict = canToggleMode(item, unitOf(actor, currentBoard()), {
-      active, tick, turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+      active, tick, turnsPerRound: warRule("turnsPerRound"),
       // A lockout is measured against the match's clock, so it cannot be
       // stamped when there is no match to measure it against.
       clockRunning: clockRunning(),
       // The Round this press happens in, so a use recorded in an earlier one
       // does not bite in this one (Ch. 46 §46.4-L).
-      round: game.combats?.active?.round ?? null,
+      round: currentWar()?.round ?? null,
       // Whose Turn it is, when a faction's is (#101). The GM's own slot, and a
       // table with no match, answer nothing.
       ownTurn: ownTurnOf(actor),
+      // A mode switched off "at any time" still waits out a Combat Process
+      // (#253 reading 6).
+      inCombatProcess: processOpenIn((game.messages?.contents ?? []).slice(-50)),
     });
     if (!verdict.ok) {
       ui.notifications.warn(game.i18n.format(`FGT.Mode.${verdict.reason}`, {
@@ -191,7 +197,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // Switched OFF during somebody else's Turn -- the GM's slot included -- a
     // `window: any` Mode waits for that Turn's end (#65, ruling 19). Asked of
     // the GM, who keeps the queue on the Combat.
-    if (!active && item.system?.deactivation?.window === "any" && game.combats?.active?.started
+    if (!active && item.system?.deactivation?.window === "any" && currentWar()?.started
       && ownTurnOf(actor) !== true) {
       const { FGTSocket } = await import("../../net/socket.mjs");
       // Pressed again while it waits: the End is taken back (#195 reading 14).
@@ -227,7 +233,14 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // Switching a mode OFF never pays: an exit price is not a thing any sheet
     // in the corpus states, and charging one would be inventing a rule.
     if (active && pricedOnEntry(item)) {
-      const out = await FGTActorSheet.#relaySkill(actor, item);
+      // A mode that picks something on entry picks it here, as a Skill does:
+      // Doppelganger's look is a Unit on the board (#253 reading 10).
+      let placement = {};
+      if (needsTargeting(item)) {
+        placement = await pickPlacement(actor, item);
+        if (!placement) return;
+      }
+      const out = await FGTActorSheet.#relaySkill(actor, item, placement);
       if (!out.ok) {
         ui.notifications.warn(game.i18n.format("FGT.Skill.Refused", { name: item.name, reason: refusalWords(out.reason) }));
         return;
@@ -246,7 +259,9 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // on in the same Turn. Once the first 2◈ had passed the mode was a free
     // toggle for the rest of the match, which is the state of affairs the
     // clause exists to prevent.
-    await item.update({ "system.active": active, "system.toggledAt": tick });
+    // How it ended, for what its end pays: a press by its owner is `manual`
+    // (#253 reading 14). Switched on, the last word is cleared.
+    await item.update({ "system.active": active, "system.toggledAt": tick, "system.endedBy": active ? null : "manual" });
 
     // RECORD the press, for the modes that ration it. `canToggleMode` above can
     // only refuse a second switch if something wrote the first one down, and
@@ -655,8 +670,12 @@ export async function pickPlacementFor(actor, ability, { requireUnitId = null, e
   // What this is, for a platform's protection of its occupants (#138): the
   // resolution says "attack" or "effect" through its placement, and the preview
   // has no placement until the player aims, so it says it on the spec.
+  const isAttack = ability ? classifyAbility(ability).isAttack : true;
   const spec = {
-    ...aimed, reach: (ability ? classifyAbility(ability).isAttack : true) ? "attack" : "effect",
+    // PC.7 per target, as the use reads it (`veiledSpec`): a concealed caster's
+    // Skill offers no enemy (#253, found live).
+    ...(isAttack ? aimed : veiledSpec(aimed, ability, boardSelf)),
+    reach: isAttack ? "attack" : "effect",
     // ...and its SCALE, for the same reason: a field's isolation lets an
     // [Anti-World] Noble Phantasm across (`piercedBy`), and the aiming session
     // validated every placement without it -- so the one NP Doomsday Come's
@@ -701,7 +720,7 @@ export async function pickPlacementFor(actor, ability, { requireUnitId = null, e
  * @returns {boolean|undefined}
  */
 function ownTurnOf(actor) {
-  const combat = game.combats?.active;
+  const combat = currentWar();
   if (!combat?.started) return undefined;
   const faction = factionOfCombatant(combat.combatant);
   if (faction === null) return undefined;

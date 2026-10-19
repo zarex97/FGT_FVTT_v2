@@ -16,6 +16,7 @@
 
 import { currentBoard, unitActor } from "./board.mjs";
 import { chooseFor } from "./ask.mjs";
+import { currentWar } from "./war.mjs";
 
 /**
  * The modes on this actor whose starting state is a choice.
@@ -150,7 +151,7 @@ export function attachOpeningChoice() {
     for (const a of owed) askOpeningChoices(a.id).catch((err) => console.error("FGT | Opening choice:", err));
   }
   Hooks.on("createToken", (token) => {
-    if (!game.user?.isGM || !game.combats?.active?.started) return;
+    if (!game.user?.isGM || !currentWar()?.started) return;
     const actorId = token.actorId ?? token.actor?.id ?? null;
     if (openingChoicesOf(unitActor(actorId)).length === 0) return;
     markOpeningChoicesDue({ actorIds: [actorId] }).catch((err) => console.error("FGT | Opening choice:", err));

@@ -9,6 +9,7 @@
  */
 
 import { unitActor } from "./board.mjs";
+import { isWarGM } from "./war.mjs";
 
 /**
  * The card's words for one `revive` log entry.
@@ -35,7 +36,7 @@ export function revivalCard(entry, nameOfUnit, nameOfSource, t) {
  * @returns {Promise<void>}
  */
 export async function postRevival(entry) {
-  if (!game.users?.activeGM?.isSelf) return;
+  if (!isWarGM()) return;
   const escape = foundry.utils.escapeHTML;
   // The public name (#234): "Heracles is defeated and revived" named a True
   // Name on a card every player reads.

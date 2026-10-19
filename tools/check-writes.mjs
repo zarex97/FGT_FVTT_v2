@@ -87,6 +87,8 @@ const ALLOWED = [
   { file: "engine/budget.mjs", category: "combat-document", why: "the faction action pools live on a Combat flag" },
   { file: "engine/game-log.mjs", category: "combat-document", why: "the match log, and its journal spill" },
   { file: "engine/queued-ends.mjs", category: "combat-document", why: "the Ends pressed outside their owner's Turn wait on a Combat flag (#65, #195)" },
+  { file: "engine/war.mjs", category: "combat-document", why: "a War's own rules, changed from the War rules window (2026-10-18)" },
+  { file: "engine/board.mjs", category: "combat-document", why: "a War's own Faction roster, written by the roster editor" },
   { file: "engine/schedule.mjs", category: "combat-document", why: "a scheduled strike waits on a Combat flag, and its mark is a placed token removed when it lands (Enki, #232)" },
 
   // ── Owner-side bookkeeping that predates the vocabulary ──────────────────

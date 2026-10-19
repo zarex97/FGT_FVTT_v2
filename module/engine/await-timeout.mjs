@@ -20,6 +20,7 @@
 
 import { policyFor, expiryOutcome, formatCountdown, remainingMs } from "../rules/await-policy.mjs";
 import { pendingPrompt, deserialize, rungOptions } from "./combat-process.mjs";
+import { warRule } from "./war.mjs";
 
 /** messageId → timer handle. */
 const timers = new Map();
@@ -41,10 +42,10 @@ export function policyForMessage(message) {
   if (!prompt) return null;
 
   const configured = {
-    reaction: safeSetting("reactionTimeout", 60),
-    luckCheck: safeSetting("interruptTimeout", 45),
-    commandSpell: safeSetting("interruptTimeout", 45),
-    counter: safeSetting("interruptTimeout", 45),
+    reaction: warRule("reactionTimeout"),
+    luckCheck: warRule("interruptTimeout"),
+    commandSpell: warRule("interruptTimeout"),
+    counter: warRule("interruptTimeout"),
   };
 
   const policy = policyFor(prompt.kind, configured);
@@ -212,19 +213,5 @@ function readProcessFlag(raw) {
     return deserialize(raw);
   } catch {
     return null;
-  }
-}
-
-/**
- * A setting this world may never have registered.
- * @param {string} key
- * @param {number} fallback
- * @returns {number}
- */
-function safeSetting(key, fallback) {
-  try {
-    return game.settings.get("fgt", key) ?? fallback;
-  } catch {
-    return fallback;
   }
 }

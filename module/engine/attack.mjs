@@ -66,7 +66,7 @@ import { luckChecksApply } from "../rules/difficulty.mjs";
 import { renderAttackCard, updateAttackCard } from "../apps/chat/cards.mjs";
 import { landEffect, landEntry } from "./landing.mjs";
 import { entryOf } from "../rules/effect-flow.mjs";
-import { tableFor, entriesFor } from "../rules/roll-table.mjs";
+import { tableFor, entriesFor, rollFaces } from "../rules/roll-table.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import * as budget from "./budget.mjs";
@@ -98,6 +98,7 @@ import { regionSizedTargeting } from "./fields.mjs";
 // the one door is `public-identity.mjs#shownName`.
 import { shownName, shownNameById } from "./public-identity.mjs";
 import { historyOf } from "./state-history.mjs";
+import { warRule, currentWar } from "./war.mjs";
 
 /**
  * Declare an attack. Runs on the GM client (Model B — contested outcomes are
@@ -122,7 +123,7 @@ export async function resolveAttack({
   // `engine/attack-preflight.mjs`, so a Riding Attack can ask them BEFORE it
   // moves the token (#114). It returns the Unit, the ability it resolved to and
   // what the use will cost; a refusal is thrown from here, as it always was.
-  const combat = game.combats.active;
+  const combat = currentWar();
   // A Riding Attack asked these gates BEFORE it moved the token, and that is
   // the declaration (#114). Asking them again after the ride judged a ZON the
   // ride itself had changed: Troias Tragoidia carried Achilles four panels from
@@ -328,8 +329,8 @@ export async function resolveAttack({
     // Jack's Free Servant clause listens there, and a Civilian -- the one
     // Human she meets most -- never reached it.
     const killed = civilians.flatMap((c) => fireEvent("unitKilled", [self], {
-      tick: game.combat?.system?.globalTurn ?? 0, board,
-      turnsPerRound: game.settings.get("fgt", "turnsPerRound") || 3,
+      tick: currentWar()?.system?.globalTurn ?? 0, board,
+      turnsPerRound: warRule("turnsPerRound") || 3,
       options: rollOptionsFor({ attacker: self, defender: c }),
     }));
     await applyBatch([...civilianIntents(descriptors, self.id), ...killed], "civilianKill");
@@ -2098,10 +2099,11 @@ async function closeRung(state, message) {
       // Somebody spent. Re-read: the interrupt may have moved the Process to a
       // different rung entirely (Ch. 33, "RESUME, possibly at a different state").
       const reread = process.deserialize(message.getFlag("fgt", "process"));
-      // Guard against re-reading BACKWARDS. The flag is only written at the end
-      // of this function, so a spurious interrupt would otherwise restore the
-      // rung we started from and lose everything since -- which is exactly the
-      // freeze this pair of comments describes.
+      // Guard against re-reading BACKWARDS. The flag is written at the end of
+      // this function, and before a held rung (`awaitInterrupt`), never after
+      // each automatic step, so a spurious interrupt would otherwise restore an
+      // earlier rung and lose everything since -- which is exactly the freeze
+      // this pair of comments describes.
       if (reread.history.length >= state.history.length) state = reread;
       continue;
     }
@@ -2289,8 +2291,8 @@ async function rollDiceCount(ability, options, { attacker, defender, facts }, st
   const counted = damageFromDice(formula, faces, threshold.threshold);
 
   const record = rollLog.record({
-    id: `${state.attackerId}:${state.defenderId}:diceCount:${game.combat?.system?.globalTurn ?? 0}`,
-    globalTurn: game.combat?.system?.globalTurn ?? 0,
+    id: `${state.attackerId}:${state.defenderId}:diceCount:${currentWar()?.system?.globalTurn ?? 0}`,
+    globalTurn: currentWar()?.system?.globalTurn ?? 0,
     entryId: "threshold",
     formula: formula.dice,
     raw: faces.join(", "),
@@ -2439,8 +2441,8 @@ async function raiseCombatProcessEnd(state) {
   if (!attacker && !defender) return;
 
   const ctx = () => ({
-    tick: game.combat?.system?.globalTurn ?? 0,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    tick: currentWar()?.system?.globalTurn ?? 0,
+    turnsPerRound: warRule("turnsPerRound"),
     board,
     rolls: {},
   });
@@ -2451,8 +2453,11 @@ async function raiseCombatProcessEnd(state) {
     // No defender left to measure a distance to, or an attack that states no
     // kind: the attacker hears the bare event, as it always has.
     const target = defender ?? (state.defenderId === state.attackerId ? attacker : null);
+    // Whether it HURT, read off the Damage Step's own record: a clause paid
+    // "whenever he deals damage ... at the end of the Combat Process" needs it
+    // here, after the Process, not only at `damageStepEnd` (#253 reading 3).
     const options = target && state.attack?.kind
-      ? rollOptions(attacker, target, state, { performed: true })
+      ? rollOptions(attacker, target, state, { performed: true, dealtDamage: process.damageDealtIn(state) > 0 })
       : new Set();
     intents.push(...fireEvent("combatProcessEnd", [attacker], { ...ctx(), options }));
   }
@@ -2797,8 +2802,8 @@ async function fireAttacked(state) {
   const coin = await new Roll("1d2").evaluate();
 
   const intents = fireEvent("attacked", [defender], {
-    tick: game.combat?.system?.globalTurn ?? 0,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    tick: currentWar()?.system?.globalTurn ?? 0,
+    turnsPerRound: warRule("turnsPerRound"),
     board: currentBoard(),
     // `self:` here is the ATTACKER, as in every other attack-scoped option
     // set; a handler on the defender predicates on `attack:`.
@@ -2826,8 +2831,8 @@ async function fireAttackDeclared(state) {
   if (!attacker || !defender) return;
 
   const intents = fireEvent("attackDeclared", [attacker], {
-    tick: game.combat?.system?.globalTurn ?? 0,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    tick: currentWar()?.system?.globalTurn ?? 0,
+    turnsPerRound: warRule("turnsPerRound"),
     board: currentBoard(),
     options: rollOptions(attacker, defender, state),
     rolls: {},
@@ -2892,7 +2897,7 @@ async function fireDamageStepStart(state) {
 
   const intents = fireEvent("damageStepStart", [attacker], {
     tick: board.tick,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    turnsPerRound: warRule("turnsPerRound"),
     board,
     // The live attack's facts, so `attack:kind:normal` is answered by the attack.
     options: rollOptions(attacker, defender, state),
@@ -3031,7 +3036,7 @@ async function fireDamageDealt(state, result) {
   // said nothing about it. Drake's *"15% chance of gaining 1 Galleon Token"* is
   // the first content to hang one here.
   /** @type {Record<string, number>} */
-  const tick = game.combat?.system?.globalTurn ?? 0;
+  const tick = currentWar()?.system?.globalTurn ?? 0;
   // A mount that attacks IN PLACE of its driver attacks as her (#187 reading
   // 2): the Golden Hind's Attack is *"Drake's Normal Attack"*, replaced, so its
   // Crit is her Crit and Blazing Golden Rule's *"whenever this Unit performs a
@@ -3054,8 +3059,8 @@ async function fireDamageDealt(state, result) {
   let intents = [];
   try {
     intents = fireEvent("damageDealt", hearers, {
-      tick: game.combat?.system?.globalTurn ?? 0,
-      turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+      tick: currentWar()?.system?.globalTurn ?? 0,
+      turnsPerRound: warRule("turnsPerRound"),
       board,
       options,
       victim: { unitId: state.defenderId },
@@ -3065,7 +3070,7 @@ async function fireDamageDealt(state, result) {
     console.error("FGT | A damageDealt handler failed:", err);
     ui.notifications?.error(`FGT | ${err.message}`);
   }
-  const logged = () => (game.combat?.getFlag?.("fgt", "log") ?? []).length;
+  const logged = () => (currentWar()?.getFlag?.("fgt", "log") ?? []).length;
   const before = logged();
   // What the handlers landed, took or cut is a line on this card (#202).
   const rows = intents.length > 0 ? await applyWithLines(intents, "damageDealt", { process: state }) : [];
@@ -3125,7 +3130,7 @@ async function rollChances(hearers, event, options) {
  * @returns {object[]}
  */
 function chanceRecords({ filed, rolls, state, attacker, defender, tick, logFrom, tag }) {
-  const resisted = (game.combat?.getFlag?.("fgt", "log") ?? []).slice(logFrom)
+  const resisted = (currentWar()?.getFlag?.("fgt", "log") ?? []).slice(logFrom)
     .filter((e) => e.kind === "effectResisted" && e.unitId === state.defenderId);
   return filed.map(({ spec, hit }) => {
     const lost = hit ? resisted.find((e) => e.defId === spec.effectId && e.sourceUnitId === state.attackerId) : null;
@@ -3182,8 +3187,8 @@ async function fireDamageTaken(state, result) {
   if (!attacker || !defender) return [];
 
   const intents = fireEvent("damageTaken", [defender], {
-    tick: game.combat?.system?.globalTurn ?? 0,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    tick: currentWar()?.system?.globalTurn ?? 0,
+    turnsPerRound: warRule("turnsPerRound"),
     board,
     options: rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) }),
     victim: { unitId: state.attackerId },
@@ -3258,7 +3263,7 @@ async function fireAttackReceived(state, result) {
   if (!attacker || !defender) return [];
   const intents = fireEvent("attackReceived", [defender], {
     tick: currentMoment().tick ?? 0,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    turnsPerRound: warRule("turnsPerRound"),
     board,
     options: rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) }),
     victim: { unitId: state.attackerId },
@@ -3435,8 +3440,8 @@ async function fireEvadeSucceeded(state) {
   const attacker = unitOf(unitActor(state.attackerId), board);
 
   const intents = fireEvent("evadeSucceeded", [defender], {
-    tick: game.combat?.system?.globalTurn ?? 0,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    tick: currentWar()?.system?.globalTurn ?? 0,
+    turnsPerRound: warRule("turnsPerRound"),
     board: currentBoard(),
     // From the EVADER's point of view: `self` is the unit that dodged and
     // `target` is whoever it dodged, so a clause can pay out differently
@@ -3596,8 +3601,8 @@ async function fireCombatPhaseEnd(state) {
   );
 
   const intents = fireEvent("combatPhaseEnd", units, {
-    tick: game.combat?.system?.globalTurn ?? 0,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    tick: currentWar()?.system?.globalTurn ?? 0,
+    turnsPerRound: warRule("turnsPerRound"),
     board,
     options: new Set(),
     damagedIds,
@@ -3707,7 +3712,7 @@ async function fireAttackPerformed(siblings) {
     const defender = first.defenderId ? unitOf(unitActor(first.defenderId), board) : null;
     const intents = fireEvent("attackPerformed", [attacker], {
       tick: currentMoment().tick ?? 0,
-      turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+      turnsPerRound: warRule("turnsPerRound"),
       board,
       options: defender ? rollOptions(attacker, defender, first, { performed: true }) : new Set(),
       event: { unitsHit: hit.size },
@@ -3837,7 +3842,7 @@ async function fireAttackLanded(siblings) {
   if (landedOn.some(({ message }) => message.getFlag("fgt", "result")?.flags?.isCrit)) options.add("attack:crit");
   const intents = fireEvent("attackLanded", [unitOf(attackerDoc, board)], {
     tick: currentMoment().tick ?? 0,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    turnsPerRound: warRule("turnsPerRound"),
     board,
     options,
     rolls: {},
@@ -3873,7 +3878,7 @@ async function grailUnderNP(state, siblings, board) {
   const strike = grailStrike({ grail: board.grail, areaPanels: state.attack?.areaPanels ?? [], dealt, roll });
   if (!strike.struck) return;
   await applyBatch([I.log({ kind: "grailStruck", damage: dealt, chance: strike.chance, roll, destroyed: strike.destroyed })], "grail");
-  if (strike.destroyed) await game.combat?.update({ "system.grailDestroyed": true });
+  if (strike.destroyed) await currentWar()?.update({ "system.grailDestroyed": true });
 }
 
 /**
@@ -3975,9 +3980,36 @@ async function runAutomaticStep(state, message) {
       // the reason the two are separate effects.
       if (skipped) await resolveEmptiedDefender(state);
 
+      // The attacker's own spend before the damage it raises: Ruffian's
+      // *"whenever Yan Qing deals damage with an Attack, he can spend X
+      // Agility"*, once per Process, after the DU's reaction (#253 reading 2).
+      // Not when the damage was already refused: there is nothing to raise.
+      if (!skipped) {
+        const { offerOptionalCosts } = await import("./optional-costs.mjs");
+        const attackerDoc = unitActor(state.attackerId);
+        const defenderDoc = state.defenderId ? unitActor(state.defenderId) : null;
+        const board = currentBoard();
+        const attackerUnit = attackerDoc ? unitOf(attackerDoc, board) : null;
+        const defenderUnit = defenderDoc ? unitOf(defenderDoc, board) : null;
+        if (attackerUnit?.optionalCosts?.some((c) => c.timing === DAMAGE_STEP_WINDOW)) {
+          await offerOptionalCosts({
+            unitIds: [state.attackerId],
+            timing: DAMAGE_STEP_WINDOW,
+            groupId: state.groupId ?? null,
+            scope: message.id,
+            options: rollOptions(attackerUnit, defenderUnit, state),
+          });
+        }
+      }
+
       const result = skipped
         ? { total: 0, flags: { suppressedBy: skipped }, breakdown: [] }
         : await applyDamage(state, message);
+      // A Disguise ends under one Attack's 10% of Max Health (#253 reading 13).
+      if (!skipped && (result.total ?? 0) > 0) {
+        const { noteHitOnDisguised } = await import("./disguise.mjs");
+        await noteHitOnDisguised(state, result, (intents, cause) => applyBatch(intents, cause));
+      }
       // A Feigned Defeat: she received nothing, riders included, and the
       // Attack is over for her (#249 reading 16). The card shows the hit.
       if (result.flags?.feigned) {
@@ -4186,8 +4218,8 @@ async function rollEvade(state) {
     // Ch. 13: every roll files a record, so a failed Evade can be read back as
     // "the die was low" or "the wrong table was used" instead of one number.
     rollRecord: rollLog.fromCheck({ ...outcome, chances: plan.chances }, {
-      id: `${state.attackerId}:${state.defenderId}:evade:${game.combat?.system?.globalTurn ?? 0}`,
-      globalTurn: game.combat?.system?.globalTurn ?? 0,
+      id: `${state.attackerId}:${state.defenderId}:evade:${currentWar()?.system?.globalTurn ?? 0}`,
+      globalTurn: currentWar()?.system?.globalTurn ?? 0,
       entryId: "evade-",
       formula: roll.formula,
       purpose: `${shownName(defender)} evades ${shownName(attacker)}`,
@@ -4419,8 +4451,8 @@ async function rollLuck(state) {
     ...outcome,
     formula: roll.formula,
     rollRecord: rollLog.fromCheck(outcome, {
-      id: `${prompt.unitId}:luck:${game.combat?.system?.globalTurn ?? 0}:${state.history.length}`,
-      globalTurn: game.combat?.system?.globalTurn ?? 0,
+      id: `${prompt.unitId}:luck:${currentWar()?.system?.globalTurn ?? 0}:${state.history.length}`,
+      globalTurn: currentWar()?.system?.globalTurn ?? 0,
       entryId: "luck",
       formula: roll.formula,
       purpose: `${shownName(unit)} contests ${shownName(opponent)}`,
@@ -4470,7 +4502,7 @@ function pendingCosts({ usage, ability, self, master, board }) {
   // something else can name it in `supersedes`. Expanded in the RULES layer so
   // the Skill path pays them too -- it did not, and four abilities across three
   // Servants declare costs and resolve that way (Ch. 46 §46.4-T).
-  out.push(...additionalCostsFor({ ability, self, master, turnsPerRound: game.settings.get("fgt", "turnsPerRound") }));
+  out.push(...additionalCostsFor({ ability, self, master, turnsPerRound: warRule("turnsPerRound") }));
 
   // A platform this Servant owns may replace the NP cost outright (Ch. 27).
   const platform = (board.units ?? []).find(
@@ -4620,7 +4652,7 @@ async function awaitInterrupt(message, state) {
   if (!game.user.isGM) return false;
   if (!process.interruptible(state)) return false;
 
-  const seconds = game.settings.get("fgt", "commandSpellTimeout") ?? 45;
+  const seconds = warRule("commandSpellTimeout") ?? 45;
   if (seconds <= 0) return false;
 
   // The card's own list (`processOffers`), so the wait and the buttons answer
@@ -4628,6 +4660,18 @@ async function awaitInterrupt(message, state) {
   // for any command at all.
   const { processOffers } = await import("./command-spells.mjs");
   if (processOffers(state).length === 0) return false;
+
+  // Show the rung being held BEFORE holding it. The flag and the card are
+  // otherwise written only when `closeRung` ends, so for the whole wait the
+  // card still showed the question just answered: a player pressed Block, saw
+  // nothing happen for 45 seconds a rung, and the Command Spells this wait is
+  // FOR were never on screen (found live, 2026-10-18). A later answer to the
+  // old rung is refused as stale by `advanceAttack`, which reads this flag.
+  const shown = process.deserialize(message.getFlag("fgt", "process"));
+  if (shown.state !== state.state || (shown.history?.length ?? 0) !== (state.history?.length ?? 0)) {
+    await message.setFlag("fgt", "process", process.serialize(state));
+    await updateAttackCard(message, state);
+  }
 
   // The baseline is the FLAG's current value, not the in-memory state.
   //
@@ -4713,7 +4757,7 @@ function counterAvailable(state) {
     attackerConcealedAndFaster: reactionsRefused(attacker, defender).includes("counter"),
     // The GM's `fgt.counterChain`. Read here rather than in the pure module,
     // which takes every derived fact as an argument.
-    chainMode: game.settings.get("fgt", "counterChain"),
+    chainMode: warRule("counterChain"),
   });
 }
 
@@ -4935,7 +4979,7 @@ async function applyInjury(state, message) {
   await applyBatch(
     [
       I.statDelta(state.defenderId, INJURY_STAT, -roll.total),
-      I.log({ kind: "injury", unitId: state.defenderId, amount: roll.total, tick: game.combat?.system?.globalTurn ?? 0 }),
+      I.log({ kind: "injury", unitId: state.defenderId, amount: roll.total, tick: currentWar()?.system?.globalTurn ?? 0 }),
     ],
     "injury",
   );
@@ -5080,10 +5124,10 @@ async function resolveDefeatOf(defender, damage, state = {}) {
   const remaining = currentHealth(defender) - damage;
   if (remaining > 0) return [];
 
-  const combat = game.combat;
+  const combat = currentWar();
   const ctx = {
     tick: combat?.system?.globalTurn ?? 0,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound") || 3,
+    turnsPerRound: warRule("turnsPerRound") || 3,
     // What the Glass Game's second effect rewinds to: absent, her defeat
     // found no state to go back to (#247, live).
     history: historyOf(combat),
@@ -5564,7 +5608,7 @@ async function applyDamage(state, message) {
   // clause did not apply is not reported as if it had.
   result.modifierRolls = [
     ...(diceBase?.record ? [diceBase.record] : []),
-    ...rollLog.modifierDiceRecords(ctx, result, state, game.combat?.system?.globalTurn ?? 0),
+    ...rollLog.modifierDiceRecords(ctx, result, state, currentWar()?.system?.globalTurn ?? 0),
   ];
   // Whether it crit belongs ON the result, not only on the chat flag. Every
   // rider fired after the Damage Step reads its predicate off the option set,
@@ -6351,10 +6395,8 @@ async function rollTableAgainst(phase, ability, state, attackerDoc, attackerUnit
     console.error(`FGT | ${ability.name} has a rollTable phase with no table for ${defender?.name ?? "this target"}.`);
     return [];
   }
-  const faces = phase.faces ?? 20;
-  const count = phase.count ?? 1;
-  const results = [];
-  for (let k = 0; k < count; k++) results.push((await new Roll(`1d${faces}`).evaluate()).total);
+  const results = await rollFaces(phase, async (faces) => (await new Roll(`1d${faces}`).evaluate()).total,
+    { faces: 20, count: 1 });
 
   /** @type {object[]} */
   const applied = [];
@@ -6363,9 +6405,13 @@ async function rollTableAgainst(phase, ability, state, attackerDoc, attackerUnit
       console.error(`FGT | ${ability.name} rolled ${roll}, which its table has no row for.`);
       continue;
     }
+    // A row aimed at the user lands on the attacker: Yan Qing's 3 is *"Crit
+    // DmUp ... to himself"* in a table whose other rows land on the DU (#253).
+    const onSelf = entry.target === "self";
+    const landOn = onSelf ? attackerDoc : defenderDoc;
     for (const rule of entry.effects ?? []) {
       applied.push(...await landEntry(entryOf(rule, { phase }), {
-        target: unitFrom(boardSnapshot(), defenderDoc) ?? defender,
+        target: unitFrom(boardSnapshot(), landOn) ?? (onSelf ? attackerUnit : defender),
         source: { unitId: state.attackerId, abilityId: ability.id },
         caster: attackerDoc,
         casterUnit: attackerUnit,
@@ -6374,7 +6420,7 @@ async function rollTableAgainst(phase, ability, state, attackerDoc, attackerUnit
         process: state,
       }, {
         write: (intents) => applyBatch(intents, "abilityEffect:rollTable"),
-        reread: () => unitFrom(boardSnapshot(), defenderDoc),
+        reread: () => unitFrom(boardSnapshot(), landOn),
       }));
     }
   }
@@ -6546,16 +6592,16 @@ async function fireDamageStepEnd(state, result = null) {
     // Damage dealt, not only a hit (`attack:dealtDamage`, #247 reading 2).
     dealtDamage: (result?.total ?? 0) > 0,
   });
-  const tick = game.combat?.system?.globalTurn ?? 0;
+  const tick = currentWar()?.system?.globalTurn ?? 0;
   // The caller rolls (`scheduler.pendingRolls`). This event passed none, so a
   // chance on one of its actions could never pass: Castor's 5% NP-cooldown
   // clause (#103). Each chance is FILED on the card too, as `damageDealt`'s
   // are: the Divine Core's 5% was rolled and shown nowhere (#209, live).
   const { rolls, filed } = await rollChances([attacker], "damageStepEnd", options);
-  const logFrom = (game.combat?.getFlag?.("fgt", "log") ?? []).length;
+  const logFrom = (currentWar()?.getFlag?.("fgt", "log") ?? []).length;
   const intents = fireEvent("damageStepEnd", [attacker], {
     tick,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    turnsPerRound: warRule("turnsPerRound"),
     board,
     options,
     rolls,
@@ -6851,7 +6897,7 @@ async function applyBatch(intents, source, { process = null, lines = false } = {
 
 /** @returns {object} */
 function boardSnapshot() {
-  return currentBoard({ region: game.settings.get("fgt", "region") || null });
+  return currentBoard({ region: warRule("region") || null });
 }
 
 /**

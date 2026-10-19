@@ -10,6 +10,7 @@ import * as documents from "./documents/index.mjs";
 import { registerSheets } from "./apps/index.mjs";
 import { activateChatListeners } from "./apps/chat/cards.mjs";
 import { FGTSocket } from "./net/socket.mjs";
+import { currentWar, gmForWar } from "./engine/war.mjs";
 
 import { Rank } from "./domain/rank.mjs";
 import { parseTick, resolveTicks } from "./domain/tick.mjs";
@@ -48,7 +49,7 @@ import { LevelExit } from "./engine/level-exit.mjs";
 import { backfillVision } from "./engine/token-vision.mjs";
 import { registerTargetingLayer, pickTarget } from "./apps/canvas/targeting-layer.mjs";
 import { registerOverlayLayer, attachOverlays } from "./apps/canvas/overlay-layer.mjs";
-import { FGTToken as FGTTokenPlaceable } from "./apps/canvas/token.mjs";
+import { FGTToken as FGTTokenPlaceable, followDisguises } from "./apps/canvas/token.mjs";
 import { FGTTile } from "./apps/canvas/decoy.mjs";
 import { registerCombatTracker } from "./apps/combat/tracker.mjs";
 import { sweepTransientRegions } from "./apps/canvas/target-region.mjs";
@@ -120,6 +121,7 @@ Hooks.once("init", () => {
   // rule (Ch. 27). Registered at init, because the canvas reads this when it
   // builds the token layer.
   CONFIG.Token.objectClass = FGTTokenPlaceable;
+  followDisguises();
   // A ghost's stand-in body, seen per viewer (#249 reading 33).
   CONFIG.Tile.objectClass = FGTTile;
 
@@ -140,6 +142,8 @@ Hooks.once("init", () => {
   // restart. Without it the server never registers the namespace and every
   // emit silently does nothing.
   FGTSocket.initialize();
+  // Each request goes to the GM running the requester's War (Q14 (B), 2026-10-18).
+  FGTSocket.setRouter({ warFor: currentWar, gmFor: gmForWar });
   activateChatListeners();
 
   // Let compendium browsers filter without loading every document.
@@ -165,6 +169,9 @@ Hooks.once("setup", async () => {
     "fgt-editor-field": "systems/fgt/templates/apps/ability-editor-field.hbs",
     // Recursive: a predicate group renders it again for each child.
     "fgt-predicate-row": "systems/fgt/templates/apps/predicate-builder.hbs",
+    // One control per War Rule: the War rules window and the setup wizard's
+    // War tab render the same rows (`apps/war-rules.mjs#warRuleRows`).
+    "fgt-war-rule-fields": "systems/fgt/templates/apps/war-rule-fields.hbs",
   });
 
   // Packs are not readable during `init`; `setup` runs after they are indexed

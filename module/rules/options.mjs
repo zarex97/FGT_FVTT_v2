@@ -322,6 +322,12 @@ function add(options, side, unit, withoutModeHeld = false) {
   // holds whether or not the table has worked that out yet.
   if (unit.contentId) options.add(`${side}:contentId:${unit.contentId}`);
   for (const a of unit.attributes ?? []) options.add(`${side}:attribute:${a}`);
+  // ITS ALIGNMENT, each half on its own: *"Units with the 'Lawful' Alignment"*
+  // asks the order alone, *"the 'Evil' Alignment"* the morality alone (#253).
+  // Lowercased, as content writes them; a Unit with no Alignment (a Master, a
+  // summon) emits neither and matches neither.
+  if (unit.alignment?.order) options.add(`${side}:order:${String(unit.alignment.order).toLowerCase()}`);
+  if (unit.alignment?.morality) options.add(`${side}:morality:${String(unit.alignment.morality).toLowerCase()}`);
   for (const e of unit.effects ?? []) options.add(`${side}:effect:${e}`);
   // HOW MANY of each, as a ladder, the way the rank comparison is: a predicate
   // can only test membership, so *"after Arturia performs 3 Attacks"* (her

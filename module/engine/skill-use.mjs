@@ -46,7 +46,7 @@ import { transferableFrom, transferEffect, entryOf } from "../rules/effect-flow.
 import { evade, checkPlan } from "../rules/checks.mjs";
 import { randomFreePanelIn, panelsOf, levelOf, castLevel } from "../rules/bounded-fields.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
-import { tableFor, entriesFor, choicesIn, effectsOf } from "../rules/roll-table.mjs";
+import { tableFor, entriesFor, choicesIn, effectsOf, rollFaces } from "../rules/roll-table.mjs";
 import { applyWorldIntents, cooldownLine, statChangeLine } from "./applier.mjs";
 import * as budget from "./budget.mjs";
 import { budgetActionFor } from "../rules/budget.mjs";
@@ -62,11 +62,12 @@ import { activatePlatform } from "./platforms.mjs";
 import { summonAnchor, masterSeat } from "../rules/platforms.mjs";
 import { expand } from "../rules/targeting/shapes.mjs";
 import { fireEvent, regionScale, dispatch, ACTION_KINDS } from "./scheduler.mjs";
-import { isConcealed, concealmentBreakChance, canUseWhileConcealed } from "../rules/concealment.mjs";
+import { isConcealed, concealmentBreakChance, veiledSpec } from "../rules/concealment.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import { publicIdentityOf, publicSpeakerFor } from "./public-identity.mjs";
 import { effectLine } from "../rules/card-visibility.mjs";
 import { shownName, shownNameById } from "./public-identity.mjs";
+import { warRule, currentWar } from "./war.mjs";
 
 /**
  * Use an active Skill.
@@ -106,7 +107,7 @@ export async function useSkill({
   const board = currentBoard();
   const self = unitFrom(board, actor);
   const master = self.masterId ? unitFrom(board, unitActor(self.masterId)) : null;
-  const combat = game.combats?.active;
+  const combat = currentWar();
 
   // The gate this press runs, and the one every offer of it asks (#244):
   // cooldown, round, cost, Ch. 17's requirements, an effect that negates it,
@@ -184,7 +185,7 @@ export async function useSkill({
   const { charged } = applied.channelStarted ? { charged: [] } : resolveCosts([
     ...(usage.cost ? [{ ...usage.cost, id: "npCost" }] : []),
     ...(usage.overCooldown ? [usage.overCooldown] : []),
-    ...additionalCostsFor({ ability, self, master, turnsPerRound: game.settings.get("fgt", "turnsPerRound") }),
+    ...additionalCostsFor({ ability, self, master, turnsPerRound: warRule("turnsPerRound") }),
     ...standingUpkeepCost(board, self, master),
   ]);
 
@@ -330,13 +331,13 @@ export function resolveSkillTargets(ability, self, board, placement) {
   // ...and the war Region's say over an area that is the ability's own field —
   // see `engine/fields.mjs#regionSizedTargeting`. Applied here rather than in
   // `targetSpecFor`, which is pure and has no board to read the Region off.
-  const spec = regionSizedTargeting(
+  const spec = veiledSpec(regionSizedTargeting(
     // With the attack a reaction answers, when it answers one (#230): a branch
     // may ask `attack:isAoE`.
     targetSpecFor(ability, reach, rollOptionsFor({ attacker: self, attack: placement?.attack ?? null })),
     ability,
     board?.warRegion ?? null,
-  );
+  ), ability, self);
 
   // A skill that targets only its caster resolves to the caster **without
   // consulting geometry at all**. Running it through the targeting resolver
@@ -349,22 +350,12 @@ export function resolveSkillTargets(ability, self, board, placement) {
   }
 
   // An EFFECT, not an Attack: a platform may bar one and let the other through (#138).
+  // PC.7 per target rides on the spec (`veiledSpec` above): the resolver drops
+  // the enemies, as the aiming session's preview does from the same spec.
   const resolved = resolveTargets(spec, self, board, { ...placement, reach: "effect" });
-  // PC.7 per target (#249 reading 14): a concealed caster's Skill that may not
-  // reach an enemy drops the enemies it caught, and refuses one it was aimed
-  // at. The one reader the use and the offered pick (`legalSkillTargets`) share.
-  const veiled = isConcealed(self) && !canUseWhileConcealed(ability, { targetsEnemy: true }).ok;
-  const enemy = (t) => {
-    const u = (board?.units ?? []).find((x) => x.id === t.unitId);
-    return u ? relationOf(self, u, board) === "enemy" : false;
-  };
-  const units = veiled ? resolved.units.filter((t) => !enemy(t)) : resolved.units;
-  const refused = veiled && units.length < resolved.units.length && placement?.unitId
-    && resolved.units.some((t) => t.unitId === placement.unitId && enemy(t))
-    ? [game.i18n.localize("FGT.Ability.Refused.presenceConcealment")] : [];
   // A choice still owed refuses. Without this a Skill called from a macro ran
   // its phases against nobody and still paid its cost and cooldown (#129).
-  return { units, errors: [...resolved.errors, ...refused, ...pendingChoiceErrors(resolved)] };
+  return { units: resolved.units, errors: [...resolved.errors, ...pendingChoiceErrors(resolved)] };
 }
 
 /**
@@ -761,7 +752,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
               // applier refuses a non-finite delta outright, which is how this
               // was found rather than silently restoring nothing.
               const delta = typeof c.delta === "string"
-                ? resolveValue({ value: c.delta }, null, { refs: expressionRefs(actor, { tick: game.combat?.system?.globalTurn ?? null, ...extras }) })
+                ? resolveValue({ value: c.delta }, null, { refs: expressionRefs(actor, { tick: currentWar()?.system?.globalTurn ?? null, ...extras }) })
                 : c.delta;
               // `clampToMax` is the difference between "restores 3 Agility" and
               // "grants 3 Agility": Golden Fleece restores, so it cannot push a
@@ -822,6 +813,22 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
         case "rollTable":
           applied.push(...await runRollTable(phase, ability, actor, snapshot, board));
           break;
+
+        case "disguise": {
+          // Doppelganger: the chosen Unit's look, put on the caster (#253
+          // readings 10-12). Copied now, so the look outlives the copy.
+          const token = doc?.getActiveTokens?.()?.[0]?.document ?? null;
+          const params = {
+            as: target.unitId,
+            name: shownName(doc, board),
+            img: publicIdentityOf(doc, board).img,
+            disposition: token?.disposition ?? doc?.prototypeToken?.disposition ?? null,
+          };
+          applied.push(...await applyPhaseEffects(
+            { effects: [{ id: "disguise", params }] }, ability, actor, unitOf(actor, board),
+          ));
+          break;
+        }
 
         case "choose": {
           // A phase that asks a question. Trace, On's second clause is "apply
@@ -1182,13 +1189,8 @@ async function runRollTable(phase, ability, actor, target, board) {
     return [];
   }
 
-  const faces = phase.faces ?? 8;
-  const count = phase.count ?? 2;
-  /** @type {number[]} */
-  const results = [];
-  for (let k = 0; k < count; k++) {
-    results.push((await new Roll(`1d${faces}`).evaluate()).total);
-  }
+  const results = await rollFaces(phase, async (faces) => (await new Roll(`1d${faces}`).evaluate()).total,
+    { faces: 8, count: 2 });
 
   /** @type {object[]} */
   const out = [];
@@ -1207,7 +1209,9 @@ async function runRollTable(phase, ability, actor, target, board) {
     const rows = entry.choose ? await chooseRows(actor, table, ability, roll) : [entry];
 
     for (const row of rows) {
-      out.push(...await applyPhaseEffects({ effects: effectsOf(row) }, ability, actor, target));
+      // A row aimed at the user lands on the caster, whatever the Skill targeted.
+      const onto = row.target === "self" ? (self ?? target) : target;
+      out.push(...await applyPhaseEffects({ effects: effectsOf(row) }, ability, actor, onto));
     }
   }
 
@@ -1321,7 +1325,7 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
         const stayOf = () => unitOf(unitActor(target?.id), currentBoard())?.expiresAt ?? null;
         const before = stayOf();
         const intents = dispatch({ ...rule, kind }, target, { source: ability.name, abilityId: ability.id }, {
-          board, tick, turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+          board, tick, turnsPerRound: warRule("turnsPerRound"),
         });
         if (intents.length > 0) await applyWorldIntents(intents, "skillEffect", { sink: phaseCtx.sink ?? null });
         // In words, not the key: the card read "Atk UpDurationDelta" (#247, live).
@@ -1609,10 +1613,13 @@ export async function postCard(actor, ability, targets, applied) {
   // Kirihanasu's own card included: it ran on the enemy's Turn and its public
   // card would have said, to everyone just shown her defeat, that she lived.
   const ghost = [...(actor.effects ?? [])].some((e) => e.system?.defId === "feignedDefeat");
+  // A Disguise is taken in secret: its card would tell the table who he is now
+  // (#253 reading 11).
+  const secret = ghost || (ability.system?.phases ?? []).some((p) => p.kind === "disguise");
   await ChatMessage.create({
     content,
     speaker: publicSpeakerFor(actor, board),
-    ...(ghost ? { whisper: game.users.filter((u) => u.isGM || actor.testUserPermission(u, "OWNER")).map((u) => u.id) } : {}),
+    ...(secret ? { whisper: game.users.filter((u) => u.isGM || actor.testUserPermission(u, "OWNER")).map((u) => u.id) } : {}),
     // Ch. 38's `filtered` mode: one message every client renders differently.
     // The flags carry the full list, which is the documented trade -- a
     // filtered card ships the whole result to every client that can read them,
@@ -1726,7 +1733,7 @@ export function cooldownChanges(phase, doc, board = null, self = null, target = 
         ? Math.floor((stacksHeld(doc)[change.perStack.effect] ?? 0) / (change.perStack.each ?? 1))
         : 1;
       const turns = perStack * (change.ticks !== undefined
-        ? resolveTicks(parseTick(change.ticks), { turnsPerRound: game.settings.get("fgt", "turnsPerRound") })
+        ? resolveTicks(parseTick(change.ticks), { turnsPerRound: warRule("turnsPerRound") })
         : change.countMatching
           ? countMatchingTurns(change, doc, board)
           : Math.abs(change.delta ?? 0));
@@ -1784,7 +1791,7 @@ function countMatchingTurns(change, doc, board) {
 
   if (change.maxTicks === undefined) return count;
   const cap = resolveTicks(
-    parseTick(change.maxTicks), { turnsPerRound: game.settings.get("fgt", "turnsPerRound") },
+    parseTick(change.maxTicks), { turnsPerRound: warRule("turnsPerRound") },
   );
   return Math.min(count, cap);
 }
@@ -2004,7 +2011,7 @@ async function chosenCooldowns(phase, ability, doc) {
 
   const picked = options.find((o) => o.id === shape);
   const turns = resolveTicks(parseTick(picked.ticks), {
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    turnsPerRound: warRule("turnsPerRound"),
   });
 
   // Only abilities with something to reduce. Offering one at zero would let the
@@ -2176,8 +2183,8 @@ export async function fireAbilityUsed(actor, ability) {
   const board = currentBoard();
   const unit = unitOf(actor, board);
   const intents = fireEvent("abilityUsed", [unit], {
-    tick: game.combat?.system?.globalTurn ?? 0,
-    turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+    tick: currentWar()?.system?.globalTurn ?? 0,
+    turnsPerRound: warRule("turnsPerRound"),
     board,
     options: new Set(),
     rolls: {},
@@ -2331,6 +2338,30 @@ export async function endExpendedFields(ability) {
   return ended;
 }
 
+/**
+ * Pay what a mode's end pays: its `onDeactivate[endedBy]` phases, run on its
+ * owner as a self-targeted Skill's would, and its card.
+ *
+ * Doppelganger: *"When Doppelganger is manually deactivated by Yan Qing, apply
+ * the following effects to himself- 1. Restore 3 Agility. 2. Apply Atk Up ..."*
+ * (#253). Ended by the 10% hit, it pays nothing: `onDeactivate` names `manual`
+ * only.
+ *
+ * @param {object} item the mode
+ * @param {object} actor its owner
+ * @param {string} endedBy how it ended
+ * @returns {Promise<object[]>} what was applied
+ */
+export async function runDeactivationPayout(item, actor, endedBy) {
+  const phases = item?.system?.onDeactivate?.[endedBy] ?? [];
+  if (phases.length === 0) return [];
+  const payout = { id: item.id, name: item.name, system: { ...item.system, phases } };
+  const board = currentBoard();
+  const applied = await runPhases(payout, actor, [{ unitId: actor.id }], board);
+  await postCard(actor, payout, [{ unitId: actor.id }], applied);
+  return applied;
+}
+
 export async function runCasterChannel(ability, actor, board) {
   const applied = await runPhases(ability, actor, [{ unitId: actor.id }], board, (p) => p.kind === "channel");
   return Boolean(applied.channelStarted);
@@ -2381,7 +2412,7 @@ export async function runAfterPhaseZones(ability, actor, areaPanels) {
 export function modeIntent(phase, unitId, source) {
   if (phase.suspendFor) {
     const span = resolveTicks(parseTick(phase.suspendFor), {
-      turnsPerRound: game.settings.get("fgt", "turnsPerRound"),
+      turnsPerRound: warRule("turnsPerRound"),
     });
     return I.suspendSkill(unitId, phase.ability, (currentMoment().tick ?? 0) + span, source);
   }
@@ -2567,7 +2598,7 @@ async function summonPlatform(phase, actor, board) {
   // The lockout and the upkeep period both count from here, and neither can be
   // recovered afterwards -- a platform that forgot when it was raised could be
   // switched off immediately or charge its Master on the wrong beat.
-  data.system.activatedAt = game.combat?.system?.globalTurn ?? 0;
+  data.system.activatedAt = currentWar()?.system?.globalTurn ?? 0;
 
   // "Luck: Shared with Quetz's" -- resolved from the summoner's LIVE values,
   // the same rule and the same moment `engine/summoning.mjs` uses for the

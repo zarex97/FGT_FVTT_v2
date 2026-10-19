@@ -13,13 +13,22 @@
  * `test/unit/migrations.test.mjs` holds every shipped entry to that.
  */
 
+import { WAR_RULE_KEYS, coerceWarRule } from "../domain/war-rules.mjs";
+
+/**
+ * The War Rules a War held before they moved off the world (2026-10-18). The
+ * rest were never stored on a War, so whatever a War's source holds for them
+ * is the schema's initial value and not anybody's choice.
+ */
+const STORED_BEFORE_THE_MOVE = Object.freeze(["warType", "ruleset", "region", "difficulty", "grailThreshold"]);
+
 /**
  * The shape of persisted data this code expects.
  *
  * Bump this beside each new entry in `MIGRATIONS`, and never separately: the
  * two are one fact written twice, and a test holds them together.
  */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 /**
  * The ordered migrations, each declaring handlers per document type.
@@ -70,6 +79,43 @@ export const MIGRATIONS = Object.freeze([
       const ba = source.system?.baseAttack;
       if (!ba || ba.str !== 0 || ba.mag !== 0) return source;
       return { ...source, system: { ...source.system, baseAttack: { str: 50, mag: 100 } } };
+    },
+  },
+  {
+    to: 3,
+    description: "Copy the world's War Rules and Faction roster onto every War, and bind each War to its board scene (2026-10-18)",
+    /**
+     * Every War keeps the rules it was being played under. Before this the
+     * Round length, the gates, the timeouts, the optional rules and the roster
+     * were world settings read live, so a War WAS playing under the world's
+     * current values: copying those exact values changes nothing on any board,
+     * and from here on the world's values only seed the next War.
+     *
+     * The keys never stored on a War are copied outright: a loaded document's
+     * source already holds the schema's initial value for each, so "absent"
+     * cannot be seen, and the initial value is nobody's choice. The five a War
+     * did store keep the War's value -- except a Region of none, which the
+     * board read through to the world's (`currentWarRegion` was `match ||
+     * setting`), so the Region the War was really played in is kept.
+     *
+     * `ctx.warScenes` binds a War from before the move (`scene: null`, global)
+     * to the scene its Units stand on, worked out by the runner. A War whose
+     * scene cannot be told stays global, and answers for any scene with no War
+     * of its own (`engine/war.mjs#warOfScene`).
+     *
+     * Idempotent: a second run copies the same values again.
+     */
+    combat(source, ctx) {
+      if (source.type && source.type !== "match") return source;
+      const defaults = ctx?.warDefaults ?? {};
+      const system = { ...(source.system ?? {}) };
+      for (const key of WAR_RULE_KEYS) {
+        if (STORED_BEFORE_THE_MOVE.includes(key) || !(key in defaults)) continue;
+        system[key] = coerceWarRule(key, defaults[key]);
+      }
+      if (!system.region && defaults.region) system.region = coerceWarRule("region", defaults.region);
+      const scene = source.scene ?? ctx?.warScenes?.[source._id] ?? null;
+      return { ...source, system, scene };
     },
   },
 ]);

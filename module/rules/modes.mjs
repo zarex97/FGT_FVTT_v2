@@ -63,9 +63,17 @@ import { Rank } from "../domain/rank.mjs";
  * @returns {ToggleVerdict}
  */
 export function canToggleMode(
-  item, unit, { active, tick = 0, turnsPerRound = 3, clockRunning = true, round = null, ownTurn } = {},
+  item, unit, { active, tick = 0, turnsPerRound = 3, clockRunning = true, round = null, ownTurn, inCombatProcess = false } = {},
 ) {
   const sys = item?.system ?? {};
+  // `deactivation.window: anyTime` switches off at once, on any Turn, where
+  // `any` waits for the Turn's end (#65 ruling 19). Doppelganger *"can be
+  // deactivated at any time"*, ruled as whenever he could act, but never inside
+  // a Combat Process (#253 reading 6).
+  const offAnyTime = !active && (sys.deactivation?.window === "any" || sys.deactivation?.window === "anyTime");
+  if (!active && sys.deactivation?.window === "anyTime" && inCombatProcess) {
+    return { ok: false, reason: "inCombatProcess" };
+  }
 
   // WHOSE Turn. Every mode in the corpus is *"(Active) Used during your
   // Turn"*, and nothing asked, so a mode could be switched at any moment --
@@ -74,7 +82,6 @@ export function canToggleMode(
   // start or end of any Turn or Round"*, which is `deactivation.window: any`
   // (#101). Switching it ON is still her Turn's business.
   if (ownTurn === false && clockRunning !== false) {
-    const offAnyTime = !active && sys.deactivation?.window === "any";
     // BOTH WAYS, at any moment: Arturia's Invisible Air *"can be activated or
     // deactivated at any time, once per Turn"* (#230 reading 10).
     const anyTime = sys.toggleWindow === "any";

@@ -64,6 +64,14 @@
     <div class="fgt-actionbar__nomatch" data-tooltip="{{localize 'FGT.HUD.NoMatchHint'}}">
       <i class="fa-solid fa-hourglass-half"></i>
       <span>{{localize "FGT.HUD.NoMatch"}}</span>
+      {{!-- Before a War starts is when its locked rules can still change, so
+            the GM's door to them is here too, not only on the turn panel. --}}
+      {{#if turn.canEditRules}}
+        <button type="button" class="fgt-hud__rules" data-action="warRules"
+                data-tooltip="{{localize 'FGT.WarRules.Open'}}" aria-label="{{localize 'FGT.WarRules.Open'}}">
+          <i class="fa-solid fa-scale-balanced"></i>
+        </button>
+      {{/if}}
     </div>
   {{/if}}
 </div>

@@ -22,6 +22,7 @@ import { relationOf } from "../rules/relations.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { rewindIntents } from "./state-history.mjs";
 import * as I from "./intents.mjs";
+import { isWarGM } from "./war.mjs";
 
 /**
  * Restore an arbitrary historical snapshot across a unit set.
@@ -126,7 +127,7 @@ export function glassGameLine(entry, nameOfUnit, t) {
  * @returns {Promise<void>}
  */
 export async function postGlassGame(entry) {
-  if (!game.users?.activeGM?.isSelf) return;
+  if (!isWarGM()) return;
   const escape = foundry.utils.escapeHTML;
   const { shownName } = await import("./public-identity.mjs");
   const { currentBoard, unitActor } = await import("./board.mjs");

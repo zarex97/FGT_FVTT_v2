@@ -13,6 +13,7 @@
 
 import { canCopy, copyCandidates, copyAbility } from "../rules/copy.mjs";
 import { currentBoard, unitFrom, unitActor } from "./board.mjs";
+import { currentWar } from "./war.mjs";
 
 /**
  * Wisdom of Dún Scáith's own rank and cooldown, which every copy takes.
@@ -125,7 +126,7 @@ export function attachCopyPick() {
     }
   }
   Hooks.on("createToken", (token) => {
-    if (!game.user?.isGM || !game.combats?.active?.started) return;
+    if (!game.user?.isGM || !currentWar()?.started) return;
     const actorId = token.actorId ?? token.actor?.id ?? null;
     if (!copyGrantOf(unitActor(actorId))) return;
     markCopyPicksDue({ actorIds: [actorId] }).catch((err) => console.error("FGT | Copy pick:", err));

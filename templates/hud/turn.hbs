@@ -5,6 +5,12 @@
       {{localize "FGT.HUD.TurnOfRound" turn=turn turnsThisRound=turnsThisRound round=round}}
       <span class="fgt-hud__tick" data-tooltip="{{localize 'FGT.HUD.TickHint'}}">{{tick}}◈</span>
     </span>
+    {{#if canEditRules}}
+      <button type="button" class="fgt-hud__rules" data-action="warRules"
+              data-tooltip="{{localize 'FGT.WarRules.Open'}}" aria-label="{{localize 'FGT.WarRules.Open'}}">
+        <i class="fa-solid fa-scale-balanced"></i>
+      </button>
+    {{/if}}
   </header>
 
   <section class="fgt-hud__pools">

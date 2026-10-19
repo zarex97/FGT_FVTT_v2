@@ -103,6 +103,7 @@ import { readdirSync } from "node:fs";
 import { loadFoundry, installSystem, sourceForm, firstMismatch } from "../../tools/lib/foundry.mjs";
 import { loadDice, diceConfig, freshHooks } from "./foundry-client.mjs";
 import { installClientApi, bindWorld, asUser } from "./client-api.mjs";
+import { WAR_RULE_KEYS } from "../../module/domain/war-rules.mjs";
 
 /* -------------------------------------------------------------------------- */
 /*  The data layer                                                            */
@@ -662,8 +663,16 @@ class FakeCombat {
     this.id = data.id ?? nextId("combat");
     this.started = data.started ?? true;
     this.world = world;
+    // The War's own rules, seeded from the world's values where the spec names
+    // none: a War holds its rules (`domain/war-rules.mjs`) and the world only
+    // seeds them, which is what the migration does to a live world. A spec's
+    // `settings: {turnsPerRound: 8}` therefore still means "this War plays at
+    // 8"; its `combat.system` wins over it.
+    const rules = Object.fromEntries(WAR_RULE_KEYS
+      .filter((k) => world?.settings && k in world.settings)
+      .map((k) => [k, k === "region" ? (world.settings[k] || null) : world.settings[k]]));
     this.doc = realDocument("Combat", {
-      type: "match", round: data.round ?? 1, system: data.system ?? {},
+      type: "match", round: data.round ?? 1, system: { ...rules, ...(data.system ?? {}) },
     }, "Combat");
     // Whose Turn it is. A real `Combat` derives this from its combatant; the
     // model takes it as a fact, because a test about acting-faction behaviour

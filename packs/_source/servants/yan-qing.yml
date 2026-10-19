@@ -1,0 +1,47 @@
+# packs/_source/servants/yan-qing.yml
+# Conversion source: char_orig_sheets/Copia de Yan Qing.md
+#
+# #253. 75 Clauses and 14 rulings in
+# docs/superpowers/specs/2026-10-19-yan-qing-clauses.md.
+schema: 1
+id: yan-qing
+name: "Yan Qing"
+type: servant
+
+# ─── Identity ──────────────────────────────────────────────────────────
+trueName: "Yan Qing"
+# The sheet names no class; Presence Concealment is the Assassin's, as for
+# Danzō (#249 reading 1).
+servantClasses: [assassin]
+classContainer: assassin
+alignment: { order: neutral, morality: evil }
+region: [china]
+attributes: [male, servant, man, humanoid, liangshan]
+
+# ─── Parameters and stats ──────────────────────────────────────────────
+parameters: { str: B, end: D, agi: A+, mag: D, luc: B }
+baseHealth: 750
+mov: 7
+range: { panels: 1, targets: 1 }
+# As printed. The STR table answers 125 at STR B and wins (§46.6); MAG D's 125
+# is as printed.
+baseAttack: { str: 105, mag: 125 }
+sustainability: "2◈"
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  # Rank C: the tables give him 40% discovery, +3 Evade and 1◈ from
+  # deactivation, all three as his sheet prints them.
+  - { ref: class-presence-concealment, rank: C }
+  - { ref: yan-qing-zhong-guo-quan-fa }
+  - { ref: yan-qing-fist }
+  - { ref: yan-qing-ruffian }
+  - { ref: yan-qing-espionage }
+  - { ref: yan-qing-skillful-star }
+  - { ref: yan-qing-doppelganger }
+  - { ref: yan-qing-np }
+
+notes: |
+  Built to be reused (#253). Presence Concealment is the shared class skill; Zhōng Guó Quán Fǎ's
+  NP cut is Raikou's `CooldownDelta` heard at `combatProcessEnd`; Yan Qing Fist's two Dmg Ups are
+  Dmg Up (Gods)'s shape on the alignment options, which Lanceturia and Zhang Jue will read too.

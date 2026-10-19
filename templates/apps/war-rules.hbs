@@ -1,0 +1,13 @@
+<div class="fgt-war-rules">
+  <p class="fgt-war-rules__scope">
+    {{#if defaults}}
+      {{localize "FGT.WarRules.DefaultsScope"}}
+    {{else}}
+      {{localize "FGT.WarRules.Scope" war=warName}}
+      {{#if started}}<br>{{localize "FGT.WarRules.StartedNote"}}{{/if}}
+    {{/if}}
+  </p>
+  <div class="fgt-war-rules__rows">
+    {{> fgt-war-rule-fields rows=rows}}
+  </div>
+</div>

@@ -21,6 +21,7 @@ import { GRANTS, hasGranted } from "../rules/granted.mjs";
 import { actionSourceFor } from "../rules/platforms.mjs";
 import { unitFrom, unitActor } from "./board.mjs";
 import { pressGate, abilityKind } from "./press-gate.mjs";
+import { warRule } from "./war.mjs";
 
 /**
  * @typedef {object} Preflight
@@ -143,7 +144,7 @@ export function attackPreflight({ attacker, abilityId, placement = {}, board, co
   if (master && combat?.started) {
     const siblings = board.units.filter((u) => u.masterId === master.id && u.id !== self.id);
     const allowed = mayOrderAnotherServant(master, siblings, {
-      grandOrder: game.settings.get("fgt", "grandOrder"), ruleset: board.ruleset,
+      grandOrder: warRule("grandOrder"), ruleset: board.ruleset,
     });
     if (!allowed.ok) {
       return refuse(`This Master is at ${multiServantRule(board.ruleset).floor} Health or less and cannot order a second Servant to Act.`);
@@ -154,7 +155,7 @@ export function attackPreflight({ attacker, abilityId, placement = {}, board, co
   // (Ch. 29 step 12). A hard gate at declaration, so the refusal names the rule
   // instead of letting a player discover it as an unexplained targeting error.
   if (combat?.started
-    && attackForbiddenThisRound(actionKind, combat.round ?? 1, game.settings.get("fgt", "noAttackRound"))) {
+    && attackForbiddenThisRound(actionKind, combat.round ?? 1, warRule("noAttackRound"))) {
     return refuse("No attacks are permitted during the first Round.");
   }
 

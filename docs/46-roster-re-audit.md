@@ -5229,6 +5229,18 @@ Dongyū (Concealment) asked *"Attack first?"* for an allied Jack. A non-enemy at
 Process's end: it ended the attacker's PC whether or not she held one when she attacked. The spec records
 `concealedAtDeclaration`, and PC.5 reads it. Ch. 30.
 
+### RR. A targeting selection's relation was never checked — **fixed** (#253)
+
+**Reached: Doppelganger's first draft, in a test.** `relations: [any]` passed `validate:content` and targeted nobody:
+`any` is the scheduler's `nearby` word (Zabaniya's cloud), and the resolver knows `self`, `ally`, `enemy`, `neutral`
+and `civilian`. `RELATION_IDS` (`rules/targeting/vocabulary.mjs`) is now checked at build, as `CHOOSER_IDS` was.
+
+### RS. The Good-aligned Civilian rule read `alignment.moral` — **fixed** (#253)
+
+**Reached: reading Yan Qing's alignment predicate.** A Servant's Alignment is `{order, morality}`, and
+`resolve.mjs`'s *"Good-aligned Servants will not use an AoE Noble Phantasm with a Civilian in range"* read `moral`, so
+it could never trip. Its test built the same invented shape. No content authors the limit yet. Ch. 20.
+
 ---
 
 ---
@@ -7137,3 +7149,57 @@ were staged between presses; a Master was moved within Range for PC.3. Evidence 
   run ends, after the damage write (Surprise `2026-10-18-reanswered-rung-dealt-damage-twice`). Not hers.
 - **Seen in tests only:** PC.7's enemy pick refused, a large-footprint swap, an area trade, a successful Lucky
   Evasion against Yuugao, and a non-owning teammate's view of the ghost. `fgt2026` has no second faction-1 user.
+
+## 46.41 Yan Qing — the Servant who wears another's face
+
+**75 Clauses** (#253, built 2026-10-19 on `claude/yan-qing-build`). The statblock, Presence Concealment C, Zhōng Guó
+Quán Fǎ, Yan Qing Fist, Ruffian, Espionage, Doppelganger, Skillful Star and Shí Miàn Mái Fú. Nothing of his existed.
+15 readings ruled by grilling 2026-10-19 (the 15th, an enemy's look while concealed, after the presses). Spec `docs/superpowers/specs/2026-10-19-yan-qing-clauses.md`.
+
+**Built to be reused.** Every new mechanic is a key, an option or a phase, never his id: the alignment options any
+Dmg Up reads (Lanceturia and Zhang Jue will), `@turnsPerRound` in a handler's predicate, `attack:dealtDamage` at a
+Process's end, a chosen-amount Agility spend at the attacker's Damage Step, a Rank raised by a buff that
+`concealmentProfile` reads live, an S.Crit Up that leaves its holder out, three keys on any dice table, and a mode
+that picks a look, locks its owner's other abilities and pays on its end by how it ended.
+
+### 46.41.1 What he cost the engine
+
+| Finding | Where |
+|---|---|
+| *"Units with the 'Lawful' Alignment"*: `target:order:`, `target:morality:` (reading 1) | `rules/options.mjs`, `rules/facets.mjs` |
+| *"2 Turns if ◈ is greater than 4"*, and only after a Normal Attack that hurt (reading 3) | `engine/scheduler.mjs` (`@turnsPerRound`), `combat-process.mjs#damageDealtIn` |
+| Ruffian: X Agility at the Damage Step, no cap, not on an Evade or an NP (reading 2) | `engine/optional-costs.mjs`, `attack.mjs` |
+| Espionage: PC C read at A while the buff stands, C's cooldown kept (reading 4) | `rules/elements.mjs#rankWithShifts`, `rules/concealment.mjs` |
+| Skillful Star: S.Crit Up except himself (reading 8) | `effects/s-crit-up-others.yml` |
+| The NP's dice: a duplicate rerolled, a 4 that applies all three, a row on himself (reading 9) | `rules/roll-table.mjs#rollFaces`, `#entriesFor` |
+| Doppelganger: the Disguise, per viewer and on every card (readings 5, 10–12) | `rules/disguise.mjs`, `apps/canvas/token.mjs`, `engine/public-identity.mjs` |
+| Doppelganger: the lock, the switch at any time, the rewards on a manual end, the blow that breaks it (readings 6, 7, 13, 14) | `rules/costs.mjs` (`abilityLocked`), `rules/modes.mjs`, `scheduler-hooks.mjs#onModeEnded`, `engine/disguise.mjs` |
+| General: §46.4-RR, RS | |
+
+### 46.41.2 What was pressed, and how
+
+**75 Clauses: 65 `Pressed`, 10 `Observed`, none left to tests.** Yan Qing, Player1's, with Medea beside him, against Arturia,
+Asterios and EMIYA with their Masters, on *Yan Qing Build*; Player2 played the other side from its own client, so
+the Disguise was seen from an enemy's screen (his token drawn as the copy, the tracker and every card naming the
+copy) and from his owner's (the truth). Player1 pressed every Skill, the NP and each Attack through the socket the
+bar uses, the Doppelganger switch from the bar with its look picked on the canvas, the Ruffian dialog, and his
+moves as token drags. ZG's 2-Turn cut was pressed in a second War at ◈ 8 (*Yan Qing ◈8*). Cooldowns, a Master's
+panel for ZON, Medea's Health (so she outlived the NP), a Bašmu for the size check, and the dice (Arturia's Instinct, a
+duplicate d4, the concealment coin's Tails) were staged between presses: a case the board did not produce by chance
+was staged and pressed, never left to a test. Evidence per Clause on #253.
+
+**Four defects the presses found, all fixed** (each a Surprise of 2026-10-19):
+
+| What the press showed | Fixed in |
+|---|---|
+| Ruffian's prompt printed its label's raw `{total}` | `engine/optional-costs.mjs#labelWith` |
+| Switching Doppelganger on never opened a targeting session, so the use was refused "Choose a target" | `rules/ability-use.mjs#needsTargeting` |
+| Concealed, the aiming session called an enemy "Legal" and the use refused it (PC.7) | `rules/concealment.mjs#veiledSpec`, `targeting/resolve.mjs` |
+| (Before the presses) `relations: [any]` passed validation and targeted nobody | §46.4-RR |
+
+### 46.41.3 Left open
+
+- **The dice card names the DU.** "Shí Miàn Mái Fú — Berserker rolls 2, 4.": the attack path's table card was written
+  for Bab-ilu, where each DU rolls. For his NP, he rolls. The rows land right.
+- **His Master's death handed him to the killer's side** (the Conquest rule, #190): Excalibur's Tails press also
+  defeated the Master of Assassin, and Master of Saber claimed him. As ruled; the NP presses moved to the ◈ 8 War.

@@ -57,6 +57,13 @@ describe("describe", () => {
     expect(out.rollable).toBe(true);
   });
 
+  it("says when a floor bit, so −2 + 1 beside a 0 is not an answer the arithmetic misses", () => {
+    const out = describeLine({ id: "maxLuck", base: -2, applied: 1, min: 0, roll: { formula: "1d20" }, value: 0 });
+    expect(out.workings).toBe("-2 + 1 (1d20) → floored at 0");
+    const above = describeLine({ id: "maxLuck", base: -2, applied: 5, min: 0, roll: { formula: "1d20" }, value: 3 });
+    expect(above.workings).toBe("-2 + 5 (1d20)");
+  });
+
   it("signs a subtraction from `applied`, so a tails roll never reads as a bonus", () => {
     const plus = describeLine({ base: 250, applied: 87, roll: { formula: "2d100" }, value: 337 });
     expect(plus.workings).toBe("250 + 87 (2d100)");

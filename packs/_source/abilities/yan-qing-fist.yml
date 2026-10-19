@@ -1,0 +1,32 @@
+# Yan Qing Fist, Rank EX (#253, YF.*).
+#
+# Three buffs on himself. The two Dmg Ups read the alignment options
+# (`target:order:`, `target:morality:`), built for him.
+schema: 1
+id: yan-qing-fist
+name: "Yan Qing Fist"
+rank: EX
+kind: skill
+slug: yanQingFist
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[critUp]{Crit Up} for ⅓◈ Turns, Crit Chance is increased by 60%.
+  2. Applies @effect[dmgUpLawful]{Dmg Up (Lawful)} for 1◈ Turns, all damage dealt to Units with the
+     'Lawful' Alignment is increased by 30%.
+  3. Applies @effect[dmgUpEvil]{Dmg Up (Evil)} for 1◈ Turns, all damage dealt to Units with the
+     'Evil' Alignment is increased by 30%.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: critUp, duration: "⅓◈", magnitude: 60 }
+      # Reading 1: the sheet's "30\." is 30%, as clause 3.
+      - { id: dmgUpLawful, duration: "1◈", magnitude: 30 }
+      - { id: dmgUpEvil, duration: "1◈", magnitude: 30 }

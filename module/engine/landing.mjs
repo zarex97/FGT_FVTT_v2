@@ -46,6 +46,7 @@ import { currentBoard, currentTick, unitFrom, unitActor } from "./board.mjs";
 import { askOwner } from "./ask.mjs";
 import { dispatch } from "./scheduler.mjs";
 import * as I from "./intents.mjs";
+import { warRule } from "./war.mjs";
 
 /**
  * @typedef {object} LandingContext
@@ -96,7 +97,7 @@ export async function landEffect(entry, ctx) {
   const caster = casterUnitOf(ctx, board);
   const options = optionsFor(caster, target, ctx);
   const tick = currentTick();
-  const turnsPerRound = game.settings.get("fgt", "turnsPerRound");
+  const turnsPerRound = warRule("turnsPerRound");
 
   const magnitude = magnitudeOf(entry, def, ctx, caster);
   const npMagnitude = (entry.npMagnitude === undefined ? null : authoredMagnitude(entry, ctx.caster, "npMagnitude", ctx))
