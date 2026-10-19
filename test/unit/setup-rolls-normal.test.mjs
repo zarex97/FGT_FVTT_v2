@@ -113,3 +113,21 @@ describe("normalMasterSetupPlan", () => {
     expect(line(plan, "commandSpells")).toMatchObject({ base: 3, roll: null });
   });
 });
+
+describe("a rolled maximum has a floor (2026-10-18)", () => {
+  // The Normal Lancer's Luck is −2 + 1d20, and a 1 committed a Lancer with Max
+  // Luck −1 to the Great Holy Grail War. Ruled: floored at 0.
+  it("floors the Lancer's Luck at 0 on a 1", async () => {
+    const { normalServantSetupPlan } = await import("../../module/rules/setup-rolls-normal.mjs");
+    const { resolveSetupPlan } = await import("../../module/rules/setup-rolls.mjs");
+    const lines = resolveSetupPlan(normalServantSetupPlan({ classContainer: "lancer" }), { maxLuck: 1 });
+    expect(lines.find((l) => l.id === "maxLuck").value).toBe(0);
+  });
+
+  it("leaves a roll above the floor alone", async () => {
+    const { normalServantSetupPlan } = await import("../../module/rules/setup-rolls-normal.mjs");
+    const { resolveSetupPlan } = await import("../../module/rules/setup-rolls.mjs");
+    const lines = resolveSetupPlan(normalServantSetupPlan({ classContainer: "lancer" }), { maxLuck: 5 });
+    expect(lines.find((l) => l.id === "maxLuck").value).toBe(3);
+  });
+});

@@ -107,6 +107,9 @@ export function normalServantSetupPlan(sheet) {
         label: "Max Luck",
         base: luckDelta,
         roll: { formula: "1d20" },
+        // A Lancer's −2 on a rolled 1 is −1, a Luck no Check can spend. Ruled
+        // 2026-10-18: a rolled maximum is floored at 0.
+        min: 0,
         note: deltaNote(container, luckDelta),
       },
     ],
