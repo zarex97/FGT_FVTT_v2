@@ -49,9 +49,34 @@ export function policyForMessage(message) {
   };
 
   const policy = policyFor(prompt.kind, configured);
-  const startedAt = message.getFlag("fgt", "promptStartedAt") ?? message.timestamp;
+  // The clock belongs to THIS prompt. It was one stamp per card, set at its
+  // first prompt and never moved, so every later prompt on the card ran on the
+  // reaction's clock: a Counter offered after a damage step's Command Spell
+  // windows had expired before it was drawn, and was declined unseen (#256,
+  // live). A prompt not yet stamped has just been reached.
+  const key = promptKey(state, prompt);
+  const clock = message.getFlag("fgt", "promptClock");
+  const started = clock?.key === key;
+  const startedAt = started ? clock.at : now();
 
-  return { ...policy, deadline: startedAt + policy.timeoutMs, prompt };
+  return { ...policy, deadline: startedAt + policy.timeoutMs, prompt, key, started };
+}
+
+/**
+ * Which prompt a clock was started for: its kind, its rung, how far the ladder
+ * had got, and whom it asks. Two prompts on one card never share it.
+ *
+ * @param {object} state
+ * @param {object} prompt
+ * @returns {string}
+ */
+export function promptKey(state, prompt) {
+  return `${prompt.kind}:${state.state}:${state.history?.length ?? 0}:${prompt.unitId ?? ""}`;
+}
+
+/** @returns {number} */
+function now() {
+  return Date.now();
 }
 
 /**
@@ -93,10 +118,10 @@ export function armTimeout(message) {
   if (policy.onExpiry === "hold") return;
   if (timers.has(message.id)) return;
 
-  // Stamped once, on the first render that saw the prompt, so re-rendering the
-  // card does not restart the clock.
-  if (!message.getFlag("fgt", "promptStartedAt")) {
-    message.setFlag("fgt", "promptStartedAt", Date.now());
+  // Stamped once per prompt, on the first render that saw it, so re-rendering
+  // the card does not restart the clock and the next prompt starts its own.
+  if (!policy.started) {
+    message.setFlag("fgt", "promptClock", { key: policy.key, at: policy.deadline - policy.timeoutMs });
   }
 
   const handle = setTimeout(() => {

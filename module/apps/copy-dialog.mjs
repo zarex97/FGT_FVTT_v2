@@ -82,15 +82,18 @@ export class CopyDialog extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** @inheritdoc */
   async _prepareContext() {
-    const candidates = offerCopies({ copierId: this.#copierId });
+    const offer = offerCopies({ copierId: this.#copierId });
+    const candidates = offer ?? [];
     const shown = this.#preferredOnly ? candidates.filter((c) => c.preferred) : candidates;
 
     return {
+      // The copier is not on the board the GM is looking at: no list yet.
+      offBoard: offer === null,
       // fgt-name-ok: the copy picker, the GM's (#204 reading 8)
       copier: game.actors.get(this.#copierId)?.name ?? this.#copierId,
       slots: this.#slots,
       preferredOnly: this.#preferredOnly,
-      isEmpty: candidates.length === 0,
+      isEmpty: offer !== null && candidates.length === 0,
       // A band that hides everything is worse than no band: the GM sees an
       // empty list and no reason for it.
       bandEmpty: this.#preferredOnly && shown.length === 0 && candidates.length > 0,
@@ -139,7 +142,7 @@ export class CopyDialog extends HandlebarsApplicationMixin(ApplicationV2) {
    * @this {CopyDialog}
    */
   static #onOfferAll() {
-    const candidates = offerCopies({ copierId: this.#copierId });
+    const candidates = offerCopies({ copierId: this.#copierId }) ?? [];
     const shown = this.#preferredOnly ? candidates.filter((c) => c.preferred) : candidates;
     for (const c of shown) this.#offered.add(c.ability.id);
     this.render();
@@ -156,7 +159,7 @@ export class CopyDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       return;
     }
 
-    const candidates = offerCopies({ copierId: this.#copierId });
+    const candidates = offerCopies({ copierId: this.#copierId }) ?? [];
     const offered = candidates.filter((c) => this.#offered.has(c.ability.id));
     const picks = await askOwner(this.#copierId, offered, this.#slots);
 

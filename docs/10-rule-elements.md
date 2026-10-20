@@ -143,7 +143,9 @@ executor actually reads, rather than of its descriptor's ids.
   usable once. Watermarks are now keyed by percent (`domain/health.mjs#watermarkKey`, `"50"`), the
   writer reads the `RevivalSource` key, and "above half" is strict. Ruled 2026-10-04: the first revive
   is free; after it, Health must rise above half again. Test:
-  `test/unit/battle-continuation-watermark.test.mjs`.
+  `test/unit/battle-continuation-watermark.test.mjs`. The firing wipes the mark (`engine/io.mjs#recordUse`):
+  a crossing stamped in the Turn of the activation, before it, read as "since" and reopened the gate with no
+  restore (#256, §46.4-RX).
 - **`RevivalSource`** counts its budget in `charges`. Normal Lancer's Battle Continuation said `uses:
   1`, so *"can only be used once"* had no limit. The content now says `charges: 1`, and the validator
   refuses `uses`. **Only a `cascading` source carries the killing blow's excess into what it restores**

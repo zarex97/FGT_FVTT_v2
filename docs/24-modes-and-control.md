@@ -38,7 +38,7 @@ The last two are positional: they re-answer every time they are asked, not froze
 
 ### Forced modes and compulsions
 
-When a compulsion's condition becomes true or a `ForceMode` rule's condition triggers, the modes they name must switch on. `reconcileForcedModes` (`module/engine/modes.mjs:60-107`) watches for these moments and writes the intents. Both sources are checked: `forcedModes` filters the unit's items for ones held by either a compulsion *or* a ForceMode rule (`module/rules/modes.mjs:212-230`).
+When a compulsion's condition becomes true or a `ForceMode` rule's condition triggers, the modes they name must switch on. `reconcileForcedModes` (`module/engine/modes.mjs:60-107`) watches for these moments and writes the intents. Both sources are checked: `forcedModes` filters the unit's items for ones held by either a compulsion *or* a ForceMode rule (`module/rules/modes.mjs:212-230`). A third source is a mode that never comes off (`cannotDeactivate`) that a Command Spell's Suspend Skill switched off: once its span has passed, `rules/modes.mjs#lapsedConstantModes` re-arms it, with a card. Heracles's *"Constantly Active … it will reactivate"*; without it his Mad Enhancement stayed off for good (#256 reading 2, §46.4-RY).
 
 The write bypasses `canToggleMode`—the sheet says *"immediately activated regardless of Cooldown or any other factors"* (`module/engine/modes.mjs:91-94`). The reverse is absent: when the condition lifts, nothing switches the mode off, freeing the player rather than moving their hand.
 

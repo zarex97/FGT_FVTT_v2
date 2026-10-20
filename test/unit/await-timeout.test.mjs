@@ -16,7 +16,7 @@ import { join } from "node:path";
 
 import { describe, it, expect } from "vitest";
 
-import { policyForMessage } from "../../module/engine/await-timeout.mjs";
+import { policyForMessage, promptKey } from "../../module/engine/await-timeout.mjs";
 import * as process from "../../module/engine/combat-process.mjs";
 
 /** A message stub whose flags are exactly what a stored card holds. */
@@ -44,19 +44,36 @@ describe("policyForMessage", () => {
     const raw = process.serialize(counterRung());
     expect(typeof raw, "the stored flag is a JSON string").toBe("string");
 
+    const before = Date.now();
     const policy = policyForMessage(messageWith({ process: raw }));
     expect(policy).toMatchObject({
       defaultChoice: "declined",
       timeoutMs: 45_000,
       prompt: { kind: "counter", unitId: "defender" },
+      started: false,
     });
-    expect(policy.deadline, "the deadline runs from the card's timestamp").toBe(1_000_000 + 45_000);
+    // A prompt nobody has stamped has just been reached: its whole time is left.
+    expect(policy.deadline).toBeGreaterThanOrEqual(before + 45_000);
   });
 
-  it("starts the deadline from promptStartedAt when the GM stamped one", () => {
-    const raw = process.serialize(counterRung());
-    const policy = policyForMessage(messageWith({ process: raw, promptStartedAt: 2_000_000 }));
-    expect(policy.deadline).toBe(2_000_000 + 45_000);
+  it("starts the deadline from this prompt's own stamp", () => {
+    const state = counterRung();
+    const raw = process.serialize(state);
+    const key = promptKey(state, process.pendingPrompt(state));
+    const policy = policyForMessage(messageWith({ process: raw, promptClock: { key, at: 2_000_000 } }));
+    expect(policy).toMatchObject({ started: true, deadline: 2_000_000 + 45_000 });
+  });
+
+  // Pressed live (#256): the reaction's stamp, set when the card first asked,
+  // was the Counter's too, and a Counter reached after the damage step's
+  // windows had already run out of time.
+  it("never runs a later prompt on an earlier prompt's clock", () => {
+    const state = counterRung();
+    const reactKey = promptKey({ ...state, state: "react", history: [] }, { kind: "reaction", unitId: "defender" });
+    const before = Date.now();
+    const policy = policyForMessage(messageWith({ process: process.serialize(state), promptClock: { key: reactKey, at: 1_000_000 } }));
+    expect(policy.started).toBe(false);
+    expect(policy.deadline).toBeGreaterThanOrEqual(before + 45_000);
   });
 
   it("also accepts an already-parsed Process object", () => {

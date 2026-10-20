@@ -30,6 +30,8 @@
  */
 
 import { untouchableBy } from "../rules/untouchable.mjs";
+import { identityOfProcess, recordedAttack } from "../rules/revival.mjs";
+import { currentHealth } from "../domain/health.mjs";
 import { applyEffect, inflictBonusOf, mergeEmitted } from "./effect-applier.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
@@ -185,6 +187,22 @@ export async function landEffect(entry, ctx) {
     } else if (check) {
       line = [line, `${check.line}: failed`].filter(Boolean).join("; ");
       intents = [...intents, ...check.spend];
+    }
+  }
+
+  // God Hand's floor reaches an Instakill too: *"whenever a recorded Attack
+  // would reduce his Health to 0, his Health will remain at 1 instead"*, and an
+  // Instakill is "Health reduced to 0" (Appendix A). Ruled 2026-10-19 (#256
+  // reading 6); pressed live, the second Gáe Bolg Alternative spent a use
+  // where its record should have held him at 1. The damage floor asks the
+  // same question of the same identity (`engine/attack.mjs#applyDamage`).
+  if (outcome === "applied" && def.terminal?.kind === "reduceToZero") {
+    const recorded = recordedAttack(target, identityOfProcess(ctx.process ?? null));
+    if (recorded.floored) {
+      const left = Math.max(0, currentHealth(target) - 1);
+      intents = intents.map((i) => (i.t === "statDelta" && i.unitId === target.id && i.stat === "health.value"
+        ? { ...i, delta: -left } : i));
+      line = [line, game.i18n.format("FGT.Revival.RecordedFloor", { source: recorded.source })].filter(Boolean).join("; ");
     }
   }
 

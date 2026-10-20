@@ -133,7 +133,7 @@ function isAvailable(source, unit) {
  * @param {object} args.unit
  * @param {number} [args.overkill] damage left over after Health reached 0
  * @param {Record<string, number>} [args.rolls] keyed `revival:<id>:<n>`
- * @returns {{revived: boolean, source: RevivalSource|null, restored: number, chargesUsed: number}}
+ * @returns {{revived: boolean, source: RevivalSource|null, restored: number, chargesUsed: number, rolled?: number[], overkill?: number}}
  */
 export function resolveRevival({ unit, overkill = 0, rolls = {} }) {
   const source = availableRevivals(unit)[0] ?? null;
@@ -161,9 +161,14 @@ export function resolveRevival({ unit, overkill = 0, rolls = {} }) {
   let restored = 0;
   let used = 0;
   const limit = source.charges ?? 1;
+  // What each charge rolled, for the card: a die nobody sees is a die nobody
+  // can check (#256: God Hand's last use failed against 70 and no line said so).
+  /** @type {number[]} */
+  const rolledEach = [];
 
   do {
     const rolled = perCharge(used);
+    if (source.percentOfMax === null || source.percentOfMax === undefined) rolledEach.push(rolled);
     used += 1;
     if (rolled <= 0) break;
 
@@ -178,9 +183,9 @@ export function resolveRevival({ unit, overkill = 0, rolls = {} }) {
 
   // Every charge spent and still nothing left: the revival failed, and the
   // charges are spent anyway -- "and so on" describes an attempt, not a refund.
-  if (restored <= 0) return { revived: false, source, restored: 0, chargesUsed: used };
+  if (restored <= 0) return { revived: false, source, restored: 0, chargesUsed: used, rolled: rolledEach, overkill };
 
-  return { revived: true, source, restored, chargesUsed: used };
+  return { revived: true, source, restored, chargesUsed: used, rolled: rolledEach, overkill };
 }
 
 /**
@@ -218,12 +223,36 @@ export function pendingRevivalRolls(unit) {
  * Normal Attacks. Karna's normal attacks stop being lethal after one kill; each
  * of his three Noble Phantasms still gets its own chance.
  *
- * @param {object} attack `{abilityId, kind}`
+ * @param {object} attack `{abilityId, kind, ride}`
  * @param {string} attackerId
+ * @param {object} [opts]
+ * @param {boolean} [opts.counter] the Attack is a Counter
  * @returns {string}
  */
-export function attackIdentity(attack, attackerId) {
-  return attack?.abilityId ? `ability:${attack.abilityId}` : `normal:${attackerId}`;
+export function attackIdentity(attack, attackerId, { counter = false } = {}) {
+  // Ruled 2026-10-19 (#256 reading 5): wherever the board can tell two Attacks
+  // apart, each is its own record. An Attack with an ability (a Mana Burst, an
+  // NP) is that ability's; a Riding Attack, though it counts as a Normal Attack,
+  // is the ride's; a Counter is the Counter's, whatever it swung with. Only a
+  // plain Normal Attack is the attacker's one Normal Attack.
+  const base = attack?.abilityId ? `ability:${attack.abilityId}`
+    : attack?.ride ? `riding:${attackerId}`
+    : `normal:${attackerId}`;
+  return counter ? `counter:${base}` : base;
+}
+
+/**
+ * "That Attack" for a Combat Process: its declaration, its attacker, and
+ * whether it is a Counter. The ONE reader the damage floor, the ledger and an
+ * Instakill's floor ask, so the three cannot name one Attack two ways.
+ *
+ * @param {object|null} process a Combat Process state `{attack, attackerId, isCounter}`
+ * @param {object} [attack] the declaration's facts, when the caller has richer ones
+ * @returns {string|null} null outside an Attack
+ */
+export function identityOfProcess(process, attack = process?.attack) {
+  if (!process?.attackerId) return null;
+  return attackIdentity(attack ?? {}, process.attackerId, { counter: Boolean(process.isCounter) });
 }
 
 /**
