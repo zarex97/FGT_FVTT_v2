@@ -25,6 +25,7 @@
  */
 
 import { warRuleSpec, publishedValue, WAR_RULE_KEYS, coerceWarRule, warRuleEditable } from "../domain/war-rules.mjs";
+import { revisionOf } from "../domain/revisions.mjs";
 
 /**
  * Every War in the world.
@@ -163,8 +164,56 @@ export function warRule(key, war = currentWar()) {
   if (!war) return worldDefault(key);
   const system = war.system ?? {};
   const value = system[key];
-  if (value === undefined) return worldDefault(key);
+  // A War that never stored a rule with a `legacy` value predates it, and reads
+  // what its DataModel reads (`data/misc.mjs`): the Classic/Revised rules' *As
+  // printed* (#260 reading 3h).
+  if (value === undefined) return warRuleSpec(key).legacy ?? worldDefault(key);
   return value;
+}
+
+/**
+ * The War's Classic/Revised rules by Skill slug, the shape
+ * `domain/revisions.mjs#revisionOf` reads (`board.rules.revisions`).
+ *
+ * @param {object|null} [war] defaults to {@link currentWar}
+ * @returns {Record<string, unknown>}
+ */
+export function revisionRules(war = currentWar()) {
+  // Spelled out rather than mapped over `REVISION_RULES`, so each rule has a
+  // reader by name (`test/unit/field-ledger.test.mjs`); `revisions-260.test`
+  // holds the two lists together.
+  return {
+    madEnhancement: warRule("madEnhancementRevision", war),
+    divinity: warRule("divinityRevision", war),
+    presenceConcealment: warRule("presenceConcealmentRevision", war),
+  };
+}
+
+/**
+ * The text an ability plays in its bearer's War (#260 reading 3), or `null`
+ * for an ability that is not a revisable Skill. The engine's door to
+ * `revisionOf`; the board's is `board.rules.revisions`.
+ *
+ * @param {object|null} item an ability Item
+ * @param {object|null} actor its bearer
+ * @returns {"classic"|"revised"|null}
+ */
+export function itemRevision(item, actor) {
+  return revisionOf(item?.system ?? null, revisionRules(warOfUnit(actor) ?? currentWar()));
+}
+
+/**
+ * The description a sheet prints for this ability: the Revised wording when its
+ * bearer's War plays the Revised text, else its own (#260 reading 3f).
+ *
+ * @param {object|null} item an ability Item
+ * @param {object|null} [actor] its bearer; the item's parent when omitted
+ * @returns {string}
+ */
+export function descriptionFor(item, actor = item?.parent ?? null) {
+  const sys = item?.system ?? {};
+  if (sys.descriptionRevised && itemRevision(item, actor) === "revised") return sys.descriptionRevised;
+  return sys.description ?? "";
 }
 
 /**

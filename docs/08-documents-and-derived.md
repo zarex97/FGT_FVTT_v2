@@ -107,6 +107,12 @@ and Luck are clamped to their maximum (even when no delta named the current), be
 maximum drags its current down with it, and losing a buff that raised both leaves the current above
 the ceiling it paid into (#106).
 
+**Words set outright** (stage 2c, #260). An `AlignmentOverride` delta carries `set` (a word) and no `value`:
+Gilles de Rais (Saber) is Neutral Evil while Mad Enhancement is Active. `MODIFIABLE_PATHS` admits
+`alignment.order` and `alignment.morality`. The sheet's derivation list (`apps/actor-sheet/context.mjs#rankAmount`)
+reads it as *"alignment.order → neutral"*; it read `0`, the other reader of the same deltas having learned `set`
+and the sheet not (found live).
+
 The result is a `{changes, trace}` object. `trace` records every change and its source for the sheet's
 tooltip; `changes` is a flat path → value map that `writeDerived` applies to the live `system`
 (`module/rules/derived.mjs:39-47`, `module/rules/derived.mjs:179-182`).

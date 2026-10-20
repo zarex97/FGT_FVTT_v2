@@ -47,3 +47,38 @@ export async function postDefeatCard(unitId, killerId = null, { whisper = null, 
     flags: { fgt: { defeat: { unitId, ...(feigned ? { feigned: true } : {}) } } },
   });
 }
+
+/**
+ * Count each name once: "6 × Horror, Elder Horror".
+ *
+ * @param {string[]} names
+ * @returns {string}
+ */
+export function countedNames(names) {
+  const counts = new Map();
+  for (const name of names) counts.set(name, (counts.get(name) ?? 0) + 1);
+  return [...counts].map(([name, n]) => (n > 1 ? `${n} × ${name}` : name)).join(", ");
+}
+
+/**
+ * Post the line for the summons that leave the field with their summoner
+ * (`leavesWithSummoner`, #193 reading 15). They are dismissed, not defeated,
+ * and the dismissal wrote a log entry and nothing a player reads (#260, live).
+ *
+ * @param {string} summonerId
+ * @param {object[]} summons the summons' documents, before they go
+ * @returns {Promise<void>}
+ */
+export async function postLeftWithSummonerCard(summonerId, summons) {
+  if (summons.length === 0) return;
+  const { shownName } = await import("./public-identity.mjs");
+  const board = currentBoard();
+  const summoner = unitActor(summonerId);
+  if (!summoner) return;
+  const escape = foundry.utils.escapeHTML;
+  const text = game.i18n.format("FGT.Defeat.SummonsLeave", {
+    summons: escape(countedNames(summons.map((s) => shownName(s, board)))),
+    name: escape(shownName(summoner, board)),
+  });
+  await ChatMessage.create({ content: `<div class="fgt-card fgt-card--defeat"><p>${text}</p></div>` });
+}

@@ -101,9 +101,15 @@ export async function landEffect(entry, ctx) {
   const tick = currentTick();
   const turnsPerRound = warRule("turnsPerRound");
 
-  const magnitude = magnitudeOf(entry, def, ctx, caster);
-  const npMagnitude = (entry.npMagnitude === undefined ? null : authoredMagnitude(entry, ctx.caster, "npMagnitude", ctx))
-    ?? npFactorOf(entry, magnitude);
+  const authored = magnitudeOf(entry, def, ctx, caster);
+  const authoredNp = (entry.npMagnitude === undefined ? null : authoredMagnitude(entry, ctx.caster, "npMagnitude", ctx))
+    ?? npFactorOf(entry, authored);
+  // The CASTER's outgoing scale on what its Noble Phantasm applies: Overcharge
+  // (#260 reading 8). The magnitude only, never a chance or a duration; the
+  // NP's damage never comes through here.
+  const overcharge = outgoingScaleOf(caster, ctx, options, authored, authoredNp);
+  const magnitude = overcharge.magnitude;
+  const npMagnitude = overcharge.npMagnitude;
   const stated = chanceOf(entry, { distance: ctx.distance ?? distanceBetween(caster, target), band: ctx.band ?? null });
   // *"Hidden while the inflicter is concealed"*: Secret Poison, decided as it lands.
   const hidden = Boolean(entry.secret) && concealed(caster);
@@ -163,7 +169,7 @@ export async function landEffect(entry, ctx) {
   // The line the card prints beside the name: the die against its chance, and
   // a Prevention Luck Check that was made. An applied effect shows this and no
   // reason, so a failed check that cost a Luck would otherwise say nothing.
-  let line = result.chance ?? null;
+  let line = [result.chance ?? null, overcharge.line].filter(Boolean).join("; ") || null;
 
   // A ward that negates debuffs its holder picks, before any Luck is spent on
   // them: the Master's Avalon, *"negate up to Y additional negative effects
@@ -240,6 +246,35 @@ export async function landEffect(entry, ctx) {
     trace: result.trace ?? [],
     summary: { id: def.id, name: def.name, outcome, reason, chance: line },
   };
+}
+
+/**
+ * An outgoing magnitude scale the caster holds for what its Noble Phantasms
+ * apply: Overcharge, *"the magnitude of all non-damage effects of NP are
+ * increased by 20%"* (#260 reading 8). Rounded down, as every magnitude scale
+ * is; the card says what it did. Spent by the NP itself, through its own
+ * `abilityUsed` handler (`effects/overcharge.yml`), so the scale here only reads.
+ *
+ * @param {object|null} caster the board's caster
+ * @param {object} ctx the landing context
+ * @param {Set<string>} options the landing's options
+ * @param {number} magnitude @param {number|null} npMagnitude
+ * @returns {{magnitude: number, npMagnitude: number|null, line: string|null}}
+ */
+function outgoingScaleOf(caster, ctx, options, magnitude, npMagnitude) {
+  const scales = (caster?.magnitudeScales ?? []).filter((s) => s.direction === "outgoing" && s.scope === "np");
+  if (scales.length === 0 || typeof magnitude !== "number" || magnitude === 0) return { magnitude, npMagnitude, line: null };
+  const ability = (caster.abilities ?? []).find((a) => a.id === ctx.source?.abilityId) ?? null;
+  const fromNP = options?.has?.("attack:kind:np") || Boolean(ability?.isNP || ability?.categorizedAsNP);
+  if (!fromNP) return { magnitude, npMagnitude, line: null };
+  let m = magnitude;
+  let np = npMagnitude;
+  for (const s of scales) {
+    m = Math.floor(m * s.factor + 1e-9);
+    if (typeof np === "number") np = Math.floor(np * s.factor + 1e-9);
+  }
+  const names = [...new Set(scales.map((s) => s.source))].join(", ");
+  return { magnitude: m, npMagnitude: np, line: `${names}: ${magnitude} → ${m}` };
 }
 
 /**

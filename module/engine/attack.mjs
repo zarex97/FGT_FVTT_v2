@@ -4978,7 +4978,9 @@ async function runCounter(state, { abilityId = null, placement = null } = {}) {
   // the ladder/rung"* (§46.4-CK). Its phases run against what it caught.
   if (ability && !classifyAbility(ability).isAttack) {
     const { resolveWithoutProcess } = await import("./skill-use.mjs");
-    await resolveWithoutProcess({ ability, actor: counterer, targets: targets.units ?? [], board });
+    await resolveWithoutProcess({
+      ability, actor: counterer, targets: targets.units ?? [], board, overCooldown: Boolean(usage.overCooldown),
+    });
     return { groupId: state.groupId, processes: [], messageId: null, state: null };
   }
 
@@ -5245,6 +5247,11 @@ async function resolveDefeatOf(defender, damage, state = {}) {
     // (`masterDefeated`, #103).
     board: boardSnapshot(),
     rolls: {},
+    // The Attack that defeated it, as `attack:` facts only: the victim's own
+    // facts are its handler's (`fireEvent` adds them). A Horror does not split
+    // when *"defeated with Light damage or Attack that deals extra damage to
+    // 'Dark' or 'Outsider' Attribute Units"* (#260).
+    options: attackOptionsOfDefeat(defender, state),
   };
   for (const spec of pendingRolls(defender, "unitDefeated")) {
     ctx.rolls[spec.key] = (await new Roll(spec.formula).evaluate()).total;
@@ -5285,6 +5292,21 @@ async function resolveDefeatOf(defender, damage, state = {}) {
   const dies = defeat.some((i) => i.t === "defeat" && i.unitId === defender.id);
   const dimensional = dies ? await resolveDimensionalDefeat(defender, ctx) : [];
   return [...recording, ...dimensional, ...defeat, ...killedBy(defender, defeat, state, ctx)];
+}
+
+/**
+ * The `attack:` options of the Attack that took this Unit's last Health, or none
+ * when no Attack did (a Poison tick, a drain).
+ *
+ * @param {object} victim the defender's snapshot
+ * @param {object} state the Combat Process, or `{}`
+ * @returns {Set<string>}
+ */
+function attackOptionsOfDefeat(victim, state) {
+  if (!state?.attackerId || !state.attack) return new Set();
+  const killer = unitFrom(boardSnapshot(), unitActor(state.attackerId));
+  if (!killer) return new Set();
+  return new Set([...rollOptions(killer, victim, state)].filter((o) => o.startsWith("attack:")));
 }
 
 /**

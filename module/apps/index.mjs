@@ -12,6 +12,7 @@ import { AbilityEditor } from "./ability-editor/index.mjs";
 import { EDITOR_TYPES } from "./sheet-choice.mjs";
 import { editImage } from "./image-edit.mjs";
 import { enrichText, effectFacts } from "./enrich.mjs";
+import { descriptionFor } from "../engine/war.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ItemSheetV2 } = foundry.applications.sheets;
@@ -53,7 +54,8 @@ class FGTItemSheet extends HandlebarsApplicationMixin(ItemSheetV2) {
       isEditable: this.isEditable,
       // `enrichHTML` is async and Handlebars is not, so this is the only place
       // it can happen. Without it a `@UUID` link renders as literal text.
-      enrichedDescription: await enrichText(this.document.system?.description),
+      // The text the War plays, Classic or Revised (#260 reading 3f).
+      enrichedDescription: await enrichText(descriptionFor(this.document)),
       // What a player who just clicked "Burn" actually wants to know. Every
       // one of these was already on the document and none of it was shown;
       // the sheet offered a rule-element key instead, which is the one thing

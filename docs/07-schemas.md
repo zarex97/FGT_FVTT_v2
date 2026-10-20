@@ -169,3 +169,11 @@ flag, not on the caster: a caster whose token has left must still be found to be
 and `maxUses` (the one use, a Command Spell's vocabulary), `timesUsed`, and `grantedBy` (the Master, on a copy).
 `MasterData.essences` is gone: a set nothing wrote. `abilityCommon` gains `freeServantCost`, a Free Servant's NP price
 its sheet states (the Normal ruleset).
+
+**Gilles de Rais (Saber)'s fields (#260).** Abilities: `printedRevision` (`classic`/`revised`, the text of a
+revisable Skill its sheet prints), `unsealable` (Skill Seal never ends it), `descriptionRevised` (the sheet's text under
+the Revised pick), and `cannotActivate` (a mode no hand switches on); a phase may carry `chance`
+(`rules/phase-chance.mjs`), and the `abilityAllows` requirement. Servants: `sustainabilityDecay` (Turns lost at each
+Turn's end beyond the clock's one, Revised Mad Enhancement clause 5), written at a Master's death, read by
+`checkRemovals`. The War (`MatchData`): `madEnhancementRevision`, `divinityRevision`, `presenceConcealmentRevision`,
+whose DataModel initial is the spec's `legacy` value, *As printed*. Each is routed in `test/unit/survival.test.mjs`.

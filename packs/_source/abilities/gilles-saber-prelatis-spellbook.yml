@@ -1,0 +1,23 @@
+# Gilles de Rais (Saber), char_orig_sheets/Copia de Gilles de Rais.md (#260).
+#
+# *"Prelati's Spellbook: Textbook of the Sunken Spiral Castle -- Rank: A+ (NP).
+# Can only be used when Mad Enhancement is Activated. Allows the use of the
+# Spells 'Summoning: Horror' and 'Summoning: Elder Horror'."*
+#
+# Ruled 2026-10-20 (#260 reading 11): it is not used. While Mad Enhancement is
+# Active both Spells are offered (`abilityAllows`, `rules/items.mjs`), and its
+# requirement is the one they read. It prints no Cooldown, so the Spells'
+# *"cannot be used if Prelati's Spellbook is on Cooldown"* -- the Caster's
+# sentence -- never holds for him.
+schema: 1
+id: gilles-saber-prelatis-spellbook
+name: "Prelati's Spellbook: Textbook of the Sunken Spiral Castle"
+isNP: true
+rank: "A+"
+kind: noblePhantasm
+slug: prelatisSpellbook
+passive: true
+requirements:
+  - { kind: modeActive, mode: madEnhancement }
+description: |
+  Can only be used when Mad Enhancement is Activated. Allows the use of the Spells @ability[summoning-horrors]{Summoning: Horrors} and @ability[summoning-elder-horror]{Summoning: Elder Horror}.

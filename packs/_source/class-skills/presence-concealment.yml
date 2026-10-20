@@ -53,6 +53,34 @@ description: |
      include Attack Skills and Spells that deal damage.
   8. The effects of Presence Concealment are neither a buff nor a debuff, and are Unremovable.
   Cooldown: the rank table's value, counted from deactivation.
+# Classic and Revised (#260 reading 3). The Revised clause 8 adds *"if this Unit
+# is inflicted with Skill Seal while PC is Active, it is immediately
+# deactivated"* (Hundred-Faced Hassan, Sasaki); their references say they print
+# it. The War's pick decides which every bearer plays
+# (`engine/concealment.mjs#attachSealEnds`). It was Hassan's parameter alone
+# (#226 reading 16) until the War could choose.
+printedRevision: classic
+endsOnSkillSeal: true
+descriptionRevised: |
+  (Active) Used during your Turn. The effects of this Skill last for 2◈ Turns.
+  1. This Unit cannot be targeted for an Attack or an enemy Unit's Skill. If it is caught in an
+     AoE Attack and fails to Evade, Flip a Coin. If Heads, no damage and effects are received;
+     if Tails, Total Damage taken from that Attack is reduced by 50% and PC is deactivated.
+  2. This Unit's Attacks cannot be Blocked or Countered unless the Defending Unit's current AGI
+     Rank is equal to or higher than it. If the DU Evades, the Evade Roll is increased by the
+     rank table value.
+  3. This Unit is able to Attack Masters and Move to any panel regardless of enemy
+     Master-Servant positions.
+  4. All damage dealt is increased by 100%; if NP, 50%. Does not apply to Masters.
+  5. After performing an Attack while PC is Active, PC is deactivated at the end of the Combat
+     Process.
+  6. When this Unit Moves into an enemy Servant's Range (or Detect), it has the rank table's
+     chance of being discovered.
+  7. Active Skills targeting or affecting an enemy Unit cannot be used unless stated. Does not
+     include Attack Skills and Spells that deal damage.
+  8. The effects of Presence Concealment are neither a buff nor a debuff, and are Unremovable;
+     if this Unit is inflicted with Skill Seal while PC is Active, it is immediately deactivated.
+  Cooldown: the rank table's value, counted from deactivation.
 phases:
   - kind: applyEffects
     target: self

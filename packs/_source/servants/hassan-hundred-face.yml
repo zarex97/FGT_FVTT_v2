@@ -53,8 +53,9 @@ linkedGroup:
 abilities:
   # A+ as on Jack and Serenity: the rank tables give Evade +4, discovery 5%
   # and the 2◈ cooldown from deactivation, which is what his sheet prints.
-  # `endsOnSkillSeal`: clause 8's last sentence, his sheet's alone (PC.8.seal).
-  - { ref: class-presence-concealment, rank: "A+", endsOnSkillSeal: true }
+  # Revised Presence Concealment: his clause 8 ends it on Skill Seal (PC.8.seal,
+  # #226 reading 16; the Revised text since #260 reading 3).
+  - { ref: class-presence-concealment, rank: "A+", printedRevision: revised }
   - { ref: hassan-librarian-of-stored-knowledge }
   - { ref: hassan-expert-of-many-specializations }
   - { ref: hassan-battle-retreat }

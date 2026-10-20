@@ -5374,6 +5374,65 @@ Contract option, or Conquest. Conquest never asked it: `rules/contract.mjs#conqu
 the dead Master. An EX or A+ Servant is now left out and goes Free, and the card says *"No Conquest: Archer's
 Independent Action refuses Caster's side, and Archer is Free."* Ch. 32.
 
+### TA. A flat bonus against an Attribute was not "extra damage" to it — **fixed** (#260)
+
+**Reached: HO.split.vs.** A Horror defeated *"with an Attack that deals extra damage to 'Dark' Units"* does not split.
+Arturia's Excalibur passive (*"50 if the DU has the 'Dark' Attribute"*) is one, and `attack:vsAttribute:dark` never
+held: `rules/options.mjs` reads modifiers whose `direction` is `dealt`, and `FlatDamage` stated none. It does now;
+live, the Horror she defeated did not split. Ch. 10, 11.
+
+### TB. Skill Seal claimed to end a mode its sheet says never ends — **fixed; the reading is the user's** (#260)
+
+**Reached: WR.me.seal, staging it on Heracles.** Revised Mad Enhancement clause 7 ends the mode on Skill Seal;
+Heracles's sheet prints *"Constantly Active. Cannot be deactivated."* and `io.setMode` refuses every forced switch on
+him. The seal reader would have carded an end that never happens. `engine/seal-ends.mjs#sealVerdicts` holds a
+`cannotDeactivate` mode with its own line. Which text wins is put to the user. Ch. 24.
+
+### TC. A Spell made as a Counter left no Cooldown — **fixed** (#260)
+
+**Reached: HO.counter.** Summoning: Horrors answered Heracles's Attack and two Horrors came, and the Spell stood off
+Cooldown: `runCounter` pays the price before the phases, and a `perUnit` clock priced at a count of 0 is none.
+`resolveWithoutProcess` sets it once the count exists (cooldown 4, live). Ch. 21.
+
+### TD. The card's Counter button read as the way to choose one — **fixed** (#260)
+
+**Reached: HO.counter.** The button sends the rung's `counter` event with no ability, a Normal Attack Counter, and
+read only *"Counter"* while the bar glowed with the abilities that answer one. It reads *"Counter with a Normal
+Attack"*, and its hint sends an ability to the bar. Found by pressing it twice expecting the choice. Ch. 21.
+
+### TE. His summons left the board with no line — **fixed** (#260)
+
+**Reached: HO.leave, EH.leave.** `leavesWithSummoner` summons were dismissed at his defeat with a log entry only.
+`defeat-card.mjs#postLeftWithSummonerCard`: *"2 × Horror, Elder Horror leave the field with Saber."* Ch. 31.
+
+### TF. A Master's death said nothing of its Servants — **fixed** (#260)
+
+**Reached: ME.5.lock, ME.5.stn, WR.me.rev, WR.me.cls.** Freed, the clock, Mad Enhancement's clause 5 and the
+modes held were writes and log entries; the table read *"No Conquest"*. One card after the defeat and Conquest cards:
+*"Saber is Free, with 9 Turn(s) of Sustainability left. … Mad Enhancement was Active when its Master fell: it cannot
+be deactivated, and Saber's Sustainability falls 1 more Turn at the end of every Turn."* Classic says the 2◈. Ch. 32.
+
+### TG. A word set outright read as 0 on the sheet — **fixed** (#260)
+
+**Reached: ME.align.** *"alignment.order 0 — Gilles de Rais (Saber)"* under *"NEUTRAL EVIL"*: the derived pass learned
+`set`, the sheet's `rankAmount` did not. It reads *"→ neutral"*. Ch. 08.
+
+### TH. An effect's id named its row on the damage card — **fixed** (#260)
+
+**Reached: HM.m4.horrors.** *"Dmg Boost dmgBoostGilles +30"* on his Horror's card. Effect instances are named by their
+ids; renaming them broke 14 tests, because a contribution's `source` is an identity (rolls key on it, and two
+definitions share *S.Crit Up*). `rules/explain.mjs` maps the id to its name at display. Ch. 37.
+
+### TI. A refusal named nothing it waited on — **fixed** (#260)
+
+**Reached: HO.book, EH.book.** *"An ability it depends on is still cooling."* The refusal names it: *"Not while
+Prelati's Spellbook: … is on Cooldown."* Ch. 17.
+
+### TJ. A phase's missed die printed its kind — **fixed** (#260)
+
+**Reached: PE.roll.** Prelati's Encouragement's die that missed read *"chance"* on the card. The phase says
+*"missed"*, with the die. Ch. 17.
+
 ---
 
 ---
@@ -7411,3 +7470,52 @@ Invuln on Medea, BuffRemoval ResUp on her, her Master's Command Spells at 0 for 
 
 - **Effect documents are named by their ids** (`soaked`, `atkUp`), so a damage breakdown reads *"soaked (Total
   fire)"*. System-wide, older than this audit.
+
+## 46.44 Gilles de Rais (Saber) — the Servant whose madness the War decides
+
+**152 Clauses** (#260, audited 2026-10-20) on *Gilles de Rais*, the Saber form of the Caster on *Copia de Gilles.md*,
+named by the user. Built new: nothing of his was in `packs/_source`. Sixteen readings ruled by grilling 2026-10-20,
+among them reading 3: his sheet prints a **Revised** Mad Enhancement, and Cú Chulainn's and Sasaki's print Revised
+Divinity and Presence Concealment, so the War chooses: **Classic**, **Revised** (the default) or **As printed**, one War
+Rule each, fixed once the War starts. Spec `docs/superpowers/specs/2026-10-20-gilles-saber-clauses.md`.
+
+### 46.44.1 What he cost the engine
+
+| Finding | Where |
+|---|---|
+| Three War Rules pick each skill's text; a War that predates them reads *As printed* (reading 3) | `domain/revisions.mjs`, `engine/war.mjs#itemRevision`, `#revisionRules` |
+| Revised Skill Seal ends PC and ME at once; his own *"cannot be negated"* is `unsealable` (readings 3d, 3j) | `engine/seal-ends.mjs` |
+| Revised Divinity is Fixed Divine, added after every modifier | `damage/pipeline.mjs#fixedNow`, `FlatDamage.fixedUnder` |
+| Revised clause 5: no 2◈, a Turn of decay at every Turn's end | `rules/relationships.mjs#onMasterDefeated`, `scheduler.mjs#checkRemovals` |
+| Mad Enhancement switched only by Prelati's die, which climbs 15% a use (reading 2) | `rules/modes.mjs` (`cannotActivate`), `rules/phase-chance.mjs` |
+| His Alignment is Neutral Evil while it is Active (reading 4) | `elements.mjs#AlignmentOverride`, `derived.mjs` stage 2c |
+| Jeanne d'Arc by True Name; allies by distance and Attribute (readings 6, 7) | `rules/named-units.mjs`, `options.mjs`, `facets.mjs` |
+| Overcharge scales one non-damaging NP's magnitudes (reading 8) | `effects/overcharge.yml`, `landing.mjs#outgoingScaleOf` |
+| The Spellbook allows the Spells on its own terms (reading 11) | `items.mjs` `abilityAllows` |
+| Horrors split on a die, not on Light or an Attack against Dark (reading 12) | `scheduler.mjs#Split`, `summoning.mjs#splitSummon` |
+| Dmg Boost (Gilles) reaches his summons (reading 13) | `rules/auras.mjs`, role `summon` |
+| A Spell that counts as his Attack answers a Counter | `rules/counter.mjs#answersACounter` |
+| General: §46.4-TA to TJ | |
+
+### 46.44.2 What was pressed, and how
+
+**152 Clauses: all `Pressed` or `Observed`, none left to tests** (nine `Pressed (engine)`). Two Wars. *Gilles Audit*
+(Revised, Intermediate, ◈ 3): Gilles, Drake and Test Jeanne d'Arc for Player1 against Heracles, Jack, Anastasia
+(Summer), Karna and Arturia for Player2, five Rounds. *Gilles Audit B* (Classic): a fresh Gilles, Test Jeanne and
+Hundred-Faced Hassan against Arjuna, Anastasia (Summer) and Heracles, for Mad Enhancement off, Saint War Order and the
+Classic picks. *As printed* was pressed in the Anastasia Audit War, which predates the rules: an Arjuna added from the
+compendium beside its Karna. Player1 pressed his Skills, Spells, NP and Counters from his bar and his reactions on the
+cards; Player2 every Attack on him, his Horrors and his Master. Staged and named on #260: Turn records, cooldowns,
+Health, token positions, fixed dice, a Skill Seal on Hassan and Jack, Test Jeanne's True Name as *Jeanne d'Arc
+(Alter)* (the one fact HM.m4 and TR.p.alter read), a Conquest undone, his Master revived.
+
+**Ten defects the presses and their tests found, all fixed** (each a Surprise of 2026-10-20): §46.4-TA to TJ.
+
+### 46.44.3 Left open
+
+- **Heracles under Revised clause 7**: his sheet's *"cannot be deactivated"* holds against Skill Seal for now
+  (§46.4-TB). Which text wins is the user's to rule.
+- **The action bar stays stale after another Unit moves** a gate of its own (a Master into ZON): reselect the token.
+  Not his; a Surprise of 2026-10-20.
+- **Effect documents are still named by their ids**: the damage card now prints names, the token's effect list does not.
+- **A fixed summon count prints a degenerate roll**: *"1 summoned (1 → 1; 1 → 1)"*.

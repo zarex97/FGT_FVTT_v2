@@ -154,7 +154,8 @@ describe("onMasterDefeated", () => {
     // *"…reduced by **2◈ Turns**"*, and `sustainability` here is the RESOLVED
     // clock in Turns — 6 for a 2◈ Servant at three Turns to the Round. A bare
     // `-2` charged two Turns for a clause that costs two Rounds.
-    expect(onMasterDefeated(active, { turnsPerRound: 3 }))
+    // The Classic clause 5, which the War names (#260 reading 3).
+    expect(onMasterDefeated(active, { turnsPerRound: 3, revisions: { madEnhancement: "classic" } }))
       .toContainEqual(expect.objectContaining({ key: "sustainability", delta: -6 }));
   });
 
@@ -166,7 +167,7 @@ describe("onMasterDefeated", () => {
       sustainability: 24,
       abilities: [{ id: "me", slug: "madEnhancement", active: true }],
     });
-    expect(onMasterDefeated(active, { turnsPerRound: 8 }))
+    expect(onMasterDefeated(active, { turnsPerRound: 8, revisions: { madEnhancement: "classic" } }))
       .toContainEqual(expect.objectContaining({ key: "sustainability", delta: -16 }));
   });
 

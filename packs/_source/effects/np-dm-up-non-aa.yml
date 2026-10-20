@@ -1,0 +1,23 @@
+# NP DmUp (nonAA) -- Gilles de Rais (Saber)'s Military Tactics, Active: *"Applies
+# 'NP DmUp (nonAA)' for ⅓◈ Turns to all allied Units within a 2 panel area of
+# Gilles, NP damage dealt by Noble Phantasms OTHER than [Anti-Army] is increased
+# by 15%."*
+#
+# Ruled 2026-10-20 (#260 readings 9, 9a): the Passive reads [Anti-Army] OR
+# HIGHER, and this is its exact complement -- an NP below Anti-Army, or with no
+# scale tag at all. An Anti-Fortress NP takes the Passive's +25 and never this.
+schema: 1
+id: npDmUpNonAA
+name: "NP DmUp (nonAA)"
+description: "Damage dealt by Noble Phantasms below [Anti-Army] is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: npDmUp
+    direction: dealt
+    value: "@magnitude"
+    predicate: ["attack:kind:np", "not:attack:npScale:gte:antiArmy"]

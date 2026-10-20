@@ -1,0 +1,107 @@
+# Gilles de Rais (Saber), char_orig_sheets/Copia de Gilles de Rais.md (#260).
+#
+# Five effects, the first four reaching further beside Jeanne d'Arc:
+#
+#   1. NP DmUp ⅓◈, allied Units within 2: NP damage +15%
+#   2. Crit DmUp 1◈, allied LAWFUL Units within 2: Crit Damage +50%
+#   3. Overcharge 1◈, 1 time, allied GOOD Units within 2: non-damage NP effects +20%
+#   4. If an allied [Star] Unit stands within 2: S.Crit Up ⅓◈ for allied Units
+#      within 2, Crit Chance +10% -- an aura on him (#132; Anastasia FS.3)
+#   5. Area CritUp 1◈ on himself: allied Units within 2, Crit Chance +5%
+#
+# *"(Passive) If an allied non-Alter Jeanne d'Arc is present on the field,
+# Effects 1 to 4 affect all allied Units within a 3 panel area of himself
+# instead. However, if Mad Enhancement has been activated due to Prelati's
+# Encouragement, then this effect only activates if there is an allied Jeanne
+# d'Arc Alter on the field."* Ruled 2026-10-20: Jeanne by True Name (reading 6;
+# `rules/named-units.mjs`), and both the recipients and effect 4's [Star]
+# search widen to 3 (reading 7). Effect 5 stays 2. Overcharge: reading 8.
+#
+# Within 2 of himself includes him (#132), so he takes effects 2 and 3 while he is
+# Lawful Good, and neither once Mad Enhancement makes him Neutral Evil (reading 4).
+# Each version is a phase gated by the passive's own condition: one runs.
+schema: 1
+id: gilles-saber-triumphal-return
+name: "Triumphal Return of the Holy Maiden"
+rank: EX
+kind: skill
+slug: triumphalReturn
+cooldown: "4◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+sameTurnExclusive: [gilles-saber-military-tactics]
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[npDmUp]{NP DmUp} for ⅓◈ Turns to all allied Units within a 2 panel area of Gilles, NP damage dealt is increased by 15%.
+  2. Applies @effect[critDmUp]{Crit DmUp} for 1◈ Turns to all allied Units with the 'Lawful' Alignment within a 2 panel area of himself, Crit Damage dealt is increased by 50%.
+  3. Applies @effect[overcharge]{Overcharge} for 1◈ Turns, 1 time to all allied Units with the 'Good' Alignment within a 2 panel area of himself, the magnitude of all non-damage effects of NP are increased by 20%.
+  4. If there is an allied Unit with the [Star] Attribute within a 2 panel area of himself, apply @effect[sCritUp]{S.Crit Up} for ⅓◈ Turns to all allied Units within a 2 panel area of himself, Crit Chance is increased by 10%.
+  5. Applies @effect[areaCritUp]{Area CritUp} for 1◈ Turns to himself, Crit Chance of all allied Units within a 2 panel area of himself is increased by 5%.
+  Cooldown: 4◈ Turns. Cannot be used on the same Turn as Military Tactics.
+  (Passive) If an allied non-Alter Jeanne d'Arc is present on the field, Effects 1 to 4 affect all allied Units within a 3 panel area of himself instead. However, if Mad Enhancement has been activated due to Prelati's Encouragement, then this effect only activates if there is an allied Jeanne d'Arc Alter on the field.
+phases:
+  # ── Effects 1 to 4, 2 panels ──
+  - kind: applyEffects
+    predicate: [{ nor: [{ and: ["not:self:skillActive:madEnhancement", "self:allyNamed:jeanne-d-arc"] }, { and: ["self:skillActive:madEnhancement", "self:allyNamed:jeanne-d-arc-alter"] }] }]
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: square, size: 5 }
+      selection: { relations: [ally, self], chooser: all, includeSelf: true }
+    effects:
+      - { id: npDmUp, magnitude: 15, duration: "⅓◈" }
+  - kind: applyEffects
+    predicate: [{ nor: [{ and: ["not:self:skillActive:madEnhancement", "self:allyNamed:jeanne-d-arc"] }, { and: ["self:skillActive:madEnhancement", "self:allyNamed:jeanne-d-arc-alter"] }] }]
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: square, size: 5 }
+      selection: { relations: [ally, self], chooser: all, includeSelf: true, attributes: ["target:order:lawful"] }
+    effects:
+      - { id: critDmUp, magnitude: 50, duration: "1◈" }
+  - kind: applyEffects
+    predicate: [{ nor: [{ and: ["not:self:skillActive:madEnhancement", "self:allyNamed:jeanne-d-arc"] }, { and: ["self:skillActive:madEnhancement", "self:allyNamed:jeanne-d-arc-alter"] }] }]
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: square, size: 5 }
+      selection: { relations: [ally, self], chooser: all, includeSelf: true, attributes: ["target:morality:good"] }
+    effects:
+      - { id: overcharge, magnitude: 20, duration: "1◈" }
+  - kind: applyEffects
+    target: self
+    predicate: [{ nor: [{ and: ["not:self:skillActive:madEnhancement", "self:allyNamed:jeanne-d-arc"] }, { and: ["self:skillActive:madEnhancement", "self:allyNamed:jeanne-d-arc-alter"] }] }, "self:allyAttributeWithin:star:2"]
+    effects:
+      - { id: sCritUp, magnitude: 10, duration: "⅓◈", params: { radius: 2 } }
+  # ── Effects 1 to 4, 3 panels, beside Jeanne ──
+  - kind: applyEffects
+    predicate: [{ or: [{ and: ["not:self:skillActive:madEnhancement", "self:allyNamed:jeanne-d-arc"] }, { and: ["self:skillActive:madEnhancement", "self:allyNamed:jeanne-d-arc-alter"] }] }]
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: square, size: 7 }
+      selection: { relations: [ally, self], chooser: all, includeSelf: true }
+    effects:
+      - { id: npDmUp, magnitude: 15, duration: "⅓◈" }
+  - kind: applyEffects
+    predicate: [{ or: [{ and: ["not:self:skillActive:madEnhancement", "self:allyNamed:jeanne-d-arc"] }, { and: ["self:skillActive:madEnhancement", "self:allyNamed:jeanne-d-arc-alter"] }] }]
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: square, size: 7 }
+      selection: { relations: [ally, self], chooser: all, includeSelf: true, attributes: ["target:order:lawful"] }
+    effects:
+      - { id: critDmUp, magnitude: 50, duration: "1◈" }
+  - kind: applyEffects
+    predicate: [{ or: [{ and: ["not:self:skillActive:madEnhancement", "self:allyNamed:jeanne-d-arc"] }, { and: ["self:skillActive:madEnhancement", "self:allyNamed:jeanne-d-arc-alter"] }] }]
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: square, size: 7 }
+      selection: { relations: [ally, self], chooser: all, includeSelf: true, attributes: ["target:morality:good"] }
+    effects:
+      - { id: overcharge, magnitude: 20, duration: "1◈" }
+  - kind: applyEffects
+    target: self
+    predicate: [{ or: [{ and: ["not:self:skillActive:madEnhancement", "self:allyNamed:jeanne-d-arc"] }, { and: ["self:skillActive:madEnhancement", "self:allyNamed:jeanne-d-arc-alter"] }] }, "self:allyAttributeWithin:star:3"]
+    effects:
+      - { id: sCritUp, magnitude: 10, duration: "⅓◈", params: { radius: 3 } }
+  # ── Effect 5, always 2 ──
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: areaCritUp, magnitude: 5, duration: "1◈" }

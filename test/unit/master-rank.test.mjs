@@ -226,7 +226,8 @@ describe("High Rank Master grants — Sustainability", () => {
   it("nets against Mad Enhancement's -2◈ in ONE write", () => {
     const servant = { id: "s1", kind: "servant", sustainability: 9,
       abilities: [{ slug: "madEnhancement", active: true }] };
-    const writes = onMasterDefeated(servant, { highRankMaster: true, turnsPerRound: 3 })
+    // The Classic clause 5's 2◈, which the War names (#260 reading 3).
+    const writes = onMasterDefeated(servant, { highRankMaster: true, turnsPerRound: 3, revisions: { madEnhancement: "classic" } })
       .filter((d) => d.kind === "resource");
     expect(writes).toEqual([{ kind: "resource", unitId: "s1", key: "sustainability", delta: -3 }]);
   });

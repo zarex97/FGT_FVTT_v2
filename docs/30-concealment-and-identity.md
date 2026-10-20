@@ -112,9 +112,10 @@ Detect range is written to every token's Foundry vision range (`sight.range`, in
 
 When a unit enters another's Detect range for the first time, `checkSightings` records it in `seenUnitIds` and fires a `unitFirstSeen` event that abilities like Familiar: Doves may handle (`module/engine/vision.mjs:34-72`).
 
-**A seventh way PC ends: `sealed` (#226).** A Presence Concealment whose reference carries
-`endsOnSkillSeal` ends the moment Skill Seal lands on its bearer, through `deactivateConcealment`, so its clock starts
-then. Only Hundred-Faced Hassan's sheet says so. A legion's body reads to the table as its class and number,
+**A seventh way PC ends: `sealed` (#226).** Skill Seal landing ends Presence Concealment at once, through
+`deactivateConcealment`, so its clock starts then. It is the Revised clause 8 (#260 reading 3): Hundred-Faced Hassan's
+and Sasaki's sheets print it, the War's Classic/Revised pick decides whether every bearer plays it, and
+`engine/seal-ends.mjs` is the one reader, beside Revised Mad Enhancement's twin clause 7. A legion's body reads to the table as its class and number,
 "Assassin 3" (`publicNameOf`).
 
 **Through, not onto (#226 reading 28).** *"Move to any panel regardless of enemy Master-Servant positions"* lets a

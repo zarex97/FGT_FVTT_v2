@@ -343,6 +343,9 @@ describe("meetsRequirement", () => {
       // their rules: a predicate would let the ability be pressed and then
       // quietly do nothing, and his sheet refuses the press.
       "stance",
+      // "Prelati's Spellbook ... Allows the use of the Spells" -- a Spell gated
+      // on another ability's own gates (#260 reading 11).
+      "abilityAllows",
       // "Cannot be used if his Master's Health is less than [50% of its
       // maximum value]" -- Ramesseum Tentyris, the first gate in the corpus
       // stated as a fraction of a maximum rather than as a number, and the

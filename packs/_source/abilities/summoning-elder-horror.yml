@@ -1,0 +1,44 @@
+# Gilles de Rais, both sheets, word for word (#260 reading 1). One Elder Horror,
+# on a panel next to him (`adjacentTo`, the Sphinxes' placement).
+schema: 1
+id: summoning-elder-horror
+name: "Summoning: Elder Horror"
+rank: null
+category: spell
+slug: summoningElderHorror
+timing: { window: ownTurn }
+countsAsAttack: true
+cooldown: "3◈"
+sameTurnExclusive: [summoning-horrors]
+requirements:
+  - { kind: abilityOffCooldown, abilityIds: [gilles-saber-prelatis-spellbook, gilles-prelatis-spellbook] }
+  - { kind: abilityAllows, abilityIds: [gilles-saber-prelatis-spellbook, gilles-prelatis-spellbook] }
+description: |
+  Spell. Can be used as a Counter. Summons an Elder Horror on a panel next to Gilles. Counts as
+  Gilles' Attack for the Turn.
+  The Elder Horror has 300 Health, 13 Agility, 7 Luck, Range=2, MOV=4 and Base Attack (STR) is 125,
+  Detect=3 panels. Elder Horrors have the 'Dark (Outsider)' Attribute.
+  Elder Horrors do not count towards the number of Units that Move and/or Attack during your Turn.
+  The same Elder Horror can only Move/Attack once per Turn.
+  When an Elder Horror is defeated, Gilles rolls a four-sided die. If a 3 is rolled, the defeated
+  Elder Horror turns into three new Horrors. This effect does not activate if the Elder Horror was
+  defeated with Light damage or an Attack that deals extra damage to 'Dark' or 'Outsider' Attribute
+  Units.
+  Enemy Units cannot Attack Gilles or his Master if there are any Elder Horrors directly next to them.
+  Cannot be used if Prelati's Spellbook is on Cooldown. Cannot be used on the same Turn as
+  Summoning: Horror.
+  Cooldown: 3◈ Turns.
+# On himself: the Spell conjures around him, and as a Counter it catches nobody
+# (`rules/counter.mjs#counterMustCatchAttacker`).
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: summon
+    spec:
+      countRoll: "1"
+      types: { 1: elder-horror }
+      placement: { adjacentTo: true, anchor: self, chooser: owner }
+      countsTowardBudget: false
+      actsOncePerTurn: true

@@ -50,7 +50,7 @@ and its implementation note. This is the authoritative reference the compendium 
 | `Dmg Up` | B | O | mag | 4 | Damage dealt to units matching a category +X%, **including NP** (no reduced magnitude). Carries a predicate. |
 | `Dmg Boost` | B | O | mag | 7 | Damage dealt +X **flat**. Affects NP only if stated. |
 | `NP DmUp` | B | O | mag | 4 | NP damage +X%. Also affects abilities *categorized as NP*. Not passive NPs. |
-| `Overcharge` | B | O | mag | — | Magnitude of all **non-damage** NP effects increased. Explicitly excludes direct damage. |
+| `Overcharge` | B | O | mag | — | Magnitude of all **non-damage** NP effects increased. Explicitly excludes direct damage. **Built** (`overcharge`, #260 reading 8): the holder's next NP multiplies each numeric effect magnitude by 1 + X/100, rounded down, never a chance or a duration (`EffectMagnitudeScale outgoing np`, `engine/landing.mjs#outgoingScaleOf`); that NP spends it, even with nothing to raise. |
 | `Crit DmUp` | B | O | mag | 2 | Crit damage +X%. Not NP unless stated. |
 | `Over Crit` | B | O | nr | 2 | While crit chance > 100%, crit damage +（chance − 100)%. **Built** (`overCrit`), `rules: []` — `overCritBonus` has computed `max(0, chanceUsed − 100)` off the attacker's held effects since stage 2 was written. |
 | `Ignore Def` | B | O | nr | 4 | Attacks ignore `Def Up` on the DU. **Does not ignore `Dmg Cut`.** **Built** (`ignoreDef`, Drake) as `AttackProperty: ignoresDefUp` **alone**. Kiritsugu's `penetration` is the two-clause version — Ignore Def *and* a halved Invuln — and Achilles's `ignoresDefensiveBuffs` is wider still, so the set has three strengths of "gets past defences" and this is the mildest. |
@@ -114,7 +114,7 @@ and its implementation note. This is the authoritative reference the compendium 
 | `NP Regen` | B | — | mag | NP cooldown −X per interval, **in addition to** the natural reduction. Does not fire on its final turn. Affects *categorized as NP* abilities. |
 | `Dmged NP Regen` | B | — | mag | NP cooldown −X at the end of a Damage Step in which this unit was successfully attacked. |
 | `Drain` | B | O | mag | Restores Health by X% of damage dealt on a successful attack. May carry a cap. |
-| `Heal Up` | B | — | mag | Healing received +X%. Does **not** apply to Home Base or Command Spell healing unless stated. Does not change the source effect's stated magnitude. |
+| `Heal Up` | B | — | mag | Healing received +X%. Does **not** apply to Home Base or Command Spell healing unless stated. Does not change the source effect's stated magnitude. **Built** (`healUp`, #260): Heal Dwn's `HealingReceived`, positive. |
 | `PoisHeal` | B | D | nr | Poison damage becomes healing. |
 | `CursHeal` | B | D | nr | Curse damage becomes healing. |
 | `FlamHeal` | B | D | nr | Burn damage becomes healing. |
@@ -496,6 +496,8 @@ but they are ordinary catalogue entries in every other respect and are counted i
 | `Bal Dwn` | D | D | mag | 4 | Attacks against this Unit have Crit Chance +X%, not NP (`balDwn`). | Proto Gil (Bab-ilu 16) |
 | `Heal Dwn` | D | D | mag | 4 | Healing received −X%, not the Home Base's; a Command Spell's heal is a Health change and never scaled (`healDwn`, `HealingReceived`; #232 reading 18). | Proto Gil (Bab-ilu 17) |
 | `Drowning` | D | O | nnr | 4 | Built as its row (#232 reading 19): healing received −100; −50 Health at the end of its own Turn and of any Turn it Acts; an 80% miss of its own (no Blind ladder), on Attacks and on Skills aimed at an enemy, whose failure spends no Cooldown; MOV −1. Swimsuit's −20% to inflict is stated on Enki's entry. | Proto Gil (Enki) |
+| `NP DmUp (nonAA)` | B | O | mag | 4 | NP damage +X% for a Noble Phantasm below [Anti-Army] or with no scale tag (`npDmUpNonAA`; #260 readings 9, 9a): the exact complement of Military Tactics' [Anti-Army] or higher. | Gilles de Rais (Saber) |
+| `Dmg Boost (Gilles)` | B | O | nr | 7 | Damage dealt +X flat by its holder and every Unit it summoned, wherever they stand (`dmgBoostGilles`; an aura with the role `summon`, #260 reading 13). | Gilles de Rais (Saber) |
 
 ### A.17.2 New statuses
 

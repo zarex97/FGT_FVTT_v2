@@ -72,6 +72,9 @@ const COMMON = Object.freeze([
   { key: "target", type: "select", choices: ["reuse", "self", "linkedGroup"] },
   { key: "predicate", type: "predicateList" },
   { key: "when", type: "text" },
+  // A die for the whole phase: a percent, or `{value, perPriorUse, max, label}`
+  // growing with each use (`rules/phase-chance.mjs`; Prelati's Encouragement, #260).
+  { key: "chance", type: "raw" },
 ]);
 
 /**
