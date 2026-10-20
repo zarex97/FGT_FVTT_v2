@@ -245,18 +245,17 @@ export function turnOrderRows(combat) {
 /**
  * How far this faction could usefully delay.
  *
- * Delaying past the last faction still to act does nothing — `computeTurnOrder`
- * clamps it — so offering `+5` when only two factions remain would be offering a
- * choice with no consequence.
+ * The panel's faction is the one whose Turn it is, and its Delay applies to
+ * next Round's opening order (#82): it can go as far as the last faction, never
+ * past the GM. Counted from the whole order, not from who is still to act this
+ * Round, which is no longer the order it moves in.
  *
  * @param {object} combat
  * @param {string|null} factionId
  * @returns {number[]}
  */
 function delayChoices(combat, factionId) {
-  const taken = new Set(combat?.system?.takenThisRound ?? []);
-  const pending = (combat?.system?.baseOrder ?? []).filter((id) => !taken.has(id));
-  const max = Math.max(0, pending.length - 1);
+  const max = Math.max(0, (combat?.system?.baseOrder ?? []).length - 1);
   if (!factionId || max === 0) return [];
   return Array.from({ length: max + 1 }, (_, n) => n);
 }

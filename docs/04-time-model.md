@@ -77,7 +77,7 @@ Foundry advances `combat.round` before the end-of-Round sequence runs, and the s
 
 `clock-reads.test.mjs` also counts the lines outside `engine/board.mjs` that read the clock themselves, and the number may only go down: a new reader takes its caller's Moment, or `currentMoment()` when it truly means "now". The Unit view now also passes the world's `turnsPerRound` to the projection; it never had, so a ◈ lock or sustainability on a projected Unit was counted at three Turns a Round in every world.
 
-A Round's end still ends **fields** at the start of the expiry Tick and **effects** at its end (`expireFields(nextTick)` beside `expireEffects(tick)`); whether the rulebook means that is an open question below.
+**A field and an effect with one expiry end together**, at the end of the expiry Tick: `expireFields(tick)` is asked of the Tick that ended, as `expireEffects(tick)` and `expireTerrain(tick)` are (ruled 2026-10-19, #200). It was handed `nextTick`, so a field authored for N◈ ended at the start of its last Turn, a Turn before an effect stamped with the same expiry. A scheduled forced end (a Master's defeat) keeps its delay: it is stamped and read on the same Tick. Pressed live: Doomsday Come, expiry 10, was still open at the start of Turn 10 and ended with it.
 
 **No boundary lost to a reload (#230).** `ready` migrates the world before it binds the engine's listeners, and that
 takes seconds. The Turn and Round hooks are bound before it (`Scheduler.attachBoundaries`) and wait for the engine
@@ -117,8 +117,6 @@ floors any stated fraction to a **minimum of one tick**, never zero
 the smallest real duration instead of to zero.**
 
 ## Open questions
-
-- **Does a field end a Turn before an effect with the same expiry?** `expireFields` is handed the incoming Tick and `expireEffects` the one that ended, so a field and an effect stamped with expiry E end one Turn apart: the field at the start of Turn E, the effect at its end. Effects and terrain were reconciled in #161; no ruling covers fields. Left as it is until the rulebook says ([#200](https://github.com/zarex97/FGT_FVTT_v2/issues/200)).
 
 - **Confirmed live.** Absolute expiry is `currentTick + resolveTicks(...)`, stamped once and stored as an
   absolute tick rather than a countdown (`module/engine/effect-applier.mjs:255`). Verified against real

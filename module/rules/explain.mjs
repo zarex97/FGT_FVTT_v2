@@ -157,10 +157,16 @@ export function underpowerText(flip) {
  */
 export function overpowerText(flip) {
   if (!flip) return null;
-  if (flip.saved) return "Overpower: Luck Check passed — no flip, survives";
-  return flip.heads
-    ? `Overpower: Heads (${flip.roll} ≤ ${flip.chance}) — Master defeated`
-    : `Overpower: Tails (${flip.roll} > ${flip.chance})`;
+  // The Master's own Luck Check, made before the flip (#111), with its die and
+  // the Luck it cost; absent when it was not offered or was declined.
+  const luck = flip.luck
+    ? `Luck Check ${flip.luck.total} vs ${flip.luck.target}, ${flip.luck.success ? "passed" : "failed"} (Luck ${flip.luck.before} → ${flip.luck.after})`
+    : null;
+  if (flip.saved) return `Overpower: ${luck ?? "Luck Check passed"} — no flip, survives`;
+  const coin = flip.heads
+    ? `Heads (${flip.roll} ≤ ${flip.chance}) — Master defeated`
+    : `Tails (${flip.roll} > ${flip.chance})`;
+  return luck ? `Overpower: ${luck}; ${coin}` : `Overpower: ${coin}`;
 }
 
 /**

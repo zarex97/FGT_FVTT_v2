@@ -53,7 +53,7 @@ vi.mock("../../module/engine/fields.mjs", () => ({
   runFieldEvents: async () => [],
   runUpkeep: async (tick, opts) => { events.push({ at: "runUpkeep", tick, ...opts }); },
   offerReshape: async () => {},
-  expireFields: async () => {},
+  expireFields: async (tick) => { events.push({ at: "expireFields", tick }); },
   ensurePassiveFields: async () => {},
   returnBanished: async () => {},
   resetFieldWindows: async () => {},
@@ -212,6 +212,14 @@ describe("a Round boundary whose re-roll flips the order", () => {
     // The end half's board is the ended Round's; the start half's is the new one.
     expect(boards.filter((b) => b.round === 14).length).toBeGreaterThan(0);
     expect(boards.filter((b) => b.round === 15).length).toBeGreaterThan(0);
+  });
+
+  it("expires fields on the Tick that ended, as effects are (#200)", async () => {
+    const combat = makeCombat({ rolled: flipped });
+    await combat.nextRound();
+    // Tick 41 ended: a field stamped to expire at 41 ends with that Turn, as an
+    // effect does. Handed 42, it ended a Turn before an effect of the same expiry.
+    expect(events.filter((e) => e.at === "expireFields")).toEqual([{ at: "expireFields", tick: 41 }]);
   });
 
   it("starts the first Turn for the faction the NEW order puts first", async () => {

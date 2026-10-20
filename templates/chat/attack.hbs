@@ -26,6 +26,11 @@
     </section>
   {{/if}}
 
+  {{!-- A Luck rung the Process declined for its Unit, and why (#252). --}}
+  {{#each luckClosed as |line|}}
+    <section class="fgt-card__note">{{line}}</section>
+  {{/each}}
+
   {{#if result}}
     {{#unless visibility.involved}}
       <div class="fgt-card__hidden">{{localize "FGT.Chat.HiddenDamage"}}</div>
