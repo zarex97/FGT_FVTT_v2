@@ -3,7 +3,8 @@ id: 2026-10-19-dimension-clock-ran-on-another-war
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** with several Wars running at once (`ddf335e4`), a Storm Border submerged in War 178 at its tick 4 surfaces on War 178's clock: forced only after 2◈ of War 178's Turns.
 **Actual:** while I advanced War 134 for #134, the chat log read *"The Storm Border has been in Imaginary Numbers Space for almost 2◈ Turns"* and then *"The Storm Border surfaces at (6, 6). 0 Unit(s) are back on the board."* War 178 stood at tick 5. Nemo was left on the dimension's Level, its platform gone.
