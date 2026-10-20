@@ -15,11 +15,11 @@ check Darius III"*. Darius's sheet prints the plain Revised clause 7, *"if this 
 Seal while ME is Active, it is immediately deactivated"*, so Gilles's phrase is his own exemption from it, not
 the Revised text.
 
-**Cause:** `docs/superpowers/specs/2026-10-20-gilles-saber-clauses.md` @ uncommitted — I read a phrase found on
+**Cause:** `docs/superpowers/specs/2026-10-20-gilles-saber-clauses.md` @ ca41d4ab — I read a phrase found on
 one sheet as the shared Revised text, and guessed which mechanic "negated" named from the one Command Spell
 that touches modes. Revised Presence Concealment's clause 8, the same Skill Seal sentence, was already in
 front of me and was the closer match.
 
-**Fix:** `docs/superpowers/specs/2026-10-20-gilles-saber-clauses.md` @ uncommitted — ruling 3d corrected:
+**Fix:** `docs/superpowers/specs/2026-10-20-gilles-saber-clauses.md` @ ca41d4ab — ruling 3d corrected:
 Revised clause 7 is Skill Seal ending the mode; ruling 3j makes Gilles's *"cannot be negated"* a per-sheet
 "unsealable" parameter that holds under every pick; Clauses `ME.7.seal`, `WR.me.seal`, `WR.me.seal.own`.

@@ -17,6 +17,6 @@ switches the passive off; the engine probe showed the reader could not have seen
 and `module/rules/elements.mjs#FlatDamage @ 48916996` pushed its contribution with no `direction` at all,
 so every flat bonus against an Attribute was invisible to the reader.
 
-**Fix:** `module/rules/elements.mjs#FlatDamage @ uncommitted` states `direction: "dealt"`; nothing else
+**Fix:** `module/rules/elements.mjs#FlatDamage @ ca41d4ab` states `direction: "dealt"`; nothing else
 reads a modifier's direction. Test: `test/unit/gilles-260-rulings.test.mjs`, "counts a flat bonus whose
 predicate names the Attribute".
