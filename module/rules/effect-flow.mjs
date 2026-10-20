@@ -415,6 +415,9 @@ export function effectGatePasses(spec, rule, ctx) {
  */
 export const EFFECT_PARAMS = Object.freeze({
   presenceConcealment: Object.freeze(["rank", "evade"]),
+  // The Aura's reach, read by `rules/elements.mjs#Aura` off the instance:
+  // Triumphal Return's S.Crit Up beside Jeanne reaches 3 (#260 reading 7).
+  sCritUp: Object.freeze(["radius"]),
 });
 
 export const ENTRY_KEYS = Object.freeze({

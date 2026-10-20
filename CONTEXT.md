@@ -222,6 +222,13 @@ _Avoid_: trait, tag, type, keyword
 **Class Skill**:
 A capability a Servant has by virtue of its Class rather than by authoring.
 
+**Classic** and **Revised**:
+The two texts a shared Skill can have while the game's author tests a new wording. Classic is the
+text most sheets print; Revised is the new one. Each War picks one of them, or *As printed*, which
+lets every sheet's own text stand; the pick is a War Rule. Mad Enhancement, Divinity and Presence
+Concealment have both.
+_Avoid_: old version, new version, v1, v2
+
 ## Abilities
 
 **Ability**:

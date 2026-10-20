@@ -322,6 +322,9 @@ describe("a non-damaging Noble Phantasm", () => {
       "drake-golden-hind-wild-hunt",
       "emiya-rho-aias",
       "emiya-unlimited-blade-works",
+      // Saint War Order (#260): buffs on himself, S.Crit Up around him, and his
+      // own Def Dwn; nothing it swings at.
+      "gilles-saber-saint-war-order",
       // De Sterrennacht. "(Non-damaging)" is the first word of its entry, and
       // it covers a 5x5 of enemies without dealing any: everything it does is
       // Terror on one side and buffs on the other.

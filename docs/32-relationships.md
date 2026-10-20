@@ -224,3 +224,14 @@ Unit defeated twice is counted towards the Grail and frees its Servants once; it
 - **A Contract attempt runs on the GM** (`attemptContract` socket operation): from a player's client it could not write
   the match log and failed in silence (§46.4-PG).
 - **The Underpower coin is on the card**, Heads or Tails, as Overpower's (§46.4-PJ).
+
+- **Revised Mad Enhancement's clause 5** (#260 reading 3): *"If this Servant's Master is defeated while ME is active, ME
+  cannot be deactivated and its STN is reduced by 1 additional Turn at the end of every Turn."* `onMasterDefeated` takes the
+  War's `revisions`: under Classic it charges the 2◈ once; under Revised it charges nothing then and writes
+  `sustainabilityDecay: 1`, and `checkRemovals` takes `1 + sustainabilityDecay` at every Turn's end. The lock is the
+  `lockModes` this chapter already writes.
+- **The death's card** (#260, live). The Servants nobody claimed get one card, posted by `io.defeat` after the Master's
+  defeat card and the Conquest's: *"Saber is Free, with 9 Turn(s) of Sustainability left."*, the modes held, and the
+  clause 5 Mad Enhancement played (`FGT.Free.*`). `onMasterDefeated` names the clause it played as a `note` descriptor
+  beside the write, and `freedLines` words the descriptors. Before it the death wrote the clock, the decay and the lock and
+  the table read only *"No Conquest"*.

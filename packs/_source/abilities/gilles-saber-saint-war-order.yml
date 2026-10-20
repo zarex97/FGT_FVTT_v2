@@ -1,0 +1,43 @@
+# Gilles de Rais (Saber), char_orig_sheets/Copia de Gilles de Rais.md (#260).
+#
+# *"Saint War Order: Rally Upon the Holy Banner and Roar -- Rank: B (NP)
+# [Anti-Unit (Self)]. Can only be used when Mad Enhancement is deactivated."*
+# Once Prelati's Encouragement turns Mad Enhancement on it never goes off again
+# (reading 2), so this is the Noble Phantasm of his Lawful half only.
+#
+# 1. Atk Up 2◈ on himself: +100%; if NP, +50%.
+# 2. S.Crit Up ⅔◈ for allied Units within 2: an aura on him (#132).
+# 3. Def Dwn 2◈ on himself: damage received +50%. His own price, landing with no
+#    roll: his Magic Resistance's 20% does not resist it (#260 reading 10, as
+#    Anastasia's Watermelon Blind, #258 reading 6).
+#
+# Non-damaging, so it is no Attack's Combat Process; used on his own Turn it
+# still consumes his Attack (§46.4-AZ), and it may be a Counter (Semiramis).
+schema: 1
+id: gilles-saber-saint-war-order
+name: "Saint War Order: Rally Upon the Holy Banner and Roar"
+isNP: true
+rank: B
+npTags: [antiUnitSelf]
+kind: noblePhantasm
+slug: saintWarOrder
+cooldown: "6◈"
+requirements:
+  - { kind: modeInactive, mode: madEnhancement }
+description: |
+  Can only be used when Mad Enhancement is deactivated. Has the following effects-
+  1. Applies @effect[atkUp]{Atk Up} to himself for 2◈ Turns, all damage dealt is increased by 100%; if NP, 50%.
+  2. Applies @effect[sCritUp]{S.Crit Up} to all allied Units within a 2 panel area of himself for ⅔◈ Turns, Crit Chance is increased by 15%.
+  3. Inflicts @effect[defDwn]{Def Dwn} on himself for 2◈ Turns, all damage received is increased by 50%.
+  Cooldown: 6◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUp, magnitude: 100, npMagnitude: 50, duration: "2◈" }
+      - { id: sCritUp, magnitude: 15, duration: "⅔◈" }
+      - { id: defDwn, magnitude: 50, duration: "2◈", bypassChanceModifiers: true }

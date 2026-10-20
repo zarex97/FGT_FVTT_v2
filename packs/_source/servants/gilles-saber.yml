@@ -1,0 +1,68 @@
+# Gilles de Rais (Saber), char_orig_sheets/Copia de Gilles de Rais.md (#260).
+#
+# The Saber form of the Caster on `Copia de Gilles.md`, named by the user
+# 2026-10-20 (reading 1). The plain `gilles` ids are left to the Caster; the two
+# Spells and the Horrors are authored once for both sheets.
+#
+# A Saber by his Class Skills (Magic Resistance, Riding); the sheet names none.
+# BA(STR) 125 by the STR table at B, not the printed 175: the table wins (§46.6,
+# the rulebook's own words). Max Health 1000 and BA(MAG) 125 as printed.
+schema: 1
+id: gilles-saber
+name: "Gilles de Rais (Saber)"
+type: servant
+
+trueName: Gilles de Rais
+servantClasses: [saber]
+classContainer: saber
+alignment: { order: lawful, morality: good }
+region: [france]
+# No Vital Spot: Chiron's list names the Caster, whose Spellbook is a weak point
+# (#260 reading 16).
+attributes: [male, servant, man, humanoid]
+
+parameters: { str: B, end: C, agi: C, mag: D, luc: D }
+baseHealth: 1000
+mov: 4
+range: { panels: 1, targets: 1 }
+baseAttack: { str: 125, mag: 125 }
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+abilities:
+  - { ref: class-magic-resistance, rank: B }
+  # Riding B whose Active gates its three passives to that Turn (#206): +4 MOV,
+  # 2◈, as the tables give.
+  - { ref: class-riding-unlocks, rank: B, cooldown: "2◈", mov: 4 }
+  # Mad Enhancement EX at the Revised text (reading 3): clause 5 his, and clause
+  # 7 his own *"cannot be negated once Activated"* -- unsealable (reading 3j).
+  # Clause 1 is Heracles's shape: the floor at 30, no forced deactivation. It
+  # starts off and no hand switches it either way: Prelati's Encouragement's die
+  # is its only switch, and it stays on for the War (reading 2).
+  - { ref: class-mad-enhancement, rank: EX, cannotActivate: true, cannotDeactivate: true,
+      printedRevision: revised, unsealable: true,
+      drainFloor: madEnhancementDrain, drainFloorWhen: null, forcedDeactivation: false }
+  - { ref: gilles-saber-military-tactics }
+  - { ref: gilles-saber-triumphal-return }
+  - { ref: golden-rule, rank: B, chance: 80 }
+  - { ref: gilles-saber-holy-maidens-side }
+  - { ref: gilles-saber-prelatis-encouragement }
+  - { ref: gilles-saber-saint-war-order }
+  - { ref: gilles-saber-prelatis-spellbook }
+  - { ref: summoning-horrors }
+  - { ref: summoning-elder-horror }
+
+# *"When Mad Enhancement is Activated, Gilles' Alignment changes from Lawful Good
+# to Neutral Evil."* Every reader of his Alignment sees it: an enemy's Dmg Up
+# (Lawful) stops reaching him, his own Triumphal Return's Lawful and Good clauses
+# too (reading 4).
+passiveRules:
+  - key: AlignmentOverride
+    order: neutral
+    morality: evil
+    predicate: ["self:skillActive:madEnhancement"]
+
+notes: |
+  The Saber form of Gilles de Rais. Mad Enhancement is switched on only by Prelati's Encouragement's
+  growing chance, and for good: the Saint War Order is then closed to him and Prelati's Spellbook's
+  two Spells open. Shares Summoning: Horrors, Summoning: Elder Horror and the Horrors with the Caster.

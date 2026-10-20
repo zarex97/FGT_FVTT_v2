@@ -39,6 +39,29 @@ description: |
   5. Sustainability is reduced by 2◈ if its Master is defeated while Active.
   6. This Servant can only Evade with Evade−.
   7. The effects are neither a buff nor a debuff, and are Unremovable.
+# Classic and Revised (#260 reading 3). Most sheets print the Classic text above.
+# The Revised one (Gilles de Rais (Saber), Darius III) changes two clauses: 5,
+# the mode locks when the Master falls and Sustainability loses 1 more at every
+# Turn's end, with no 2◈ at the death (`rules/relationships.mjs#onMasterDefeated`,
+# `engine/scheduler.mjs#checkRemovals`); and 7, Skill Seal ends it at once
+# (`engine/seal-ends.mjs`). The War's pick decides which every bearer plays; a
+# reference printing the Revised text says `printedRevision: revised`, read under
+# *As printed*. Clause 1 stays each sheet's own under every pick (reading 3d).
+printedRevision: classic
+endsOnSkillSeal: true
+descriptionRevised: |
+  (Active) While Active-
+  1. This Servant's Master loses Health at the end of every Turn it Acts; when the Master's
+     Health is at or below that amount, Mad Enhancement is forcibly deactivated, and until it
+     may be deactivated the Master's Health cannot drop below it in this way.
+  2. All damage taken is reduced; a smaller reduction applies to NP.
+  3. All damage dealt is increased including NP; halved for Base Attack (MAG).
+  4. MOV +2, Range +1, the Master's ZON +2.
+  5. If this Servant's Master is defeated while Active, Mad Enhancement cannot be deactivated and
+     Sustainability is reduced by 1 additional Turn at the end of every Turn.
+  6. This Servant can only Evade with Evade−.
+  7. The effects are neither a buff nor a debuff, and are Unremovable; if this Unit is inflicted
+     with Skill Seal while Active, it is immediately deactivated.
 activeRules:
   # The STR share goes into the stage-4 bucket; the MAG differential is applied
   # at stage 5, because one bucket cannot hold two magnitudes for one modifier.

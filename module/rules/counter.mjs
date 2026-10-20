@@ -95,6 +95,12 @@ export function answersACounter(item) {
   const use = classifyAbility(item);
   if (use.isAttack) return true;
   const sys = item?.system ?? {};
+  // ...and an ability that deals no damage but COUNTS AS the Attack, by its own
+  // statement: Gilles's Summoning Spells, *"Can be used as a Counter ... Counts
+  // as Gilles' Attack for the Turn"* (#260). The non-damaging NP's ruling, for a
+  // Spell that says the same of itself: no ladder, its phases run
+  // (`engine/attack.mjs#runCounter`).
+  if (sys.countsAsAttack === true && sys.isPassive !== true && sys.passive !== true && sys.isMode !== true) return true;
   const isNP = item?.type === "noblePhantasm" || sys.isNP === true;
   return isNP && sys.isPassive !== true && sys.passive !== true && sys.isMode !== true;
 }

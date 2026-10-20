@@ -22,6 +22,7 @@ import { collectContributions, EFFECT_INSTANCE, EXECUTORS, empty } from "./eleme
 import { baseAttackAdjustment } from "./setup-rolls.mjs";
 import { annotateZon } from "./zon.mjs";
 import { annotateLinkedGroups, annotateLegions } from "./linked-group.mjs";
+import { annotateAllies } from "./named-units.mjs";
 import { annotateAuras } from "./auras.mjs";
 import { EffectRegistry } from "./registry.mjs";
 import { familiesPresent } from "./effects/families.mjs";
@@ -243,6 +244,9 @@ export function snapshotUnit(actor, {
       : sustainabilityTurns(sys, turnsPerRound),
     // The authored maximum, for the sheet.
     sustainabilityMax: sys.sustainability ?? null,
+    // Turns lost at each Turn's end beyond the clock's own one: Revised Mad
+    // Enhancement's clause 5 (#260 reading 3), read by `checkRemovals`.
+    sustainabilityDecay: sys.sustainabilityDecay ?? 0,
     // Ch. 32: *"State is derived, not stored"* -- `if (!m) return "free"`. The
     // stored field exists because the contract OPERATIONS write it, but it
     // initialises to `"contracted"` and a Servant summoned with no Master had
@@ -918,6 +922,9 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // downstream of here depends on it and everything upstream of the movement
   // gate does.
   annotateControl(units, board);
+  // Which allies stand on this board, by True Name and Attribute, and how far
+  // (Gilles de Rais (Saber)'s Jeanne d'Arc and [Star] clauses, #260).
+  annotateAllies(units, board);
 
   // Auras are the same shape of problem as ZON and get the same answer: a
   // property of the board, settled once every unit is projected. Doing it here
@@ -1760,6 +1767,9 @@ export function abilityRecordOf(item, overrides = {}) {
     // stamps as its `sourceContentId`.
     contentId: item.system?.contentId ?? null,
     rank: item.system?.rank ?? null,
+    // The text its sheet prints, for a rule whose effect the War's Classic or
+    // Revised pick decides (`domain/revisions.mjs`, #260 reading 3).
+    printedRevision: item.system?.printedRevision ?? null,
     // A mode's activeRules apply only while it is switched on. This defaulted
     // to `true` while `active` was a field the DataModel silently dropped,
     // which quietly applied every mode's active clauses at all times.
@@ -1857,6 +1867,10 @@ export function contributionsOf(actor, { terrain = [], tick = null, partnerDista
       // consumed, which makes a one-use buff permanent.
       defId: effect.system?.defId ?? null,
       fromEffect: true,
+      // What this instance was applied with (`params`): an Aura's reach among
+      // them. Triumphal Return's S.Crit Up reaches 3 panels beside an allied
+      // Jeanne d'Arc, 2 otherwise (#260 reading 7).
+      params: effect.system?.params ?? null,
       // What an Aura it carries needs of its holder (#132): a buff's aura is
       // refused by a recipient with No Buff, and one cast's auras on two
       // holders reach a Unit once (`rules/auras.mjs`).
@@ -2241,6 +2255,10 @@ function collectAbilities(actor, { tick = null, turnsPerRound = 3 } = {}) {
       // The restore half of its own Cooldown line, for another ability's
       // "while X is on Cooldown" (`rules/items.mjs#isCooling`, #249 reading 20).
       restoreGate: restoreGateOf(i.system?.requirements),
+      // Its own gates, for an ability another one ALLOWS: a Spell is usable
+      // while its Spellbook's requirements pass (`rules/items.mjs`,
+      // `abilityAllows`, #260 reading 11).
+      requirements: [...(i.system?.requirements ?? [])],
       // God Hand's ledger. A pool that stores IDENTITIES rather than a number
       // is a set field, not a Ch. 06 Resource -- which is the line Ch. 06 draws
       // and names this ability while drawing it.
@@ -2272,6 +2290,11 @@ function collectAbilities(actor, { tick = null, turnsPerRound = 3 } = {}) {
       // A Spell is not a Skill, so a copy may not take one (#204, ruled
       // 2026-10-14). `category` above carries the other half of the answer.
       isSpell: Boolean(i.system?.isSpell),
+      // Classic or Revised (#260 reading 3): the text its sheet prints, whether
+      // the Revised text ends it on Skill Seal, and the bearer's own exemption.
+      printedRevision: i.system?.printedRevision ?? null,
+      endsOnSkillSeal: Boolean(i.system?.endsOnSkillSeal),
+      unsealable: Boolean(i.system?.unsealable),
     }));
 }
 

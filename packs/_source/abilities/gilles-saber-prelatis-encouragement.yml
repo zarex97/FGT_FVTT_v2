@@ -1,0 +1,37 @@
+# Gilles de Rais (Saber), char_orig_sheets/Copia de Gilles de Rais.md (#260).
+#
+# *"(Active) Used during your Turn. Applies Atk Up for 1◈ Turns, all damage dealt
+# is increased by 50%; if NP, 30%. Cooldown: 4◈ Turns.
+# (Passive) When this Skill is used, Gilles has a 15% chance of permanently
+# activating his Mad Enhancement Skill. Every time this Skill is used after the
+# first usage, activation chance is increased by 15% (max. 90%)."*
+#
+# The ONLY switch his Mad Enhancement has (reading 2): it starts off, no hand
+# turns it on or off, and once on it stays on for the War (`cannotActivate`,
+# `cannotDeactivate` on his reference). The chance grows with the whole-match use
+# count, read before this use is recorded (`rules/phase-chance.mjs`): 15, 30,
+# 45, ... 90. Its die is on the card whichever way it falls; once Mad
+# Enhancement is on there is nothing left to roll for.
+schema: 1
+id: gilles-saber-prelatis-encouragement
+name: "Prelati's Encouragement"
+rank: B
+kind: skill
+slug: prelatisEncouragement
+cooldown: "4◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+description: |
+  (Active) Used during your Turn. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 50%; if NP, 30%. Cooldown: 4◈ Turns.
+  (Passive) When this Skill is used, Gilles has a 15% chance of permanently activating his @ability[class-mad-enhancement]{Mad Enhancement} Skill. Every time this Skill is used after the first usage, activation chance is increased by 15% (max. 90%).
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUp, magnitude: 50, npMagnitude: 30, duration: "1◈" }
+  - kind: setMode
+    target: self
+    ability: madEnhancement
+    active: true
+    predicate: ["not:self:skillActive:madEnhancement"]
+    chance: { value: 15, perPriorUse: 15, max: 90, label: "Mad Enhancement" }

@@ -331,7 +331,9 @@ describe("Mad Enhancement's 2◈ when the Master falls in one blow (#209 ME.sus)
       // 2◈ of a 2◈ clock at three Turns a Round: 6 - 6.
       expect(w.actor(CASTOR).system.sustainabilityRemaining).toBe(0);
       expect(w.actor(POLLUX).system.sustainabilityRemaining ?? null).toBe(null);
-    }, { tokens: true, combat: { round: 6, started: true, system: { globalTurn: 18 }, actingFactionId: "B" } });
+      // Clause 5 as Castor's sheet prints it, the Classic text: the War names it
+      // (#260 reading 3; a new War plays the Revised one).
+    }, { tokens: true, combat: { round: 6, started: true, system: { globalTurn: 18, madEnhancementRevision: "classic" }, actingFactionId: "B" } });
   }, 120_000);
 });
 

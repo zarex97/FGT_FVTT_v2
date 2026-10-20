@@ -217,3 +217,30 @@ the bonus is added at stage 16, after every modifier and the Injury snapshot (Di
 
 `{ key: NpGateShift, rounds: N }` opens its bearer's Noble Phantasm gate N Rounds earlier, collected into
 `npGateShifts` and read by `np-gate.mjs#essenceShift`. A Master Essence's, on its Servant's copy.
+
+### Gilles de Rais (Saber)'s elements (#260)
+
+- **`AlignmentOverride {order, morality}`** sets one or both halves of its bearer's Alignment while it stands:
+  Gilles's *"When Mad Enhancement is Activated, Gilles' Alignment changes from Lawful Good to Neutral Evil"*,
+  authored with `predicate: [self:skillActive:madEnhancement]` (reading 4). A `statDelta` with `set`, written by
+  `rules/derived.mjs#applyStatDeltas` onto `alignment.order` and `alignment.morality` (both in
+  `MODIFIABLE_PATHS`, so a preparation puts them back), so the sheet and every board reader see one Alignment.
+- **`EffectMagnitudeScale` gains `value` and `scope`.** `value` is a percent increase, so an effect may name its
+  own magnitude (`value: "@magnitude"`, 20 is ×1.2); `direction: outgoing, scope: np` scales what its holder's
+  Noble Phantasms apply, read at the one door every application passes (`engine/landing.mjs#outgoingScaleOf`):
+  Overcharge (reading 8).
+- **`FlatDamage.fixedUnder`** makes `fixed` hold only under one text of a revisable Skill: Divinity's Fixed
+  Divine Damage is its Revised wording (reading 3d), decided at stage 7 off `board.rules.revisions`.
+- **An `Aura`'s reach may be its instance's.** `radius` reads the effect instance's `params.radius` first
+  (`EFFECT_PARAMS.sCritUp`), so Triumphal Return's S.Crit Up reaches 3 beside Jeanne d'Arc and 2 otherwise
+  (reading 7). The role **`summon`** (`rules/auras.mjs#inRecipientRoles`) reaches every Unit the holder
+  summoned, wherever it stands, with `alsoReaches`: Dmg Boost (Gilles) (reading 13).
+- **A nested `DamageModifier` or `FlatDamage` runs its executor** (`rules/elements.mjs#auraElement`), so an
+  aura's damage clause reaches its recipient under its bucket, its whole predicate deferred to the Damage Step.
+  Raw, it arrived as a modifier no stage reads; Military Tactics is the first to nest one.
+- **`OnEvent` gains `onlyNP` and `excludeDamaging`** (the mirror of `excludeNP`, and a filter on the use
+  rather than the user): Overcharge is spent by its holder's next NP, at `abilityUsed` for one that deals no
+  damage and at `attackPerformed` for one that does, which raises `abilityUsed` at its declaration.
+- **The `Split` action** (`engine/scheduler.mjs`): a defeated summon turning into new ones on a pre-rolled die
+  (`roll {key, formula}`, the faces `on`), `count` of `into`. A log intent, as `Banish`; the applier places them
+  (`engine/summoning.mjs#splitSummon`). Both faces are a card line. The Horror's and the Elder Horror's.

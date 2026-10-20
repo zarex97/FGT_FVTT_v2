@@ -136,6 +136,9 @@ export function canToggleMode(
 
   // Switching OFF something that never switches off.
   if (!active && sys.cannotDeactivate) return { ok: false, reason: "cannotDeactivate" };
+  // ...and ON something no hand switches on: an ability's die does it, through
+  // `io.setMode`, never this toggle (Gilles's Mad Enhancement, #260 reading 2).
+  if (active && sys.cannotActivate) return { ok: false, reason: "cannotActivate" };
 
   // Compelled on. A compulsion that names this skill holds it there for as
   // long as the compulsion stands, which is a positional question and

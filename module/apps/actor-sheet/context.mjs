@@ -31,7 +31,7 @@ import {
   resourceBar, parameterTiles, baseAttackTiles, abilityState, abilityCost, abilityNamesOf,
   groupEffects, describeModifier, remainingTurns,
 } from "./present.mjs";
-import { warRule, currentWar } from "../../engine/war.mjs";
+import { warRule, currentWar, descriptionFor } from "../../engine/war.mjs";
 
 /**
  * Present one ability to the sheet.
@@ -48,7 +48,7 @@ function describe(item) {
     // A mode that is on reads as on; `cannotDeactivate` explains a disabled
     // toggle rather than leaving the player clicking a dead control.
     active: Boolean(item.system.active),
-    locked: Boolean(item.system.active && item.system.cannotDeactivate),
+    locked: Boolean((item.system.active && item.system.cannotDeactivate) || (!item.system.active && item.system.cannotActivate)),
   };
 }
 
@@ -453,7 +453,9 @@ function overviewContext(actor, snapshot) {
       // as `parameters.luc 0 — Affection of the Holy Grail` on his own sheet:
       // the panel that exists to answer "why is my Rank this?" answering
       // "because of a shift of zero".
-      .filter((d) => d.rankShift || d.rankTo || d.rankGrades || d.value !== 0)
+      // ...and a word set outright (`AlignmentOverride`, #260) has no `value`
+      // at all: it read `alignment.order 0` under "Neutral Evil" (found live).
+      .filter((d) => d.set || d.rankShift || d.rankTo || d.rankGrades || d.value !== 0)
       .map((d) => ({
         stat: d.stat,
         source: d.source ?? game.i18n.localize("FGT.Sheet.UnknownSource"),
@@ -720,7 +722,7 @@ function abilityCard(item, { actor, unit, master, round, turnsPerRound, board })
     active: Boolean(item.system.active),
     // A mode that is on reads as on; `cannotDeactivate` explains a disabled
     // toggle rather than leaving the player clicking a dead control.
-    locked: Boolean(item.system.active && item.system.cannotDeactivate),
+    locked: Boolean((item.system.active && item.system.cannotDeactivate) || (!item.system.active && item.system.cannotActivate)),
     // A PASSIVE is never used, so it is never refused and never billed. Kagome
     // Kagome, Rank A and always in effect, read "The Master cannot pay the
     // Health cost ... ✗ cannot be paid" on Pale Rider's sheet (#180): the Rank's
@@ -743,7 +745,8 @@ function abilityCard(item, { actor, unit, master, round, turnsPerRound, board })
     // Before the click, not after (D29.2). Vasavi Shakti permanently removes
     // Kavacha and Kundala, and there is no undo for it.
     irreversible: (item.system.permanentConsequence ?? []).length > 0,
-    description: item.system.description ?? "",
+    // The text the War plays, Classic or Revised (#260 reading 3f).
+    description: descriptionFor(item, actor),
   };
 }
 
@@ -927,7 +930,8 @@ function rows(state) {
  * @param {object} d a statDelta
  * @returns {string}
  */
-function rankAmount(d) {
+export function rankAmount(d) {
+  if (typeof d.set === "string") return `→ ${d.set}`;
   if (d.rankTo) return `→ ${d.rankTo}`;
   if (d.rankGrades) {
     const n = d.rankGrades;

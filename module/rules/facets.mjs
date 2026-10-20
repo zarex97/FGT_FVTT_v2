@@ -88,6 +88,37 @@ export const FACETS = Object.freeze([
     prose: "{subject} is {contentId}",
   }),
   facet({
+    id: "trueName",
+    // OPEN on purpose: a Heroic Spirit the roster has no sheet for yet. Gilles
+    // de Rais (Saber) names Jeanne d'Arc, and no Jeanne is built (#260 reading
+    // 6). The True Name as `rules/named-units.mjs#trueNameSlug` spells it.
+    segments: [{ name: "trueName", value: open() }],
+    english: "Is a named Heroic Spirit, by True Name.",
+    prose: "{subject} is {trueName}",
+  }),
+  facet({
+    id: "allyNamed",
+    // An allied Servant of that True Name stands on the board (#260 reading 6).
+    segments: [{ name: "trueName", value: open() }],
+    english: "Has an allied Servant of a given True Name on the field.",
+    prose: "{subject} has an allied {trueName} on the field",
+  }),
+  facet({
+    id: "allyNamedWithin",
+    // ...within N panels, as a ladder: `:1` is directly next to it.
+    segments: [{ name: "trueName", value: open() }, { name: "panels", value: number() }],
+    english: "Has an allied Servant of a given True Name within a number of panels.",
+    prose: "{subject} has an allied {trueName} within {panels} panels",
+  }),
+  facet({
+    id: "allyAttributeWithin",
+    // An allied Unit carrying an Attribute stands within N panels, as a ladder:
+    // Triumphal Return's [Star] ally within 2 (#260).
+    segments: [{ name: "attribute", value: open() }, { name: "panels", value: number() }],
+    english: "Has an allied Unit with a given Attribute within a number of panels.",
+    prose: "{subject} has an allied {attribute} Unit within {panels} panels",
+  }),
+  facet({
     id: "attribute",
     // OPEN on purpose. See the header: `outsider` and `undead` are authored
     // against Servants that do not exist yet.

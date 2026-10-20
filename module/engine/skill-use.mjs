@@ -68,6 +68,7 @@ import { publicIdentityOf, publicSpeakerFor } from "./public-identity.mjs";
 import { effectLine } from "../rules/card-visibility.mjs";
 import { shownName, shownNameById } from "./public-identity.mjs";
 import { warRule, currentWar } from "./war.mjs";
+import { phaseChance } from "../rules/phase-chance.mjs";
 
 /**
  * Use an active Skill.
@@ -528,6 +529,27 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
     // the second onwards does.
     if (phase.afterFirstUse && (ability.system?.timesUsed ?? 0) < 1) continue;
     if (phase.predicate && !testPredicate(phase.predicate, { options: selfOptions })) continue;
+    // A CHANCE for the whole phase, its die on the card whichever way it falls.
+    // Prelati's Encouragement: *"Gilles has a 15% chance of permanently
+    // activating his Mad Enhancement Skill. Every time this Skill is used after
+    // the first usage, activation chance is increased by 15% (max. 90%)"*
+    // (#260): `perPriorUse` reads the whole-match counter before this use is
+    // recorded, as `afterFirstUse` does above.
+    if (phase.chance) {
+      const percent = phaseChance(phase.chance, ability.system?.timesUsed ?? 0);
+      const roll = await new Roll("1d100").evaluate();
+      const hit = roll.total <= percent;
+      applied.push({
+        unitId: actor.id,
+        summary: {
+          id: "chance",
+          name: game.i18n.format("FGT.Phase.Chance", { label: phase.chance.label ?? ability.name, roll: roll.total, percent }),
+          outcome: hit ? "applied" : "failed",
+          reason: hit ? null : game.i18n.localize("FGT.Phase.Missed"),
+        },
+      });
+      if (!hit) continue;
+    }
     // A caller may want only part of the list -- the attack flow runs the
     // phases the Combat Process has no rung for, and leaves the effect phases
     // to the damage step where the riders belong.
@@ -725,12 +747,23 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
         // not: `statChanges` knows `stat`/`delta`/`percentOfMax` and silently
         // skips anything else, so a `SetMode` authored there compiled, loaded
         // and did nothing. Found live, twice over -- the `when` was wrong too.
-        case "setMode":
+        case "setMode": {
           await applyWorld(
             [modeIntent(phase, target.unitId, `phase:${ability.id}`)],
             `skill:${ability.id}:setMode`,
           );
+          // What it switched, on the card: Prelati's Encouragement turning Mad
+          // Enhancement on for good was a die and nothing else (#260).
+          const mode = doc.items.find((i) => i.system?.slug === phase.ability || i.system?.contentId === phase.ability);
+          if (mode && !phase.suspendFor) {
+            applied.push({ unitId: target.unitId, summary: {
+              id: "setMode",
+              name: game.i18n.format(mode.system?.active ? "FGT.Phase.ModeOn" : "FGT.Phase.ModeOff", { mode: mode.name }),
+              outcome: "applied", reason: null,
+            } });
+          }
           break;
+        }
 
         case "resource": {
           // On the card, with the real numbers (#204 LK, ruled 2026-10-14): Ár
@@ -2192,7 +2225,12 @@ export async function fireAbilityUsed(actor, ability) {
       id: ability?.id ?? null,
       contentId: ability?.system?.contentId ?? null,
       category: ability?.system?.category ?? null,
-      isNP: ability?.type === "noblePhantasm" || Boolean(ability?.system?.isNP),
+      // An ability CATEGORIZED as a Noble Phantasm is one for every "NP"
+      // clause (EMIYA's Overedge, #208).
+      isNP: ability?.type === "noblePhantasm" || Boolean(ability?.system?.isNP) || Boolean(ability?.system?.categorizedAsNP),
+      // An Attack that deals damage, which raises this at its DECLARATION
+      // (`engine/attack.mjs`), before any of it has resolved.
+      damaging: Boolean(ability?.system?.damage) || (ability?.system?.phases ?? []).some((p) => p.kind === "damage"),
     },
   });
   if (intents.length > 0) await applyWorldIntents(intents, "abilityUsed", { sink, lines: true });
@@ -2298,12 +2336,23 @@ export async function applySelfRiders(ability, actor, { ride = null, when = "bef
  * @param {object} args
  * @returns {Promise<object[]>} what the phases applied
  */
-export async function resolveWithoutProcess({ ability, actor, targets, board }) {
+export async function resolveWithoutProcess({ ability, actor, targets, board, overCooldown = false }) {
   const applied = await runPhases(ability, actor, targets, board);
-  await applyWorldIntents([I.log({
-    kind: "ability", event: "skillUsed", unitId: actor.id, abilityId: ability.id, name: ability.name,
-    targets: targets.map((t) => t.unitId), applied: applied.map((a) => a.summary), counter: true,
-  })], `counter:${ability.id}`);
+  // A clock the use itself decides, *"(Number of Horrors x ⅔◈)"*, is unknown
+  // when `runCounter` pays the price, which is before the phases run: priced
+  // at a count of 0 it was no clock at all, and Summoning: Horrors made as a
+  // Counter could be made again at once (#260, live). Set here, once the count
+  // exists. Every other clock was paid with the price, and a use ON the
+  // Cooldown leaves the clock alone (`rules/costs.mjs`).
+  const perUnit = Boolean(ability.system?.cooldown?.perUnit) && !overCooldown;
+  const self = (board?.units ?? []).find((u) => u.id === actor.id) ?? null;
+  await applyWorldIntents([
+    ...(perUnit ? cooldownIntents(ability, actor, applied.summoned ?? 0, self) : []),
+    I.log({
+      kind: "ability", event: "skillUsed", unitId: actor.id, abilityId: ability.id, name: ability.name,
+      targets: targets.map((t) => t.unitId), applied: applied.map((a) => a.summary), counter: true,
+    }),
+  ], `counter:${ability.id}`);
   await postCard(actor, ability, targets, applied);
   return applied;
 }

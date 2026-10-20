@@ -149,8 +149,9 @@ An Effect Entry is what an ability writes to give an Effect: `{id, magnitude, du
 **Hundred-Faced Hassan's vocabulary (#226).** A requirement `legionAbove: {count}` (more than `count` bodies
 remain, field and reserve). A `move` phase (`panels`): the owner picks a panel an ordinary walk of that many reaches,
 or stays. `withdrawsFromAttack` on a reaction takes its user out of the Attack (Ch. 21). `legionCost` is a dice price
-in bodies paid when the declaration's Combat Phase ends (`engine/legion.mjs#payLegionPrice`). `endsOnSkillSeal` on a
-Presence Concealment reference ends it when Skill Seal lands (Ch. 30). A phase's own `targeting` may be
+in bodies paid when the declaration's Combat Phase ends (`engine/legion.mjs#payLegionPrice`). `endsOnSkillSeal` on
+Presence Concealment and Mad Enhancement ends either when Skill Seal lands, under the Revised text the War picks
+(Ch. 30, Ch. 31; #260 reading 3). A phase's own `targeting` may be
 `chooser: chosen`: the caster's owner picks up to `count` of the candidates, and a phase is never an Attack, so a
 concealed ally is a candidate (§46.4-NO). A `heal` line prints the real change (§46.4-NN).
 
@@ -171,6 +172,11 @@ Cooldown"*. `rules/items.mjs#isCooling` is the one reader: the clock, or the abi
 unmet (`restoredSince`, the case that requirement always read). `abilityOffCooldown` asks it, and the board projects
 the gate as `restoreGate` (`snapshot.mjs#collectAbilities`). Above the fraction at any moment after the use satisfies
 it; no drop is needed first (#249 reading 37).
+
+**A refused `abilityOffCooldown` names what it waits on** (#260, live). `meetsRequirements` returns a failed
+requirement's `detail` beside its kind (`rules/items.mjs#requirementDetail`), `canUseAbility` passes it on, and
+`abilityState` words it `FGT.Ability.CoolingNamed`: *"Not while Prelati's Spellbook: … is on Cooldown."* It read *"An
+ability it depends on is still cooling."* A refusal with no names keeps that line.
 
 ## Invariants & edge cases
 
@@ -259,3 +265,17 @@ landing through the one door; `entries` names one table for every DU where `tabl
 **The gate weighs what the use will charge** (#232, §46.4-OG). An ability's own costs may replace the NP cost
 (`supersedes: [npCost]`); `canUseAbility` resolves them as the payment does (`resolveCosts`) and refuses only what the
 charged costs, summed per pool, cannot meet. Enki's half of the Master's maximum, not an EX Rank's 100.
+
+**Gilles de Rais (Saber) (#260).** Four pieces any later sheet can author:
+
+- **`cannotActivate`**, the mirror of `cannotDeactivate`: a mode no hand switches on. His Mad Enhancement starts
+  off and only Prelati's Encouragement's die switches it, for good (reading 2); `rules/modes.mjs#canToggleMode`
+  refuses `cannotActivate`, and the sheet shows the toggle locked.
+- **A phase `chance`**, rolled once for the phase, its die on the card whichever way it falls
+  (`rules/phase-chance.mjs`): a number, or `{value, perPriorUse, max, label}` read against the whole-match use count
+  before this use is recorded. Prelati's 15%, +15% a use, at most 90%.
+- **A `setMode` phase is a card line** (`FGT.Phase.ModeOn`/`ModeOff`): Mad Enhancement turning on was a die and nothing else.
+- **`abilityAllows`**: an ability usable while another named one of its bearer's is held and that one's own
+  requirements pass (`rules/items.mjs`). *"Prelati's Spellbook ... Allows the use of the Spells"*: both Summoning
+  Spells, shared with the Caster, read the Saber's Spellbook's `modeActive: madEnhancement` (reading 11). The board
+  projects each ability's `requirements` for it.
