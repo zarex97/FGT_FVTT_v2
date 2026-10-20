@@ -42,7 +42,7 @@ landed (the landing's own summary, applied or resisted), the stages it took (`Cu
 turn (Channel Marker Soul's cut on each Curse landing). The attack path prints them on the Process card
 (`damageStepStart`, `damageDealt`, `damageTaken`, `damageStepEnd`, `attackLanded`, `attackPerformed`), a Skill on its
 card after the phase that raised them, and a Turn's or a Round's end on its card. A Turn's end posts the periodic card
-too (*"End of the Turn — Foreigner takes 63 from Curse"*), by the effect's name.
+too (*"End of the Turn — Foreigner takes 63 from Curse"*), by the effect's name. **A removal a rule makes is a line** (#258): an event's `RemoveEffect` marks its intent `byRule`, and `removalLines` prints *"Soaked: removed"*, for a Day Round drying it and Fire using it up alike; an expiry is not one. A Noble Phantasm's removal phase lines each effect it took and each it could not: *"Atk Up: resisted, rolled 7 vs 0%"* under BuffRemoval ResUp (§46.4-SI).
 
 `redactBreakdown` removes side-specific contributors but preserves the arithmetic: stage deltas and running totals stay visible so a viewer can check the numbers add up (`module/rules/card-visibility.mjs:139-155`). Contributors with no side are board facts and remain visible to everyone. `hiddenContributors` is a count rather than silence — something happened here and it was not yours (`module/rules/card-visibility.mjs:150-152`).
 
@@ -160,5 +160,5 @@ effects when the damage was skipped (an Instakill), and the damage block shows o
 is a row per copy (*"Name: Cooldown 7 → 6"*), its chance die is a roll record named for the clause, and the Turn-end card
 names a sourced cut (*"Castor's Dioscures Tyndaridae: Cooldown −2 Turn(s) (Self-Replenishment (Mana))"*) as what it took,
 read before the writes (`clocksBefore`): nothing for a clock already at 0. `damageDealt` and `damageStepEnd` file their dice
-through one pair, `rollChances` and `chanceRecords`, "resisted" included. A `statChange`
+through one pair, `rollChances` and `chanceRecords`, "resisted" included, and so does `damageTaken` since #258 (it fired on `rolls: {}` before, and a chance hung there never rolled). The verdict is the landing's own row when an effect rode the die: Rock Snowball's 10% is 15% under Fae Contract, and a 12 reads *"against 10%: hit (rolled 12 vs 15%)"*, where it read "missed" beside a Bleed that landed (§46.4-SJ). A `statChange`
 row reads the stat before and after, *"Luck 9 (no change)"*, and names the Unit when it is not the caster.

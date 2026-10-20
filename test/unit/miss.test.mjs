@@ -173,7 +173,7 @@ describe("M1 — a suppression may switch the Miss check off", () => {
   // Attack at a Range of 1 to 2 while inflicted with Blind, it does not have a
   // chance of Missing."* A Servant who blinds herself on purpose.
   const suppressed = (predicate) => ({
-    id: "anastasia", kind: "servant", effects: ["blind"],
+    id: "anastasia-summer", kind: "servant", effects: ["blind"],
     suppressions: [{ scope: "miss", predicate, source: "Watermelon Splitting Master" }],
   });
   const band = ["self:effect:blind", "attack:range:lte:2"];

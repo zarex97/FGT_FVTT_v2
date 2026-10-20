@@ -1,0 +1,44 @@
+# Fae Contract, shared by Anastasia's two forms (#258 reading 10, ruled 2026-10-20):
+#   B+ -- Anastasia (Summer), char_orig_sheets/Copia de Anastasia & Viy.md
+#   A  -- Anastasia (Caster), char_orig_sheets/Copia de Anastasia.md, unbuilt
+#
+# One skill at two Ranks, the way `class-bravery` is shared: the figures come
+# from the Rank (`faeContract`, `faeContractSevere` in `domain/tables.mjs`), so
+# the Caster's sheet is one `ref:` away.
+schema: 1
+id: fae-contract
+name: "Fae Contract"
+kind: skill
+slug: faeContract
+passive: true
+parameterized: [rank]
+rank: "@rank"
+description: |
+  (Passive) Debuff Resist is increased by X%. Chance of inflicting debuffs is increased by X%.
+  B+: X = 5. A: X = 10, and it also affects @effect[instakill]{Instakill}, @effect[death]{Death} and
+  @effect[erase]{Erase}.
+passiveRules:
+  # Both directions of one bucket. `ApplicationChance` rather than a
+  # `CheckModifier`, for the reason Magic Resistance's own clause 2 records: the
+  # effect applier reads resistance off `applicationChances`, and a
+  # `CheckModifier` lands somewhere it never consults.
+  #
+  # ORDINARY debuffs: a contribution naming no severity leaves Instakill, Death
+  # and Erase alone (Appendix A, `Debuff ChUp`), so the Summer form's B+ does not
+  # raise Ice Block Launcher's Instakill.
+  - key: ApplicationChance
+    direction: incoming
+    table: faeContract
+  - key: ApplicationChance
+    direction: outgoing
+    table: faeContract
+  # *"Also affects Instakill, Death, and Erase"* -- the Caster's Rank A says so,
+  # and saying so is the exception. 0 below A, so the B+ contributes nothing here.
+  - key: ApplicationChance
+    direction: incoming
+    severity: [instakill, death, erase]
+    table: faeContractSevere
+  - key: ApplicationChance
+    direction: outgoing
+    severity: [instakill, death, erase]
+    table: faeContractSevere

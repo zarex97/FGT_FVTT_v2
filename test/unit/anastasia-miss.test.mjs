@@ -1,6 +1,6 @@
 /**
  * @file Anastasia does not miss at Range 1 to 2 while Blind (Watermelon Splitting Master).
- * @see packs/_source/abilities/anastasia-watermelon.yml, module/rules/miss.mjs#missChance, module/engine/attack.mjs#runMissCheck
+ * @see packs/_source/abilities/anastasia-summer-watermelon.yml, module/rules/miss.mjs#missChance, module/engine/attack.mjs#runMissCheck
  *
  * > When Anastasia performs a Normal Attack at a Range of 1 to 2 while
  * > inflicted with Blind, it does not have a chance of Missing.
@@ -21,7 +21,7 @@ const at = { tokens: true, combat: { round: 6, started: true, system: { globalTu
 
 /** Anastasia, Blind, swings at Heracles `j` panels away with every die on 1. */
 const swing = (j) => withSubjects([
-  { from: "anastasia", id: A, state: { factionId: "A" }, panel: { i: 5, j: 5 }, effects: [{ defId: "blind" }] },
+  { from: "anastasia-summer", id: A, state: { factionId: "A" }, panel: { i: 5, j: 5 }, effects: [{ defId: "blind" }] },
   { from: "heracles", id: H, state: { factionId: "B" }, panel: { i: 5, j } },
 ], async ({ world: w }) => {
   w.dice.every(1);

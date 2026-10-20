@@ -481,6 +481,16 @@ export const FACETS = Object.freeze([
     prose: "the attack is made with {ability}",
   }),
   facet({
+    id: "inflicts",
+    subjects: ["attack"],
+    // WHAT the attack's own phases inflict on the Unit it hits, by effect id:
+    // Soaked's Freeze chance adds to the Attack's own, or rolls alone when it
+    // has none (#258 reading 4). From `rules/damage/riders.mjs#inflictedEffectIds`.
+    segments: [{ name: "effect", value: open() }],
+    english: "The attack's own effects include a named effect on the Unit it hits.",
+    prose: "the attack inflicts {effect}",
+  }),
+  facet({
     id: "ignoresMagicResistance",
     subjects: ["attack"],
     english: "The attack is one Magic Resistance does not see.",

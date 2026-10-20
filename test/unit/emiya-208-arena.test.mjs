@@ -551,7 +551,7 @@ describe("Rho Aias against a thrown weapon, and for that one Noble Phantasm only
   const withRhoAias = async (attacker, abilityContentId, check) => withSubjects(board(attacker), async ({ world: w }) => {
     w.dice.every(99); // Instakill (75%) does not land; Stun (500%) does.
     // Anastasia is offered Watermelon at the start of her Combat Phase; Scathach has nothing there.
-    if (attacker.from === "anastasia") w.answer({ title: "FGT.Window.combatPhaseStart", decline: true });
+    if (attacker.from === "anastasia-summer") w.answer({ title: "FGT.Window.combatPhaseStart", decline: true });
     const rho = itemOf(w, E, "emiya-rho-aias");
     const np = itemOf(w, attacker.id, abilityContentId);
     const hp = w.actor(D2).system.health.value;
@@ -581,7 +581,7 @@ describe("Rho Aias against a thrown weapon, and for that one Noble Phantasm only
   }, 90_000);
 
   it("an ordinary Noble Phantasm of the same size breaks it and the rest goes through (pinned: as built)", async () => {
-    await withRhoAias({ from: "anastasia", id: ATT }, "anastasia-snegleta", ({ w, declared, hp, emiyaHp }) => {
+    await withRhoAias({ from: "anastasia-summer", id: ATT }, "anastasia-summer-snegleta", ({ w, declared, hp, emiyaHp }) => {
       expect(itemOf(w, E, "emiya-rho-aias").system.shieldHealth).toBe(0);
       expect(w.messages.get(declared.messageId).getFlag("fgt", "result").total).toBeGreaterThan(0);
       expect(w.actor(D2).system.health.value).toBeLessThan(hp);

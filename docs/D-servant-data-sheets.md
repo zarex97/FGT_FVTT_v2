@@ -597,7 +597,7 @@ Seventeen Servants added in `0.2.0`.
 | Ozymandias | Rider | C | C | B | A | A+ | 1000 | 6 | 3 | 100 | 200 | 2◈ |
 | Medusa | Rider | B | D | A | B | E | 750 | 7 | 2 | 125 | 175 | 6◈² |
 | Pale Rider | Rider | E | A | B | A | C | **—**⁴ | 6 | **—**⁵ | 50 | 200 | 2◈ |
-| Anastasia & Viy | —⁶ | D++ | E | B | C | C | 500 | 6 | 3 | 95 | 150 | **N/A**⁷ |
+| Anastasia (Summer) | Archer⁶ | D++ | E | B | C | C | 500 | 6 | 3 | 95 | 150 | **N/A**⁷ |
 | Quetzalcoatl | Rider | B | B | B+ | EX | A+ | 1250 | 7 | 2 | 125 | 250 | 2◈ |
 | EMIYA | Archer¹ | D | C | C | B | E | 1000 | 4 | 4 | 75 | 175 | 7◈ |
 | Proto Gil | Archer¹ | C | C | B | A | A | 1000 | 6 (5)⁸ | 5 | 100 | 200 | **N/A**⁷ |
@@ -610,10 +610,12 @@ Seventeen Servants added in `0.2.0`.
 ³ 7 Dismounted, 8 Mounted.
 ⁴ `health: null` — cannot be damaged or healed (Ch. 44 §44.1).
 ⁵ No Range because it cannot perform Normal Attacks; its reach is the Contagion aura.
-⁶ Independent Action is her only class skill, and Independent Action does not identify a class.
+⁶ Her sheet, *Anastasia & Viy*, prints no class. Built as a Caster and ruled an **Archer** (#258 reading 1, 2026-10-20): the Caster is the other sheet, *Anastasia*, unbuilt.
 ⁷ Independent Action A+/EX: *"Sustainability does not apply."*
 
-> **Anastasia & Viy — built and live-tested 2026-09-16.**
+> **Anastasia & Viy — built and live-tested 2026-09-16.** Renamed **Anastasia (Summer)**, ids
+> `anastasia-summer` and `anastasia-summer-*`, and audited in #258 (2026-10-20): an Archer, Region Russia
+> alone, Fae Contract the shared Rank-keyed `fae-contract`. See §D.27.
 >
 > **Every figure on her sheet agrees with the rank tables**, which is worth
 > recording because the Servant authored immediately before her did not: STR
@@ -1167,22 +1169,24 @@ defender" would need a special case for every line of this sheet.
 
 ---
 
-## D.27 Anastasia & Viy
+## D.27 Anastasia (Summer)
+
+*Anastasia & Viy* on her sheet; renamed by #258 reading 9, an Archer by reading 1.
 
 | Ability | Type | Mapping |
 |---|---|---|
 | (normal attack) | — | **RE+** **range-banded combined base attack**: BA(STR) at Range 1–2; BA(STR) + 10% BA(MAG) at Range 3+, dealing Ice and MR-exempt |
 | Swimsuit! | Passive | RE (Total Water damage −50% including NP) |
-| Independent Action with Viy (EX) | Class, passive | RE (**no Sustainability**; ZON +3; **absolute** contract immunity; crit chance and crit damage +10%) |
-| Fae Contract (B+) | Passive | RE (+5% / +5%) |
+| Independent Action with Viy (EX) | Class, passive | RE (**no Sustainability**; ZON +3; **absolute** immunity to an enemy's Contract and to Conquest, not to Rule Breaker (#258 reading 12); crit chance and crit damage +10%) |
+| Fae Contract (B+) | Passive | RE (+5% / +5%), the shared Rank-keyed `fae-contract` the Caster's A (10 / 10, and Instakill, Death, Erase) will reuse (#258 reading 10) |
 | Shvibzik (Summer) (B+) | Active | RE |
 | Freezing Summertime (A) | Active | RE — including `BuffRemoval ResUp` at **100%**, the only absolute instance |
-| Full Acceleration: Spirit Eyes (B) | Active | RE — `Crit Up (Viy)` is **crit chance scoped to attacks that use BA(MAG)**, with a separate NP magnitude |
+| Full Acceleration: Spirit Eyes (B) | Active | RE — `Crit Up (Viy)` is **crit chance scoped to attacks that use BA(MAG)** (`attack:usesBase:mag`, so her ranged Normal Attack counts, #258 reading 3), with a separate NP magnitude |
 | Watermelon Splitting Master | Passive + active | RE (self-inflicted `Blind` reinterpreted as an offensive buff — Ch. 44 §44.3) |
 | Rock Snowball | Passive | RE — `½◈` duration, the **finest tick granularity in the corpus** |
-| Ice Bucket Challenge for You | Attack Skill | **RE+** the `Soaked` status: **additive** Freeze chance on Ice damage, consumed by Fire in exchange for −50% Fire damage, and expiring at the end of a **Day Round** |
+| Ice Bucket Challenge for You | Attack Skill | **RE+** the `Soaked` status: **additive** Freeze chance on Ice damage, or a 25% roll of its own on an Ice Attack carrying no Freeze (#258 reading 4), consumed by Fire in exchange for −50% Fire damage, and expiring at the end of a **Day Round** |
 | Snegleta・Snegurochka (B, NP) | Damaging NP | RE — note the debuff is applied **before** the damage, so the `Def Dwn` affects the NP that applied it |
-| Ice Block Launcher (C, NP) | Damaging NP | **RE+** `@distance`-scaled Instakill chance (5% **per intervening panel**) |
+| Ice Block Launcher (C, NP) | Damaging NP | **RE+** `@distance`-scaled Instakill chance (5% per panel of distance, ruled #258 reading 8); not resisted by Magic Resistance, an STR attack |
 
 **Exercises:** base attacks that change composition by range band, self-debuff as a resource,
 statuses that modify another effect's *chance* additively, half-tick durations, ordering within

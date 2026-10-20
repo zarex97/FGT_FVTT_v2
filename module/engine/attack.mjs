@@ -13,9 +13,9 @@
  */
 
 import {
-  computeDamage, computeDamageHits, isNPAttack, modifierSourceUnits, INJURY_THRESHOLD,
+  computeDamage, computeDamageHits, isNPAttack, modifierSourceUnits, usesBaseOptions, INJURY_THRESHOLD,
 } from "../rules/damage/pipeline.mjs";
-import { ridersFire, successfullyAttacked } from "../rules/damage/riders.mjs";
+import { inflictedEffectIds, ridersFire, successfullyAttacked } from "../rules/damage/riders.mjs";
 import { expandInstances, damageBaseOf } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
 import { askOwner, chooseFor } from "./ask.mjs";
@@ -931,6 +931,10 @@ export function buildAttackSpec({
       // no attack ever carried it. A damage block says so; no content NP does
       // yet -- which ones throw is the author's ruling to make (Wave B).
       thrownWeapon: Boolean(block?.thrownWeapon),
+      // What the attack's own phases inflict on the Unit it hits, so a Clause
+      // can ask (`attack:inflicts:<id>`): Soaked adds 25 to an Attack's Freeze
+      // chance, or rolls 25 alone when it has none (#258 reading 4).
+      inflicts: inflictedEffectIds(ability),
       ignoresDefUp: Boolean(block?.ignoresDefUp)
         || attackerGrants(attacker, "ignoresDefUp", view),
       // How much damage SURVIVES an Invuln, for a clause that weakens it rather
@@ -3126,7 +3130,7 @@ async function fireDamageDealt(state, result) {
   const rows = intents.length > 0 ? await applyWithLines(intents, "damageDealt", { process: state }) : [];
   // What the target's resistance did to a die that came in under the stated
   // chance: "hit" alone hid it (#195).
-  return { records: chanceRecords({ filed, rolls, state, attacker, defender, tick, logFrom: before, tag: "rider" }), rows };
+  return { records: chanceRecords({ filed, rolls, state, attacker, defender, tick, logFrom: before, tag: "rider", rows }), rows };
 }
 
 /**
@@ -3179,19 +3183,30 @@ async function rollChances(hearers, event, options) {
  * @param {object} args
  * @returns {object[]}
  */
-function chanceRecords({ filed, rolls, state, attacker, defender, tick, logFrom, tag }) {
+function chanceRecords({ filed, rolls, state, attacker, defender, tick, logFrom, tag, rows = [] }) {
   const resisted = (currentWar()?.getFlag?.("fgt", "log") ?? []).slice(logFrom)
     .filter((e) => e.kind === "effectResisted" && e.unitId === state.defenderId);
   return filed.map(({ spec, hit }) => {
-    const lost = hit ? resisted.find((e) => e.defId === spec.effectId && e.sourceUnitId === state.attackerId) : null;
-    const verdict = !hit ? "missed" : lost ? `resisted (${lost.chance})` : "hit";
+    // An effect's chance is decided where it LANDS, against the inflicter's
+    // bonus and the target's resistance (`chanceGatePasses`), so the landing's
+    // own row is the verdict: Rock Snowball's 10% is 15% under Anastasia's Fae
+    // Contract, and a 12 read "against 10%: missed" on a card that applied the
+    // Bleed (#258). The bare comparison stands only for a chance no effect rides.
+    const landed = spec.effectId ? rows.find((r) => r?.summary?.id === spec.effectId
+      && (r.unitId ?? state.defenderId) === state.defenderId && r.summary?.chance) : null;
+    const lost = !landed && hit ? resisted.find((e) => e.defId === spec.effectId && e.sourceUnitId === state.attackerId) : null;
+    const verdict = landed
+      ? `${landed.summary.outcome === "applied" ? "hit" : "resisted"} (${landed.summary.chance})`
+      : !hit ? "missed" : lost ? `resisted (${lost.chance})` : "hit";
     return rollLog.record({
       id: `${state.attackerId}:${state.defenderId}:${tag}:${spec.key}:${spec.chance}:${tick}`,
       globalTurn: tick, entryId: "rider-", formula: spec.formula,
       raw: rolls[spec.key], total: rolls[spec.key],
       modifiers: [{ source: `against ${spec.chance}%: ${verdict}`, delta: 0, stage: "chance" }],
       // Named for its clause where the handler says which (#209: "Castor: rider").
-      purpose: `${shownName(attacker)}: ${spec.source || spec.label || "rider"} on ${shownName(defender)}`,
+      // An effect's handler is sourced by its definition id ("soaked"): named
+      // as the card names the effect, "Soaked" (#258).
+      purpose: `${shownName(attacker)}: ${(spec.source && EffectRegistry.get(spec.source)?.name) || spec.source || spec.label || "rider"} on ${shownName(defender)}`,
       actorId: state.attackerId,
     });
   });
@@ -3213,7 +3228,8 @@ function chanceRecords({ filed, rolls, state, attacker, defender, tick, logFrom,
  *
  * @param {object} state
  * @param {object} result the finished damage result
- * @returns {Promise<void>}
+ * @returns {Promise<{records: object[], rows: object[]}>} the dice its chances
+ *   rolled, for the card, and the lines its handlers wrote
  */
 async function fireDamageTaken(state, result) {
   // Off the BOARD, not off `game.actors`.
@@ -3234,15 +3250,28 @@ async function fireDamageTaken(state, result) {
   const board = currentBoard();
   const attacker = unitFrom(board, unitActor(state.attackerId));
   const defender = state.defenderId ? unitFrom(board, unitActor(state.defenderId)) : null;
-  if (!attacker || !defender) return [];
+  if (!attacker || !defender) return { records: [], rows: [] };
 
+  // ...and whether it hurt (`attack:dealtDamage`), as `damageDealt` says: the
+  // event fires at a total of 0 too, and Soaked's *"receives Ice damage"*
+  // needs damage received (#258 reading 4).
+  const options = rollOptions(attacker, defender, state, {
+    crit: Boolean(result?.flags?.isCrit ?? result?.isCrit),
+    dealtDamage: (result?.total ?? 0) > 0,
+  });
+  // The chances its handlers need, rolled and filed as `damageDealt`'s are: this
+  // was `rolls: {}`, and a chance gate refuses a missing die, so a chance hung
+  // on `damageTaken` never fired. Soaked's 25% Freeze is the first (#258).
+  const tick = currentWar()?.system?.globalTurn ?? 0;
+  const { rolls, filed } = await rollChances([defender], "damageTaken", options);
+  const before = (currentWar()?.getFlag?.("fgt", "log") ?? []).length;
   const intents = fireEvent("damageTaken", [defender], {
-    tick: currentWar()?.system?.globalTurn ?? 0,
+    tick,
     turnsPerRound: warRule("turnsPerRound"),
     board,
-    options: rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) }),
+    options,
     victim: { unitId: state.attackerId },
-    rolls: {},
+    rolls,
     // WHAT LANDED, so a handler can take a share of it.
     //
     // > *"Whenever the Jabberwock receives damage from Servants, its Health is
@@ -3266,7 +3295,8 @@ async function fireDamageTaken(state, result) {
     },
   });
   // Def Dwn (C)'s Agility, a Jabberwock's heal: a line on this card (#202).
-  return intents.length > 0 ? applyWithLines(intents, "damageTaken", { process: state }) : [];
+  const rows = intents.length > 0 ? await applyWithLines(intents, "damageTaken", { process: state }) : [];
+  return { records: chanceRecords({ filed, rolls, state, attacker, defender, tick, logFrom: before, tag: "taken", rows }), rows };
 }
 
 /**
@@ -4093,7 +4123,7 @@ async function runAutomaticStep(state, message) {
       // 734, then inflicted Def Dwn (A) and (C), and both heard that same hit --
       // Luck and Agility drained by the debuffs it had just applied (#209, live).
       // *"Whenever damage is received"* is damage after they exist.
-      const takenRows = riders ? await fireDamageTaken(state, result) : [];
+      const taken = riders ? await fireDamageTaken(state, result) : { records: [], rows: [] };
       // ...and `attackReceived`, once per Attack on each Unit it successfully
       // Attacked, at that Unit's first such Process and before its riders, so a
       // Def Dwn this Attack inflicts does not hear the Attack that inflicted it
@@ -4107,7 +4137,12 @@ async function runAutomaticStep(state, message) {
         ? await applyAbilityEffects(state, result, { when: "beforeDamage", riders: "heldOnly" })
         : [];
       if (broke) held = [];
-      const applied = (skipped || veiled) ? [] : [
+      // Fire on a Frozen Unit: *"Any Fire damage removes Freeze with no damage
+      // or effects"* (Appendix A). Its riders are refused like a complete
+      // negation's; the hit's `damageTaken` still fires, so Soaked is consumed
+      // by the same Fire (design R2, 2026-09-16). Burn landed here (#258, live).
+      const freezeBroken = result.flags?.negatedBy === "Freeze broken by Fire";
+      const applied = (skipped || veiled || freezeBroken) ? [] : [
         ...released,
         ...await applyAbilityEffects(state, result, heldBy && !broke ? { riders: "hold", heldBy, held } : {}),
       ];
@@ -4148,10 +4183,10 @@ async function runAutomaticStep(state, message) {
 
       await message.setFlag("fgt", "damage", result.total);
       await message.setFlag("fgt", "effects", cardRows([
-        ...startRows, ...before, ...applied, ...held, ...takenRows, ...receivedRows, ...dealt.rows, ...stepEnd.rows,
+        ...startRows, ...before, ...applied, ...held, ...taken.rows, ...receivedRows, ...dealt.rows, ...stepEnd.rows,
       ]));
       return process.advance(state, "done", {
-        total: result.total, rollRecords: [...(result.modifierRolls ?? []), ...dealt.records, ...stepEnd.records],
+        total: result.total, rollRecords: [...(result.modifierRolls ?? []), ...taken.records, ...dealt.records, ...stepEnd.records],
       });
     }
     case "injury":
@@ -4467,8 +4502,11 @@ function evadeModifiers(state, attacker, defender) {
   // A Process built elsewhere (a pre-emption) carries no stamp: read it now.
   const directional = directionalEvade(state.cone ?? attackCone(defender, attacker), Boolean(state.isAoE));
   if (directional) mods.push(directional);
-  if ((defender.effects ?? []).includes("slow")) mods.push({ source: "Slow", value: 2 });
-  if ((defender.effects ?? []).includes("blind")) mods.push({ source: "Blind", value: 3 });
+  // Slow's +2 and Blind's +3 are authored on their effects (`slow.yml`,
+  // `blind.yml`) and reach this roll through the defender's check plan; read
+  // here as well, each counted twice -- *"Blind 3"* and *"blind 3"* on one
+  // Evade (#258, live) -- and Blind's Eye of the Mind and Clairvoyance
+  // exemptions never applied to the second. Immobilize authors none.
   if ((defender.effects ?? []).includes("immobilize")) mods.push({ source: "Immobilize", value: 4 });
   // "If the DU Evades, the Evade Roll is increased by 4" -- at A+. From the RANK
   // TABLE, not the literal: `presenceConcealmentEvade` has been in
@@ -5548,8 +5586,23 @@ async function applyDamage(state, message) {
   // asks): the joint Noble Phantasm's Crit Chance is both twins' (#209 reading
   // 10, ruled 2026-10-14). The damage half combined already; the chance read the
   // attacker's `checkModifiers` alone.
+  // An AFTERMATH resolution is under its own damage block. Xiuhcoatl's splash
+  // uses BA(MAG) alone at 1x where the primary uses the combined 250 at 4x, so
+  // reading the ability's own `damage` block here would give the splash the
+  // primary's numbers -- which is precisely the "looks resolved, is wrong"
+  // failure the two-resolution design exists to avoid. `block` is that block
+  // for both, so nothing below has to know which it is (#136).
+  const baseSpec = dealsNoDamage(ability)
+    ? { fixedValue: 0 }
+    // A `diceCount` formula IS the base -- stage 1 takes the counted figure
+    // and returns, so nothing looks for Base Attack sources at all.
+    : diceBase
+      ? diceBase
+      : baseSpecFor(attackerDoc, ability, facts.range, options, block);
   const critSpec = critChance(attacker, defender, {
-    options,
+    // ...with the Base Attacks this attack adds up, which stage 1 derives too:
+    // Crit Up (Viy) asks whether it uses BA(MAG) (#258 reading 3).
+    options: new Set([...options, ...usesBaseOptions(baseSpec)]),
     isNP: isNPAttack({ ...facts, ...identity }),
     alsoFrom: modifierSourceUnits(description.attack, namedUnits(attacker, board), attacker).map((s) => s.unit),
   });
@@ -5564,19 +5617,7 @@ async function applyDamage(state, message) {
     // The Attack Description's attack: the same object the preview and the
     // counterfactual hand the pipeline.
     attack: description.attack,
-    // An AFTERMATH resolution is under its own damage block. Xiuhcoatl's splash
-    // uses BA(MAG) alone at 1x where the primary uses the combined 250 at 4x, so
-    // reading the ability's own `damage` block here would give the splash the
-    // primary's numbers -- which is precisely the "looks resolved, is wrong"
-    // failure the two-resolution design exists to avoid. `block` is that block
-    // for both, so nothing below has to know which it is (#136).
-    base: dealsNoDamage(ability)
-      ? { fixedValue: 0 }
-      // A `diceCount` formula IS the base -- stage 1 takes the counted figure
-      // and returns, so nothing looks for Base Attack sources at all.
-      : diceBase
-        ? diceBase
-        : baseSpecFor(attackerDoc, ability, facts.range, options, block),
+    base: baseSpec,
     // Named base-attack sources. Stage 1 has resolved `ctx.units[src.unit]`
     // since the pipeline was written and nothing has ever supplied the map:
     // `"mount"` is its first entry, so a rider whose Normal Attack is replaced
@@ -5874,6 +5915,10 @@ async function applyDamage(state, message) {
       ...barrier.intents,
       ...(floor ? [I.log({ kind: floor.kind, unitId: state.defenderId, restored: floor.left, source: floor.source })] : []),
       I.damage(state.defenderId, result.total, result.breakdown),
+      // A Freeze this hit broke is gone: Fire at stage 0, 150 or more at stage
+      // 16 (Crystalfreeze too). The pipeline raised `removeFreeze` and nothing
+      // read it, so a Unit stayed Frozen after the hit that broke it (#258, live).
+      ...frozenBrokenBy(defender, result),
       ...(result.flags.defeatedOutright ? [I.defeat(state.defenderId, "petrify", state.attackerId ?? null)] : []),
       I.log({ kind: "damage", attackerId: state.attackerId, defenderId: state.defenderId, total: result.total }),
       // Damage that empties a Health bar is where `unitDefeated` fires, and
@@ -5898,6 +5943,25 @@ async function applyDamage(state, message) {
   await tallyDamageAgainstFields(defender, attacker, result.total, board);
 
   return result;
+}
+
+/**
+ * The removals of the Freeze an attack broke (`flags.removeFreeze`).
+ *
+ * Fire at stage 0 breaks Freeze alone, Crystalfreeze having no Fire clause; 150
+ * or more at stage 16 breaks whichever of the two the Unit holds.
+ *
+ * @param {object} defender the defender's board unit
+ * @param {object} result the damage result
+ * @returns {object[]} intents
+ */
+function frozenBrokenBy(defender, result) {
+  if (!result?.flags?.removeFreeze) return [];
+  const byFire = result.flags.negatedBy === "Freeze broken by Fire";
+  const held = new Set(defender?.effects ?? []);
+  return (byFire ? ["freeze"] : ["freeze", "crystalfreeze"])
+    .filter((id) => held.has(id))
+    .map((id) => I.removeEffect(defender.id, id, byFire ? "fire" : "damage"));
 }
 
 /**
@@ -6221,7 +6285,12 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
     // Contract if the DU is a Servant that FAILED to Evade.
     if (phase.kind === "removeEffect") {
       if (holding) { keep("removeEffect", game.i18n.localize("FGT.Barrier.HeldRemoval")); continue; }
-      await applyBatch(await removalIntents(phase, defenderDoc, defender), "np:removeEffect");
+      // What came off and what held, as lines on the card: Freezing Summertime's
+      // BuffRemoval ResUp 100 held every buff Rule Breaker reached, and the card
+      // said only "Rule Breaker" (#258, live).
+      const removal = await removalIntents(phase, defenderDoc, defender);
+      await applyBatch(removal.intents, "np:removeEffect");
+      applied.push(...removal.rows);
       continue;
     }
     if (phase.kind === "cutContract") {
@@ -6693,7 +6762,7 @@ async function fireDamageStepEnd(state, result = null) {
   const rows = intents.length > 0
     ? await applyWithLines(intents, "damageStepEnd", { process: state })
     : [];
-  return { rows, records: chanceRecords({ filed, rolls, state, attacker, defender, tick, logFrom, tag: "stepEnd" }) };
+  return { rows, records: chanceRecords({ filed, rolls, state, attacker, defender, tick, logFrom, tag: "stepEnd", rows }) };
 }
 
 /**
@@ -7554,7 +7623,8 @@ function resolveAbilitySource(contentId) {
  *
  * @param {object} phase
  * @param {object} doc the defender
- * @returns {object[]}
+ * @returns {Promise<{intents: object[], rows: object[]}>} the removals, and a
+ *   card line for each effect removed or held
  */
 async function removalIntents(phase, doc, bearer) {
   const named = (phase.effects ?? [phase.effect]).filter(Boolean).map((e) => e.id ?? e);
@@ -7595,7 +7665,21 @@ async function removalIntents(phase, doc, bearer) {
   }
 
   const plan = removalPlan({ candidates, bearer, rolls, ignoresProtection });
-  return plan.removed.map((id) => I.removeEffect(doc.id, id, "ruleBreaker"));
+  const nameOf = (id) => EffectRegistry.get(id)?.name ?? id;
+  return {
+    intents: plan.removed.map((id) => I.removeEffect(doc.id, id, "ruleBreaker")),
+    rows: [
+      ...[...new Set(plan.removed)].map((id) => ({ unitId: doc.id, summary: {
+        id, name: nameOf(id), outcome: "removed", reason: null, chance: null,
+      } })),
+      // One line per effect, as the removal rolls one die per effect: two Atk
+      // Ups held by one die are one line.
+      ...plan.resisted.filter((r, i, all) => all.findIndex((x) => x.defId === r.defId) === i).map((r) => ({ unitId: doc.id, summary: {
+        id: r.defId, name: nameOf(r.defId), outcome: "resisted",
+        reason: `rolled ${r.roll} vs ${r.chance}%`, chance: `rolled ${r.roll} vs ${r.chance}%`,
+      } })),
+    ],
+  };
 }
 
 /**

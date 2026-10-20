@@ -330,7 +330,8 @@ describe("an Instakill rider after the damage defeats (#185)", () => {
     const { readFileSync } = await import("node:fs");
     const src = readFileSync("module/engine/attack.mjs", "utf8");
     // The after-damage riders, with what a broken barrier released first (#208, 2026-10-16).
-    const riders = src.indexOf("const applied = (skipped || veiled) ? [] : [");
+    // ...and refused on a Fire hit that broke Freeze, "no damage or effects" (#258).
+    const riders = src.indexOf("const applied = (skipped || veiled || freezeBroken) ? [] : [");
     const check = src.indexOf("if (applied.length > 0) await resolveEmptiedDefender(state);");
     expect(riders).toBeGreaterThan(0);
     expect(check).toBeGreaterThan(riders);

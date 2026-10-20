@@ -282,6 +282,17 @@ Marker Soul (6d). The caster's own instance is never a source (6a).
 the effect lands, against resistance and bonus. A clause whose chance *"is not modified by debuff chance or resist
 effects"* states `bypassChanceModifiers`, as Queen's Poison does and Terror's Stun does now (§46.4-OW).
 
+**What a Unit gains by its own choice lands unrolled** (#258 reading 6). Watermelon's *"Anastasia gains Blind"* states
+`bypassChanceModifiers` on the phase entry: her Fae Contract is +5 both ways, so it already came to 100, but by two equal
+numbers rather than by the rule.
+
+**An event's effect may be inflicted by the other party** (#258 reading 4). An `ApplyEffect` action stamps its
+handler's bearer as the source; `inflictedBy: victim` stamps the other party to the event instead. Soaked's *"a 25%
+chance of being inflicted with Freeze"* hangs on its bearer's `damageTaken` and names the attacker, so the attacker's
+debuff chance and the bearer's resistance meet it as they meet a rider. It rolls only on an Ice Attack that dealt
+damage and carries no Freeze of its own (`not:attack:inflicts:freeze`); one that carries Freeze meets Soaked's −25
+vulnerability instead, one roll at its chance plus 25.
+
 **A named amplifier applies outright** unless it states `ifWeak` (§46.4-OR). Sikera Ušum's *"Units ... who are weak to
 Poison"* is the one that does; Channel Marker Soul's *"Curse Damage taken is halved"* halves every tick. A periodic tick
 is held to the Unit's `DamageFloor` for that effect (`scheduler.mjs#flooredTick`, §46.4-OS): Sunflower's Curse floors a

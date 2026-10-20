@@ -179,7 +179,8 @@ export function contractOutcome(plan, rolls) {
  * @param {object} args.killer
  * @param {object} args.deadMaster
  * @param {object} args.board
- * @returns {{ok: boolean, reason?: string, descriptors: object[]}}
+ * @returns {{ok: boolean, reason?: string, descriptors: object[], refused?: string[]}} `refused`:
+ *   the dead Master's Servants Independent Action keeps from being conquered
  */
 export function conquestContract({ killer, deadMaster, board }) {
   const claimant = claimantFor(killer, board);
@@ -190,8 +191,14 @@ export function conquestContract({ killer, deadMaster, board }) {
   // Servant that summoned it, so it should follow its summoner rather than be
   // contracted in its own right. Ch. 32 says "its Servants", and the freeing
   // half has always refused anything that is not one.
-  const theirs = (board?.units ?? []).filter(
-    (u) => u.masterId === deadMaster?.id && u.kind === "servant"
+  const bound = (board?.units ?? []).filter((u) => u.masterId === deadMaster?.id && u.kind === "servant");
+  // Independent Action at EX or A+ refuses Conquest as it refuses an enemy's
+  // Contract (#258 reading 12, ruled 2026-10-20: it is meant against *"the normal
+  // Contract option (or Conquest)"*, and Rule Breaker is neither). Such a
+  // Servant goes Free, and the card says why.
+  const refused = bound.filter((u) => rollsRequired(u, true) === Infinity);
+  const theirs = bound.filter(
+    (u) => !refused.includes(u)
       // ...and never one that refuses this Master (Kill Humans, #241).
       && !refusesContractWith(u, { id: claimant.masterId }),
   );
@@ -208,6 +215,7 @@ export function conquestContract({ killer, deadMaster, board }) {
   const granted = new Set();
   return {
     ok: true,
+    refused: refused.map((u) => u.id),
     descriptors: theirs.flatMap((servant) => {
       const pool = servant.legionKey || servant.id;
       const first = !granted.has(pool);

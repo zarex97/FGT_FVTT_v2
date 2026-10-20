@@ -48,7 +48,7 @@ const play = async (attacker, abilityContentId, { rho = true, atkUp = 900, die =
   withSubjects(board(attacker, atkUp), async ({ world: w }) => {
     w.dice.every(die);
     // Anastasia is offered Watermelon at the start of her Combat Phase; Scáthach has nothing there.
-    if (attacker.from === "anastasia") w.answer({ title: "FGT.Window.combatPhaseStart", decline: true });
+    if (attacker.from === "anastasia-summer") w.answer({ title: "FGT.Window.combatPhaseStart", decline: true });
     const np = itemOf(w, attacker.id, abilityContentId);
     const hp = w.actor(D2).system.health.value;
     const emiyaHp = w.actor(E).system.health.value;
@@ -62,7 +62,7 @@ const play = async (attacker, abilityContentId, { rho = true, atkUp = 900, die =
   }, at);
 
 const SC = { from: "scathach", id: "scathachThrower0" };
-const AN = { from: "anastasia", id: "anastasiaThrower" };
+const AN = { from: "anastasia-summer", id: "anastasiaThrower" };
 
 describe("Rho Aias holds Gáe Bolg Alternative's riders, and its damage runs into the barrier (Q2, Q6)", () => {
   it("Stun and Instakill are stopped, and the card says the barrier held", async () => {
@@ -95,11 +95,11 @@ describe("a barrier the NP breaks lets its riders land after the damage, and the
   it("Snegleta breaks it: Def Dwn (A) lands after, and the hit is the size it is without Def Dwn (A)", async () => {
     let unshielded = 0;
     // Def Dwn (A)'s 55% lands on a die of 1, wherever in the order it is rolled; both runs see the same dice.
-    await play(AN, "anastasia-snegleta", { rho: false, die: 1 }, ({ w, result }) => {
+    await play(AN, "anastasia-summer-snegleta", { rho: false, die: 1 }, ({ w, result }) => {
       expect(row(w, "defDwnA")?.outcome).toBe("applied");
       unshielded = result.total;
     });
-    await play(AN, "anastasia-snegleta", { die: 1 }, ({ w, result, emiyaHp }) => {
+    await play(AN, "anastasia-summer-snegleta", { die: 1 }, ({ w, result, emiyaHp }) => {
       expect(itemOf(w, E, "emiya-rho-aias").system.shieldHealth).toBe(0);
       expect(result.flags.barrierBroken).toBe(true);
       expect(row(w, "defDwnA")?.outcome).toBe("applied");
@@ -113,7 +113,7 @@ describe("a barrier the NP breaks lets its riders land after the damage, and the
   }, 180_000);
 
   it("Snegleta without the Atk Up does not break it: Def Dwn (A) is dropped and Heracles takes nothing", async () => {
-    await play(AN, "anastasia-snegleta", { atkUp: 0, die: 1 }, ({ w, result, hp }) => {
+    await play(AN, "anastasia-summer-snegleta", { atkUp: 0, die: 1 }, ({ w, result, hp }) => {
       expect(result.flags.barrierBroken).toBeUndefined();
       expect(itemOf(w, E, "emiya-rho-aias").system.shieldHealth).toBeGreaterThan(0);
       expect(row(w, "defDwnA")).toMatchObject({ outcome: "blocked", reason: HOLDS });

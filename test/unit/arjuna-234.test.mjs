@@ -184,7 +184,7 @@ describe("a granted property holds only where its condition does (RF.4.fire; rea
 
   it("Watermelon's Pierce needs Blind and Range 1 to 2 (found building Agni)", async () => {
     await withSubjects([
-      { from: "anastasia", id: ARJ, panel: { i: 5, j: 5 }, state: { factionId: "A" }, effects: [{ defId: "blind" }] },
+      { from: "anastasia-summer", id: ARJ, panel: { i: 5, j: 5 }, state: { factionId: "A" }, effects: [{ defId: "blind" }] },
       { from: "medusa", id: FOE, panel: { i: 5, j: 6 }, state: { factionId: "B" } },
       { from: "medusa", id: ALLY, panel: { i: 5, j: 9 }, state: { factionId: "B" } },
     ], ({ unit }) => {
@@ -196,7 +196,7 @@ describe("a granted property holds only where its condition does (RF.4.fire; rea
       expect(far.ignoresDefUp).toBe(false);
     });
     await withSubjects([
-      { from: "anastasia", id: ARJ, panel: { i: 5, j: 5 }, state: { factionId: "A" } },
+      { from: "anastasia-summer", id: ARJ, panel: { i: 5, j: 5 }, state: { factionId: "A" } },
       { from: "medusa", id: FOE, panel: { i: 5, j: 6 }, state: { factionId: "B" } },
     ], ({ unit }) => {
       expect(attackFacts(unit(ARJ), unit(FOE), { attack: { kind: "normal" } }).pierce).toBe(false);

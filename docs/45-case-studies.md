@@ -32,7 +32,7 @@ The ladder is ordered by cost, cheapest first. Moving up means the authoring voc
 Sheet clause:
 > *"Applies Crit Up for ⅓◈ Turns to all allied Units within a 2 panel area of herself, Crit Chance is increased by 20%."*
 
-Authored as (`packs/_source/abilities/anastasia-freezing-summertime.yml:32-38`):
+Authored as (`packs/_source/abilities/anastasia-summer-freezing-summertime.yml:32-38`):
 ```yaml
 - kind: applyEffects
   targeting:
@@ -161,7 +161,7 @@ The engine looks the name up in `SCRIPTS` (`module/engine/scripts.mjs:32-45`). T
 
 3. **A new intent type needs four edits.** Type in `INTENT_TYPES`, constructor, `ORDER` rank, and applier case — all four, or `applyIntents` rejects the whole batch at validation time (`module/engine/intents.mjs:33-34`). Shipping three of four is silent, found only by a test that actually applies the batch.
 
-4. **Phase targeting overrides ability targeting.** A phase may carry its own `targeting` block; when present, it replaces the ability's (`packs/_source/abilities/anastasia-freezing-summertime.yml:32-36`). This is how Anastasia's Freezing Summertime Effect 3 reaches a different set than Effects 1 and 2 on the same use.
+4. **Phase targeting overrides ability targeting.** A phase may carry its own `targeting` block; when present, it replaces the ability's (`packs/_source/abilities/anastasia-summer-freezing-summertime.yml:32-36`). This is how Anastasia's Freezing Summertime Effect 3 reaches a different set than Effects 1 and 2 on the same use.
 
 5. **Interior rules on a bounded field are executed on **collection**, not creation.** A unit standing inside a field that adds `MovDelta` sees the movement penalty baked into its computed MOV the instant the field opens, before any phase runs. Interior rules go through the same executor dispatch as normal rules (`module/rules/bounded-fields.mjs:751-760`).
 

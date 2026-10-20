@@ -69,12 +69,12 @@ describe("Anastasia's Shvibzik turns her NP clock by 1◈+⅔◈ (§46.4-D1, the
 
   it("takes 5 ticks off every Noble Phantasm she holds", async () => {
     await withSubjects([
-      { from: "anastasia", id: ANASTASIA, state: { factionId: "A" }, panel: { i: 5, j: 5 } },
+      { from: "anastasia-summer", id: ANASTASIA, state: { factionId: "A" }, panel: { i: 5, j: 5 } },
     ], async ({ world: w }) => {
       const nps = [...w.actor(ANASTASIA).items].filter((i) => i.type === "noblePhantasm" || i.system?.isNP);
       expect(nps.length, "she holds Noble Phantasms").toBeGreaterThan(0);
       for (const np of nps) await np.update({ "system.cooldown.remaining": 18 });
-      const shvibzik = abilityOf(w, ANASTASIA, "anastasia-shvibzik");
+      const shvibzik = abilityOf(w, ANASTASIA, "anastasia-summer-shvibzik");
       const { castSkill } = await import("../helpers/process.mjs");
       const out = await castSkill(w, { caster: ANASTASIA, ability: shvibzik.id });
       expect(out.ok).not.toBe(false);

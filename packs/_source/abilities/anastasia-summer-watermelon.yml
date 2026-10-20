@@ -1,4 +1,4 @@
-# Anastasia & Viy, char_orig_sheets/Copia de Anastasia & Viy.md
+# Anastasia (Summer), char_orig_sheets/Copia de Anastasia & Viy.md
 #
 # A Servant who inflicts a debuff on HERSELF to convert it into an offensive
 # buff. Ch. 45 calls the shape "self-harm as a resource", with Van Gogh's
@@ -16,7 +16,7 @@
 # and her Active deliberately holds it through the whole Combat Process, which
 # is a window the defender may Counter in. That is the price of the trick.
 schema: 1
-id: anastasia-watermelon
+id: anastasia-summer-watermelon
 name: "Watermelon Splitting Master"
 kind: skill
 slug: watermelonSplitting
@@ -29,19 +29,24 @@ description: |
   (Active) Used at the start of a Combat Phase when initiating an Attack. Anastasia gains Blind
   until the end of the Combat Process. Cooldown: 2◈ Turns.
 passiveRules:
+  # Every rule below is about *"a Normal Attack"*, and says so
+  # (`attack:kind:normal`). Without it her Blind Ice Bucket Challenge at 2 panels
+  # skipped its Miss check and ignored a Def Up too (#258, pressed live): the
+  # passive turned every Attack in the band, Skills and NPs, into a sure hit.
+  #
   # M1. The Miss check is Combat Process step 1.5; this switches it off for her,
   # in this band only. The same `Suppress` element Blind's own clause 3 uses.
   - key: Suppress
     scope: miss
-    predicate: ["self:effect:blind", "attack:range:lte:2"]
+    predicate: ["self:effect:blind", "attack:kind:normal", "attack:range:lte:2"]
 
   # M2 and M3 -- what she gets INSTEAD of the chance to miss.
   - key: AttackProperty
     property: pierce
-    predicate: ["self:effect:blind", "attack:range:lte:2"]
+    predicate: ["self:effect:blind", "attack:kind:normal", "attack:range:lte:2"]
   - key: AttackProperty
     property: ignoresDefUp
-    predicate: ["self:effect:blind", "attack:range:lte:2"]
+    predicate: ["self:effect:blind", "attack:kind:normal", "attack:range:lte:2"]
 
   # M4. `direction: imposed` is the axis `engine/attack.mjs:2517` already merges
   # into the DEFENDER's evade plan -- EMIYA's Clairvoyance forces the
@@ -51,7 +56,7 @@ passiveRules:
     check: evade
     direction: imposed
     value: 4
-    predicate: ["self:effect:blind", "attack:range:lte:2"]
+    predicate: ["self:effect:blind", "attack:kind:normal", "attack:range:lte:2"]
 phases:
   # M5. She blinds herself, on purpose, for the length of one Combat Process.
   # `until <event>` is the tick vocabulary's form for a duration bounded by
@@ -60,4 +65,7 @@ phases:
   - kind: applyEffects
     target: self
     effects:
-      - { id: blind, duration: "until combatProcessEnd" }
+      # *"Anastasia gains Blind"*: her own choice, so it lands with no roll --
+      # neither her Fae Contract's 5% nor any bonus touches it (#258 reading 6,
+      # as Van Gogh's *"apply"* stages, #239 reading 6b).
+      - { id: blind, duration: "until combatProcessEnd", bypassChanceModifiers: true }

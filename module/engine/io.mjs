@@ -1957,7 +1957,12 @@ async function resolveConquest(deadMasterId, killerId) {
       });
     }
   }
-  if (claimed.size > 0) conquestCards.set(deadMasterId, await conquestCardContent({ board, killer, deadMaster, claimed, out }));
+  if (claimed.size > 0 || (out.refused ?? []).length > 0) {
+    conquestCards.set(deadMasterId, await conquestCardContent({ board, killer, deadMaster, claimed, out }));
+  }
+  for (const servantId of out.refused ?? []) {
+    await record({ kind: "contract", event: "conquestRefused", killerId, deadMasterId, servantId, reason: "independentAction" });
+  }
   return claimed;
 }
 
@@ -2028,6 +2033,10 @@ async function conquestCardContent({ board, killer, deadMaster, claimed = new Se
       lines.push(game.i18n.format("FGT.Conquest.Claimed", {
         servant: named(d.unitId), master: named(d.masterId), side: escape(side), spells,
       }));
+    }
+    // Independent Action at EX or A+: Free, not conquered (#258 reading 12).
+    for (const servantId of out.refused ?? []) {
+      lines.push(game.i18n.format("FGT.Conquest.Refused", { servant: named(servantId), killer: escape(shownName(killer, board)) }));
     }
   }
   if (lines.length === 0) return null;
