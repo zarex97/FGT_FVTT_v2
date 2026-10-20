@@ -3,7 +3,8 @@ id: 2026-10-20-counter-priced-clock-before-count
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** Summoning: Horrors made as a Counter starts its *"(Number of Horrors x ⅔◈)"* clock, as it does from the bar on his own Turn: two Horrors, 4 Turns (HO.counter, #260).
 **Actual:** Pressed live as Player1 on Heracles's Turn: two Horrors came at (9,5) and (8,6), and the Spell's `cooldown.remaining` stayed 0.

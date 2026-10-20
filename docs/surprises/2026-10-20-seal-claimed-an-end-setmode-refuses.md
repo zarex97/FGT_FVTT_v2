@@ -3,7 +3,8 @@ id: 2026-10-20-seal-claimed-an-end-setmode-refuses
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Revised Mad Enhancement clause 7, *"if this Unit is inflicted with Skill Seal while ME is
 Active, it is immediately deactivated"*, ends every bearer's mode the War plays it on.
