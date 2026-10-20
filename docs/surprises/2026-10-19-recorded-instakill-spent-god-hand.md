@@ -3,7 +3,8 @@ id: 2026-10-19-recorded-instakill-spent-god-hand
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** reading 6 (#256): once Gáe Bolg Alternative's Instakill is recorded, its next Instakill leaves Heracles at 1.
 **Actual:** the second Gáe Bolg Alternative, *"Instakill (rolled 10 vs 75%)"*, then *"Berserker is defeated and revived by God Hand: Twelve Labors, with 20 Health. Uses spent: 1; 3 left."*

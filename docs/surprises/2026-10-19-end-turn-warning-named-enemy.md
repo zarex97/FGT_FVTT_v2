@@ -3,7 +3,8 @@ id: 2026-10-19-end-turn-warning-named-enemy
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Red's player reads Blue's Lancers as "Lancer of Blue" on every surface, as the cards do (closed information on).
 **Actual:** Player1's turn panel, Round 1 of *Heracles Audit*: *"Scáthach must pick the two Skills Wisdom of Dún Scáith copies before this Turn ends."* and *"Karna must choose which effect a Skill starts with before this Turn ends."*

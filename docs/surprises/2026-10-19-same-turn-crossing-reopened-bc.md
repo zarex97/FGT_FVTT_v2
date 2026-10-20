@@ -3,7 +3,8 @@ id: 2026-10-19-same-turn-crossing-reopened-bc
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** Battle Continuation's *"Health must have been restored back to above half its maximum value at least once since the last activation"*: healed above half at tick 11, revived by it at tick 11, its Cooldown staged off, killed again at tick 11 with no restore between: refused, God Hand next.
 **Actual:** *"Berserker is defeated and revived by Battle Continuation, with 49 Health."* twice in tick 11; God Hand's `timesUsed` stayed 10.
