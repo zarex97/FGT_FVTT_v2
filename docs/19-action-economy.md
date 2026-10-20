@@ -89,6 +89,8 @@ Moves and self-only Skills alike. Kirihanasu itself is a `freeAction`. The revea
 
 ## Invariants & edge cases
 
+**A Normal Attack is an `attack` to the use gate** (#258). It is the one press with no Item, and `preventionActionsFor(null)` fell to `skill`, so Skill Seal refused every Normal Attack (*"Cannot use this ability: Prevented"*, Karna under Snegleta's seal). Seal and Disable stop it; Skill Seal and Silence do not (§46.4-SE).
+
 **`category: spell` is a Spell to Silence, Seal and Skill Seal** (#193). `preventionActionFor` reads `isSpell` or the category; Medea's five non-damaging Spells carry only the category.
 
 1. **Budget reads/writes go through the GM.** A player owns their Servants but not the Combat document, so budget writes are proxied to the GM (`module/engine/budget.mjs:163-169`).

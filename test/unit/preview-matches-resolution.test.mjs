@@ -93,7 +93,7 @@ describe("the preview's attack and the counterfactual's are one identity", () =>
   // The nine abilities a scan over the projected Servants found preview and resolution disagreeing on
   // (44 ability-and-defender pairs), and the Servant each belongs to.
   const SCANNED = [
-    ["anastasia", "anastasia-snegleta"],
+    ["anastasia-summer", "anastasia-summer-snegleta"],
     ["emiya", "emiya-caladbolg"],
     ["karna", "karna-brahmastra"],
     ["karna", "karna-brahmastra-kundala"],

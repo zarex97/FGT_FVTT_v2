@@ -579,6 +579,11 @@ export const TABLES = {
              { grades: ["B","C"],  value: 2 },
              { grades: ["D","E"],  value: 1 } ],
   },
+  // Fae Contract (#258 reading 10): exact Ranks, the two sheets print. B+ is
+  // Anastasia (Summer)'s 5 and 5; A is the Caster's 10 and 10, and it alone
+  // "also affects Instakill, Death, and Erase".
+  faeContract:       { kind: "equality", byRank: { "B+": 5, A: 10 }, default: null },
+  faeContractSevere: { kind: "equality", byRank: { "B+": 0, A: 10 }, default: null },
   vasaviDivinity: {
     kind: "threshold",
     thresholds: [ { minOrdinal: Rank.parse("B").ordinal, value: 200 },

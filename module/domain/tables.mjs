@@ -204,6 +204,24 @@ export const TABLES = Object.freeze({
     ],
   },
 
+  /**
+   * Fae Contract (`abilities/fae-contract.yml`), the two Ranks two sheets print:
+   * Anastasia (Summer)'s B+ is 5 and 5, the Caster's A is 10 and 10 (#258
+   * reading 10). EXACT ranks, because no rule says what an A+ or a C gives.
+   */
+  faeContract: {
+    kind: "equality",
+    byRank: { "B+": 5, A: 10 },
+    default: null,
+  },
+
+  /** ...and the Caster's *"Also affects Instakill, Death, and Erase"*, at A alone. */
+  faeContractSevere: {
+    kind: "equality",
+    byRank: { "B+": 0, A: 10 },
+    default: null,
+  },
+
   independentActionZon: {
     kind: "banded",
     bands: [

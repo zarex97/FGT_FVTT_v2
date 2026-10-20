@@ -71,3 +71,40 @@ export function successfullyAttacked({ skipped, result }) {
   if (skipped) return true;
   return ridersFire({ skipped: null, result });
 }
+
+/**
+ * Which effects an attack's own phases inflict on the Unit it hits, by
+ * definition id: every `applyEffects` phase not aimed at its user, and every
+ * row of a `rollTable` not aimed at its user.
+ *
+ * Soaked's *"a 25% chance of being inflicted with Freeze, this is additive to
+ * any Freeze chance the Attack might have"* (#258 reading 4) is two cases: an
+ * Attack that carries Freeze rolls once at its chance plus 25, and one that
+ * carries none rolls 25 alone. Which case it is was unaskable: nothing told a
+ * Clause what an Attack inflicts (`attack:inflicts:<id>`).
+ *
+ * A rider's own `chance` does not matter: an Attack that MIGHT inflict Freeze
+ * has a Freeze chance, which is what the clause adds to.
+ *
+ * @param {object|null|undefined} ability the ability Item, or null for a Normal Attack
+ * @returns {string[]}
+ */
+export function inflictedEffectIds(ability) {
+  const ids = new Set();
+  const take = (effects) => {
+    for (const e of effects ?? []) {
+      const id = e?.id ?? e?.defId;
+      if (typeof id === "string") ids.add(id);
+    }
+  };
+  for (const phase of ability?.system?.phases ?? []) {
+    if (phase?.target === "self") continue;
+    if (phase?.kind === "applyEffects") take(phase.effects);
+    if (phase?.kind === "rollTable") {
+      for (const row of Object.values(phase.entries ?? {})) {
+        if (row?.target !== "self") take(row?.effects);
+      }
+    }
+  }
+  return [...ids];
+}

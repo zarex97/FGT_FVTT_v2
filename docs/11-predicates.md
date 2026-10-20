@@ -97,6 +97,13 @@ it out by name); `self:effectStacks:<id>:gte:<n>` how many of an effect, as a la
 `self:bond:<item>:own|defeated` and `self:bondWithin:<item>:<n>` an Item's bond to who placed it (Avalon). The
 bearer's own collection now asks `self:effectFamily:` as the board does (§46.4-NQ).
 
+**Two for Anastasia (Summer) (#258).** `attack:usesBase:<str|mag>` is now in the crit coin's set as well as the
+pipeline's: the coin is flipped before stage 1 runs, and Crit Up (Viy) asks whether an attack uses BA(MAG). One
+helper derives it for both (`rules/damage/pipeline.mjs#usesBaseOptions`), so her ranged Normal Attack, BA(STR) plus
+10% of BA(MAG), counts (reading 3). `attack:inflicts:<effectId>` names what the attack's own phases inflict on the
+Unit it hits (`rules/damage/riders.mjs#inflictedEffectIds`, carried on the declaration as `inflicts`): Soaked adds
+25 to an Attack's Freeze chance, or rolls 25 by itself when the Attack carries none (reading 4).
+
 ## Invariants & edge cases
 
 **Rank comparisons read the letter** (#193 reading 11). `gradesClearedBy` emits `rank:<p>:gte:B` for B−, B and B+ alike: *"a Rank of B or higher"* is met by B−. It compared whole ranks before, so B− sat below B.

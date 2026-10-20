@@ -77,11 +77,13 @@ describe("an unstated NP figure is the full figure (reading 5)", () => {
 
   it("a crit buff with no NP figure still does nothing to an NP (#131)", async () => {
     const percent = (kind) => drake([{ defId: "critUpViy", magnitude: 50 }], (u) => critChance(u, null, {
-      options: rollOptionsFor({ attacker: u, defender: null, attack: { kind, component: "mag" } }),
+      // ...with the Base Attacks it uses, as the coin is handed them (#258 reading 3).
+      options: new Set([...rollOptionsFor({ attacker: u, defender: null, attack: { kind, component: "mag" } }), "attack:usesBase:mag"]),
       isNP: kind === "np",
     }).percent);
     const base = (kind) => drake([], (u) => critChance(u, null, {
-      options: rollOptionsFor({ attacker: u, defender: null, attack: { kind, component: "mag" } }),
+      // ...with the Base Attacks it uses, as the coin is handed them (#258 reading 3).
+      options: new Set([...rollOptionsFor({ attacker: u, defender: null, attack: { kind, component: "mag" } }), "attack:usesBase:mag"]),
       isNP: kind === "np",
     }).percent);
     expect(await percent("np")).toBe(await base("np"));

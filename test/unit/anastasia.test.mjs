@@ -163,6 +163,21 @@ describe("Soaked (B6–B9, R2)", () => {
     expect(r.effect).toBe("freeze");
     expect(r.value).toBe(-25);
     expect(r.predicate).toContain("attack:element:ice");
+    // ...on an Attack that carries Freeze: one with none rolls 25 by itself,
+    // below, and the two must never meet on one roll (#258 reading 4).
+    expect(r.predicate).toContain("attack:inflicts:freeze");
+  });
+
+  it("B6 — rolls 25 by itself when the Ice Attack carries no Freeze (#258 reading 4)", () => {
+    // *"it has a 25% chance of being inflicted with Freeze"*: none of her Ice
+    // Attacks inflicts Freeze, so a vulnerability alone froze nobody. Damage
+    // received, from an Attack, inflicted by the attacker.
+    const r = soaked().rules.find((x) => x.key === "OnEvent" && (x.then ?? []).some((a) => a.key === "ApplyEffect"));
+    expect(r.event).toBe("damageTaken");
+    expect(r.predicate).toEqual(expect.arrayContaining([
+      "attack:element:ice", "attack:dealtDamage", "not:attack:inflicts:freeze", "not:attack:plainDamage",
+    ]));
+    expect(r.then[0]).toMatchObject({ key: "ApplyEffect", effect: { id: "freeze" }, chance: 25, inflictedBy: "victim" });
   });
 
   it("B6 — and the arithmetic really does add, not replace", () => {
@@ -183,7 +198,8 @@ describe("Soaked (B6–B9, R2)", () => {
     // "Freeze broken by Fire". A Unit that is both Soaked and Frozen loses both
     // to one Fire attack without taking a point, which is the user's ruling,
     // and it needs no carve-out at all.
-    const r = ruleOf("OnEvent", { event: "damageTaken" });
+    const r = soaked().rules.find((x) => x.key === "OnEvent" && x.event === "damageTaken"
+      && (x.predicate ?? []).includes("attack:element:fire"));
     expect(r.predicate).toContain("attack:element:fire");
     expect(r.then[0]).toMatchObject({ key: "RemoveEffect", effect: "soaked" });
   });
@@ -212,12 +228,13 @@ describe("her two bespoke buffs", () => {
 
   it("Crit Up (Viy) raises crit on BA(MAG) attacks only, with its own NP figure", () => {
     // *"Crit Chance of Attacks which use Base Attack (MAG) is increased by 50%;
-    // if NP, 20%."* Exactly the half of her kit that throws.
+    // if NP, 20%."* Exactly the half of her kit that throws -- her ranged
+    // Normal Attack included, BA(STR) plus 10% of BA(MAG) (#258 reading 3).
     const rule = effect("crit-up-viy").rules[0];
     expect(rule).toMatchObject({ key: "CritModifier", aspect: "chance" });
     expect(rule.value).toBe("@magnitude");
     expect(rule.npValue).toBe("@npMagnitude");
-    expect(rule.predicate).toContain("attack:component:mag");
+    expect(rule.predicate).toEqual(["attack:usesBase:mag"]);
   });
 
   it("Crit Up (Viy) is its own effect, so a generic Crit Up removal cannot take it", () => {
@@ -260,22 +277,33 @@ describe("Independent Action with Viy EX (I1–I4, R6)", () => {
 
 describe("her passive abilities", () => {
   const ability = (id) => parse(readFileSync(`packs/_source/abilities/${id}.yml`, "utf8"));
-  const band = ["self:effect:blind", "attack:range:lte:2"];
+  // *"a Normal Attack at a Range of 1 to 2 while inflicted with Blind"* (#258: the kind was missing).
+  const band = ["self:effect:blind", "attack:kind:normal", "attack:range:lte:2"];
 
   it("W1 — Swimsuit! halves Water damage taken, including NP", () => {
     // "All TOTAL Water Damage": a stage-15 cut on the Water share (#206 reading 6).
-    const cut = ability("anastasia-swimsuit").passiveRules.find((r) => r.modifierKey === "elementTotalDefUp");
+    const cut = ability("anastasia-summer-swimsuit").passiveRules.find((r) => r.modifierKey === "elementTotalDefUp");
     expect(cut).toMatchObject({ element: "water", direction: "taken", value: 50, npValue: 50 });
   });
 
-  it("F1/F2 — Fae Contract moves debuff chance in both directions by 5", () => {
-    const rules = ability("anastasia-fae-contract").passiveRules;
-    expect(rules.find((r) => r.direction === "incoming").value).toBe(5);
-    expect(rules.find((r) => r.direction === "outgoing").value).toBe(5);
+  it("F1/F2 — Fae Contract moves debuff chance in both directions by 5 at B+", () => {
+    // One skill at two Ranks (#258 reading 10): her B+ is 5 and 5, the Caster's A
+    // 10 and 10. Ordinary debuffs only at B+; the A also reaches Instakill, Death
+    // and Erase, which is the clause her Rank does not print.
+    const rules = ability("fae-contract").passiveRules;
+    const plain = rules.filter((r) => r.severity === undefined);
+    expect(plain.map((r) => r.direction).sort()).toEqual(["incoming", "outgoing"]);
+    expect(plain.every((r) => r.table === "faeContract")).toBe(true);
+    expect(lookup("faeContract", Rank.parse("B+"))).toBe(5);
+    expect(lookup("faeContract", Rank.parse("A"))).toBe(10);
+    const severe = rules.filter((r) => r.severity !== undefined);
+    expect(severe.every((r) => r.table === "faeContractSevere")).toBe(true);
+    expect(lookup("faeContractSevere", Rank.parse("B+"))).toBe(0);
+    expect(lookup("faeContractSevere", Rank.parse("A"))).toBe(10);
   });
 
   it("K1 — Rock Snowball rides the ranged band only (R8)", () => {
-    const rule = ability("anastasia-rock-snowball").passiveRules[0];
+    const rule = ability("anastasia-summer-rock-snowball").passiveRules[0];
     expect(rule.chance).toBe(10);
     expect(rule.effect.id).toBe("bleed");
     expect(rule.duration).toBe("½◈");
@@ -285,7 +313,7 @@ describe("her passive abilities", () => {
   });
 
   it("M1–M4 — Watermelon converts Blind into an offensive buff at Range 1–2", () => {
-    const rules = ability("anastasia-watermelon").passiveRules;
+    const rules = ability("anastasia-summer-watermelon").passiveRules;
 
     const suppress = rules.find((r) => r.key === "Suppress");
     expect(suppress.scope).toBe("miss");
@@ -305,28 +333,36 @@ describe("her passive abilities", () => {
   it("M1 — and the suppression really does silence the Miss check", () => {
     // End to end against the engine, not just against the YAML: the same
     // predicate the file authors, run through missChance.
-    const rules = ability("anastasia-watermelon").passiveRules;
+    const rules = ability("anastasia-summer-watermelon").passiveRules;
     const unit = {
-      id: "anastasia", kind: "servant", effects: ["blind"],
+      id: "anastasia-summer", kind: "servant", effects: ["blind"],
       suppressions: rules.filter((r) => r.key === "Suppress")
         .map((r) => ({ scope: r.scope, predicate: r.predicate })),
     };
-    expect(missChance(unit, new Set(["self:effect:blind", "attack:range:lte:2"]))).toBe(0);
-    expect(missChance(unit, new Set(["self:effect:blind", "attack:range:gte:3"]))).toBe(80);
+    expect(missChance(unit, new Set(["self:effect:blind", "attack:kind:normal", "attack:range:lte:2"]))).toBe(0);
+    expect(missChance(unit, new Set(["self:effect:blind", "attack:kind:normal", "attack:range:gte:3"]))).toBe(80);
+    // ...and only for a Normal Attack: her Blind Ice Bucket Challenge at 2 panels
+    // skipped its Miss check, pressed live (#258).
+    expect(missChance(unit, new Set(["self:effect:blind", "attack:kind:skill", "attack:range:lte:2"]))).toBe(80);
   });
 
   it("R4 — she keeps Blind's OTHER clauses; only the miss is exempted", () => {
     // *"it does not have a chance of Missing"* is singular and specific. Her own
     // Evade rolls stay at +3, through a window the defender may Counter in.
-    const rules = ability("anastasia-watermelon").passiveRules;
+    const rules = ability("anastasia-summer-watermelon").passiveRules;
     const scopes = rules.filter((r) => r.key === "Suppress").map((r) => r.scope);
     expect(scopes).toEqual(["miss"]);
   });
 
   it("M5 — the Active blinds her until the Combat Process ends", () => {
-    const phase = ability("anastasia-watermelon").phases[0];
+    const phase = ability("anastasia-summer-watermelon").phases[0];
     expect(phase.target).toBe("self");
     expect(phase.effects[0]).toMatchObject({ id: "blind", duration: "until combatProcessEnd" });
+  });
+
+  it("M5 — *\"gains Blind\"* lands with no roll (#258 reading 6)", () => {
+    // Her own choice: no bonus or resistance touches it, as Van Gogh's "apply" stages.
+    expect(ability("anastasia-summer-watermelon").phases[0].effects[0].bypassChanceModifiers).toBe(true);
   });
 
   it("M5 — and that duration parses", () => {
@@ -338,7 +374,7 @@ describe("her three active skills", () => {
   const ability = (id) => parse(readFileSync(`packs/_source/abilities/${id}.yml`, "utf8"));
 
   it("Shvibzik restores 3 Luck, buffs, and turns the NP clock by 1◈+⅔◈", () => {
-    const a = ability("anastasia-shvibzik");
+    const a = ability("anastasia-summer-shvibzik");
     expect(a.cooldown).toBe("4◈-⅓◈");
     expect(a.phases.find((p) => p.kind === "statChange").changes[0])
       .toMatchObject({ stat: "luck", delta: 3, clamp: true });
@@ -359,7 +395,7 @@ describe("her three active skills", () => {
   });
 
   it("Freezing Summertime keeps two effects to herself and gives one away", () => {
-    const a = ability("anastasia-freezing-summertime");
+    const a = ability("anastasia-summer-freezing-summertime");
     expect(a.cooldown).toBe("3◈");
     const mine = a.phases.find((p) => p.target === "self").effects.map((e) => e.id);
     expect(mine).toEqual(["invuln", "buffRemovalResUp"]);
@@ -369,8 +405,8 @@ describe("her three active skills", () => {
   });
 
   it("Spirit Eyes applies all four of its buffs", () => {
-    const e = ability("anastasia-spirit-eyes").phases[0].effects;
-    expect(ability("anastasia-spirit-eyes").cooldown).toBe("4◈");
+    const e = ability("anastasia-summer-spirit-eyes").phases[0].effects;
+    expect(ability("anastasia-summer-spirit-eyes").cooldown).toBe("4◈");
     expect(e.find((x) => x.id === "aim")).toMatchObject({ duration: "1◈" });
     expect(e.find((x) => x.id === "critUpViy")).toMatchObject({ magnitude: 50, npMagnitude: 20 });
     expect(e.find((x) => x.id === "critDmUp")).toMatchObject({ magnitude: 30 });
@@ -379,7 +415,7 @@ describe("her three active skills", () => {
 });
 
 describe("Ice Bucket Challenge (B1–B10)", () => {
-  const a = parse(readFileSync("packs/_source/abilities/anastasia-ice-bucket-challenge.yml", "utf8"));
+  const a = parse(readFileSync("packs/_source/abilities/anastasia-summer-ice-bucket-challenge.yml", "utf8"));
 
   it("B1/B2/B3 — an Attack Skill at Range 2, off BA(MAG), dealing Water", () => {
     expect(a.isAttackSkill).toBe(true);
@@ -405,7 +441,7 @@ describe("her two Noble Phantasms", () => {
   const ability = (id) => parse(readFileSync(`packs/_source/abilities/${id}.yml`, "utf8"));
 
   it("Snegleta: BA(MAG), Range+1, 3.5x, and a 6◈ clock", () => {
-    const np = ability("anastasia-snegleta");
+    const np = ability("anastasia-summer-snegleta");
     expect(np).toMatchObject({ rank: "B", isNP: true, cooldown: "6◈" });
     expect(np.npTags).toEqual(["antiUnit"]);
     expect(np.targeting.anchor.rangeBonus).toBe(1);
@@ -417,7 +453,7 @@ describe("her two Noble Phantasms", () => {
     // *"First, inflict Def Dwn (A) ... Then, deals 3.5x damage"* -- and Def Dwn
     // (A) raises damage taken by 30%, so applying it first is worth 30% of THIS
     // attack. After the damage it would be worth 30% of the next one.
-    const np = ability("anastasia-snegleta");
+    const np = ability("anastasia-summer-snegleta");
     const kinds = np.phases.map((p) => p.kind);
     expect(kinds.indexOf("applyEffects")).toBeLessThan(kinds.indexOf("damage"));
     expect(np.phases[0].effects[0]).toMatchObject({ id: "defDwnA", magnitude: 30, duration: "⅓◈" });
@@ -425,14 +461,14 @@ describe("her two Noble Phantasms", () => {
   });
 
   it("Ice Block Launcher: BA(STR), Range+3, Aim, 3x, Ice", () => {
-    const np = ability("anastasia-ice-block-launcher");
+    const np = ability("anastasia-summer-ice-block-launcher");
     expect(np).toMatchObject({ rank: "C", cooldown: "5◈" });
     expect(np.targeting.anchor.rangeBonus).toBe(3);
     expect(np.damage).toMatchObject({ component: "str", multiplier: 3, element: "ice", aim: true });
   });
 
   it("Ice Block Launcher: the Instakill scales with distance, to 30% (R3)", () => {
-    const rider = ability("anastasia-ice-block-launcher")
+    const rider = ability("anastasia-summer-ice-block-launcher")
       .phases.find((p) => p.kind === "applyEffects").effects[0];
     expect(rider).toMatchObject({ id: "instakill", chancePerPanel: 5 });
     // Range 3 + 3 = 6 panels.
@@ -442,7 +478,7 @@ describe("her two Noble Phantasms", () => {
 });
 
 describe("the Servant document", () => {
-  const a = parse(readFileSync("packs/_source/servants/anastasia.yml", "utf8"));
+  const a = parse(readFileSync("packs/_source/servants/anastasia-summer.yml", "utf8"));
 
   it("R1 — her printed figures all agree with the rank tables", () => {
     // Unlike Pollux, nothing here is overruled. STR D++ -> 75 + 2x10 = 95;
@@ -496,8 +532,8 @@ describe("the Servant document", () => {
 
   it("R7 — carries both Noble Phantasms, and stores no ranking", () => {
     const refs = a.abilities.map((x) => x.ref);
-    expect(refs).toContain("anastasia-snegleta");
-    expect(refs).toContain("anastasia-ice-block-launcher");
+    expect(refs).toContain("anastasia-summer-snegleta");
+    expect(refs).toContain("anastasia-summer-ice-block-launcher");
     // Ch. 45 REJECTED storing it; np-strength computes it.
     expect(a.strongestNP).toBeUndefined();
   });

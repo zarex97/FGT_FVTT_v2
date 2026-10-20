@@ -141,7 +141,11 @@ inside a Master.
 
 ## Invariants & edge cases
 
-**Whoever holds a Contract is a Master** (#193 readings 18, 21). Medea's Rule Breaker makes her the stolen Servant's Master: the Contract and three namespaced Command Spells go to her (`commandSpellsPerServant` is declared on Servants too), the Servant's Noble Phantasm cost is charged to her Health, the multi-Servant tax bills her, and her defeat frees or conquers her Servants. Each of those readers had tested for a `master` actor.
+**Independent Action at EX or A+ refuses Conquest** (#258 reading 12) as it refuses an enemy's Contract: a dead
+Master's Servant holding it is left out of the killer's claim and goes Free, and the Conquest card says why. Rule
+Breaker is neither, and takes its Contract (`conquestContract`'s `refused`).
+
+**Whoever holds a Contract is a Master** (#193 readings 18, 21). Medea's Rule Breaker makes her the stolen Servant's Master: the Contract and three namespaced Command Spells go to her (`commandSpellsPerServant` is declared on Servants too, and `servantIds` since #258: without it Medea's side of the Contract was silently dropped, §46.4-SK), the Servant's Noble Phantasm cost is charged to her Health, the multi-Servant tax bills her, and her defeat frees or conquers her Servants. Each of those readers had tested for a `master` actor.
 
 1. **Overpower and Underpower are directional.** Neither applies when both units are Servants or both are Masters. Zero chance and "does not apply" are different facts (`module/rules/relationships.mjs:43-46`, `module/rules/relationships.mjs:96-99`).
 

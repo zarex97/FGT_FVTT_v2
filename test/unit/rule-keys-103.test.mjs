@@ -95,10 +95,13 @@ describe("CritModifier", () => {
     // `@magnitude`/`@npMagnitude` as `rules/snapshot.mjs#resolveRuleValues`
     // substitutes them on an instance.
     const out = contributions({ name: viy.name, rules: [{ ...viy.rules[0], value: 50, npValue: 20 }] });
-    const mag = new Set(["attack:component:mag"]);
+    // An attack that USES BA(MAG), what the crit coin is handed (#258 reading 3).
+    const mag = new Set(["attack:usesBase:mag"]);
     expect(chance(out.checkModifiers, mag)).toBe(100);
     expect(chance(out.checkModifiers, new Set([...mag, "attack:kind:np"]))).toBe(70);
-    expect(chance(out.checkModifiers, new Set(["attack:component:str"]))).toBe(50);
+    expect(chance(out.checkModifiers, new Set(["attack:usesBase:str"]))).toBe(50);
+    // ...and what an attack COUNTS AS is not asked: a MAG component alone is not enough.
+    expect(chance(out.checkModifiers, new Set(["attack:component:mag"]))).toBe(50);
   });
 
   it("reaches an ally through an aura: Area Crit Up", () => {

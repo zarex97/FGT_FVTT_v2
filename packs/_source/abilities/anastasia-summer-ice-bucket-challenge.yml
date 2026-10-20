@@ -1,9 +1,9 @@
-# Anastasia & Viy, char_orig_sheets/Copia de Anastasia & Viy.md
+# Anastasia (Summer), char_orig_sheets/Copia de Anastasia & Viy.md
 #
 # The setup half of her kit: Soaked makes the next Ice attack far likelier to
 # Freeze, and her own ranged Normal Attack is Ice.
 schema: 1
-id: anastasia-ice-bucket-challenge
+id: anastasia-summer-ice-bucket-challenge
 name: "Ice Bucket Challenge for You"
 kind: skill
 slug: iceBucketChallenge

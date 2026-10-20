@@ -1,16 +1,24 @@
-# Anastasia & Viy, char_orig_sheets/Copia de Anastasia & Viy.md
+# Anastasia (Summer), char_orig_sheets/Copia de Anastasia & Viy.md
+#
+# *"Anastasia & Viy"* on her sheet: the summer form of the Caster on
+# `Copia de Anastasia.md`, renamed so the two can stand side by side (#258
+# reading 9). The Caster, unbuilt, takes the plain `anastasia` ids.
 schema: 1
-id: anastasia
-name: "Anastasia & Viy"
+id: anastasia-summer
+name: "Anastasia (Summer)"
 type: servant
 trueName: "Anastasia Nikolaevna Romanova"
-# Independent Action is her ONLY class skill, and Independent Action does not
-# identify a class -- Appendix D marks her class with a dash for exactly this
-# reason. `classContainer` is presentational and has to say something, so it
-# says what her opponents would call her.
-servantClasses: [caster]
-classContainer: caster
-region: [russia, europe]
+# An ARCHER (#258 reading 1, ruled 2026-10-20). Her sheet prints no class and
+# was built as a Caster, "what her opponents would call her" -- a label four
+# readers took as the class in full: she could contract enemy Servants, inherit
+# a Contract by killing a Master, counted as `Magus` and gave her Master the
+# Caster's ZON base. Independent Action is the Archer's class skill.
+servantClasses: [archer]
+classContainer: archer
+# *"Region: Russia"*, and nothing else (#258 reading 2). Europe borders Russia
+# in the Region graph (`rules/environment.mjs#REGION_ADJACENCY`); listing it too
+# ranked her up in a European War as if it were home.
+region: [russia]
 # *"Chaotic Summer"* -- a value the rulebook does not list. Ch. 45 made
 # `alignment.morality` an open string rather than a closed enum for this one
 # sheet, calling it "a one-line schema change that would have been an expensive
@@ -65,13 +73,13 @@ normalAttack:
 
 abilities:
   - { ref: class-independent-action-viy, rank: EX }
-  - { ref: anastasia-swimsuit }
-  - { ref: anastasia-fae-contract }
-  - { ref: anastasia-shvibzik }
-  - { ref: anastasia-freezing-summertime }
-  - { ref: anastasia-spirit-eyes }
-  - { ref: anastasia-watermelon }
-  - { ref: anastasia-rock-snowball }
-  - { ref: anastasia-ice-bucket-challenge }
-  - { ref: anastasia-snegleta }
-  - { ref: anastasia-ice-block-launcher }
+  - { ref: anastasia-summer-swimsuit }
+  - { ref: fae-contract, rank: "B+" }
+  - { ref: anastasia-summer-shvibzik }
+  - { ref: anastasia-summer-freezing-summertime }
+  - { ref: anastasia-summer-spirit-eyes }
+  - { ref: anastasia-summer-watermelon }
+  - { ref: anastasia-summer-rock-snowball }
+  - { ref: anastasia-summer-ice-bucket-challenge }
+  - { ref: anastasia-summer-snegleta }
+  - { ref: anastasia-summer-ice-block-launcher }

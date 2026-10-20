@@ -55,7 +55,7 @@ describe("the three answers a window use can have", () => {
     // the window's own `carried` list still contributes the rules, so routing
     // it here does not cost it anything.
     expect(windowUseKind(ability({
-      slug: "anastasia-watermelon",
+      slug: "anastasia-summer-watermelon",
       phases: [{ kind: "applyEffects" }],
       passiveRules: [{ key: "DamageModifier" }, { key: "DamageModifier" }],
     }))).toBe("cast");
