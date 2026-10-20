@@ -1,4 +1,4 @@
-# Anastasia & Viy, char_orig_sheets/Copia de Anastasia & Viy.md
+# Anastasia (Summer), char_orig_sheets/Copia de Anastasia & Viy.md
 #
 # Applied by Ice Bucket Challenge. Three clauses, and not one of them needed a
 # new mechanism -- which was not obvious until the seams were read.
@@ -41,7 +41,28 @@ rules:
     direction: incoming
     effect: freeze
     value: -25
-    predicate: ["attack:element:ice"]
+    # ...and only on an Attack that carries Freeze. The roll below is an
+    # application too, under the same Ice; without this the two halves of the
+    # clause met on it and it rolled at 50 (#258 reading 4).
+    predicate: ["attack:element:ice", "attack:inflicts:freeze"]
+
+  # Clause (a), the Attack with NO Freeze chance of its own (#258 reading 4,
+  # ruled 2026-10-20): the 25% is a roll by itself. The vulnerability above can
+  # only raise a roll that exists, and none of Anastasia's Ice Attacks inflicts
+  # Freeze, so with her own kit Soaked froze nobody.
+  #
+  # Ice damage RECEIVED, more than 0 (`attack:dealtDamage`), from an Attack:
+  # Freeze's own Round-end Ice damage raises no `damageTaken`. Inflicted by the
+  # attacker (`inflictedBy: victim`, the other party to this event), so the
+  # attacker's debuff chance and this Unit's resistance meet it as they meet a
+  # rider. An Attack that carries Freeze (`attack:inflicts:freeze`) is the
+  # clause above, one roll at its chance plus 25, never a second roll here.
+  - key: OnEvent
+    event: damageTaken
+    automatic: true
+    predicate: ["attack:element:ice", "attack:dealtDamage", "not:attack:inflicts:freeze", "not:attack:plainDamage"]
+    then:
+      - { key: ApplyEffect, effect: { id: freeze }, chance: 25, inflictedBy: victim }
 
   # Clause (b), first half. "Total Fire Damage taken is reduced by 50%": a
   # Total Damage cut on the Fire share, at stage 15, by the ruling on Karna's

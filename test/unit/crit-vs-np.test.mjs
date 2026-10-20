@@ -76,7 +76,8 @@ describe("the defender's side is not an NP's either", () => {
 describe("a crit clause that STATES an NP figure still wins", () => {
   it("Crit Up (Viy), 50% and 20% if NP, reads 70 against an NP and 100 against a Normal Attack", async () => {
     const spec = (kind) => holding([{ defId: "critUpViy", magnitude: 50, npMagnitude: 20 }], (u) => critChance(u, null, {
-      options: rollOptionsFor({ attacker: u, defender: null, attack: { kind, component: "mag" } }),
+      // ...with the Base Attacks it uses, as the coin is handed them (#258 reading 3).
+      options: new Set([...rollOptionsFor({ attacker: u, defender: null, attack: { kind, component: "mag" } }), "attack:usesBase:mag"]),
     }));
     expect((await spec("normal")).percent).toBe(100);
     expect((await spec("np")).percent).toBe(70);

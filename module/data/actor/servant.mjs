@@ -54,6 +54,11 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       // three of them (#193 reading 18); a Caster's conquest claims the same way.
       // Without the field the grant had nowhere to land on a Servant.
       commandSpellsPerServant: new fields.ObjectField({ required: true, initial: () => ({}) }),
+      // ...and the Servants it holds the Contract of, the other half of every
+      // Servant's `masterId` (`engine/io.mjs#setContract` keeps the two
+      // reciprocal). Without it the write was dropped: Rule Breaker gave Medea
+      // the Contract and her side of it was never stored (#258, test world).
+      servantIds: new fields.SetField(new fields.DocumentIdField()),
       stanceSpec: new fields.ObjectField({ required: false, nullable: true, initial: null }),
 
       // The ONE it is summoned into, and the one it is publicly known by. A

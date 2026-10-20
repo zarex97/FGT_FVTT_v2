@@ -1292,7 +1292,13 @@ const ACTIONS = Object.freeze({
       // `u`, so the caster arrives separately as `c.bearer` -- and an effect
       // sourced to the Unit carrying it is one nothing can attribute, expire by
       // source, or clean up when its source leaves.
-      sourceUnitId: c.bearer?.id ?? u.id,
+      //
+      // ...unless the action says the OTHER PARTY inflicts it. Soaked's Freeze
+      // is *"inflicted"* on its bearer by the Ice that hit it (#258 reading 4):
+      // `inflictedBy: victim` makes the attacker its source, so the attacker's
+      // debuff chance and the bearer's resistance meet it, as a rider's would.
+      sourceUnitId: (a.inflictedBy === "victim" ? subjectOf({ subject: "victim" }, u, c)?.id : null)
+        ?? c.bearer?.id ?? u.id,
       // Riders state their own chance -- "25% chance of inflicting Deadly
       // Poison" -- and the flow that applies them reads it off the instance,
       // because an intent has nowhere else to put it.
@@ -1393,7 +1399,10 @@ const ACTIONS = Object.freeze({
    */
   RemoveEffect: (a, u, _h, _c) => {
     const defId = a.effect ?? a.defId;
-    if (!a.stages) return [I.removeEffect(u.id, defId, "event")];
+    // `byRule`: a rule took it off, which the card says (`engine/applier.mjs
+    // #removalLines`). Soaked dried at a Day Round's end, and was used up by
+    // Fire, and no card said either (#258, live).
+    if (!a.stages) return [{ ...I.removeEffect(u.id, defId, a.cause ?? "event"), byRule: true }];
 
     const instance = (u.effectInstances ?? []).find((e) => e.defId === defId);
     const out = removeStages(instance, a.stages, a.cause ?? null);

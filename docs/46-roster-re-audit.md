@@ -516,8 +516,8 @@ an area Noble Phantasm is authored, which is a thing several sheets want.
 `anchorRange` returns an absolute `spec.range` immediately and only falls through to
 `caster.range + rangeBonus` when `range` is absent. Two ability files state **both**:
 
-- `anastasia-ice-block-launcher.yml` — `range: 3, rangeBonus: 3`
-- `anastasia-snegleta.yml` — `range: 3, rangeBonus: 1`
+- `anastasia-summer-ice-block-launcher.yml` — `range: 3, rangeBonus: 3`
+- `anastasia-summer-snegleta.yml` — `range: 3, rangeBonus: 1`
 
 The bonus was discarded in both, silently — and her sheet settles the intent in its own words:
 *"Range+3 for the Combat Process"* and *"Range+1 for the Combat Process"*, which is `rangeBonus`
@@ -5291,6 +5291,89 @@ eleven said nothing of it, and an attempt that fell short (charges spent, *"and 
 line at all. The `revive` entry carries the dice and what a counted source has left; a failed one is `reviveFailed`
 with the damage left over (`engine/revival-report.mjs`). Ch. 37.
 
+### SA. A class the sheet never printed was filled in as Caster, and read as one — **ruled and fixed** (#258)
+
+**Reached: SB.class.** *Anastasia & Viy* prints no class; the build gave her `servantClasses: [caster]` as *"what her
+opponents would call her"*, and four readers took the label for the class: she could contract enemy Servants and
+inherit a Contract by killing a Master (`rules/contract.mjs`), was `Magus`, and gave her Master the Caster's ZON base.
+Ruled an **Archer**, her sheet the summer form of the Caster's (*Copia de Anastasia.md*), and renamed *Anastasia
+(Summer)*, ids `anastasia-summer-*` (readings 1, 9). Region Russia alone (reading 2). Appendix D §D.27.
+
+### SB. Crit Up (Viy) asked what an attack counts as, not what it adds up — **fixed** (#258)
+
+**Reached: SE.2.mix.** *"Crit Chance of Attacks which use Base Attack (MAG)"* read `attack:component:mag`; her ranged
+Normal Attack is BA(STR) plus 10% of BA(MAG) and counts as STR, so it never got the 50 its comments promised. The
+crit coin is flipped before the pipeline's stage 1 derives `attack:usesBase:`, so the fix is one helper both read
+(`rules/damage/pipeline.mjs#usesBaseOptions`). Reading 3. Ch. 11.
+
+### SC. Soaked froze nobody: its Freeze only raised a chance the Attack carried, and `damageTaken` had no dice — **fixed** (#258)
+
+**Reached: SK.a.** *"A 25% chance of being inflicted with Freeze, additive to any Freeze chance the Attack might
+have"* was an incoming −25 on Freeze alone, and none of her Ice Attacks inflicts Freeze. Reading 4 makes the 25 a roll
+of its own on an Ice Attack that dealt damage and carries none: a `damageTaken` handler, inflicted by the attacker
+(`inflictedBy: victim`), asking `attack:inflicts:freeze` (new). `damageTaken` fired its handlers on `rolls: {}`, so a
+chance hung there never fired; its chances are now rolled and filed as `damageDealt`'s. Ch. 11, 15, App. E.
+
+### SD. Watermelon's sure hit reached every Attack in the band — **fixed** (#258)
+
+**Reached: WM.p.kind.** *"When Anastasia performs a Normal Attack at a Range of 1 to 2 while inflicted with Blind"*:
+all four rules read `[self:effect:blind, attack:range:lte:2]`, so her Blind Ice Bucket Challenge skipped its Miss check
+and took Ignore Def and Pierce. Each now asks `attack:kind:normal`; re-pressed after the rebuild, the Skill rolled
+its Miss check (87 against 80). Ch. 21.
+
+### SE. Skill Seal stopped every Normal Attack — **fixed** (#258)
+
+**Reached: SN.seal.** Snegleta's Skill Seal on Karna refused his Normal Attack: *"Cannot use this ability:
+Prevented"*. A Normal Attack is the one press with no Item, and `rules/costs.mjs#preventionActionsFor(null)` fell to
+its default, `skill`. No ability is now an `attack`: Seal and Disable stop it, Skill Seal does not. Ch. 19.
+
+### SF. A broken Freeze stayed on, and Fire on it landed the attack's effects — **fixed** (#258)
+
+**Reached: SK.b.frz.** The pipeline raises `removeFreeze` (Fire at stage 0, 150 or more at stage 16) and no engine
+file read it: Barrel Bombing on a Soaked, Frozen Asterios was *"negated by Freeze broken by Fire — 0"*, consumed the
+Soaked, and left the Freeze with a Burn beside it. `engine/attack.mjs#frozenBrokenBy` removes it (Crystalfreeze too at
+150 or more), and a Fire hit on Freeze lands none of the attack's own effects, *"no damage or effects"*; its
+`damageTaken` still runs, so Soaked is used up (design R2). Ch. 22, App. A.
+
+### SG. Blind's and Slow's Evade penalties counted twice — **fixed** (#258)
+
+**Reached: WM.p.own.** `engine/attack.mjs#evadeModifiers` added Slow's +2 and Blind's +3 by hand; `slow.yml` and
+`blind.yml` author the same, reaching the roll through the check plan: *"Blind 3"* and *"blind 3"* on one Evade, and
+Blind's Eye of the Mind and Clairvoyance exemptions never touched the hand-written copy. The two lines are gone;
+Immobilize, which authors none, stays. Ch. 23.
+
+### SH. A rule about the phase was asked before the board knew it — **fixed** (#258)
+
+**Reached: SK.c.** Soaked's *"removed at the end of a Day Round"* was dropped at collection: `self:phase:` is a board
+annotation written after the rules are collected, and was not a deferred prefix. Round 1 (Day) ended with Soaked on.
+`self:phase:` is deferred beside `self:inHomeBase`; Round 2 (Night) kept it, Round 3 (Day) dried it. Ch. 10.
+
+### SI. A removal said nothing on the card — **fixed** (#258)
+
+**Reached: FS.2, SK.b.rm, SK.c.** Rule Breaker's removal went through `applyBatch` and returned no line, so the buffs
+Anastasia's BuffRemoval ResUp held were invisible; and a `RemoveEffect` an event rule wrote (Soaked dried, used up by
+Fire; Webbed broken; a Curse spent) reached no card. The removal phase lines each effect removed or held (*"Atk Up:
+resisted, rolled 7 vs 0%"*), and `engine/applier.mjs#removalLines` lines a rule's removal (*"Soaked: removed"*). Ch. 37.
+
+### SJ. A rider's die read against its raw chance — **fixed** (#258)
+
+**Reached: RS, FC.inf.** Rock Snowball's 10% is 15% under Fae Contract: a die of 20 read *"against 10%: missed"*
+beside *"Bleed: resisted, rolled 20 vs 15%"*, and 11 to 15 would have read "missed" on a card that applied the Bleed.
+`chanceRecords` takes the landing's own row as the verdict, and names an effect's handler by its display name. Ch. 37.
+
+### SK. A Servant that holds a Contract dropped its side of it — **fixed** (#258)
+
+**Reached: Rule Breaker, in the test world.** #193 let a Servant be a Master (`commandSpellsPerServant`) and not
+`servantIds`, so `setContract` wrote Medea's roster to a field Foundry silently dropped. Declared on the Servant. Ch. 07.
+
+### SL. Conquest took a Servant Independent Action forbids — **ruled and fixed** (#258 reading 12)
+
+**Reached: IA.3.** Medea's Rule Breaker gave Anastasia's Contract to Medea, past Independent Action EX's *"Cannot be
+contracted by enemy Casters and Masters"*. Ruled: right as built; Independent Action is meant against the normal
+Contract option, or Conquest. Conquest never asked it: `rules/contract.mjs#conquestContract` claimed every Servant of
+the dead Master. An EX or A+ Servant is now left out and goes Free, and the card says *"No Conquest: Archer's
+Independent Action refuses Caster's side, and Archer is Free."* Ch. 32.
+
 ---
 
 ---
@@ -6743,7 +6826,7 @@ copy that was asked; a Range was measured from whoever declared. Each was a read
 | War setup gave the second twin no faction, no Contract and no token (§46.4-MW) | `engine/war-setup.mjs#seatPartners`, `deployTokens` |
 | One Cooldown clock: a use starts it on both copies, a cut by either twin reaches both, the per-Turn tick runs at one rate (reading 2) | `engine/cooldown.mjs#sharedCooldownIntents` and `twinsOf`; `scheduler.mjs#CooldownDelta`, `#advanceCooldowns`; `skill-use.mjs#cooldownChanges`; `command-spells.mjs#effectIntents` |
 | A cut on the attack path prints a line for each copy that moved | `attack.mjs` (the `cooldown` rider), `skill-use.mjs#cooldownLine` |
-| Mana Burst's own cut and Shvibzik's were rule elements in an `applyEffects` phase and landed nowhere (§46.4-MU) | `abilities/{dioscuri-mana-burst-castor,anastasia-shvibzik}.yml` (now `cooldown` phases), `tools/lib/content.mjs` (the build refuses the shape; `PHASE_ACTIONS_STILL_DROPPED`) |
+| Mana Burst's own cut and Shvibzik's were rule elements in an `applyEffects` phase and landed nowhere (§46.4-MU) | `abilities/{dioscuri-mana-burst-castor,anastasia-summer-shvibzik}.yml` (now `cooldown` phases), `tools/lib/content.mjs` (the build refuses the shape; `PHASE_ACTIONS_STILL_DROPPED`) |
 | Self-Replenishment set the NP clock to 0 instead of cutting 2 Turns (§46.4-MX) | `scheduler.mjs#CooldownDelta` reads a table's `amount` and `direction` |
 | Mad Enhancement's +55% is halved on Mana Burst, which sums BA(MAG) while counting as STR: **25**, not the ticket's 27.5, because the template floors a halved figure to a multiple of 5 for every bearer (reading 3) | `damage/pipeline.mjs#stage1Base` (derives `attack:usesBase:<component>`), `facets.mjs` (`usesBase`), `class-skills/mad-enhancement.yml` |
 | Mana Burst is a Counter, as Raikou's is (reading 4): already built, now pinned | `rules/counter.mjs#answersACounter`, `rules/costs.mjs` (`isCounter` lifts the own-Turn window); `test/helpers/process.mjs#playProcess` |
@@ -7290,3 +7373,41 @@ Instakill that spent a God Hand use.
 - **The revival card sits above the Burn line that caused it** at a Round's end: both are said, in the wrong order.
 - **Every revival card names its source**, God Hand's included, on a card every player reads, as the system names
   every ability; closed information covers the Unit's name, not its abilities'.
+
+## 46.43 Anastasia (Summer) — the Servant who was a Caster by mistake
+
+**90 Clauses** (#258, audited 2026-10-20) on *Anastasia & Viy*, her sheet's name. Built 2026-09-16 and never held
+against her sheet Clause by Clause. Eleven readings ruled by grilling 2026-10-20; reading 1 was a reading not offered:
+she is an **Archer**, the summer form of the Caster on *Copia de Anastasia.md*, and reading 9 renamed her *Anastasia
+(Summer)*, ids `anastasia-summer-*`. A twelfth, from the presses, ruled Rule Breaker right and Conquest wrong (§46.4-SL). Spec
+`docs/superpowers/specs/2026-10-20-anastasia-clauses.md`.
+
+### 46.43.1 What she cost the engine
+
+| Finding | Where |
+|---|---|
+| An Archer from Russia alone, renamed; no Caster power (readings 1, 2, 9) | `servants/anastasia-summer.yml`, §46.4-SA |
+| Crit Up (Viy) asks what an attack adds up, read by the crit coin too (reading 3) | `damage/pipeline.mjs#usesBaseOptions`, §46.4-SB |
+| Soaked rolls its own 25% on an Ice Attack that carries no Freeze; `attack:inflicts:` (reading 4) | `effects/soaked.yml`, `damage/riders.mjs#inflictedEffectIds`, §46.4-SC |
+| An effect an event inflicts may name the other party as its source (`inflictedBy: victim`) | `engine/scheduler.mjs#ApplyEffect` |
+| Her own Blind lands unrolled (reading 6) | `abilities/anastasia-summer-watermelon.yml` |
+| Fae Contract is one Rank-keyed skill, the Caster's A ready (reading 10) | `abilities/fae-contract.yml`, `domain/tables.mjs` |
+| General: §46.4-SA to SL | |
+
+### 46.43.2 What was pressed, and how
+
+**90 Clauses: all `Pressed` or `Observed`, none left to tests** (six `Pressed (engine)`). Anastasia, Player1's, beside
+Asterios, against Nemo, Karna and Medea on *Anastasia Audit* (Intermediate, ◈ 3), built through `commitWar` from the
+rebuilt pack; Player2 played Blue from its own client. Player1 pressed her Skills, Noble Phantasms, Normal Attacks and
+Counter from her bar and her reactions on the cards; Player2 pressed every Attack on her, the Contract window and Rule
+Breaker, and the Normal Attack that killed her Master for Conquest. Three Rounds ran Day, Night, Day for Soaked's
+drying. Staged and named on #258: Turn records between Attacks,
+cooldowns, token positions, Luck, fixed dice on all three pages, Blind on her, Soaked and Freeze on Asterios, Def Up and
+Invuln on Medea, BuffRemoval ResUp on her, her Master's Command Spells at 0 for Unbound, two Servants revived.
+
+**Ten defects the presses and their tests found, all fixed** (each a Surprise of 2026-10-20): §46.4-SB to SL.
+
+### 46.43.3 Left open
+
+- **Effect documents are named by their ids** (`soaked`, `atkUp`), so a damage breakdown reads *"soaked (Total
+  fire)"*. System-wide, older than this audit.

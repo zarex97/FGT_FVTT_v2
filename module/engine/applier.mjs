@@ -133,7 +133,8 @@ export async function applyIntents(intents, {
   if (plan.remote.length > 0) await io.proxy(plan.remote, { source });
   for (const p of plan.prompts) await io.prompt(p.userId, p.prompt);
 
-  said.push(...clockLines(clocks), ...statLines(stats), ...await spanLines(spans), ...itemLines(held), ...suppressionLines(lines ? plan.local : []));
+  said.push(...clockLines(clocks), ...statLines(stats), ...await spanLines(spans), ...itemLines(held), ...suppressionLines(lines ? plan.local : []),
+    ...await removalLines(lines ? plan.local : []));
   return { applied: plan.local.length, proxied: plan.remote.length, prompted: plan.prompts.length, lines: said };
 }
 
@@ -320,6 +321,24 @@ function suppressionLines(written) {
     const line = game.i18n.has?.(key) ? game.i18n.localize(key) : game.i18n.localize("FGT.Suppressed.Generic");
     return { unitId: i.unitId, summary: { id: "suppressRule", name: line, outcome: "applied", reason: null, chance: null } };
   });
+}
+
+/**
+ * A line for each effect a RULE took off a Unit (`byRule`, the event action's
+ * `RemoveEffect`): Soaked dried at the end of a Day Round, used up by Fire,
+ * Webbed broken by a hit. An expiry or a spent use is not one: the clock says it.
+ *
+ * @param {Intent[]} written
+ * @returns {Promise<CardLine[]>}
+ */
+async function removalLines(written) {
+  const removed = (written ?? []).filter((i) => i?.t === "removeEffect" && i.byRule);
+  if (removed.length === 0) return [];
+  const { EffectRegistry } = await import("../rules/registry.mjs");
+  return removed.map((i) => ({
+    unitId: i.unitId,
+    summary: { id: i.effectId, name: EffectRegistry.get(i.effectId)?.name ?? i.effectId, outcome: "removed", reason: null, chance: null },
+  }));
 }
 
 /**

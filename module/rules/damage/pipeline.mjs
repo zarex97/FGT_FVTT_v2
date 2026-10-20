@@ -277,6 +277,23 @@ function stage0Precondition(s) {
 }
 
 /**
+ * WHICH Base Attacks a base spec adds up, as `attack:usesBase:<component>`
+ * options: every source with a positive factor, by its component and not its
+ * value. One reader for stage 1 and the crit coin, which is flipped before the
+ * pipeline runs: Crit Up (Viy) reaches *"Attacks which use Base Attack (MAG)"*,
+ * and Anastasia's ranged Normal Attack, BA(STR) plus 10% of BA(MAG), uses it
+ * (#258 reading 3). The coin read `attack:component`, which says `str`.
+ *
+ * @param {{sources?: object[]}|null} spec
+ * @returns {string[]}
+ */
+export function usesBaseOptions(spec) {
+  return [...new Set((spec?.sources ?? [])
+    .filter((src) => src.component && (src.factor ?? 1) > 0)
+    .map((src) => `attack:usesBase:${src.component}`))];
+}
+
+/**
  * Stage 1 — select base attacks and their factors.
  * @param {PipelineState} s
  */
@@ -392,7 +409,7 @@ function stage1Base(s) {
   // cannot disagree about it. By the source and not by its value: a holder
   // whose BA(MAG) is 0 still USES it. A copy of the context, never the shared
   // option set, which the caller owns and may hand to the next stage's reader.
-  const used = (spec.sources ?? []).filter((src) => (src.factor ?? 1) > 0).map((src) => `attack:usesBase:${src.component}`);
+  const used = usesBaseOptions(spec);
   if (used.length > 0) {
     s.predicateCtx = { ...s.predicateCtx, options: new Set([...s.predicateCtx.options, ...used]) };
   }

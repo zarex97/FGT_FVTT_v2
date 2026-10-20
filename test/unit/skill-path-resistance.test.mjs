@@ -79,7 +79,7 @@ describe("the Skill path reads the target's resistance", () => {
   it("a debuff a Skill puts on its own caster meets her resistance too, and Anastasia's Blind still lands: 100 + 5 - 5 (Fae Contract, both ways)", async () => {
     // The sheet says she "gains Blind", with no chance to resist; her Fae Contract is +5 outgoing
     // and +5 incoming, so the two cancel and the Active is not wasted one use in twenty.
-    expect(await chanceLine("anastasia", "anastasia", "anastasia-watermelon", 99)).toBe("100% (automatic)");
+    expect(await chanceLine("anastasia-summer", "anastasia-summer", "anastasia-summer-watermelon", 99)).toBe("100% (automatic)");
   });
 });
 

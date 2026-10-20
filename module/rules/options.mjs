@@ -161,6 +161,10 @@ export function rollOptionsFor({ attacker, defender, attack = null, withoutModeH
   // WHICH ABILITY made it (`attack.sourceContentId`): *"Normal Attacks performed
   // with Mana Burst"* (Arturia's DRC, #230). A bare Normal Attack has none.
   if (attack.sourceContentId) options.add(`attack:madeWith:${attack.sourceContentId}`);
+  // WHAT IT INFLICTS on the Unit it hits (`attack.inflicts`, from the ability's
+  // own phases): Soaked's Freeze chance is *"additive to any Freeze chance the
+  // Attack might have"*, and rolls alone on an Attack with none (#258 reading 4).
+  for (const id of attack.inflicts ?? []) options.add(`attack:inflicts:${id}`);
   // WHAT THE ATTACK IS GOOD AGAINST. *"An Attack that deals extra damage to
   // Units with the 'Dark' or 'Spirit' Attribute"* is not a property an ability
   // declares -- it is a property of the attacker's own active damage

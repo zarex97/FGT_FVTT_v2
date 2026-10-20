@@ -244,7 +244,7 @@ All `nnr`. Members of the `bind` family are marked ✦.
 |---|---|
 | `Stun` ✦ | Cannot Act. |
 | `Stop` | Cannot Act. **All durations on the unit freeze**, including newly applied ones. Cooldowns freeze in both directions. `Regen` has no effect. (Implemented via `pausedTicks`.) |
-| `Freeze` ✦ | Cannot Act. Attacks dealing <150 damage do nothing at all. ≥150 removes Freeze and passes the excess. **Any Fire damage** removes Freeze with no damage or effects. 100 Ice damage at Round end. |
+| `Freeze` ✦ | Cannot Act. Attacks dealing <150 damage do nothing at all. ≥150 removes Freeze and passes the excess. **Any Fire damage** removes Freeze with no damage or effects. 100 Ice damage at Round end. The hit that breaks it removes it, and a Fire hit lands none of its attack's effects (#258, §46.4-SF; it stayed on before). |
 | `Crystalfreeze` ✦ | As Freeze, but **no Fire clause**. 100 Fixed damage at Round end. |
 | `Petrify` ✦ | Cannot Act. **Buffs, debuffs and other effects have no effect.** >200 damage in one attack ⇒ immediate defeat. Cured only by `[Gold Needle]` or a removal effect of equal-or-higher Rank (Rank A+ if the source was unranked). |
 | `Slow` ✦ | MOV halved (round down). Evade rolls +2. |
@@ -283,7 +283,12 @@ by a derivative (using the derivative's duration); a derivative cannot be replac
 >   `ApplicationChance`. `rules/checks.mjs#applicationChance` computes
 >   `base + inflictBonus − resist`, so −25 raises the chance by 25 and lands on
 >   whatever the attack already carried. `chanceContribution` already scoped by
->   `effectId` and by an attack-time predicate.
+>   `effectId` and by an attack-time predicate. **That is only half** (#258
+>   reading 4): an Ice Attack that carries **no** Freeze rolls 25 by itself, a
+>   `damageTaken` handler inflicted by the attacker (`inflictedBy: victim`) on an
+>   Attack that dealt damage and does not carry Freeze (`attack:inflicts:freeze`).
+>   None of Anastasia's Ice Attacks inflicts Freeze, so with the vulnerability
+>   alone her own Soaked froze nobody.
 > - *"Total Fire Damage taken is reduced by 50%, then 'Soaked' is removed"* is an
 >   element-scoped Total Damage cut (`elementTotalDefUp`, stage 15 on the Fire share;
 >   a `Ward` until #206 reading 6) plus an `OnEvent damageTaken`. And because

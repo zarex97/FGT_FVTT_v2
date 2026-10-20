@@ -674,6 +674,11 @@ export function categoryLimitFor(ability, unit) {
  * @returns {string} `"np"`, `"spell"` or `"skill"`
  */
 function preventionActionsFor(ability) {
+  // NO ability is a Normal Attack, the one press with no Item: an `attack`,
+  // which Seal and Disable stop and Skill Seal does not. Read as a Skill, a
+  // Skill-Sealed Karna could not swing at all: *"Cannot use this ability:
+  // Prevented"*, live after Anastasia's Snegleta sealed him (#258).
+  if (!ability) return ["attack"];
   const out = [];
   // `countsForNPSeal`: a Skill that is part of a Noble Phantasm. Karna's Vasavi
   // Shakti Activation is stopped by NP Seal and not by Skill Seal (#206

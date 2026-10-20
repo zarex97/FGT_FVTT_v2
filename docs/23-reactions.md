@@ -36,6 +36,8 @@ The first prompt is the "react" rung, and it asks the defender how to meet the a
 
 The subject passed to the requirements filter must carry both the snapshot and the items, because the filter reads `system` off the items and `stance` off the snapshot (`module/rules/reactions.mjs:129-131`). The `windowSubject` function assembles this (`module/rules/reactions.mjs:129-131`).
 
+**An effect's Evade penalty is its own rule, counted once** (#258). Slow's +2 and Blind's +3 are authored on their effects and reach the roll through the defender's check plan; `evadeModifiers` added them again by hand, so one Evade read *"Blind 3"* and *"blind 3"*, and Blind's Eye of the Mind and Clairvoyance exemptions never touched the second. Immobilize authors none and stays in the hand-written list (§46.4-SG).
+
 **A Unit that cannot react has every rung closed** (#180). Pale Rider's Riding says *"cannot Evade, Block, or Counter"*, and he and the four Kagome Spirits author it as the granted ability `noReactions`. It was read only by `offeredReactions`, which drops reaction abilities, so the react rung still offered Block and Evade, and live Pale Rider Evaded Achilles. `GrantedAbility` now adds `evade`, `block` and `counter` to the Unit's `forbiddenReactions`, the list `defenderRefusals` stamps on the Process, the card filters and `process.advance` refuses. Test: `test/unit/no-reactions-rungs.test.mjs`.
 
 ### Ally reactions

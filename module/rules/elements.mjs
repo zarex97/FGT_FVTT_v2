@@ -241,8 +241,13 @@ function stampInstance(out, before, instanceId) {
 // *"when Nemo is revived due to Guts, reduce his NP Cooldown"* -- was dropped
 // before it existed as a handler, and Guts revived him with the payout unpaid
 // (#191).
+// `self:phase:` too: a Unit's Day or Night is the board's (`annotateEnvironment`,
+// read at its own panel), written after collection. Soaked's *"At the end of a
+// Day Round, the 'Soaked' effect is removed"* asked it at collection, read
+// "false", and was dropped: nothing ever dried off (#258, live).
 const DEFERRED_PREFIXES = Object.freeze([
-  "target:", "attack:", "self:inHomeBase", "self:onPlatform:", "self:inField:", "self:fieldActive:", "revival:",
+  "target:", "attack:", "self:inHomeBase", "self:onPlatform:", "self:inField:", "self:fieldActive:", "self:phase:",
+  "revival:",
 ]);
 
 /**
