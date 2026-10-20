@@ -1762,6 +1762,11 @@ export function resolveDefeat(unit, ctx, cause = "damage") {
       I.log({
         kind: "revive", unitId: unit.id, source: revival.source.source,
         amount: revival.restored, charges: revival.chargesUsed, tick: ctx.tick,
+        // What a counted source has left, for the card: God Hand's cascade
+        // burned two of its eleven on one Mana Burst and the card read only
+        // "with 47 Health" (#256, live).
+        left: typeof revival.source.charges === "number" ? Math.max(0, revival.source.charges - revival.chargesUsed) : null,
+        rolled: revival.rolled ?? [],
       }),
     ];
   }
@@ -1773,6 +1778,15 @@ export function resolveDefeat(unit, ctx, cause = "damage") {
   return [
     ...intents,
     ...(revival.source ? spendRevival(unit, revival, ctx) : []),
+    // A revival that was tried and fell short spent its charges all the same
+    // ("and so on" is an attempt): said, with its dice, or the last of God
+    // Hand's eleven went with no word (#256, live).
+    ...(revival.source && revival.chargesUsed > 0 ? [I.log({
+      kind: "reviveFailed", unitId: unit.id, source: revival.source.source,
+      amount: 0, charges: revival.chargesUsed, rolled: revival.rolled ?? [], overkill: revival.overkill ?? 0,
+      left: typeof revival.source.charges === "number" ? Math.max(0, revival.source.charges - revival.chargesUsed) : null,
+      tick: ctx.tick,
+    })] : []),
     // Who killed it, when anything did (#27, ADR 0002). `ctx.killerId` is set
     // by the attack path and absent from every sweep, which is the right
     // answer: a Unit that ran out of Sustainability was killed by nobody and

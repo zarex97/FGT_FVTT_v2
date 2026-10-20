@@ -199,6 +199,41 @@ describe("God Hand", () => {
       expect(recorded[0]).toMatchObject({ unitId: "herc", abilityId: "godHand", count: 3 });
     });
 
+    // Pressed live (#256): a Mana Burst into a Heracles at 1 burned two of
+    // God Hand's eleven, and the card read only "with 47 Health".
+    it("tells the card how many it spent and how many are left", async () => {
+      const entry = resolveDefeat(unitAtZero(), ctx).find((i) => i.t === "log" && i.entry?.kind === "revive").entry;
+      expect(entry).toMatchObject({ charges: 3, left: 8 });
+
+      const { revivalCard } = await import("../../module/engine/revival-report.mjs");
+      const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
+      const t = (key, data = {}) => lang[key].replace(/\{(\w+)\}/g, (_, k) => String(data[k]));
+      expect(revivalCard(entry, () => "Berserker", () => "God Hand: Twelve Labors", t))
+        .toContain("Uses spent: 3; 8 left.");
+      // A source with no count says nothing of uses.
+      expect(revivalCard({ unitId: "herc", source: "bc", amount: 40, charges: 1, left: null }, () => "Berserker", () => "Battle Continuation", t))
+        .not.toContain("Uses spent");
+    });
+
+    // Pressed live (#256): Karna's Counter left 70 over, God Hand's last use
+    // rolled under it, and the only line was "Berserker is defeated by Lancer."
+    it("says a revival that fell short, with its dice, and the charge it burned", async () => {
+      const lastUse = { ...unitAtZero(), revivals: unitAtZero().revivals.map((r) => ({ ...r, charges: 1 })) };
+      const intents = resolveDefeat(lastUse, { tick: 0, overkill: 70, rolls: { "revival:godHand:0": 60 } });
+      expect(intents).toContainEqual(expect.objectContaining({ t: "defeat", unitId: "herc" }));
+      const failed = intents.find((i) => i.t === "log" && i.entry?.kind === "reviveFailed")?.entry;
+      expect(failed).toMatchObject({ charges: 1, left: 0, rolled: [60], overkill: 70 });
+
+      const { revivalCard } = await import("../../module/engine/revival-report.mjs");
+      const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
+      const t = (key, data = {}) => lang[key].replace(/\{(\w+)\}/g, (_, k) => String(data[k]));
+      expect(revivalCard(failed, () => "Berserker", () => "God Hand: Twelve Labors", t))
+        .toBe(`<div class="fgt-card fgt-card--revival"><p>God Hand: Twelve Labors could not bring Berserker back: 70 damage was left over. Rolled: 60. Uses spent: 1; 0 left.</p></div>`);
+      // A revival that worked names its dice too.
+      const ok = resolveDefeat(unitAtZero(), ctx).find((i) => i.t === "log" && i.entry?.kind === "revive").entry;
+      expect(revivalCard(ok, () => "Berserker", () => "God Hand: Twelve Labors", t)).toContain("Rolled: 100, 100, 100.");
+    });
+
     it("still records one for a revival that spends a single charge", () => {
       const single = resolveDefeat(unitAtZero(), { tick: 0, overkill: 0, rolls: { "revival:godHand:0": 100 } });
 

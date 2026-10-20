@@ -130,8 +130,22 @@ function watermarks(actor, value) {
 function watchedFractions(actor) {
   /** @type {Set<number>} */
   const out = new Set();
-  for (const item of actor.items ?? []) {
-    for (const req of item.system?.requirements ?? []) {
+  for (const item of actor.items ?? []) for (const f of restoredFractionsOf(item)) out.add(f);
+  return [...out];
+}
+
+/**
+ * The Health fractions one ability's "restored back to above X since the last
+ * activation" clause asks about.
+ *
+ * @param {object} item
+ * @returns {number[]}
+ */
+function restoredFractionsOf(item) {
+  /** @type {Set<number>} */
+  const out = new Set();
+  {
+    for (const req of item?.system?.requirements ?? []) {
       if (req?.kind === "healthRestoredSince") out.add(req.fraction ?? 0.5);
     }
     // Battle Continuation states it on the revival rather than as a
@@ -144,7 +158,7 @@ function watchedFractions(actor) {
     // a key no content writes, so the half-Health crossing was never recorded
     // and the gate refused every revive after the first: Battle Continuation
     // worked once a match (#184).
-    for (const el of item.system?.passiveRules ?? []) {
+    for (const el of item?.system?.passiveRules ?? []) {
       if (el?.revive?.healthRestoredSince) out.add(el.revive.healthRestoredSince);
       if (el?.key === "RevivalSource" && el.requiresHealthRestoredSince) out.add(el.requiresHealthRestoredSince);
     }
@@ -916,6 +930,16 @@ export function worldIO() {
           // whole-match bookkeeping -- and never cleared.
           ...(item.system?.expendsPermanently ? { "system.expended": true } : {}),
         });
+        // "...restored back to above half its maximum value at least once
+        // SINCE the last activation." A crossing is stamped by its tick, and so
+        // is the activation, so a Unit above half that fell and was revived in
+        // the same Turn read as restored since: Battle Continuation revived
+        // Heracles twice at tick 11 with no restore between (#256, live). The
+        // activation wipes the mark instead; only a crossing after it counts.
+        const fractions = restoredFractionsOf(item);
+        if (fractions.length > 0) {
+          await actor.update(Object.fromEntries(fractions.map((f) => [`system.healthWatermarks.-=${watermarkKey(f)}`, null])));
+        }
       }
     },
 
@@ -1556,7 +1580,7 @@ export function worldIO() {
       // A revival, said out loud. It was logged and nothing else: Divine
       // Protection brought Ozymandias back at 200 inside his Complex and the
       // attack card read "6 damage" over it (#189). Public, as a defeat is.
-      for (const e of entries.filter((x) => x?.kind === "revive")) {
+      for (const e of entries.filter((x) => x?.kind === "revive" || x?.kind === "reviveFailed")) {
         const { postRevival } = await import("./revival-report.mjs");
         await postRevival(e);
       }
@@ -2030,7 +2054,7 @@ async function conquestCardContent({ board, killer, deadMaster, claimed = new Se
 function classifyLogEntry(e) {
   const map = {
     damage: "attack", counter: "attack", normal: "attack", injury: "attack",
-    cost: "ability", revive: "ability", event: "effect", poisonStage: "effect",
+    cost: "ability", revive: "ability", reviveFailed: "ability", event: "effect", poisonStage: "effect",
     commandSpell: "commandSpell", multiServantTax: "commandSpell",
     surviveKill: "defeat", disappear: "defeat",
     // The defeat itself: logged since #182 and left out of the structured log

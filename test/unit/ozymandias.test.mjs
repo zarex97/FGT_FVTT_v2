@@ -182,7 +182,7 @@ describe("a revival says so on a card (#189)", () => {
     const { revivalCard } = await import("../../module/engine/revival-report.mjs");
     const t = (key, data) => `${key} ${JSON.stringify(data ?? {})}`;
     const html = revivalCard({ unitId: "oz", source: "rt", amount: 200 }, () => "Ozymandias", () => "Ramesseum Tentyris", t);
-    expect(html).toContain('FGT.Revival.Card {"name":"Ozymandias","source":"Ramesseum Tentyris","amount":200}');
+    expect(html).toContain('FGT.Revival.Card {"name":"Ozymandias","source":"Ramesseum Tentyris","amount":200,"overkill":0}');
   });
 });
 

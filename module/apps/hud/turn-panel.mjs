@@ -19,7 +19,7 @@
 import * as budget from "../../engine/budget.mjs";
 import { remainingMovement, effectiveMov, segmentCheck } from "../../rules/movement.mjs";
 import { currentBoard, factionOfUser, faction as factionById } from "../../engine/board.mjs";
-import { shownName } from "../../engine/public-identity.mjs";
+import { shownName, shownNameById } from "../../engine/public-identity.mjs";
 import { warRule, currentWar } from "../../engine/war.mjs";
 
 /**
@@ -70,7 +70,7 @@ export async function turnContext() {
       // segment waiting on an attack is the case a player cannot guess.
       moveBlocked: segmentCheck(u),
     })),
-    unmet: verdict.unmet,
+    unmet: forViewer(verdict.unmet, board),
     canEndTurn: verdict.ok,
     isMyTurn: controlsFaction(factionId),
     // The GM's door to THIS War's rules (`apps/war-rules.mjs`): the War of the
@@ -101,6 +101,26 @@ export const TURN_ACTIONS = Object.freeze({
   warRules: onWarRules,
 });
 
+/**
+ * The End Turn warnings as this viewer may read them.
+ *
+ * The gate reads the whole board, so a choice the OTHER side owes (Karna's
+ * opening effect, Scáthach's copies) blocks this side's Turn too, and its
+ * message named that Unit and its Skill: Player1 read *"Scáthach must pick the
+ * two Skills Wisdom of Dún Scáith copies"* about a Lancer whose True Name was
+ * hidden (Heracles audit, #256). A Unit the viewer does not own is named as
+ * every card names it, and the Skill is left out.
+ *
+ * @param {object[]} unmet
+ * @param {object|null} board
+ * @returns {object[]}
+ */
+function forViewer(unmet, board) {
+  return (unmet ?? []).map((w) => (globalThis.game?.actors?.get?.(w.unitId)?.isOwner ?? true)
+    ? w
+    : { ...w, effect: null, message: game.i18n.format("FGT.HUD.UnmetOther", { name: shownNameById(w.unitId, board) }) });
+}
+
 /** @param {PointerEvent} _event */
 async function onWarRules(_event) {
   const { WarRulesApp } = await import("../war-rules.mjs");
@@ -115,7 +135,7 @@ async function onEndTurn(_event) {
   if (!verdict.ok) {
     // Belt and braces: the button is already disabled, but a stale render
     // must not be able to skip the gate.
-    ui.notifications.warn(verdict.unmet[0].message);
+    ui.notifications.warn(forViewer(verdict.unmet, currentBoard())[0].message);
     return;
   }
   await combat.nextTurn();
