@@ -14,6 +14,7 @@ import {
 import { ROUND_RECORD } from "../domain/stamped-record.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { resolveOverpower } from "../rules/relationships.mjs";
+import { offerOverpowerSave } from "./overpower-save.mjs";
 import { remainingMovement } from "../rules/movement.mjs";
 import { currentBoard, currentRound, unitActor } from "./board.mjs";
 import * as I from "./intents.mjs";
@@ -788,20 +789,33 @@ async function toIntents(descriptors) {
         // *"A Master knocked onto the Game Board performs an Overpower roll, as
         // though Attacked by a Servant."* Logged as required and never rolled
         // until §46.4-CD. The attack path's own flip, with a Servant as the
-        // attacker; its Luck Check save is not offered here, as it is not
-        // offered on an attack either (`state.luckChecks.overpower` has no
-        // writer).
-        const master = currentBoard().units.find((u) => u.id === d.unitId) ?? { kind: "master" };
-        const roll = (await new Roll("1d100").evaluate()).total;
-        const verdict = resolveOverpower({ attacker: { kind: "servant" }, defender: master, roll });
+        // attacker, and its own save: the Master's Luck Check, asked before
+        // the coin (#111, `engine/overpower-save.mjs`).
+        const board = currentBoard();
+        const master = board.units.find((u) => u.id === d.unitId) ?? { kind: "master" };
+        const save = master.id ? await offerOverpowerSave(master, board) : null;
+        if (save) out.push(...save.spend);
+        // No coin after a passed save: there is no flip to make.
+        const roll = save?.success ? null : (await new Roll("1d100").evaluate()).total;
+        const verdict = resolveOverpower({ attacker: { kind: "servant" }, defender: master, roll, luckCheckPassed: Boolean(save?.success) });
         out.push(I.log({ kind: "overpower", unitId: d.unitId, reason: d.reason, roll, chance: verdict.chance, defeated: verdict.defeated }));
         if (verdict.defeated) out.push(I.defeat(d.unitId, "overpowered", null));
-        await ChatMessage.create({
-          content: `<div class="fgt overpower-card">${game.i18n.format(
+        const name = master.id ? shownName(master, board) : "";
+        const lines = [];
+        if (save) {
+          lines.push(game.i18n.format(save.success ? "FGT.Overpower.SavePassed" : "FGT.Overpower.SaveFailed", {
+            name, total: save.total, target: save.target, before: save.before, after: save.after,
+          }));
+        }
+        if (!save?.success) {
+          lines.push(game.i18n.format(
             verdict.defeated ? "FGT.Platform.FallOverpowered" : "FGT.Platform.FallNotOverpowered",
-            { name: master.name ?? "", roll, chance: verdict.chance },
-          )}</div>`,
-          speaker: { alias: master.name },
+            { name, roll, chance: verdict.chance },
+          ));
+        }
+        await ChatMessage.create({
+          content: `<div class="fgt overpower-card">${lines.map((l) => `<p>${l}</p>`).join("")}</div>`,
+          speaker: { alias: name },
         });
         break;
       }

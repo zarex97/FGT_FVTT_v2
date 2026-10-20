@@ -263,6 +263,17 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // (#253 reading 14). Switched on, the last word is cleared.
     await item.update({ "system.active": active, "system.toggledAt": tick, "system.endedBy": active ? null : "manual" });
 
+    // Switching a mode ON is using an ability, so the Unit has Acted this Turn
+    // (ruled 2026-10-19, #194): Mad Enhancement switched on cost its Master
+    // nothing at that Turn's end, while an Evade did. Off is not an Act.
+    if (active && clockRunning()) {
+      const [{ applyWorldIntents }, I] = await Promise.all([
+        import("../../engine/applier.mjs"),
+        import("../../engine/intents.mjs"),
+      ]);
+      await applyWorldIntents([I.markTurn(actor.id, { acted: true })], "mode:acted");
+    }
+
     // RECORD the press, for the modes that ration it. `canToggleMode` above can
     // only refuse a second switch if something wrote the first one down, and
     // this path wrote nothing: a mode that is not `pricedOnEntry` never calls

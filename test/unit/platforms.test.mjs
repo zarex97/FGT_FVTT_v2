@@ -1179,6 +1179,14 @@ describe("a fall's own numbers", async () => {
     expect(toIntents).toMatch(/resolveOverpower\(/);
     expect(toIntents).toMatch(/I\.defeat\(d\.unitId, "overpowered"/);
   });
+
+  it("offers the Master its Luck Check first, as the attack path does (#111)", () => {
+    // One offer for both doors: `engine/overpower-save.mjs`, its spend applied
+    // with the fall's intents and its pass handed to the flip.
+    expect(toIntents).toMatch(/await offerOverpowerSave\(master, board\)/);
+    expect(toIntents).toMatch(/luckCheckPassed: Boolean\(save\?\.success\)/);
+    expect(toIntents).toMatch(/out\.push\(\.\.\.save\.spend\)/);
+  });
 });
 
 // *"If a Master who is directly next to its Servant fails its Agility Check,

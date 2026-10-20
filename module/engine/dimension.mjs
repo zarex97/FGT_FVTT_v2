@@ -32,7 +32,7 @@ import { relationOf } from "../rules/relations.mjs";
 import { occupantsAt } from "../rules/movement.mjs";
 import { interiorOf, withinInterior } from "../rules/platforms.mjs";
 import { shownNameById } from "./public-identity.mjs";
-import { warRule, currentWar, isWarGM } from "./war.mjs";
+import { warRule, currentWar, isWarGM, sceneIdOfWar } from "./war.mjs";
 
 export { interiorOf, withinInterior };
 
@@ -823,19 +823,29 @@ export function landingOptions(dimension, board, { now, turnsPerRound }) {
  * `fgtDimensionExitOffer` for a placement layer to answer, and nothing listened:
  * the Storm Border never surfaced at all.
  *
+ * **This War's dimensions only.** A tick is one War's count, and several Wars
+ * run at once: every open dimension in the world was read against the Turn of
+ * whichever War changed, so War 134's Turns ran War 178's Storm Border past
+ * its 2◈ and surfaced it with nobody aboard. A dimension belongs to the War
+ * whose scene holds its Level.
+ *
  * @param {number} tick the global turn
+ * @param {object|null} [war] the War whose Turn changed
  * @returns {Promise<void>}
  */
-export async function runDimensionClock(tick) {
-  if (!isWarGM()) return;
+export async function runDimensionClock(tick, war = currentWar()) {
+  if (!isWarGM(war)) return;
 
+  const scene = game.scenes?.get?.(sceneIdOfWar(war) ?? "") ?? null;
   const open = (game.actors?.contents ?? []).filter(
     (a) => a.type === "platform" && a.system?.dimension && a.system?.activatedAt !== null
-      && a.system?.activatedAt !== undefined && a.system?.levelId,
+      && a.system?.activatedAt !== undefined && a.system?.levelId
+      // A War with no scene (from before the move) keeps reading them all.
+      && (!scene || Boolean(scene.levels?.get?.(a.system.levelId))),
   );
   if (open.length === 0) return;
 
-  const turnsPerRound = warRule("turnsPerRound");
+  const turnsPerRound = warRule("turnsPerRound", war);
   const ceiling = resolveTicks({ kind: "rounds", whole: 2, frac: null, sign: 1 }, { turnsPerRound });
 
   for (const platform of open) {

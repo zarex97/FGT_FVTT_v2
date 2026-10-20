@@ -131,6 +131,35 @@ export function breakTie(order, rerolls) {
 }
 
 /**
+ * Move one faction `by` places later among the factions still to come, once.
+ *
+ * A Delay is **spent** once it has moved its faction (ruled 2026-10-19, #82):
+ * it moves relative to the order as it stands when declared, and never again.
+ * `computeTurnOrder` re-applied every stored delay against a pending list that
+ * shrinks as factions act, so a `Delay+1` became a `Delay+N`. The factions in
+ * `frozen` (those that have acted, and the one whose Turn it is) keep their
+ * places, and the GM stays last.
+ *
+ * @param {string[]} order the order as it stands
+ * @param {string} factionId
+ * @param {number} by places later
+ * @param {Iterable<string>} frozen factions that do not move and are not passed
+ * @param {string|null} [gmId]
+ * @returns {string[]}
+ */
+export function applyDelay(order, factionId, by, frozen, gmId = null) {
+  const fixed = new Set(frozen ?? []);
+  const rest = order.filter((id) => id !== gmId);
+  const pending = rest.filter((id) => !fixed.has(id));
+  const from = pending.indexOf(factionId);
+  if (from < 0 || by <= 0) return [...order];
+  pending.splice(from, 1);
+  pending.splice(Math.min(from + by, pending.length), 0, factionId);
+  const settled = rest.filter((id) => fixed.has(id));
+  return gmId && order.includes(gmId) ? [...settled, ...pending, gmId] : [...settled, ...pending];
+}
+
+/**
  * The delays that must survive into the next round.
  *
  * Ch. 04: *"If they have already taken it, the shift applies next round."*

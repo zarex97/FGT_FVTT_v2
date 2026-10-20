@@ -126,7 +126,9 @@ describe("Instinct rolls on every Attack, before she reacts (IN.1, IN.1.fail; li
     await withSubjects(party(), async ({ world: w }) => {
       w.dice.set("d100", 95);
       w.dice.set("d20", 20);
-      const { declared } = await playAttack(w, { attacker: FOE, target: ART, react: { [ART]: ["evade", "declined", "accept", "declined", "declined"], [FOE]: ["declined", "declined"] } });
+      // No Lucky Evasion to answer: the War Rules' default difficulty,
+      // Intermediate, declines it before anybody is asked (#252).
+      const { declared } = await playAttack(w, { attacker: FOE, target: ART, react: { [ART]: ["evade", "accept", "declined", "declined"], [FOE]: ["declined", "declined"] } });
       const rolls = process.deserialize(w.messages.get(declared.processes[0].messageId).getFlag("fgt", "process")).rolls;
       const evade = rolls.find((r) => r.entryId === "evade-");
       expect(evade).toEqual(expect.objectContaining({ raw: 20 }));

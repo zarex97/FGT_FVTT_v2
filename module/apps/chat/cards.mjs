@@ -134,6 +134,13 @@ async function cardContext({
         }
       : null,
 
+    // A Luck rung declined for its Unit says why on the card, once per reason:
+    // the difficulty removed it, or a rule forbids it here (#252).
+    luckClosed: [...new Set(state.history
+      .map((h) => h.detail?.reason)
+      .filter((r) => r === "luckChecksRemoved" || r === "luckChecksBlocked"))]
+      .map((r) => game.i18n.localize(`FGT.Card.LuckClosed.${r}`)),
+
     history: state.history.map((h) => ({
       state: h.state,
       event: h.event,

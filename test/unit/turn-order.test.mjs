@@ -146,3 +146,27 @@ describe("computeTurnOrder — Delay (Ch. 25)", () => {
     expect(out.slice(0, 2)).toEqual(["a", "b"]);
   });
 });
+
+describe("applyDelay — a Delay is spent once (#82)", () => {
+  it("moves a faction still to come behind the next one, keeping who has acted and the GM", async () => {
+    const { applyDelay } = await import("../../module/engine/turn-order.mjs");
+    // a has acted, b is acting; d delays by 1 among c, d, e.
+    expect(applyDelay(["a", "b", "c", "d", "e", "gm"], "d", 1, ["a", "b"], "gm")).toEqual(["a", "b", "c", "e", "d", "gm"]);
+  });
+
+  it("does not compound: the order it returns is the order to keep", async () => {
+    const { applyDelay } = await import("../../module/engine/turn-order.mjs");
+    const once = applyDelay(["a", "b", "c", "d", "gm"], "b", 1, ["a"], "gm");
+    expect(once).toEqual(["a", "c", "b", "d", "gm"]);
+    // c then acts: nothing re-applies the Delay, so b stays ahead of d.
+    // (`computeTurnOrder` on the stored Delay moved b behind d here: RED before #82.)
+    const { computeTurnOrder } = await import("../../module/engine/turn-order.mjs");
+    expect(computeTurnOrder(["a", "b", "c", "d"], { b: 1 }, ["a", "c"], "gm")).toEqual(["a", "c", "d", "b", "gm"]);
+  });
+
+  it("never moves a faction past the GM, nor one that is frozen", async () => {
+    const { applyDelay } = await import("../../module/engine/turn-order.mjs");
+    expect(applyDelay(["a", "b", "gm"], "b", 5, ["a"], "gm")).toEqual(["a", "b", "gm"]);
+    expect(applyDelay(["a", "b", "c", "gm"], "a", 1, ["a"], "gm")).toEqual(["a", "b", "c", "gm"]);
+  });
+});

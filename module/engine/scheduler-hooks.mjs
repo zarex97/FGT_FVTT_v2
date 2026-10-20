@@ -296,8 +296,10 @@ async function onTurnChange(combat, prior, current) {
   // only his own, so this sits on the global boundary rather than inside the
   // active faction's block above. *"Nemo is forced to resurface after 2◈ Turns
   // have passed"* is the other half, and it fires here too.
+  // This War's dimensions only: another War's Turn moved War 178's Storm
+  // Border out of Imaginary Numbers Space with nobody aboard (live, 2026-10-19).
   const { runDimensionClock } = await import("./dimension.mjs");
-  await runDimensionClock(tick);
+  await runDimensionClock(tick, combat);
 
   // A channel uninterrupted -- the Hanging Gardens' "cannot Act for 3◈
   // Turns." Every unit, at every Turn's end: a channel's 3◈ counts the global
@@ -372,7 +374,13 @@ async function onTurnChange(combat, prior, current) {
   // a Turn boundary. Ch. 28's whole read side shipped with nothing creating a
   // field and nothing ending one, so a `duration` was decoration -- which for a
   // total-isolation Reality Marble means the match never ends.
-  await fields.expireFields(nextTick);
+  //
+  // Asked of the Tick that ENDED, as an effect's expiry is (ruled 2026-10-19,
+  // #200): a field authored for N◈ ends at the end of its last Turn. Handed
+  // `nextTick`, a field and an effect stamped with one expiry ended a Turn
+  // apart, the field at the START of Turn E. A scheduled forced end keeps its
+  // delay: it is stamped and read on the same Tick.
+  await fields.expireFields(tick);
   // Terrain a `zone` phase painted, on the same boundary and for the same
   // reason: a `duration` nothing sweeps is decoration. Only PAINTED areas
   // carry an expiry, so a GM's hand-drawn terrain is never touched.
@@ -768,10 +776,17 @@ async function advanceGrail(combat, board) {
 
   const victory = checkVictory({ ...board, grail: { ...board.grail, contest: result.contest } });
   if (!victory) return;
+  // Once per War: a won War announced itself again at every Round's end
+  // (found live 2026-10-19, two "Every rival has fallen." cards 13 minutes apart).
+  if (combat.getFlag?.("fgt", "victory")) return;
+  await combat.setFlag?.("fgt", "victory", { outcome: victory.outcome, faction: victory.faction ?? null });
 
+  // The faction's NAME: the card printed its id, "Victory goes to faction-1".
+  const { factions } = await import("./board.mjs");
+  const winner = victory.faction ? (factions(combat).find((f) => f.id === victory.faction)?.name ?? victory.faction) : null;
   await ChatMessage.create({
     content: `<h2>${game.i18n.localize(`FGT.Victory.${victory.outcome}`)}</h2>`
-      + (victory.faction ? `<p>${game.i18n.format("FGT.Victory.faction", { faction: victory.faction })}</p>` : ""),
+      + (winner ? `<p>${game.i18n.format("FGT.Victory.faction", { faction: foundry.utils.escapeHTML(winner) })}</p>` : ""),
   });
   Hooks.callAll("fgtVictory", victory);
 }

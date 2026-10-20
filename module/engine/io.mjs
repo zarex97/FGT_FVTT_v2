@@ -1177,6 +1177,8 @@ export function worldIO() {
         const { postDefeatCard } = await import("./defeat-card.mjs");
         await postDefeatCard(unitId, killerId);
       }
+      // ...then what the Conquest it decided did with its Servants (#179).
+      await postConquestCard(unitId);
       // A Structure is destroyed, not left lying: *"Only Masters can destroy a
       // Bloodmark, and it is done by simply Attacking it."* A broken mark stayed
       // on its panel under a skull (#188). Nothing reads a defeated Structure.
@@ -1898,6 +1900,7 @@ async function resolveConquest(deadMasterId, killerId) {
       kind: "contract", event: "conquestDeclined",
       killerId, deadMasterId, reason: out.reason,
     });
+    conquestCards.set(deadMasterId, await conquestCardContent({ board, killer, deadMaster, declined: out.reason }));
     return new Set();
   }
 
@@ -1930,7 +1933,84 @@ async function resolveConquest(deadMasterId, killerId) {
       });
     }
   }
+  if (claimed.size > 0) conquestCards.set(deadMasterId, await conquestCardContent({ board, killer, deadMaster, claimed, out }));
   return claimed;
+}
+
+/**
+ * Conquest cards decided and not yet posted, by dead Master: the Conquest is
+ * decided before the Servants are freed, and so before the defeat card, which
+ * it follows on the chat log (`postConquestCard`).
+ * @type {Map<string, object|null>}
+ */
+const conquestCards = new Map();
+
+/**
+ * Post the Conquest card a Master's defeat decided, after its defeat card.
+ * @param {string} deadMasterId
+ * @returns {Promise<void>}
+ */
+async function postConquestCard(deadMasterId) {
+  const card = conquestCards.get(deadMasterId);
+  conquestCards.delete(deadMasterId);
+  if (card) await ChatMessage.create(card);
+}
+
+/**
+ * The card a Conquest posts, or its refusal: every player reads who changed
+ * sides, to which Master, and where the dead Master's Command Spells went.
+ * Built while the board still shows the Servants under the dead Master.
+ *
+ * The contract was written and logged and said nowhere: Yan Qing, conquered by
+ * Saber's Master, turned up on Blue's Turn with the only line on the chat log
+ * *"Master of Assassin of Red is defeated by Saber."* (#179, live). A refusal
+ * is a rule too, and a player will otherwise assume the system missed it.
+ *
+ * @param {object} args
+ * @param {object} args.board the board before the contract
+ * @param {object} args.killer
+ * @param {object} args.deadMaster
+ * @param {Set<string>} [args.claimed] the Servant ids conquered
+ * @param {object} [args.out] `conquestContract`'s result
+ * @param {string} [args.declined] the refusal's reason
+ * @returns {Promise<object|null>} the message's data, or null for nothing to say
+ */
+async function conquestCardContent({ board, killer, deadMaster, claimed = new Set(), out = null, declined = null }) {
+  const { shownName } = await import("./public-identity.mjs");
+  const { factions } = await import("./board.mjs");
+  const escape = foundry.utils.escapeHTML;
+  const named = (id) => escape(shownName(resolve(id), board));
+  // A legion is one Servant for its Contract: one line, under its first body.
+  const lines = [];
+  if (declined) {
+    const theirs = (board?.units ?? []).filter((u) => u.masterId === deadMaster.id && u.kind === "servant");
+    if (theirs.length === 0) return null;
+    const servants = [...new Set(theirs.map((u) => named(u.id)))].join(", ");
+    const key = `FGT.Conquest.Declined.${declined}`;
+    lines.push(game.i18n.format(game.i18n.has?.(key) === false ? "FGT.Conquest.Declined.other" : key, {
+      killer: escape(shownName(killer, board)), servants,
+    }));
+  } else {
+    const seen = new Set();
+    for (const d of out.descriptors) {
+      if (d.kind !== "setContract" || !claimed.has(d.unitId)) continue;
+      const servant = board.units.find((u) => u.id === d.unitId);
+      const pool = servant?.legionKey || d.unitId;
+      if (seen.has(pool)) continue;
+      seen.add(pool);
+      const master = resolve(d.masterId);
+      const side = factions().find((f) => f.id === master?.system?.factionId)?.name ?? "";
+      const spells = out.descriptors.find((g) => g.kind === "grantCommandSpells" && (g.servantId === d.unitId || g.servantId === pool))?.count ?? 0;
+      lines.push(game.i18n.format("FGT.Conquest.Claimed", {
+        servant: named(d.unitId), master: named(d.masterId), side: escape(side), spells,
+      }));
+    }
+  }
+  if (lines.length === 0) return null;
+  return {
+    content: `<div class="fgt-card fgt-card--conquest">${lines.map((l) => `<p>${l}</p>`).join("")}</div>`,
+    flags: { fgt: { conquest: { deadMasterId: deadMaster.id, claimed: [...claimed], declined } } },
+  };
 }
 
 /**
