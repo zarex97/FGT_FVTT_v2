@@ -231,7 +231,8 @@ once the field is deployed) and when a copier's token enters a war already under
 listener). The GM's list opens by itself, and again on the GM's load while a pick is owed. `system.copyPick` holds
 `{due, poolIds}`: no Turn ends while any Unit on the board owes one (`rules/budget.mjs#copyPicksOwed`), and the pool
 is the other Servants on the field at that moment, the only ones a pick or a GM's redo offers. Only the GM opens the
-list from the sheet or the bar.
+list from the sheet or the bar. The list is the canvas's board, so a GM looking at another scene gets no list but a
+line to open the War's scene, and the offer redraws on `canvasReady` (#256, §46.4-RV).
 
 **What a copy is.** Servants' Skills only (`copyCandidates` keeps `kind: "servant"`). A copy takes Scáthach's A+ and
 `4◈-⅓◈`, and carries its source's use (`carriedUse`: window, targeting, damage, phases) minus its rank, cooldown,

@@ -5241,6 +5241,56 @@ and `civilian`. `RELATION_IDS` (`rules/targeting/vocabulary.mjs`) is now checked
 `resolve.mjs`'s *"Good-aligned Servants will not use an AoE Noble Phantasm with a Civilian in range"* read `moral`, so
 it could never trip. Its test built the same invented shape. No content authors the limit yet. Ch. 20.
 
+### RT. The bar read the world's first-Round rule, not the War's — **fixed** (#256)
+
+**Reached: Heracles's first Attack.** War *Heracles Audit* was set up with `noAttackRound: 0`, and every Attack slot
+greyed *"no attacks are permitted during the first Round"*: `engine/budget.mjs#affordable` and `#endTurnVerdict`
+read `game.settings.get("fgt", "noAttackRound")`, while the preflight read `warRule`. Both read the War now; a sweep
+of every `settings.get("fgt", <War Rule>)` found no other. Ch. 34.
+
+### RU. An End Turn warning named the other side's hidden Servants — **fixed** (#256)
+
+**Reached: Red's Round 1.** The gate reads the whole board (#204 reading 8, #206 reading 3), so Blue's owed choices
+blocked Red's Turn, and Red's player read *"Scáthach must pick the two Skills Wisdom of Dún Scáith copies"* and
+*"Karna must choose which effect a Skill starts with"*. `apps/hud/turn-panel.mjs#forViewer` names a Unit the viewer
+does not own as every card does and leaves the Skill out (`FGT.HUD.UnmetOther`). Ch. 34.
+
+### RV. The copy offer listed the board the GM was looking at — **fixed** (#256)
+
+**Reached: Scáthach's Wisdom of Dún Scáith at the War's build.** The GM was on another scene, and the offer read
+*"Nothing on the field can be copied"* over a pool of three Servants. `engine/copy.mjs#offerCopies` returns no list for
+a copier not on the canvas's board, the dialog says to open the War's scene, and `canvasReady` redraws it. Ch. 17.
+
+### RW. Every prompt on a card ran on the card's first prompt's clock — **fixed** (#256)
+
+**Reached: Karna's Counter against Heracles.** Offered (`counter: {available: true}`) and declined unseen three
+times: `promptStartedAt` was stamped once per card, at the reaction, and never moved, so a Counter reached after two
+15 s Command Spell windows had expired before it was drawn. The `updateChatMessage` hook re-armed the timer "because
+the old deadline is meaningless" and re-read the same stamp. The clock is keyed to its prompt now
+(`engine/await-timeout.mjs#promptKey`). Every later prompt on a card was exposed: a Counter, a Lucky Hit, an Injury's
+Command Spell offer. Ch. 23.
+
+### RX. A crossing in the Turn of the activation reopened Battle Continuation — **fixed** (#256)
+
+**Reached: BC.p2.half.** *"Restored back to above half … at least once since the last activation"* compared a
+crossing's tick with the activation's, and a Unit above half that fell and came back in one Turn had both at the same
+tick: the gate read open with no restore. `engine/io.mjs#recordUse` wipes the mark when the ability fires. Rho Aias
+asks the same question and is covered by the same write. Ch. 06.
+
+### RY. A mode that never comes off stayed off after a Command Spell — **fixed** (#256)
+
+**Reached: ME.cs.re.** The lapse back on is `reconcileForcedModes`, which re-arms a mode held by a compulsion or a
+`ForceMode`; a `cannotDeactivate` mode has neither, so Heracles's Mad Enhancement stayed off for good after its 1◈
+(Bravery live with it). `rules/modes.mjs#lapsedConstantModes` re-arms one a suspension switched off, with a card.
+Ch. 24.
+
+### RZ. A counted revival's spend, its dice and its failure were said nowhere — **fixed** (#256)
+
+**Reached: God Hand's cascade and its last use.** The revival card read only the Health: a cascade that burned two of
+eleven said nothing of it, and an attempt that fell short (charges spent, *"and so on"* is an attempt) posted no
+line at all. The `revive` entry carries the dice and what a counted source has left; a failed one is `reviveFailed`
+with the damage left over (`engine/revival-report.mjs`). Ch. 37.
+
 ---
 
 ---
@@ -7203,3 +7253,40 @@ was staged and pressed, never left to a test. Evidence per Clause on #253.
   for Bab-ilu, where each DU rolls. For his NP, he rolls. The rows land right.
 - **His Master's death handed him to the killer's side** (the Conquest rule, #190): Excalibur's Tails press also
   defeated the Master of Assassin, and Master of Saber claimed him. As ruled; the NP presses moved to the ◈ 8 War.
+
+## 46.42 Heracles — the Servant who dies twelve times
+
+**71 Clauses** (#256, audited 2026-10-19), the second audit of the first Servant this chapter ever audited: built since
+§46.4-A, C and J, never held against his sheet Clause by Clause. Eight readings ruled by grilling 2026-10-19; reading
+5 overturned the recommendation. Spec `docs/superpowers/specs/2026-10-19-heracles-clauses.md`.
+
+### 46.42.1 What he cost the engine
+
+| Finding | Where |
+|---|---|
+| "That Attack" is told apart wherever the board can: a Mana Burst, a Riding Attack and a Counter each their own record (reading 5) | `rules/revival.mjs#attackIdentity`, `#identityOfProcess` |
+| A recorded Attack's Instakill leaves him at 1, as its damage does (reading 6) | `engine/landing.mjs#landEffect` |
+| After the Command Spell's 1◈ his rage is on again by itself (reading 2) | §46.4-RY |
+| Nine Lives carries its whole name, *Shooting the Hundred Heads* | `abilities/heracles-nine-lives.yml` |
+| General: §46.4-RT to RZ | |
+
+### 46.42.2 What was pressed, and how
+
+**71 Clauses: all `Pressed` or `Observed`, none left to tests.** Heracles, Player1's, against Arturia, Scáthach and Karna
+on *Heracles Audit* (Expert, ◈ 3); Player2 played Blue from its own client. Player1 pressed his Skills and NP from his
+bar and his reactions on the cards, his Master's Command Spells from the Master's bar; Player2 pressed every Attack on
+him. Every revival was reached by a real Attack (or a Burn tick) into a Heracles staged low: Undying, a staged Guts,
+Battle Continuation, then God Hand's cascade, its record, its Instakill floor, and its eleventh use falling short.
+The differentials for Mad Enhancement were read twice, under it and through the Command Spell's 1◈ without it.
+Staged and named on #256: Health, cooldowns, God Hand's ledger and count, Turn records between Attacks, token
+positions (his Master moved out of a ride's way, Heracles away from his Master), dice for Gáe Bolg's Instakill, No
+Buff, and Conquest's sparing off for clause 5.
+
+**Eight defects the presses found, all fixed** (each a Surprise of 2026-10-19): §46.4-RT to RZ, and the recorded
+Instakill that spent a God Hand use.
+
+### 46.42.3 Left open
+
+- **The revival card sits above the Burn line that caused it** at a Round's end: both are said, in the wrong order.
+- **Every revival card names its source**, God Hand's included, on a card every player reads, as the system names
+  every ability; closed information covers the Unit's name, not its abilities'.

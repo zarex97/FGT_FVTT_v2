@@ -151,7 +151,9 @@ An `opensDialog` ability on the bar opens its dialog through `FGTActorSheet.open
 
 `engine/budget.mjs#affordable` asks `attackForbiddenThisRound` before anything else, so in the first Round every
 Attack slot, Spells and Noble Phantasms included, greys with *"no attacks are permitted during the first Round"*. The
-Mark stays open. A refused declaration's toast drops the engine's `FGT | ` prefix (`FGTActorSheet.declareAttack`).
+Mark stays open. The Round is the War's `noAttackRound`, as the preflight reads it, never the world setting (#256,
+§46.4-RT). The End Turn warnings read the whole board, so the other side's owed choice blocks this side's Turn; a Unit
+the viewer does not own is named as every card names it, without its Skill (`turn-panel.mjs#forViewer`, §46.4-RU). A refused declaration's toast drops the engine's `FGT | ` prefix (`FGTActorSheet.declareAttack`).
 
 ### Every refusal has words (#206 LS)
 

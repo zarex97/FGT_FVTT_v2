@@ -532,6 +532,13 @@ clamped from 76 to 29 to leave him at exactly 1; a fresh attacker then burned a 
 and with *Indomitable* up, `Undying` beat both of them (375 − 147 overkill = 228), was consumed,
 and *Indomitable* paid out its `Atk Up 30` on the revival.
 
+**Audited 2026-10-19 (#256, Ch. 46 §46.42): 71 Clauses, all Pressed or Observed.** Three readings changed what
+shipped. God Hand records each Attack the board can tell apart: a plain Normal Attack is the attacker's, while a Mana
+Burst, a Riding Attack and a Counter are each their own (reading 5, overturning the one-identity reading). A recorded
+Attack's Instakill leaves him at 1, as its damage does (reading 6). After the Command Spell's 1◈ Mad Enhancement is on
+again by itself, and Bravery's Atk Up (STR) runs out its span under it (readings 2, 3). Nine Lives carries its whole
+name.
+
 ---
 
 ## D.14 Aggregate — the original twelve

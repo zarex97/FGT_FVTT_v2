@@ -209,6 +209,18 @@ describe("God Hand's ledger", () => {
     expect(attackIdentity({}, "karna")).toBe("normal:karna");
   });
 
+  it("keeps a Mana Burst, a Riding Attack and a Counter apart from a plain Normal Attack (#256 reading 5)", () => {
+    // Each counts as a Normal Attack elsewhere; here each is its own record.
+    const plain = attackIdentity({}, "arturia");
+    const burst = attackIdentity({ abilityId: "manaBurst" }, "arturia");
+    const ride = attackIdentity({ ride: { panels: 3 } }, "arturia");
+    const counter = attackIdentity({}, "arturia", { counter: true });
+    expect(new Set([plain, burst, ride, counter]).size).toBe(4);
+    expect(ride).toBe("riding:arturia");
+    expect(counter).toBe("counter:normal:arturia");
+    expect(attackIdentity({ abilityId: "manaBurst" }, "arturia", { counter: true })).toBe("counter:ability:manaBurst");
+  });
+
   it("floors an attack it has already survived", () => {
     const unit = {
       abilities: [{ id: "gh", name: "God Hand", recordedAttacks: ["ability:vasavi"] }],

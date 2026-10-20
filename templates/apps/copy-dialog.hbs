@@ -7,6 +7,9 @@
     {{localize "FGT.Copy.PreferredOnly"}}
   </label>
 
+  {{#if offBoard}}
+    <p class="fgt-copy__empty">{{localize "FGT.Copy.OffBoard"}}</p>
+  {{/if}}
   {{#if isEmpty}}
     <p class="fgt-copy__empty">{{localize "FGT.Copy.Nothing"}}</p>
   {{/if}}

@@ -17,6 +17,7 @@
 import { emptyBudget, canConsume, consume, canEndTurn, summarize, ACTION_KINDS, poolFor } from "../rules/budget.mjs";
 import { attacksPermitted, attackForbiddenThisRound } from "../rules/environment.mjs";
 import { currentMoment } from "./board.mjs";
+import { warRule } from "./war.mjs";
 
 const FLAG = "budgets";
 
@@ -52,8 +53,11 @@ export function affordable(combat, unit, action) {
   // asks, so every Attack slot greys with the rule as its tooltip instead of
   // opening a targeting session the declaration then refuses (#204 LJ, ruled
   // 2026-10-14). The preflight keeps its own gate as the backstop.
+  // The War's own rule, not the world setting: a War set up with the ban off
+  // greyed every Attack slot in Round 1 while its preflight allowed the press
+  // (Heracles audit, #256).
   if (combat?.started && attackForbiddenThisRound(action, currentMoment().round ?? 1,
-    game.settings?.get?.("fgt", "noAttackRound") ?? 1)) {
+    warRule("noAttackRound", combat ?? undefined))) {
     return { ok: false, reason: FIRST_ROUND_REASON };
   }
   // An Attack made outside its owner's Turn is not checked against the attack
@@ -220,7 +224,7 @@ export function endTurnVerdict(combat, factionId, units) {
   // The whole board beside the faction's own: a pursuit measures against a
   // target on the other side, and cannot demand an Attack the first Round
   // forbids (#190).
-  const noAttackRound = game.settings?.get?.("fgt", "noAttackRound") ?? 1;
+  const noAttackRound = warRule("noAttackRound", combat ?? undefined);
   const attacksForbidden = Boolean(combat?.started) && !attacksPermitted(combat.round ?? 1, noAttackRound);
   return canEndTurn(units.filter((u) => u.factionId === factionId), { units, attacksForbidden });
 }
