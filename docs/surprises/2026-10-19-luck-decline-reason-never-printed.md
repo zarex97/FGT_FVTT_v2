@@ -3,7 +3,8 @@ id: 2026-10-19-luck-decline-reason-never-printed
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** the Lucky Evasion rung declined on Intermediate tells the player why, as its comment says: *"a player who expected the option is owed the sentence saying why it is gone."* And a Contest pressed on Intermediate rolls nothing.
 **Actual:** the reason `luckChecksRemoved` was written into the ladder's history and nothing read it: the card showed only `s24_luckyEvasion → declined` inside the collapsed Ladder. And the `contest` answer path rolled Luck and charged 1 Luck whatever the difficulty, so the only guard was a timeout declining it first.

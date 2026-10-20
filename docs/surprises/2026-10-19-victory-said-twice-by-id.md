@@ -3,7 +3,8 @@ id: 2026-10-19-victory-said-twice-by-id
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** a War won by elimination posts one card naming the winning faction.
 **Actual:** War 157's chat log read *"Every rival has fallen. Victory goes to faction-1."*, and the same card again 13 minutes later at the next Round's end.

@@ -3,7 +3,8 @@ id: 2026-10-19-lost-run-stalled-at-injury
 found: live press
 kind: write-before-store
 status: fixed
-reviewed: false
+reviewed: true
+pattern: write-before-store
 ---
 **Expected:** with 12f979b2 writing the held rung before holding it, a GM reload in the window after the damage leaves a card past the damage, and the attack finishes when the GM is back (the reading I gave #250: "likely fixed, never pressed").
 **Actual:** the damage landed once (Medea 1973 → 1811), and the card then held `injury` for good: a minute after the reload the ladder still read `declare, missCheck, react, damage`, no Injury Roll, no facing, no Counter.

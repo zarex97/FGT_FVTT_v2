@@ -3,7 +3,8 @@ id: 2026-10-19-object-update-merged
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** `combat.update({"system.delays": {}})` empties the stored Delays at the Round's start.
 **Actual:** after the new Round began, `system.delays` still read `{"faction-1": 1}`, the Delay just spent.

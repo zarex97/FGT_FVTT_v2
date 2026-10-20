@@ -3,7 +3,8 @@ id: 2026-10-19-delay-moved-nobody
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** #82 said a Delay compounds within its Round and that a carried Delay misses the next Round's opening order; building the ruling, a Delay declared on the HUD moves its faction somewhere.
 **Actual:** it moved nobody, ever. The HUD's *Declare* is offered to the faction whose Turn it is; `delayFaction` stored it and recomputed `system.turnOrder`, which `_onUpdate` never applies mid-Round; `markTurnTaken` then marked that faction as having acted, so the carried Delay reached `rollTurnOrder`, which computed the opening order with `{}` and stored the Delay again. Every Round it was carried and never read.
