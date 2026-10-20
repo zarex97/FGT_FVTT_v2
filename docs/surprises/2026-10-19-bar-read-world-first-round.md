@@ -3,7 +3,8 @@ id: 2026-10-19-bar-read-world-first-round
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** War *Heracles Audit*, set up with `noAttackRound: 0`, lets Heracles Attack in Round 1, as its preflight does.
 **Actual:** every Attack slot on Player1's bar greyed: *"Attack — no attacks are permitted during the first Round"*, and *"Nine Lives — no attacks are permitted during the first Round"*.

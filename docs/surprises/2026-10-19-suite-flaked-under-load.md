@@ -3,7 +3,8 @@ id: 2026-10-19-suite-flaked-under-load
 found: tooling
 kind: suite-flakes-under-load
 status: open
-reviewed: false
+reviewed: true
+pattern: suite-flakes-under-load
 ---
 **Expected:** `npm test` green, as at #255's merge (7462 passed).
 **Actual:** with Foundry, the debug Chrome's three tabs and a CDP poller running, two full runs failed 24 and 25 tests across `dioscuri-209-arena`, `dioscuri-209-rulings`, `danzo-249-arena`, `hassan-226-arena` and `nursery-247-rulings`: *"Test timed out in 5000ms"*, *"resolveAttack is not a function"*, *"The world saw what Foundry would not have said"*; a third, capped at six workers, failed one in `scathach-204` (*"Cannot read properties of undefined (reading 'on')"* in `FGTSocket.initialize`). Each file passes alone and the five together; `vitest run --maxWorkers=4` passed 7477 of 7477.

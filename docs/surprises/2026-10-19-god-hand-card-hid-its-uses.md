@@ -3,7 +3,8 @@ id: 2026-10-19-god-hand-card-hid-its-uses
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** a God Hand cascade that spends two of his eleven uses says so on the card a player reads.
 **Actual:** Arturia's Mana Burst into Heracles at 1 Health: God Hand's `timesUsed` 0 → 2, and the only line was *"Berserker is defeated and revived by God Hand: Twelve Labors, with 47 Health."*

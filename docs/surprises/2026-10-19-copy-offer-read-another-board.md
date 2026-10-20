@@ -3,7 +3,8 @@ id: 2026-10-19-copy-offer-read-another-board
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** a War committed with Scáthach in it opens the GM's Wisdom of Dún Scáith offer listing the other Servants' Skills, as `copyPick.poolIds` already did (Heracles, Arturia, Karna).
 **Actual:** the GM read *"Nothing on the field can be copied: every Skill is a Class Skill, Rank EX, passive, or marked uncopyable."* Reopened later with the War's scene on the canvas, it listed Indomitable, Bravery, Eye of the Mind (False), Discernment of the Poor and End of Charity.

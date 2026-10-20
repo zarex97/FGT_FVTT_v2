@@ -3,7 +3,8 @@ id: 2026-10-19-counter-ran-on-reaction-clock
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** Heracles' Normal Attack on Karna, who could Counter (`counter` flag `{available: true}`), stops at the Counter rung and asks Player2.
 **Actual:** three times, the ladder read *"counter → declined"*. Watching Player2's card each second, the state went `injury` → `done` and no Counter button was ever drawn.

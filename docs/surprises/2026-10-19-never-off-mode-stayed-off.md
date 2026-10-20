@@ -3,7 +3,8 @@ id: 2026-10-19-never-off-mode-stayed-off
 found: live press
 kind: generic-path-escapes-special-case
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** reading 2 (#256): Heracles' Mad Enhancement, suspended by a Command Spell at tick 5 for 1◈, is on again at tick 8.
 **Actual:** at tick 8 `active: false`, `suspendedUntil: 8`, and nothing switched it back; Player1's bar had read *"Mad Enhancement is suspended and cannot be switched on yet."* through tick 7. Off for good, it would have left Bravery usable for the rest of the War.
