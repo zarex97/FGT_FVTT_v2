@@ -1,0 +1,30 @@
+# Dmg Boost (Gilles) -- Gilles de Rais (Saber)'s By the Holy Maiden's Side, with
+# Mad Enhancement Active: *"apply Dmg Boost (Gilles) for 1◈ Turns to himself, all
+# damage dealt by Gilles and his Horrors is increased by 30. If there is an
+# allied Jeanne d'Arc Alter within a 3 panel area of Gilles, 60 instead of 30.
+# If said Unit is standing directly next to Gilles, 90 instead of 30."*
+#
+# On HIM, and reaching "his Horrors" wherever they stand: Horrors and Elder
+# Horrors alike (#260 reading 13). The magnitude is fixed when it is applied.
+schema: 1
+id: dmgBoostGilles
+name: "Dmg Boost (Gilles)"
+description: "All damage dealt by this Unit and the Units it summoned is increased by X, flat."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: FlatDamage
+    modifierKey: dmgBoost
+    value: "@magnitude"
+  # His summons, by role and not by distance (`rules/auras.mjs`, role `summon`).
+  - key: Aura
+    radius: 0
+    relations: [ally]
+    alsoReaches: [summon]
+    recipientRoles: [summon]
+    stacking: highestOnly
+    elements:
+      - { key: FlatDamage, modifierKey: dmgBoost, value: "@magnitude" }

@@ -486,7 +486,7 @@ export function grailStrike({ grail, areaPanels, dealt, roll }) {
  */
 export const REGION_ADJACENCY = Object.freeze({
   greece: { adjacent: ["europe", "middleEast", "mesopotamia", "egypt"] },
-  europe: { adjacent: ["greece", "netherlands", "england", "middleEast", "russia"] },
+  europe: { adjacent: ["greece", "netherlands", "england", "middleEast", "russia", "france"] },
   netherlands: { adjacent: ["europe", "england"] },
   england: { adjacent: ["europe", "netherlands", "ireland"] },
   ireland: { adjacent: ["england"] },
@@ -514,6 +514,9 @@ export const REGION_ADJACENCY = Object.freeze({
   // hold. Curated like the rest: it borders India, the Far East and Russia, and
   // touches no Middle East edge, so Semiramis's counter is unchanged.
   china: { adjacent: ["india", "farEast", "russia"] },
+  // Gilles de Rais (Saber), #260. France borders Europe alone: the one edge any
+  // reading gives it, and no Middle East edge, so Semiramis's counter is unchanged.
+  france: { adjacent: ["europe"] },
   // The Moon borders nothing. Stated rather than omitted, so "no entry" and
   // "no neighbours" stay distinguishable.
   moon: { adjacent: [] },

@@ -576,7 +576,7 @@ export function canUseAbility({
     // checked -- so the requirement would never say anything new.
     ability,
   });
-  if (!met.ok) return { ok: false, reason: met.reason, cost };
+  if (!met.ok) return { ok: false, reason: met.reason, detail: met.detail ?? {}, cost };
 
   // What the use will CHARGE, which is not always the table's NP cost: an
   // ability's own cost may supersede it. Enki's Master pays half his maximum

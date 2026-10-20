@@ -283,6 +283,9 @@ function inRecipientRoles(roles, source, recipient, board) {
   for (const role of roles) {
     if (role === "self" && recipient.id === source?.id) return true;
     if (role === "summoner" && summonerId && recipient.id === summonerId) return true;
+    // The other way: a Unit the source conjured. Dmg Boost (Gilles): *"all
+    // damage dealt by Gilles and his Horrors is increased"* (#260 reading 13).
+    if (role === "summon" && recipient.summonerId && recipient.summonerId === source?.id) return true;
     // The summoner's Master, read off the summoner rather than off the summon:
     // a summon has no contract of its own, and `masterId` is the link the ZON
     // rules already use.

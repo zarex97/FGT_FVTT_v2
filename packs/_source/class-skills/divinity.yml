@@ -7,6 +7,13 @@ source: passive
 parameterized: [rank]
 rank: "@rank"
 description: "All damage dealt is increased by the table value, including NP."
+# Classic and Revised (#260 reading 3). Most sheets print the Classic text above;
+# Arjuna, Proto Gil, Cu Chulainn and Iskandar print the Revised one, and their
+# references say so. The War's pick decides which every bearer plays, and *As
+# printed* lets each sheet's own stand (`domain/revisions.mjs`). This was two
+# documents, this one and `divinity-fixed` (#232), until the War could choose.
+printedRevision: classic
+descriptionRevised: "All damage dealt is increased by the table value, including NP. This extra damage is dealt as Fixed Divine Damage and does not count towards the amount required for an Injury Roll."
 # Categorised as what it is. `hasCategory(unit, "divinity")` and Achilles's
 # *Andreias Amarantos* both ask "does this Unit have Divinity, and at what
 # Rank" -- and this document, the one eleven Servants carry, answered no.
@@ -17,6 +24,12 @@ passiveRules:
   - key: FlatDamage
     table: divinity
     includesNP: true
+    # *"Dealt as Fixed Divine Damage and does not count towards the amount
+    # required for an Injury Roll"*: past every modifier and the Injury snapshot
+    # (`rules/damage/pipeline.mjs` stage 16, #232 reading 16), under the Revised
+    # text only. Classic adds the same bonus as ordinary damage.
+    fixed: Divine
+    fixedUnder: revised
   - key: StatDelta
     stat: attributes
     add: [divine]

@@ -127,3 +127,8 @@ Foundry **ownership** must be kept in sync with faction assignment for a player 
 Active"*) never charged. The modes lock as they stand. A compulsion still reads the valve, so it never switches a mode on
 over a Master at 0 (`forcedModes`). Ruled 2026-10-15 by the author: a Master felled in one blow leaves the mode on at the
 defeat, and the −2◈ charges.
+
+**A mode no hand switches on** (#260 reading 2). `cannotActivate` is `cannotDeactivate`'s mirror: Gilles de Rais
+(Saber)'s Mad Enhancement starts off, `canToggleMode` refuses switching it on, and only Prelati's Encouragement's
+`setMode` phase does it, on a die that grows with each use. With `cannotDeactivate` beside it, once on it stays on for
+the War.

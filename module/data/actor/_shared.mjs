@@ -314,6 +314,13 @@ export function combatantCommon() {
     sustainabilityRemaining: new fields.NumberField({
       required: false, nullable: true, initial: null, integer: true, min: 0,
     }),
+    // Turns of Sustainability lost at every Turn's end ON TOP of the one the
+    // clock always loses. Revised Mad Enhancement clause 5: *"If this Servant's
+    // Master is defeated while ME is active, ME cannot be deactivated and its STN
+    // is reduced by 1 additional Turn at the end of every Turn"* (#260 reading
+    // 3). Written at the Master's death (`rules/relationships.mjs#onMasterDefeated`),
+    // read by `engine/scheduler.mjs#checkRemovals`.
+    sustainabilityDecay: new fields.NumberField({ required: true, nullable: false, initial: 0, integer: true, min: 0 }),
     // Reset at the start of the owning faction's turn. `movedPanels` is a
     // running total rather than a per-segment count, because Riding's two moves
     // share one MOV allowance (Ch. 19).

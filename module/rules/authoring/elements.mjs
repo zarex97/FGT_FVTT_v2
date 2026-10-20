@@ -182,6 +182,10 @@ export const ELEMENT_DESCRIPTORS = describeTable([
   ]),
 
   /* ── Stats and shape ─────────────────────────────────────────────────── */
+  entry("AlignmentOverride", "Sets its bearer's Alignment, either half, while it stands.", [
+    { key: "order", type: "text" },
+    { key: "morality", type: "text" },
+  ]),
   entry("StatDelta", "Adds to or multiplies a stat, with an optional floor.", [
     ...SCALED,
     { key: "stat", type: "text" },

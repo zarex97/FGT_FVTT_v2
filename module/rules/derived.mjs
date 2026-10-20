@@ -136,6 +136,18 @@ export function applyStatDeltas(system, statDeltas = []) {
     trace.push({ path, value: changes[path], source: d.source });
   }
 
+  // ── 2c. Words set outright ───────────────────────────────────────────────
+  //
+  // A stat that is not a number at all. Gilles de Rais (Saber): *"When Mad
+  // Enhancement is Activated, Gilles' Alignment changes from Lawful Good to
+  // Neutral Evil"* (#260 reading 4) -- `AlignmentOverride`, written here so the
+  // sheet and every board reader see one Alignment.
+  for (const d of statDeltas) {
+    if (typeof d.set !== "string") continue;
+    changes[d.stat] = d.set;
+    trace.push({ path: d.stat, value: d.set, source: d.source });
+  }
+
   for (const d of statDeltas) {
     if (typeof d.floor !== "number") continue;
     const path = normalise(d.stat);
@@ -215,6 +227,8 @@ export const MODIFIABLE_PATHS = Object.freeze([
   "luck.value", "luck.max",
   "health.value", "health.max",
   "parameters.str", "parameters.end", "parameters.agi", "parameters.mag", "parameters.luc",
+  // `AlignmentOverride` (#260 reading 4).
+  "alignment.order", "alignment.morality",
 ]);
 
 /**

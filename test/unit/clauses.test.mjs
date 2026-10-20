@@ -70,8 +70,11 @@ describe("Asterios reproduces the list his audit was run against", () => {
   // named its Clauses. A name leaves this list when its audit issue opens.
   const NOT_YET_AUDITED = [
     "Anastasia", "Chiron", "Cú Chulainn", "Diarmuid", "Durga", "Gawain", "Gilles",
-    "Gilles de Rais", "Iskandar", "Lanceturia", "Rama", "Shakespeare", "Sieg",
+    "Iskandar", "Lanceturia", "Rama", "Shakespeare", "Sieg",
     "Siegfried", "Zhang Jue",
+    // Copied in 2026-10-20, beside Gilles de Rais (Saber)'s audit (#260), as the
+    // Revised Mad Enhancement, Divinity and Presence Concealment's sheets.
+    "Darius III", "Sasaki",
   ];
 
   it("names every opening Clause in the audit programme's scope", () => {

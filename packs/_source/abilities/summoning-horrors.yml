@@ -1,0 +1,57 @@
+# Gilles de Rais, both sheets -- char_orig_sheets/Copia de Gilles de Rais.md (the
+# Saber) and Copia de Gilles.md (the Caster) print it word for word, so it is
+# authored once (#260 reading 1).
+#
+# Medea's Dragon Tooth Warriors in every mechanical respect: a Spell, a rolled
+# count, a 5x5 placed by the owner (#193 reading 13), a cooldown per Unit
+# summoned. The Horror carries the Unit-side rules (`summons/horror.yml`).
+schema: 1
+id: summoning-horrors
+name: "Summoning: Horrors"
+rank: null
+category: spell
+slug: summoningHorrors
+timing: { window: ownTurn }
+# *"Counts as Gilles Attack for the Turn"*, and so *"Can be used as a Counter"*:
+# an Attack answers a Counter (`rules/counter.mjs#answersACounter`).
+countsAsAttack: true
+# *"Cooldown: (Number of Horrors x ⅔◈) Turns"*
+cooldown: { perUnit: "⅔◈", countFrom: summonCount }
+# *"Cannot be used on the same Turn as Summoning: Elder Horror."*
+sameTurnExclusive: [summoning-elder-horror]
+requirements:
+  # *"Cannot be used if Prelati's Spellbook is on Cooldown."* Either Gilles's
+  # Spellbook; the Saber's has no Cooldown, so it never holds for him.
+  - { kind: abilityOffCooldown, abilityIds: [gilles-saber-prelatis-spellbook, gilles-prelatis-spellbook] }
+  # The Spellbook *"allows the use of the Spells"*, on its own terms: the
+  # Saber's only while Mad Enhancement is Active (#260 reading 11).
+  - { kind: abilityAllows, abilityIds: [gilles-saber-prelatis-spellbook, gilles-prelatis-spellbook] }
+description: |
+  Spell. Can be used as a Counter. Roll a four-sided die. The number rolled is the number of
+  Horrors summoned by Gilles (they will appear within a 5x5 panel area around Gilles). Counts as
+  Gilles' Attack for the Turn.
+  Horrors have 100 Health, 10 Agility, 5 Luck, Range=1, MOV=3 and Base Attack (STR) is 100,
+  Detect=2 panels. Horrors have the 'Dark (Outsider)' Attribute.
+  Horrors do not count towards the number of Units that Move and/or Attack during your Turn. The
+  same Horror can only Move/Attack once per Turn.
+  When a Horror is defeated, Gilles Flips a Coin. If Heads, the defeated Horror turns into two new
+  Horrors. This effect does not activate if the Horror was defeated with Light damage or an Attack
+  that deals extra damage to 'Dark' or 'Outsider' Attribute Units.
+  Enemy Units cannot Attack Gilles or his Master if there are any Horrors directly next to them.
+  Cannot be used on the same Turn as Summoning: Elder Horror. Cannot be used if Prelati's
+  Spellbook is on Cooldown.
+  Cooldown: (Number of Horrors x ⅔◈) Turns.
+# On himself: the Spell conjures around him, and as a Counter it catches nobody
+# (`rules/counter.mjs#counterMustCatchAttacker`).
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: summon
+    spec:
+      countRoll: "1d4"
+      types: { 1: horror }
+      placement: { shape: square, size: 5, anchor: self, chooser: owner }
+      countsTowardBudget: false
+      actsOncePerTurn: true

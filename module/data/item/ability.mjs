@@ -49,6 +49,10 @@ function abilityCommon() {
     active: new fields.BooleanField({ initial: false }),
     /** Heracles cannot switch Mad Enhancement off. */
     cannotDeactivate: new fields.BooleanField({ initial: false }),
+    // ...and its mirror: a mode no hand switches ON. Gilles de Rais (Saber)'s
+    // Mad Enhancement *"cannot be used/Activated unless specific conditions are
+    // met"*: only Prelati's Encouragement's die turns it on (#260 reading 2).
+    cannotActivate: new fields.BooleanField({ initial: false }),
     /**
      * Quetzalcoatl's three Spells each end *"Cannot be used as a Counter"*.
      * `timing.window: ownTurn` does not say it -- it is documentary, and the
@@ -407,11 +411,29 @@ function abilityCommon() {
     // `engine/attack.mjs#answerRung` once the ability's phases have run.
     withdrawsFromAttack: new fields.BooleanField({ initial: false }),
 
-    // Presence Concealment that Skill Seal ends at once: *"if this Unit is
-    // inflicted with Skill Seal while PC is Active, it is immediately
-    // deactivated"*. Hundred-Faced Hassan's sheet alone states it, so it is a
-    // parameter of his reference to the shared class skill (#226 reading 16).
+    // A Skill that Skill Seal ends at once UNDER ITS REVISED TEXT: *"if this
+    // Unit is inflicted with Skill Seal while PC/ME is Active, it is immediately
+    // deactivated"*. Hundred-Faced Hassan's and Sasaki's Presence Concealment,
+    // Darius III's Mad Enhancement: the Revised wording of both (#260 reading
+    // 3d), so both templates carry it and the War picks whether it holds
+    // (`engine/concealment.mjs#attachSealEnds`).
     endsOnSkillSeal: new fields.BooleanField({ initial: false }),
+
+    // Which text of a revisable shared Skill this bearer's sheet prints:
+    // Classic or Revised (`domain/revisions.mjs`). Read under a War's *As
+    // printed*; under Classic or Revised the War's pick wins (#260 reading 3b).
+    printedRevision: new fields.StringField({
+      required: false, nullable: true, initial: null, choices: ["classic", "revised"],
+    }),
+
+    // *"…cannot be negated once Activated"*: Skill Seal does not end it, even
+    // under a Revised text that says it would. Gilles de Rais (Saber)'s Mad
+    // Enhancement, his sheet's own sentence (#260 reading 3j).
+    unsealable: new fields.BooleanField({ initial: false }),
+
+    // The Revised wording of the ability's description, printed on the sheet
+    // when the War plays the Revised text (#260 reading 3f).
+    descriptionRevised: new fields.StringField({ required: false, nullable: true, initial: null }),
 
     // A price in bodies, paid once the Combat Phase is over: Zabaniya's
     // *"Then, reduce the number of Hassans by 4d6"* (#226 reading 19). A dice

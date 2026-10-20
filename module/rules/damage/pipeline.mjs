@@ -27,6 +27,7 @@ import { lookupNumber, lookup } from "../../domain/tables.mjs";
 import { currentHealth } from "../../domain/health.mjs";
 import { categoryRankOf } from "../items.mjs";
 import { test as testPredicate } from "../predicate.mjs";
+import { revisionOf } from "../../domain/revisions.mjs";
 
 /** Block's base percentage. A constant, not a dice entry (Ch. 41 Q1). */
 export const BLOCK_BASE_PERCENT = 25;
@@ -793,7 +794,7 @@ function stage7FlatAttackBonuses(s) {
     // count towards the amount required for an Injury Roll"* (#232 reading 16).
     // Collected and gated here, so a bypass or an unrolled chance still drops
     // it; only what happens to the number afterwards changes.
-    if (m.fixed) {
+    if (m.fixed && fixedNow(m, s.ctx)) {
       s.fixedLate = (s.fixedLate ?? 0) + value;
       const label = typeof m.fixed === "string" ? `Fixed ${m.fixed}` : "Fixed";
       s.contribute(m.key, value, `${m.source} (${label}, added after every modifier)`, "attacker");
@@ -1808,4 +1809,19 @@ class PipelineState {
  */
 function round4(n) {
   return Math.round(n * 10000) / 10000;
+}
+
+/**
+ * Is this flat bonus Fixed on this board? Always, unless it is Fixed only under
+ * one text of a revisable Skill (`fixedUnder`, Divinity's Revised wording, #260
+ * reading 3d): then the War's Classic/Revised pick, read off the board, decides,
+ * and Classic adds it as ordinary damage.
+ *
+ * @param {object} m a flat modifier
+ * @param {object} ctx the damage context
+ * @returns {boolean}
+ */
+function fixedNow(m, ctx) {
+  if (!m.fixedUnder) return true;
+  return revisionOf(m.fixedUnder, ctx?.board?.rules?.revisions) === m.fixedUnder.revision;
 }

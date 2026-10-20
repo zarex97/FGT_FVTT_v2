@@ -29,10 +29,17 @@
  * @property {{min?: number, max?: number, step?: number}} [range]
  * @property {boolean} [nullable]
  * @property {boolean} [locked] refused mid-war
+ * @property {unknown} [legacy] what a War that never stored the rule reads (the
+ *   DataModel's initial), where that differs from what a new War starts at
  * @property {boolean} [window] shown in the War rules window (default true)
  * @property {string} [name] lang key
  * @property {string} [hint] lang key
  */
+
+/** The Classic/Revised rules' three choices (`domain/revisions.mjs`), Revised first: the default. */
+const REVISION_CHOICE_LABELS = Object.freeze({
+  revised: "FGT.Revision.Revised", classic: "FGT.Revision.Classic", asPrinted: "FGT.Revision.AsPrinted",
+});
 
 /** @type {ReadonlyArray<WarRuleSpec>} */
 export const WAR_RULES = Object.freeze([
@@ -175,6 +182,27 @@ export const WAR_RULES = Object.freeze([
     key: "counterChain", type: "string", initial: "strict",
     choices: { strict: "FGT.CounterChain.Strict", collateral: "FGT.CounterChain.Collateral" },
     name: "FGT.Settings.CounterChain", hint: "FGT.Settings.CounterChainHint",
+  },
+  // Classic or Revised: which text of three shared Skills every bearer plays
+  // (`domain/revisions.mjs`, #260 reading 3). Revised is the published rule; a
+  // War that never stored one -- every War from before these rules -- reads
+  // `legacy`, *As printed*, and plays on as it began (reading 3h). Locked: a
+  // clock the Revised Mad Enhancement starts at a Master's death cannot be
+  // taken back by a later switch (reading 3e).
+  {
+    key: "madEnhancementRevision", type: "string", initial: "revised", legacy: "asPrinted", locked: true,
+    choices: REVISION_CHOICE_LABELS,
+    name: "FGT.Settings.MadEnhancementRevision", hint: "FGT.Settings.MadEnhancementRevisionHint",
+  },
+  {
+    key: "divinityRevision", type: "string", initial: "revised", legacy: "asPrinted", locked: true,
+    choices: REVISION_CHOICE_LABELS,
+    name: "FGT.Settings.DivinityRevision", hint: "FGT.Settings.DivinityRevisionHint",
+  },
+  {
+    key: "presenceConcealmentRevision", type: "string", initial: "revised", legacy: "asPrinted", locked: true,
+    choices: REVISION_CHOICE_LABELS,
+    name: "FGT.Settings.PresenceConcealmentRevision", hint: "FGT.Settings.PresenceConcealmentRevisionHint",
   },
   {
     // The Faction roster. Edited by the roster editor, not the War rules

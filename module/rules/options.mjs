@@ -30,6 +30,7 @@ import { stanceOf, mountedThisTurn } from "./stance.mjs";
 import { heldOn } from "./modes.mjs";
 import { categoriesOf } from "./items.mjs";
 import { isNPAttack } from "./damage/pipeline.mjs";
+import { trueNameSlug } from "./named-units.mjs";
 
 /**
  * A Unit's own facts, as `self:` options, and nothing else.
@@ -325,6 +326,24 @@ function add(options, side, unit, withoutModeHeld = false) {
   // from opponents. The compulsion is a fact about who the Servant IS, and it
   // holds whether or not the table has worked that out yet.
   if (unit.contentId) options.add(`${side}:contentId:${unit.contentId}`);
+  // ...and WHO by True Name, which names a Heroic Spirit across its builds:
+  // *"an allied non-Alter Jeanne d'Arc"* (#260 reading 6). Then the allied
+  // Servants on its board by True Name, anywhere and as a distance LADDER, so
+  // *"within a 3 panel area"* is `:3` and *"directly next to"* is `:1`
+  // (`rules/named-units.mjs#annotateNamedAllies`).
+  const ownName = trueNameSlug(unit.trueName);
+  if (ownName) options.add(`${side}:trueName:${ownName}`);
+  // ...and an ally by Attribute, within N: *"an allied Unit with the [Star]
+  // Attribute within a 2 panel area of himself"* (#260).
+  for (const a of unit.nearbyAllies ?? []) {
+    if (a.trueName) {
+      options.add(`${side}:allyNamed:${a.trueName}`);
+      for (let n = Math.max(1, a.distance); n <= 12; n++) options.add(`${side}:allyNamedWithin:${a.trueName}:${n}`);
+    }
+    for (const attr of a.attributes ?? []) {
+      for (let n = Math.max(1, a.distance); n <= 12; n++) options.add(`${side}:allyAttributeWithin:${attr}:${n}`);
+    }
+  }
   for (const a of unit.attributes ?? []) options.add(`${side}:attribute:${a}`);
   // ITS ALIGNMENT, each half on its own: *"Units with the 'Lawful' Alignment"*
   // asks the order alone, *"the 'Evil' Alignment"* the morality alone (#253).

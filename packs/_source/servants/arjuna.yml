@@ -39,7 +39,8 @@ abilities:
       (Passive 2) Master's ZON is increased by 3 panels.
       (Passive 3) Requires 4 successful 'Contract Servant' rolls to be contracted by enemy Masters and Casters.
   - { ref: class-magic-resistance, rank: C }
-  - { ref: divinity-fixed, rank: B }
+  # Revised Divinity: his sheet prints the Fixed Divine sentence (#260 reading 3).
+  - { ref: divinity, rank: B, printedRevision: revised }
   - { ref: arjuna-clairvoyance-bowman }
   - { ref: arjuna-awarded-hero }
   - { ref: arjuna-mana-burst-flames }

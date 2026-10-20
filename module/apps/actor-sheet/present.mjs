@@ -255,6 +255,11 @@ export function abilityState(verdict, { turnsPerRound = 3, nameOf = null } = {})
       detail.away = Math.max(0, (detail.requiresRound ?? 0) - (detail.round ?? 0));
       return { ok: false, label: "FGT.Ability.FromRound", detail };
 
+    // WHICH ability it waits on, where the gate could say (#260, live).
+    case "abilityOffCooldown":
+      if (detail.names) return { ok: false, label: "FGT.Ability.CoolingNamed", detail };
+      return { ok: false, label: "FGT.Ability.Refused.abilityOffCooldown", detail };
+
     default:
       return { ok: false, label: `FGT.Ability.Refused.${verdict.reason}`, detail };
   }

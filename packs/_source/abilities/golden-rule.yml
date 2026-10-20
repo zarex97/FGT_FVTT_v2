@@ -1,0 +1,31 @@
+# Golden Rule, the passive several sheets print with only the chance changing:
+#
+#   Gilles de Rais (Saber)  B   *"Whenever this Unit performs a Crit, it has an
+#   Darius III              B    80% chance of reducing its NP Cooldown by 1 Turn."*
+#   Siegfried               C-   *"...a 55% chance..."*
+#
+# One Rank-keyed shared skill, as Fae Contract (#258 reading 10): the chance is
+# the reference's `chance`. Proto Gil's Golden Rule A and Drake's Blazing Golden
+# Rule carry Actives and clauses of their own and stay their own documents.
+#
+# Proto Gil's shape: `damageDealt` with `attack:crit`, the cut on every NP
+# (*"NP Cooldown"* naming none reaches every NP, #197 reading 6). Rolled only
+# while an NP is cooling, so a die that could decide nothing is not on the card;
+# one that misses is.
+schema: 1
+id: golden-rule
+name: "Golden Rule"
+kind: skill
+slug: goldenRule
+passive: true
+parameterized: [rank, chance]
+rank: "@rank"
+description: |
+  (Passive) Whenever this Unit performs a Crit, it has a chance of reducing its NP Cooldown by 1 Turn.
+passiveRules:
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: ["attack:crit", "self:npOnCooldown"]
+    then:
+      - { key: CooldownDelta, scope: np, delta: -1, chance: "@chance" }

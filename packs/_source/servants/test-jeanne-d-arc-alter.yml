@@ -1,0 +1,32 @@
+# Test Servant, built 2026-10-20 for #260. NOT A CHARACTER SHEET.
+#
+# No Jeanne d'Arc sheet is in the repo, and Gilles de Rais (Saber) names her: an
+# allied Alter Jeanne d'Arc widens Triumphal Return and sets By the Holy
+# Maiden's Side's figure by where she stands. Ruled 2026-10-20 (#260 reading 6):
+# by True Name, pressed with a staged stand-in. Heracles's numbers and no Skills:
+# only her True Name is under test.
+schema: 1
+id: test-jeanne-d-arc-alter
+name: "Test Jeanne d'Arc (Alter)"
+type: servant
+
+trueName: "Jeanne d'Arc (Alter)"
+servantClasses: [avenger]
+classContainer: avenger
+alignment: { order: chaotic, morality: evil }
+region: [france]
+attributes: [female, servant, man, humanoid]
+
+parameters: { str: B, end: B, agi: B, mag: B, luc: B }
+baseHealth: 1250
+mov: 5
+range: { panels: 1, targets: 1 }
+baseAttack: { str: 125, mag: 175 }
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+abilities: []
+
+notes: |
+  A test Servant, not a character from the sheets: a stand-in carrying the True Name "Jeanne d'Arc (Alter)", so
+  Gilles de Rais (Saber)'s Jeanne d'Arc clauses can be pressed (#260 reading 6).

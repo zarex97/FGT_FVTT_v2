@@ -1,0 +1,112 @@
+# Gilles de Rais (Saber), char_orig_sheets/Copia de Gilles de Rais.md (#260).
+#
+# Two versions, by whether Mad Enhancement is Active (it is only ever activated by
+# Prelati's Encouragement, reading 2). Each phase is gated on it.
+#
+# *"All Units with the 'Lawful' Alignment within a 2 panel area of himself"*: ALL
+# Units, enemies included, and himself included (#260 reading 5, ruled; Triumphal
+# Return says "allied" where it means it, and Quetzalcoatl writes "except herself"
+# where she means that). So while he is Lawful he holds two NP Regens, effect 1's
+# and effect 2's, and his NP clock drops 2 at every Turn's end.
+#
+# Effect 4 reads where Jeanne stands when he uses it (reading 6): directly next to
+# him (`:1`), within 3, or anywhere on the field; *"instead"*, so only the best.
+# His NP Cooldown, every NP (#197 reading 6). With Mad Enhancement Active, Dmg
+# Boost (Gilles) reaches his Horrors too (reading 13; `effects/dmg-boost-gilles.yml`).
+schema: 1
+id: gilles-saber-holy-maidens-side
+name: "By The Holy Maiden's Side"
+rank: A
+kind: skill
+slug: holyMaidensSide
+cooldown: "4◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+description: |
+  (Active) Used during your Turn. Has different effects depending on whether Mad Enhancement has been activated due to Prelati's Encouragement-
+  ME not Activated
+  1. Applies @effect[npRegen]{NP Regen} for 1◈ Turns, NP Cooldown is reduced by 1 Turn at the end of every Turn.
+  2. Applies NP Regen for 1◈ Turns to all Units with the 'Lawful' Alignment within a 2 panel area of himself, NP Cooldown is reduced by 1 Turn at the end of every Turn.
+  3. Applies @effect[healUp]{Heal Up} for 1◈ Turns to all Units with the 'Good' Alignment within a 2 panel area of himself, when an affected Unit has its Health restored, the amount restored is increased by 80%.
+  4. If there an allied non-Alter Jeanne d'Arc is present on the field, NP Cooldown is reduced by 2◈ Turns. If there is an allied non-Alter Jeanne d'Arc within a 3 panel area of Gilles, NP Cooldown is reduced by 4◈ Turns instead. If said Unit is standing directly next to Gilles, NP Cooldown is reduced by 6◈ Turns instead.
+  ME Activated
+  1. Applies NP Regen for 1◈ Turns, NP Cooldown is reduced by 1 Turn at the end of every Turn.
+  2. Applies NP Regen for 1◈ Turns to all Units with the 'Chaotic' Alignment within a 2 panel area of himself, NP Cooldown is reduced by 1 Turn at the end of every Turn.
+  3. Applies Heal Up for 1◈ Turns to all Units with the 'Evil' Alignment within a 2 panel area of himself, when an affected Unit has its Health restored, the amount restored is increased by 80%.
+  4. If there is an allied Jeanne d'Arc Alter present on the field, apply @effect[dmgBoostGilles]{Dmg Boost (Gilles)} for 1◈ Turns to himself, all damage dealt by Gilles and his Horrors is increased by 30. If there is an allied Jeanne d'Arc Alter within a 3 panel area of Gilles, 60 instead of 30. If said Unit is standing directly next to Gilles, 90 instead of 30.
+  Cooldown: 4◈ Turns.
+phases:
+  # ── Mad Enhancement not Activated ──
+  - kind: applyEffects
+    target: self
+    predicate: ["not:self:skillActive:madEnhancement"]
+    effects:
+      - { id: npRegen, magnitude: 1, duration: "1◈" }
+  - kind: applyEffects
+    predicate: ["not:self:skillActive:madEnhancement"]
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: square, size: 5 }
+      selection: { relations: [self, ally, enemy], chooser: all, includeSelf: true, attributes: ["target:order:lawful"] }
+    effects:
+      - { id: npRegen, magnitude: 1, duration: "1◈" }
+  - kind: applyEffects
+    predicate: ["not:self:skillActive:madEnhancement"]
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: square, size: 5 }
+      selection: { relations: [self, ally, enemy], chooser: all, includeSelf: true, attributes: ["target:morality:good"] }
+    effects:
+      - { id: healUp, magnitude: 80, duration: "1◈" }
+  - kind: cooldown
+    target: self
+    predicate: ["not:self:skillActive:madEnhancement", "self:allyNamedWithin:jeanne-d-arc:1"]
+    changes:
+      - { unit: self, scope: np, ticks: "6◈", direction: down }
+  - kind: cooldown
+    target: self
+    predicate: ["not:self:skillActive:madEnhancement", "self:allyNamedWithin:jeanne-d-arc:3", "not:self:allyNamedWithin:jeanne-d-arc:1"]
+    changes:
+      - { unit: self, scope: np, ticks: "4◈", direction: down }
+  - kind: cooldown
+    target: self
+    predicate: ["not:self:skillActive:madEnhancement", "self:allyNamed:jeanne-d-arc", "not:self:allyNamedWithin:jeanne-d-arc:3"]
+    changes:
+      - { unit: self, scope: np, ticks: "2◈", direction: down }
+  # ── Mad Enhancement Activated ──
+  - kind: applyEffects
+    target: self
+    predicate: ["self:skillActive:madEnhancement"]
+    effects:
+      - { id: npRegen, magnitude: 1, duration: "1◈" }
+  - kind: applyEffects
+    predicate: ["self:skillActive:madEnhancement"]
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: square, size: 5 }
+      selection: { relations: [self, ally, enemy], chooser: all, includeSelf: true, attributes: ["target:order:chaotic"] }
+    effects:
+      - { id: npRegen, magnitude: 1, duration: "1◈" }
+  - kind: applyEffects
+    predicate: ["self:skillActive:madEnhancement"]
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: square, size: 5 }
+      selection: { relations: [self, ally, enemy], chooser: all, includeSelf: true, attributes: ["target:morality:evil"] }
+    effects:
+      - { id: healUp, magnitude: 80, duration: "1◈" }
+  - kind: applyEffects
+    target: self
+    predicate: ["self:skillActive:madEnhancement", "self:allyNamedWithin:jeanne-d-arc-alter:1"]
+    effects:
+      - { id: dmgBoostGilles, magnitude: 90, duration: "1◈" }
+  - kind: applyEffects
+    target: self
+    predicate: ["self:skillActive:madEnhancement", "self:allyNamedWithin:jeanne-d-arc-alter:3", "not:self:allyNamedWithin:jeanne-d-arc-alter:1"]
+    effects:
+      - { id: dmgBoostGilles, magnitude: 60, duration: "1◈" }
+  - kind: applyEffects
+    target: self
+    predicate: ["self:skillActive:madEnhancement", "self:allyNamed:jeanne-d-arc-alter", "not:self:allyNamedWithin:jeanne-d-arc-alter:3"]
+    effects:
+      - { id: dmgBoostGilles, magnitude: 30, duration: "1◈" }

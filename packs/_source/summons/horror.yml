@@ -1,0 +1,54 @@
+# Gilles de Rais, both sheets -- char_orig_sheets/Copia de Gilles de Rais.md (the
+# Saber) and Copia de Gilles.md (the Caster) print it word for word. Conjured by
+# Summoning: Horrors (`abilities/summoning-horrors.yml`), and by a Horror or an
+# Elder Horror that splits.
+#
+# *"Horrors have 100 Health, 10 Agility, 5 Luck, Range=1, MOV=3 and Base Attack
+# (STR) is 100, Detect=2 panels. Horrors have the 'Dark (Outsider)' Attribute."*
+# Two Attributes, `dark` and `outsider` (#260 reading 15): the split's own
+# exemption names them apart.
+schema: 1
+id: horror
+name: "Horror"
+type: summon
+attributes: [summon, dark, outsider]
+baseHealth: 100
+agility: 10
+luck: 5
+mov: 3
+range: { panels: 1, targets: 1 }
+baseAttack: { str: 100, mag: 0 }
+normalAttack: { mode: fixed, component: str }
+detect: 2
+# *"Horrors do not count towards the number of Units that Move and/or Attack
+# during your Turn. The same Horror can only Move/Attack once per Turn."*
+countsTowardBudget: false
+actsOncePerTurn: true
+# They go when Gilles is defeated, as Medea's Dragon Tooth Warriors (#260
+# reading 14; #193 reading 15).
+leavesWithSummoner: true
+passiveRules:
+  # *"Enemy Units cannot Attack Gilles or his Master if there are any Horrors
+  # directly next to them."* The Dragon Tooth Warriors' and Trump Soldiers' rule.
+  - key: TargetabilityModifier
+    radius: 1
+    relations: [ally, self]
+    recipientRoles: [summoner, summonerMaster]
+  # *"When a Horror is defeated, Gilles Flips a Coin. If Heads, the defeated
+  # Horror turns into two new Horrors. This effect does not activate if the
+  # Horror was defeated with Light damage or Attack that deals extra damage to
+  # 'Dark' or 'Outsider' Attribute Units."* The coin is a 1d2, Heads its 1, the
+  # convention `Banish` keeps. The exemption reads the Attack that defeated it
+  # (`engine/attack.mjs#attackOptionsOfDefeat`); a defeat by no Attack still
+  # splits (#260 reading 12). The Kagome Spirits' predicate, the other way round.
+  - key: OnEvent
+    event: unitDefeated
+    automatic: true
+    then:
+      # The exemption on the ACTION, not the handler, so it is a card line too:
+      # *"This effect does not activate if..."* is an outcome a player reads.
+      - { key: Split, roll: { key: splitCoin, formula: "1d2" }, on: [1], count: 2, into: horror,
+          unlessAttack: ["attack:element:light", "attack:vsAttribute:dark", "attack:vsAttribute:outsider"] }
+notes: |
+  Shared by both Gilles sheets. The Saber conjures them only while Mad Enhancement is Active
+  (Prelati's Spellbook, #260 reading 11).

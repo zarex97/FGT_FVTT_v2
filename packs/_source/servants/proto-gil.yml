@@ -41,7 +41,8 @@ abilities:
       (Passive 2) Master's ZON is increased by 3 panels.
       (Passive 3) Cannot be contracted by enemy Casters and Masters.
   - { ref: class-magic-resistance, rank: C }
-  - { ref: divinity-fixed, rank: B }
+  # Revised Divinity: his sheet prints the Fixed Divine sentence (#260 reading 3).
+  - { ref: divinity, rank: B, printedRevision: revised }
   - { ref: proto-gil-charisma }
   - { ref: proto-gil-golden-rule }
   - { ref: proto-gil-treasury-of-babylon }
