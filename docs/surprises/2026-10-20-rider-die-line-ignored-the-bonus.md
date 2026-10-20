@@ -3,7 +3,8 @@ id: 2026-10-20-rider-die-line-ignored-the-bonus
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** a rider's die on the card says whether the rider landed: Rock Snowball's 10% Bleed, raised to 15% by Anastasia's Fae Contract.
 **Actual:** card RowTv85ag37aaT1B, die 20: *"Archer: Rock Snowball on Rider 1d100 → 20 against 10%: missed"* beside *"Bleed: resisted, rolled 20 vs 15%"*. Two verdicts for one die; a die of 11 to 15 would have read "missed" on a card that applied the Bleed.

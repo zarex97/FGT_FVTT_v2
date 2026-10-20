@@ -3,7 +3,8 @@ id: 2026-10-20-broken-freeze-stayed-on
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** design R2 (user ruling 2026-09-16): a Unit both Soaked and Frozen, hit by Fire, takes no damage and loses both; Freeze is *"removed with no damage or effects"* (Appendix A).
 **Actual:** card LOhRJGdBWh6sn2JV, Nemo's Barrel Bombing on a Soaked, Frozen Asterios: *"negated by Freeze broken by Fire — 0"*, Soaked gone, and Asterios still `freeze`, with the Barrel's `burn` beside it.

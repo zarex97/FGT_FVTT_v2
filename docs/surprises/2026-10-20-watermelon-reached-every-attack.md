@@ -3,7 +3,8 @@ id: 2026-10-20-watermelon-reached-every-attack
 found: live press
 kind: qualifier-quoted-not-checked
 status: fixed
-reviewed: false
+reviewed: true
+pattern: qualifier-quoted-not-checked
 ---
 **Expected:** Watermelon Splitting Master's passive is *"When Anastasia performs a Normal Attack at a Range of 1 to 2 while inflicted with Blind"*: an Attack Skill or NP she makes while Blind keeps its Miss check (Clause `WM.p.kind`).
 **Actual:** card ZCrs4vDCumlajdJV, her Blind Ice Bucket Challenge on Medea at 2 panels: ladder *"missCheck → hit"* with no Miss die, and *"defUp 0 (defUp (ignored by Ignore Def))"*. Every Attack in the band, Skills and NPs, became a sure hit with Pierce and Ignore Def.

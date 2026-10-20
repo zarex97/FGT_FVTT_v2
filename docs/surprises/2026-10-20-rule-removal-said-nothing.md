@@ -3,7 +3,8 @@ id: 2026-10-20-rule-removal-said-nothing
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Soaked (b) and (c): Fire uses it up, a Day Round's end dries it. A player whose Unit loses Soaked reads it on a card: it decides the next Freeze roll.
 **Actual:** Round 3 (Day) ended: Nemo's and Medea's Soaked gone, and the Round's card read only *"Archer takes 50 from Burn, Berserker takes 50 from Burn"*. Barrel Bombing's card z4Q31utMumgCZhbi halved the Fire and said nothing of the Soaked it took.

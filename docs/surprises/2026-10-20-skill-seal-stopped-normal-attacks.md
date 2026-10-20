@@ -3,7 +3,8 @@ id: 2026-10-20-skill-seal-stopped-normal-attacks
 found: live press
 kind: unknown-value-falls-to-default
 status: fixed
-reviewed: false
+reviewed: true
+pattern: unknown-value-falls-to-default
 ---
 **Expected:** Skill Seal, *"Cannot use Skills or Spells"* (Appendix A §A.10), leaves a Normal Attack alone: Karna, sealed by Anastasia's Snegleta, swings at her on Blue's Turn.
 **Actual:** Player2 confirmed Karna's Normal Attack and got *"Cannot use this ability: Prevented"*; `pressGate(Karna, null)` answered `{ reason: "prevented", detail: { by: "skillSeal" } }`.

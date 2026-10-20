@@ -3,7 +3,8 @@ id: 2026-10-20-damage-taken-rolled-no-dice
 found: test
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** a chance on a `damageTaken` handler rolls, as one on `damageDealt` does.
 **Actual:** Soaked's new 25% Freeze never fired at any face: `anastasia-258-rulings.test.mjs` *"freezes a Soaked Unit on a roll of 30"* stayed red with every d100 at 30.

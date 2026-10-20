@@ -3,7 +3,8 @@ id: 2026-10-20-blind-evade-counted-twice
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Blind, clause 2: *"Evade rolls are increased by 3"*, once (Clause `WM.p.own`, her own Blind kept while Watermelon exempts only the Miss).
 **Actual:** Process 7hnRtZkk9FXbX2QS, Karna's Normal Attack on the Blind Anastasia, Player1 Evaded: modifiers *"Blind 3"* and *"blind 3"*, +6.

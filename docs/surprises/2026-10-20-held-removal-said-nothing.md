@@ -3,7 +3,8 @@ id: 2026-10-20-held-removal-said-nothing
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Medea's Rule Breaker on Anastasia under BuffRemoval ResUp 100 (Clause `FS.2`): the card says her buffs held.
 **Actual:** card xeEWNPBSY20lAeFO listed only *"Rule Breaker"* (the Contract cut); every buff stayed on her and nothing on the card said why, or that a removal had been tried.
