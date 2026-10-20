@@ -1,0 +1,40 @@
+# Gilles de Rais, both sheets -- conjured by Summoning: Elder Horror
+# (`abilities/summoning-elder-horror.yml`).
+#
+# *"The Elder Horror has 300 Health, 13 Agility, 7 Luck, Range=2, MOV=4 and Base
+# Attack (STR) is 125, Detect=3 panels. Elder Horrors have the 'Dark (Outsider)'
+# Attribute."* (#260 reading 15.)
+schema: 1
+id: elder-horror
+name: "Elder Horror"
+type: summon
+attributes: [summon, dark, outsider]
+baseHealth: 300
+agility: 13
+luck: 7
+mov: 4
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 125, mag: 0 }
+normalAttack: { mode: fixed, component: str }
+detect: 3
+countsTowardBudget: false
+actsOncePerTurn: true
+leavesWithSummoner: true
+passiveRules:
+  # *"Enemy Units cannot Attack Gilles or his Master if there are any Elder
+  # Horrors directly next to them."*
+  - key: TargetabilityModifier
+    radius: 1
+    relations: [ally, self]
+    recipientRoles: [summoner, summonerMaster]
+  # *"When an Elder Horror is defeated, Gilles rolls a four-sided die. If a 3 is
+  # rolled, the defeated Elder Horror turns into three new Horrors."* With the
+  # Horror's exemption, word for word.
+  - key: OnEvent
+    event: unitDefeated
+    automatic: true
+    then:
+      - { key: Split, roll: { key: splitD4, formula: "1d4" }, on: [3], count: 3, into: horror,
+          unlessAttack: ["attack:element:light", "attack:vsAttribute:dark", "attack:vsAttribute:outsider"] }
+notes: |
+  Shared by both Gilles sheets.

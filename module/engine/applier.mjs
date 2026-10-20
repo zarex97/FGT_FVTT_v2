@@ -1084,6 +1084,12 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
         // What a handler owes at a later boundary (`at:`), kept on the match
         // until `scheduler-hooks.mjs` pays it (#103).
         if (i.entry?.kind === "deferred") await io.defer?.(i.entry);
+        // A defeated summon turning into new ones (#260 reading 12).
+        if (i.entry?.kind === "split") {
+          const { splitSummon } = await import("./summoning.mjs");
+          await splitSummon(i.entry);
+          continue;
+        }
         if (i.entry?.kind !== "banish") continue;
         await io.banish(i.entry.unitId, i.entry.untilTick, i.entry.fieldId);
       }

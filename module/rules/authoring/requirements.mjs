@@ -127,6 +127,9 @@ export const REQUIREMENT_DESCRIPTORS = describeTable([
     { key: "exclusionSet", type: "text" },
     { key: "excludeSelf", type: "checkbox" },
   ]),
+  req("abilityAllows", "Only while another named ability of this Unit is held and its own requirements pass (a Spellbook allowing its Spells).", [
+    { key: "abilityIds", type: "tokenList" },
+  ]),
   req("itemAtLeast", "Only while the Unit holds enough of a named item.", [
     { key: "contentId", type: "text" },
     { key: "amount", type: "number" },

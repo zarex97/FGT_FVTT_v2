@@ -13,6 +13,7 @@ import { Rank } from "../domain/rank.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { unitWeight } from "./linked-group.mjs";
+import { revisionOf } from "../domain/revisions.mjs";
 
 /** Base chance for both coin flips. */
 const BASE_FLIP = 50;
@@ -211,7 +212,7 @@ export function resolveUnderpower({ attacker, defender, roll }) {
  * @returns {object[]} descriptors
  */
 export function onMasterDefeated(servant, {
-  conquered = false, spares = true, turnsPerRound = 3, highRankMaster = false,
+  conquered = false, spares = true, turnsPerRound = 3, highRankMaster = false, revisions = null,
 } = {}) {
   if (servant?.kind !== "servant") return [];
   if (conquered && spares) return [];
@@ -251,12 +252,29 @@ export function onMasterDefeated(servant, {
   // anybody. The same question is already answered by `slug`/`active`, which
   // `rules/options.mjs` reads for `self:skillActive:` and which
   // `collectAbilities` has projected since it was written.
-  const madEnhancement = (servant.abilities ?? []).some(
+  const madEnhancement = (servant.abilities ?? []).find(
     (a) => (a.slug === "madEnhancement" || a.id === "madEnhancement") && a.active,
-  );
+  ) ?? null;
+  // ...and WHICH clause 5 it plays (#260 reading 3). Classic: *"Sustainability
+  // is reduced by 2◈ Turns if its Master is defeated while ME is Active"*, once,
+  // here. Revised: *"ME cannot be deactivated and its STN is reduced by 1
+  // additional Turn at the end of every Turn"* -- nothing now; the clock loses
+  // one more at every Turn's end from here on (`engine/scheduler.mjs#checkRemovals`),
+  // and the mode lock above already holds it on.
+  const revised = madEnhancement ? revisionOf({ ...madEnhancement, slug: "madEnhancement" }, revisions) === "revised" : false;
+  if (madEnhancement && revised) {
+    out.push({ kind: "resource", unitId: servant.id, key: "sustainabilityDecay", delta: 1 });
+  }
+  // What the table is told (#260, live): the clause's outcome, named for the
+  // card `io.defeat` posts. The resource above is the write; this is the line.
+  if (madEnhancement) {
+    out.push(revised
+      ? { kind: "note", unitId: servant.id, note: "madEnhancementRevised" }
+      : { kind: "note", unitId: servant.id, note: "madEnhancementClassic", turns: 2 * turnsPerRound });
+  }
   // ONE resource descriptor: the caller writes each against the clock it read
   // before any of them, so two would leave only the last.
-  const delta = bonus + (madEnhancement ? -2 * turnsPerRound : 0);
+  const delta = bonus + (madEnhancement && !revised ? -2 * turnsPerRound : 0);
   if (delta !== 0) {
     // *"…Sustainability is reduced by **2◈ Turns**"*, and `servant.sustainability`
     // is the clock this function has just insisted is RESOLVED — 6 for a 2◈

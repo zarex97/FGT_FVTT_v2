@@ -1,0 +1,20 @@
+# Heal Up -- Appendix A: *"Healing received +X%. Does not apply to Home Base or
+# Command Spell healing unless stated."* The mirror of Heal Dwn, on the same
+# element (`HealingReceived`, read at `engine/applier.mjs#resolveHealing`).
+#
+# First applied by Gilles de Rais (Saber)'s By the Holy Maiden's Side: *"when an
+# affected Unit has its Health restored, the amount restored is increased by
+# 80%"* (#260).
+schema: 1
+id: healUp
+name: "Heal Up"
+description: "Healing received is increased by X%. Does not affect Home Base or Command Spell healing."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: HealingReceived
+    value: "@magnitude"
+    exceptSources: ["Home Base"]

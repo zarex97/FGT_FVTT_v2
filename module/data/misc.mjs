@@ -29,7 +29,11 @@ function warRuleFields() {
       out[spec.key] = new fields.BooleanField({ initial: spec.initial });
     } else if (spec.type === "string") {
       out[spec.key] = new fields.StringField({
-        required: !spec.nullable, nullable: Boolean(spec.nullable), initial: spec.initial,
+        // `legacy`: a War document that never stored this rule was created before
+        // it existed, and reads the value that keeps it playing as it began. A new
+        // War never meets it: the wizard writes every rule from the world's
+        // defaults (`engine/war-setup.mjs#commitWar`).
+        required: !spec.nullable, nullable: Boolean(spec.nullable), initial: spec.legacy ?? spec.initial,
         ...(choices ? { choices } : {}),
       });
     } else {

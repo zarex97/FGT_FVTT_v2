@@ -1,0 +1,52 @@
+# Gilles de Rais (Saber), char_orig_sheets/Copia de Gilles de Rais.md (#260).
+#
+# *"(Passive) Affects all allied Units within a 2 panel area of Gilles. All damage
+# received from [Anti-Army] Noble Phantasms is reduced by 25%; all damage dealt
+# by [Anti-Army] Noble Phantasms is increased by 25%.
+# (Active) Used during your Turn. Applies 'NP DmUp (nonAA)' for ⅓◈ Turns to all
+# allied Units within a 2 panel area of Gilles, NP damage dealt by Noble
+# Phantasms other than [Anti-Army] is increased by 15%. Cooldown: 2◈ Turns.
+# Cannot be used on the same Turn as Triumphal Return of the Holy Maiden."*
+#
+# [Anti-Army] is Anti-Army OR HIGHER (#260 reading 9, ruled), and the Active's
+# *"other than"* its exact complement (reading 9a). *"Within a 2 panel area of
+# Gilles"* includes him (#132).
+schema: 1
+id: gilles-saber-military-tactics
+name: "Military Tactics"
+rank: C
+kind: skill
+slug: militaryTactics
+cooldown: "2◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+sameTurnExclusive: [gilles-saber-triumphal-return]
+description: |
+  (Passive) Affects all allied Units within a 2 panel area of Gilles. All damage received from
+  [Anti-Army] Noble Phantasms is reduced by 25%; all damage dealt by [Anti-Army] Noble Phantasms
+  is increased by 25%.
+  (Active) Used during your Turn. Applies @effect[npDmUpNonAA]{NP DmUp (nonAA)} for ⅓◈ Turns to all
+  allied Units within a 2 panel area of Gilles, NP damage dealt by Noble Phantasms other than
+  [Anti-Army] is increased by 15%. Cooldown: 2◈ Turns. Cannot be used on the same Turn as Triumphal
+  Return of the Holy Maiden.
+passiveRules:
+  # An aura, so an ally walking in is covered and one walking out is not.
+  - key: Aura
+    radius: 2
+    relations: [ally, self]
+    stacking: highestOnly
+    elements:
+      # The bucket says the direction: `defUp` is taken, `npDmUp` dealt.
+      - { key: DamageModifier, modifierKey: defUp, value: 25,
+          predicate: ["attack:kind:np", "attack:npScale:gte:antiArmy"] }
+      - { key: DamageModifier, modifierKey: npDmUp, value: 25,
+          predicate: ["attack:kind:np", "attack:npScale:gte:antiArmy"] }
+targeting:
+  anchor: { kind: self }
+  shape: { kind: square, size: 5 }
+  selection: { relations: [ally, self], chooser: all, includeSelf: true }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: npDmUpNonAA, magnitude: 15, duration: "⅓◈" }

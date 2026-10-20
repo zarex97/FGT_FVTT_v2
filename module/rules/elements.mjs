@@ -663,6 +663,8 @@ export function normalizeHandler(el, { rank, source, ability, ctx, deferred = nu
       ? null
       : (Array.isArray(el.ofContentId) ? [...el.ofContentId] : [el.ofContentId]),
     excludeNP: el.excludeNP ?? false,
+    onlyNP: el.onlyNP ?? false,
+    excludeDamaging: el.excludeDamaging ?? false,
     // A standing upkeep this Turn's bigger charge has already replaced --
     // Karna's Note 2. `{category}` or `{contentId}`, tested against the
     // bearer's own turn record when the event fires (`engine/scheduler.mjs`).
@@ -946,6 +948,19 @@ function auraElement(el, rank, ctx, source, ability = null) {
       ? { key: "checkModifier", ...scratch.checkModifiers[0] }
       : { key: "autoSucceed", ...scratch.autoSucceeds[0] };
   }
+  // A damage clause reaching somebody else, through its executor, so the
+  // recipient's pipeline reads it under its bucket (`modifierKey`) and not as a
+  // raw `DamageModifier` no stage asks for. Its whole predicate is about the
+  // attack, so all of it is deferred to the Damage Step. Military Tactics: *"all
+  // allied Units within a 2 panel area of Gilles. All damage received from
+  // [Anti-Army] Noble Phantasms is reduced by 25%; all damage dealt by
+  // [Anti-Army] Noble Phantasms is increased by 25%"* (#260); Dmg Boost
+  // (Gilles) reaching his Horrors.
+  if (el?.key === "DamageModifier" || el?.key === "FlatDamage") {
+    const scratch = { modifiers: [] };
+    EXECUTORS[el.key](el, { rank, source, ability, out: scratch, ctx, deferred: el.predicate ?? null });
+    return scratch.modifiers[0];
+  }
   if (el?.key === "CritModifier") {
     const scratch = { modifiers: [], checkModifiers: [] };
     EXECUTORS.CritModifier(el, { rank, source, ability, out: scratch, ctx });
@@ -1069,6 +1084,11 @@ export const EXECUTORS = Object.freeze({
     const np = el.npValue !== undefined ? resolveValue(el, rank, ctx, "npValue") : undefined;
     out.modifiers.push({
       key: el.modifierKey ?? "divinity",
+      // Always damage DEALT. Said, because `rules/options.mjs` asks a modifier's
+      // direction to find *"an Attack that deals extra damage to 'Dark' Units"*,
+      // and a flat bonus against an Attribute (Excalibur's +50 against Dark)
+      // carried none and was never counted (#260, found pressing the Horrors).
+      direction: "dealt",
       value: scalar(resolveValue(el, rank, ctx)),
       ...(np !== null && np !== undefined ? { npValue: scalar(np) } : {}),
       // A bonus that REPLACES another Skill's rather than adding to it: the Sun
@@ -1100,6 +1120,13 @@ export const EXECUTORS = Object.freeze({
       // Fixed Divine Damage and does not count towards the amount required for
       // an Injury Roll"* (#232 reading 16).
       ...(el.fixed ? { fixed: el.fixed } : {}),
+      // ...ONLY under one text of a revisable Skill. Divinity's Fixed Divine
+      // Damage is its Revised wording (#260 reading 3d): the War's pick, or the
+      // bearer's own sheet under *As printed*, decides at stage 7 whether the
+      // bonus is Fixed (`domain/revisions.mjs#revisionOf`).
+      ...(el.fixed && el.fixedUnder
+        ? { fixedUnder: { revision: el.fixedUnder, slug: ability?.slug ?? null, printedRevision: ability?.printedRevision ?? null } }
+        : {}),
       predicate: deferred,
       source,
     });
@@ -1415,6 +1442,18 @@ export const EXECUTORS = Object.freeze({
       isBuff: el.isBuff !== false,
       source,
     });
+  },
+
+  /**
+   * An Alignment that changes while this rule stands. Gilles de Rais (Saber):
+   * *"When Mad Enhancement is Activated, Gilles' Alignment changes from Lawful
+   * Good to Neutral Evil"* (#260 reading 4), authored with
+   * `predicate: [self:skillActive:madEnhancement]`. Each half on its own, as the
+   * options emit them (`target:order:`, `target:morality:`).
+   */
+  AlignmentOverride(el, { source, out }) {
+    if (el.order) out.statDeltas.push({ stat: "alignment.order", set: String(el.order), source });
+    if (el.morality) out.statDeltas.push({ stat: "alignment.morality", set: String(el.morality), source });
   },
 
   MaxDelta(el, { rank, source, out, ctx }) {
@@ -1915,7 +1954,10 @@ export const EXECUTORS = Object.freeze({
   Aura(el, { rank, source, ability, out, ctx }) {
     const np = el.npValue !== undefined ? resolveValue(el, rank, ctx, "npValue") : undefined;
     out.auras.push({
-      key: el.modifierKey ?? "aura", radius: el.radius ?? 2,
+      // The INSTANCE's reach first, where it was applied with one: one S.Crit Up
+      // reaches 2 panels and Triumphal Return's beside Jeanne reaches 3 (#260
+      // reading 7). Then the definition's, then the rulebook's 2.
+      key: el.modifierKey ?? "aura", radius: ability?.params?.radius ?? el.radius ?? 2,
       relations: el.relations ?? ["ally", "self"],
       value: scalar(resolveValue(el, rank, ctx)),
       // An aura that IS its modifier carries the NP figure the same way a
@@ -2100,12 +2142,15 @@ export const EXECUTORS = Object.freeze({
     if (el.terrain) out.terrainPenaltyImmunities.push(el.terrain);
   },
 
-  EffectMagnitudeScale(el, { source, out }) {
+  EffectMagnitudeScale(el, { rank, source, out, ctx }) {
+    // A `value` is a PERCENT INCREASE, for an effect whose own magnitude names
+    // it: Overcharge is *"increased by 20%"*, `value: "@magnitude"`, x1.2.
+    const percent = el.value !== undefined ? scalar(resolveValue(el, rank, ctx)) : null;
     out.magnitudeScales.push({
       direction: el.direction ?? "incoming",
       effects: el.effects ?? null,
       family: el.family ?? null,
-      factor: typeof el.factor === "number" ? el.factor : 1,
+      factor: typeof el.factor === "number" ? el.factor : (typeof percent === "number" ? 1 + percent / 100 : 1),
       // `read`: scales a HELD magnitude for as long as this rule stands, and
       // stops when it goes. Arturia's Invisible Air: *"The magnitude of Crit
       // Dwn is halved on Arturia. If Invisible Air is deactivated while Arturia
@@ -2114,6 +2159,10 @@ export const EXECUTORS = Object.freeze({
       // applies these when it resolves the effect (`rules/snapshot.mjs`), and
       // the applier leaves them alone.
       timing: el.timing ?? "apply",
+      // What an OUTGOING scale reaches: `np`, the effects its holder's Noble
+      // Phantasms apply. Overcharge: *"the magnitude of all non-damage effects of
+      // NP are increased by 20%"* (#260 reading 8; `engine/landing.mjs`).
+      scope: el.scope ?? null,
       source,
     });
   },

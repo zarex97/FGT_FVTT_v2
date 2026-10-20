@@ -350,6 +350,8 @@ export const REQUIREMENT_KINDS = Object.freeze([
   "modeInactive", "predicate", "healthAbove", "healthRestoredSince", "itemAtLeast",
   "noAliveSummon", "withinPlatformCentre", "roundPhase", "fieldOpen", "stance",
   "masterHealthFraction", "legionAbove",
+  // A Spell its Spellbook allows (#260 reading 11).
+  "abilityAllows",
   // Avalon's placing (#230): beside the Master, in the Home Base, neither of
   // them having Attacked, and the Item held by the Master to take it back.
   "besideMaster", "inHomeBase", "notAttackedThisTurn", "masterItemAtLeast",
@@ -564,6 +566,19 @@ export function meetsRequirement(req, ctx) {
       // content cannot name one).
       return ((unit?.items ?? []).find((i) => i.contentId === req.contentId)?.quantity ?? 0) >= (req.amount ?? 1);
 
+    // An ability ALLOWED by another of the Unit's own: *"Prelati's Spellbook
+    // ... Allows the use of the Spells 'Summoning: Horror' and 'Summoning:
+    // Elder Horror'"*, and the Saber's Spellbook *"can only be used when Mad
+    // Enhancement is Activated"* (#260 reading 11). The named ability is held
+    // and its own requirements pass; none held, nothing is allowed. Read here
+    // rather than copied onto each Spell, so a Spellbook with another gate --
+    // the Caster's -- allows its Spells on its own terms.
+    case "abilityAllows": {
+      const allower = gatedAbilities(unit, req, ctx.ability)[0] ?? null;
+      if (!allower) return false;
+      return meetsRequirements(allower.requirements ?? [], { ...ctx, ability: allower }).ok;
+    }
+
     case "predicate":
       // The escape hatch. Without an evaluator it refuses rather than passing:
       // a gate nobody can answer is not an open gate.
@@ -667,6 +682,8 @@ export const SELF_REQUIREMENTS = new Set([
   // gate on each other, and Brahmastra's card offered the Eye of the Mind
   // copy while the other copy cooled (#204 W1.lock, found pressing).
   "abilityOffCooldown",
+  // ...and another of its abilities allowing this one (#260 reading 11).
+  "abilityAllows",
   // The legion's count is the bearer's own (#226).
   "legionAbove",
 ]);
@@ -682,9 +699,25 @@ export const SELF_REQUIREMENTS = new Set([
  */
 export function meetsRequirements(requirements, ctx) {
   for (const req of requirements ?? []) {
-    if (!meetsRequirement(req, ctx)) return { ok: false, reason: req.kind };
+    if (!meetsRequirement(req, ctx)) return { ok: false, reason: req.kind, ...requirementDetail(req, ctx) };
   }
   return { ok: true };
+}
+
+/**
+ * What a failed requirement can name, for the line that refuses it. *"Cannot
+ * be used if Prelati's Spellbook is on Cooldown"* read "An ability it depends
+ * on is still cooling." on Gilles's bar, naming nothing to wait for (#260, live).
+ *
+ * @param {object} req
+ * @param {object} ctx
+ * @returns {{detail?: object}}
+ */
+function requirementDetail(req, ctx) {
+  if (req.kind !== "abilityOffCooldown") return {};
+  const cooling = gatedAbilities(ctx.unit, req, ctx.ability).filter((a) => isCooling(a, ctx.unit));
+  // fgt-name-ok: an ability's name on its own bearer's bar, not a Unit's
+  return cooling.length > 0 ? { detail: { names: cooling.map((a) => a.name).join(", ") } } : {};
 }
 
 /**

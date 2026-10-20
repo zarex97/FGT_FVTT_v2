@@ -79,10 +79,13 @@ describe("the sheet, projected (SB, SB.attr; #226 readings 7, 8)", () => {
     });
   });
 
-  it("his Presence Concealment alone ends on Skill Seal (PC.8.seal, reading 16)", async () => {
+  // His clause 8 is Revised Presence Concealment's (#260 reading 3): both sheets
+  // carry the clause, and under the War's *As printed* only his sheet prints it.
+  // Every pick is pressed in `revisions-260.test.mjs`.
+  it("his Presence Concealment alone prints the Skill Seal end (PC.8.seal, reading 16)", async () => {
     await withSubjects([{ from: "hassan-hundred-face", id: H1 }, { from: "jack-the-ripper", id: "jackTheRipper001" }], ({ world: w }) => {
-      expect(abilityOf(w, H1, "class-presence-concealment").system.endsOnSkillSeal).toBe(true);
-      expect(abilityOf(w, "jackTheRipper001", "class-presence-concealment").system.endsOnSkillSeal).toBe(false);
+      expect(abilityOf(w, H1, "class-presence-concealment").system.printedRevision).toBe("revised");
+      expect(abilityOf(w, "jackTheRipper001", "class-presence-concealment").system.printedRevision).toBe("classic");
       expect(DEACTIVATION_REASONS.sealed).toBe("sealed");
     });
   });

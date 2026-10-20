@@ -155,3 +155,11 @@ Unit it hits (`rules/damage/riders.mjs#inflictedEffectIds`, carried on the decla
 
 **`self:npOnCooldown`** (#232): a Noble Phantasm of the unit's own is on its Cooldown; an NP spent for the game
 has none to run. Golden Rule's fallback turns on it: a Crit with no NP on Cooldown shortens Enki's count instead.
+
+**Who by True Name, and which allies stand where** (#260 reading 6). `<side>:trueName:<slug>` names a Heroic
+Spirit across its builds, the True Name spelt by `rules/named-units.mjs#trueNameSlug` (*Jeanne d'Arc (Alter)* is
+`jeanne-d-arc-alter`); `self:contentId:` names one build. `rules/named-units.mjs#annotateAllies` stamps every Unit's
+standing allies on the board pass, and the options are ladders, so *"within 3"* is `:3` and *"directly next to"* is
+`:1`: `allyNamed:<slug>` (on the field), `allyNamedWithin:<slug>:<n>`, and `allyAttributeWithin:<attribute>:<n>`
+(Triumphal Return's [Star] ally). Board facts: a phase predicate (`self` of the board unit) reads them; a
+collection-time predicate does not.

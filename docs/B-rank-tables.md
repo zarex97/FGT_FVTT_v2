@@ -151,6 +151,11 @@ Medusa **`E−`** → 10 − 5 = 5 ✓ — the first sub-E rank in the corpus, a
 table without a special case, which is the strongest evidence yet that ranks below E are ordinary
 points on the scale rather than a floor (Ch. 05 §5.3).
 
+**Classic and Revised** (#260 reading 3). Arjuna, Proto Gil, Cú Chulainn, Iskandar and Rama print the Revised
+text: the same table value, *"dealt as Fixed Divine Damage and does not count towards the amount required for an
+Injury Roll"*. One `divinity` template carries both (`printedRevision`, `FlatDamage.fixedUnder: revised`); the
+War's `divinityRevision` picks which every bearer plays (Ch. 31).
+
 ### Divine Core — **exactly twice Divinity**
 
 `Goddess's Divine Core` and `Twin God's Divine Core` carry `countsAs: divinity` and, at every
@@ -287,8 +292,8 @@ instance as `params: {rank: "C+", evade: 2}`; the table stays for every Skill. `
 is the one reader of all three numbers, instance first. Espionage's raise from `C` to `A` (#253 reading 4) moves Discover and Evade to A's 10% and +4 while it stands; the cooldown stays the Skill's own `C`, 1◈.
 
 **Eight independent confirmations across seven Servants.** The one textual deviation: Hundred-Faced Hassan's sheet adds a ninth clause — `Skill Seal` deactivates PC
-immediately — which no other bearer has. Presence Concealment is therefore a **parameterized
-template with per-Servant clause overrides**, not one shared effect document.
+immediately. It is the **Revised** text (#260 reading 3), which Sasaki's D prints too (60%, +2, 1◈ by the
+tables): the template carries it, and the War's `presenceConcealmentRevision` picks whether every bearer plays it.
 
 **All three tables now have readers.** They were transcribed here and sat unconsulted:
 `presenceConcealmentDiscover` feeds `discoverChance`, which had a caller only in its own tests;
@@ -340,6 +345,13 @@ Verification against sheets:
 - Heracles `B`: 40% / 60% / 20 (sheet: 40% / 60% / 20 ✓).
 - **Asterios `B`** (`0.2.0`): 40% taken / 20% NP / 60% dealt / drain 20 ✓.
 - **Raikou `EX`** (`0.2.0`): 75% taken / 30% NP / 100% dealt / drain 30 ✓.
+
+- **Gilles de Rais (Saber) `EX`**: 75% / 30% NP / 100% / drain 30, the floor without forced deactivation ✓ (#260).
+
+**Classic and Revised** (#260 reading 3). Gilles de Rais (Saber) and Darius III print the Revised clauses: 5, the
+mode locks when the Master falls and Sustainability loses 1 more at every Turn's end, with no 2◈ at the death; 7,
+Skill Seal ends it at once. Gilles's own *"cannot be negated once Activated"* exempts him from 7 (`unsealable`,
+reading 3j). Clause 1 stays each sheet's own under every pick.
 
 **Six sheets reproduce from the tables, from two independently-supplied rosters.** Asterios and
 Raikou were written months after Heracles and Penthesilea and match them to the point; that is

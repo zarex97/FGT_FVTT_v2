@@ -36,6 +36,7 @@ import { syncMarkVisibility } from "./marks.mjs";
 import { attachInvalidation } from "./invalidation-hooks.mjs";
 import { attachForcedModes } from "./modes.mjs";
 import { attachConcealment } from "./concealment.mjs";
+import { attachSealEnds } from "./seal-ends.mjs";
 import { attachFeignedDefeat } from "./feigned-defeat.mjs";
 import { attachCopyPick } from "./copy.mjs";
 import { attachOpeningChoice } from "./opening-choice.mjs";
@@ -99,6 +100,8 @@ export const ENGINE_LISTENERS = Object.freeze([
   { id: "forcedModes", attach: attachForcedModes },
   // Presence Concealment's end: its cooldown, and Secret Poison disclosed.
   { id: "concealment", attach: attachConcealment },
+  // Skill Seal ending a Skill under its Revised text (#260 reading 3).
+  { id: "sealEnds", attach: attachSealEnds },
   { id: "feignedDefeat", attach: attachFeignedDefeat },
   // Wisdom of Dún Scáith: a copier entering a war under way owes its pick.
   { id: "copyPick", attach: attachCopyPick },

@@ -35,7 +35,7 @@ import { turnRecordOf, roundRecordOf, currentTick, currentRound, currentMoment, 
 import { isGated, gateTurnFor } from "../rules/np-gate.mjs";
 import { clampToMax, watermarkKey } from "../domain/health.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
-import { warRule, currentWar } from "./war.mjs";
+import { warRule, currentWar, revisionRules, warOfUnit } from "./war.mjs";
 
 /**
  * Build a write adapter bound to the current world.
@@ -1022,7 +1022,8 @@ export function worldIO() {
 
       // A summon gone with its summoner leaves no record: its kind is conjured
       // fresh next time, and a remembered 12 Health would follow a new Warrior.
-      if (owner && contentId && reason !== "summonerDefeated") await rememberDeparture(summon, owner, { killed: false });
+      // Nor does one that SPLIT into new ones: it is not coming back (#260).
+      if (owner && contentId && reason !== "summonerDefeated" && reason !== "split") await rememberDeparture(summon, owner, { killed: false });
 
       // Recorded before the document goes, because afterwards there is nothing
       // to name. `reason` distinguishes a timed departure from the field-close
@@ -1186,9 +1187,11 @@ export function worldIO() {
       // Sustainability is the hundred's, not one body's (#226 reading 17):
       // when it runs out, the whole count goes and this body is the last.
       if (!already && legionBody && cause === "sustainabilityExhausted") await exhaustLegion(resolve(unitId));
+      /** @type {string[]} */
+      let freed = [];
       if (!already && !(legionBody && survivesBody(resolve(unitId)))) {
         await countTowardsGrail(unitId, cause);
-        await freeContractedServants(unitId, killerId);
+        freed = await freeContractedServants(unitId, killerId);
       }
       const actor = resolve(unitId);
       if (!actor) return;
@@ -1203,6 +1206,12 @@ export function worldIO() {
       }
       // ...then what the Conquest it decided did with its Servants (#179).
       await postConquestCard(unitId);
+      // ...and what the death did to the ones nobody claimed (#260, live):
+      // freed, the clock, Mad Enhancement's clause 5, the modes held. Each was
+      // a write and a log entry, and the table read only "No Conquest".
+      if (freed.length > 0) {
+        await ChatMessage.create({ content: `<div class="fgt-card fgt-card--defeat">${freed.map((l) => `<p>${l}</p>`).join("")}</div>` });
+      }
       // A Structure is destroyed, not left lying: *"Only Masters can destroy a
       // Bloodmark, and it is done by simply Attacking it."* A broken mark stayed
       // on its panel under a skull (#188). Nothing reads a defeated Structure.
@@ -1230,6 +1239,13 @@ export function worldIO() {
       });
       // After the defeat is written, so a failed dismissal cannot leave the
       // summoner standing.
+      // ...and a line that says so (#260, live): Gilles's seven Horrors left
+      // the board with him and the table read only his defeat card. One that
+      // had already fallen is cleared without being named among them.
+      const leaving = goWithIt.filter((summon) => !summon.system?.defeated);
+      const { postLeftWithSummonerCard } = await import("./defeat-card.mjs");
+      // Named first: an unlinked summon's document goes with its token.
+      await postLeftWithSummonerCard(unitId, leaving);
       for (const summon of goWithIt) await this.dismissSummon(summon.id, "summonerDefeated");
       // A summon KILLED has disappeared too (#247 reading 11): what it leaves
       // behind is written as its timed departure writes it, at full Health.
@@ -1810,14 +1826,14 @@ async function countTowardsGrail(unitId, cause) {
  * whatever state it was in, which locks in its own penalty.
  *
  * @param {string} unitId
- * @returns {Promise<void>}
+ * @returns {Promise<string[]>} the lines its card says
  */
 async function freeContractedServants(unitId, killerId = null) {
   const master = unitActor(unitId);
   // Whoever holds a Contract, not only a `master` actor: Medea's Servants
   // taken by Rule Breaker stayed contracted to her body (#193 reading 18).
   const holds = master?.type === "master" || game.actors.some((a) => a.system?.masterId === unitId);
-  if (!holds || !game.user.isGM) return;
+  if (!holds || !game.user.isGM) return [];
 
   // CONQUEST FIRST, and the ordering is correctness rather than preference
   // (#27, ADR 0002). `conquestContract` selects the Servants to claim by
@@ -1838,6 +1854,8 @@ async function freeContractedServants(unitId, killerId = null) {
 
   const turnsPerRound = warRule("turnsPerRound");
 
+  /** @type {string[]} */
+  const freed = [];
   for (const actor of bound) {
     // ONE projection, and `abilities` off it rather than a hand-rolled `modes`.
     //
@@ -1859,12 +1877,15 @@ async function freeContractedServants(unitId, killerId = null) {
       sustainability: projected.sustainability,
       abilities: projected.abilities,
     };
-    for (const d of onMasterDefeated(snapshot, {
+    const descriptors = onMasterDefeated(snapshot, {
       conquered: conquered.has(actor.id), spares, turnsPerRound,
       // *"Servant's Sustainability +1◈ Turns"* for a High Rank Master, added
       // to the clock its death starts (#241 reading 4).
       highRankMaster: isHighRank(master?.system),
-    })) {
+      // Which Mad Enhancement clause 5 this War plays (#260 reading 3).
+      revisions: revisionRules(warOfUnit(actor) ?? currentWar()),
+    });
+    for (const d of descriptors) {
       if (d.kind === "setContract") await actor.update({ "system.contract": d.contract, "system.masterId": null });
       else if (d.kind === "defeat") {
         await actor.update({
@@ -1882,7 +1903,44 @@ async function freeContractedServants(unitId, killerId = null) {
         }
       } else if (d.kind === "lockModes") await actor.update({ "system.modesLocked": true });
     }
+    // Imported here, as this file's other cards do: both sit above `io` in the graph.
+    const { shownName } = await import("./public-identity.mjs");
+    const { currentBoard } = await import("./board.mjs");
+    freed.push(...freedLines(actor, descriptors, shownName(actor, currentBoard())));
   }
+  // Said by `defeat`, after the Master's own defeat card and the Conquest's.
+  return freed;
+}
+
+/**
+ * The lines a Master's death writes about one of its Servants, from the
+ * descriptors `onMasterDefeated` returned and the clock they left.
+ *
+ * @param {object} actor the Servant, after the descriptors were applied
+ * @param {object[]} descriptors
+ * @param {string} shown its public name
+ * @returns {string[]}
+ */
+function freedLines(actor, descriptors, shown) {
+  const name = foundry.utils.escapeHTML(shown);
+  const left = actor.system?.sustainabilityRemaining;
+  const lines = [];
+  for (const d of descriptors) {
+    if (d.kind === "setContract" && d.contract === "free") {
+      lines.push(typeof left === "number"
+        ? game.i18n.format("FGT.Free.Freed", { name, turns: left })
+        : game.i18n.format("FGT.Free.FreedNoClock", { name }));
+    } else if (d.kind === "defeat") {
+      lines.push(game.i18n.format("FGT.Free.Exhausted", { name }));
+    } else if (d.kind === "note" && d.note === "madEnhancementClassic") {
+      lines.push(game.i18n.format("FGT.Free.MadClassic", { name, turns: d.turns }));
+    } else if (d.kind === "note" && d.note === "madEnhancementRevised") {
+      lines.push(game.i18n.format("FGT.Free.MadRevised", { name }));
+    } else if (d.kind === "lockModes" && actor.items?.some((i) => i.system?.isMode)) {
+      lines.push(game.i18n.format("FGT.Free.ModesLocked", { name }));
+    }
+  }
+  return lines;
 }
 
 /**

@@ -1360,7 +1360,7 @@ gave it the 'Levitating' Attribute, and spared Noah from Enki. 22 readings ruled
 |---|---|---|
 | Independent Action (A+) | Class, passive | `class-independent-action` at A+: no Sustainability (`sustainability: null`), ZON +3 (`independentActionZon`), absolute contract immunity (`rules/contract.mjs`) |
 | Magic Resistance C (E) | Class, passive | `class-magic-resistance {rank: C}`: negates up to MAG C, −30% past it, −15% to debuffs |
-| Divinity (B) | Passive | `divinity-fixed`: +40 as `FlatDamage.fixed`, added at stage 16 past every modifier and the Injury snapshot (reading 16) |
+| Divinity (B) | Passive | `divinity` with `printedRevision: revised` (once `divinity-fixed`): +40 as `FlatDamage.fixed`, added at stage 16 past every modifier and the Injury snapshot (reading 16), under the Revised text the War picks (#260 reading 3) |
 | Charisma (A+) | Passive + active | Penthesilea's: +27 aura to other allies, `atkUpCharisma` 25/10 on 4◈−⅓◈ |
 | Golden Rule (A) | Passive + active | Drake's Crit cut on every NP; with none on Cooldown, `ScheduleDelta` moves Enki's strike a Turn closer (`self:npOnCooldown`, reading 14); NP Regen 2 on top of the natural 1 (reading 17) |
 | Treasury of Babylon (EX) | Active | Radiant Road's shape: NP Cooldown −1◈, then Crit Up 60% |
@@ -1584,7 +1584,7 @@ Archer (the sheet names none, #234 reading 1) · Lawful Neutral · India · `[Ma
 
 **Built 2026-10-16 and pressed 2026-10-17 (#234), 74 Clauses (66 live, 8 in the engine), 18 readings.** Karna's mirror, from Karna's pieces: Fated Rivals (his half,
 `target:contentId:karna`, Suspend Skill by his own Master), Independent Action A, Magic Resistance C, Divinity B
-(`divinity-fixed`), Clairvoyance (Bowman) B+ (EMIYA's Evade− at 90; Crit Up, Debuff Immune, Range Up (Clairvoyance)),
+(the Revised text, `printedRevision: revised`; once `divinity-fixed`), Clairvoyance (Bowman) B+ (EMIYA's Evade− at 90; Crit Up, Debuff Immune, Range Up (Clairvoyance)),
 The Awarded Hero A+ (an NP cut, Regen 15%, Area CritUp (Awarded), NP Regen), Mana Burst (Flames) A, Roar of the Flame
 God EX (Luck, Atk Up, NP DmUp, the counted Agni buff); the Noble Phantasms Agni Gandiva (Aim, combined base, Magic
 Resistance halved, cools Mana Burst) and Pashupata (a 5x5 within his Range, Death 30% + 10% a Divinity grade, Def Dwn).
@@ -1663,6 +1663,25 @@ the latter in machinery that shipped long before she existed. Ch. 45 records the
 a victim it does not have; *White Queen's Enigma* shipped without it and refused with *"Choose a
 target."* The corpus-wide guard written for that found a second instance on a Servant already marked
 fully authored — Semiramis's *Scales of the Sacred Fish*.
+
+## D.33f Gilles de Rais (Saber)
+
+`STR B / END C / AGI C / MAG D / LUC D` · Health 1000 · MOV 4 · Range 1/1 · BA 125 STR (the sheet prints 175; the
+table wins, §46.6), 125 MAG · Sustainability 2◈ · Saber (by his Class Skills; the sheet names none) · Lawful Good, Neutral
+Evil while Mad Enhancement is Active · France · `[Male, Servant, [Man], Humanoid]`
+
+**Built 2026-10-20 (#260), 152 Clauses, every reading ruled.** The Saber form of the Caster on `Copia de Gilles.md`
+(reading 1): ids `gilles-saber` and `gilles-saber-*`, the plain ids left to the Caster, the two Spells and the Horrors
+shared. Magic Resistance B and Riding B (`class-riding-unlocks`) as the tables give. Mad Enhancement EX at the
+**Revised** text, unsealable, starting off and switched only by Prelati's Encouragement's die (15%, +15% a use, at
+most 90%), for good (readings 2, 3, 3j); while it is on he is Neutral Evil (`AlignmentOverride`, reading 4), his
+Saint War Order (Atk Up 100/50, S.Crit Up 15, Def Dwn 50 on himself unrolled) is closed and Prelati's Spellbook allows
+Summoning: Horrors (1d4, ⅔◈ each) and Summoning: Elder Horror (`abilityAllows`, reading 11). Military Tactics C (an
+aura on [Anti-Army] or higher NPs, NP DmUp (nonAA)), Triumphal Return EX (Alignment-gated recipients, Overcharge,
+a [Star] ally, 3 panels beside Jeanne d'Arc by True Name), Golden Rule B (the shared `golden-rule` at 80%), By the
+Holy Maiden's Side A (all Units of an Alignment, enemies and himself included; Jeanne's distance ladder; Dmg Boost
+(Gilles) reaching his Horrors). Horrors split on a coin, Elder Horrors on a d4's 3, unless Light or anti-Dark damage
+defeated them. Spec `docs/superpowers/specs/2026-10-20-gilles-saber-clauses.md`.
 
 ## D.34 Aggregate — both rosters
 

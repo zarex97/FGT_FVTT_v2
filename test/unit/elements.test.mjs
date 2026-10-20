@@ -25,8 +25,10 @@ describe("table-driven values resolve against the owning ability's rank", () => 
       // `Raikou` buff) may be made of a damage type the attack itself is not.
       // Divinity is scoped to neither. `sourceContentId` names the Skill, so a
       // bonus that `supersedes` it can find it (#103); this one has none.
+      // `direction: "dealt"`: a flat bonus is damage dealt, which is how
+      // `attack:vsAttribute:` finds one against an Attribute (#260).
       {
-        key: "divinity", value: 50, sourceContentId: null, component: null, element: null,
+        key: "divinity", direction: "dealt", value: 50, sourceContentId: null, component: null, element: null,
         predicate: null, source: "Divinity",
       },
     ]);

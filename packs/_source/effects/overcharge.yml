@@ -1,0 +1,43 @@
+# Overcharge -- Appendix A: *"Magnitude of all non-damage NP effects increased.
+# Explicitly excludes direct damage."* First applied by Gilles de Rais (Saber)'s
+# Triumphal Return of the Holy Maiden: *"Applies Overcharge for 1◈ Turns, 1 time
+# ... the magnitude of all non-damage effects of NP are increased by 20%."*
+#
+# Ruled 2026-10-20 (#260 reading 8): the holder's next NP multiplies each numeric
+# effect magnitude by 1.2, rounded down; never its damage, a chance or a duration.
+# That NP spends it, even with nothing to raise. Unused, it ends with its 1◈.
+#
+# `magnitude` is the percent, read as the scale's `value`: 20 is x1.2.
+schema: 1
+id: overcharge
+name: "Overcharge"
+description: "The magnitude of all non-damage effects of this Unit's next Noble Phantasm is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  # Read where every effect lands (`engine/landing.mjs#outgoingScaleOf`): an
+  # application whose source is this Unit's NP, or an NP's Attack.
+  - key: EffectMagnitudeScale
+    direction: outgoing
+    scope: np
+    value: "@magnitude"
+  # "1 time": spent by the NP that used it, once that NP is over. An Attack NP
+  # raises `abilityUsed` at its declaration, before its riders land, so it is
+  # heard at `attackPerformed`, once per Combat Phase after every Process; a
+  # non-damaging NP at `abilityUsed`, after its phases.
+  - key: OnEvent
+    event: attackPerformed
+    automatic: true
+    onlyNP: true
+    then:
+      - { key: RemoveEffect, effect: overcharge }
+  - key: OnEvent
+    event: abilityUsed
+    automatic: true
+    onlyNP: true
+    excludeDamaging: true
+    then:
+      - { key: RemoveEffect, effect: overcharge }

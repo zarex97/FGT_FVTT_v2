@@ -164,7 +164,7 @@ one of the few triggers in the game that is not damage-related.
 | `fgt.healthChanged` | Any health mutation | `{unitId, delta, cause, newValue}` |
 | `fgt.healthReachedZero` | Health hit 0, **before** the revival chain | `{unitId, ctx}` |
 | `fgt.unitRevived` | A revival source fired | `{unitId, source, restored}` — **fired**, once, from the defeat resolution, which is the only place that knows a revival happened *and* which of the four paid for it. Heracles's `Indomitable` is the one clause that listens: *"whenever Heracles is defeated and revived through **any** effect"* — so it cannot hang off one source, and firing it from each would fire it four times. |
-| `fgt.unitDefeated` | Defeat after the revival chain resolved | `{unitId, cause}` |
+| `fgt.unitDefeated` | Defeat after the revival chain resolved | `{unitId, cause}`. On the attack path its options carry the defeating Attack's `attack:` facts, and nothing of the killer's own (`engine/attack.mjs#attackOptionsOfDefeat`): a Horror does not split when Light or anti-Dark damage defeated it (#260 reading 12). A defeat by no Attack carries none. |
 | `masterDefeated` | A Master's defeat resolved | Raised on that Master's own Servants, found on the board by `masterId`, at the tail of `resolveDefeat` (after the revival chain). The Normal Archer's Improved Sustainability listens (#103). |
 | `unitKilled` | An attack's defeat resolved to a death | Fired on the **killer**, with the victim as `target:` options (`engine/attack.mjs#killedBy`). `unitDefeated` is heard by the victim, so a clause about killing had nowhere to hang: Jack's and Medusa's Sustainability gains listened there and paid on their own deaths (#103). Only after the revival chain, and only on the attack path, which is the one that knows a killer. |
 | `fgt.unitErased` | Removed by `Erase` | `{unitId}` — **does not** increment the Grail counter |
@@ -260,6 +260,10 @@ deterministic across clients despite subscription order varying.
 | Event | When | Payload |
 |---|---|---|
 | `fgt.abilityUsed` | A Unit finished using a Skill, Spell or Noble Phantasm | `{unitId, abilityId, contentId, category, isNP}` |
+
+The subject's `isNP` counts an ability categorized as a Noble Phantasm, and `damaging` says it is an Attack that deals
+damage, which raises this at its **declaration**, before any Process has run. A handler waiting for an NP to be over
+says `onlyNP` and `excludeDamaging`, and hears a damaging one at `attackPerformed` instead (Overcharge, #260 reading 8).
 
 Fired on **all three** use paths, after the phases have resolved: a cast, an attack, and a window
 use billed at the Damage Step or the Combat Phase's start, which raised nothing until Giant Monster

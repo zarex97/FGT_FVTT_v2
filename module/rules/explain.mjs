@@ -16,6 +16,7 @@
  */
 
 import { STAGE_NAMES } from "./damage/pipeline.mjs";
+import { EffectRegistry } from "./registry.mjs";
 
 /** Human labels for each stage index. */
 export const STAGE_LABELS = Object.freeze([
@@ -77,7 +78,11 @@ export function explainDamage(result, opts = {}) {
     const contributors = (stage.contributors ?? []).map((c) => ({
       source: prettySource(c.source),
       value: formatValue(c.source, c.value),
-      note: c.note ?? null,
+      // An effect's id names it in the pipeline, where the id is its identity
+      // (rolls and stacking key on it); the card prints its name. An Aura from
+      // an effect read "Dmg Boost dmgBoostGilles +30" on a Horror's card
+      // (#260, live), as the Turn report once did (`engine/turn-report.mjs`).
+      note: c.note ? (EffectRegistry.get(c.note)?.name ?? c.note) : null,
       // Carried through untouched. Deciding who may READ a contributor is a
       // separate question, answered by `redactBreakdown` in card-visibility;
       // this file's job is to say what happened, completely.

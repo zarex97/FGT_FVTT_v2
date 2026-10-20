@@ -34,6 +34,7 @@ const BY_KEY = Object.freeze({
   SizeStep: PRIORITY_BANDS.base,
 
   StatDelta: PRIORITY_BANDS.additive,
+  AlignmentOverride: PRIORITY_BANDS.additive,
   MovDelta: PRIORITY_BANDS.additive,
   RangeDelta: PRIORITY_BANDS.additive,
   MaxDelta: PRIORITY_BANDS.additive,

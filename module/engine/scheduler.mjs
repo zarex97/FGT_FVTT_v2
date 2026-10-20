@@ -425,6 +425,15 @@ export function fireEvent(event, units, ctx) {
       // Phantasm use is excluded the same way a Spell is, by its own flag
       // rather than a `category` neither NPs nor ordinary Skills carry.
       if (handler.excludeNP && ctx.subject?.isNP) continue;
+      // ...and its mirror: a Noble Phantasm use only, an ability categorized
+      // as one included. Overcharge is spent by the next NP its holder uses
+      // (#260 reading 8).
+      if (handler.onlyNP && !ctx.subject?.isNP) continue;
+      // A use that is NOT an Attack dealing damage: `abilityUsed` fires for
+      // an Attack at its declaration, before any Process has run, so a handler
+      // waiting for the use to be OVER hears an Attack at `attackPerformed`
+      // instead (Overcharge, #260 reading 8).
+      if (handler.excludeDamaging && ctx.subject?.damaging) continue;
 
       // A standing charge the bearer has ALREADY PAID a bigger version of this
       // Turn. Karna's Note 2: *"when Karna uses a NP that deals damage, his
@@ -1440,6 +1449,43 @@ const ACTIONS = Object.freeze({
       untilTick: (c.tick ?? 0) + ticks,
       fieldId: u.boundToFieldId ?? null,
       heads: coin === 1,
+      source: h.source,
+    })];
+  },
+
+  /**
+   * A defeated summon that turns into new ones, on a die.
+   *
+   * Gilles's Horrors (#260 reading 12): *"When a Horror is defeated, Gilles
+   * Flips a Coin. If Heads, the defeated Horror turns into two new Horrors"*;
+   * an Elder Horror *"rolls a four-sided die. If a 3 is rolled, the defeated
+   * Elder Horror turns into three new Horrors"*. `roll` is the die, pre-rolled
+   * on the caller's contract (`pendingRolls`), and `on` the faces that split.
+   * A LOG intent, as `Banish` is: placing Units is the applier's business
+   * (`engine/summoning.mjs#splitSummon`). Both faces are said: a die that
+   * decides an outcome is on the card, a miss included.
+   */
+  Split: (a, u, h, c) => {
+    // *"This effect does not activate if the Horror was defeated with Light
+    // damage or Attack that deals extra damage to 'Dark' or 'Outsider'
+    // Attribute Units"*: the defeating Attack's facts (`c.options`), and a line
+    // that says so rather than silence.
+    const exempt = (a.unlessAttack ?? []).find((o) => c.options?.has?.(o)) ?? null;
+    if (exempt) {
+      return [I.log({ kind: "split", unitId: u.id, summonerId: u.summonerId ?? null, exempt, splits: false, source: h.source })];
+    }
+    const key = a.roll?.key ?? `split:${u.id}`;
+    const rolled = c.rolls?.[key];
+    if (typeof rolled !== "number") return [];
+    const splits = (a.on ?? []).includes(rolled);
+    return [I.log({
+      kind: "split",
+      unitId: u.id,
+      summonerId: u.summonerId ?? null,
+      formula: a.roll?.formula ?? null,
+      rolled,
+      splits,
+      into: splits ? { count: a.count ?? 1, contentId: a.into ?? null } : null,
       source: h.source,
     })];
   },
@@ -2468,8 +2514,13 @@ export function checkRemovals(units, ctx) {
     // instead of showing as churn every Turn he stands inside.
     if ((u.suppressions ?? []).some((x) => x.scope === "sustainabilityDecay")) continue;
 
-    out.push(I.setResource(u.id, "sustainabilityRemaining", u.sustainability - 1));
-    if (u.sustainability - 1 <= 0) {
+    // One Turn, and one more for each the Revised Mad Enhancement adds once its
+    // Master fell while it was Active (#260 reading 3): *"reduced by 1
+    // additional Turn at the end of every Turn"*.
+    const lost = 1 + Math.max(0, u.sustainabilityDecay ?? 0);
+    const left = Math.max(0, u.sustainability - lost);
+    out.push(I.setResource(u.id, "sustainabilityRemaining", left));
+    if (left <= 0) {
       out.push(I.defeat(u.id, "sustainabilityExhausted"));
       out.push(I.log({ kind: "disappear", unitId: u.id, tick: ctx.tick }));
     }

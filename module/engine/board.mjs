@@ -11,7 +11,7 @@
 import { moment, NO_MOMENT } from "../domain/moment.mjs";
 import { snapshotBoard, snapshotUnit, turnStateAt, roundStateAt } from "../rules/snapshot.mjs";
 import { normalizeFactions, alliancesOf, factionChoices, factionForUser } from "../rules/factions.mjs";
-import { warRule, currentWar } from "./war.mjs";
+import { warRule, currentWar, revisionRules } from "./war.mjs";
 
 /**
  * The world setting holding the roster a NEW War starts from. A War holds its
@@ -540,6 +540,9 @@ export function currentBoard(overrides = {}) {
         ridingAttackLines: warRule("ridingAttackLines"),
         // #187 reading 4: what Range makes an Attack "ranged".
         rangedMinimumRange: warRule("rangedMinimumRange"),
+        // #260 reading 3: Classic, Revised or As printed, by Skill slug, for
+        // `domain/revisions.mjs#revisionOf`.
+        revisions: revisionRules(combat),
       },
       // The War's Region, type and ruleset: chosen once at setup and read by
       // every Servant thereafter (`engine/war.mjs`).

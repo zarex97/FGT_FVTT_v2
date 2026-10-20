@@ -57,7 +57,7 @@ export const RULE_ELEMENT_KEYS = new Set([
   // A Master Essence's *"Servant NP is usable N Rounds earlier"* (#241).
   "NpGateShift",
   // Group 2 — damage contributors
-  "DamageModifier", "FlatDamage", "DamageNegation", "Resistance", "Ward",
+  "DamageModifier", "FlatDamage", "DamageNegation", "Resistance", "Ward", "AlignmentOverride",
   // Proto Gil (#232): Heal Dwn and Drowning's healing received; Bab-ilu's
   // additional Normal Attack.
   "HealingReceived", "FollowUpAttack",

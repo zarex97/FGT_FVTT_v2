@@ -234,7 +234,8 @@ describe("the table", () => {
   it("names every rule once, the roster among them", () => {
     expect(new Set(WAR_RULE_KEYS).size).toBe(WAR_RULE_KEYS.length);
     expect(WAR_RULE_KEYS).toContain("factions");
-    expect(WAR_RULE_KEYS).toHaveLength(24);
+    expect(WAR_RULE_KEYS).toHaveLength(27);
+    // The three Classic/Revised rules joined 2026-10-20 (#260 reading 3).
   });
 
   it("fills only what a War lacks, and a held null stays", () => {

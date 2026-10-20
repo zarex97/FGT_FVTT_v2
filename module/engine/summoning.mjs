@@ -199,7 +199,9 @@ export function scaledCooldown(cooldown, count, turnsPerRound) {
 export function freePanels(summoner, placement, needed, { footprint = null, within = null } = {}) {
   const board = currentBoard();
   const self = board.units.find((u) => u.id === summoner.id);
-  const origin = self?.panel;
+  // A placement anchored somewhere other than the summoner: a defeated Horror's
+  // own panel, where its split appears (#260 reading 12).
+  const origin = placement.anchorPanel ?? self?.panel;
   if (!origin) return [];
 
   // A 5x5 "around" the caster is a Chebyshev radius of 2.
@@ -587,4 +589,51 @@ async function fromPacks(contentId) {
     if (entry) return pack.getDocument(entry._id);
   }
   return null;
+}
+
+/**
+ * A defeated summon turning into new ones (`Split`, `engine/scheduler.mjs`).
+ *
+ * Gilles's Horrors, ruled 2026-10-20 (#260 reading 12): one new Horror on the
+ * fallen Unit's panel, the rest on free panels next to it, placed by Gilles's
+ * owner. They are Gilles's, as the fallen one was, and new: they may split in
+ * turn and act if the Turn allows. The fallen body goes first, so its panel is
+ * free. Both faces of the die are a card line.
+ *
+ * @param {{unitId: string, summonerId: string|null, formula: string|null, rolled: number,
+ *          splits: boolean, into: {count: number, contentId: string}|null}} entry
+ * @returns {Promise<object[]>} the Units created
+ */
+export async function splitSummon(entry) {
+  const { unitActor } = await import("./board.mjs");
+  const fallen = unitActor(entry.unitId);
+  const summoner = entry.summonerId ? unitActor(entry.summonerId) : null;
+  const { publicIdentityOf, publicSpeakerFor } = await import("./public-identity.mjs");
+  const name = fallen ? publicIdentityOf(fallen, currentBoard()).name : entry.unitId;
+  const intoName = entry.into?.contentId ? (await fromPacks(entry.into.contentId))?.name ?? entry.into.contentId : null;
+
+  const fallenPanel = fallen ? currentBoard().units.find((u) => u.id === fallen.id)?.panel ?? null : null;
+  /** @type {object[]} */
+  let created = [];
+  if (entry.splits && summoner && fallenPanel && entry.into?.contentId && canvas.scene) {
+    const { applyWorldIntents } = await import("./applier.mjs");
+    const I = await import("./intents.mjs");
+    await applyWorldIntents([I.dismissSummon(fallen.id, "split")], "summon:split");
+    const contentIds = Array.from({ length: entry.into.count }, () => entry.into.contentId);
+    const rest = contentIds.length > 1
+      ? await ownerPanels(summoner, { anchorPanel: fallenPanel, adjacentTo: true }, contentIds.slice(1))
+      : [];
+    const panels = [fallenPanel, ...rest.filter((p) => !(p.i === fallenPanel.i && p.j === fallenPanel.j))];
+    const spec = { countsTowardBudget: false, actsOncePerTurn: true };
+    created = await placeSummons(contentIds, panels, summoner, canvas.scene, spec);
+  }
+
+  const line = entry.exempt ? game.i18n.format("FGT.Summon.SplitExempt", { name }) : game.i18n.format(entry.splits ? "FGT.Summon.Split" : "FGT.Summon.NoSplit", {
+    name, formula: entry.formula ?? "", rolled: entry.rolled, count: created.length, into: intoName ?? "",
+  });
+  await ChatMessage.create({
+    content: `<div class="fgt-card"><p>${line}</p></div>`,
+    speaker: summoner ? publicSpeakerFor(summoner) : undefined,
+  });
+  return created;
 }
