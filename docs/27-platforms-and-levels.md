@@ -179,7 +179,7 @@ operation) stores it on the dimension, and pressing again redoes or calls it off
 every Turn boundary, carries out a stored plan (a panel taken since sends its Unit to the nearest free panel
 of the 5x5; a plan gone illegal is called off with a chat line), warns one Turn before the 2◈ ceiling, and at
 the ceiling surfaces on the plan or, with none, centred on Nemo's own panel or the nearest legal spot
-(`fallbackLanding`). Nothing asks anybody anything at the boundary. `resurface` sets every token down on the
+(`fallbackLanding`). Nothing asks anybody anything at the boundary. **It runs on its own War's Turns**: the War whose Turn changed is handed in, and only dimensions whose Level is on that War's scene are run, on that War's `turnsPerRound` — another War's Turns once ran a Storm Border past its ceiling and surfaced it with nobody aboard (found live 2026-10-19). `resurface` sets every token down on the
 ground Level at its landing panel in one write, bodies included, switches Zero Sail off and starts its 5◈,
 then tears the Level down. A `createLevel`/`deleteLevel` hook redraws a canvas the Level change left not
 ready.

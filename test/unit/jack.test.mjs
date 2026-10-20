@@ -201,7 +201,8 @@ describe("the pre-emption's Luck Check reads Jack's own phase (#185 reading 12)"
   it("off the pre-empter's projection, not the board's clock", async () => {
     const { readFileSync } = await import("node:fs");
     const src = readFileSync("module/engine/attack.mjs", "utf8");
-    expect(src).toMatch(/requiresLuckCheckIn \?\? \[\]\)\.includes\(defender\?\.phase \?\? board\.phase\)/);
+    expect(src).toMatch(/const phase = defender\?\.phase \?\? board\.phase;/);
+    expect(src).toMatch(/requiresLuckCheckIn \?\? \[\]\)\.includes\(phase\)/);
   });
 
   it("her phase is the one at her panel, and none without a cycle", async () => {

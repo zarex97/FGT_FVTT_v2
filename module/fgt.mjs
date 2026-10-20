@@ -351,6 +351,11 @@ Hooks.once("ready", async () => {
   // player who reloads mid-exchange would otherwise see the prompt and have
   // nothing to answer it with.
   resumeCounterArming();
+  // Ch. 21: a Combat Process a GM reload left between rungs drives on, here and
+  // whenever this GM's canvas shows another scene (#250). GM-gated internally.
+  const { resumeStalledProcesses } = await import("./engine/attack.mjs");
+  resumeStalledProcesses();
+  Hooks.on("canvasReady", () => resumeStalledProcesses());
   fgt.api = buildPublicAPI();
   console.log(`FGT | Ready — ${game.system.version}`);
 });

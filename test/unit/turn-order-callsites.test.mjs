@@ -75,7 +75,28 @@ describe("the rolled order reaching the played order", () => {
     expect(body).toMatch(/this\.setupTurns\(\)/);
   });
 
-  it("applies it only at the top of a Round, where the turn index is 0", () => {
+  it("mid-Round, applies only an order that keeps the acting combatant at its index (#82)", () => {
+    const body = bodyOf("_onUpdate");
+    // A Delay moves factions still to come, behind the one acting: re-sorting
+    // then leaves `this.turn` on the same combatant, and that is the one case.
+    expect(body).toMatch(/this\.#keepsActing\(\)/);
+    expect(SRC).toMatch(/sorted\[this\.turn\]\?\.id === acting/);
+  });
+
+  it("spends a Delay once, and carries the next-Round ones into the opening order (#82)", () => {
+    // Spent: the order as it stands is moved, and no pending Delay is stored.
+    expect(bodyOf("delayFaction")).toMatch(/applyDelay\(current, factionId, by, frozen/);
+    // Not recomputed from `baseOrder` at every boundary, which compounded it.
+    expect(bodyOf("markTurnTaken")).not.toMatch(/computeTurnOrder/);
+    // The opening order reads the carried Delays, then forgets them.
+    const roll = bodyOf("rollTurnOrder");
+    expect(roll).toMatch(/computeTurnOrder\(order, carried, \[\], this\.gmFactionId\)/);
+    // Key by key: an update merges an object, so `"system.delays": {}` cleared nothing.
+    expect(roll).toMatch(/system\.delays\.-=\$\{id\}/);
+    expect(roll).not.toMatch(/"system\.delays": \{\}/);
+  });
+
+  it("applies it at the top of a Round, where the turn index is 0", () => {
     // `this.turn` is an index, not an identity. Re-sorting mid-Round moves
     // whoever sits at it — no turn-change event, no budget reset, and the
     // faction that held the turn never gets a turn-end.

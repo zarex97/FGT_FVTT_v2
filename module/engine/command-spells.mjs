@@ -579,7 +579,7 @@ async function interruptProcess(messageId, command, effectsFor, masterId) {
       && process.deserialize(m.getFlag("fgt", "process")).groupId === first.groupId)
     : [];
 
-  const { advanceAttack } = await import("./attack.mjs");
+  const { advanceAttack, closedLuckRung } = await import("./attack.mjs");
   for (const msg of [message, ...siblings]) {
     let state = process.deserialize(msg.getFlag("fgt", "process"));
     if (!process.interruptible(state)) continue;
@@ -589,6 +589,11 @@ async function interruptProcess(messageId, command, effectsFor, masterId) {
     for (const e of msg === message ? effects : effects.filter((x) => x.kind === "escape")) {
       state = process.applyInterrupt(state, { ...e, command: command.id, masterId });
     }
+
+    // An interrupt that lands on a Luck rung its Unit cannot take declines it
+    // here, before the card is drawn (#252).
+    const closed = closedLuckRung(state);
+    if (closed) state = process.advance(state, "declined", { reason: closed });
 
     await msg.setFlag("fgt", "process", process.serialize(state));
     // Resume: the ladder continues from wherever the interrupt left it, which

@@ -455,9 +455,10 @@
   cursor: pointer;
 }
 
-// Combat Process step 1.5 -- a swing that did not happen (Blind's Miss).
+// Combat Process step 1.5 -- a swing that did not happen (Blind's Miss) --
+// and a rung the Process skipped with its reason (a Luck Check removed, #252).
 // Muted rather than alarming: it is an outcome, not an error.
-.fgt-card__missed {
+.fgt-card__missed, .fgt-card__note {
   padding: 0.35rem 0.5rem;
   border-left: 3px solid var(--fgt-gold, currentcolor);
   opacity: 0.85;
