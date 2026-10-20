@@ -3,7 +3,8 @@ id: 2026-10-20-rule-breaker-took-independent-action
 found: live press
 kind: rule-word-read-one-way
 status: fixed
-reviewed: false
+reviewed: true
+pattern: rule-word-read-one-way
 ---
 **Expected:** Independent Action with Viy EX: *"Cannot be contracted by enemy Casters and Masters"* — absolute (Ch. 45 Q48; pressed as `IA.3`, the Contract window refuses Medea).
 **Actual:** card xeEWNPBSY20lAeFO, Medea's Rule Breaker on Anastasia, no reaction: the log reads `contract ruleBreaker … toMasterId: Medea`, and Anastasia's `masterId` became Medea's: an enemy Caster now holds her Contract.

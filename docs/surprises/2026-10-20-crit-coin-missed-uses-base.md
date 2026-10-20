@@ -3,7 +3,8 @@ id: 2026-10-20-crit-coin-missed-uses-base
 found: test
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Crit Up (Viy) reaches *"Attacks which use Base Attack (MAG)"*, and `crit-up-viy.yml`'s own comment said her ranged Normal Attack, BA(STR) plus 10% of BA(MAG), is one of them.
 **Actual:** it never was. The rule read `attack:component:mag`, and the band counts as STR. Switching it to `attack:usesBase:mag`, the facet Mad Enhancement's halving reads, still crit nothing: `anastasia-258-rulings.test.mjs` *"crits her ranged shot on a 75"* stayed red.

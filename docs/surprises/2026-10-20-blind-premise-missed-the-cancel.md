@@ -3,7 +3,8 @@ id: 2026-10-20-blind-premise-missed-the-cancel
 found: retraction
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** #258 reading 6, as I put it to the user: Watermelon's self-inflicted Blind *"rolls like any debuff: 100 less her Fae Contract's 5, so it fails 5% of the time."*
 **Actual:** it never failed. Fae Contract is +5 outgoing as well as +5 incoming, and on her own Blind she is both inflicter and target, so the chance is 100 + 5 − 5 = 100, automatic. `test/unit/skill-path-resistance.test.mjs` already said so: *"Anastasia's Blind still lands: 100 + 5 - 5 (Fae Contract, both ways)"*.

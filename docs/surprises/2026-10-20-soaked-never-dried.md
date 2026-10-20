@@ -3,7 +3,8 @@ id: 2026-10-20-soaked-never-dried
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** Soaked (c): *"At the end of a Day Round, the 'Soaked' effect is removed from all affected Units"*: Nemo and Medea, Soaked in Round 1, a Day Round, dry at its end.
 **Actual:** Round 1 ended (GM's Turn, tick 3) and both still held `soaked`. A Day board built for that boundary showed Nemo's handlers as `damageDealt` and two `damageTaken`, no `roundEnd`.
