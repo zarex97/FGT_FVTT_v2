@@ -392,7 +392,10 @@ describe("Yuugao (#249 readings 22-24)", () => {
       expect(history).toContain("s24_luckyEvasion:success");
       expect(w.actor(FOE).system.health.value).toBe(w.actor(FOE).system.health.max);
       expect(w.actor(M).system.commandSpells).toBe(2);
-    }, MATCH);
+      // Expert: Lucky Evasion exists there. On the War Rules' default,
+      // Intermediate, the rung is declined before anybody is asked (#252); this
+      // test passed on Intermediate only because that rung was still offered.
+    }, { ...MATCH, combat: { ...MATCH.combat, system: { ...MATCH.combat.system, difficulty: "expert" } } });
   });
 });
 

@@ -11,7 +11,7 @@
  * round boundary by accident.
  */
 
-import { resolveTurnOrder, computeTurnOrder, factionOfCombatant, carryDelaysForward } from "../engine/turn-order.mjs";
+import { resolveTurnOrder, computeTurnOrder, factionOfCombatant, carryDelaysForward, applyDelay } from "../engine/turn-order.mjs";
 import { factions as rosterFactions, faction as factionById } from "../engine/board.mjs";
 import { warRule } from "../engine/war.mjs";
 
@@ -159,14 +159,18 @@ export class FGTCombat extends Combat {
       contested = next.stillContested;
     }
 
-    // Delay does not carry across Rounds, and neither does who has acted.
+    // A Delay declared by a faction that had already taken its Turn applies to
+    // THIS Round's opening order (7.8), and is spent there (ruled 2026-10-19,
+    // #82). It was carried into `system.delays` and then not applied: the
+    // opening order was computed with no delays at all.
+    const stored = this.system?.delays ?? {};
+    const carried = carryDelaysForward(stored, this.system?.takenThisRound ?? []);
     await this.update({
       "system.baseOrder": order,
-      "system.turnOrder": computeTurnOrder(order, {}, [], this.gmFactionId),
-      // Delays are cleared at round start -- except those declared against a
-      // faction that had already acted, which 7.8 says apply NEXT round. Those
-      // were being discarded rather than deferred.
-      "system.delays": carryDelaysForward(this.system?.delays ?? {}, this.system?.takenThisRound ?? []),
+      "system.turnOrder": computeTurnOrder(order, carried, [], this.gmFactionId),
+      // Spent, every one. Key by key: an update MERGES an object, so writing
+      // `{}` over the stored delays removed none of them (found live, #82).
+      ...Object.fromEntries(Object.keys(stored).map((id) => [`system.delays.-=${id}`, null])),
       "system.takenThisRound": [],
     });
     return order;
@@ -220,9 +224,26 @@ export class FGTCombat extends Combat {
   _onUpdate(changed, options, userId) {
     super._onUpdate(changed, options, userId);
     if (changed?.system?.turnOrder === undefined) return;
-    if ((this.turn ?? 0) !== 0) return;
+    // Mid-Round, only an order that leaves the acting combatant where it is:
+    // a Delay moves factions still to come, behind the one acting (#82).
+    if ((this.turn ?? 0) !== 0 && !this.#keepsActing()) return;
     this.setupTurns();
     globalThis.ui?.combat?.render?.();
+  }
+
+  /**
+   * Would re-sorting now leave the combatant whose Turn it is at its index?
+   *
+   * `this.turn` is an index: a re-sort that moved the acting combatant would
+   * hand its Turn to another faction with no boundary.
+   *
+   * @returns {boolean}
+   */
+  #keepsActing() {
+    const acting = this.combatant?.id ?? null;
+    if (!acting) return false;
+    const sorted = [...this.combatants.contents].sort(this._sortCombatants);
+    return sorted[this.turn]?.id === acting;
   }
 
   /**
@@ -242,16 +263,26 @@ export class FGTCombat extends Combat {
    */
   async delayFaction(factionId, positions) {
     const by = Math.max(0, Math.round(positions));
-    const delays = { ...(this.system?.delays ?? {}), [factionId]: by };
-    if (by === 0) delete delays[factionId];
+    const taken = new Set(this.system?.takenThisRound ?? []);
+    const acting = this.started ? this.actingFactionId : null;
+    const current = this.system?.turnOrder?.length
+      ? [...this.system.turnOrder]
+      : computeTurnOrder(this.system?.baseOrder ?? [], {}, taken, this.gmFactionId);
 
-    const order = computeTurnOrder(
-      this.system?.baseOrder ?? [],
-      delays,
-      this.system?.takenThisRound ?? [],
-      this.gmFactionId,
-    );
-    await this.update({ "system.delays": delays, "system.turnOrder": order });
+    // A faction that has taken its Turn, or is taking it, moves next Round: its
+    // Delay waits in `system.delays` for the opening order (`rollTurnOrder`).
+    if (taken.has(factionId) || factionId === acting) {
+      // A `+0` withdraws it: by key, since an update merges the object.
+      await this.update(by === 0 ? { [`system.delays.-=${factionId}`]: null } : { [`system.delays.${factionId}`]: by });
+      Hooks.callAll("fgtTurnOrderChanged", this, current);
+      return current;
+    }
+
+    // A faction still to come moves now, once: the Delay is spent on the order
+    // as it stands (#82), and never stored to be applied again.
+    const frozen = [...taken, ...(acting ? [acting] : [])];
+    const order = applyDelay(current, factionId, by, frozen, this.gmFactionId);
+    await this.update({ "system.turnOrder": order });
     Hooks.callAll("fgtTurnOrderChanged", this, order);
     return order;
   }
@@ -271,12 +302,9 @@ export class FGTCombat extends Combat {
     if (taken.has(factionId)) return;
     taken.add(factionId);
 
-    await this.update({
-      "system.takenThisRound": [...taken],
-      "system.turnOrder": computeTurnOrder(
-        this.system?.baseOrder ?? [], this.system?.delays ?? {}, taken, this.gmFactionId,
-      ),
-    });
+    // The order is left as it is played: recomputing it from `baseOrder` and
+    // the stored delays at every boundary is what compounded a Delay (#82).
+    await this.update({ "system.takenThisRound": [...taken] });
   }
 
   /**

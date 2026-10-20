@@ -6,7 +6,9 @@ The scheduler runs the game's clock. A **match** is a sequence of **Rounds**, ea
 
 Turn order is **rolled per Round**, not once at setup (`module/documents/combat.mjs:126-128`). Ties are re-rolled among the tied factions only, for the contested positions only. The GM always takes the last slot and does not roll. A faction may **delay** its own turn to reorder itself within the pending queue without losing its turn entirely (`module/engine/turn-order.mjs:63-81`).
 
-**Writing the order is not applying it.** `system.turnOrder` is the stored order and `combat.turns` is the order actually played; Foundry derives the second from the first in `setupTurns`, which it calls for `round`, `turn` and `combatants` changes and **not** for a change to `system`. `FGTCombat#_onUpdate` re-derives the turns when `system.turnOrder` changes **and** `turn` is 0 — every client, top of the Round. Until 2026-09-18 nothing re-derived them at all and each Round was played in the order rolled for the Round before it (§46.4-BB). The `turn === 0` condition is load-bearing: `turn` is an index, so re-sorting mid-Round moves whoever sits at it and hands the turn to another faction with no turn-change event. `delayFaction` and `markTurnTaken` therefore write their recomputed order for the bookkeeping that reads it and do not touch the played order, which is why a Delay does not reorder the Round it is declared in (#82).
+**Writing the order is not applying it.** `system.turnOrder` is the stored order and `combat.turns` is the order actually played; Foundry derives the second from the first in `setupTurns`, which it calls for `round`, `turn` and `combatants` changes and **not** for a change to `system`. `FGTCombat#_onUpdate` re-derives the turns when `system.turnOrder` changes **and** `turn` is 0 — every client, top of the Round. Until 2026-09-18 nothing re-derived them at all and each Round was played in the order rolled for the Round before it (§46.4-BB). The `turn === 0` condition is load-bearing: `turn` is an index, so re-sorting mid-Round moves whoever sits at it and hands the turn to another faction with no turn-change event. Mid-Round it re-derives only an order that leaves the acting combatant at its index (`#keepsActing`).
+
+**A Delay is spent once it has moved its faction** (ruled 2026-10-19, #82). It moves relative to the order as it stands when declared, never again, and never past the GM. A faction that has taken its Turn, or is taking it, moves next Round: its Delay waits in `system.delays`, and `rollTurnOrder` applies it to the opening order it has just rolled, then removes it key by key (an update merges an object, so writing `{}` removed nothing). A faction still to come moves at once through `turn-order.mjs#applyDelay`, behind the acting one, so the played order can be re-derived without moving whoever holds the Turn; nothing is stored. `markTurnTaken` records who has acted and leaves the order as played: recomputing it from `baseOrder` and the stored delays at every boundary is what compounded `Delay+1` into `Delay+N`. The HUD's control is the acting faction's, so a player's Delay applies to next Round. Until this, a Delay moved nobody: it was stored, carried and never read. Pressed live: Red and then Blue declared `Delay+1` on their own Turn, rolled first next Round and opened second.
 
 Two **boundary scales** — turn and round — fire different sequences and must not double-run. Both wake every client at the same moment. Only the **active GM client** runs the sequences, decided by a per-boundary **election** that uses random tokens and a settle delay to avoid a write race (`module/rules/schedule-claim.mjs:15-69`, `module/engine/scheduler-hooks.mjs:395-413`).
 
@@ -105,7 +107,7 @@ A boundary is named by **Foundry's own counters** (`round` and `turn`), not by `
 
 4. **Delay is applied in declaration order.** If two factions each delay by 1 past each other, they end up back where they started (what happens at the table), not in turn order (`module/engine/turn-order.mjs:97-101`).
 
-5. **Delays survive round end only for factions that have not acted.** `carryDelaysForward` filters by the `taken` set, so a delay on a faction that just took its turn is spent (`module/engine/turn-order.mjs:149-157`).
+5. **A stored Delay is a next-Round one.** Only a faction that has acted, or is acting, stores a Delay; `rollTurnOrder` reads them through `carryDelaysForward` and clears them.
 
 ## Traps and anti-patterns
 
@@ -125,7 +127,6 @@ A boundary is named by **Foundry's own counters** (`round` and `turn`), not by `
   uses the mirror comparison, `expiry > ctx.tick` to skip
   (`module/engine/scheduler.mjs:1893`), so an instance whose expiry equals the current tick neither
   acts nor survives. The two halves agree, and equality means expired.
-- **Does Delay ever get lost mid-Round?** `carryDelaysForward` (called once, at round end) filters out delays on factions that have acted. But if a faction delays backward (negative), then acts before its delayed tick, the delay is discarded at round end. Whether this ever happens in authored content is unknown.
 - **Turn ownership on the GM slot.** The GM combatant returns `null` for faction id (`factionOfCombatant` at `module/engine/turn-order.mjs:58`), so the budget resets to an empty set and nothing happens on its turn. Is the GM slot intended to be playable, or is it purely ceremonial?
 
 **The boundary cards say heals** (#234, §46.4-ON). `turn-report.mjs#turnEndCard` reads `heal` intents beside Health

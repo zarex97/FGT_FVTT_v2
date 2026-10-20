@@ -19,6 +19,7 @@ import { ridersFire, successfullyAttacked } from "../rules/damage/riders.mjs";
 import { expandInstances, damageBaseOf } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
 import { askOwner, chooseFor } from "./ask.mjs";
+import { offerOverpowerSave, saveOnCard } from "./overpower-save.mjs";
 import { resolveTargets, pendingChoiceErrors } from "../rules/targeting/resolve.mjs";
 import { currentBoard, currentMoment, unitFrom, unitOf, roundRecordOf, unitActor } from "./board.mjs";
 import {
@@ -87,7 +88,7 @@ import {
 import {
   reactionAbilities, allyReactions, abilityFromOption, abilitiesAtWindow, windowSubject } from "../rules/reactions.mjs";
 import { mayAttackCivilian, civilianKill, inOwnHomeBase, grailStrike } from "../rules/environment.mjs";
-import { resolveOverpower, resolveUnderpower } from "../rules/relationships.mjs";
+import { overpowerCheck, resolveOverpower, resolveUnderpower } from "../rules/relationships.mjs";
 import {
   reactionsRefused, reactionRefusedByAgility, aoeOutcome, isConcealed, concealmentProfile,
 } from "../rules/concealment.mjs";
@@ -98,7 +99,7 @@ import { regionSizedTargeting } from "./fields.mjs";
 // the one door is `public-identity.mjs#shownName`.
 import { shownName, shownNameById } from "./public-identity.mjs";
 import { historyOf } from "./state-history.mjs";
-import { warRule, currentWar } from "./war.mjs";
+import { warRule, currentWar, isWarGM, warOfScene } from "./war.mjs";
 
 /**
  * Declare an attack. Runs on the GM client (Model B — contested outcomes are
@@ -1927,8 +1928,13 @@ async function answerRung({ event, abilityId = null, placement = null }, message
     // more chance: its Servants throw themselves at it.
     else await resolveCover(state, message);
   } else if (state.state.startsWith("s2") && event === "contest") {
-    const outcome = await rollLuck(state);
-    state = process.advance(state, outcome.success ? "success" : "fail", outcome);
+    // A press from a card drawn before the rung closed rolls nothing (#252).
+    const closed = closedLuckRung(state);
+    if (closed) state = process.advance(state, "declined", { reason: closed });
+    else {
+      const outcome = await rollLuck(state);
+      state = process.advance(state, outcome.success ? "success" : "fail", outcome);
+    }
   } else if (state.state === "counter" && event === "counter") {
     // Declaring the counter starts a second Process in the opposite direction
     // and finishes this one. The new Process drives itself from here through
@@ -2081,6 +2087,42 @@ async function withdrawFromAttack(state, used, message) {
   return next;
 }
 
+/** The automatic rungs that write to a Unit: damage, the Heel's roll, the Injury. */
+const WRITES_UNITS = new Set(["damage", "heelResolve", "injury"]);
+
+/**
+ * Drive on every Process on this scene that a lost run left between rungs.
+ *
+ * A Process is driven by the GM client that answered its last rung, and only
+ * while that client lives: reloaded during a held window, the run was gone and
+ * the Process sat at that rung for good, its Injury, facing and Counter never
+ * reached (#250, live: Medea's card held `injury` after a GM reload). Called
+ * when this GM's canvas is ready, for the scene it shows and only if it runs
+ * that scene's War. A rung that waits on somebody is theirs and is left alone,
+ * and so is a declaration, whose own run fires what follows it.
+ *
+ * @returns {string[]} the messages resumed
+ */
+export function resumeStalledProcesses() {
+  const sceneId = globalThis.canvas?.scene?.id ?? null;
+  if (!sceneId || !isWarGM(warOfScene(sceneId))) return [];
+  const stalled = (s) => !process.isComplete(s) && s.state !== "declare"
+    && (!process.pendingPrompt(s) || closedLuckRung(s));
+  const resumed = [];
+  for (const message of game.messages.contents) {
+    if (message.speaker?.scene !== sceneId || message.getFlag("fgt", "kind") !== "attack") continue;
+    const raw = message.getFlag("fgt", "process");
+    if (!raw || !stalled(process.deserialize(raw))) continue;
+    resumed.push(message.id);
+    // Behind any run this client has in flight, and read again after it.
+    serialized(message.id, async () => {
+      const state = process.deserialize(message.getFlag("fgt", "process"));
+      return stalled(state) ? closeRung(state, message) : state;
+    }).catch((err) => console.error(`FGT | Resuming Combat Process ${message.id}:`, err));
+  }
+  return resumed;
+}
+
 /**
  * Drive a Process through every rung that needs nobody, and close it when it
  * is done. The tail of every answered rung, and of a defender who left the
@@ -2093,7 +2135,8 @@ async function withdrawFromAttack(state, used, message) {
 async function closeRung(state, message) {
   // Drive through every state that needs no human input — pausing at any rung
   // where somebody could interrupt with a Command Spell.
-  while (!process.isComplete(state) && !process.pendingPrompt(state)) {
+  // A Luck rung its Unit cannot take is no question: driven through, never drawn.
+  while (!process.isComplete(state) && (!process.pendingPrompt(state) || closedLuckRung(state))) {
     const interrupted = await awaitInterrupt(message, state);
     if (interrupted) {
       // Somebody spent. Re-read: the interrupt may have moved the Process to a
@@ -2107,7 +2150,14 @@ async function closeRung(state, message) {
       if (reread.history.length >= state.history.length) state = reread;
       continue;
     }
+    const left = state.state;
     state = await runAutomaticStep(state, message);
+    // A rung that wrote to the Units is stored at once. The flag is otherwise
+    // written only before a held window and when this run ends, so a run lost
+    // with the GM's client between the two left the card at the rung before
+    // the write, and its next answer wrote the damage again: Kingprotea took
+    // Rain of Light twice, 1700 → 986 → 487 (#250, live).
+    if (WRITES_UNITS.has(left)) await message.setFlag("fgt", "process", process.serialize(state));
   }
 
   await message.setFlag("fgt", "process", process.serialize(state));
@@ -3882,6 +3932,33 @@ async function grailUnderNP(state, siblings, board) {
 }
 
 /**
+ * Why the Luck rung this Process waits on is closed to its Unit, or null when
+ * it is open (or the Process waits on no Luck rung).
+ *
+ * *"Luck Check cannot be used by the involved Units."* Achilles's duel removes
+ * the OPTION rather than penalising the roll, and Beginner and Intermediate
+ * remove the Luck Check entirely (Ch. 29). Either way the rung is declined
+ * with a reason rather than offered and refused -- declining is a legal edge on
+ * every Luck rung, and a player who expected the option is owed the sentence
+ * saying why it is gone.
+ *
+ * One reader for the drive, the answer and the resume (#252): the drive asked
+ * it only once a rung needed nobody, and a Luck rung always needs its Unit, so
+ * an Intermediate card offered *"Contest (costs 1 Luck)"* and a press rolled it.
+ *
+ * @param {object} state
+ * @returns {"luckChecksRemoved"|"luckChecksBlocked"|null}
+ */
+export function closedLuckRung(state) {
+  const prompt = process.pendingPrompt(state);
+  if (prompt?.kind !== "luckCheck") return null;
+  if (!luckChecksApply(boardSnapshot()?.difficulty)) return "luckChecksRemoved";
+  const asked = unitActor(prompt.unitId);
+  if (asked && luckChecksBlocked(unitOf(asked, boardSnapshot()))) return "luckChecksBlocked";
+  return null;
+}
+
+/**
  * Execute one state that resolves without asking anybody.
  * @param {object} state
  * @param {object} message
@@ -3892,25 +3969,10 @@ async function runAutomaticStep(state, message) {
   const inert = process.inertAnswer(state);
   if (inert) return process.advance(state, inert);
 
-  // *"Luck Check cannot be used by the involved Units."* Achilles's duel is the
-  // only thing in the game that says so, and it removes the OPTION rather than
-  // penalising the roll -- so the rung is declined automatically rather than
-  // offered and refused. Declining is already a legal edge on every Luck rung,
-  // because Luck is finite and a player may rationally refuse.
-  const prompt = process.pendingPrompt(state);
-  if (prompt?.kind === "luckCheck") {
-    // Beginner and Intermediate remove the Luck Check entirely (Ch. 29).
-    // Declined with a reason on the same path `luckChecksBlocked` uses, rather
-    // than the prompt being suppressed silently -- a player who expected the
-    // option is owed the sentence saying why it is gone.
-    if (!luckChecksApply(boardSnapshot()?.difficulty)) {
-      return process.advance(state, "declined", { reason: "luckChecksRemoved" });
-    }
-    const asked = unitActor(prompt.unitId);
-    if (asked && luckChecksBlocked(unitOf(asked, boardSnapshot()))) {
-      return process.advance(state, "declined", { reason: "luckChecksBlocked" });
-    }
-  }
+  // A Luck rung its Unit cannot take is declined here, with its reason, before
+  // any card shows it (`closedLuckRung`).
+  const closed = closedLuckRung(state);
+  if (closed) return process.advance(state, "declined", { reason: closed });
 
   switch (state.state) {
     case "heelResolve": {
@@ -5649,21 +5711,29 @@ async function applyDamage(state, message) {
   // Servant never "successfully Attacks" it, and the coin defeated a Master
   // whose Servant had just shoved it out (found building #204 reading 18).
   const sheltered = coverStateFor(state)?.masterId === state.defenderId;
-  const overpowerRoll = sheltered ? null : (await new Roll("1d100").evaluate()).total;
+  // The Master's Luck Check, asked BEFORE the flip (ruled 2026-10-19, #111):
+  // `state.luckChecks.overpower` had no writer, so no Master was ever offered it.
+  const save = !sheltered && overpowerCheck(attacker, defender).applies && !state.luckChecks?.overpower
+    ? await offerOverpowerSave(unitFrom(boardSnapshot(), unitActor(defender.id)) ?? defender, boardSnapshot())
+    : null;
+  if (save) await applyBatch(save.spend, "overpower:luck");
+  // No coin after a passed save: there is no flip to make.
+  const overpowerRoll = sheltered || save?.success ? null : (await new Roll("1d100").evaluate()).total;
   const overpower = sheltered
     ? { defeated: false, survivesLethal: false, chance: 0, applies: false }
     : resolveOverpower({
       attacker, defender, roll: overpowerRoll,
-      luckCheckPassed: Boolean(state.luckChecks?.overpower),
+      luckCheckPassed: Boolean(state.luckChecks?.overpower) || Boolean(save?.success),
     });
   // The flip goes on the card, Heads or Tails (ruled 2026-10-02, #65 ruling
   // 21, #174). It used to defeat a Master with nothing on the card at all.
+  // ...with the Luck Check that came before it, passed or failed.
   if (overpower.applies) {
     result.flags = {
       ...result.flags,
       overpower: {
         roll: overpower.survivesLethal ? null : overpowerRoll, chance: overpower.chance,
-        heads: overpower.defeated, saved: overpower.survivesLethal,
+        heads: overpower.defeated, saved: overpower.survivesLethal, luck: saveOnCard(save),
       },
     };
   }
@@ -8297,8 +8367,10 @@ async function offerPreemption({ attackerId, abilityId, placement, targetIds, bo
     const picked = await askOwner(defenderDoc, {
       kind: "choose",
       title: game.i18n.localize("FGT.Preempt.Title"),
+      // Public names: the attacker is the other side's, and Medea's true name
+      // reached Jack's player here (#134, live).
       hint: game.i18n.format("FGT.Preempt.Hint", {
-        name: defenderDoc.name, attacker: attackerDoc.name, source: rule.source,
+        name: shownName(defenderDoc, board), attacker: shownName(attackerDoc, board), source: rule.source,
       }),
       min: 0,
       count: 1,
@@ -8316,10 +8388,15 @@ async function offerPreemption({ attackerId, abilityId, placement, targetIds, bo
     // darkness zones included, for every rule. It had read the board's clock
     // on purpose ("a Day ROUND"), the one reader left on it. With no Day-Night
     // cycle her phase is `none` and no Luck Check is charged (reading 13).
-    if ((rule.requiresLuckCheckIn ?? []).includes(defender?.phase ?? board.phase)) {
-      const ok = await preemptionLuckCheck(defenderDoc, attackerId);
-      if (!ok) continue;
-    }
+    const phase = defender?.phase ?? board.phase;
+    const check = (rule.requiresLuckCheckIn ?? []).includes(phase)
+      ? await preemptionLuckCheck(defenderDoc, attackerId)
+      : null;
+    // Said on the chat log, whichever way it went: a Luck point spent, or the
+    // swap itself, reached the game log alone, and both players saw an Attack
+    // they did not declare (#134, live).
+    await postPreemptionCard({ defenderDoc, attackerDoc, board, source: rule.source, phase, check });
+    if (check && !check.success) continue;
 
     return runPreemption({ preempterId: defenderId, attackerId, abilityId, placement, targetIds });
   }
@@ -8355,7 +8432,40 @@ async function preemptionLuckCheck(defenderDoc, attackerId) {
       against: attackerId, success: outcome.success, roll: roll.total,
     }),
   ], "preempt:luck");
-  return outcome.success;
+  const before = unit.luck ?? 0;
+  return { success: outcome.success, roll: roll.total, before, after: Math.max(0, before - 1) };
+}
+
+/**
+ * The card a pre-emption posts: who Attacks first, by which clause, and what
+ * the Luck Check it cost said, or that it cost none (Ch. 21).
+ *
+ * @param {object} args
+ * @param {object} args.defenderDoc the pre-empter
+ * @param {object} args.attackerDoc the Unit whose Attack it pre-empts
+ * @param {object} args.board
+ * @param {string} args.source the clause
+ * @param {string} args.phase the pre-empter's phase, at its panel
+ * @param {{success: boolean, roll: number, before: number, after: number}|null} args.check
+ * @returns {Promise<void>}
+ */
+async function postPreemptionCard({ defenderDoc, attackerDoc, board, source, phase, check }) {
+  const escape = foundry.utils.escapeHTML;
+  const names = {
+    name: escape(shownName(defenderDoc, board)), attacker: escape(shownName(attackerDoc, board)), source: escape(source),
+  };
+  const lines = [game.i18n.format("FGT.Preempt.Taken", names)];
+  if (check) {
+    lines.push(game.i18n.format(check.success ? "FGT.Preempt.LuckPassed" : "FGT.Preempt.LuckFailed", {
+      ...names, phase: game.i18n.localize(`FGT.Phase.${phase}`), roll: check.roll, before: check.before, after: check.after,
+    }));
+  } else {
+    lines.push(game.i18n.format("FGT.Preempt.NoLuck", { ...names, phase: game.i18n.localize(`FGT.Phase.${phase}`) }));
+  }
+  await ChatMessage.create({
+    content: `<div class="fgt-card fgt-card--preempt">${lines.map((l) => `<p>${l}</p>`).join("")}</div>`,
+    flags: { fgt: { preempt: { unitId: defenderDoc.id, against: attackerDoc.id, phase, check } } },
+  });
 }
 
 /**
