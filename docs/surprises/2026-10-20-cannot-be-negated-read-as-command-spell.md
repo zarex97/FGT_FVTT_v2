@@ -3,7 +3,8 @@ id: 2026-10-20-cannot-be-negated-read-as-command-spell
 found: user
 kind: rule-word-read-one-way
 status: fixed
-reviewed: false
+reviewed: true
+pattern: sheet-binds-only-its-owner
 ---
 **Expected:** Gilles de Rais (Saber)'s Mad Enhancement clause 7, *"cannot be negated once Activated"*, was the
 Revised wording of clause 7 for every bearer, and it meant a Command Spell's *Suspend Skill*

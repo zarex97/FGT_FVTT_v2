@@ -3,7 +3,8 @@ id: 2026-10-20-refusal-named-nothing
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** With his Spellbook on Cooldown, his bar refuses both Summonings and says what they wait on (HO.book, EH.book, #260).
 **Actual:** Player1's bar: "Summoning: Horrors — An ability it depends on is still cooling." The gate knew which ability; the line named none.

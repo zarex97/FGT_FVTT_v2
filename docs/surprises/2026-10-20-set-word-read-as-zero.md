@@ -3,7 +3,8 @@ id: 2026-10-20-set-word-read-as-zero
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** His sheet's derivation list says why his Alignment reads Neutral Evil while Mad Enhancement is Active (reading 4).
 **Actual:** Player1's sheet: "alignment.order 0 — Gilles de Rais (Saber)" and "alignment.morality 0", under a header reading "NEUTRAL EVIL".

@@ -3,7 +3,8 @@ id: 2026-10-20-counter-button-read-as-the-choice
 found: retraction
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** I said Summoning: Horrors was refused as a Counter by a use gate: the bar read "Available as a Counter", and a press of it gave "Summoning: Horrors — Only during your Turn."
 **Actual:** No gate refused it. Pressing the card's "Counter" button had already declared a Counter with a Normal Attack (cards r3Qx0pqjkr9d1p1L, zrHvPCegiuSexE1s), the bar disarmed, and the slot then greyed for the enemy's Turn, correctly. Pressed from the bar alone, it worked.

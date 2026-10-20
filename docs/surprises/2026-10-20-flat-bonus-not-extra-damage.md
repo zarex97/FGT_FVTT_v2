@@ -3,7 +3,8 @@ id: 2026-10-20-flat-bonus-not-extra-damage
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** an Attack whose attacker carries Excalibur's passive (*"50 if the DU has the 'Dark'
 Attribute"*) is *"an Attack that deals extra damage to 'Dark' Units"*, so a Horror it defeats does not

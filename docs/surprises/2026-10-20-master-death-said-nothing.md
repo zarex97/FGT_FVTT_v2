@@ -3,7 +3,8 @@ id: 2026-10-20-master-death-said-nothing
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** His Master's death under Revised Mad Enhancement (ME.5, WR.me.rev, #260) frees him, keeps his clock whole, locks Mad Enhancement and adds a Turn of decay, and the table is told.
 **Actual:** Pressed live: every write landed (Free, 9 Turns, `sustainabilityDecay` 1, `modesLocked`). Player1's chat read "Master of Saber of Faction 1 is defeated by Berserker." and "No Conquest: ...", and nothing about Gilles.

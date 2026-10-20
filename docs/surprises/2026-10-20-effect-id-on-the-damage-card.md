@@ -3,7 +3,8 @@ id: 2026-10-20-effect-id-on-the-damage-card
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** His Horror's damage card names the Dmg Boost it carries from him (HM.m4.horrors, #260), as it names Mad Enhancement.
 **Actual:** Player1's card: "Flat attack bonuses Dmg Boost dmgBoostGilles +30". My first fix named every effect instance by its definition's name, at the writer and in the snapshot; the full suite then failed 14 tests in 7 files, because a contribution's `source` is its identity (rolls key on it in `rules/checks.mjs`, and `sCritUp` and `sCritUpPollux` share the name "S.Crit Up").

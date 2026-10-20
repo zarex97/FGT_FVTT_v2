@@ -3,7 +3,8 @@ id: 2026-10-20-summons-left-without-a-line
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** When Gilles is defeated his Horrors and Elder Horrors disappear (HO.leave, EH.leave, #260), and the table is told, as every outcome a player must know is.
 **Actual:** Pressed live: Heracles defeated him and six Horrors and an Elder Horror vanished from the board. Player1's chat read only "Saber is defeated by Berserker."
