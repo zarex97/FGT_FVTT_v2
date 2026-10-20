@@ -51,7 +51,7 @@ import {
 import { GRANTS, hasGranted } from "../rules/granted.mjs";
 import { coveringServantsFor, coverFactor, shoveDestination, isCovering } from "../rules/cover.mjs";
 import { absorb, refreshShield, landBarrier, ridersHeldBy } from "./shield.mjs";
-import { attackIdentity, recordedAttack } from "../rules/revival.mjs";
+import { identityOfProcess, recordedAttack } from "../rules/revival.mjs";
 import { abilityRecordOf } from "../rules/snapshot.mjs";
 import { removalPlan, pendingRemovalRolls, isUnremovable } from "../rules/removal.mjs";
 import { isStrongestNP, isDamagingNP, harmlessToSelf, EXPECTED_ATTACK_ROLL } from "../rules/np-strength.mjs";
@@ -5401,7 +5401,7 @@ async function acceptedOptionalRevivals(unit) {
 function recordIntents(defender, state) {
   if (!state.attackerId) return [];
 
-  const identity = attackIdentity(state.attack ?? {}, state.attackerId);
+  const identity = identityOfProcess(state);
   const doc = unitActor(defender.id);
   /** @type {object[]} */
   const out = [];
@@ -5827,7 +5827,7 @@ async function applyDamage(state, message) {
   // Attack would reduce his Health to 0, his Health will remain at 1 instead."
   // A floor rather than a negation: the damage still lands, it just cannot be
   // the last of it.
-  const recorded = recordedAttack(defender, attackIdentity(facts, state.attackerId));
+  const recorded = recordedAttack(defender, identityOfProcess(state, facts));
   if (recorded.floored && result.total >= currentHealth(defender)) {
     const before = result.total;
     result.total = Math.max(0, currentHealth(defender) - 1);

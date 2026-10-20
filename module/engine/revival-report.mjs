@@ -12,20 +12,24 @@ import { unitActor } from "./board.mjs";
 import { isWarGM } from "./war.mjs";
 
 /**
- * The card's words for one `revive` log entry.
+ * The card's words for one `revive` or `reviveFailed` log entry.
  *
- * @param {{unitId: string, source: string|null, amount: number}} entry
+ * @param {{unitId: string, source: string|null, amount: number, charges?: number, left?: number|null, rolled?: number[], kind?: string, overkill?: number}} entry
  * @param {(id: string) => string} nameOfUnit
  * @param {(source: string) => string} nameOfSource
  * @param {(key: string, data?: object) => string} t
  * @returns {string}
  */
 export function revivalCard(entry, nameOfUnit, nameOfSource, t) {
-  return `<div class="fgt-card fgt-card--revival"><p>${t("FGT.Revival.Card", {
+  const data = {
     name: nameOfUnit(entry.unitId),
     source: entry.source ? nameOfSource(entry.source) : t("FGT.Revival.UnknownSource"),
     amount: entry.amount ?? 0,
-  })}</p></div>`;
+    overkill: entry.overkill ?? 0,
+  };
+  const rolled = (entry.rolled ?? []).length ? ` ${t("FGT.Revival.Rolled", { rolled: entry.rolled.join(", ") })}` : "";
+  const uses = typeof entry.left === "number" ? ` ${t("FGT.Revival.Charges", { charges: entry.charges ?? 1, left: entry.left })}` : "";
+  return `<div class="fgt-card fgt-card--revival"><p>${t(entry.kind === "reviveFailed" ? "FGT.Revival.Failed" : "FGT.Revival.Card", data)}${rolled}${uses}</p></div>`;
 }
 
 /**

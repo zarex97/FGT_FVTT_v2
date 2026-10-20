@@ -333,6 +333,7 @@ export function compelledOn(item, unit) {
  * @returns {object[]} the abilities that should be switched on
  */
 export function forcedModes(unit, items, { tick = 0, board = null } = {}) {
+  const lapsed = new Set(lapsedConstantModes(items, { tick }).map((i) => i.id));
   const compelled = new Set(
     (unit?.compulsions ?? [])
       .filter((c) => c.forcesSkill && (c.targetIds ?? []).length > 0)
@@ -353,7 +354,35 @@ export function forcedModes(unit, items, { tick = 0, board = null } = {}) {
     if (board && forcedOffNow(i, unit, board)) return false;
     // Either source switches it on. `forcedOn` is asked per item because its
     // rule names the mode's own slug.
-    return compelled.has(sys.slug ?? i.id) || forcedOn(i, unit);
+    return compelled.has(sys.slug ?? i.id) || forcedOn(i, unit) || lapsed.has(i.id);
+  });
+}
+
+/**
+ * Modes that never come off, bought off for a span that has now passed.
+ *
+ * Heracles: *"(Passive) Constantly Active. Cannot be deactivated."* and *"Mad
+ * Enhancement can be deactivated for 1◈ Turns by spending a Command Spell (it
+ * will reactivate if the aforementioned conditions are still met after those
+ * 1◈ Turns)."* For him the condition is the Passive itself, so it always holds
+ * (#256 reading 2). Nothing switched it back: a mode is re-armed here only by a
+ * compulsion or a `ForceMode`, and a `cannotDeactivate` mode has neither, so
+ * his rage stayed off for good and Bravery stayed live (pressed, tick 8).
+ *
+ * Only a mode a suspension switched off: `cannotDeactivate` alone is "once on,
+ * it never comes off", and a mode of that kind that was never switched on stays
+ * off.
+ *
+ * @param {object[]} items the unit's abilities
+ * @param {object} [ctx]
+ * @param {number} [ctx.tick]
+ * @returns {object[]}
+ */
+export function lapsedConstantModes(items, { tick = 0 } = {}) {
+  return [...(items ?? [])].filter((i) => {
+    const sys = i.system ?? {};
+    return Boolean(sys.isMode && !sys.active && sys.cannotDeactivate
+      && typeof sys.suspendedUntil === "number" && tick >= sys.suspendedUntil);
   });
 }
 

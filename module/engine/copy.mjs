@@ -31,13 +31,17 @@ const DUN_SCAITH = Object.freeze({ rank: "A+", cooldown: "4◈-⅓◈", exclusio
  * @param {object} args
  * @param {string} args.copierId
  * @param {string[]} [args.prefer] grades to mark preferred; Ch. 17 says B and A
- * @returns {Array<object>}
+ * @returns {Array<object>|null} null while the copier is not on the board the GM is looking at
  */
 export function offerCopies({ copierId, prefer = ["A", "B"] }) {
   const board = currentBoard();
   const copierDoc = unitActor(copierId);
   const copier = unitFrom(board, copierDoc);
-  if (!copier) return [];
+  // Not "nothing to copy": the board is the canvas's, and a GM looking at
+  // another scene has no field to list. A War committed while the GM was
+  // elsewhere opened the offer reading *"Nothing on the field can be copied"*
+  // over a pool of three Servants (#256, live).
+  if (!copier || !(board.units ?? []).some((u) => u.id === copierDoc?.id)) return null;
 
   // The snapshot's units carry ability *snapshots*; the candidate list is what
   // the GM dialog renders, so it carries the whole ability rather than an id.
@@ -125,6 +129,14 @@ export function attachCopyPick() {
       }).catch((err) => console.error("FGT | Copy pick:", err));
     }
   }
+  // ...and is listed again when the GM's canvas changes: an offer opened over
+  // another scene's board is redrawn once the War's scene is drawn.
+  Hooks.on("canvasReady", () => {
+    if (!game.user?.isGM) return;
+    import("../apps/copy-dialog.mjs").then(({ CopyDialog }) => {
+      for (const app of foundry.applications.instances.values()) if (app instanceof CopyDialog) app.render();
+    }).catch((err) => console.error("FGT | Copy pick:", err));
+  });
   Hooks.on("createToken", (token) => {
     if (!game.user?.isGM || !currentWar()?.started) return;
     const actorId = token.actorId ?? token.actor?.id ?? null;

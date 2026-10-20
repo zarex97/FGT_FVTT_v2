@@ -32,7 +32,7 @@
  * A Berserker who has been driven mad does not simply calm down.
  */
 
-import { forcedModes, forcedOffNow, modesEndedByTurn } from "../rules/modes.mjs";
+import { forcedModes, forcedOffNow, modesEndedByTurn, lapsedConstantModes } from "../rules/modes.mjs";
 import { currentBoard, unitActor } from "./board.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
@@ -97,7 +97,8 @@ export async function reconcileForcedModes(board = null) {
         stopped.push({ unitId: unit.id, ability: item.name });
       }
 
-      const forceable = (unit.compulsions ?? []).length || (unit.forcedModeRules ?? []).length;
+      const lapsed = new Set(lapsedConstantModes([...actor.items], { tick }).map((i) => i.id));
+      const forceable = (unit.compulsions ?? []).length || (unit.forcedModeRules ?? []).length || lapsed.size;
       if (!forceable) continue;
 
       for (const item of forcedModes(unit, [...actor.items], { tick, board: snapshot })) {
@@ -105,8 +106,9 @@ export async function reconcileForcedModes(board = null) {
         // `regardless of Cooldown or any other factors` -- no gate is
         // consulted, which is the whole point of the clause and the reason
         // this does not go through `canToggleMode`.
-        intents.push(I.setMode(unit.id, slug, true, compulsionSource(unit, slug)));
-        switched.push({ unitId: unit.id, ability: item.name });
+        const back = lapsed.has(item.id);
+        intents.push(I.setMode(unit.id, slug, true, back ? "suspensionLapsed" : compulsionSource(unit, slug)));
+        switched.push({ unitId: unit.id, ability: item.name, back });
       }
     }
 
@@ -182,9 +184,19 @@ function compulsionSource(unit, slug) {
  * @returns {Promise<void>}
  */
 async function announce(switched, board) {
-  for (const { unitId, ability } of switched) {
+  for (const { unitId, ability, back } of switched) {
     const actor = unitActor(unitId);
     const unit = (board.units ?? []).find((u) => u.id === unitId);
+    // Back after a Command Spell's span, which is no compulsion.
+    if (back) {
+      await ChatMessage.create({
+        content: `<p>${game.i18n.format("FGT.Mode.SuspensionLapsed", {
+          ability, name: actor ? publicIdentityOf(actor, currentBoard()).name : unitId,
+        })}</p>`,
+        speaker: actor ? publicSpeakerFor(actor) : undefined,
+      });
+      continue;
+    }
     const cause = (unit?.compulsions ?? [])[0];
     const culprits = (cause?.targetIds ?? [])
       // The culprits by their public names too (#234), as the bearer already is.
