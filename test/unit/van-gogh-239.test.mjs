@@ -67,7 +67,7 @@ describe("#202: what a handler does reaches a card", () => {
     expect(A.statChangeLine({ stat: "agility.value", delta: -1 }, 19, 18)).toBe("Agility 19 → 18");
     // ...and an extension's span beside them, since #243 (Magecraft's 1◈ on Suppression),
     // then an Item spent and a rule taken away for good, since #247 (the Vorpal Blade's blow).
-    expect(code("engine/applier.mjs")).toMatch(/said\.push\(\.\.\.clockLines\(clocks\), \.\.\.statLines\(stats\), \.\.\.await spanLines\(spans\), \.\.\.itemLines\(held\), \.\.\.suppressionLines\(lines \? plan\.local : \[\]\)\);/);
+    expect(code("engine/applier.mjs")).toMatch(/said\.push\(\.\.\.clockLines\(clocks\), \.\.\.statLines\(stats\), \.\.\.await spanLines\(spans\), \.\.\.itemLines\(held\), \.\.\.suppressionLines\(lines \? plan\.local : \[\]\),\s*\.\.\.await removalLines\(lines \? plan\.local : \[\]\)\);/);
   });
 
   const input = (effects, effectOwners) => ({
@@ -106,7 +106,7 @@ describe("#202: what a handler does reaches a card", () => {
     for (const event of ["damageStepStart", "damageDealt", "damageTaken", "attackLanded", "attackPerformed", "damageStepEnd"]) {
       expect(attack, event).toMatch(new RegExp(`applyWithLines\\(intents, "${event}"`));
     }
-    expect(attack).toMatch(/\.\.\.startRows, \.\.\.before, \.\.\.applied, \.\.\.held, \.\.\.takenRows, \.\.\.receivedRows, \.\.\.dealt\.rows, \.\.\.stepEnd\.rows/);
+    expect(attack).toMatch(/\.\.\.startRows, \.\.\.before, \.\.\.applied, \.\.\.held, \.\.\.taken\.rows, \.\.\.receivedRows, \.\.\.dealt\.rows, \.\.\.stepEnd\.rows/);
   });
 
   it("a Skill's writes collect what the handlers they raise did", () => {

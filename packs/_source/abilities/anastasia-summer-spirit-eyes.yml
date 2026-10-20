@@ -1,6 +1,6 @@
-# Anastasia & Viy, char_orig_sheets/Copia de Anastasia & Viy.md
+# Anastasia (Summer), char_orig_sheets/Copia de Anastasia & Viy.md
 schema: 1
-id: anastasia-spirit-eyes
+id: anastasia-summer-spirit-eyes
 name: "Full Acceleration: Spirit Eyes"
 rank: B
 kind: skill
@@ -20,10 +20,11 @@ phases:
     target: self
     effects:
       - { id: aim, duration: "1◈" }
-      # Scoped to BA(MAG), which is exactly the half of her kit that throws:
-      # her ranged Normal Attack and Snegleta both use it, her melee swing does
-      # not. So this Skill is worth nothing to a Watermelon turn and everything
-      # to a Snegleta one.
+      # Scoped to Attacks that USE BA(MAG), which is the half of her kit that
+      # throws: Ice Bucket Challenge, Snegleta and her ranged Normal Attack,
+      # BA(STR) plus 10% of BA(MAG) (#258 reading 3, `attack:usesBase:mag`).
+      # Her melee swing is BA(STR) alone. So this Skill is worth nothing to a
+      # Watermelon turn and everything to a Snegleta one.
       - { id: critUpViy, duration: "1◈", magnitude: 50, npMagnitude: 20 }
       - { id: critDmUp, duration: "1◈", magnitude: 30 }
       - { id: npDmUp, duration: "1◈", magnitude: 20 }
