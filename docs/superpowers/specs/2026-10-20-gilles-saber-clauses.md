@@ -89,6 +89,7 @@ Asked by grilling, 2026-10-20. Rulings are written here as they land.
 **Round 1, 2026-10-20:** readings 1 and 2 ruled as recommended; reading 3 opened the Classic and Revised War Rules (3a to 3g).
 **Round 2, 2026-10-20:** 3a to 3i ruled, 3c's default Revised; readings 4 to 16 ruled, 7 and 8 as recommended, 9 the other way.
 **Round 3, 2026-10-20:** 3j ruled a reading not offered, which corrected 3d; 9a as recommended.
+**Round 4, 2026-10-21:** 3k ruled as recommended.
 
 1. **His name and ids** (`SB`). You named him *Gilles de Rais (Saber)*. The Caster on `Copia de
    Gilles.md` prints the same two Spells word for word. **Recommended:** the Servant `gilles-saber`,
@@ -129,6 +130,10 @@ Asked by grilling, 2026-10-20. Rulings are written here as they land.
      his Mad Enhancement. It is his sheet's own sentence against Revised clause 7, and like clause 1 it
      stays his under every pick (under Classic, Skill Seal ends nobody's). A generic parameter of the
      template, not a Gilles branch. Darius III (not in the roster) prints the plain Revised clause.
+   - **3k.** Heracles under Revised clause 7: his *"Constantly Active. Cannot be deactivated."* wins, and Skill
+     Seal leaves his Mad Enhancement Active. Generally, a `cannotDeactivate` mode holds against every forced
+     end, clause 7 and the Master's-Health end alike; his Command Spell is the one way out his sheet prints
+     (§46.4-TB).
 4. **His Alignment while Mad Enhancement is Active** (`ME.align`). **Recommended:** Neutral Evil for
    every reader: Yan Qing's Dmg Up (Lawful) stops reaching him, Dmg Up (Evil) starts; his own
    Triumphal Return's Lawful and Good clauses stop reaching him; By the Holy Maiden's Side's *"Evil"*
