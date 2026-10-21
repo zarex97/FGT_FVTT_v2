@@ -74,6 +74,11 @@ One statement of a rule inside a Character Sheet — a numbered item, or a sente
 without being numbered. The atom an audit is counted in.
 _Avoid_: line, bullet, rule (that is the authored element, not the prose)
 
+**Audit**:
+The Clause-by-Clause check of a Unit against its Character Sheet, on a live board. It closes when every
+Clause is Observed or Pressed; a Clause only traced, or only tested, keeps it open.
+_Avoid_: review, check (unqualified)
+
 ## The route a value travels
 
 **Authored Key**:
