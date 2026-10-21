@@ -18,5 +18,5 @@ the switch, leaving the mode on under a card that said otherwise. Caught while s
 `cannotDeactivate` refusal beats every forced switch.
 
 **Fix:** `module/engine/seal-ends.mjs @ ca41d4ab` holds a `cannotDeactivate` mode with its own line
-("cannot be deactivated: Skill Seal leaves it Active"), pressed live on Heracles. Which rule wins — the
-Revised clause or his sheet's "cannot be deactivated" — is a reading put to the user.
+("cannot be deactivated: Skill Seal leaves it Active"), pressed live on Heracles. Ruled 2026-10-21 (reading 3k):
+his sheet's "cannot be deactivated" wins.
