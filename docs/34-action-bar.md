@@ -12,7 +12,7 @@ The **pending-decisions panel** is a separate floating list, showing every promp
 
 | File | Role |
 |---|---|
-| `module/apps/hud/action-bar.mjs` | The persistent bar: renders controlled unit's actions and abilities. Singleton; debounced refresh on selection change, budget update, effects, items. |
+| `module/apps/hud/action-bar.mjs` | The persistent bar: renders controlled unit's actions and abilities. Singleton; debounced refresh on every hook in `BAR_REFRESH_HOOKS`, any Unit's token among them (#261). |
 | `module/apps/hud/present.mjs` | Action bar's view-model: pure functions that build slot state and row layout without Foundry globals or documents. Testable in isolation. |
 | `module/apps/hud/turn-panel.mjs` | Budget context builder and three handlers (End Turn, Delay, Pan To). Faction-scoped, while the bar is unit-scoped. |
 | `module/apps/hud/pending-panel.mjs` | Scans chat log for pending prompts by message flag. Shows only rows the viewer owns or can answer via Command Spell. Scrolls to card on jump. |
@@ -23,7 +23,7 @@ The **pending-decisions panel** is a separate floating list, showing every promp
 
 ### The action bar
 
-The bar's singleton opens when a controlled token is selected and the player owns it (`module/apps/hud/action-bar.mjs:72-96`). It debounces refresh across selection changes, budget updates, active effects, item changes, and combat updates so that a cascade of changes (selecting a unit can raise `controlToken`, `updateActor`, and `fgtBudgetChanged` at once) renders once, not three times (`module/apps/hud/action-bar.mjs:86-105`).
+The bar's singleton opens when a controlled token is selected and the player owns it (`module/apps/hud/action-bar.mjs:72-96`). It debounces refresh across every hook in `BAR_REFRESH_HOOKS`: the selection, any Unit's actor and token (a move, an arrival, a departure), items, active effects, the Combat, the budget and the fields, so that a cascade of changes (selecting a unit can raise `controlToken`, `updateActor`, and `fgtBudgetChanged` at once) renders once, not three times. The tokens are there because a verdict reads other Units: a Master's place decides ZON, and the bar used to keep *"Outside the Master's ZON"* after the Master walked back into range until the token was reselected (#261, `test/unit/action-bar-refresh-261.test.mjs`).
 
 Its context packs a single snapshot per render, threaded through every builder, so all state decisions see consistent data (`module/apps/hud/action-bar.mjs:129-131`). Portrait concealment checks the unit's identity state; the name shown respects Presence Concealment. Budget, affordances, cooldowns, and field deactivation eligibility are computed inline against the snapshot.
 
