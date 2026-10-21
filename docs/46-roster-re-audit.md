@@ -100,7 +100,8 @@ would otherwise invalidate every measurement taken after them.
    a statblock of its own is its own group, with **one** statblock Clause. Name every line that is
    deliberately not a Clause, and put every sentence the sheet leaves open under *Readings to
    settle*, with the reading the authored content took. The Servant's audit issue is opened then,
-   with that list, and added to the roster tracker, #112. A Clause that goes missing here and is
+   with that list, and added to its Class's roster tracker under #264 (one tracker per Class since
+   2026-10-21; wave 1 was #112). A Clause that goes missing here and is
    not noticed is the same defect as a Clause an auditor skipped, which is the shape this whole
    programme exists to find.
 
