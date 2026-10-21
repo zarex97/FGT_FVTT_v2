@@ -51,3 +51,14 @@ citations this decision exists to protect.
 What this decision does not defend against: nothing stops someone adding a status table to a doc
 later, and nothing will fail when they do. The tracker holds progress; the case chapters hold
 findings; a third record of either is the thing to refuse.
+
+## Amended 2026-10-21: one tracker per Class
+
+The roster outgrew one issue. Every Servant the game has, four hundred and more Character Sheets, is
+now designed, built and audited, and GitHub holds 100 sub-issues to a parent. Wave 1, the 28 Servants
+authored before then, closed on #112. The roster lives on #264, *Roster: design and audit*, with one
+tracker per Class beneath it (#265 to #278), and each audit issue a sub-issue of its Class's tracker.
+
+The decision above is unchanged: the trackers hold progress, the case chapters hold findings. A sheet
+that prints no Class waits on #264 until the user rules it, because a Class read from Class Skills is
+a reading (Durga's read Saber or Rider, and she is an Archer).
