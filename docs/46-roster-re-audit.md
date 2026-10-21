@@ -5381,12 +5381,14 @@ Arturia's Excalibur passive (*"50 if the DU has the 'Dark' Attribute"*) is one, 
 held: `rules/options.mjs` reads modifiers whose `direction` is `dealt`, and `FlatDamage` stated none. It does now;
 live, the Horror she defeated did not split. Ch. 10, 11.
 
-### TB. Skill Seal claimed to end a mode its sheet says never ends — **fixed; the reading is the user's** (#260)
+### TB. Skill Seal claimed to end a mode its sheet says never ends — **fixed; ruled 2026-10-21** (#260)
 
 **Reached: WR.me.seal, staging it on Heracles.** Revised Mad Enhancement clause 7 ends the mode on Skill Seal;
 Heracles's sheet prints *"Constantly Active. Cannot be deactivated."* and `io.setMode` refuses every forced switch on
 him. The seal reader would have carded an end that never happens. `engine/seal-ends.mjs#sealVerdicts` holds a
-`cannotDeactivate` mode with its own line. Which text wins is put to the user. Ch. 24.
+`cannotDeactivate` mode with its own line. **Ruled 2026-10-21: his sheet wins.** A mode that *"cannot be
+deactivated"* holds against every forced end, Revised clause 7 and the Master's-Health end alike; a Command Spell is
+his one way out, as his sheet prints. Ch. 24.
 
 ### TC. A Spell made as a Counter left no Cooldown — **fixed** (#260)
 
@@ -7513,8 +7515,6 @@ Health, token positions, fixed dice, a Skill Seal on Hassan and Jack, Test Jeann
 
 ### 46.44.3 Left open
 
-- **Heracles under Revised clause 7**: his sheet's *"cannot be deactivated"* holds against Skill Seal for now
-  (§46.4-TB). Which text wins is the user's to rule.
 - **The action bar stays stale after another Unit moves** a gate of its own (a Master into ZON): reselect the token.
   Not his; a Surprise of 2026-10-20.
 - **Effect documents are still named by their ids**: the damage card now prints names, the token's effect list does not.
