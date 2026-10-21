@@ -25,7 +25,7 @@ A mode toggles on and off. `canToggleMode` (`module/rules/modes.mjs:59-146`) fir
 
 1. **No clock.** If `clockRunning` is false and the mode carries a `toggleLock`, refuse. A lockout needs a tick to measure against (`module/rules/modes.mjs:72-74`).
 2. **Suspended.** A Command Spell buys a deactivation span; only switching *on* while suspended bites (`module/rules/modes.mjs:86-89`).
-3. **Never.** `cannotDeactivate` on the mode forbids switching off—Heracles cannot deactivate Mad Enhancement (`module/rules/modes.mjs:91-92`).
+3. **Never.** `cannotDeactivate` on the mode forbids switching off—Heracles cannot deactivate Mad Enhancement (`module/rules/modes.mjs:91-92`). It holds against every forced end too: the Master's-Health end, and Revised Mad Enhancement's clause 7, whose Skill Seal leaves Heracles's mode Active with a line (`engine/seal-ends.mjs#sealVerdicts`, #260 reading 3k, ruled 2026-10-21). A Command Spell's Suspend Skill is the one way out his sheet prints.
 4. **Held on.** Two sources hold a mode on: `compelledOn` (a compulsion targeting this skill) and `forcedOn` (a `ForceMode` rule whose condition is true) (`module/rules/modes.mjs:97-101`).
 5. **Negated.** A mode whose `negatedBy` names an effect on its bearer refuses `negated`, *"{name} is negated and cannot be switched"* (#206): Uncrowned Arms Mastership under Skill Seal lost its crit modifiers and still switched, because only the rules collection and the window offer read `negatedBy`.
 

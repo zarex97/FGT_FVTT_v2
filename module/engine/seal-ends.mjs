@@ -45,7 +45,8 @@ export function sealVerdicts(actor) {
     // A mode its sheet says NEVER switches off (Heracles: *"Constantly Active.
     // Cannot be deactivated."*). `io.setMode` refuses every forced switch on it,
     // a forcible deactivation included (Ch. 17), so the seal says it held rather
-    // than claiming an end that never happens.
+    // than claiming an end that never happens. Ruled 2026-10-21 (#260 reading 3k):
+    // his sheet wins, and every `cannotDeactivate` mode holds against every forced end.
     else if (sys.isMode && sys.cannotDeactivate) holds.push({ item, why: "cannotDeactivate" });
     else ends.push(item);
   }
