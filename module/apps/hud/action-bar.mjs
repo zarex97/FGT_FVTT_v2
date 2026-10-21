@@ -39,6 +39,31 @@ import { warRule, currentWar } from "../../engine/war.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
+/**
+ * Every hook that can change a slot's verdict, and so re-renders the bar.
+ *
+ * A verdict reads more than its own Unit: the Master's position decides ZON,
+ * another Unit's place decides Range and adjacency, a summon arriving or
+ * leaving changes who is on the board. The bar listened to its own Unit's
+ * documents and to no Unit's token, so Heracles's Nine Lives kept *"Outside the
+ * Master's ZON"* after his Master walked back into range, until the token was
+ * reselected (#261, three times live). Each hook below names an input a
+ * verdict reads; nothing here filters by Unit, because nearly any Unit can be
+ * the input.
+ */
+export const BAR_REFRESH_HOOKS = Object.freeze([
+  // the selection
+  "controlToken",
+  // any Unit's document, and its place on the board (a move is `updateToken`)
+  "updateActor", "updateToken", "createToken", "deleteToken",
+  // an ability gained or lost while the token stays selected: a Wisdom of Dún
+  // Scáith re-pick replaced both copies and the bar kept the old ones (#204)
+  "updateItem", "createItem", "deleteItem",
+  "createActiveEffect", "updateActiveEffect", "deleteActiveEffect",
+  // the War's clock, the Turn's budget, the fields on the board
+  "updateCombat", "fgtBudgetChanged", "fgtFieldChanged",
+]);
+
 export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "fgt-action-bar",
@@ -106,19 +131,7 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
       else if (bar.rendered) bar.close();
     }, 60);
 
-    Hooks.on("controlToken", refresh);
-    Hooks.on("updateActor", refresh);
-    Hooks.on("updateItem", refresh);
-    // An ability gained or lost while the token stays selected: a Wisdom of
-    // Dún Scáith re-pick replaced both copies and the bar kept showing the old
-    // ones, cooldown and all, until the token was reselected (#204).
-    Hooks.on("createItem", refresh);
-    Hooks.on("deleteItem", refresh);
-    Hooks.on("createActiveEffect", refresh);
-    Hooks.on("deleteActiveEffect", refresh);
-    Hooks.on("updateCombat", refresh);
-    Hooks.on("fgtBudgetChanged", refresh);
-    Hooks.on("fgtFieldChanged", refresh);
+    for (const hook of BAR_REFRESH_HOOKS) Hooks.on(hook, refresh);
 
     // The end-of-turn repaint window, raised by the scheduler once the owner
     // has accepted it (`engine/fields.mjs#offerReshape`). Opened here rather
