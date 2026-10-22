@@ -244,7 +244,23 @@ export function poolFor(unit, action) {
  * @param {ActionKind} action
  * @returns {{prevented: boolean, by: string|null}}
  */
+/**
+ * What a player reads for a prevention's source: an effect's name, or the
+ * words for a standing one that is no effect (`actionsEnded`, #300).
+ *
+ * @param {string|null} by `preventedBy`'s `by`
+ * @param {(id: string) => string|null|undefined} effectName the effect registry's name for an id
+ * @returns {string|null}
+ */
+export function preventerName(by, effectName) {
+  if (by === "actionsEnded") return globalThis.game?.i18n?.localize?.("FGT.Budget.Prevented.actionsEnded") ?? by;
+  return effectName(by) ?? by;
+}
+
 export function preventedBy(unit, action, { categorizedOnly = false } = {}) {
+  // A failed use that ended every action this Turn (Merlin, `UseFailure then:
+  // endActions`, #300): every action, as a blanket effect would.
+  if (unit?.turnState?.actionsEnded) return { prevented: true, by: "actionsEnded" };
   const held = unit?.effects ?? [];
   const blanket = PREVENT_ALL.find((id) => held.includes(id));
   if (blanket) return { prevented: true, by: blanket };

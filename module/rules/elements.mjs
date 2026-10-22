@@ -83,7 +83,7 @@ export function empty() {
     buffRemovalResist: [], knockback: null,
     forcedModeRules: [], magnitudeScales: [], attackProperties: [], terrainPenaltyImmunities: [], lethalFloors: [],
     categoryUseLimits: [], baseAttackModifiers: [], healingReceived: [], followUps: [],
-    cooldownCutBonus: [],
+    cooldownCutBonus: [], useFailures: [],
   };
 }
 
@@ -2215,6 +2215,24 @@ export const EXECUTORS = Object.freeze({
       return;
     }
     out.cooldownCutBonus.push({ kinds, extra: Math.max(0, Number(el.extra ?? 1) || 0), on, source });
+  },
+
+  /**
+   * A use of the named abilities may fail outright (#300). Charlotte Corday's
+   * Skill names itself (`of: [self]`); Merlin's passive names his Spells and
+   * Noble Phantasm. Rolled by `engine/skill-use.mjs#rollUseFailure` against
+   * `rules/use-failure.mjs#failureFor`. `chanceWhen` predicates are asked at
+   * the use, against the user's options, so they travel whole.
+   */
+  UseFailure(el, { source, ability, out }) {
+    out.useFailures.push({
+      of: [...(el.of ?? [])],
+      chance: Number(el.chance) || 0,
+      chanceWhen: (el.chanceWhen ?? []).map((w) => ({ predicate: [...(w.predicate ?? [])], chance: Number(w.chance) || 0 })),
+      then: el.then ?? null,
+      ownerAbilityId: ability?.id ?? null,
+      source,
+    });
   },
 
   TerrainPenaltyImmunity(el, { out }) {

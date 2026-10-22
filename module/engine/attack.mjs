@@ -255,6 +255,7 @@ export async function resolveAttack({
   // and none of the budget above.
   const price = await payAbilityPrice({
     ability, attackerId, attacker, self, master, usage, board, resume, use: { criteriaMet: criteria.met },
+    rollsFailure: true,
   });
   // A held concealment roll survives a pre-emption: the resume pays nothing and
   // rolls nothing, so the placement carries it (#249 reading 9b).
@@ -265,6 +266,18 @@ export async function resolveAttack({
   noteFact(use, "overCooldown", Boolean(usage?.overCooldown));
   noteFact(use, "concealmentBroken", Boolean(price?.concealmentBroken));
   if (keepsConcealment) placement = { ...(placement ?? {}), keepsConcealment: true };
+
+  // A use that failed outright (`UseFailure`, #300): paid in full above, its
+  // clock never started, and no Process opens. The card shows the die.
+  if (price?.failed) {
+    noteFact(use, "failed", true);
+    noteFact(use, "die", price.failed.roll);
+    const { useFailurePatch, postUseFailureCard } = await import("./skill-use.mjs");
+    const patch = useFailurePatch(price.failed, ability, self);
+    if (Object.keys(patch).length > 0) await applyBatch([I.markTurn(attackerId, patch)], "attack:failed");
+    await postUseFailureCard(attacker, ability, price.failed);
+    return { failed: price.failed, processes: [], use };
+  }
 
   // A Noble Phantasm that LANDS LATER (`engine/schedule.mjs`). Enki's use is its
   // activation: paid in full above, its mark placed and its clock started here,
@@ -627,7 +640,9 @@ async function declareAftermath({
  * @param {object} args
  * @returns {Promise<void>}
  */
-export async function payAbilityPrice({ ability, attackerId, attacker, self, master, usage, board, resume, use = {} }) {
+export async function payAbilityPrice({
+  ability, attackerId, attacker, self, master, usage, board, resume, use = {}, rollsFailure = false,
+}) {
   if (resume) return;
 
   // A barrier is refreshed on the way up, BEFORE the use is recorded: *"every
@@ -680,6 +695,15 @@ export async function payAbilityPrice({ ability, attackerId, attacker, self, mas
   for (const cost of charged) await applyBatch(costIntents(cost, self), "attack:cost");
   await postCostCards(charged, { ability, self });
 
+  // A use that may fail outright (`UseFailure`, #300), rolled once it is
+  // paid for and before its clock: a failure starts none. A declaration's own
+  // roll; a Counter's caller does not ask for it.
+  let failed = null;
+  if (rollsFailure && ability && !channelStarted) {
+    const { rollUseFailure } = await import("./skill-use.mjs");
+    failed = await rollUseFailure(attacker, ability, self);
+  }
+
   // The cooldown, at the same moment as the cost and for the same reason: the
   // ability has been committed. `resolveAttack` never did this, so every Attack
   // Skill and every Noble Phantasm was infinitely reusable -- limited only by
@@ -689,7 +713,7 @@ export async function payAbilityPrice({ ability, attackerId, attacker, self, mas
   // `completeChannel`.
   // A use ON the Cooldown leaves the clock as it was: *"using it in this way
   // does not reset Cooldown"* (Arturia's Mana Burst, #230).
-  if (ability && !resume && !channelStarted && !usage?.overCooldown) {
+  if (ability && !resume && !channelStarted && !usage?.overCooldown && !failed) {
     const plan = cooldownFor(ability, attackerId, { unit: self, use });
     // *"When either Castor or Pollux uses a Skill, the Skill enters Cooldown
     // for both of them."* Spread beside `alsoTriggered` so the shared clocks
@@ -724,7 +748,7 @@ export async function payAbilityPrice({ ability, attackerId, attacker, self, mas
   // Counter open) and a held one keeps PC through it (#249 readings 9, 9b).
   // Here and not in `resolveAttack`, so a Counter declared with it rolls too.
   const held = ability ? await rollConcealmentBreak(attacker, ability, self) : null;
-  return { keepsConcealment: Boolean(held?.kept), concealmentBroken: Boolean(held?.rolled && !held?.kept) };
+  return { keepsConcealment: Boolean(held?.kept), concealmentBroken: Boolean(held?.rolled && !held?.kept), failed };
 }
 /**
  * The `attack` descriptor a Combat Process carries.
