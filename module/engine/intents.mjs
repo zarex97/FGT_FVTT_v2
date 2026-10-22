@@ -533,8 +533,8 @@ export const recordAttack = (unitId, abilityId, identity) =>
  * Turns"*. `set` would have overwritten a longer clock with a shorter one and
  * turned the debuff into a favour.
  */
-export const cooldown = (unitId, abilityId, ticks, mode = "reduce") =>
-  ({ t: "cooldown", unitId, abilityId, ticks, mode });
+export const cooldown = (unitId, abilityId, ticks, mode = "reduce", { natural = false } = {}) =>
+  ({ t: "cooldown", unitId, abilityId, ticks, mode, ...(natural ? { natural: true } : {}) });
 
 export const spendCS = (masterId, count, command, servantId = null) =>
   ({ t: "spendCS", masterId, count, command, servantId });

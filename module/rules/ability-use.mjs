@@ -653,7 +653,7 @@ export function usageSpecFor(ability) {
     categorizedAsNP: Boolean(sys.categorizedAsNP),
     // The War it exists in (`rules/costs.mjs#availableInThisWar`, #314).
     availableWhen: [...(sys.availableWhen ?? [])],
-    // Which Seal stops it (`rules/costs.mjs#preventionActionsFor`, #206).
+    // Which Seal stops it (`rules/costs.mjs#useClassesOf`, #206).
     countsForNPSeal: Boolean(sys.countsForNPSeal),
     cooldown: sys.cooldown ?? { remaining: 0, gatedDelay: 0 },
     // Used ON its Cooldown at a price (`rules/costs.mjs`, Arturia's Mana Burst).
@@ -732,7 +732,7 @@ export function usageSpecFor(ability) {
     usableWhileConcealed: Boolean(sys.usableWhileConcealed),
     // The three keys the gate reads that this spec did not carry (#155).
     // `isSpell`: Seal spares a Spell, Silence and Skill Seal refuse it
-    // (`costs.mjs#preventionActionsFor`). `categorizedAs`: Blind clause 3,
+    // (`costs.mjs#useClassesOf`). `categorizedAs`: Blind clause 3,
     // *"'Mystic Eye' Skills cannot be used"*. `creates`: Nemo's Storm Border,
     // *"cannot use Skills ... that creates a Unit/Item/object that has the
     // 'Large' or 'Giant' Attribute"*. Only the action bar passed the raw
