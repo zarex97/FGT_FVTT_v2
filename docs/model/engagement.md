@@ -9,11 +9,16 @@ out of Range. The **Shape** was new on the Saber survey, 2026-10-21.
 
 **Fields:**
 - `between`: the two Units.
+  keys: none (#282)
 - `starts`: an Attack initiated on the other (Charlemagne), or a Combat Phase entered with it (Watanabe no Tsuna).
+  keys: none (#282)
 - `ends`: leaving each other's Range. Who leaves matters: Charlemagne loses Royal Road when he retreats.
+  keys: none (#282)
 - `count`: Combat Processes fought between the two this game. Karna (Santa)'s Guraharaja Santa Cross *"can only be
   used on an enemy Unit that has engaged Karna in at least 3 Combat Processes"*.
+  keys: none (#282)
 - `scope`: Fergus and Lü Bu negate Charisma B *"on Units in Combat with"* them.
+  keys: none (#282)
 
 Nothing records an Engagement today: `Combat Process` lives for one attack. Not run. #282.
 

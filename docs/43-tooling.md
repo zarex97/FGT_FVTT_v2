@@ -83,6 +83,33 @@ node tools/sheet-kin.mjs stats                          # corpus counts at three
 
 The repo's 48 `Copia de` sheets are older snapshots: 43 differ from their Drive export, some in rules (`docs/surprises/2026-10-21-repo-sheets-differ-from-drive.md`).
 
+### The capability lookup
+
+`tools/capability.mjs` answers *does the engine already run this?* from the code, not from prose. Three of the survey's issues (#284, #287, #290) claimed gaps the engine already ran, because the answer came from the model's own words and a grep for one word (`docs/surprises/2026-10-21-survey-issues-claimed-built-gaps.md`).
+
+`tools/lib/capabilities.mjs` builds one index:
+- **The authoring vocabulary.** Elements, Phases, Requirements, Command Spell requirements, Timing Windows and ability fields, from `module/rules/authoring/`. Targeting anchors, shapes, choosers and relations. Option families, from `module/rules/facets.mjs`. Effect entry keys, handler actions, Actor fields, Effect definitions, Class Skills and Command Spells.
+- **Each key's authors.** Every file in `packs/_source/` that authors it. A key the content authors without a descriptor still counts, such as a phase's own keys, `cooldown.countFrom`, or `linkedGroup.unitWeight`.
+- **Each key's tests.** The `test/unit/` files that name it.
+- **The model.** Each `keys:` line in `docs/model/*.md`, and the ledger's Shape labels, resolved to keys.
+
+```
+node tools/capability.mjs RankShift                       # keys matching a term, their authors and tests
+node tools/capability.mjs --shape Item.wear               # a model field and the keys that run it, or its gap
+node tools/capability.mjs --sheet docs/superpowers/specs/2026-10-19-yan-qing-clauses.md
+```
+
+`--sheet` annotates a Clause list **written by hand**, and never splits a sheet itself. Each Clause is matched first to its own sheet's wording, within its Ability. That wording's Kin then give:
+- the ledger verdict;
+- the keys, or the model's `none (#NNN)` gap;
+- a precedent: the ability file of another built Servant that authors a Kin.
+
+A built Servant is linked to its sheet by its `# Conversion source:` line. `test/unit/capabilities.test.mjs` holds four things:
+- every model field carries a `keys:` line that resolves;
+- every built Servant names an existing sheet;
+- the #284 and #290 traps are found;
+- the ledger's unmapped labels never grow.
+
 ### The Clause extractor
 
 `tools/extract-clauses.mjs` reads a Character Sheet from `char_orig_sheets/` and emits a **first draft** of the Clause task list a Servant's audit issue carries — one line per Clause, grouped under its Ability, every Clause starting at `Untouched` ([Ch. 46 §46.1](46-roster-re-audit.md)). It was written to be the list, because transcribing Clauses by hand looked like the audit programme's mechanical bulk.
