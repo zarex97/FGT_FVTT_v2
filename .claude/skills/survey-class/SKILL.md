@@ -25,11 +25,12 @@ Kin group, plus the Clauses no other sheet shares. The argument is the Class, as
    - Is it new, or a known value under another name? Grep the code's vocabulary before calling it new.
    - Does it fold into a known Shape as a value or a field, rather than stand as its own Shape?
    - How many sheets carry it? Give the Kin count.
-   - Does the engine run it today? Name the file that does, or say none.
+   - Does the engine run it today? Ask `node tools/capability.mjs <term>` first, and name the authored key
+     that runs it, or say none. A grep for one word is not the answer: #284, #287 and #290 were built.
    - Is one sheet's phrase being read as everyone's? (*A sheet binds only its owner.*)
    Done when every question has an answer and a reason.
 4. **Write.** Land each verdict in `docs/model/`: a new row or field in the Shape's file, or a new Shape
-   file. Write every decided group's normalized head into `docs/model/ledger.json` as
+   file, ending in a `keys:` line (`docs/model/README.md`). Write every decided group's normalized head into `docs/model/ledger.json` as
    `{ "verdict", "shape", "note" }`. Tick the Class in the README's Progress table. Done when the next
    survey of this Class lists no open group.
 5. **Report.** Tell the user each Variant, Attribute and Shape with its answers from step 3, then the

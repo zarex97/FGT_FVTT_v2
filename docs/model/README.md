@@ -24,6 +24,8 @@ surveys found: [ability.md](ability.md), [cooldown.md](cooldown.md), [element.md
 
 Every verdict comes from reading the group in full, Members included.
 
+Every field line ends with a `keys:` line. It names the authored keys that run the field, as `family.id` or `family.id.field` (`element.RankShift.parameter`). Where the engine cannot run it yet, it reads `none (#NNN)`. `node tools/capability.mjs --shape <Shape.field>` reads it back. `test/unit/capabilities.test.mjs` fails on a field without the line, or on a key that does not exist. So the model cannot again call a built rule a gap (`docs/surprises/2026-10-21-survey-issues-claimed-built-gaps.md`).
+
 ## The Shapes the code already knows
 
 The seed, read from the code on 2026-10-21. Each survey confirms, extends or splits these.

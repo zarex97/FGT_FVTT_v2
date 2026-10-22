@@ -1,5 +1,6 @@
 # packs/_source/servants/heracles.yml
 # Full conversion: docs/45-case-studies.md · data sheet: docs/D-servant-data-sheets.md §D.13
+# Conversion source: char_orig_sheets/Copia de Heracles.md
 schema: 1
 id: heracles
 name: Heracles
