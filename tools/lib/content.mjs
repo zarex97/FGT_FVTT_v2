@@ -1264,7 +1264,7 @@ function useFailuresAreKnown(doc, path, library, problems) {
     }
     for (const w of [el, ...(Array.isArray(el.chanceWhen) ? el.chanceWhen : [])]) {
       const c = Number(w.chance);
-      if (!Number.isFinite(c) || c <= 0 || c > 100) problems.push(`${path}: ${where} UseFailure chance "${w.chance}" -- expected 1 to 100`);
+      if (!Number.isFinite(c) || c < 0 || c > 100) problems.push(`${path}: ${where} UseFailure chance "${w.chance}" -- expected 0 to 100`);
     }
   }
 }
@@ -1951,6 +1951,16 @@ function durationFields(doc) {
   }
   for (const [where, el] of [...ruleElements(doc), ...phaseEffects(doc)]) {
     if (el.duration !== undefined) out.push([`${where}.duration`, el.duration]);
+    // A CooldownDelta's cut, read by `parseTick` when the handler fires.
+    if (typeof el.ticks === "string") out.push([`${where}.ticks`, el.ticks]);
+  }
+  // A `cooldown` phase's cuts, read by `skill-use.mjs#cooldownChanges` through
+  // `parseTick`: a bare "1" passed the build and threw at the press (#299, live).
+  for (const [index, phase] of (doc.phases ?? []).entries()) {
+    if (phase?.kind !== "cooldown") continue;
+    for (const [c, change] of (phase.changes ?? []).entries()) {
+      if (typeof change?.ticks === "string") out.push([`phases[${index}].changes[${c}].ticks`, change.ticks]);
+    }
   }
   return out;
 }

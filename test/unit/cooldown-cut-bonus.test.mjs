@@ -146,6 +146,20 @@ describe("the card", () => {
   });
 });
 
+describe("the build parses a cooldown phase's cut", () => {
+  // A bare "1" passed the build and threw at the press (Test Use: Cutter, live).
+  const problems = (ticks) => validateAll([{ path: "x.yml", dir: "abilities", doc: {
+    schema: 1, id: "thing", name: "Thing", kind: "skill",
+    phases: [{ kind: "cooldown", target: "self", changes: [{ unit: "self", scope: "np", ticks, direction: "down" }] }],
+  } }]).problems.filter((p) => p.includes("changes[0].ticks"));
+
+  it("refuses a bare number and passes a Turn count", () => {
+    expect(problems("1")[0]).toContain('phases[0].changes[0].ticks is not a valid duration ("1")');
+    expect(problems("1 turns")).toEqual([]);
+    expect(problems("1◈+⅓◈")).toEqual([]);
+  });
+});
+
 describe("the build refuses a word the door does not know", () => {
   const problems = (rule) => validateAll([{ path: "x.yml", dir: "abilities", doc: {
     schema: 1, id: "thing", name: "Thing", kind: "skill", passive: true,

@@ -130,6 +130,10 @@ describe("Merlin-shape: a Spell may fail, more often under a condition, and ends
       const refused = await cast("test-fail-plain");
       expect(refused.ok).toBe(false);
       expect(refused.reason).toBe("prevented");
+      // Every reader names it in words, never the id: the bar's tooltip read
+      // "prevented by actionsEnded" (live, L2-20).
+      const { canConsume } = await import("../../module/rules/budget.mjs");
+      expect(canConsume({}, me(), "skill").reason).toBe("prevented by FGT.Budget.Prevented.actionsEnded");
       const { UNIT_ACTIONS } = await import("../../module/rules/actions.mjs");
       const { currentBoard } = await import("../../module/engine/board.mjs");
       const board = currentBoard();

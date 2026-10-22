@@ -1,0 +1,36 @@
+# Test Attack Skill for the Use record's live presses (#320, #285, plan Task 15,
+# L2-1). The Trung Sisters' Punji Trap: *"Cooldown: 1◈ Turns plus ½◈ more Turns
+# for every debuff inflicted"*. Two certain debuffs on every DU hit, so two DUs
+# make four. Not the Trung Sisters' own file.
+schema: 1
+id: test-use-trung
+name: "Test Use: Trung"
+kind: skill
+isAttackSkill: true
+slug: testUseTrung
+timing: { window: ownTurn }
+cooldown:
+  max: "1◈"
+  countBonus:
+    - { ticks: "½◈", count: { of: use, fact: debuffsInflicted } }
+description: "TEST ATTACK SKILL. Hits a 3x3 area within 4 panels and inflicts @effect[atkDwn]{Atk Dwn} and @effect[defDwn]{Def Dwn} (100%). Cooldown 1◈ plus ½◈ per debuff inflicted."
+targeting:
+  anchor: { kind: withinRange, range: 4, metric: chebyshev }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy, neutral], chooser: all, includeSelf: false }
+  isDamagingAoE: true
+damage:
+  component: str
+  multiplier: 1
+phases:
+  - kind: damage
+  - kind: applyEffects
+    rules:
+      - key: OnEvent
+        event: damageDealt
+        effect: { id: atkDwn, chance: 100, magnitude: 10 }
+        duration: "1◈"
+      - key: OnEvent
+        event: damageDealt
+        effect: { id: defDwn, chance: 100, magnitude: 10 }
+        duration: "1◈"

@@ -1,0 +1,21 @@
+# Test Skill for the Use record's live presses (#320, #285, plan Task 15, L2-6).
+# Sétanta: *"3◈-⅓◈ Turns + ⅓◈ Turns for each effect activated/applied by this
+# Skill"*. Three buffs at 60% each: the clock counts the ones that landed.
+schema: 1
+id: test-use-setanta
+name: "Test Use: Setanta"
+kind: skill
+slug: testUseSetanta
+timing: { window: ownTurn }
+cooldown:
+  max: "3◈-⅓◈"
+  countBonus:
+    - { ticks: "⅓◈", count: { of: use, fact: effectsApplied } }
+description: "TEST SKILL. Applies @effect[atkUp]{Atk Up}, @effect[defUp]{Def Up} and @effect[critUp]{Crit Up} to itself, 60% each. Cooldown 3◈-⅓◈ plus ⅓◈ per effect applied."
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUp, magnitude: 10, duration: "1◈", chance: 60 }
+      - { id: defUp, magnitude: 10, duration: "1◈", chance: 60 }
+      - { id: critUp, magnitude: 10, duration: "1◈", chance: 60 }

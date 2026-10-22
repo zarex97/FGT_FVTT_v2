@@ -1,0 +1,43 @@
+# Test Servant for the Use record's, the cut bonus's and UseFailure's live presses
+# (#320, #285, #299, #300, plan Task 15). NOT A CHARACTER SHEET. Test Jeanne
+# d'Arc's numbers and the test abilities the presses need, so they reach the
+# board through the real compile and projection rather than a staged item.
+schema: 1
+id: test-use-bench
+name: "Test Use Bench"
+type: servant
+
+trueName: "Use Bench"
+servantClasses: [ruler]
+classContainer: ruler
+alignment: { order: lawful, morality: good }
+region: [france]
+attributes: [female, servant, man, humanoid]
+
+parameters: { str: B, end: B, agi: B, mag: B, luc: B }
+baseHealth: 1250
+mov: 5
+range: { panels: 1, targets: 1 }
+baseAttack: { str: 125, mag: 175 }
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+abilities:
+  - { ref: test-use-trung }
+  - { ref: test-use-trung-chance }
+  - { ref: test-use-kurohime }
+  - { ref: test-use-tamamo }
+  - { ref: test-use-setanta }
+  - { ref: test-use-merlin-cut }
+  - { ref: test-use-barghest-cut }
+  - { ref: test-use-cutter }
+  - { ref: test-use-charlotte }
+  - { ref: test-use-merlin-fail }
+  - { ref: test-use-spell }
+  - { ref: test-use-plainskill }
+  - { ref: test-use-np }
+
+notes: |
+  A test Servant for the Use record, the Cooldown clock, CooldownCutBonus and
+  UseFailure (#320, #285, #299, #300). Every ability on it is a test- ability
+  named after the live press it serves (docs/superpowers/plans/2026-10-22-count-and-use-record.md).
