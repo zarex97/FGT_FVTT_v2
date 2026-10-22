@@ -83,6 +83,7 @@ export function empty() {
     buffRemovalResist: [], knockback: null,
     forcedModeRules: [], magnitudeScales: [], attackProperties: [], terrainPenaltyImmunities: [], lethalFloors: [],
     categoryUseLimits: [], baseAttackModifiers: [], healingReceived: [], followUps: [],
+    cooldownCutBonus: [], useFailures: [],
   };
 }
 
@@ -202,6 +203,9 @@ export function collectContributions(abilities, ctx = {}) {
  * @type {string}
  */
 export const EFFECT_INSTANCE = "effectInstanceId";
+
+/** The use classes a `CooldownCutBonus` may name (`rules/costs.mjs#useClassesOf`, #299). */
+export const CUT_KINDS = Object.freeze(["np", "skill", "spell"]);
 
 /** @param {object} out @returns {Record<string, number>} */
 function bucketLengths(out) {
@@ -2186,6 +2190,47 @@ export const EXECUTORS = Object.freeze({
     out.healingReceived.push({
       value: scalar(resolveValue(el, rank, ctx)),
       exceptSources: [...(el.exceptSources ?? [])],
+      source,
+    });
+  },
+
+  /**
+   * Every cut to this Unit's named Cooldowns cuts `extra` Turns more (#299).
+   *
+   * Merlin, Proto Merlin and Lady Avalon: *"Whenever … NP Cooldown is reduced,
+   * whether through natural reduction … or an effect, it is reduced by 1 extra
+   * Turn"* (`on: any`). Barghest (UDK)'s Thundercloud Eater makes natural NP
+   * regen 2 Turns instead of 1 (`on: natural`). `kinds` are the use classes
+   * of `rules/costs.mjs#useClassesOf`. Read at the one door every cut passes
+   * (`engine/applier.mjs#resolveCooldownCuts`). A kind or an `on` the door
+   * does not know is refused by name, never matched to nothing.
+   */
+  CooldownCutBonus(el, { source, out }) {
+    const kinds = [...(el.kinds ?? [])];
+    const on = el.on ?? "any";
+    if (kinds.length === 0 || kinds.some((k) => !CUT_KINDS.includes(k)) || !["any", "natural"].includes(on)) {
+      console.error(`FGT | CooldownCutBonus from ${source} names kinds ${JSON.stringify(kinds)} and on "${on}": `
+        + `kinds are ${CUT_KINDS.join(", ")}, on is any or natural.`);
+      out.unhandled.push({ key: el.key, source });
+      return;
+    }
+    out.cooldownCutBonus.push({ kinds, extra: Math.max(0, Number(el.extra ?? 1) || 0), on, source });
+  },
+
+  /**
+   * A use of the named abilities may fail outright (#300). Charlotte Corday's
+   * Skill names itself (`of: [self]`); Merlin's passive names his Spells and
+   * Noble Phantasm. Rolled by `engine/skill-use.mjs#rollUseFailure` against
+   * `rules/use-failure.mjs#failureFor`. `chanceWhen` predicates are asked at
+   * the use, against the user's options, so they travel whole.
+   */
+  UseFailure(el, { source, ability, out }) {
+    out.useFailures.push({
+      of: [...(el.of ?? [])],
+      chance: Number(el.chance) || 0,
+      chanceWhen: (el.chanceWhen ?? []).map((w) => ({ predicate: [...(w.predicate ?? [])], chance: Number(w.chance) || 0 })),
+      then: el.then ?? null,
+      ownerAbilityId: ability?.id ?? null,
       source,
     });
   },

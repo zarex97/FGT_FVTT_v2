@@ -495,7 +495,7 @@ export function canUseAbility({
   // Every action the ability IS: the Magic Crest is a Damage Spell categorized
   // as NP, so Silence and NP Seal each stop it (#241 reading 14). One answer,
   // `np`, let Silence through (#241, live).
-  const sealed = preventionActionsFor(ability)
+  const sealed = useClassesOf(ability)
     .map((action) => preventedBy(unit, action, {
       categorizedOnly: !ability?.isNP && Boolean(ability?.categorizedAsNP),
     }))
@@ -568,6 +568,11 @@ export function canUseAbility({
   // Skill path, which is where it used to live -- so Medea's Keraino/Trofa pair
   // was enforced and EMIYA's Caladbolg/Hrunting pair, both Noble Phantasms,
   // would not have been.
+  // A use that failed this Turn and locks itself until the next (#300).
+  if ((unit?.turnState?.failedAbilities ?? []).some((id) => id === ability?.id || id === ability?.contentId)) {
+    return { ok: false, reason: "failedThisTurn", cost };
+  }
+
   const turnPartner = firstUsed(ability?.sameTurnExclusive, usedThisTurn(unit));
   if (turnPartner) return { ok: false, reason: "sameTurnExclusive", detail: { partner: turnPartner }, cost };
 
@@ -709,7 +714,7 @@ export function categoryLimitFor(ability, unit) {
  * @param {object} ability
  * @returns {string} `"np"`, `"spell"` or `"skill"`
  */
-function preventionActionsFor(ability) {
+export function useClassesOf(ability) {
   // NO ability is a Normal Attack, the one press with no Item: an `attack`,
   // which Seal and Disable stop and Skill Seal does not. Read as a Skill, a
   // Skill-Sealed Karna could not swing at all: *"Cannot use this ability:

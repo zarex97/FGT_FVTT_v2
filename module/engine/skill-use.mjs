@@ -21,8 +21,11 @@
  * deals damage directly, not its Attack.
  */
 
+import { emptyUseRecord, noteFact, useFacts } from "../rules/use-record.mjs";
 import { effectiveMov } from "../rules/movement.mjs";
 import { additionalCostsFor, resolveCosts } from "../rules/costs.mjs";
+import { failureFor } from "../rules/use-failure.mjs";
+import { usageSpecFor } from "../rules/ability-use.mjs";
 import { pressGate } from "./press-gate.mjs";
 import { refreshShield } from "./shield.mjs";
 import { displaceToken } from "./io.mjs";
@@ -160,6 +163,11 @@ export async function useSkill({
     await postCriteriaCard(actor, ability, criteria);
   }
   const use = { criteriaMet: criteria.met };
+  // What this use did, filled as it goes (#320): the landing door notes each
+  // Effect, and the facts below are noted where they are decided.
+  const record = emptyUseRecord({ abilityId: ability.id, unitId: actor.id });
+  noteFact(record, "criteriaMet", criteria.met);
+  noteFact(record, "overCooldown", Boolean(usage.overCooldown));
 
   // A barrier's pool, filled BEFORE the phases hand out the buff that spends it
   // -- and before `recordUse` below, because `refreshShield` reads `timesUsed`
@@ -179,15 +187,26 @@ export async function useSkill({
   // built; a Skill aimed at an enemy never rolled it at all. One reader of the
   // chance (`rules/miss.mjs#missChance`), asked once per use, before anything
   // lands.
-  const failure = await rollSkillFailure(ability, self, targets);
+  //
+  // A use that may fail outright (`UseFailure`, #300) rolls first: Charlotte's
+  // and Merlin's chance is the use's own, whoever it is aimed at.
+  const fails = await rollUseFailure(actor, ability, self);
+  const failure = fails ? null : await rollSkillFailure(ability, self, targets);
+  if (failure || fails) {
+    noteFact(record, "failed", true);
+    noteFact(record, "die", (failure ?? fails).roll);
+  }
 
-  if (ability?.system?.shield && !failure) await refreshShield(ability);
+  if (ability?.system?.shield && !failure && !fails) await refreshShield(ability);
 
-  const applied = failure ? [] : await runPhases(ability, actor, targets.units, board);
+  const applied = failure || fails ? [] : await runPhases(ability, actor, targets.units, board, null, { useRecord: record });
+  noteFact(record, "summoned", applied.summoned ?? 0);
+  noteFact(record, "channelStarted", Boolean(applied.channelStarted));
 
   const marks = {
     ...(countsAsAct(ability) ? { acted: true } : {}),
     ...(free ? {} : asAttack ? { attacked: true } : { usedActiveSkill: true }),
+    ...useFailurePatch(fails, ability, self),
   };
 
   // The Noble Phantasm cost and the ability's OWN standing costs, resolved
@@ -207,7 +226,8 @@ export async function useSkill({
     ...charged.flatMap((cost) => costIntents(cost, self)),
     ...itemCostIntents(ability, actor),
     // A use ON the Cooldown leaves the clock alone (`rules/costs.mjs`).
-    ...(applied.channelStarted || usage.overCooldown || failure?.refundsCooldown ? [] : cooldownIntents(ability, actor, applied.summoned ?? 0, self, use)),
+    // A use that failed outright starts no clock (#300).
+    ...(applied.channelStarted || usage.overCooldown || failure?.refundsCooldown || fails ? [] : cooldownIntents(ability, actor, applied.summoned ?? 0, self, use, useFacts(record))),
     I.markTurn(actorId, marks),
     // Recorded so a mutually-exclusive partner can see it went, at both
     // scales, and so a `maxUses` budget can be spent. One intent, shared with
@@ -230,7 +250,8 @@ export async function useSkill({
   // What the use's own handlers did is a line on this card (#202): Magecraft's
   // extension of Suppression on a Spell was on no card (#243, live).
   applied.push(...await fireAbilityUsed(actor, ability));
-  await rollConcealmentBreak(actor, ability, self);
+  const broke = await rollConcealmentBreak(actor, ability, self);
+  noteFact(record, "concealmentBroken", Boolean(broke.rolled && !broke.kept));
   if (failure) {
     await ChatMessage.create({
       content: `<p>${game.i18n.format("FGT.Miss.SkillFailed", {
@@ -238,7 +259,11 @@ export async function useSkill({
       })}</p>`,
       speaker: publicSpeakerFor(actor),
     });
-    return { ok: true, applied, failed: failure };
+    return { ok: true, applied, failed: failure, use: record };
+  }
+  if (fails) {
+    await postUseFailureCard(actor, ability, fails);
+    return { ok: true, applied, failed: fails, use: record };
   }
   await postCard(actor, ability, targets.units, applied);
 
@@ -249,7 +274,67 @@ export async function useSkill({
   const { flushAutoCounters } = await import("./attack.mjs");
   await flushAutoCounters();
 
-  return { ok: true, applied };
+  return { ok: true, applied, use: record };
+}
+
+/**
+ * Roll whether a use fails outright to a `UseFailure` (#300), on either path.
+ *
+ * Charlotte Corday's Skill and Merlin's Spells and Noble Phantasm. The chance
+ * is `rules/use-failure.mjs#failureFor`'s, against the user's own options. A
+ * held roll is said too: a die that decides an outcome is on the card.
+ *
+ * @param {object} actor
+ * @param {object} ability the ability Item
+ * @param {object} self the user, as the board sees it
+ * @returns {Promise<{chance: number, then: string|null, source: string, roll: number}|null>} the failure, or null
+ */
+export async function rollUseFailure(actor, ability, self) {
+  const risk = failureFor(usageSpecFor(ability), self, ownerOptionsOf(self));
+  if (!risk) return null;
+  const roll = (await new Roll("1d100").evaluate()).total;
+  if (roll <= risk.chance) return { ...risk, roll };
+  await ChatMessage.create({
+    content: `<p>${game.i18n.format("FGT.UseFailure.Held", {
+      name: ability.name, roll, chance: risk.chance, source: risk.source,
+    })}</p>`,
+    speaker: publicSpeakerFor(actor),
+  });
+  return null;
+}
+
+/**
+ * What a failed use writes on its user's Turn record (#300): Charlotte's Skill
+ * is locked until the next Turn, and Merlin's actions end.
+ *
+ * @param {{then: string|null}|null} fails
+ * @param {object} ability the ability Item
+ * @param {object} self the user, as the board sees it
+ * @returns {object} a `markTurn` patch
+ */
+export function useFailurePatch(fails, ability, self) {
+  if (fails?.then === "lockThisTurn") return { failedAbilities: [...(self?.turnState?.failedAbilities ?? []), ability.id] };
+  if (fails?.then === "endActions") return { actionsEnded: true };
+  return {};
+}
+
+/**
+ * The card a failed use posts: the die, and what the failure does after it.
+ *
+ * @param {object} actor
+ * @param {object} ability the ability Item
+ * @param {{chance: number, then: string|null, source: string, roll: number}} fails
+ * @returns {Promise<void>}
+ */
+export async function postUseFailureCard(actor, ability, fails) {
+  const lines = [game.i18n.format("FGT.UseFailure.Failed", {
+    name: ability.name, roll: fails.roll, chance: fails.chance, source: fails.source,
+  })];
+  if (fails.then === "lockThisTurn") lines.push(game.i18n.format("FGT.UseFailure.Locked", { name: ability.name }));
+  if (fails.then === "endActions") {
+    lines.push(game.i18n.format("FGT.UseFailure.ActionsEnded", { unit: publicIdentityOf(actor, currentBoard()).name }));
+  }
+  await ChatMessage.create({ content: lines.map((l) => `<p>${l}</p>`).join(""), speaker: publicSpeakerFor(actor) });
 }
 
 /**
@@ -683,7 +768,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
         case "applyEffects":
         case "applyEffect":
           applied.push(...await applyPhaseEffects(phase, ability, actor, snapshot, {
-            targets: phaseUnits, self, sink,
+            targets: phaseUnits, self, sink, useRecord: extras.useRecord ?? null,
           }));
           break;
 
@@ -1418,6 +1503,7 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
       casterUnit,
       targets: phaseCtx.targets ?? [],
       board,
+      useRecord: phaseCtx.useRecord ?? null,
     }, {
       write: (intents) => applyWorldIntents(intents, "skillEffect", { sink: phaseCtx.sink ?? null }),
       // RE-READ between applications: a staged effect decides its next stage
@@ -1464,10 +1550,12 @@ function itemCostIntents(ability, actor) {
  * @param {object|null} [unit] the user's snapshot, for a resource waiver
  * @returns {object[]}
  */
-function cooldownIntents(ability, actor, summoned = 0, unit = null, use = {}) {
+function cooldownIntents(ability, actor, summoned = 0, unit = null, use = {}, facts = null) {
   // One implementation for both use paths (`engine/cooldown.mjs`). They used to
   // disagree: this one set a cooldown and `resolveAttack` did not.
-  const plan = cooldownFor(ability, actor.id, { count: summoned, unit, use });
+  // What the use did, when it is known (#320): a Skill's use is over once its
+  // phases have run, so its clock is started and settled in this one write.
+  const plan = cooldownFor(ability, actor.id, { count: summoned, unit, use, facts });
 
   return [
     // `sharedAcrossGroup` takes no board here -- this function is given the

@@ -16,6 +16,7 @@
 
 import * as I from "./intents.mjs";
 import { acquisitionTarget } from "../rules/items.mjs";
+import { useClassesOf } from "../rules/costs.mjs";
 import { currentBoard, currentMoment, unitActor } from "./board.mjs";
 import { warRule, currentWar } from "./war.mjs";
 
@@ -100,7 +101,7 @@ export async function applyIntents(intents, {
   // That is the same "two implementations of one rule" defect this file's own
   // header warns about.
   const plan = planApplication(
-    await resolveHealing(await resolveElements(await resolveEffects(await resolveRemovals(intents), { process, sink: said }))),
+    await resolveCooldownCuts(await resolveHealing(await resolveElements(await resolveEffects(await resolveRemovals(intents), { process, sink: said })))),
     { canWrite, isGM },
   );
   if (plan.problems.length > 0) {
@@ -620,6 +621,54 @@ async function resolveHealing(intents) {
     if (percent === 0) return intent;
     return { ...intent, amount: Math.max(0, Math.floor(intent.amount * (1 + percent / 100))), healingScaled: percent };
   });
+}
+
+/**
+ * Add what a `CooldownCutBonus` says to every cut of a Cooldown (#299).
+ *
+ * The one door every cut passes, whatever made it: the Turn's natural
+ * countdown (`scheduler.mjs#advanceCooldowns`, marked `natural`), a
+ * `CooldownDelta`, a `cooldown` phase. Merlin's *"whether through natural
+ * reduction … or an effect, it is reduced by 1 extra Turn"* is every one of
+ * them. Only a `reduce` of more than 0 on a clock still running is a cut: a
+ * `set` or an `increase` is not, and a settle (`settle`, #320) is the clock
+ * finding its length, not a cut. The writer floors the clock at 0.
+ *
+ * @param {Intent[]} intents
+ * @returns {Promise<Intent[]>}
+ */
+async function resolveCooldownCuts(intents) {
+  const cut = (i) => i.t === "cooldown" && i.mode === "reduce" && i.ticks > 0 && !i.settle && i.unitId;
+  if (!intents.some(cut)) return intents;
+  if (typeof game === "undefined" || !game?.actors) return intents;
+  const [{ unitOf, currentBoard }, { usageSpecFor }] = await Promise.all([
+    import("./board.mjs"),
+    import("../rules/ability-use.mjs"),
+  ]);
+  const board = currentBoard();
+  return intents.map((intent) => {
+    if (!cut(intent)) return intent;
+    const actor = unitActor(intent.unitId);
+    const item = actor?.items?.get(intent.abilityId);
+    if (!item || (item.system?.cooldown?.remaining ?? 0) <= 0) return intent;
+    const extra = cooldownCutBonus(unitOf(actor, board), usageSpecFor(item), { natural: Boolean(intent.natural) });
+    return extra > 0 ? { ...intent, ticks: intent.ticks + extra, cutBonus: extra } : intent;
+  });
+}
+
+/**
+ * The Turns a Unit's `CooldownCutBonus` adds to one cut of this ability's clock.
+ *
+ * @param {object} unit a board unit
+ * @param {object} ability the ability, as `rules/ability-use.mjs#usageSpecFor` projects it
+ * @param {{natural: boolean}} cut whether the cut is the Turn's natural countdown
+ * @returns {number}
+ */
+export function cooldownCutBonus(unit, ability, { natural }) {
+  const classes = useClassesOf(ability);
+  return (unit?.cooldownCutBonus ?? [])
+    .filter((b) => b.kinds.some((k) => classes.includes(k)) && (b.on === "any" || natural))
+    .reduce((sum, b) => sum + (Number(b.extra) || 0), 0);
 }
 
 /**

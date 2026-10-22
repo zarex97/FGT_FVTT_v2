@@ -1,0 +1,15 @@
+# Test Skill, no Spell, for UseFailure's live presses (#300, plan Task 15, L2-21):
+# the class Merlin's failure does not name.
+schema: 1
+id: test-use-plainskill
+name: "Test Use: Plain Skill"
+kind: skill
+slug: testUsePlainSkill
+timing: { window: ownTurn }
+cooldown: "1 turns"
+description: "TEST SKILL. Applies @effect[critUp]{Crit Up} to itself."
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: critUp, magnitude: 10, duration: "1◈" }

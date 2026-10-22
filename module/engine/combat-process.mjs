@@ -321,6 +321,11 @@ export function advance(s, event, detail = undefined) {
   if (s.state === "react") out.reaction = event;
   if (s.state === "s23_acceptOrEscape" && normalized === "block") out.reaction = "block";
   if (s.state === "evadeRoll") out.evaded = event === "success";
+  // An Evade that kept the hit off is the use's `evaded` (#320): Tamamo Goth's
+  // *"when it was Evaded"*. On the Process's own record, saved with it.
+  if (next === "noDamage" && out.reaction === "evade" && out.use?.facts) {
+    out.use = { ...out.use, facts: { ...out.use.facts, evaded: true } };
+  }
   if (s.state === "heelResolve") {
     out.heel = { ...s.heel, resolved: true, succeeded: normalized === "success" };
     // A failed Heel Attack is an Evade, and says so: the card, the log and the

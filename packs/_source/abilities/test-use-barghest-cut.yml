@@ -1,0 +1,13 @@
+# Test Mode for the cut bonus's live presses (#299, plan Task 15, L2-15).
+# Barghest (UDK)'s Thundercloud Eater: natural NP regen 2 Turns instead of 1, and
+# an effect's cut gains nothing.
+schema: 1
+id: test-use-barghest-cut
+name: "Test Use: Barghest Cut"
+kind: skill
+slug: testUseBarghestCut
+isMode: true
+timing: { window: ownTurn }
+description: "TEST MODE. While Active, this Unit's NP Cooldown falls 1 Turn more at each Turn's natural countdown."
+activeRules:
+  - { key: CooldownCutBonus, kinds: [np], extra: 1, on: natural }

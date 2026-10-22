@@ -2086,7 +2086,9 @@ export function advanceCooldowns(units, ctx) {
       const { holder, ability } = sharedClockOf(u, a, units);
       if ((holder.effects ?? []).includes("stop")) continue;
       const rate = cooldownRate(holder, ability, ctx);
-      if (rate > 0) out.push(I.cooldown(u.id, a.id, rate, "reduce"));
+      // `natural`: the Turn's own countdown, which a `CooldownCutBonus` on
+      // `on: natural` reads (Barghest's Thundercloud Eater, #299).
+      if (rate > 0) out.push(I.cooldown(u.id, a.id, rate, "reduce", { natural: true }));
     }
   }
   return out;
