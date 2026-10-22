@@ -29,8 +29,11 @@ code: module/rules/authoring/ability.mjs, module/rules/ability-use.mjs
   repeatedly, and one that ends after a count of events. Saitou Hajime's Chikai no Haori lasts 2◈, or until seven
   successful Attacks, and extends 1◈ for 100 Health. Shinpachi's counts five Crits. Medusa Chrysaor extends
   Athena Mode for 100 Health and 30 of her Master's. Bounded Fields already extend by payment
-  (`rules/bounded-fields.mjs#extensionFor`); modes do not, and nothing ends a mode on a count. Not run, #288.
-  keys: none (#288)
+  (`rules/bounded-fields.mjs#extensionFor`); modes do not. **Ending on a count runs since #319**: `endsAfter:
+  {event, when, count}` makes a `TallyMode` handler among the Mode's active rules, the Tally resets on each
+  activation, shows "4/7" on the bar and the sheet, and ends the Mode by `tally` with a line. The paid extension is
+  not run, #288.
+  keys: `field.endsAfter`; extension: none (#288)
 
 - `useFailChance` (**Attribute**, Caster 2026-10-21): a use that may fail when pressed. Charlotte (Summer)'s
   Illusionist fails 30% of the time and then cannot be used again that Turn. Merlin bites his tongue 10% of the time

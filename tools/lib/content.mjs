@@ -1242,6 +1242,17 @@ function countsAreKnown(doc, path, problems) {
   for (const { path: where, spec } of countSpecsIn(doc)) {
     for (const problem of countProblems(spec)) problems.push(`${path}: ${where} ${problem}`);
   }
+  // A Mode's `endsAfter` (#288): an event to hear and a whole count to end at.
+  // A count of 0 would end the Mode on the first event, and none never.
+  if (doc.endsAfter) {
+    if (typeof doc.endsAfter.event !== "string" || !doc.endsAfter.event) {
+      problems.push(`${path}: endsAfter has no event`);
+    }
+    const count = doc.endsAfter.count;
+    if (!Number.isInteger(count) || count < 1) {
+      problems.push(`${path}: endsAfter.count must be a whole number of 1 or more ("${count}")`);
+    }
+  }
   // A RankShift's ladder (#284): every rung is a Rank. A bad one would throw
   // where the projection parses it, and one mistyped clause must not take the
   // board down with it.
@@ -1249,7 +1260,7 @@ function countsAreKnown(doc, path, problems) {
     for (const [r, rule] of (Array.isArray(doc[bucket]) ? doc[bucket] : []).entries()) {
       const ladder = rule?.key === "RankShift" && Array.isArray(rule.to?.ladder) ? rule.to.ladder : [];
       for (const [i, rung] of ladder.entries()) {
-        let ok = false;
+        let ok;
         try { ok = Rank.parseOrNull(rung) !== null; } catch { ok = false; }
         if (!ok) problems.push(`${path}: ${bucket}[${r}].to.ladder[${i}] is not a Rank ("${rung}")`);
       }

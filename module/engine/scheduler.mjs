@@ -1571,6 +1571,23 @@ const ACTIONS = Object.freeze({
   },
 
   /**
+   * One more event heard by a Mode's tally (#288, #319). The handler is the
+   * Mode's own (`rules/modes.mjs#tallyHandler`, among its active rules), so
+   * `h.abilityId` is the Mode. At its `endsAfter.count` the Mode ends, by
+   * `tally`: Saitou's *"forcefully ended after he performs a successful seventh
+   * Attack"*.
+   */
+  TallyMode: (a, u, h) => {
+    const mode = (u.abilities ?? []).find((x) => x.id === h.abilityId) ?? null;
+    const count = Number(mode?.endsAfter?.count ?? 0);
+    if (!mode || !(count > 0)) return [];
+    const after = (mode.tally ?? 0) + 1;
+    const out = [I.tallyMode(u.id, mode.id, after, count, mode.name ?? null)];
+    if (after >= count) out.push(I.setMode(u.id, mode.id, false, h.source, "tally"));
+    return out;
+  },
+
+  /**
    * Move effects from other units onto this one, keeping their durations.
    *
    * Van Gogh's *Shadow of Longing* is the reference case, and it transfers

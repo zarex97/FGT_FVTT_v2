@@ -44,6 +44,7 @@
               {{#if slot.icon}}<i class="fgt-slot__icon {{slot.icon}}"></i>{{/if}}
               {{#if slot.cost}}<span class="fgt-slot__cost">{{slot.cost.amount}}◈</span>{{/if}}
               {{#if slot.cooldown}}<span class="fgt-slot__cooldown">{{slot.cooldown.label}}</span>{{/if}}
+              {{#if slot.tally}}<span class="fgt-slot__tally">{{slot.tally.tally}}/{{slot.tally.count}}</span>{{/if}}
             </button>
           {{/each}}
         </div>

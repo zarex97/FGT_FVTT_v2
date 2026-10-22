@@ -29,7 +29,7 @@
                               requiresRound=state.detail.requiresRound away=state.detail.away
                               partner=state.detail.partner}}">
         {{#if use.toggles}}
-          {{localize (concat "FGT.Mode." (ifThen active "on" "off"))}}
+          {{localize (concat "FGT.Mode." (ifThen active "on" "off"))}}{{#if tally}} {{tally.tally}}/{{tally.count}}{{/if}}
         {{else}}
           {{localize "FGT.Sheet.Use"}}
         {{/if}}

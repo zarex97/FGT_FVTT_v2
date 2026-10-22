@@ -15,6 +15,7 @@
  */
 
 import { stacksHeld } from "./count.mjs";
+import { tallyHandler } from "./modes.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { TURN_RECORD, ROUND_RECORD } from "../domain/stamped-record.mjs";
 import { remainingMovement } from "./movement.mjs";
@@ -1868,7 +1869,12 @@ export function contributionsOf(actor, { terrain = [], tick = null, partnerDista
     // and its compulsion held on regardless (#190).
     .filter((item) => !(typeof item.system?.suspendedUntil === "number" && typeof tick === "number"
       && tick < item.system.suspendedUntil))
-    .map((item) => abilityRecordOf(item));
+    .map((item) => {
+      const record = abilityRecordOf(item);
+      // A Mode's tally handler, among its active rules (#288).
+      const tally = tallyHandler(item);
+      return tally ? { ...record, activeRules: [...record.activeRules, tally] } : record;
+    });
 
   // Rule elements authored directly on the unit -- a summon with no separate
   // ability item to carry them (Bašmu's Normal Attack rider), or a
@@ -2229,6 +2235,10 @@ function collectAbilities(actor, { tick = null, turnsPerRound = 3 } = {}) {
       categorizedWhile: [...(i.system?.categorizedWhile ?? [])],
       // The War it exists in, asked by the use gate (`rules/costs.mjs`, #314).
       availableWhen: [...(i.system?.availableWhen ?? [])],
+      // A Mode's tally and the count it ends at (#288): read by `TallyMode`,
+      // and shown on the bar as "4/7".
+      tally: i.system?.tally ?? 0,
+      endsAfter: i.system?.endsAfter ?? null,
       // What a cross-ability gate matches on. Scathach's Gate of Skye "cannot
       // be used if Primordial Rune, Wisdom of Dun Scaith and/or Gae Bolg
       // Alternative are on Cooldown", and a gate that can only see `id` cannot

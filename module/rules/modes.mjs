@@ -471,3 +471,25 @@ export function forcedOn(item, unit) {
   const options = rollOptionsFor({ attacker: unit, defender: null, withoutModeHeld: true });
   return rules.some((r) => testPredicate(r.when, { options }));
 }
+
+/**
+ * The handler a Mode's `endsAfter` makes (#288, #319): one `TallyMode` per event it names.
+ *
+ * Saitou's Chikai no Haori, *"after Saitou has performed a total of seven
+ * successful Attacks while Chikai no Haori is Active"*, is `endsAfter: {event:
+ * attackLanded, count: 7}`; Shinpachi's five Crits add `when: [attack:crit]`.
+ * Collected among the ability's ACTIVE rules, so a Mode that is off hears
+ * nothing: *"while ... is Active"*.
+ *
+ * @param {object} item the ability Item
+ * @returns {object|null}
+ */
+export function tallyHandler(item) {
+  const ends = item?.system?.endsAfter ?? null;
+  if (!ends?.event || !(Number(ends.count) > 0)) return null;
+  return {
+    key: "OnEvent", event: ends.event, automatic: true,
+    ...(Array.isArray(ends.when) && ends.when.length ? { predicate: [...ends.when] } : {}),
+    then: [{ key: "TallyMode" }],
+  };
+}

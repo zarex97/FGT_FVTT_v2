@@ -569,6 +569,9 @@ export function worldIO() {
         // How it ended, for `onModeEnded`: a forced switch says so, and a
         // switch ON clears the last word (#253).
         "system.endedBy": active ? null : (endedBy ?? "forced"),
+        // Each activation counts from 0: Saitou's seventh Attack is *"for the
+        // duration of that activation"* (#288).
+        ...(active ? { "system.tally": 0 } : {}),
       });
     },
 
@@ -1511,6 +1514,18 @@ export function worldIO() {
      *
      * @param {string} unitId @param {string} effectId the instance's id @param {number} steps
      */
+    /**
+     * One more event heard by a Mode's tally (#288).
+     *
+     * @param {string} unitId
+     * @param {string} abilityId the Mode's item id
+     */
+    async tallyMode(unitId, abilityId) {
+      const item = resolve(unitId)?.items?.get?.(abilityId) ?? null;
+      if (!item) return;
+      await item.update({ "system.tally": (item.system?.tally ?? 0) + 1 });
+    },
+
     async decayEffect(unitId, effectId, steps) {
       const actor = resolve(unitId);
       const effect = actor?.effects.get?.(effectId) ?? actor?.effects.find((e) => e.system?.defId === effectId);
