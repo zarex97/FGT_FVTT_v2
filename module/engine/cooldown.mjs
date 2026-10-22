@@ -20,6 +20,7 @@ import { canSpend, resourcePath } from "../domain/resources.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import { warRule } from "./war.mjs";
+import { countOf } from "../rules/count.mjs";
 
 /**
  * The cooldown a use produces, and what paying to avoid it costs.
@@ -40,10 +41,11 @@ import { warRule } from "./war.mjs";
  * @param {object} [ctx]
  * @param {number} [ctx.count] for a per-unit cooldown, what the use produced
  * @param {object} [ctx.unit] the user's snapshot, for a resource waiver
+ * @param {object} [ctx.use] what the use did, for a `countBonus` (`criteriaMet`, #283)
  * @returns {{cooldowns: Array<{actorId: string, abilityId: string, ticks: number}>,
  *            spends: Array<{unitId: string, key: string, delta: number}>}}
  */
-export function cooldownFor(ability, actorId, { count = 0, unit = null } = {}) {
+export function cooldownFor(ability, actorId, { count = 0, unit = null, use = {} } = {}) {
   const cd = ability?.system?.cooldown ?? {};
 
   // A clock that does not start at the use. Presence Concealment is *"Cooldown:
@@ -102,7 +104,8 @@ export function cooldownFor(ability, actorId, { count = 0, unit = null } = {}) {
     const branch = cd.branches.find((b) => testPredicate(b.predicate, { options }));
     if (!branch?.max) return { cooldowns: [], spends: [] };
     try {
-      const ticks = resolveTicks(parseTick(String(branch.max)), { turnsPerRound: turnsPerRound() });
+      const ticks = resolveTicks(parseTick(String(branch.max)), { turnsPerRound: turnsPerRound() })
+        + countBonusTicks(cd, { unit, use });
       return { cooldowns: ticks > 0 ? [{ actorId, abilityId: ability.id, ticks }] : [], spends: [] };
     } catch (err) {
       console.warn(`FGT | ${ability.name} has an unreadable branch cooldown "${branch.max}": ${err.message}`);
@@ -135,6 +138,7 @@ export function cooldownFor(ability, actorId, { count = 0, unit = null } = {}) {
       if (!testPredicate(bonus.predicate, { options })) continue;
       ticks += resolveTicks(parseTick(String(bonus.ticks)), { turnsPerRound: turnsPerRound() });
     }
+    ticks += countBonusTicks(cd, { unit, use });
 
     return { cooldowns: ticks > 0 ? [{ actorId, abilityId: ability.id, ticks }] : [], spends: [] };
   } catch (err) {
@@ -212,6 +216,26 @@ function turnsPerRound() {
   } catch {
     return 3;
   }
+}
+
+/**
+ * A cooldown's length ADDED per something counted (`countBonus`, #283).
+ *
+ * *"Cooldown: 5◈ Turns if no criteria are met, increases by ½◈ Turns for every
+ * criteria that is met"* (Excalibur Proto). The fraction of a Round times the
+ * count, rounded up once over the whole -- `perUnit`'s arithmetic -- so four
+ * ½◈ are 2◈, not four roundings of 1.5 Turns.
+ *
+ * @param {object} cd the ability's cooldown block
+ * @param {{unit?: object|null, use?: object}} ctx
+ * @returns {number} turns
+ */
+function countBonusTicks(cd, { unit = null, use = {} } = {}) {
+  let rounds = 0;
+  for (const bonus of cd.countBonus ?? []) {
+    rounds += fractionOfRound(bonus.ticks) * countOf(bonus.count, { use, self: unit });
+  }
+  return Math.ceil(rounds * turnsPerRound());
 }
 
 /**

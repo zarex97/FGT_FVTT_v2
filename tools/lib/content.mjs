@@ -35,6 +35,7 @@ import { isEmittableOption } from "../../module/rules/options.mjs";
 import { predicateSitesIn } from "../../module/rules/authoring/predicates.mjs";
 import { ABILITY_KINDS } from "../../module/rules/authoring/ability.mjs";
 import { ENTRY_KEYS, EFFECT_PARAMS } from "../../module/rules/effect-flow.mjs";
+import { countSpecsIn, countProblems } from "../../module/rules/count.mjs";
 
 /** The schema version every source file must declare. */
 export const SCHEMA_VERSION = 1;
@@ -1227,6 +1228,46 @@ function baseAttackAgreesWithTable(doc, path, warnings) {
  * @param {string[]} warnings
  * @param {string} [dir] the source directory, which selects the requirement vocabulary
  */
+/**
+ * Every `count: {of, …}` in a document, at any depth, is a Count the engine reads.
+ *
+ * Walked with the same function the use gate walks (`countSpecsIn`), so a spec
+ * the build accepts is one the gate accepts.
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} problems
+ */
+function countsAreKnown(doc, path, problems) {
+  for (const { path: where, spec } of countSpecsIn(doc)) {
+    for (const problem of countProblems(spec)) problems.push(`${path}: ${where} ${problem}`);
+  }
+  // A Mode's `endsAfter` (#288): an event to hear and a whole count to end at.
+  // A count of 0 would end the Mode on the first event, and none never.
+  if (doc.endsAfter) {
+    if (typeof doc.endsAfter.event !== "string" || !doc.endsAfter.event) {
+      problems.push(`${path}: endsAfter has no event`);
+    }
+    const count = doc.endsAfter.count;
+    if (!Number.isInteger(count) || count < 1) {
+      problems.push(`${path}: endsAfter.count must be a whole number of 1 or more ("${count}")`);
+    }
+  }
+  // A RankShift's ladder (#284): every rung is a Rank. A bad one would throw
+  // where the projection parses it, and one mistyped clause must not take the
+  // board down with it.
+  for (const bucket of ["rules", "passiveRules", "activeRules"]) {
+    for (const [r, rule] of (Array.isArray(doc[bucket]) ? doc[bucket] : []).entries()) {
+      const ladder = rule?.key === "RankShift" && Array.isArray(rule.to?.ladder) ? rule.to.ladder : [];
+      for (const [i, rung] of ladder.entries()) {
+        let ok;
+        try { ok = Rank.parseOrNull(rung) !== null; } catch { ok = false; }
+        if (!ok) problems.push(`${path}: ${bucket}[${r}].to.ladder[${i}] is not a Rank ("${rung}")`);
+      }
+    }
+  }
+}
+
 function validateDocument(doc, path, library, problems, warnings, dir = "") {
   // Predicates are checked on BOTH branches. An Actor carries rule elements
   // too -- Bašmu's Normal Attack rider, the Kagome Spirits' Light/Dark banish,
@@ -1237,6 +1278,9 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
   // Found authoring Raikou's copies: `self:lastOfSummonGroup` passed a clean
   // build before the facet that admits it existed.
   predicateOptionsExist(doc, path, problems);
+  // Every Count names a kind `rules/count.mjs` reads, with the keys that kind
+  // needs (#319, Q19): an unknown one would size a sheet's number at zero.
+  countsAreKnown(doc, path, problems);
 
   if (PACKS[dir]?.documentType === "Actor") {
     baseAttackAgreesWithTable(doc, path, warnings);
@@ -2335,6 +2379,8 @@ function compileCooldown(cooldown) {
       // ADDITIVE on top of whichever cooldown was chosen, where `branches`
       // SELECTS one from several.
       ...(cooldown.conditionalBonus == null ? {} : { conditionalBonus: cooldown.conditionalBonus }),
+      // Excalibur Proto's ½◈ per criterion met (#283).
+      ...(cooldown.countBonus == null ? {} : { countBonus: cooldown.countBonus }),
     };
   }
   return { max: cooldown ?? null, remaining: 0, regen: 0, perUnit: null, countFrom: null };

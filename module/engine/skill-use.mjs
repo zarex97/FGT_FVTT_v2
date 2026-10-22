@@ -53,7 +53,10 @@ import * as budget from "./budget.mjs";
 import { budgetActionFor } from "../rules/budget.mjs";
 import * as I from "./intents.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
-import { expressionRefs, stacksHeld } from "../rules/snapshot.mjs";
+import { expressionRefs } from "../rules/snapshot.mjs";
+import {
+  stacksHeld, countOf, countedValue, countScaleOf, fromCountMatching, declarationCriteria,
+} from "../rules/count.mjs";
 import { removalPlan, pendingRemovalRolls, isUnremovable } from "../rules/removal.mjs";
 import { resolveValue } from "../rules/elements.mjs";
 import { createField, regionSizedTargeting } from "./fields.mjs";
@@ -149,6 +152,15 @@ export async function useSkill({
   const targets = resolveSkillTargets(ability, self, board, placement);
   if (targets.errors.length > 0) return { ok: false, reason: targets.errors[0] };
 
+  // Its criteria (#283), counted once over the Units it is aimed at, as the
+  // attack path counts them: the cost and the clock below read the number.
+  const criteria = declarationCriteria(ability.system?.criteria, targets, self, board);
+  if (criteria.total > 0) {
+    const { postCriteriaCard } = await import("./attack.mjs");
+    await postCriteriaCard(actor, ability, criteria);
+  }
+  const use = { criteriaMet: criteria.met };
+
   // A barrier's pool, filled BEFORE the phases hand out the buff that spends it
   // -- and before `recordUse` below, because `refreshShield` reads `timesUsed`
   // to tell a first projection from a later one.
@@ -187,7 +199,7 @@ export async function useSkill({
   const { charged } = applied.channelStarted ? { charged: [] } : resolveCosts([
     ...(usage.cost ? [{ ...usage.cost, id: "npCost" }] : []),
     ...(usage.overCooldown ? [usage.overCooldown] : []),
-    ...additionalCostsFor({ ability, self, master, turnsPerRound: warRule("turnsPerRound") }),
+    ...additionalCostsFor({ ability, self, master, turnsPerRound: warRule("turnsPerRound"), use }),
     ...standingUpkeepCost(board, self, master),
   ]);
 
@@ -195,7 +207,7 @@ export async function useSkill({
     ...charged.flatMap((cost) => costIntents(cost, self)),
     ...itemCostIntents(ability, actor),
     // A use ON the Cooldown leaves the clock alone (`rules/costs.mjs`).
-    ...(applied.channelStarted || usage.overCooldown || failure?.refundsCooldown ? [] : cooldownIntents(ability, actor, applied.summoned ?? 0, self)),
+    ...(applied.channelStarted || usage.overCooldown || failure?.refundsCooldown ? [] : cooldownIntents(ability, actor, applied.summoned ?? 0, self, use)),
     I.markTurn(actorId, marks),
     // Recorded so a mutually-exclusive partner can see it went, at both
     // scales, and so a `maxUses` budget can be spent. One intent, shared with
@@ -1452,10 +1464,10 @@ function itemCostIntents(ability, actor) {
  * @param {object|null} [unit] the user's snapshot, for a resource waiver
  * @returns {object[]}
  */
-function cooldownIntents(ability, actor, summoned = 0, unit = null) {
+function cooldownIntents(ability, actor, summoned = 0, unit = null, use = {}) {
   // One implementation for both use paths (`engine/cooldown.mjs`). They used to
   // disagree: this one set a cooldown and `resolveAttack` did not.
-  const plan = cooldownFor(ability, actor.id, { count: summoned, unit });
+  const plan = cooldownFor(ability, actor.id, { count: summoned, unit, use });
 
   return [
     // `sharedAcrossGroup` takes no board here -- this function is given the
@@ -1778,16 +1790,16 @@ export function cooldownChanges(phase, doc, board = null, self = null, target = 
       // prints is in ◈ -- *"increase its NP Cooldown by 1◈ Turns"* -- and
       // reading that as one turn would make Shapeshift a third as strong in a
       // three-turn Round.
-      const perStack = change.perStack
-        ? Math.floor((stacksHeld(doc)[change.perStack.effect] ?? 0) / (change.perStack.each ?? 1))
-        : 1;
+      // A Count (`rules/count.mjs`): Van Gogh's *"⅓◈ * the stage of the Curse"*.
+      const scale = countScaleOf(change);
+      const perStack = scale ? countedValue({ ...scale, per: 1, base: 0 }, { stacks: stacksHeld(doc) }) : 1;
       const turns = perStack * (change.ticks !== undefined
         ? resolveTicks(parseTick(change.ticks), { turnsPerRound: warRule("turnsPerRound") })
-        : change.countMatching
+        : change.countMatching // fgt-count-ok: presence only, sized by countMatchingTurns through the Count module
           ? countMatchingTurns(change, doc, board)
           : Math.abs(change.delta ?? 0));
       const down = change.ticks !== undefined ? (change.direction === "down")
-        : change.countMatching ? true : (change.delta ?? 0) < 0;
+        : change.countMatching ? true : (change.delta ?? 0) < 0; // fgt-count-ok: presence only, a census always cuts
       const cut = I.cooldown(subjectId, item.id, turns, down ? "reduce" : "increase");
       out.push(cut, ...mirroredCuts([cut], subject, board));
     }
@@ -1831,12 +1843,8 @@ function mirroredCuts(cuts, subject, board) {
  */
 function countMatchingTurns(change, doc, board) {
   const self = unitOf(doc, board);
-  const spec = change.countMatching;
-  const count = (board?.units ?? []).reduce((n, u) => {
-    if (spec.relation && relationOf(self, u, board) !== spec.relation) return n;
-    const options = rollOptionsFor({ attacker: u });
-    return testPredicate(spec.requires ?? [], { options }) ? n + 1 : n;
-  }, 0);
+  // The census is the Count module's `board` kind.
+  const count = countOf(fromCountMatching(change.countMatching).count, { board, self });
 
   if (change.maxTicks === undefined) return count;
   const cap = resolveTicks(

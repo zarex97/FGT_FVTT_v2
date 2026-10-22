@@ -899,6 +899,8 @@
     background: rgba(0, 0, 0, 0.6);
     font-size: 0.7rem; font-weight: 700;
   }
+  // A Mode's tally toward its end, while it is on (#288): "4/7".
+  &__tally { position: absolute; top: 1px; right: 2px; font-size: 0.6rem; font-weight: 700; text-shadow: 0 0 3px #000; }
 
   // Dimmed and dashed rather than hidden: the reason is in the tooltip, and a
   // control that vanishes teaches nothing about why.

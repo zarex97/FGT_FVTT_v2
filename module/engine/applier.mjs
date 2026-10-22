@@ -133,7 +133,7 @@ export async function applyIntents(intents, {
   if (plan.remote.length > 0) await io.proxy(plan.remote, { source });
   for (const p of plan.prompts) await io.prompt(p.userId, p.prompt);
 
-  said.push(...clockLines(clocks), ...statLines(stats), ...await spanLines(spans), ...itemLines(held), ...await decayLines(plan.local), ...suppressionLines(lines ? plan.local : []),
+  said.push(...clockLines(clocks), ...statLines(stats), ...await spanLines(spans), ...itemLines(held), ...await decayLines(plan.local), ...tallyLines(plan.local), ...suppressionLines(lines ? plan.local : []),
     ...await removalLines(lines ? plan.local : []));
   return { applied: plan.local.length, proxied: plan.remote.length, prompted: plan.prompts.length, lines: said };
 }
@@ -361,6 +361,24 @@ async function decayLines(written) {
       ? game.i18n.format("FGT.Effect.Decayed", { effect, magnitude: i.magnitude })
       : game.i18n.format("FGT.Effect.DecayedOut", { effect });
     return { unitId: i.unitId, summary: { id: i.defId, name, outcome: "applied", reason: null, chance: null } };
+  });
+}
+
+/**
+ * A line for each event a Mode's tally heard (#288): "Chikai no Haori 4/7", and
+ * at its count the line that ends it. Said whatever the batch's `lines`, as a
+ * falling magnitude is: the Mode ending is an outcome its owner must know.
+ *
+ * @param {Intent[]} written
+ * @returns {CardLine[]}
+ */
+function tallyLines(written) {
+  return (written ?? []).filter((i) => i?.t === "tallyMode").map((i) => {
+    const mode = i.name ?? i.abilityId;
+    const name = i.after >= i.count
+      ? game.i18n.format("FGT.Mode.TallyEnded", { mode, count: i.count })
+      : game.i18n.format("FGT.Mode.Tally", { mode, tally: i.after, count: i.count });
+    return { unitId: i.unitId, summary: { id: `tally:${i.abilityId}`, name, outcome: "applied", reason: null, chance: null } };
   });
 }
 
@@ -994,6 +1012,9 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
       break;
     case "extendEffect":
       for (const i of intents) await io.extendEffect(unitId, i.defId, i.turns, i.startAt ?? null);
+      break;
+    case "tallyMode":
+      for (const i of intents) await io.tallyMode(unitId, i.abilityId);
       break;
     case "decayEffect":
       for (const i of intents) if (i.steps > 0) await io.decayEffect(unitId, i.effectId, i.steps);

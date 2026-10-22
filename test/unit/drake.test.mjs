@@ -943,7 +943,8 @@ describe("the Golden Hind's hull takes only ranged Attacks from the ground (#187
   it("the aiming session uses the board's unit, with her ship", () => {
     const sheet = readFileSync("module/apps/actor-sheet/sheet.mjs", "utf8");
     expect(sheet).toMatch(/spec, caster: boardSelf, board,/);
-    expect(sheet).toMatch(/previewContext\(\{ caster: boardSelf, defender, ability, board, isNP \}\)/);
+    // ...and the preview with it, over every Unit it is drawing since #319.
+    expect(sheet).toMatch(/previewContext\(\{\s*caster: boardSelf, defender, ability, board, isNP,/);
   });
 });
 

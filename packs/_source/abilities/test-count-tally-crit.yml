@@ -1,0 +1,13 @@
+# Test Mode for the Count module's live presses (#288, #319, plan Task 9,
+# L1-13). Shinpachi's: ends after Crits, not after every successful Attack.
+schema: 1
+id: test-count-tally-crit
+name: "Test Count: Tally (Crits)"
+kind: skill
+slug: testCountTallyCrit
+isMode: true
+timing: { window: ownTurn }
+description: "TEST MODE. While Active, damage dealt +10. Ends after this Unit performs 2 successful Crits while it is Active."
+activeRules:
+  - { key: FlatDamage, value: 10 }
+endsAfter: { event: attackLanded, when: ["attack:crit"], count: 2 }

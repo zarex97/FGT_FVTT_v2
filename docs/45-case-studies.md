@@ -175,6 +175,15 @@ The engine looks the name up in `SCRIPTS` (`module/engine/scripts.mjs:32-45`). T
 
 **Fixing the function instead of the rule.** #32 found that a stale-by-reading record needs a stale-aware writer, wrote `turnWrite` to be exactly that, applied it to `markTurn`, measured it live, and closed. Two writers in the same file — `recordUse` fifteen lines below, `markRoundState` twenty-five — went on doing the thing the issue was about, one of them on every ability use in the game. Nothing failed, because the rule was a convention each writer applied by hand and the fix taught one hand. **A rule that every call site must remember is not fixed by fixing a call site.** The tell is available at the time: if the fix is "use this helper", ask how many places *could* use it and check every one, because the ones that don't are invisible by construction — they look like ordinary code. This is the same shape as the unreached-facility defects in #19, #24, #27 and #32 itself, seen from the other end: there a facility had no caller, here a rule had no enforcement.
 
+**Six readers for one count.** "How many" was answered six times before #319: an element's `perStack`
+(`stackScaled`), an entry's `times` (`timesOf`), a handler's `times` (`stackTimes`), a cooldown change's
+`perStack` and `countMatching`, a phase's `countTargets`, and a cooldown's `perUnit`. Each wrote its own
+arithmetic. The handler's counted `max(1, uses)` of every instance in the projection, so a Stage 5 Curse was
+five to a magnitude and one to a `times`, and a suppressed stock counted in one and not the other. Content
+never met the difference, which is why nothing failed. **A number many clauses read gets one reader**:
+`module/rules/count.mjs` now answers every kind, the old spellings go through its adapters, and
+`test/unit/count-one-reader.test.mjs` fails on a new private reader.
+
 ## Open questions
 
 - **Four bounded fields or more?** The system supports six independent axes and allows arbitrary compositions (sealed + isolating, permeable + isolated). Today, seven abilities use bounded fields: EMIYA's Unlimited Blade Works, Asterios's Chaos Labyrinth, Achilles's Duel Field, Ozymandias's Ramesseum Tentyris, Jack the Ripper's The Mist, Quetzalcoatl's Piedra del Sol, and Drake's Golden Wild Hunt. Every one is a Noble Phantasm. Is bounded field reserved for NPs, or will other ability kinds use it? If so, do all compositions have meaningful use cases?

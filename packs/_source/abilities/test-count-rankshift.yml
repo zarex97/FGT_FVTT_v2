@@ -1,0 +1,22 @@
+# Test passive for the Count module's live presses (#284, #319, plan Task 9,
+# L1-11). Richard I's Godspeed, read off Aria rather than Godspeed Tokens (no
+# Servant carries those yet): "For each Godspeed Token Richard has, his AGI Rank
+# is increased as such: B (0 Godspeed Tokens) > B+ > B++ > A > A+ > A++ > EX",
+# and "For every 3 Godspeed Tokens Richard has, his MOV is increased by 1."
+schema: 1
+id: test-count-rankshift
+name: "Test Count: Godspeed"
+kind: skill
+slug: testCountGodspeed
+passive: true
+description: "TEST PASSIVE. AGI Rank walks B > B+ > B++ > A > A+ > A++ > EX, one rung per Aria held. MOV +1 per 3 Aria held."
+passiveRules:
+  - key: RankShift
+    parameter: agi
+    to:
+      ladder: ["B", "B+", "B++", "A", "A+", "A++", "EX"]
+      count: { of: resource, key: aria }
+  - key: MovDelta
+    value: 1
+    count: { of: resource, key: aria }
+    each: 3

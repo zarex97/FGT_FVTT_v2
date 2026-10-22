@@ -471,3 +471,51 @@ export function forcedOn(item, unit) {
   const options = rollOptionsFor({ attacker: unit, defender: null, withoutModeHeld: true });
   return rules.some((r) => testPredicate(r.when, { options }));
 }
+
+/**
+ * The handler a Mode's `endsAfter` makes (#288, #319): one `TallyMode` per event it names.
+ *
+ * Saitou's Chikai no Haori, *"after Saitou has performed a total of seven
+ * successful Attacks while Chikai no Haori is Active"*, is `endsAfter: {event:
+ * attackLanded, count: 7}`; Shinpachi's five Crits add `when: [attack:crit]`.
+ * Collected among the ability's ACTIVE rules, so a Mode that is off hears
+ * nothing: *"while ... is Active"*.
+ *
+ * @param {object} item the ability Item
+ * @returns {object|null}
+ */
+export function tallyHandler(item) {
+  const ends = item?.system?.endsAfter ?? null;
+  if (!ends?.event || !(Number(ends.count) > 0)) return null;
+  return {
+    key: "OnEvent", event: ends.event, automatic: true,
+    ...(Array.isArray(ends.when) && ends.when.length ? { predicate: [...ends.when] } : {}),
+    then: [{ key: "TallyMode" }],
+  };
+}
+
+/**
+ * What a Mode's switch writes, either way: the one patch both writers use.
+ *
+ * Two writers switch a Mode: its owner's press (`apps/actor-sheet/sheet.mjs
+ * #toggleMode`, which the action bar calls too) and the engine's forced switch
+ * (`engine/io.mjs#setMode`). The Tally's reset lived in the engine's alone, so
+ * a Mode its owner switched back on kept the count of its last activation (#319,
+ * found live: "2/2" the moment it came on). Whatever one switch writes, the
+ * other writes.
+ *
+ * @param {boolean} active
+ * @param {{tick: number, endedBy?: string|null}} opts `endedBy` says how a switch OFF ended it
+ * @returns {Record<string, unknown>} the item update
+ */
+export function modeSwitchPatch(active, { tick, endedBy = null }) {
+  return {
+    "system.active": active,
+    "system.toggledAt": tick,
+    // How it ended, for `onModeEnded`; a switch ON clears the last word (#253).
+    "system.endedBy": active ? null : endedBy,
+    // Each activation counts from 0: Saitou's seventh Attack is *"for the
+    // duration of that activation"* (#288).
+    ...(active ? { "system.tally": 0 } : {}),
+  };
+}
