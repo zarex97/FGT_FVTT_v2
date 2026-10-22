@@ -119,7 +119,7 @@ export function useFacts(record) {
     evaded: Boolean(f.evaded),
     unitsHit: Number(f.unitsHit ?? 0),
     effectsApplied: landed.length,
-    debuffsInflicted: landed.filter((l) => l.polarity === "debuff").length,
+    debuffsInflicted: landed.filter((l) => l.polarity === "debuff").length, // fgt-polarity-ok: a landing record's own field, the landed polarity
     summoned: Number(f.summoned ?? 0),
     criteriaMet: Number(f.criteriaMet ?? 0),
     die: typeof f.die === "number" ? f.die : null,
