@@ -3,7 +3,8 @@ id: 2026-10-22-sheet-showed-landed-magnitude
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** once `magnitudeOf` computed a falling magnitude (#296), every place that shows an Effect's
 magnitude shows the value it stands at now.

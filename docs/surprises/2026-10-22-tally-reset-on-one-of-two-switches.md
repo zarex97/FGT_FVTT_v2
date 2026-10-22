@@ -3,7 +3,8 @@ id: 2026-10-22-tally-reset-on-one-of-two-switches
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** a Mode switched back on starts its Tally from 0. Saitou's count is *"for the duration of that
 activation"* (plan Task 9, L1-14). The bar should read "0/2".

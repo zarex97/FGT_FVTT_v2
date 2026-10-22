@@ -3,7 +3,8 @@ id: 2026-10-22-issue-306-claimed-a-built-gap
 found: retraction
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** the Lancer survey's #306 said nothing lets an ability be used on its Cooldown for a price. My
 capability-lookup branch then wrote `keys: none (#306)` on `docs/model/cooldown.md`'s `bypassForCost` line, and

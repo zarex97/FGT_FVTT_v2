@@ -3,7 +3,8 @@ id: 2026-10-22-unknown-count-kind-took-the-board-down
 found: live press
 kind: unknown-value-falls-to-default
 status: fixed
-reviewed: false
+reviewed: true
+pattern: unknown-value-falls-to-default
 ---
 **Expected:** a Skill made in the editor with `count: {of: "bogus"}` greys its own slot on the bar, refused
 `unknownCountKind` and naming "bogus" (plan Task 9, L1-15). The rest of the Unit, and the board, stay as they were.

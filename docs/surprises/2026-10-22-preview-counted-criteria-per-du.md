@@ -3,7 +3,8 @@ id: 2026-10-22-preview-counted-criteria-per-du
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** the targeting preview shows the damage the declaration will deal. The preview is a reader of the same
 multiplier the resolution reads (the *Two readers, one rule* lesson).

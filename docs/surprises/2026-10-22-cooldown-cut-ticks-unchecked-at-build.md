@@ -3,7 +3,8 @@ id: 2026-10-22-cooldown-cut-ticks-unchecked-at-build
 found: live press
 kind: unknown-value-falls-to-default
 status: fixed
-reviewed: false
+reviewed: true
+pattern: unknown-value-falls-to-default
 ---
 **Expected:** `npm run validate:content` refuses any `ticks` the engine cannot parse, so test content that builds clean presses clean.
 **Actual:** Test Use: Cutter's `cooldown` phase change `ticks: "1"` built with 0 errors. Player1's press did nothing on the board; the relay answered *"FGT | Cannot parse duration "1". Expected a ◈ expression, "N turns", …"*.
