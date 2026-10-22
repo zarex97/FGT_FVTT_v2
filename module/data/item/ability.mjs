@@ -565,6 +565,15 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // Effect-definition fields. Present only on documents in the effects
       // pack; null elsewhere.
       polarity: new fields.StringField({ required: false, nullable: true, initial: null }),
+      // The four answers `rules/effect-instance.mjs` reads besides `polarity` (#315):
+      // a polarity by the bearer's side (Romulus's Roma Stacks, #303), a magnitude
+      // that falls while it stands (Merlin, Tomoe, #296), a duration that pauses
+      // (Santa Suzuka, #305), and one instance per group on the board (Nezha,
+      // Passionlip, #304).
+      polarityByRelation: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      decay: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      pausedWhile: new fields.ArrayField(new fields.StringField({ blank: false })),
+      boardUnique: new fields.StringField({ required: false, nullable: true, initial: null }),
       volatility: new fields.StringField({ required: false, nullable: true, initial: null }),
       valence: new fields.StringField({ required: false, nullable: true, initial: null }),
       // Appendix A's umbrella names. `Bind` covers ten effects and Medusa's

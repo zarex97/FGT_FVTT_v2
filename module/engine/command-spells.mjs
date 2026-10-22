@@ -19,6 +19,7 @@ import { applyWorldIntents } from "./applier.mjs";
 import * as process from "./combat-process.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { currentWar } from "./war.mjs";
+import { polarityOf } from "../rules/effect-instance.mjs";
 
 /**
  * The commands this Master may use at this moment.
@@ -389,7 +390,7 @@ function effectIntents(effects, ctx) {
         // actually carrying rather than on a list of names.
         for (const inst of unit?.effectInstances ?? []) {
           if (inst.unremovable) continue;
-          if (inst.polarity && inst.polarity !== "debuff") continue;
+          if (polarityOf(inst) && polarityOf(inst) !== "debuff") continue;
           out.push(I.removeEffect(e.unitId, inst.id ?? inst.defId, "commandSpell"));
         }
         break;

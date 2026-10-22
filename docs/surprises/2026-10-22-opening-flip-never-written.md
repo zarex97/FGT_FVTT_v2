@@ -15,6 +15,6 @@ either.
 **Cause:** `module/data/misc.mjs:174 @ 8815e1de`. `phase` was declared with a reader in
 `module/engine/board.mjs:498 @ 8815e1de`, and the setup path (`engine/war-setup.mjs#commitWar`) never wrote it.
 
-**Fix:** `module/engine/war-setup.mjs#flipOpeningPhase @ uncommitted`. `commitWar` flips `1d2` and says the
+**Fix:** `module/engine/war-setup.mjs#flipOpeningPhase @ c0e8ac9e`. `commitWar` flips `1d2` and says the
 result on a card. The War Rule `dayNightCycle` switches the cycle off, read by `rules/environment.mjs#roundPhase`
 (#314).

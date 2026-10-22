@@ -70,6 +70,7 @@ import { entryOf } from "../rules/effect-flow.mjs";
 import { tableFor, entriesFor, rollFaces } from "../rules/roll-table.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
+import { polarityOf } from "../rules/effect-instance.mjs";
 import * as budget from "./budget.mjs";
 import { resolveDefeat, pendingRolls, fireEvent } from "./scheduler.mjs";
 import { terrainConversions } from "../rules/terrain.mjs";
@@ -2942,7 +2943,7 @@ async function fireDamageStepStart(state) {
 
   // A die for every buff a resistance could keep, before anything is decided.
   const buffs = (defender.effectInstances ?? [])
-    .filter((e) => e.polarity === "buff" && !e.unremovable && !e.suppressed)
+    .filter((e) => polarityOf(e) === "buff" && !e.unremovable && !e.suppressed)
     .map((e) => ({ defId: e.defId, polarity: "buff", unremovable: false }));
   const removal = {};
   for (const defId of pendingRemovalRolls({ candidates: buffs, bearer: defender })) {
@@ -7658,7 +7659,7 @@ async function removalIntents(phase, doc, bearer) {
       .filter((e) => {
         const def = EffectRegistry.get(e.system?.defId);
         if (!def) return false;
-        if (selector?.polarity && def.polarity !== selector.polarity) return false;
+        if (selector?.polarity && polarityOf(e.system, def) !== selector.polarity) return false; // fgt-polarity-ok: the phase's selector
         return !isUnremovable(def, e);
       })
       .map((e) => e.system.defId);
@@ -7674,7 +7675,7 @@ async function removalIntents(phase, doc, bearer) {
       const def = EffectRegistry.get(e.system?.defId);
       return {
         defId: e.system.defId,
-        polarity: def?.polarity,
+        polarity: polarityOf(e.system, def),
         unremovable: isUnremovable(def, e),
       };
     });
