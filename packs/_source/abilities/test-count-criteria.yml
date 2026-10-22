@@ -1,0 +1,48 @@
+# Test Noble Phantasm for the Count module's live presses (#283, #319, plan
+# Task 9, L1-8 to L1-10). Arthur's Excalibur Proto, with its six criteria as
+# the sheet numbers them, on a 3x3 area within 4 panels:
+#
+#   1. At least two DUs have at least 3 Parameters equal to or higher than his.
+#   2. There is only one DU in the NP area.
+#   3. At least two DUs have the 'Evil' Alignment.
+#   4. His Health is less than at least two of the DUs.
+#   5. None of the DUs have at least 3 Parameters two Ranks below his.
+#   6. None of the DUs have the 'Elemental' Attribute.
+#
+# "3x damage ... for every criteria that is met, damage dealt is increased by
+# 0.5x", "his Master loses 30 Health ... an additional 5 Health" per criterion,
+# "Cooldown: 5◈ Turns ... increases by ½◈ Turns for every criteria". No Round
+# gate, so it can be pressed in a running test War. Not Arthur's own file.
+schema: 1
+id: test-count-criteria
+name: "Test Count: Criteria"
+isNP: true
+rank: "A"
+ignoresNPGate: true
+cooldown:
+  max: "5◈"
+  countBonus:
+    - { ticks: "½◈", count: { of: criteria } }
+description: "TEST NOBLE PHANTASM. Hits a 3x3 area within 4 panels. Excalibur Proto's six criteria: 3x damage plus 0.5x per criterion met; its Master loses 30 Health plus 5 per criterion; Cooldown 5◈ plus ½◈ per criterion."
+targeting:
+  anchor: { kind: withinRange, range: 4, metric: chebyshev }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy, neutral], chooser: all, includeSelf: false }
+  isDamagingAoE: true
+criteria:
+  - { targets: ["target:paramsVsSelf:gte:3"], atLeast: 2 }
+  - { targets: [], exactly: 1 }
+  - { targets: ["target:morality:evil"], atLeast: 2 }
+  - { targets: ["target:healthVsSelf:gt"], atLeast: 2 }
+  - { targets: ["target:paramsVsSelf:belowBy2:3"], none: true }
+  - { targets: ["target:attribute:elemental"], none: true }
+damage:
+  component: mag
+  multiplier: { base: 3, per: 0.5, count: { of: criteria } }
+additionalCosts:
+  - id: excaliburProto
+    kind: masterHealth
+    amount: { base: 30, per: 5, count: { of: criteria } }
+    supersedes: [npCost]
+phases:
+  - kind: damage
