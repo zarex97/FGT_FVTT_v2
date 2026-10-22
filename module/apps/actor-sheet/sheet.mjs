@@ -706,7 +706,10 @@ export async function pickPlacementFor(actor, ability, { requireUnitId = null, e
     preview: {
       label: ability?.name ?? game.i18n.localize("FGT.Chat.NormalAttack"),
       isAttack: ability ? classifyAbility(ability).isAttack : true,
-      damageFor: (unitId) => {
+      // `unitIds`: every Unit the preview is drawing, so a count over the
+      // declaration's targets (Excalibur Proto's criteria, #283) is the count
+      // the resolution makes.
+      damageFor: (unitId, unitIds = [unitId]) => {
         const defender = board.units.find((u) => u.id === unitId);
         if (!defender) return null;
         // *"(Non-damaging)"*. The RESOLVER has known this since `dealsNoDamage`
@@ -718,7 +721,10 @@ export async function pickPlacementFor(actor, ability, { requireUnitId = null, e
         // display (Ch. 46 §46.8).
         if (dealsNoDamage(ability)) return null;
         return preview.damageRange(
-          previewContext({ caster: boardSelf, defender, ability, board, isNP }),
+          previewContext({
+            caster: boardSelf, defender, ability, board, isNP,
+            targets: unitIds.map((id) => board.units.find((u) => u.id === id)).filter(Boolean),
+          }),
           { negation: preview.negationBounds(defender, isNP) },
         );
       },

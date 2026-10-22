@@ -60,7 +60,7 @@ export function choiceIsComplete(ticked, max) {
  * @param {object} args
  * @param {object} args.resolved a `ResolvedTargets`
  * @param {string} args.label the ability's name
- * @param {Function|null} [args.damageFor] `(unitId) => {min, max}` for the preview
+ * @param {Function|null} [args.damageFor] `(unitId, unitIds) => {min, max}` for the preview; `unitIds` is every row
  * @param {boolean} [args.canReaim] whether re-aiming is meaningful for this anchor
  * @param {number} [args.max] how many the ability takes, when it asks for a choice
  * @returns {Promise<string[]|symbol|null>} chosen unit ids, {@link REAIM}, or null
@@ -95,7 +95,7 @@ export async function reviewTargets({
 
   const rows = units.map((t) => {
     const name = shownNameById(t.unitId);
-    const range = damageFor?.(t.unitId) ?? null;
+    const range = damageFor?.(t.unitId, units.map((u) => u.unitId)) ?? null;
     return `<li class="fgt-review__row" data-unit-id="${t.unitId}">
       <label>
         <input type="checkbox" name="target" value="${t.unitId}"${preticked.has(t.unitId) ? " checked" : ""}>
