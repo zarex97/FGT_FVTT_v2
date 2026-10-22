@@ -12,7 +12,7 @@
  */
 
 import { classifyAbility, needsTargeting } from "../../rules/ability-use.mjs";
-import { canToggleMode, pricedOnEntry } from "../../rules/modes.mjs";
+import { canToggleMode, pricedOnEntry, modeSwitchPatch } from "../../rules/modes.mjs";
 import { mayChangeStance } from "../../rules/stance.mjs";
 import { unitOf, currentBoard, currentTick, clockRunning } from "../../engine/board.mjs";
 import { previewContext } from "../../engine/attack.mjs";
@@ -261,7 +261,9 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // clause exists to prevent.
     // How it ended, for what its end pays: a press by its owner is `manual`
     // (#253 reading 14). Switched on, the last word is cleared.
-    await item.update({ "system.active": active, "system.toggledAt": tick, "system.endedBy": active ? null : "manual" });
+    // The engine's forced switch writes the same patch (`engine/io.mjs#setMode`):
+    // a Mode its owner switches on starts its Tally from 0 too (#319, found live).
+    await item.update(modeSwitchPatch(active, { tick, endedBy: "manual" }));
 
     // Switching a mode ON is using an ability, so the Unit has Acted this Turn
     // (ruled 2026-10-19, #194): Mad Enhancement switched on cost its Master

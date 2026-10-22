@@ -18,7 +18,8 @@ const toggle = SRC.slice(SRC.indexOf("static async toggleMode("), SRC.indexOf("s
 
 describe("a mode switched on (#194)", () => {
   it("marks its Unit as having Acted, after the switch is written", () => {
-    const write = toggle.indexOf('"system.active": active');
+    // The switch's patch, shared with the engine's forced switch (#319).
+    const write = toggle.indexOf("item.update(modeSwitchPatch(active");
     const mark = toggle.search(/I\.markTurn\(actor\.id, \{ acted: true \}\)/);
     expect(write).toBeGreaterThan(-1);
     expect(mark, "the Turn record is marked").toBeGreaterThan(write);
