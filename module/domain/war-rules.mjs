@@ -138,6 +138,13 @@ export const WAR_RULES = Object.freeze([
     name: "FGT.Settings.ConquestSparesServants", hint: "FGT.Settings.ConquestSparesServantsHint",
   },
   {
+    // *"If playing without Day or Night Rounds"* (Gawain, Mozart, Bunny Lion
+    // King, Melusine Ondine): a War may switch the cycle off. Read by
+    // `rules/environment.mjs#roundPhase` through the board (#287, #314).
+    key: "dayNightCycle", type: "boolean", initial: true,
+    name: "FGT.Settings.DayNightCycle", hint: "FGT.Settings.DayNightCycleHint",
+  },
+  {
     // A Grand Order war switches off two rules that assume rival Masters: the
     // multi-Servant tax (Ch. 32) and Hatred of Achilles against allies (Ch. 45).
     key: "grandOrder", type: "boolean", initial: false,

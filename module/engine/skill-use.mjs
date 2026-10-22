@@ -977,6 +977,21 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           break;
         }
 
+        case "setRoundPhase": {
+          // Once per use: the Round is the War's, not a target's (#294).
+          if (target.unitId !== actor.id) break;
+          const { setRoundPhase } = await import("./round-phase.mjs");
+          const out = await setRoundPhase(phase.to);
+          applied.push({
+            summary: {
+              id: "setRoundPhase", name: out.line ?? game.i18n.localize("FGT.Authoring.Phase.setRoundPhase"),
+              outcome: out.ok ? "applied" : "failed",
+              reason: out.reason,
+            },
+          });
+          break;
+        }
+
         case "summonPlatform": {
           // Once per use, from the caster: one mount, not one per target.
           if (target.unitId !== actor.id) break;
@@ -2946,6 +2961,10 @@ export const CASTER_PHASES = new Set([
   // Opening a pocket dimension is something the caster does once, from where
   // he is standing, exactly as raising a platform is.
   "enterDimension",
+  // Changing the Round's Day or Night is the War's, once per use: Kuonji
+  // Alice's NP *"If this NP is used during the Day"* reads the Round at
+  // declaration (#294, #314).
+  "setRoundPhase",
   // One ability spending another. Pyramid Drop ends and locks out Ramesseum
   // Tentyris, which is something it does to its USER's sheet rather than to
   // any defender -- so it belongs in the caster pass, like `createField`.

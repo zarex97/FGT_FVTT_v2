@@ -37,6 +37,9 @@ vi.mock("../../module/engine/board.mjs", () => ({
     boards.push(at);
     return { units: [], fields: [], ...at };
   },
+  // The Round's Day or Night, said at its start (#314). These boundaries are
+  // about order, so their War plays without the cycle and says nothing.
+  currentRoundPhase: () => "none",
 }));
 vi.mock("../../module/engine/io.mjs", () => ({ worldIO: () => ({}) }));
 vi.mock("../../module/engine/applier.mjs", () => ({

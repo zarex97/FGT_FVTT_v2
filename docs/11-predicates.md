@@ -41,6 +41,15 @@ The engine calls `rollOptionsFor` once per attack with attacker, defender, and a
 
 **Alignment, each half on its own** (#253). `self:order:<order>` and `self:morality:<morality>` (and their `target:` forms) are emitted from `unit.alignment`, lowercased, beside the Attributes. *"Units with the 'Lawful' Alignment"* asks the order alone and *"the 'Evil' Alignment"* the morality alone, so they are two facets, both `open`: the morality half already holds Anastasia's "Summer". A Unit with no Alignment (a Master, a summon) emits neither. Yan Qing's `Dmg Up (Lawful)` and `Dmg Up (Evil)` read them; Lanceturia's and Zhang Jue's sheets will.
 
+**The War's own facts: `war:`** (#314). `war:region:<r>` is the Region the War is fought in. Anastasia's Kremlin lasts 3◈ *"If the Grail War region is Russia"* (#301). `war:phase:day|night|none` is the **Round's** phase, `none` when the War plays without the cycle. `self:phase` and `target:phase` stay the phase at the Unit's own panel, where a Darkness area or Sol can differ. Both are written on each Unit's snapshot as `unit.war`: by `snapshotUnit` from `unitSnapshot`'s `roundPhase`, then by `annotateEnvironment` from the board. `rollOptionsFor` emits them from either combatant, and `ownerOptionsOf` keeps them. `war:` is deferred like `self:phase:`, and collection is handed the War's facts, so an ability's `availableWhen` answers there. `self:region` and `target:region` are where a Unit is **from**. The facet's old text said "the war is being fought in" and described the War while the option read the Unit. `facet()` now takes `proseBySubject`, so `war:region` reads "the War is fought in".
+
+**A Servant's Class** (#286, #314). A Servant emits these options, for each of its Classes:
+- `class:<c>`;
+- `classGroup:standard|extra`, taken from `STANDARD_CLASSES` (the first seven of `SERVANT_CLASSES`, which `war-setup.mjs#CORE_CLASSES` now is);
+- `classGroup:knight` for Saber, Archer and Lancer (ruled 2026-10-22).
+
+`compareClasses` adds `target:class:same` when the two share one, for Kazuradrop's *"the same Servant Class as herself"*. A Master or a summon emits none: the sheets say *"X-class **Servants**"*. Draco's *"non-Standard Class Servants excluding Avenger & Shielder"* is `not:target:classGroup:standard`, `not:target:class:avenger` and `not:target:class:shielder`. `shielder` and `saver` joined `SERVANT_CLASSES`. Saver has no class image, because no roster Servant holds it.
+
 **A number from the War** (#253 reading 3). An event handler's predicate may compare `@turnsPerRound`, the War's ◈: the scheduler passes it as a ref beside the option set, so Zhōng Guó Quán Fǎ's *"2 Turns if ◈ is greater than 4"* is `{gt: ["@turnsPerRound", 4]}`.
 
 **Ladders.** For any threshold comparison ("rank B or higher"), a predicate can only test set membership, so `rank:gte:B` has to already be in the set. The code emits a ladder: a `B`-rank parameter emits `rank:gte:E`, `rank:gte:D`, `rank:gte:C`, `rank:gte:B` (`module/rules/options.mjs:409-420`). Same for range, NP scale, and distances to Masters/partners (`module/rules/options.mjs:136-141`, `module/rules/options.mjs:322-347`).

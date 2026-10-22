@@ -220,7 +220,7 @@ a large class of player mistakes (Ch. 16 §16.10).
 | Event | Fires | Payload |
 |---|---|---|
 | `fgt.matchStarted` | Ruleset locked, round 1 begins | `{ruleset, factions}` |
-| `fgt.phaseChanged` | Day ↔ night | `{round, phase}` |
+| `phaseChanged` | Day ↔ night: at a Round's start when it differs from the last Round's end, or when a `setRoundPhase` Phase changes the Round in progress (#314). Heard by every Unit on the War's board through `OnEvent`. | `{from, to, round}` |
 | `fgt.grailMaterialized` | The defeat threshold was reached | `{position}` |
 | `fgt.grailContested` | A unit began or continued holding | `{unitId, roundsHeld}` |
 | `fgt.grailDestroyed` | The destruction roll succeeded | `{byUnitId, damage, chance}` |

@@ -15,7 +15,7 @@
  * that be shown with its reason rather than silently skipped.
  */
 
-import { SERVANT_CLASSES } from "../domain/enums.mjs";
+import { STANDARD_CLASSES } from "../domain/enums.mjs";
 import { essenceRefusals } from "./master-essence.mjs";
 
 /**
@@ -24,7 +24,7 @@ import { essenceRefusals } from "./master-essence.mjs";
  * A slice of `SERVANT_CLASSES` rather than a second list: the enum already
  * orders the seven first and the extras after, and two lists would drift.
  */
-export const CORE_CLASSES = Object.freeze(SERVANT_CLASSES.slice(0, 7));
+export const CORE_CLASSES = STANDARD_CLASSES;
 
 /**
  * The catch-all container.

@@ -519,6 +519,26 @@ async function endRoundSequence(combat, round, tick) {
 }
 
 /**
+ * Say the new Round's phase, and fire `phaseChanged` when it is not the phase
+ * the last Round ended in.
+ *
+ * @param {number} round the Round that began
+ * @returns {Promise<void>}
+ */
+async function announceRoundPhase(round) {
+  const { currentRoundPhase } = await import("./board.mjs");
+  const now = currentRoundPhase(round);
+  if (now !== "day" && now !== "night") return;
+  const before = round > 1 ? currentRoundPhase(round - 1) : null;
+  const line = game.i18n.format("FGT.RoundPhase.Turns", { round, phase: game.i18n.localize(`FGT.RoundPhase.${now}`) });
+  await ChatMessage.create({ content: `<div class="fgt-card"><p>${line}</p></div>` });
+  if (before && before !== now) {
+    const { announcePhaseChange } = await import("./round-phase.mjs");
+    await announcePhaseChange(before, now, round);
+  }
+}
+
+/**
  * The start of the Round that began, after its order is rolled.
  *
  * @param {object} combat
@@ -530,6 +550,11 @@ async function beginRoundSequence(combat, round, tick) {
   // Turn order is re-rolled every Round (Ch. 41 Q32), before the new Round's
   // start-of-round effects fire.
   if (typeof combat.rollTurnOrder === "function") await combat.rollTurnOrder();
+
+  // Day or Night, said at every Round's start, and `phaseChanged` when it
+  // differs from how the last Round ended, an override included: Alice's Night
+  // followed by a Night Round changes nothing (#294, #314).
+  await announceRoundPhase(round);
 
   const startingBoard = boardFor(combat, round, tick);
   await run(

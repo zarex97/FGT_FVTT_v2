@@ -28,6 +28,8 @@ import { paysHighColumn } from "./master-rank.mjs";
 import { preventedBy } from "./budget.mjs";
 import { usedOnlyDuringOwnTurn, usedOnlyAtWindows, windowsOf } from "./windows.mjs";
 import { standingPlatformOf } from "./platforms.mjs";
+import { ownerOptionsOf } from "./options.mjs";
+import { test as testPredicate } from "./predicate.mjs";
 
 /**
  * What using this ability costs, or `null` when it is free.
@@ -195,6 +197,20 @@ export function additionalCostsFor({ ability, self, master = null, turnsPerRound
  *   (a reaction, a Damage Step, the start of a Combat Phase); never claimed by a client
  * @returns {{ok: boolean, reason?: string, detail?: object, cost: object|null}}
  */
+/**
+ * Whether an ability exists in the War its bearer stands in: its `availableWhen`
+ * against the bearer's own options, the War's `war:` facts among them (#314).
+ *
+ * @param {object|null} ability a projected ability
+ * @param {object|null} unit its bearer's snapshot
+ * @returns {boolean}
+ */
+export function availableInThisWar(ability, unit) {
+  const when = ability?.availableWhen;
+  if (!when?.length) return true;
+  return testPredicate(when, { options: new Set(ownerOptionsOf(unit)) });
+}
+
 export function canUseAbility({
   ability, unit, master = null, round = 1, turn = null,
   gates = NP_GATE, turnsPerRound = 3, clockRunning = true, ...ctx
@@ -210,6 +226,14 @@ export function canUseAbility({
   // and there is nothing a defeated Unit can wait for.
   if (unit?.defeated) {
     return { ok: false, reason: "defeated", detail: {}, cost };
+  }
+
+  // An ability that does not exist in this War: Gawain's no-cycle form in a War
+  // with Day and Night, or his Day form in one without (#287, #314). Refused, and
+  // the bar and the sheet hide what is refused for this reason alone
+  // (`isHiddenInThisWar`): it is not a use that waits on anything.
+  if (!availableInThisWar(ability, unit)) {
+    return { ok: false, reason: "notInThisWar", detail: {}, cost };
   }
 
   // No match, no clock -- and therefore no use. Every duration and every

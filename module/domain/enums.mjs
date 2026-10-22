@@ -19,7 +19,23 @@ export const PARAMETERS = Object.freeze(["str", "end", "agi", "mag", "luc"]);
 export const SERVANT_CLASSES = Object.freeze([
   "saber", "archer", "lancer", "rider", "caster", "assassin", "berserker",
   "ruler", "avenger", "alterEgo", "foreigner", "moonCancer", "pretender", "beast",
+  // Mashu's sheets are Shielder; Saver is named by Rapture (*"Ruler-class and
+  // Saver-class Servants"*) and held by no roster Servant yet (#314).
+  "shielder", "saver",
 ]);
+
+/**
+ * The seven Standard Classes, every other Class being an Extra Class: *"any
+ * Servant that is not from the seven regular classes"*. The first seven of
+ * {@link SERVANT_CLASSES}, so the two lists cannot drift.
+ */
+export const STANDARD_CLASSES = Object.freeze(SERVANT_CLASSES.slice(0, 7));
+
+/** The Knight Classes: Saber, Archer and Lancer (ruled 2026-10-22, #314). */
+export const KNIGHT_CLASSES = Object.freeze(["saber", "archer", "lancer"]);
+
+/** The groups a Class belongs to, as `classGroup:` options name them. */
+export const CLASS_GROUPS = Object.freeze(["standard", "extra", "knight"]);
 
 /** Unit kinds. Maps 1:1 to Actor subtypes. @see docs/06-units-and-stats.md */
 export const UNIT_KINDS = Object.freeze([

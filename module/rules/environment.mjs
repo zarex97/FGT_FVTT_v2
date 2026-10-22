@@ -38,6 +38,30 @@ export function phase(round, startedAtDay) {
 }
 
 /**
+ * The Round's phase, everything considered: the one deriver every reader asks.
+ *
+ * - **No cycle.** The War Rule `dayNightCycle` off, or a War whose opening is
+ *   `none`, is *"playing without Day or Night Rounds"*: `none`.
+ * - **An override.** Kuonji Alice's NP: *"the game state becomes Night until the
+ *   end of the Round (next Round will still be Night as usual)"*; Tamamo Goth's:
+ *   *"Day-Night progression is unaffected in this case"*. So an override names
+ *   the Round it holds for and nothing else; every later Round is the flip's.
+ * - **Otherwise** the alternation from the opening coin flip ({@link phase}).
+ *
+ * @param {object} args
+ * @param {number} args.round 1-based
+ * @param {"day"|"night"|"none"} [args.opening] the War's opening flip
+ * @param {boolean} [args.cycle] the `dayNightCycle` War Rule
+ * @param {{phase: "day"|"night", round: number}|null} [args.override] `MatchData.phaseOverride`
+ * @returns {"day"|"night"|"none"}
+ */
+export function roundPhase({ round = 1, opening = "day", cycle = true, override = null }) {
+  if (!cycle || opening === "none") return "none";
+  if (override?.phase && override.round === round) return override.phase;
+  return phase(round, opening === "day");
+}
+
+/**
  * Which phase a **panel** is in — Ch. 26, verbatim.
  *
  * The function above is a property of the Round. This one is a property of the
