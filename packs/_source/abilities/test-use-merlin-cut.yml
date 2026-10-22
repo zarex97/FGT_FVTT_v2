@@ -1,0 +1,14 @@
+# Test Mode for the cut bonus's live presses (#299, plan Task 15, L2-12 to L2-14,
+# L2-16). Merlin: *"Whenever … NP Cooldown is reduced, whether through natural
+# reduction … or an effect, it is reduced by 1 extra Turn."* A Mode rather than
+# a passive, so the bench can swap to Barghest's without a second Servant.
+schema: 1
+id: test-use-merlin-cut
+name: "Test Use: Merlin Cut"
+kind: skill
+slug: testUseMerlinCut
+isMode: true
+timing: { window: ownTurn }
+description: "TEST MODE. While Active, every cut to this Unit's NP Cooldown cuts 1 Turn more."
+activeRules:
+  - { key: CooldownCutBonus, kinds: [np], extra: 1, on: any }

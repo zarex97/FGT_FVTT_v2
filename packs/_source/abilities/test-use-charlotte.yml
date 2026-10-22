@@ -1,0 +1,20 @@
+# Test Skill for UseFailure's live presses (#300, plan Task 15, L2-17, L2-18).
+# Charlotte Corday's Skill fails 30% of the time and then cannot be used again
+# that Turn; at 100% here so every press fails and the press is deterministic.
+schema: 1
+id: test-use-charlotte
+name: "Test Use: Charlotte"
+kind: skill
+slug: testUseCharlotte
+timing: { window: ownTurn }
+cooldown: "1◈"
+description: "TEST SKILL. Applies @effect[atkUp]{Atk Up} to itself; this Unit loses 10 Health. Fails 100% of the time, and then cannot be used again this Turn."
+additionalCosts:
+  - { id: price, kind: selfHealth, amount: 10, chargesMaster: false }
+rules:
+  - { key: UseFailure, of: [self], chance: 100, then: lockThisTurn }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUp, magnitude: 10, duration: "1◈" }

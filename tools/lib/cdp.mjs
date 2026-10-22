@@ -11,7 +11,7 @@ const PORT = process.env.FGT_CDP_PORT ?? 9222;
 /**
  * The debugger URL of the Foundry page.
  *
- * The `/game` page by preference. A `/setup` tab is also Foundry and is what
+ * The GM's `/game` page (`localhost`) by preference, then any `/game` page. A `/setup` tab is also Foundry and is what
  * answers between a shutdown and a relaunch, so it is a fallback rather than
  * "no Foundry page".
  *
@@ -21,7 +21,10 @@ export async function foundryTarget() {
   const res = await fetch(`http://127.0.0.1:${PORT}/json/list`);
   const targets = await res.json();
   const foundry = targets.filter((t) => t.type === "page" && String(t.url).includes(":30000"));
-  const page = foundry.find((t) => String(t.url).includes("/game")) ?? foundry[0];
+  // The GM's page first: a player's tab is `127.0.0.1` in the two-tab kit, and
+  // an eval that landed there ran as Player1 and was refused the GM's writes.
+  const page = foundry.find((t) => String(t.url).includes("localhost:30000/game"))
+    ?? foundry.find((t) => String(t.url).includes("/game")) ?? foundry[0];
   if (!page) throw new Error("No Foundry page found. Is the world open in the debug Chrome?");
   return page.webSocketDebuggerUrl;
 }

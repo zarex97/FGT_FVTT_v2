@@ -1,0 +1,21 @@
+# Test Noble Phantasm for the cut bonus's and UseFailure's live presses (#299,
+# #300, plan Task 15, L2-7, L2-12 to L2-16, L2-22). Cooldown 2◈, which is 6.
+schema: 1
+id: test-use-np
+name: "Test Use: NP"
+isNP: true
+rank: "C"
+ignoresNPGate: true
+slug: testUseNp
+cooldown: "2◈"
+description: "TEST NOBLE PHANTASM. Hits a 3x3 area within 4 panels. Cooldown 2◈."
+targeting:
+  anchor: { kind: withinRange, range: 4, metric: chebyshev }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy, neutral], chooser: all, includeSelf: false }
+  isDamagingAoE: true
+damage:
+  component: str
+  multiplier: 1
+phases:
+  - kind: damage

@@ -308,7 +308,8 @@ export function canConsume(budget, unit, action) {
   if (prevention.prevented) {
     // Named as the player reads it: the bar printed "prevented by itemRite"
     // (#230, live). A suppression's scope has no effect of its name, and stays.
-    const by = EffectRegistry.get(prevention.by)?.name ?? prevention.by;
+    // A standing one in words too (`actionsEnded`, #300, live).
+    const by = preventerName(prevention.by, (id) => EffectRegistry.get(id)?.name);
     return { ok: false, reason: `prevented by ${by}`, pool: null, free: false };
   }
 
