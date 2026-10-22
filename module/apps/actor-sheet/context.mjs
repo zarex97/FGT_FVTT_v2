@@ -787,6 +787,7 @@ function effectsContext(actor, snapshot, tick) {
     snapshot.effectInstances ?? [],
     (id) => EffectRegistry.get(id),
     snapshot,
+    { tick, turnsPerRound: warRule("turnsPerRound") },
   );
 
   const decorate = (rows) => rows.map((row) => ({
