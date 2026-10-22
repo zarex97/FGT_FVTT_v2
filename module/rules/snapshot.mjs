@@ -30,7 +30,7 @@ import { buildAuraIndex } from "./aura-index.mjs";
 import { annotateTerrain } from "./terrain.mjs";
 import { annotateBonds } from "./bonds.mjs";
 import {
-  phase, phaseAt, darkModifiers, homeBaseModifiers, regionBonusFor, inOwnHomeBase,
+  roundPhase, phaseAt, darkModifiers, homeBaseModifiers, regionBonusFor, inOwnHomeBase,
 } from "./environment.mjs";
 import { annotateCompulsions } from "./compulsion.mjs";
 import { annotateControl } from "./control.mjs";
@@ -64,11 +64,11 @@ import { CONCEALMENT } from "./concealment.mjs";
  */
 export function snapshotUnit(actor, {
   token = null, panel = null, tick = null, turnsPerRound = 3, round = null, ownerUserId = null,
-  warRegion = null, terrain = [],
+  warRegion = null, terrain = [], roundPhase: warPhase = null,
 } = {}) {
   const sys = actor.system ?? {};
   const doc = token ?? actor.token ?? null;
-  const contributions = contributionsOf(actor, { terrain, tick });
+  const contributions = contributionsOf(actor, { terrain, tick, war: { region: warRegion ?? null, phase: warPhase ?? null } });
   const footprint = gridFootprint(doc, panel);
   const turnState = turnStateAt(sys.turnState, tick);
   const effectIds = activeEffectIds(actor);
@@ -94,6 +94,10 @@ export function snapshotUnit(actor, {
   // first and the halving takes the total. Both are idempotent, so the board
   // pass re-running them on a pre-projected unit changes nothing.
   return applyBaseAttackModifiers(applyRegionBonus({
+    // The War this Unit stands in, as `war:` options read it (#314): its Region,
+    // and the Round's phase (`roundPhase`), not this Unit's panel's.
+    // `annotateEnvironment` rewrites it from the board's own facts.
+    war: { region: warRegion ?? null, phase: warPhase ?? null },
     id: actor.id,
     uuid: actor.uuid,
     name: actor.name,
@@ -830,6 +834,9 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
     zones: settings.zones ?? {},
     alliances: settings.alliances ?? {},
     roundPhase: settings.phase ?? "day",
+    // The `dayNightCycle` War Rule and the Round's override, for `roundPhase` (#314).
+    dayNightCycleRule: settings.dayNightCycle ?? true,
+    phaseOverride: settings.phaseOverride ?? null,
     // Whose Turn it is, as a BOARD fact (#28). The scheduler has carried this
     // on its own context as `activeFactionId` since it was written, but the
     // board never had it -- so a rules-layer gate asking "is it this Unit's
@@ -1053,7 +1060,7 @@ function recollectForTerrain(units, actors, tick = null) {
     const actor = entry?.actor ?? entry ?? null;
     if (!actor?.items) continue;
 
-    const again = contributionsOf(actor, { terrain: u.terrain, tick, partnerDistance: u.partnerDistance ?? null });
+    const again = contributionsOf(actor, { terrain: u.terrain, tick, partnerDistance: u.partnerDistance ?? null, war: u.war ?? null });
     // The terrain pass has already pushed its own modifiers onto `u.modifiers`
     // (Waterside's element bonuses), so the re-collected list is merged rather
     // than assigned -- assigning would drop the ground the unit is standing on
@@ -1092,7 +1099,7 @@ function recollectForPartner(units, actors, tick = null) {
     const entry = actors.find((a) => (a.actor ?? a)?.id === u.id) ?? null;
     const actor = entry?.actor ?? entry ?? null;
     if (!actor?.items) continue;
-    u.eventHandlers = contributionsOf(actor, { tick, partnerDistance: u.partnerDistance }).eventHandlers;
+    u.eventHandlers = contributionsOf(actor, { tick, partnerDistance: u.partnerDistance, war: u.war ?? null }).eventHandlers;
   }
 }
 
@@ -1322,11 +1329,14 @@ function annotateEnvironment(units, board) {
   // `none` is the sheet's *"playing without Day-Night cycle"*: not a third
   // lighting condition but the absence of the axis, which is why it is
   // reported as-is rather than resolved to one of the two.
-  const opening = board.roundPhase ?? "day";
-  board.dayNightCycle = opening !== "none";
-  board.phase = board.dayNightCycle
-    ? phase(board.round ?? 1, board.startedAtDay ?? (opening === "day"))
-    : "none";
+  //
+  // Asked of `roundPhase`, the one deriver: it also knows the `dayNightCycle`
+  // War Rule and a `setRoundPhase` override for the Round in progress (#314).
+  board.phase = roundPhase({
+    round: board.round ?? 1, opening: board.roundPhase ?? "day",
+    cycle: board.dayNightCycleRule !== false, override: board.phaseOverride ?? null,
+  });
+  board.dayNightCycle = board.phase !== "none";
   for (const u of units) {
     // Recorded on the unit as well as folded into modifiers: Medea's Territory
     // Creation predicates on it, and a predicate cannot read a modifier list.
@@ -1344,6 +1354,7 @@ function annotateEnvironment(units, board) {
     // inside Quetzalcoatl's `Sol`, or inside Pyramid Drop's own daylight, is in
     // Day while the Round is Night.
     u.phase = board.dayNightCycle ? phaseAt(u.panel, board) : "none";
+    u.war = { region: board.warRegion ?? null, phase: board.phase };
     const mods = [...darkModifiers(u, u.phase), ...homeBaseModifiers(u, board)];
     if (mods.length > 0) u.modifiers = [...(u.modifiers ?? []), ...mods];
   }
@@ -1777,6 +1788,8 @@ export function abilityRecordOf(item, overrides = {}) {
     rules: item.system?.rules ?? [],
     passiveRules: item.system?.passiveRules ?? [],
     activeRules: item.system?.activeRules ?? [],
+    // The War it exists in (#314): `collectContributions` ANDs it into every rule.
+    availableWhen: [...(item.system?.availableWhen ?? [])],
     ...overrides,
   };
 }
@@ -1785,7 +1798,7 @@ export function abilityRecordOf(item, overrides = {}) {
  * @param {object} actor
  * @returns {object}
  */
-export function contributionsOf(actor, { terrain = [], tick = null, partnerDistance = null } = {}) {
+export function contributionsOf(actor, { terrain = [], tick = null, partnerDistance = null, war = null } = {}) {
   const sys = actor.system ?? {};
   const abilities = [...(actor.items ?? [])]
     .filter((item) => !negated(item, actor))
@@ -1933,6 +1946,12 @@ export function contributionsOf(actor, { terrain = [], tick = null, partnerDista
         EffectRegistry,
       ),
       region: [...(sys.region ?? [])],
+      // The War it stands in, so an ability's `availableWhen` and a `war:` clause
+      // answer at collection (#314). Absent, `war:` options are simply not there.
+      war,
+      // Its Classes, so `self:class:` and `self:classGroup:` answer from its own
+      // contributions as they do on the board (#286, #314).
+      servantClasses: [...(sys.servantClasses ?? [])],
       variant: sys.variant ?? null,
       // `self:free`, and the `self:rank:<parameter>:gte:<grade>` ladder. Both
       // emitters read a field this object did not carry, so both were
@@ -2221,6 +2240,8 @@ function collectAbilities(actor, { tick = null, turnsPerRound = 3 } = {}) {
       // "Eye of the Mind (only when Active/its buffs are in effect)" — the
       // effect ids whose presence makes the tag above count.
       categorizedWhile: [...(i.system?.categorizedWhile ?? [])],
+      // The War it exists in, asked by the use gate (`rules/costs.mjs`, #314).
+      availableWhen: [...(i.system?.availableWhen ?? [])],
       // What a cross-ability gate matches on. Scathach's Gate of Skye "cannot
       // be used if Primordial Rune, Wisdom of Dun Scaith and/or Gae Bolg
       // Alternative are on Cooldown", and a gate that can only see `id` cannot

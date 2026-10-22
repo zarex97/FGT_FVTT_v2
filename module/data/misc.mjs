@@ -172,6 +172,13 @@ export class MatchData extends foundry.abstract.TypeDataModel {
       // shape thaws on its next boundary: a number never equals a key.
       scheduleClaim: new fields.ObjectField({ required: false, initial: () => ({}) }),
       phase: new fields.StringField({ initial: "day", choices: ["day", "night", "none"] }),
+      // A `setRoundPhase` Phase's change to the Round in progress, and only that
+      // Round (Kuonji Alice, Tamamo Goth; #294). Written by `io.setRoundPhase`,
+      // read by `rules/environment.mjs#roundPhase` through the board.
+      phaseOverride: new fields.SchemaField({
+        phase: new fields.StringField({ required: false, nullable: true, initial: null, choices: ["day", "night"] }),
+        round: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+      }, { required: false, nullable: true, initial: null }),
 
       // Re-rolled EVERY round, not once at setup (Ch. 41 Q32). Two lists, not
       // one: `baseOrder` is what the dice said and `turnOrder` is what is

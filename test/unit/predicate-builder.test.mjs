@@ -36,7 +36,8 @@ describe("builderRows", () => {
 
   it("offers subjects and facets as objects too", () => {
     const [row] = builderRows(["self:phase:day"], "ownerOnly");
-    expect(row.subjectChoices).toEqual({ self: "self", target: "target" });
+    // `war` since #314: the Round's own phase is a facet subject too.
+    expect(row.subjectChoices).toEqual({ self: "self", target: "target", war: "war" });
     expect(row.facetChoices.stance).toBe("stance");
   });
 

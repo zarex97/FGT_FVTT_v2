@@ -655,7 +655,10 @@ export function abilitiesContext(actor, snapshot, turnsPerRound, boardNow = curr
     .filter((i) => i.type === "ability" || i.type === "noblePhantasm")
     .map((item) => abilityCard(item, {
       actor, unit, master, round, turnsPerRound, board: boardNow,
-    }));
+    }))
+    // An ability that does not exist in this War is not on the sheet: its other
+    // version is (Gawain's no-cycle form, #314).
+    .filter((c) => !c.hiddenInThisWar);
 
   // The order every reference sheet prints them in. An ability with no `kind`
   // falls in with the personal skills rather than vanishing -- content that
@@ -701,6 +704,7 @@ function abilityCard(item, { actor, unit, master, round, turnsPerRound, board })
 
   return {
     id: item.id,
+    hiddenInThisWar: verdict.reason === "notInThisWar",
     name: item.name,
     img: item.img,
     rank: item.system.rank ?? null,

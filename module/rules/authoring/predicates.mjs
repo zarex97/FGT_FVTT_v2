@@ -45,6 +45,8 @@ export const PREDICATE_FIELDS = Object.freeze([
   // other four bearers of the same skill either have it unconditionally or do
   // not have it (Ch. 46 §46.4-C).
   "floorPredicate",
+  // The War an ability exists in (#314).
+  "availableWhen",
 ]);
 
 /**

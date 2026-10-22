@@ -23,8 +23,8 @@ code: module/rules/authoring/ability.mjs, module/rules/ability-use.mjs
 - `variant by War Rule` (**Variant**, Saber 2026-10-21): *"If playing without Day or Night Rounds, the effect of
   this Skill is…"* (Gawain; also Mozart, Bunny Lion King, Melusine Ondine). A War's `phase` takes `none`, which turns the cycle
   off (`MatchData.phase`), but nothing writes it and no ability offers its alternative. Ruled 2026-10-22: in a War
-  without the cycle the alternative *is* the ability. Not run, #287 (corrected 2026-10-22).
-  keys: none (#287)
+  without the cycle the alternative *is* the ability. Run since #314: the `dayNightCycle` War Rule and `availableWhen` (corrected 2026-10-22).
+  keys: `field.availableWhen`, `option.war:phase`
 - `mode: extension` and `mode: endsAfter` (**Attribute**, Saber 2026-10-21): a mode the user may extend by paying,
   repeatedly, and one that ends after a count of events. Saitou Hajime's Chikai no Haori lasts 2◈, or until seven
   successful Attacks, and extends 1◈ for 100 Health. Shinpachi's counts five Crits. Medusa Chrysaor extends

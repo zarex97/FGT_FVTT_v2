@@ -129,6 +129,7 @@ export const ABILITY_ROUTES = {
   categorizedAs: same("categorizedAs"),
   categorizedAsNP: same("categorizedAsNP"),
   categorizedWhile: same("categorizedWhile"),
+  availableWhen: same("availableWhen"),
   category: same("category"),
   contentId: same("contentId"),
   copyable: same("copyable"),

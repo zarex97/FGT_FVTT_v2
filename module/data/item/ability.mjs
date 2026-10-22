@@ -534,6 +534,12 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // "Eye of the Mind (only when Active/its buffs are in effect)" — the
       // effect ids whose presence makes the tag above count.
       categorizedWhile: new fields.SetField(new fields.StringField({ blank: false })),
+      // The War this ability exists in, as a predicate on its bearer (#287, #314).
+      // Gawain: *"If playing without Day or Night Rounds, the effect of this Skill
+      // is (Active)…"*: two abilities, one `["war:phase:none"]`, the other
+      // `["not:war:phase:none"]`. Failing, the ability is hidden and refused, and
+      // a passive's rules do not apply.
+      availableWhen: new fields.ArrayField(new fields.StringField({ blank: false })),
 
       // A weak point the ATTACKER may aim at (Ch. 45). Achilles' Heel is
       // the only one; `rules/weak-point.mjs` holds the schema in prose.
@@ -677,6 +683,12 @@ export class NoblePhantasmData extends foundry.abstract.TypeDataModel {
       // "Eye of the Mind (only when Active/its buffs are in effect)" — the
       // effect ids whose presence makes the tag above count.
       categorizedWhile: new fields.SetField(new fields.StringField({ blank: false })),
+      // The War this ability exists in, as a predicate on its bearer (#287, #314).
+      // Gawain: *"If playing without Day or Night Rounds, the effect of this Skill
+      // is (Active)…"*: two abilities, one `["war:phase:none"]`, the other
+      // `["not:war:phase:none"]`. Failing, the ability is hidden and refused, and
+      // a passive's rules do not apply.
+      availableWhen: new fields.ArrayField(new fields.StringField({ blank: false })),
 
       // A weak point the ATTACKER may aim at (Ch. 45). Achilles' Heel is
       // the only one; `rules/weak-point.mjs` holds the schema in prose.
