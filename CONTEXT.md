@@ -277,7 +277,8 @@ A per-action declaration, free to make but constrained to a window. Distinct fro
 lifetime.
 
 **Cooldown**:
-The turns that must pass before an Ability may be used again.
+The turns that must pass before an Ability may be used again. It starts when the use is committed and
+is settled once the use is over, from what the use did.
 
 **Use record**:
 What one use of an Ability did: whether it failed, whom it hit, what it applied and inflicted, what it
