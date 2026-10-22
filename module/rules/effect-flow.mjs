@@ -9,6 +9,7 @@
  */
 
 import { test as testPredicate } from "./predicate.mjs";
+import { polarityOf } from "./effect-instance.mjs";
 
 /* -------------------------------------------------------------------------- */
 /*  Ch. 15 Riders                                                              */
@@ -106,7 +107,7 @@ export function transferableFrom(units, spec = {}) {
   for (const unit of units ?? []) {
     for (const instance of unit.effectInstances ?? []) {
       if (spec.defId && instance.defId !== spec.defId) continue;
-      if (spec.polarity && instance.polarity !== spec.polarity) continue;
+      if (spec.polarity && polarityOf(instance) !== spec.polarity) continue; // fgt-polarity-ok: the transfer's selector
       // Unremovable effects cannot be taken off their bearer, and a transfer
       // removes before it applies.
       if (instance.unremovable) continue;
@@ -139,7 +140,7 @@ export function visibilityOf(instance, bearer) {
 
   const viewers = [bearer?.ownerId ?? bearer?.id];
   // Telling the inflicter is not a leak: they are the ones who applied it.
-  if (instance.polarity === "debuff" && instance.sourceUnitId) viewers.push(instance.sourceUnitId);
+  if (polarityOf(instance) === "debuff" && instance.sourceUnitId) viewers.push(instance.sourceUnitId);
 
   return { visibleTo: viewers.filter(Boolean), gm: true };
 }
@@ -451,6 +452,14 @@ export const ENTRY_KEYS = Object.freeze({
   },
   restores: { type: "json", means: "Stats this application restores as it lands, as [{stat, delta}], capped at the maximum." },
   params: { type: "json", means: "Parameters the instance carries for its definition's readers, as EFFECT_PARAMS lists them." },
+  // This application's polarity, in place of the definition's: Prelati's
+  // Berserk (Folly) applied to allies by Blessing of Folly *"is treated as a buff
+  // instead of a debuff"* (#315, #303). Read by `engine/landing.mjs`.
+  polarity: {
+    type: "select",
+    choices: ["buff", "debuff", "status"],
+    means: "This application's polarity, in place of the definition's (Prelati's Blessing of Folly).",
+  },
   stacking: {
     type: "select",
     choices: ["noneNoRefresh", "noneRefresh", "noneExtend", "stage", "magnitudeStacks", "highestOnly", "count"],

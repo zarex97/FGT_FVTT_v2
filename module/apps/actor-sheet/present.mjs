@@ -15,6 +15,7 @@
 import { periodicDamageFor } from "../../engine/scheduler.mjs";
 import { currentHealth } from "../../domain/health.mjs";
 import { EffectRegistry } from "../../rules/registry.mjs";
+import { magnitudeOf, polarityOf } from "../../rules/effect-instance.mjs";
 
 /**
  * The five parameters, in the order every reference sheet prints them.
@@ -329,7 +330,7 @@ export function abilityCost(cost, master, unit = null) {
  * @param {object} unit the bearer's snapshot, for the periodic amplifiers
  * @returns {{buffs: object[], debuffs: object[], statuses: object[], unknown: object[]}}
  */
-export function groupEffects(instances, lookup, unit) {
+export function groupEffects(instances, lookup, unit, now = {}) {
   /** @type {{buffs: object[], debuffs: object[], statuses: object[], unknown: object[]}} */
   const out = { buffs: [], debuffs: [], statuses: [], unknown: [] };
 
@@ -337,13 +338,18 @@ export function groupEffects(instances, lookup, unit) {
     const def = lookup(instance.defId) ?? null;
     const row = {
       ...instance,
+      // What it stands at NOW, not what it landed with: Tomoe's Nightowl reads
+      // 75 a ◈ Turn on (`magnitudeOf`, #296). Found live, the sheet said 100.
+      magnitude: magnitudeOf(instance, def, now),
       name: def?.name ?? instance.defId,
       img: def?.img ?? null,
       // `polarity` is the buff/debuff/status axis Ch. 34 groups by. `valence`
       // is a DIFFERENT axis -- offensive/defensive/neutral -- and grouping on
       // it filed every debuff in the catalogue under Statuses, because no
       // effect in the pack has `valence: debuff` at all.
-      polarity: def?.polarity ?? null,
+      // What it LANDED as (`rules/effect-instance.mjs`, #315): Romulus's stacks
+      // are a buff on an ally's sheet and a debuff on an enemy's.
+      polarity: polarityOf(instance, def),
       valence: def?.valence ?? null,
       severity: def?.severity ?? null,
       // Nothing offers an [x] for an effect the rules say cannot be removed.
@@ -355,8 +361,8 @@ export function groupEffects(instances, lookup, unit) {
     };
 
     if (!def) out.unknown.push(row);
-    else if (def.polarity === "buff") out.buffs.push(row);
-    else if (def.polarity === "debuff") out.debuffs.push(row);
+    else if (row.polarity === "buff") out.buffs.push(row); // fgt-polarity-ok: the row's polarity, polarityOf's
+    else if (row.polarity === "debuff") out.debuffs.push(row); // fgt-polarity-ok: the row's polarity, polarityOf's
     else out.statuses.push(row);
   }
 

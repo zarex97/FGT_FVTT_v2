@@ -31,6 +31,7 @@
  * it is a bug, and persisting it would turn that bug into a counter that fires
  * on a later, unrelated turn.
  */
+import { polarityOf } from "../rules/effect-instance.mjs";
 
 /**
  * @typedef {object} Provocation
@@ -161,7 +162,7 @@ export function debuffsIn(intents) {
   const out = [];
   for (const intent of intents ?? []) {
     if (intent.t !== "applyEffect") continue;
-    if (intent.effect?.polarity !== "debuff") continue;
+    if (polarityOf(intent.effect) !== "debuff") continue;
     const sourceId = intent.effect?.sourceUnitId ?? intent.sourceId ?? null;
     if (!sourceId || sourceId === intent.unitId) continue;
     out.push({ unitId: intent.unitId, sourceId });

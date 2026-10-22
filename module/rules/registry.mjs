@@ -33,6 +33,11 @@ export const EffectRegistry = {
         name: doc.name,
         img: doc.img ?? null,
         polarity: sys.polarity,
+        // Read only by `rules/effect-instance.mjs` (#315).
+        polarityByRelation: sys.polarityByRelation ?? null,
+        decay: sys.decay ?? null,
+        pausedWhile: [...(sys.pausedWhile ?? [])],
+        boardUnique: sys.boardUnique ?? null,
         volatility: sys.volatility ?? "nonVolatile",
         valence: sys.valence ?? "neither",
         stacking: sys.stacking ?? "noneNoRefresh",

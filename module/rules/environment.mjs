@@ -15,6 +15,7 @@
 import { chebyshev } from "../domain/geometry.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { terrainAt } from "./terrain.mjs";
+import { polarityOf } from "./effect-instance.mjs";
 
 /* -------------------------------------------------------------------------- */
 /*  19.2 — the Day/Night cycle                                                */
@@ -327,7 +328,7 @@ export function endOfRoundHomeBase(units, board) {
     if ((residency.consecutiveRounds ?? 0) >= 3) {
       for (const e of u.effectInstances ?? []) {
         if (e.unremovable) continue;
-        if (e.polarity && e.polarity !== "debuff") continue;
+        if (polarityOf(e) && polarityOf(e) !== "debuff") continue;
         out.push({ kind: "removeEffect", unitId: u.id, effectId: e.id ?? e.defId, reason: "Home Base" });
       }
     }

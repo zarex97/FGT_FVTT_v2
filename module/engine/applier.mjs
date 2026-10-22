@@ -133,7 +133,7 @@ export async function applyIntents(intents, {
   if (plan.remote.length > 0) await io.proxy(plan.remote, { source });
   for (const p of plan.prompts) await io.prompt(p.userId, p.prompt);
 
-  said.push(...clockLines(clocks), ...statLines(stats), ...await spanLines(spans), ...itemLines(held), ...suppressionLines(lines ? plan.local : []),
+  said.push(...clockLines(clocks), ...statLines(stats), ...await spanLines(spans), ...itemLines(held), ...await decayLines(plan.local), ...suppressionLines(lines ? plan.local : []),
     ...await removalLines(lines ? plan.local : []));
   return { applied: plan.local.length, proxied: plan.remote.length, prompted: plan.prompts.length, lines: said };
 }
@@ -335,10 +335,33 @@ async function removalLines(written) {
   const removed = (written ?? []).filter((i) => i?.t === "removeEffect" && i.byRule);
   if (removed.length === 0) return [];
   const { EffectRegistry } = await import("../rules/registry.mjs");
+  // An instance named by its id carries its definition beside it (`defId`).
   return removed.map((i) => ({
     unitId: i.unitId,
-    summary: { id: i.effectId, name: EffectRegistry.get(i.effectId)?.name ?? i.effectId, outcome: "removed", reason: null, chance: null },
+    summary: { id: i.defId ?? i.effectId, name: EffectRegistry.get(i.defId ?? i.effectId)?.name ?? i.effectId, outcome: "removed", reason: null, chance: null },
   }));
+}
+
+/**
+ * A line for each Effect whose magnitude fell (`decay`, #296): Merlin's Crit
+ * DmUp (Illusion) on each successful Crit, Tomoe's Nightowl each ◈ Turn, and the
+ * one that falls to 0 and ends. Said whatever the batch's `lines`: a magnitude
+ * that changes is an outcome a player must know, at a boundary as on a card.
+ *
+ * @param {Intent[]} written
+ * @returns {Promise<CardLine[]>}
+ */
+async function decayLines(written) {
+  const fell = (written ?? []).filter((i) => i?.t === "decayEffect");
+  if (fell.length === 0) return [];
+  const { EffectRegistry } = await import("../rules/registry.mjs");
+  return fell.map((i) => {
+    const effect = EffectRegistry.get(i.defId)?.name ?? i.defId;
+    const name = i.magnitude > 0
+      ? game.i18n.format("FGT.Effect.Decayed", { effect, magnitude: i.magnitude })
+      : game.i18n.format("FGT.Effect.DecayedOut", { effect });
+    return { unitId: i.unitId, summary: { id: i.defId, name, outcome: "applied", reason: null, chance: null } };
+  });
 }
 
 /**
@@ -774,6 +797,8 @@ function entryOfIntent(effect) {
   if (effect.permanent) entry.permanent = true;
   if (effect.unremovable) entry.unremovable = true;
   if (effect.params) entry.params = effect.params;
+  // An authored polarity for this application (#315).
+  if (effect.polarity) entry.polarity = effect.polarity; // fgt-polarity-ok: an intent's authored polarity, handed to the landing
   // An `until <event>` duration only: it has no tick to ride beside in `expiry`,
   // so the flow has to be told (`endsOn`). A counted span stays the emitter's
   // `expiry`, which already stands -- handing the flow both would be two clocks.
@@ -969,6 +994,9 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
       break;
     case "extendEffect":
       for (const i of intents) await io.extendEffect(unitId, i.defId, i.turns, i.startAt ?? null);
+      break;
+    case "decayEffect":
+      for (const i of intents) if (i.steps > 0) await io.decayEffect(unitId, i.effectId, i.steps);
       break;
     case "recordUse":
       for (const i of intents) await io.recordUse(unitId, i.abilityId, i.contentId, i.count, Boolean(i.categoryExempt));

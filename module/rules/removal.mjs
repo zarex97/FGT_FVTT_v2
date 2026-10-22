@@ -91,7 +91,7 @@ export function removalPlan({ candidates, bearer, rolls = {}, ignoresProtection 
     if (candidate.unremovable) continue;
 
     // Debuffs are not protected. See the file header.
-    if (resist <= 0 || candidate.polarity !== "buff") {
+    if (resist <= 0 || candidate.polarity !== "buff") { // fgt-polarity-ok: a removal candidate, built with polarityOf
       removed.push(candidate.defId);
       continue;
     }
@@ -122,7 +122,7 @@ export function pendingRemovalRolls({ candidates, bearer, ignoresProtection = fa
   if (ignoresProtection || removalResistOf(bearer) <= 0) return [];
   return [...new Set(
     (candidates ?? [])
-      .filter((c) => !c.unremovable && c.polarity === "buff")
+      .filter((c) => !c.unremovable && c.polarity === "buff") // fgt-polarity-ok: a removal candidate, built with polarityOf
       .map((c) => c.defId),
   )];
 }

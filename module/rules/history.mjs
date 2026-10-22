@@ -94,6 +94,9 @@ export function snapshotUnit(unit, globalTurn) {
       uses: e.uses ?? 0,
       expiry: e.expiry ?? null,
       appliedTick: e.appliedTick ?? null,
+      // What it landed as, and how far it has decayed (#315).
+      polarity: e.polarity ?? null, // fgt-polarity-ok: records the polarity the instance landed with
+      decayCount: e.decayCount ?? 0,
       // WHOSE this is. Ch. 28's own RISK: *"What must not happen is the rewind
       // restoring an effect whose source has since been removed, producing an
       // orphaned instance."* The applier can only drop such an instance if the
