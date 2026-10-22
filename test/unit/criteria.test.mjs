@@ -142,6 +142,32 @@ describe("a Skill counts its criteria the same way", () => {
   });
 });
 
+describe("the preview counts the criteria of the set it shows (found live)", () => {
+  it("is the declaration's multiplier, not the one DU alone's", async () => {
+    const { files } = await loadSource("packs/_source");
+    const jeanne = files.find((f) => f.doc?.id === "test-jeanne-d-arc").doc;
+    const strike = files.find((f) => f.doc?.id === "danzo-funshindan").doc;
+    const { usableWhileConcealed: _u, concealmentBreakChance: _c, ...rest } = strike;
+    const proto = {
+      ...rest, id: "test-criteria-strike", slug: "testCriteriaStrike", name: "Test Criteria Strike", criteria: ARTHUR,
+      damage: { ...rest.damage, multiplier: { base: 3, per: 0.5, count: { of: "criteria" } } },
+    };
+    await withSubjects(subjects([{ with: { abilities: [...(jeanne.abilities ?? []), proto] } }]), async ({ world: w, unit, board }) => {
+      const { previewContext } = await import("../../module/engine/attack.mjs");
+      const ability = w.actor(CASTER).items.find((i) => i.system?.contentId === "test-criteria-strike");
+      const alone = previewContext({ caster: unit(CASTER), defender: unit(ALTER), ability, board, isNP: false });
+      // The Alter alone meets 5 (1, 2, 3, 5, 6): 3 + 2.5.
+      expect(alone.multiplier).toBe(5.5);
+      const both = previewContext({
+        caster: unit(CASTER), defender: unit(ALTER), ability, board, isNP: false,
+        targets: [unit(ALTER), unit(HERACLES)],
+      });
+      // With Heracles beside her the declaration meets 3 (1, 5, 6): 3 + 1.5.
+      expect(both.multiplier).toBe(4.5);
+    }, { tokens: true });
+  });
+});
+
 describe("the card's words", () => {
   it("name the ability, the count, the total and which", async () => {
     const { criteriaLine } = await import("../../module/engine/attack.mjs");

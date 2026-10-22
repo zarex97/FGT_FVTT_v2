@@ -7437,7 +7437,7 @@ export function instancesAgainst(ability, attacker, defender, declared, { fallba
   return expandInstances(repeat === null ? block : { ...block, repeat });
 }
 
-export function previewContext({ caster: given, defender, ability, board, isNP }) {
+export function previewContext({ caster: given, defender, ability, board, isNP, targets = null }) {
   const caster = (board?.units ?? []).find((u) => u.id === given?.id) ?? given;
   // The preview declares the attack the way a press does (`buildAttackSpec`)
   // and describes it through the Attack Description the resolution reads
@@ -7479,10 +7479,12 @@ export function previewContext({ caster: given, defender, ability, board, isNP }
     // stage 1 added nothing and the broadside previewed at 117 and dealt 1341
     // (#187).
     contentBaseAttack: contentBaseAttacks(),
-    // The criteria this one DU would meet (#283): the preview is a reader of the
-    // multiplier the resolution reads, over the target it is shown against.
+    // The criteria the declaration would meet (#283), over every DU the preview
+    // is drawing -- the set the resolution counts -- and the one shown when it
+    // is handed no set. Counted per row before, so two DUs previewed the x5 each
+    // would earn alone and resolved at x3.5 (found live).
     multiplier: multiplierOf(block, { use: { criteriaMet: criteriaMet(ability?.system?.criteria,
-      { targets: defender ? [defender] : [], self: caster, board }).met } }),
+      { targets: targets ?? (defender ? [defender] : []), self: caster, board }).met } }),
     flatBonus: block?.flatBonus ?? 0,
     conditionalMultipliers: block?.conditionalMultipliers ?? facts.conditionalMultipliers ?? [],
     crit: { isCrit: false, chanceUsed: 0 },
