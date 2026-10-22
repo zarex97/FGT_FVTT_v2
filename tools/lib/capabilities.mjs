@@ -25,6 +25,7 @@ import { FACETS, parseOption } from "../../module/rules/facets.mjs";
 import { ENTRY_KEYS } from "../../module/rules/effect-flow.mjs";
 import { AUTHORED_ACTOR_KEYS, AUTHORED_ITEM_KEYS } from "../../module/content/authored-fields.mjs";
 import { ACTION_KINDS } from "../../module/engine/scheduler.mjs";
+import { EffectRegistry } from "../../module/rules/registry.mjs";
 import { loadSource } from "./load.mjs";
 import { phaseEffects, ruleElements } from "./content.mjs";
 import { jaccard, loadCorpus, normalize } from "./kin.mjs";
@@ -107,8 +108,10 @@ function vocabulary(documents) {
   for (const [k, v] of Object.entries(ENTRY_KEYS)) put("entry", k, v?.means ?? "");
   for (const a of ACTION_KINDS) put("action", a);
   for (const k of AUTHORED_ACTOR_KEYS) put("actor", k);
-  // An Effect definition's own keys: the authored keys the effects pack actually uses.
-  const defKeys = new Set();
+  // An Effect definition's own keys: what the registry keeps of one, which is
+  // every key a definition may author, used or not (`decay` before any Servant
+  // authors it), plus the authored keys the effects pack uses.
+  const defKeys = new Set(registryKeys());
   for (const { doc } of effectDocs) for (const k of Object.keys(doc)) if (AUTHORED_ITEM_KEYS.includes(k)) defKeys.add(k);
   for (const k of defKeys) put("effectDef", k);
   for (const { doc } of effectDocs) if (doc.id) put("effect", doc.id, doc.name ?? "", [doc.polarity ?? ""].filter(Boolean));
@@ -117,6 +120,15 @@ function vocabulary(documents) {
     if (dir === "command-spells" && doc.id) put("commandSpell", doc.id, doc.name ?? "");
   }
   return out;
+}
+
+/** The keys the effect registry keeps of a definition, read off a probe. */
+function registryKeys() {
+  const before = EffectRegistry.all().map((d) => ({ name: d.name, img: d.img, system: { ...d, contentId: d.id } }));
+  EffectRegistry.load([{ name: "probe", system: { contentId: "__capabilityProbe", polarity: "buff" } }]);
+  const keys = Object.keys(EffectRegistry.get("__capabilityProbe") ?? {}).filter((k) => !["id", "name", "img"].includes(k));
+  EffectRegistry.load(before);
+  return keys;
 }
 
 /* ── Who authors what ───────────────────────────────────────────────────── */

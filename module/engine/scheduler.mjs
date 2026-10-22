@@ -37,6 +37,8 @@ import { resourcePathFor, resourceValue } from "../domain/resources.mjs";
 import { deathRollOutcome } from "../rules/nameless-forest.mjs";
 import { runScript } from "./scripts.mjs";
 import { removalPlan } from "../rules/removal.mjs";
+import { advance, magnitudeOf, polarityOf } from "../rules/effect-instance.mjs";
+import { EffectRegistry } from "../rules/registry.mjs";
 
 /**
  * @typedef {object} SchedulerContext
@@ -122,8 +124,15 @@ export function endTurn(board, ctx) {
   // is a no-op everywhere the widening does not apply.
   intents.push(...tickPeriodics(units.filter((u) => u.acted), "actedTurnEnd", ctx));
 
+  // 5b. A standing Effect's time and magnitude (`rules/effect-instance.mjs`,
+  //     #305, #296): a paused duration is pushed one Tick on, and a magnitude
+  //     that falls by the ◈ Turn says its new step. Before expiry, so a paused
+  //     Effect is not taken off on the Turn it would have ended.
+  const standing = advanceEffects(units, ctx);
+  intents.push(...standing.intents);
+
   // 6. Expiry — after the final tick, so an effect ending now still ticks.
-  intents.push(...expireEffects(units, ctx));
+  intents.push(...expireEffects(units, ctx, "expired", standing.paused));
 
   // 7. Terrain's own boundary clauses -- Burning's inescapable Burn, Poison
   //    Swamp's stage roll. After the periodics above, because a terrain that
@@ -1377,7 +1386,7 @@ const ACTIONS = Object.freeze({
   StripBuff: (a, u, h, c) => {
     if (c.strip) c.strip.tried = true;
     const candidates = (u.effectInstances ?? [])
-      .filter((e) => e.polarity === "buff" && !e.unremovable && !e.suppressed)
+      .filter((e) => polarityOf(e) === "buff" && !e.unremovable && !e.suppressed)
       .map((e) => ({ defId: e.defId, polarity: "buff", unremovable: false, documentId: e.id }));
     if (candidates.length === 0) return [];
     const take = candidates.slice(-(a.count ?? 1));
@@ -1539,6 +1548,23 @@ const ACTIONS = Object.freeze({
   Message: (a, u, h) => [I.log({ kind: "message", text: a.text, unitId: u.id, source: h.source })],
 
   /**
+   * A standing Effect's magnitude falls by one count of its `decay` event:
+   * Merlin's Crit DmUp (Illusion), *"loses 5% per successful Crit"* (#296).
+   * The handler is the Effect's own (`snapshot.mjs#contributionsOf` makes it
+   * from `decay`), so `h.defId` is the instance. At 0 the Effect ends.
+   */
+  DecayEffect: (a, u, h, c) => {
+    const inst = (u.effectInstances ?? []).find((e) => e.id === h.defId) ?? null;
+    if (!inst) return [];
+    const def = (c.effectDef ?? ((id) => EffectRegistry.get(id)))(inst.defId);
+    const next = magnitudeOf({ ...inst, decayCount: (inst.decayCount ?? 0) + 1 }, def,
+      { tick: c.tick ?? null, turnsPerRound: c.turnsPerRound ?? 3 });
+    const out = [I.decayEffect(u.id, inst.id, 1, next, inst.defId)];
+    if (next <= 0) out.push({ ...I.removeEffect(u.id, inst.id, "decayed"), defId: inst.defId });
+    return out;
+  },
+
+  /**
    * Move effects from other units onto this one, keeping their durations.
    *
    * Van Gogh's *Shadow of Longing* is the reference case, and it transfers
@@ -1550,7 +1576,7 @@ const ACTIONS = Object.freeze({
       other.id !== u.id
       && chebyshevish(other.panel, u.panel) <= (a.radius ?? 0));
 
-    return transferableFrom(from, { defId: a.effect ?? null, polarity: a.polarity ?? null })
+    return transferableFrom(from, { defId: a.effect ?? null, polarity: a.polarity ?? null }) // fgt-polarity-ok: the action's selector
       .flatMap(({ unit: source, instance }) => transferEffect(instance, source, u))
       .map((d) => (d.kind === "removeEffect"
         ? I.removeEffect(d.unitId, d.effectId, d.reason)
@@ -2316,7 +2342,7 @@ const AMPLIFIERS = Object.freeze({
  * @param {object} unit the unit taking it
  * @returns {number}
  */
-function amplify(amount, defId, unit, effectDef = null) {
+function amplify(amount, defId, unit, effectDef = null, instance = null) {
   let out = amount;
   for (const held of unit?.effects ?? []) {
     const amp = AMPLIFIERS[held];
@@ -2340,8 +2366,8 @@ function amplify(amount, defId, unit, effectDef = null) {
     // which only widens a weakness the Unit independently carries ("has to be
     // an effect the Unit ALREADY has"). Innocent World states no such
     // condition -- it amplifies the damage as such.
-    if (amp.polarity) {
-      if (effectDef?.(defId)?.polarity === amp.polarity) out *= amp.factor;
+    if (amp.polarity) { // fgt-polarity-ok: the amplifier's selector
+      if (polarityOf(instance, effectDef?.(defId)) === amp.polarity) out *= amp.factor; // fgt-polarity-ok: the amplifier's selector
       continue;
     }
     if (amp.effectId !== defId) continue;
@@ -2410,7 +2436,7 @@ export function regionScale(amount, scaledRegion, warRegion) {
 export function periodicDamageFor(instance, unit, effectDef = null) {
   const spec = periodicOf(effectDef?.(instance?.defId));
   if (!spec) return null;
-  return amplify(spec.amount(instance), instance.defId, unit, effectDef);
+  return amplify(spec.amount(instance), instance.defId, unit, effectDef, instance);
 }
 
 
@@ -2427,12 +2453,14 @@ export function periodicDamageFor(instance, unit, effectDef = null) {
  * @param {string} [reason]
  * @returns {Intent[]}
  */
-export function expireEffects(units, ctx, reason = "expired") {
+export function expireEffects(units, ctx, reason = "expired", paused = new Set()) {
   /** @type {Intent[]} */
   const out = [];
   for (const u of units) {
     for (const e of u.effectInstances ?? []) {
       if (!expiryReached(e.expiry, ctx.tick)) continue;
+      // Paused this Turn: its expiry moves on a Tick instead (#305).
+      if (paused.has(e.id)) continue;
 
       // Appendix A's "on removal" clauses, run BEFORE the removal so they see
       // the effect that is going away. Shock is the case: *"on removal,
@@ -2450,6 +2478,49 @@ export function expireEffects(units, ctx, reason = "expired") {
     }
   }
   return out;
+}
+
+/**
+ * Each standing Effect's time and magnitude at a Turn's end, asked of the one
+ * reader (`rules/effect-instance.mjs`).
+ *
+ * - **Paused** (#305): `advance` answers `{extend: 1}` for a definition whose
+ *   `pausedWhile` holds against its bearer's own options (`war:phase` among
+ *   them: Santa Suzuka's Seiya buffs *"do not lose duration during a Night
+ *   Round"*), or for a bearer inside an area that pauses every duration
+ *   (`Suppress scope: durations`, Bug Space). The expiry moves a Tick on, by the
+ *   instance's own id, and `expireEffects` skips it this Turn.
+ * - **Falling by the Turn** (#296): a `decay: {on: turn}` Effect whose step is
+ *   about to change says its new magnitude. Nothing is written: `magnitudeOf`
+ *   computes it from the Tick it landed on.
+ *
+ * @param {object[]} units
+ * @param {object} ctx
+ * @returns {{intents: Intent[], paused: Set<string>}}
+ */
+export function advanceEffects(units, ctx) {
+  /** @type {Intent[]} */
+  const intents = [];
+  const paused = new Set();
+  const defOf = ctx.effectDef ?? ((id) => EffectRegistry.get(id));
+  for (const u of units) {
+    const options = new Set(ownerOptionsOf(u));
+    const area = (u.suppressions ?? []).some((s) => s.scope === "durations");
+    for (const e of u.effectInstances ?? []) {
+      const def = defOf(e.defId);
+      if (advance(e, def, { options, paused: area }).extend) {
+        paused.add(e.id);
+        intents.push(I.extendEffect(u.id, e.id, 1, "paused"));
+      }
+      if (def?.decay?.on === "turn") {
+        const now = { turnsPerRound: ctx.turnsPerRound ?? 3 };
+        const before = magnitudeOf(e, def, { ...now, tick: ctx.tick });
+        const after = magnitudeOf(e, def, { ...now, tick: (ctx.tick ?? 0) + 1 });
+        if (after !== before) intents.push(I.decayEffect(u.id, e.id, 0, after, e.defId));
+      }
+    }
+  }
+  return { intents, paused };
 }
 
 /**

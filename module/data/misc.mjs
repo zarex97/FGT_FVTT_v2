@@ -81,6 +81,13 @@ export class EffectData extends foundry.data.ActiveEffectTypeDataModel {
       npMagnitude: new fields.NumberField({ required: false, nullable: true, initial: null }),
       stage: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
       uses: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
+      // The polarity it LANDED with, decided once (`rules/effect-instance.mjs`,
+      // #315): Romulus's stacks are a buff on an ally and a debuff on an enemy.
+      // `null` on an instance written before 2026-10-22: its definition's.
+      polarity: new fields.StringField({ required: false, nullable: true, initial: null, choices: ["buff", "debuff", "status"] }),
+      // How many times its definition's `decay` event has been counted: Merlin's
+      // Crit DmUp (Illusion) loses 5% per successful Crit (#296).
+      decayCount: new fields.NumberField({ required: false, integer: true, initial: 0, min: 0 }),
       // What THIS instance's definition reads off it, beyond a magnitude: a
       // Presence Concealment granted by Dongyū carries its own Rank and Evade
       // (`{rank: "C+", evade: 2}`), because the Unit it lands on has no Skill to

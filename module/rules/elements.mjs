@@ -1227,7 +1227,7 @@ export const EXECUTORS = Object.freeze({
       // A whole POLARITY rather than one named effect. Innocent World's MAG
       // clause is *"Total Debuff Damage taken is increased by 50%"* -- every
       // debuff at once, which no list of ids could keep up with.
-      polarity: el.polarity ?? null,
+      polarity: el.polarity ?? null, // fgt-polarity-ok: an element's own field
       factor: el.factor ?? 2,
       // Only on a Unit already weak to the effect: Sikera Ušum clause e's
       // *"Units ... who are weak to Poison"*. Its own condition, stated where it
@@ -1998,7 +1998,7 @@ export const EXECUTORS = Object.freeze({
       alsoReaches: el.alsoReaches ?? null,
       // A buff's aura is a buff its recipient receives: No Buff and a buff
       // Immunity refuse it there, and not on the holder (#132).
-      ...(ability?.fromEffect && ability.polarity === "buff" ? { buff: true } : {}),
+      ...(ability?.fromEffect && ability.polarity === "buff" ? { buff: true } : {}), // fgt-polarity-ok: the pseudo-ability's polarity, polarityOf's (snapshot.mjs)
       // One cast, several holders: Scapegoat puts S.Crit Up on Kiritsugu AND
       // his target, and a Unit near both is reached once (#132).
       ...(ability?.fromEffect && ability.sourceUnitId
@@ -2249,7 +2249,7 @@ export const EXECUTORS = Object.freeze({
       // Ozymandias's Protection from Ra: *"chance of applying buffs is
       // increased by 40%"*. Named rather than defaulted so an unqualified
       // Debuff ChUp cannot start improving its bearer's own self-buffs.
-      polarity: el.polarity ?? null,
+      polarity: el.polarity ?? null, // fgt-polarity-ok: an element's own field
       valence: el.valence ?? null,
       // Appendix A's own classification, so "Mental Debuffs" covers one written
       // after the clause was. Heracles's Bravery is the only content that needs

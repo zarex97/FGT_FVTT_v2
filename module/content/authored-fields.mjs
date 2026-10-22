@@ -107,6 +107,8 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "onApply",
   // ...or on every landing, a refresh included (#247 D3).
   "onApplyEachLanding",
+  // A standing Effect's answers, read by `rules/effect-instance.mjs` (#315).
+  "polarityByRelation", "decay", "pausedWhile", "boardUnique",
 ]);
 
 /**

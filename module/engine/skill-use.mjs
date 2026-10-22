@@ -37,6 +37,7 @@ import { landEntry } from "./landing.mjs";
 import { summonPhase } from "./summoning.mjs";
 import { cooldownFor, alsoTriggered, sharedAcrossGroup, sharedCooldownIntents } from "./cooldown.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
+import { polarityOf } from "../rules/effect-instance.mjs";
 import { currentBoard, currentMoment, unitFrom, unitOf, turnRecordOf, unitActor } from "./board.mjs";
 import { resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
@@ -2156,7 +2157,7 @@ function removalCandidates(phase, doc) {
       const def = EffectRegistry.get(e.system?.defId);
       return {
         defId: e.system.defId,
-        polarity: def?.polarity,
+        polarity: polarityOf(e.system, def),
         unremovable: isUnremovable(def, e),
       };
     });
@@ -2173,7 +2174,7 @@ function removals(phase, doc) {
     .filter((e) => {
       const def = EffectRegistry.get(e.system?.defId);
       if (!def) return false;
-      if (selector.polarity && def.polarity !== selector.polarity) return false;
+      if (selector.polarity && polarityOf(e.system, def) !== selector.polarity) return false; // fgt-polarity-ok: the phase's selector
       // An unremovable effect stays: Appendix A marks a few that no cleanse
       // reaches, and a blanket "remove all debuffs" must not be the exception.
       // The INSTANCE may say so too (`isUnremovable`, #198).

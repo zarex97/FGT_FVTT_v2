@@ -34,6 +34,8 @@ import { identityOfProcess, recordedAttack } from "../rules/revival.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { applyEffect, inflictBonusOf, mergeEmitted } from "./effect-applier.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
+import { admit, landedDefinition } from "../rules/effect-instance.mjs";
+import { relationOf } from "../rules/relations.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import { applicationsOf, chanceOf, effectGatePasses, timesOf } from "../rules/effect-flow.mjs";
@@ -46,6 +48,7 @@ import { luckChecksBlocked } from "../rules/bounded-fields.mjs";
 import { chebyshevFromAny } from "../domain/geometry.mjs";
 import { currentBoard, currentTick, unitFrom, unitActor } from "./board.mjs";
 import { askOwner } from "./ask.mjs";
+import { publicIdentityOf } from "./public-identity.mjs";
 import { dispatch } from "./scheduler.mjs";
 import * as I from "./intents.mjs";
 import { warRule } from "./war.mjs";
@@ -91,12 +94,21 @@ import { warRule } from "./war.mjs";
  * @returns {Promise<LandingResult>}
  */
 export async function landEffect(entry, ctx) {
-  const def = EffectRegistry.get(entry?.id);
-  if (!def) return unknownEffect(entry, ctx);
+  const authoredDef = EffectRegistry.get(entry?.id);
+  if (!authoredDef) return unknownEffect(entry, ctx);
 
   const board = ctx.board ?? currentBoard();
   const target = ctx.target;
   const caster = casterUnitOf(ctx, board);
+  // The polarity this Effect lands with, decided once, here (#315, #303): the
+  // entry's own (Prelati's Blessing of Folly), or its definition's by the
+  // bearer's side to the source (Romulus's Roma Stacks). Every gate below
+  // (immunity, resistance, the ward, the Prevention Luck Check) and the
+  // instance it writes see this landed definition.
+  const def = landedDefinition(authoredDef, {
+    relation: caster && target ? relationOf(caster, target, board) : null,
+    entryPolarity: entry.polarity ?? null, // fgt-polarity-ok: the entry's authored polarity, for landedDefinition
+  });
   const options = optionsFor(caster, target, ctx);
   const tick = currentTick();
   const turnsPerRound = warRule("turnsPerRound");
@@ -215,6 +227,21 @@ export async function landEffect(entry, ctx) {
   if (ctx.emitted) intents = intents.map((i) => mergeEmitted(i, ctx.emitted, { tick }));
 
   if (outcome === "applied") intents.push(...landedIntents(def, target, result, board, tick, turnsPerRound));
+  // One instance per group on the War's board (#304): Nezha's Stun (Sash), and
+  // Passionlip's Prince or Princess. The new one replaces the old, and the card
+  // says whose came off.
+  if (outcome === "applied") {
+    const removed = admit(def, { target, board, defOf: (id) => EffectRegistry.get(id) });
+    for (const r of removed) intents.unshift({ ...I.removeEffect(r.unitId, r.instanceId, "boardUnique"), byRule: true });
+    if (removed.length) {
+      const names = removed.map((r) => {
+        const doc = unitActor(r.unitId);
+        const who = doc ? publicIdentityOf(doc, board).name : r.unitId;
+        return `${EffectRegistry.get(r.defId)?.name ?? r.defId} (${who})`;
+      });
+      line = [line, game.i18n.format("FGT.Effect.BoardUniqueReplaced", { removed: names.join(", ") })].filter(Boolean).join("; ");
+    }
+  }
   // What this application restores as it lands, beside the effect. Expert of
   // Many Specializations: *"a 70% chance of restoring 3 Agility ... If
   // successful, also apply AGL Up"* -- one die, and the restore is the
@@ -546,7 +573,7 @@ function landedIntents(def, target, result, board, tick, turnsPerRound) {
  * @returns {Promise<{negated: boolean, spend: object[], line: string}|null>}
  */
 async function offerWard(def, target) {
-  if (def.polarity !== "debuff") return null;
+  if (def.polarity !== "debuff") return null; // fgt-polarity-ok: the landed definition, landedDefinition's
   const ward = (target.effectInstances ?? []).find((i) => i.defId === "debuffWard" && (i.uses ?? 0) > 0);
   if (!ward) return null;
   const doc = unitActor(target.id);
@@ -586,7 +613,7 @@ async function offerWard(def, target) {
  */
 async function offerPrevention(def, target, ctx, board) {
   const state = ctx.process ?? null;
-  if (!state || def.polarity !== "debuff") return null;
+  if (!state || def.polarity !== "debuff") return null; // fgt-polarity-ok: the landed definition, landedDefinition's
   if (def.terminal || def.volatility === "terminal") return null;
   if (state.prevented?.[target.id]) return null;
   if (!luckChecksApply(board?.difficulty)) return null;

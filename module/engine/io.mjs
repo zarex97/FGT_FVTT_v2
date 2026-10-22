@@ -443,6 +443,9 @@ export function worldIO() {
           stage: e.stage ?? 0,
           uses: e.uses ?? 0, expiry: e.expiry ?? null,
           appliedTick: e.appliedTick ?? null,
+          // The polarity it landed with, and its decay so far (#315).
+          polarity: e.polarity ?? null, // fgt-polarity-ok: writes the polarity the landing decided
+          decayCount: e.decayCount ?? 0,
           sourceUnitId: e.sourceUnitId ?? null, sourceAbilityId: e.sourceAbilityId ?? null,
           // The field this instance dies with. Declared, projected, applied --
           // and this writer is the one place it could still have been dropped,
@@ -610,7 +613,9 @@ export function worldIO() {
       const actor = resolve(unitId);
       if (!actor) return;
 
-      const effect = actor.effects.find((e) => e.system?.defId === defId);
+      // An instance by its own id first: two instances of one definition pause
+      // apart (`pausedWhile`, #305). A definition id names the first, as before.
+      const effect = actor.effects.get?.(defId) ?? actor.effects.find((e) => e.system?.defId === defId);
       const expiry = effect?.system?.expiry ?? startAt;
       if (!effect || expiry === null || expiry === undefined) return;
 
@@ -1500,6 +1505,19 @@ export function worldIO() {
      *
      * @param {{i: number, j: number}|null} panel
      */
+    /**
+     * Count a standing Effect's decay event (#296). Its magnitude is computed,
+     * never written: `rules/effect-instance.mjs#magnitudeOf`.
+     *
+     * @param {string} unitId @param {string} effectId the instance's id @param {number} steps
+     */
+    async decayEffect(unitId, effectId, steps) {
+      const actor = resolve(unitId);
+      const effect = actor?.effects.get?.(effectId) ?? actor?.effects.find((e) => e.system?.defId === effectId);
+      if (!effect) return;
+      await effect.update({ "system.decayCount": (effect.system?.decayCount ?? 0) + steps });
+    },
+
     async setGrailPosition(panel) {
       await currentWar()?.update({ "system.grailPosition": panel });
     },

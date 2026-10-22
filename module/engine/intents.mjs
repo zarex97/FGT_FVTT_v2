@@ -25,6 +25,9 @@ export const INTENT_TYPES = Object.freeze([
   "setFacing", "defeat", "dismissSummon", "durationDelta", "suppressRule", "rewind", "markGlassGameSpent", "resource", "cooldown", "spendCS", "markTurn", "markRoundState", "prompt", "log",
   "itemQuantity", "itemGrant", "markContract", "grantCommandSpells", "consumeUse",
   "setMode", "setStance", "recordUse", "extendEffect", "shieldDelta", "recordAttack",
+  // A standing Effect's magnitude falling (`decay`, #296): its count, and the
+  // line the card prints.
+  "decayEffect",
   // `setStage` decrements a staged effect without deleting it, and `event`
   // raises a write-time event so a listener can react to what just happened.
   // Both are Van Gogh's -- her Curse is the first effect anything reads the
@@ -116,6 +119,8 @@ const ORDER = Object.freeze({
   // Beside application: extending an effect is a write to an instance that
   // already exists, and it must not run before one applied in the same batch.
   extendEffect: 5,
+  // Beside extension, for the same reason: a write to an instance that exists.
+  decayEffect: 5,
   move: 6,
   setFacing: 7,
   spendCS: 8,
@@ -220,6 +225,21 @@ export const removeEffect = (unitId, effectId, reason) =>
  */
 export const extendEffect = (unitId, defId, turns, source = null, startAt = null) =>
   ({ t: "extendEffect", unitId, defId, turns, source, ...(startAt === null ? {} : { startAt }) });
+
+/**
+ * A standing Effect's magnitude falling (#296): `steps` more of its `decay`
+ * event counted, and the magnitude it now stands at, for the card. A Turn's
+ * step (`decay: {on: turn}`) counts nothing and only says the new magnitude.
+ *
+ * @param {string} unitId
+ * @param {string} effectId the instance's id
+ * @param {number} steps
+ * @param {number} magnitude what it stands at after
+ * @param {string} defId its definition, for the line
+ * @returns {Intent}
+ */
+export const decayEffect = (unitId, effectId, steps, magnitude, defId) =>
+  ({ t: "decayEffect", unitId, effectId, steps, magnitude, defId });
 
 export const move = (unitId, path, forced = false) =>
   ({ t: "move", unitId, path, forced });
@@ -759,6 +779,7 @@ const NUMERIC_FIELDS = Object.freeze({
   grantCommandSpells: ["count"],
   consumeUse: ["count"],
   scheduleDelta: ["delta"],
+  decayEffect: ["steps"],
 });
 
 /**
