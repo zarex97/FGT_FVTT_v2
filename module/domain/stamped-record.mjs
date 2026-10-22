@@ -151,6 +151,11 @@ export const TURN_RECORD = stampedRecord({
     categoryExempt: [],
     namelessForestAttempts: 0,
     mounted: false,
+    // Abilities whose use failed this Turn and may not be tried again
+    // (`UseFailure then: lockThisTurn`, Charlotte Corday, #300).
+    failedAbilities: [],
+    // A failed use ended every action this Turn (`then: endActions`, Merlin).
+    actionsEnded: false,
   },
 });
 

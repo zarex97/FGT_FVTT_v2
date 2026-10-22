@@ -300,6 +300,12 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "extra", type: "number" },
     { key: "on", type: "select", choices: ["any", "natural"] },
   ]),
+  entry("UseFailure", "A use of the named abilities may fail outright: paid for, no clock, and what follows.", [
+    { key: "of", type: "tokenList" },
+    { key: "chance", type: "number" },
+    { key: "chanceWhen", type: "raw" },
+    { key: "then", type: "select", choices: ["lockThisTurn", "endActions"] },
+  ]),
   entry("TerrainPenaltyImmunity", "This Unit takes none of a terrain's penalties, and keeps its benefits.", [
     { key: "terrain", type: "text" },
   ]),

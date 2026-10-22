@@ -71,6 +71,8 @@ A linked pair counts as one unit for move slots, each member spending 0.5 halves
 
 Held effects in PREVENT_ALL block every action (`module/rules/budget.mjs:34-36`): stun, stop, freeze, petrify, sleep, nightmare, coma, webbed, crystalfreeze. The PREVENTS table lists action kinds each remaining effect blocks — immobilize prevents move; disable prevents everything but move; seal prevents attack/skill/np; silence prevents spell; skillSeal prevents skill and spell; npSeal prevents np only (`module/rules/budget.mjs:39-52`). Suppressions (like NP Seal from Innocent World) are checked alongside held effects (`module/rules/budget.mjs:204-207`).
 
+**A failed use may end every action** (#300). Merlin's `UseFailure then: endActions` writes `turnState.actionsEnded`, and `preventedBy` answers `{prevented: true, by: "actionsEnded"}` for every action, so Move, Attack and every use are refused for the rest of the Turn, and `actions.mjs#acts` offers none on the bar. It is stamped by the Turn like the rest of the record, so the next Turn is clear. Charlotte's `then: lockThisTurn` writes the ability into `turnState.failedAbilities`, and the use gate refuses it `failedThisTurn`. A player reads the source through `budget.mjs#preventerName`.
+
 `preventedBy` is consulted first, before budget is spent, because a prevented action costs nothing (`module/rules/budget.mjs:221-223`).
 
 ### Compulsion: effects that force action

@@ -568,6 +568,11 @@ export function canUseAbility({
   // Skill path, which is where it used to live -- so Medea's Keraino/Trofa pair
   // was enforced and EMIYA's Caladbolg/Hrunting pair, both Noble Phantasms,
   // would not have been.
+  // A use that failed this Turn and locks itself until the next (#300).
+  if ((unit?.turnState?.failedAbilities ?? []).some((id) => id === ability?.id || id === ability?.contentId)) {
+    return { ok: false, reason: "failedThisTurn", cost };
+  }
+
   const turnPartner = firstUsed(ability?.sameTurnExclusive, usedThisTurn(unit));
   if (turnPartner) return { ok: false, reason: "sameTurnExclusive", detail: { partner: turnPartner }, cost };
 

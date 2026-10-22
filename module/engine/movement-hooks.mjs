@@ -20,7 +20,7 @@ import {
   gateMovement, pursuitVerdict, decoyVerdict, hatredVerdict,
 } from "../rules/movement.mjs";
 import { carryMasterAlong } from "./passenger-seat.mjs";
-import { preventedBy } from "../rules/budget.mjs";
+import { preventedBy, preventerName } from "../rules/budget.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
 import { unitSnapshot, unitOf, currentBoard, unitActor } from "./board.mjs";
 import * as budget from "./budget.mjs";
@@ -192,7 +192,7 @@ function onPreMove(document, movement, operation) {
   if (stopped.prevented) {
     ui.notifications.warn(game.i18n.format("FGT.Movement.Prevented", {
       // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
-      name: actor.name, effect: EffectRegistry.get(stopped.by)?.name ?? stopped.by,
+      name: actor.name, effect: preventerName(stopped.by, (id) => EffectRegistry.get(id)?.name),
     }));
     return false;
   }

@@ -552,6 +552,13 @@ export function turnStateField() {
     // Without it the free Penetration refused the Reinforcement after it
     // (#243, live). Written by `io.recordUse`, read by `costs.mjs`.
     categoryExempt: new fields.ArrayField(new fields.StringField({ blank: false })),
+    // A use that failed and may not be tried again this Turn (Charlotte
+    // Corday's `UseFailure then: lockThisTurn`, #300). Read by `costs.mjs`.
+    failedAbilities: new fields.ArrayField(new fields.StringField({ blank: false })),
+    // A failed use ended every action this Turn (Merlin's `then: endActions`,
+    // #300). Read by `budget.mjs#preventedBy`, so Move, Attack and every use
+    // are refused, and by `actions.mjs#acts`, so the bar offers none.
+    actionsEnded: new fields.BooleanField({ initial: false }),
     // *"Once per Turn during its own Turn it may attempt a Luck Check."*
     // Nursery Rhyme's Nameless Forest, and the reason this is a COUNT rather
     // than a flag is only symmetry with `itemTransfers` -- one is the limit.

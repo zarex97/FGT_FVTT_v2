@@ -37,6 +37,7 @@ import { ABILITY_KINDS } from "../../module/rules/authoring/ability.mjs";
 import { ENTRY_KEYS, EFFECT_PARAMS } from "../../module/rules/effect-flow.mjs";
 import { countSpecsIn, countProblems } from "../../module/rules/count.mjs";
 import { CUT_KINDS } from "../../module/rules/elements.mjs";
+import { FAILURE_THEN, FAILURE_CLASSES } from "../../module/rules/use-failure.mjs";
 
 /** The schema version every source file must declare. */
 export const SCHEMA_VERSION = 1;
@@ -62,7 +63,7 @@ export const RULE_ELEMENT_KEYS = new Set([
   "DamageModifier", "FlatDamage", "DamageNegation", "Resistance", "Ward", "AlignmentOverride",
   // Proto Gil (#232): Heal Dwn and Drowning's healing received; Bab-ilu's
   // additional Normal Attack.
-  "HealingReceived", "FollowUpAttack", "CooldownCutBonus",
+  "HealingReceived", "FollowUpAttack", "CooldownCutBonus", "UseFailure",
   "CritModifier", "BlockModifier", "AttackerPropertyTier",
   // Kiritsugu -- a property of the ATTACK granted by a buff on the attacker.
   // Until now `attack.pierce` could only come from an ability's own damage
@@ -1239,6 +1240,35 @@ function baseAttackAgreesWithTable(doc, path, warnings) {
  * @param {string} path
  * @param {string[]} problems
  */
+/**
+ * A `UseFailure` (#300) names what it fails and what follows, in closed words:
+ * an `of` that is no class and no ability would match no use, and a `then`
+ * the use paths do not know would fail the use and do nothing after.
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {Map<string, object>} library every document, by id
+ * @param {string[]} problems
+ */
+function useFailuresAreKnown(doc, path, library, problems) {
+  for (const [where, el] of ruleElements(doc)) {
+    if (el?.key !== "UseFailure") continue;
+    const of = Array.isArray(el.of) ? el.of : [];
+    if (of.length === 0) problems.push(`${path}: ${where} UseFailure names no "of"`);
+    for (const o of of) {
+      if (o === "self" || FAILURE_CLASSES.includes(o) || library.has(o)) continue;
+      problems.push(`${path}: ${where} UseFailure of "${o}" -- expected self, ${FAILURE_CLASSES.join(", ")} or an ability id`);
+    }
+    if (el.then !== undefined && !FAILURE_THEN.includes(el.then)) {
+      problems.push(`${path}: ${where} UseFailure then "${el.then}" -- expected ${FAILURE_THEN.join(" or ")}`);
+    }
+    for (const w of [el, ...(Array.isArray(el.chanceWhen) ? el.chanceWhen : [])]) {
+      const c = Number(w.chance);
+      if (!Number.isFinite(c) || c <= 0 || c > 100) problems.push(`${path}: ${where} UseFailure chance "${w.chance}" -- expected 1 to 100`);
+    }
+  }
+}
+
 function countsAreKnown(doc, path, problems) {
   for (const { path: where, spec } of countSpecsIn(doc)) {
     for (const problem of countProblems(spec)) problems.push(`${path}: ${where} ${problem}`);
@@ -1295,6 +1325,7 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
   // Every Count names a kind `rules/count.mjs` reads, with the keys that kind
   // needs (#319, Q19): an unknown one would size a sheet's number at zero.
   countsAreKnown(doc, path, problems);
+  useFailuresAreKnown(doc, path, library, problems);
 
   if (PACKS[dir]?.documentType === "Actor") {
     baseAttackAgreesWithTable(doc, path, warnings);

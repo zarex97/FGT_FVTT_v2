@@ -52,7 +52,9 @@ const ACTING_KINDS = Object.freeze(["servant", "master", "civilian", "summon", "
  * @returns {boolean}
  */
 function acts(unit) {
-  return Boolean(unit) && ACTING_KINDS.includes(unit.kind) && !unit.defeated;
+  // ...nor once a failed use ended its actions for the Turn (#300): the gate
+  // refuses every one (`budget.mjs#preventedBy`), so the bar offers none.
+  return Boolean(unit) && ACTING_KINDS.includes(unit.kind) && !unit.defeated && !unit.turnState?.actionsEnded;
 }
 
 /**
