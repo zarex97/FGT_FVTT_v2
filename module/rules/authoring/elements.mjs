@@ -54,6 +54,11 @@ const SCALED = Object.freeze([
   // MAG parameter, and that Noble Phantasm is Rank C.
   { key: "rankFrom", type: "text" },
   { key: "perStack", type: "raw" },
+  // A Count (`rules/count.mjs`, #319): `{of, …}`, with the step and floor beside it.
+  { key: "count", type: "raw" },
+  { key: "each", type: "number" },
+  { key: "base", type: "number" },
+  { key: "zeroPaysNothing", type: "checkbox" },
   { key: "max", type: "number" },
 ]);
 

@@ -1104,6 +1104,7 @@
   "FGT.Effect.Decayed": "{effect} falls to {magnitude}",
   "FGT.Effect.DecayedOut": "{effect} falls to 0 and ends",
   "FGT.Ability.Refused.notInThisWar": "Not in this War: another version of it is.",
+  "FGT.Ability.Refused.unknownCountKind": "Cannot be used: it counts \"{kind}\", which the system does not know.",
   "FGT.Ability.Refused.fieldOpen": "Requires its bounded field to be open.",
   "FGT.Ability.Refused.compelled": "Hatred of Achilles: she ignores every order but to Move towards and Attack the Greek Male.",
   "FGT.Ability.Refused.fieldAlreadyOpen": "Its area is already open: end it, or wait for it to close, before using this again.",
