@@ -15,5 +15,5 @@ Test Jeanne's Effects tab still showed `100` for the same instance.
 projection, whose `magnitude` is the landed value. Only the contributions path (`snapshot.mjs#instanceMagnitude`)
 was routed through `magnitudeOf`. The sheet is a reader too.
 
-**Fix:** `module/apps/actor-sheet/present.mjs#groupEffects @ uncommitted`. The row's `magnitude` is
+**Fix:** `module/apps/actor-sheet/present.mjs#groupEffects @ fc6f5064`. The row's `magnitude` is
 `magnitudeOf(instance, def, now)`, and `context.mjs#effectsContext` passes the tick and the War's ◈.
