@@ -25,8 +25,15 @@ terrain and ZON that come from where it and the others stand.
 _Avoid_: token, actor, character, model
 
 **Servant**:
-A summoned heroic spirit, bound to a Master by a Contract, belonging to one of fourteen Classes.
+A summoned heroic spirit, bound to a Master by a Contract, belonging to one of sixteen Classes.
 The game's primary combatant.
+
+**Class**:
+A Servant's kind. The seven Standard Classes are Saber, Archer, Lancer, Rider, Caster, Assassin and
+Berserker; every other Class is an Extra Class: Ruler, Avenger, Alter Ego, Foreigner, Moon Cancer,
+Pretender, Beast, Shielder and Saver. Saber, Archer and Lancer are the Knight Classes. Only a Servant
+has a Class; a Master or a Summon has none.
+_Avoid_: container (a War's slot a Class fills)
 
 **Master**:
 The human participant who summons and commands a Servant, and who holds Command Spells.
@@ -196,7 +203,10 @@ A point in the match: a Round, and how many Ticks into the match. Whatever happe
 Turn's end reads the Moment that ended, not the clock, which has already moved on.
 
 **Phase**:
-Whether the world is in Day or Night. Some abilities read it.
+Whether the world is in Day or Night. The War flips a coin for its first Round, and the Rounds
+alternate from there. An ability may change the Round in progress; the alternation is unaffected, so
+the next Round is what it would have been. A panel can differ from its Round (a Darkness area, Sol),
+and a War may play without Day and Night at all.
 
 **Turn Record**:
 What a Unit has done so far during a Turn — that it Acted, how many Panels it Moved, which Abilities
@@ -339,20 +349,28 @@ A Unit about to receive a debuff during a Combat Process may spend 1 Luck on a L
 it, once per Combat Process. Never against a terminal Effect.
 
 **Magnitude**:
-How much of an Effect is applied. Distinct from its duration and from its Stage.
+How much of an Effect is applied. Distinct from its duration and from its Stage. It may fall while
+the Effect stands, with each Turn or each event its definition names; at zero the Effect ends.
 
 **Stage**:
 A countdown within an Effect that decrements without removing it.
 
+**Pause**:
+A stretch in which an Effect's duration does not count down, while a condition its definition names
+holds.
+
 **Polarity**:
-Whether an Effect is a buff, a debuff, or a neutral status. Decides who may see it by default.
+Whether an Effect is a buff, a debuff, or a neutral status. Decides who may see it by default. It is
+decided when the Effect lands, by its definition, by whether the bearer is an ally or an enemy of its
+source, or by the entry that applies it, and it does not change after.
 
 **Volatility**:
 Whether an Effect is non-volatile, volatile, mental or terminal. Decides what can strip it.
 
 **Stacking**:
 What a second application of the same Effect does — sum magnitudes, refresh, extend, stage, or
-nothing.
+nothing. Some Effects allow one instance on a War's whole board, alone or as one of a group: a new
+one replaces the old.
 
 **Family**:
 An umbrella name for a set of Effects, so a rule can name the group rather than list it.
