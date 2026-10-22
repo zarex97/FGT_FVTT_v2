@@ -188,6 +188,55 @@ export function countScaleOf(spec) {
   return spec?.perStack?.effect ? fromPerStack(spec.perStack) : null;
 }
 
+/** The keys each kind reads and cannot do without. */
+const REQUIRED_KEYS = Object.freeze({
+  stacks: ["effect"], resource: ["key"], use: ["fact"], parameters: ["vs", "compare"],
+});
+
+/**
+ * Every Count spec authored anywhere in a document: each object under a `count` key, with its path.
+ *
+ * One walker for both readers that must find them: the build's validator
+ * (`tools/lib/content.mjs`) and the use gate (`rules/costs.mjs`). A number under
+ * `count` (a summon's head count) is not a Count spec and is skipped.
+ *
+ * @param {unknown} node
+ * @param {string} [path]
+ * @returns {Array<{path: string, spec: object}>}
+ */
+export function countSpecsIn(node, path = "") {
+  if (Array.isArray(node)) return node.flatMap((n, i) => countSpecsIn(n, `${path}[${i}]`));
+  if (!node || typeof node !== "object") return [];
+  return Object.entries(node).flatMap(([key, value]) => {
+    const here = path ? `${path}.${key}` : key;
+    const own = key === "count" && value && typeof value === "object" && !Array.isArray(value)
+      ? [{ path: here, spec: value }] : [];
+    return [...own, ...countSpecsIn(value, here)];
+  });
+}
+
+/**
+ * What is wrong with one Count spec, in words: an unknown kind, or a key its kind reads and lacks.
+ *
+ * @param {object} spec
+ * @returns {string[]}
+ */
+export function countProblems(spec) {
+  if (!COUNT_KINDS.includes(spec?.of)) return [`counts "${spec?.of}", which is not one of ${COUNT_KINDS.join(", ")}`];
+  return (REQUIRED_KEYS[spec.of] ?? []).filter((k) => spec[k] === undefined || spec[k] === null || spec[k] === "")
+    .map((k) => `counts ${spec.of} with no "${k}"`);
+}
+
+/**
+ * The kinds a document counts that this module does not know, each once.
+ *
+ * @param {unknown} node an ability's system, or its usage spec
+ * @returns {string[]}
+ */
+export function unknownCountKindsIn(node) {
+  return [...new Set(countSpecsIn(node).map(({ spec }) => spec.of).filter((of) => !COUNT_KINDS.includes(of)))];
+}
+
 /* -------------------------------------------------------------------------- */
 /*  The old spellings                                                         */
 /* -------------------------------------------------------------------------- */

@@ -14,6 +14,7 @@
  * problem is actionable and a refusal that names four is a wall of text.
  */
 
+import { unknownCountKindsIn } from "./count.mjs";
 import { pursuitOf } from "./compulsion.mjs";
 import { hasGranted, GRANTS } from "./granted.mjs";
 import { lookup } from "../domain/tables.mjs";
@@ -234,6 +235,15 @@ export function canUseAbility({
   // (`isHiddenInThisWar`): it is not a use that waits on anything.
   if (!availableInThisWar(ability, unit)) {
     return { ok: false, reason: "notInThisWar", detail: {}, cost };
+  }
+
+  // A Count it cannot read (#319, Q19). The build refuses such content first;
+  // one made in the editor or by a script reaches here, and is refused by name
+  // rather than used with its number sized at zero. The usage spec carries the
+  // kinds; the bar hands the Item's own system, which is walked.
+  const unknownKinds = ability ? (ability.unknownCountKinds ?? unknownCountKindsIn(ability)) : [];
+  if (unknownKinds.length > 0) {
+    return { ok: false, reason: "unknownCountKind", detail: { kind: unknownKinds[0] }, cost };
   }
 
   // No match, no clock -- and therefore no use. Every duration and every

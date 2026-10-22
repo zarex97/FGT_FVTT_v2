@@ -35,6 +35,7 @@ import { isEmittableOption } from "../../module/rules/options.mjs";
 import { predicateSitesIn } from "../../module/rules/authoring/predicates.mjs";
 import { ABILITY_KINDS } from "../../module/rules/authoring/ability.mjs";
 import { ENTRY_KEYS, EFFECT_PARAMS } from "../../module/rules/effect-flow.mjs";
+import { countSpecsIn, countProblems } from "../../module/rules/count.mjs";
 
 /** The schema version every source file must declare. */
 export const SCHEMA_VERSION = 1;
@@ -1227,6 +1228,22 @@ function baseAttackAgreesWithTable(doc, path, warnings) {
  * @param {string[]} warnings
  * @param {string} [dir] the source directory, which selects the requirement vocabulary
  */
+/**
+ * Every `count: {of, …}` in a document, at any depth, is a Count the engine reads.
+ *
+ * Walked with the same function the use gate walks (`countSpecsIn`), so a spec
+ * the build accepts is one the gate accepts.
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} problems
+ */
+function countsAreKnown(doc, path, problems) {
+  for (const { path: where, spec } of countSpecsIn(doc)) {
+    for (const problem of countProblems(spec)) problems.push(`${path}: ${where} ${problem}`);
+  }
+}
+
 function validateDocument(doc, path, library, problems, warnings, dir = "") {
   // Predicates are checked on BOTH branches. An Actor carries rule elements
   // too -- Bašmu's Normal Attack rider, the Kagome Spirits' Light/Dark banish,
@@ -1237,6 +1254,9 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
   // Found authoring Raikou's copies: `self:lastOfSummonGroup` passed a clean
   // build before the facet that admits it existed.
   predicateOptionsExist(doc, path, problems);
+  // Every Count names a kind `rules/count.mjs` reads, with the keys that kind
+  // needs (#319, Q19): an unknown one would size a sheet's number at zero.
+  countsAreKnown(doc, path, problems);
 
   if (PACKS[dir]?.documentType === "Actor") {
     baseAttackAgreesWithTable(doc, path, warnings);
