@@ -69,6 +69,20 @@ These scripts drive a real Foundry application over the Chrome DevTools Protocol
 
 **Page reload** (`tools/fgt-reload.mjs:1-64`) reloads the page with cache bypass and polls `game.ready` for up to 60s. Module sources are loaded once at page load, so every edit to `module/` is invisible to the live world until the page comes back (`tools/fgt-reload.mjs:5-12`).
 
+### Sheet Kin
+
+`tools/sheet-kin.mjs` finds each Clause's **Kin**: the Clauses on other sheets that state the same rule in the same or similar words. It reads the 469 sheets exported from the roster's Drive folders on 2026-10-21 into `char_orig_sheets/by-class/<Class>/`, with each file's Drive id in `manifest.json`. A Clause is normalized first, with numbers, Ranks, ◈ fractions and the bearer's first name masked. Two Clauses are Kin when their word pairs overlap at the threshold, 0.5 by default (`tools/lib/kin.mjs`). Grouping is leader-based, so a chain of near neighbours never fuses two unlike rules. At 0.5, 70% of the 19,083 Clauses sit in a group that spans two or more sheets.
+
+It serves the survey that grows the Character model (`docs/model/`, `.claude/skills/survey-class`). A group given a verdict in `docs/model/ledger.json` is counted and not listed again, so each Class's survey reads less than the last. `kin` serves a new Servant's design: each Clause beside its Kin, and the built Servants among them.
+
+```
+node tools/sheet-kin.mjs survey Saber --out survey.md   # a Class's open groups and its residue
+node tools/sheet-kin.mjs kin "Saber/Gawain"             # one sheet's Clauses beside their Kin
+node tools/sheet-kin.mjs stats                          # corpus counts at three thresholds
+```
+
+The repo's 48 `Copia de` sheets are older snapshots: 43 differ from their Drive export, some in rules (`docs/surprises/2026-10-21-repo-sheets-differ-from-drive.md`).
+
 ### The Clause extractor
 
 `tools/extract-clauses.mjs` reads a Character Sheet from `char_orig_sheets/` and emits a **first draft** of the Clause task list a Servant's audit issue carries — one line per Clause, grouped under its Ability, every Clause starting at `Untouched` ([Ch. 46 §46.1](46-roster-re-audit.md)). It was written to be the list, because transcribing Clauses by hand looked like the audit programme's mechanical bulk.
