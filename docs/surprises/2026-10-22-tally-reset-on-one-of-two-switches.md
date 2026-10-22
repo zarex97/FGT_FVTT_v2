@@ -2,7 +2,7 @@
 id: 2026-10-22-tally-reset-on-one-of-two-switches
 found: live press
 kind: two-readers-one-rule
-status: open
+status: fixed
 reviewed: false
 ---
 **Expected:** a Mode switched back on starts its Tally from 0. Saitou's count is *"for the duration of that
@@ -17,4 +17,4 @@ ended it at once.
 reset went into `io.setMode` alone, at `module/engine/io.mjs:567 @ de01fece`. The unit test switched the Mode through
 `io.setMode`, so it passed.
 
-**Fix:** open.
+**Fix:** `module/rules/modes.mjs:511 @ d0f24d3a`. `modeSwitchPatch` is the one patch a switch writes, the Tally reset included, and both writers call it. Test in `mode-tally.test.mjs` presses the owner's switch (`FGTActorSheet.toggleMode`).
