@@ -3,13 +3,15 @@
  * @see module/rules/count.mjs, tools/lib/content.mjs, module/rules/costs.mjs
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { validateAll } from "../../tools/lib/content.mjs";
 import { usageSpecFor } from "../../module/rules/ability-use.mjs";
 import { canUseAbility } from "../../module/rules/costs.mjs";
 import { slotFor } from "../../module/apps/hud/present.mjs";
 import { unknownCountKindsIn } from "../../module/rules/count.mjs";
+import { loadSource } from "../../tools/lib/load.mjs";
+import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 
 const file = (doc, dir) => ({ path: "x.yml", dir, doc });
 const ok = (over = {}) => ({ schema: 1, id: "thing", name: "Thing", ...over });
@@ -100,4 +102,35 @@ describe("the use refuses a Count it cannot read, out loud", () => {
       { verdict: { ok: false, reason: "unknownCountKind", detail: { kind: "bogus" } } });
     expect(s).toMatchObject({ disabled: true, reason: "unknownCountKind" });
   });
+});
+
+describe("an unknown Count costs its own clause, never the board (found live, #319)", () => {
+  it("projects the Unit, drops the clause, and refuses the use by name", async () => {
+    await prepareSubjects();
+    const { files } = await loadSource("packs/_source");
+    const jeanne = files.find((f) => f.doc?.id === "test-jeanne-d-arc").doc;
+    const bogus = {
+      id: "test-count-bogus", slug: "testCountBogus", name: "Test Count: Bogus", kind: "skill",
+      timing: { window: "ownTurn" }, cooldown: "1◈",
+      phases: [{ kind: "applyEffects", effects: [{ id: "atkUp", duration: "1◈", magnitude: 5 }] }],
+      rules: [{ key: "FlatDamage", value: 5, count: { of: "bogus" } }],
+    };
+    const said = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      await withSubjects([{ from: "test-jeanne-d-arc", id: "bogusHolder00001",
+        with: { abilities: [...(jeanne.abilities ?? []), bogus] } }], ({ units, board, world }) => {
+        // The board projected: the Unit is on it, with the ability.
+        expect(board.units.map((u) => u.id)).toContain("bogusHolder00001");
+        expect(units[0].abilities.some((a) => a.contentId === "test-count-bogus")).toBe(true);
+        // The clause was dropped out loud, by name.
+        expect(said.mock.calls.flat().join(" ")).toContain('Unknown count kind "bogus"');
+        // ...and the use is refused by name, as the bar then shows it.
+        const item = world.actor("bogusHolder00001").items.find((i) => i.system?.contentId === "test-count-bogus");
+        const verdict = canUseAbility({ ability: usageSpecFor(item), unit: units[0] });
+        expect(verdict).toMatchObject({ ok: false, reason: "unknownCountKind", detail: { kind: "bogus" } });
+      });
+    } finally {
+      said.mockRestore();
+    }
+  }, 120_000);
 });

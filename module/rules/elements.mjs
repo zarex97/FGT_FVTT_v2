@@ -24,7 +24,7 @@ import { lookup } from "../domain/tables.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { test as testPredicate, referencedOptions } from "./predicate.mjs";
 import { orderElements } from "./ordering.mjs";
-import { countScaleOf, countedValue, countOf } from "./count.mjs";
+import { countScaleOf, countedValue, countOf, UnknownCountKind } from "./count.mjs";
 
 /**
  * @typedef {object} Contributions
@@ -171,7 +171,18 @@ export function collectContributions(abilities, ctx = {}) {
         continue;
       }
       const before = ability.fromEffect ? bucketLengths(out) : null;
-      execute(el, { rank, source, ability, out, ctx: runCtx, deferred });
+      try {
+        execute(el, { rank, source, ability, out, ctx: runCtx, deferred });
+      } catch (err) {
+        // A Count this module cannot read costs its own clause, never the board
+        // (#319, found live): the editor can author one the build would refuse,
+        // and the throw came out of every board snapshot, so the bar went stale
+        // and the use gate's own refusal (`unknownCountKind`) was never reached.
+        if (!(err instanceof UnknownCountKind)) throw err;
+        console.error(`FGT | ${source}: ${err.message}`);
+        out.unhandled.push({ key: el.key, source, countKind: err.kind });
+        continue;
+      }
       if (before) stampInstance(out, before, ability.id);
     }
   }
