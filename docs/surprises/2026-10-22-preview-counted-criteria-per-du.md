@@ -2,7 +2,7 @@
 id: 2026-10-22-preview-counted-criteria-per-du
 found: live press
 kind: two-readers-one-rule
-status: open
+status: fixed
 reviewed: false
 ---
 **Expected:** the targeting preview shows the damage the declaration will deal. The preview is a reader of the same
@@ -17,4 +17,4 @@ DU a row is drawn for. Task 6 ruled it that way and named the cost: *"a preview 
 resolution"*. The HUD (`apps/canvas/targeting-hud.mjs#row`) and the review (`apps/canvas/target-review.mjs`) hand
 `damageFor` one id and never the set they are drawing.
 
-**Fix:** open.
+**Fix:** `module/engine/attack.mjs:7487 @ 6aa2fc42`. `previewContext` takes the drawn set (`targets`), and the HUD and the review hand `damageFor` every id they draw. Test in `criteria.test.mjs`.
