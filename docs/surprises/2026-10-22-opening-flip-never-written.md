@@ -3,7 +3,8 @@ id: 2026-10-22-opening-flip-never-written
 found: retraction
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** a War opens on Day or Night at random. The rule reads *"When the game starts, Flip a Coin"*, and
 the user restated it on 2026-10-22. `rules/environment.mjs#phase` alternates from that flip.

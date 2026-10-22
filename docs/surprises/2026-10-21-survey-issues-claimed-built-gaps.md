@@ -3,7 +3,8 @@ id: 2026-10-21-survey-issues-claimed-built-gaps
 found: retraction
 kind: claim-without-reading-the-path
 status: open
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** each Character model issue, #281 to #311, names a gap the engine cannot run today. Its "today"
 line says what the code does.

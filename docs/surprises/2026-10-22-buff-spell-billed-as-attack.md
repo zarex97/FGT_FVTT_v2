@@ -3,7 +3,8 @@ id: 2026-10-22-buff-spell-billed-as-attack
 found: test
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** a test Spell that only buffs its caster, written like a test Skill, is a Skill to the use gate.
 **Actual:** live, its slot read *"Test Use: Spell — this unit has already attacked this turn"*; the suite then failed `nursery.test.mjs` *"test-use-spell.yml deals no damage, so it declares countsAsAttack: false and its own targeting"*.

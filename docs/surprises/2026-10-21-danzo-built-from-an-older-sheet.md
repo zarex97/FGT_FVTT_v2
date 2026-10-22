@@ -3,7 +3,8 @@ id: 2026-10-21-danzo-built-from-an-older-sheet
 found: survey
 kind: source-outside-the-repo
 status: open
-reviewed: false
+reviewed: true
+pattern: source-outside-the-repo
 ---
 **Expected:** Katō Danzō is built and audited (#249). Her Assassin survey Clauses should match what the packs run.
 
