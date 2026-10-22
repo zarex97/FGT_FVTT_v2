@@ -2,7 +2,7 @@
 id: 2026-10-22-unknown-count-kind-took-the-board-down
 found: live press
 kind: unknown-value-falls-to-default
-status: open
+status: fixed
 reviewed: false
 ---
 **Expected:** a Skill made in the editor with `count: {of: "bogus"}` greys its own slot on the bar, refused
@@ -19,4 +19,4 @@ catches it. The use gate's refusal (`rules/costs.mjs`) is never reached, because
 board that failed. `rules/elements.mjs`'s own StatDelta comment already states the rule this broke: *"a bad
 magnitude should cost its own clause, not the match"*.
 
-**Fix:** open.
+**Fix:** `module/rules/elements.mjs:181 @ 33bd34e9`. `collectContributions` catches an `UnknownCountKind` per element: the clause is dropped with a console error naming it, and the board projects. The bar then shows the slot refused `unknownCountKind`. Test in `count-validation.test.mjs`.
