@@ -14,7 +14,7 @@ The **taxonomy** is the set of axes by which effects are classified: polarity (b
 |---|---|
 | `module/rules/registry.mjs` | `EffectRegistry` — load definitions, query by id, validate references |
 | `module/rules/effects/families.mjs` | Family queries: `familiesOf(def)`, `familiesPresent(ids)`, `unitHasFamily(unit, name)` |
-| `module/rules/effects/count-targets.mjs` | Magnitude computed over a phase's target set, used by buffs like De Sterrennacht |
+| `module/rules/count.mjs` | The Count module; a magnitude over a phase's target set (`countTargets`, De Sterrennacht) is its `targets` kind |
 | `module/data/misc.mjs` | `EffectData` schema: the instance data (magnitude, duration, visibility, source) |
 | `packs/_source/effects/*.yml` | Effect definitions: authored YAML, compiled into compendium |
 | `docs/A-effect-catalogue.md` | Appendix A — reference table of all 157+ definitions and their mechanics |

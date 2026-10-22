@@ -5,7 +5,7 @@
  * Six readers answered "how many" before the Count module, each with its own
  * arithmetic: `stackScaled` (element values), `timesOf` (an entry's `times`),
  * `stackTimes` (a handler's `times`), `cooldownChanges`' `perStack` and
- * `countMatching`, `countTargetsMagnitude`, and `cooldownFor`'s `perUnit`. Each
+ * `countMatching`, `countTargetsMagnitude` (now `fromCountTargets`), and `cooldownFor`'s `perUnit`. Each
  * is asked here through the export its callers use, with the input shape its
  * callers hand it. Moving them into one module must leave every figure where
  * it is; the one figure that moves is marked, and is Q3's ruling.
@@ -17,7 +17,7 @@ import { timesOf } from "../../module/rules/effect-flow.mjs";
 import { dispatch } from "../../module/engine/scheduler.mjs";
 import { cooldownChanges } from "../../module/engine/skill-use.mjs";
 import { cooldownFor } from "../../module/engine/cooldown.mjs";
-import { countTargetsMagnitude } from "../../module/rules/effects/count-targets.mjs";
+import { countedValue, fromCountTargets } from "../../module/rules/count.mjs";
 
 beforeAll(() => {
   // `turnsPerRound` is a world setting; the Great Holy Grail War runs at 3.
@@ -68,16 +68,18 @@ describe("a handler's times (the ApplyEffect action)", () => {
     expect(timesFor([stock, stock, stock, stock])).toBe(4);
   });
 
-  // changes in Task 3 (Q3): `stackTimes` reads `max(1, uses)`, never the
-  // stage, where `stacksHeld` -- every other reader's -- reads the stage.
-  it("counts a staged instance as one (Q3: changes in Task 3)", () => {
-    expect(timesFor([{ defId: "curse", uses: 0, stage: 5 }], { perStack: { effect: "curse" } })).toBe(1);
+  // Changed by the Count module (Q3): `stackTimes` read `max(1, uses)` and
+  // never the stage, so this was 1; `stacksHeld` -- every other reader's --
+  // reads the stage.
+  it("counts a staged instance by its stage (Q3)", () => {
+    expect(timesFor([{ defId: "curse", uses: 0, stage: 5 }], { perStack: { effect: "curse" } })).toBe(5);
   });
 
-  // changes in Task 3 (Q3): the projection keeps suppressed instances, flagged.
-  it("counts a suppressed instance (Q3: changes in Task 3)", () => {
+  // Changed by the Count module (Q3): the projection keeps suppressed
+  // instances, flagged, and `stackTimes` counted them, so this was 2.
+  it("counts a suppressed instance as none (Q3)", () => {
     const stock = { defId: "proliferationStock", uses: 0, stage: 0 };
-    expect(timesFor([stock, { ...stock, suppressed: true }])).toBe(2);
+    expect(timesFor([stock, { ...stock, suppressed: true }])).toBe(1);
   });
 });
 
@@ -114,7 +116,7 @@ describe("a cooldown change sized by a count (cooldownChanges)", () => {
 describe("a magnitude sized by the phase's targets (countTargets)", () => {
   const withSkill = (id) => ({ id, abilities: [{ slug: "existenceOutsideTheDomain" }] });
   const spec = { base: 3, each: 1, requires: ["self:skill:existenceOutsideTheDomain"], excludeSelf: true };
-  const resolve = (targets) => countTargetsMagnitude(spec, targets, "gogh");
+  const resolve = (targets) => countedValue(fromCountTargets(spec), { targets, casterId: "gogh" });
 
   it("adds `each` per matching target, the caster excluded", () => {
     expect(resolve([withSkill("gogh"), withSkill("a1"), withSkill("a2"), { id: "x", abilities: [] }])).toBe(5);

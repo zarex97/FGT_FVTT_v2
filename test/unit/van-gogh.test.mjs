@@ -16,7 +16,10 @@ import { computeDamage } from "../../module/rules/damage/pipeline.mjs";
 import { applyEffect } from "../../module/engine/effect-applier.mjs";
 import { resolveRuleValues } from "../../module/rules/snapshot.mjs";
 import { stacksHeld } from "../../module/rules/count.mjs";
-import { countTargetsMagnitude } from "../../module/rules/effects/count-targets.mjs";
+import { countedValue, fromCountTargets } from "../../module/rules/count.mjs";
+
+/** De Sterrennacht's `countTargets`, sized by the Count module as landing sizes it. */
+const countTargetsMagnitude = (spec, targets, casterId) => countedValue(fromCountTargets(spec), { targets, casterId });
 import { outranks } from "../../module/rules/auras.mjs";
 import { removeStages, applicationsOf, effectGatePasses } from "../../module/rules/effect-flow.mjs";
 import * as I from "../../module/engine/intents.mjs";
