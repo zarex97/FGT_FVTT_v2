@@ -14,6 +14,7 @@
  * the effect engine bumps.
  */
 
+import { stacksHeld } from "./count.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { TURN_RECORD, ROUND_RECORD } from "../domain/stamped-record.mjs";
 import { remainingMovement } from "./movement.mjs";
@@ -2096,50 +2097,6 @@ function readTimeScaled(abilities, collectOptions) {
     const npMagnitude = typeof basis.npMagnitude === "number" ? Math.floor(basis.npMagnitude * factor) : basis.npMagnitude;
     return { ...record, rules: basis.def.rules.map((r) => resolveRuleValues(r, magnitude, npMagnitude)) };
   });
-}
-
-/**
- * How many of each effect this Unit holds, by definition id.
- *
- * Two shapes count the same way, and both are on Kingprotea:
- *
- *   - `magnitudeStacks` puts each application in its **own document**, so ten
- *     Proliferation stocks are ten instances. That is what *"each Proliferation
- *     stock counts as a separate buff"* means, and what makes a dispel able to
- *     take one.
- *   - `count` keeps **one** document and accumulates `uses`, which is what
- *     *"remove one NP DmUp (GAO) buff from herself"* needs — `consumeUse`
- *     already spends exactly one.
- *
- * `max(1, uses)` reads both: an instance with no use counter is worth one.
- *
- * @param {object} actor
- * @returns {Record<string, number>}
- */
-export function stacksHeld(actor) {
-  /** @type {Record<string, number>} */
-  const out = {};
-  for (const effect of actor?.effects ?? []) {
-    if (effect.disabled || effect.isSuppressed) continue;
-    const id = effect.system?.defId;
-    if (!id) continue;
-    // A STAGED instance counts its stage; a charge-based one counts its uses;
-    // anything else counts as one.
-    //
-    // Stages were not counted at all until Van Gogh: `uses` is 0 on a staged
-    // instance, so `Math.max(1, 0)` reported a Stage 7 Curse as ONE. Her
-    // Imaginary Numbers Arts reduces her Noble Phantasm's cooldown by
-    // *"⅓◈ * the stage of the Curse debuff on Gogh"* -- the sheet's own worked
-    // example is Stage 7 giving 2◈+⅓◈ -- which would have been a flat ⅓◈ for
-    // ever.
-    //
-    // Evade's "2 times" and Mannanán's Fragarach Counters are the `uses`
-    // shape and are untouched: nothing about either is staged.
-    const stage = effect.system?.stage ?? 0;
-    const uses = effect.system?.uses ?? 0;
-    out[id] = (out[id] ?? 0) + Math.max(1, stage > 0 ? stage : uses);
-  }
-  return out;
 }
 
 /**
