@@ -264,6 +264,13 @@ export const FACETS = Object.freeze([
     prose: "the target's {parameter} is {verdict} the caster's",
   }),
   facet({
+    id: "healthVsSelf",
+    subjects: ["target"],
+    segments: [{ name: "verdict", value: { kind: "closed", list: ["gt", "eq", "lt"] } }],
+    english: "The target's current Health compared against the caster's own.",
+    prose: "the target's Health is {verdict} the caster's",
+  }),
+  facet({
     id: "stableDie",
     segments: [
       { name: "die", value: literal("d6") },

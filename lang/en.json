@@ -1776,6 +1776,8 @@
   "FGT.Predicate.Facet.npAboveAllParametersHint": "The Noble Phantasm's rank is above every one of this Unit's Parameters.",
   "FGT.Predicate.Facet.paramVsSelf": "Param Vs Self",
   "FGT.Predicate.Facet.paramVsSelfHint": "The target's Parameter compared against the caster's own.",
+  "FGT.Predicate.Facet.healthVsSelf": "Health Vs Self",
+  "FGT.Predicate.Facet.healthVsSelfHint": "The target's current Health compared against the caster's own.",
   "FGT.Predicate.Facet.stableDie": "Stable Die",
   "FGT.Predicate.Facet.stableDieHint": "A die face derived from the Unit's id — the same answer every time.",
   "FGT.Predicate.Facet.stance": "Stance",
