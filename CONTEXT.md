@@ -79,6 +79,16 @@ The Clause-by-Clause check of a Unit against its Character Sheet, on a live boar
 Clause is Observed or Pressed; a Clause only traced, or only tested, keeps it open.
 _Avoid_: review, check (unqualified)
 
+**Kin**:
+Two Clauses on any sheets that state the same rule in the same or similar words, once numbers, Ranks and
+the bearer's name are set aside. Kin is measured by shared word pairs, so it is a lead, not a ruling.
+_Avoid_: duplicate, match (Kin is rarely exact)
+
+**Shape**:
+A kind of thing Character Sheets are built from, with its fields and the values they take: an Ability, a
+Cost, a Targeting, an Effect. The Character model is the set of Shapes.
+_Avoid_: type, class (both name other things here)
+
 ## The route a value travels
 
 **Authored Key**:
