@@ -25,6 +25,7 @@ import { annotateLinkedGroups, annotateLegions } from "./linked-group.mjs";
 import { annotateAllies } from "./named-units.mjs";
 import { annotateAuras } from "./auras.mjs";
 import { EffectRegistry } from "./registry.mjs";
+import { magnitudeOf, polarityOf } from "./effect-instance.mjs";
 import { familiesPresent } from "./effects/families.mjs";
 import { buildAuraIndex } from "./aura-index.mjs";
 import { annotateTerrain } from "./terrain.mjs";
@@ -68,7 +69,7 @@ export function snapshotUnit(actor, {
 } = {}) {
   const sys = actor.system ?? {};
   const doc = token ?? actor.token ?? null;
-  const contributions = contributionsOf(actor, { terrain, tick, war: { region: warRegion ?? null, phase: warPhase ?? null } });
+  const contributions = contributionsOf(actor, { terrain, tick, turnsPerRound, war: { region: warRegion ?? null, phase: warPhase ?? null } });
   const footprint = gridFootprint(doc, panel);
   const turnState = turnStateAt(sys.turnState, tick);
   const effectIds = activeEffectIds(actor);
@@ -953,13 +954,13 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   //
   // Nemo's *Poseidon's Protection* is the clause that found it: its 50/100
   // reduction is collected only while he is in water, and it never was.
-  recollectForTerrain(units, actors, settings.tickForTurnState ?? null);
+  recollectForTerrain(units, actors, settings.tickForTurnState ?? null, settings.turnsPerRound ?? 3);
   // ...and for a twin, whose partner distance `annotateLinkedGroups` settled
   // above. *"If Castor is directly next to Pollux ... his Master's Health lost
   // ... are halved"* compiled against an option set with no distance in it, so
   // the drain was 20 beside Pollux too (#209, found live). Terrain units were
   // re-collected with the distance already.
-  recollectForPartner(units, actors, settings.tickForTurnState ?? null);
+  recollectForPartner(units, actors, settings.tickForTurnState ?? null, settings.turnsPerRound ?? 3);
   // Which platform each unit is aboard, and the protection model the targeting
   // resolver enforces. Positional, so it settles here with the other passes.
   //
@@ -1049,7 +1050,7 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
  * @param {object[]} actors
  * @returns {void}
  */
-function recollectForTerrain(units, actors, tick = null) {
+function recollectForTerrain(units, actors, tick = null, turnsPerRound = 3) {
   for (const u of units) {
     if ((u.terrain ?? []).length === 0) continue;
     // `actors` entries are `{actor, token, snapshot?}` wrappers, not Actors --
@@ -1060,7 +1061,7 @@ function recollectForTerrain(units, actors, tick = null) {
     const actor = entry?.actor ?? entry ?? null;
     if (!actor?.items) continue;
 
-    const again = contributionsOf(actor, { terrain: u.terrain, tick, partnerDistance: u.partnerDistance ?? null, war: u.war ?? null });
+    const again = contributionsOf(actor, { terrain: u.terrain, tick, turnsPerRound, partnerDistance: u.partnerDistance ?? null, war: u.war ?? null });
     // The terrain pass has already pushed its own modifiers onto `u.modifiers`
     // (Waterside's element bonuses), so the re-collected list is merged rather
     // than assigned -- assigning would drop the ground the unit is standing on
@@ -1087,7 +1088,7 @@ function recollectForTerrain(units, actors, tick = null) {
  * @param {number|null} [tick]
  * @returns {void}
  */
-function recollectForPartner(units, actors, tick = null) {
+function recollectForPartner(units, actors, tick = null, turnsPerRound = 3) {
   for (const u of units) {
     if (typeof u.partnerDistance !== "number") continue;
     if ((u.terrain ?? []).length > 0) continue;
@@ -1099,7 +1100,7 @@ function recollectForPartner(units, actors, tick = null) {
     const entry = actors.find((a) => (a.actor ?? a)?.id === u.id) ?? null;
     const actor = entry?.actor ?? entry ?? null;
     if (!actor?.items) continue;
-    u.eventHandlers = contributionsOf(actor, { tick, partnerDistance: u.partnerDistance, war: u.war ?? null }).eventHandlers;
+    u.eventHandlers = contributionsOf(actor, { tick, turnsPerRound, partnerDistance: u.partnerDistance, war: u.war ?? null }).eventHandlers;
   }
 }
 
@@ -1547,8 +1548,12 @@ function effectInstances(actor) {
       // applied as unremovable by the intent that lands it (the owner buff is),
       // where the definition says nothing.
       unremovable: Boolean(e.system?.unremovable ?? def?.unremovable),
-      polarity: e.system?.polarity ?? def?.polarity ?? null,
+      // What it LANDED as (`rules/effect-instance.mjs`, #315).
+      polarity: polarityOf(e.system, def),
       magnitude: e.system?.magnitude ?? 0,
+      // When it landed and how far it has decayed, for `magnitudeOf` (#296).
+      appliedTick: e.system?.appliedTick ?? null,
+      decayCount: e.system?.decayCount ?? 0,
       stage: e.system?.stage ?? 0,
       uses: e.system?.uses ?? 0,
       expiry: e.system?.expiry ?? null,
@@ -1661,21 +1666,45 @@ function instanceValue(raw, ref, value) {
  * @returns {object}
  */
 /**
- * An instance's magnitude, or its definition's default when it states none.
+ * The handler a definition's event `decay` makes (#296): Merlin's Crit DmUp
+ * (Illusion), *"loses 5% per successful Crit"*, is `decay: {on: damageDealt,
+ * when: [attack:crit], by: 5}`, and each such event counts once
+ * (`scheduler.mjs` `DecayEffect`). A `decay: {on: turn}` makes none: its
+ * magnitude is read off the clock.
  *
- * Regen is the one definition with a default (10, #234 reading 6), and an
- * instance landed before it had one carries 0: a Regen of 0% heals nothing, so
- * a 0 there reads as "none stated". Every other definition has no default and
- * keeps its instance's number, 0 included.
+ * @param {object} def
+ * @returns {object[]}
+ */
+function decayHandlers(def) {
+  const decay = def?.decay ?? null;
+  if (!decay?.on || decay.on === "turn") return [];
+  return [{
+    key: "OnEvent", event: decay.on, automatic: true,
+    ...(Array.isArray(decay.when) && decay.when.length ? { predicate: [...decay.when] } : {}),
+    then: [{ key: "DecayEffect" }],
+  }];
+}
+
+/**
+ * An instance's magnitude, now, asked of `magnitudeOf`. Its definition's default
+ * stands in when it states none: Regen is the one definition with a default (10,
+ * #234 reading 6), and an instance landed before it had one carries 0. A Regen
+ * of 0% heals nothing, so a 0 there reads as "none stated".
  *
  * @param {object} effect the ActiveEffect
  * @param {object} def its definition
+ * @param {{tick?: number|null, turnsPerRound?: number}} [now]
  * @returns {number}
  */
-function instanceMagnitude(effect, def) {
-  const own = effect.system?.magnitude;
-  if (typeof def?.defaultMagnitude === "number" && def.defaultMagnitude !== 0 && !own) return def.defaultMagnitude;
-  return own ?? 0;
+function instanceMagnitude(effect, def, now = {}) {
+  // Asked of the one reader, which also knows a magnitude that falls while the
+  // Effect stands (`decay`, #296): Tomoe's Nightowl by the ◈ Turn, Merlin's
+  // Illusion by the Crit.
+  return magnitudeOf({
+    magnitude: effect.system?.magnitude,
+    appliedTick: effect.system?.appliedTick ?? null,
+    decayCount: effect.system?.decayCount ?? 0,
+  }, def, now);
 }
 
 export function resolveRuleValues(rule, magnitude, npMagnitude) {
@@ -1798,7 +1827,7 @@ export function abilityRecordOf(item, overrides = {}) {
  * @param {object} actor
  * @returns {object}
  */
-export function contributionsOf(actor, { terrain = [], tick = null, partnerDistance = null, war = null } = {}) {
+export function contributionsOf(actor, { terrain = [], tick = null, partnerDistance = null, war = null, turnsPerRound = 3 } = {}) {
   const sys = actor.system ?? {};
   const abilities = [...(actor.items ?? [])]
     .filter((item) => !negated(item, actor))
@@ -1863,7 +1892,8 @@ export function contributionsOf(actor, { terrain = [], tick = null, partnerDista
     // as `rules:` did nothing at all. Medea's MOV Up granted no MOV and her
     // automatic evasion granted no evasion; both looked applied on the sheet.
     const def = EffectRegistry.get(effect.system?.defId) ?? null;
-    if (!def?.rules?.length) continue;
+    // An event `decay` is a rule too, made from the definition (#296).
+    if (!def?.rules?.length && !decayHandlers(def).length) continue;
     // Once per bearer, for a definition that scales its own rules by how many
     // instances there are (`perStack`): ten Proliferation stocks are ten
     // documents and one set of rules (#198 reading 8).
@@ -1887,7 +1917,7 @@ export function contributionsOf(actor, { terrain = [], tick = null, partnerDista
       // What an Aura it carries needs of its holder (#132): a buff's aura is
       // refused by a recipient with No Buff, and one cast's auras on two
       // holders reach a Unit once (`rules/auras.mjs`).
-      polarity: def.polarity ?? null,
+      polarity: polarityOf(effect.system, def),
       sourceUnitId: effect.system?.sourceUnitId ?? null,
       sourceAbilityId: effect.system?.sourceAbilityId ?? null,
       // WHEN this instance runs out, so a handler it contributes can honour
@@ -1907,14 +1937,14 @@ export function contributionsOf(actor, { terrain = [], tick = null, partnerDista
       // What a magnitude scale read live needs to resolve this instance again
       // (`readTimeScaled` below): the definition and the stamped magnitudes.
       scaleBasis: {
-        def, magnitude: instanceMagnitude(effect, def), npMagnitude: effect.system?.npMagnitude,
+        def, magnitude: instanceMagnitude(effect, def, { tick, turnsPerRound }), npMagnitude: effect.system?.npMagnitude,
       },
       // "@magnitude" on an effect definition resolves against the instance,
       // and "-@magnitude" against its negation -- at the top level of a rule
       // AND inside an Aura's nested `elements`, which is where Area CritUp
       // puts its Crit Chance and where the resolution used not to reach.
-      rules: def.rules.map((r) => resolveRuleValues(
-        r, instanceMagnitude(effect, def), effect.system?.npMagnitude,
+      rules: [...def.rules, ...decayHandlers(def)].map((r) => resolveRuleValues(
+        r, instanceMagnitude(effect, def, { tick, turnsPerRound }), effect.system?.npMagnitude,
       )),
     });
   }

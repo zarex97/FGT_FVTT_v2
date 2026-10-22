@@ -1483,6 +1483,25 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     if (doc.severity && !SEVERITIES.has(doc.severity)) {
       problems.push(`${path}: unknown severity "${doc.severity}"`);
     }
+    // A standing Effect's answers (`rules/effect-instance.mjs`, #315), each a
+    // closed word its reader switches on: an unknown one would fall to the
+    // definition's polarity, or never decay, in silence.
+    for (const [side, p] of Object.entries(doc.polarityByRelation ?? {})) {
+      if (side !== "ally" && side !== "enemy") problems.push(`${path}: polarityByRelation names "${side}"; expected ally or enemy`);
+      if (!POLARITIES.has(p)) problems.push(`${path}: polarityByRelation.${side} is "${p}", not a polarity`);
+    }
+    if (doc.decay) {
+      const on = doc.decay.on;
+      if (typeof on !== "string" || !on) problems.push(`${path}: decay has no "on" (turn, or an event)`);
+      else if (on === "turn" && !(Array.isArray(doc.decay.steps) && doc.decay.steps.length > 0)) {
+        problems.push(`${path}: decay on turn needs steps`);
+      } else if (on !== "turn" && !(Number(doc.decay.by) > 0)) {
+        problems.push(`${path}: decay on ${on} needs a positive "by"`);
+      }
+    }
+    if (doc.boardUnique !== undefined && (typeof doc.boardUnique !== "string" || !doc.boardUnique)) {
+      problems.push(`${path}: boardUnique names a group, a non-empty word`);
+    }
   }
 
   // Ch. 17: an ability that refuses to be copied has to say WHY, from the

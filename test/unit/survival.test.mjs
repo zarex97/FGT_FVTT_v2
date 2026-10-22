@@ -250,6 +250,8 @@ export const EFFECT_ROUTES = {
     "maxStacks", "rulesOncePerBearer", "blocks", "blockedBy", "replaces", "periodic",
     "terminal", "uses", "absorbs", "onRemove", "rules", "bypassesImmunity", "bypassesResistance",
     "onApply", "onApplyEachLanding",
+    // Read by `rules/effect-instance.mjs` (#315).
+    "polarityByRelation", "decay", "pausedWhile", "boardUnique",
   ].map((k) => [k, same(k)])),
   contentId: same("id"),
   description: doc("module/apps/actor-sheet/context.mjs", "the effect's text on the sheet"),
