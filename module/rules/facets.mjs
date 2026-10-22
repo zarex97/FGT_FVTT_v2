@@ -58,7 +58,7 @@ const number = (min, max) => ({ kind: "number", ...(min === undefined ? {} : { m
  * @param {object} spec
  * @returns {object}
  */
-const facet = ({ id, subjects = SIDES, segments, forms, english, prose }) => ({
+const facet = ({ id, subjects = SIDES, segments, forms, english, prose, proseBySubject = null }) => ({
   id,
   subjects,
   // A facet normally has one shape. `attack:range` has two — a bare distance
@@ -70,6 +70,9 @@ const facet = ({ id, subjects = SIDES, segments, forms, english, prose }) => ({
   hint: `FGT.Predicate.Facet.${id}Hint`,
   english,
   prose,
+  // One subject reads differently: `war:region` is where the War is fought,
+  // `self:region` where a Unit is from (#314).
+  proseBySubject,
   doc: "24-rules-engine.md",
 });
 
@@ -279,15 +282,43 @@ export const FACETS = Object.freeze([
   }),
   facet({
     id: "region",
+    // `self`/`target`: where a Unit is FROM (`unit.region`, Penthesilea's
+    // *"Male Units from the Greece region"*). `war`: where the War is fought,
+    // Anastasia's *"If the Grail War region is Russia"* (#301). The old text
+    // described the War while the option read the Unit.
+    subjects: ["self", "target", "war"],
     segments: [{ name: "region", value: open() }],
-    english: "The war is being fought in a named Region.",
-    prose: "the war is in {region}",
+    english: "Comes from a named Region (a Unit), or is fought in one (the War).",
+    prose: "{subject} is from {region}",
+    proseBySubject: { war: "the War is fought in {region}" },
   }),
   facet({
     id: "phase",
+    // `self`/`target`: the phase at the Unit's own panel (a Darkness area, Sol).
+    // `war`: the Round's, `none` when the War plays without the cycle (#314).
+    subjects: ["self", "target", "war"],
     segments: [{ name: "phase", value: closed("PHASES") }],
-    english: "Only during the day, or only during the night.",
-    prose: "it is {phase}",
+    english: "Day or Night where a Unit stands, or the Round's own (the War); none without the cycle.",
+    prose: "{subject} stands in {phase}",
+    proseBySubject: { war: "the Round is {phase}" },
+  }),
+  facet({
+    id: "class",
+    // A Servant's Class (#286): *"All damage dealt to Caster-class Servants"*.
+    // `target:class:same`: Kazuradrop's *"the same Servant Class as herself"*.
+    forms: [
+      [{ name: "class", value: closed("SERVANT_CLASSES") }],
+      [{ name: "same", value: literal("same") }],
+    ],
+    english: "Is a Servant of a named Class, or of the same Class as the bearer.",
+    prose: "{subject} is a {class}-class Servant",
+  }),
+  facet({
+    id: "classGroup",
+    // *"Standard Class Servants"*, *"Extra-class Servants"*, *"Knight-class"* (#314).
+    segments: [{ name: "group", value: closed("CLASS_GROUPS") }],
+    english: "Is a Servant of a Standard, an Extra or a Knight Class.",
+    prose: "{subject} is a {group}-class Servant",
   }),
   facet({
     id: "inHomeBase",

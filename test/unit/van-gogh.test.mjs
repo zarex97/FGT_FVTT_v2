@@ -1354,9 +1354,14 @@ describe("every class the enum offers can be named on a sheet", () => {
     expect(missing, `no FGT.Class.<value> label for: ${missing.join(", ")}`).toEqual([]);
   });
 
+  // A Class no roster Servant holds has no sheet to show its image on. Saver is
+  // named only by Rapture (*"Ruler-class and Saver-class Servants"*); its image
+  // is owed the day a Saver is built (ruled 2026-10-22, #314).
+  const NO_ROSTER_SERVANT = ["saver"];
+
   it("has a class image for every enum member", () => {
     const missing = SERVANT_CLASSES.filter(
-      (c) => !existsSync(join(process.cwd(), "assets/classes", `${c}.webp`)),
+      (c) => !NO_ROSTER_SERVANT.includes(c) && !existsSync(join(process.cwd(), "assets/classes", `${c}.webp`)),
     );
     expect(missing, `no class image for: ${missing.join(", ")}`).toEqual([]);
   });

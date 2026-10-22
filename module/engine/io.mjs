@@ -1505,6 +1505,17 @@ export function worldIO() {
     },
 
     /**
+     * Change the Round in progress to Day or Night, for that Round only (#294).
+     * Read by `rules/environment.mjs#roundPhase` through the board.
+     *
+     * @param {"day"|"night"} phase
+     * @param {number} round the Round it holds for
+     */
+    async setRoundPhase(phase, round) {
+      await currentWar()?.update({ "system.phaseOverride": { phase, round } });
+    },
+
+    /**
      * Set a Servant's contract and its Master (Ch. 32).
      *
      * The Master's roster is updated in the same call. Keeping only the

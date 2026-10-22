@@ -23,7 +23,7 @@ import {
   essenceCatalogue, essenceDraftOptions, essenceDocument, draftsEssences, syncEssences,
 } from "./master-essence.mjs";
 import { record } from "./game-log.mjs";
-import { allWars, sceneIdOfWar } from "./war.mjs";
+import { allWars, sceneIdOfWar, warRule } from "./war.mjs";
 import { WAR_RULE_KEYS, coerceWarRule } from "../domain/war-rules.mjs";
 import { normalizeFactions } from "../rules/factions.mjs";
 
@@ -357,6 +357,7 @@ export async function commitWar(draft) {
     "system.homeBaseDepth": draft.homeBaseDepth,
   });
   await combat.syncFactions({ withGM: true });
+  await flipOpeningPhase(combat);
 
   await note(combat, `War setup began: ${draft.warType}, ${draft.ruleset} ruleset`, {
     warType: draft.warType, ruleset: draft.ruleset,
@@ -583,4 +584,28 @@ export async function seatPartners(servant, container, master) {
     seated.push(partner);
   }
   return seated;
+}
+
+/**
+ * The opening coin flip: *"When the game starts, Flip a Coin. If Heads, the first
+ * Round is 'Day'. The next Round will be 'Night' and so on."*
+ *
+ * Nothing wrote `MatchData.phase` until #314, so every War opened on Day. Flipped
+ * once, here, when the War is set up, and said on a card: which Rounds are Night
+ * is a thing every player plans around. A War with the `dayNightCycle` rule off
+ * flips nothing and says so (`rules/environment.mjs#roundPhase` reads `none`).
+ *
+ * @param {object} combat the new War
+ * @returns {Promise<void>}
+ */
+async function flipOpeningPhase(combat) {
+  if (warRule("dayNightCycle", combat) === false) {
+    await ChatMessage.create({ content: `<div class="fgt-card"><p>${game.i18n.localize("FGT.RoundPhase.NoCycleWar")}</p></div>` });
+    return;
+  }
+  const coin = await new Roll("1d2").evaluate();
+  const opening = coin.total === 1 ? "day" : "night";
+  await combat.update({ "system.phase": opening });
+  const line = game.i18n.format("FGT.RoundPhase.Opening", { phase: game.i18n.localize(`FGT.RoundPhase.${opening}`) });
+  await ChatMessage.create({ content: `<div class="fgt-card"><p>${line} (1d2: ${coin.total})</p></div>` });
 }

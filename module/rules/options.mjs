@@ -22,6 +22,7 @@
  */
 
 import { Rank } from "../domain/rank.mjs";
+import { STANDARD_CLASSES, KNIGHT_CLASSES } from "../domain/enums.mjs";
 import { GENERATED_EMITTABLE } from "./facets.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { NP_TAG_SCALE, scaleTagOf } from "./np-scale.mjs";
@@ -45,7 +46,7 @@ import { trueNameSlug } from "./named-units.mjs";
  * @returns {string[]}
  */
 export function ownerOptionsOf(unit) {
-  return [...rollOptionsFor({ attacker: unit, defender: null })].filter((o) => o.startsWith("self:"));
+  return [...rollOptionsFor({ attacker: unit, defender: null })].filter((o) => o.startsWith("self:") || o.startsWith("war:"));
 }
 
 /**
@@ -66,6 +67,8 @@ export function rollOptionsFor({ attacker, defender, attack = null, withoutModeH
   add(options, "self", attacker, withoutModeHeld);
   add(options, "target", defender, withoutModeHeld);
   compareParameters(options, attacker, defender);
+  compareClasses(options, attacker, defender);
+  warFacts(options, attacker ?? defender);
 
   // `attack:` options ONLY FROM AN ATTACK. Every call that named none used to
   // get `attack:kind:normal` anyway, so a Skill, a Turn boundary or a hearer
@@ -282,6 +285,47 @@ function compareParameters(options, attacker, defender) {
 }
 
 /**
+ * A Servant's Classes; none for any other Unit.
+ * @param {object|null} unit
+ * @returns {string[]}
+ */
+function classesOf(unit) {
+  if (unit?.kind !== "servant") return [];
+  return [...(unit.servantClasses ?? [])];
+}
+
+/**
+ * `target:class:same` when the two Servants share a Class: Kazuradrop's *"All
+ * damage dealt to Units with the same Servant Class as herself"* (#286).
+ *
+ * @param {Set<string>} options
+ * @param {object} attacker
+ * @param {object} defender
+ * @returns {void}
+ */
+function compareClasses(options, attacker, defender) {
+  const mine = classesOf(attacker);
+  if (mine.length && classesOf(defender).some((c) => mine.includes(c))) options.add("target:class:same");
+}
+
+/**
+ * The War's own facts, which are the same for every Unit in it (#301, #294, #287):
+ * `war:region:<r>` (*"If the Grail War region is Russia"*) and `war:phase:<p>`,
+ * the ROUND's phase, `none` included when the War plays without the cycle.
+ * `self:phase` stays the Unit's own panel's (a Darkness area, Sol).
+ *
+ * @param {Set<string>} options
+ * @param {object|null} unit either combatant; both stand in one War
+ * @returns {void}
+ */
+function warFacts(options, unit) {
+  const war = unit?.war;
+  if (!war) return;
+  if (war.region) options.add(`war:region:${war.region}`);
+  if (war.phase) options.add(`war:phase:${war.phase}`);
+}
+
+/**
  * A rank, or `null` for anything unparseable.
  *
  * Same reason `gradesClearedBy` swallows the throw: this pass runs over whatever
@@ -380,6 +424,16 @@ function add(options, side, unit, withoutModeHeld = false) {
 
   // Region, so a clause can name where a unit is from.
   for (const r of unit.region ?? []) options.add(`${side}:region:${r}`);
+
+  // A SERVANT's Class, its group, and whether it is a Knight (#286, #314):
+  // *"All damage dealt to Caster-class Servants"*, *"Standard Class Servants"*,
+  // *"Extra-class Servants"*, Huitzilopochtli's *"Knight-class Servants"*. A
+  // Master or a summon has no Class, so emits none (*"X-class Servants"*).
+  for (const c of classesOf(unit)) {
+    options.add(`${side}:class:${c}`);
+    options.add(`${side}:classGroup:${STANDARD_CLASSES.includes(c) ? "standard" : "extra"}`);
+    if (KNIGHT_CLASSES.includes(c)) options.add(`${side}:classGroup:knight`);
+  }
 
   // A resolved summon-time variant (`rules/summon-variant.mjs`) — Semiramis's
   // 'Double Summon: Caster' passives are gated on `self:variant:dsc`.

@@ -10,6 +10,7 @@
 
 import { moment, NO_MOMENT } from "../domain/moment.mjs";
 import { snapshotBoard, snapshotUnit, turnStateAt, roundStateAt } from "../rules/snapshot.mjs";
+import { roundPhase } from "../rules/environment.mjs";
 import { normalizeFactions, alliancesOf, factionChoices, factionForUser } from "../rules/factions.mjs";
 import { warRule, currentWar, revisionRules } from "./war.mjs";
 
@@ -117,7 +118,30 @@ export function unitSnapshot(actor, token = null, { moment: at = undefined } = {
     // safe. Resolved the same way `currentBoard` resolves it, from the match
     // first and the world setting second.
     warRegion: currentWarRegion(),
+    // The Round's phase, so a Unit read alone carries `war:phase` too (#314).
+    roundPhase: currentRoundPhase(round),
   });
+}
+
+/**
+ * The phase of a Round of the current War: its opening flip, its `dayNightCycle`
+ * rule and any override, asked of the one deriver (`rules/environment.mjs#roundPhase`).
+ *
+ * @param {number|null} [round] defaults to the War's own Round
+ * @returns {"day"|"night"|"none"|null} null where no War can be read
+ */
+export function currentRoundPhase(round = null) {
+  try {
+    const war = currentWar();
+    return roundPhase({
+      round: round ?? war?.round ?? 1,
+      opening: war?.system?.phase ?? "day",
+      cycle: warRule("dayNightCycle", war),
+      override: war?.system?.phaseOverride ?? null,
+    });
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -496,6 +520,8 @@ export function currentBoard(overrides = {}) {
       round: at.round ?? combat?.round ?? 1,
       tick: at.tick ?? combat?.system?.globalTurn ?? 0,
       phase: combat?.system?.phase ?? "day",
+      dayNightCycle: warRule("dayNightCycle", combat),
+      phaseOverride: combat?.system?.phaseOverride ?? null,
       // Whose Turn it is (#28). `null` out of combat, which reads as "no Turn
       // gate applies" -- the same answer the GM arranging a scene needs.
       actingFactionId: combat?.actingFactionId ?? null,

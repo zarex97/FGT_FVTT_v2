@@ -283,6 +283,9 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
         const verdict = toggle
           ? modeSlotVerdict({ ending, toggle, priced: pricedOnEntry(item), use: useVerdict })
           : useVerdict();
+        // Not in this War: its other version has the slot (#314). Asked of the
+        // gate itself, so the bar hides exactly what a press would refuse.
+        if (useVerdict().reason === "notInThisWar") return null;
         const slot = slotFor({
           ...entry,
           img: item.img,
