@@ -21,6 +21,7 @@
  * attack. Neither needs a target, and asking for one is a bug, not a rule.
  */
 
+import { unknownCountKindsIn } from "./count.mjs";
 import { test as testPredicate } from "./predicate.mjs";
 import { platformsSummonedBy } from "./platforms.mjs";
 import { AUTOMATIC_WINDOW } from "./windows.mjs";
@@ -748,5 +749,9 @@ export function usageSpecFor(ability) {
     // this spec carries neither `phases` nor `creates`: a gate that read the
     // phases would pass on the display and miss on the use paths.
     summonsPlatforms: platformsSummonedBy(sys),
+    // Counts it makes that the Count module cannot read (#319, Q19): refused at
+    // use, out loud, rather than sized at zero. Walked here because this spec
+    // carries neither its rules nor its phases.
+    unknownCountKinds: unknownCountKindsIn(sys),
   };
 }

@@ -71,7 +71,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   // to `false` means the recorder never starts and the Noble Phantasm has no
   // past to read, silently.
   "requiresHistory",
-  "phases", "copyable", "copiedFrom", "opensDialog", "additionalCosts",
+  "phases", "copyable", "copiedFrom", "opensDialog", "additionalCosts", "criteria",
   "npGateRound", "countsForNPSeal", "itemCost", "category", "kind", "passive", "countsAsAttack",
   "countsAsAct", "oncePerTurn", "oncePerRound", "alsoTriggers",
   "exclusionSet", "grantedBy", "sameTurnExclusive", "sameRoundExclusive",
@@ -80,7 +80,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   // Classic and Revised (#260 reading 3): the text a bearer prints, its own
   // exemption from Skill Seal, and the Revised description.
   "printedRevision", "unsealable", "descriptionRevised",
-  "countsAsNormalAttack", "openingChoice", "toggleWindow", "cooldownOverride",
+  "countsAsNormalAttack", "openingChoice", "toggleWindow", "cooldownOverride", "endsAfter",
   // What a mode's end pays, by how it ended (#253, Doppelganger).
   "onDeactivate",
   // Avalon (#230): a Noble Phantasm that costs its Master nothing; an Item

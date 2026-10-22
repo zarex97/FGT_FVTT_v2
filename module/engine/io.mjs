@@ -563,13 +563,12 @@ export function worldIO() {
       // the lockout — that is `cannotDeactivate`'s asymmetry above — but it
       // still restarts it, because the wait is a property of the mode rather
       // than of whose hand moved it.
-      await item.update({
-        "system.active": active,
-        "system.toggledAt": currentWar()?.system?.globalTurn ?? 0,
-        // How it ended, for `onModeEnded`: a forced switch says so, and a
-        // switch ON clears the last word (#253).
-        "system.endedBy": active ? null : (endedBy ?? "forced"),
-      });
+      // How it ended, for `onModeEnded`: a forced switch says so. The patch is
+      // the owner's press's too (`rules/modes.mjs#modeSwitchPatch`).
+      const { modeSwitchPatch } = await import("../rules/modes.mjs");
+      await item.update(modeSwitchPatch(active, {
+        tick: currentWar()?.system?.globalTurn ?? 0, endedBy: endedBy ?? "forced",
+      }));
     },
 
     /**
@@ -1511,6 +1510,18 @@ export function worldIO() {
      *
      * @param {string} unitId @param {string} effectId the instance's id @param {number} steps
      */
+    /**
+     * One more event heard by a Mode's tally (#288).
+     *
+     * @param {string} unitId
+     * @param {string} abilityId the Mode's item id
+     */
+    async tallyMode(unitId, abilityId) {
+      const item = resolve(unitId)?.items?.get?.(abilityId) ?? null;
+      if (!item) return;
+      await item.update({ "system.tally": (item.system?.tally ?? 0) + 1 });
+    },
+
     async decayEffect(unitId, effectId, steps) {
       const actor = resolve(unitId);
       const effect = actor?.effects.get?.(effectId) ?? actor?.effects.find((e) => e.system?.defId === effectId);

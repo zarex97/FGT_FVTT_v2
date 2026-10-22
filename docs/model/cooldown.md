@@ -37,7 +37,9 @@ code: module/engine/cooldown.mjs
 - `bypassForCost` (**Attribute**, Lancer 2026-10-21): a use allowed while on Cooldown, for a price. Arturia's and
   Lanceturia's Mana Burst *"Can be used while on Cooldown, but she has to be within her Master's ZON and her Master
   loses 20 Health; does not reset Cooldown"*. `cooldownWaiver` spends a resource to skip the cooldown; this pays
-  the Master's Health and needs the ZON. Not run, #306.
-  keys: none (#306); the resource form is `field.cooldownWaiver`
+  the Master's Health and needs the ZON. **Run since #230** (corrected 2026-10-22: #306 claimed a gap the engine
+  already fills; `rules/costs.mjs#canUseAbility` reads `cooldownOverride`, Arturia's Mana Burst authors it).
+  Lanceturia's copy is content for her own build.
+  keys: `field.cooldownOverride`, `field.cooldownWaiver`
 
 **Kin:** Saber: 6 groups on 6 sheets, plus the criteria Clauses in [predicate.md](predicate.md).

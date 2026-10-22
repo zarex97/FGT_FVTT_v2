@@ -35,7 +35,7 @@ export class TargetingHUD {
   /**
    * @param {object} [args]
    * @param {string} [args.label] the ability's name
-   * @param {Function} [args.damageFor] `(unitId) => {min, max, certain}` or null
+   * @param {Function} [args.damageFor] `(unitId, unitIds) => {min, max, certain}` or null; `unitIds` is every row drawn
    */
   constructor({ label = "", damageFor = null } = {}) {
     this.#label = label;
@@ -78,7 +78,8 @@ export class TargetingHUD {
     }
 
     const targets = unitsShown(option.resolved);
-    const rows = targets.map((t) => this.#row(t)).join("");
+    const ids = targets.map((t) => t.unitId);
+    const rows = targets.map((t) => this.#row(t, ids)).join("");
 
     // Everything the area caught and then dropped, with the reason it was
     // dropped. A unit standing inside the highlight and not in the target list
@@ -146,10 +147,10 @@ export class TargetingHUD {
    * @param {object} target a `TargetedUnit`
    * @returns {string}
    */
-  #row(target) {
+  #row(target, ids = [target.unitId]) {
     const actor = game.actors.get(target.unitId);
     const name = escape(actor ? shownName(actor) : target.unitId);
-    const range = this.#damageFor?.(target.unitId) ?? null;
+    const range = this.#damageFor?.(target.unitId, ids) ?? null;
     const damage = range ? `<span class="fgt-preview__damage">${escape(formatRange(range))}</span>` : "";
     const band = target.band ? `<span class="fgt-preview__band">band ${target.band}</span>` : "";
     return `<div class="fgt-preview__target">

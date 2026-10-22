@@ -24,6 +24,7 @@ import { terrainPeriodics } from "../rules/terrain.mjs";
 import { multiServantTax } from "../rules/relationships.mjs";
 import { sideOf } from "../rules/relations.mjs";
 import { transferEffect, transferableFrom, removeStages, attackOptionsOf, timesOf } from "../rules/effect-flow.mjs";
+import { stacksHeld } from "../rules/count.mjs";
 import { forcedStanceFor } from "../rules/stance.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { currentHealth, maxHealth } from "../domain/health.mjs";
@@ -1279,7 +1280,12 @@ const ACTIONS = Object.freeze({
     // too: Gogh's *"one Atk Up per stage removed"* is `times: "@stageDelta"`,
     // which counted 1 for any string, so a Crit that took two paid one.
     const applyTimes = a.times === undefined ? null
-      : typeof a.times === "string" ? timesOf(a.times, { event: c.event ?? null }) : stackTimes(a.times, u);
+      : typeof a.times === "string" ? timesOf(a.times, { event: c.event ?? null })
+        : typeof a.times === "number" ? a.times
+          // The ONE stacks rule (`rules/count.mjs#stacksHeld`), on the snapshot
+          // this pass is handed: a stage counts its stage, a suppressed instance
+          // none. `stackTimes` counted `max(1, uses)` of every instance (Q3).
+          : timesOf(a.times, { stacks: stacksHeld(u) });
     if (applyTimes !== null && applyTimes <= 0) return [];
 
     const parsed = a.duration ? parseTick(a.duration) : null;
@@ -1565,6 +1571,23 @@ const ACTIONS = Object.freeze({
   },
 
   /**
+   * One more event heard by a Mode's tally (#288, #319). The handler is the
+   * Mode's own (`rules/modes.mjs#tallyHandler`, among its active rules), so
+   * `h.abilityId` is the Mode. At its `endsAfter.count` the Mode ends, by
+   * `tally`: Saitou's *"forcefully ended after he performs a successful seventh
+   * Attack"*.
+   */
+  TallyMode: (a, u, h) => {
+    const mode = (u.abilities ?? []).find((x) => x.id === h.abilityId) ?? null;
+    const count = Number(mode?.endsAfter?.count ?? 0);
+    if (!mode || !(count > 0)) return [];
+    const after = (mode.tally ?? 0) + 1;
+    const out = [I.tallyMode(u.id, mode.id, after, count, mode.name ?? null)];
+    if (after >= count) out.push(I.setMode(u.id, mode.id, false, h.source, "tally"));
+    return out;
+  },
+
+  /**
    * Move effects from other units onto this one, keeping their durations.
    *
    * Van Gogh's *Shadow of Longing* is the reference case, and it transfers
@@ -1609,30 +1632,6 @@ const ACTIONS = Object.freeze({
 
 /** The action vocabulary a handler's `then:` may name; content is held against it (#243). */
 export const ACTION_KINDS = Object.freeze(Object.keys(ACTIONS));
-
-/**
- * How many charges an `ApplyEffect` action is worth.
- *
- * A literal, or a count of what the bearer is carrying:
- * `times: {perStack: {effect: proliferationStock}}`. The snapshot already
- * counts instances and uses the same way for `perStack` magnitudes
- * (`rules/snapshot.mjs#stacksHeld`); this reads the projection's own
- * `effectInstances`, because the scheduler is handed a snapshot rather than a
- * document.
- *
- * @param {number|object} raw
- * @param {object} unit a unit snapshot
- * @returns {number}
- */
-function stackTimes(raw, unit) {
-  if (typeof raw === "number") return raw;
-  const spec = raw?.perStack ?? null;
-  if (!spec?.effect) return 1;
-  const held = (unit?.effectInstances ?? [])
-    .filter((e) => e.defId === spec.effect)
-    .reduce((n, e) => n + Math.max(1, e.uses ?? 0), 0);
-  return Math.floor(held / (spec.each ?? 1));
-}
 
 /**
  * Which Units an action lands on.

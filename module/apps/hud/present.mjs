@@ -105,6 +105,9 @@ export function slotFor(ability, { verdict, cost = null, turnsPerRound = 3, coun
     counter: Boolean(counter) && counter.isAttack === true,
     disabled: refused || (Boolean(cooldown) && !overCooldown) || notAnAttack,
     overCooldown,
+    // A Mode's tally toward its end, while it is on (#288): "4/7".
+    tally: ability?.active && Number(ability?.endsAfter?.count) > 0
+      ? { tally: ability.tally ?? 0, count: Number(ability.endsAfter.count) } : null,
     // The reason travels with the slot so the tooltip can say it. A dead
     // control with no explanation is how a player concludes the system is
     // broken (`rules/modes.mjs` states the same rule for `cannotDeactivate`).

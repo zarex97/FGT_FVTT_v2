@@ -48,6 +48,26 @@ Twelve types exist: `text`, `number`, `checkbox`, `select`, `range`, `rank`, `ti
 
 **Elements.** `ELEMENT_DESCRIPTORS` holds 54 entries, one per executor in `rules/elements.mjs` (`module/rules/authoring/elements.mjs:87-440`). Every element may carry `predicate` to gate its execution and `defer` to hold a check until the attack it depends on exists. The buckets—`rules`, `passiveRules`, `activeRules`—are recorded because the vocabulary is the place to note such a restriction if one is ever found; today nothing filters by bucket because `collectContributions()` splats all three into one list and gates only on `ability.active` (`module/rules/authoring/elements.mjs:12-23`).
 
+**Counts.** Every element whose magnitude may scale carries `count`, with `each`, `base` and `zeroPaysNothing` beside
+it, as well as the older `perStack` (`module/rules/authoring/elements.mjs`, `SCALED`). A Count is `{of, …}`, and `of`
+is closed (`module/rules/count.mjs#COUNT_KINDS`, #319):
+
+| `of` | Reads | Needs |
+|---|---|---|
+| `stacks` | the bearer's stacks of one Effect: a stage, else its uses, else 1 | `effect` |
+| `targets` | the phase's recipients passing `requires`; `excludeSelf` drops the caster | — |
+| `board` | the War's Units at `relation` to the asker passing `requires` | — |
+| `resource` | one of the Unit's resources | `key` |
+| `parameters` | a DU's Parameters compared with the caster's | `vs`, `compare` |
+| `criteria` | the declaration's criteria met | — |
+| `use` | a fact of the Use record | `fact` |
+| `tally` | a Mode's Tally | — |
+
+The value is `base + per × floor(count / each)`, clamped to `max`; `zeroPaysNothing` pays nothing at all at zero, its
+`base` included. The build refuses an unknown kind or a missing key, naming the path (`tools/lib/content.mjs#countsAreKnown`),
+and the use gate refuses one made in the editor, naming the kind (`unknownCountKind`). Both walk with one function,
+`countSpecsIn`.
+
 **Phases.** `PHASE_DESCRIPTORS` holds 20 kinds, three from `runPhases()` in the attack pipeline and the rest from `runPhases()` in `engine/skill-use.mjs`. `applyEffect` is an alias for `applyEffects`, not a distinct kind, so it is not offered (`module/rules/authoring/phases.mjs:64-192`). The `order` field is a presentation weight: `applyEffects` is 95 of 195 authored abilities, so a picker that sorted alphabetically would bury the common case.
 
 **Requirements.** Two lists, held apart: `REQUIREMENT_DESCRIPTORS` (24 kinds) for abilities, `CS_REQUIREMENT_DESCRIPTORS` for command spells (`module/rules/authoring/requirements.mjs:57-168`). Both dispatchers refuse an unknown kind by returning `false`, which means the gate always loses and the ability silently cannot be used. Comparing the two lists is the cheapest place to catch this defect (`module/rules/authoring/requirements.mjs:6-13`).

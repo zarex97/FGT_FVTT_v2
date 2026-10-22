@@ -95,6 +95,7 @@ import {
 } from "../rules/concealment.mjs";
 import { selectBranch, isNestedCheck, MAX_CHECK_DEPTH } from "../rules/checks/branches.mjs";
 import { publicSpeakerFor, publicIdentityOf } from "./public-identity.mjs";
+import { criteriaMet, declarationCriteria, multiplierOf } from "../rules/count.mjs";
 import { regionSizedTargeting } from "./fields.mjs";
 // The name a line prints is the PUBLIC one (#230 rolls, #235 every card):
 // the one door is `public-identity.mjs#shownName`.
@@ -240,10 +241,20 @@ export async function resolveAttack({
     );
   }
 
+  // The ability's criteria (#283), counted ONCE over the declaration's DUs --
+  // before the price, because the price reads the number: Excalibur Proto's
+  // Master pays 5 more and its clock runs ½◈ longer per criterion met. Said on a
+  // card of its own before any Process, and carried on every Process's state for
+  // the multiplier its damage reads.
+  const criteria = declarationCriteria(ability?.system?.criteria, targets, self, board);
+  if (criteria.total > 0 && !resume) await postCriteriaCard(attacker, ability, criteria);
+
   // The ability's OWN price -- its shield refresh, its use record, its costs
   // and its cooldown. Shared with the Ch. 21 Counter path, which pays all of it
   // and none of the budget above.
-  const price = await payAbilityPrice({ ability, attackerId, attacker, self, master, usage, board, resume });
+  const price = await payAbilityPrice({
+    ability, attackerId, attacker, self, master, usage, board, resume, use: { criteriaMet: criteria.met },
+  });
   // A held concealment roll survives a pre-emption: the resume pays nothing and
   // rolls nothing, so the placement carries it (#249 reading 9b).
   const keepsConcealment = Boolean(price?.keepsConcealment || (resume && placement?.keepsConcealment));
@@ -368,6 +379,8 @@ export async function resolveAttack({
     // read `state.attack.areaPanels`, which nothing set), and the Holy Grail
     // struck by an AoE NP (#104).
     areaPanels: targets.panels ?? [],
+    // How many of its criteria the declaration met, and which (#283).
+    ...(criteria.total > 0 ? { criteriaMet: criteria } : {}),
   };
   // "EMIYA performs 2 Normal Attacks in a row." Two Combat PROCESSES against
   // the same defender, inside ONE Combat Phase -- which is the distinction that
@@ -608,7 +621,7 @@ async function declareAftermath({
  * @param {object} args
  * @returns {Promise<void>}
  */
-export async function payAbilityPrice({ ability, attackerId, attacker, self, master, usage, board, resume }) {
+export async function payAbilityPrice({ ability, attackerId, attacker, self, master, usage, board, resume, use = {} }) {
   if (resume) return;
 
   // A barrier is refreshed on the way up, BEFORE the use is recorded: *"every
@@ -655,7 +668,7 @@ export async function payAbilityPrice({ ability, attackerId, attacker, self, mas
     channelStarted = await runCasterChannel(ability, attacker, board);
   }
 
-  const pending = resume || channelStarted ? [] : pendingCosts({ usage, ability, self, master, board });
+  const pending = resume || channelStarted ? [] : pendingCosts({ usage, ability, self, master, board, use });
   const { charged, superseded } = resolveCosts(pending);
 
   for (const cost of charged) await applyBatch(costIntents(cost, self), "attack:cost");
@@ -671,7 +684,7 @@ export async function payAbilityPrice({ ability, attackerId, attacker, self, mas
   // A use ON the Cooldown leaves the clock as it was: *"using it in this way
   // does not reset Cooldown"* (Arturia's Mana Burst, #230).
   if (ability && !resume && !channelStarted && !usage?.overCooldown) {
-    const plan = cooldownFor(ability, attackerId, { unit: self });
+    const plan = cooldownFor(ability, attackerId, { unit: self, use });
     // *"When either Castor or Pollux uses a Skill, the Skill enters Cooldown
     // for both of them."* Spread beside `alsoTriggered` so the shared clocks
     // and the triggered ones become the same intents.
@@ -4591,7 +4604,7 @@ function civilianIntents(descriptors, killerId = null) {
  * @param {object} args
  * @returns {object[]}
  */
-function pendingCosts({ usage, ability, self, master, board }) {
+function pendingCosts({ usage, ability, self, master, board, use = {} }) {
   /** @type {object[]} */
   const out = [];
 
@@ -4603,7 +4616,7 @@ function pendingCosts({ usage, ability, self, master, board }) {
   // something else can name it in `supersedes`. Expanded in the RULES layer so
   // the Skill path pays them too -- it did not, and four abilities across three
   // Servants declare costs and resolve that way (Ch. 46 §46.4-T).
-  out.push(...additionalCostsFor({ ability, self, master, turnsPerRound: warRule("turnsPerRound") }));
+  out.push(...additionalCostsFor({ ability, self, master, turnsPerRound: warRule("turnsPerRound"), use }));
 
   // A platform this Servant owns may replace the NP cost outright (Ch. 27).
   const platform = (board.units ?? []).find(
@@ -5667,8 +5680,9 @@ async function applyDamage(state, message) {
     bandMultiplier: block
       ?.bands?.[state.attack?.bandOf?.[defender.id] ?? 0]?.multiplier ?? 1,
     // Same reason as `base` above: the block is the splash's own, or the
-    // ability's when this is the ordinary resolution.
-    multiplier: block?.multiplier ?? 1,
+    // ability's when this is the ordinary resolution. Sized by the criteria the
+    // declaration met, when it states them (#283).
+    multiplier: multiplierOf(block, { use: { criteriaMet: state.attack?.criteriaMet?.met ?? 0 } }),
     flatBonus: block?.flatBonus ?? 0,
     conditionalMultipliers: block?.conditionalMultipliers ?? facts.conditionalMultipliers ?? [],
     crit: { isCrit, chanceUsed: critSpec.percent },
@@ -7423,7 +7437,7 @@ export function instancesAgainst(ability, attacker, defender, declared, { fallba
   return expandInstances(repeat === null ? block : { ...block, repeat });
 }
 
-export function previewContext({ caster: given, defender, ability, board, isNP }) {
+export function previewContext({ caster: given, defender, ability, board, isNP, targets = null }) {
   const caster = (board?.units ?? []).find((u) => u.id === given?.id) ?? given;
   // The preview declares the attack the way a press does (`buildAttackSpec`)
   // and describes it through the Attack Description the resolution reads
@@ -7465,7 +7479,12 @@ export function previewContext({ caster: given, defender, ability, board, isNP }
     // stage 1 added nothing and the broadside previewed at 117 and dealt 1341
     // (#187).
     contentBaseAttack: contentBaseAttacks(),
-    multiplier: block?.multiplier ?? 1,
+    // The criteria the declaration would meet (#283), over every DU the preview
+    // is drawing -- the set the resolution counts -- and the one shown when it
+    // is handed no set. Counted per row before, so two DUs previewed the x5 each
+    // would earn alone and resolved at x3.5 (found live).
+    multiplier: multiplierOf(block, { use: { criteriaMet: criteriaMet(ability?.system?.criteria,
+      { targets: targets ?? (defender ? [defender] : []), self: caster, board }).met } }),
     flatBonus: block?.flatBonus ?? 0,
     conditionalMultipliers: block?.conditionalMultipliers ?? facts.conditionalMultipliers ?? [],
     crit: { isCrit: false, chanceUsed: 0 },
@@ -8915,7 +8934,8 @@ function counterfactualDamage({ attackerDoc, ability, board, options, defenderUn
     board,
     attack,
     base: baseSpecFor(attackerDoc, ability, attack.range, description.options, block),
-    multiplier: block?.multiplier ?? 1,
+    // A counterfactual meets no criteria: none was counted, since none was declared.
+    multiplier: multiplierOf(block),
     flatBonus: block?.flatBonus ?? 0,
     conditionalMultipliers: block?.conditionalMultipliers ?? [],
     // No crit. The coin was never flipped — the resolution did not happen — and
@@ -8950,4 +8970,37 @@ async function resolveEmptiedUnit(unitId) {
 
   const intents = await resolveDefeatOf(unit, 0, {});
   if (intents.length > 0) await applyBatch(intents, "npCancelled:defeat");
+}
+
+/**
+ * The card that says how many criteria a declaration met, before any Process opens.
+ *
+ * An outcome a player must know: the multiplier, the Master's cost and the clock
+ * all move with it (#283).
+ *
+ * @param {object} actor
+ * @param {object} ability
+ * @param {{met: number, which: number[], total: number}} criteria
+ * @returns {Promise<void>}
+ */
+export async function postCriteriaCard(actor, ability, criteria) {
+  await ChatMessage.create({
+    content: `<p>${criteriaLine((key, data) => game.i18n.format(key, data), ability, criteria)}</p>`,
+    speaker: publicSpeakerFor(actor),
+  });
+}
+
+/**
+ * The words of that card, from a translator: "Excalibur Proto: criteria met 3 of 6 (1, 5, 6)".
+ *
+ * @param {(key: string, data: object) => string} t
+ * @param {object|null} ability
+ * @param {{met: number, which: number[], total: number}} criteria
+ * @returns {string}
+ */
+export function criteriaLine(t, ability, criteria) {
+  return t("FGT.Criteria.Line", {
+    ability: ability?.name ?? "", met: criteria.met, total: criteria.total,
+    which: criteria.which.length > 0 ? criteria.which.join(", ") : "—",
+  });
 }

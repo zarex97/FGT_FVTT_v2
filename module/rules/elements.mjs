@@ -24,6 +24,7 @@ import { lookup } from "../domain/tables.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { test as testPredicate, referencedOptions } from "./predicate.mjs";
 import { orderElements } from "./ordering.mjs";
+import { countScaleOf, countedValue, countOf, UnknownCountKind } from "./count.mjs";
 
 /**
  * @typedef {object} Contributions
@@ -170,7 +171,18 @@ export function collectContributions(abilities, ctx = {}) {
         continue;
       }
       const before = ability.fromEffect ? bucketLengths(out) : null;
-      execute(el, { rank, source, ability, out, ctx: runCtx, deferred });
+      try {
+        execute(el, { rank, source, ability, out, ctx: runCtx, deferred });
+      } catch (err) {
+        // A Count this module cannot read costs its own clause, never the board
+        // (#319, found live): the editor can author one the build would refuse,
+        // and the throw came out of every board snapshot, so the bar went stale
+        // and the use gate's own refusal (`unknownCountKind`) was never reached.
+        if (!(err instanceof UnknownCountKind)) throw err;
+        console.error(`FGT | ${source}: ${err.message}`);
+        out.unhandled.push({ key: el.key, source, countKind: err.kind });
+        continue;
+      }
       if (before) stampInstance(out, before, ability.id);
     }
   }
@@ -418,7 +430,8 @@ export function resolveValue(el, rank, ctx, field = "value") {
 }
 
 /**
- * A magnitude that scales with how many of an effect the bearer holds.
+ * A magnitude that scales with a Count: how many of an effect the bearer holds,
+ * or any other kind `rules/count.mjs` reads (`count: {of, …}`, #319).
  *
  * `perStack: {effect, each = 1, base = 0}` resolves to
  * `base + value × floor(count / each)` while the bearer holds at least one, and
@@ -446,15 +459,39 @@ export function resolveValue(el, rank, ctx, field = "value") {
  * @returns {number|number[]|string|null}
  */
 function stackScaled(el, value, ctx) {
-  const spec = el.perStack ?? null;
+  const spec = countScaleOf(el);
   if (!spec) return clampMax(value, el.max);
   if (typeof value !== "number" && !Array.isArray(value)) return value;
 
-  const count = ctx?.stacks?.[spec.effect] ?? 0;
-  const steps = count > 0 ? Math.floor(count / (spec.each ?? 1)) : 0;
-  const scale = (v) => (count > 0 ? (spec.base ?? 0) + v * steps : 0);
+  // The element's value is the amount per step; the Count module sizes it.
+  const scale = (v) => countedValue({ ...spec, per: v }, ctx ?? {});
 
   return clampMax(Array.isArray(value) ? value.map(scale) : scale(value), el.max);
+}
+
+/**
+ * A RankShift's `steps` or `grades`: a literal, or a number sized by a Count (#284).
+ *
+ * @param {number|object|undefined} value
+ * @param {object} ctx the collection context (`refs`, `stacks`)
+ * @returns {number|undefined}
+ */
+function shiftSize(value, ctx) {
+  return value && typeof value === "object" ? countedValue(value, ctx ?? {}) : value;
+}
+
+/**
+ * A RankShift's `to`: a Rank, or the rung of `{ladder, count}` the count reaches, the last rung at most.
+ *
+ * @param {string|{ladder: string[], count: object}|undefined} to
+ * @param {object} ctx
+ * @returns {string|undefined}
+ */
+function rungOf(to, ctx) {
+  if (!to || typeof to !== "object") return to;
+  const ladder = Array.isArray(to.ladder) ? to.ladder : [];
+  if (ladder.length === 0) return undefined;
+  return ladder[Math.min(countOf(to.count, ctx ?? {}), ladder.length - 1)];
 }
 
 /**
@@ -1535,7 +1572,15 @@ export const EXECUTORS = Object.freeze({
     out.npGateShifts.push({ rounds: Number(el.rounds ?? 0), source });
   },
 
-  RankShift(el, { source, out }) {
+  RankShift(el, { source, out, ctx }) {
+    // A shift sized by a Count (#284): `steps` or `grades` may be
+    // `{count: {of, …}, max}`, and `to` may be a ladder walked one rung per
+    // count. Godspeed's *"For each Godspeed Token Richard has, his AGI Rank is
+    // increased as such: B (0 Godspeed Tokens) > B+ > B++ > A > A+ > A++ > EX"*
+    // is that ladder: it skips A-- and A-, so it is not the dense `steps` one.
+    const steps = shiftSize(el.steps, ctx);
+    const grades = shiftSize(el.grades, ctx);
+    const to = rungOf(el.to, ctx);
     // A shift aimed at an ABILITY's rank rather than at a parameter.
     // Penthesilea's Goddess of War is the only one in the reference set:
     // *"Penthesilea's Divinity Rank is increased from B to A"*, which raises
@@ -1544,7 +1589,7 @@ export const EXECUTORS = Object.freeze({
     // is an INPUT to the collection rather than an output of it.
     if (el.ability) {
       out.abilityRankShifts.push({
-        ability: el.ability, steps: el.steps ?? null, grades: el.grades ?? null, to: el.to ?? null, source,
+        ability: el.ability, steps: steps ?? null, grades: grades ?? null, to: to ?? null, source,
       });
       return;
     }
@@ -1568,11 +1613,11 @@ export const EXECUTORS = Object.freeze({
     // rather than counting positions across a grade boundary.
     out.statDeltas.push({
       stat: `parameters.${el.parameter}`,
-      ...(el.to
-        ? { rankTo: el.to }
-        : el.grades !== undefined
-          ? { rankGrades: el.grades }
-          : { rankShift: el.steps ?? 1 }),
+      ...(to
+        ? { rankTo: to }
+        : grades !== undefined
+          ? { rankGrades: grades }
+          : { rankShift: steps ?? 1 }),
       target: el.target ?? null, source,
     });
   },

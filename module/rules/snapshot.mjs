@@ -14,6 +14,8 @@
  * the effect engine bumps.
  */
 
+import { stacksHeld } from "./count.mjs";
+import { tallyHandler } from "./modes.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { TURN_RECORD, ROUND_RECORD } from "../domain/stamped-record.mjs";
 import { remainingMovement } from "./movement.mjs";
@@ -1867,7 +1869,12 @@ export function contributionsOf(actor, { terrain = [], tick = null, partnerDista
     // and its compulsion held on regardless (#190).
     .filter((item) => !(typeof item.system?.suspendedUntil === "number" && typeof tick === "number"
       && tick < item.system.suspendedUntil))
-    .map((item) => abilityRecordOf(item));
+    .map((item) => {
+      const record = abilityRecordOf(item);
+      // A Mode's tally handler, among its active rules (#288).
+      const tally = tallyHandler(item);
+      return tally ? { ...record, activeRules: [...record.activeRules, tally] } : record;
+    });
 
   // Rule elements authored directly on the unit -- a summon with no separate
   // ability item to carry them (Bašmu's Normal Attack rider), or a
@@ -2099,50 +2106,6 @@ function readTimeScaled(abilities, collectOptions) {
 }
 
 /**
- * How many of each effect this Unit holds, by definition id.
- *
- * Two shapes count the same way, and both are on Kingprotea:
- *
- *   - `magnitudeStacks` puts each application in its **own document**, so ten
- *     Proliferation stocks are ten instances. That is what *"each Proliferation
- *     stock counts as a separate buff"* means, and what makes a dispel able to
- *     take one.
- *   - `count` keeps **one** document and accumulates `uses`, which is what
- *     *"remove one NP DmUp (GAO) buff from herself"* needs — `consumeUse`
- *     already spends exactly one.
- *
- * `max(1, uses)` reads both: an instance with no use counter is worth one.
- *
- * @param {object} actor
- * @returns {Record<string, number>}
- */
-export function stacksHeld(actor) {
-  /** @type {Record<string, number>} */
-  const out = {};
-  for (const effect of actor?.effects ?? []) {
-    if (effect.disabled || effect.isSuppressed) continue;
-    const id = effect.system?.defId;
-    if (!id) continue;
-    // A STAGED instance counts its stage; a charge-based one counts its uses;
-    // anything else counts as one.
-    //
-    // Stages were not counted at all until Van Gogh: `uses` is 0 on a staged
-    // instance, so `Math.max(1, 0)` reported a Stage 7 Curse as ONE. Her
-    // Imaginary Numbers Arts reduces her Noble Phantasm's cooldown by
-    // *"⅓◈ * the stage of the Curse debuff on Gogh"* -- the sheet's own worked
-    // example is Stage 7 giving 2◈+⅓◈ -- which would have been a flat ⅓◈ for
-    // ever.
-    //
-    // Evade's "2 times" and Mannanán's Fragarach Counters are the `uses`
-    // shape and are untouched: nothing about either is staged.
-    const stage = effect.system?.stage ?? 0;
-    const uses = effect.system?.uses ?? 0;
-    out[id] = (out[id] ?? 0) + Math.max(1, stage > 0 ? stage : uses);
-  }
-  return out;
-}
-
-/**
  * What an `@` expression resolves against (`rules/elements.mjs`).
  *
  * A facade rather than the raw document, so content can write
@@ -2272,6 +2235,10 @@ function collectAbilities(actor, { tick = null, turnsPerRound = 3 } = {}) {
       categorizedWhile: [...(i.system?.categorizedWhile ?? [])],
       // The War it exists in, asked by the use gate (`rules/costs.mjs`, #314).
       availableWhen: [...(i.system?.availableWhen ?? [])],
+      // A Mode's tally and the count it ends at (#288): read by `TallyMode`,
+      // and shown on the bar as "4/7".
+      tally: i.system?.tally ?? 0,
+      endsAfter: i.system?.endsAfter ?? null,
       // What a cross-ability gate matches on. Scathach's Gate of Skye "cannot
       // be used if Primordial Rune, Wisdom of Dun Scaith and/or Gae Bolg
       // Alternative are on Cooldown", and a gate that can only see `id` cannot

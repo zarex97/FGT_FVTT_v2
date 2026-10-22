@@ -11,9 +11,12 @@ code: module/rules/predicate.mjs, module/rules/options.mjs
 - `countOf` (**Attribute**, Saber 2026-10-21): how many of a listed set of conditions hold, read as a number by a
   magnitude, a cost or a cooldown. Excalibur Proto (Arthur, Saber), Rhongomyniad (Gray, Assassin) and
   Rhongomyniad (Lanceturia, Lancer) list five or more *criteria*, such as *"At least two DUs have the 'Evil'
-  Alignment"*. Damage rises 0.5x, the Master's cost 10 and the cooldown ½◈ per criteria met. Nothing counts
-  predicates today. Not run, #283.
-  keys: none (#283)
+  Alignment"*. Damage rises 0.5x, the Master's cost 10 and the cooldown ½◈ per criteria met. **Run since #319**:
+  an ability's `criteria` list, counted once per declaration over its DUs (`rules/count.mjs#criteriaMet`); the
+  damage multiplier, an `additionalCosts` amount and a `cooldown.countBonus` read it as a Count of kind
+  `criteria`. A DU's Parameters counted against the caster's are `target:paramsVsSelf:gte|belowBy2:<n>`, and its
+  Health against the caster's `target:healthVsSelf`.
+  keys: `field.criteria`, `field.cooldown.countBonus`, `option.target:paramsVsSelf`, `option.target:healthVsSelf`
 
   Diarmuid (Saber) counts the same way: *"if the enemy Unit has at least 3 Parameters of the same or higher Rank
   than himself"* picks his sword.

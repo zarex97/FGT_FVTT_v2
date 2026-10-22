@@ -43,7 +43,7 @@ const f = (key, type, english, extra = {}) => ({
  * @type {readonly string[]}
  */
 export const RUNTIME_FIELDS = Object.freeze([
-  "timesUsed", "toggledAt", "lastUsedTick", "expended", "active",
+  "timesUsed", "toggledAt", "lastUsedTick", "expended", "active", "tally",
   "recordedAttacks", "uses", "contentVersion", "copiedFrom", "grantedBy",
 ]);
 
@@ -113,11 +113,14 @@ export const SECTIONS = Object.freeze([
       f("exclusionSet", "text", "A named group whose members block one another."),
       f("alsoTriggers", "raw", "Other abilities this use also puts on cooldown."),
       f("cooldownWaiver", "raw", "A resource that can be spent to skip the cooldown entirely."),
+      f("cooldown.countBonus", "raw", "Cooldown added per something counted: [{ticks, count: {of, …}}]."),
+      f("criteria", "raw", "Tests over the Units it is aimed at, counted once per use: [{targets, atLeast | exactly | none}]."),
       f("availableWhen", "predicateList", "The War this ability exists in; otherwise it is hidden and its rules do not apply."),
       f("isPassive", "checkbox", "Always in effect — there is no active form to press."),
       f("isMode", "checkbox", "Switched on and left on, rather than used."),
       f("toggleLock", "tickExpr", "How long after switching before it may be switched back."),
       f("cannotDeactivate", "checkbox", "Once on, it never comes off."),
+      f("endsAfter", "raw", "Ends the Mode after this many events while it is on: {event, when, count}."),
       f("cannotCounter", "checkbox", "It cannot be used as a Counter, however it is classed."),
       f("isAttackSkill", "checkbox", "Counts as an Attack as well as a Skill."),
       f("countsAsAttack", "checkbox", "Spends the Unit's Attack."),
