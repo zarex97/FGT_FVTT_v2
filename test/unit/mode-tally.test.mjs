@@ -104,6 +104,21 @@ describe("a Mode's tally", () => {
     });
   });
 
+  it("starts again from 0 when its owner switches it on from the sheet or the bar (found live)", async () => {
+    await scene(async ({ w, item, toggle, landed }) => {
+      await toggle("test-tally", true);
+      await landed(HIT);
+      await landed(HIT);
+      await toggle("test-tally", false);
+      expect(item("test-tally").system.tally).toBe(2);
+      // The owner's press: the sheet's switch, which the action bar calls too.
+      const { FGTActorSheet } = await import("../../module/apps/actor-sheet/sheet.mjs");
+      await FGTActorSheet.toggleMode(w.actor(S), item("test-tally"));
+      expect(item("test-tally").system.active).toBe(true);
+      expect(item("test-tally").system.tally).toBe(0);
+    });
+  });
+
   it("is a Count of kind tally", () => {
     expect(countOf({ of: "tally" }, { ability: { tally: 4 } })).toBe(4);
   });

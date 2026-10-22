@@ -563,16 +563,12 @@ export function worldIO() {
       // the lockout — that is `cannotDeactivate`'s asymmetry above — but it
       // still restarts it, because the wait is a property of the mode rather
       // than of whose hand moved it.
-      await item.update({
-        "system.active": active,
-        "system.toggledAt": currentWar()?.system?.globalTurn ?? 0,
-        // How it ended, for `onModeEnded`: a forced switch says so, and a
-        // switch ON clears the last word (#253).
-        "system.endedBy": active ? null : (endedBy ?? "forced"),
-        // Each activation counts from 0: Saitou's seventh Attack is *"for the
-        // duration of that activation"* (#288).
-        ...(active ? { "system.tally": 0 } : {}),
-      });
+      // How it ended, for `onModeEnded`: a forced switch says so. The patch is
+      // the owner's press's too (`rules/modes.mjs#modeSwitchPatch`).
+      const { modeSwitchPatch } = await import("../rules/modes.mjs");
+      await item.update(modeSwitchPatch(active, {
+        tick: currentWar()?.system?.globalTurn ?? 0, endedBy: endedBy ?? "forced",
+      }));
     },
 
     /**

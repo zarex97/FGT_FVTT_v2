@@ -493,3 +493,29 @@ export function tallyHandler(item) {
     then: [{ key: "TallyMode" }],
   };
 }
+
+/**
+ * What a Mode's switch writes, either way: the one patch both writers use.
+ *
+ * Two writers switch a Mode: its owner's press (`apps/actor-sheet/sheet.mjs
+ * #toggleMode`, which the action bar calls too) and the engine's forced switch
+ * (`engine/io.mjs#setMode`). The Tally's reset lived in the engine's alone, so
+ * a Mode its owner switched back on kept the count of its last activation (#319,
+ * found live: "2/2" the moment it came on). Whatever one switch writes, the
+ * other writes.
+ *
+ * @param {boolean} active
+ * @param {{tick: number, endedBy?: string|null}} opts `endedBy` says how a switch OFF ended it
+ * @returns {Record<string, unknown>} the item update
+ */
+export function modeSwitchPatch(active, { tick, endedBy = null }) {
+  return {
+    "system.active": active,
+    "system.toggledAt": tick,
+    // How it ended, for `onModeEnded`; a switch ON clears the last word (#253).
+    "system.endedBy": active ? null : endedBy,
+    // Each activation counts from 0: Saitou's seventh Attack is *"for the
+    // duration of that activation"* (#288).
+    ...(active ? { "system.tally": 0 } : {}),
+  };
+}
