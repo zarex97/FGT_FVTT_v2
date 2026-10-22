@@ -36,6 +36,10 @@ source you can edit from.
 
 The principle underneath: **grep is for what the graph does not model, and for disproof.**
 
+## Is it authorable? Ask the capability lookup
+
+A graph answers questions about code. For a question about **content** (which authored key runs a rule, who authors it, and whether a sheet's Clause is already built somewhere), ask `node tools/capability.mjs <term>` first, and `--sheet` for a hand-written Clause list (Ch. 43, *The capability lookup*). It reads the authoring registries and `packs/_source/`, which no symbol graph models.
+
 ## A graph answer is never proof of an absence
 
 A graph tells you what exists. It cannot tell you that *nothing* references X, because it may not
