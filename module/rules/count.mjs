@@ -23,6 +23,7 @@
 import { test as testPredicate } from "./predicate.mjs";
 import { rollOptionsFor } from "./options.mjs";
 import { relationOf } from "./relations.mjs";
+import { Rank } from "../domain/rank.mjs";
 
 /** The sources a Count may read (Q19). */
 export const COUNT_KINDS = Object.freeze([
@@ -84,6 +85,8 @@ export function countOf(spec, ctx = {}) {
         if (spec.relation && relationOf(ctx.self, unit, ctx.board) !== spec.relation) return false;
         return passes(spec.requires, unit);
       }).length;
+    case "parameters":
+      return parametersCounted(spec, ctx.self, ctx.target);
     case "resource":
       return whole(ctx.refs?.self?.resources?.[/** @type {string} */ (spec.key)]?.value);
     case "criteria":
@@ -296,6 +299,45 @@ export function fromCountMatching(spec) {
 }
 
 /* -------------------------------------------------------------------------- */
+
+/**
+ * How many of a DU's Parameters stand as the spec says against the caster's.
+ *
+ * Excalibur Proto's criteria (#283): *"at least 3 Parameters respectively that
+ * are equal to or higher than Arthur's"* (`compare: gte`), and *"at least 3
+ * Parameters respectively that are two Ranks below Arthur's"* (`compare:
+ * belowBy, by: 2`). A Rank below is a whole GRADE, the modifier kept
+ * (`Rank#stepGrade`): two below A is C, so C counts and C+ does not. A
+ * Parameter either side leaves unranked is not compared, and a Unit with no
+ * Parameters (a Master) has none to count.
+ *
+ * @param {{compare: string, by?: number}} spec
+ * @param {object|undefined} self
+ * @param {object|undefined} target
+ * @returns {number}
+ */
+function parametersCounted(spec, self, target) {
+  const mine = self?.parameters ?? null;
+  const theirs = target?.parameters ?? null;
+  if (!mine || !theirs) return 0;
+  return Object.keys(theirs).filter((parameter) => {
+    const t = rankOrNull(theirs[parameter]);
+    const s = rankOrNull(mine[parameter]);
+    if (!t || !s) return false;
+    if (spec.compare === "gte") return Rank.compare(t, s) >= 0;
+    if (spec.compare === "belowBy") return Rank.compare(t, s.stepGrade(-(spec.by ?? 1))) <= 0;
+    return false;
+  }).length;
+}
+
+/** A Rank, or null for a value that is not one. */
+function rankOrNull(raw) {
+  try {
+    return Rank.parseOrNull(raw);
+  } catch {
+    return null;
+  }
+}
 
 /** A count, whole and never negative. */
 function whole(value) {
