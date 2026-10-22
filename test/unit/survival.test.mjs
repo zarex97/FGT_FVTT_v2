@@ -146,6 +146,7 @@ export const ABILITY_ROUTES = {
   field: { at: "fieldGeometryKind", from: (v) => v?.geometry?.kind },
   activeRules: doc("module/rules/ability-use.mjs", "collected when the ability is used or held on"),
   additionalCosts: doc("module/rules/costs.mjs", "charged at use"),
+  criteria: doc("module/engine/attack.mjs", "counted once per declaration by rules/count.mjs#criteriaMet (#283)"),
   aftermath: doc("module/engine/attack.mjs", "a second resolution of the same use"),
   schedule: doc("module/engine/schedule.mjs", "a strike recorded at activation, landing later"),
   alsoCountsAsAttackFor: doc("module/engine/budget.mjs", "the joint attack budget"),

@@ -113,6 +113,8 @@ export const SECTIONS = Object.freeze([
       f("exclusionSet", "text", "A named group whose members block one another."),
       f("alsoTriggers", "raw", "Other abilities this use also puts on cooldown."),
       f("cooldownWaiver", "raw", "A resource that can be spent to skip the cooldown entirely."),
+      f("cooldown.countBonus", "raw", "Cooldown added per something counted: [{ticks, count: {of, …}}]."),
+      f("criteria", "raw", "Tests over the Units it is aimed at, counted once per use: [{targets, atLeast | exactly | none}]."),
       f("availableWhen", "predicateList", "The War this ability exists in; otherwise it is hidden and its rules do not apply."),
       f("isPassive", "checkbox", "Always in effect — there is no active form to press."),
       f("isMode", "checkbox", "Switched on and left on, rather than used."),

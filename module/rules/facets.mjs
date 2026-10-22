@@ -264,6 +264,16 @@ export const FACETS = Object.freeze([
     prose: "the target's {parameter} is {verdict} the caster's",
   }),
   facet({
+    id: "paramsVsSelf",
+    subjects: ["target"],
+    segments: [
+      { name: "compare", value: { kind: "closed", list: ["gte", "belowBy2"] } },
+      { name: "n", value: number(1, 5) },
+    ],
+    english: "How many of the target's Parameters are at least the caster's, or two grades below them.",
+    prose: "at least {n} of the target's Parameters are {compare} the caster's",
+  }),
+  facet({
     id: "healthVsSelf",
     subjects: ["target"],
     segments: [{ name: "verdict", value: { kind: "closed", list: ["gt", "eq", "lt"] } }],

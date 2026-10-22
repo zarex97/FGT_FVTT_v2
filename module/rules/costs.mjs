@@ -14,7 +14,7 @@
  * problem is actionable and a refusal that names four is a wall of text.
  */
 
-import { unknownCountKindsIn } from "./count.mjs";
+import { unknownCountKindsIn, countedValue } from "./count.mjs";
 import { pursuitOf } from "./compulsion.mjs";
 import { hasGranted, GRANTS } from "./granted.mjs";
 import { lookup } from "../domain/tables.mjs";
@@ -131,7 +131,7 @@ export function npCostAt({ rank, unit, master, turnsPerRound = 3 }) {
  * @param {object|null} args.master the user's Master, if any
  * @returns {object[]} costs, ready for `resolveCosts`
  */
-export function additionalCostsFor({ ability, self, master = null, turnsPerRound = 3 }) {
+export function additionalCostsFor({ ability, self, master = null, turnsPerRound = 3, use = {} }) {
   /** @type {object[]} */
   const out = [];
 
@@ -167,7 +167,9 @@ export function additionalCostsFor({ ability, self, master = null, turnsPerRound
 
     out.push({
       kind: extra.kind ?? "masterHealth",
-      amount: extra.amount ?? 0,
+      // A number, or one sized by a Count: Excalibur Proto's *"his Master loses an
+      // additional 5 Health"* per criterion met (#283), `use.criteriaMet`.
+      amount: countedValue(extra.amount ?? 0, { use }),
       unitId: extra.chargesMaster === false ? self?.id : master?.id ?? null,
       id: extra.id,
       supersedes: extra.supersedes ?? [],

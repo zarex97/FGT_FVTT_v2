@@ -21,6 +21,7 @@
  * went unnoticed for as long as they did.
  */
 
+import { parametersCounted } from "./count.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { STANDARD_CLASSES, KNIGHT_CLASSES } from "../domain/enums.mjs";
@@ -69,6 +70,7 @@ export function rollOptionsFor({ attacker, defender, attack = null, withoutModeH
   add(options, "target", defender, withoutModeHeld);
   compareParameters(options, attacker, defender);
   compareHealth(options, attacker, defender);
+  countParameters(options, attacker, defender);
   compareClasses(options, attacker, defender);
   warFacts(options, attacker ?? defender);
 
@@ -283,6 +285,32 @@ function compareParameters(options, attacker, defender) {
     const order = Rank.compare(a, b);
     const verdict = order > 0 ? "gt" : order < 0 ? "lt" : "eq";
     options.add(`target:paramVsSelf:${parameter}:${verdict}`);
+  }
+}
+
+/**
+ * `target:paramsVsSelf:gte|belowBy2:<n>`: HOW MANY of the target's Parameters stand so against the caster's.
+ *
+ * Excalibur Proto's criteria 1 and 5 (#283): *"at least 3 Parameters
+ * respectively that are equal to or higher than Arthur's"*, *"... two Ranks
+ * below Arthur's"*. One option per `n` from 1 to the count, so a predicate
+ * asking for `...:gte:3` holds whenever at least three do: the predicate
+ * grammar has no comparison, and this keeps it the only grammar. The count is
+ * the Count module's `parameters` kind.
+ *
+ * @param {Set<string>} options
+ * @param {object} attacker
+ * @param {object} defender
+ * @returns {void}
+ */
+function countParameters(options, attacker, defender) {
+  if (!attacker?.parameters || !defender?.parameters) return;
+  const counts = {
+    gte: parametersCounted({ compare: "gte" }, attacker, defender),
+    belowBy2: parametersCounted({ compare: "belowBy", by: 2 }, attacker, defender),
+  };
+  for (const [compare, count] of Object.entries(counts)) {
+    for (let n = 1; n <= count; n += 1) options.add(`target:paramsVsSelf:${compare}:${n}`);
   }
 }
 

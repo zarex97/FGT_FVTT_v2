@@ -145,6 +145,10 @@ function abilityCommon() {
       // while Tenmōkaikai is Active. Where `branches` selects one cooldown from
       // several, this adds to the selected one.
       conditionalBonus: new fields.ArrayField(new fields.ObjectField()),
+      // A length ADDED per something counted: Excalibur Proto's *"increases by
+      // ½◈ Turns for every criteria that is met"* (#283). `[{ticks, count}]`,
+      // read by `engine/cooldown.mjs#cooldownFor` through the Count module.
+      countBonus: new fields.ArrayField(new fields.ObjectField()),
     }),
 
     // Rule elements and targeting stay as authored data. Keeping them
@@ -163,6 +167,11 @@ function abilityCommon() {
     // Karna's NP cost overwrites the 20 Health his Master loses when he Acts
     // rather than stacking with it.
     additionalCosts: new fields.ArrayField(new fields.ObjectField()),
+
+    // Tests over the declaration's DUs, counted once per declaration: Excalibur
+    // Proto's six (#283). Read by `rules/count.mjs#criteriaMet`, from both use
+    // paths; the damage, the cost and the cooldown read the number.
+    criteria: new fields.ArrayField(new fields.ObjectField()),
 
     // "Requires 3 [Semiramis' Poison] to use" -- a cost on USING the ability,
     // spent by `engine/skill-use.mjs`'s `itemCostIntents` once the matching

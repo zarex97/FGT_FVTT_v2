@@ -2355,6 +2355,8 @@ function compileCooldown(cooldown) {
       // ADDITIVE on top of whichever cooldown was chosen, where `branches`
       // SELECTS one from several.
       ...(cooldown.conditionalBonus == null ? {} : { conditionalBonus: cooldown.conditionalBonus }),
+      // Excalibur Proto's ½◈ per criterion met (#283).
+      ...(cooldown.countBonus == null ? {} : { countBonus: cooldown.countBonus }),
     };
   }
   return { max: cooldown ?? null, remaining: 0, regen: 0, perUnit: null, countFrom: null };
