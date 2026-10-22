@@ -209,6 +209,16 @@ describe("a magnitude that falls per event (#296)", () => {
   });
 });
 
+describe("the sheet shows the magnitude an Effect stands at now (#296)", () => {
+  it("reads Tomoe's Nightowl at 75 a ◈ Turn on, not the 100 it landed with", async () => {
+    // Found live 2026-10-22: the Turn-end card said 75 and the sheet said 100.
+    const { groupEffects } = await import("../../module/apps/actor-sheet/present.mjs");
+    const def = { id: "nightowl", polarity: "buff", decay: { on: "turn", steps: [100, 75, 50] } };
+    const grouped = groupEffects([{ defId: "nightowl", magnitude: 100, appliedTick: 8 }], () => def, {}, { tick: 11, turnsPerRound: 3 });
+    expect(grouped.buffs[0].magnitude).toBe(75);
+  });
+});
+
 describe("a duration that pauses (#305)", () => {
   it("does not count down in a Night Round, and does in a Day Round", async () => {
     const { advanceEffects } = await import("../../module/engine/scheduler.mjs");
