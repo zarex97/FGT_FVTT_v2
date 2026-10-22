@@ -3,7 +3,8 @@ id: 2026-10-21-class-read-from-class-skills
 found: user
 kind: rule-word-read-one-way
 status: fixed
-reviewed: false
+reviewed: true
+pattern: rule-word-read-one-way
 ---
 **Expected:** Filing the sixteen unbuilt sheets on the new Class trackers, I read each Servant's Class from its
 Class Skills: Durga *"Saber, could be Rider"* (Magic Resistance A, Riding A), Sieg *"Archer, could be Caster"*

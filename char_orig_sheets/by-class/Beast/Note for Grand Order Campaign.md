@@ -1,0 +1,1 @@
+The Servants in this folder cannot be summoned in the Grand Order Full Campaign.
