@@ -229,7 +229,7 @@ function humanize(option) {
   const parsed = parseOption(option);
   if (parsed) {
     const f = FACETS.find((x) => x.id === parsed.facet);
-    return f.prose.replace(/\{(\w+)\}/g, (whole, token) => (
+    return (f.proseBySubject?.[parsed.subject] ?? f.prose).replace(/\{(\w+)\}/g, (whole, token) => (
       token === "subject" ? parsed.subject : (parsed.segments[token] ?? whole)
     ));
   }

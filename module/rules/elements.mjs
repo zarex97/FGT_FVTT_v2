@@ -124,6 +124,11 @@ export function collectContributions(abilities, ctx = {}) {
     // load order, which differs between clients -- so two players could compute
     // two different numbers from the same board. Bands fix the what; the source
     // id fixes the tie.
+    // An ability that does not exist in this War contributes nothing at all
+    // (#314). Answered here, against the bearer's own options, which carry the
+    // War's facts (`snapshot.mjs#contributionsOf` is handed them).
+    if (ability.availableWhen?.length && !testPredicate(ability.availableWhen, predicateCtx)) continue;
+
     for (const el of orderElements(elements)) {
       if (!el?.key) continue;
       if (el.suppressed) continue;
@@ -247,6 +252,8 @@ function stampInstance(out, before, instanceId) {
 // "false", and was dropped: nothing ever dried off (#258, live).
 const DEFERRED_PREFIXES = Object.freeze([
   "target:", "attack:", "self:inHomeBase", "self:onPlatform:", "self:inField:", "self:fieldActive:", "self:phase:",
+  // `war:` is the War's Region and the Round's phase, board facts too (#314).
+  "war:",
   "revival:",
 ]);
 

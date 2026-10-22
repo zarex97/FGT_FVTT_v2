@@ -650,6 +650,8 @@ export function usageSpecFor(ability) {
     // Fragarach Counter and the Hanging Gardens, which is exactly the set the
     // ruling put in scope.
     categorizedAsNP: Boolean(sys.categorizedAsNP),
+    // The War it exists in (`rules/costs.mjs#availableInThisWar`, #314).
+    availableWhen: [...(sys.availableWhen ?? [])],
     // Which Seal stops it (`rules/costs.mjs#preventionActionsFor`, #206).
     countsForNPSeal: Boolean(sys.countsForNPSeal),
     cooldown: sys.cooldown ?? { remaining: 0, gatedDelay: 0 },
