@@ -89,7 +89,7 @@ Moves and self-only Skills alike. Kirihanasu itself is a `freeAction`. The revea
 
 ## Invariants & edge cases
 
-**A Normal Attack is an `attack` to the use gate** (#258). It is the one press with no Item, and `preventionActionsFor(null)` fell to `skill`, so Skill Seal refused every Normal Attack (*"Cannot use this ability: Prevented"*, Karna under Snegleta's seal). Seal and Disable stop it; Skill Seal and Silence do not (§46.4-SE).
+**A Normal Attack is an `attack` to the use gate** (#258). It is the one press with no Item, and `useClassesOf(null)` fell to `skill`, so Skill Seal refused every Normal Attack (*"Cannot use this ability: Prevented"*, Karna under Snegleta's seal). Seal and Disable stop it; Skill Seal and Silence do not (§46.4-SE).
 
 **`category: spell` is a Spell to Silence, Seal and Skill Seal** (#193). `preventionActionFor` reads `isSpell` or the category; Medea's five non-damaging Spells carry only the category.
 
@@ -128,5 +128,5 @@ after the Unit had attacked and refused only when pressed. The bar asks each pat
 
 ### An ability that is two things is refused by either Seal (#241)
 
-`costs.mjs#preventionActionsFor` returns every action an ability is: the Magic Crest, a Damage Spell categorized as
+`costs.mjs#useClassesOf` returns every action an ability is: the Magic Crest, a Damage Spell categorized as
 NP, is both `np` and `spell`, and Silence or NP Seal each refuse it. It answered `np` alone, and Silence let it through.

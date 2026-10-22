@@ -36,6 +36,7 @@ import { predicateSitesIn } from "../../module/rules/authoring/predicates.mjs";
 import { ABILITY_KINDS } from "../../module/rules/authoring/ability.mjs";
 import { ENTRY_KEYS, EFFECT_PARAMS } from "../../module/rules/effect-flow.mjs";
 import { countSpecsIn, countProblems } from "../../module/rules/count.mjs";
+import { CUT_KINDS } from "../../module/rules/elements.mjs";
 
 /** The schema version every source file must declare. */
 export const SCHEMA_VERSION = 1;
@@ -61,7 +62,7 @@ export const RULE_ELEMENT_KEYS = new Set([
   "DamageModifier", "FlatDamage", "DamageNegation", "Resistance", "Ward", "AlignmentOverride",
   // Proto Gil (#232): Heal Dwn and Drowning's healing received; Bab-ilu's
   // additional Normal Attack.
-  "HealingReceived", "FollowUpAttack",
+  "HealingReceived", "FollowUpAttack", "CooldownCutBonus",
   "CritModifier", "BlockModifier", "AttackerPropertyTier",
   // Kiritsugu -- a property of the ATTACK granted by a buff on the attacker.
   // Until now `attack.pierce` could only come from an ability's own damage
@@ -1251,6 +1252,19 @@ function countsAreKnown(doc, path, problems) {
     const count = doc.endsAfter.count;
     if (!Number.isInteger(count) || count < 1) {
       problems.push(`${path}: endsAfter.count must be a whole number of 1 or more ("${count}")`);
+    }
+  }
+  // A CooldownCutBonus (#299) names use classes and when it bites; a word the
+  // door does not know would match no cut, in silence.
+  for (const [where, el] of ruleElements(doc)) {
+    if (el?.key !== "CooldownCutBonus") continue;
+    const kinds = Array.isArray(el.kinds) ? el.kinds : [];
+    const bad = kinds.filter((k) => !CUT_KINDS.includes(k));
+    if (kinds.length === 0 || bad.length > 0) {
+      problems.push(`${path}: ${where} CooldownCutBonus kinds ${JSON.stringify(el.kinds ?? [])} -- expected some of ${CUT_KINDS.join(", ")}`);
+    }
+    if (el.on !== undefined && !["any", "natural"].includes(el.on)) {
+      problems.push(`${path}: ${where} CooldownCutBonus on "${el.on}" -- expected any or natural`);
     }
   }
   // A RankShift's ladder (#284): every rung is a Rank. A bad one would throw

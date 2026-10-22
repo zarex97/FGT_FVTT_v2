@@ -1378,6 +1378,8 @@
   "FGT.Authoring.Element.FollowUpAttackHint": "After an Attack the predicate matches, this Unit may Move beside the DU and make an additional Normal Attack.",
   "FGT.Authoring.Element.HealingReceived": "Healing Received",
   "FGT.Authoring.Element.HealingReceivedHint": "Changes the healing this Unit receives, in percent; named sources may be spared.",
+  "FGT.Authoring.Element.CooldownCutBonus": "Cooldown Cut Bonus",
+  "FGT.Authoring.Element.CooldownCutBonusHint": "Every cut to this Unit's named Cooldowns cuts more: any cut, or the natural Turn only.",
   "FGT.Authoring.Element.EffectMagnitudeScale": "Effect Magnitude Scale",
   "FGT.Authoring.Element.EffectMagnitudeScaleHint": "Scales the magnitude of named effects landing on this Unit.",
   "FGT.Authoring.Element.ForceMode": "Force Mode",

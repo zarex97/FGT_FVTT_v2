@@ -495,7 +495,7 @@ export function canUseAbility({
   // Every action the ability IS: the Magic Crest is a Damage Spell categorized
   // as NP, so Silence and NP Seal each stop it (#241 reading 14). One answer,
   // `np`, let Silence through (#241, live).
-  const sealed = preventionActionsFor(ability)
+  const sealed = useClassesOf(ability)
     .map((action) => preventedBy(unit, action, {
       categorizedOnly: !ability?.isNP && Boolean(ability?.categorizedAsNP),
     }))
@@ -709,7 +709,7 @@ export function categoryLimitFor(ability, unit) {
  * @param {object} ability
  * @returns {string} `"np"`, `"spell"` or `"skill"`
  */
-function preventionActionsFor(ability) {
+export function useClassesOf(ability) {
   // NO ability is a Normal Attack, the one press with no Item: an `attack`,
   // which Seal and Disable stop and Skill Seal does not. Read as a Skill, a
   // Skill-Sealed Karna could not swing at all: *"Cannot use this ability:
