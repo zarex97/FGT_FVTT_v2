@@ -52,6 +52,15 @@ describe("the build refuses a Count it cannot read", () => {
     }
   });
 
+  it("refuses a RankShift ladder rung that is not a Rank, naming it", () => {
+    const build = (rung) => ok({ rules: [{ key: "RankShift", parameter: "agi",
+      to: { ladder: ["B", rung, "EX"], count: { of: "resource", key: "aria" } } }] });
+    const out = problems(build("A++x"), "effects").filter((p) => !problems(build("A"), "effects").includes(p));
+    expect(out).toHaveLength(1);
+    expect(out[0]).toContain("rules[0].to.ladder[1]");
+    expect(out[0]).toContain("A++x");
+  });
+
   it("passes every kind it knows with its keys", () => {
     for (const count of [
       { of: "stacks", effect: "curse" }, { of: "targets" }, { of: "board", relation: "enemy" },
