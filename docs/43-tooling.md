@@ -65,7 +65,7 @@ These scripts drive a real Foundry application over the Chrome DevTools Protocol
 - `join USER` fills the join form on `/join`, submits it, waits for `/game`, then polls `game.ready` for 60s (`tools/fgt-world.mjs:264-302`).
 - `rebuild WORLD` chains `shutdown` → `npm run build:packs` → `launch` → `join`, printing only lines matching `packed|Built|error` (`tools/fgt-world.mjs:377-387`).
 
-**Expression evaluation** (`tools/fgt-eval.mjs:1-97`) attaches to the running page, evaluates an expression over CDP, and prints the result as JSON. It detects piped input (a multi-statement script) and treats it as a body rather than an expression (`tools/fgt-eval.mjs:71-73`). Useful for exercising the document-touching layers without clicking the UI.
+**Expression evaluation** (`tools/fgt-eval.mjs:1-97`) attaches to the running page, evaluates an expression over CDP, and prints the result as JSON. It detects piped input (a multi-statement script) and treats it as a body rather than an expression (`tools/fgt-eval.mjs:71-73`). Useful for exercising the document-touching layers without clicking the UI. With a player's tab open too (the two-tab kit, Player1 on `127.0.0.1`), it attaches to the GM's `localhost:30000/game` page first (`tools/lib/cdp.mjs#foundryTarget`): an eval that landed on the player's page ran as Player1 and was refused the GM's writes.
 
 **Page reload** (`tools/fgt-reload.mjs:1-64`) reloads the page with cache bypass and polls `game.ready` for up to 60s. Module sources are loaded once at page load, so every edit to `module/` is invisible to the live world until the page comes back (`tools/fgt-reload.mjs:5-12`).
 

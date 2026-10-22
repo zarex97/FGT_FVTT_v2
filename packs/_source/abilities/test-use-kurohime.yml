@@ -1,0 +1,25 @@
+# Test Noble Phantasm for the Use record's live presses (#320, #285, plan Task 15,
+# L2-3, L2-4). Kurohime's NP: 3◈ instead of 6◈ when its Normal Attack misses,
+# read as no Unit hit (ruled by default 2026-10-22). Staged with Dodge on every DU.
+schema: 1
+id: test-use-kurohime
+name: "Test Use: Kurohime"
+isNP: true
+rank: "C"
+ignoresNPGate: true
+slug: testUseKurohime
+cooldown:
+  branches:
+    - { predicate: ["use:missed"], max: "3◈" }
+    - { max: "6◈" }
+description: "TEST NOBLE PHANTASM. Hits a 3x3 area within 4 panels. Cooldown 6◈, or 3◈ when it hit no Unit."
+targeting:
+  anchor: { kind: withinRange, range: 4, metric: chebyshev }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy, neutral], chooser: all, includeSelf: false }
+  isDamagingAoE: true
+damage:
+  component: str
+  multiplier: 1
+phases:
+  - kind: damage

@@ -460,6 +460,60 @@ export const FACETS = Object.freeze([
     prose: "{subject} is within {panels} panels of the field owner's Master",
   }),
 
+  /* ── what a use did (`rules/use-record.mjs`, #320) ──────────────────────── */
+  facet({
+    id: "failed",
+    subjects: ["use"],
+    english: "The use failed when it was pressed, or missed outright to a miss source.",
+    prose: "the use failed",
+  }),
+  facet({
+    id: "missed",
+    subjects: ["use"],
+    english: "The use hit no Unit, for any reason.",
+    prose: "the use hit nobody",
+  }),
+  facet({
+    id: "evaded",
+    subjects: ["use"],
+    english: "A Unit the use was aimed at Evaded it.",
+    prose: "a target Evaded the use",
+  }),
+  facet({
+    id: "overCooldown",
+    subjects: ["use"],
+    english: "The ability was used on its Cooldown, at a price.",
+    prose: "the use was made on its Cooldown",
+  }),
+  facet({
+    id: "channelStarted",
+    subjects: ["use"],
+    english: "The use began a channel that has not gone off yet.",
+    prose: "the use began a channel",
+  }),
+  facet({
+    id: "concealmentBroken",
+    subjects: ["use"],
+    english: "Using it broke its user's Presence Concealment.",
+    prose: "the use broke Presence Concealment",
+  }),
+  facet({
+    id: "applied",
+    subjects: ["use"],
+    // OPEN: an Effect id, the set growing with content as `effect` does.
+    segments: [{ name: "effect", value: open() }],
+    english: "The use applied a named Effect to some Unit.",
+    prose: "the use applied {effect}",
+  }),
+  facet({
+    id: "die",
+    subjects: ["use"],
+    // Unbounded: a bounded number is one character class (`[1-6]`), and a
+    // d100's face is up to three digits.
+    segments: [{ name: "face", value: number() }],
+    english: "The die the use rolled showed this face.",
+    prose: "the use's die showed {face}",
+  }),
   facet({
     id: "source",
     subjects: ["revival"],

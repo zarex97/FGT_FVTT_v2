@@ -59,6 +59,10 @@ Both paths terminate at **Step 2.3 — Accept or Escape.** The defender accepts 
 
 **A Counter is not a reaction (#191).** `target:reaction:<x>` comes from `state.reaction`, the react rung; a Counter is declared at the `counter` rung and never changes it. `runAfterProcessPhases` adds `target:reaction:counter` itself when the history holds the `counter` rung's `counter` event, so Quickfire's after-Process refund — *"if the enemy Unit does not perform a Counter"* — is withheld after one.
 
+### The use's record on each Process (#320)
+
+Every Process state carries `use`, a Use record (`rules/use-record.mjs`). `resolveAttack` notes the declaration's commit facts first (`criteriaMet`, `overCooldown`, `concealmentBroken`), and `declareProcesses` gives each Process its own copy. The Process's landings are then noted on its own copy by the landing door (`useRecord: state.use`). A held Evade sets `use.facts.evaded`: `combat-process.mjs#advance` notes it when a Process that reacted with `evade` reaches `noDamage`. The record rides in the Process's saved flag like every other field, so a reload between two Processes loses none of it (the *Write before store* lesson, Q18). The Cooldown clock settles from the merged records when the declaration is over.
+
 ### Early termination
 
 A **miss** ends the process at step 1.5. No ladder, no damage, no response from the defender. The attack is declared spent.

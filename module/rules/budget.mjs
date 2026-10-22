@@ -244,7 +244,23 @@ export function poolFor(unit, action) {
  * @param {ActionKind} action
  * @returns {{prevented: boolean, by: string|null}}
  */
+/**
+ * What a player reads for a prevention's source: an effect's name, or the
+ * words for a standing one that is no effect (`actionsEnded`, #300).
+ *
+ * @param {string|null} by `preventedBy`'s `by`
+ * @param {(id: string) => string|null|undefined} effectName the effect registry's name for an id
+ * @returns {string|null}
+ */
+export function preventerName(by, effectName) {
+  if (by === "actionsEnded") return globalThis.game?.i18n?.localize?.("FGT.Budget.Prevented.actionsEnded") ?? by;
+  return effectName(by) ?? by;
+}
+
 export function preventedBy(unit, action, { categorizedOnly = false } = {}) {
+  // A failed use that ended every action this Turn (Merlin, `UseFailure then:
+  // endActions`, #300): every action, as a blanket effect would.
+  if (unit?.turnState?.actionsEnded) return { prevented: true, by: "actionsEnded" };
   const held = unit?.effects ?? [];
   const blanket = PREVENT_ALL.find((id) => held.includes(id));
   if (blanket) return { prevented: true, by: blanket };
@@ -292,7 +308,8 @@ export function canConsume(budget, unit, action) {
   if (prevention.prevented) {
     // Named as the player reads it: the bar printed "prevented by itemRite"
     // (#230, live). A suppression's scope has no effect of its name, and stays.
-    const by = EffectRegistry.get(prevention.by)?.name ?? prevention.by;
+    // A standing one in words too (`actionsEnded`, #300, live).
+    const by = preventerName(prevention.by, (id) => EffectRegistry.get(id)?.name);
     return { ok: false, reason: `prevented by ${by}`, pool: null, free: false };
   }
 

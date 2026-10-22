@@ -295,6 +295,17 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     ...SCALED,
     { key: "exceptSources", type: "tokenList" },
   ]),
+  entry("CooldownCutBonus", "Every cut to this Unit's named Cooldowns cuts more: any cut, or the natural Turn only.", [
+    { key: "kinds", type: "tokenList" },
+    { key: "extra", type: "number" },
+    { key: "on", type: "select", choices: ["any", "natural"] },
+  ]),
+  entry("UseFailure", "A use of the named abilities may fail outright: paid for, no clock, and what follows.", [
+    { key: "of", type: "tokenList" },
+    { key: "chance", type: "number" },
+    { key: "chanceWhen", type: "raw" },
+    { key: "then", type: "select", choices: ["lockThisTurn", "endActions"] },
+  ]),
   entry("TerrainPenaltyImmunity", "This Unit takes none of a terrain's penalties, and keeps its benefits.", [
     { key: "terrain", type: "text" },
   ]),

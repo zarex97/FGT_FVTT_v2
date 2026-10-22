@@ -1,0 +1,18 @@
+# Test passive for UseFailure's live presses (#300, plan Task 15, L2-19 to L2-22).
+# Merlin's Spells and NP may fail, more often under a condition, and a failure
+# ends his actions. Here: never, unless Cursed, then always. Merlin's own
+# condition is "below half Health", which no option names yet.
+schema: 1
+id: test-use-merlin-fail
+name: "Test Use: Merlin Fail"
+kind: skill
+slug: testUseMerlinFail
+passive: true
+description: "TEST PASSIVE. While Cursed, this Unit's Spells and Noble Phantasms fail, and a failure ends its actions this Turn."
+passiveRules:
+  - key: UseFailure
+    of: [spell, np]
+    chance: 0
+    chanceWhen:
+      - { predicate: ["self:effect:curse"], chance: 100 }
+    then: endActions

@@ -382,6 +382,12 @@ export function snapshotUnit(actor, {
     // Changes to the healing this Unit receives (Heal Dwn, Drowning, #232),
     // read by `engine/applier.mjs#resolveHealing`.
     healingReceived: contributions.healingReceived ?? [],
+    // More off every cut to a named Cooldown (Merlin, Barghest, #299), read by
+    // `engine/applier.mjs#resolveCooldownCuts`.
+    cooldownCutBonus: contributions.cooldownCutBonus ?? [],
+    // Chances that a use fails outright (Charlotte, Merlin, #300), read by
+    // `rules/use-failure.mjs#failureFor`.
+    useFailures: contributions.useFailures ?? [],
     // An additional Normal Attack after one of this Unit's (Bab-ilu, #232),
     // read by `engine/follow-up.mjs#offerFollowUp`.
     followUps: contributions.followUps ?? [],

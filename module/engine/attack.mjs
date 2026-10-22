@@ -28,7 +28,7 @@ import {
 } from "../rules/checks.mjs";
 import * as rollLog from "../rules/roll-log.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
-import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
+import { cooldownFor, alsoTriggered, sharedAcrossGroup, settleDelta } from "./cooldown.mjs";
 import { cooldownChanges, statChangeLine, checkLine, rollConcealmentBreak, commandSpellCostIntents, postCostCards } from "./skill-use.mjs";
 import { splitCooldownRider } from "../rules/cooldown-riders.mjs";
 import {
@@ -96,6 +96,7 @@ import {
 import { selectBranch, isNestedCheck, MAX_CHECK_DEPTH } from "../rules/checks/branches.mjs";
 import { publicSpeakerFor, publicIdentityOf } from "./public-identity.mjs";
 import { criteriaMet, declarationCriteria, multiplierOf } from "../rules/count.mjs";
+import { emptyUseRecord, noteFact, useFacts, declarationRecord } from "../rules/use-record.mjs";
 import { regionSizedTargeting } from "./fields.mjs";
 // The name a line prints is the PUBLIC one (#230 rolls, #235 every card):
 // the one door is `public-identity.mjs#shownName`.
@@ -254,11 +255,32 @@ export async function resolveAttack({
   // and none of the budget above.
   const price = await payAbilityPrice({
     ability, attackerId, attacker, self, master, usage, board, resume, use: { criteriaMet: criteria.met },
+    rollsFailure: true,
   });
   // A held concealment roll survives a pre-emption: the resume pays nothing and
   // rolls nothing, so the placement carries it (#249 reading 9b).
   const keepsConcealment = Boolean(price?.keepsConcealment || (resume && placement?.keepsConcealment));
+  // The declaration's commit facts, which every Process's record starts from (#320).
+  const use = emptyUseRecord({ abilityId: ability?.id ?? null, unitId: attackerId });
+  noteFact(use, "criteriaMet", criteria.met);
+  noteFact(use, "overCooldown", Boolean(usage?.overCooldown));
+  noteFact(use, "concealmentBroken", Boolean(price?.concealmentBroken));
+  // A channel begun here starts no clock, so the settle must not move one
+  // (Review Focus 4): the clock is started when the channel completes.
+  noteFact(use, "channelStarted", Boolean(price?.channelStarted));
   if (keepsConcealment) placement = { ...(placement ?? {}), keepsConcealment: true };
+
+  // A use that failed outright (`UseFailure`, #300): paid in full above, its
+  // clock never started, and no Process opens. The card shows the die.
+  if (price?.failed) {
+    noteFact(use, "failed", true);
+    noteFact(use, "die", price.failed.roll);
+    const { useFailurePatch, postUseFailureCard } = await import("./skill-use.mjs");
+    const patch = useFailurePatch(price.failed, ability, self);
+    if (Object.keys(patch).length > 0) await applyBatch([I.markTurn(attackerId, patch)], "attack:failed");
+    await postUseFailureCard(attacker, ability, price.failed);
+    return { failed: price.failed, processes: [], use };
+  }
 
   // A Noble Phantasm that LANDS LATER (`engine/schedule.mjs`). Enki's use is its
   // activation: paid in full above, its mark placed and its clock started here,
@@ -494,7 +516,7 @@ export async function resolveAttack({
   // The rest of a declaration -- the fan-out, the cards, the events -- is
   // shared with the Ch. 21 Counter path, which needs every step of it.
   const primary = await declareProcesses({
-    attackerId, attacker, ability, attackSpec, targetIds, targets, placement, board, perProcess,
+    attackerId, attacker, ability, attackSpec, targetIds, targets, placement, board, perProcess, use,
     // A scheduled strike landing was USED at its activation: its caster phases
     // ran and `abilityUsed` was raised there (`engine/schedule.mjs`).
     declaresUse: !placement?.scheduled,
@@ -621,7 +643,9 @@ async function declareAftermath({
  * @param {object} args
  * @returns {Promise<void>}
  */
-export async function payAbilityPrice({ ability, attackerId, attacker, self, master, usage, board, resume, use = {} }) {
+export async function payAbilityPrice({
+  ability, attackerId, attacker, self, master, usage, board, resume, use = {}, rollsFailure = false,
+}) {
   if (resume) return;
 
   // A barrier is refreshed on the way up, BEFORE the use is recorded: *"every
@@ -674,6 +698,15 @@ export async function payAbilityPrice({ ability, attackerId, attacker, self, mas
   for (const cost of charged) await applyBatch(costIntents(cost, self), "attack:cost");
   await postCostCards(charged, { ability, self });
 
+  // A use that may fail outright (`UseFailure`, #300), rolled once it is
+  // paid for and before its clock: a failure starts none. A declaration's own
+  // roll; a Counter's caller does not ask for it.
+  let failed = null;
+  if (rollsFailure && ability && !channelStarted) {
+    const { rollUseFailure } = await import("./skill-use.mjs");
+    failed = await rollUseFailure(attacker, ability, self);
+  }
+
   // The cooldown, at the same moment as the cost and for the same reason: the
   // ability has been committed. `resolveAttack` never did this, so every Attack
   // Skill and every Noble Phantasm was infinitely reusable -- limited only by
@@ -683,7 +716,7 @@ export async function payAbilityPrice({ ability, attackerId, attacker, self, mas
   // `completeChannel`.
   // A use ON the Cooldown leaves the clock as it was: *"using it in this way
   // does not reset Cooldown"* (Arturia's Mana Burst, #230).
-  if (ability && !resume && !channelStarted && !usage?.overCooldown) {
+  if (ability && !resume && !channelStarted && !usage?.overCooldown && !failed) {
     const plan = cooldownFor(ability, attackerId, { unit: self, use });
     // *"When either Castor or Pollux uses a Skill, the Skill enters Cooldown
     // for both of them."* Spread beside `alsoTriggered` so the shared clocks
@@ -718,7 +751,9 @@ export async function payAbilityPrice({ ability, attackerId, attacker, self, mas
   // Counter open) and a held one keeps PC through it (#249 readings 9, 9b).
   // Here and not in `resolveAttack`, so a Counter declared with it rolls too.
   const held = ability ? await rollConcealmentBreak(attacker, ability, self) : null;
-  return { keepsConcealment: Boolean(held?.kept) };
+  return {
+    keepsConcealment: Boolean(held?.kept), concealmentBroken: Boolean(held?.rolled && !held?.kept), failed, channelStarted,
+  };
 }
 /**
  * The `attack` descriptor a Combat Process carries.
@@ -1307,7 +1342,7 @@ async function swapIntoAttack({ state, message, ownerId, partnerId }) {
 async function declareProcesses({
   attackerId, attacker, ability, attackSpec, targetIds, targets, placement, board,
   isCounter = false, requiredTargetId = null, counterDepth = 0, groupId = null,
-  perProcess = null, declaresUse = true,
+  perProcess = null, declaresUse = true, use = null,
 }) {
   // Ch. 21's flag, folded into the ATTACK rather than only onto the Process
   // state. `rules/options.mjs` emits `attack:isCounter` from the attack spec,
@@ -1418,6 +1453,9 @@ async function declareProcesses({
       // alone is still an AoE Attack for Presence Concealment's coin, though
       // `isAoE` -- distinct defenders -- is false for it.
       if (caughtConcealed.has(withCone.defenderId)) withCone.caughtConcealed = true;
+      // What the use did, one record per Process, saved with it (#320, Q18):
+      // the declaration's commit facts, and this Process's own landings later.
+      withCone.use = structuredClone(use ?? emptyUseRecord({ abilityId: ability?.id ?? null, unitId: attackerId }));
       if (caughtByArea.has(withCone.defenderId)) withCone.caughtByArea = true;
       const withInstance = instance
         ? { ...withCone, attack: { ...withCone.attack, ...instance } }
@@ -3799,6 +3837,10 @@ async function fireAttackPerformed(siblings) {
   for (const [attackerId, processes] of byAttacker) {
     const attacker = unitOf(unitActor(attackerId), board);
     if (!attacker) continue;
+    // The declaration's clock, settled from what it did (#285, #320, Q8): read
+    // off the Processes as they were saved, the declaration's own and never a
+    // Counter's, once every one of them is over.
+    const settled = await settleDeclarationCooldown(attackerId, attacker, processes);
     const hit = new Set(processes
       .filter((p) => p.result && !p.result.flags?.negatedBy)
       .map((p) => p.st.defenderId));
@@ -3813,16 +3855,38 @@ async function fireAttackPerformed(siblings) {
       subject: { contentId: first.attack?.sourceContentId ?? null, isNP: first.attack?.kind === "np" },
       rolls: {},
     });
+    intents.push(...settled);
     if (intents.length === 0) continue;
     // A clock the Attack turned is a line on its card, as the Damage Step's
     // are (#209): Excalibur took 23 -> 21 off its own two Units and no card
-    // said so (#230, live). On the attacker's last card of the Phase.
+    // said so (#230, live). On the attacker's last card of the Phase. A settle
+    // is a clock the Attack turned too (#320).
     const rows = await applyWithLines(intents, "attackPerformed");
     if (rows.length === 0) continue;
     const { message, st } = processes.at(-1);
     await message.setFlag("fgt", "effects", [...(message.getFlag("fgt", "effects") ?? []), ...cardRows(rows)]);
     await updateAttackCard(message, st);
   }
+}
+
+/**
+ * The intents that settle a declaration's clock from its Use record (#320).
+ *
+ * @param {string} attackerId
+ * @param {object} attacker the attacker as the board sees it
+ * @param {Array<{st: object, result: object|null}>} processes the attacker's Processes this Phase
+ * @returns {Promise<object[]>}
+ */
+async function settleDeclarationCooldown(attackerId, attacker, processes) {
+  const declared = processes.filter((p) => !p.st.isCounter);
+  const abilityId = declared[0]?.st.attack?.abilityId ?? null;
+  const ability = abilityId ? unitActor(attackerId)?.items?.get(abilityId) : null;
+  if (!ability) return [];
+  const facts = useFacts(declarationRecord(declared.map((p) => ({ state: p.st, result: p.result }))));
+  const delta = settleDelta(ability, attackerId, { unit: attacker, facts });
+  if (delta === 0) return [];
+  // `settle`: not a cut an effect makes, so no `CooldownCutBonus` meets it.
+  return [{ ...I.cooldown(attackerId, ability.id, Math.abs(delta), delta < 0 ? "reduce" : "increase"), settle: true }];
 }
 
 /**
@@ -6255,6 +6319,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
       applied.push(...await landEntry(entryOf(rider), {
         target: defender,
         source: { unitId: state.attackerId, abilityId: ability.id },
+        useRecord: state.use ?? null,
         caster: attackerDoc,
         casterUnit: attackerUnit,
         attack: attackFacts(attackerUnit, defender, state),
@@ -6534,6 +6599,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
       applied.push(...await landEntry(entryOf(rule, { phase }), {
         target: defender,
         source: { unitId: state.attackerId, abilityId: ability.id },
+        useRecord: state.use ?? null,
         caster: attackerDoc,
         casterUnit: attackerUnit,
         attack: attackFacts(attackerUnit, defender, state),
@@ -6589,6 +6655,7 @@ async function rollTableAgainst(phase, ability, state, attackerDoc, attackerUnit
       applied.push(...await landEntry(entryOf(rule, { phase }), {
         target: unitFrom(boardSnapshot(), landOn) ?? (onSelf ? attackerUnit : defender),
         source: { unitId: state.attackerId, abilityId: ability.id },
+        useRecord: state.use ?? null,
         caster: attackerDoc,
         casterUnit: attackerUnit,
         attack: attackFacts(attackerUnit, defender, state),
@@ -6987,6 +7054,7 @@ async function applyDeclaredEffects(specs, ability, state, defender, { phase = n
     out.push(...await landEntry(entryOf(spec, { phase }), {
       target: defender,
       source: { unitId: state.attackerId, abilityId: ability.id },
+      useRecord: state.use ?? null,
       caster: attackerDoc,
       casterUnit: attacker,
       attack: attackFacts(attacker, defender, state, board),

@@ -1,0 +1,15 @@
+# Test Skill for the cut bonus's live presses (#299, plan Task 15, L2-13, L2-15):
+# an effect's cut of 1 Turn to this Unit's NP Cooldown.
+schema: 1
+id: test-use-cutter
+name: "Test Use: Cutter"
+kind: skill
+slug: testUseCutter
+timing: { window: ownTurn }
+cooldown: "1 turns"
+description: "TEST SKILL. This Unit's NP Cooldown is reduced by 1 Turn."
+phases:
+  - kind: cooldown
+    target: self
+    changes:
+      - { unit: self, scope: np, ticks: "1 turns", direction: down }

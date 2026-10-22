@@ -1,0 +1,25 @@
+# Test Noble Phantasm for the Use record's live presses (#320, #285, plan Task 15,
+# L2-5). Tamamo Goth's NP waits longer when it was Evaded: one DU's Evade is
+# "was Evaded" for the declaration. Staged with Dodge on one DU.
+schema: 1
+id: test-use-tamamo
+name: "Test Use: Tamamo"
+isNP: true
+rank: "C"
+ignoresNPGate: true
+slug: testUseTamamo
+cooldown:
+  max: "3◈"
+  conditionalBonus:
+    - { predicate: ["use:evaded"], ticks: "1◈" }
+description: "TEST NOBLE PHANTASM. Hits a 3x3 area within 4 panels. Cooldown 3◈, plus 1◈ when any DU Evaded it."
+targeting:
+  anchor: { kind: withinRange, range: 4, metric: chebyshev }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy, neutral], chooser: all, includeSelf: false }
+  isDamagingAoE: true
+damage:
+  component: str
+  multiplier: 1
+phases:
+  - kind: damage

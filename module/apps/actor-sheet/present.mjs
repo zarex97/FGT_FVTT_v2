@@ -15,6 +15,7 @@
 import { periodicDamageFor } from "../../engine/scheduler.mjs";
 import { currentHealth } from "../../domain/health.mjs";
 import { EffectRegistry } from "../../rules/registry.mjs";
+import { preventerName } from "../../rules/budget.mjs";
 import { magnitudeOf, polarityOf } from "../../rules/effect-instance.mjs";
 
 /**
@@ -243,7 +244,7 @@ export function abilityState(verdict, { turnsPerRound = 3, nameOf = null } = {})
     // "prevented by Skill Seal" (#243, live).
     case "prevented":
       if (!detail.by) return { ok: false, label: "FGT.Ability.Refused.prevented", detail };
-      detail.by = EffectRegistry.get(detail.by)?.name ?? detail.by;
+      detail.by = preventerName(detail.by, (id) => EffectRegistry.get(id)?.name);
       return { ok: false, label: "FGT.Ability.PreventedBy", detail };
 
     // ...and what negates it, by the same name (#244).

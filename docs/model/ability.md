@@ -38,7 +38,9 @@ code: module/rules/authoring/ability.mjs, module/rules/ability-use.mjs
 - `useFailChance` (**Attribute**, Caster 2026-10-21): a use that may fail when pressed. Charlotte (Summer)'s
   Illusionist fails 30% of the time and then cannot be used again that Turn. Merlin bites his tongue 10% of the time
   (20% below half Health), cancelling the Spell or NP. Neither enters Cooldown. Sei Shōnagon (both sheets) may perform a random
-  other Action on a 1 in 10. Okita's Weak Constitution cancels any Action and stays Own. Not run, #300.
-  keys: none (#300)
+  other Action on a 1 in 10. Okita's Weak Constitution cancels any Action and stays Own. **Run since #300**:
+  `UseFailure {of, chance, chanceWhen, then}`, `then: lockThisTurn` for Charlotte, `endActions` for Merlin. Merlin's
+  *"below half Health"* needs a Health-threshold option no facet has yet; Sei Shōnagon's random Action stays open.
+  keys: `element.UseFailure`; random other Action: none (#300)
 
 **Kin:** Saber: every `{R}` `{M}` `{S}` attack head, 58 sheets. Mode extension: K213, R66, 3 sheets.

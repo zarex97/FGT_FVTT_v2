@@ -42,6 +42,8 @@ An **Effect Entry** (CONTEXT.md) is what content authors to give an Effect, wher
 
 **A field rolls one die.** A field's interior `ApplyEffect` rolls its stated chance for the field's card and forwards the die and the chance, so Landing subtracts the target's resistance from the same chance against the same die. Contagion rolled four dice for two chances and met resistance only on the second.
 
+**The door notes what it landed.** A `LandingContext` may carry `useRecord`. `landEntry` then notes each landing on it, and each `otherwise` fallback too, as `{defId, polarity, outcome, targetId}`. The polarity is the landed one, which `landEffect` returns beside its outcome. A use's `effectsApplied` and `debuffsInflicted` are counted from these notes (#320), never from card rows.
+
 ### Entry point
 
 **The definition the gates read is the landed one** (#315). Landing passes `applyEffect` the definition with the polarity this application decided (`rules/effect-instance.mjs#landedDefinition`, Ch. 14). It also asks `admit` for any `boardUnique` instance the landing replaces. The record `applyEffect` builds carries that polarity, and `io.createEffects` stores it.
