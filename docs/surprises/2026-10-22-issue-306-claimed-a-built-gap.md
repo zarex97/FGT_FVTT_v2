@@ -18,5 +18,5 @@ Lanceturia's copy of the Skill is unauthored content.
 `cooldownWaiver` as the nearest key and never searched for the use-on-Cooldown path. When I filled the `keys:`
 lines, I copied the issue's claim instead of running the lookup on the Clause's words.
 
-**Fix:** `docs/model/cooldown.md:37 @ uncommitted`. The `bypassForCost` line now reads run since #230, with
+**Fix:** `docs/model/cooldown.md:37 @ 4a2daaef`. The `bypassForCost` line now reads run since #230, with
 `keys: field.cooldownOverride`. #306 was closed as built, and Lanceturia's Mana Burst is content for her own build.
