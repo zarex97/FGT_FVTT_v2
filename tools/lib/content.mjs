@@ -1242,6 +1242,19 @@ function countsAreKnown(doc, path, problems) {
   for (const { path: where, spec } of countSpecsIn(doc)) {
     for (const problem of countProblems(spec)) problems.push(`${path}: ${where} ${problem}`);
   }
+  // A RankShift's ladder (#284): every rung is a Rank. A bad one would throw
+  // where the projection parses it, and one mistyped clause must not take the
+  // board down with it.
+  for (const bucket of ["rules", "passiveRules", "activeRules"]) {
+    for (const [r, rule] of (Array.isArray(doc[bucket]) ? doc[bucket] : []).entries()) {
+      const ladder = rule?.key === "RankShift" && Array.isArray(rule.to?.ladder) ? rule.to.ladder : [];
+      for (const [i, rung] of ladder.entries()) {
+        let ok = false;
+        try { ok = Rank.parseOrNull(rung) !== null; } catch { ok = false; }
+        if (!ok) problems.push(`${path}: ${bucket}[${r}].to.ladder[${i}] is not a Rank ("${rung}")`);
+      }
+    }
+  }
 }
 
 function validateDocument(doc, path, library, problems, warnings, dir = "") {

@@ -43,6 +43,14 @@ An element's value may be a literal, a `table:` key looked up against the owning
 
 Magnitude factors — `magnitudeFactor` and `magnitudeRoundTo` — are applied here, in one place, so every element gains them without re-implementing the logic. Mad Enhancement is *"all damage dealt is increased by X% ... this effect is halved for Attacks which use Base Attack (MAG)"*, and `magnitudeFactor` lets the single table value be multiplied by 0.5, avoiding a second ladder. `magnitudeRoundTo` applies the author's own rounding; Kingprotea's A+ halves to 42.5 and rounds DOWN to 40 (`module/rules/elements.mjs:832-853`).
 
+### A Count in an element
+
+Any element whose value is read through `resolveValue` may carry `count: {of, …}` beside `each`, `base` and
+`zeroPaysNothing` (`rules/count.mjs`, #319): `{key: MovDelta, value: 1, count: {of: resource, key: godspeedTokens}, each: 3}`
+is *"For every 3 Godspeed Tokens Richard has, his MOV is increased by 1"*. `RankShift` reads a Count three ways: `steps`
+or `grades` as `{count, max}`, and `to` as `{ladder, count}`, one rung per count and the last rung at most, for a
+sheet whose ladder is not the dense one (Godspeed's *"B > B+ > B++ > A > A+ > A++ > EX"*) (#284).
+
 ### Scripts
 
 `runScript(name, ctx)` looks up a name in `SCRIPTS` and calls it if it exists, or logs a warning and returns `[]` if it does not. Every script in the registry is a function taking a context object and returning an array of intents. `nurseryRhyme.rewind` restores an arbitrary historical snapshot across a unit set by walking the board, resolving an index, diffing two states, and emitting a heterogeneous batch. Why this one is not data: every other ability is a composition of named mechanisms. This one produces something no other rule element can describe — it would be inventing vocabulary for a shape nothing else has (`module/engine/scripts.mjs:54-64`, `module/engine/scripts.mjs:32-44`).
