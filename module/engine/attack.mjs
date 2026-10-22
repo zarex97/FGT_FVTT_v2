@@ -265,6 +265,9 @@ export async function resolveAttack({
   noteFact(use, "criteriaMet", criteria.met);
   noteFact(use, "overCooldown", Boolean(usage?.overCooldown));
   noteFact(use, "concealmentBroken", Boolean(price?.concealmentBroken));
+  // A channel begun here starts no clock, so the settle must not move one
+  // (Review Focus 4): the clock is started when the channel completes.
+  noteFact(use, "channelStarted", Boolean(price?.channelStarted));
   if (keepsConcealment) placement = { ...(placement ?? {}), keepsConcealment: true };
 
   // A use that failed outright (`UseFailure`, #300): paid in full above, its
@@ -748,7 +751,9 @@ export async function payAbilityPrice({
   // Counter open) and a held one keeps PC through it (#249 readings 9, 9b).
   // Here and not in `resolveAttack`, so a Counter declared with it rolls too.
   const held = ability ? await rollConcealmentBreak(attacker, ability, self) : null;
-  return { keepsConcealment: Boolean(held?.kept), concealmentBroken: Boolean(held?.rolled && !held?.kept), failed };
+  return {
+    keepsConcealment: Boolean(held?.kept), concealmentBroken: Boolean(held?.rolled && !held?.kept), failed, channelStarted,
+  };
 }
 /**
  * The `attack` descriptor a Combat Process carries.

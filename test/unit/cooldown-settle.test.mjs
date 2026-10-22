@@ -165,3 +165,36 @@ describe("an attack settles once its Combat Phase is over", () => {
     }, { tokens: true, combat: { round: 3, started: true, system: { globalTurn: 7 }, actingFactionId: "A" } });
   });
 });
+
+describe("a channel declared as an Attack settles nothing (Review Focus 4)", () => {
+  it("an Evaded Attack that began a channel leaves the clock unstarted", async () => {
+    const { files } = await loadSource("packs/_source");
+    const jeanne = files.find((f) => f.doc?.id === "test-jeanne-d-arc").doc;
+    const strike = files.find((f) => f.doc?.id === "danzo-funshindan").doc;
+    const { usableWhileConcealed: _u, concealmentBreakChance: _c, ...rest } = strike;
+    const np = {
+      ...rest, id: "test-use-channel", slug: "testUseChannel", name: "Test Use Channel",
+      cooldown: { max: "3◈", conditionalBonus: [{ predicate: ["use:evaded"], ticks: "1◈" }] },
+      phases: [{ kind: "channel", ticks: "1◈" }, ...(rest.phases ?? [])],
+    };
+    await withSubjects([
+      { from: "test-jeanne-d-arc", id: "settleChannel001", state: { factionId: "A" }, panel: { i: 5, j: 5 },
+        with: { abilities: [...(jeanne.abilities ?? []), np] } },
+      { from: "heracles", id: "settleChanDef001", state: { factionId: "B" }, panel: { i: 5, j: 7 },
+        effects: [{ defId: "dodge", uses: 2 }] },
+    ], async ({ world: w }) => {
+      w.dice.every(50);
+      const item = () => w.actor("settleChannel001").items.find((i) => i.system?.contentId === "test-use-channel");
+      const { resolveAttack } = await import("../../module/engine/attack.mjs");
+      const { playProcess } = await import("../helpers/process.mjs");
+      const declared = await resolveAttack({ attackerId: "settleChannel001", abilityId: item().id, placement: { panel: { i: 5, j: 7 } } });
+      expect(declared.processes?.length ?? 0).toBeGreaterThan(0);
+      for (const p of declared.processes) {
+        await playProcess(w, p.messageId, { settleChanDef001: ["evade", "declined"], settleChannel001: ["declined"] });
+      }
+      const saved = JSON.parse(w.messages.get(declared.processes[0].messageId).getFlag("fgt", "process")).use;
+      expect(item().system.cooldown.remaining).toBe(0);
+      expect(saved.facts.channelStarted).toBe(true);
+    }, { tokens: true, combat: { round: 3, started: true, system: { globalTurn: 7 }, actingFactionId: "A" } });
+  });
+});
