@@ -21,6 +21,7 @@
  * deals damage directly, not its Attack.
  */
 
+import { emptyUseRecord, noteFact } from "../rules/use-record.mjs";
 import { effectiveMov } from "../rules/movement.mjs";
 import { additionalCostsFor, resolveCosts } from "../rules/costs.mjs";
 import { pressGate } from "./press-gate.mjs";
@@ -160,6 +161,11 @@ export async function useSkill({
     await postCriteriaCard(actor, ability, criteria);
   }
   const use = { criteriaMet: criteria.met };
+  // What this use did, filled as it goes (#320): the landing door notes each
+  // Effect, and the facts below are noted where they are decided.
+  const record = emptyUseRecord({ abilityId: ability.id, unitId: actor.id });
+  noteFact(record, "criteriaMet", criteria.met);
+  noteFact(record, "overCooldown", Boolean(usage.overCooldown));
 
   // A barrier's pool, filled BEFORE the phases hand out the buff that spends it
   // -- and before `recordUse` below, because `refreshShield` reads `timesUsed`
@@ -180,10 +186,16 @@ export async function useSkill({
   // chance (`rules/miss.mjs#missChance`), asked once per use, before anything
   // lands.
   const failure = await rollSkillFailure(ability, self, targets);
+  if (failure) {
+    noteFact(record, "failed", true);
+    noteFact(record, "die", failure.roll);
+  }
 
   if (ability?.system?.shield && !failure) await refreshShield(ability);
 
-  const applied = failure ? [] : await runPhases(ability, actor, targets.units, board);
+  const applied = failure ? [] : await runPhases(ability, actor, targets.units, board, null, { useRecord: record });
+  noteFact(record, "summoned", applied.summoned ?? 0);
+  noteFact(record, "channelStarted", Boolean(applied.channelStarted));
 
   const marks = {
     ...(countsAsAct(ability) ? { acted: true } : {}),
@@ -230,7 +242,8 @@ export async function useSkill({
   // What the use's own handlers did is a line on this card (#202): Magecraft's
   // extension of Suppression on a Spell was on no card (#243, live).
   applied.push(...await fireAbilityUsed(actor, ability));
-  await rollConcealmentBreak(actor, ability, self);
+  const broke = await rollConcealmentBreak(actor, ability, self);
+  noteFact(record, "concealmentBroken", Boolean(broke.rolled && !broke.kept));
   if (failure) {
     await ChatMessage.create({
       content: `<p>${game.i18n.format("FGT.Miss.SkillFailed", {
@@ -238,7 +251,7 @@ export async function useSkill({
       })}</p>`,
       speaker: publicSpeakerFor(actor),
     });
-    return { ok: true, applied, failed: failure };
+    return { ok: true, applied, failed: failure, use: record };
   }
   await postCard(actor, ability, targets.units, applied);
 
@@ -249,7 +262,7 @@ export async function useSkill({
   const { flushAutoCounters } = await import("./attack.mjs");
   await flushAutoCounters();
 
-  return { ok: true, applied };
+  return { ok: true, applied, use: record };
 }
 
 /**
@@ -683,7 +696,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
         case "applyEffects":
         case "applyEffect":
           applied.push(...await applyPhaseEffects(phase, ability, actor, snapshot, {
-            targets: phaseUnits, self, sink,
+            targets: phaseUnits, self, sink, useRecord: extras.useRecord ?? null,
           }));
           break;
 
@@ -1418,6 +1431,7 @@ async function applyPhaseEffects(phase, ability, actor, target, phaseCtx = {}) {
       casterUnit,
       targets: phaseCtx.targets ?? [],
       board,
+      useRecord: phaseCtx.useRecord ?? null,
     }, {
       write: (intents) => applyWorldIntents(intents, "skillEffect", { sink: phaseCtx.sink ?? null }),
       // RE-READ between applications: a staged effect decides its next stage

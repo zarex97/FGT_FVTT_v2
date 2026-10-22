@@ -29,6 +29,7 @@
  * `applyEffect`.
  */
 
+import { noteLanding } from "../rules/use-record.mjs";
 import { untouchableBy } from "../rules/untouchable.mjs";
 import { identityOfProcess, recordedAttack } from "../rules/revival.mjs";
 import { currentHealth } from "../domain/health.mjs";
@@ -70,6 +71,7 @@ import { warRule } from "./war.mjs";
  * @property {object|null} [process] the Combat Process state, which offers Prevention
  * @property {object|null} [emitted] the intent being resolved, whose stated expiry stands
  * @property {object|null} [board]
+ * @property {object|null} [useRecord] the use's record (`rules/use-record.mjs`), which each landing is noted on
  */
 
 /**
@@ -270,6 +272,9 @@ export async function landEffect(entry, ctx) {
     chance: line,
     intents,
     roll,
+    // The polarity it landed with, for the use's record: a debuff inflicted is
+    // a landed debuff, Roma Stacks on an ally are not one (#315, #320).
+    polarity: def.polarity ?? null, // fgt-polarity-ok: the landed definition this landing decided
     trace: result.trace ?? [],
     summary: { id: def.id, name: def.name, outcome, reason, chance: line },
   };
@@ -362,6 +367,13 @@ export async function landEntry(entry, ctx, { write, reread = null }) {
     const result = await landEffect(entry, { ...ctx, board, target, times: counted ? times : null });
     if (result.intents.length > 0) await write(result.intents);
     out.push({ summary: result.summary, result });
+    // What the use did (#320): every landing the door made, noted on its record.
+    if (ctx.useRecord) {
+      noteLanding(ctx.useRecord, {
+        defId: entry.id, outcome: result.outcome, targetId: target?.id ?? null,
+        polarity: result.polarity ?? null, // fgt-polarity-ok: the landed polarity this landing returned
+      });
+    }
     // The chance's other branch. Expert of Many Specializations: *"Applies
     // Dodge with a 70% chance of applying it for ⅔◈ Turns, otherwise it is only
     // applied for ⅓◈ Turns."* A failed die lands the shorter one, uncertain no
@@ -378,6 +390,13 @@ export async function landEntry(entry, ctx, { write, reread = null }) {
       });
       if (fallback.intents.length > 0) await write(fallback.intents);
       out.push({ summary: { ...fallback.summary, chance: fallback.summary.chance ?? "otherwise" }, result: fallback });
+      if (ctx.useRecord) {
+        noteLanding(ctx.useRecord, {
+          defId: entry.otherwise.id ?? entry.id, outcome: fallback.outcome,
+          polarity: fallback.polarity ?? null, // fgt-polarity-ok: the landed polarity this landing returned
+          targetId: target?.id ?? null,
+        });
+      }
     }
   }
   return out;

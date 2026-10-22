@@ -96,6 +96,7 @@ import {
 import { selectBranch, isNestedCheck, MAX_CHECK_DEPTH } from "../rules/checks/branches.mjs";
 import { publicSpeakerFor, publicIdentityOf } from "./public-identity.mjs";
 import { criteriaMet, declarationCriteria, multiplierOf } from "../rules/count.mjs";
+import { emptyUseRecord, noteFact } from "../rules/use-record.mjs";
 import { regionSizedTargeting } from "./fields.mjs";
 // The name a line prints is the PUBLIC one (#230 rolls, #235 every card):
 // the one door is `public-identity.mjs#shownName`.
@@ -258,6 +259,11 @@ export async function resolveAttack({
   // A held concealment roll survives a pre-emption: the resume pays nothing and
   // rolls nothing, so the placement carries it (#249 reading 9b).
   const keepsConcealment = Boolean(price?.keepsConcealment || (resume && placement?.keepsConcealment));
+  // The declaration's commit facts, which every Process's record starts from (#320).
+  const use = emptyUseRecord({ abilityId: ability?.id ?? null, unitId: attackerId });
+  noteFact(use, "criteriaMet", criteria.met);
+  noteFact(use, "overCooldown", Boolean(usage?.overCooldown));
+  noteFact(use, "concealmentBroken", Boolean(price?.concealmentBroken));
   if (keepsConcealment) placement = { ...(placement ?? {}), keepsConcealment: true };
 
   // A Noble Phantasm that LANDS LATER (`engine/schedule.mjs`). Enki's use is its
@@ -494,7 +500,7 @@ export async function resolveAttack({
   // The rest of a declaration -- the fan-out, the cards, the events -- is
   // shared with the Ch. 21 Counter path, which needs every step of it.
   const primary = await declareProcesses({
-    attackerId, attacker, ability, attackSpec, targetIds, targets, placement, board, perProcess,
+    attackerId, attacker, ability, attackSpec, targetIds, targets, placement, board, perProcess, use,
     // A scheduled strike landing was USED at its activation: its caster phases
     // ran and `abilityUsed` was raised there (`engine/schedule.mjs`).
     declaresUse: !placement?.scheduled,
@@ -718,7 +724,7 @@ export async function payAbilityPrice({ ability, attackerId, attacker, self, mas
   // Counter open) and a held one keeps PC through it (#249 readings 9, 9b).
   // Here and not in `resolveAttack`, so a Counter declared with it rolls too.
   const held = ability ? await rollConcealmentBreak(attacker, ability, self) : null;
-  return { keepsConcealment: Boolean(held?.kept) };
+  return { keepsConcealment: Boolean(held?.kept), concealmentBroken: Boolean(held?.rolled && !held?.kept) };
 }
 /**
  * The `attack` descriptor a Combat Process carries.
@@ -1307,7 +1313,7 @@ async function swapIntoAttack({ state, message, ownerId, partnerId }) {
 async function declareProcesses({
   attackerId, attacker, ability, attackSpec, targetIds, targets, placement, board,
   isCounter = false, requiredTargetId = null, counterDepth = 0, groupId = null,
-  perProcess = null, declaresUse = true,
+  perProcess = null, declaresUse = true, use = null,
 }) {
   // Ch. 21's flag, folded into the ATTACK rather than only onto the Process
   // state. `rules/options.mjs` emits `attack:isCounter` from the attack spec,
@@ -1418,6 +1424,9 @@ async function declareProcesses({
       // alone is still an AoE Attack for Presence Concealment's coin, though
       // `isAoE` -- distinct defenders -- is false for it.
       if (caughtConcealed.has(withCone.defenderId)) withCone.caughtConcealed = true;
+      // What the use did, one record per Process, saved with it (#320, Q18):
+      // the declaration's commit facts, and this Process's own landings later.
+      withCone.use = structuredClone(use ?? emptyUseRecord({ abilityId: ability?.id ?? null, unitId: attackerId }));
       if (caughtByArea.has(withCone.defenderId)) withCone.caughtByArea = true;
       const withInstance = instance
         ? { ...withCone, attack: { ...withCone.attack, ...instance } }
@@ -6255,6 +6264,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
       applied.push(...await landEntry(entryOf(rider), {
         target: defender,
         source: { unitId: state.attackerId, abilityId: ability.id },
+        useRecord: state.use ?? null,
         caster: attackerDoc,
         casterUnit: attackerUnit,
         attack: attackFacts(attackerUnit, defender, state),
@@ -6534,6 +6544,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
       applied.push(...await landEntry(entryOf(rule, { phase }), {
         target: defender,
         source: { unitId: state.attackerId, abilityId: ability.id },
+        useRecord: state.use ?? null,
         caster: attackerDoc,
         casterUnit: attackerUnit,
         attack: attackFacts(attackerUnit, defender, state),
@@ -6589,6 +6600,7 @@ async function rollTableAgainst(phase, ability, state, attackerDoc, attackerUnit
       applied.push(...await landEntry(entryOf(rule, { phase }), {
         target: unitFrom(boardSnapshot(), landOn) ?? (onSelf ? attackerUnit : defender),
         source: { unitId: state.attackerId, abilityId: ability.id },
+        useRecord: state.use ?? null,
         caster: attackerDoc,
         casterUnit: attackerUnit,
         attack: attackFacts(attackerUnit, defender, state),
@@ -6987,6 +6999,7 @@ async function applyDeclaredEffects(specs, ability, state, defender, { phase = n
     out.push(...await landEntry(entryOf(spec, { phase }), {
       target: defender,
       source: { unitId: state.attackerId, abilityId: ability.id },
+      useRecord: state.use ?? null,
       caster: attackerDoc,
       casterUnit: attacker,
       attack: attackFacts(attacker, defender, state, board),
