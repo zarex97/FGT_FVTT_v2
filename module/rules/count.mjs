@@ -62,9 +62,15 @@ export class UnknownCountKind extends Error {
  * @throws {UnknownCountKind}
  */
 export function countOf(spec, ctx = {}) {
+  // Each kind's own key is read BEFORE the context it indexes: `ctx.refs?.self
+  // ?.resources?.[spec.key]` never evaluates `spec.key` when there are no
+  // refs, so a collection pass with no Unit (the rule-survival test's) saw the
+  // key authored and never read.
   switch (spec?.of) {
-    case "stacks":
-      return whole(ctx.stacks?.[/** @type {string} */ (spec.effect)]);
+    case "stacks": {
+      const effect = /** @type {string} */ (spec.effect);
+      return whole(ctx.stacks?.[effect]);
+    }
     case "targets":
       // *"the number of affected allied Units with the 'Existence Outside the
       // Domain' Skill excluding herself"* (De Sterrennacht). AFFECTED: the set
@@ -87,12 +93,15 @@ export function countOf(spec, ctx = {}) {
       }).length;
     case "parameters":
       return parametersCounted(spec, ctx.self, ctx.target);
-    case "resource":
-      return whole(ctx.refs?.self?.resources?.[/** @type {string} */ (spec.key)]?.value);
+    case "resource": {
+      const key = /** @type {string} */ (spec.key);
+      return whole(ctx.refs?.self?.resources?.[key]?.value);
+    }
     case "criteria":
       return whole(ctx.use?.criteriaMet);
     case "use": {
-      const fact = ctx.use?.[/** @type {string} */ (spec.fact)];
+      const name = /** @type {string} */ (spec.fact);
+      const fact = ctx.use?.[name];
       return typeof fact === "boolean" ? Number(fact) : whole(fact);
     }
     case "tally":

@@ -1,0 +1,23 @@
+# Test ability for the Count module's live presses (#319, plan Task 9, L1-7).
+#
+# A handler's `times` sized by a stack: "X times, where X = the stage of the
+# Curse on this Unit". Before the Count module the handler's own count read
+# `max(1, uses)` and never the stage, so a Stage 3 Curse paid ONE charge; the
+# one rule (Q3) pays three. NP DmUp (GAO) is `stacking: count`, so the three
+# arrive as one instance worth 3 charges. Not from any sheet.
+schema: 1
+id: test-count-stage-times
+name: "Test Count: Stage Times"
+kind: skill
+slug: testCountStageTimes
+passive: true
+description: "TEST PASSIVE. Whenever this Unit uses Test Count: Trigger, apply NP DmUp (GAO) to it X times, where X = the stage of the Curse it carries."
+passiveRules:
+  - key: OnEvent
+    event: abilityUsed
+    automatic: true
+    ofContentId: [test-count-trigger]
+    then:
+      - key: ApplyEffect
+        effect: { id: npDmUpGao }
+        times: { perStack: { effect: curse } }

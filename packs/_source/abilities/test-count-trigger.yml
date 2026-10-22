@@ -1,0 +1,18 @@
+# Test ability for the Count module's live presses (#319, plan Task 9, L1-7).
+# A plain Skill whose use `test-count-stage-times` hears. Not from any sheet.
+schema: 1
+id: test-count-trigger
+name: "Test Count: Trigger"
+kind: skill
+slug: testCountTrigger
+cooldown: "0◈"
+timing: { window: ownTurn }
+description: "TEST SKILL. Used during your Turn. Applies Atk Up to this Unit for 1◈ Turns, damage dealt +5%. Its use is what Test Count: Stage Times hears."
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    effects:
+      - { id: atkUp, duration: "1◈", magnitude: 5 }

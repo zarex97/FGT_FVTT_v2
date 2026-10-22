@@ -1,0 +1,14 @@
+# Test Mode for the Count module's live presses (#288, #319, plan Task 9,
+# L1-12, L1-14). Saitou's Chikai no Haori, shortened: "forcefully ended after
+# he performs a successful seventh Attack", here the second.
+schema: 1
+id: test-count-tally
+name: "Test Count: Tally"
+kind: skill
+slug: testCountTally
+isMode: true
+timing: { window: ownTurn }
+description: "TEST MODE. While Active, damage dealt +10. Ends after this Unit performs 2 successful Attacks while it is Active."
+activeRules:
+  - { key: FlatDamage, value: 10 }
+endsAfter: { event: attackLanded, count: 2 }
