@@ -80,7 +80,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   // Classic and Revised (#260 reading 3): the text a bearer prints, its own
   // exemption from Skill Seal, and the Revised description.
   "printedRevision", "unsealable", "descriptionRevised",
-  "countsAsNormalAttack", "openingChoice", "toggleWindow", "cooldownOverride",
+  "countsAsNormalAttack", "openingChoice", "toggleWindow", "cooldownOverride", "endsAfter",
   // What a mode's end pays, by how it ended (#253, Doppelganger).
   "onDeactivate",
   // Avalon (#230): a Noble Phantasm that costs its Master nothing; an Item

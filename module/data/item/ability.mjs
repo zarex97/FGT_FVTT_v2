@@ -80,6 +80,14 @@ function abilityCommon() {
     // Usable ON its Cooldown, at a price, without restarting it: `{masterHealth,
     // withinZon}` (Arturia's Mana Burst, #230). Read by `rules/costs.mjs`.
     cooldownOverride: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+    // A Mode that ends after a tally of events (#288, #319): Saitou's Chikai no
+    // Haori *"forcefully ended after he performs a successful seventh Attack"* is
+    // `{event: attackLanded, count: 7}`, Shinpachi's five Crits add `when:
+    // [attack:crit]`. Read by `rules/modes.mjs#tallyHandler`.
+    endsAfter: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+    // How many of those events this ACTIVATION has heard. Written by
+    // `engine/io.mjs#tallyMode` and reset to 0 by `#setMode` on the way on.
+    tally: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
     // *"Using this NP does not reduce her Master's Health as a cost"* (Arturia's
     // Avalon, #230). Read by `rules/costs.mjs#npCost`.
     noMasterCost: new fields.BooleanField({ initial: false }),

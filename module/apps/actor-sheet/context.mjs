@@ -724,6 +724,9 @@ function abilityCard(item, { actor, unit, master, round, turnsPerRound, board })
         : [item.system.timing?.window])].filter(Boolean)
       : [],
     active: Boolean(item.system.active),
+    // A Mode's tally toward its end, while it is on (#288): "4/7".
+    tally: item.system.active && Number(item.system.endsAfter?.count) > 0
+      ? { tally: item.system.tally ?? 0, count: Number(item.system.endsAfter.count) } : null,
     // A mode that is on reads as on; `cannotDeactivate` explains a disabled
     // toggle rather than leaving the player clicking a dead control.
     locked: Boolean((item.system.active && item.system.cannotDeactivate) || (!item.system.active && item.system.cannotActivate)),

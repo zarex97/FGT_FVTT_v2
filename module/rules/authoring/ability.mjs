@@ -43,7 +43,7 @@ const f = (key, type, english, extra = {}) => ({
  * @type {readonly string[]}
  */
 export const RUNTIME_FIELDS = Object.freeze([
-  "timesUsed", "toggledAt", "lastUsedTick", "expended", "active",
+  "timesUsed", "toggledAt", "lastUsedTick", "expended", "active", "tally",
   "recordedAttacks", "uses", "contentVersion", "copiedFrom", "grantedBy",
 ]);
 
@@ -120,6 +120,7 @@ export const SECTIONS = Object.freeze([
       f("isMode", "checkbox", "Switched on and left on, rather than used."),
       f("toggleLock", "tickExpr", "How long after switching before it may be switched back."),
       f("cannotDeactivate", "checkbox", "Once on, it never comes off."),
+      f("endsAfter", "raw", "Ends the Mode after this many events while it is on: {event, when, count}."),
       f("cannotCounter", "checkbox", "It cannot be used as a Counter, however it is classed."),
       f("isAttackSkill", "checkbox", "Counts as an Attack as well as a Skill."),
       f("countsAsAttack", "checkbox", "Spends the Unit's Attack."),

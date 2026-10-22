@@ -27,7 +27,7 @@ export const INTENT_TYPES = Object.freeze([
   "setMode", "setStance", "recordUse", "extendEffect", "shieldDelta", "recordAttack",
   // A standing Effect's magnitude falling (`decay`, #296): its count, and the
   // line the card prints.
-  "decayEffect",
+  "decayEffect", "tallyMode",
   // `setStage` decrements a staged effect without deleting it, and `event`
   // raises a write-time event so a listener can react to what just happened.
   // Both are Van Gogh's -- her Curse is the first effect anything reads the
@@ -104,6 +104,9 @@ const ORDER = Object.freeze({
   // Bookkeeping, and BEFORE anything that reads the mode back: Mad
   // Enhancement's forced deactivation has to land before the next pass
   // collects its active rules.
+  // Bookkeeping, and BEFORE the `setMode` its last count may emit: the tally is
+  // written, then the Mode ends on it (#288).
+  tallyMode: 2,
   setMode: 2,
   // Beside `setMode`, and for exactly its reason: a suspension switches a mode
   // off AND bars it from returning, so it has to land before the next pass
@@ -238,6 +241,13 @@ export const extendEffect = (unitId, defId, turns, source = null, startAt = null
  * @param {string} defId its definition, for the line
  * @returns {Intent}
  */
+/**
+ * One more event heard by a Mode's tally (#288): `after` is the count it now
+ * stands at, `count` the one it ends at, both for the line that says so.
+ */
+export const tallyMode = (unitId, abilityId, after, count, name = null) =>
+  ({ t: "tallyMode", unitId, abilityId, after, count, name });
+
 export const decayEffect = (unitId, effectId, steps, magnitude, defId) =>
   ({ t: "decayEffect", unitId, effectId, steps, magnitude, defId });
 

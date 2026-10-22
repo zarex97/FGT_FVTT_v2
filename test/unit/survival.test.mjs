@@ -193,6 +193,7 @@ export const ABILITY_ROUTES = {
   countsAsNormalAttack: doc("module/engine/attack.mjs", "stamped on the attack as a Normal Attack"),
   openingChoice: doc("module/engine/opening-choice.mjs", "asked when the war starts"),
   cooldownOverride: doc("module/rules/ability-use.mjs", "the price of a use on the Cooldown (#230)"),
+  endsAfter: doc("module/rules/modes.mjs", "the tally handler a Mode ends on (#288, #319)"),
   toggleWindow: doc("module/rules/modes.mjs", "when a mode may be switched (#230)"),
   onDeactivate: doc("module/engine/scheduler-hooks.mjs", "what a mode's end pays, by how it ended (#253)"),
   noMasterCost: doc("module/rules/ability-use.mjs", "an NP that costs its Master nothing (#230)"),
