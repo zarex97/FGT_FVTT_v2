@@ -146,3 +146,24 @@ export function useOptions(facts) {
   if (typeof facts?.die === "number") out.add(`use:die:${facts.die}`);
   return out;
 }
+
+/**
+ * A declaration's record, from its Processes as they were saved: its own, never a Counter's.
+ *
+ * A Counter is its own Attack (Review Focus 2), so its landings are not the
+ * declaration's. A Unit is HIT when its Process reached the Damage Step and was
+ * not negated, a Block included (#230 reading 7); `unitsHit` counts distinct
+ * defenders, and `missed` is a declaration that hit nobody (Kurohime's
+ * *"misses"*, ruled by default 2026-10-22).
+ *
+ * @param {Array<{state: object, result?: object|null}>} processes
+ * @returns {UseRecord}
+ */
+export function declarationRecord(processes) {
+  const own = (processes ?? []).filter((p) => p?.state && !p.state.isCounter);
+  const merged = mergeRecords(own.map((p) => p.state.use).filter(Boolean));
+  const hit = new Set(own.filter((p) => p.result && !p.result.flags?.negatedBy).map((p) => p.state.defenderId));
+  merged.facts.unitsHit = hit.size;
+  merged.facts.missed = hit.size === 0;
+  return merged;
+}

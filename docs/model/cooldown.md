@@ -20,14 +20,17 @@ code: module/engine/cooldown.mjs
   effect activated/applied by this Skill"*. The Trung Sisters' Punji Trap adds ½◈ *"for every debuff inflicted"*.
   Kurohime's NP costs 3◈ when its Normal Attack misses. Arthur's Excalibur Proto adds ½◈ per criteria met. Both
   Gilles (Caster)'s Summoning: Horrors waits ⅓◈ per Horror summoned. Eli Brave's Mana Burst waits 3◈ or 4◈ by
-  her die. Nero's Goblet of Wealth waits 3◈ when its effect failed. `branches` and `conditionalBonus` test the
-  user's options at cooldown time, never the use's outcome. Not run. #285.
-  keys: none (#285)
+  her die. Nero's Goblet of Wealth waits 3◈ when its effect failed. **Run since #320**: the clock settles from the
+  Use record once the use is over. `branches` and `conditionalBonus` see its `use:` options (`use:missed`,
+  `use:evaded`, `use:applied:<effect>`, `use:die:<face>`), and `countBonus` reads its facts as a Count
+  (`{of: use, fact: debuffsInflicted}`).
+  keys: `field.cooldown.countBonus`, `field.cooldown.branches`, `field.cooldown.conditionalBonus`
 
 - `byOutcome`, more from Caster: Medea Lily's Dragon Tooth Warriors and Nitocris's Mummies wait per summon, Nursery
   Rhyme's Trump Soldiers ⅓◈ each, Tamamo Goth's NP 4◈ when it was Evaded, Sieg's Shapeshifter 3◈ plus the Turns he
-  was transformed. #285.
-  keys: none (#285)
+  was transformed. Per summon runs (`perUnit`, now the record's `summoned`), and Evaded is `use:evaded`. Sieg's
+  Turns transformed are not a fact of the use and stay open on #285.
+  keys: `field.cooldown.perUnit`, `field.cooldown.conditionalBonus`; Turns transformed: none (#285)
 - `reductionBonus` (**Attribute**, Caster 2026-10-21): every cut to a Unit's NP Cooldown cuts one Turn more.
   Merlin, Proto Merlin and Lady Avalon: *"Whenever … NP Cooldown is reduced, whether through natural reduction
   … or an effect, it is reduced by 1 extra Turn."* Barghest (UDK)'s Thundercloud Eater makes natural NP regen 2 Turns

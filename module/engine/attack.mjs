@@ -28,7 +28,7 @@ import {
 } from "../rules/checks.mjs";
 import * as rollLog from "../rules/roll-log.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
-import { cooldownFor, alsoTriggered, sharedAcrossGroup } from "./cooldown.mjs";
+import { cooldownFor, alsoTriggered, sharedAcrossGroup, settleDelta } from "./cooldown.mjs";
 import { cooldownChanges, statChangeLine, checkLine, rollConcealmentBreak, commandSpellCostIntents, postCostCards } from "./skill-use.mjs";
 import { splitCooldownRider } from "../rules/cooldown-riders.mjs";
 import {
@@ -96,7 +96,7 @@ import {
 import { selectBranch, isNestedCheck, MAX_CHECK_DEPTH } from "../rules/checks/branches.mjs";
 import { publicSpeakerFor, publicIdentityOf } from "./public-identity.mjs";
 import { criteriaMet, declarationCriteria, multiplierOf } from "../rules/count.mjs";
-import { emptyUseRecord, noteFact } from "../rules/use-record.mjs";
+import { emptyUseRecord, noteFact, useFacts, declarationRecord } from "../rules/use-record.mjs";
 import { regionSizedTargeting } from "./fields.mjs";
 // The name a line prints is the PUBLIC one (#230 rolls, #235 every card):
 // the one door is `public-identity.mjs#shownName`.
@@ -3808,6 +3808,10 @@ async function fireAttackPerformed(siblings) {
   for (const [attackerId, processes] of byAttacker) {
     const attacker = unitOf(unitActor(attackerId), board);
     if (!attacker) continue;
+    // The declaration's clock, settled from what it did (#285, #320, Q8): read
+    // off the Processes as they were saved, the declaration's own and never a
+    // Counter's, once every one of them is over.
+    const settled = await settleDeclarationCooldown(attackerId, attacker, processes);
     const hit = new Set(processes
       .filter((p) => p.result && !p.result.flags?.negatedBy)
       .map((p) => p.st.defenderId));
@@ -3822,16 +3826,38 @@ async function fireAttackPerformed(siblings) {
       subject: { contentId: first.attack?.sourceContentId ?? null, isNP: first.attack?.kind === "np" },
       rolls: {},
     });
+    intents.push(...settled);
     if (intents.length === 0) continue;
     // A clock the Attack turned is a line on its card, as the Damage Step's
     // are (#209): Excalibur took 23 -> 21 off its own two Units and no card
-    // said so (#230, live). On the attacker's last card of the Phase.
+    // said so (#230, live). On the attacker's last card of the Phase. A settle
+    // is a clock the Attack turned too (#320).
     const rows = await applyWithLines(intents, "attackPerformed");
     if (rows.length === 0) continue;
     const { message, st } = processes.at(-1);
     await message.setFlag("fgt", "effects", [...(message.getFlag("fgt", "effects") ?? []), ...cardRows(rows)]);
     await updateAttackCard(message, st);
   }
+}
+
+/**
+ * The intents that settle a declaration's clock from its Use record (#320).
+ *
+ * @param {string} attackerId
+ * @param {object} attacker the attacker as the board sees it
+ * @param {Array<{st: object, result: object|null}>} processes the attacker's Processes this Phase
+ * @returns {Promise<object[]>}
+ */
+async function settleDeclarationCooldown(attackerId, attacker, processes) {
+  const declared = processes.filter((p) => !p.st.isCounter);
+  const abilityId = declared[0]?.st.attack?.abilityId ?? null;
+  const ability = abilityId ? unitActor(attackerId)?.items?.get(abilityId) : null;
+  if (!ability) return [];
+  const facts = useFacts(declarationRecord(declared.map((p) => ({ state: p.st, result: p.result }))));
+  const delta = settleDelta(ability, attackerId, { unit: attacker, facts });
+  if (delta === 0) return [];
+  // `settle`: not a cut an effect makes, so no `CooldownCutBonus` meets it.
+  return [{ ...I.cooldown(attackerId, ability.id, Math.abs(delta), delta < 0 ? "reduce" : "increase"), settle: true }];
 }
 
 /**

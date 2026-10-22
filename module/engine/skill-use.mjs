@@ -21,7 +21,7 @@
  * deals damage directly, not its Attack.
  */
 
-import { emptyUseRecord, noteFact } from "../rules/use-record.mjs";
+import { emptyUseRecord, noteFact, useFacts } from "../rules/use-record.mjs";
 import { effectiveMov } from "../rules/movement.mjs";
 import { additionalCostsFor, resolveCosts } from "../rules/costs.mjs";
 import { pressGate } from "./press-gate.mjs";
@@ -219,7 +219,7 @@ export async function useSkill({
     ...charged.flatMap((cost) => costIntents(cost, self)),
     ...itemCostIntents(ability, actor),
     // A use ON the Cooldown leaves the clock alone (`rules/costs.mjs`).
-    ...(applied.channelStarted || usage.overCooldown || failure?.refundsCooldown ? [] : cooldownIntents(ability, actor, applied.summoned ?? 0, self, use)),
+    ...(applied.channelStarted || usage.overCooldown || failure?.refundsCooldown ? [] : cooldownIntents(ability, actor, applied.summoned ?? 0, self, use, useFacts(record))),
     I.markTurn(actorId, marks),
     // Recorded so a mutually-exclusive partner can see it went, at both
     // scales, and so a `maxUses` budget can be spent. One intent, shared with
@@ -1478,10 +1478,12 @@ function itemCostIntents(ability, actor) {
  * @param {object|null} [unit] the user's snapshot, for a resource waiver
  * @returns {object[]}
  */
-function cooldownIntents(ability, actor, summoned = 0, unit = null, use = {}) {
+function cooldownIntents(ability, actor, summoned = 0, unit = null, use = {}, facts = null) {
   // One implementation for both use paths (`engine/cooldown.mjs`). They used to
   // disagree: this one set a cooldown and `resolveAttack` did not.
-  const plan = cooldownFor(ability, actor.id, { count: summoned, unit, use });
+  // What the use did, when it is known (#320): a Skill's use is over once its
+  // phases have run, so its clock is started and settled in this one write.
+  const plan = cooldownFor(ability, actor.id, { count: summoned, unit, use, facts });
 
   return [
     // `sharedAcrossGroup` takes no board here -- this function is given the

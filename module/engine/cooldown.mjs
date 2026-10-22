@@ -21,6 +21,7 @@ import { rollOptionsFor } from "../rules/options.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import { warRule } from "./war.mjs";
 import { countOf } from "../rules/count.mjs";
+import { useOptions } from "../rules/use-record.mjs";
 
 /**
  * The cooldown a use produces, and what paying to avoid it costs.
@@ -45,8 +46,18 @@ import { countOf } from "../rules/count.mjs";
  * @returns {{cooldowns: Array<{actorId: string, abilityId: string, ticks: number}>,
  *            spends: Array<{unitId: string, key: string, delta: number}>}}
  */
-export function cooldownFor(ability, actorId, { count = 0, unit = null, use = {} } = {}) {
+export function cooldownFor(ability, actorId, { count = 0, unit = null, use = {}, facts = null } = {}) {
   const cd = ability?.system?.cooldown ?? {};
+  // What the use did (#320), when the clock is settled from it: its `use:`
+  // options join the user's, a `count: {of: use}` reads its facts, and a
+  // `perUnit` reads what it summoned.
+  const known = facts ? { ...use, ...facts } : use;
+  if (facts && !count) count = facts.summoned ?? 0;
+  const optionsOf = () => {
+    const options = unit ? rollOptionsFor({ attacker: unit }) : new Set();
+    if (facts) for (const o of useOptions(facts)) options.add(o);
+    return options;
+  };
 
   // A clock that does not start at the use. Presence Concealment is *"Cooldown:
   // 2◈ Turns AFTER PC is deactivated"* -- the Skill lasts 2◈ and then sits for
@@ -100,12 +111,12 @@ export function cooldownFor(ability, actorId, { count = 0, unit = null, use = {}
   // ability that has any), which is why the Servants verified before that were
   // verified correctly and have been broken ever since.
   if (cd.branches?.length) {
-    const options = unit ? rollOptionsFor({ attacker: unit }) : new Set();
+    const options = optionsOf();
     const branch = cd.branches.find((b) => testPredicate(b.predicate, { options }));
     if (!branch?.max) return { cooldowns: [], spends: [] };
     try {
       const ticks = resolveTicks(parseTick(String(branch.max)), { turnsPerRound: turnsPerRound() })
-        + countBonusTicks(cd, { unit, use });
+        + countBonusTicks(cd, { unit, use: known });
       return { cooldowns: ticks > 0 ? [{ actorId, abilityId: ability.id, ticks }] : [], spends: [] };
     } catch (err) {
       console.warn(`FGT | ${ability.name} has an unreadable branch cooldown "${branch.max}": ${err.message}`);
@@ -134,11 +145,11 @@ export function cooldownFor(ability, actorId, { count = 0, unit = null, use = {}
     // Distinct from `branches` above, which SELECTS one cooldown from several;
     // this adds to whichever one was chosen.
     for (const bonus of cd.conditionalBonus ?? []) {
-      const options = unit ? rollOptionsFor({ attacker: unit }) : new Set();
+      const options = optionsOf();
       if (!testPredicate(bonus.predicate, { options })) continue;
       ticks += resolveTicks(parseTick(String(bonus.ticks)), { turnsPerRound: turnsPerRound() });
     }
-    ticks += countBonusTicks(cd, { unit, use });
+    ticks += countBonusTicks(cd, { unit, use: known });
 
     return { cooldowns: ticks > 0 ? [{ actorId, abilityId: ability.id, ticks }] : [], spends: [] };
   } catch (err) {
@@ -147,6 +158,30 @@ export function cooldownFor(ability, actorId, { count = 0, unit = null, use = {}
     console.warn(`FGT | ${ability.name} has an unreadable cooldown "${cd.max}": ${err.message}`);
     return { cooldowns: [], spends: [] };
   }
+}
+
+/**
+ * How far a clock started at commit moves once the use is over (#285, #320, Q8).
+ *
+ * The clock starts when the ability is committed, from the user's options and
+ * the criteria the declaration met, so nothing reuses it mid-use. The use's
+ * outcome is known only at the end: Kurohime's 3◈ when it misses, the Trung
+ * Sisters' ½◈ per debuff inflicted. The settle is the DIFFERENCE, written as a
+ * cut or an increase, so a cut made in between (Utopia's per Unit hit) stands.
+ * A use on its Cooldown or one that began a channel started no clock, and moves
+ * none.
+ *
+ * @param {object} ability the Item
+ * @param {string} actorId
+ * @param {{unit?: object|null, facts: ReturnType<typeof import("../rules/use-record.mjs").useFacts>}} ctx
+ * @returns {number} turns: positive lengthens, negative shortens
+ */
+export function settleDelta(ability, actorId, { unit = null, facts }) {
+  if (!facts || facts.overCooldown || facts.channelStarted) return 0;
+  const ticksOf = (plan) => plan.cooldowns.find((c) => c.abilityId === ability?.id)?.ticks ?? 0;
+  const started = ticksOf(cooldownFor(ability, actorId, { unit, use: { criteriaMet: facts.criteriaMet } }));
+  const settled = ticksOf(cooldownFor(ability, actorId, { unit, facts }));
+  return settled - started;
 }
 
 /**
