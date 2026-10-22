@@ -279,6 +279,23 @@ lifetime.
 **Cooldown**:
 The turns that must pass before an Ability may be used again.
 
+**Use record**:
+What one use of an Ability did: whether it failed, whom it hit, what it applied and inflicted, what it
+summoned and which criteria it met. One record per declaration, however many defenders it reached.
+_Avoid_: use result, outcome (an Effect's landing has its own outcome)
+
+**Criteria**:
+A list of tests an Ability states about the Units it is aimed at, counted once per declaration; the
+number met can size its damage, its cost and its Cooldown.
+
+**Count**:
+A number a rule reads from one of a closed list of sources: Effects held, targets, Units on the board,
+a resource, Parameters compared, criteria met, a fact of the Use record, or a Mode's Tally.
+_Avoid_: X (the sheets' own letter for it)
+
+**Tally**:
+The events counted during one activation of a Mode; a Mode may end when its Tally reaches a number.
+
 **Timing Window**:
 The moment at which an Ability may be used — the vocabulary that decides whether a reaction is
 legal now.
