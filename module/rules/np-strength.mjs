@@ -30,6 +30,7 @@
  * RISK and DECISION are recorded in Ch. 41 and Ch. 45
  */
 
+import { multiplierOf } from "./count.mjs";
 import { computeDamage } from "./damage/pipeline.mjs";
 import { damageBaseOf } from "./damage/instances.mjs";
 
@@ -109,7 +110,8 @@ export function expectedDamage(ability, attacker) {
         // The same reader the resolution uses, so a block that authors its
         // sources at the top ranks at what it deals (#135).
         : (damageBaseOf(spec) ?? { sources: [{ unit: "self", component: "str", factor: 1 }] }),
-      multiplier: spec.multiplier ?? 1,
+      // Every criterion met (#283): the ceiling is the weapon, as below.
+      multiplier: multiplierOf(spec, { use: { criteriaMet: (sys.criteria ?? []).length } }),
       flatBonus: spec.flatBonus ?? 0,
       // Every conditional multiplier the ability declares, taken as though it
       // fired. Same reasoning as `branches`: the ceiling is the weapon.

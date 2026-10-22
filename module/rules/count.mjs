@@ -191,6 +191,78 @@ export function countScaleOf(spec) {
   return spec?.perStack?.effect ? fromPerStack(spec.perStack) : null;
 }
 
+/**
+ * How many of an ability's criteria the declaration's DUs meet, and which.
+ *
+ * Excalibur Proto (#283): *"Damage dealt depends on whether how many of the
+ * following criteria are met by DUs within the NP area"*. A criterion tests the
+ * DUs (`targets`, each against the caster: `target:` options are the DU's) and
+ * says how many must pass -- `atLeast`, `exactly`, or `none` -- or tests the
+ * caster alone (`self`). Counted ONCE per declaration over its whole set, and
+ * the damage, the cost and the cooldown read that one number (`criteria` Count).
+ *
+ * Two readings, settled 2026-10-22:
+ *   - *"Criteria 1, 3, 4, and 5 are also accounted for when Criteria 2 is
+ *     fulfilled, in this case the single DU needs to meet the conditions"*: with
+ *     ONE DU, an `atLeast` criterion holds when that DU passes.
+ *   - A criterion about DUs is not met over an empty area: *"none of the DUs"*
+ *     needs DUs.
+ *
+ * @param {object[]|undefined} criteria
+ * @param {{targets?: object[], self?: object|null, board?: object|null}} ctx
+ * @returns {{met: number, which: number[], total: number}} `which` is 1-based, the sheet's numbering
+ */
+export function criteriaMet(criteria, { targets = [], self = null } = {}) {
+  const list = Array.isArray(criteria) ? criteria : [];
+  const which = list.flatMap((c, i) => (criterionHolds(c, targets, self) ? [i + 1] : []));
+  return { met: which.length, which, total: list.length };
+}
+
+/**
+ * Criteria counted over a declaration's resolved targets: the DUs, the user excepted, as the board sees them.
+ *
+ * Both use paths ask this, so a Skill and an Attack read their criteria over
+ * the same set (#283).
+ *
+ * @param {object[]|undefined} criteria
+ * @param {{units?: Array<{unitId: string}>}} targets what the targeting resolved
+ * @param {object} self the user, as the board sees it
+ * @param {object} board
+ * @returns {{met: number, which: number[], total: number}}
+ */
+export function declarationCriteria(criteria, targets, self, board) {
+  if (!criteria?.length) return { met: 0, which: [], total: 0 };
+  const dus = (targets?.units ?? [])
+    .filter((t) => t.unitId !== self?.id)
+    .map((t) => (board?.units ?? []).find((u) => u.id === t.unitId))
+    .filter(Boolean);
+  return criteriaMet(criteria, { targets: dus, self, board });
+}
+
+/** @returns {boolean} */
+function criterionHolds(criterion, targets, self) {
+  if (criterion?.self) return testPredicate(criterion.self, { options: rollOptionsFor({ attacker: self }) });
+  if (targets.length === 0) return false;
+  const passing = targets.filter((du) => testPredicate(criterion?.targets ?? [], {
+    options: rollOptionsFor({ attacker: self, defender: du }),
+  })).length;
+  if (criterion?.none) return passing === 0;
+  if (criterion?.exactly !== undefined) return passing === criterion.exactly;
+  if (criterion?.atLeast !== undefined) return passing >= (targets.length === 1 ? 1 : criterion.atLeast);
+  return false;
+}
+
+/**
+ * A damage block's multiplier: a number, or one sized by a Count (Excalibur Proto's 3x + 0.5x per criterion).
+ *
+ * @param {object|null|undefined} block
+ * @param {CountContext} [ctx] `use.criteriaMet` for a criteria-sized one
+ * @returns {number}
+ */
+export function multiplierOf(block, ctx = {}) {
+  return countedValue(block?.multiplier ?? 1, ctx);
+}
+
 /** The keys each kind reads and cannot do without. */
 const REQUIRED_KEYS = Object.freeze({
   stacks: ["effect"], resource: ["key"], use: ["fact"], parameters: ["vs", "compare"],
@@ -316,7 +388,7 @@ export function fromCountMatching(spec) {
  * @param {object|undefined} target
  * @returns {number}
  */
-function parametersCounted(spec, self, target) {
+export function parametersCounted(spec, self, target) {
   const mine = self?.parameters ?? null;
   const theirs = target?.parameters ?? null;
   if (!mine || !theirs) return 0;

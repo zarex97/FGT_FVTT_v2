@@ -54,7 +54,9 @@ import { budgetActionFor } from "../rules/budget.mjs";
 import * as I from "./intents.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { expressionRefs } from "../rules/snapshot.mjs";
-import { stacksHeld, countOf, countedValue, countScaleOf, fromCountMatching } from "../rules/count.mjs";
+import {
+  stacksHeld, countOf, countedValue, countScaleOf, fromCountMatching, declarationCriteria,
+} from "../rules/count.mjs";
 import { removalPlan, pendingRemovalRolls, isUnremovable } from "../rules/removal.mjs";
 import { resolveValue } from "../rules/elements.mjs";
 import { createField, regionSizedTargeting } from "./fields.mjs";
@@ -150,6 +152,15 @@ export async function useSkill({
   const targets = resolveSkillTargets(ability, self, board, placement);
   if (targets.errors.length > 0) return { ok: false, reason: targets.errors[0] };
 
+  // Its criteria (#283), counted once over the Units it is aimed at, as the
+  // attack path counts them: the cost and the clock below read the number.
+  const criteria = declarationCriteria(ability.system?.criteria, targets, self, board);
+  if (criteria.total > 0) {
+    const { postCriteriaCard } = await import("./attack.mjs");
+    await postCriteriaCard(actor, ability, criteria);
+  }
+  const use = { criteriaMet: criteria.met };
+
   // A barrier's pool, filled BEFORE the phases hand out the buff that spends it
   // -- and before `recordUse` below, because `refreshShield` reads `timesUsed`
   // to tell a first projection from a later one.
@@ -188,7 +199,7 @@ export async function useSkill({
   const { charged } = applied.channelStarted ? { charged: [] } : resolveCosts([
     ...(usage.cost ? [{ ...usage.cost, id: "npCost" }] : []),
     ...(usage.overCooldown ? [usage.overCooldown] : []),
-    ...additionalCostsFor({ ability, self, master, turnsPerRound: warRule("turnsPerRound") }),
+    ...additionalCostsFor({ ability, self, master, turnsPerRound: warRule("turnsPerRound"), use }),
     ...standingUpkeepCost(board, self, master),
   ]);
 
@@ -196,7 +207,7 @@ export async function useSkill({
     ...charged.flatMap((cost) => costIntents(cost, self)),
     ...itemCostIntents(ability, actor),
     // A use ON the Cooldown leaves the clock alone (`rules/costs.mjs`).
-    ...(applied.channelStarted || usage.overCooldown || failure?.refundsCooldown ? [] : cooldownIntents(ability, actor, applied.summoned ?? 0, self)),
+    ...(applied.channelStarted || usage.overCooldown || failure?.refundsCooldown ? [] : cooldownIntents(ability, actor, applied.summoned ?? 0, self, use)),
     I.markTurn(actorId, marks),
     // Recorded so a mutually-exclusive partner can see it went, at both
     // scales, and so a `maxUses` budget can be spent. One intent, shared with
@@ -1453,10 +1464,10 @@ function itemCostIntents(ability, actor) {
  * @param {object|null} [unit] the user's snapshot, for a resource waiver
  * @returns {object[]}
  */
-function cooldownIntents(ability, actor, summoned = 0, unit = null) {
+function cooldownIntents(ability, actor, summoned = 0, unit = null, use = {}) {
   // One implementation for both use paths (`engine/cooldown.mjs`). They used to
   // disagree: this one set a cooldown and `resolveAttack` did not.
-  const plan = cooldownFor(ability, actor.id, { count: summoned, unit });
+  const plan = cooldownFor(ability, actor.id, { count: summoned, unit, use });
 
   return [
     // `sharedAcrossGroup` takes no board here -- this function is given the
