@@ -54,7 +54,7 @@ import { budgetActionFor } from "../rules/budget.mjs";
 import * as I from "./intents.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { expressionRefs } from "../rules/snapshot.mjs";
-import { stacksHeld } from "../rules/count.mjs";
+import { stacksHeld, countOf, countedValue, countScaleOf, fromCountMatching } from "../rules/count.mjs";
 import { removalPlan, pendingRemovalRolls, isUnremovable } from "../rules/removal.mjs";
 import { resolveValue } from "../rules/elements.mjs";
 import { createField, regionSizedTargeting } from "./fields.mjs";
@@ -1779,16 +1779,16 @@ export function cooldownChanges(phase, doc, board = null, self = null, target = 
       // prints is in ◈ -- *"increase its NP Cooldown by 1◈ Turns"* -- and
       // reading that as one turn would make Shapeshift a third as strong in a
       // three-turn Round.
-      const perStack = change.perStack
-        ? Math.floor((stacksHeld(doc)[change.perStack.effect] ?? 0) / (change.perStack.each ?? 1))
-        : 1;
+      // A Count (`rules/count.mjs`): Van Gogh's *"⅓◈ * the stage of the Curse"*.
+      const scale = countScaleOf(change);
+      const perStack = scale ? countedValue({ ...scale, per: 1, base: 0 }, { stacks: stacksHeld(doc) }) : 1;
       const turns = perStack * (change.ticks !== undefined
         ? resolveTicks(parseTick(change.ticks), { turnsPerRound: warRule("turnsPerRound") })
-        : change.countMatching
+        : change.countMatching // fgt-count-ok: presence only, sized by countMatchingTurns through the Count module
           ? countMatchingTurns(change, doc, board)
           : Math.abs(change.delta ?? 0));
       const down = change.ticks !== undefined ? (change.direction === "down")
-        : change.countMatching ? true : (change.delta ?? 0) < 0;
+        : change.countMatching ? true : (change.delta ?? 0) < 0; // fgt-count-ok: presence only, a census always cuts
       const cut = I.cooldown(subjectId, item.id, turns, down ? "reduce" : "increase");
       out.push(cut, ...mirroredCuts([cut], subject, board));
     }
@@ -1832,12 +1832,8 @@ function mirroredCuts(cuts, subject, board) {
  */
 function countMatchingTurns(change, doc, board) {
   const self = unitOf(doc, board);
-  const spec = change.countMatching;
-  const count = (board?.units ?? []).reduce((n, u) => {
-    if (spec.relation && relationOf(self, u, board) !== spec.relation) return n;
-    const options = rollOptionsFor({ attacker: u });
-    return testPredicate(spec.requires ?? [], { options }) ? n + 1 : n;
-  }, 0);
+  // The census is the Count module's `board` kind.
+  const count = countOf(fromCountMatching(change.countMatching).count, { board, self });
 
   if (change.maxTicks === undefined) return count;
   const cap = resolveTicks(

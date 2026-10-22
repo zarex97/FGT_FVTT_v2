@@ -55,6 +55,8 @@ describe("Landing is the one door", () => {
       body(flow, "chanceOf"),
       body(flow, "applicationsOf"),
       body(flow, "effectGatePasses"),
+      // The magnitude's Count scale, read by `countScaleOf` (#319).
+      body(code("module/rules/count.mjs"), "countScaleOf"),
     ];
     const read = new Set(sources.flatMap((s) => [...s.matchAll(/\b(?:entry|spec)\??\.(\w+)/g)].map((m) => m[1])));
     expect([...read].sort()).toEqual(Object.keys(ENTRY_KEYS).sort());

@@ -41,8 +41,7 @@ import { test as testPredicate } from "../rules/predicate.mjs";
 import { applicationsOf, chanceOf, effectGatePasses, timesOf } from "../rules/effect-flow.mjs";
 import { resolveValue } from "../rules/elements.mjs";
 import { expressionRefs } from "../rules/snapshot.mjs";
-import { stacksHeld } from "../rules/count.mjs";
-import { countTargetsMagnitude } from "../rules/effects/count-targets.mjs";
+import { stacksHeld, countedValue, countScaleOf, fromCountTargets } from "../rules/count.mjs";
 import { checkPlan, luckCheck } from "../rules/checks.mjs";
 import { luckChecksApply } from "../rules/difficulty.mjs";
 import { luckChecksBlocked } from "../rules/bounded-fields.mjs";
@@ -459,8 +458,10 @@ function optionsFor(caster, target, ctx) {
  */
 function magnitudeOf(entry, def, ctx, caster) {
   const raw = entry.magnitude;
-  if (raw && typeof raw === "object" && raw.countTargets) {
-    return countTargetsMagnitude(raw.countTargets, ctx.targets ?? [], caster?.id ?? ctx.source?.unitId ?? null);
+  if (raw && typeof raw === "object" && raw.countTargets) { // fgt-count-ok: presence only, sized below
+    return countedValue(fromCountTargets(raw.countTargets), {
+      targets: ctx.targets ?? [], casterId: caster?.id ?? ctx.source?.unitId ?? null,
+    });
   }
   return authoredMagnitude(entry, ctx.caster, "magnitude", ctx) ?? def.defaultMagnitude ?? 0;
 }
@@ -484,8 +485,8 @@ function magnitudeOf(entry, def, ctx, caster) {
 function authoredMagnitude(entry, actor, field, ctx) {
   const raw = entry?.[field];
   if (raw === null || raw === undefined) return null;
-  // A literal with no `perStack` and no `max` cannot mean anything else.
-  if (typeof raw === "number" && !entry.perStack && entry.max === undefined) return raw;
+  // A literal with no Count scale and no `max` cannot mean anything else.
+  if (typeof raw === "number" && !countScaleOf(entry) && entry.max === undefined) return raw;
   if (!actor) return typeof raw === "number" ? raw : null;
 
   const ride = ctx.ride ?? null;

@@ -24,6 +24,7 @@ import { lookup } from "../domain/tables.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { test as testPredicate, referencedOptions } from "./predicate.mjs";
 import { orderElements } from "./ordering.mjs";
+import { countScaleOf, countedValue } from "./count.mjs";
 
 /**
  * @typedef {object} Contributions
@@ -418,7 +419,8 @@ export function resolveValue(el, rank, ctx, field = "value") {
 }
 
 /**
- * A magnitude that scales with how many of an effect the bearer holds.
+ * A magnitude that scales with a Count: how many of an effect the bearer holds,
+ * or any other kind `rules/count.mjs` reads (`count: {of, …}`, #319).
  *
  * `perStack: {effect, each = 1, base = 0}` resolves to
  * `base + value × floor(count / each)` while the bearer holds at least one, and
@@ -446,13 +448,12 @@ export function resolveValue(el, rank, ctx, field = "value") {
  * @returns {number|number[]|string|null}
  */
 function stackScaled(el, value, ctx) {
-  const spec = el.perStack ?? null;
+  const spec = countScaleOf(el);
   if (!spec) return clampMax(value, el.max);
   if (typeof value !== "number" && !Array.isArray(value)) return value;
 
-  const count = ctx?.stacks?.[spec.effect] ?? 0;
-  const steps = count > 0 ? Math.floor(count / (spec.each ?? 1)) : 0;
-  const scale = (v) => (count > 0 ? (spec.base ?? 0) + v * steps : 0);
+  // The element's value is the amount per step; the Count module sizes it.
+  const scale = (v) => countedValue({ ...spec, per: v }, ctx ?? {});
 
   return clampMax(Array.isArray(value) ? value.map(scale) : scale(value), el.max);
 }

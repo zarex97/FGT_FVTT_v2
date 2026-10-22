@@ -165,6 +165,29 @@ export function stacksHeld(holder) {
   return out;
 }
 
+/**
+ * The count scale a holder states, in either spelling, or `null` when it states none.
+ *
+ * A holder is whatever carries the amount per step: an element (its `value`),
+ * an entry (its `magnitude`), a `times`, a cooldown change (its `ticks`). It
+ * states the scale as `count: {of, …}` beside its own `each`, `base` and
+ * `zeroPaysNothing` (#319), or as the old `perStack: {effect, each, base}`.
+ *
+ * @param {object|null|undefined} spec the holder
+ * @returns {object|null} a {@link countedValue} spec without its `per`
+ */
+export function countScaleOf(spec) {
+  if (spec?.count && typeof spec.count === "object") {
+    return {
+      count: spec.count,
+      ...(spec.each !== undefined ? { each: spec.each } : {}),
+      ...(spec.base !== undefined ? { base: spec.base } : {}),
+      ...(spec.zeroPaysNothing !== undefined ? { zeroPaysNothing: spec.zeroPaysNothing } : {}),
+    };
+  }
+  return spec?.perStack?.effect ? fromPerStack(spec.perStack) : null;
+}
+
 /* -------------------------------------------------------------------------- */
 /*  The old spellings                                                         */
 /* -------------------------------------------------------------------------- */

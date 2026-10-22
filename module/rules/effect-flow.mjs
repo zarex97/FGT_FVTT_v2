@@ -10,6 +10,7 @@
 
 import { test as testPredicate } from "./predicate.mjs";
 import { polarityOf } from "./effect-instance.mjs";
+import { countScaleOf, countedValue } from "./count.mjs";
 
 /* -------------------------------------------------------------------------- */
 /*  Ch. 15 Riders                                                              */
@@ -427,6 +428,10 @@ export const ENTRY_KEYS = Object.freeze({
   npMagnitude: { type: "expression", means: "The magnitude against a Noble Phantasm, when it differs." },
   npMagnitudeFactor: { type: "number", means: "The NP magnitude as a factor of the resolved magnitude." },
   perStack: { type: "json", means: "Scale the magnitude by a stack the caster carries." },
+  count: { type: "json", means: "Scale the magnitude by a Count: { of, … } (rules/count.mjs)." },
+  each: { type: "number", means: "With count: one step per this many counted." },
+  base: { type: "number", means: "With count: the amount before any step." },
+  zeroPaysNothing: { type: "boolean", means: "With count: nothing at all, base included, when the count is 0." },
   max: { type: "number", means: "A ceiling on an expression magnitude." },
   duration: { type: "duration", means: "How long, as a ◈ expression; the definition's own when absent." },
   permanent: { type: "boolean", means: "No expiry at all, whatever the definition says." },
@@ -574,7 +579,8 @@ export function timesOf(raw, { stacks = {}, event = null } = {}) {
     const value = event?.[field];
     return typeof value === "number" ? Math.abs(Math.trunc(value)) : 0;
   }
-  const spec = raw?.perStack ?? null;
-  if (!spec?.effect) return 1;
-  return Math.floor((stacks[spec.effect] ?? 0) / (spec.each ?? 1));
+  // A Count (`rules/count.mjs`): one per `each` of what it counts.
+  const scale = countScaleOf(raw);
+  if (!scale) return 1;
+  return countedValue({ ...scale, per: 1, base: 0 }, { stacks });
 }

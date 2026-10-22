@@ -17,7 +17,7 @@ Priority **bands** make elements deterministic. Authored content sometimes decla
 | `module/rules/elements.mjs` | Dispatch table (`EXECUTORS`), `collectContributions`, predicate deferral, value resolution |
 | `module/rules/ordering.mjs` | Priority bands (`PRIORITY_BANDS`), element sorting (`orderElements`) |
 | `module/engine/scripts.mjs` | Named script registry (`SCRIPTS`), execution (`runScript`) |
-| `module/rules/effects/count-targets.mjs` | Magnitude computed from a phase's resolved target set |
+| `module/rules/count.mjs` | The Count module: every "how many" (`perStack`, `countTargets`, `countMatching`, `count:`) |
 | `module/rules/effects/families.mjs` | Effect families — umbrella groupings, e.g. *Bind* for all stun-class effects |
 | Consumers | Damage pipeline, ability targeting, aura reading, effect application, stat resolution |
 
@@ -39,7 +39,7 @@ The `consumesAuras` flag overrides band assignment: an element that reads aura m
 
 ### Value resolution
 
-An element's value may be a literal, a `table:` key looked up against the owning ability's rank, or an `@`-expression. `resolveValue` unpacks all three and handles scale adjustments (`module/rules/elements.mjs:319-321`). `perStack` scales a magnitude by how many of a named effect the bearer holds: `base + value × floor(count / each)`, returning 0 if the bearer holds none — a distinction that matters (Ch. 45: Kingprotea's Max Health per stock pays nothing at zero) (`module/rules/elements.mjs:323-350`).
+An element's value may be a literal, a `table:` key looked up against the owning ability's rank, or an `@`-expression. `resolveValue` unpacks all three and handles scale adjustments (`module/rules/elements.mjs:319-321`). `perStack` scales a magnitude by how many of a named effect the bearer holds: `base + value × floor(count / each)`, returning 0 if the bearer holds none — a distinction that matters (Ch. 45: Kingprotea's Max Health per stock pays nothing at zero). The count itself is the Count module's (`module/rules/count.mjs`, #319): `stackScaled` hands the element's value to `countedValue` as the amount per step, and every other reader of `perStack`, `times`, `countTargets` and `countMatching` asks the same module, so a stack is counted one way everywhere (a stage counts its stage, a suppressed instance none). `test/unit/count-one-reader.test.mjs` keeps it so.
 
 Magnitude factors — `magnitudeFactor` and `magnitudeRoundTo` — are applied here, in one place, so every element gains them without re-implementing the logic. Mad Enhancement is *"all damage dealt is increased by X% ... this effect is halved for Attacks which use Base Attack (MAG)"*, and `magnitudeFactor` lets the single table value be multiplied by 0.5, avoiding a second ladder. `magnitudeRoundTo` applies the author's own rounding; Kingprotea's A+ halves to 42.5 and rounds DOWN to 40 (`module/rules/elements.mjs:832-853`).
 
