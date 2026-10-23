@@ -20,6 +20,8 @@ id: drake
 name: "Francis Drake"
 trueName: "Francis Drake, El Draque"
 classContainer: rider
+# ...and the Class every rule reads: her sheet sits under by-class/Rider.
+servantClasses: [rider]
 region: [england]
 alignment: { order: chaotic, morality: evil }
 attributes: [female, servant, star, humanoid]

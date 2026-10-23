@@ -166,6 +166,29 @@ describe("an attack settles once its Combat Phase is over", () => {
   });
 });
 
+// Live, 2026-10-23, Player1 on Nemo: Quickfire's clock fell 6 → 3, and no card
+// said so. The `afterProcess` pass wrote its batch and dropped the lines.
+describe("a clock an afterProcess phase turns is a line on its card", () => {
+  it("Quickfire not Countered: 2◈ falls by 1◈, and its card says so", async () => {
+    await withSubjects([
+      { from: "nemo", id: "quickNemo0000001", state: { factionId: "A" }, panel: { i: 5, j: 5 } },
+      { from: "heracles", id: "quickTarget00001", state: { factionId: "B" }, panel: { i: 5, j: 6 } },
+    ], async ({ world: w }) => {
+      w.dice.every(50);
+      const item = () => w.actor("quickNemo0000001").items.find((i) => i.system?.contentId === "nemo-quickfire");
+      const { resolveAttack } = await import("../../module/engine/attack.mjs");
+      const { playProcess } = await import("../helpers/process.mjs");
+      const declared = await resolveAttack({ attackerId: "quickNemo0000001", abilityId: item().id, placement: { unitId: "quickTarget00001", chosenIds: ["quickTarget00001"] } });
+      expect(declared.processes.length, declared.reason).toBe(1);
+      const { messageId } = declared.processes[0];
+      await playProcess(w, messageId, { quickTarget00001: ["nothing", "declined"], quickNemo0000001: ["declined"] });
+      expect(item().system.cooldown.remaining).toBe(3);
+      const rows = w.messages.get(messageId).getFlag("fgt", "effects") ?? [];
+      expect(rows.filter((r) => r.id === "cooldown").map((r) => r.name)).toEqual([expect.stringMatching(/Quickfire.*6 → 3/)]);
+    }, { tokens: true, combat: { round: 3, started: true, system: { globalTurn: 7 }, actingFactionId: "A" } });
+  });
+});
+
 describe("a channel declared as an Attack settles nothing (Review Focus 4)", () => {
   it("an Evaded Attack that began a channel leaves the clock unstarted", async () => {
     const { files } = await loadSource("packs/_source");
