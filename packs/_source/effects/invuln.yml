@@ -18,6 +18,9 @@ volatility: nonVolatile
 valence: defensive
 stacking: noneRefresh
 baseChance: 100
+# The family every Invuln belongs to, Invuln (Gyakkou) too (#328 ruling 10):
+# every reader asks `holdsFamily(unit, "invuln")`.
+families: [invuln]
 rules:
   # "Cannot Block" -- the one clause with no pipeline reader, and the reaction
   # ladder is where it belongs. `ForbidReaction` is the element Presence

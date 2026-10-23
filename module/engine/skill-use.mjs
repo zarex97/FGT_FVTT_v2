@@ -626,7 +626,16 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
     // read BEFORE this use is recorded -- so the first press costs nothing and
     // the second onwards does.
     if (phase.afterFirstUse && (ability.system?.timesUsed ?? 0) < 1) continue;
-    if (phase.predicate && !testPredicate(phase.predicate, { options: selfOptions })) continue;
+    if (phase.predicate && !testPredicate(phase.predicate, { options: selfOptions })) {
+      // Held back, and said so when the sheet names why: Unparalleled's effect is
+      // not applied once another allied Servant has Attacked (#328 ruling 11).
+      if (phase.unmetLine) {
+        applied.push({ unitId: actor.id, summary: {
+          id: "unmet", name: game.i18n.localize(phase.unmetLine), outcome: "blocked", reason: null,
+        } });
+      }
+      continue;
+    }
     // A CHANCE for the whole phase, its die on the card whichever way it falls.
     // Prelati's Encouragement: *"Gilles has a 15% chance of permanently
     // activating his Mad Enhancement Skill. Every time this Skill is used after
@@ -1889,6 +1898,18 @@ export function cooldownChanges(phase, doc, board = null, self = null, target = 
       // a reduce of some large number would work by accident and read as a bug.
       if (change.set !== undefined) {
         const cut = I.cooldown(subjectId, item.id, change.set, "set");
+        out.push(cut, ...mirroredCuts([cut], subject, board));
+        continue;
+      }
+      // `restart` is "Reset": the clock back to its full length, as a use
+      // starts it. Flawlessness may be used only while her NP is ready, and
+      // then puts that NP on its own Cooldown, the price of the Skill (#328
+      // ruling 13). The use's own reader decides the length.
+      if (change.restart) {
+        const own = cooldownFor(item, subjectId, { unit: unitOf(subject, board) })
+          .cooldowns.find((c) => c.abilityId === item.id);
+        if (!own) continue;
+        const cut = I.cooldown(subjectId, item.id, own.ticks, "set");
         out.push(cut, ...mirroredCuts([cut], subject, board));
         continue;
       }

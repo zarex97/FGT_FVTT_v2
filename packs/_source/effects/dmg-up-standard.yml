@@ -1,0 +1,19 @@
+# Dmg Up (Standard): "all damage dealt to Standard-class Servants is increased
+# by X%" (U-Olga Marie's Flawlessness, #328). A Standard Class is one of the
+# seven (`STANDARD_CLASSES`); only a Servant has a Class, so a Master or a
+# summon never matches.
+schema: 1
+id: dmgUpStandard
+name: "Dmg Up (Standard)"
+description: "All damage dealt to Standard-class Servants is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: dmgUp
+    direction: dealt
+    value: "@magnitude"
+    predicate: ["target:classGroup:standard"]

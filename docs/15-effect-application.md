@@ -155,6 +155,13 @@ Builds the effect instance document (`module/engine/effect-applier.mjs:234-286`)
 
 **What an intent can say about the instance itself.** An emitted `expiry: null` means only *"nobody stated a duration"*, and the definition's `defaultDuration` answers it — so an effect with a default (Burn 2◈, Charm 1◈) emitted with `expiry: null` is an ordinary timed effect, never a permanent one. Two flags on the intent's `effect` say the rest. `permanent: true` is *"never expires"*: the flow stamps `expiry: null` whatever the definition's default is, and `mergeEmitted` (`module/engine/effect-applier.mjs`, the pure merge `resolveEffects` applies to what the flow built) does not let the intent's own expiry overwrite it. `unremovable: true` is ORed into the instance's flag, so Burn is removable in general and not while it is Piedra Del Sol's. A field's `ApplyEffect` action reads both: a `duration` the action authors as `null` is `permanent`, an absent `duration` is the definition's own, and `unremovable` is forwarded (#147). Changing what a bare `null` means would have turned every Charm and Burn emitted with `expiry: null` permanent, which is why the flag exists.
 
+**Invuln is a family** (#328 ruling 10): `invuln` and `invulnGyakkou` declare `families: [invuln]`, and every reader
+asks `rules/effects/families.mjs#holdsFamily` (the pipeline, the ladder's collapse, Overpower). A hit spends
+`spentFirstOf`'s instance, the one marked `spentFirst` before the rest. **A failed debuff may cost a price**:
+`otherwise: {stats: [{stat, delta}]}` with `otherwiseOn: failed` (resisted, immune, prevented or warded, not already
+held) writes the loss and a card line: Planet Olga Marie's *"if this debuff fails to be inflicted, the DU loses 2
+Agility"*. Agility Loss forces the unfavourable Agility and Evade tables.
+
 **A removal selector is matched in one place** (#326, `rules/removal.mjs#selectorMatches`): `polarity` and `valence`,
 for Antares Snipe's *"all Defensive Buffs"*. The Skill and the Attack paths each kept their own polarity-only filter.
 **Unremovable is the definition's or the instance's** (#198, `rules/removal.mjs#isUnremovable`). Both removal paths asked `def.unremovable ?? instance`, and the registry reports `false`, so an instance made unremovable by its intent was cleansed. **A strip removes the instance it rolled for**, not every instance of the definition: Suppression's one strip took every Proliferation stock. It posts the strip or the resist with its roll.

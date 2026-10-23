@@ -1,0 +1,38 @@
+# U-Olga Marie (President), the audit of #328.
+# Conversion source: char_orig_sheets/by-class/Beast/President.md
+#
+# Defender of Humanity's Passive 2, a Normal Attack made "in this method"
+# (ruling 7): always BA(MAG); a 3x3 centred within her Range that catches every
+# Unit in it, allies too, never her; Total damage −10% per Unit caught
+# (`perUnitInArea`); her own Crit Damage up and down ignored, the DU's Crit
+# resistance not; once per Turn. `countsAsNormalAttack`, so whatever reads a
+# Normal Attack reads this, Four Elements and E.Atk Up among them.
+schema: 1
+id: olga-defender-normal-attack
+name: "Defender of Humanity (Normal Attack)"
+rank: EX
+kind: skill
+slug: defenderNormalAttack
+isAttackSkill: true
+countsAsNormalAttack: true
+oncePerTurn: true
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: unique }
+description: |
+  A Normal Attack made in @ability[olga-defender-of-humanity]{Defender of Humanity}'s method. Base Attack (MAG) is used. Hits a 3x3 panel area within
+  Range. Total damage dealt is reduced by 10% for every Unit within the Attack area. This Normal Attack is not
+  affected by effects which increase or decrease Crit Damage dealt. Can only be used once per Turn.
+targeting:
+  anchor: { kind: withinRange }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  isDamagingAoE: true
+damage:
+  component: mag
+  ignoresCritDamageDealt: true
+  totalModifiers:
+    - value: -10
+      perUnitInArea: true
+      source: "Defender of Humanity: per Unit in the area"
+phases:
+  - kind: damage

@@ -121,6 +121,9 @@ export const ACTION_KINDS = Object.freeze([
   "move", "attack", "skill", "np", "spell", "ridingAttack", "gather", "mark",
 ]);
 
+/** The actions that are an Attack: they draw on the attack pools. */
+const ATTACK_ACTIONS = Object.freeze(["attack", "np", "spell", "ridingAttack", "mark"]);
+
 /**
  * @typedef {"move"|"attack"|"skill"|"np"|"spell"|"ridingAttack"|"gather"|"mark"} ActionKind
  */
@@ -265,6 +268,11 @@ export function preventedBy(unit, action, { categorizedOnly = false } = {}) {
   const blanket = PREVENT_ALL.find((id) => held.includes(id));
   if (blanket) return { prevented: true, by: blanket };
 
+  // An allied Servant's Unparalleled: *"This Turn, no other allied Servants can
+  // Attack other than U-Olga Marie"* (#328 ruling 11). Annotated by
+  // `rules/named-units.mjs#annotateAllies`; a Master or a summon is never barred.
+  if (unit?.attackBarredBy && ATTACK_ACTIONS.includes(action)) return { prevented: true, by: unit.attackBarredBy };
+
   for (const [id, actions] of Object.entries(PREVENTS)) {
     if (!held.includes(id)) continue;
     // `seal` spares Spells; `silence` spares everything but them. The two are
@@ -314,7 +322,7 @@ export function canConsume(budget, unit, action) {
   }
 
   const state = unit?.turnState ?? {};
-  const isAttack = ["attack", "np", "spell", "ridingAttack", "mark"].includes(action);
+  const isAttack = ATTACK_ACTIONS.includes(action);
 
   // "During Semiramis' Turn, the HGoB can Move/Attack once per Turn ... does
   // not count towards number of Units who Move or Act in a Turn" (Ch. 27),
@@ -352,7 +360,15 @@ export function canConsume(budget, unit, action) {
   }
 
   if (isAttack && state.attacked) {
-    return { ok: false, reason: "this unit has already attacked this turn", pool: null, free: false };
+    // Several Attacks a Turn, for a Unit allowed them: Unparalleled's *"can
+    // Attack up to three times this Turn"* (#328 ruling 11). Counted on the
+    // budget, which records one entry per Attack; an extra one draws nothing
+    // more from the pool, the Unit having been charged for the first.
+    const made = Math.max(1, (budget?.attackedUnits ?? []).filter((id) => id === unit.id).length);
+    if (made >= (unit?.attacksPerTurn ?? 1)) {
+      return { ok: false, reason: "this unit has already attacked this turn", pool: null, free: false };
+    }
+    return { ok: true, reason: null, pool: null, free: true, repeat: true };
   }
   // GATHER, twice over. The game's author states two rules and they are
   // separable, so both are written:
@@ -445,9 +461,11 @@ export function canConsume(budget, unit, action) {
 export function consume(budget, unit, action, { alsoCountsAsAttackFor = null, board = null } = {}) {
   const verdict = canConsume(budget, unit, action);
   if (!verdict.ok) return { ok: false, reason: verdict.reason, budget };
+  // A further Attack of a Unit allowed several: free, and counted (#328).
+  if (verdict.repeat) return { ok: true, reason: null, budget: { ...budget, attackedUnits: [...budget.attackedUnits, unit.id] } };
   if (verdict.free || verdict.pool === null) return { ok: true, reason: null, budget };
 
-  const isAttack = ["attack", "np", "spell", "ridingAttack", "mark"].includes(action);
+  const isAttack = ATTACK_ACTIONS.includes(action);
   const p = budget.pools[verdict.pool];
 
   // *"Counts as both Castor and Pollux's Attack for the Turn."* Both members

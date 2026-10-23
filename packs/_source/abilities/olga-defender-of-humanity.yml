@@ -1,0 +1,34 @@
+# U-Olga Marie (President), the audit of #328.
+# Conversion source: char_orig_sheets/by-class/Beast/President.md
+#
+# Passive 1 is a `RevivalSource` with one charge a War, as Battle
+# Continuation's is: a passive source, below Guts (ruling 6). "Defeated by a
+# Unit with the 'Threat to Humanity' Attribute" is the killer on her defeat's
+# record, asked of the killer's own options (`killer:`); no killer, no revival.
+# It restores Health, Agility and Luck to 50% of their maxima.
+#
+# Passive 2 is its own Attack Skill, `olga-defender-normal-attack`, as Chiron's
+# teaching is Wisdom's: a Normal Attack made "in this method".
+schema: 1
+id: olga-defender-of-humanity
+name: "Defender of Humanity"
+rank: EX
+kind: skill
+slug: defenderOfHumanity
+passive: true
+copyable: { allowed: false, reason: unique }
+description: |
+  (Passive 1) When Olga Marie is defeated by a Unit with the 'Threat to Humanity' Attribute, she revives with her
+  Health, Agility, and Luck restored to 50% of their maximum values. Can only activate once per game.
+  (Passive 2) Normal Attacks can be used in this method- Base Attack (MAG) is used. Hits a 3x3 panel area within
+  Range. Total damage dealt is reduced by 10% for every Unit within the Attack area. This Normal Attack is not
+  affected by effects which increase or decrease Crit Damage dealt. Can only be used once per Turn.
+passiveRules:
+  - key: RevivalSource
+    id: defenderOfHumanity
+    revivalPriority: 50
+    charges: 1
+    killer: ["self:attribute:threatToHumanity"]
+    restore:
+      percentOfMax: 50
+      pools: { agility: 50, luck: 50 }

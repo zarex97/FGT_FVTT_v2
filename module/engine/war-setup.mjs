@@ -12,7 +12,7 @@
 
 import { homeBaseRects } from "../rules/home-base.mjs";
 import { gridShape } from "../domain/geometry.mjs";
-import { validateRoster } from "../rules/war-setup.mjs";
+import { validateRoster, seatedContainer } from "../rules/war-setup.mjs";
 import { plansFor, resolveSetupPlan } from "../rules/setup-rolls.mjs";
 import {
   prepareSummon, commitSummon, servantCatalogue, rollSetupPlan,
@@ -306,7 +306,7 @@ export async function commitWar(draft) {
   const catalogue = await servantCatalogue({ ruleset: draft.ruleset });
   const essences = await essenceCatalogue();
   const refusals = validateRoster(draft.containers, roster, catalogue,
-    { policy: draft.drawPolicy, essences: essenceDraftOptions(draft, essences) });
+    { policy: draft.drawPolicy, essences: essenceDraftOptions(draft, essences), grandOrder: Boolean(draft.grandOrder) });
   if (refusals.length > 0) {
     throw new Error(`The roster is not ready: ${refusals.map((r) => r.code).join(", ")}`);
   }
@@ -394,7 +394,8 @@ export async function commitWar(draft) {
 
     await servant.update({
       "system.factionId": container.factionId,
-      "system.classContainer": container.classContainer,
+      // An Extra slot takes the Servant's own Extra Class (#328 ruling 1).
+      "system.classContainer": seatedContainer(container.classContainer, servant.system?.classContainer),
       "system.warId": combat.id,
     });
     // "The unselected Noble Phantasm is unusable." `expended` is the existing
@@ -575,7 +576,7 @@ export async function seatPartners(servant, container, master) {
     if (!partner) continue;
     await partner.update({
       "system.factionId": container.factionId,
-      "system.classContainer": container.classContainer,
+      "system.classContainer": seatedContainer(container.classContainer, servant.system?.classContainer),
       // The War this slot was built into (`commitWar` writes it on the draft).
       "system.warId": container.warId ?? master?.system?.warId ?? null,
     });

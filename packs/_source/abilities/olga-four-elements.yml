@@ -1,0 +1,61 @@
+# U-Olga Marie (President), the audit of #328.
+# Conversion source: char_orig_sheets/by-class/Beast/President.md
+#
+# A Noble Phantasm that rides a Normal Attack (`AttackRider`,
+# `engine/attack-riders.mjs`). Ruling 16: an NP for the gate and NP Seal;
+# offered and optional on each Normal Attack at Range 2 or more; no Cooldown
+# and no Master price; the die rolled at declaration and shown; the Attack stays
+# a Normal Attack; a 6 picks any face unspent this Turn; Burn, Soaked and Shock
+# roll their chance on a hit; it rides the Defender of Humanity Normal Attack
+# too, face 5 excepted.
+schema: 1
+id: olga-four-elements
+name: "Four Elements・The Great Enemy: The Yet Existing Four Gods"
+rank: EX
+isNP: true
+npTags: [antiUnit]
+kind: noblePhantasm
+slug: fourElements
+passive: true
+copyable: { allowed: false, reason: unique }
+description: |
+  (Passive) Can be used when performing a Normal Attack at Range of 2 or higher. When used, roll a six-sided die
+  and activate the corresponding effect-
+  1. Nothing happens, Combat proceeds as normal.
+  2. The Attack deals Fire damage and inflicts @effect[burn]{Burn} for 2◈ Turns.
+  3. The Attack deals Water damage and inflicts @effect[soaked]{Soaked} for 2◈ Turns.
+  4. The Attack deals Lightning damage and inflicts @effect[shock]{Shock} for 2◈ Turns.
+  5. U-Olga Marie first performs an Attack using Base Attack (STR), then immediately performs an extra follow-up
+     Attack using Base Attack (MAG). If the DU Blocked the first hit, it must also Block the second hit; if the DU
+     failed to Evade the first hit, it cannot React to the second hit.
+  6. Your choice.
+  Effects 2, 3, 4, and 5 can only activate once per Turn; if one of those effects that has already been activated
+  this Turn is rolled, the roll is treated as 'Nothing happens'. 'Four Elements' has no effect while inflicted with
+  @effect[npSeal]{NP Seal}.
+passiveRules:
+  - key: AttackRider
+    predicate: ["attack:kind:normal", "attack:range:gte:2"]
+    die: 6
+    blankFace: 1
+    chooseOn: [6]
+    oncePerTurnFaces: [2, 3, 4, 5]
+    normalAttackOnlyFaces: [5]
+    faces:
+      1: { label: "FGT.AttackRider.FourElements.1" }
+      2:
+        label: "FGT.AttackRider.FourElements.2"
+        element: fire
+        inflicts: [{ id: burn, duration: "2◈" }]
+      3:
+        label: "FGT.AttackRider.FourElements.3"
+        element: water
+        inflicts: [{ id: soaked, duration: "2◈" }]
+      4:
+        label: "FGT.AttackRider.FourElements.4"
+        element: lightning
+        inflicts: [{ id: shock, duration: "2◈" }]
+      5:
+        label: "FGT.AttackRider.FourElements.5"
+        component: str
+        followUp: { component: mag }
+      6: {}

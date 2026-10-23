@@ -280,7 +280,10 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         : [],
 
       refusals: validateRoster(this.draft.containers, roster, this.#catalogue,
-        { policy: this.draft.drawPolicy, essences: essenceDraftOptions(this.draft, this.#essences) })
+        {
+          policy: this.draft.drawPolicy, essences: essenceDraftOptions(this.draft, this.#essences),
+          grandOrder: Boolean(this.draft.grandOrder),
+        })
         .map((r) => ({
           ...r,
           text: game.i18n.format(r.message, { class: this.#classLabel(r.containerId), ...(r.detail ?? {}) }),
@@ -319,7 +322,7 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     const taken = this.draft.containers.map((c) => c.contentId).filter(Boolean);
 
     return this.draft.containers.map((c) => {
-      const candidates = candidatesFor(c, this.#catalogue, { policy, taken });
+      const candidates = candidatesFor(c, this.#catalogue, { policy, taken, grandOrder: Boolean(this.draft.grandOrder) });
       const query = this.#queries[c.id] ?? "";
       const empty = candidates.length === 0;
       const essenceRank = this.#essences.find((e) => e.contentId === c.essenceId)?.rank ?? null;
@@ -677,7 +680,7 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
           .map((c) => c.contentId).filter(Boolean)
         : [];
       const candidates = candidatesFor(container, this.#catalogue,
-        { policy: this.draft.drawPolicy, taken });
+        { policy: this.draft.drawPolicy, taken, grandOrder: Boolean(this.draft.grandOrder) });
       // Skipped silently would be indistinguishable from filled. The row
       // already carries its reason, from the Containers tab.
       if (candidates.length === 0) return;
@@ -710,8 +713,10 @@ export class SetupWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this.#refuseWhenLocked()) return;
 
     const roster = normalizeFactions(this.draft.factions ?? []);
-    const refusals = validateRoster(this.draft.containers, roster, this.#catalogue,
-      { policy: this.draft.drawPolicy, essences: essenceDraftOptions(this.draft, this.#essences) });
+    const refusals = validateRoster(this.draft.containers, roster, this.#catalogue, {
+      policy: this.draft.drawPolicy, essences: essenceDraftOptions(this.draft, this.#essences),
+      grandOrder: Boolean(this.draft.grandOrder),
+    });
     if (refusals.length > 0) {
       ui.notifications.warn(game.i18n.format("FGT.Setup.CannotCommit", { n: refusals.length }));
       return;

@@ -1,0 +1,97 @@
+# U-Olga Marie (President), the Beast, the audit of #328.
+# Conversion source: char_orig_sheets/by-class/Beast/President.md
+#
+# Her Class is the folder's: the sheet prints none (ruling 1). The Pretender
+# sheet's U-Olga Marie, who flips into Olga Marie Animusphere, is another
+# Servant and is not this file (ruling 2).
+#
+# Region Earth: no War Region is Earth, so she never takes a Parameter bonus
+# (ruling 3). A Servant *"neither Hominidae or Non-Hominidae"*: the closure's
+# `servant ⟹ hominidae` is withheld (ruling 4).
+#
+# Her Normal Attack is EMIYA's banded shape: BA(STR) at Range 1, BA(MAG) from 2.
+schema: 1
+id: u-olga-marie
+name: "U-Olga Marie"
+type: servant
+
+trueName: Olga Marie Animusphere
+servantClasses: [beast]
+classContainer: beast
+alignment: { order: lawful, morality: evil }
+region: [earth]
+attributes: [female, servant, star, giant, spaceflight, humanoid]
+withheldAttributes: [hominidae]
+
+parameters: { str: EX, end: EX, agi: "E-", mag: EX, luc: D }
+baseHealth: 2500
+mov: 3
+range: { panels: 3, targets: 1 }
+baseAttack: { str: 200, mag: 250 }
+normalAttack:
+  mode: rangeBanded
+  component: str
+  bands:
+    - from: 2
+      component: mag
+sustainability: "8◈"
+
+abilities:
+  - { ref: class-territory-creation, rank: A }
+  # Van Gogh's aura at her own figures: 40/20/10 out is the itemConstruction
+  # table's B row, and the printed −30/−20/−10 in (ruling 5).
+  - ref: class-item-construction-gogh
+    rank: B
+    description: |
+      This Skill affects all allied Units within a 2 panel area of this Unit.
+      (Passive 1) The chance of inflicting debuffs is increased by 40%; this effect is halved for
+      @effect[instakill]{Instakill} (20%), and further halved for @effect[death]{Death} (10%).
+      (Passive 2) The chance of being inflicted by debuffs is reduced by 30%; this effect is halved for Instakill (20%),
+      and further halved for Death (10%).
+      Note: If a Unit is affected by multiple instances of this Skill, only the Item Construction with the highest
+      Rank takes effect (i.e. Item Construction does not stack).
+    passiveRules:
+      - key: Aura
+        radius: 2
+        relations: [ally, self]
+        stacking: highestOnly
+        group: itemConstruction
+        rank: B
+        elements:
+          - { key: ApplicationChance, direction: outgoing, severity: normal, value: 40 }
+          - { key: ApplicationChance, direction: outgoing, severity: instakill, value: 20 }
+          - { key: ApplicationChance, direction: outgoing, severity: death, value: 10 }
+          - { key: ApplicationChance, direction: incoming, severity: normal, value: 30 }
+          - { key: ApplicationChance, direction: incoming, severity: instakill, value: 20 }
+          - { key: ApplicationChance, direction: incoming, severity: death, value: 10 }
+  - { ref: class-magic-resistance, rank: A }
+  - { ref: divinity, rank: EX, printedRevision: revised }
+  # Independent Action A under its own name: *"This Skill counts as 'Independent
+  # Action — Rank: A'"*, so its slug stays `independentAction`. Passive 4 is
+  # hers alone.
+  - ref: class-independent-action
+    rank: A
+    name: "Independent Manifestation"
+    description: |
+      (Passive 1) Has a high Sustainability (8◈ Turns).
+      (Passive 2) Master's ZON is increased by 3 panels.
+      (Passive 3) Requires 4 successful 'Contract Servant' rolls to be contracted by enemy Masters and Casters.
+      (Passive 4) Chance of being inflicted with Mental Debuffs, @effect[instakill]{Instakill}, @effect[death]{Death},
+      and @effect[erase]{Erase} is reduced by 100%.
+      This Skill counts as 'Independent Action — Rank: A'.
+    passiveRules:
+      - key: ZonBonus
+        table: independentActionZon
+      - { key: ApplicationChance, direction: incoming, volatility: mental, value: 100 }
+      - { key: ApplicationChance, direction: incoming, severity: instakill, value: 100 }
+      - { key: ApplicationChance, direction: incoming, severity: death, value: 100 }
+      - { key: ApplicationChance, direction: incoming, severity: erase, value: 100 }
+  - { ref: olga-defender-of-humanity }
+  - { ref: olga-defender-normal-attack }
+  - { ref: olga-gravity-manipulation }
+  - { ref: olga-gyakkou }
+  - { ref: olga-unparalleled }
+  - { ref: olga-earth-shattering }
+  - { ref: olga-flawlessness }
+  - { ref: olga-four-elements }
+  - { ref: olga-planet-olga-marie }

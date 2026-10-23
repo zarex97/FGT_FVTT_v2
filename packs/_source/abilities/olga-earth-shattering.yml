@@ -1,0 +1,32 @@
+# U-Olga Marie (President), the audit of #328.
+# Conversion source: char_orig_sheets/by-class/Beast/President.md
+#
+# "NP Cooldown is fully reduced" is `set: 0`, as Medea's High-Speed Divine
+# Words (ruling 12). Overcharge is Gilles (Saber)'s: spent by her next NP.
+schema: 1
+id: olga-earth-shattering
+name: "Earth-Shattering"
+rank: B
+kind: skill
+slug: earthShattering
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. NP Cooldown is fully reduced.
+  2. Applies @effect[overcharge]{Overcharge} for 1◈ Turns, 1 time, the magnitude of all non-damage effects of NP is
+     increased by 20%.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: cooldown
+    target: self
+    changes:
+      - { scope: np, set: 0 }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: overcharge, magnitude: 20, duration: "1◈" }

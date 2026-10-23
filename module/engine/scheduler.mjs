@@ -33,7 +33,7 @@ import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
 import * as I from "./intents.mjs";
 import { sharedCooldownIntents, twinsOf } from "./cooldown.mjs";
 import { periodicOf } from "../rules/periodic.mjs";
-import { resolveRevival, pendingRevivalRolls, missedRevivalChances } from "../rules/revival.mjs";
+import { resolveRevival, pendingRevivalRolls, missedRevivalChances, poolRestores } from "../rules/revival.mjs";
 import { resourcePathFor, resourceValue } from "../domain/resources.mjs";
 import { deathRollOutcome } from "../rules/nameless-forest.mjs";
 import { runScript } from "./scripts.mjs";
@@ -461,6 +461,8 @@ export function fireEvent(event, units, ctx) {
       // `turnState.abilitiesUsed`, matched against the bearer's own abilities to
       // recover the category, because the record holds ids.
       if (handler.unlessUsedThisTurn && usedThisTurn(u, handler.unlessUsedThisTurn)) continue;
+      // On its Skill's own clock (#328 ruling 10): silent while it runs.
+      if (handler.ownCooldown && onCooldown(u, handler.abilityId)) continue;
 
       // One boundary, one firing. A handler on `[turnEnd, actedTurnEnd]` hears
       // both passes when its bearer Acted on its own Turn, and the sentence is
@@ -544,6 +546,8 @@ export function fireEvent(event, units, ctx) {
       if (handler.consumesUse && handler.defId && !(strip.tried && !strip.removed)) {
         out.push(I.consumeUse(u.id, handler.defId));
       }
+      // ...and a handler on its own clock starts it (#328 ruling 10).
+      if (handler.ownCooldown) out.push(...ownCooldownStart(u, handler.abilityId, ctx));
       out.push(I.log({ kind: "event", event, unitId: u.id, source: handler.source, tick: ctx.tick }));
     }
     // An `until <event>` duration ends here, after the handlers that heard the
@@ -1055,9 +1059,19 @@ const ACTIONS = Object.freeze({
     // `amount` arrives from a rank table resolved at collection time and is
     // always POSITIVE there, so `direction` says which way it moves. `delta`
     // stays for a literal signed value.
-    const raw = a.amount !== undefined
-      ? (a.direction === "down" ? -Math.abs(a.amount) : Math.abs(a.amount))
-      : (fromEvent ?? a.delta ?? 0);
+    // A share of the stat as it stands: Gyakkou's *"Max Health is reduced by
+    // 10% of its maximum value"*, `percent: -10` on `health.max`, taken of the
+    // maximum she has now, so a second revival takes 10% of the reduced one
+    // (#328 ruling 10). A snapshot flattens Health, so its maximum is read by name.
+    const ofStat = a.percent !== undefined
+      ? (a.stat === "health.max" ? u.maxHealth : readStat(u, a.stat))
+      : null;
+    if (a.percent !== undefined && typeof ofStat !== "number") return [];
+    const raw = a.percent !== undefined
+      ? Math.trunc(ofStat * Number(a.percent) / 100)
+      : a.amount !== undefined
+        ? (a.direction === "down" ? -Math.abs(a.amount) : Math.abs(a.amount))
+        : (fromEvent ?? a.delta ?? 0);
     if (raw === 0) return [];
 
     // `alsoCurrent` on a `.max` write pulls the current value down with the
@@ -1738,6 +1752,52 @@ function concealedNow(unit) {
  * @param {string|null} abilityId
  * @returns {boolean}
  */
+/**
+ * What a revival's `unitRevived` handlers did, in words, by the Skill that did
+ * it: *"Gyakkou: Atk Up, Invuln (Gyakkou), Planet Olga Marie −1, Max Health
+ * −200"* (#328). An effect names itself; a clock names its ability; a stat says
+ * its change.
+ *
+ * @param {object[]} intents what the handlers emitted
+ * @param {object} unit the revived Unit's snapshot
+ * @returns {Array<{source: string, said: string[]}>}
+ */
+export function revivedSaid(intents, unit) {
+  const nameOf = (id) => (unit.abilities ?? []).find((a) => a.id === id)?.name ?? null;
+  /** @type {Map<string, string[]>} */
+  const by = new Map();
+  const add = (source, line) => {
+    if (!source || !line) return;
+    by.set(source, [...(by.get(source) ?? []), line]);
+  };
+  for (const i of intents ?? []) {
+    if (i.t === "applyEffect") add(nameOf(i.sourceId) ?? i.source, EffectRegistry.get(i.effect?.defId ?? i.effect?.id)?.name ?? i.effect?.id);
+    else if (i.t === "cooldown") {
+      // A cut on a clock that is not running moves nothing, and says nothing.
+      const running = (unit.abilities ?? []).find((a) => a.id === i.abilityId)?.cooldownRemaining ?? 0;
+      if (i.mode === "reduce" && running <= 0) continue;
+      add(i.source, `${nameOf(i.abilityId) ?? "Cooldown"} ${i.mode === "reduce" ? "−" : "+"}${Math.min(i.ticks, i.mode === "reduce" ? running : i.ticks)}`);
+    }
+    else if (i.t === "statDelta") add(i.source, `${i.stat === "health.max" ? "Max Health" : i.stat} ${i.delta > 0 ? "+" : "−"}${Math.abs(i.delta)}`);
+  }
+  return [...by].map(([source, said]) => ({ source, said }));
+}
+
+/**
+ * The clock a handler on its Skill's own Cooldown starts when it pays out.
+ *
+ * @param {object} unit
+ * @param {string|null} abilityId
+ * @param {object} ctx
+ * @returns {object[]}
+ */
+function ownCooldownStart(unit, abilityId, ctx) {
+  const max = (unit.abilities ?? []).find((a) => a.id === abilityId)?.cooldownMax ?? null;
+  if (!abilityId || !max) return [];
+  const ticks = resolveTicks(parseTick(String(max)), ctx);
+  return ticks > 0 ? [I.cooldown(unit.id, abilityId, ticks, "set")] : [];
+}
+
 function onCooldown(unit, abilityId) {
   if (!abilityId) return false;
   const ability = (unit.abilities ?? []).find((a) => a.id === abilityId);
@@ -1835,21 +1895,27 @@ export function resolveDefeat(unit, ctx, cause = "damage") {
   // -- indistinguishable from correct with one source, and with four it spends
   // whichever happened to be listed first, burning a God Hand charge while
   // `Undying` sits unused.
-  const revival = resolveRevival({ unit, overkill: ctx.overkill ?? 0, rolls: ctx.rolls ?? {} });
+  // Who defeated it, for a source that asks (#328 ruling 6): the killer on
+  // the defeat's record, as Antares's posthumous strike reads it.
+  const killer = ctx.killerId ? (ctx.board?.units ?? []).find((u) => u.id === ctx.killerId) ?? null : null;
+  const revival = resolveRevival({ unit, overkill: ctx.overkill ?? 0, rolls: ctx.rolls ?? {}, killer });
   if (revival.revived) {
+    const pools = poolRestores(unit, revival.source.restorePools);
+    const afterRevival = fireEvent("unitRevived", [unit], {
+      ...ctx,
+      options: new Set([`revival:source:${revival.source.id}`]),
+    });
     return [
       ...intents,
       I.heal(unit.id, revival.restored, revival.source.id, true),
+      ...pools.map((p) => I.statDelta(unit.id, `${p.stat}.value`, p.delta, true)),
       // §E.5's `unitRevived`, fired here rather than by a second pass, because
       // this is the only place that knows a revival happened AND which source
       // paid for it. Heracles's *Indomitable* is the one clause that listens:
       // "whenever Heracles is defeated and revived through ANY effect" -- so it
       // cannot hang off one of the four, and firing it from each would fire it
       // four times.
-      ...fireEvent("unitRevived", [unit], {
-        ...ctx,
-        options: new Set([`revival:source:${revival.source.id}`]),
-      }),
+      ...afterRevival,
       // Charges are spent whether or not they were enough: "and so on"
       // describes an attempt, not a refund.
       ...spendRevival(unit, revival, ctx),
@@ -1867,6 +1933,11 @@ export function resolveDefeat(unit, ctx, cause = "damage") {
         ...(revival.source.chance !== null && revival.source.chance !== undefined
           ? { chance: revival.source.chance, chanceRoll: ctx.rolls?.[`revival:${revival.source.id}:chance`] ?? null } : {}),
         amount: revival.restored, charges: revival.chargesUsed, tick: ctx.tick,
+        // The pools it restored beside Health, for the card (#328 ruling 6).
+        ...(pools.length ? { pools: Object.fromEntries(pools.map((p) => [p.stat, p.value])) } : {}),
+        // ...and what the revival set off, by the Skill that heard it: Gyakkou's
+        // four effects had no line on any card (found live, #328).
+        ...(revivedSaid(afterRevival, unit).length ? { then: revivedSaid(afterRevival, unit) } : {}),
         // A revival that IS a form: the card says he becomes it, not a Health
         // the form replaces at once (#323, live: "with 500 Health" over 2000).
         ...(revival.source.transform ? { transform: revival.source.transform } : {}),

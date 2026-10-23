@@ -1,0 +1,45 @@
+# U-Olga Marie (President), the audit of #328.
+# Conversion source: char_orig_sheets/by-class/Beast/President.md
+#
+# > "(Passive) Whenever Olga Marie is defeated and revived through an effect,
+# > apply the following effects to herself- 1. Atk Up for 1◈ Turns, 30%; if NP,
+# > 20%. 2. Invuln (Gyakkou) for 1◈ Turns, 1 time ... consumed first when
+# > Attacked. 3. NP Cooldown is reduced by ⅓◈ Turns. 4. Max Health is reduced by
+# > 10% of its maximum value. Cooldown: 4◈ Turns."
+#
+# `unitRevived`, which Indomitable already hears: any revival through an effect
+# (ruling 10). A Passive on its own clock, `ownCooldown`: while the 4◈ run, a
+# revival gives nothing. The Max Health cut is 10% of the maximum she has then,
+# for the War, and stacks (ruling 10).
+schema: 1
+id: olga-gyakkou
+name: "Gyakkou"
+rank: EX
+kind: skill
+slug: gyakkou
+passive: true
+cooldown: "4◈"
+copyable: { allowed: false, reason: unique }
+description: |
+  Backlight.
+  (Passive) Whenever Olga Marie is defeated and revived through an effect, apply the following effects to herself-
+  1. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 30%; if NP, 20%.
+  2. Applies @effect[invulnGyakkou]{Invuln (Gyakkou)} for 1◈ Turns, 1 time. Invuln (Gyakkou) is separate from
+     normal @effect[invuln]{Invuln}, and is consumed first when Attacked.
+  3. NP Cooldown is reduced by ⅓◈ Turns.
+  4. Max Health is reduced by 10% of its maximum value.
+  Cooldown: 4◈ Turns.
+passiveRules:
+  - key: OnEvent
+    event: unitRevived
+    automatic: true
+    ownCooldown: true
+    then:
+      - key: ApplyEffect
+        effect: { id: atkUp, magnitude: 30, npMagnitude: 20 }
+        duration: "1◈"
+      - key: ApplyEffect
+        effect: { id: invulnGyakkou, uses: 1 }
+        duration: "1◈"
+      - { key: CooldownDelta, scope: np, ticks: "⅓◈" }
+      - { key: StatDelta, stat: "health.max", percent: -10, alsoCurrent: true }

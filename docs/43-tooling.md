@@ -73,7 +73,8 @@ These scripts drive a real Foundry application over the Chrome DevTools Protocol
 
 `tools/sheet-kin.mjs` finds each Clause's **Kin**: the Clauses on other sheets that state the same rule in the same or similar words. It reads the 469 sheets exported from the roster's Drive folders on 2026-10-21 into `char_orig_sheets/by-class/<Class>/`, with each file's Drive id in `manifest.json`. A Clause is normalized first, with numbers, Ranks, ◈ fractions and the bearer's first name masked. Two Clauses are Kin when their word pairs overlap at the threshold, 0.5 by default (`tools/lib/kin.mjs`). Grouping is leader-based, so a chain of near neighbours never fuses two unlike rules. At 0.5, 70% of the 19,083 Clauses sit in a group that spans two or more sheets. A sheet is built when a Servant file
 names it (`kin.mjs#builtServantNames`); the name was read with its CRLF `\r` until 2026-10-23, and 13 built Servants
-read as unbuilt.
+read as unbuilt. A Servant named apart from its sheet maps through `BUILT_ALIASES`: "U-Olga Marie" is the Beast
+sheet "President", not the Pretender sheet of that name (#328).
 
 It serves the survey that grows the Character model (`docs/model/`, `.claude/skills/survey-class`). A group given a verdict in `docs/model/ledger.json` is counted and not listed again, so each Class's survey reads less than the last. `kin` serves a new Servant's design: each Clause beside its Kin, and the built Servants among them.
 

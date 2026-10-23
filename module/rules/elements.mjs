@@ -84,6 +84,7 @@ export function empty() {
     forcedModeRules: [], magnitudeScales: [], attackProperties: [], terrainPenaltyImmunities: [], lethalFloors: [],
     categoryUseLimits: [], baseAttackModifiers: [], healingReceived: [], followUps: [],
     cooldownCutBonus: [], useFailures: [], learnsTrueNames: [],
+    attackAllowances: [], bansAlliedServantAttacks: [], attackNullifiers: [], attackRiders: [],
   };
 }
 
@@ -670,6 +671,10 @@ export function normalizeHandler(el, { rank, source, ability, ctx, deferred = nu
     // Raikou is defeated"*: heard on `unitDefeated`, paid at `turnEnd`. Read by
     // `scheduler.mjs#fireEvent`, which records what is owed (#103).
     ...(el.at ? { at: el.at } : {}),
+    // A handler on its ability's own clock: heard only while that Skill is off
+    // Cooldown, and starting it when it pays out. Gyakkou is a Passive with
+    // *"Cooldown: 4◈ Turns"* (#328 ruling 10).
+    ...(el.ownCooldown ? { ownCooldown: true } : {}),
     abilityId: ability?.id ?? null,
     // Evaluated when the event FIRES, against the options the event carries --
     // as opposed to `predicate`, which gates the element at collection time
@@ -1949,6 +1954,58 @@ export const EXECUTORS = Object.freeze({
    * the engine. Declared here it is a property of whatever is doing the
    * forbidding, and the ladder can say *which* effect took the option away.
    */
+  /**
+   * More than one Attack a Turn for its bearer: Unparalleled's *"U-Olga Marie
+   * can Attack up to three times this Turn"* (#328 ruling 11). The largest
+   * allowance held wins; the budget reads it (`rules/budget.mjs#attackAllowance`).
+   */
+  AttacksPerTurn(el, { source, out }) {
+    out.attackAllowances.push({ value: Number(el.value ?? 1), source });
+  },
+
+  /**
+   * No other allied Servant may Attack while the bearer holds it: *"This Turn,
+   * no other allied Servants can Attack other than U-Olga Marie"* (#328 ruling
+   * 11). Servants only; a Master or a summon may. Annotated onto every ally by
+   * `rules/named-units.mjs#annotateAllies`, refused by `rules/budget.mjs#preventedBy`.
+   */
+  BanAlliedServantAttacks(el, { source, out }) {
+    out.bansAlliedServantAttacks.push({ source });
+  },
+
+  /**
+   * Attacks that have no effect on the bearer: Gravity Manipulation's *"Ranged
+   * Attacks which deal STR damage from 4 or more panels away from Olga Marie
+   * have no effect on her"* (#328 ruling 9). By the Attack's Base Attack and
+   * the distance it comes from; read at Combat Process step 1.5
+   * (`rules/miss.mjs#nullifiedBy`).
+   */
+  NullifiesAttacks(el, { source, out }) {
+    out.attackNullifiers.push({ component: el.component ?? null, minDistance: el.minDistance ?? 0, source });
+  },
+
+  /**
+   * A Noble Phantasm that rides a Normal Attack: offered at its declaration,
+   * a die rolled, the face changing the Attack (Four Elements, #328 ruling 16).
+   * Read by `engine/attack-riders.mjs#offerAttackRiders`.
+   */
+  AttackRider(el, { source, ability, out }) {
+    out.attackRiders.push({
+      abilityId: ability?.id ?? null,
+      abilityKey: ability?.contentId ?? ability?.slug ?? ability?.id ?? source,
+      source,
+      predicate: el.predicate ?? null,
+      die: el.die ?? 6,
+      faces: el.faces ?? {},
+      oncePerTurnFaces: [...(el.oncePerTurnFaces ?? [])],
+      chooseOn: [...(el.chooseOn ?? [])],
+      blankFace: el.blankFace ?? 1,
+      // Faces only a plain Normal Attack takes: face 5 on the Defender of
+      // Humanity Normal Attack reads as nothing (ruling 16).
+      normalAttackOnlyFaces: [...(el.normalAttackOnlyFaces ?? [])],
+    });
+  },
+
   ForbidReaction(el, { source, out }) {
     const reactions = [el.reactions ?? el.reaction ?? []].flat();
     // `incoming`: the rungs are taken from whoever this unit ATTACKS, the same
@@ -2018,6 +2075,8 @@ export const EXECUTORS = Object.freeze({
       // reaches 2 panels and Triumphal Return's beside Jeanne reaches 3 (#260
       // reading 7). Then the definition's, then the rulebook's 2.
       key: el.modifierKey ?? "aura", radius: ability?.params?.radius ?? el.radius ?? 2,
+      // A ring's inner edge (Gravity Manipulation's tiers, #328 ruling 8).
+      ...(el.minRadius ? { minRadius: el.minRadius } : {}),
       relations: el.relations ?? ["ally", "self"],
       value: scalar(resolveValue(el, rank, ctx)),
       // An aura that IS its modifier carries the NP figure the same way a
@@ -2407,6 +2466,14 @@ export const EXECUTORS = Object.freeze({
       // clause travels on the source and `isAvailable` tests it at the moment
       // of defeat, which is the only moment it means anything.
       predicate: deferred ?? el.predicate ?? null,
+      // A clause about WHO defeated the bearer, tested against the killer's own
+      // options: U-Olga Marie revives *"when defeated by a Unit with the
+      // 'Threat to Humanity' Attribute"*, `killer: ["self:attribute:threatToHumanity"]`
+      // (#328 ruling 6). No killer, no revival.
+      killer: [...(el.killer ?? [])],
+      // Pools restored beside Health, each a share of its maximum: *"her
+      // Health, Agility, and Luck restored to 50%"* (#328 ruling 6).
+      restorePools: el.restore?.pools ?? null,
       // `revivalPriority`, NOT `priority`. `priority` on a rule element already
       // means "reorder me within my ordering band" (Ch. 10) and `orderElements`
       // sorts on it -- so Ch. 45's `priority: 300` for Undying would have moved
