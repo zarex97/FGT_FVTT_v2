@@ -13,6 +13,6 @@ rows with its own, so a row said at the declaration would have gone anyway.
 **Cause:** `module/engine/attack.mjs:2980 @ 706f5fde` and `:3620` applied with `applyBatch`, which returns lines
 nobody reads; `:4359` wrote `effects` with `cardRows([...])` and no earlier rows. Same mechanism as
 `2026-10-23-afterprocess-clock-said-nothing`, at two more doors.
-**Fix:** `module/engine/attack.mjs#applyOnCard @ uncommitted`: one helper puts any handler batch's lines on its
+**Fix:** `module/engine/attack.mjs#applyOnCard @ 28e231ce`: one helper puts any handler batch's lines on its
 Process's card (`processMessageOf` finds it from the state); the Damage Step keeps what was said before it
 (`effectsBeforeDamage`, so a step run again writes the same card). Tests in `chiron-326.test.mjs` (CV*, EM*) red first.

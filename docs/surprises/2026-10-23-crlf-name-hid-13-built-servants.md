@@ -12,5 +12,5 @@ Arjuna, Arturia, Asterios, EMIYA, Heracles, Karna, Kingprotea, Medea, Proto Gil,
 and Semiramis read as unbuilt, so their Kin groups were offered as having no precedent.
 **Cause:** `tools/sheet-kin.mjs:37 @ 1ba28f15`. The name was read with `[^"\n]+`, and those 13 files are
 saved with CRLF. The name kept its `\r` and matched no sheet title.
-**Fix:** `tools/lib/kin.mjs#builtServantNames @ uncommitted`. One reader, which drops `\r` too, and
+**Fix:** `tools/lib/kin.mjs#builtServantNames @ 28e231ce`. One reader, which drops `\r` too, and
 `sheet-kin.mjs` calls it. `sheet-kin.test.mjs` "which sheets are built" was red first, quoting `'Achilles\r'`.

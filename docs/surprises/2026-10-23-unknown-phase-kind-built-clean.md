@@ -11,5 +11,5 @@ key, ability kind or timing window.
 warned in the console and done nothing.
 **Cause:** `tools/lib/content.mjs:1315 @ 706f5fde`: `validateDocument` checked kinds, windows and element keys, never
 `phases[].kind` against `PHASE_IDS`; nor a `removeEffect` selector's keys, so a typo'd `valance` matched every buff.
-**Fix:** `tools/lib/content.mjs#phaseKindsAreKnown @ uncommitted`, at every nesting a phase list sits in, with the
+**Fix:** `tools/lib/content.mjs#phaseKindsAreKnown @ 28e231ce`, at every nesting a phase list sits in, with the
 selector keys `rules/removal.mjs#selectorMatches` reads. `content.test.mjs` red first.
