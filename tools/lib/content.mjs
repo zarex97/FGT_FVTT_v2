@@ -1312,6 +1312,27 @@ function countsAreKnown(doc, path, problems) {
   }
 }
 
+/**
+ * A Servant states the Class every rule reads.
+ *
+ * `classContainer` is the slot and the icon; `servantClasses` is what
+ * `rules/options.mjs` turns into `class:` options. Van Gogh stated only the
+ * first, held no Class, and Prelati's Spellbook cut her clock as a
+ * non-Foreigner's (#323, live). A summon carries no Class of its own.
+ */
+function servantHoldsAClass(doc, path, dir, problems) {
+  if ((doc.type ?? PACKS[dir]?.actorType) !== "servant") return;
+  const classes = [...(doc.servantClasses ?? [])];
+  if (!classes.length) {
+    problems.push(`${path}: a Servant states no servantClasses -- every Class rule reads it, not classContainer`);
+  }
+  for (const c of classes) {
+    if (!SERVANT_CLASSES.includes(c)) {
+      problems.push(`${path}: servantClasses names "${c}", which is not a Class (${SERVANT_CLASSES.join(", ")})`);
+    }
+  }
+}
+
 function validateDocument(doc, path, library, problems, warnings, dir = "") {
   // Predicates are checked on BOTH branches. An Actor carries rule elements
   // too -- Bašmu's Normal Attack rider, the Kagome Spirits' Light/Dark banish,
@@ -1329,6 +1350,7 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
 
   if (PACKS[dir]?.documentType === "Actor") {
     baseAttackAgreesWithTable(doc, path, warnings);
+    servantHoldsAClass(doc, path, dir, problems);
   } else {
     activeRulesAreReachable(doc, path, problems);
     damageInstancesAreWellFormed(doc, path, problems);

@@ -20,6 +20,8 @@ trueName: "Emiya Kiritsugu"
 # Action is three passives. `classContainer` is presentational and the setup
 # wizard's slot -- no class bonus rests on it.
 classContainer: assassin
+# ...and the Class every rule reads: his sheet sits under by-class/Assassin.
+servantClasses: [assassin]
 # "Japan, Far East": both, as Proto Gil's "Mesopotamia, Middle East" (#243 SB).
 region: [japan, farEast]
 alignment: { order: chaotic, morality: evil }
