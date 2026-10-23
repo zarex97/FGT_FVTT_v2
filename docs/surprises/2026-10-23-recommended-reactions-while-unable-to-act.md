@@ -3,7 +3,8 @@ id: 2026-10-23-recommended-reactions-while-unable-to-act
 found: retraction
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** my grill recommendation for Chiron's teaching (Q11): *"neither may Move, Attack or use a Skill or
 NP; Evade and Block are allowed."*

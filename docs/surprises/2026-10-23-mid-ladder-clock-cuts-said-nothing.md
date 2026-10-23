@@ -3,7 +3,8 @@ id: 2026-10-23-mid-ladder-clock-cuts-said-nothing
 found: test
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Chiron's Clairvoyance Passive 2 (a cut on every Normal Attack at Range 3+) and Eye of the Mind's cut
 on a successful Evade are lines on the Process's card, as a settle and an `afterProcess` refund now are.

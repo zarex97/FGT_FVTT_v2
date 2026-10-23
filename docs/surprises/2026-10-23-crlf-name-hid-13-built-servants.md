@@ -3,7 +3,8 @@ id: 2026-10-23-crlf-name-hid-13-built-servants
 found: tooling
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: source-scan-assumes-linux-checkout
 ---
 **Expected:** `node tools/sheet-kin.mjs` marks every sheet with a Servant file as built, so a survey and a
 leverage ranking skip what is already built.
