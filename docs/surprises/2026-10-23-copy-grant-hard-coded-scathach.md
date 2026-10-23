@@ -3,7 +3,8 @@ id: 2026-10-23-copy-grant-hard-coded-scathach
 found: test
 kind: sheet-binds-only-its-owner
 status: fixed
-reviewed: false
+reviewed: true
+pattern: sheet-binds-only-its-owner
 ---
 **Expected:** Chiron's Wisdom of Divine Gift copies three Skills through the copy grant Scáthach's Wisdom of Dún
 Scáith built, its Rank and clock its own.

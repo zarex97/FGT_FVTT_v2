@@ -3,7 +3,8 @@ id: 2026-10-23-afterprocess-clock-said-nothing
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** the #322 regression press L2-11: Nemo's Quickfire, not Countered, refunds 1◈ of its own
 Cooldown, and the card reads "Quickfire: Cooldown … −1◈".

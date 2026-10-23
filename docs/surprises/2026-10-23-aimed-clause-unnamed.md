@@ -3,7 +3,8 @@ id: 2026-10-23-aimed-clause-unnamed
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Antares Snipe's Heel offer, shown to Player1, names every clause of the 95% in words.
 **Actual:** *"at Range +5 · initiated +5 · unseen +10 · FGT.WeakPoint.Part.aimed +75"*.

@@ -3,7 +3,8 @@ id: 2026-10-23-drake-kiritsugu-held-no-class
 found: test
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** after Van Gogh's fix (`2026-10-22-van-gogh-held-no-class`), every built Servant states
 `servantClasses`, the field every Class rule reads.

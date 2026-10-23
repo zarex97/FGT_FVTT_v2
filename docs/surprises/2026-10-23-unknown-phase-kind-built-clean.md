@@ -3,7 +3,8 @@ id: 2026-10-23-unknown-phase-kind-built-clean
 found: test
 kind: unknown-value-falls-to-default
 status: fixed
-reviewed: false
+reviewed: true
+pattern: unknown-value-falls-to-default
 ---
 **Expected:** `npm run validate:content` refuses a phase kind no executor runs, as it refuses an unknown element
 key, ability kind or timing window.
