@@ -12,6 +12,6 @@ slot is `extra`, so a seated Beast, Foreigner or Ruler is publicly "Extra", and 
 not exist. The icon and the name read the slot as if it were the Class.
 **Cause:** `module/engine/war-setup.mjs:397 @ d24c003e`: `"system.classContainer": container.classContainer`, for a
 core slot and an Extra one alike.
-**Fix:** `module/rules/war-setup.mjs#seatedContainer @ uncommitted`: an Extra slot takes the Servant's own Extra
+**Fix:** `module/rules/war-setup.mjs#seatedContainer @ 7f02a2c2`: an Extra slot takes the Servant's own Extra
 Class; a core slot stays the slot. Both writes in `engine/war-setup.mjs` call it. `olga-328.test.mjs` "a Beast
 seated in an Extra slot keeps her Class".
