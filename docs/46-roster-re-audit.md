@@ -5503,6 +5503,11 @@ over instead."* Ch. 45.
 **Reached: PS.f.eh, GH.final.** His final defeat took the five Elder Horrors that had outlived his first: the content
 sync put the pack's `leavesWithSummoner: true` back. Seeded, then the world's. Ch. 31.
 
+### UN. Summons left the dimension their summoner stood in — **fixed** (#323)
+
+**Reached: GH.storm.eh.** He fell inside the Storm Border and his Elder Horrors appeared on the ground Level. A
+summoner in a pocket dimension summons onto its own Level. Ch. 31.
+
 ---
 
 ---
@@ -7605,7 +7610,7 @@ transform at all) and 12 (the Gigantic Horror is the GM's: its own side, the GM'
 | A revival on a die, its miss running `otherwise` (readings 9, 10) | `rules/revival.mjs`, `scheduler.mjs#resolveDefeat`, `SummonAround` |
 | A form's Range that grows with no Unit in reach (19) | `engine/form-range.mjs` |
 | True Names learned into a player's Notebook (14, 15) | `engine/true-name.mjs`, `engine/notebook.mjs` |
-| General: §46.4-UA to UM | |
+| General: §46.4-UA to UN | |
 
 ### 46.45.2 What was pressed, and how
 
@@ -7615,13 +7620,13 @@ Substitution, Luck Check, Command Spell and the transformation from his bar and 
 Clauses. The Gigantic Horror was the GM's: its Attacks, Evil Gaze and summons were the GM's presses. Staged: Turn
 records, cooldowns, Health, Agility, token positions, the foe's AGI, the Spellbook's mark, his form undone twice to
 reach its other two doors, the GM's dice forced to 1 for the two 10% that land, and his live items patched with the
-two content fixes a pack rebuild will carry (Foundry was running). **Thirteen defects found, all fixed:** §46.4-UA to
-UM. The press log goes on #323.
+two content fixes a pack rebuild will carry (Foundry was running). **Fourteen defects found, all fixed:** §46.4-UA to
+UN. The press log goes on #323.
 
 ### 46.45.3 Left open
 
-- **Two readings to rule:** inside a Storm Border his fall rolls no die and, as built, brings no Elder Horrors either;
-  and in his form, still his Master's contract (11a), the ZON penalty applies to his Attacks.
+- **Two readings ruled after the pass, 2026-10-23:** inside a Storm Border his fall rolls no die and the Elder Horrors
+  still come, inside it (pressed: §46.4-UN); the ZON penalty applies to his form, as built.
 - **The Horrors' split exemptions** (HO.split.light, HO.split.vs, EH.split, its .light and .vs) were pressed in #260 on
   the same `horror` and `elder-horror` summons; here one split was pressed again after UC.
 - **Drake and Kiritsugu state no `servantClasses`**: no `class:` option, no ZON class base, the general NP gate.

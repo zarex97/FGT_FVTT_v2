@@ -73,8 +73,7 @@ passiveRules:
   # *"Has a 10% chance of automatically activating ... when Gilles is defeated
   # without Prelati's Spellbook being destroyed"*, in place of the defeat (10).
   # *"Otherwise, X number of Elder Horrors appear on the panels around him,
-  # where X=number of Servants on the board"* (9). Not in his form (11f), not
-  # inside a Storm Border (11h).
+  # where X=number of Servants on the board"* (9). Not in his form (11f).
   - key: RevivalSource
     id: giganticHorrorOnDefeat
     revivalPriority: 50
@@ -82,7 +81,10 @@ passiveRules:
     percentOfMax: 100
     consumesOnUse: false
     transform: gilles-gigantic-horror
-    predicate: ["not:self:effect:spellbookDestroyed", "not:self:form:giganticHorror", "not:self:onPlatform:platform-storm-border"]
+    predicate: ["not:self:effect:spellbookDestroyed", "not:self:form:giganticHorror"]
+    # Inside a Storm Border the die does not roll (11h), and the Elder Horrors
+    # still appear: *"Otherwise"* is his not transforming (ruled 2026-10-23).
+    chanceBarredWhen: ["self:onPlatform:platform-storm-border"]
     otherwise:
       - { key: SummonAround, contentId: elder-horror, outlives: true,
           count: { of: board, requires: ["self:type:servant"], excludeSelf: true, standing: true } }
