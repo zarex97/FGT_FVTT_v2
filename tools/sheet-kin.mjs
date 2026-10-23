@@ -13,10 +13,9 @@
  * re-read: that is how each Class's survey costs less than the one before it.
  */
 
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
-import { groupKin, loadCorpus, sheetsOf } from "./lib/kin.mjs";
+import { builtServantNames, groupKin, loadCorpus, sheetsOf } from "./lib/kin.mjs";
 
 const LEDGER = "docs/model/ledger.json";
 
@@ -32,11 +31,7 @@ const threshold = Number(opt("--threshold", "0.5"));
 const outFile = opt("--out", null);
 const [command, target] = args;
 
-const builtNames = readdirSync("packs/_source/servants")
-  .filter((f) => f.endsWith(".yml") && !f.startsWith("test-"))
-  .map((f) => readFileSync(join("packs/_source/servants", f), "utf8").match(/^name:\s*"?([^"\n]+)"?/m)?.[1])
-  .filter(Boolean);
-const corpus = loadCorpus(undefined, builtNames);
+const corpus = loadCorpus(undefined, builtServantNames());
 
 /** @type {Record<string, {verdict: string, shape: string, note?: string}>} normalized head → verdict */
 const ledger = existsSync(LEDGER) ? JSON.parse(readFileSync(LEDGER, "utf8")) : {};

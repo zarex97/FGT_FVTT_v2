@@ -59,6 +59,15 @@ After those ten, and before `globalTurn` advances, the hook switches off every m
 
 **Scheduled strikes land after terrain expires** (#232). An ability with `schedule: {after, mark}` (Enki) pays and declares its use when activated, then stores a strike on the Combat (`fgt.scheduledStrikes`) with an absolute fire tick. At each boundary, after `expireTerrain`, `engine/schedule.mjs#runScheduledStrikes(tick)` cancels a strike whose owner is defeated and fires one whose `expiryReached` is met, through `resolveAttack` with `placement.scheduled`. Each strike is claimed in memory before the await. `ScheduleDelta` (Golden Rule) moves the fire tick and posts a line.
 
+**A posthumous strike is a scheduled strike its owner's defeat records** (#326). An NP with `afterDefeat {delay, target:
+killer, holdUnless}` (Chiron's Antares Snipe) is recorded by the applier's `defeat` case (`io.notePosthumous` →
+`schedule.mjs#schedulePosthumous`) with `kind: "posthumous"`, the killer and the panel he fell on; no killer is a line
+and no strike. `runScheduledStrikes` cancels it when its target is gone, not when its owner is (he is defeated by
+definition), and holds it while `holdUnless` fails against the body's options (`war:phase:night`): a Day Round says so
+once, and the first Turn of the next Night fires it. It fires through `resolveAttack` as Enki does, with `pathTargets:
+[killer]` (Range ignored) and no price. Its owner's body stays on the board until it has (`clearBodies` reads
+`ctx.heldBodies`).
+
 ### The begin-of-turn sequence
 
 `beginTurn` logs the boundary once and fires `turnStart` for every unit in the match (Shock can roll on anyone's turn start, not just its owner's) (`module/engine/scheduler.mjs:149-167`). It also fires `turnStart` for terrain.

@@ -248,13 +248,29 @@ is the other Servants on the field at that moment, the only ones a pick or a GM'
 list from the sheet or the bar. The list is the canvas's board, so a GM looking at another scene gets no list but a
 line to open the War's scene, and the offer redraws on `canvasReady` (#256, §46.4-RV).
 
-**What a copy is.** Servants' Skills only (`copyCandidates` keeps `kind: "servant"`). A copy takes Scáthach's A+ and
-`4◈-⅓◈`, and carries its source's use (`carriedUse`: window, targeting, damage, phases) minus its rank, cooldown,
+**What a copy is.** Servants' Skills only (`copyCandidates` keeps `kind: "servant"`). A copy takes its grant's terms,
+`copyGrant {slots, cooldown, exclusionSet}` with the grant's Rank (`engine/copy.mjs#copyGrantSpec`, #326): Scáthach's
+two at A+ and `4◈-⅓◈`, Chiron's three at the same. They were constants in the shared reader, and the dialog's count a
+default of two, so Chiron's third pick was refused; the window and the player's prompt now take the grant's own name. A
+copy carries its source's use (`carriedUse`: window, targeting, damage, phases) minus its rank, cooldown,
 gates, `rules` and `passiveRules`: the Active part only. Its phases still run from the source by `copiedFrom`.
 Refusal reasons are one list, `domain/enums.mjs#COPY_REASONS`; `named` is a family her sheet names (Mana Burst).
 A Spell is not a Skill (ruled 2026-10-14): `canCopy` refuses one with `spell`, read by `rules/costs.mjs#isSpellAbility`
 (`isSpell`, or the `spell` category), the reader Silence uses. The board now projects `isSpell` for it. Medea's six
 Spells were all offered; her Active Skills still are.
+
+### Teaching a copy (#326)
+
+Wisdom of Divine Gift's second Active is a `teach` phase (`engine/teaching.mjs`). The target is the learner, any other
+Servant at range 1, allied or enemy. The teacher's player picks one of his copies the learner does not hold, by source
+or as a copy (`teachableCopies`); a learner who has learned from him is refused (one Skill each). The learner's
+controller agrees through a `confirm` prompt, unless one player holds both; a Servant with no Master agrees through
+its player. Both then carry `cannotAct` and the same `system.teaching` record for the phase's `duration` (1◈). At the
+boundary it ends, `runTeachings` gives the learner a copy of the copy (`copy.mjs#grantTaughtCopy`: same source, the
+copy's Rank and clock, no lock, `taughtBy`), and the teacher keeps his. It is cancelled, with a line naming the cause,
+when an enemy's Attack reaches its Damage Step on either (a Block counts; `cancelTeachingOnHit` at the Process's end),
+when either is defeated (the applier's `defeat` case), or when a Move parts them (`attachTeaching`, a settled
+`updateToken`). Damage that is not an Attack does not.
 
 ### A phase's target, and a self-only spec that includes a partner (#209 §46.4-NA, NC)
 

@@ -3,7 +3,8 @@ id: 2026-10-23-summons-left-the-dimension
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** Gilles falls inside the Storm Border, the die barred (ruled 2026-10-23): his Elder Horrors appear
 around him, inside it.

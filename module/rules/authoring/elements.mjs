@@ -199,6 +199,9 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     // `uncharted` authored `add: 3` against it and the executor tried to
     // iterate a 3, which threw out of `currentBoard()`.
     { key: "add", type: "tokenList" },
+    // ...and the tags a form takes away, after the implications are closed:
+    // Chiron's Centaur Form loses Humanoid (#326 ruling 3).
+    { key: "remove", type: "tokenList" },
     { key: "factor", type: "number" },
     { key: "floor", type: "number" },
     { key: "duration", type: "tickExpr" },

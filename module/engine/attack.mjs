@@ -53,7 +53,7 @@ import { coveringServantsFor, coverFactor, shoveDestination, isCovering } from "
 import { absorb, refreshShield, landBarrier, ridersHeldBy } from "./shield.mjs";
 import { identityOfProcess, recordedAttack } from "../rules/revival.mjs";
 import { abilityRecordOf } from "../rules/snapshot.mjs";
-import { removalPlan, pendingRemovalRolls, isUnremovable } from "../rules/removal.mjs";
+import { removalPlan, pendingRemovalRolls, isUnremovable, selectorMatches } from "../rules/removal.mjs";
 import { isStrongestNP, isDamagingNP, harmlessToSelf, EXPECTED_ATTACK_ROLL } from "../rules/np-strength.mjs";
 import { currentHealth, isUndamageable } from "../domain/health.mjs";
 import * as process from "./combat-process.mjs";
@@ -2250,6 +2250,11 @@ async function closeRung(state, message) {
       await closeDecidedDuels();
     }
     await runAfterProcessPhases(state, message);
+    // A hit from an enemy ends a teaching its defender is in (#326 ruling 11b).
+    {
+      const { cancelTeachingOnHit } = await import("./teaching.mjs");
+      await cancelTeachingOnHit(state);
+    }
     await fireCombatProcessEnd(state);
     // *"When Mannanán is Attacked ... at the end of the Combat Process ... she
     // automatically performs a Fragarach Counter on the DU."* At the end of the
@@ -2503,13 +2508,9 @@ async function runAfterProcessPhases(state, message = null) {
     // happen to implement.
     intents.push(...cooldownChanges(phase, attackerDoc, board, ability));
   }
-  if (intents.length === 0) return;
   // A clock this pass turned is a line on the Process's card, as a settle's is:
   // Quickfire fell 6 → 3 live and no card said so (2026-10-23).
-  const rows = await applyWithLines(intents, "afterProcessCooldown");
-  if (rows.length === 0 || !message) return;
-  await message.setFlag("fgt", "effects", [...(message.getFlag("fgt", "effects") ?? []), ...cardRows(rows)]);
-  await updateAttackCard(message, state);
+  await applyOnCard(intents, "afterProcessCooldown", state, message);
 }
 
 /** The `combatProcessEnd` firings in flight, by attacker (see {@link fireCombatProcessEnd}). */
@@ -2972,7 +2973,9 @@ async function fireAttackDeclared(state) {
     options: rollOptions(attacker, defender, state),
     rolls: {},
   });
-  if (intents.length > 0) await applyBatch(intents, "attackDeclared");
+  // On the Process's card: Clairvoyance's own clock cut (#326) was written and
+  // said to nobody, as Quickfire's refund was (2026-10-23).
+  await applyOnCard(intents, "attackDeclared", state);
 }
 
 /**
@@ -3612,7 +3615,57 @@ async function fireEvadeSucceeded(state) {
     }),
     rolls: {},
   });
-  if (intents.length > 0) await applyBatch(intents, "evadeSucceeded");
+  // On the Process's card: Eye of the Mind's cut on a successful Evade (#326).
+  await applyOnCard(intents, "evadeSucceeded", state);
+}
+
+/**
+ * The card one Combat Process is drawn on, found from its state.
+ *
+ * A Process's state does not carry its message, and the rungs that raise an
+ * event mid-ladder (`attackDeclared`, `evadeSucceeded`) are handed the state
+ * alone. Its group, its two Units and whether it is a Counter name it.
+ *
+ * @param {object} state
+ * @returns {object|null}
+ */
+function processMessageOf(state) {
+  const mine = game.messages.filter((m) => {
+    const raw = m.getFlag("fgt", "process");
+    if (!raw) return false;
+    try {
+      const s = process.deserialize(raw);
+      return s.groupId === state.groupId && s.attackerId === state.attackerId
+        && s.defenderId === state.defenderId && Boolean(s.isCounter) === Boolean(state.isCounter);
+    } catch {
+      return false;
+    }
+  });
+  return mine.at(-1) ?? null;
+}
+
+/**
+ * Apply a handler's batch, and put what it said on its Process's card.
+ *
+ * Every clock an Attack turns is a line on its card (#230): the settle, the
+ * `afterProcess` refund, and the cuts a handler makes mid-ladder. A batch with
+ * no card to land on still applies.
+ *
+ * @param {object[]} intents
+ * @param {string} source
+ * @param {object} state the Combat Process state
+ * @param {object|null} [message] its card, when the caller holds it
+ * @returns {Promise<void>}
+ */
+async function applyOnCard(intents, source, state, message = null) {
+  if (intents.length === 0) return;
+  const rows = await applyWithLines(intents, source);
+  const card = message ?? processMessageOf(state);
+  if (rows.length === 0 || !card) return;
+  await card.setFlag("fgt", "effects", [...(card.getFlag("fgt", "effects") ?? []), ...cardRows(rows)]);
+  // Drawn from the state the card stores: a rung mid-way through its step has
+  // not stored the one it is building.
+  await updateAttackCard(card, process.deserialize(card.getFlag("fgt", "process")));
 }
 
 /**
@@ -4302,9 +4355,14 @@ async function runAutomaticStep(state, message) {
       // before the riders.
 
       await message.setFlag("fgt", "damage", result.total);
-      await message.setFlag("fgt", "effects", cardRows([
+      // What the card said BEFORE this step stays: Clairvoyance's clock cut at
+      // the declaration was replaced by the damage rows (#326, found pressing).
+      // Kept once, so a step run again writes the same card.
+      const said = message.getFlag("fgt", "effectsBeforeDamage") ?? (message.getFlag("fgt", "effects") ?? []);
+      if (!message.getFlag("fgt", "effectsBeforeDamage")) await message.setFlag("fgt", "effectsBeforeDamage", said);
+      await message.setFlag("fgt", "effects", [...said, ...cardRows([
         ...startRows, ...before, ...applied, ...held, ...taken.rows, ...receivedRows, ...dealt.rows, ...stepEnd.rows,
-      ]));
+      ])]);
       return process.advance(state, "done", {
         total: result.total, rollRecords: [...(result.modifierRolls ?? []), ...taken.records, ...dealt.records, ...stepEnd.records],
       });
@@ -7817,12 +7875,7 @@ async function removalIntents(phase, doc, bearer) {
   const ids = named.length > 0
     ? named
     : doc.effects
-      .filter((e) => {
-        const def = EffectRegistry.get(e.system?.defId);
-        if (!def) return false;
-        if (selector?.polarity && polarityOf(e.system, def) !== selector.polarity) return false; // fgt-polarity-ok: the phase's selector
-        return !isUnremovable(def, e);
-      })
+      .filter((e) => selectorMatches(selector, e, EffectRegistry.get(e.system?.defId)))
       .map((e) => e.system.defId);
 
   // Buff removal has a resistance on the receiving end (`rules/removal.mjs`),

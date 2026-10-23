@@ -26,12 +26,15 @@
  * keep her buffs on.
  */
 
+import { polarityOf } from "./effect-instance.mjs";
+
 /**
  * @typedef {object} RemovalCandidate
  * @property {string} defId
  * @property {string} [polarity]
  * @property {boolean} [unremovable]
  */
+
 
 /**
  * Is this instance beyond any cleanse?
@@ -48,6 +51,28 @@
  */
 export function isUnremovable(def, instance) {
   return Boolean(def?.unremovable || instance?.system?.unremovable);
+}
+
+/** What a `removeEffect` phase's `selector` may name, all of them read below. */
+export const SELECTOR_KEYS = Object.freeze(["polarity", "valence"]);
+
+/**
+ * Does a held instance match a `removeEffect` selector, and may it come off?
+ *
+ * One matcher for the Skill path and the Attack path, which each kept their own
+ * and read `polarity` alone. `valence` is Antares Snipe's *"all Defensive
+ * Buffs"* (#326 ruling 15). An unremovable instance never matches.
+ *
+ * @param {{polarity?: string, valence?: string}} selector
+ * @param {object} instance the ActiveEffect
+ * @param {object|null} def its definition
+ * @returns {boolean}
+ */
+export function selectorMatches(selector, instance, def) {
+  if (!def) return false;
+  if (selector?.polarity && polarityOf(instance.system, def) !== selector.polarity) return false; // fgt-polarity-ok: the phase's selector
+  if (selector?.valence && def.valence !== selector.valence) return false;
+  return !isUnremovable(def, instance);
 }
 
 /**

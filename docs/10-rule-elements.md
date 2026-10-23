@@ -131,6 +131,8 @@ executor actually reads, rather than of its descriptor's ids.
   the same convention as an incoming check modifier; the snapshot carries them as `refusesReactions`,
   and the attack folds them into the ladder and the counter check. Normal Presence Concealment's
   *"cannot be Blocked or Countered"* had forbidden the Assassin's own Block and Counter instead.
+- **`StatDelta` on `attributes` removes as well as adds** (#326): `remove: [humanoid]` is Chiron's Centaur Form. A form's
+  removals are taken after the implication closure (`snapshot.mjs#attributesOf`), or an implication would put one back.
 - **`RangeDelta`** carries `isBuff`, as `StatDelta` and `MovDelta` do. Eight sites said `isBuff:
   false` (Mad Enhancement on seven Servants, Kingprotea's Huge Scale) and only their MOV halves kept
   it. The flag is declarative today: no engine path removes or blocks a Skill's stat delta.

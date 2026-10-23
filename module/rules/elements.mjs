@@ -74,7 +74,7 @@ export function empty() {
   return {
     modifiers: [], statDeltas: [], checkModifiers: [], immunities: [],
     suppressions: [], grantedAbilities: [], autoSucceeds: [], eventHandlers: [], revivals: [],
-    attributes: [], magicResistance: null, magicResistanceVariants: [], variantOverride: null, normalAttackComponent: null, revealsEffect: null, damageNegation: [], zonBonuses: [], npGateShifts: [],
+    attributes: [], attributesRemoved: [], magicResistance: null, magicResistanceVariants: [], variantOverride: null, normalAttackComponent: null, revealsEffect: null, damageNegation: [], zonBonuses: [], npGateShifts: [],
     vulnerabilityAmplifiers: [], periodicOverrides: [],
     abilityRankShifts: [],
     auras: [], applicationChances: [], compulsions: [], preemptions: [], damageFloors: [],
@@ -1481,6 +1481,8 @@ export const EXECUTORS = Object.freeze({
     // own clause, not the match.
     if (el.stat === "attributes" || Array.isArray(el.add)) {
       for (const attribute of el.add ?? []) out.attributes.push(attribute);
+      // ...and one taken away: Chiron's Centaur Form loses Humanoid (#326).
+      for (const attribute of el.remove ?? []) out.attributesRemoved.push(attribute);
       if (el.stat === "attributes") return;
     }
     out.statDeltas.push({
