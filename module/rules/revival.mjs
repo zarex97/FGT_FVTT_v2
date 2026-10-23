@@ -80,10 +80,29 @@ export function availableRevivals(unit, rolls = null) {
  * @returns {Array<{source: RevivalSource, roll: number}>}
  */
 export function missedRevivalChances(unit, rolls = {}) {
-  return availableRevivals(unit)
+  const missed = availableRevivals(unit)
     .filter((s) => s.chance !== null && s.chance !== undefined)
-    .map((source) => ({ source, roll: rolls[`revival:${source.id}:chance`] }))
+    .map((source) => ({ source, roll: rolls[`revival:${source.id}:chance`], barred: false }))
     .filter(({ source, roll }) => typeof roll === "number" && roll > source.chance);
+  // ...and the sources whose die is barred where he stands: no roll, and the
+  // miss's actions all the same (#323 reading 11h, ruled 2026-10-23).
+  const barred = [...(unit?.revivals ?? [])]
+    .filter((s) => s.chance !== null && s.chance !== undefined && chanceBarred(s, unit))
+    .filter((s) => isAvailable(s, unit, null, { ignoreBar: true }))
+    .map((source) => ({ source, roll: null, barred: true }));
+  return [...missed, ...barred];
+}
+
+/**
+ * Is this source's die barred where the Unit stands?
+ *
+ * @param {object} source
+ * @param {object} unit
+ * @returns {boolean}
+ */
+function chanceBarred(source, unit) {
+  return (source.chanceBarredWhen ?? []).length > 0
+    && test(source.chanceBarredWhen, { options: rollOptionsFor({ attacker: unit }) });
 }
 
 /**
@@ -91,8 +110,10 @@ export function missedRevivalChances(unit, rolls = {}) {
  * @param {object} unit
  * @returns {boolean}
  */
-function isAvailable(source, unit, rolls = null) {
+function isAvailable(source, unit, rolls = null, { ignoreBar = false } = {}) {
   if (source.charges !== null && source.charges !== undefined && source.charges <= 0) return false;
+  // A die barred where he stands is no source at all: never rolled, never taken.
+  if (!ignoreBar && chanceBarred(source, unit)) return false;
 
   // A source that comes on a die (Gilles's 10%, #323): available once the die
   // is in and under its chance. Asked with no rolls -- `pendingRevivalRolls`,

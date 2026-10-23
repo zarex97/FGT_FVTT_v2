@@ -2454,6 +2454,10 @@ export const EXECUTORS = Object.freeze({
       // A source that comes on a die, and what a miss of it does instead
       // (Gilles (Caster)'s 10%, and his Elder Horrors, #323).
       chance: el.chance ?? null,
+      // Where that die is not rolled at all, and the miss's actions run as if
+      // it had missed: inside a Storm Border he cannot transform, and his
+      // Elder Horrors still appear (#323 reading 11h, ruled 2026-10-23).
+      chanceBarredWhen: [...(el.chanceBarredWhen ?? [])],
       otherwise: (el.otherwise ?? []).map((a) => normalizeAction(a, rank, ctx)),
       // A transformation the revival is: the ability whose form it takes
       // (`engine/transform.mjs`), its pools restored to the form's own.

@@ -28,6 +28,9 @@ export function revivalCard(entry, nameOfUnit, nameOfSource, t) {
     overkill: entry.overkill ?? 0,
   };
   // A source on a die: what it rolled, a miss included (#323).
+  if (entry.kind === "revivalChanceMissed" && entry.barred) {
+    return `<div class="fgt-card fgt-card--revival"><p>${t("FGT.Revival.ChanceBarred", data)}</p></div>`;
+  }
   if (entry.kind === "revivalChanceMissed") {
     return `<div class="fgt-card fgt-card--revival"><p>${t("FGT.Revival.ChanceMissed", { ...data, roll: entry.roll, chance: entry.chance })}</p></div>`;
   }

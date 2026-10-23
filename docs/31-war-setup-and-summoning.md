@@ -179,4 +179,6 @@ summons with the Count module (`{of: board, requires, excludeSelf, standing}`) a
 `summonDismissed` kind threw, unhandled, at each one. `leavesWithSummoner` is seeded, then the world's
 (`authored-fields.mjs#SEEDED_THEN_OWNED`): pack-owned, every load's content sync put `true` back over the stamp. A log
 batch's lines are posted before what they bring runs (`applier.mjs`, the `log` case): the die that missed, then the
-Elder Horrors; a Horror's defeat, then its split.
+Elder Horrors; a Horror's defeat, then its split. A summon appears on its summoner's Level when it is bound to a
+platform or its summoner stands in a pocket dimension (`summoning.mjs#summonLevelFor`): Gilles's Elder Horrors stay
+inside the Storm Border he fell in.

@@ -1882,8 +1882,12 @@ export function resolveDefeat(unit, ctx, cause = "damage") {
 
   // A source whose die missed: the miss is a line, and what it says follows a
   // miss runs (Gilles's Elder Horrors, #323).
-  const missed = missedRevivalChances(unit, ctx.rolls ?? {}).flatMap(({ source, roll }) => [
-    I.log({ kind: "revivalChanceMissed", unitId: unit.id, source: source.source, chance: source.chance, roll, tick: ctx.tick }),
+  const missed = missedRevivalChances(unit, ctx.rolls ?? {}).flatMap(({ source, roll, barred }) => [
+    I.log({
+      kind: "revivalChanceMissed", unitId: unit.id, source: source.source, chance: source.chance, roll: roll ?? null, tick: ctx.tick,
+      // No die where it is barred: the card says so instead of a roll.
+      ...(barred ? { barred: true } : {}),
+    }),
     ...(source.otherwise ?? []).flatMap((action) => dispatch(action, unit, { source: source.source, abilityId: source.abilityId ?? null }, ctx)),
   ]);
 

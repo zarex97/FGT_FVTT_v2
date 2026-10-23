@@ -707,6 +707,36 @@ describe("Gilles defeated (PS.f.*, GH.save, readings 9, 10)", () => {
     }, WAR);
   });
 
+  // Ruled 2026-10-23: inside a Storm Border the 10% does not roll (11h), and
+  // the *"Otherwise"* Elder Horrors still appear; the card says why no die.
+  it("inside a Storm Border: no die, the Elder Horrors all the same, and a line for the die", async () => {
+    await withSubjects(field(), async ({ unit }) => {
+      const { resolveDefeat } = await import("../../module/engine/scheduler.mjs");
+      const { pendingRevivalRolls } = await import("../../module/rules/revival.mjs");
+      const { currentBoard } = await import("../../module/engine/board.mjs");
+      const aboard = { ...unit(GI), health: 0, platformContentId: "platform-storm-border" };
+      expect(pendingRevivalRolls(aboard).map((r) => r.key)).not.toContain("revival:giganticHorrorOnDefeat:chance");
+      const out = await resolveDefeat(aboard, { tick: 18, turnsPerRound: 3, board: currentBoard(), options: new Set(), rolls: {} });
+      expect(out.some((i) => i.t === "defeat")).toBe(true);
+      expect(logs(out)).toEqual(expect.arrayContaining([
+        expect.objectContaining({ kind: "revivalChanceMissed", barred: true, roll: null }),
+        expect.objectContaining({ kind: "summonAround", contentId: "elder-horror", outlives: true }),
+      ]));
+      expect(logs(out).some((e) => e.kind === "transform")).toBe(false);
+    }, WAR);
+  });
+
+  // Live, 2026-10-23: he fell inside the Storm Border and his five Elder Horrors
+  // appeared on the ground Level, outside it.
+  it("summons made inside a pocket dimension appear inside it", async () => {
+    const { summonLevelFor } = await import("../../module/engine/summoning.mjs");
+    const board = { dimensionLevels: ["stormLevel"], units: [] };
+    const token = { level: "stormLevel", elevation: 0 };
+    expect(summonLevelFor({ levelId: "stormLevel" }, token, {}, board)).toBe("stormLevel");
+    expect(summonLevelFor({ levelId: "defaultLevel0000" }, { level: "defaultLevel0000" }, {}, board), "the ground").toBeNull();
+    expect(summonLevelFor({ levelId: "deck" }, { level: "deck" }, { boundToPlatformId: "garden" }, board), "bound to a platform").toBe("deck");
+  });
+
   it("with the Spellbook destroyed: no die, no Elder Horrors", async () => {
     await withSubjects(field().map((s) => (s.id === GI ? { ...s, effects: [{ defId: "spellbookDestroyed", unremovable: true }] } : s)), async ({ unit }) => {
       const out = await defeat(unit, 1);

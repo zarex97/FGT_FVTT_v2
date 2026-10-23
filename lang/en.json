@@ -840,6 +840,7 @@
   "FGT.Revival.Charges": "Uses spent: {charges}; {left} left.",
   "FGT.Revival.Failed": "{source} could not bring {name} back: {overkill} damage was left over.",
   "FGT.Revival.ChanceHit": "(rolled {roll} against {chance}%)",
+  "FGT.Revival.ChanceBarred": "{name} cannot take {source} here: no die is rolled.",
   "FGT.Revival.ChanceMissed": "{name} rolls {roll} against {chance}% for {source}: it does not happen.",
   "FGT.Revival.Rolled": "Rolled: {rolled}.",
   "FGT.Revival.RecordedFloor": "{source}: a recorded Attack, survives at 1",

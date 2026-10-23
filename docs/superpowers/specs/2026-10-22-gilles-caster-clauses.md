@@ -72,6 +72,9 @@ Asked by grilling, 2026-10-22. Rulings are written here as they land.
 sub-readings (Round 2).
 **Round 2, 2026-10-22:** 11a to 11g and 12a to 12h ruled, 11f the other way; 11h opened, and 11f opened 11i (Round 3).
 **Round 3, 2026-10-22:** 11h ruled reading B, 11i as recommended. Every reading ruled.
+**After the live pass, 2026-10-23:** two readings the presses opened. 11h-2: inside a Storm Border his fall rolls no
+die, and the *"Otherwise"* Elder Horrors still appear. 11a-2: in his form the ZON penalty still applies to his
+Attacks, as built.
 
 1. **Who may aim at the Spellbook** (`PS.aim`). **Ruled 2026-10-22:** the AU chooses at declaration, per
    Process, as with Achilles' Heel; an Attack only, and only while the Spellbook stands. Its current AGI
@@ -121,6 +124,10 @@ sub-readings (Round 2).
     - **11h. Ruled 2026-10-22, reading B:** inside a Storm Border he cannot become the Gigantic Horror at
       all. Nemo's *"cannot use Skills, NP, or any other ability that creates a Unit/Item/object that has
       the 'Large' or 'Giant' Attribute"* refuses his own use, and the two 10% dice do not roll there.
+    - **11h-2. Ruled 2026-10-23:** a fall inside a Storm Border rolls no die and still brings the *"Otherwise"* Elder
+      Horrors: *"Otherwise"* is his not transforming. They appear around him, inside it. The card says the die is
+      barred (`RevivalSource.chanceBarredWhen`).
+    - **11a-2. Ruled 2026-10-23:** his form keeps the contract, so the ZON penalty applies to its Attacks, as built.
     - **11i. Ruled 2026-10-22:** the Spells keep reading the Spellbook itself. Transformed with it whole,
       they are open, unless the Active's 8◈ clock is still running, which blocks them until it ends.
       Transformed because it was destroyed, they stay locked, and the doubling never applies.
@@ -339,6 +346,7 @@ sub-readings (Round 2).
 - [ ] **GH.gate.no** · …at 25% or more, refused
 - [ ] **GH.auto** · Activates by itself on the 10% dice of `PS.d.gh` and `PS.f.gh`
 - [ ] **GH.storm** · Inside a Storm Border: his use refused, and the 10% dice do not roll (reading 11h)
+- [ ] **GH.storm.eh** · …a fall there brings the Elder Horrors all the same, inside it (reading 11h-2)
 - [ ] **GH.spells** · Transformed, the Spells read the Spellbook: open if it stands and its Active is off Cooldown, locked if it was destroyed (reading 11i)
 - [ ] **GH.save** · Transformed on defeat, he is not defeated (reading 10)
 - [ ] **GH.self** · Gilles is replaced with the Gigantic Horror (reading 11)

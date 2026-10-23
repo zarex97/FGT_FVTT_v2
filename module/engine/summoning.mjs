@@ -19,6 +19,7 @@
 
 import { chebyshevDisc, inBounds } from "../domain/geometry.mjs";
 import { currentBoard } from "./board.mjs";
+import { inPocketDimension } from "../rules/environment.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { orthogonalPanels, SHEET_ORDER } from "../rules/targeting/orthogonal.mjs";
 import { warRule, currentWar } from "./war.mjs";
@@ -316,12 +317,31 @@ async function largestFootprint(contentIds) {
  * @param {object} spec
  * @returns {Promise<object[]>}
  */
+/**
+ * The Level a summon appears on: its summoner's, when it is bound to a platform
+ * or when the summoner stands in a pocket dimension, else the ground (null).
+ * Gilles fell inside the Storm Border and his Elder Horrors appeared outside it
+ * (#323, live).
+ *
+ * @param {object|null} summonerUnit its board unit (`levelId`, `platformId`)
+ * @param {object|null} summonerToken its token document (`level`)
+ * @param {{boundToPlatformId?: string|null}} stamps
+ * @param {object} board
+ * @returns {string|null}
+ */
+export function summonLevelFor(summonerUnit, summonerToken, stamps, board) {
+  if (!summonerToken?.level) return null;
+  if (stamps?.boundToPlatformId || inPocketDimension(summonerUnit, board)) return summonerToken.level;
+  return null;
+}
+
 export async function placeSummons(contentIds, panels, summoner, scene, spec, stamps = {}) {
   // Where the summoner is standing, for a summon that belongs beside it rather
   // than on the ground beneath it. Read once: every summon in one call lands on
   // the same level.
   const summonerToken = summoner.getActiveTokens?.()[0]?.document ?? null;
-  const summonerLevel = stamps.boundToPlatformId ? summonerToken?.level ?? null : null;
+  const board = currentBoard();
+  const summonerLevel = summonLevelFor((board.units ?? []).find((u) => u.id === summoner.id) ?? null, summonerToken, stamps, board);
   const summonerElevation = summonerToken?.elevation ?? 0;
 
   /** @type {object[]} */
