@@ -7673,3 +7673,38 @@ string, and `sheet-kin` reading 13 built Servants as unbuilt.
 - **A Round's first faction once kept the last Round's attack pool** (Rounds 34 and 37, *"Servant attacks exhausted
   (2/2)"*). A probe at the next three boundaries saw `budget.reset` run for the right faction each time; the two misses
   came while the press drove `nextTurn` faster than a boundary settles. Unconfirmed as a defect; worth a probe in play.
+
+## 46.47 U-Olga Marie (President) — the first Beast
+
+Built from `char_orig_sheets/by-class/Beast/President.md` (#328), 117 Clauses and 17 readings ruled before the build
+(`docs/superpowers/specs/2026-10-23-u-olga-marie-clauses.md`). Her Class is the folder's; the Pretender sheet's
+U-Olga Marie is another Servant.
+
+### 46.47.1 What she cost the engine
+
+- **The Beast Class's own gaps**: a Grand Order War draws and seats no Beast, and an Extra slot keeps a Servant's
+  own Class, so a seated Beast reads "Beast" with its icon instead of "Extra" (Ch. 31).
+- **Attributes a Servant withholds** from the closure (Ch. 06): she is neither Hominidae nor Non-Hominidae.
+- **A revival gated on its killer, restoring Agility and Luck** (Defender of Humanity, Ch. 10).
+- **Several Attacks a Turn and a bar on allied Servants** (Unparalleled, Ch. 19).
+- **An Attack with no effect**, by its Base Attack and distance, at step 1.5 (Gravity Manipulation, Ch. 21), and
+  ring auras that cut MOV with a floor.
+- **Invuln as a family**, one instance spent first (Invuln (Gyakkou), Ch. 15).
+- **A Noble Phantasm that rides a Normal Attack** on a die, with a follow-up hit whose reactions the first bound
+  (Four Elements, Ch. 21).
+- **A debuff with a price when it fails** (Planet Olga Marie, Ch. 15), Agility Loss, E.Atk Up and Dmg Up (Standard).
+- **A clock Reset to full, a gate on the NPs, a Passive on its own clock**, and a percent of a stat (Ch. 17).
+
+### 46.47.2 What was pressed, and how
+
+Rounds 40–44 on *Gilles Audit B*, Player1 driving her bar and cards, the GM the enemies. Every Clause was Pressed
+or Observed; the log is on #328. Six defects surfaced and were fixed: a nullified Attack's card read "Missed",
+Gyakkou's effects reached no card, Invuln (Gyakkou) was never counted, Unparalleled's held-back effect said nothing,
+a DU that "cannot React" was still offered a reaction ability, and a seated Extra lost its Class (found before).
+Her defeat by a Threat to Humanity was staged through `resolveDefeat`: the only built one, Van Gogh, swings MAG,
+which her Magic Resistance A negates.
+
+### 46.47.3 Left open
+
+- **Max Health** was put to the user: the sheet prints 2500, END EX's table 2000. Ruled 2000 (ruling 18).
+- **The "cannot React" fix** is tested and was not pressed again live.

@@ -431,6 +431,8 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     // `{stageDelta: "negative"}`, with `anyOf: [...]` to disjoin them.
     { key: "eventFilter", type: "raw" },
     { key: "then", type: "raw" },
+    // On its Skill's own Cooldown: heard while off it, starting it (#328).
+    { key: "ownCooldown", type: "checkbox" },
   ]),
   entry("Aura", "A radius around this Unit that changes the Units inside it.", [
     ...SCALED,
@@ -446,6 +448,24 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "requiresRecipient", type: "predicateList" },
     { key: "recipientRoles", type: "tokenList" },
     { key: "alsoReaches", type: "tokenList" },
+    // An inner edge: a ring of exactly this distance and more (#328).
+    { key: "minRadius", type: "number" },
+  ]),
+  entry("AttacksPerTurn", "Lets this Unit Attack more than once a Turn (Unparalleled).", [
+    { key: "value", type: "number" },
+  ]),
+  entry("BanAlliedServantAttacks", "No other allied Servant may Attack while this is held (Unparalleled).", []),
+  entry("AttackRider", "A Noble Phantasm offered on a Normal Attack: a die whose face changes the Attack (Four Elements).", [
+    { key: "die", type: "number" },
+    { key: "faces", type: "raw" },
+    { key: "oncePerTurnFaces", type: "raw" },
+    { key: "chooseOn", type: "raw" },
+    { key: "blankFace", type: "number" },
+    { key: "normalAttackOnlyFaces", type: "raw" },
+  ]),
+  entry("NullifiesAttacks", "Attacks of a Base Attack from a distance have no effect on this Unit (Gravity Manipulation).", [
+    { key: "component", type: "select", choices: ["str", "mag"] },
+    { key: "minDistance", type: "number" },
   ]),
   entry("Compulsion", "Forces a Unit to act against a particular target — Berserk, Decoy's pull.", [
     { key: "id", type: "text" },
@@ -492,6 +512,9 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "requires", type: "raw" },
     { key: "enterMode", type: "text" },
     { key: "then", type: "raw" },
+    // Who defeated the bearer, and the pools restored beside Health (#328).
+    { key: "killer", type: "raw" },
+    { key: "restore", type: "raw" },
   ]),
   entry("SustainabilityGain", "Gains Sustainability when a named event happens.", [
     ...SCALED,

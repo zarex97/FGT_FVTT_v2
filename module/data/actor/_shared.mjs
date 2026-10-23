@@ -169,6 +169,10 @@ export function unitCommon() {
     // roster added Fairytale, Wraith, Liangshan, Gorgon and Demonic Beast
     // without a schema change, which is the payoff.
     attributes: new fields.SetField(new fields.StringField({ blank: false })),
+    // Tags the attribute closure never adds to this Unit (`closeAttributes`).
+    // U-Olga Marie is a Servant and *"neither Hominidae or Non-Hominidae"*
+    // (#328 ruling 4), so `servant ⟹ hominidae` is withheld from her.
+    withheldAttributes: new fields.SetField(new fields.StringField({ blank: false })),
 
     facing: new fields.StringField({
       required: true, initial: "n",

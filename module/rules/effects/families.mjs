@@ -70,3 +70,39 @@ export function unitHasFamily(unit, family, registry = null) {
   return (unit?.effects ?? []).some((id) =>
     !suppressed.has(id) && familiesOf(registry.get?.(id)).includes(family));
 }
+
+/**
+ * Does this Unit hold an effect of the family, or the effect the family is
+ * named after?
+ *
+ * Invuln is both: the effect `invuln`, and the family every Invuln belongs to.
+ * Invuln (Gyakkou) is *"separate from normal Invuln"* and is an Invuln all the
+ * same (#328 ruling 10), so a reader that asked for the id alone missed it.
+ * Asked of the id too, because a bare test unit carries `effects` and no
+ * projected `effectFamilies`.
+ *
+ * @param {object} unit a unit snapshot
+ * @param {string} family
+ * @returns {boolean}
+ */
+export function holdsFamily(unit, family) {
+  return (unit?.effects ?? []).includes(family) || (unit?.effectFamilies ?? []).includes(family);
+}
+
+/**
+ * The instance of a family a hit spends: one that says it is spent first, then
+ * the rest in the order held.
+ *
+ * *"Invuln (Gyakkou) ... is consumed first when Attacked"* (#328 ruling 10).
+ * Only a counted instance is spent: an Invuln with no `uses` lasts its duration.
+ *
+ * @param {Array<{id: string, defId: string, uses?: number|null}>} instances
+ * @param {string} family
+ * @param {{get: (id: string) => object|undefined}} registry
+ * @returns {{id: string, defId: string}|null}
+ */
+export function spentFirstOf(instances, family, registry) {
+  const members = (instances ?? []).filter((i) => (i.uses ?? 0) > 0
+    && (i.defId === family || familiesOf(registry?.get?.(i.defId)).includes(family)));
+  return members.find((i) => registry?.get?.(i.defId)?.spentFirst) ?? members[0] ?? null;
+}

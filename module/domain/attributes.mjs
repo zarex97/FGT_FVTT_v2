@@ -77,10 +77,14 @@ export function isMagus(unit) {
  *
  * @param {Iterable<string>} attributes the authored list
  * @param {object} [unit] `{kind, servantClasses, normalAttack}` for `Magus`
+ * @param {{withheld?: Iterable<string>}} [opts] tags the closure never adds:
+ *   U-Olga Marie is a Servant *"neither Hominidae or Non-Hominidae"* (#328
+ *   ruling 4). An authored tag stays; only an implication is withheld.
  * @returns {string[]} sorted for a stable projection across clients
  */
-export function closeAttributes(attributes, unit = null) {
+export function closeAttributes(attributes, unit = null, { withheld = [] } = {}) {
   const out = new Set(attributes ?? []);
+  const never = new Set(withheld ?? []);
 
   // To a fixed point: `Demi-Servant ⟹ Human ⟹ Humanoid, Living Human` is three
   // steps deep, and a single pass over the table would stop at the first.
@@ -92,7 +96,7 @@ export function closeAttributes(attributes, unit = null) {
       if (!out.has(rule.from)) continue;
       if ((rule.unless ?? []).some((tag) => out.has(tag))) continue;
       for (const add of rule.adds) {
-        if (out.has(add)) continue;
+        if (out.has(add) || never.has(add)) continue;
         out.add(add);
         grew = true;
       }

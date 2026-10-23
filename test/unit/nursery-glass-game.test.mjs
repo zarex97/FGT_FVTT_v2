@@ -520,7 +520,7 @@ describe("the gate's field survives every hop between the YAML and the board", (
   it("the board projection carries it", () => {
     const at = src.indexOf("function collectAbilities");
     expect(at).toBeGreaterThan(-1);
-    expect(src.slice(at, at + 2500)).toContain("requiresHistory");
+    expect(src.slice(at, at + 3200)).toContain("requiresHistory");
   });
 
   it("the compiler carries it", () => {

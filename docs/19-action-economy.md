@@ -47,6 +47,13 @@ Movement is measured separately: `segmentCheck` compares the unit's remaining mo
 
 **There is one answer to "how far can it still move", and it is `rules/movement.mjs#remainingMovement`.** There were four. Only that one went through `effectiveMov`, which halves MOV under Slow and then applies the terrain delta; the other three subtracted `movedPanels` from a raw `mov`, so a Slowed Unit was credited with twice the movement it had. `rules/platforms.mjs` carried its own copy with a comment explaining that importing `movement.mjs` would close an import cycle — true of that file, and reproduced at two sites where it was not true of anything. `jumpVerdict` and `jumpLandings` receive the allowance now rather than computing it, so the Jump is measured against the same number that would carry the Unit. `rules/budget.mjs#movementRemaining` was a fourth copy with no caller at all, exercised only by its own test, and is deleted. **Where a module cannot reach the authority, the fix is to accept the value, not to restate the arithmetic** — the cycle was never the obstacle; computing instead of receiving was.
 
+**A Unit allowed several Attacks a Turn** (#328 ruling 11): `AttacksPerTurn` projects `attacksPerTurn`, and
+`canConsume` counts the Unit's entries in the budget's `attackedUnits`. Its first Attack draws on the pool; the rest
+are free and counted, and one past the allowance is refused. Unparalleled is the first: three Attacks of any kind.
+Its other half, `BanAlliedServantAttacks`, is annotated onto every allied Servant as `attackBarredBy`
+(`rules/named-units.mjs#annotateAllies`) and refused by `preventedBy` for every attack action; a Master or a summon
+is not barred. The same pass answers `self:allyServantAttacked`, the gate on the effect itself.
+
 ### Exemptions
 
 Platforms act once per turn free (`module/rules/budget.mjs:243-249`), which needs a record to count against: `PlatformData` carries the same `turnState` as a combatant (`_shared.mjs#turnStateField`), and without it every write was pruned and the cap never held ([Ch. 46 §46.4-BQ](46-roster-re-audit.md)). Summons are exempt from pools entirely unless they opt into counting via `countsTowardBudget: true` (`module/rules/budget.mjs:147`). Units marked `exemptFromBudget` are also free (`module/rules/budget.mjs:139`). All three still obey their per-unit limits where applicable.

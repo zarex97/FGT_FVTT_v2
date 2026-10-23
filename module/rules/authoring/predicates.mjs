@@ -47,6 +47,8 @@ export const PREDICATE_FIELDS = Object.freeze([
   "floorPredicate",
   // The War an ability exists in (#314).
   "availableWhen",
+  // Who defeated a revival's bearer, asked of the killer's own options (#328).
+  "killer",
 ]);
 
 /**

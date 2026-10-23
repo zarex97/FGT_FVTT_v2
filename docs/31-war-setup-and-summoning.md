@@ -40,6 +40,13 @@ The war's **shape** decides what containers exist. The default is `perFaction` c
 
 `candidatesFor` returns every catalogue entry that may fill a container: core classes match by membership (Semiramis is a candidate for both Caster and Assassin), and `EXTRA` matches the complement—any Servant holding no core class (`module/rules/war-setup.mjs:103-128`). An empty candidate list produces a validation error with a reason, not a silent skip (`module/rules/war-setup.mjs:130-154`).
 
+**A Beast is never drawn for a Grand Order War** (#328 ruling 1): *"The Servants in this folder cannot be summoned
+in the Grand Order Full Campaign"*, the note in the `Beast/` sheets. `candidatesFor` and `drawPlan` take
+`grandOrder`, skipping every entry of a `GRAND_ORDER_BARRED_CLASSES` Class, and `validateRoster` refuses one picked by
+hand (`barredInGrandOrder`). **An Extra slot seats a Servant under its own Class**: `seatedContainer` keeps the slot
+for a core slot and the Servant's authored `classContainer` for an Extra one, so a Beast reads "Beast" with the Beast
+icon rather than "Extra", for which no image exists.
+
 **A companion is never drawn alone** (#209 readings 1, 8, ruled 2026-10-14). `catalogueEntryOf` builds every catalogue row from the index entry `servantCatalogue` fetched (`system.servantClasses`, `system.classContainer`, `system.linkedGroup.summonTogether`), and marks a Servant summoned together with its partners whose slot is not one of its own classes as a *companion*: Castor, an Avenger who sits in his twin's Saber slot. `candidatesFor` skips a companion for every container, core and `EXTRA` alike, so the Dioscuri fill a Saber slot through Pollux and nothing else — never an Avenger slot, and not `EXTRA`, where an Avenger used to land — and drawing Pollux brings Castor in the same commit. The companion is a role of the relationship, not of a class: nothing else in the corpus changes slot. Both sheets author `classContainer: saber`, so both read "Saber" (or "Saber of" and the faction's name) to an enemy until `identityRevealed`, with the Saber class image as their token. **`classContainer` is seeded-then-owned** (`content/authored-fields.mjs`): content sync does not rewrite it on a Servant already in the world, so a pair summoned before #218 keeps "avenger" until it is re-summoned or edited (`servantClasses` is pack-owned and does update); a fresh pair comes from war setup, which writes the slot to both.
 
 ### Building the board

@@ -19,6 +19,7 @@
 
 import { append as appendRoll } from "../rules/roll-log.mjs";
 import { mayCounterAgain, MAX_COUNTER_DEPTH } from "../rules/counter.mjs";
+import { holdsFamily } from "../rules/effects/families.mjs";
 
 /** Every state the process can occupy. */
 export const STATES = Object.freeze([
@@ -623,7 +624,7 @@ export function laddersCollapse(defender) {
     (defender.luck?.value ?? 0) < 1 &&
     (defender.commandSpells ?? 0) < 1 &&
     !(defender.effects ?? []).includes("dodge") &&
-    !(defender.effects ?? []).includes("invuln")
+    !holdsFamily(defender, "invuln")
   );
 }
 

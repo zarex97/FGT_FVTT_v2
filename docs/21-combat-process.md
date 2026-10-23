@@ -134,19 +134,33 @@ its old footprint, and anybody under it is knocked back. A concealed user steppi
 
 1. **One process per distinct defender.** A fan-out over five units opens five processes (`module/engine/combat-process.mjs:212-236`). EMIYA's Overedge is two swings against one unit and is two processes against one defender, not an area attack (`module/engine/attack.mjs:922-926`). Each of them is declared as a Normal Attack (`countsAsNormalAttack`), and `attackDeclared` fires per Process, so each swing has its own Kanshou & Bakuya use (#208 readings 5 and 7). **`combatProcessEnd` is the attacker's too** (reading 10): `fireCombatProcessEnd` raises it on the attacker with the attack's options and `attack:performed`, and on the defender with none, hit or miss; firings queue per attacker so two Processes of one declaration read the board each other left. EMIYA's Circuits cut the NP Cooldown and spend their "next NP" charge there, and `circuitsPending` (until the Combat Phase ends) keeps the cut and the +20% off the NP that opened them. The attacker's set also carries `attack:dealtDamage` when the Process hurt, read off the Damage Step's own record (`combat-process.mjs#damageDealtIn`): Yan Qing's Zhōng Guó Quán Fǎ cuts his NP Cooldown only after a Normal Attack that dealt damage (#253 reading 3).
 
-2. **Weak-point offers at declaration, but only when possible.** An ability's `weakPointAimBonus` adds to the chance (Antares Snipe's +75, #326 ruling 12, the `aimed` clause), so an aim no defender-side term reaches from the front is offered too; on an object weak point it raises `takeChance`. Achilles' Heel is offered to the attacker before any ladder prompt, because the offer decides what Block will forbid (`module/engine/attack.mjs:991-1002`). The weak-point chance is pure and computed twice per offer — once plain, once with Luck bonus (`module/engine/weak-point.mjs:60-62`).
+2. **An Attack that has no effect ends at step 1.5** (#328 ruling 9). `NullifiesAttacks {component, minDistance}`
+   on the defender (`rules/miss.mjs#nullifiedBy`) takes the Process to `missed` with a `noEffect` roll line naming
+   the Skill: Gravity Manipulation's BA(STR) Attacks from 4 or more panels. No damage, no riders. The card prints
+   that line (`cards.mjs` `noEffect`) in place of "Missed", which it read until the live press.
+   **A Noble Phantasm may ride a Normal Attack** (`engine/attack-riders.mjs`, Four Elements, ruling 16): an
+   `AttackRider` is offered at the declaration when its predicate passes and the NP's own press gate does; its die
+   is rolled and shown, and the face is stamped on the declaration as `attack.rider`. A face may set the element,
+   the Base Attack (`baseSpecFor`, `attackFacts`), riders landed on a hit (`attack.riders`, `landDeclaredRiders`), and
+   a follow-up hit on the same DU whose reactions the first bound (`offerRiderFollowUp`): a Block binds a Block;
+   a failed Evade closes every rung, and `abilities` in a placement's `forbidReactions` closes the reaction
+   abilities too. Faces once per Turn are
+   recorded as `abilitiesUsed` entries; a spent one rolled reads as the blank face.
+   **A Total modifier per Unit caught**: `totalModifiers[].perUnitInArea` scales by the declaration's `areaCount`
+   (Defender of Humanity's −10% each), and `damage.ignoresCritDamageDealt` drops the attacker's Crit DmUp and DmDwn.
+3. **Weak-point offers at declaration, but only when possible.** An ability's `weakPointAimBonus` adds to the chance (Antares Snipe's +75, #326 ruling 12, the `aimed` clause), so an aim no defender-side term reaches from the front is offered too; on an object weak point it raises `takeChance`. Achilles' Heel is offered to the attacker before any ladder prompt, because the offer decides what Block will forbid (`module/engine/attack.mjs:991-1002`). The weak-point chance is pure and computed twice per offer — once plain, once with Luck bonus (`module/engine/weak-point.mjs:60-62`).
 
-3. **A ladder with no options is not a ladder.** If every reaction is forbidden (Block, Evade, and Counter all refused), the rung has no buttons and no player can dismiss it. The orchestrator skips it and advances to `nothing` automatically (`module/engine/attack.mjs:1003-1025`).
+4. **A ladder with no options is not a ladder.** If every reaction is forbidden (Block, Evade, and Counter all refused), the rung has no buttons and no player can dismiss it. The orchestrator skips it and advances to `nothing` automatically (`module/engine/attack.mjs:1003-1025`).
 
-4. **Damage riders fire only on hit.** The damage total must be greater than zero and not fully negated by concealment or other effects. "Hit" and "hurt" are distinct: a rider on-hit fires even if a Block reduced it; on-damage fires only if it got through (`module/engine/attack.mjs:2487-2510`, `module/rules/damage/riders.mjs`).
+5. **Damage riders fire only on hit.** The damage total must be greater than zero and not fully negated by concealment or other effects. "Hit" and "hurt" are distinct: a rider on-hit fires even if a Block reduced it; on-damage fires only if it got through (`module/engine/attack.mjs:2487-2510`, `module/rules/damage/riders.mjs`).
 
 4b. **A debuff landing inside a Process may be prevented.** Every rider of the Process — the ability's own, a check's outcome, and a handler's (`damageDealt`, `damageTaken`, `damageStepEnd`, through `applyBatch(..., {process: state})`) — lands through `engine/landing.mjs` with the Process state, which offers its target the Prevention Luck Check once per Process ([Ch. 15](15-effect-application.md), [Ch. 13](13-checks-and-randomness.md)). The targets that made one are kept on `state.prevented` and serialised with the Process.
 
-5. **Injury Roll reads the pipeline's threshold, not damage > 100.** `Def Crk` adds bonus damage that does not count toward Injury. The check reads `flags.exceededInjuryThreshold` from the pipeline, not a fresh comparison, so Def Crk does not trigger it (`module/rules/injury.mjs:40-44`).
+6. **Injury Roll reads the pipeline's threshold, not damage > 100.** `Def Crk` adds bonus damage that does not count toward Injury. The check reads `flags.exceededInjuryThreshold` from the pipeline, not a fresh comparison, so Def Crk does not trigger it (`module/rules/injury.mjs:40-44`).
 
-6. **A counter carries the parent's group but is a fresh ladder.** The counter process shares `groupId` with the parent to keep the Combat Phase intact while the counter resolves. All other state is new: it has its own history, its own Luck ladder, and its own facing change (`module/engine/combat-process.mjs:470-475`).
+7. **A counter carries the parent's group but is a fresh ladder.** The counter process shares `groupId` with the parent to keep the Combat Phase intact while the counter resolves. All other state is new: it has its own history, its own Luck ladder, and its own facing change (`module/engine/combat-process.mjs:470-475`).
 
-7. **The history is the audit trail.** Every state transition is recorded with its source state, event, and optional detail. A roll record passed via detail is appended to the state's `rolls` array so that every roll the Process made stays with it across serialization (`module/engine/combat-process.mjs:288-292`).
+8. **The history is the audit trail.** Every state transition is recorded with its source state, event, and optional detail. A roll record passed via detail is appended to the state's `rolls` array so that every roll the Process made stays with it across serialization (`module/engine/combat-process.mjs:288-292`).
 
 ## Open questions
 

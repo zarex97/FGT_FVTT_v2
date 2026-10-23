@@ -17,7 +17,7 @@
           damage, no Counter. Shown rather than silently omitted, because a
           swing that vanished with no line reads as a lost attack. --}}
     <section class="fgt-card__missed">
-      {{localize "FGT.Card.Missed2"}}
+      {{#if noEffect}}{{noEffect}}{{else}}{{localize "FGT.Card.Missed2"}}{{/if}}
       {{#if missRoll}}
         <span class="fgt-card__miss-roll">
           {{missRoll.total}} / {{missRoll.target}}%{{#if missRoll.source}} ({{missRoll.source}}){{/if}}

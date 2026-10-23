@@ -1,0 +1,70 @@
+# U-Olga Marie (President), the audit of #328.
+# Conversion source: char_orig_sheets/by-class/Beast/President.md
+#
+# Proto Gil's Levitation, with a different debuff: `negatedBy: [skillSeal]`
+# drops the whole document, so every clause goes at once ("The effects of this
+# Skill are negated while inflicted with Skill Seal").
+#
+# The three tiers are rings at exactly 3, 2 and 1 panels, diagonals counted,
+# on every enemy Unit, Masters and summons too (ruling 8). "Agility Check rolls
+# are increased" is a worse roll on the roll-under tables, and an Evade is an
+# Agility Check, so each tier is two check modifiers, as Levitation's are. The
+# MOV floor binds her cut only (`rules/auras.mjs#auraMov`).
+#
+# Clause 3 is `NullifiesAttacks`: any Attack with BA(STR) declared from 4 or
+# more panels (ruling 9; Ranged delivery is #281).
+schema: 1
+id: olga-gravity-manipulation
+name: "Gravity Manipulation"
+rank: EX
+kind: skill
+slug: gravityManipulation
+passive: true
+negatedBy: [skillSeal]
+copyable: { allowed: false, reason: unique }
+description: |
+  (Passive) Has the following effects-
+  1. MOV is increased by 1 and Olga Marie gains the 'Levitating' Attribute.
+  2. The MOV of all enemy Units 3 panels away from her is reduced by 3 and Agility Check rolls are increased by 3.
+     If they are 2 panels away from her, MOV is reduced by 4 & Agility Check rolls are increased by 4. If they
+     are directly next to her, MOV is reduced by 5 & Agility Check rolls are increased by 5. Minimum value of MOV
+     is 1 when reduced in this way.
+  3. Ranged Attacks which deal STR damage from 4 or more panels away from Olga Marie have no effect on her.
+  The effects of this Skill are negated while inflicted with @effect[skillSeal]{Skill Seal}.
+passiveRules:
+  - key: StatDelta
+    stat: mov
+    value: 1
+  - key: StatDelta
+    stat: attributes
+    add: [levitating]
+  - key: Aura
+    radius: 3
+    minRadius: 3
+    relations: [enemy]
+    group: gravityManipulation3
+    elements:
+      - { key: MovDelta, value: -3, floor: 1 }
+      - { key: CheckModifier, check: agility, value: 3 }
+      - { key: CheckModifier, check: evade, value: 3 }
+  - key: Aura
+    radius: 2
+    minRadius: 2
+    relations: [enemy]
+    group: gravityManipulation2
+    elements:
+      - { key: MovDelta, value: -4, floor: 1 }
+      - { key: CheckModifier, check: agility, value: 4 }
+      - { key: CheckModifier, check: evade, value: 4 }
+  - key: Aura
+    radius: 1
+    minRadius: 1
+    relations: [enemy]
+    group: gravityManipulation1
+    elements:
+      - { key: MovDelta, value: -5, floor: 1 }
+      - { key: CheckModifier, check: agility, value: 5 }
+      - { key: CheckModifier, check: evade, value: 5 }
+  - key: NullifiesAttacks
+    component: str
+    minDistance: 4

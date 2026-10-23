@@ -259,6 +259,18 @@ A Spell is not a Skill (ruled 2026-10-14): `canCopy` refuses one with `spell`, r
 (`isSpell`, or the `spell` category), the reader Silence uses. The board now projects `isSpell` for it. Medea's six
 Spells were all offered; her Active Skills still are.
 
+### A clock put back to full, and a gate on the NPs (#328)
+
+A cooldown change with `restart: true` sets the clock to the full length a use would start, read through
+`cooldown.mjs#cooldownFor`: Flawlessness's *"NP Cooldown is Reset"*, ruled a price (ruling 13). `abilityOffCooldown`
+takes `scope: np` for *"only when NP is not on Cooldown"*. A Passive on its own clock is an `OnEvent` with
+`ownCooldown`: heard only off Cooldown, and starting it when it pays out (Gyakkou, ruling 10). `StatDelta` takes
+`percent` of the stat as it stands: Gyakkou's 10% of her current Max Health. What a revival's `unitRevived`
+handlers did is a line on its revival card, by Skill (`scheduler.mjs#revivedSaid`): *"Gyakkou: Atk Up, Invuln
+(Gyakkou), Planet Olga Marie −1, Max Health −180."* A phase its `predicate` holds back says why when it names an
+`unmetLine`: Unparalleled's *"is not applied: another allied Servant has already Attacked this Turn."* A
+non-stacking effect's charges are its definition's `uses`; an entry's `uses` counts only under `stacking: count`.
+
 ### Teaching a copy (#326)
 
 Wisdom of Divine Gift's second Active is a `teach` phase (`engine/teaching.mjs`). The target is the learner, any other

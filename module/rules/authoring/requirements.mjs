@@ -128,6 +128,8 @@ export const REQUIREMENT_DESCRIPTORS = describeTable([
     { key: "excludeSelf", type: "checkbox" },
     // One of them off is enough (Substitution, #323).
     { key: "any", type: "checkbox" },
+    // `np`: the bearer's Noble Phantasms (Flawlessness, #328).
+    { key: "scope", type: "select", choices: ["np"] },
   ]),
   req("abilityAllows", "Only while another named ability of this Unit is held and its own requirements pass (a Spellbook allowing its Spells).", [
     { key: "abilityIds", type: "tokenList" },

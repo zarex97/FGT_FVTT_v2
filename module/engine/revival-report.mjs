@@ -38,9 +38,14 @@ export function revivalCard(entry, nameOfUnit, nameOfSource, t) {
     ? ` ${t("FGT.Revival.ChanceHit", { roll: entry.chanceRoll, chance: entry.chance })}` : "";
   const rolled = `${chance}${(entry.rolled ?? []).length ? ` ${t("FGT.Revival.Rolled", { rolled: entry.rolled.join(", ") })}` : ""}`;
   const uses = typeof entry.left === "number" ? ` ${t("FGT.Revival.Charges", { charges: entry.charges ?? 1, left: entry.left })}` : "";
+  // The pools restored beside Health (#328 ruling 6).
+  const pools = Object.entries(entry.pools ?? {})
+    .map(([stat, value]) => ` ${t("FGT.Revival.Pool", { pool: t(`FGT.Resource.${stat}`), value })}`).join("");
   const key = entry.kind === "reviveFailed" ? "FGT.Revival.Failed"
     : entry.transform ? "FGT.Revival.Transformed" : "FGT.Revival.Card";
-  return `<div class="fgt-card fgt-card--revival"><p>${t(key, data)}${rolled}${uses}</p></div>`;
+  // What the revival set off (Gyakkou, #328).
+  const then = (entry.then ?? []).map((g) => `<p>${t("FGT.Revival.Then", { source: g.source, said: g.said.join(", ") })}</p>`).join("");
+  return `<div class="fgt-card fgt-card--revival"><p>${t(key, data)}${pools}${rolled}${uses}</p>${then}</div>`;
 }
 
 /**

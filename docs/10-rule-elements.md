@@ -131,6 +131,11 @@ executor actually reads, rather than of its descriptor's ids.
   the same convention as an incoming check modifier; the snapshot carries them as `refusesReactions`,
   and the attack folds them into the ladder and the counter check. Normal Presence Concealment's
   *"cannot be Blocked or Countered"* had forbidden the Assassin's own Block and Counter instead.
+- **U-Olga Marie's elements** (#328): `AttacksPerTurn`, `BanAlliedServantAttacks`, `NullifiesAttacks` and
+  `AttackRider` (Ch. 19, Ch. 21). An `Aura` takes `minRadius`, a ring's inner edge, and an aura's `MovDelta` is folded
+  onto the recipient's MOV with a `floor` that never raises it (`auras.mjs#auraMov`, Gravity Manipulation's tiers).
+  A `RevivalSource` takes `killer`, a predicate on the killer's own options, and `restore.pools`, Agility and Luck
+  restored beside Health.
 - **`StatDelta` on `attributes` removes as well as adds** (#326): `remove: [humanoid]` is Chiron's Centaur Form. A form's
   removals are taken after the implication closure (`snapshot.mjs#attributesOf`), or an implication would put one back.
 - **`RangeDelta`** carries `isBuff`, as `StatDelta` and `MovDelta` do. Eight sites said `isBuff:
