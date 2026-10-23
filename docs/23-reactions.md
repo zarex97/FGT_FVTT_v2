@@ -163,3 +163,9 @@ escape rung had listed them in its options, as `ability:` events its transitions
 **An ally's reaction passes the same gates as the defender's own** (#208 §46.4-MR). `rules/reactions.mjs#selfGatesPass`
 (requirements, `lastUsedTick`) serves `abilitiesAtWindow` and `allyReactions`. A refusal at press is whispered to the owner
 and the GM in the words of `FGT.Skill.Reason.*` (`attack.mjs#tellReactionRefused`).
+
+**Substitution: summons in the defender's place** (#323 readings 6, 7). Offered only against an Attack aimed at Prelati's
+Spellbook (`reactsToAimedObject`), the offer asked again once the attacker aims. Its press pays one named ability's full
+clock (the Horrors' counts the Horrors it summons), Moves its user up to 4 off his panel, places 1d4 Horrors round the
+panel he left, one on it (`summoning.mjs#placeSummonsAround`), and rebinds the Process to that Horror with every rung
+closed (`attack.mjs#rebindDefender`).

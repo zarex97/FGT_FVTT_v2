@@ -21,6 +21,7 @@ import { sideOf } from "../rules/relations.mjs";
 import { fieldEventsIn, postFieldReports, postPeriodicReport } from "./field-report.mjs";
 import { postTurnEndReport, clocksBefore, remainingOnActor, healthBefore, healthOnActor } from "./turn-report.mjs";
 import * as budget from "./budget.mjs";
+import { GM_SIDE } from "../rules/control.mjs";
 import {
   grailContest, checkVictory, grailPanelCandidates,
 } from "../rules/environment.mjs";
@@ -259,6 +260,13 @@ async function onTurnChange(combat, prior, current) {
   // the Complex's *"the Turn after entering"* are about it.
   await run(reported(await fields.runFieldEvents("anyTurnEnd", { board })), "field:anyTurnEnd", ended);
 
+  // A GM-driven form with a Unit in reach marks the Round: it grows only after
+  // a Round with none at any Turn's end (#323 reading 19, live).
+  {
+    const { noteFormReach } = await import("./form-range.mjs");
+    await noteFormReach(board, ctx.round);
+  }
+
   // A field's OWNER's Turn ending. Contagion trigger 1 is *"at the end of Pale
   // Rider's Turn: affects all enemy Units within the Contagion area"* -- every
   // enemy inside, not just one who acted, and only on HIS Turn.
@@ -355,7 +363,15 @@ async function onTurnChange(combat, prior, current) {
   // `current` named when the hook fired: the roll above re-sorted the turns, and
   // a different faction may hold the Turn (#173).
   const incoming = runsRound ? factionOf(combat, null) : factionOf(combat, current);
-  await budget.reset(combat, incoming);
+  // The GM's slot has no faction, and a GM-driven form spends from the GM
+  // side's pool: that pool begins full too (#323, live: "Servant attacks
+  // exhausted (2/2)" three Rounds on).
+  await budget.reset(combat, incoming ?? (combat.combatant?.system?.isGM ? GM_SIDE : null));
+  // The GM's slot: what a GM-driven form owes it, said (#323 reading 12d).
+  if (combat.combatant?.system?.isGM) {
+    const { announceGmTurn } = await import("./form-range.mjs");
+    await announceGmTurn(boardFor(combat));
+  }
 
   const startingBoard = boardFor(combat);
   await run(
@@ -503,6 +519,12 @@ async function endRoundSequence(combat, round, tick) {
   // only its own clock -- so a Hind whose Round ends on its owner's Turn is
   // charged once, not twice.
   await fields.runUpkeep(ctx.tick, { round: ctx.round });
+
+  // A form whose Range grows while nothing is in reach (#323 reading 19).
+  {
+    const { growFormRanges } = await import("./form-range.mjs");
+    await growFormRanges(board, { round });
+  }
 
   // The Grail's contest and the victory check, both evaluated at round end
   // (Ch. 29). Written back to the match, which is the runtime owner the Grail

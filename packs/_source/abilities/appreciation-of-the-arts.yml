@@ -1,0 +1,35 @@
+# Appreciation of the Arts, the Skill two sheets print with their own figures:
+#
+#   Gilles (Caster)  E-  *"...he has a 15% chance of learning the True Name of that NP..."*,
+#                         *"All damage taken from a NP with the 'Artistic' Attribute is reduced by 5%."*
+#   Mozart           B   80% and 20% (unbuilt)
+#
+# One shared skill, its chance and its cut as parameters (#323). Artistic is an
+# NP tag, `artistic`, authored on each NP that carries it (reading 14). The NP's
+# user stands within 3 of the bearer, any side, and the die and what it learned
+# go to the bearer's player alone (reading 15, `engine/true-name.mjs`).
+schema: 1
+id: appreciation-of-the-arts
+name: "Appreciation of the Arts"
+kind: skill
+slug: appreciationOfTheArts
+passive: true
+parameterized: [rank, chance, cut]
+rank: "@rank"
+description: |
+  (Passive 1) When a NP with the 'Artistic' Attribute is used within a 3 panel area of this Unit, it has a
+  chance of learning the True Name of that NP (the information of that NP is copied to your Notebook).
+  (Passive 2) All damage taken from a NP with the 'Artistic' Attribute is reduced.
+  Note: NP with the 'Artistic' Attribute would be any Noble Phantasm involving or related to artistic, literary,
+  musical creations.
+passiveRules:
+  - key: LearnsTrueNames
+    chance: "@chance"
+    radius: 3
+    tags: [artistic]
+  - key: DamageModifier
+    modifierKey: defUp
+    direction: taken
+    value: "@cut"
+    npValue: "@cut"
+    predicate: ["attack:kind:np", "attack:tag:artistic"]

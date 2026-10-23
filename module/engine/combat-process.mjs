@@ -25,7 +25,7 @@ export const STATES = Object.freeze([
   "declare", "missCheck", "react", "evadeRoll",
   "s21_luckyHit", "s22_duContest", "s23_acceptOrEscape",
   "s24_luckyEvasion", "s25_auContest",
-  "heelResolve",
+  "heelResolve", "objectResolve",
   "damage", "noDamage", "injury", "facing", "counter", "missed", "withdrawn", "done",
 ]);
 
@@ -83,6 +83,17 @@ export const TRANSITIONS = Object.freeze({
   // roller than never having rolled it.
   "heelResolve:success": "damage",
   "heelResolve:fail": "noDamage",
+
+  // An OBJECT the attacker aimed at instead of its holder (Prelati's Spellbook,
+  // #323 readings 1 to 5). Reached, like `heelResolve`, from whatever would have
+  // gone to `damage` -- unless the holder Blocked, which takes the damage on
+  // himself -- and from the reaction rung's own Luck Check. Resolved
+  // automatically: the holder takes the hit (a failed Evade's 20%), the object
+  // survives (a Luck Check), or it is destroyed.
+  "react:luck": "objectResolve",
+  "objectResolve:takes": "damage",
+  "objectResolve:saved": "noDamage",
+  "objectResolve:destroyed": "noDamage",
 
   "damage:done": "injury",
   "injury:done": "facing",
@@ -301,6 +312,17 @@ export function advance(s, event, detail = undefined) {
   if (next === "damage" && s.state !== "heelResolve" && s.heel?.declared && !s.heel?.resolved) {
     next = "heelResolve";
   }
+  // An object aimed at resolves in place of the damage too, unless its holder
+  // Blocked: *"Block: Gilles takes the damage instead of Prelati's Spellbook"*.
+  const blocked = (s.state === "react" && normalized === "block")
+    || (s.state === "s23_acceptOrEscape" && normalized === "block")
+    || (s.state !== "react" && s.reaction === "block");
+  if (next === "damage" && s.state !== "objectResolve" && s.aimedAt && !s.aimedAt.resolved && !blocked) {
+    next = "objectResolve";
+  }
+  if (s.state === "react" && normalized === "luck" && !s.aimedAt?.luckable) {
+    throw new RangeError("FGT | \"luck\" answers only an Attack aimed at an object, by a holder with Luck.");
+  }
   if (!next) {
     throw new RangeError(
       `FGT | Illegal Combat Process transition "${key}". ` +
@@ -326,6 +348,7 @@ export function advance(s, event, detail = undefined) {
   if (next === "noDamage" && out.reaction === "evade" && out.use?.facts) {
     out.use = { ...out.use, facts: { ...out.use.facts, evaded: true } };
   }
+  if (s.state === "objectResolve") out.aimedAt = { ...s.aimedAt, resolved: true, outcome: normalized };
   if (s.state === "heelResolve") {
     out.heel = { ...s.heel, resolved: true, succeeded: normalized === "success" };
     // A failed Heel Attack is an Evade, and says so: the card, the log and the
@@ -364,7 +387,11 @@ export function rungOptions(s) {
   const forbidden = s.forbiddenReactions ?? [];
   const unitId = p.side === "attacker" ? s.attackerId : s.defenderId;
   const abilities = (s.reactionAbilities?.[unitId] ?? []).map((a) => `ability:${a.id}`);
-  return [...p.options.filter((o) => !forbidden.includes(o)), ...abilities];
+  // An Attack aimed at an object its holder may answer with a Luck Check
+  // (#323 reading 4): *"Luck Check: If successful, Prelati's Spellbook is not
+  // destroyed."*
+  const luck = s.aimedAt?.luckable && !forbidden.includes("luck") ? ["luck"] : [];
+  return [...p.options.filter((o) => !forbidden.includes(o)), ...luck, ...abilities];
 }
 
 /**

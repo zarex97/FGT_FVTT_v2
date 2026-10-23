@@ -845,6 +845,16 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
         // not: `statChanges` knows `stat`/`delta`/`percentOfMax` and silently
         // skips anything else, so a `SetMode` authored there compiled, loaded
         // and did nothing. Found live, twice over -- the `when` was wrong too.
+        case "transform": {
+          // The form this ability defines, taken for good (Gilles's Gigantic
+          // Horror, #323). Its own card line.
+          if (target.unitId !== actor.id) break;
+          const { transformUnit } = await import("./transform.mjs");
+          const done = await transformUnit(actor.id, ability.system?.contentId ?? ability.id, { cause: "used" });
+          if (done) applied.push({ unitId: actor.id, summary: { id: "transform", name: game.i18n.format("FGT.Transform.Done", { name: ability.name }), outcome: "applied", reason: null } });
+          break;
+        }
+
         case "setMode": {
           await applyWorld(
             [modeIntent(phase, target.unitId, `phase:${ability.id}`)],
@@ -2346,6 +2356,11 @@ export async function fireAbilityUsed(actor, ability) {
     },
   });
   if (intents.length > 0) await applyWorldIntents(intents, "abilityUsed", { sink, lines: true });
+  // An NP used near a Unit that may learn its True Name (#297, #323).
+  if (ability && (ability.type === "noblePhantasm" || ability.system?.isNP)) {
+    const { witnessNP } = await import("./true-name.mjs");
+    await witnessNP(actor, ability, board);
+  }
   return sink;
 }
 
@@ -3098,7 +3113,7 @@ function ownersOf(actor) {
  * @param {number} panels
  * @returns {Promise<{i: number, j: number}|null>}
  */
-async function pickMoveDestination(doc, unit, board, panels) {
+export async function pickMoveDestination(doc, unit, board, panels) {
   if (!unit?.panel || panels <= 0) return null;
   const { canPassThrough, canStopOn } = await import("../rules/movement.mjs");
   const geo = await import("../domain/geometry.mjs");

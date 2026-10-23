@@ -1,0 +1,28 @@
+# Gilles (Caster), char_orig_sheets/Copia de Gilles.md (#323).
+#
+# Prelati's Spellbook's option 3, as a reaction of its own: offered only against
+# an Attack aimed at the Spellbook (`reactsToAimedObject`, reading 2), and only
+# while one of the three it pays with is off Cooldown (`any`, reading 6). Kind
+# `skill`, so a Skill Seal refuses it with the Skills: ledgered as a ruling of the
+# build, #323. What it does is `engine/substitution.mjs`'s.
+schema: 1
+id: gilles-substitution
+name: "Prelati's Spellbook: Substitution"
+kind: skill
+slug: substitution
+timing: { window: whenAttacked }
+countsAsAttack: false
+reactsToAimedObject: prelatisSpellbook
+requirements:
+  - { kind: notHasEffect, effectId: spellbookDestroyed }
+  - { kind: abilityOffCooldown, any: true, abilityIds: [summoning-horrors, summoning-elder-horror, gilles-prelatis-spellbook] }
+substitutes:
+  pays: [summoning-horrors, summoning-elder-horror, gilles-prelatis-spellbook]
+  move: 4
+  summon: { contentId: horror, countRoll: "1d4" }
+description: |
+  Substitution: If @ability[summoning-horrors]{Summoning: Horrors}, @ability[summoning-elder-horror]{Summoning: Elder Horror}, or
+  @np[gilles-prelatis-spellbook]{Prelati's Spellbook}'s Active effect is not on Cooldown, choose one of them, it enters Cooldown.
+  If Gilles does this, instead of receiving the Attack, he can Move up to 4 panels; then roll a four-sided die, he
+  summons that number of Horrors around the panel he was previously standing on, with at least one Horror standing
+  on the panel he previously occupied, which is also the Horror that receives the AU's Attack.

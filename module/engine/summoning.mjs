@@ -19,6 +19,7 @@
 
 import { chebyshevDisc, inBounds } from "../domain/geometry.mjs";
 import { currentBoard } from "./board.mjs";
+import { inPocketDimension } from "../rules/environment.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { orthogonalPanels, SHEET_ORDER } from "../rules/targeting/orthogonal.mjs";
 import { warRule, currentWar } from "./war.mjs";
@@ -61,7 +62,8 @@ export async function summonPhase(phase, summoner, { choose = null } = {}) {
   } else {
     const countRoll = await new Roll(spec.countRoll ?? "1").evaluate();
     rolls.push({ id: "summonCount", formula: countRoll.formula, total: countRoll.total });
-    const count = Math.max(0, countRoll.total);
+    // `countFactor`: the Gigantic Horror summons twice what the die says (#323).
+    const count = Math.max(0, countRoll.total * (spec.countFactor ?? 1));
     if (count === 0) return { count: 0, created: [], rolls };
 
     // Types first, so a "your choice" entry can be answered before anything is
@@ -315,12 +317,31 @@ async function largestFootprint(contentIds) {
  * @param {object} spec
  * @returns {Promise<object[]>}
  */
+/**
+ * The Level a summon appears on: its summoner's, when it is bound to a platform
+ * or when the summoner stands in a pocket dimension, else the ground (null).
+ * Gilles fell inside the Storm Border and his Elder Horrors appeared outside it
+ * (#323, live).
+ *
+ * @param {object|null} summonerUnit its board unit (`levelId`, `platformId`)
+ * @param {object|null} summonerToken its token document (`level`)
+ * @param {{boundToPlatformId?: string|null}} stamps
+ * @param {object} board
+ * @returns {string|null}
+ */
+export function summonLevelFor(summonerUnit, summonerToken, stamps, board) {
+  if (!summonerToken?.level) return null;
+  if (stamps?.boundToPlatformId || inPocketDimension(summonerUnit, board)) return summonerToken.level;
+  return null;
+}
+
 export async function placeSummons(contentIds, panels, summoner, scene, spec, stamps = {}) {
   // Where the summoner is standing, for a summon that belongs beside it rather
   // than on the ground beneath it. Read once: every summon in one call lands on
   // the same level.
   const summonerToken = summoner.getActiveTokens?.()[0]?.document ?? null;
-  const summonerLevel = stamps.boundToPlatformId ? summonerToken?.level ?? null : null;
+  const board = currentBoard();
+  const summonerLevel = summonLevelFor((board.units ?? []).find((u) => u.id === summoner.id) ?? null, summonerToken, stamps, board);
   const summonerElevation = summonerToken?.elevation ?? 0;
 
   /** @type {object[]} */
@@ -362,6 +383,8 @@ export async function placeSummons(contentIds, panels, summoner, scene, spec, st
     // Move and/or Attack", and "can only Move/Attack once per Turn".
     data.system.countsTowardBudget = spec.countsTowardBudget ?? data.system.countsTowardBudget;
     data.system.actsOncePerTurn = spec.actsOncePerTurn ?? data.system.actsOncePerTurn;
+    // Summons that outlive their summoner (Gilles's Elder Horrors as he falls, #323).
+    if (spec.leavesWithSummoner !== undefined) data.system.leavesWithSummoner = spec.leavesWithSummoner;
 
     // Stats stated RELATIVE to the summoner. The Kagome Spirits are the first
     // in the corpus: *"Agility: Pale Rider's plus 2"*, *"Luck: Same as Pale
@@ -592,6 +615,64 @@ async function fromPacks(contentId) {
 }
 
 /**
+ * Summons on a named panel and around it: the first on it, the rest on free
+ * panels next to it, placed by the summoner's owner. A Horror's split (#260
+ * reading 12) and Prelati's Spellbook's Substitution (#323 reading 7), which
+ * puts *"at least one Horror standing on the panel he previously occupied"*.
+ *
+ * @param {object} summoner the actor
+ * @param {{i: number, j: number}} panel
+ * @param {string[]} contentIds
+ * @returns {Promise<object[]>} the Units created
+ */
+export async function placeSummonsAround(summoner, panel, contentIds, { outlives = false } = {}) {
+  if (!canvas.scene || contentIds.length === 0) return [];
+  const rest = contentIds.length > 1
+    ? await ownerPanels(summoner, { anchorPanel: panel, adjacentTo: true }, contentIds.slice(1))
+    : [];
+  const panels = [panel, ...rest.filter((p) => !(p.i === panel.i && p.j === panel.j))];
+  const spec = { countsTowardBudget: false, actsOncePerTurn: true, ...(outlives ? { leavesWithSummoner: false } : {}) };
+  return placeSummons(contentIds, panels, summoner, canvas.scene, spec);
+}
+
+/**
+ * Summons on and around a Unit's panel, from a `SummonAround` action: Gilles's
+ * Elder Horrors as he falls (#323 reading 9). They outlive him, his Master's,
+ * and keep their split and their guard. Said on a card, with the count.
+ *
+ * @param {{unitId: string, panel: {i: number, j: number}|null, contentId: string, count: number, outlives: boolean}} entry
+ * @returns {Promise<object[]>}
+ */
+export async function summonAround(entry) {
+  const { unitActor } = await import("./board.mjs");
+  const summoner = unitActor(entry.unitId);
+  if (!summoner || !entry.panel || !entry.contentId || entry.count <= 0) return [];
+  const ids = Array.from({ length: entry.count }, () => entry.contentId);
+  // His own panel is his body's until it clears: they stand around it, next to
+  // it first and then on the nearest free panels (#323 reading 9).
+  const panels = await ownerPanels(summoner, { anchorPanel: entry.panel, adjacentTo: true }, ids);
+  for (let size = 5; panels.length < ids.length && size <= 15; size += 2) {
+    const taken = new Set(panels.map((p) => `${p.i},${p.j}`));
+    for (const p of freePanels(summoner, { anchorPanel: entry.panel, size }, Infinity)) {
+      if (panels.length >= ids.length) break;
+      if (!taken.has(`${p.i},${p.j}`)) panels.push(p);
+    }
+  }
+  const spec = { countsTowardBudget: false, actsOncePerTurn: true, ...(entry.outlives ? { leavesWithSummoner: false } : {}) };
+  const created = canvas.scene ? await placeSummons(ids, panels, summoner, canvas.scene, spec) : [];
+  const { publicIdentityOf, publicSpeakerFor } = await import("./public-identity.mjs");
+  const name = publicIdentityOf(summoner, currentBoard()).name;
+  const what = (await fromPacks(entry.contentId))?.name ?? entry.contentId;
+  await ChatMessage.create({
+    content: `<div class="fgt-card"><p>${game.i18n.format("FGT.Summon.Around", {
+      name: foundry.utils.escapeHTML(name), count: created.length, of: entry.count, into: foundry.utils.escapeHTML(what),
+    })}</p></div>`,
+    speaker: publicSpeakerFor(summoner),
+  });
+  return created;
+}
+
+/**
  * A defeated summon turning into new ones (`Split`, `engine/scheduler.mjs`).
  *
  * Gilles's Horrors, ruled 2026-10-20 (#260 reading 12): one new Horror on the
@@ -620,12 +701,7 @@ export async function splitSummon(entry) {
     const I = await import("./intents.mjs");
     await applyWorldIntents([I.dismissSummon(fallen.id, "split")], "summon:split");
     const contentIds = Array.from({ length: entry.into.count }, () => entry.into.contentId);
-    const rest = contentIds.length > 1
-      ? await ownerPanels(summoner, { anchorPanel: fallenPanel, adjacentTo: true }, contentIds.slice(1))
-      : [];
-    const panels = [fallenPanel, ...rest.filter((p) => !(p.i === fallenPanel.i && p.j === fallenPanel.j))];
-    const spec = { countsTowardBudget: false, actsOncePerTurn: true };
-    created = await placeSummons(contentIds, panels, summoner, canvas.scene, spec);
+    created = await placeSummonsAround(summoner, fallenPanel, contentIds);
   }
 
   const line = entry.exempt ? game.i18n.format("FGT.Summon.SplitExempt", { name }) : game.i18n.format(entry.splits ? "FGT.Summon.Split" : "FGT.Summon.NoSplit", {

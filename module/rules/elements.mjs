@@ -83,7 +83,7 @@ export function empty() {
     buffRemovalResist: [], knockback: null,
     forcedModeRules: [], magnitudeScales: [], attackProperties: [], terrainPenaltyImmunities: [], lethalFloors: [],
     categoryUseLimits: [], baseAttackModifiers: [], healingReceived: [], followUps: [],
-    cooldownCutBonus: [], useFailures: [],
+    cooldownCutBonus: [], useFailures: [], learnsTrueNames: [],
   };
 }
 
@@ -271,6 +271,8 @@ const DEFERRED_PREFIXES = Object.freeze([
   // `war:` is the War's Region and the Round's phase, board facts too (#314).
   "war:",
   "revival:",
+  // What a summon knows of its summoner, settled on the board (#323).
+  "self:summonerEffect:", "self:withinOfSummoner:",
 ]);
 
 /**
@@ -2235,6 +2237,22 @@ export const EXECUTORS = Object.freeze({
     });
   },
 
+  /**
+   * A chance of learning the True Name of an NP used near this Unit (#297).
+   * Gilles (Caster) and Mozart's Appreciation of the Arts: *"When a NP with the
+   * 'Artistic' Attribute is used within a 3 panel area of Gilles, he has a 15%
+   * chance of learning the True Name of that NP (the information of that NP is
+   * copied to your Notebook)."* Rolled by `engine/true-name.mjs#witnessNP`.
+   */
+  LearnsTrueNames(el, { source, out }) {
+    out.learnsTrueNames.push({
+      chance: Number(el.chance) || 0,
+      radius: Number(el.radius ?? 3) || 0,
+      tags: [...(el.tags ?? [])],
+      source,
+    });
+  },
+
   TerrainPenaltyImmunity(el, { out }) {
     if (el.terrain) out.terrainPenaltyImmunities.push(el.terrain);
   },
@@ -2433,6 +2451,17 @@ export const EXECUTORS = Object.freeze({
       // mode rather than an effect because that is what the Skills gated on
       // Holder Mode ask about.
       enterMode: el.enterMode ?? null,
+      // A source that comes on a die, and what a miss of it does instead
+      // (Gilles (Caster)'s 10%, and his Elder Horrors, #323).
+      chance: el.chance ?? null,
+      // Where that die is not rolled at all, and the miss's actions run as if
+      // it had missed: inside a Storm Border he cannot transform, and his
+      // Elder Horrors still appear (#323 reading 11h, ruled 2026-10-23).
+      chanceBarredWhen: [...(el.chanceBarredWhen ?? [])],
+      otherwise: (el.otherwise ?? []).map((a) => normalizeAction(a, rank, ctx)),
+      // A transformation the revival is: the ability whose form it takes
+      // (`engine/transform.mjs`), its pools restored to the form's own.
+      transform: el.transform ?? null,
       // Ancillary writes the entry pays for -- *"Remove all Fragarach Counters
       // from Mannanán"*, and the raised ceiling. In the `then:` action
       // vocabulary the scheduler already dispatches.

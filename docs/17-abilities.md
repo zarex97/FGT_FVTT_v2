@@ -287,3 +287,25 @@ charged costs, summed per pool, cannot meet. Enki's half of the Master's maximum
   requirements pass (`rules/items.mjs`). *"Prelati's Spellbook ... Allows the use of the Spells"*: both Summoning
   Spells, shared with the Caster, read the Saber's Spellbook's `modeActive: madEnhancement` (reading 11). The board
   projects each ability's `requirements` for it.
+
+### A held object, a substitution and a form (Gilles (Caster), #323)
+
+- **`weakPoint.kind: object`.** Prelati's Spellbook is aimed at instead of its holder: offered at declaration to an AU
+  of AGI Rank C or higher (`aimRequires.agiRankAtLeast`), never once its `destroyedMark` is on the holder. Its own
+  ladder is Ch. 21's `objectResolve`. `onDestroyed` dismisses the named summons unsplit and rolls a `transform` chance
+  (`engine/held-object.mjs`).
+- **`reactsToAimedObject`** offers a reaction only against an Attack aimed at that object, and **`substitutes`** makes
+  it pay one named ability's full clock, Move its user, summon round the panel he left and rebind the Process to the
+  one on it (`engine/substitution.mjs`). `abilityOffCooldown` takes **`any: true`**: one of the named off is enough.
+- **`form` and the `transform` phase.** A one-way form (`system.formTaken`): `keeps` the abilities the sheet names and
+  drops every other, passives and uses alike (`rules/form.mjs#keptByForm`, refusal `goneInForm`); `pools` are written
+  on taking it (`io.takeForm`); `overrides` are read as a `summonVariant` branch's are, plus MOV, Base Attack,
+  Attributes (replaced), Detect (`range`) and Sustainability `none`. `controller: gm` and `rangeGrows` are Ch. 24's and
+  Ch. 25's. `creates: [large]` lets a Storm Border refuse it. What a form drops is still projected, as
+  `formDropped`, and a requirement that names an ability reads it (`rules/items.mjs#gatedAbilities`): the Gigantic
+  Horror's Spells keep reading the Spellbook itself (11i).
+- **A refusal names what holds it.** `notHasEffect` names the effect in force, `abilityAllows` the ability that does not
+  allow it (`rules/items.mjs#requirementDetail`).
+- **A cooldown phase with its own `targeting:` on the attack path**, once per declaration: the Spellbook's *"Reduce the
+  NP Cooldown of all allied Foreigner-class Servants within a 3 panel area of himself"*
+  (`attack.mjs#applyTargetedCooldown`).

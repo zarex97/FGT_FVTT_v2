@@ -142,6 +142,8 @@ export const PHASE_DESCRIPTORS = describeTable([
     { key: "bind", type: "checkbox" },
     { key: "lock", type: "tokenList" },
   ]),
+  // The user takes the form its ability defines, one-way (#323).
+  entry("transform", 50, "The user takes the form this ability defines: its stats, Attributes and abilities, for good.", []),
   entry("setMode", 50, "Switches a mode on or off - one ability ending another.", [
     { key: "ability", type: "text" },
     { key: "active", type: "checkbox" },

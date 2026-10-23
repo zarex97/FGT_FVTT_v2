@@ -207,3 +207,13 @@ never met the difference, which is why nothing failed. **A number many clauses r
   executor, not the sixty-odd others, so a different bad shape can still throw out of collection and
   take the board with it. A blanket try/catch per element, with the failure logged against the
   offending clause, would make the principle general.
+
+**A revival on a die, and what its miss does** (#323 readings 9, 10). `RevivalSource.chance` is rolled before the defeat
+(`revival:<id>:chance`) and makes the source available only under it; `transform` names the form the revival is
+(`engine/transform.mjs`), and `otherwise` the actions a miss runs (`revival.mjs#missedRevivalChances`). Gilles: a 10% that
+he becomes the Gigantic Horror instead of falling, else one Elder Horror per Servant on the board around him. Like every
+revival, only the attack path's `resolveDefeat` asks it. A revival that is a form carries `transform` on its `revive`
+entry, and the card says *"{name} does not fall: {source} takes over instead."*, never the Health the form replaces.
+`chanceBarredWhen` names where the die is not rolled at all: the source is then no revival, and its `otherwise` runs
+as on a miss, the card saying *"{name} cannot take {source} here: no die is rolled."* Gilles inside a Storm Border
+(ruled 2026-10-23).

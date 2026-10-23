@@ -289,7 +289,10 @@ function inRecipientRoles(roles, source, recipient, board) {
     // The summoner's Master, read off the summoner rather than off the summon:
     // a summon has no contract of its own, and `masterId` is the link the ZON
     // rules already use.
-    if (role === "summonerMaster" && summoner?.masterId && recipient.id === summoner.masterId) return true;
+    // Not once the summoner is the GM's (#323 reading 12g): the Gigantic
+    // Horror's Horrors guard him, and his Master is no longer his side.
+    if (role === "summonerMaster" && summoner?.masterId && recipient.id === summoner.masterId
+      && summoner.formController !== "gm") return true;
     // The other member of the source's linked group. *"When Castor is directly
     // next to Pollux, Castor also receives the effect of this Skill."*
     //

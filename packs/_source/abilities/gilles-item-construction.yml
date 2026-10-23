@@ -1,0 +1,15 @@
+# Gilles (Caster), char_orig_sheets/Copia de Gilles.md (#323).
+#
+# *"Class Skill: Item Construction -- Rank: -. See 'Prelati's Spellbook'."* No
+# effect of its own: his Item Construction IS the Spellbook, and the sheet points
+# there (`IC`). A Class Skill all the same, so it is listed, and nothing copies it.
+schema: 1
+id: gilles-item-construction
+name: "Item Construction"
+source: class
+slug: itemConstruction
+kind: classSkill
+passive: true
+copyable: { allowed: false, reason: classSkill }
+description: |
+  See @np[gilles-prelatis-spellbook]{Prelati's Spellbook}.

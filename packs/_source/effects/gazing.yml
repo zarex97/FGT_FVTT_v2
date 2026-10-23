@@ -1,0 +1,26 @@
+# Gilles (Caster)'s Evil Gaze of the Abyss, effect 5 (#323).
+#
+# *"Normal Attacks inflict Curse; while Normal Attacks from all Horrors within a 2
+# panel area of himself have a 50% chance of inflicting Curse."* The first half
+# is Vasavi Shakti (Activated)'s Burn rider at Curse's own 100. The second is the
+# Horrors': each reads its summoner's Gazing and distance (`summons/horror.yml`,
+# `self:summonerEffect`, `self:withinOfSummoner`), since a handler fires from the
+# Unit that dealt the damage.
+schema: 1
+id: gazing
+name: "Gazing"
+description: |
+  Normal Attacks inflict @effect[curse]{Curse}; Normal Attacks from this Unit's Horrors within a 2 panel
+  area of it have a 50% chance of inflicting Curse.
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: [attack:kind:normal]
+    target: victim
+    effect: { id: curse }

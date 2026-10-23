@@ -42,6 +42,21 @@ export function offerCommands({ masterId, window, context = {} }) {
 }
 
 /**
+ * Why nothing is offered, when one reason holds every command back: the bar
+ * says it, where "No Command Spell can be spent now" said nothing (Gilles's
+ * Gigantic Horror, *"Command Spells have no effect"*, #323, live).
+ *
+ * @param {{masterId: string, window: string, context?: object}} args
+ * @returns {string|null} the one reason, or `null` when they differ
+ */
+export function whyNoCommand({ masterId, window, context = {} }) {
+  const ctx = contextFor(masterId, window, context);
+  if (!ctx) return null;
+  const reasons = new Set(catalogueOf(masterId).filter((c) => !c.essence).map((c) => canSpend(c, ctx).reason));
+  return reasons.size === 1 ? [...reasons][0] ?? null : null;
+}
+
+/**
  * What this Master may spend: every Command Spell, and the one use of its own
  * Master Essence while it has one left (#241). One list, so the attack card,
  * the interrupt wait and the Master's bar offer both through one reader.

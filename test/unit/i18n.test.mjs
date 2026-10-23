@@ -118,4 +118,17 @@ describe("every requirement kind can explain itself", () => {
     const missing = REQUIREMENT_KINDS.filter((k) => !(`FGT.Ability.Refused.${k}` in lang));
     expect(missing).toEqual([]);
   });
+
+  // Live, 2026-10-22: Gilles's Gigantic Horror inside the Storm Border read
+  // "— forbidCreating" on the bar. The use gate's own reasons, beside the
+  // requirement kinds, reach the same default branch.
+  it("has a label for every reason the use gate returns", async () => {
+    const { abilityState } = await import("../../module/apps/actor-sheet/present.mjs");
+    const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
+    const reasons = ["module/rules/costs.mjs", "module/rules/ability-use.mjs"].flatMap((f) =>
+      [...readFileSync(f, "utf8").matchAll(/reason: "([a-zA-Z]+)"/g)].map((m) => m[1]));
+    expect(reasons.length, "the scan found the gate's reasons").toBeGreaterThan(20);
+    const missing = [...new Set(reasons)].filter((r) => !(abilityState({ ok: false, reason: r }).label in lang));
+    expect(missing).toEqual([]);
+  });
 });

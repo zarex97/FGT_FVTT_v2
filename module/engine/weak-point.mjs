@@ -16,10 +16,10 @@
  *    rather than a free extra.
  */
 
-import { weakPointChance, weakPointOffered } from "../rules/weak-point.mjs";
+import { weakPointChance, weakPointOffered, objectAimable } from "../rules/weak-point.mjs";
 import { luckChecksBlocked } from "../rules/bounded-fields.mjs";
 import { luckCheck } from "../rules/checks.mjs";
-import { currentBoard, unitOf, unitActor } from "./board.mjs";
+import { currentBoard, currentMoment, unitOf, unitActor } from "./board.mjs";
 import * as I from "./intents.mjs";
 import * as rollLog from "../rules/roll-log.mjs";
 import { currentWar } from "./war.mjs";
@@ -35,6 +35,12 @@ import { currentWar } from "./war.mjs";
  */
 export function exposedWeakPoint(defender, attacker, state, board = null) {
   for (const spec of defender?.weakPoints ?? []) {
+    // An object its holder carries (Prelati's Spellbook, #323): offered on the
+    // attacker's AGI Rank, never on a chance.
+    if (spec.kind === "object") {
+      if (!state?.declared?.plainDamage && objectAimable(spec, { defender, attacker })) return spec;
+      continue;
+    }
     if (weakPointOffered(spec, { defender, attacker, state, board })) return spec;
   }
   return null;
@@ -61,6 +67,7 @@ export async function offerWeakPoint(state, { board = null } = {}) {
   const defender = unitOf(defenderDoc, view);
   const spec = exposedWeakPoint(defender, attacker, state, board);
   if (!spec) return state;
+  if (spec.kind === "object") return offerObject(state, spec, { attackerDoc, defenderDoc, defender });
 
   const plain = weakPointChance(spec, { defender, attacker, state, board });
   const withLuck = weakPointChance(spec, { defender, attacker, state, board, luckCheckPassed: true });
@@ -123,6 +130,126 @@ export async function offerWeakPoint(state, { board = null } = {}) {
     forbiddenReactions: [...new Set([...(state.forbiddenReactions ?? []), "block"])],
     attack: { ...state.attack, unblockable: true },
   };
+}
+
+/**
+ * Ask the attacker whether to aim at the object instead of its holder.
+ *
+ * *"It can instead target Prelati's Spellbook"* (#323 reading 1): the
+ * ATTACKER's owner is asked, at declaration, per Process. Declining is the
+ * ordinary Attack on him.
+ *
+ * @param {object} state at `declare`
+ * @param {object} spec the object weak point
+ * @param {{attackerDoc: object, defenderDoc: object}} docs
+ * @returns {Promise<object>}
+ */
+async function offerObject(state, spec, { attackerDoc, defenderDoc, defender }) {
+  const { chooseFor } = await import("./ask.mjs");
+  const { shownName } = await import("./public-identity.mjs");
+  const holder = shownName(defenderDoc);
+  const picked = await chooseFor(attackerDoc, {
+    title: game.i18n.format("FGT.WeakPoint.ObjectTitle", { object: spec.name, name: holder }),
+    hint: game.i18n.localize("FGT.WeakPoint.Optional"),
+    count: 1,
+    min: 0,
+    options: [{
+      id: "object",
+      name: game.i18n.format("FGT.WeakPoint.AimObject", { object: spec.name, name: holder }),
+      detail: game.i18n.localize("FGT.WeakPoint.AimObjectHint"),
+    }],
+  });
+  if ((picked ?? [])[0] !== "object") return state;
+  return {
+    ...state,
+    // Whether its holder has a Luck Check to offer: one Luck at least. The rung
+    // is pure and cannot read the pool.
+    aimedAt: { specId: spec.id, name: spec.name, resolved: false, luckable: luckOf(defender) > 0 },
+    attack: { ...state.attack, aimedAtObject: spec.id },
+  };
+}
+
+/**
+ * Resolve an Attack aimed at an object, in place of its damage.
+ *
+ * Ruled 2026-10-22 (#323 readings 3 and 4). Any hit that lands destroys it,
+ * Gilles takes no damage and the riders land on nobody. A failed Evade first
+ * rolls the 20% that he takes the hit himself; a miss of that die offers his
+ * owner the Luck Check, whose success keeps it with nobody hurt. The Luck Check
+ * taken at the reaction rung is the same check. Taking nothing, it is
+ * destroyed.
+ *
+ * @param {object} state at `objectResolve`
+ * @param {object} [ctx]
+ * @param {object|null} [ctx.board]
+ * @returns {Promise<{event: string, detail: object, spends: object[], rollRecords: object[]}>}
+ */
+export async function resolveObjectAim(state, { board = null } = {}) {
+  const defenderDoc = unitActor(state.defenderId);
+  const view = board ?? currentBoard();
+  const defender = unitOf(defenderDoc, view);
+  const spec = (defender?.weakPoints ?? []).find((w) => w.id === state.aimedAt?.specId) ?? null;
+  if (!spec) return { event: "takes", detail: { reason: "no object" }, spends: [], rollRecords: [] };
+  const { tick } = currentMoment();
+  const rollRecords = [];
+  const spends = [];
+  // As the table knows him: the roll's line is on a public card (#323, found pressing).
+  const { shownName } = await import("./public-identity.mjs");
+  const name = defenderDoc ? shownName(defenderDoc, view) : "";
+
+  // A failed Evade: *"he has a 20% chance of taking the damage instead"*.
+  if (state.reaction === "evade") {
+    const roll = (await new Roll("1d100").evaluate()).total;
+    const takes = roll <= (spec.takeChance ?? 0);
+    rollRecords.push(rollLog.record({
+      id: `${state.attackerId}:${state.defenderId}:objectTake:${tick}`, globalTurn: tick, entryId: "objectTake",
+      formula: "1d100", raw: roll, total: roll,
+      modifiers: [{ source: `${takes ? "takes it" : "does not"}: ${roll} against ${spec.takeChance ?? 0}%`, delta: 0, stage: "table" }],
+      purpose: game.i18n.format(takes ? "FGT.WeakPoint.ObjectTakes" : "FGT.WeakPoint.ObjectTakeMissed", { name, object: spec.name }),
+      actorId: state.defenderId,
+    }));
+    if (takes) return { event: "takes", detail: { roll }, spends, rollRecords };
+  }
+
+  // The Luck Check: taken at the rung, or offered after the 20% missed.
+  const luck = luckOf(defender);
+  let tries = state.reaction === "luck";
+  if (!tries && state.reaction === "evade" && luck > 0) {
+    const { chooseFor } = await import("./ask.mjs");
+    const picked = await chooseFor(defenderDoc, {
+      title: game.i18n.format("FGT.WeakPoint.ObjectLuckTitle", { object: spec.name }),
+      hint: game.i18n.localize("FGT.Reaction.ObjectLuckHint"),
+      count: 1, min: 0,
+      options: [{ id: "luck", name: game.i18n.localize("FGT.Reaction.ObjectLuck") }],
+    });
+    tries = (picked ?? [])[0] === "luck";
+  }
+  if (tries && luck > 0) {
+    const roll = (await new Roll("1d20").evaluate()).total;
+    const attacker = unitOf(unitActor(state.attackerId), view);
+    const passed = luckCheck({
+      roll, luck,
+      opposingLuck: typeof attacker?.luck === "number" ? attacker.luck : (attacker?.luck?.value ?? null),
+    }).success;
+    spends.push(I.statDelta(state.defenderId, "luck.value", -1));
+    rollRecords.push(rollLog.record({
+      id: `${state.attackerId}:${state.defenderId}:objectLuck:${tick}`, globalTurn: tick, entryId: "objectLuck",
+      formula: "1d20", raw: roll, total: roll,
+      modifiers: [{ source: `${passed ? "succeeds" : "fails"}: ${roll} against Luck ${luck}`, delta: 0, stage: "table" }],
+      purpose: game.i18n.format(passed ? "FGT.WeakPoint.ObjectSaved" : "FGT.WeakPoint.ObjectDestroyed", { name, object: spec.name }),
+      actorId: state.defenderId,
+    }));
+    return { event: passed ? "saved" : "destroyed", detail: { roll, passed }, spends, rollRecords };
+  }
+  return { event: "destroyed", detail: {}, spends, rollRecords };
+}
+
+/**
+ * @param {object|null} unit
+ * @returns {number} its Luck, however the projection spells it
+ */
+function luckOf(unit) {
+  return typeof unit?.luck === "number" ? unit.luck : (unit?.luck?.value ?? 0);
 }
 
 /**

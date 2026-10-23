@@ -1,0 +1,52 @@
+# Gilles (Caster), char_orig_sheets/Copia de Gilles.md (#323).
+#
+# Blasphemy Aesthetic's area, three debuffs on the enemies in it and two buffs on
+# himself. Terror's 40 rides `@magnitude` (Van Gogh's De Sterrennacht's shape);
+# *"Inflicts Curse"* with no duration is one stage (Appendix A). Dmg Up (Curse)
+# is the Dmg Up family gated on the target's Curse, as Dmg Up (Evil) is gated on
+# an Alignment. Gazing carries the Normal-Attack Curse, and the Horrors' 50% is
+# theirs, read off his Gazing (`summons/horror.yml`).
+schema: 1
+id: gilles-evil-gaze-of-the-abyss
+name: "Evil Gaze of the Abyss"
+rank: "B+++"
+kind: skill
+slug: evilGazeOfTheAbyss
+cooldown: "3◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Affects all enemy Units within a 3x3 panel area in any non-diagonal
+  direction next to Gilles. Has the following effects-
+  1. Inflicts @effect[terror]{Terror} for 1◈+⅔◈ Turns, chance of being inflicted with Stun from Terror is 40% (40% Terror).
+  2. Inflicts @effect[curse]{Curse}.
+  3. Inflicts @effect[defDwn]{Def Dwn} for 1◈+⅔◈ Turns, all damage taken is increased by 20%.
+  4. Applies @effect[dmgUpCurse]{Dmg Up (Curse)} for 1◈ Turns to himself, all damage dealt to Units inflicted with Curse is increased by 30%.
+  5. Applies the @effect[gazing]{Gazing} buff for 1◈ Turns to himself, Normal Attacks inflict Curse; while Normal Attacks
+  from all Horrors within a 2 panel area of himself have a 50% chance of inflicting Curse.
+  Cooldown: 3◈ Turns.
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 3, long: 3 }
+  selection: { relations: [enemy], includeSelf: false, chooser: all }
+  # As the Gigantic Horror: *"Evil Eye of the Abyss now hits a 5x5 panel area in
+  # any non-diagonal direction next to itself"* (#323 reading 11f). A whole
+  # branch, not a `conditional` anchor: that one aims where its holder faces and
+  # offers no direction to choose, so the 3x3 was refused before it could be
+  # turned (found pressing #323).
+  branches:
+    - predicate: ["self:form:giganticHorror"]
+      anchor: { kind: selfEdgeAdjacent }
+      shape: { kind: orientedRect, short: 5, long: 5 }
+      selection: { relations: [enemy], includeSelf: false, chooser: all }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: terror, duration: "1◈+⅔◈", magnitude: 40 }
+      - { id: curse }
+      - { id: defDwn, duration: "1◈+⅔◈", magnitude: 20 }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: dmgUpCurse, duration: "1◈", magnitude: 30 }
+      - { id: gazing, duration: "1◈" }
