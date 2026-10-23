@@ -12,6 +12,6 @@ they keep reading the Spellbook itself (#323 reading 11i).
 **Cause:** `module/rules/items.mjs:664 @ d97795b9` — `gatedAbilities` reads `unit.abilities`, which the form's
 generic `keptByForm` filter had emptied of the Spellbook; the special case 11i rules out had no door back, and no
 test asked a Spell in form.
-**Fix:** `module/rules/items.mjs:666 @ uncommitted` — the snapshot keeps `formDropped`, and a requirement that names an
+**Fix:** `module/rules/items.mjs:666 @ 965a7cc5` — the snapshot keeps `formDropped`, and a requirement that names an
 ability reads it too; test "the Spells keep reading the Spellbook: open while it stands and rests, shut while it
 cools (11i)".

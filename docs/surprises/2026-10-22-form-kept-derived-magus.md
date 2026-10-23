@@ -12,5 +12,5 @@ test checked they were present and that Humanoid was gone.
 **Cause:** `module/rules/snapshot.mjs:308 @ d97795b9` — the form's Attributes went through `closeAttributes` with his
 Caster Class, which derives Magus. A second reader, the option set that gates his own passives
 (`contributionsOf`, :2007), closed his authored Attributes and never saw the form at all.
-**Fix:** `module/rules/snapshot.mjs:1876 @ uncommitted` — `attributesOf`, the one reader both sites call: a form's
+**Fix:** `module/rules/snapshot.mjs:1876 @ 965a7cc5` — `attributesOf`, the one reader both sites call: a form's
 Attributes replace the set with nothing derived beside them; the test asserts the exact set from both.
