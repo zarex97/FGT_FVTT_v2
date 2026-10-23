@@ -323,7 +323,8 @@ describe("Nursery Rhyme: A Tale for Somebody's Sake (A1–A8)", () => {
 
   it("A1/A2/A8 — Rank C, Anti-Unit, Range 4, cooldown 5◈", () => {
     expect(np()).toMatchObject({ rank: "C", isNP: true, cooldown: "5◈" });
-    expect(np().npTags).toEqual(["antiUnit"]);
+    // Artistic, a literary creation (#323 reading 14).
+    expect(np().npTags).toEqual(["antiUnit", "artistic"]);
     expect(np().targeting.anchor.range).toBe(4);
   });
 

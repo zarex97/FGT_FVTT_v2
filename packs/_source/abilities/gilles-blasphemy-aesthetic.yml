@@ -1,0 +1,33 @@
+# Gilles (Caster), char_orig_sheets/Copia de Gilles.md (#323).
+#
+# Danzō's Subversive Activities' shape: a 3x3 *"in any non-diagonal direction
+# next to"* him, enemies only, three debuffs. Def Dwn (A) and Def Dwn (B) are two
+# effects of one family and both hold (#230 reading 4): +20% from an Attack that
+# is not an NP, +30% from one that is.
+schema: 1
+id: gilles-blasphemy-aesthetic
+name: "Blasphemy Aesthetic"
+rank: "C+++"
+kind: skill
+slug: blasphemyAesthetic
+cooldown: "2◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Affects all enemy Units within a 3x3 panel area in any non-diagonal
+  direction next to Gilles. Has the following effects-
+  1. Inflicts @effect[npDmDwn]{NP DmDwn} for 1◈ Turns, NP damage dealt is reduced by 20%.
+  2. Inflicts @effect[defDwnA]{Def Dwn (A)} for 1◈ Turns, all damage received is increased by 10%; and
+  Luck is reduced by 1 whenever damage is received from an Attack.
+  3. Inflicts @effect[defDwnB]{Def Dwn (B)} for 1◈ Turns, all damage received is increased by 10%; if NP, 20%.
+  Cooldown: 2◈ Turns.
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 3, long: 3 }
+  selection: { relations: [enemy], includeSelf: false, chooser: all }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: npDmDwn, duration: "1◈", magnitude: 20 }
+      - { id: defDwnA, duration: "1◈", magnitude: 10 }
+      - { id: defDwnB, duration: "1◈", magnitude: 10, npMagnitude: 20 }

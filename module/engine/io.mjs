@@ -1032,7 +1032,11 @@ export function worldIO() {
       // Recorded before the document goes, because afterwards there is nothing
       // to name. `reason` distinguishes a timed departure from the field-close
       // and platform-teardown routes that also remove summons.
-      record({ kind: "summonDismissed", unitId, name: summon.name, reason });
+      // Under the closed vocabulary's `scheduler` kind: `summonDismissed` is no
+      // kind of Ch. 37's, and every dismissal threw an unhandled RangeError
+      // here since summons first left on a schedule (found by #323).
+      await record({ kind: "scheduler", event: "summonDismissed", actorIds: [unitId], unitId, name: summon.name, reason })
+        .catch((err) => console.error("FGT | The dismissal could not be logged:", err));
       // By scene query, and once. `getActiveTokens` handed back a token whose
       // document was already gone when two Warriors were dismissed in one
       // defeat, and the throw aborted the defeat itself (#193).
@@ -1522,6 +1526,52 @@ export function worldIO() {
       await item.update({ "system.tally": (item.system?.tally ?? 0) + 1 });
     },
 
+    /**
+     * A Unit takes a form (#323): `formTaken`, its pools, and for a form the GM
+     * drives, every player owner turned observer -- it and its summons on the
+     * board -- so its player keeps sight of it and loses the controls.
+     *
+     * @param {string} unitId
+     * @param {{formId: string, pools: object, handOver: boolean, stands: boolean}} form
+     */
+    async takeForm(unitId, { formId, pools = {}, handOver = false, stands = false }) {
+      const actor = resolve(unitId);
+      if (!actor) return;
+      const sys = actor.system ?? {};
+      const patch = { "system.formTaken": formId, "system.formRangeBonus": 0 };
+      if (typeof pools.health === "number") Object.assign(patch, { "system.health.max": pools.health, "system.health.value": pools.health });
+      if (typeof pools.agility === "number") Object.assign(patch, { "system.agility.max": pools.agility, "system.agility.value": pools.agility });
+      if (pools.luck === "refill") patch["system.luck.value"] = sys.luck?.max ?? sys.luck?.value ?? 0;
+      // A defeat it replaces is undone with it: he stands.
+      if (stands) patch["system.defeated"] = false;
+      await actor.update(patch);
+      if (!handOver) return;
+      const OBSERVER = CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OBSERVER ?? 2;
+      const OWNER = CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
+      const summons = (game.actors ?? []).filter((a) => a.system?.summonerId === unitId && !a.system?.defeated);
+      for (const doc of [actor, ...summons]) {
+        const ownership = { ...(doc.ownership ?? {}) };
+        let changed = false;
+        for (const u of game.users ?? []) {
+          if (u.isGM || (ownership[u.id] ?? 0) < OWNER) continue;
+          ownership[u.id] = OBSERVER;
+          changed = true;
+        }
+        if (changed) await doc.update({ ownership });
+      }
+    },
+
+    /**
+     * A form's grown Range, and the Round a Unit stood in it (#323 reading 19).
+     * @param {string} unitId @param {number} value @param {number|null} [seenRound]
+     */
+    async setFormRange(unitId, value, seenRound = null) {
+      await resolve(unitId)?.update({
+        "system.formRangeBonus": Math.max(0, value),
+        ...(seenRound !== null ? { "system.formRangeSeen": seenRound } : {}),
+      });
+    },
+
     async decayEffect(unitId, effectId, steps) {
       const actor = resolve(unitId);
       const effect = actor?.effects.get?.(effectId) ?? actor?.effects.find((e) => e.system?.defId === effectId);
@@ -1636,7 +1686,7 @@ export function worldIO() {
       // A revival, said out loud. It was logged and nothing else: Divine
       // Protection brought Ozymandias back at 200 inside his Complex and the
       // attack card read "6 damage" over it (#189). Public, as a defeat is.
-      for (const e of entries.filter((x) => x?.kind === "revive" || x?.kind === "reviveFailed")) {
+      for (const e of entries.filter((x) => x?.kind === "revive" || x?.kind === "reviveFailed" || x?.kind === "revivalChanceMissed")) {
         const { postRevival } = await import("./revival-report.mjs");
         await postRevival(e);
       }

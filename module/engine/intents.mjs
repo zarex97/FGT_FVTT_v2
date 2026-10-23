@@ -28,6 +28,8 @@ export const INTENT_TYPES = Object.freeze([
   // A standing Effect's magnitude falling (`decay`, #296): its count, and the
   // line the card prints.
   "decayEffect", "tallyMode",
+  // A Unit taking a form, and its grown Range (Gilles's Gigantic Horror, #323).
+  "takeForm", "formRange",
   // `setStage` decrements a staged effect without deleting it, and `event`
   // raises a write-time event so a listener can react to what just happened.
   // Both are Van Gogh's -- her Curse is the first effect anything reads the
@@ -107,6 +109,9 @@ const ORDER = Object.freeze({
   // Bookkeeping, and BEFORE the `setMode` its last count may emit: the tally is
   // written, then the Mode ends on it (#288).
   tallyMode: 2,
+  // A form's writes are stat writes: its pools, its Range (#323).
+  takeForm: 2,
+  formRange: 2,
   setMode: 2,
   // Beside `setMode`, and for exactly its reason: a suspension switches a mode
   // off AND bars it from returning, so it has to land before the next pass
@@ -250,6 +255,28 @@ export const tallyMode = (unitId, abilityId, after, count, name = null) =>
 
 export const decayEffect = (unitId, effectId, steps, magnitude, defId) =>
   ({ t: "decayEffect", unitId, effectId, steps, magnitude, defId });
+
+/**
+ * A Unit takes a form, one-way (Gilles (Caster)'s Gigantic Horror, #323): its
+ * `formTaken`, its pools the form's own, and -- for a form the GM drives -- its
+ * player's controls handed to the GM (`handOver`).
+ *
+ * @param {string} unitId
+ * @param {{formId: string, pools?: object, handOver?: boolean, stands?: boolean}} form
+ * @returns {Intent}
+ */
+export const takeForm = (unitId, { formId, pools = {}, handOver = false, stands = false }) =>
+  ({ t: "takeForm", unitId, formId, pools, handOver, stands });
+
+/**
+ * A form's Range grown, or reset to its own (#323 reading 19).
+ *
+ * @param {string} unitId
+ * @param {number} value panels beyond the form's Range
+ * @param {number|null} [seenRound] the Round a Unit stood in reach, when this marks one
+ * @returns {Intent}
+ */
+export const formRange = (unitId, value, seenRound = null) => ({ t: "formRange", unitId, value, seenRound });
 
 export const move = (unitId, path, forced = false) =>
   ({ t: "move", unitId, path, forced });
@@ -778,6 +805,7 @@ export function validate(intents) {
 /** @type {Readonly<Record<string, string[]>>} */
 const NUMERIC_FIELDS = Object.freeze({
   damage: ["amount"],
+  formRange: ["value"],
   durationDelta: ["delta"],
   heal: ["amount"],
   statDelta: ["delta"],

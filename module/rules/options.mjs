@@ -572,6 +572,15 @@ function add(options, side, unit, withoutModeHeld = false) {
       for (let n = Math.max(0, b.distance); n <= 30; n++) options.add(`${side}:bondWithin:${b.contentId}:${n}`);
     }
   }
+  // The form this Unit has taken (Gilles's Gigantic Horror, #323).
+  if (unit.form) options.add(`${side}:form:${unit.form}`);
+  // What a summon knows of its summoner (`snapshot.mjs#annotateSummoner`):
+  // Gilles's Gazing reaches his Horrors within 2 of him (#323). A ladder, as
+  // `withinOfMaster` is.
+  for (const e of unit.summonerEffects ?? []) options.add(`${side}:summonerEffect:${e}`);
+  if (typeof unit.summonerDistance === "number") {
+    for (let n = Math.max(1, unit.summonerDistance); n <= 6; n++) options.add(`${side}:withinOfSummoner:${n}`);
+  }
   if (typeof unit.partnerDistance === "number") {
     for (let n = Math.max(1, unit.partnerDistance); n <= 6; n++) {
       options.add(`${side}:withinOfPartner:${n}`);

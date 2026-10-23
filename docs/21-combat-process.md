@@ -212,3 +212,10 @@ whose one legal event is `done`; the declaration sends it, and only an unanswera
 around him after the Attack it answers has resolved. `runCounter` pays the price before the phases run, so a clock the use
 itself decides (`cooldown.perUnit`, *"Number of Horrors x ⅔◈"*) is set by `resolveWithoutProcess` once the phases have
 summoned, unless the use was made on the Cooldown. Priced first, it came to a count of 0 and no clock (#260, live).
+
+**An Attack aimed at an object resolves on its own rung, `objectResolve`** (#323 readings 1 to 5). `advance` routes every
+edge into `damage` there while `aimedAt` is unresolved, unless the defender Blocked, which takes the damage on himself.
+`react:luck` reaches it directly: the reaction rung offers a Luck Check when its holder has one Luck at least
+(`aimedAt.luckable`). Resolved by `engine/weak-point.mjs#resolveObjectAim`: a failed Evade rolls `takeChance` (*"he has a
+20% chance of taking the damage instead"*), a miss offers the Luck Check, and a hit that is not taken destroys the
+object. `takes` goes on to `damage`; `saved` and `destroyed` end at `noDamage`, its riders landing on nobody.

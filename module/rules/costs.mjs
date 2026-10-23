@@ -365,6 +365,9 @@ export function canUseAbility({
   // deactivation clock, so a player pressing it would be told to wait
   // twenty-four Turns for something that is never coming back. Measured
   // exactly that way before this moved.
+  if (ability?.goneInForm) {
+    return { ok: false, reason: "goneInForm", detail: {}, cost };
+  }
   if (ability?.expended) {
     return { ok: false, reason: "expended", detail: {}, cost };
   }

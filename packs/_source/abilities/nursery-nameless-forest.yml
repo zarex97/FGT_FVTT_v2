@@ -18,7 +18,7 @@ rank: C
 isNP: true
 categorizedAsNP: true
 isPassive: true
-npTags: [antiUnit]
+npTags: [antiUnit, artistic]
 kind: noblePhantasm
 description: |
   (Passive) At the end of every Round, this NP affects all enemy Units within a 2 panel area of

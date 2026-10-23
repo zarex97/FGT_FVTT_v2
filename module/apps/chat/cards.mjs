@@ -372,6 +372,8 @@ export function promptOptions(prompt, state = null) {
       { event: "nothing", label: game.i18n.localize("FGT.Reaction.Nothing"), hint: null },
       { event: "block", label: game.i18n.localize("FGT.Reaction.Block"), hint: game.i18n.localize("FGT.Reaction.BlockHint") },
       { event: "evade", label: game.i18n.localize("FGT.Reaction.Evade"), hint: null },
+      // Only on an Attack aimed at an object (#323 reading 4).
+      { event: "luck", label: game.i18n.localize("FGT.Reaction.ObjectLuck"), hint: game.i18n.localize("FGT.Reaction.ObjectLuckHint") },
     ].filter((o) => left.includes(o.event));
 
     // The reaction ABILITIES, beside the three standing rungs. `pendingPrompt`

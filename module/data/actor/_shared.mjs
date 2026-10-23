@@ -321,6 +321,18 @@ export function combatantCommon() {
     // 3). Written at the Master's death (`rules/relationships.mjs#onMasterDefeated`),
     // read by `engine/scheduler.mjs#checkRemovals`.
     sustainabilityDecay: new fields.NumberField({ required: true, nullable: false, initial: 0, integer: true, min: 0 }),
+    // The FORM this Unit has taken, by its ability's `form.id` (`formTaken`, so
+    // it is never read as an ability's own `form` block): Gilles
+    // (Caster)'s Gigantic Horror (#323). One-way, written by
+    // `engine/transform.mjs#transformUnit`, read by `rules/form.mjs#formOf`.
+    formTaken: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+    // Panels its form's Range has grown, for a form whose Range grows while no
+    // Unit is in reach (#323 reading 19). Written by `engine/form-range.mjs`.
+    formRangeBonus: new fields.NumberField({ required: true, nullable: false, initial: 0, integer: true, min: 0 }),
+    // The last Round a Unit stood within that Range at a Turn's end: *"no Units
+    // within its Range for 1 full Round"* is the whole Round, not its last
+    // moment (#323 reading 19, live). Written by `engine/form-range.mjs`.
+    formRangeSeen: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
     // Reset at the start of the owning faction's turn. `movedPanels` is a
     // running total rather than a per-segment count, because Riding's two moves
     // share one MOV allowance (Ch. 19).

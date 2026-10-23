@@ -382,7 +382,8 @@ describe("Nursery Rhyme: Nameless Forest (F1–F7)", () => {
 
   it("F1 — Rank C, NP, Anti-Unit, and PASSIVE", () => {
     expect(a()).toMatchObject({ rank: "C", isNP: true, isPassive: true });
-    expect(a().npTags).toEqual(["antiUnit"]);
+    // Artistic, a literary creation (#323 reading 14).
+    expect(a().npTags).toEqual(["antiUnit", "artistic"]);
   });
 
   it("F1 — passive, so no cooldown and no timing window", () => {

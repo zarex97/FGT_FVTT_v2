@@ -761,8 +761,8 @@ describe("`attack:plainDamage` is how a Clause tells an Attack from measured dam
     const inflictors = files.filter(({ dir, doc }) => dir === "abilities" && JSON.stringify(doc.phases ?? []).match(/defDwn[AC]/))
       .map(({ doc }) => doc.id).sort();
     expect(inflictors).toEqual([
-      "anastasia-summer-snegleta", "dioscuri-tyndaridae", "gogh-het-gele-huis", "gogh-the-yellow-house",
-      "hassan-zabaniya-delusional-illusion", "mannanan-fragarach-counter", "yan-qing-np",
+      "anastasia-summer-snegleta", "dioscuri-tyndaridae", "gilles-blasphemy-aesthetic", "gogh-het-gele-huis",
+      "gogh-the-yellow-house", "hassan-zabaniya-delusional-illusion", "mannanan-fragarach-counter", "yan-qing-np",
     ]);
   });
 });

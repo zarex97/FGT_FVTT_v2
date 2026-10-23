@@ -218,6 +218,9 @@ export async function performAction(id, { actor, token = null, context = {}, des
   return handler({ actor, token, context, destination, plan });
 }
 
+/** The Command Spell refusals the bar can say by name (`FGT.Action.Refusal.*`). */
+const SAID_REFUSALS = new Set(["uncommandable", "noServant", "commandSpellsBlocked", "cost"]);
+
 /**
  * Spend from the Master's bar in its own Turn: a Command Spell, or its Master
  * Essence's one use (#241). One flow: for whom, which, which Skill, where.
@@ -227,7 +230,7 @@ export async function performAction(id, { actor, token = null, context = {}, des
  * @returns {Promise<object>}
  */
 async function spendFromBar(actor, { essence }) {
-  const { offerCommands, liveServantsOf } = await import("./command-spells.mjs");
+  const { offerCommands, liveServantsOf, whyNoCommand } = await import("./command-spells.mjs");
   const { currentBoard } = await import("./board.mjs");
   const { ChoiceDialog } = await import("../apps/choice-dialog.mjs");
   // FOR WHOM, first (ruled 2026-10-14, #204): a Command Spell is a spell for
@@ -250,7 +253,12 @@ async function spendFromBar(actor, { essence }) {
     .filter((c) => Boolean(c.essence) === essence);
   // Its own refusal for an Essence: "No Command Spell can be spent now" answered
   // Divine Banquet with no NP cooling (#241, live).
-  if (offered.length === 0) return { ok: false, reason: essence ? "noEssenceUse" : "noCommand" };
+  if (offered.length === 0) {
+    if (essence) return { ok: false, reason: "noEssenceUse" };
+    // One reason holding every command back is said by name (#323, live).
+    const why = whyNoCommand({ masterId: actor.id, window: "ownTurn", context: { servantId } });
+    return { ok: false, reason: SAID_REFUSALS.has(why) ? why : "noCommand" };
+  }
   const [commandId] = (await ChoiceDialog.pick({
     title: game.i18n.localize(essence ? "FGT.Action.MasterEssence" : "FGT.Action.CommandSpell"),
     hint: game.i18n.localize(essence ? "FGT.Action.MasterEssenceHint" : "FGT.Action.CommandSpellHint"),

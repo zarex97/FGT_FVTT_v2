@@ -133,3 +133,10 @@ A boundary is named by **Foundry's own counters** (`round` and `turn`), not by `
 deltas, as what each gave: the Health before the batch is read first (`healthBefore`), so Arjuna's Regen at 1089 of
 1250 reads *"Archer regains 161 Health (Regen)"*, and a heal at full reads nothing. A Round's end posts its heals on an
 "End of the Round" card. Units are named by `publicIdentityOf`, a heal's source by its effect's name.
+
+**The GM's slot opens with what a GM-driven form owes** (#323 reading 12d): `form-range.mjs#announceGmTurn` names the
+nearest Unit it must Attack, or says none is in reach. The engine does not swing for it. **A form's Range grows at a
+Round's end** with no Unit within it (`growFormRanges`, a card line), and its next Attack resets it (`resetFormRange`).
+*"For 1 full Round"* is every Turn of it: each Turn's end with a Unit in reach marks the Round (`noteFormReach`,
+`system.formRangeSeen`), and a marked Round grows nothing, however empty its last moment. **The GM's slot begins with
+the GM side's pool full**: a GM-driven form spends from `GM_SIDE`'s, which the incoming faction's reset never reached.

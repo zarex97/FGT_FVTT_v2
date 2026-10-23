@@ -170,3 +170,15 @@ and a Faction over its limits: 1 A, 2 B, 2 C, 2 D, a lower Rank filling a higher
 a custom war sets its own on the War tab. `createMasterFor` writes the Essence's Rank before the setup plan, so Base
 Attack (MAG) follows, and embeds the Essence; `commitWar` copies it onto the Servant and starts the Servant full. Every
 Master carries the Normal sheet's Magic Crest, a Damage Spell categorized as NP (readings 13, 14).
+
+**Summons on and around a panel, and summons that outlive their summoner** (#323). `placeSummonsAround` puts the first on
+a named panel and the rest by it (a Horror's split, Substitution). The scheduler's `SummonAround` action counts its
+summons with the Count module (`{of: board, requires, excludeSelf, standing}`) and places them round the Unit's panel;
+`outlives` stamps `leavesWithSummoner: false`, so Gilles's Elder Horrors stay when he falls. A summon phase's
+`countFactor` doubles its die (the Gigantic Horror). Every dismissal is logged under Ch. 37's `scheduler` kind: the old
+`summonDismissed` kind threw, unhandled, at each one. `leavesWithSummoner` is seeded, then the world's
+(`authored-fields.mjs#SEEDED_THEN_OWNED`): pack-owned, every load's content sync put `true` back over the stamp. A log
+batch's lines are posted before what they bring runs (`applier.mjs`, the `log` case): the die that missed, then the
+Elder Horrors; a Horror's defeat, then its split. A summon appears on its summoner's Level when it is bound to a
+platform or its summoner stands in a pocket dimension (`summoning.mjs#summonLevelFor`): Gilles's Elder Horrors stay
+inside the Storm Border he fell in.

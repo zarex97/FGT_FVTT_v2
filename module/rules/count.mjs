@@ -88,6 +88,11 @@ export function countOf(spec, ctx = {}) {
       // (Familiar: Doves): a per-Unit membership test summed over the board,
       // in the ordinary predicate grammar rather than an aggregate syntax.
       return (ctx.board?.units ?? []).filter((unit) => {
+        // The asker itself, when the clause counts the others, and only the
+        // Units standing: Gilles's *"X = number of Servants on the board"* as he
+        // falls (#323) counts no defeated body.
+        if (spec.excludeSelf && unit.id === ctx.self?.id) return false;
+        if (spec.standing && unit.defeated) return false;
         if (spec.relation && relationOf(ctx.self, unit, ctx.board) !== spec.relation) return false;
         return passes(spec.requires, unit);
       }).length;

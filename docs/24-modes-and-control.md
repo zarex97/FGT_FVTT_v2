@@ -134,3 +134,28 @@ defeat, and the −2◈ charges.
 (Saber)'s Mad Enhancement starts off, `canToggleMode` refuses switching it on, and only Prelati's Encouragement's
 `setMode` phase does it, on a die that grows with each use. With `cannotDeactivate` beside it, once on it stays on for
 the War.
+
+## A form the GM drives (Gilles (Caster)'s Gigantic Horror, #323)
+
+A form with `controller: gm` hands its Unit to the GM: `rules/control.mjs#gmControlled` answers for it and for its
+summons, `actingFactionOf` puts both on `GM_SIDE`, a side of its own and an enemy to every other, and `controllerOf`
+answers the GM. Taking the form turns every player owner of it and its summons into an observer (`io.takeForm`), so its
+player keeps sight of it and loses the controls. It acts in the GM's slot, whose faction is none, and is refused on a
+player's Turn (`notOwnTurn`). Its Master's Command Spells are refused (`uncommandable`), and one he holds ends when he
+transforms. Its Horrors' guard covers him only (`auras.mjs#inRecipientRoles`). Its Attacks are compelled at the nearest
+Unit, any side (`compulsion.mjs#nearestUnits`).
+
+Pressed live, five more doors closed (#323):
+
+- **Attacks only.** The `nearest` compulsion is `attacksOnly` and `areaMustInclude`: his Evil Gaze, a Skill, aims where
+  the GM turns it, and his 3×3 must hold the nearest Unit and hits every other Unit in it too.
+- **Every Unit in the area.** A form's `normalAttack.relations` names whom its area hits; the Gigantic Horror's is
+  `[enemy, ally, neutral]` (11g), so the nearest Unit may be his own Horror. A shaped Normal Attack without it hits
+  enemies, as Kagome's does (`rules/ability-use.mjs#declaredTargetSpec`).
+- **One ownership rule.** The faction roster's sync (`engine/faction-ownership.mjs#syncOne`, run on every new actor)
+  asks `gmControlled` too: a summon made after the change is Observer for the faction's players, never Owner.
+- **The refusal named.** With every Command Spell held back by one reason, the Master's bar says it
+  (`command-spells.mjs#whyNoCommand`): *"Command Spells have no effect on this Servant: it is no longer under its
+  Master's control."*
+- **The Attributes exactly.** A form's Attributes replace the set with nothing derived beside them
+  (`snapshot.mjs#attributesOf`, the one reader the board and his passives' gates share): no Magus from his Class.

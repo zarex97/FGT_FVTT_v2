@@ -1,0 +1,90 @@
+# Gilles (Caster), char_orig_sheets/Copia de Gilles.md (#323 readings 10 to 13,
+# 18 to 20, 11a to 11i, 12a to 12h).
+#
+# A FORM, one-way: `form` names what he becomes, written onto him by
+# `engine/transform.mjs` (`system.form`), and read by the projection
+# (`rules/form.mjs`). Same Unit, same contract, still a Caster (11a, 11b). His
+# Attributes are replaced (11c), his effects and cooldowns stay (11d), his pools
+# are the form's own, Luck refilled (11e). Everything the sheet does not name goes
+# away (11f): `keeps` is what it names. His Normal Attack is a 3x3 centred within
+# his Range (11g), STR at 1 or 2, MAG at 3 or more (18). Inside a Storm Border he
+# cannot become it at all (11h): `creates: [large]` refuses the use, and the dice
+# do not roll there. The GM drives him (12a to 12h).
+schema: 1
+id: gilles-gigantic-horror
+name: "Prelati's Spellbook: Gigantic Horror"
+kind: skill
+slug: giganticHorror
+timing: { window: ownTurn }
+countsAsAttack: false
+creates: [large]
+requirements:
+  # *"Only usable when Gilles' Health is less than 25% of its maximum value."*
+  - { kind: healthBelow, fraction: 0.25 }
+  - { kind: predicate, predicate: ["not:self:form:giganticHorror"] }
+description: |
+  Only usable when Gilles' Health is less than 25% of its maximum value. Has a 10% chance of automatically activating
+  when @np[gilles-prelatis-spellbook]{Prelati's Spellbook} is destroyed, or when Gilles is defeated without Prelati's Spellbook being destroyed.
+  Transforms himself into a Gigantic Horror. Replace Gilles with the Gigantic Horror, and its new Stats are as follows-
+  Health: 2000. Agility: 0. Luck: Same as Gilles. MOV: 0. Range: 3 panels, 3x3 panel area. Base Attack (STR): 200
+  (Used when Range<3). Base Attack (MAG): 200 (Used when Range>2). Sustainability: None. Attributes: Dark (Outsider),
+  Large. Detect: Same as Range.
+  When Gilles turns into the Gigantic Horror, its Stats are fully restored to its new values. Territory Creation and
+  Mental Pollution become inactive; Blasphemy Aesthetic is unusable. When Summoning is used, the number of Horrors
+  summoned is doubled. Evil Eye of the Abyss now hits a 5x5 panel area in any non-diagonal direction next to itself.
+  The Gigantic Horror is no longer controlled by Gilles' Master, and Command Spells have no effect; instead the
+  Gigantic Horror takes its Turn during the GM's Turn (i.e. the last Turn of the Round). When the Gigantic Horror
+  Attacks, it always Attacks the nearest Unit. If there are no Units within its Range for 1 full Round, its Range will
+  increase by 1 at the start of the next Round until it has Attacked a Unit, then it will reset.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: transform
+form:
+  id: giganticHorror
+  # What the sheet names stays; everything else goes (11f).
+  keeps: [summoning-horrors, summoning-elder-horror, gilles-evil-gaze-of-the-abyss, gilles-gigantic-horror]
+  pools: { health: 2000, agility: 0, luck: refill }
+  overrides:
+    mov: 0
+    range: { panels: 3, targets: 1 }
+    baseAttack: { str: 200, mag: 200 }
+    normalAttack:
+      mode: rangeBanded
+      component: str
+      shape: { kind: square, size: 3 }
+      # *"...hitting every Unit in it but himself"* (11g): his Horrors too.
+      relations: [enemy, ally, neutral]
+      bands:
+        - { to: 2, component: str, sources: [{ component: str, factor: 1 }] }
+        - { from: 3, component: mag, sources: [{ component: mag, factor: 1 }] }
+    sustainability: none
+    attributes: [dark, outsider, large]
+    detect: range
+  # The GM drives it (12a to 12h): a side of its own, the GM's slot, the nearest Unit.
+  controller: gm
+  # *"If there are no Units within its Range for 1 full Round, its Range will
+  # increase by 1 at the start of the next Round until it has Attacked a Unit,
+  # then it will reset"* (19).
+  rangeGrows: true
+passiveRules:
+  # *"Has a 10% chance of automatically activating ... when Gilles is defeated
+  # without Prelati's Spellbook being destroyed"*, in place of the defeat (10).
+  # *"Otherwise, X number of Elder Horrors appear on the panels around him,
+  # where X=number of Servants on the board"* (9). Not in his form (11f).
+  - key: RevivalSource
+    id: giganticHorrorOnDefeat
+    revivalPriority: 50
+    chance: 10
+    percentOfMax: 100
+    consumesOnUse: false
+    transform: gilles-gigantic-horror
+    predicate: ["not:self:effect:spellbookDestroyed", "not:self:form:giganticHorror"]
+    # Inside a Storm Border the die does not roll (11h), and the Elder Horrors
+    # still appear: *"Otherwise"* is his not transforming (ruled 2026-10-23).
+    chanceBarredWhen: ["self:onPlatform:platform-storm-border"]
+    otherwise:
+      - { key: SummonAround, contentId: elder-horror, outlives: true,
+          count: { of: board, requires: ["self:type:servant"], excludeSelf: true, standing: true } }

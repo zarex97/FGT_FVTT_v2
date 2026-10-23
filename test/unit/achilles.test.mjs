@@ -254,7 +254,8 @@ describe("Runner Comet", () => {
       .toEqual({ ok: false, reason: "stance" });
     expect(meetsRequirements(skill.requirements, {
       unit: { ...inStance("dismounted"), effects: ["npSeal"] },
-    })).toEqual({ ok: false, reason: "notHasEffect" });
+      // Named: a refusal names what it waits on (#323).
+    })).toMatchObject({ ok: false, reason: "notHasEffect", detail: { names: expect.any(String) } });
     expect(meetsRequirements(skill.requirements, { unit: { ...inStance("dismounted"), effects: [] } }))
       .toEqual({ ok: true });
   });
