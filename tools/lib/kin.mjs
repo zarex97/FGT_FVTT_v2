@@ -34,6 +34,9 @@ const BUILT_ALIASES = {
   Castor: "Dioscuri",
   Pollux: "Dioscuri",
   "Anastasia (Summer)": "Anastasia & Viy",
+  // The Beast's sheet is titled "President"; the Pretender pool's "U-Olga
+  // Marie" is another Servant, not yet built (#328 ruling 2).
+  "U-Olga Marie": "President",
 };
 
 /**

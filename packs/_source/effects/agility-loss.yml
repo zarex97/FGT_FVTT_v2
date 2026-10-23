@@ -1,0 +1,24 @@
+# Appendix A §A.9, the Agility half of Luck Loss: "Always uses the
+# unfavourable table, regardless of whose stat is higher."
+#
+# First authored for U-Olga Marie's Planet Olga Marie (#328 ruling 17). An
+# Evade is an Agility Check, so it forces both tables Levitation names: the
+# Agility Checks the engine calls `agility` and the Evade it calls `evade`.
+schema: 1
+id: agilityLoss
+name: "Agility Loss"
+description: |
+  Agility Checks, Evades included, always use the unfavourable table, regardless of whose Agility is higher.
+polarity: debuff
+volatility: nonVolatile
+valence: neutral
+stacking: noneRefresh
+baseChance: 100
+severity: normal
+rules:
+  - key: TableOverride
+    check: agility
+    forceTable: unfavourable
+  - key: TableOverride
+    check: evade
+    forceTable: unfavourable

@@ -848,7 +848,8 @@ describe("Akhilleus Kosmos's shove is damage, not an Attack (#184 reading 8)", (
     // Through `defenderFields` since #249, which a swap asks again: the placement's say rides as `declared`.
     expect(attack).toMatch(/plainDamage: Boolean\(placement\?\.plainDamage\)/);
     expect(attack).toMatch(/\.\.\.\(declared\.plainDamage \? \["evade", "block", "counter"\] : \[\]\)/);
-    expect(attack).toMatch(/\[defenderId\]: declared\.plainDamage\s*\? \[\]/);
+    // A follow-up its DU "cannot React to" closes them too (#328): `|| forbidReactions`.
+    expect(attack).toMatch(/\[defenderId\]: declared\.plainDamage(?: \|\| \(declared\.forbidReactions \?\? \[\]\)\.includes\("abilities"\))?\s*\? \[\]/);
     // No Combat Phase: neither the Dismount nor the window is offered.
     expect(attack).toMatch(/if \(!resume && !plainDamage\) \{/);
     expect(attack).toMatch(/const phaseWindow = resume \|\| plainDamage/);

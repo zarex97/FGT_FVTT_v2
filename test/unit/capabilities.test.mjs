@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import {
-  annotateClauses, buildIndex, capabilityOf, conversionSheet, ledgerCoverage, readClauseList, resolveKeyRef,
+  annotateClauses, buildIndex, capabilityOf, conversionPath, conversionSheet, ledgerCoverage, readClauseList, resolveKeyRef,
 } from "../../tools/lib/capabilities.mjs";
 
 /** @type {import("../../tools/lib/capabilities.mjs").Index} */
@@ -53,7 +53,7 @@ describe("conversion sources", () => {
     for (const f of readdirSync(dir).filter((x) => x.endsWith(".yml") && !x.startsWith("test-"))) {
       const sheet = conversionSheet(readFileSync(join(dir, f), "utf8"));
       if (!sheet) problems.push(`${f}: no # Conversion source: line`);
-      else if (!existsSync(`char_orig_sheets/Copia de ${sheet}.md`)) problems.push(`${f}: ${sheet} has no sheet`);
+      else if (!existsSync(conversionPath(readFileSync(join(dir, f), "utf8")))) problems.push(`${f}: ${sheet} has no sheet`);
     }
     expect(problems).toEqual([]);
   });

@@ -337,7 +337,19 @@ async function build(root) {
  * @returns {string|null} e.g. `Yan Qing` for `char_orig_sheets/Copia de Yan Qing.md`
  */
 export function conversionSheet(text) {
-  const m = text.match(/^# Conversion source: char_orig_sheets\/(?:Copia de )?(.+?)\.md\b/m);
+  const m = text.match(/^# Conversion source: char_orig_sheets\/(?:by-class\/[^/\n]+\/|Copia de )?(.+?)\.md\b/m);
+  return m ? m[1] : null;
+}
+
+/**
+ * The sheet's file, as the comment names it: a `Copia de` copy, or a sheet that
+ * lives only in its Class folder (U-Olga Marie's `by-class/Beast/President.md`, #328).
+ *
+ * @param {string} text
+ * @returns {string|null}
+ */
+export function conversionPath(text) {
+  const m = text.match(/^# Conversion source: (char_orig_sheets\/.+?\.md)\b/m);
   return m ? m[1] : null;
 }
 

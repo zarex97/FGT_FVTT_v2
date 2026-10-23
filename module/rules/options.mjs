@@ -437,6 +437,8 @@ function add(options, side, unit, withoutModeHeld = false) {
       for (let n = Math.max(1, a.distance); n <= 12; n++) options.add(`${side}:allyAttributeWithin:${attr}:${n}`);
     }
   }
+  // Another allied Servant has Attacked this Turn (Unparalleled, #328 ruling 11).
+  if (unit.allyServantAttacked) options.add(`${side}:allyServantAttacked`);
   for (const a of unit.attributes ?? []) options.add(`${side}:attribute:${a}`);
   // ITS ALIGNMENT, each half on its own: *"Units with the 'Lawful' Alignment"*
   // asks the order alone, *"the 'Evil' Alignment"* the morality alone (#253).

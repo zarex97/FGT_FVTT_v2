@@ -138,6 +138,39 @@ export function defaultContainers(factions, perFaction = CORE_CLASSES.length) {
 }
 
 /**
+ * The Classes no Grand Order Full Campaign summons: *"The Servants in this
+ * folder cannot be summoned in the Grand Order Full Campaign"*, the note in the
+ * `Beast/` sheet folder (#328 ruling 1). A Beast in another pool, Draco's Alter
+ * Ego, is filed under that pool's Class and is not barred.
+ */
+export const GRAND_ORDER_BARRED_CLASSES = Object.freeze(["beast"]);
+
+/**
+ * Is this catalogue entry barred from a Grand Order War?
+ *
+ * @param {CatalogueEntry|null|undefined} entry
+ * @returns {boolean}
+ */
+export function barredInGrandOrder(entry) {
+  return (entry?.servantClasses ?? []).some((c) => GRAND_ORDER_BARRED_CLASSES.includes(c));
+}
+
+/**
+ * The container a seated Servant takes: the slot's, unless the slot is an
+ * Extra one, which takes the Servant's own Extra Class. U-Olga Marie in an
+ * Extra slot is a Beast, with the Beast's icon and name, not "Extra" (#328
+ * ruling 1).
+ *
+ * @param {string} slot the container's `classContainer`
+ * @param {string|null|undefined} own the Servant's authored `classContainer`
+ * @returns {string}
+ */
+export function seatedContainer(slot, own) {
+  if (slot !== EXTRA) return slot;
+  return own && own !== EXTRA ? own : slot;
+}
+
+/**
  * Every catalogue entry that may fill this container.
  *
  * A core container matches on class membership, so Semiramis — Caster AND
@@ -153,7 +186,7 @@ export function defaultContainers(factions, perFaction = CORE_CLASSES.length) {
  * @param {{policy?: string, taken?: string[]}} [options]
  * @returns {string[]} contentIds, in catalogue order
  */
-export function candidatesFor(container, catalogue, { policy = "duplicates", taken = [] } = {}) {
+export function candidatesFor(container, catalogue, { policy = "duplicates", taken = [], grandOrder = false } = {}) {
   const wanted = container?.classContainer;
   const excluded = policy === "unique" ? new Set(taken) : new Set();
 
@@ -162,6 +195,9 @@ export function candidatesFor(container, catalogue, { policy = "duplicates", tak
       if (excluded.has(entry.contentId)) return false;
       if (entry.companion) return false;
       const classes = entry.servantClasses ?? [];
+      // *"The Servants in this folder cannot be summoned in the Grand Order
+      // Full Campaign"* (the Beast folder, #328 ruling 1).
+      if (grandOrder && barredInGrandOrder(entry)) return false;
       return wanted === EXTRA
         ? !classes.some((c) => CORE_CLASSES.includes(c))
         : classes.includes(wanted);
@@ -182,11 +218,11 @@ export function candidatesFor(container, catalogue, { policy = "duplicates", tak
  * @param {{policy?: string, taken?: string[]}} [options]
  * @returns {Array<{containerId: string, candidates: string[], reason: string|null}>}
  */
-export function drawPlan(containers, catalogue, { policy = "duplicates", taken = [] } = {}) {
+export function drawPlan(containers, catalogue, { policy = "duplicates", taken = [], grandOrder = false } = {}) {
   return (containers ?? [])
     .filter((c) => c?.fill !== "fixed")
     .map((c) => {
-      const candidates = candidatesFor(c, catalogue, { policy, taken });
+      const candidates = candidatesFor(c, catalogue, { policy, taken, grandOrder });
       return {
         containerId: c.id,
         candidates,
@@ -207,7 +243,7 @@ export function drawPlan(containers, catalogue, { policy = "duplicates", taken =
  * @param {{policy?: string}} [options]
  * @returns {Array<{containerId: string|null, code: string, message: string}>}
  */
-export function validateRoster(containers, factions, catalogue, { policy = "duplicates", essences = null } = {}) {
+export function validateRoster(containers, factions, catalogue, { policy = "duplicates", essences = null, grandOrder = false } = {}) {
   /** @type {Array<{containerId: string|null, code: string, message: string}>} */
   const out = [];
   const rows = containers ?? [];
@@ -218,8 +254,13 @@ export function validateRoster(containers, factions, catalogue, { policy = "dupl
   for (const c of rows) {
     if (!known.has(c.factionId)) say(c.id, "unknownFaction");
     if (c.fill === "fixed" && !c.contentId) say(c.id, "noFixedChoice");
-    if (c.fill !== "fixed" && candidatesFor(c, catalogue, { policy }).length === 0) {
+    if (c.fill !== "fixed" && candidatesFor(c, catalogue, { policy, grandOrder }).length === 0) {
       say(c.id, "noCandidates");
+    }
+    // A Beast picked by hand for a Grand Order War (#328 ruling 1).
+    if (grandOrder && c.fill === "fixed" && c.contentId
+      && barredInGrandOrder((catalogue ?? []).find((e) => e.contentId === c.contentId))) {
+      say(c.id, "barredInGrandOrder");
     }
     // "The unselected Noble Phantasm is unusable" only means something once one
     // IS selected (Ch. 17). A Servant offering the choice and given none would

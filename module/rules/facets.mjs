@@ -114,6 +114,13 @@ export const FACETS = Object.freeze([
     prose: "{subject} has an allied {trueName} within {panels} panels",
   }),
   facet({
+    id: "allyServantAttacked",
+    // Another allied Servant has Attacked this Turn: Unparalleled's effect 3
+    // is not applied if so (#328 ruling 11).
+    english: "Has an allied Servant that has already Attacked this Turn.",
+    prose: "{subject} has an allied Servant that has already Attacked this Turn",
+  }),
+  facet({
     id: "allyAttributeWithin",
     // An allied Unit carrying an Attribute stands within N panels, as a ladder:
     // Triumphal Return's [Star] ally within 2 (#260).

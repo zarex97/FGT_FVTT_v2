@@ -62,9 +62,9 @@ export const REVIVAL_PRIORITY = Object.freeze({
  * @param {object} unit a unit snapshot carrying `revivals`
  * @returns {RevivalSource[]}
  */
-export function availableRevivals(unit, rolls = null) {
+export function availableRevivals(unit, rolls = null, { killer = null } = {}) {
   return [...(unit?.revivals ?? [])]
-    .filter((source) => isAvailable(source, unit, rolls))
+    .filter((source) => isAvailable(source, unit, rolls, { killer }))
     .sort((a, b) => b.priority - a.priority);
 }
 
@@ -110,8 +110,13 @@ function chanceBarred(source, unit) {
  * @param {object} unit
  * @returns {boolean}
  */
-function isAvailable(source, unit, rolls = null, { ignoreBar = false } = {}) {
+function isAvailable(source, unit, rolls = null, { ignoreBar = false, killer = null } = {}) {
   if (source.charges !== null && source.charges !== undefined && source.charges <= 0) return false;
+  // WHO defeated it, asked of the killer's own options (#328 ruling 6): no
+  // killer on the record, no revival.
+  if ((source.killer ?? []).length > 0) {
+    if (!killer || !test(source.killer, { options: rollOptionsFor({ attacker: killer }) })) return false;
+  }
   // A die barred where he stands is no source at all: never rolled, never taken.
   if (!ignoreBar && chanceBarred(source, unit)) return false;
 
@@ -182,8 +187,8 @@ function isAvailable(source, unit, rolls = null, { ignoreBar = false } = {}) {
  * @param {Record<string, number>} [args.rolls] keyed `revival:<id>:<n>`
  * @returns {{revived: boolean, source: RevivalSource|null, restored: number, chargesUsed: number, rolled?: number[], overkill?: number}}
  */
-export function resolveRevival({ unit, overkill = 0, rolls = {} }) {
-  const source = availableRevivals(unit, rolls)[0] ?? null;
+export function resolveRevival({ unit, overkill = 0, rolls = {}, killer = null }) {
+  const source = availableRevivals(unit, rolls, { killer })[0] ?? null;
   if (!source) return { revived: false, source: null, restored: 0, chargesUsed: 0 };
 
   const max = maxHealthOf(unit);
@@ -327,4 +332,25 @@ function maxHealthOf(unit) {
   const health = unit?.health;
   if (typeof health === "number") return unit?.maxHealth ?? unit?.health?.max ?? health;
   return health?.max ?? 0;
+}
+
+/**
+ * The pools a revival restores beside Health, as the deltas that take each to
+ * its share of the maximum. A pool already above it keeps what it has.
+ *
+ * *"...she revives with her Health, Agility, and Luck restored to 50% of their
+ * maximum values"* (U-Olga Marie, #328 ruling 6).
+ *
+ * @param {object} unit a unit snapshot: `agility`, `maxAgility`, `luck`, `maxLuck`
+ * @param {Record<string, number>|null} pools percent of maximum, by pool
+ * @returns {Array<{stat: string, delta: number, value: number}>}
+ */
+export function poolRestores(unit, pools) {
+  const MAX = { agility: "maxAgility", luck: "maxLuck" };
+  return Object.entries(pools ?? {}).flatMap(([stat, percent]) => {
+    const max = unit?.[MAX[stat]] ?? 0;
+    const value = Math.floor(max * (Number(percent) / 100));
+    const delta = value - (unit?.[stat] ?? 0);
+    return delta > 0 ? [{ stat, delta, value }] : [];
+  });
 }

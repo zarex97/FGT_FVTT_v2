@@ -28,6 +28,7 @@ import { currentHealth } from "../../domain/health.mjs";
 import { categoryRankOf } from "../items.mjs";
 import { test as testPredicate } from "../predicate.mjs";
 import { revisionOf } from "../../domain/revisions.mjs";
+import { holdsFamily } from "../effects/families.mjs";
 
 /** Block's base percentage. A constant, not a dice entry (Ch. 41 Q1). */
 export const BLOCK_BASE_PERCENT = 25;
@@ -469,9 +470,12 @@ function stage2Crit(s) {
     //
     // A modifier with no `component` applies to either, which is every other
     // crit clause in the corpus.
+    // The attacker's own Crit Damage dealt, unless the Attack is not affected
+    // by it (Defender of Humanity, #328 ruling 7); the DU's resistance stays.
+    const dealt = s.ctx.attack?.ignoresCritDamageDealt ? 0
+      : sumCritMods(s, s.ctx.attacker, "critDmUp") - sumCritMods(s, s.ctx.attacker, "critDmDwn");
     const pct =
-      sumCritMods(s, s.ctx.attacker, "critDmUp") -
-      sumCritMods(s, s.ctx.attacker, "critDmDwn") -
+      dealt -
       sumCritMods(s, s.ctx.defender, "critResUp") +
       sumCritMods(s, s.ctx.defender, "critResDwn") +
       overCritBonus(s);
@@ -1224,7 +1228,8 @@ function stage16AbsorptionAndClamp(s) {
     s.note("petrify", "over 200 in one attack — the unit is defeated", "defender");
   }
 
-  if (has(d, "invuln") && !s.ctx.attack?.pierce) {
+  // Any Invuln: Invuln (Gyakkou) is one too (#328 ruling 10).
+  if (holdsFamily(d, "invuln") && !s.ctx.attack?.pierce) {
     // *"Against a Noble Phantasm, damage is reduced by 50% instead"* (Appendix
     // A). This said "the NP halving already happened at stage 15", and nothing
     // there or anywhere read Invuln: an NP met no Invuln at all, 300 in, 300

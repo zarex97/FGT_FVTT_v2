@@ -406,6 +406,17 @@ export function snapshotUnit(actor, {
     // An additional Normal Attack after one of this Unit's (Bab-ilu, #232),
     // read by `engine/follow-up.mjs#offerFollowUp`.
     followUps: contributions.followUps ?? [],
+    // How many Attacks it may make this Turn, and whether it bars its allied
+    // Servants' (Unparalleled, #328 ruling 11). Read by `rules/budget.mjs` and
+    // `rules/named-units.mjs#annotateAllies`.
+    attacksPerTurn: Math.max(1, ...(contributions.attackAllowances ?? []).map((a) => a.value)),
+    bansAlliedServantAttacks: contributions.bansAlliedServantAttacks ?? [],
+    // Attacks that have no effect on it (Gravity Manipulation, #328 ruling 9),
+    // read by `rules/miss.mjs#nullifiedBy`.
+    attackNullifiers: contributions.attackNullifiers ?? [],
+    // Noble Phantasms that ride its Normal Attacks (Four Elements, #328),
+    // read by `engine/attack-riders.mjs#offerAttackRiders`.
+    attackRiders: contributions.attackRiders ?? [],
     // Read by `engine/attack.mjs` before the Combat Processes are built, to
     // ask whether this unit may swing first at whoever just declared on it.
     preemptions: contributions.preemptions ?? [],
@@ -1883,11 +1894,12 @@ export function abilityRecordOf(item, overrides = {}) {
  * @returns {string[]}
  */
 export function attributesOf(actor, { contributed = [], removed = [], override = formOverrides(actor)?.attributes ?? null } = {}) {
-  if (override) return closeAttributes([...override]);
   const sys = actor?.system ?? {};
+  const withheld = [...(sys.withheldAttributes ?? [])];
+  if (override) return closeAttributes([...override], null, { withheld });
   const closed = closeAttributes([...(sys.attributes ?? []), ...contributed], {
     kind: actor?.type, servantClasses: sys.servantClasses ?? [], normalAttack: sys.normalAttack ?? null,
-  });
+  }, { withheld });
   // Taken away AFTER the closure, or an implication would put it back.
   return removed.length ? closed.filter((a) => !removed.includes(a)) : closed;
 }
@@ -2288,6 +2300,9 @@ function collectAbilities(actor, { tick = null, turnsPerRound = 3, dropped = fal
       isNP: i.type === "noblePhantasm",
       rank: Rank.parseOrNull(i.system?.rank),
       cooldownRemaining: i.system?.cooldown?.remaining ?? 0,
+      // Its full length, for a Passive whose handler starts its own clock
+      // (`scheduler.mjs#ownCooldownStart`, #328).
+      cooldownMax: i.system?.cooldown?.max ?? null,
       regen: i.system?.cooldown?.regen ?? 0,
       categorizedAsNP: Boolean(i.system?.categorizedAsNP),
       // An open TAG SET, and the first rule keyed on one is Jack's Mist:

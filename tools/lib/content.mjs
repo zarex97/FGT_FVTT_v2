@@ -66,6 +66,9 @@ export const RULE_ELEMENT_KEYS = new Set([
   // Proto Gil (#232): Heal Dwn and Drowning's healing received; Bab-ilu's
   // additional Normal Attack.
   "HealingReceived", "FollowUpAttack", "CooldownCutBonus", "UseFailure", "LearnsTrueNames",
+  // U-Olga Marie (#328): Unparalleled's three Attacks and its bar on her
+  // allied Servants, Gravity Manipulation's distant STR Attacks, Four Elements.
+  "AttacksPerTurn", "BanAlliedServantAttacks", "NullifiesAttacks", "AttackRider",
   "CritModifier", "BlockModifier", "AttackerPropertyTier",
   // Kiritsugu -- a property of the ATTACK granted by a buff on the attacker.
   // Until now `attack.pierce` could only come from an ability's own damage
@@ -137,7 +140,7 @@ export const CS_REQUIREMENT_KINDS = new Set([
  * vacuously satisfied, which is a gate that reads as enforced and is not.
  */
 const REQUIREMENT_SELECTORS = Object.freeze({
-  abilityOffCooldown: ["abilityIds", "category", "exclusionSet"],
+  abilityOffCooldown: ["abilityIds", "category", "exclusionSet", "scope"],
   hasSkill: ["abilityId"],
   modeActive: ["mode"],
   modeInactive: ["mode"],

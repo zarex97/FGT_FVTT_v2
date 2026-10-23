@@ -89,6 +89,8 @@ export const UNIT_ROUTES = {
   range: [{ at: "range", from: (v) => v?.panels }, { at: "maxTargets", from: (v) => v?.targets }],
   // Closed over the implication table, so the projection holds a superset.
   attributes: { at: "attributes", contains: true },
+  // Read off the document by the closure: U-Olga Marie's withheld Hominidae (#328).
+  withheldAttributes: doc("module/rules/snapshot.mjs", "attributesOf withholds them from the closure"),
   parameters: { at: "parameters", from: (v) => v, project: (p) => Object.fromEntries(Object.entries(p ?? {}).map(([k, r]) => [k, text(r)])) },
   // Resolved to Turns by the projection itself (`sustainabilityTurns`). The
   // authored expression is also copied to `sustainabilityMax`, which nothing
@@ -254,7 +256,7 @@ export const CONTRIBUTION_ROUTES = {
 export const EFFECT_ROUTES = {
   ...Object.fromEntries([
     "polarity", "volatility", "valence", "stacking", "baseChance", "severity", "preventsAction",
-    "families", "suppressesOtherEffects", "defaultMagnitude", "defaultDuration", "unremovable",
+    "families", "spentFirst", "suppressesOtherEffects", "defaultMagnitude", "defaultDuration", "unremovable",
     "maxStacks", "rulesOncePerBearer", "blocks", "blockedBy", "replaces", "periodic",
     "terminal", "uses", "absorbs", "onRemove", "rules", "bypassesImmunity", "bypassesResistance",
     "onApply", "onApplyEachLanding",

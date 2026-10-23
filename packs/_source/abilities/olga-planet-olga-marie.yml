@@ -1,0 +1,80 @@
+# U-Olga Marie (President), the audit of #328.
+# Conversion source: char_orig_sheets/by-class/Beast/President.md
+#
+# Ruling 17: a 9x9 beside her in any non-diagonal direction (Excalibur's
+# `selfEdgeAdjacent`, turnable), hitting every Unit in it, allies too. The
+# "First" debuffs land on each DU it reaches, before the damage; one that fails
+# to be inflicted (resisted, or stopped by an Immunity) costs that DU 2 Agility
+# or 2 Luck, down to 0. The ally riders reach every allied Unit within 3 of her,
+# herself included, so as a [Star] her own clock takes −½◈ twice.
+schema: 1
+id: olga-planet-olga-marie
+name: "Planet Olga Marie: The Already Passed End of the Human Order"
+rank: EX
+isNP: true
+npTags: [antiWorld]
+kind: noblePhantasm
+slug: planetOlgaMarie
+cooldown: "8◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: unique }
+description: |
+  Base Attack (MAG) is used. Hits a 9x9 panel area in any non-diagonal direction next to herself. First, has the
+  following effects-
+  1. Inflicts @effect[agilityLoss]{Agility Loss} for 1◈ Turns, if this debuff fails to be inflicted, the DU loses
+     2 Agility.
+  2. Inflicts @effect[luckLoss]{Luck Loss} for 1◈ Turns, if this debuff fails to be inflicted, the DU loses 2 Luck.
+  3. Inflicts @effect[defDwnB]{Def Dwn (B)} for 1◈ Turns, all damage taken is increased by 20%; if NP, 30%.
+  Deals 5x damage, damage dealt is further increased by 200% against Units with the [Man], [Star], or 'Living
+  Human' Attributes. Then, has the following effects on all allied Units within a 3 panel area of herself-
+  1. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 20%; if NP, 10%.
+  2. NP Cooldown is reduced by ½◈ Turns.
+  3. NP Cooldown of affected Units with the [Man], [Star], or 'Living Human' Attributes is reduced by ½◈ Turns.
+  Cooldown: 8◈ Turns
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 9, long: 9, turnable: true }
+  selection: { relations: [enemy, ally, neutral], includeSelf: false, chooser: all }
+  isDamagingAoE: true
+damage:
+  component: mag
+  multiplier: 5
+  conditionalMultipliers:
+    - factor: 3
+      predicate: [{ or: ["target:attribute:man", "target:attribute:star", "target:attribute:livingHuman"] }]
+      source: "Man, Star or Living Human (+200%)"
+phases:
+  - kind: applyEffects
+    target: reuse
+    when: beforeDamage
+    effects:
+      - { id: agilityLoss, duration: "1◈", otherwiseOn: failed, otherwise: { stats: [{ stat: agility, delta: -2 }] } }
+      - { id: luckLoss, duration: "1◈", otherwiseOn: failed, otherwise: { stats: [{ stat: luck, delta: -2 }] } }
+      - { id: defDwnB, duration: "1◈", magnitude: 20, npMagnitude: 30 }
+  - kind: damage
+    target: reuse
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: square, size: 7 }
+      selection: { relations: [ally, self], includeSelf: true, chooser: all }
+    effects:
+      - { id: atkUp, magnitude: 20, npMagnitude: 10, duration: "1◈" }
+  - kind: cooldown
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: square, size: 7 }
+      selection: { relations: [ally, self], includeSelf: true, chooser: all }
+    changes:
+      - { unit: target, scope: np, ticks: "½◈", direction: down }
+  - kind: cooldown
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: square, size: 7 }
+      selection:
+        relations: [ally, self]
+        includeSelf: true
+        chooser: all
+        attributes: [{ or: ["target:attribute:man", "target:attribute:star", "target:attribute:livingHuman"] }]
+    changes:
+      - { unit: target, scope: np, ticks: "½◈", direction: down }

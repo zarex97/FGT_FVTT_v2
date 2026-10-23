@@ -33,7 +33,7 @@
         did nothing at all. --}}
   {{#if refused.length}}
     <ul class="fgt-card__refused">
-      {{#each refused as |r|}}<li>{{r.name}} — {{r.reason}}</li>{{/each}}
+      {{#each refused as |r|}}<li>{{r.name}}{{#if r.reason}} — {{r.reason}}{{/if}}</li>{{/each}}
     </ul>
   {{/if}}
 </div>

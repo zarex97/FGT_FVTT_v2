@@ -47,12 +47,19 @@ export function annotateAllies(units, board) {
   const standing = units.filter((u) => !u.defeated && u.panel);
   for (const u of units) {
     if (!u.panel) continue;
-    u.nearbyAllies = standing
-      .filter((n) => n.id !== u.id && relationOf(u, n, board) === "ally")
-      .map((n) => ({
-        trueName: n.kind === "servant" ? trueNameSlug(n.trueName) : null,
-        attributes: [...(n.attributes ?? [])],
-        distance: chebyshev(u.panel, n.panel),
-      }));
+    const allies = standing.filter((n) => n.id !== u.id && relationOf(u, n, board) === "ally");
+    u.nearbyAllies = allies.map((n) => ({
+      trueName: n.kind === "servant" ? trueNameSlug(n.trueName) : null,
+      attributes: [...(n.attributes ?? [])],
+      distance: chebyshev(u.panel, n.panel),
+    }));
+    // Unparalleled (#328 ruling 11). Whether another allied Servant has
+    // Attacked this Turn, the gate on its third effect (`self:allyServantAttacked`)...
+    u.allyServantAttacked = allies.some((n) => n.kind === "servant" && Boolean(n.turnState?.attacked));
+    // ...and the ally whose Unparalleled bars this Servant's Attacks.
+    const barring = u.kind === "servant"
+      ? allies.find((n) => (n.bansAlliedServantAttacks ?? []).length > 0) ?? null
+      : null;
+    u.attackBarredBy = barring ? (barring.bansAlliedServantAttacks[0].source ?? "unparalleled") : null;
   }
 }

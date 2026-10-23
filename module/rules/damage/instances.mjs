@@ -99,6 +99,9 @@ export const DAMAGE_BLOCK_KEYS = Object.freeze([
   // what it counts as
   "element", "elementFraction", "aim", "pierce", "pierceOn", "thrownWeapon",
   "ignoresMagicResistance", "magicResistanceFactor", "ignoresDefUp", "ignoresAttackerIncreases", "isAoE",
+  // Defender of Humanity's Normal Attack: the attacker's Crit Damage effects
+  // do not touch it (#328 ruling 7).
+  "ignoresCritDamageDealt",
   // how the modifiers treat it
   "bypassModifiers", "modifierSources", "excludeModifierSources", "totalModifiers",
   // what the defender may answer it with

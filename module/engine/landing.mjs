@@ -383,6 +383,28 @@ export async function landEntry(entry, ctx, { write, reread = null }) {
     // Harisenbon: *"If Disable fails, inflicts Slow"*, ruled to read the outcome,
     // not the die: resisted, blocked by an Immunity, stopped by a Prevention Luck
     // Check, negated by a ward, or already held (#249 reading 11).
+    // A PRICE rather than an effect: Planet Olga Marie's *"if this debuff fails
+    // to be inflicted, the DU loses 2 Agility"* (#328 ruling 17). Stats the
+    // DU loses, each a line on the card.
+    if (otherwiseFires(entry, result.outcome) && Array.isArray(entry.otherwise?.stats)) {
+      const unitId = target?.id ?? ctx.target?.id ?? null;
+      const intents = entry.otherwise.stats
+        .filter((s) => s?.stat && Number(s.delta))
+        .map((s) => I.statDelta(unitId, `${s.stat}.value`, Number(s.delta), true));
+      if (unitId && intents.length > 0) {
+        await write(intents);
+        for (const s of entry.otherwise.stats) {
+          out.push({ summary: {
+            id: `${entry.id}:otherwise:${s.stat}`,
+            name: game.i18n.format("FGT.Landing.FailurePrice", {
+              effect: def?.name ?? entry.id, stat: game.i18n.localize(`FGT.Resource.${s.stat}`), amount: Math.abs(Number(s.delta)),
+            }),
+            outcome: "applied", reason: null, chance: "otherwise",
+          }, result: { outcome: "applied", intents } });
+        }
+      }
+      continue;
+    }
     if (otherwiseFires(entry, result.outcome) && entry.otherwise && typeof entry.otherwise === "object") {
       const { chance: _chance, otherwise: _otherwise, otherwiseOn: _on, ...rest } = entry;
       const fallback = await landEffect({ ...rest, ...entry.otherwise }, {
@@ -411,6 +433,10 @@ export async function landEntry(entry, ctx, { write, reread = null }) {
 export const OTHERWISE_ON = Object.freeze({
   resisted: Object.freeze(["resisted"]),
   notLanded: Object.freeze(["resisted", "blocked", "prevented", "negated", "noop"]),
+  // *"If this debuff fails to be inflicted"*: resisted, or stopped by an
+  // Immunity, a Prevention or a ward. One already held was not refused (#328
+  // ruling 17).
+  failed: Object.freeze(["resisted", "blocked", "prevented", "negated"]),
 });
 
 /**
