@@ -292,6 +292,23 @@ describe("a Turn change within a Round", () => {
   });
 });
 
+describe("the GM's slot", () => {
+  // Live, 2026-10-22 (#323): the Gigantic Horror's two Attacks of Round 25's
+  // GM slot still held its side's pool in Round 28: "Servant attacks exhausted
+  // (2/2)". A GM-driven form spends from the GM side's pool.
+  it("begins with the GM side's pool full", async () => {
+    const combat = makeCombat({ rolled: ["faction-1", "faction-2", "gm"] });
+    combat.turn = 1;
+    combat.current = combat._state();
+    combat.previous = structuredClone(combat.current);
+
+    await combat.nextTurn();
+
+    expect(combat.combatant.system.isGM).toBe(true);
+    expect(events.filter((e) => e.at === "budget.reset")).toEqual([{ at: "budget.reset", faction: "gm" }]);
+  });
+});
+
 describe("a rewind", () => {
   it("records no Round boundary for a later Turn change to pick up", async () => {
     const combat = makeCombat({ rolled: ["faction-2", "faction-1", "gm"] });

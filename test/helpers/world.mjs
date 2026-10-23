@@ -168,7 +168,7 @@ async function load() {
   return REAL;
 }
 
-const GLOBALS = ["game", "canvas", "foundry", "Hooks", "ui", "CONFIG", "CONST", "Roll", "ChatMessage"];
+const GLOBALS = ["game", "canvas", "foundry", "Hooks", "ui", "CONFIG", "CONST", "Roll", "ChatMessage", "JournalEntry"];
 
 /**
  * Every `fgt` setting's default, as `module/settings.mjs` registers it.
@@ -489,6 +489,15 @@ class FakeActor {
   getDependentTokens() { return this.world.tokensFor(this.id); }
 
   async update(patch, options = {}) {
+    // The ownership record is this wrapper's, by this world's short user ids
+    // (`p1`), which Foundry's id validation refuses: a hand-over writes it here.
+    if (patch?.ownership) {
+      const { ownership, ...rest } = patch;
+      this.ownership = { ...ownership };
+      this.world.writes.push([`Actor(${this.name})`, "ownership", ownership]);
+      patch = rest;
+      if (Object.keys(patch).length === 0) return this;
+    }
     const diff = loudUpdate(this.doc, patch, { label: `Actor(${this.name})`, writes: this.world.writes });
     this.prepare();
     fire("updateActor", this, diff, options);
@@ -812,16 +821,6 @@ const WORLD_SETTINGS = {
   commandSpellTimeout: 0,
 };
 
-/** Anything not modelled says so, rather than answering `undefined`. */
-function notModelled(what) {
-  return new Proxy({}, {
-    get(_t, prop) {
-      if (prop === Symbol.toPrimitive || prop === "then" || typeof prop === "symbol") return undefined;
-      throw new Error(`${what}.${String(prop)} is not modelled by test/helpers/world.mjs. Add it there.`);
-    },
-  });
-}
-
 /**
  * Foundry's real `Hooks`, a fresh copy for this world, with what Foundry does
  * not do: every listener's returned promise is kept, so a test can wait for the
@@ -1110,6 +1109,7 @@ export async function withWorld(own, fn) {
     // The scene's Tiles, which only a Feigned Defeat's body makes (#249).
     tiles: [],
     messages: new DocumentCollection(),
+    journal: new DocumentCollection(),
     settings: { ...REAL.settingDefaults, ...WORLD_SETTINGS, ...(spec.settings ?? {}) },
     selfUserId: "u1",
     clock: ((t) => () => (t += 1000))(1_700_000_000_000),
@@ -1176,7 +1176,8 @@ export async function withWorld(own, fn) {
     // `pack`): the content an Item grant reads (`engine/io.mjs#fromContent`).
     packs: spec.packs ?? [],
     messages: world.messages,
-    journal: notModelled("game.journal"),
+    // A player's Notebook (`engine/notebook.mjs`, #297): entries and their pages.
+    journal: world.journal,
     i18n: { format: (k) => k, localize: (k) => k, has: () => false },
   };
   globalThis.canvas = {
@@ -1237,6 +1238,28 @@ export async function withWorld(own, fn) {
         faces: this.dice.flatMap((d) => d.results.map((r) => ({ faces: d.faces, result: r.result }))),
       });
       return this;
+    }
+  };
+  // Only what a Notebook asks of a Journal Entry: its flags, its ownership and
+  // its text pages.
+  globalThis.JournalEntry = class JournalEntry {
+    static async create(data) {
+      const id = `journal${String(world.journal.size + 1).padStart(9, "0")}`;
+      const pages = new DocumentCollection();
+      const entry = {
+        id, name: data.name, ownership: { ...(data.ownership ?? {}) }, flags: data.flags ?? {}, pages,
+        getFlag: (scope, key) => entry.flags?.[scope]?.[key],
+        async createEmbeddedDocuments(type, list) {
+          if (type !== "JournalEntryPage") throw new Error(`A Journal Entry here creates pages only, not ${type}.`);
+          return list.map((d) => {
+            const page = { ...d, id: `page${String(pages.size + 1).padStart(12, "0")}`, getFlag: (s, k) => d.flags?.[s]?.[k] };
+            pages.set(page.id, page);
+            return page;
+          });
+        },
+      };
+      world.journal.set(id, entry);
+      return entry;
     }
   };
   globalThis.ChatMessage = class ChatMessage {

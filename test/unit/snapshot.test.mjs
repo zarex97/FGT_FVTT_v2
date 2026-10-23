@@ -288,6 +288,9 @@ describe("VariantOverride (Ch. 45, Semiramis's Double Summon buff)", () => {
       // A Normal Attack may carry an AREA (Kagome: Famine's 3x3); Semiramis's
       // is a single panel, so it projects null.
       shape: null,
+      // ...and whom that area hits, a form's own word (the Gigantic Horror's
+      // 3x3, #323 reading 11g); hers names none.
+      relations: null,
       // ...and a damage TYPE (Ozymandias's Mesektet is Light); hers has none.
       element: null,
       // ...and how much of the swing carries it (Raikou's copies' "(half)").

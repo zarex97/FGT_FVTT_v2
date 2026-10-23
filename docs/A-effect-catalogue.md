@@ -783,4 +783,6 @@ in either direction.
 | `decoyScapegoat` | debuff | Its own document rather than the shared `decoy`, because Lethal Gunfire Suppression triggers on **this** one — sharing it would make Mannanán's self-applied Decoy fire Kiritsugu's gun from across the board. Meets the ally's Debuff Resist and Debuff Immune (#132). |
 | `suppression` | buff | **Two clocks that are not the same clock**: `uses: 5` and a 1◈ duration, ending on whichever runs out first. A use is spent by a SUCCESSFUL strip only. `noneExtend`, so Magecraft's `DurationExtension` lengthens the clock without refilling the uses. |
 | `kiritsuguMark` | debuff | Halves BOTH Base Attack components; unremovable, non-stacking, past Debuff Resist *and* Debuff Immune. Named `kiritsuguMark`, never `kiritsugu` — an effect sharing a content id with its Servant is a build-breaking collision, which `raikou` hit. Its display NAME is still "Kiritsugu", as the sheet has it, which makes the content linter flag every mention of the man; those are incidental. |
-
+| `spellbookDestroyed` | status | Prelati's Spellbook destroyed (#323): unremovable and permanent, the mark the Spellbook's `notHasEffect` and the Spells' `abilityAllows` read, and the weak point's `destroyedMark`. |
+| `gazing` | buff | Gilles's Evil Gaze (#323): his Normal Attacks inflict Curse. His Horrors' 50% within 2 is their own handler, gated on `self:summonerEffect:gazing` and `self:withinOfSummoner:2`. |
+| `dmgUpCurse` | buff | Dmg Up gated on the target's Curse (#323), Dmg Up (Evil)'s shape. |

@@ -439,7 +439,8 @@ describe("The Queen's Glass Game (G1–G10)", () => {
 
   it("G1 — Rank C, NP, Anti-Self/Anti-World, PASSIVE", () => {
     expect(a()).toMatchObject({ rank: "C", isNP: true, isPassive: true });
-    expect([...a().npTags].sort()).toEqual(["antiSelf", "antiWorld"]);
+    // Artistic, a literary creation (#323 reading 14).
+    expect([...a().npTags].sort()).toEqual(["antiSelf", "antiWorld", "artistic"]);
   });
 
   it("E2 — declares that it needs history", () => {

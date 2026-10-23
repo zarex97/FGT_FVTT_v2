@@ -234,6 +234,15 @@ describe("fields the engine writes during play", () => {
     expect(out.summonerId).toBe("ha6OpDqFBWndMfZp");
   });
 
+  // Live, 2026-10-22 (#323 reading 9): Gilles's Elder Horrors are stamped to
+  // outlive him as he falls; a reload put the pack's `true` back, and his next
+  // defeat took them all with him.
+  it("keeps a summon's stamp to outlive its summoner", () => {
+    const world = { contentId: "elder-horror", leavesWithSummoner: false };
+    const out = reconcileSystem("actor", world, { contentId: "elder-horror", leavesWithSummoner: true });
+    expect(out.leavesWithSummoner).toBe(false);
+  });
+
   it("keeps a revealed Servant revealed, and her war's class slot", () => {
     const world = { contentId: "medusa", identityRevealed: true, classContainer: "saber" };
     const pack = { contentId: "medusa", identityRevealed: false, classContainer: "rider" };

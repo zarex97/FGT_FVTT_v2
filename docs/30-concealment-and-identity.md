@@ -225,3 +225,10 @@ summoning. Three private copies of the reader (`attack.mjs`, `master-guard.mjs`,
 name and marked safe, *"a row is shown only to its recipient's controllers"*; `skillEffectsFor` shows every row to the
 caster's controllers as well, so Het Gele Huis read *"Karna: Def Dwn"* to Van Gogh's player. Rows and stat lines say
 `shownName`, and the guard reads `recipient`, the holder that hid it.
+
+**A player's Notebook** (#297, #323 reading 15). `engine/notebook.mjs` keeps one Journal Entry per player, owned by that
+player alone, one page per thing learned. `LearnsTrueNames` (Appreciation of the Arts) rolls for every Unit within its
+radius of an NP's user when the NP carries its tags (`engine/true-name.mjs#witnessNP`, from `fireAbilityUsed`): the die
+and the result are whispered to the witness's player and the GM; a success copies the NP's name and text into the
+Notebook, never its user's identity, and a miss names whose NP it was, not the NP. An NP already in the reader's
+Notebook rolls nothing (`notebook.mjs#notebookHolds`): a miss would say he does not know what he knows.

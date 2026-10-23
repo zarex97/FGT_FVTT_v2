@@ -27,9 +27,17 @@ export function revivalCard(entry, nameOfUnit, nameOfSource, t) {
     amount: entry.amount ?? 0,
     overkill: entry.overkill ?? 0,
   };
-  const rolled = (entry.rolled ?? []).length ? ` ${t("FGT.Revival.Rolled", { rolled: entry.rolled.join(", ") })}` : "";
+  // A source on a die: what it rolled, a miss included (#323).
+  if (entry.kind === "revivalChanceMissed") {
+    return `<div class="fgt-card fgt-card--revival"><p>${t("FGT.Revival.ChanceMissed", { ...data, roll: entry.roll, chance: entry.chance })}</p></div>`;
+  }
+  const chance = typeof entry.chanceRoll === "number"
+    ? ` ${t("FGT.Revival.ChanceHit", { roll: entry.chanceRoll, chance: entry.chance })}` : "";
+  const rolled = `${chance}${(entry.rolled ?? []).length ? ` ${t("FGT.Revival.Rolled", { rolled: entry.rolled.join(", ") })}` : ""}`;
   const uses = typeof entry.left === "number" ? ` ${t("FGT.Revival.Charges", { charges: entry.charges ?? 1, left: entry.left })}` : "";
-  return `<div class="fgt-card fgt-card--revival"><p>${t(entry.kind === "reviveFailed" ? "FGT.Revival.Failed" : "FGT.Revival.Card", data)}${rolled}${uses}</p></div>`;
+  const key = entry.kind === "reviveFailed" ? "FGT.Revival.Failed"
+    : entry.transform ? "FGT.Revival.Transformed" : "FGT.Revival.Card";
+  return `<div class="fgt-card fgt-card--revival"><p>${t(key, data)}${rolled}${uses}</p></div>`;
 }
 
 /**

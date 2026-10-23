@@ -19,7 +19,7 @@ code: module/engine/cooldown.mjs
 - `byOutcome` (**Attribute**, Saber 2026-10-21): a length that reads what the use did. Sétanta adds ⅓◈ *"for each
   effect activated/applied by this Skill"*. The Trung Sisters' Punji Trap adds ½◈ *"for every debuff inflicted"*.
   Kurohime's NP costs 3◈ when its Normal Attack misses. Arthur's Excalibur Proto adds ½◈ per criteria met. Both
-  Gilles (Caster)'s Summoning: Horrors waits ⅓◈ per Horror summoned. Eli Brave's Mana Burst waits 3◈ or 4◈ by
+  Gilles (Caster)'s Summoning: Horrors waits ⅔◈ per Horror summoned. Eli Brave's Mana Burst waits 3◈ or 4◈ by
   her die. Nero's Goblet of Wealth waits 3◈ when its effect failed. **Run since #320**: the clock settles from the
   Use record once the use is over. `branches` and `conditionalBonus` see its `use:` options (`use:missed`,
   `use:evaded`, `use:applied:<effect>`, `use:die:<face>`), and `countBonus` reads its facts as a Count

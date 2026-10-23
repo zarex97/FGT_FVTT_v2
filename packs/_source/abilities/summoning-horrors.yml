@@ -48,7 +48,19 @@ targeting:
   shape: { kind: unit }
   selection: { relations: [self], includeSelf: true, chooser: all }
 phases:
+  # As the Gigantic Horror, Gilles (Caster) summons twice as many: the die,
+  # doubled (#323 reading 20). The Saber never takes that form.
   - kind: summon
+    predicate: ["self:form:giganticHorror"]
+    spec:
+      countRoll: "1d4"
+      countFactor: 2
+      types: { 1: horror }
+      placement: { shape: square, size: 5, anchor: self, chooser: owner }
+      countsTowardBudget: false
+      actsOncePerTurn: true
+  - kind: summon
+    predicate: ["not:self:form:giganticHorror"]
     spec:
       countRoll: "1d4"
       types: { 1: horror }

@@ -5436,6 +5436,73 @@ Prelati's Spellbook: … is on Cooldown."* Ch. 17.
 **Reached: PE.roll.** Prelati's Encouragement's die that missed read *"chance"* on the card. The phase says
 *"missed"*, with the die. Ch. 17.
 
+### UA. Van Gogh held no Class — **fixed** (#323)
+
+**Reached: PS.a.1.** The Spellbook cut her De Sterrennacht 9 → 7, the ½◈ of a non-Foreigner: she stated
+`classContainer: foreigner` and no `servantClasses`, the list every Class reader asks. The test had built its
+Foreigner with the list written in. Drake and Kiritsugu state none either: open. Ch. 45.
+
+### UB. A known NP rolled again, and the miss denied it — **fixed** (#323)
+
+**Reached: AA.learn.** Learned on a 9, the next use whispered *"does not learn"* on a 64. A Notebook that holds the NP
+now rolls nothing. Ch. 30.
+
+### UC. An outcome was said before its die — **fixed** (#323)
+
+**Reached: PS.f.eh.** *"5 of 5 Elder Horror appear"* came above *"rolls 56 against 10%"*. A log batch's lines are
+posted first, then the summons, splits and forms they bring. Ch. 31.
+
+### UD. A gate reason showed as its key — **fixed** (#323)
+
+**Reached: GH.storm.** *"— forbidCreating"* on the bar. The use gate's own reasons now have strings, and the i18n guard
+scans them. Ch. 44.
+
+### UE. A form kept a derived Attribute — **fixed** (#323)
+
+**Reached: GH.attr.** The Gigantic Horror read Magus beside Dark, Large, Outsider, from his Caster Class; his passives'
+gate never saw the form at all. One reader, `snapshot.mjs#attributesOf`. Ch. 24.
+
+### UF. A Command Spell's refusal named nothing — **fixed** (#323)
+
+**Reached: GH.cs.** *"No Command Spell can be spent now."* The bar says the one reason: *"Command Spells have no effect
+on this Servant."* Ch. 24.
+
+### UG. "When it Attacks" bound its Skills, and narrowed its area — **fixed** (#323)
+
+**Reached: GH.eg, GH.near.** His Evil Gaze was refused, every enemy *"compelled to attack another unit"*; his 3×3 kept
+the nearest alone, and took enemies only, so his own Horror could never be Attacked. `attacksOnly`,
+`areaMustInclude` and the form's `normalAttack.relations`. Ch. 24.
+
+### UH. A form hid the Spellbook its Spells read — **fixed** (#323)
+
+**Reached: GH.spells.** Whole and resting, the Spellbook still refused the Spells `abilityAllows`: the form had
+dropped it from the abilities the gate reads. `formDropped`. Ch. 17.
+
+### UI. The roster's sync gave a GM form's summons back — **fixed** (#323)
+
+**Reached: GH.ctrl.** Four Horrors summoned in the GM's slot came out Owner for Player1. `syncOne` asks
+`gmControlled`. Ch. 24.
+
+### UJ. A Range grew on the Round's last moment — **fixed** (#323)
+
+**Reached: GH.grow.** Nemo stood beside him all Round 25 and was moved off in the GM's slot; the Range grew. Every
+Turn's end with a Unit in reach marks the Round. Ch. 25.
+
+### UK. The GM side's pool never refilled — **fixed** (#323)
+
+**Reached: GH.turn.** *"Servant attacks exhausted (2/2)"* three Rounds after his two Attacks. The GM's slot resets the
+`gm` side's pool. Ch. 25.
+
+### UL. A transformation was said as a revival with Health — **fixed** (#323)
+
+**Reached: PS.f.gh.** *"revived by … Gigantic Horror, with 500 Health"* over a form at 2000. *"does not fall: … takes
+over instead."* Ch. 45.
+
+### UM. A reload reset the stamp that lets a summon outlive its summoner — **fixed** (#323)
+
+**Reached: PS.f.eh, GH.final.** His final defeat took the five Elder Horrors that had outlived his first: the content
+sync put the pack's `leavesWithSummoner: true` back. Seeded, then the world's. Ch. 31.
+
 ---
 
 ---
@@ -7520,3 +7587,45 @@ Health, token positions, fixed dice, a Skill Seal on Hassan and Jack, Test Jeann
   Not his; a Surprise of 2026-10-20.
 - **Effect documents are still named by their ids**: the damage card now prints names, the token's effect list does not.
 - **A fixed summon count prints a degenerate roll**: *"1 summoned (1 → 1; 1 → 1)"*.
+
+## 46.45 Gilles de Rais (Caster) — the Servant who becomes the GM's
+
+**154 Clauses** (#323, audited 2026-10-22) on *Copia de Gilles.md*. Thirty-five readings ruled by grilling 2026-10-22,
+among them 11f (*everything the sheet does not name goes away* in his form), 11h (inside a Storm Border he cannot
+transform at all) and 12 (the Gigantic Horror is the GM's: its own side, the GM's slot, the nearest Unit). Spec
+`docs/superpowers/specs/2026-10-22-gilles-caster-clauses.md`.
+
+### 46.45.1 What he cost the engine
+
+| Finding | Where |
+|---|---|
+| A held object aimed at instead of its holder, on its own rung (readings 1 to 5) | `weakPoint.kind: object`, `combat-process.mjs` `objectResolve`, `engine/held-object.mjs` |
+| Substitution: summons in his place, the Process rebound (readings 6, 7) | `engine/substitution.mjs`, `attack.mjs#rebindDefender` |
+| A one-way form: keeps, pools, overrides, the GM's control (11, 12) | `rules/form.mjs`, `engine/transform.mjs`, `rules/control.mjs#gmControlled` |
+| A revival on a die, its miss running `otherwise` (readings 9, 10) | `rules/revival.mjs`, `scheduler.mjs#resolveDefeat`, `SummonAround` |
+| A form's Range that grows with no Unit in reach (19) | `engine/form-range.mjs` |
+| True Names learned into a player's Notebook (14, 15) | `engine/true-name.mjs`, `engine/notebook.mjs` |
+| General: §46.4-UA to UM | |
+
+### 46.45.2 What was pressed, and how
+
+War *Gilles Audit B*, Rounds 23 to 28. Gilles for Player1 (Player1 pressed his Skills, Spells, NP, reactions,
+Substitution, Luck Check, Command Spell and the transformation from his bar and the cards) against the Test Use Bench
+(the GM's foe, Ruler), with Test Jeanne, Medea, Nursery Rhyme, three Van Goghs, Nemo and Hassan placed for single
+Clauses. The Gigantic Horror was the GM's: its Attacks, Evil Gaze and summons were the GM's presses. Staged: Turn
+records, cooldowns, Health, Agility, token positions, the foe's AGI, the Spellbook's mark, his form undone twice to
+reach its other two doors, the GM's dice forced to 1 for the two 10% that land, and his live items patched with the
+two content fixes a pack rebuild will carry (Foundry was running). **Thirteen defects found, all fixed:** §46.4-UA to
+UM. The press log goes on #323.
+
+### 46.45.3 Left open
+
+- **Two readings to rule:** inside a Storm Border his fall rolls no die and, as built, brings no Elder Horrors either;
+  and in his form, still his Master's contract (11a), the ZON penalty applies to his Attacks.
+- **The Horrors' split exemptions** (HO.split.light, HO.split.vs, EH.split, its .light and .vs) were pressed in #260 on
+  the same `horror` and `elder-horror` summons; here one split was pressed again after UC.
+- **Drake and Kiritsugu state no `servantClasses`**: no `class:` option, no ZON class base, the general NP gate.
+- **The packs need a rebuild** with Foundry closed for UA and UG's content to reach the world.
+- **A dice negation's formula is not under "Rolls"** on the card, only its value (every Territory Creation).
+- **The compulsion's refusal line reads** *"Foreigner is the attacker is compelled to attack another unit"*.
+

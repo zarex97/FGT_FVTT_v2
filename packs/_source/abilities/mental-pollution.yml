@@ -1,5 +1,13 @@
-# Jack the Ripper, char_orig_sheets/Copia de Jack the Ripper.md lines 44-46.
-# Data sheet: docs/D-servant-data-sheets.md §D.18
+# Mental Pollution, the Skill three sheets print with three sets of figures:
+#
+#   Jack the Ripper  C   *"Chance of inflicting debuffs is increased by 15%. Chance of being
+#                         inflicted by Mental Debuffs is reduced by 60%."*
+#   Gilles (Caster)  A   *"...increased by 25%... reduced by 100%."*
+#   Phantom of the   A   *"Chance of inflicting Mental Debuffs is increased by 25%..."* (unbuilt;
+#   Opera                 his first clause names Mental debuffs only, a parameter to add with him)
+#
+# No rank table: Gilles and the Phantom are both A and differ. So one shared
+# skill with its figures as parameters, as Golden Rule's chance is (#323).
 #
 # Two passives, no active, no cooldown. Both are `ApplicationChance` and both
 # fall out of machinery Heracles's Bravery and Medea's Item Construction built:
@@ -7,15 +15,16 @@
 # severity, and the consumer (`engine/effect-applier.mjs`) already filters to
 # debuffs on its own -- so neither clause needs to name one.
 schema: 1
-id: jack-mental-pollution
+id: mental-pollution
 name: "Mental Pollution"
-rank: C
 kind: skill
 slug: mentalPollution
 passive: true
+parameterized: [rank, inflict, resist]
+rank: "@rank"
 description: |
-  (Passive 1) Chance of inflicting debuffs is increased by 15%.
-  (Passive 2) Chance of being inflicted by Mental Debuffs is reduced by 60%.
+  (Passive 1) Chance of inflicting debuffs is increased.
+  (Passive 2) Chance of being inflicted by Mental Debuffs is reduced.
 passiveRules:
   # Clause 1. No `valence` and no `volatility`: "debuffs" is every debuff, and
   # the consumer refuses to apply an outgoing chance modifier to a buff anyway
@@ -23,7 +32,7 @@ passiveRules:
   # going on at "110% (automatic)").
   - key: ApplicationChance
     direction: outgoing
-    value: 15
+    value: "@inflict"
 
   # Clause 2. `volatility: mental` is Appendix A's own classification rather
   # than a list of ids, so this covers a mental debuff written after Jack was.
@@ -35,4 +44,4 @@ passiveRules:
   - key: ApplicationChance
     direction: incoming
     volatility: mental
-    value: 60
+    value: "@resist"

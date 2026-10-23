@@ -102,6 +102,9 @@ export function canSpend(command, ctx) {
   // command. Medea's Master was offered Teleport Servant with Medea defeated
   // and gone, a spend that would have paid and moved nobody (§46.4-LN).
   if (!ctx.servant || ctx.servant.defeated) return { ok: false, reason: "noServant", cost };
+  // A Servant whose form the GM controls: *"Command Spells have no effect"*
+  // (Gilles's Gigantic Horror, #323 reading 12f).
+  if (ctx.servant.formController === "gm") return { ok: false, reason: "uncommandable", cost };
   // Ch. 32: the pool is per RELATIONSHIP. A Master with three spells borrowed
   // for Archer cannot spend them on Lancer, and the flat count could not say so.
   // A legion's body reads the hundred's pool, namespaced to the legion (#226).
@@ -171,6 +174,7 @@ export function essenceCommand(item) {
  */
 export function canUseEssence(command, ctx) {
   if (!ctx.servant || ctx.servant.defeated) return { ok: false, reason: "noServant", cost: 0 };
+  if (ctx.servant.formController === "gm") return { ok: false, reason: "uncommandable", cost: 0 };
   if ((command.timesUsed ?? 0) >= (command.maxUses ?? 1)) return { ok: false, reason: "spent", cost: 0 };
   for (const req of command.requirements ?? []) {
     if (!meets(req, ctx)) return { ok: false, reason: req.kind, cost: 0 };

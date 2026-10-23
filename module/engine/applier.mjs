@@ -1062,6 +1062,12 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
     case "extendEffect":
       for (const i of intents) await io.extendEffect(unitId, i.defId, i.turns, i.startAt ?? null);
       break;
+    case "takeForm":
+      for (const i of intents) await io.takeForm(unitId, i);
+      break;
+    case "formRange":
+      for (const i of intents) await io.setFormRange(unitId, i.value, i.seenRound ?? null);
+      break;
     case "tallyMode":
       for (const i of intents) await io.tallyMode(unitId, i.abilityId);
       break;
@@ -1182,18 +1188,31 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
         // What a handler owes at a later boundary (`at:`), kept on the match
         // until `scheduler-hooks.mjs` pays it (#103).
         if (i.entry?.kind === "deferred") await io.defer?.(i.entry);
-        // A defeated summon turning into new ones (#260 reading 12).
-        if (i.entry?.kind === "split") {
-          const { splitSummon } = await import("./summoning.mjs");
-          await splitSummon(i.entry);
-          continue;
-        }
         if (i.entry?.kind !== "banish") continue;
         await io.banish(i.entry.unitId, i.entry.untilTick, i.entry.fieldId);
       }
       // Filed at the Moment the batch is about: the end of Round 9 runs once the
       // clock reads Round 10, and its entries belong to Round 9.
       await io.log(intents.map((i) => i.entry), { moment });
+      // What a line brings runs after the line is said: the die that missed,
+      // then the Elder Horrors it sends (#323, live: they were said first).
+      for (const i of intents) {
+        // A defeated summon turning into new ones (#260 reading 12).
+        if (i.entry?.kind === "split") {
+          const { splitSummon } = await import("./summoning.mjs");
+          await splitSummon(i.entry);
+        }
+        // Summons on and around a Unit's panel (Gilles's Elder Horrors, #323).
+        if (i.entry?.kind === "summonAround") {
+          const { summonAround } = await import("./summoning.mjs");
+          await summonAround(i.entry);
+        }
+        // A Unit taking a form (the Gigantic Horror, #323).
+        if (i.entry?.kind === "transform") {
+          const { transformUnit } = await import("./transform.mjs");
+          await transformUnit(i.entry.unitId, i.entry.ability, { cause: i.entry.cause ?? null });
+        }
+      }
       break;
     default:
       throw new RangeError(`FGT | No writer for intent type "${t}".`);

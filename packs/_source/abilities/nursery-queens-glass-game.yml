@@ -18,7 +18,7 @@ rank: C
 isNP: true
 categorizedAsNP: true
 isPassive: true
-npTags: [antiSelf, antiWorld]
+npTags: [antiSelf, antiWorld, artistic]
 kind: noblePhantasm
 # THE GATE. Without this the recorder never switches on, this Noble Phantasm has
 # no past to read, and both of its effects do nothing at all -- silently, which

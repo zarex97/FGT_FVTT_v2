@@ -5,7 +5,7 @@ name: "Nursery Rhyme: Trump Soldiers"
 rank: C
 isNP: true
 categorizedAsNP: true
-npTags: [antiUnit]
+npTags: [antiUnit, artistic]
 kind: noblePhantasm
 timing: { window: ownTurn }
 # "Counts as Nursery's Attack for the Turn."

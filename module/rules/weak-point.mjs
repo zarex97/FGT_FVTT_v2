@@ -23,6 +23,7 @@
  */
 
 import { coneOf, chebyshev } from "../domain/geometry.mjs";
+import { Rank } from "../domain/rank.mjs";
 import { sees } from "./identity.mjs";
 import { stanceOf } from "./stance.mjs";
 
@@ -152,6 +153,29 @@ export function weakPointChance(spec, { defender, attacker, state, board = null,
 export function weakPointOffered(spec, ctx) {
   const out = weakPointChance(spec, { ...ctx, luckCheckPassed: false });
   return out.available && out.chance > 0;
+}
+
+/**
+ * May this attacker aim at an OBJECT the defender holds instead of at him?
+ *
+ * Prelati's Spellbook (#323 reading 1): *"Whenever Gilles is Attacked, if the
+ * AU's AGI Rank is Rank C or higher, it can instead target Prelati's
+ * Spellbook."* The attacker's current AGI Rank, shifts included; a Unit with no
+ * AGI Rank (a Master, a Horror) never may. Only while the object stands: a
+ * destroyed one carries its mark on the holder.
+ *
+ * @param {object} spec a weak point of `kind: "object"`
+ * @param {{defender: object, attacker: object}} ctx
+ * @returns {boolean}
+ */
+export function objectAimable(spec, { defender, attacker }) {
+  if (spec?.kind !== "object") return false;
+  if (spec.destroyedMark && (defender?.effects ?? []).includes(spec.destroyedMark)) return false;
+  const floor = spec.aimRequires?.agiRankAtLeast ?? null;
+  if (!floor) return true;
+  const raw = attacker?.parameters?.agi ?? null;
+  const agi = raw instanceof Rank ? raw : Rank.parseOrNull(raw ?? "");
+  return Boolean(agi) && Rank.gte(agi, Rank.parse(floor), false);
 }
 
 /**

@@ -32,6 +32,8 @@ export const NP_TAG_SCALE = Object.freeze([
 export const NP_TAG_QUALIFIERS = Object.freeze([
   "antiDivine", "antiBeast", "antiUnitSelf", "barrier", "fortress",
   "labyrinth", "counter", "boundedField", "unknown",
+  // An artistic, literary or musical creation (Appreciation of the Arts, #323).
+  "artistic",
 ]);
 
 /**

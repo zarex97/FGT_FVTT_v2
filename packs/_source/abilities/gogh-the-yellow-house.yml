@@ -17,7 +17,7 @@ name: "Het Gele Huis: The Yellow House"
 rank: "A+"
 isNP: true
 categorizedAsNP: true
-npTags: [antiArmy]
+npTags: [antiArmy, artistic]
 kind: noblePhantasm
 cooldown: "7◈+⅓◈"
 timing: { window: ownTurn }

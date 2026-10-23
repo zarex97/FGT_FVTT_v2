@@ -133,6 +133,12 @@ A whole Turn or Round boundary plays in the arena too: `w.combat.passTurn({to, n
 
 `test/unit/dice-through-roll.test.mjs` refuses `Math.random` in `module/` outside a short list of uses that are not dice, so every die reaches the card, the log and the scripted dice of the test world.
 
+### The refusal-label guard
+
+`test/unit/i18n.test.mjs` holds a string for every requirement kind and, since #323, for every reason the use gate
+itself returns: it scans `rules/costs.mjs` and `rules/ability-use.mjs` for `reason: "…"` and asks `abilityState` for the
+label each would show. Gilles's Gigantic Horror inside the Storm Border read "— forbidCreating" on Player1's bar.
+
 ### The survival test
 
 `test/unit/survival.test.mjs` holds Hop 4 of Ch. 07's Route: that what the DataModel keeps, the rules can

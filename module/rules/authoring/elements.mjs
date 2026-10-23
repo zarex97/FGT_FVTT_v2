@@ -306,6 +306,11 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "chanceWhen", type: "raw" },
     { key: "then", type: "select", choices: ["lockThisTurn", "endActions"] },
   ]),
+  entry("LearnsTrueNames", "A chance of learning the True Name of a tagged NP used near this Unit, copied to its player's Notebook.", [
+    { key: "chance", type: "number" },
+    { key: "radius", type: "number" },
+    { key: "tags", type: "tokenList" },
+  ]),
   entry("TerrainPenaltyImmunity", "This Unit takes none of a terrain's penalties, and keeps its benefits.", [
     { key: "terrain", type: "text" },
   ]),

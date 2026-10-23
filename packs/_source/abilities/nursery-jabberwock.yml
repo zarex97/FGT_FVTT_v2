@@ -5,7 +5,7 @@ name: "Nursery Rhyme: Jabberwock"
 rank: C
 isNP: true
 categorizedAsNP: true
-npTags: [antiUnit]
+npTags: [antiUnit, artistic]
 kind: noblePhantasm
 timing: { window: ownTurn }
 # "Summoning it counts as Nursery's Attack for the Turn" is about the SUMMONING.

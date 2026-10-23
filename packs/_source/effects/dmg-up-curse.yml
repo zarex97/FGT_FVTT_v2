@@ -1,0 +1,17 @@
+# Gilles (Caster)'s Evil Gaze of the Abyss, effect 4 (#323). Dmg Up (Evil)'s
+# shape, gated on the target's Curse instead of its Alignment.
+schema: 1
+id: dmgUpCurse
+name: "Dmg Up (Curse)"
+description: "All damage dealt to Units inflicted with Curse is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: dmgUp
+    direction: dealt
+    value: "@magnitude"
+    predicate: ["target:effect:curse"]

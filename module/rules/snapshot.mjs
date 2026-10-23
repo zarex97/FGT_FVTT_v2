@@ -40,6 +40,7 @@ import { annotateControl } from "./control.mjs";
 import { tierOf } from "./master-rank.mjs";
 import { isUnbound } from "./cs-namespacing.mjs";
 import { closeAttributes } from "../domain/attributes.mjs";
+import { formOf, formOverrides, keptByForm } from "./form.mjs";
 import { rollOptionsFor } from "./options.mjs";
 import { platformsOn, luckOwnerOf } from "./platforms.mjs";
 import { annotateFields, withoutForeignEffects } from "./bounded-fields.mjs";
@@ -82,9 +83,11 @@ export function snapshotUnit(actor, {
   // variant uses (`rules/summon-variant.mjs`) -- one set of numbers for both
   // the permanent and the temporary grant, rather than re-authoring Range,
   // Normal Attack and Sustainability a second time on the buff itself.
-  const variantOverride = contributions.variantOverride
+  // A FORM taken (Gilles's Gigantic Horror, #323) overrides the same fields a
+  // variant does, and more: MOV, Base Attack, Attributes, Detect.
+  const variantOverride = formOverrides(actor) ?? (contributions.variantOverride
     ? sys.summonVariant?.[contributions.variantOverride]?.overrides ?? null
-    : null;
+    : null);
 
   // The war Region's grant is applied on the way out rather than inline,
   // because it shifts Ranks that the object literal below is still building.
@@ -231,7 +234,7 @@ export function snapshotUnit(actor, {
     // and a pool recorded from its value alone came back with its maximum cut
     // to what was left (#247, live).
     maxLuck: sys.luck?.max ?? 0,
-    mov: sys.mov ?? 0,
+    mov: variantOverride?.mov ?? sys.mov ?? 0,
     // The NUMBER of panels, not the `{panels, targets}` schema object. Every
     // consumer compares it against a distance, and comparing a distance to an
     // object is silently false rather than an error.
@@ -246,9 +249,11 @@ export function snapshotUnit(actor, {
     // layer does arithmetic on this in four places and the document holds a ◈
     // expression, so resolving it is the snapshot's job -- exactly as it is
     // for `health`, and for the same reason.
-    sustainability: variantOverride?.sustainability
-      ? sustainabilityTurns({ ...sys, sustainability: variantOverride.sustainability }, turnsPerRound)
-      : sustainabilityTurns(sys, turnsPerRound),
+    // `none`: *"Sustainability: None"*, no clock at all (#323).
+    sustainability: variantOverride?.sustainability === "none" ? null
+      : variantOverride?.sustainability
+        ? sustainabilityTurns({ ...sys, sustainability: variantOverride.sustainability }, turnsPerRound)
+        : sustainabilityTurns(sys, turnsPerRound),
     // The authored maximum, for the sheet.
     sustainabilityMax: sys.sustainability ?? null,
     // Turns lost at each Turn's end beyond the clock's own one: Revised Mad
@@ -280,7 +285,10 @@ export function snapshotUnit(actor, {
     // back: a rewind (`rules/history.mjs#snapshotUnit`). The Ranks above carry
     // the granted steps and clone to {} in a flag (#247, live).
     storedParameters: { ...(sys.parameters ?? {}) },
-    baseAttack: { str: sys.baseAttack?.str ?? 0, mag: sys.baseAttack?.mag ?? 0 },
+    baseAttack: {
+      str: variantOverride?.baseAttack?.str ?? sys.baseAttack?.str ?? 0,
+      mag: variantOverride?.baseAttack?.mag ?? sys.baseAttack?.mag ?? 0,
+    },
     // The AUTHORED maximum Health, which is not `health.max` once anything has
     // grown it. Kingprotea's Proliferation pays *"20% of Kingprotea's ORIGINAL
     // Max Health"* per stock, and reading the live maximum there compounds.
@@ -295,10 +303,12 @@ export function snapshotUnit(actor, {
     // defines. Closed HERE rather than at authoring time so `Pseudo Servant`
     // means something -- it is the only attribute in the game whose whole job
     // is to withhold an implication.
-    attributes: closeAttributes(
-      [...(sys.attributes ?? []), ...contributions.attributes],
-      { kind: actor.type, servantClasses: sys.servantClasses ?? [], normalAttack: sys.normalAttack ?? null },
-    ),
+    // A form REPLACES them: the Gigantic Horror is *"Dark (Outsider), Large"*
+    // and nothing else (#323 reading 11c).
+    attributes: attributesOf(actor, {
+      contributed: contributions.attributes,
+      override: variantOverride?.attributes ?? null,
+    }),
     // Where the unit is from. Predicates name it -- "damage dealt to Male Units
     // from the Greece region" -- and nothing carried it before.
     region: [...(sys.region ?? [])],
@@ -338,6 +348,7 @@ export function snapshotUnit(actor, {
     // Unit's own abilities, because it is a property of the Unit rather than a
     // technique it uses -- which is also why nothing here checks a cooldown.
     weakPoints: [...(actor.items ?? [])]
+      .filter((i) => keptByForm(actor, i))
       .map((i) => i.system?.weakPoint)
       .filter(Boolean),
     // How this Unit shoves whoever it walks into (Ch. 05). `null` for
@@ -388,6 +399,9 @@ export function snapshotUnit(actor, {
     // Chances that a use fails outright (Charlotte, Merlin, #300), read by
     // `rules/use-failure.mjs#failureFor`.
     useFailures: contributions.useFailures ?? [],
+    // Chances of learning an NP's True Name used near this Unit (#297), read by
+    // `engine/true-name.mjs#witnessNP`.
+    learnsTrueNames: contributions.learnsTrueNames ?? [],
     // An additional Normal Attack after one of this Unit's (Bab-ilu, #232),
     // read by `engine/follow-up.mjs#offerFollowUp`.
     followUps: contributions.followUps ?? [],
@@ -444,6 +458,11 @@ export function snapshotUnit(actor, {
     effectInstances: effectInstances(actor),
     modifiers: contributions.modifiers,
     abilities: collectAbilities(actor, { tick, turnsPerRound }),
+    // What a form dropped, still his documents: the Gigantic Horror's Spells
+    // read Prelati's Spellbook *itself*, open while it stands and rests (#323
+    // reading 11i). Read only where a requirement names an ability
+    // (`rules/items.mjs#gatedAbilities`); nothing here can be used.
+    formDropped: collectAbilities(actor, { tick, turnsPerRound, dropped: true }),
     // Ch. 06's pools, so a gate or a cooldown waiver can ask what the Unit
     // holds without reaching for the document. Copied one level deep, because
     // this layer is pure and must not hand a live document's object to a rule.
@@ -545,6 +564,9 @@ export function snapshotUnit(actor, {
       // Normal Attack in the game hit exactly one panel because the targeting
       // fallback said `{kind: "unit"}` and nothing could say otherwise.
       shape: variantOverride?.normalAttack?.shape ?? sys.normalAttack?.shape ?? null,
+      // Whom that area hits. A form's own word: the Gigantic Horror's 3x3 hits
+      // *"every Unit in it but himself"* (#323 reading 11g), his Horrors too.
+      relations: variantOverride?.normalAttack?.relations ?? null,
       // The Rank Magic Resistance meets it at (#187 reading 8).
       attackRank: variantOverride?.normalAttack?.attackRank ?? sys.normalAttack?.attackRank ?? null,
       // Its own stage-3 multipliers (#189 readings 3, 18).
@@ -661,7 +683,17 @@ export function snapshotUnit(actor, {
     classContainer: sys.classContainer ?? [...(sys.servantClasses ?? [])][0] ?? null,
     concealedIdentity: sys.concealedIdentity || null,
     identityRevealed: Boolean(sys.identityRevealed),
-    detect: sys.detect ?? null,
+    // *"Detect: Same as Range"* (#323): a form's `detect: range`.
+    detect: variantOverride?.detect === "range"
+      ? (variantOverride?.range?.panels ?? null)
+      : (variantOverride?.detect ?? sys.detect ?? null),
+    // The form taken, and what it keeps (#323): `self:form:` and the use gate.
+    form: formOf(actor)?.id ?? null,
+    // ...who drives it, and how (#323 reading 12): the GM, at the nearest Unit,
+    // its Range growing while none is in reach.
+    formController: formOf(actor)?.spec?.controller ?? null,
+    attacksNearest: formOf(actor)?.spec?.controller === "gm",
+    rangeGrows: Boolean(formOf(actor)?.spec?.rangeGrows),
     // "While a Servant is affected by Charm, Confuse, Berserk, Stun, Stop,
     // Petrify, Freeze, Sleep, **or any other effect that prevents a Servant
     // from Acting**, the effects in the above paragraphs are negated"
@@ -1024,6 +1056,7 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
 
   annotateLastOfSummonGroup(units);
   annotateSummonsActed(units);
+  annotateSummoner(units);
   // Built here rather than cached across calls: `snapshotBoard` is where the
   // board's positions are already in hand, and an index built anywhere else
   // would need the invalidation table (Ch. 08) to keep it honest. The engine
@@ -1835,6 +1868,27 @@ export function abilityRecordOf(item, overrides = {}) {
  * @param {object} actor
  * @returns {object}
  */
+/**
+ * A Unit's Attributes, closed: the one reader the board and its own passives'
+ * gates share.
+ *
+ * A form or variant that names Attributes REPLACES the set, and nothing is
+ * derived beside it: the Gigantic Horror is exactly *"Dark (Outsider), Large"*,
+ * where a Caster's closure would add Magus (#323 reading 11c, live).
+ *
+ * @param {object} actor
+ * @param {{contributed?: string[], override?: string[]|null}} [args]
+ *   `override` defaults to the actor's form's own
+ * @returns {string[]}
+ */
+export function attributesOf(actor, { contributed = [], override = formOverrides(actor)?.attributes ?? null } = {}) {
+  if (override) return closeAttributes([...override]);
+  const sys = actor?.system ?? {};
+  return closeAttributes([...(sys.attributes ?? []), ...contributed], {
+    kind: actor?.type, servantClasses: sys.servantClasses ?? [], normalAttack: sys.normalAttack ?? null,
+  });
+}
+
 export function contributionsOf(actor, { terrain = [], tick = null, partnerDistance = null, war = null, turnsPerRound = 3 } = {}) {
   const sys = actor.system ?? {};
   const abilities = [...(actor.items ?? [])]
@@ -1863,6 +1917,9 @@ export function contributionsOf(actor, { terrain = [], tick = null, partnerDista
     // people. The war setup's unselected NP choice is the same word, and *"is
     // unusable"* does not leave its passives running either.
     .filter((item) => !item.system?.expended)
+    // ...nor one a FORM took away (#323 reading 11f): the Gigantic Horror keeps
+    // what the sheet names, and Territory Creation's passives go with the rest.
+    .filter((item) => keptByForm(actor, item))
     // A Master's OWN Essence is its Servant's passive, never the Master's: its
     // rules reach the Servant through the copy the Servant holds
     // (`engine/master-essence.mjs`). Collected here, Pendant raised the Master's
@@ -1976,10 +2033,10 @@ export function contributionsOf(actor, { terrain = [], tick = null, partnerDista
       // not have to check.
       // Closed, for the same reason the unit projection above is: a predicate
       // naming `self:attribute:spirit` must see the same set the board does.
-      attributes: closeAttributes(sys.attributes ?? [], {
-        kind: actor.type, servantClasses: sys.servantClasses ?? [], normalAttack: sys.normalAttack ?? null,
-      }),
+      attributes: attributesOf(actor),
       effects: [...(actor.effects ?? [])].map((e) => e.system?.defId).filter(Boolean),
+      // The form it has taken, for a clause gated on it (#323).
+      form: sys.formTaken ?? null,
       // ...and their FAMILIES, as the board projects them, so a `self:effectFamily:`
       // clause can be answered from the bearer's own contributions. Charisma is
       // *"negated if this Unit has Atk Up (Charisma)"*, asked by family (#230):
@@ -2218,9 +2275,10 @@ function restoreGateOf(requirements) {
   return req ? { fraction: req.fraction ?? 0.5 } : null;
 }
 
-function collectAbilities(actor, { tick = null, turnsPerRound = 3 } = {}) {
+function collectAbilities(actor, { tick = null, turnsPerRound = 3, dropped = false } = {}) {
   return [...(actor.items ?? [])]
     .filter((i) => i.type === "ability" || i.type === "noblePhantasm")
+    .filter((i) => keptByForm(actor, i) !== dropped)
     .map((i) => ({
       id: i.id,
       name: i.name,
@@ -2411,6 +2469,36 @@ function magicResistanceOf(actor) {
   if (!mr) return null;
   if (mr.mode === "dice") return { mode: "dice", formula: mr.formula, npDiceDoubled: mr.npDiceDoubled ?? true };
   return { mode: "rank", rank: Rank.parseOrNull(mr.rank), percent: mr.percent };
+}
+
+/**
+ * What a summon knows of its summoner: the effects it holds and how far away it
+ * stands.
+ *
+ * Gilles (Caster)'s Gazing: *"Normal Attacks from all Horrors within a 2 panel
+ * area of himself have a 50% chance of inflicting Curse"* (#323). A handler
+ * fires from the Unit that dealt the damage, so the Horror asks about him
+ * (`self:summonerEffect:<id>`, `self:withinOfSummoner:<n>`). A defeated summoner
+ * holds nothing and stands nowhere.
+ *
+ * @param {object[]} units
+ * @returns {object[]} the same units, annotated
+ */
+export function annotateSummoner(units) {
+  const byId = new Map((units ?? []).map((u) => [u.id, u]));
+  for (const u of units ?? []) {
+    const summoner = u.summonerId ? byId.get(u.summonerId) : null;
+    if (!summoner || summoner.defeated) {
+      u.summonerEffects = [];
+      u.summonerDistance = null;
+      continue;
+    }
+    u.summonerEffects = [...(summoner.effects ?? [])];
+    u.summonerDistance = summoner.panel && u.panel
+      ? Math.max(Math.abs(summoner.panel.i - u.panel.i), Math.abs(summoner.panel.j - u.panel.j))
+      : null;
+  }
+  return units;
 }
 
 /**
