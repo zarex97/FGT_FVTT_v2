@@ -91,6 +91,14 @@ function abilityCommon() {
     // *"Using this NP does not reduce her Master's Health as a cost"* (Arturia's
     // Avalon, #230). Read by `rules/costs.mjs#npCost`.
     noMasterCost: new fields.BooleanField({ initial: false }),
+    // What this Attack adds to the chance of hitting a weak point it aims at:
+    // Antares Snipe's *"the chance of hitting that specific target is increased
+    // by 75%"* (#326 ruling 12). Read by `rules/weak-point.mjs`.
+    weakPointAimBonus: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+    // What this NP does once its bearer is defeated: Antares Snipe ⅓◈ later, on
+    // the killer, held until a Night (#326 ruling 13). `{delay, target,
+    // holdUnless}`. Read by `engine/schedule.mjs#schedulePosthumous`.
+    afterDefeat: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     // What a FREE Servant pays to use this NP, when its sheet states it rather
     // than the Rank table: the Normal ruleset's *"When a Free Servant uses its
     // Noble Phantasm, it immediately disappears after use"* (`{kind:
@@ -343,11 +351,19 @@ function abilityCommon() {
     opensDialog: new fields.StringField({
       required: false, nullable: true, initial: null, blank: false, choices: ["copy"],
     }),
+    // A copy grant's own terms: how many it copies and the clock each copy
+    // keeps. Wisdom of Dún Scáith copies two, Wisdom of Divine Gift three (#326).
+    // `{slots, cooldown}`; the copies take the grant's Rank. Read by
+    // `engine/copy.mjs#copyGrantSpec`.
+    copyGrant: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     // Set on a COPY: the content id of what it copies. A copy carries no phases
     // of its own, so a later fix to the source reaches every copy of it.
     copiedFrom: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
     // The grant that produced it, and the set every copy from one grant shares.
     grantedBy: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+    // Set on a copy a teacher TAUGHT: his id. A learner holds one Skill learned
+    // from him (#326 ruling 10g). Written by `engine/copy.mjs#grantTaughtCopy`.
+    taughtBy: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
     // Set on a copy a SUMMON inherited from its summoner (`inherit.passives`).
     // Raikou's clones are *"unable to use Mad Enhancement, Riding and the
     // Active effects of Raikou's Skills (Passive effects are still present)"*,

@@ -18,7 +18,8 @@
  * something.
  */
 
-import { offerCopies, grantCopies } from "../engine/copy.mjs";
+import { offerCopies, grantCopies, copyGrantOf, copyGrantSpec } from "../engine/copy.mjs";
+import { unitActor } from "../engine/board.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -50,6 +51,9 @@ export class CopyDialog extends HandlebarsApplicationMixin(ApplicationV2) {
   /** @type {number} */
   #slots;
 
+  /** The grant's own name: Wisdom of Dún Scáith, Wisdom of Divine Gift (#326). @type {string} */
+  #grantName;
+
   /** Ability ids the GM has ticked. @type {Set<string>} */
   #offered = new Set();
 
@@ -60,13 +64,22 @@ export class CopyDialog extends HandlebarsApplicationMixin(ApplicationV2) {
    * @param {object} options
    * @param {string} options.copierId
    * @param {string} [options.grantedBy] the ability doing the copying
-   * @param {number} [options.slots]
    */
-  constructor({ copierId, grantedBy = "wisdomOfDunScaith", slots = 2 }) {
+  constructor({ copierId, grantedBy = null }) {
     super();
     this.#copierId = copierId;
-    this.#grantedBy = grantedBy;
-    this.#slots = slots;
+    // The grant's own terms (#326): Scáthach copies two, Chiron three.
+    const grant = copyGrantOf(unitActor(copierId));
+    const terms = copyGrantSpec(grant);
+    this.#grantedBy = grantedBy ?? terms?.grantedBy ?? null;
+    this.#slots = terms?.slots ?? 0;
+    // Its name, never Scáthach's: Chiron's pick opened titled hers (#326, live).
+    this.#grantName = grant?.name ?? game.i18n.localize("FGT.Copy.Title");
+  }
+
+  /** @override */
+  get title() {
+    return this.#grantName;
   }
 
   /**
@@ -161,7 +174,7 @@ export class CopyDialog extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const candidates = offerCopies({ copierId: this.#copierId }) ?? [];
     const offered = candidates.filter((c) => this.#offered.has(c.ability.id));
-    const picks = await askOwner(this.#copierId, offered, this.#slots);
+    const picks = await askOwner(this.#copierId, offered, this.#slots, this.#grantName);
 
     // A declined or timed-out question leaves the dialog open, because the GM's
     // curation is still valid and re-doing it would be the real cost.
@@ -174,9 +187,7 @@ export class CopyDialog extends HandlebarsApplicationMixin(ApplicationV2) {
       .filter((c) => picks.includes(c.ability.id))
       .map((c) => ({ unitId: c.unitId, abilityId: c.ability.id }));
 
-    const result = await grantCopies({
-      copierId: this.#copierId, picks: chosen, slots: this.#slots, grantedBy: this.#grantedBy,
-    });
+    const result = await grantCopies({ copierId: this.#copierId, picks: chosen, grantedBy: this.#grantedBy });
     if (!result.ok) {
       ui.notifications.error(game.i18n.format("FGT.Copy.Failed", { reason: result.reason }));
       return;
@@ -200,12 +211,13 @@ export class CopyDialog extends HandlebarsApplicationMixin(ApplicationV2) {
  * @param {string} copierId
  * @param {Array<object>} offered
  * @param {number} slots
+ * @param {string} title the grant's name
  * @returns {Promise<string[]|null>}
  */
-async function askOwner(copierId, offered, slots) {
+async function askOwner(copierId, offered, slots, title) {
   const spec = {
     kind: "choose",
-    title: game.i18n.localize("FGT.Copy.PickTitle"),
+    title,
     hint: game.i18n.format("FGT.Copy.PickHint", { count: slots }),
     count: slots,
     options: offered.map((c) => ({

@@ -333,6 +333,10 @@ export function combatantCommon() {
     // within its Range for 1 full Round"* is the whole Round, not its last
     // moment (#323 reading 19, live). Written by `engine/form-range.mjs`.
     formRangeSeen: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+    // A teaching this Unit is in, as teacher or learner: `{teacherId, learnerId,
+    // copyId, skill, startedAt, endsAt}`, the same on both (#326). Written by
+    // `engine/teaching.mjs` through `io.setTeaching`.
+    teaching: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     // Reset at the start of the owning faction's turn. `movedPanels` is a
     // running total rather than a per-segment count, because Riding's two moves
     // share one MOV allowance (Ch. 19).

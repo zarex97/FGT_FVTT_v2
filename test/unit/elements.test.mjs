@@ -232,6 +232,15 @@ describe("attribute grants", () => {
     // The attribute grant must not also register as a numeric stat change.
     expect(out.statDeltas).toEqual([]);
   });
+  // Chiron's Centaur Form *"loses the 'Humanoid' Attribute"* (#326 ruling 3).
+  it("a form takes an attribute away, and adds none", () => {
+    const out = collectContributions([
+      ability({ name: "Great Sage", passiveRules: [{ key: "StatDelta", stat: "attributes", remove: ["humanoid"] }] }),
+    ]);
+    expect(out.attributesRemoved).toEqual(["humanoid"]);
+    expect(out.attributes).toEqual([]);
+    expect(out.statDeltas).toEqual([]);
+  });
 });
 
 describe("unhandled keys are surfaced, not swallowed", () => {

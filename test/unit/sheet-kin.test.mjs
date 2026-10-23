@@ -32,3 +32,26 @@ describe("Sheet Kin", () => {
     expect(g.exact).toBe(1);
   });
 });
+
+describe("which sheets are built", () => {
+  // `sheet-kin` read `name:` with `[^"\n]+`, so a Servant file saved with CRLF
+  // kept a trailing "\r" and matched no sheet: Achilles, Heracles, Karna and ten
+  // more read as unbuilt in every survey (2026-10-23).
+  it("reads a Servant's name from a CRLF file without its carriage return", async () => {
+    const { mkdtempSync, writeFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { builtServantNames } = await import("../../tools/lib/kin.mjs");
+    const dir = mkdtempSync(join(tmpdir(), "kin-"));
+    writeFileSync(join(dir, "achilles.yml"), "schema: 1\r\nid: achilles\r\nname: Achilles\r\n");
+    writeFileSync(join(dir, "drake.yml"), 'schema: 1\nname: "Francis Drake"\n');
+    writeFileSync(join(dir, "test-bench.yml"), "name: Test Bench\n");
+    expect(builtServantNames(dir).sort()).toEqual(["Achilles", "Francis Drake"]);
+  });
+
+  it("marks every built Servant of the roster as built", async () => {
+    const { builtServantNames, loadCorpus } = await import("../../tools/lib/kin.mjs");
+    const built = new Set(loadCorpus(undefined, builtServantNames()).filter((c) => c.built).map((c) => c.sheet));
+    for (const sheet of ["Achilles", "Heracles", "Karna", "Semiramis", "Kingprotea"]) expect(built).toContain(sheet);
+  });
+});

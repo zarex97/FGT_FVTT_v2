@@ -281,6 +281,22 @@ export function worldIO() {
      *
      * @param {string} unitId
      */
+    /**
+     * Record a defeated Unit's posthumous strikes (`engine/schedule.mjs`, #326).
+     * @param {string} unitId @param {string|null} killerId
+     */
+    async noteTeachingDefeat(unitId) {
+      if (!game.user?.isGM) return;
+      const { cancelTeachingOf } = await import("./teaching.mjs");
+      await cancelTeachingOf(unitId);
+    },
+
+    async notePosthumous(unitId, killerId) {
+      if (!game.user?.isGM) return;
+      const { schedulePosthumous } = await import("./schedule.mjs");
+      await schedulePosthumous(unitId, killerId);
+    },
+
     async destroyPlatformsOf(unitId) {
       if (!game.user?.isGM) return;
       const { currentBoard } = await import("./board.mjs");
@@ -1570,6 +1586,14 @@ export function worldIO() {
         "system.formRangeBonus": Math.max(0, value),
         ...(seenRound !== null ? { "system.formRangeSeen": seenRound } : {}),
       });
+    },
+
+    /**
+     * A teaching's record on one of its Units (`engine/teaching.mjs`, #326).
+     * @param {string} unitId @param {object|null} record
+     */
+    async setTeaching(unitId, record) {
+      await resolve(unitId)?.update({ "system.teaching": record ?? null });
     },
 
     async decayEffect(unitId, effectId, steps) {

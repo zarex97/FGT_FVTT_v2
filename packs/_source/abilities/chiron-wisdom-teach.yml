@@ -1,0 +1,33 @@
+# Chiron, char_orig_sheets/Copia de Chiron.md (#326)
+#
+# Wisdom of Divine Gift's teaching (rulings 8–11): one of his copies to another
+# Servant directly next to him, allied or enemy, both controllers agreeing. For
+# 1◈ both Cannot Act; a hit from an enemy's Attack, a defeat or a parting
+# cancels it. The learner then holds the copy at A+ and 4◈-⅓◈, and he keeps it.
+schema: 1
+id: chiron-wisdom-teach
+name: "Wisdom of Divine Gift (Teach)"
+rank: "A+"
+kind: skill
+slug: wisdomTeach
+timing: { window: ownTurn }
+countsAsAttack: false
+copyable: { allowed: false, reason: unique }
+description: |
+  Chiron is able to teach one of the copied Skills to another Servant. Both Masters must agree to this
+  teaching, and both Chiron and the learning Servant must be directly next to each other. The teaching
+  process lasts for 1◈ Turns; Chiron and the learning Servant cannot Act until the teaching process is
+  complete, and the teaching process is cancelled if interrupted (e.g. enemy Servant Attack).
+targeting:
+  anchor: { kind: targetUnit, range: 1 }
+  shape: { kind: unit }
+  selection:
+    relations: [ally, enemy, neutral]
+    includeSelf: false
+    chooser: chosen
+    count: 1
+    attributes: ["target:type:servant"]
+phases:
+  - kind: teach
+    target: reuse
+    duration: "1◈"

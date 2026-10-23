@@ -307,6 +307,7 @@ export function snapshotUnit(actor, {
     // and nothing else (#323 reading 11c).
     attributes: attributesOf(actor, {
       contributed: contributions.attributes,
+      removed: contributions.attributesRemoved,
       override: variantOverride?.attributes ?? null,
     }),
     // Where the unit is from. Predicates name it -- "damage dealt to Male Units
@@ -1877,16 +1878,18 @@ export function abilityRecordOf(item, overrides = {}) {
  * where a Caster's closure would add Magus (#323 reading 11c, live).
  *
  * @param {object} actor
- * @param {{contributed?: string[], override?: string[]|null}} [args]
+ * @param {{contributed?: string[], removed?: string[], override?: string[]|null}} [args]
  *   `override` defaults to the actor's form's own
  * @returns {string[]}
  */
-export function attributesOf(actor, { contributed = [], override = formOverrides(actor)?.attributes ?? null } = {}) {
+export function attributesOf(actor, { contributed = [], removed = [], override = formOverrides(actor)?.attributes ?? null } = {}) {
   if (override) return closeAttributes([...override]);
   const sys = actor?.system ?? {};
-  return closeAttributes([...(sys.attributes ?? []), ...contributed], {
+  const closed = closeAttributes([...(sys.attributes ?? []), ...contributed], {
     kind: actor?.type, servantClasses: sys.servantClasses ?? [], normalAttack: sys.normalAttack ?? null,
   });
+  // Taken away AFTER the closure, or an implication would put it back.
+  return removed.length ? closed.filter((a) => !removed.includes(a)) : closed;
 }
 
 export function contributionsOf(actor, { terrain = [], tick = null, partnerDistance = null, war = null, turnsPerRound = 3 } = {}) {

@@ -7634,3 +7634,42 @@ UN. The press log goes on #323.
 - **A dice negation's formula is not under "Rolls"** on the card, only its value (every Territory Creation).
 - **The compulsion's refusal line reads** *"Foreigner is the attacker is compelled to attack another unit"*.
 
+
+## 46.46 Chiron — the Servant who teaches
+
+**87 Clauses** (#326, audited 2026-10-23) on *Copia de Chiron.md*. Fifteen readings ruled by grilling 2026-10-23,
+among them 6 (his copy takes no Class Skill and no Spell, as Scáthach's), 10 and 11 (teaching: one at a time, one Skill
+per learner, both controllers agree, both Cannot Act, an enemy's hit cancels) and 13 (the posthumous Antares Snipe).
+Spec `docs/superpowers/specs/2026-10-23-chiron-clauses.md`. First of the leverage ranking the user picked.
+
+### 46.46.1 What he cost the engine
+
+| Finding | Where |
+|---|---|
+| A form takes an Attribute away (ruling 3) | `StatDelta` `remove`, `snapshot.mjs#attributesOf` |
+| A copy grant's own terms: three slots, its Rank, its name (rulings 6, 7) | `copyGrant`, `copy.mjs#copyGrantSpec`, `copy-dialog.mjs#title` |
+| Teaching a copy (rulings 8 to 11) | `engine/teaching.mjs`, the `teach` phase, `system.teaching`, `taughtBy` |
+| An Attack's own bonus to a weak point (ruling 12) | `weakPointAimBonus`, `rules/weak-point.mjs` `aimed` |
+| A posthumous strike held to Night (ruling 13) | `afterDefeat`, `schedule.mjs#schedulePosthumous`, `clearBodies` `heldBodies` |
+| A removal selector on valence (ruling 15) | `rules/removal.mjs#selectorMatches` |
+| Build checks: a phase kind, a selector key, a Servant's Class | `tools/lib/content.mjs` |
+| Lines: a handler's clock cut mid-ladder; rows said before the Damage Step | `attack.mjs#applyOnCard`, `effectsBeforeDamage` |
+
+### 46.46.2 What was pressed, and how
+
+War *Gilles Audit B*, Rounds 31 to 40. Chiron for Player1, his Master beside him, EMIYA for Player1 as the allied
+learner, Achilles and the Test Use Bench for the GM. Player1 pressed his copy pick, the form, the Carry Master Move,
+Clairvoyance, Consecration, a copied Skill, both teachings, Eye of the Mind at its window, his Normal Attacks and Antares
+Snipe from his bar and the cards; the GM curated the copy list, agreed to the enemy's teaching and drove Achilles.
+Staged: positions by forced Moves, Achilles's Def Up and Atk Up, Chiron's Health at 1 and at 30, Antares's clock and
+Turn record for a second shot, the War's timeouts, its Divinity revision (As printed, for the Fixed Divine card) and the
+GM's dice twice. Every Clause ended Pressed or Observed: the log is on #326. **Seven defects found, all fixed** (each a
+Surprise of 2026-10-23): the copy grant's Scáthach constants and its dialog's title, an unknown phase kind built clean,
+two mid-ladder handlers' clock lines and the Damage Step's replacing of earlier rows, the `aimed` clause's missing
+string, and `sheet-kin` reading 13 built Servants as unbuilt.
+
+### 46.46.3 Left open
+
+- **A Round's first faction once kept the last Round's attack pool** (Rounds 34 and 37, *"Servant attacks exhausted
+  (2/2)"*). A probe at the next three boundaries saw `budget.reset` run for the right faction each time; the two misses
+  came while the press drove `nextTurn` faster than a boundary settles. Unconfirmed as a defect; worth a probe in play.

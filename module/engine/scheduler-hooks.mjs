@@ -174,6 +174,8 @@ async function onTurnChange(combat, prior, current) {
     // The match's recorded states, which a rewind reads: the Glass Game fired
     // at a Turn's end and found nothing to go back to (#247, live).
     history: historyOf(combat),
+    // Bodies a posthumous strike still fires from: kept on the board (#326).
+    heldBodies: (combat.getFlag?.("fgt", "scheduledStrikes") ?? []).filter((s) => s.kind === "posthumous").map((s) => s.ownerId),
     // The other half of `scheduler.pendingRolls`'s "caller rolls" contract
     // (module/engine/scheduler.mjs), which `attack.mjs` already honours for
     // `unitDefeated` -- this hook never did, for the boundary events it
@@ -407,6 +409,11 @@ async function onTurnChange(combat, prior, current) {
   {
     const { runScheduledStrikes } = await import("./schedule.mjs");
     await runScheduledStrikes(tick);
+  }
+  // A teaching whose 1◈ ended with that Turn: the learner holds the Skill (#326).
+  {
+    const { runTeachings } = await import("./teaching.mjs");
+    await runTeachings(tick);
   }
   // A passive field has no cast to open it and no expiry to close it, so the
   // Turn boundary is where it is reconciled with the board: a Servant summoned

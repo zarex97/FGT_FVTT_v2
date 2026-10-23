@@ -189,6 +189,9 @@ export function clearBodies(units, ctx) {
   return units
     .filter((u) => u.defeated && u.panel && u.kind !== "platform" && u.kind !== "structure")
     .filter((u) => u.defeatedAt === null || u.defeatedAt === undefined || u.defeatedAt < ctx.tick)
+    // A body its own posthumous strike will fire from stays until it has
+    // (`engine/schedule.mjs`, #326 ruling 13).
+    .filter((u) => !(ctx.heldBodies ?? []).includes(u.id))
     .flatMap((u) => [I.clearBody(u.id), I.log({ kind: "bodyCleared", unitId: u.id, tick: ctx.tick })]);
 }
 
