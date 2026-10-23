@@ -60,7 +60,7 @@ import { expressionRefs } from "../rules/snapshot.mjs";
 import {
   stacksHeld, countOf, countedValue, countScaleOf, fromCountMatching, declarationCriteria,
 } from "../rules/count.mjs";
-import { removalPlan, pendingRemovalRolls, isUnremovable } from "../rules/removal.mjs";
+import { removalPlan, pendingRemovalRolls, isUnremovable, selectorMatches } from "../rules/removal.mjs";
 import { resolveValue } from "../rules/elements.mjs";
 import { createField, regionSizedTargeting } from "./fields.mjs";
 import { chooseFor } from "./ask.mjs";
@@ -1082,6 +1082,14 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
               reason: entered.ok ? null : entered.reason,
             },
           });
+          break;
+        }
+
+        case "teach": {
+          // Wisdom of Divine Gift's teaching (#326): the target is the learner.
+          if (target.unitId === actor.id) break;
+          const { startTeaching } = await import("./teaching.mjs");
+          applied.push(...await startTeaching({ teacher: actor, learnerId: target.unitId, phase }));
           break;
         }
 
@@ -2277,15 +2285,10 @@ function removals(phase, doc) {
   if (!selector) return [];
 
   return doc.effects
-    .filter((e) => {
-      const def = EffectRegistry.get(e.system?.defId);
-      if (!def) return false;
-      if (selector.polarity && polarityOf(e.system, def) !== selector.polarity) return false; // fgt-polarity-ok: the phase's selector
-      // An unremovable effect stays: Appendix A marks a few that no cleanse
-      // reaches, and a blanket "remove all debuffs" must not be the exception.
-      // The INSTANCE may say so too (`isUnremovable`, #198).
-      return !isUnremovable(def, e);
-    })
+    // An unremovable effect stays: Appendix A marks a few that no cleanse
+    // reaches, and a blanket "remove all debuffs" must not be the exception.
+    // The INSTANCE may say so too (`isUnremovable`, #198).
+    .filter((e) => selectorMatches(selector, e, EffectRegistry.get(e.system?.defId)))
     .map((e) => e.system.defId);
 }
 

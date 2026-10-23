@@ -13,7 +13,7 @@
 
 import { createHash } from "node:crypto";
 import { Rank } from "../../module/domain/rank.mjs";
-import { SERVANT_CLASSES, COPY_REASONS as COPY_REASON_LIST } from "../../module/domain/enums.mjs";
+import { SERVANT_CLASSES, VALENCES, COPY_REASONS as COPY_REASON_LIST } from "../../module/domain/enums.mjs";
 import { classifyAbility } from "../../module/rules/ability-use.mjs";
 import { rewriteReferences, parseMarkers, mentionsWithoutMarkers } from "./references.mjs";
 import { parseTick } from "../../module/domain/tick.mjs";
@@ -34,6 +34,8 @@ import { ABILITY_WINDOW_IDS, windowsOf } from "../../module/rules/windows.mjs";
 import { isEmittableOption } from "../../module/rules/options.mjs";
 import { predicateSitesIn } from "../../module/rules/authoring/predicates.mjs";
 import { ABILITY_KINDS } from "../../module/rules/authoring/ability.mjs";
+import { PHASE_IDS } from "../../module/rules/authoring/phases.mjs";
+import { SELECTOR_KEYS } from "../../module/rules/removal.mjs";
 import { ENTRY_KEYS, EFFECT_PARAMS } from "../../module/rules/effect-flow.mjs";
 import { countSpecsIn, countProblems } from "../../module/rules/count.mjs";
 import { CUT_KINDS } from "../../module/rules/elements.mjs";
@@ -930,6 +932,36 @@ function damageInstancesAreWellFormed(doc, path, problems) {
  * @param {string} path
  * @param {string[]} problems
  */
+/**
+ * Every phase names a kind the engine runs, at any nesting a phase list sits in.
+ *
+ * A Skill's executor warns and does nothing on an unknown kind, so a phase
+ * authored before its executor existed built clean and did nothing (#326).
+ * A `removeEffect` selector names only what the matcher reads
+ * (`rules/removal.mjs#selectorMatches`).
+ */
+function phaseKindsAreKnown(doc, path, problems) {
+  const walk = (phases, where) => {
+    for (const [n, phase] of (Array.isArray(phases) ? phases : []).entries()) {
+      if (!phase || typeof phase !== "object") continue;
+      if (!PHASE_IDS.includes(phase.kind)) {
+        problems.push(`${path}: phase kind "${phase.kind}" is not one the engine runs (${where}[${n}]); expected one of ${PHASE_IDS.join(", ")}`);
+      }
+      if (phase.kind === "removeEffect" && phase.selector && typeof phase.selector === "object") {
+        for (const [key, value] of Object.entries(phase.selector)) {
+          if (!SELECTOR_KEYS.includes(key)) {
+            problems.push(`${path}: removeEffect selector key "${key}" is not one the matcher reads (${SELECTOR_KEYS.join(", ")})`);
+          } else if (key === "valence" && !VALENCES.includes(value)) {
+            problems.push(`${path}: removeEffect selector valence "${value}" is not one of ${VALENCES.join(", ")}`);
+          }
+        }
+      }
+      for (const [k, option] of (phase.options ?? []).entries()) walk(option?.phases, `${where}[${n}].options[${k}].phases`);
+    }
+  };
+  walk(doc?.phases, "phases");
+}
+
 function abilityKindIsKnown(doc, path, problems) {
   if (doc?.kind === undefined || doc?.kind === null) return;
   if (ABILITY_KINDS.includes(doc.kind)) return;
@@ -1358,6 +1390,7 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     // Scoped by directory: an effect definition shares the ability item type
     // and has no `kind` to judge.
     if (dir === "abilities" || dir === "class-skills") abilityKindIsKnown(doc, path, problems);
+    phaseKindsAreKnown(doc, path, problems);
     // Scoped by itemType: command spells carry `timing.window` too, from a
     // vocabulary of their own.
     if (PACKS[dir]?.itemType === "ability") timingWindowsAreKnown(doc, path, problems);
@@ -1978,6 +2011,9 @@ function durationFields(doc) {
   }
   // A `cooldown` phase's cuts, read by `skill-use.mjs#cooldownChanges` through
   // `parseTick`: a bare "1" passed the build and threw at the press (#299, live).
+  // A copy grant's clock, which every copy it makes takes (#326). Its minus
+  // was once a U+2212 that `parseTick` refused, and every copy read zero.
+  if (typeof doc.copyGrant?.cooldown === "string") out.push(["copyGrant.cooldown", doc.copyGrant.cooldown]);
   for (const [index, phase] of (doc.phases ?? []).entries()) {
     if (phase?.kind !== "cooldown") continue;
     for (const [c, change] of (phase.changes ?? []).entries()) {

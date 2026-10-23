@@ -1,0 +1,37 @@
+# Chiron, char_orig_sheets/Copia de Chiron.md (#326)
+#
+# "All allied Units" includes the user (Military Tactics). S.Crit Up is an aura
+# its caster holds (#132), so it lands on him and reaches the radius from
+# there. The Health price is Trace On's: "cannot drop below 1 in this way".
+schema: 1
+id: chiron-consecration-of-eternal-life
+name: "Consecration of Eternal Life"
+rank: EX
+kind: skill
+slug: consecrationOfEternalLife
+cooldown: "4◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+copyable: { allowed: false, reason: rankEX }
+description: |
+  (Active) Used during your Turn. Affects all allied Units within a 2 panel area of Chiron. Applies
+  @effect[critDmUp]{Crit DmUp} for 1◈ Turns, Crit Damage dealt is increased by 50%; and applies
+  @effect[sCritUp]{S.Crit Up} for ⅓◈ Turns, Crit Chance is increased by 15%. Then, Chiron's Health is reduced
+  by 5% of its maximum value (cannot drop below 1 in this way). Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: square, size: 5 }
+  selection: { relations: [ally, self], chooser: all, includeSelf: true }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: critDmUp, magnitude: 50, duration: "1◈" }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: sCritUp, magnitude: 15, duration: "⅓◈" }
+  - kind: statChange
+    target: self
+    changes:
+      - { stat: health, percentOfMax: -5, floor: 1 }

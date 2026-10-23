@@ -1,0 +1,34 @@
+# Chiron, char_orig_sheets/Copia de Chiron.md (#326)
+#
+# A Mode: off is the Human Form his statblock prints (MOV 6, Humanoid), on is
+# the Centaur Form. Switched once per Round, as Karna's Uncrowned Arms
+# Mastership, and the switch marks him Acted as every Mode does (#194, ruling 2).
+schema: 1
+id: chiron-great-sage-of-centaurs
+name: "Great Sage of Centaurs"
+rank: null
+kind: skill
+slug: greatSageOfCentaurs
+isMode: true
+oncePerRound: true
+timing: { window: ownTurn }
+# The centaur body is what he was born with.
+copyable: { allowed: false, reason: physical }
+description: |
+  (Active) Used during your Turn, Chiron switches between Human Form and Centaur Form. Can only be
+  used once per Round.
+  (Passive) In Centaur Form, MOV is increased by 2, but value of Evade Rolls are increased by 2.
+  Additionally, Chiron gains the 'Passenger Seat' ability and loses the 'Humanoid' Attribute while in
+  Centaur Form.
+  Passenger Seat: The Servant's Master can Move together with its Servant; after Moving, both Servant
+  and Master must be in the same orientation/position prior to the Move. Counts as only Moving one
+  Unit. Can be combined with Riding Attack.
+activeRules:
+  - { key: StatDelta, stat: mov, value: 2 }
+  # "Value of Evade Rolls are increased by 2": a roll is under Agility, so +2 is
+  # the penalty, as Eye of the Mind's "reduced by 3" is the help.
+  - { key: CheckModifier, check: evade, direction: outgoing, value: 2 }
+  # Riding's own grant: the Carry Master button is its affordance.
+  - { key: GrantedAbility, abilities: [passengerSeat] }
+  # Ruling 3: a form takes an Attribute away as well as adding one.
+  - { key: StatDelta, stat: attributes, remove: [humanoid] }

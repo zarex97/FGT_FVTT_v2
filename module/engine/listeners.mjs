@@ -39,6 +39,7 @@ import { attachConcealment } from "./concealment.mjs";
 import { attachSealEnds } from "./seal-ends.mjs";
 import { attachFeignedDefeat } from "./feigned-defeat.mjs";
 import { attachCopyPick } from "./copy.mjs";
+import { attachTeaching } from "./teaching.mjs";
 import { attachOpeningChoice } from "./opening-choice.mjs";
 import { MasterEssences } from "./master-essence.mjs";
 
@@ -105,6 +106,7 @@ export const ENGINE_LISTENERS = Object.freeze([
   { id: "feignedDefeat", attach: attachFeignedDefeat },
   // Wisdom of Dún Scáith: a copier entering a war under way owes its pick.
   { id: "copyPick", attach: attachCopyPick },
+  { id: "teaching", attach: attachTeaching },
   // Uncrowned Arms Mastership: a Servant entering a war under way owes its
   // opening choice (#206 reading 3).
   { id: "openingChoice", attach: attachOpeningChoice },

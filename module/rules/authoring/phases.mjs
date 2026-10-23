@@ -238,6 +238,9 @@ export const PHASE_DESCRIPTORS = describeTable([
   entry("setRoundPhase", 2, "Turns the Round in progress to Day or Night; later Rounds keep the War's alternation.", [
     { key: "to", type: "select", choices: ["day", "night"] },
   ]),
+  entry("teach", 2, "Teaches one of the caster's copied Skills to the target Servant, both Cannot Act until it ends.", [
+    { key: "duration", type: "tickExpr" },
+  ]),
   entry("cutContract", 10, "Severs a Servant's contract with its Master.", [
     { key: "requires", type: "raw" },
     { key: "grantToCaster", type: "checkbox" },
