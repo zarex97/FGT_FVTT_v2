@@ -2249,7 +2249,7 @@ async function closeRung(state, message) {
       const { closeDecidedDuels } = await import("./fields.mjs");
       await closeDecidedDuels();
     }
-    await runAfterProcessPhases(state);
+    await runAfterProcessPhases(state, message);
     await fireCombatProcessEnd(state);
     // *"When Mannanán is Attacked ... at the end of the Combat Process ... she
     // automatically performs a Fragarach Counter on the DU."* At the end of the
@@ -2462,9 +2462,10 @@ async function rollDiceCount(ability, options, { attacker, defender, facts }, st
  * refunded clock rather than the old one.
  *
  * @param {object} state
+ * @param {object} [message] the Process's card, which says what the pass turned
  * @returns {Promise<void>}
  */
-async function runAfterProcessPhases(state) {
+async function runAfterProcessPhases(state, message = null) {
   const abilityId = state.attack?.abilityId;
   if (!abilityId) return;
   const attackerDoc = unitActor(state.attackerId);
@@ -2502,7 +2503,13 @@ async function runAfterProcessPhases(state) {
     // happen to implement.
     intents.push(...cooldownChanges(phase, attackerDoc, board, ability));
   }
-  if (intents.length > 0) await applyBatch(intents, "afterProcessCooldown");
+  if (intents.length === 0) return;
+  // A clock this pass turned is a line on the Process's card, as a settle's is:
+  // Quickfire fell 6 → 3 live and no card said so (2026-10-23).
+  const rows = await applyWithLines(intents, "afterProcessCooldown");
+  if (rows.length === 0 || !message) return;
+  await message.setFlag("fgt", "effects", [...(message.getFlag("fgt", "effects") ?? []), ...cardRows(rows)]);
+  await updateAttackCard(message, state);
 }
 
 /** The `combatProcessEnd` firings in flight, by attacker (see {@link fireCombatProcessEnd}). */

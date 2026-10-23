@@ -49,6 +49,20 @@ describe("domain validation", () => {
     expect(errorsFor([file(ok({ parameters: { str: "F" } }))])[0]).toMatch(/parameters\.str is not a valid rank/);
   });
 
+  // Live, 2026-10-22: Van Gogh stated only `classContainer`, held no Class, and
+  // Prelati's Spellbook cut her clock as a non-Foreigner's. `classContainer` is
+  // the slot and the icon; `servantClasses` is what every rule reads.
+  it("refuses a Servant that holds no Class, or one the system does not know", () => {
+    const servant = (over) => file(ok({ type: "servant", ...over }), "s.yml", "servants");
+    expect(errorsFor([servant({ servantClasses: ["rider"] })])).toEqual([]);
+    expect(errorsFor([servant({ classContainer: "rider" })])[0])
+      .toMatch(/s\.yml: a Servant states no servantClasses/);
+    expect(errorsFor([servant({ servantClasses: ["ryder"] })])[0])
+      .toMatch(/s\.yml: servantClasses names "ryder", which is not a Class/);
+    // A summon carries no Class of its own.
+    expect(errorsFor([file(ok({ type: "summon" }), "h.yml", "summons")])).toEqual([]);
+  });
+
   it("catches a duration missing its ◈", () => {
     expect(errorsFor([file(ok({ cooldown: "1◈+2/3◈" }))])).toEqual([]);
     expect(errorsFor([file(ok({ cooldown: "3 rounds" }))])[0]).toMatch(/not a valid duration/);
@@ -265,7 +279,7 @@ describe("ref resolution", () => {
 
   it("validates refs reached through a Servant's ability list", () => {
     const problems = errorsFor([
-      file({ schema: 1, id: "karna", name: "Karna", abilities: [{ ref: "nope" }] }, "karna.yml", "servants"),
+      file({ schema: 1, id: "karna", name: "Karna", servantClasses: ["lancer"], abilities: [{ ref: "nope" }] }, "karna.yml", "servants"),
     ]);
     expect(problems[0]).toMatch(/abilities\[0\].*does not resolve/);
   });
