@@ -25,6 +25,19 @@ import * as rollLog from "../rules/roll-log.mjs";
 import { currentWar } from "./war.mjs";
 
 /**
+ * What the attacking ability adds to a weak point's chance: its
+ * `weakPointAimBonus` (#326), 0 for a Normal Attack or one that states none.
+ *
+ * @param {object} state the Combat Process state
+ * @returns {number}
+ */
+function aimBonusOf(state) {
+  const abilityId = state?.attack?.abilityId;
+  if (!abilityId) return 0;
+  return Number(unitActor(state.attackerId)?.items?.get(abilityId)?.system?.weakPointAimBonus ?? 0) || 0;
+}
+
+/**
  * The weak point this defender exposes to this attack, or `null`.
  *
  * @param {object} defender a Unit projection
@@ -34,6 +47,7 @@ import { currentWar } from "./war.mjs";
  * @returns {object|null} the spec
  */
 export function exposedWeakPoint(defender, attacker, state, board = null) {
+  const aimBonus = aimBonusOf(state);
   for (const spec of defender?.weakPoints ?? []) {
     // An object its holder carries (Prelati's Spellbook, #323): offered on the
     // attacker's AGI Rank, never on a chance.
@@ -41,7 +55,7 @@ export function exposedWeakPoint(defender, attacker, state, board = null) {
       if (!state?.declared?.plainDamage && objectAimable(spec, { defender, attacker })) return spec;
       continue;
     }
-    if (weakPointOffered(spec, { defender, attacker, state, board })) return spec;
+    if (weakPointOffered(spec, { defender, attacker, state, board, aimBonus })) return spec;
   }
   return null;
 }
@@ -69,8 +83,9 @@ export async function offerWeakPoint(state, { board = null } = {}) {
   if (!spec) return state;
   if (spec.kind === "object") return offerObject(state, spec, { attackerDoc, defenderDoc, defender });
 
-  const plain = weakPointChance(spec, { defender, attacker, state, board });
-  const withLuck = weakPointChance(spec, { defender, attacker, state, board, luckCheckPassed: true });
+  const aimBonus = aimBonusOf(state);
+  const plain = weakPointChance(spec, { defender, attacker, state, board, aimBonus });
+  const withLuck = weakPointChance(spec, { defender, attacker, state, board, luckCheckPassed: true, aimBonus });
 
   // The Luck Check is a second opt-in INSIDE this offer rather than a rung of
   // its own: it is one decision — "aim low, and how hard" — and splitting it
@@ -200,11 +215,14 @@ export async function resolveObjectAim(state, { board = null } = {}) {
   // A failed Evade: *"he has a 20% chance of taking the damage instead"*.
   if (state.reaction === "evade") {
     const roll = (await new Roll("1d100").evaluate()).total;
-    const takes = roll <= (spec.takeChance ?? 0);
+    // The aiming Attack's bonus raises the chance its object is the one hit
+    // (#326 ruling 12): Antares Snipe at the Spellbook.
+    const takeChance = (spec.takeChance ?? 0) + aimBonusOf(state);
+    const takes = roll <= takeChance;
     rollRecords.push(rollLog.record({
       id: `${state.attackerId}:${state.defenderId}:objectTake:${tick}`, globalTurn: tick, entryId: "objectTake",
       formula: "1d100", raw: roll, total: roll,
-      modifiers: [{ source: `${takes ? "takes it" : "does not"}: ${roll} against ${spec.takeChance ?? 0}%`, delta: 0, stage: "table" }],
+      modifiers: [{ source: `${takes ? "takes it" : "does not"}: ${roll} against ${takeChance}%`, delta: 0, stage: "table" }],
       purpose: game.i18n.format(takes ? "FGT.WeakPoint.ObjectTakes" : "FGT.WeakPoint.ObjectTakeMissed", { name, object: spec.name }),
       actorId: state.defenderId,
     }));
@@ -284,7 +302,7 @@ export async function resolveWeakPoint(state, { board = null } = {}) {
   }
 
   const { chance, breakdown } = weakPointChance(spec, {
-    defender, attacker, state, board, luckCheckPassed: luckPassed,
+    defender, attacker, state, board, luckCheckPassed: luckPassed, aimBonus: aimBonusOf(state),
   });
   const roll = (await new Roll("1d100").evaluate()).total;
   const succeeded = roll <= chance;

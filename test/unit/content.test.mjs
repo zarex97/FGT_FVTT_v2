@@ -63,6 +63,27 @@ describe("domain validation", () => {
     expect(errorsFor([file(ok({ type: "summon" }), "h.yml", "summons")])).toEqual([]);
   });
 
+  // Chiron's teaching was authored as a `teach` phase before any executor read
+  // it, and the build said nothing: a Skill's executor warns and does nothing.
+  it("refuses a phase kind no executor knows, at any nesting", () => {
+    const ability = (phases) => file(ok({ kind: "skill", phases }), "a.yml", "abilities");
+    expect(errorsFor([ability([{ kind: "applyEffects", target: "self", effects: [] }])])).toEqual([]);
+    expect(errorsFor([ability([{ kind: "bogus", target: "self" }])])[0])
+      .toMatch(/a\.yml: phase kind "bogus" is not one the engine runs/);
+    expect(errorsFor([ability([{ kind: "choose", target: "self", options: [{ id: "x", phases: [{ kind: "bogus" }] }] }])])[0])
+      .toMatch(/phase kind "bogus"/);
+  });
+
+  // Antares Snipe strips Defensive Buffs by `valence` (#326 ruling 15); a
+  // selector key the matcher does not read matched every buff.
+  it("refuses a removal selector key the matcher does not read", () => {
+    const ability = (selector) => file(ok({ kind: "skill", phases: [{ kind: "removeEffect", target: "reuse", selector }] }), "r.yml", "abilities");
+    expect(errorsFor([ability({ polarity: "buff", valence: "defensive" })])).toEqual([]);
+    expect(errorsFor([ability({ polarity: "buff", valance: "defensive" })])[0])
+      .toMatch(/r\.yml: removeEffect selector key "valance"/);
+    expect(errorsFor([ability({ valence: "sturdy" })])[0]).toMatch(/valence "sturdy"/);
+  });
+
   it("catches a duration missing its ◈", () => {
     expect(errorsFor([file(ok({ cooldown: "1◈+2/3◈" }))])).toEqual([]);
     expect(errorsFor([file(ok({ cooldown: "3 rounds" }))])[0]).toMatch(/not a valid duration/);

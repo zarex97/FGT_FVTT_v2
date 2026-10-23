@@ -1,0 +1,41 @@
+# Chiron, char_orig_sheets/Copia de Chiron.md (#326)
+# Passive 1 is Arjuna's at 90 on a 1d100 (ruling 4). Passive 2 cuts this
+# Skill's clock on every Normal Attack at Range 3 or more (ruling 5).
+schema: 1
+id: chiron-clairvoyance
+name: "Clairvoyance"
+rank: "B+"
+kind: skill
+slug: clairvoyance
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+description: |
+  (Passive 1) When Chiron uses a Normal Attack at a Range of 3 or higher, the DU rolls a ten-sided die.
+  The DU has a 90% chance of using Evade- when Evading. Otherwise, the Combat Process proceeds as normal.
+  (Active) Used during your Turn. Applies @effect[critUp]{Crit Up} for 1◈ Turns, Crit Chance is increased
+  by 35%. Also applies @effect[rangeUpClairvoyance]{Range Up (Clairvoyance)} for 1◈ Turns, Range is increased
+  by 1 (does not stack). Cooldown: 4◈-⅓◈ Turns.
+  (Passive 2) Whenever Passive 1 of this Skill is triggered, reduce the Cooldown of this Skill by ⅓◈ Turns.
+passiveRules:
+  - key: TableOverride
+    check: evade
+    forceTable: unfavourable
+    direction: imposed
+    chance: 90
+    predicate: ["attack:kind:normal", "attack:range:gte:3"]
+  # Passive 2. `attackDeclared` is raised on the attacker once per Combat
+  # Process, with the defender and the distance in its options: the same two
+  # facts Passive 1 is predicated on. `ability` omitted: this Skill's clock.
+  - key: OnEvent
+    event: attackDeclared
+    automatic: true
+    predicate: ["attack:kind:normal", "attack:range:gte:3"]
+    then:
+      - { key: CooldownDelta, ticks: "⅓◈" }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: critUp, magnitude: 35, duration: "1◈" }
+      - { id: rangeUpClairvoyance, magnitude: 1, duration: "1◈" }

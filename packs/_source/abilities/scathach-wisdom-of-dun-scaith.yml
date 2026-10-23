@@ -12,6 +12,9 @@ timing: { window: ownTurn }
 # cooldown of its own -- the two slots it fills carry `4◈-⅓◈` each -- but Gate
 # of Skye puts it on one, which is why `alsoTriggers` names it.
 opensDialog: copy
+# Her copies' terms, read by `engine/copy.mjs#copyGrantSpec` (#326): two, at
+# this Rank, on her slots' clock and lock.
+copyGrant: { slots: 2, cooldown: "4◈-⅓◈", exclusionSet: wisdomOfDunScaith }
 copyable: { allowed: false, reason: unique }
 description: |
   When Scáthach is Summoned, she is given a list of Skills (preferably Rank B to Rank A) that

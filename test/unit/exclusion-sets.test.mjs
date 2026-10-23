@@ -25,9 +25,13 @@ function ymlUnder(dir) {
   });
 }
 
-/** Sets the engine itself writes, for copies it creates at runtime. */
+/**
+ * Sets a copy grant gives the copies it creates at runtime. They were constants
+ * in `engine/copy.mjs` until each grant stated its own `copyGrant` (#326), so
+ * they are read where they now live: on the grants.
+ */
 const ENGINE_SETS = new Set(
-  [...readFileSync("module/engine/copy.mjs", "utf8").matchAll(/exclusionSet: "([^"]+)"/g)].map((m) => m[1]),
+  ymlUnder("packs/_source").map((path) => parse(readFileSync(path, "utf8"))?.copyGrant?.exclusionSet).filter(Boolean),
 );
 
 describe("authored exclusion sets", () => {
@@ -48,8 +52,8 @@ describe("authored exclusion sets", () => {
     return out;
   }
 
-  it("the engine declares at least one, or this guard proves nothing", () => {
-    expect(ENGINE_SETS.size).toBeGreaterThan(0);
+  it("the copy grants declare their sets, or this guard proves nothing", () => {
+    expect([...ENGINE_SETS].sort()).toEqual(["wisdomOfDivineGift", "wisdomOfDunScaith"]);
   });
 
   it("no set has exactly one member", () => {

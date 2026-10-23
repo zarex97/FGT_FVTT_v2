@@ -37,6 +37,8 @@ import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
 import { shownName, publicSpeakerFor } from "./public-identity.mjs";
 import { warRule, currentWar } from "./war.mjs";
+import { rollOptionsFor } from "../rules/options.mjs";
+import { test as testPredicate } from "../rules/predicate.mjs";
 
 /** The name the table knows a Unit by (#232: a concealed caster is its class). */
 
@@ -164,22 +166,43 @@ export async function runScheduledStrikes(tick) {
 
   const due = [];
   const keep = [];
+  /** Held strikes saying so for the first time: the record is written, then the line. */
+  const holding = [];
   for (const s of strikes) {
     const owner = unitActor(s.ownerId);
+    if (s.kind === "posthumous") {
+      // Its owner is defeated by definition; what ends it is its target gone.
+      const target = unitActor(s.targetId);
+      if (!owner || !target || target.system?.defeated) due.push({ s, cancel: true });
+      else if (!expiryReached(s.fireAt, tick)) keep.push(s);
+      else if (!holdPasses(s)) {
+        keep.push({ ...s, heldSaid: true });
+        if (!s.heldSaid) holding.push(s);
+      } else due.push({ s, cancel: false });
+      continue;
+    }
     if (!owner || owner.system?.defeated) due.push({ s, cancel: true });
     else if (expiryReached(s.fireAt, tick)) due.push({ s, cancel: false });
     else keep.push(s);
   }
-  if (due.length === 0) return out;
+  if (due.length === 0 && holding.length === 0) return out;
   await combat.setFlag("fgt", FLAG, keep);
 
+  for (const s of holding) {
+    await ChatMessage.create({
+      content: `<p>${game.i18n.format("FGT.Schedule.PosthumousHeld", {
+        name: s.name, unit: shownName(unitActor(s.ownerId)),
+      })}</p>`,
+    });
+  }
   for (const { s, cancel } of due) {
     await removeMark(s);
     if (cancel) {
       out.cancelled.push(s.id);
+      const key = s.kind === "posthumous" ? "FGT.Schedule.PosthumousLost" : "FGT.Schedule.Cancelled";
       await ChatMessage.create({
-        content: `<p>${game.i18n.format("FGT.Schedule.Cancelled", {
-          name: s.name, unit: shownName(unitActor(s.ownerId)),
+        content: `<p>${game.i18n.format(key, {
+          name: s.name, unit: shownName(unitActor(s.ownerId)), target: shownName(unitActor(s.targetId)),
         })}</p>`,
       });
       continue;
@@ -188,6 +211,84 @@ export async function runScheduledStrikes(tick) {
     await fireStrike(s);
   }
   return out;
+}
+
+/**
+ * Record what each of a defeated Unit's abilities does once it has fallen.
+ *
+ * Antares Snipe (#326 ruling 13): *"⅓◈ Turns after Chiron was defeated, the
+ * Active effect of Antares Snipe is automatically used on the Unit who defeated
+ * him at the start of the Turn ... If ⅓◈ Turns after Chiron was defeated is a
+ * Day Round, then this effect automatically activates at the start of the next
+ * Night Round."* A strike like Enki's, kept on the match, that its owner's
+ * defeat does not cancel: its target's does. No killer, no strike, and a line.
+ *
+ * @param {string} unitId the defeated Unit
+ * @param {string|null} killerId
+ * @returns {Promise<object[]>} the strikes recorded
+ */
+export async function schedulePosthumous(unitId, killerId) {
+  const combat = currentWar() ?? null;
+  const owner = unitActor(unitId);
+  if (!combat || !owner) return [];
+  const specs = [...(owner.items ?? [])].filter((i) => i.system?.afterDefeat);
+  if (specs.length === 0) return [];
+  const tick = currentMoment().tick ?? 0;
+  const self = unitOf(owner, currentBoard());
+  /** @type {object[]} */
+  const made = [];
+  for (const ability of specs) {
+    const spec = ability.system.afterDefeat;
+    // The one target the vocabulary knows; any other is refused out loud.
+    if (spec.target !== "killer") {
+      console.error(`FGT | ${ability.name}: afterDefeat target "${spec.target}" is not one the engine knows ("killer").`);
+      continue;
+    }
+    if (!killerId) {
+      await ChatMessage.create({
+        content: `<p>${game.i18n.format("FGT.Schedule.PosthumousNoKiller", { name: ability.name, unit: shownName(owner) })}</p>`,
+      });
+      continue;
+    }
+    made.push({
+      id: foundry.utils.randomID(),
+      kind: "posthumous",
+      ownerId: owner.id,
+      abilityId: ability.id,
+      contentId: ability.system?.contentId ?? ability.id,
+      name: ability.name,
+      panel: self?.panel ? { i: self.panel.i, j: self.panel.j } : null,
+      activatedTick: tick,
+      fireAt: tick + resolveTicks(parseTick(spec.delay ?? "⅓◈"), { turnsPerRound: warRule("turnsPerRound") }),
+      targetId: killerId,
+      holdUnless: [...(spec.holdUnless ?? [])],
+      markId: null,
+    });
+  }
+  if (made.length === 0) return made;
+  await combat.setFlag("fgt", FLAG, [...pendingStrikes(combat), ...made]);
+  for (const s of made) {
+    await ChatMessage.create({
+      content: `<p>${game.i18n.format("FGT.Schedule.PosthumousRecorded", {
+        name: s.name, unit: shownName(owner), target: shownName(unitActor(s.targetId)),
+      })}</p>`,
+    });
+  }
+  return made;
+}
+
+/**
+ * May a held strike fire now? Its `holdUnless` asked of its owner's options,
+ * which carry the War's Round (`war:phase:night`), off the body still standing.
+ *
+ * @param {object} strike
+ * @returns {boolean}
+ */
+function holdPasses(strike) {
+  if (!strike.holdUnless?.length) return true;
+  const self = unitOf(unitActor(strike.ownerId), currentBoard());
+  if (!self) return false;
+  return testPredicate(strike.holdUnless, { options: rollOptionsFor({ attacker: self }) });
 }
 
 /**
@@ -213,11 +314,16 @@ async function fireStrike(strike) {
     content: `<p>${game.i18n.format("FGT.Schedule.Fires", { name: strike.name, unit: shownName(attacker) })}</p>`,
     speaker: publicSpeakerFor(attacker),
   });
+  // A posthumous shot names its target, wherever it stands: the sheet's
+  // *"used on the Unit who defeated him"* ignores Range (#326 ruling 13).
+  const placement = strike.kind === "posthumous"
+    ? { scheduled: true, origin: strike.panel, pathTargets: [strike.targetId] }
+    : { scheduled: true, origin: strike.panel };
   try {
     return await resolveAttack({
       attackerId: attacker.id,
       abilityId: ability.id,
-      placement: { scheduled: true, origin: strike.panel },
+      placement,
       resume: true,
       preflighted: {
         ok: true,

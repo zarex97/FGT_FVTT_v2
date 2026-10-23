@@ -30,6 +30,8 @@ export const INTENT_TYPES = Object.freeze([
   "decayEffect", "tallyMode",
   // A Unit taking a form, and its grown Range (Gilles's Gigantic Horror, #323).
   "takeForm", "formRange",
+  // A teaching's record on its two Units (Chiron's Wisdom of Divine Gift, #326).
+  "teaching",
   // `setStage` decrements a staged effect without deleting it, and `event`
   // raises a write-time event so a listener can react to what just happened.
   // Both are Van Gogh's -- her Curse is the first effect anything reads the
@@ -112,6 +114,8 @@ const ORDER = Object.freeze({
   // A form's writes are stat writes: its pools, its Range (#323).
   takeForm: 2,
   formRange: 2,
+  // Bookkeeping, before the locks that ride with it.
+  teaching: 2,
   setMode: 2,
   // Beside `setMode`, and for exactly its reason: a suspension switches a mode
   // off AND bars it from returning, so it has to land before the next pass
@@ -277,6 +281,11 @@ export const takeForm = (unitId, { formId, pools = {}, handOver = false, stands 
  * @returns {Intent}
  */
 export const formRange = (unitId, value, seenRound = null) => ({ t: "formRange", unitId, value, seenRound });
+/**
+ * A teaching's record on one of its two Units, or `null` to clear it (#326).
+ * @param {string} unitId @param {object|null} record
+ */
+export const teaching = (unitId, record) => ({ t: "teaching", unitId, record });
 
 export const move = (unitId, path, forced = false) =>
   ({ t: "move", unitId, path, forced });

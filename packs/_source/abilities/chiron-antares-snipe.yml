@@ -1,0 +1,70 @@
+# Chiron, char_orig_sheets/Copia de Chiron.md (#326)
+#
+# Night is the War's Round (`war:phase:night`), not a panel's: the sheet rules
+# out Darkness terrain, and a War with no cycle has no Night (ruling 14), so
+# `roundPhase`, which reads the panel and passes in a cycle-less War, is not it.
+# "Once per Night Round" is once per Round: it is usable at Night only.
+schema: 1
+id: chiron-antares-snipe
+name: "Antares Snipe: Heavenly Scorpion Single-Shot"
+rank: "A+"
+isNP: true
+npTags: [antiUnit]
+kind: noblePhantasm
+slug: antaresSnipe
+cooldown: "3◈"
+oncePerRound: true
+timing: { window: ownTurn }
+# His Master pays as for a Rank E NP: the A+ table is not charged, and Rho
+# Aias's `masterHealthByNPRank` charges E in its place.
+noMasterCost: true
+additionalCosts:
+  - { id: antaresSnipeE, kind: masterHealthByNPRank, rank: E }
+# Ruling 12: any weak point is a Vital Spot, aimed at +75.
+weakPointAimBonus: 75
+# The posthumous shot (ruling 13): ⅓◈ after his defeat, at the start of a Turn,
+# on his killer, held while the Round is not Night. Its Master pays nothing.
+afterDefeat:
+  delay: "⅓◈"
+  target: killer
+  holdUnless: ["war:phase:night"]
+description: |
+  (Active) Can only be used at Night; and can only be used once per Night Round. Base Attack (MAG) is
+  used. Range=5. First, removes all Defensive Buffs from the DU, then deals 2x damage plus 100; then
+  inflicts @effect[critDwn]{Crit Dwn} for 1◈ Turns, Crit Chance is reduced by 40%. Damage dealt to Units
+  with the [Earth] Attribute is further increased by 150%. When this NP is used, Chiron's Master loses
+  Health equivalent to if a Rank E Noble Phantasm was used instead.
+  If possible, this NP can be used to target a specific 'body part' or 'weak point' on the DU (i.e. Unit
+  with the 'Vital Spot' Attribute); if used in this way, the chance of hitting that specific target is
+  increased by 75%.
+  Note: Can only be used during 'Night' Rounds as dictated by the game state (not from 'Night' created by
+  effects such as 'Darkness' Terrain).
+  Cooldown: 3◈ Turns.
+  (Trigger) Automatically activates when Chiron is defeated. ⅓◈ Turns after Chiron was defeated, the
+  Active effect of Antares Snipe is automatically used on the Unit who defeated him at the start of the
+  Turn. Chiron's ex-Master does not lose Health from this effect. If ⅓◈ Turns after Chiron was defeated
+  is a Day Round, then this effect automatically activates at the start of the next Night Round.
+requirements:
+  - { kind: predicate, predicate: ["war:phase:night"] }
+targeting:
+  anchor: { kind: targetUnit, range: 5 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], includeSelf: false, chooser: chosen, count: 1 }
+damage:
+  component: mag
+  multiplier: 2
+  flatBonus: 100
+  conditionalMultipliers:
+    - { factor: 2.5, predicate: ["target:attribute:earth"], source: "Earth (+150%)" }
+phases:
+  # "First, removes all Defensive Buffs from the DU" (ruling 15).
+  - kind: removeEffect
+    target: reuse
+    when: beforeDamage
+    selector: { polarity: buff, valence: defensive }
+  - kind: damage
+    target: reuse
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: critDwn, magnitude: 40, duration: "1◈" }

@@ -37,6 +37,20 @@ const BUILT_ALIASES = {
 };
 
 /**
+ * The names of the built Servants: every Servant file but a `test-` one.
+ * @param {string} [dir]
+ * @returns {string[]}
+ */
+export function builtServantNames(dir = "packs/_source/servants") {
+  return readdirSync(dir)
+    .filter((f) => f.endsWith(".yml") && !f.startsWith("test-"))
+    // `\r` too: a Servant file saved with CRLF kept it on the name, and 13 built
+    // Servants matched no sheet (2026-10-23).
+    .map((f) => readFileSync(join(dir, f), "utf8").match(/^name:\s*"?([^"\r\n]+)"?/m)?.[1])
+    .filter(Boolean);
+}
+
+/**
  * A Clause's text with what varies between bearers masked out.
  * @param {string} text
  * @param {string} [owner] the sheet's title; its first word stands for the bearer in the prose

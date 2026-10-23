@@ -1,0 +1,43 @@
+# Chiron (Archer), the audit of #326.
+# Conversion source: char_orig_sheets/Copia de Chiron.md
+#
+# Human Form is the sheet as printed: MOV 6 and Humanoid. Great Sage of
+# Centaurs' Mode is the Centaur Form, which adds 2 MOV and takes Humanoid away.
+schema: 1
+id: chiron
+name: Chiron
+type: servant
+
+trueName: Chiron
+servantClasses: [archer]
+classContainer: archer
+alignment: { order: lawful, morality: good }
+region: [greece]
+attributes: [male, servant, sky, humanoid, nonHominidae]
+
+parameters: { str: B, end: B, agi: "A+", mag: B, luc: C }
+baseHealth: 1250
+mov: 6
+range: { panels: 4, targets: 1 }
+baseAttack: { str: 125, mag: 175 }
+# The sheet names no Base Attack for it; STR, as the corpus reads a sheet that
+# lists both (ruling 1).
+normalAttack: { mode: fixed, component: str }
+sustainability: "8◈"
+
+abilities:
+  - { ref: chiron-great-sage-of-centaurs }
+  - ref: class-independent-action
+    rank: A
+    description: |
+      (Passive 1) Has a high Sustainability (8◈ Turns).
+      (Passive 2) Master's ZON is increased by 3 panels.
+      (Passive 3) Requires 4 successful 'Contract Servant' rolls to be contracted by enemy Masters and Casters.
+  - { ref: class-magic-resistance, rank: B }
+  - { ref: divinity, rank: C, printedRevision: revised }
+  - { ref: chiron-clairvoyance }
+  - { ref: chiron-eye-of-the-mind-true }
+  - { ref: chiron-consecration-of-eternal-life }
+  - { ref: chiron-wisdom-of-divine-gift }
+  - { ref: chiron-wisdom-teach }
+  - { ref: chiron-antares-snipe }

@@ -1068,6 +1068,9 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
     case "formRange":
       for (const i of intents) await io.setFormRange(unitId, i.value, i.seenRound ?? null);
       break;
+    case "teaching":
+      await io.setTeaching(unitId, intents.at(-1).record ?? null);
+      break;
     case "tallyMode":
       for (const i of intents) await io.tallyMode(unitId, i.abilityId);
       break;
@@ -1082,6 +1085,10 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
       // A defeated platform falls, and one that goes with its owner goes with
       // it (Ch. 46 §46.4-CH).
       if (io.destroyPlatformsOf) await io.destroyPlatformsOf(unitId);
+      // What its abilities do once it has fallen: Antares Snipe (#326).
+      if (io.notePosthumous) await io.notePosthumous(unitId, intents[0].killerId ?? null);
+      // ...and a teaching it was in ends with it (#326 ruling 11b).
+      if (io.noteTeachingDefeat) await io.noteTeachingDefeat(unitId);
       break;
     // A summon whose stay ran out. Distinct from `defeat`: no revival chain, no
     // `unitDefeated`, no kill. It DOES write the summon's stats home and start

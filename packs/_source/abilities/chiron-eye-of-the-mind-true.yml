@@ -1,0 +1,34 @@
+# Chiron, char_orig_sheets/Copia de Chiron.md (#326)
+#
+# EMIYA's shape at Rank A, with a passive of its own: Evade rolls −3. Tagged
+# `instinct` as every Eye of the Mind is, for Jack's Mist (#185 reading 14).
+schema: 1
+id: chiron-eye-of-the-mind-true
+name: "Eye of the Mind (True)"
+rank: A
+kind: skill
+slug: eyeOfTheMind
+cooldown: "3◈"
+timing: { window: whenAttacked }
+categorizedAs: [instinct]
+categorizedWhile: [dodge, defUp]
+description: |
+  (Passive) Evade rolls are reduced by 3, does not affect non-Evade Agility Checks. Upon a successful
+  Evade, reduce the Cooldown of this Skill by ⅓◈ Turns.
+  (Active) Used at the start of a Combat Process when Attacked. Applies @effect[dodge]{Dodge} for ⅓◈ Turns
+  and applies @effect[defUp]{Def Up} for ⅔◈ Turns, all damage taken is reduced by 25%; if NP, 15%.
+  Cooldown: 3◈ Turns.
+passiveRules:
+  # His own Evade only: `check: evade` is not the other Agility Checks.
+  - { key: CheckModifier, check: evade, direction: outgoing, value: -3 }
+  - key: OnEvent
+    event: evadeSucceeded
+    automatic: true
+    then:
+      - { key: CooldownDelta, ticks: "⅓◈" }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: dodge, duration: "⅓◈" }
+      - { id: defUp, magnitude: 25, npMagnitude: 15, duration: "⅔◈" }

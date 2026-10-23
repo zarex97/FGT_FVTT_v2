@@ -1,0 +1,21 @@
+# Chiron, char_orig_sheets/Copia de Chiron.md (#326)
+#
+# Scáthach's Wisdom of Dún Scáith with three slots (`engine/copy.mjs`): no Class
+# Skill and no Spell, as hers (ruling 6); each slot its own clock and locked
+# while another cools (ruling 7). The teaching is its second Active
+# (`chiron-wisdom-teach`).
+schema: 1
+id: chiron-wisdom-of-divine-gift
+name: "Wisdom of Divine Gift"
+rank: "A+"
+timing: { window: ownTurn }
+opensDialog: copy
+copyGrant: { slots: 3, cooldown: "4◈-⅓◈", exclusionSet: wisdomOfDivineGift }
+copyable: { allowed: false, reason: unique }
+description: |
+  When Chiron is Summoned, he is given a list of Skills (preferably Rank B to Rank A) that must have an
+  Active effect, of all other Servants on the field. He can then select three of them, and use their
+  effects as effects of this Skill. Rank EX Skills cannot be copied. Neither can Skills a Servant is
+  physically born with, Skills that are part of their body, or Skills unique to the Hero — Natural Body,
+  'Mystic Eye' Skills, 'Mana Burst' Skills, Kishu no Ma, Affections of the Holy Grail.
+  Each copied Skill: Cooldown 4◈-⅓◈ Turns. Cannot be used if another copied Skill is on Cooldown.

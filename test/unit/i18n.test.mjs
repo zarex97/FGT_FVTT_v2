@@ -132,3 +132,15 @@ describe("every requirement kind can explain itself", () => {
     expect(missing).toEqual([]);
   });
 });
+
+describe("every weak point clause can name itself", () => {
+  // Live, 2026-10-23: Antares Snipe's Heel offer read "FGT.WeakPoint.Part.aimed +75".
+  // The offer builds `FGT.WeakPoint.Part.<label>` from every clause it adds.
+  it("has a FGT.WeakPoint.Part.* string for each label weakPointChance adds", () => {
+    const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
+    const src = readFileSync("module/rules/weak-point.mjs", "utf8");
+    const labels = [...new Set([...src.matchAll(/add\("([a-zA-Z]+)"/g)].map((m) => m[1]))];
+    expect(labels.length, "the scan found the clauses").toBeGreaterThan(5);
+    expect(labels.filter((l) => !(`FGT.WeakPoint.Part.${l}` in lang))).toEqual([]);
+  });
+});

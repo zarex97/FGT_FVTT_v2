@@ -16,14 +16,27 @@ import { currentBoard, unitFrom, unitActor } from "./board.mjs";
 import { currentWar } from "./war.mjs";
 
 /**
- * Wisdom of Dún Scáith's own rank and cooldown, which every copy takes.
+ * A copy grant's terms, read off the grant: how many it copies, and the Rank,
+ * clock and lock every copy takes.
  *
- * The minus is an **ASCII hyphen**. It was a U+2212 MINUS SIGN, which
- * `parseTick` does not accept -- so every copy this grant has ever made threw
- * on its cooldown, was caught, and came back reading zero. A copied Skill was
- * reusable every Turn forever.
+ * Wisdom of Dún Scáith's two at A+ and 4◈-⅓◈ were constants here, and the
+ * dialog's slot count a default beside them: Wisdom of Divine Gift copies three
+ * (#326). Each grant now states its own `copyGrant`; the Rank is the grant's.
+ *
+ * @param {object|null} grant the ability that opens the copy dialog
+ * @returns {{slots: number, rank: string|null, cooldown: string|null, exclusionSet: string|null, grantedBy: string}|null}
  */
-const DUN_SCAITH = Object.freeze({ rank: "A+", cooldown: "4◈-⅓◈", exclusionSet: "wisdomOfDunScaith" });
+export function copyGrantSpec(grant) {
+  if (!grant) return null;
+  const terms = grant.system?.copyGrant ?? {};
+  return {
+    slots: Number(terms.slots ?? 0),
+    rank: grant.system?.rank ?? null,
+    cooldown: terms.cooldown ?? null,
+    exclusionSet: terms.exclusionSet ?? null,
+    grantedBy: grantName(grant),
+  };
+}
 
 /**
  * What this unit could copy right now.
@@ -151,14 +164,18 @@ export function attachCopyPick() {
  * @param {object} args
  * @param {string} args.copierId
  * @param {Array<{unitId: string, abilityId: string}>} args.picks
- * @param {number} [args.slots] how many the grant allows
- * @param {string} [args.grantedBy]
+ * @param {string|null} [args.grantedBy] defaults to the grant's own name
  * @returns {Promise<{ok: boolean, reason?: string, created?: number}>}
  */
-export async function grantCopies({ copierId, picks, slots = 2, grantedBy = "wisdomOfDunScaith" }) {
+export async function grantCopies({ copierId, picks, grantedBy = null }) {
   const copier = unitActor(copierId);
   if (!copier) return { ok: false, reason: "notFound" };
-  if ((picks ?? []).length > slots) return { ok: false, reason: "tooManyPicks" };
+  // The grant's own terms, never the caller's: the dialog and the socket both
+  // passed a count, and a default of two (#326).
+  const terms = copyGrantSpec(copyGrantOf(copier));
+  if (!terms) return { ok: false, reason: "noGrant" };
+  grantedBy ??= terms.grantedBy;
+  if ((picks ?? []).length > terms.slots) return { ok: false, reason: "tooManyPicks" };
 
   /** @type {object[]} */
   const data = [];
@@ -172,7 +189,9 @@ export async function grantCopies({ copierId, picks, slots = 2, grantedBy = "wis
     const verdict = canCopy(abilitySpec(source));
     if (!verdict.ok) return { ok: false, reason: verdict.reason };
 
-    const copy = copyAbility(abilitySpec(source), { id: copierId }, { ...DUN_SCAITH, grantedBy });
+    const copy = copyAbility(abilitySpec(source), { id: copierId }, {
+      rank: terms.rank, cooldown: terms.cooldown, exclusionSet: terms.exclusionSet, grantedBy,
+    });
     data.push({
       name: copy.name,
       type: "ability",
@@ -213,6 +232,32 @@ export async function grantCopies({ copierId, picks, slots = 2, grantedBy = "wis
 }
 
 /**
+ * Give a learner a copy of a teacher's copy (#326 ruling 9).
+ *
+ * The same source by reference, at the copy's Rank and clock; no lock, since the
+ * slots' lock is the grant's and the learner holds no grant. The teacher keeps
+ * his. `taughtBy` is how a second teaching to the same learner is refused.
+ *
+ * @param {{teacher: object, learner: object, copy: object}} args
+ * @returns {Promise<object|null>} the Item created
+ */
+export async function grantTaughtCopy({ teacher, learner, copy }) {
+  const [created] = await learner.createEmbeddedDocuments("Item", [{
+    name: copy.name,
+    type: "ability",
+    system: {
+      ...carriedUse(copy),
+      rank: copy.system?.rank ?? null,
+      cooldown: { max: copy.system?.cooldown?.max ?? null, remaining: 0, regen: 0 },
+      copiedFrom: copy.system?.copiedFrom ?? null,
+      taughtBy: teacher.id,
+      requirements: [],
+    },
+  }]);
+  return created ?? null;
+}
+
+/**
  * What a copy keeps of its source: everything about USING it, nothing about
  * owning it. The copier's rank, cooldown and gates replace the source's, and
  * the source's passive `rules` stay behind -- a copy carries "only the Active
@@ -224,7 +269,7 @@ const NOT_CARRIED = Object.freeze([
   // Mind (False)'s cooldown refund on an Evade came along with its Dodge.
   "passiveRules",
   "contentId", "contentVersion", "category", "sameTurnExclusive", "alsoTriggers",
-  "opensDialog", "copiedFrom", "grantedBy", "inheritedFrom",
+  "opensDialog", "copiedFrom", "grantedBy", "inheritedFrom", "taughtBy",
   // Runtime state of the source, not of the copy.
   "active", "toggledAt", "lastUsedTick",
 ]);

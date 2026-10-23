@@ -54,9 +54,10 @@ import { stanceOf } from "./stance.mjs";
  * @param {object} ctx.state the Combat Process state
  * @param {object|null} [ctx.board]
  * @param {boolean} [ctx.luckCheckPassed]
+ * @param {number} [ctx.aimBonus] the attacking ability's `weakPointAimBonus`
  * @returns {{chance: number, breakdown: Array<{label: string, delta: number}>, available: boolean}}
  */
-export function weakPointChance(spec, { defender, attacker, state, board = null, luckCheckPassed = false }) {
+export function weakPointChance(spec, { defender, attacker, state, board = null, luckCheckPassed = false, aimBonus = 0 }) {
   const available = isAvailable(spec, defender);
   /** @type {Array<{label: string, delta: number}>} */
   const breakdown = [];
@@ -128,6 +129,11 @@ export function weakPointChance(spec, { defender, attacker, state, board = null,
   if (typeof spec.luckCheckBonus === "number" && luckCheckPassed) {
     add("luckCheck", spec.luckCheckBonus);
   }
+
+  // The ATTACK's own bonus, the one clause the defender's sheet does not state:
+  // Antares Snipe *"the chance of hitting that specific target is increased by
+  // 75%"* (#326 ruling 12). It makes a frontal aim offerable.
+  if (aimBonus) add("aimed", aimBonus);
 
   return { chance: Math.max(0, chance), breakdown, available };
 }
