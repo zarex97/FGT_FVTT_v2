@@ -3,7 +3,8 @@ id: 2026-10-23-invuln-gyakkou-never-counted
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** Gyakkou's Invuln (Gyakkou) *"for 1◈ Turns, 1 time"*: one hit spends it (#328 ruling 10).
 **Actual:** pressed live 2026-10-23: after the revival it held `uses: 0`, so a hit spends nothing and it lasts its

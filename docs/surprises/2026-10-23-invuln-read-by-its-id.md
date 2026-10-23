@@ -3,7 +3,8 @@ id: 2026-10-23-invuln-read-by-its-id
 found: test
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Gyakkou's Invuln (Gyakkou), *"separate from normal Invuln"*, works as an Invuln: no damage, half
 against an NP, no Block, no Overpower, and spent first (#328 ruling 10).

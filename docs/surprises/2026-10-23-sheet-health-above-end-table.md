@@ -3,7 +3,8 @@ id: 2026-10-23-sheet-health-above-end-table
 found: test
 kind: rule-word-read-one-way
 status: fixed
-reviewed: false
+reviewed: true
+pattern: rule-word-read-one-way
 ---
 **Expected:** U-Olga Marie's Max Health is her sheet's *"Base Health: 2500"* (ST.hp).
 **Actual:** 2000. Her END is EX, and `baseHealthByEnd` gives EX 2000; the table beats the sheet.

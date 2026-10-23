@@ -3,7 +3,8 @@ id: 2026-10-23-test-assumed-karnas-mov
 found: test
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** my Gravity Manipulation test: Karna's MOV 5, so 2, 1 and 1 at three, two and one panels.
 **Actual:** `at 3: expected 4 to be 2`. Karna's MOV is 7; the aura was right and the test was not.
