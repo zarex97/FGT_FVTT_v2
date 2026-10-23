@@ -3,7 +3,8 @@ id: 2026-10-23-cannot-react-offered-an-ability
 found: live press
 kind: generic-path-escapes-special-case
 status: fixed
-reviewed: false
+reviewed: true
+pattern: generic-path-escapes-special-case
 ---
 **Expected:** Four Elements' face 5: *"if the DU failed to Evade the first hit, it cannot React to the second hit"*
 (#328 ruling 16): the follow-up offers its DU nothing but taking it.

@@ -3,7 +3,8 @@ id: 2026-10-23-extra-slot-erased-the-class
 found: test
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** a Beast seated in a War shows the Beast icon and name on her sheet, token and cards, as she does
 off the War (#328, BC.icon; the user: "we are missing some details on the Beast Class ... like her icon").

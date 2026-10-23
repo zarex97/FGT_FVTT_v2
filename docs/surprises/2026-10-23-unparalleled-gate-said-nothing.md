@@ -3,7 +3,8 @@ id: 2026-10-23-unparalleled-gate-said-nothing
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** with another allied Servant's Attack already made this Turn, Unparalleled's card says its third
 effect was not applied (#328 ruling 11, UP.gate).

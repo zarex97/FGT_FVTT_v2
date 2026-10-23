@@ -3,7 +3,8 @@ id: 2026-10-23-no-effect-said-missed
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** EMIYA's Normal Attack on U-Olga Marie from 4 panels, a BA(STR) swing, has no effect on her, and the
 card says so and why (#328 ruling 9: "no damage, no riders, a card line").

@@ -3,7 +3,8 @@ id: 2026-10-23-revival-aftermath-said-nothing
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** when Defender of Humanity revives U-Olga Marie, Gyakkou's four effects are on a card: Atk Up,
 Invuln (Gyakkou), her NP's clock −⅓◈ and Max Health −10% (#328, GY.*).
