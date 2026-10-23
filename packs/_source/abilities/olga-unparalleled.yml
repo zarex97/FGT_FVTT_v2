@@ -1,0 +1,63 @@
+# U-Olga Marie (President), the audit of #328.
+# Conversion source: char_orig_sheets/by-class/Beast/President.md
+#
+# Ruling 11: "Skill Cooldown is reduced by 2◈" cuts her other Skills, not this
+# one and not an NP (`scope: skills`, `excludeSelf`). The Unparalleled effect is
+# not applied when another allied Servant has already Attacked this Turn; the
+# rest still is. The 3-panel areas include her where they are allied.
+schema: 1
+id: olga-unparalleled
+name: "Unparalleled"
+rank: EX
+kind: skill
+slug: unparalleled
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Skill Cooldown is reduced by 2◈ Turns.
+  2. Applies @effect[npDmUp]{NP DmUp} for 1◈ Turns, NP Damage dealt is increased by 30%.
+  3. Applies the '@effect[unparalleled]{Unparalleled}' effect for this Turn, this is neither a buff or debuff and is
+     Unremovable. Its effects are as follows- This Turn, no other allied Servants can Attack other than U-Olga Marie,
+     and U-Olga Marie can Attack up to three times this Turn. This effect is not applied if any other allied Servant
+     has already Attacked this Turn.
+  4. Applies @effect[sCritUp]{S.Crit Up} for ⅓◈ Turns to all allied Units within a 3 panel area of herself, Crit
+     Chance is increased by 50%.
+  5. Inflicts @effect[npSeal]{NP Seal} for ⅓◈ Turns to all enemy Units within a 3 panel area of herself.
+  6. Inflicts @effect[healDwn]{Heal Dwn} for 1◈ Turns to all enemy Units within a 3 panel area of herself, when
+     Health is restored, the amount restored is reduced by 50%.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: cooldown
+    target: self
+    changes:
+      - { scope: skills, excludeSelf: true, ticks: "2◈", direction: down }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: npDmUp, magnitude: 30, duration: "1◈" }
+  - kind: applyEffects
+    target: self
+    predicate: [{ not: "self:allyServantAttacked" }]
+    unmetLine: "FGT.Unparalleled.NotApplied"
+    effects:
+      - { id: unparalleled, duration: "this turn" }
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: square, size: 7 }
+      selection: { relations: [ally, self], chooser: all, includeSelf: true }
+    effects:
+      - { id: sCritUp, magnitude: 50, duration: "⅓◈" }
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: square, size: 7 }
+      selection: { relations: [enemy], chooser: all }
+    effects:
+      - { id: npSeal, duration: "⅓◈" }
+      - { id: healDwn, magnitude: 50, duration: "1◈" }

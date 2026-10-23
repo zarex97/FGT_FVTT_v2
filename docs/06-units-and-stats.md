@@ -66,6 +66,16 @@ Attributes are an open tag set by design — the expanded roster added Fairytale
 
 Every sheet authored the closure by hand before this code existed, which meant `spirit` appeared nowhere — so effects keying on Spirit missed every Servant. Mannanán is Pseudo-Servant and Living Human both, which is why the distinction matters (`module/domain/attributes.mjs:19`). The table is transitive and idempotent; closing attributes more than once gives the same result (`module/domain/attributes.mjs:72-106`).
 
+**A Servant may withhold an implication** (#328 ruling 4): `withheldAttributes` lists tags the closure never adds to
+it (`closeAttributes(attrs, unit, {withheld})`, read by `snapshot.mjs#attributesOf`). U-Olga Marie is a Servant
+*"neither Hominidae or Non-Hominidae"*, so `servant ⟹ hominidae` is withheld; an authored tag stays.
+
+**Earth is no War Region** (#328 ruling 3): `environment.mjs#NOT_A_WAR_REGION`. U-Olga Marie is from Earth, every
+War is fought on it, and her sheet grants no bonus there, so `regionBonusFor` never answers it.
+
+**Max Health is the END table's, above or below the sheet.** U-Olga Marie prints Base Health 2500 against END EX's
+2000, the first sheet to disagree upward; ruled 2026-10-23 (#328 ruling 18): 2000, the table's.
+
 The `Magus` attribute reads three fields to decide: *"Units with the 'Magus' Attribute — Masters, Casters, all Units whose Normal Attacks use Base Attack (MAG)"* (`module/domain/attributes.mjs:52-70`).
 
 ### Parameters and their steps

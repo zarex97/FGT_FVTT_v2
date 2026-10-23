@@ -668,6 +668,9 @@ function gatedAbilities(unit, req, self = null) {
     if (named.size > 0) return named.has(a.contentId) || named.has(a.id);
     if (req.category) return a.category === req.category;
     if (req.exclusionSet) return a.exclusionSet === req.exclusionSet;
+    // Her Noble Phantasms, as `scope: np` names them on a cooldown phase:
+    // Flawlessness *"can only be used when NP is not on Cooldown"* (#328).
+    if (req.scope === "np") return Boolean(a.isNP || a.categorizedAsNP);
     return false;
   });
 }

@@ -35,7 +35,7 @@ export const AUTHORED_ACTOR_KEYS = Object.freeze([
   "ownerId", "level", "crossLevel", "dimension", "contentId", "contentVersion", "trueName",
   "servantClasses",
   "classContainer", "concealedIdentity", "identityRevealed", "detect",
-  "defaultImage", "alignment", "region", "attributes", "parameters",
+  "defaultImage", "alignment", "region", "attributes", "withheldAttributes", "parameters",
   "baseHealth", "mov", "range", "baseAttack", "normalAttack", "sustainability",
   // The linked-group binding (Ch. 32). Settings only: `memberIds` is
   // resolved at summon and is never authored.
@@ -94,7 +94,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "costByMasterRank", "requirements", "timing", "blockedWhen", "effect",
   "permanentConsequence", "overridesValidation", "parameterized", "polarity",
   "severity", "preventsAction", "terminal", "onRemove", "volatility",
-  "families", "suppressesOtherEffects", "valence", "stacking", "baseChance",
+  "families", "spentFirst", "suppressesOtherEffects", "valence", "stacking", "baseChance",
   "defaultMagnitude", "uses", "maxStacks", "rulesOncePerBearer", "absorbs", "defaultDuration",
   "unremovable", "blocks", "blockedBy", "replaces",
   // Never compiled while the allowlist stood. Serenity's two concealment

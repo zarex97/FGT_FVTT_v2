@@ -1,0 +1,18 @@
+# E.Atk Up: "all non-NP AoE damage dealt is increased by X%" (U-Olga Marie's
+# Flawlessness, #328 ruling 15). The damage of an area Attack that is not a
+# Noble Phantasm: her 3x3 Normal Attack, an area Attack Skill.
+schema: 1
+id: eAtkUp
+name: "E.Atk Up"
+description: "All non-NP area damage dealt is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: "@magnitude"
+    predicate: ["attack:isAoE", { not: "attack:kind:np" }]

@@ -548,6 +548,13 @@ export const REGION_ADJACENCY = Object.freeze({
 });
 
 /**
+ * Regions a Servant may be from that no War is fought in. U-Olga Marie's sheet
+ * reads *"Region: Earth (Note: No Parameter bonus from being on Earth)"* (#328
+ * ruling 3): every War is on Earth, so Earth is no War Region and grants nothing.
+ */
+export const NOT_A_WAR_REGION = Object.freeze(["earth"]);
+
+/**
  * The parameter steps a unit gains from the war's Region.
  *
  * *"All Servants from the corresponding Region selected receive a + to all
@@ -562,7 +569,7 @@ export const REGION_ADJACENCY = Object.freeze({
  * @returns {number} steps granted
  */
 export function regionBonusFor(unit, warRegion) {
-  if (!warRegion) return 0;
+  if (!warRegion || NOT_A_WAR_REGION.includes(warRegion)) return 0;
   if (unit?.kind !== "servant") return 0;
   return (unit.region ?? []).includes(warRegion) ? 1 : 0;
 }

@@ -75,6 +75,9 @@ const COMMON = Object.freeze([
   // A die for the whole phase: a percent, or `{value, perPriorUse, max, label}`
   // growing with each use (`rules/phase-chance.mjs`; Prelati's Encouragement, #260).
   { key: "chance", type: "raw" },
+  // The card's line when `predicate` holds the phase back, a lang key: Unparalleled's
+  // *"This effect is not applied if any other allied Servant has already Attacked"* (#328).
+  { key: "unmetLine", type: "text" },
 ]);
 
 /**

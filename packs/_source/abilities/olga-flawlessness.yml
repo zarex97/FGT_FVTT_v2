@@ -1,0 +1,52 @@
+# U-Olga Marie (President), the audit of #328.
+# Conversion source: char_orig_sheets/by-class/Beast/President.md
+#
+# "Can only be used when NP is not on Cooldown ... NP Cooldown is Reset": the
+# price of the Skill, her NP put on its full Cooldown (ruling 13), `restart`.
+# NP Regen cuts 1 Turn (ruling 14). The 3-panel area includes her, as every
+# "all allied Units" does (#326 ruling).
+schema: 1
+id: olga-flawlessness
+name: "Flawlessness"
+rank: EX
+kind: skill
+slug: flawlessness
+cooldown: "4◈"
+timing: { window: ownTurn }
+requirements:
+  - { kind: abilityOffCooldown, scope: np }
+description: |
+  (Active) Used during your Turn. Can only be used when NP is not on Cooldown. Has the following effects-
+  1. NP Cooldown is Reset.
+  2. Applies @effect[dmgUpStandard]{Dmg Up (Standard)} for 1◈ Turns, all damage dealt to Standard-class Servants is
+     increased by 50%.
+  3. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 30%; if NP, 20%.
+  The following effects affect all allied Units within a 3 panel area of herself-
+  4. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 40%; if NP, 30%.
+  5. Applies @effect[eAtkUp]{E.Atk Up} for 1◈ Turns, all non-NP AoE damage dealt is increased by 100%.
+  6. Applies @effect[critDmUp]{Crit DmUp} for 1◈ Turns, Crit Damage dealt is increased by 30%.
+  7. Applies @effect[npRegen]{NP Regen} for 1◈ Turns, NP Cooldown is reduced by 1 Turn at the end of every Turn.
+  8. Applies @effect[pierce]{Pierce} for 1◈ Turns.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: square, size: 7 }
+  selection: { relations: [ally, self], chooser: all, includeSelf: true }
+phases:
+  - kind: cooldown
+    target: self
+    changes:
+      - { scope: np, restart: true }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: dmgUpStandard, magnitude: 50, duration: "1◈" }
+      - { id: atkUp, magnitude: 30, npMagnitude: 20, duration: "1◈" }
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: atkUp, magnitude: 40, npMagnitude: 30, duration: "1◈" }
+      - { id: eAtkUp, magnitude: 100, duration: "1◈" }
+      - { id: critDmUp, magnitude: 30, duration: "1◈" }
+      - { id: npRegen, magnitude: 1, duration: "1◈" }
+      - { id: pierce, duration: "1◈" }

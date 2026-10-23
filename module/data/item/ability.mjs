@@ -625,6 +625,10 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // `Dmg Up (Bind)` is the first clause that asks about the umbrella
       // rather than about a member.
       families: new fields.SetField(new fields.StringField({ blank: false })),
+      // Spent before another of its family when a hit spends one: Invuln
+      // (Gyakkou) *"is consumed first when Attacked"* (#328 ruling 10). Read
+      // by `rules/effects/families.mjs#spentFirstOf`.
+      spentFirst: new fields.BooleanField({ initial: false }),
       // Petrify's *"buffs, debuffs and other effects have no effect"*. A flag
       // rather than a `Suppress` rule element because it decides what the unit
       // projection CONTAINS, and rule elements are collected from that

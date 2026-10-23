@@ -142,3 +142,26 @@ export function chanceFromDistance(perPanel, distance) {
   if (typeof distance !== "number" || !Number.isFinite(distance)) return 0;
   return Math.min(100, Math.max(0, perPanel * distance));
 }
+
+/**
+ * Does this Attack have no effect on this defender at all?
+ *
+ * Gravity Manipulation: *"Ranged Attacks which deal STR damage from 4 or more
+ * panels away from Olga Marie have no effect on her"* (#328 ruling 9). The game
+ * has no Ranged delivery yet (#281), so the distance alone says it: any Attack
+ * with Base Attack (STR) declared from 4 or more panels, a Normal Attack, an
+ * Attack Skill and an NP alike. Like a Miss, it is decided before anyone
+ * reacts, and nothing of it lands: no damage and no riders.
+ *
+ * @param {object|null} defender the defender's snapshot
+ * @param {object|null} attacker the attacker's snapshot
+ * @param {object|null} attack the Attack Description
+ * @returns {object|null} the nullifier that applies, or `null`
+ */
+export function nullifiedBy(defender, attacker, attack) {
+  if (!defender?.panel || !attacker?.panel) return null;
+  const distance = Math.max(Math.abs(defender.panel.i - attacker.panel.i), Math.abs(defender.panel.j - attacker.panel.j));
+  return (defender.attackNullifiers ?? []).find((n) =>
+    distance >= (n.minDistance ?? 0)
+    && (!n.component || (attack?.component ?? null) === n.component)) ?? null;
+}

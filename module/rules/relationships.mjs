@@ -14,6 +14,7 @@ import { currentHealth } from "../domain/health.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { unitWeight } from "./linked-group.mjs";
 import { revisionOf } from "../domain/revisions.mjs";
+import { holdsFamily } from "./effects/families.mjs";
 
 /** Base chance for both coin flips. */
 const BASE_FLIP = 50;
@@ -72,7 +73,7 @@ export function overpowerCheck(attacker, defender) {
   const held = defender.effects ?? [];
   // Invuln and Shield are absolute, not modifiers — a Master carrying either
   // cannot be Overpowered at all.
-  if (held.includes("invuln")) return { applies: false, chance: 0, reason: "invuln" };
+  if (holdsFamily(defender, "invuln")) return { applies: false, chance: 0, reason: "invuln" };
   // *"Arturia's Master cannot be Overpowered"* (Avalon, #230): a rule that says
   // so by name, as the Vorpal Blade's says it of Underpower.
   if ((defender.suppressions ?? []).some((s) => s.scope === "overpower")) {

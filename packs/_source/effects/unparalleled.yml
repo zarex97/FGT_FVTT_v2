@@ -1,0 +1,25 @@
+# U-Olga Marie's Unparalleled, effect 3 (#328 ruling 11).
+#
+# > "Applies the 'Unparalleled' effect for this Turn, this is neither a buff or
+# > debuff and is Unremovable. Its effects are as follows- This Turn, no other
+# > allied Servants can Attack other than U-Olga Marie, and U-Olga Marie can
+# > Attack up to three times this Turn."
+#
+# Three Attacks of any kind (`AttacksPerTurn`); the bar on her allied Servants,
+# never a Master or a summon (`BanAlliedServantAttacks`).
+schema: 1
+id: unparalleled
+name: "Unparalleled"
+description: |
+  Neither a buff nor a debuff, and Unremovable. This Turn, no other allied Servant can Attack, and its holder can
+  Attack up to three times.
+polarity: status
+volatility: nonVolatile
+valence: neutral
+stacking: noneRefresh
+baseChance: 100
+unremovable: true
+rules:
+  - key: AttacksPerTurn
+    value: 3
+  - key: BanAlliedServantAttacks

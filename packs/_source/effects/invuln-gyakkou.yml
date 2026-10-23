@@ -1,0 +1,30 @@
+# U-Olga Marie's Gyakkou (#328 ruling 10).
+#
+# > "Applies Invuln (Gyakkou) for 1◈ Turns, 1 time. Invuln (Gyakkou) is
+# > separate from normal Invuln, and is consumed first when Attacked."
+#
+# An Invuln, so every reader that asks for the family finds it
+# (`rules/effects/families.mjs#holdsFamily`); its own id, so it sits beside a
+# plain Invuln rather than refreshing it; `spentFirst`, so a hit spends it
+# before the other.
+schema: 1
+id: invulnGyakkou
+name: "Invuln (Gyakkou)"
+description: |
+  An Invuln held separately from @effect[invuln]{Invuln}, and spent before it when Attacked. No damage
+  is taken; against a Noble Phantasm, damage is reduced by 50% instead. The Unit cannot Block.
+  @effect[pierce]{Pierce} ignores it.
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+families: [invuln]
+spentFirst: true
+# "1 time": a definition's own count. A non-stacking effect takes its charges
+# from here, never from the entry that applies it (`effect-applier.mjs#resolveStacking`);
+# an entry's `uses: 1` was dropped and the Invuln was never spent (found live, #328).
+uses: 1
+rules:
+  - key: ForbidReaction
+    reactions: [block]

@@ -39,7 +39,7 @@ import { counterRedirect, counterMustCatchAttacker, counterRefusal } from "../ru
 import { Rank } from "../domain/rank.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { inAttackRangeBetween, chebyshev } from "../domain/geometry.mjs";
-import { missChance, missSourceOf, PLAIN_MISS } from "../rules/miss.mjs";
+import { missChance, missSourceOf, nullifiedBy, PLAIN_MISS } from "../rules/miss.mjs";
 import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
 import { collectContributions } from "../rules/elements.mjs";
 import { test as testPredicate, explain as explainPredicate } from "../rules/predicate.mjs";
@@ -70,6 +70,7 @@ import { entryOf } from "../rules/effect-flow.mjs";
 import { tableFor, entriesFor, rollFaces } from "../rules/roll-table.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
+import { spentFirstOf } from "../rules/effects/families.mjs";
 import { polarityOf } from "../rules/effect-instance.mjs";
 import * as budget from "./budget.mjs";
 import { resolveDefeat, pendingRolls, fireEvent } from "./scheduler.mjs";
@@ -403,7 +404,22 @@ export async function resolveAttack({
     areaPanels: targets.panels ?? [],
     // How many of its criteria the declaration met, and which (#283).
     ...(criteria.total > 0 ? { criteriaMet: criteria } : {}),
+    // A rider's follow-up hit, made with the Base Attack its face names
+    // (Four Elements' face 5, #328 ruling 16).
+    ...(placement?.rider ? { rider: placement.rider, ...(placement.rider.component ? { component: placement.rider.component } : {}) } : {}),
   };
+  // A Noble Phantasm that rides a Normal Attack: offered here, at the
+  // declaration, its die rolled and its face folded onto the Attack before
+  // any Process exists (Four Elements, #328 ruling 16).
+  if (!resume && !placement?.followUp && !plainDamage) {
+    const anchor = targets.anchor?.panel ?? targets.anchor ?? null;
+    const range = anchor && typeof anchor.i === "number" && self.panel
+      ? chebyshev(self.panel, anchor)
+      : (targets.units[0]?.distance ?? null);
+    const { offerAttackRiders } = await import("./attack-riders.mjs");
+    const taken = await offerAttackRiders({ attackerDoc: attacker, ability, attackSpec, range, board });
+    if (taken) Object.assign(attackSpec, taken);
+  }
   // "EMIYA performs 2 Normal Attacks in a row." Two Combat PROCESSES against
   // the same defender, inside ONE Combat Phase -- which is the distinction that
   // matters, because a Combat Phase is what pays him his Aria and two phases
@@ -1036,6 +1052,10 @@ export function buildAttackSpec({
         block?.ignoresAttackerIncreases
         ?? topLevel?.ignoresAttackerIncreases,
       ),
+      // *"This Normal Attack is not affected by effects which increase or
+      // decrease Crit Damage dealt"*: the attacker's Crit DmUp and Crit DmDwn,
+      // and not the DU's Crit resistance (Defender of Humanity, #328 ruling 7).
+      ignoresCritDamageDealt: Boolean(block?.ignoresCritDamageDealt),
       // Per-attack RESTRICTIONS on the reaction ladder. Appendix A treats the
       // ladder as a fixed three, and Mannanán's Fragarach Counter is the first
       // attack in the corpus that narrows it: *"A Fragarach Counter cannot be
@@ -1110,7 +1130,9 @@ function defenderFields({ attackerId, defenderId, attack, isAoE, ability, board,
     // Akhilleus Kosmos's shove (#184 reading 8). No Evade, no Block, no
     // Counter, and no reaction ability offered against it.
     reactionAbilities: {
-      [defenderId]: declared.plainDamage
+      // ...nor against a hit its DU *"cannot React to"*: Four Elements' follow-up
+      // after a failed Evade closes the reaction abilities too (#328, found live).
+      [defenderId]: declared.plainDamage || (declared.forbidReactions ?? []).includes("abilities")
         ? []
         : offeredReactions(defenderId, attack, isAoE, attackerId, board),
     },
@@ -1457,6 +1479,10 @@ async function declareProcesses({
       // the declaration's commit facts, and this Process's own landings later.
       withCone.use = structuredClone(use ?? emptyUseRecord({ abilityId: ability?.id ?? null, unitId: attackerId }));
       if (caughtByArea.has(withCone.defenderId)) withCone.caughtByArea = true;
+      // How many Units the declaration caught, for a clause counted on them:
+      // Defender of Humanity's *"Total damage dealt is reduced by 10% for every
+      // Unit within the Attack area"* (#328 ruling 7).
+      withCone.areaCount = new Set(targetIds).size;
       const withInstance = instance
         ? { ...withCone, attack: { ...withCone.attack, ...instance } }
         : withCone;
@@ -2267,6 +2293,9 @@ async function closeRung(state, message) {
     {
       const { offerFollowUp } = await import("./follow-up.mjs");
       await offerFollowUp(state, { rollOptions, resolveAttack });
+      // ...and a rider face's follow-up hit (Four Elements' face 5, #328).
+      const { offerRiderFollowUp } = await import("./attack-riders.mjs");
+      await offerRiderFollowUp(state, { resolveAttack });
     }
     await flushAutoCounters(state.groupId);
     await fireCombatPhaseEnd(state);
@@ -4817,7 +4846,7 @@ function pendingCosts({ usage, ability, self, master, board, use = {} }) {
  * @param {object} self the attacker's snapshot
  * @returns {object[]} `{key, factor, source}` entries for stage 15
  */
-function totalModifiersFor(ability, options, self, block = undefined) {
+function totalModifiersFor(ability, options, self, block = undefined, { areaCount = 1 } = {}) {
   const authored = (block === undefined ? resolvedDamage(ability, options) : block)?.totalModifiers ?? [];
   /** @type {object[]} */
   const out = [];
@@ -4831,6 +4860,8 @@ function totalModifiersFor(ability, options, self, block = undefined) {
       const held = typeof pool === "number" ? pool : (pool?.value ?? 0);
       percent *= Math.floor(held / (per.each ?? 1));
     }
+    // Per Unit the Attack caught (#328 ruling 7), floored at no damage.
+    if (m.perUnitInArea) percent = Math.max(-100, percent * Math.max(1, areaCount));
     if (percent === 0) continue;
     out.push({
       key: m.key ?? "totalDamage",
@@ -5798,7 +5829,7 @@ async function applyDamage(state, message) {
     // and returns, so nothing looks for Base Attack sources at all.
     : diceBase
       ? diceBase
-      : baseSpecFor(attackerDoc, ability, facts.range, options, block);
+      : baseSpecFor(attackerDoc, ability, facts.range, options, block, state.attack?.rider ?? null);
   const critSpec = critChance(attacker, defender, {
     // ...with the Base Attacks this attack adds up, which stage 1 derives too:
     // Crit Up (Viy) asks whether it uses BA(MAG) (#258 reading 3).
@@ -5877,7 +5908,7 @@ async function applyDamage(state, message) {
       // -- like a passive -- so a modifier authored there would apply to every
       // Normal Attack she makes as well. This clause belongs to one Noble
       // Phantasm, and the damage block is what that Noble Phantasm is.
-      ...totalModifiersFor(ability, options, attacker, block),
+      ...totalModifiersFor(ability, options, attacker, block, { areaCount: state.areaCount ?? 1 }),
     ],
     luckChecks: {},
     rolls: {
@@ -5940,8 +5971,11 @@ async function applyDamage(state, message) {
   const invulnTouched = (result.breakdown ?? [])
     .some((b) => (b.contributors ?? []).some((c) => c.source === "invuln" && c.value !== 0));
   if (invulnTouched) {
-    const invuln = unitActor(defender.id)?.effects?.find((e) => e.system?.defId === "invuln");
-    if ((invuln?.system?.uses ?? 0) > 0) await applyBatch([I.consumeUse(defender.id, "invuln")], "invuln");
+    // The one spent first, Invuln (Gyakkou) before a plain one (#328 ruling 10).
+    const held = [...(unitActor(defender.id)?.effects ?? [])]
+      .map((e) => ({ id: e.id, defId: e.system?.defId, uses: e.system?.uses ?? null }));
+    const spent = spentFirstOf(held, "invuln", EffectRegistry);
+    if (spent) await applyBatch([I.consumeUse(defender.id, spent.id)], "invuln");
   }
 
   // Ch. 32. Overpower can end the Master outright before damage matters;
@@ -6364,7 +6398,48 @@ function riderSubjects(state) {
  * @param {object[]} [opts.held] collects the summaries of what was kept back
  * @returns {Promise<Array<{summary: object, result: object}>>}
  */
+/**
+ * What a rider's face inflicts, on a hit: Four Elements' Burn, Soaked or Shock
+ * for 2◈ (#328 ruling 16). A Normal Attack has no phases of its own to land
+ * them; the declaration carries them (`attack.riders`), and they roll their
+ * chance through the one door every entry does.
+ *
+ * @param {object} state
+ * @param {object} damageResult
+ * @param {object} [opts]
+ * @returns {Promise<object[]>}
+ */
+async function landDeclaredRiders(state, damageResult, { when = "afterDamage", riders = "land" } = {}) {
+  const declared = state.attack?.riders ?? [];
+  if (declared.length === 0 || when !== "afterDamage" || riders !== "land") return [];
+  const attackerDoc = unitActor(state.attackerId);
+  const defenderDoc = unitActor(state.defenderId);
+  if (!attackerDoc || !defenderDoc) return [];
+  if (coverStateFor(state)?.masterId === state.defenderId) return [];
+  if (!ridersFire({ skipped: null, result: damageResult })) return [];
+  const { attacker: attackerUnit, defender } = riderSubjects(state);
+  const applied = [];
+  for (const rider of declared) {
+    applied.push(...await landEntry(entryOf(rider), {
+      target: defender,
+      source: { unitId: state.attackerId, abilityId: state.attack?.rider?.abilityId ?? null },
+      useRecord: state.use ?? null,
+      caster: attackerDoc,
+      casterUnit: attackerUnit,
+      attack: attackFacts(attackerUnit, defender, state),
+      process: state,
+    }, {
+      write: (intents) => applyBatch(intents, "attackRider"),
+      reread: () => unitFrom(boardSnapshot(), defenderDoc),
+    }));
+  }
+  return applied;
+}
+
 async function applyAbilityEffects(state, damageResult, { when = "afterDamage", riders = "land", heldBy = null, held = [] } = {}) {
+  // What a rider's face inflicts, on a Normal Attack that has no phases of its
+  // own (Four Elements, #328 ruling 16).
+  const declared = await landDeclaredRiders(state, damageResult, { when, riders });
   const holding = riders === "hold";
   const heldOnly = riders === "heldOnly";
   // What a held rider says on the card when the barrier does not break.
@@ -6374,7 +6449,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
   const attackerDoc = unitActor(state.attackerId);
   const ability = state.attack?.abilityId ? attackerDoc?.items.get(state.attack.abilityId) : null;
   const defenderDoc = unitActor(state.defenderId);
-  if (!ability || !defenderDoc) return [];
+  if (!ability || !defenderDoc) return declared;
 
   // Ch. 32 rule 4: *"the Master receives no damage AND EFFECTS"*. The damage
   // half is stage 15's `factor: 0`; this is the other half, and it has to be
@@ -6393,7 +6468,7 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
   if (!ridersFire({ skipped: null, result: damageResult })) return [];
 
   const { attacker: attackerUnit, defender } = riderSubjects(state);
-  const applied = [];
+  const applied = [...declared];
 
   // An AFTERMATH resolution carries its own riders and NOT the ability's
   // phases. Xiuhcoatl's splash inflicts Burn for 1◈ and NP Seal at 25%, where
@@ -7377,9 +7452,12 @@ function declaredBase(ability, options = null, block = undefined) {
  * @param {object|null} ability
  * @returns {object}
  */
-function baseSpecFor(attacker, ability, range = null, options = null, block = undefined) {
+function baseSpecFor(attacker, ability, range = null, options = null, block = undefined, rider = null) {
   const stated = declaredBase(ability, options, block);
   if (stated) return stated;
+  // A Normal Attack whose rider names its Base Attack: Four Elements' face 5,
+  // *"an Attack using Base Attack (STR), then ... Base Attack (MAG)"* (#328).
+  if (!ability && rider?.component) return { sources: [{ unit: "self", component: rider.component, factor: 1 }] };
 
   // Through the same rule the option set used, so the number the pipeline adds
   // up and the component a predicate tests cannot disagree.
@@ -7573,6 +7651,20 @@ export function attackFacts(attacker, defender, state, board = null) {
   const normal = normalAttackAt(attacker, range, {
     platform: source.attacksAsPlatform ? source.platform : null,
   });
+  // A rider's face decides them over the band: Four Elements' Fire, Water or
+  // Lightning, and face 5's STR then MAG (#328 ruling 16).
+  const rider = state.attack?.rider ?? null;
+  if (rider?.component || rider?.element) {
+    return {
+      ...facts,
+      component: rider.component ?? normal.component,
+      element: rider.element ?? normal.element ?? facts.element ?? null,
+      elementFraction: rider.element ? undefined : (normal.element ? normal.elementFraction : facts.elementFraction),
+      ignoresMagicResistance: facts.ignoresMagicResistance || (!rider.component && normal.ignoresMagicResistance),
+      attackRank: normal.attackRank ?? null,
+      conditionalMultipliers: normal.conditionalMultipliers ?? [],
+    };
+  }
   return {
     ...facts,
     component: normal.component,
@@ -8316,6 +8408,20 @@ async function runMissCheck(state, attacker, board) {
   // defender and no attack, so the range was never there (Wave B).
   const defenderDoc = state.defenderId ? unitActor(state.defenderId) : null;
   const defender = defenderDoc ? unitFrom(board, defenderDoc) : null;
+  // An Attack that has no effect on this defender (Gravity Manipulation, #328
+  // ruling 9): nothing of it lands, and the card names why.
+  const nullifier = state.isCounter ? null : nullifiedBy(defender, attacker, state.attack);
+  if (nullifier) {
+    const why = game.i18n.format("FGT.Card.NoEffect", {
+      name: shownName(defender), source: nullifierName(nullifier.source, defenderDoc),
+    });
+    return process.advance(state, "miss", {
+      rollRecord: {
+        check: "noEffect", label: why, purpose: why, formula: "", raw: null, total: null,
+        target: null, outcome: "noEffect", source: nullifier.source, unitId: defender.id,
+      },
+    });
+  }
   const chance = missChance(attacker, rollOptions(attacker, defender, state));
   if (chance <= 0) return instinctOf(process.advance(state, "hit"), defender);
 
@@ -8340,6 +8446,18 @@ async function runMissCheck(state, attacker, board) {
     },
   });
   return missed ? advanced : instinctOf(advanced, defender);
+}
+
+/**
+ * The name of what nullified an Attack: the defender's ability whose rule it is.
+ *
+ * @param {string|null} source
+ * @param {object|null} doc the defender's document
+ * @returns {string}
+ */
+function nullifierName(source, doc) {
+  const item = doc?.items?.find((i) => i.id === source || i.system?.contentId === source || i.system?.slug === source);
+  return item?.name ?? EffectRegistry.get(source)?.name ?? String(source ?? "");
 }
 
 /**
@@ -9131,7 +9249,7 @@ function counterfactualDamage({ attackerDoc, ability, board, options, defenderUn
     defender: defenderUnit,
     board,
     attack,
-    base: baseSpecFor(attackerDoc, ability, attack.range, description.options, block),
+    base: baseSpecFor(attackerDoc, ability, attack.range, description.options, block, attack.rider ?? null),
     // A counterfactual meets no criteria: none was counted, since none was declared.
     multiplier: multiplierOf(block),
     flatBonus: block?.flatBonus ?? 0,

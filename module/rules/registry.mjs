@@ -49,6 +49,7 @@ export const EffectRegistry = {
         // negation. `rules/snapshot.mjs` reads both off this registry to
         // build `effectFamilies` and to decide what is in force at all.
         families: [...(sys.families ?? [])],
+        spentFirst: Boolean(sys.spentFirst),
         suppressesOtherEffects: Boolean(sys.suppressesOtherEffects),
         defaultMagnitude: sys.defaultMagnitude ?? 0,
         defaultDuration: sys.defaultDuration ?? null,

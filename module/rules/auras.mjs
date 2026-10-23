@@ -71,6 +71,10 @@ export function collectAuras(unit, board, index = null) {
     // this Unit is on the field", and giving it a radius would have made it an
     // ordinary aura and quietly bounded a rule that is not.
     if (!alsoReached && aura.scope !== "field" && distanceBetween(source, unit) > (aura.radius ?? 0)) continue;
+    // ...and a ring, when it has an inner edge: Gravity Manipulation's tiers
+    // are *"3 panels away"*, *"2 panels away"* and *"directly next to her"*,
+    // each its own (#328 ruling 8).
+    if (!alsoReached && aura.scope !== "field" && distanceBetween(source, unit) < (aura.minRadius ?? 0)) continue;
     // ...and a radius is measured on one level. A Unit on the ground under the
     // Hanging Gardens is not "next to" a Bašmu on its deck (Ch. 46 §46.4-BP).
     if (!alsoReached && aura.scope !== "field" && (source.level ?? 0) !== (unit.level ?? 0)) continue;
@@ -171,10 +175,33 @@ export function annotateAuras(units, board, index = null) {
         if (strongerResistance(m.magicResistance, u.magicResistance)) u.magicResistance = m.magicResistance;
         continue;
       }
+      // MOV is a number on the snapshot, not a modifier anybody reads later:
+      // folded on here. Gravity Manipulation cuts an enemy's MOV by 3, 4 or 5
+      // and *"Minimum value of MOV is 1 when reduced in this way"*: a floor on
+      // this cut only, which never raises a MOV already below it (#328 ruling 8).
+      if (m.key === "MovDelta") {
+        u.mov = auraMov(u.mov, m);
+        continue;
+      }
       const bucket = ROUTES[m.key] ?? "modifiers";
       u[bucket] = [...(u[bucket] ?? []), m];
     }
   });
+}
+
+/**
+ * A MOV after an aura's `MovDelta`: the delta, held at its floor without ever
+ * being raised by it.
+ *
+ * @param {number} mov
+ * @param {{value?: number, floor?: number}} m
+ * @returns {number}
+ */
+export function auraMov(mov, m) {
+  if (typeof mov !== "number") return mov;
+  const next = mov + Number(m.value ?? 0);
+  if (typeof m.floor !== "number" || next >= m.floor) return next;
+  return Math.min(mov, m.floor);
 }
 
 /**

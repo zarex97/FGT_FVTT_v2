@@ -7,7 +7,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { parse } from "yaml";
 import {
-  regionBonusFor, regionsAdjacent, REGION_ADJACENCY,
+  regionBonusFor, regionsAdjacent, REGION_ADJACENCY, NOT_A_WAR_REGION,
   civilianKill, civiliansNeeded, mayAttackCivilian, checkVictory,
   attacksPermitted, territoryCreationAmplified,
 } from "../../module/rules/environment.mjs";
@@ -69,6 +69,8 @@ describe("the war's Region", () => {
     const missing = readdirSync(dir).filter((f) => f.endsWith(".yml")).flatMap((f) => {
       const servant = parse(readFileSync(`${dir}/${f}`, "utf8"));
       return (servant.region ?? [])
+        // Earth is no War Region: U-Olga Marie's sheet gives no bonus on it (#328).
+        .filter((id) => !NOT_A_WAR_REGION.includes(id))
         .filter((id) => !(id in REGION_ADJACENCY))
         .map((id) => `${f}: ${id}`);
     });

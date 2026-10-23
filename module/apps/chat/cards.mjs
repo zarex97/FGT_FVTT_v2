@@ -121,6 +121,9 @@ async function cardContext({
     // so the miss states its roll, its chance and the effect that caused it.
     missed: state.state === "missed" || state.history.some((h) => h.state === "missed"),
     missRoll: (state.rolls ?? []).find((r) => r.check === "miss") ?? null,
+    // ...or an Attack that had no effect on its DU, which says why instead of
+    // "Missed": Gravity Manipulation's distant STR Attacks (#328 ruling 9).
+    noEffect: (state.rolls ?? []).find((r) => r.check === "noEffect")?.label ?? null,
 
     // Which side is being asked, and for what. The prompt is rendered as
     // buttons on the card itself rather than as a popup dialog, so a player who
