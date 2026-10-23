@@ -11,6 +11,6 @@ Scáith built, its Rank and clock its own.
 Dún Scáith's Rank, clock and exclusion set from constants.
 **Cause:** `module/engine/copy.mjs:24 @ 706f5fde`: `DUN_SCAITH` and `slots = 2` in the shared reader were one sheet's
 figures; the dialog repeated the default.
-**Fix:** `module/engine/copy.mjs#copyGrantSpec @ uncommitted`: each grant states `copyGrant {slots, cooldown,
+**Fix:** `module/engine/copy.mjs#copyGrantSpec @ 28e231ce`: each grant states `copyGrant {slots, cooldown,
 exclusionSet}` and the copies take its Rank; the dialog and `grantCopies` read it. Scáthach's file states her two.
 `chiron-326.test.mjs` (WD*) red first.
