@@ -11,5 +11,5 @@ pattern: assumed-shape
 **Cause:** `packs/_source/abilities/medea-item-construction.yml:30 @ d97795b9` — Medea's Item Construction
 resists debuffs by 50, so the 50% came to 0 where it lands. I picked her as a plain foe without reading her
 own resistances.
-**Fix:** `test/unit/gilles-323.test.mjs @ uncommitted` — the foe is now `test-use-bench`, which has no
+**Fix:** `test/unit/gilles-323.test.mjs @ 965a7cc5` — the foe is now `test-use-bench`, which has no
 resistance of its own.

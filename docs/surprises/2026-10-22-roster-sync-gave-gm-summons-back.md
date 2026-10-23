@@ -12,6 +12,6 @@ pattern: two-readers-one-rule
 **Cause:** `module/engine/faction-ownership.mjs:102 @ d97795b9` — `syncOne`, run on every new actor, writes Owner for
 the faction's players from the roster alone; `io.takeForm` was a second writer of the same ownership that knew the
 GM rule, and this one did not.
-**Fix:** `module/engine/faction-ownership.mjs:104 @ uncommitted` — `syncOne` asks `control.mjs#gmControlled` and writes
+**Fix:** `module/engine/faction-ownership.mjs:104 @ 965a7cc5` — `syncOne` asks `control.mjs#gmControlled` and writes
 Observer for a GM-driven Unit and its summons; test "its player only watches it and every summon of it, the roster's
 sync too (12g)".

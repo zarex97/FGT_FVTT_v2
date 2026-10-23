@@ -12,5 +12,5 @@ unhandled, twice.
 **Cause:** `module/engine/io.mjs:1035 @ d97795b9` — `dismissSummon` recorded a kind that Ch. 37's closed log
 vocabulary refuses, without awaiting it. Every dismissal since 50a84bab threw an unhandled rejection, and no
 dismissal was logged.
-**Fix:** `module/engine/io.mjs:1035 @ uncommitted` — it records `kind: "scheduler", event: "summonDismissed"`,
+**Fix:** `module/engine/io.mjs:1035 @ 965a7cc5` — it records `kind: "scheduler", event: "summonDismissed"`,
 awaited, and a failure to log is reported, never thrown.

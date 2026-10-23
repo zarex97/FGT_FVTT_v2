@@ -13,5 +13,5 @@ Prelati's Spellbook: Gigantic Horror: it does not happen."
 **Cause:** `module/engine/applier.mjs:1187 @ d97795b9` — the log intent ran its side effects (`summonAround`,
 `split`, `transform`) inside the loop before `io.log` posted the batch's lines, so a consequence was said before
 the line that caused it.
-**Fix:** `module/engine/applier.mjs:1197 @ uncommitted` — `io.log` posts the batch first, then the side effects
+**Fix:** `module/engine/applier.mjs:1197 @ 965a7cc5` — `io.log` posts the batch first, then the side effects
 run; test "the missed die is said before the Elder Horrors it brings".

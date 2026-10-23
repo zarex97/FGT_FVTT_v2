@@ -12,5 +12,5 @@ spent in Round 25's slot.
 **Cause:** `module/engine/scheduler-hooks.mjs:365 @ d97795b9` — a GM-driven form spends from the `gm` side's pool
 (`control.mjs#GM_SIDE`), and the Turn start resets the incoming faction's, which the GM's slot has none of:
 `budget.reset(combat, null)` returns at once. The pool had a spender and no refill.
-**Fix:** `module/engine/scheduler-hooks.mjs:369 @ uncommitted` — the GM's slot resets the `gm` side's pool; test
+**Fix:** `module/engine/scheduler-hooks.mjs:369 @ 965a7cc5` — the GM's slot resets the `gm` side's pool; test
 `round-boundary.test.mjs` "begins with the GM side's pool full".

@@ -13,5 +13,5 @@ nothing left to learn.
 against 15%)", an NP his player's Notebook already held.
 **Cause:** `module/engine/true-name.mjs:43 @ d97795b9` — `witnessNP` wrote the Notebook page and never read it
 back: the roll gate checked radius and tags only.
-**Fix:** `module/engine/true-name.mjs:43 @ uncommitted` — skips a witness whose reader's Notebook holds the
+**Fix:** `module/engine/true-name.mjs:43 @ 965a7cc5` — skips a witness whose reader's Notebook holds the
 NP's key (`notebook.mjs#notebookHolds`); test "an NP already in his player's Notebook: no die, no line".
