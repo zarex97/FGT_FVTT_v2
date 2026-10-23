@@ -24,7 +24,7 @@ import { terrainPeriodics } from "../rules/terrain.mjs";
 import { multiServantTax } from "../rules/relationships.mjs";
 import { sideOf } from "../rules/relations.mjs";
 import { transferEffect, transferableFrom, removeStages, attackOptionsOf, timesOf } from "../rules/effect-flow.mjs";
-import { stacksHeld } from "../rules/count.mjs";
+import { stacksHeld, countOf } from "../rules/count.mjs";
 import { forcedStanceFor } from "../rules/stance.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { currentHealth, maxHealth } from "../domain/health.mjs";
@@ -33,7 +33,7 @@ import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
 import * as I from "./intents.mjs";
 import { sharedCooldownIntents, twinsOf } from "./cooldown.mjs";
 import { periodicOf } from "../rules/periodic.mjs";
-import { resolveRevival, pendingRevivalRolls } from "../rules/revival.mjs";
+import { resolveRevival, pendingRevivalRolls, missedRevivalChances } from "../rules/revival.mjs";
 import { resourcePathFor, resourceValue } from "../domain/resources.mjs";
 import { deathRollOutcome } from "../rules/nameless-forest.mjs";
 import { runScript } from "./scripts.mjs";
@@ -1480,6 +1480,25 @@ const ACTIONS = Object.freeze({
    * (`engine/summoning.mjs#splitSummon`). Both faces are said: a die that
    * decides an outcome is on the card, a miss included.
    */
+  /**
+   * Summons that appear on and around the Unit's panel, placed by its owner.
+   *
+   * Gilles (Caster), defeated with Prelati's Spellbook whole and his 10%
+   * missed: *"X number of Elder Horrors appear on the panels around him, where
+   * X=number of Servants on the board"* (#323 reading 9). `count` is a number
+   * or a Count: every Servant on the War's board, any side, not the Unit
+   * itself. `outlives`: they stay when he goes, his Master's. A LOG
+   * intent, as `Split` is: placing Units is the applier's business.
+   */
+  SummonAround: (a, u, h, c) => {
+    // A Count (`rules/count.mjs`): *"X=number of Servants on the board"*.
+    const count = typeof a.count === "number" ? a.count : countOf(a.count, { board: c.board ?? null, self: u });
+    return [I.log({
+      kind: "summonAround", unitId: u.id, panel: u.panel ?? null, contentId: a.contentId ?? null,
+      count, outlives: a.outlives === true, source: h.source,
+    })];
+  },
+
   Split: (a, u, h, c) => {
     // *"This effect does not activate if the Horror was defeated with Light
     // damage or Attack that deals extra damage to 'Dark' or 'Outsider'
@@ -1841,7 +1860,13 @@ export function resolveDefeat(unit, ctx, cause = "damage") {
       ...revivalTransform(unit, revival, ctx),
       I.log({
         kind: "revive", unitId: unit.id, source: revival.source.source,
+        // Its die, when it came on one (#323): the card says what it rolled.
+        ...(revival.source.chance !== null && revival.source.chance !== undefined
+          ? { chance: revival.source.chance, chanceRoll: ctx.rolls?.[`revival:${revival.source.id}:chance`] ?? null } : {}),
         amount: revival.restored, charges: revival.chargesUsed, tick: ctx.tick,
+        // A revival that IS a form: the card says he becomes it, not a Health
+        // the form replaces at once (#323, live: "with 500 Health" over 2000).
+        ...(revival.source.transform ? { transform: revival.source.transform } : {}),
         // What a counted source has left, for the card: God Hand's cascade
         // burned two of its eleven on one Mana Burst and the card read only
         // "with 47 Health" (#256, live).
@@ -1855,8 +1880,16 @@ export function resolveDefeat(unit, ctx, cause = "damage") {
   // as one, and content written before `RevivalSource` existed uses that shape.
   if (intents.some((i) => i.t === "heal" && i.amount > 0)) return intents;
 
+  // A source whose die missed: the miss is a line, and what it says follows a
+  // miss runs (Gilles's Elder Horrors, #323).
+  const missed = missedRevivalChances(unit, ctx.rolls ?? {}).flatMap(({ source, roll }) => [
+    I.log({ kind: "revivalChanceMissed", unitId: unit.id, source: source.source, chance: source.chance, roll, tick: ctx.tick }),
+    ...(source.otherwise ?? []).flatMap((action) => dispatch(action, unit, { source: source.source, abilityId: source.abilityId ?? null }, ctx)),
+  ]);
+
   return [
     ...intents,
+    ...missed,
     ...(revival.source ? spendRevival(unit, revival, ctx) : []),
     // A revival that was tried and fell short spent its charges all the same
     // ("and so on" is an attempt): said, with its dice, or the last of God
@@ -2019,6 +2052,9 @@ function revivalTransform(unit, revival, ctx) {
   const out = [];
 
   if (source.enterMode) out.push(I.setMode(unit.id, source.enterMode, true, source.source));
+  // A transformation, written by the applier once the revival's heal is in
+  // (`engine/transform.mjs`, #323).
+  if (source.transform) out.push(I.log({ kind: "transform", unitId: unit.id, ability: source.transform, cause: "defeat" }));
 
   const handler = { source: source.source, abilityId: source.abilityId ?? null };
   for (const action of source.then ?? []) {

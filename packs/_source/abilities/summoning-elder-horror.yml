@@ -35,7 +35,17 @@ targeting:
   shape: { kind: unit }
   selection: { relations: [self], includeSelf: true, chooser: all }
 phases:
+  # As the Gigantic Horror: two (#323 reading 20).
   - kind: summon
+    predicate: ["self:form:giganticHorror"]
+    spec:
+      countRoll: "2"
+      types: { 1: elder-horror }
+      placement: { adjacentTo: true, anchor: self, chooser: owner }
+      countsTowardBudget: false
+      actsOncePerTurn: true
+  - kind: summon
+    predicate: ["not:self:form:giganticHorror"]
     spec:
       countRoll: "1"
       types: { 1: elder-horror }

@@ -33,7 +33,15 @@ abilities:
   # A+, which is what makes the shared class skill usable unmodified.
   - { ref: class-presence-concealment, rank: "A+" }
   - { ref: jack-murderer-of-the-misty-night }
-  - { ref: jack-mental-pollution }
+  # The shared Mental Pollution at his sheet's figures; the description is his
+  # sheet's own words, since a template's text cannot carry a figure.
+  - ref: mental-pollution
+    rank: C
+    inflict: 15
+    resist: 60
+    description: |
+      (Passive 1) Chance of inflicting debuffs is increased by 15%.
+      (Passive 2) Chance of being inflicted by Mental Debuffs is reduced by 60%.
   - { ref: jack-information-erasure }
   - { ref: jack-surgical-procedure }
   - { ref: jack-the-mist }

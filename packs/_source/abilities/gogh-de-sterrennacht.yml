@@ -18,7 +18,7 @@ name: "De Sterrennacht: The Starry Night"
 rank: EX
 isNP: true
 categorizedAsNP: true
-npTags: [antiUnit]
+npTags: [antiUnit, artistic]
 kind: noblePhantasm
 cooldown: "8◈"
 timing: { window: ownTurn }

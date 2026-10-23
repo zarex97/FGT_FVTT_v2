@@ -427,6 +427,18 @@ function abilityCommon() {
     // Attack whole, an AoE for him alone (#226 reading 12). Read by
     // `engine/attack.mjs#answerRung` once the ability's phases have run.
     withdrawsFromAttack: new fields.BooleanField({ initial: false }),
+    // A reaction offered only against an Attack aimed at one of its user's held
+    // objects, by the object's weak-point id: Prelati's Spellbook's
+    // Substitution (#323 reading 2). Read by `engine/attack.mjs#offeredReactions`.
+    reactsToAimedObject: new fields.StringField({ required: false, nullable: true, initial: null }),
+    // A reaction that puts summons in its user's place (Substitution, #323
+    // readings 6, 7): `{pays, move, summon: {contentId, countRoll}}`. Read by
+    // `engine/substitution.mjs#substituteIntoAttack`.
+    substitutes: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+    // A FORM its bearer takes, one-way: Gilles (Caster)'s Gigantic Horror
+    // (#323). `{id, keeps, pools, overrides, controller, rangeGrows}`, written
+    // onto the bearer by `engine/transform.mjs` and read by `rules/form.mjs`.
+    form: new fields.ObjectField({ required: false, nullable: true, initial: null }),
 
     // A Skill that Skill Seal ends at once UNDER ITS REVISED TEXT: *"if this
     // Unit is inflicted with Skill Seal while PC/ME is Active, it is immediately

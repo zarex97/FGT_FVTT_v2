@@ -1,0 +1,109 @@
+# Gilles (Caster), char_orig_sheets/Copia de Gilles.md (#323).
+#
+# The Active is Excalibur's shape: Base Attack (MAG), an oriented area *"in any
+# non-diagonal direction next to"* him, here 3x4 or 4x3, for 5x damage. Effect 1
+# cuts allied Servants' NP clocks by their own `targeting:` (`attack.mjs`'s
+# cooldown rider), effects 2 and 3 land on the DUs. Its 8◈ clock is what the
+# Spells' *"cannot be used if Prelati's Spellbook is on Cooldown"* reads
+# (`abilityOffCooldown` on both Spells).
+schema: 1
+id: gilles-prelatis-spellbook
+name: "Prelati's Spellbook: Textbook of the Sunken Spiral Castle"
+rank: EX
+kind: noblePhantasm
+slug: prelatisSpellbook
+isNP: true
+npTags: [antiArmy]
+cooldown: "8◈"
+timing: { window: ownTurn }
+# Destroyed, the Active can no longer be used, and the Spells it allows are
+# refused with it (`abilityAllows`, #323).
+requirements:
+  - { kind: notHasEffect, effectId: spellbookDestroyed }
+# *"Whenever Gilles is Attacked, if the AU's AGI Rank is Rank C or higher, it can
+# instead target Prelati's Spellbook"* (#323 readings 1 to 5): an object its
+# holder carries, aimed at on the attacker's AGI Rank, answered by its holder's
+# own ladder (`engine/weak-point.mjs#resolveObjectAim`). A failed Evade gives the
+# 20% that he takes the damage himself.
+weakPoint:
+  id: prelatisSpellbook
+  kind: object
+  name: "Prelati's Spellbook"
+  aimRequires: { agiRankAtLeast: C }
+  takeChance: 20
+  destroyedMark: spellbookDestroyed
+  # *"...and all Horrors on the board are immediately destroyed. However, when
+  # Prelati's Spellbook is destroyed, Gilles has a 10% chance of transforming
+  # into the Gigantic Horror."*
+  onDestroyed:
+    dismissSummons: [horror, elder-horror]
+    transform: { chance: 10, ability: gilles-gigantic-horror }
+description: |
+  (Passive) The basis for all of Gilles' Spells. Whenever Gilles is Attacked, if the AU's AGI Rank is Rank C or
+  higher, it can instead target Prelati's Spellbook. The options Gilles has are as follows
+  1. Evade: If Gilles fails to Evade, he has a 20% chance of taking the damage instead of Prelati's Spellbook;
+  otherwise Prelati's Spellbook is destroyed.
+  2. Block: Gilles takes the damage instead of Prelati's Spellbook.
+  3. Substitution: If @ability[summoning-horrors]{Summoning: Horrors}, @ability[summoning-elder-horror]{Summoning: Elder Horror}, or Prelati's Spellbook's Active
+  effect is not on Cooldown, choose one of them, it enters Cooldown. If Gilles does this, instead of receiving
+  the Attack, he can Move up to 4 panels; then roll a four-sided die, he summons that number of Horrors around
+  the panel he was previously standing on, with at least one Horror standing on the panel he previously
+  occupied, which is also the Horror that receives the AU's Attack.
+  4. Luck Check: If successful, Prelati's Spellbook is not destroyed. Can be used after a failed Evade (1).
+  When Prelati's Spellbook is destroyed, Gilles can no longer use Summoning: Horror, Summoning: Elder Horror, or
+  Prelati's Spellbook's Active effect; and all Horrors on the board are immediately destroyed. However, when
+  Prelati's Spellbook is destroyed, Gilles has a 10% chance of transforming into the Gigantic Horror.
+  When Gilles is defeated and Prelati's Spellbook is not destroyed, he has a 10% chance of transforming into the
+  Gigantic Horror. Otherwise, X number of Elder Horrors appear on the panels around him, where X=number of
+  Servants on the board.
+  (Active) [Anti-Army] Base Attack (MAG) is used. Hits a 3x4 or 4x3 panel area in any non-diagonal direction next
+  to Gilles for 5x damage; then has the following effects-
+  1. Reduce the NP Cooldown of all allied Foreigner-class Servants within a 3 panel area of himself by 1◈ Turns.
+  Also affects non-Foreigner Class Servant Units with the 'Existence outside the Domain' Skill or 'Outsider'
+  Attribute, but NP Cooldown is reduced by ½◈ Turns instead.
+  2. Inflicts @effect[atkDwn]{Atk Dwn} for 1◈ Turns on the DUs, all damage dealt is reduced by 40%; if NP, 20%.
+  3. Inflicts @effect[defDwn]{Def Dwn} for 1◈ Turns on the DUs, all damage taken is increased by 30%.
+  Cooldown: 8◈ Turns.
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 3, long: 4, turnable: true }
+  selection: { relations: [enemy, ally, neutral], includeSelf: false, chooser: all }
+  isDamagingAoE: true
+damage:
+  component: mag
+  multiplier: 5
+# Vital Spot while it stands (#323 reading 16): Chiron's list names *"Gilles,
+# Prelati (with the Spellbook)"*, a weak point to aim at.
+passiveRules:
+  - key: StatDelta
+    stat: attributes
+    add: [vitalSpot]
+    predicate: ["not:self:effect:spellbookDestroyed"]
+phases:
+  - kind: damage
+  # Effect 1, once per use: *"allied Foreigner-class Servants within a 3 panel
+  # area of himself"*, himself included as every *"within a N panel area of
+  # himself"* is (#132), and *"non-Foreigner Class Servant Units"* with the Skill
+  # or the Attribute at half. A Horror is an Outsider and no Servant.
+  - kind: cooldown
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: square, size: 7 }
+      selection: { relations: [ally, self], chooser: all, includeSelf: true,
+        attributes: ["target:type:servant", "target:class:foreigner"] }
+    changes:
+      - { unit: target, scope: np, ticks: "1◈", direction: down }
+  - kind: cooldown
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: square, size: 7 }
+      selection: { relations: [ally, self], chooser: all, includeSelf: true,
+        attributes: ["target:type:servant", "not:target:class:foreigner",
+          { or: ["target:skill:existenceOutsideTheDomain", "target:attribute:outsider"] }] }
+    changes:
+      - { unit: target, scope: np, ticks: "½◈", direction: down }
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: atkDwn, duration: "1◈", magnitude: 40, npMagnitude: 20 }
+      - { id: defDwn, duration: "1◈", magnitude: 30 }

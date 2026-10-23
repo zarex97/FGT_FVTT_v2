@@ -1,0 +1,18 @@
+# Gilles (Caster)'s Prelati's Spellbook, destroyed (#323 readings 3, 8, 16).
+#
+# *"When Prelati's Spellbook is destroyed, Gilles can no longer use Summoning:
+# Horror, Summoning: Elder Horror, or Prelati's Spellbook's Active effect."* The
+# mark on its holder that says so, for the rest of the War: the Spellbook's own
+# `notHasEffect` refuses the Active, and the Spells' `abilityAllows` reads it. A
+# destroyed Spellbook can no longer be aimed at, and Vital Spot goes with it.
+schema: 1
+id: spellbookDestroyed
+name: "Prelati's Spellbook Destroyed"
+description: "Prelati's Spellbook is destroyed: its Active and both Summoning Spells can no longer be used."
+polarity: status
+volatility: none
+stacking: noneNoRefresh
+baseChance: 500
+defaultDuration: permanent
+unremovable: true
+rules: []

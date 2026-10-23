@@ -17,6 +17,7 @@ import { Rank } from "../domain/rank.mjs";
 import { currentHealth, maxHealth, watermarkKey } from "../domain/health.mjs";
 import { withinPlatformCentre } from "./platforms.mjs";
 import { stanceOf } from "./stance.mjs";
+import { EffectRegistry } from "./registry.mjs";
 import { phaseAt, inOwnHomeBase } from "./environment.mjs";
 
 /**
@@ -543,6 +544,10 @@ export function meetsRequirement(req, ctx) {
       // on an empty set would make Clairvoyance unusable until she copied.
       // "On Cooldown" is the other ability's WHOLE cooldown, its restore gate
       // included (`isCooling`, #249 reading 20).
+      // `any`: *"If Summoning: Horrors, Summoning: Elder Horrors, or Prelati's
+      // Spellbook's Active effect is not on Cooldown"* -- one of them will do
+      // (Substitution, #323 reading 6).
+      if (req.any) return matched.some((a) => !isCooling(a, unit));
       return matched.every((a) => !isCooling(a, unit));
     }
 
@@ -656,7 +661,9 @@ function gatedAbilities(unit, req, self = null) {
   const named = new Set(req.abilityIds ?? []);
   const selfIds = new Set([self?.id, self?.contentId].filter(Boolean));
 
-  return (unit?.abilities ?? []).filter((a) => {
+  // A form's dropped abilities are named too: the Spells read the Spellbook
+  // itself, the Gigantic Horror's or not (#323 reading 11i).
+  return [...(unit?.abilities ?? []), ...(unit?.formDropped ?? [])].filter((a) => {
     if (req.excludeSelf && (selfIds.has(a.id) || selfIds.has(a.contentId))) return false;
     if (named.size > 0) return named.has(a.contentId) || named.has(a.id);
     if (req.category) return a.category === req.category;
@@ -714,6 +721,16 @@ export function meetsRequirements(requirements, ctx) {
  * @returns {{detail?: object}}
  */
 function requirementDetail(req, ctx) {
+  // What holds it back, by name (a refusal names what it waits on): the effect
+  // in force, or the ability that does not allow it (#323).
+  if (req.kind === "notHasEffect") {
+    return { detail: { names: EffectRegistry.get(req.effectId)?.name ?? req.effectId } };
+  }
+  if (req.kind === "abilityAllows") {
+    const allower = gatedAbilities(ctx.unit, req, ctx.ability)[0] ?? null;
+    // fgt-name-ok: an ability's name on its own bearer's bar, not a Unit's
+    return { detail: { names: allower?.name ?? (req.abilityIds ?? []).join(", ") } };
+  }
   if (req.kind !== "abilityOffCooldown") return {};
   const cooling = gatedAbilities(ctx.unit, req, ctx.ability).filter((a) => isCooling(a, ctx.unit));
   // fgt-name-ok: an ability's name on its own bearer's bar, not a Unit's

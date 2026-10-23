@@ -64,6 +64,9 @@ const ALLOWED = [
   { file: "engine/declaration-window.mjs", category: "message-flag", why: "the declaration window's card: its content and the Process-shaped state its boosts are bought into (#241)" },
   { file: "engine/await-timeout.mjs", category: "message-flag", why: "stamps when a prompt card started waiting" },
 
+  // ── A player's own journal ───────────────────────────────────────────────
+  { file: "engine/notebook.mjs", category: "journal", why: "a player's Notebook is a Journal Entry and its pages, no Unit's state (#297)" },
+
   // ── Scene-embedded document lifecycle ────────────────────────────────────
   // Regions, RegionBehaviors, Levels and Tokens are created and destroyed, not
   // patched. An intent names a Unit and a field; none of these has either.

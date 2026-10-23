@@ -32,6 +32,19 @@ export function annotateCompulsions(units, board) {
 
   for (const unit of units ?? []) {
     unit.compulsions = compulsionsFor(unit, board);
+    // *"When the Gigantic Horror Attacks, it always Attacks the nearest Unit"*
+    // (#323 reading 12c): any Unit, any side, Masters and summons included; on
+    // a tie the GM picks among them. When it ATTACKS: his Evil Gaze is a Skill
+    // and aims where the GM turns it. His 3x3 must hold the nearest, and hits
+    // every other Unit in it as well (11g), as Karna's area need only hold
+    // Arjuna (live: it narrowed both).
+    const nearest = unit.attacksNearest ? nearestUnits(unit, units) : [];
+    if (nearest.length > 0) {
+      unit.compulsions = [...unit.compulsions, {
+        id: "nearest", forcesTarget: true, forcesSkill: null, targetIds: nearest, source: "Gigantic Horror",
+        attacksOnly: true, areaMustInclude: true,
+      }];
+    }
 
     // Decoy pulls the OTHER way round from every other compulsion in the game.
     // A `Compulsion` rule element describes something its own bearer is under;
@@ -52,6 +65,24 @@ export function annotateCompulsions(units, board) {
       { id: "decoy", forcesTarget: true, forcesSkill: null, targetIds: [pull.id], source: pull.source },
     ];
   }
+}
+
+/**
+ * The Units nearest this one, every one at the least distance. Platforms and
+ * structures are stood on, not attacked; a defeated body is no Unit.
+ *
+ * @param {object} unit
+ * @param {object[]} units
+ * @returns {string[]}
+ */
+export function nearestUnits(unit, units) {
+  if (!unit?.panel) return [];
+  const others = (units ?? []).filter((u) => u.id !== unit.id && u.panel && !u.defeated
+    && u.kind !== "platform" && u.kind !== "structure");
+  if (others.length === 0) return [];
+  const d = (u) => chebyshev(unit.panel, u.panel);
+  const least = Math.min(...others.map(d));
+  return others.filter((u) => d(u) === least).map((u) => u.id);
 }
 
 /**

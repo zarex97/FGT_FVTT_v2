@@ -15,8 +15,10 @@ code: module/rules/identity.mjs, module/engine/public-identity.mjs
   Notebook page to Units near it. Jack's Information Erasure wipes what a player wrote down about her. Fathomless
   Hassan's Shadow Lantern turns True Name Discernment into a coin flip. Ruler 2026-10-21: True Name Discernment
   itself, on 5 sheets, copies a met enemy's whole Notebook page, behind a Luck Check if it hides its information.
-  Metatron Jeanne is immune to it. Not run, #297.
-  keys: none (#297)
+  Metatron Jeanne is immune to it. The first of these runs since #323: `LearnsTrueNames` rolls for each witness of a
+  tagged NP within its radius, whispers the die to its player and copies the NP into that player's Notebook (a Journal
+  Entry, `engine/notebook.mjs`). Coercion, Classified, Information Erasure and True Name Discernment are not run, #297.
+  keys: `element.LearnsTrueNames`
 - disguise: Yan Qing's Doppelganger shows another Unit's look. Known, `rules/elements.mjs#Disguise`.
   keys: `phase.disguise`, `element.Disguise`
 

@@ -1,0 +1,62 @@
+# Gilles (Caster), char_orig_sheets/Copia de Gilles.md (#323).
+# Conversion source: char_orig_sheets/Copia de Gilles.md
+#
+# The Caster form of Gilles de Rais, set apart from Gilles de Rais (Saber)
+# (#260 reading 1): he keeps the plain `gilles` ids, and shares Summoning:
+# Horrors, Summoning: Elder Horror and both Horrors with the Saber.
+#
+# A Caster by his Class Skills (Territory Creation, Item Construction) and #269.
+# Every figure is the table's: Max Health 500 at END E, BA(STR) 75 at STR D,
+# BA(MAG) 150 at MAG C (§46.6). A Caster attacks with MAG.
+schema: 1
+id: gilles
+name: "Gilles"
+type: servant
+
+trueName: Gilles de Rais
+servantClasses: [caster]
+classContainer: caster
+alignment: { order: chaotic, morality: evil }
+region: [france]
+attributes: [male, servant, man, humanoid]
+
+parameters: { str: D, end: E, agi: D, mag: C, luc: E }
+baseHealth: 500
+mov: 4
+range: { panels: 3, targets: 1 }
+baseAttack: { str: 75, mag: 150 }
+normalAttack: { mode: fixed, component: mag }
+sustainability: "4◈"
+
+abilities:
+  # Rank B: 5d10 and 3d10+15, the tables' B row, as printed.
+  - { ref: class-territory-creation, rank: B }
+  - { ref: gilles-item-construction }
+  - ref: mental-pollution
+    rank: A
+    inflict: 25
+    resist: 100
+    description: |
+      (Passive 1) Chance of inflicting debuffs is increased by 25%.
+      (Passive 2) Chance of being inflicted by Mental Debuffs is reduced by 100%.
+  - ref: appreciation-of-the-arts
+    rank: "E-"
+    chance: 15
+    cut: 5
+    description: |
+      (Passive 1) When a NP with the 'Artistic' Attribute is used within a 3 panel area of Gilles, he has a 15%
+      chance of learning the True Name of that NP (the information of that NP is copied to your Notebook).
+      (Passive 2) All damage taken from a NP with the 'Artistic' Attribute is reduced by 5%.
+      Note: NP with the 'Artistic' Attribute would be any Noble Phantasm involving or related to artistic,
+      literary, musical creations.
+  - { ref: gilles-blasphemy-aesthetic }
+  - { ref: gilles-evil-gaze-of-the-abyss }
+  - { ref: summoning-horrors }
+  - { ref: summoning-elder-horror }
+  - { ref: gilles-prelatis-spellbook }
+  - { ref: gilles-substitution }
+  - { ref: gilles-gigantic-horror }
+
+notes: |
+  The Caster form of Gilles de Rais. Prelati's Spellbook is the basis of his Spells: an attacker quick
+  enough may aim at it, and destroyed it takes the Spells, the Active and his Horrors with it.

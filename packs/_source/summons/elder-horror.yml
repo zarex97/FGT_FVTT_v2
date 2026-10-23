@@ -36,5 +36,16 @@ passiveRules:
     then:
       - { key: Split, roll: { key: splitD4, formula: "1d4" }, on: [3], count: 3, into: horror,
           unlessAttack: ["attack:element:light", "attack:vsAttribute:dark", "attack:vsAttribute:outsider"] }
+  # Gilles (Caster)'s Gazing (#323): *"Normal Attacks from all Horrors within a 2
+  # panel area of himself have a 50% chance of inflicting Curse"*. Asked of the
+  # Horror, since the handler fires from the Unit that dealt the damage; Horrors
+  # and Elder Horrors alike (#260 reading 13).
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: [attack:kind:normal, self:summonerEffect:gazing, self:withinOfSummoner:2]
+    target: victim
+    effect: { id: curse }
+    chance: 50
 notes: |
   Shared by both Gilles sheets.

@@ -76,7 +76,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "countsAsAct", "oncePerTurn", "oncePerRound", "alsoTriggers",
   "exclusionSet", "grantedBy", "sameTurnExclusive", "sameRoundExclusive",
   "bypassesCategoryLimit", "refusesReactionsUnlessFaster", "offersSpellCategory", "reactionFree",
-  "withdrawsFromAttack", "legionCost", "endsOnSkillSeal", "swapsPositions", "insteadOfDamage",
+  "withdrawsFromAttack", "reactsToAimedObject", "substitutes", "form", "legionCost", "endsOnSkillSeal", "swapsPositions", "insteadOfDamage",
   // Classic and Revised (#260 reading 3): the text a bearer prints, its own
   // exemption from Skill Seal, and the Revised description.
   "printedRevision", "unsealable", "descriptionRevised",
@@ -144,6 +144,10 @@ export const SEEDED_THEN_OWNED = Object.freeze({
     // pack rebuild put null back: the Bašmu on the audit board could Jump off
     // and would have outlived its garden (Ch. 46 §46.4-BN).
     "boundToPlatformId",
+    // ...and stamps Gilles's Elder Horrors to outlive him as he falls (#323
+    // reading 9). Pack-owned, a reload put `true` back and his next defeat
+    // took them all (live).
+    "leavesWithSummoner",
   ]),
   item: Object.freeze([
     "active", "timesUsed", "lastUsedTick", "recordedAttacks", "quantity",

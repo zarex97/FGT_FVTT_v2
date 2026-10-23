@@ -24,7 +24,9 @@
  * connected client, not only the GM's.
  */
 
-import { factions } from "./board.mjs";
+import { currentBoard, factions } from "./board.mjs";
+import { gmControlled } from "../rules/control.mjs";
+import { formOf } from "../rules/form.mjs";
 import { warOfUnit, currentWar } from "./war.mjs";
 
 export const FactionOwnership = {
@@ -93,13 +95,20 @@ export async function syncOne(actor, rows = factions(warOfUnit(actor) ?? current
   // write, which is a separate gate from this system's MOV and budget legality
   // in `movement-hooks.mjs`, and that one still ran and still looked satisfied.
   const owners = new Set(rows.find((f) => f.id === actor.system?.factionId)?.userIds ?? []);
-  const { NONE, OWNER } = CONST.DOCUMENT_OWNERSHIP_LEVELS;
+  const { NONE, OBSERVER, OWNER } = CONST.DOCUMENT_OWNERSHIP_LEVELS;
+  // A Unit the GM drives, and every summon of it, is watched by its faction's
+  // players, never driven: the Gigantic Horror's Horrors summoned after the
+  // change came out owned by Player1 (#323 reading 12g, live).
+  const ownerLevel = gmControlled(
+    { formController: formOf(actor)?.spec?.controller ?? null, summonerId: actor.system?.summonerId ?? null },
+    currentBoard(),
+  ) ? OBSERVER : OWNER;
 
   const patch = {};
   let dirty = false;
   for (const user of game.users) {
     if (user.isGM) continue;
-    const want = owners.has(user.id) ? OWNER : NONE;
+    const want = owners.has(user.id) ? ownerLevel : NONE;
     if ((actor.ownership?.[user.id] ?? NONE) !== want) {
       patch[user.id] = want;
       dirty = true;

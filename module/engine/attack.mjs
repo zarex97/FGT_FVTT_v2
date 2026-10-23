@@ -60,7 +60,7 @@ import * as process from "./combat-process.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
-import { offerWeakPoint, resolveWeakPoint, weakPointIntents } from "./weak-point.mjs";
+import { offerWeakPoint, resolveWeakPoint, weakPointIntents, resolveObjectAim } from "./weak-point.mjs";
 import { luckChecksBlocked } from "../rules/bounded-fields.mjs";
 import { attackCone, directionalEvade } from "../rules/targeting/facing.mjs";
 import { luckChecksApply } from "../rules/difficulty.mjs";
@@ -1531,7 +1531,13 @@ async function declareProcesses({
     // declaration, because the sheet says the attacker states it "during its
     // Attack" -- and because what it forbids (a Block) has to be settled before
     // the defender is shown their rung.
-    const aimed = await offerWeakPoint(withReactions, { board });
+    const offered = await offerWeakPoint(withReactions, { board });
+    // Aimed at an object, the defender's reactions are asked again: what
+    // answers only such an Attack is offered now (Substitution, #323).
+    const aimed = offered.aimedAt && !withReactions.aimedAt
+      ? { ...offered, reactionAbilities: { ...offered.reactionAbilities,
+        [offered.defenderId]: offeredReactions(offered.defenderId, offered.attack, offered.isAoE, offered.attackerId, board) } }
+      : offered;
     // Step 1.5 -- the MISS CHECK (Ch. 21). Rolled only when something can
     // actually cause a miss, so an ordinary attack neither rolls a die nor
     // writes a log line it would then have to explain.
@@ -1661,6 +1667,11 @@ async function declareProcesses({
   if (ability && declaresUse) {
     const { fireAbilityUsed } = await import("./skill-use.mjs");
     await fireAbilityUsed(attacker, ability);
+  }
+  // An Attack resets a form's grown Range (#323 reading 19).
+  if (declaresUse && attacker?.system?.formTaken) {
+    const { resetFormRange } = await import("./form-range.mjs");
+    await resetFormRange(attacker.id);
   }
 
   return {
@@ -1876,6 +1887,17 @@ async function answerRung({ event, abilityId = null, placement = null }, message
       // against whoever stands where it struck (#249 readings 12-14).
       else if (used.system?.swapsPositions && aimedAt && aimedAt !== owner.id) {
         state = await swapIntoAttack({ state, message, ownerId: owner.id, partnerId: aimedAt });
+      }
+      // Substitution: Horrors in his place, and the Attack goes on against the
+      // one on the panel he left (#323 readings 6, 7).
+      else if (used.system?.substitutes) {
+        const { substituteIntoAttack } = await import("./substitution.mjs");
+        state = await substituteIntoAttack({ state, ownerId: owner.id, used, rebind: rebindDefender });
+        if (state.substituted) {
+          await message.setFlag("fgt", "defenderId", state.defenderId);
+          await message.setFlag("fgt", "process", process.serialize(state));
+          await updateAttackCard(message, state);
+        }
       }
       // Battle Retreat: the defender leaves the Attack (#226 readings 12, 24).
       // Its Move, heal and strip are the ability's own phases, run above.
@@ -2144,7 +2166,7 @@ async function withdrawFromAttack(state, used, message) {
 }
 
 /** The automatic rungs that write to a Unit: damage, the Heel's roll, the Injury. */
-const WRITES_UNITS = new Set(["damage", "heelResolve", "injury"]);
+const WRITES_UNITS = new Set(["damage", "heelResolve", "objectResolve", "injury"]);
 
 /**
  * Drive on every Process on this scene that a lost run left between rungs.
@@ -4100,6 +4122,19 @@ async function runAutomaticStep(state, message) {
       return out.event === "success"
         ? { ...next, attack: { ...next.attack, ignoresDefensiveBuffs: true } }
         : next;
+    }
+    case "objectResolve": {
+      // An Attack aimed at an object its defender holds (Prelati's Spellbook,
+      // #323): he takes the hit, it survives, or it is destroyed, in place of
+      // the damage. The destruction is written before the Process moves on.
+      const out = await resolveObjectAim(state, { board: boardSnapshot() });
+      if (out.spends.length > 0) await applyBatch(out.spends, "objectLuck");
+      const next = process.advance(state, out.event, { ...out.detail, rollRecords: out.rollRecords });
+      if (out.event === "destroyed") {
+        const { destroyHeldObject } = await import("./held-object.mjs");
+        await destroyHeldObject(state.defenderId, state.aimedAt?.specId, { attackerId: state.attackerId });
+      }
+      return next;
     }
     case "damage": {
       // AUTOMATIC handlers first, then the offer. The attacker's own window
@@ -6447,6 +6482,17 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
     // each has its own defender, and a caster-directed one runs in exactly one,
     // or a four-Unit Noble Phantasm turns its own clock four times.
     if (phase.kind === "cooldown") {
+      // A cut on the clocks of Units the phase's own `targeting:` names, once
+      // per declaration: Prelati's Spellbook's *"Reduce the NP Cooldown of all
+      // allied Foreigner-class Servants within a 3 panel area of himself"*
+      // (#323). The Skill path resolves a phase's targeting already
+      // (`skill-use.mjs#phaseTargets`); here it is the rider's, as
+      // `applyTargetedRider` reads it for an effect.
+      if (phase.targeting) {
+        if (heldOnly || holding || !isFirstOfGroup(state)) continue;
+        applied.push(...await applyTargetedCooldown(phase, ability, attackerDoc));
+        continue;
+      }
       const split = splitCooldownRider(phase);
       // What reaches the defender's clocks waits for the barrier; the caster's own does not.
       if (holding && split.perDefender.length > 0) keep("cooldown", game.i18n.localize("FGT.Barrier.HeldCooldown"));
@@ -6708,6 +6754,27 @@ async function applyTargetedRider(phase, ability, state, attackerDoc) {
     ));
   }
   return out;
+}
+
+/**
+ * Apply one cooldown phase to the clocks of whatever its own `targeting:`
+ * resolves to, anchored on the attacker as `applyTargetedRider` is.
+ *
+ * @param {object} phase
+ * @param {object} ability
+ * @param {object} attackerDoc
+ * @returns {Promise<object[]>} the card's lines
+ */
+async function applyTargetedCooldown(phase, ability, attackerDoc) {
+  const board = boardSnapshot();
+  const caster = unitOf(attackerDoc, board);
+  const resolved = resolveTargets(phase.targeting, caster, board, { unitId: caster.id, panel: caster.panel, reach: "attack" });
+  const intents = [];
+  for (const target of resolved.units ?? []) {
+    const doc = unitActor(target.unitId);
+    if (doc) intents.push(...cooldownChanges(phase, attackerDoc, board, ability, doc));
+  }
+  return intents.length > 0 ? applyWithLines(intents, `np:${ability.id}:cooldown`) : [];
 }
 
 /**
@@ -8384,6 +8451,9 @@ function offeredReactions(defenderId, attack = null, isAoE = false, attackerId =
       : null,
   });
   const own = offerable(actor, reactionAbilities(windowSubject(snapshot, actor.items)), pressedAs)
+    // A reaction for an Attack aimed at its user's object, and no other
+    // (Substitution, #323 reading 2).
+    .filter((a) => !a.system?.reactsToAimedObject || a.system.reactsToAimedObject === attack?.aimedAtObject)
     // fgt-name-ok: an ability's name, not a Unit's
     .map((a) => ({ id: a.id, name: a.name, ownerId: defenderId }));
 

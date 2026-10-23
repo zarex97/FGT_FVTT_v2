@@ -26,6 +26,10 @@ trueName: "Vincent van Gogh, Clytie, Clytie van Gogh, Vulthoom"
 # Outside The Domain` is the tell: it is a Foreigner class skill, and Ch. 45's
 # own tally calls her Base Attack clause "BA(MAG) on a NON-Caster".
 classContainer: foreigner
+# ...and the Class every rule reads. `classContainer` is the slot and the icon;
+# without this list she held no Class at all, and Prelati's Spellbook cut her NP
+# clock as a non-Foreigner's (#323, live).
+servantClasses: [foreigner]
 region: [netherlands, europe, greece]
 alignment: { order: chaotic, morality: neutral }
 # `[Man]` is the Nasuverse Attribute, as Kiritsugu's is. `threatToHumanity` and

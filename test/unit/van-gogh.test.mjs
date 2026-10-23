@@ -636,7 +636,8 @@ describe("Van Gogh — Terror, and De Sterrennacht EX (NP1)", () => {
 
   it("is an EX Anti-Unit Noble Phantasm on 8◈, dealing no damage", () => {
     expect(np.rank).toBe("EX");
-    expect(np.npTags).toEqual(["antiUnit"]);
+    // Artistic, a painting (#323 reading 14).
+    expect(np.npTags).toEqual(["antiUnit", "artistic"]);
     expect(np.cooldown).toBe("8◈");
     expect(np.damage).toBeUndefined();
     expect(np.phases.map((p) => p.kind)).not.toContain("damage");

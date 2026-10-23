@@ -21,6 +21,28 @@
 const CHARM = "charm";
 
 /**
+ * The side a Unit the GM controls stands on: its own, an enemy to every other
+ * (Gilles (Caster)'s Gigantic Horror, #323 reading 12b). It acts in the GM's
+ * slot, the last Turn of every Round, whose faction is none.
+ */
+export const GM_SIDE = "gm";
+
+/**
+ * Is this Unit the GM's? A form that hands it over (`controller: gm`), or a
+ * summon of a Unit that is (12g: his Horrors join his side).
+ *
+ * @param {object} unit
+ * @param {object} [board]
+ * @returns {boolean}
+ */
+export function gmControlled(unit, board = null) {
+  if (unit?.formController === "gm") return true;
+  if (!unit?.summonerId) return false;
+  const summoner = (board?.units ?? []).find((u) => u.id === unit.summonerId);
+  return summoner?.formController === "gm";
+}
+
+/**
  * Is this unit under an **active** charm?
  *
  * An expired charm is left on the unit until the scheduler sweeps it, so
@@ -70,6 +92,7 @@ export function charmSource(unit) {
  */
 export function controllerOf(unit, board, seen = new Set()) {
   if (!unit) return null;
+  if (gmControlled(unit, board)) return null;
   if (seen.has(unit.id)) return unit.ownerUserId ?? null;
 
   const sourceId = charmSource(unit);
@@ -124,6 +147,7 @@ export function unitsControlledBy(userId, board) {
  */
 export function actingFactionOf(unit, board, seen = new Set()) {
   if (!unit) return null;
+  if (gmControlled(unit, board)) return GM_SIDE;
   if (seen.has(unit.id)) return unit.factionId ?? null;
 
   const sourceId = charmSource(unit);

@@ -449,6 +449,28 @@ export const FACETS = Object.freeze([
     prose: "{subject} is within {panels} panels of its linked partner",
   }),
   facet({
+    id: "form",
+    segments: [{ name: "form", value: open() }],
+    // A form taken, one-way: Gilles (Caster)'s Gigantic Horror (#323).
+    english: "Has taken a named form.",
+    prose: "{subject} has taken the form {form}",
+  }),
+  facet({
+    id: "withinOfSummoner",
+    segments: [{ name: "panels", value: number(1, 6) }],
+    // A summon's distance to whoever conjured it: Gilles's Gazing reaches his
+    // Horrors within 2 of him (#323). A ladder to 6, as `withinOfPartner` is.
+    english: "Is within a number of panels of the Unit that summoned it.",
+    prose: "{subject} is within {panels} panels of its summoner",
+  }),
+  facet({
+    id: "summonerEffect",
+    segments: [{ name: "effect", value: registry("effects") }],
+    // An effect the summon's summoner holds: Gilles's Gazing (#323).
+    english: "The Unit that summoned it holds a named effect.",
+    prose: "{subject}'s summoner has {effect}",
+  }),
+  facet({
     id: "withinOfOwnerMaster",
     segments: [{ name: "panels", value: number(1, 6) }],
     // NOT the unit's own Master -- that is `withinOfMaster` above. This is the

@@ -11,7 +11,7 @@ name: "Nursery Rhyme: A Tale for Somebody's Sake"
 rank: C
 isNP: true
 categorizedAsNP: true
-npTags: [antiUnit]
+npTags: [antiUnit, artistic]
 kind: noblePhantasm
 cooldown: "5◈"
 timing: { window: ownTurn }

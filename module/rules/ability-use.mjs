@@ -25,6 +25,7 @@ import { unknownCountKindsIn } from "./count.mjs";
 import { test as testPredicate } from "./predicate.mjs";
 import { platformsSummonedBy } from "./platforms.mjs";
 import { AUTOMATIC_WINDOW } from "./windows.mjs";
+import { keptByForm } from "./form.mjs";
 
 /**
  * @typedef {object} AbilityUse
@@ -430,7 +431,7 @@ function declaredTargetSpec(item, range, options, attacker) {
       anchor: { kind: "targetUnit", range },
       shape: shape ?? { kind: "unit" },
       selection: {
-        relations: ["enemy"],
+        relations: shape ? [...(attacker?.normalAttack?.relations ?? ["enemy"])] : ["enemy"],
         chooser: "all",
         ...(shape ? {} : { count: 1 }),
       },
@@ -700,6 +701,8 @@ export function usageSpecFor(ability) {
     // when the Complex is broken from outside. Read by the use gate, which
     // could not see it before this line.
     expended: Boolean(sys.expended),
+    // Taken away by its bearer's form (Gilles's Gigantic Horror, #323 11f).
+    goneInForm: ability.parent ? !keptByForm(ability.parent, ability) : false,
     // What `healthRestoredSince` compares "since" against.
     lastUsedTick: sys.lastUsedTick ?? null,
     // What an `abilityUsed` handler filters on.
