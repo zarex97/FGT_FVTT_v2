@@ -37,8 +37,7 @@ field:
   placement: chosen
   outlivesOwner: true
   name: "Wallachia"
-  # "This area will be known as 'Wallachia'": drawn for every player.
-  shown: true
+  # "This area will be known as 'Wallachia'"; every field is drawn for players.
   # "9x9", centred where his player chose, CLIPPED off every other Player's
   # Home Base (the Note), an ally's included: "other Players".
   geometry:

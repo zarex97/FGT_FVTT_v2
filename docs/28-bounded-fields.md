@@ -155,9 +155,13 @@ is never opened by `ensurePassiveFields`: it is an opening choice (`engine/openi
 it stands, whose player picks the centre among `rules/bounded-fields.mjs#chosenCentres` (in his Home Base, or nearer
 it than any other Player's), and `fields.mjs#placeChosenField` opens it there. `outlivesOwner` keeps it open past its
 owner's last defeat; `cannotIntersect: otherHomeBase` clips every Home Base but the owner's, an ally's included;
-`name` names the Region, and `shown: true` draws it for every player (`REGION_VISIBILITY.ALWAYS`); every other
-field is still drawn only on the GM's Regions layer. Where it overlaps his own Home Base, `ownBaseOf` answers with the first, so the Round-end
+`name` names the Region. Where it overlaps his own Home Base, `ownBaseOf` answers with the first, so the Round-end
 heal pays once.
+
+**Every field is drawn for every player** (ruled 2026-10-24, #330). `openField` creates a field's Region at
+`fields.mjs#fieldVisibility`, `REGION_VISIBILITY.ALWAYS`, as a Home Base is drawn; Foundry's default had drawn every
+field on the GM's Regions layer only, and no player had seen one. `ensurePassiveFields` shows a field that stood
+hidden from before (`fieldsToShow`). Test: `test/unit/field-visibility.test.mjs`.
 
 **A field over another field's panels** (Kazıklı Bey's *"NP area"*, #330 ruling 6): `geometry.kind: sameAs` with
 `field: <id>` stores that field's panels at open. An interior event's `ownerActed` fires only when the OWNER Acted
