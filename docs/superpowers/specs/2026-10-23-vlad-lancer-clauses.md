@@ -58,7 +58,7 @@ What he needs that nobody has yet, each a generic piece:
 
 | # | Ruling |
 |---|---|
-| 1 | The coin flip waits on Vlad III (Berserker): he is summoned as the Lancer, `SM.*` set aside until the Berserker is built (SM.*). |
+| 1 | The coin flip waits on Vlad III (Berserker): he is summoned as the Lancer, `SM.*` set aside until the Berserker is built (SM.*). Closed by #333 ruling 1: the seat decides the form. |
 | 2 | His Normal Attack uses BA(STR), as the corpus does when a sheet lists both (ST.na). |
 | 3 | Region `[romania, europe]`; `romania` joins the graph bordering `europe` only (ST.region). |
 | 4 | His player places Wallachia once, at his deployment or summon, by its centre panel; the centre lies nearer his Home Base than any other Player's; it lasts the whole War, past his last defeat (WL.place, WL.half). |
@@ -109,9 +109,9 @@ Read as precedent, no ruling needed: "Dark (Vampire)" is `[dark, vampire]`, as t
 
 ## Summoning
 
-- [ ] **SM.flip** · When Vlad III is summoned, his summoner flips a Coin: Heads, Vlad III (Lancer); Tails, Vlad III (Berserker)
-- [ ] **SM.hgw** · …in Normal or Ainsworth HGW, no flip if the Berserker has already been summoned
-- [ ] **SM.go** · …not in some scenarios: in the Grand Order Campaign the Class is chosen before deploying
+- [x] **SM.flip** · When Vlad III is summoned, his summoner flips a Coin: Heads, Vlad III (Lancer); Tails, Vlad III (Berserker)
+- [x] **SM.hgw** · …in Normal or Ainsworth HGW, no flip if the Berserker has already been summoned
+- [x] **SM.go** · …not in some scenarios: in the Grand Order Campaign the Class is chosen before deploying
 
 ## Magic Resistance — Rank B *(Class Skill)*
 
@@ -231,7 +231,7 @@ session (Rounds 55–59) staged the cases the board never produced:
 A Free Vlad cannot pay a B Noble Phantasm: 4◈ is 12 Turns against his 2◈ clock. The presses staged his
 Sustainability, then put it back.
 
-Open: **SM.flip, SM.hgw, SM.go** wait on Vlad III (Berserker) (ruling 1).
+Closed by #333 ruling 1: the seat decides the form, no coin. Observed in the setup wizard on 2026-10-24, the Lancer seat drawing Vlad III (Lancer) and the Berserker seat Vlad III (Berserker), both in one War.
 
 Twelve defects surfaced live and were fixed with a test first; each is a Surprise dated 2026-10-23 or 2026-10-24.
 The log is on #330.

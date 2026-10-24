@@ -68,6 +68,12 @@ Master defeats it (`defeatsAtZero`, ruled 2026-10-17): nobody's kill, so no Conq
 ban does not prevent it: a Normal Master at 21 may order three Servants, and an Advanced one may be hit between the
 order and the Turn's end. The Turn-end card says the death (`turn-report.mjs`, §46.4-PP).
 
+**A Free Servant's modes are held as they were** (Ch. 32's *"remains in whatever state it was in"*): the death writes
+`modesLocked`, the snapshot projects it, and `rules/modes.mjs#canToggleMode` refuses a switch either way with
+`modesLocked`, so the bar and the sheet say *"Mad Enhancement stays as it is: its Master is defeated, until a new
+Contract."* `io.setContract` clears it when the Servant is contracted again. Until #333 only the sheet's badge read it,
+and Vlad III (Berserker) switched Mad Enhancement off after his Master fell (live).
+
 **A new Contract restarts the Free clock** (ruled 2026-10-17, #241): *"the number of Turns a Servant can remain on
 the field before disappearing after its Master is killed"*, once per death. `io.setContract` clears
 `sustainabilityRemaining` when a Free or Unbound Servant is contracted to a Master it did not serve, so the next death

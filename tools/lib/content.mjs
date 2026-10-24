@@ -959,11 +959,37 @@ function phaseKindsAreKnown(doc, path, problems) {
           }
         }
       }
+      // A phase's die reads `value`, `perPriorUse`, `max`, `label` and
+      // `modifiers` (`rules/phase-chance.mjs`); a typo is a chance unmoved.
+      if (phase.chance && typeof phase.chance === "object") {
+        for (const key of Object.keys(phase.chance)) {
+          if (!PHASE_CHANCE_KEYS.includes(key)) {
+            problems.push(`${path}: ${where}[${n}].chance key "${key}" is not one phaseChance reads (${PHASE_CHANCE_KEYS.join(", ")})`);
+          }
+        }
+        for (const [k, m] of (phase.chance.modifiers ?? []).entries()) {
+          if (typeof m?.add !== "number" || !Array.isArray(m?.predicate)) {
+            problems.push(`${path}: ${where}[${n}].chance.modifiers[${k}] needs a numeric "add" and a "predicate" list`);
+          }
+        }
+      }
+      // Exactly one of `set` and `extend`, over named effects (#333).
+      if (phase.kind === "effectDuration") {
+        const both = phase.set !== undefined && phase.extend !== undefined;
+        const neither = phase.set === undefined && phase.extend === undefined;
+        if (both || neither) problems.push(`${path}: ${where}[${n}] effectDuration states ${both ? "both" : "neither of"} "set" and "extend"; it takes one`);
+        if (!Array.isArray(phase.effects) || phase.effects.length === 0) {
+          problems.push(`${path}: ${where}[${n}] effectDuration names no "effects"`);
+        }
+      }
       for (const [k, option] of (phase.options ?? []).entries()) walk(option?.phases, `${where}[${n}].options[${k}].phases`);
     }
   };
   walk(doc?.phases, "phases");
 }
+
+/** What `rules/phase-chance.mjs#phaseChance` reads off a phase's `chance`. */
+const PHASE_CHANCE_KEYS = ["value", "perPriorUse", "max", "label", "modifiers"];
 
 function abilityKindIsKnown(doc, path, problems) {
   if (doc?.kind === undefined || doc?.kind === null) return;
@@ -1782,6 +1808,17 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     // -- and each reached her written 3 rather than the 6 and 4 their sheets
     // grant, with a comment beside one of them asserting the arithmetic it was
     // not doing. Ch. 46 §46.4-F.
+    // `rangeWhen` adds to the reach while its predicate holds of the user
+    // (Bloodsucking under Mad Enhancement, #333): each entry an `add` and a
+    // `predicate`, or the bonus is dropped.
+    for (const [k, w] of (Array.isArray(spec.anchor?.rangeWhen) ? spec.anchor.rangeWhen : []).entries()) {
+      if (typeof w?.add !== "number" || !Array.isArray(w?.predicate)) {
+        problems.push(`${path}: ${where}.anchor.rangeWhen[${k}] needs a numeric "add" and a "predicate" list`);
+      }
+    }
+    if (spec.anchor?.rangeWhen !== undefined && !Array.isArray(spec.anchor.rangeWhen)) {
+      problems.push(`${path}: ${where}.anchor.rangeWhen is a list of { add, predicate }`);
+    }
     if (typeof spec.anchor?.range === "number" && spec.anchor?.rangeBonus !== undefined) {
       problems.push(
         `${path}: ${where} states both "range" and "rangeBonus" — `

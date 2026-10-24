@@ -162,7 +162,14 @@ export const PHASE_DESCRIPTORS = describeTable([
     { key: "selector", type: "raw" },
     { key: "ignoresRemovalProtection", type: "checkbox" },
   ]),
-  entry("move", 45, "Lets the Unit Move up to a number of panels, by an ordinary path, to a panel its owner picks.", [
+  // Vlad III (Berserker) (#333): Shapeshift resets its buffs to 1◈, Legend of
+  // Dracula extends them by 1◈, each by name (`rules/effect-duration.mjs`).
+  entry("effectDuration", 45, "Sets or extends the duration of named effects the Unit already holds.", [
+    { key: "effects", type: "tokenList" },
+    { key: "set", type: "tickExpr" },
+    { key: "extend", type: "tickExpr" },
+  ]),
+  entry("move", 45,"Lets the Unit Move up to a number of panels, by an ordinary path, to a panel its owner picks.", [
     { key: "panels", type: "number" },
   ]),
   entry("heal", 50, "Restores Health, as a flat amount or a fraction of MAXIMUM.", [

@@ -209,6 +209,8 @@ Fated Rivals of the Mahabharata"*), the Turn and Round end cards, the periodic c
 compulsion's culprits. Still reading `actor.name`: the targeting preview, the refusal banner and `dimension.mjs`'s
 offers (§46.35.3).
 
+**A card posted from a player's client names its speaker** (#333): the same script refuses a `ChatMessage.create` in `module/apps` with no `speaker`, which speaks as the posting user's own character, unless `// fgt-speaker-ok: <reason>` says why. The engine's cards are posted by the active GM. Vlad III (Berserker)'s mode line, the fifth slip of the public-name rule, read "Kingprotea".
+
 **A guard keeps every player-facing name public** (#235). `tools/check-public-names.mjs`, run by `npm run lint`,
 refuses a Unit's `.name` read raw (off `game.actors.get(…)` or a variable holding a Unit: `actor`, `unit`, `defender`,
 …) anywhere in `module/engine`, `module/apps` or `module/rules`. A line names a Unit through the one reader,

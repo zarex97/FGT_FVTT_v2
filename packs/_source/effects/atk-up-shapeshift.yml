@@ -1,0 +1,29 @@
+# Vlad III (Berserker)'s Legend of Dracula, step 4 (#333).
+#
+# > "Applies Atk Up (Shapeshift) for 1◈ Turns, all damage dealt is increased by
+# > 10%; if NP, 5%."
+#
+# One at a time, as Def Up (Shapeshift) is (#333 ruling 6): step 4's fresh one
+# never shortens the one step 1 just extended. Doubled while he holds Dracula,
+# live (#333 ruling 7).
+schema: 1
+id: atkUpShapeshift
+name: "Atk Up (Shapeshift)"
+description: "All damage dealt is increased by X%; a reduced magnitude applies to Noble Phantasms. Doubled while @effect[dracula]{Dracula}."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneNoRefresh
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: "@magnitude"
+    npValue: "@npMagnitude"
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: "@magnitude"
+    npValue: "@npMagnitude"
+    predicate: ["self:effect:dracula"]

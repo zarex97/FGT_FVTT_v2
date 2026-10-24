@@ -245,6 +245,30 @@ function statsBeforeBatch(intents) {
     .map((intent) => ({ intent, before: statOf(intent.unitId, intent.stat) }));
 }
 
+/**
+ * The Agility and Luck a boundary's batch moves, read before it is written, for
+ * {@link poolLinesAfter}. Legend of Dracula's *"restores 100 Health and 1
+ * Agility at the end of any Turn he Acts"* said the Health and not the Agility
+ * (#333, live): a Turn's end ran its batch with no lines. Health has its own
+ * report line, and the engine's clocks are not news.
+ *
+ * @param {Intent[]} intents
+ * @returns {Array<{intent: Intent, before: number|null}>}
+ */
+export function poolsBefore(intents) {
+  return statsBeforeBatch((intents ?? []).filter((i) => i?.stat === "agility.value" || i?.stat === "luck.value"));
+}
+
+/**
+ * @param {Array<{intent: Intent, before: number|null}>} pools from {@link poolsBefore}
+ * @returns {CardLine[]}
+ */
+export function poolLinesAfter(pools) {
+  // A pool already full is no news at a boundary: the Round's Home Base heal
+  // would say "(no change)" of every Unit at its maximum.
+  return statLines((pools ?? []).filter(({ intent, before }) => statOf(intent.unitId, intent.stat) !== before));
+}
+
 /** @param {string} unitId @param {string} stat @returns {number|null} */
 function statOf(unitId, stat) {
   const n = Number(foundry.utils.getProperty(unitActor(unitId)?.system ?? {}, stat));

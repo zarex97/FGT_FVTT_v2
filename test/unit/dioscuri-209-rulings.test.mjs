@@ -536,7 +536,8 @@ describe("`attack:usesBase:mag` is the attack's base, not the component it decla
     ]);
     const bearers = files.filter(({ doc }) => (doc.abilities ?? []).some((a) => a?.ref === "class-mad-enhancement"))
       .map(({ doc }) => doc.id).sort();
-    expect(bearers).toEqual(["asterios", "castor", "gilles-saber", "heracles", "kingprotea", "penthesilea", "raikou"]);
+    // Vlad III (Berserker) (#333) holds none of the six.
+    expect(bearers).toEqual(["asterios", "castor", "gilles-saber", "heracles", "kingprotea", "penthesilea", "raikou", "vlad-berserker"]);
     const held = new Set(files.filter(({ doc }) => bearers.includes(doc.id)).flatMap(({ doc }) => (doc.abilities ?? []).map((a) => a?.ref)));
     // Of the six, one is held by a bearer; Raikou's refuses under Mad Enhancement.
     expect([...held].filter((id) => differs.includes(id)).sort())
@@ -762,7 +763,8 @@ describe("`attack:plainDamage` is how a Clause tells an Attack from measured dam
       .map(({ doc }) => doc.id).sort();
     expect(inflictors).toEqual([
       "anastasia-summer-snegleta", "dioscuri-tyndaridae", "gilles-blasphemy-aesthetic", "gogh-het-gele-huis",
-      "gogh-the-yellow-house", "hassan-zabaniya-delusional-illusion", "mannanan-fragarach-counter", "yan-qing-np",
+      "gogh-the-yellow-house", "hassan-zabaniya-delusional-illusion", "mannanan-fragarach-counter",
+      "vlad-berserker-kazikli-bey", "yan-qing-np",
     ]);
   });
 });
