@@ -12,5 +12,5 @@ picked at all.
 **Cause:** `module/rules/ability-use.mjs:437 @ 630495df` — a bare Normal Attack's spec is `count: 1` and `relations:
 [enemy]`, always; `range.targets` reached the sheet and `maxTargets` and nothing that targets. The test asked the
 projection (`maxTargets: 2`), not the Attack.
-**Fix:** `module/rules/ability-use.mjs:430 @ uncommitted` — `maxTargets` above 1 makes it a pick of that many within
+**Fix:** `module/rules/ability-use.mjs:430 @ 2f18de06` — `maxTargets` above 1 makes it a pick of that many within
 Range, and a compulsion's own `relations` make an ally it names a legal target.
