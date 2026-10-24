@@ -60,7 +60,7 @@ import { expressionRefs } from "../rules/snapshot.mjs";
 import {
   stacksHeld, countOf, countedValue, countScaleOf, fromCountMatching, declarationCriteria,
 } from "../rules/count.mjs";
-import { removalPlan, pendingRemovalRolls, isUnremovable, selectorMatches } from "../rules/removal.mjs";
+import { removalPlan, pendingRemovalRolls, isUnremovable, selectorMatches, ownRemovalResist } from "../rules/removal.mjs";
 import { resolveValue } from "../rules/elements.mjs";
 import { createField, regionSizedTargeting } from "./fields.mjs";
 import { chooseFor } from "./ask.mjs";
@@ -150,7 +150,9 @@ export async function useSkill({
   // no pool is asked or charged -- so no Seal on either refuses it -- and the
   // Unit is marked as having Acted and nothing more. The same flag the attack
   // path reads for Kiritsugu's free Normal Attack (`attack-preflight.mjs`).
-  const free = Boolean(ability.system?.freeAction);
+  // ...and one free only at a window: Kazıklı Bey's Active 2 costs his Attack
+  // from the bar and nothing at a Combat Process (#330 ruling 9).
+  const free = Boolean(ability.system?.freeAction) || (atWindow && Boolean(ability.system?.freeAtWindow));
 
   const targets = resolveSkillTargets(ability, self, board, placement);
   if (targets.errors.length > 0) return { ok: false, reason: targets.errors[0] };
@@ -199,7 +201,11 @@ export async function useSkill({
 
   if (ability?.system?.shield && !failure && !fails) await refreshShield(ability);
 
-  const applied = failure || fails ? [] : await runPhases(ability, actor, targets.units, board, null, { useRecord: record });
+  // A phase that waits on the activation: Legend of Dracula's *"Vlad will
+  // immediately kill his Master AFTER this NP is activated"* (#330), so the
+  // Master pays the Command Spell first. Run below, once the costs are paid.
+  const applied = failure || fails ? [] : await runPhases(ability, actor, targets.units, board,
+    (p) => !p.afterCosts, { useRecord: record });
   noteFact(record, "summoned", applied.summoned ?? 0);
   noteFact(record, "channelStarted", Boolean(applied.channelStarted));
 
@@ -243,6 +249,9 @@ export async function useSkill({
     }),
   ], `skill:${abilityId}`);
   await postCostCards(charged, { ability, self });
+  if (!failure && !fails && (ability.system?.phases ?? []).some((p) => p.afterCosts)) {
+    applied.push(...await runPhases(ability, actor, targets.units, currentBoard(), (p) => Boolean(p.afterCosts), { useRecord: record }));
+  }
 
   // The SAME action the check above asked about. Two spellings here is how a
   // use gets checked against one pool and charged to another.
@@ -542,6 +551,12 @@ async function phaseTargets(phase, resolved, actor, board) {
   }
   const target = phase.target ?? "reuse";
   if (target === "self") return [{ unitId: actor.id }];
+  // The caster's own Master: Legend of Dracula's *"Vlad will immediately kill
+  // his Master"* (#330). None when it has none.
+  if (target === "master") {
+    const masterId = unitOf(actor, board)?.masterId ?? null;
+    return masterId && (board?.units ?? []).some((u) => u.id === masterId) ? [{ unitId: masterId }] : [];
+  }
   // The caster and every other member of its linked group, wherever they stand:
   // Mana Burst's *"restore 1 Agility and 1 Luck to both Castor and Pollux"*.
   // It fell to `reuse` here, the caster alone, so the twin was never restored
@@ -825,6 +840,70 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
             const after = unitActor(target.unitId)?.system?.health?.value ?? before;
             applied.push({ unitId: target.unitId, summary: { id: "heal", name: `Health ${before} → ${after} (+${after - before})`, outcome: "applied", reason: null } });
           }
+          break;
+        }
+
+        // Damage that is no Attack, per Unit caught: Kazıklı Bey's Active 2,
+        // *"Y being 50 * the number of 'Kazıklı' stacks on each Unit"* and 100
+        // per stack for a Unit inside Wallachia when he is (#330). A branch is
+        // asked with the caster and THIS Unit in scope. Only the defender's half
+        // of the pipeline runs (ruling 27), so Pierce, Ignore Def, an Anti-Purge
+        // and the DU's own cuts are the pipeline's to settle.
+        case "strike": {
+          const options = rollOptionsFor({ attacker: self, defender: snapshot });
+          const branch = (phase.branches ?? []).find((b) => testPredicate(b.predicate, { options }));
+          const amount = Math.max(0, Math.floor(countedValue(branch?.amount ?? phase.amount ?? 0, {
+            stacks: stacksHeld(snapshot), self, target: snapshot, board,
+          })));
+          if (amount <= 0) break;
+          const { standaloneDamage } = await import("./attack.mjs");
+          const hit = await standaloneDamage({
+            attackerDoc: actor, defenderId: target.unitId, amount,
+            component: phase.component ?? "str", isNP: phase.isNP ?? Boolean(ability.system?.isNP),
+            pierce: Boolean(phase.pierce), ignoresDefUp: Boolean(phase.ignoresDefUp), board,
+          });
+          const before = unitActor(target.unitId)?.system?.health?.value ?? 0;
+          if (hit.total > 0) {
+            await applyWorld([I.damage(target.unitId, hit.total, null, {
+              source: ability.id, component: phase.component ?? "str",
+            })], `skill:${ability.id}:strike`);
+          }
+          const after = unitActor(target.unitId)?.system?.health?.value ?? before;
+          applied.push({ unitId: target.unitId, summary: {
+            id: "strike",
+            name: game.i18n.format(hit.negatedBy ? "FGT.Strike.Negated" : "FGT.Strike.Row", {
+              target: shownNameById(target.unitId), amount, dealt: hit.total, before, after, by: hit.negatedBy ?? "",
+            }),
+            outcome: hit.total > 0 ? "applied" : "blocked",
+            reason: null,
+          } });
+          break;
+        }
+
+        // An outright defeat, the caster its killer: Legend of Dracula's
+        // *"Vlad will immediately kill his Master"*, only *"if the Master is
+        // within Wallachia when it is activated"* (`targetPredicate`, asked of
+        // this Unit with the caster in scope). No damage and no revival.
+        case "defeat": {
+          if (snapshot?.defeated) break;
+          if (phase.targetPredicate && !testPredicate(phase.targetPredicate, {
+            options: rollOptionsFor({ attacker: self, defender: snapshot }),
+          })) break;
+          const { fireEvent } = await import("./scheduler.mjs");
+          await applyWorld([
+            I.defeat(target.unitId, phase.cause ?? "killed", actor.id),
+            I.log({ kind: "defeat", event: "phaseKill", unitId: target.unitId, by: actor.id, abilityId: ability.id }),
+            ...["unitFelled", "unitKilled"].flatMap((event) => fireEvent(event, [self], {
+              tick: board?.tick ?? 0, board,
+              turnsPerRound: warRule("turnsPerRound") || 3,
+              options: rollOptionsFor({ attacker: self, defender: snapshot }),
+            })),
+          ], `skill:${ability.id}:defeat`);
+          applied.push({ unitId: target.unitId, summary: {
+            id: "defeat",
+            name: game.i18n.format("FGT.Defeat.Killed", { target: shownNameById(target.unitId), name: shownNameById(actor.id) }),
+            outcome: "applied", reason: null,
+          } });
           break;
         }
 
@@ -2294,6 +2373,7 @@ function removalCandidates(phase, doc) {
         defId: e.system.defId,
         polarity: polarityOf(e.system, def),
         unremovable: isUnremovable(def, e),
+        ownResist: ownRemovalResist(def),
       };
     });
 }

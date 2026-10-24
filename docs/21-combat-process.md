@@ -134,6 +134,12 @@ its old footprint, and anybody under it is knocked back. A concealed user steppi
 
 1. **One process per distinct defender.** A fan-out over five units opens five processes (`module/engine/combat-process.mjs:212-236`). EMIYA's Overedge is two swings against one unit and is two processes against one defender, not an area attack (`module/engine/attack.mjs:922-926`). Each of them is declared as a Normal Attack (`countsAsNormalAttack`), and `attackDeclared` fires per Process, so each swing has its own Kanshou & Bakuya use (#208 readings 5 and 7). **`combatProcessEnd` is the attacker's too** (reading 10): `fireCombatProcessEnd` raises it on the attacker with the attack's options and `attack:performed`, and on the defender with none, hit or miss; firings queue per attacker so two Processes of one declaration read the board each other left. EMIYA's Circuits cut the NP Cooldown and spend their "next NP" charge there, and `circuitsPending` (until the Combat Phase ends) keeps the cut and the +20% off the NP that opened them. The attacker's set also carries `attack:dealtDamage` when the Process hurt, read off the Damage Step's own record (`combat-process.mjs#damageDealtIn`): Yan Qing's Zhōng Guó Quán Fǎ cuts his NP Cooldown only after a Normal Attack that dealt damage (#253 reading 3).
 
+2. **The end of a Process, and an Attack cancelled by its defender** (#330 rulings 9, 25). The `processEnd` window
+   is offered to the AU and the DU before the Counter rung (`attack.mjs#offerProcessEnd`); the AU's use of a
+   `forbidsCounterWhenAttacking` ability closes the DU's Counter, with a card line. At `defendingPhaseStart`, a cast
+   of a `cancelsAttackWhenDefending` ability cancels the whole Attack, every Process, still the AU's Attack, and its
+   user is offered a Normal Attack Counter when `counterAvailable` would offer one (`cancelAttackFrom`). A window
+   returns what it cast (`castAbilities`) beside what it carried.
 2. **An Attack that has no effect ends at step 1.5** (#328 ruling 9). `NullifiesAttacks {component, minDistance}`
    on the defender (`rules/miss.mjs#nullifiedBy`) takes the Process to `missed` with a `noEffect` roll line naming
    the Skill: Gravity Manipulation's BA(STR) Attacks from 4 or more panels. No damage, no riders. The card prints

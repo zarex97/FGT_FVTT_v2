@@ -1,0 +1,88 @@
+# Vlad III (Lancer), char_orig_sheets/by-class/Lancer/Vlad III (Lancer).md
+#
+# > "(Active 2) Used during your Turn, or at the start or end of a Combat
+# > Process involving Vlad. Affects all Units with 'Kazıklı' stacks within a 3
+# > panel area of himself. Those Units receive Y damage, where Y being 50 * the
+# > number of 'Kazıklı' stacks on each Unit respectively; then inflict Curse to
+# > the affected Units, and remove all 'Kazıklı' stacks from the affected Units.
+# > This damage has the Pierce and Ignore Def effects. Counts as Vlad's Attack
+# > for the Turn if used during his Turn.
+# > If this NP is used within the Wallachia, Y is 100 * the number of 'Kazıklı'
+# > stacks on the respective affected Units who are also within Wallachia
+# > (those outside of it use the original calculation instead, if any).
+# > If this NP is used at the start of a Combat Process where Vlad is receiving
+# > the Attack; the AU's Attack is cancelled, then Vlad can Counter if the enemy
+# > Unit is within Range.
+# > If this NP is used at the end of a Combat Process where Vlad performed the
+# > Attack; the DU cannot Counter Vlad's Attack.
+# > Can only be used once per Round (Turn?). Does not reduce his Master's Health
+# > as a cost when used."
+#
+# Kazıklı Bey's second Active, a document of its own (#330 ruling 8): once per
+# Round, no Cooldown, Active 1's Cooldown never blocking it, no Master cost.
+# No Attack (ruling 10): a `strike` phase, damage through the DU's half of the
+# pipeline (ruling 27), STR (ruling 28), Pierce past an Invuln, Anti-Purge
+# still stopping it. Its windows: the bar on his Turn (his Attack); the start
+# of a Process he is Attacked in (cancel, then a Counter); the start of one he
+# Attacks in; the end of either (ruling 25), where his own Attack's DU loses its
+# Counter. A window use is free (ruling 9).
+schema: 1
+id: vlad-kazikli-bey-execution
+name: "Kazıklı Bey (Execution)"
+isNP: true
+rank: B
+kind: noblePhantasm
+slug: kazikliBeyExecution
+npTags: [antiArmy]
+noMasterCost: true
+oncePerRound: true
+countsAsAttack: true
+freeAtWindow: true
+cancelsAttackWhenDefending: true
+forbidsCounterWhenAttacking: true
+timing: { window: [ownTurn, combatPhaseStart, defendingPhaseStart, processEnd] }
+copyable: { allowed: false, reason: named }
+negatedBy: [legendOfDraculaActivated]
+description: |
+  (Active 2) Used during your Turn, or at the start or end of a Combat Process involving Vlad. Affects
+  all Units with @effect[kazikli]{Kazıklı} stacks within a 3 panel area of himself. Those Units receive Y
+  damage, where Y being 50 * the number of Kazıklı stacks on each Unit respectively; then inflict
+  @effect[curse]{Curse} to the affected Units, and remove all Kazıklı stacks from the affected Units. This
+  damage has the @effect[pierce]{Pierce} and @effect[ignoreDef]{Ignore Def} effects. Counts as Vlad's Attack for the Turn if used during his
+  Turn.
+  If this NP is used within the Wallachia, Y is 100 * the number of Kazıklı stacks on the respective
+  affected Units who are also within Wallachia (those outside of it use the original calculation
+  instead, if any).
+  If this NP is used at the start of a Combat Process where Vlad is receiving the Attack; the AU's
+  Attack is cancelled, then Vlad can Counter if the enemy Unit is within Range.
+  If this NP is used at the end of a Combat Process where Vlad performed the Attack; the DU cannot
+  Counter Vlad's Attack.
+  Can only be used once per Round. Does not reduce his Master's Health as a cost when used.
+  Note: Damage from this NP is not affected by any damage-modifying effects on Vlad.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: chebyshevRadius, r: 3 }
+  selection:
+    relations: [enemy, ally, neutral]
+    includeSelf: false
+    chooser: all
+    attributes: ["target:effect:kazikli"]
+phases:
+  - kind: strike
+    target: reuse
+    component: str
+    isNP: true
+    pierce: true
+    ignoresDefUp: true
+    amount: { count: { of: stacks, effect: kazikli }, per: 50 }
+    branches:
+      - predicate: ["self:inField:vlad-demonic-defender-of-the-state", "target:inField:vlad-demonic-defender-of-the-state"]
+        amount: { count: { of: stacks, effect: kazikli }, per: 100 }
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: curse }
+  - kind: removeEffect
+    target: reuse
+    effects: [kazikli]
+    ignoresRemovalProtection: true

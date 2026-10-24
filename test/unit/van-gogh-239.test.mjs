@@ -69,7 +69,14 @@ describe("#202: what a handler does reaches a card", () => {
     // then an Item spent and a rule taken away for good, since #247 (the Vorpal Blade's blow),
     // and a magnitude that fell, since #315 (Merlin's Illusion), and a Mode's
     // tally, since #319 (Saitou's seventh Attack).
-    expect(code("engine/applier.mjs")).toMatch(/said\.push\(\.\.\.clockLines\(clocks\), \.\.\.statLines\(stats\), \.\.\.await spanLines\(spans\), \.\.\.itemLines\(held\), \.\.\.await decayLines\(plan\.local\), \.\.\.tallyLines\(plan\.local\), \.\.\.suppressionLines\(lines \? plan\.local : \[\]\),\s*\.\.\.await removalLines\(lines \? plan\.local : \[\]\)\);/);
+    // ...and a heal it gave, since #330 (Dracula's 25% for a Unit he felled). One
+    // statement says them all; each builder is named in it, not the line pinned.
+    const said = code("engine/applier.mjs").match(/said\.push\(([\s\S]*?)\);\r?\n/)?.[1] ?? "";
+    for (const builder of ["clockLines(clocks)", "healLines(plan.local, healths)", "statLines(stats)", "spanLines(spans)",
+      "itemLines(held)", "decayLines(plan.local)", "tallyLines(plan.local)", "suppressionLines(lines ? plan.local : [])",
+      "removalLines(lines ? plan.local : [])"]) {
+      expect(said, builder).toContain(builder);
+    }
   });
 
   const input = (effects, effectOwners) => ({
@@ -108,7 +115,13 @@ describe("#202: what a handler does reaches a card", () => {
     for (const event of ["damageStepStart", "damageDealt", "damageTaken", "attackLanded", "attackPerformed", "damageStepEnd"]) {
       expect(attack, event).toMatch(new RegExp(`applyWithLines\\(intents, "${event}"`));
     }
-    expect(attack).toMatch(/\.\.\.startRows, \.\.\.before, \.\.\.applied, \.\.\.held, \.\.\.taken\.rows, \.\.\.receivedRows, \.\.\.dealt\.rows, \.\.\.stepEnd\.rows/);
+    // The damage step's card rows, each named; the damage batch's own lines (a
+    // defeat's `unitFelled` heal, #330) among them.
+    const rows = attack.match(/setFlag\("fgt", "effects", \[\.\.\.said, \.\.\.cardRows\(\[([\s\S]*?)\]\)\]\)/)?.[1] ?? "";
+    for (const row of ["...startRows", "...before", "...applied", "...held", "...(result.lines ?? [])", "...taken.rows",
+      "...receivedRows", "...dealt.rows", "...stepEnd.rows"]) {
+      expect(rows, row).toContain(row);
+    }
   });
 
   it("a Skill's writes collect what the handlers they raise did", () => {

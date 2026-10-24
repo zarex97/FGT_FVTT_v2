@@ -660,7 +660,7 @@ export function validateAll(files, assets = null) {
  * @type {ReadonlySet<string>}
  */
 const FIELD_GEOMETRY_KINDS = new Set([
-  "fixedArea", "followsUnit", "freeform", "markDefined", "enclosing",
+  "fixedArea", "followsUnit", "freeform", "markDefined", "enclosing", "sameAs",
 ]);
 
 /**

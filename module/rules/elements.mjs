@@ -2371,6 +2371,8 @@ export const EXECUTORS = Object.freeze({
       attacksOnly: Boolean(el.attacksOnly),
       restrictsOnly: Boolean(el.restrictsOnly),
       areaMustInclude: Boolean(el.areaMustInclude),
+      // The nearest Units, any reach, a tie at random (Legend of Dracula, #330).
+      nearest: Boolean(el.nearest),
       // A Command Spell may buy it off only while it holds (#206 reading 2).
       suspendWhileBound: Boolean(el.suspendWhileBound),
       source,

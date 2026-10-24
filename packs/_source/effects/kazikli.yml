@@ -1,0 +1,26 @@
+# Vlad III (Lancer)'s Kazıklı Bey, the Passive (#330).
+#
+# > "Whenever Vlad successfully deals damage to a Unit with a Normal Attack,
+# > apply one 'Kazıklı' stack to the DU at the end of the Damage Step.
+# > 'Kazıklı' stacks are categorized as a debuff, the chance of a 'Kazıklı'
+# > stack being removed is reduced by 50%."
+#
+# One instance holding a count, as NP DmUp (GAO): every application adds one,
+# and Kazıklı Bey Active 2 reads the count (`count: {of: stacks}`). No cap and
+# no duration (#330 ruling 22): it stays until removed, and a removal rolls
+# once for the whole of it, at half its chance (`removalResist`).
+schema: 1
+id: kazikli
+name: "Kazıklı"
+description: |
+  Kazıklı stacks, applied by Vlad III's Normal Attacks. Kazıklı Bey's Active 2 deals damage for each
+  stack, then removes them. The chance of a Kazıklı stack being removed is reduced by 50%.
+polarity: debuff
+volatility: nonVolatile
+valence: offensive
+stacking: count
+uses: 1
+baseChance: 100
+defaultDuration: permanent
+removalResist: 50
+rules: []

@@ -180,6 +180,25 @@ export function masterOf(servant, board) {
 }
 
 /**
+ * Take a Servant inside its Master's ZON for everything, while a rule it stands
+ * under waives the ZON whole (`Suppress {scope: zon}`).
+ *
+ * Wallachia: *"his Master's ZON is ignored"*, unqualified (#330 ruling 29): no
+ * damage penalty and no Noble Phantasm refused. Ramesseum Tentyris waives the
+ * penalty alone (`zonPenalty`), because its sheet says *"when he Attacks (no
+ * damage reduction)"*. Run after the fields' interiors reach the Units.
+ *
+ * @param {object[]} units
+ * @returns {object[]} the same units
+ */
+export function waiveZon(units) {
+  for (const unit of units ?? []) {
+    if ((unit.suppressions ?? []).some((x) => x?.scope === "zon")) unit.outsideZon = false;
+  }
+  return units;
+}
+
+/**
  * Annotate every unit on a board with its ZON status.
  *
  * Runs once per board snapshot rather than per query: `zonStatus` is O(units)

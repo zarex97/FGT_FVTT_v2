@@ -488,8 +488,12 @@ function overviewContext(actor, snapshot) {
 
     // A warning that does not block (Ch. 34's amber badge). Shown because the
     // alternative is discovering it after committing an attack.
+    // In words: the banner printed the rule's JSON for every compulsion that
+    // carried no `text`, which is every one (found pressing #330).
     compulsions: (snapshot.compulsionRules ?? []).map((rule) => ({
-      text: rule.text ?? rule.reason ?? JSON.stringify(rule),
+      text: rule.text ?? rule.reason ?? game.i18n.format(rule.nearest ? "FGT.Compulsion.Nearest" : "FGT.Compulsion.Bound", {
+        source: EffectRegistry.get(rule.source)?.name ?? rule.source ?? "",
+      }),
     })),
 
     budget: budgetRow(snapshot),

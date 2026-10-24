@@ -33,6 +33,7 @@ import { polarityOf } from "./effect-instance.mjs";
  * @property {string} defId
  * @property {string} [polarity]
  * @property {boolean} [unremovable]
+ * @property {number} [ownResist] the effect's own `removalResist`, any polarity
  */
 
 
@@ -87,6 +88,16 @@ export function removalResistOf(unit) {
 }
 
 /**
+ * The resistance an effect carries against its own removal, for a candidate.
+ *
+ * @param {object|null|undefined} def the effect definition
+ * @returns {number}
+ */
+export function ownRemovalResist(def) {
+  return Math.max(0, Number(def?.removalResist ?? 0) || 0);
+}
+
+/**
  * Decide which of a set of candidates actually come off.
  *
  * `rolls` is keyed by `defId`, so two instances of one effect share a roll:
@@ -115,13 +126,16 @@ export function removalPlan({ candidates, bearer, rolls = {}, ignoresProtection 
     // does.
     if (candidate.unremovable) continue;
 
-    // Debuffs are not protected. See the file header.
-    if (resist <= 0 || candidate.polarity !== "buff") { // fgt-polarity-ok: a removal candidate, built with polarityOf
+    // Debuffs are not protected by the BEARER. See the file header. An effect
+    // that resists on its own does, whatever it is: Kazıklı (#330).
+    const own = ignoresProtection ? 0 : Math.max(0, candidate.ownResist ?? 0);
+    const bearerResist = candidate.polarity === "buff" ? resist : 0; // fgt-polarity-ok: a removal candidate, built with polarityOf
+    if (bearerResist + own <= 0) {
       removed.push(candidate.defId);
       continue;
     }
 
-    const chance = Math.max(0, 100 - resist);
+    const chance = Math.max(0, 100 - bearerResist - own);
     const roll = rolls[candidate.defId];
     if (typeof roll !== "number" || roll <= chance) removed.push(candidate.defId);
     else resisted.push({ defId: candidate.defId, chance, roll });
@@ -144,10 +158,12 @@ export function removalPlan({ candidates, bearer, rolls = {}, ignoresProtection 
  * @returns {string[]} defIds, deduplicated
  */
 export function pendingRemovalRolls({ candidates, bearer, ignoresProtection = false }) {
-  if (ignoresProtection || removalResistOf(bearer) <= 0) return [];
+  if (ignoresProtection) return [];
+  const resist = removalResistOf(bearer);
   return [...new Set(
     (candidates ?? [])
-      .filter((c) => !c.unremovable && c.polarity === "buff") // fgt-polarity-ok: a removal candidate, built with polarityOf
+      .filter((c) => !c.unremovable
+        && ((resist > 0 && c.polarity === "buff") || (c.ownResist ?? 0) > 0)) // fgt-polarity-ok: a removal candidate, built with polarityOf
       .map((c) => c.defId),
   )];
 }

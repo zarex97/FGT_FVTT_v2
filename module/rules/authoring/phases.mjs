@@ -69,12 +69,15 @@ const COMMON = Object.freeze([
   // on whatever `reuse` would have caught, silently. `test/unit/phase-targets`
   // holds the content against the executor from the other side; this is the
   // door, and it was open onto nothing.
-  { key: "target", type: "select", choices: ["reuse", "self", "linkedGroup"] },
+  { key: "target", type: "select", choices: ["reuse", "self", "linkedGroup", "master"] },
   { key: "predicate", type: "predicateList" },
   { key: "when", type: "text" },
   // A die for the whole phase: a percent, or `{value, perPriorUse, max, label}`
   // growing with each use (`rules/phase-chance.mjs`; Prelati's Encouragement, #260).
   { key: "chance", type: "raw" },
+  // Run once the use's costs are paid: Legend of Dracula's kill comes *"after
+  // this NP is activated"* (#330).
+  { key: "afterCosts", type: "checkbox" },
   // The card's line when `predicate` holds the phase back, a lang key: Unparalleled's
   // *"This effect is not applied if any other allied Servant has already Attacked"* (#328).
   { key: "unmetLine", type: "text" },
@@ -166,6 +169,23 @@ export const PHASE_DESCRIPTORS = describeTable([
     { key: "percentOfMax", type: "number" },
     { key: "toPercentOfMax", type: "number" },
     { key: "amount", type: "number" },
+  ]),
+  // Damage that is no Attack (#330): Kazıklı Bey's Active 2, *"Those Units
+  // receive Y damage ... This damage has the Pierce and Ignore Def effects"*,
+  // through the defender's half of the pipeline only (`attack.mjs#standaloneDamage`).
+  entry("strike", 45, "Deals damage that is no Attack: no Combat Process, no reaction, the user's modifiers skipped.", [
+    { key: "amount", type: "raw" },
+    { key: "branches", type: "raw" },
+    { key: "component", type: "select", choices: ["str", "mag"] },
+    { key: "isNP", type: "checkbox" },
+    { key: "pierce", type: "checkbox" },
+    { key: "ignoresDefUp", type: "checkbox" },
+  ]),
+  // Legend of Dracula (#330 ruling 12): *"if the Master is within Wallachia
+  // when it is activated, Vlad will immediately kill his Master"*.
+  entry("defeat", 40, "Defeats the Unit outright, its user the killer: no damage, no revival.", [
+    { key: "targetPredicate", type: "predicateList" },
+    { key: "cause", type: "text" },
   ]),
   entry("zone", 40, "Paints terrain over an area.", [
     { key: "spec", type: "raw" },

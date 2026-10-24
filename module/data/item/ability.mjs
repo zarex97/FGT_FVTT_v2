@@ -408,6 +408,16 @@ function abilityCommon() {
     // `countsAsAttack: false` to make it free routed it to `useSkill`, which
     // refuses a `damage` phase outright and says so.
     freeAction: new fields.BooleanField({ initial: false }),
+    // Free when used at a TIMING WINDOW, billed when pressed on the bar.
+    // Kazıklı Bey's Active 2 *"counts as Vlad's Attack for the Turn if used
+    // during his Turn"*, and only its bar press does (#330 ruling 9).
+    freeAtWindow: new fields.BooleanField({ initial: false }),
+    // Used at the start of a Combat Phase its user is Attacked in, it cancels
+    // the AU's whole Attack and offers its user a Counter (#330 ruling 9).
+    cancelsAttackWhenDefending: new fields.BooleanField({ initial: false }),
+    // Used at the end of a Combat Process its user Attacked in, the DU cannot
+    // Counter that Attack (#330, KB.nocounter).
+    forbidsCounterWhenAttacking: new fields.BooleanField({ initial: false }),
 
     // "…which cannot be Reacted to unless the AU's AGI Rank is higher than
     // Kiritsugu's." A narrowing of the reaction ladder decided by a RANK
@@ -682,6 +692,10 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // Proliferation is the first to state one: *"Kingprotea can only have a
       // maximum of 10 Proliferation stocks."*
       maxStacks: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true, min: 1 }),
+      // The effect's OWN resistance to being removed, in percentage points,
+      // whatever its polarity: *"the chance of a 'Kazıklı' stack being removed
+      // is reduced by 50%"* (#330, a debuff). Read by `rules/removal.mjs`.
+      removalResist: new fields.NumberField({ required: false, nullable: true, initial: null, min: 0, max: 100 }),
       // The definition's `rules` are collected ONCE for a bearer however many
       // instances it holds, so a `perStack` element may live on the stock it
       // counts. Kingprotea's Proliferation: a stock's effects belong to the

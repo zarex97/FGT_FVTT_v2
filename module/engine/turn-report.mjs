@@ -185,8 +185,8 @@ export async function postTurnEndReport(intents, before = null, health = null, t
   // A handler names its source by the effect's id ("regen"); the card says the
   // effect's name, as the rest of the game does ("Regen", #234).
   const { EffectRegistry } = await import("../rules/registry.mjs");
-  const named = (intents ?? []).map((i) => (i?.source && EffectRegistry.get(i.source)?.name
-    ? { ...i, source: escape(EffectRegistry.get(i.source).name) } : i));
+  const named = (intents ?? []).map((i) => (i?.source && EffectRegistry.get(i.source)
+    ? { ...i, source: escape(EffectRegistry.nameOf(i.source)) } : i));
   const escaped = (landed ?? []).map((l) => ({ ...l, summary: { ...l.summary, name: escape(String(l.summary?.name ?? "")), reason: l.summary?.reason ? escape(String(l.summary.reason)) : null } }));
   // Who a loss here emptied and the defeat chain took: alive before the batch,
   // by the Health read before it, and defeated now.
