@@ -7719,8 +7719,8 @@ Vlad III (Berserker).
 ### 46.48.1 What he cost the engine
 
 - **A field its player places at summon** (Wallachia, Ch. 28, Ch. 31): `placement: chosen`, an opening choice that
-  asks for a centre panel among `chosenCentres`; `outlivesOwner`; `otherHomeBase` clipping; `shown` draws it for
-  players, the first field that is.
+  asks for a centre panel among `chosenCentres`; `outlivesOwner`; `otherHomeBase` clipping; the first field drawn for
+  players, and since 2026-10-24 every field is (Ch. 28).
 - **A field over another field's panels** (`sameAs`), ticking at the end of every Turn its owner Acts (`ownerActed`)
   and at the Round's end (`roundEnd`, newly dispatched).
 - **Damage that is no Attack, through the defender's half of the pipeline** (`attack.mjs#standaloneDamage`, Ch. 22):
@@ -7755,4 +7755,5 @@ Ch. 37). On 2026-10-23 the debug Chrome and then Foundry closed on their own; th
 ### 46.48.3 Left open
 
 - **SM.\*** wait on Vlad III (Berserker).
-- **Every other field** is still drawn for the GM only; whether to draw them all is the user's call.
+- ~~Every other field drawn for the GM only~~: the user ruled every field drawn for players (2026-10-24); built
+  (`fields.mjs#fieldVisibility`) and seen live on Player1's board.

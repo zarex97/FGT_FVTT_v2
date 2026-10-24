@@ -12,6 +12,7 @@ import { collectContributions, empty } from "../../module/rules/elements.mjs";
 import { detectRangeOf } from "../../module/rules/identity.mjs";
 import { meetsRequirement } from "../../module/rules/items.mjs";
 import { Rank } from "../../module/domain/rank.mjs";
+import { functionBody } from "../helpers/source.mjs";
 
 const mist = (interior) => ({
   id: "jack-the-mist",
@@ -336,7 +337,7 @@ describe("an Instakill rider after the damage defeats (#185)", () => {
     expect(riders).toBeGreaterThan(0);
     expect(check).toBeGreaterThan(riders);
     expect(check - riders).toBeLessThan(600);
-    const fn = src.slice(src.indexOf("async function resolveEmptiedDefender"), src.indexOf("async function resolveEmptiedDefender") + 600);
+    const fn = functionBody(src, "async function resolveEmptiedDefender");
     expect(fn).toMatch(/if \(defender\?\.defeated \|\| doc\.system\?\.defeated\) return;/);
   });
 });
