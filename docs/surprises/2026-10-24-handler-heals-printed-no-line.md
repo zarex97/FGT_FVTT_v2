@@ -3,7 +3,8 @@ id: 2026-10-24-handler-heals-printed-no-line
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Dracula Vlad's Attack on a Civilian and Assassin 1 (R55) says what it paid him: 100 and 1 for the
 Civilian (Ch. 06), 100 and 1 for the hit, 25% for the kill.

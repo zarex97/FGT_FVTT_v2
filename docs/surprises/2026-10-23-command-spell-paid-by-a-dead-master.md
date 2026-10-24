@@ -3,7 +3,8 @@ id: 2026-10-23-command-spell-paid-by-a-dead-master
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** Legend of Dracula: *"his Master has to use a Command Spell ... Vlad will immediately kill his Master after
 this NP is activated"*: the spell paid, then the kill.

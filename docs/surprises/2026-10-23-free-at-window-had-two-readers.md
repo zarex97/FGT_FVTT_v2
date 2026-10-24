@@ -3,7 +3,8 @@ id: 2026-10-23-free-at-window-had-two-readers
 found: test
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** `freeAtWindow` built when `useSkill` stopped billing a window use of Kazıklı Bey's Active 2 (#330
 ruling 9).

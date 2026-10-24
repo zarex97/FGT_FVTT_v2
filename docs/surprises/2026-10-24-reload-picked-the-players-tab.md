@@ -3,7 +3,8 @@ id: 2026-10-24-reload-picked-the-players-tab
 found: tooling
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** `node tools/fgt-reload.mjs` reloads the GM's tab, so the heal-line fix reaches the client that writes.
 **Actual:** "World ready after 33s.", yet the GM page had no `EffectRegistry.nameOf` and the next press printed no

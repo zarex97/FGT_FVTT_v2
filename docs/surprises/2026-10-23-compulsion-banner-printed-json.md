@@ -3,7 +3,8 @@ id: 2026-10-23-compulsion-banner-printed-json
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Player1 opens Dracula Vlad's sheet and reads that he must Attack the closest Unit (#330, LD.closest).
 **Actual:** the sheet's amber banner read `{"id":"dracula","within":1,"relations":["ally","enemy"],"targetPredicate":null,

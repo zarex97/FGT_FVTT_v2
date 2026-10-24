@@ -3,7 +3,8 @@ id: 2026-10-23-pierce-ruling-ignored-its-own-definition
 found: retraction
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** my grill pick for Vlad's Kazıklı Bey Active 2 (#330 ruling 10), "Invuln and Anti-Purge still stop
 it, as they do Active 1's", accepted by the user.

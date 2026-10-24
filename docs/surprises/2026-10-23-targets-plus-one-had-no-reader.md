@@ -3,7 +3,8 @@ id: 2026-10-23-targets-plus-one-had-no-reader
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Dracula Vlad's Normal Attack takes two targets, the two closest, an ally among them (#330 rulings 14,
 18): his sheet read Targets 2.

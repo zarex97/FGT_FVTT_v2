@@ -3,7 +3,8 @@ id: 2026-10-23-round-end-field-card-said-turn
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Kazıklı Bey's Round-end tick (#330 ruling 7) on a card a player reads as the end of the Round.
 **Actual:** R46's end: the card read "Kazıklı Bey: end of the Turn", the title every Turn-end field card uses, on the

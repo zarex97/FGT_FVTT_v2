@@ -3,7 +3,8 @@ id: 2026-10-23-free-scan-pinned-the-free-line
 found: test
 kind: source-scan-pins-text
 status: fixed
-reviewed: false
+reviewed: true
+pattern: source-scan-pins-text
 ---
 **Expected:** the full suite green after `freeAtWindow` (#330): a free action on the Skill path is still free, so
 nothing guarding it should move.
