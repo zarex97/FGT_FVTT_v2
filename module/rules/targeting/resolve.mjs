@@ -337,7 +337,7 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   //     which is the `aoe*` axes' business. An occupant kept at a tier below
   //     full damage carries it out as `platformFactor`, for stage 15.
   const crossLevelOptions = {
-    range: typeof spec.anchor?.range === "number" ? spec.anchor.range : null,
+    range: typeof spec.anchor?.range === "number" ? anchorRange(spec.anchor, caster) : null,
     allowDirectlyBelow: Boolean(spec.allowDirectlyBelow),
     // The placement says what the resolution is; failing that the spec does
     // (the targeting session's preview says so on the spec, because it calls
@@ -1166,11 +1166,30 @@ function withinAnchorRange(spec, from, panel, r) {
 }
 
 function anchorRange(spec, caster) {
-  if (typeof spec?.range === "number") return spec.range;
   // Anywhere on the board: Doppelganger's *"any other character"* is not a
   // reach the sheet states, and no number stands for it (#253 reading 10).
   if (spec?.range === "board") return Infinity;
-  return (caster?.range ?? 1) + (spec?.rangeBonus ?? 0);
+  const base = typeof spec?.range === "number" ? spec.range : (caster?.range ?? 1) + (spec?.rangeBonus ?? 0);
+  return base + conditionalRange(spec, caster);
+}
+
+/**
+ * What an anchor's `rangeWhen` adds while its predicate holds of the user.
+ *
+ * Bloodsucking (Vlad III (Berserker), #333): *"If Mad Enhancement is Active,
+ * the Range of this Skill is increased by 1"*, on its printed Range=1. Asked of
+ * the caster's own options, on top of an absolute or a relative reach.
+ *
+ * @param {object} spec the anchor
+ * @param {object} caster
+ * @returns {number}
+ */
+function conditionalRange(spec, caster) {
+  const when = spec?.rangeWhen;
+  if (!Array.isArray(when) || when.length === 0) return 0;
+  const options = rollOptionsFor({ attacker: caster });
+  return when.filter((w) => testPredicate(w.predicate ?? [], { options }))
+    .reduce((sum, w) => sum + Number(w.add ?? 0), 0);
 }
 
 /**

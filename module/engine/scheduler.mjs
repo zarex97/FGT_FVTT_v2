@@ -33,7 +33,7 @@ import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
 import * as I from "./intents.mjs";
 import { sharedCooldownIntents, twinsOf } from "./cooldown.mjs";
 import { periodicOf } from "../rules/periodic.mjs";
-import { resolveRevival, pendingRevivalRolls, missedRevivalChances, poolRestores } from "../rules/revival.mjs";
+import { resolveRevival, pendingRevivalRolls, missedRevivalChances, heldRevivals, poolRestores } from "../rules/revival.mjs";
 import { resourcePathFor, resourceValue } from "../domain/resources.mjs";
 import { deathRollOutcome } from "../rules/nameless-forest.mjs";
 import { runScript } from "./scripts.mjs";
@@ -1969,9 +1969,16 @@ export function resolveDefeat(unit, ctx, cause = "damage") {
     ...(source.otherwise ?? []).flatMap((action) => dispatch(action, unit, { source: source.source, abilityId: source.abilityId ?? null }, ctx)),
   ]);
 
+  // A source its clock or its Health rule held back: said, with why (#333).
+  const held = revival.source ? [] : heldRevivals(unit, ctx.rolls ?? {}, { killer }).map(({ source, why, remaining, fraction }) => I.log({
+    kind: "revivalHeld", unitId: unit.id, source: source.source, why,
+    ...(why === "cooldown" ? { remaining } : { percent: Math.round((fraction ?? 0) * 100) }), tick: ctx.tick,
+  }));
+
   return [
     ...intents,
     ...missed,
+    ...held,
     ...(revival.source ? spendRevival(unit, revival, ctx) : []),
     // A revival that was tried and fell short spent its charges all the same
     // ("and so on" is an attempt): said, with its dice, or the last of God

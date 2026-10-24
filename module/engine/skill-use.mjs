@@ -76,6 +76,7 @@ import { effectLine } from "../rules/card-visibility.mjs";
 import { shownName, shownNameById } from "./public-identity.mjs";
 import { warRule, currentWar } from "./war.mjs";
 import { phaseChance } from "../rules/phase-chance.mjs";
+import { durationChanges } from "../rules/effect-duration.mjs";
 
 /**
  * Use an active Skill.
@@ -658,7 +659,7 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
     // (#260): `perPriorUse` reads the whole-match counter before this use is
     // recorded, as `afterFirstUse` does above.
     if (phase.chance) {
-      const percent = phaseChance(phase.chance, ability.system?.timesUsed ?? 0);
+      const percent = phaseChance(phase.chance, ability.system?.timesUsed ?? 0, selfOptions);
       const roll = await new Roll("1d100").evaluate();
       const hit = roll.total <= percent;
       applied.push({
@@ -1033,6 +1034,26 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
             applied.push({ unitId: target.unitId, summary: {
               id: `remove:${id}`,
               name: game.i18n.format("FGT.Removal.Removed", { effect: EffectRegistry.get(id)?.name ?? id }),
+              outcome: "applied", reason: null,
+            } });
+          }
+          break;
+        }
+
+        case "effectDuration": {
+          // Shapeshift's reset and Legend of Dracula's extension, by name (#333).
+          const held = [...(doc.effects ?? [])].map((e) => ({ id: e.id, defId: e.system?.defId, expiry: e.system?.expiry }));
+          const changes = durationChanges(phase, held, {
+            tick: currentMoment().tick ?? 0, turnsPerRound: warRule("turnsPerRound"),
+          });
+          await applyWorld(
+            changes.map((c) => I.extendEffect(target.unitId, c.instanceId ?? c.defId, c.delta)),
+            `skill:${ability.id}:duration`,
+          );
+          for (const c of changes) {
+            applied.push({ unitId: target.unitId, summary: {
+              id: `duration:${c.defId}`,
+              name: game.i18n.format("FGT.Effect.Extended", { name: EffectRegistry.get(c.defId)?.name ?? c.defId, before: c.before, after: c.after }),
               outcome: "applied", reason: null,
             } });
           }
@@ -3181,6 +3202,8 @@ export const CASTER_PHASES = new Set([
   // Alice's NP *"If this NP is used during the Day"* reads the Round at
   // declaration (#294, #314).
   "setRoundPhase",
+  // A held effect's clock moved by name: the user's own buffs, once (#333).
+  "effectDuration",
   // One ability spending another. Pyramid Drop ends and locks out Ramesseum
   // Tentyris, which is something it does to its USER's sheet rather than to
   // any defender -- so it belongs in the caster pass, like `createField`.

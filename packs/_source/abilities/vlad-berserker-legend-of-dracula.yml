@@ -1,0 +1,100 @@
+# Vlad III (Berserker), char_orig_sheets/by-class/Berserker/Vlad III (Berserker).md
+#
+# > "(Passive) Applies the following effects to Vlad- 1. Applies the 'Dark
+# > (Vampire)' Attribute to Vlad. 2. Vlad restores 100 Health and 1 Agility at
+# > the end of any Turn he Acts during a Night Round. 3. Every time Vlad deals
+# > damage to a Unit, he heals 100 Health and 1 Agility. Each time he kills a
+# > non-Civilian Unit, his Health and Agility is restored by 25% of their
+# > maximum values.
+# > (Active/Non-damaging) Used during your Turn. Has the following effects- 1.
+# > If Vlad has the Def Up (Shapeshift) buff and/or the Atk Up (Shapeshift)
+# > buff, the duration of those buffs is extended by 1◈ Turns. 2. Vlad gains the
+# > 'Dracula' effect for 1◈ Turns ... 3. If this Skill is used during a 'Day'
+# > Round, Vlad does not gain the 'Dracula' effect. ... 4. Applies Atk Up
+# > (Shapeshift) for 1◈ Turns, all damage dealt is increased by 10%; if NP, 5%.
+# > Cooldown: 3◈ Turns. Does not consume his Master's Health as a cost when
+# > used."
+#
+# Passive 1 is on his Attributes. Passives 2 and 3 are the Lancer's
+# `legendOfDraculaActivated` handlers, and work under NP Seal (#330 ruling 11):
+# once per Unit damaged; a Unit his hit took to 0 is a kill, revived or not; a
+# Civilian pays only Ch. 06's bounty (#330 ruling 16). "A Turn he Acts" is one
+# he Moved, Attacked or used anything (#330 ruling 7), `actedTurnEnd`.
+#
+# Only a Day Round bars Dracula (#333 ruling 8): a War with no cycle gains it.
+# Step 4's fresh Atk Up (Shapeshift) never shortens one step 1 just extended
+# (#333 ruling 6).
+schema: 1
+id: vlad-berserker-legend-of-dracula
+name: "Legend of Dracula: The Succession of Blood"
+isNP: true
+rank: "A+"
+kind: noblePhantasm
+slug: legendOfDraculaSuccession
+npTags: [antiUnitSelf]
+cooldown: "3◈"
+timing: { window: ownTurn }
+noMasterCost: true
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive) Applies the following effects to Vlad-
+  1. Applies the 'Dark (Vampire)' Attribute to Vlad.
+  2. Vlad restores 100 Health and 1 Agility at the end of any Turn he Acts during a Night Round.
+  3. Every time Vlad deals damage to a Unit, he heals 100 Health and 1 Agility. Each time he kills a
+  non-Civilian Unit, his Health and Agility is restored by 25% of their maximum values.
+  (Active/Non-damaging) Used during your Turn. Has the following effects-
+  1. If Vlad has the @effect[defUpShapeshift]{Def Up (Shapeshift)} buff and/or the
+  @effect[atkUpShapeshift]{Atk Up (Shapeshift)} buff, the duration of those buffs is extended by 1◈ Turns.
+  2. Vlad gains the @effect[dracula]{Dracula} effect for 1◈ Turns, its effects are as follows- Doubles the
+  magnitude of 'Shapeshift's' Passive effect, the Def Up (Shapeshift) buff, and the Atk Up (Shapeshift)
+  buff. The 'Dracula' effect is neither a buff or debuff and is Unremovable (see the next line for the
+  exception).
+  3. If this Skill is used during a 'Day' Round, Vlad does not gain the 'Dracula' effect. If the Round
+  changes from Night to Day while Vlad has the 'Dracula' effect, it is removed from him at the start of
+  the Day Round.
+  4. Applies Atk Up (Shapeshift) for 1◈ Turns, all damage dealt is increased by 10%; if NP, 5%.
+  Cooldown: 3◈ Turns. Does not consume his Master's Health as a cost when used.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+passiveRules:
+  - key: OnEvent
+    event: actedTurnEnd
+    automatic: true
+    defer: true
+    predicate: ["war:phase:night"]
+    then:
+      - { key: Heal, amount: 100 }
+      - { key: StatDelta, stat: agility.value, amount: 1 }
+  # The event fires on a hit that dealt 0 too; this pays only on damage.
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: ["attack:dealtDamage"]
+    then:
+      - { key: Heal, amount: 100 }
+      - { key: StatDelta, stat: agility.value, amount: 1 }
+  - key: OnEvent
+    event: unitFelled
+    automatic: true
+    defer: true
+    predicate: [{ not: "target:type:civilian" }]
+    then:
+      - { key: Heal, percentOfMax: 25 }
+      - { key: StatDelta, stat: agility.value, percent: 25, percentOf: maxAgility }
+phases:
+  - kind: effectDuration
+    target: self
+    effects: [defUpShapeshift, atkUpShapeshift]
+    extend: "1◈"
+  - kind: applyEffects
+    target: self
+    predicate: [{ not: "war:phase:day" }]
+    unmetLine: "FGT.Vlad.NoDraculaByDay"
+    effects:
+      - { id: dracula, duration: "1◈" }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUpShapeshift, magnitude: 10, npMagnitude: 5, duration: "1◈" }

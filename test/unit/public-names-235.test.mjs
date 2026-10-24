@@ -9,7 +9,7 @@
  */
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
-import { unitNameReads, NAME_READ } from "../../tools/check-public-names.mjs";
+import { unitNameReads, NAME_READ, speakerlessCards } from "../../tools/check-public-names.mjs";
 import { resolveTargets } from "../../module/rules/targeting/resolve.mjs";
 import { shownNameOf } from "../../module/rules/identity.mjs";
 
@@ -23,6 +23,18 @@ const FOE = "asteriosFoe00001";
 /* ========================================================================== */
 
 describe("the guard", () => {
+  it("refuses a card posted with no speaker, which speaks as the player's own character (#333)", () => {
+    const bare = "  await ChatMessage.create({ content: `<p>${line}</p>` });";
+    const found = speakerlessCards(`async function say() {\n${bare}\n}`);
+    expect(found).toHaveLength(1);
+    expect(found[0].line).toBe(2);
+    expect(found[0].problem).toMatch(/no `speaker`: it speaks as the user's own character/);
+    expect(speakerlessCards("  await ChatMessage.create({ content, speaker: publicSpeakerFor(actor, board) });")).toEqual([]);
+    expect(speakerlessCards("  // fgt-speaker-ok: whispered to the GM\n  await ChatMessage.create({ content, whisper });")).toEqual([]);
+    // A bare marker says nothing.
+    expect(speakerlessCards("  // fgt-speaker-ok:\n  await ChatMessage.create({ content });")).toHaveLength(1);
+  });
+
   it("refuses a Unit's name read raw on a card, naming the file's line and the expression", () => {
     const text = [
       "async function post(actor) {",

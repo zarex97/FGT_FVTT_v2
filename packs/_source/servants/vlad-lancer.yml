@@ -2,8 +2,9 @@
 # The audit of #330, the Clause list docs/superpowers/specs/2026-10-23-vlad-lancer-clauses.md.
 #
 # The sheet opens on a coin flip between this Servant and Vlad III (Berserker).
-# The Berserker is not built, so the flip has nothing to land on: he is
-# summoned as the Lancer, and SM.* waits on the Berserker (#330 ruling 1).
+# Seats are drawn by Class, so the seat decides the form and no coin is flipped
+# (#333 ruling 1): a Lancer seat draws this Servant, a Berserker seat the
+# Berserker.
 schema: 1
 id: vlad-lancer
 name: "Vlad III (Lancer)"

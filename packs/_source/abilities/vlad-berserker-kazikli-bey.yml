@@ -1,0 +1,52 @@
+# Vlad III (Berserker), char_orig_sheets/by-class/Berserker/Vlad III (Berserker).md
+#
+# > "Range=3. Base Attack (STR) is used. Deals 3.5x damage plus 100 and inflicts
+# > Curse on the DU. Then, has the following effects- 1. Inflicts Def Dwn (A)
+# > for 1◈ Turns to the DU, all damage taken is increased by 20%; and Luck is
+# > reduced by 1 whenever damage is received from an Attack. 2. Applies S.Crit
+# > Up to all allied Units within a 2 panel area of himself for ⅓◈ Turns, Crit
+# > Chance is increased by 10%. Cooldown: 6◈+⅓◈ Turns."
+#
+# Kiritsugu's Chronos Rose's frame. Curse with no duration is permanent, as the
+# Lancer's (#330). Def Dwn (A) takes 1 Luck once per successful Attack (#239).
+# S.Crit Up is the aura of #132 on himself, reaching him and allies within 2,
+# and lands after a hit only, as Bellerophon's "Then, applies Crit Up" (#333
+# ruling 10).
+schema: 1
+id: vlad-berserker-kazikli-bey
+name: "Kazıklı Bey: Bloodstained King Demon"
+isNP: true
+rank: "B+"
+kind: noblePhantasm
+slug: kazikliBeyBloodstained
+npTags: [antiUnit]
+cooldown: "6◈+⅓◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+description: |
+  Range=3. Base Attack (STR) is used. Deals 3.5x damage plus 100 and inflicts @effect[curse]{Curse} on the DU.
+  Then, has the following effects-
+  1. Inflicts @effect[defDwnA]{Def Dwn (A)} for 1◈ Turns to the DU, all damage taken is increased by 20%; and
+  Luck is reduced by 1 whenever damage is received from an Attack.
+  2. Applies @effect[sCritUp]{S.Crit Up} to all allied Units within a 2 panel area of himself for ⅓◈ Turns,
+  Crit Chance is increased by 10%.
+  Cooldown: 6◈+⅓◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 3 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+damage:
+  multiplier: 3.5
+  flatBonus: 100
+  component: str
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: curse }
+      - { id: defDwnA, magnitude: 20, duration: "1◈" }
+  - kind: applyEffects
+    when: afterDamage
+    target: self
+    effects:
+      - { id: sCritUp, magnitude: 10, duration: "⅓◈" }
