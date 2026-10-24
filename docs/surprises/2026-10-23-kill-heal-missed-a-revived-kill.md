@@ -3,7 +3,8 @@ id: 2026-10-23-kill-heal-missed-a-revived-kill
 found: live press
 kind: rule-word-read-one-way
 status: fixed
-reviewed: false
+reviewed: true
+pattern: rule-word-read-one-way
 ---
 **Expected:** Dracula Vlad's hit took Heracles to 0 (R52, 268 on 136): "each time he defeats a Unit, his Health and
 Agility is restored by 25%", which ruling 16 counts for a Unit that is then revived.

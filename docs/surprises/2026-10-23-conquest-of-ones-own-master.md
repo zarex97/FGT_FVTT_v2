@@ -3,7 +3,8 @@ id: 2026-10-23-conquest-of-ones-own-master
 found: live press
 kind: role-keyed-on-type
 status: fixed
-reviewed: false
+reviewed: true
+pattern: role-keyed-on-type
 ---
 **Expected:** Legend of Dracula kills his Master inside Wallachia, and Vlad plays on with no Master (#330 ruling 12).
 **Actual:** R50, card "Conquest: Lancer is now contracted to Master of Saber of Faction 1 and fights for Faction 1.

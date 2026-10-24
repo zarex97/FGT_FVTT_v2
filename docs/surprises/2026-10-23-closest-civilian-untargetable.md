@@ -3,7 +3,8 @@ id: 2026-10-23-closest-civilian-untargetable
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** a Civilian beside Dracula Vlad is "the closest Unit"; he must Attack it, and its death heals him 100
 and 1 (Legend of Dracula 3, LD.civ).

@@ -3,7 +3,8 @@ id: 2026-10-23-fields-drawn-for-the-gm-only
 found: live press
 kind: producer-without-consumer
 status: open
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Player1, having marked out Wallachia (#330, WL.name "shown on the board"), sees the 9x9 on the board.
 **Actual:** the card read "Vlad III (Lancer) marks out Wallachia." and Player1's board showed no area. The Region

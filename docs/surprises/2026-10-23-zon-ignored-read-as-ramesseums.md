@@ -3,7 +3,8 @@ id: 2026-10-23-zon-ignored-read-as-ramesseums
 found: live press
 kind: precedent-carried-without-asking
 status: fixed
-reviewed: false
+reviewed: true
+pattern: rule-word-read-one-way
 ---
 **Expected:** Vlad in Wallachia, 5 panels from his Master, offered Kazıklı Bey (Execution) at the end of his
 Attack's Combat Process (#330 ruling 25).

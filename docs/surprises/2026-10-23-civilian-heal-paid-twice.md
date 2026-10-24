@@ -3,7 +3,8 @@ id: 2026-10-23-civilian-heal-paid-twice
 found: live press
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** Dracula Vlad kills a Civilian (R54): *"if he defeats a Civilian, he only heals 100 Health and 1
 Agility"*, plus 100 and 1 for the ally the same Attack damaged.
