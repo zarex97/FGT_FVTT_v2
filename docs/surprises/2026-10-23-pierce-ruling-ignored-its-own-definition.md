@@ -12,5 +12,5 @@ Unit's Attacks ignore Invuln and Block". Active 1 names Invuln and Anti-Purge; A
 says the opposite. The ruling I recommended contradicts a term on the same line.
 **Cause:** `packs/_source/effects/pierce.yml:5 @ 630495df` — I wrote the pick by analogy with Active 1 and never
 read the definition of the effect the clause names.
-**Fix:** `packs/_source/abilities/vlad-kazikli-bey-execution.yml:1 @ uncommitted` — both readings put to the user, who ruled
+**Fix:** `packs/_source/abilities/vlad-kazikli-bey-execution.yml:1 @ 2f18de06` — both readings put to the user, who ruled
 Pierce wins (#330 ruling 10, corrected); Active 2's `strike` carries `pierce: true`, and only an Anti-Purge stops it.

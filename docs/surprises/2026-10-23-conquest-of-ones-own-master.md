@@ -12,5 +12,5 @@ had just killed, who lay defeated.
 **Cause:** `module/rules/contract.mjs:185 @ 630495df` — Conquest asked who claims for the killer (its own Master) and
 never whether the dead Master was that very Master: a killer's role read off its `masterId`, not off the contract it
 was breaking.
-**Fix:** `module/rules/contract.mjs:189 @ uncommitted` — a Servant that kills its own Master conquers nobody
+**Fix:** `module/rules/contract.mjs:189 @ 2f18de06` — a Servant that kills its own Master conquers nobody
 (`ownMaster`); its Servants go Free, with the card "No Conquest: {killer} killed its own Master".
