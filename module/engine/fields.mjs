@@ -26,7 +26,7 @@ import { displaceToken } from "./io.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import {
   panelsOf, isExempt, legalRepaint, mayReshape, selectBranch, extensionFor, randomFreePanelIn,
-  vulnerabilityTriggered, unitIdsOfTurn, castLevel, pushOutPlan, duelDecided,
+  vulnerabilityTriggered, unitIdsOfTurn, castLevel, pushOutPlan, duelDecided, chosenCentres,
 } from "../rules/bounded-fields.mjs";
 import { parseTick, resolveTicks, expiryReached } from "../domain/tick.mjs";
 import { relationOf } from "../rules/relations.mjs";
@@ -246,6 +246,9 @@ export function fieldDataOf({ ability, actor, faction, spec, geometry, membershi
     // an open passive field must not be opened a second time, and must close
     // when its owner leaves the board.
     passive: Boolean(spec.passive),
+    // *"Wallachia"* stays for the whole War, past its owner's last defeat
+    // (#330 ruling 4): a passive field the owner's leaving does not close.
+    outlivesOwner: Boolean(spec.outlivesOwner),
     duration: duration ?? null,
     // Absolute, like every other duration in the system (Ch. 04): a countdown
     // would have to be decremented by a hook that can fail to fire, and an
@@ -269,7 +272,9 @@ export function fieldDataOf({ ability, actor, faction, spec, geometry, membershi
  * @param {object} spec `ability.system.field`
  * @returns {Promise<object|null>} the created Region, or null
  */
-async function openField(ability, actor, snapshot, spec, { panels: givenPanels = null, targetId = null } = {}) {
+async function openField(ability, actor, snapshot, spec, {
+  panels: givenPanels = null, targetId = null, anchor: givenAnchor = null,
+} = {}) {
   const scene = canvas?.scene ?? null;
   if (!spec || !scene) return null;
 
@@ -305,9 +310,12 @@ async function openField(ability, actor, snapshot, spec, { panels: givenPanels =
   // is "the Throne Room", a named place fixed to the Hanging Gardens itself,
   // not wherever aboard it she happens to be standing when she casts.
   const platform = self.platformId ? (snapshot.units ?? []).find((u) => u.id === self.platformId) : null;
-  const anchor = specGeometry?.anchorRef === "platform"
-    ? (platformCentre(platform) ?? self.panel)
-    : self.panel;
+  // A centre its player chose, at summon (`placeChosenField`): Wallachia is
+  // *"marked out"* by the player with Vlad (#330 ruling 4), not drawn around him.
+  const anchor = givenAnchor ? { ...self.panel, i: givenAnchor.i, j: givenAnchor.j }
+    : specGeometry?.anchorRef === "platform"
+      ? (platformCentre(platform) ?? self.panel)
+      : self.panel;
   // Doomsday Come: *"an X panel area around Pale Rider's Master ... where X =
   // (2 + number rolled on a four-sided die)"*. Rolled ONCE, here, and the
   // result stored as a concrete size: a field that re-rolled its own radius on
@@ -361,6 +369,13 @@ async function openField(ability, actor, snapshot, spec, { panels: givenPanels =
   if (givenPanels) {
     field.panels = givenPanels;
     runtime.panels = givenPanels;
+  }
+  // A field over ANOTHER field's panels: Kazıklı Bey's *"NP area"* is
+  // Wallachia (#330 ruling 6). Stored at open, so it is the area as it stood.
+  if (specGeometry?.kind === "sameAs" && !field.panels) {
+    const other = (snapshot.fields ?? []).find((f) => f.id === specGeometry.field && f.ownerId === actor.id);
+    field.panels = other ? panelsOf(other, snapshot) : [];
+    runtime.panels = field.panels;
   }
   if (specGeometry?.kind === "freeform" && !field.panels) {
     field.panels = panelsOf({ ...runtime, geometry: { ...geometry, kind: "fixedArea" } }, snapshot);
@@ -438,8 +453,12 @@ async function openField(ability, actor, snapshot, spec, { panels: givenPanels =
     : null;
 
   const [region] = await scene.createEmbeddedDocuments("Region", [{
-    name: ability.name,
+    // An area the sheet names: *"This area will be known as 'Wallachia'"*.
+    name: spec.name ?? ability.name,
     shapes: [shapeOf(panels, scene)],
+    // An area every player sees, not only the GM on the Regions layer: a field
+    // the sheet names and places on the board, Wallachia (#330, WL.name).
+    ...(spec.shown ? { visibility: CONST.REGION_VISIBILITY?.ALWAYS ?? 2 } : {}),
     ...(anchorToken ? { attachment: { token: anchorToken.id } } : {}),
   }]);
   if (!region) return null;
@@ -587,6 +606,9 @@ export async function ensurePassiveFields() {
     for (const ability of actor.items ?? []) {
       const spec = ability.system?.field ?? null;
       if (!spec?.passive) continue;
+      // A field its player places is opened by that choice, never here
+      // (`engine/opening-choice.mjs`, `placeChosenField`).
+      if (spec.placement === "chosen") continue;
       const fieldId = ability.system?.contentId ?? ability.id;
       if (open.has(fieldId)) {
         await refreshPassiveField(fieldId, spec);
@@ -602,7 +624,7 @@ export async function ensurePassiveFields() {
   // longer placed. Without this the Region outlives the Servant and goes on
   // poisoning whoever walks through it.
   for (const field of board.fields ?? []) {
-    if (!field.passive) continue;
+    if (!field.passive || field.outlivesOwner) continue;
     const owner = (board.units ?? []).find((u) => u.id === field.ownerId);
     if (!owner?.panel || owner.defeated) await endField(field.id, owner?.defeated ? "ownerDefeat" : "ended");
   }
@@ -611,6 +633,29 @@ export async function ensurePassiveFields() {
   // whose size is decided by an EFFECT -- Contagion's 9x9 Active -- changes
   // without anybody moving, so the move hook alone would leave it stale.
   await syncDerivedFields();
+}
+
+/**
+ * Open a passive field at the centre its player chose.
+ *
+ * Wallachia: *"When Vlad III (Lancer) is summoned, the player with Vlad marks
+ * out a 9x9 panel area"* (#330 ruling 4). Asked once, as an opening choice
+ * (`engine/opening-choice.mjs`); the centre must be one `chosenCentres` offers.
+ *
+ * @param {object} ability the ability Item declaring the field
+ * @param {object} actor its owner
+ * @param {{i: number, j: number}} centre
+ * @returns {Promise<object|null>} the created Region, or null
+ */
+export async function placeChosenField(ability, actor, centre) {
+  if (!isWarGM()) return null;
+  const spec = ability?.system?.field ?? null;
+  if (!spec || !centre) return null;
+  const board = currentBoard();
+  const self = (board.units ?? []).find((u) => u.id === actor.id);
+  if (!self?.panel) return null;
+  if (!chosenCentres(self, board).some((p) => p.i === centre.i && p.j === centre.j)) return null;
+  return openField(ability, actor, board, spec, { anchor: centre });
 }
 
 /**
@@ -1159,6 +1204,9 @@ export async function runFieldEvents(event, {
  */
 async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = false) {
   const owner = (board.units ?? []).find((u) => u.id === field.ownerId) ?? null;
+  // *"At the end of every Turn Vlad Acts"* (Kazıklı Bey, #330 ruling 7): the
+  // OWNER acted, whoever stands inside. `requiresActed` asks it of the victim.
+  if (spec.ownerActed && !owner?.acted) return [];
   const relations = new Set(spec.relations ?? ["enemy"]);
   const kinds = spec.kinds ? new Set(spec.kinds) : null;
   // Sikera Ušum clause b: "a Unit OTHER THAN Semiramis OR HER MASTER" -- the
@@ -1238,6 +1286,9 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
   }));
 
   for (const unit of inside) {
+    // What this Unit was dealt by a `Damage` action, for an action after it
+    // that only lands on a damaged Unit (`requiresDamage`).
+    let dealt = null;
     // The check the Unit gets to avoid it. A success is a clean escape: the
     // sheet says "perform an Evade roll. If Failed, that Unit receives …", so
     // there is no partial outcome.
@@ -1299,7 +1350,28 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
         const rolled = action.roll?.formula
           ? (await new Roll(action.roll.formula).evaluate()).total * (action.roll.factor ?? 1)
           : (action.amount ?? 0);
+        dealt = 0;
         if (rolled <= 0) continue;
+        // Exempt on the OWNER's side only: *"not affected by any damage-modifying
+        // effects on Vlad"* (Kazıklı Bey, #330 ruling 27). The DU's own
+        // reductions still count, so this one runs the defender's half of the
+        // pipeline, where an Invuln or an Anti-Purge stops it.
+        if (action.bypassModifiers && typeof action.bypassModifiers === "object"
+          && action.bypassModifiers.defender === false) {
+          const ownerDoc = unitActor(field.ownerId);
+          const { standaloneDamage } = await import("./attack.mjs");
+          const hit = ownerDoc ? await standaloneDamage({
+            attackerDoc: ownerDoc, defenderId: unit.id, amount: rolled,
+            component: action.component ?? "str", isNP: Boolean(action.isNP),
+            pierce: Boolean(action.pierce), ignoresDefUp: Boolean(action.ignoresDefUp),
+            invulnNegates: Boolean(action.invulnNegates), board,
+          }) : { total: 0, negatedBy: null };
+          dealt = hit.total;
+          if (hit.total > 0) out.push(I.damage(unit.id, hit.total, null, { source: field.id, component: action.component ?? "str" }));
+          report(unit, { damage: hit.total, rolled, ...(hit.negatedBy ? { negatedBy: hit.negatedBy } : {}) });
+          continue;
+        }
+        dealt = rolled;
         // A bare damage intent, never the pipeline: "not affected by any damage
         // modifying effects on EMIYA" is the same exemption periodic effect
         // damage carries, and running the pipeline would apply his Atk Up to it.
@@ -1460,6 +1532,9 @@ async function runFieldEvent(field, spec, board, unitIds = null, assumeInside = 
       }
 
       if (action.key === "ApplyEffect") {
+        // *"Damaged Units will then be inflicted with Curse"* (Kazıklı Bey): an
+        // Invuln, an Anti-Purge or a resistance that left it at 0 spares it.
+        if (action.requiresDamage && !(dealt > 0)) continue;
         // *"Has a 50% chance of being inflicted with Poison."* A field's own
         // probability, in place of the effect's `baseChance` -- Poison's is
         // 100, and the number that varies is the FIELD's, which under Doomsday

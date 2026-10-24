@@ -171,6 +171,9 @@ export const ABILITY_ROUTES = {
   element: doc("module/engine/attack.mjs", "the damage type of the use"),
   expendsPermanently: doc("module/engine/io.mjs", "spent at use"),
   freeAction: doc("module/engine/attack-preflight.mjs", "the action budget"),
+  freeAtWindow: doc("module/engine/skill-use.mjs", "a window use bills no budget (#330)"),
+  cancelsAttackWhenDefending: doc("module/engine/attack.mjs", "cancels the Attack at the defending window (#330)"),
+  forbidsCounterWhenAttacking: doc("module/engine/attack.mjs", "closes the Counter at the Process-end window (#330)"),
   isAttackSkill: doc("module/rules/ability-use.mjs", "classifies the use"),
   isMode: doc("module/rules/modes.mjs", "classifies the use"),
   isPassive: doc("module/rules/ability-use.mjs", "classifies the use"),
@@ -257,7 +260,7 @@ export const EFFECT_ROUTES = {
   ...Object.fromEntries([
     "polarity", "volatility", "valence", "stacking", "baseChance", "severity", "preventsAction",
     "families", "spentFirst", "suppressesOtherEffects", "defaultMagnitude", "defaultDuration", "unremovable",
-    "maxStacks", "rulesOncePerBearer", "blocks", "blockedBy", "replaces", "periodic",
+    "maxStacks", "removalResist", "rulesOncePerBearer", "blocks", "blockedBy", "replaces", "periodic",
     "terminal", "uses", "absorbs", "onRemove", "rules", "bypassesImmunity", "bypassesResistance",
     "onApply", "onApplyEachLanding",
     // Read by `rules/effect-instance.mjs` (#315).

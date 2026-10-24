@@ -86,7 +86,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   // Avalon (#230): a Noble Phantasm that costs its Master nothing; an Item
   // whose rules run while it is held, and the abilities it gives its holder.
   "noMasterCost", "weakPointAimBonus", "afterDefeat", "copyGrant", "freeServantCost", "ignoresNPGate", "worksWhenHeld", "grants", "bondUnitId", "bondMasterId", "grantClocks",
-  "freeAction",
+  "freeAction", "freeAtWindow", "cancelsAttackWhenDefending", "forbidsCounterWhenAttacking",
   "timesUsed", "maxUses", "lastUsedTick", "recordedAttacks",
   "recordsAttacks", "shield", "shieldHealth", "negatedBy", "negatedWhile",
   "cancelsNP", "damage", "reactionOverride", "creates",
@@ -95,7 +95,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "permanentConsequence", "overridesValidation", "parameterized", "polarity",
   "severity", "preventsAction", "terminal", "onRemove", "volatility",
   "families", "spentFirst", "suppressesOtherEffects", "valence", "stacking", "baseChance",
-  "defaultMagnitude", "uses", "maxStacks", "rulesOncePerBearer", "absorbs", "defaultDuration",
+  "defaultMagnitude", "uses", "maxStacks", "removalResist", "rulesOncePerBearer", "absorbs", "defaultDuration",
   "unremovable", "blocks", "blockedBy", "replaces",
   // Never compiled while the allowlist stood. Serenity's two concealment
   // escapes are declared and read. `periodic` is the only source of a damage

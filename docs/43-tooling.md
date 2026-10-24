@@ -67,7 +67,7 @@ These scripts drive a real Foundry application over the Chrome DevTools Protocol
 
 **Expression evaluation** (`tools/fgt-eval.mjs:1-97`) attaches to the running page, evaluates an expression over CDP, and prints the result as JSON. It detects piped input (a multi-statement script) and treats it as a body rather than an expression (`tools/fgt-eval.mjs:71-73`). Useful for exercising the document-touching layers without clicking the UI. With a player's tab open too (the two-tab kit, Player1 on `127.0.0.1`), it attaches to the GM's `localhost:30000/game` page first (`tools/lib/cdp.mjs#foundryTarget`): an eval that landed on the player's page ran as Player1 and was refused the GM's writes.
 
-**Page reload** (`tools/fgt-reload.mjs:1-64`) reloads the page with cache bypass and polls `game.ready` for up to 60s. Module sources are loaded once at page load, so every edit to `module/` is invisible to the live world until the page comes back (`tools/fgt-reload.mjs:5-12`).
+**Page reload** (`tools/fgt-reload.mjs:1-64`) reloads the GM's page with cache bypass and polls `game.ready` for up to 60s. The GM's page is `lib/cdp.mjs#foundryTarget`'s pick, the `localhost` tab, as `fgt-eval` uses: with Player1's tab open beside it, a first-`/game` pick reloaded Player1 and left the GM, who writes, on the old code. Module sources are loaded once at page load, so every edit to `module/` is invisible to the live world until the page comes back (`tools/fgt-reload.mjs:5-12`).
 
 ### Sheet Kin
 

@@ -131,6 +131,10 @@ executor actually reads, rather than of its descriptor's ids.
   the same convention as an incoming check modifier; the snapshot carries them as `refusesReactions`,
   and the attack folds them into the ladder and the counter check. Normal Presence Concealment's
   *"cannot be Blocked or Countered"* had forbidden the Assassin's own Block and Counter instead.
+- **Vlad III's** (#330): `Compulsion` takes `nearest`, the nearest Units at any reach, as many as the bearer's
+  targets, a tie drawn at random but the same all Turn (`compulsion.mjs#nearestUnits`, which the Gigantic Horror's
+  nearest rule now reads too, ruling 19). A handler's `StatDelta` takes `percentOf`, a share of another stat:
+  Legend of Dracula's Agility *"restored by 25% of [its] maximum"* (`percentOf: maxAgility`).
 - **U-Olga Marie's elements** (#328): `AttacksPerTurn`, `BanAlliedServantAttacks`, `NullifiesAttacks` and
   `AttackRider` (Ch. 19, Ch. 21). An `Aura` takes `minRadius`, a ring's inner edge, and an aura's `MovDelta` is folded
   onto the recipient's MOV with a `floor` that never raises it (`auras.mjs#auraMov`, Gravity Manipulation's tiers).

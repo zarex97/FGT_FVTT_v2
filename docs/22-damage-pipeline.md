@@ -66,6 +66,15 @@ Each stage runs in order, capturing what it changed into the `breakdown` array. 
 
 16. **Absorption and Clamp** (line 959): Shields absorb damage before it reaches Health. Freeze and Crystalfreeze negate attacks under 150 damage. Invuln negates all non-NP damage and cuts an NP by 50%, both here (the NP half was claimed for stage 15 and never built: an NP met no Invuln until #243). Penetration's `invulnFactor` is how much of the negation survives, and it halves the NP cut too: 50% becomes 25% (#243 reading 11). Petrify defeats outright if damage exceeds 200 in one attack.
 
+**Damage that is no Attack, through the defender's half only** (#330 ruling 27). `engine/attack.mjs#standaloneDamage`
+runs `computeDamage` with `bypassModifiers: {attacker: true, defender: false}` and a flat `base.fixedValue`, no
+crit, no reaction: Kazıklı Bey's *"not affected by any damage-modifying effects on Vlad"*. The DU's Dmg Cut, Battle
+Continuation, Ward and Magic Resistance count; `ignoresDefUp` drops its Def Up, `pierce` its Invuln; an Anti-Purge
+halts it at stage 0, and a Dmg Cut charge or a counted Invuln it touched is spent. `invulnNegates` lets a sheet that
+says an Invuln *"will not take damage"* stop an NP whole, where stage 16 would halve it. Its callers are the
+`strike` phase (Ch. 17) and a field's `Damage` (Ch. 28). Unlimited Blade Works' toll, worded the same, still skips
+both sides (a bare intent).
+
 ### Audit trail capture
 
 Every stage calls `begin(index)` on entry, records contributions via `contribute(source, value, note, side)`, and calls `end(index)` on exit. The `side` field (`"attacker"`, `"defender"`, or `null`) enables card visibility: viewers see only their own modifiers unless explicitly shared (`module/rules/damage/pipeline.mjs:1354-1375`, `module/rules/explain.mjs:48-79`). A stage with no contributions still appears in the breakdown, marked with `"—"`, so a reader can ask "was stage 9 even considered?" and get a truthful answer. An adjustment made after the pipeline — God Hand's *"survives at 1"* against an attack it has recorded, Underpower, a Command Spell's factor — is a `{stage, label, from, to}` row, and `explainDamage` renders it under its own label (#184); it had printed "Stage undefined".

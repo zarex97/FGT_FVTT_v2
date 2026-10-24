@@ -53,7 +53,7 @@ import { coveringServantsFor, coverFactor, shoveDestination, isCovering } from "
 import { absorb, refreshShield, landBarrier, ridersHeldBy } from "./shield.mjs";
 import { identityOfProcess, recordedAttack } from "../rules/revival.mjs";
 import { abilityRecordOf } from "../rules/snapshot.mjs";
-import { removalPlan, pendingRemovalRolls, isUnremovable, selectorMatches } from "../rules/removal.mjs";
+import { removalPlan, pendingRemovalRolls, isUnremovable, selectorMatches, ownRemovalResist } from "../rules/removal.mjs";
 import { isStrongestNP, isDamagingNP, harmlessToSelf, EXPECTED_ATTACK_ROLL } from "../rules/np-strength.mjs";
 import { currentHealth, isUndamageable } from "../domain/health.mjs";
 import * as process from "./combat-process.mjs";
@@ -70,7 +70,7 @@ import { entryOf } from "../rules/effect-flow.mjs";
 import { tableFor, entriesFor, rollFaces } from "../rules/roll-table.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
-import { spentFirstOf } from "../rules/effects/families.mjs";
+import { spentFirstOf, holdsFamily } from "../rules/effects/families.mjs";
 import { polarityOf } from "../rules/effect-instance.mjs";
 import * as budget from "./budget.mjs";
 import { resolveDefeat, pendingRolls, fireEvent } from "./scheduler.mjs";
@@ -85,7 +85,8 @@ import { pressGate, offerable, pressesAsAttack } from "./press-gate.mjs";
 // Re-exported for the tests and callers that reach it through this module (#159).
 export { abilityKind };
 import {
-  NP_DECLARATION_WINDOW, DAMAGE_STEP_WINDOW, COMBAT_PHASE_START_WINDOW, DEFENDING_PHASE_START_WINDOW,
+  NP_DECLARATION_WINDOW, DAMAGE_STEP_WINDOW, COMBAT_PHASE_START_WINDOW, DEFENDING_PHASE_START_WINDOW, PROCESS_END_WINDOW,
+  windowsOf,
 } from "../rules/windows.mjs";
 import {
   reactionAbilities, allyReactions, abilityFromOption, abilitiesAtWindow, windowSubject } from "../rules/reactions.mjs";
@@ -341,6 +342,16 @@ export async function resolveAttack({
         console.warn("FGT | defendingPhaseStart offered a non-mode ability; its rules reach no Combat Process:",
           answered.windowAbilities);
       }
+      // Kazıklı Bey's Active 2: *"If this NP is used at the start of a Combat
+      // Process where Vlad is receiving the Attack; the AU's Attack is
+      // cancelled, then Vlad can Counter if the enemy Unit is within Range."*
+      // The whole Attack, every Process (#330 ruling 9); it was declared and
+      // paid for above, so it still counts as the AU's Attack.
+      const defenderDoc = unitActor(defenderId);
+      const canceller = (answered.castAbilities ?? [])
+        .map((id) => defenderDoc?.items.get(id))
+        .find((item) => item?.system?.cancelsAttackWhenDefending);
+      if (canceller) return cancelAttackFrom({ attackerId, defenderDoc, canceller });
     }
   }
 
@@ -369,7 +380,13 @@ export async function resolveAttack({
       turnsPerRound: warRule("turnsPerRound") || 3,
       options: rollOptionsFor({ attacker: self, defender: c }),
     }));
-    await applyBatch([...civilianIntents(descriptors, self.id), ...killed], "civilianKill");
+    const { lines: paid = [] } = await applyBatch([...civilianIntents(descriptors, self.id), ...killed], "civilianKill", { lines: true });
+    // ...and what the kill paid him is said (#330, found pressing): Ch. 06's
+    // 100 Health and 1 Agility, and whatever his own `unitKilled` handlers gave.
+    if (paid.length > 0) {
+      const { postLinesCard } = await import("./defeat-card.mjs");
+      await postLinesCard(paid);
+    }
   }
   // ...and so they are no defenders of the Processes below. A Civilian in the
   // Dendera Bulb's 2x2 was killed here AND given a Process of its own, whose
@@ -3214,7 +3231,13 @@ async function fireDamageDealt(state, result) {
   const hearers = [attacker, ...drivers.map((d) => unitOf(unitActor(d.id), board) ?? d)];
   // `attack:crit` is in the set only here, which is right: a clause that asks
   // whether the attack crit is by definition asking about a resolved one.
-  const options = rollOptions(attacker, defender, state, { crit: Boolean(result?.flags?.isCrit ?? result?.isCrit) });
+  // ...and whether it hurt: the event fires on a hit that dealt 0 too (an
+  // Invuln, a Block that took it all), and *"successfully deals damage"* asks
+  // `attack:dealtDamage` (Kazıklı, Legend of Dracula, #330; found live).
+  const options = rollOptions(attacker, defender, state, {
+    crit: Boolean(result?.flags?.isCrit ?? result?.isCrit),
+    dealtDamage: (result?.total ?? 0) > 0,
+  });
   // The chance rolls, filed on this attack's card (#182, ruled 2026-10-04): a
   // Kagome Spirit's *"5% chance of inflicting Death"* was rolled and nobody
   // could see the die.
@@ -4390,7 +4413,7 @@ async function runAutomaticStep(state, message) {
       const said = message.getFlag("fgt", "effectsBeforeDamage") ?? (message.getFlag("fgt", "effects") ?? []);
       if (!message.getFlag("fgt", "effectsBeforeDamage")) await message.setFlag("fgt", "effectsBeforeDamage", said);
       await message.setFlag("fgt", "effects", [...said, ...cardRows([
-        ...startRows, ...before, ...applied, ...held, ...taken.rows, ...receivedRows, ...dealt.rows, ...stepEnd.rows,
+        ...startRows, ...before, ...applied, ...held, ...(result.lines ?? []), ...taken.rows, ...receivedRows, ...dealt.rows, ...stepEnd.rows,
       ])]);
       return process.advance(state, "done", {
         total: result.total, rollRecords: [...(result.modifierRolls ?? []), ...taken.records, ...dealt.records, ...stepEnd.records],
@@ -4407,6 +4430,12 @@ async function runAutomaticStep(state, message) {
       }
       return process.advance(state, "done");
     case "counter": {
+      // The end of the Process, before its Counter: Kazıklı Bey's Active 2 is
+      // offered here to the AU and the DU (#330 ruling 25), and the AU's use
+      // closes the DU's Counter (KB.nocounter). Once per Process.
+      if (state.processEndOffered === undefined && !state.isCounter) {
+        state = await offerProcessEnd(state, message);
+      }
       // Step 6 used to `advance(state, "done")` unconditionally — the rung was
       // reached and never asked anybody anything. Deciding eligibility here is
       // what turns it into a real offer: an eligible defender stops the ladder
@@ -5010,6 +5039,40 @@ async function awaitInterrupt(message, state) {
 }
 
 /**
+ * Offer the end-of-Process window to both sides, and close the Counter when the
+ * AU's use says so (Kazıklı Bey's Active 2, #330).
+ *
+ * > *"If this NP is used at the end of a Combat Process where Vlad performed
+ * > the Attack; the DU cannot Counter Vlad's Attack."*
+ *
+ * @param {object} state
+ * @param {object} message
+ * @returns {Promise<object>} the state, marked as offered
+ */
+async function offerProcessEnd(state, message) {
+  let next = { ...state, processEndOffered: true };
+  for (const unitId of [state.attackerId, state.defenderId].filter(Boolean)) {
+    const doc = unitActor(unitId);
+    if (!doc || doc.system?.defeated) continue;
+    // Asked only of a Unit holding something for this window: every Process
+    // reaches here, and a snapshot per side per Process for nothing is waste.
+    if (!doc.items.some((i) => windowsOf(i.system?.timing).includes(PROCESS_END_WINDOW))) continue;
+    const answered = await offerAttackerWindow({ attackerId: unitId }, PROCESS_END_WINDOW, null);
+    if (unitId !== state.attackerId) continue;
+    const closer = (answered.castAbilities ?? []).map((id) => doc.items.get(id))
+      .find((item) => item?.system?.forbidsCounterWhenAttacking);
+    if (!closer) continue;
+    next = { ...next, forbiddenReactions: [...new Set([...(next.forbiddenReactions ?? []), "counter"])] };
+    const line = game.i18n.format("FGT.Window.CounterClosed", {
+      target: shownNameById(state.defenderId), ability: closer.name,
+    });
+    await message?.setFlag?.("fgt", "effects", [...(message.getFlag("fgt", "effects") ?? []),
+      ...cardRows([{ unitId: state.defenderId, summary: { id: "counterClosed", name: line, outcome: "applied", reason: null } }])]);
+  }
+  return next;
+}
+
+/**
  * Whether the defender of `state` may counter its attacker (Ch. 21).
  *
  * Every clause `canCounter` takes is derived here from the board, so the pure
@@ -5538,16 +5601,23 @@ function attackOptionsOfDefeat(victim, state) {
  * @returns {object[]}
  */
 function killedBy(victim, defeat, state, ctx) {
-  if (!state.attackerId || !defeat.some((i) => i.t === "defeat" && i.unitId === victim.id)) return [];
+  if (!state.attackerId || defeat.length === 0) return [];
   const board = boardSnapshot();
   const killer = unitFrom(board, unitActor(state.attackerId));
   if (!killer) return [];
-  return fireEvent("unitKilled", [killer], {
+  // The hit took the victim to 0, whatever the revival chain did next: Legend
+  // of Dracula's *"each time he defeats a Unit"* counts a Unit Guts or God Hand
+  // brought back (#330 ruling 16). `unitKilled` below stays the death.
+  const felled = fireEvent("unitFelled", [killer], {
+    ...ctx, board, options: rollOptions(killer, victim, state),
+  });
+  if (!defeat.some((i) => i.t === "defeat" && i.unitId === victim.id)) return felled;
+  return [...felled, ...fireEvent("unitKilled", [killer], {
     // The attack that killed, as the Attack Description describes it: a
     // `unitKilled` clause may ask what did the killing, and this set used to be
     // the bare pair, which then carried an invented `attack:kind:normal`.
     ...ctx, board, options: rollOptions(killer, victim, state),
-  });
+  })];
 }
 
 /**
@@ -6145,7 +6215,9 @@ async function applyDamage(state, message) {
     }
   }
 
-  await applyBatch(
+  // What the defeat's handlers paid the killer is a line on this card: Legend
+  // of Dracula's 25% for a Unit he felled was paid and never said (#330).
+  const { lines: defeatLines = [] } = await applyBatch(
     [
       ...barrier.intents,
       ...(floor ? [I.log({ kind: floor.kind, unitId: state.defenderId, restored: floor.left, source: floor.source })] : []),
@@ -6168,7 +6240,9 @@ async function applyDamage(state, message) {
         ? [] : await resolveDefeatOf(defender, result.total, state)),
     ],
     "attack",
+    { lines: true },
   );
+  result.lines = defeatLines;
 
   await message.setFlag("fgt", "result", {
     total: result.total, magical: result.magical, physical: result.physical,
@@ -7983,6 +8057,7 @@ async function removalIntents(phase, doc, bearer) {
         defId: e.system.defId,
         polarity: polarityOf(e.system, def),
         unremovable: isUnremovable(def, e),
+        ownResist: ownRemovalResist(def),
       };
     });
   const ignoresProtection = Boolean(phase.ignoresRemovalProtection);
@@ -8336,7 +8411,9 @@ async function askAttackerWindow(state, window, message) {
   }
 
   await recordWindowPick(message, window, carried);
-  return { ...state, windowAbilities: carried };
+  // What was CAST, for a window whose cast changes the attack itself: Kazıklı
+  // Bey's Active 2 cancels it, or closes its Counter (#330).
+  return { ...state, windowAbilities: carried, castAbilities: cast.filter((id) => !refused.includes(id)) };
 }
 
 /**
@@ -9266,6 +9343,140 @@ function counterfactualDamage({ attackerDoc, ability, board, options, defenderUn
     rolls: { attackMinus: EXPECTED_ATTACK_ROLL, negation: [] },
     options: description.options,
   }).total;
+}
+
+/**
+ * Damage that is no Attack, run through the DEFENDER's half of the pipeline.
+ *
+ * Kazıklı Bey (#330 ruling 27): *"Damage from both (Active 1) and (Active 2) of
+ * this NP are not affected by any damage-modifying effects on Vlad"*, with Ignore
+ * Def, and Pierce on Active 2. Vlad's side is skipped; the DU's Dmg Cut, Battle
+ * Continuation, Ward and Magic Resistance still count, its Def Up does not, an
+ * Anti-Purge halts it and an Invuln negates it unless the hit pierces. A bare
+ * damage intent skips both sides, which is Unlimited Blade Works' toll.
+ *
+ * No Combat Process opens, so nobody reacts: no Evade, Block or Counter here. The
+ * caller writes the damage; this computes it and spends what it touched.
+ *
+ * @param {object} args
+ * @param {object} args.attackerDoc whose damage it is
+ * @param {string} args.defenderId
+ * @param {number} args.amount the figure before the defender's side
+ * @param {"str"|"mag"|null} [args.component]
+ * @param {boolean} [args.isNP]
+ * @param {boolean} [args.pierce]
+ * @param {boolean} [args.ignoresDefUp]
+ * @param {boolean} [args.invulnNegates] an Invuln stops it whole, an NP's too: Kazıklı Bey's
+ *   *"Units with the Invuln and Anti-Purge buffs will not take damage"*, where Appendix A
+ *   would only halve an NP against it
+ * @param {object} [args.board]
+ * @returns {Promise<{total: number, negatedBy: string|null, breakdown: object[]}>}
+ */
+export async function standaloneDamage({
+  attackerDoc, defenderId, amount, component = "str", isNP = false, pierce = false, ignoresDefUp = false,
+  invulnNegates = false, board = boardSnapshot(),
+}) {
+  const attacker = unitOf(attackerDoc, board);
+  const defender = (board.units ?? []).find((u) => u.id === defenderId) ?? null;
+  if (!attacker || !defender || !(amount > 0)) return { total: 0, negatedBy: null, breakdown: [] };
+  if (invulnNegates && !pierce && holdsFamily(defender, "invuln")) {
+    const held = [...(unitActor(defender.id)?.effects ?? [])]
+      .map((e) => ({ id: e.id, defId: e.system?.defId, uses: e.system?.uses ?? null }));
+    const spent = spentFirstOf(held, "invuln", EffectRegistry);
+    if (spent) await applyBatch([I.consumeUse(defender.id, spent.id)], "invuln");
+    return { total: 0, negatedBy: "Invuln", breakdown: [] };
+  }
+  const attack = {
+    kind: isNP ? "np" : "skill", component, element: null, pierce, ignoresDefUp, unblockable: true,
+    bypassModifiers: { attacker: true, defender: false },
+  };
+  const options = rollOptionsFor({ attacker, defender, attack });
+  const ctx = {
+    attacker, defender, board, attack,
+    base: { fixedValue: amount },
+    multiplier: 1, flatBonus: 0, conditionalMultipliers: [],
+    crit: { isCrit: false, chanceUsed: 0 },
+    difficulty: board?.difficulty,
+    reaction: { kind: "none" },
+    totalDamageModifiers: [],
+    luckChecks: {},
+    rolls: {
+      attackMinus: 0,
+      negation: await rollNegation(defender, isNP),
+      zonPenalty: 0,
+      ...(await rollModifierDice([attacker, defender])),
+    },
+    options,
+  };
+  const result = computeDamage(ctx);
+
+  // What it touched is spent, as on an Attack's Damage Step: a Dmg Cut charge,
+  // and a counted Invuln (the Gyakkou one first).
+  const consuming = (ctx.rolls.negation ?? []).filter((n) => n.consumes);
+  const stage = (result.breakdown ?? []).find((b) => b.index === 12);
+  if (consuming.length > 0 && ((stage?.before?.mag ?? 0) + (stage?.before?.phys ?? 0)) > 0) {
+    await applyBatch(consuming.map((n) => I.consumeUse(defender.id, n.consumes)), "damageNegation");
+  }
+  const invulnTouched = (result.breakdown ?? [])
+    .some((b) => (b.contributors ?? []).some((c) => c.source === "invuln" && c.value !== 0));
+  if (invulnTouched) {
+    const held = [...(unitActor(defender.id)?.effects ?? [])]
+      .map((e) => ({ id: e.id, defId: e.system?.defId, uses: e.system?.uses ?? null }));
+    const spent = spentFirstOf(held, "invuln", EffectRegistry);
+    if (spent) await applyBatch([I.consumeUse(defender.id, spent.id)], "invuln");
+  }
+  return {
+    total: result.flags?.reflected || result.flags?.converted ? 0 : Math.max(0, Math.round(result.total ?? 0)),
+    negatedBy: result.flags?.negatedBy ?? null,
+    breakdown: result.breakdown ?? [],
+  };
+}
+
+/**
+ * Cancel an Attack from its defender's side, and offer that defender a Counter.
+ *
+ * Kazıklı Bey's Active 2 (#330 ruling 9): *"the AU's Attack is cancelled, then
+ * Vlad can Counter if the enemy Unit is within Range."* No Process opened, so
+ * nothing of the Attack lands; the Counter is a Normal Attack, offered only when
+ * `counterAvailable` would offer one on a Process between the two.
+ *
+ * @param {object} args
+ * @param {string} args.attackerId the AU
+ * @param {object} args.defenderDoc the Unit that cancelled it
+ * @param {object} args.canceller the ability that cancelled it
+ * @returns {Promise<object>}
+ */
+async function cancelAttackFrom({ attackerId, defenderDoc, canceller }) {
+  const attackerDoc = unitActor(attackerId);
+  const board = currentBoard();
+  await ChatMessage.create({
+    content: `<div class="fgt-card"><p>${foundry.utils.escapeHTML(game.i18n.format("FGT.Window.AttackCancelled", {
+      name: shownName(attackerDoc, board), ability: canceller.name,
+    }))}</p></div>`,
+    speaker: publicSpeakerFor(defenderDoc, board),
+  });
+  await applyBatch([I.log({
+    kind: "attack", event: "cancelled", unitId: attackerId, by: defenderDoc.id, abilityId: canceller.id,
+  })], "attack:cancelled");
+
+  const groupId = foundry.utils.randomID();
+  const pseudo = { attackerId, defenderId: defenderDoc.id, attack: {}, counterDepth: 0, groupId };
+  if (!counterAvailable(pseudo)) return { cancelled: true, processes: [], groupId: null, messageId: null };
+  const answer = await chooseFor(defenderDoc, {
+    title: "FGT.Window.CounterTitle",
+    hint: game.i18n.format("FGT.Window.CounterHint", {
+      name: shownName(defenderDoc, board), target: shownName(attackerDoc, board),
+    }),
+    count: 1,
+    min: 0,
+    options: [
+      { id: "counter", name: game.i18n.localize("FGT.Window.CounterYes") },
+      { id: "skip", name: game.i18n.localize("FGT.Window.CounterNo") },
+    ],
+  });
+  if ((answer ?? [])[0] !== "counter") return { cancelled: true, processes: [], groupId: null, messageId: null };
+  const counter = await runCounter({ ...pseudo, counterRedirectId: null });
+  return { cancelled: true, counter, processes: [], groupId: null, messageId: null };
 }
 
 /**

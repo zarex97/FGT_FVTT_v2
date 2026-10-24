@@ -75,6 +75,8 @@ export function panelsOf(field, board) {
       return square(anchor.panel, (override?.shape ?? geometry.shape)?.size ?? 1);
     }
 
+    // Another field's area, stored at open (`engine/fields.mjs#openField`).
+    case "sameAs":
     case "freeform":
     case "markDefined":
     case "enclosing":
@@ -107,10 +109,15 @@ export function panelsOf(field, board) {
  * @returns {Array<{i: number, j: number}>}
  */
 function clip(panels, field, board) {
-  if (field?.geometry?.cannotIntersect !== "enemyHomeBase") return panels;
+  const rule = field?.geometry?.cannotIntersect;
+  if (rule !== "enemyHomeBase" && rule !== "otherHomeBase") return panels;
 
   const owner = field.ownerFaction ?? null;
-  const allied = new Set(board?.alliances?.[owner] ?? (owner ? [owner] : []));
+  // *"This area cannot intersect the Home Base of other Players"* (Wallachia,
+  // #330): every Home Base but the owner's, an ally's included.
+  const allied = rule === "otherHomeBase"
+    ? new Set(owner ? [owner] : [])
+    : new Set(board?.alliances?.[owner] ?? (owner ? [owner] : []));
   /** @type {Set<string>} */
   const forbidden = new Set();
   for (const zone of Object.values(board?.zones ?? {})) {
@@ -119,6 +126,41 @@ function clip(panels, field, board) {
   }
   if (forbidden.size === 0) return panels;
   return panels.filter((p) => !forbidden.has(`${p.i},${p.j}`));
+}
+
+/**
+ * The panels a field's player may centre it on, when they choose where it goes.
+ *
+ * Wallachia: *"the player with Vlad marks out a 9x9 panel area on the half of
+ * the board nearer to or around Vlad's Home Base"* (#330 ruling 4): its centre
+ * lies in the owner's own Home Base, or nearer it than any other Player's.
+ * Measured to the nearest panel of each Home Base. A board with no other Home
+ * Base leaves every panel.
+ *
+ * Pure.
+ *
+ * @param {{faction: string|null}} owner
+ * @param {object} board `zones` and `bounds`
+ * @returns {Array<{i: number, j: number}>}
+ */
+export function chosenCentres(owner, board) {
+  const zones = Object.values(board?.zones ?? {}).filter((z) => z?.faction && (z.panels ?? []).length > 0);
+  const own = zones.filter((z) => z.faction === owner?.faction);
+  const others = zones.filter((z) => z.faction !== owner?.faction);
+  const nearest = (p, list) => Math.min(...list.flatMap((z) => z.panels.map((q) => chebyshev(p, q))));
+  const b = board?.bounds ?? null;
+  if (!b) return [];
+  /** @type {Array<{i: number, j: number}>} */
+  const out = [];
+  for (let i = b.iMin ?? 0; i <= (b.iMax ?? -1); i += 1) {
+    for (let j = b.jMin ?? 0; j <= (b.jMax ?? -1); j += 1) {
+      const p = { i, j };
+      if (own.length === 0 || others.length === 0) { out.push(p); continue; }
+      const mine = nearest(p, own);
+      if (mine === 0 || mine < nearest(p, others)) out.push(p);
+    }
+  }
+  return out;
 }
 
 /**

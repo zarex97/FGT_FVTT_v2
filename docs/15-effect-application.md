@@ -155,6 +155,11 @@ Builds the effect instance document (`module/engine/effect-applier.mjs:234-286`)
 
 **What an intent can say about the instance itself.** An emitted `expiry: null` means only *"nobody stated a duration"*, and the definition's `defaultDuration` answers it — so an effect with a default (Burn 2◈, Charm 1◈) emitted with `expiry: null` is an ordinary timed effect, never a permanent one. Two flags on the intent's `effect` say the rest. `permanent: true` is *"never expires"*: the flow stamps `expiry: null` whatever the definition's default is, and `mergeEmitted` (`module/engine/effect-applier.mjs`, the pure merge `resolveEffects` applies to what the flow built) does not let the intent's own expiry overwrite it. `unremovable: true` is ORed into the instance's flag, so Burn is removable in general and not while it is Piedra Del Sol's. A field's `ApplyEffect` action reads both: a `duration` the action authors as `null` is `permanent`, an absent `duration` is the definition's own, and `unremovable` is forwarded (#147). Changing what a bare `null` means would have turned every Charm and Burn emitted with `expiry: null` permanent, which is why the flag exists.
 
+**An effect may resist its own removal** (#330 ruling 22): `removalResist` on the definition, any polarity, is taken
+off the removal chance with the bearer's own (buffs only) resistance, in `rules/removal.mjs#removalPlan`; the
+candidate carries it as `ownResist`. Kazıklı stacks are a debuff at `removalResist: 50`, one `count` instance, so a
+removal rolls once for them all. A removal with `ignoresRemovalProtection` (Active 2 spending them) skips it.
+
 **Invuln is a family** (#328 ruling 10): `invuln` and `invulnGyakkou` declare `families: [invuln]`, and every reader
 asks `rules/effects/families.mjs#holdsFamily` (the pipeline, the ladder's collapse, Overpower). A hit spends
 `spentFirstOf`'s instance, the one marked `spentFirst` before the rest. **A failed debuff may cost a price**:

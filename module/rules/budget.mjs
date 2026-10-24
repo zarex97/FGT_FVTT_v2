@@ -658,7 +658,7 @@ export function openingChoicesOwed(units) {
     // fgt-name-ok: a turn requirement shown to the acting player about their own Unit
     unitId: u.id, unitName: u.name, effect: "Opening choice",
     // fgt-name-ok: a turn requirement shown to the acting player about their own Unit
-    message: `${u.name} must choose which effect a Skill starts with before this Turn ends.`,
+    message: `${u.name} must make a Skill's opening choice (a starting effect, or where an area goes) before this Turn ends.`,
   }));
 }
 

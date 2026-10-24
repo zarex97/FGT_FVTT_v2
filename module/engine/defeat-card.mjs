@@ -49,6 +49,28 @@ export async function postDefeatCard(unitId, killerId = null, { whisper = null, 
 }
 
 /**
+ * Post what a kill paid, under its defeat card: a Civilian's death is no Combat
+ * Process and has no attack card to carry the lines (#330, found pressing).
+ * A stat line names its Unit; a heal line already does.
+ *
+ * @param {Array<{unitId?: string, summary: {id: string, name: string}}>} lines
+ * @returns {Promise<void>}
+ */
+export async function postLinesCard(lines) {
+  if ((lines ?? []).length === 0) return;
+  const { shownName } = await import("./public-identity.mjs");
+  const board = currentBoard();
+  const escape = foundry.utils.escapeHTML;
+  const items = lines.map(({ unitId, summary }) => {
+    const who = summary.id === "statChange" && unitId ? unitActor(unitId) : null;
+    return escape(who ? `${shownName(who, board)}: ${summary.name}` : summary.name);
+  });
+  await ChatMessage.create({
+    content: `<div class="fgt-card fgt-card--defeat"><ul>${items.map((l) => `<li>${l}</li>`).join("")}</ul></div>`,
+  });
+}
+
+/**
  * Count each name once: "6 × Horror, Elder Horror".
  *
  * @param {string[]} names

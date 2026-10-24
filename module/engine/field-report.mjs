@@ -34,6 +34,9 @@ export function fieldEventsIn(intents) {
 export function lineFor(e, t) {
   const who = e.unitName ?? e.unitId;
   if (typeof e.healthLoss === "number") return t("FGT.FieldReport.HealthLoss", { who, amount: e.healthLoss });
+  // A hit its target's Invuln or Anti-Purge stopped (Kazıklı Bey, #330): said,
+  // so a failed Evade that cost nothing does not read as a missing line.
+  if (e.negatedBy && !(e.damage > 0)) return t("FGT.FieldReport.Negated", { who, by: e.negatedBy });
   if (typeof e.damage === "number") return t("FGT.FieldReport.Damage", { who, amount: e.damage });
   if (e.defeat) return t("FGT.FieldReport.Defeat", { who });
   // What the field PAYS, to its owner's side: Blood Fort Andromeda's drain and

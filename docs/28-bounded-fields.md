@@ -150,6 +150,22 @@ Pale Rider's Contagion is cast neither at an ability's use nor ended by a cooldo
 
 The same pass keeps a standing passive field's rules current. A field copies its ability's rule axes when it opens: isolation, interior, interiorEvents, extension, vulnerabilities, onEnd, countsAsHomeBase, upkeep and deactivation. A passive field opens once and stands for the whole war, so a content change never reached it. Live (#180), Contagion opened at tick 0, its content then gained `notOnOwnTurn`, and the field went on charging an enemy twice at the end of its own Turn. Now `staleRuleAxes` compares each axis with the ability's current spec, and `refreshPassiveField` writes the ones that differ. Geometry, membership and state are left alone: they are where the area is and what has happened in it, not what it does. Test: `test/unit/passive-field-refresh.test.mjs`.
 
+**A passive field its player places** (Vlad III's Wallachia, #330 rulings 4, 5, 23). `field.placement: chosen`
+is never opened by `ensurePassiveFields`: it is an opening choice (`engine/opening-choice.mjs#placesField`), owed until
+it stands, whose player picks the centre among `rules/bounded-fields.mjs#chosenCentres` (in his Home Base, or nearer
+it than any other Player's), and `fields.mjs#placeChosenField` opens it there. `outlivesOwner` keeps it open past its
+owner's last defeat; `cannotIntersect: otherHomeBase` clips every Home Base but the owner's, an ally's included;
+`name` names the Region, and `shown: true` draws it for every player (`REGION_VISIBILITY.ALWAYS`); every other
+field is still drawn only on the GM's Regions layer. Where it overlaps his own Home Base, `ownBaseOf` answers with the first, so the Round-end
+heal pays once.
+
+**A field over another field's panels** (Kazıklı Bey's *"NP area"*, #330 ruling 6): `geometry.kind: sameAs` with
+`field: <id>` stores that field's panels at open. An interior event's `ownerActed` fires only when the OWNER Acted
+that Turn (*"at the end of every Turn Vlad Acts"*), and `roundEnd` is dispatched at the Round's end
+(`scheduler-hooks.mjs#endRoundSequence`). A `Damage` action with `bypassModifiers: {attacker: true, defender: false}`
+runs the defender's half of the pipeline (`attack.mjs#standaloneDamage`, Ch. 22) with `isNP`, `pierce`,
+`ignoresDefUp` and `invulnNegates`; an `ApplyEffect` with `requiresDamage` lands only on a Unit it damaged.
+
 **A Unit no field touches** (#249 reading 28). The `ignoresBoundedFields` grant takes a Unit out of
 `annotateFields`' membership, `haltIndex`'s stop and `runFieldEvent`'s contact and interior events.
 

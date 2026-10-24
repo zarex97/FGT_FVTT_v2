@@ -527,6 +527,15 @@ async function endRoundSequence(combat, round, tick) {
   // charged once, not twice.
   await fields.runUpkeep(ctx.tick, { round: ctx.round });
 
+  // What a field does at the end of the Round. Kazıklı Bey: *"at the end of
+  // every Turn Vlad Acts and at the end of the Round, all enemy Units within the
+  // NP area…"* (#330 ruling 7): the Turn's half fired above, at its own end.
+  {
+    const ended = await fields.runFieldEvents("roundEnd", { board });
+    await run(ended, "field:roundEnd", moment(round, tick));
+    await postFieldReports(fieldEventsIn(ended), { titleKey: "FGT.FieldReport.RoundTitle" });
+  }
+
   // A form whose Range grows while nothing is in reach (#323 reading 19).
   {
     const { growFormRanges } = await import("./form-range.mjs");

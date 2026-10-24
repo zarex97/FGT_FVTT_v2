@@ -40,6 +40,10 @@ The war's **shape** decides what containers exist. The default is `perFaction` c
 
 `candidatesFor` returns every catalogue entry that may fill a container: core classes match by membership (Semiramis is a candidate for both Caster and Assassin), and `EXTRA` matches the complement—any Servant holding no core class (`module/rules/war-setup.mjs:103-128`). An empty candidate list produces a validation error with a reason, not a silent skip (`module/rules/war-setup.mjs:130-154`).
 
+**An area placed at summon** (Wallachia, #330 ruling 4) is an opening choice like Uncrowned Arms Mastership's: owed
+at the War's build or a summon into a War under way, asked of the Servant's player as a panel pick, and the Turn
+cannot end until it stands (`opening-choice.mjs`, Ch. 28).
+
 **A Beast is never drawn for a Grand Order War** (#328 ruling 1): *"The Servants in this folder cannot be summoned
 in the Grand Order Full Campaign"*, the note in the `Beast/` sheets. `candidatesFor` and `drawPlan` take
 `grandOrder`, skipping every entry of a `GRAND_ORDER_BARRED_CLASSES` Class, and `validateRoster` refuses one picked by

@@ -1,0 +1,73 @@
+# Vlad III (Lancer), char_orig_sheets/by-class/Lancer/Vlad III (Lancer).md
+#
+# > "(Passive) When Vlad III (Lancer) is summoned, the player with Vlad marks
+# > out a 9x9 panel area on the half of the board nearer to or around Vlad's
+# > Home Base. This area cannot intersect the Home Base of other Players. This
+# > area will be known as 'Wallachia'."
+#
+# Ramesseum Tentyris's field, opened by a choice rather than a cast: his player
+# picks the centre once, at deployment or summon (#330 ruling 4), among the
+# panels `rules/bounded-fields.mjs#chosenCentres` offers; the Turn cannot end
+# until it is placed (`engine/opening-choice.mjs`). It stays the whole War,
+# past his last defeat (`outlivesOwner`).
+schema: 1
+id: vlad-demonic-defender-of-the-state
+name: "Demonic Defender of the State"
+rank: EX
+kind: skill
+slug: demonicDefenderOfTheState
+passive: true
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive) When Vlad III (Lancer) is summoned, the player with Vlad marks out a 9x9 panel area on
+  the half of the board nearer to or around Vlad's Home Base. This area cannot intersect the Home
+  Base of other Players. This area will be known as 'Wallachia'. Has the following effects-
+  1. As long as Vlad is within Wallachia, all damage taken is reduced by 50%; if NP, 25%.
+  2. As long as Vlad is within Wallachia, all STR damage dealt is increased by 100% including NP;
+  if MAG damage, 50%.
+  3. Vlad's Sustainability does not decrease as long as he is within Wallachia, and his Master's ZON
+  is ignored.
+  4. Wallachia functions as a second Home Base for Vlad only. On panels where his actual Home Base
+  and Wallachia overlap, the end-of-the-Round healing does not stack.
+  Note: If Wallachia would intersect the Home Base of another Player no matter where it is placed,
+  then the shape of the Wallachia area is reduced to exclude panels which would intersect the Home
+  Base of another Player.
+field:
+  passive: true
+  placement: chosen
+  outlivesOwner: true
+  name: "Wallachia"
+  # "This area will be known as 'Wallachia'": drawn for every player.
+  shown: true
+  # "9x9", centred where his player chose, CLIPPED off every other Player's
+  # Home Base (the Note), an ally's included: "other Players".
+  geometry:
+    kind: fixedArea
+    shape: { kind: square, size: 9 }
+    cannotIntersect: otherHomeBase
+  # 4. "A second Home Base for Vlad only." Where it overlaps his own, he is in
+  # one Home Base and heals once: `ownBaseOf` answers with the first.
+  countsAsHomeBase:
+    units: [owner]
+  membership:
+    enemyEntry: free
+    enemyExit: free
+    allyEntry: free
+    allyExit: free
+  isolation:
+    outsideCanTargetInside: true
+    insideCanTargetOutside: true
+    outsideCanApplyEffectsInside: true
+    visibilityAcrossBoundary: full
+  duration: null
+  interior:
+    # 1. Taken -50%, NP 25%: a reduction on the `taken` side is positive.
+    - { key: DamageModifier, modifierKey: defUp, direction: taken, value: 50, npValue: 25, relations: [self] }
+    # 2. STR dealt +100% including NP; MAG dealt +50%, NP included (ruling 21).
+    - { key: DamageModifier, modifierKey: atkUp, direction: dealt, component: str, value: 100, npValue: 100, relations: [self] }
+    - { key: DamageModifier, modifierKey: atkUp, direction: dealt, component: mag, value: 50, npValue: 50, relations: [self] }
+    # 3. Both halves only while he is inside (ruling 5). "His Master's ZON is
+    # ignored", unqualified: the whole ZON (ruling 29), the penalty AND the
+    # NP's need of it, where Ramesseum's "when he Attacks" waives the penalty.
+    - { key: Suppress, scope: sustainabilityDecay, relations: [self] }
+    - { key: Suppress, scope: zon, relations: [self] }
