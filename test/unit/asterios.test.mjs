@@ -377,6 +377,12 @@ describe("a non-damaging Noble Phantasm", () => {
       "raikou-tenmokaikai",
       "semiramis-hanging-gardens-of-babylon",
       "semiramis-sikera-usum",
+      // Vlad III (#330): Kazıklı Bey opens a field over Wallachia whose ticks
+      // are no Attack; its Active 2 strikes with no Combat Process; Legend of
+      // Dracula changes him for good and kills a Master in Wallachia.
+      "vlad-kazikli-bey",
+      "vlad-kazikli-bey-execution",
+      "vlad-legend-of-dracula",
     ]);
   });
 

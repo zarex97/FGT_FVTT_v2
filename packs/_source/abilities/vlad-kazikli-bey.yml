@@ -1,0 +1,117 @@
+# Vlad III (Lancer), char_orig_sheets/by-class/Lancer/Vlad III (Lancer).md
+#
+# > "(Passive) Whenever Vlad successfully deals damage to a Unit with a Normal
+# > Attack, apply one 'Kazıklı' stack to the DU at the end of the Damage Step.
+# > (Active 1) Used during your Turn. This Noble Phantasm can only be used
+# > within Wallachia. When this Noble Phantasm is used, its becomes Activated
+# > for ⅔◈ Turns and has the following effects- While Kazıklı Bey is Activated,
+# > at the end of every Turn Vlad Acts and at the end of the Round, all enemy
+# > Units within the NP area roll a six-sided die respectively. They will then
+# > respectively receive X STR damage, X being the number rolled * 100, if the
+# > NP is not Evaded. Damaged Units will then be inflicted with Curse. This NP
+# > is able to damage Masters even if their respective Servant is within a 2
+# > panel area of them. Damage from this NP has the Ignore Def effect and also
+# > ignores Block, but Units with the Invuln and Anti-Purge buffs will not take
+# > damage. Cooldown: 6◈ Turns."
+#
+# Active 2 is its own document, `vlad-kazikli-bey-execution`: two Actives with
+# two windows, two prices and two limits (#330 ruling 8).
+#
+# Active 1 is Unlimited Blade Works' toll on another field's panels: a field
+# `sameAs` Wallachia ("the NP area", ruling 6) for ⅔◈, whose interior events
+# fire at the end of every Turn he Acts (`ownerActed`) and at the Round's end
+# (ruling 7). Not an Attack: one Evade per enemy per tick, no Block, Counter or
+# reaction, and a Master is no Servant's to guard. The damage runs the
+# defender's half of the pipeline (ruling 27): Ignore Def; an Anti-Purge stops
+# it, and so does an Invuln, whole, against this NP (`invulnNegates`: "will not
+# take damage", where Appendix A only halves an NP against Invuln).
+schema: 1
+id: vlad-kazikli-bey
+name: "Kazıklı Bey: The Lord of Execution"
+isNP: true
+rank: B
+kind: noblePhantasm
+slug: kazikliBey
+npTags: [antiArmy]
+cooldown: "6◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+# Legend of Dracula 5: "Kazıklı Bey is unusable and has no effects."
+negatedBy: [legendOfDraculaActivated]
+requirements:
+  - { kind: predicate, predicate: ["self:inField:vlad-demonic-defender-of-the-state"] }
+description: |
+  (Passive) Whenever Vlad successfully deals damage to a Unit with a Normal Attack, apply one
+  @effect[kazikli]{Kazıklı} stack to the DU at the end of the Damage Step. Kazıklı stacks are
+  categorized as a debuff, the chance of a Kazıklı stack being removed is reduced by 50%.
+  (Active 1) Used during your Turn. This Noble Phantasm can only be used within Wallachia. When this
+  Noble Phantasm is used, it becomes Activated for ⅔◈ Turns and has the following effects-
+  While Kazıklı Bey is Activated, at the end of every Turn Vlad Acts and at the end of the Round, all
+  enemy Units within the NP area roll a six-sided die respectively. They will then respectively
+  receive X STR damage, X being the number rolled * 100, if the NP is not Evaded. Damaged Units will
+  then be inflicted with @effect[curse]{Curse}. This NP is able to damage Masters even if their
+  respective Servant is within a 2 panel area of them. Damage from this NP has the @effect[ignoreDef]{Ignore Def} effect
+  and also ignores Block, but Units with the @effect[invuln]{Invuln} and @effect[antiPurge]{Anti-Purge} buffs will not take damage.
+  Cooldown: 6◈ Turns.
+  (Active 2) @np[vlad-kazikli-bey-execution]{Kazıklı Bey (Execution)}.
+  Note: Damage from both (Active 1) and (Active 2) of this NP are not affected by any
+  damage-modifying effects on Vlad.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+passiveRules:
+  # "Successfully deals damage ... with a Normal Attack": a Counter is one, so
+  # it stacks too (ruling 11). Under NP Seal it stays: a seal stops a use.
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    # "Successfully deals damage": the event fires on a hit that dealt 0 too.
+    predicate: [attack:kind:normal, attack:dealtDamage]
+    target: victim
+    effect: { id: kazikli }
+field:
+  name: "Kazıklı Bey"
+  shown: true
+  geometry: { kind: sameAs, field: vlad-demonic-defender-of-the-state }
+  duration: "⅔◈"
+  membership:
+    enemyEntry: free
+    enemyExit: free
+    allyEntry: free
+    allyExit: free
+  isolation:
+    outsideCanTargetInside: true
+    insideCanTargetOutside: true
+    outsideCanApplyEffectsInside: true
+    visibilityAcrossBoundary: full
+  interior: []
+  interiorEvents:
+    - event: anyTurnEnd
+      ownerActed: true
+      relations: [enemy]
+      check: evade
+      onFail:
+        - key: Damage
+          roll: { formula: "1d6", factor: 100 }
+          component: str
+          isNP: true
+          ignoresDefUp: true
+          invulnNegates: true
+          bypassModifiers: { attacker: true, defender: false }
+        - { key: ApplyEffect, effect: { id: curse }, requiresDamage: true }
+    - event: roundEnd
+      relations: [enemy]
+      check: evade
+      onFail:
+        - key: Damage
+          roll: { formula: "1d6", factor: 100 }
+          component: str
+          isNP: true
+          ignoresDefUp: true
+          invulnNegates: true
+          bypassModifiers: { attacker: true, defender: false }
+        - { key: ApplyEffect, effect: { id: curse }, requiresDamage: true }
+phases:
+  - kind: createField
+    target: self

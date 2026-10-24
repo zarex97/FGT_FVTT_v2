@@ -11,16 +11,12 @@
  * world has to be shut down before `npm run build:packs` and relaunched after.
  */
 
-const PORT = process.env.FGT_CDP_PORT ?? 9222;
+import { foundryTarget } from "./lib/cdp.mjs";
 
-/** @returns {Promise<string>} */
-async function target() {
-  const list = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json();
-  const pages = list.filter((t) => t.type === "page" && String(t.url).includes(":30000"));
-  const page = pages.find((t) => String(t.url).includes("/game")) ?? pages[0];
-  if (!page) throw new Error("No Foundry page found.");
-  return page.webSocketDebuggerUrl;
-}
+// The GM's page, as `fgt-eval` picks it. This had its own pick, the first
+// `/game` tab, and with Player1's tab listed first it reloaded Player1 and left
+// the GM -- who runs every write -- on the old code (#330, found pressing).
+const target = foundryTarget;
 
 const ws = new WebSocket(await target());
 await new Promise((r) => ws.addEventListener("open", r, { once: true }));

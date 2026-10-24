@@ -1,0 +1,62 @@
+# Vlad III (Lancer), char_orig_sheets/by-class/Lancer/Vlad III (Lancer).md
+#
+# > "(Activation/Passive) In order to use this Noble Phantasm, Vlad's Master
+# > has to use a Command Spell. However, if the Master is within Wallachia when
+# > it is activated, Vlad will immediately kill his Master after this NP is
+# > activated. Cannot be deactivated after it is used. Permanently applies the
+# > following effects to Vlad-" (ten clauses: `effects/legend-of-dracula-activated.yml`)
+#
+# Ruled (#330 ruling 12): a Command Spell AND the A+ Master Health cost, during
+# his Turn; once, for good (`maxUses: 1`). A Master inside Wallachia is defeated
+# outright, Vlad the killer, after the activation; Vlad then plays on with no
+# Master under the War's rule.
+schema: 1
+id: vlad-legend-of-dracula
+name: "Legend of Dracula: The Succession of Blood"
+isNP: true
+rank: "A+"
+kind: noblePhantasm
+slug: legendOfDracula
+npTags: [antiUnitSelf]
+timing: { window: ownTurn }
+maxUses: 1
+copyable: { allowed: false, reason: named }
+additionalCosts:
+  - { kind: commandSpell, amount: 1 }
+description: |
+  (Activation/Passive) In order to use this Noble Phantasm, Vlad's Master has to use a Command Spell.
+  However, if the Master is within Wallachia when it is activated, Vlad will immediately kill his
+  Master after this NP is activated. Cannot be deactivated after it is used. Permanently applies the
+  following effects to Vlad-
+  1. Vlad gains the 'Dark (Vampire)' Attribute.
+  2. During a Night Round, Vlad heals 100 Health and 1 Agility at the end of his Turn, at the end of
+  any Turn he Acts, and at the end of the Round.
+  3. Each time Vlad deals damage to a Unit, he heals 100 Health and 1 Agility (no effect if no damage
+  is dealt). Each time he defeats a Unit, his Health and Agility is restored by 25% of their maximum
+  values. However, if he defeats a Civilian, he only heals 100 Health and 1 Agility.
+  4. The magnitude of Shapeshift is doubled.
+  5. @np[vlad-kazikli-bey]{Kazıklı Bey} is unusable and has no effects. Magic Resistance is disabled.
+  6. Vlad will always Attack (and Move towards) the closest Unit, including allied Units.
+  7. Range is increased by 1 panel, and number of targets is increased by 1. Vlad can Move to any
+  unoccupied panel while Moving, regardless of obstacles (but still cannot enter the area around an
+  enemy Master).
+  8. Base Attack (STR) is increased by 75.
+  9. Whenever Vlad performs an Evade roll, reduce the value rolled by 4. Does not affect non-Evade
+  Agility Checks.
+  10. Total Fire damage taken is increased by 25%.
+  See @effect[legendOfDraculaActivated]{Legend of Dracula (Activated)}.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: legendOfDraculaActivated }
+  - kind: defeat
+    # "...AFTER this NP is activated": once the Command Spell is paid.
+    afterCosts: true
+    target: master
+    targetPredicate: ["target:inField:vlad-demonic-defender-of-the-state"]
+    cause: killedByServant

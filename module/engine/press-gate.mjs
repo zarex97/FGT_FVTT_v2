@@ -108,8 +108,9 @@ export function pressGate(actor, item, {
 
   // The Turn's budget, in the kind the press bills: the attack flow's for an
   // ability that attacks, the use path's for any other. A free action bills
-  // nothing on either.
-  const free = Boolean(item?.system?.freeAction);
+  // nothing on either. A use free at a window is free at one, and only there:
+  // Kazıklı Bey's Active 2 (#330 ruling 9), the use path's own rule.
+  const free = Boolean(item?.system?.freeAction) || (atWindow && Boolean(item?.system?.freeAtWindow));
   const kind = asAttack ? (item ? abilityKind(item) : "normal") : useBudgetKind(item);
   const afford = billsBudget && combat?.started && !free
     ? budget.affordable(combat, self, budgetActionFor(kind))

@@ -1063,8 +1063,12 @@ const ACTIONS = Object.freeze({
     // 10% of its maximum value"*, `percent: -10` on `health.max`, taken of the
     // maximum she has now, so a second revival takes 10% of the reduced one
     // (#328 ruling 10). A snapshot flattens Health, so its maximum is read by name.
+    // ...or of ANOTHER stat: Legend of Dracula restores Agility *"by 25% of
+    // their maximum values"*, a share of `agility.max` added to `agility.value`
+    // (#330, `percentOf`).
+    const basis = a.percentOf ?? a.stat;
     const ofStat = a.percent !== undefined
-      ? (a.stat === "health.max" ? u.maxHealth : readStat(u, a.stat))
+      ? (basis === "health.max" ? u.maxHealth : readStat(u, basis))
       : null;
     if (a.percent !== undefined && typeof ofStat !== "number") return [];
     const raw = a.percent !== undefined

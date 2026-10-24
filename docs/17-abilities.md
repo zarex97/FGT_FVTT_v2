@@ -259,6 +259,17 @@ A Spell is not a Skill (ruled 2026-10-14): `canCopy` refuses one with `spell`, r
 (`isSpell`, or the `spell` category), the reader Silence uses. The board now projects `isSpell` for it. Medea's six
 Spells were all offered; her Active Skills still are.
 
+### Damage that is no Attack, a kill, and the windows of a Process (#330)
+
+A `strike` phase deals damage per Unit caught with no Combat Process: `amount` is a Count (`{count: {of: stacks,
+effect}, per}`), a `branch` is asked with the caster and that Unit in scope, and the damage runs the defender's half
+of the pipeline (`attack.mjs#standaloneDamage`, Ch. 22) with `component`, `isNP`, `pierce`, `ignoresDefUp`. Its card
+row names the figure, what was dealt and the Health. A `defeat` phase defeats outright, the caster the killer, gated
+by a `targetPredicate`; a phase's `target: master` is the caster's own Master (Legend of Dracula's *"Vlad will
+immediately kill his Master"* inside Wallachia). An ability may be `freeAtWindow`: billed from the bar, free at a
+timing window (Kazıklı Bey's Active 2, *"counts as Vlad's Attack for the Turn if used during his Turn"*). Two keys
+act on the Attack a window use sits in: `cancelsAttackWhenDefending` (Ch. 21) and `forbidsCounterWhenAttacking`.
+
 ### A clock put back to full, and a gate on the NPs (#328)
 
 A cooldown change with `restart: true` sets the clock to the full length a use would start, read through

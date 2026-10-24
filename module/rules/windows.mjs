@@ -78,6 +78,14 @@ export const ABILITY_WINDOWS = Object.freeze({
     dispatched: true,
     hint: "At the start of a Combat Phase in which this Unit is attacked.",
   }),
+  // Kazıklı Bey's Active 2 (#330): *"at the start or end of a Combat Process
+  // involving Vlad"*. The end, offered before the Counter rung to the AU and
+  // the DU both, so a use there can close the DU's Counter.
+  processEnd: Object.freeze({
+    id: "processEnd",
+    dispatched: true,
+    hint: "At the end of a Combat Process this Unit attacked or was attacked in, before any Counter.",
+  }),
   whenTargetedByNP: Object.freeze({
     id: "whenTargetedByNP",
     dispatched: true,
@@ -128,6 +136,9 @@ export const COMBAT_PHASE_START_WINDOW = ABILITY_WINDOWS.combatPhaseStart.id;
 
 /** The start of a Combat Phase in which this Unit is attacked (#206). */
 export const DEFENDING_PHASE_START_WINDOW = ABILITY_WINDOWS.defendingPhaseStart.id;
+
+/** Kazıklı Bey's Active 2, the end of a Combat Process (#330). */
+export const PROCESS_END_WINDOW = ABILITY_WINDOWS.processEnd.id;
 
 /** An Attack's fatal hit, before it lands (Kirihanasu, #249). */
 export const FATAL_HIT_WINDOW = ABILITY_WINDOWS.whenFatallyHit.id;

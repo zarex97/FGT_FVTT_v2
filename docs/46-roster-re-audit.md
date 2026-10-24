@@ -7708,3 +7708,51 @@ which her Magic Resistance A negates.
 
 - **Max Health** was put to the user: the sheet prints 2500, END EX's table 2000. Ruled 2000 (ruling 18).
 - **The "cannot React" fix** is tested and was not pressed again live.
+
+## 46.48 Vlad III (Lancer) — Wallachia, Kazıklı Bey, Dracula
+
+Built from `char_orig_sheets/by-class/Lancer/Vlad III (Lancer).md` (#330), 93 Clauses and 29 readings ruled
+(`docs/superpowers/specs/2026-10-23-vlad-lancer-clauses.md`); three of them (10 corrected, 27–29) were put to the
+user mid-build when the build or the board contradicted a pick. The sheet's Lancer/Berserker coin flip waits on
+Vlad III (Berserker).
+
+### 46.48.1 What he cost the engine
+
+- **A field its player places at summon** (Wallachia, Ch. 28, Ch. 31): `placement: chosen`, an opening choice that
+  asks for a centre panel among `chosenCentres`; `outlivesOwner`; `otherHomeBase` clipping; `shown` draws it for
+  players, the first field that is.
+- **A field over another field's panels** (`sameAs`), ticking at the end of every Turn its owner Acts (`ownerActed`)
+  and at the Round's end (`roundEnd`, newly dispatched).
+- **Damage that is no Attack, through the defender's half of the pipeline** (`attack.mjs#standaloneDamage`, Ch. 22):
+  a `strike` phase and a field's `Damage` with a one-sided bypass; `invulnNegates` for a sheet that says an Invuln
+  stops it.
+- **The end of a Combat Process as a window** (`processEnd`, Ch. 21), an Attack **cancelled by its defender** then a
+  Counter offer, and a Counter **closed** by the AU's own use; `freeAtWindow` (Ch. 17).
+- **An effect that resists its own removal** (`removalResist`, Ch. 15), and Kazıklı stacks as one counted debuff.
+- **A whole ZON waived** (`Suppress zon`, ruling 29), where Ramesseum waives the penalty alone.
+- **A `defeat` phase** on the caster's `master`, run **after the costs** (`afterCosts`); a Servant that kills its own
+  Master conquers nobody.
+- **The nearest Units, a tie drawn at random** (`compulsion.mjs#nearestUnits`, the Gigantic Horror's too), a Normal
+  Attack of **several targets** (`maxTargets`), and a compulsion that makes allies and Civilians legal targets.
+- **`unitFelled`**, a hit that took a Unit to 0 whether or not it was revived; `damageDealt` now says
+  `attack:dealtDamage`.
+
+### 46.48.2 What was pressed, and how
+
+Rounds 45–59 on *Gilles Audit B*, over two sessions, Player1 driving his bar, sheet, windows and prompts, the GM the
+enemies. 90 of 93 Clauses Pressed or Observed; the log is on #330. The second session staged what the board had
+never produced: an enemy Master guarded beside him (LD.zoc), Def Up and Invuln on the Units his Kazıklı Bey struck
+(KA.ignoredef, KB.pierce), and a Home Base one row nearer Wallachia (WL.clip). A Free Vlad cannot pay a B Noble
+Phantasm, 12 Turns against a 6-Turn clock, so those presses staged his Sustainability.
+
+Twelve defects surfaced and were fixed, each a Surprise: fields drawn for the GM only; Wallachia's ZON read as
+Ramesseum's; a Round-end field card titled "end of the Turn"; Conquest of the Master he killed; a Command Spell paid
+by a dead Master; a compulsion banner printed as JSON; Targets 2 with no reader; a kill heal missed on a revived
+kill; `damageDealt` paying on a 0; a Civilian his compulsion named but his Attack could not reach; the Civilian heal
+paid twice; and no card saying any heal a handler paid on an attack or a kill, every Servant's (`applier.mjs#healLines`,
+Ch. 37). On 2026-10-23 the debug Chrome and then Foundry closed on their own; the next session's Foundry stayed up.
+
+### 46.48.3 Left open
+
+- **SM.\*** wait on Vlad III (Berserker).
+- **Every other field** is still drawn for the GM only; whether to draw them all is the user's call.

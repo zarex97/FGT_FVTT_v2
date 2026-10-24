@@ -149,6 +149,9 @@ export class NPFieldBehavior extends Base {
       // and no cooldown, and the only thing that closes it is his leaving the
       // board. `engine/fields.mjs#ensurePassiveFields` opens and closes them.
       passive: new fields.BooleanField({ initial: false }),
+      // A passive field its owner's leaving does not close: Wallachia stays for
+      // the whole War (#330 ruling 4). Read by `ensurePassiveFields`.
+      outlivesOwner: new fields.BooleanField({ initial: false }),
       // A FREEFORM field stores the panels it was drawn as: there is no shape
       // spec to recompute them from, which is the whole difference between it
       // and `fixedArea`.

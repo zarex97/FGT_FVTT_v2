@@ -427,6 +427,23 @@ function declaredTargetSpec(item, range, options, attacker) {
     // consulted for a bare Normal Attack -- an ability states its own
     // targeting a few lines above.
     const shape = !item ? (attacker?.normalAttack?.shape ?? null) : null;
+    // Several targets, each a Unit he picks within Range: Legend of Dracula's
+    // "number of targets is increased by 1" (#330 ruling 18), read off the
+    // Unit's own `maxTargets`. A compulsion that names allies makes them
+    // legal targets: *"the closest Unit, including allied Units"* (ruling 14).
+    const targets = !item && !shape ? Math.max(1, Number(attacker?.maxTargets ?? 1)) : 1;
+    // "The closest Unit" is any Unit, a Civilian too: his sheet heals him for
+    // defeating one (Legend of Dracula 3, found live).
+    const compelled = (attacker?.compulsions ?? [])
+      .filter((c) => c.forcesTarget && !c.restrictsOnly)
+      .flatMap((c) => [...(c.relations ?? []), ...(c.nearest ? ["civilian"] : [])]);
+    if (!item && !shape && (targets > 1 || compelled.includes("ally"))) {
+      return {
+        anchor: targets > 1 ? { kind: "self" } : { kind: "targetUnit", range },
+        shape: targets > 1 ? { kind: "chebyshevRadius", r: range } : { kind: "unit" },
+        selection: { relations: [...new Set(["enemy", ...compelled])], chooser: "chosen", count: targets },
+      };
+    }
     return {
       anchor: { kind: "targetUnit", range },
       shape: shape ?? { kind: "unit" },

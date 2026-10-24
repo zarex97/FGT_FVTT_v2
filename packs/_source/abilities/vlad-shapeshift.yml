@@ -1,0 +1,44 @@
+# Vlad III (Lancer), char_orig_sheets/by-class/Lancer/Vlad III (Lancer).md
+#
+# > "(Passive) All damage taken is reduced by 10%; if NP, 5%.
+# > (Active) Used during your Turn or at the start of a Combat Phase when Vlad is
+# > Attacked. Applies Def Up for 1◈ Turns, all damage taken is further reduced
+# > by 10%; if NP, 5%. Cooldown: 3◈ Turns."
+#
+# Nursery Rhyme's Ward for the Passive; Karna's `defendingPhaseStart` for "at
+# the start of a Combat Phase when Vlad is Attacked" (#206 reading 4).
+#
+# Legend of Dracula 4: "The magnitude of Shapeshift is doubled", both halves
+# (#330 ruling 20). Each figure is stated twice, gated on the permanent status
+# the NP leaves, so exactly one of each pair is live.
+schema: 1
+id: vlad-shapeshift
+name: "Shapeshift"
+rank: C
+kind: skill
+slug: shapeshift
+cooldown: "3◈"
+timing: { window: [ownTurn, defendingPhaseStart] }
+description: |
+  (Passive) All damage taken is reduced by 10%; if NP, 5%.
+  (Active) Used during your Turn or at the start of a Combat Phase when Vlad is Attacked. Applies
+  @effect[defUp]{Def Up} for 1◈ Turns, all damage taken is further reduced by 10%; if NP, 5%.
+  Cooldown: 3◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+passiveRules:
+  - { key: Ward, value: 10, npValue: 5, predicate: [{ not: "self:effect:legendOfDraculaActivated" }] }
+  - { key: Ward, value: 20, npValue: 10, predicate: ["self:effect:legendOfDraculaActivated"] }
+phases:
+  - kind: applyEffects
+    target: self
+    predicate: [{ not: "self:effect:legendOfDraculaActivated" }]
+    effects:
+      - { id: defUp, magnitude: 10, npMagnitude: 5, duration: "1◈" }
+  - kind: applyEffects
+    target: self
+    predicate: ["self:effect:legendOfDraculaActivated"]
+    effects:
+      - { id: defUp, magnitude: 20, npMagnitude: 10, duration: "1◈" }

@@ -183,6 +183,10 @@ export function contractOutcome(plan, rolls) {
  *   the dead Master's Servants Independent Action keeps from being conquered
  */
 export function conquestContract({ killer, deadMaster, board }) {
+  // A Servant that kills its OWN Master conquers nobody: Legend of Dracula's
+  // *"Vlad will immediately kill his Master"* (#330 ruling 12). Its Servants,
+  // the killer among them, go Free as any defeated Master's do.
+  if (killer?.masterId && killer.masterId === deadMaster?.id) return { ok: false, reason: "ownMaster", descriptors: [] };
   const claimant = claimantFor(killer, board);
   if (!claimant.ok) return { ...claimant, descriptors: [] };
 
