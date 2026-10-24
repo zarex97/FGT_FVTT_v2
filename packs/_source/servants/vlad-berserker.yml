@@ -1,0 +1,42 @@
+# Conversion source: char_orig_sheets/by-class/Berserker/Vlad III (Berserker).md
+# The audit of #333, the Clause list docs/superpowers/specs/2026-10-24-vlad-berserker-clauses.md.
+#
+# The sheet opens on a coin flip between this Servant and Vlad III (Lancer).
+# Seats are drawn by Class, so the seat decides the form and no coin is flipped
+# (#333 ruling 1): a Berserker seat draws this Servant, a Lancer seat the Lancer.
+# The two are two Servants, so a War may hold both.
+schema: 1
+id: vlad-berserker
+name: "Vlad III (Berserker)"
+type: servant
+
+trueName: Vlad III
+servantClasses: [berserker]
+classContainer: berserker
+alignment: { order: chaotic, morality: evil }
+# "Wallachia, Romania, Europe", as the Lancer's (#330 ruling 3).
+region: [romania, europe]
+# "Dark (Vampire)" is printed here and again as Legend of Dracula's Passive 1:
+# the Gigantic Horror's "Dark (Outsider)" is [dark, outsider].
+attributes: [male, servant, earth, king, dark, vampire, humanoid, antiHero]
+
+parameters: { str: A, end: A, agi: C, mag: B, luc: E }
+baseHealth: 1500
+mov: 4
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 150, mag: 175 }
+# The sheet lists both Base Attacks; BA(STR), as the Lancer's (#330 ruling 2).
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+abilities:
+  # EX at the Revised text, as Gilles de Rais (Saber) prints it (#260 reading 3):
+  # clause 1 is the forced deactivation at 30 and no floor.
+  - { ref: class-mad-enhancement, rank: EX, printedRevision: revised,
+      drainFloor: null, drainFloorWhen: null, forcedDeactivation: true }
+  - { ref: vlad-berserker-bloodsucking }
+  - { ref: class-battle-continuation, rank: A }
+  - { ref: vlad-berserker-fearsome-immortal }
+  - { ref: vlad-berserker-shapeshift }
+  - { ref: vlad-berserker-kazikli-bey }
+  - { ref: vlad-berserker-legend-of-dracula }

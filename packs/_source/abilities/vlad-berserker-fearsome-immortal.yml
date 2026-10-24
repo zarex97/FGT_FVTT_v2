@@ -1,0 +1,41 @@
+# Vlad III (Berserker), char_orig_sheets/by-class/Berserker/Vlad III (Berserker).md
+#
+# > "(Active) Used during your Turn. Has the following effects- 1. Applies Guts
+# > (Fearsome) to Vlad for ⅓◈ Turns, when Vlad is defeated he is revived with
+# > 20% of his Max Health. This Guts buff stacks with other normal Guts buffs.
+# > 2. Applies Guts to Vlad for 1◈+⅔◈ Turns, when Vlad is defeated he is
+# > revived with 20% of his Max Health. 3. Applies NP Regen for 1◈ Turns, NP
+# > Cooldown is reduced by 1 Turn at the end of every Turn. Cooldown: 4◈-⅓◈
+# > Turns"
+#
+# Nemo's Indomitable for the Guts, Drake's Beyond the Uncharted for the NP
+# Regen. NP Regen ticks at the end of every Turn, whoever's (#333 ruling 11.11).
+schema: 1
+id: vlad-berserker-fearsome-immortal
+name: "Fearsome Immortal"
+rank: "A+"
+kind: skill
+slug: fearsomeImmortal
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[gutsFearsome]{Guts (Fearsome)} to Vlad for ⅓◈ Turns, when Vlad is defeated he is
+  revived with 20% of his Max Health. This Guts buff stacks with other normal Guts buffs.
+  2. Applies @effect[guts]{Guts} to Vlad for 1◈+⅔◈ Turns, when Vlad is defeated he is revived with 20%
+  of his Max Health.
+  3. Applies @effect[npRegen]{NP Regen} for 1◈ Turns, NP Cooldown is reduced by 1 Turn at the end of
+  every Turn.
+  Cooldown: 4◈-⅓◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: gutsFearsome, magnitude: 20, duration: "⅓◈" }
+      - { id: guts, magnitude: 20, duration: "1◈+⅔◈" }
+      - { id: npRegen, magnitude: 1, duration: "1◈" }

@@ -110,7 +110,54 @@ function chanceBarred(source, unit) {
  * @param {object} unit
  * @returns {boolean}
  */
-function isAvailable(source, unit, rolls = null, { ignoreBar = false, killer = null } = {}) {
+/**
+ * The sources a clock or a Health rule holds back, and why: available in every
+ * other respect. Battle Continuation's *"Cooldown: 3◈ Turns, and the Unit's
+ * Health must have been restored back to above half its maximum value at least
+ * once since the last activation"*: a fourth blow on Vlad III (Berserker) read
+ * "Berserker is defeated." and nothing of why (#333, ruled 2026-10-24).
+ *
+ * @param {object} unit
+ * @param {Record<string, number>|null} [rolls]
+ * @param {{killer?: object|null}} [opts]
+ * @returns {Array<{source: RevivalSource, why: "cooldown"|"healthNotRestored", remaining?: number, fraction?: number}>}
+ */
+export function heldRevivals(unit, rolls = null, { killer = null } = {}) {
+  return [...(unit?.revivals ?? [])]
+    .map((source) => ({ source, hold: revivalHold(source, unit) }))
+    .filter(({ source, hold }) => hold && isAvailable(source, unit, rolls, { killer, ignoreHold: true }))
+    .map(({ source, hold }) => ({ source, ...hold }));
+}
+
+/**
+ * The source's own clock and Health rule: the one reader of both.
+ *
+ * @param {object} source
+ * @param {object} unit
+ * @returns {{why: "cooldown", remaining: number}|{why: "healthNotRestored", fraction: number}|null}
+ */
+function revivalHold(source, unit) {
+  // The source's OWN cooldown, read off the ability list. That reuses the clock
+  // `advanceCooldowns` already turns rather than inventing a second one, and it
+  // means the window is visible on the sheet where a player can see why the
+  // revive did not happen.
+  const ability = (unit.abilities ?? []).find((a) => a.id === source.abilityId);
+  const remaining = ability?.cooldownRemaining ?? 0;
+  if (remaining > 0) return { why: "cooldown", remaining };
+
+  // "...at least once SINCE the last activation." A question about history,
+  // which `healthWatermarks` answers: a Servant who has been at full Health all
+  // match and never dropped has not been *restored* to anything.
+  const fraction = source.requiresHealthRestoredSince ?? null;
+  if (fraction !== null) {
+    const at = unit.healthWatermarks?.[watermarkKey(fraction)] ?? null;
+    const last = ability?.lastUsedTick ?? null;
+    if (last !== null && (at === null || at < last)) return { why: "healthNotRestored", fraction };
+  }
+  return null;
+}
+
+function isAvailable(source, unit, rolls = null, { ignoreBar = false, killer = null, ignoreHold = false } = {}) {
   if (source.charges !== null && source.charges !== undefined && source.charges <= 0) return false;
   // WHO defeated it, asked of the killer's own options (#328 ruling 6): no
   // killer on the record, no revival.
@@ -149,22 +196,8 @@ function isAvailable(source, unit, rolls = null, { ignoreBar = false, killer = n
     if (!meetsRequirement(req, { unit })) return false;
   }
 
-  // The source's OWN cooldown, read off the ability list. That reuses the clock
-  // `advanceCooldowns` already turns rather than inventing a second one, and it
-  // means the window is visible on the sheet where a player can see why the
-  // revive did not happen.
-  const ability = (unit.abilities ?? []).find((a) => a.id === source.abilityId);
-  if ((ability?.cooldownRemaining ?? 0) > 0) return false;
-
-  // "...at least once SINCE the last activation." A question about history,
-  // which `healthWatermarks` answers: a Servant who has been at full Health all
-  // match and never dropped has not been *restored* to anything.
-  const fraction = source.requiresHealthRestoredSince ?? null;
-  if (fraction !== null) {
-    const at = unit.healthWatermarks?.[watermarkKey(fraction)] ?? null;
-    const last = ability?.lastUsedTick ?? null;
-    if (last !== null && (at === null || at < last)) return false;
-  }
+  // Its own clock and its Health rule (`revivalHold`).
+  if (!ignoreHold && revivalHold(source, unit)) return false;
 
   return true;
 }

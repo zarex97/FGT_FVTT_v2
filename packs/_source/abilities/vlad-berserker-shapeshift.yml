@@ -1,0 +1,46 @@
+# Vlad III (Berserker), char_orig_sheets/by-class/Berserker/Vlad III (Berserker).md
+#
+# > "(Passive 1) Reduces all damage received by 10%; if NP, 5%.
+# > (Active) Used during your Turn or at the start of a Combat Process when Vlad
+# > is Attacked. Applies Def Up (Shapeshift) for 1◈ Turns, all damage taken is
+# > further reduced by 10%; if NP, 5%. Def Up (Shapeshift) does not stack.
+# > Cooldown: 3◈ Turns.
+# > (Passive 2) If this Skill is used while Vlad has any Def Up (Shapeshift)
+# > and/or Atk Up (Shapeshift) buffs, their duration is reset to 1◈ Turns."
+#
+# The Lancer's Shapeshift with named buffs. Karna's `defendingPhaseStart` for
+# "at the start of a Combat Process when Vlad is Attacked" (#330, #206 reading
+# 4). Dracula doubles Passive 1, the Lancer's pair of Wards on a status. Passive
+# 2 sets each held one to exactly 1◈, even with more left (#333 ruling 5), and
+# runs first, so the fresh Def Up (Shapeshift) finds one already at 1◈.
+schema: 1
+id: vlad-berserker-shapeshift
+name: "Shapeshift"
+rank: C
+kind: skill
+slug: shapeshift
+cooldown: "3◈"
+timing: { window: [ownTurn, defendingPhaseStart] }
+description: |
+  (Passive 1) Reduces all damage received by 10%; if NP, 5%.
+  (Active) Used during your Turn or at the start of a Combat Process when Vlad is Attacked. Applies
+  @effect[defUpShapeshift]{Def Up (Shapeshift)} for 1◈ Turns, all damage taken is further reduced by 10%; if
+  NP, 5%. Def Up (Shapeshift) does not stack. Cooldown: 3◈ Turns.
+  (Passive 2) If this Skill is used while Vlad has any Def Up (Shapeshift) and/or
+  @effect[atkUpShapeshift]{Atk Up (Shapeshift)} buffs, their duration is reset to 1◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+passiveRules:
+  - { key: Ward, value: 10, npValue: 5, predicate: [{ not: "self:effect:dracula" }] }
+  - { key: Ward, value: 20, npValue: 10, predicate: ["self:effect:dracula"] }
+phases:
+  - kind: effectDuration
+    target: self
+    effects: [defUpShapeshift, atkUpShapeshift]
+    set: "1◈"
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: defUpShapeshift, magnitude: 10, npMagnitude: 5, duration: "1◈" }

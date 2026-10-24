@@ -667,6 +667,11 @@ export function snapshotUnit(actor, {
     // are Unremovable"*. `sys.concealed` is still honoured so a GM can set it by
     // hand on a Unit whose concealment comes from somewhere else.
     concealed: Boolean(sys.concealed) || effectIds.includes(CONCEALMENT),
+    // Ch. 32: a Servant whose Master died *"remains in whatever state it was
+    // in"*. Written at the death (`io.mjs`, `lockModes`) and shown as a badge,
+    // and no switch read it: Vlad III (Berserker) switched Mad Enhancement off
+    // after his Master fell (#333, live). `rules/modes.mjs#canToggleMode` reads it.
+    modesLocked: sys.modesLocked === true,
     // "This Unit is able to Attack Masters ... regardless of enemy
     // Master-Servant positions." `resolve.mjs` has consulted
     // `caster.bypassesMasterProtection` since Master protection was written and

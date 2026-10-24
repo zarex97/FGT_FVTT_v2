@@ -13,7 +13,7 @@
 
 import { moment } from "../domain/moment.mjs";
 import * as scheduler from "./scheduler.mjs";
-import { applyIntents } from "./applier.mjs";
+import { applyIntents, poolsBefore, poolLinesAfter } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
 import { currentBoard } from "./board.mjs";
 import { factionOfCombatant } from "./turn-order.mjs";
@@ -789,6 +789,8 @@ function factionOf(combat, turnRef) {
  */
 async function run(intents, source, at = null) {
   if (intents.length === 0) return [];
+  // The Agility and Luck it moves, said beside the report's Health lines (#333).
+  const pools = poolsBefore(intents);
   const result = await applyIntents(intents, {
     io: worldIO(),
     canWrite: () => true, // the active GM
@@ -796,7 +798,7 @@ async function run(intents, source, at = null) {
     source,
     moment: at,
   });
-  return result?.lines ?? [];
+  return [...(result?.lines ?? []), ...poolLinesAfter(pools)];
 }
 
 /**

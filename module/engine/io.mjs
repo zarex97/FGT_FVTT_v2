@@ -1649,7 +1649,9 @@ export function worldIO() {
         const { restartedClock } = await import("./hgob.mjs");
         clock["system.sustainabilityRemaining"] = restartedClock(servant.system, warRule("turnsPerRound") || 3);
       }
-      await servant.update({ "system.contract": contract, "system.masterId": masterId, "system.factionId": side, ...clock });
+      // ...and frees its modes: they are held only "until a new Contract" (Ch. 32).
+      const unlocked = contract === "contracted" && masterId && servant.system?.modesLocked ? { "system.modesLocked": false } : {};
+      await servant.update({ "system.contract": contract, "system.masterId": masterId, "system.factionId": side, ...clock, ...unlocked });
 
       if (previous && previous !== masterId) {
         const old = resolve(previous);
@@ -1710,7 +1712,7 @@ export function worldIO() {
       // A revival, said out loud. It was logged and nothing else: Divine
       // Protection brought Ozymandias back at 200 inside his Complex and the
       // attack card read "6 damage" over it (#189). Public, as a defeat is.
-      for (const e of entries.filter((x) => x?.kind === "revive" || x?.kind === "reviveFailed" || x?.kind === "revivalChanceMissed")) {
+      for (const e of entries.filter((x) => x?.kind === "revive" || x?.kind === "reviveFailed" || x?.kind === "revivalChanceMissed" || x?.kind === "revivalHeld")) {
         const { postRevival } = await import("./revival-report.mjs");
         await postRevival(e);
       }

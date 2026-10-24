@@ -44,6 +44,11 @@ The war's **shape** decides what containers exist. The default is `perFaction` c
 at the War's build or a summon into a War under way, asked of the Servant's player as a panel pick, and the Turn
 cannot end until it stands (`opening-choice.mjs`, Ch. 28).
 
+**A Servant printed in two Classes draws by its seat** (#333 ruling 1). Vlad III's sheets open on a coin flip,
+*"If Heads, Vlad III (Lancer) is summoned. If Tails, Vlad III (Berserker) is summoned"*. Seats are drawn by Class, so
+the seat decides the form and no coin is flipped: a Lancer seat draws `vlad-lancer`, a Berserker seat `vlad-berserker`,
+two Servants a War may both hold. The HGW and Grand Order notes follow from it: in Grand Order the GM picks the seat.
+
 **A Beast is never drawn for a Grand Order War** (#328 ruling 1): *"The Servants in this folder cannot be summoned
 in the Grand Order Full Campaign"*, the note in the `Beast/` sheets. `candidatesFor` and `drawPlan` take
 `grandOrder`, skipping every entry of a `GRAND_ORDER_BARRED_CLASSES` Class, and `validateRoster` refuses one picked by

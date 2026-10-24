@@ -104,6 +104,10 @@ export function canToggleMode(
   const negatedBy = sys.negatedBy ?? [];
   if (negatedBy.some((id) => (unit?.effects ?? []).includes(id))) return { ok: false, reason: "negated" };
 
+  // Held as it was since its Master died, until a new Contract (Ch. 32):
+  // *"it remains in whatever state it was in"*, either way (#333, live).
+  if (unit?.modesLocked) return { ok: false, reason: "modesLocked" };
+
   // ...and WHO. `byOwner: false` is a mode its owner cannot switch off at all.
   if (!active && sys.deactivation?.byOwner === false) return { ok: false, reason: "cannotDeactivate" };
 

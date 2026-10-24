@@ -69,5 +69,9 @@ export async function announcePhaseChange(from, to, round) {
   });
   if (intents.length === 0) return;
   const { applyWorldIntents } = await import("./applier.mjs");
-  await applyWorldIntents(intents, "phaseChanged", { lines: true });
+  const out = await applyWorldIntents(intents, "phaseChanged", { lines: true });
+  // Said on a card of its own: Dracula taken off at dawn was a write and a log
+  // entry, and the lines the batch returned reached no card (#333, live).
+  const { postTurnEndReport } = await import("./turn-report.mjs");
+  await postTurnEndReport(intents, null, null, `FGT.RoundPhase.ChangedTo.${to}`, out?.lines ?? []);
 }

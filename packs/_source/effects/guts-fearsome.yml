@@ -1,0 +1,26 @@
+# Vlad III (Berserker)'s Fearsome Immortal, step 1 (#333).
+#
+# > "Applies Guts (Fearsome) to Vlad for ⅓◈ Turns, when Vlad is defeated he is
+# > revived with 20% of his Max Health. This Guts buff stacks with other normal
+# > Guts buffs."
+#
+# A Guts of its own id, so it stacks with `guts`, and consumed first: the
+# sheet's note puts it above Guts, which is the general order "Special Guts >
+# Guts > Passive revival effects" (`guts.yml`). Priority 250, Mannanán's (#333
+# ruling 11.12).
+schema: 1
+id: gutsFearsome
+name: "Guts (Fearsome)"
+description: "Revive on defeat with X% of maximum Health. Consumed on use. Stacks with @effect[guts]{Guts}, and is consumed before it."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+uses: 1
+rules:
+  - key: RevivalSource
+    id: gutsFearsome
+    revivalPriority: 250
+    charges: 1
+    restore: { percentOfMax: "@magnitude" }

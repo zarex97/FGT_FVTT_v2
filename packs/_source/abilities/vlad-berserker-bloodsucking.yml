@@ -1,0 +1,49 @@
+# Vlad III (Berserker), char_orig_sheets/by-class/Berserker/Vlad III (Berserker).md
+#
+# > "(Active) Range=1. Used on an enemy Unit. Increase its NP Cooldown by 1◈
+# > Turns, and reduce Vlad's NP Cooldown by 1◈ Turns. If Mad Enhancement is
+# > Active, the Range of this Skill is increased by 1, but the chance of
+# > increasing the DU's NP Cooldown is reduced by 20%. Cooldown: 3◈ Turns."
+#
+# During his Turn (#333 ruling 2). Serenity's and Kiritsugu's `cooldown` phase
+# lengthens the DU's clock, even from 0. Its chance is 100%, 80% under Mad
+# Enhancement, the d100 on the card; no resistance meets it, since it lands no
+# effect (ruling 3). His own −1◈ always pays. Under Mad Enhancement the Skill
+# reaches 2: Mad Enhancement's Range +1 is his Attack Range and does not add
+# again (ruling 4).
+schema: 1
+id: vlad-berserker-bloodsucking
+name: "Bloodsucking"
+rank: A
+kind: skill
+slug: bloodsucking
+cooldown: "3◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+description: |
+  (Active) Range=1. Used on an enemy Unit. Increase its NP Cooldown by 1◈ Turns, and reduce Vlad's NP
+  Cooldown by 1◈ Turns. If @ability[class-mad-enhancement]{Mad Enhancement} is Active, the Range of this
+  Skill is increased by 1, but the chance of increasing the DU's NP Cooldown is reduced by 20%.
+  Cooldown: 3◈ Turns.
+targeting:
+  anchor:
+    kind: targetUnit
+    range: 1
+    rangeWhen:
+      - { add: 1, predicate: ["self:skillActive:madEnhancement"] }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+phases:
+  - kind: cooldown
+    target: reuse
+    chance:
+      value: 100
+      label: "Bloodsucking"
+      modifiers:
+        - { add: -20, predicate: ["self:skillActive:madEnhancement"] }
+    changes:
+      - { unit: target, scope: np, ticks: "1◈", direction: up }
+  - kind: cooldown
+    target: self
+    changes:
+      - { unit: self, scope: np, ticks: "1◈", direction: down }
