@@ -22,6 +22,7 @@ import { fireEvent } from "../../module/engine/scheduler.mjs";
 import { provoke, takePending, pendingCount } from "../../module/engine/auto-counter.mjs";
 import { prepareSubjects } from "../helpers/subject.mjs";
 import { installClientNamespace } from "../helpers/client-namespace.mjs";
+import { functionBody } from "../helpers/source.mjs";
 
 const buff = { id: "critUp", name: "Crit Up", polarity: "buff", baseChance: 100 };
 const bearer = (extra = {}) => ({
@@ -137,7 +138,7 @@ describe("Fragarach's Instakill says what the die did (reading 14)", () => {
 describe("an automatic counter and a cancellation are Acts", () => {
   const src = readFileSync("module/engine/attack.mjs", "utf8");
   it("the automatic counter stamps its bearer acted", () => {
-    const body = src.slice(src.indexOf("export async function flushAutoCounters"), src.indexOf("export async function flushAutoCounters") + 6000);
+    const body = functionBody(src, "export async function flushAutoCounters");
     expect(body).toMatch(/I\.markTurn\(bearer\.id, \{ acted: true \}\)/);
   });
   it("Fragarach's cancel stamps its user acted", () => {

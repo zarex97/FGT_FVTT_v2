@@ -456,9 +456,9 @@ async function openField(ability, actor, snapshot, spec, {
     // An area the sheet names: *"This area will be known as 'Wallachia'"*.
     name: spec.name ?? ability.name,
     shapes: [shapeOf(panels, scene)],
-    // An area every player sees, not only the GM on the Regions layer: a field
-    // the sheet names and places on the board, Wallachia (#330, WL.name).
-    ...(spec.shown ? { visibility: CONST.REGION_VISIBILITY?.ALWAYS ?? 2 } : {}),
+    // Every player sees it, not only the GM on the Regions layer (#330, ruled
+    // 2026-10-24): a field a player can walk into is one a player can see.
+    visibility: fieldVisibility(),
     ...(anchorToken ? { attachment: { token: anchorToken.id } } : {}),
   }]);
   if (!region) return null;
@@ -633,6 +633,34 @@ export async function ensurePassiveFields() {
   // whose size is decided by an EFFECT -- Contagion's 9x9 Active -- changes
   // without anybody moving, so the move hook alone would leave it stale.
   await syncDerivedFields();
+
+  // A field opened before every field was drawn for players stands hidden on
+  // the GM's layer until it is shown here.
+  for (const region of fieldsToShow(canvas.scene.regions ?? [])) {
+    await region.update({ visibility: fieldVisibility() });
+  }
+}
+
+/**
+ * How a field's Region is drawn: for every player, as a Home Base is
+ * (`war-setup.mjs`). Foundry's default draws a Region on the GM's Regions layer
+ * only, and no field had been seen by a player until Wallachia (#330).
+ *
+ * @returns {number}
+ */
+export function fieldVisibility() {
+  return globalThis.CONST?.REGION_VISIBILITY?.ALWAYS ?? 2;
+}
+
+/**
+ * The fields' Regions a player cannot see yet.
+ *
+ * @param {Iterable<object>} regions a scene's Regions
+ * @returns {object[]}
+ */
+export function fieldsToShow(regions) {
+  return [...regions].filter((r) => r.behaviors?.some?.((b) => b.type === "npField")
+    && r.visibility !== fieldVisibility());
 }
 
 /**

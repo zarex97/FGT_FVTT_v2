@@ -24,6 +24,7 @@ import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import { compiled, prepareFields } from "../helpers/field.mjs";
 import { currentHealth } from "../../module/domain/health.mjs";
 import { forcedEndDue, upkeepDue, upkeepPlan } from "../../module/rules/platforms.mjs";
+import { functionBody } from "../helpers/source.mjs";
 
 beforeAll(async () => { await prepareSubjects(); await prepareFields(); }, 120_000);
 
@@ -174,7 +175,7 @@ describe("a field its owner's defeat is closing charges no toll (#185)", () => {
 describe("a fallen owner is not offered the reshape (#185)", () => {
   it("offerReshape skips a defeated owner", () => {
     const fields = readFileSync("module/engine/fields.mjs", "utf8");
-    const offer = fields.slice(fields.indexOf("export async function offerReshape"), fields.indexOf("export async function offerReshape") + 900);
+    const offer = functionBody(fields, "export async function offerReshape");
     expect(offer).toMatch(/if \(!owner\?\.acted \|\| owner\.defeated \|\| !mayReshape\(field, owner\)\) continue;/);
   });
 });
@@ -203,7 +204,7 @@ describe("a closing field tells the table (#185)", () => {
 
   it("every close path posts it, with its reason", () => {
     const fields = readFileSync("module/engine/fields.mjs", "utf8");
-    const end = fields.slice(fields.indexOf("export async function endField"), fields.indexOf("export async function endField") + 1600);
+    const end = functionBody(fields, "export async function endField");
     expect(end).toMatch(/await postFieldClosed\(region\.name \?\? fieldId, fieldId, reason\);/);
     expect(fields).toMatch(/await endField\(field\.id, closeReason\(field, tick\) \?\? "ended"\)/);
     expect(fields).toMatch(/return endField\(fieldId, reason, \{ logged: true \}\);/);

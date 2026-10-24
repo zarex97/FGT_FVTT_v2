@@ -11,6 +11,7 @@ import { readFileSync } from "node:fs";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 import { canUseAbility } from "../../module/rules/costs.mjs";
 import { usageSpecFor } from "../../module/rules/ability-use.mjs";
+import { functionBody } from "../helpers/source.mjs";
 
 beforeAll(prepareSubjects, 60_000);
 
@@ -118,7 +119,7 @@ describe("NP Regen for 1◈ takes 1◈ off (reading 7)", () => {
 describe("Rule Breaker gives the Contract to Medea (reading 18)", () => {
   it("names the caster as the new Master, and a Servant can hold the spells", () => {
     const attack = readFileSync(new URL("../../module/engine/attack.mjs", import.meta.url), "utf8");
-    const fn = attack.slice(attack.indexOf("async function cutContract("), attack.indexOf("async function cutContract(") + 2500);
+    const fn = functionBody(attack, "async function cutContract(");
     expect(fn).toMatch(/const newMaster = caster \?\? null;/);
     const servant = readFileSync(new URL("../../module/data/actor/servant.mjs", import.meta.url), "utf8");
     expect(servant).toMatch(/commandSpellsPerServant: new fields\.ObjectField/);
@@ -143,7 +144,7 @@ describe("A Servant stolen by Rule Breaker has its class ZON around Medea (readi
 describe("Medea pays the multi-Servant tax (reading 21)", () => {
   it("is billed as any Master is, holding two Servants", () => {
     const src = readFileSync(new URL("../../module/engine/scheduler.mjs", import.meta.url), "utf8");
-    const fn = src.slice(src.indexOf("function multiServantIntents("), src.indexOf("function multiServantIntents(") + 1600);
+    const fn = functionBody(src, "function multiServantIntents(");
     expect(fn).toMatch(/units\.some\(\(s\) => s\.masterId === u\.id\)/);
   });
 });

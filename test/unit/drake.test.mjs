@@ -15,6 +15,7 @@ import { EXECUTORS } from "../../module/rules/elements.mjs";
 import { ELEMENT_DESCRIPTORS } from "../../module/rules/authoring/elements.mjs";
 import { MODIFIABLE_PATHS, applyStatDeltas } from "../../module/rules/derived.mjs";
 import { detectRangeOf } from "../../module/rules/identity.mjs";
+import { functionBody } from "../helpers/source.mjs";
 
 const src = (dir, file) =>
   parse(readFileSync(join(process.cwd(), "packs/_source", dir, file), "utf8"));
@@ -778,7 +779,7 @@ describe("the Golden Hind's Crit is Drake's Crit (#187 reading 2)", () => {
   // attacks, her `damageDealt` handlers now run beside its own.
   it("damageDealt reaches the driver of a mount that attacks for her", () => {
     const src = readFileSync("module/engine/attack.mjs", "utf8");
-    const fn = src.slice(src.indexOf("async function fireDamageDealt"), src.indexOf("async function fireDamageDealt") + 4000);
+    const fn = functionBody(src, "async function fireDamageDealt");
     expect(fn).toMatch(/turnPartnersOf\(/);
     expect(fn).toMatch(/fireEvent\("damageDealt", hearers,/);
   });
@@ -859,9 +860,11 @@ describe("Drake's 15% token roll is filed only on a Crit (#187)", () => {
   });
 
   it("fireDamageDealt skips the record when the condition fails", () => {
+    // By named function, never a window of characters (`test/helpers/source.mjs`).
     const src = readFileSync("module/engine/attack.mjs", "utf8");
-    const fn = src.slice(src.indexOf("async function fireDamageDealt"), src.indexOf("async function fireDamageDealt") + 5000);
-    expect(fn).toMatch(/if \(spec\.predicate && !testPredicate\(spec\.predicate,/);
+    const body = (name) => functionBody(src, `async function ${name}(`);
+    expect(body("fireDamageDealt")).toMatch(/await rollChances\(hearers, "damageDealt", options\)/);
+    expect(body("rollChances")).toMatch(/if \(spec\.predicate && !testPredicate\(spec\.predicate,/);
   });
 });
 
@@ -953,7 +956,7 @@ describe("the broadside's preview counts the ship's Base Attack (#187)", () => {
   // contentBaseAttack, so `platform-golden-hind`'s 200 contributed nothing.
   it("previewContext supplies contentBaseAttack as the resolution does", () => {
     const src = readFileSync("module/engine/attack.mjs", "utf8");
-    const fn = src.slice(src.indexOf("export function previewContext"), src.indexOf("export function previewContext") + 4000);
+    const fn = functionBody(src, "export function previewContext");
     expect(fn).toMatch(/contentBaseAttack: contentBaseAttacks\(\),/);
   });
 });
@@ -962,7 +965,7 @@ describe("a platform's close tells the table (#187)", () => {
   // Live: the Golden Hind's forced close for an unpaid toll was only log lines.
   it("destroyPlatform posts the close card with its reason, from every path", () => {
     const platforms = readFileSync("module/engine/platforms.mjs", "utf8");
-    const fn = platforms.slice(platforms.indexOf("export async function destroyPlatform"), platforms.indexOf("export async function destroyPlatform") + 900);
+    const fn = functionBody(platforms, "export async function destroyPlatform");
     expect(fn).toMatch(/await postFieldClosed\(platform\.name \?\? platformId, platformId, reason\);/);
     expect(platforms).toMatch(/destroyPlatform\(\{ platformId, reason: "owner" \}\)/);
     expect(readFileSync("module/engine/fields.mjs", "utf8")).toMatch(/destroyPlatform\(\{ platformId: field\.id, reason \}\)/);
