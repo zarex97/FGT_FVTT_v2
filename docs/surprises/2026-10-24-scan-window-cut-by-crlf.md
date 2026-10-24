@@ -3,7 +3,8 @@ id: 2026-10-24-scan-window-cut-by-crlf
 found: test
 kind: source-scan-assumes-linux-checkout
 status: fixed
-reviewed: false
+reviewed: true
+pattern: source-scan-assumes-linux-checkout
 ---
 **Expected:** the field-visibility branch, which never touches `attack.mjs`, runs as green as the Vlad branch did.
 **Actual:** `drake.test.mjs` "fireDamageDealt skips the record when the condition fails" failed on

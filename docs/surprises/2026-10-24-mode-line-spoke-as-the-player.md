@@ -3,7 +3,8 @@ id: 2026-10-24-mode-line-spoke-as-the-player
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** the new mode-switch card, posted from Player1's client, speaks as the Unit's public name.
 **Actual:** "Kingprotea — Berserker deactivates Mad Enhancement." Kingprotea is Player1's assigned character, not

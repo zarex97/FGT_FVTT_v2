@@ -101,6 +101,49 @@ export function unitNameReads(text) {
   return out;
 }
 
+/** The marker a speakerless card carries, with its reason. */
+const SPEAKER_MARKER = /\/\/\s*fgt-speaker-ok:\s*\S/;
+
+/**
+ * Every `ChatMessage.create` in a player-facing file that names no `speaker`.
+ *
+ * A card with none speaks as Foundry's guess, the posting user's assigned
+ * character: Vlad III (Berserker)'s mode line, posted from Player1's client,
+ * read "Kingprotea" (#333, the fifth slip of the public-name rule). A card
+ * speaks through `public-identity.mjs#publicSpeakerFor`. Read in `module/apps`,
+ * which runs on whoever pressed; the engine's cards are posted by the active GM
+ * (`isWarGM`), whose speaker is the GM. A card that may go without one says why
+ * on the line before or on its own: `// fgt-speaker-ok: <reason>`.
+ *
+ * @param {string} text
+ * @returns {Array<{line: number, problem: string}>}
+ */
+export function speakerlessCards(text) {
+  const src = text.replace(/\r\n/g, "\n");
+  const lines = src.split("\n");
+  const out = [];
+  let i = 0;
+  while ((i = src.indexOf("ChatMessage.create(", i)) >= 0) {
+    let depth = 0;
+    let j = i + "ChatMessage.create".length;
+    for (; j < src.length; j++) {
+      if (src[j] === "(") depth++;
+      else if (src[j] === ")" && --depth === 0) break;
+    }
+    const line = src.slice(0, i).split("\n").length;
+    const marked = SPEAKER_MARKER.test(lines[line - 1] ?? "") || SPEAKER_MARKER.test(lines[line - 2] ?? "");
+    if (!/\bspeaker\b/.test(src.slice(i, j)) && !marked) {
+      out.push({
+        line,
+        problem: "posts a card with no `speaker`: it speaks as the user's own character. "
+          + "Pass `publicSpeakerFor(actor, board)`, or say why with `// fgt-speaker-ok: <reason>`",
+      });
+    }
+    i = j;
+  }
+  return out;
+}
+
 /**
  * @param {string} dir
  * @returns {AsyncGenerator<string>}
@@ -122,8 +165,12 @@ async function main() {
       const rel = relative(join(ROOT, "module"), path).split(sep).join("/");
       if (allowed.has(rel)) continue;
       files++;
-      for (const p of unitNameReads(await readFile(path, "utf8"))) {
+      const text = await readFile(path, "utf8");
+      for (const p of unitNameReads(text)) {
         problems.push(`module/${rel}:${p.line}: \`${p.expression}\` ${p.problem}`);
+      }
+      if (rel.startsWith("apps/")) {
+        for (const p of speakerlessCards(text)) problems.push(`module/${rel}:${p.line}: ${p.problem}`);
       }
     }
   }

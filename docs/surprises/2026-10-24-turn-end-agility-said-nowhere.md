@@ -3,7 +3,8 @@ id: 2026-10-24-turn-end-agility-said-nowhere
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Legend of Dracula's Night heal, *"restores 100 Health and 1 Agility"*, says both on the End of the
 Turn card.
