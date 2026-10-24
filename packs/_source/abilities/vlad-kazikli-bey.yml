@@ -72,7 +72,6 @@ passiveRules:
     effect: { id: kazikli }
 field:
   name: "Kazıklı Bey"
-  shown: true
   geometry: { kind: sameAs, field: vlad-demonic-defender-of-the-state }
   duration: "⅔◈"
   membership:
