@@ -10,5 +10,5 @@ reviewed: false
 "Round 2 begins at Day."
 **Cause:** `module/engine/round-phase.mjs:72 @ 4f6f04ab` asked `applyWorldIntents` for `lines: true` and dropped
 the lines it returned. No handler had listened to `phaseChanged` before, so nothing it did was ever said.
-**Fix:** `module/engine/round-phase.mjs:72 @ uncommitted` posts the batch as a card titled "The Round turns to Day"
+**Fix:** `module/engine/round-phase.mjs:72 @ 9d40169a` posts the batch as a card titled "The Round turns to Day"
 or "Night" through `turn-report.mjs#postTurnEndReport`, with the batch's lines.

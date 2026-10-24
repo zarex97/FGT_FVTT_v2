@@ -11,5 +11,5 @@ Player1's toggle refuses.
 **Cause:** `module/engine/io.mjs:2018 @ 4f6f04ab` wrote `system.modesLocked` at the Master's death, and only the
 sheet's badge read it. `module/rules/modes.mjs#canToggleMode @ 4f6f04ab` never asked, and the snapshot never
 projected it. Nothing cleared it at a new Contract either.
-**Fix:** `module/rules/snapshot.mjs @ uncommitted` projects `modesLocked`. `canToggleMode` refuses
+**Fix:** `module/rules/snapshot.mjs @ 9d40169a` projects `modesLocked`. `canToggleMode` refuses
 `modesLocked` both ways, the bar and the sheet with it. `io.setContract` clears it on a new Contract.

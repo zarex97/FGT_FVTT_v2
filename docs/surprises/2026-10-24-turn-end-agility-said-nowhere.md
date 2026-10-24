@@ -11,5 +11,5 @@ Turn card.
 and no card said so. The Lancer's Night and Round-end heals were the same since #330.
 **Cause:** `module/engine/scheduler-hooks.mjs:790 @ 4f6f04ab` ran a boundary's batch with no lines, and
 `turn-report.mjs#turnEndCard` reads Health deltas and heals only.
-**Fix:** `module/engine/scheduler-hooks.mjs#run @ uncommitted` reads Agility and Luck before the batch
+**Fix:** `module/engine/scheduler-hooks.mjs#run @ 9d40169a` reads Agility and Luck before the batch
 (`applier.mjs#poolsBefore`) and returns their lines after it (`poolLinesAfter`), which the report prints.
