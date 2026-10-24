@@ -3,7 +3,8 @@ id: 2026-10-24-phase-change-lines-reached-no-card
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Round 2 begins at Day and a card says Dracula is taken off Vlad III (Berserker).
 **Actual:** Dracula was removed and the log read `phaseChanged … source: dracula`. Player1's chat showed only

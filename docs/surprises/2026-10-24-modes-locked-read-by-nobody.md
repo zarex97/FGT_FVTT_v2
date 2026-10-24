@@ -3,7 +3,8 @@ id: 2026-10-24-modes-locked-read-by-nobody
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** after his Master fell with Mad Enhancement Active, the card said *"it cannot be deactivated"*, and
 Player1's toggle refuses.
