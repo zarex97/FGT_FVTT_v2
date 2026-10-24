@@ -1,0 +1,33 @@
+# Vlad III (Berserker)'s Shapeshift (#333).
+#
+# > "Applies Def Up (Shapeshift) for 1◈ Turns, all damage taken is further
+# > reduced by 10%; if NP, 5%. Def Up (Shapeshift) does not stack."
+#
+# Named, because two later clauses find it by name: Shapeshift's Passive 2
+# resets it to 1◈ and Legend of Dracula's step 1 extends it by 1◈. One at a
+# time (`noneNoRefresh`): a second never shortens the first.
+#
+# Dracula "doubles the magnitude of ... the Def Up (Shapeshift) buff", live
+# (#333 ruling 7): the second rule is the same figure again while he holds
+# Dracula, so one held through Dracula's landing doubles and halves with it.
+schema: 1
+id: defUpShapeshift
+name: "Def Up (Shapeshift)"
+description: "All damage taken is reduced by X%; a reduced magnitude applies to Noble Phantasms. Doubled while @effect[dracula]{Dracula}."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneNoRefresh
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: defUp
+    direction: taken
+    value: "@magnitude"
+    npValue: "@npMagnitude"
+  - key: DamageModifier
+    modifierKey: defUp
+    direction: taken
+    value: "@magnitude"
+    npValue: "@npMagnitude"
+    predicate: ["self:effect:dracula"]

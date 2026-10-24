@@ -264,6 +264,10 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // The engine's forced switch writes the same patch (`engine/io.mjs#setMode`):
     // a Mode its owner switches on starts its Tally from 0 too (#319, found live).
     await item.update(modeSwitchPatch(active, { tick, endedBy: "manual" }));
+    // Said to the table: Mad Enhancement switched from the bar was a bar state
+    // and nothing else (#333, ruled 2026-10-24). A priced entry is already the
+    // use's own card.
+    if (!(active && pricedOnEntry(item))) await FGTActorSheet.sayModeSwitch(actor, item, active);
 
     // Switching a mode ON is using an ability, so the Unit has Acted this Turn
     // (ruled 2026-10-19, #194): Mad Enhancement switched on cost its Master
@@ -294,6 +298,26 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         "toggleMode",
       );
     }
+  }
+
+  /**
+   * Post a mode switched by its player, by the Unit's public name.
+   *
+   * @param {object} actor
+   * @param {object} item the mode
+   * @param {boolean} active whether it was switched on
+   * @returns {Promise<void>}
+   */
+  static async sayModeSwitch(actor, item, active) {
+    const { shownName, publicSpeakerFor } = await import("../../engine/public-identity.mjs");
+    const escape = foundry.utils.escapeHTML;
+    const board = currentBoard();
+    const line = game.i18n.format(active ? "FGT.Mode.SwitchedOn" : "FGT.Mode.SwitchedOff", {
+      name: escape(shownName(actor, board)), mode: escape(item.name),
+    });
+    // Spoken as the Unit's public name: the default speaker was the player's
+    // own character, "Kingprotea", on Vlad's line (found pressing).
+    await ChatMessage.create({ content: `<div class="fgt-card"><p>${line}</p></div>`, speaker: publicSpeakerFor(actor, board) });
   }
 
   /**

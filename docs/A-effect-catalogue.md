@@ -46,7 +46,7 @@ and its implementation note. This is the authoritative reference the compendium 
 
 | Effect | Pol | Val | Stack | Stage | Semantics |
 |---|---|---|---|---|---|
-| `Atk Up` | B | O | mag | 4 | Damage dealt +X%. Reduced magnitude for NP. Family: `atkUp`. Named variants (`N.Atk Up`, `Atk Up (STR)`, `Atk Up (Charisma)`, `Atk Up (Magus)`, `Atk Up (GreekMale)`) all count as `atkUp`. |
+| `Atk Up` | B | O | mag | 4 | Damage dealt +X%. Reduced magnitude for NP. Family: `atkUp`. Named variants (`N.Atk Up`, `Atk Up (STR)`, `Atk Up (Charisma)`, `Atk Up (Magus)`, `Atk Up (GreekMale)`, `Atk Up (Shapeshift)`) all count as `atkUp`. Atk Up (Shapeshift) and Def Up (Shapeshift) do not stack and are doubled while `Dracula` is held (#333). |
 | `Dmg Up` | B | O | mag | 4 | Damage dealt to units matching a category +X%, **including NP** (no reduced magnitude). Carries a predicate. |
 | `Dmg Boost` | B | O | mag | 7 | Damage dealt +X **flat**. Affects NP only if stated. |
 | `NP DmUp` | B | O | mag | 4 | NP damage +X%. Also affects abilities *categorized as NP*. Not passive NPs. |
@@ -150,6 +150,7 @@ All are `automatic: true` and therefore negated by `Addle`.
 | `(Name) Immune` | B | D | nr | Immune to one named effect. |
 | `Buff Removal ResUp` | B | D | mag | Chance of buffs being removed −X%. **Does not affect natural expiry.** Also called `Dispel ResUp`. |
 | `Guts` | B | D | nr | Revive on defeat with X Health/Agility/Luck. Consumed on use. Priority: Special Guts > Guts > passive revival. Buffs and debuffs are **not** removed on revival. |
+| `Guts (Fearsome)` | B | D | nr | Vlad III (Berserker)'s Guts of its own id (`gutsFearsome`, priority 250): stacks with `Guts` and is consumed before it (#333). |
 
 ## A.8 Buffs — multi-hit
 

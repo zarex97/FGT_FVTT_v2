@@ -31,6 +31,11 @@ export function revivalCard(entry, nameOfUnit, nameOfSource, t) {
   if (entry.kind === "revivalChanceMissed" && entry.barred) {
     return `<div class="fgt-card fgt-card--revival"><p>${t("FGT.Revival.ChanceBarred", data)}</p></div>`;
   }
+  // Held back by its own clock or Health rule (#333).
+  if (entry.kind === "revivalHeld") {
+    const key = entry.why === "cooldown" ? "FGT.Revival.HeldCooldown" : "FGT.Revival.HeldHealth";
+    return `<div class="fgt-card fgt-card--revival"><p>${t(key, { ...data, remaining: entry.remaining ?? 0, percent: entry.percent ?? 0 })}</p></div>`;
+  }
   if (entry.kind === "revivalChanceMissed") {
     return `<div class="fgt-card fgt-card--revival"><p>${t("FGT.Revival.ChanceMissed", { ...data, roll: entry.roll, chance: entry.chance })}</p></div>`;
   }

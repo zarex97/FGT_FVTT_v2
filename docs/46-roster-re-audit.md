@@ -7754,6 +7754,42 @@ Ch. 37). On 2026-10-23 the debug Chrome and then Foundry closed on their own; th
 
 ### 46.48.3 Left open
 
-- **SM.\*** wait on Vlad III (Berserker).
+- ~~**SM.\*** wait on Vlad III (Berserker)~~: closed by #333 ruling 1, the seat decides the form (46.49).
 - ~~Every other field drawn for the GM only~~: the user ruled every field drawn for players (2026-10-24); built
   (`fields.mjs#fieldVisibility`) and seen live on Player1's board.
+
+## 46.49 Vlad III (Berserker) — Dracula by name, and the seat that decides the form
+
+Built from `char_orig_sheets/by-class/Berserker/Vlad III (Berserker).md` (#333), 77 Clauses and 11 readings ruled
+(`docs/superpowers/specs/2026-10-24-vlad-berserker-clauses.md`). The coin flip both Vlad sheets open on is ruled away:
+seats are drawn by Class, so a Lancer seat draws the Lancer and a Berserker seat the Berserker, and the Lancer's
+`SM.*` close with his.
+
+### 46.49.1 What he cost the engine
+
+- **An `effectDuration` phase** (Ch. 17): set or extend named held effects, a line for each clock moved.
+- **A phase `chance` with `modifiers`** (Ch. 17) and **an anchor's `rangeWhen`** (Ch. 20): Bloodsucking's 80% and Range
+  2 under Mad Enhancement. The build refuses an unknown `chance` key and a malformed `rangeWhen`.
+- **A live doubling as content**: each Shapeshift buff carries its figure again on `self:effect:dracula`; Dracula
+  listens to `phaseChanged` and removes itself at dawn, the first effect to listen.
+- **Guts (Fearsome)**, a Guts of its own id at priority 250.
+
+### 46.49.2 What was pressed, and how
+
+Rounds 1–6 on *Vlad Berserker Audit*, a War built in the setup wizard with both Vlads, Player1 driving his bar, sheet,
+window and End Turn. All 77 Clauses Pressed or Observed; the log is in the Clause file. BC.np was read off the live
+board's engine, not a card: no enemy left on the board had a damaging Noble Phantasm. Nursery Rhyme's Glass Game
+rewound four Units at Round 4; she was taken off and her Nameless Forest's losses restored by hand.
+
+Three defects surfaced and were fixed, each a Surprise: Dracula's dawn removal said on no card; a boundary's Agility
+said on no card (Lancer's Night heal too); and `modesLocked`, written at a Master's death and read by no switch, so a
+Free Berserker could turn Mad Enhancement off.
+
+### 46.49.3 Ruled after the press (2026-10-24)
+
+- **A mode its player switches is a card**: *"Berserker activates Mad Enhancement."*, by the Unit's public name
+  (`sheet.mjs#sayModeSwitch`); a priced entry keeps its use's own card. Its first post spoke as Player1's character,
+  a Surprise.
+- **A revival held back says why** (`rules/revival.mjs#heldRevivals`, a `revivalHeld` log entry posted as a revival
+  card): *"Battle Continuation cannot bring Berserker back: its Cooldown has 6 Turn(s) left."* and *"…: Health has not
+  been restored above 50% since its last revival."* Both pressed live, BC.cd and BC.half apart.

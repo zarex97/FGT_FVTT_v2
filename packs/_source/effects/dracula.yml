@@ -1,0 +1,32 @@
+# Vlad III (Berserker)'s Legend of Dracula, steps 2 and 3 (#333).
+#
+# > "Vlad gains the 'Dracula' effect for 1◈ Turns, its effects are as follows-
+# > Doubles the magnitude of 'Shapeshift's' Passive effect, the Def Up
+# > (Shapeshift) buff, and the Atk Up (Shapeshift) buff. The 'Dracula' effect is
+# > neither a buff or debuff and is Unremovable (see the next line for the
+# > exception). ... If the Round changes from Night to Day while Vlad has the
+# > 'Dracula' effect, it is removed from him at the start of the Day Round."
+#
+# The doubling is said from the other side: Shapeshift's Ward and the two
+# Shapeshift buffs each carry their figure a second time on
+# `self:effect:dracula`. The exception is the one rule here: any change from
+# Night to Day, a new Round's or another Unit's mid-Round one, takes it off
+# (#333 ruling 9), through `phaseChanged`.
+schema: 1
+id: dracula
+name: "Dracula"
+description: |
+  Doubles Shapeshift's Passive, @effect[defUpShapeshift]{Def Up (Shapeshift)} and @effect[atkUpShapeshift]{Atk Up (Shapeshift)}. Neither a buff nor a debuff, and
+  Unremovable; removed when the Round changes from Night to Day.
+polarity: status
+volatility: none
+stacking: noneRefresh
+baseChance: 500
+unremovable: true
+rules:
+  - key: OnEvent
+    event: phaseChanged
+    automatic: true
+    eventFilter: { to: day }
+    then:
+      - { key: RemoveEffect, effect: dracula, cause: dawn }

@@ -48,6 +48,9 @@ vi.mock("../../module/engine/applier.mjs", () => ({
       if (intent.t === "log") events.push({ at: ctx.source, ...intent.entry });
     }
   },
+  // A boundary's Agility and Luck lines (#333): nothing here moves a pool.
+  poolsBefore: () => [],
+  poolLinesAfter: () => [],
 }));
 vi.mock("../../module/engine/budget.mjs", () => ({
   reset: async (_combat, factionId) => { events.push({ at: "budget.reset", faction: factionId }); },

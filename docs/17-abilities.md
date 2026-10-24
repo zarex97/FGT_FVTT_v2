@@ -327,6 +327,18 @@ charged costs, summed per pool, cannot meet. Enki's half of the Master's maximum
   Spells, shared with the Caster, read the Saber's Spellbook's `modeActive: madEnhancement` (reading 11). The board
   projects each ability's `requirements` for it.
 
+### A duration set by name, and a chance moved by a condition (Vlad III (Berserker), #333)
+
+- **An `effectDuration` phase** sets or extends the clock of named effects the Unit already holds
+  (`rules/effect-duration.mjs#durationChanges`): `{effects, set}` puts each at now + the span, more left or less;
+  `{effects, extend}` adds the span. An effect with no expiry has no clock to move. Each change is a card line,
+  *"Atk Up (Shapeshift): 7 → 3 Turns left"*. Shapeshift's Passive 2, *"their duration is reset to 1◈ Turns"*
+  (ruling 5), and Legend of Dracula's step 1, *"extended by 1◈ Turns"*. The build refuses both keys or neither.
+- **A phase `chance` takes `modifiers`**, `[{add, predicate}]`, each added while its predicate holds of the user:
+  Bloodsucking's 100%, 80% under Mad Enhancement. The build refuses a key `phaseChance` does not read.
+- **A phase's `unmetLine` on a Day Round**: Legend of Dracula's Dracula is gated `not war:phase:day` and the card says
+  *"No Dracula: Legend of Dracula was used in a Day Round."*
+
 ### A held object, a substitution and a form (Gilles (Caster), #323)
 
 - **`weakPoint.kind: object`.** Prelati's Spellbook is aimed at instead of its holder: offered at declaration to an AU

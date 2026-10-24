@@ -380,6 +380,9 @@ describe("a non-damaging Noble Phantasm", () => {
       // Vlad III (#330): Kazıklı Bey opens a field over Wallachia whose ticks
       // are no Attack; its Active 2 strikes with no Combat Process; Legend of
       // Dracula changes him for good and kills a Master in Wallachia.
+      // Vlad III (Berserker) (#333): "(Active/Non-damaging)", buffs and Dracula
+      // on himself.
+      "vlad-berserker-legend-of-dracula",
       "vlad-kazikli-bey",
       "vlad-kazikli-bey-execution",
       "vlad-legend-of-dracula",
