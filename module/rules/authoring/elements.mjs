@@ -480,6 +480,7 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "attacksOnly", type: "checkbox" },
     { key: "restrictsOnly", type: "checkbox" },
     { key: "areaMustInclude", type: "checkbox" },
+    { key: "nearest", type: "checkbox" },
     { key: "suspendWhileBound", type: "checkbox" },
   ]),
   entry("GrantedAbility", "Hands the bearer an ability it does not otherwise have.", [

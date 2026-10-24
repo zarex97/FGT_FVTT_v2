@@ -57,6 +57,8 @@ export const EffectRegistry = {
         // The ceiling on how many instances one Unit may hold, read by
         // `resolveStacking`'s `magnitudeStacks` branch.
         maxStacks: sys.maxStacks ?? null,
+        // Its own removal resistance, read by `rules/removal.mjs` (#330).
+        removalResist: sys.removalResist ?? 0,
         // Read by `rules/snapshot.mjs#contributionsOf` (#198 reading 8).
         rulesOncePerBearer: Boolean(sys.rulesOncePerBearer),
         blocks: sys.blocks ?? [],
@@ -106,6 +108,18 @@ export const EffectRegistry = {
    */
   has(id) {
     return DEFS.has(id);
+  },
+
+  /**
+   * What a card calls a source: a handler names its source by the effect's id
+   * ("regen"), and the card says the effect's name ("Regen", #234). Any other
+   * source is its own words.
+   *
+   * @param {string|null} source
+   * @returns {string|null}
+   */
+  nameOf(source) {
+    return (source && DEFS.get(source)?.name) || source;
   },
 
   /** @returns {object[]} */

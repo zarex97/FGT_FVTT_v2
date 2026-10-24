@@ -1,0 +1,37 @@
+# Conversion source: char_orig_sheets/by-class/Lancer/Vlad III (Lancer).md
+# The audit of #330, the Clause list docs/superpowers/specs/2026-10-23-vlad-lancer-clauses.md.
+#
+# The sheet opens on a coin flip between this Servant and Vlad III (Berserker).
+# The Berserker is not built, so the flip has nothing to land on: he is
+# summoned as the Lancer, and SM.* waits on the Berserker (#330 ruling 1).
+schema: 1
+id: vlad-lancer
+name: "Vlad III (Lancer)"
+type: servant
+
+trueName: Vlad III
+servantClasses: [lancer]
+classContainer: lancer
+alignment: { order: lawful, morality: neutral }
+# "Wallachia, Romania, Europe" (ruling 3): Wallachia is a part of Romania, not
+# a War Region of its own.
+region: [romania, europe]
+attributes: [male, servant, earth, king, humanoid, antiHero]
+
+parameters: { str: B, end: B, agi: A, mag: A, luc: D }
+baseHealth: 1250
+mov: 7
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 125, mag: 200 }
+# The sheet lists both Base Attacks; BA(STR), as the corpus reads it (ruling 2).
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+abilities:
+  - { ref: class-magic-resistance, rank: B, negatedBy: [legendOfDraculaActivated] }
+  - { ref: class-battle-continuation, rank: A }
+  - { ref: vlad-shapeshift }
+  - { ref: vlad-demonic-defender-of-the-state }
+  - { ref: vlad-kazikli-bey }
+  - { ref: vlad-kazikli-bey-execution }
+  - { ref: vlad-legend-of-dracula }

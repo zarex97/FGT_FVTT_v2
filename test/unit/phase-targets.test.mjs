@@ -34,7 +34,7 @@ function ymlUnder(dir) {
  * The three the executor implements. Anything else is a typo that lands wrongly.
  * `linkedGroup` is the caster and its twin (Mana Burst's "both", #209 live).
  */
-const TARGETS = new Set(["self", "reuse", "linkedGroup"]);
+const TARGETS = new Set(["self", "reuse", "linkedGroup", "master"]);
 
 /**
  * Every phase a holder authors, a `choose` option's branch included: Mana

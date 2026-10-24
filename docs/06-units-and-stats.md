@@ -70,6 +70,9 @@ Every sheet authored the closure by hand before this code existed, which meant `
 it (`closeAttributes(attrs, unit, {withheld})`, read by `snapshot.mjs#attributesOf`). U-Olga Marie is a Servant
 *"neither Hominidae or Non-Hominidae"*, so `servant ⟹ hominidae` is withheld; an authored tag stays.
 
+**Romania** (#330 ruling 3) joins the Region graph bordering Europe alone, as France does: Vlad III's *"Wallachia,
+Romania, Europe"* is `[romania, europe]`.
+
 **Earth is no War Region** (#328 ruling 3): `environment.mjs#NOT_A_WAR_REGION`. U-Olga Marie is from Earth, every
 War is fought on it, and her sheet grants no bonus there, so `regionBonusFor` never answers it.
 

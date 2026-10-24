@@ -738,6 +738,7 @@ export function boundedFieldsOf(scene) {
         upkeep: sys.upkeep ?? null,
         deactivation: sys.deactivation ?? null,
         passive: Boolean(sys.passive),
+        outlivesOwner: Boolean(sys.outlivesOwner),
         createdAt: sys.createdAt ?? null,
         lastUpkeepAt: sys.state?.lastUpkeepAt ?? null,
         state: sys.state ?? { escapeHistory: {} },

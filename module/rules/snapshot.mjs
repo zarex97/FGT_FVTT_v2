@@ -22,7 +22,7 @@ import { remainingMovement } from "./movement.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { collectContributions, EFFECT_INSTANCE, EXECUTORS, empty } from "./elements.mjs";
 import { baseAttackAdjustment } from "./setup-rolls.mjs";
-import { annotateZon } from "./zon.mjs";
+import { annotateZon, waiveZon } from "./zon.mjs";
 import { annotateLinkedGroups, annotateLegions } from "./linked-group.mjs";
 import { annotateAllies } from "./named-units.mjs";
 import { annotateAuras } from "./auras.mjs";
@@ -1035,6 +1035,9 @@ export function snapshotBoard({ scene, actors, settings = {} }) {
   // addressed by relation and by kind, both of which `annotateControl` has
   // already settled.
   annotateFields(units, board);
+  // A ZON a field waives whole, now that its interior is on the Units inside:
+  // Wallachia's *"his Master's ZON is ignored"* (#330 ruling 29).
+  waiveZon(units);
   // Day/Night and Home Base are facts about the FIELD, so they settle here for
   // the same reason terrain and auras do: a unit projected alone cannot know
   // which Round it is or whose ground it is standing on.

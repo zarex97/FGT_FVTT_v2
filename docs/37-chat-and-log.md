@@ -38,9 +38,13 @@ and each recipient's; both name a Unit by its public name, since the caster's pl
 
 **What a handler did is a line** (#202). `engine/applier.mjs#applyIntents` returns `lines`: what a handler's batch
 landed (the landing's own summary, applied or resisted), the stages it took (`Curse: Stage 10 → 8`), the clocks it cut
-(`Name: Cooldown 12 → 10`) and the stats it moved (`Agility 16 → 15`), and what the handlers its writes raise did in
+(`Name: Cooldown 12 → 10`), the heals it gave (*"Lancer regains 312 Health (Legend of Dracula (Activated))."*, the
+turn report's words, as given against the maximum, the source by `EffectRegistry.nameOf`; #330) and the stats it moved
+(`Agility 16 → 15`), and what the handlers its writes raise did in
 turn (Channel Marker Soul's cut on each Curse landing). The attack path prints them on the Process card
-(`damageStepStart`, `damageDealt`, `damageTaken`, `damageStepEnd`, `attackLanded`, `attackPerformed`), a Skill on its
+(`damageStepStart`, `damageDealt`, `damageTaken`, `damageStepEnd`, `attackLanded`, `attackPerformed`, and the damage
+batch with its defeat: `unitFelled` and `unitKilled`), a Civilian's death under its defeat card
+(`defeat-card.mjs#postLinesCard`: Ch. 06's bounty and the killer's `unitKilled`), a Skill on its
 card after the phase that raised them, and a Turn's or a Round's end on its card. A Turn's end posts the periodic card
 too (*"End of the Turn — Foreigner takes 63 from Curse"*), by the effect's name. **A removal a rule makes is a line** (#258): an event's `RemoveEffect` marks its intent `byRule`, and `removalLines` prints *"Soaked: removed"*, for a Day Round drying it and Fire using it up alike; an expiry is not one. A Noble Phantasm's removal phase lines each effect it took and each it could not: *"Atk Up: resisted, rolled 7 vs 0%"* under BuffRemoval ResUp (§46.4-SI).
 

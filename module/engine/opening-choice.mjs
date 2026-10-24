@@ -25,7 +25,22 @@ import { currentWar } from "./war.mjs";
  * @returns {object[]} ability items
  */
 export function openingChoicesOf(actor) {
-  return [...(actor?.items ?? [])].filter((i) => i.system?.isMode && i.system?.openingChoice);
+  return [...(actor?.items ?? [])].filter((i) => (i.system?.isMode && i.system?.openingChoice) || placesField(i));
+}
+
+/**
+ * A passive field its player places, not yet on the board: Wallachia, *"When
+ * Vlad III (Lancer) is summoned, the player with Vlad marks out a 9x9 panel
+ * area"* (#330 ruling 4). Placed once; a field already open owes nothing.
+ *
+ * @param {object} item
+ * @returns {boolean}
+ */
+function placesField(item) {
+  const spec = item?.system?.field ?? null;
+  if (!spec?.passive || spec.placement !== "chosen") return false;
+  const fieldId = item.system?.contentId ?? item.id;
+  return !(currentBoard().fields ?? []).some((f) => f.id === fieldId);
 }
 
 /**
@@ -73,6 +88,15 @@ export async function askOpeningChoices(actorId) {
   if (!actor) return true;
   for (const itemId of [...(actor.system?.openingChoices?.due ?? [])]) {
     const item = actor.items.get(itemId);
+    if (item && item.system?.field?.placement === "chosen") {
+      if (!placesField(item)) {
+        await settle(actor, itemId);
+        continue;
+      }
+      if (!(await placeField(actor, item))) return false;
+      await settle(actor, itemId);
+      continue;
+    }
     if (!item?.system?.openingChoice) {
       await settle(actor, itemId);
       continue;
@@ -93,6 +117,45 @@ export async function askOpeningChoices(actorId) {
     if (pick !== "off" && pick !== "on") return false;
     await applyChoice(actor, item, pick === "on", labels[pick]);
   }
+  return true;
+}
+
+/**
+ * Ask the field's player where its centre goes, and open it there.
+ *
+ * @param {object} actor
+ * @param {object} item
+ * @returns {Promise<boolean>} whether it opened
+ */
+async function placeField(actor, item) {
+  const [{ chosenCentres }, { placeChosenField }, { askOwner }] = await Promise.all([
+    import("../rules/bounded-fields.mjs"),
+    import("./fields.mjs"),
+    import("./ask.mjs"),
+  ]);
+  const board = currentBoard();
+  const self = (board.units ?? []).find((u) => u.id === actor.id);
+  if (!self?.panel) return false;
+  const panels = chosenCentres(self, board);
+  if (panels.length === 0) return false;
+  const name = item.system.field.name ?? item.name;
+  const answer = await askOwner(actor, {
+    kind: "pickPanels", panels, labels: [name],
+    // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
+    hint: game.i18n.format("FGT.OpeningChoice.PlaceField", { name: actor.name, field: name }),
+  });
+  const at = answer?.panels?.[0] ?? null;
+  if (!at || !panels.some((p) => p.i === at.i && p.j === at.j)) return false;
+  const region = await placeChosenField(item, actor, at);
+  if (!region) return false;
+  const whisper = game.users
+    .filter((u) => u.isGM || actor.testUserPermission(u, "OWNER"))
+    .map((u) => u.id);
+  await ChatMessage.create({
+    // fgt-name-ok: whispered to the GM and the Unit's owners
+    content: `<p>${game.i18n.format("FGT.OpeningChoice.FieldPlaced", { name: actor.name, field: name })}</p>`,
+    whisper,
+  });
   return true;
 }
 

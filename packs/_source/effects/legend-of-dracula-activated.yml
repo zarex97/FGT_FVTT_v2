@@ -1,0 +1,111 @@
+# Vlad III (Lancer)'s Legend of Dracula, once used (#330).
+#
+# > "Cannot be deactivated after it is used. Permanently applies the following
+# > effects to Vlad-"
+#
+# Karna's Vasavi Shakti (Activated) is the shape: a permanent, unremovable
+# status whose rules ARE the clauses. Clauses 4 and 5 are said from the other
+# side: Shapeshift doubles on `self:effect:legendOfDraculaActivated`, and
+# Kazıklı Bey and Magic Resistance carry `negatedBy: [legendOfDraculaActivated]`.
+schema: 1
+id: legendOfDraculaActivated
+name: "Legend of Dracula (Activated)"
+description: |
+  Vlad III is Dracula, for good. Dark (Vampire). Heals 100 Health and 1 Agility at the end of his Turn, of any
+  Turn he Acts and of the Round in a Night Round; 100 Health and 1 Agility for each Unit he damages; 25% of
+  his maximum Health and Agility for each Unit he defeats (a Civilian: 100 and 1). Shapeshift doubled;
+  Kazıklı Bey and Magic Resistance gone. Always Attacks and Moves towards the closest Unit, allies included.
+  Range +1 panel, targets +1, Moves through obstacles, Base Attack (STR) +75. Evade rolls -4. Total Fire
+  damage taken +25%.
+polarity: status
+volatility: none
+stacking: noneNoRefresh
+baseChance: 500
+defaultDuration: permanent
+unremovable: true
+rules:
+  # 1. "Vlad gains the 'Dark (Vampire)' Attribute", as the Gigantic Horror's
+  # "Dark (Outsider)" is [dark, outsider].
+  - key: StatDelta
+    stat: attributes
+    add: [dark, vampire]
+
+  # 2. "During a Night Round, Vlad heals 100 Health and 1 Agility at the end of
+  # his Turn, at the end of any Turn he Acts, and at the end of the Round." Once
+  # per Turn end (ruling 13): Raikou's Tenmōkaikai handler, `anyTurnEnd` gated
+  # on his own Turn OR his Acting, deferred to when it fires.
+  - key: OnEvent
+    event: anyTurnEnd
+    automatic: true
+    defer: true
+    predicate:
+      - "war:phase:night"
+      - or: ["self:ownTurn", "self:selfOrSummonsActed"]
+    then:
+      - { key: Heal, amount: 100 }
+      - { key: StatDelta, stat: agility.value, amount: 1 }
+  - key: OnEvent
+    event: roundEnd
+    automatic: true
+    defer: true
+    predicate: ["war:phase:night"]
+    then:
+      - { key: Heal, amount: 100 }
+      - { key: StatDelta, stat: agility.value, amount: 1 }
+
+  # 3. "Each time Vlad deals damage to a Unit, he heals 100 Health and 1
+  # Agility (no effect if no damage is dealt)." Once per Unit damaged (ruling 16).
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    # The event fires on a hit that dealt 0 too; this pays only on damage.
+    predicate: ["attack:dealtDamage"]
+    then:
+      - { key: Heal, amount: 100 }
+      - { key: StatDelta, stat: agility.value, amount: 1 }
+  # "Each time he defeats a Unit, his Health and Agility is restored by 25% of
+  # their maximum values. However, if he defeats a Civilian, he only heals 100
+  # Health and 1 Agility." A Unit his hit took to 0 counts, revived or not
+  # (`unitFelled`, ruling 16). A Civilian is never felled by a hit: it dies
+  # outright, and Ch. 06's bounty for killing one is already 100 Health and 1
+  # Agility (`rules/environment.mjs#civilianKill`), which is the "only" here --
+  # in place of the 25%, not beside it (found pressing).
+  - key: OnEvent
+    event: unitFelled
+    automatic: true
+    defer: true
+    predicate: [{ not: "target:type:civilian" }]
+    then:
+      - { key: Heal, percentOfMax: 25 }
+      - { key: StatDelta, stat: agility.value, percent: 25, percentOf: maxAgility }
+
+  # 6. "Vlad will always Attack (and Move towards) the closest Unit, including
+  # allied Units." Any reach; the nearest as many as he has targets, a tie at
+  # random; his own Master counts; allies spared in Grand Order (ruling 14).
+  - key: Compulsion
+    id: dracula
+    nearest: true
+    relations: [ally, enemy]
+    forcesTarget: true
+    pursues: true
+    attacksOnly: true
+    spareAlliesInGrandOrder: true
+
+  # 7. "Range is increased by 1 panel, and number of targets is increased by 1.
+  # Vlad can Move to any unoccupied panel while Moving, regardless of obstacles
+  # (but still cannot enter the area around an enemy Master...)." Proto Gil's
+  # Levitation, word for word: `passesThroughUnits` (ruling 15).
+  - { key: RangeDelta, value: 1, isBuff: false }
+  - { key: StatDelta, stat: range.targets, value: 1, isBuff: false }
+  - { key: GrantedAbility, abilities: [passesThroughUnits] }
+
+  # 8. "Base Attack (STR) is increased by 75."
+  - { key: StatDelta, stat: baseAttack.str, value: 75 }
+
+  # 9. "Whenever Vlad performs an Evade roll, reduce the value rolled by 4. Does
+  # not affect non-Evade Agility Checks."
+  - { key: CheckModifier, check: evade, direction: outgoing, value: -4 }
+
+  # 10. "Total Fire damage taken is increased by 25%": a Total Damage clause at
+  # stage 15, as Soaked's; negative on the `taken` side is an increase.
+  - { key: DamageModifier, modifierKey: elementTotalDefUp, element: fire, direction: taken, value: -25, npValue: -25 }

@@ -92,6 +92,7 @@ export async function applyIntents(intents, {
   const said = sink ?? [];
   const clocks = lines ? clocksBeforeBatch(intents) : [];
   const stats = lines ? statsBeforeBatch(intents) : [];
+  const healths = lines ? healthsBeforeBatch(intents) : new Map();
   const spans = lines ? spansBeforeBatch(intents) : [];
   const held = lines ? itemsBeforeBatch(intents) : [];
   // HERE rather than in `applyWorldIntents`, because three call sites write to
@@ -134,7 +135,7 @@ export async function applyIntents(intents, {
   if (plan.remote.length > 0) await io.proxy(plan.remote, { source });
   for (const p of plan.prompts) await io.prompt(p.userId, p.prompt);
 
-  said.push(...clockLines(clocks), ...statLines(stats), ...await spanLines(spans), ...itemLines(held), ...await decayLines(plan.local), ...tallyLines(plan.local), ...suppressionLines(lines ? plan.local : []),
+  said.push(...clockLines(clocks), ...await healLines(plan.local, healths), ...statLines(stats), ...await spanLines(spans), ...itemLines(held), ...await decayLines(plan.local), ...tallyLines(plan.local), ...suppressionLines(lines ? plan.local : []),
     ...await removalLines(lines ? plan.local : []));
   return { applied: plan.local.length, proxied: plan.remote.length, prompted: plan.prompts.length, lines: said };
 }
@@ -182,6 +183,53 @@ export function statChangeLine(intent, before = null, after = null) {
     return before === after ? `${label} ${after} (no change)` : `${label} ${before} → ${after}`;
   }
   return `${label} ${delta > 0 ? "+" : ""}${delta}`;
+}
+
+/**
+ * The Health of every Unit a batch heals, read before it is written.
+ *
+ * @param {Intent[]} intents
+ * @returns {Map<string, {value: number, max: number}>}
+ */
+function healthsBeforeBatch(intents) {
+  const out = new Map();
+  if (typeof game === "undefined" || !game?.actors) return out;
+  for (const i of intents ?? []) {
+    if (i?.t !== "heal" || i.revival || !i.unitId || out.has(i.unitId)) continue;
+    const h = unitActor(i.unitId)?.system?.health;
+    if (Number.isFinite(h?.value) && Number.isFinite(h?.max)) out.set(i.unitId, { value: h.value, max: h.max });
+  }
+  return out;
+}
+
+/**
+ * Each heal a batch gave, as a card line: Legend of Dracula's 100 Health for a
+ * Unit he damaged, 25% for one he felled, Ch. 06's 100 for a Civilian. A
+ * handler's heal on an attack printed nothing; its Agility beside it did (#330,
+ * found pressing). The turn report's words, by the Unit's public name, and what
+ * the heal really gave against the maximum: one that gave nothing is not said,
+ * and a revival is the revival's line.
+ *
+ * @param {Intent[]} written the batch as written (healing already scaled)
+ * @param {Map<string, {value: number, max: number}>} healths {@link healthsBeforeBatch}
+ * @returns {Promise<CardLine[]>}
+ */
+async function healLines(written, healths) {
+  if (healths.size === 0) return [];
+  const [{ shownName }, { EffectRegistry }] = await Promise.all([
+    import("./public-identity.mjs"), import("../rules/registry.mjs"),
+  ]);
+  const left = new Map([...healths].map(([id, h]) => [id, { ...h }]));
+  return (written ?? []).filter((i) => i?.t === "heal" && !i.revival && i.amount > 0 && left.has(i.unitId)).flatMap((i) => {
+    const h = left.get(i.unitId);
+    const gave = Math.max(0, Math.min(i.amount, h.max - h.value));
+    h.value += gave;
+    if (gave === 0) return [];
+    const name = game.i18n.format("FGT.TurnReport.Gains", {
+      who: shownName(unitActor(i.unitId)), amount: gave, source: EffectRegistry.nameOf(i.source) ?? game.i18n.localize("FGT.Revival.UnknownSource"),
+    });
+    return [{ unitId: i.unitId, summary: { id: "heal", name, outcome: "applied", reason: null, chance: null } }];
+  });
 }
 
 /**

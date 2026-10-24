@@ -34,11 +34,11 @@ export function annotateCompulsions(units, board) {
     unit.compulsions = compulsionsFor(unit, board);
     // *"When the Gigantic Horror Attacks, it always Attacks the nearest Unit"*
     // (#323 reading 12c): any Unit, any side, Masters and summons included; on
-    // a tie the GM picks among them. When it ATTACKS: his Evil Gaze is a Skill
+    // a tie the system picks one at random (#330 ruling 19). When it ATTACKS: his Evil Gaze is a Skill
     // and aims where the GM turns it. His 3x3 must hold the nearest, and hits
     // every other Unit in it as well (11g), as Karna's area need only hold
     // Arjuna (live: it narrowed both).
-    const nearest = unit.attacksNearest ? nearestUnits(unit, units) : [];
+    const nearest = unit.attacksNearest ? nearestUnits(unit, units, { seed: board?.tick ?? 0 }) : [];
     if (nearest.length > 0) {
       unit.compulsions = [...unit.compulsions, {
         id: "nearest", forcesTarget: true, forcesSkill: null, targetIds: nearest, source: "Gigantic Horror",
@@ -68,21 +68,47 @@ export function annotateCompulsions(units, board) {
 }
 
 /**
- * The Units nearest this one, every one at the least distance. Platforms and
+ * The Units nearest this one, nearest first, `count` of them. Platforms and
  * structures are stood on, not attacked; a defeated body is no Unit.
+ *
+ * A tie is broken at random by the system (#330 ruling 19): the Gigantic
+ * Horror's *"the nearest Unit"* and Legend of Dracula's *"the closest Unit"*
+ * alike. Seeded, so every client and every read in one Turn draws the same
+ * Unit, and the next Turn may draw another.
+ *
+ * Pure.
  *
  * @param {object} unit
  * @param {object[]} units
+ * @param {{count?: number, seed?: number|string}} [opts]
  * @returns {string[]}
  */
-export function nearestUnits(unit, units) {
+export function nearestUnits(unit, units, { count = 1, seed = 0 } = {}) {
   if (!unit?.panel) return [];
   const others = (units ?? []).filter((u) => u.id !== unit.id && u.panel && !u.defeated
     && u.kind !== "platform" && u.kind !== "structure");
   if (others.length === 0) return [];
   const d = (u) => chebyshev(unit.panel, u.panel);
-  const least = Math.min(...others.map(d));
-  return others.filter((u) => d(u) === least).map((u) => u.id);
+  const draw = (u) => tieDraw(`${seed}|${unit.id}|${u.id}`);
+  return [...others]
+    .sort((a, b) => d(a) - d(b) || draw(a) - draw(b) || String(a.id).localeCompare(String(b.id)))
+    .slice(0, Math.max(1, count))
+    .map((u) => u.id);
+}
+
+/**
+ * A number in [0, 1) from a string, the same on every client (FNV-1a).
+ *
+ * @param {string} text
+ * @returns {number}
+ */
+function tieDraw(text) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h / 0x100000000;
 }
 
 /**
@@ -184,6 +210,28 @@ function compulsionsFor(unit, board) {
 
   for (const rule of unit.compulsionRules ?? []) {
     const targetIds = [];
+
+    // *"Vlad will always Attack (and Move towards) the closest Unit, including
+    // allied Units"* (Legend of Dracula, #330 ruling 14): no reach, the nearest
+    // as many as his Attack has targets (ruling 18), a tie at random.
+    if (rule.nearest) {
+      const pool = (board.units ?? []).filter((other) => other.id !== unit.id && !other.defeated
+        && relationAllowed(rule, unit, other, board)
+        && !(rule.spareAlliesInGrandOrder && board.grandOrder && allied(unit, other, board)));
+      const ids = nearestUnits(unit, pool, { count: unit.maxTargets ?? 1, seed: board.tick ?? 0 });
+      if (ids.length > 0) {
+        out.push({
+          id: rule.id, forcesTarget: Boolean(rule.forcesTarget), forcesSkill: rule.forcesSkill ?? null,
+          pursues: Boolean(rule.pursues), targetIds: ids, source: rule.source,
+          attacksOnly: Boolean(rule.attacksOnly), restrictsOnly: Boolean(rule.restrictsOnly),
+          areaMustInclude: Boolean(rule.areaMustInclude), nearest: true,
+          // Who it may name, for the Attack's own relations: an ally is a legal
+          // target only because the compulsion names one (ruling 14).
+          relations: [...(rule.relations ?? ["ally", "enemy"])],
+        });
+      }
+      continue;
+    }
 
     for (const other of board.units ?? []) {
       // A unit can never compel itself, however well it matches. Penthesilea
