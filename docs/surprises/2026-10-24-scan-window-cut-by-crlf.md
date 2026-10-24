@@ -11,6 +11,6 @@ reviewed: false
 **Cause:** `test/unit/drake.test.mjs:863 @ 6832257e` sliced 5000 characters after `fireDamageDealt`. The merge's
 checkout rewrote `attack.mjs` from LF to CRLF, one more character a line, and the window stopped short of the
 check, which lives in `rollChances`.
-**Fix:** `test/helpers/source.mjs#functionBody @ uncommitted` reads a function from its header to the next
+**Fix:** `test/helpers/source.mjs#functionBody @ 399ffa21` reads a function from its header to the next
 top-level function, line endings normalised. The Drake scan names both functions, and the nine other fixed
 windows in five files use the helper.
