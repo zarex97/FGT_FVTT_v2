@@ -3,7 +3,8 @@ id: 2026-10-25-attack-refusal-names-the-id
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Player1 pressing Arturia (Lancer)'s Mana Burst after Torrent of Light in the same Round is refused in
 the sheet's words: *"Cannot be used on the same Round as Torrent of Light."*

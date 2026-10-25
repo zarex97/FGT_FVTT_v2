@@ -3,7 +3,8 @@ id: 2026-10-25-charge-spent-by-an-earlier-np
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** NP DmUp (Round) is spent by the holder's next damaging Noble Phantasm, the one it raised (#336 ruling 5),
 as Overcharge is spent by the NP it scaled (#260 reading 8).

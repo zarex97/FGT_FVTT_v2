@@ -3,7 +3,8 @@ id: 2026-10-24-sheet-annotator-matches-wrong-kin
 found: tooling
 kind: claim-without-reading-the-path
 status: open
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** `node tools/capability.mjs --sheet` on the hand-written Arturia (Lancer) Clause list links each
 Clause to the key that runs it and a built precedent (deepenings plan Q6/Q13), so a gap it reports can be trusted.

@@ -3,7 +3,8 @@ id: 2026-10-25-use-skill-switches-nothing
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** A Riding Active sent to the GM as a `useSkill` request switches Riding on, or is refused, as the sheet's
 switch (`FGTActorSheet.toggleMode`) does.
