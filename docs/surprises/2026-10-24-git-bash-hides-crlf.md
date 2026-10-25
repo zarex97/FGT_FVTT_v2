@@ -3,7 +3,8 @@ id: 2026-10-24-git-bash-hides-crlf
 found: tooling
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** `grep -c $'\r' module/engine/attack.mjs` printing 0 and `cat -A` ending lines in `$` meant the file is
 LF, so an exact-text edit written with `\n` would match it.

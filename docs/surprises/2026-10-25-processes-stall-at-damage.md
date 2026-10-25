@@ -3,7 +3,8 @@ id: 2026-10-25-processes-stall-at-damage
 found: live press
 kind: write-before-store
 status: open
-reviewed: false
+reviewed: true
+pattern: write-before-store
 ---
 **Expected:** A Strike Air declared on an enemy Master, answered "nothing" and then past its Command Spell interrupt
 (`interruptTimeout` 15 s), deals its damage and closes, as the same NP on Karna did a minute later.
