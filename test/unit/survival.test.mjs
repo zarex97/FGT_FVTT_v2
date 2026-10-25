@@ -473,6 +473,23 @@ describe("every Authored Key survives its Route", () => {
  * content that carries the key, so the route cannot outlive its only user.
  */
 export const NESTED_ROUTES = [
+  // Ranged, Melee or Special as the sheet states it (#281): a Normal Attack's,
+  // a band's, a damage block's or one instance's.
+  {
+    key: "delivery",
+    authored: ["packs/_source/servants/karna.yml", "packs/_source/abilities/arturia-strike-air.yml"],
+    hops: [
+      { file: "module/data/actor/_shared.mjs", why: "normalAttackField declares it; Foundry drops what a schema does not name" },
+      { file: "module/rules/snapshot.mjs", why: "the projection rebuilds normalAttack field by field and carries it" },
+      { file: "module/rules/normal-attack.mjs", why: "normalAttackAt hands it on, a band's over the Normal Attack's" },
+      { file: "module/rules/damage/instances.mjs", why: "DAMAGE_BLOCK_KEYS admits it on a damage block and an instance" },
+      { file: "module/rules/delivery.mjs", why: "statedDeliveryOf reads the block's; deliveryOf decides stated or measured" },
+      { file: "module/engine/attack.mjs", why: "buildAttackSpec stamps it and attackFacts decides it per defender" },
+      { file: "module/rules/options.mjs", why: "emits attack:delivery for every clause that asks" },
+      { file: "module/rules/platforms.mjs", why: "crossLevelLegal asks it for a rangedOnly platform" },
+      { file: "module/rules/miss.mjs", why: "nullifiedBy asks it for Gravity Manipulation" },
+    ],
+  },
   // The Golden Hind's swing meets Magic Resistance at its Noble Phantasm's
   // Rank, not Drake's MAG (#187 reading 8).
   {

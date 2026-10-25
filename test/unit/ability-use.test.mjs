@@ -120,7 +120,8 @@ describe("targetSpecFor", () => {
     // A copy that SAYS whether it is an Attack, and otherwise the declaration
     // as it was written (#133): a declared Skill with no attack phase is not one.
     const spec = targetSpecFor(ability({ targeting: declared }), 3);
-    expect(spec).toEqual({ ...declared, limits: { forAttack: false } });
+    // ...and what it states of its delivery: nothing, so it is measured (#281).
+    expect(spec).toEqual({ ...declared, delivery: null, limits: { forAttack: false } });
     expect(declared.limits).toBeUndefined();
   });
 

@@ -25,6 +25,7 @@ import { parametersCounted } from "./count.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { STANDARD_CLASSES, KNIGHT_CLASSES } from "../domain/enums.mjs";
+import { isDelivery } from "./delivery.mjs";
 import { GENERATED_EMITTABLE } from "./facets.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { NP_TAG_SCALE, scaleTagOf } from "./np-scale.mjs";
@@ -196,6 +197,10 @@ export function rollOptionsFor({ attacker, defender, attack = null, withoutModeH
   // Rho Aias' Health cannot drop below 1" -- and therefore the only clause in
   // the game that can stop an arbitrarily large Noble Phantasm outright.
   if (attack.thrownWeapon) options.add("attack:thrownWeapon");
+  // HOW IT IS DELIVERED: Ranged, Melee or Special, decided per defender by the
+  // Attack Description (`engine/attack.mjs#attackFacts`, #281). An option set
+  // built from a bare declaration may not know it yet, and emits nothing.
+  if (isDelivery(attack.delivery)) options.add(`attack:delivery:${attack.delivery}`);
   // WHETHER IT CRIT. Known only once the coin has been flipped, so it is absent
   // from every option set built before the Damage Step -- which is correct: a
   // clause that reads it is by definition asking about a resolved attack.

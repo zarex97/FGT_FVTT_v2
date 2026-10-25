@@ -30,7 +30,7 @@ The ability editor is an **ItemSheetV2 registered as the default sheet for three
 
 **Header** carries every value that gates an action: the three depleting resources (Health, Agility, Luck), public identity (class/alignment/region), portrait and badges (defeated, concealed, modes locked). The faction's colour matches the token on canvas (`module/apps/actor-sheet/context.mjs:221`).
 
-**Overview tab** shows what this unit may do now: Base Attack and Normal Attack (written rank + projected rank), MOV, Detect range, Sustainability, stance buttons if applicable. All figures are projections where the snapshot differs from authored values — a Master's granted steps, a Region's rank bonus, a mode's effect (`module/apps/actor-sheet/context.mjs:345`).
+**Overview tab** shows what this unit may do now: Base Attack and Normal Attack (written rank + projected rank, and its stated delivery, a band's beside the band, #281), MOV, Detect range, Sustainability, stance buttons if applicable. An ability card shows its `{R}`, `{M}` or `{S}` as a tag beside its Rank when its damage block states one. All figures are projections where the snapshot differs from authored values — a Master's granted steps, a Region's rank bonus, a mode's effect (`module/apps/actor-sheet/context.mjs:345`).
 
 **Abilities tab** groups abilities by type (Class Skill, Skill, Noble Phantasm) and shows each as a card with name, rank, cooldown, cost, description and a button whose class (toggle/button/text) reflects whether it is a mode, an attack or passive (`module/apps/actor-sheet/context.mjs:569`).
 
