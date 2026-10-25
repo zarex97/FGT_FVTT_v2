@@ -20,7 +20,7 @@ Moralltach is `{M}` at *"Range=3"*, so the War Rule would call it ranged.
 The 48 older repo sheets carry no tags, so the engine had to infer what the sheet now states. *Special* is not
 defined on any sheet read so far.
 
-**Fix:** `module/rules/delivery.mjs#deliveryOf @ uncommitted` — the stated tag wins, the closest statement first, and
+**Fix:** `module/rules/delivery.mjs#deliveryOf @ aae603b7` — the stated tag wins, the closest statement first, and
 an Attack that states none is measured as before (#281, ruled 2026-10-24). Read by `engine/attack.mjs#attackFacts`,
 `rules/platforms.mjs#crossLevelLegal` and `rules/miss.mjs#nullifiedBy`. Earlier: open in the engine (#281). The user ruled on 2026-10-21: *"Special means special, neither melee nor
 ranged."* A rule that asks for a ranged Attack refuses a Special one, and so does a rule that asks for melee. An
