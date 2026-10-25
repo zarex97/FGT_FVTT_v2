@@ -341,6 +341,18 @@
     background: var(--fgt-gold);
   }
 
+  // Ranged, Melee or Special, as the sheet tags the Attack (#281).
+  &__delivery {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.05rem 0.3rem;
+    border-radius: 2px;
+    border: 1px solid var(--fgt-gold);
+    color: var(--fgt-gold);
+  }
+
   &__use {
     flex: 0 0 auto;
     padding: 0.15rem 0.6rem;

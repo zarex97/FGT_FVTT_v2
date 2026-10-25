@@ -6,6 +6,11 @@
     <span class="fgt-card__ability">
       {{abilityName}}{{#if abilityRank}} ({{abilityRank}}){{/if}}
     </span>
+    {{!-- Ranged, Melee or Special against this defender (#281): what a
+          platform's protection and Gravity Manipulation ask. --}}
+    {{#if delivery}}
+      <span class="fgt-card__delivery">{{localize (concat "FGT.Delivery." delivery)}}</span>
+    {{/if}}
   </header>
 
   {{!-- §26.7. `visibility` is computed for whoever is LOOKING, because

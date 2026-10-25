@@ -1976,12 +1976,14 @@ export const EXECUTORS = Object.freeze({
   /**
    * Attacks that have no effect on the bearer: Gravity Manipulation's *"Ranged
    * Attacks which deal STR damage from 4 or more panels away from Olga Marie
-   * have no effect on her"* (#328 ruling 9). By the Attack's Base Attack and
-   * the distance it comes from; read at Combat Process step 1.5
+   * have no effect on her"* (#328 ruling 9). By the Attack's Base Attack, its
+   * delivery (#281) and the distance it comes from; read at Combat Process step 1.5
    * (`rules/miss.mjs#nullifiedBy`).
    */
   NullifiesAttacks(el, { source, out }) {
-    out.attackNullifiers.push({ component: el.component ?? null, minDistance: el.minDistance ?? 0, source });
+    out.attackNullifiers.push({
+      component: el.component ?? null, delivery: el.delivery ?? null, minDistance: el.minDistance ?? 0, source,
+    });
   },
 
   /**

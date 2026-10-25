@@ -328,6 +328,12 @@ far it reaches and how it was answered. Fixed in part when the attack is declare
 each defender. The preview, the resolution and the counterfactual read the same one.
 _Avoid_: attack spec, facts, context (those are its parts in code)
 
+**Delivery**:
+Whether an Attack is Ranged, Melee or Special, as its sheet states it (`{R}`, `{M}`, `{S}`, a Normal
+Attack's `N.Atk Type`). The closest statement wins: one hit's, a Normal Attack's distance band's, the
+Attack's. An Attack that states none is measured by its Range. Special is neither Ranged nor Melee.
+_Avoid_: attack type, range type, ranged-ness
+
 **Damage Step**:
 One resolved instance of damage within a Combat Phase. One declaration may produce several.
 

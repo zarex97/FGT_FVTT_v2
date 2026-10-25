@@ -43,6 +43,8 @@ targeting:
   selection: { relations: [enemy, ally, neutral], includeSelf: false, chooser: all }
   isDamagingAoE: true
 damage:
+  # `{R}` at its head in `by-class/Saber/Arturia.md`: Ranged (#281).
+  delivery: ranged
   component: mag
   multiplier: 4
   flatBonus: 200

@@ -607,6 +607,15 @@ export const FACETS = Object.freeze([
     prose: "the attack is {element}",
   }),
   facet({
+    // `{R}`, `{M}` or `{S}` as the sheet states it, else measured by Range
+    // (`rules/delivery.mjs#deliveryOf`, #281). Special is neither of the others.
+    id: "delivery",
+    subjects: ["attack"],
+    segments: [{ name: "delivery", value: closed("DELIVERIES") }],
+    english: "The attack is Ranged, Melee or Special.",
+    prose: "the attack is {delivery}",
+  }),
+  facet({
     id: "npScale",
     subjects: ["attack"],
     segments: [

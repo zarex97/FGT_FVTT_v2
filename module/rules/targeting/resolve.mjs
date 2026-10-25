@@ -21,6 +21,8 @@ import { isolationBlocks, panelsOf } from "../bounded-fields.mjs";
 import { relationOf } from "../relations.mjs";
 import { guardsInRange, guardsNear } from "../master-guard.mjs";
 import { crossLevelLegal, interiorOf } from "../platforms.mjs";
+import { NORMAL_ATTACK_DELIVERY } from "../delivery.mjs";
+import { normalAttackAt } from "../normal-attack.mjs";
 import { Rank } from "../../domain/rank.mjs";
 import { facingAllows, pathClear } from "./facing.mjs";
 import { shownNameOf } from "../identity.mjs";
@@ -337,7 +339,7 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   //     which is the `aoe*` axes' business. An occupant kept at a tier below
   //     full damage carries it out as `platformFactor`, for stage 15.
   const crossLevelOptions = {
-    range: typeof spec.anchor?.range === "number" ? anchorRange(spec.anchor, caster) : null,
+    range: measuredReach(spec.anchor, caster),
     allowDirectlyBelow: Boolean(spec.allowDirectlyBelow),
     // The placement says what the resolution is; failing that the spec does
     // (the targeting session's preview says so on the spec, because it calls
@@ -349,8 +351,19 @@ export function resolveTargets(spec, caster, board, placement = {}) {
   };
   /** @type {Map<string, {platformFactor: number, platformName: string}>} */
   const tiers = new Map();
+  // What the Attack STATES, Ranged, Melee or Special (#281), asked against each
+  // target: a Normal Attack's band changes with the distance it strikes at.
+  const stated = placement?.delivery ?? spec.delivery ?? null;
+  const mount = spec.anchor?.originUnitId
+    ? (board.units ?? []).find((p) => p.id === spec.anchor.originUnitId && p.kind === "platform") ?? null
+    : null;
+  const deliveryAgainst = (u) => {
+    if (stated !== NORMAL_ATTACK_DELIVERY) return stated;
+    const distance = caster.panel && u.panel ? geo.chebyshev(caster.panel, u.panel) : null;
+    return normalAttackAt(caster, distance, { platform: mount }).delivery;
+  };
   survivors = survivors.filter((u) => {
-    const verdict = crossLevelLegal(caster, u, board, crossLevelOptions);
+    const verdict = crossLevelLegal(caster, u, board, { ...crossLevelOptions, delivery: deliveryAgainst(u) });
     if (!verdict.ok) return drop(u, crossLevelReason(verdict.reason));
     if (typeof verdict.factor === "number") {
       tiers.set(u.id, { platformFactor: verdict.factor, platformName: verdict.platform });
@@ -772,7 +785,8 @@ function crossLevelReason(reason) {
     case "otherDimension": return "in another dimension; nothing crosses in or out of the Storm Border";
     case "occupantsForbidden": return "aboard a platform that cannot be attacked into";
     case "aoeMastersImmune": return "a Master aboard a platform, which takes no damage or effects from an area";
-    case "requiresRanged": return "on another level; this reach is too short to attack across";
+    // A Melee or Special Attack, stated or measured (#281): not only a short reach.
+    case "requiresRanged": return "on another level; only a Ranged Attack reaches across";
     case "outboundForbidden": return "on another level; this platform cannot attack off it";
     case "directlyBelow": return "directly below this platform, which cannot attack straight down";
     default: return "on another level";
@@ -1163,6 +1177,19 @@ function withinAnchorRange(spec, from, panel, r) {
   return spec?.metric === "chebyshev"
     ? geo.chebyshevFromAny(from, panel) <= r
     : geo.inAttackRangeFromAny(from, panel, r);
+}
+
+/**
+ * The Range an Attack is MEASURED by when it states no delivery (#281): its
+ * anchor's own Range, else its user's. The one measure the platform check and
+ * the Attack Description share (`rules/delivery.mjs#deliveryOf`).
+ *
+ * @param {object|null|undefined} anchor the targeting spec's anchor
+ * @param {object|null} caster
+ * @returns {number}
+ */
+export function measuredReach(anchor, caster) {
+  return typeof anchor?.range === "number" ? anchorRange(anchor, caster) : (caster?.range ?? 1);
 }
 
 function anchorRange(spec, caster) {

@@ -20,7 +20,8 @@ import { expandInstances, damageBaseOf } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
 import { askOwner, chooseFor } from "./ask.mjs";
 import { offerOverpowerSave, saveOnCard } from "./overpower-save.mjs";
-import { resolveTargets, pendingChoiceErrors } from "../rules/targeting/resolve.mjs";
+import { resolveTargets, pendingChoiceErrors, measuredReach } from "../rules/targeting/resolve.mjs";
+import { deliveryOf, isDelivery } from "../rules/delivery.mjs";
 import { currentBoard, currentMoment, unitFrom, unitOf, roundRecordOf, unitActor } from "./board.mjs";
 import {
   evade as evadeCheck, luckCheck, chance, checkPlan, critChance, mergePlans,
@@ -1115,6 +1116,17 @@ export function buildAttackSpec({
       // not affected"*, and a Mana Burst is a Normal Attack by its own flag
       // (`attack:kind:normal`), so nothing could tell the two apart (#230).
       sourceContentId: ability?.system?.contentId ?? null,
+      // HOW IT IS DELIVERED, as the sheet states it: `{R}`, `{M}` or `{S}` (#281).
+      // The block's own, or the ability's; a `damage.instances` entry spreads
+      // its own over this per Process (`instancesAgainst`), the closest winning
+      // (ruling 11). `null` is decided per defender by `attackFacts`.
+      delivery: [block?.delivery, topLevel?.delivery].find(isDelivery) ?? null,
+      // The Range an Attack that states no delivery is MEASURED by: its anchor's,
+      // else its user's (`measuredReach`, the platform check's own).
+      reach: measuredReach(
+        ability?.system?.targeting?.anchor ?? null,
+        view ? unitOf(attacker, view) : { range: attacker?.system?.range?.panels ?? 1 },
+      ),
       // The Noble Phantasm's own RANK, beside its tags. Achilles's barrier
       // answers *"an AoE Noble Phantasm of Rank A and above"* -- a threshold on
       // the rank rather than on the scale tag, which is a different axis
@@ -7715,16 +7727,34 @@ export function attackFacts(attacker, defender, state, board = null) {
     ...(numbers.length ? { invulnFactor: Math.max(base.invulnFactor ?? 0, ...numbers) } : {}),
   }, met);
 
+  // HOW IT IS DELIVERED against this defender (#281): what it states, the
+  // closest statement winning (ruling 11), else measured by its Range against
+  // the War Rule. Decided here, the one Attack Description, so the options, the
+  // card and Gravity Manipulation read one answer.
+  const rulesOf = board?.rules ? board : { rules: { rangedMinimumRange: warRule("rangedMinimumRange") } };
+  const reach = typeof base.reach === "number" ? base.reach : (attacker?.range ?? 1);
+  const delivered = (stated) => deliveryOf({ stated, reach }, rulesOf);
+
   // A Normal Attack that changes shape with distance decides two of these
   // fields itself, and only here -- the declaration cannot, because the
   // distance is not known until there is a defender. EMIYA at Range 3 is a
   // combined STR/MAG shot that Magic Resistance does not see; at Range 2 the
   // same button is a plain STR attack.
-  if (kind !== "normal") return facts;
+  if (kind !== "normal") {
+    // A Skill that counts as the Normal Attack and states nothing of its own is
+    // delivered as the Normal Attack is, at this distance: her Mana Burst is
+    // Melee (ruling 14).
+    const stated = isDelivery(base.delivery) ? base.delivery
+      : base.asNormalAttack ? normalAttackAt(attacker, range).delivery : null;
+    return { ...facts, delivery: delivered(stated) };
+  }
   const source = actionSourceFor(attacker, board ?? currentBoard());
   const normal = normalAttackAt(attacker, range, {
     platform: source.attacksAsPlatform ? source.platform : null,
   });
+  // A Riding Attack and a Counter are Normal Attacks: the band at the distance
+  // struck, every hit of a ride at 1 (ruling 14).
+  const delivery = delivered(isDelivery(base.delivery) ? base.delivery : normal.delivery);
   // A rider's face decides them over the band: Four Elements' Fire, Water or
   // Lightning, and face 5's STR then MAG (#328 ruling 16).
   const rider = state.attack?.rider ?? null;
@@ -7737,6 +7767,7 @@ export function attackFacts(attacker, defender, state, board = null) {
       ignoresMagicResistance: facts.ignoresMagicResistance || (!rider.component && normal.ignoresMagicResistance),
       attackRank: normal.attackRank ?? null,
       conditionalMultipliers: normal.conditionalMultipliers ?? [],
+      delivery,
     };
   }
   return {
@@ -7755,7 +7786,24 @@ export function attackFacts(attacker, defender, state, board = null) {
     // Stage 3's multipliers of a Normal Attack, which has no damage block to
     // carry them: Mesektet's ×2 against Dark (#189 readings 3, 18).
     conditionalMultipliers: normal.conditionalMultipliers ?? [],
+    delivery,
   };
+}
+
+/**
+ * How one Process's Attack is delivered, Ranged, Melee or Special (#281), as the
+ * Attack Description decides it: the card's line (`apps/chat/cards.mjs`).
+ *
+ * @param {object} state the Combat Process
+ * @param {object} [board]
+ * @returns {string|null} `null` when either Unit is gone from the board
+ */
+export function processDelivery(state, board = currentBoard()) {
+  if (!state?.attack?.kind || !state.attackerId || !state.defenderId) return null;
+  const attackerDoc = unitActor(state.attackerId);
+  const defenderDoc = unitActor(state.defenderId);
+  if (!attackerDoc || !defenderDoc) return null;
+  return attackFacts(unitOf(attackerDoc, board), unitOf(defenderDoc, board), state, board).delivery ?? null;
 }
 
 /**
@@ -8487,7 +8535,10 @@ async function runMissCheck(state, attacker, board) {
   const defender = defenderDoc ? unitFrom(board, defenderDoc) : null;
   // An Attack that has no effect on this defender (Gravity Manipulation, #328
   // ruling 9): nothing of it lands, and the card names why.
-  const nullifier = state.isCounter ? null : nullifiedBy(defender, attacker, state.attack);
+  // Asked of the Attack Description, which decides its delivery against this
+  // defender (#281): Gravity Manipulation turns away a Ranged one only.
+  const nullifier = state.isCounter || !defender ? null
+    : nullifiedBy(defender, attacker, attackFacts(attacker, defender, state, board));
   if (nullifier) {
     const why = game.i18n.format("FGT.Card.NoEffect", {
       name: shownName(defender), source: nullifierName(nullifier.source, defenderDoc),

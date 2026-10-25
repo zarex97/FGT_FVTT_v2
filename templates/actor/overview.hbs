@@ -117,6 +117,9 @@
       <strong>{{localize (concat "FGT.NormalAttack." overview.combat.normalAttack.mode)}}</strong>
       ·
       {{localize (concat "FGT.Param." overview.combat.normalAttack.component)}}
+      {{#if overview.combat.normalAttack.delivery}}
+        · <strong>{{localize (concat "FGT.Delivery." overview.combat.normalAttack.delivery)}}</strong>
+      {{/if}}
     </p>
 
     {{#if overview.combat.normalAttack.bands.length}}
@@ -140,6 +143,9 @@
               {{/each}}
             {{else}}
               <strong>{{localize (concat "FGT.Param." band.component)}}</strong>
+            {{/if}}
+            {{#if band.delivery}}
+              · {{localize (concat "FGT.Delivery." band.delivery)}}
             {{/if}}
             {{#if band.ignoresMagicResistance}}
               <span class="fgt-stat__note">{{localize "FGT.Sheet.IgnoresMR"}}</span>

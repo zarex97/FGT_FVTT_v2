@@ -26,6 +26,7 @@ import { test as testPredicate } from "./predicate.mjs";
 import { platformsSummonedBy } from "./platforms.mjs";
 import { AUTOMATIC_WINDOW } from "./windows.mjs";
 import { keptByForm } from "./form.mjs";
+import { statedDeliveryOf } from "./delivery.mjs";
 
 /**
  * @typedef {object} AbilityUse
@@ -397,9 +398,12 @@ export function targetSpecFor(item, range, options = null, attacker = null) {
  * @returns {object}
  */
 function markedForAttack(spec, item) {
-  if (spec.limits?.forAttack !== undefined) return spec;
+  // ...and what the Attack STATES, Ranged, Melee or Special (#281), which a
+  // platform's protection asks of each target (`rules/targeting/resolve.mjs`).
+  const delivery = spec.delivery ?? statedDeliveryOf(item);
+  if (spec.limits?.forAttack !== undefined) return { ...spec, delivery };
   const forAttack = item ? classifyAbility(item).isAttack : true;
-  return { ...spec, limits: { ...(spec.limits ?? {}), forAttack } };
+  return { ...spec, delivery, limits: { ...(spec.limits ?? {}), forAttack } };
 }
 
 /**

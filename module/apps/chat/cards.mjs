@@ -26,9 +26,9 @@ import { warRule } from "../../engine/war.mjs";
  * @returns {Promise<object>} the ChatMessage
  */
 export async function renderAttackCard({ state, attacker, ability, targets }) {
+  const context = await cardContext({ state, attacker, ability, targets });
   const content = await foundry.applications.handlebars.renderTemplate(
-    "systems/fgt/templates/chat/attack.hbs",
-    await cardContext({ state, attacker, ability, targets }),
+    "systems/fgt/templates/chat/attack.hbs", context,
   );
 
   const board = currentBoard();
@@ -46,6 +46,8 @@ export async function renderAttackCard({ state, attacker, ability, targets }) {
           attacker: attacker ? publicIdentityOf(attacker, board).name : null,
           defender: defender ? publicIdentityOf(defender, board).name : null,
         },
+        // ...and how it was delivered, for the same reason (#281).
+        delivery: context.delivery,
       },
     },
   });
@@ -73,6 +75,20 @@ export async function updateAttackCard(message, state) {
     }),
   );
   await message.update({ content });
+}
+
+/**
+ * How this Process's Attack is delivered, or `null` when it cannot be told (a
+ * Unit gone from the board). Imported when asked: the attack engine posts these
+ * cards, so a static import would close a cycle.
+ *
+ * @param {object} state
+ * @param {object} board
+ * @returns {Promise<string|null>}
+ */
+async function deliveryOfProcess(state, board) {
+  const { processDelivery } = await import("../../engine/attack.mjs");
+  return processDelivery(state, board);
 }
 
 /**
@@ -109,6 +125,9 @@ async function cardContext({
     defenderName: (defender ? publicIdentityOf(defender, board).name : names?.defender) ?? "—",
     abilityName: ability?.name ?? game.i18n.localize("FGT.Chat.NormalAttack"),
     abilityRank: ability?.system?.rank ?? null,
+    // Ranged, Melee or Special against THIS defender (#281): the Attack
+    // Description's answer, the one the platforms and Gravity Manipulation read.
+    delivery: (await deliveryOfProcess(state, board)) ?? message?.getFlag?.("fgt", "delivery") ?? null,
     isNP: ability?.type === "noblePhantasm",
     targetCount: targets?.length ?? 0,
 

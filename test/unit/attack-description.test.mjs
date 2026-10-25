@@ -87,6 +87,8 @@ describe("the preview describes an attack as the resolution does", () => {
             kind: a.kind, component: a.component, element: a.element, elementFraction: a.elementFraction,
             aim: a.aim, pierce: a.pierce, ignoresMagicResistance: a.ignoresMagicResistance,
             rank: String(a.rank ?? ""), npTags: a.npTags, isFixedDamage: a.isFixedDamage, range: a.range,
+            // Ranged, Melee or Special (#281): the card and the platforms read it.
+            delivery: a.delivery,
           });
           expect(pick(preview.attack), ability?.name ?? "Normal Attack").toEqual(pick(resolution));
         }

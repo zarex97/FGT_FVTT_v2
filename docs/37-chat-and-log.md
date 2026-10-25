@@ -28,6 +28,8 @@ A single card is read by many viewers, and each reads a different version of the
 
 ### Card visibility
 
+**The header names the Attack's delivery** (#281): Ranged, Melee or Special against this defender, from `engine/attack.mjs#processDelivery` (the Attack Description's answer), kept on the message (`flags.fgt.delivery`) so the card still reads after a Unit is gone.
+
 `cardFor` determines what one viewer should see, given a result and their role (`module/rules/card-visibility.mjs:44-75`). The attacker and defender see the header and their own damage total; a bystander sees only the header. The breakdown is shown only to those involved; the defender learns what effects landed by name (`module/rules/card-visibility.mjs:55-67`). Each roll carries its own visibility flag; a GM-only Discover roll on a card everyone can read would give away the Assassin's panel for free, so rolls are filtered per-viewer (`module/rules/card-visibility.mjs:71`).
 
 **A row says whose it is** (#202, #239). An attack card's effect rows carry the Unit they landed on, and a viewer
