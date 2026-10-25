@@ -616,6 +616,16 @@ export const FACETS = Object.freeze([
     prose: "the attack is {delivery}",
   }),
   facet({
+    // An effect its user held when the Attack was declared (#336): what a charge
+    // spent by "the next" Noble Phantasm asks, so an NP declared before the
+    // charge was gained does not spend it.
+    id: "heldAtDeclaration",
+    subjects: ["attack"],
+    segments: [{ name: "effect", value: open() }],
+    english: "Its user held a named effect when the attack was declared.",
+    prose: "its user held {effect} when it was declared",
+  }),
+  facet({
     id: "npScale",
     subjects: ["attack"],
     segments: [

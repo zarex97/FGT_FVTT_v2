@@ -263,7 +263,9 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // (#253 reading 14). Switched on, the last word is cleared.
     // The engine's forced switch writes the same patch (`engine/io.mjs#setMode`):
     // a Mode its owner switches on starts its Tally from 0 too (#319, found live).
-    await item.update(modeSwitchPatch(active, { tick, endedBy: "manual" }));
+    // A priced entry was switched by the use it relayed (`useSkill` writes the
+    // switch with the price, #336): one writer, one patch.
+    if (!(active && pricedOnEntry(item))) await item.update(modeSwitchPatch(active, { tick, endedBy: "manual" }));
     // Said to the table: Mad Enhancement switched from the bar was a bar state
     // and nothing else (#333, ruled 2026-10-24). A priced entry is already the
     // use's own card.

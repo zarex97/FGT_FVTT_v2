@@ -1,0 +1,46 @@
+# Invisible Air, Usage 2: Strike Air: Hammer of the Wind King, Rank C (#336).
+# Arturia (Lancer); Lanceturia (Alter) prints it word for word.
+#
+# > "2. {R} Strike Air: Hammer of the Wind King. Hits a 3x3 panel area in any
+# > non-diagonal direction next to Arturia. Deals ~~250~~ 300 damage divided by
+# > the number of affected Units, to each affected Unit. Not affected by any
+# > damage modifying effects on Arturia. Wind damage. ~~Affected by Magic
+# > Resistance (deals MAG damage).~~ Cooldown: 5◈ Turns."
+#
+# Ruled 2026-10-24 (#336 ruling 4): the 300 is divided by the Units in the area
+# at the declaration, every relation (#191 reading 11), rounded down; a Unit
+# that later Evades still counts (`base.dividedAmong: targets`). Her own
+# modifiers do not touch it, the defender's do (Nemo's `bypassModifiers`).
+# Struck out: not MAG damage (#230 reading 11). It pays the Rank C NP cost.
+schema: 1
+id: lanceturia-strike-air
+name: "Strike Air: Hammer of the Wind King"
+rank: C
+kind: noblePhantasm
+slug: strikeAir
+isNP: true
+npTags: [antiUnit]
+element: wind
+copyable: { allowed: false, reason: named }
+cooldown: { max: "5◈" }
+timing: { window: ownTurn }
+sameRoundExclusive: [lanceturia-invisible-air]
+description: |
+  Usage 2 of Invisible Air. Hits a 3x3 panel area in any non-diagonal direction next to Arturia. Deals 300
+  damage divided by the number of affected Units, to each affected Unit. Not affected by any damage modifying
+  effects on Arturia. Wind damage. Cooldown: 5◈ Turns.
+  Cannot be used on the same Round as Usage 1 (@np[lanceturia-invisible-air]{Invisible Air}) and vice versa.
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 3, long: 3 }
+  selection: { relations: [enemy, ally, neutral], includeSelf: false, chooser: all }
+  isDamagingAoE: true
+damage:
+  # `{R}` at its head in `by-class/Lancer/Lanceturia.md`: Ranged (#281).
+  delivery: ranged
+  base: { fixedValue: 300, dividedAmong: targets }
+  component: str
+  element: wind
+  bypassModifiers: { attacker: true, defender: false }
+phases:
+  - kind: damage
