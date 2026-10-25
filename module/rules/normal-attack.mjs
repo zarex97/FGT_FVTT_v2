@@ -31,6 +31,7 @@
  * @property {"str"|"mag"} component what the attack counts AS, for predicates
  * @property {string|null} element the damage type, or null
  * @property {boolean} ignoresMagicResistance
+ * @property {"ranged"|"melee"|"special"|null} delivery what the sheet states, or `null` to measure
  */
 
 /**
@@ -71,6 +72,9 @@ export function normalAttackAt(unit, range = null, { platform = null } = {}) {
     attackRank: spec.attackRank ?? null,
     // Its own stage-3 multipliers: Mesektet's ×2 against Dark (#189).
     conditionalMultipliers: spec.conditionalMultipliers ?? [],
+    // *"N.Atk Type: STR, Melee"*: what the sheet states (#281). `null` is
+    // measured by `rules/delivery.mjs#deliveryOf`.
+    delivery: spec.delivery ?? null,
   };
 
   if (spec.mode !== "rangeBanded") return flat;
@@ -107,6 +111,9 @@ export function normalAttackAt(unit, range = null, { platform = null } = {}) {
     ignoresMagicResistance: Boolean(band.ignoresMagicResistance),
     attackRank: spec.attackRank ?? null,
     conditionalMultipliers: spec.conditionalMultipliers ?? [],
+    // The band's own, else the Normal Attack's: Trung Sisters' *"STR, Melee
+    // (1pan); MAG, Ranged (2+pan)"* (#281, ruling 11).
+    delivery: band.delivery ?? spec.delivery ?? null,
   };
 }
 

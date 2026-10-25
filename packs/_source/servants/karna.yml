@@ -34,7 +34,8 @@ baseHealth: 1000
 mov: 7
 range: { panels: 2, targets: 1 }
 baseAttack: { str: 125, mag: 175 }
-normalAttack: { mode: fixed, component: str }
+# "N.Atk Type: STR, Melee" in `by-class/Lancer/Karna.md` (#281).
+normalAttack: { mode: fixed, component: str, delivery: melee }
 sustainability: "2◈"
 
 abilities:

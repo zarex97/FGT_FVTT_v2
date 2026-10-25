@@ -46,6 +46,8 @@ targeting:
   limits: { requiresZon: true }
   isDamagingAoE: true
 damage:
+  # `{R}` at its head in `by-class/Lancer/Karna.md`: Ranged (#281).
+  delivery: ranged
   base:
     sources:
       - { unit: self, component: str, factor: 1 }

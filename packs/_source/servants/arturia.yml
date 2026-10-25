@@ -30,7 +30,8 @@ range: { panels: 1, targets: 1 }
 # (§46.6; ruled again 2026-10-16, reading 1), so Mana Burst's combined Base
 # Attack is 325, not the printed 375.
 baseAttack: { str: 125, mag: 200 }
-normalAttack: { mode: fixed, component: str }
+# "N.Atk Type: STR, Melee" in `by-class/Saber/Arturia.md` (#281).
+normalAttack: { mode: fixed, component: str, delivery: melee }
 sustainability: "2◈"
 
 # Avalon: "When Arturia is summoned, roll an eight-sided die. If an 8 is rolled,

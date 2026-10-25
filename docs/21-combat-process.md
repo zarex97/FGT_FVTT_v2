@@ -13,6 +13,7 @@ The attack flow is **one process per defender** in an area attack, not one proce
 | `module/engine/combat-process.mjs` | The state machine: states, transitions, and pure reducers |
 | `module/engine/attack.mjs` | Orchestration: declaration, card rendering, advancing through prompts |
 | `module/rules/miss.mjs` | Step 1.5: whether the attack misses before reaction — asked with the Attack Description against this defender, so a `Suppress` on `attack:range:lte:2` (Anastasia's Watermelon Splitting Master) can answer; it was asked with neither (Wave B) |
+| `module/rules/delivery.mjs` | An Attack's **delivery**, Ranged, Melee or Special (#281): what the sheet states, the closest statement winning (a hit's, a Normal Attack band's, the Attack's), else measured by Range against `rangedMinimumRange`. `attackFacts` decides it per defender; the options (`attack:delivery`), the card, the platforms and Gravity Manipulation read that one answer |
 | `module/rules/injury.mjs` | Step 4: whether damage triggers an Agility roll |
 | `module/rules/normal-attack.mjs` | Step 1: resolving which stat a Normal Attack uses |
 | `module/engine/weak-point.mjs` | Step 3 (override): offering Achilles' Heel and rolling it |
@@ -140,9 +141,10 @@ its old footprint, and anybody under it is knocked back. A concealed user steppi
    of a `cancelsAttackWhenDefending` ability cancels the whole Attack, every Process, still the AU's Attack, and its
    user is offered a Normal Attack Counter when `counterAvailable` would offer one (`cancelAttackFrom`). A window
    returns what it cast (`castAbilities`) beside what it carried.
-2. **An Attack that has no effect ends at step 1.5** (#328 ruling 9). `NullifiesAttacks {component, minDistance}`
-   on the defender (`rules/miss.mjs#nullifiedBy`) takes the Process to `missed` with a `noEffect` roll line naming
-   the Skill: Gravity Manipulation's BA(STR) Attacks from 4 or more panels. No damage, no riders. The card prints
+2. **An Attack that has no effect ends at step 1.5** (#328 ruling 9). `NullifiesAttacks {component, delivery,
+   minDistance}` on the defender (`rules/miss.mjs#nullifiedBy`, asked with the Attack Description) takes the Process
+   to `missed` with a `noEffect` roll line naming the Skill: Gravity Manipulation's Ranged BA(STR) Attacks from 4 or
+   more panels. Ranged is the Attack's delivery (#281): a `{M}` or `{S}` Attack from 4 panels reaches her. No damage, no riders. The card prints
    that line (`cards.mjs` `noEffect`) in place of "Missed", which it read until the live press.
    **A Noble Phantasm may ride a Normal Attack** (`engine/attack-riders.mjs`, Four Elements, ruling 16): an
    `AttackRider` is offered at the declaration when its predicate passes and the NP's own press gate does; its die

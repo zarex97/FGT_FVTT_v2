@@ -3,6 +3,7 @@
  * @see docs/07-schemas.md
  */
 
+import { DELIVERIES } from "../../domain/enums.mjs";
 import { RankField, TickField, resourceField } from "../fields.mjs";
 
 const fields = foundry.data.fields;
@@ -467,6 +468,10 @@ export function normalAttackField() {
     // field the parenthesis was dropped by the schema and every copy hit
     // for full elemental damage.
     elementFraction: new fields.NumberField({ required: false, nullable: true, initial: null }),
+    // How it is delivered, as the sheet states it: *"N.Atk Type: STR, Melee"*
+    // (#281). Unset, it is measured (`rules/delivery.mjs#deliveryOf`). A band
+    // may state its own (`bands[].delivery`).
+    delivery: new fields.StringField({ required: false, nullable: true, initial: null, choices: [...DELIVERIES] }),
     // What `rangeBanded` bands ON. The mode has been a declared choice since
     // this schema was written with nothing to configure it and nothing
     // reading it, so a Servant authored `rangeBanded` attacked with its flat

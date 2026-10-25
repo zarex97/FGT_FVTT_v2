@@ -11,8 +11,9 @@
 # Agility Check, so each tier is two check modifiers, as Levitation's are. The
 # MOV floor binds her cut only (`rules/auras.mjs#auraMov`).
 #
-# Clause 3 is `NullifiesAttacks`: any Attack with BA(STR) declared from 4 or
-# more panels (ruling 9; Ranged delivery is #281).
+# Clause 3 is `NullifiesAttacks`: a Ranged Attack with BA(STR) declared from 4
+# or more panels (ruling 9). Ranged is the Attack's stated `{R}`, or its Range
+# measured when it states nothing (#281).
 schema: 1
 id: olga-gravity-manipulation
 name: "Gravity Manipulation"
@@ -67,4 +68,5 @@ passiveRules:
       - { key: CheckModifier, check: evade, value: 5 }
   - key: NullifiesAttacks
     component: str
+    delivery: ranged
     minDistance: 4

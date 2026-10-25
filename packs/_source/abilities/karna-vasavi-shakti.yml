@@ -43,6 +43,8 @@ targeting:
   limits: { requiresZon: true }
   isDamagingAoE: true
 damage:
+  # `{R}` at its head in `by-class/Lancer/Karna.md`: Ranged (#281).
+  delivery: ranged
   component: mag
   multiplier: 5
   element: fire

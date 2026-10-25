@@ -769,7 +769,8 @@ describe("cross-level rules are per-platform, not global", () => {
     const board = boardWith([melee, deck({ occupantTargeting: "rangedOnly" }), flyer]);
     const r = resolveTargets(around, melee, board);
     expect(r.units.map((u) => u.unitId)).not.toContain("flyer");
-    expect(r.excluded.find((e) => e.unitId === "flyer")?.reason).toMatch(/too short/);
+    // An unstated Attack, measured short: only a Ranged one reaches across (#281).
+    expect(r.excluded.find((e) => e.unitId === "flyer")?.reason).toMatch(/only a Ranged Attack reaches across/);
   });
 
   it("allows the same reach from further away", () => {

@@ -465,6 +465,7 @@ export const ELEMENT_DESCRIPTORS = describeTable([
   ]),
   entry("NullifiesAttacks", "Attacks of a Base Attack from a distance have no effect on this Unit (Gravity Manipulation).", [
     { key: "component", type: "select", choices: ["str", "mag"] },
+    { key: "delivery", type: "select", choices: ["ranged", "melee", "special"] },
     { key: "minDistance", type: "number" },
   ]),
   entry("Compulsion", "Forces a Unit to act against a particular target — Berserk, Decoy's pull.", [

@@ -56,6 +56,12 @@ export const ELEMENTS = Object.freeze([
   "fire", "water", "ice", "wind", "lightning", "light", "nature",
 ]);
 
+/**
+ * How an Attack is delivered, as a sheet states it: `{R}`, `{M}` or `{S}`, and
+ * `N.Atk Type: STR, Melee` (#281). @see module/rules/delivery.mjs
+ */
+export const DELIVERIES = Object.freeze(["ranged", "melee", "special"]);
+
 /** Effect polarity. @see docs/14-effect-taxonomy.md */
 export const POLARITIES = Object.freeze(["buff", "debuff", "status"]);
 

@@ -14,6 +14,8 @@
 
     {{#if rank}}<span class="fgt-card-ability__rank">{{rank}}</span>{{/if}}
     {{#if isNP}}<span class="fgt-card-ability__np">{{localize "FGT.Sheet.NPBadge"}}</span>{{/if}}
+    {{!-- The sheet's {R}, {M} or {S} (#281). --}}
+    {{#if delivery}}<span class="fgt-card-ability__delivery">{{localize (concat "FGT.Delivery." delivery)}}</span>{{/if}}
 
     {{#if use.clickable}}
       {{!-- `classifyAbility` decides which control this is: a toggle for a
