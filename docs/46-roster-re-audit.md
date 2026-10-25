@@ -7814,9 +7814,10 @@ PR (#281, PR #335): the stated `{R}`, `{M}`, `{S}` and `N.Atk Type` win over the
 
 ### 46.50.2 What was pressed, and how
 
-Rounds 7–9 on *Vlad Berserker Audit*, summoned with a Master of her own, Player1 driving her sheet and requests. 81 of
-100 Clauses Pressed or Observed; the log is in the Clause file. Not re-pressed: the shared Magic Resistance, Riding's
-Passives, Vivian's Blessing and Charisma's Skill Seal; two Clauses are unit-tested only; RH.go is not built.
+Rounds 7–9 on *Vlad Berserker Audit*, summoned with a Master of her own, Player1 driving her sheet and requests. 99 of
+100 Clauses Pressed or Observed; the log is in the Clause file; RH.go is not built. The audit first merged at 81, the
+shared Magic Resistance, Riding's Passives, Vivian's Blessing and Charisma's Skill Seal left as "pressed before"; the
+user asked why, and the 18 were staged and pressed on the same board (a Surprise).
 
 Three defects were fixed, each a Surprise: an exclusion refused on the attack path named its partner by content id;
 a charge spent by an NP whose Phase closed after the charge was gained (`attack:heldAtDeclaration`, Overcharge too);
