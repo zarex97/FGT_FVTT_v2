@@ -1,0 +1,35 @@
+# Arturia (Lancer)'s Wild Hunt, effect 3 (#336):
+#
+# > "Applies NP DmUp (Round) for 1 time to all affected Units with the 'Round
+# > Table' Attribute, NP Damage dealt is increased by 30%. Does not stack."
+#
+# Ruled 2026-10-24 (#336 ruling 5): no time limit, one charge. The holder's
+# next damaging Noble Phantasm spends it once that NP is over, hit or miss, as
+# Overcharge is spent (#260 reading 8). A second Wild Hunt adds no second
+# charge (`noneNoRefresh`). Its own id, so it adds to a plain NP DmUp.
+schema: 1
+id: npDmUpRound
+name: "NP DmUp (Round)"
+description: "Noble Phantasm damage dealt is increased by X%, for this Unit's next damaging Noble Phantasm."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneNoRefresh
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: npDmUp
+    direction: dealt
+    value: "@magnitude"
+    predicate: ["attack:kind:np"]
+  # "1 time": spent by the damaging NP that used it, once its Combat Phase is
+  # over (`attackPerformed`, once per Combat Phase after every Process), and
+  # only by an NP declared while it was held: one left open across a later
+  # Wild Hunt spent the charge it never had (#336, found live).
+  - key: OnEvent
+    event: attackPerformed
+    automatic: true
+    onlyNP: true
+    predicate: ["attack:heldAtDeclaration:npDmUpRound"]
+    then:
+      - { key: RemoveEffect, effect: npDmUpRound }

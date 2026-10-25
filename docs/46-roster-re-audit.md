@@ -7793,3 +7793,32 @@ Free Berserker could turn Mad Enhancement off.
 - **A revival held back says why** (`rules/revival.mjs#heldRevivals`, a `revivalHeld` log entry posted as a revival
   card): *"Battle Continuation cannot bring Berserker back: its Cooldown has 6 Turn(s) left."* and *"…: Health has not
   been restored above 50% since its last revival."* Both pressed live, BC.cd and BC.half apart.
+
+## 46.50 Arturia (Lancer) — Ranged, Melee and Special, and a Noble Phantasm cast with a Mana Burst
+
+Built from `char_orig_sheets/by-class/Lancer/Lanceturia.md` (#336), 100 Clauses and 17 readings ruled
+(`docs/superpowers/specs/2026-10-24-lanceturia-clauses.md`). Ruling 8 made an Attack's delivery universal first, its own
+PR (#281, PR #335): the stated `{R}`, `{M}`, `{S}` and `N.Atk Type` win over the measured Range.
+
+### 46.50.1 What she cost the engine
+
+- **An NP cast with the Attack it rides** (Ch. 17, Ch. 21): window `ridesAttack`, an `AttackRider` with `cast`,
+  cast through `useSkill` at the declaration with `freeAtWindow`. Invisible Air's Usage 1 rides her Mana Burst;
+  Lanceturia (Alter), Fionn and EMIYA's Broken Phantasm read "used together with" too.
+- **A fixed figure divided among the Units hit** (Ch. 22): `base.dividedAmong: targets` over `attack.targetCount`,
+  rounded down. Strike Air, both Lanceturias.
+- **A cooldown count step that shortens the clock** (Ch. 17, `direction: down`): Rhongomyniad's ⅓◈ off per
+  criterion met.
+- **NP DmUp (Round)** and **Dmg Up (Chaotic)** (Appendix A).
+- Rhongomyniad is the first Servant on the Count module's `criteria` (#283, #319), built for Arthur and Gray too.
+
+### 46.50.2 What was pressed, and how
+
+Rounds 7–9 on *Vlad Berserker Audit*, summoned with a Master of her own, Player1 driving her sheet and requests. 81 of
+100 Clauses Pressed or Observed; the log is in the Clause file. Not re-pressed: the shared Magic Resistance, Riding's
+Passives, Vivian's Blessing and Charisma's Skill Seal; two Clauses are unit-tested only; RH.go is not built.
+
+Three defects were fixed, each a Surprise: an exclusion refused on the attack path named its partner by content id;
+a charge spent by an NP whose Phase closed after the charge was gained (`attack:heldAtDeclaration`, Overcharge too);
+and a `useSkill` request for a toggle that announced a switch it never made (`useSkill` writes the switch now).
+

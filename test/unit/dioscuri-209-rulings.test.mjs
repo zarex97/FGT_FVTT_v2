@@ -532,7 +532,7 @@ describe("`attack:usesBase:mag` is the attack's base, not the component it decla
       "arjuna-mana-burst-flames",
       "arturia-mana-burst",
       "dioscuri-mana-burst-castor", "dioscuri-mana-burst-pollux", "karna-mana-burst-flames",
-      "mannanan-hallowed-sea-gods-sword", "quetz-xiuhcoatl", "raikou-mana-burst-lightning",
+      "lanceturia-mana-burst", "mannanan-hallowed-sea-gods-sword", "quetz-xiuhcoatl", "raikou-mana-burst-lightning",
     ]);
     const bearers = files.filter(({ doc }) => (doc.abilities ?? []).some((a) => a?.ref === "class-mad-enhancement"))
       .map(({ doc }) => doc.id).sort();

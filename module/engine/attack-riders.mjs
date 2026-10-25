@@ -3,6 +3,10 @@
  * declaration, whose face changes the Attack.
  * @see docs/21-combat-process.md
  *
+ * An `AttackRider` with `cast` rolls no die: the NP is cast with the Attack it
+ * rides, its own phases on its user (Arturia (Lancer)'s Invisible Air, Usage 1,
+ * *"Used together with Mana Burst"*, #336).
+ *
  * Layer 3. U-Olga Marie's Four Elements (#328 ruling 16):
  *
  * > *"(Passive) Can be used when performing a Normal Attack at Range of 2 or
@@ -111,7 +115,7 @@ export async function offerAttackRiders({ attackerDoc, ability, attackSpec, rang
 
     const take = await chooseFor(attackerDoc, {
       title: "FGT.AttackRider.Title",
-      hint: game.i18n.format("FGT.AttackRider.Hint", { name: rider.source }),
+      hint: game.i18n.format(rider.cast ? "FGT.AttackRider.CastHint" : "FGT.AttackRider.Hint", { name: rider.source }),
       count: 1,
       min: 0,
       options: [
@@ -120,9 +124,43 @@ export async function offerAttackRiders({ attackerDoc, ability, attackSpec, rang
       ],
     });
     if ((take ?? [])[0] !== "use") continue;
+    // Cast with the Attack, no die: Invisible Air's Usage 1 (#336 ruling 2). Its
+    // phases land on its user now, at the declaration, hit or miss; its clock,
+    // its use and its gate are `useSkill`'s, and the Attack is unchanged.
+    if (rider.cast) {
+      await castRider({ attackerDoc, rider, board });
+      continue;
+    }
     return rollRider({ attackerDoc, ability, rider, board });
   }
   return null;
+}
+
+/**
+ * Cast a rider NP with the Attack it rides, and say so if it is refused.
+ *
+ * At the window (`atWindow`), so its `ridesAttack` timing admits it and its
+ * `freeAtWindow` spends no Attack: the Attack it rides is the one.
+ *
+ * @param {object} args
+ * @returns {Promise<boolean>} whether it was cast
+ */
+async function castRider({ attackerDoc, rider, board }) {
+  const { useSkill } = await import("./skill-use.mjs");
+  const out = await useSkill({ actorId: attackerDoc.id, abilityId: rider.abilityId, atWindow: true });
+  if (out?.ok) return true;
+  // In the words the bar and the sheet give the same reason (#244 review).
+  const reason = String(out?.reason ?? "");
+  const worded = game.i18n.has?.(`FGT.Skill.Reason.${reason}`) ? game.i18n.localize(`FGT.Skill.Reason.${reason}`)
+    : game.i18n.has?.(`FGT.Ability.Refused.${reason}`) ? game.i18n.format(`FGT.Ability.Refused.${reason}`, {})
+      : reason;
+  await ChatMessage.create({
+    content: `<p>${foundry.utils.escapeHTML(game.i18n.format("FGT.AttackRider.CastRefused", {
+      name: shownName(attackerDoc, board), source: rider.source, reason: worded,
+    }))}</p>`,
+    speaker: publicSpeakerFor(attackerDoc, board),
+  });
+  return false;
 }
 
 /**

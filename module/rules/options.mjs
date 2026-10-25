@@ -201,6 +201,10 @@ export function rollOptionsFor({ attacker, defender, attack = null, withoutModeH
   // Attack Description (`engine/attack.mjs#attackFacts`, #281). An option set
   // built from a bare declaration may not know it yet, and emits nothing.
   if (isDelivery(attack.delivery)) options.add(`attack:delivery:${attack.delivery}`);
+  // WHAT ITS USER HELD when it was declared (`buildAttackSpec`): a charge spent
+  // by its holder's next NP asks it, so an NP declared before the charge was
+  // gained does not spend it (#336).
+  for (const id of attack.heldAtDeclaration ?? []) options.add(`attack:heldAtDeclaration:${id}`);
   // WHETHER IT CRIT. Known only once the coin has been flipped, so it is absent
   // from every option set built before the Damage Step -- which is correct: a
   // clause that reads it is by definition asking about a resolved attack.

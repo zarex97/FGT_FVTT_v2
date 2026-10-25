@@ -1,0 +1,47 @@
+# Mana Burst, Rank A, Arturia (Lancer) (#336). Arturia (Saber)'s, without the
+# Evade rider.
+#
+# > "(Active) This Skill is used when Arturia performs a Normal Attack. For that
+# > Combat Phase, Arturia's Base Attack used is her (STR) and BA(MAG) combined
+# > (BA=325). Not affected by Magic Resistance. Can be used while on Cooldown,
+# > but she has to be within her Master's ZON and her Master loses 20 Health;
+# > does not reset Cooldown. Cooldown: 3◈ Turns. Cannot be used on the same
+# > Round (Turn?) as Torrent of Light."
+#
+# 125 + 200 = 325 (#230 reading 1). Her Master's ZON (#230 reading 2): the
+# price of a use ON the Cooldown (`cooldownOverride`). The same ROUND as Torrent
+# of Light (#336 ruling 1). Her Normal Attack's delivery, Melee (#336 ruling 14).
+# Invisible Air's Usage 1 rides it (`lanceturia-invisible-air`). No Mana Burst
+# rides a Riding Attack (#206).
+schema: 1
+id: lanceturia-mana-burst
+name: "Mana Burst"
+rank: A
+kind: skill
+slug: manaBurst
+copyable: { allowed: false, reason: named }
+cooldown: "3◈"
+isAttackSkill: true
+countsAsNormalAttack: true
+timing: { window: ownTurn }
+sameRoundExclusive: [lanceturia-torrent-of-light]
+cooldownOverride: { masterHealth: 20, withinZon: true }
+description: |
+  (Active) This Skill is used when Arturia performs a Normal Attack. For that Combat Phase, Arturia's Base
+  Attack used is her BA(STR) and BA(MAG) combined (BA=325). Not affected by @ability[class-magic-resistance]{Magic Resistance}.
+  Can be used while on Cooldown, but she has to be within her Master's ZON and her Master loses 20 Health;
+  does not reset Cooldown. Cooldown: 3◈ Turns. Cannot be used on the same Round as
+  @ability[lanceturia-torrent-of-light]{Torrent of Light}.
+targeting:
+  anchor: { kind: targetUnit }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  base:
+    sources:
+      - { unit: self, component: str, factor: 1 }
+      - { unit: self, component: mag, factor: 1 }
+  component: str
+  ignoresMagicResistance: true
+phases:
+  - kind: damage

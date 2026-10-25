@@ -3,7 +3,7 @@
 *Arturia (Lancer)*, Lanceturia, built from `char_orig_sheets/by-class/Lancer/Lanceturia.md`. Started by the user
 2026-10-24.
 
-**Read by hand, line by line.** No generated draft was used. The older copy `char_orig_sheets/Copia de Lanceturia.md`
+**Audit opened 2026-10-24 (#336).** **Read by hand, line by line.** No generated draft was used. The older copy `char_orig_sheets/Copia de Lanceturia.md`
 was compared with it: the by-class copy adds `N.Atk Type: STR, Melee`, the `{R}` and `{S}` delivery tags, and a
 `(Turn?)` after "the same Round" in Mana Burst's and Torrent of Light's exclusions. The by-class copy is the one read.
 
@@ -82,19 +82,19 @@ Asked by grilling, 2026-10-24. Rulings are written here as they land. None is bu
 
 ## Statblock
 
-- [ ] **ST.name** · True Name: Arturia Pendragon, King of Storms, shown as Arturia (Lancer)
-- [ ] **ST.class** · Class: Lancer
-- [ ] **ST.region** · Region: Britain, England
-- [ ] **ST.align** · Alignment: Lawful Good
-- [ ] **ST.param** · STR B, END A, AGI A, MAG A, LUC C
-- [ ] **ST.attr** · Attributes: Female, Servant, [Sky], Saberface, Dragon, King, Humanoid, Round Table
-- [ ] **ST.hp** · Base Health 1500
-- [ ] **ST.mov** · MOV 8
-- [ ] **ST.range** · Range 2 panels, 1 target
-- [ ] **ST.ba** · Base Attack STR 125, MAG 200
-- [ ] **ST.na** · Normal Attack: STR, Melee
-- [ ] **ST.sus** · Sustainability 2◈
-- [ ] **ST.items** · Items held: none
+- [x] **ST.name** · True Name: Arturia Pendragon, King of Storms, shown as Arturia (Lancer)
+- [x] **ST.class** · Class: Lancer
+- [x] **ST.region** · Region: Britain, England
+- [x] **ST.align** · Alignment: Lawful Good
+- [x] **ST.param** · STR B, END A, AGI A, MAG A, LUC C
+- [x] **ST.attr** · Attributes: Female, Servant, [Sky], Saberface, Dragon, King, Humanoid, Round Table
+- [x] **ST.hp** · Base Health 1500
+- [x] **ST.mov** · MOV 8
+- [x] **ST.range** · Range 2 panels, 1 target
+- [x] **ST.ba** · Base Attack STR 125, MAG 200
+- [x] **ST.na** · Normal Attack: STR, Melee
+- [x] **ST.sus** · Sustainability 2◈
+- [x] **ST.items** · Items held: none
 
 ## Magic Resistance — Rank B *(Class Skill)*
 
@@ -115,10 +115,10 @@ Asked by grilling, 2026-10-24. Rulings are written here as they land. None is bu
 - [ ] **RI.p2.left** · …having Moved already this Turn, the ride is MOV minus the panels already Moved
 - [ ] **RI.p2.seat** · …can be combined with Passenger Seat
 - [ ] **RI.p3** · Passive 3, Passenger Seat: her Master Moves with her, ending in the same relative position; counts as one Unit Moving
-- [ ] **RI.when** · Active: used during her Turn
-- [ ] **RI.mov** · MOV +5 for this Turn
-- [ ] **RI.cd** · Cooldown 3◈
-- [ ] **RI.notbuff** · The MOV Up is not a buff: no buff removal, no buff prevention
+- [x] **RI.when** · Active: used during her Turn
+- [x] **RI.mov** · MOV +5 for this Turn
+- [x] **RI.cd** · Cooldown 3◈
+- [x] **RI.notbuff** · The MOV Up is not a buff: no buff removal, no buff prevention
 
 ## Vivian's Blessing *(Passive)*
 
@@ -126,89 +126,134 @@ Asked by grilling, 2026-10-24. Rulings are written here as they land. None is bu
 
 ## Mana Burst — Rank A
 
-- [ ] **MB.when** · Used when she performs a Normal Attack
-- [ ] **MB.ba** · For that Combat Phase her Base Attack is BA(STR) and BA(MAG) combined
-- [ ] **MB.mr** · Not affected by Magic Resistance
-- [ ] **MB.oncd** · Usable while on Cooldown, if she is within her Master's ZON…
-- [ ] **MB.oncd.cost** · …her Master loses 20 Health
-- [ ] **MB.oncd.noreset** · …and the Cooldown is not reset
-- [ ] **MB.cd** · Cooldown 3◈
-- [ ] **MB.excl** · Not on the same Round (Turn?) as Torrent of Light
+- [x] **MB.when** · Used when she performs a Normal Attack
+- [x] **MB.ba** · For that Combat Phase her Base Attack is BA(STR) and BA(MAG) combined
+- [x] **MB.mr** · Not affected by Magic Resistance
+- [x] **MB.oncd** · Usable while on Cooldown, if she is within her Master's ZON…
+- [x] **MB.oncd.cost** · …her Master loses 20 Health
+- [x] **MB.oncd.noreset** · …and the Cooldown is not reset
+- [x] **MB.cd** · Cooldown 3◈
+- [x] **MB.excl** · Not on the same Round (Turn?) as Torrent of Light
 
 ## Torrent of Light — Rank A+
 
-- [ ] **TL.when** · Used during her Turn
-- [ ] **TL.atk** · Atk Up for ⅓◈: all damage dealt +60%
-- [ ] **TL.atk.np** · …if NP, 40%
-- [ ] **TL.chaotic** · Dmg Up (Chaotic) for ⅓◈: all damage dealt to Units with the 'Chaotic' Alignment +50%
-- [ ] **TL.evil** · Dmg Up (Evil) for ⅓◈: all damage dealt to Units with the 'Evil' Alignment +50%
-- [ ] **TL.cd** · Cooldown 3◈−⅓◈
-- [ ] **TL.excl** · Not on the same Round (Turn?) as Mana Burst
+- [x] **TL.when** · Used during her Turn
+- [x] **TL.atk** · Atk Up for ⅓◈: all damage dealt +60%
+- [x] **TL.atk.np** · …if NP, 40%
+- [x] **TL.chaotic** · Dmg Up (Chaotic) for ⅓◈: all damage dealt to Units with the 'Chaotic' Alignment +50%
+- [x] **TL.evil** · Dmg Up (Evil) for ⅓◈: all damage dealt to Units with the 'Evil' Alignment +50%
+- [x] **TL.cd** · Cooldown 3◈−⅓◈
+- [x] **TL.excl** · Not on the same Round (Turn?) as Mana Burst
 
 ## Charisma — Rank B *(Passive)*
 
-- [ ] **CH.1** · All damage dealt by other allied Units within 2 panels of her +20, NP included
-- [ ] **CH.1.self** · …not her own damage (*"other"*)
-- [ ] **CH.neg.atk** · Negated while she has Atk Up (Charisma)
+- [x] **CH.1** · All damage dealt by other allied Units within 2 panels of her +20, NP included
+- [x] **CH.1.self** · …not her own damage (*"other"*)
+- [x] **CH.neg.atk** · Negated while she has Atk Up (Charisma)
 - [ ] **CH.neg.seal** · Negated while she is Skill Sealed
 
 ## Wild Hunt — Rank B+
 
-- [ ] **WH.when** · Used during her Turn
-- [ ] **WH.area** · Affects all allied Units within 2 panels of herself
-- [ ] **WH.atk** · Atk Up for 1◈: all damage dealt +20%
-- [ ] **WH.atk.np** · …if NP, 10%
-- [ ] **WH.np** · NP DmUp for 1◈: NP damage dealt +20%
-- [ ] **WH.round** · NP DmUp (Round) for 1 time to the affected Units with the 'Round Table' Attribute: NP damage dealt +30%
+- [x] **WH.when** · Used during her Turn
+- [x] **WH.area** · Affects all allied Units within 2 panels of herself
+- [x] **WH.atk** · Atk Up for 1◈: all damage dealt +20%
+- [x] **WH.atk.np** · …if NP, 10%
+- [x] **WH.np** · NP DmUp for 1◈: NP damage dealt +20%
+- [x] **WH.round** · NP DmUp (Round) for 1 time to the affected Units with the 'Round Table' Attribute: NP damage dealt +30%
 - [ ] **WH.round.nostack** · …does not stack
-- [ ] **WH.cd** · Cooldown 4◈−⅓◈
-- [ ] **WH.cat** · Categorized as 'Charisma'
+- [x] **WH.cd** · Cooldown 4◈−⅓◈
+- [x] **WH.cat** · Categorized as 'Charisma'
 
 ## Blessings from the Ends of the World — Rank EX
 
-- [ ] **BL.when** · Used during her Turn
-- [ ] **BL.np** · Reduces NP Cooldown by 2◈
-- [ ] **BL.cleanse** · Removes all debuffs from herself
-- [ ] **BL.cd** · Cooldown 3◈
+- [x] **BL.when** · Used during her Turn
+- [x] **BL.np** · Reduces NP Cooldown by 2◈
+- [x] **BL.cleanse** · Removes all debuffs from herself
+- [x] **BL.cd** · Cooldown 3◈
 
 ## Invisible Air: Bounded Field of the Wind King — Rank C *(NP, Anti-Unit)*
 
-- [ ] **IA.two** · Can be used in 2 different ways
-- [ ] **IA.u1.with** · Usage 1: used together with Mana Burst
-- [ ] **IA.u1.agl** · …AGL Up for 1◈: Agility Check rolls −3
-- [ ] **IA.u1.mov** · …MOV Up for 1◈: MOV +3
-- [ ] **IA.u1.cd** · …Cooldown 5◈
-- [ ] **IA.u1.nocost** · …no Master Health cost when used this way
-- [ ] **IA.u2.ranged** · Usage 2, Strike Air: Hammer of the Wind King, `{R}` Ranged
-- [ ] **IA.u2.area** · …hits a 3x3 area in any non-diagonal direction next to her
-- [ ] **IA.u2.dmg** · …deals 300 damage
-- [ ] **IA.u2.split** · …divided by the number of affected Units, to each affected Unit
-- [ ] **IA.u2.flat** · …not affected by any damage modifying effects on her
-- [ ] **IA.u2.wind** · …Wind damage
+- [x] **IA.two** · Can be used in 2 different ways
+- [x] **IA.u1.with** · Usage 1: used together with Mana Burst
+- [x] **IA.u1.agl** · …AGL Up for 1◈: Agility Check rolls −3
+- [x] **IA.u1.mov** · …MOV Up for 1◈: MOV +3
+- [x] **IA.u1.cd** · …Cooldown 5◈
+- [x] **IA.u1.nocost** · …no Master Health cost when used this way
+- [x] **IA.u2.ranged** · Usage 2, Strike Air: Hammer of the Wind King, `{R}` Ranged
+- [x] **IA.u2.area** · …hits a 3x3 area in any non-diagonal direction next to her
+- [x] **IA.u2.dmg** · …deals 300 damage
+- [x] **IA.u2.split** · …divided by the number of affected Units, to each affected Unit
+- [x] **IA.u2.flat** · …not affected by any damage modifying effects on her
+- [x] **IA.u2.wind** · …Wind damage
 - [ ] **IA.u2.notmag** · …*"Affected by Magic Resistance (deals MAG damage)"* struck out: not MAG damage
-- [ ] **IA.u2.cd** · …Cooldown 5◈
-- [ ] **IA.excl** · Usage 1 cannot be used on the same Round as Usage 2, and vice versa
-- [ ] **IA.clocks** · …but Usage 1 can be used while Usage 2 is on Cooldown, and vice versa
+- [x] **IA.u2.cd** · …Cooldown 5◈
+- [x] **IA.excl** · Usage 1 cannot be used on the same Round as Usage 2, and vice versa
+- [x] **IA.clocks** · …but Usage 1 can be used while Usage 2 is on Cooldown, and vice versa
 
 ## Rhongomyniad: The Lance That Shines To The Ends Of The Earth — Rank A++ *(NP, Anti-Fortress)*
 
-- [ ] **RH.special** · `{S}` Special
-- [ ] **RH.ba** · Base Attack (MAG)
-- [ ] **RH.range** · Range 5
-- [ ] **RH.area** · Hits a 5x5 area within Range
-- [ ] **RH.pierce** · Has the Pierce effect
-- [ ] **RH.c1** · Criterion 1: at least two DUs have at least 3 Parameters each equal to or higher than hers
-- [ ] **RH.c2** · Criterion 2: there is only one DU in the NP area
-- [ ] **RH.c3** · Criterion 3: at least two DUs have the 'Evil' Alignment
-- [ ] **RH.c4** · Criterion 4: her Health is less than at least two of the DUs'
-- [ ] **RH.c5** · Criterion 5: none of the DUs have at least 3 Parameters each two Ranks below hers
-- [ ] **RH.c6** · Criterion 6: none of the DUs have the 'Elemental' Attribute
-- [ ] **RH.one** · With Criterion 2 met, Criteria 1, 3, 4 and 5 are met when the single DU meets them
-- [ ] **RH.dmg** · None met: 3x damage plus 200
-- [ ] **RH.per** · …+0.5x per criterion met
-- [ ] **RH.light** · Light damage
-- [ ] **RH.cost** · None met: her Master loses 30 Health as the NP's cost
-- [ ] **RH.cost.per** · …10 more per criterion met
-- [ ] **RH.cdcut** · Then its Cooldown −⅓◈ per criterion met
-- [ ] **RH.cd** · Cooldown 7◈+⅔◈
+- [x] **RH.special** · `{S}` Special
+- [x] **RH.ba** · Base Attack (MAG)
+- [x] **RH.range** · Range 5
+- [x] **RH.area** · Hits a 5x5 area within Range
+- [x] **RH.pierce** · Has the Pierce effect
+- [x] **RH.c1** · Criterion 1: at least two DUs have at least 3 Parameters each equal to or higher than hers
+- [x] **RH.c2** · Criterion 2: there is only one DU in the NP area
+- [x] **RH.c3** · Criterion 3: at least two DUs have the 'Evil' Alignment
+- [x] **RH.c4** · Criterion 4: her Health is less than at least two of the DUs'
+- [x] **RH.c5** · Criterion 5: none of the DUs have at least 3 Parameters each two Ranks below hers
+- [x] **RH.c6** · Criterion 6: none of the DUs have the 'Elemental' Attribute
+- [x] **RH.one** · With Criterion 2 met, Criteria 1, 3, 4 and 5 are met when the single DU meets them
+- [x] **RH.dmg** · None met: 3x damage plus 200
+- [x] **RH.per** · …+0.5x per criterion met
+- [x] **RH.light** · Light damage
+- [x] **RH.cost** · None met: her Master loses 30 Health as the NP's cost
+- [x] **RH.cost.per** · …10 more per criterion met
+- [x] **RH.cdcut** · Then its Cooldown −⅓◈ per criterion met
+- [x] **RH.cd** · Cooldown 7◈+⅔◈
 - [ ] **RH.go** · Summoned in a Grand Order War on the Chaldea Faction: the multiplier begins at 4x
+
+## Pressed live (2026-10-24/25, Rounds 7–9 on *Vlad Berserker Audit*)
+
+Summoned into the running War with a Master of her own, both Faction 1's, Player1 driving her sheet and the
+attack and Skill requests the sheet sends; the GM drove the defenders. Olga Marie and Vlad III (Lancer) stood in
+for enemies. Staging between presses: the Turn budget and her Turn record reset, a Noble Phantasm's clock zeroed,
+a debuff and a charge placed by hand, and an enemy Master moved into reach.
+
+- **ST.\***: Player1's sheet: Lancer · Lawful Good · England; *Arturia Pendragon, King of Storms*; B A A A C;
+  1500; BA 125/200; MOV 8; Range 2, 1 target; Sustainability 2◈; *"Normal Attack: fixed component · STR · Melee"*;
+  no Items. Ability cards: Strike Air RANGED, Rhongomyniad SPECIAL.
+- **MB.\***, **IA.u1.\***: Mana Burst on Olga at 2: *"Ride the Normal Attack? ... can be used together with this
+  Attack"*, taken; *"Invisible Air ... 2 effect(s) applied"*: AGL Up 3 and MOV Up 3, Invisible Air's clock 15,
+  her Master's Health untouched. The card *"Mana Burst (A) · Melee"*, stage 1 *"BA(STR) +125, BA(MAG) +200, 325"*,
+  stage 11 *"bypassed: attack is not affected by Magic Resistance"*. On its Cooldown (2), on an enemy Master: her
+  Master 100 → 80, the clock left at 2, Invisible Air not offered on its own clock.
+- **MB.excl**, **TL.excl**: after Mana Burst, Torrent *"sameRoundExclusive"*, the sheet *"Cannot be used on the
+  same Round as Mana Burst"*; after Torrent, Mana Burst *"Cannot be used on the same Round as Torrent of Light"*
+  (it printed the content id: fixed, a Surprise).
+- **TL.\***: Atk Up 60 / NP 40 for one Turn, Dmg Up (Chaotic) 50, Dmg Up (Evil) 50; a later NP's breakdown read
+  *"Atk Up +40%"* and *"Dmg Up (Evil) +50%"* on Olga.
+- **IA.excl**, **IA.clocks**, **IA.u2.\***: after Usage 1, the sheet *"Strike Air: Cannot be used on the same Round as
+  Invisible Air"*; the next Round, Strike Air south over Olga and Vlad: two cards *"Ranged"*, stage 1 *"fixed damage,
+  300 ÷ 2 Units +150"*, Olga 150 under her own Atk Up 60%; her Master paid the Rank C cost, 250 → 220.
+- **CH.1**, **CH.1.self**, **CH.neg.atk**, **WH.\***: her Master within 2 carried *"Charisma +20"*; after Wild Hunt
+  it carried Atk Up (Charisma) and NP DmUp, and the +20 was gone; she held Atk Up (Charisma) 20/10, NP DmUp 20 and
+  NP DmUp (Round) 30 with no clock, the Master (no Round Table) none.
+- **BL.\***: Invisible Air 12 → 6, Strike Air 15 → 9; a placed Atk Dwn removed.
+- **RH.\***: over Olga and Vlad, *"criteria met 3 of 6 (1, 5, 6)"*, her Master 220 → 160, the clock 23 → 20; *"(A++)
+  Special"*; stage 3 *"4.5× damage, plus 200"*; the stored attack `pierce: true`, `element: light`. With the charge
+  held, both hits read *"NP DmUp (Round)"*, and it was gone once the Phase closed. Over one DU, an enemy Master:
+  *"criteria met 3 of 6 (2, 5, 6)"*, the "at least two" criteria judged on him alone (RH.one). Re-pressed after the
+  step became `{ticks: ⅓◈, direction: down}` (a signed `-⅓◈` is no ◈ span): the clock 20 again, the Master −60.
+- **RI.when**, **RI.mov**, **RI.cd**, **RI.notbuff**: the sheet's switch: Riding ON, MOV 8 → 13, no MOV Up effect,
+  Cooldown 9.
+
+Not pressed in this audit, each a shared file pressed before: Magic Resistance (the Class template), Riding's
+Passives (Mannanán, Karna), Vivian's Blessing and Charisma's Skill Seal (#230). WH.round.nostack and IA.u2.notmag
+are unit-tested only. RH.go is not built (ruling 6).
+
+Three findings, each a Surprise, all fixed: the attack path named an exclusion's partner by id; a charge spent by an
+NP whose Phase closed after the charge was gained (now spent only by an NP declared holding it,
+`attack:heldAtDeclaration`); a `useSkill` request for a toggle announced *"Switched on"* and switched nothing (now
+`useSkill` writes the switch with the price).
+

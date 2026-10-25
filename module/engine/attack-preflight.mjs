@@ -137,7 +137,7 @@ export function attackPreflight({ attacker, abilityId, placement = {}, board, co
   // It explicitly cannot bypass the Round gate, so `overrides` is consulted per
   // reason rather than as a blanket "skip validation".
   const overridden = (placement?.overrides ?? []).includes(usage.reason);
-  if (!usage.ok && !overridden) return refuse(`Cannot use this ability: ${usageRefusal(usage)}`);
+  if (!usage.ok && !overridden) return refuse(`Cannot use this ability: ${usageRefusal(usage, attacker)}`);
 
   // Ch. 32: at 25 Health or less a Master cannot order more than one of its
   // Servants to Act. Enforced here, where it composes with the ordinary budget.
@@ -184,10 +184,18 @@ function replacingNormalAttack(self, actor, board) {
 /**
  * Turn a refusal into something a player can act on.
  * @param {object} usage
+ * @param {object|null} [actor] the attacker, whose items name an exclusion's partner
  * @returns {string}
  */
-function usageRefusal(usage) {
+function usageRefusal(usage, actor = null) {
   const d = usage.detail ?? {};
+  // An exclusion names its partner by content id; the player reads its name, as
+  // the sheet does (`apps/actor-sheet/present.mjs`). Torrent of Light refused a
+  // Mana Burst "on the same Round as lanceturia-torrent-of-light" (#336, live).
+  if (d.partner) {
+    const named = actor?.items?.find?.((i) => i.id === d.partner || i.system?.contentId === d.partner)?.name;
+    if (named) usage = { ...usage, detail: { ...d, partner: named } };
+  }
   switch (usage.reason) {
     case "cooldown": return `it is on cooldown for another ${d.remaining} turn(s).`;
     case "round": return `it cannot be used before Round ${d.requiresRound} (this is Round ${d.round}).`;

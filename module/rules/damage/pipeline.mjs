@@ -351,9 +351,14 @@ function stage1Base(s) {
   // The two are now independent: `base.fixedValue` says where the number comes
   // from, `attack.isFixedDamage` says who may modify it.
   if (spec.fixedValue !== undefined) {
-    s.phys = spec.fixedValue ?? 0;
+    // *"Deals 300 damage divided by the number of affected Units, to each
+    // affected Unit"* (Strike Air, #336 ruling 4): the Units in the area at the
+    // declaration (`attack.targetCount`), rounded down.
+    const among = spec.dividedAmong === "targets" ? Math.max(1, Math.trunc(s.ctx.attack?.targetCount ?? 1)) : 1;
+    s.phys = Math.floor((spec.fixedValue ?? 0) / among);
     s.fixed = s.phys;
-    s.contribute("fixed", s.phys, "fixed damage", "attacker");
+    const why = among > 1 ? `fixed damage, ${spec.fixedValue} ÷ ${among} Units` : "fixed damage";
+    s.contribute("fixed", s.phys, why, "attacker");
     return s.end(1);
   }
 

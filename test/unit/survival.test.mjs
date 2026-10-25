@@ -473,6 +473,25 @@ describe("every Authored Key survives its Route", () => {
  * content that carries the key, so the route cannot outlive its only user.
  */
 export const NESTED_ROUTES = [
+  // Rhongomyniad's *"Cooldown is reduced by ⅓◈ Turns for each criteria that is
+  // met"*: a count step that shortens the clock (#336).
+  {
+    key: "direction",
+    authored: ["packs/_source/abilities/lanceturia-rhongomyniad.yml"],
+    hops: [
+      { file: "tools/lib/content.mjs", why: "countsAreKnown admits up or down on a countBonus step" },
+      { file: "module/engine/cooldown.mjs", why: "countBonusTicks turns a down step into Turns off the clock" },
+    ],
+  },
+  // Strike Air's *"300 damage divided by the number of affected Units"* (#336).
+  {
+    key: "dividedAmong",
+    authored: ["packs/_source/abilities/lanceturia-strike-air.yml"],
+    hops: [
+      { file: "tools/lib/content.mjs", why: "damageBlocksAreKnown admits its one word, targets" },
+      { file: "module/rules/damage/pipeline.mjs", why: "stage 1 divides the fixed figure by the declared Units (`attack.targetCount`)" },
+    ],
+  },
   // Ranged, Melee or Special as the sheet states it (#281): a Normal Attack's,
   // a band's, a damage block's or one instance's.
   {

@@ -1,0 +1,37 @@
+# Torrent of Light, Rank A+, Arturia (Lancer) (#336).
+#
+# > "(Active) Used during your Turn. Has the following effects- 1. Applies Atk
+# > Up for ⅓◈ Turns, all damage dealt is increased by 60%; if NP, 40%. 2.
+# > Applies Dmg Up (Chaotic) for ⅓◈ Turns, all damage dealt to Units with the
+# > 'Chaotic' Alignment is increased by 50%. 3. Applies Dmg Up (Evil) for ⅓◈
+# > Turns, all damage dealt to Units with the 'Evil' Alignment is increased by
+# > 50%. Cooldown: 3◈-⅓◈ Turns. Cannot be used on the same Round (Turn?) as
+# > Mana Burst."
+#
+# On herself. The two Dmg Ups state no NP figure and reach an NP in full
+# (#204 reading 5). The same ROUND as Mana Burst (#336 ruling 1).
+schema: 1
+id: lanceturia-torrent-of-light
+name: "Torrent of Light"
+rank: "A+"
+kind: skill
+slug: torrentOfLight
+copyable: { allowed: false, reason: named }
+cooldown: "3◈-⅓◈"
+timing: { window: ownTurn }
+sameRoundExclusive: [lanceturia-mana-burst]
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[atkUp]{Atk Up} for ⅓◈ Turns, all damage dealt is increased by 60%; if NP, 40%.
+  2. Applies @effect[dmgUpChaotic]{Dmg Up (Chaotic)} for ⅓◈ Turns, all damage dealt to Units with the 'Chaotic'
+     Alignment is increased by 50%.
+  3. Applies @effect[dmgUpEvil]{Dmg Up (Evil)} for ⅓◈ Turns, all damage dealt to Units with the 'Evil' Alignment
+     is increased by 50%.
+  Cooldown: 3◈-⅓◈ Turns. Cannot be used on the same Round as @ability[lanceturia-mana-burst]{Mana Burst}.
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUp, magnitude: 60, npMagnitude: 40, duration: "⅓◈" }
+      - { id: dmgUpChaotic, magnitude: 50, duration: "⅓◈" }
+      - { id: dmgUpEvil, magnitude: 50, duration: "⅓◈" }

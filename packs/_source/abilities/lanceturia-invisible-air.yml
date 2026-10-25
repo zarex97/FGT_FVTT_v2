@@ -1,0 +1,48 @@
+# Invisible Air: Bounded Field of the Wind King, Rank C, Usage 1 (#336).
+# Arturia (Lancer); Lanceturia (Alter) prints it word for word.
+#
+# > "Can be used in 2 different ways- 1. Used together with Mana Burst, when
+# > used in this way, applies AGL Up for 1◈ Turns, Agility Check rolls are
+# > reduced by 3; and applies MOV Up for 1◈ Turns, MOV is increased by 3.
+# > Cooldown: 5◈ Turns. Does not reduce her Master's Health as a cost when used
+# > in this way. ... Note: Usage 1 cannot be used on the same Round as Usage 2
+# > and vice versa; but Usage 1 can be used while Usage 2 is on Cooldown and
+# > vice versa."
+#
+# Two documents, one per usage, each with its own clock (IA.clocks). Ruled
+# 2026-10-24 (#336 rulings 2, 3): offered when she declares a Mana Burst, as one
+# press (`AttackRider` with `cast`, `engine/attack-riders.mjs`); the two Ups land
+# on her at the declaration, hit or miss; a Mana Burst on Cooldown takes it too;
+# never on a Riding Attack. The NP Round gate holds it, as every NP. Riding the
+# Mana Burst's Attack, it spends no Attack of its own (`freeAtWindow`).
+schema: 1
+id: lanceturia-invisible-air
+name: "Invisible Air: Bounded Field of the Wind King"
+rank: C
+kind: noblePhantasm
+slug: invisibleAir
+isNP: true
+npTags: [antiUnit]
+copyable: { allowed: false, reason: named }
+cooldown: "5◈"
+noMasterCost: true
+freeAtWindow: true
+timing: { window: ridesAttack }
+sameRoundExclusive: [lanceturia-strike-air]
+description: |
+  Usage 1. Used together with @ability[lanceturia-mana-burst]{Mana Burst}, when used in this way, applies
+  @effect[aglUp]{AGL Up} for 1◈ Turns, Agility Check rolls are reduced by 3; and applies @effect[movUp]{MOV Up}
+  for 1◈ Turns, MOV is increased by 3. Cooldown: 5◈ Turns. Does not reduce her Master's Health as a cost when
+  used in this way.
+  Note: Usage 1 cannot be used on the same Round as Usage 2 (@np[lanceturia-strike-air]{Strike Air}) and vice
+  versa; but Usage 1 can be used while Usage 2 is on Cooldown and vice versa.
+passiveRules:
+  - key: AttackRider
+    cast: true
+    predicate: ["attack:madeWith:lanceturia-mana-burst"]
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: aglUp, magnitude: 3, duration: "1◈" }
+      - { id: movUp, magnitude: 3, duration: "1◈" }

@@ -1997,6 +1997,10 @@ export const EXECUTORS = Object.freeze({
       abilityKey: ability?.contentId ?? ability?.slug ?? ability?.id ?? source,
       source,
       predicate: el.predicate ?? null,
+      // An NP CAST with the Attack it rides, no die: Invisible Air's Usage 1,
+      // *"Used together with Mana Burst"* (#336 ruling 2). Its own phases, clock
+      // and gate run through `useSkill` at the declaration.
+      cast: Boolean(el.cast),
       die: el.die ?? 6,
       faces: el.faces ?? {},
       oncePerTurnFaces: [...(el.oncePerTurnFaces ?? [])],
