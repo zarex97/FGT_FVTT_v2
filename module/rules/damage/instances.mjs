@@ -98,6 +98,9 @@ export const DAMAGE_BLOCK_KEYS = Object.freeze([
   "fixed", "fixedValue", "formula", "bands",
   // what it counts as
   "element", "elementFraction", "aim", "pierce", "pierceOn", "thrownWeapon",
+  // Ranged, Melee or Special as the sheet states it (#281); an instance may
+  // state its own, Bradamante's `{Ranged}` hit then `{Melee}` hit.
+  "delivery",
   "ignoresMagicResistance", "magicResistanceFactor", "ignoresDefUp", "ignoresAttackerIncreases", "isAoE",
   // Defender of Humanity's Normal Attack: the attacker's Crit Damage effects
   // do not touch it (#328 ruling 7).

@@ -15,10 +15,12 @@ code: module/rules/authoring/ability.mjs, module/rules/ability-use.mjs
   keys: `field.category`, `field.categorizedAs`, `field.categorizedAsNP`
 - `delivery` (**Attribute**, Saber 2026-10-21): `ranged` `melee` `special`, from the `{R}`, `{M}` and `{S}` at the head
   of an attack, and per distance band on a Normal Attack (`N.Atk Type: STR, Melee (1pan); MAG, Ranged (2+pan)`).
-  90 Saber Clauses carry it. The engine has no such field: a rule that asks for a ranged Attack measures distance
-  against the War Rule `rangedMinimumRange`, and Moralltach's `{M}` at Range 3 reads ranged by that measure.
-  *Special* is neither Melee nor Ranged (ruled 2026-10-21): a rule that asks for either refuses it. #281. Surprise `2026-10-21-ranged-is-stated-not-measured`.
-  keys: none (#281)
+  90 Saber Clauses carry it. **Run since #281** (ruled 2026-10-24): a damage block's `delivery`, an instance's over
+  it, a Normal Attack's `normalAttack.delivery`, a band's over that; the closest statement wins, and an Attack that
+  states none is measured by its Range against the War Rule `rangedMinimumRange` (`rules/delivery.mjs#deliveryOf`).
+  *Special* is neither Melee nor Ranged: a rule that asks for either refuses it. Clauses ask `attack:delivery:<d>`;
+  the platforms' `rangedOnly` axes and Gravity Manipulation read it. Surprise `2026-10-21-ranged-is-stated-not-measured`.
+  keys: `field.damage.delivery`, `actor.normalAttack.delivery`, `option.attack:delivery`, `element.NullifiesAttacks.delivery`
 
 - `variant by War Rule` (**Variant**, Saber 2026-10-21): *"If playing without Day or Night Rounds, the effect of
   this Skill is…"* (Gawain; also Mozart, Bunny Lion King, Melusine Ondine). A War's `phase` takes `none`, which turns the cycle

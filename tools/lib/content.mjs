@@ -13,7 +13,9 @@
 
 import { createHash } from "node:crypto";
 import { Rank } from "../../module/domain/rank.mjs";
-import { SERVANT_CLASSES, VALENCES, COPY_REASONS as COPY_REASON_LIST } from "../../module/domain/enums.mjs";
+import {
+  SERVANT_CLASSES, VALENCES, COPY_REASONS as COPY_REASON_LIST, DELIVERIES,
+} from "../../module/domain/enums.mjs";
 import { classifyAbility } from "../../module/rules/ability-use.mjs";
 import { rewriteReferences, parseMarkers, mentionsWithoutMarkers } from "./references.mjs";
 import { parseTick } from "../../module/domain/tick.mjs";
@@ -1051,6 +1053,7 @@ function damageBlocksAreKnown(doc, path, problems) {
         + `happen. The keys the engine reads off a damage block: ${DAMAGE_BLOCK_KEYS.join(", ")}.`,
       );
     }
+    deliveryIsKnown(block.delivery, `${path}: ${where}.delivery`, problems);
     // Whose base a source adds up. `stage1Base` reads `self`, `target` (with a
     // `stat`), a `contentId`, or a Unit the attack names (`mount`, `partner`);
     // any other word used to fall through to the attacker in silence (#249).
@@ -1063,6 +1066,35 @@ function damageBlocksAreKnown(doc, path, problems) {
         problems.push(`${path}: ${where} source ${i} reads the target and states no stat it knows -- expected stat: currentHealth`);
       }
     }
+  }
+}
+
+/**
+ * A stated delivery is one of the three a sheet tags (#281). An unknown word is
+ * an Attack measured by Range with nothing to say the tag was lost.
+ *
+ * @param {unknown} value
+ * @param {string} where
+ * @param {string[]} problems
+ */
+function deliveryIsKnown(value, where, problems) {
+  if (value === undefined || value === null || DELIVERIES.includes(/** @type {string} */ (value))) return;
+  problems.push(`${where} is "${value}" -- expected one of ${DELIVERIES.join(", ")} (#281), or none to measure it by Range`);
+}
+
+/**
+ * A Normal Attack's stated delivery, its own and each band's, is a known word (#281).
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} problems
+ */
+function normalAttackDeliveryIsKnown(doc, path, problems) {
+  const na = doc.normalAttack;
+  if (!na || typeof na !== "object") return;
+  deliveryIsKnown(na.delivery, `${path}: normalAttack.delivery`, problems);
+  for (const [i, band] of (Array.isArray(na.bands) ? na.bands : []).entries()) {
+    deliveryIsKnown(band?.delivery, `${path}: normalAttack.bands[${i}].delivery`, problems);
   }
 }
 
@@ -1412,6 +1444,7 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
   if (PACKS[dir]?.documentType === "Actor") {
     baseAttackAgreesWithTable(doc, path, warnings);
     servantHoldsAClass(doc, path, dir, problems);
+    normalAttackDeliveryIsKnown(doc, path, problems);
   } else {
     activeRulesAreReachable(doc, path, problems);
     damageInstancesAreWellFormed(doc, path, problems);

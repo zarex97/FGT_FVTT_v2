@@ -581,6 +581,8 @@ export function snapshotUnit(actor, {
       relations: variantOverride?.normalAttack?.relations ?? null,
       // The Rank Magic Resistance meets it at (#187 reading 8).
       attackRank: variantOverride?.normalAttack?.attackRank ?? sys.normalAttack?.attackRank ?? null,
+      // Ranged, Melee or Special, as the sheet states it (#281).
+      delivery: variantOverride?.normalAttack?.delivery ?? sys.normalAttack?.delivery ?? null,
       // Its own stage-3 multipliers (#189 readings 3, 18).
       conditionalMultipliers: [...(variantOverride?.normalAttack?.conditionalMultipliers ?? sys.normalAttack?.conditionalMultipliers ?? [])],
     },

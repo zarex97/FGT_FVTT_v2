@@ -24,6 +24,7 @@ import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { test as testPredicate } from "./predicate.mjs";
 import { rollOptionsFor } from "./options.mjs";
 import { relationOf } from "./relations.mjs";
+import { deliveryOf } from "./delivery.mjs";
 
 /**
  * The default protection model. A platform that says nothing is transparent —
@@ -263,16 +264,9 @@ function platformOf(unit, board) {
   return platformsOn(board).find((p) => (p.level ?? 0) === level) ?? null;
 }
 
-/**
- * The minimum Range an Attack needs to count as ranged.
- *
- * @param {object} board
- * @returns {number}
- */
-export function rangedMinimumRange(board) {
-  const n = Number(board?.rules?.rangedMinimumRange);
-  return Number.isFinite(n) && n >= 2 ? n : 2;
-}
+// The minimum Range an unstated Attack needs to count as Ranged lives with the
+// rest of delivery now (#281); re-exported for the callers that asked here.
+export { rangedMinimumRange } from "./delivery.mjs";
 
 /**
  * Is this resolution legal across the levels involved, and what does it cost the occupant?
@@ -325,11 +319,14 @@ export function rangedMinimumRange(board) {
  *   default, which is the more protected reading; the Skill paths say `effect`.
  * @param {boolean} [options.area] whether the shape is an area, which catches an
  *   occupant rather than targets it
+ * @param {string|null} [options.delivery] what the Attack STATES against this
+ *   target (`rules/delivery.mjs`); unset, it is measured from `range`, as every
+ *   Attack was before #281
  * @returns {{ok: boolean, reason?: string, factor?: number, platform?: string}}
  *   `factor` and `platform` when an occupant is kept at a tier below full damage
  */
 export function crossLevelLegal(attacker, target, board, {
-  range = null, allowDirectlyBelow = false, reach = "attack", area = false,
+  range = null, allowDirectlyBelow = false, reach = "attack", area = false, delivery = null,
 } = {}) {
   if ((attacker?.level ?? 0) === (target?.level ?? 0)) return { ok: true };
   // A POCKET DIMENSION is not above anything: nothing crosses in or out of it,
@@ -339,9 +336,11 @@ export function crossLevelLegal(attacker, target, board, {
   if (dimensionOf(attacker, board)?.levelId !== dimensionOf(target, board)?.levelId) {
     return { ok: false, reason: "otherDimension" };
   }
-  // "Ranged" is a table setting (#187 reading 4): Range 2 or more unless the
-  // GM raised it, carried on `board.rules` as Layer 2 reads no settings.
-  const ranged = (range ?? attacker?.range ?? 1) >= rangedMinimumRange(board);
+  // "Ranged" is what the Attack states, `{R}` (#281). One that states nothing
+  // is measured against a table setting (#187 reading 4): Range 2 or more
+  // unless the GM raised it. A Special Attack is not Ranged (ruling 13), so the
+  // Golden Hind's *"can only Attack ... with ranged Attacks"* refuses it.
+  const ranged = deliveryOf({ stated: delivery, reach: range ?? attacker?.range ?? 1 }, board) === "ranged";
   // The platform ITSELF, from another level: its own `hullTargeting`. The
   // Hanging Gardens may be attacked from the ground only at range, and this
   // waved every such attack through at any reach (#68).

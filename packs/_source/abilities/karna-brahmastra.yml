@@ -28,6 +28,8 @@ targeting:
   selection: { relations: [enemy], chooser: chosen, count: 1 }
   limits: { requiresZon: true }
 damage:
+  # `{R}` at its head in `by-class/Lancer/Karna.md`: Ranged (#281).
+  delivery: ranged
   component: mag
   # "This NP has the Aim effect." Aim beats Dodge (`rules/checks.mjs#evade`),
   # which is the whole reason the quote on the sheet is about eyes.

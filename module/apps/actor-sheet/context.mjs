@@ -19,6 +19,7 @@ import { resourceLabel } from "../../domain/resources.mjs";
 import { stanceOf } from "../../rules/stance.mjs";
 import { classifyAbility, usageSpecFor } from "../../rules/ability-use.mjs";
 import { canUseAbility } from "../../rules/costs.mjs";
+import { isDelivery } from "../../rules/delivery.mjs";
 import { test as testPredicate } from "../../rules/predicate.mjs";
 import { rollOptionsFor } from "../../rules/options.mjs";
 import { alsoTriggered } from "../../engine/cooldown.mjs";
@@ -541,6 +542,9 @@ function normalAttackLine(normalAttack) {
   return {
     mode,
     component: normalAttack?.component ?? "str",
+    // *"N.Atk Type: STR, Melee"* (#281): what the sheet states, or nothing
+    // when it is measured by Range.
+    delivery: isDelivery(normalAttack?.delivery) ? normalAttack.delivery : null,
     // A band declares only where it STARTS. EMIYA's single band is `{from: 3}`
     // with no upper bound, so a template printing `{{to}}` rendered "Range
     // 3–undefined" -- the range is read off the NEXT band's start, or is open.
@@ -556,6 +560,8 @@ function normalAttackLine(normalAttack) {
         percent: Math.round((s.factor ?? 0) * 100),
       })),
       ignoresMagicResistance: Boolean(band.ignoresMagicResistance),
+      // A band's own delivery: Trung Sisters' *"MAG, Ranged (2+pan)"* (#281).
+      delivery: isDelivery(band.delivery) ? band.delivery : null,
     })),
   };
 }
@@ -714,6 +720,9 @@ function abilityCard(item, { actor, unit, master, round, turnsPerRound, board })
     rank: item.system.rank ?? null,
     kind: item.type === "noblePhantasm" ? "noblePhantasm" : (item.system.kind ?? "skill"),
     isNP: item.type === "noblePhantasm" || Boolean(item.system.isNP),
+    // The sheet's `{R}`, `{M}` or `{S}` at the Attack's head (#281); none when it
+    // states nothing and is measured by Range.
+    delivery: isDelivery(item.system.damage?.delivery) ? item.system.damage.delivery : null,
     use,
     // WHICH window, for an ability that has no button because its only moment
     // is one. `classifyAbility` has answered `kind: "windowed"` since Asterios
