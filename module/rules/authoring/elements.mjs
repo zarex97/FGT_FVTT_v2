@@ -455,7 +455,8 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "value", type: "number" },
   ]),
   entry("BanAlliedServantAttacks", "No other allied Servant may Attack while this is held (Unparalleled).", []),
-  entry("AttackRider", "A Noble Phantasm offered on a Normal Attack: a die whose face changes the Attack (Four Elements).", [
+  entry("AttackRider", "A Noble Phantasm offered on a Normal Attack: a die whose face changes the Attack (Four Elements), or an NP cast with it (Invisible Air).", [
+    { key: "cast", type: "checkbox" },
     { key: "die", type: "number" },
     { key: "faces", type: "raw" },
     { key: "oncePerTurnFaces", type: "raw" },

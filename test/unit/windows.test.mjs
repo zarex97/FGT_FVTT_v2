@@ -18,11 +18,11 @@ import {
 describe("the vocabulary", () => {
   // Eight with Kirihanasu's fatal hit (#249). The title said seven while the
   // list held eight from `defendingPhaseStart` (#206) on. Ten with Kazıklı Bey's
-  // end of a Combat Process (#330).
+  // end of a Combat Process (#330). Eleven with Invisible Air's ride (#336).
   it("holds exactly the windows an ability may name", () => {
     expect([...ABILITY_WINDOW_IDS].sort()).toEqual([
       "automatic", "combatPhaseStart", "damageStep", "defendingPhaseStart", "ownTurn", "processEnd",
-      "whenAllyAttacked", "whenAttacked", "whenFatallyHit", "whenTargetedByNP",
+      "ridesAttack", "whenAllyAttacked", "whenAttacked", "whenFatallyHit", "whenTargetedByNP",
     ]);
   });
 

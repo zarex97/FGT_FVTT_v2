@@ -86,6 +86,15 @@ export const ABILITY_WINDOWS = Object.freeze({
     dispatched: true,
     hint: "At the end of a Combat Process this Unit attacked or was attacked in, before any Counter.",
   }),
+  // Invisible Air's Usage 1 (#336): *"Used together with Mana Burst"*. Cast by
+  // the engine when its owner declares the Attack it rides
+  // (`engine/attack-riders.mjs`, an `AttackRider` with `cast`), never a sheet
+  // button of its own.
+  ridesAttack: Object.freeze({
+    id: "ridesAttack",
+    dispatched: true,
+    hint: "At the declaration of an Attack this Unit makes, used together with it.",
+  }),
   whenTargetedByNP: Object.freeze({
     id: "whenTargetedByNP",
     dispatched: true,

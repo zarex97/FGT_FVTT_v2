@@ -28,10 +28,13 @@ rules:
   # raises `abilityUsed` at its declaration, before its riders land, so it is
   # heard at `attackPerformed`, once per Combat Phase after every Process; a
   # non-damaging NP at `abilityUsed`, after its phases.
+  # Only by an NP declared while Overcharge was held: one whose Combat Phase
+  # closes after it was gained never scaled anything with it (#336).
   - key: OnEvent
     event: attackPerformed
     automatic: true
     onlyNP: true
+    predicate: ["attack:heldAtDeclaration:overcharge"]
     then:
       - { key: RemoveEffect, effect: overcharge }
   - key: OnEvent

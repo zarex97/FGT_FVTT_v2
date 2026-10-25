@@ -1,0 +1,81 @@
+# Rhongomyniad: The Lance That Shines To The Ends Of The Earth, Rank A++ (#336).
+#
+# > "{S} Base Attack (MAG) is used. Range=5 panels. Hits a 5x5 panel area within
+# > Range. This NP has the Pierce effect. Damage dealt depends on whether how
+# > many of the following criteria are met ... If none of the criteria are met,
+# > Rhongomyniad deals 3x damage plus 200. For every criteria that is met,
+# > damage dealt is increased by 0.5x ... Light damage. ... When Rhongomyniad is
+# > used and none of the criteria are met, Arturia's Master loses 30 Health as
+# > the cost for this NP. For every criteria that is met, her Master loses an
+# > additional 10 Health. Then, Rhongomyniad's Cooldown is reduced by ⅓◈ Turns
+# > for each criteria that is met. Cooldown: 7◈+⅔◈ Turns."
+#
+# Excalibur Proto's criteria (#283, #319): counted once per declaration over
+# its DUs; with one DU the "at least two" criteria hold when it passes; none
+# over an empty area; "two Ranks below" is at least two whole grades. The area
+# names no relation, so allies in it are hit and are DUs (#336 ruling 9). Every
+# panel within Range 5 (#234). Its stated cost replaces the Rank table. The
+# Cooldown falls ⅓◈ per criterion met (`countBonus` with `direction: down`).
+#
+# Not built (#336 ruling 6): *"If Lanceturia is summoned in a Grand Order Holy
+# Grail War on the Chaldea Faction, the multiplier of Rhongomyniad begins at 4x
+# instead of 3x."* The engine has no Chaldea Faction; Gray and Arthur print the
+# same note. When it is built, only the multiplier starts at 4x (ruling 7).
+schema: 1
+id: lanceturia-rhongomyniad
+name: "Rhongomyniad: The Lance That Shines To The Ends Of The Earth"
+rank: "A++"
+kind: noblePhantasm
+slug: rhongomyniad
+isNP: true
+npTags: [antiFortress]
+element: light
+copyable: { allowed: false, reason: named }
+cooldown:
+  max: "7◈+⅔◈"
+  countBonus:
+    - { ticks: "⅓◈", direction: down, count: { of: criteria } }
+timing: { window: ownTurn }
+description: |
+  Base Attack (MAG) is used. Range=5 panels. Hits a 5x5 panel area within Range. This NP has the
+  @effect[pierce]{Pierce} effect. Damage dealt depends on how many of the following criteria are met-
+  1. At least two DUs have at least 3 Parameters respectively that are equal to or higher than Arturia's.
+  2. There is only one DU in the NP area.
+  3. At least two DUs have the 'Evil' Alignment.
+  4. Arturia's Health is less than at least two of the DUs.
+  5. None of the DUs have at least 3 Parameters respectively that are two Ranks below Arturia's.
+  6. None of the DUs have the 'Elemental' Attribute.
+  If none of the criteria are met, Rhongomyniad deals 3x damage plus 200. For every criteria that is met,
+  damage dealt is increased by 0.5x. Light damage.
+  Criteria 1, 3, 4, and 5 are also accounted for when Criteria 2 is fulfilled; the single DU needs to meet them.
+  When Rhongomyniad is used and none of the criteria are met, Arturia's Master loses 30 Health as the cost for
+  this NP. For every criteria that is met, her Master loses an additional 10 Health. Then, Rhongomyniad's
+  Cooldown is reduced by ⅓◈ Turns for each criteria that is met. Cooldown: 7◈+⅔◈ Turns.
+  Note: in a Grand Order Holy Grail War on the Chaldea Faction the multiplier begins at 4x (not built).
+targeting:
+  anchor: { kind: withinRange, range: 5 }
+  shape: { kind: square, size: 5 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  isDamagingAoE: true
+criteria:
+  - { targets: ["target:paramsVsSelf:gte:3"], atLeast: 2 }
+  - { targets: [], exactly: 1 }
+  - { targets: ["target:morality:evil"], atLeast: 2 }
+  - { targets: ["target:healthVsSelf:gt"], atLeast: 2 }
+  - { targets: ["target:paramsVsSelf:belowBy2:3"], none: true }
+  - { targets: ["target:attribute:elemental"], none: true }
+damage:
+  # `{S}` at its head in `by-class/Lancer/Lanceturia.md`: Special (#281).
+  delivery: special
+  component: mag
+  multiplier: { base: 3, per: 0.5, count: { of: criteria } }
+  flatBonus: 200
+  element: light
+  pierce: true
+additionalCosts:
+  - id: rhongomyniad
+    kind: masterHealth
+    amount: { base: 30, per: 10, count: { of: criteria } }
+    supersedes: [npCost]
+phases:
+  - kind: damage

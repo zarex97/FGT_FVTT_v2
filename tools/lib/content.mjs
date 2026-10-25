@@ -1054,6 +1054,12 @@ function damageBlocksAreKnown(doc, path, problems) {
       );
     }
     deliveryIsKnown(block.delivery, `${path}: ${where}.delivery`, problems);
+    // *"divided by the number of affected Units"* (Strike Air, #336): the one
+    // count stage 1 divides a fixed figure by.
+    const among = block.base?.dividedAmong;
+    if (among !== undefined && among !== "targets") {
+      problems.push(`${path}: ${where}.base.dividedAmong is "${among}" -- expected "targets" (stage 1 divides by nothing else)`);
+    }
     // Whose base a source adds up. `stage1Base` reads `self`, `target` (with a
     // `stat`), a `contentId`, or a Unit the attack names (`mount`, `partner`);
     // any other word used to fall through to the attacker in silence (#249).
@@ -1375,6 +1381,17 @@ function countsAreKnown(doc, path, problems) {
     const count = doc.endsAfter.count;
     if (!Number.isInteger(count) || count < 1) {
       problems.push(`${path}: endsAfter.count must be a whole number of 1 or more ("${count}")`);
+    }
+  }
+  // A cooldown count step goes up, or says `direction: down` (Rhongomyniad, #336);
+  // another word would add where the sheet takes away. A signed span is refused:
+  // `-⅓◈` is no ◈ span (`domain/tick.mjs#parseTick`).
+  for (const [i, bonus] of (doc.cooldown?.countBonus ?? []).entries()) {
+    if (bonus?.direction !== undefined && !["up", "down"].includes(bonus.direction)) {
+      problems.push(`${path}: cooldown.countBonus[${i}].direction "${bonus.direction}" -- expected up or down`);
+    }
+    if (typeof bonus?.ticks === "string" && bonus.ticks.trim().startsWith("-")) {
+      problems.push(`${path}: cooldown.countBonus[${i}].ticks "${bonus.ticks}" is signed -- write the span and \`direction: down\``);
     }
   }
   // A CooldownCutBonus (#299) names use classes and when it bites; a word the

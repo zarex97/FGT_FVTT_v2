@@ -335,6 +335,9 @@ describe("a non-damaging Noble Phantasm", () => {
       // Jack's Mist: "(Non-damaging)" is the first word of its description,
       // and it needs no `damage:` block to say so.
       "jack-the-mist",
+      // Invisible Air's Usage 1 (#336): AGL Up and MOV Up on its user, cast with
+      // the Mana Burst it rides; the Attack is the Mana Burst's.
+      "lanceturia-invisible-air",
       // Fragarach, the eighth. It deals no damage of its own: it CANCELS an
       // incoming Noble Phantasm and then either instakills its user or reflects
       // what that Noble Phantasm would have dealt (`cancelsNP`), which is the

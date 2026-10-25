@@ -1,0 +1,45 @@
+# packs/_source/servants/lanceturia.yml
+# Conversion source: char_orig_sheets/by-class/Lancer/Lanceturia.md
+# Audit: #336 (docs/superpowers/specs/2026-10-24-lanceturia-clauses.md)
+#
+# Built to be reused: Magic Resistance and Riding are the Class templates,
+# Vivian's Blessing and Charisma are Arturia (Saber)'s files word for word, and
+# Invisible Air's two usages are written for Lanceturia (Alter) too.
+schema: 1
+id: lanceturia
+name: "Arturia (Lancer)"
+type: servant
+
+trueName: Arturia Pendragon, King of Storms
+servantClasses: [lancer]
+classContainer: lancer
+alignment: { order: lawful, morality: good }
+# "Britain, England": England, as Arturia (Saber)'s (#336 ruling 10).
+region: [england]
+# "Female, Servant, [Sky], Saberface, Dragon, King, Humanoid, Round Table".
+# Round Table is read by her own Wild Hunt's NP DmUp (Round).
+attributes: [female, servant, sky, saberface, dragon, king, humanoid, roundTable]
+
+parameters: { str: B, end: A, agi: A, mag: A, luc: C }
+baseHealth: 1500
+mov: 8
+range: { panels: 2, targets: 1 }
+baseAttack: { str: 125, mag: 200 }
+# "N.Atk Type: STR, Melee" (#281).
+normalAttack: { mode: fixed, component: str, delivery: melee }
+sustainability: "2◈"
+
+abilities:
+  - { ref: class-magic-resistance, rank: B }
+  # Riding A, Mannanán's: the three Passives always held, the Active +5 MOV.
+  # "Dun Stallion." names her mount and states no rule.
+  - { ref: class-riding, rank: A, cooldown: "3◈" }
+  - { ref: arturia-vivians-blessing }
+  - { ref: lanceturia-mana-burst }
+  - { ref: lanceturia-torrent-of-light }
+  - { ref: arturia-charisma }
+  - { ref: lanceturia-wild-hunt }
+  - { ref: lanceturia-blessings }
+  - { ref: lanceturia-invisible-air }
+  - { ref: lanceturia-strike-air }
+  - { ref: lanceturia-rhongomyniad }
