@@ -12,5 +12,5 @@ sheet named the ability; the attack path printed its content id.
 **Cause:** `module/engine/attack-preflight.mjs#usageRefusal @ 82b7d864` formatted `FGT.Ability.Refused.<reason>` with
 the gate's raw `detail`, whose `partner` is a content id; `apps/actor-sheet/present.mjs` maps it to a name and the
 attack path did not.
-**Fix:** `module/engine/attack-preflight.mjs#usageRefusal @ uncommitted` names the partner from the attacker's items, as
+**Fix:** `module/engine/attack-preflight.mjs#usageRefusal @ 0ce2a0b1` names the partner from the attacker's items, as
 the sheet does; `test/unit/lanceturia-336.test.mjs` asserts the formatted name.
