@@ -13,6 +13,6 @@ switch the same Riding went on, MOV 13.
 **Cause:** `module/engine/skill-use.mjs#useSkill @ 82b7d864` takes an ability that toggles (`classifyAbility` `toggles`)
 as a use: it bills and announces it and writes no `setMode`. The bar and the sheet route toggles to `toggleMode`
 (`apps/hud/action-bar.mjs`), so no button reaches it; the socket operation does.
-**Fix:** `module/engine/skill-use.mjs#useSkill @ uncommitted` writes the switch with the price (`I.setMode`) for an ability
+**Fix:** `module/engine/skill-use.mjs#useSkill @ 0ce2a0b1` writes the switch with the price (`I.setMode`) for an ability
 that toggles and is off; `apps/actor-sheet/sheet.mjs#toggleMode` no longer writes a second patch after a priced entry.
 `test/unit/lanceturia-336.test.mjs` uses Riding through `useSkill`: on, MOV 13; it fails without the write.
