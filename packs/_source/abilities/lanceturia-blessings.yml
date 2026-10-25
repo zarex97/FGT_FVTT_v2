@@ -1,0 +1,28 @@
+# Blessings from the Ends of the World, Rank EX, Arturia (Lancer) (#336).
+#
+# > "(Active) Used during your Turn. Reduces NP Cooldown by 2◈ Turns and removes
+# > all debuffs from herself. Cooldown: 3◈ Turns."
+#
+# "NP Cooldown" names no NP and reaches every one (#197 reading 6): Rhongomyniad
+# and both usages of Invisible Air. "All debuffs" by polarity, as Teachings of
+# Circe; an Unremovable debuff stays (#336 ruling 10).
+schema: 1
+id: lanceturia-blessings
+name: "Blessings from the Ends of the World"
+rank: EX
+kind: skill
+slug: blessingsFromTheEndsOfTheWorld
+copyable: { allowed: false, reason: named }
+cooldown: "3◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Reduces NP Cooldown by 2◈ Turns and removes all debuffs from herself.
+  Cooldown: 3◈ Turns.
+phases:
+  - kind: cooldown
+    target: self
+    changes:
+      - { unit: self, scope: np, ticks: "2◈", direction: down }
+  - kind: removeEffect
+    target: self
+    selector: { polarity: debuff }

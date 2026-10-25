@@ -1,0 +1,18 @@
+# Arturia (Lancer)'s Torrent of Light, effect 2 (#336).
+# Dmg Up (Lawful)'s shape on the other end of the order half of an Alignment.
+schema: 1
+id: dmgUpChaotic
+name: "Dmg Up (Chaotic)"
+description: "All damage dealt to Units with the 'Chaotic' Alignment is increased by X%."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  # `dmgUp`, so it reaches a Noble Phantasm at its full value (#204 reading 5).
+  - key: DamageModifier
+    modifierKey: dmgUp
+    direction: dealt
+    value: "@magnitude"
+    predicate: ["target:order:chaotic"]

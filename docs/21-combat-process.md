@@ -146,6 +146,9 @@ its old footprint, and anybody under it is knocked back. A concealed user steppi
    to `missed` with a `noEffect` roll line naming the Skill: Gravity Manipulation's Ranged BA(STR) Attacks from 4 or
    more panels. Ranged is the Attack's delivery (#281): a `{M}` or `{S}` Attack from 4 panels reaches her. No damage, no riders. The card prints
    that line (`cards.mjs` `noEffect`) in place of "Missed", which it read until the live press.
+   **An NP may be cast with the Attack it rides** (#336): an `AttackRider` with `cast` rolls no die; at the
+   declaration of an Attack its predicate passes (Arturia (Lancer)'s Mana Burst), a yes casts the NP through
+   `useSkill` at its `ridesAttack` window, and the Attack goes on unchanged (Ch. 17).
    **A Noble Phantasm may ride a Normal Attack** (`engine/attack-riders.mjs`, Four Elements, ruling 16): an
    `AttackRider` is offered at the declaration when its predicate passes and the NP's own press gate does; its die
    is rolled and shown, and the face is stamped on the declaration as `attack.rider`. A face may set the element,

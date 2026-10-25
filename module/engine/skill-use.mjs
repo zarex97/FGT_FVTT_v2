@@ -236,6 +236,14 @@ export async function useSkill({
     // A use that failed outright starts no clock (#300).
     ...(applied.channelStarted || usage.overCooldown || failure?.refundsCooldown || fails ? [] : cooldownIntents(ability, actor, applied.summoned ?? 0, self, use, useFacts(record))),
     I.markTurn(actorId, marks),
+    // A use of an ability that TOGGLES is its switch, written here with the
+    // price: Riding's Active, asked for as a `useSkill` request, announced
+    // "Switched on", started its clock and switched nothing, MOV 8 where the
+    // sheet's switch made 13 (#336, found live). One writer: the sheet's switch
+    // relays a priced entry here and writes no second patch.
+    ...(classifyAbility(ability).toggles && !ability.system?.active && !failure && !fails
+      ? [I.setMode(actorId, ability.system?.slug ?? ability.id, true, `skill:${abilityId}`, "manual")]
+      : []),
     // Recorded so a mutually-exclusive partner can see it went, at both
     // scales, and so a `maxUses` budget can be spent. One intent, shared with
     // the attack path, which used to keep no record at all.

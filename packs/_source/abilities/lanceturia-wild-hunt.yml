@@ -1,0 +1,54 @@
+# Wild Hunt, Rank B+, Arturia (Lancer) (#336).
+#
+# > "(Active) Used during your Turn. Affects all allied Units within a 2 panel
+# > of herself. Has the following effects- 1. Applies Atk Up for 1◈ Turns, all
+# > damage dealt is increased by 20%; if NP, 10%. 2. Applies NP DmUp for 1◈
+# > Turns, NP Damage dealt is increased by 20%. 3. Applies NP DmUp (Round) for 1
+# > time to all affected Units with the 'Round Table' Attribute, NP Damage dealt
+# > is increased by 30%. Does not stack. Cooldown: 4◈-⅓◈ Turns. This Skill is
+# > categorized as 'Charisma'"
+#
+# "All allied Units" includes her. A Charisma Skill's Atk Up is Atk Up
+# (Charisma), so while she holds it her own Charisma's +20 is off (#230
+# reading 23). NP DmUp (Round): one charge, no time limit (#336 ruling 5); she
+# holds the 'Round Table' Attribute herself.
+schema: 1
+id: lanceturia-wild-hunt
+name: "Wild Hunt"
+rank: "B+"
+kind: skill
+slug: wildHunt
+categorizedAs: [charisma]
+copyable: { allowed: false, reason: named }
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Affects all allied Units within a 2 panel area of herself. Has the following
+  effects-
+  1. Applies @effect[atkUpCharismaUnit]{Atk Up} for 1◈ Turns, all damage dealt is increased by 20%; if NP, 10%.
+  2. Applies @effect[npDmUp]{NP DmUp} for 1◈ Turns, NP Damage dealt is increased by 20%.
+  3. Applies @effect[npDmUpRound]{NP DmUp (Round)} for 1 time to all affected Units with the 'Round Table'
+     Attribute, NP Damage dealt is increased by 30%. Does not stack.
+  Cooldown: 4◈-⅓◈ Turns. This Skill is categorized as 'Charisma'.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: chebyshevRadius, r: 2 }
+  selection: { relations: [ally, self], includeSelf: true, chooser: all }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: atkUpCharismaUnit, magnitude: 20, npMagnitude: 10, duration: "1◈" }
+      - { id: npDmUp, magnitude: 20, duration: "1◈" }
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+      selection:
+        relations: [ally, self]
+        includeSelf: true
+        chooser: all
+        attributes: ["target:attribute:roundTable"]
+    effects:
+      # No duration: one charge, spent by the next damaging NP (ruling 5).
+      - { id: npDmUpRound, magnitude: 30 }

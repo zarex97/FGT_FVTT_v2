@@ -422,6 +422,9 @@ export async function resolveAttack({
     areaPanels: targets.panels ?? [],
     // How many of its criteria the declaration met, and which (#283).
     ...(criteria.total > 0 ? { criteriaMet: criteria } : {}),
+    // How many Units it was declared at: a figure *"divided by the number of
+    // affected Units"* reads it (`base.dividedAmong`, Strike Air, #336 ruling 4).
+    targetCount: (targets.units ?? []).filter((t) => t.unitId !== self?.id).length,
     // A rider's follow-up hit, made with the Base Attack its face names
     // (Four Elements' face 5, #328 ruling 16).
     ...(placement?.rider ? { rider: placement.rider, ...(placement.rider.component ? { component: placement.rider.component } : {}) } : {}),
@@ -1116,6 +1119,14 @@ export function buildAttackSpec({
       // not affected"*, and a Mana Burst is a Normal Attack by its own flag
       // (`attack:kind:normal`), so nothing could tell the two apart (#230).
       sourceContentId: ability?.system?.contentId ?? null,
+      // WHAT ITS USER HELD when it was declared, by definition id: a charge
+      // spent by "the next" NP is spent by an NP declared holding it, never by
+      // one whose Combat Phase closes after the charge was gained (NP DmUp
+      // (Round), Overcharge; #336, found live). `attack:heldAtDeclaration:<id>`.
+      heldAtDeclaration: [...new Set([...(attacker?.effects ?? [])]
+        .filter((e) => !e.disabled && !e.isSuppressed)
+        .map((e) => e.system?.defId)
+        .filter(Boolean))],
       // HOW IT IS DELIVERED, as the sheet states it: `{R}`, `{M}` or `{S}` (#281).
       // The block's own, or the ability's; a `damage.instances` entry spreads
       // its own over this per Process (`instancesAgainst`), the closest winning
@@ -7870,7 +7881,12 @@ export function previewContext({ caster: given, defender, ability, board, isNP, 
   // (#230, found live).
   const instance = instancesAgainst(ability, caster, defender, declared)[0] ?? {};
   const state = {
-    attack: { ...declared, ...instance, instanceBlock: instance, kind: isNP ? "np" : declared.kind },
+    attack: {
+      ...declared, ...instance, instanceBlock: instance, kind: isNP ? "np" : declared.kind,
+      // The Units the resolution would divide among (Strike Air, #336): every
+      // DU the preview is drawing, as the declaration counts them.
+      targetCount: (targets ?? (defender ? [defender] : [])).filter((u) => u?.id !== caster?.id).length,
+    },
   };
   const { facts, options, block, attack } = describeAttack({ state, attacker: caster, defender, board, ability });
 

@@ -268,7 +268,12 @@ function turnsPerRound() {
 function countBonusTicks(cd, { unit = null, use = {} } = {}) {
   let rounds = 0;
   for (const bonus of cd.countBonus ?? []) {
-    rounds += fractionOfRound(bonus.ticks) * countOf(bonus.count, { use, self: unit });
+    // A step that SHORTENS the clock says so, never with a sign: Rhongomyniad's
+    // *"Cooldown is reduced by ⅓◈ Turns for each criteria that is met"* (#336)
+    // is `{ticks: ⅓◈, direction: down}`. A `-⅓◈` span once crashed a live
+    // Damage Step through `parseTick` (`test/unit/content-ticks.test.mjs`).
+    const sign = bonus.direction === "down" ? -1 : 1;
+    rounds += sign * fractionOfRound(bonus.ticks) * countOf(bonus.count, { use, self: unit });
   }
   return Math.ceil(rounds * turnsPerRound());
 }
