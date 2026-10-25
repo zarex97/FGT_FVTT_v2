@@ -98,23 +98,23 @@ Asked by grilling, 2026-10-24. Rulings are written here as they land. None is bu
 
 ## Magic Resistance — Rank B *(Class Skill)*
 
-- [ ] **MR.1** · Passive 1: MAG damage from a MAG Rank of up to B is negated
-- [ ] **MR.1.over** · …otherwise MAG damage taken is reduced by 40%
-- [ ] **MR.1.np** · …also affects NP
-- [ ] **MR.2** · Passive 2: chance of being inflicted by debuffs −20%
-- [ ] **MR.2.death** · …also affects Instakill and Death
-- [ ] **MR.2.str** · …unless the Instakill or Death is from an Attack/Attack Skill/Spell/NP that deals STR damage or is not affected by Magic Resistance
-- [ ] **MR.2.erase** · Erase is completely unaffected
-- [ ] **MR.2.other** · Other debuffs from STR or *"not affected"* sources still have their chance reduced
+- [x] **MR.1** · Passive 1: MAG damage from a MAG Rank of up to B is negated
+- [x] **MR.1.over** · …otherwise MAG damage taken is reduced by 40%
+- [x] **MR.1.np** · …also affects NP
+- [x] **MR.2** · Passive 2: chance of being inflicted by debuffs −20%
+- [x] **MR.2.death** · …also affects Instakill and Death
+- [x] **MR.2.str** · …unless the Instakill or Death is from an Attack/Attack Skill/Spell/NP that deals STR damage or is not affected by Magic Resistance
+- [x] **MR.2.erase** · Erase is completely unaffected
+- [x] **MR.2.other** · Other debuffs from STR or *"not affected"* sources still have their chance reduced
 
 ## Riding — Rank A *(Class Skill)*
 
-- [ ] **RI.p1** · Passive 1, Double Move: Move twice in her Turn, once before and once after Attacking; total within MOV
-- [ ] **RI.p2** · Passive 2, Riding Attack: Attack every Unit in her path while Moving in a straight line, as her Normal Attack in her Turn
-- [ ] **RI.p2.stop** · …cannot Attack or Move after she has stopped
-- [ ] **RI.p2.left** · …having Moved already this Turn, the ride is MOV minus the panels already Moved
-- [ ] **RI.p2.seat** · …can be combined with Passenger Seat
-- [ ] **RI.p3** · Passive 3, Passenger Seat: her Master Moves with her, ending in the same relative position; counts as one Unit Moving
+- [x] **RI.p1** · Passive 1, Double Move: Move twice in her Turn, once before and once after Attacking; total within MOV
+- [x] **RI.p2** · Passive 2, Riding Attack: Attack every Unit in her path while Moving in a straight line, as her Normal Attack in her Turn
+- [x] **RI.p2.stop** · …cannot Attack or Move after she has stopped
+- [x] **RI.p2.left** · …having Moved already this Turn, the ride is MOV minus the panels already Moved
+- [x] **RI.p2.seat** · …can be combined with Passenger Seat
+- [x] **RI.p3** · Passive 3, Passenger Seat: her Master Moves with her, ending in the same relative position; counts as one Unit Moving
 - [x] **RI.when** · Active: used during her Turn
 - [x] **RI.mov** · MOV +5 for this Turn
 - [x] **RI.cd** · Cooldown 3◈
@@ -122,7 +122,7 @@ Asked by grilling, 2026-10-24. Rulings are written here as they land. None is bu
 
 ## Vivian's Blessing *(Passive)*
 
-- [ ] **VB.1** · She receives no negative effects from being within a Waterside area
+- [x] **VB.1** · She receives no negative effects from being within a Waterside area
 
 ## Mana Burst — Rank A
 
@@ -150,7 +150,7 @@ Asked by grilling, 2026-10-24. Rulings are written here as they land. None is bu
 - [x] **CH.1** · All damage dealt by other allied Units within 2 panels of her +20, NP included
 - [x] **CH.1.self** · …not her own damage (*"other"*)
 - [x] **CH.neg.atk** · Negated while she has Atk Up (Charisma)
-- [ ] **CH.neg.seal** · Negated while she is Skill Sealed
+- [x] **CH.neg.seal** · Negated while she is Skill Sealed
 
 ## Wild Hunt — Rank B+
 
@@ -160,7 +160,7 @@ Asked by grilling, 2026-10-24. Rulings are written here as they land. None is bu
 - [x] **WH.atk.np** · …if NP, 10%
 - [x] **WH.np** · NP DmUp for 1◈: NP damage dealt +20%
 - [x] **WH.round** · NP DmUp (Round) for 1 time to the affected Units with the 'Round Table' Attribute: NP damage dealt +30%
-- [ ] **WH.round.nostack** · …does not stack
+- [x] **WH.round.nostack** · …does not stack
 - [x] **WH.cd** · Cooldown 4◈−⅓◈
 - [x] **WH.cat** · Categorized as 'Charisma'
 
@@ -185,7 +185,7 @@ Asked by grilling, 2026-10-24. Rulings are written here as they land. None is bu
 - [x] **IA.u2.split** · …divided by the number of affected Units, to each affected Unit
 - [x] **IA.u2.flat** · …not affected by any damage modifying effects on her
 - [x] **IA.u2.wind** · …Wind damage
-- [ ] **IA.u2.notmag** · …*"Affected by Magic Resistance (deals MAG damage)"* struck out: not MAG damage
+- [x] **IA.u2.notmag** · …*"Affected by Magic Resistance (deals MAG damage)"* struck out: not MAG damage
 - [x] **IA.u2.cd** · …Cooldown 5◈
 - [x] **IA.excl** · Usage 1 cannot be used on the same Round as Usage 2, and vice versa
 - [x] **IA.clocks** · …but Usage 1 can be used while Usage 2 is on Cooldown, and vice versa
@@ -248,9 +248,28 @@ a debuff and a charge placed by hand, and an enemy Master moved into reach.
 - **RI.when**, **RI.mov**, **RI.cd**, **RI.notbuff**: the sheet's switch: Riding ON, MOV 8 → 13, no MOV Up effect,
   Cooldown 9.
 
-Not pressed in this audit, each a shared file pressed before: Magic Resistance (the Class template), Riding's
-Passives (Mannanán, Karna), Vivian's Blessing and Charisma's Skill Seal (#230). WH.round.nostack and IA.u2.notmag
-are unit-tested only. RH.go is not built (ruling 6).
+Not pressed at first, each a shared file or a unit-tested Clause; pressed after the merge (2026-10-25, Round 9, same
+board), once the user asked why 19 were missing (a Surprise):
+
+- **RI.p1**, **RI.p3**: moved 1, Normal Attack on an enemy Master, moved 2 more (3 of 13); her Master carried a panel
+  west of her each time; the budget *"Servant moves 1/4, Master moves 0/3"*.
+- **RI.p2.left**: after moving 6, the ride reached 7 panels, 13 less 6, where the board allowed 10.
+- **RI.p2**, **RI.p2.seat**, **RI.p2.stop**: the ride south through two enemy Masters hit both (`hit: [2]`), her
+  Master rode along to the panel beside her; then a move *"This path is 1 panels; 0 remain of MOV 13."* and an attack
+  *"this unit has already attacked this turn"*.
+- **VB.1**: a Waterside area under her and Karna: hers `movDelta 0, evadeDelta 0`, Water Atk Up and Fire Def Up only;
+  Karna's −1 MOV, +1 Evade, Lightning and Ice Def Dwn.
+- **CH.neg.seal**: her Master's *"Charisma +20"* gone under a Skill Seal on her, back when it was removed.
+- **WH.round.nostack**: a second Wild Hunt: *"NP DmUp (Round) — already present, does not refresh"*, one charge of 30.
+- **IA.u2.notmag**: Strike Air on Karna, who holds Magic Resistance: stage 11 *"—"*.
+- **MR.1**, **MR.1.np**, **MR.1.over**: Karna, an enemy for the press, Normal Attack staged MAG at MAG B: *"Negated by
+  Magic Resistance"*, *"negated: MR B ≥ attack B"*; his Brahmastra, an NP, met it at its own Rank: *"Magic Resistance
+  −40% MAG (MR B < attack A+)"*.
+- **MR.2**, **MR.2.other**, **MR.2.death**, **MR.2.str**, **MR.2.erase**: through the live engine's landing door
+  (`landEffect`, decided and not written), at 100%: Stun from MAG and from STR 80%; Death and Instakill from MAG 80%;
+  Instakill from STR and from an Attack not affected by Magic Resistance 100%; Erase 100%.
+
+99 of 100 Pressed or Observed; RH.go is not built (ruling 6).
 
 Three findings, each a Surprise, all fixed: the attack path named an exclusion's partner by id; a charge spent by an
 NP whose Phase closed after the charge was gained (now spent only by an NP declared holding it,
