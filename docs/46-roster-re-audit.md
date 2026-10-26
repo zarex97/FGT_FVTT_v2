@@ -7875,10 +7875,12 @@ Dragon Slayer Scáthach's God Slayer with another Attribute. BA(STR) is 135 by t
 ### 46.52.2 What was pressed, and how
 
 In War `NZCYYuJvGQAANjhR` on its own scene, *Siegfried Audit*, built through the wizard beside the match being played,
-Player1 driving his bar, sheet, reactions and dialogs, over two sessions the same day. 83 of 84 Clauses Pressed or
-Observed live. RD.ps.ra, Passenger Seat on a ride, is the template's, pressed on Gilles: his Master fell to Balmung
-before he rode. Staged by the GM and named here: Dragon Slayer's and Nine Lives's clocks reset once each, Masters
-healed to pay their NPs, and Siegfried restored twice, once after a Nine Lives a forgotten staged Dmg Up (Dragon)
-let through, once after his Sustainability ran out as a Free Servant. No engine defect was found live. Two card
-lines read rough: *"Health max 1500 → 1135"* does not name the Armor, and *"NP Regen (Balmung): noop, counted none"*
-shows the engine's word.
+Player1 driving his bar, sheet, reactions and dialogs, over three sessions the same day. All 84 Clauses Pressed or
+Observed live. Staged by the GM and named here: the clocks of Dragon Slayer, Nine Lives and Balmung reset, Masters
+healed to pay their NPs, and Siegfried restored three times (a forgotten staged Dmg Up (Dragon) that let Nine Lives
+through, his Sustainability run out as a Free Servant, Balmung's last hit) with his Master once, for RD.ps.ra.
+
+No rule defect was found live. Three card lines were fixed from the presses: the Max Health wound names the Armor
+(*"Health max 522 → 414 (Armor of Fafnir: Blood Armor of the Evil Dragon)"*); a landing that changed nothing reads
+*"not applied"*, never the engine's `noop`; and a `target: self` row on an attack card is its user's, so his player
+read *"NP Regen (Balmung): not applied, nothing to count"* where it had read *"1 effect(s) applied"*.

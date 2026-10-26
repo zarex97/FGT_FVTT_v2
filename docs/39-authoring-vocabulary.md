@@ -67,7 +67,7 @@ is closed (`module/rules/count.mjs#COUNT_KINDS`, #319):
 
 The value is `base + per × floor(count / each)`, clamped to `max`; `zeroPaysNothing` pays nothing at all at zero, its
 `base` included. On an Effect Entry, `countedOnly` lands nothing at all when the magnitude counts to 0, and says so on
-the card as `counted none` (Balmung's *"if Siegfried had any 'Anti-Dragon' effects"*, #341). The build refuses an unknown kind or a missing key, naming the path (`tools/lib/content.mjs#countsAreKnown`),
+the card as *"NP Regen (Balmung): not applied, nothing to count"* (Balmung's *"if Siegfried had any 'Anti-Dragon' effects"*, #341). The build refuses an unknown kind or a missing key, naming the path (`tools/lib/content.mjs#countsAreKnown`),
 and the use gate refuses one made in the editor, naming the kind (`unknownCountKind`). Both walk with one function,
 `countSpecsIn`.
 

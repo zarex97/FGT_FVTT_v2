@@ -274,5 +274,8 @@ export function effectLine(e) {
   const after = e?.after ? `; ${e.after}` : "";
   if (e?.outcome === "applied") return (e.chance ? `${name} (${e.chance})` : name) + after;
   const why = e?.reason ? `, ${e.reason}` : "";
-  return `${name}: ${e?.outcome ?? "not applied"}${why}`;
+  // `noop` is the engine's word for a landing that changed nothing; the card
+  // says it in a player's (#341: *"NP Regen (Balmung): noop, counted none"*).
+  const outcome = !e?.outcome || e.outcome === "noop" ? "not applied" : e.outcome;
+  return `${name}: ${outcome}${why}`;
 }
