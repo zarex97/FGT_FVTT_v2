@@ -3,7 +3,8 @@ id: 2026-10-26-self-row-read-as-defenders
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Siegfried's player reads Balmung's own NP Regen (Balmung) row by name: it lands on him.
 **Actual:** Player1's card read *"1 effect(s) applied"*, both when it landed and when it was refused, while the GM's

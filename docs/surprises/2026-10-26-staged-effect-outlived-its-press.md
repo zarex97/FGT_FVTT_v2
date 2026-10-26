@@ -3,7 +3,8 @@ id: 2026-10-26-staged-effect-outlived-its-press
 found: live press
 kind: drive-kit
 status: fixed
-reviewed: false
+reviewed: true
+pattern: drive-kit
 ---
 **Expected:** Heracles's Nine Lives on Siegfried would meet Armor of Fafnir and be cut 75% (AF.2.cut).
 **Actual:** it dealt 1378 and felled him: no Armor row, *"Dmg Up (Dragon): 60"* in the breakdown. A Dmg Up (Dragon)
