@@ -1,0 +1,53 @@
+# Siegfried, char_orig_sheets/by-class/Saber/Siegfried.md (#341)
+#
+# > "(Passive) All damage dealt to Units with the 'Dragon' Attribute is
+# > increased by 20%~~; if NP, 10%~~.
+# > (Active) Used during your Turn. Applies the following effects-
+# > 1. Applies Ward (Dragon) for 1◈ Turns, all damage received from Units with
+# >    the 'Dragon' Attribute is reduced by 30%.
+# > 2. Applies Dmg Up (Dragon) for 1◈ Turns, all damage dealt to Units with the
+# >    'Dragon' Attribute is further increased by 60%~~; if NP, 35%~~.
+# > 3. Applies Atk Up for ⅓◈ Turns, all damage dealt is increased by 60%; if
+# >    NP, 40%.
+# > Cooldown: 4◈-⅔◈ Turns."
+#
+# Scáthach's God Slayer with another Attribute: the Passive is a `dmgUp` with no
+# NP figure, the struck text agreeing (DS.p.np); the Active's Dmg Up (Dragon)
+# is a second `dmgUp` *"further"*, added to the Passive's 20 (DS.dmg.stack).
+# The Passive is Anti-Dragon for Armor of Fafnir's bypass when another Unit
+# holds it (#341 ruling 5), never for Balmung's count (ruling 9: a Passive's
+# modifiers carry no effect instance).
+schema: 1
+id: siegfried-dragon-slayer
+name: "Dragon Slayer"
+rank: "A++"
+kind: skill
+slug: dragonSlayer
+cooldown: "4◈-⅔◈"
+timing: { window: ownTurn }
+description: |
+  (Passive) All damage dealt to Units with the 'Dragon' Attribute is increased by 20%.
+  (Active) Used during your Turn. Applies the following effects-
+  1. Applies @effect[wardDragon]{Ward (Dragon)} for 1◈ Turns, all damage received from Units with the 'Dragon'
+     Attribute is reduced by 30%.
+  2. Applies @effect[dmgUpDragon]{Dmg Up (Dragon)} for 1◈ Turns, all damage dealt to Units with the 'Dragon'
+     Attribute is further increased by 60%.
+  3. Applies @effect[atkUp]{Atk Up} for ⅓◈ Turns, all damage dealt is increased by 60%; if NP, 40%.
+  Cooldown: 4◈-⅔◈ Turns.
+passiveRules:
+  - key: DamageModifier
+    modifierKey: dmgUp
+    direction: dealt
+    value: 20
+    predicate: ["target:attribute:dragon"]
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: wardDragon, duration: "1◈", magnitude: 30 }
+      - { id: dmgUpDragon, duration: "1◈", magnitude: 60 }
+      - { id: atkUp, duration: "⅓◈", magnitude: 60, npMagnitude: 40 }

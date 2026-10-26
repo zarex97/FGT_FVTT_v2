@@ -7851,3 +7851,31 @@ templates seen on other Servants and not yet pressed on him; 9 are unit-tested o
 defects were found live, each a Surprise: Prevention offered to a Unit Instakill had emptied, Curse (Bolg) left on a
 defeated holder, Curse (Bolg)'s tick read as the holder's Turn (it is every Turn, as Curse), and ruling 28 written
 without the War Rule's Intermediate default.
+
+## 46.52 Siegfried (Saber) — an armour read off the attack's Rank, and a back that wounds the maximum
+
+Audit #341, `docs/superpowers/specs/2026-10-26-siegfried-clauses.md`. 84 Clauses, 11 rulings in two grill rounds. His
+kin did most of the work: Riding is Gilles's, Golden Rule and Disengage the shared templates, Balmung Excalibur's frame,
+Dragon Slayer Scáthach's God Slayer with another Attribute. BA(STR) is 135 by the table, not the printed 185 (§46.6).
+
+### 46.52.1 What he cost the engine
+
+- **A Total cut read off the attack's Rank** (Ch. 10, Ch. 22): `AttackRankTier`, Andreias Amarantos's sibling at stage
+  15. A non-NP Attack is read by its attacker's Parameter for the damage type (ruling 2), an NP by its own Rank. A
+  nullified hit loses its Fixed damage (`negatedWhole`, ruling 4) and keeps its riders (ruling 11).
+- **Every reduction bypassed from the defender's side** (Ch. 22): `Defenceless`, the Heel's `ignoresDefensiveBuffs`
+  asked of the bearer. Invuln is now one of the reductions it bypasses, for the Heel too (ruling 6).
+- **A Max Health wound** (Ch. 10): `WoundsMaxHealth`, written at `applyDamage` after the damage and before a revival.
+- **Anti-Dragon, one reader** (Ch. 11): `antiAttributesOf`. `DamageModifier` now says its direction, and an attack's
+  own stage-3 row counts. Arturia's weakness read a tag no attack carried.
+- **A lengthened Golden Rule** (Ch. 10): `CooldownCutOverride`, Rheingold's 1◈; Monte's ⅓◈ waits on Edmond Dantès.
+- **A Count of Anti-Dragon effects** (Ch. 39): `antiAttributeEffects`, and the entry key `countedOnly`.
+- **NP Seal on a passive NP** (ruling 8): his Armor and Achilles's Andreias Amarantos both.
+
+### 46.52.2 What was pressed, and how
+
+In War `NZCYYuJvGQAANjhR` on its own scene, *Siegfried Audit*, built through the wizard beside the match being played,
+Player1 driving his bar, reactions and dialogs. 82 of 84 Clauses Pressed, Observed or Tested; the Riding passives are
+the template pressed on Gilles. Two are built and not pressed: BM.hit with an ally in the area, and AF.5.only, the
+wound under NP Seal. No defect was found live. The wound's card line reads *"Health max 1500 → 1135"* and does not name
+the Armor.

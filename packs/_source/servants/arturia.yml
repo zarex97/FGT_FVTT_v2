@@ -43,7 +43,7 @@ summonItems:
 abilities:
   - { ref: class-magic-resistance, rank: A }
   # Passive 3, the Anti-Dragon threshold (reading 21).
-  - { ref: class-magic-resistance-weakness, tag: antiDragon, rank: C, percent: 25 }
+  - { ref: class-magic-resistance-weakness, vsAttribute: dragon, rank: C, percent: 25 }
   - { ref: class-riding-unlocks, rank: B, cooldown: "2◈", mov: 4 }
   - { ref: arturia-vivians-blessing }
   - { ref: arturia-charisma }

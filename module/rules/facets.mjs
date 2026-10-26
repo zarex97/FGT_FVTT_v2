@@ -648,6 +648,8 @@ export const FACETS = Object.freeze([
     id: "vsAttribute",
     subjects: ["attack"],
     segments: [{ name: "attribute", value: open() }],
+    // The attacker's damage-dealt modifier against it, or the attack's own
+    // stage-3 row (`rules/options.mjs#antiAttributesOf`, #341 ruling 5).
     english: "The attack is one that hits a named Attribute especially hard.",
     prose: "the attack is effective against {attribute}",
   }),
