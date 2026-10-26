@@ -19,6 +19,7 @@ import { acquisitionTarget } from "../rules/items.mjs";
 import { useClassesOf } from "../rules/costs.mjs";
 import { currentBoard, currentMoment, unitActor } from "./board.mjs";
 import { warRule, currentWar } from "./war.mjs";
+import { EffectRegistry } from "../rules/registry.mjs";
 
 /**
  * @typedef {object} ApplicationPlan
@@ -284,7 +285,12 @@ function statOf(unitId, stat) {
 function statLines(stats) {
   return stats.flatMap(({ intent, before }) => {
     const line = statChangeLine(intent, before, statOf(intent.unitId, intent.stat));
-    return line ? [{ unitId: intent.unitId, summary: { id: "statChange", name: line, outcome: "applied", reason: null, chance: null } }] : [];
+    // ...and what moved it, when the intent says: *"Health max 1500 → 1135"*
+    // named nothing, and a player read a maximum fall with no cause (#341,
+    // Armor of Fafnir's wound from behind).
+    const source = intent.source ? EffectRegistry.nameOf(intent.source) : null;
+    const name = line && source ? `${line} (${source})` : line;
+    return name ? [{ unitId: intent.unitId, summary: { id: "statChange", name, outcome: "applied", reason: null, chance: null } }] : [];
   });
 }
 

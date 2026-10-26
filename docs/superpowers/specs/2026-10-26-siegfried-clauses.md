@@ -66,8 +66,7 @@ What he needs that nobody has yet, each built as a generic piece:
 
 Asked by grilling, 2026-10-26. Rulings are written here as they land. **Built 2026-10-26** on `claude/siegfried`
 (`test/unit/siegfried-341.test.mjs`, 23 tests) and pressed as Player1 in a War of its own, `NZCYYuJvGQAANjhR` on the
-scene *Siegfried Audit*, apart from the match being played. 83 of the 84 Clauses end Pressed or Observed live
-(second session, the same day); RD.ps.ra is the template's, pressed on Gilles: his Master had fallen before the ride. Case chapter §46.52.
+scene *Siegfried Audit*, apart from the match being played. All 84 Clauses end Pressed or Observed live (three sessions, the same day). Case chapter §46.52.
 
 **Round 1, ruled 2026-10-26 (the user).** Q2 and Q7 were asked again with the quotations and ruled the same day (round 1b).
 
@@ -122,7 +121,7 @@ scene *Siegfried Audit*, apart from the match being played. 83 of the 84 Clauses
 - [x] **RD.ra.stop** · …cannot Attack or Move after he has stopped · *Pressed* — a Move after the ride: "Riding Attack ends this Unit's Turn; it cannot Move again." (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **RD.ra.left** · …if he already Moved, its panels are his MOV minus the panels Moved · *Pressed* — after 2 panels moved, the ride's lines reached 7, his MOV 9 less 2 (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **RD.ps** · *(P3)* Passenger Seat: his Master Moves with him, same orientation and position after; counts as Moving one Unit · *Pressed* — Carry Master: his Master moved with him on both moves, same offset (War NZCYYuJvGQAANjhR, 2026-10-26)
-- [ ] **RD.ps.ra** · Passenger Seat and Riding Attack combine · *Observed (template)* — `class-riding-unlocks`, pressed on Gilles (#260); not pressed on him: his Master fell to Balmung before his ride
+- [x] **RD.ps.ra** · Passenger Seat and Riding Attack combine · *Pressed* — Riding Attack from (6, 6) to (12, 6) hit Master of Saber of Faction 2 (163) and Cú (76), his Master carried from (6, 7) to (12, 7) (War NZCYYuJvGQAANjhR, 2026-10-26; Master and Siegfried restored by the GM)
 - [x] **RD.cd** · Cooldown 2◈ · *Pressed* — "Riding — Cooldown 2◈ (6 turns)" (War NZCYYuJvGQAANjhR, 2026-10-26)
 
 ## Golden Rule — Rank C- *(Passive)*
@@ -195,7 +194,7 @@ scene *Siegfried Audit*, apart from the match being played. 83 of the 84 Clauses
 - [x] **BM.hit** · …every Unit in it · *Pressed* — Balmung south hit his own Master for 915 (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **BM.dmg** · 5x damage · *Pressed* — "5× damage" (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **BM.dragon** · …further +200% against Units with the Dragon Attribute · *Pressed* — "Dragon (+200%): 3" on the second Siegfried only (War NZCYYuJvGQAANjhR, 2026-10-26)
-- [x] **BM.regen.if** · Then, if he has any Anti-Dragon effect: NP Regen (Balmung) on him for 1◈ · *Pressed* — NP Regen (Balmung) landed; with none on him the card read "NP Regen (Balmung): noop, counted none" (`siegfried-341.test.mjs`)
+- [x] **BM.regen.if** · Then, if he has any Anti-Dragon effect: NP Regen (Balmung) on him for 1◈ · *Pressed* — NP Regen (Balmung) landed; with none on him his player's card reads "NP Regen (Balmung): not applied, nothing to count" (`siegfried-341.test.mjs`)
 - [x] **BM.regen** · …his NP Cooldown −1 Turn at the end of every Turn for every Anti-Dragon effect on him · *Pressed* — magnitude 2, and 2 more off the clock at his Turn's end (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **BM.regen.def** · …Anti-Dragon: any buff or effect that raises damage dealt to, or cuts damage taken from, Dragon Units · *Pressed* — Ward (Dragon) and Dmg Up (Dragon) counted (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **BM.regen.passive** · …a Passive's Anti-Dragon effect does not count · *Pressed* — Dragon Slayer's Passive held, count 2 not 3 (War NZCYYuJvGQAANjhR, 2026-10-26)

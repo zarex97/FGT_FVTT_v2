@@ -120,7 +120,7 @@ export async function landEffect(entry, ctx) {
   // comes *"if Siegfried had any 'Anti-Dragon' effects"* (#341). Said on the
   // card as a reason, never an effect of 0.
   if (entry.countedOnly && !(authored > 0)) {
-    const reason = "counted none";
+    const reason = "nothing to count";
     return {
       outcome: "noop", reason, chance: null, intents: [], roll: null, trace: [],
       summary: { id: entry.id, name: def.name ?? entry.id, outcome: "noop", reason, chance: null },

@@ -185,6 +185,9 @@ describe("Armor of Fafnir, the wound from behind (AF.4.max; ruling 7)", () => {
       const h = w.actor(SIEG).system.health;
       expect(h.value).toBeLessThan(1500);
       expect(h.max).toBe(h.value);
+      // The card names what lowered the maximum.
+      const said = w.messages.contents.map((m) => JSON.stringify(m.flags?.fgt?.effects ?? [])).join(" ");
+      expect(said).toContain(`Health max 1500 → ${h.max} (Armor of Fafnir`);
     }, WAR);
   });
 
@@ -279,6 +282,15 @@ describe("Avaricious Gold and Golden Rule (AV.*, GR; ruling 10)", () => {
   });
 });
 
+describe("the card's words for a landing that changed nothing (#341)", () => {
+  it("says not applied, never noop", async () => {
+    const { effectLine } = await import("../../module/rules/card-visibility.mjs");
+    expect(effectLine({ name: "NP Regen (Balmung)", outcome: "noop", reason: "nothing to count" }))
+      .toBe("NP Regen (Balmung): not applied, nothing to count");
+    expect(effectLine({ name: "Burn", outcome: "resisted", reason: "rolled 85 vs 50%" })).toBe("Burn: resisted, rolled 85 vs 50%");
+  });
+});
+
 describe("Balmung (BM.*; ruling 9)", () => {
   const cast = (effects) => async ({ world: w }) => {
     // Cú's Disengage is offered at the Phase's start; he lets the NP land.
@@ -307,6 +319,10 @@ describe("Balmung (BM.*; ruling 9)", () => {
     await withSubjects(scene([]), async (ctx) => {
       await cast()(ctx);
       expect(held(ctx.world, SIEG)).not.toContain("npRegenBalmung");
+      // The card says so, as his own row: his player reads it by name, never
+      // as one more effect applied to the defender.
+      const rows = ctx.world.messages.contents.flatMap((m) => m.flags?.fgt?.effects ?? []);
+      expect(rows).toContainEqual(expect.objectContaining({ id: "npRegenBalmung", outcome: "noop", reason: "nothing to count", unitId: SIEG }));
     }, ON_A);
   });
 

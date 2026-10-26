@@ -7508,7 +7508,12 @@ async function applyDeclaredEffects(specs, ability, state, defender, { phase = n
   /** @type {object[]} */
   const out = [];
   for (const spec of specs) {
-    out.push(...await landEntry(entryOf(spec, { phase }), {
+    // Each row says whose it is: the recipient's. A `target: self` phase lands
+    // on the attacker, and a row with no Unit is read as the defender's, so
+    // Balmung's own NP Regen (Balmung) reached its user's player as *"1
+    // effect(s) applied"* and a refusal read as a landing (#341, found pressing).
+    const recipientRows = (rows) => rows.map((r) => ({ ...r, unitId: r.unitId ?? defender?.id ?? null }));
+    out.push(...recipientRows(await landEntry(entryOf(spec, { phase }), {
       target: defender,
       source: { unitId: state.attackerId, abilityId: ability.id },
       useRecord: state.use ?? null,
@@ -7527,7 +7532,7 @@ async function applyDeclaredEffects(specs, ability, state, defender, { phase = n
     }, {
       write: (intents) => applyBatch(intents, "npCheckEffect"),
       reread: () => (recipientDoc ? unitFrom(boardSnapshot(), recipientDoc) : null),
-    }));
+    })));
   }
   return out;
 }
