@@ -1,0 +1,42 @@
+# Cú Chulainn, char_orig_sheets/by-class/Lancer/Cú Chulainn.md (#339).
+#
+# > "(Passive) Cú will automatically Evade any {Ranged} Attacks (arrows,
+# > firearms, thrown weapons, magic projectiles, etc) including Noble Phantasms
+# > from his Front and Sides (with a few possible exceptions?); when he receives
+# > an aforementioned Attack from Behind (i.e. the 3 panels behind him) and he
+# > Evades, the Evade roll is reduced by 2. Does not apply to AoE Attacks. Has no
+# > effect if this Unit is affected by Skill Seal."
+#
+# Arturia's Instinct is the automatic Evade it builds on; it is OFFERED, never
+# forced: he still picks his reaction, and an Evade he picks succeeds with no
+# roll (#339 ruling 25). Ranged is `deliveryOf`'s answer, a stated {R} or an
+# untagged Attack from 2 panels or more (ruling 9). The cone is the one stamped
+# at the declaration, `attack:cone` (#184, ruling 10): Front, Left and Right
+# evade outright, Behind takes -2 on the roll. Every AoE is excluded. Aim beats
+# it, and so does an Attack that closes the Evade rung (ruling 26).
+#
+# Proto Cú prints it word for word at B; Cú (Caster) at A and Tawara Touta and
+# Cú Alter at C print other figures, for their own files.
+schema: 1
+id: cu-protection-from-arrows
+name: "Protection from Arrows"
+rank: B
+kind: skill
+slug: protectionFromArrows
+passive: true
+negatedBy: [skillSeal]
+description: |
+  (Passive) Cú will automatically Evade any {Ranged} Attacks (arrows, firearms, thrown weapons, magic
+  projectiles, etc) including Noble Phantasms from his Front and Sides; when he receives an
+  aforementioned Attack from Behind (i.e. the 3 panels behind him) and he Evades, the Evade roll is
+  reduced by 2. Does not apply to AoE Attacks. Has no effect if this Unit is affected by
+  @effect[skillSeal]{Skill Seal}.
+passiveRules:
+  - key: AutoSucceed
+    check: evade
+    beatenBy: [aim]
+    predicate: ["attack:delivery:ranged", { not: "attack:isAoE" }, { not: "attack:cone:back" }]
+  - key: CheckModifier
+    check: evade
+    value: -2
+    predicate: ["attack:delivery:ranged", { not: "attack:isAoE" }, "attack:cone:back"]

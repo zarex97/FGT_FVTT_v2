@@ -38,6 +38,8 @@ export const EffectRegistry = {
         decay: sys.decay ?? null,
         pausedWhile: [...(sys.pausedWhile ?? [])],
         boardUnique: sys.boardUnique ?? null,
+        // Removed from every holder when its inflicter stays down (#339).
+        endsWithInflicter: Boolean(sys.endsWithInflicter),
         volatility: sys.volatility ?? "nonVolatile",
         valence: sys.valence ?? "neither",
         stacking: sys.stacking ?? "noneNoRefresh",

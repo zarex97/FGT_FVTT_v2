@@ -10,7 +10,7 @@ import * as documents from "./documents/index.mjs";
 import { registerSheets } from "./apps/index.mjs";
 import { activateChatListeners } from "./apps/chat/cards.mjs";
 import { FGTSocket } from "./net/socket.mjs";
-import { currentWar, gmForWar } from "./engine/war.mjs";
+import { currentWar, gmForWar, warRule } from "./engine/war.mjs";
 
 import { Rank } from "./domain/rank.mjs";
 import { parseTick, resolveTicks } from "./domain/tick.mjs";
@@ -143,7 +143,7 @@ Hooks.once("init", () => {
   // emit silently does nothing.
   FGTSocket.initialize();
   // Each request goes to the GM running the requester's War (Q14 (B), 2026-10-18).
-  FGTSocket.setRouter({ warFor: currentWar, gmFor: gmForWar });
+  FGTSocket.setRouter({ warFor: currentWar, gmFor: gmForWar, ruleFor: warRule });
   activateChatListeners();
 
   // Let compendium browsers filter without loading every document.

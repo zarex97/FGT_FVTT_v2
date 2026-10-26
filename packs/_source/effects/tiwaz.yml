@@ -1,0 +1,21 @@
+# Cú Chulainn's Rune Magic, row 1 (#339).
+#
+# > "Applies the 'Tiwaz' buff for 1◈ Turns, his Rank of Magic Resistance is
+# > increased by 1 Rank."
+#
+# A whole grade, C to B, as the Magic Resistance B block printed under the Skill
+# shows (#339 ruling 5): EMIYA's Kanshou & Bakuya's `grades: 1`, which moves the
+# negation threshold and the debuff resistance together.
+schema: 1
+id: tiwaz
+name: "Tiwaz"
+description: "@ability[class-magic-resistance]{Magic Resistance} Rank is increased by one Rank."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: RankShift
+    ability: magicResistance
+    grades: 1

@@ -111,6 +111,8 @@ A unit standing inside the field applies a set of modifier rules keyed on its re
 
 **An interior `Damage` keeps its element, and is always Fixed.** *"…receives 50 Fire damage"* — the action's `element` rides the damage intent, and `engine/applier.mjs#resolveElements` asks the damage pipeline's own stage-0 function (`elementalEarlyExit`, Ch. 22) before it is written: Fire breaks a Frozen enemy's Freeze and deals it nothing, and Burn, Poison or Curse damage heals a Unit with the matching Heal effect instead of hurting it. The action is always **Fixed**: it writes a bare damage intent (`bypassModifiers: true`) and never runs the pipeline, so Def Up, a resistance or a Dmg Cut cannot reach it, and the build refuses a `Damage` that says `fixed: false` (`tools/lib/content.mjs#fieldDamageIsFixed`) until one can. Whether Piedra Del Sol's 50 *should* be ordinary Fire damage that Def Up and fire resistance can change is the open PDS.2 ambiguity, which this does not decide. Before #154 the action dropped its element, and nothing read an element on a bare damage intent anyway — the terrain's Burning toll carries one too and shares the reader.
 
+- Four or more Bloodmarks that are the corners of no 5x5, 7x7 or 9x9 square open nothing, and say so: `engine/marks.mjs` whispers `FGT.Bloodmark.NoSquare` to her owners and the GM. Found live 2026-10-25: marks at rows 0 and 7, columns 3 and 11, are an 8x9, and the player looked for a Fort that was never activated.
+
 ### Axis 5: Duration and Extension
 
 A field has an expiry tick, absolute like every other expiry in the system (`module/engine/fields.mjs:235-238`). At the expiry, the field closes unless paid extension buys more time (`module/engine/fields.mjs:680-691`).

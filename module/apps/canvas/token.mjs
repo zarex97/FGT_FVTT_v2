@@ -30,6 +30,7 @@ import { factions, currentBoard } from "../../engine/board.mjs";
 import { seesThroughOwnField } from "../../rules/identity.mjs";
 import { markSeenBy } from "../../rules/bloodmarks.mjs";
 import { disguiseOf, seesTruth } from "../../rules/disguise.mjs";
+import { publicIdentityOf } from "../../engine/public-identity.mjs";
 
 /**
  * Units the viewer's own Units see through a field of theirs, rebuilt at most
@@ -295,9 +296,35 @@ export class FGTToken extends Token {
   /** @inheritdoc */
   _refreshNameplate() {
     super._refreshNameplate();
+    if (!this.nameplate) return;
     // ...and the copied Unit's name, to everyone the disguise fools.
     const look = shownLook(this.actor);
-    if (look?.name && this.nameplate) this.nameplate.text = look.name;
+    if (look?.name) {
+      this.nameplate.text = look.name;
+      return;
+    }
+    // The token's own name is the True Name. Its owner and the GM read it;
+    // every other viewer reads the name the cards print (asked live
+    // 2026-10-25: "when you hover on a non-owned token you see the public name").
+    if (this.actor && !game.user?.isGM && !this.actor.isOwner) {
+      this.nameplate.text = publicIdentityOf(this.actor, currentBoard()).name || this.document.name;
+    }
+  }
+
+  /**
+   * A nameplate shown on hover when the token shows none.
+   *
+   * Every placed Unit is `displayName: NONE`, since the token's name is the
+   * True Name; the public one is drawn in `_refreshNameplate`, so hover may
+   * show it to every viewer. A mode the GM set by hand is kept.
+   *
+   * @inheritdoc
+   */
+  _refreshState() {
+    super._refreshState();
+    if (!this.nameplate || this.document.displayName !== CONST.TOKEN_DISPLAY_MODES.NONE) return;
+    this.nameplate.visible = !this.document.isSecret
+      && (this.hover || this.controlled || Boolean(this.layer?.highlightObjects));
   }
 
   /**

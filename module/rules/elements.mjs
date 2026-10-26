@@ -1720,9 +1720,12 @@ export const EXECUTORS = Object.freeze({
     });
   },
 
-  AutoSucceed(el, { source, ability, out }) {
+  AutoSucceed(el, { source, ability, out, deferred = null }) {
     out.autoSucceeds.push({
       check: el.check, beatenBy: el.beatenBy ?? [], source,
+      // A clause about the attack, answered when there is one (`checkPlan`):
+      // Protection from Arrows asks its delivery, its area and its cone.
+      predicate: deferred,
       // Which effect this came from and how many charges it has, so the
       // consumer can spend one. `uses` was recorded on the instance and never
       // read back here, so a "1 times" automatic evasion fired for ever.

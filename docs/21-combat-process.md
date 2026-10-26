@@ -46,7 +46,9 @@ Both paths terminate at **Step 2.3 — Accept or Escape.** The defender accepts 
 
 **A run lost with the GM's client neither replays nor stalls (#250).** A Process is driven by the GM client that answered its last rung, in memory, and its state is stored before a held window and when the run ends. A rung that writes to a Unit (`damage`, `heelResolve`, `injury`: `WRITES_UNITS` in `engine/attack.mjs`) stores the state the moment it is done, so a card is never left at a rung whose write already landed: a GM reload in the Command Spell window once left Kingprotea's card at `react`, and its next answer dealt Rain of Light twice. And `resumeStalledProcesses` drives on what a lost run left: on the GM's ready and at every `canvasReady`, for the scene that GM shows and only if it runs that scene's War (`isWarGM`), each Process that waits on nobody is driven from its stored rung through `closeRung`. A rung that waits on a player keeps its buttons and its timeout; a declaration is left to its own run.
 
-**A Luck rung its Unit cannot take is never drawn (#252).** Beginner and Intermediate remove the Luck Check (Ch. 29), and a field that says *"Luck Check cannot be used"* blocks it (`luckChecksBlocked`). `engine/attack.mjs#closedLuckRung` is the one reader: the drive (`closeRung`) runs through such a rung as if it needed nobody and declines it with its reason, a Contest pressed on a card drawn before it closed rolls nothing, and a Command Spell that resumes the Process onto it declines it before the card is written. The card prints each reason once (`luckClosed`): *"No Luck Check: this War's difficulty removes it."* The drive asked the difficulty only on a rung that needed nobody, so an Intermediate card offered *"Contest (costs 1 Luck)"* and a press rolled it.
+**A Luck rung its Unit cannot take is never drawn (#252).** Beginner and Intermediate remove the Luck Check (Ch. 29), and a field that says *"Luck Check cannot be used"* blocks it (`luckChecksBlocked`). `engine/attack.mjs#closedLuckRung` is the one reader: the drive (`closeRung`) runs through such a rung as if it needed nobody and declines it with its reason, a Contest pressed on a card drawn before it closed rolls nothing, and a Command Spell that resumes the Process onto it declines it before the card is written. The card prints each reason once (`luckClosed`): *"No Luck Check: this War's difficulty removes it."* A Luck Check
+an ability imposes (a `check` phase: Gate of Skye, Barbed Spear) is not one of these rungs and asks no such reader: it
+is rolled on every difficulty and inside a field that blocks Luck Checks (#339 rulings 34, 38). The drive asked the difficulty only on a rung that needed nobody, so an Intermediate card offered *"Contest (costs 1 Luck)"* and a press rolled it.
 
 **An Evade the attack says is not rolled goes straight to damage (#191).** Quickfire's *"The enemy Unit Evades (instead of performing an Evade roll)"* advances `evadeRoll` on its own `overridden` edge (`evadeRoll:overridden → damage`), not on `fail`: there was no die, so neither Lucky Evasion nor the Accept-or-Escape Command Spell is offered. On `fail` the ladder offered both, and a passed Lucky Evasion leads to `noDamage`.
 
@@ -140,7 +142,10 @@ its old footprint, and anybody under it is knocked back. A concealed user steppi
    `forbidsCounterWhenAttacking` ability closes the DU's Counter, with a card line. At `defendingPhaseStart`, a cast
    of a `cancelsAttackWhenDefending` ability cancels the whole Attack, every Process, still the AU's Attack, and its
    user is offered a Normal Attack Counter when `counterAvailable` would offer one (`cancelAttackFrom`). A window
-   returns what it cast (`castAbilities`) beside what it carried.
+   returns what it cast (`castAbilities`) beside what it carried. A cast of a `withdrawsWhenDefending` ability
+   (Disengage, #339 ruling 2) is Battle Retreat's rule at the Phase's start: a targeted Attack is cancelled whole with
+   no Counter offered, and from an area one its user alone leaves, with the line *"Lancer leaves the Attack with
+   Disengage."*, before any Process opens. Its phases (Move, heal, removal) ran as it was cast.
 2. **An Attack that has no effect ends at step 1.5** (#328 ruling 9). `NullifiesAttacks {component, delivery,
    minDistance}` on the defender (`rules/miss.mjs#nullifiedBy`, asked with the Attack Description) takes the Process
    to `missed` with a `noEffect` roll line naming the Skill: Gravity Manipulation's Ranged BA(STR) Attacks from 4 or

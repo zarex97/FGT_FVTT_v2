@@ -7823,3 +7823,31 @@ Three defects were fixed, each a Surprise: an exclusion refused on the attack pa
 a charge spent by an NP whose Phase closed after the charge was gained (`attack:heldAtDeclaration`, Overcharge too);
 and a `useSkill` request for a toggle that announced a switch it never made (`useSkill` writes the switch now).
 
+## 46.51 Cú Chulainn (Lancer) — an Evade asked of the attack, and a curse that ends with its inflicter
+
+Audit #339, `docs/superpowers/specs/2026-10-25-cu-chulainn-clauses.md`: 112 Clauses, 38 rulings in five grill rounds.
+Ath nGabla, a duel across several Combat Phases, is deferred by the user (2026-10-26); its 16 Clauses and rulings 7,
+8 and 16–22 stay on file.
+
+### 46.51.1 What he cost the engine
+
+- **A magnitude from missing Health** (Ch. 39): the `healthMissing` Count, whole percent, `each: 10` over `base: 20`.
+  Atk Up (Redbranch) is stamped at use.
+- **An automatic Evade asked of the attack** (Ch. 13): `AutoSucceed` carries a deferred predicate; `checkPlan` grants
+  it only with the attack's options. The new `attack:cone` option (Ch. 11) is the declaration's stamp. Protection from
+  Arrows is offered, never forced.
+- **Disengage, a ranked template** (Ch. 17, Ch. 21): `withdrawsWhenDefending` at `defendingPhaseStart`, a `removeEffect`
+  `pick`, the bearer's figures passed beside the ref. Hector, Siegfried, Darius III and Cú (Caster) print it.
+- **Rune Magic's second pick** (Ch. 13): `rollTable` `thenChoose`.
+- **An effect that ends with its inflicter** (Ch. 14): `endsWithInflicter`, removed at the defeat write from every
+  holder in the world, the defeated too.
+- **An ability's own Luck Check rolls on every difficulty** (Ch. 13, Ch. 29; rulings 34, 38): Gate of Skye too.
+
+### 46.51.2 What was pressed, and how
+
+In War `FwdFxnFteJ3xFCax` on its own scene, *Cú Chulainn Audit*, beside the match being played, Player1 driving his bar,
+reactions and dialogs. 74 Clauses Pressed or Observed; 12 are the Magic Resistance, Divinity and Battle Continuation
+templates seen on other Servants and not yet pressed on him; 9 are unit-tested only; PA.np is built and not seen. Four
+defects were found live, each a Surprise: Prevention offered to a Unit Instakill had emptied, Curse (Bolg) left on a
+defeated holder, Curse (Bolg)'s tick read as the holder's Turn (it is every Turn, as Curse), and ruling 28 written
+without the War Rule's Intermediate default.

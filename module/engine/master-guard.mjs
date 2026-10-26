@@ -15,7 +15,7 @@ import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
 import { guardCase, guardLanding } from "../rules/master-guard.mjs";
 import { canStopOn } from "../rules/movement.mjs";
-import { checkPlan, resolveCheck, tableFor } from "../rules/checks.mjs";
+import { checkPlan, resolveCheck, agilityTableAgainst } from "../rules/checks.mjs";
 import { shownName } from "./public-identity.mjs";
 import { currentWar } from "./war.mjs";
 
@@ -67,7 +67,7 @@ export async function guardMasterTarget({ attackerId, targetId }) {
     const outcome = resolveCheck({
       roll: roll.total,
       target: guard.agility,
-      table: plan.forceTable ?? tableFor(guard.agility, attacker.agility),
+      table: agilityTableAgainst(guard, attacker, plan),
       modifiers: plan.modifiers,
     });
     rolls.push({ unitId: guard.id, name: shownName(guard, board), roll: roll.total, total: outcome.total, target: guard.agility, success: outcome.success });

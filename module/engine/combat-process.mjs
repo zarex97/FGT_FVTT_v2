@@ -733,6 +733,17 @@ export function interruptible(s) {
 }
 
 /**
+ * Which rung a Command Spell window is held on: its state and how far the
+ * ladder had got. A pass is keyed to it, so a "No Command Spell" pressed on one
+ * rung never waves through a later one (#256's lesson for the prompt clock).
+ * @param {ProcessState} s
+ * @returns {string}
+ */
+export function rungKey(s) {
+  return `${s?.state ?? ""}:${s?.history?.length ?? 0}`;
+}
+
+/**
  * The accumulated Command Spell and Master Essence damage factor.
  *
  * **The increases add, and the total multiplies with the cuts.** Halve Noble
@@ -796,9 +807,11 @@ export function applyInterrupt(s, interrupt) {
 
     case "retarget":
       // A new defender who has not reacted yet — and who cannot use the
-      // reactions it never had the chance to declare (Ch. 23).
+      // reactions it never had the chance to declare (Ch. 23). The record keeps
+      // who the Attack left: that Master was still involved in the Phase.
       return {
         ...base,
+        interrupts: [...(s.interrupts ?? []), { ...record, fromId: s.defenderId }],
         defenderId: interrupt.newTargetId,
         state: "react",
         reaction: null,

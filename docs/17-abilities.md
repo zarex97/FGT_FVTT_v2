@@ -271,6 +271,18 @@ by a `targetPredicate`; a phase's `target: master` is the caster's own Master (L
 immediately kill his Master"* inside Wallachia). An ability may be `freeAtWindow`: billed from the bar, free at a
 timing window (Kazıklı Bey's Active 2, *"counts as Vlad's Attack for the Turn if used during his Turn"*). Two keys
 act on the Attack a window use sits in: `cancelsAttackWhenDefending` (Ch. 21) and `forbidsCounterWhenAttacking`.
+A third, `withdrawsWhenDefending`, takes its user out of the Attack at `defendingPhaseStart`: Disengage (#339 ruling 2,
+Ch. 21).
+
+### A template with the bearer's figures, and a pick (#339)
+
+Disengage is one Skill at three Ranks (`abilities/disengage.yml`): each bearer passes `rank`, `move`, `heal`,
+`removes` and `cooldown` beside the ref, and its sheet's own `description`. A `removeEffect` phase's `pick: n` removes
+only `n` of what its selector matches, its user's pick by effect, never an Unremovable one; `0` or fewer matches than
+`n` takes them all, unasked (`engine/skill-use.mjs#pickedCandidates`). A `rollTable` phase's `thenChoose: true` offers,
+after the dice, one more row no die chose, or none: Rune Magic's *"then, you can apply one more effect of your choice
+other than the one selected by the die"* (#339 ruling 4). Both are Skill-path keys: an Attack that carries one says so
+in the console and goes on without it.
 
 ### A clock put back to full, and a gate on the NPs (#328)
 

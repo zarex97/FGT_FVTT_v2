@@ -128,6 +128,10 @@ name each Unit as the table knows it (`attack.mjs#shownName`, through `publicIde
 against 70%", never the True Name under a "Lancer ⚔ Saber" header. The Master-guard line does the same
 (`master-guard.mjs#shownName`): "Saber stands next to Master of Saber of Faction 1".
 
+### Names on hover (2026-10-25)
+
+A token's own name is the True Name, so every placed Unit shows none (`displayName: NONE`). `apps/canvas/token.mjs` shows the nameplate on hover or control instead, and for a viewer who neither owns the Unit nor is the GM writes the name the cards print (`publicIdentityOf`): *"Berserker"*, never *"Heracles"*. A display mode the GM sets by hand is kept.
+
 ### A Feigned Defeat (#249)
 
 **Kirihanasu** (Katō Danzō) is offered at an Attack's fatal hit, after every floor, to her owner alone

@@ -253,7 +253,7 @@ export async function spendCommandSpell({ masterId, commandId, window, messageId
 
   // Interrupts land on the Process, not on the world. `effectIntents` above
   // already skipped them, so nothing is applied twice.
-  if (messageId) await interruptProcess(messageId, command, interruptsOf(effects, ctx), masterId);
+  if (messageId) await interruptProcess(messageId, command, interruptsOf(effects, ctx, masterId), masterId);
   // ...and one spent in a Master's own Turn says so on a card. An interrupt
   // shows on the attack card it interrupted; this had nowhere at all (#190).
   else await postCommandSpellCard({ master: ctx.master, servant: ctx.servant, command, cost, abilityId: context.abilityId ?? null, lines });
@@ -543,14 +543,32 @@ function ticksFrom(delta, ctx) {
  * has had the `escape` interrupt since it was written, and no command made
  * one: Escape authors `teleport`, which the Process recorded as not applied.
  *
+ * A `teleport` that brings in the attacked Master's own Servant is a
+ * **retarget**: *"When CS: Teleport Servant is used by a Master when it is
+ * Attacked, the AU's target is switched to the newly-teleported Servant. The
+ * newly-teleported Servant cannot use Evade or Block in this Combat Process."*
+ * (Rules – Relationships). `combat-process.mjs` has had the `retarget`
+ * interrupt, Evade and Block forbidden, and no command made one: Medusa was
+ * teleported beside her Master and the Master took the hit (found live,
+ * 2026-10-25). Not once the damage has been dealt: the hit is already the
+ * Master's, and re-asking the ladder would deal it twice.
+ *
  * @param {object[]} effects
  * @param {object} ctx
- * @returns {(defenderId: string) => object[]}
+ * @param {string} masterId the Master spending it
+ * @returns {(defenderId: string|null, state?: object|null) => object[]}
  */
-function interruptsOf(effects, ctx) {
-  return (defenderId) => effects.flatMap((e) => {
+function interruptsOf(effects, ctx, masterId) {
+  return (defenderId, state = null) => effects.flatMap((e) => {
     if (e.kind !== "teleport") return [e];
-    return teleportMovers(e, ctx).includes(defenderId) ? [{ kind: "escape" }] : [];
+    const movers = teleportMovers(e, ctx);
+    if (movers.includes(defenderId)) return [{ kind: "escape" }];
+    const dealt = (state?.history ?? []).some((h) => h.state === "damage");
+    const servantId = ctx.servant?.id ?? null;
+    if (defenderId && defenderId === masterId && servantId && movers.includes(servantId) && !dealt) {
+      return [{ kind: "retarget", newTargetId: servantId }];
+    }
+    return [];
   });
 }
 
@@ -599,7 +617,7 @@ async function interruptProcess(messageId, command, effectsFor, masterId) {
   for (const msg of [message, ...siblings]) {
     let state = process.deserialize(msg.getFlag("fgt", "process"));
     if (!process.interruptible(state)) continue;
-    const effects = effectsFor(state.defenderId);
+    const effects = effectsFor(state.defenderId, state);
     // A sibling only takes what reaches it; the card's own Process takes all.
     if (msg !== message && !effects.some((e) => e.kind === "escape")) continue;
     for (const e of msg === message ? effects : effects.filter((x) => x.kind === "escape")) {
@@ -612,10 +630,23 @@ async function interruptProcess(messageId, command, effectsFor, masterId) {
     if (closed) state = process.advance(state, "declined", { reason: closed });
 
     await msg.setFlag("fgt", "process", process.serialize(state));
+    // A retarget names its new defender on the card, as a step-in does
+    // (`attack.mjs` retitles a rebound card): the card remembers its defender.
+    const retarget = effects.find((e) => e.kind === "retarget");
+    if (msg === message && retarget) {
+      const { shownName } = await import("./public-identity.mjs");
+      await msg.setFlag("fgt", "defenderId", retarget.newTargetId);
+      await msg.setFlag("fgt", "names", {
+        ...(msg.getFlag("fgt", "names") ?? {}), defender: shownName(unitActor(retarget.newTargetId), currentBoard()),
+      });
+    }
     // Resume: the ladder continues from wherever the interrupt left it, which
     // may be a different rung than the one it was suspended at (Ch. 33).
+    // A reaction rung with nothing left to choose is answered "nothing", as the
+    // declaration answers it (`attack.mjs`): a retarget lands on `react` with
+    // Evade and Block forbidden, where `done` is no legal event.
     if (!process.pendingPrompt(state) && !process.isComplete(state)) {
-      await advanceAttack({ messageId: msg.id, event: "done" });
+      await advanceAttack({ messageId: msg.id, event: state.state === "react" ? "nothing" : "done" });
     }
   }
 }

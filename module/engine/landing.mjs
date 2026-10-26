@@ -665,8 +665,13 @@ async function offerPrevention(def, target, ctx, board) {
   if (state.prevented?.[target.id]) return null;
   if (!luckChecksApply(board?.difficulty)) return null;
   if (luckChecksBlocked(target)) return null;
-  const luck = target.luck ?? 0;
+  // The LIVE Luck and Health, not the board's (#339 ruling 36): a check earlier
+  // in this same pass may have spent the Luck, and an Instakill emptied the
+  // Health, after the board was read (found live, Barbed Spear on Medusa).
+  const live = unitActor(target.id);
+  const luck = Number(live?.system?.luck?.value ?? target.luck ?? 0);
   if (luck <= 0) return null;
+  if (live && Number(live.system?.health?.value ?? 1) <= 0) return null;
 
   const doc = unitActor(target.id);
   if (!doc) return null;

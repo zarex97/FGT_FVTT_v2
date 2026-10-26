@@ -161,6 +161,8 @@ export const PHASE_DESCRIPTORS = describeTable([
     { key: "effects", type: "tokenList" },
     { key: "selector", type: "raw" },
     { key: "ignoresRemovalProtection", type: "checkbox" },
+    // Only this many, its user's pick (Disengage, #339 ruling 3). Skill path.
+    { key: "pick", type: "number" },
   ]),
   // Vlad III (Berserker) (#333): Shapeshift resets its buffs to 1◈, Legend of
   // Dracula extends them by 1◈, each by name (`rules/effect-duration.mjs`).
@@ -228,6 +230,10 @@ export const PHASE_DESCRIPTORS = describeTable([
     // (#253 reading 9). Rows may carry `all: true` and `target: self`
     // (`rules/roll-table.mjs`).
     { key: "duplicates", type: "select", choices: ["twice", "reroll"] },
+    // After the dice, one more row of its user's choice that no die chose,
+    // or none: Rune Magic's *"then, you can apply one more effect of your
+    // choice other than the one selected by the die"* (#339 ruling 4). Skill path.
+    { key: "thenChoose", type: "checkbox" },
   ]),
   entry("itemGrant", 20, "Hands over a quantity of an item, possibly rolled.", [
     { key: "contentId", type: "text" },

@@ -23,9 +23,10 @@ import { offerOverpowerSave, saveOnCard } from "./overpower-save.mjs";
 import { resolveTargets, pendingChoiceErrors, measuredReach } from "../rules/targeting/resolve.mjs";
 import { deliveryOf, isDelivery } from "../rules/delivery.mjs";
 import { currentBoard, currentMoment, unitFrom, unitOf, roundRecordOf, unitActor } from "./board.mjs";
+import { damageRange, negationBounds } from "../rules/preview.mjs";
 import {
   evade as evadeCheck, luckCheck, chance, checkPlan, critChance, mergePlans,
-  pendingCheckRolls, resolveCheck,
+  pendingCheckRolls, resolveCheck, agilityTableAgainst,
 } from "../rules/checks.mjs";
 import * as rollLog from "../rules/roll-log.mjs";
 import { effectivePhases } from "../rules/copy.mjs";
@@ -335,6 +336,8 @@ export async function resolveAttack({
   // he is in, defending included (#206 reading 4); "during your Turn" already
   // covered his own attacks. Once per defender, before any Process exists, so
   // the switch is in force for the crit coin and the damage of this exchange.
+  /** Defenders who left the Attack at its start (Disengage, #339 ruling 2). */
+  const withdrawn = new Set();
   if (!resume && !plainDamage) {
     const defenders = [...new Set(targets.units.map((t) => t.unitId))].filter((id) => id !== attackerId);
     for (const defenderId of defenders) {
@@ -353,6 +356,25 @@ export async function resolveAttack({
         .map((id) => defenderDoc?.items.get(id))
         .find((item) => item?.system?.cancelsAttackWhenDefending);
       if (canceller) return cancelAttackFrom({ attackerId, defenderDoc, canceller });
+      // Disengage: *"used at the start of a Combat Phase when Cu is Attacked.
+      // The enemy Unit's Attack is cancelled"*. Hassan's Battle Retreat's rule
+      // at the Phase's start (#226 readings 12, 24; #339 ruling 2): a targeted
+      // Attack is cancelled whole, an area one he alone leaves. No Counter
+      // follows; the attacker's Attack is spent either way.
+      const withdrawer = (answered.castAbilities ?? [])
+        .map((id) => defenderDoc?.items.get(id))
+        .find((item) => item?.system?.withdrawsWhenDefending);
+      if (withdrawer) {
+        const byArea = targets.units.some((t) => t.unitId === defenderId && t.caughtByArea);
+        if (!byArea) return cancelAttackFrom({ attackerId, defenderDoc, canceller: withdrawer, offerCounter: false });
+        withdrawn.add(defenderId);
+        await ChatMessage.create({
+          content: `<div class="fgt-card"><p>${foundry.utils.escapeHTML(game.i18n.format("FGT.Window.LeftTheAttack", {
+            name: shownName(defenderDoc, board), ability: withdrawer.name,
+          }))}</p></div>`,
+          speaker: publicSpeakerFor(defenderDoc, board),
+        });
+      }
     }
   }
 
@@ -394,7 +416,10 @@ export async function resolveAttack({
   // card read "0 -- Negated by invulnerable-by-nature" over a Unit that had
   // just died (#189).
   const killedCivilians = new Set(civilians.map((c) => c.id));
-  const defenders = targets.units.filter((t) => !killedCivilians.has(t.unitId));
+  // fgt-scan: civilians-are-no-defenders
+  const defenders = targets.units.filter((t) => !killedCivilians.has(t.unitId))
+    // ...and none who left it at its start (Disengage, #339).
+    .filter((t) => !withdrawn.has(t.unitId));
 
   // One Combat Process per target — which is what the comment here has always
   // said, and what the code did not do. It took `targets.units[0]` and dropped
@@ -1448,10 +1473,15 @@ async function declareProcesses({
   // Master is the anchor -- and never a Counter, which has Ch. 21's own
   // redirect. Case 1 was refused at targeting.
   const aimedAt = targets?.anchor?.unitId ?? placement?.unitId ?? null;
+  /** The Master a guard took the Attack from: still involved in the Phase. */
+  let guardedMasterId = null;
   if (!isCounter && targetIds.length === 1 && aimedAt === targetIds[0]) {
     const { guardMasterTarget } = await import("./master-guard.mjs");
     const guardId = await guardMasterTarget({ attackerId, targetId: targetIds[0] });
-    if (guardId) targetIds = [guardId];
+    if (guardId) {
+      guardedMasterId = targetIds[0];
+      targetIds = [guardId];
+    }
   }
   // An [Anti-World] Noble Phantasm breaking Doomsday Come: *"all Units within
   // it receive the damage from that NP"* (ruled 2026-10-04, #180 reading 7).
@@ -1523,6 +1553,7 @@ async function declareProcesses({
       // Defender of Humanity's *"Total damage dealt is reduced by 10% for every
       // Unit within the Attack area"* (#328 ruling 7).
       withCone.areaCount = new Set(targetIds).size;
+      if (guardedMasterId) withCone.guardedMasterId = guardedMasterId;
       const withInstance = instance
         ? { ...withCone, attack: { ...withCone.attack, ...instance } }
         : withCone;
@@ -2104,7 +2135,13 @@ async function answerRung({ event, abilityId = null, placement = null }, message
     // has failed the moment it answers: its Servants' shove comes now, before
     // the damage step (#204 reading 18). `resolveCover` asks whether this is
     // an area Noble Phantasm on a guarded Master, and decides once per group.
-    if (state.state === "react" && state.attack?.unavoidable) await resolveCover(state, message);
+    //
+    // ...and so has one who does not Evade at all (ruled 2026-10-25): *"fails
+    // to Evade"* is every answer but a successful Evade, so Do nothing and
+    // Block bring the shove too.
+    if (state.state === "react" && (state.attack?.unavoidable || event === "nothing" || event === "block")) {
+      await resolveCover(state, message);
+    }
     state = process.advance(state, event);
   }
   if (reacting && state.state !== "react") {
@@ -2713,13 +2750,19 @@ async function resolveCover(state, message) {
   const master = (board.units ?? []).find((u) => u.id === state.defenderId);
   if (master?.kind !== "master") return;
 
-  // The area this Noble Phantasm actually covers: every panel a defender in
-  // the fan-out is standing on. Taken from the group rather than recomputed,
-  // so Cover asks about the same blast the targeting resolved.
+  // The area this Noble Phantasm actually covers: the panels the targeting
+  // resolved, carried on the attack (`areaPanels`). Not only the panels its
+  // defenders stand on: from those alone "the nearest panel outside" was an
+  // empty panel still inside the blast, and the shove left the Master in it
+  // (found 2026-10-25, Caladbolg's 3x3). The defenders' panels remain the
+  // fallback for an attack that carries no area.
   const siblings = siblingStates(state);
-  const areaPanels = siblings
-    .map((s2) => (board.units ?? []).find((u) => u.id === s2.defenderId)?.panel)
-    .filter(Boolean);
+  const declaredArea = state.attack?.areaPanels ?? [];
+  const areaPanels = declaredArea.length > 0
+    ? declaredArea
+    : siblings
+      .map((s2) => (board.units ?? []).find((u) => u.id === s2.defenderId)?.panel)
+      .filter(Boolean);
 
   const servants = coveringServantsFor(master, board, areaPanels);
   if (servants.length === 0) return;
@@ -2735,11 +2778,13 @@ async function resolveCover(state, message) {
     // table), but its own name in the plan vocabulary -- resolving it as an
     // Evade would let an Evade-specific bonus help a Servant shove, and
     // Innocent World hands out +4 Evade to half the board.
+    // The table is the attacker's comparison, as the guard's step-in is
+    // (ruled 2026-10-25): it read favourable whatever the AU's Agility.
     const plan = checkPlan(servant, "agility");
     const outcome = resolveCheck({
       roll: roll.total,
       target: servant.agility,
-      table: plan.forceTable === "unfavourable" ? "unfavourable" : "favourable",
+      table: agilityTableAgainst(servant, (board.units ?? []).find((u) => u.id === state.attackerId) ?? null, plan),
       modifiers: plan.modifiers,
     });
     rolls.push({ unitId: servant.id, name: shownName(servant), roll: roll.total, success: outcome.success });
@@ -2971,11 +3016,12 @@ function siblingStates(state) {
 }
 
 /**
- * The cover decision taken for this fan-out group, if any.
+ * The cover decision taken for this fan-out group, if any. Exported for the
+ * card, whose Evade a covering Servant may not press.
  * @param {object} state
  * @returns {object|null}
  */
-function coverStateFor(state) {
+export function coverStateFor(state) {
   for (const m of siblingMessages(state)) {
     const cover = m.getFlag("fgt", "cover");
     if (cover) return cover;
@@ -3838,10 +3884,18 @@ async function fireCombatPhaseEnd(state) {
   // where it stood before the use.
   await refundPlainMiss(siblings.map((m) => process.deserialize(m.getFlag("fgt", "process"))));
 
+  // A Master the Attack was aimed at is involved though it took nothing: a
+  // guard stepped in, or Teleport Servant switched the target to its Servant.
+  // Found live 2026-10-25: Heracles's Master spent Teleport Servant on EMIYA's
+  // Hrunting, and the Home Base still healed him at the Round's end.
+  const aimedAtOf = (s) => [
+    s?.guardedMasterId,
+    ...(s?.interrupts ?? []).filter((r) => r.kind === "retarget" && r.applied).map((r) => r.fromId),
+  ];
+  const phaseStates = [state, ...siblings.map((m) => process.deserialize(m.getFlag("fgt", "process")))];
   const involved = [
     state.attackerId,
-    state.defenderId,
-    ...siblings.map((m) => process.deserialize(m.getFlag("fgt", "process")).defenderId),
+    ...phaseStates.flatMap((s) => [s.defenderId, ...aimedAtOf(s)]),
   ].filter(Boolean);
   let board = currentBoard();
   const units = [...new Set(involved)]
@@ -4217,9 +4271,24 @@ async function grailUnderNP(state, siblings, board) {
 export function closedLuckRung(state) {
   const prompt = process.pendingPrompt(state);
   if (prompt?.kind !== "luckCheck") return null;
-  if (!luckChecksApply(boardSnapshot()?.difficulty)) return "luckChecksRemoved";
-  const asked = unitActor(prompt.unitId);
-  if (asked && luckChecksBlocked(unitOf(asked, boardSnapshot()))) return "luckChecksBlocked";
+  return luckClosedFor(prompt.unitId);
+}
+
+/**
+ * Why a Luck Check this Unit would choose is closed, or `null` when it is open.
+ *
+ * The War's difficulty removes it, or a field blocks it. Asked of the rungs a
+ * Unit chooses only: a check an ability imposes is rolled regardless (#339
+ * rulings 34, 38).
+ *
+ * @param {string} unitId
+ * @returns {"luckChecksRemoved"|"luckChecksBlocked"|null}
+ */
+function luckClosedFor(unitId) {
+  const board = boardSnapshot();
+  if (!luckChecksApply(board?.difficulty)) return "luckChecksRemoved";
+  const asked = unitActor(unitId);
+  if (asked && luckChecksBlocked(unitOf(asked, board))) return "luckChecksBlocked";
   return null;
 }
 
@@ -5020,7 +5089,18 @@ async function awaitInterrupt(message, state) {
   // one question: it asked every Master in the world, on the board or not,
   // for any command at all.
   const { processOffers } = await import("./command-spells.mjs");
-  if (processOffers(state).length === 0) return false;
+  const offers = processOffers(state);
+  if (offers.length === 0) return false;
+  // Every Master offered a command on this rung. When each has passed, the
+  // rung goes on at once: with no way to say "none", the GM held every rung for
+  // the whole window, three minutes a rung in a War set to that, and the table
+  // read it as waiting on the GM (found live, 2026-10-25).
+  const offered = [...new Set(offers.map((o) => o.masterId))];
+  const rung = process.rungKey(state);
+  const allPassed = () => {
+    const passes = message.getFlag("fgt", "csPasses");
+    return passes?.rung === rung && offered.every((id) => (passes.masterIds ?? []).includes(id));
+  };
 
   // Show the rung being held BEFORE holding it. The flag and the card are
   // otherwise written only when `closeRung` ends, so for the whole wait the
@@ -5050,6 +5130,7 @@ async function awaitInterrupt(message, state) {
   while (Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, 500));
     if (message.getFlag("fgt", "process") !== before) return true;
+    if (allPassed()) return false;
   }
 
   // Timed out. Said out loud rather than silently continuing: a player who was
@@ -6662,6 +6743,11 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
       // What came off and what held, as lines on the card: Freezing Summertime's
       // BuffRemoval ResUp 100 held every buff Rule Breaker reached, and the card
       // said only "Rule Breaker" (#258, live).
+      // `pick` is its user's choice of its own effects, a Skill's (#339): an
+      // Attack strips the defender's, and has nobody to ask. Refused out loud.
+      if (phase.pick) {
+        console.error(`FGT | ${ability.name}: a removeEffect \`pick\` is read on the Skill path only; this Attack strips without it.`);
+      }
       const removal = await removalIntents(phase, defenderDoc, defender);
       await applyBatch(removal.intents, "np:removeEffect");
       applied.push(...removal.rows);
@@ -6919,6 +7005,10 @@ async function rollTableAgainst(phase, ability, state, attackerDoc, attackerUnit
     // fgt-name-ok: console text for the GM and the developer
     console.error(`FGT | ${ability.name} has a rollTable phase with no table for ${defender?.name ?? "this target"}.`);
     return [];
+  }
+  // Its user's extra pick is a Skill's (#339): refused out loud on an Attack.
+  if (phase.thenChoose) {
+    console.error(`FGT | ${ability.name}: a rollTable \`thenChoose\` is read on the Skill path only.`);
   }
   const results = await rollFaces(phase, async (faces) => (await new Roll(`1d${faces}`).evaluate()).total,
     { faces: 20, count: 1 });
@@ -7243,6 +7333,10 @@ export async function runCheckPhase(phase, ability, state, defender, depth = 0) 
   if (!branch) return [];
 
   const kind = branch.check ?? phase.check ?? "luck";
+
+  // Rolled on every difficulty and inside a field that blocks Luck Checks: a
+  // check an ability imposes is the ability's, never one the Unit "uses" (#339
+  // rulings 34, 38). Those remove the Contest, Lucky Evasion and Prevention.
   const roll = await new Roll("1d20").evaluate();
 
   // The table modifier, keyed on the SUBJECT's parameter rather than on the
@@ -7301,8 +7395,25 @@ export async function runCheckPhase(phase, ability, state, defender, depth = 0) 
     outcome: "applied", reason: null, chance: null,
   } }];
 
-  const taken = outcome.success ? branch.onSuccess : branch.onFail;
-  if (!taken) return rows;
+  return [...rows, ...await takeCheckOutcome(outcome.success ? branch.onSuccess : branch.onFail,
+    phase, ability, state, defender, depth)];
+}
+
+/**
+ * What a check's outcome brings: a nested check, a stat change, effects.
+ *
+ * @param {object|undefined} taken the branch's `onSuccess` or `onFail`
+ * @param {object} phase
+ * @param {object} ability
+ * @param {object} state
+ * @param {object} defender
+ * @param {number} depth
+ * @returns {Promise<object[]>}
+ */
+async function takeCheckOutcome(taken, phase, ability, state, defender, depth) {
+  if (!taken) return [];
+  /** @type {object[]} */
+  const rows = [];
 
   // "If Failed, roll again. On the second time, if Successful ... If Failed ..."
   if (isNestedCheck(taken)) {
@@ -7725,6 +7836,9 @@ export function attackFacts(attacker, defender, state, board = null) {
   const base = {
     ...(state.attack ?? {}), kind, isAoE: Boolean(state.isAoE), range,
     reaction: state.reaction ?? null,
+    // The defender's cone it came from: the declaration's stamp (#184), else
+    // measured now, for a Process built elsewhere or a preview.
+    cone: state.cone ?? (attacker && defender ? attackCone(defender, attacker) : null),
   };
   // The attacker's conditional grants, decided against THIS defender and Range
   // (`conditionalGrants`); the unconditional ones are on the spec already.
@@ -7860,6 +7974,39 @@ export function instancesAgainst(ability, attacker, defender, declared, { fallba
     ? (resolvedDamage(ability, rollOptionsFor({ attacker, defender, attack: declared })) ?? {})
     : (fallback ?? resolvedDamage(ability, null) ?? {});
   return expandInstances(repeat === null ? block : { ...block, repeat });
+}
+
+/**
+ * What an open Process may deal its defender, every die at each end: the
+ * targeting preview's range, for the side that decides (asked live 2026-10-25:
+ * the DU should see it before spending Eye of the Mind or a Command Spell).
+ *
+ * The same `previewContext` the attacker aimed with, over every defender of
+ * this declaration, so a criteria count is the declaration's. `null` for an
+ * ability that deals no damage, and once the damage is dealt.
+ *
+ * @param {object} state the Process
+ * @param {object} board
+ * @returns {{min: number, max: number, certain: boolean}|null}
+ */
+export function processDamagePreview(state, board) {
+  if (!state?.defenderId || process.isComplete(state)) return null;
+  const attackerDoc = unitActor(state.attackerId);
+  const caster = (board?.units ?? []).find((u) => u.id === state.attackerId);
+  const defender = (board?.units ?? []).find((u) => u.id === state.defenderId);
+  if (!attackerDoc || !caster || !defender) return null;
+  const ability = state.attack?.abilityId ? attackerDoc.items.get(state.attack.abilityId) : null;
+  if (dealsNoDamage(ability)) return null;
+  const ids = new Set([state.defenderId, ...siblingMessages(state)
+    .map((m) => process.deserialize(m.getFlag("fgt", "process")).defenderId)]);
+  const isNP = state.attack?.kind === "np";
+  return damageRange(
+    previewContext({
+      caster, defender, ability, board, isNP,
+      targets: [...ids].map((id) => board.units.find((u) => u.id === id)).filter(Boolean),
+    }),
+    { negation: negationBounds(defender, isNP) },
+  );
 }
 
 export function previewContext({ caster: given, defender, ability, board, isNP, targets = null }) {
@@ -8624,8 +8771,11 @@ function nullifierName(source, doc) {
  */
 async function instinctOf(state, defender) {
   if (state.state !== "react" || !defender) return state;
+  const attackerUnit = (currentBoard()?.units ?? []).find((u) => u.id === state.attackerId) ?? null;
+  const options = attackerUnit ? rollOptions(attackerUnit, defender, state) : null;
   const auto = (defender.autoSucceeds ?? [])
     .filter((a) => a.check === "evade" && a.whenAttacked)
+    .filter((a) => !a.predicate || (options ? testPredicate(a.predicate, { options }) : false))
     .reduce((best, a) => (!best || (a.chance ?? 100) > (best.chance ?? 100) ? a : best), null);
   if (!auto) return state;
   if ((state.forbiddenReactions ?? []).includes("evade") || evadePermit(state)) return state;
@@ -8829,7 +8979,15 @@ async function autoEvadeFrom(state, defender) {
 
   // Same reason as `rollEvade`: an auto-evasion granted by an aura or by a
   // field's interior rules is invisible to a bare projection.
-  const plan = checkPlan(unitFrom(currentBoard(), defender), "evade");
+  //
+  // With the attack's options, so one whose clause asks about the attack
+  // (Protection from Arrows: Ranged, single-target, Front or Sides) is decided.
+  const board = currentBoard();
+  const attackerUnit = (board?.units ?? []).find((u) => u.id === state.attackerId) ?? null;
+  const defenderUnit = unitFrom(board, defender);
+  const plan = checkPlan(defenderUnit, "evade", {
+    options: attackerUnit ? rollOptions(attackerUnit, defenderUnit, state) : null,
+  });
   const auto = plan.autoSucceed;
   if (!auto) return { applies: false };
 
@@ -9513,7 +9671,7 @@ export async function standaloneDamage({
  * @param {object} args.canceller the ability that cancelled it
  * @returns {Promise<object>}
  */
-async function cancelAttackFrom({ attackerId, defenderDoc, canceller }) {
+async function cancelAttackFrom({ attackerId, defenderDoc, canceller, offerCounter = true }) {
   const attackerDoc = unitActor(attackerId);
   const board = currentBoard();
   await ChatMessage.create({
@@ -9526,6 +9684,8 @@ async function cancelAttackFrom({ attackerId, defenderDoc, canceller }) {
     kind: "attack", event: "cancelled", unitId: attackerId, by: defenderDoc.id, abilityId: canceller.id,
   })], "attack:cancelled");
 
+  // Kazikli Bey's *"then Vlad can Counter"*; Disengage offers none (#339).
+  if (!offerCounter) return { cancelled: true, processes: [], groupId: null, messageId: null };
   const groupId = foundry.utils.randomID();
   const pseudo = { attackerId, defenderId: defenderDoc.id, attack: {}, counterDepth: 0, groupId };
   if (!counterAvailable(pseudo)) return { cancelled: true, processes: [], groupId: null, messageId: null };

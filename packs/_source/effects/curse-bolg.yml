@@ -1,0 +1,24 @@
+# Cú Chulainn's Gáe Bolg: Barbed Spear that Pierces with Death (#339).
+#
+# > "Curse (Bolg) is separate from normal Curse, does not stack, and is
+# > Unremovable; when Cú Chulainn is defeated, Curse (Bolg) is removed from all
+# > affected Units."
+#
+# Curse's 25 at the end of the holder's Turn, always stage 1: a second hit adds
+# nothing (#339 ruling 13). No duration: it lasts until its inflicter stays
+# down, when it comes off every holder at once (`endsWithInflicter`, rulings 14,
+# 23). A defeat a revival answers removes nothing. Its own effect, not Curse's
+# family: a clause about Curse does not read it. Proto Cú's Def Crk (Bolg)
+# prints the same end.
+schema: 1
+id: curseBolg
+name: "Curse (Bolg)"
+description: "Deals 25 Curse damage at the end of the affected unit's turn. Does not stack. Unremovable. Removed from every Unit when the Unit that inflicted it stays down."
+polarity: debuff
+volatility: volatile
+valence: offensive
+stacking: noneNoRefresh
+baseChance: 100
+unremovable: true
+endsWithInflicter: true
+periodic: { when: turnEnd, amount: 25, bypassModifiers: true }

@@ -24,7 +24,7 @@ The roll log records every roll made: the raw die, every modifier, and chains of
 
 **Agility Checks** (Evade) succeed when `roll ≤ agility`. The check has two special branches: a unit holding `Dodge` succeeds without rolling. An attack with `Aim` cannot be Evaded at all: no roll, no Dodge, no automatic evasion (ruled 2026-10-14, #206 §46.4-MB; `module/rules/checks.mjs#evade`). A unit with an `AutoSucceed` behaves the same way, with a `beatenBy` list that can be arbitrary attack properties (`module/rules/checks.mjs:269-278`).
 
-**A check a Skill demands is rolled.** Dodge and `AutoSucceed` belong to an Evade. A `check` phase (`engine/attack.mjs#runCheckPhase`) reads the check's modifiers and forced table, and never `checkPlan`'s `autoSucceed`. So Medusa's Mystic Eyes always roll its target's Agility Check, Dodge or not (ruled, #188 reading 12).
+**A check a Skill demands is rolled.** Dodge and `AutoSucceed` belong to an Evade. A `check` phase (`engine/attack.mjs#runCheckPhase`) reads the check's modifiers and forced table, and never `checkPlan`'s `autoSucceed`. So Medusa's Mystic Eyes always roll its target's Agility Check, Dodge or not (ruled, #188 reading 12). A Luck Check it demands is rolled on every difficulty and inside a field that blocks Luck Checks: *"Intermediate: Luck Check removed"* and *"Luck Check cannot be used"* close the Luck Checks a Unit chooses (the Contest, Lucky Evasion, Prevention), never one an ability imposes (#339 rulings 34, 38). A target with no Luck rolls against 0 and fails (ruling 29).
 
 **Luck Checks** contest one unit's Luck against another's. If the rolling unit's Luck meets or exceeds the opponent's, the check uses the `"favourable"` table (`1d20`); otherwise, `"unfavourable"` (`1d20+4`), applying a flat 4-point penalty (`module/rules/checks.mjs:304-312`). An uncontested Luck Check — one with no opponent — always uses favourable (`module/rules/checks.mjs:49-54`).
 
@@ -34,7 +34,7 @@ The roll log records every roll made: the raw die, every modifier, and chains of
 
 **Percentage rolls** for effect application and crit chances use the generic `chance` function: roll is strictly *under* the percentage, so 0% never succeeds and 100% always does, with no off-by-one (`module/rules/checks.mjs:328-330`). The dice registry (Appendix C) names over 20 formulas used in the system; every formula in 0.2.0+ is stated, not inferred (`docs/C-dice-registry.md:1-42`).
 
-**The Prevention Luck Check** (CONTEXT.md) is the one Luck Check that stops an Effect. A Unit about to receive a debuff during a Combat Process is asked, on its owner's screen, whether to spend 1 Luck; accepted, it is an uncontested `luckCheck` on `1d20`, the Luck spent whatever the die says, and a success drops the debuff. Once per target per Combat Process, never against a terminal Effect, and not offered on Beginner or Intermediate, with no Luck, or under `luckChecksBlocked`. It runs in `engine/landing.mjs#offerPrevention` ([Ch. 15](15-effect-application.md)).
+**The Prevention Luck Check** (CONTEXT.md) is the one Luck Check that stops an Effect. A Unit about to receive a debuff during a Combat Process is asked, on its owner's screen, whether to spend 1 Luck; accepted, it is an uncontested `luckCheck` on `1d20`, the Luck spent whatever the die says, and a success drops the debuff. Once per target per Combat Process, never against a terminal Effect, and not offered on Beginner or Intermediate, with no Luck, or under `luckChecksBlocked`. It runs in `engine/landing.mjs#offerPrevention` ([Ch. 15](15-effect-application.md)), which reads the target's live Luck and Health: a Unit a check in the same pass left without Luck, or an Instakill emptied, is offered nothing (#339 ruling 36).
 
 **Every die is a Foundry `Roll`.** A die rolled with `Math.random` leaves no record and no test can script it: Suppression's removal die and Medea's Trofa coin against a Noble Phantasm were rolled that way until Wave B. `test/unit/dice-through-roll.test.mjs` refuses a new one; it lists the few uses that are not dice (an id, a random free panel).
 
@@ -82,7 +82,7 @@ A branch can be another check rather than a final outcome — *"if Failed, roll 
 
 Scáthach's *Primordial Rune* rolls `2d8` and looks up the results in a table, applying entries per die (so two 6s produce two applications) (`module/rules/roll-table.mjs:42-67`). A table may be conditional on the target's relation (ally vs. enemy); one table is the common case (`module/rules/roll-table.mjs:23-40`).
 
-Yan Qing's Noble Phantasm (#253 reading 9) added three keys any table may carry. `duplicates: reroll` rolls a later die again until it differs from every earlier one (*"If the second die is a duplicate number, reroll it until the number is not a duplicate"*); `twice`, Scáthach's, stays the default, and an unknown word throws rather than falling to it. A row with `all: true` applies every ordinary row once, **instead** of what the other dice rolled (*"If a 4 is rolled on any of the dice, apply all three effects instead"*). A row with `target: self` lands on the user, where the table's other rows land on the target (*"Applies Crit DmUp for 1◈ Turns to himself"*). Both paths roll through one function, `rollFaces`, with the path's own default dice (an attack's `1d20`, a Skill's `2d8`). On the attack path the table is a rider, so it rolls only when the hit's riders fire: never on an Evade.
+Yan Qing's Noble Phantasm (#253 reading 9) added three keys any table may carry. `duplicates: reroll` rolls a later die again until it differs from every earlier one (*"If the second die is a duplicate number, reroll it until the number is not a duplicate"*); `twice`, Scáthach's, stays the default, and an unknown word throws rather than falling to it. A row with `all: true` applies every ordinary row once, **instead** of what the other dice rolled (*"If a 4 is rolled on any of the dice, apply all three effects instead"*). A row with `target: self` lands on the user, where the table's other rows land on the target (*"Applies Crit DmUp for 1◈ Turns to himself"*). Both paths roll through one function, `rollFaces`, with the path's own default dice (an attack's `1d20`, a Skill's `2d8`). On the attack path the table is a rider, so it rolls only when the hit's riders fire: never on an Evade. Rune Magic's `thenChoose` (#339) offers one more row the dice did not choose, or none, on the Skill path (Ch. 17).
 
 A wildcard row — *"your choice of any of the above"* — returns a question to the caller rather than effects. The `choicesIn` function lists all non-wildcard rows so the interface can render choices (`module/rules/roll-table.mjs:69-86`).
 
@@ -92,6 +92,12 @@ asked to move it by up to `max` either way (the `adjustRoll` prompt). Hundred-Fa
 Specializations is its first content; his setup rolls of Agility and Luck are moved in the war's wizard
 (`engine/summon.mjs#adjustSummonLine`), and the field's Evade, the forest escape and a drag's Evade offer it in play.
 `checkPlan` had returned the grant as `adjustable` with nobody reading it.
+
+**An automatic Evade asked of the attack (#339).** Protection from Arrows is an `AutoSucceed` with a `predicate`
+about the attack: `attack:delivery:ranged`, not `attack:isAoE`, not `attack:cone:back`. Its predicate is deferred, so
+`checkPlan` grants it only when handed the attack's options, and never with none; `autoEvadeFrom` and `instinctOf`
+pass them. It is not `whenAttacked`: an Evade he picks succeeds with no roll, and he may pick Block instead (ruling 25).
+From Behind a `CheckModifier` takes 2 off the roll, offsetting the +2 behind (ruling 10).
 
 **An automatic Evade as a passive (#230).** Arturia's Instinct is `AutoSucceed` with a chance on a Skill, not a
 one-use buff, marked `whenAttacked`: it rolls 70% (35% against an NP) at the reaction rung's door, before she reacts

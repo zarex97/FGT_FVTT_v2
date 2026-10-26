@@ -24,6 +24,7 @@ import { openFieldFromMarks } from "./fields.mjs";
 import * as I from "./intents.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import { currentWar } from "./war.mjs";
+import { PLATFORM_SORT } from "./platforms.mjs";
 
 /** The Structure content every Bloodmark is made from. */
 const MARK_CONTENT_ID = "bloodmark";
@@ -51,6 +52,18 @@ export function marksOf(ownerId) {
  * @returns {Promise<{ok: boolean, reason?: string, opened?: string, marks?: number}>}
  */
 export async function placeMark({ unitId, abilityId }) {
+  // Run on the GM, as a Riding Attack is: a Bloodmark is an Actor and a Token,
+  // and a player may create neither. Medusa's player pressed Mark and Foundry
+  // refused the Actor (found live 2026-10-25). `OPERATIONS.placeMark`
+  // authorizes the owner and runs this again where `isGM` holds; the redraw is
+  // per client, so the player's runs once the GM answers.
+  if (!game.user?.isGM) {
+    const { FGTSocket } = await import("../net/socket.mjs");
+    const out = await FGTSocket.request("placeMark", { unitId, abilityId });
+    await syncMarkVisibility();
+    return out;
+  }
+
   const actor = unitActor(unitId);
   const ability = actor?.items?.get(abilityId);
   if (!actor || !ability) return { ok: false, reason: "notFound" };
@@ -97,7 +110,13 @@ export async function placeMark({ unitId, abilityId }) {
 
   const placed = marksOf(unitId);
   const square = completedSquare(placed.map(panelOf).filter(Boolean));
-  if (!square) return { ok: true, marks: placed.length };
+  if (!square) {
+    // Four or more and still no field: said, to her side alone, since an enemy
+    // sees a mark only from 3 panels. Four marks at rows 0 and 7 made an 8x9
+    // and the Fort never rose, with no line saying why (found live 2026-10-25).
+    if (placed.length >= 4) await sayNoSquare(actor, placed.length);
+    return { ok: true, marks: placed.length };
+  }
 
   // *"If all four Bloodmarks are complete, Bloodfort Andromeda is activated"*,
   // and *"whenever Bloodfort Andromeda is complete (Activated), all other
@@ -112,6 +131,22 @@ export async function placeMark({ unitId, abilityId }) {
   await openFieldFromMarks(ability, actor, square);
   await syncMarkVisibility();
   return { ok: true, opened: fieldId, marks: 4, size: square.size };
+}
+
+/**
+ * The line for marks that define no field, whispered to the marker's owners
+ * and the GM.
+ *
+ * @param {object} actor
+ * @param {number} count
+ * @returns {Promise<void>}
+ */
+async function sayNoSquare(actor, count) {
+  const whisper = game.users.filter((u) => u.isGM || actor.testUserPermission(u, "OWNER")).map((u) => u.id);
+  await ChatMessage.create({
+    content: `<p>${game.i18n.format("FGT.Bloodmark.NoSquare", { count })}</p>`,
+    whisper,
+  });
 }
 
 /**
@@ -246,6 +281,10 @@ async function createMark(owner, panel, fieldId) {
   token.y = panel.i * size;
   // Seen per viewer (`markSeenBy`), never hidden for everyone.
   token.hidden = false;
+  // Beneath the Units, as a platform is: it is placed on Medusa's own panel,
+  // and at `sort: 0` the newer token won every click, so aiming at her picked
+  // the mark and the attack was refused (found live, 2026-10-25).
+  token.sort = PLATFORM_SORT;
   token.flags = { ...(token.flags ?? {}), fgt: { ...(token.flags?.fgt ?? {}), perViewerSight: true } };
   await canvas.scene.createEmbeddedDocuments("Token", [token]);
   return mark;

@@ -15,7 +15,9 @@ import { pendingPrompt, didHit, isComplete, PROMPTS, windowFor, rungOptions } fr
 import * as process from "../../engine/combat-process.mjs";
 import { processOffers, teleportDestinations } from "../../engine/command-spells.mjs";
 import { publicIdentityOf, publicSpeakerFor } from "../../engine/public-identity.mjs";
-import { currentBoard, luckOf } from "../../engine/board.mjs";
+import { currentBoard, luckOf, unitActor } from "../../engine/board.mjs";
+import { formatRange } from "../../rules/preview.mjs";
+import { isCovering } from "../../rules/cover.mjs";
 import { ActionBar } from "../hud/action-bar.mjs";
 import { shownName } from "../../engine/public-identity.mjs";
 import { warRule } from "../../engine/war.mjs";
@@ -100,6 +102,10 @@ async function cardContext({
 }) {
   const prompt = pendingPrompt(state);
   const defender = game.actors.get(state.defenderId);
+  // A Servant covering its Master may not Evade (Ch. 32 rule 4): the rung
+  // the engine refuses is drawn refused, with why.
+  const covering = prompt?.kind === "reaction"
+    && isCovering({ id: state.defenderId }, (await import("../../engine/attack.mjs")).coverStateFor(state));
   // Computed BEFORE the breakdown, because the breakdown is redacted with it.
   // ...and from the effects alone when there is no damage to show: an
   // Instakill skips the damage step, and Gáe Bolg Alternative's card said
@@ -151,7 +157,7 @@ async function cardContext({
       ? {
           ...prompt,
           label: game.i18n.localize(`FGT.Prompt.${prompt.kind}`),
-          options: promptOptions(prompt, state),
+          options: refuseCoveredEvade(promptOptions(prompt, state), covering),
           isMine: game.actors.get(prompt.unitId)?.isOwner ?? false,
         }
       : null,
@@ -180,6 +186,13 @@ async function cardContext({
     // Computed per viewer, because "which commands can I use" is a different
     // question for every player at the table.
     commandSpells: offerableCommands(state),
+    // "No Command Spell" for this viewer's Masters on this rung, or `null` once
+    // they have all passed it (`engine/attack.mjs#awaitInterrupt` goes on when
+    // every offered Master has).
+    csPass: passFor(state, message),
+    // What the Attack may deal, to the side that decides: the defender's and
+    // its Master's owners, and the GM. Before the damage only.
+    damagePreview: result ? null : await damagePreviewFor(state, board),
 
     // The Injury decision rides with the result: the card's Injury line reads
     // it rather than the pipeline's pre-barrier flag (#110).
@@ -374,6 +387,55 @@ function offerableCommands(state) {
       masterId: o.masterId,
       servantId: o.servantId,
     }));
+}
+
+/**
+ * The reaction options with Evade refused, for a Servant covering its Master.
+ *
+ * @param {Array<{event: string, label: string, hint: string|null}>} options
+ * @param {boolean} covering
+ * @returns {Array<object>}
+ */
+export function refuseCoveredEvade(options, covering) {
+  if (!covering) return options;
+  return options.map((o) => (o.event === "evade"
+    ? { ...o, disabled: true, hint: game.i18n.localize("FGT.Cover.CannotEvade") }
+    : o));
+}
+
+/**
+ * The Attack's damage range, for a viewer on the side that decides: the
+ * defender's owner, its Master's, or the GM. `null` for anyone else.
+ *
+ * @param {object} state
+ * @param {object} board
+ * @returns {Promise<string|null>}
+ */
+async function damagePreviewFor(state, board) {
+  const defender = (board?.units ?? []).find((u) => u.id === state.defenderId);
+  if (!defender) return null;
+  const deciders = [state.defenderId, defender.masterId].filter(Boolean);
+  if (!game.user.isGM && !deciders.some((id) => unitActor(id)?.isOwner)) return null;
+  const { processDamagePreview } = await import("../../engine/attack.mjs");
+  const range = processDamagePreview(state, board);
+  return range ? formatRange(range) : null;
+}
+
+/**
+ * The viewer's pass on a Command Spell window: the Masters it speaks for, or
+ * `null` when there is nothing to pass or they have all passed this rung.
+ *
+ * @param {object} state
+ * @param {object|null} message
+ * @returns {{masterIds: string[], masterList: string, rung: string}|null}
+ */
+function passFor(state, message) {
+  const masterIds = [...new Set(offerableCommands(state).map((o) => o.masterId))];
+  if (masterIds.length === 0) return null;
+  const rung = process.rungKey(state);
+  const passes = message?.getFlag?.("fgt", "csPasses");
+  if (passes?.rung === rung && masterIds.every((id) => (passes.masterIds ?? []).includes(id))) return null;
+  return { masterIds, masterList: masterIds.join(","), rung };
 }
 
 /**
@@ -634,6 +696,27 @@ function bindCardEvents(message, html) {
         }
       } catch (err) {
         spell.disabled = false;
+        ui.notifications.error(err.message);
+        throw err;
+      }
+      return;
+    }
+
+    // "No Command Spell": this player's Masters pass the rung, and the GM goes
+    // on once every offered Master has. Written by the GM, who owns the card.
+    const pass = target.closest("[data-fgt-cs-pass]");
+    if (pass) {
+      event.preventDefault();
+      pass.disabled = true;
+      const { FGTSocket } = await import("../../net/socket.mjs");
+      try {
+        await FGTSocket.request("passCommandSpells", {
+          messageId: message.id,
+          masterIds: (pass.dataset.fgtMasters ?? "").split(",").filter(Boolean),
+          rung: pass.dataset.fgtRung,
+        });
+      } catch (err) {
+        pass.disabled = false;
         ui.notifications.error(err.message);
         throw err;
       }

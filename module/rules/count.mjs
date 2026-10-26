@@ -24,10 +24,11 @@ import { test as testPredicate } from "./predicate.mjs";
 import { rollOptionsFor } from "./options.mjs";
 import { relationOf } from "./relations.mjs";
 import { Rank } from "../domain/rank.mjs";
+import { currentHealth, maxHealth } from "../domain/health.mjs";
 
 /** The sources a Count may read (Q19). */
 export const COUNT_KINDS = Object.freeze([
-  "stacks", "targets", "board", "resource", "parameters", "criteria", "use", "tally",
+  "stacks", "targets", "board", "resource", "parameters", "criteria", "use", "tally", "healthMissing",
 ]);
 
 /** A Count whose kind is not in {@link COUNT_KINDS}. */
@@ -111,6 +112,17 @@ export function countOf(spec, ctx = {}) {
     }
     case "tally":
       return whole(ctx.ability?.tally);
+    case "healthMissing": {
+      // The whole percent of its Max Health the Unit is missing. Atk Up
+      // (Redbranch): *"For every 10% of Health Cu is missing, X increases by
+      // 10 (e.g. Cu's Health is 457/1000, so X=50)"*: 54 here, `each: 10`
+      // takes the whole steps (#339 ruling 1).
+      const holder = ctx.refs?.self?.health ? ctx.refs.self : (ctx.self ?? null);
+      const max = Number(maxHealth(holder));
+      if (!(max > 0)) return 0;
+      const value = Math.max(0, Math.min(max, Number(currentHealth(holder, max))));
+      return whole(Math.floor(((max - value) * 100) / max));
+    }
     default:
       throw new UnknownCountKind(spec?.of);
   }
