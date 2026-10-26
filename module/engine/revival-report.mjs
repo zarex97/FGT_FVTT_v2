@@ -27,6 +27,16 @@ export function revivalCard(entry, nameOfUnit, nameOfSource, t) {
     amount: entry.amount ?? 0,
     overkill: entry.overkill ?? 0,
   };
+  // What came off every holder with the Unit that stayed down: Curse (Bolg)
+  // (#339 ruling 23). One line per effect, naming each holder.
+  if (entry.kind === "effectsEndWithInflicter") {
+    const byEffect = new Map();
+    for (const r of entry.removed ?? []) byEffect.set(r.defId, [...(byEffect.get(r.defId) ?? []), r.unitId]);
+    const lines = [...byEffect].map(([defId, holders]) => `<p>${t("FGT.Revival.EffectsEnded", {
+      ...data, effect: nameOfSource(defId), holders: holders.map(nameOfUnit).join(", "),
+    })}</p>`).join("");
+    return `<div class="fgt-card fgt-card--revival">${lines}</div>`;
+  }
   // A source on a die: what it rolled, a miss included (#323).
   if (entry.kind === "revivalChanceMissed" && entry.barred) {
     return `<div class="fgt-card fgt-card--revival"><p>${t("FGT.Revival.ChanceBarred", data)}</p></div>`;

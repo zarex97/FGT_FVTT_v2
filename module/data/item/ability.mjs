@@ -415,6 +415,10 @@ function abilityCommon() {
     // Used at the start of a Combat Phase its user is Attacked in, it cancels
     // the AU's whole Attack and offers its user a Counter (#330 ruling 9).
     cancelsAttackWhenDefending: new fields.BooleanField({ initial: false }),
+    // Used there too, it takes its user out of the Attack: a targeted one is
+    // cancelled whole, an area one its user alone leaves, and no Counter
+    // follows. Disengage (#339 ruling 2), Battle Retreat's rule at the start.
+    withdrawsWhenDefending: new fields.BooleanField({ initial: false }),
     // Used at the end of a Combat Process its user Attacked in, the DU cannot
     // Counter that Attack (#330, KB.nocounter).
     forbidsCounterWhenAttacking: new fields.BooleanField({ initial: false }),
@@ -629,6 +633,11 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       decay: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       pausedWhile: new fields.ArrayField(new fields.StringField({ blank: false })),
       boardUnique: new fields.StringField({ required: false, nullable: true, initial: null }),
+      // Removed from every Unit holding it when the Unit that inflicted it
+      // stays down: Curse (Bolg), *"when Cu Chulainn is defeated, Curse (Bolg)
+      // is removed from all affected Units"* (#339 rulings 14, 23). Read by
+      // `engine/io.mjs#endEffectsWithInflicter`, at the defeat write.
+      endsWithInflicter: new fields.BooleanField({ required: false, initial: false }),
       volatility: new fields.StringField({ required: false, nullable: true, initial: null }),
       valence: new fields.StringField({ required: false, nullable: true, initial: null }),
       // Appendix A's umbrella names. `Bind` covers ten effects and Medusa's

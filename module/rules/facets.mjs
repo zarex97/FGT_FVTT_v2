@@ -616,6 +616,15 @@ export const FACETS = Object.freeze([
     prose: "the attack is {delivery}",
   }),
   facet({
+    // Which of the defender's four cones it came from, stamped at the
+    // declaration (#184). Protection from Arrows reads it.
+    id: "cone",
+    subjects: ["attack"],
+    segments: [{ name: "cone", value: closed("CONES") }],
+    english: "The attack came from the defender's front, left, right or back.",
+    prose: "the attack came from the {cone}",
+  }),
+  facet({
     // An effect its user held when the Attack was declared (#336): what a charge
     // spent by "the next" Noble Phantasm asks, so an NP declared before the
     // charge was gained does not spend it.

@@ -62,6 +62,7 @@ is closed (`module/rules/count.mjs#COUNT_KINDS`, #319):
 | `criteria` | the declaration's criteria met | — |
 | `use` | a fact of the Use record | `fact` |
 | `tally` | a Mode's Tally | — |
+| `healthMissing` | the whole percent of its Max Health the Unit is missing (Atk Up (Redbranch), #339) | — |
 
 The value is `base + per × floor(count / each)`, clamped to `max`; `zeroPaysNothing` pays nothing at all at zero, its
 `base` included. The build refuses an unknown kind or a missing key, naming the path (`tools/lib/content.mjs#countsAreKnown`),

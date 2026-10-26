@@ -1,0 +1,34 @@
+# Cú Chulainn, char_orig_sheets/by-class/Lancer/Cú Chulainn.md (#339).
+#
+# > "Ansuz. Damage Spell. Range=3. Deals damage to an enemy Unit and has a 50%
+# > chance of inflicting Burn for 2◈ Turns. Fire damage. Cooldown: 2◈ Turns"
+#
+# Nursery Rhyme's Plains of Winter in shape. A Damage Spell that prints no figure
+# deals 1x BA(MAG): 150, Fire (#339 ruling 6, carried from Nursery Rhyme's R2).
+schema: 1
+id: cu-ansuz
+name: "Rune Magic: ᚨ (Ansuz)"
+rank: null
+kind: skill
+slug: ansuz
+isSpell: true
+element: fire
+cooldown: "2◈"
+timing: { window: ownTurn }
+description: |
+  Ansuz. Damage Spell. Range=3. Deals damage to an enemy Unit and has a 50% chance of inflicting
+  @effect[burn]{Burn} for 2◈ Turns. Fire damage. Cooldown: 2◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 3 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+damage:
+  multiplier: 1
+  component: mag
+phases:
+  - kind: damage
+    target: reuse
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: burn, duration: "2◈", chance: 50 }

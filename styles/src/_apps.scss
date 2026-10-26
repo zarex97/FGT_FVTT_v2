@@ -51,6 +51,17 @@
     &--other { opacity: 0.7; }
   }
 
+  // The Command Spell window that holds a decided rung: the
+  // ladder is done and the card waits only on a Master who may contest it.
+  // Asked live 2026-10-25: "make it glow golden", so the release is found.
+  &__cs-pass {
+    border: 1px solid var(--fgt-gold, #c9a227) !important;
+    box-shadow: 0 0 6px var(--fgt-gold, #c9a227);
+    font-weight: 700;
+
+    &--waiting { animation: fgt-cs-pass-glow 1.6s ease-in-out infinite; }
+  }
+
   &__prompt-label { margin: 0 0 0.35rem; font-weight: 600; }
   &__waiting { margin: 0; font-style: italic; opacity: 0.75; }
 
@@ -1266,3 +1277,8 @@
 
 /* The new War's roster: the swatch beside the name it colours, not above it. */
 .fgt-setup__faction > legend { display: flex; align-items: center; gap: 0.4rem; }
+
+@keyframes fgt-cs-pass-glow {
+  0%, 100% { box-shadow: 0 0 4px var(--fgt-gold, #c9a227); }
+  50% { box-shadow: 0 0 14px 3px var(--fgt-gold, #c9a227); }
+}

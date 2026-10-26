@@ -1,0 +1,47 @@
+# Cú Chulainn, char_orig_sheets/by-class/Lancer/Cú Chulainn.md (#339).
+#
+# > "{R} Range=4. BA(STR) and half of BA(MAG) combined (e.g. BA=200) is used.
+# > Hits a 5x5 panel area within Range for 3.5x damage plus 100. Not affected by
+# > Magic Resistance. Cooldown: 6◈+⅓◈ Turns"
+# > "Note: Barbed Spear that Pierces with Death cannot be used if Soaring Spear
+# > that Strikes with Death is on Cooldown and vice versa."
+#
+# Mana Burst's shape (#339 ruling 32): `base.sources` at 1 and 0.5, `component:
+# str`, `ignoresMagicResistance`, `flatBonus: 100` after the multiplier:
+# 3.5 x 200 + 100 = 800, Divinity's 40 on top. Rhongomyniad's 5x5 within Range,
+# every panel within Range 4 (#234), every Unit in it, his allies too (ruling 15).
+schema: 1
+id: cu-gae-bolg-soaring-spear
+name: "Gáe Bolg: Soaring Spear that Strikes with Death"
+rank: "B+"
+kind: noblePhantasm
+slug: soaringSpear
+isNP: true
+npTags: [antiArmy]
+cooldown: "6◈+⅓◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+description: |
+  {R} Range=4. BA(STR) and half of BA(MAG) combined (e.g. BA=200) is used. Hits a 5x5 panel area within
+  Range for 3.5x damage plus 100. Not affected by Magic Resistance. Cooldown: 6◈+⅓◈ Turns.
+  Note: cannot be used if Barbed Spear that Pierces with Death is on Cooldown.
+requirements:
+  - kind: abilityOffCooldown
+    abilityIds: [cu-gae-bolg-barbed-spear]
+targeting:
+  anchor: { kind: withinRange, range: 4 }
+  shape: { kind: square, size: 5 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  isDamagingAoE: true
+damage:
+  delivery: ranged
+  base:
+    sources:
+      - { unit: self, component: str, factor: 1 }
+      - { unit: self, component: mag, factor: 0.5 }
+  component: str
+  ignoresMagicResistance: true
+  multiplier: 3.5
+  flatBonus: 100
+phases:
+  - kind: damage

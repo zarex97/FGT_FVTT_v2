@@ -531,6 +531,8 @@ describe("`attack:usesBase:mag` is the attack's base, not the component it decla
     expect(differs).toEqual([
       "arjuna-mana-burst-flames",
       "arturia-mana-burst",
+      // Cú's Soaring Spear (#339): STR and half of MAG, declared `component: str`.
+      "cu-gae-bolg-soaring-spear",
       "dioscuri-mana-burst-castor", "dioscuri-mana-burst-pollux", "karna-mana-burst-flames",
       "lanceturia-mana-burst", "mannanan-hallowed-sea-gods-sword", "quetz-xiuhcoatl", "raikou-mana-burst-lightning",
     ]);

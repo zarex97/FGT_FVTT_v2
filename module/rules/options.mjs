@@ -24,7 +24,7 @@
 import { parametersCounted } from "./count.mjs";
 import { currentHealth } from "../domain/health.mjs";
 import { Rank } from "../domain/rank.mjs";
-import { STANDARD_CLASSES, KNIGHT_CLASSES } from "../domain/enums.mjs";
+import { STANDARD_CLASSES, KNIGHT_CLASSES, CONES } from "../domain/enums.mjs";
 import { isDelivery } from "./delivery.mjs";
 import { GENERATED_EMITTABLE } from "./facets.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
@@ -201,6 +201,9 @@ export function rollOptionsFor({ attacker, defender, attack = null, withoutModeH
   // Attack Description (`engine/attack.mjs#attackFacts`, #281). An option set
   // built from a bare declaration may not know it yet, and emits nothing.
   if (isDelivery(attack.delivery)) options.add(`attack:delivery:${attack.delivery}`);
+  // WHICH OF THE DEFENDER'S CONES it came from, as stamped at the declaration
+  // (#184): Protection from Arrows evades from the Front and Sides only.
+  if (CONES.includes(attack.cone)) options.add(`attack:cone:${attack.cone}`);
   // WHAT ITS USER HELD when it was declared (`buildAttackSpec`): a charge spent
   // by its holder's next NP asks it, so an NP declared before the charge was
   // gained does not spend it (#336).

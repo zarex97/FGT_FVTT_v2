@@ -65,7 +65,7 @@ import { resolveValue } from "../rules/elements.mjs";
 import { createField, regionSizedTargeting } from "./fields.mjs";
 import { chooseFor } from "./ask.mjs";
 import { paintTerrain } from "./terrain.mjs";
-import { activatePlatform } from "./platforms.mjs";
+import { activatePlatform, PLATFORM_SORT } from "./platforms.mjs";
 import { summonAnchor, masterSeat } from "../rules/platforms.mjs";
 import { expand } from "../rules/targeting/shapes.mjs";
 import { fireEvent, regionScale, dispatch, ACTION_KINDS } from "./scheduler.mjs";
@@ -1496,6 +1496,28 @@ async function runRollTable(phase, ability, actor, target, board) {
     }
   }
 
+  // "Then, you can apply one more effect of your choice other than the one
+  // selected by the die" (Rune Magic, #339 ruling 4): optional, one row no die
+  // chose, landing as a rolled row does.
+  if (phase.thenChoose) {
+    const rolled = new Set(results.map(String));
+    const others = choicesIn(table).filter((o) => !rolled.has(String(o.roll)));
+    const picked = others.length === 0 ? [] : await chooseFor(actor, {
+      title: ability.name,
+      hint: game.i18n.format("FGT.RollTable.ThenChooseHint", { results: results.join(", ") }),
+      count: 1,
+      min: 0,
+      options: others.map((o) => ({
+        id: String(o.roll),
+        name: `${o.roll}. ${(o.entry.effects ?? []).map((e) => effectLabel(e)).join(", ")}`,
+      })),
+    });
+    for (const row of (picked ?? []).map((id) => table[id]).filter(Boolean)) {
+      const onto = row.target === "self" ? (self ?? target) : target;
+      out.push(...await applyPhaseEffects({ effects: effectsOf(row) }, ability, actor, onto));
+    }
+  }
+
   await postRollCard(actor, ability, target, results);
   return out;
 }
@@ -2363,7 +2385,7 @@ async function chosenCooldowns(phase, ability, doc) {
  * @returns {Promise<string[]>} the definition ids to remove
  */
 async function resolveRemoval(phase, doc, bearer) {
-  const candidates = removalCandidates(phase, doc);
+  const candidates = await pickedCandidates(phase, doc, removalCandidates(phase, doc));
   const ignoresProtection = Boolean(phase.ignoresRemovalProtection);
 
   /** @type {Record<string, number>} */
@@ -2383,6 +2405,33 @@ async function resolveRemoval(phase, doc, bearer) {
     }));
   }
   return plan.removed;
+}
+
+/**
+ * The candidates its user picked, when the phase removes only some.
+ *
+ * Disengage *"removes 1 debuff from himself"*: his pick, never an Unremovable
+ * one (#339 ruling 3). Asked of the bearer's own player, by effect; with no
+ * more than `pick` to choose from, all of them, unasked.
+ *
+ * @param {object} phase
+ * @param {object} doc the bearer
+ * @param {Array<{defId: string}>} candidates
+ * @returns {Promise<Array<{defId: string}>>}
+ */
+async function pickedCandidates(phase, doc, candidates) {
+  const pick = Number(phase.pick ?? 0);
+  const removable = candidates.filter((c) => !c.unremovable);
+  const ids = [...new Set(removable.map((c) => c.defId))];
+  if (!(pick > 0) || ids.length <= pick) return pick > 0 ? removable : candidates;
+  const chosen = await chooseFor(doc, {
+    title: game.i18n.localize("FGT.Removal.PickTitle"),
+    hint: game.i18n.format("FGT.Removal.PickHint", { count: pick }),
+    count: pick,
+    options: ids.map((id) => ({ id, name: EffectRegistry.get(id)?.name ?? id })),
+  });
+  const kept = new Set((chosen ?? []).slice(0, pick));
+  return removable.filter((c) => kept.has(c.defId));
 }
 
 /**
@@ -2813,6 +2862,9 @@ export async function createStructure(phase, ability, actor, board) {
   const token = (await structure.getTokenDocument()).toObject();
   token.x = panel.j * size;
   token.y = panel.i * size;
+  // Beneath the Units, as a Bloodmark is: one placed at its maker's feet
+  // otherwise takes every click aimed at that maker.
+  token.sort = PLATFORM_SORT;
   await scene.createEmbeddedDocuments("Token", [token]);
 
   if (phase.once) {

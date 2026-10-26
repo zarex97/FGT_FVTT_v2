@@ -36,6 +36,12 @@
     <section class="fgt-card__note">{{line}}</section>
   {{/each}}
 
+  {{!-- What the Attack may deal, before it does: for the defender's side and
+        the GM, so Eye of the Mind or a Command Spell is decided knowing it. --}}
+  {{#if damagePreview}}
+    <section class="fgt-card__note fgt-card__preview">{{localize "FGT.Card.DamagePreview" range=damagePreview}}</section>
+  {{/if}}
+
   {{#if result}}
     {{#unless visibility.involved}}
       <div class="fgt-card__hidden">{{localize "FGT.Chat.HiddenDamage"}}</div>
@@ -139,7 +145,7 @@
 
   {{!-- Command Spells interrupt an in-flight resolution (Ch. 17 17.4). Only
         shown when this viewer owns a Master that can actually spend one. --}}
-  {{#if commandSpells.length}}
+  {{#if csPass}}
     <section class="fgt-card__prompt fgt-card__prompt--cs">
       <p class="fgt-card__prompt-label">{{localize "FGT.Prompt.commandSpell"}}</p>
       <div class="fgt-card__buttons">
@@ -149,6 +155,9 @@
             {{#if cs.essence}}<small>{{localize "FGT.Master.Essence"}}</small>{{else}}<small>{{cs.cost}} CS</small>{{/if}}
           </button>
         {{/each}}
+        <button type="button" class="fgt-card__cs-pass{{#unless prompt}} fgt-card__cs-pass--waiting{{/unless}}" data-fgt-cs-pass data-fgt-masters="{{csPass.masterList}}" data-fgt-rung="{{csPass.rung}}">
+          {{localize "FGT.CommandSpell.Pass"}}
+        </button>
       </div>
     </section>
   {{/if}}

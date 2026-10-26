@@ -1161,6 +1161,8 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
       if (io.notePosthumous) await io.notePosthumous(unitId, intents[0].killerId ?? null);
       // ...and a teaching it was in ends with it (#326 ruling 11b).
       if (io.noteTeachingDefeat) await io.noteTeachingDefeat(unitId);
+      // ...and what it inflicted that ends with it: Curse (Bolg) (#339).
+      if (io.endEffectsWithInflicter) await io.endEffectsWithInflicter(unitId);
       break;
     // A summon whose stay ran out. Distinct from `defeat`: no revival chain, no
     // `unitDefeated`, no kill. It DOES write the summon's stats home and start

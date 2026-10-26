@@ -173,6 +173,7 @@ export const ABILITY_ROUTES = {
   freeAction: doc("module/engine/attack-preflight.mjs", "the action budget"),
   freeAtWindow: doc("module/engine/skill-use.mjs", "a window use bills no budget (#330)"),
   cancelsAttackWhenDefending: doc("module/engine/attack.mjs", "cancels the Attack at the defending window (#330)"),
+  withdrawsWhenDefending: doc("module/engine/attack.mjs", "takes its user out of the Attack at the defending window (#339)"),
   forbidsCounterWhenAttacking: doc("module/engine/attack.mjs", "closes the Counter at the Process-end window (#330)"),
   isAttackSkill: doc("module/rules/ability-use.mjs", "classifies the use"),
   isMode: doc("module/rules/modes.mjs", "classifies the use"),
@@ -265,6 +266,8 @@ export const EFFECT_ROUTES = {
     "onApply", "onApplyEachLanding",
     // Read by `rules/effect-instance.mjs` (#315).
     "polarityByRelation", "decay", "pausedWhile", "boardUnique",
+    // Read by `engine/io.mjs#endEffectsWithInflicter` (#339).
+    "endsWithInflicter",
   ].map((k) => [k, same(k)])),
   contentId: same("id"),
   description: doc("module/apps/actor-sheet/context.mjs", "the effect's text on the sheet"),
