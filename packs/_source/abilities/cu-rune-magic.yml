@@ -1,0 +1,47 @@
+# Cú Chulainn, char_orig_sheets/by-class/Lancer/Cú Chulainn.md (#339).
+#
+# > "(Active) Used during your Turn. Roll a four-sided die and apply the
+# > corresponding effect. Then, you can apply one more effect of your choice
+# > other than the one selected by the die.
+# > 1. Applies the 'Tiwaz' buff for 1◈ Turns, his Rank of Magic Resistance is
+# >    increased by 1 Rank.
+# > 2. Applies Def Up for 1◈ Turns, all damage received is reduced by 25%; if NP, 15%.
+# > 3. Applies Atk Up for 1◈ Turns, all damage dealt is increased by 25%; if NP, 15%.
+# > 4. Applies Crit Up for 1◈ Turns, Crit Chance is increased by 20%.
+# > Cooldown: 4◈ Turns"
+#
+# Scáthach's Primordial Rune `rollTable`, one die and four rows, every row on
+# him (#339 ruling 4). The second pick is optional, any row the die did not
+# choose: `thenChoose`. Tiwaz is a whole grade, C to B, as the Magic Resistance
+# B block printed under the Skill shows (ruling 5): `tiwaz`'s RankShift.
+schema: 1
+id: cu-rune-magic
+name: "Rune Magic"
+rank: B
+kind: skill
+slug: runeMagic
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Roll a four-sided die and apply the corresponding effect. Then, you
+  can apply one more effect of your choice other than the one selected by the die.
+  1. Applies the @effect[tiwaz]{Tiwaz} buff for 1◈ Turns, his Rank of Magic Resistance is increased by 1 Rank.
+  2. Applies @effect[defUp]{Def Up} for 1◈ Turns, all damage received is reduced by 25%; if NP, 15%.
+  3. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 25%; if NP, 15%.
+  4. Applies @effect[critUp]{Crit Up} for 1◈ Turns, Crit Chance is increased by 20%.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: rollTable
+    target: self
+    count: 1
+    faces: 4
+    thenChoose: true
+    entries:
+      1: { effects: [{ id: tiwaz, duration: "1◈" }] }
+      2: { effects: [{ id: defUp, magnitude: 25, npMagnitude: 15, duration: "1◈" }] }
+      3: { effects: [{ id: atkUp, magnitude: 25, npMagnitude: 15, duration: "1◈" }] }
+      4: { effects: [{ id: critUp, magnitude: 20, duration: "1◈" }] }

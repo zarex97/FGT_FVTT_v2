@@ -1,0 +1,22 @@
+# Cú Chulainn's Shoal of Four Branches (#339).
+#
+# > "Applies Atk Up (Redbranch) for 1◈ Turns, all damage dealt is increased by
+# > (20+X)%; if NP, this value is halved."
+#
+# Its own effect, so it stacks with Rune Magic's Atk Up (#339 ruling 31). The
+# magnitude is stamped at use, from his missing Health (ruling 1).
+schema: 1
+id: atkUpRedbranch
+name: "Atk Up (Redbranch)"
+description: "All damage dealt is increased by X%; halved against Noble Phantasms."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: "@magnitude"
+    npValue: "@npMagnitude"

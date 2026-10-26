@@ -86,7 +86,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   // Avalon (#230): a Noble Phantasm that costs its Master nothing; an Item
   // whose rules run while it is held, and the abilities it gives its holder.
   "noMasterCost", "weakPointAimBonus", "afterDefeat", "copyGrant", "freeServantCost", "ignoresNPGate", "worksWhenHeld", "grants", "bondUnitId", "bondMasterId", "grantClocks",
-  "freeAction", "freeAtWindow", "cancelsAttackWhenDefending", "forbidsCounterWhenAttacking",
+  "freeAction", "freeAtWindow", "cancelsAttackWhenDefending", "withdrawsWhenDefending", "forbidsCounterWhenAttacking",
   "timesUsed", "maxUses", "lastUsedTick", "recordedAttacks",
   "recordsAttacks", "shield", "shieldHealth", "negatedBy", "negatedWhile",
   "cancelsNP", "damage", "reactionOverride", "creates",
@@ -109,6 +109,8 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "onApplyEachLanding",
   // A standing Effect's answers, read by `rules/effect-instance.mjs` (#315).
   "polarityByRelation", "decay", "pausedWhile", "boardUnique",
+  // Removed from every holder when its inflicter stays down (Curse (Bolg), #339).
+  "endsWithInflicter",
 ]);
 
 /**

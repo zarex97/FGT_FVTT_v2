@@ -1,0 +1,76 @@
+# Cú Chulainn, char_orig_sheets/by-class/Lancer/Cú Chulainn.md (#339).
+#
+# > "{M} Range=3. Base Attack (STR) is used. Has the Aim effect. When this NP is
+# > used, the DU performs a Luck Check. If Failed, the DU is inflicted with
+# > Instakill and Curse (Bolg). If the Luck Check succeeded or Instakill was not
+# > inflicted, this NP deals 3.5x damage and inflicts Curse (Bolg). ... Chance of
+# > this NP inflicting Instakill on Units with Invuln is reduced by 50%, while
+# > chance of it inflicting Instakill on Units with Anti-Purge is reduced by
+# > 100%. The Master's Health cost of using this NP is treated as if a Rank D
+# > Noble Phantasm was used. Cooldown: 6◈ Turns."
+# > "Note: Barbed Spear that Pierces with Death cannot be used if Soaring Spear
+# > that Strikes with Death is on Cooldown and vice versa."
+#
+# Gate of Skye's `check: luck` before the damage, no modifier (#339 ruling 11),
+# and Gáe Bolg Alternative's `skipIf: { effectApplied: instakill }`. Aim, not
+# `unavoidable` (ruling 27): Evade is closed, Block may answer a passed check.
+# Where the War removes Luck Checks it counts as passed (ruling 28); a DU with
+# no Luck fails (ruling 29). STR damage, so Magic Resistance does not cut the
+# Instakill (ruling 30); Invuln takes it to 50% and a landed one still reaches 0,
+# Anti-Purge to 0 (ruling 12). Curse (Bolg) lands once on either path (ruling 11).
+#
+# Not built with Ath nGabla (#339, 2026-10-26): *"When Ath nGabla is Active ...
+# Rank A ... 4x damage ... Cooldown is increased to 7◈"* (AG.rank, AG.4x, AG.gbcd).
+schema: 1
+id: cu-gae-bolg-barbed-spear
+name: "Gáe Bolg: Barbed Spear that Pierces with Death"
+rank: B
+kind: noblePhantasm
+slug: barbedSpear
+isNP: true
+npTags: [antiUnit]
+cooldown: "6◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+description: |
+  {M} Range=3. Base Attack (STR) is used. Has the @effect[aim]{Aim} effect. When this NP is used, the
+  DU performs a Luck Check. If Failed, the DU is inflicted with @effect[instakill]{Instakill} and
+  @effect[curseBolg]{Curse (Bolg)}. If the Luck Check succeeded or Instakill was not inflicted, this
+  NP deals 3.5x damage and inflicts Curse (Bolg). Curse (Bolg) is separate from normal Curse, does not
+  stack, and is Unremovable; when Cú Chulainn is defeated, Curse (Bolg) is removed from all affected
+  Units. Chance of this NP inflicting Instakill on Units with @effect[invuln]{Invuln} is reduced by 50%,
+  while chance of it inflicting Instakill on Units with @effect[antiPurge]{Anti-Purge} is reduced by 100%. The Master's Health cost of
+  using this NP is treated as if a Rank D Noble Phantasm was used. Cooldown: 6◈ Turns.
+  Note: cannot be used if Soaring Spear that Strikes with Death is on Cooldown.
+requirements:
+  - kind: abilityOffCooldown
+    abilityIds: [cu-gae-bolg-soaring-spear]
+targeting:
+  anchor: { kind: targetUnit, range: 3 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+additionalCosts:
+  - { id: barbedSpearRankD, kind: masterHealthByNPRank, rank: D, supersedes: [npCost] }
+damage:
+  delivery: melee
+  component: str
+  multiplier: 3.5
+  aim: true
+  # No damage on a failed Check that landed its Instakill.
+  skipIf: { effectApplied: instakill }
+phases:
+  - kind: check
+    when: beforeDamage
+    check: luck
+    onFail:
+      effects:
+        - id: instakill
+          chanceModifiers:
+            - { predicate: ["target:effectFamily:invuln"], value: -50, source: "Invuln" }
+            - { predicate: ["target:effect:antiPurge"], value: -100, source: "Anti-Purge" }
+  # Once, on either path.
+  - kind: applyEffects
+    when: beforeDamage
+    target: reuse
+    effects:
+      - { id: curseBolg }

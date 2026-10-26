@@ -12,7 +12,7 @@ import { withSubjects } from "../helpers/subject.mjs";
 
 describe("the closed list of kinds (Q19)", () => {
   it("is the eight kinds the grill settled, frozen", () => {
-    expect(COUNT_KINDS).toEqual(["stacks", "targets", "board", "resource", "parameters", "criteria", "use", "tally"]);
+    expect(COUNT_KINDS).toEqual(["stacks", "targets", "board", "resource", "parameters", "criteria", "use", "tally", "healthMissing"]);
     expect(Object.isFrozen(COUNT_KINDS)).toBe(true);
   });
 

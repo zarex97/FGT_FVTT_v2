@@ -52,6 +52,10 @@ too (*"End of the Turn — Foreigner takes 63 from Curse"*), by the effect's nam
 
 `redactBreakdown` removes side-specific contributors but preserves the arithmetic: stage deltas and running totals stay visible so a viewer can check the numbers add up (`module/rules/card-visibility.mjs:139-155`). Contributors with no side are board facts and remain visible to everyone. `hiddenContributors` is a count rather than silence — something happened here and it was not yours (`module/rules/card-visibility.mjs:150-152`).
 
+### Before the damage: the preview and the pass (2026-10-25)
+
+An open Process shows *"Expected damage before reactions: min – max"* to the defender's owner, its Master's owner and the GM, so Eye of the Mind or a Command Spell is chosen knowing it. It is the targeting preview's range (`engine/attack.mjs#processDamagePreview`, over `previewContext`), every die at each end, gone once the damage is dealt. The **No Command Spell** button glows gold, and pulses while no other prompt is open: the rung is decided and the card waits only on a Master who may contest it (`styles/src/_apps.scss`, `.fgt-card__cs-pass`).
+
 ### The game log
 
 Log entries are validated by kind on construction — a typo'd kind ends up invisible in the very place someone is looking for it (`module/rules/game-log.mjs:29-38`, `module/rules/game-log.mjs:56-74`). The last 200 entries live on `Combat.system.log` for quick access; older ones flush in batches of 100 to a JournalEntry (`module/engine/game-log.mjs:7-12`).

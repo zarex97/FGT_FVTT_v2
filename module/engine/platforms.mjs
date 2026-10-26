@@ -722,9 +722,10 @@ export async function activatePlatform({ platformId, initialUnitIds = [] }) {
  *
  * Low enough that no ordinary token collides with it, and a constant rather
  * than `min(sort) - 1` so it does not drift downward every time a platform is
- * raised.
+ * raised. A Bloodmark and every Structure placed at someone's feet share it
+ * (`engine/marks.mjs#createMark`, `engine/skill-use.mjs#createStructure`).
  */
-const PLATFORM_SORT = -1000;
+export const PLATFORM_SORT = -1000;
 
 /**
  * Put a platform's token beneath the units standing on it.

@@ -46,6 +46,10 @@ Ruled 2026-10-04 (#181): the rulebook's three cases, for every targeted Attack (
 
 Cases 2 and 3 run in `engine/master-guard.mjs#guardMasterTarget`, called from `declareProcesses` for a declaration whose anchor is the Master, never for a Counter (Ch. 21 has its own redirect). Each posts a public line with the rolls and logs `masterGuard`. Until now the engine refused whenever a guard stood adjacent, which is case 2's condition with case 1's answer. Test: `test/unit/master-guard.test.mjs`.
 
+A Master the Attack was aimed at stays involved in its Combat Phase when a guard steps in or Teleport Servant switches the target to its Servant: the Process stores `guardedMasterId`, the `retarget` record keeps `fromId`, and `engine/attack.mjs#fireCombatPhaseEnd` counts both. Found live 2026-10-25: Heracles's Master took nothing from EMIYA's Hrunting and the Home Base still healed him.
+
+A Riding Attack runs none of the three cases: ruled 2026-10-25, a ride is an area, not a targeted Attack (Surprise `2026-10-25-riding-attack-skips-master-guard`).
+
 ### Overpower and Underpower
 
 `overpowerCheck` determines whether a Servant's attack on a Master can instant-defeat it: a 50% coin flip reduced by 10 for Def Up or Dmg Cut, blocked entirely by Invuln or Shield, and by Anti-Purge and Substitution, which beat Invuln (#184) (`module/rules/relationships.mjs#overpowerCheck`). `resolveOverpower` folds in a Luck Check that covers both the flip and the lethal damage that follows, making it disproportionately valuable (`module/rules/relationships.mjs:76-82`). A Master knocked off a Platform flips the same coin on landing, *"as though Attacked by a Servant"* (`engine/platforms.mjs#toIntents`, §46.4-CD). **The Master's Luck Check is offered before the flip** (ruled 2026-10-19, #111): `engine/overpower-save.mjs#offerOverpowerSave` asks the Master's player, on a Servant's Attack and on a fall alike; it costs 1 Luck whatever the d20 says, and it is not offered where the difficulty removes Luck Checks (Beginner, Intermediate), where a rule blocks them, or with no Luck. A pass stops the flip and leaves the Master at 1 Health against lethal damage. The card carries the check beside the coin: *"Overpower: Luck Check 11 vs 14, passed (Luck 14 → 13) — no flip, survives"*, or on a fail the check and then Heads or Tails. `resolveOverpower` modelled the save from the start, and nothing had ever offered it. No coin is rolled after a pass. Pressed live on both doors: Medea's Attack on a Master at 213 (*"Luck Check 11 vs 14, passed"*, left at 1 Health), and a Master knocked off the Hanging Gardens (*"makes a Luck Check against Overpower: 7 vs 19, passed. No flip. Luck 19 → 18."*).
@@ -209,6 +213,10 @@ Servant keep their rules.
 partners (cause `linkedDeath`), whatever wrote the defeat: the Sustainability sweep, Instakill, Erase, a Command Spell, a
 field. The scheduler's `linkedDeathIntents` still logs the binding on the damage path; a partner already down is left. A
 Unit defeated twice is counted towards the Grail and frees its Servants once; its first cause stands.
+
+### The area Cover asks about (2026-10-25)
+
+`resolveCover` reads the attack's own `areaPanels`, the area the targeting resolved, and falls back to the defenders' panels only for an attack that carries none. From the defenders' panels alone every empty panel of the blast read as outside it, so a shove from Caladbolg's 3x3 landed the Master on (4,5), still inside. The covering Servant's Evade is drawn refused on its card (`apps/chat/cards.mjs#refuseCoveredEvade`), from the same `coverStateFor` the press reads. Ruled 2026-10-25: the shove's *"Agility Check/Agility Check-"* is read against the attacker, as the guard's step-in is (`rules/checks.mjs#agilityTableAgainst`, one reader for both); a Master who answers Do nothing or Block has failed to Evade too, and its Servants shove or cover; a Servant outside the area still neither shoves nor covers. All are in `test/unit/cover-shove-press.test.mjs`, which runs in the test world, not the live match.
 
 ### Master content (#241)
 

@@ -3,7 +3,8 @@ id: 2026-10-25-audit-merged-with-19-unpressed
 found: user
 kind: live-client-only
 status: fixed
-reviewed: false
+reviewed: true
+pattern: live-client-only
 ---
 **Expected:** By the lesson *"Every Clause ends Pressed or Observed live: a case the board does not produce by chance is
 staged and pressed, never left to a test"*, Arturia (Lancer)'s audit closes with all 100 Clauses Pressed or Observed.
