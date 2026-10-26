@@ -137,6 +137,8 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     // predicate or as one of the attack's tags.
     { key: "attackPredicate", type: "predicateList" },
     { key: "attackTag", type: "text" },
+    // ...or the Attribute it deals extra damage to (Anti-Dragon, #341 ruling 5).
+    { key: "attackVsAttribute", type: "text" },
   ]),
   entry("DamageNegation", "Reduces the damage dice themselves — Battle Continuation's clause.", [
     ...SCALED,
@@ -271,6 +273,14 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "table", type: "text" },
     { key: "property", type: "text" },
   ]),
+  entry("AttackRankTier", "Nullifies an attack at or under a Rank, else cuts its Total: the attacker's Parameter, or the NP's Rank.", [
+    ...SCALED,
+    { key: "rankOf", type: "select", choices: ["parameter", "ability"] },
+    { key: "np", type: "checkbox" },
+    { key: "negatesUpTo", type: "rank" },
+  ]),
+  entry("Defenceless", "A matching attack ignores every damage-reducing effect on this Unit, Invuln too.", []),
+  entry("WoundsMaxHealth", "Damage a matching attack deals lowers this Unit's Max Health by the Health it took.", []),
 
   /* ── Order, targeting and reactions ──────────────────────────────────── */
   entry("AttackFirst", "Attack before the Unit that just declared an attack on you.", [
@@ -302,6 +312,10 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "kinds", type: "tokenList" },
     { key: "extra", type: "number" },
     { key: "on", type: "select", choices: ["any", "natural"] },
+  ]),
+  entry("CooldownCutOverride", "While held, a named Cooldown cut takes this length instead.", [
+    { key: "slot", type: "text" },
+    { key: "ticks", type: "text" },
   ]),
   entry("UseFailure", "A use of the named abilities may fail outright: paid for, no clock, and what follows.", [
     { key: "of", type: "tokenList" },

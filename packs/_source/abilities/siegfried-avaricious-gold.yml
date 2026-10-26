@@ -1,0 +1,40 @@
+# Siegfried, char_orig_sheets/by-class/Saber/Siegfried.md (#341)
+#
+# > "(Active) Used during your Turn. Has the following effects-
+# > 1. Apply the 'Rheingold' buff for 1◈ Turns, a successful activation of
+# >    'Golden Rule' reduces NP Cooldown by 1◈ Turns instead of 1 Turn.
+# > 2. Applies NP Regen for 1◈ Turns, NP Cooldown is reduced by 1 Turn at the
+# >    end of every Turn.
+# > 3. Applies Atk Up for 1◈ Turns, all damage dealt is increased by 30%; if
+# >    NP, 15%.
+# > Cooldown: 4◈ Turns."
+#
+# Drake's Blazing Golden Rule in shape: NP Regen at 1 and the common Atk Up.
+# Rheingold lengthens his Golden Rule's cut (`CooldownCutOverride`). Every
+# effect lands on him (AV.self).
+schema: 1
+id: siegfried-avaricious-gold
+name: "Avaricious Gold"
+rank: A
+kind: skill
+slug: avariciousGold
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Apply the '@effect[rheingold]{Rheingold}' buff for 1◈ Turns, a successful activation of 'Golden Rule'
+     reduces NP Cooldown by 1◈ Turns instead of 1 Turn.
+  2. Applies @effect[npRegen]{NP Regen} for 1◈ Turns, NP Cooldown is reduced by 1 Turn at the end of every Turn.
+  3. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 30%; if NP, 15%.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: rheingold, duration: "1◈" }
+      - { id: npRegen, duration: "1◈", magnitude: 1 }
+      - { id: atkUp, duration: "1◈", magnitude: 30, npMagnitude: 15 }

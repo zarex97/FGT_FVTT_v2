@@ -11,8 +11,12 @@ import {
 import { withSubjects } from "../helpers/subject.mjs";
 
 describe("the closed list of kinds (Q19)", () => {
-  it("is the eight kinds the grill settled, frozen", () => {
-    expect(COUNT_KINDS).toEqual(["stacks", "targets", "board", "resource", "parameters", "criteria", "use", "tally", "healthMissing"]);
+  it("is the kinds the grills settled, frozen", () => {
+    expect(COUNT_KINDS).toEqual([
+      "stacks", "targets", "board", "resource", "parameters", "criteria", "use", "tally", "healthMissing",
+      // Balmung's count of Anti-Dragon effects (#341).
+      "antiAttributeEffects",
+    ]);
     expect(Object.isFrozen(COUNT_KINDS)).toBe(true);
   });
 

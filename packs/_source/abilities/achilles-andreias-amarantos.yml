@@ -48,4 +48,8 @@ passiveRules:
     # Said here rather than as a suppression list on the wound, so a reader who
     # opens this document finds out that it can stop working. Same shape as
     # Heracles's Bravery and its Mad Enhancement clause.
-    predicate: [{ not: "self:effect:heelWounded" }]
+    #
+    # *"This effect is negated if Achilles is affected by NP Seal?"*: built, as
+    # Siegfried's Armor of Fafnir prints the same line (#341 ruling 8). NP Seal
+    # touches a passive NP only where its sheet says so (Appendix A).
+    predicate: [{ not: "self:effect:heelWounded" }, { not: "self:effect:npSeal" }]

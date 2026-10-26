@@ -731,6 +731,12 @@ function rankOf(intent) {
   // rank the restore was clamped to the maximum she had a moment ago and the
   // "and current Health" half of her sheet did nothing. Found live.
   if (intent.t === "heal" && intent.afterEffects) return ORDER.applyEffect + 0.5;
+  // ...and a CEILING lowered by the hit that is landing: Armor of Fafnir's
+  // *"both his Max Health and current Health are reduced"* (#341 ruling 7).
+  // After the damage, so the current value is never clamped to the new
+  // maximum first and cut again; before a revival, which restores a share of
+  // the lowered one.
+  if (intent.t === "statDelta" && intent.afterDamage) return ORDER.damage + 0.25;
   return ORDER[intent.t];
 }
 

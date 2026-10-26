@@ -41,11 +41,11 @@ describe("the sheet, projected (SB, SB.attr; reading 1)", () => {
 /* ========================================================================== */
 
 describe("Magic Resistance A, and its Anti-Dragon weakness (MR.1, MR.3; reading 21)", () => {
-  const hit = (defender, npTags) => {
+  const hit = (defender, npTags, conditionalMultipliers = []) => {
     // A Rank, as the board projects one: a string would compare as nothing and
     // every threshold would read as "below", which is how this test first passed.
     const attacker = { id: "x", parameters: { mag: Rank.parse("B") }, baseAttack: { mag: 200 }, modifiers: [], effects: [] };
-    const attack = { kind: "np", component: "mag", npTags };
+    const attack = { kind: "np", component: "mag", npTags, conditionalMultipliers };
     return computeDamage({
       attacker, defender, attack,
       base: { sources: [{ unit: "self", component: "mag", factor: 1 }] },
@@ -66,7 +66,12 @@ describe("Magic Resistance A, and its Anti-Dragon weakness (MR.1, MR.3; reading 
       const a = unit(ART);
       expect(a.magicResistance.variants).toEqual([expect.objectContaining({ percent: 25 })]);
       expect(String(a.magicResistance.variants[0].rank)).toBe("C");
-      expect(stage11(hit(a, ["antiUnit", "antiDragon"]))).toEqual([expect.stringMatching(/^−25% MAG \(MR C < attack B\)/)]);
+      // Anti-Dragon is an attack that deals extra damage to Dragons (#341 ruling 5),
+      // Siegfried's Balmung's +200% among them.
+      const antiDragon = [{ factor: 3, predicate: ["target:attribute:dragon"], source: "Dragon (+200%)" }];
+      expect(stage11(hit(a, ["antiArmy"], antiDragon))).toEqual([expect.stringMatching(/^−25% MAG \(MR C < attack B\)/)]);
+      // A tag named after it, which no attack carries, is not.
+      expect(stage11(hit(a, ["antiUnit", "antiDragon"]))).toEqual([expect.stringMatching(/^negated: MR A ≥ attack B/)]);
     });
   });
 });

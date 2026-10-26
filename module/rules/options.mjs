@@ -63,6 +63,43 @@ export function ownerOptionsOf(unit) {
  *   attack -- and then no `attack:` option at all
  * @returns {Set<string>}
  */
+/**
+ * The Attributes a predicate names of one side: `target:attribute:dragon` is
+ * `["dragon"]` of `target`.
+ *
+ * @param {unknown} predicate
+ * @param {string} side `target` or `self`
+ * @returns {string[]}
+ */
+export function attributesNamed(predicate, side) {
+  const pattern = new RegExp(`^${side}:attribute:([A-Za-z][\\w-]*)$`);
+  return [...referencedOptions(predicate)].flatMap((ref) => {
+    const hit = pattern.exec(ref);
+    return hit ? [hit[1]] : [];
+  });
+}
+
+/**
+ * What one damage modifier is *"Anti-"*: the Attributes it raises damage DEALT
+ * to, and the ones it cuts damage TAKEN from (#341).
+ *
+ * Dealt is what an Anti-Dragon attack is (ruling 5): Dmg Up (Dragon), Dragon
+ * Slayer's Passive, a flat bonus against Dark. Taken is the other half of
+ * Balmung's *"any buffs/effects which increase damage dealt/reduce damage taken
+ * from 'Dragon' Attribute Units"* (ruling 9): a Ward against Dragons, whose
+ * deferred predicate names the attacker as `self:` (the pipeline's subject).
+ *
+ * @param {object} m a contributed modifier
+ * @returns {{dealt: string[], taken: string[]}}
+ */
+export function antiAttributesOf(m) {
+  if (!m?.predicate) return { dealt: [], taken: [] };
+  const raises = (m.value ?? 0) > 0 || (m.npValue ?? 0) > 0;
+  if (m.direction === "dealt") return { dealt: raises ? attributesNamed(m.predicate, "target") : [], taken: [] };
+  const cuts = (m.key === "ward" || m.key === "defUp") && raises;
+  return { dealt: [], taken: cuts ? attributesNamed(m.predicate, "self") : [] };
+}
+
 export function rollOptionsFor({ attacker, defender, attack = null, withoutModeHeld = false }) {
   /** @type {Set<string>} */
   const options = new Set();
@@ -183,12 +220,16 @@ export function rollOptionsFor({ attacker, defender, attack = null, withoutModeH
   // The Kagome Spirits are the first clause to ask, and they ask about a whole
   // class of attacks nobody has to remember to tag.
   for (const m of attacker?.modifiers ?? []) {
-    if (m.direction !== "dealt" || !m.predicate) continue;
-    if ((m.value ?? 0) <= 0 && (m.npValue ?? 0) <= 0) continue;
-    for (const ref of referencedOptions(m.predicate)) {
-      const hit = /^target:attribute:([A-Za-z][\w-]*)$/.exec(ref);
-      if (hit) options.add(`attack:vsAttribute:${hit[1]}`);
-    }
+    for (const a of antiAttributesOf(m).dealt) options.add(`attack:vsAttribute:${a}`);
+  }
+  // ...and off the ATTACK's own extra damage, a stage-3 row against an
+  // Attribute: Balmung's *"damage dealt to Units with the 'Dragon' Attribute is
+  // further increased by 200%"* is Anti-Dragon too (#341 ruling 5), and so is
+  // Excalibur's against Dark. Only the attacker's bag was read, so an NP's own
+  // anti-Attribute damage never counted.
+  for (const cm of attack.conditionalMultipliers ?? []) {
+    if (!((cm.factor ?? 1) > 1) || !cm.predicate) continue;
+    for (const a of attributesNamed(cm.predicate, "target")) options.add(`attack:vsAttribute:${a}`);
   }
   if (attack.ignoresMagicResistance) options.add("attack:ignoresMagicResistance");
   if (attack.aim) options.add("attack:aim");

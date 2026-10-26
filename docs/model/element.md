@@ -15,4 +15,10 @@ code: module/rules/authoring/elements.mjs, module/rules/elements.mjs
   may be `{count, max}`. Lionheart's in-Combat shift is not run, #284.
   keys: `element.RankShift.parameter`, `element.RankShift.to`, `element.RankShift.steps`; during Combat: none (#284)
 
+- `AttackRankTier` (**Shape** member, Saber 2026-10-26): Siegfried's Armor of Fafnir, a Total cut that nullifies an
+  attack at or under a Rank: the attacker's Parameter for the damage type, or an NP's own Rank. Andreias Amarantos's
+  sibling. `Defenceless` (from behind, every reduction off) and `WoundsMaxHealth` (the Health a hit took off the
+  maximum) came with it. **Run since #341.**
+  keys: `element.AttackRankTier`, `element.Defenceless`, `element.WoundsMaxHealth`
+
 **Kin:** Saber: R149, R354, R391, R400, K338, 4 sheets.

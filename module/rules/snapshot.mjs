@@ -397,6 +397,15 @@ export function snapshotUnit(actor, {
     // More off every cut to a named Cooldown (Merlin, Barghest, #299), read by
     // `engine/applier.mjs#resolveCooldownCuts`.
     cooldownCutBonus: contributions.cooldownCutBonus ?? [],
+    // A named cut made longer while held (Rheingold, #341), read by
+    // `engine/scheduler.mjs`'s `CooldownDelta` through its `overriddenBy`.
+    cooldownCutOverrides: contributions.cooldownCutOverrides ?? [],
+    // Attacks that go through every reduction on this Unit (Armor of Fafnir from
+    // behind, #341 ruling 6), read by `rules/damage/pipeline.mjs#bypassesDefence`.
+    defenceless: contributions.defenceless ?? [],
+    // Attacks whose damage lowers its Max Health too (#341 ruling 7), read by
+    // `engine/attack.mjs#applyDamage`.
+    woundsMaxHealth: contributions.woundsMaxHealth ?? [],
     // Chances that a use fails outright (Charlotte, Merlin, #300), read by
     // `rules/use-failure.mjs#failureFor`.
     useFailures: contributions.useFailures ?? [],
