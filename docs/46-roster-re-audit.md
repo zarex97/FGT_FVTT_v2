@@ -7875,7 +7875,10 @@ Dragon Slayer Scáthach's God Slayer with another Attribute. BA(STR) is 135 by t
 ### 46.52.2 What was pressed, and how
 
 In War `NZCYYuJvGQAANjhR` on its own scene, *Siegfried Audit*, built through the wizard beside the match being played,
-Player1 driving his bar, reactions and dialogs. 82 of 84 Clauses Pressed, Observed or Tested; the Riding passives are
-the template pressed on Gilles. Two are built and not pressed: BM.hit with an ally in the area, and AF.5.only, the
-wound under NP Seal. No defect was found live. The wound's card line reads *"Health max 1500 → 1135"* and does not name
-the Armor.
+Player1 driving his bar, sheet, reactions and dialogs, over two sessions the same day. 83 of 84 Clauses Pressed or
+Observed live. RD.ps.ra, Passenger Seat on a ride, is the template's, pressed on Gilles: his Master fell to Balmung
+before he rode. Staged by the GM and named here: Dragon Slayer's and Nine Lives's clocks reset once each, Masters
+healed to pay their NPs, and Siegfried restored twice, once after a Nine Lives a forgotten staged Dmg Up (Dragon)
+let through, once after his Sustainability ran out as a Free Servant. No engine defect was found live. Two card
+lines read rough: *"Health max 1500 → 1135"* does not name the Armor, and *"NP Regen (Balmung): noop, counted none"*
+shows the engine's word.
