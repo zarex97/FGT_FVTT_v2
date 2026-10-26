@@ -1,0 +1,58 @@
+# packs/_source/servants/siegfried.yml
+# Conversion source: char_orig_sheets/by-class/Saber/Siegfried.md
+# Audit: #341 (docs/superpowers/specs/2026-10-26-siegfried-clauses.md)
+#
+# Built to be reused: Riding is Gilles's `class-riding-unlocks` at B, Golden
+# Rule the shared template at C-, Disengage the ranked template at A (#339
+# ruling 3). Armor of Fafnir is Andreias Amarantos's stage-15 shape, read off
+# the attack's Rank; Balmung is Excalibur's frame.
+#
+# His Class Skill Magic Resistance reads Rank —, *"See 'Armor of Fafnir'"*: he
+# holds none, and the Armor is not one (ruling 1). No document stands for it.
+#
+# BA(STR) 135 by the STR table at B+, not the printed 185: the table wins
+# (§46.6, *"choose the value of this table instead of what is on the character
+# sheet"*), as Gilles's 125 for a printed 175. BA(MAG) 150 and Max Health 1500
+# are the tables' and the sheet's both.
+schema: 1
+id: siegfried
+name: "Siegfried"
+type: servant
+
+trueName: Siegfried
+servantClasses: [saber]
+classContainer: saber
+alignment: { order: chaotic, morality: good }
+region: [germany]
+# "Male, Servant, [Earth], Dragon, King, Humanoid".
+attributes: [male, servant, earth, dragon, king, humanoid]
+
+parameters: { str: "B+", end: A, agi: B, mag: C, luc: E }
+baseHealth: 1500
+mov: 5
+range: { panels: 1, targets: 1 }
+baseAttack: { str: 135, mag: 150 }
+# "N.Atk Type: STR, Melee" (#281).
+normalAttack: { mode: fixed, component: str, delivery: melee }
+sustainability: "2◈"
+
+abilities:
+  - ref: class-riding-unlocks
+    rank: B
+    cooldown: "2◈"
+    mov: 4
+  - { ref: golden-rule, rank: "C-", chance: 55 }
+  - { ref: siegfried-avaricious-gold }
+  - ref: disengage
+    rank: A
+    move: 5
+    heal: 25
+    removes: 0
+    cooldown: "3◈"
+    description: |
+      (Active) Used at the start of a Combat Phase when Siegfried is Attacked. The enemy Unit's Attack
+      is cancelled, Siegfried is allowed to Move 5 panels, then his Health is restored by 25% of its
+      maximum value, and remove all debuffs from himself. Cooldown: 3◈ Turns.
+  - { ref: siegfried-dragon-slayer }
+  - { ref: siegfried-armor-of-fafnir }
+  - { ref: siegfried-balmung }

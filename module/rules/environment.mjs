@@ -511,7 +511,7 @@ export function grailStrike({ grail, areaPanels, dealt, roll }) {
  */
 export const REGION_ADJACENCY = Object.freeze({
   greece: { adjacent: ["europe", "middleEast", "mesopotamia", "egypt"] },
-  europe: { adjacent: ["greece", "netherlands", "england", "middleEast", "russia", "france", "romania"] },
+  europe: { adjacent: ["greece", "netherlands", "england", "middleEast", "russia", "france", "romania", "germany"] },
   netherlands: { adjacent: ["europe", "england"] },
   england: { adjacent: ["europe", "netherlands", "ireland"] },
   ireland: { adjacent: ["england"] },
@@ -545,6 +545,9 @@ export const REGION_ADJACENCY = Object.freeze({
   // Vlad III (Lancer), #330 ruling 3: "Wallachia, Romania, Europe". Romania
   // borders Europe alone, as France does, and no Middle East edge.
   romania: { adjacent: ["europe"] },
+  // Siegfried, #341: "Region: Germany". Germany borders Europe alone, as France
+  // and Romania do, and no Middle East edge.
+  germany: { adjacent: ["europe"] },
   // The Moon borders nothing. Stated rather than omitted, so "no entry" and
   // "no neighbours" stay distinguishable.
   moon: { adjacent: [] },

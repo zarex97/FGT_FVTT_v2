@@ -1269,9 +1269,16 @@ const ACTIONS = Object.freeze({
     const times = a.times === undefined ? 1
       : typeof a.times === "string" ? timesOf(a.times, { event: c.event ?? null }) : Number(a.times);
     if (!(times > 0)) return [];
-    const amount = a.ticks !== undefined
-      ? -resolveTicks(parseTick(a.ticks), c) * times
-      : (fromTable ?? fromEvent ?? a.delta ?? 0);
+    // A cut its bearer's buff lengthens: Golden Rule under Rheingold cuts 1◈
+    // *"instead of 1 Turn"* (#341). The cut names its slot; the buff, its length.
+    const override = a.overriddenBy
+      ? (u.cooldownCutOverrides ?? []).find((o) => o.slot === a.overriddenBy) ?? null
+      : null;
+    const amount = override
+      ? -resolveTicks(parseTick(override.ticks), c) * times
+      : a.ticks !== undefined
+        ? -resolveTicks(parseTick(a.ticks), c) * times
+        : (fromTable ?? fromEvent ?? a.delta ?? 0);
 
     const ids = a.scope === "np"
       ? (u.abilities ?? []).filter((x) => x.isNP || x.categorizedAsNP).map((x) => x.id)
@@ -1280,7 +1287,8 @@ const ACTIONS = Object.freeze({
     // `source` so the card that reports the Turn end can name it: Self-Replenishment's
     // 2 Turns off both twins' Noble Phantasm happened under a card that named
     // only its 40 Health (#209, live).
-    const own = ids.map((id) => ({ ...I.cooldown(u.id, id, Math.abs(amount), amount < 0 ? "reduce" : "set"), source: h.source }));
+    const source = override ? `${h.source} (${override.source})` : h.source;
+    const own = ids.map((id) => ({ ...I.cooldown(u.id, id, Math.abs(amount), amount < 0 ? "reduce" : "set"), source }));
     // A Unit in a group that shares its clocks by name is cut on its twin's
     // copy too (#209 reading 2): the gate (the Divine Core's 5%, the Castor
     // buff's Crit) was the action's, so one decision cuts both.

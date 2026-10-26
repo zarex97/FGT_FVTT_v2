@@ -1,0 +1,85 @@
+# Siegfried, char_orig_sheets/by-class/Saber/Siegfried.md (#341)
+#
+# > "(Passive) Has several effects-
+# > 1. Damage from all Normal Attacks, (Attack) Skills, and (Damage) Spells
+# >    received from Units with a STR Rank or MAG Rank of B or lower are
+# >    completely nullified. Damage from all Normal Attacks, Attack Skills, and
+# >    Spells that are able to damage Siegfried have their Total damage reduced
+# >    by 75%.
+# > 2. Damage from all damage-dealing Noble Phantasms used on Siegfried with a
+# >    Rank of B+ or lower is completely nullified. Total Damage from all
+# >    damage-inflicting Noble Phantasms used on Siegfried which are able to
+# >    damage him is reduced by 75%.
+# > 3. Effects 1 & 2 are ignored/bypassed if the Attack, (Attack) Skill,
+# >    (Damage) Spell, Noble Phantasm or the AU has an 'Anti-Dragon' effect
+# >    (i.e. deals extra damage to Units with the 'Dragon' Attribute).
+# > 4. Effects 1 & 2 is ignored/bypassed if Siegfried is Attacked from
+# >    behind/his back. If Siegfried takes damage from being Attacked from
+# >    behind, both his Max Health and current Health are reduced, instead of
+# >    just current Health. Def Up, Dmg Cut, Invuln, and any other damage
+# >    reducing effects on Siegfried do not apply if he is Attacked from behind.
+# > 5. Effects 1 and 2 are negated if Siegfried is affected by NP Seal?"
+#
+# Andreias Amarantos's sibling: two `AttackRankTier`s at stage 15, one per
+# effect. Effect 1 reads the attacker's Parameter for the damage type (ruling
+# 2), effect 2 the NP's own Rank; no Rank to read is no negation (ruling 3); a
+# nullified hit loses its Fixed damage too (ruling 4) and keeps its riders
+# (ruling 11). Nothing outside an Attack meets either (AF.other).
+#
+# The bypasses, in the deferred predicate (the pipeline's `target:` is he):
+#   3. `attack:vsAttribute:dragon`, the attack's own extra damage or the AU's
+#      damage-dealt modifier against Dragons, Passives included (ruling 5).
+#   4. From behind is `Defenceless`, the Heel's `ignoresDefensiveBuffs` from his
+#      side: every reduction on him goes, these two tiers among them, Invuln
+#      too; Block and the stage-0 negations stay (ruling 6). `WoundsMaxHealth`
+#      takes the Health the hit took off his maximum as well (ruling 7).
+#   5. NP Seal turns off 1 and 2 only; 4's penalties hold under it (ruling 8).
+#
+# Not his Magic Resistance: his Class Skill reads Rank — and points here, and an
+# attack *"not affected by Magic Resistance"* still meets this (ruling 1).
+schema: 1
+id: siegfried-armor-of-fafnir
+name: "Armor of Fafnir: Blood Armor of the Evil Dragon"
+isNP: true
+rank: "B+"
+npTags: [antiUnitSelf]
+kind: noblePhantasm
+slug: armorOfFafnir
+passive: true
+copyable: { allowed: false, reason: unique }
+description: |
+  (Passive) Has several effects-
+  1. Damage from all Normal Attacks, (Attack) Skills, and (Damage) Spells received from Units with a STR
+     Rank or MAG Rank of B or lower are completely nullified. Damage from all Normal Attacks, Attack
+     Skills, and Spells that are able to damage Siegfried have their Total damage reduced by 75%.
+  2. Damage from all damage-dealing Noble Phantasms used on Siegfried with a Rank of B+ or lower is
+     completely nullified. Total Damage from all damage-inflicting Noble Phantasms used on Siegfried
+     which are able to damage him is reduced by 75%.
+  3. Effects 1 & 2 are ignored/bypassed if the Attack, (Attack) Skill, (Damage) Spell, Noble Phantasm
+     or the AU has an 'Anti-Dragon' effect (i.e. deals extra damage to Units with the 'Dragon'
+     Attribute).
+  4. Effects 1 & 2 is ignored/bypassed if Siegfried is Attacked from behind/his back. If Siegfried
+     takes damage from being Attacked from behind, both his Max Health and current Health are
+     reduced, instead of just current Health. @effect[defUp]{Def Up}, @effect[dmgCut]{Dmg Cut}, @effect[invuln]{Invuln}, and any other damage reducing
+     effects on Siegfried do not apply if he is Attacked from behind.
+  5. Effects 1 and 2 are negated if Siegfried is affected by @effect[npSeal]{NP Seal}.
+passiveRules:
+  # 1.
+  - key: AttackRankTier
+    rankOf: parameter
+    np: false
+    negatesUpTo: B
+    value: 75
+    predicate: [{ not: "attack:vsAttribute:dragon" }, { not: "target:effect:npSeal" }]
+  # 2.
+  - key: AttackRankTier
+    rankOf: ability
+    np: true
+    negatesUpTo: "B+"
+    value: 75
+    predicate: [{ not: "attack:vsAttribute:dragon" }, { not: "target:effect:npSeal" }]
+  # 4.
+  - key: Defenceless
+    predicate: ["attack:cone:back"]
+  - key: WoundsMaxHealth
+    predicate: ["attack:cone:back"]

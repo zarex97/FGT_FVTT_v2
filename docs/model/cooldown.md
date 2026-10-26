@@ -38,6 +38,11 @@ code: module/engine/cooldown.mjs
   `on: natural` for Barghest, read at the applier's one cut door.
   keys: `element.CooldownCutBonus`
 
+- `cutOverride` (**Attribute**, Saber 2026-10-26): a buff that lengthens one named cut while held. Siegfried's
+  Rheingold makes a successful Golden Rule cut 1◈ *"instead of 1 Turn"*; Edmond Dantès's Monte prints the same at ⅓◈
+  (Avenger). **Run since #341**: `CooldownCutOverride {slot, ticks}` on the buff, `overriddenBy` on the cut.
+  keys: `element.CooldownCutOverride`
+
 - `bypassForCost` (**Attribute**, Lancer 2026-10-21): a use allowed while on Cooldown, for a price. Arturia's and
   Lanceturia's Mana Burst *"Can be used while on Cooldown, but she has to be within her Master's ZON and her Master
   loses 20 Health; does not reset Cooldown"*. `cooldownWaiver` spends a resource to skip the cooldown; this pays

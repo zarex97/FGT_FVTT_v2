@@ -84,6 +84,7 @@ export function empty() {
     forcedModeRules: [], magnitudeScales: [], attackProperties: [], terrainPenaltyImmunities: [], lethalFloors: [],
     categoryUseLimits: [], baseAttackModifiers: [], healingReceived: [], followUps: [],
     cooldownCutBonus: [], useFailures: [], learnsTrueNames: [],
+    defenceless: [], woundsMaxHealth: [], cooldownCutOverrides: [],
     attackAllowances: [], bansAlliedServantAttacks: [], attackNullifiers: [], attackRiders: [],
   };
 }
@@ -1102,6 +1103,11 @@ export const EXECUTORS = Object.freeze({
       key: el.modifierKey ?? (el.direction === "taken"
         ? (flatStage ? "flatReduction" : "defUp")
         : (flatStage ? "flatDamage" : "atkUp")),
+      // Said, as `FlatDamage` says it: `rules/options.mjs#antiAttributesOf` asks
+      // a modifier's direction to find an Attack that deals extra damage to an
+      // Attribute, and a percent bonus against Dragons (Dmg Up (Dragon), Dragon
+      // Slayer's Passive) carried none and was never Anti-Dragon (#341).
+      direction: el.direction === "taken" ? "taken" : "dealt",
       // A magnitude rolled per damage event rather than fixed before the
       // attack -- Penthesilea's Goddess of War. The pipeline reads the total
       // out of `ctx.rolls`, so the dice stay with the caller like every other
@@ -1200,7 +1206,13 @@ export const EXECUTORS = Object.freeze({
     // two would win, and this one is the weaker on purpose.
     // `attackTag` is the short form a parameterized template can fill: a
     // placeholder is substituted only as a whole string, never inside one.
-    const attackPredicate = el.attackPredicate ?? (el.attackTag ? [`attack:tag:${el.attackTag}`] : null);
+    // `attackVsAttribute` is the other: an Attack *"with the 'Anti-Dragon'
+    // Attribute"* is one that deals extra damage to Dragons, the one rule
+    // Siegfried's Armor of Fafnir reads too (#341 ruling 5). No attack carried
+    // the `antiDragon` tag, so Arturia's weakness had no writer.
+    const attackPredicate = el.attackPredicate
+      ?? (el.attackTag ? [`attack:tag:${el.attackTag}`] : null)
+      ?? (el.attackVsAttribute ? [`attack:vsAttribute:${el.attackVsAttribute}`] : null);
     if (attackPredicate) {
       // A template's unfilled `"@rank"` is no rank (`rule-survival` runs the
       // executors over the templates themselves).
@@ -1437,6 +1449,87 @@ export const EXECUTORS = Object.freeze({
       key: "attackerPropertyTier", table: el.table, property: el.property ?? "divinity",
       value: 0, predicate: deferred, source,
     });
+  },
+
+  /**
+   * A Total cut read off the Rank of the attack that lands (#341): Siegfried's
+   * Armor of Fafnir.
+   *
+   * > *"Damage from all Normal Attacks, (Attack) Skills, and (Damage) Spells
+   * > received from Units with a STR Rank or MAG Rank of B or lower are
+   * > completely nullified. Damage from all Normal Attacks, Attack Skills, and
+   * > Spells that are able to damage Siegfried have their Total damage reduced
+   * > by 75%."*
+   *
+   * `rankOf: parameter` is the attacker's own Parameter for the damage type
+   * (ruling 2, Edmond Dantès's *"depending on which type of damage the Attack
+   * used"*); `rankOf: ability` is the Noble Phantasm's own Rank. `np` names the
+   * attacks it meets: `true` the Noble Phantasms, `false` every other Attack.
+   * At or under `negatesUpTo` the hit is nullified, Fixed damage too (ruling 4);
+   * above it, or with no Rank to read (ruling 3), its Total is cut by `value`%.
+   * Andreias Amarantos's sibling, read at stage 15 beside it.
+   */
+  AttackRankTier(el, { rank, source, out, ctx, deferred = null }) {
+    if (!["parameter", "ability"].includes(el.rankOf) || typeof el.np !== "boolean") {
+      console.error(`FGT | AttackRankTier from ${source}: rankOf is "parameter" or "ability", np is true or false.`);
+      out.unhandled.push({ key: el.key, source });
+      return;
+    }
+    out.modifiers.push({
+      key: "attackRankTier", rankOf: el.rankOf, np: el.np, negatesUpTo: el.negatesUpTo ?? null,
+      value: scalar(resolveValue(el, rank, ctx)), predicate: deferred, source,
+    });
+  },
+
+  /**
+   * Every damage-reducing effect on its bearer is ignored by a matching attack
+   * (#341 ruling 6).
+   *
+   * > *"Def Up, Dmg Cut, Invuln, and any other damage reducing effects on
+   * > Siegfried do not apply if he is Attacked from behind."*
+   *
+   * The defender's side of the Heel's `ignoresDefensiveBuffs`: one reader,
+   * `rules/damage/pipeline.mjs#bypassesDefence`, asks both. Block, a reaction,
+   * and the stage-0 negations are not reductions and stay.
+   */
+  Defenceless(el, { source, out, deferred = null }) {
+    out.defenceless.push({ predicate: deferred, source });
+  },
+
+  /**
+   * Damage a matching attack deals lowers its bearer's Max Health too (#341
+   * ruling 7).
+   *
+   * > *"If Siegfried takes damage from being Attacked from behind, both his
+   * > Max Health and current Health are reduced, instead of just current
+   * > Health."*
+   *
+   * By the Health the hit took, the maximum never below 1. Read at the one door
+   * an Attack's damage is written through (`engine/attack.mjs#applyDamage`),
+   * before the defeat chain, so a revival restores a share of the lowered
+   * maximum.
+   */
+  WoundsMaxHealth(el, { source, out, deferred = null }) {
+    out.woundsMaxHealth.push({ predicate: deferred, source });
+  },
+
+  /**
+   * A named Cooldown cut made longer while its bearer holds this (#341).
+   *
+   * > *"Apply the 'Rheingold' buff for 1◈ Turns, a successful activation of
+   * > 'Golden Rule' reduces NP Cooldown by 1◈ Turns instead of 1 Turn."*
+   * > (Siegfried; Edmond Dantès's Monte prints the same at ⅓◈)
+   *
+   * The cut names its slot (`CooldownDelta`'s `overriddenBy`), the buff its
+   * length, so one Golden Rule serves every buff that lengthens it.
+   */
+  CooldownCutOverride(el, { source, out }) {
+    if (typeof el.slot !== "string" || typeof el.ticks !== "string") {
+      console.error(`FGT | CooldownCutOverride from ${source} names no slot or no ticks.`);
+      out.unhandled.push({ key: el.key, source });
+      return;
+    }
+    out.cooldownCutOverrides.push({ slot: el.slot, ticks: el.ticks, source });
   },
 
   /**

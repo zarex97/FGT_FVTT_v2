@@ -1,0 +1,25 @@
+# Siegfried's Dragon Slayer, Active effect 1 (#341).
+#
+# > "Applies Ward (Dragon) for 1◈ Turns, all damage received from Units with
+# > the 'Dragon' Attribute is reduced by 30%."
+#
+# `ward` with its category: the attacker's Attribute. In the damage pipeline
+# `self:` is the attacker, so the clause is `self:attribute:dragon`, deferred
+# to the pipeline as Mannanán's Alter Ego is (`rules/elements.mjs#deferredPredicate`).
+# A Ward includes NP at the full magnitude, so no `npValue` (DS.ward.np). An
+# Anti-Dragon effect for Balmung's count (#341 ruling 9); not one for Armor of
+# Fafnir's bypass, which asks about damage dealt (ruling 5).
+schema: 1
+id: wardDragon
+name: "Ward (Dragon)"
+description: "Damage taken from Units with the Dragon Attribute is reduced by X%, Noble Phantasms included."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: Ward
+    value: "@magnitude"
+    defer: true
+    predicate: ["self:attribute:dragon"]

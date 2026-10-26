@@ -116,7 +116,17 @@ export async function landEffect(entry, ctx) {
   const turnsPerRound = warRule("turnsPerRound");
 
   const authored = magnitudeOf(entry, def, ctx, caster);
-  const authoredNp = (entry.npMagnitude === undefined ? null : authoredMagnitude(entry, ctx.caster, "npMagnitude", ctx))
+  // A magnitude its Count sized to nothing lands nothing: NP Regen (Balmung)
+  // comes *"if Siegfried had any 'Anti-Dragon' effects"* (#341). Said on the
+  // card as a reason, never an effect of 0.
+  if (entry.countedOnly && !(authored > 0)) {
+    const reason = "nothing to count";
+    return {
+      outcome: "noop", reason, chance: null, intents: [], roll: null, trace: [],
+      summary: { id: entry.id, name: def.name ?? entry.id, outcome: "noop", reason, chance: null },
+    };
+  }
+  const authoredNp = (entry.npMagnitude === undefined ? null : authoredMagnitude(entry, ctx.caster, "npMagnitude", ctx, caster))
     ?? npFactorOf(entry, authored);
   // The CASTER's outgoing scale on what its Noble Phantasm applies: Overcharge
   // (#260 reading 8). The magnitude only, never a chance or a duration; the
@@ -508,7 +518,7 @@ function magnitudeOf(entry, def, ctx, caster) {
       targets: ctx.targets ?? [], casterId: caster?.id ?? ctx.source?.unitId ?? null,
     });
   }
-  return authoredMagnitude(entry, ctx.caster, "magnitude", ctx) ?? def.defaultMagnitude ?? 0;
+  return authoredMagnitude(entry, ctx.caster, "magnitude", ctx, caster) ?? def.defaultMagnitude ?? 0;
 }
 
 /**
@@ -525,9 +535,10 @@ function magnitudeOf(entry, def, ctx, caster) {
  * @param {object|null} actor the caster's Actor
  * @param {string} field
  * @param {LandingContext} ctx
+ * @param {object|null} [casterUnit] the caster as the board sees it, for a Count of its effects
  * @returns {number|null}
  */
-function authoredMagnitude(entry, actor, field, ctx) {
+function authoredMagnitude(entry, actor, field, ctx, casterUnit = null) {
   const raw = entry?.[field];
   if (raw === null || raw === undefined) return null;
   // A literal with no Count scale and no `max` cannot mean anything else.
@@ -544,6 +555,9 @@ function authoredMagnitude(entry, actor, field, ctx) {
     }),
     // A magnitude that scales with what the caster carries (Kingprotea).
     stacks: stacksHeld(actor),
+    // ...or with what its effects contribute, as the board sees the caster:
+    // NP Regen (Balmung)'s one Turn per Anti-Dragon effect (#341 ruling 9).
+    self: casterUnit,
   }, field);
   return typeof value === "number" ? value : null;
 }

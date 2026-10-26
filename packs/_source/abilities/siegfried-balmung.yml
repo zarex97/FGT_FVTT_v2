@@ -1,0 +1,62 @@
+# Siegfried, char_orig_sheets/by-class/Saber/Siegfried.md (#341)
+#
+# > "{R} Base Attack (MAG) is used. Hits a 5x3 or 3x5 panel area in any
+# > non-diagonal direction next to Siegfried for 5x damage, damage dealt to
+# > Units with the 'Dragon' Attribute is further increased by 200%.
+# > Then, if Siegfried had any 'Anti-Dragon' effects (any buffs/effects which
+# > increase damage dealt/reduce damage taken from 'Dragon' Attribute Units),
+# > apply NP Regen (Balmung) to Siegfried for 1◈ Turns, NP Cooldown is reduced
+# > by 1 Turn at the end of every Turn for every Anti-Dragon effect on himself.
+# > Note: Passive Anti-Dragon effects do not count.
+# > Cooldown: 8◈ Turns."
+#
+# Excalibur's frame (#230): the block beside him that the player turns and
+# places (`orientedRect`, `turnable`, reading 13), every Unit in it, his allies
+# too (#191 reading 11), BA(MAG), `{R}`. The Dragon +200% is a stage-3 row, as
+# Excalibur's against Dark, so Balmung is itself Anti-Dragon (ruling 5).
+#
+# NP Regen (Balmung) is counted once, when it lands: one Turn per Anti-Dragon
+# effect on him, each effect once, Passives left out (ruling 9). None counted,
+# none lands (`countedOnly`).
+schema: 1
+id: siegfried-balmung
+name: "Balmung: Phantasmal Greatsword, Felling of the Sky Demon"
+rank: EX
+kind: noblePhantasm
+slug: balmung
+isNP: true
+npTags: [antiArmy]
+cooldown: { max: "8◈" }
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+description: |
+  Base Attack (MAG) is used. Hits a 5x3 or 3x5 panel area in any non-diagonal direction next to
+  Siegfried for 5x damage, damage dealt to Units with the 'Dragon' Attribute is further increased by
+  200%.
+  Then, if Siegfried had any 'Anti-Dragon' effects (any buffs/effects which increase damage
+  dealt/reduce damage taken from 'Dragon' Attribute Units), apply @effect[npRegenBalmung]{NP Regen (Balmung)} to
+  Siegfried for 1◈ Turns, NP Cooldown is reduced by 1 Turn at the end of every Turn for every
+  Anti-Dragon effect on himself. Note: Passive Anti-Dragon effects do not count.
+  Cooldown: 8◈ Turns.
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 3, long: 5, turnable: true }
+  selection: { relations: [enemy, ally, neutral], includeSelf: false, chooser: all }
+  isDamagingAoE: true
+damage:
+  # `{R}` at its head in `by-class/Saber/Siegfried.md`: Ranged (#281).
+  delivery: ranged
+  component: mag
+  multiplier: 5
+  conditionalMultipliers:
+    - { factor: 3, predicate: ["target:attribute:dragon"], source: "Dragon (+200%)" }
+phases:
+  - kind: damage
+  - kind: applyEffects
+    target: self
+    effects:
+      - id: npRegenBalmung
+        duration: "1◈"
+        magnitude: 1
+        count: { of: antiAttributeEffects, attribute: dragon }
+        countedOnly: true
