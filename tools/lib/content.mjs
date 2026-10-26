@@ -72,6 +72,9 @@ export const RULE_ELEMENT_KEYS = new Set([
   // allied Servants, Gravity Manipulation's distant STR Attacks, Four Elements.
   "AttacksPerTurn", "BanAlliedServantAttacks", "NullifiesAttacks", "AttackRider",
   "CritModifier", "BlockModifier", "AttackerPropertyTier",
+  // Siegfried (#341): Armor of Fafnir's Total cut by the attack's Rank, its
+  // bypass from behind and the Max Health it wounds; Rheingold's longer cut.
+  "AttackRankTier", "Defenceless", "WoundsMaxHealth", "CooldownCutOverride",
   // Kiritsugu -- a property of the ATTACK granted by a buff on the attacker.
   // Until now `attack.pierce` could only come from an ability's own damage
   // block, so `Pierce` had no effect document despite being in Appendix A.
@@ -1406,6 +1409,24 @@ function countsAreKnown(doc, path, problems) {
     if (el.on !== undefined && !["any", "natural"].includes(el.on)) {
       problems.push(`${path}: ${where} CooldownCutBonus on "${el.on}" -- expected any or natural`);
     }
+  }
+  // An AttackRankTier (#341) reads a Rank it names and cuts a share: a word or
+  // a threshold it does not know would nullify nothing, in silence.
+  for (const [where, el] of ruleElements(doc)) {
+    if (el?.key !== "AttackRankTier") continue;
+    if (!["parameter", "ability"].includes(el.rankOf)) {
+      problems.push(`${path}: ${where} AttackRankTier rankOf "${el.rankOf}" -- expected parameter or ability`);
+    }
+    if (typeof el.np !== "boolean") problems.push(`${path}: ${where} AttackRankTier np must be true or false`);
+    let rankOk;
+    try { rankOk = el.negatesUpTo === undefined || Rank.parseOrNull(el.negatesUpTo) !== null; } catch { rankOk = false; }
+    if (!rankOk) problems.push(`${path}: ${where} AttackRankTier negatesUpTo is not a Rank ("${el.negatesUpTo}")`);
+  }
+  // A CooldownCutOverride (#341) names the cut it lengthens and a length that parses.
+  for (const [where, el] of ruleElements(doc)) {
+    if (el?.key !== "CooldownCutOverride") continue;
+    if (typeof el.slot !== "string") problems.push(`${path}: ${where} CooldownCutOverride names no slot`);
+    try { parseTick(el.ticks); } catch { problems.push(`${path}: ${where} CooldownCutOverride ticks "${el.ticks}" is no ◈ length`); }
   }
   // A RankShift's ladder (#284): every rung is a Rank. A bad one would throw
   // where the projection parses it, and one mistyped clause must not take the

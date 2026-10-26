@@ -432,6 +432,8 @@ export const ENTRY_KEYS = Object.freeze({
   each: { type: "number", means: "With count: one step per this many counted." },
   base: { type: "number", means: "With count: the amount before any step." },
   zeroPaysNothing: { type: "boolean", means: "With count: nothing at all, base included, when the count is 0." },
+  // NP Regen (Balmung): *"if Siegfried had any 'Anti-Dragon' effects"* (#341).
+  countedOnly: { type: "boolean", means: "With count: the effect does not land at all when its magnitude counts to 0." },
   max: { type: "number", means: "A ceiling on an expression magnitude." },
   duration: { type: "duration", means: "How long, as a ◈ expression; the definition's own when absent." },
   permanent: { type: "boolean", means: "No expiry at all, whatever the definition says." },

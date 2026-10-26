@@ -1,0 +1,23 @@
+# Siegfried's Balmung (#341).
+#
+# > "Then, if Siegfried had any 'Anti-Dragon' effects (any buffs/effects which
+# > increase damage dealt/reduce damage taken from 'Dragon' Attribute Units),
+# > apply NP Regen (Balmung) to Siegfried for 1◈ Turns, NP Cooldown is reduced
+# > by 1 Turn at the end of every Turn for every Anti-Dragon effect on himself.
+# > Note: Passive Anti-Dragon effects do not count."
+#
+# NP Regen with its own name, so it stacks beside Avaricious Gold's. The
+# magnitude is the count, taken once when Balmung lands (ruling 9).
+schema: 1
+id: npRegenBalmung
+name: "NP Regen (Balmung)"
+description: "Noble Phantasm Cooldown is reduced by an extra X per Turn."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: StatDelta
+    stat: npRegen
+    value: "@magnitude"

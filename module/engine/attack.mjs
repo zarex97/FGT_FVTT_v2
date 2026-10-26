@@ -57,7 +57,7 @@ import { identityOfProcess, recordedAttack } from "../rules/revival.mjs";
 import { abilityRecordOf } from "../rules/snapshot.mjs";
 import { removalPlan, pendingRemovalRolls, isUnremovable, selectorMatches, ownRemovalResist } from "../rules/removal.mjs";
 import { isStrongestNP, isDamagingNP, harmlessToSelf, EXPECTED_ATTACK_ROLL } from "../rules/np-strength.mjs";
-import { currentHealth, isUndamageable } from "../domain/health.mjs";
+import { currentHealth, isUndamageable, maxHealth } from "../domain/health.mjs";
 import * as process from "./combat-process.mjs";
 import * as I from "./intents.mjs";
 import { applyIntents } from "./applier.mjs";
@@ -6319,11 +6319,18 @@ async function applyDamage(state, message) {
     }
   }
 
+  // A hit that wounds the maximum too: Armor of Fafnir from behind (#341
+  // ruling 7). Its intent sorts after the damage; the defeat chain is handed
+  // the lowered maximum, so a revival restores a share of it.
+  const wound = woundOf(defender, result.total, options);
+  const wounded = wound ? withMaxHealth(defender, wound.max) : defender;
+
   // What the defeat's handlers paid the killer is a line on this card: Legend
   // of Dracula's 25% for a Unit he felled was paid and never said (#330).
   const { lines: defeatLines = [] } = await applyBatch(
     [
       ...barrier.intents,
+      ...(wound ? [{ ...I.statDelta(state.defenderId, "health.max", -wound.cut, false), afterDamage: true, source: wound.source }] : []),
       ...(floor ? [I.log({ kind: floor.kind, unitId: state.defenderId, restored: floor.left, source: floor.source })] : []),
       I.damage(state.defenderId, result.total, result.breakdown),
       // A Freeze this hit broke is gone: Fire at stage 0, 150 or more at stage
@@ -6341,7 +6348,7 @@ async function applyDamage(state, message) {
       // likely route into Ch. 32's Conquest -- so the attacker travels with it.
       ...(overpower.defeated ? [I.defeat(state.defenderId, "overpowered", state.attackerId ?? null)] : []),
       ...(result.flags.defeatedOutright || overpower.defeated
-        ? [] : await resolveDefeatOf(defender, result.total, state)),
+        ? [] : await resolveDefeatOf(wounded, result.total, state)),
     ],
     "attack",
     { lines: true },
@@ -6356,6 +6363,41 @@ async function applyDamage(state, message) {
   await tallyDamageAgainstFields(defender, attacker, result.total, board);
 
   return result;
+}
+
+/**
+ * The Max Health a hit takes beside the Health (`WoundsMaxHealth`, #341 ruling 7).
+ *
+ * > *"If Siegfried takes damage from being Attacked from behind, both his Max
+ * > Health and current Health are reduced, instead of just current Health."*
+ *
+ * By the Health the hit took, never more than he had; the maximum never below 1.
+ *
+ * @param {object|null} defender the defender's board unit
+ * @param {number} total the hit's damage
+ * @param {Set<string>} options the Attack Description's option set
+ * @returns {{cut: number, max: number, source: string}|null}
+ */
+export function woundOf(defender, total, options) {
+  if (!(total > 0)) return null;
+  const rule = (defender?.woundsMaxHealth ?? [])
+    .find((w) => testPredicate(w.predicate, { options, refs: { target: defender } }));
+  if (!rule) return null;
+  const max = maxHealth(defender);
+  const cut = Math.min(total, currentHealth(defender), Math.max(0, max - 1));
+  return cut > 0 ? { cut, max: max - cut, source: rule.source } : null;
+}
+
+/**
+ * A board unit with its maximum Health set, wherever the snapshot keeps it.
+ *
+ * @param {object} unit
+ * @param {number} max
+ * @returns {object}
+ */
+function withMaxHealth(unit, max) {
+  const health = unit?.health && typeof unit.health === "object" ? { ...unit.health, max } : unit?.health;
+  return { ...unit, health, maxHealth: max, ...(unit?.healthMax !== undefined ? { healthMax: max } : {}) };
 }
 
 /**

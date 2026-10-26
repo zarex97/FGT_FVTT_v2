@@ -13,8 +13,14 @@
 # stage 11 of `rules/damage/pipeline.mjs`), so it means nothing without the
 # Magic Resistance it amends.
 #
-# Parameters: `tag`, the attack's tag (`attack:tag:<tag>`, read off its
-# `npTags`); `rank`, the threshold it falls to; `percent`, the reduction past it.
+# Parameters: `vsAttribute`, the Attribute the attack deals extra damage to
+# (`attack:vsAttribute:<attribute>`); `rank`, the threshold it falls to;
+# `percent`, the reduction past it.
+#
+# An Attack *"with the 'Anti-Dragon' Attribute"* is one that deals extra damage
+# to Dragons, as Siegfried's Armor of Fafnir glosses it (#341 ruling 5): the
+# attack's own extra damage, or the attacker's damage-dealt modifier. It read an
+# `antiDragon` tag before, which no attack carried.
 schema: 1
 id: class-magic-resistance-weakness
 name: "Magic Resistance (weakness)"
@@ -23,14 +29,15 @@ slug: magicResistanceWeakness
 kind: classSkill
 passive: true
 copyable: { allowed: false, reason: classSkill }
-parameterized: [tag, rank, percent]
+parameterized: [vsAttribute, rank, percent]
 description: |
-  (Passive) Against MAG damage from an Attack with the tag @tag, Magic Resistance only negates
-  damage from a MAG Rank of up to @rank, otherwise MAG damage taken is reduced by @percent%.
+  (Passive) Against MAG damage from an Attack that deals extra damage to @vsAttribute Units, Magic
+  Resistance only negates damage from a MAG Rank of up to @rank, otherwise MAG damage taken is
+  reduced by @percent%.
   Also affects NP.
 passiveRules:
   - key: Resistance
     negatesUpToRank: "@rank"
     value: "@percent"
     includesNP: true
-    attackTag: "@tag"
+    attackVsAttribute: "@vsAttribute"

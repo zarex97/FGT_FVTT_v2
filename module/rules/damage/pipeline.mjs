@@ -1184,7 +1184,52 @@ function stage15TotalDamageModifiers(s) {
     s.contribute("attackerPropertyTier", percent / 100, against, "defender");
   }
 
+  // ...and one keyed on the attack's own Rank (#341): Armor of Fafnir. Every
+  // non-NP Attack is read by its attacker's Parameter for the damage type
+  // (ruling 2); a Noble Phantasm by its own Rank. At or under the threshold the
+  // hit is nullified, Fixed damage too (ruling 4, `negatedWhole`, read at stage
+  // 16); else, or with no Rank to read (ruling 3), the Total is cut.
+  for (const tier of activeMods(s, s.ctx.defender, new Set(["attackRankTier"]))) {
+    if (tier.np !== s.isNP) continue;
+    if (bypassesDefence(s)) {
+      s.contribute("attackRankTier", 1, `${tier.source} (bypassed)`, "defender");
+      continue;
+    }
+    const { rank, what } = attackRankFor(s, tier.rankOf);
+    const threshold = Rank.parseOrNull(tier.negatesUpTo ?? null);
+    if (rank && threshold && Rank.gte(threshold, rank, false)) {
+      s.contribute("attackRankTier", -s.total, `${tier.source}: nullified, ${what} ${rank} ≤ ${threshold}`, "defender");
+      s.zero();
+      s.flags.negatedBy = tier.source;
+      s.flags.negatedWhole = true;
+      continue;
+    }
+    const factor = Math.max(0, 1 - (tier.value ?? 0) / 100);
+    s.scale(factor);
+    s.contribute("attackRankTier", factor, `${tier.source}: −${tier.value}% Total, ${what} ${rank ?? "with no Rank"}`, "defender");
+  }
+
   s.end(15);
+}
+
+/**
+ * The Rank an `AttackRankTier` reads (#341).
+ *
+ * `ability`: the attack's own Rank, a Noble Phantasm's. `parameter`: the
+ * attacker's own Parameter for the damage type, never the Skill's Rank,
+ * because the sheet says *"from Units with a STR Rank or MAG Rank"* (ruling
+ * 2). `null` when there is none to read, and then nothing is nullified (ruling
+ * 3).
+ *
+ * @param {PipelineState} s
+ * @param {"ability"|"parameter"} rankOf
+ * @returns {{rank: Rank|null, what: string}}
+ */
+function attackRankFor(s, rankOf) {
+  const asRank = (raw) => (raw instanceof Rank ? raw : Rank.parseOrNull(raw === null || raw === undefined ? null : String(raw)));
+  if (rankOf === "ability") return { rank: asRank(s.ctx.attack?.rank ?? null), what: "NP Rank" };
+  const component = s.ctx.attack?.component === "mag" ? "mag" : "str";
+  return { rank: asRank(s.ctx.attacker?.parameters?.[component] ?? null), what: component.toUpperCase() };
 }
 
 /**
@@ -1208,7 +1253,9 @@ function stage16AbsorptionAndClamp(s) {
   // Stage 7's FIXED bonuses, past every modifier and the Injury snapshot. A
   // negation below (Freeze, Invuln) still takes them: nothing lands (#232
   // reading 16). `fixedExtra` lets a multi-hit sum leave them out too.
-  if (s.fixedLate && !s.converted) {
+  // A whole-hit negation takes them too: Armor of Fafnir's *"completely
+  // nullified"* (#341 ruling 4).
+  if (s.fixedLate && !s.converted && !s.flags.negatedWhole) {
     s.addProportional(s.fixedLate);
     s.flags.fixedExtra = s.fixedLate;
     s.note("fixedFlat", `+${s.fixedLate} added after every modifier, outside the Injury Roll`, "attacker");
@@ -1234,7 +1281,11 @@ function stage16AbsorptionAndClamp(s) {
   }
 
   // Any Invuln: Invuln (Gyakkou) is one too (#328 ruling 10).
-  if (holdsFamily(d, "invuln") && !s.ctx.attack?.pierce) {
+  // Not against an attack that goes through every reduction (the Heel, or a
+  // Unit `Defenceless` against it): Invuln is one (#341 ruling 6).
+  if (holdsFamily(d, "invuln") && bypassesDefence(s)) {
+    s.note("invuln", "Invuln (bypassed)", "defender");
+  } else if (holdsFamily(d, "invuln") && !s.ctx.attack?.pierce) {
     // *"Against a Noble Phantasm, damage is reduced by 50% instead"* (Appendix
     // A). This said "the NP halving already happened at stage 15", and nothing
     // there or anywhere read Invuln: an NP met no Invuln at all, 300 in, 300
@@ -1418,7 +1469,12 @@ function has(unit, id) {
  * @returns {boolean}
  */
 function bypassesDefence(s) {
-  return Boolean(s.ctx.attack?.ignoresDefensiveBuffs);
+  if (s.ctx.attack?.ignoresDefensiveBuffs) return true;
+  // ...or the DEFENDER says so: Armor of Fafnir's *"Def Up, Dmg Cut, Invuln,
+  // and any other damage reducing effects on Siegfried do not apply if he is
+  // Attacked from behind"* (#341 ruling 6). One rule, the Heel's, asked from
+  // the defender's side (`Defenceless`).
+  return (s.ctx.defender?.defenceless ?? []).some((d) => testPredicate(d.predicate, s.predicateCtx));
 }
 
 /**

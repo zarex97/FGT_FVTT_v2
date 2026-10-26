@@ -1,0 +1,21 @@
+# Siegfried's Avaricious Gold, effect 1 (#341).
+#
+# > "Apply the 'Rheingold' buff for 1◈ Turns, a successful activation of
+# > 'Golden Rule' reduces NP Cooldown by 1◈ Turns instead of 1 Turn."
+#
+# The buff names the cut it lengthens and the length (`CooldownCutOverride`);
+# Golden Rule's die is unchanged (`golden-rule.yml`, `overriddenBy`). Edmond
+# Dantès's Monte is the same rule at ⅓◈.
+schema: 1
+id: rheingold
+name: "Rheingold"
+description: "A successful Golden Rule reduces NP Cooldown by 1◈ Turns instead of 1 Turn."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: CooldownCutOverride
+    slot: goldenRule
+    ticks: "1◈"

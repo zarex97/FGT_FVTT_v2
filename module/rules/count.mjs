@@ -21,7 +21,7 @@
  */
 
 import { test as testPredicate } from "./predicate.mjs";
-import { rollOptionsFor } from "./options.mjs";
+import { rollOptionsFor, antiAttributesOf } from "./options.mjs";
 import { relationOf } from "./relations.mjs";
 import { Rank } from "../domain/rank.mjs";
 import { currentHealth, maxHealth } from "../domain/health.mjs";
@@ -29,6 +29,7 @@ import { currentHealth, maxHealth } from "../domain/health.mjs";
 /** The sources a Count may read (Q19). */
 export const COUNT_KINDS = Object.freeze([
   "stacks", "targets", "board", "resource", "parameters", "criteria", "use", "tally", "healthMissing",
+  "antiAttributeEffects",
 ]);
 
 /** A Count whose kind is not in {@link COUNT_KINDS}. */
@@ -122,6 +123,25 @@ export function countOf(spec, ctx = {}) {
       if (!(max > 0)) return 0;
       const value = Math.max(0, Math.min(max, Number(currentHealth(holder, max))));
       return whole(Math.floor(((max - value) * 100) / max));
+    }
+    case "antiAttributeEffects": {
+      // The EFFECTS on the Unit that are Anti-<Attribute>: each raises damage
+      // dealt to, or cuts damage taken from, Units of it. Balmung's *"for every
+      // Anti-Dragon effect on himself. Note: Passive Anti-Dragon effects do not
+      // count."* (#341 rulings 9). One per effect instance, however many of its
+      // modifiers qualify; a Passive's modifiers carry no instance and are left
+      // out. The instance is `rules/elements.mjs#EFFECT_INSTANCE`, named here
+      // as a string because that module reads this one.
+      const attribute = /** @type {string} */ (spec.attribute);
+      const holder = ctx.self ?? null;
+      const instances = new Set();
+      for (const m of holder?.modifiers ?? []) {
+        const id = m?.effectInstanceId;
+        if (!id) continue;
+        const { dealt, taken } = antiAttributesOf(m);
+        if (dealt.includes(attribute) || taken.includes(attribute)) instances.add(id);
+      }
+      return instances.size;
     }
     default:
       throw new UnknownCountKind(spec?.of);
@@ -292,6 +312,7 @@ export function multiplierOf(block, ctx = {}) {
 /** The keys each kind reads and cannot do without. */
 const REQUIRED_KEYS = Object.freeze({
   stacks: ["effect"], resource: ["key"], use: ["fact"], parameters: ["vs", "compare"],
+  antiAttributeEffects: ["attribute"],
 });
 
 /**

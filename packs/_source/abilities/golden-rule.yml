@@ -12,6 +12,10 @@
 # (*"NP Cooldown"* naming none reaches every NP, #197 reading 6). Rolled only
 # while an NP is cooling, so a die that could decide nothing is not on the card;
 # one that misses is.
+#
+# `overriddenBy: goldenRule`: a buff its bearer holds may lengthen the cut,
+# Siegfried's Rheingold to 1◈ and Edmond Dantès's Monte to ⅓◈ (#341,
+# `CooldownCutOverride`). The die stays this one.
 schema: 1
 id: golden-rule
 name: "Golden Rule"
@@ -28,4 +32,4 @@ passiveRules:
     automatic: true
     predicate: ["attack:crit", "self:npOnCooldown"]
     then:
-      - { key: CooldownDelta, scope: np, delta: -1, chance: "@chance" }
+      - { key: CooldownDelta, scope: np, delta: -1, chance: "@chance", overriddenBy: goldenRule }
