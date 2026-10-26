@@ -3,7 +3,8 @@ id: 2026-10-26-anti-dragon-tag-had-no-writer
 found: retraction
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Arturia's Magic Resistance weakness (#230 reading 21) meets an Attack *"with the 'Anti-Dragon'
 Attribute"*, so some attack carries that mark.

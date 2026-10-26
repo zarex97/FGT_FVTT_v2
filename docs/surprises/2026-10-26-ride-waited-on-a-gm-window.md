@@ -3,7 +3,8 @@ id: 2026-10-26-ride-waited-on-a-gm-window
 found: retraction
 kind: drive-kit
 status: fixed
-reviewed: false
+reviewed: true
+pattern: drive-kit
 ---
 **Expected:** a Riding Attack through Cú opens a Combat Process card at once.
 **Actual:** two rides moved Siegfried, stamped `usedRidingAttack` and `attacked`, and left no card, so I read them as

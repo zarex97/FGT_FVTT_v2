@@ -3,7 +3,8 @@ id: 2026-10-26-percent-bonus-carried-no-direction
 found: retraction
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** `attack:vsAttribute:<attribute>` names an attack that deals extra damage to an Attribute, read off the
 attacker's damage-dealt modifiers (Kagome Spirits, #260). I took it as the Anti-Dragon reader for Armor of Fafnir.
