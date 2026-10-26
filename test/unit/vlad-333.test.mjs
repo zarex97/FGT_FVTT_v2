@@ -194,7 +194,8 @@ describe("a revival held back says why (BC.cd, BC.half; ruled 2026-10-24)", () =
   it("is logged at the defeat that took no revival, and posted as a revival card is", async () => {
     const { readFileSync } = await import("node:fs");
     const io = readFileSync("module/engine/io.mjs", "utf8");
-    expect(io).toMatch(/x\?\.kind === "revivalHeld"\)/);
+    // A named marker, not the line (`source-scan-pins-text`).
+    expect(io).toMatch(/fgt-scan: revival-cards[\s\S]{0,400}"revivalHeld"/);
     const sched = readFileSync("module/engine/scheduler.mjs", "utf8");
     expect(sched).toMatch(/kind: "revivalHeld", unitId: unit\.id, source: source\.source, why/);
   });

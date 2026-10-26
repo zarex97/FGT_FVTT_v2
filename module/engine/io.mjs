@@ -291,6 +291,42 @@ export function worldIO() {
       await cancelTeachingOf(unitId);
     },
 
+    /**
+     * Remove what this Unit inflicted that ends with it, from every holder.
+     *
+     * Curse (Bolg): *"when Cu Chulainn is defeated, Curse (Bolg) is removed
+     * from all affected Units"* (#339 rulings 14, 23, 37). At the defeat write,
+     * past the revival chain, so a defeat a revival answers removes nothing.
+     * Every holder: a defeated one whose body has left the board too, which a
+     * board walk missed (found live, Medusa). An actor's id is unique, so the
+     * source id alone finds this Unit's effects; an unlinked token's actor is
+     * asked as well. Unremovable is no bar: the rule removes it, not a dispel.
+     *
+     * @param {string} unitId the Unit that stayed down
+     */
+    async endEffectsWithInflicter(unitId) {
+      if (!game.user?.isGM) return;
+      const { EffectRegistry } = await import("../rules/registry.mjs");
+      // A Set of documents: a linked token's actor is its world actor, and is asked once.
+      const holders = new Set();
+      for (const actor of game.actors ?? []) holders.add(actor);
+      for (const scene of game.scenes ?? []) {
+        for (const token of scene.tokens ?? []) if (!token.actorLink && token.actor) holders.add(token.actor);
+      }
+      // ...and every token the canvas holds, whose actor is the one the board reads.
+      for (const token of globalThis.canvas?.tokens?.placeables ?? []) if (token.actor) holders.add(token.actor);
+      /** @type {Array<{unitId: string, defId: string}>} */
+      const removed = [];
+      for (const actor of holders) {
+        const ending = actor.effects.filter((e) => e.system?.sourceUnitId === unitId
+          && EffectRegistry.get(e.system?.defId)?.endsWithInflicter);
+        if (ending.length === 0) continue;
+        removed.push(...ending.map((e) => ({ unitId: actor.id, defId: e.system.defId })));
+        await actor.deleteEmbeddedDocuments("ActiveEffect", ending.map((e) => e.id));
+      }
+      if (removed.length > 0) await this.log([{ kind: "effectsEndWithInflicter", unitId, removed }]);
+    },
+
     async notePosthumous(unitId, killerId) {
       if (!game.user?.isGM) return;
       const { schedulePosthumous } = await import("./schedule.mjs");
@@ -1712,7 +1748,10 @@ export function worldIO() {
       // A revival, said out loud. It was logged and nothing else: Divine
       // Protection brought Ozymandias back at 200 inside his Complex and the
       // attack card read "6 damage" over it (#189). Public, as a defeat is.
-      for (const e of entries.filter((x) => x?.kind === "revive" || x?.kind === "reviveFailed" || x?.kind === "revivalChanceMissed" || x?.kind === "revivalHeld")) {
+      // fgt-scan: revival-cards. Every kind posted as a revival card, and what
+      // came off everyone with a Unit that stayed down (#339).
+      const revivalCards = new Set(["revive", "reviveFailed", "revivalChanceMissed", "revivalHeld", "effectsEndWithInflicter"]);
+      for (const e of entries.filter((x) => revivalCards.has(x?.kind))) {
         const { postRevival } = await import("./revival-report.mjs");
         await postRevival(e);
       }

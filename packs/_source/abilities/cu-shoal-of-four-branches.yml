@@ -1,0 +1,48 @@
+# Cú Chulainn, char_orig_sheets/by-class/Lancer/Cú Chulainn.md (#339).
+#
+# > "(Active) Used during your Turn. Has the following effects-
+# > 1. Applies Guts for 1◈+⅔◈ Turns, when Cú is defeated he is revived with 25%
+# >    of his Max Health.
+# > 2. Applies Atk Up (Redbranch) for 1◈ Turns, all damage dealt is increased by
+# >    (20+X)%; if NP, this value is halved. X is as follows- For every 10% of
+# >    Health Cú is missing, X increases by 10 (e.g. Cú's Health is 457/1000, so
+# >    X=50). Cooldown: 4◈ Turns."
+#
+# Guts as Van Gogh's Imaginary Numbers Arts lands it. X is read once, from his
+# Health as he uses it, and kept for the 1◈ (#339 ruling 1): the `healthMissing`
+# Count, 54 at 457/1000, in whole steps of 10. The NP halving covers the whole
+# 20+X (ruling 31): `npMagnitudeFactor`, De Sterrennacht's. Atk Up (Redbranch) is
+# its own effect and stacks with Rune Magic's Atk Up (ruling 31).
+schema: 1
+id: cu-shoal-of-four-branches
+name: "Shoal of Four Branches"
+rank: A
+kind: skill
+slug: shoalOfFourBranches
+cooldown: "4◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[guts]{Guts} for 1◈+⅔◈ Turns, when Cú is defeated he is revived with 25% of his
+     Max Health.
+  2. Applies @effect[atkUpRedbranch]{Atk Up (Redbranch)} for 1◈ Turns, all damage dealt is increased
+     by (20+X)%; if NP, this value is halved. X is as follows- For every 10% of Health Cú is missing,
+     X increases by 10 (e.g. Cú's Health is 457/1000, so X=50).
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: guts, duration: "1◈+⅔◈", magnitude: 25 }
+      - id: atkUpRedbranch
+        duration: "1◈"
+        # 20 + 10 per whole 10% of Max Health missing.
+        magnitude: 10
+        count: { of: healthMissing }
+        each: 10
+        base: 20
+        npMagnitudeFactor: 0.5

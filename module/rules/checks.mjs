@@ -54,6 +54,24 @@ export function tableFor(own, opposing, forcing = {}) {
 }
 
 /**
+ * The table a Unit's Agility Check against an attacker is read on: a table an
+ * effect forces, else favourable unless the attacker's Agility is higher.
+ *
+ * One reader for the two checks the rulebook makes against the AU: a guard
+ * stepping in for its Master (*"performs an Agility Check (against the AU)"*)
+ * and the shove (*"Agility Check/Agility Check-"*, ruled 2026-10-25 to be the
+ * same comparison). The shove had read favourable whatever the attacker's.
+ *
+ * @param {object} unit
+ * @param {object|null} attacker
+ * @param {{forceTable?: string|null}} plan the unit's `checkPlan(unit, "agility")`
+ * @returns {"favourable"|"unfavourable"}
+ */
+export function agilityTableAgainst(unit, attacker, plan) {
+  return plan?.forceTable ?? tableFor(unit?.agility, attacker?.agility);
+}
+
+/**
  * @typedef {object} CheckPlan
  * @property {Array<{source: string, value: number}>} modifiers
  * @property {"favourable"|"unfavourable"|null} forceTable
@@ -136,8 +154,13 @@ export function checkPlan(unit, check, { direction = "outgoing", options = null,
   // Instinct) is not the rung's to grant: it rolled at the rung's door
   // (`engine/attack.mjs#instinctOf`), and chosen after it failed, the Evade is
   // an ordinary roll (#230, found live: it made every chosen Evade certain).
+  //
+  // One whose clause is about the attack waits for the option set, as a
+  // conditional modifier does: Protection from Arrows evades only a Ranged,
+  // single-target Attack from his Front or Sides.
   const autoSucceed = (unit?.autoSucceeds ?? [])
     .filter((a) => a.check === check && !a.whenAttacked)
+    .filter((a) => !a.predicate || (options ? testPredicate(a.predicate, { options }) : false))
     .reduce((best, a) => (!best || (a.chance ?? 100) > (best.chance ?? 100) ? a : best), null);
   const adjustable = relevant.filter((m) => m.playerAdjustable);
 

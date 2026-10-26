@@ -42,13 +42,37 @@ export class FGTSocket {
    * (`tools/check-layers.mjs`). The defaults are a world of one War: no War,
    * and the active GM for it.
    */
-  static #router = { warFor: () => null, gmFor: () => game.users.activeGM };
+  static #router = { warFor: () => null, gmFor: () => game.users.activeGM, ruleFor: () => null };
 
   /**
-   * @param {{warFor: () => object|null, gmFor: (war: object|null) => object|null}} router
+   * @param {{warFor: () => object|null, gmFor: (war: object|null) => object|null,
+   *   ruleFor?: (key: string, war: object|null) => unknown}} router
    */
   static setRouter(router) {
-    this.#router = router;
+    this.#router = { ruleFor: () => null, ...router };
+  }
+
+  /**
+   * How long a request waits for the GM's reply in this War.
+   *
+   * Sixty seconds of work, plus room for the people the GM is waiting on. A
+   * request can hold the GM on a person: an advance after a reaction runs on to
+   * the next rung, and `engine/attack.mjs#awaitInterrupt` holds that rung open
+   * for `commandSpellTimeout` while a Master may interrupt, as the declaration
+   * window does. At fifteen-second windows that fit in the old flat minute. A
+   * War set to three minutes did not: a player pressed Do nothing and got
+   * "No reply from the Gamemaster" while the GM was still holding the next rung
+   * (found live, 2026-10-25). Four of the War's longest window covers a rung's
+   * reaction, interrupt and Command Spell holds and a declaration window.
+   *
+   * @param {object|null} war
+   * @returns {number} milliseconds
+   */
+  static replyBudgetMs(war) {
+    const windows = ["reactionTimeout", "interruptTimeout", "commandSpellTimeout"]
+      .map((key) => Number(this.#router.ruleFor(key, war)))
+      .filter((s) => Number.isFinite(s) && s > 0);
+    return 60_000 + 4 * Math.max(0, ...windows) * 1000;
   }
 
   static initialize() {
@@ -69,14 +93,15 @@ export class FGTSocket {
    * teeth: declaring an area attack fans out to one Process per defender, each
    * with a card, a reaction offer, events and several document writes. Fifteen
    * seconds was not enough for a seven-target Noble Phantasm, observed in a
-   * live game.
+   * live game. The minute is now the floor of {@link FGTSocket.replyBudgetMs},
+   * which adds the War's own windows.
    *
    * @param {string} op a key of {@link OPERATIONS}
    * @param {object} payload
-   * @param {{timeout?: number}} [options]
+   * @param {{timeout?: number|null}} [options] `null` reads the War's reply budget
    * @returns {Promise<unknown>}
    */
-  static async request(op, payload, { timeout = 60_000 } = {}) {
+  static async request(op, payload, { timeout = null } = {}) {
     if (!OPERATIONS[op]) throw new FGTError("UNKNOWN_OP", `Unknown operation "${op}".`);
     if (!game.users.activeGM) {
       throw new FGTError("NO_ACTIVE_GM", "No Game Master is connected. This action requires a GM.");
@@ -88,6 +113,7 @@ export class FGTSocket {
     // reads the board off that client's canvas. A War no GM is looking at is
     // refused out loud: run on another GM it would resolve on another board.
     const war = this.#router.warFor();
+    timeout ??= this.replyBudgetMs(war);
     const gm = this.#router.gmFor(war);
     if (!gm) throw new FGTError("NO_WAR_GM", game.i18n.localize("FGT.WarRules.NoGM"));
 

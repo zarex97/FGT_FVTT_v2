@@ -127,6 +127,36 @@ export const OPERATIONS = Object.freeze({
    * press Continue, and the declaration goes on. On the GM, which holds the
    * wait; a player may not write the card's flag.
    */
+  /**
+   * Pass a Command Spell window on one rung of an attack: "No Command Spell".
+   * The GM writes it on the card, which only the GM may, and
+   * `engine/attack.mjs#awaitInterrupt` goes on once every offered Master has
+   * passed. A player passes only for Masters they own.
+   */
+  passCommandSpells: {
+    authorize: (payload, userId) => {
+      const message = game.messages.get(payload.messageId);
+      const user = game.users.get(userId);
+      if (!message || !user) return { allowed: false, reason: "Unknown card." };
+      const ids = payload.masterIds ?? [];
+      if (ids.length === 0) return { allowed: false, reason: "No Master named." };
+      if (user.isGM) return { allowed: true, reason: null };
+      const stranger = ids.find((id) => !unitActor(id)?.testUserPermission(user, "OWNER"));
+      if (stranger) return { allowed: false, reason: `${user.name} does not hold that Master.` };
+      return { allowed: true, reason: null };
+    },
+    execute: async (payload) => {
+      const message = game.messages.get(payload.messageId);
+      if (!message || !payload.rung) return { ok: false };
+      const passes = message.getFlag("fgt", "csPasses");
+      const kept = passes?.rung === payload.rung ? passes.masterIds ?? [] : [];
+      await message.setFlag("fgt", "csPasses", {
+        rung: payload.rung, masterIds: [...new Set([...kept, ...payload.masterIds])],
+      });
+      return { ok: true };
+    },
+  },
+
   closeDeclarationWindow: {
     authorize: (payload, userId) => {
       const message = game.messages.get(payload.messageId);
@@ -209,6 +239,33 @@ export const OPERATIONS = Object.freeze({
     execute: async (payload) => {
       const { performRidingAttack } = await import("../engine/riding.mjs");
       return performRidingAttack(payload);
+    },
+  },
+
+  /**
+   * Place a Bloodmark (Medusa's Mark Action).
+   *
+   * Proxied because a Bloodmark is an Actor and a Token, which no player may
+   * create. Authorized by the marker: her owner, and only an ability she holds.
+   * `engine/marks.mjs#placeMark` re-checks the budget and the panel on the GM.
+   */
+  placeMark: {
+    authorize: (payload, userId) => {
+      const user = game.users.get(userId);
+      const actor = unitActor(payload.unitId);
+      if (!user || !actor) return { allowed: false, reason: "Unknown unit." };
+      if (user.isGM) return { allowed: true, reason: null };
+      if (!actor.testUserPermission(user, "OWNER")) {
+        return { allowed: false, reason: `${user.name} does not control ${actor.name}.` };
+      }
+      if (!actor.items?.get(payload.abilityId)) {
+        return { allowed: false, reason: `${actor.name} holds no such ability.` };
+      }
+      return { allowed: true, reason: null };
+    },
+    execute: async (payload) => {
+      const { placeMark } = await import("../engine/marks.mjs");
+      return placeMark({ unitId: payload.unitId, abilityId: payload.abilityId });
     },
   },
 
