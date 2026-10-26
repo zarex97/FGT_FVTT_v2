@@ -66,8 +66,8 @@ What he needs that nobody has yet, each built as a generic piece:
 
 Asked by grilling, 2026-10-26. Rulings are written here as they land. **Built 2026-10-26** on `claude/siegfried`
 (`test/unit/siegfried-341.test.mjs`, 23 tests) and pressed as Player1 in a War of its own, `NZCYYuJvGQAANjhR` on the
-scene *Siegfried Audit*, apart from the match being played. 82 of the 84 Clauses end Pressed, Observed or Tested;
-BM.hit and AF.5.only are built and not pressed. Case chapter §46.52.
+scene *Siegfried Audit*, apart from the match being played. 83 of the 84 Clauses end Pressed or Observed live
+(second session, the same day); RD.ps.ra is the template's, pressed on Gilles: his Master had fallen before the ride. Case chapter §46.52.
 
 **Round 1, ruled 2026-10-26 (the user).** Q2 and Q7 were asked again with the quotations and ruled the same day (round 1b).
 
@@ -94,16 +94,16 @@ BM.hit and AF.5.only are built and not pressed. Case chapter §46.52.
 
 - [x] **ST.name** · True Name: Siegfried · *Observed live* — Player1's bar and sheet (War NZCYYuJvGQAANjhR, 2026-10-26); projected in `siegfried-341.test.mjs`
 - [x] **ST.class** · Class: Saber · *Observed live* — Player1's bar, "Siegfried SABER" (War NZCYYuJvGQAANjhR, 2026-10-26)
-- [x] **ST.region** · Region: Germany · *Tested* — projected in `siegfried-341.test.mjs`; Germany joins the Region graph
-- [x] **ST.align** · Alignment: Chaotic Good · *Tested* — projected in `siegfried-341.test.mjs`
-- [x] **ST.param** · STR B+, END A, AGI B, MAG C, LUC E · *Tested* — projected in `siegfried-341.test.mjs`
+- [x] **ST.region** · Region: Germany · *Observed live* — his sheet as Player1: "SABER · CHAOTIC GOOD · GERMANY" (War NZCYYuJvGQAANjhR, 2026-10-26)
+- [x] **ST.align** · Alignment: Chaotic Good · *Observed live* — his sheet: "CHAOTIC GOOD" (War NZCYYuJvGQAANjhR, 2026-10-26)
+- [x] **ST.param** · STR B+, END A, AGI B, MAG C, LUC E · *Observed live* — his sheet: STR B+, END A, AGI B, MAG C, LUC E (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **ST.attr** · Attributes: Male, Servant, [Earth], Dragon, King, Humanoid · *Pressed* — Dragon: Balmung's +200% and Dmg Up (Dragon) met the second Siegfried (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **ST.hp** · Base Health 1500 · *Observed live* — Health 1500 / 1500 on Player1's bar (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **ST.mov** · MOV 5 · *Observed live* — MOV 5, 9 under Riding's +4 (War NZCYYuJvGQAANjhR, 2026-10-26)
-- [x] **ST.range** · Range 1 panel, 1 target · *Tested* — projected in `siegfried-341.test.mjs`
+- [x] **ST.range** · Range 1 panel, 1 target · *Observed live* — his sheet: Range 1, Targets 1 (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **ST.ba** · Base Attack STR 185, MAG 150 · *Pressed* — Balmung: "BA(MAG) × 1: 150"; BA(STR) 135 by the table (§46.6), projected in `siegfried-341.test.mjs`
 - [x] **ST.na** · Normal Attack: STR, Melee · *Observed live* — "Counter with a Normal Attack", Melee (War NZCYYuJvGQAANjhR, 2026-10-26)
-- [x] **ST.sus** · Sustainability 2◈ · *Tested* — projected in `siegfried-341.test.mjs`
+- [x] **ST.sus** · Sustainability 2◈ · *Observed live* — his sheet: Sustainability 2◈; as a Free Servant it ran out and he fell, "sustainabilityExhausted" (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **ST.items** · Items held: none · *Observed live* — none on his sheet (War NZCYYuJvGQAANjhR, 2026-10-26)
 
 ## Magic Resistance — Rank — *(Class Skill)*
@@ -115,19 +115,19 @@ BM.hit and AF.5.only are built and not pressed. Case chapter §46.52.
 
 - [x] **RD.when** · *(Active)* Used during his Turn · *Pressed* — Riding from Player1's bar on his Turn; "Only during your Turn" on Faction 2's (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **RD.mov** · MOV +4 for this Turn · *Pressed* — MOV 5 → 9 (War NZCYYuJvGQAANjhR, 2026-10-26)
-- [x] **RD.notbuff** · …not a buff: not removed by buff removal, not prevented by an effect that prevents buffs · *Observed (template)* — `class-riding-unlocks`, `ridingActive`; pressed on Gilles (#260)
+- [x] **RD.notbuff** · …not a buff: not removed by buff removal, not prevented by an effect that prevents buffs · *Pressed* — Riding under No Buff: MOV 9 / 9, where Dragon Slayer's buffs read "— No Buff"; Riding (Active) is a status, unremovable (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **RD.unlock** · Double Move, Riding Attack and Passenger Seat usable on this Turn only · *Pressed* — Riding Attack and Passenger Seat buttons on his bar after the Active (War NZCYYuJvGQAANjhR, 2026-10-26)
-- [x] **RD.dm** · *(P1)* Double Move: Move twice, once before and once after Attacking; total ≤ his MOV · *Observed (template)* — `class-riding-unlocks`, pressed on Gilles (#260)
-- [x] **RD.ra** · *(P2)* Riding Attack: Attack every Unit in his path moving in a straight line, as his Normal Attack · *Observed (template)* — `class-riding-unlocks`, pressed on Gilles (#260)
-- [x] **RD.ra.stop** · …cannot Attack or Move after he has stopped · *Observed (template)* — `class-riding-unlocks`, pressed on Gilles (#260)
-- [x] **RD.ra.left** · …if he already Moved, its panels are his MOV minus the panels Moved · *Observed (template)* — `class-riding-unlocks`, pressed on Gilles (#260)
-- [x] **RD.ps** · *(P3)* Passenger Seat: his Master Moves with him, same orientation and position after; counts as Moving one Unit · *Observed (template)* — `class-riding-unlocks`, pressed on Gilles (#260)
-- [x] **RD.ps.ra** · Passenger Seat and Riding Attack combine · *Observed (template)* — `class-riding-unlocks`, pressed on Gilles (#260)
+- [x] **RD.dm** · *(P1)* Double Move: Move twice, once before and once after Attacking; total ≤ his MOV · *Pressed* — moved 1, Normal Attack on Cú (147), moved 2: "Moved 3 of 9 panels · 2 move segment(s)" (War NZCYYuJvGQAANjhR, 2026-10-26)
+- [x] **RD.ra** · *(P2)* Riding Attack: Attack every Unit in his path moving in a straight line, as his Normal Attack · *Pressed* — Riding Attack east along his row through Cú: 74, then 141 (War NZCYYuJvGQAANjhR, 2026-10-26)
+- [x] **RD.ra.stop** · …cannot Attack or Move after he has stopped · *Pressed* — a Move after the ride: "Riding Attack ends this Unit's Turn; it cannot Move again." (War NZCYYuJvGQAANjhR, 2026-10-26)
+- [x] **RD.ra.left** · …if he already Moved, its panels are his MOV minus the panels Moved · *Pressed* — after 2 panels moved, the ride's lines reached 7, his MOV 9 less 2 (War NZCYYuJvGQAANjhR, 2026-10-26)
+- [x] **RD.ps** · *(P3)* Passenger Seat: his Master Moves with him, same orientation and position after; counts as Moving one Unit · *Pressed* — Carry Master: his Master moved with him on both moves, same offset (War NZCYYuJvGQAANjhR, 2026-10-26)
+- [ ] **RD.ps.ra** · Passenger Seat and Riding Attack combine · *Observed (template)* — `class-riding-unlocks`, pressed on Gilles (#260); not pressed on him: his Master fell to Balmung before his ride
 - [x] **RD.cd** · Cooldown 2◈ · *Pressed* — "Riding — Cooldown 2◈ (6 turns)" (War NZCYYuJvGQAANjhR, 2026-10-26)
 
 ## Golden Rule — Rank C- *(Passive)*
 
-- [x] **GR** · Each Crit he performs: 55% chance his NP Cooldown −1 Turn · *Pressed* — each Balmung crit cut his NP Cooldown: "24 → 21", "21 → 18" (War NZCYYuJvGQAANjhR, 2026-10-26)
+- [x] **GR** · Each Crit he performs: 55% chance his NP Cooldown −1 Turn · *Pressed* — each Balmung crit cut his NP Cooldown: "24 → 21", "21 → 18" under Rheingold; "24 → 23" without it (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **GR.roll** · …the die is on the card, a miss included · *Pressed* — "Rolls (1)" on each Balmung card (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **GR.np** · …the NP that is cooling: Balmung, his only Active NP · *Pressed* — Balmung's own clock cut (War NZCYYuJvGQAANjhR, 2026-10-26)
 
@@ -157,8 +157,8 @@ BM.hit and AF.5.only are built and not pressed. Case chapter §46.52.
 - [x] **DS.p** · *(Passive)* All damage dealt to Units with the Dragon Attribute +20% · *Pressed* — Balmung on the second Siegfried: "Dragon Slayer: 20" (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **DS.p.np** · …an NP's too, at 20% · *Pressed* — the 20 on an NP (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **DS.when** · *(Active)* Used during his Turn · *Pressed* — from Player1's bar (War NZCYYuJvGQAANjhR, 2026-10-26)
-- [x] **DS.ward** · Applies Ward (Dragon) for 1◈: all damage received from Dragon Units −30% · *Pressed* — Ward (Dragon) 30 on him (War NZCYYuJvGQAANjhR, 2026-10-26); its cut tested in `siegfried-341.test.mjs`
-- [x] **DS.ward.np** · …an NP's too, at 30% · *Tested* — `ward`, no `npValue`
+- [x] **DS.ward** · Applies Ward (Dragon) for 1◈: all damage received from Dragon Units −30% · *Pressed* — the second Siegfried's Normal Attack on him: "wardDragon: −30" (War NZCYYuJvGQAANjhR, 2026-10-26)
+- [x] **DS.ward.np** · …an NP's too, at 30% · *Pressed* — the second Siegfried's Balmung on him: "wardDragon: −30", the full 30 on an NP (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **DS.dmg** · Applies Dmg Up (Dragon) for 1◈: all damage dealt to Dragon Units further +60% · *Pressed* — "dmgUpDragon: 60" (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **DS.dmg.np** · …an NP's too, at 60% · *Pressed* — at 60 on Balmung (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **DS.dmg.stack** · *"Further"*: it adds to the Passive's 20 · *Pressed* — 20 and 60 side by side at stage 4 (War NZCYYuJvGQAANjhR, 2026-10-26)
@@ -174,16 +174,16 @@ BM.hit and AF.5.only are built and not pressed. Case chapter §46.52.
 - [x] **AF.1.null** · …from a Unit with a STR or MAG Rank of B or lower: the damage is nullified · *Pressed* — Cú's Normal Attack: "0 · Negated by Armor of Fafnir", "nullified, STR B ≤ B", Divinity's 40 gone; Ansuz (MAG C) 0 (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **AF.1.cut** · …from any other Unit: their Total damage −75% · *Pressed* — Heracles 124, "−75% Total, STR A+"; Aero 121, "−75% Total, MAG A+", Medea's STR E unread (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **AF.2.null** · Effect 2: a damaging NP of Rank B+ or lower: the damage is nullified · *Pressed* — Soaring Spear: 0, "nullified, NP Rank B+ ≤ B+" (War NZCYYuJvGQAANjhR, 2026-10-26)
-- [x] **AF.2.cut** · …of a higher Rank: its Total damage −75% · *Tested* — Excalibur A++: "−75% Total, NP Rank A++" (`siegfried-341.test.mjs`)
+- [x] **AF.2.cut** · …of a higher Rank: its Total damage −75% · *Pressed* — Heracles's Nine Lives: 302, "−75% Total, NP Rank A+" (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **AF.other** · Damage that is none of these (a periodic tick, a field's) meets neither effect · *Pressed* — "Saber takes 50 from Burn", whole (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **AF.3.attack** · Effects 1 and 2 are bypassed by an Attack, Skill, Spell or NP with an Anti-Dragon effect · *Pressed* — Balmung on the second Siegfried: 6486, no Armor row (War NZCYYuJvGQAANjhR, 2026-10-26)
-- [x] **AF.3.au** · …or when the AU has an Anti-Dragon effect · *Pressed* — Heracles holding Dmg Up (Dragon): 340, no Armor row (War NZCYYuJvGQAANjhR, 2026-10-26)
+- [x] **AF.3.au** · …or when the AU has an Anti-Dragon effect · *Pressed* — Heracles holding Dmg Up (Dragon): 340, no Armor row; the second Siegfried, Dragon Slayer's Passive alone: no Armor row (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **AF.3.def** · …Anti-Dragon: it deals extra damage to Units with the Dragon Attribute · *Pressed* — both bypasses above; a Ward is not one (`siegfried-341.test.mjs`)
 - [x] **AF.4.back** · Effects 1 and 2 are bypassed when he is Attacked from behind · *Pressed* — Heracles from his back cone: "Armor of Fafnir (bypassed)", 365 (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **AF.4.max** · …damage he takes from behind reduces his Max Health as well as his current Health · *Pressed* — "Health max 1500 → 1135"; bar 1011 / 1135 (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **AF.4.def** · …and Def Up, Dmg Cut, Invuln and every other damage-reducing effect on him do not apply · *Pressed* — "Def Up (bypassed)", "Invuln (bypassed)" (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **AF.5.seal** · Effects 1 and 2 are negated while he is affected by NP Seal *(the sheet's "?")* · *Pressed* — Cú's Normal Attack under NP Seal: 122, no Armor row (War NZCYYuJvGQAANjhR, 2026-10-26)
-- [ ] **AF.5.only** · …effects 3 and 4 are not: from behind, the Max Health loss and the bypass still hold · *Built* — the wound and the bypass carry no NP Seal clause; not pressed under NP Seal
+- [x] **AF.5.only** · …effects 3 and 4 are not: from behind, the Max Health loss and the bypass still hold · *Pressed* — Aero at his back under NP Seal: 613, no Armor row, "Health max 1135 → 522" (War NZCYYuJvGQAANjhR, 2026-10-26)
 
 ## Balmung: Phantasmal Greatsword, Felling of the Sky Demon — Rank EX *(NP, Anti-Army)*
 
@@ -192,10 +192,10 @@ BM.hit and AF.5.only are built and not pressed. Case chapter §46.52.
 - [x] **BM.ranged** · `{R}`: a Ranged Attack · *Pressed* — card "RANGED" (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **BM.ba** · Base Attack (MAG) is used · *Pressed* — "BA(MAG) × 1: 150" (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **BM.area** · Hits a 5x3 or 3x5 panel area, in any non-diagonal direction, next to him · *Pressed* — four ghost blocks beside him; east placed, 5 by 3 (War NZCYYuJvGQAANjhR, 2026-10-26)
-- [ ] **BM.hit** · …every Unit in it · *Built* — selection enemy, ally and neutral, as Excalibur's; no ally stood in the area
+- [x] **BM.hit** · …every Unit in it · *Pressed* — Balmung south hit his own Master for 915 (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **BM.dmg** · 5x damage · *Pressed* — "5× damage" (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **BM.dragon** · …further +200% against Units with the Dragon Attribute · *Pressed* — "Dragon (+200%): 3" on the second Siegfried only (War NZCYYuJvGQAANjhR, 2026-10-26)
-- [x] **BM.regen.if** · Then, if he has any Anti-Dragon effect: NP Regen (Balmung) on him for 1◈ · *Pressed* — NP Regen (Balmung) landed; none lands with none (`siegfried-341.test.mjs`)
+- [x] **BM.regen.if** · Then, if he has any Anti-Dragon effect: NP Regen (Balmung) on him for 1◈ · *Pressed* — NP Regen (Balmung) landed; with none on him the card read "NP Regen (Balmung): noop, counted none" (`siegfried-341.test.mjs`)
 - [x] **BM.regen** · …his NP Cooldown −1 Turn at the end of every Turn for every Anti-Dragon effect on him · *Pressed* — magnitude 2, and 2 more off the clock at his Turn's end (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **BM.regen.def** · …Anti-Dragon: any buff or effect that raises damage dealt to, or cuts damage taken from, Dragon Units · *Pressed* — Ward (Dragon) and Dmg Up (Dragon) counted (War NZCYYuJvGQAANjhR, 2026-10-26)
 - [x] **BM.regen.passive** · …a Passive's Anti-Dragon effect does not count · *Pressed* — Dragon Slayer's Passive held, count 2 not 3 (War NZCYYuJvGQAANjhR, 2026-10-26)
