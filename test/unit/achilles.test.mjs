@@ -810,7 +810,8 @@ describe("the stance across his Turn (#184, ruled 2026-10-04)", () => {
   it("the attack offers it before the window's abilities, on a fresh declaration", () => {
     const src = readFileSync("module/engine/attack.mjs", "utf8");
     const offer = src.indexOf("await offerStanceTransition(attackerId, COMBAT_PHASE_START_WINDOW);");
-    const window = src.indexOf(": await offerAttackerWindow({ attackerId }, COMBAT_PHASE_START_WINDOW, null);");
+    // The window's call, by its marker: since #345 it also hands the Phase's DU.
+    const window = src.indexOf(": await offerAttackerWindow({ attackerId,");
     expect(offer).toBeGreaterThan(0);
     expect(offer).toBeLessThan(window);
   });

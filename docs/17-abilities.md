@@ -382,7 +382,8 @@ charged costs, summed per pool, cannot meet. Enki's half of the Master's maximum
   `target:isSelf` holds when the Unit is the caster: Heilen's 30% on himself and 15% on another are a phase each.
 - **A window cast aimed at the DU.** `windowTarget: defender` hands the Process's DU to a cast taken at a Combat
   Process window (`attack.mjs#windowPlacement`); its `targetUnit` anchor asks the Range. Knacken *"at the start of a
-  Combat Phase on the DU (needs to be within Range)"*.
+  Combat Phase on the DU (needs to be within Range)"*. The attacker's Phase window opens before any Process, so the
+  declaration hands it its single DU; an area of several DUs leaves the cast unaimed.
 - **A cut on one random member of a category.** `CooldownDelta` with `category` and `pick: random` draws one of the
   bearer's abilities of that category on its Cooldown, its form's dropped ones included; the die is `pendingRolls`'s,
   one face per candidate, and the card says it beside the clock. None on its Cooldown is a card line of its own.

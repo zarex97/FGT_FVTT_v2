@@ -18,6 +18,7 @@ import { chebyshev } from "../../domain/geometry.mjs";
 import { resourceLabel } from "../../domain/resources.mjs";
 import { stanceOf } from "../../rules/stance.mjs";
 import { classifyAbility, usageSpecFor } from "../../rules/ability-use.mjs";
+import { heldNow } from "../../rules/form.mjs";
 import { canUseAbility } from "../../rules/costs.mjs";
 import { isDelivery } from "../../rules/delivery.mjs";
 import { test as testPredicate } from "../../rules/predicate.mjs";
@@ -219,8 +220,8 @@ export function buildContext(actor, sheet) {
     // Classified, so the template renders a toggle for a mode, a button for an
     // attack, and plain text for a passive -- rather than one button that opens
     // an enemy targeting session for all three.
-    abilities: actor.items.filter((i) => i.type === "ability").map(describe),
-    noblePhantasms: actor.items.filter((i) => i.type === "noblePhantasm").map(describe),
+    abilities: actor.items.filter((i) => i.type === "ability" && heldNow(actor, i)).map(describe),
+    noblePhantasms: actor.items.filter((i) => i.type === "noblePhantasm" && heldNow(actor, i)).map(describe),
 
     // The roster is a GM-managed list, not free text: a typo'd faction makes
     // two units enemies with nothing on screen to explain why.
@@ -663,6 +664,8 @@ export function abilitiesContext(actor, snapshot, turnsPerRound, boardNow = curr
 
   const cards = [...actor.items]
     .filter((i) => i.type === "ability" || i.type === "noblePhantasm")
+    // A form's own abilities are not on the sheet until it is taken (#345).
+    .filter((i) => heldNow(actor, i))
     .map((item) => abilityCard(item, {
       actor, unit, master, round, turnsPerRound, board: boardNow,
     }))

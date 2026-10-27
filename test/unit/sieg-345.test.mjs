@@ -106,6 +106,13 @@ describe("Bridal Chest Passive 1 and Homunculus (BC.p1.*, HM.*)", () => {
 });
 
 describe("Man-made Hero (False) (MH.*)", () => {
+  it("at full Health too: the restore lands under the raised maximum (found live)", async () => {
+    await withSubjects([sieg()], async ({ world: w }) => {
+      expect((await castSkill(w, { caster: SIEG, ability: abilityOf(w, SIEG, "sieg-man-made-hero").id })).ok).toBe(true);
+      expect(w.actor(SIEG).system.health).toMatchObject({ max: 600, value: 600 });
+    }, WAR);
+  });
+
   it("NP Regen 1 and Max HpUp: Max Health +100, current with it", async () => {
     await withSubjects([sieg()], async ({ world: w }) => {
       await w.actor(SIEG).update({ "system.health.value": 300 });
@@ -135,6 +142,8 @@ describe("the Spells (KN.*, SW.*, HE.*, MC.*)", () => {
     }, WAR);
     const src = (await import("node:fs")).readFileSync(new URL("../../module/engine/attack.mjs", import.meta.url), "utf8");
     expect(src).toMatch(/windowTarget === "defender" && state\.defenderId \? \{ unitId: state\.defenderId \}/);
+    // ...and the Phase's window, opened before any Process, is handed its one DU (found live).
+    expect(src).toMatch(/offerAttackerWindow\(\{ attackerId, defenderId: phaseDefenders\.length === 1 \? phaseDefenders\[0\] : null \}/);
   });
 
   it("Heilen: 15% and 1 Agility on an ally", async () => {
@@ -334,6 +343,11 @@ describe("Fafnir (AA.2.*; rulings 6, 14 to 20, 23)", () => {
       expect((await fafnir(w)).ok).toBe(true);
       const schwert = await castSkill(w, { caster: SIEG, ability: abilityOf(w, SIEG, "sieg-schwert").id });
       expect(schwert).toMatchObject({ ok: false, reason: "abilityLocked" });
+      // ...and the refusal names what it holds back (found live: "undefined cannot be used").
+      const { canUseAbility } = await import("../../module/rules/costs.mjs");
+      const { usageSpecFor } = await import("../../module/rules/ability-use.mjs");
+      const verdict = canUseAbility({ ability: usageSpecFor(abilityOf(w, SIEG, "sieg-schwert")), unit: await live(SIEG) });
+      expect(verdict).toMatchObject({ reason: "abilityLocked", detail: { name: "Straße/gehen: Schwert" } });
     }, WAR);
   });
 
@@ -379,6 +393,26 @@ describe("Fafnir (AA.2.*; rulings 6, 14 to 20, 23)", () => {
 });
 
 describe("Akafiloga Argrise, usage 1 (AA.1.*, AA.2.i; rulings 12, 13)", () => {
+  it("played as Fafnir, he stays Fafnir until the Turn's end, his end queued (found live)", async () => {
+    const { playAttack } = await import("../helpers/process.mjs");
+    await withSubjects([
+      ...withMaster(),
+      { from: "cu-chulainn", id: FOE, panel: { i: 3, j: 6 }, state: { factionId: "B" } },
+    ], async ({ world: w }) => {
+      const fafnir = abilityOf(w, SIEG, "sieg-akafiloga-fafnir");
+      await fafnir.update({ "system.active": true });
+      await w.actor(MAS).update({ "system.health.max": 500, "system.health.value": 500 });
+      w.answer({ title: "FGT.Window.defendingPhaseStart", decline: true });
+      await playAttack(w, {
+        attacker: SIEG, ability: abilityOf(w, SIEG, "sieg-akafiloga-argrise").id, placement: { direction: "n" },
+        react: { [FOE]: ["nothing", "declined", "declined", "declined"], [SIEG]: ["declined", "declined"] },
+      });
+      expect(fafnir.system.active).toBe(true);
+      const queued = w.combat?.getFlag?.("fgt", "queuedEnds") ?? game.combats.contents[0]?.getFlag("fgt", "queuedEnds");
+      expect(queued).toEqual([expect.objectContaining({ kind: "mode", id: fafnir.id })]);
+    }, WAR);
+  });
+
   it("Def Dwn 30 before 5x Fire; as Fafnir 50, a second NP price, and his form ends at the Turn's end", async () => {
     await withSubjects(withMaster(), ({ world: w }) => {
       const a = abilityOf(w, SIEG, "sieg-akafiloga-argrise").system;
@@ -411,7 +445,7 @@ describe("Dead Count Shapeshifter, usage 2: Siegfried (DC.2.*; rulings 1 to 5, 2
       expect(sys.resources.drcs.value).toBe(2);
       expect(sys.health).toMatchObject({ max: 1500, value: 1500 });
       expect(sys.formReturn.pools.health).toMatchObject({ value: 420, max: 500 });
-      expect([6, 9, 12, 15]).toContain(sys.formReturn.turns);
+      expect([5, 6, 8, 9]).toContain(sys.formReturn.turns);
       const s = await live(SIEG);
       expect(s.servantClasses).toEqual(["saber"]);
       expect(s.range).toBe(1);
@@ -448,6 +482,12 @@ describe("Dead Count Shapeshifter, usage 2: Siegfried (DC.2.*; rulings 1 to 5, 2
       await leaveForm(SIEG, { tick: 20 });
       expect(w.actor(SIEG).system.health.value).toBe(1);
     }, WAR);
+  });
+
+  it("X is 1◈ + ½◈ x d4 summed in ◈, then turned into Turns: 5, 6, 8, 9 (found live)", async () => {
+    const { lastingTurns } = await import("../../module/engine/transform.mjs");
+    const lasts = { base: "1◈", per: "½◈" };
+    expect([1, 2, 3, 4].map((roll) => lastingTurns(lasts, roll, 3))).toEqual([5, 6, 8, 9]);
   });
 
   it("needs a DRCS", async () => {

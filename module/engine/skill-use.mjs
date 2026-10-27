@@ -42,7 +42,7 @@ import { cooldownFor, alsoTriggered, sharedAcrossGroup, sharedCooldownIntents } 
 import { EffectRegistry } from "../rules/registry.mjs";
 import { polarityOf } from "../rules/effect-instance.mjs";
 import { currentBoard, currentMoment, unitFrom, unitOf, turnRecordOf, unitActor } from "./board.mjs";
-import { resourcePathFor } from "../domain/resources.mjs";
+import { resourceLabel, resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
 import { missChance, missSourceOf, PLAIN_MISS } from "../rules/miss.mjs";
 import { relationOf } from "../rules/relations.mjs";
@@ -2002,10 +2002,10 @@ export function resourceValue(doc, key) {
 export function resourceLine(key, before, after) {
   if (!Number.isFinite(before) || !Number.isFinite(after)) return null;
   const word = String(key).replace(/^resources\./, "").replace(/\.value$/, "");
-  // An acronym stays one: Scáthach's `prs` is "PRS".
-  const label = word.length <= 3
-    ? word.toUpperCase()
-    : word.charAt(0).toUpperCase() + word.slice(1).replace(/([a-z])([A-Z])/g, "$1 $2");
+  // The pool's name as the bar and the sheet print it: its own words when the
+  // language file has them (Sieg's "DRCS", #345), else `resourceLabel`'s.
+  const translation = `FGT.Pool.${word}`;
+  const label = game.i18n?.has?.(translation) ? game.i18n.localize(translation) : resourceLabel(word);
   return before === after ? `${label} ${after} (no change)` : `${label} ${before} → ${after}`;
 }
 

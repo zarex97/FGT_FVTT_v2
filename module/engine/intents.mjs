@@ -749,6 +749,11 @@ function rankOf(intent) {
   // maximum first and cut again; before a revival, which restores a share of
   // the lowered one.
   if (intent.t === "statDelta" && intent.afterDamage) return ORDER.damage + 0.25;
+  // ...and a restore that rides an effect's landing, after the effect, as
+  // Proliferation's heal is: Max HpUp's *"current Health restored by the same
+  // amount"* was clamped to the maximum before the buff raised it, so at full
+  // Health Man-made Hero read "Health 500 (no change)" (#345, found live).
+  if (intent.t === "statDelta" && intent.afterEffects) return ORDER.applyEffect + 0.5;
   return ORDER[intent.t];
 }
 

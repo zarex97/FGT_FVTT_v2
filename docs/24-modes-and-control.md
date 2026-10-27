@@ -185,4 +185,10 @@ Its current Health is paid once, after the switch (`afterCosts`, `statChange per
 active rules. He is 3×3 by `SizeStep`, grown and shrunk about his centre (`footprint.grows: centre`,
 `engine/token-footprint.mjs#centredOrigin`), the corner Kingprotea's owner picks only at a board edge. His usage 1,
 taken as Fafnir, queues the Mode's end for the Turn's end (`setMode` with `atTurnEnd`, the queue an off-Turn End
-waits in) and charges a second NP price (`additionalCosts` with a `predicate`).
+waits in) and charges a second NP price (`additionalCosts` with a `predicate`). The caster pass at declaration
+writes that queue; the attack path's own `setMode` writer skips an `atTurnEnd` phase, or it switched Fafnir off at
+once and that Turn's upkeep never charged (found live). His Skills' refusals name the Skill (`costs.mjs`, the
+`abilityLocked` detail). Switched off by his own press, the token follows: the footprint sync hears an item's
+`active` switch as well as actor and effect writes (`engine/token-footprint.mjs`). A form's own abilities are not on
+the bar or the sheet until it is taken (`rules/form.mjs#heldNow`); his own, dropped, stay greyed with their reason.
+X is summed in ◈ and turned into Turns once (`transform.mjs#lastingTurns`: 5, 6, 8, 9 at three Turns a Round).
