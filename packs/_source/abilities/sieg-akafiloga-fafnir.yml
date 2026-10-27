@@ -1,0 +1,145 @@
+# Sieg, char_orig_sheets/by-class/Caster/Sieg.md (#345)
+#
+# Akafiloga Argrise, usage 2: Fafnir.
+#
+# > "2. (Activation/Non-damaging) When Akafiloga Argrise is used in this
+# > manner, Sieg transforms into Fafnir. As Fafnir, the following effects are
+# > applied to him-
+# > a. Max & current Health is increased by 300% (quadrupled).
+# > b. Base Attack (STR) is increased by 150, Base Attack (MAG) is increased by
+# >    125. Normal Attacks at a Range of 1 use Base Attack (STR); Normal Attacks
+# >    at a Range or 2 or higher use Base Attack (MAG).
+# > c. All damage taken is reduced by 75%; if NP, 50%. Sieg (Fafnir) does not
+# >    perform Injury Rolls when damaged by an Attack unless he was damaged by a NP.
+# > d. Sieg (Fafnir) cannot Block; and when he performs an Agility Check, double
+# >    the value of the roll.
+# > e. Sieg (Fafnir) can Move to any panel, when he Moves to any occupied
+# >    panels, all Units occupying said panels are knocked back by 1 panel until
+# >    the space is free for him to stand on.
+# > f. Sieg (Fafnir) gains the 'Large' Attribute.
+# > g. At the end of every Turn this NP is Active, Sieg's Master loses 40 Health
+# >    at the end of each Turn if Sieg (Fafnir) Acted; and 20 Health if he did
+# >    not Act (instead of the normal Master Health loss that occurs when an NP
+# >    is used). If the Master's Health is less than 40 or 20, the NP is forcibly
+# >    ended at the end of the Turn, the Master does not suffer Health loss if
+# >    this happens.
+# > h. Sieg (Fafnir) cannot use any Skills or NP excluding the 1st usage of
+# >    Akafiloga Argrise while this NP is Active.
+# > i. [usage 1 as Fafnir: `sieg-akafiloga-argrise`]
+# > j. Sieg can end Akafiloga Agrise during his Turn, or at the start or end of
+# >    any Turn or Round.
+# > Cooldown: 8◈ Turns after Akafiloga Argrise ends.
+# > Note: Usage 1 of Akafiloga Agrise cannot be used if Usage 2 is on Cooldown
+# > and vice versa."
+#
+# Sieg with effects applied, not another sheet (#345 ruling 6): an Activation NP
+# Mode, as Tenmōkaikai is, so his own passives hold. Every letter is an active
+# rule but a's current Health, paid once as he turns (`afterCosts`, so the
+# maximum has already risen), and the size, 3x3 by the user's word (ruling F)
+# and grown about his centre (`footprint.grows`, rulings 19, 23). When it ends
+# the maximum falls and the current only to fit (ruling 14).
+#
+# g is Tenmōkaikai's upkeep, its test before its drain (ruling 16): at or below
+# what is due, the NP ends and the Master pays nothing; no NP price as he turns
+# (`noMasterCost`). "Acted" is his own, the switch included (#194 ruling 2).
+schema: 1
+id: sieg-akafiloga-fafnir
+name: "Akafiloga Argrise: Fafnir"
+rank: EX
+kind: noblePhantasm
+slug: fafnir
+isNP: true
+isMode: true
+npTags: [antiUnitSelf]
+noMasterCost: true
+timing: { window: ownTurn }
+cooldown:
+  max: "8◈"
+  countFrom: deactivation
+deactivation: { byOwner: true, window: any }
+copyable: { allowed: false, reason: named }
+requirements:
+  # The Note: not while usage 1 is on its Cooldown.
+  - { kind: abilityOffCooldown, abilityIds: [sieg-akafiloga-argrise] }
+description: |
+  Usage 2 (Activation/Non-damaging). Sieg transforms into Fafnir. As Fafnir:
+  a. Max & current Health is increased by 300% (quadrupled).
+  b. Base Attack (STR) is increased by 150, Base Attack (MAG) is increased by 125.
+  c. All damage taken is reduced by 75%; if NP, 50%. No Injury Rolls when damaged by an Attack unless by an NP.
+  d. Cannot Block; when he performs an Agility Check, double the value of the roll.
+  e. Can Move to any panel; Units on panels he Moves into are knocked back by 1 panel until he can stand there.
+  f. Gains the 'Large' Attribute. He is 3x3.
+  g. At the end of every Turn this NP is Active, Sieg's Master loses 40 Health if Fafnir Acted, 20 if he did not
+     (instead of the usual NP cost). If the Master's Health is not above that, the NP ends at that Turn's end and the
+     Master loses nothing.
+  h. Cannot use any Skill or NP but @np[sieg-akafiloga-argrise]{Usage 1}.
+  j. Sieg can end it during his Turn, or at the start or end of any Turn or Round.
+  Cooldown: 8◈ Turns after it ends. Cannot be used while Usage 1 is on Cooldown.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  # a. The current, once, after the switch has raised the maximum.
+  - kind: statChange
+    target: self
+    afterCosts: true
+    changes:
+      - { stat: health, percentOfCurrent: 300 }
+activeRules:
+  # a. The maximum, while he is Fafnir.
+  - { key: MaxDelta, stat: health, value: "3 * @self.baseHealth" }
+  # b. Both Base Attacks. The Normal Attack's bands are his own (Bridal Chest
+  # Passive 1), which b restates.
+  - { key: BaseAttackModifier, add: 150, components: [str] }
+  - { key: BaseAttackModifier, add: 125, components: [mag] }
+  # c. Mad Enhancement's damage-taken cut, with its NP figure.
+  - { key: DamageModifier, modifierKey: defUp, direction: taken, value: 75, npValue: 50 }
+  # c. The Golden Hind's *"Only performs Injury Roll when damaged by NP"*.
+  - { key: StatDelta, stat: attributes, add: [injuryOnlyFromNP] }
+  # d.
+  - { key: ForbidReaction, reaction: block }
+  - { key: CheckModifier, check: agility, value: 0, rollFactor: 2 }
+  - { key: CheckModifier, check: evade, value: 0, rollFactor: 2 }
+  # e. Kingprotea's: through the occupied panels, their Units shoved on along
+  # his last step (ruling 20).
+  - { key: GrantedAbility, abilities: [ignoresOccupancy] }
+  - { key: Knockback, direction: arrival }
+  # f.
+  - { key: StatDelta, stat: attributes, add: [large] }
+  - { key: SizeStep, value: 2 }
+  # h. Usage 1 spared, and this switch, so he can end it.
+  - { key: Suppress, scope: abilityUse, except: [akafilogaArgrise, fafnir] }
+  # g. His Master's upkeep, the test before the drain.
+  - key: OnEvent
+    event: anyTurnEnd
+    automatic: true
+    defer: true
+    predicate: ["self:selfOrSummonsActed"]
+    then:
+      - key: SetMode
+        ability: fafnir
+        active: false
+        whenValue: { subject: master, stat: health.value, lte: 40 }
+      - key: StatDelta
+        subject: master
+        stat: health.value
+        amount: 40
+        direction: down
+        whenValue: { subject: master, stat: health.value, gte: 41 }
+  - key: OnEvent
+    event: anyTurnEnd
+    automatic: true
+    defer: true
+    predicate: [{ not: "self:selfOrSummonsActed" }]
+    then:
+      - key: SetMode
+        ability: fafnir
+        active: false
+        whenValue: { subject: master, stat: health.value, lte: 20 }
+      - key: StatDelta
+        subject: master
+        stat: health.value
+        amount: 20
+        direction: down
+        whenValue: { subject: master, stat: health.value, gte: 21 }

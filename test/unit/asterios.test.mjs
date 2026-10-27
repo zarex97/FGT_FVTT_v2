@@ -380,6 +380,9 @@ describe("a non-damaging Noble Phantasm", () => {
       "raikou-tenmokaikai",
       "semiramis-hanging-gardens-of-babylon",
       "semiramis-sikera-usum",
+      // Sieg's Akafiloga Argrise, usage 2 (#345): *"(Activation/Non-damaging)"*.
+      // Its one phase pays Fafnir's quadrupled Health; the rest is the Mode's.
+      "sieg-akafiloga-fafnir",
       // Vlad III (#330): Kazıklı Bey opens a field over Wallachia whose ticks
       // are no Attack; its Active 2 strikes with no Combat Process; Legend of
       // Dracula changes him for good and kills a Master in Wallachia.

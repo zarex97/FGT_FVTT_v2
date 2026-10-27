@@ -1,0 +1,66 @@
+# Sieg, char_orig_sheets/by-class/Caster/Sieg.md (#345)
+#
+# Dead Count Shapeshifter: Dragon Revelation Command Spells, usage 1.
+#
+# > "1. Used during your Turn. Reduces Sieg's NP Cooldown by 1◈ Turns and
+# > applies Dmg Up (Dragon) for ⅓◈ Turns, all damage dealt to Units with the
+# > 'Dragon' Attribute is increased by 100%; if NP, 50%. Then, this Skill has a
+# > 25% chance of consuming one of Sieg's DRCS. Cooldown: 3◈ Turns.
+# > This usage of this Skill can be used while Sieg has no DRCS left, but NP
+# > Cooldown is only reduced by ½◈ Turns, and Dmg Up (Dragon) increases the
+# > damage dealt to 'Dragon' Attribute Units by 50%; if NP, 25%."
+#
+# Usage 2 is `sieg-dead-count-shapeshifter`, with a clock of its own (#345
+# ruling 5): the sheet prints a lock where it means one, and prints none here.
+#
+# Which figures apply is read once, before anything is spent: a phase's
+# `predicate` asks the caster's options as the use began (`self:resourceEmpty`).
+# The 25% die is on the card even with none left, and then consumes nothing
+# (ruling 5): the pool's writer stops at 0, and its line says "no change".
+# Siegfried's Dmg Up (Dragon) states no NP figure; Sieg's sheet does, so the
+# entry carries it (a sheet binds only its owner).
+schema: 1
+id: sieg-dragon-revelation
+name: "Dead Count Shapeshifter: Dragon Revelation"
+rank: EX
+kind: skill
+slug: dragonRevelation
+cooldown: "3◈"
+timing: { window: ownTurn }
+description: |
+  (Active) When Sieg is summoned, he has three Dragon Revelation Command Spells (DRCS). Usage 1:
+  Used during your Turn. Reduces Sieg's NP Cooldown by 1◈ Turns and applies @effect[dmgUpDragon]{Dmg Up (Dragon)} for ⅓◈ Turns,
+  all damage dealt to Units with the 'Dragon' Attribute is increased by 100%; if NP, 50%. Then, this Skill has a 25%
+  chance of consuming one of Sieg's DRCS. Cooldown: 3◈ Turns.
+  This usage of this Skill can be used while Sieg has no DRCS left, but NP Cooldown is only reduced by ½◈ Turns, and
+  Dmg Up (Dragon) increases the damage dealt to 'Dragon' Attribute Units by 50%; if NP, 25%.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: cooldown
+    target: self
+    predicate: [{ not: "self:resourceEmpty:drcs" }]
+    changes:
+      - { scope: np, ticks: "1◈", direction: down }
+  - kind: cooldown
+    target: self
+    predicate: ["self:resourceEmpty:drcs"]
+    changes:
+      - { scope: np, ticks: "½◈", direction: down }
+  - kind: applyEffects
+    target: self
+    predicate: [{ not: "self:resourceEmpty:drcs" }]
+    effects:
+      - { id: dmgUpDragon, duration: "⅓◈", magnitude: 100, npMagnitude: 50 }
+  - kind: applyEffects
+    target: self
+    predicate: ["self:resourceEmpty:drcs"]
+    effects:
+      - { id: dmgUpDragon, duration: "⅓◈", magnitude: 50, npMagnitude: 25 }
+  - kind: resource
+    target: self
+    chance: { value: 25, label: "Dragon Revelation consumes a DRCS" }
+    changes:
+      - { key: resources.drcs.value, delta: -1 }

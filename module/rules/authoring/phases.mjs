@@ -71,6 +71,9 @@ const COMMON = Object.freeze([
   // door, and it was open onto nothing.
   { key: "target", type: "select", choices: ["reuse", "self", "linkedGroup", "master"] },
   { key: "predicate", type: "predicateList" },
+  // Asked of each Unit the phase reaches, the caster in scope: Legend of
+  // Dracula's Master inside Wallachia (#330), Sieg's Heilen on himself (#345).
+  { key: "targetPredicate", type: "predicateList" },
   { key: "when", type: "text" },
   // A die for the whole phase: a percent, or `{value, perPriorUse, max, label}`
   // growing with each use (`rules/phase-chance.mjs`; Prelati's Encouragement, #260).
@@ -156,6 +159,8 @@ export const PHASE_DESCRIPTORS = describeTable([
     // Off for a span: the mode cannot be switched back on until it passes
     // (Arturia's Strike Air and Excalibur on Invisible Air, #230).
     { key: "suspendFor", type: "text" },
+    // Off at this Turn's end rather than now: Fafnir's usage 1 (#345).
+    { key: "atTurnEnd", type: "checkbox" },
   ]),
   entry("removeEffect", 50, "Strips effects off whoever this ability caught.", [
     { key: "effects", type: "tokenList" },
@@ -193,7 +198,6 @@ export const PHASE_DESCRIPTORS = describeTable([
   // Legend of Dracula (#330 ruling 12): *"if the Master is within Wallachia
   // when it is activated, Vlad will immediately kill his Master"*.
   entry("defeat", 40, "Defeats the Unit outright, its user the killer: no damage, no revival.", [
-    { key: "targetPredicate", type: "predicateList" },
     { key: "cause", type: "text" },
   ]),
   entry("zone", 40, "Paints terrain over an area.", [

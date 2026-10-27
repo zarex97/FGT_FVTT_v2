@@ -318,6 +318,11 @@ async function onTurnChange(combat, prior, current) {
   const { advanceChannels } = await import("./channel.mjs");
   await advanceChannels(board.units, tick);
 
+  // A form whose Turns are spent comes back: Sieg's Siegfried, *"lasts for X
+  // Turns"* (#345). Every Turn's end, as every ◈ clock counts the global Turn.
+  const { returnForms } = await import("./transform.mjs");
+  await returnForms(board.units, tick);
+
   // A mode whose duration was "this Turn" ends with it. Riding's Active is
   // *"Increases MOV by 6 panels for this Turn"*, and nothing switched the mode
   // off, so the +6 ran on through the enemy's Turns (#116). Before `globalTurn`

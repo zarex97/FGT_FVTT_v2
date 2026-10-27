@@ -33,10 +33,36 @@ export function formOf(actor) {
  */
 export function keptByForm(actor, item) {
   const form = formOf(actor);
+  // An ability that is the FORM's, and only there: Siegfried's kit on Sieg
+  // (#345). Gone until that form is taken.
+  const only = item?.system?.formOnly ?? null;
+  if (only) return form?.id === only;
   if (!form) return true;
   if (item?.type !== "ability" && item?.type !== "noblePhantasm") return true;
   if (item.id === form.abilityId) return true;
   return (form.spec.keeps ?? []).includes(item.system?.contentId);
+}
+
+/**
+ * Who the Unit IS while in its form: the identity a form that is another
+ * Servant's sheet replaces (Siegfried on Sieg, #345 ruling 1). Its own sheet's
+ * otherwise. The one reader both projections ask (`rules/snapshot.mjs`).
+ *
+ * @param {object} actor
+ * @returns {{trueName: string|null, servantClasses: string[], alignment: object|null,
+ *   region: string[], parameters: object, baseHealth: number|null}}
+ */
+export function formSheet(actor) {
+  const sys = actor?.system ?? {};
+  const o = formOf(actor)?.spec?.overrides ?? {};
+  return {
+    trueName: o.trueName ?? sys.trueName ?? null,
+    servantClasses: [...(o.servantClasses ?? sys.servantClasses ?? [])],
+    alignment: o.alignment ?? sys.alignment ?? null,
+    region: [...(o.region ?? sys.region ?? [])],
+    parameters: o.parameters ?? sys.parameters ?? {},
+    baseHealth: o.baseHealth ?? sys.baseHealth ?? null,
+  };
 }
 
 /**

@@ -4,14 +4,14 @@
 # > 'Dragon' Attribute is further increased by 60%~~; if NP, 35%~~."
 #
 # Scáthach's Dmg Up (Gods) with another Attribute: Appendix A's Dmg Up, which
-# takes no reduced magnitude against an NP, so no `npValue`. The sheet strikes
+# takes no reduced magnitude against an NP unless its application states one. The sheet strikes
 # the NP figure, and the struck text agrees (DS.dmg.np). An Anti-Dragon effect
 # (`rules/options.mjs#antiAttributesOf`): Balmung counts it, and an attack it
 # raises meets Armor of Fafnir unarmoured.
 schema: 1
 id: dmgUpDragon
 name: "Dmg Up (Dragon)"
-description: "Damage dealt to Units with the Dragon Attribute is increased by X%, Noble Phantasms included."
+description: "Damage dealt to Units with the Dragon Attribute is increased by X%; Noble Phantasms by the same, or by a reduced figure the application states."
 polarity: buff
 volatility: nonVolatile
 valence: offensive
@@ -22,4 +22,8 @@ rules:
     modifierKey: dmgUp
     direction: dealt
     value: "@magnitude"
+    # The NP figure an application states, else the full one: Siegfried's states
+    # none, Sieg's Dragon Revelation *"if NP, 50%"* (#345). A null `npMagnitude`
+    # leaves the NP at `value` (`snapshot.mjs#resolveRuleValues`).
+    npValue: "@npMagnitude"
     predicate: ["target:attribute:dragon"]
