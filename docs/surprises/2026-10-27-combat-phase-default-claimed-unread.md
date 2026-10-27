@@ -13,5 +13,5 @@ of a Combat Phase"*, was ruled the same (#208 reading 8). Runner Comet alone tak
 **Cause:** `module/rules/windows.mjs:70 @ 4131dd53` — I took the comment above `defendingPhaseStart` (*"every other 'at
 the start of a Combat Phase' in the corpus ... is about the attack its user is making"*) as the rule, without reading
 the abilities that use the window. EMIYA's ruling came after that comment and left it stale.
-**Fix:** `docs/superpowers/specs/2026-10-27-sieg-clauses.md` @ uncommitted — Q8 re-asked with the quotations and the
+**Fix:** `docs/superpowers/specs/2026-10-27-sieg-clauses.md` @ ab3d28a9 — Q8 re-asked with the quotations and the
 pick reversed. The stale comment in `windows.mjs` is corrected when Sieg is built.
