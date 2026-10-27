@@ -38,7 +38,7 @@ import { predicateSitesIn } from "../../module/rules/authoring/predicates.mjs";
 import { ABILITY_KINDS } from "../../module/rules/authoring/ability.mjs";
 import { PHASE_IDS } from "../../module/rules/authoring/phases.mjs";
 import { SELECTOR_KEYS } from "../../module/rules/removal.mjs";
-import { ENTRY_KEYS, EFFECT_PARAMS } from "../../module/rules/effect-flow.mjs";
+import { ENTRY_KEYS, EFFECT_PARAMS, entryOf } from "../../module/rules/effect-flow.mjs";
 import { countSpecsIn, countProblems } from "../../module/rules/count.mjs";
 import { CUT_KINDS } from "../../module/rules/elements.mjs";
 import { FAILURE_THEN, FAILURE_CLASSES } from "../../module/rules/use-failure.mjs";
@@ -993,6 +993,49 @@ function phaseKindsAreKnown(doc, path, problems) {
   walk(doc?.phases, "phases");
 }
 
+/**
+ * Every Effect Entry names only keys `rules/effect-flow.mjs#entryOf` keeps.
+ *
+ * `entryOf` copies the keys {@link ENTRY_KEYS} lists and drops the rest without
+ * a word. Balmung's `countedOnly`, authored before the list held it, landed NP
+ * Regen (Balmung) at 0 on a clean build (#342). Checked on the entry, on what
+ * a wrapper writes beside its `effect`, on its `otherwise` (entry keys, or a
+ * DU's `stats`), and on a handler's `ApplyEffect` effect, which also spells the
+ * id `defId` and a stage `stage`.
+ *
+ * @param {object} doc
+ * @param {string} path
+ * @param {string[]} problems
+ */
+function entryKeysAreKnown(doc, path, problems) {
+  const known = new Set(Object.keys(ENTRY_KEYS));
+  const refuse = (where, keys, also = []) => {
+    for (const key of keys) {
+      if (known.has(key) || also.includes(key)) continue;
+      problems.push(`${path}: ${where} states "${key}", which is no Effect Entry key -- entryOf drops it. Expected one of ${[...known, ...also].join(", ")}`);
+    }
+  };
+  for (const { where, raw, action } of effectEntriesIn(doc)) {
+    if (action) {
+      refuse(where, Object.keys(raw), ["defId", "stage"]);
+      continue;
+    }
+    if (!entryOf(raw)) continue;
+    const inner = raw.effect && typeof raw.effect === "object" ? raw.effect : raw;
+    refuse(inner === raw ? where : `${where}.effect`, Object.keys(inner));
+    // The older wrapper, `{key: OnEvent, event, effect: {...}}`: its two keys
+    // name the shape and no rider path reads them.
+    if (inner !== raw) refuse(where, Object.keys(raw).filter((k) => !WRAPPER_KEYS.includes(k)));
+    const otherwise = inner.otherwise ?? raw.otherwise;
+    if (otherwise && typeof otherwise === "object" && !Array.isArray(otherwise)) {
+      refuse(`${where}.otherwise`, Object.keys(otherwise), ["stats"]);
+    }
+  }
+}
+
+/** What a wrapped entry writes beside its `effect` that names the shape, not the entry. */
+const WRAPPER_KEYS = ["effect", "key", "event"];
+
 /** What `rules/phase-chance.mjs#phaseChance` reads off a phase's `chance`. */
 const PHASE_CHANCE_KEYS = ["value", "perPriorUse", "max", "label", "modifiers"];
 
@@ -1477,6 +1520,9 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
   // Every Count names a kind `rules/count.mjs` reads, with the keys that kind
   // needs (#319, Q19): an unknown one would size a sheet's number at zero.
   countsAreKnown(doc, path, problems);
+  // Every Effect Entry key is one `entryOf` keeps (#342), on an Actor too: a
+  // Servant's embedded abilities write entries.
+  entryKeysAreKnown(doc, path, problems);
   useFailuresAreKnown(doc, path, library, problems);
 
   if (PACKS[dir]?.documentType === "Actor") {
@@ -2238,6 +2284,40 @@ export function phaseEffects(doc) {
       if (spec && typeof spec === "object") out.push([`phases[${index}].rules[${k}]`, spec]);
     }
   }
+  return out;
+}
+
+/**
+ * Every Effect Entry a document writes, at any depth, with its path: an
+ * `applyEffects` phase's, a check's outcomes', an aftermath's, and the effect
+ * of a handler's `ApplyEffect` action (`action: true`). A phase's options and
+ * a Servant's embedded abilities are walked too. The build's key check and
+ * `test/unit/landing-one-door.test.mjs` read entries through this one walker.
+ *
+ * @param {unknown} node
+ * @param {string} [where]
+ * @param {Array<{where: string, raw: object, action: boolean}>} [out]
+ * @returns {Array<{where: string, raw: object, action: boolean}>}
+ */
+export function effectEntriesIn(node, where = "", out = []) {
+  const at = (key) => (where ? `${where}.${key}` : key);
+  if (Array.isArray(node)) {
+    node.forEach((n, i) => effectEntriesIn(n, `${where}[${i}]`, out));
+    return out;
+  }
+  if (!node || typeof node !== "object") return out;
+  const push = (list, place) => {
+    for (const [i, raw] of (Array.isArray(list) ? list : []).entries()) {
+      if (raw && typeof raw === "object") out.push({ where: `${place}[${i}]`, raw, action: false });
+    }
+  };
+  if (isEffectPhase(node)) push(node.rules ?? node.effects, at(node.rules ? "rules" : "effects"));
+  for (const branch of ["onSuccess", "onFail"]) push(node[branch]?.effects, at(`${branch}.effects`));
+  push(node.aftermath?.effects, at("aftermath.effects"));
+  if (node.key === "ApplyEffect" && node.effect && typeof node.effect === "object") {
+    out.push({ where: at("effect"), raw: node.effect, action: true });
+  }
+  for (const [key, value] of Object.entries(node)) effectEntriesIn(value, at(key), out);
   return out;
 }
 
