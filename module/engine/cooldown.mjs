@@ -72,7 +72,10 @@ export function cooldownFor(ability, actorId, { count = 0, unit = null, use = {}
   //
   // Found live: the mount was summoned, and the Noble Phantasm reported 21
   // ticks remaining while its platform was on the board.
-  if (cd.countFrom === "deactivation" || cd.countFrom === "destroyed") {
+  // `formEnd`: Dead Count Shapeshifter's *"Cooldown: 3◈ Turns plus the number
+  // of Turns Sieg was transformed for, after the transformation ends"* (#345),
+  // started by `engine/transform.mjs#leaveForm`.
+  if (cd.countFrom === "deactivation" || cd.countFrom === "destroyed" || cd.countFrom === "formEnd") {
     return { cooldowns: [], spends: [] };
   }
 

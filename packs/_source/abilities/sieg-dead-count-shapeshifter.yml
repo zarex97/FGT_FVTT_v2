@@ -1,0 +1,74 @@
+# Sieg, char_orig_sheets/by-class/Caster/Sieg.md (#345)
+#
+# Dead Count Shapeshifter: Dragon Revelation Command Spells, usage 2.
+#
+# > "2. Used during your Turn or at the start of a Combat Phase. Requires 1 DRCS
+# > to use. When this Skill is used, reduce Sieg's DRCS by 1, then Sieg is
+# > transformed into Siegfried, with all Skills and NP available and usable
+# > (although NP can only be used if the number of Rounds passed meets the game
+# > conditions). Roll a four-sided die. Sieg's transformation into Siegfried
+# > lasts for X Turns, where X=(1◈+[½◈*Number rolled on the four-sided die]).
+# > When Sieg transforms into 'Siegfried', he keeps all buffs, debuffs, and
+# > other effects that were affecting him before he transformed. When the
+# > transformation ends, 'Siegfried' transforms back into Sieg with his Stats
+# > and Skill/Spell/NP Cooldowns the same as they were before he transformed,
+# > then his Health is reduced by 100 (Sieg's Health cannot drop below 1 in
+# > this way). Cooldown: 3◈ Turns plus the number of Turns Sieg was transformed
+# > for, after the transformation ends.
+# > Note: New Stats have to be rolled for the transformed Sieg. Any + or - to
+# > Sieg's Parameters are carried over to the transformed Sieg."
+#
+# A form that comes back (`engine/transform.mjs`): Siegfried's whole sheet,
+# `asServant: siegfried`, his statblock and his seven abilities compiled onto
+# Sieg (#345 ruling 1). Of Sieg's own, Galvanism stays (*"in effect even while
+# Sieg is transformed"*), and Bridal Chest for its growth's count (ruling 22).
+# Health enters at Siegfried's full; Agility and Luck are rolled by his AGI B
+# and LUC E (ruling 2). Sieg's clocks wait, Siegfried's start fresh, effects
+# carry both ways (ruling 3). The die and X are on the card. Felled as
+# Siegfried, the Unit is defeated (ruling 4).
+#
+# Any Combat Phase he is in, as Karna's identical words (ruling 8). Its clock is
+# its own (ruling 5), counted from the return: 3◈ plus the Turns he was gone.
+schema: 1
+id: sieg-dead-count-shapeshifter
+name: "Dead Count Shapeshifter: Siegfried"
+rank: EX
+kind: skill
+slug: deadCountShapeshifter
+cooldown: { max: "3◈", countFrom: formEnd }
+timing: { window: [ownTurn, combatPhaseStart, defendingPhaseStart] }
+countsAsAttack: false
+requirements:
+  - { kind: resourceAtLeast, key: drcs, amount: 1 }
+  # Not again while he is Siegfried: the form keeps the ability that defines it.
+  - { kind: predicate, predicate: [{ not: "self:form:siegfried" }] }
+description: |
+  (Active) Usage 2. Used during your Turn or at the start of a Combat Phase. Requires 1 DRCS to use. When this Skill is
+  used, reduce Sieg's DRCS by 1, then Sieg is transformed into Siegfried, with all Skills and NP available and usable
+  (although NP can only be used if the number of Rounds passed meets the game conditions). Roll a four-sided die.
+  Sieg's transformation into Siegfried lasts for X Turns, where X=(1◈+[½◈*Number rolled on the four-sided die]).
+  When Sieg transforms into 'Siegfried', he keeps all buffs, debuffs, and other effects that were affecting him
+  before he transformed. When the transformation ends, 'Siegfried' transforms back into Sieg with his Stats and
+  Skill/Spell/NP Cooldowns the same as they were before he transformed, then his Health is reduced by 100 (Sieg's
+  Health cannot drop below 1 in this way). Cooldown: 3◈ Turns plus the number of Turns Sieg was transformed for,
+  after the transformation ends.
+  Note: New Stats have to be rolled for the transformed Sieg. Any + or - to Sieg's Parameters are carried over to
+  the transformed Sieg.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: resource
+    target: self
+    changes:
+      - { key: resources.drcs.value, delta: -1 }
+  - kind: transform
+form:
+  id: siegfried
+  asServant: siegfried
+  keeps: [sieg-galvanism, sieg-bridal-chest]
+  pools: { health: full, agility: roll, luck: roll }
+  lasts: { base: "1◈", die: "1d4", per: "½◈" }
+  returns:
+    toll: { stat: health, amount: 100, floor: 1 }

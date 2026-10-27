@@ -40,7 +40,7 @@ import { annotateControl } from "./control.mjs";
 import { tierOf } from "./master-rank.mjs";
 import { isUnbound } from "./cs-namespacing.mjs";
 import { closeAttributes } from "../domain/attributes.mjs";
-import { formOf, formOverrides, keptByForm } from "./form.mjs";
+import { formOf, formOverrides, formSheet, keptByForm } from "./form.mjs";
 import { rollOptionsFor } from "./options.mjs";
 import { platformsOn, luckOwnerOf } from "./platforms.mjs";
 import { annotateFields, withoutForeignEffects } from "./bounded-fields.mjs";
@@ -280,7 +280,10 @@ export function snapshotUnit(actor, {
     // The summon used to bake the Region into this field as well
     // (`engine/summon.mjs#commitSummon`), which counted it twice on a board and
     // labelled it as the Master's on a sheet.
-    parameters: applyGrantedSteps(parseParameters(sys.parameters), sys.grantedSteps),
+    // A form that is another Servant's sheet has its Parameters, the steps he
+    // was granted carried over: *"Any + or - to Sieg's Parameters are carried
+    // over"* (#345).
+    parameters: applyGrantedSteps(parseParameters(formSheet(actor).parameters), sys.grantedSteps),
     // ...and the letters the sheet stores, for the one reader that writes them
     // back: a rewind (`rules/history.mjs#snapshotUnit`). The Ranks above carry
     // the granted steps and clone to {} in a flag (#247, live).
@@ -292,7 +295,7 @@ export function snapshotUnit(actor, {
     // The AUTHORED maximum Health, which is not `health.max` once anything has
     // grown it. Kingprotea's Proliferation pays *"20% of Kingprotea's ORIGINAL
     // Max Health"* per stock, and reading the live maximum there compounds.
-    baseHealth: sys.baseHealth ?? null,
+    baseHealth: formSheet(actor).baseHealth,
     // Abilities can grant attributes -- Divinity grants `divine`, which is what
     // Karna's Vasavi Shakti and Scathach's God Slayer key on.
     //
@@ -312,7 +315,7 @@ export function snapshotUnit(actor, {
     }),
     // Where the unit is from. Predicates name it -- "damage dealt to Male Units
     // from the Greece region" -- and nothing carried it before.
-    region: [...(sys.region ?? [])],
+    region: formSheet(actor).region,
     // A resolved summon-time variant (`rules/summon-variant.mjs`) -- `null` for
     // every Servant but the ones authored with a `summonVariant` block.
     //
@@ -458,7 +461,7 @@ export function snapshotUnit(actor, {
     ])],
     // ...and the rungs this Unit takes from whoever it attacks (#103).
     refusesReactions: [...new Set(contributions.refusesReactions ?? [])],
-    alignment: sys.alignment ?? null,
+    alignment: formSheet(actor).alignment,
     // A Master's stored letter (Ch. 06). `masterTier` is derived from it
     // by `annotateMasterRank`, which needs the board: a Servant's tier is its
     // MASTER's, and only the board knows who that is.
@@ -601,7 +604,7 @@ export function snapshotUnit(actor, {
     // and overwrites the three fields below. A unit snapshotted alone reports
     // "inside", which is the safe answer -- the penalty applies to a Servant
     // provably outside its Master's zone, not to one we could not measure.
-    servantClasses: [...(sys.servantClasses ?? [])],
+    servantClasses: formSheet(actor).servantClasses,
     masterId: sys.masterId ?? null,
     zonBonuses: contributions.zonBonuses ?? [],
     npGateShifts: contributions.npGateShifts ?? [],
@@ -707,7 +710,7 @@ export function snapshotUnit(actor, {
       }]
       : (contributions.suppressions ?? []),
     // Identity and Detect (Ch. 06, Ch. 05).
-    trueName: sys.trueName ?? null,
+    trueName: formSheet(actor).trueName,
     classContainer: sys.classContainer ?? [...(sys.servantClasses ?? [])][0] ?? null,
     concealedIdentity: sys.concealedIdentity || null,
     identityRevealed: Boolean(sys.identityRevealed),
@@ -2079,13 +2082,13 @@ export function contributionsOf(actor, { terrain = [], tick = null, partnerDista
         [...(actor.effects ?? [])].filter((e) => !e.disabled && !e.isSuppressed).map((e) => e.system?.defId).filter(Boolean),
         EffectRegistry,
       ),
-      region: [...(sys.region ?? [])],
+      region: formSheet(actor).region,
       // The War it stands in, so an ability's `availableWhen` and a `war:` clause
       // answer at collection (#314). Absent, `war:` options are simply not there.
       war,
       // Its Classes, so `self:class:` and `self:classGroup:` answer from its own
       // contributions as they do on the board (#286, #314).
-      servantClasses: [...(sys.servantClasses ?? [])],
+      servantClasses: formSheet(actor).servantClasses,
       variant: sys.variant ?? null,
       // `self:free`, and the `self:rank:<parameter>:gte:<grade>` ladder. Both
       // emitters read a field this object did not carry, so both were
@@ -2095,7 +2098,7 @@ export function contributionsOf(actor, { terrain = [], tick = null, partnerDista
       // in `options.mjs` as the clause `self:free` exists for, and it had never
       // once collected; Medusa's narrower version of it is the second.
       contract: sys.contract ?? null,
-      parameters: sys.parameters ?? {},
+      parameters: formSheet(actor).parameters,
       // The stance, and the third entry in this comment's own list of fields
       // this object did not carry. Achilles's whole sheet is gated on it, so
       // without these two every "while Mounted" clause was unsatisfiable from
@@ -2238,7 +2241,7 @@ export function expressionRefs(actor, extras = {}) {
       // The AUTHORED maximum, before anything grew it. Kingprotea's
       // Proliferation pays *"20% of Kingprotea's original Max Health"* per
       // stock, and `health.max` is not that number once she has one.
-      baseHealth: sys.baseHealth ?? null,
+      baseHealth: formSheet(actor).baseHealth,
       agility: sys.agility ?? null,
       luck: sys.luck ?? null,
       parameters: sys.parameters ?? {},

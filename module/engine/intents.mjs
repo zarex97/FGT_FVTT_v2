@@ -28,8 +28,9 @@ export const INTENT_TYPES = Object.freeze([
   // A standing Effect's magnitude falling (`decay`, #296): its count, and the
   // line the card prints.
   "decayEffect", "tallyMode",
-  // A Unit taking a form, and its grown Range (Gilles's Gigantic Horror, #323).
-  "takeForm", "formRange",
+  // A Unit taking a form, and its grown Range (Gilles's Gigantic Horror, #323);
+  // leaving one that comes back (Sieg as Siegfried, #345).
+  "takeForm", "formRange", "leaveForm",
   // A teaching's record on its two Units (Chiron's Wisdom of Divine Gift, #326).
   "teaching",
   // `setStage` decrements a staged effect without deleting it, and `event`
@@ -114,6 +115,7 @@ const ORDER = Object.freeze({
   // A form's writes are stat writes: its pools, its Range (#323).
   takeForm: 2,
   formRange: 2,
+  leaveForm: 2,
   // Bookkeeping, before the locks that ride with it.
   teaching: 2,
   setMode: 2,
@@ -269,8 +271,18 @@ export const decayEffect = (unitId, effectId, steps, magnitude, defId) =>
  * @param {{formId: string, pools?: object, handOver?: boolean, stands?: boolean}} form
  * @returns {Intent}
  */
-export const takeForm = (unitId, { formId, pools = {}, handOver = false, stands = false }) =>
-  ({ t: "takeForm", unitId, formId, pools, handOver, stands });
+export const takeForm = (unitId, { formId, pools = {}, handOver = false, stands = false, returns = null }) =>
+  ({ t: "takeForm", unitId, formId, pools, handOver, stands, returns });
+
+/**
+ * A Unit leaving a form that comes back (Sieg's Siegfried, #345): no form, no
+ * return owed, and its own pools as they were (`pools`, each `{value, max}`).
+ *
+ * @param {string} unitId
+ * @param {{pools?: Record<string, {value: number, max: number}>}} back
+ * @returns {Intent}
+ */
+export const leaveForm = (unitId, { pools = {} } = {}) => ({ t: "leaveForm", unitId, pools });
 
 /**
  * A form's Range grown, or reset to its own (#323 reading 19).

@@ -1110,6 +1110,9 @@ export function buildAttackSpec({
       // from the rung at declaration and `evadableOnlyBy` makes the Evade roll
       // fail automatically unless the defender holds one of the named effects.
       unblockable: Boolean(block?.unblockable),
+      // *"These DUs can Evade/Block, but cannot Counter"*: Blasted Tree's
+      // splash (#345). The rung closes for the hit, as Block does above.
+      uncounterable: Boolean(block?.uncounterable),
       evadableOnlyBy: [...(block?.evadableOnlyBy ?? [])],
       // *"This NP can only be Evaded with a Luck Check (Lucky Evasion)"*
       // (Yuugao, #249 reading 23): no Evade succeeds, Dodge included, and the
@@ -1219,6 +1222,7 @@ function defenderFields({ attackerId, defenderId, attack, isAoE, ability, board,
       // `rules/concealment.mjs` rather than one being reimplemented here.
       ...agilityRefusals(ability, attackerId, defenderId, board),
       ...(attack?.unblockable ? ["block"] : []),
+      ...(attack?.uncounterable ? ["counter"] : []),
       // Only its own check avoids it (#204 reading 15). Closing the rung
       // closes what follows a failed Evade too: Lucky Evasion and that
       // rung's escape. A Command Spell bought on the card still beats it
@@ -8642,7 +8646,7 @@ async function askAttackerWindow(state, window, message) {
 
   for (const id of cast) {
     const { useSkill } = await import("./skill-use.mjs");
-    const out = await useSkill({ actorId: actor.id, abilityId: id, atWindow: true });
+    const out = await useSkill({ actorId: actor.id, abilityId: id, atWindow: true, placement: windowPlacement(actor.items.get(id), state) });
     if (!out.ok) {
       refused.push(id);
       // To its owner, in words, as a reaction's refusal is (#244 review).
@@ -8672,6 +8676,20 @@ async function askAttackerWindow(state, window, message) {
   // What was CAST, for a window whose cast changes the attack itself: Kazıklı
   // Bey's Active 2 cancels it, or closes its Counter (#330).
   return { ...state, windowAbilities: carried, castAbilities: cast.filter((id) => !refused.includes(id)) };
+}
+
+/**
+ * Where a window cast is aimed. Sieg's Knacken is *"at the start of a Combat
+ * Phase on the DU (needs to be within Range)"* (#345): its `targetUnit` anchor
+ * takes the Process's DU and asks the Range itself. Unaimed otherwise, as every
+ * window cast was.
+ *
+ * @param {object|null} item
+ * @param {object} state
+ * @returns {object}
+ */
+function windowPlacement(item, state) {
+  return item?.system?.windowTarget === "defender" && state.defenderId ? { unitId: state.defenderId } : {};
 }
 
 /**

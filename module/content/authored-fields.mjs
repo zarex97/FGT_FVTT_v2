@@ -87,6 +87,9 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   // whose rules run while it is held, and the abilities it gives its holder.
   "noMasterCost", "weakPointAimBonus", "afterDefeat", "copyGrant", "freeServantCost", "ignoresNPGate", "worksWhenHeld", "grants", "bondUnitId", "bondMasterId", "grantClocks",
   "freeAction", "freeAtWindow", "cancelsAttackWhenDefending", "withdrawsWhenDefending", "forbidsCounterWhenAttacking",
+  // Sieg (#345): a window cast aimed at the DU, and an ability only his
+  // Siegfried form holds.
+  "windowTarget", "formOnly",
   "timesUsed", "maxUses", "lastUsedTick", "recordedAttacks",
   "recordsAttacks", "shield", "shieldHealth", "negatedBy", "negatedWhile",
   "cancelsNP", "damage", "reactionOverride", "creates",

@@ -247,6 +247,8 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     ...SCALED,
     { key: "check", type: "text" },
     { key: "direction", type: "select", choices: ["easier", "harder"] },
+    // The die multiplied: Fafnir's *"double the value of the roll"* (#345).
+    { key: "rollFactor", type: "number" },
   ]),
   entry("AutoSucceed", "A named check succeeds without rolling, optionally only sometimes.", [
     { key: "check", type: "text" },

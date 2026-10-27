@@ -1586,7 +1586,7 @@ export function worldIO() {
      * @param {string} unitId
      * @param {{formId: string, pools: object, handOver: boolean, stands: boolean}} form
      */
-    async takeForm(unitId, { formId, pools = {}, handOver = false, stands = false }) {
+    async takeForm(unitId, { formId, pools = {}, handOver = false, stands = false, returns = null }) {
       const actor = resolve(unitId);
       if (!actor) return;
       const sys = actor.system ?? {};
@@ -1594,6 +1594,10 @@ export function worldIO() {
       if (typeof pools.health === "number") Object.assign(patch, { "system.health.max": pools.health, "system.health.value": pools.health });
       if (typeof pools.agility === "number") Object.assign(patch, { "system.agility.max": pools.agility, "system.agility.value": pools.agility });
       if (pools.luck === "refill") patch["system.luck.value"] = sys.luck?.max ?? sys.luck?.value ?? 0;
+      // A rolled Luck, as Agility is: Siegfried's *"New Stats have to be rolled"* (#345).
+      if (typeof pools.luck === "number") Object.assign(patch, { "system.luck.max": pools.luck, "system.luck.value": pools.luck });
+      // What a form that comes back returns to (#345).
+      patch["system.formReturn"] = returns ?? null;
       // A defeat it replaces is undone with it: he stands.
       if (stands) patch["system.defeated"] = false;
       await actor.update(patch);
@@ -1611,6 +1615,21 @@ export function worldIO() {
         }
         if (changed) await doc.update({ ownership });
       }
+    },
+
+    /**
+     * Leave a form that comes back: its own pools as they were (#345).
+     * @param {string} unitId @param {{pools?: Record<string, {value: number, max: number}>}} back
+     */
+    async leaveForm(unitId, { pools = {} } = {}) {
+      const actor = resolve(unitId);
+      if (!actor) return;
+      const patch = { "system.formTaken": null, "system.formReturn": null, "system.formRangeBonus": 0 };
+      for (const [stat, pool] of Object.entries(pools ?? {})) {
+        if (typeof pool?.max === "number") patch[`system.${stat}.max`] = pool.max;
+        if (typeof pool?.value === "number") patch[`system.${stat}.value`] = pool.value;
+      }
+      await actor.update(patch);
     },
 
     /**

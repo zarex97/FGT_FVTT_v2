@@ -1,0 +1,91 @@
+# Sieg, char_orig_sheets/by-class/Caster/Sieg.md (#345)
+#
+# > "Bridal Chest: A Maiden's Chastity — Rank: C (NP) [Anti-Unit]
+# > (Passive 1) At a Range of 1, Sieg's Normal Attacks use his Base Attack
+# > (STR). At a Range of 2 or higher, Sieg's Normal Attacks use his Base Attack
+# > (MAG) and deal Lightning damage with a 10% chance of inflicting Shock for 1◈
+# > Turns. If Sieg is affected with NP Seal, his Range is reduced to 1 for the
+# > duration of NP Seal.
+# > (Passive 2) After every 3 full Rounds, increase Sieg's Max and current
+# > Agility by 1 (maximum ~~value is 16~~ increase = 4), and Base Attack (both)
+# > by 10 (no limit) at the end of the Round.
+# > (Passive 3) Sieg gains the 'Galvanism' Skill [...]"
+#
+# Passive 1's bands are his Normal Attack's (`servants/sieg.yml`); the Shock
+# rides the Lightning band, and NP Seal sets his Range to 1, which keeps every
+# swing in the STR band (#345 ruling 10: only what is printed).
+#
+# Passive 2 counts the full Rounds he has stood through (ruling 9): one per
+# Round's end on `bridalRounds`, and at the third it resets and he grows. Each
+# growth is counted on `bridalGrowth`, which sizes both Base Attacks (+10 each,
+# no limit) and his maximum Agility (+1 each, the first four). The current
+# Agility is written once per growth, while it may still rise. Every one of the
+# rules is derived from the count, so a growth that falls while he is Siegfried
+# shows on Sieg when he returns and never on Siegfried (ruling 22): this NP is
+# kept in that form for its count, and its figures wait for him.
+#
+# Passive 3 is `sieg-galvanism`, his own Skill.
+schema: 1
+id: sieg-bridal-chest
+name: "Bridal Chest: A Maiden's Chastity"
+rank: C
+isNP: true
+kind: noblePhantasm
+slug: bridalChest
+npTags: [antiUnit]
+passive: true
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive 1) At a Range of 1, Sieg's Normal Attacks use his Base Attack (STR). At a Range of 2 or higher, Sieg's
+  Normal Attacks use his Base Attack (MAG) and deal Lightning damage with a 10% chance of inflicting @effect[shock]{Shock} for
+  1◈ Turns. If Sieg is affected with @effect[npSeal]{NP Seal}, his Range is reduced to 1 for the duration of NP Seal.
+  (Passive 2) After every 3 full Rounds, increase Sieg's Max and current Agility by 1 (maximum increase = 4), and Base
+  Attack (both) by 10 (no limit) at the end of the Round.
+  (Passive 3) Sieg gains the '@ability[sieg-galvanism]{Galvanism}' Skill.
+passiveRules:
+  # Passive 1: the Shock on a Lightning Normal Attack.
+  - key: OnEvent
+    event: damageDealt
+    automatic: true
+    predicate: ["attack:kind:normal", "attack:element:lightning", { not: "self:form:siegfried" }]
+    then:
+      - { key: ApplyEffect, target: victim, effect: { id: shock }, duration: "1◈", chance: 10 }
+  # Passive 1: Range 1 under NP Seal.
+  - { key: RangeDelta, set: 1, predicate: ["self:effect:npSeal", { not: "self:form:siegfried" }] }
+
+  # Passive 2: the count, every Round's end he stands through. At the third the
+  # Rounds reset and he grows: once on `bridalGrowth`, without limit, and once on
+  # `bridalAgility`, whose pool stops at 4 (*"maximum increase = 4"*).
+  - key: OnEvent
+    event: roundEnd
+    automatic: true
+    then:
+      - { key: ResourceDelta, resource: bridalRounds, delta: 1, whenValue: { subject: self, stat: resources.bridalRounds, lte: 1 } }
+      - { key: ResourceDelta, resource: bridalRounds, set: 0, whenValue: { subject: self, stat: resources.bridalRounds, gte: 2 } }
+      - { key: ResourceDelta, resource: bridalGrowth, delta: 1, whenValue: { subject: self, stat: resources.bridalRounds, gte: 2 } }
+      - { key: ResourceDelta, resource: bridalAgility, delta: 1, whenValue: { subject: self, stat: resources.bridalRounds, gte: 2 } }
+  # Passive 2: the current Agility, written as the maximum rises, the first four
+  # times and only on Sieg. A growth he takes as Siegfried reaches his current
+  # when he returns: his Stats come back with the damage they had, under the
+  # maximum he has then (`engine/transform.mjs`).
+  - key: OnEvent
+    event: roundEnd
+    automatic: true
+    predicate: [{ not: "self:form:siegfried" }]
+    then:
+      - key: StatDelta
+        stat: agility.value
+        amount: 1
+        clamp: false
+        whenValue:
+          - { subject: self, stat: resources.bridalRounds, gte: 2 }
+          - { subject: self, stat: resources.bridalAgility, lte: 3 }
+  # Passive 2: what the count is worth, his own while he is Sieg.
+  - key: BaseAttackModifier
+    add: "10 * @self.resources.bridalGrowth.value"
+    components: [str, mag]
+    predicate: [{ not: "self:form:siegfried" }]
+  - key: MaxDelta
+    stat: agility
+    value: "@self.resources.bridalAgility.value"
+    predicate: [{ not: "self:form:siegfried" }]

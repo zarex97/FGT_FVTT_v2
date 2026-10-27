@@ -36,6 +36,12 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       footprint: new fields.SchemaField({
         w: new fields.NumberField({ integer: true, initial: 1, min: 1 }),
         h: new fields.NumberField({ integer: true, initial: 1, min: 1 }),
+        // Where a change of size keeps the Unit: `corner`, Kingprotea's, grows
+        // from a corner her owner picks and shrinks to the top-left (#198
+        // reading 6); `centre`, Sieg's Fafnir, grows and shrinks about the
+        // middle panel, so he ends where he began (#345 rulings 19, 23).
+        // Absent is `corner`.
+        grows: new fields.StringField({ required: false, blank: false, initial: undefined, choices: ["corner", "centre"] }),
       }),
 
       // Every class this Servant qualifies for -- Semiramis is Assassin AND

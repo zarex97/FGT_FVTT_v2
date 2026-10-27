@@ -132,8 +132,13 @@ export function checkPlan(unit, check, { direction = "outgoing", options = null,
       if (typeof rolled !== "number") return { ...m, value: 0 };
       return { ...m, value: rolled * (m.roll.multiplier ?? 1) };
     })
-    .filter((m) => typeof m.value === "number" && m.value !== 0)
-    .map((m) => ({ source: m.source, value: m.value }));
+    // A modifier that MULTIPLIES the die rather than adding to it: Fafnir's
+    // *"when he performs an Agility Check, double the value of the roll"*
+    // (#345). Kept with no value; `resolveCheck` sizes it from the roll.
+    .filter((m) => (typeof m.value === "number" && m.value !== 0) || (typeof m.rollFactor === "number" && m.rollFactor !== 1))
+    .map((m) => (typeof m.rollFactor === "number" && m.rollFactor !== 1
+      ? { source: m.source, value: 0, rollFactor: m.rollFactor }
+      : { source: m.source, value: m.value }));
 
   // Debuffs win ties, as everywhere else in the effect engine: one source
   // forcing the unfavourable table beats any number forcing the favourable one.
@@ -245,9 +250,14 @@ export function pendingCheckRolls(unit, check, { direction = "outgoing" } = {}) 
  */
 export function resolveCheck({ roll, target, table, modifiers = [] }) {
   const penalty = table === "unfavourable" ? UNFAVOURABLE_PENALTY : 0;
+  // A factor on the die is the die again, as a modifier the record shows: a
+  // doubled 7 reads "+7" beside its source (Fafnir, #345).
+  const scaled = modifiers.map((m) => (typeof m.rollFactor === "number"
+    ? { source: m.source, value: Math.round(roll * (m.rollFactor - 1)) }
+    : m));
   const mods = penalty
-    ? [{ source: "unfavourable table", value: penalty }, ...modifiers]
-    : [...modifiers];
+    ? [{ source: "unfavourable table", value: penalty }, ...scaled]
+    : [...scaled];
   const total = roll + mods.reduce((a, m) => a + m.value, 0);
   return { success: total <= target, roll, total, target, table, modifiers: mods, automatic: false };
 }

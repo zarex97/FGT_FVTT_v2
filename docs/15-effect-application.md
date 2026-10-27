@@ -192,7 +192,7 @@ Outcome: `applied`. The `intents` array carries every intent this application em
 nothing. An entry's `otherwiseOn: notLanded` widens that to every way the first did not land: resisted, blocked by
 an Immunity, prevented, negated by a ward, or already held (`landing.mjs#otherwiseFires`). Katō Danzō's Harisenbon,
 *"If Disable fails, inflicts Slow"*, reads the outcome and not the die (#249 reading 11); `resisted` stays the
-default, so Expert's ruling holds. An unknown `otherwiseOn` throws. Its `restores` (`[{stat, delta}]`) is written as the application lands, capped at the maximum: one die
+default, so Expert's ruling holds. An unknown `otherwiseOn` throws. Its `restores` (`[{stat, delta}]`) is written as the application lands, capped at the maximum, its `delta` a number or an `@` expression resolved against the caster (Max HpUp's `0.2 * @self.baseHealth`, #345): one die
 decides both, so Buff ChUp raises it and No Buff stops it (Expert's *"70% chance of restoring 3 Agility ... If
 successful, also apply AGL Up"*). The Skill card prints what a landing wrote (§46.4-NP).
 

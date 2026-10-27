@@ -1,0 +1,52 @@
+# Sieg, char_orig_sheets/by-class/Caster/Sieg.md (#345)
+#
+# > "Spell. Used during your Turn. Used on an allied Unit within a 3 panel area
+# > of himself. Restores the affected Unit's Health by 15% of its maximum value
+# > and Agility by 1. If used on himself, his Health is instead restored by 30%
+# > of its maximum value and Agility is restored by 2. Cooldown: 2◈ Turns."
+#
+# *"A 3 panel area of himself"* is `chebyshevRadius: 3`, as Tobikato reads a 2
+# panel area of herself. Himself included: the sheet prices that case. Each
+# restore is capped at its maximum (`clampToMax`). The two prices are one phase
+# each, asked of the Unit healed (`targetPredicate`, `target:isSelf`).
+schema: 1
+id: sieg-heilen
+name: "Straße/gehen: Heilen"
+rank: null
+kind: skill
+slug: heilen
+category: strasseGehen
+isSpell: true
+cooldown: "2◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+negatedBy: [silence]
+requirements:
+  - { kind: notHasEffect, effectId: silence }
+description: |
+  Spell. Used during your Turn. Used on an allied Unit within a 3 panel area of himself. Restores the affected Unit's
+  Health by 15% of its maximum value and Agility by 1. If used on himself, his Health is instead restored by 30% of its
+  maximum value and Agility is restored by 2. Cooldown: 2◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 3 }
+  shape: { kind: unit }
+  selection: { relations: [ally, self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: heal
+    target: reuse
+    percentOfMax: 15
+    targetPredicate: [{ not: "target:isSelf" }]
+  - kind: resource
+    target: reuse
+    targetPredicate: [{ not: "target:isSelf" }]
+    changes:
+      - { key: agility, delta: 1, clampToMax: true }
+  - kind: heal
+    target: reuse
+    percentOfMax: 30
+    targetPredicate: ["target:isSelf"]
+  - kind: resource
+    target: reuse
+    targetPredicate: ["target:isSelf"]
+    changes:
+      - { key: agility, delta: 2, clampToMax: true }

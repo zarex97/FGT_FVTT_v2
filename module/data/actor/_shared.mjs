@@ -338,6 +338,11 @@ export function combatantCommon() {
     // within its Range for 1 full Round"* is the whole Round, not its last
     // moment (#323 reading 19, live). Written by `engine/form-range.mjs`.
     formRangeSeen: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+    // A form that COMES BACK, and what it comes back to: Sieg as Siegfried for
+    // 1◈ + ½◈ x d4 Turns (#345). `{abilityId, tookTick, endsAfterTick, turns,
+    // pools: {health|agility|luck: {value, max, shown}}}`, written as he takes
+    // it and cleared as he returns (`engine/transform.mjs`).
+    formReturn: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     // A teaching this Unit is in, as teacher or learner: `{teacherId, learnerId,
     // copyId, skill, startedAt, endsAt}`, the same on both (#326). Written by
     // `engine/teaching.mjs` through `io.setTeaching`.

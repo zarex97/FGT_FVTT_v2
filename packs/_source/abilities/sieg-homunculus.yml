@@ -1,0 +1,37 @@
+# Sieg, char_orig_sheets/by-class/Caster/Sieg.md (#345)
+#
+# > "(Passive) Has the following effects-
+# > 1. All STR damage dealt is increased by 5%.
+# > 2. All MAG damage dealt is increased by 10%.
+# > 3. Chance of being inflicted with debuffs is reduced by 5%."
+#
+# Mad Enhancement's two damage rows, one per Base Attack (`attack:component:`),
+# NP included: *"All"*. Clause 3 is Divine Core's `ApplicationChance incoming`.
+schema: 1
+id: sieg-homunculus
+name: "Homunculus"
+rank: "C+"
+kind: skill
+passive: true
+slug: homunculus
+description: |
+  (Passive) Has the following effects-
+  1. All STR damage dealt is increased by 5%.
+  2. All MAG damage dealt is increased by 10%.
+  3. Chance of being inflicted with debuffs is reduced by 5%.
+passiveRules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 5
+    npValue: 5
+    predicate: ["attack:component:str"]
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 10
+    npValue: 10
+    predicate: ["attack:component:mag"]
+  - key: ApplicationChance
+    direction: incoming
+    value: 5

@@ -1,0 +1,34 @@
+# Sieg, char_orig_sheets/by-class/Caster/Sieg.md (#345)
+#
+# > "Spell. Used during your Turn or at the start of a Combat Phase. Applies Atk
+# > Up to himself for ⅓◈ Turns, all damage dealt is increased by 35%; if NP,
+# > 25%. Cooldown: 2◈ Turns."
+#
+# Any Combat Phase he is in, attacking or attacked, as Karna's identical words
+# (#206 reading 4) and EMIYA's Reinforcement (#208 reading 8): #345 ruling 8.
+schema: 1
+id: sieg-schwert
+name: "Straße/gehen: Schwert"
+rank: null
+kind: skill
+slug: schwert
+category: strasseGehen
+isSpell: true
+cooldown: "2◈"
+timing: { window: [ownTurn, combatPhaseStart, defendingPhaseStart] }
+countsAsAttack: false
+negatedBy: [silence]
+requirements:
+  - { kind: notHasEffect, effectId: silence }
+description: |
+  Spell. Used during your Turn or at the start of a Combat Phase. Applies @effect[atkUp]{Atk Up} to himself for ⅓◈ Turns,
+  all damage dealt is increased by 35%; if NP, 25%. Cooldown: 2◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUp, duration: "⅓◈", magnitude: 35, npMagnitude: 25 }

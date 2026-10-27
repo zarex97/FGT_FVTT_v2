@@ -1,0 +1,23 @@
+# Appendix A's Max HpUp: *"Max Health +X and current Health restored by the same
+# amount."* First authored for Sieg's Man-made Hero (False) (#345). X is Health,
+# as the catalogue states it: a sheet's *"20% of its original value"* is sized by
+# its application (`0.2 * @self.baseHealth`, as Kingprotea's Proliferation reads
+# the original maximum).
+#
+# The maximum is the rule, while the effect stands. The current is the
+# application's, paid once as it lands (the entry's `restores`): a derived
+# current would refill its bearer every preparation. When it ends the maximum
+# falls and the current only to fit under it.
+schema: 1
+id: maxHpUp
+name: "Max HpUp"
+description: "Max Health is increased by X, and current Health restored by the same as it lands."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: MaxDelta
+    stat: health
+    value: "@magnitude"
