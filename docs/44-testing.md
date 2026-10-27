@@ -128,7 +128,7 @@ A whole Turn or Round boundary plays in the arena too: `w.combat.passTurn({to, n
 
 ### The one-door guard
 
-`test/unit/landing-one-door.test.mjs` keeps every Effect on one path: only `engine/landing.mjs` calls `applyEffect`, the keys the door reads equal `ENTRY_KEYS`, and no content entry writes a key outside it. `landing-proofs.test.mjs` replays three fixes through the door (Kiritsugu's and Zabaniya's resistance exemption, Triton's Conch's ring chance, Zabaniya's Normal-Attack riders on an NP); each fails with its fix reverted. `landing-changes.test.mjs` plays the changes to play the door made, and `prevention-luck-check.test.mjs` the Prevention Luck Check on Player1's screen. `castSkill` (`test/helpers/process.mjs`) has its first users there.
+`test/unit/landing-one-door.test.mjs` keeps every Effect on one path: only `engine/landing.mjs` calls `applyEffect`, the keys the door reads equal `ENTRY_KEYS`, and no content entry writes a key outside it. `entry-keys-342.test.mjs` authors a bogus key at each nesting an entry sits in and asserts the build's refusal names the path and the key; each case fails with the check removed. `landing-proofs.test.mjs` replays three fixes through the door (Kiritsugu's and Zabaniya's resistance exemption, Triton's Conch's ring chance, Zabaniya's Normal-Attack riders on an NP); each fails with its fix reverted. `landing-changes.test.mjs` plays the changes to play the door made, and `prevention-luck-check.test.mjs` the Prevention Luck Check on Player1's screen. `castSkill` (`test/helpers/process.mjs`) has its first users there.
 
 ### The dice guard
 
