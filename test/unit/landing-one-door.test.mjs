@@ -14,6 +14,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import { ENTRY_KEYS, entryOf } from "../../module/rules/effect-flow.mjs";
+import { effectEntriesIn } from "../../tools/lib/content.mjs";
 
 /** Every file under `dir` ending in `ext`, with `/` separators on any checkout. */
 function files(dir, ext) {
@@ -63,27 +64,6 @@ describe("Landing is the one door", () => {
   });
 });
 
-/**
- * Every Effect Entry content writes: an `applyEffects` phase's, a check's
- * outcomes', an aftermath's, and the inner effect of a handler's
- * `ApplyEffect` action.
- */
-function entriesIn(node, out = { entries: [], actions: [] }) {
-  if (Array.isArray(node)) {
-    node.forEach((n) => entriesIn(n, out));
-    return out;
-  }
-  if (!node || typeof node !== "object") return out;
-  if ((node.kind === "applyEffects" || node.kind === "applyEffect") && (node.rules || node.effects)) {
-    out.entries.push(...(node.rules ?? node.effects));
-  }
-  for (const branch of [node.onSuccess, node.onFail]) out.entries.push(...(branch?.effects ?? []));
-  if (node.aftermath?.effects) out.entries.push(...node.aftermath.effects);
-  if (node.key === "ApplyEffect" && node.effect && typeof node.effect === "object") out.actions.push(node.effect);
-  for (const value of Object.values(node)) entriesIn(value, out);
-  return out;
-}
-
 describe("content writes only keys an entry has", () => {
   const corpus = files("packs/_source", ".yml").map((f) => ({ f, doc: parse(readFileSync(f, "utf8")) }));
   const known = new Set(Object.keys(ENTRY_KEYS));
@@ -91,7 +71,7 @@ describe("content writes only keys an entry has", () => {
   it("in every entry of every phase, check and aftermath", () => {
     const strays = [];
     for (const { f, doc } of corpus) {
-      for (const raw of entriesIn(doc).entries) {
+      for (const { raw } of effectEntriesIn(doc).filter((e) => !e.action)) {
         if (!entryOf(raw)) continue;
         const inner = raw.effect && typeof raw.effect === "object" ? raw.effect : raw;
         // The older wrapper, `{key: OnEvent, event, effect: {...}}`: its two
@@ -110,7 +90,7 @@ describe("content writes only keys an entry has", () => {
     // `stages` (`entryOf`).
     const strays = [];
     for (const { f, doc } of corpus) {
-      for (const effect of entriesIn(doc).actions) {
+      for (const { raw: effect } of effectEntriesIn(doc).filter((e) => e.action)) {
         for (const k of Object.keys(effect)) {
           if (!known.has(k) && k !== "defId" && k !== "stage") strays.push(`${f}: ${k}`);
         }
