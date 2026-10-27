@@ -29,7 +29,7 @@ import { applyWorldIntents } from "./applier.mjs";
 import * as I from "./intents.mjs";
 import { publicSpeakerFor, shownName } from "./public-identity.mjs";
 import { formOf } from "../rules/form.mjs";
-import { parseTick, resolveTicks } from "../domain/tick.mjs";
+import { fractionTicks, parseTick, resolveTicks } from "../domain/tick.mjs";
 import { servantSetupPlan } from "../rules/setup-rolls.mjs";
 import { warRule } from "./war.mjs";
 
@@ -113,9 +113,8 @@ export async function transformUnit(unitId, abilityContentId, { cause = null } =
 async function lastingForm(doc, item, form, board) {
   const sys = doc.system ?? {};
   const turnsPerRound = warRule("turnsPerRound") || 3;
-  const ticksOf = (expr) => resolveTicks(parseTick(expr), { turnsPerRound });
   const die = await new Roll(form.lasts.die ?? "1d4").evaluate();
-  const turns = ticksOf(form.lasts.base ?? "0") + die.total * ticksOf(form.lasts.per ?? "0");
+  const turns = lastingTurns(form.lasts, die.total, turnsPerRound);
   const tick = board?.tick ?? 0;
 
   // *"New Stats have to be rolled"*: by the form's own Parameters, the lines a
@@ -151,6 +150,37 @@ async function lastingForm(doc, item, form, board) {
   };
   const fresh = [...(doc.items ?? [])].filter((i) => i.system?.formOnly === form.id).map((i) => i.id);
   return { pools, returns, fresh, lines };
+}
+
+/**
+ * X Turns of a form that lasts `base + per x roll`, the sum taken in ◈ and only
+ * then turned into Turns: *"X=(1◈+[½◈*Number rolled])"* is 1◈ + 1◈ on a 2,
+ * three Turns, where ½◈ turned first (two Turns each) made it four (#345,
+ * found live). A fraction left over goes by the War's table (`fractionTicks`).
+ *
+ * @param {{base?: string, per?: string}} lasts
+ * @param {number} roll
+ * @param {number} turnsPerRound
+ * @returns {number}
+ */
+export function lastingTurns(lasts, roll, turnsPerRound) {
+  /** A ◈ expression as a fraction of Rounds, or a bare Turn count. */
+  const rational = (expr) => {
+    const t = expr ? parseTick(expr) : null;
+    if (t?.kind === "ticks") return { num: 0, den: 1, ticks: t.n };
+    if (t?.kind !== "rounds") return { num: 0, den: 1, ticks: 0 };
+    const den = t.frac?.den ?? 1;
+    return { num: t.whole * den + (t.sign ?? 1) * (t.frac?.num ?? 0), den, ticks: 0 };
+  };
+  const b = rational(lasts.base);
+  const p = rational(lasts.per);
+  const den = b.den * p.den;
+  const num = b.num * p.den + roll * p.num * b.den;
+  const whole = Math.floor(num / den);
+  const rest = num - whole * den;
+  const gcd = (x, y) => (y ? gcd(y, x % y) : x);
+  const g = rest ? gcd(rest, den) : 1;
+  return whole * turnsPerRound + (rest ? fractionTicks(rest / g, den / g, turnsPerRound) : 0) + b.ticks + roll * p.ticks;
 }
 
 /**

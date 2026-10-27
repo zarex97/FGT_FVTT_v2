@@ -44,6 +44,21 @@ export function keptByForm(actor, item) {
 }
 
 /**
+ * Does this Unit hold this ability at all, now? An ability only a form holds
+ * is not his until he takes it: Siegfried's seven on Sieg are not on his bar or
+ * sheet, greyed or otherwise, while he is Sieg (#345). An ability his form
+ * drops is still his, greyed with its reason.
+ *
+ * @param {object} actor
+ * @param {object} item
+ * @returns {boolean}
+ */
+export function heldNow(actor, item) {
+  const only = item?.system?.formOnly ?? null;
+  return !only || formOf(actor)?.id === only;
+}
+
+/**
  * Who the Unit IS while in its form: the identity a form that is another
  * Servant's sheet replaces (Siegfried on Sieg, #345 ruling 1). Its own sheet's
  * otherwise. The one reader both projections ask (`rules/snapshot.mjs`).

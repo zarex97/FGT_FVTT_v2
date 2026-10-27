@@ -21,6 +21,7 @@ import { budgetActionFor } from "../../rules/budget.mjs";
 import { answersACounter, counterMustCatchAttacker } from "../../rules/counter.mjs";
 import { canUseAbility } from "../../rules/costs.mjs";
 import { canToggleMode, pricedOnEntry } from "../../rules/modes.mjs";
+import { heldNow } from "../../rules/form.mjs";
 import { test as testPredicate } from "../../rules/predicate.mjs";
 import { rollOptionsFor } from "../../rules/options.mjs";
 import { publicNameOf } from "../../rules/identity.mjs";
@@ -239,6 +240,8 @@ export class ActionBar extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const abilities = [...actor.items]
       .filter((i) => i.type === "ability" || i.type === "noblePhantasm")
+      // Siegfried's kit on Sieg is not his until he takes the form (#345).
+      .filter((i) => heldNow(actor, i))
       .map((item) => {
         const use = classifyAbility(item);
         if (!use.clickable) return null;

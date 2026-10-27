@@ -318,9 +318,14 @@ export async function resolveAttack({
     const { offerStanceTransition } = await import("./stance.mjs");
     await offerStanceTransition(attackerId, COMBAT_PHASE_START_WINDOW);
   }
+  // The Phase's DU, when it has one: a cast there that is aimed *"on the DU"*
+  // takes it (Knacken, #345, found live: the window had no Process yet, so it
+  // was cast at nobody and refused "Choose a target").
+  const phaseDefenders = [...new Set((targets?.units ?? []).map((t) => t.unitId))].filter((id) => id !== attackerId);
   const phaseWindow = resume || plainDamage
     ? { windowAbilities: [] }
-    : await offerAttackerWindow({ attackerId }, COMBAT_PHASE_START_WINDOW, null);
+    : await offerAttackerWindow({ attackerId, defenderId: phaseDefenders.length === 1 ? phaseDefenders[0] : null },
+      COMBAT_PHASE_START_WINDOW, null);
   if ((phaseWindow.windowAbilities ?? []).length > 0) {
     // Loud, because the alternative is this project's signature defect. A
     // non-mode ability at this window would contribute rules that only
@@ -6887,6 +6892,10 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
     }
     if (phase.kind === "setMode") {
       if (heldOnly) continue;
+      // An end at the Turn's end is queued by the caster pass at declaration
+      // (`skill-use.mjs`, `atTurnEnd`); written here too, it switched Fafnir off
+      // after the damage, and the Turn's upkeep never charged (#345, live).
+      if (phase.atTurnEnd) continue;
       // Through the one writer the Skill path uses, so a span (`suspendFor`)
       // holds here too (#230).
       const { modeIntent } = await import("./skill-use.mjs");

@@ -266,7 +266,9 @@ export async function landEffect(entry, ctx) {
       // (Sieg's Man-made Hero (False), #345).
       const delta = typeof r?.delta === "string" ? authoredMagnitude(r, ctx.caster, "delta", ctx, caster) : r?.delta;
       if (typeof r?.stat === "string" && Number.isFinite(delta) && delta !== 0) {
-        intents.push(I.statDelta(target.id, r.stat, delta, true));
+        // After the effect it rides, so a ceiling the effect raises is the one
+        // that caps it (`intents.mjs#rankOf`).
+        intents.push({ ...I.statDelta(target.id, r.stat, delta, true), afterEffects: true });
       }
     }
   }

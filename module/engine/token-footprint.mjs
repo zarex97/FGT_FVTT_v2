@@ -55,6 +55,16 @@ export const TokenFootprint = {
         if (actor?.documentName === "Actor") queueSync(actor);
       });
     }
+    // ...and a Mode switched on or off, which grows or shrinks a Unit whose
+    // size is its rule: Fafnir's 3x3 (#345). Ended by its owner's own switch,
+    // no actor or effect write followed the item's, and the token stayed 3x3
+    // over a 1x1 footprint (found live).
+    Hooks.on("updateItem", (item, changes) => {
+      const actor = item?.parent;
+      if (actor?.documentName !== "Actor" || changes?.system?.active === undefined) return;
+      queueSync(actor);
+    });
+
     // ...and the repair. Foundry v14 counts `width`/`height` among its
     // MOVEMENT_FIELDS, so a resize is routed through the movement pipeline --
     // and a resize that walks no step leaves the document PREPARED at the old
