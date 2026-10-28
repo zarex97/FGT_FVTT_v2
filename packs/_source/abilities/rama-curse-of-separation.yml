@@ -29,3 +29,7 @@ passiveRules:
     resource: reunion
     percentPer: 3
     oncePerGame: true
+    # "...then Sita is summoned on a panel directly next to himself (will be
+    # contracted to Rama's Master)" (`engine/summoning.mjs#summonServantBeside`,
+    # #348).
+    summon: sita

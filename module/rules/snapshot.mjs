@@ -566,6 +566,9 @@ export function snapshotUnit(actor, {
       // Equipped use Base Attack (STR)"* (#247 D4).
       component: contributions.normalAttackComponent
         ?? variantOverride?.normalAttack?.component ?? sys.normalAttack?.component ?? "str",
+      // A share of another Base Attack a buff adds, and the Magic Resistance it
+      // meets: Sita's Janaka (#348). Read by `rules/normal-attack.mjs`.
+      shares: [...(contributions.normalAttackShares ?? [])],
       // The damage TYPE. Declared on the schema, authored on the sheet, stored
       // on the document -- and dropped HERE, because this projection rebuilds
       // `normalAttack` field by field rather than spreading it. Ozymandias's
@@ -789,6 +792,9 @@ export function snapshotUnit(actor, {
     // `turnState` for that is a different shape from every other filter there.
     inCombatPhase: turnState.inCombatPhase,
     turnState,
+    // Summoned onto the board in this very Turn: no action until her side's
+    // next one (#348 ruling 11). Read by `rules/budget.mjs#canConsume`.
+    arrivedThisTurn: typeof sys.arrivedTick === "number" && typeof tick === "number" && sys.arrivedTick === tick,
     roundState,
     // `consecutiveRounds` is persistent (world state, not stale-by-reading);
     // `combatInBaseThisRound` rides `roundState`'s own staleness, so a new

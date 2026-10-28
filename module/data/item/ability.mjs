@@ -731,6 +731,10 @@ export class AbilityData extends foundry.abstract.TypeDataModel {
       // counts. Kingprotea's Proliferation: a stock's effects belong to the
       // stock, and a Skill Seal on Huge Scale does not take them (#198 reading 8).
       rulesOncePerBearer: new fields.BooleanField({ required: false, initial: false }),
+      // A new instance resets every held sibling's clock to its own, so they
+      // end together: Sita's Janaka (#348 ruling 4). Read by
+      // `engine/effect-applier.mjs#applyEffect`.
+      resetsSiblings: new fields.BooleanField({ required: false, initial: false }),
       // What a barrier effect absorbs, and where its pool lives (§A.3's
       // barrier tier). EMIYA's Rho Aias is the only instance.
       absorbs: new fields.ObjectField({ required: false, nullable: true, initial: null }),

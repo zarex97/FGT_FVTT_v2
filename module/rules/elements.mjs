@@ -74,7 +74,7 @@ export function empty() {
   return {
     modifiers: [], statDeltas: [], checkModifiers: [], immunities: [],
     suppressions: [], grantedAbilities: [], autoSucceeds: [], eventHandlers: [], revivals: [],
-    attributes: [], attributesRemoved: [], magicResistance: null, magicResistanceVariants: [], variantOverride: null, normalAttackComponent: null, revealsEffect: null, damageNegation: [], zonBonuses: [], npGateShifts: [],
+    attributes: [], attributesRemoved: [], magicResistance: null, magicResistanceVariants: [], variantOverride: null, normalAttackComponent: null, normalAttackShares: [], revealsEffect: null, damageNegation: [], zonBonuses: [], npGateShifts: [],
     vulnerabilityAmplifiers: [], periodicOverrides: [],
     abilityRankShifts: [],
     auras: [], applicationChances: [], compulsions: [], preemptions: [], damageFloors: [],
@@ -2747,6 +2747,28 @@ export const EXECUTORS = Object.freeze({
    */
   NormalAttackComponent(el, { out }) {
     if (el.component === "str" || el.component === "mag") out.normalAttackComponent = el.component;
+  },
+
+  /**
+   * A share of another Base Attack added to the Normal Attack, and the Magic
+   * Resistance it meets cut to that share. Sita's Janaka (#348 rulings 2, 3,
+   * 13): *"uses her Base Attack (STR) and 20% of her Base Attack (MAG)
+   * combined ... increases by 20% for each 'Janaka' buff on Sita; while the
+   * effect of Magic Resistance is reduced to X%, where X% = the amount of Base
+   * Attack (MAG) used"*. Euryale's Glitter and Kiichi Hougen print the shape at
+   * a fixed half. The share is `value`, sized by `perStack` like any other
+   * magnitude; `magicResistance: share` makes it the attack's
+   * `magicResistanceFactor`, never above 1. Read by `rules/normal-attack.mjs`.
+   */
+  NormalAttackShare(el, { rank, source, out, ctx }) {
+    const factor = scalar(resolveValue(el, rank, ctx));
+    if (!(typeof factor === "number" && factor > 0)) return;
+    out.normalAttackShares.push({
+      component: el.component === "str" ? "str" : "mag",
+      factor,
+      magicResistance: el.magicResistance === "share" ? "share" : null,
+      source,
+    });
   },
 
   /**

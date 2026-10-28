@@ -63,6 +63,8 @@ export const EffectRegistry = {
         removalResist: sys.removalResist ?? 0,
         // Read by `rules/snapshot.mjs#contributionsOf` (#198 reading 8).
         rulesOncePerBearer: Boolean(sys.rulesOncePerBearer),
+        // Read by `engine/effect-applier.mjs#applyEffect` (#348 ruling 4).
+        resetsSiblings: Boolean(sys.resetsSiblings),
         blocks: sys.blocks ?? [],
         blockedBy: sys.blockedBy ?? [],
         // Exclusion that resolves by replacement rather than by refusal.

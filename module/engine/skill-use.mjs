@@ -1066,6 +1066,16 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
               outcome: "applied", reason: null,
             } });
           }
+          // ...and one for each it reached and could not take: Haradhanu
+          // Janaka's *"removes all debuffs"* left an Unremovable Curse in
+          // silence (#348, live). A held removal is a line too.
+          for (const id of heldUnremovable(phase, doc)) {
+            applied.push({ unitId: target.unitId, summary: {
+              id: `keep:${id}`,
+              name: game.i18n.format("FGT.Removal.Unremovable", { effect: EffectRegistry.get(id)?.name ?? id }),
+              outcome: "failed", reason: null,
+            } });
+          }
           break;
         }
 
@@ -2430,6 +2440,25 @@ async function resolveRemoval(phase, doc, bearer) {
     }));
   }
   return plan.removed;
+}
+
+/**
+ * The effects a `removeEffect` selector reaches and may not take, being
+ * Unremovable: said on the card, never dropped in silence (#348).
+ *
+ * @param {object} phase
+ * @param {object} doc the bearer's actor document
+ * @returns {string[]} definition ids
+ */
+function heldUnremovable(phase, doc) {
+  const selector = phase.selector ?? null;
+  if (!selector) return [];
+  return [...(doc.effects ?? [])]
+    .filter((e) => {
+      const def = EffectRegistry.get(e.system?.defId);
+      return isUnremovable(def, e) && selectorMatches(selector, e, def, { evenUnremovable: true });
+    })
+    .map((e) => e.system.defId);
 }
 
 /**

@@ -117,6 +117,13 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       // at the summon and by the pick, never authored.
       summonGranted: new fields.ObjectField({ required: false, initial: () => ({}) }),
 
+      // The ◈ tick a Servant summoned onto the board mid-War arrived on: she
+      // acts from her side's next Turn, never in the Turn she arrives in
+      // (Sita by Rama's Curse of Separation, #348 ruling 11). Written by
+      // `engine/summoning.mjs#summonServantBeside`, read by the snapshot's
+      // `arrivedThisTurn`. Never authored.
+      arrivedTick: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+
       // The RESOLVED result of `summonVariant`, once and for ever from summon --
       // `"dsc"` or `"noDsc"` for Semiramis. `null` for every Servant without a
       // `summonVariant` block. Read as a roll option (`self:variant:<id>`) by

@@ -704,11 +704,15 @@ async function resolveElements(intents) {
  * revival is not a heal: Guts restores a defeated Unit, which Drowning does not
  * speak to. Rounded down, never below 0.
  *
+ * Exported, and idempotent (`healingScaled`), so a caller that reports a batch
+ * scales it first and the card says what the write makes: a Regen under Heal
+ * Up read "regains 50" over a 75 (#348, live).
+ *
  * @param {Intent[]} intents
  * @returns {Promise<Intent[]>}
  */
-async function resolveHealing(intents) {
-  const heal = (i) => i.t === "heal" && !i.revival && i.unitId && i.amount > 0;
+export async function resolveHealing(intents) {
+  const heal = (i) => i.t === "heal" && !i.revival && i.unitId && i.amount > 0 && i.healingScaled === undefined;
   if (!intents.some(heal)) return intents;
   if (typeof game === "undefined" || !game?.actors) return intents;
   const { unitOf, currentBoard } = await import("./board.mjs");
@@ -1316,6 +1320,12 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
         if (i.entry?.kind === "split") {
           const { splitSummon } = await import("./summoning.mjs");
           await splitSummon(i.entry);
+        }
+        // A Servant summoned beside a Unit, contracted to its Master (Rama's
+        // Curse of Separation brings Sita, #347, #348).
+        if (i.entry?.kind === "summonServantBeside") {
+          const { summonServantBeside } = await import("./summoning.mjs");
+          await summonServantBeside(i.entry);
         }
         // Summons on and around a Unit's panel (Gilles's Elder Horrors, #323).
         if (i.entry?.kind === "summonAround") {

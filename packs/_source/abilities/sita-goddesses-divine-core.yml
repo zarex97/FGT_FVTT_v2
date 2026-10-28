@@ -1,0 +1,44 @@
+# Sita, char_orig_sheets/by-class/Archer/Sita.md (#348)
+#
+# Kingprotea's and Quetzalcoatl's Skill at C: `divineCore` C is 60, twice
+# Divinity C; the −20% a literal `ApplicationChance`; the Divinity category and
+# the `divine` Attribute. Passive 3 is hers: a Janaka on every finished use of
+# one of her Active Skills, never her NP or a Normal Attack (ruling 1).
+schema: 1
+id: sita-goddesses-divine-core
+name: "Goddess's Divine Core"
+rank: C
+kind: skill
+slug: goddessesDivineCore
+passive: true
+categorizedAs: [divinity]
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive 1) All damage dealt is increased by 60 including NP.
+  (Passive 2) Chance of being inflicted by debuffs is decreased by 20%.
+  (Passive 3) Whenever Sita uses a Skill, apply the '@effect[janaka]{Janaka}' buff to herself for 1◈ Turns, its
+  effects are as follows- When Sita performs a Normal Attack, it uses her Base Attack (STR) and 20% of her Base
+  Attack (MAG) combined (i.e. 75+40=115), the amount of Base Attack (MAG) used increases by 20% for each 'Janaka'
+  buff on Sita; while the effect of Magic Resistance is reduced to X%, where X%=the amount of Base Attack (MAG)
+  used. Whenever the 'Janaka' buff is applied to herself, the duration of all 'Janaka' buffs on herself are reset.
+  This Skill counts as '@ability[divinity]{Divinity}'.
+passiveRules:
+  - key: FlatDamage
+    table: divineCore
+    includesNP: true
+  - key: ApplicationChance
+    direction: incoming
+    value: 20
+  - key: StatDelta
+    stat: attributes
+    add: [divine]
+  # Passive 3. `abilityUsed` is raised after a use resolves, never for a
+  # Normal Attack; `excludeNP` keeps her Haradhanu Janaka out (ruling 1).
+  - key: OnEvent
+    event: abilityUsed
+    automatic: true
+    excludeNP: true
+    then:
+      - key: ApplyEffect
+        effect: { id: janaka }
+        duration: "1◈"

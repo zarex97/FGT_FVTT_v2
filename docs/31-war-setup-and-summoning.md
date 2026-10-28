@@ -200,6 +200,13 @@ a custom war sets its own on the War tab. `createMasterFor` writes the Essence's
 Attack (MAG) follows, and embeds the Essence; `commitWar` copies it onto the Servant and starts the Servant full. Every
 Master carries the Normal sheet's Magic Crest, a Damage Spell categorized as NP (readings 13, 14).
 
+**A Servant summoned onto the board by an effect** (#347, #348). Rama's Curse of Separation brings Sita *"on a panel
+directly next to himself (will be contracted to Rama's Master)"*: its success logs a `summonServantBeside` entry, and
+`engine/summoning.mjs#summonServantBeside` runs the ordinary summon (`summonServant`: the setup rolls, full Health,
+the Master's faction, no Command Spells) on a free panel next to him, his owner's pick, else the nearest free panel,
+his owner's pick. His owner holds her; she acts from her side's next Turn (`arrivedTick`, Ch. 19). The card names
+her, him, the Master, her Agility and her Luck.
+
 **Summons on and around a panel, and summons that outlive their summoner** (#323). `placeSummonsAround` puts the first on
 a named panel and the rest by it (a Horror's split, Substitution). The scheduler's `SummonAround` action counts its
 summons with the Count module (`{of: board, requires, excludeSelf, standing}`) and places them round the Unit's panel;
