@@ -454,7 +454,10 @@ async function decayLines(written) {
 function noteLines(written) {
   return (written ?? []).filter((i) => i?.t === "log" && i.entry?.kind === "cardLine" && i.entry.line?.key).map((i) => ({
     unitId: i.entry.unitId ?? null,
-    summary: { id: "note", name: game.i18n.format(i.entry.line.key, i.entry.line.data ?? {}), outcome: "noop", reason: null, chance: null },
+    // `note`: a line that says something, not an effect that failed to land.
+    // As `noop` the card printed it "...: not applied" -- Pinaka's die that
+    // held read "It holds (breaks on 5).: not applied" (#347, live).
+    summary: { id: "note", name: game.i18n.format(i.entry.line.key, i.entry.line.data ?? {}), outcome: "note", reason: null, chance: null },
   }));
 }
 

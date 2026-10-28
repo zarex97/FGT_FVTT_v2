@@ -23,7 +23,7 @@ cooldown: "7◈"
 timing: { window: ownTurn }
 copyable: { allowed: false, reason: named }
 requirements:
-  - { kind: hasSkill, abilityId: martialBlessing }
+  - { kind: hasSkill, abilityId: martialBlessing, name: "Martial Blessing" }
 description: |
   (Active) Base Attack (STR) is used. Range=1. Deals 4x damage and inflicts @effect[immobilize]{Immobilize} for
   1◈+⅓◈ Turns. Earth damage (half). All Units except Rama standing directly around the DU (1 panel) receive 2x damage

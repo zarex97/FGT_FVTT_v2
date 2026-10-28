@@ -25,7 +25,7 @@ cooldown: "7◈"
 timing: { window: ownTurn }
 copyable: { allowed: false, reason: named }
 requirements:
-  - { kind: hasSkill, abilityId: martialBlessing }
+  - { kind: hasSkill, abilityId: martialBlessing, name: "Martial Blessing" }
 description: |
   Shiva Dhanush: Bow of Shiva.
   (Active) Base Attack (STR) is used. Range=5. Deals 5x damage with a 50% chance of inflicting @effect[burn]{Burn} for

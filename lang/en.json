@@ -1160,7 +1160,7 @@
   "FGT.Ability.Refused.roundAtLeast": "Not available this early in the match.",
   "FGT.Ability.Refused.inZone": "Must be standing in the zone it requires.",
   "FGT.Ability.Refused.notInZone": "Cannot be used from this zone.",
-  "FGT.Ability.Refused.hasSkill": "Requires a Skill this Unit does not have.",
+  "FGT.Ability.Refused.hasSkill": "Requires {names}, which this Unit does not have.",
   "FGT.Ability.Refused.resourceAtLeast": "Not enough of the pool it spends.",
   "FGT.Ability.Refused.healthBelow": "Only while its Health is low enough.",
   "FGT.Ability.Refused.modeActive": "Requires a mode that is switched on.",

@@ -21,7 +21,7 @@ cooldown: "5◈"
 timing: { window: ownTurn }
 copyable: { allowed: false, reason: named }
 requirements:
-  - { kind: hasSkill, abilityId: martialBlessing }
+  - { kind: hasSkill, abilityId: martialBlessing, name: "Martial Blessing" }
 description: |
   (Active) Base Attack (STR) is used. Range=4. Deals 3.5x damage with a 50% chance of inflicting @effect[slow]{Slow}
   for 2◈ Turns; then inflict @effect[defDwn]{Def Dwn} for 1◈ Turns, all damage received is increased by 10%. Water

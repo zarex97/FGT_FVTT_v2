@@ -22,14 +22,17 @@ cooldown: "5◈"
 timing: { window: ownTurn }
 copyable: { allowed: false, reason: named }
 requirements:
-  - { kind: hasSkill, abilityId: martialBlessing }
+  - { kind: hasSkill, abilityId: martialBlessing, name: "Martial Blessing" }
 description: |
   (Active) Base Attack (STR) is used. Range=3. Targets 2 enemy Units within Range. Deals 3x damage to both of them
   with a 20% chance of inflicting @effect[bleed]{Bleed} for 1◈+⅓◈ Turns. Wind damage (half). Cooldown: 5◈ Turns.
   This NP is treated as a Rank A NP.
+# Two picks among the enemies within his Range of 3, measured as an attack's
+# Range is (`attackRange`): a `targetUnit` anchor aims at one Unit, and its
+# session confirmed after the first click (#347, live).
 targeting:
-  anchor: { kind: targetUnit, range: 3 }
-  shape: { kind: unit }
+  anchor: { kind: self }
+  shape: { kind: attackRange, r: 3 }
   selection: { relations: [enemy], chooser: chosen, count: 2 }
 damage:
   delivery: ranged

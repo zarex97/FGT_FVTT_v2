@@ -164,6 +164,25 @@ describe("Vishnu Bhuja's summon roll (VB.*)", () => {
   });
 });
 
+describe("found pressing live (#347)", () => {
+  it("a War's start marks the pick a 6 owes, for tokens placed by hand before it", async () => {
+    await withSubjects([rama({ state: { summonGranted: { vishnuBhuja: { coin: 1, dice: [6, 2], rerolled: [], keys: ["shuuravara"], picks: 1 } } } })], async ({ world: w }) => {
+      const { attachOpeningChoice } = await import("../../module/engine/opening-choice.mjs");
+      attachOpeningChoice();
+      w.answer({ title: "FGT.SummonGrant.Title", by: undefined, pick: ["pinaka"] });
+      Hooks.callAll("combatStart", game.combat, {});
+      for (let n = 0; n < 40 && (w.actor(RAMA).system.summonGranted.vishnuBhuja.picks ?? 0) > 0; n++) await new Promise((r) => setTimeout(r, 50));
+      expect(w.actor(RAMA).system.summonGranted.vishnuBhuja).toMatchObject({ keys: ["shuuravara", "pinaka"], picks: 0 });
+    }, WAR);
+  });
+
+  it("a card note is its own words, never \"not applied\"", async () => {
+    const { effectLine } = await import("../../module/rules/card-visibility.mjs");
+    expect(effectLine({ id: "note", name: "Shiva Dhanush: 1d12 → 10. It holds (breaks on 5).", outcome: "note" }))
+      .toBe("Shiva Dhanush: 1d12 → 10. It holds (breaks on 5).");
+  });
+});
+
 describe("the Normal Attacks Vishnu Bhuja grants (SU.p, SH.p, MS.p, TR.p, PI.p, VB.p.*)", () => {
   it("are the Normal Attack to the gate: Seal stops them, Skill Seal and NP Seal do not", async () => {
     const { useClassesOf } = await import("../../module/rules/costs.mjs");
@@ -183,7 +202,7 @@ describe("the Normal Attacks Vishnu Bhuja grants (SU.p, SH.p, MS.p, TR.p, PI.p, 
     });
     await withSubjects([rama({ with: { abilities: [{ ref: "rama-trishula-normal-attack" }] } })], ({ unit, world: w }) => {
       const out = canUseAbility({ unit: unit(RAMA), ability: usageSpecFor(abilityOf(w, RAMA, "rama-trishula-normal-attack")), round: 6 });
-      expect(out).toMatchObject({ ok: false, reason: "hasSkill" });
+      expect(out).toMatchObject({ ok: false, reason: "hasSkill", detail: { names: "Martial Blessing" } });
     });
   });
 
@@ -224,6 +243,25 @@ describe("the Normal Attacks Vishnu Bhuja grants (SU.p, SH.p, MS.p, TR.p, PI.p, 
       await playAttack(w, { attacker: RAMA, ability: abilityOf(w, RAMA, "rama-modhaki-and-shikhari-normal-attack").id, target: FOE, react: NOTHING(FOE, RAMA) });
       const result = w.messages.contents.map((m) => m.flags?.fgt?.result).find(Boolean);
       expect(JSON.stringify(result.breakdown)).toContain("Modhaki and Shikhari (+20%)");
+    }, WAR);
+  });
+});
+
+describe("Sudarshana (SU.*)", () => {
+  it("strikes two enemies within 3, each its own Process and Bleed die; one will do", async () => {
+    await withSubjects([
+      rama(),
+      { from: "cu-chulainn", id: FOE, panel: { i: 6, j: 8 }, state: { factionId: "B" } },
+      { from: "medea", id: DEMON, panel: { i: 5, j: 7 }, state: { factionId: "B" } },
+    ], async ({ world: w }) => {
+      w.answer({ title: "FGT.Window.defendingPhaseStart", decline: true });
+      const { declared } = await playAttack(w, {
+        attacker: RAMA, ability: abilityOf(w, RAMA, "rama-sudarshana").id,
+        placement: { chosenIds: [FOE, DEMON] }, react: NOTHING(FOE, DEMON, RAMA),
+      });
+      expect((declared.processes ?? []).length).toBe(2);
+      expect(w.actor(FOE).system.health.value).toBeLessThan(w.actor(FOE).system.health.max);
+      expect(w.actor(DEMON).system.health.value).toBeLessThan(w.actor(DEMON).system.health.max);
     }, WAR);
   });
 });

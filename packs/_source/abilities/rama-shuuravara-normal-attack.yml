@@ -18,7 +18,7 @@ oncePerRound: true
 timing: { window: ownTurn }
 copyable: { allowed: false, reason: named }
 requirements:
-  - { kind: hasSkill, abilityId: martialBlessing }
+  - { kind: hasSkill, abilityId: martialBlessing, name: "Martial Blessing" }
 description: |
   (Passive) Once per Round, Rama can perform a Normal Attack at a Range of 3. Damage dealt is reduced by 20%.
 targeting:

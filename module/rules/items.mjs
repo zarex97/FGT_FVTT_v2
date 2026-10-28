@@ -729,6 +729,9 @@ function requirementDetail(req, ctx) {
   if (req.kind === "notHasEffect") {
     return { detail: { names: EffectRegistry.get(req.effectId)?.name ?? req.effectId } };
   }
+  // The Skill it needs and lacks: *"Allows the use of Vishnu Bhuja"* read
+  // "Requires a Skill this Unit does not have." on Rama's bar (#347, live).
+  if (req.kind === "hasSkill") return { detail: { names: req.name ?? req.abilityId ?? "" } };
   if (req.kind === "abilityAllows") {
     const allower = gatedAbilities(ctx.unit, req, ctx.ability)[0] ?? null;
     // fgt-name-ok: an ability's name on its own bearer's bar, not a Unit's
