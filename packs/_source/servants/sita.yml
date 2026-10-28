@@ -1,0 +1,41 @@
+# packs/_source/servants/sita.yml
+# Conversion source: char_orig_sheets/by-class/Archer/Sita.md
+# Audit: #348 (docs/superpowers/specs/2026-10-28-sita-clauses.md)
+#
+# Built to be reused. Magic Resistance A is Arturia's and Rama's, Independent
+# Action D the class template's tables (5◈, ZON +1, 2 rolls), Goddess's Divine
+# Core Kingprotea's and Quetzalcoatl's at C. Rama's Curse of Separation
+# summons her (#347).
+#
+# The tables agree with the sheet (§46.6): BA(STR) 75 at STR D, BA(MAG) 200 at
+# MAG A, Base Health 1000 at END C. No N.Atk Type is printed: STR, its delivery
+# measured by distance.
+schema: 1
+id: sita
+name: "Sita"
+type: servant
+
+trueName: Sita
+servantClasses: [archer]
+classContainer: archer
+alignment: { order: lawful, morality: good }
+region: [india]
+# "Female, Servant, [Sky], Humanoid".
+attributes: [female, servant, sky, humanoid]
+
+parameters: { str: D, end: C, agi: A, mag: A, luc: EX }
+baseHealth: 1000
+mov: 7
+range: { panels: 4, targets: 1 }
+baseAttack: { str: 75, mag: 200 }
+normalAttack: { mode: fixed, component: str }
+sustainability: "5◈"
+
+abilities:
+  - { ref: class-magic-resistance, rank: A }
+  - { ref: class-independent-action, rank: D }
+  - { ref: sita-goddesses-divine-core }
+  - { ref: sita-jewel-of-the-earth }
+  - { ref: sita-pilgrimage-in-agni-pariksha }
+  - { ref: sita-curse-of-separation }
+  - { ref: sita-haradhanu-janaka }

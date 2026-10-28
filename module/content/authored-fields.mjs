@@ -103,7 +103,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "permanentConsequence", "overridesValidation", "parameterized", "polarity",
   "severity", "preventsAction", "terminal", "onRemove", "volatility",
   "families", "spentFirst", "suppressesOtherEffects", "valence", "stacking", "baseChance",
-  "defaultMagnitude", "uses", "maxStacks", "removalResist", "rulesOncePerBearer", "absorbs", "defaultDuration",
+  "defaultMagnitude", "uses", "maxStacks", "removalResist", "rulesOncePerBearer", "resetsSiblings", "absorbs", "defaultDuration",
   "unremovable", "blocks", "blockedBy", "replaces",
   // Never compiled while the allowlist stood. Serenity's two concealment
   // escapes are declared and read. `periodic` is the only source of a damage

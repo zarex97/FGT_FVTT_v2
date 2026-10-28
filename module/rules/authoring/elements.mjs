@@ -181,6 +181,11 @@ export const ELEMENT_DESCRIPTORS = describeTable([
   entry("NormalAttackComponent", "Which Base Attack the Unit's Normal Attacks use, whatever its own sheet says.", [
     { key: "component", type: "select", choices: ["str", "mag"] },
   ]),
+  entry("NormalAttackShare", "A share of another Base Attack added to the Unit's Normal Attacks; the Magic Resistance it meets may be cut to that share.", [
+    { key: "component", type: "select", choices: ["mag", "str"] },
+    { key: "value", type: "number" },
+    { key: "magicResistance", type: "select", choices: ["", "share"] },
+  ]),
   entry("AttackProperty", "A property of the attack, granted by a buff on the attacker.", [
     { key: "property", type: "text" },
     // Boolean for `pierce` / `ignoresDefUp`; a fraction for `invulnFactor`,

@@ -277,5 +277,16 @@ the bonus is added at stage 16, after every modifier and the Injury snapshot (Di
   Projected as `lethalCancels`; asked by `engine/attack.mjs#lethalCancel` after the revival chain, before anything is
   written, of an Attack's hit only (ruling 10). The die is on the card. A success cancels the bearer's own Process,
   no damage and no effect from it (`damage:cancelled`, ruling 11), and spends the once (`recordUse`); a failure spends
-  nothing, and an empty pool rolls nothing (ruling 12). Its `summon` waits on Sita's audit (ruling 13).
+  nothing, and an empty pool rolls nothing (ruling 12). Its `summon` names the Servant a success brings: a
+  `summonServantBeside` log entry, placed by `engine/summoning.mjs#summonServantBeside` (Sita, #348).
+
+### Sita's element (#348)
+
+- **`NormalAttackShare {component, value, perStack, magicResistance}`** adds a share of another Base Attack to the
+  Normal Attack: Janaka's *"Base Attack (STR) and 20% of her Base Attack (MAG) combined ... increases by 20% for each
+  'Janaka' buff"*. `value` is sized by `perStack` like any magnitude (20% and 20% more per Janaka held, ruling 2, no
+  cap). `magicResistance: share` makes the share the attack's `magicResistanceFactor`, never above 1: the DU's Magic
+  Resistance meets the swing at X% (rulings 3, 13). Projected as `normalAttack.shares`; added to the sources by
+  `rules/normal-attack.mjs#normalAttackAt`, the swing still a STR attack with a MAG top-up. Euryale's Glitter and
+  Kiichi Hougen print the shape at a fixed half.
 

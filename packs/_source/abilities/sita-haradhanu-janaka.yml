@@ -1,0 +1,42 @@
+# Sita, char_orig_sheets/by-class/Archer/Sita.md (#348)
+#
+# > "Range=7. Base Attack (MAG) is used. First, removes all debuffs from Sita,
+# > then deals 3.5x damage. Next, apply Heal Up for 1◈ Turns to Sita, when Sita's
+# > Health is restored, the amount restored is increased by 50%."
+#
+# Self-Suggestion's cleanse, an Unremovable one left. The cleanse runs before
+# the hit and Heal Up lands after it, the DU's Evade or not (ruling 8). No
+# delivery tag: measured by its distance (#281).
+schema: 1
+id: sita-haradhanu-janaka
+name: "Haradhanu Janaka: Peerless Bow of Reminiscence"
+rank: B
+kind: noblePhantasm
+slug: haradhanuJanaka
+isNP: true
+npTags: [antiUnit]
+cooldown: "6◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+description: |
+  Range=7. Base Attack (MAG) is used. First, removes all debuffs from Sita, then deals 3.5x damage. Next, apply
+  @effect[healUp]{Heal Up} for 1◈ Turns to Sita, when Sita's Health is restored, the amount restored is increased
+  by 50%. Cooldown: 6◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 7 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  component: mag
+  multiplier: 3.5
+phases:
+  - kind: removeEffect
+    target: self
+    selector: { polarity: debuff }
+  - kind: damage
+  # "Next" is Sita's, not the hit's: it lands after an Evade too (ruling 8).
+  - kind: applyEffects
+    target: self
+    alsoOnMiss: true
+    effects:
+      - { id: healUp, magnitude: 50, duration: "1◈" }

@@ -51,6 +51,8 @@ vi.mock("../../module/engine/applier.mjs", () => ({
   // A boundary's Agility and Luck lines (#333): nothing here moves a pool.
   poolsBefore: () => [],
   poolLinesAfter: () => [],
+  // A boundary's heals scaled before they are counted (#348): no heal here.
+  resolveHealing: async (intents) => intents,
 }));
 vi.mock("../../module/engine/budget.mjs", () => ({
   reset: async (_combat, factionId) => { events.push({ at: "budget.reset", faction: factionId }); },

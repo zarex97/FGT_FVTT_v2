@@ -300,6 +300,8 @@ describe("VariantOverride (Ch. 45, Semiramis's Double Summon buff)", () => {
       // ...and how it is delivered, as a sheet states it (#281); hers states none.
       delivery: null,
       conditionalMultipliers: [],
+      // ...and the shares a buff adds (Sita's Janaka, #348); she holds none.
+      shares: [],
     });
   });
 

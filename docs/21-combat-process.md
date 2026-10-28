@@ -255,5 +255,14 @@ object. `takes` goes on to `damage`; `saved` and `destroyed` end at `noDamage`, 
 `damage:cancelled` ends a Process at `withdrawn`, as a Feigned Defeat does: Curse of Separation's success. The
 defeat chain is asked BEFORE the hit is written (`applyDamage`), so a revival saves first and only a hit no revival
 saves is offered to the curse; cancelled, nothing of the hit is written, its riders included, and the card says the
-die and the cancel. Every other Process of the same Attack resolves as usual (ruling 11).
+die and the cancel. Every other Process of the same Attack resolves as usual (ruling 11). Its success then summons
+Sita beside him (`summonServantBeside`, Ch. 31, #348).
+
+### A self phase that comes on a miss (#348)
+
+An after-damage `target: self` phase runs from the damage step, so a missed or Evaded Process never paid it. A phase
+that says `alsoOnMiss` is paid on `missed` and `noDamage` too, once per group, on the Attack's card
+(`attack.mjs#selfPhasesOnMiss`): Haradhanu Janaka's *"Next, apply Heal Up ... to Sita"* (ruling 8). Without the flag a
+self phase is the hit's, as a sheet states its own. A cleanse that reaches an Unremovable effect says it stays
+(`skill-use.mjs#heldUnremovable`), and the caster's card posts for that line alone.
 

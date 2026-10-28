@@ -142,13 +142,14 @@ All are `automatic: true` and therefore negated by `Addle`.
 | `Death ChUp` | B | O | mag | Chance of inflicting **Instakill and Death** +X%. The counterpart the exclusion above requires: one modifier cannot do both jobs, and Serenity states both at every size — 10% each from Silent Dance, 40% each from Danse Macabre. |
 | `Buff ChUp` | B | S | mag | Chance of applying buffs to others +X%. **The only entry in this table whose contribution is about buffs**, which the document has to say outright: an `ApplicationChance` that names no polarity means debuffs (§11.3). Ozymandias's *Protection from Ra* is the first content to apply it. |
 | `Buff Up` | B | — | mag | Chance of receiving buffs +X%. |
-| `Debuff Immune` | B | D | nr | Immune to debuffs. Excludes Instakill/Death/Erase unless stated. |
+| `Debuff Immune` | B | D | nr | Immune to debuffs. Excludes Instakill/Death/Erase unless stated. Counted (*"2 times"*, `uses: N, stacking: count` on the entry): a charge is spent only on a debuff it nullified, one whose die landed or that lands for sure; a missed die spends nothing (#348 rulings 6, 14, 15). |
 | `nvDebuff Immune` | B | D | nr | Immune to non-volatile debuffs. |
 | `vDebuff Immune` | B | D | nr | Immune to volatile debuffs. |
 | `Men.Debuff Immune` | B | D | nr | Immune to Mental debuffs. |
 | `Off.Debuff Immune` | B | D | nr | Immune to Offensive debuffs. |
 | `Def.Debuff Immune` | B | D | nr | Immune to Defensive debuffs. |
-| `(Name) Immune` | B | D | nr | Immune to one named effect. |
+| `(Name) Immune` | B | D | nr | Immune to one named effect. `Burn Immune` is built (`burnImmune`, Sita's Pilgrimage, #348); Scald passes it. |
+| `Janaka` | B | O | mag | Sita's (#348): her Normal Attack adds 20% of BA(MAG) and 20% more for each Janaka held, the DU's Magic Resistance met at that share, never above whole (`NormalAttackShare`, rulings 2, 3, 13). One instance per Skill she uses, collected once (`rulesOncePerBearer`); a new one resets every held one's clock (`resetsSiblings`, ruling 4). |
 | `Buff Removal ResUp` | B | D | mag | Chance of buffs being removed −X%. **Does not affect natural expiry.** Also called `Dispel ResUp`. |
 | `Guts` | B | D | nr | Revive on defeat with X Health/Agility/Luck. Consumed on use. Priority: Special Guts > Guts > passive revival. Buffs and debuffs are **not** removed on revival. Authored as `guts` (X% of the maximum) or `gutsHealth` (X Health outright, `RevivalSource.restore.amount`: Rama's *"revived with 100 Health"*, #347). |
 | `Guts (Fearsome)` | B | D | nr | Vlad III (Berserker)'s Guts of its own id (`gutsFearsome`, priority 250): stacks with `Guts` and is consumed before it (#333). |

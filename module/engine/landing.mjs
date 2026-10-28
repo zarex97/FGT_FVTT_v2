@@ -194,6 +194,12 @@ export async function landEffect(entry, ctx) {
   // a Prevention Luck Check that was made. An applied effect shows this and no
   // reason, so a failed check that cost a Luck would otherwise say nothing.
   let line = [result.chance ?? null, overcharge.line].filter(Boolean).join("; ") || null;
+  // The siblings it reset, said: Janaka's clocks all start again (#348 ruling 4).
+  const siblings = (result.trace ?? []).find((t) => t.step === "siblings")?.count ?? 0;
+  if (siblings > 0) {
+    line = [line, game.i18n.format("FGT.Effect.SiblingsReset", { count: siblings, name: def.name })]
+      .filter(Boolean).join("; ");
+  }
 
   // A ward that negates debuffs its holder picks, before any Luck is spent on
   // them: the Master's Avalon, *"negate up to Y additional negative effects

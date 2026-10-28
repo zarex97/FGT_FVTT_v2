@@ -32,6 +32,7 @@
  * @property {string|null} element the damage type, or null
  * @property {boolean} ignoresMagicResistance
  * @property {"ranged"|"melee"|"special"|null} delivery what the sheet states, or `null` to measure
+ * @property {number} [magicResistanceFactor] how much of the DU's Magic Resistance it meets, when a share cuts it
  */
 
 /**
@@ -77,14 +78,14 @@ export function normalAttackAt(unit, range = null, { platform = null } = {}) {
     delivery: spec.delivery ?? null,
   };
 
-  if (spec.mode !== "rangeBanded") return flat;
+  if (spec.mode !== "rangeBanded") return withShares(flat, spec, named);
   // An unknown distance falls back rather than guessing. A snapshot taken off
   // the board has no panel, and reading that as range 0 would put EMIYA in his
   // melee band while previewing a shot across the map.
-  if (typeof range !== "number" || !Number.isFinite(range)) return flat;
+  if (typeof range !== "number" || !Number.isFinite(range)) return withShares(flat, spec, named);
 
   const band = bandFor(spec.bands ?? [], range);
-  if (!band) return flat;
+  if (!band) return withShares(flat, spec, named);
 
   const sources = (band.sources ?? []).map((s) => ({
     unit: named, component: s.component ?? component, factor: s.factor ?? 1,
@@ -98,7 +99,7 @@ export function normalAttackAt(unit, range = null, { platform = null } = {}) {
     ? [{ unit: named, component: band.component, factor: 1 }]
     : null;
 
-  return {
+  return withShares({
     sources: sources.length > 0 ? sources : (bandOnly ?? flat.sources),
     // What the attack COUNTS AS when two components are combined: the sheet's
     // own framing is "Base Attack (STR) and 20% of his Base Attack (MAG)
@@ -114,6 +115,33 @@ export function normalAttackAt(unit, range = null, { platform = null } = {}) {
     // The band's own, else the Normal Attack's: Trung Sisters' *"STR, Melee
     // (1pan); MAG, Ranged (2+pan)"* (#281, ruling 11).
     delivery: band.delivery ?? spec.delivery ?? null,
+  }, spec, named);
+}
+
+/**
+ * The shares a buff adds on top of what the sheet says, and the Magic
+ * Resistance they meet: Sita's Janaka, *"her Base Attack (STR) and 20% of her
+ * Base Attack (MAG) combined"*, the effect of Magic Resistance *"reduced to
+ * X%, where X% = the amount of Base Attack (MAG) used"* (#348 rulings 2, 3,
+ * 13). The swing still counts as its own component: a STR attack with a MAG
+ * top-up, as EMIYA's. X never passes 1.
+ *
+ * @param {NormalAttackSpec} result
+ * @param {object} spec the projection's `normalAttack`
+ * @param {string} named whose Base Attack the sources read
+ * @returns {NormalAttackSpec}
+ */
+function withShares(result, spec, named) {
+  const shares = Array.isArray(spec.shares) ? spec.shares : [];
+  if (shares.length === 0) return result;
+  const cut = shares.filter((s) => s.magicResistance === "share").map((s) => Math.min(1, s.factor));
+  return {
+    ...result,
+    sources: [
+      ...result.sources,
+      ...shares.map((s) => ({ unit: named, component: s.component, factor: s.factor })),
+    ],
+    ...(cut.length > 0 ? { magicResistanceFactor: Math.min(...cut) } : {}),
   };
 }
 

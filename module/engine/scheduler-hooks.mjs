@@ -13,7 +13,7 @@
 
 import { moment } from "../domain/moment.mjs";
 import * as scheduler from "./scheduler.mjs";
-import { applyIntents, poolsBefore, poolLinesAfter } from "./applier.mjs";
+import { applyIntents, poolsBefore, poolLinesAfter, resolveHealing } from "./applier.mjs";
 import { worldIO } from "./io.mjs";
 import { currentBoard } from "./board.mjs";
 import { factionOfCombatant } from "./turn-order.mjs";
@@ -191,7 +191,9 @@ async function onTurnChange(combat, prior, current) {
   // it, and the game log files it there rather than under the live Round.
   const ended = moment(ctx.round, tick);
 
-  const turnIntents = scheduler.endTurn(board, ctx);
+  // Heals scaled before they are counted, so the card says what the write makes
+  // (Regen under Heal Up, #348).
+  const turnIntents = await resolveHealing(scheduler.endTurn(board, ctx));
   // The clocks a sourced cut names, read before the writes: the card says what
   // a cut took, and nothing of one that found the clock at 0 (#209 review).
   const clocks = clocksBefore(turnIntents, remainingOnActor);
@@ -513,7 +515,7 @@ async function endRoundSequence(combat, round, tick) {
     rolls: await gatherRolls([[board.units, "roundEnd"]]),
   };
 
-  const roundIntents = scheduler.endRound(board, ctx);
+  const roundIntents = await resolveHealing(scheduler.endRound(board, ctx));
   const healthRound = healthBefore(roundIntents, healthOnActor);
   const landedRound = await run(roundIntents, "scheduler:endRound", moment(round, tick));
   await postPeriodicReport(roundIntents, worldIO());

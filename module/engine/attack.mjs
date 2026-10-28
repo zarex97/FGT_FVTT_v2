@@ -1765,7 +1765,9 @@ async function declareProcesses({
     // ...and what they did, on a card of their own (#204 LK, ruled
     // 2026-10-14). The Skill path posted these lines and this one dropped
     // them, so Troias Tragōidia's Agility restore was seen by nobody.
-    if ((casterApplied ?? []).some((a) => a.summary?.outcome === "applied")) {
+    // A held removal is news too: Haradhanu Janaka's cleanse reaching only an
+    // Unremovable Curse posted nothing (#348, live).
+    if ((casterApplied ?? []).some((a) => ["applied", "failed"].includes(a.summary?.outcome))) {
       await postCard(attacker, ability, [], casterApplied);
     }
   }
@@ -4540,8 +4542,13 @@ async function runAutomaticStep(state, message) {
     case "injury":
       await applyInjury(state, message);
       return process.advance(state, "done");
+    case "missed":
+      // A self phase that comes whether or not the Attack lands (#348 ruling 8).
+      await selfPhasesOnMiss(state, message);
+      return process.advance(state, "done");
     case "noDamage":
     case "facing":
+      if (state.state === "noDamage") await selfPhasesOnMiss(state, message);
       // Facing: the defender turns to face the attacker, but not for AoE.
       if (state.state === "facing" && process.shouldUpdateFacing(state)) {
         await applyFacing(state);
@@ -4581,6 +4588,35 @@ async function runAutomaticStep(state, message) {
 /* -------------------------------------------------------------------------- */
 /*  Steps                                                                      */
 /* -------------------------------------------------------------------------- */
+
+/**
+ * The caster's own after-damage phases that come whether or not the Attack
+ * lands (`alsoOnMiss`), on a Process that missed or was Evaded: Haradhanu
+ * Janaka's *"Next, apply Heal Up for 1◈ Turns to Sita"* (#348 ruling 8). Once
+ * per group, as the hit path pays them; said on the Attack's card. A phase
+ * without the flag is the hit's, as before: a sheet states its own.
+ *
+ * @param {object} state the Combat Process
+ * @param {object} message its card
+ * @returns {Promise<void>}
+ */
+async function selfPhasesOnMiss(state, message) {
+  if (state.isCounter || !isFirstOfGroup(state)) return;
+  const attackerDoc = unitActor(state.attackerId);
+  const ability = state.attack?.abilityId ? attackerDoc?.items?.get(state.attack.abilityId) : null;
+  const phases = (ability?.system?.phases ?? []).filter((p) => p.alsoOnMiss && p.target === "self"
+    && (p.kind === "applyEffects" || p.kind === "applyEffect"));
+  if (phases.length === 0) return;
+  const attackerUnit = unitFrom(boardSnapshot(), attackerDoc);
+  const rows = [];
+  for (const phase of phases) {
+    rows.push(...await applyDeclaredEffects(effectSpecsOf(phase), ability,
+      { ...state, defenderId: state.attackerId }, attackerUnit, { phase }));
+  }
+  if (rows.length > 0 && message) {
+    await message.setFlag("fgt", "effects", [...(message.getFlag("fgt", "effects") ?? []), ...cardRows(rows)]);
+  }
+}
 
 /**
  * Roll the `1d100` for every probabilistic check contribution this unit has.
@@ -5739,10 +5775,18 @@ async function lethalCancel(defender, state) {
       key: cancelled ? "FGT.LethalCancel.Cancelled" : "FGT.LethalCancel.Failed",
       data: { source: c.source, roll, chance, held },
     } });
+    // *"...then Sita is summoned on a panel directly next to himself (will be
+    // contracted to Rama's Master)"*: after the cancel, on a success only
+    // (#347 ruling 12). His Master by the contract; none while he is Free.
+    const contentId = typeof c.summon === "string" ? c.summon : (c.summon?.contentId ?? null);
+    const masterId = defender.contract === "free" ? null : (defender.masterId ?? null);
+    const summon = cancelled && contentId
+      ? [I.log({ kind: "summonServantBeside", unitId: state.defenderId, contentId, masterId, source: c.source })]
+      : [];
     return {
       cancelled,
       source: c.source,
-      intents: cancelled && c.abilityId ? [said, I.recordUse(state.defenderId, c.abilityId)] : [said],
+      intents: cancelled && c.abilityId ? [said, I.recordUse(state.defenderId, c.abilityId), ...summon] : [said, ...summon],
       lines: [line],
     };
   }
@@ -8061,6 +8105,8 @@ export function attackFacts(attacker, defender, state, board = null) {
     // Stage 3's multipliers of a Normal Attack, which has no damage block to
     // carry them: Mesektet's ×2 against Dark (#189 readings 3, 18).
     conditionalMultipliers: normal.conditionalMultipliers ?? [],
+    // Janaka's share cuts the Magic Resistance it meets (#348 ruling 3).
+    ...(typeof normal.magicResistanceFactor === "number" ? { magicResistanceFactor: normal.magicResistanceFactor } : {}),
     delivery,
   };
 }

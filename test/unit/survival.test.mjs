@@ -271,6 +271,8 @@ export const EFFECT_ROUTES = {
     "polarityByRelation", "decay", "pausedWhile", "boardUnique",
     // Read by `engine/io.mjs#endEffectsWithInflicter` (#339).
     "endsWithInflicter",
+    // Read by `engine/effect-applier.mjs#applyEffect` (#348).
+    "resetsSiblings",
   ].map((k) => [k, same(k)])),
   contentId: same("id"),
   description: doc("module/apps/actor-sheet/context.mjs", "the effect's text on the sheet"),
