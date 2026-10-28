@@ -66,8 +66,8 @@ What he needs that nobody has yet, each built as a generic piece:
 Asked by grilling, 2026-10-27. Rulings are written here as they land.
 
 **Built 2026-10-27** on `claude/sieg` (`test/unit/sieg-345.test.mjs`) and pressed as Player1 in a War of its own,
-`kbZIMvErSVVVV4eQ` on the scene *Sieg Audit*, apart from the match being played. **116 of 119** Clauses end Pressed or
-Observed live; DC.2.param, DC.2.npgate and DC.2.fall are still open (see each).
+`kbZIMvErSVVVV4eQ` on the scene *Sieg Audit*, apart from the match being played. **119 of 119** Clauses end Pressed or
+Observed live.
 
 Found live and fixed, each with a test that fails without it:
 
@@ -82,6 +82,10 @@ Found live and fixed, each with a test that fails without it:
   pass's queue, so that Turn's upkeep never charged (`attack.mjs`, `atTurnEnd`).
 - Ended by his own switch, Fafnir's token stayed 3×3 over a 1×1 footprint (`token-footprint.mjs`, `updateItem`).
 - The pool read "Drcs" on the bar: `FGT.Pool.drcs`, and the card's resource line reads the same words.
+- A Prevention Luck Check that timed out stayed open on Player1's screen, more stacking behind it: a timed-out ask
+  is withdrawn and its windows close (`net/socket.mjs`, `apps/prompt.mjs#withdrawPrompt`).
+- As Siegfried his sheet read Sieg's *"Caster · Neutral Good · Europe"*, Details *"caster"*, and kept the contract
+  button: the header, the Details tab and `canContract` read `rules/form.mjs#formSheet`.
 
 **Round 1, ruled 2026-10-27 (the user).** Q7 and Q16 are asked again in round 2 (Q16's answer arrived labelled Q6), Q8
 with the quotations.
@@ -208,16 +212,16 @@ Usage 2:
 - [x] **DC.2.pay** · DRCS −1 when used · *Pressed* — "DRCS 2 → 1"; "DRCS 1 → 0" (War kbZIMvErSVVVV4eQ, 2026-10-27)
 - [x] **DC.2.form** · Then Sieg is transformed into Siegfried (Q1) · *Pressed* — "Caster transforms: Dead Count Shapeshifter: Siegfried."; board Saber, Range 1, BA 135/150 (War kbZIMvErSVVVV4eQ, 2026-10-27)
 - [x] **DC.2.kit** · With all of Siegfried's Skills and NP available and usable · *Pressed* — bar as Siegfried: Riding, Avaricious Gold, Disengage, Dragon Slayer, Balmung; Avaricious Gold pressed: "Rheingold ; NP Regen ; Atk Up" (War kbZIMvErSVVVV4eQ, 2026-10-27)
-- [ ] **DC.2.npgate** · Balmung still only when the Rounds passed meet the game's conditions · not pressed live: Balmung was refused by ZON as Siegfried, never by the Round gate
+- [x] **DC.2.npgate** · Balmung still only when the Rounds passed meet the game's conditions · *Pressed* — as Siegfried, Round 14, the War's NP gate staged at 20: "Balmung … — Ready from Round 20 (6 away)" on the press; at the War's 1 (and his Master within ZON) the slot lit (War kbZIMvErSVVVV4eQ, 2026-10-27)
 - [x] **DC.2.die** · Roll a d4: the transformation lasts 1◈ + ½◈ × the roll Turns, the die on the card · *Pressed* — "d4: 1. The transformation lasts 5 Turns."; a 4 lasted 9 (after the fix below) (War kbZIMvErSVVVV4eQ, 2026-10-27)
 - [x] **DC.2.keep** · He keeps every buff, debuff and other effect he held · *Pressed* — NP Regen, Max HpUp and Schwert's Atk Up held after the change (War kbZIMvErSVVVV4eQ, 2026-10-27)
 - [x] **DC.2.stats** · New Stats are rolled for the transformed Sieg (Q2) · *Pressed* — "Agility rolled anew: 1, Max 17. Luck rolled anew: 1, Max 1."; Health 1500 (War kbZIMvErSVVVV4eQ, 2026-10-27)
-- [ ] **DC.2.param** · Any + or − to Sieg's Parameters carries over to Siegfried · not pressed live: he held no Parameter shift in this War (the projection applies his granted steps to the form's Parameters, `rules/form.mjs#formSheet`)
+- [x] **DC.2.param** · Any + or − to Sieg's Parameters carries over to Siegfried · *Observed live* — steps staged on Sieg (STR +1, LUC −1): board STR B+ → B++, LUC E → E−; Player1's sheet "STR E → B++ + granted", "LUC B → E-" (War kbZIMvErSVVVV4eQ, 2026-10-27)
 - [x] **DC.2.end** · When it ends, he becomes Sieg again · *Pressed* — "Caster returns from Dead Count Shapeshifter: Siegfried after 5 Turns." (War kbZIMvErSVVVV4eQ, 2026-10-27)
 - [x] **DC.2.back** · His Stats and his Skill, Spell and NP cooldowns are as they were before he transformed (Q3) · *Pressed* — Agility 11/11 and Luck 16/16 as before; Knacken 4, Schwert 6 did not tick across his Turns as Siegfried (War kbZIMvErSVVVV4eQ, 2026-10-27)
 - [x] **DC.2.toll** · Then his Health −100, never below 1 · *Pressed* — "Health 420 → 320." (War kbZIMvErSVVVV4eQ, 2026-10-27)
 - [x] **DC.2.cd** · Cooldown 3◈ Turns plus the Turns he was transformed, counted from the end · *Observed live* — its clock 14 at the return (3◈ + 5) (War kbZIMvErSVVVV4eQ, 2026-10-27)
-- [ ] **DC.2.fall** · Siegfried brought to 0 while transformed (Q4) · not pressed live (unit-tested: the Unit is defeated)
+- [x] **DC.2.fall** · Siegfried brought to 0 while transformed (Q4) · *Pressed* — Health staged 50, Heracles's Normal Attack, Player1 declined Disengage and did nothing: "Caster is defeated by Berserker."; past his form's end (tick 45) no return, Health 0, still defeated (War kbZIMvErSVVVV4eQ, 2026-10-27)
 - [x] **DC.lock** · Usage 1 and usage 2: one clock or two (Q5) · *Observed live* — Dragon Revelation's clock 9 and usage 2's 14 ran apart (War kbZIMvErSVVVV4eQ, 2026-10-27)
 
 ## Bridal Chest: A Maiden's Chastity — Rank C *(NP, Anti-Unit, 3 Passives)*

@@ -102,7 +102,7 @@
 import { readdirSync } from "node:fs";
 import { loadFoundry, installSystem, sourceForm, firstMismatch } from "../../tools/lib/foundry.mjs";
 import { loadDice, diceConfig, freshHooks } from "./foundry-client.mjs";
-import { installClientApi, bindWorld, asUser } from "./client-api.mjs";
+import { installClientApi, bindWorld, asUser, HOLD } from "./client-api.mjs";
 import { WAR_RULE_KEYS } from "../../module/domain/war-rules.mjs";
 
 /* -------------------------------------------------------------------------- */
@@ -1000,12 +1000,19 @@ function questions(world) {
             let response;
             try {
               const { renderPrompt } = await import("../../module/apps/prompt.mjs");
-              response = { kind: "response", id: msg.id, ok: true, result: await renderPrompt(msg.spec) };
+              response = { kind: "response", id: msg.id, ok: true, result: await renderPrompt(msg.spec, { askId: msg.id }) };
             } catch (err) {
               response = { kind: "response", id: msg.id, ok: false, error: { code: err.code ?? "ERROR", message: err.message } };
             }
             for (const fn of listeners) fn(response, msg.targetUserId);
           }));
+        } else if (msg?.kind === "withdraw") {
+          // Player1's client hears the asker stop waiting, and closes the window.
+          Promise.resolve().then(() => asUser(msg.targetUserId, async () => {
+            const { withdrawPrompt } = await import("../../module/apps/prompt.mjs");
+            await withdrawPrompt(msg.id);
+          }));
+          world.events.push(msg);
         } else if (msg?.kind === "request") {
           world.proxied.push(msg);
         } else {
@@ -1030,10 +1037,15 @@ function questions(world) {
       world.asked.push({ title, kind, by });
       const answer = take(title, kind, by);
       if (!answer || answer.decline) return null;
+      // A player who is still reading: the window stays open (`client-api.mjs`).
+      if (answer.hold) return HOLD;
       return answer.value ?? null;
     },
     close() {
       for (const a of script) world.failures.push(`A scripted answer was never asked for: "${a.title}".`);
+      for (const h of world.held) {
+        if (h.app.rendered) world.failures.push(`A window was left open on ${h.by}'s screen: "${h.title}".`);
+      }
       for (const f of world.dice.leftovers()) world.failures.push(`A scripted die was never rolled: ${f}.`);
     },
   };
@@ -1097,6 +1109,8 @@ export async function withWorld(own, fn) {
     rolls: [],
     asked: [],
     rendered: [],
+    // The windows a held answer left open (`{title, by, hold: true}`).
+    held: [],
     // What went wrong where Foundry would have said nothing: an unscripted
     // question, a question shown to the wrong user, a scripted die never rolled.
     // Thrown when the world closes, because the engine swallows a throw from a

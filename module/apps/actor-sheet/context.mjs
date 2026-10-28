@@ -18,7 +18,7 @@ import { chebyshev } from "../../domain/geometry.mjs";
 import { resourceLabel } from "../../domain/resources.mjs";
 import { stanceOf } from "../../rules/stance.mjs";
 import { classifyAbility, usageSpecFor } from "../../rules/ability-use.mjs";
-import { heldNow } from "../../rules/form.mjs";
+import { heldNow, formSheet } from "../../rules/form.mjs";
 import { canUseAbility } from "../../rules/costs.mjs";
 import { isDelivery } from "../../rules/delivery.mjs";
 import { test as testPredicate } from "../../rules/predicate.mjs";
@@ -236,7 +236,9 @@ export function buildContext(actor, sheet) {
     //
     // Spread first: `servantClasses` is a SetField, so it arrives as a `Set`,
     // which has `.has` and not `.includes`.
-    canContract: isMaster || [...(system.servantClasses ?? [])].includes("caster"),
+    // The form's Classes while he wears one (`rules/form.mjs#formSheet`):
+    // Sieg as Siegfried is a Saber, and a Saber does not contract (#345).
+    canContract: isMaster || [...formSheet(actor).servantClasses].includes("caster"),
     // *"Pale Rider cannot perform Normal Attacks."* The action bar has never
     // offered him the slot (`rules/actions.mjs`); the sheet offered the button,
     // previewed a Legal attack and was refused on the press (#180). A control
@@ -321,20 +323,23 @@ function headerContext(actor, snapshot) {
  */
 function identityLine(actor) {
   const system = actor.system;
+  // A form's own, while it lasts (#345 ruling 1): the seat stays, the rest is
+  // Siegfried's. The header read Sieg's Europe beside the Details tab's Germany.
+  const sheet = formSheet(actor);
   const parts = [];
 
   if (system.classContainer) parts.push(titleCase(system.classContainer));
-  else if (system.servantClasses?.size) parts.push([...system.servantClasses].map(titleCase).join(" / "));
+  else if (sheet.servantClasses.length) parts.push(sheet.servantClasses.map(titleCase).join(" / "));
 
   // "Neutral Neutral" is not how anyone writes it. Collapse the pair when both
   // halves agree, which is the one case where repeating the word says nothing.
-  const order = system.alignment?.order ?? "";
-  const morality = system.alignment?.morality ?? "";
+  const order = sheet.alignment?.order ?? "";
+  const morality = sheet.alignment?.morality ?? "";
   const alignment = (order && order === morality ? [order] : [order, morality])
     .filter(Boolean).map(titleCase).join(" ");
   if (alignment) parts.push(alignment);
 
-  const region = [...(system.region ?? [])].map(titleCase).join(", ");
+  const region = sheet.region.map(titleCase).join(", ");
   if (region) parts.push(region);
 
   return parts.join(" · ");
@@ -872,8 +877,9 @@ function detailsContext(actor, snapshot) {
   const system = actor.system;
 
   return {
-    servantClasses: [...(system.servantClasses ?? [])],
-    region: [...(system.region ?? [])],
+    // Who he is while a form lasts, as the board reads it (#345 ruling 1).
+    servantClasses: formSheet(actor).servantClasses,
+    region: formSheet(actor).region,
     attributes: [...(system.attributes ?? [])],
 
     // A Master's rank, which had no control anywhere -- the only way to set it
