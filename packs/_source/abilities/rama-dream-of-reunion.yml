@@ -1,0 +1,68 @@
+# Rama, char_orig_sheets/by-class/Saber/Rama.md (#347)
+#
+# > "Dream of Reunion — Rank: EX
+# > (Passive) Whenever Rama is defeated and revived with an effect, gain 1 Reunion
+# > Counter.
+# > (Active) Used during your Turn. Has the following effects-
+# > 1. Applies Guts for 1◈ Turns, when Rama is defeated, he is revived with 100
+# > Health.
+# > 2. Restores Rama's Health by 25% of its maximum value.
+# > 3. NP Cooldown is reduced by 1◈ Turns.
+# > 4. Applies S.Crit Up for ⅓◈ Turns to all allied Units within a 2 panel area of
+# > himself, Crit Chance is increased by 15%.
+# > 5. Gain 1 Reunion Counter.
+# > Cooldown: 4◈ Turns."
+#
+# The Passive hears `unitRevived`, fired once from the defeat resolution for any
+# revival through any effect: Heracles's Indomitable and Olga Marie's Gyakkou
+# listen to the same. The counters are his pool, `resources.reunion`; Curse of
+# Separation reads them.
+#
+# 1 is `gutsHealth`, Health itself. 3 names no NP, so it reaches every NP he
+# holds (#197 reading 6). 4 is the S.Crit Up aura its caster holds (#132),
+# Arturia's Radiant Road at 15%: *"all allied Units"*, him too.
+schema: 1
+id: rama-dream-of-reunion
+name: "Dream of Reunion"
+rank: EX
+kind: skill
+slug: dreamOfReunion
+cooldown: "4◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive) Whenever Rama is defeated and revived with an effect, gain 1 Reunion Counter.
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[gutsHealth]{Guts} for 1◈ Turns, when Rama is defeated, he is revived with 100 Health.
+  2. Restores Rama's Health by 25% of its maximum value.
+  3. NP Cooldown is reduced by 1◈ Turns.
+  4. Applies @effect[sCritUp]{S.Crit Up} for ⅓◈ Turns to all allied Units within a 2 panel area of himself, Crit
+  Chance is increased by 15%.
+  5. Gain 1 Reunion Counter.
+  Cooldown: 4◈ Turns.
+passiveRules:
+  - key: OnEvent
+    event: unitRevived
+    automatic: true
+    then:
+      - { key: ResourceDelta, resource: reunion, delta: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: gutsHealth, magnitude: 100, duration: "1◈" }
+  - kind: heal
+    target: self
+    percentOfMax: 25
+  - kind: cooldown
+    changes:
+      - { unit: self, scope: np, ticks: "1◈", direction: down }
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: sCritUp, magnitude: 15, duration: "⅓◈" }
+  - kind: resource
+    target: self
+    changes:
+      - { key: resources.reunion.value, delta: 1 }

@@ -107,6 +107,8 @@ export const DAMAGE_BLOCK_KEYS = Object.freeze([
   "ignoresCritDamageDealt",
   // how the modifiers treat it
   "bypassModifiers", "modifierSources", "excludeModifierSources", "totalModifiers",
+  // The attack's own damage-dealt figure, summed at stage 4 (Rama's Vishnu Bhuja, #347).
+  "dealtModifiers",
   // what the defender may answer it with
   // Blasted Tree's splash: *"these DUs can Evade/Block, but cannot Counter"* (#345).
   "unblockable", "uncounterable", "unavoidable", "noCover", "evadableOnlyBy", "evadeOnlyByLuck", "evadeModifier", "noEvadeAfterFail", "singleInjuryRoll", "skipIf",

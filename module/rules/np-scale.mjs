@@ -34,6 +34,8 @@ export const NP_TAG_QUALIFIERS = Object.freeze([
   "labyrinth", "counter", "boundedField", "unknown",
   // An artistic, literary or musical creation (Appreciation of the Arts, #323).
   "artistic",
+  // Rama's Brahmastra, *"[Anti-Demon]"* (#347).
+  "antiDemon",
 ]);
 
 /**

@@ -1647,6 +1647,28 @@ const ACTIONS = Object.freeze({
     })];
   },
 
+  /**
+   * A die that spends abilities for the rest of the game: Pinaka's *"roll a
+   * 6-sided die at the end of the Damage Step. If a 5 is rolled, the Shiva
+   * Dhanush is broken, Vishnu Bhuja: Pinaka can no longer be used for the rest
+   * of the game"* (#347). The die is the caller's (`roll`, `pendingRolls`) and
+   * is on the card whichever way it falls (ruling 4); on a face in `on`, every
+   * ability of the bearer's named in `abilities` is expended, both halves of
+   * the bow.
+   */
+  Expend: (a, u, h, c) => {
+    const rolled = c.rolls?.[a.roll?.key];
+    if (typeof rolled !== "number") return [];
+    const breaks = (a.on ?? []).includes(rolled);
+    const line = I.log({ kind: "cardLine", unitId: u.id, source: h.source, line: {
+      key: breaks ? "FGT.Expend.Breaks" : "FGT.Expend.Holds",
+      data: { label: a.label ?? h.source ?? "", die: a.roll.formula ?? "", roll: rolled, on: (a.on ?? []).join(", ") },
+    } });
+    if (!breaks) return [line];
+    const spent = (u.abilities ?? []).filter((x) => (a.abilities ?? []).includes(x.contentId));
+    return [line, ...spent.map((x) => I.expend(u.id, x.id))];
+  },
+
   Message: (a, u, h) => [I.log({ kind: "message", text: a.text, unitId: u.id, source: h.source })],
 
   /**

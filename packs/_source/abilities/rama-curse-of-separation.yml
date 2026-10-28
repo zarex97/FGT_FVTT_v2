@@ -1,0 +1,35 @@
+# Rama, char_orig_sheets/by-class/Saber/Rama.md (#347)
+#
+# > "Curse of Separation — Rank: A
+# > (Passive) When Rama would be defeated and is not revived by any effect, for
+# > every Reunion Counter on himself, he has a 3% chance of having that Attack be
+# > canceled, then Sita is summoned on a panel directly next to himself (will be
+# > contracted to Rama's Master). Can only activate once per game."
+#
+# Ruled 2026-10-28 (#347): an Attack's defeat only, past the revival chain
+# (ruling 10); a success cancels his own Process, no damage and no effect from
+# it, every other Unit the Attack hit hit as usual (11); Sita comes on a success
+# only, which spends the once; a failure spends nothing; no counter rolls no die
+# (12). Read at the hit by `engine/attack.mjs#lethalCancel`; the once is this
+# Skill's `timesUsed`. Sita's arrival waits on her own audit (ruling 13).
+schema: 1
+id: rama-curse-of-separation
+name: "Curse of Separation"
+rank: A
+kind: skill
+slug: curseOfSeparation
+passive: true
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive) When Rama would be defeated and is not revived by any effect, for every Reunion Counter on himself, he
+  has a 3% chance of having that Attack be canceled, then Sita is summoned on a panel directly next to himself (will
+  be contracted to Rama's Master). Can only activate once per game.
+passiveRules:
+  - key: CancelsLethalAttack
+    resource: reunion
+    percentPer: 3
+    oncePerGame: true
+    # "...then Sita is summoned on a panel directly next to himself (will be
+    # contracted to Rama's Master)" (`engine/summoning.mjs#summonServantBeside`,
+    # #348).
+    summon: sita

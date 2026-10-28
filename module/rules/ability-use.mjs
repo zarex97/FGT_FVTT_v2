@@ -705,6 +705,9 @@ export function usageSpecFor(ability) {
     // "Can only be used once per Round" — Karna's Uncrowned Arms Mastership,
     // whose only limit this is.
     oncePerRound: Boolean(sys.oncePerRound),
+    // A Normal Attack made in a method a passive grants (#347): the use gate
+    // reads it as the Normal Attack, not as the Skill or NP that grants it.
+    normalAttackMethod: Boolean(sys.normalAttackMethod),
     // Both exclusion scales, and the whole-match budget. A gate the attack path
     // could not see was a gate only half the abilities in the game obeyed.
     sameTurnExclusive: [...(sys.sameTurnExclusive ?? [])],

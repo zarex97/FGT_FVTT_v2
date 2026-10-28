@@ -18,7 +18,7 @@
  */
 
 import { chebyshevDisc, inBounds } from "../domain/geometry.mjs";
-import { currentBoard } from "./board.mjs";
+import { currentBoard, currentMoment } from "./board.mjs";
 import { inPocketDimension } from "../rules/environment.mjs";
 import { parseTick, resolveTicks } from "../domain/tick.mjs";
 import { orthogonalPanels, SHEET_ORDER } from "../rules/targeting/orthogonal.mjs";
@@ -132,8 +132,8 @@ export async function summonPhase(phase, summoner, { choose = null } = {}) {
  * @param {string[]} contentIds
  * @returns {Promise<Array<{i: number, j: number}>>}
  */
-async function ownerPanels(summoner, placement, contentIds) {
-  const offered = freePanels(summoner, placement, Infinity);
+async function ownerPanels(summoner, placement, contentIds, offeredPanels = null) {
+  const offered = offeredPanels ?? freePanels(summoner, placement, Infinity);
   if (offered.length === 0) return [];
   const names = [];
   for (const id of contentIds.slice(0, offered.length)) names.push((await fromPacks(id))?.name ?? id);
@@ -670,6 +670,81 @@ export async function summonAround(entry) {
     speaker: publicSpeakerFor(summoner),
   });
   return created;
+}
+
+/**
+ * A Servant summoned onto the board by an effect, beside a Unit and contracted
+ * to that Unit's Master: Rama's Curse of Separation, *"then Sita is summoned on
+ * a panel directly next to himself (will be contracted to Rama's Master)"*
+ * (#347 rulings 12, 13; #348 rulings 9 to 12).
+ *
+ * A Servant like any summoned at a War's start (`engine/summon.mjs`): full
+ * Health, her Agility and Luck rolled now, every cooldown ready, no Command
+ * Spells for the Master (it is no Contract Servant roll). On a free panel
+ * directly next to him, his owner's pick; with none, on the nearest free panel,
+ * his owner's pick. His owner holds her. She acts from her side's next Turn
+ * (`arrivedTick`, `rules/budget.mjs#canConsume`). Said on a card.
+ *
+ * @param {{unitId: string, contentId: string, masterId: string|null, source: string}} entry
+ * @returns {Promise<object|null>} the Servant, or `null` when none could come
+ */
+export async function summonServantBeside(entry) {
+  const { unitActor } = await import("./board.mjs");
+  const beside = unitActor(entry.unitId);
+  const board = currentBoard();
+  const at = board.units.find((u) => u.id === entry.unitId)?.panel ?? null;
+  if (!beside || !entry.contentId || !at || !canvas.scene) return null;
+
+  const named = [entry.contentId];
+  let panels = await ownerPanels(beside, { anchorPanel: at, adjacentTo: true }, named);
+  // None directly next to him: the nearest free panels, still his owner's pick.
+  for (let size = 5; panels.length === 0 && size <= 41; size += 2) {
+    const radius = Math.floor(size / 2);
+    const ring = freePanels(beside, { anchorPanel: at, size }, Infinity)
+      .filter((p) => Math.max(Math.abs(p.i - at.i), Math.abs(p.j - at.j)) === radius);
+    if (ring.length > 0) panels = await ownerPanels(beside, null, named, ring);
+  }
+  const panel = panels[0] ?? null;
+  const name = (await fromPacks(entry.contentId))?.name ?? entry.contentId;
+  if (!panel) {
+    ui.notifications?.warn(game.i18n.format("FGT.Summon.NoPanel", { name }));
+    return null;
+  }
+
+  const { summonServant } = await import("./summon.mjs");
+  const made = await summonServant({ contentId: entry.contentId, masterId: entry.masterId ?? null });
+  if (!made.ok) {
+    ui.notifications?.warn(game.i18n.format("FGT.Summon.NoPanel", { name }));
+    return null;
+  }
+  const actor = made.actor;
+  await actor.update({
+    // From her side's next Turn, never in the Turn she arrives in (#348 ruling 11).
+    "system.arrivedTick": currentMoment().tick ?? 0,
+    // With no Master to take a side from, his.
+    ...(entry.masterId ? {} : { "system.factionId": beside.system?.factionId ?? null }),
+    // His owner holds her.
+    ownership: { ...(beside.ownership ?? {}) },
+  });
+  const token = await actor.getTokenDocument({ x: panel.j * canvas.scene.grid.size, y: panel.i * canvas.scene.grid.size });
+  await canvas.scene.createEmbeddedDocuments("Token", [token.toObject()]);
+
+  const { publicIdentityOf, publicSpeakerFor } = await import("./public-identity.mjs");
+  const after = currentBoard();
+  const master = entry.masterId ? unitActor(entry.masterId) : null;
+  // "Beside" only when she is: with no panel next to him free, the nearest.
+  const beside1 = Math.max(Math.abs(panel.i - at.i), Math.abs(panel.j - at.j)) <= 1;
+  const key = `FGT.Summon.Servant${beside1 ? "Beside" : "Near"}${master ? "" : "Free"}`;
+  const line = game.i18n.format(key, {
+    source: foundry.utils.escapeHTML(entry.source ?? ""),
+    name: foundry.utils.escapeHTML(publicIdentityOf(actor, after).name),
+    beside: foundry.utils.escapeHTML(publicIdentityOf(beside, after).name),
+    master: master ? foundry.utils.escapeHTML(publicIdentityOf(master, after).name) : "",
+    agility: actor.system?.agility?.max ?? 0,
+    luck: actor.system?.luck?.max ?? 0,
+  });
+  await ChatMessage.create({ content: `<div class="fgt-card"><p>${line}</p></div>`, speaker: publicSpeakerFor(beside) });
+  return actor;
 }
 
 /**

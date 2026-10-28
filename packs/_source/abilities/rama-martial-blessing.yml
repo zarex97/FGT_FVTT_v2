@@ -1,0 +1,34 @@
+# Rama, char_orig_sheets/by-class/Saber/Rama.md (#347)
+#
+# > "Martial Blessing — Rank: A
+# > (Passive) Allows the use of Vishnu Bhuja.
+# > (Active) Used during your Turn. Applies Crit Up for 1◈ Turns, Crit Chance is
+# > increased by 50%; and applies Crit DmUp for 1◈ Turns, Crit Damage is increased
+# > by 100%. Cooldown: 4◈ Turns."
+#
+# The Passive is a gate the other side reads: every Vishnu Bhuja Noble Phantasm
+# requires a Skill with this slug (`requirements: hasSkill`), so the five are his
+# only while this Skill is (#347 ruling 9). Skill Seal stops no passive Skill.
+#
+# The Active's two buffs are the generic ones. No NP figure is printed, so
+# neither reaches a Noble Phantasm (#131).
+schema: 1
+id: rama-martial-blessing
+name: "Martial Blessing"
+rank: A
+kind: skill
+slug: martialBlessing
+cooldown: "4◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive) Allows the use of @np[rama-vishnu-bhuja]{Vishnu Bhuja}.
+  (Active) Used during your Turn. Applies @effect[critUp]{Crit Up} for 1◈ Turns, Crit Chance is increased by 50%;
+  and applies @effect[critDmUp]{Crit DmUp} for 1◈ Turns, Crit Damage is increased by 100%. Cooldown: 4◈ Turns.
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: critUp, magnitude: 50, duration: "1◈" }
+      - { id: critDmUp, magnitude: 100, duration: "1◈" }

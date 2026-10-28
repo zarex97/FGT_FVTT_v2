@@ -1,0 +1,30 @@
+# Sita, char_orig_sheets/by-class/Archer/Sita.md (#348)
+#
+# Chiron's frame for *"all allied Units within a 2 panel area"*: herself
+# included. Def Up with its NP figure; Debuff Immune *"2 times"* is two
+# charges, each spent only on a debuff it nullified (rulings 6, 14, 15).
+schema: 1
+id: sita-jewel-of-the-earth
+name: "Jewel of the Earth"
+rank: A
+kind: skill
+slug: jewelOfTheEarth
+cooldown: "4◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+copyable: { allowed: false, reason: named }
+description: |
+  (Active) Used during your Turn. Affects all allied Units within a 2 panel area of herself. Applies
+  @effect[defUp]{Def Up} for 1◈ Turns, all damage taken is reduced by 20%; if NP, 10%; and applies
+  @effect[debuffImmune]{Debuff Immune} for 1◈ Turns, 2 times; does not affect Instakill, Death, and Erase.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: square, size: 5 }
+  selection: { relations: [ally, self], chooser: all, includeSelf: true }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: defUp, magnitude: 20, npMagnitude: 10, duration: "1◈" }
+      - { id: debuffImmune, duration: "1◈", uses: 2, stacking: count }

@@ -1,0 +1,32 @@
+# Rama, char_orig_sheets/by-class/Saber/Rama.md (#347)
+#
+# > "Vishnu Bhuja: Trishula ... (Passive) Once per Round, Rama can perform a
+# > Normal Attack at a Range of 2."
+#
+# Sudarshana's Normal Attack at Range 2 and no change to its damage (#347
+# rulings 2a to 2f). Ranged, as Trishula's own `{R}` (ruling 3).
+schema: 1
+id: rama-trishula-normal-attack
+name: "Vishnu Bhuja: Trishula (Normal Attack)"
+rank: A
+kind: skill
+slug: trishulaNormalAttack
+summonGrant: trishula
+normalAttackMethod: true
+countsAsNormalAttack: true
+oncePerRound: true
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+requirements:
+  - { kind: hasSkill, abilityId: martialBlessing, name: "Martial Blessing" }
+description: |
+  (Passive) Once per Round, Rama can perform a Normal Attack at a Range of 2.
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  delivery: ranged
+  component: str
+phases:
+  - kind: damage

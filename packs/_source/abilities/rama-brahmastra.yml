@@ -1,0 +1,70 @@
+# Rama, char_orig_sheets/by-class/Saber/Rama.md (#347)
+#
+# > "Brahmastra: Rakshasa-Piercing Immortal — Rank: EX (NP) [Anti-Demon]
+# > {R} Base Attack (STR) is used. Range=3. Deals 5x damage. This NP has the
+# > following effects depending on the DU-
+# > With 'Demonic' Attribute: Damage dealt is further increased by 200%.
+# > Without 'Demonic' Attribute: Total Damage dealt is reduced by 20%.
+# > Then, has the following effects-
+# > 1. Inflicts Def Dwn (B) for 1◈ Turns, all damage taken is increased by 20%;
+# > if NP, 30%.
+# > 2. If the DU has the 'Demonic' Attribute, its NP Cooldown is increased by 1◈
+# > Turns.
+# > Cooldown: 8◈ Turns"
+#
+# Balmung's frame against an Attribute (#341): the +200% is a stage-3
+# `conditionalMultipliers` row, ×3. The −20% is the sheet's "Total": a stage-15
+# cut on the attack's own block (`totalModifiers`, Drake's broadside), so
+# Divinity's Fixed Divine Damage, added after it, stays whole under the Revised
+# text and is cut with the rest under the Classic one (#347 ruling 7).
+#
+# "Then": both riders after the damage. The Def Dwn prints no chance, so it
+# lands, cut only by debuff resistance (#345 ruling 13). Effect 2 is Kiritsugu's
+# Chronos Rose: the DU's every NP +1◈, a ready one too (#347 ruling 8). Its
+# `predicate` is asked per Process with the attack in scope, so of each DU.
+#
+# *"'Demonic' Attribute"* is any of three the roster prints: 'Demonic', 'Demonic Beast'
+# (Asterios) and 'Demonic (Oni)' (#347 ruling 17). Read here, on Brahmastra's own
+# predicates, as Dongyū Storm reads its Demon (#249 reading 6): no other sheet's
+# 'Demonic' is widened by Rama's.
+schema: 1
+id: rama-brahmastra
+name: "Brahmastra: Rakshasa-Piercing Immortal"
+rank: EX
+kind: noblePhantasm
+slug: brahmastra
+isNP: true
+npTags: [antiDemon]
+cooldown: "8◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+description: |
+  Base Attack (STR) is used. Range=3. Deals 5x damage. This NP has the following effects depending on the DU-
+  With 'Demonic' Attribute: Damage dealt is further increased by 200%.
+  Without 'Demonic' Attribute: Total Damage dealt is reduced by 20%.
+  Then, has the following effects-
+  1. Inflicts @effect[defDwnB]{Def Dwn (B)} for 1◈ Turns, all damage taken is increased by 20%; if NP, 30%.
+  2. If the DU has the 'Demonic' Attribute, its NP Cooldown is increased by 1◈ Turns.
+  Cooldown: 8◈ Turns
+targeting:
+  anchor: { kind: targetUnit, range: 3 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  delivery: ranged
+  component: str
+  multiplier: 5
+  conditionalMultipliers:
+    - { factor: 3, predicate: [{ or: ["target:attribute:demonic", "target:attribute:demonicBeast", "target:attribute:demonicOni"] }], source: "Demonic (+200%)" }
+  totalModifiers:
+    - { value: -20, predicate: [{ nor: ["target:attribute:demonic", "target:attribute:demonicBeast", "target:attribute:demonicOni"] }], source: "Brahmastra: not Demonic (−20% Total)" }
+phases:
+  - kind: damage
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: defDwnB, magnitude: 20, npMagnitude: 30, duration: "1◈" }
+  - kind: cooldown
+    predicate: [{ or: ["target:attribute:demonic", "target:attribute:demonicBeast", "target:attribute:demonicOni"] }]
+    changes:
+      - { unit: target, scope: np, ticks: "1◈", direction: up }

@@ -33,6 +33,16 @@ export function describe(line) {
     };
   }
 
+  // A coin and dice that grant abilities (#347): the value already says what
+  // the dice showed and what they gave; the workings name the dice.
+  if (line.summonGrant) {
+    return {
+      id: line.id, label: line.label, value: line.value ?? "—",
+      workings: line.roll.formula,
+      rollable: true, note: line.note ?? null, unrolled: Boolean(line.unrolled),
+    };
+  }
+
   const parts = [String(line.base)];
   if (line.applied !== null && line.applied !== undefined) {
     // `applied`, not `rolled`: a tails 2d100 of 87 contributes −87, and showing

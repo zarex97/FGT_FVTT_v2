@@ -9,6 +9,8 @@
  * ability the sheet does not name gone (11f), its passives and its uses alike.
  */
 
+import { grantHeld } from "./summon-grants.mjs";
+
 /**
  * The form this actor has taken, and the ability that defines it, or `null`.
  *
@@ -32,6 +34,9 @@ export function formOf(actor) {
  * @returns {boolean}
  */
 export function keptByForm(actor, item) {
+  // An ability its summon roll never gave him (Rama's Vishnu Bhuja, #347) is
+  // not his, form or no form: the one door every reader of his abilities passes.
+  if (!grantHeld(actor, item)) return false;
   const form = formOf(actor);
   // An ability that is the FORM's, and only there: Siegfried's kit on Sieg
   // (#345). Gone until that form is taken.
@@ -54,6 +59,7 @@ export function keptByForm(actor, item) {
  * @returns {boolean}
  */
 export function heldNow(actor, item) {
+  if (!grantHeld(actor, item)) return false;
   const only = item?.system?.formOnly ?? null;
   return !only || formOf(actor)?.id === only;
 }

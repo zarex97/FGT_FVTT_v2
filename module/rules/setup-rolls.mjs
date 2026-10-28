@@ -23,6 +23,7 @@ import { Rank } from "../domain/rank.mjs";
 import { normalServantSetupPlan, normalMasterSetupPlan } from "./setup-rolls-normal.mjs";
 import { lookup } from "../domain/tables.mjs";
 import { maxHealthFor } from "../domain/health.mjs";
+import { grantLine, grantOutcome, describeOutcome } from "./summon-grants.mjs";
 // Re-exported so the summon machinery and its tests keep one import site, while
 // the definition lives in `domain/` -- `data/actor/servant.mjs` derives Base
 // Attack in `prepareBaseData` and a data model may import from `domain` only.
@@ -181,6 +182,10 @@ export function servantSetupPlan(sheet) {
         roll: { formula: s.roll ?? "1d8" },
         summonItem: { item: s.item, on: [...(s.on ?? [])] },
       })),
+      // Abilities it may arrive with on a coin and dice: Rama's Vishnu Bhuja
+      // (#347). One line per spec; the engine flips and rolls it
+      // (`engine/summon.mjs#rollLine`) and commits what it gave.
+      ...(sheet?.summonGrants ?? []).map(grantLine),
     ],
   };
 }
@@ -308,6 +313,18 @@ export function resolveSetupPlan(plan, rolls, signs = {}) {
       const value = line.map?.[from] ?? line.fallback ?? line.base;
       resolved[line.id] = value;
       return { ...line, rolled: null, value, derivedValue: from ?? null };
+    }
+    // A coin and dice that grant abilities (#347): the roll is a record, not a
+    // number, and the line's value is what it gave, in words.
+    if (line.summonGrant) {
+      const raw = rolls?.[line.id];
+      if (!raw || typeof raw !== "object") {
+        resolved[line.id] = null;
+        return { ...line, rolled: null, value: null, unrolled: true };
+      }
+      const outcome = grantOutcome(line.summonGrant, raw);
+      resolved[line.id] = outcome;
+      return { ...line, rolled: null, grantOutcome: outcome, value: describeOutcome(line.summonGrant, outcome) };
     }
     if (!line.roll) {
       resolved[line.id] = line.base;

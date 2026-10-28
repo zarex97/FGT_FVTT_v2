@@ -1,0 +1,76 @@
+# packs/_source/servants/rama.yml
+# Conversion source: char_orig_sheets/by-class/Saber/Rama.md
+# Audit: #347 (docs/superpowers/specs/2026-10-28-rama-clauses.md)
+#
+# Built to be reused. Magic Resistance A is Arturia's, Riding A+ Raikou's line
+# word for word, Divinity A the Revised text Arjuna and Proto Gil print. His
+# Charisma is the `charisma` template; Martial Blessing's buffs, Dream of
+# Reunion's S.Crit Up and Brahmastra's Def Dwn (B) are the generic ones.
+#
+# The table beats the sheet (§46.6): BA(STR) is 150 at STR A, not the printed
+# 200; BA(MAG) 175 at MAG B and Base Health 1250 at END B agree with it.
+schema: 1
+id: rama
+name: "Rama"
+type: servant
+
+trueName: Rama
+servantClasses: [saber]
+classContainer: saber
+alignment: { order: lawful, morality: good }
+region: [india]
+# "Male, Servant, [Sky], Humanoid, King".
+attributes: [male, servant, sky, humanoid, king]
+
+parameters: { str: A, end: B, agi: "A+", mag: B, luc: B }
+baseHealth: 1250
+mov: 6
+range: { panels: 1, targets: 1 }
+baseAttack: { str: 150, mag: 175 }
+# "N.Atk Type: STR, Melee" in `by-class/Saber/Rama.md`.
+normalAttack: { mode: fixed, component: str, delivery: melee }
+sustainability: "2◈"
+
+# ─── Resources (Ch. 06) ─────────────────────────────────────────────────
+# Dream of Reunion's Reunion Counters, read by Curse of Separation. No cap.
+resources:
+  reunion: { value: 0 }
+
+# Vishnu Bhuja: *"When Rama is summoned, Flip a Coin. If Heads, roll 2
+# six-sided die; if Tails, roll 1 six-sided die."* A double other than 6 rolls
+# its second die again (#347 rulings 1, 14); each 6 is a pick among the faces not
+# yet held, asked of his player.
+summonGrants:
+  - id: vishnuBhuja
+    label: "Vishnu Bhuja"
+    coin: { heads: 2, tails: 1 }
+    die: 6
+    choose: 6
+    rerollDoubles: true
+    faces:
+      - { face: 1, key: sudarshana, label: "Sudarshana" }
+      - { face: 2, key: shuuravara, label: "Shuuravara" }
+      - { face: 3, key: modhakiShikhari, label: "Modhaki and Shikhari" }
+      - { face: 4, key: trishula, label: "Trishula" }
+      - { face: 5, key: pinaka, label: "Pinaka" }
+
+abilities:
+  - { ref: class-magic-resistance, rank: A }
+  - { ref: class-riding-unlocks, rank: "A+", cooldown: "3◈-⅓◈", mov: 5 }
+  - { ref: divinity, rank: A, printedRevision: revised }
+  - { ref: rama-martial-blessing }
+  - { ref: charisma, rank: B, flat: 20, atk: 20, atkNp: 10, cooldown: "4◈" }
+  - { ref: rama-curse-of-separation }
+  - { ref: rama-dream-of-reunion }
+  - { ref: rama-brahmastra }
+  - { ref: rama-vishnu-bhuja }
+  - { ref: rama-sudarshana }
+  - { ref: rama-sudarshana-normal-attack }
+  - { ref: rama-shuuravara }
+  - { ref: rama-shuuravara-normal-attack }
+  - { ref: rama-modhaki-and-shikhari }
+  - { ref: rama-modhaki-and-shikhari-normal-attack }
+  - { ref: rama-trishula }
+  - { ref: rama-trishula-normal-attack }
+  - { ref: rama-pinaka }
+  - { ref: rama-pinaka-normal-attack }

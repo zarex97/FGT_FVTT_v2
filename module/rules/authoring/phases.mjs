@@ -81,6 +81,9 @@ const COMMON = Object.freeze([
   // Run once the use's costs are paid: Legend of Dracula's kill comes *"after
   // this NP is activated"* (#330).
   { key: "afterCosts", type: "checkbox" },
+  // A caster's own after-damage phase that comes whether or not the Attack
+  // lands: Haradhanu Janaka's Heal Up (#348 ruling 8, `engine/attack.mjs#selfPhasesOnMiss`).
+  { key: "alsoOnMiss", type: "checkbox" },
   // The card's line when `predicate` holds the phase back, a lang key: Unparalleled's
   // *"This effect is not applied if any other allied Servant has already Attacked"* (#328).
   { key: "unmetLine", type: "text" },

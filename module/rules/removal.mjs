@@ -67,13 +67,14 @@ export const SELECTOR_KEYS = Object.freeze(["polarity", "valence"]);
  * @param {{polarity?: string, valence?: string}} selector
  * @param {object} instance the ActiveEffect
  * @param {object|null} def its definition
+ * @param {{evenUnremovable?: boolean}} [opts] match an Unremovable one too, to say it stays (#348)
  * @returns {boolean}
  */
-export function selectorMatches(selector, instance, def) {
+export function selectorMatches(selector, instance, def, { evenUnremovable = false } = {}) {
   if (!def) return false;
   if (selector?.polarity && polarityOf(instance.system, def) !== selector.polarity) return false; // fgt-polarity-ok: the phase's selector
   if (selector?.valence && def.valence !== selector.valence) return false;
-  return !isUnremovable(def, instance);
+  return evenUnremovable || !isUnremovable(def, instance);
 }
 
 /**

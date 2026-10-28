@@ -53,6 +53,10 @@ Round boundaries are announced on `combatRound`, only on forward changes — rew
 10. Check effect sustainability and resolve removals.
 11. Clear the bodies: `clearBodies` takes every defeated Unit whose defeat landed on an earlier tick off the board (`clearBody`, which deletes the token and keeps the actor).
 
+**A boundary's heals are scaled before they are counted** (#348): `scheduler-hooks.mjs` passes the Turn's and the
+Round's batches through `applier.mjs#resolveHealing` (idempotent, `healingScaled`) before the report reads them, so a
+Regen under Heal Up says the 75 it writes, not the 50 it was authored at.
+
 Effect expiry runs **after** the final periodic tick so an effect ending this turn still ticks once more (`module/engine/scheduler.mjs:114-115`). The `acted` state tracks which units took an action in the current phase — it is not turn-wide (`module/engine/scheduler.mjs:71-73`).
 
 After those ten, and before `globalTurn` advances, the hook switches off every mode whose duration was *"this Turn"* (`engine/modes.mjs#turnEndModeIntents`, Ch. 24): Riding's Active is a mode, its `MovDelta` states `duration: "this turn"`, and a derived delta lasts as long as its source, `system.active` (#116).

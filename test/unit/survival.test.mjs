@@ -122,6 +122,7 @@ export const UNIT_ROUTES = {
   activeRules: doc("module/documents/index.mjs", "collected into the Unit's rule elements"),
   summonVariant: doc("module/rules/summon-variant.mjs", "resolved once, at summon"),
   summonItems: doc("module/rules/setup-rolls.mjs", "an Item on a summon die (#230)"),
+  summonGrants: doc("module/rules/setup-rolls.mjs", "abilities on a summon coin and dice, a plan line (#347)"),
   undamageable: doc("module/domain/health.mjs", "decides whether a Health exists at all"),
 };
 
@@ -270,6 +271,8 @@ export const EFFECT_ROUTES = {
     "polarityByRelation", "decay", "pausedWhile", "boardUnique",
     // Read by `engine/io.mjs#endEffectsWithInflicter` (#339).
     "endsWithInflicter",
+    // Read by `engine/effect-applier.mjs#applyEffect` (#348).
+    "resetsSiblings",
   ].map((k) => [k, same(k)])),
   contentId: same("id"),
   description: doc("module/apps/actor-sheet/context.mjs", "the effect's text on the sheet"),

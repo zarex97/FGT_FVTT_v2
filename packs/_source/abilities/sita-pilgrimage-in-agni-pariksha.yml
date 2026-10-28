@@ -1,0 +1,32 @@
+# Sita, char_orig_sheets/by-class/Archer/Sita.md (#348)
+#
+# Her own Decoy meets her Debuff Resist and her Debuff Immune (#132, ruling
+# 5). Invuln *"3 times"* is Danzo's counted Invuln. Burn Immune is the
+# generic "(Name) Immune". In the sheet's order.
+schema: 1
+id: sita-pilgrimage-in-agni-pariksha
+name: "Pilgrimage in Agni Pariksha"
+rank: B
+kind: skill
+slug: pilgrimageInAgniPariksha
+cooldown: "4◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+copyable: { allowed: false, reason: named }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[decoy]{Decoy} to herself for ⅔◈ Turns.
+  2. Applies @effect[invuln]{Invuln} to herself for 1◈ Turns, 3 times.
+  3. Applies @effect[burnImmune]{Burn Immune} to herself for 1◈ Turns.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: decoy, duration: "⅔◈" }
+      - { id: invuln, duration: "1◈", uses: 3, stacking: count }
+      - { id: burnImmune, duration: "1◈" }

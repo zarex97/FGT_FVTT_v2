@@ -1118,6 +1118,10 @@ export function buildAttackSpec({
       // *"These DUs can Evade/Block, but cannot Counter"*: Blasted Tree's
       // splash (#345). The rung closes for the hit, as Block does above.
       uncounterable: Boolean(block?.uncounterable),
+      // The attack's own *"damage dealt is reduced by 30%"* or *"deals 20% extra
+      // damage"*, an ordinary damage-dealt figure summed with Atk Up at stage 4,
+      // never a Total cut: Rama's Vishnu Bhuja Normal Attacks (#347 ruling 2e).
+      dealtModifiers: [...(block?.dealtModifiers ?? [])],
       evadableOnlyBy: [...(block?.evadableOnlyBy ?? [])],
       // *"This NP can only be Evaded with a Luck Check (Lucky Evasion)"*
       // (Yuugao, #249 reading 23): no Evade succeeds, Dodge included, and the
@@ -1761,7 +1765,9 @@ async function declareProcesses({
     // ...and what they did, on a card of their own (#204 LK, ruled
     // 2026-10-14). The Skill path posted these lines and this one dropped
     // them, so Troias Tragōidia's Agility restore was seen by nobody.
-    if ((casterApplied ?? []).some((a) => a.summary?.outcome === "applied")) {
+    // A held removal is news too: Haradhanu Janaka's cleanse reaching only an
+    // Unremovable Curse posted nothing (#348, live).
+    if ((casterApplied ?? []).some((a) => ["applied", "failed"].includes(a.summary?.outcome))) {
       await postCard(attacker, ability, [], casterApplied);
     }
   }
@@ -4066,14 +4072,19 @@ async function fireAttackPerformed(siblings) {
       .map((p) => p.st.defenderId));
     const first = processes[0].st;
     const defender = first.defenderId ? unitOf(unitActor(first.defenderId), board) : null;
+    const options = defender ? rollOptions(attacker, defender, first, { performed: true }) : new Set();
+    // The dice its handlers roll, the caller's as every event's: Pinaka's d6 at
+    // the end of the Damage Step (#347). Rolled here, it was `{}`, and a die
+    // the handler read was never thrown.
+    const { rolls } = await rollChances([attacker], "attackPerformed", options);
     const intents = fireEvent("attackPerformed", [attacker], {
       tick: currentMoment().tick ?? 0,
       turnsPerRound: warRule("turnsPerRound"),
       board,
-      options: defender ? rollOptions(attacker, defender, first, { performed: true }) : new Set(),
+      options,
       event: { unitsHit: hit.size },
       subject: { contentId: first.attack?.sourceContentId ?? null, isNP: first.attack?.kind === "np" },
-      rolls: {},
+      rolls,
     });
     intents.push(...settled);
     if (intents.length === 0) continue;
@@ -4434,6 +4445,14 @@ async function runAutomaticStep(state, message) {
         await message.setFlag("fgt", "damage", result.shown);
         return process.advance(state, "feigned");
       }
+      // Cancelled by the defender's curse: no damage and no effect from it, and
+      // the Attack is over for him alone (#347 ruling 11).
+      if (result.flags?.cancelledBy) {
+        await message.setFlag("fgt", "damage", 0);
+        const said = message.getFlag("fgt", "effects") ?? [];
+        await message.setFlag("fgt", "effects", [...said, ...cardRows(result.lines ?? [])]);
+        return process.advance(state, "cancelled");
+      }
 
       // Riders declared in the ability's phases land only if the damage did.
       // "Deals 4x damage plus 100. Then inflicts Def Dwn" -- the "then" is
@@ -4523,8 +4542,13 @@ async function runAutomaticStep(state, message) {
     case "injury":
       await applyInjury(state, message);
       return process.advance(state, "done");
+    case "missed":
+      // A self phase that comes whether or not the Attack lands (#348 ruling 8).
+      await selfPhasesOnMiss(state, message);
+      return process.advance(state, "done");
     case "noDamage":
     case "facing":
+      if (state.state === "noDamage") await selfPhasesOnMiss(state, message);
       // Facing: the defender turns to face the attacker, but not for AoE.
       if (state.state === "facing" && process.shouldUpdateFacing(state)) {
         await applyFacing(state);
@@ -4564,6 +4588,35 @@ async function runAutomaticStep(state, message) {
 /* -------------------------------------------------------------------------- */
 /*  Steps                                                                      */
 /* -------------------------------------------------------------------------- */
+
+/**
+ * The caster's own after-damage phases that come whether or not the Attack
+ * lands (`alsoOnMiss`), on a Process that missed or was Evaded: Haradhanu
+ * Janaka's *"Next, apply Heal Up for 1◈ Turns to Sita"* (#348 ruling 8). Once
+ * per group, as the hit path pays them; said on the Attack's card. A phase
+ * without the flag is the hit's, as before: a sheet states its own.
+ *
+ * @param {object} state the Combat Process
+ * @param {object} message its card
+ * @returns {Promise<void>}
+ */
+async function selfPhasesOnMiss(state, message) {
+  if (state.isCounter || !isFirstOfGroup(state)) return;
+  const attackerDoc = unitActor(state.attackerId);
+  const ability = state.attack?.abilityId ? attackerDoc?.items?.get(state.attack.abilityId) : null;
+  const phases = (ability?.system?.phases ?? []).filter((p) => p.alsoOnMiss && p.target === "self"
+    && (p.kind === "applyEffects" || p.kind === "applyEffect"));
+  if (phases.length === 0) return;
+  const attackerUnit = unitFrom(boardSnapshot(), attackerDoc);
+  const rows = [];
+  for (const phase of phases) {
+    rows.push(...await applyDeclaredEffects(effectSpecsOf(phase), ability,
+      { ...state, defenderId: state.attackerId }, attackerUnit, { phase }));
+  }
+  if (rows.length > 0 && message) {
+    await message.setFlag("fgt", "effects", [...(message.getFlag("fgt", "effects") ?? []), ...cardRows(rows)]);
+  }
+}
 
 /**
  * Roll the `1d100` for every probabilistic check contribution this unit has.
@@ -5680,6 +5733,67 @@ async function resolveDefeatOf(defender, damage, state = {}) {
 }
 
 /**
+ * Curse of Separation's roll, on a hit no revival saves (#347).
+ *
+ * > *"When Rama would be defeated and is not revived by any effect, for every
+ * > Reunion Counter on himself, he has a 3% chance of having that Attack be
+ * > canceled, then Sita is summoned on a panel directly next to himself (will be
+ * > contracted to Rama's Master). Can only activate once per game."*
+ *
+ * An Attack's hit only, and only the defender's own Process (rulings 10, 11).
+ * No counter rolls no die; a failure spends nothing; a success spends the once
+ * (`recordUse`) and cancels (ruling 12). The die is on the card either way.
+ *
+ * @param {object} defender the defender's snapshot
+ * @param {object} state the Combat Process
+ * @returns {Promise<{cancelled: boolean, source: string, intents: object[], lines: object[]}|null>}
+ */
+async function lethalCancel(defender, state) {
+  if (!state?.attackerId || state.attack?.plainDamage) return null;
+  for (const c of defender.lethalCancels ?? []) {
+    const ability = (defender.abilities ?? []).find((a) => a.id === c.abilityId) ?? null;
+    if (c.oncePerGame && (ability?.timesUsed ?? 0) >= 1) continue;
+    const pool = defender.resources?.[c.resource];
+    const held = typeof pool === "number" ? pool : (pool?.value ?? 0);
+    const chance = c.percentPer * held;
+    if (!(chance > 0)) continue;
+    const roll = (await new Roll("1d100").evaluate()).total;
+    const cancelled = roll <= chance;
+    const line = {
+      unitId: state.defenderId,
+      summary: {
+        id: "lethalCancel",
+        name: game.i18n.format(cancelled ? "FGT.LethalCancel.Cancelled" : "FGT.LethalCancel.Failed", {
+          source: c.source, roll, chance, held,
+        }),
+        outcome: cancelled ? "applied" : "failed",
+        reason: null,
+        chance: null,
+      },
+    };
+    const said = I.log({ kind: "cardLine", unitId: state.defenderId, source: c.source, line: {
+      key: cancelled ? "FGT.LethalCancel.Cancelled" : "FGT.LethalCancel.Failed",
+      data: { source: c.source, roll, chance, held },
+    } });
+    // *"...then Sita is summoned on a panel directly next to himself (will be
+    // contracted to Rama's Master)"*: after the cancel, on a success only
+    // (#347 ruling 12). His Master by the contract; none while he is Free.
+    const contentId = typeof c.summon === "string" ? c.summon : (c.summon?.contentId ?? null);
+    const masterId = defender.contract === "free" ? null : (defender.masterId ?? null);
+    const summon = cancelled && contentId
+      ? [I.log({ kind: "summonServantBeside", unitId: state.defenderId, contentId, masterId, source: c.source })]
+      : [];
+    return {
+      cancelled,
+      source: c.source,
+      intents: cancelled && c.abilityId ? [said, I.recordUse(state.defenderId, c.abilityId), ...summon] : [said, ...summon],
+      lines: [line],
+    };
+  }
+  return null;
+}
+
+/**
  * The `attack:` options of the Attack that took this Unit's last Health, or none
  * when no Attack did (a Poison tick, a drain).
  *
@@ -6334,6 +6448,26 @@ async function applyDamage(state, message) {
   const wound = woundOf(defender, result.total, options);
   const wounded = wound ? withMaxHealth(defender, wound.max) : defender;
 
+  // The defeat chain, asked before anything is written: a hit no revival saves
+  // may still be cancelled whole (Curse of Separation, #347).
+  const defeatIntents = result.flags.defeatedOutright || overpower.defeated
+    ? [] : await resolveDefeatOf(wounded, result.total, state);
+  const dies = result.flags.defeatedOutright || overpower.defeated
+    || defeatIntents.some((i) => i.t === "defeat" && i.unitId === state.defenderId);
+  const cancel = dies ? await lethalCancel(defender, state) : null;
+  if (cancel?.cancelled) {
+    await applyBatch(cancel.intents, "lethalCancel");
+    result.flags = { ...result.flags, cancelledBy: cancel.source };
+    result.breakdown = [
+      ...(result.breakdown ?? []),
+      { stage: "cancelled", label: `${cancel.source}: the Attack is cancelled`, from: result.total, to: 0 },
+    ];
+    await message.setFlag("fgt", "result", {
+      total: 0, magical: 0, physical: 0, breakdown: result.breakdown, flags: result.flags, isCrit,
+    });
+    return { ...result, shown: result.total, total: 0, lines: cancel.lines };
+  }
+
   // What the defeat's handlers paid the killer is a line on this card: Legend
   // of Dracula's 25% for a Unit he felled was paid and never said (#330).
   const { lines: defeatLines = [] } = await applyBatch(
@@ -6356,8 +6490,8 @@ async function applyDamage(state, message) {
       // Overpower is a Servant instant-killing a Master, which is the single most
       // likely route into Ch. 32's Conquest -- so the attacker travels with it.
       ...(overpower.defeated ? [I.defeat(state.defenderId, "overpowered", state.attackerId ?? null)] : []),
-      ...(result.flags.defeatedOutright || overpower.defeated
-        ? [] : await resolveDefeatOf(wounded, result.total, state)),
+      ...defeatIntents,
+      ...(cancel?.intents ?? []),
     ],
     "attack",
     { lines: true },
@@ -7971,6 +8105,8 @@ export function attackFacts(attacker, defender, state, board = null) {
     // Stage 3's multipliers of a Normal Attack, which has no damage block to
     // carry them: Mesektet's ×2 against Dark (#189 readings 3, 18).
     conditionalMultipliers: normal.conditionalMultipliers ?? [],
+    // Janaka's share cuts the Magic Resistance it meets (#348 ruling 3).
+    ...(typeof normal.magicResistanceFactor === "number" ? { magicResistanceFactor: normal.magicResistanceFactor } : {}),
     delivery,
   };
 }

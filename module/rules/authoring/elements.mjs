@@ -181,6 +181,11 @@ export const ELEMENT_DESCRIPTORS = describeTable([
   entry("NormalAttackComponent", "Which Base Attack the Unit's Normal Attacks use, whatever its own sheet says.", [
     { key: "component", type: "select", choices: ["str", "mag"] },
   ]),
+  entry("NormalAttackShare", "A share of another Base Attack added to the Unit's Normal Attacks; the Magic Resistance it meets may be cut to that share.", [
+    { key: "component", type: "select", choices: ["mag", "str"] },
+    { key: "value", type: "number" },
+    { key: "magicResistance", type: "select", choices: ["", "share"] },
+  ]),
   entry("AttackProperty", "A property of the attack, granted by a buff on the attacker.", [
     { key: "property", type: "text" },
     // Boolean for `pierce` / `ignoresDefUp`; a fraction for `invulnFactor`,
@@ -298,6 +303,12 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     // COLLECTION time; a positional condition needs re-testing when the button
     // is pressed, so it travels with the rule under its own name.
     { key: "when", type: "predicateList" },
+  ]),
+  entry("CancelsLethalAttack", "The Attack that would defeat this Unit, past every revival, is cancelled on a chance per counter it holds, once a game.", [
+    { key: "resource", type: "text" },
+    { key: "percentPer", type: "number" },
+    { key: "oncePerGame", type: "checkbox" },
+    { key: "summon", type: "raw" },
   ]),
   entry("SurviveLethal", "A lethal blow taken at or above a share of the maximum leaves 1 Health instead.", [
     { key: "atOrAbovePercent", type: "number" },
