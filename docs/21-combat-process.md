@@ -249,3 +249,11 @@ edge into `damage` there while `aimedAt` is unresolved, unless the defender Bloc
 (`aimedAt.luckable`). Resolved by `engine/weak-point.mjs#resolveObjectAim`: a failed Evade rolls `takeChance` (*"he has a
 20% chance of taking the damage instead"*), a miss offers the Luck Check, and a hit that is not taken destroys the
 object. `takes` goes on to `damage`; `saved` and `destroyed` end at `noDamage`, its riders landing on nobody.
+
+### A lethal hit cancelled (#347)
+
+`damage:cancelled` ends a Process at `withdrawn`, as a Feigned Defeat does: Curse of Separation's success. The
+defeat chain is asked BEFORE the hit is written (`applyDamage`), so a revival saves first and only a hit no revival
+saves is offered to the curse; cancelled, nothing of the hit is written, its riders included, and the card says the
+die and the cancel. Every other Process of the same Attack resolves as usual (ruling 11).
+

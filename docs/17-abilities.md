@@ -400,3 +400,24 @@ charged costs, summed per pool, cannot meet. Enki's half of the Master's maximum
 - **A magnitude that falls by the Turn.** An effect's `decay: {on: turn, per: turn, steps}` steps each Turn rather
   than each Round: Def Dwn (Knacken), 50 on its Turn, 25 from that Turn's end.
 - **Current Health scaled.** A `statChange` with `percentOfCurrent` takes a share of the current: Fafnir's +300%.
+
+### Rama's pieces (#347)
+
+- **A Normal Attack made in a method a passive grants.** `normalAttackMethod` on an ability whose press is a Normal
+  Attack (`countsAsNormalAttack`, its own `targeting` and `damage`): the use gate reads it as the Normal Attack
+  (`rules/costs.mjs#useClassesOf` answers `attack`), so Seal stops it and Skill Seal and NP Seal do not. With
+  `oncePerRound` it is spent once a Round. Rama's five Vishnu Bhuja passives: *"Once per Round, Rama can perform a
+  Normal Attack at a Range of 4. Damage dealt is reduced by 30%."* One per swing, the player's pick, never a Riding
+  Attack (rulings 2b, 2d, 2f).
+- **An attack's own damage-dealt figure.** A damage block's `dealtModifiers: [{value, source, predicate?}]` joins
+  the stage-4 bucket beside Atk Up (Ch. 22), never a Total cut: Sudarshana's −30%, Modhaki's +20% (ruling 2e).
+- **An ability held by a summon roll.** `summonGrant` names the face of a Servant's `summonGrants` that gives it
+  (Ch. 31).
+- **A die that breaks an ability for the game.** The scheduler action `Expend {roll, on, abilities, label}` rolls its
+  die (the caller's, `pendingRolls`) and puts it on the card either way; on a face in `on` it writes `expended` on
+  each named ability of the bearer (`I.expend`), which the use gate refuses. Heard on `attackPerformed`, once per
+  declaration after every Process, an Evaded one too (`ofContentId`): Pinaka's d6 and its Normal Attack's d12
+  (ruling 4). `attackPerformed` now rolls its handlers' dice (`attack.mjs#fireAttackPerformed`).
+- **The Attack that would defeat its holder, cancelled.** `CancelsLethalAttack {resource, percentPer, oncePerGame}`
+  (Ch. 10, Ch. 21): Curse of Separation.
+

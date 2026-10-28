@@ -299,6 +299,12 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     // is pressed, so it travels with the rule under its own name.
     { key: "when", type: "predicateList" },
   ]),
+  entry("CancelsLethalAttack", "The Attack that would defeat this Unit, past every revival, is cancelled on a chance per counter it holds, once a game.", [
+    { key: "resource", type: "text" },
+    { key: "percentPer", type: "number" },
+    { key: "oncePerGame", type: "checkbox" },
+    { key: "summon", type: "raw" },
+  ]),
   entry("SurviveLethal", "A lethal blow taken at or above a share of the maximum leaves 1 Health instead.", [
     { key: "atOrAbovePercent", type: "number" },
   ]),

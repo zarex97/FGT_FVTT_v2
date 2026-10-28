@@ -1,0 +1,45 @@
+# Rama, char_orig_sheets/by-class/Saber/Rama.md (#347)
+#
+# > "Vishnu Bhuja: Sudarshana. Obtained when a 1 is rolled.
+# > (Active) {R} Base Attack (STR) is used. Range=3. Targets 2 enemy Units within
+# > Range. Deals 3x damage to both of them with a 20% chance of inflicting Bleed
+# > for 1◈+⅓◈ Turns. Wind damage (half). Cooldown: 5◈ Turns. This NP is treated
+# > as a Rank A NP."
+#
+# One or two enemy Units, never the same one twice (#347 ruling 5): `chosen`
+# with `count: 2` is "up to two" (Hassan's Librarian). The Bleed is a die on each
+# Unit hit. Held once the summon roll gave the 1 (`summonGrant`), and only while
+# Martial Blessing is his (ruling 9). Its Passive is `rama-sudarshana-normal-attack`.
+schema: 1
+id: rama-sudarshana
+name: "Vishnu Bhuja: Sudarshana"
+rank: A
+kind: noblePhantasm
+slug: sudarshana
+isNP: true
+summonGrant: sudarshana
+cooldown: "5◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+requirements:
+  - { kind: hasSkill, abilityId: martialBlessing }
+description: |
+  (Active) Base Attack (STR) is used. Range=3. Targets 2 enemy Units within Range. Deals 3x damage to both of them
+  with a 20% chance of inflicting @effect[bleed]{Bleed} for 1◈+⅓◈ Turns. Wind damage (half). Cooldown: 5◈ Turns.
+  This NP is treated as a Rank A NP.
+targeting:
+  anchor: { kind: targetUnit, range: 3 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 2 }
+damage:
+  delivery: ranged
+  component: str
+  multiplier: 3
+  element: wind
+  elementFraction: 0.5
+phases:
+  - kind: damage
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: bleed, duration: "1◈+⅓◈", chance: 20 }

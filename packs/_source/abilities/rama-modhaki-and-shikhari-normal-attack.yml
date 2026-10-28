@@ -1,0 +1,35 @@
+# Rama, char_orig_sheets/by-class/Saber/Rama.md (#347)
+#
+# > "Vishnu Bhuja: Modhaki and Shikhari ... (Passive) Once per Round, Rama can
+# > perform a Normal Attack which deals 20% extra damage."
+#
+# His own swing at his own Range, +20% as an ordinary damage-dealt figure (#347
+# ruling 2e), never on a Range passive's swing (2d, revised) nor a Riding Attack
+# (2f). Melee, as Modhaki's own `{M}` (ruling 3).
+schema: 1
+id: rama-modhaki-and-shikhari-normal-attack
+name: "Vishnu Bhuja: Modhaki and Shikhari (Normal Attack)"
+rank: A
+kind: skill
+slug: modhakiAndShikhariNormalAttack
+summonGrant: modhakiShikhari
+normalAttackMethod: true
+countsAsNormalAttack: true
+oncePerRound: true
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+requirements:
+  - { kind: hasSkill, abilityId: martialBlessing }
+description: |
+  (Passive) Once per Round, Rama can perform a Normal Attack which deals 20% extra damage.
+targeting:
+  anchor: { kind: targetUnit }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  delivery: melee
+  component: str
+  dealtModifiers:
+    - { value: 20, source: "Modhaki and Shikhari (+20%)" }
+phases:
+  - kind: damage

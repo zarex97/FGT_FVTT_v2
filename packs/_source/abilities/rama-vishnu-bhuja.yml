@@ -1,0 +1,33 @@
+# Rama, char_orig_sheets/by-class/Saber/Rama.md (#347)
+#
+# > "Vishnu Bhuja: Arms of the Great One — Rank: A (NP) [Anti-Army]
+# > When Rama is summoned, Flip a Coin. If Heads, roll 2 six-sided die; if
+# > Tails, roll 1 six-sided die. The number(s) rolled on the di(c)e determines
+# > which of the following additional Noble Phantasms Rama possesses during the
+# > game- ...
+# > Note: If a 6 is rolled, the player can choose any of the available Noble
+# > Phantasms (that hasn't been chosen yet)."
+#
+# The heading of the five, with no use of its own. The coin and dice are his
+# summon's (`servants/rama.yml`, `summonGrants`, `rules/summon-grants.mjs`): a
+# double other than 6 rolls its second die again (#347 rulings 1, 14), and each
+# 6 is a pick asked as an opening choice. Each of the five, and its Normal
+# Attack, names its face (`summonGrant`) and is his only once a die gave it.
+schema: 1
+id: rama-vishnu-bhuja
+name: "Vishnu Bhuja: Arms of the Great One"
+rank: A
+kind: noblePhantasm
+slug: vishnuBhuja
+isNP: true
+passive: true
+npTags: [antiArmy]
+copyable: { allowed: false, reason: named }
+description: |
+  When Rama is summoned, Flip a Coin. If Heads, roll 2 six-sided die; if Tails, roll 1 six-sided die. The number(s)
+  rolled on the di(c)e determines which of the following additional Noble Phantasms Rama possesses during the game:
+  1 @np[rama-sudarshana]{Sudarshana}, 2 @np[rama-shuuravara]{Shuuravara},
+  3 @np[rama-modhaki-and-shikhari]{Modhaki and Shikhari}, 4 @np[rama-trishula]{Trishula},
+  5 @np[rama-pinaka]{Pinaka}.
+  Note: If a 6 is rolled, the player can choose any of the available Noble Phantasms (that hasn't been chosen yet).
+  A double other than 6 rolls its second die again.

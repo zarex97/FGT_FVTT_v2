@@ -136,6 +136,9 @@ export const TRANSITIONS = Object.freeze({
   // Kirihanasu taken at the fatal hit: nothing lands, and the Attack ends for her
   // with no Injury Roll, no facing and no Counter (#249 readings 15, 16).
   "damage:feigned": "withdrawn",
+  // Curse of Separation cancelled the Attack that would defeat him: the same
+  // end, for him alone (#347 ruling 11).
+  "damage:cancelled": "withdrawn",
   "withdrawn:done": "done",
 });
 

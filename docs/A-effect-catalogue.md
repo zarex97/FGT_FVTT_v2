@@ -150,7 +150,7 @@ All are `automatic: true` and therefore negated by `Addle`.
 | `Def.Debuff Immune` | B | D | nr | Immune to Defensive debuffs. |
 | `(Name) Immune` | B | D | nr | Immune to one named effect. |
 | `Buff Removal ResUp` | B | D | mag | Chance of buffs being removed −X%. **Does not affect natural expiry.** Also called `Dispel ResUp`. |
-| `Guts` | B | D | nr | Revive on defeat with X Health/Agility/Luck. Consumed on use. Priority: Special Guts > Guts > passive revival. Buffs and debuffs are **not** removed on revival. |
+| `Guts` | B | D | nr | Revive on defeat with X Health/Agility/Luck. Consumed on use. Priority: Special Guts > Guts > passive revival. Buffs and debuffs are **not** removed on revival. Authored as `guts` (X% of the maximum) or `gutsHealth` (X Health outright, `RevivalSource.restore.amount`: Rama's *"revived with 100 Health"*, #347). |
 | `Guts (Fearsome)` | B | D | nr | Vlad III (Berserker)'s Guts of its own id (`gutsFearsome`, priority 250): stacks with `Guts` and is consumed before it (#333). |
 
 ## A.8 Buffs — multi-hit
