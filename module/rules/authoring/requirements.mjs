@@ -70,6 +70,9 @@ export const REQUIREMENT_DESCRIPTORS = describeTable([
   ]),
   req("hasSkill", "Only while the Unit has a named ability.", [
     { key: "abilityId", type: "text" },
+    // The ability's name, for the refusal: it is the one thing the Unit does
+    // not hold, so its own name cannot be read off it (#347, live).
+    { key: "name", type: "text" },
   ]),
   req("modeActive", "Only while a named mode is switched on.", [
     { key: "mode", type: "text" },

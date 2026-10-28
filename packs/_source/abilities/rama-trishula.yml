@@ -20,7 +20,7 @@ cooldown: "6◈"
 timing: { window: ownTurn }
 copyable: { allowed: false, reason: named }
 requirements:
-  - { kind: hasSkill, abilityId: martialBlessing }
+  - { kind: hasSkill, abilityId: martialBlessing, name: "Martial Blessing" }
 description: |
   (Active) Base Attack (MAG) is used. Hits a 3x3 panel area in any non-diagonal direction next to Rama for 3x damage
   with a 30% chance of inflicting @effect[shock]{Shock} for 2◈ Turns. Lightning damage. Cooldown: 6◈ Turns. This NP is

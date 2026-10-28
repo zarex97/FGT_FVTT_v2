@@ -276,6 +276,13 @@ export function attachOpeningChoice() {
     const owed = [...(game.actors ?? [])].filter((a) => (a.system?.openingChoices?.due ?? []).length > 0);
     for (const a of owed) askOpeningChoices(a.id).catch((err) => console.error("FGT | Opening choice:", err));
   }
+  // ...and at the War's start: a custom War's tokens are placed by hand before
+  // it starts, after the build marked an empty board, and the hook below waits
+  // for a started War. Rama's summon picks were never asked (#347, live).
+  Hooks.on("combatStart", () => {
+    if (!game.user?.isGM) return;
+    markOpeningChoicesDue().catch((err) => console.error("FGT | Opening choice:", err));
+  });
   Hooks.on("createToken", (token) => {
     if (!game.user?.isGM || !currentWar()?.started) return;
     const actorId = token.actorId ?? token.actor?.id ?? null;
