@@ -4,11 +4,11 @@
 schema: 1
 id: curse
 name: "Curse"
-description: "Deals 25 x stage Curse damage at the end of the affected unit's turn."
+description: "Deals 25 x stage Curse damage at the end of the Turn, every ⅓◈ Turns from the Turn it lands."
 polarity: debuff
 volatility: volatile
 valence: offensive
 stacking: stage
 baseChance: 100
 # "25 x N": 25 at stage 1, `perStage` (#105). Curse Heal turns it into healing.
-periodic: { when: turnEnd, amount: 25, scaling: perStage, healConversion: cursHeal, bypassModifiers: true }
+periodic: { when: turnEnd, every: "⅓◈", amount: 25, scaling: perStage, healConversion: cursHeal, bypassModifiers: true }

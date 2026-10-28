@@ -2216,6 +2216,11 @@ function periodicIsWellFormed(doc, path, problems) {
   if (p.scaling !== undefined && !PERIODIC_SCALINGS.includes(p.scaling)) {
     problems.push(`${path}: periodic.scaling "${p.scaling}" is not one of ${PERIODIC_SCALINGS.join(", ")}`);
   }
+  if (p.every !== undefined) {
+    let parsed;
+    try { parsed = parseTick(p.every); } catch { parsed = null; }
+    if (parsed?.kind !== "rounds") problems.push(`${path}: periodic.every "${p.every}" must be a ◈ span, as "⅓◈"`);
+  }
 }
 
 /**
