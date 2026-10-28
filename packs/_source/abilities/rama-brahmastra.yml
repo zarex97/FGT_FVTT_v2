@@ -22,6 +22,11 @@
 # lands, cut only by debuff resistance (#345 ruling 13). Effect 2 is Kiritsugu's
 # Chronos Rose: the DU's every NP +1◈, a ready one too (#347 ruling 8). Its
 # `predicate` is asked per Process with the attack in scope, so of each DU.
+#
+# *"'Demonic' Attribute"* is any of three the roster prints: 'Demonic', 'Demonic Beast'
+# (Asterios) and 'Demonic (Oni)' (#347 ruling 17). Read here, on Brahmastra's own
+# predicates, as Dongyū Storm reads its Demon (#249 reading 6): no other sheet's
+# 'Demonic' is widened by Rama's.
 schema: 1
 id: rama-brahmastra
 name: "Brahmastra: Rakshasa-Piercing Immortal"
@@ -50,9 +55,9 @@ damage:
   component: str
   multiplier: 5
   conditionalMultipliers:
-    - { factor: 3, predicate: ["target:attribute:demonic"], source: "Demonic (+200%)" }
+    - { factor: 3, predicate: [{ or: ["target:attribute:demonic", "target:attribute:demonicBeast", "target:attribute:demonicOni"] }], source: "Demonic (+200%)" }
   totalModifiers:
-    - { value: -20, predicate: ["not:target:attribute:demonic"], source: "Brahmastra: not Demonic (−20% Total)" }
+    - { value: -20, predicate: [{ nor: ["target:attribute:demonic", "target:attribute:demonicBeast", "target:attribute:demonicOni"] }], source: "Brahmastra: not Demonic (−20% Total)" }
 phases:
   - kind: damage
   - kind: applyEffects
@@ -60,6 +65,6 @@ phases:
     effects:
       - { id: defDwnB, magnitude: 20, npMagnitude: 30, duration: "1◈" }
   - kind: cooldown
-    predicate: ["target:attribute:demonic"]
+    predicate: [{ or: ["target:attribute:demonic", "target:attribute:demonicBeast", "target:attribute:demonicOni"] }]
     changes:
       - { unit: target, scope: np, ticks: "1◈", direction: up }
