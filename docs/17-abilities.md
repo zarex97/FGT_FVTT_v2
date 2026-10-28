@@ -420,4 +420,8 @@ charged costs, summed per pool, cannot meet. Enki's half of the Master's maximum
   (ruling 4). `attackPerformed` now rolls its handlers' dice (`attack.mjs#fireAttackPerformed`).
 - **The Attack that would defeat its holder, cancelled.** `CancelsLethalAttack {resource, percentPer, oncePerGame}`
   (Ch. 10, Ch. 21): Curse of Separation.
-
+- **A `hasSkill` requirement names its Skill.** `name` beside `abilityId`: the refusal reads "Requires Martial
+  Blessing, which this Unit does not have." (`rules/items.mjs#requirementDetail`); the Skill is the one thing the Unit
+  lacks, so its name cannot be read off it (found live, #347).
+- **A handler's stated line is its own words on the card.** `cardLine` logs land as outcome `note`, printed whole by
+  `rules/card-visibility.mjs#effectLine`; as `noop` they read "...: not applied" (found live, #347).

@@ -107,7 +107,9 @@ what it gave to `system.summonGranted` (`{coin, dice, rerolled, keys, picks}`); 
 (`engine/opening-choice.mjs#pickGrant`, `grant:<id>` in `openingChoices.due`), one per choosing face, among the faces
 not yet held. An ability naming a face (`summonGrant`) is his only once a die or a pick gave it
 (`summon-grants.mjs#grantHeld`, read by `rules/form.mjs#keptByForm` and `heldNow`, the door every reader of his
-abilities passes). Rama's Vishnu Bhuja: five Noble Phantasms, each with its Normal Attack.
+abilities passes). Rama's Vishnu Bhuja: five Noble Phantasms, each with its Normal Attack. **The War's start asks
+every opening choice still owed** (`combatStart`): a custom War deploys no token, and a token placed by hand before
+the start was never asked (found live, #347).
 
 **A summon killed has disappeared** (#247 reading 11). Both doors a summon leaves by, its stay running out and its defeat with a living summoner, go through `io.mjs#rememberDeparture`: the summoner's `fieldSummonStats` (Health full if killed, suppressed rules kept) and the `countFrom: destroyed` cooldown. A killed Jabberwock started no cooldown before. **A summon's guard is authored on its statblock**: the Jabberwock carries the Trump Soldier's `TargetabilityModifier` word for word (D2).
 
