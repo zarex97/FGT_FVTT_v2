@@ -32,7 +32,7 @@ import { test as testPredicate } from "../rules/predicate.mjs";
 import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
 import * as I from "./intents.mjs";
 import { sharedCooldownIntents, twinsOf } from "./cooldown.mjs";
-import { periodicOf } from "../rules/periodic.mjs";
+import { periodicOf, periodicDue } from "../rules/periodic.mjs";
 import { resolveRevival, pendingRevivalRolls, missedRevivalChances, heldRevivals, poolRestores } from "../rules/revival.mjs";
 import { resourcePathFor, resourceValue } from "../domain/resources.mjs";
 import { deathRollOutcome } from "../rules/nameless-forest.mjs";
@@ -2474,6 +2474,8 @@ export function tickPeriodics(units, when, ctx) {
         : sideOf(u) !== ctx.activeFactionId && widened;
       if (spec.when !== when && !overridden) continue;
       if (spec.actedOnly && !u.acted) continue;
+      // Curse's *"every ⅓◈"*, from the Turn it landed (`rules/periodic.mjs`).
+      if (!periodicDue(spec, e, ctx.tick ?? 0, ctx.turnsPerRound ?? 3)) continue;
 
       // An effect does not tick on the turn it expires (Ch. 15).
       if (expiryReached(e.expiry, ctx.tick)) continue;

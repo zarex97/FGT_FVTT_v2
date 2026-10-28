@@ -46,7 +46,9 @@ Round boundaries are announced on `combatRound`, only on forward changes — rew
 3. Fire `involvedTurnEnd` for units in a Combat Phase this turn (attacked or defending).
 4. Fire `anyTurnEnd` for every unit in the match.
 5. Advance cooldowns at each ability's own rate.
-6. Tick periodic effects that trigger on `turnEnd` and `actedTurnEnd`.
+6. Tick periodic effects that trigger on `turnEnd` and `actedTurnEnd`. A periodic that states `every` ticks only when that span has passed since the Turn it
+   landed, the landing Turn first: Curse's *"every ⅓◈"* is every Turn at three a Round and every second Turn at eight
+   (`rules/periodic.mjs#periodicDue`, ruled 2026-10-28).
 7. Expire effects ending this turn.
 8. Run terrain's own boundary clauses.
 9. Charge multi-Servant tax (25 Health per Master with multiple Servants acted).

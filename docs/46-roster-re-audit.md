@@ -7222,7 +7222,8 @@ page for an ordinary hit. Her Master fell to The Yellow House's own Curse and it
 ### 46.36.3 Left open
 
 - **Curse ticks at every Turn's end** (Appendix A's *"every ⅓◈"* with three Turns a Round); `curse.yml`'s own
-  description says *"the affected unit's turn"*. Not hers to rule; the two disagree.
+  description says *"the affected unit's turn"*. Not hers to rule; the two disagree. *Closed 2026-10-28:* every ⅓◈
+  from the Turn it lands, so every second Turn at eight a Round; the description now says so (Appendix A).
 - **"An ability it depends on is still cooling."** still names no ability (§46.35.3).
 - **A Curse tick at the floor prints "takes 0"**; harmless, worded as what it took.
 
@@ -7937,5 +7938,6 @@ The Sita Rama's Curse of Separation summoned into War `At2JWRQAbMeTxd4Z`, Player
 panel picks. All 80 Clauses Pressed or Observed live. Staged by the GM: dice, a Janaka clock, cooldowns set to 0,
 debuffs placed, Masters moved and given Health or Agility, an attack budget reset. Five defects were found live and
 fixed: a boundary heal's card counted it unscaled; a cleanse held an Unremovable effect in silence; an Evaded NP
-skipped its self phase; an immunity was named by its id; a far-panel arrival said "beside". One is left open: a staged
-Curse ticked at every side's Turn end (`docs/surprises/2026-10-28-curse-ticks-every-turn-end.md`).
+skipped its self phase; an immunity was named by its id; a far-panel arrival said "beside". A staged Curse ticked at
+every side's Turn end: right with three Turns a Round, and fixed for longer Rounds after the merge (every ⅓◈ from the
+Turn it lands, `docs/surprises/2026-10-28-curse-ticks-every-turn-end.md`).
