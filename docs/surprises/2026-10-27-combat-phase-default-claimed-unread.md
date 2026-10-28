@@ -3,7 +3,8 @@ id: 2026-10-27-combat-phase-default-claimed-unread
 found: retraction
 kind: claim-without-reading-the-path
 status: fixed
-reviewed: false
+reviewed: true
+pattern: claim-without-reading-the-path
 ---
 **Expected:** I told the user, in Sieg's grill Q8, that the corpus reads *"at the start of a Combat Phase"* as the
 user's own attack, with Karna the one exception (#206 reading 4), and picked that for Schwert and Dead Count usage 2.

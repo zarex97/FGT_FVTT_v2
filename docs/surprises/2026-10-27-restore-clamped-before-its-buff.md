@@ -3,7 +3,8 @@ id: 2026-10-27-restore-clamped-before-its-buff
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** Man-made Hero at full Health: Max HpUp raises Max Health 500 → 600 and current Health with it.
 **Actual:** Card *"NP Regen ; Max HpUp; Health 500 (no change)"*, Health 500/600. The unit test, at 300 Health, passed.
