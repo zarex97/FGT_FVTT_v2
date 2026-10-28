@@ -84,8 +84,9 @@ Found live and fixed, each with a test that fails without it:
 - Rama's Curse of Separation said Sita came "beside" him when she stood two panels off: the nearest-panel case has its
   own line.
 
-Found live and left open: a staged Curse ticked at the end of other sides' Turns as well as hers
-(`docs/surprises/2026-10-28-curse-ticks-every-turn-end.md`), outside this audit.
+Found live: a staged Curse ticked at the end of other sides' Turns as well as hers. That is Appendix A's *"every ⅓◈"*
+with three Turns a Round; it ticked every Turn at any length, and now counts ⅓◈ from the Turn it lands (fixed after the
+merge, `docs/surprises/2026-10-28-curse-ticks-every-turn-end.md`).
 
 **Round 1, ruled 2026-10-28 (the user).** Q2 and Q6 went against the recommendation.
 

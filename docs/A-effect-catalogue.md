@@ -226,7 +226,7 @@ All five are `nnr` (no stack, no refresh).
 
 | Effect | Stack | Semantics |
 |---|---|---|
-| `Curse` | st | Stage N deals **25 × N** Curse damage at the end of the turn, every ⅓◈. Reapplication adds a stage. |
+| `Curse` | st | Stage N deals **25 × N** Curse damage at the end of the turn, every ⅓◈. Reapplication adds a stage. **Every ⅓◈ counts from the Turn it lands**, which ticks first (ruled 2026-10-28): every Turn at three a Round, every second Turn at eight (`periodic.every`, `rules/periodic.mjs#periodicDue`). Curse (Bolg) keeps the same timing. |
 | `Poison` | st | Stage N deals **20 × 2^(N−1)** Poison damage at the end of the Round. **Stage increments at Round start if still poisoned.** Reapplication adds a stage. |
 | `Burn` | nnr | Lasts 2◈ default. BA(STR & MAG) −30 (Q4). 50 Burn damage at the end of every Round. |
 | `Sap` / `Bleed` | nnr | −50 Health at the end of the unit's turn **and** at the end of any turn it Acts. Chance of inflicting on `Mechanical` units −50%. Two names, one rule, and now two documents — `sap` had a periodic entry in `engine/scheduler.mjs` from the day the scheduler was written and **no effect document at all**, so anything inflicting it inflicted nothing. Quetzalcoatl's *Ehecatle* is what noticed. The `Mechanical` clause is unmodelled on **both**, for want of a per-attribute application-chance vocabulary. |
