@@ -374,3 +374,29 @@ charged costs, summed per pool, cannot meet. Enki's half of the Master's maximum
 - **A cooldown phase with its own `targeting:` on the attack path**, once per declaration: the Spellbook's *"Reduce the
   NP Cooldown of all allied Foreigner-class Servants within a 3 panel area of himself"*
   (`attack.mjs#applyTargetedCooldown`).
+
+### Sieg's pieces (#345)
+
+- **A phase asked of each Unit it reaches.** `targetPredicate` is common to every phase kind now, tested with the
+  caster in scope before the phase acts on that Unit (`skill-use.mjs#runPhases`); it was the `defeat` case's alone.
+  `target:isSelf` holds when the Unit is the caster: Heilen's 30% on himself and 15% on another are a phase each.
+- **A window cast aimed at the DU.** `windowTarget: defender` hands the Process's DU to a cast taken at a Combat
+  Process window (`attack.mjs#windowPlacement`); its `targetUnit` anchor asks the Range. Knacken *"at the start of a
+  Combat Phase on the DU (needs to be within Range)"*. The attacker's Phase window opens before any Process, so the
+  declaration hands it its single DU; an area of several DUs leaves the cast unaimed.
+- **A cut on one random member of a category.** `CooldownDelta` with `category` and `pick: random` draws one of the
+  bearer's abilities of that category on its Cooldown, its form's dropped ones included; the die is `pendingRolls`'s,
+  one face per candidate, and the card says it beside the clock. None on its Cooldown is a card line of its own.
+  Galvanism's Straße/gehen Spell.
+- **Several value gates.** An action's `whenValue` may be a list, every gate to pass: Bridal Chest's Agility rises on
+  the third Round and only while it has risen fewer than 4 times.
+- **A Base Attack add by expression.** `BaseAttackModifier.add` may be an `@` expression: *"Base Attack (both) by 10
+  (no limit)"* per growth counted.
+- **A Turn-end Mode end and a cost under a condition.** `setMode` with `atTurnEnd` queues the end (`queued-ends.mjs`);
+  an `additionalCosts` entry with a `predicate` is charged only while its user stands so. Akafiloga Argrise's usage 1
+  as Fafnir.
+- **A splash that cannot be Countered.** A damage block's `uncounterable` closes the Counter rung for that hit, as
+  `unblockable` closes Block: Blasted Tree's *"these DUs can Evade/Block, but cannot Counter"*.
+- **A magnitude that falls by the Turn.** An effect's `decay: {on: turn, per: turn, steps}` steps each Turn rather
+  than each Round: Def Dwn (Knacken), 50 on its Turn, 25 from that Turn's end.
+- **Current Health scaled.** A `statChange` with `percentOfCurrent` takes a share of the current: Fafnir's +300%.

@@ -193,6 +193,9 @@ export class FGTSocket {
     const promise = new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.#pending.delete(id);
+        // The question is withdrawn, so its window does not stay on their
+        // screen after the engine moved on without them (#345, live).
+        game.socket.emit(this.NS, { kind: "withdraw", id, targetUserId: userId, userId: game.user.id });
         reject(new FGTError("TIMEOUT", `${user.name} did not answer within ${timeout}ms.`));
       }, timeout);
       this.#pending.set(id, { resolve, reject, timer });
@@ -229,6 +232,11 @@ export class FGTSocket {
         return this.#handleAsk(msg);
       case "response":
         return this.#handleResponse(msg);
+      case "withdraw": {
+        if (msg.targetUserId !== game.user.id) return undefined;
+        const { withdrawPrompt } = await import("../apps/prompt.mjs");
+        return withdrawPrompt(msg.id);
+      }
       case "event":
         return Hooks.callAll(`fgt.${msg.event}`, msg.payload, msg.userId);
       default:
@@ -287,7 +295,7 @@ export class FGTSocket {
   static async #handleAsk(msg) {
     let response;
     try {
-      response = { kind: "response", id: msg.id, ok: true, result: await this.#answer(msg.spec) };
+      response = { kind: "response", id: msg.id, ok: true, result: await this.#answer(msg.spec, msg.id) };
     } catch (err) {
       console.error("FGT | Prompt failed", err);
       response = {
@@ -301,11 +309,12 @@ export class FGTSocket {
   /**
    * Show a prompt and resolve to its answer.
    * @param {object} spec
+   * @param {string|null} [askId] the ask it answers, so a withdrawal closes it
    * @returns {Promise<unknown>}
    */
-  static async #answer(spec) {
+  static async #answer(spec, askId = null) {
     const { renderPrompt } = await import("../apps/prompt.mjs");
-    return renderPrompt(spec);
+    return renderPrompt(spec, { askId });
   }
 
   /**

@@ -168,3 +168,8 @@ which failed to it leaves its ability's Cooldown unspent (`engine/attack.mjs#ref
 include an enemy (`engine/skill-use.mjs#rollSkillFailure`): a failure applies nothing, and a plain one spends no
 Cooldown. An **Agility Check includes the Evade** (reading 15): Levitation's −3 and AGL Dwn's +3 each carry both
 of the engine's names for it, `agility` and `evade`.
+
+**A die multiplied** (#345). A `CheckModifier` with `rollFactor` multiplies the d20 rather than adding to it: Fafnir's
+*"when he performs an Agility Check, double the value of the roll"* is `rollFactor: 2` on `agility` and `evade`.
+`checkPlan` keeps it with no value, and `resolveCheck` sizes it from the roll, so the record reads the doubled
+face as a modifier beside its source.

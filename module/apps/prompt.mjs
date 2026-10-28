@@ -12,6 +12,10 @@
  * Every renderer resolves to `null` on a dismissal, and every caller treats
  * `null` as "declined" rather than as an error. A player closing a window is
  * the most common outcome of asking a question, not a failure.
+ *
+ * A question the asker stopped waiting for is withdrawn, and its windows close
+ * (`withdrawPrompt`): a timed-out Luck Check stayed on Player1's screen a Turn
+ * after its effect had landed, and more stacked up behind it (#345, live).
  */
 
 import { currentBoard, luckOf } from "../engine/board.mjs";
@@ -25,7 +29,7 @@ const { DialogV2 } = foundry.applications.api;
  * @param {string} spec.kind
  * @returns {Promise<unknown>}
  */
-export async function renderPrompt(spec) {
+export async function renderPrompt(spec, { askId = null } = {}) {
   const render = RENDERERS[spec?.kind];
   if (!render) {
     // Loud: an unrecognised prompt means a rule is waiting for an answer that
@@ -33,17 +37,54 @@ export async function renderPrompt(spec) {
     console.warn(`FGT | No renderer for prompt kind "${spec?.kind}".`);
     return null;
   }
-  return render(spec);
+  // Each window the question opens, under the ask it answers. One withdrawn
+  // before its window drew closes it as it opens.
+  const opened = (win) => {
+    if (!askId) return;
+    if (WITHDRAWN.has(askId)) {
+      void win.close();
+      return;
+    }
+    if (!OPEN.has(askId)) OPEN.set(askId, new Set());
+    OPEN.get(askId).add(win);
+  };
+  try {
+    return await render(spec, opened);
+  } finally {
+    if (askId) {
+      OPEN.delete(askId);
+      WITHDRAWN.delete(askId);
+    }
+  }
 }
 
-/** @type {Readonly<Record<string, (spec: object) => Promise<unknown>>>} */
+/** The windows open for each question asked of this client, by its ask id. */
+const OPEN = new Map();
+/** The questions their asker withdrew while they were still being drawn. */
+const WITHDRAWN = new Set();
+
+/**
+ * Close every window a question opened, because its asker stopped waiting:
+ * the answer would land on nothing, and the window would say it still might.
+ * A closed window resolves as a dismissal, so the renderer ends.
+ *
+ * @param {string} askId the id `FGTSocket.ask` sent
+ */
+export async function withdrawPrompt(askId) {
+  WITHDRAWN.add(askId);
+  const open = OPEN.get(askId);
+  OPEN.delete(askId);
+  for (const win of open ?? []) await win.close();
+}
+
+/** @type {Readonly<Record<string, (spec: object, opened?: (win: {close: Function}) => void) => Promise<unknown>>>} */
 const RENDERERS = Object.freeze({
   /**
    * A yes/no Luck Check offer. Costs 1 Luck whether or not it succeeds, so the
    * cost is in the question — a player who is not told is being asked to spend
    * something they did not know they had bid.
    */
-  luckCheck: async (spec) => {
+  luckCheck: async (spec, opened) => {
     const unit = game.actors.get(spec.unitId);
     const confirmed = await DialogV2.confirm({
       window: { title: game.i18n.localize("FGT.Prompt.luckCheck") },
@@ -56,6 +97,7 @@ const RENDERERS = Object.freeze({
         luck: luckOf(currentBoard(), unit).value,
       })}</p>`,
       rejectClose: false,
+      render: (_event, dialog) => opened?.(dialog),
     });
     return { accepted: Boolean(confirmed) };
   },
@@ -64,11 +106,12 @@ const RENDERERS = Object.freeze({
    * A yes/no question with no price in it: negate this debuff with the ward
    * (the Master's Avalon, #230). A closed window is no.
    */
-  confirm: async (spec) => {
+  confirm: async (spec, opened) => {
     const confirmed = await DialogV2.confirm({
       window: { title: spec.title ?? "" },
       content: `<p>${foundry.utils.escapeHTML(spec.hint ?? "")}</p>`,
       rejectClose: false,
+      render: (_event, dialog) => opened?.(dialog),
     });
     return { accepted: Boolean(confirmed) };
   },
@@ -78,22 +121,25 @@ const RENDERERS = Object.freeze({
    * curated set. `count` is enforced in the dialog rather than trusted from the
    * answer, because the answer crosses a socket.
    */
-  choose: async (spec) => {
+  choose: async (spec, opened) => {
     const { ChoiceDialog } = await import("./choice-dialog.mjs");
-    return ChoiceDialog.pick(spec);
+    return ChoiceDialog.pick(spec, opened);
   },
 
   // Where each summon appears, one panel at a time (#193 reading 13). The
   // offered panels shrink as they are taken. A cancel ends the picking and
   // returns what was picked; the asker places the rest itself, so a closed
   // window never costs a Dragon Tooth Warrior.
-  pickPanels: async (spec) => {
-    const { pickDestination } = await import("./canvas/targeting-layer.mjs");
+  // Withdrawn, the session is cancelled and no further panel is asked for.
+  pickPanels: async (spec, opened) => {
+    const { pickDestination, cancelPick } = await import("./canvas/targeting-layer.mjs");
     const key = (p) => `${p.i},${p.j}`;
     let left = [...(spec.panels ?? [])];
     const picked = [];
+    let withdrawn = false;
+    opened?.({ close: async () => { withdrawn = true; cancelPick(); } });
     for (const label of spec.labels ?? []) {
-      if (left.length === 0) break;
+      if (left.length === 0 || withdrawn) break;
       const at = await pickDestination({ panels: left, label, hint: spec.hint ?? null });
       if (!at) break;
       picked.push(at);
@@ -104,7 +150,7 @@ const RENDERERS = Object.freeze({
 
   // Move a roll just made, by up to `max` either way (Expert of Many
   // Specializations, #226 reading 25). A closed window is no change.
-  adjustRoll: async (spec) => {
+  adjustRoll: async (spec, opened) => {
     const max = Math.max(0, Math.floor(spec.max ?? 0));
     const answer = await DialogV2.prompt({
       window: { title: spec.title ?? game.i18n.localize("FGT.Roll.AdjustTitle") },
@@ -113,6 +159,7 @@ const RENDERERS = Object.freeze({
         + `<input type="number" name="delta" min="${-max}" max="${max}" step="1" value="0" autofocus></label>`,
       ok: { callback: (_event, button) => Number(button.form.elements.delta.value) },
       rejectClose: false,
+      render: (_event, dialog) => opened?.(dialog),
     });
     return Number.isFinite(answer) ? { delta: answer } : null;
   },
@@ -120,7 +167,7 @@ const RENDERERS = Object.freeze({
   // One pool, two Units: how much of it goes to the first (Blood Fort
   // Andromeda's drain, #188 reading 2). The rest goes to the second; the
   // asker clamps. A closed window is `null`, the even split.
-  split: async (spec) => {
+  split: async (spec, opened) => {
     const pool = Math.max(0, Math.floor(spec.pool ?? 0));
     const start = Math.ceil(pool / 2);
     const answer = await DialogV2.prompt({
@@ -130,6 +177,7 @@ const RENDERERS = Object.freeze({
         + `<input type="number" name="first" min="0" max="${pool}" step="1" value="${start}" autofocus></label>`,
       ok: { callback: (_event, button) => Number(button.form.elements.first.value) },
       rejectClose: false,
+      render: (_event, dialog) => opened?.(dialog),
     });
     return Number.isFinite(answer) ? { first: answer } : null;
   },

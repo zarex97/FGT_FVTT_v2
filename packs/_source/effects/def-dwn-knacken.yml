@@ -1,0 +1,24 @@
+# Sieg's Straße/gehen: Knacken (#345).
+#
+# > "Inflict Def Dwn (Knacken) for 1◈ Turns on the enemy Unit, all damage taken
+# > is increased by 50% including NP on the Turn this Spell is used, then its
+# > magnitude is reduced to 25% at the end of the Turn the Spell was used."
+#
+# Def Dwn with its own name and its own fall: 50 for the Turn it lands, 25 from
+# that Turn's end (`decay` stepped `per: turn`, `rules/effect-instance.mjs`).
+# *"Including NP"*: no reduced NP magnitude, so no `npValue`.
+schema: 1
+id: defDwnKnacken
+name: "Def Dwn (Knacken)"
+description: "All damage taken is increased by 50%, Noble Phantasms included, on the Turn it lands; 25% from that Turn's end."
+polarity: debuff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+decay: { on: turn, per: turn, steps: [50, 25] }
+rules:
+  - key: DamageModifier
+    modifierKey: defDwn
+    direction: taken
+    value: "@magnitude"

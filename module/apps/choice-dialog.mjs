@@ -68,12 +68,15 @@ export class ChoiceDialog extends HandlebarsApplicationMixin(ApplicationV2) {
    * @param {number} [spec.min] the fewest; defaults to `count`, i.e. "exactly"
    * @param {string[]} [spec.preselected] ids ticked when it opens
    * @param {Array<{id: string, name: string, subtitle?: string, detail?: string}>} spec.options
+   * @param {(win: ChoiceDialog) => void} [opened] told of the window, so a
+   *   withdrawn question can close it (`apps/prompt.mjs#withdrawPrompt`)
    * @returns {Promise<string[]|null>}
    */
-  static pick(spec) {
+  static pick(spec, opened = null) {
     return new Promise((resolve) => {
       const app = new ChoiceDialog(spec, resolve);
       app.render(true);
+      opened?.(app);
     });
   }
 

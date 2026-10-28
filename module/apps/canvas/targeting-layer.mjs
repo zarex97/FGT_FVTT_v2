@@ -713,6 +713,11 @@ export class TargetingLayer extends foundry.canvas.layers.InteractionLayer {
     (previous && previous !== this ? previous : canvas.tokens)?.activate();
   }
 
+  /** Abandon any session in flight, from outside: {@link cancelPick}. */
+  cancel() {
+    this.#cancel();
+  }
+
   /** Abandon any session in flight and clear the drawing. */
   #cancel() {
     this.#session?.finish(null);
@@ -855,6 +860,14 @@ export function pickDestination(args) {
   const layer = canvas.fgtTargeting;
   if (!layer) throw new Error("FGT | The targeting layer is not on the canvas.");
   return layer.pickDestination(args);
+}
+
+/**
+ * End the session in flight, as a cancel: a question its asker withdrew
+ * (`apps/prompt.mjs#withdrawPrompt`).
+ */
+export function cancelPick() {
+  canvas.fgtTargeting?.cancel();
 }
 
 /**

@@ -665,6 +665,9 @@ export function usageSpecFor(ability) {
     // ...and a lock's `except` names a slug: Doppelganger spares Presence
     // Concealment by its slug (#253 reading 6).
     slug: sys.slug ?? null,
+    // Its name, for a refusal that says which ability it holds back: Fafnir's
+    // lock read "undefined cannot be used while ... is Active" (#345, live).
+    name: ability.name ?? null,
     rank: sys.rank ?? null,
     isNP: ability.type === "noblePhantasm" || Boolean(sys.isNP),
     // The availability gate covers `isNP || categorizedAsNP` (Ch. 04,

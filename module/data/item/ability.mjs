@@ -422,6 +422,13 @@ function abilityCommon() {
     // Used at the end of a Combat Process its user Attacked in, the DU cannot
     // Counter that Attack (#330, KB.nocounter).
     forbidsCounterWhenAttacking: new fields.BooleanField({ initial: false }),
+    // Whom a cast at a Combat Process window is aimed at: Sieg's Knacken is
+    // *"at the start of a Combat Phase on the DU (needs to be within Range)"*
+    // (#345). `defender` hands the Process's DU to its `targetUnit` anchor,
+    // which asks the Range; null leaves the cast unaimed.
+    windowTarget: new fields.StringField({
+      required: false, nullable: true, initial: null, blank: false, choices: ["defender"],
+    }),
 
     // "…which cannot be Reacted to unless the AU's AGI Rank is higher than
     // Kiritsugu's." A narrowing of the reaction ladder decided by a RANK
@@ -469,6 +476,10 @@ function abilityCommon() {
     // (#323). `{id, keeps, pools, overrides, controller, rangeGrows}`, written
     // onto the bearer by `engine/transform.mjs` and read by `rules/form.mjs`.
     form: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+    // An ability its bearer holds only in a FORM: Siegfried's seven on Sieg,
+    // compiled from `form.asServant` (#345). Hidden and inert until that form
+    // is taken (`rules/form.mjs#keptByForm`).
+    formOnly: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
 
     // A Skill that Skill Seal ends at once UNDER ITS REVISED TEXT: *"if this
     // Unit is inflicted with Skill Seal while PC/ME is Active, it is immediately

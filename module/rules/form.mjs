@@ -33,10 +33,51 @@ export function formOf(actor) {
  */
 export function keptByForm(actor, item) {
   const form = formOf(actor);
+  // An ability that is the FORM's, and only there: Siegfried's kit on Sieg
+  // (#345). Gone until that form is taken.
+  const only = item?.system?.formOnly ?? null;
+  if (only) return form?.id === only;
   if (!form) return true;
   if (item?.type !== "ability" && item?.type !== "noblePhantasm") return true;
   if (item.id === form.abilityId) return true;
   return (form.spec.keeps ?? []).includes(item.system?.contentId);
+}
+
+/**
+ * Does this Unit hold this ability at all, now? An ability only a form holds
+ * is not his until he takes it: Siegfried's seven on Sieg are not on his bar or
+ * sheet, greyed or otherwise, while he is Sieg (#345). An ability his form
+ * drops is still his, greyed with its reason.
+ *
+ * @param {object} actor
+ * @param {object} item
+ * @returns {boolean}
+ */
+export function heldNow(actor, item) {
+  const only = item?.system?.formOnly ?? null;
+  return !only || formOf(actor)?.id === only;
+}
+
+/**
+ * Who the Unit IS while in its form: the identity a form that is another
+ * Servant's sheet replaces (Siegfried on Sieg, #345 ruling 1). Its own sheet's
+ * otherwise. The one reader both projections ask (`rules/snapshot.mjs`).
+ *
+ * @param {object} actor
+ * @returns {{trueName: string|null, servantClasses: string[], alignment: object|null,
+ *   region: string[], parameters: object, baseHealth: number|null}}
+ */
+export function formSheet(actor) {
+  const sys = actor?.system ?? {};
+  const o = formOf(actor)?.spec?.overrides ?? {};
+  return {
+    trueName: o.trueName ?? sys.trueName ?? null,
+    servantClasses: [...(o.servantClasses ?? sys.servantClasses ?? [])],
+    alignment: o.alignment ?? sys.alignment ?? null,
+    region: [...(o.region ?? sys.region ?? [])],
+    parameters: o.parameters ?? sys.parameters ?? {},
+    baseHealth: o.baseHealth ?? sys.baseHealth ?? null,
+  };
 }
 
 /**

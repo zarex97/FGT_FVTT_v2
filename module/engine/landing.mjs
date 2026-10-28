@@ -261,8 +261,14 @@ export async function landEffect(entry, ctx) {
   // A restore: the maximum caps it.
   if (outcome === "applied") {
     for (const r of Array.isArray(entry.restores) ? entry.restores : []) {
-      if (typeof r?.stat === "string" && Number.isFinite(r.delta) && r.delta !== 0) {
-        intents.push(I.statDelta(target.id, r.stat, r.delta, true));
+      // An `@` expression too, resolved against the caster as a magnitude is:
+      // Max HpUp's *"20% of its original value"* restores `0.2 * @self.baseHealth`
+      // (Sieg's Man-made Hero (False), #345).
+      const delta = typeof r?.delta === "string" ? authoredMagnitude(r, ctx.caster, "delta", ctx, caster) : r?.delta;
+      if (typeof r?.stat === "string" && Number.isFinite(delta) && delta !== 0) {
+        // After the effect it rides, so a ceiling the effect raises is the one
+        // that caps it (`intents.mjs#rankOf`).
+        intents.push({ ...I.statDelta(target.id, r.stat, delta, true), afterEffects: true });
       }
     }
   }

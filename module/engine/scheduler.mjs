@@ -726,6 +726,33 @@ export function dispatch(action, unit, handler, ctx) {
 }
 
 /**
+ * The roll key a random pick's die is answered by, per bearer and category.
+ *
+ * @param {object} action
+ * @param {object} unit the handler's bearer
+ * @returns {string}
+ */
+export function pickKey(action, unit) {
+  return `pick:${unit.id}:${action.kind}:${action.category ?? "any"}`;
+}
+
+/**
+ * What a random pick draws from: the bearer's abilities of the category on
+ * their Cooldown, a form's dropped ones included, in a stable order.
+ *
+ * @param {object} action
+ * @param {object} unit
+ * @returns {object[]}
+ */
+export function randomPickPool(action, unit) {
+  const seen = new Set();
+  return [...(unit.abilities ?? []), ...(unit.formDropped ?? [])]
+    .filter((x) => x.category === action.category && (x.cooldownRemaining ?? 0) > 0)
+    .filter((x) => (seen.has(x.id) ? false : seen.add(x.id)))
+    .sort((x, y) => String(x.id).localeCompare(String(y.id)));
+}
+
+/**
  * The roll key an action's `chance` is answered by.
  *
  * Keyed on the BEARER as well as the action, so two units carrying the same
@@ -841,6 +868,9 @@ export function subjectOf(action, unit, ctx) {
 function valueGatePasses(action, unit, ctx) {
   const gate = action.whenValue ?? null;
   if (!gate) return true;
+  // Several gates, every one to pass: Bridal Chest's growth raises Agility on
+  // the third full Round AND only while it has risen fewer than 4 times (#345).
+  if (Array.isArray(gate)) return gate.every((g) => valueGatePasses({ ...action, whenValue: g }, unit, ctx));
 
   const subject = subjectOf({ subject: gate.subject }, unit, ctx);
   if (!subject) return false;
@@ -1279,6 +1309,24 @@ const ACTIONS = Object.freeze({
       : a.ticks !== undefined
         ? -resolveTicks(parseTick(a.ticks), c) * times
         : (fromTable ?? fromEvent ?? a.delta ?? 0);
+
+    // One member of a CATEGORY, drawn at random from those on their Cooldown:
+    // Galvanism's *"the Cooldown of one random Straße/gehen Spell is reduced"*
+    // (#345 ruling 7). Its die is the caller's (`pendingRolls`); none on their
+    // Cooldown is a line that says so. A form's dropped abilities are his still:
+    // Galvanism works while he is Siegfried, on Sieg's Spells (ruling 21).
+    if (a.pick === "random") {
+      const pool = randomPickPool(a, u);
+      if (pool.length === 0) {
+        return [I.log({ kind: "cardLine", unitId: u.id, source: h.source,
+          line: { key: "FGT.Cooldown.NothingToCut", data: { category: a.label ?? a.category ?? "" } } })];
+      }
+      const rolled = c.rolls?.[pickKey(a, u)];
+      if (typeof rolled !== "number") return [];
+      const chosen = pool[Math.min(pool.length, Math.max(1, rolled)) - 1];
+      return [{ ...I.cooldown(u.id, chosen.id, Math.abs(amount), amount < 0 ? "reduce" : "set"),
+        source: h.source, picked: { roll: rolled, of: pool.length } }];
+    }
 
     const ids = a.scope === "np"
       ? (u.abilities ?? []).filter((x) => x.isNP || x.categorizedAsNP).map((x) => x.id)
@@ -1842,6 +1890,11 @@ export function pendingRolls(unit, event) {
     if (!listensFor(handler, event)) continue;
     for (const action of handler.actions ?? []) {
       if (action.roll?.formula) out.push({ ...action.roll });
+      // A random pick's die, one face per candidate (Galvanism, #345).
+      if (action.pick === "random") {
+        const size = randomPickPool(action, unit).length;
+        if (size > 0) out.push({ key: pickKey(action, unit), formula: `1d${size}`, bonus: 0 });
+      }
       // A `chance` needs a die too, and it is a DIFFERENT die from `roll` --
       // `roll` decides the amount, `chance` decides whether there is one at
       // all. Drake's Crit passive carries only the second.

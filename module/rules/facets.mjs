@@ -413,6 +413,15 @@ export const FACETS = Object.freeze([
     prose: "{subject} or one of its summons acted this Turn",
   }),
   facet({
+    // The Unit asked about IS the one asking: a phase that lands on its own
+    // caster. Sieg's Heilen restores *"15% ... If used on himself, ... instead
+    // 30%"* (#345), a phase each, asked of the Unit healed.
+    id: "isSelf",
+    subjects: ["target"],
+    english: "The Unit is the one acting on it.",
+    prose: "{subject} is the one acting",
+  }),
+  facet({
     id: "ownTurn",
     english: "The Turn ending or beginning is its own side's.",
     prose: "it is {subject}'s own Turn",

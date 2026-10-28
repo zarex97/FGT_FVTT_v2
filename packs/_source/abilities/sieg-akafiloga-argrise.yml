@@ -1,0 +1,82 @@
+# Sieg, char_orig_sheets/by-class/Caster/Sieg.md (#345)
+#
+# Akafiloga Argrise, usage 1.
+#
+# > "1. Base Attack (MAG) is used. Hits a 5x5 panel area in any non-diagonal
+# > direction next to Sieg. First inflicts Def Dwn for 1◈ Turns on all affected
+# > Units, all damage taken is increased by 30%; then deals 5x damage. Fire
+# > damage. Cooldown: 8◈ Turns.
+# > i. Sieg (Fafnir) is able to use the 1st usage of Akafiloga Argrise, with its
+# > Def Dwn magnitude being increased to 50%; however, the transformation is
+# > immediately ended at the end of the Turn it was used, and Sieg's Master
+# > loses Health as per when a Servant uses its NP, but the amount of Health lost
+# > is doubled.
+# > Note: Usage 1 of Akafiloga Agrise cannot be used if Usage 2 is on Cooldown
+# > and vice versa."
+#
+# Balmung's frame, a 5x5 against one whole side of him (a 3x3 side as Fafnir,
+# with a shift), every Unit in it (#345 ruling 13). The Def Dwn lands before the
+# damage, so its +30% counts on this hit; it prints no chance, so only
+# debuff resistance cuts it. As Fafnir (`self:skillActive:fafnir`) it is 50%,
+# the Master pays the NP's price twice (ruling 12: *"doubled"*, the older copy's
+# plain word), and Fafnir ends at this Turn's end.
+schema: 1
+id: sieg-akafiloga-argrise
+name: "Akafiloga Argrise: Incandescent Dragon's Breath・Earth Liquefaction"
+rank: EX
+isNP: true
+kind: noblePhantasm
+slug: akafilogaArgrise
+npTags: [antiUnitSelf]
+cooldown: "8◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+requirements:
+  # The Note: not while usage 2 is on its Cooldown.
+  - { kind: abilityOffCooldown, abilityIds: [sieg-akafiloga-fafnir] }
+additionalCosts:
+  # 2.i: *"as per when a Servant uses its NP, but ... doubled"*: a second NP
+  # price at this Rank, only as Fafnir.
+  - kind: masterHealthByNPRank
+    rank: EX
+    id: fafnirDoubled
+    predicate: ["self:skillActive:fafnir"]
+description: |
+  Usage 1. Base Attack (MAG) is used. Hits a 5x5 panel area in any non-diagonal direction next to Sieg. First inflicts
+  @effect[defDwn]{Def Dwn} for 1◈ Turns on all affected Units, all damage taken is increased by 30%; then deals 5x damage.
+  Fire damage. Cooldown: 8◈ Turns.
+  As Fafnir: its Def Dwn is 50%; the transformation ends at the end of the Turn it was used, and Sieg's Master loses
+  Health as per when a Servant uses its NP, doubled.
+  Note: cannot be used while @np[sieg-akafiloga-fafnir]{Usage 2} is on Cooldown.
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 5, long: 5 }
+  selection: { relations: [enemy, ally, neutral], includeSelf: false, chooser: all }
+  isDamagingAoE: true
+damage:
+  sources:
+    - { unit: self, component: mag, factor: 1 }
+  component: mag
+  multiplier: 5
+  element: fire
+phases:
+  - kind: applyEffects
+    when: beforeDamage
+    target: reuse
+    predicate: [{ not: "self:skillActive:fafnir" }]
+    effects:
+      - { id: defDwn, duration: "1◈", magnitude: 30 }
+  - kind: applyEffects
+    when: beforeDamage
+    target: reuse
+    predicate: ["self:skillActive:fafnir"]
+    effects:
+      - { id: defDwn, duration: "1◈", magnitude: 50 }
+  - kind: damage
+    target: reuse
+  - kind: setMode
+    target: self
+    ability: fafnir
+    active: false
+    atTurnEnd: true
+    predicate: ["self:skillActive:fafnir"]

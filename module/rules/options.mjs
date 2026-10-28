@@ -106,6 +106,8 @@ export function rollOptionsFor({ attacker, defender, attack = null, withoutModeH
 
   add(options, "self", attacker, withoutModeHeld);
   add(options, "target", defender, withoutModeHeld);
+  // The Unit acted on is the actor itself (Sieg's Heilen, #345).
+  if (attacker?.id && attacker.id === defender?.id) options.add("target:isSelf");
   compareParameters(options, attacker, defender);
   compareHealth(options, attacker, defender);
   countParameters(options, attacker, defender);

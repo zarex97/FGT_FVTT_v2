@@ -1,0 +1,41 @@
+# Sieg, char_orig_sheets/by-class/Caster/Sieg.md (#345)
+#
+# > "Spell. Range=3. Used during your Turn on an enemy Unit; or at the start of
+# > a Combat Phase on the DU (needs to be within Range). Inflict Def Dwn
+# > (Knacken) for 1◈ Turns on the enemy Unit, all damage taken is increased by
+# > 50% including NP on the Turn this Spell is used, then its magnitude is
+# > reduced to 25% at the end of the Turn the Spell was used. Cooldown: 3◈ Turns."
+#
+# The Combat Phase is his own attack's, *"on the DU"* (#345 ruling 8):
+# `combatPhaseStart` and not the Phase he defends in. `windowTarget: defender`
+# aims the cast at that Process's DU, and the `targetUnit` anchor asks Range 3.
+# A Spell: Silence refuses it, and Magecraft's one a Turn counts it.
+schema: 1
+id: sieg-knacken
+name: "Straße/gehen: Knacken"
+rank: null
+kind: skill
+slug: knacken
+category: strasseGehen
+isSpell: true
+cooldown: "3◈"
+timing: { window: [ownTurn, combatPhaseStart] }
+windowTarget: defender
+countsAsAttack: false
+negatedBy: [silence]
+requirements:
+  - { kind: notHasEffect, effectId: silence }
+description: |
+  Spell. Range=3. Used during your Turn on an enemy Unit; or at the start of a Combat Phase on the DU (needs to be
+  within Range). Inflict @effect[defDwnKnacken]{Def Dwn (Knacken)} for 1◈ Turns on the enemy Unit, all damage taken is
+  increased by 50% including NP on the Turn this Spell is used, then its magnitude is reduced to 25% at the end of the
+  Turn the Spell was used. Cooldown: 3◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 3 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: defDwnKnacken, duration: "1◈", magnitude: 50 }
