@@ -64,7 +64,32 @@ reading 17).
 
 ## Readings to settle
 
-Asked by grilling, 2026-10-28.
+Asked by grilling, 2026-10-28. **15 readings ruled** in two rounds.
+
+**Round 1, ruled 2026-10-28 (the user).** Q2 and Q6 went against the recommendation.
+
+| # | Ruling |
+|---|---|
+| 1 | A Janaka comes from a finished use of one of her Active Skills: Jewel of the Earth, Pilgrimage in Agni Pariksha, Curse of Separation. Her NP, a Normal Attack and a passive grant none (JA.when, JA.notskill). |
+| 2 | **The user: the other reading.** The share is 20% and a further 20% for each Janaka: one Janaka is 40% (+80), two 60% (+120), three 80% (+160). With none the Normal Attack is BA(STR) alone (JA.na, JA.na.per, JA.na.none). |
+| 3 | The DU's Magic Resistance meets her Janaka Normal Attack at X% of its effect, damage only, as *"the effect of Magic Resistance is halved"* (#234 reading 10). Her own Magic Resistance is untouched (JA.mr, JA.mr.x). |
+| 4 | Each new Janaka resets every Janaka on her to 1◈: they end together (JA.reset). |
+| 5 | #132 holds as it is: her own Decoy meets her Debuff Resist (25 + 20) and her Debuff Immune, and her NP's cleanse removes it (PA.decoy, NP.cleanse). |
+| 6 | **The user:** a charge is spent only when the Debuff Immune *"ACTUALLY NULLIFIED a debuff"*: the debuff's die is rolled first, and a debuff that missed spends nothing. A buff never spends one. It ends at 0 charges or at 1◈ (JE.di.two). |
+| 7 | Heal Up raises her Curse's 25% heal and her Regen by half. Guts's *"revived with 100 Health"* is a revival, not a heal: 100 (NP.healup.reach, NP.healup.guts). |
+| 8 | The cleanse runs before the hit; Heal Up lands after it whether or not the DU Evades (NP.cleanse, NP.healup). |
+| 9 | Summoned by Rama's Curse of Separation she arrives a fresh Servant: Health 1000, Agility and Luck rolled then on the card, every cooldown ready, no buffs. Rama's Master pays the multi-Servant tax when both Act and gains her ZON +1 (Rama CS.sita, CS.contract). |
+| 10 | Another side's Sita on the board changes nothing: a second Sita arrives for Rama (Rama CS.sita). |
+| 11 | She first Acts on her side's next Turn, never in the Turn she arrives in (Rama CS.sita). |
+| 12 | The Curse is no Contract Servant roll: Rama's Master gains no Command Spells for her (Rama CS.contract). |
+
+**Round 2, ruled 2026-10-28 (the user).** The frontier is empty: every reading is ruled.
+
+| # | Ruling |
+|---|---|
+| 13 | The share has no cap (a fifth Janaka is 120%); X never passes 100%, Magic Resistance whole (JA.na.per, JA.mr.x). |
+| 14 | Ruling 6 holds for every counted Debuff Immune, not Jewel's alone. An uncounted one refuses before any die, with no charge to spend (JE.di.two). |
+| 15 | A debuff that lands for sure (100% or more after resistance, no die) and is refused has been nullified: a charge is spent (JE.di.two). |
 
 ## Statblock
 
