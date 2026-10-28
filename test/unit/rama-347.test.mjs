@@ -284,13 +284,11 @@ describe("Brahmastra (BR.*)", () => {
     }, WAR);
   });
 
-  it("a Demonic DU's every NP +1◈, a ready one too (ruling 8)", async () => {
+  it("a Demonic Beast is Demonic: Asterios's every NP +1◈, a ready one too (rulings 8, 17)", async () => {
     await withSubjects([
       rama(),
-      { from: "cu-chulainn", id: DEMON, panel: { i: 6, j: 9 }, state: { factionId: "B" },
-        with: { attributes: ["male", "servant", "sky", "humanoid", "demonic"] } },
+      { from: "asterios", id: DEMON, panel: { i: 6, j: 9 }, state: { factionId: "B" } },
     ], async ({ world: w }) => {
-      w.answer({ title: "FGT.Window.defendingPhaseStart", decline: true });
       await playAttack(w, { attacker: RAMA, ability: abilityOf(w, RAMA, "rama-brahmastra").id, target: DEMON, react: NOTHING(DEMON, RAMA) });
       const nps = w.actor(DEMON).items.filter((i) => i.type === "noblePhantasm" && !i.system.passive);
       expect(nps.length).toBeGreaterThan(0);

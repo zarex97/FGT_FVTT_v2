@@ -73,7 +73,7 @@ debuff resistance (#345 ruling 13).
 
 ## Readings to settle
 
-Asked by grilling, 2026-10-28. **21 readings ruled** in three rounds. None is built.
+Asked by grilling, 2026-10-28. **22 readings ruled** in four rounds. None is built.
 
 **Round 1, ruled 2026-10-28 (the user).** Q2 and Q3 are asked again with the quotations; Q1's reroll is Q14.
 
@@ -111,6 +111,12 @@ Asked by grilling, 2026-10-28. **21 readings ruled** in three rounds. None is bu
 | 2d | **Revised by the user:** *"let's go back on our decision allowing them to be used at the same time."* One passive per Normal Attack: Modhaki's +20% never rides a Range passive's swing (VB.p.which, MS.p). |
 | 15 | Answered by 2d: no swing carries two tags (VB.p.delivery). |
 | 16 | Answered by 2d: two Range passives never share a swing (VB.p.which). |
+
+**Round 4, ruled 2026-10-28 (the user), asked while building.**
+
+| # | Ruling |
+|---|---|
+| 17 | Brahmastra's *"'Demonic' Attribute"* is any of three the roster prints: 'Demonic', 'Demonic Beast' (Asterios) and 'Demonic (Oni)'. Read on Brahmastra's own predicates, so no other sheet's 'Demonic' widens (BR.demonic, BR.nondemonic, BR.npcd). |
 
 ## Statblock
 
