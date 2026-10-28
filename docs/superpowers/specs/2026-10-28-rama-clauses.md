@@ -73,7 +73,7 @@ debuff resistance (#345 ruling 13).
 
 ## Readings to settle
 
-Asked by grilling, 2026-10-28. **22 readings ruled** in four rounds.
+Asked by grilling, 2026-10-28. **23 readings ruled**: four rounds, and one asked after the presses.
 
 **Built 2026-10-28** on `claude/rama` (`test/unit/rama-347.test.mjs`) and pressed as Player1 in a War of its own,
 `At2JWRQAbMeTxd4Z` on the scene *Rama Audit*, apart from the match being played. **153 of 156** Clauses end Pressed or
@@ -92,8 +92,8 @@ Found live and fixed, each with a test that fails without it:
 - Sudarshana's `targetUnit` anchor confirmed after one click: two picks among the enemies within its Range
   (`anchor: self`, `shape: attackRange`).
 
-**Asked after the presses** (not yet ruled): a Vishnu Bhuja Normal Attack is offered as a Counter, "Available as a
-Counter" on the bar, and spends its once per Round there (VB.p.once was pressed that way).
+**Asked after the presses, ruled 2026-10-28 (the user), reading 18:** a Vishnu Bhuja Normal Attack may answer a
+Counter rung, "Available as a Counter" on the bar, and spends its once per Round there (VB.p.once was pressed that way).
 
 **Round 1, ruled 2026-10-28 (the user).** Q2 and Q3 are asked again with the quotations; Q1's reroll is Q14.
 

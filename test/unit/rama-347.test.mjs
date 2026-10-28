@@ -194,6 +194,15 @@ describe("the Normal Attacks Vishnu Bhuja grants (SU.p, SH.p, MS.p, TR.p, PI.p, 
     });
   });
 
+  it("may answer a Counter rung, and spends its once per Round there (reading 18)", async () => {
+    const { answersACounter } = await import("../../module/rules/counter.mjs");
+    await withSubjects([rama()], ({ world: w }) => {
+      for (const id of ["rama-sudarshana-normal-attack", "rama-pinaka-normal-attack"]) {
+        expect(answersACounter(abilityOf(w, RAMA, id))).toBe(true);
+      }
+    });
+  });
+
   it("need Martial Blessing", async () => {
     const { canUseAbility } = await import("../../module/rules/costs.mjs");
     const { usageSpecFor } = await import("../../module/rules/ability-use.mjs");
