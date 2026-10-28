@@ -1,0 +1,51 @@
+# Charisma whose Passive and Active are the common pair, parameterized.
+#
+# > "(Passive) All damage dealt by other allied Units within a 2 panel area of
+# > himself is increased by 20 including NP. This effect is negated if this Unit
+# > has Atk Up (Charisma) or is inflicted with Skill Seal.
+# > (Active) Used during your Turn. Applies Atk Up (Charisma) for 1◈ Turns to
+# > himself, all damage dealt by allied Units within a 2 panel area of himself is
+# > increased by 20%; if NP, 10%. Cooldown: 4◈ Turns."
+#
+# Rama's Charisma B (#347), and the sentence 21 sheets print with their own
+# figures: `flat` for the Passive, `atk` and `atkNp` for the Active, `cooldown`.
+# Arturia's (Passive only), Penthesilea's (a Mad Enhancement gate) and Proto
+# Gil's are the same shape in their own files; this one is the template the next
+# sheet takes.
+#
+# "Other": not his own damage (`relations: [ally]`). Atk Up (Charisma) is asked
+# by family, so another Charisma's Active on him switches the flat bonus off as
+# his own does. The Active's *"allied Units"* says no "other", so its aura
+# reaches him too (`atkUpCharisma`, carried by him).
+schema: 1
+id: charisma
+name: "Charisma"
+kind: skill
+slug: charisma
+parameterized: [rank, flat, atk, atkNp, cooldown]
+rank: "@rank"
+cooldown: "@cooldown"
+timing: { window: ownTurn }
+countsAsAttack: false
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive) All damage dealt by other allied Units within a 2 panel area of this Unit is increased by a flat
+  figure, including NP. This effect is negated if this Unit has @effect[atkUpCharisma]{Atk Up (Charisma)} or is
+  inflicted with @effect[skillSeal]{Skill Seal}.
+  (Active) Used during your Turn. Applies @effect[atkUpCharisma]{Atk Up (Charisma)} for 1◈ Turns to this Unit, all
+  damage dealt by allied Units within a 2 panel area of it is increased by a percentage; a smaller one if NP.
+passiveRules:
+  - key: Aura
+    modifierKey: flatDamage
+    radius: 2
+    relations: [ally]
+    value: "@flat"
+    stacking: highestOnly
+    predicate:
+      - "not:self:effectFamily:atkUpCharisma"
+      - "not:self:effect:skillSeal"
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUpCharisma, magnitude: "@atk", npMagnitude: "@atkNp", duration: "1◈" }

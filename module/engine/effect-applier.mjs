@@ -17,6 +17,7 @@ import { currentHealth } from "../domain/health.mjs";
 import { resolveTicks, parseTick } from "../domain/tick.mjs";
 import { INFINITE } from "../domain/enums.mjs";
 import * as I from "./intents.mjs";
+import { EFFECT_INSTANCE } from "../rules/elements.mjs";
 
 /**
  * @typedef {object} ApplicationResult
@@ -142,7 +143,14 @@ export function applyEffect({
   // second, separate refusal. The gate still runs; it just does not block
   // when a matching downgrade covers this specific effect.
   const downgrade = immunity ? immunityDowngradeFor(def, target) : null;
-  if (immunity && !downgrade) {
+  // A COUNTED Debuff Immune spends a charge only on a debuff it actually
+  // nullified (#348 rulings 6, 14, 15): Jewel of the Earth's *"Debuff Immune
+  // ... 2 times"*. So it waits for the die; a debuff that missed spends
+  // nothing, and one that lands for sure is nullified and spends one.
+  const counted = immunity && !downgrade ? countedImmunity(def, target, held) : null;
+  if (counted) {
+    trace.push({ step: "immunity", outcome: "deferred", detail: `${immunity} (${counted.uses} left)` });
+  } else if (immunity && !downgrade) {
     trace.push({ step: "immunity", outcome: "blocked", detail: immunity });
     // No Buff with charges spends one for each buff it stops: Bab-ilu's *"No
     // Buff (1 time per number of dice which rolled a 9)"* (#232 reading 5). A
@@ -153,7 +161,7 @@ export function applyEffect({
     }
     return blocked(immunity, trace);
   }
-  trace.push({
+  if (!counted) trace.push({
     step: "immunity",
     outcome: "passed",
     detail: downgrade ? `${immunity} downgraded to ${downgrade.resistPercent}% resist` : undefined,
@@ -230,6 +238,16 @@ export function applyEffect({
     + (matched.length > 0 ? ` [${matched.map((m) => `${m.source} ${m.value}`).join(", ")}]` : "");
   if (!succeeded) {
     return { outcome: "resisted", reason: rolled, chance: rolled, intents: [], trace };
+  }
+  if (counted) {
+    trace.push({ step: "immunity", outcome: "blocked", detail: immunity });
+    return {
+      outcome: "blocked",
+      reason: `${immunity} (${counted.uses - 1} left)`,
+      chance: rolled,
+      intents: [I.consumeUse(target.id, counted.instanceId, 1)],
+      trace,
+    };
   }
 
   // ── 4. PREVENTION ────────────────────────────────────────────────────────
@@ -435,6 +453,17 @@ export function applyEffect({
     ...(stack.action === "extend" && priorExpiry != null ? { extendsFrom: priorExpiry } : {}),
   });
 
+  // A new instance that resets its siblings' clocks to its own: Janaka's
+  // *"Whenever the 'Janaka' buff is applied to herself, the duration of all
+  // 'Janaka' buffs on herself are reset"* (#348 ruling 4). Each sibling is
+  // extended to the new expiry, so they all end together.
+  const reset = def.resetsSiblings && expiry !== null
+    ? existing.filter((e) => typeof e.expiry === "number" && e.expiry < expiry)
+    : [];
+  for (const e of reset) intents.push(I.extendEffect(target.id, e.id, expiry - e.expiry));
+  // On the trace, for the card's line (`landing.mjs`).
+  if (reset.length > 0) trace.push({ step: "siblings", outcome: "reset", count: reset.length });
+
   return { outcome: "applied", reason: null, chance: rolled, intents, trace };
 }
 
@@ -550,13 +579,14 @@ const REPLACING_ACTIONS = new Set(["refresh", "extend", "stage", "count"]);
  * @returns {string|null} the name of the blocking effect
  */
 function findImmunity(def, target, held) {
-  if (held.includes(`immune:${def.id}`)) return `${def.id} Immune`;
+  // By its name, as a card prints it: "Burn Immune", never "burn Immune" (#348, live).
+  if (held.includes(`immune:${def.id}`)) return `${def.name ?? def.id} Immune`;
 
   // Immunities granted by a rule element rather than carried as an effect --
   // a class skill that reads "immune to Charm" produces an entry here, and it
   // has to gate at exactly the same point as the `Charm Immune` status does.
   const granted = target.immunities ?? [];
-  if (granted.includes(def.id)) return `${def.id} Immune`;
+  if (granted.includes(def.id)) return `${def.name ?? def.id} Immune`;
   // Past every CLASS of immunity -- Debuff Immune and its scoped kin -- though
   // not past one that names this effect. The 'Kiritsugu' debuff *"ignores
   // Debuff Resist and Debuff Immune effects"*. The flag was read by the chance
@@ -597,6 +627,32 @@ function findImmunity(def, target, held) {
   if (def.valence === "offensive" && held.includes("offDebuffImmune")) return "Off.Debuff Immune";
   if (def.valence === "defensive" && held.includes("defDebuffImmune")) return "Def.Debuff Immune";
   return null;
+}
+
+/**
+ * The counted Debuff Immune that alone refuses this debuff, if one does.
+ *
+ * Every scoped debuff immunity covering it must come from an effect instance
+ * holding charges: one with none, or any other immunity, refuses outright as
+ * before (#348 ruling 14).
+ *
+ * @param {object} def
+ * @param {object} target
+ * @param {string[]} held
+ * @returns {{instanceId: string, uses: number}|null}
+ */
+function countedImmunity(def, target, held) {
+  if (def.polarity !== "debuff") return null;
+  const granted = target.immunities ?? [];
+  const covering = granted.filter((g) => g?.scope === "debuff" && !(g.except ?? []).includes(def.id));
+  if (covering.length === 0) return null;
+  const instances = target.effectInstances ?? [];
+  const charged = covering.map((g) => instances.find((e) => e.id === g[EFFECT_INSTANCE]));
+  if (charged.some((e) => !((e?.uses ?? 0) > 0))) return null;
+  // Nothing else may refuse it: the rest of the gate, asked without them.
+  const rest = { ...target, immunities: granted.filter((g) => !covering.includes(g)) };
+  if (findImmunity(def, rest, held)) return null;
+  return { instanceId: charged[0].id, uses: charged[0].uses };
 }
 
 /**

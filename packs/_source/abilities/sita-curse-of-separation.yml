@@ -1,0 +1,39 @@
+# Sita, char_orig_sheets/by-class/Archer/Sita.md (#348)
+#
+# Rama's Dream of Reunion (#347): Guts that revives with 100 Health
+# (`gutsHealth`), a heal of 25% of her maximum; and Regen at 5%, one heal at
+# one Turn's end and one at the Round's (Avalon reading 17). Not Rama's Curse
+# of Separation, a passive of the same name.
+schema: 1
+id: sita-curse-of-separation
+name: "Curse of Separation"
+rank: EX
+kind: skill
+slug: curseOfSeparation
+cooldown: "4◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+copyable: { allowed: false, reason: rankEX }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[gutsHealth]{Guts} for 1◈ Turns, when Sita is defeated she is revived with 100 Health.
+  2. Restore Sita's Health by 25% of its maximum value.
+  3. Applies @effect[regen]{Regen} to herself for 1◈ Turns, Sita's Health is restored by 5% of its maximum value at
+  the end of her Turn, at the end of a Turn she Acts, and at the end of the Round.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: gutsHealth, magnitude: 100, duration: "1◈" }
+  - kind: heal
+    target: self
+    percentOfMax: 25
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: regen, magnitude: 5, duration: "1◈" }

@@ -84,6 +84,9 @@ export const RULE_ELEMENT_KEYS = new Set([
   "BaseAttackModifier",
   // An Item's word on which Base Attack Normal Attacks use (the Vorpal Blade, #247).
   "NormalAttackComponent",
+  // Sita's Janaka (#348): a share of BA(MAG) on the Normal Attack, and the
+  // Magic Resistance it meets cut to that share.
+  "NormalAttackShare",
   // Group 3 — check contributors
   "CheckModifier", "AutoSucceed", "TableOverride", "RollAdjustment",
   // Jack the Ripper — pre-emption, and a Detect ceiling a bounded field imposes.
@@ -97,6 +100,8 @@ export const RULE_ELEMENT_KEYS = new Set([
   "TerrainPenaltyImmunity",
   // Avalon -- not defeated by a blow taken at or above a share of the maximum.
   "SurviveLethal",
+  // Rama's Curse of Separation (#347).
+  "CancelsLethalAttack",
   // Mannanán — the automatic Counter, the rung it trades away, the buff-clock
   // extension and the spend she is OFFERED at a timing window.
   "AutoCounter", "ForbidReaction", "ForbidCreating", "DurationExtension", "OptionalCost",

@@ -728,6 +728,10 @@ export function useClassesOf(ability) {
   // Skill-Sealed Karna could not swing at all: *"Cannot use this ability:
   // Prevented"*, live after Anastasia's Snegleta sealed him (#258).
   if (!ability) return ["attack"];
+  // A Normal Attack made in a method a passive grants is the Normal Attack too:
+  // *"Once per Round, Rama can perform a Normal Attack at a Range of 4"* (#347).
+  // Seal stops it; Skill Seal and NP Seal stop neither it nor the passive.
+  if (ability.normalAttackMethod) return ["attack"];
   const out = [];
   // `countsForNPSeal`: a Skill that is part of a Noble Phantasm. Karna's Vasavi
   // Shakti Activation is stopped by NP Seal and not by Skill Seal (#206

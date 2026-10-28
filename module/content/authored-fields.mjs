@@ -43,6 +43,8 @@ export const AUTHORED_ACTOR_KEYS = Object.freeze([
   "summonVariant", "stanceSpec", "stance", "resources", "notes",
   // Items a Servant may arrive with on a die (Arturia's Avalon, #230).
   "summonItems",
+  // Abilities a Servant may arrive with on a coin and dice (Rama's Vishnu Bhuja, #347).
+  "summonGrants",
   // A Platform's sheet text, which the allowlist never carried.
   "description",
 ]);
@@ -90,6 +92,9 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   // Sieg (#345): a window cast aimed at the DU, and an ability only his
   // Siegfried form holds.
   "windowTarget", "formOnly",
+  // Rama (#347): an ability held only once his summon roll gave it; a Normal
+  // Attack made in a method a passive grants.
+  "summonGrant", "normalAttackMethod",
   "timesUsed", "maxUses", "lastUsedTick", "recordedAttacks",
   "recordsAttacks", "shield", "shieldHealth", "negatedBy", "negatedWhile",
   "cancelsNP", "damage", "reactionOverride", "creates",
@@ -98,7 +103,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   "permanentConsequence", "overridesValidation", "parameterized", "polarity",
   "severity", "preventsAction", "terminal", "onRemove", "volatility",
   "families", "spentFirst", "suppressesOtherEffects", "valence", "stacking", "baseChance",
-  "defaultMagnitude", "uses", "maxStacks", "removalResist", "rulesOncePerBearer", "absorbs", "defaultDuration",
+  "defaultMagnitude", "uses", "maxStacks", "removalResist", "rulesOncePerBearer", "resetsSiblings", "absorbs", "defaultDuration",
   "unremovable", "blocks", "blockedBy", "replaces",
   // Never compiled while the allowlist stood. Serenity's two concealment
   // escapes are declared and read. `periodic` is the only source of a damage

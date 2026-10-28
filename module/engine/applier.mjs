@@ -454,7 +454,10 @@ async function decayLines(written) {
 function noteLines(written) {
   return (written ?? []).filter((i) => i?.t === "log" && i.entry?.kind === "cardLine" && i.entry.line?.key).map((i) => ({
     unitId: i.entry.unitId ?? null,
-    summary: { id: "note", name: game.i18n.format(i.entry.line.key, i.entry.line.data ?? {}), outcome: "noop", reason: null, chance: null },
+    // `note`: a line that says something, not an effect that failed to land.
+    // As `noop` the card printed it "...: not applied" -- Pinaka's die that
+    // held read "It holds (breaks on 5).: not applied" (#347, live).
+    summary: { id: "note", name: game.i18n.format(i.entry.line.key, i.entry.line.data ?? {}), outcome: "note", reason: null, chance: null },
   }));
 }
 
@@ -701,11 +704,15 @@ async function resolveElements(intents) {
  * revival is not a heal: Guts restores a defeated Unit, which Drowning does not
  * speak to. Rounded down, never below 0.
  *
+ * Exported, and idempotent (`healingScaled`), so a caller that reports a batch
+ * scales it first and the card says what the write makes: a Regen under Heal
+ * Up read "regains 50" over a 75 (#348, live).
+ *
  * @param {Intent[]} intents
  * @returns {Promise<Intent[]>}
  */
-async function resolveHealing(intents) {
-  const heal = (i) => i.t === "heal" && !i.revival && i.unitId && i.amount > 0;
+export async function resolveHealing(intents) {
+  const heal = (i) => i.t === "heal" && !i.revival && i.unitId && i.amount > 0 && i.healingScaled === undefined;
   if (!intents.some(heal)) return intents;
   if (typeof game === "undefined" || !game?.actors) return intents;
   const { unitOf, currentBoard } = await import("./board.mjs");
@@ -1136,6 +1143,9 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
     case "spendEssence":
       for (const i of intents) await io.spendEssence(unitId, i.itemId);
       break;
+    case "expend":
+      for (const i of intents) await io.expend(unitId, i.abilityId);
+      break;
 
     case "spendCS":
       // The Servant travels with the intent, because Ch. 32's pools are keyed by
@@ -1310,6 +1320,12 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
         if (i.entry?.kind === "split") {
           const { splitSummon } = await import("./summoning.mjs");
           await splitSummon(i.entry);
+        }
+        // A Servant summoned beside a Unit, contracted to its Master (Rama's
+        // Curse of Separation brings Sita, #347, #348).
+        if (i.entry?.kind === "summonServantBeside") {
+          const { summonServantBeside } = await import("./summoning.mjs");
+          await summonServantBeside(i.entry);
         }
         // Summons on and around a Unit's panel (Gilles's Elder Horrors, #323).
         if (i.entry?.kind === "summonAround") {

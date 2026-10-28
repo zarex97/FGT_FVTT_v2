@@ -273,6 +273,8 @@ export function effectLine(e) {
   // Luck as it lands (#226, live).
   const after = e?.after ? `; ${e.after}` : "";
   if (e?.outcome === "applied") return (e.chance ? `${name} (${e.chance})` : name) + after;
+  // A line a handler states outright (`applier.mjs#noteLines`): its words are the whole row.
+  if (e?.outcome === "note") return name + after;
   const why = e?.reason ? `, ${e.reason}` : "";
   // `noop` is the engine's word for a landing that changed nothing; the card
   // says it in a player's (#341: *"NP Regen (Balmung): noop, counted none"*).

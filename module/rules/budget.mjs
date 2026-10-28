@@ -321,6 +321,12 @@ export function canConsume(budget, unit, action) {
     return { ok: false, reason: `prevented by ${by}`, pool: null, free: false };
   }
 
+  // A Servant summoned onto the board mid-War acts from her side's next Turn,
+  // never in the Turn she arrives in (Sita by Rama's Curse, #348 ruling 11).
+  if (unit?.arrivedThisTurn) {
+    return { ok: false, reason: "this unit arrived this Turn and acts from its side's next Turn", pool: null, free: false };
+  }
+
   const state = unit?.turnState ?? {};
   const isAttack = ATTACK_ACTIONS.includes(action);
 

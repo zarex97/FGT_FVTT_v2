@@ -47,6 +47,10 @@ Movement is measured separately: `segmentCheck` compares the unit's remaining mo
 
 **There is one answer to "how far can it still move", and it is `rules/movement.mjs#remainingMovement`.** There were four. Only that one went through `effectiveMov`, which halves MOV under Slow and then applies the terrain delta; the other three subtracted `movedPanels` from a raw `mov`, so a Slowed Unit was credited with twice the movement it had. `rules/platforms.mjs` carried its own copy with a comment explaining that importing `movement.mjs` would close an import cycle — true of that file, and reproduced at two sites where it was not true of anything. `jumpVerdict` and `jumpLandings` receive the allowance now rather than computing it, so the Jump is measured against the same number that would carry the Unit. `rules/budget.mjs#movementRemaining` was a fourth copy with no caller at all, exercised only by its own test, and is deleted. **Where a module cannot reach the authority, the fix is to accept the value, not to restate the arithmetic** — the cycle was never the obstacle; computing instead of receiving was.
 
+**A Servant summoned onto the board mid-War acts from its side's next Turn** (#348 ruling 11): `summonServantBeside`
+stamps `arrivedTick`, the snapshot projects `arrivedThisTurn`, and `canConsume` refuses every action in that Turn,
+naming why. A reaction outside its side's Turn is not budgeted and stays open. Sita, brought by Rama's Curse.
+
 **A Unit allowed several Attacks a Turn** (#328 ruling 11): `AttacksPerTurn` projects `attacksPerTurn`, and
 `canConsume` counts the Unit's entries in the budget's `attackedUnits`. Its first Attack draws on the pool; the rest
 are free and counted, and one past the allowance is refused. Unparalleled is the first: three Attacks of any kind.

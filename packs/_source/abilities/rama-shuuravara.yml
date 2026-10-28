@@ -1,0 +1,45 @@
+# Rama, char_orig_sheets/by-class/Saber/Rama.md (#347)
+#
+# > "Vishnu Bhuja: Shuuravara. Obtained when a 2 is rolled.
+# > (Active) {M} Base Attack (STR) is used. Range=4. Deals 3.5x damage with a 50%
+# > chance of inflicting Slow for 2◈ Turns; then inflict Def Dwn for 1◈ Turns,
+# > all damage received is increased by 10%. Water damage (half). Cooldown: 5◈
+# > Turns. This NP is treated as a Rank A NP."
+#
+# `{M}` at Range 4: Melee, as the sheet states it, whatever its Range (#281). The
+# Def Dwn prints no chance, so it lands, cut only by debuff resistance (#345
+# ruling 13), and *"then"*, after the Slow's die.
+schema: 1
+id: rama-shuuravara
+name: "Vishnu Bhuja: Shuuravara"
+rank: A
+kind: noblePhantasm
+slug: shuuravara
+isNP: true
+summonGrant: shuuravara
+cooldown: "5◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+requirements:
+  - { kind: hasSkill, abilityId: martialBlessing, name: "Martial Blessing" }
+description: |
+  (Active) Base Attack (STR) is used. Range=4. Deals 3.5x damage with a 50% chance of inflicting @effect[slow]{Slow}
+  for 2◈ Turns; then inflict @effect[defDwn]{Def Dwn} for 1◈ Turns, all damage received is increased by 10%. Water
+  damage (half). Cooldown: 5◈ Turns. This NP is treated as a Rank A NP.
+targeting:
+  anchor: { kind: targetUnit, range: 4 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  delivery: melee
+  component: str
+  multiplier: 3.5
+  element: water
+  elementFraction: 0.5
+phases:
+  - kind: damage
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: slow, duration: "2◈", chance: 50 }
+      - { id: defDwn, magnitude: 10, duration: "1◈" }

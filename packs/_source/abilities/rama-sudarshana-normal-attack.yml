@@ -1,0 +1,40 @@
+# Rama, char_orig_sheets/by-class/Saber/Rama.md (#347)
+#
+# > "Vishnu Bhuja: Sudarshana ... (Passive) Once per Round, Rama can perform a
+# > Normal Attack at a Range of 4. Damage dealt is reduced by 30%."
+#
+# A Normal Attack made in this method, as Defender of Humanity's is
+# (`olga-defender-normal-attack`): his own swing, BA(STR), at a Range of 4, any
+# distance 1 to 4 (#347 ruling 2a). It is his one Normal Attack of that Turn,
+# never a second (2b); its own once per Round, apart from the other four's (2c);
+# only when the player picks it, never riding a Riding Attack, and never with a
+# second passive on the same swing (2d, 2f). The −30% is an ordinary
+# damage-dealt figure, summed with Atk Up (2e). Ranged, as Sudarshana's own `{R}`
+# (ruling 3). `normalAttackMethod`: Seal stops it, Skill Seal and NP Seal do not.
+schema: 1
+id: rama-sudarshana-normal-attack
+name: "Vishnu Bhuja: Sudarshana (Normal Attack)"
+rank: A
+kind: skill
+slug: sudarshanaNormalAttack
+summonGrant: sudarshana
+normalAttackMethod: true
+countsAsNormalAttack: true
+oncePerRound: true
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+requirements:
+  - { kind: hasSkill, abilityId: martialBlessing, name: "Martial Blessing" }
+description: |
+  (Passive) Once per Round, Rama can perform a Normal Attack at a Range of 4. Damage dealt is reduced by 30%.
+targeting:
+  anchor: { kind: targetUnit, range: 4 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  delivery: ranged
+  component: str
+  dealtModifiers:
+    - { value: -30, source: "Sudarshana (−30%)" }
+phases:
+  - kind: damage

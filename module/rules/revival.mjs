@@ -36,6 +36,7 @@ import { rollOptionsFor } from "./options.mjs";
  * @property {boolean} cascading       may spend several charges on one hit
  * @property {string|null} formula     what one charge restores
  * @property {number|null} percentOfMax
+ * @property {number|null} [amount] Health one charge restores outright (`gutsHealth`, #347)
  * @property {boolean} consumesOnUse
  * @property {string|null} defId       the effect instance to spend, if any
  * @property {string|null} abilityId
@@ -225,9 +226,13 @@ export function resolveRevival({ unit, overkill = 0, rolls = {}, killer = null }
   if (!source) return { revived: false, source: null, restored: 0, chargesUsed: 0 };
 
   const max = maxHealthOf(unit);
-  const perCharge = (n) => (source.percentOfMax !== null && source.percentOfMax !== undefined
-    ? Math.floor(max * (source.percentOfMax / 100))
-    : (rolls[`revival:${source.id}:${n}`] ?? 0));
+  // A flat figure first (*"revived with 100 Health"*, #347), then a share of
+  // the maximum, then the dice.
+  const flat = typeof source.amount === "number" ? source.amount : null;
+  const perCharge = (n) => (flat !== null ? flat
+    : source.percentOfMax !== null && source.percentOfMax !== undefined
+      ? Math.floor(max * (source.percentOfMax / 100))
+      : (rolls[`revival:${source.id}:${n}`] ?? 0));
 
   // Overkill reaches what a source restores ONLY when the source says so, and
   // the only source that says so is God Hand: *"if the damage of the Attack
@@ -253,7 +258,7 @@ export function resolveRevival({ unit, overkill = 0, rolls = {}, killer = null }
 
   do {
     const rolled = perCharge(used);
-    if (source.percentOfMax === null || source.percentOfMax === undefined) rolledEach.push(rolled);
+    if (flat === null && (source.percentOfMax === null || source.percentOfMax === undefined)) rolledEach.push(rolled);
     used += 1;
     if (rolled <= 0) break;
 

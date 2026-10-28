@@ -20,6 +20,7 @@ import {
   resolveSetupPlan, summonPlan, needsSetupRolls, plansFor, summonItemsGranted,
 } from "../rules/setup-rolls.mjs";
 import { regionsAdjacent } from "../rules/environment.mjs";
+import { diceOf, rollsAgain, summonGrantsResolved } from "../rules/summon-grants.mjs";
 import { catalogueEntryOf } from "../rules/war-setup.mjs";
 import { unitActor } from "./board.mjs";
 import { warRule, currentWar } from "./war.mjs";
@@ -36,6 +37,7 @@ import { warRule, currentWar } from "./war.mjs";
  */
 export async function rollLine(line) {
   if (!line.roll) return { total: 0, sign: false, rolls: [] };
+  if (line.roll.grant) return rollGrant(line);
 
   const roll = await new Roll(line.roll.formula).evaluate();
   const out = { total: roll.total, sign: false, rolls: [{ id: line.id, label: line.label, roll }] };
@@ -46,6 +48,36 @@ export async function rollLine(line) {
     out.rolls.push({ id: `${line.id}:sign`, label: `${line.label} (sign)`, roll: coin });
   }
   return out;
+}
+
+/**
+ * Flip the coin and roll the dice a `summonGrants` spec asks for (#347).
+ *
+ * A die showing a face another already shows rolls again until it differs, a
+ * choosing face excepted (rulings 1, 14); every throw is kept for the line.
+ *
+ * @param {object} line
+ * @returns {Promise<{total: object, sign: boolean, rolls: object[]}>}
+ */
+async function rollGrant(line) {
+  const spec = line.roll.grant;
+  const coinRoll = await new Roll("1d2").evaluate();
+  const rolls = [{ id: `${line.id}:coin`, label: `${line.label} (coin)`, roll: coinRoll }];
+  const count = diceOf(spec, coinRoll.total);
+  /** @type {number[]} */ const dice = [];
+  /** @type {number[]} */ const rerolled = [];
+  for (let n = 0; n < count; n++) {
+    let roll = await new Roll(`1d${spec.die ?? 6}`).evaluate();
+    rolls.push({ id: `${line.id}:${n}`, label: line.label, roll });
+    // Bounded: a face other dice hold is one of at most `count - 1`.
+    for (let guard = 0; rollsAgain(spec, dice, roll.total) && guard < 100; guard++) {
+      rerolled.push(roll.total);
+      roll = await new Roll(`1d${spec.die ?? 6}`).evaluate();
+      rolls.push({ id: `${line.id}:${n}`, label: line.label, roll });
+    }
+    dice.push(roll.total);
+  }
+  return { total: { coin: coinRoll.total, dice, rerolled }, sign: false, rolls };
 }
 
 /**
@@ -232,6 +264,11 @@ export async function commitSummon(prepared, { withPartners = true } = {}) {
   // default its sheet reported a contract, a Master slot with no name in it,
   // and a Sustainability clock that should have been running.
   data.system.contract = prepared.master ? "contracted" : "free";
+
+  // What its coin and dice gave (Rama's Vishnu Bhuja, #347): the faces it
+  // holds, and the picks a 6 owes, asked as an opening choice.
+  const granted = summonGrantsResolved(prepared.lines);
+  if (Object.keys(granted).length > 0) data.system.summonGranted = granted;
 
   if (prepared.master) {
     data.system.masterId = prepared.master.id;

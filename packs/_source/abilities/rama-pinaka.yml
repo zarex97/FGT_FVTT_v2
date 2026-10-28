@@ -1,0 +1,61 @@
+# Rama, char_orig_sheets/by-class/Saber/Rama.md (#347)
+#
+# > "Vishnu Bhuja: Pinaka. Shiva Dhanush: Bow of Shiva. Obtained when a 5 is
+# > rolled.
+# > (Active) {R} Base Attack (STR) is used. Range=5. Deals 5x damage with a 50%
+# > chance of inflicting Burn for 2◈ Turns. When this NP is used, roll a 6-sided
+# > die at the end of the Damage Step. If a 5 is rolled, the Shiva Dhanush is
+# > broken, Vishnu Bhuja: Pinaka can no longer be used for the rest of the game.
+# > Fire damage (half). Cooldown: 7◈ Turns. This NP is treated as a Rank A NP."
+#
+# The d6 rolls once the shot is over, on every use, an Evaded or 0-damage one
+# too, and is on the card whichever way it falls (#347 ruling 4):
+# `attackPerformed`, once per declaration, after every Process. On a 5 both
+# halves are spent for the game (`Expend`, `expended`): this and its Normal
+# Attack.
+schema: 1
+id: rama-pinaka
+name: "Vishnu Bhuja: Pinaka"
+rank: A
+kind: noblePhantasm
+slug: pinaka
+isNP: true
+summonGrant: pinaka
+cooldown: "7◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+requirements:
+  - { kind: hasSkill, abilityId: martialBlessing, name: "Martial Blessing" }
+description: |
+  Shiva Dhanush: Bow of Shiva.
+  (Active) Base Attack (STR) is used. Range=5. Deals 5x damage with a 50% chance of inflicting @effect[burn]{Burn} for
+  2◈ Turns. When this NP is used, roll a 6-sided die at the end of the Damage Step. If a 5 is rolled, the Shiva
+  Dhanush is broken, Vishnu Bhuja: Pinaka can no longer be used for the rest of the game. Fire damage (half).
+  Cooldown: 7◈ Turns. This NP is treated as a Rank A NP.
+targeting:
+  anchor: { kind: targetUnit, range: 5 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  delivery: ranged
+  component: str
+  multiplier: 5
+  element: fire
+  elementFraction: 0.5
+phases:
+  - kind: damage
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: burn, duration: "2◈", chance: 50 }
+passiveRules:
+  - key: OnEvent
+    event: attackPerformed
+    automatic: true
+    ofContentId: [rama-pinaka]
+    then:
+      - key: Expend
+        label: "Shiva Dhanush"
+        roll: { key: shivaDhanushNP, formula: "1d6" }
+        on: [5]
+        abilities: [rama-pinaka, rama-pinaka-normal-attack]

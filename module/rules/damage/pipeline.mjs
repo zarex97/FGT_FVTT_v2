@@ -604,6 +604,17 @@ function stage4CombinedPercent(s) {
     s.contribute(m.key, signed, m.source, "defender");
   }
 
+  // The attack's own figure, in the same bucket (#347 ruling 2e): Sudarshana's
+  // *"Damage dealt is reduced by 30%"*, Modhaki's *"20% extra damage"*. Not an
+  // effect on the attacker, so no bypass of the attacker's buffs touches it.
+  for (const m of s.ctx.attack?.dealtModifiers ?? []) {
+    if (m.predicate && !testPredicate(m.predicate, s.predicateCtx)) continue;
+    const v = Number(m.value ?? 0);
+    if (v === 0) continue;
+    bucket += v;
+    s.contribute("attackDealt", v, m.source ?? "this attack", "attacker");
+  }
+
   const factor = Math.max(0, 1 + bucket / 100);
   s.scale(factor);
   s.note("bucket", `${bucket >= 0 ? "+" : ""}${bucket}% → ×${factor.toFixed(2)}`);

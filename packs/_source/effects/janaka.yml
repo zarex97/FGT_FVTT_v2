@@ -1,0 +1,36 @@
+# Janaka -- Sita's Goddess's Divine Core (#348), char_orig_sheets/by-class/Archer/Sita.md:
+#
+# > "When Sita performs a Normal Attack, it uses her Base Attack (STR) and 20% of
+# > her Base Attack (MAG) combined (i.e. 75+40=115), the amount of Base Attack
+# > (MAG) used increases by 20% for each 'Janaka' buff on Sita; while the effect
+# > of Magic Resistance is reduced to X%, where X%=the amount of Base Attack (MAG)
+# > used. Whenever the 'Janaka' buff is applied to herself, the duration of all
+# > 'Janaka' buffs on herself are reset (?)."
+#
+# One instance per Janaka (`magnitudeStacks`), counted by `perStack`: 20% and a
+# further 20% for each held, so one is 40% (ruling 2), with no cap; the DU's
+# Magic Resistance meets the swing at that share, never above whole (rulings 3,
+# 13). Collected once for her (`rulesOncePerBearer`), or the count would be
+# counted once per instance. Each new one restarts every other's clock
+# (`resetsSiblings`, ruling 4).
+schema: 1
+id: janaka
+name: "Janaka"
+description: |
+  Normal Attacks use Base Attack (STR) and 20% of Base Attack (MAG) combined, a further 20% of Base Attack (MAG)
+  for each Janaka held; the effect of Magic Resistance against them is reduced to that share. A new Janaka resets
+  the duration of every Janaka held.
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+resetsSiblings: true
+rulesOncePerBearer: true
+baseChance: 100
+defaultDuration: "1◈"
+rules:
+  - key: NormalAttackShare
+    component: mag
+    value: 0.2
+    perStack: { effect: janaka, base: 0.2 }
+    magicResistance: share

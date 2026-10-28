@@ -1,0 +1,16 @@
+# Burn Immune -- Appendix A's "(Name) Immune" for Burn. First applied by Sita's
+# Pilgrimage in Agni Pariksha (#348); Summer Nagiko prints it too. Scald is its
+# own effect and *"ignores Burn resistance including Burn Immune"*: the
+# Immunity names `burn` alone.
+schema: 1
+id: burnImmune
+name: "Burn Immune"
+description: "Cannot be inflicted with @effect[burn]{Burn}."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: Immunity
+    effect: burn
