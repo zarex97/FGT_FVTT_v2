@@ -1764,6 +1764,8 @@ export const EXECUTORS = Object.freeze({
       check: el.check,
       direction: el.direction ?? "outgoing",
       value: scalar(resolved),
+      // The die multiplied, not added to: Fafnir's doubled Agility Check (#345).
+      ...(typeof el.rollFactor === "number" ? { rollFactor: el.rollFactor } : {}),
       // A magnitude that is ROLLED, carried through the way `DamageModifier`
       // carries its own: the caller rolls, the total arrives keyed by source,
       // and `checks.mjs#checkPlan` multiplies it. Dropped here, the clause
@@ -2692,12 +2694,14 @@ export const EXECUTORS = Object.freeze({
    * For a mark that is permanent, unremovable and unresistable, being legible
    * is most of the point.
    */
-  BaseAttackModifier(el, { source, out }) {
+  BaseAttackModifier(el, { rank, source, out, ctx }) {
     out.baseAttackModifiers.push({
       factor: el.factor ?? 1,
       // A flat addition after the factor: Avalon's *"Base Attack (STR & MAG) is
-      // increased by 50"* (#230).
-      add: typeof el.add === "number" ? el.add : 0,
+      // increased by 50"* (#230). Or an `@` expression: Bridal Chest's *"Base
+      // Attack (both) by 10 (no limit)"* per growth it has counted (#345).
+      add: typeof el.add === "number" ? el.add
+        : typeof el.add === "string" ? scalar(resolveValue(el, rank, ctx, "add")) : 0,
       components: el.components ?? ["str", "mag"],
       // Not for a Noble Phantasm: the Vorpal Blade's *"the above Stat boosts do
       // not affect NP & Attacks Categorized as NP"* (#247 reading 12). The

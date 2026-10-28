@@ -42,7 +42,7 @@ import { cooldownFor, alsoTriggered, sharedAcrossGroup, sharedCooldownIntents } 
 import { EffectRegistry } from "../rules/registry.mjs";
 import { polarityOf } from "../rules/effect-instance.mjs";
 import { currentBoard, currentMoment, unitFrom, unitOf, turnRecordOf, unitActor } from "./board.mjs";
-import { resourcePathFor } from "../domain/resources.mjs";
+import { resourceLabel, resourcePathFor } from "../domain/resources.mjs";
 import { rollOptionsFor, ownerOptionsOf } from "../rules/options.mjs";
 import { missChance, missSourceOf, PLAIN_MISS } from "../rules/miss.mjs";
 import { relationOf } from "../rules/relations.mjs";
@@ -708,6 +708,13 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
       const doc = unitActor(target.unitId);
       if (!doc) continue;
       const snapshot = unitOf(doc, board);
+      // A phase asked of each Unit it reaches, with the caster in scope, for
+      // every kind: Legend of Dracula's kill *"if the Master is within
+      // Wallachia"* (#330), and Sieg's Heilen, whose price on himself is its own
+      // phase (`target:isSelf`, #345). It was the `defeat` case's alone.
+      if (phase.targetPredicate && !testPredicate(phase.targetPredicate, {
+        options: rollOptionsFor({ attacker: self, defender: snapshot }),
+      })) continue;
       // Where the entries below land, stamped once here rather than at each of
       // the ten `applied.push` sites. The card needs it to decide who is
       // entitled to read a row: an effect a Servant put on ITSELF is its
@@ -895,9 +902,6 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
         // this Unit with the caster in scope). No damage and no revival.
         case "defeat": {
           if (snapshot?.defeated) break;
-          if (phase.targetPredicate && !testPredicate(phase.targetPredicate, {
-            options: rollOptionsFor({ attacker: self, defender: snapshot }),
-          })) break;
           const { fireEvent } = await import("./scheduler.mjs");
           await applyWorld([
             I.defeat(target.unitId, phase.cause ?? "killed", actor.id),
@@ -953,6 +957,23 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
         }
 
         case "setMode": {
+          // Off at this Turn's end, not now: Fafnir *"is immediately ended at
+          // the end of the Turn"* his usage 1 was used (#345 ruling 12). The
+          // queue a Mode's End pressed off-Turn waits in (`queued-ends.mjs`),
+          // paid after the Turn's own sequence, upkeep included.
+          if (phase.atTurnEnd && phase.active === false) {
+            const mode = doc.items.find((i) => i.system?.slug === phase.ability || i.system?.contentId === phase.ability);
+            if (mode?.system?.active) {
+              const { queueEnd } = await import("./queued-ends.mjs");
+              await queueEnd({ kind: "mode", id: mode.id, ownerId: target.unitId });
+              applied.push({ unitId: target.unitId, summary: {
+                id: "setMode",
+                name: game.i18n.format("FGT.Phase.ModeEndsAtTurnEnd", { mode: mode.name }),
+                outcome: "applied", reason: null,
+              } });
+            }
+            break;
+          }
           await applyWorld(
             [modeIntent(phase, target.unitId, `phase:${ability.id}`)],
             `skill:${ability.id}:setMode`,
@@ -1981,10 +2002,10 @@ export function resourceValue(doc, key) {
 export function resourceLine(key, before, after) {
   if (!Number.isFinite(before) || !Number.isFinite(after)) return null;
   const word = String(key).replace(/^resources\./, "").replace(/\.value$/, "");
-  // An acronym stays one: Scáthach's `prs` is "PRS".
-  const label = word.length <= 3
-    ? word.toUpperCase()
-    : word.charAt(0).toUpperCase() + word.slice(1).replace(/([a-z])([A-Z])/g, "$1 $2");
+  // The pool's name as the bar and the sheet print it: its own words when the
+  // language file has them (Sieg's "DRCS", #345), else `resourceLabel`'s.
+  const translation = `FGT.Pool.${word}`;
+  const label = game.i18n?.has?.(translation) ? game.i18n.localize(translation) : resourceLabel(word);
   return before === after ? `${label} ${after} (no change)` : `${label} ${before} → ${after}`;
 }
 
@@ -2192,9 +2213,13 @@ function statChanges(phase, unitId, doc) {
   for (const change of phase.changes ?? []) {
     const path = change.max ? `${change.stat}.max` : `${change.stat}.value`;
     const max = doc.system?.[change.stat]?.max ?? 0;
+    // Of the CURRENT, for a clause that scales what is left: Fafnir's *"Max &
+    // current Health is increased by 300% (quadrupled)"* (#345).
     const raw = change.percentOfMax !== undefined
       ? Math.trunc(max * (change.percentOfMax / 100))
-      : (change.delta ?? 0);
+      : change.percentOfCurrent !== undefined
+        ? Math.trunc((doc.system?.[change.stat]?.value ?? 0) * (change.percentOfCurrent / 100))
+        : (change.delta ?? 0);
     if (raw === 0) continue;
 
     const delta = applyFloor(raw, change.floor, doc.system?.[change.stat]?.value ?? 0);

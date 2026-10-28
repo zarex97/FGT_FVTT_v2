@@ -136,7 +136,7 @@ export async function applyIntents(intents, {
   if (plan.remote.length > 0) await io.proxy(plan.remote, { source });
   for (const p of plan.prompts) await io.prompt(p.userId, p.prompt);
 
-  said.push(...clockLines(clocks), ...await healLines(plan.local, healths), ...statLines(stats), ...await spanLines(spans), ...itemLines(held), ...await decayLines(plan.local), ...tallyLines(plan.local), ...suppressionLines(lines ? plan.local : []),
+  said.push(...clockLines(clocks), ...await healLines(plan.local, healths), ...statLines(stats), ...await spanLines(spans), ...itemLines(held), ...await decayLines(plan.local), ...tallyLines(plan.local), ...noteLines(plan.local), ...suppressionLines(lines ? plan.local : []),
     ...await removalLines(lines ? plan.local : []));
   return { applied: plan.local.length, proxied: plan.remote.length, prompted: plan.prompts.length, lines: said };
 }
@@ -444,6 +444,21 @@ async function decayLines(written) {
 }
 
 /**
+ * A line a handler states outright, when what it did was nothing: Galvanism's
+ * *"one random Straße/gehen Spell"* with none on its Cooldown (#345 ruling 7).
+ * A `log` intent of kind `cardLine`, its words a lang key.
+ *
+ * @param {Intent[]} written
+ * @returns {CardLine[]}
+ */
+function noteLines(written) {
+  return (written ?? []).filter((i) => i?.t === "log" && i.entry?.kind === "cardLine" && i.entry.line?.key).map((i) => ({
+    unitId: i.entry.unitId ?? null,
+    summary: { id: "note", name: game.i18n.format(i.entry.line.key, i.entry.line.data ?? {}), outcome: "noop", reason: null, chance: null },
+  }));
+}
+
+/**
  * A line for each event a Mode's tally heard (#288): "Chikai no Haori 4/7", and
  * at its count the line that ends it. Said whatever the batch's `lines`, as a
  * falling magnitude is: the Mode ending is an outcome its owner must know.
@@ -471,6 +486,8 @@ function clocksBeforeBatch(intents) {
   if (typeof game === "undefined" || !game?.actors) return [];
   return (intents ?? []).filter((i) => i?.t === "cooldown").map((i) => ({
     unitId: i.unitId, abilityId: i.abilityId, before: remainingOf(i.unitId, i.abilityId),
+    // The die that chose this clock, when one did (Galvanism, #345).
+    picked: i.picked ?? null,
   }));
 }
 
@@ -490,7 +507,9 @@ function clockLines(clocks) {
   return clocks.flatMap((c) => {
     const name = unitActor(c.unitId)?.items?.get(c.abilityId)?.name ?? null;
     const line = cooldownLine(name, c.before, remainingOf(c.unitId, c.abilityId));
-    return line ? [{ unitId: c.unitId, summary: { id: "cooldown", name: line, outcome: "applied", reason: null, chance: null } }] : [];
+    // A die that chose the clock is on the card beside it: *"one random Spell"*.
+    const chance = c.picked ? game.i18n.format("FGT.Cooldown.PickedAtRandom", { roll: c.picked.roll, of: c.picked.of }) : null;
+    return line ? [{ unitId: c.unitId, summary: { id: "cooldown", name: line, outcome: "applied", reason: null, chance } }] : [];
   });
 }
 
@@ -1142,6 +1161,9 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
       break;
     case "takeForm":
       for (const i of intents) await io.takeForm(unitId, i);
+      break;
+    case "leaveForm":
+      for (const i of intents) await io.leaveForm(unitId, i);
       break;
     case "formRange":
       for (const i of intents) await io.setFormRange(unitId, i.value, i.seenRound ?? null);

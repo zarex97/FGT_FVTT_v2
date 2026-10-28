@@ -136,6 +136,11 @@ export function additionalCostsFor({ ability, self, master = null, turnsPerRound
   const out = [];
 
   for (const extra of ability?.system?.additionalCosts ?? []) {
+    // A cost charged only while its user stands so: Akafiloga Argrise's first
+    // usage taken as Fafnir costs *"as per when a Servant uses its NP, but ...
+    // doubled"* (#345 ruling 12), a second NP price under `self:skillActive`.
+    if (Array.isArray(extra.predicate) && extra.predicate.length > 0
+      && !testPredicate(extra.predicate, { options: new Set(ownerOptionsOf(self)) })) continue;
     // A FRACTION of the Master's maximum rather than a stated number.
     // *"The Master's Health is reduced by 50% of its maximum value"* -- the
     // first cost in the corpus whose size is not on the sheet, because it
@@ -280,7 +285,7 @@ export function canUseAbility({
   const suppressedCategory = (ability?.categorizedAs ?? [])
     .find((tag) => (unit?.suppressions ?? []).some((sup) => sup.scope === tag));
   if (suppressedCategory) {
-    return { ok: false, reason: "suppressedCategory", detail: { category: suppressedCategory }, cost };
+    return { ok: false, reason: "suppressedCategory", detail: { category: suppressedCategory, name: ability?.name ?? ability?.slug ?? "" }, cost };
   }
 
   // Every ability barred but the ones a lock names. Doppelganger: *"Skills and
@@ -291,7 +296,7 @@ export function canUseAbility({
   const lock = ability ? (unit?.suppressions ?? []).find((sup) => sup.scope === "abilityUse"
     && !(sup.except ?? []).some((slug) => slug === ability.slug || slug === ability.contentId)) : null;
   if (lock) {
-    return { ok: false, reason: "abilityLocked", detail: { by: lock.source ?? "" }, cost };
+    return { ok: false, reason: "abilityLocked", detail: { by: lock.source ?? "", name: ability.name ?? ability.slug ?? "" }, cost };
   }
 
   if (clockRunning === false) {

@@ -82,7 +82,9 @@ export function polarityOf(instance, def = null) {
  * The magnitude an Effect stands at now.
  *
  * - `decay: {on: "turn", steps: [100, 75, 50]}`: the step for the ◈ Turns since
- *   it landed, the last step holding.
+ *   it landed, the last step holding. `per: "turn"` steps by each Turn instead:
+ *   Def Dwn (Knacken) is 50% *"on the Turn this Spell is used, then its
+ *   magnitude is reduced to 25% at the end of the Turn"* (Sieg, #345).
  * - `decay: {on: <event>, by: 5}`: its magnitude less `by` for each time the
  *   event was counted (`decayCount`).
  *
@@ -101,7 +103,8 @@ export function magnitudeOf(instance, def, { tick = null, turnsPerRound = 3 } = 
     const steps = Array.isArray(decay.steps) ? decay.steps : [];
     if (steps.length === 0) return base;
     const elapsed = Math.max(0, (tick ?? instance?.appliedTick ?? 0) - (instance?.appliedTick ?? 0));
-    const index = Math.min(steps.length - 1, Math.floor(elapsed / Math.max(1, turnsPerRound)));
+    const span = decay.per === "turn" ? 1 : Math.max(1, turnsPerRound);
+    const index = Math.min(steps.length - 1, Math.floor(elapsed / span));
     return Math.max(0, Number(steps[index]) || 0);
   }
   return Math.max(0, base - Number(decay.by ?? 0) * Number(instance?.decayCount ?? 0));

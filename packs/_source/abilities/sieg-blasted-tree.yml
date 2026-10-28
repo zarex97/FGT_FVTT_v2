@@ -1,0 +1,63 @@
+# Sieg, char_orig_sheets/by-class/Caster/Sieg.md (#345)
+#
+# > "Blasted Tree: The Lightning Tree of Crucifixion — Rank: D [Anti-Army]
+# > Base Attack (MAG) is used. Range=1. Deals 2.5x damage to the DU, then all
+# > Units within a 3x3 panel area of the DU other than Sieg receive 1.5x damage
+# > (these DUs can Evade/Block, but cannot Counter). Has a 25% chance of
+# > inflicting Shock for 2◈ Turns. Lightning damage. Cooldown: 4◈ Turns."
+#
+# Xiuhcoatl's frame (`aftermath`, `primaryTarget`): the DU takes 2.5× only, and
+# every other Unit in the 3×3 around it, his allies too and Sieg spared, 1.5×
+# (#345 ruling 11). The splash's DUs may Evade or Block, never Counter
+# (`uncounterable`); the DU reacts as any. The 25% Shock is a die on each Unit
+# hit, the DU's from its own phase and the splash's from the aftermath's.
+schema: 1
+id: sieg-blasted-tree
+name: "Blasted Tree: The Lightning Tree of Crucifixion"
+rank: D
+isNP: true
+kind: noblePhantasm
+slug: blastedTree
+npTags: [antiArmy]
+cooldown: "4◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+description: |
+  Base Attack (MAG) is used. Range=1. Deals 2.5x damage to the DU, then all Units within a 3x3 panel area of the DU
+  other than Sieg receive 1.5x damage (these DUs can Evade/Block, but cannot Counter). Has a 25% chance of inflicting
+  @effect[shock]{Shock} for 2◈ Turns. Lightning damage. Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 1 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  sources:
+    - { unit: self, component: mag, factor: 1 }
+  component: mag
+  multiplier: 2.5
+  element: lightning
+aftermath:
+  unconditional: true
+  targeting:
+    anchor: { kind: primaryTarget }
+    shape: { kind: chebyshevRadius, r: 1 }
+    selection:
+      relations: [enemy, ally, neutral]
+      includeSelf: false
+      excludePrimaryTarget: true
+      chooser: all
+  damage:
+    sources:
+      - { unit: self, component: mag, factor: 1 }
+    component: mag
+    multiplier: 1.5
+    element: lightning
+    uncounterable: true
+  effects:
+    - { id: shock, duration: "2◈", chance: 25 }
+phases:
+  - kind: damage
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: shock, duration: "2◈", chance: 25 }

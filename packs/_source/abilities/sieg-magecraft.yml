@@ -1,0 +1,21 @@
+# Sieg, char_orig_sheets/by-class/Caster/Sieg.md (#345)
+#
+# > "Allows the use of Straße/gehen Spells. Only one Straße/gehen Spell can be
+# > used per Turn."
+#
+# Kiritsugu's Magecraft on another category. *"Allows"* is no element: each
+# Spell's `isSpell` routes it (EMIYA's reasoning). The cap is declared on the
+# category, so a fourth Spell is caught by being one.
+schema: 1
+id: sieg-magecraft
+name: "Magecraft"
+rank: C
+kind: skill
+passive: true
+slug: magecraft
+description: |
+  Allows the use of Straße/gehen Spells. Only one Straße/gehen Spell can be used per Turn.
+passiveRules:
+  - key: CategoryUseLimit
+    category: strasseGehen
+    perTurn: 1

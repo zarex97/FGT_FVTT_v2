@@ -318,9 +318,14 @@ export async function resolveAttack({
     const { offerStanceTransition } = await import("./stance.mjs");
     await offerStanceTransition(attackerId, COMBAT_PHASE_START_WINDOW);
   }
+  // The Phase's DU, when it has one: a cast there that is aimed *"on the DU"*
+  // takes it (Knacken, #345, found live: the window had no Process yet, so it
+  // was cast at nobody and refused "Choose a target").
+  const phaseDefenders = [...new Set((targets?.units ?? []).map((t) => t.unitId))].filter((id) => id !== attackerId);
   const phaseWindow = resume || plainDamage
     ? { windowAbilities: [] }
-    : await offerAttackerWindow({ attackerId }, COMBAT_PHASE_START_WINDOW, null);
+    : await offerAttackerWindow({ attackerId, defenderId: phaseDefenders.length === 1 ? phaseDefenders[0] : null },
+      COMBAT_PHASE_START_WINDOW, null);
   if ((phaseWindow.windowAbilities ?? []).length > 0) {
     // Loud, because the alternative is this project's signature defect. A
     // non-mode ability at this window would contribute rules that only
@@ -1110,6 +1115,9 @@ export function buildAttackSpec({
       // from the rung at declaration and `evadableOnlyBy` makes the Evade roll
       // fail automatically unless the defender holds one of the named effects.
       unblockable: Boolean(block?.unblockable),
+      // *"These DUs can Evade/Block, but cannot Counter"*: Blasted Tree's
+      // splash (#345). The rung closes for the hit, as Block does above.
+      uncounterable: Boolean(block?.uncounterable),
       evadableOnlyBy: [...(block?.evadableOnlyBy ?? [])],
       // *"This NP can only be Evaded with a Luck Check (Lucky Evasion)"*
       // (Yuugao, #249 reading 23): no Evade succeeds, Dodge included, and the
@@ -1219,6 +1227,7 @@ function defenderFields({ attackerId, defenderId, attack, isAoE, ability, board,
       // `rules/concealment.mjs` rather than one being reimplemented here.
       ...agilityRefusals(ability, attackerId, defenderId, board),
       ...(attack?.unblockable ? ["block"] : []),
+      ...(attack?.uncounterable ? ["counter"] : []),
       // Only its own check avoids it (#204 reading 15). Closing the rung
       // closes what follows a failed Evade too: Lucky Evasion and that
       // rung's escape. A Command Spell bought on the card still beats it
@@ -6883,6 +6892,10 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
     }
     if (phase.kind === "setMode") {
       if (heldOnly) continue;
+      // An end at the Turn's end is queued by the caster pass at declaration
+      // (`skill-use.mjs`, `atTurnEnd`); written here too, it switched Fafnir off
+      // after the damage, and the Turn's upkeep never charged (#345, live).
+      if (phase.atTurnEnd) continue;
       // Through the one writer the Skill path uses, so a span (`suspendFor`)
       // holds here too (#230).
       const { modeIntent } = await import("./skill-use.mjs");
@@ -8642,7 +8655,7 @@ async function askAttackerWindow(state, window, message) {
 
   for (const id of cast) {
     const { useSkill } = await import("./skill-use.mjs");
-    const out = await useSkill({ actorId: actor.id, abilityId: id, atWindow: true });
+    const out = await useSkill({ actorId: actor.id, abilityId: id, atWindow: true, placement: windowPlacement(actor.items.get(id), state) });
     if (!out.ok) {
       refused.push(id);
       // To its owner, in words, as a reaction's refusal is (#244 review).
@@ -8672,6 +8685,20 @@ async function askAttackerWindow(state, window, message) {
   // What was CAST, for a window whose cast changes the attack itself: Kazıklı
   // Bey's Active 2 cancels it, or closes its Counter (#330).
   return { ...state, windowAbilities: carried, castAbilities: cast.filter((id) => !refused.includes(id)) };
+}
+
+/**
+ * Where a window cast is aimed. Sieg's Knacken is *"at the start of a Combat
+ * Phase on the DU (needs to be within Range)"* (#345): its `targetUnit` anchor
+ * takes the Process's DU and asks the Range itself. Unaimed otherwise, as every
+ * window cast was.
+ *
+ * @param {object|null} item
+ * @param {object} state
+ * @returns {object}
+ */
+function windowPlacement(item, state) {
+  return item?.system?.windowTarget === "defender" && state.defenderId ? { unitId: state.defenderId } : {};
 }
 
 /**

@@ -55,6 +55,16 @@ export const TokenFootprint = {
         if (actor?.documentName === "Actor") queueSync(actor);
       });
     }
+    // ...and a Mode switched on or off, which grows or shrinks a Unit whose
+    // size is its rule: Fafnir's 3x3 (#345). Ended by its owner's own switch,
+    // no actor or effect write followed the item's, and the token stayed 3x3
+    // over a 1x1 footprint (found live).
+    Hooks.on("updateItem", (item, changes) => {
+      const actor = item?.parent;
+      if (actor?.documentName !== "Actor" || changes?.system?.active === undefined) return;
+      queueSync(actor);
+    });
+
     // ...and the repair. Foundry v14 counts `width`/`height` among its
     // MOVEMENT_FIELDS, so a resize is routed through the movement pipeline --
     // and a resize that walks no step leaves the document PREPARED at the old
@@ -199,8 +209,12 @@ async function resizeTokens(actor) {
     // standing on the board.
     // Growing, she grows from a corner her owner picks, and shoves whoever
     // stands where she grows to (#198 reading 6). Shrinking keeps her top-left.
+    // A Unit that grows about its centre shrinks about it too: Fafnir ends on
+    // the middle panel of his 3x3 (#345 ruling 19).
     const grew = size.width > token.width || size.height > token.height;
-    const at = grew ? await growthPlacement(actor, token, size) : null;
+    const centred = actor.system?.footprint?.grows === "centre";
+    const at = grew ? await growthPlacement(actor, token, size, { centred })
+      : centred ? shrinkPlacement(token, size) : null;
     await token.update({ ...size, ...(at ?? {}) }, { fgtForced: true, animate: false });
     refreshSize(token);
   }
@@ -228,7 +242,7 @@ const CORNERS = Object.freeze({
  * @param {{width: number, height: number}} size the size she is growing to
  * @returns {Promise<{x: number, y: number}|null>}
  */
-async function growthPlacement(actor, token, size) {
+async function growthPlacement(actor, token, size, { centred = false } = {}) {
   if (!canvas?.grid) return null;
   const { currentBoard } = await import("./board.mjs");
   const { clearFootprintPlan } = await import("../rules/movement.mjs");
@@ -238,6 +252,24 @@ async function growthPlacement(actor, token, size) {
   const board = currentBoard();
   const from = canvas.grid.getOffset({ x: token.x, y: token.y });
   const old = { i: from.i, j: from.j, h: token.height, w: token.width };
+
+  // About its centre, when the board has room (#345 ruling 23): Fafnir's 3x3
+  // around the panel Sieg stood on. At an edge the owner picks a corner, as
+  // Kingprotea's does.
+  const centre = centred ? centredOrigin(old, size, board.bounds ?? null) : null;
+  if (centre) {
+    const footprint = [];
+    for (let di = 0; di < size.height; di += 1) for (let dj = 0; dj < size.width; dj += 1) footprint.push({ i: centre.i + di, j: centre.j + dj });
+    // Away from his old self, the way each occupant already stands from him.
+    const dirOf = (u) => {
+      const di = u.panel.i - old.i;
+      const dj = u.panel.j - old.j;
+      return Math.abs(di) >= Math.abs(dj) ? { i: Math.sign(di) || 1, j: 0 } : { i: 0, j: Math.sign(dj) };
+    };
+    const mover = board.units.find((u) => u.id === actor.id) ?? { id: actor.id };
+    await displacePlan(clearFootprintPlan(mover, footprint, dirOf, board));
+    return canvas.grid.getTopLeftPoint({ i: centre.i, j: centre.j });
+  }
 
   const picked = await chooseFor(actor, {
     // fgt-name-ok: the Unit's own player's prompt or notice; its owner knows the name
@@ -272,6 +304,40 @@ async function growthPlacement(actor, token, size) {
   await displacePlan(clearFootprintPlan(mover, footprint, dirOf, board));
 
   return canvas.grid.getTopLeftPoint({ i: i0, j: j0 });
+}
+
+/**
+ * The top-left of a footprint grown about the old one's centre, or `null` when
+ * the board's edge leaves no room for it there.
+ *
+ * @param {{i: number, j: number, h: number, w: number}} old
+ * @param {{width: number, height: number}} size
+ * @param {{iMin: number, iMax: number, jMin: number, jMax: number}|null} bounds
+ * @returns {{i: number, j: number}|null}
+ */
+export function centredOrigin(old, size, bounds) {
+  const i = old.i - Math.floor((size.height - old.h) / 2);
+  const j = old.j - Math.floor((size.width - old.w) / 2);
+  if (!bounds) return { i, j };
+  const fits = i >= bounds.iMin && i + size.height - 1 <= bounds.iMax && j >= bounds.jMin && j + size.width - 1 <= bounds.jMax;
+  return fits ? { i, j } : null;
+}
+
+/**
+ * Where a Unit that grew about its centre lands as it shrinks: the middle of
+ * the footprint it leaves (#345 ruling 19).
+ *
+ * @param {object} token a `TokenDocument`
+ * @param {{width: number, height: number}} size the size it shrinks to
+ * @returns {{x: number, y: number}|null}
+ */
+function shrinkPlacement(token, size) {
+  if (!canvas?.grid) return null;
+  const from = canvas.grid.getOffset({ x: token.x, y: token.y });
+  return canvas.grid.getTopLeftPoint({
+    i: from.i + Math.floor((token.height - size.height) / 2),
+    j: from.j + Math.floor((token.width - size.width) / 2),
+  });
 }
 
 /**

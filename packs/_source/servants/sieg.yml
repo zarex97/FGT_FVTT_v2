@@ -1,0 +1,87 @@
+# packs/_source/servants/sieg.yml
+# Conversion source: char_orig_sheets/by-class/Caster/Sieg.md
+# Audit: #345 (docs/superpowers/specs/2026-10-27-sieg-clauses.md)
+#
+# A Caster by the user's ruling of 2026-10-21: his sheet prints no Class.
+#
+# Built to be reused. Independent Action EX is the shared template at EX, the
+# three passives Anastasia (Summer)'s Viy variant prints without her fourth.
+# Magecraft is Kiritsugu's one-a-Turn cap on a category. His two forms are
+# Siegfried's whole sheet (Dead Count Shapeshifter, `servants/siegfried.yml`)
+# and Fafnir (Akafiloga Argrise's Activation, an NP Mode as Tenmōkaikai is).
+#
+# BA(STR) 50 and BA(MAG) 125 are the tables' both (STR E, MAG D); Base Health
+# 500 is END E's.
+schema: 1
+id: sieg
+name: "Sieg"
+type: servant
+
+trueName: Sieg
+servantClasses: [caster]
+classContainer: caster
+alignment: { order: neutral, morality: good }
+region: [europe]
+# "Male, Servant, [Man], Dragon, Humanoid".
+attributes: [male, servant, man, dragon, humanoid]
+
+parameters: { str: E, end: E, agi: E, mag: D, luc: B }
+baseHealth: 500
+mov: 3
+range: { panels: 3, targets: 1 }
+baseAttack: { str: 50, mag: 125 }
+# *"Sustainability: N/A"*: Independent Action EX's Passive 1, *"Sustainability
+# does not apply"*. `null` is no clock at all, as Anastasia (Summer)'s.
+sustainability: null
+
+# 1x1, and about his centre when he changes size: Fafnir's 3x3 grows around the
+# panel he stood on and shrinks back to its middle (#345 rulings 19, 23).
+footprint: { w: 1, h: 1, grows: centre }
+
+# Bridal Chest's Passive 1 (BC.p1): *"At a Range of 1, Sieg's Normal Attacks use
+# his Base Attack (STR). At a Range of 2 or higher, Sieg's Normal Attacks use his
+# Base Attack (MAG) and deal Lightning damage"*. EMIYA's and Mannanán's banded
+# Normal Attack (`rules/normal-attack.mjs`); the 10% Shock rides it from Bridal
+# Chest, and NP Seal's Range 1 (BC.p1.seal) keeps every swing in the STR band.
+normalAttack:
+  mode: rangeBanded
+  component: str
+  bands:
+    - from: 2
+      component: mag
+      element: lightning
+      sources:
+        - { component: mag, factor: 1 }
+
+# ─── Resources (Ch. 06) ─────────────────────────────────────────────────
+# *"When Sieg is summoned, he has three Dragon Revelation Command Spells
+# (DRCS)"*, and the sheet's `DRCS: 3/3`. A pool as EMIYA's Aria is: Dead Count
+# Shapeshifter spends it, and nothing refills it.
+resources:
+  drcs: { value: 3, max: 3 }
+  # Bridal Chest's Passive 2: the full Rounds toward the next growth, the
+  # growths, and the Agility they have raised, which stops at 4.
+  bridalRounds: { value: 0, max: 2 }
+  bridalGrowth: { value: 0 }
+  bridalAgility: { value: 0, max: 4 }
+
+abilities:
+  - ref: class-independent-action
+    rank: EX
+    description: |
+      (Passive 1) Sustainability does not apply.
+      (Passive 2) Master's ZON is increased by 3 panels.
+      (Passive 3) Cannot be contracted by enemy Casters and Masters.
+  - { ref: sieg-homunculus }
+  - { ref: sieg-man-made-hero }
+  - { ref: sieg-magecraft }
+  - { ref: sieg-knacken }
+  - { ref: sieg-schwert }
+  - { ref: sieg-heilen }
+  - { ref: sieg-dragon-revelation }
+  - { ref: sieg-dead-count-shapeshifter }
+  - { ref: sieg-bridal-chest }
+  - { ref: sieg-galvanism }
+  - { ref: sieg-blasted-tree }
+  - { ref: sieg-akafiloga-argrise }
+  - { ref: sieg-akafiloga-fafnir }

@@ -1,0 +1,37 @@
+# Sieg, char_orig_sheets/by-class/Caster/Sieg.md (#345)
+#
+# > "(Active) Used during your Turn. Has the following effects-
+# > 1. Applies NP Regen for 1◈ Turns, NP Cooldown is reduced by 1 Turn at the end
+# >    of every Turn.
+# > 2. Applies Max HpUp for 1◈ Turns, Max Health is increased by 20% of its
+# >    original value.
+# > Cooldown: 4◈-⅓◈ Turns."
+#
+# `npRegen` at 1, as Avaricious Gold's. Max HpUp is Appendix A's: the maximum
+# while it stands, and the current restored by the same as it lands (`restores`).
+schema: 1
+id: sieg-man-made-hero
+name: "Man-made Hero (False)"
+rank: "B+"
+kind: skill
+slug: manMadeHero
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[npRegen]{NP Regen} for 1◈ Turns, NP Cooldown is reduced by 1 Turn at the end of every Turn.
+  2. Applies @effect[maxHpUp]{Max HpUp} for 1◈ Turns, Max Health is increased by 20% of its original value.
+  Cooldown: 4◈-⅓◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: npRegen, duration: "1◈", magnitude: 1 }
+      - id: maxHpUp
+        duration: "1◈"
+        magnitude: "0.2 * @self.baseHealth"
+        restores: [{ stat: health.value, delta: "0.2 * @self.baseHealth" }]

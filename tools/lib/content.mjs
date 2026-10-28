@@ -1788,6 +1788,10 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
       } else if (on !== "turn" && !(Number(doc.decay.by) > 0)) {
         problems.push(`${path}: decay on ${on} needs a positive "by"`);
       }
+      // The span one step lasts: a ◈ Round by default, a Turn when it says so (#345).
+      if (doc.decay.per !== undefined && !["turn", "round"].includes(doc.decay.per)) {
+        problems.push(`${path}: decay per "${doc.decay.per}"; expected turn or round`);
+      }
     }
     if (doc.boardUnique !== undefined && (typeof doc.boardUnique !== "string" || !doc.boardUnique)) {
       problems.push(`${path}: boardUnique names a group, a non-empty word`);
@@ -2412,9 +2416,9 @@ export function compileDocument(doc, dir, library, assets = new Map(), reference
   }
 
   if (spec.documentType === "Actor") {
-    const abilities = (doc.abilities ?? [])
+    const abilities = withFormKits((doc.abilities ?? [])
       .map((entry, index) => resolveRef(entry, library, [], `abilities[${index}]`))
-      .filter(Boolean);
+      .filter(Boolean), library);
     const type = doc.type ?? spec.actorType;
     const images = unitImages(doc, dir, type, assets);
     return {
@@ -2464,6 +2468,61 @@ export function compileDocument(doc, dir, library, assets = new Map(), reference
     type,
     system: itemSystem(linked, type),
     _key: `!items!${base._id}`,
+  };
+}
+
+/**
+ * A form that is another Servant's whole sheet, compiled onto its bearer.
+ *
+ * Sieg's Dead Count Shapeshifter turns him into Siegfried *"with all Skills and
+ * NP available and usable"* (#345 ruling 1). `form.asServant` names that
+ * Servant: its statblock becomes the form's `overrides` (an authored override
+ * still wins), and each of its abilities is embedded on the bearer marked
+ * `formOnly`, inert until the form is taken (`rules/form.mjs#keptByForm`). One
+ * sheet, so Siegfried played alone and Siegfried as Sieg cannot drift apart.
+ *
+ * @param {object[]} abilities the bearer's resolved abilities
+ * @param {Map<string, object>} library
+ * @returns {object[]}
+ */
+export function withFormKits(abilities, library) {
+  const out = [];
+  for (const ability of abilities) {
+    const servant = ability?.form?.asServant ? library.get(ability.form.asServant) : null;
+    if (!servant) {
+      out.push(ability);
+      continue;
+    }
+    out.push({ ...ability, form: { ...ability.form, overrides: { ...formStatblock(servant), ...(ability.form.overrides ?? {}) } } });
+    for (const [index, entry] of (servant.abilities ?? []).entries()) {
+      const kit = resolveRef(entry, library, [], `${servant.id}.abilities[${index}]`);
+      if (kit) out.push({ ...kit, formOnly: ability.form.id });
+    }
+  }
+  return out;
+}
+
+/**
+ * The statblock a form takes from the Servant it is: everything the projection
+ * reads as a form override (`rules/snapshot.mjs`).
+ *
+ * @param {object} servant
+ * @returns {object}
+ */
+function formStatblock(servant) {
+  return {
+    trueName: servant.trueName ?? servant.name ?? null,
+    servantClasses: [...(servant.servantClasses ?? [])],
+    alignment: servant.alignment ?? null,
+    region: [...(servant.region ?? [])],
+    attributes: [...(servant.attributes ?? [])],
+    parameters: { ...(servant.parameters ?? {}) },
+    baseHealth: servant.baseHealth ?? null,
+    mov: servant.mov ?? null,
+    range: servant.range ?? null,
+    baseAttack: servant.baseAttack ?? null,
+    normalAttack: servant.normalAttack ?? null,
+    sustainability: servant.sustainability ?? "none",
   };
 }
 

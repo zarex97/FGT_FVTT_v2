@@ -1,0 +1,35 @@
+# Sieg, char_orig_sheets/by-class/Caster/Sieg.md (#345)
+#
+# Bridal Chest's Passive 3.
+#
+# > "Sieg gains the 'Galvanism' Skill with this effect- Whenever Sieg takes MAG
+# > damage, his NP Cooldown is reduced by ⅓◈ Turns, and the Cooldown of one
+# > random Straße/gehen Spell is reduced by ⅓◈ Turns. This Skill is in effect
+# > even while Sieg is transformed into Siegfried. This effect is negated while
+# > affected with NP Seal."
+#
+# Once per MAG hit that hurts (#345 ruling 7). The Spell is drawn at random
+# from those on their Cooldown, its die on the card; none on their Cooldown says
+# so. Kept in his Siegfried form (`sieg-dead-count-shapeshifter`'s `keeps`): the
+# NP cut lands on Balmung, the NP he holds then, and the Spell cut on Sieg's own
+# clocks, which wait for him (ruling 21). `negatedBy: [npSeal]` stops its rules.
+schema: 1
+id: sieg-galvanism
+name: "Galvanism"
+rank: null
+kind: skill
+passive: true
+slug: galvanism
+negatedBy: [npSeal]
+description: |
+  (Passive) Granted by @np[sieg-bridal-chest]{Bridal Chest}. Whenever Sieg takes MAG damage, his NP Cooldown is reduced by ⅓◈ Turns,
+  and the Cooldown of one random Straße/gehen Spell is reduced by ⅓◈ Turns. This Skill is in effect even while Sieg is
+  transformed into Siegfried. This effect is negated while affected with @effect[npSeal]{NP Seal}.
+passiveRules:
+  - key: OnEvent
+    event: damageTaken
+    automatic: true
+    predicate: ["attack:component:mag", "attack:dealtDamage"]
+    then:
+      - { key: CooldownDelta, scope: np, ticks: "⅓◈" }
+      - { key: CooldownDelta, category: strasseGehen, label: "Straße/gehen Spell", pick: random, ticks: "⅓◈" }

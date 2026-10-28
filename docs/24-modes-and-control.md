@@ -159,3 +159,38 @@ Pressed live, five more doors closed (#323):
   Master's control."*
 - **The Attributes exactly.** A form's Attributes replace the set with nothing derived beside them
   (`snapshot.mjs#attributesOf`, the one reader the board and his passives' gates share): no Magus from his Class.
+
+## A form that comes back, and a form that is an NP (Sieg, #345)
+
+**Siegfried, for a while.** Dead Count Shapeshifter's usage 2 turns Sieg into Siegfried for 1◈ + ½◈ × d4 Turns. The
+form names the Servant it is (`form.asServant: siegfried`), and the build compiles that Servant's statblock into the
+form's `overrides` and embeds its seven abilities on Sieg marked `formOnly` (`tools/lib/content.mjs#withFormKits`).
+`rules/form.mjs#keptByForm` holds a `formOnly` ability back until its form is taken, and `formSheet` answers who he
+is meanwhile (Class, True Name, Region, Alignment, Parameters with his granted steps, Base Health) for both
+projections. His own abilities the form drops keep their clocks unticked (`scheduler.mjs#advanceCooldowns` walks the
+kept), so they come back as he left them; Galvanism, which the form keeps, still draws from them
+(`unit.formDropped`).
+
+`engine/transform.mjs#transformUnit` reads `form.lasts`: the die and X go on the card, Health enters at the form's
+Base Health, Agility and Luck are rolled by the form's Parameters through `servantSetupPlan`, the form's own clocks
+start at 0, and `system.formReturn` stores the pools he returns to. At the end of the Xth Turn,
+`scheduler-hooks.mjs` calls `returnForms`: `leaveForm` restores the pools, raises a current by any rise of its
+maximum while he was away (Bridal Chest's growth), takes the `returns.toll` (100 Health, never below 1), and starts
+the defining ability's clock (`countFrom: formEnd`: its `max` plus the Turns he was gone). Felled as Siegfried he is
+defeated, and nothing returns.
+
+**Fafnir is a Mode.** Akafiloga Argrise's usage 2 is Sieg with effects applied (ruling 6): an Activation NP Mode, as
+Tenmōkaikai is, with `noMasterCost` and Tenmōkaikai's upkeep (40 if he Acted, 20 if not, the test before the drain).
+Its current Health is paid once, after the switch (`afterCosts`, `statChange percentOfCurrent: 300`); the rest are
+active rules. He is 3×3 by `SizeStep`, grown and shrunk about his centre (`footprint.grows: centre`,
+`engine/token-footprint.mjs#centredOrigin`), the corner Kingprotea's owner picks only at a board edge. His usage 1,
+taken as Fafnir, queues the Mode's end for the Turn's end (`setMode` with `atTurnEnd`, the queue an off-Turn End
+waits in) and charges a second NP price (`additionalCosts` with a `predicate`). The caster pass at declaration
+writes that queue; the attack path's own `setMode` writer skips an `atTurnEnd` phase, or it switched Fafnir off at
+once and that Turn's upkeep never charged (found live). His Skills' refusals name the Skill (`costs.mjs`, the
+`abilityLocked` detail). Switched off by his own press, the token follows: the footprint sync hears an item's
+`active` switch as well as actor and effect writes (`engine/token-footprint.mjs`). A form's own abilities are not on
+the bar or the sheet until it is taken (`rules/form.mjs#heldNow`); his own, dropped, stay greyed with their reason.
+X is summed in ◈ and turned into Turns once (`transform.mjs#lastingTurns`: 5, 6, 8, 9 at three Turns a Round).
+His sheet reads the form too: the header's Alignment and Region, the Details tab's Classes and Region, and the
+contract button a Caster gets (`apps/actor-sheet/context.mjs`, `formSheet`); the seat in the header stays Caster.
