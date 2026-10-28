@@ -7884,3 +7884,58 @@ No rule defect was found live. Three card lines were fixed from the presses: the
 (*"Health max 522 → 414 (Armor of Fafnir: Blood Armor of the Evil Dragon)"*); a landing that changed nothing reads
 *"not applied"*, never the engine's `noop`; and a `target: self` row on an attack card is its user's, so his player
 read *"NP Regen (Balmung): not applied, nothing to count"* where it had read *"1 effect(s) applied"*.
+
+## 46.53 Rama (Saber) — abilities a summon roll grants, and a lethal Attack cancelled
+
+Audit #347, `docs/superpowers/specs/2026-10-28-rama-clauses.md`. 156 Clauses, 23 readings in four grill rounds and one
+after the presses. His kin did most of the work: Magic Resistance is Arturia's, Riding Raikou's, Divinity the Revised
+text, Charisma Arturia's and Proto Gil's, Brahmastra's multiplier Balmung's. BA(STR) is 150 by the table, not the
+printed 200 (§46.6).
+
+### 46.53.1 What he cost the engine
+
+- **A summon roll that grants Abilities** (Ch. 31): `summonGrants`, a coin, dice, a double rolled again and a 6 the
+  player's pick (`rules/summon-grants.mjs`); an owed pick is asked at the War's start too (`opening-choice.mjs`).
+- **A Normal Attack made in a method a passive grants** (Ch. 17): `normalAttackMethod`, once per Round, a Counter
+  included (reading 18), its damage-dealt figure on the attack (`dealtModifiers`).
+- **A Skill a passive requires** (Ch. 17): `hasSkill` with the Skill's `name` on the refusal.
+- **Guts that revives with a flat figure** (Appendix A): `gutsHealth`, `restore.amount`.
+- **A die that breaks an NP for the game** (Ch. 10): `Expend`, its die on the card.
+- **A lethal Attack cancelled on a chance per counter, once a game** (Ch. 10, Ch. 21): `CancelsLethalAttack`, and its
+  `summon` brings Sita beside him, contracted to his Master (§46.54).
+
+### 46.53.2 What was pressed, and how
+
+In War `At2JWRQAbMeTxd4Z` on the scene *Rama Audit*, built through the wizard beside the match being played, Player1
+driving. 153 Clauses on 2026-10-28; the last three, CS.sita, CS.contract and CS.panel, the same day under Sita's audit.
+Staged by the GM and named in the list: dice, clocks, an attack budget, Martial Blessing or Skill Seal, his Master and
+contract restored after a Conquest, Masters set on his free panels. Four defects were found live and fixed: the War's
+start asked no owed pick; the `hasSkill` refusal named nothing; a handler's note read "not applied"; Sudarshana aimed
+at one Unit where it picks two.
+
+## 46.54 Sita (Archer) — a counted Debuff Immune, and a Normal Attack that grows with its buffs
+
+Audit #348, `docs/superpowers/specs/2026-10-28-sita-clauses.md`. 80 Clauses, 15 readings in two grill rounds. Her kin:
+Magic Resistance A, Independent Action D by its tables, Goddess's Divine Core Kingprotea's and Quetzalcoatl's at C,
+Curse of Separation Rama's Dream of Reunion with a Regen, Haradhanu Janaka's cleanse Self-Suggestion's.
+
+### 46.54.1 What she cost the engine
+
+- **A counted Debuff Immune** (Ch. 15): a charge spent only on a debuff it nullified; a missed die spends none, a
+  sure one spends one (rulings 6, 14, 15).
+- **A share of BA(MAG) on the Normal Attack, and the Magic Resistance it meets** (Ch. 10): `NormalAttackShare`, 20%
+  and 20% more per Janaka, the DU's Magic Resistance at that share (rulings 2, 3, 13).
+- **A buff whose new instance resets its siblings** (Ch. 15): `resetsSiblings`, said on the card.
+- **Burn Immune** (Appendix A).
+- **A Servant summoned onto the board mid-War** (Ch. 31, Ch. 19): `summonServantBeside`, contracted to the Unit's
+  Master, idle in the Turn it arrives (`arrivedTick`).
+- **A self phase that comes on a miss** (Ch. 21): `alsoOnMiss` (ruling 8).
+
+### 46.54.2 What was pressed, and how
+
+The Sita Rama's Curse of Separation summoned into War `At2JWRQAbMeTxd4Z`, Player1 driving her bar, reactions and
+panel picks. All 80 Clauses Pressed or Observed live. Staged by the GM: dice, a Janaka clock, cooldowns set to 0,
+debuffs placed, Masters moved and given Health or Agility, an attack budget reset. Five defects were found live and
+fixed: a boundary heal's card counted it unscaled; a cleanse held an Unremovable effect in silence; an Evaded NP
+skipped its self phase; an immunity was named by its id; a far-panel arrival said "beside". One is left open: a staged
+Curse ticked at every side's Turn end (`docs/surprises/2026-10-28-curse-ticks-every-turn-end.md`).

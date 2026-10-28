@@ -3,7 +3,8 @@ id: 2026-10-28-war-start-asks-no-opening-choice
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** Rama's summon owed two Vishnu Bhuja picks (Heads, 6 and 6), so his player would be asked them when the War began.
 **Actual:** No question came. `openingChoices.due` stayed `[]` after `startCombat()`; the custom War's tokens were placed by hand after `commitWar`.

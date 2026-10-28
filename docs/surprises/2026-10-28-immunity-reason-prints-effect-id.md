@@ -3,7 +3,8 @@ id: 2026-10-28-immunity-reason-prints-effect-id
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** A Burn refused by Burn Immune reads "Burn Immune" on the card.
 **Actual:** The card read "Burn (burn Immune)".

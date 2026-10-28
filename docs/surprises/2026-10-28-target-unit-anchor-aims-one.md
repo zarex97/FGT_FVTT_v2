@@ -3,7 +3,8 @@ id: 2026-10-28-target-unit-anchor-aims-one
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** Sudarshana's `targetUnit` anchor with `chooser: chosen, count: 2` would let Player1 click two enemies.
 **Actual:** The first click opened the review, "1 target(s) · 1 panel(s) Lancer", and a second could not be added.

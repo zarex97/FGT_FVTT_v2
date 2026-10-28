@@ -3,7 +3,8 @@ id: 2026-10-28-applier-return-pinned-by-scan
 found: test
 kind: source-scan-pins-text
 status: fixed
-reviewed: false
+reviewed: true
+pattern: source-scan-pins-text
 ---
 **Expected:** Adding a field to `applyEffect`'s applied return changes no test.
 **Actual:** `jack.test.mjs` failed: it matches the literal `return { outcome: "applied", reason: null, chance: rolled, intents, trace };`.
