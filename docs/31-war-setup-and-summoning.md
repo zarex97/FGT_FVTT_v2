@@ -98,6 +98,17 @@ Round's start offers its Master's player free panels to deploy more (Ch. 32).
 re-rollable like the rest; `commitSummon` grants the Item on a listed face (`setup-rolls.mjs#summonItemsGranted`).
 Arturia arrives with [Avalon] on an 8 of a d8.
 
+**Abilities on a summon coin and dice (#347).** A Servant's `summonGrants` adds a line per spec to the summon plan
+(`rules/summon-grants.mjs#grantLine`): a coin picks how many dice (`coin: {heads, tails}`), each face names an ability
+key, and `choose` is the face that lets the player pick. `engine/summon.mjs#rollGrant` flips and rolls; with
+`rerollDoubles` a die showing a face another already shows rolls again until it differs, the choosing face excepted
+(rulings 1, 14). The line shows *"Heads: 3, 5 (rolled again: 3) → …"* and is re-rollable whole. `commitSummon` writes
+what it gave to `system.summonGranted` (`{coin, dice, rerolled, keys, picks}`); each owed pick is an opening choice
+(`engine/opening-choice.mjs#pickGrant`, `grant:<id>` in `openingChoices.due`), one per choosing face, among the faces
+not yet held. An ability naming a face (`summonGrant`) is his only once a die or a pick gave it
+(`summon-grants.mjs#grantHeld`, read by `rules/form.mjs#keptByForm` and `heldNow`, the door every reader of his
+abilities passes). Rama's Vishnu Bhuja: five Noble Phantasms, each with its Normal Attack.
+
 **A summon killed has disappeared** (#247 reading 11). Both doors a summon leaves by, its stay running out and its defeat with a living summoner, go through `io.mjs#rememberDeparture`: the summoner's `fieldSummonStats` (Health full if killed, suppressed rules kept) and the `countFrom: destroyed` cooldown. A killed Jabberwock started no cooldown before. **A summon's guard is authored on its statblock**: the Jabberwock carries the Trump Soldier's `TargetabilityModifier` word for word (D2).
 
 ## Invariants & edge cases

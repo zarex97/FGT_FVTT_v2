@@ -97,6 +97,8 @@ export const RULE_ELEMENT_KEYS = new Set([
   "TerrainPenaltyImmunity",
   // Avalon -- not defeated by a blow taken at or above a share of the maximum.
   "SurviveLethal",
+  // Rama's Curse of Separation (#347).
+  "CancelsLethalAttack",
   // Mannanán — the automatic Counter, the rung it trades away, the buff-clock
   // extension and the spend she is OFFERED at a timing window.
   "AutoCounter", "ForbidReaction", "ForbidCreating", "DurationExtension", "OptionalCost",

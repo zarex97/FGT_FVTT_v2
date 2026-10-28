@@ -1,0 +1,65 @@
+# Rama, char_orig_sheets/by-class/Saber/Rama.md (#347)
+#
+# > "Vishnu Bhuja: Modhaki and Shikhari. Obtained when a 3 is rolled.
+# > (Active) {M} Base Attack (STR) is used. Range=1. Deals 4x damage and inflicts
+# > Immobilize for 1◈+⅓◈ Turns. Earth damage (half). All Units except Rama
+# > standing directly around the DU (1 panel) receive 2x damage with a 50% chance
+# > of being inflicted with Immobilize for ⅔◈ Turns. Earth damage. Cooldown: 7◈
+# > Turns. This NP is treated as a Rank A NP."
+#
+# Blasted Tree's frame (#345 ruling 11): the DU takes 4× of Earth (half), its
+# Immobilize printing no chance; every other Unit within 1 of it, allies too and
+# Rama spared, takes 2× of plain Earth, may Evade or Block but not Counter, and
+# rolls its own 50% (#347 ruling 6).
+schema: 1
+id: rama-modhaki-and-shikhari
+name: "Vishnu Bhuja: Modhaki and Shikhari"
+rank: A
+kind: noblePhantasm
+slug: modhakiAndShikhari
+isNP: true
+summonGrant: modhakiShikhari
+cooldown: "7◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+requirements:
+  - { kind: hasSkill, abilityId: martialBlessing }
+description: |
+  (Active) Base Attack (STR) is used. Range=1. Deals 4x damage and inflicts @effect[immobilize]{Immobilize} for
+  1◈+⅓◈ Turns. Earth damage (half). All Units except Rama standing directly around the DU (1 panel) receive 2x damage
+  with a 50% chance of being inflicted with @effect[immobilize]{Immobilize} for ⅔◈ Turns. Earth damage. Cooldown: 7◈
+  Turns. This NP is treated as a Rank A NP.
+targeting:
+  anchor: { kind: targetUnit, range: 1 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  delivery: melee
+  component: str
+  multiplier: 4
+  element: earth
+  elementFraction: 0.5
+aftermath:
+  unconditional: true
+  targeting:
+    anchor: { kind: primaryTarget }
+    shape: { kind: chebyshevRadius, r: 1 }
+    selection:
+      relations: [enemy, ally, neutral]
+      includeSelf: false
+      excludePrimaryTarget: true
+      chooser: all
+  damage:
+    delivery: melee
+    component: str
+    multiplier: 2
+    element: earth
+    uncounterable: true
+  effects:
+    - { id: immobilize, duration: "⅔◈", chance: 50 }
+phases:
+  - kind: damage
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: immobilize, duration: "1◈+⅓◈" }

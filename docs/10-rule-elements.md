@@ -269,3 +269,13 @@ the bonus is added at stage 16, after every modifier and the Injury snapshot (Di
 - **The `Split` action** (`engine/scheduler.mjs`): a defeated summon turning into new ones on a pre-rolled die
   (`roll {key, formula}`, the faces `on`), `count` of `into`. A log intent, as `Banish`; the applier places them
   (`engine/summoning.mjs#splitSummon`). Both faces are a card line. The Horror's and the Elder Horror's.
+
+### Rama's element (#347)
+
+- **`CancelsLethalAttack {resource, percentPer, oncePerGame}`** gives its bearer a chance, `percentPer` for each of
+  the pool `resource` holds, to cancel the Attack that would defeat it: Curse of Separation's 3% per Reunion Counter.
+  Projected as `lethalCancels`; asked by `engine/attack.mjs#lethalCancel` after the revival chain, before anything is
+  written, of an Attack's hit only (ruling 10). The die is on the card. A success cancels the bearer's own Process,
+  no damage and no effect from it (`damage:cancelled`, ruling 11), and spends the once (`recordUse`); a failure spends
+  nothing, and an empty pool rolls nothing (ruling 12). Its `summon` waits on Sita's audit (ruling 13).
+

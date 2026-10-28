@@ -81,7 +81,7 @@ export function empty() {
     excludesOpponentSources: [], unhandled: [],
     autoCounters: [], forbiddenReactions: [], refusesReactions: [], durationExtensions: [], optionalCosts: [],
     buffRemovalResist: [], knockback: null,
-    forcedModeRules: [], magnitudeScales: [], attackProperties: [], terrainPenaltyImmunities: [], lethalFloors: [],
+    forcedModeRules: [], magnitudeScales: [], attackProperties: [], terrainPenaltyImmunities: [], lethalFloors: [], lethalCancels: [],
     categoryUseLimits: [], baseAttackModifiers: [], healingReceived: [], followUps: [],
     cooldownCutBonus: [], useFailures: [], learnsTrueNames: [],
     defenceless: [], woundsMaxHealth: [], cooldownCutOverrides: [],
@@ -2303,6 +2303,30 @@ export const EXECUTORS = Object.freeze({
    * which knows which of a terrain's entries are penalties.
    */
   /**
+   * The Attack that would defeat this Unit cancelled, on a chance per counter it
+   * holds, once a game.
+   *
+   * Rama's Curse of Separation: *"When Rama would be defeated and is not revived
+   * by any effect, for every Reunion Counter on himself, he has a 3% chance of
+   * having that Attack be canceled, then Sita is summoned on a panel directly
+   * next to himself (will be contracted to Rama's Master). Can only activate once
+   * per game"* (#347). Asked after the revival chain, of a defeat by an Attack
+   * only (ruling 10); a success cancels his own Process alone (ruling 11) and
+   * spends the once; a failure spends nothing, and no counter rolls no die
+   * (ruling 12). Read by `engine/attack.mjs#lethalCancel`.
+   */
+  CancelsLethalAttack(el, { source, ability, out }) {
+    out.lethalCancels.push({
+      percentPer: typeof el.percentPer === "number" ? el.percentPer : 0,
+      resource: el.resource ?? null,
+      oncePerGame: el.oncePerGame !== false,
+      abilityId: ability?.id ?? null,
+      summon: el.summon ?? null,
+      source,
+    });
+  },
+
+  /**
    * Not defeated by a blow taken at or above a share of the maximum: Health
    * drops to 1 instead.
    *
@@ -2601,6 +2625,9 @@ export const EXECUTORS = Object.freeze({
       // null" -- so a zero would beat the dice formula to the branch and every
       // roll-based revival would restore nothing.
       percentOfMax: percentOfMax(el, rank, ctx),
+      // Health itself, a flat figure: *"he is revived with 100 Health"* (Rama's
+      // Dream of Reunion, `gutsHealth`, #347). `null` when unstated, as above.
+      amount: restoreAmount(el, rank, ctx),
       // Its own clock, resolved from a table the same way. A ◈ EXPRESSION, not
       // a turn count -- `spendRevival` hands it to `I.cooldown`, which the
       // applier resolves against the world's turns per Round.
@@ -2865,6 +2892,20 @@ function reviveFormula(el, rank, ctx) {
  */
 function percentOfMax(el, rank, ctx) {
   const raw = el.restore?.percentOfMax ?? el.percentOfMax ?? null;
+  if (raw === null || raw === undefined) return null;
+  return scalar(resolveValue({ value: raw }, rank, ctx));
+}
+
+/**
+ * The Health one charge restores outright, or `null`.
+ *
+ * @param {object} el
+ * @param {Rank|null} rank
+ * @param {object} ctx
+ * @returns {number|null}
+ */
+function restoreAmount(el, rank, ctx) {
+  const raw = el.restore?.amount ?? null;
   if (raw === null || raw === undefined) return null;
   return scalar(resolveValue({ value: raw }, rank, ctx));
 }

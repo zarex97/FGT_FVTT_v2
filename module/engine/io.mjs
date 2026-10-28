@@ -851,6 +851,19 @@ export function worldIO() {
      * @param {string} unitId a Master
      * @param {string} itemId the Essence Item
      */
+    /**
+     * Spend an ability for the rest of the game (#347). Written once and never
+     * cleared, as `expendsPermanently` writes it.
+     *
+     * @param {string} unitId
+     * @param {string} abilityId
+     */
+    async expend(unitId, abilityId) {
+      const item = resolve(unitId)?.items.get(abilityId);
+      if (!item || item.system?.expended) return;
+      await item.update({ "system.expended": true });
+    },
+
     async spendEssence(unitId, itemId) {
       const item = resolve(unitId)?.items.get(itemId);
       if (!item) return;

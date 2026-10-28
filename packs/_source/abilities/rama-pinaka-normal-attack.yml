@@ -1,0 +1,49 @@
+# Rama, char_orig_sheets/by-class/Saber/Rama.md (#347)
+#
+# > "Vishnu Bhuja: Pinaka ... (Passive) Once per Round, Rama can perform a Normal
+# > Attack at a Range of 5. If he does, roll a twelve-sided die at the end of the
+# > Damage Step. If a 5 is rolled, the Shiva Dhanush is broken, Vishnu Bhuja:
+# > Pinaka can no longer be used for the rest of the game."
+#
+# Sudarshana's Normal Attack at Range 5 and no change to its damage (#347 rulings
+# 2a to 2f), Ranged as Pinaka's own `{R}` (ruling 3). Its d12 rolls on every use,
+# an Evaded or 0-damage one too, on the card (ruling 4); on a 5 both halves of the
+# bow are spent for the game.
+schema: 1
+id: rama-pinaka-normal-attack
+name: "Vishnu Bhuja: Pinaka (Normal Attack)"
+rank: A
+kind: skill
+slug: pinakaNormalAttack
+summonGrant: pinaka
+normalAttackMethod: true
+countsAsNormalAttack: true
+oncePerRound: true
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+requirements:
+  - { kind: hasSkill, abilityId: martialBlessing }
+description: |
+  (Passive) Once per Round, Rama can perform a Normal Attack at a Range of 5. If he does, roll a twelve-sided die at
+  the end of the Damage Step. If a 5 is rolled, the Shiva Dhanush is broken, Vishnu Bhuja: Pinaka can no longer be
+  used for the rest of the game.
+targeting:
+  anchor: { kind: targetUnit, range: 5 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+damage:
+  delivery: ranged
+  component: str
+phases:
+  - kind: damage
+passiveRules:
+  - key: OnEvent
+    event: attackPerformed
+    automatic: true
+    ofContentId: [rama-pinaka-normal-attack]
+    then:
+      - key: Expend
+        label: "Shiva Dhanush"
+        roll: { key: shivaDhanushNormalAttack, formula: "1d12" }
+        on: [5]
+        abilities: [rama-pinaka, rama-pinaka-normal-attack]

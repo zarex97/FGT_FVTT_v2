@@ -1136,6 +1136,9 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
     case "spendEssence":
       for (const i of intents) await io.spendEssence(unitId, i.itemId);
       break;
+    case "expend":
+      for (const i of intents) await io.expend(unitId, i.abilityId);
+      break;
 
     case "spendCS":
       // The Servant travels with the intent, because Ch. 32's pools are keyed by

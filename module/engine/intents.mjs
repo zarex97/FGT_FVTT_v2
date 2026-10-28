@@ -54,6 +54,9 @@ export const INTENT_TYPES = Object.freeze([
   // A Master Essence's one use, spent (#241): *"1 use only, Player decides
   // when it's used."*
   "spendEssence",
+  // An ability spent for the rest of the game by a die: Pinaka's *"If a 5 is
+  // rolled, the Shiva Dhanush is broken"* (#347).
+  "expend",
 ]);
 
 /**
@@ -140,6 +143,8 @@ const ORDER = Object.freeze({
   spendCS: 8,
   // Beside `spendCS`: the Master's other spend, paid after what it buys.
   spendEssence: 8,
+  // After the use it ends: the Shiva Dhanush breaks once its shot is done (#347).
+  expend: 8,
   defeat: 9,
   // Beside `defeat`, and for the same reason: a summon leaving the board is the
   // last thing that happens to it, after every write aimed at it has landed.
@@ -593,6 +598,12 @@ export const spendCS = (masterId, count, command, servantId = null) =>
  * @param {string} masterId @param {string} itemId
  * @returns {Intent}
  */
+/**
+ * Spend an ability for the rest of the game: `system.expended`, which the use
+ * gate refuses on (Akhilleus Kosmos's word). Pinaka's broken bow (#347).
+ */
+export const expend = (unitId, abilityId) => ({ t: "expend", unitId, abilityId });
+
 export const spendEssence = (masterId, itemId) =>
   ({ t: "spendEssence", unitId: masterId, itemId });
 

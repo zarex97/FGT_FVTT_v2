@@ -480,6 +480,16 @@ function abilityCommon() {
     // compiled from `form.asServant` (#345). Hidden and inert until that form
     // is taken (`rules/form.mjs#keptByForm`).
     formOnly: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+    // An ability held only once its bearer's summon roll gave it: the face key
+    // of a `summonGrants` spec on the Servant (Rama's five Vishnu Bhuja Noble
+    // Phantasms, #347). Gone, as a form's kit is, until then
+    // (`rules/summon-grants.mjs#grantHeld`, read by `rules/form.mjs`).
+    summonGrant: new fields.StringField({ required: false, nullable: true, initial: null, blank: false }),
+    // A Normal Attack made in a method a passive grants, not a Skill: *"Once per
+    // Round, Rama can perform a Normal Attack at a Range of 4"* (#347). The use
+    // gate reads it as the Normal Attack (`rules/costs.mjs#useClassesOf`), so
+    // Seal stops it and Skill Seal and NP Seal do not.
+    normalAttackMethod: new fields.BooleanField({ initial: false }),
 
     // A Skill that Skill Seal ends at once UNDER ITS REVISED TEXT: *"if this
     // Unit is inflicted with Skill Seal while PC/ME is Active, it is immediately

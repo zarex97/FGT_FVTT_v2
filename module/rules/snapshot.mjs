@@ -41,6 +41,7 @@ import { tierOf } from "./master-rank.mjs";
 import { isUnbound } from "./cs-namespacing.mjs";
 import { closeAttributes } from "../domain/attributes.mjs";
 import { formOf, formOverrides, formSheet, keptByForm } from "./form.mjs";
+import { grantHeld } from "./summon-grants.mjs";
 import { rollOptionsFor } from "./options.mjs";
 import { platformsOn, luckOwnerOf } from "./platforms.mjs";
 import { annotateFields, withoutForeignEffects } from "./bounded-fields.mjs";
@@ -394,6 +395,8 @@ export function snapshotUnit(actor, {
     // Shares of the maximum at or above which a lethal blow leaves 1 Health
     // (Avalon, #230), read by `engine/attack.mjs#resolveDefeatOf`.
     lethalFloors: contributions.lethalFloors ?? [],
+    // Curse of Separation's chance to cancel a lethal Attack (#347).
+    lethalCancels: contributions.lethalCancels ?? [],
     // Changes to the healing this Unit receives (Heal Dwn, Drowning, #232),
     // read by `engine/applier.mjs#resolveHealing`.
     healingReceived: contributions.healingReceived ?? [],
@@ -1821,6 +1824,10 @@ export function resolveRuleValues(rule, magnitude, npMagnitude) {
     if (node.restore && typeof node.restore === "object" && node.restore.percentOfMax !== undefined) {
       out.restore = { ...node.restore, percentOfMax: mine(node.restore.percentOfMax) };
     }
+    // ...or Health itself, `gutsHealth`'s `restore: { amount: "@magnitude" }` (#347).
+    if (node.restore && typeof node.restore === "object" && node.restore.amount !== undefined) {
+      out.restore = { ...(out.restore ?? node.restore), amount: mine(node.restore.amount) };
+    }
     // A `Heal` action's percent may be the instance's too: Regen is *"restored
     // by X% of its maximum"*, 15 on Arjuna's Awarded Hero and 5 on Van Gogh's
     // (#234 reading 6). Left as authored, the string reached `Heal`, which
@@ -2315,6 +2322,8 @@ function restoreGateOf(requirements) {
 function collectAbilities(actor, { tick = null, turnsPerRound = 3, dropped = false } = {}) {
   return [...(actor.items ?? [])]
     .filter((i) => i.type === "ability" || i.type === "noblePhantasm")
+    // One his summon roll never gave him is not his at all, kept or dropped (#347).
+    .filter((i) => grantHeld(actor, i))
     .filter((i) => keptByForm(actor, i) !== dropped)
     .map((i) => ({
       id: i.id,

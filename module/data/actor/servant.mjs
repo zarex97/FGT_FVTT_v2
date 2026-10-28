@@ -104,6 +104,18 @@ export class ServantData extends foundry.abstract.TypeDataModel {
       // If an 8 is rolled, she is summoned with the [Avalon] Item"* (#230). A
       // line of the summon plan (`rules/setup-rolls.mjs`), granted at commit.
       summonItems: new fields.ArrayField(new fields.ObjectField()),
+      // Abilities a Servant may arrive with on a coin and dice: Rama's Vishnu
+      // Bhuja, *"Flip a Coin. If Heads, roll 2 six-sided die; if Tails, roll 1
+      // ... The number(s) rolled ... determines which of the following additional
+      // Noble Phantasms Rama possesses"* (#347). `[{id, label, coin, die, faces,
+      // choose, rerollDoubles}]`, a line of the summon plan
+      // (`rules/summon-grants.mjs`); what it gave is `summonGranted` below.
+      summonGrants: new fields.ArrayField(new fields.ObjectField()),
+      // What each `summonGrants` roll gave, by its id: `{coin, dice, rerolled,
+      // keys, picks}`. `keys` are the faces held; `picks` the choices still owed
+      // (a 6), asked as an opening choice (`engine/opening-choice.mjs`). Written
+      // at the summon and by the pick, never authored.
+      summonGranted: new fields.ObjectField({ required: false, initial: () => ({}) }),
 
       // The RESOLVED result of `summonVariant`, once and for ever from summon --
       // `"dsc"` or `"noDsc"` for Semiramis. `null` for every Servant without a

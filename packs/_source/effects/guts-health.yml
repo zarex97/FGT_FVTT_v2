@@ -1,0 +1,24 @@
+# Guts that revives with a flat figure rather than a share of the maximum.
+#
+# > "Applies Guts for 1◈ Turns, when Rama is defeated, he is revived with 100
+# > Health." (Rama's Dream of Reunion, #347)
+#
+# Sita, Flora (300), Nightingale (Santa) and Chloe (Summer) (150) print the same
+# shape. The generic `guts` restores `percentOfMax: "@magnitude"`; this one
+# restores `amount: "@magnitude"`, Health itself, at Guts's own priority (A.6).
+schema: 1
+id: gutsHealth
+name: "Guts"
+description: "Revive on defeat with X Health. Consumed on use."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+uses: 1
+rules:
+  - key: RevivalSource
+    id: gutsHealth
+    revivalPriority: 200
+    charges: 1
+    restore: { amount: "@magnitude" }
