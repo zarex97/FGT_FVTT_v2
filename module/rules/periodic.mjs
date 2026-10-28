@@ -5,9 +5,11 @@
  * Pure: the scheduler, the sheet and the content validator all read it.
  */
 
+import { parseTick, resolveTicks } from "../domain/tick.mjs";
+
 /** Keys an authored `periodic` may carry. The validator refuses any other. */
 export const PERIODIC_KEYS = Object.freeze([
-  "when", "amount", "scaling", "actedOnly", "healConversion", "bypassModifiers", "kind",
+  "when", "amount", "scaling", "actedOnly", "healConversion", "bypassModifiers", "kind", "every",
 ]);
 
 /** The boundaries a periodic ticks at. */
@@ -43,5 +45,30 @@ export function periodicOf(def) {
     if (p.scaling === "perStage") return p.amount * stage;
     return p.amount;
   };
-  return { when: p.when, amount, actedOnly: Boolean(p.actedOnly), healConversion: p.healConversion ?? null };
+  return {
+    when: p.when, amount, actedOnly: Boolean(p.actedOnly), healConversion: p.healConversion ?? null,
+    every: p.every ?? null,
+  };
+}
+
+/**
+ * Is a periodic tick due at this Turn's end?
+ *
+ * Curse: *"at the end of the turn, every ⅓◈"* (Appendix A). ⅓◈ is a Turn with
+ * three a Round and two with eight (`domain/tick.mjs#fractionTicks`), counted
+ * from the Turn the instance landed on, which ticks first (ruled 2026-10-28,
+ * the user). A periodic that states no `every` ticks at each of its boundaries,
+ * as before.
+ *
+ * @param {{every?: string|null}} spec from {@link periodicOf}
+ * @param {{appliedTick?: number|null}} instance the held instance
+ * @param {number} tick the Turn ending
+ * @param {number} turnsPerRound
+ * @returns {boolean}
+ */
+export function periodicDue(spec, instance, tick, turnsPerRound) {
+  if (!spec?.every) return true;
+  const interval = Math.max(1, resolveTicks(parseTick(spec.every), { turnsPerRound }));
+  const since = tick - (typeof instance?.appliedTick === "number" ? instance.appliedTick : tick);
+  return since >= 0 && since % interval === 0;
 }
