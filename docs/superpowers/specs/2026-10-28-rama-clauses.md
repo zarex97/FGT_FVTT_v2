@@ -73,7 +73,44 @@ debuff resistance (#345 ruling 13).
 
 ## Readings to settle
 
-Asked by grilling, 2026-10-28. Rulings are written here as they land. None is built.
+Asked by grilling, 2026-10-28. **21 readings ruled** in three rounds. None is built.
+
+**Round 1, ruled 2026-10-28 (the user).** Q2 and Q3 are asked again with the quotations; Q1's reroll is Q14.
+
+| # | Ruling |
+|---|---|
+| 1 | **The user:** *"on a Double he rerolls (except on 6, obviously)"*. Two dice showing the same number 1 to 5 are rolled again; a double 6 stands, two picks among the five, both different. A 6 beside another number picks any NP but that one (VB.double, VB.six). |
+| 4 | Every use of Pinaka rolls its die, the passive's d12 and the Active's d6, an Evaded or 0-damage hit included, the die on the card. Broken, both halves are gone for the game: the Active and the passive's Range 5 Normal Attack (PI.p.die, PI.die, PI.broken). |
+| 5 | Sudarshana takes one or two enemy Units within Range, never the same one twice (SU.two). |
+| 6 | The Units around Modhaki's DU may Evade or Block, not Counter; the DU reacts as usual; a 50% Immobilize die on each, as Blasted Tree (#345 ruling 11) (MS.area.react). |
+| 7 | Against a non-Demonic DU the −20% is a Total cut: Divinity's +50 Fixed Divine Damage (Revised) is added after it, whole (#341 ruling 4). Under the War's Classic Divinity the +50 is ordinary damage and is cut with the rest (BR.nondemonic). |
+| 8 | A Demonic DU's every NP takes +1◈, a ready one too: 0 becomes 1◈ (BR.npcd). |
+| 9 | Vishnu Bhuja's five NPs, Actives and passives, are his only while Martial Blessing is: losing it or a negation of it takes them. Skill Seal stops no passive Skill (Appendix A), so it does not (MB.allow). |
+| 10 | Curse of Separation reads a defeat by an Attack only: a Burn tick, a Health cost or a Command Spell does not reach it (CS.attack). |
+| 11 | A success cancels Rama's own Process: he takes no damage or effect from it. Every other Unit the Attack hit is hit as usual (CS.cancel). |
+| 12 | Sita comes on a success only, and the success spends the once. A failure: he is defeated and the curse is unspent. With no Reunion Counter nothing is rolled (CS.sita, CS.once, CS.zero). |
+| 13 | Sita is built and pressed under her own audit (Archer tracker #266) before CS.sita is pressed. With no free panel directly next to him she arrives on the nearest free panel, his owner's pick (CS.sita, CS.panel). |
+
+**Round 2, ruled 2026-10-28 (the user).** Q2d opens Q15 and Q16.
+
+| # | Ruling |
+|---|---|
+| 2a | *"At a Range of 4"* is his Range for that swing: any distance 1 to 4. Shuuravara's 3, Trishula's 2 and Pinaka's 5 the same (SU.p, SH.p, TR.p, PI.p). |
+| 2b | The passive is his one Normal Attack of that Turn, never a second one (VB.p.which). |
+| 2c | Each passive keeps its own once per Round: Sudarshana's and Pinaka's may both be used in one Round, on two Turns (VB.p.once). |
+| 2d | **The user:** *"he can use both at the same time"*. Modhaki's +20% may ride the same swing as a Range passive, spending both (VB.p.which, MS.p). |
+| 2e | Sudarshana's −30%, Shuuravara's −20% and Modhaki's +20% are ordinary damage-dealt figures, summed with Atk Up and Charisma; the sheet keeps *"Total"* for Brahmastra alone (SU.p.cut, SH.p.cut, MS.p). |
+| 2f | Plain Normal Attacks only, never a Riding Attack (Excalibur, #230 ruling 12); a passive applies, and is spent, only when the player picks it at declaration (VB.p.which). |
+| 3 | Each passive swing takes its NP's own tag: Sudarshana, Trishula and Pinaka Ranged; Shuuravara Melee at any distance; Modhaki Melee (VB.p.delivery). |
+| 14 | On a double only the second die is rolled again, until it differs; its result stands, a 6 included (VB.double). |
+
+**Round 3, ruled 2026-10-28 (the user).** The frontier is empty: every reading is ruled.
+
+| # | Ruling |
+|---|---|
+| 2d | **Revised by the user:** *"let's go back on our decision allowing them to be used at the same time."* One passive per Normal Attack: Modhaki's +20% never rides a Range passive's swing (VB.p.which, MS.p). |
+| 15 | Answered by 2d: no swing carries two tags (VB.p.delivery). |
+| 16 | Answered by 2d: two Range passives never share a swing (VB.p.which). |
 
 ## Statblock
 
