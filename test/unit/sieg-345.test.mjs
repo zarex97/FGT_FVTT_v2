@@ -458,6 +458,25 @@ describe("Dead Count Shapeshifter, usage 2: Siegfried (DC.2.*; rulings 1 to 5, 2
     }, WAR);
   });
 
+  it("his sheet reads Siegfried's Classes and Region while the form lasts, and offers no contract (found live)", async () => {
+    // Player1's Details tab listed "Caster" while the board read Saber, and the
+    // contract button a Caster gets stayed on a Saber (ruling 1).
+    const { buildContext } = await import("../../module/apps/actor-sheet/context.mjs");
+    await withSubjects([sieg()], async ({ world: w }) => {
+      const before = buildContext(w.actor(SIEG), { isEditable: true });
+      expect(before.details.servantClasses).toEqual(["caster"]);
+      expect(before.canContract).toBe(true);
+      expect((await castSkill(w, { caster: SIEG, ability: abilityOf(w, SIEG, "sieg-dead-count-shapeshifter").id })).ok).toBe(true);
+      const as = buildContext(w.actor(SIEG), { isEditable: true });
+      expect(as.details.servantClasses).toEqual(["saber"]);
+      expect(as.details.region).toEqual((await live(SIEG)).region);
+      expect(as.canContract).toBe(false);
+      // The header too: the seat stays Caster, the Region is Siegfried's.
+      expect(before.header.line).toMatch(/^Caster · .* · Europe$/);
+      expect(as.header.line).toMatch(/^Caster · .* · Germany$/);
+    }, WAR);
+  });
+
   it("returns with his pools as they were, Health −100 never below 1, and 3◈ plus the Turns gone on its clock", async () => {
     const { leaveForm } = await import("../../module/engine/transform.mjs");
     await withSubjects([sieg()], async ({ world: w }) => {

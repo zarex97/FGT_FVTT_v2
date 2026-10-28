@@ -75,17 +75,44 @@ class ApplicationV2 {
   }
 }
 
+/** What a scripted answer of `{hold: true}` gives back: the player has not answered yet. */
+export const HOLD = Symbol("hold");
+
+/**
+ * A dialog shown and answered from the script; a held one stays open as
+ * Foundry's `DialogV2.wait` does, drawn (its `render` callback told) until it
+ * is closed, and closing it resolves `null`, a dismissal.
+ */
+const shown = (cls, kind, config) => {
+  if (!current) return null;
+  const by = shownTo();
+  const answer = current.dialog(kind, config, by);
+  if (answer !== HOLD) return answer;
+  return new Promise((resolve) => {
+    const app = new cls(config);
+    app.rendered = true;
+    const close = app.close.bind(app);
+    app.close = async (options) => {
+      await close(options);
+      resolve(null);
+      return app;
+    };
+    current.held?.push({ app, title: app.title, by });
+    config.render?.({}, app);
+  });
+};
+
 class DialogV2 extends ApplicationV2 {
   static async confirm(config = {}) {
-    return current ? current.dialog("confirm", config, shownTo()) : null;
+    return shown(this, "confirm", config);
   }
 
   static async prompt(config = {}) {
-    return current ? current.dialog("prompt", config, shownTo()) : null;
+    return shown(this, "prompt", config);
   }
 
   static async wait(config = {}) {
-    return current ? current.dialog("wait", config, shownTo()) : null;
+    return shown(this, "wait", config);
   }
 }
 

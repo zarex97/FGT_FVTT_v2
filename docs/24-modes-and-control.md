@@ -192,3 +192,5 @@ once and that Turn's upkeep never charged (found live). His Skills' refusals nam
 `active` switch as well as actor and effect writes (`engine/token-footprint.mjs`). A form's own abilities are not on
 the bar or the sheet until it is taken (`rules/form.mjs#heldNow`); his own, dropped, stay greyed with their reason.
 X is summed in ◈ and turned into Turns once (`transform.mjs#lastingTurns`: 5, 6, 8, 9 at three Turns a Round).
+His sheet reads the form too: the header's Alignment and Region, the Details tab's Classes and Region, and the
+contract button a Caster gets (`apps/actor-sheet/context.mjs`, `formSheet`); the seat in the header stays Caster.
