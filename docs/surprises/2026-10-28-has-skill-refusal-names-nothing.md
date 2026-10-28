@@ -3,7 +3,8 @@ id: 2026-10-28-has-skill-refusal-names-nothing
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** With Martial Blessing gone, the ten Vishnu Bhuja slots would say which Skill they wait on.
 **Actual:** Player1's bar read "Requires a Skill this Unit does not have." on every slot.

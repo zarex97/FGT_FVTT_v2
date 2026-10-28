@@ -3,7 +3,8 @@ id: 2026-10-28-cleanse-keeps-unremovable-silently
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Haradhanu Janaka's "removes all debuffs" says what it took and what it could not.
 **Actual:** With an Unremovable Curse beside a Burn and an Atk Dwn, the card said "Burn removed", "Atk Dwn removed" and nothing of the Curse; with only the Curse held, the NP posted no card at all.

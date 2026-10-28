@@ -3,7 +3,8 @@ id: 2026-10-28-evaded-attack-skips-self-phase
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** Ruling 8: Haradhanu Janaka's "Next, apply Heal Up ... to Sita" lands whether or not the DU Evades.
 **Actual:** Medea's Master Evaded the NP; the Process went noDamage → done and Sita had no Heal Up.
