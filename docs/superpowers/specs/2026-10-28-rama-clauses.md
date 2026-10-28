@@ -76,8 +76,8 @@ debuff resistance (#345 ruling 13).
 Asked by grilling, 2026-10-28. **23 readings ruled**: four rounds, and one asked after the presses.
 
 **Built 2026-10-28** on `claude/rama` (`test/unit/rama-347.test.mjs`) and pressed as Player1 in a War of its own,
-`At2JWRQAbMeTxd4Z` on the scene *Rama Audit*, apart from the match being played. **153 of 156** Clauses end Pressed or
-Observed live. The three left, CS.sita, CS.contract and CS.panel, wait on Sita's own audit (ruling 13). A case the
+`At2JWRQAbMeTxd4Z` on the scene *Rama Audit*, apart from the match being played. **156 of 156** Clauses end Pressed or
+Observed live: CS.sita, CS.contract and CS.panel were pressed under Sita's own audit (#348, ruling 13). A case the
 board does not produce by chance was staged: dice on the GM page, a Unit restored, an attack budget reset, a clock
 set to 0, Martial Blessing or Skill Seal staged.
 
@@ -213,9 +213,9 @@ Counter rung, "Available as a Counter" on the bar, and spends its once per Round
 - [x] **CS.chance** · A 3% chance for every Reunion Counter on himself, the die on the card · *Pressed* — "Curse of Separation: 1d100 → 3 against 6% (2 Reunion Counters). The Attack is cancelled."; another "→ 95 against 6% … The Attack stands." (War At2JWRQAbMeTxd4Z, 2026-10-28)
 - [x] **CS.zero** · …with no Reunion Counter, no chance · *Pressed* — Reunion 0, a lethal hit: no curse row, "Saber is defeated by Caster." (War At2JWRQAbMeTxd4Z, 2026-10-28)
 - [x] **CS.cancel** · On a success, that Attack is cancelled (Q) · *Pressed* — that success: the card 0, his Health 30 kept, not defeated (War At2JWRQAbMeTxd4Z, 2026-10-28)
-- [ ] **CS.sita** · Then Sita is summoned on a panel directly next to him (Q) · *Waits on Sita's audit (ruling 13)*
-- [ ] **CS.contract** · …contracted to Rama's Master · *Waits on Sita's audit (ruling 13)*
-- [ ] **CS.panel** · …with no free panel directly next to him (Q) · *Waits on Sita's audit (ruling 13)*
+- [x] **CS.sita** · Then Sita is summoned on a panel directly next to him (Q) · *Pressed* — Medea's lethal hit, the curse's 1d100 → 6 against 30%: Player1 picked a panel next to him and the card read "Curse of Separation: Archer is summoned beside Saber, contracted to Master of Saber of Faction 1 (Agility 19, Luck 21). Archer acts from that side's next Turn."; Health 1000, Player1's to drive, idle in the Turn she arrived (#348 rulings 9 to 11) (War At2JWRQAbMeTxd4Z, 2026-10-28)
+- [x] **CS.contract** · …contracted to Rama's Master · *Pressed* — masterId his Master's, Faction 1, contract "contracted", her ZON 4 from that Master (Independent Action D); the Master's Command Spells 3, none added (#348 ruling 12) (War At2JWRQAbMeTxd4Z, 2026-10-28)
+- [x] **CS.panel** · …with no free panel directly next to him (Q) · *Pressed* — five Masters staged on his free panels: the ring at 2 offered, Player1 picked (4,9), the card "… is summoned on the nearest free panel to Saber, none beside it being free, …"; a second Sita, as ruling 10 allows (War At2JWRQAbMeTxd4Z, 2026-10-28)
 - [x] **CS.once** · Can only activate once per game (Q) · *Pressed* — the success spent it (timesUsed 1); a failure left 0; spent, a lethal hit with 2 counters rolled nothing, "Saber is defeated by Lancer." (War At2JWRQAbMeTxd4Z, 2026-10-28)
 
 ## Dream of Reunion — Rank EX *(Passive + Active)*
