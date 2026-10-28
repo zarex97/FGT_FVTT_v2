@@ -3,7 +3,8 @@ id: 2026-10-27-phase-window-cast-had-no-du
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** Knacken picked at the start of his attacking Phase lands on that Phase's DU (`windowTarget: defender`).
 **Actual:** *"Straße/gehen: Knacken cannot be used: Choose a target.."*

@@ -3,7 +3,8 @@ id: 2026-10-27-attack-path-wrote-the-queued-end
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Usage 1 as Fafnir queues Fafnir's end for the Turn's end; that Turn's 40 upkeep charges first.
 **Actual:** Fafnir was off before the Turn's end; the Master paid no upkeep, though the card said *"Akafiloga Argrise: Fafnir ends at the end of this Turn."*

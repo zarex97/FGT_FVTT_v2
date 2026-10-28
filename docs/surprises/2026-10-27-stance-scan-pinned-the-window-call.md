@@ -3,7 +3,8 @@ id: 2026-10-27-stance-scan-pinned-the-window-call
 found: test
 kind: source-scan-pins-text
 status: fixed
-reviewed: false
+reviewed: true
+pattern: source-scan-pins-text
 ---
 **Expected:** Handing the Phase window its DU leaves Achilles's stance test green.
 **Actual:** *"AssertionError: expected 18670 to be less than -1"*: the scan's `indexOf` found no window call.

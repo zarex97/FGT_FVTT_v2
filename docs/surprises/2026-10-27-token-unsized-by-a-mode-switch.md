@@ -3,7 +3,8 @@ id: 2026-10-27-token-unsized-by-a-mode-switch
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Fafnir ended by his own switch shrinks to 1x1 on the middle panel, as the upkeep's end did.
 **Actual:** Footprint 1x1, token still 3x3 at (6,5).

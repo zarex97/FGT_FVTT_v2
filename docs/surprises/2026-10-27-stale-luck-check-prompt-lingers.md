@@ -3,7 +3,8 @@ id: 2026-10-27-stale-luck-check-prompt-lingers
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** A Prevention Luck Check that times out closes its window on the player's screen.
 **Actual:** Bleed's *"Contest with a Luck Check? Sieg may make a prevention Luck Check … (1 left)"* (as Siegfried, Luck 1) was still open on Player1's screen a Turn later, and two more stacked up by the end; one blocked a page script for 45s.

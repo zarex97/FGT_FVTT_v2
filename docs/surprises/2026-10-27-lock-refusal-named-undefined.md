@@ -3,7 +3,8 @@ id: 2026-10-27-lock-refusal-named-undefined
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** Fafnir's lock reads *"Straße/gehen: Schwert cannot be used while Akafiloga Argrise: Fafnir is Active."*
 **Actual:** *"Man-made Hero (False) — undefined cannot be used while Akafiloga Argrise: Fafnir is Active"* on every greyed slot.

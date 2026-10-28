@@ -3,7 +3,8 @@ id: 2026-10-27-form-kit-greyed-before-the-form
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Before Sieg transformed, Player1's bar holds his own abilities only.
 **Actual:** The bar listed Siegfried's seven as greyed slots: *"Riding — Gone with the form he has taken."*, *"Balmung … — G…"*.

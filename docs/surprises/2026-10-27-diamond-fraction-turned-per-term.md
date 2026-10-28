@@ -3,7 +3,8 @@ id: 2026-10-27-diamond-fraction-turned-per-term
 found: live press
 kind: assumed-shape
 status: fixed
-reviewed: false
+reviewed: true
+pattern: assumed-shape
 ---
 **Expected:** X = 1◈ + ½◈ × d4 is 5, 6, 8 or 9 Turns at three Turns a Round.
 **Actual:** I built it as 1◈ in Turns plus the roll times ½◈ in Turns, and ½◈ is two Turns by the table: 5, 7, 9, 11. Seen live on the card (*"lasts 5 Turns"*) and caught only by working the even rolls.
