@@ -2224,6 +2224,10 @@ export const EXECUTORS = Object.freeze({
       rank: el.rank ?? (rank ? String(rank) : null),
       scope: el.scope ?? null,
       requiresRecipient: el.requiresRecipient ?? null,
+      // An effect its recipients HOLD while it reaches them, kept by
+      // `engine/aura-grants.mjs`: Ceremonial Reformation's Max Health is the
+      // recipient's own (#351). Delivered by the sync, never as a modifier.
+      grantsEffect: el.grantsEffect ?? null,
       // WHICH check, for an aura routed to `checkModifiers`. `checkPlan`
       // filters on `m.check`, so an aura that dropped it arrived as a modifier
       // for no check at all and was read by nobody -- collected, routed

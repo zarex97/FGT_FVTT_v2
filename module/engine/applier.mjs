@@ -1327,6 +1327,12 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
           const { summonServantBeside } = await import("./summoning.mjs");
           await summonServantBeside(i.entry);
         }
+        // An enemy Servant's page learned on first sight (True Name
+        // Discernment, #351).
+        if (i.entry?.kind === "learnPage") {
+          const { learnServantPage } = await import("./true-name.mjs");
+          await learnServantPage(i.entry);
+        }
         // Summons on and around a Unit's panel (Gilles's Elder Horrors, #323).
         if (i.entry?.kind === "summonAround") {
           const { summonAround } = await import("./summoning.mjs");

@@ -15,7 +15,7 @@ servantClasses: [ruler]
 classContainer: ruler
 alignment: { order: lawful, morality: good }
 region: [france]
-attributes: [female, servant, man, humanoid]
+attributes: [female, servant, man, humanoid, christian]
 
 parameters: { str: B, end: B, agi: B, mag: B, luc: B }
 baseHealth: 1250
