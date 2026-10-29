@@ -3,7 +3,8 @@ id: 2026-10-29-seat-move-lost-to-scatter
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** Usage 2 over the Carolus puts Karl on the CPA and his Master beside him.
 

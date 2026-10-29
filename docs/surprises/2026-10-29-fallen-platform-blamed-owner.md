@@ -3,7 +3,8 @@ id: 2026-10-29-fallen-platform-blamed-owner
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** A card says what ended a platform.
 

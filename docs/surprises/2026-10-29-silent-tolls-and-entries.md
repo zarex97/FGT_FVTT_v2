@@ -3,7 +3,8 @@ id: 2026-10-29-silent-tolls-and-entries
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** A platform's toll and an enemy's entry are outcomes a player must know.
 

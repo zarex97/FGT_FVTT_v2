@@ -3,7 +3,8 @@ id: 2026-10-29-committed-before-full-suite
 found: test
 kind: committed-before-full-suite
 status: fixed
-reviewed: false
+reviewed: true
+pattern: guards-span-the-suite
 ---
 **Expected:** Karl's first build stage was green: `karl-351.test.mjs` and the few files beside it passed, so
 `cf74f35b` was committed.

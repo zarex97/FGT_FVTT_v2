@@ -3,7 +3,8 @@ id: 2026-10-29-mount-handler-deaf-to-rider
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** The CPA's *"Normal Attacks at a Range of 1 to 2 knocks back the DU(s)"* fires on its swing.
 

@@ -3,7 +3,8 @@ id: 2026-10-29-master-fall-freed-servant
 found: live press
 kind: role-keyed-on-type
 status: fixed
-reviewed: false
+reviewed: true
+pattern: role-keyed-on-type
 ---
 **Expected:** *"Forcefully ended at the end of the Turn if Karl or his Master is defeated."*
 

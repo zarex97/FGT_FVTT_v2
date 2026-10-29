@@ -3,7 +3,8 @@ id: 2026-10-29-refusal-named-nothing
 found: live press
 kind: producer-without-consumer
 status: fixed
-reviewed: false
+reviewed: true
+pattern: producer-without-consumer
 ---
 **Expected:** A refusal names what it waits on, as the bar's does.
 
