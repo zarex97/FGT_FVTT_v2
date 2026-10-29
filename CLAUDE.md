@@ -60,11 +60,13 @@ One line per pattern `/review-surprises` confirmed, each linking its file in `do
 - **Guards span the suite.** Before a commit, run the full suite at four workers, lint and `validate:content`, and change the docs chapter the work touches: a new piece is guarded by tests far from its own file. [pattern](docs/surprises/patterns/guards-span-the-suite.md)
 - **Shared working copy.** Work in the main checkout on a branch, so Foundry runs what you build; no worktree. Before blaming a red test or committing, run `git status` and name the files that are not yours. [pattern](docs/surprises/patterns/shared-working-copy.md)
 
-### Two workplaces
+### Three workplaces
 
 This PC and a VPS (`ssh foundry-dev`), each with its own clone, Foundry and copy of world `fgt2026`.
 Code moves by git; the world is copied one way, never merged; one licence runs one Foundry at a time.
-See `docs/agents/vps.md`.
+See `docs/agents/vps.md`. A Claude Code cloud session is the third: a throwaway container that runs
+Foundry with `fvtt-up` / `fvtt-down` and takes the world with `fvtt-world pull|push`, set up by
+`tools/cloud/setup.sh`. See `docs/agents/cloud.md`.
 
 ### Domain docs
 
