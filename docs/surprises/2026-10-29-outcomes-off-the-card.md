@@ -15,6 +15,6 @@ Stage 2).
 `requiresDamage` gate `continue`d in silence; the pipeline's fixed note, the card context and the landing's summary
 had no field for the chance, the die or the stage.
 
-**Fix:** `module/engine/attack.mjs:1300 @ uncommitted` (`refusedCoin`), `:7207` (`FGT.Effect.NeedsDamage`),
+**Fix:** `module/engine/attack.mjs:1300 @ ebad7a6b` (`refusedCoin`), `:7207` (`FGT.Effect.NeedsDamage`),
 `module/rules/damage/pipeline.mjs:370`, `module/apps/chat/cards.mjs:167` (`FGT.Card.Drawn`),
 `module/engine/landing.mjs:322` (`stagedName`). Each re-pressed live but the draw, whose re-press waits.
