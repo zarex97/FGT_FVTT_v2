@@ -28,7 +28,7 @@ import { currentHealth } from "../domain/health.mjs";
 import { availableFor } from "./cs-namespacing.mjs";
 import { chebyshev, inBounds } from "../domain/geometry.mjs";
 import { paysHighColumn } from "./master-rank.mjs";
-import { isolationBlocks } from "./bounded-fields.mjs";
+import { isolationBlocks, contains, membershipVerdict } from "./bounded-fields.mjs";
 import { isNPAttack } from "./damage/pipeline.mjs";
 import { gateRoundFor, NP_GATE } from "./np-gate.mjs";
 
@@ -127,6 +127,17 @@ export function canSpend(command, ctx) {
     if (isolationBlocks(field, ctx.master, ctx.servant, ctx.board, { isCommandSpell: true }).blocked) {
       return { ok: false, reason: "commandSpellsBlocked", cost };
     }
+  }
+
+  // A command that carries its Servant out of a field that holds it. Yata no
+  // Kagami: *"Tamamo cannot leave the Amaterasu Area"*, every exit closed, the
+  // Escape Command Spell's too (#353 reading 24). Asked of the field's own
+  // exit gate, the one a step out asks (`membershipVerdict`).
+  if ((command.effect ?? []).some((e) => e.kind === "teleport")) {
+    const held = (ctx.board?.fields ?? []).some((field) => ctx.servant?.panel
+      && contains(field, ctx.servant.panel, ctx.board)
+      && membershipVerdict(field, ctx.servant, "exit", ctx.board).reason === "sealed");
+    if (held) return { ok: false, reason: "heldByField", cost };
   }
 
   // `blockedWhen` is a state-scoped veto rather than a requirement: Half Heal

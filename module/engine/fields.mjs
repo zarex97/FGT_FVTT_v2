@@ -34,6 +34,7 @@ import { evade, checkPlan, chance } from "../rules/checks.mjs";
 import { applyWorldIntents } from "./applier.mjs";
 import { platformCentre, deactivationVerdict, upkeepDue, upkeepPlan } from "../rules/platforms.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
+import { masterCostFactor } from "../rules/costs.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
 import * as I from "./intents.mjs";
 import { splitPool } from "../rules/fields/pool.mjs";
@@ -500,6 +501,7 @@ async function openField(ability, actor, snapshot, spec, {
   //
   // After the Region exists, because `boundToFieldId` names it and because a
   // summon placed before the area does is a summon standing outside it.
+  await grantOwnerOnOpen(ability, actor, spec, field.fieldId);
   for (const entry of spec.onOpen ?? []) {
     if (entry.key !== "Summon" || !entry.contentId) continue;
     const { placeSummons, freePanels } = await import("./summoning.mjs");
@@ -520,6 +522,43 @@ async function openField(ability, actor, snapshot, spec, {
   Hooks.callAll("fgtFieldChanged", { fieldId: field.fieldId, ownerId: actor.id, open: true });
 
   return region;
+}
+
+/**
+ * The effects a field grants its OWNER as it opens, tied to the field.
+ *
+ * *"Increases Tamamo's Range by 1 for the NP duration … The maximum number of
+ * Mantra Tokens she can hold is increased to 6"* (Yata no Kagami, #353): what
+ * the area does to the one who raised it, for exactly as long as it stands.
+ * Tied by `fieldId`, so `sweepFieldEffects` and `endField` take it with the
+ * area; a `predicate` is asked of the owner (*"if the Region is Japan"*).
+ * Through the one door every effect lands by, as an aura's grant does.
+ *
+ * @param {object} ability
+ * @param {object} actor the owner
+ * @param {object} spec `ability.system.field`
+ * @param {string} fieldId
+ * @returns {Promise<void>}
+ */
+async function grantOwnerOnOpen(ability, actor, spec, fieldId) {
+  const grants = (spec.onOpen ?? []).filter((e) => e.key === "ApplyEffect");
+  if (grants.length === 0) return;
+  const board = currentBoard();
+  const owner = (board.units ?? []).find((u) => u.id === actor.id);
+  if (!owner) return;
+  const options = rollOptionsFor({ attacker: owner });
+  const { landEffect } = await import("./landing.mjs");
+  const { entryOf } = await import("../rules/effect-flow.mjs");
+  const intents = [];
+  for (const grant of grants) {
+    if (grant.to !== "owner") throw new Error(`FGT | ${ability.name}: an onOpen ApplyEffect reaches its owner only (to: owner).`);
+    if (!testPredicate(grant.predicate ?? [], { options })) continue;
+    const landed = await landEffect(entryOf({ ...grant.effect, permanent: true, unremovable: true }), {
+      target: owner, source: { unitId: actor.id, abilityId: ability.id, fieldId }, caster: actor, board,
+    });
+    intents.push(...landed.intents);
+  }
+  if (intents.length > 0) await applyWorldIntents(intents, "field:onOpen");
 }
 
 /**
@@ -824,6 +863,13 @@ export async function endField(fieldId, reason = "ended", { logged = false } = {
   // the tag is stated beside the `zone` phase that wrote it, rather than
   // reconstructed here from a naming convention two files apart.
   for (const action of (region.behaviors?.find((b) => b.type === "npField")?.system?.onEnd ?? [])) {
+    // A pool's maximum put back as the field goes, the tokens above it lost:
+    // Yata no Kagami's Mantra Tokens, 6 while it stands, 3 after (#353
+    // reading 29). Every close path comes through here.
+    if (action.key === "SetResource" && ownerId) {
+      await setPoolMaximum(ownerId, action.resource, Number(action.max));
+      continue;
+    }
     if (action.key !== "ClearTerrain" || !action.tag) continue;
     await clearTerrain(String(action.tag).replace("@field.id", fieldId));
   }
@@ -853,6 +899,23 @@ export async function endField(fieldId, reason = "ended", { logged = false } = {
 }
 
 /**
+ * Put a pool's maximum back, its current value held under it.
+ *
+ * @param {string} unitId
+ * @param {string} resource the pool's name (`mantra`)
+ * @param {number} max
+ * @returns {Promise<void>}
+ */
+async function setPoolMaximum(unitId, resource, max) {
+  if (!Number.isFinite(max)) throw new Error(`FGT | SetResource on ${resource}: no maximum.`);
+  const current = Number(unitActor(unitId)?.system?.resources?.[resource]?.value ?? 0);
+  await applyWorldIntents([
+    I.setResource(unitId, `resources.${resource}.max`, max),
+    I.setResource(unitId, `resources.${resource}.value`, Math.min(current, max)),
+  ], "field:onEnd");
+}
+
+/**
  * Set the owning ability's cooldown from its OWN `max`, if it is authored
  * `countFrom: "deactivation"`.
  *
@@ -868,9 +931,11 @@ async function setCooldownOnDeactivation(field) {
   const cd = ability?.system?.cooldown ?? null;
   if (!cd || cd.countFrom !== "deactivation" || !cd.max) return;
 
+  // *"…and its Cooldown is increased by an additional 1◈ Turns"*: Dainisshō's
+  // use, stamped on the field (`markFieldEnd`, #353 reading 33).
   const ticks = resolveTicks(parseTick(String(cd.max)), {
     turnsPerRound: warRule("turnsPerRound"),
-  });
+  }) + Number(field.state?.cooldownBonus ?? 0);
   if (ticks <= 0) return;
 
   await applyWorldIntents(
@@ -1821,7 +1886,12 @@ export async function runUpkeep(tick, { round = null, ended = null } = {}) {
     // before the Turn's records were cleared (`ended`): the live one reads
     // nobody as having Acted.
     const acted = Boolean((ended?.units ?? []).find((u) => u.id === field.id)?.acted);
-    const amount = Number((acted ? upkeep.cost?.amountIfActed : null) ?? upkeep.cost?.amount ?? 0);
+    // A Master's toll its Servant's standing scales: Yata no Kagami halves the
+    // Master costs an allied Servant inside it charges, an upkeep among them
+    // (#353 reading 28). The same reader the use's costs ask.
+    const owner = (board?.units ?? []).find((u) => u.id === field.ownerId) ?? null;
+    const scale = payerId && payerId !== field.ownerId ? masterCostFactor(owner) : 1;
+    const amount = Math.floor(Number((acted ? upkeep.cost?.amountIfActed : null) ?? upkeep.cost?.amount ?? 0) * scale);
     // Read live, not off `board`: an earlier field in this same loop may have
     // just charged this payer, and the board was built before it did.
     const payerHealth = payer ? currentHealth(unitOf(payer, null)) : null;
@@ -2149,6 +2219,33 @@ export async function deactivateField(fieldId, reason = "manual") {
     "field:deactivate",
   );
   return endField(fieldId, reason, { logged: true });
+}
+
+/**
+ * Close a field at the end of this Turn, by another ability's use, and lengthen
+ * the Cooldown it starts then.
+ *
+ * Dainisshō: *"When this Spell is used, Suiten Nikkou Amaterasu Yanoshisu
+ * Ishi・Yata no Kagami is forcibly ended at the end of the Turn, and its
+ * Cooldown is increased by an additional 1◈ Turns."* (#353 readings 32, 33).
+ * The end waits in the Turn's queue (`queued-ends.mjs`), as an End pressed off
+ * one's Turn does; the bonus is stamped on the field, read by
+ * `setCooldownOnDeactivation`.
+ *
+ * @param {string} fieldId
+ * @param {string} ownerId
+ * @param {{cooldownBonus?: number}} [opts] ticks
+ * @returns {Promise<boolean>} whether such a field was open
+ */
+export async function markFieldEnd(fieldId, ownerId, { cooldownBonus = 0 } = {}) {
+  const field = (currentBoard().fields ?? []).find((f) => f.id === fieldId && f.ownerId === ownerId);
+  if (!field) return false;
+  if (cooldownBonus > 0) {
+    await behaviorFor(field.id)?.update({ "system.state.cooldownBonus": Number(field.state?.cooldownBonus ?? 0) + cooldownBonus });
+  }
+  const { queueEnd } = await import("./queued-ends.mjs");
+  await queueEnd({ kind: "field", id: fieldId, ownerId });
+  return true;
 }
 
 /**

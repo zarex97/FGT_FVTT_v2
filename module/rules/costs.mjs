@@ -643,8 +643,8 @@ export function canUseAbility({
     self: unit, master, turnsPerRound,
   });
   const charged = ownCosts.length > 0
-    ? resolveCosts([...(cost ? [{ ...cost, id: "npCost" }] : []), ...ownCosts]).charged
-    : (cost ? [cost] : []);
+    ? resolveCosts([...(cost ? [{ ...cost, id: "npCost" }] : []), ...ownCosts], { payer: unit }).charged
+    : resolveCosts(cost ? [cost] : [], { payer: unit }).charged;
   const unpayable = chargedUnpayable(charged, unit, master);
   if (unpayable) return { ok: false, reason: unpayable, cost };
 
@@ -867,10 +867,17 @@ function isFree(unit) {
  * "none" would make a Noble Phantasm free, which is the one outcome no reading
  * of the rule supports.
  *
+ * A Master Health cost is then scaled by what the PAYING Servant carries: Yata
+ * no Kagami halves *"All effects of Servants that would reduce its Master's
+ * Health when used/it takes effect"* for an allied Servant inside the area
+ * (#353 reading 28), rounded down. Here, the one step the gate, the Skill path
+ * and the Attack path all pass, so the three cannot disagree.
+ *
  * @param {object[]} costs each optionally with `id` and `supersedes`
+ * @param {{payer?: object|null}} [opts] the Servant whose use charges them
  * @returns {{charged: object[], superseded: Array<{id: string, by: string}>}}
  */
-export function resolveCosts(costs) {
+export function resolveCosts(costs, { payer = null } = {}) {
   const all = (costs ?? []).filter(Boolean);
 
   /** @type {Array<{id: string, by: string}>} */
@@ -891,7 +898,35 @@ export function resolveCosts(costs) {
     }
   }
 
-  return { charged: all.filter((c) => !dropped.has(c.id)), superseded };
+  const factor = masterCostFactor(payer);
+  const charged = all.filter((c) => !dropped.has(c.id))
+    .map((c) => (factor !== 1 && c.kind === "masterHealth"
+      ? { ...c, amount: Math.floor(Number(c.amount ?? 0) * factor), scaledBy: factor, scaledFrom: masterCostSources(payer) }
+      : c));
+  return { charged, superseded };
+}
+
+/**
+ * Who scales a Servant's Master Health costs, for the card.
+ *
+ * @param {object|null} unit
+ * @returns {string}
+ */
+function masterCostSources(unit) {
+  return [...new Set((unit?.modifiers ?? []).filter((m) => m.key === "masterCostScale").map((m) => String(m.source ?? "")))]
+    .filter(Boolean).join(", ");
+}
+
+/**
+ * What every Master Health cost a Servant charges is multiplied by.
+ *
+ * @param {object|null} unit the paying Servant as the board sees it
+ * @returns {number}
+ */
+export function masterCostFactor(unit) {
+  return (unit?.modifiers ?? [])
+    .filter((m) => m.key === "masterCostScale" && typeof m.factor === "number")
+    .reduce((f, m) => f * m.factor, 1);
 }
 
 /**

@@ -1,0 +1,37 @@
+# Tamamo, char_orig_sheets/by-class/Caster/Tamamo.md (#353).
+#
+# Funshindan's 3×3 within Range: every Unit in it, allies too (reading 8), and
+# never over her own panel (Caladbolg's `casterOutsideArea`).
+schema: 1
+id: tamamo-raitei
+name: "Jusō・Raitei"
+rank: null
+kind: skill
+slug: raitei
+category: heavenSpell
+isSpell: true
+cooldown: "2◈"
+cooldownWaiver: { resource: mantra, amount: 1 }
+timing: { window: ownTurn }
+element: lightning
+copyable: { allowed: false, reason: unique }
+description: |
+  Mantra: Thunderclap. Damage Spell. Hits a 3x3 panel area within Range for 25% extra damage with a 50% chance of
+  inflicting @effect[shock]{Shock} for 2◈ Turns. Lightning damage. Tamamo cannot be within the Spell area.
+  Cooldown: 2◈ Turns. Cannot be used if Enten, Hyōten, or Mitten is on Cooldown.
+requirements:
+  - { kind: abilityOffCooldown, category: heavenSpell, excludeSelf: true }
+targeting:
+  anchor: { kind: withinRange, metric: chebyshev }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+  isDamagingAoE: true
+  limits: { casterOutsideArea: true }
+damage:
+  multiplier: 1.25
+  component: mag
+phases:
+  - kind: damage
+  - kind: applyEffects
+    effects:
+      - { id: shock, duration: "2◈", chance: 50 }

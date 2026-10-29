@@ -253,8 +253,12 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     ? compulsionNarrowing(caster, { isAttack: isAttackUse, area: (spec.shape?.kind ?? "unit") !== "unit" })
     : { narrow: [], include: [] };
   if (narrow.length > 0) {
+    // Said as a sentence, naming whom the attacker must attack: a Decoy's pull
+    // read "Ruler is the attacker is compelled to attack another unit"
+    // (found live, Aphotic's Decoy, #353).
+    const must = narrow.map((id) => shownNameOf((board.units ?? []).find((x) => x.id === id), board) || id).join(" or ");
     survivors = survivors.filter((u) =>
-      narrow.includes(u.id) || drop(u, "the attacker is compelled to attack another unit"));
+      narrow.includes(u.id) || drop(u, `barred: the attacker must attack ${must}`));
   }
   if (include.length > 0 && !survivors.some((u) => include.includes(u.id))) {
     survivors = survivors.filter((u) => drop(u, "in an area without the rival this attacker is bound to"));

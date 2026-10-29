@@ -1,0 +1,132 @@
+# Tamamo, char_orig_sheets/by-class/Caster/Tamamo.md (#353).
+#
+# Ramesseum Tentyris's field: a fixed 5×5 centred on her (7×7 and 3◈ in a
+# Japan War, Chaos Labyrinthos's `regionSizeOverride` and a `branches` row),
+# cooling from its end. She cannot leave it (`selfExit: sealed`, reading 24).
+#
+# Effects 1 and 2 are the activation's, on every ally inside when it opens
+# (reading 26): the targeting names the same square, so the War's Region sizes
+# both alike (`engine/fields.mjs#regionSizedTargeting`). Effect 3 holds for an
+# ally standing inside as it deals the damage (reading 27); 4 and 5 are
+# Ramesseum's suppressions; 6 halves the Master costs an allied Servant inside
+# charges (reading 28). Her Range rides `amaterasu`, tied to the field
+# (reading 25); her Mantra maximum is stored at 6 and put back to 3 by
+# `onEnd` (effect 7, reading 29). Divinity is the Servant's
+# `negatedWhile: { missingEffect: [amaterasu] }` (effect 8). Effect 9 is `ownerDefeat`, read at
+# the Turn's end with every other close.
+schema: 1
+id: tamamo-yata-no-kagami
+name: "Suiten Nikkou Amaterasu Yanoshisu Ishi・Yata no Kagami"
+rank: D
+isNP: true
+kind: noblePhantasm
+slug: yataNoKagami
+npTags: [antiArmy]
+timing: { window: ownTurn }
+cooldown: { max: "4◈", countFrom: deactivation }
+copyable: { allowed: false, reason: unique }
+description: |
+  (Non-damaging) Eightfold Blessings of Amaterasu on the Weight Stone under the Sunlit Watery Heavens. Affects a 5x5
+  panel area around Tamamo, this area will be termed as the 'Amaterasu Area'. Tamamo cannot leave the Amaterasu
+  Area. Increases Tamamo's Range by 1 for the NP duration. If the Region is Japan, the Amaterasu Area is 7x7
+  instead, and Tamamo's Range is increased by 2.
+  This NP has the following effects-
+  1. All allied Units within the Amaterasu Area upon activation have their Health and Agility and Luck restored by
+  30% of their maximum values.
+  2. Reduces Skill, Spell, and NP Cooldown of all allied Units within the Amaterasu Area upon activation by 1◈ Turns
+  (excluding this NP's own Cooldown).
+  3. Increases damage dealt by all allied Units within the Amaterasu Area. MAG damage dealt is increased by 100%,
+  while STR damage dealt is increased by 50%. Applies to Noble Phantasm as well.
+  4. Allied Masters' ZON do not apply to their Servants within the Amaterasu Area.
+  5. The Sustainability of allied Free Servants do not decrease when they are within the Amaterasu Area.
+  6. All effects of Servants that would reduce its Master's Health when used/it takes effect is halved including
+  Noble Phantasm usage.
+  7. The maximum number of Mantra Tokens she can hold is increased to 6, then she gains Mantra Tokens up to the
+  maximum amount.
+  8. Tamamo's @ability[divinity]{Divinity} Skill becomes activated.
+  9. If Tamamo is defeated, this NP is forcefully ended at the end of the Turn.
+  This Noble Phantasm lasts for 2◈ Turns (3◈ Turns if the Region is Japan). Cooldown: 4◈ Turns after it ends.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: square, size: 5 }
+  selection: { relations: [ally, self], includeSelf: true, chooser: all }
+field:
+  name: "Amaterasu Area"
+  geometry:
+    kind: fixedArea
+    shape: { kind: square, size: 5 }
+    regionSizeOverride: { japan: 7 }
+  duration: "2◈"
+  branches:
+    - predicate: ["war:region:japan"]
+      duration: "3◈"
+  membership:
+    enemyEntry: free
+    enemyExit: free
+    allyEntry: free
+    allyExit: free
+    selfExit: sealed
+  isolation:
+    outsideCanTargetInside: true
+    insideCanTargetOutside: true
+    outsideCanApplyEffectsInside: true
+    visibilityAcrossBoundary: full
+  interior:
+    - key: DamageModifier
+      modifierKey: atkUp
+      direction: dealt
+      component: mag
+      value: 100
+      npValue: 100
+      relations: [self, ally]
+    - key: DamageModifier
+      modifierKey: atkUp
+      direction: dealt
+      component: str
+      value: 50
+      npValue: 50
+      relations: [self, ally]
+    - key: Suppress
+      scope: zonPenalty
+      relations: [self, ally]
+      kinds: [servant]
+    - key: Suppress
+      scope: sustainabilityDecay
+      relations: [self, ally]
+      kinds: [servant]
+    - key: MasterCostScale
+      factor: 0.5
+      relations: [self, ally]
+      kinds: [servant]
+  onOpen:
+    - { key: ApplyEffect, to: owner, effect: { id: amaterasu, magnitude: 1 }, predicate: [{ not: "war:region:japan" }] }
+    - { key: ApplyEffect, to: owner, effect: { id: amaterasu, magnitude: 2 }, predicate: ["war:region:japan"] }
+  onEnd:
+    - { key: SetResource, resource: mantra, max: 3 }
+  vulnerabilities:
+    - { kind: ownerDefeat, result: end }
+phases:
+  - kind: createField
+    target: self
+  # 7. *"The maximum number of Mantra Tokens she can hold is increased to 6,
+  # then she gains Mantra Tokens up to the maximum amount."* Stored, and put
+  # back to 3 by the field's `onEnd` on every close (reading 29).
+  - kind: resource
+    target: self
+    changes:
+      - { key: resources.mantra.max, set: 6 }
+      - { key: resources.mantra.value, set: 6 }
+  - kind: heal
+    target: reuse
+    percentOfMax: 30
+  - kind: statChange
+    target: reuse
+    changes:
+      - { stat: agility, percentOfMax: 30, clamp: true }
+      - { stat: luck, percentOfMax: 30, clamp: true }
+  - kind: cooldown
+    target: reuse
+    changes:
+      # Kingprotea's `skills` and every NP; `excludeSelf` keeps this NP's own.
+      - { unit: target, scope: skills, ticks: "1◈", direction: down }
+      - { unit: target, scope: np, ticks: "1◈", direction: down, excludeSelf: true }

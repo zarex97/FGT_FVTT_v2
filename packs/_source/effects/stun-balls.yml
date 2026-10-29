@@ -1,0 +1,22 @@
+# Tamamo, char_orig_sheets/by-class/Caster/Tamamo.md: Polygamist Castration
+# Fist (#353).
+#
+# > *"…has a 90% chance of inflicting Stun (Balls) for 1◈ Turns if damage was
+# > dealt"*
+#
+# A Stun for every other reader (reading 20): it is in the Stun family, so it
+# stops action as Stun does and what cures Stun removes it. Its chance is the
+# Fist's to settle (`bypassChanceModifiers`, `bypassesImmunity`).
+schema: 1
+id: stunBalls
+name: "Stun (Balls)"
+description: "Cannot Move, Attack or use Skills. A Stun."
+polarity: debuff
+volatility: volatile
+valence: offensive
+stacking: noneRefresh
+baseChance: 100
+preventsAction: true
+severity: normal
+families: [bind, stun]
+rules: []

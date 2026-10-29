@@ -1,0 +1,22 @@
+# Tamamo, char_orig_sheets/by-class/Caster/Tamamo.md: Fox's Wedding 3 (#353).
+#
+# > *"…apply the 'Fox Spouse' buff to her Master for 1◈ Turns, the Master
+# > cannot be Overpowered and Underpowered by Servants. The 'Fox Spouse' buff
+# > is Unremovable."*
+#
+# Avalon's `Suppress overpower` and the Vorpal Blade's `Suppress underpower`
+# on one buff (reading 16): no Servant's Attack on the Master flips the
+# Overpower coin, and the Master's Attacks on Servants flip no Underpower coin.
+schema: 1
+id: foxSpouse
+name: "Fox Spouse"
+description: "This Master cannot be Overpowered or Underpowered by Servants. Unremovable."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+unremovable: true
+baseChance: 100
+rules:
+  - { key: Suppress, scope: overpower }
+  - { key: Suppress, scope: underpower }

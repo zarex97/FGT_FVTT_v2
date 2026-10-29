@@ -41,6 +41,7 @@ import { SELECTOR_KEYS } from "../../module/rules/removal.mjs";
 import { ENTRY_KEYS, EFFECT_PARAMS, entryOf } from "../../module/rules/effect-flow.mjs";
 import { countSpecsIn, countProblems } from "../../module/rules/count.mjs";
 import { CUT_KINDS } from "../../module/rules/elements.mjs";
+import { MODIFIABLE_PATHS } from "../../module/rules/derived.mjs";
 import { FAILURE_THEN, FAILURE_CLASSES } from "../../module/rules/use-failure.mjs";
 
 /** The schema version every source file must declare. */
@@ -93,6 +94,8 @@ export const RULE_ELEMENT_KEYS = new Set([
   "AttackFirst", "DetectOverride",
   // Group 4 — targeting contributors
   "TargetingModifier", "ForceTarget", "Decoy", "WeakPoint", "Compulsion", "TargetabilityModifier",
+  // Tamamo (#353): Aphotic's automatic Block; Yata no Kagami's halved Master costs.
+  "ForcedReaction", "MasterCostScale",
   // Raikou -- a mode held on by a condition rather than by a neighbour, and a
   // modifier whose subject is another modifier's magnitude.
   "ForceMode", "EffectMagnitudeScale",
@@ -179,7 +182,7 @@ const COPY_REASONS = new Set(COPY_REASON_LIST);
 /** The two check tables, from docs/13-checks-and-randomness.md. Not rank tables. */
 const CHECK_TABLES = new Set(["favourable", "unfavourable"]);
 /** Every property an `AttackProperty` may grant: the names `engine/attack.mjs` reads. */
-const ATTACK_PROPERTIES = new Set(["pierce", "ignoresDefUp", "invulnFactor", "element", "elementFraction"]);
+const ATTACK_PROPERTIES = new Set(["pierce", "ignoresDefUp", "ignoresMagicResistance", "invulnFactor", "element", "elementFraction"]);
 const VOLATILITIES = new Set(["nonVolatile", "volatile", "mental", "terminal", "none"]);
 
 /**
@@ -1587,6 +1590,13 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
     if (!RULE_ELEMENT_KEYS.has(el.key)) {
       problems.push(`${path}: ${where} uses unknown rule element key "${el.key}"`);
     }
+    // A maximum the preparation puts back before it adds: a `MaxDelta` on any
+    // other pool is written into derived data and never reset, so it grows on
+    // every preparation (`rules/derived.mjs#MODIFIABLE_PATHS`; a Mantra Token
+    // maximum was about to be one, #353).
+    if (el.key === "MaxDelta" && !MODIFIABLE_PATHS.includes(`${el.stat}.max`)) {
+      problems.push(`${path}: ${where} is a MaxDelta on "${el.stat}", whose maximum the preparation never resets; one of health, agility, luck`);
+    }
     // One spelling for an Aura's payload. The executor reads `elements`, so a
     // payload authored as `rules` compiled, loaded and delivered nothing:
     // Pollux's Magic Resistance never reached Castor (#102).
@@ -1914,6 +1924,12 @@ function validateDocument(doc, path, library, problems, warnings, dir = "") {
         `${path}: ${where} uses unknown targeting shape "${shape}" — `
         + `expected one of ${SHAPE_IDS.join(", ")}`,
       );
+    }
+    // A disc reads its radius as `r` (`targeting/shapes.mjs`). Kōnisshō shipped
+    // `radius: 2`, which the resolver never read: a disc of no size, its NP
+    // DmUp reaching nobody (#353, found by its test).
+    if (shape === "chebyshevRadius" && typeof spec.shape?.r !== "number") {
+      problems.push(`${path}: ${where} is a chebyshevRadius with no numeric \`r\` — it reaches only its centre`);
     }
     // `alsoFrom` measures a `targetUnit` anchor's Range from the caster's linked
     // partner too (#209 reading 6): the only value is `partner`, and no other

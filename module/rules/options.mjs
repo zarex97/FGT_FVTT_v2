@@ -108,6 +108,8 @@ export function rollOptionsFor({ attacker, defender, attack = null, withoutModeH
   add(options, "target", defender, withoutModeHeld);
   // The Unit acted on is the actor itself (Sieg's Heilen, #345).
   if (attacker?.id && attacker.id === defender?.id) options.add("target:isSelf");
+  // ...or the actor's own Master (Fox's Wedding, #353).
+  if (attacker?.masterId && attacker.masterId === defender?.id) options.add("target:isOwnMaster");
   compareParameters(options, attacker, defender);
   compareHealth(options, attacker, defender);
   countParameters(options, attacker, defender);
@@ -765,6 +767,10 @@ function add(options, side, unit, withoutModeHeld = false) {
   for (const ability of unit.abilities ?? []) {
     const slug = ability.slug ?? ability.id;
     if (!slug) continue;
+    // A Skill negated whole is not held to any clause that asks: Tamamo's
+    // Divinity *"negated and has no effects"* outside Yata no Kagami (#353
+    // reading 1), as `categoriesOf` already reads its gate.
+    if (ability.negated) continue;
     options.add(`${side}:skill:${slug}`);
     // The rank of a SKILL, for Atlas's second reduction -- and the two stack,
     // so each has to be expressible on its own.

@@ -237,6 +237,8 @@ export const ABILITY_ROUTES = {
   sameTurnExclusive: doc("module/rules/ability-use.mjs", "gates the use"),
   shield: doc("module/engine/shield.mjs", "the barrier"),
   shieldHealth: doc("module/engine/shield.mjs", "the barrier's pool"),
+  critChanceGrowth: doc("module/engine/attack.mjs", "Yata Strike's Crit Chance per use that did not Crit"),
+  critMisses: doc("module/engine/attack.mjs", "Yata Strike's count of uses that did not Crit"),
   source: doc("module/apps/actor-sheet/context.mjs", "where the ability came from, on the sheet"),
   targeting: doc("module/rules/ability-use.mjs", "who the use may reach"),
   timing: doc("module/rules/ability-use.mjs", "when the use is legal"),

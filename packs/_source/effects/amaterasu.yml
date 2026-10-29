@@ -1,0 +1,17 @@
+# Tamamo, char_orig_sheets/by-class/Caster/Tamamo.md: Yata no Kagami (#353).
+#
+# What the NP does to Tamamo herself while the Amaterasu Area stands: her Range
+# (+1, +2 in a Japan War, reading 25), and the gate on her Divinity (reading 1).
+# Tied to the field, so it goes when the Area closes.
+schema: 1
+id: amaterasu
+name: "Amaterasu"
+description: "Range +X while Yata no Kagami stands; Divinity in effect."
+polarity: status
+volatility: nonVolatile
+valence: neither
+stacking: noneRefresh
+unremovable: true
+baseChance: 100
+rules:
+  - { key: RangeDelta, value: "@magnitude" }

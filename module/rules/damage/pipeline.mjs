@@ -243,7 +243,9 @@ function stage0Precondition(s) {
   // Order matters: Substitution beats Aim, Anti-Purge beats Pierce and Invuln.
   // Substitution does not beat an attack only its own check avoids: Gate of
   // Skye's target who passes its Luck Check takes the damage (#204 reading 15).
-  if (has(defender, "substitution") && !attack?.unavoidable) return s.halt("Substitution");
+  // *"Dodge/Substitution has no effect"* while Aphotic (#353): suppressed.
+  const subSuppressed = (defender?.suppressions ?? []).some((x) => x.scope === "substitution");
+  if (has(defender, "substitution") && !attack?.unavoidable && !subSuppressed) return s.halt("Substitution");
   if (has(defender, "antiPurge")) return s.halt("Anti-Purge");
 
   // "cannot take damage" as a property of the unit, not a buff. Pale Rider and
@@ -355,9 +357,24 @@ function stage1Base(s) {
     // affected Unit"* (Strike Air, #336 ruling 4): the Units in the area at the
     // declaration (`attack.targetCount`), rounded down.
     const among = spec.dividedAmong === "targets" ? Math.max(1, Math.trunc(s.ctx.attack?.targetCount ?? 1)) : 1;
-    s.phys = Math.floor((spec.fixedValue ?? 0) / among);
+    // Yata Strike: *"If this Attack Skill is a Crit, it deals 15 STR damage
+    // instead of 10"*, and its Total × a d8 (#353 reading 18): a Fixed figure
+    // skips the stages a Total multiplier lives at, so the die lands here.
+    const crit = Boolean(s.ctx.crit?.isCrit) && typeof spec.critFixedValue === "number";
+    const figure = crit ? spec.critFixedValue : (spec.fixedValue ?? 0);
+    const die = s.ctx.attack?.isFixedDamage ? (s.ctx.rolls?.totalDie ?? null) : null;
+    s.phys = Math.floor(figure / among) * (die?.total ?? 1);
     s.fixed = s.phys;
-    const why = among > 1 ? `fixed damage, ${spec.fixedValue} ÷ ${among} Units` : "fixed damage";
+    // A Crit Chance that grows with each use (Yata Strike's +10% per use that
+    // did not Crit): the chance the coin was flipped at, on the card (found live).
+    const grown = typeof s.ctx.crit?.grown === "number"
+      ? `${s.ctx.crit.isCrit ? "Crit" : "no Crit"} at ${s.ctx.crit.chanceUsed}% (+${s.ctx.crit.grown})` : null;
+    const why = [
+      among > 1 ? `fixed damage, ${figure} ÷ ${among} Units` : "fixed damage",
+      crit ? "(Crit)" : null,
+      die ? `×${die.formula} = ${die.total}` : null,
+      grown,
+    ].filter(Boolean).join(" ");
     s.contribute("fixed", s.phys, why, "attacker");
     return s.end(1);
   }

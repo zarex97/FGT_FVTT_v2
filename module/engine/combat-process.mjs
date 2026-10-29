@@ -408,6 +408,8 @@ export function pendingPrompt(s) {
   if (!p) return null;
   // A defender that takes no action answers nothing: see `inertAnswer`.
   if (p.side === "defender" && s.defenderInert) return null;
+  // ...nor one whose reaction is fixed: see `forcedAnswer`.
+  if (forcedAnswer(s)) return null;
   // The counter rung is the one prompt that is conditional. Offering it to a
   // defender who cannot counter would stop the ladder to ask a question with
   // one answer, so eligibility is decided first (by the orchestrator, which can
@@ -471,6 +473,23 @@ export function inertAnswer(s) {
   if (p.kind === "reaction") return "nothing";
   if (p.kind === "acceptOrEscape") return "accept";
   return "declined";
+}
+
+/**
+ * The reaction a defender takes without being asked, on its reaction rung.
+ *
+ * Aphotic: *"Tamamo automatically Blocks every Attack received"* (#353
+ * reading 11). Only where Block is still a rung: an attack that forbids Block
+ * leaves her the rest of the rung to answer.
+ *
+ * @param {ProcessState} s
+ * @returns {string|null}
+ */
+export function forcedAnswer(s) {
+  if (!s?.forcedReaction || s.state !== "react") return null;
+  const p = PROMPTS[s.state];
+  if (!p || p.side !== "defender") return null;
+  return rungOptions(s).includes(s.forcedReaction) ? s.forcedReaction : null;
 }
 
 /**

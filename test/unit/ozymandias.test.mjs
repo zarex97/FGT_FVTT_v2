@@ -127,7 +127,8 @@ describe("a Civilian an attack kills is no defender of its Processes (#189)", ()
     // Built per target since #206 (each target's own damage branch), and
     // still from `defenders`, the Units left.
     expect(src2).toMatch(/const perTarget = defenders\.map/);
-    expect(src2).toMatch(/const targetIds = perTarget\.flatMap/);
+    // ...and the Process rows from those targets alone (`processRows`, #353).
+    expect(src2).toMatch(/const rows = await processRows\(perTarget\)/);
   });
 });
 

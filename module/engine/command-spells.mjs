@@ -646,7 +646,8 @@ async function interruptProcess(messageId, command, effectsFor, masterId) {
     // declaration answers it (`attack.mjs`): a retarget lands on `react` with
     // Evade and Block forbidden, where `done` is no legal event.
     if (!process.pendingPrompt(state) && !process.isComplete(state)) {
-      await advanceAttack({ messageId: msg.id, event: state.state === "react" ? "nothing" : "done" });
+      // ...or a fixed reaction its defender takes (Aphotic's Block, #353).
+      await advanceAttack({ messageId: msg.id, event: state.state === "react" ? (process.forcedAnswer(state) ?? "nothing") : "done" });
     }
   }
 }

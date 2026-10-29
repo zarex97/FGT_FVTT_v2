@@ -1,0 +1,38 @@
+# Tamamo, char_orig_sheets/by-class/Caster/Tamamo.md (#353).
+#
+# Medea's Damage Spell: MAG, one enemy within her live Range (reading 6), the
+# Spell's own ×1.25 for *"25% extra damage"* (#193 reading 12). A Mantra Token
+# waives its Cooldown (Witchcraft P2); it waits while another of the four cools
+# (Scáthach's `abilityOffCooldown` over a category).
+schema: 1
+id: tamamo-hyoten
+name: "Jusō・Hyōten"
+rank: null
+kind: skill
+slug: hyoten
+category: heavenSpell
+isSpell: true
+cooldown: "1◈"
+cooldownWaiver: { resource: mantra, amount: 1 }
+timing: { window: ownTurn }
+element: ice
+copyable: { allowed: false, reason: unique }
+description: |
+  Mantra: Frigid Heaven. Damage Spell. Deals 25% extra damage with a 50% chance of inflicting @effect[disable]{Disable}
+  for 1◈ Turns. Ice damage. Cooldown: 1◈ Turns. Cannot be used if Enten, Mitten, or Raitei is on Cooldown.
+requirements:
+  - { kind: abilityOffCooldown, category: heavenSpell, excludeSelf: true }
+targeting:
+  anchor: { kind: targetUnit }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+damage:
+  multiplier: 1.25
+  component: mag
+phases:
+  - kind: damage
+    target: reuse
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: disable, duration: "1◈", chance: 50 }

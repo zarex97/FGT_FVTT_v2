@@ -270,6 +270,11 @@ function abilityCommon() {
      */
     shield: new fields.ObjectField({ required: false, nullable: true, initial: null }),
     shieldHealth: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+    // Yata Strike's *"For every time this Attack Skill does not Crit, increase
+    // the Crit Chance of this Attack Skill by 10%. Reset the counter after it
+    // Crits."* (#353): `{perMiss}`, authored; `critMisses`, written in play.
+    critChanceGrowth: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+    critMisses: new fields.NumberField({ required: true, integer: true, initial: 0, min: 0 }),
     // Effects that switch this ability off entirely while present.
     negatedBy: new fields.ArrayField(new fields.StringField({ blank: false })),
     // The same thing, keyed on a STATE instead of on an effect. EMIYA's

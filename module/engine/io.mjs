@@ -692,6 +692,16 @@ export function worldIO() {
     },
 
     /**
+     * An Attack Skill's count of uses that did not Crit (Yata Strike, #353).
+     * @param {string} unitId @param {string} abilityId @param {number} value
+     */
+    async setCritMisses(unitId, abilityId, value) {
+      const item = resolve(unitId)?.items?.get(abilityId);
+      if (!item) return;
+      await item.update({ "system.critMisses": Math.max(0, Math.trunc(value)) });
+    },
+
+    /**
      * Add one attack identity to an ability's ledger.
      * @param {string} unitId @param {string} abilityId @param {string} identity
      */

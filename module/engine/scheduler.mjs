@@ -1278,6 +1278,34 @@ const ACTIONS = Object.freeze({
     return delta === 0 ? [] : [I.scheduleDelta(u.id, delta, h.source)];
   },
 
+  /**
+   * A cut that falls through tiers: the first with anything cooling is cut,
+   * every cooling member of it, and with none cooling the `otherwise` actions
+   * run instead.
+   *
+   * Aphotic: *"reduce her Spell Cooldown by ⅓◈ Turns (including this Spell!).
+   * If all Spells are not in Cooldown, then NP Cooldown is reduced by ⅓◈
+   * Turns. If all Spells and NP are not in Cooldown, then gain the Dmg Up
+   * (Aphotic) buff"* (#353 reading 13), asked before any cut, one branch per
+   * Attack.
+   */
+  CooldownCascade: (a, u, h, c) => {
+    const ticks = resolveTicks(parseTick(String(a.ticks)), c);
+    const TIERS = {
+      spell: (x) => x.isSpell || x.category === "spell",
+      np: (x) => x.isNP || x.categorizedAsNP,
+    };
+    for (const tier of a.tiers ?? []) {
+      const member = TIERS[tier];
+      if (!member) throw new Error(`FGT | CooldownCascade: unknown tier "${tier}".`);
+      const cooling = (u.abilities ?? []).filter((x) => member(x) && (x.cooldownRemaining ?? 0) > 0);
+      if (cooling.length > 0) {
+        return cooling.map((x) => ({ ...I.cooldown(u.id, x.id, ticks, "reduce"), source: h.source }));
+      }
+    }
+    return (a.otherwise ?? []).flatMap((next) => dispatch(next, u, h, c));
+  },
+
   CooldownDelta: (a, u, h, c) => {
     // A magnitude that names the event's own payload. Channel Marker Soul's
     // number is the size of the stage change that just happened, which is

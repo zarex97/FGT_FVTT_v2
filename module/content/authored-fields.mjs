@@ -98,7 +98,7 @@ export const AUTHORED_ITEM_KEYS = Object.freeze([
   // Attack made in a method a passive grants.
   "summonGrant", "normalAttackMethod",
   "timesUsed", "maxUses", "lastUsedTick", "recordedAttacks",
-  "recordsAttacks", "shield", "shieldHealth", "negatedBy", "negatedWhile",
+  "recordsAttacks", "shield", "shieldHealth", "negatedBy", "negatedWhile", "critChanceGrowth",
   "cancelsNP", "damage", "reactionOverride", "creates",
   "aftermath", "schedule", "element", "rules", "passiveRules", "activeRules", "cost",
   "costByMasterRank", "requirements", "timing", "blockedWhen", "effect",

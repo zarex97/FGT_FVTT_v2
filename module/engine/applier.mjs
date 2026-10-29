@@ -1166,6 +1166,9 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
     case "shieldDelta":
       for (const i of intents) await io.adjustShield(unitId, i.abilityId, i.delta);
       break;
+    case "critMisses":
+      for (const i of intents) await io.setCritMisses(unitId, i.abilityId, i.value);
+      break;
     case "extendEffect":
       for (const i of intents) await io.extendEffect(unitId, i.defId, i.turns, i.startAt ?? null);
       break;

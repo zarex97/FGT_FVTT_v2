@@ -227,7 +227,7 @@ export async function useSkill({
     ...(usage.overCooldown ? [usage.overCooldown] : []),
     ...additionalCostsFor({ ability, self, master, turnsPerRound: warRule("turnsPerRound"), use }),
     ...standingUpkeepCost(board, self, master),
-  ]);
+  ], { payer: self });
 
   await applyWorldIntents([
     ...charged.flatMap((cost) => costIntents(cost, self)),
@@ -650,6 +650,14 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
     // read BEFORE this use is recorded -- so the first press costs nothing and
     // the second onwards does.
     if (phase.afterFirstUse && (ability.system?.timesUsed ?? 0) < 1) continue;
+    // A phase asked of the Unit the use was AIMED at, whoever it then reaches:
+    // Fox's Wedding puts Fox Spouse on her Master *"if the affected Unit is
+    // Tamamo's Master or is Tamamo while her Master is within a 2 panel area"*
+    // (#353). Asked of the caster and the first Unit the targeting resolved.
+    if (phase.chosenPredicate) {
+      const chosen = targets?.[0]?.unitId ? board.units.find((u) => u.id === targets[0].unitId) ?? null : null;
+      if (!chosen || !testPredicate(phase.chosenPredicate, { options: rollOptionsFor({ attacker: self, defender: chosen }) })) continue;
+    }
     if (phase.predicate && !testPredicate(phase.predicate, { options: selfOptions })) {
       // Held back, and said so when the sheet names why: Unparalleled's effect is
       // not applied once another allied Servant has Attacked (#328 ruling 11).
@@ -953,6 +961,28 @@ async function runPhases(ability, actor, targets, board, only = null, extras = {
           const { transformUnit } = await import("./transform.mjs");
           const done = await transformUnit(actor.id, ability.system?.contentId ?? ability.id, { cause: "used" });
           if (done) applied.push({ unitId: actor.id, summary: { id: "transform", name: game.i18n.format("FGT.Transform.Done", { name: ability.name }), outcome: "applied", reason: null } });
+          break;
+        }
+
+        // One ability ending its owner's field at this Turn's end, and
+        // lengthening the Cooldown it starts then: Dainisshō ends Yata no
+        // Kagami (#353 readings 32, 33). Its own line on the card.
+        case "endField": {
+          if (target.unitId !== actor.id) break;
+          const { markFieldEnd } = await import("./fields.mjs");
+          if (!phase.atTurnEnd) throw new Error(`FGT | ${ability.name}: an endField phase ends its field at the Turn's end (atTurnEnd: true).`);
+          const bonus = phase.cooldownBonus
+            ? resolveTicks(parseTick(String(phase.cooldownBonus)), { turnsPerRound: warRule("turnsPerRound") }) : 0;
+          const open = await markFieldEnd(phase.field, actor.id, { cooldownBonus: bonus });
+          if (open) {
+            const named = doc.items.find((i) => (i.system?.contentId ?? i.id) === phase.field)?.name ?? phase.field;
+            applied.push({ unitId: actor.id, summary: {
+              id: "endField",
+              name: game.i18n.format(bonus > 0 ? "FGT.Phase.FieldEndsAtTurnEndLonger" : "FGT.Phase.FieldEndsAtTurnEnd",
+                { field: named, bonus: phase.cooldownBonus ?? "" }),
+              outcome: "applied", reason: null,
+            } });
+          }
           break;
         }
 
@@ -1838,6 +1868,21 @@ export function commandSpellCostIntents(cost, self) {
  */
 export async function postCostCards(charged, { ability, self }) {
   for (const cost of charged ?? []) {
+    // A Master cost the paying Servant's standing scaled: Yata no Kagami's
+    // halving (#353 reading 28), said with the figure paid.
+    // A cost of nothing says nothing: a rank-less NP's own Rank cost is 0 beside
+    // the Rank it states (Higanbana, found live: "loses 0 Health").
+    if (cost?.kind === "masterHealth" && typeof cost.scaledBy === "number" && (cost.amount ?? 0) > 0) {
+      const { shownName } = await import("./public-identity.mjs");
+      const servant = self?.id ? unitActor(self.id) : null;
+      const text = game.i18n.format("FGT.Cost.MasterScaled", {
+        servant: foundry.utils.escapeHTML(servant ? shownName(servant, currentBoard()) : ""),
+        ability: foundry.utils.escapeHTML(ability?.name ?? ""),
+        amount: cost.amount ?? 0, factor: cost.scaledBy, source: foundry.utils.escapeHTML(cost.scaledFrom ?? ""),
+      });
+      await ChatMessage.create({ content: `<div class="fgt-card"><p>${text}</p></div>` });
+      continue;
+    }
     if (cost?.kind !== "commandSpell") continue;
     const master = cost.unitId ? unitActor(cost.unitId) : null;
     const servant = self?.id ? unitActor(self.id) : null;
@@ -2088,11 +2133,44 @@ export function cooldownChanges(phase, doc, board = null, self = null, target = 
           : Math.abs(change.delta ?? 0));
       const down = change.ticks !== undefined ? (change.direction === "down")
         : change.countMatching ? true : (change.delta ?? 0) < 0; // fgt-count-ok: presence only, a census always cuts
-      const cut = I.cooldown(subjectId, item.id, turns, down ? "reduce" : "increase");
+      // *"…cannot exceed max Cooldown in this way"* (Kōnisshō, #353 reading 4):
+      // a push held to the ability's own printed Cooldown, and none at all for
+      // an NP that is running now and cools from its end.
+      const pushed = !down && change.capAtMax ? cappedPush(item, turns, unitOf(subject, board)) : turns;
+      if (pushed <= 0) continue;
+      const cut = I.cooldown(subjectId, item.id, pushed, down ? "reduce" : "increase");
       out.push(cut, ...mirroredCuts([cut], subject, board));
     }
   }
   return out;
+}
+
+/**
+ * How far a capped push may move one ability's clock.
+ *
+ * *"Increases its NP Cooldown by 3◈ Turns (cannot exceed max Cooldown in this
+ * way)"* (Kōnisshō, #353 reading 4). The maximum is the ability's own printed
+ * Cooldown: a ready NP goes to 3◈ or its maximum if lower, a cooling one rises
+ * to at most its maximum. An ability whose clock starts at its END
+ * (`countFrom`) and that is running now, a field open or a platform up or a
+ * Mode on, has no clock to push.
+ *
+ * @param {object} item the ability Item
+ * @param {number} turns the push, in ticks
+ * @param {object|null} unit its owner as the board sees it
+ * @returns {number} the ticks to add, 0 for none
+ */
+function cappedPush(item, turns, unit) {
+  const cd = item.system?.cooldown ?? {};
+  const contentId = item.system?.contentId ?? item.id;
+  const platforms = (item.system?.phases ?? []).filter((p) => p.kind === "summonPlatform").map((p) => p.platformId);
+  const running = Boolean(item.system?.active)
+    || (unit?.ownedFields ?? []).includes(contentId)
+    || platforms.some((id) => (unit?.ownedPlatformContentIds ?? []).includes(id));
+  if (cd.countFrom && running) return 0;
+  const max = cd.max ? resolveTicks(parseTick(String(cd.max)), { turnsPerRound: warRule("turnsPerRound") }) : 0;
+  const remaining = cd.remaining ?? 0;
+  return Math.max(0, Math.min(turns, max - remaining));
 }
 
 /**
@@ -3367,6 +3445,9 @@ export const CASTER_PHASES = new Set([
   "setRoundPhase",
   // A held effect's clock moved by name: the user's own buffs, once (#333).
   "effectDuration",
+  // One ability ending its user's field at the Turn's end: Dainisshō ends Yata
+  // no Kagami (#353), something it does to its user's board, once.
+  "endField",
   // One ability spending another. Pyramid Drop ends and locks out Ramesseum
   // Tentyris, which is something it does to its USER's sheet rather than to
   // any defender -- so it belongs in the caster pass, like `createField`.
