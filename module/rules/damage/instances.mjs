@@ -96,8 +96,16 @@ export const DAMAGE_BLOCK_KEYS = Object.freeze([
   // what the attack is built from
   "base", "sources", "component", "multiplier", "flatBonus", "conditionalMultipliers",
   "fixed", "fixedValue", "formula", "bands",
+  // Yata Strike's *"Total Damage dealt is multiplied by X, X = the number rolled
+  // on an eight-sided die"* (#353 reading 18).
+  "totalDie",
   // what it counts as
   "element", "elementFraction", "aim", "pierce", "pierceOn", "thrownWeapon",
+  // Break (+X%dm): a Block ignored and the damage raised when the DU Blocks
+  // (Mitten, #353 reading 7). `{bonus}`, read by `breakMultipliers`.
+  "break",
+  // One defender drawn at random for this instance (Dainisshō, #353 reading 31).
+  "pick",
   // Ranged, Melee or Special as the sheet states it (#281); an instance may
   // state its own, Bradamante's `{Ranged}` hit then `{Melee}` hit.
   "delivery",
@@ -115,3 +123,30 @@ export const DAMAGE_BLOCK_KEYS = Object.freeze([
   // how it fans out
   "repeat", "instances", "branches", "predicate", "kind",
 ]);
+
+/**
+ * Break (+X%dm) as the stage-3 multiplier it is (#353 reading 7).
+ *
+ * > *"Deals 25% extra damage that has the Pierce effect and Break (+50%dm)
+ * > effect."* — Jusō・Mitten
+ *
+ * Break acts when the DU Blocks: the Block is ignored (`breakSucceeded`, stage
+ * 14) and the damage is raised. The sheet's *"+50%dm"* is the attack's own
+ * figure, so it multiplies beside the ability's ×1.25 inside the bracket, as
+ * Balmung's row against Dragons does. Its chance is 100% when unstated
+ * (Appendix A); a stated one is not built and is refused rather than read as
+ * 100.
+ *
+ * @param {object|null|undefined} block the damage block, branch or instance
+ * @returns {Array<{factor: number, predicate: string[], source: string}>}
+ */
+export function breakMultipliers(block) {
+  const spec = block?.break;
+  if (!spec) return [];
+  if (spec.chance !== undefined && spec.chance !== 100) {
+    throw new Error(`FGT | Break with a ${spec.chance}% chance is not built; only the 100% default is.`);
+  }
+  const bonus = Number(spec.bonus ?? 0);
+  if (!(bonus > 0)) return [];
+  return [{ factor: 1 + bonus / 100, predicate: ["target:reaction:block"], source: `Break (+${bonus}%)` }];
+}

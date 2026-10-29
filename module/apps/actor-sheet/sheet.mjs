@@ -18,6 +18,7 @@ import { unitOf, currentBoard, currentTick, clockRunning } from "../../engine/bo
 import { previewContext } from "../../engine/attack.mjs";
 import { dealsNoDamage } from "../../rules/ability-use.mjs";
 import { buildContext } from "./context.mjs";
+import { abilityState } from "./present.mjs";
 import { editImage } from "../image-edit.mjs";
 import { factionOfCombatant } from "../../engine/turn-order.mjs";
 import { enrichAbilityCards } from "../enrich.mjs";
@@ -663,9 +664,19 @@ async function pickPlacement(actor, ability) {
  */
 export function refusalWords(reason, detail = null) {
   // Named when the refusal can name what it waits on (#351, live).
-  if (reason === "abilityOffCooldown" && detail?.names) return game.i18n.format("FGT.Ability.CoolingNamed", { names: detail.names });
+  // Without its own full stop: `FGT.Skill.Refused` ends the sentence, and every
+  // sentence here read "…in force.." (found live, #353).
+  const bare = (s) => String(s ?? "").replace(/\.+$/, "");
+  if (reason === "abilityOffCooldown" && detail?.names) return bare(game.i18n.format("FGT.Ability.CoolingNamed", { names: detail.names }));
+  // What prevents or negates it, by name, as the button already says it
+  // (`present.mjs#abilityState`): a Silenced Spell's notice read "Prevented"
+  // where its button read "Prevented by Silence" (found live, #353).
+  if ((reason === "prevented" || reason === "negated") && detail?.by) {
+    const said = abilityState({ ok: false, reason, detail: { ...detail } });
+    return bare(game.i18n.format(said.label, said.detail ?? {}));
+  }
   const key = `FGT.Ability.Refused.${reason}`;
-  return reason && game.i18n.has(key) ? game.i18n.format(key, detail ?? {}) : (reason ?? "");
+  return bare(reason && game.i18n.has(key) ? game.i18n.format(key, detail ?? {}) : (reason ?? ""));
 }
 
 /**

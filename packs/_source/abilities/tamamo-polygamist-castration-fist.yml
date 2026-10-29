@@ -1,0 +1,40 @@
+# Tamamo, char_orig_sheets/by-class/Caster/Tamamo.md (#353).
+#
+# ×9 against Male is Balmung's stage-3 conditional multiplier (×3 on the ×3).
+# Stun (Balls) only if damage was dealt (`requiresDamage`), its 90% flat: no
+# chance modifier and no immunity touches it (reading 20).
+schema: 1
+id: tamamo-polygamist-castration-fist
+name: "Polygamist Castration Fist"
+rank: null
+kind: skill
+slug: polygamistCastrationFist
+isAttackSkill: true
+cooldown: "3◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: unique }
+description: |
+  Attack Skill. Range=2. Base Attack (STR) is used. Deals 3x damage. If the Unit is Male, deal 9x damage instead,
+  and has a 90% chance of inflicting @effect[stunBalls]{Stun (Balls)} for 1◈ Turns if damage was dealt- Not
+  affected by any effects which modify chance of inflicting/receiving debuffs as well as Debuff Immune, even those
+  which specifically resist Bind effects. Cooldown: 3◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+damage:
+  multiplier: 3
+  component: str
+  conditionalMultipliers:
+    - { predicate: ["target:attribute:male"], factor: 3 }
+phases:
+  - kind: damage
+  - kind: applyEffects
+    requiresDamage: true
+    effects:
+      - id: stunBalls
+        duration: "1◈"
+        chance: 90
+        predicate: ["target:attribute:male"]
+        bypassChanceModifiers: true
+        bypassesImmunity: true

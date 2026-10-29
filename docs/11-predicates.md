@@ -180,3 +180,10 @@ standing allies on the board pass, and the options are ladders, so *"within 3"* 
 `:1`: `allyNamed:<slug>` (on the field), `allyNamedWithin:<slug>:<n>`, and `allyAttributeWithin:<attribute>:<n>`
 (Triumphal Return's [Star] ally). Board facts: a phase predicate (`self` of the board unit) reads them; a
 collection-time predicate does not.
+
+**`target:isOwnMaster`** (#353) is the Unit acted on being the actor's own Master: Fox's Wedding's *"5 Luck instead if
+used on her Master"*. A phase's **`chosenPredicate`** is asked of the caster and the Unit the use was aimed at, whoever
+the phase then reaches: Fox Spouse lands on her Master when the chosen Unit is her Master, or is Tamamo with her Master
+within 2. **A negated ability is held by no predicate** (#353 reading 1): `self:skill:<slug>` skips an ability its own
+`negatedBy`/`negatedWhile` switches off, as `categoriesOf` already skips a tag its `categorizedWhile` gates. Tamamo's
+Divinity is `negatedWhile: { missingEffect: [amaterasu] }`, held only while the Amaterasu Area grants her that effect.

@@ -61,11 +61,16 @@ describe("a charmed Unit's side", () => {
   });
 
   it("takes no Innocent World inside Doomsday Come", async () => {
-    const out = await board(({ unit }) => [ID.medea, ID.achilles].map((id) =>
-      [...(unit(id).modifiers ?? []), ...(unit(id).checkModifiers ?? []),
-        ...(unit(id).applicationChances ?? []), ...(unit(id).vulnerabilityAmplifiers ?? [])]
-        .some((m) => m.source === DC && !m.predicate)));
-    expect(out).toEqual([false, true]);
+    // An interior rule's source is the field by its name (#353), as the card
+    // shows it.
+    const out = await board(({ unit, board: b }) => {
+      const name = (b.fields ?? []).find((f) => f.id === DC)?.name;
+      return [name, ...[ID.medea, ID.achilles].map((id) =>
+        [...(unit(id).modifiers ?? []), ...(unit(id).checkModifiers ?? []),
+          ...(unit(id).applicationChances ?? []), ...(unit(id).vulnerabilityAmplifiers ?? [])]
+          .some((m) => m.source === name && !m.predicate))];
+    });
+    expect(out).toEqual(["Doomsday Come: Come to Me, Realm of the Dead, Come to Me", false, true]);
   });
 
   it("may leave Doomsday Come; its own side may not", async () => {

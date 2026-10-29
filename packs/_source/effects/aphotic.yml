@@ -1,0 +1,45 @@
+# Tamamo, char_orig_sheets/by-class/Caster/Tamamo.md: Jusō・Kokutendō (#353).
+#
+# > *"Tamamo enters the 'Aphotic' state for ⅓◈ Turns. This effect is neither a
+# > buff or a debuff and is Unremovable; the effects of the 'Aphotic' state are
+# > as follows-"*
+#
+# Every effect of the state is a rule of the state, so none of them lands on
+# its own roll (reading 10): the Decoy below is no `decoy` effect that Debuff
+# Resist could meet, and it ends with the state.
+schema: 1
+id: aphotic
+name: "Aphotic"
+description: |
+  Decoy. Cannot Evade; Dodge and Substitution have no effect. Automatically Blocks every Attack.
+  All damage taken −30% (NP 15%). When Attacked, at the end of the Damage Step: Spell Cooldowns
+  −⅓◈; if none is on Cooldown, NP Cooldowns −⅓◈; if none, gain Dmg Up (Aphotic) 15%.
+polarity: status
+volatility: nonVolatile
+valence: defensive
+stacking: noneRefresh
+unremovable: true
+baseChance: 100
+rules:
+  # 1. *"Gains the 'Decoy' effect."*
+  - { key: Decoy, radius: 3 }
+  # 2. *"Cannot Evade and Dodge/Substitution has no effect."*
+  - { key: ForbidReaction, reaction: evade }
+  - { key: Suppress, scope: dodge }
+  - { key: Suppress, scope: substitution }
+  # 3. *"Tamamo automatically Blocks every Attack received."* Never asked
+  # (reading 11): her reaction is Block.
+  - { key: ForcedReaction, reaction: block }
+  # 4. *"All damage taken is reduced by 30%; if NP, 15%."*
+  - { key: Ward, value: 30, npValue: 15 }
+  # 5. Once per Attack on her that reaches its Damage Step (reading 12), the
+  # first tier with something cooling, asked before the cut (reading 13).
+  - key: OnEvent
+    event: attackReceived
+    automatic: true
+    then:
+      - key: CooldownCascade
+        ticks: "⅓◈"
+        tiers: [spell, np]
+        otherwise:
+          - { key: ApplyEffect, effect: { id: dmgUpAphotic, magnitude: 15 } }

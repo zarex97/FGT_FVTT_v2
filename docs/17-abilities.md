@@ -443,3 +443,17 @@ charged costs, summed per pool, cannot meet. Enki's half of the Master's maximum
 - **A damage source on an owned platform.** `{unit: "platform:<contentId>"}` reads the Base Attack of that platform
   of the attacker's, falling back to the attacker when none stands, and the breakdown says `self` then
   (`attack.mjs#namedUnits`, `pipeline.mjs` stage 1): *"uses CPA's Base Attack"*.
+
+### Tamamo (#353)
+
+- **A push held to the ability's own maximum.** A `cooldown` change with `capAtMax` adds at most what the printed
+  Cooldown leaves: Kōnisshō's *"cannot exceed max Cooldown in this way"*. An NP running now whose clock starts at its
+  end (a field open, a platform up, a Mode on) is not pushed (`skill-use.mjs#cappedPush`, reading 4).
+- **The `endField` phase** ends its user's own named field at the end of this Turn, through the Turn's queue, and adds
+  `cooldownBonus` to the Cooldown the field starts then: Dainisshō ends Yata no Kagami *"and its Cooldown is increased
+  by an additional 1◈ Turns"* (`fields.mjs#markFieldEnd`). Run in the caster pass.
+- **A Crit Chance that grows** (`critChanceGrowth: {perMiss}`): each use whose Crit coin comes up no Crit adds
+  `perMiss` for the next, and a Crit resets the count (`critMisses`, written on the Item). An Evaded or Missed use
+  flips no coin and counts nothing (Yata Strike, reading 19).
+- **Mantra Tokens** are Scáthach's PRS Tokens by another name: `cooldownWaiver: {resource: mantra}` on Enten, Hyōten,
+  Mitten and Raitei; the four lock each other through `abilityOffCooldown` over a category.

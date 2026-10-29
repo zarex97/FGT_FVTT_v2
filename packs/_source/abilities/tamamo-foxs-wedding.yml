@@ -1,0 +1,52 @@
+# Tamamo, char_orig_sheets/by-class/Caster/Tamamo.md (#353).
+#
+# Shvibzik's heal, clamped Luck and Atk Up, on any ally within 3, herself
+# included (reading 15). Fox Spouse lands on her Master when the chosen Unit is
+# her Master, or is Tamamo with her Master within 2 (`chosenPredicate`, asked of
+# Tamamo and the Unit she chose).
+schema: 1
+id: tamamo-foxs-wedding
+name: "Fox's Wedding"
+rank: EX
+kind: skill
+slug: foxsWedding
+cooldown: "4◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: unique }
+description: |
+  (Active) Range=3. Used on an allied Unit. Has the following effects-
+  1. Restores its Health by 20% of its maximum value and restores its Luck by 3 (5 Luck instead if used on her
+  Master).
+  2. Applies @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 50%; if NP, 30%.
+  3. If the affected Unit is Tamamo's Master or is Tamamo while her Master is within a 2 panel area of herself,
+  apply the @effect[foxSpouse]{Fox Spouse} buff to her Master for 1◈ Turns, the Master cannot be Overpowered and
+  Underpowered by Servants. The 'Fox Spouse' buff is Unremovable.
+  Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 3 }
+  shape: { kind: unit }
+  selection: { relations: [ally, self], chooser: all, count: 1 }
+phases:
+  - kind: heal
+    target: reuse
+    percentOfMax: 20
+  - kind: statChange
+    target: reuse
+    targetPredicate: [{ not: "target:isOwnMaster" }]
+    changes:
+      - { stat: luck, delta: 3, clamp: true }
+  - kind: statChange
+    target: reuse
+    targetPredicate: ["target:isOwnMaster"]
+    changes:
+      - { stat: luck, delta: 5, clamp: true }
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: atkUp, magnitude: 50, npMagnitude: 30, duration: "1◈" }
+  - kind: applyEffects
+    target: master
+    chosenPredicate:
+      - or: ["target:isOwnMaster", { and: ["target:isSelf", "self:withinOfMaster:2"] }]
+    effects:
+      - { id: foxSpouse, duration: "1◈" }

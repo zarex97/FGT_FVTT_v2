@@ -1,0 +1,42 @@
+# Tamamo, char_orig_sheets/by-class/Caster/Tamamo.md (#353).
+#
+# Vlad's Shapeshift window: her own Turn, or when an Attack names her a DU,
+# before her reaction, covering that Attack (reading 9). The state is
+# `aphotic.yml`. Excluded from Witchcraft's tokens.
+schema: 1
+id: tamamo-kokutendo
+name: "Jusō・Kokutendō"
+rank: null
+kind: skill
+slug: kokutendo
+category: mantraSpell
+isSpell: true
+countsAsAttack: false
+cooldown: "2◈"
+timing: { window: [ownTurn, defendingPhaseStart] }
+copyable: { allowed: false, reason: unique }
+description: |
+  Mantra: Aphotic Cave. Spell. Used during your Turn or at the start of a Combat Phase when Attacked. Tamamo enters
+  the @effect[aphotic]{Aphotic} state for ⅓◈ Turns. This effect is neither a buff or a debuff and is Unremovable;
+  the effects of the 'Aphotic' state are as follows-
+  1. Gains the @effect[decoy]{Decoy} effect.
+  2. Cannot Evade and Dodge/Substitution has no effect.
+  3. Tamamo automatically Blocks every Attack received.
+  4. All damage taken is reduced by 30%; if NP, 15%.
+  5. Whenever Tamamo is Attacked while in the 'Aphotic' State, at the end of the Damage Step, reduce her Spell
+  Cooldown by ⅓◈ Turns (including this Spell!). If all Spells are not in Cooldown, then NP Cooldown is reduced
+  by ⅓◈ Turns. If all Spells and NP are not in Cooldown, then gain the @effect[dmgUpAphotic]{Dmg Up (Aphotic)} buff
+  for 1 time, damage dealt by the next Attack which deals MAG damage is increased by 15% including NP. Dmg Up
+  (Aphotic) can stack and is Unremovable.
+  This Spell cannot be used if Tamamo is already in the 'Aphotic' state. Cooldown: 2◈ Turns.
+requirements:
+  - { kind: notHasEffect, effectId: aphotic }
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: aphotic, duration: "⅓◈" }

@@ -428,6 +428,14 @@ export const FACETS = Object.freeze([
     prose: "{subject} is the one acting",
   }),
   facet({
+    // The Unit acted on is the actor's own Master: Fox's Wedding's *"5 Luck
+    // instead if used on her Master"* (#353).
+    id: "isOwnMaster",
+    subjects: ["target"],
+    english: "The Unit is the acting Servant's own Master.",
+    prose: "{subject} is the actor's own Master",
+  }),
+  facet({
     id: "ownTurn",
     english: "The Turn ending or beginning is its own side's.",
     prose: "it is {subject}'s own Turn",

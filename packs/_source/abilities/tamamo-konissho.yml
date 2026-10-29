@@ -1,0 +1,41 @@
+# Tamamo, char_orig_sheets/by-class/Caster/Tamamo.md (#353).
+#
+# The push is Chronos Rose's `cooldown` phase on the target, every NP of it
+# (#197 reading 6), held to each NP's own maximum (`capAtMax`, reading 4). An
+# enemy with no NP is a legal target and the rest still runs (reading 5).
+schema: 1
+id: tamamo-konissho
+name: "Jusō・Kōnisshō"
+rank: A
+kind: skill
+slug: konissho
+category: mantraSpell
+isSpell: true
+countsAsAttack: false
+cooldown: "4◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: unique }
+description: |
+  Mantra: Boundless Sunlight. Spell. Used during your Turn. Range=3. Used on an enemy Unit within Range,
+  increases its NP Cooldown by 3◈ Turns (cannot exceed max Cooldown in this way), then Tamamo gains 2 Mantra
+  Tokens. After that, apply @effect[npDmUp]{NP DmUp} for 1◈ Turns to all other allied Units within a 2 panel area
+  around Tamamo, NP damage dealt is increased by 30%. Cooldown: 4◈ Turns.
+targeting:
+  anchor: { kind: targetUnit, range: 3 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+phases:
+  - kind: cooldown
+    changes:
+      - { unit: target, scope: np, ticks: "3◈", direction: up, capAtMax: true }
+  - kind: resource
+    target: self
+    changes:
+      - { key: resources.mantra.value, delta: 2 }
+  - kind: applyEffects
+    targeting:
+      anchor: { kind: self }
+      shape: { kind: chebyshevRadius, r: 2 }
+      selection: { relations: [ally], chooser: all, includeSelf: false }
+    effects:
+      - { id: npDmUp, magnitude: 30, duration: "1◈" }

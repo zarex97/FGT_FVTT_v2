@@ -272,3 +272,18 @@ self phase is the hit's, as a sheet states its own. A cleanse that reaches an Un
 when the mount attacks for her (#187), and the mount whose swing a rider's Normal Attack is. The CPA's *"Normal
 Attacks at a Range of 1 to 2 knocks back the DU(s)"* fired with Karl declaring, so it is the mount's handler that
 pushes, from the mount's footprint (found live).
+
+### A fixed reaction, and hits on a random defender (#353)
+
+**A defender whose reaction is fixed is never asked.** Aphotic's `ForcedReaction: block` is read as each Process opens
+(`forcedReaction` on the state). Every path that would answer the reaction rung for a defender with no prompt answers
+with it instead of *"nothing"*: the declaration's own guard, the automatic step, and an interrupt's resume. An attack
+that forbids Block leaves the rung to the defender. The rungs read the board as it stands after the defending window
+(`declareProcesses`), so a Kokutendō cast in that window fixes the reaction to the Attack that opened it; the board the
+declaration read before the window does not have it.
+
+**An instance may strike one defender drawn at random** (`pick: randomEnemy`). Dainisshō's *"Hits a random enemy Unit
+within the Spell area"*, eight times, then every enemy: `engine/attack.mjs#processRows` lays the rows out in the sheet's
+order across targets, each draw a `1dN` over the declaration's defenders, a repeat allowed, carried to its card as
+`picked`. The draws are rolled at the declaration, where the Processes are opened (reading 31's *"as it strikes"* is
+read at the declaration). The draw and its die are a line on the card (`FGT.Card.Drawn`).

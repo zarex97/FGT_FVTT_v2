@@ -551,7 +551,11 @@ export function membershipVerdict(field, unit, direction, board) {
   // above this, which is the whole reason that branch is stated separately.
   const side = relation === "enemy" ? "enemy" : "ally";
   const key = `${side}${direction === "enter" ? "Entry" : "Exit"}`;
-  const policy = rules[key] ?? "free";
+  // The OWNER's own way out, when the field states one: *"Tamamo cannot leave
+  // the Amaterasu Area"* (Yata no Kagami, #353 reading 24) seals her and no
+  // ally of hers.
+  const own = relation === "self" && direction === "exit" ? rules.selfExit : undefined;
+  const policy = own ?? rules[key] ?? "free";
 
   if (policy === "free") return { ok: true };
   if (policy === "draggedIn") return { ok: true, reason: "draggedIn" };
@@ -924,7 +928,10 @@ export function interiorModifiers(field, unit, board) {
       return later.length > 0 ? { ...rest, predicate: later } : rest;
     })
     .filter(Boolean)
-    .map((rule) => ({ ...rule, field: field.id, source: field.id }));
+    // Its source is the AREA by its name, for the card: Yata no Kagami's +50%
+    // read "tamamo-yata-no-kagami (STR only)" (found live, #353). `field` keeps
+    // the id for whatever keys on it.
+    .map((rule) => ({ ...rule, field: field.id, source: field.name ?? field.id }));
 }
 
 /* -------------------------------------------------------------------------- */

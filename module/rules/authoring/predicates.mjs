@@ -37,6 +37,8 @@ export const PREDICATE_FIELDS = Object.freeze([
   "predicate",
   "attackPredicate",
   "targetPredicate",
+  // Asked of the Unit a use was aimed at (Fox's Wedding, #353).
+  "chosenPredicate",
   "requiresRecipient",
   "chanceWhen",
   // Whether a `StatDelta`'s FLOOR applies at all, as against how large it is.
