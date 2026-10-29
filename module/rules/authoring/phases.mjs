@@ -87,6 +87,8 @@ const COMMON = Object.freeze([
   // The card's line when `predicate` holds the phase back, a lang key: Unparalleled's
   // *"This effect is not applied if any other allied Servant has already Attacked"* (#328).
   { key: "unmetLine", type: "text" },
+  // Asked of the Unit the use was aimed at (Fox's Wedding, #353).
+  { key: "chosenPredicate", type: "predicateList" },
 ]);
 
 /**
@@ -178,6 +180,13 @@ export const PHASE_DESCRIPTORS = describeTable([
     { key: "effects", type: "tokenList" },
     { key: "set", type: "tickExpr" },
     { key: "extend", type: "tickExpr" },
+  ]),
+  // Tamamo's Dainisshō ends Yata no Kagami at the Turn's end and lengthens the
+  // Cooldown it starts then (#353).
+  entry("endField", 45, "Ends the user's own named field at the end of this Turn, lengthening the Cooldown it starts then.", [
+    { key: "field", type: "text" },
+    { key: "atTurnEnd", type: "checkbox" },
+    { key: "cooldownBonus", type: "tickExpr" },
   ]),
   entry("move", 45,"Lets the Unit Move up to a number of panels, by an ordinary path, to a panel its owner picks.", [
     { key: "panels", type: "number" },

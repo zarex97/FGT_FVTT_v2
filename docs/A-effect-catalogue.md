@@ -791,3 +791,11 @@ in either direction.
 | `spellbookDestroyed` | status | Prelati's Spellbook destroyed (#323): unremovable and permanent, the mark the Spellbook's `notHasEffect` and the Spells' `abilityAllows` read, and the weak point's `destroyedMark`. |
 | `gazing` | buff | Gilles's Evil Gaze (#323): his Normal Attacks inflict Curse. His Horrors' 50% within 2 is their own handler, gated on `self:summonerEffect:gazing` and `self:withinOfSummoner:2`. |
 | `dmgUpCurse` | buff | Dmg Up gated on the target's Curse (#323), Dmg Up (Evil)'s shape. |
+
+### Tamamo (#353)
+
+`Break` is **built**: `damage.break: {bonus}`, Ch. 22. New effect documents: `aphotic` (a status, Unremovable: Decoy, no
+Evade, Dodge and Substitution off, an automatic Block, −30%/NP 15%, a falling cooldown cut on being Attacked),
+`dmgUpAphotic` (+15% per stack to the next Attack that deals MAG damage, spent by it, Unremovable), `foxSpouse` (no
+Overpower, no Underpower, Unremovable), `stunBalls` (a Stun of the `stun` and `bind` families) and `amaterasu` (Yata no
+Kagami's grant to its owner). Earth and Dark join the damage elements.

@@ -162,6 +162,12 @@ async function cardContext({
         }
       : null,
 
+    // The die that drew this defender from the declaration's (Dainisshō's
+    // *"a random enemy Unit"*, #353): on the card it decided (found live).
+    drawn: state.attack?.picked
+      ? game.i18n.format("FGT.Card.Drawn", { roll: state.attack.picked.roll, of: state.attack.picked.of })
+      : null,
+
     // A Luck rung declined for its Unit says why on the card, once per reason:
     // the difficulty removed it, or a rule forbids it here (#252).
     luckClosed: [...new Set(state.history

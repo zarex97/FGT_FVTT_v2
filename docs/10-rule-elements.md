@@ -307,3 +307,20 @@ the bonus is added at stage 16, after every modifier and the Injury snapshot (Di
 - **A platform's `passengerRules`** run elements on the Units aboard it, by their role (`owner`) or their relation to
   its owner (`self`, `ally`): Carolus Patricius's ZON waiver for Karl and its −15% taken and +15% dealt for his side
   (Ch. 27).
+
+### Tamamo's pieces (#353)
+
+- **`ForcedReaction`** (`{reaction: block}`): the bearer answers every Attack with this reaction and is never asked.
+  Aphotic's *"Tamamo automatically Blocks every Attack received"*. A suppression (`scope: forcedReaction`) the Process
+  reads as it opens (`engine/attack.mjs#forcedReactionOf`) and answers on its reaction rung
+  (`combat-process.mjs#forcedAnswer`), at the declaration, after an interrupt and in the automatic step alike. Only
+  `block` is built; another refuses at collection.
+- **`MasterCostScale`** (`{factor}`): every Master Health cost the bearer charges is multiplied, rounded down. Yata no
+  Kagami's halving, an interior rule on allied Servants. One reader, `rules/costs.mjs#masterCostFactor`, asked by
+  `resolveCosts` (the gate, the Skill path and the Attack path) and by a field's or platform's upkeep.
+- **`AttackProperty: ignoresMagicResistance`**, with a predicate on the Attack: Witchcraft's *"Attacks which use Base
+  Attack (MAG) ignore Magic Resistance"*. A Normal Attack's component is decided at the distance struck, so the grant is
+  asked of the band (`attackFacts`).
+- **`Suppress` scopes `dodge` and `substitution`**: the bearer's own Dodge and Substitution do nothing (Aphotic).
+- **The `CooldownCascade` action** (`{ticks, tiers: [spell, np], otherwise}`): the first tier with anything cooling is
+  cut, every cooling member of it; with none cooling, `otherwise` runs. Aphotic's cut on being Attacked.

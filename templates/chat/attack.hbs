@@ -31,6 +31,11 @@
     </section>
   {{/if}}
 
+  {{!-- The die that drew this defender at random (Dainisshō, #353). --}}
+  {{#if drawn}}
+    <section class="fgt-card__note">{{drawn}}</section>
+  {{/if}}
+
   {{!-- A Luck rung the Process declined for its Unit, and why (#252). --}}
   {{#each luckClosed as |line|}}
     <section class="fgt-card__note">{{line}}</section>

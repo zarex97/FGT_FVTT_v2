@@ -1,0 +1,30 @@
+# Tamamo, char_orig_sheets/by-class/Caster/Tamamo.md (#353). Medea's Damage
+# Spell at ×2; excluded from Witchcraft's tokens and from the four's lock.
+schema: 1
+id: tamamo-kuretsu-daimitten
+name: "Jusō・Kūretsu Daimitten"
+rank: null
+kind: skill
+slug: kuretsuDaimitten
+category: mantraSpell
+isSpell: true
+cooldown: "3◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: unique }
+description: |
+  Mantra: Void Cleft Great Chaos Heaven. Damage Spell. Deals 2x damage with a 75% chance of inflicting
+  @effect[stun]{Stun} for 1◈ Turns. Cooldown: 3◈ Turns.
+targeting:
+  anchor: { kind: targetUnit }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+damage:
+  multiplier: 2
+  component: mag
+phases:
+  - kind: damage
+    target: reuse
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: stun, duration: "1◈", chance: 75 }

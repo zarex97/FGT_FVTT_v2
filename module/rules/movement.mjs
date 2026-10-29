@@ -574,9 +574,15 @@ export function validatePath(path, unit, board) {
     if (!canPassThrough(panel, unit, board)) {
       // The Master's protection said as itself: its panel looks empty, and the
       // generic line read like a bug (#209, live).
+      // ...and a field that holds it, by its name: Yata no Kagami's *"Tamamo
+      // cannot leave the Amaterasu Area"* read as a panel she may not enter
+      // (found live, #353).
+      const holding = heldByFieldAt(panel, unit, board);
       reasons.push(guardedMasterBeside(panel, unit, board)
         ? `Step ${index + 1} is beside an enemy Master, and its Servant guards that panel.`
-        : `Step ${index + 1} passes through a panel this Unit may not enter.`);
+        : holding
+          ? `Step ${index + 1} leaves ${holding}, which this Unit cannot leave.`
+          : `Step ${index + 1} passes through a panel this Unit may not enter.`);
     }
     previous = panel;
   }
@@ -734,6 +740,37 @@ function blockedByFieldExit(panel, unit, board) {
     if (!membershipVerdict(field, unit, "exit", board).ok) return true;
   }
   return false;
+}
+
+/**
+ * The name of the field a step out of would leave, when the field refuses it.
+ *
+ * @param {GridOffset} panel
+ * @param {object} unit
+ * @param {object} board
+ * @returns {string|null}
+ */
+function heldByFieldAt(panel, unit, board) {
+  const field = (board?.fields ?? []).find((f) => contains(f, unit.panel, board)
+    && !contains(f, panel, board) && !membershipVerdict(f, unit, "exit", board).ok);
+  return field ? (field.name ?? field.id) : null;
+}
+
+/**
+ * Would this landing carry the Unit out of a field SEALED against its leaving?
+ *
+ * A shove is no step: a field whose exit is a roll (the Labyrinth) is left by
+ * one as before; only a sealed one holds (Yata no Kagami, Doomsday Come).
+ *
+ * @param {GridOffset} panel
+ * @param {object} unit
+ * @param {object} board
+ * @returns {boolean}
+ */
+function sealedIn(panel, unit, board) {
+  return (board?.fields ?? []).some((field) => contains(field, unit.panel, board)
+    && !contains(field, panel, board)
+    && membershipVerdict(field, unit, "exit", board).reason === "sealed");
 }
 
 /**
@@ -1035,10 +1072,22 @@ export function knockbackPanel(origin, unit, board, {
 
   // Step by step rather than direction by direction, so a fanned-out search
   // returns the NEAREST free panel rather than the first direction's.
+  //
+  // A field that holds its Unit holds it against a shove too: *"Tamamo cannot
+  // leave the Amaterasu Area"* (#353 reading 24). A landing outside it is no
+  // landing: the push stops at the edge, and a fanned search tries the rest.
+  const held = new Set();
   for (let step = 1; step <= maxSteps; step++) {
     for (const dir of directions) {
+      const key = `${dir.i},${dir.j}`;
+      if (held.has(key)) continue;
       const panel = { i: unit.panel.i + dir.i * step, j: unit.panel.j + dir.j * step };
       if (!geo.inBounds(panel, board.bounds ?? null)) continue;
+      if (sealedIn(panel, unit, board)) {
+        if (!fanned) return null;
+        held.add(key);
+        continue;
+      }
       if (free(panel)) return { panel, sidestepped: false };
     }
   }

@@ -1,0 +1,14 @@
+# Tamamo, char_orig_sheets/by-class/Caster/Tamamo.md (#353). Nursery Rhyme's.
+schema: 1
+id: tamamo-shapeshift
+name: "Shapeshift"
+rank: A
+kind: skill
+slug: shapeshift
+passive: true
+description: |
+  (Passive) All damage taken is reduced by 30%; if NP, 15%.
+passiveRules:
+  - key: Ward
+    value: 30
+    npValue: 15

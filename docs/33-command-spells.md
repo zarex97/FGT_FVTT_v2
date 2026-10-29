@@ -181,3 +181,7 @@ options drew over each other until the toggle grew to its text (§46.4-OP), and 
 - **A spend on a card asks with the card's attack** (`spendCommandSpell` reads the Process first, §46.4-PE).
 - **Kill Humans** is an own-Turn command that lays the `killHumans` mark (`effects/kill-humans.yml`), its Master the
   source; `notMarked` keeps it from being offered twice. Its Contract half is Ch. 32.
+
+**A field that holds its Servant keeps it** (#353 reading 24). A command whose effect teleports is refused
+(`heldByField`) while the Servant stands in a field whose exit is sealed against it: Yata no Kagami's *"Tamamo cannot
+leave the Amaterasu Area"*. Asked of the field's own exit gate, `membershipVerdict`, the one a step out asks.

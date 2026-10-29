@@ -327,3 +327,8 @@ Curse tick at 1, which the attack pipeline's stage 16 alone did before.
   Resolution *"Ignores Stun Resist, Stun Immune, and any other effects that specifically reduce the chance of being
   inflicted with Stun"*. An immunity scoped to the effect and a resistance whose `effectId` is the effect are skipped
   (`effect-applier.mjs#findImmunity`, `chanceContribution`); Magic Resistance and Debuff Immune still hold (reading 5).
+
+**Stages by the DU's Rank** (#353). An entry's `stagesByTargetRank: {parameter, rows, unranked}` reads how many stages it
+adds off the recipient's own Parameter: Higanbana Sesshoseki's *"Stage X Curse … MAG Rank EX, A: 1; B, C: 2; D, E:
+3"*. A Rank with a + or − reads its letter's row, and a Unit with no Parameters, a Master, reads `unranked` (reading 22).
+One reader, `rules/effect-flow.mjs#stagesFor`, which the landing calls for every entry.

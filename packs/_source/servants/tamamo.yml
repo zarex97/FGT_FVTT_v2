@@ -1,0 +1,72 @@
+# packs/_source/servants/tamamo.yml
+# Conversion source: char_orig_sheets/by-class/Caster/Tamamo.md
+#
+# Audit #353, `docs/superpowers/specs/2026-10-29-tamamo-clauses.md`.
+schema: 1
+id: tamamo
+name: Tamamo
+type: servant
+
+# ─── Identity ──────────────────────────────────────────────────────────
+trueName: Tamamo no Mae
+servantClasses: [caster]
+classContainer: caster
+alignment: { order: neutral, morality: evil }
+region: [japan]
+attributes: [female, servant, sky, humanoid, demonicBeast, animalistic, antiHero]
+
+# ─── Parameters and stats ──────────────────────────────────────────────
+# Health 500 at END E, BA(STR) 50 at STR E, BA(MAG) 200 at MAG A: the tables
+# agree with the sheet (§46.6).
+parameters: { str: E, end: E, agi: B, mag: A, luc: D }
+baseHealth: 500
+mov: 5
+range: { panels: 3, targets: 1 }
+baseAttack: { str: 50, mag: 200 }
+# *"At a Range of 1, Normal Attacks use Base Attack (STR). At a Range of 2 or
+# higher, Normal Attacks use Base Attack (MAG)."* EMIYA's range band.
+normalAttack:
+  mode: rangeBanded
+  component: str
+  bands:
+    - { from: 2, component: mag }
+sustainability: "4◈"
+
+# ─── Resources (Ch. 06) ─────────────────────────────────────────────────
+# *"Mantra Tokens: 0/3"*: Scáthach's PRS Tokens by another name. Yata no
+# Kagami raises the maximum to 6 while it stands (`amaterasu`'s `MaxDelta`).
+resources:
+  mantra: { value: 0, max: 3 }
+
+# ─── Abilities ─────────────────────────────────────────────────────────
+abilities:
+  - { ref: class-territory-creation, rank: C }
+  # Revised: the sheet prints the Fixed Divine sentence. Negated while Yata no
+  # Kagami is not Active (reading 1): the Amaterasu Area grants `amaterasu`
+  # while it stands, and no reader finds her Divinity without it.
+  - ref: divinity
+    rank: A
+    printedRevision: revised
+    negatedWhile: { missingEffect: [amaterasu] }
+    categorizedWhile: [amaterasu]
+  - { ref: tamamo-witchcraft }
+  - { ref: tamamo-konissho }
+  - { ref: tamamo-enten }
+  - { ref: tamamo-hyoten }
+  - { ref: tamamo-mitten }
+  - { ref: tamamo-raitei }
+  - { ref: tamamo-shapeshift }
+  - { ref: tamamo-kokutendo }
+  - { ref: tamamo-foxs-wedding }
+  - { ref: tamamo-kuretsu-daimitten }
+  - { ref: tamamo-yata-strike }
+  - { ref: tamamo-polygamist-castration-fist }
+  - { ref: tamamo-higanbana-sesshoseki }
+  - { ref: tamamo-yata-no-kagami }
+  - { ref: tamamo-dainissho }
+
+notes: |
+  A Caster of Spells and tokens. Witchcraft's Mantra Tokens waive four Damage Spells' Cooldowns
+  as Scáthach's PRS Tokens waive her Rune Spells, and the four lock each other while any cools.
+  Yata no Kagami opens the Amaterasu Area, a field she cannot leave, and switches on her
+  Divinity; Dainisshō spends it.

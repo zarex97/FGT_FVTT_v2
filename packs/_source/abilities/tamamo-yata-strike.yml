@@ -1,0 +1,34 @@
+# Tamamo, char_orig_sheets/by-class/Caster/Tamamo.md (#353).
+#
+# A Normal Attack for every reader, at its own Range 2 (reading 17). 10 Fixed
+# STR, 15 on a Crit, its Total × a d8 shown on the card; nothing else changes
+# it (reading 18). Its Crit coin is any Attack's, plus 10 for each counted use
+# that did not Crit; an Evaded or Missed use flips none (reading 19).
+schema: 1
+id: tamamo-yata-strike
+name: "Yata Strike"
+rank: null
+kind: skill
+slug: yataStrike
+isAttackSkill: true
+countsAsNormalAttack: true
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: unique }
+description: |
+  Attack Skill. Can be used instead of a Normal Attack and is categorized as one. Range=2. Deals 10 Fixed STR
+  damage, Total Damage dealt is multiplied by X, X = the number rolled on an eight-sided die.
+  1. For every time this Attack Skill does not Crit, increase the Crit Chance of this Attack Skill by 10%. Reset
+  the counter after it Crits.
+  2. If this Attack Skill is a Crit, it deals 15 STR damage instead of 10.
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+critChanceGrowth: { perMiss: 10 }
+damage:
+  component: str
+  fixed: true
+  base: { fixedValue: 10, critFixedValue: 15 }
+  totalDie: "1d8"
+phases:
+  - kind: damage

@@ -236,3 +236,17 @@ her, around the stone, where it had opened on the deck and burned no ground enem
 
 **A field event at the start of a Turn is reported** (#208 §46.4-MS). `scheduler-hooks.mjs` posts `turnStart` field
 events through `postFieldReports` under *"{field}: start of the Turn"*; the Marble's toll took Health with no card.
+
+### The Amaterasu Area (#353)
+
+- **`membership.selfExit`**: the owner's own way out, apart from its allies'. *"Tamamo cannot leave the Amaterasu
+  Area"* is `selfExit: sealed`. A sealed exit holds against a shove too (`rules/movement.mjs#knockbackPanel`, a landing
+  outside is none) and against a Command Spell that teleports (`heldByField`, Ch. 33). A step out is refused by name
+  (`heldByFieldAt`: *"Step N leaves {field}, which this Unit cannot leave."*). A field's interior rules name the field
+  as their source, never its id.
+- **`onOpen` `ApplyEffect` `to: owner`**: an effect the field grants its owner as it opens, through the one landing door,
+  tied to the field, with a `predicate` asked of the owner. Yata no Kagami grants `amaterasu`: Range +1, +2 in a Japan
+  War, and the gate its Divinity reads.
+- **`onEnd` `SetResource`**: a pool's maximum put back as the field goes, the value held under it. Every close path
+  passes `endField`. Yata's Mantra maximum is stored at 6 by its phase and put back to 3 here (reading 29).
+- **`state.cooldownBonus`**: ticks a later use added to the Cooldown the field starts at its end (`markFieldEnd`).

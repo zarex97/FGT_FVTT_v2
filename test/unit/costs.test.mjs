@@ -546,6 +546,7 @@ describe("a field whose cooldown counts from deactivation (#148)", () => {
     expect(held.map((h) => h.id).sort()).toEqual([
       "asterios-chaos-labyrinthos", "jack-the-mist", "ozymandias-ramesseum-tentyris",
       "pale-rider-doomsday-come", "quetz-piedra-del-sol", "semiramis-sikera-usum",
+      "tamamo-yata-no-kagami",
     ]);
   });
 
