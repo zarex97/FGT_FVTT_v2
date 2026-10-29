@@ -284,6 +284,11 @@ declaration read before the window does not have it.
 
 **An instance may strike one defender drawn at random** (`pick: randomEnemy`). Dainisshō's *"Hits a random enemy Unit
 within the Spell area"*, eight times, then every enemy: `engine/attack.mjs#processRows` lays the rows out in the sheet's
-order across targets, each draw a `1dN` over the declaration's defenders, a repeat allowed, carried to its card as
-`picked`. The draws are rolled at the declaration, where the Processes are opened (reading 31's *"as it strikes"* is
-read at the declaration). The draw and its die are a line on the card (`FGT.Card.Drawn`).
+order across targets, a drawn row naming every defender it may strike (`pickFrom`). Such a declaration strikes **in
+sequence** (ruled 2026-10-29, #353): `strikeBatches` cuts it into strikes, each drawn hit alone and hit 9's Processes
+together; the first is declared at once, and each next one only when every Process before it is done
+(`advanceDrawnHits`, from the end of each Process). Its die is rolled then, `1dN` over the defenders still standing, a
+repeat allowed (`drawHit`), and carried to its card as `picked`. A defender felled earlier is never drawn, nor struck by
+hit 9; a strike with nobody left does nothing and says so (`FGT.Card.DrawnNone`). The Combat Phase ends after the last
+strike (`drawnHitsPending` holds `fireCombatPhaseEnd`). Read at the declaration instead, a Master the fourth hit felled
+was drawn by two later hits (found live). The draw and its die are a line on the card (`FGT.Card.Drawn`).

@@ -421,17 +421,99 @@ describe("Yata no Kagami (YK.*)", () => {
 });
 
 describe("Dainisshō (DN.*)", () => {
-  it("hits 1 to 8 each strike one enemy drawn by a die; hit 9 strikes every enemy (reading 31)", async () => {
-    const { processRows } = await import("../../module/engine/attack.mjs");
+  it("hits 1 to 8 each name every enemy they may strike; hit 9 strikes every enemy (reading 31)", async () => {
+    const { processRows, strikeBatches } = await import("../../module/engine/attack.mjs");
     const doc = parse(readFileSync("packs/_source/abilities/tamamo-dainissho.yml", "utf8"));
     const specs = doc.damage.instances;
-    await withSubjects([tamamo()], async ({ world: w }) => {
-      w.dice.set("d2", 1, 2, 2, 1, 1, 1, 2, 2);
+    await withSubjects([tamamo()], async () => {
+      // No die at the declaration: a face set here and never rolled fails the world.
       const rows = await processRows([{ t: { unitId: FOE }, specs }, { t: { unitId: FOE2 }, specs }]);
-      expect(rows.map((r) => r.unitId)).toEqual([FOE, FOE2, FOE2, FOE, FOE, FOE, FOE2, FOE2, FOE, FOE2]);
-      expect(rows[1].spec.picked).toEqual({ roll: 2, of: 2 });
       expect(rows.map((r) => r.spec.element)).toEqual(["nature", "ice", "wind", "lightning", "water", "earth", "light", "dark", "fire", "fire"]);
+      expect(rows.slice(0, 8).every((r) => r.spec.pickFrom?.map((c) => c.unitId).join() === `${FOE},${FOE2}`)).toBe(true);
+      expect(rows.slice(0, 8).some((r) => r.spec.picked)).toBe(false);
+      expect(rows.slice(8).map((r) => [r.unitId, r.spec.pickFrom ?? null])).toEqual([[FOE, null], [FOE2, null]]);
+      // One strike per drawn hit, and hit 9 as one.
+      const batches = strikeBatches(rows.map((r) => ({ defenderId: r.unitId, attack: r.spec })));
+      expect(batches.map((b) => b.length)).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 2]);
     });
+  });
+
+  it("draws as the hit strikes, among those still standing; nobody left, nothing (reading 31)", async () => {
+    const { drawHit } = await import("../../module/engine/attack.mjs");
+    await withSubjects([tamamo()], async ({ world: w }) => {
+      const spec = (element) => ({ element, instanceIndex: 0 });
+      const drawn = { defenderId: FOE, attack: { kind: "np", pickFrom: [{ unitId: FOE, spec: spec("nature") }, { unitId: FOE2, spec: spec("nature") }] } };
+      w.dice.set("d2", 2);
+      expect(await drawHit(drawn, () => true)).toMatchObject({ defenderId: FOE2, attack: { picked: { roll: 2, of: 2 } } });
+      expect((await drawHit(drawn, () => true)).attack.pickFrom).toBeUndefined();
+      // FOE2 felled: a 1d1 over FOE alone.
+      expect(await drawHit(drawn, (id) => id === FOE)).toMatchObject({ defenderId: FOE, attack: { picked: { roll: 1, of: 1 } } });
+      expect(await drawHit(drawn, () => false)).toBeNull();
+      // Hit 9 keeps its defender while it stands.
+      const nine = { defenderId: FOE2, attack: { element: "fire" } };
+      expect(await drawHit(nine, () => true)).toBe(nine);
+      expect(await drawHit(nine, (id) => id !== FOE2)).toBeNull();
+    });
+  });
+
+  it("a foe the first hit fells is drawn by no later hit, nor struck by hit 9 (reading 31, found live)", async () => {
+    const { resolveAttack, advanceAttack } = await import("../../module/engine/attack.mjs");
+    const proc = await import("../../module/engine/combat-process.mjs");
+    await withSubjects([
+      tamamo(),
+      foe("cu-chulainn", { i: 8, j: 6 }, FOE),
+      foe("asterios", { i: 9, j: 6 }, FOE2, { state: { health: { value: 1, max: 1700 } } }),
+    ], async ({ world: w }) => {
+      w.dice.set("d2", 2);
+      // The Phase's start, asked once of the defenders: nothing used.
+      w.answer({ title: "FGT.Window.defendingPhaseStart", decline: true });
+      const dn = abilityOf(w, TAMA, "tamamo-dainissho");
+      await resolveAttack({ attackerId: TAMA, abilityId: dn.id, placement: { direction: "s" } });
+      const attacks = () => w.messages.contents.filter((m) => m.flags?.fgt?.kind === "attack");
+      // Play every Process as it opens: no reaction, no Counter, no spend.
+      for (let step = 0; step < 400; step += 1) {
+        const open = attacks().map((m) => [m, proc.deserialize(m.getFlag("fgt", "process"))])
+          .find(([, st]) => !proc.isComplete(st) && proc.pendingPrompt(st));
+        if (!open) break;
+        const prompt = proc.pendingPrompt(open[1]);
+        await advanceAttack({ messageId: open[0].id, event: prompt.kind === "reaction" ? "nothing" : "declined" });
+      }
+      const struck = attacks().map((m) => proc.deserialize(m.getFlag("fgt", "process")));
+      expect(struck.every((st) => proc.isComplete(st))).toBe(true);
+      expect(w.actor(FOE2).system.defeated).toBe(true);
+      // Hit 1 drew FOE2 (d2 = 2) and felled it; hits 2 to 8 and hit 9 struck FOE alone.
+      expect(struck.map((st) => st.defenderId)).toEqual([FOE2, ...Array(8).fill(FOE)]);
+      expect(struck.slice(1, 8).map((st) => st.attack.picked)).toEqual(Array(7).fill({ roll: 1, of: 1 }));
+      // One Combat Phase, ended once, after the last strike.
+      expect(attacks().filter((m) => m.getFlag("fgt", "phaseEnded")).length).toBe(1);
+    }, { ...WAR, regions: [amaterasuArea({ i: 6, j: 6 })] });
+  });
+
+  it("with no enemy left standing, each later hit strikes nothing, and says so (reading 31)", async () => {
+    const { resolveAttack, advanceAttack } = await import("../../module/engine/attack.mjs");
+    const proc = await import("../../module/engine/combat-process.mjs");
+    await withSubjects([
+      tamamo(),
+      foe("asterios", { i: 9, j: 6 }, FOE2, { state: { health: { value: 1, max: 1700 } } }),
+    ], async ({ world: w }) => {
+      const dn = abilityOf(w, TAMA, "tamamo-dainissho");
+      await resolveAttack({ attackerId: TAMA, abilityId: dn.id, placement: { direction: "s" } });
+      const attacks = () => w.messages.contents.filter((m) => m.flags?.fgt?.kind === "attack");
+      for (let step = 0; step < 100; step += 1) {
+        const open = attacks().map((m) => [m, proc.deserialize(m.getFlag("fgt", "process"))])
+          .find(([, st]) => !proc.isComplete(st) && proc.pendingPrompt(st));
+        if (!open) break;
+        const prompt = proc.pendingPrompt(open[1]);
+        await advanceAttack({ messageId: open[0].id, event: prompt.kind === "reaction" ? "nothing" : "declined" });
+      }
+      expect(w.actor(FOE2).system.defeated).toBe(true);
+      expect(attacks().length).toBe(1);
+      // One line for each of hits 2 to 9, naming the ability and the hit.
+      expect(w.messages.contents.filter((m) => String(m.content).includes("FGT.Card.DrawnNone")).length).toBe(8);
+      const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
+      expect(lang["FGT.Card.DrawnNone"]).toMatch(/\{ability\}.*\{hit\}/);
+      expect(attacks()[0].getFlag("fgt", "phaseEnded")).toBe(true);
+    }, { ...WAR, regions: [amaterasuArea({ i: 6, j: 6 })] });
   });
 
   it("is used only while the Area stands, and ends it at the Turn's end with +1◈ (DN.req, DN.end, DN.cd)", async () => {

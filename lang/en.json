@@ -2063,6 +2063,7 @@
   "FGT.FollowUp.Declared": "{name}: {unit} makes an additional Normal Attack on {target}.",
   "FGT.Card.Missed2": "Missed — the attack did not happen.",
   "FGT.Card.Drawn": "Drawn at random: d{of} = {roll}, of {of} enemies in the area.",
+  "FGT.Card.DrawnNone": "{ability}: hit {hit} strikes nothing, no enemy is left standing in the area.",
   "FGT.Card.Missed": "{attacker} missed {target} — rolled {roll} against a {chance}% Miss chance from {source}.",
   "FGT.Dioscuri.ManaBurstChoice": "Mana Burst: choose the restoration",
   "FGT.Dioscuri.SelfRestore": "Restore 2 Agility and 2 Luck to this Servant",

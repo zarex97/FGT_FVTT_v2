@@ -1665,8 +1665,33 @@ async function declareProcesses({
   // after the declaration read its board, and what it cast decides the rungs.
   // Kokutendō at the start of the Combat Phase put Aphotic on Tamamo, and the
   // Process still offered her Evade and asked her to react (found live, #353).
-  const live = boardSnapshot();
-  for (const declared of states) {
+  let live = boardSnapshot();
+  // A sheet that strikes in order (Dainisshō's hits, #353 reading 31) is
+  // declared one strike at a time: the next is drawn and declared once every
+  // Process before it is done, among the Units still standing
+  // (`advanceDrawnHits`). fgt-scan: drawn-hits-in-sequence
+  const batches = strikeBatches(states);
+  const inSequence = batches.length > 1;
+  const standing = (id) => Boolean(unitActor(id)) && !unitActor(id).system?.defeated;
+  /**
+   * Declare one Process: its card, its first rung, its events.
+   *
+   * @param {object} drawnFrom the Process as the fan-out built it
+   * @returns {Promise<boolean>} whether it struck anybody
+   */
+  const declareOne = async (drawnFrom) => {
+    const bound = inSequence ? await drawHit(drawnFrom, standing) : drawnFrom;
+    if (!bound) return false;
+    // Rebound to the Unit the die chose: what the fan-out derived per defender.
+    const declared = bound.defenderId === drawnFrom.defenderId ? bound : {
+      ...bound,
+      cone: attackCone(
+        (live?.units ?? []).find((u) => u.id === bound.defenderId) ?? null,
+        (live?.units ?? []).find((u) => u.id === attackerId) ?? null,
+      ),
+      caughtConcealed: caughtConcealed.has(bound.defenderId) || undefined,
+      caughtByArea: caughtByArea.has(bound.defenderId) || undefined,
+    };
     const state = carryDeclarationBoosts(declared, boostWindow);
     // What this defender could answer with, beyond Block and Evade. Recorded on
     // the state because `pendingPrompt` is pure and cannot read documents, and
@@ -1789,7 +1814,38 @@ async function declareProcesses({
     // that is about to be hit may have something to say about it -- a Kagome
     // Spirit vanishes rather than take a Light attack.
     await fireAttacked(advanced);
-  }
+    return true;
+  };
+  /**
+   * Declare one strike of the sheet's order, saying so when nobody is left.
+   * @param {object[]} batch
+   * @returns {Promise<void>}
+   */
+  const declareBatch = async (batch) => {
+    let struck = false;
+    for (const declared of batch) struck = (await declareOne(declared)) || struck;
+    if (struck || !inSequence) return;
+    const hit = (batch[0].attack?.instanceIndex ?? 0) + 1;
+    await ChatMessage.create({
+      content: `<div class="fgt-card"><p>${game.i18n.format("FGT.Card.DrawnNone", {
+        ability: foundry.utils.escapeHTML(ability?.name ?? game.i18n.localize("FGT.Chat.NormalAttack")),
+        hit,
+      })}</p></div>`,
+    });
+  };
+  const queued = inSequence
+    ? {
+      batches: batches.slice(1), busy: true,
+      // A later strike reads the board its earlier ones left.
+      declareBatch: async (batch) => {
+        board = currentBoard();
+        live = boardSnapshot();
+        await declareBatch(batch);
+      },
+    }
+    : null;
+  if (queued) drawnHits.set(states[0].groupId, queued);
+  await declareBatch(batches[0]);
 
   // Everything the ability does to its USER, which the Combat Process has no
   // rung for: spending a Resource, opening a bounded field, conjuring a squad,
@@ -1840,13 +1896,64 @@ async function declareProcesses({
     await resetFormRange(attacker.id);
   }
 
+  if (queued) {
+    queued.busy = false;
+    await advanceDrawnHits(states[0].groupId);
+  }
+
   return {
     groupId: states[0].groupId,
     processes,
     // The first process, for callers that predate the fan-out.
-    messageId: processes[0].messageId,
-    state: processes[0].state,
+    messageId: processes[0]?.messageId ?? null,
+    state: processes[0]?.state ?? null,
   };
+}
+
+/**
+ * The strikes a declaration has still to make, by its group (#353 reading 31):
+ * the batches left and the declaring run's own way to declare them. In memory,
+ * as the declaring run is: a reload loses both alike.
+ *
+ * @type {Map<string, {batches: object[][], busy: boolean, declareBatch: (batch: object[]) => Promise<void>}>}
+ */
+const drawnHits = new Map();
+
+/**
+ * Has this group strikes still to make? Its Combat Phase is not over until it has made them.
+ * @param {string|null} groupId
+ * @returns {boolean}
+ */
+export function drawnHitsPending(groupId) {
+  return Boolean(groupId) && drawnHits.has(groupId);
+}
+
+/**
+ * Make a group's next strike once every Process before it is done, and end its
+ * Combat Phase after the last.
+ *
+ * @param {string|null} groupId
+ * @returns {Promise<void>}
+ */
+async function advanceDrawnHits(groupId) {
+  const queued = groupId ? drawnHits.get(groupId) : null;
+  if (!queued || queued.busy) return;
+  const siblings = phaseMessages(groupId);
+  if (siblings.some((m) => !process.isComplete(process.deserialize(m.getFlag("fgt", "process"))))) return;
+  const batch = queued.batches.shift();
+  if (!batch) {
+    drawnHits.delete(groupId);
+    const last = siblings[siblings.length - 1];
+    if (last) await fireCombatPhaseEnd(process.deserialize(last.getFlag("fgt", "process")));
+    return;
+  }
+  queued.busy = true;
+  try {
+    await queued.declareBatch(batch);
+  } finally {
+    queued.busy = false;
+  }
+  await advanceDrawnHits(groupId);
 }
 
 /**
@@ -2444,6 +2551,8 @@ async function closeRung(state, message) {
       await offerRiderFollowUp(state, { resolveAttack });
     }
     await flushAutoCounters(state.groupId);
+    // The sheet's next strike, if this declaration has one to make (#353 reading 31).
+    await advanceDrawnHits(state.groupId);
     await fireCombatPhaseEnd(state);
     // Last, so the deferred half sees a board on which this Process has fully
     // settled -- including a defeat it caused.
@@ -3926,6 +4035,30 @@ async function paintAfterPhase(declared) {
 }
 
 /**
+ * Every Process message of one Combat Phase.
+ *
+ * @param {string|null} groupId
+ * @returns {object[]}
+ */
+function phaseMessages(groupId) {
+  // The flag holds a JSON STRING -- `process.serialize` stringifies -- so it has
+  // to be parsed before anything can be read off it. Reaching for `.groupId`
+  // straight off the flag gave `undefined` for every message, which silently
+  // made every fan-out look like a group of one.
+  return groupId
+    ? game.messages.filter((m) => {
+      const raw = m.getFlag("fgt", "process");
+      if (!raw) return false;
+      try {
+        return process.deserialize(raw).groupId === groupId;
+      } catch {
+        return false;
+      }
+    })
+    : [];
+}
+
+/**
  * Raise `combatPhaseEnd`, once, when every Process in the fan-out has finished.
  *
  * A Combat **Phase** is the whole exchange; a Combat **Process** is one
@@ -3942,21 +4075,9 @@ async function paintAfterPhase(declared) {
  * @returns {Promise<void>}
  */
 async function fireCombatPhaseEnd(state) {
-  // The flag holds a JSON STRING -- `process.serialize` stringifies -- so it has
-  // to be parsed before anything can be read off it. Reaching for `.groupId`
-  // straight off the flag gave `undefined` for every message, which silently
-  // made every fan-out look like a group of one.
-  const siblings = state.groupId
-    ? game.messages.filter((m) => {
-      const raw = m.getFlag("fgt", "process");
-      if (!raw) return false;
-      try {
-        return process.deserialize(raw).groupId === state.groupId;
-      } catch {
-        return false;
-      }
-    })
-    : [];
+  // A declaration with strikes still to make has not finished its Phase.
+  if (drawnHitsPending(state.groupId)) return;
+  const siblings = phaseMessages(state.groupId);
   const others = siblings.filter((m) => !process.isComplete(process.deserialize(m.getFlag("fgt", "process"))));
   if (others.length > 0) return;
 
@@ -8314,8 +8435,10 @@ export function processDelivery(state, board = currentBoard()) {
  * the log. An instance that names `pick: randomEnemy` strikes one defender
  * drawn at random from the declaration's (Dainisshō, #353 reading 31), so its
  * rows run in the sheet's order across targets: hits 1 to 8 one card each, hit
- * 9 one per enemy. Each draw is a die (`1dN` over the defenders, a repeat
- * allowed) on its card (`picked`).
+ * 9 one per enemy. Such a row names every defender it may strike
+ * (`pickFrom`), the first standing in for the draw: the die is rolled as the
+ * hit strikes, among those still standing (`drawHit`), never here. Drawn here,
+ * a Master the fourth hit felled was drawn by two later hits (found live).
  *
  * @param {Array<{t: {unitId: string}, specs: object[]}>} perTarget
  * @returns {Promise<Array<{unitId: string, spec: object}>>}
@@ -8337,11 +8460,53 @@ export async function processRows(perTarget) {
     }
     if (pick !== "randomEnemy") throw new Error(`FGT | Unknown instance pick "${pick}".`);
     if (holders.length === 0) continue;
-    const roll = (await new Roll(`1d${holders.length}`).evaluate()).total;
-    const chosen = holders[Math.min(holders.length, Math.max(1, roll)) - 1];
-    rows.push({ unitId: chosen.t.unitId, spec: tag(chosen.specs[i], i, count, { picked: { roll, of: holders.length } }) });
+    const pickFrom = holders.map(({ t, specs }) => ({ unitId: t.unitId, spec: tag(specs[i], i, count) }));
+    rows.push({ unitId: pickFrom[0].unitId, spec: { ...pickFrom[0].spec, pickFrom } });
   }
   return rows;
+}
+
+/**
+ * Draw a hit's defender as it strikes (#353 reading 31): one die, `1dN` over
+ * the defenders it may strike that are still standing, on its card
+ * (`picked`). A hit with no draw keeps its defender while that one stands.
+ *
+ * @param {object} state the Process as declared, its `attack.pickFrom` the candidates
+ * @param {(unitId: string) => boolean} standing
+ * @returns {Promise<object|null>} the Process bound to its defender, or `null`: nobody left, the hit does nothing
+ */
+export async function drawHit(state, standing) {
+  const from = state.attack?.pickFrom ?? null;
+  if (!from) return standing(state.defenderId) ? state : null;
+  const left = from.filter((c) => standing(c.unitId));
+  if (left.length === 0) return null;
+  const roll = (await new Roll(`1d${left.length}`).evaluate()).total;
+  const chosen = left[Math.min(left.length, Math.max(1, roll)) - 1];
+  const { pickFrom: _candidates, ...declared } = state.attack;
+  return {
+    ...state,
+    defenderId: chosen.unitId,
+    attack: { ...declared, ...chosen.spec, picked: { roll, of: left.length } },
+  };
+}
+
+/**
+ * A declaration's Processes, cut where the sheet strikes in order: each drawn
+ * hit alone, and the hits between them together (Dainisshō's hit 9, one per
+ * enemy). One batch when nothing is drawn.
+ *
+ * @param {object[]} states
+ * @returns {object[][]}
+ */
+export function strikeBatches(states) {
+  if (!states.some((s) => s.attack?.pickFrom)) return [states];
+  const batches = [];
+  for (const s of states) {
+    const last = batches[batches.length - 1];
+    if (s.attack?.pickFrom || !last || last[0].attack?.pickFrom) batches.push([s]);
+    else last.push(s);
+  }
+  return batches;
 }
 
 /**
