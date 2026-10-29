@@ -266,3 +266,9 @@ that says `alsoOnMiss` is paid on `missed` and `noDamage` too, once per group, o
 self phase is the hit's, as a sheet states its own. A cleanse that reaches an Unremovable effect says it stays
 (`skill-use.mjs#heldUnremovable`), and the caster's card posts for that line alone.
 
+### Who hears a swing (#351)
+
+`engine/attack.mjs#swingHearers` names who hears `damageStepEnd` and `damageDealt`: the attacker, a mount's driver
+when the mount attacks for her (#187), and the mount whose swing a rider's Normal Attack is. The CPA's *"Normal
+Attacks at a Range of 1 to 2 knocks back the DU(s)"* fired with Karl declaring, so it is the mount's handler that
+pushes, from the mount's footprint (found live).

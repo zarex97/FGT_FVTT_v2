@@ -171,7 +171,9 @@ successful Luck Check is required"*. Heard on `unitFirstSeen`, once a pair, so a
 `engine/true-name.mjs#learnServantPage` copies the Servant's sheet (its True Name, Classes, Parameters, Attributes and
 abilities) into the reader's player's Notebook; the die and the result are whispered to that player and the GM. A
 Unit hides its information when it holds Presence Concealment, a Disguise or a Feigned Defeat (`hidesInformation`,
-reading 3). The Check is contested against the seen Servant's Luck and spends 1 of the reader's.
+reading 3). The Check is contested against the seen Servant's Luck and spends 1 of the reader's. Two sweeps at
+once (a move's and a boarding's) each claim a pair in memory before any await, so a first sight fires once
+(`engine/vision.mjs`; found live, #351).
 
 ## Invariants & edge cases
 

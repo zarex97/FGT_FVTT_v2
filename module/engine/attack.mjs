@@ -3338,10 +3338,7 @@ async function fireDamageDealt(state, result) {
   // 2): the Golden Hind's Attack is *"Drake's Normal Attack"*, replaced, so its
   // Crit is her Crit and Blazing Golden Rule's *"whenever this Unit performs a
   // Crit"* hears it. Her handlers run beside the ship's, never instead.
-  const drivers = attacker.kind === "platform"
-    ? turnPartnersOf(attacker, board, "attack")
-    : [];
-  const hearers = [attacker, ...drivers.map((d) => unitOf(unitActor(d.id), board) ?? d)];
+  const hearers = swingHearers(attacker, state, board);
   // `attack:crit` is in the set only here, which is right: a clause that asks
   // whether the attack crit is by definition asking about a resolved one.
   // ...and whether it hurt: the event fires on a hit that dealt 0 too (an
@@ -6012,6 +6009,29 @@ function recordIntents(defender, state) {
 }
 
 /**
+ * Who hears what a swing did: the attacker, and the other half of a mount and
+ * its driver when the swing is theirs together. A mount that attacks in place
+ * of its driver attacks as her (#187 reading 2), so her handlers run beside the
+ * ship's; and a rider whose Normal Attack IS her mount's swings with the mount's
+ * clauses too: the CPA's *"Normal Attacks at a Range of 1 to 2 knocks back the
+ * DU(s)"* fired with Karl declaring (#351, found live).
+ *
+ * @param {object} attacker
+ * @param {object} state the Combat Process
+ * @param {object} board
+ * @returns {object[]}
+ */
+function swingHearers(attacker, state, board) {
+  const drivers = attacker.kind === "platform" ? turnPartnersOf(attacker, board, "attack") : [];
+  const { platform, attacksAsPlatform } = attacker.kind === "platform"
+    ? { platform: null, attacksAsPlatform: false }
+    : actionSourceFor(attacker, board);
+  const mount = attacksAsPlatform && platform && !state?.attack?.abilityId && state?.attack?.kind === "normal"
+    ? [platform] : [];
+  return [attacker, ...[...drivers, ...mount].map((d) => unitOf(unitActor(d.id), board) ?? d)];
+}
+
+/**
  * The named units a base-attack source may refer to.
  *
  * One entry today: `mount`, for a rider whose platform replaces her Normal
@@ -7458,9 +7478,10 @@ async function fireDamageStepEnd(state, result = null) {
   // chance on one of its actions could never pass: Castor's 5% NP-cooldown
   // clause (#103). Each chance is FILED on the card too, as `damageDealt`'s
   // are: the Divine Core's 5% was rolled and shown nowhere (#209, live).
-  const { rolls, filed } = await rollChances([attacker], "damageStepEnd", options);
+  const hearers = swingHearers(attacker, state, board);
+  const { rolls, filed } = await rollChances(hearers, "damageStepEnd", options);
   const logFrom = (currentWar()?.getFlag?.("fgt", "log") ?? []).length;
-  const intents = fireEvent("damageStepEnd", [attacker], {
+  const intents = fireEvent("damageStepEnd", hearers, {
     tick,
     turnsPerRound: warRule("turnsPerRound"),
     board,

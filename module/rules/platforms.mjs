@@ -26,6 +26,7 @@ import { rollOptionsFor } from "./options.mjs";
 import { relationOf } from "./relations.mjs";
 import { deliveryOf } from "./delivery.mjs";
 import { EXECUTORS, empty } from "./elements.mjs";
+import { preventedBy } from "./budget.mjs";
 
 /**
  * The default protection model. A platform that says nothing is transparent —
@@ -1694,6 +1695,9 @@ export function escapeVerdict(unit, platform, board) {
   const owner = (board?.units ?? []).find((u) => u.id === platform.ownerId) ?? null;
   if (!owner || relationOf(owner, unit, board) !== (spec.byRelation ?? "enemy")) return { ok: false, reason: "noEscape" };
   if (unit.turnState?.moved) return { ok: false, reason: "alreadyMoved" };
+  // In place of its Move, so whatever prevents a Move prevents it: a Stunned
+  // Servant does not try (found live, #351).
+  if (preventedBy(unit, "move").prevented) return { ok: false, reason: "cannotAct" };
   return { ok: true };
 }
 

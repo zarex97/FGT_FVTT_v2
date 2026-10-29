@@ -437,6 +437,9 @@ charged costs, summed per pool, cannot meet. Enki's half of the Master's maximum
   `self:ownsPlatform:carolus-patricius-auctoritas` (reading 28).
 - **One NP, a clock per usage.** Auctoritas is two abilities, each with its own cooldown; `abilityOffCooldown` on
   each names the other and Carolus Patricius, and Carolus Patricius names both (reading 23).
+- **A refusal names what it waits on, on every path.** `abilityOffCooldown` is worded `CoolingNamed` with the
+  cooling ability's name by the Attack path (`attack-preflight.mjs#usageRefusal`) and the Skill path (`useSkill`
+  returns the usage detail, `refusalWords` reads it), as the bar already said it (found live).
 - **A damage source on an owned platform.** `{unit: "platform:<contentId>"}` reads the Base Attack of that platform
   of the attacker's, falling back to the attacker when none stands, and the breakdown says `self` then
   (`attack.mjs#namedUnits`, `pipeline.mjs` stage 1): *"uses CPA's Base Attack"*.

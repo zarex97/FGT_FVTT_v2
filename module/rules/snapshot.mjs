@@ -681,6 +681,7 @@ export function snapshotUnit(actor, {
     lifespan: sys.lifespan ?? null,
     endsWhenDefeated: [...(sys.endsWhenDefeated ?? [])],
     endsWhenOwnerUses: [...(sys.endsWhenOwnerUses ?? [])],
+    ownerMasterId: sys.ownerMasterId ?? null,
     escape: sys.escape ?? null,
     extendedBy: sys.extendedBy ?? null,
     // Concealment is a STATE, and until now nothing produced it. `sys.concealed`

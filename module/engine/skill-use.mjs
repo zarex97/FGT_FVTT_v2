@@ -131,7 +131,7 @@ export async function useSkill({
     board, combat, atWindow, anyMoment, bypassesCategoryLimit, target: null, asAttack: false,
   });
   const usage = gate.usage;
-  if (!gate.ok) return { ok: false, reason: gate.reason };
+  if (!gate.ok) return { ok: false, reason: gate.reason, ...((gate.usage?.detail ?? gate.detail) ? { detail: gate.usage?.detail ?? gate.detail } : {}) };
 
   // A Skill spends the skill budget, not an attack (Ch. 19). `countsAsAttack`
   // is consulted rather than assumed: a damaging Attack Skill spends both.
@@ -3017,17 +3017,31 @@ async function summonPlatform(phase, actor, board) {
     && p.ownerId === actor.id && (phase.replaces ?? []).includes(p.contentId));
   let masterAboardReplaced = null;
   if (replaced.length > 0) {
+    // Where the two come down: he on the panel he stood on, his Master on
+    // another panel of the new deck. Landed there by the teardown itself; a
+    // move written after it was lost to the scatter (found live, #351).
+    const size = source.system?.footprint ?? { w: 1, h: 1 };
+    const at = summonAnchor(stood, size, board.bounds);
+    const seat = [];
+    for (let di = 0; di < size.h; di += 1) {
+      for (let dj = 0; dj < size.w; dj += 1) {
+        const p = { i: at.i + di, j: at.j + dj };
+        if (p.i !== stood.i || p.j !== stood.j) seat.push(p);
+      }
+    }
     const { destroyPlatform } = await import("./platforms.mjs");
     for (const p of replaced) {
       const master = self.masterId ? board.units.find((u) => u.id === self.masterId) : null;
       if (master?.platformId === p.id) masterAboardReplaced = master.id;
-      await destroyPlatform({ platformId: p.id, reason: "replaced" });
+      const landings = { [actor.id]: stood, ...(masterAboardReplaced && seat[0] ? { [masterAboardReplaced]: seat[0] } : {}) };
+      await destroyPlatform({ platformId: p.id, reason: "replaced", landings });
     }
   }
 
   const data = source.toObject();
   data.system.ownerId = actor.id;
   data.system.factionId = actor.system?.factionId ?? null;
+  data.system.ownerMasterId = actor.system?.masterId ?? null;
   // The lockout and the upkeep period both count from here, and neither can be
   // recovered afterwards -- a platform that forgot when it was raised could be
   // switched off immediately or charge its Master on the wrong beat.
@@ -3070,23 +3084,7 @@ async function summonPlatform(phase, actor, board) {
   // her panel -- and then he is put ON it. Level assignment never changes x or
   // y, so without the move he rode a deck he was not standing on.
   const riders = [actor.id];
-  if (replaced.length > 0) {
-    // Back on the panel he stood on, under the new deck, and his Master beside
-    // him on another of its panels, wherever the scatter left either.
-    const seats = [];
-    for (let di = 0; di < footprint.h; di += 1) {
-      for (let dj = 0; dj < footprint.w; dj += 1) {
-        const p = { i: anchor.i + di, j: anchor.j + dj };
-        if (p.i !== stood.i || p.j !== stood.j) seats.push(p);
-      }
-    }
-    const moves = [I.move(actor.id, [stood], true)];
-    if (masterAboardReplaced && seats.length > 0) {
-      moves.push(I.move(masterAboardReplaced, [seats[0]], true));
-      riders.push(masterAboardReplaced);
-    }
-    await applyWorldIntents(moves, "platform:replacedSeat");
-  }
+  if (masterAboardReplaced) riders.push(masterAboardReplaced);
   if (phase.boardMasterIfAdjacent && self.masterId && !riders.includes(self.masterId)) {
     const master = board.units.find((u) => u.id === self.masterId);
     const seat = masterSeat(self, master, { panel: anchor, footprint });

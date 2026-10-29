@@ -406,7 +406,9 @@ function stage1Base(s) {
     // One line, deliberately: `card-visibility.test.mjs` scans this file
     // line by line for a contribution with no explicit side, and a call split
     // across lines reads as an unattributed one.
-    const label = `${src.contentId ?? (src.unit === "self" || named ? src.unit : "self")} BA(${src.component.toUpperCase()}) × ${src.factor ?? 1}`;
+    // An owned platform by its own name, never its content id (#351, live).
+    const who = String(src.unit ?? "").startsWith("platform:") && named ? (named.name ?? src.unit) : src.unit;
+    const label = `${src.contentId ?? (src.unit === "self" || named ? who : "self")} BA(${src.component.toUpperCase()}) × ${src.factor ?? 1}`;
     s.contribute(`base:${src.component}`, v, label, "attacker");
   }
 

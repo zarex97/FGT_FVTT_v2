@@ -235,6 +235,12 @@ Karl de Große raises two platforms, and every piece is a platform key a later s
 - **Raised in another's place.** `summonPlatform {replaces: [contentId]}` ends the owner's standing platform of that
   content first, its passengers scattered, the caster set back on the panel he stood on and his Master seated beside
   him on the new deck (reading 25).
+- **Found pressing Karl live.** The escape is refused to a Unit that cannot Move (`preventedBy`); an enemy's entry
+  and every toll are said on a card; the extension prompt names the platform. A platform raised in another's place
+  lands its owner and his Master through the old deck's teardown (`destroyPlatform({landings})`): a move written
+  after it was lost. The payment that fells the owner ends the platform that same Turn, and the platform remembers
+  the Master it was raised with (`ownerMasterId`), since his fall frees the owner and clears `masterId`. A platform
+  that falls itself is closed as `destroyed`, never as its owner's defeat.
 - **A platform that walks onto Units.** `movesOntoOccupiedPanels` on a platform pushes the Units on the ground
   beneath its destination clear (`rules/movement.mjs#pushLevelOf`): a platform stands on a level of its own.
 
