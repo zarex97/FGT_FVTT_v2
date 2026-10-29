@@ -20,6 +20,17 @@ import { applyWorldIntents } from "./applier.mjs";
 import { warRule, currentWar } from "./war.mjs";
 
 /**
+ * The (seer, seen) pairs this client has already claimed. Two sweeps can run at
+ * once -- a move's and a boarding's -- and each read the board before the other
+ * wrote `seenUnitIds`, so both fired `unitFirstSeen` for the same pair: Karl's
+ * True Name Discernment copied Arjuna's page twice (#351, live). Claimed here,
+ * before any await, so the second sweep finds it taken.
+ *
+ * @type {Set<string>}
+ */
+const claimed = new Set();
+
+/**
  * Check every unit's Detect range against the board and fire `unitFirstSeen`
  * for each newly-crossed (seer, seenUnit) pair.
  *
@@ -39,8 +50,9 @@ export async function checkSightings({ board = null } = {}) {
   const units = b.units ?? [];
 
   for (const seer of units) {
-    const newlySeen = newlySeenBy(seer, b);
+    const newlySeen = newlySeenBy(seer, b).filter((id) => !claimed.has(`${seer.id}:${id}`));
     if (newlySeen.length === 0) continue;
+    for (const id of newlySeen) claimed.add(`${seer.id}:${id}`);
 
     const actor = unitActor(seer.id);
     if (!actor) continue;

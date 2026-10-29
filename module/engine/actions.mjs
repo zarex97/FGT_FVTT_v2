@@ -93,6 +93,13 @@ export const ACTION_HANDLERS = Object.freeze({
   // rest (Ch. 46 §46.4-H).
   escape: async ({ actor, context }) => attemptEscape({ unitId: actor.id, fieldId: context.fieldId }),
 
+  // Carolus Patricius's escape (#351): a Luck Check against its owner.
+  escapePlatform: async ({ actor, context }) => {
+    if (context?.blocked) return { ok: false, reason: context.blocked };
+    const { escapePlatform } = await import("./platforms.mjs");
+    return escapePlatform({ unitId: actor.id, platformId: context.platformId });
+  },
+
   facing: async ({ actor, context }) => {
     await actor.update({ "system.facing": context.facing });
     return { ok: true };

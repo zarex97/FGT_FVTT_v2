@@ -1116,8 +1116,10 @@ function damageBlocksAreKnown(doc, path, problems) {
     // any other word used to fall through to the attacker in silence (#249).
     for (const [i, src] of (block.base?.sources ?? block.sources ?? []).entries()) {
       if (src?.contentId) continue;
+      // One of the attacker's own standing platforms, by content id (#351).
+      if (/^platform:[a-z0-9-]+$/.test(String(src?.unit ?? ""))) continue;
       if (!SOURCE_UNITS.includes(src?.unit)) {
-        problems.push(`${path}: ${where} source ${i} reads unit "${src?.unit}" -- expected one of ${SOURCE_UNITS.join(", ")}, or a contentId`);
+        problems.push(`${path}: ${where} source ${i} reads unit "${src?.unit}" -- expected one of ${SOURCE_UNITS.join(", ")}, platform:<contentId>, or a contentId`);
       }
       if (src?.unit === "target" && src.stat !== "currentHealth") {
         problems.push(`${path}: ${where} source ${i} reads the target and states no stat it knows -- expected stat: currentHealth`);

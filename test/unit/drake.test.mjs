@@ -780,7 +780,9 @@ describe("the Golden Hind's Crit is Drake's Crit (#187 reading 2)", () => {
   it("damageDealt reaches the driver of a mount that attacks for her", () => {
     const src = readFileSync("module/engine/attack.mjs", "utf8");
     const fn = functionBody(src, "async function fireDamageDealt");
-    expect(fn).toMatch(/turnPartnersOf\(/);
+    // Through the one reader of who hears a swing, which Karl's CPA joined (#351).
+    expect(fn).toMatch(/swingHearers\(attacker, state, board\)/);
+    expect(functionBody(src, "function swingHearers")).toMatch(/turnPartnersOf\(/);
     expect(fn).toMatch(/fireEvent\("damageDealt", hearers,/);
   });
 
@@ -980,7 +982,8 @@ describe("a Skill refusal is worded (#187)", () => {
   it("the sheet words every Skill refusal through FGT.Ability.Refused", () => {
     const sheet = readFileSync("module/apps/actor-sheet/sheet.mjs", "utf8");
     expect(sheet).not.toMatch(/reason: out\.reason[ ,}]/);
-    expect((sheet.match(/reason: refusalWords\(out\.reason\)/g) ?? []).length).toBe(3);
+    // With the refusal's detail, so a refusal can name what it waits on (#351).
+    expect((sheet.match(/reason: refusalWords\(out\.reason, out\.detail\)/g) ?? []).length).toBe(3);
     const lang = JSON.parse(readFileSync("lang/en.json", "utf8"));
     expect(lang["FGT.Ability.Refused.zon"]).toBeTruthy();
   });

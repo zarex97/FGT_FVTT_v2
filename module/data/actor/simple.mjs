@@ -298,6 +298,31 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
       // test instead, because the base moves.
       countsAsHomeBase: new fields.BooleanField({ initial: false }),
 
+      // A platform that walks onto occupied panels and knocks their Units back on
+      // the ground beneath it: Carolus Patricius Auctoritas (#351). Bašmu's key,
+      // read the same way (`snapshot.mjs`, `rules/movement.mjs#pushLevelOf`).
+      movesOntoOccupiedPanels: new fields.BooleanField({ initial: false }),
+
+      // Carolus Patricius (#351). Rule elements its passengers carry while aboard,
+      // by their role or relation to its owner (`snapshot.mjs#annotatePlatforms`);
+      // a life its owner may lengthen (`engine/fields.mjs#runLifespans`); the
+      // Units whose defeat ends it at the end of the Turn; the escape an enemy
+      // may try (`rules/platforms.mjs#escapeVerdict`).
+      passengerRules: new fields.ArrayField(new fields.ObjectField(), { initial: [] }),
+      lifespan: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      endsWhenDefeated: new fields.ArrayField(new fields.StringField({ blank: false }), { initial: [] }),
+      // Its owner's Master when it was raised, written by the summon: a Master's
+      // fall frees his Servant and clears `masterId`, and the Carolus must still
+      // know whose fall ends it (#351, found live).
+      ownerMasterId: new fields.StringField({ required: false, nullable: true, initial: null }),
+      // The owner's abilities whose use ends it at the end of that Turn:
+      // Auctoritas's Usage 1 fired while the CPA stands (#351 reading 28).
+      endsWhenOwnerUses: new fields.ArrayField(new fields.StringField({ blank: false }), { initial: [] }),
+      escape: new fields.ObjectField({ required: false, nullable: true, initial: null }),
+      // How far its life has been lengthened, in ticks past `lifespan.duration`.
+      // Written by the extension, never authored.
+      extendedBy: new fields.NumberField({ required: false, nullable: true, initial: null, integer: true }),
+
       // Cross-level rules are per-platform, not global (Ch. 27): the
       // author confirmed protection is decided case by case, so there is no
       // global rule to derive -- only a four-axis model each platform picks a
@@ -330,6 +355,14 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
           initial: "everyone", choices: ["enemies", "everyone"] }),
         protectedAgainst: new fields.StringField({
           initial: "anything", choices: ["attacks", "anything"] }),
+        // Carolus Patricius (#351 readings 17, 18): only an AoE Noble Phantasm
+        // reaches in (`np`), it reaches every Servant aboard whatever its own
+        // area, and one at or above this NP scale ends the platform at the end
+        // of its Combat Process. Read by `rules/platforms.mjs#crossLevelLegal`,
+        // `rules/targeting/resolve.mjs` and `engine/attack.mjs`.
+        aoeOnly: new fields.StringField({ required: false, nullable: true, initial: null, choices: ["np"] }),
+        aoeCatchesAll: new fields.BooleanField({ initial: false }),
+        endsOnNpScale: new fields.StringField({ required: false, nullable: true, initial: null }),
       }),
     };
   }

@@ -1,0 +1,32 @@
+# The Ruler class skill, as Karl de Große prints it (#351, Rank B, 80%); Jeanne
+# prints it at A with no chance at all. The chance is a parameter.
+#
+# *"Ignores Stun Resist, Stun Immune, and any other effects that specifically
+# reduce the chance of being inflicted with Stun"*: what names Stun is passed
+# (`ignoresNamedDefences`); general debuff resistance, Magic Resistance among
+# it, and Debuff Immune still apply (reading 5).
+schema: 1
+id: class-gods-resolution
+name: "God's Resolution"
+source: class
+slug: godsResolution
+kind: classSkill
+copyable: { allowed: false, reason: classSkill }
+parameterized: [rank, chance, cooldown]
+rank: "@rank"
+cooldown: "@cooldown"
+timing: { window: ownTurn }
+countsAsAttack: false
+description: |
+  (Active) Used during your Turn. Range=2. Used on an enemy Unit. Inflicts @effect[stun]{Stun} for 1◈ Turns.
+  Ignores Stun Resist, Stun Immune, and any other effects that specifically reduce the chance of being inflicted
+  with Stun.
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: stun, duration: "1◈", chance: "@chance", ignoresNamedDefences: true }

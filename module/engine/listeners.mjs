@@ -27,6 +27,7 @@ import { Hgob } from "./hgob.mjs";
 import { Movement } from "./movement-hooks.mjs";
 import { Terrain } from "./terrain.mjs";
 import { FactionOwnership } from "./faction-ownership.mjs";
+import { AuraGrants } from "./aura-grants.mjs";
 import { TokenImage } from "./token-image.mjs";
 import { TokenFootprint } from "./token-footprint.mjs";
 import { TokenVision } from "./token-vision.mjs";
@@ -113,6 +114,9 @@ export const ENGINE_LISTENERS = Object.freeze([
   // A Master Essence's copy on its Servant follows the Contract and ends with
   // the Master (#241).
   { id: "masterEssences", attach: () => MasterEssences.attach() },
+  // An aura that grants an effect keeps it on the Units it reaches: Karl's
+  // Ceremonial Reformation (#351).
+  { id: "auraGrants", attach: () => AuraGrants.attach() },
 ]);
 
 /**

@@ -25,6 +25,8 @@ import { test as testPredicate } from "./predicate.mjs";
 import { rollOptionsFor } from "./options.mjs";
 import { relationOf } from "./relations.mjs";
 import { deliveryOf } from "./delivery.mjs";
+import { EXECUTORS, empty } from "./elements.mjs";
+import { preventedBy } from "./budget.mjs";
 
 /**
  * The default protection model. A platform that says nothing is transparent —
@@ -326,7 +328,8 @@ export { rangedMinimumRange } from "./delivery.mjs";
  *   `factor` and `platform` when an occupant is kept at a tier below full damage
  */
 export function crossLevelLegal(attacker, target, board, {
-  range = null, allowDirectlyBelow = false, reach = "attack", area = false, delivery = null,
+  range = null, allowDirectlyBelow = false, reach = "attack", area = false, delivery = null, isNP = false,
+  ignoresOutbound = false,
 } = {}) {
   if ((attacker?.level ?? 0) === (target?.level ?? 0)) return { ok: true };
   // A POCKET DIMENSION is not above anything: nothing crosses in or out of it,
@@ -362,6 +365,8 @@ export function crossLevelLegal(attacker, target, board, {
         // Caught, not aimed at: the occupant's own tier, whatever the platform
         // says about being targeted.
         if (rules.aoeMastersImmune && target?.kind === "master") return { ok: false, reason: "aoeMastersImmune" };
+        // Only an AoE Noble Phantasm reaches in: Carolus Patricius (#351 reading 17).
+        if (rules.aoeOnly === "np" && !isNP) return { ok: false, reason: "occupantsForbidden" };
         const factor = aoePassengerFactor(target, inbound);
         if (factor <= 0) return { ok: false, reason: "occupantsForbidden" };
         if (factor < 1) caught = { factor, platform: inbound.name ?? inbound.contentId ?? inbound.id };
@@ -376,7 +381,8 @@ export function crossLevelLegal(attacker, target, board, {
   // A fortress that nobody can shoot into may still let its occupants shoot
   // out, or may not; the two are not the same permission.
   const outbound = platformOf(attacker, board);
-  if (outbound && outbound.id !== inbound?.id) {
+  // An ability that says so fires off its bearer's deck: Karl Cannons (#351).
+  if (outbound && outbound.id !== inbound?.id && !ignoresOutbound) {
     const rules = outbound.crossLevel ?? OPEN_PLATFORM;
     if (rules.outboundTargeting === "forbidden") return { ok: false, reason: "outboundForbidden" };
     if (rules.outboundTargeting === "rangedOnly" && !ranged) return { ok: false, reason: "requiresRanged" };
@@ -1079,6 +1085,13 @@ export function upkeepDue(upkeep, {
 } = {}) {
   if (!upkeep?.every) return { due: false, reason: "noPeriod" };
 
+  // Every Turn's end, the Turn it was raised in too: Carolus Patricius
+  // Auctoritas, *"At the end of every Turn this NP is Active"* (#351 reading 27).
+  if (upkeep.every === "turn") {
+    if (atRoundBoundary) return { due: false, reason: "tickPeriodAtRoundBoundary" };
+    return lastUpkeepAt === tick ? { due: false, reason: "alreadyThisTurn" } : { due: true };
+  }
+
   if (upkeep.every === "round") {
     if (!atRoundBoundary) return { due: false, reason: "notRoundBoundary" };
     // Compare ROUNDS, never a derived tick count: deriving one would silently
@@ -1219,6 +1232,12 @@ export function canUnboard(unit, platform) {
   const locked = platform?.lockAboard ?? [];
   if (locked.includes("owner") && unit?.id === platform?.ownerId) {
     return { ok: false, reason: "lockedAboard" };
+  }
+  // *"In order to Escape the Carolus, enemy Servants have to Succeed a Luck
+  // Check against Karl"*: an enemy leaves only by its escape (#351 readings 14,
+  // 15), never by a Jump.
+  if (locked.includes("enemy") && unit?.faction && platform?.faction && unit.faction !== platform.faction) {
+    return { ok: false, reason: "lockedAboardEnemy" };
   }
   return { ok: true };
 }
@@ -1653,4 +1672,119 @@ export function destructionSequence(platform, board, { saves = {} } = {}) {
   out.push({ kind: "removeLevel", platformId: platform.id, level: platform.level ?? null });
 
   return out;
+}
+
+/**
+ * May this Unit try to escape the platform it stands on?
+ *
+ * Carolus Patricius: *"In order to Escape the Carolus, enemy Servants have to
+ * Succeed a Luck Check against Karl (can be performed anywhere within the
+ * Carolus)"* (#351). Ruled: an action on its own Turn, once a Turn, in place of
+ * its Move (reading 14); only the kinds and the relation the platform names
+ * (reading 15).
+ *
+ * @param {object} unit
+ * @param {object|null} platform the platform it stands aboard
+ * @param {object} board
+ * @returns {{ok: boolean, reason?: string}}
+ */
+export function escapeVerdict(unit, platform, board) {
+  const spec = platform?.escape ?? null;
+  if (!spec || unit?.platformId !== platform.id) return { ok: false, reason: "noEscape" };
+  if (!(spec.kinds ?? ["servant"]).includes(unit.kind)) return { ok: false, reason: "noEscape" };
+  const owner = (board?.units ?? []).find((u) => u.id === platform.ownerId) ?? null;
+  if (!owner || relationOf(owner, unit, board) !== (spec.byRelation ?? "enemy")) return { ok: false, reason: "noEscape" };
+  if (unit.turnState?.moved) return { ok: false, reason: "alreadyMoved" };
+  // In place of its Move, so whatever prevents a Move prevents it: a Stunned
+  // Servant does not try (found live, #351).
+  if (preventedBy(unit, "move").prevented) return { ok: false, reason: "cannotAct" };
+  return { ok: true };
+}
+
+/**
+ * Where an escape lands: the nearest free ground panel just outside the
+ * footprint, nearest to where the Unit stands (#351, CP.escape.land).
+ *
+ * @param {object} unit
+ * @param {object} platform
+ * @param {object} board
+ * @returns {{i: number, j: number}|null}
+ */
+export function escapeLanding(unit, platform, board) {
+  const { w = 1, h = 1 } = platform.footprint ?? {};
+  const top = platform.panel;
+  if (!top || !unit?.panel) return null;
+  const taken = new Set((board?.units ?? [])
+    .filter((u) => u.kind !== "platform" && u.kind !== "structure" && !u.sharesPanel && (u.level ?? 0) === 0 && u.panel)
+    .flatMap((u) => (u.panels ?? [u.panel]).map((p) => `${p.i},${p.j}`)));
+  const b = board?.bounds ?? null;
+  const ring = [];
+  for (let i = top.i - 1; i <= top.i + h; i += 1) {
+    for (let j = top.j - 1; j <= top.j + w; j += 1) {
+      const inside = i >= top.i && i < top.i + h && j >= top.j && j < top.j + w;
+      if (inside) continue;
+      if (b && (i < (b.iMin ?? 0) || j < (b.jMin ?? 0) || i > (b.iMax ?? Infinity) || j > (b.jMax ?? Infinity))) continue;
+      if (taken.has(`${i},${j}`)) continue;
+      ring.push({ i, j });
+    }
+  }
+  // Nearest by panels, then the straightest of the ties: a corner is no nearer.
+  const d = (p) => Math.max(Math.abs(p.i - unit.panel.i), Math.abs(p.j - unit.panel.j));
+  const e = (p) => (p.i - unit.panel.i) ** 2 + (p.j - unit.panel.j) ** 2;
+  return ring.sort((a, c) => d(a) - d(c) || e(a) - e(c))[0] ?? null;
+}
+
+/**
+ * May this Unit enter a platform that names its requirement?
+ *
+ * Carolus Patricius (#351 reading 16): STR or AGI at Rank A or higher, and MOV
+ * left to spend on the entry (`movCost`). No die.
+ *
+ * @param {object} unit
+ * @param {{requires?: {anyParameter?: string[], atLeast?: string}, movCost?: number}} boarding
+ * @param {number} remaining the Unit's MOV left
+ * @returns {{ok: boolean, reason?: string}}
+ */
+export function entryVerdict(unit, boarding, remaining) {
+  const req = boarding?.requires ?? null;
+  if (req?.anyParameter?.length) {
+    const floor = Rank.parseOrNull(req.atLeast ?? "A");
+    const meets = req.anyParameter.some((p) => {
+      const rank = Rank.parseOrNull(String(unit?.parameters?.[p] ?? ""));
+      return rank && floor && Rank.gte(rank, floor, false);
+    });
+    if (!meets) return { ok: false, reason: "entryParameter" };
+  }
+  if ((boarding?.movCost ?? 0) > 0 && remaining < boarding.movCost) return { ok: false, reason: "entryMov" };
+  return { ok: true };
+}
+
+/**
+ * What a platform gives the Units aboard it, by their role or relation to its
+ * owner: Carolus Patricius's *"Karl's Master's ZON is ignored when he Attacks
+ * ... while within the Patricius"*, and its −15% taken and +15% dealt (except
+ * NPs) for the allied Units within (#351). Run through the same executors as
+ * any element, and routed to the buckets their readers consult.
+ *
+ * @param {object} unit the passenger
+ * @param {object} platform
+ * @param {object[]} units
+ * @param {object} board
+ */
+export function passengerContributions(unit, platform, units, board) {
+  if (!(platform.passengerRules ?? []).length) return;
+  const owner = units.find((x) => x.id === platform.ownerId) ?? null;
+  const relation = owner ? relationOf(owner, unit, board) : null;
+  for (const rule of platform.passengerRules) {
+    const byRole = (rule.roles ?? []).includes("owner") && unit.id === platform.ownerId;
+    const byRelation = relation && (rule.relations ?? []).includes(relation);
+    if (!byRole && !byRelation) continue;
+    const out = empty();
+    for (const el of rule.elements ?? []) {
+      const run = EXECUTORS[el?.key];
+      if (run) run(el, { source: platform.name ?? "a platform", out, rank: null, ctx: {} });
+    }
+    unit.modifiers = [...(unit.modifiers ?? []), ...(out.modifiers ?? [])];
+    unit.suppressions = [...(unit.suppressions ?? []), ...(out.suppressions ?? [])];
+  }
 }

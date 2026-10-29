@@ -335,6 +335,11 @@ describe("a non-damaging Noble Phantasm", () => {
       // Jack's Mist: "(Non-damaging)" is the first word of its description,
       // and it needs no `damage:` block to say so.
       "jack-the-mist",
+      // Karl de Große (#351): Carolus Patricius *"(Non-damaging)"* raises the
+      // fortress, and Auctoritas's Usage 2 raises the CPA; every number after is
+      // the platform's.
+      "karl-carolus-patricius",
+      "karl-cpa-auctoritas",
       // Invisible Air's Usage 1 (#336): AGL Up and MOV Up on its user, cast with
       // the Mana Burst it rides; the Attack is the Mana Burst's.
       "lanceturia-invisible-air",

@@ -1,0 +1,37 @@
+# Karl de Große, char_orig_sheets/by-class/Ruler/Karl de Große.md (#351)
+#
+# Dream of Reunion's heal and NP Cooldown phases (#347); Atk Up and Def Up each
+# on its own 60% die (reading 8).
+schema: 1
+id: karl-great-emperor-privilege
+name: "Great Emperor Privilege"
+rank: "A+"
+kind: skill
+slug: greatEmperorPrivilege
+cooldown: "4◈-⅓◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+copyable: { allowed: false, reason: named }
+description: |
+  (Active) Used during your Turn. Has the following effects-
+  1. Restores his Health by 30% of its maximum value.
+  2. 60% chance of applying @effect[atkUp]{Atk Up} for 1◈ Turns, all damage dealt is increased by 40%; if NP, 20%.
+  3. 60% chance of applying @effect[defUp]{Def Up} for 1◈ Turns, all damage received is reduced by 40%; if NP, 20%.
+  4. NP Cooldown is reduced by ⅔◈ Turns.
+  Cooldown: 4◈-⅓◈ Turns.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: heal
+    target: self
+    percentOfMax: 30
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: atkUp, magnitude: 40, npMagnitude: 20, duration: "1◈", chance: 60 }
+      - { id: defUp, magnitude: 40, npMagnitude: 20, duration: "1◈", chance: 60 }
+  - kind: cooldown
+    changes:
+      - { unit: self, scope: np, ticks: "⅔◈", direction: down }

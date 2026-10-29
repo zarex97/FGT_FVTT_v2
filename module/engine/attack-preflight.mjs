@@ -200,6 +200,11 @@ function usageRefusal(usage, actor = null) {
     case "cooldown": return `it is on cooldown for another ${d.remaining} turn(s).`;
     case "round": return `it cannot be used before Round ${d.requiresRound} (this is Round ${d.round}).`;
     case "zon": return "the Servant is outside its Master's ZON.";
+    // WHICH ability it waits on, as the bar says it: "An ability it depends on
+    // is still cooling" named nothing to wait for (Auctoritas, #351, live).
+    case "abilityOffCooldown":
+      if (d.names) return game.i18n.format("FGT.Ability.CoolingNamed", { names: d.names });
+      return game.i18n.localize("FGT.Ability.Refused.abilityOffCooldown");
     case "masterHealth":
       // The strict comparison is the surprising half, so it is spelled out.
       return `its Master needs MORE than ${usage.cost.amount} Health to pay for it.`;

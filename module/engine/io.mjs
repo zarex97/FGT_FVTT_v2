@@ -340,7 +340,9 @@ export function worldIO() {
       const ids = platformsDestroyedBy(unitId, currentBoard());
       if (ids.length === 0) return;
       const { destroyPlatform } = await import("./platforms.mjs");
-      for (const id of ids) await destroyPlatform({ platformId: id, reason: "ownerDefeat" });
+      // The platform itself fell, or it went with its owner: said as which (a
+      // CPA at 0 Health read "Its owner was defeated", #351, live).
+      for (const id of ids) await destroyPlatform({ platformId: id, reason: id === unitId ? "destroyed" : "ownerDefeat" });
     },
 
     /**

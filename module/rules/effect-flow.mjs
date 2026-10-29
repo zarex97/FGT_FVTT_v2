@@ -420,6 +420,9 @@ export const EFFECT_PARAMS = Object.freeze({
   // The Aura's reach, read by `rules/elements.mjs#Aura` off the instance:
   // Triumphal Return's S.Crit Up beside Jeanne reaches 3 (#260 reading 7).
   sCritUp: Object.freeze(["radius"]),
+  // Who granted it by aura, so the grant is taken back when the aura leaves
+  // (`rules/aura-grants.mjs`, Ceremonial Reformation, #351).
+  ceremonialReformation: Object.freeze(["auraGrant"]),
 });
 
 export const ENTRY_KEYS = Object.freeze({
@@ -441,6 +444,12 @@ export const ENTRY_KEYS = Object.freeze({
   visibility: { type: "select", choices: ["public", "ownerOnly", "gmOnly"], means: "Who may see the instance." },
   secret: { type: "boolean", means: "Hidden, with its cause, while the inflicter is concealed." },
   chance: { type: "number", means: "The stated chance, in place of the definition's." },
+  // True Name Discernment's NP DmDwn, *"for every NP the DU has, the chance ...
+  // is increased by 20%"* (#351): `{count: {of}, per}`, read against the DU.
+  chanceBonus: { type: "json", means: "Raises the chance by `per` for each the Count finds on the target." },
+  // God's Resolution: *"Ignores Stun Resist, Stun Immune, and any other effects
+  // that specifically reduce the chance of being inflicted with Stun"* (#351).
+  ignoresNamedDefences: { type: "boolean", means: "Passes every immunity and resistance that names this effect; general ones still apply." },
   chancePerPanel: { type: "number", means: "A chance per panel between the source and the target." },
   bands: { type: "json", means: "A chance per ring, index-aligned with the targeting's bands." },
   chanceModifiers: { type: "json", means: "Changes to the chance the ability itself states." },

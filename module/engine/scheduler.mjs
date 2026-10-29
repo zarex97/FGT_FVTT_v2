@@ -1672,6 +1672,23 @@ const ACTIONS = Object.freeze({
   Message: (a, u, h) => [I.log({ kind: "message", text: a.text, unitId: u.id, source: h.source })],
 
   /**
+   * True Name Discernment's first sight of an enemy Servant: its page learned
+   * into the bearer's player's Notebook (`engine/true-name.mjs#learnServantPage`,
+   * #351). A log entry the applier runs, because the Check and the Notebook
+   * write are the engine's.
+   */
+  // *"CPA's Normal Attacks at a Range of 1 to 2 knocks back the DU(s) by one
+  // panel"* (#351): the DU pushed straight away from the bearer, as far as it
+  // says and no further (`engine/movement-hooks.mjs#knockBackFrom`).
+  PushBack: (a, u, h, c) => (c.victim?.unitId
+    ? [I.log({ kind: "knockback", unitId: c.victim.unitId, fromId: u.id, panels: a.panels ?? 1, source: h.source })]
+    : []),
+
+  LearnPage: (a, u, h, c) => (c.victim?.unitId
+    ? [I.log({ kind: "learnPage", unitId: u.id, targetId: c.victim.unitId, source: h.source })]
+    : []),
+
+  /**
    * A standing Effect's magnitude falls by one count of its `decay` event:
    * Merlin's Crit DmUp (Illusion), *"loses 5% per successful Crit"* (#296).
    * The handler is the Effect's own (`snapshot.mjs#contributionsOf` makes it

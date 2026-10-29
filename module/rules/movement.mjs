@@ -1096,7 +1096,7 @@ export function knockbackPlan(mover, footprint, board, opts = {}) {
   const moved = new Set([mover.id]);
   const plan = [];
   for (const cell of cells) {
-    for (const occupant of occupantsAt(cell, { units }, mover.level)) {
+    for (const occupant of occupantsAt(cell, { units }, pushLevelOf(mover))) {
       if (moved.has(occupant.id)) continue;
       if (occupant.kind === "platform" || occupant.kind === "structure" || occupant.sharesPanel) continue;
       moved.add(occupant.id);
@@ -1107,6 +1107,20 @@ export function knockbackPlan(mover, footprint, board, opts = {}) {
     }
   }
   return plan;
+}
+
+/**
+ * The level a mover pushes Units aside on: its own, or the ground for a
+ * platform. Carolus Patricius Auctoritas *"can Move to any panel, when it Moves
+ * to any occupied panels, all Units occupying said panels are knocked back by 1
+ * panel until the space is free for CPA to stand on"* (#351), and a platform
+ * stands on a level of its own above the Units it walks into.
+ *
+ * @param {{kind?: string, level?: number}|null} mover
+ * @returns {number}
+ */
+export function pushLevelOf(mover) {
+  return mover?.kind === "platform" ? 0 : (mover?.level ?? 0);
 }
 
 /**
@@ -1130,7 +1144,7 @@ export function knockbackPlan(mover, footprint, board, opts = {}) {
  *   in the order to apply them, the front of each line first
  */
 export function clearFootprintPlan(mover, footprint, dirOf, board) {
-  const level = mover?.level ?? 0;
+  const level = pushLevelOf(mover);
   const bounds = board?.bounds ?? null;
   const key = (p) => `${p.i},${p.j}`;
   const mine = new Set((footprint ?? []).map(key));
@@ -1250,7 +1264,7 @@ export function stepsBetween(from, to) {
  * @returns {Array<{unitId: string, landing: {panel: GridOffset, sidestepped: boolean}}>}
  */
 export function travelShovePlan(mover, steps, board) {
-  const level = mover?.level ?? 0;
+  const level = pushLevelOf(mover);
   const bounds = board?.bounds ?? null;
   const key = (p) => `${p.i},${p.j}`;
   const solid = (u) => u.id !== mover.id && !u.defeated && (u.level ?? 0) === level

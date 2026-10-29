@@ -208,7 +208,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         return;
       }
       const out = await FGTSocket.request("queueModeEnd", { actorId: actor.id, itemId: item.id });
-      if (out?.ok === false) ui.notifications.warn(game.i18n.format("FGT.Skill.Refused", { name: item.name, reason: refusalWords(out.reason) }));
+      if (out?.ok === false) ui.notifications.warn(game.i18n.format("FGT.Skill.Refused", { name: item.name, reason: refusalWords(out.reason, out.detail) }));
       else ui.notifications.info(game.i18n.format("FGT.HUD.EndQueuedNotice", { name: item.name }));
       return;
     }
@@ -242,7 +242,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
       const out = await FGTActorSheet.#relaySkill(actor, item, placement);
       if (!out.ok) {
-        ui.notifications.warn(game.i18n.format("FGT.Skill.Refused", { name: item.name, reason: refusalWords(out.reason) }));
+        ui.notifications.warn(game.i18n.format("FGT.Skill.Refused", { name: item.name, reason: refusalWords(out.reason, out.detail) }));
         return;
       }
     }
@@ -392,7 +392,7 @@ class FGTActorSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const out = await FGTActorSheet.#relaySkill(actor, ability, placement);
     if (!out.ok) {
       ui.notifications.warn(game.i18n.format("FGT.Skill.Refused", {
-        name: ability.name, reason: refusalWords(out.reason),
+        name: ability.name, reason: refusalWords(out.reason, out.detail),
       }));
     }
   }
@@ -661,9 +661,11 @@ async function pickPlacement(actor, ability) {
  * @param {string|null|undefined} reason
  * @returns {string}
  */
-export function refusalWords(reason) {
+export function refusalWords(reason, detail = null) {
+  // Named when the refusal can name what it waits on (#351, live).
+  if (reason === "abilityOffCooldown" && detail?.names) return game.i18n.format("FGT.Ability.CoolingNamed", { names: detail.names });
   const key = `FGT.Ability.Refused.${reason}`;
-  return reason && game.i18n.has(key) ? game.i18n.localize(key) : (reason ?? "");
+  return reason && game.i18n.has(key) ? game.i18n.format(key, detail ?? {}) : (reason ?? "");
 }
 
 /**

@@ -7941,3 +7941,35 @@ fixed: a boundary heal's card counted it unscaled; a cleanse held an Unremovable
 skipped its self phase; an immunity was named by its id; a far-panel arrival said "beside". A staged Curse ticked at
 every side's Turn end: right with three Turns a Round, and fixed for longer Rounds after the merge (every ⅓◈ from the
 Turn it lands, `docs/surprises/2026-10-28-curse-ticks-every-turn-end.md`).
+
+## 46.55 Karl de Große (Ruler) — a fortress, a war machine, and a Notebook page on first sight
+
+Audit #351, `docs/superpowers/specs/2026-10-28-karl-clauses.md`. 169 Clauses, 35 readings in two grill rounds. His kin:
+Magic Resistance EX by its tables, Charisma B, the Hanging Gardens' deck for Carolus Patricius, the Quetzalcoatlus's
+mount and Fafnir's acted-or-not toll for the Auctoritas, Dragon Wing Warriors' shape for Karl Cannons, Raikou's
+instances for Usage 1. The user ruled a Christian Attribute on nine Servants rather than a list on Holy King.
+
+### 46.55.1 What he cost the engine
+
+- **True Name Discernment and God's Resolution as Ruler class templates** (Ch. 30, Ch. 15): a Notebook page learned
+  on first sight, a Luck Check first for a Servant that hides; a chance raised per NP the DU holds (`chanceBonus`);
+  a bypass of only what names Stun (`ignoresNamedDefences`).
+- **An aura that grants an effect** (Ch. 10, Ch. 12): Ceremonial Reformation held by every ally while he stands.
+- **A platform's isolation, entry, escape, passengers, life and ends** (Ch. 27): `aoeOnly`, `aoeCatchesAll`,
+  `endsOnNpScale`; `boarding.requires`, `escape`, `lockAboard: [enemy]`; `passengerRules`; `lifespan` with a paid
+  extension; `endsWhenDefeated`, `endsWhenOwnerUses`; a toll by whether it Acted; a summon placed centred, one that
+  carries the ground, one that replaces the owner's other deck; a platform that pushes the ground clear.
+- **Abilities over owned platforms** (Ch. 17, Ch. 20, Ch. 11): `platformActive`, `platformInactive`,
+  `self:ownsPlatform:`, Range from an owned deck's edge, `ignoresOutbound`, `groundOnly`, a damage source on an owned
+  platform, a scaled NP price, `PushBack` on hit.
+
+### 46.55.2 What was pressed, and how
+
+War `nj8Dl9NuByuH8HYL` on "Karl Audit" (28×28): Karl and Medea against Arturia, Asterios, Hassan and Arjuna, Player1
+driving Karl's bar, reactions and prompts. All 169 Clauses Pressed or Observed live. Staged by the GM: the NP gate
+opened, cooldowns set to 0 to raise the Carolus and the CPA again, Health set (Karl at 200, his Master at 10), Units
+moved, Stun Resist, Skill Seal and NP Seal placed, Karl revived twice. Nine defects were found live and fixed: a
+Stunned Unit could try the escape; a first sight fired twice; tolls, entries and the extension said nothing by name;
+a refusal named nothing; Usage 2 over the Carolus left Karl and his Master off the CPA; the CPA's push never heard
+Karl's swing; a felled CPA blamed its owner; the payment that felled Karl left the Carolus standing; his Master's fall
+freed him and the Carolus forgot the Master.

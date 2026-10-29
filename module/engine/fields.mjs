@@ -1760,7 +1760,7 @@ async function askSplit(field, pool, beneficiaries) {
  * @param {number|null} [opts.round] the Round that just ended, at a Round boundary
  * @returns {Promise<void>}
  */
-export async function runUpkeep(tick, { round = null } = {}) {
+export async function runUpkeep(tick, { round = null, ended = null } = {}) {
   const atRoundBoundary = round !== null;
   const board = currentBoard();
   const turnsPerRound = warRule("turnsPerRound");
@@ -1815,7 +1815,13 @@ export async function runUpkeep(tick, { round = null } = {}) {
       ? field.ownerId
       : (field.ownerMasterId ?? unitActor(field.ownerId)?.system?.masterId ?? null);
     const payer = payerId ? unitActor(payerId) : null;
-    const amount = Number(upkeep.cost?.amount ?? 0);
+    // A toll that is higher when the platform Acted this Turn: Carolus Patricius
+    // Auctoritas, *"30 Health at the end of every Turn if CPA Acted; and 10
+    // Health if it did not Act"* (#351 reading 27). Asked of the board from
+    // before the Turn's records were cleared (`ended`): the live one reads
+    // nobody as having Acted.
+    const acted = Boolean((ended?.units ?? []).find((u) => u.id === field.id)?.acted);
+    const amount = Number((acted ? upkeep.cost?.amountIfActed : null) ?? upkeep.cost?.amount ?? 0);
     // Read live, not off `board`: an earlier field in this same loop may have
     // just charged this payer, and the board was built before it did.
     const payerHealth = payer ? currentHealth(unitOf(payer, null)) : null;
@@ -1823,7 +1829,8 @@ export async function runUpkeep(tick, { round = null } = {}) {
     // `upkeepPlan` says what the sheets say, in the order they say it: the
     // standing threshold, then the toll (closing INSTEAD of charging when it
     // cannot be paid), then a toll that takes the payer to the threshold.
-    const plan = upkeepPlan(upkeep, { due: verdict.due, payerHealth, atRoundBoundary });
+    const plan = upkeepPlan({ ...upkeep, cost: { ...(upkeep.cost ?? {}), amount } },
+      { due: verdict.due, payerHealth, atRoundBoundary });
 
     if (plan.close === "forcedEnd") {
       await applyWorldIntents(
@@ -1855,6 +1862,14 @@ export async function runUpkeep(tick, { round = null } = {}) {
       "field:upkeep",
     );
     await stampUpkeep(field, tick, round);
+    // Said on a card: the toll was a write nobody saw (the CPA, #351, live).
+    {
+      const escape = foundry.utils.escapeHTML;
+      await ChatMessage.create({ content: `<div class="fgt-card"><p>${game.i18n.format(
+        acted ? "FGT.Field.UpkeepActed" : "FGT.Field.Upkeep",
+        { payer: escape(shownName(payer, board)), amount, field: escape(field.name ?? "") },
+      )}</p></div>` });
+    }
 
     // *"If the upkeep takes her Master to 50 Health or less, ... forcefully
     // deactivated at the end of the Turn."* The same boundary, after the charge.

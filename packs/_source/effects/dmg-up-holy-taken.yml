@@ -1,0 +1,25 @@
+# Karl de Große's Holy King, the taken half (#351), which the sheet also names
+# Dmg Up (Holy): *"all damage taken from Units with the 'Demonic' Attribute or
+# Units with the 'Divine' Attribute but without the 'Christian' Attribute is
+# further reduced by 50%; if NP, 25%."* Ward (Dragon)'s shape: the attacker is
+# `self:` in the pipeline's deferred predicate.
+schema: 1
+id: dmgUpHolyTaken
+name: "Dmg Up (Holy)"
+description: "Damage taken from Demonic Units, or Divine Units without the Christian Attribute, is reduced by X%."
+polarity: buff
+volatility: nonVolatile
+valence: defensive
+stacking: magnitudeStacks
+baseChance: 100
+rules:
+  - key: Ward
+    value: "@magnitude"
+    npValue: "@npMagnitude"
+    defer: true
+    predicate:
+      - or:
+          - "self:attribute:demonic"
+          - "self:attribute:demonicBeast"
+          - "self:attribute:demonicOni"
+          - { and: ["self:attribute:divine", "not:self:attribute:christian"] }

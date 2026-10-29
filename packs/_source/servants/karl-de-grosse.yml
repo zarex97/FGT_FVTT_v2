@@ -1,0 +1,45 @@
+# packs/_source/servants/karl-de-grosse.yml
+# Conversion source: char_orig_sheets/by-class/Ruler/Karl de Große.md
+# Audit: #351 (docs/superpowers/specs/2026-10-28-karl-clauses.md)
+#
+# Built to be reused. Magic Resistance EX is the class template's top rank; True
+# Name Discernment and God's Resolution are the Ruler class templates his sheet
+# is the first to need; Charisma is the template Rama's is.
+#
+# The table beats the sheet (§46.6): Base Health is 1600 at END A+, not the
+# printed 1500; BA(STR) 125 at STR B and BA(MAG) 210 at MAG A+ agree with it. No
+# Alignment is printed (reading 1), and no N.Atk Type: STR, its delivery
+# measured by distance.
+schema: 1
+id: karl-de-grosse
+name: "Karl de Große"
+type: servant
+
+trueName: Karl de Große
+servantClasses: [ruler]
+classContainer: ruler
+region: [france, italy, germany, austria]
+# "Male, Servant, [Man], Humanoid".
+attributes: [male, servant, man, humanoid]
+
+parameters: { str: B, end: "A+", agi: C, mag: "A+", luc: "A+" }
+baseHealth: 1600
+mov: 5
+range: { panels: 1, targets: 1 }
+baseAttack: { str: 125, mag: 210 }
+normalAttack: { mode: fixed, component: str }
+sustainability: "2◈"
+
+abilities:
+  - { ref: class-magic-resistance, rank: EX }
+  - { ref: class-true-name-discernment, rank: C, npCut: 15, dmDwn: 20, cooldown: "4◈" }
+  - { ref: class-gods-resolution, rank: B, chance: 80, cooldown: "4◈" }
+  - { ref: charisma, rank: B, flat: 20, atk: 20, atkNp: 10, cooldown: "4◈" }
+  - { ref: karl-ceremonial-reformation }
+  - { ref: karl-great-emperor-privilege }
+  - { ref: karl-holy-king }
+  - { ref: karl-joyeuse }
+  - { ref: karl-carolus-patricius }
+  - { ref: karl-cannons }
+  - { ref: karl-cpa-sanctus }
+  - { ref: karl-cpa-auctoritas }

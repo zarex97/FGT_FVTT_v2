@@ -16,6 +16,8 @@ describe("the closed list of kinds (Q19)", () => {
       "stacks", "targets", "board", "resource", "parameters", "criteria", "use", "tally", "healthMissing",
       // Balmung's count of Anti-Dragon effects (#341).
       "antiAttributeEffects",
+      // True Name Discernment's +20 per NP the DU holds (#351 reading 4).
+      "npsHeld",
     ]);
     expect(Object.isFrozen(COUNT_KINDS)).toBe(true);
   });

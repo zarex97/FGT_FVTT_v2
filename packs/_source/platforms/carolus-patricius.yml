@@ -1,0 +1,84 @@
+# Karl de Große's Carolus Patricius (#351), the token his NP places:
+#
+# > "place the 'Carolus Patricius' token on the board, with the middle panel
+# > being the panel Karl was standing on. The token has an area of 9x9 panels.
+# > All Units who were within a 9x9 panel area of Karl are moved onto the
+# > 'Patricius' token."
+#
+# The Hanging Gardens' deck (9×9, a second Home Base, its own Level, Units able
+# to stand under it) with Chaos Labyrinthos's field pieces: a life of 2◈ its
+# owner may lengthen for 200 Health, an escape for enemy Servants, an entry rule
+# for enemies, an end when Karl or his Master falls. Its isolation is the
+# `crossLevel` block: nothing crosses by Attack either way (6), but an AoE Noble
+# Phantasm reaches every Servant aboard at half its Total Damage and no Master
+# (reading 17), and an Anti-Fortress or higher one ends it (reading 18).
+schema: 1
+id: carolus-patricius
+name: "Carolus Patricius"
+type: platform
+description: |
+  Karl de Große's fortress. A second Home Base for his faction; Units within cannot be Attacked from outside or
+  Attack out; an AoE Noble Phantasm on it reaches every Servant aboard at half its Total Damage. Lasts 2◈ Turns,
+  extended by 1◈ for 200 of Karl's Health.
+attributes: [large]
+baseHealth: null
+undamageable: true
+agility: 0
+luck: 0
+mov: 0
+range: { panels: 0 }
+baseAttack: { str: 0, mag: 0 }
+footprint: { w: 9, h: 9 }
+capacity: null
+level: 1
+actsOncePerTurn: true
+countsAsHomeBase: true
+rules:
+  - key: GrantedAbility
+    abilities: [noNormalAttack]
+  - { key: Immunity, scope: debuffs }
+  - { key: Immunity, scope: buffs }
+crossLevel:
+  occupantTargeting: forbidden
+  protectedFrom: everyone
+  protectedAgainst: attacks
+  aoePassengerFactor: 0.5
+  aoeMastersImmune: true
+  # Only an AoE Noble Phantasm reaches in, and every Servant aboard (reading 17).
+  aoeOnly: np
+  aoeCatchesAll: true
+  # An Anti-Fortress or higher one ends it at the end of its Combat Process (reading 18).
+  endsOnNpScale: antiFortress
+  outboundTargeting: forbidden
+  hullTargeting: forbidden
+  forbidDirectlyBelow: true
+# Enemies board on STR or AGI at A or higher, spending 2 of their MOV (reading 16).
+boarding:
+  byRelation: enemy
+  requires: { anyParameter: [str, agi], atLeast: "A" }
+  movCost: 2
+# Enemy Servants leave only by a Luck Check against Karl; nobody else on their
+# side leaves at all (readings 14, 15).
+lockAboard: [enemy]
+escape:
+  kinds: [servant]
+  byRelation: enemy
+  luckAgainst: owner
+lifespan:
+  duration: "2◈"
+  extension:
+    cost: { kind: health, amount: 200, payer: owner }
+    grants: "1◈"
+    repeatable: true
+endsWhenDefeated: [owner, ownerMaster]
+passengerRules:
+  # (2) Karl's Master's ZON is ignored when he Attacks while within.
+  - roles: [owner]
+    elements:
+      - { key: Suppress, scope: zonPenalty }
+  # (5) All damage received by allied Units within −15%, NP included.
+  # (7) All damage dealt by allied Units within +15%, except NPs.
+  - relations: [self, ally]
+    elements:
+      - { key: DamageModifier, modifierKey: defUp, direction: taken, value: 15, npValue: 15 }
+      - { key: DamageModifier, modifierKey: atkUp, direction: dealt, value: 15, npValue: 0 }

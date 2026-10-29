@@ -384,9 +384,12 @@ function stage1Base(s) {
     // Golden Hind isn't present/activated"* -- so there may be no such unit to
     // look up, and the board fallback below would silently substitute HER
     // BA(MAG) 100 for the ship's 200 and halve the Noble Phantasm.
+    // A named source that is not there falls back to the attacker, and says so:
+    // Auctoritas's Usage 1 reads the CPA's Base Attack only while it stands (#351).
+    const named = src.unit && src.unit !== "self" ? (s.ctx.units?.[src.unit] ?? null) : null;
     const unit = src.contentId
       ? (s.ctx.contentBaseAttack?.[src.contentId] ?? null)
-      : src.unit === "self" ? s.ctx.attacker : (s.ctx.units?.[src.unit] ?? s.ctx.attacker);
+      : src.unit === "self" ? s.ctx.attacker : (named ?? s.ctx.attacker);
     // A `contentId` that resolved to nothing contributes nothing and SAYS so.
     // Falling through to the attacker is the defect this branch exists to stop.
     if (src.contentId && !unit) {
@@ -403,7 +406,9 @@ function stage1Base(s) {
     // One line, deliberately: `card-visibility.test.mjs` scans this file
     // line by line for a contribution with no explicit side, and a call split
     // across lines reads as an unattributed one.
-    const label = `${src.contentId ?? src.unit} BA(${src.component.toUpperCase()}) × ${src.factor ?? 1}`;
+    // An owned platform by its own name, never its content id (#351, live).
+    const who = String(src.unit ?? "").startsWith("platform:") && named ? (named.name ?? src.unit) : src.unit;
+    const label = `${src.contentId ?? (src.unit === "self" || named ? who : "self")} BA(${src.component.toUpperCase()}) × ${src.factor ?? 1}`;
     s.contribute(`base:${src.component}`, v, label, "attacker");
   }
 

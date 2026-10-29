@@ -1,0 +1,54 @@
+# Karl de Große, char_orig_sheets/by-class/Ruler/Karl de Große.md (#351)
+#
+# Carolus Patricius Auctoritas, Usage 1: Raikou's two-instance shape, each hit
+# its own Combat Process and its own reaction ladder. One NP with a clock per
+# usage (reading 23): this one is locked while Usage 2's or Carolus
+# Patricius's clock runs, and never while the Carolus stands.
+#
+# While Usage 2 is Active it is fired "from" the CPA (reading 28): Range from
+# the CPA's edge (`fromPlatform`), the CPA's Base Attack (`platform:<id>`), the
+# Master's price × 1.5 + 30 (the NP's own cost, and half again plus 30 here),
+# and the CPA ends at the end of the Turn (`endsWhenOwnerUses` on the CPA).
+schema: 1
+id: karl-cpa-sanctus
+name: "Carolus Patricius Auctoritas: Sanctus (Usage 1)"
+rank: "A++"
+kind: noblePhantasm
+slug: auctoritasSanctus
+isNP: true
+npTags: [antiArmy, antiFortress, fortress]
+cooldown: "7◈+⅔◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+requirements:
+  - { kind: platformInactive, contentId: carolus-patricius, name: "Carolus Patricius" }
+  - { kind: abilityOffCooldown, abilityIds: [karl-carolus-patricius, karl-cpa-auctoritas] }
+additionalCosts:
+  - kind: masterHealthByNPRank
+    rank: "A++"
+    factor: 0.5
+    plus: 30
+    id: auctoritasFromCpa
+    predicate: ["self:ownsPlatform:carolus-patricius-auctoritas"]
+description: |
+  Range=7. Hits a 5x5 panel area within Range. First deals 2x damage plus 100 using Base Attack (STR); then deals 2x
+  damage plus 100 using Base Attack (MAG). Both hits of this NP can be separately Blocked and/or Evaded. Cannot be used
+  if Carolus Patricius is Active. Cooldown: 7◈+⅔◈ Turns.
+  While Usage 2 is Active: the Range is calculated from the edge of the CPA and the CPA's Base Attack is used; his
+  Master's Health loss is increased by 50% plus 30, and Usage 2 is forcibly ended at the end of the Turn.
+targeting:
+  anchor: { kind: withinRange, range: 7, fromPlatform: carolus-patricius-auctoritas }
+  shape: { kind: square, size: 5 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+damage:
+  instances:
+    - multiplier: 2
+      flatBonus: 100
+      component: str
+      base: { sources: [{ unit: "platform:carolus-patricius-auctoritas", component: str, factor: 1 }] }
+    - multiplier: 2
+      flatBonus: 100
+      component: mag
+      base: { sources: [{ unit: "platform:carolus-patricius-auctoritas", component: mag, factor: 1 }] }
+phases:
+  - kind: damage
