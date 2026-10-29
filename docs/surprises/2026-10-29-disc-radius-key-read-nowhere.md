@@ -14,5 +14,5 @@ reviewed: false
 **Cause:** `module/rules/targeting/shapes.mjs:84 @ 60958e67`: the disc reads its radius as `shape.r`; `radius` was read by
 nothing, so the disc had no size. The validator checked the shape's `kind` and none of its keys.
 
-**Fix:** `tools/lib/content.mjs:1932 @ uncommitted`: a `chebyshevRadius` with no numeric `r` is refused (proved by
+**Fix:** `tools/lib/content.mjs:1932 @ ebad7a6b`: a `chebyshevRadius` with no numeric `r` is refused (proved by
 putting `radius` back: the build names `phases[2].targeting`); the content now says `r: 2`.

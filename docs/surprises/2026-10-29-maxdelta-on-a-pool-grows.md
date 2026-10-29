@@ -15,5 +15,5 @@ preparation, the Detect defect's shape.
 **Cause:** `module/rules/derived.mjs:212 @ 60958e67`: the list of maximums the preparation resets holds no resource pool,
 and nothing refused a `MaxDelta` outside it.
 
-**Fix:** `tools/lib/content.mjs:1598 @ uncommitted`: a `MaxDelta` whose `.max` the preparation does not reset is
+**Fix:** `tools/lib/content.mjs:1598 @ ebad7a6b`: a `MaxDelta` whose `.max` the preparation does not reset is
 refused. Yata no Kagami stores the maximum at 6 and its field's `onEnd` puts it back to 3.

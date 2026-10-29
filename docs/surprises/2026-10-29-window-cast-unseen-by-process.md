@@ -13,5 +13,5 @@ react, Evade offered.
 **Cause:** `module/engine/attack.mjs:1668 @ 60958e67`: `declareProcesses` built each defender's rungs from the board the
 declaration read before the defending window; what the window cast was not on it.
 
-**Fix:** `module/engine/attack.mjs:1668 @ uncommitted`: the rungs read a board taken after the window. Re-pressed:
+**Fix:** `module/engine/attack.mjs:1668 @ ebad7a6b`: the rungs read a board taken after the window. Re-pressed:
 `react → block`, unasked, Block −25%.

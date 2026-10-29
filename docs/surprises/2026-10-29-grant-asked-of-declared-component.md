@@ -15,5 +15,5 @@ Attack; `tamamo-353.test.mjs` said so.
 stamps (`str`, before any distance), filled from the band only when it was missing. The test handed `attackFacts` a
 state with no component, which no caller does.
 
-**Fix:** `module/engine/attack.mjs:8193 @ uncommitted`: a Normal Attack's grant is asked of the band at this distance,
+**Fix:** `module/engine/attack.mjs:8193 @ ebad7a6b`: a Normal Attack's grant is asked of the band at this distance,
 always. The test now states `component: "str"` as the declaration does, and a second plays the Attack.

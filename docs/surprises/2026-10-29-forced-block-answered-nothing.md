@@ -14,5 +14,5 @@ breakdown had no Block.
 itself, before the automatic step runs; `engine/command-spells.mjs` resumes an interrupted rung the same way. Two more
 readers of the react rung than the one I changed.
 
-**Fix:** `module/engine/attack.mjs:1744 @ uncommitted`: both paths ask `combat-process.mjs#forcedAnswer` first, as the
+**Fix:** `module/engine/attack.mjs:1744 @ ebad7a6b`: both paths ask `combat-process.mjs#forcedAnswer` first, as the
 automatic step does.
