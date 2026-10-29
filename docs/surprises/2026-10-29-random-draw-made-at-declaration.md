@@ -2,7 +2,7 @@
 id: 2026-10-29-random-draw-made-at-declaration
 found: live press
 kind: hidden-timing-rule
-status: open
+status: fixed
 reviewed: false
 ---
 **Expected:** reading 31 (`docs/superpowers/specs/2026-10-29-tamamo-clauses.md`): each of Dainisshō's hits 1 to 8
@@ -14,5 +14,8 @@ random: d3 = 1"), each dealt "50", and hit 9 struck him again. The card said "Ma
 by Caster." twice.
 **Cause:** `module/engine/attack.mjs:8323 @ 03883e1` — `processRows` rolls all eight draws when the Attack is declared,
 over the defenders the area caught then, and `declareProcesses` fixes each Process's defender before any hit lands.
-**Fix:** open — the draw has to move to the hit; how, with Processes that overlap while a reaction is awaited, is put to
-the user.
+**Fix:** `module/engine/attack.mjs:8478 @ uncommitted` — the user ruled a strict sequence: a declaration with drawn hits
+strikes one at a time, each declared when every Process before it is done (`advanceDrawnHits`, `attack.mjs:1938`), its
+die rolled then over the defenders still standing (`drawHit`); nobody left, the hit says so and strikes nothing; the
+Phase ends after the last strike. `docs/21-combat-process.md` had recorded the old reading ("as it strikes" read at the
+declaration) as a choice; it now says the ruling.
