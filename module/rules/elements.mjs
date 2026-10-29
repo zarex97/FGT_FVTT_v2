@@ -820,6 +820,11 @@ function normalizeAction(a, rank, ctx) {
   const { key, ...rest } = a;
   /** @type {Record<string, unknown>} */
   const out = { kind: key, ...rest };
+  // A fall-through's own actions, normalized as the handler's are: Aphotic's
+  // Dmg Up when nothing is cooling (`CooldownCascade`, #353).
+  if (Array.isArray(a.otherwise) && key === "CooldownCascade") {
+    out.otherwise = a.otherwise.map((x) => normalizeAction(x, rank, ctx));
+  }
 
   // A predicated scale on every reading of the rank table below.
   //
@@ -2126,6 +2131,20 @@ export const EXECUTORS = Object.freeze({
   },
 
   /**
+   * A reaction the bearer takes on every Attack, never asked: Aphotic's
+   * *"Tamamo automatically Blocks every Attack received"* (#353 reading 11).
+   * Block is the only one built; another refuses at collection.
+   */
+  ForcedReaction(el, { source, out }) {
+    if (el.reaction !== "block") {
+      console.error(`FGT | ForcedReaction from ${source}: only "block" is built.`);
+      out.unhandled.push({ key: el.key, source });
+      return;
+    }
+    out.suppressions.push({ scope: "forcedReaction", reaction: el.reaction, source });
+  },
+
+  /**
    * Refuse an ability that would bring a Unit, Item or object carrying a named
    * Attribute into existence.
    *
@@ -2146,6 +2165,16 @@ export const EXECUTORS = Object.freeze({
       attributes: [el.attributes ?? el.attribute ?? []].flat(),
       source,
     });
+  },
+
+  /**
+   * Halve (or scale) every Master Health cost this Servant charges: Yata no
+   * Kagami's *"All effects of Servants that would reduce its Master's Health
+   * when used/it takes effect is halved including Noble Phantasm usage"*
+   * (#353 reading 28). Read by `rules/costs.mjs#resolveCosts`.
+   */
+  MasterCostScale(el, { source, out, deferred = null }) {
+    out.modifiers.push({ key: "masterCostScale", value: 0, factor: Number(el.factor ?? 1), predicate: deferred, source });
   },
 
   Decoy(el, { source, out }) {

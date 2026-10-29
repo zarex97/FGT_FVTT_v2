@@ -49,11 +49,12 @@ export const UNIT_KINDS = Object.freeze([
 export const COMPONENTS = Object.freeze(["str", "mag"]);
 
 /**
- * Damage elements. Open in practice (content may add), but these are the seven
- * the corpus uses. @see docs/A-effect-catalogue.md §A.17.4
+ * Damage elements. Open in practice (content may add), but these are the nine
+ * the corpus uses: Earth and Dark joined with Dainisshō's eight hits (#353).
+ * @see docs/A-effect-catalogue.md §A.17.4
  */
 export const ELEMENTS = Object.freeze([
-  "fire", "water", "ice", "wind", "lightning", "light", "nature",
+  "fire", "water", "ice", "wind", "lightning", "light", "nature", "earth", "dark",
 ]);
 
 /**

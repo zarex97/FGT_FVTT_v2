@@ -1,0 +1,114 @@
+# Tamamo, char_orig_sheets/by-class/Caster/Tamamo.md (#353).
+#
+# Excalibur's `selfEdgeAdjacent`: a 7×7 against one of her four sides, her
+# player picking the side (reading 30); 9×9 in a Japan War. Hits 1 to 8 each
+# strike one enemy drawn at random from those in the area as it strikes,
+# repeats allowed, each its own Process (`pick: randomEnemy`, reading 31); hit
+# 9 strikes every enemy. Allies are never struck. Categorized as NP as Karl
+# Cannons: no Master cost, and either Seal refuses it (#241). No Cooldown of its
+# own: its use ends Yata no Kagami at that Turn's end and adds 1◈ to the
+# Cooldown Yata starts then (readings 32, 33).
+schema: 1
+id: tamamo-dainissho
+name: "Yata no Kagami: Hakkon Jourai・Dainisshō"
+rank: null
+kind: skill
+slug: dainissho
+isSpell: true
+isAttackSkill: true
+categorizedAsNP: true
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: unique }
+description: |
+  Damage Spell. Can only be used when Suiten Nikkou Amaterasu Yanoshisu Ishi・Yata no Kagami is Active. Hits a 7x7
+  panel area in any non-diagonal direction next to Tamamo; if the Region is Japan, it hits a 9x9 panel area
+  instead. The effects are as follows, in order
+  1. Hits a random enemy Unit within the Spell area for 50% damage with a 25% chance of inflicting
+  @effect[poison]{Poison}, Nature damage.
+  2. Hits a random enemy Unit within the Spell area for 50% damage with a 25% chance of inflicting
+  @effect[disable]{Disable} for 1◈ Turns, Ice damage.
+  3. Hits a random enemy Unit within the Spell area for 50% damage with a 25% chance of inflicting @effect[sap]{Sap}
+  for 1◈ Turns, Wind damage.
+  4. Hits a random enemy Unit within the Spell area for 50% damage with a 25% chance of inflicting
+  @effect[shock]{Shock} for 1◈ Turns, Lightning damage.
+  5. Hits a random enemy Unit within the Spell area for 50% damage with a 25% chance of inflicting
+  @effect[slow]{Slow} for 1◈ Turns, Water damage.
+  6. Hits a random enemy Unit within the Spell area for 50% damage with a 25% chance of inflicting
+  @effect[immobilize]{Immobilize} for 1◈ Turns, Earth damage.
+  7. Hits a random enemy Unit within the Spell area for 50% damage with a 25% chance of inflicting
+  @effect[blind]{Blind} for 1◈ Turns, Light damage.
+  8. Hits a random enemy Unit within the Spell area for 50% damage with a 25% chance of inflicting
+  @effect[curse]{Curse}, Dark damage.
+  9. Then, deals 2x damage to all enemy Units within the Spell area and inflicts @effect[burn]{Burn} for 2◈ Turns,
+  Fire damage.
+  When this Spell is used, Suiten Nikkou Amaterasu Yanoshisu Ishi・Yata no Kagami is forcibly ended at the end of
+  the Turn, and its Cooldown is increased by an additional 1◈ Turns.
+  This Damage Spell is categorized as Noble Phantasm.
+requirements:
+  - { kind: fieldOpen, field: tamamo-yata-no-kagami }
+targeting:
+  anchor: { kind: selfEdgeAdjacent }
+  shape: { kind: orientedRect, short: 7, long: 7 }
+  selection: { relations: [enemy], includeSelf: false, chooser: all }
+  isDamagingAoE: true
+  branches:
+    - predicate: ["war:region:japan"]
+      anchor: { kind: selfEdgeAdjacent }
+      shape: { kind: orientedRect, short: 9, long: 9 }
+      selection: { relations: [enemy], includeSelf: false, chooser: all }
+damage:
+  instances:
+    - { multiplier: 0.5, component: mag, element: nature, pick: randomEnemy }
+    - { multiplier: 0.5, component: mag, element: ice, pick: randomEnemy }
+    - { multiplier: 0.5, component: mag, element: wind, pick: randomEnemy }
+    - { multiplier: 0.5, component: mag, element: lightning, pick: randomEnemy }
+    - { multiplier: 0.5, component: mag, element: water, pick: randomEnemy }
+    - { multiplier: 0.5, component: mag, element: earth, pick: randomEnemy }
+    - { multiplier: 0.5, component: mag, element: light, pick: randomEnemy }
+    - { multiplier: 0.5, component: mag, element: dark, pick: randomEnemy }
+    - { multiplier: 2, component: mag, element: fire }
+phases:
+  - kind: damage
+  # Each hit's rider, by the element only that hit carries (Dohatsu Tenshou's
+  # `attack:` gate on a phase).
+  - kind: applyEffects
+    predicate: ["attack:element:nature"]
+    effects:
+      - { id: poison, chance: 25 }
+  - kind: applyEffects
+    predicate: ["attack:element:ice"]
+    effects:
+      - { id: disable, duration: "1◈", chance: 25 }
+  - kind: applyEffects
+    predicate: ["attack:element:wind"]
+    effects:
+      - { id: sap, duration: "1◈", chance: 25 }
+  - kind: applyEffects
+    predicate: ["attack:element:lightning"]
+    effects:
+      - { id: shock, duration: "1◈", chance: 25 }
+  - kind: applyEffects
+    predicate: ["attack:element:water"]
+    effects:
+      - { id: slow, duration: "1◈", chance: 25 }
+  - kind: applyEffects
+    predicate: ["attack:element:earth"]
+    effects:
+      - { id: immobilize, duration: "1◈", chance: 25 }
+  - kind: applyEffects
+    predicate: ["attack:element:light"]
+    effects:
+      - { id: blind, duration: "1◈", chance: 25 }
+  - kind: applyEffects
+    predicate: ["attack:element:dark"]
+    effects:
+      - { id: curse, chance: 25 }
+  - kind: applyEffects
+    predicate: ["attack:element:fire"]
+    effects:
+      - { id: burn, duration: "2◈" }
+  - kind: endField
+    target: self
+    field: tamamo-yata-no-kagami
+    atTurnEnd: true
+    cooldownBonus: "1◈"

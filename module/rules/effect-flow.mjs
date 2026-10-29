@@ -11,6 +11,7 @@
 import { test as testPredicate } from "./predicate.mjs";
 import { polarityOf } from "./effect-instance.mjs";
 import { countScaleOf, countedValue } from "./count.mjs";
+import { Rank } from "../domain/rank.mjs";
 
 /* -------------------------------------------------------------------------- */
 /*  Ch. 15 Riders                                                              */
@@ -455,6 +456,9 @@ export const ENTRY_KEYS = Object.freeze({
   chanceModifiers: { type: "json", means: "Changes to the chance the ability itself states." },
   bypassChanceModifiers: { type: "boolean", means: "A flat chance no bonus or resistance touches." },
   stages: { type: "number", means: "Stages one application adds." },
+  // Higanbana Sesshoseki: *"Inflicts Stage X Curse on the DU, X being: MAG Rank
+  // EX, A: 1; B, C: 2; D, E: 3"* (#353 readings 21, 22).
+  stagesByTargetRank: { type: "json", means: "Stages read off the DU's own Parameter: {parameter, rows: {EX..E}, unranked}." },
   uses: { type: "number", means: "Charges one application gives a counted effect." },
   times: { type: "expression", means: "A count: charges on a counted effect, applications on any other." },
   applications: { type: "number", means: "Separate applications, each rolled on its own." },
@@ -486,6 +490,33 @@ export const ENTRY_KEYS = Object.freeze({
     means: "true, or a predicate: no immunity stops this application, even one naming the effect; resistance still reduces it.",
   },
 });
+
+/**
+ * How many stages an entry adds to this recipient.
+ *
+ * `stages`, or a row of the DU's own Parameter Rank: Higanbana Sesshoseki's
+ * *"Inflicts Stage X Curse on the DU, X being the following value- MAG Rank
+ * EX, A: 1 / B, C: 2 / D, E: 3"* (#353). A Rank with a + or − reads its
+ * letter's row; a DU with no such Parameter, a Master, reads `unranked`
+ * (reading 22). A row the table leaves out refuses rather than guessing.
+ *
+ * @param {object} entry
+ * @param {object|null} target the recipient as the board sees it
+ * @returns {number}
+ */
+export function stagesFor(entry, target) {
+  const table = entry?.stagesByTargetRank ?? null;
+  if (!table) return entry?.stages ?? 1;
+  const raw = target?.parameters?.[table.parameter] ?? null;
+  const rank = raw === null ? null : Rank.parseOrNull(String(raw));
+  if (!rank) {
+    if (typeof table.unranked !== "number") throw new Error(`FGT | ${entry.id}: no row for a Unit without ${table.parameter}.`);
+    return table.unranked;
+  }
+  const row = table.rows?.[rank.grade];
+  if (typeof row !== "number") throw new Error(`FGT | ${entry.id}: no row for ${table.parameter} Rank ${rank.grade}.`);
+  return row;
+}
 
 /**
  * One authored Effect Entry, in its one canonical shape.

@@ -226,7 +226,7 @@ export async function performAction(id, { actor, token = null, context = {}, des
 }
 
 /** The Command Spell refusals the bar can say by name (`FGT.Action.Refusal.*`). */
-const SAID_REFUSALS = new Set(["uncommandable", "noServant", "commandSpellsBlocked", "cost"]);
+const SAID_REFUSALS = new Set(["uncommandable", "noServant", "commandSpellsBlocked", "heldByField", "cost"]);
 
 /**
  * Spend from the Master's bar in its own Turn: a Command Spell, or its Master

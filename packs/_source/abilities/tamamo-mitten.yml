@@ -1,0 +1,36 @@
+# Tamamo, char_orig_sheets/by-class/Caster/Tamamo.md (#353).
+#
+# Enten's frame with Pierce and Break (+50%dm). Break acts when the DU Blocks:
+# the Block is ignored and the damage is ×1.5 more, a stage-3 multiplier beside
+# the ×1.25 (×1.875); with Pierce too, a DU that Blocked still pays the +50%
+# (reading 7).
+schema: 1
+id: tamamo-mitten
+name: "Jusō・Mitten"
+rank: null
+kind: skill
+slug: mitten
+category: heavenSpell
+isSpell: true
+cooldown: "1◈"
+cooldownWaiver: { resource: mantra, amount: 1 }
+timing: { window: ownTurn }
+element: wind
+copyable: { allowed: false, reason: unique }
+description: |
+  Mantra: Chaos Heaven. Damage Spell. Deals 25% extra damage that has the @effect[pierce]{Pierce} effect and Break
+  (+50%dm) effect. Wind damage. Cooldown: 1◈ Turns. Cannot be used if Enten, Hyōten, or Raitei is on Cooldown.
+requirements:
+  - { kind: abilityOffCooldown, category: heavenSpell, excludeSelf: true }
+targeting:
+  anchor: { kind: targetUnit }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+damage:
+  multiplier: 1.25
+  component: mag
+  pierce: true
+  break: { bonus: 50 }
+phases:
+  - kind: damage
+    target: reuse

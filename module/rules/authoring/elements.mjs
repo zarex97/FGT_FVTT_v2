@@ -372,6 +372,12 @@ export const ELEMENT_DESCRIPTORS = describeTable([
     { key: "reactions", type: "tokenList" },
     { key: "reaction", type: "text" },
   ]),
+  entry("ForcedReaction", "Answers every Attack with this reaction, never asked — Aphotic's automatic Block.", [
+    { key: "reaction", type: "text" },
+  ]),
+  entry("MasterCostScale", "Scales every Master Health cost this Servant charges — Yata no Kagami's halving.", [
+    { key: "factor", type: "number" },
+  ]),
   entry("AutoCounter", "Counters automatically when a named event happens.", [
     { key: "on", type: "text" },
     { key: "ability", type: "text" },

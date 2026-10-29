@@ -25,6 +25,8 @@ export const INTENT_TYPES = Object.freeze([
   "setFacing", "defeat", "dismissSummon", "durationDelta", "suppressRule", "rewind", "markGlassGameSpent", "resource", "cooldown", "spendCS", "markTurn", "markRoundState", "prompt", "log",
   "itemQuantity", "itemGrant", "markContract", "grantCommandSpells", "consumeUse",
   "setMode", "setStance", "recordUse", "extendEffect", "shieldDelta", "recordAttack",
+  // An Attack Skill's count of uses that did not Crit (Yata Strike, #353).
+  "critMisses",
   // A standing Effect's magnitude falling (`decay`, #296): its count, and the
   // line the card prints.
   "decayEffect", "tallyMode",
@@ -107,6 +109,7 @@ const ORDER = Object.freeze({
   // same batch that applies what got through it.
   shieldDelta: 2,
   recordAttack: 2,
+  critMisses: 2,
   // Bookkeeping: the bank moves no Health, so nothing has to wait on it.
   bankSecret: 2,
   // Bookkeeping, and BEFORE anything that reads the mode back: Mad
@@ -576,6 +579,19 @@ export const shieldDelta = (unitId, abilityId, delta) =>
  */
 export const recordAttack = (unitId, abilityId, identity) =>
   ({ t: "recordAttack", unitId, abilityId, identity });
+
+/**
+ * Write an Attack Skill's count of uses that did not Crit.
+ *
+ * Yata Strike: *"For every time this Attack Skill does not Crit, increase the
+ * Crit Chance of this Attack Skill by 10%. Reset the counter after it Crits."*
+ * (#353 reading 19). The count lives on the Item, as `timesUsed` does.
+ *
+ * @param {string} unitId @param {string} abilityId @param {number} value
+ * @returns {Intent}
+ */
+export const critMisses = (unitId, abilityId, value) =>
+  ({ t: "critMisses", unitId, abilityId, value });
 
 /**
  * Turn an ability's clock.

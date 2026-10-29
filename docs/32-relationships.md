@@ -249,3 +249,9 @@ Unit defeated twice is counted towards the Grail and frees its Servants once; it
   clause 5 Mad Enhancement played (`FGT.Free.*`). `onMasterDefeated` names the clause it played as a `note` descriptor
   beside the write, and `freedLines` words the descriptors. Before it the death wrote the clock, the decay and the lock and
   the table read only *"No Conquest"*.
+
+**Master costs scaled by where the Servant stands** (#353). Yata no Kagami halves *"All effects of Servants that would
+reduce its Master's Health when used/it takes effect … including Noble Phantasm usage"* for an allied Servant inside the
+Amaterasu Area: `MasterCostScale` on the Servant, read by `resolveCosts` for a use's costs and by `runUpkeep` for a toll,
+rounded down, and said on a card naming the cut. **Fox Spouse** is Avalon's `Suppress overpower` and the Vorpal Blade's
+`Suppress underpower` on one buff.

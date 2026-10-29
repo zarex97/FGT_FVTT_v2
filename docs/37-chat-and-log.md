@@ -56,6 +56,11 @@ too (*"End of the Turn — Foreigner takes 63 from Curse"*), by the effect's nam
 
 An open Process shows *"Expected damage before reactions: min – max"* to the defender's owner, its Master's owner and the GM, so Eye of the Mind or a Command Spell is chosen knowing it. It is the targeting preview's range (`engine/attack.mjs#processDamagePreview`, over `previewContext`), every die at each end, gone once the damage is dealt. The **No Command Spell** button glows gold, and pulses while no other prompt is open: the rung is decided and the card waits only on a Master who may contest it (`styles/src/_apps.scss`, `.fgt-card__cs-pass`).
 
+**What Tamamo's kit put on the card** (#353, found live). A coin a suppression refuses is a line naming the effect by
+its name (*"Overpower: no coin (Fox Spouse)"*). A rider held back by `requiresDamage` says so (`FGT.Effect.NeedsDamage`).
+A staged landing names its stage (`FGT.Effect.AtStage`). A Master cost scaled to 0 makes no card. A refusal notice
+reads the button's own words (`present.mjs#abilityState`), its key's full stop dropped.
+
 ### The game log
 
 Log entries are validated by kind on construction — a typo'd kind ends up invisible in the very place someone is looking for it (`module/rules/game-log.mjs:29-38`, `module/rules/game-log.mjs:56-74`). The last 200 entries live on `Combat.system.log` for quick access; older ones flush in batches of 100 to a JournalEntry (`module/engine/game-log.mjs:7-12`).

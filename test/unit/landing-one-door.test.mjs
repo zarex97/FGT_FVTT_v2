@@ -56,6 +56,8 @@ describe("Landing is the one door", () => {
       body(flow, "chanceOf"),
       body(flow, "applicationsOf"),
       body(flow, "effectGatePasses"),
+      // How many stages, `stages` or the DU's Rank row (#353).
+      body(flow, "stagesFor"),
       // The magnitude's Count scale, read by `countScaleOf` (#319).
       body(code("module/rules/count.mjs"), "countScaleOf"),
     ];

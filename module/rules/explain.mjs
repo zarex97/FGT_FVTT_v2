@@ -144,6 +144,8 @@ export function summarize(result) {
  */
 export function underpowerText(flip) {
   if (!flip) return null;
+  // A coin a rule refused to flip (Fox Spouse, #353), said by its name.
+  if (flip.refusedBy) return `Underpower: no coin (${flip.refusedBy})`;
   return flip.halved
     ? `Underpower: Tails (${flip.roll} ≤ ${flip.chance}) — damage halved`
     : `Underpower: Heads (${flip.roll} > ${flip.chance}) — damage as rolled`;
@@ -162,6 +164,9 @@ export function underpowerText(flip) {
  */
 export function overpowerText(flip) {
   if (!flip) return null;
+  // A coin a rule refused to flip: Avalon's and Fox Spouse's *"cannot be
+  // Overpowered"* (#353), said by its name.
+  if (flip.refusedBy) return `Overpower: no coin (${flip.refusedBy})`;
   // The Master's own Luck Check, made before the flip (#111), with its die and
   // the Luck it cost; absent when it was not offered or was declined.
   const luck = flip.luck

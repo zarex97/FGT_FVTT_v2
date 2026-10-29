@@ -1,0 +1,30 @@
+# Tamamo, char_orig_sheets/by-class/Caster/Tamamo.md (#353).
+#
+# Passive 1 is a Mana Burst's `ignoresMagicResistance`, granted on her MAG
+# Attacks as an `AttackProperty` (reading 2: Magic Resistance's damage cut
+# only; its debuff cut still applies, but for the Instakill and Death its own
+# text spares). *"Negated while affected by Skill Seal or Silence"* is EMIYA's
+# `negatedBy`.
+#
+# Passive 2 is Scáthach's PRS Tokens word for word, and lives where hers does:
+# a `cooldownWaiver` on each of the four Spells it covers (reading 3: Enten,
+# Hyōten, Mitten, Raitei), automatic. The pool is the Servant's `mantra`.
+schema: 1
+id: tamamo-witchcraft
+name: "Witchcraft"
+rank: EX
+kind: skill
+slug: witchcraft
+passive: true
+copyable: { allowed: false, reason: unique }
+negatedBy: [skillSeal, silence]
+description: |
+  (Passive 1) Tamamo's Attacks which use Base Attack (MAG) ignore Magic Resistance. Negated while affected by
+  @effect[skillSeal]{Skill Seal} or @effect[silence]{Silence}.
+  (Passive 2) When Tamamo uses a Mantra Spell other than Jusō: Kōnisshō, Jusō・Kokutendō, and Jusō・Kūretsu
+  Daimitten while she has any Mantra Tokens, remove one Mantra Token from herself and the Mantra Spell that she
+  used does not enter Cooldown. The maximum number of Mantra Tokens Tamamo can have is 3.
+passiveRules:
+  - key: AttackProperty
+    property: ignoresMagicResistance
+    predicate: ["attack:component:mag"]

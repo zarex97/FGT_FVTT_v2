@@ -2171,6 +2171,7 @@ export function contributionsOf(actor, { terrain = [], tick = null, partnerDista
       // (#125). The board's own `abilities` carry the same four (`collectAbilities`).
       abilities: [...(actor.items ?? [])].map((i) => ({
         id: i.id, slug: i.system?.slug ?? i.id, active: Boolean(i.system?.active),
+        negated: negated(i, actor),
         rank: i.system?.rank ?? null,
         categorizedAs: [...(i.system?.categorizedAs ?? [])],
         categorizedWhile: [...(i.system?.categorizedWhile ?? [])],
@@ -2350,6 +2351,9 @@ function collectAbilities(actor, { tick = null, turnsPerRound = 3, dropped = fal
       id: i.id,
       name: i.name,
       isNP: i.type === "noblePhantasm",
+      // Switched off whole by its own `negatedBy`/`negatedWhile`: no predicate
+      // finds it held (Tamamo's Divinity outside Yata no Kagami, #353 reading 1).
+      negated: negated(i, actor),
       rank: Rank.parseOrNull(i.system?.rank),
       cooldownRemaining: i.system?.cooldown?.remaining ?? 0,
       // Its full length, for a Passive whose handler starts its own clock
@@ -2475,19 +2479,27 @@ function negated(item, actor) {
   // and Karna's Kavacha and Kundala -- a -90% damage reduction, the largest
   // single defensive modifier in the game -- is *"lost when Vasavi Shakti is
   // used/Activated"*.
+  const carried = () => new Set(
+    [...(actor.effects ?? [])]
+      .filter((e) => !e.disabled && !e.isSuppressed)
+      .map((e) => e.system?.defId)
+      .filter(Boolean),
+  );
   const byEffect = item.system?.negatedBy ?? [];
-  if (byEffect.length > 0) {
-    const carried = new Set(
-      [...(actor.effects ?? [])]
-        .filter((e) => !e.disabled && !e.isSuppressed)
-        .map((e) => e.system?.defId)
-        .filter(Boolean),
-    );
-    if (byEffect.some((id) => carried.has(id))) return true;
-  }
+  if (byEffect.length > 0 && byEffect.some((id) => carried().has(id))) return true;
 
   const spec = item.system?.negatedWhile ?? null;
   if (!spec) return false;
+
+  // Negated while the bearer LACKS an effect: Tamamo's Divinity is *"Only in
+  // effect while 'Yata no Kagami' is activated, negated and has no effects
+  // while it is not"* (#353 reading 1), and the Amaterasu Area grants her
+  // `amaterasu` for exactly as long as it stands.
+  const needs = spec.missingEffect ?? [];
+  if (needs.length > 0) {
+    const held = carried();
+    if (needs.some((id) => !held.has(id))) return true;
+  }
 
   const named = new Set(spec.abilityOnCooldown ?? []);
   if (named.size === 0) return false;

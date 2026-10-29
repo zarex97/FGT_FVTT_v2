@@ -16,7 +16,7 @@ import {
   computeDamage, computeDamageHits, isNPAttack, modifierSourceUnits, usesBaseOptions, INJURY_THRESHOLD,
 } from "../rules/damage/pipeline.mjs";
 import { inflictedEffectIds, ridersFire, successfullyAttacked } from "../rules/damage/riders.mjs";
-import { expandInstances, damageBaseOf } from "../rules/damage/instances.mjs";
+import { expandInstances, damageBaseOf, breakMultipliers } from "../rules/damage/instances.mjs";
 import { displaceToken } from "./io.mjs";
 import { askOwner, chooseFor } from "./ask.mjs";
 import { offerOverpowerSave, saveOnCard } from "./overpower-save.mjs";
@@ -506,16 +506,18 @@ export async function resolveAttack({
   // One Combat Process per instance per target, INSTANCE-MAJOR within each
   // target, so the declared order reads down the chat log: a player matching
   // five cards to five sentences of Dohatsu Tenshou should find them in the
-  // sheet's order.
-  const targetIds = perTarget.flatMap(({ t, specs }) => specs.map(() => t.unitId));
+  // sheet's order. An instance that strikes ONE defender drawn at random
+  // (Dainisshō's *"Hits a random enemy Unit within the Spell area"*, #353
+  // reading 31) makes the order the sheet's across targets instead, each draw
+  // rolled here, at the declaration, and carried to its card.
+  const rows = await processRows(perTarget);
+  const targetIds = rows.map((r) => r.unitId);
   // The spec each of those processes resolves under, in the same order. The
   // whole instance travels as `instanceBlock` too, because the damage step
   // reads its multiplier, base and element from a BLOCK: it read the ability's
   // top-level block, so Dohatsu Tenshou's four 0.5x sub-attacks dealt 1x with
   // no element and its 3.5x+200 BA(MAG) part dealt 1x BA(STR) (#195).
-  const perProcess = perTarget.flatMap(({ specs }) => specs.map((s, i) => ({
-    ...s, instanceBlock: s, instanceIndex: i, instanceCount: specs.length,
-  })));
+  const perProcess = rows.map((r) => r.spec);
 
   // WHICH RING each target stands in, carried forward from the geometry pass.
   //
@@ -762,7 +764,7 @@ export async function payAbilityPrice({
   }
 
   const pending = resume || channelStarted ? [] : pendingCosts({ usage, ability, self, master, board, use });
-  const { charged, superseded } = resolveCosts(pending);
+  const { charged, superseded } = resolveCosts(pending, { payer: self });
 
   for (const cost of charged) await applyBatch(costIntents(cost, self), "attack:cost");
   await postCostCards(charged, { ability, self });
@@ -1276,7 +1278,47 @@ function defenderFields({ attackerId, defenderId, attack, isAoE, ability, board,
     // answers no rung (`process.inertAnswer`). A Master's swing at a
     // Bloodmark stopped to ask the Bloodmark to Block or Evade (#188).
     defenderInert: unitActor(defenderId)?.type === "structure",
+    // A reaction the defender takes without being asked: Aphotic's automatic
+    // Block (#353 reading 11), read as the Process opens, after the Phase's
+    // start window where Kokutendō is cast.
+    forcedReaction: forcedReactionOf(defenderId, board),
   };
+}
+
+/**
+ * The name of the rule that refuses a Master-Servant coin, or `null`.
+ *
+ * Overpower is a Servant's Attack on a Master, its refusal on the Master;
+ * Underpower a Master's Attack on a Servant, its refusal on the attacking
+ * Master (`rules/relationships.mjs`). Fox Spouse refuses both (#353).
+ *
+ * @param {object} attacker
+ * @param {object} defender
+ * @param {"overpower"|"underpower"} scope
+ * @returns {string|null}
+ */
+function refusedCoin(attacker, defender, scope) {
+  const pair = scope === "overpower"
+    ? attacker?.kind === "servant" && defender?.kind === "master" ? defender : null
+    : attacker?.kind === "master" && defender?.kind === "servant" ? attacker : null;
+  const hit = (pair?.suppressions ?? []).find((s) => s.scope === scope);
+  if (!hit) return null;
+  // By its name, never its id (found live: "no coin (foxSpouse)").
+  const source = String(hit.source ?? scope);
+  return EffectRegistry.get(source)?.name ?? source;
+}
+
+/**
+ * The reaction a defender takes on every Attack, unasked, or `null`.
+ *
+ * @param {string} defenderId
+ * @param {object} [board]
+ * @returns {string|null}
+ */
+function forcedReactionOf(defenderId, board = boardSnapshot()) {
+  const defender = defenderId ? unitActor(defenderId) : null;
+  if (!defender) return null;
+  return (unitOf(defender, board).suppressions ?? []).find((s) => s.scope === "forcedReaction")?.reaction ?? null;
 }
 
 /**
@@ -1619,6 +1661,11 @@ async function declareProcesses({
   const processes = [];
   // Who this declaration attacked, recorded once each on their Turn Record.
   const attackedByRecorded = new Set();
+  // The board as the Phase's start left it: a defender's own window was cast
+  // after the declaration read its board, and what it cast decides the rungs.
+  // Kokutendō at the start of the Combat Phase put Aphotic on Tamamo, and the
+  // Process still offered her Evade and asked her to react (found live, #353).
+  const live = boardSnapshot();
   for (const declared of states) {
     const state = carryDeclarationBoosts(declared, boostWindow);
     // What this defender could answer with, beyond Block and Evade. Recorded on
@@ -1630,7 +1677,7 @@ async function declareProcesses({
         ...state,
         ...defenderFields({
           attackerId: state.attackerId, defenderId: state.defenderId, attack: state.attack, isAoE: state.isAoE,
-          ability, board, declared: placementSays,
+          ability, board: live, declared: placementSays,
         }),
         // What the placement said, kept so a swap can ask `defenderFields` again.
         declared: placementSays,
@@ -1720,8 +1767,13 @@ async function declareProcesses({
     // `nothing`, an illegal transition, so every Blind or Drowning miss threw at
     // the declaration and its Phase never ended (#232, found live: Karna under
     // Drowning).
+    // A defender whose reaction is fixed answers it: Aphotic's automatic Block
+    // (#353 reading 11), never this rung's "Do nothing".
+    const forced = ownSubject ? null : process.forcedAnswer(advanced);
     if (advanced.state === "missed") {
       await advanceAttack({ messageId: message.id, event: "done" });
+    } else if (forced) {
+      await advanceAttack({ messageId: message.id, event: forced });
     } else if (!process.pendingPrompt(advanced) || ownSubject) {
       await advanceAttack({ messageId: message.id, event: "nothing" });
     }
@@ -4348,6 +4400,9 @@ async function runAutomaticStep(state, message) {
   // A defender that takes no action answers its own rungs (#188).
   const inert = process.inertAnswer(state);
   if (inert) return process.advance(state, inert);
+  // ...and one that answers its reaction rung the same way every time (#353).
+  const forced = process.forcedAnswer(state);
+  if (forced) return process.advance(state, forced, { reason: "forced" });
 
   // A Luck rung its Unit cannot take is declined here, with its reason, before
   // any card shows it (`closedLuckRung`).
@@ -4710,7 +4765,9 @@ async function rollEvade(state) {
   const outcome = evadeCheck({
       roll: roll.total,
       agility: defender.agility,
-      hasDodge: (defender.effects ?? []).includes("dodge"),
+      // *"Dodge/Substitution has no effect"* while Aphotic (#353).
+      hasDodge: (defender.effects ?? []).includes("dodge")
+        && !(defender.suppressions ?? []).some((s) => s.scope === "dodge"),
       attackHasAim: Boolean(state.attack?.aim),
       forceUnfavourable:
         plan.forceTable === "unfavourable" || defender.agility < attacker.agility,
@@ -6189,11 +6246,26 @@ async function applyDamage(state, message) {
     isNP: isNPAttack({ ...facts, ...identity }),
     alsoFrom: modifierSourceUnits(description.attack, namedUnits(attacker, board), attacker).map((s) => s.unit),
   });
+  // Yata Strike's Crit Chance grows by `perMiss` for each counted use that did
+  // not Crit, and the count resets on a Crit (#353 reading 19). Only a use
+  // that reaches this coin counts: an Evaded or Missed one flips none.
+  const growth = ability?.system?.critChanceGrowth ?? null;
+  const grown = growth ? Number(growth.perMiss ?? 0) * Number(ability.system?.critMisses ?? 0) : 0;
+  const critPercent = critSpec.percent + grown;
   const critRoll = await new Roll("1d100").evaluate();
   const isCrit = critSpec.blocked
     ? false
-    : (critSpec.automatic || critRoll.total <= critSpec.percent);
+    : (critSpec.automatic || critRoll.total <= critPercent);
+  if (growth) {
+    const next = isCrit ? 0 : Number(ability.system?.critMisses ?? 0) + 1;
+    await applyBatch([I.critMisses(attackerDoc.id, ability.id, next)], "critMisses");
+  }
   const attackRoll = await new Roll("5d10").evaluate();
+  // *"Total Damage dealt is multiplied by X, X = the number rolled on an
+  // eight-sided die."* (Yata Strike, #353 reading 18). Rolled once per hit and
+  // carried to stage 1 for a Fixed figure, which skips stages 2-15, or to stage
+  // 15 for any other.
+  const totalDie = block?.totalDie ? await new Roll(String(block.totalDie)).evaluate() : null;
 
   const ctx = {
     attacker, defender, board,
@@ -6231,8 +6303,8 @@ async function applyDamage(state, message) {
     // declaration met, when it states them (#283).
     multiplier: multiplierOf(block, { use: { criteriaMet: state.attack?.criteriaMet?.met ?? 0 } }),
     flatBonus: block?.flatBonus ?? 0,
-    conditionalMultipliers: block?.conditionalMultipliers ?? facts.conditionalMultipliers ?? [],
-    crit: { isCrit, chanceUsed: critSpec.percent },
+    conditionalMultipliers: [...(block?.conditionalMultipliers ?? facts.conditionalMultipliers ?? []), ...breakMultipliers(block)],
+    crit: { isCrit, chanceUsed: critPercent, ...(growth ? { grown } : {}) },
     // Which rolls this table plays with (Ch. 29). Threaded into ctx the way
     // `grandOrder` is, because a pure pipeline stage may not read a setting.
     difficulty: board?.difficulty,
@@ -6261,10 +6333,13 @@ async function applyDamage(state, message) {
       // Normal Attack she makes as well. This clause belongs to one Noble
       // Phantasm, and the damage block is what that Noble Phantasm is.
       ...totalModifiersFor(ability, options, attacker, block, { areaCount: state.areaCount ?? 1 }),
+      ...(totalDie && !description.attack.isFixedDamage
+        ? [{ key: "totalDie", factor: totalDie.total, source: `×${totalDie.formula} = ${totalDie.total}` }] : []),
     ],
     luckChecks: {},
     rolls: {
       [isCrit ? "attackPlus" : "attackMinus"]: attackRoll.total,
+      ...(totalDie ? { totalDie: { formula: totalDie.formula, total: totalDie.total } } : {}),
       negation: await rollNegation(defender, isNPAttack(state.attack)),
       // Ch. 32's ZON penalty: *"when a Servant deals damage with an Attack while
       // outside of its Master's ZON, damage dealt is reduced by 5d10"*.
@@ -6356,6 +6431,10 @@ async function applyDamage(state, message) {
   // The flip goes on the card, Heads or Tails (ruled 2026-10-02, #65 ruling
   // 21, #174). It used to defeat a Master with nothing on the card at all.
   // ...with the Luck Check that came before it, passed or failed.
+  // A coin a rule on the Master refuses to flip, said on the card by its name:
+  // Fox Spouse's *"the Master cannot be Overpowered … by Servants"* (#353).
+  const opRefused = !sheltered && !overpower.applies ? refusedCoin(attacker, defender, "overpower") : null;
+  if (opRefused) result.flags = { ...result.flags, overpower: { refusedBy: opRefused } };
   if (overpower.applies) {
     result.flags = {
       ...result.flags,
@@ -6373,6 +6452,8 @@ async function applyDamage(state, message) {
   if (underpower.chance > 0 || underpower.underpowered) {
     result.flags = { ...result.flags, underpower: { roll: underpowerRoll, chance: underpower.chance, halved: underpower.underpowered } };
   }
+  const upRefused = refusedCoin(attacker, defender, "underpower");
+  if (upRefused) result.flags = { ...result.flags, underpower: { refusedBy: upRefused } };
   if (underpower.underpowered) {
     const before = result.total;
     result.total = Math.max(0, Math.round(result.total * underpower.factor));
@@ -7118,7 +7199,15 @@ async function applyAbilityEffects(state, damageResult, { when = "afterDamage", 
     // A rider the sheet gates on HURT, not hit: Mystery Bisection's *"35% chance
     // of inflicting Instakill if damage was dealt"* (#243 reading 15). A Block
     // to 0 or an Invuln still lands the phases beside it.
-    if (phase.requiresDamage && !((damageResult?.total ?? 0) > 0)) continue;
+    // Said on the card when it holds a rider back: the Fist's Stun (Balls) on a
+    // hit an Invuln took to 0 left no line at all (found live, #353).
+    if (phase.requiresDamage && !((damageResult?.total ?? 0) > 0)) {
+      if (!heldOnly) {
+        const names = (phase.effects ?? []).map((e) => EffectRegistry.get(e.id ?? e.effect?.id)?.name ?? e.id).filter(Boolean).join(", ");
+        applied.push({ summary: { id: "requiresDamage", name: game.i18n.format("FGT.Effect.NeedsDamage", { names }), outcome: "blocked", reason: null, chance: null } });
+      }
+      continue;
+    }
 
     // A rider aimed at the ATTACKER. Bellerophon is the first: *"Then, applies
     // Crit Up for 1◈ Turns"* -- to Medusa, after her own damage lands. This
@@ -8026,6 +8115,9 @@ export function describeAttack({ state, attacker, defender, board, ability = nul
       // Dragon Wing Warriors' "50 Fixed STR damage", and Bašmu's summon branch
       // dealing nothing.
       isFixedDamage: Boolean(block?.fixed) || dealsNoDamage(ability),
+      // Break ignores a Block the DU chose (stage 14); its +X% is a stage-3
+      // multiplier on the same reaction (`breakMultipliers`, #353 reading 7).
+      breakSucceeded: Boolean(block?.break) && state.reaction === "block",
     },
   };
 }
@@ -8091,14 +8183,24 @@ export function attackFacts(attacker, defender, state, board = null) {
     cone: state.cone ?? (attacker && defender ? attackCone(defender, attacker) : null),
   };
   // The attacker's conditional grants, decided against THIS defender and Range
-  // (`conditionalGrants`); the unconditional ones are on the spec already.
-  const met = conditionalGrants(attacker, defender, base);
+  // (`conditionalGrants`); the unconditional ones are on the spec already. A
+  // Normal Attack's Base Attack is known only at this distance, so a grant
+  // asked of it (Witchcraft's *"Attacks which use Base Attack (MAG)"*, #353)
+  // is decided against the band struck with, never the component the
+  // declaration stamped before it knew the distance (found live: her MAG swing
+  // at Range 3 was asked as STR, and Magic Resistance negated it). A rider's
+  // face keeps its own.
+  const asked = kind === "normal" && attacker && !state.attack?.rider?.component
+    ? { ...base, component: normalAttackAt(attacker, range).component }
+    : base;
+  const met = conditionalGrants(attacker, defender, asked);
   const has = (property) => met.some((p) => p.property === property && p.value !== false && p.value !== 0);
   const numbers = met.filter((p) => p.property === "invulnFactor" && typeof p.value === "number").map((p) => p.value);
   const facts = withGrantedElement(attacker, {
     ...base,
     pierce: Boolean(base.pierce) || has("pierce"),
     ignoresDefUp: Boolean(base.ignoresDefUp) || has("ignoresDefUp"),
+    ignoresMagicResistance: Boolean(base.ignoresMagicResistance) || has("ignoresMagicResistance"),
     ...(numbers.length ? { invulnFactor: Math.max(base.invulnFactor ?? 0, ...numbers) } : {}),
   }, met);
 
@@ -8205,6 +8307,43 @@ export function processDelivery(state, board = currentBoard()) {
  * @param {boolean} args.isNP
  * @returns {object}
  */
+/**
+ * Each Combat Process a declaration opens, in order: its defender and spec.
+ *
+ * Instance-major within each target, as Dohatsu Tenshou's five cards read down
+ * the log. An instance that names `pick: randomEnemy` strikes one defender
+ * drawn at random from the declaration's (Dainisshō, #353 reading 31), so its
+ * rows run in the sheet's order across targets: hits 1 to 8 one card each, hit
+ * 9 one per enemy. Each draw is a die (`1dN` over the defenders, a repeat
+ * allowed) on its card (`picked`).
+ *
+ * @param {Array<{t: {unitId: string}, specs: object[]}>} perTarget
+ * @returns {Promise<Array<{unitId: string, spec: object}>>}
+ */
+export async function processRows(perTarget) {
+  const tag = (s, i, n, extra = {}) => ({ ...s, instanceBlock: s, instanceIndex: i, instanceCount: n, ...extra });
+  const picking = perTarget.some(({ specs }) => specs.some((s) => s.pick));
+  if (!picking) {
+    return perTarget.flatMap(({ t, specs }) => specs.map((s, i) => ({ unitId: t.unitId, spec: tag(s, i, specs.length) })));
+  }
+  const count = Math.max(...perTarget.map(({ specs }) => specs.length));
+  const rows = [];
+  for (let i = 0; i < count; i++) {
+    const holders = perTarget.filter(({ specs }) => specs[i]);
+    const pick = holders[0]?.specs[i]?.pick ?? null;
+    if (!pick) {
+      for (const { t, specs } of holders) rows.push({ unitId: t.unitId, spec: tag(specs[i], i, count) });
+      continue;
+    }
+    if (pick !== "randomEnemy") throw new Error(`FGT | Unknown instance pick "${pick}".`);
+    if (holders.length === 0) continue;
+    const roll = (await new Roll(`1d${holders.length}`).evaluate()).total;
+    const chosen = holders[Math.min(holders.length, Math.max(1, roll)) - 1];
+    rows.push({ unitId: chosen.t.unitId, spec: tag(chosen.specs[i], i, count, { picked: { roll, of: holders.length } }) });
+  }
+  return rows;
+}
+
 /**
  * The damage instances an ability deals one defender, in the sheet's order.
  *
@@ -8315,7 +8454,7 @@ export function previewContext({ caster: given, defender, ability, board, isNP, 
     multiplier: multiplierOf(block, { use: { criteriaMet: criteriaMet(ability?.system?.criteria,
       { targets: targets ?? (defender ? [defender] : []), self: caster, board }).met } }),
     flatBonus: block?.flatBonus ?? 0,
-    conditionalMultipliers: block?.conditionalMultipliers ?? facts.conditionalMultipliers ?? [],
+    conditionalMultipliers: [...(block?.conditionalMultipliers ?? facts.conditionalMultipliers ?? []), ...breakMultipliers(block)],
     crit: { isCrit: false, chanceUsed: 0 },
     reaction: { kind: "none" },
     luckChecks: {},
@@ -9821,7 +9960,7 @@ function counterfactualDamage({ attackerDoc, ability, board, options, defenderUn
     // A counterfactual meets no criteria: none was counted, since none was declared.
     multiplier: multiplierOf(block),
     flatBonus: block?.flatBonus ?? 0,
-    conditionalMultipliers: block?.conditionalMultipliers ?? [],
+    conditionalMultipliers: [...(block?.conditionalMultipliers ?? []), ...breakMultipliers(block)],
     // No crit. The coin was never flipped — the resolution did not happen — and
     // assuming one would hand the reflection a bonus the sheet does not mention.
     crit: { isCrit: false, chanceUsed: 0 },

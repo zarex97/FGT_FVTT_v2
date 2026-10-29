@@ -1,0 +1,41 @@
+# Tamamo, char_orig_sheets/by-class/Caster/Tamamo.md (#353).
+#
+# Rank ? is no Rank: a reader asking this NP's Rank finds none, and its Master
+# pays the Rank E row (Rho Aias's `masterHealthByNPRank`, reading 21). Each rider's stages are read
+# off the DU's own Parameter: a + or − reads its letter's row, and a DU with no
+# Parameters, a Master, the D/E row (reading 22). Stages add as Zabaniya's do.
+schema: 1
+id: tamamo-higanbana-sesshoseki
+name: "Tokoyo Sakisaku Daisakkai・Higanbana Sesshoseki"
+rank: null
+isNP: true
+kind: noblePhantasm
+slug: higanbanaSesshoseki
+npTags: [antiUnit]
+cooldown: "3◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: unique }
+description: |
+  Rank ?. Red Spider Lily Killing Stone. Range=1. Base Attack (STR) is used. Deals 2x damage. Has 2 extra effects
+  depending on the DU's END Rank and MAG Rank.
+  1. Inflicts Stage X @effect[curse]{Curse} on the DU, X being: MAG Rank EX, A: 1; B, C: 2; D, E: 3.
+  2. Inflicts Stage X @effect[poison]{Poison} on the DU, X being: END Rank EX, A: 1; B, C: 2; D, E: 3.
+  Cooldown: 3◈ Turns.
+  Note: When this NP is used, Tamamo's Master loses Health equal to if a Rank E Noble Phantasm was used.
+targeting:
+  anchor: { kind: targetUnit, range: 1 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: all, count: 1 }
+additionalCosts:
+  - { id: higanbanaNP, kind: masterHealthByNPRank, rank: E }
+damage:
+  multiplier: 2
+  component: str
+phases:
+  - kind: damage
+  - kind: applyEffects
+    effects:
+      - id: curse
+        stagesByTargetRank: { parameter: mag, rows: { EX: 1, A: 1, B: 2, C: 2, D: 3, E: 3 }, unranked: 3 }
+      - id: poison
+        stagesByTargetRank: { parameter: end, rows: { EX: 1, A: 1, B: 2, C: 2, D: 3, E: 3 }, unranked: 3 }

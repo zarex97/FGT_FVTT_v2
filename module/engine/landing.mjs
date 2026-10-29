@@ -39,7 +39,7 @@ import { admit, landedDefinition } from "../rules/effect-instance.mjs";
 import { relationOf } from "../rules/relations.mjs";
 import { rollOptionsFor } from "../rules/options.mjs";
 import { test as testPredicate } from "../rules/predicate.mjs";
-import { applicationsOf, chanceOf, effectGatePasses, timesOf } from "../rules/effect-flow.mjs";
+import { applicationsOf, chanceOf, effectGatePasses, stagesFor, timesOf } from "../rules/effect-flow.mjs";
 import { resolveValue } from "../rules/elements.mjs";
 import { expressionRefs } from "../rules/snapshot.mjs";
 import { stacksHeld, countedValue, countScaleOf, fromCountTargets, countOf } from "../rules/count.mjs";
@@ -155,7 +155,7 @@ export async function landEffect(entry, ctx) {
     source: { abilityId: null, fieldId: null, terrain: null, ...ctx.source },
     chanceModifiers: entry.chanceModifiers ?? [],
     chance: stated,
-    stages: entry.stages ?? 1,
+    stages: stagesFor(entry, target),
     // Charges, for a counted effect: what the entry states, or its `times`.
     uses: (entry.stacking ?? def.stacking) === "count" ? (entry.uses ?? ctx.times ?? null) : (entry.uses ?? null),
     // How THIS application stacks, where the entry says: Bab-ilu's *"for
@@ -306,8 +306,25 @@ export async function landEffect(entry, ctx) {
     // a landed debuff, Roma Stacks on an ally are not one (#315, #320).
     polarity: def.polarity ?? null, // fgt-polarity-ok: the landed definition this landing decided
     trace: result.trace ?? [],
-    summary: { id: def.id, name: def.name, outcome, reason, chance: line },
+    summary: { id: def.id, name: stagedName(def, intents, outcome), outcome, reason, chance: line },
   };
+}
+
+/**
+ * A staged effect's line names the stage it now stands at: Higanbana
+ * Sesshoseki's *"Stage X Curse"* read "Curse" on its card (found live, #353).
+ *
+ * @param {object} def
+ * @param {object[]} intents what the landing writes
+ * @param {string} outcome
+ * @returns {string}
+ */
+function stagedName(def, intents, outcome) {
+  if (def?.stacking !== "stage" || outcome !== "applied") return def?.name;
+  const written = intents.find((i) => i.t === "applyEffect" && i.effect?.defId === def.id)?.effect?.stage;
+  return typeof written === "number" && written > 0
+    ? game.i18n.format("FGT.Effect.AtStage", { name: def.name, stage: written })
+    : def.name;
 }
 
 /**

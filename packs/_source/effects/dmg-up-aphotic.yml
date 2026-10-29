@@ -1,0 +1,30 @@
+# Tamamo, char_orig_sheets/by-class/Caster/Tamamo.md: Jusō・Kokutendō 5 (#353).
+#
+# > *"…gain the Dmg Up (Aphotic) buff for 1 time, damage dealt by the next
+# > Attack which deals MAG damage is increased by 15% including NP. Dmg Up
+# > (Aphotic) can stack and is Unremovable."*
+#
+# Stacks add, and the next MAG Attack spends them all (reading 14): NP DmUp's
+# `magnitudeStacks`, and Utopia's removal on `attackPerformed`.
+schema: 1
+id: dmgUpAphotic
+name: "Dmg Up (Aphotic)"
+description: "Damage dealt by the next Attack that deals MAG damage is increased by X%, including NP. Stacks; Unremovable."
+polarity: buff
+volatility: nonVolatile
+valence: offensive
+stacking: magnitudeStacks
+unremovable: true
+baseChance: 100
+rules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: "@magnitude"
+    predicate: ["attack:component:mag"]
+  - key: OnEvent
+    event: attackPerformed
+    automatic: true
+    targetPredicate: ["attack:component:mag"]
+    then:
+      - { key: RemoveEffect, effect: dmgUpAphotic }

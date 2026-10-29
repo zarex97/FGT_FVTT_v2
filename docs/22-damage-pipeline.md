@@ -171,3 +171,17 @@ whole pipeline. An unknown `unit` used to fall through to the attacker; the buil
 (a bypass or an unrolled chance still drops it) and added at stage 16, after Def Crk and after the Injury
 snapshot: no modifier on either side changes it, Invuln and a successful Evade still stop it, and
 `flags.fixedExtra` lets a multi-hit sum and a `singleInjuryRoll` total leave it out of the Injury Roll.
+
+### Break, a Total die and a Crit figure (#353)
+
+**Break (+X%dm)** is written at last: stage 14 has read `attack.breakSucceeded` since it was written, and nothing set
+it. A damage block's `break: {bonus}` makes it true when the DU Blocked, and adds a stage-3 multiplier of `1 + bonus%`
+on `target:reaction:block` beside the ability's own (`instances.mjs#breakMultipliers`): Mitten's ×1.25 × 1.5. Its chance
+is 100% unstated; a stated one refuses. **`totalDie`** multiplies the Total by a die: at stage 1 for a Fixed figure,
+which skips stages 2–15, at stage 15 otherwise. **`base.critFixedValue`** is the Fixed figure on a Crit: Yata Strike's
+*"15 STR damage instead of 10"*. The fixed note names the grown Crit Chance and the Total die it rolled, so the card
+shows both.
+
+**A grant asked of a Normal Attack's component reads the band** (#353, found live). A Normal Attack's component is set
+at the distance struck; the declaration's stamp is a placeholder. `attackFacts` asks a conditional grant
+(Witchcraft's `attack:component:mag`) of the band at this distance, always.
