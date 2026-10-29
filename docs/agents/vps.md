@@ -3,6 +3,8 @@
 The system is developed in two places, each with its own clone, its own Foundry and its own copy of
 world `fgt2026`.
 
+A Claude Code cloud session is a third place, with no world of its own: see `docs/agents/cloud.md`.
+
 | | PC (Windows) | VPS (Ubuntu 24.04, `ssh foundry-dev`) |
 |---|---|---|
 | Repo | `~/OneDrive/Documentos/GitHub/FGT_FVTT_v2`, junctioned as `Data/systems/fgt` | a real clone **at** `~/foundrydata/Data/systems/fgt` |
