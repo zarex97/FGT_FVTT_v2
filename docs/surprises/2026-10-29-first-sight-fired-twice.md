@@ -9,6 +9,6 @@ reviewed: false
 
 **Actual:** Arjuna boarding the Carolus: "Ruler's True Name Discernment: Archer is Arjuna" twice, and two Arjuna pages in Notebook: Player1.
 
-**Cause:** `module/engine/vision.mjs:51 @ uncommitted` — a move's sweep and a boarding's sweep read the board before either wrote `seenUnitIds`.
+**Cause:** `module/engine/vision.mjs:51 @ 8db88035` — a move's sweep and a boarding's sweep read the board before either wrote `seenUnitIds`.
 
-**Fix:** `module/engine/vision.mjs:53 @ uncommitted` — each pair is claimed in memory before any await.
+**Fix:** `module/engine/vision.mjs:53 @ 8db88035` — each pair is claimed in memory before any await.

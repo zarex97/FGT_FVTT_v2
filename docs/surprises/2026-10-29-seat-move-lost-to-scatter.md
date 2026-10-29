@@ -9,6 +9,6 @@ reviewed: false
 
 **Actual:** Karl rode the CPA from (13,11) and his Master from (11,13), where the scatter dropped them, off its 2×2.
 
-**Cause:** `module/engine/skill-use.mjs:3010 @ uncommitted` — the seat moves were written after the Carolus's teardown and were lost, before and after the new deck's activation alike.
+**Cause:** `module/engine/skill-use.mjs:3010 @ 8db88035` — the seat moves were written after the Carolus's teardown and were lost, before and after the new deck's activation alike.
 
-**Fix:** `module/engine/skill-use.mjs:3015 @ uncommitted` — the teardown lands them there itself: `destroyPlatform({landings})` overrides the scatter for named Units.
+**Fix:** `module/engine/skill-use.mjs:3015 @ 8db88035` — the teardown lands them there itself: `destroyPlatform({landings})` overrides the scatter for named Units.
