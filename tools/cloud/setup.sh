@@ -136,9 +136,12 @@ closed() {
   [ "$active" != "$WORLD" ] || die "world $WORLD is running; return it to setup, or run fvtt-down, first"
 }
 
+# A session's harness clones the repo onto the session's own branch, with no
+# upstream, so a bare `git pull` refuses. The world lives on main: fetch it and
+# read the archive from origin/main, whatever is checked out.
 sync_clone() {
   if [ -d "$CLONE/.git" ]; then
-    git -C "$CLONE" pull --ff-only --quiet
+    git -C "$CLONE" fetch --quiet origin main
   else
     git clone --quiet "$REMOTE" "$CLONE" \
       || die "cannot clone $REMOTE; the session needs zarex97/fgt-worlds among its repositories"
@@ -149,10 +152,13 @@ case "$cmd" in
   pull)
     closed
     sync_clone
-    [ -f "$ARCHIVE" ] || die "no $WORLD.tgz in $CLONE"
+    PULLED="$(mktemp)"
+    git -C "$CLONE" show "origin/main:$WORLD.tgz" > "$PULLED" 2>/dev/null \
+      || { rm -f "$PULLED"; die "no $WORLD.tgz on origin/main of $CLONE"; }
     rm -rf "${DATA:?}/worlds/$WORLD"
-    tar -xzf "$ARCHIVE" -C "$DATA"
-    echo "fvtt-world: $WORLD pulled into $DATA (packed: $(tar -tzf "$ARCHIVE" | cut -d/ -f1-2 | sort -u | tr '\n' ' '))"
+    tar -xzf "$PULLED" -C "$DATA"
+    echo "fvtt-world: $WORLD pulled into $DATA from origin/main (packed: $(tar -tzf "$PULLED" | cut -d/ -f1-2 | sort -u | tr '\n' ' '))"
+    rm -f "$PULLED"
     # Setup lists a newly copied world only after a restart (docs/agents/vps.md).
     if up; then
       fvtt-down > /dev/null && fvtt-up > /dev/null 2>&1 \

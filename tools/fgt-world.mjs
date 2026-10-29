@@ -43,6 +43,9 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 
 const LINUX = process.platform === "linux";
+// A Claude Code cloud session (docs/agents/cloud.md): Foundry is run by
+// `fvtt-up` / `fvtt-down`, not a systemd unit, and everything runs as root.
+const CLOUD = LINUX && existsSync("/usr/local/bin/fvtt-up");
 const PORT = process.env.FGT_CDP_PORT ?? 9222;
 const WORLD = process.env.FGT_WORLD ?? "fgt2026";
 const FOUNDRY_EXE = process.env.FGT_FOUNDRY_EXE
@@ -367,6 +370,9 @@ async function join(userName = process.env.FGT_USER ?? "Gamemaster") {
 
 /** @returns {Promise<boolean>} */
 async function appRunning() {
+  if (CLOUD) {
+    return fetch("http://localhost:30000", { redirect: "manual" }).then(() => true, () => false);
+  }
   if (LINUX) {
     return execFileAsync("systemctl", ["is-active", "--quiet", "foundry"]).then(() => true, () => false);
   }
@@ -386,6 +392,7 @@ async function appRunning() {
 /** @returns {Promise<void>} */
 async function appStart() {
   if (await appRunning()) return;
+  if (CLOUD) throw new Error("Foundry is not up; start it with fvtt-up (docs/agents/cloud.md).");
   // Detached: the server has to outlive this process.
   if (LINUX) await execFileAsync("sudo", ["systemctl", "start", "foundry"]);
   else spawn(FOUNDRY_EXE, [], { detached: true, stdio: "ignore" }).unref();
@@ -400,6 +407,7 @@ async function appStart() {
 
 /** @returns {Promise<void>} */
 async function appStop() {
+  if (CLOUD) throw new Error("stop Foundry with fvtt-down (docs/agents/cloud.md).");
   // On the VPS this stops the one server every world shares, PF2e's too.
   if (LINUX) await execFileAsync("sudo", ["systemctl", "stop", "foundry"]).catch(() => {});
   else await execFileAsync("taskkill", ["/IM", "Foundry Virtual Tabletop.exe", "/F"]).catch(() => {});
@@ -414,6 +422,8 @@ async function chromeStart() {
   const headless = LINUX
     ? ["--headless=new", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--window-size=1600,1000"]
     : [];
+  // Chromium refuses to start as root without it, and a cloud session is root.
+  if (LINUX && process.getuid?.() === 0) headless.push("--no-sandbox", "--ignore-gpu-blocklist");
   spawn(CHROME_EXE, [
     `--remote-debugging-port=${PORT}`,
     `--user-data-dir=${CHROME_PROFILE}`,
@@ -424,6 +434,7 @@ async function chromeStart() {
     if (await fetch(`http://127.0.0.1:${PORT}/json/version`).then(() => true).catch(() => false)) return;
     await sleep(500);
   }
+  throw new Error(`the debug browser did not answer on :${PORT}; run ${CHROME_EXE} by hand to see why.`);
 }
 
 /* -------------------------------------------------------------------------- */

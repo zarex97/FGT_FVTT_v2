@@ -10,11 +10,13 @@
  * (Aria) stands in for them: the Count reads any resource by its key.
  */
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import { loadSource } from "../../tools/lib/load.mjs";
 import { withSubjects, prepareSubjects } from "../helpers/subject.mjs";
 
 beforeAll(prepareSubjects, 120_000);
+// Seven projections in one test: 5 s on the PC, past it in a cloud container.
+vi.setConfig({ testTimeout: 30_000 });
 
 const TOKENS = { of: "resource", key: "aria" };
 const GODSPEED = {

@@ -37,10 +37,13 @@ merge, as on the VPS: decide which side is authoritative, close the world on **b
 
 In a session, `zarex97/fgt-worlds` must be among the session's repositories:
 
-- `fvtt-world pull` clones or updates `/home/user/fgt-worlds`, replaces `Data/worlds/fgt2026` with the
-  archive's, and restarts Foundry if it is up, since setup lists a newly copied world only after a restart.
-- `fvtt-world push` packs the world and its modules, commits and pushes. It refuses an archive over 95 MB
-  (GitHub's file limit is 100 MB; past it the repo needs Git LFS).
+- `fvtt-world pull` clones `/home/user/fgt-worlds` or fetches its `main`, replaces `Data/worlds/fgt2026` with
+  the archive on `origin/main`, and restarts Foundry if it is up, since setup lists a newly copied world only after
+  a restart. It reads `origin/main` whatever is checked out: the harness clones the repo onto the session's own
+  branch, with no upstream, and a bare `git pull` there refuses.
+- `fvtt-world push` packs the world and its modules, commits and pushes **the checked-out branch**: in a
+  session that is the session's branch, not `main`, so the PC sees it only once it is merged. It refuses an
+  archive over 95 MB (GitHub's file limit is 100 MB; past it the repo needs Git LFS).
 
 Both refuse while the world is running (`/api/status` names it): return it to setup, or `fvtt-down`.
 `FGT_WORLDS`, `FGT_WORLDS_URL` and `FGT_WORLD_MODULES` override the clone, its remote and the modules.
@@ -77,5 +80,17 @@ The key runs one instance. Stop the PC's desktop app and the VPS's `foundry` uni
   renders.
 - **About 1,600 console lines per load are hook calls**: `module/fgt.mjs` sets `CONFIG.debug.hooks`. Filter
   a capture to `error` and `pageerror`.
-- **`tools/fgt-world.mjs` takes Linux for the VPS** (`systemctl`, `/usr/bin/google-chrome`); use
-  `fvtt-up` / `fvtt-down` here instead of its `app:*` commands.
+- **`tools/fgt-world.mjs` works here** with `FGT_CHROME_EXE=/opt/pw-browsers/chromium`: `chrome:start`,
+  `status`, `launch`, `join` and `rebuild` (34 s) ran on the first cloud audit (#353). It knows a cloud session
+  by `/usr/local/bin/fvtt-up`: `status` probes :30000 instead of `systemctl`, `app:*` refuse and name
+  `fvtt-up` / `fvtt-down`, and Chromium gets `--no-sandbox`, which it needs as root.
+- **A player's page is a second browser**, never a second tab (both tabs would share one cookie): start one
+  with `FGT_CDP_PORT=9223 FGT_CHROME_PROFILE=/tmp/chrome-player1 FGT_USER=Player1`, `chrome:start` then
+  `join Player1`, and evaluate in it with `FGT_CDP_PORT=9223 node tools/fgt-eval.mjs`. Drive clicks with
+  Playwright's `chromium.connectOverCDP` on either port; Playwright resolves only through `createRequire` on
+  Node 22's global root (`NODE_PATH` does not reach an ES module).
+- **A headless page renders at 1–3 FPS.** Screenshots can be stale: read the DOM and the chat, not the picture.
+  Canvas clicks land; hover cards lag. Press `Escape` only inside a targeting session, or Foundry's menu opens
+  over the bar.
+- **Commit early.** The session's worker can restart under you; the working copy survived the one on #353, but
+  only git is promised.
