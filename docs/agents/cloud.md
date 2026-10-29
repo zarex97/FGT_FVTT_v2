@@ -92,5 +92,7 @@ The key runs one instance. Stop the PC's desktop app and the VPS's `foundry` uni
 - **A headless page renders at 1–3 FPS.** Screenshots can be stale: read the DOM and the chat, not the picture.
   Canvas clicks land; hover cards lag. Press `Escape` only inside a targeting session, or Foundry's menu opens
   over the bar.
+- **Run the suite with Foundry down.** Beside a live Foundry and two headless browsers, 37 tests timed out on a
+  tree that passed alone (#353): `fvtt-down`, close the browsers, then `npx vitest run --maxWorkers=4`.
 - **Commit early.** The session's worker can restart under you; the working copy survived the one on #353, but
   only git is promised.
