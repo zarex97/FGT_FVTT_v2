@@ -375,7 +375,7 @@ export const UNIT_ACTIONS = Object.freeze([
       const platform = (board?.units ?? []).find((u) => u.id === unit.platformId && u.kind === "platform");
       if (!platform?.escape) return null;
       const verdict = escapeVerdict(unit, platform, board);
-      if (!verdict.ok && verdict.reason !== "alreadyMoved") return null;
+      if (!verdict.ok && !["alreadyMoved", "cannotAct"].includes(verdict.reason)) return null;
       return { platformId: platform.id, blocked: verdict.ok ? null : verdict.reason };
     },
   },

@@ -100,6 +100,12 @@ export async function boardPlatform({ unitId, platformId, hitByDragonWingWarrior
       I.markTurn(unitId, { movedPanels: spent }),
     ], "platform:board");
     await comeAboard([unitId], platformId);
+    // Said on a card: an enemy is now inside the fortress (found live, #351).
+    const escape = foundry.utils.escapeHTML;
+    await ChatMessage.create({ content: `<div class="fgt-card"><p>${game.i18n.format("FGT.Platform.Entered", {
+      name: escape(shownName(unitActor(unitId), board)), platform: escape(platform.name ?? ""),
+      mov: platform.boarding.movCost ?? 0,
+    })}</p></div>` });
     return { ok: true, roll: 0, target: 0 };
   }
 
@@ -601,7 +607,7 @@ export async function deactivatePlatform({ platformId }) {
  * @param {string} [args.reason] why it ends, for the card the table is shown
  * @returns {Promise<void>}
  */
-export async function destroyPlatform({ platformId, saves = null, reason = "destroyed" }) {
+export async function destroyPlatform({ platformId, saves = null, reason = "destroyed", landings = {} }) {
   const board = currentBoard();
   const platform = board.units.find((u) => u.id === platformId);
   if (!platform) return;
@@ -632,7 +638,9 @@ export async function destroyPlatform({ platformId, saves = null, reason = "dest
   // *"randomly scattered below it"* -- a random free ground panel under the
   // footprint for each passenger, moved before the level change; they only
   // ever dropped straight down (§46.4-CJ).
-  const landing = scatterPanels(passengersOf(platform, board), platform, board, () => CONFIG.Dice.randomUniform());
+  // ...unless the caller names where some land: a platform raised in this
+  // one's place seats its owner and his Master (`summonPlatform {replaces}`, #351).
+  const landing = { ...scatterPanels(passengersOf(platform, board), platform, board, () => CONFIG.Dice.randomUniform()), ...landings };
   const moves = Object.entries(landing).map(([unitId, to]) => I.move(unitId, [to], true));
   await applyWorldIntents([...(await toIntents(descriptors)), ...moves], "platform:destroyed");
 
@@ -916,10 +924,14 @@ export async function runLifespans(tick, { ended: endedBoard = null } = {}) {
   const ended = [];
   for (const p of (board.units ?? []).filter((u) => u.kind === "platform" && !u.defeated)) {
     const owner = board.units.find((u) => u.id === p.ownerId) ?? null;
-    const master = owner?.masterId ? board.units.find((u) => u.id === owner.masterId) ?? null : null;
+    // The Master it was raised with, not the owner's live `masterId`: that
+    // Master's fall frees the owner and clears it (found live, #351).
+    const masterId = p.ownerMasterId ?? owner?.masterId ?? null;
+    const master = masterId ? board.units.find((u) => u.id === masterId) ?? null : null;
     const roles = p.endsWhenDefeated ?? [];
     const ownerFell = roles.includes("owner") && (!owner || owner.defeated);
-    const masterFell = roles.includes("ownerMaster") && Boolean(master?.defeated);
+    // Asked of the document: a fallen Master's body leaves the board.
+    const masterFell = roles.includes("ownerMaster") && Boolean(master?.defeated ?? (masterId ? unitActor(masterId)?.system?.defeated : false));
     if (ownerFell || masterFell) {
       await destroyPlatform({ platformId: p.id, reason: ownerFell ? "ownerDefeat" : "ownerMasterDefeat" });
       ended.push(p.id);
@@ -938,7 +950,15 @@ export async function runLifespans(tick, { ended: endedBoard = null } = {}) {
     const span = resolveTicks(parseTick(String(p.lifespan.duration)), { turnsPerRound });
     const expiry = (p.activatedAt ?? tick) + span + (p.extendedBy ?? 0);
     if (tick < expiry) continue;
-    if (await offerLifespanExtension(p, owner)) continue;
+    if (await offerLifespanExtension(p, owner)) {
+      // *"at exactly 200 he may pay, falls to 0 and is defeated, and the Carolus
+      // ends at the end of the Turn"* (reading 20): the payment can be what
+      // fells him, so his defeat is asked again after it (found live, #351).
+      if (!(roles.includes("owner") && unitActor(owner.id)?.system?.defeated)) continue;
+      await destroyPlatform({ platformId: p.id, reason: "ownerDefeat" });
+      ended.push(p.id);
+      continue;
+    }
     await destroyPlatform({ platformId: p.id, reason: "expired" });
     ended.push(p.id);
   }
@@ -965,10 +985,11 @@ async function offerLifespanExtension(platform, owner) {
   const { FGTSocket } = await import("../net/socket.mjs");
   const picked = await FGTSocket.ask(user.id, {
     kind: "choose",
-    title: game.i18n.localize("FGT.Field.ExtendTitle"),
-    hint: game.i18n.format("FGT.Field.ExtendHint", {
+    // The platform by name: "Extend the field?" named nothing (#351, live).
+    title: game.i18n.format("FGT.Platform.ExtendTitle", { platform: platform.name ?? "" }),
+    hint: game.i18n.format("FGT.Platform.ExtendHint", {
       // fgt-name-ok: the Unit's own player's prompt; its owner knows the name
-      name: doc?.name ?? owner.id, amount, grants: spec.grants,
+      name: doc?.name ?? owner.id, amount, grants: spec.grants, platform: platform.name ?? "",
     }),
     min: 0,
     count: 1,

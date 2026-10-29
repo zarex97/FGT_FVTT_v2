@@ -1862,6 +1862,14 @@ export async function runUpkeep(tick, { round = null, ended = null } = {}) {
       "field:upkeep",
     );
     await stampUpkeep(field, tick, round);
+    // Said on a card: the toll was a write nobody saw (the CPA, #351, live).
+    {
+      const escape = foundry.utils.escapeHTML;
+      await ChatMessage.create({ content: `<div class="fgt-card"><p>${game.i18n.format(
+        acted ? "FGT.Field.UpkeepActed" : "FGT.Field.Upkeep",
+        { payer: escape(shownName(payer, board)), amount, field: escape(field.name ?? "") },
+      )}</p></div>` });
+    }
 
     // *"If the upkeep takes her Master to 50 Health or less, ... forcefully
     // deactivated at the end of the Turn."* The same boundary, after the charge.

@@ -343,6 +343,43 @@ describe("Carolus Patricius (CP.*)", () => {
       ask.mockRestore();
     }, { ...WAR, tokens: true });
   });
+
+  it("the payment that fells Karl ends the Carolus that same Turn (CP.ext.floor, CP.end, found live)", async () => {
+    await withSubjects([karl({ panel: { i: 6, j: 6, k: 1 }, owner: "p1" }), deck({ footprint: undefined, panel: { i: 2, j: 2, k: 1 }, state: { activatedAt: 12 } })], async ({ world: w }) => {
+      await w.actor(KARL).update({ "system.health.value": 200 });
+      const { FGTSocket } = await import("../../module/net/socket.mjs");
+      const ask = vi.spyOn(FGTSocket, "ask").mockResolvedValue(["extend"]);
+      const { runLifespans } = await import("../../module/engine/platforms.mjs");
+      const ended = await runLifespans(18);
+      ask.mockRestore();
+      expect(w.actor(KARL).system.defeated).toBe(true);
+      expect(ended).toEqual([CAROLUS]);
+    }, { ...WAR, tokens: true });
+  });
+
+  it("his Master's fall ends it though it freed Karl: the Master it was raised with is asked (CP.end, found live)", async () => {
+    const MASTER = "karlMaster000001";
+    await withSubjects([
+      karl({ panel: { i: 6, j: 6, k: 1 } }),
+      deck({ footprint: undefined, panel: { i: 2, j: 2, k: 1 }, state: { activatedAt: 17, ownerMasterId: MASTER } }),
+      { from: "master-advanced", id: MASTER, panel: { i: 7, j: 6 }, state: { factionId: "A", defeated: true } },
+    ], async () => {
+      const { runLifespans } = await import("../../module/engine/platforms.mjs");
+      expect(await runLifespans(18)).toEqual([CAROLUS]);
+    }, { ...WAR, tokens: true });
+    // ...and the summon writes it, since `masterId` is gone once he falls.
+    expect(readFileSync("module/engine/skill-use.mjs", "utf8")).toMatch(/data\.system\.ownerMasterId = actor\.system\?\.masterId \?\? null;/);
+  });
+
+  it("a Unit that cannot Move cannot try the escape (CP.escape, found live)", async () => {
+    await withSubjects([
+      karl({ panel: { i: 6, j: 6, k: 1 } }), deck(),
+      { ...aboard("cu-chulainn", FOE, "B", { i: 3, j: 3 }), effects: [{ defId: "stun" }] },
+    ], async ({ unit, board }) => {
+      const { escapeVerdict } = await import("../../module/rules/platforms.mjs");
+      expect(escapeVerdict(unit(FOE), unit(CAROLUS), board)).toMatchObject({ ok: false, reason: "cannotAct" });
+    });
+  });
 });
 
 describe("Karl Cannons (KC.*)", () => {
@@ -529,5 +566,65 @@ describe("Carolus Patricius Auctoritas (U.*, U1.*, U2.*)", () => {
     });
     const body = readFileSync("module/engine/platforms.mjs", "utf8");
     expect(body).toMatch(/endsWhenOwnerUses \?\? \[\]\)\.some\(\(id\) => usedThisTurn\.includes\(id\)\)/);
+  });
+});
+
+describe("found live (#351)", () => {
+  it("two sighting sweeps at once fire one first sight", async () => {
+    await withSubjects([
+      karl({ panel: { i: 6, j: 6 } }),
+      { from: "cu-chulainn", id: FOE, panel: { i: 6, j: 7 }, state: { factionId: "B" } },
+    ], async () => {
+      const scheduler = await import("../../module/engine/scheduler.mjs");
+      const { checkSightings } = await import("../../module/engine/vision.mjs");
+      const { currentBoard } = await import("../../module/engine/board.mjs");
+      const board = currentBoard();
+      const fired = [];
+      const spy = vi.spyOn(scheduler, "fireEvent").mockImplementation((event, units, ctx) => {
+        if (event === "unitFirstSeen") fired.push(`${units[0].id}:${ctx.victim.unitId}`);
+        return [];
+      });
+      await Promise.all([checkSightings({ board }), checkSightings({ board })]);
+      spy.mockRestore();
+      expect(fired.filter((f) => f === `${KARL}:${FOE}`)).toHaveLength(1);
+    }, WAR);
+  });
+
+  it("a refusal names the ability it waits on, in the Skill path and the Attack path", async () => {
+    await withSubjects([karl()], async () => {
+      const { refusalWords } = await import("../../module/apps/actor-sheet/sheet.mjs");
+      const format = vi.spyOn(game.i18n, "format");
+      refusalWords("abilityOffCooldown", { names: "Carolus Patricius" });
+      expect(format).toHaveBeenCalledWith("FGT.Ability.CoolingNamed", { names: "Carolus Patricius" });
+      format.mockRestore();
+    }, WAR);
+    const preflight = readFileSync("module/engine/attack-preflight.mjs", "utf8");
+    expect(preflight).toMatch(/case "abilityOffCooldown":\s*\n\s*if \(d\.names\) return game\.i18n\.format\("FGT\.Ability\.CoolingNamed"/);
+  });
+
+  it("a mount's handlers hear its rider's Normal Attack, at both steps (U2.kb)", () => {
+    const attack = readFileSync("module/engine/attack.mjs", "utf8");
+    expect(attack.match(/const hearers = swingHearers\(attacker, state, board\);/g)).toHaveLength(2);
+    expect(attack).toMatch(/fireEvent\("damageStepEnd", hearers,/);
+    expect(attack).toMatch(/fireEvent\("damageDealt", hearers,/);
+  });
+
+  it("the deck it replaces lands its owner and his Master where the new one stands (U2.ontop, U2.master)", () => {
+    const skill = readFileSync("module/engine/skill-use.mjs", "utf8");
+    expect(skill).toMatch(/await destroyPlatform\(\{ platformId: p\.id, reason: "replaced", landings \}\);/);
+    const platforms = readFileSync("module/engine/platforms.mjs", "utf8");
+    expect(platforms).toMatch(/\.\.\.landings \};/);
+  });
+
+  it("a platform that falls says so, not that its owner did", () => {
+    expect(readFileSync("module/engine/io.mjs", "utf8")).toMatch(/reason: id === unitId \? "destroyed" : "ownerDefeat"/);
+  });
+
+  it("every toll, entry and extension is said by name", () => {
+    const fields = readFileSync("module/engine/fields.mjs", "utf8");
+    expect(fields).toMatch(/acted \? "FGT\.Field\.UpkeepActed" : "FGT\.Field\.Upkeep"/);
+    const platforms = readFileSync("module/engine/platforms.mjs", "utf8");
+    expect(platforms).toMatch(/game\.i18n\.format\("FGT\.Platform\.Entered"/);
+    expect(platforms).toMatch(/game\.i18n\.format\("FGT\.Platform\.ExtendTitle", \{ platform: platform\.name/);
   });
 });

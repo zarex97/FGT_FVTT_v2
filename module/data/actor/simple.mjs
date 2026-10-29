@@ -311,6 +311,10 @@ export class PlatformData extends foundry.abstract.TypeDataModel {
       passengerRules: new fields.ArrayField(new fields.ObjectField(), { initial: [] }),
       lifespan: new fields.ObjectField({ required: false, nullable: true, initial: null }),
       endsWhenDefeated: new fields.ArrayField(new fields.StringField({ blank: false }), { initial: [] }),
+      // Its owner's Master when it was raised, written by the summon: a Master's
+      // fall frees his Servant and clears `masterId`, and the Carolus must still
+      // know whose fall ends it (#351, found live).
+      ownerMasterId: new fields.StringField({ required: false, nullable: true, initial: null }),
       // The owner's abilities whose use ends it at the end of that Turn:
       // Auctoritas's Usage 1 fired while the CPA stands (#351 reading 28).
       endsWhenOwnerUses: new fields.ArrayField(new fields.StringField({ blank: false }), { initial: [] }),
