@@ -3,7 +3,8 @@ id: 2026-10-29-payment-fells-owner-carolus-stays
 found: live press
 kind: hidden-timing-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: hidden-timing-rule
 ---
 **Expected:** Reading 20: at exactly 200 he may pay, falls to 0 and is defeated, and the Carolus ends at the end of the Turn.
 

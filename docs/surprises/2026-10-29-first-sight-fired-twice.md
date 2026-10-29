@@ -3,7 +3,8 @@ id: 2026-10-29-first-sight-fired-twice
 found: live press
 kind: check-then-act-race
 status: fixed
-reviewed: false
+reviewed: true
+pattern: check-then-act-race
 ---
 **Expected:** `unitFirstSeen` fires once a pair: `seenUnitIds` records it.
 

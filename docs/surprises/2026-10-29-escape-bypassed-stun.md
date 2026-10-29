@@ -3,7 +3,8 @@ id: 2026-10-29-escape-bypassed-stun
 found: live press
 kind: two-readers-one-rule
 status: fixed
-reviewed: false
+reviewed: true
+pattern: two-readers-one-rule
 ---
 **Expected:** Carolus Patricius's escape is an action in place of the Move, so whatever stops a Move stops it.
 
