@@ -163,6 +163,16 @@ tick that empties her bar reveals her and then defeats her for real (`io.defeat`
 it. So the reveal waits for both, and the Attack is gated and aimed again from the panel she steps to. Before, a
 Yuugao pressed out of Range was refused and still posted *"Assassin was never defeated: she lives."*
 
+### A page learned on first sight (#351)
+
+True Name Discernment: *"When you meet an enemy Servant for the first time, record all information about it from its
+Notebook page to your Notebook page. If that enemy Servant has Skills or effects that hide its information, a
+successful Luck Check is required"*. Heard on `unitFirstSeen`, once a pair, so a failed Check is final.
+`engine/true-name.mjs#learnServantPage` copies the Servant's sheet (its True Name, Classes, Parameters, Attributes and
+abilities) into the reader's player's Notebook; the die and the result are whispered to that player and the GM. A
+Unit hides its information when it holds Presence Concealment, a Disguise or a Feigned Defeat (`hidesInformation`,
+reading 3). The Check is contested against the seen Servant's Luck and spends 1 of the reader's.
+
 ## Invariants & edge cases
 
 1. **Concealment is an effect, not a boolean.** The effect carries duration, so the state can expire at a clock tick. The polarity is `status` with `unremovable: true` (`module/rules/concealment.mjs:16-20`).

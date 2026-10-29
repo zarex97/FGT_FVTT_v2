@@ -162,8 +162,13 @@ export function additionalCostsFor({ ability, self, master = null, turnsPerRound
     // Servant pays in Sustainability instead of producing an intent aimed at a
     // Master who does not exist.
     if (extra.kind === "masterHealthByNPRank") {
+      // A share of that price and a flat sum on top: Auctoritas's Usage 1 while
+      // Usage 2 is Active, *"increased by 50% plus 30"* (#351 reading 28).
+      const priced = npCostAt({ rank: extra.rank, unit: self, master, turnsPerRound });
       out.push({
-        ...npCostAt({ rank: extra.rank, unit: self, master, turnsPerRound }),
+        ...priced,
+        ...(extra.factor !== undefined || extra.plus !== undefined
+          ? { amount: Math.floor(Number(priced.amount ?? 0) * (extra.factor ?? 1)) + Number(extra.plus ?? 0) } : {}),
         id: extra.id,
         supersedes: extra.supersedes ?? [],
       });

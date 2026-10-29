@@ -357,6 +357,9 @@ describe("meetsRequirement", () => {
       // Avalon placed inside a Master and taken back (#230): beside the
       // Master, in the Home Base, before either Attacks, the Master holding it.
       "besideMaster", "inHomeBase", "notAttackedThisTurn", "masterItemAtLeast",
+      // "Only usable when Carolus Patricius is Active", and Auctoritas's
+      // "Cannot be used if Carolus Patricius is Active" (#351).
+      "platformActive", "platformInactive",
     ];
     expect([...REQUIREMENT_KINDS].sort()).toEqual(listed.sort());
   });

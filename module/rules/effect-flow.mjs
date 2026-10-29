@@ -420,6 +420,9 @@ export const EFFECT_PARAMS = Object.freeze({
   // The Aura's reach, read by `rules/elements.mjs#Aura` off the instance:
   // Triumphal Return's S.Crit Up beside Jeanne reaches 3 (#260 reading 7).
   sCritUp: Object.freeze(["radius"]),
+  // Who granted it by aura, so the grant is taken back when the aura leaves
+  // (`rules/aura-grants.mjs`, Ceremonial Reformation, #351).
+  ceremonialReformation: Object.freeze(["auraGrant"]),
 });
 
 export const ENTRY_KEYS = Object.freeze({

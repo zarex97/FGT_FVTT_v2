@@ -43,7 +43,7 @@ import { closeAttributes } from "../domain/attributes.mjs";
 import { formOf, formOverrides, formSheet, keptByForm } from "./form.mjs";
 import { grantHeld } from "./summon-grants.mjs";
 import { rollOptionsFor } from "./options.mjs";
-import { platformsOn, luckOwnerOf } from "./platforms.mjs";
+import { platformsOn, luckOwnerOf, passengerContributions } from "./platforms.mjs";
 import { annotateFields, withoutForeignEffects } from "./bounded-fields.mjs";
 import { CONCEALMENT } from "./concealment.mjs";
 
@@ -676,6 +676,13 @@ export function snapshotUnit(actor, {
     deactivateOn: sys.deactivateOn ?? [],
     replacesRiderAction: sys.replacesRiderAction ?? null,
     countsAsHomeBase: Boolean(sys.countsAsHomeBase),
+    // Carolus Patricius (#351): what its passengers carry, its life, who ends it, its escape.
+    passengerRules: [...(sys.passengerRules ?? [])],
+    lifespan: sys.lifespan ?? null,
+    endsWhenDefeated: [...(sys.endsWhenDefeated ?? [])],
+    endsWhenOwnerUses: [...(sys.endsWhenOwnerUses ?? [])],
+    escape: sys.escape ?? null,
+    extendedBy: sys.extendedBy ?? null,
     // Concealment is a STATE, and until now nothing produced it. `sys.concealed`
     // was projected here, consulted by targeting, by the counter gate, by
     // movement legality and by the Evade ladder -- and written by no code and
@@ -1234,7 +1241,14 @@ function annotatePlatforms(units, board) {
       // content cannot predicate on an id that only exists once a GM's world
       // has actually created one.
       u.platformContentId = aboard.contentId ?? null;
+      passengerContributions(u, aboard, units, board);
     }
+  }
+
+  // The platforms each Unit owns that stand (`self:ownsPlatform:<id>`, #351).
+  for (const u of units) {
+    const owned = platforms.filter((p) => p.ownerId === u.id && !p.defeated && p.contentId).map((p) => p.contentId);
+    if (owned.length > 0) u.ownedPlatformContentIds = owned;
   }
 
   // One Luck pool, hers: the platform's own number is never read (#162).

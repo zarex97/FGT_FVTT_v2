@@ -105,6 +105,14 @@ Rules evaluate against a **snapshot** — a plain object flattening a document i
 
 **A permanent Base Attack loss reaches every kind of Unit** (#247). The Nameless Forest's *"Base Attack (both) by 10"* is a stored `baseAttackPenalty`. A Servant's derivation subtracts it (`domain/base-attack.mjs#baseAttackFor`); a Master and a summon store their Base Attack instead, so their `prepareDerivedData` subtracts it through `penalizedBaseAttack`. Before, a Master declared no such field and the write was dropped, and a summon stored it and nothing read it: Master of Berserker kept BA 100/100 under a Token.
 
+### The Christian Attribute (#351)
+
+Holy King spares *"Divine Units without the 'Christian' Attribute"*. Ruled by the user: `christian` is an Attribute
+on the Servants it names, never a list on Karl's element: every Martha (Saint Martha, Santa Martha, Martha
+(Summer)), George, David, every Jeanne but Alter (Jeanne (Ruler), Jeanne (Summer), Metatron Jeanne), and Jacques de
+Molay (Saber). Jeanne Alter, Summer Jalter, Jeanne d'Arc (Alter) Santa Lily and Jacques de Molay (Foreigner) are not
+(readings 9, 32 to 34). A sheet added later states its own.
+
 ## Invariants & edge cases
 
 **A Servant can be a Master, and its Servant's ZON is the class figure around it** (#193 reading 19). Medea holds the Servants Rule Breaker takes. `zon.mjs#zonRadius` adds a stated ZON and the High Rank bonus only for a Master that is not a Servant, and `annotateZon` writes `zon` only on Servants, so a real Master's stated ZON is no longer nulled for Servants annotated after it.

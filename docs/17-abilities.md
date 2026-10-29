@@ -425,3 +425,18 @@ charged costs, summed per pool, cannot meet. Enki's half of the Master's maximum
   lacks, so its name cannot be read off it (found live, #347).
 - **A handler's stated line is its own words on the card.** `cardLine` logs land as outcome `note`, printed whole by
   `rules/card-visibility.mjs#effectLine`; as `noop` they read "...: not applied" (found live, #347).
+
+### Karl de Große's pieces (#351)
+
+- **A platform up, or not.** `platformActive {contentId, name}` and `platformInactive {contentId, name}` gate on a
+  platform of that content its user owns, standing, wherever the user stands: Karl Cannons *"Only usable when Carolus
+  Patricius is Active"*, Auctoritas's Usage 1 *"Cannot be used if Carolus Patricius is Active"* (reading 22). The
+  refusal names the platform by `name`.
+- **A share of the NP price and a sum on top.** `masterHealthByNPRank` takes `factor` and `plus`: Usage 1 while
+  Usage 2 is Active pays the Rank's price and half again plus 30 (`factor: 0.5, plus: 30`), under
+  `self:ownsPlatform:carolus-patricius-auctoritas` (reading 28).
+- **One NP, a clock per usage.** Auctoritas is two abilities, each with its own cooldown; `abilityOffCooldown` on
+  each names the other and Carolus Patricius, and Carolus Patricius names both (reading 23).
+- **A damage source on an owned platform.** `{unit: "platform:<contentId>"}` reads the Base Attack of that platform
+  of the attacker's, falling back to the attacker when none stands, and the breakdown says `self` then
+  (`attack.mjs#namedUnits`, `pipeline.mjs` stage 1): *"uses CPA's Base Attack"*.

@@ -356,6 +356,8 @@ export const REQUIREMENT_KINDS = Object.freeze([
   // Avalon's placing (#230): beside the Master, in the Home Base, neither of
   // them having Attacked, and the Item held by the Master to take it back.
   "besideMaster", "inHomeBase", "notAttackedThisTurn", "masterItemAtLeast",
+  // Karl de Große's Karl Cannons and Auctoritas (#351): his own platform up, or not.
+  "platformActive", "platformInactive",
 ]);
 
 /**
@@ -615,6 +617,16 @@ export function meetsRequirement(req, ctx) {
         (u) => u.contentId === req.contentId && u.summonerId === unit?.id && !u.defeated,
       );
 
+    case "platformActive":
+    case "platformInactive": {
+      // *"Only usable when Carolus Patricius is Active"*, and Auctoritas's
+      // *"Cannot be used if Carolus Patricius is Active"* (#351): a platform of
+      // this content the Unit owns, standing. Wherever the Unit stands (reading 22).
+      const up = (board?.units ?? []).some((u) => u.kind === "platform" && !u.defeated
+        && u.ownerId === unit?.id && (u.contentId === req.contentId || u.id === req.contentId));
+      return req.kind === "platformActive" ? up : !up;
+    }
+
     case "withinPlatformCentre": {
       // Sikera Ušum clause 2: "Can only be used within the 'Throne Room' of
       // 'Hanging Gardens of Babylon'" -- the middle 5x5 (radius 2) of
@@ -732,6 +744,8 @@ function requirementDetail(req, ctx) {
   // The Skill it needs and lacks: *"Allows the use of Vishnu Bhuja"* read
   // "Requires a Skill this Unit does not have." on Rama's bar (#347, live).
   if (req.kind === "hasSkill") return { detail: { names: req.name ?? req.abilityId ?? "" } };
+  // The platform it waits on, by the name the requirement authors (#351).
+  if (req.kind === "platformActive" || req.kind === "platformInactive") return { detail: { names: req.name ?? req.contentId ?? "" } };
   if (req.kind === "abilityAllows") {
     const allower = gatedAbilities(ctx.unit, req, ctx.ability)[0] ?? null;
     // fgt-name-ok: an ability's name on its own bearer's bar, not a Unit's

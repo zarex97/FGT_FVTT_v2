@@ -1677,6 +1677,13 @@ const ACTIONS = Object.freeze({
    * #351). A log entry the applier runs, because the Check and the Notebook
    * write are the engine's.
    */
+  // *"CPA's Normal Attacks at a Range of 1 to 2 knocks back the DU(s) by one
+  // panel"* (#351): the DU pushed straight away from the bearer, as far as it
+  // says and no further (`engine/movement-hooks.mjs#knockBackFrom`).
+  PushBack: (a, u, h, c) => (c.victim?.unitId
+    ? [I.log({ kind: "knockback", unitId: c.victim.unitId, fromId: u.id, panels: a.panels ?? 1, source: h.source })]
+    : []),
+
   LearnPage: (a, u, h, c) => (c.victim?.unitId
     ? [I.log({ kind: "learnPage", unitId: u.id, targetId: c.victim.unitId, source: h.source })]
     : []),

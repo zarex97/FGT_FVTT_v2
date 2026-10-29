@@ -115,6 +115,12 @@ helper derives it for both (`rules/damage/pipeline.mjs#usesBaseOptions`), so her
 Unit it hits (`rules/damage/riders.mjs#inflictedEffectIds`, carried on the declaration as `inflicts`): Soaked adds
 25 to an Attack's Freeze chance, or rolls 25 by itself when the Attack carries none (reading 4).
 
+### A platform owned (#351)
+
+`self:ownsPlatform:<contentId>` holds while the Unit owns a standing platform of that content, wherever it stands
+(`annotatePlatforms` writes `ownedPlatformContentIds`). Beside `onPlatform`, which asks where it stands: Auctoritas's
+Usage 1 is priced *"while Usage 2 of this NP is Active"*, aboard or not.
+
 ## Invariants & edge cases
 
 **Rank comparisons read the letter** (#193 reading 11). `gradesClearedBy` emits `rank:<p>:gte:B` for B−, B and B+ alike: *"a Rank of B or higher"* is met by B−. It compared whole ranks before, so B− sat below B.

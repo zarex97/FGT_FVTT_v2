@@ -317,3 +317,13 @@ vulnerability instead, one roll at its chance plus 25.
 Poison"* is the one that does; Channel Marker Soul's *"Curse Damage taken is halved"* halves every tick. A periodic tick
 is held to the Unit's `DamageFloor` for that effect (`scheduler.mjs#flooredTick`, §46.4-OS): Sunflower's Curse floors a
 Curse tick at 1, which the attack pipeline's stage 16 alone did before.
+
+### A chance raised per thing the DU holds, and a bypass of what names the effect (#351)
+
+- **`chanceBonus {count, per}`** on an entry adds `per` for every thing a Count finds on the target, to the stated
+  chance or the definition's own: True Name Discernment's NP DmDwn, *"For every NP the DU has, the chance ... is
+  increased by 20%"* (`count: { of: npsHeld }`, reading 4).
+- **`ignoresNamedDefences`** passes the defences that name the effect itself, and keeps the general ones: God's
+  Resolution *"Ignores Stun Resist, Stun Immune, and any other effects that specifically reduce the chance of being
+  inflicted with Stun"*. An immunity scoped to the effect and a resistance whose `effectId` is the effect are skipped
+  (`effect-applier.mjs#findImmunity`, `chanceContribution`); Magic Resistance and Debuff Immune still hold (reading 5).

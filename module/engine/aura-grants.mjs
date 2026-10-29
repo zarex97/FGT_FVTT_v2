@@ -11,9 +11,10 @@
 
 import { auraGrantPlan } from "../rules/aura-grants.mjs";
 import { EffectRegistry } from "../rules/registry.mjs";
-import { applyEffect } from "./effect-applier.mjs";
-import { currentBoard, currentMoment, unitActor } from "./board.mjs";
-import { currentWar, isWarGM, warRule } from "./war.mjs";
+import { entryOf } from "../rules/effect-flow.mjs";
+import { landEffect } from "./landing.mjs";
+import { currentBoard, unitActor } from "./board.mjs";
+import { currentWar, isWarGM } from "./war.mjs";
 import * as I from "./intents.mjs";
 
 let pending = null;
@@ -29,19 +30,18 @@ export async function syncAuraGrants() {
   const plan = auraGrantPlan(board);
   if (plan.add.length === 0 && plan.remove.length === 0) return { added: 0, removed: 0 };
 
-  const tick = currentMoment().tick ?? 0;
   const intents = [];
   for (const r of plan.remove) intents.push({ ...I.removeEffect(r.unitId, r.instanceId, "auraEnded"), byRule: true });
+  // Through the one door every effect lands by, so an Immunity to buffs still
+  // holds it off.
   for (const a of plan.add) {
-    const def = EffectRegistry.get(a.effectId);
     const target = (board.units ?? []).find((u) => u.id === a.unitId);
-    if (!def || !target) continue;
-    const result = applyEffect({
-      def, target, source: { unitId: a.sourceId, abilityId: null },
-      ctx: { turnsPerRound: warRule("turnsPerRound"), currentTick: tick, roll: 1 },
-      permanent: true, unremovable: true, params: { auraGrant: a.sourceId },
-    });
-    intents.push(...result.intents);
+    if (!EffectRegistry.get(a.effectId) || !target) continue;
+    const landed = await landEffect(
+      entryOf({ id: a.effectId, permanent: true, unremovable: true, params: { auraGrant: a.sourceId } }),
+      { target, source: { unitId: a.sourceId, abilityId: null }, caster: unitActor(a.sourceId), board },
+    );
+    intents.push(...landed.intents);
   }
   const { applyWorldIntents } = await import("./applier.mjs");
   await applyWorldIntents(intents, "auraGrants");

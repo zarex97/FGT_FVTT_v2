@@ -290,3 +290,20 @@ the bonus is added at stage 16, after every modifier and the Injury snapshot (Di
   `rules/normal-attack.mjs#normalAttackAt`, the swing still a STR attack with a MAG top-up. Euryale's Glitter and
   Kiichi Hougen print the shape at a fixed half.
 
+### Karl de Große's elements (#351)
+
+- **`Aura {grantsEffect}`** grants an effect instead of contributing modifiers: every Unit the aura reaches holds the
+  named effect, permanent and Unremovable, and loses it when the aura stops reaching it. Ceremonial Reformation's
+  *"all allied Units"* while Karl is alive (readings 6, 7). The plan is `rules/aura-grants.mjs#auraGrantPlan`; the
+  writer is `engine/aura-grants.mjs#syncAuraGrants`, run on the War's GM when a Unit arrives, leaves, falls, changes
+  side or a Turn turns, and it lands each grant through `engine/landing.mjs#landEffect`, so an Immunity to buffs still
+  holds one off. `collectAuras` skips a granting aura: its contribution is the effect, never a second copy.
+- **`OnEvent ... then: LearnPage`** copies the Unit the event names (`victim`) to the bearer's player's Notebook:
+  True Name Discernment's first sight (`unitFirstSeen`), a Luck Check first when it hides its information
+  (Ch. 30).
+- **`OnEvent ... then: PushBack {panels}`** knocks the DU straight back from the bearer, as far as it says
+  (`engine/movement-hooks.mjs#knockBackFrom`). A Unit with no free panel behind it holds, and the card says so. The
+  CPA's Normal Attacks at a Range of 1 to 2 (`attack:range:lte:2`).
+- **A platform's `passengerRules`** run elements on the Units aboard it, by their role (`owner`) or their relation to
+  its owner (`self`, `ally`): Carolus Patricius's ZON waiver for Karl and its −15% taken and +15% dealt for his side
+  (Ch. 27).

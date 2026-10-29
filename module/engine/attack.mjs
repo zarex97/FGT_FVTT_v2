@@ -186,6 +186,8 @@ export async function resolveAttack({
         // An ATTACK: a platform's protection of its occupants is read against what
         // is being done, and it bars an Attack where it may let a Skill through.
         ...placement, npTags: [...(ability?.system?.npTags ?? [])], reach: "attack",
+        // A Noble Phantasm, or a Skill Categorized as one (#351).
+        isNP: Boolean(ability?.system?.isNP || ability?.system?.categorizedAsNP),
       });
 
     // A choice still owed is a refusal, not a quiet return: the interface settles
@@ -2720,6 +2722,33 @@ async function raiseCombatProcessEnd(state) {
   }
   if (defender) intents.push(...fireEvent("combatProcessEnd", [defender], { ...ctx(), options: new Set() }));
   if (intents.length > 0) await applyBatch(intents, "combatProcessEnd");
+  await breakPlatformsHit(state, board);
+}
+
+/**
+ * A platform an NP strong enough breaks, at the end of the Combat Process that
+ * reached it. Carolus Patricius: *"If the NP used on the Carolus was an
+ * [Anti-Fortress] or higher Noble Phantasm, Carolus Patricius is forcefully
+ * ended at the end of the Combat Process"* (#351 reading 18): the defender was
+ * caught aboard it by the area (`platformFactors`), and the NP's tags meet the
+ * platform's `endsOnNpScale` on `rules/np-scale.mjs`'s order.
+ *
+ * @param {object} state the Combat Process
+ * @param {object} board
+ * @returns {Promise<void>}
+ */
+async function breakPlatformsHit(state, board) {
+  const caught = state.attack?.platformFactors?.[state.defenderId];
+  if (!caught) return;
+  const defender = (board.units ?? []).find((u) => u.id === state.defenderId);
+  const deck = defender?.platformId ? (board.units ?? []).find((u) => u.id === defender.platformId) : null;
+  const threshold = deck?.crossLevel?.endsOnNpScale ?? null;
+  if (!deck || deck.defeated || !threshold) return;
+  const ability = state.attack?.abilityId ? unitActor(state.attackerId)?.items?.get(state.attack.abilityId) : null;
+  const { meetsTagThreshold } = await import("../rules/np-scale.mjs");
+  if (!meetsTagThreshold([...(ability?.system?.npTags ?? [])], threshold)) return;
+  const { destroyPlatform } = await import("./platforms.mjs");
+  await destroyPlatform({ platformId: deck.id, reason: "npScale" });
 }
 
 /**
@@ -6002,6 +6031,12 @@ function namedUnits(attacker, board) {
   /** @type {Record<string, object>} */
   const out = {};
   if (attacksAsPlatform && platform) out.mount = platform;
+  // Each platform she owns that stands, by its content id: Auctoritas's Usage 1
+  // while Usage 2 is Active *"uses CPA's Base Attack"* (#351). A source naming
+  // `platform:<id>` falls back to the attacker herself when none stands.
+  for (const p of board?.units ?? []) {
+    if (p.kind === "platform" && !p.defeated && p.ownerId === attacker?.id && p.contentId) out[`platform:${p.contentId}`] = p;
+  }
 
   // The other member of a linked group. Stage 1 has resolved
   // `ctx.units[src.unit]` since the pipeline was written and `mount` was its

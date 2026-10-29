@@ -1,0 +1,40 @@
+# Karl de Große, char_orig_sheets/by-class/Ruler/Karl de Große.md (#351)
+#
+# Carolus Patricius Auctoritas, Usage 2: the Quetzalcoatlus's summon. The CPA
+# is raised on his panel and he is moved onto it. Used while the Carolus stands,
+# the Carolus ends, everyone aboard it but his Master comes down beneath it, and
+# his Master is placed with him (readings 25). Raising it costs his Master no
+# Health: the CPA's toll is the whole price (reading 27). Its clock starts when
+# the CPA ends (reading 23 and its cooldown line).
+schema: 1
+id: karl-cpa-auctoritas
+name: "Carolus Patricius Auctoritas (Usage 2)"
+rank: "A++"
+kind: noblePhantasm
+slug: auctoritas
+isNP: true
+npTags: [antiArmy, antiFortress, fortress]
+cooldown: { max: "7◈+⅔◈", countFrom: deactivation }
+timing: { window: ownTurn }
+creates: [giant]
+copyable: { allowed: false, reason: named }
+requirements:
+  - { kind: abilityOffCooldown, abilityIds: [karl-carolus-patricius, karl-cpa-sanctus] }
+additionalCosts:
+  - { id: auctoritasUpkeep, kind: masterHealth, amount: 0, supersedes: [npCost] }
+description: |
+  (Non-damaging) Used during your Turn. Karl summons the Carolus Patricius Auctoritas on the panel he was standing on,
+  and he moves onto the top of it. Can be activated while Carolus Patricius is Active: if so, all Units on the Carolus
+  Patricius excluding his Master are scattered below the Carolus, while his Master is placed together with Karl.
+  At the end of every Turn this NP is Active, Karl's Master loses 30 Health if the CPA Acted, 10 if it did not
+  (instead of the normal NP cost). If the Master's Health is equal to or less than that, the NP is forcibly ended at
+  the end of the Turn and the Master loses nothing.
+  Cooldown: 7◈+⅔◈ Turns after it ends.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: summonPlatform
+    platformId: carolus-patricius-auctoritas
+    replaces: [carolus-patricius]

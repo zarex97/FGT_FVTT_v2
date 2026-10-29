@@ -3007,6 +3007,24 @@ async function summonPlatform(phase, actor, board) {
   const source = await actorFromPacks(phase.platformId);
   if (!source) return { ok: false, reason: "unknownPlatform" };
 
+  // A platform this one REPLACES ends first: Auctoritas's Usage 2 *"can be
+  // activated while Carolus Patricius is Active, if used in this way, all Units
+  // on the Carolus Patricius excluding his Master are scattered below the
+  // Carolus, while his Master is placed together with Karl"* (#351 reading 25).
+  // Placed where he stood, so the scatter cannot move the summon.
+  const stood = { i: self.panel.i, j: self.panel.j };
+  const replaced = (board.units ?? []).filter((p) => p.kind === "platform" && !p.defeated
+    && p.ownerId === actor.id && (phase.replaces ?? []).includes(p.contentId));
+  let masterAboardReplaced = null;
+  if (replaced.length > 0) {
+    const { destroyPlatform } = await import("./platforms.mjs");
+    for (const p of replaced) {
+      const master = self.masterId ? board.units.find((u) => u.id === self.masterId) : null;
+      if (master?.platformId === p.id) masterAboardReplaced = master.id;
+      await destroyPlatform({ platformId: p.id, reason: "replaced" });
+    }
+  }
+
   const data = source.toObject();
   data.system.ownerId = actor.id;
   data.system.factionId = actor.system?.factionId ?? null;
@@ -3032,8 +3050,13 @@ async function summonPlatform(phase, actor, board) {
   const platform = await Actor.create(data);
   const footprint = platform.system?.footprint ?? { w: 1, h: 1 };
   // Placed by its top-left, so a mount larger than one panel is slid back onto
-  // the board when she stands at its edge, her own panel still under it.
-  const anchor = summonAnchor(self.panel, footprint, board.bounds);
+  // the board when she stands at its edge, her own panel still under it. A
+  // `centred` one has the caster's panel in its middle: Carolus Patricius,
+  // *"with the middle panel being the panel Karl was standing on"* (#351).
+  const anchor = phase.placement === "centred"
+    ? summonAnchor({ i: stood.i - Math.floor(footprint.h / 2), j: stood.j - Math.floor(footprint.w / 2) },
+      footprint, board.bounds)
+    : summonAnchor(stood, footprint, board.bounds);
   const token = await platform.getTokenDocument({
     x: anchor.j * scene.grid.size,
     y: anchor.i * scene.grid.size,
@@ -3047,7 +3070,24 @@ async function summonPlatform(phase, actor, board) {
   // her panel -- and then he is put ON it. Level assignment never changes x or
   // y, so without the move he rode a deck he was not standing on.
   const riders = [actor.id];
-  if (phase.boardMasterIfAdjacent && self.masterId) {
+  if (replaced.length > 0) {
+    // Back on the panel he stood on, under the new deck, and his Master beside
+    // him on another of its panels, wherever the scatter left either.
+    const seats = [];
+    for (let di = 0; di < footprint.h; di += 1) {
+      for (let dj = 0; dj < footprint.w; dj += 1) {
+        const p = { i: anchor.i + di, j: anchor.j + dj };
+        if (p.i !== stood.i || p.j !== stood.j) seats.push(p);
+      }
+    }
+    const moves = [I.move(actor.id, [stood], true)];
+    if (masterAboardReplaced && seats.length > 0) {
+      moves.push(I.move(masterAboardReplaced, [seats[0]], true));
+      riders.push(masterAboardReplaced);
+    }
+    await applyWorldIntents(moves, "platform:replacedSeat");
+  }
+  if (phase.boardMasterIfAdjacent && self.masterId && !riders.includes(self.masterId)) {
     const master = board.units.find((u) => u.id === self.masterId);
     const seat = masterSeat(self, master, { panel: anchor, footprint });
     if (seat) {
@@ -3056,6 +3096,17 @@ async function summonPlatform(phase, actor, board) {
     }
   }
 
+  // *"All Units who were within a 9x9 panel area of Karl are moved onto the
+  // 'Patricius' token"*: every Unit on the ground inside the footprint, any side,
+  // Masters and summons included (#351 reading 13).
+  if (phase.carriesAllWithin) {
+    for (const u of board.units ?? []) {
+      if (u.kind === "platform" || u.kind === "structure" || u.defeated || !u.panel || (u.level ?? 0) !== 0) continue;
+      const di = u.panel.i - anchor.i;
+      const dj = u.panel.j - anchor.j;
+      if (di >= 0 && di < footprint.h && dj >= 0 && dj < footprint.w && !riders.includes(u.id)) riders.push(u.id);
+    }
+  }
   const activated = await activatePlatform({ platformId: platform.id, initialUnitIds: riders });
   if (!activated.ok) return activated;
   return { ok: true, platformId: platform.id };

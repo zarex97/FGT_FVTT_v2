@@ -1,0 +1,69 @@
+# Karl de Große's Carolus Patricius Auctoritas (#351), Usage 2 of his NP:
+#
+# > "Karl summons the Carolus Patricius Auctoritas on the panel he was standing
+# > on, and he moves onto the top of it."
+#
+# The Quetzalcoatlus's shape: a 2×2 Giant (reading 24) its owner rides, whose
+# Move and Normal Attack replace his own while he keeps his Skills (reading 26),
+# Luck one pool with his. Its toll is Fafnir's: 30 of his Master's Health at the
+# end of every Turn if it Acted, 10 if not, ending instead when he cannot pay
+# (readings 27, 29). Nothing Attacks Karl or his Master on it, an area
+# included (reading 31); at 0 Health it ends and they drop beneath (reading 30).
+schema: 1
+id: carolus-patricius-auctoritas
+name: "Carolus Patricius Auctoritas"
+type: platform
+description: |
+  Karl de Große's war machine. 3000 Health, Agility 8, MOV 3, Range 4, Base Attack 200. Its Normal Attacks use STR at
+  a Range of 1 to 2 and knock the DU back 1 panel, MAG at 3 or more. It walks onto occupied panels, knocking their
+  Units back. Karl and his Master cannot be Attacked aboard it.
+attributes: [giant, mechanical]
+baseHealth: 3000
+agility: 8
+inherit:
+  luck: { from: summoner }
+mov: 3
+range: { panels: 4, targets: 1 }
+baseAttack: { str: 200, mag: 200 }
+# "At a Range of 1 to 2, Normal Attacks use Base Attack (STR). At a Range of 3
+# or higher, Normal Attacks use Base Attack (MAG)." The Sphinx's band.
+normalAttack:
+  mode: rangeBanded
+  component: str
+  bands:
+    - { from: 3, component: mag }
+footprint: { w: 2, h: 2 }
+capacity: 2
+level: 1
+boarding: { seats: [owner, ownerMaster] }
+replacesRiderAction: { roles: [owner], move: true, normalAttack: true }
+# "CPA can Move to any panel, when it Moves to any occupied panels, all Units
+# occupying said panels are knocked back by 1 panel until the space is free for
+# CPA to stand on": Bašmu's push, on the ground beneath it.
+movesOntoOccupiedPanels: true
+rules:
+  # "CPA's Normal Attacks at a Range of 1 to 2 knocks back the DU(s) by one panel."
+  - key: OnEvent
+    event: damageStepEnd
+    automatic: true
+    predicate: ["attack:kind:normal", "attack:range:lte:2"]
+    then:
+      - { key: PushBack, panels: 1 }
+upkeep:
+  every: turn
+  cost: { kind: health, amount: 10, amountIfActed: 30, payer: ownerMaster }
+  endWhenUnaffordable: true
+# Usage 1 fired while it stands ends it at the end of that Turn, after its toll
+# of 30 (reading 28).
+endsWhenOwnerUses: [karl-cpa-sanctus]
+# Karl may dismiss it on his Turn (reading 29).
+deactivation: { byOwner: true, window: ownTurn }
+crossLevel:
+  occupantTargeting: forbidden
+  protectedFrom: everyone
+  protectedAgainst: attacks
+  # No Attack reaches them, area damage included (reading 31).
+  aoePassengerFactor: 0
+  aoeMastersImmune: true
+  outboundTargeting: free
+  forbidDirectlyBelow: false
