@@ -66,6 +66,12 @@ export const UNIT_ROUTES = {
   footprint: same("footprint"),
   itemHandling: same("itemHandling"),
   knockOff: same("knockOff"),
+  // Carolus Patricius (#351).
+  passengerRules: same("passengerRules"),
+  lifespan: same("lifespan"),
+  endsWhenDefeated: same("endsWhenDefeated"),
+  escape: same("escape"),
+  endsWhenOwnerUses: same("endsWhenOwnerUses"),
   collapse: same("collapse"),
   linkedGroup: same("linkedGroup"),
   lockAboard: same("lockAboard"),

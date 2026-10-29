@@ -151,12 +151,14 @@ export async function learnServantPage(entry, board = currentBoard()) {
   const learned = !check || check.success;
   const doc = unitActor(seen.id);
   if (learned && doc) {
+    // fgt-name-ok: the page True Name Discernment learns is the True Name, in its reader's own Notebook
     await recordInNotebook(user, { key, title: doc.system?.trueName || doc.name, content: servantPage(doc) });
   }
   const escape = foundry.utils.escapeHTML;
   const name = publicIdentityOf(unitActor(reader.id), board).name;
   const seenName = publicIdentityOf(doc, board).name;
   const line = game.i18n.format(learned ? "FGT.TrueName.PageLearned" : "FGT.TrueName.PageMissed", {
+    // fgt-name-ok: whispered to the reader's player and the GM; the True Name is what the Skill learns
     name: escape(name), seen: escape(seenName), trueName: escape(String(doc?.system?.trueName || doc?.name || "")),
     check: check ? game.i18n.format("FGT.TrueName.PageCheck", { total: check.total, target: check.target }) : "",
   });
@@ -177,6 +179,7 @@ function servantPage(doc) {
   const sys = doc.system ?? {};
   const params = Object.entries(sys.parameters ?? {}).map(([k, v]) => `${k.toUpperCase()} ${escape(v)}`).join(", ");
   const rows = [
+    // fgt-name-ok: the page is the reader's own Notebook's, written after the Skill learned the name
     `<p><strong>${escape(sys.trueName || doc.name)}</strong> (${escape([...(sys.servantClasses ?? [])].join(", "))})</p>`,
     `<p>${params}</p>`,
     `<p>${escape([...(sys.attributes ?? [])].join(", "))}</p>`,

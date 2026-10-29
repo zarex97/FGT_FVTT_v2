@@ -241,7 +241,8 @@ An ability-specific pool a Unit carries, with its own ceiling. Distinct from the
 
 **Attribute**:
 A tag describing what a Unit *is* — Human, Spirit, Divine, Living Human. Attributes imply one
-another; only the most specific is authored.
+another; only the most specific is authored. Christian is one, on the Servants the user named (#351,
+Ch. 06), never a list on the element that reads it.
 _Avoid_: trait, tag, type, keyword
 
 **Class Skill**:

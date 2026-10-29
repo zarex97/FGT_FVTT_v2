@@ -39,3 +39,7 @@ abilities:
   - { ref: karl-great-emperor-privilege }
   - { ref: karl-holy-king }
   - { ref: karl-joyeuse }
+  - { ref: karl-carolus-patricius }
+  - { ref: karl-cannons }
+  - { ref: karl-cpa-sanctus }
+  - { ref: karl-cpa-auctoritas }

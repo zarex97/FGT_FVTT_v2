@@ -80,6 +80,11 @@ The radius is: base (by class) + max(class bonus, Independent Action) + Mad Enha
 
 `annotateZon` runs once per board snapshot rather than per query, storing each unit's ZON status and whether it is outside (`module/rules/zon.mjs:189-216`). `masterDistance` holds the Chebyshev distance from Servant to Master, independent of the ZON question, for predicates like Raikou's Mad Enhancement that key on proximity alone (`module/rules/zon.mjs:210-213`).
 
+### Italy and Austria (#351)
+
+Karl de Große is from *"France, Italy, Germany, Austria"*. Italy and Austria border Europe alone, as France and
+Germany do, and touch no Middle East edge, so Semiramis's Construction counter is unchanged.
+
 ## Invariants & edge cases
 
 1. **Day/Night alternates by round number only.** No stored alternation and no state to drift (`module/rules/environment.mjs#phase`). The round is the source of truth. One flip is stored, the opening, and one override per Round, which names its Round and lapses with it (`roundPhase`).

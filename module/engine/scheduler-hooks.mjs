@@ -300,7 +300,12 @@ async function onTurnChange(combat, prior, current) {
 
   // A field that charges to stay open, charged. Applies its own intents and
   // may close the field, so it is not folded into the `run` above.
-  await fields.runUpkeep(tick);
+  await fields.runUpkeep(tick, { ended: board });
+  // A platform's life and the defeats that end it (Carolus Patricius, #351).
+  {
+    const { runLifespans } = await import("./platforms.mjs");
+    await runLifespans(tick, { ended: board });
+  }
 
   // A pocket dimension's clock, and its owner's chance to leave.
   //

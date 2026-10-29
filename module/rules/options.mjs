@@ -666,6 +666,9 @@ function add(options, side, unit, withoutModeHeld = false) {
   // the Hanging Gardens" apart from "in the ground Home Base" to give the two
   // different Ranks.
   if (unit.platformContentId) options.add(`${side}:onPlatform:${unit.platformContentId}`);
+  // ...and which it OWNS, standing, wherever it is: Auctoritas's Usage 1 *"while
+  // Usage 2 of this NP is Active"* (#351).
+  for (const id of unit.ownedPlatformContentIds ?? []) options.add(`${side}:ownsPlatform:${id}`);
 
   // WHICH TERRAIN the unit is standing in (Ch. 26). `annotateTerrain` has
   // written `u.terrain` onto every unit in the snapshot since terrain shipped

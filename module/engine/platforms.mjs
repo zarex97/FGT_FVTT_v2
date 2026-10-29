@@ -5,6 +5,7 @@
  * Layer 3. The rules decide; this rolls, writes and moves tokens.
  */
 
+import { currentHealth } from "../domain/health.mjs";
 import {
   boardingTarget, fallOff, destructionSequence, passengersOf, mayBringMaster,
   canFallFrom, nearestFreePlatformPanel, rescuerFor,
@@ -79,6 +80,25 @@ export async function boardPlatform({ unitId, platformId, hitByDragonWingWarrior
       ],
       "platform:board",
     );
+    await comeAboard([unitId], platformId);
+    return { ok: true, roll: 0, target: 0 };
+  }
+
+  // A platform that names a REQUIREMENT in place of a die: Carolus Patricius,
+  // *"Either the Unit's STR or AGI Parameter has to be Rank A, and the nearest
+  // panel of the Carolus must be within the Unit's MOV minus 2 (when attempting
+  // to enter the Patricius, the Unit's MOV is reduced by 2)"* (#351 reading 16).
+  // No die: a Unit that meets it boards, spending the MOV.
+  if (platform.boarding?.requires) {
+    const { entryVerdict } = await import("../rules/platforms.mjs");
+    const entry = entryVerdict(unit, platform.boarding, remainingMovement(unit));
+    if (!entry.ok) return { ok: false, reason: entry.reason };
+    const spent = (unit.turnState?.movedPanels ?? 0) + (platform.boarding.movCost ?? 0);
+    await applyWorldIntents([
+      I.log({ kind: "boarding", unitId, platformId, roll: 0, target: 0, die: 0, ok: true, free: true }),
+      I.move(unitId, [boardingLanding(unit, platform, board) ?? platform.panel], true),
+      I.markTurn(unitId, { movedPanels: spent }),
+    ], "platform:board");
     await comeAboard([unitId], platformId);
     return { ok: true, roll: 0, target: 0 };
   }
@@ -826,4 +846,145 @@ async function toIntents(descriptors) {
     }
   }
   return out;
+}
+
+/**
+ * An enemy Servant's escape from Carolus Patricius: *"enemy Servants have to
+ * Succeed a Luck Check against Karl (can be performed anywhere within the
+ * Carolus). If Successful, the Unit is Moved to the nearest panel immediately
+ * outside the Carolus."* (#351 readings 14, 15). In place of its Move, once a
+ * Turn; a Luck Check against the platform's owner, 1 Luck spent; the die and
+ * its end on a card.
+ *
+ * @param {object} args
+ * @param {string} args.unitId
+ * @param {string} args.platformId
+ * @returns {Promise<{ok: boolean, escaped?: boolean, reason?: string}>}
+ */
+export async function escapePlatform({ unitId, platformId }) {
+  const board = currentBoard();
+  const unit = board.units.find((u) => u.id === unitId);
+  const platform = board.units.find((u) => u.id === platformId && u.kind === "platform");
+  const { escapeVerdict, escapeLanding } = await import("../rules/platforms.mjs");
+  const verdict = escapeVerdict(unit, platform, board);
+  if (!verdict.ok) return { ok: false, reason: verdict.reason };
+  const owner = board.units.find((u) => u.id === platform.ownerId);
+  const { luckCheck, checkPlan } = await import("../rules/checks.mjs");
+  const roll = (await new Roll("1d20").evaluate()).total;
+  const plan = checkPlan(unit, "luck");
+  const check = luckCheck({
+    roll, luck: Number(unit.luck ?? 0), opposingLuck: Number(owner?.luck ?? 0),
+    hasBoost: (unit.effects ?? []).includes("luckBoost") || plan.forceTable === "favourable",
+    hasLoss: (unit.effects ?? []).includes("luckLoss") || plan.forceTable === "unfavourable",
+    modifiers: plan.modifiers,
+  });
+  const to = check.success ? escapeLanding(unit, platform, board) : null;
+  const intents = [
+    I.statDelta(unitId, "luck.value", -1),
+    I.markTurn(unitId, { moved: true }),
+    ...(to ? [I.move(unitId, [to], true)] : []),
+    I.log({ kind: "platformStep", step: to ? "escaped" : "escapeFailed", unitId, platformId, to }),
+  ];
+  await applyWorldIntents(intents, "platform:escape");
+  if (to) await dropToGround(unitId);
+  const escape = foundry.utils.escapeHTML;
+  const line = game.i18n.format(to ? "FGT.Platform.Escaped" : "FGT.Platform.EscapeFailed", {
+    name: escape(shownName(unitActor(unitId), board)), platform: escape(platform.name ?? ""),
+    total: check.total, target: check.target,
+  });
+  await ChatMessage.create({ content: `<div class="fgt-card"><p>${line}</p></div>` });
+  return { ok: true, escaped: Boolean(to) };
+}
+
+/**
+ * A platform's life and the defeats that end it, at a Turn's end.
+ *
+ * Carolus Patricius (#351): *"initially lasts for 2◈ Turns. After the initial
+ * NP period, Karl can extend the duration of Carolus Patricius by 1◈ more Turns
+ * by reducing his Health by 200 (cannot be used if Karl's Health is less than
+ * 200), and can be repeatedly extended"*, and *"forcefully ended at the end of
+ * the Turn if Karl or his Master is defeated"*. Its owner is asked at the end
+ * of each period; at exactly 200 he may pay, falls to 0 and is defeated, and
+ * the Carolus ends (readings 20, 21).
+ *
+ * @param {number} tick the Turn ending
+ * @returns {Promise<string[]>} the platforms ended
+ */
+export async function runLifespans(tick, { ended: endedBoard = null } = {}) {
+  const board = currentBoard();
+  const turnsPerRound = warRule("turnsPerRound");
+  const ended = [];
+  for (const p of (board.units ?? []).filter((u) => u.kind === "platform" && !u.defeated)) {
+    const owner = board.units.find((u) => u.id === p.ownerId) ?? null;
+    const master = owner?.masterId ? board.units.find((u) => u.id === owner.masterId) ?? null : null;
+    const roles = p.endsWhenDefeated ?? [];
+    const ownerFell = roles.includes("owner") && (!owner || owner.defeated);
+    const masterFell = roles.includes("ownerMaster") && Boolean(master?.defeated);
+    if (ownerFell || masterFell) {
+      await destroyPlatform({ platformId: p.id, reason: ownerFell ? "ownerDefeat" : "ownerMasterDefeat" });
+      ended.push(p.id);
+      continue;
+    }
+    // *"Then ... this NP is forcibly ended at the end of the Turn"*: the owner
+    // used a named ability this Turn, read off the Turn that ended (#351
+    // reading 28), after its toll was charged.
+    const usedThisTurn = (endedBoard?.units ?? []).find((u) => u.id === p.ownerId)?.turnState?.abilitiesUsed ?? [];
+    if ((p.endsWhenOwnerUses ?? []).some((id) => usedThisTurn.includes(id))) {
+      await destroyPlatform({ platformId: p.id, reason: "forcedEnd" });
+      ended.push(p.id);
+      continue;
+    }
+    if (!p.lifespan?.duration) continue;
+    const span = resolveTicks(parseTick(String(p.lifespan.duration)), { turnsPerRound });
+    const expiry = (p.activatedAt ?? tick) + span + (p.extendedBy ?? 0);
+    if (tick < expiry) continue;
+    if (await offerLifespanExtension(p, owner)) continue;
+    await destroyPlatform({ platformId: p.id, reason: "expired" });
+    ended.push(p.id);
+  }
+  return ended;
+}
+
+/**
+ * Offer a platform's paid extension to its owner, and take it.
+ *
+ * @param {object} platform
+ * @param {object|null} owner
+ * @returns {Promise<boolean>} whether it was extended
+ */
+async function offerLifespanExtension(platform, owner) {
+  const spec = platform.lifespan?.extension ?? null;
+  if (!spec || !owner || owner.defeated) return false;
+  if (!spec.repeatable && (platform.extendedBy ?? 0) > 0) return false;
+  const amount = Number(spec.cost?.amount ?? 0);
+  const health = currentHealth(owner);
+  // *"cannot be used if Karl's Health is less than 200"*: at 200 he may (reading 20).
+  if (health < amount) return false;
+  const doc = unitActor(owner.id);
+  const user = game.users.find((u) => u.active && !u.isGM && doc?.testUserPermission(u, "OWNER")) ?? game.user;
+  const { FGTSocket } = await import("../net/socket.mjs");
+  const picked = await FGTSocket.ask(user.id, {
+    kind: "choose",
+    title: game.i18n.localize("FGT.Field.ExtendTitle"),
+    hint: game.i18n.format("FGT.Field.ExtendHint", {
+      // fgt-name-ok: the Unit's own player's prompt; its owner knows the name
+      name: doc?.name ?? owner.id, amount, grants: spec.grants,
+    }),
+    min: 0,
+    count: 1,
+    options: [{ id: "extend", name: game.i18n.localize("FGT.Field.Extend") }],
+  }).catch(() => null);
+  if (!(picked ?? []).includes("extend")) return false;
+  const turnsPerRound = warRule("turnsPerRound");
+  const ticks = resolveTicks(parseTick(String(spec.grants)), { turnsPerRound });
+  await applyWorldIntents([
+    { ...I.statDelta(owner.id, "health.value", -amount), defeatsAtZero: true },
+    I.setResource(platform.id, "extendedBy", (platform.extendedBy ?? 0) + ticks),
+    I.log({ kind: "platformStep", step: "extended", unitId: owner.id, platformId: platform.id, ticks }),
+  ], "platform:extend");
+  const escape = foundry.utils.escapeHTML;
+  await ChatMessage.create({ content: `<div class="fgt-card"><p>${game.i18n.format("FGT.Platform.Extended", {
+    name: escape(shownName(doc, currentBoard())), platform: escape(platform.name ?? ""), amount, grants: escape(String(spec.grants)),
+  })}</p></div>` });
+  return true;
 }

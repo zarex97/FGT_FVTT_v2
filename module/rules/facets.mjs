@@ -384,6 +384,12 @@ export const FACETS = Object.freeze([
     prose: "{subject} is aboard {platform}",
   }),
   facet({
+    id: "ownsPlatform",
+    segments: [{ name: "platform", value: registry("contentIds") }],
+    english: "Owns a named Platform that stands on the board.",
+    prose: "{subject}'s {platform} stands",
+  }),
+  facet({
     id: "reaction",
     // CLOSED: the ladder's rungs are a fixed three plus "none", and an enum in
     // `domain/enums.mjs` does not gain a member because somebody mistyped.

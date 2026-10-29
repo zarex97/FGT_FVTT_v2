@@ -30,6 +30,8 @@ export const AUTHORED_ACTOR_KEYS = Object.freeze([
   "boarding", "lockAboard", "deactivateOn", "knockOff",
   // The Hanging Gardens' destruction ladder, which no other platform states (#139).
   "collapse",
+  // Carolus Patricius (#351).
+  "passengerRules", "lifespan", "endsWhenDefeated", "escape", "endsWhenOwnerUses",
   "itemHandling", "destroyableBy", "visibleWithin", "agility", "luck",
   "inherit", "rules", "passiveRules", "activeRules", "summonerId", "capacity",
   "ownerId", "level", "crossLevel", "dimension", "contentId", "contentVersion", "trueName",

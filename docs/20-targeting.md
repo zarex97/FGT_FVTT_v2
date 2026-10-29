@@ -133,3 +133,15 @@ never every Master; `selection.spares: [{contentId, alliesWithin}]` drops a name
 within N of it. Enki is the first: *"Proto Gil, his Master, Units with the 'Levitating' Attribute, Noah and all
 Noah's allied Units within a 2 panel area of Noah are not affected"*. No Noah exists yet (reading 21); the
 rule is in place for the day one does.
+
+### Range from a deck, through its isolation, onto the ground (#351)
+
+- **`anchor.fromPlatform`** measures Range from the whole footprint of the caster's own standing platform of that
+  content, or from the caster when none stands: Karl Cannons' *"Range is calculated from the edge of Carolus"*, and
+  Auctoritas's Usage 1 from the CPA's edge while it stands. The resolver, the Range wall and the placement overlay
+  all ask `originPanels`.
+- **`ignoresOutbound`** waives the caster's own platform's `outboundTargeting` for this ability: Karl Cannons fires
+  off the Carolus, whose occupants cannot Attack out. **`groundOnly`** keeps only Units on the ground: the area
+  *"directly under the Carolus"* never hits those aboard (reading 22).
+- **`crossLevel.aoeCatchesAll`** (Ch. 27): an area Noble Phantasm that touches the deck reaches every Servant aboard,
+  whatever its own area covers (step 3b, reading 17).

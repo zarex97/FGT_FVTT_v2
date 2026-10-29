@@ -1,0 +1,19 @@
+# Test effect for God's Resolution (#351 reading 5): no roster Unit yet holds a
+# defence that names Stun, and *"Ignores Stun Resist, Stun Immune, and any other
+# effects that specifically reduce the chance of being inflicted with Stun"*
+# needs one to be pressed against. Soaked's scoped `ApplicationChance`, as a
+# resistance.
+schema: 1
+id: testStunResist
+name: "Test: Stun Resist"
+description: "TEST EFFECT. The chance of being inflicted with @effect[stun]{Stun} is reduced by 50%."
+polarity: buff
+volatility: volatile
+valence: defensive
+stacking: noneRefresh
+baseChance: 100
+rules:
+  - key: ApplicationChance
+    direction: incoming
+    effect: stun
+    value: 50

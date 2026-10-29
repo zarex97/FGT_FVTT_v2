@@ -64,7 +64,8 @@ describe("the targeting preview of her Normal Attack is the mount's (#167)", () 
     });
 
     expect(out.sources).toEqual([{ unit: "mount", component: "str", factor: 1 }]);
-    expect(out.named).toEqual(["mount"]);
+    // The mount by its role, and every platform she owns by its content id (#351).
+    expect(out.named).toEqual(["mount", "platform:quetzalcoatlus"]);
     // The range's two ends ARE the resolved totals at the two ends of the dice, so any total between them is inside.
     expect(out.range.min).toBe(Math.min(...out.resolved));
     expect(out.range.max).toBe(Math.max(...out.resolved));
@@ -79,7 +80,8 @@ describe("the targeting preview of her Normal Attack is the mount's (#167)", () 
       return { sources: ctx.base.sources, units: ctx.units };
     });
     expect(out.sources[0].unit).toBe("self");
-    expect(out.units).toEqual({});
+    // Not her mount on foot: only the platform she owns, which a source must name.
+    expect(Object.keys(out.units)).toEqual(["platform:quetzalcoatlus"]);
   });
 
   it("builds the base through the one function the resolution uses", () => {

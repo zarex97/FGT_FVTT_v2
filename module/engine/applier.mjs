@@ -1329,6 +1329,10 @@ async function writeGroup(group, io, { moment = null, sink = null, lines = false
         }
         // An enemy Servant's page learned on first sight (True Name
         // Discernment, #351).
+        if (i.entry?.kind === "knockback") {
+          const { knockBackFrom } = await import("./movement-hooks.mjs");
+          await knockBackFrom(i.entry);
+        }
         if (i.entry?.kind === "learnPage") {
           const { learnServantPage } = await import("./true-name.mjs");
           await learnServantPage(i.entry);

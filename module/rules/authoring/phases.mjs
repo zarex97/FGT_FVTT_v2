@@ -277,6 +277,12 @@ export const PHASE_DESCRIPTORS = describeTable([
     { key: "at", type: "text" },
     { key: "board", type: "checkbox" },
     { key: "boardMasterIfAdjacent", type: "checkbox" },
+    // Carolus Patricius (#351): its middle panel the caster's, and every Unit on
+    // the ground within it carried aboard.
+    { key: "placement", type: "select", choices: ["", "centred"] },
+    { key: "carriesAllWithin", type: "checkbox" },
+    // Auctoritas (#351): the owner's platforms of these content ids end first.
+    { key: "replaces", type: "tokenList" },
   ]),
   entry("setRoundPhase", 2, "Turns the Round in progress to Day or Night; later Rounds keep the War's alternation.", [
     { key: "to", type: "select", choices: ["day", "night"] },
