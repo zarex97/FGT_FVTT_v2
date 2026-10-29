@@ -1,0 +1,29 @@
+# Karl de Große, char_orig_sheets/by-class/Ruler/Karl de Große.md (#351)
+#
+# A Noble Phantasm with a passive and nothing else: NP Seal does not stop it
+# (Appendix A). Raikou's buff's predicated `FlatDamage`, on his Normal Attacks
+# against Dark or Demonic (its three kin, reading 10).
+schema: 1
+id: karl-joyeuse
+name: "Joyeuse: Peerless Sword"
+rank: A
+kind: noblePhantasm
+slug: joyeuse
+isNP: true
+passive: true
+npTags: [antiUnit]
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive) All Normal Attack damage dealt by Karl to Units with the 'Dark' or 'Demonic' Attributes is increased by
+  100.
+passiveRules:
+  - key: FlatDamage
+    modifierKey: flatDamage
+    value: 100
+    predicate:
+      - "attack:kind:normal"
+      - or:
+          - "target:attribute:dark"
+          - "target:attribute:demonic"
+          - "target:attribute:demonicBeast"
+          - "target:attribute:demonicOni"

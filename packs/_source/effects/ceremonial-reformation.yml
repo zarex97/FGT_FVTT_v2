@@ -1,0 +1,71 @@
+# Karl de Große's Ceremonial Reformation (#351), held by every ally it reaches:
+#
+# > "Affects all allied Units other than himself as long as he is on the board.
+# > 1. All damage dealt is increased by 10% including NP. 2. All damage taken is
+# > reduced by 10% including NP. 3. Max Health is increased by 100. 4. Max
+# > Agility is increased by 1. 5. Max Luck is increased by 1. 6. At the end of
+# > every Turn an allied Unit Acts, its Health is restored by 5% of its maximum
+# > value. The magnitudes of Effects 1, 2, and 6 are doubled when the affected
+# > Unit is in its Home Base."
+#
+# An effect rather than an aura's modifiers, because Max Health, Agility and
+# Luck belong to the bearer's own document: its heal, its bar and its Checks read
+# them there. Granted and taken back by the aura's sync
+# (`engine/aura-grants.mjs`), never by a die or a removal. The maximums alone
+# rise (reading 7). The heal is one at a Turn's end (Avalon's reading 17).
+schema: 1
+id: ceremonialReformation
+name: "Ceremonial Reformation"
+description: |
+  All damage dealt +10% and taken −10%, NP included; Max Health +100, Max Agility +1, Max Luck +1; Health restored
+  by 5% of its maximum at the end of every Turn it Acts. Damage and the heal doubled in its Home Base.
+polarity: status
+volatility: nonVolatile
+valence: neither
+stacking: noneNoRefresh
+baseChance: 100
+unremovable: true
+rules:
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 10
+    npValue: 10
+    defer: true
+    predicate: ["not:self:inHomeBase"]
+  - key: DamageModifier
+    modifierKey: atkUp
+    direction: dealt
+    value: 20
+    npValue: 20
+    defer: true
+    predicate: ["self:inHomeBase"]
+  - key: DamageModifier
+    modifierKey: defUp
+    direction: taken
+    value: 10
+    npValue: 10
+    defer: true
+    predicate: ["not:target:inHomeBase"]
+  - key: DamageModifier
+    modifierKey: defUp
+    direction: taken
+    value: 20
+    npValue: 20
+    defer: true
+    predicate: ["target:inHomeBase"]
+  - { key: MaxDelta, stat: health, value: 100 }
+  - { key: MaxDelta, stat: agility, value: 1 }
+  - { key: MaxDelta, stat: luck, value: 1 }
+  - key: OnEvent
+    event: actedTurnEnd
+    automatic: true
+    predicate: ["not:self:inHomeBase"]
+    then:
+      - { key: Heal, percentOfMax: 5 }
+  - key: OnEvent
+    event: actedTurnEnd
+    automatic: true
+    predicate: ["self:inHomeBase"]
+    then:
+      - { key: Heal, percentOfMax: 10 }

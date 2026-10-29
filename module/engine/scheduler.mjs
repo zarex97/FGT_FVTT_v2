@@ -1672,6 +1672,16 @@ const ACTIONS = Object.freeze({
   Message: (a, u, h) => [I.log({ kind: "message", text: a.text, unitId: u.id, source: h.source })],
 
   /**
+   * True Name Discernment's first sight of an enemy Servant: its page learned
+   * into the bearer's player's Notebook (`engine/true-name.mjs#learnServantPage`,
+   * #351). A log entry the applier runs, because the Check and the Notebook
+   * write are the engine's.
+   */
+  LearnPage: (a, u, h, c) => (c.victim?.unitId
+    ? [I.log({ kind: "learnPage", unitId: u.id, targetId: c.victim.unitId, source: h.source })]
+    : []),
+
+  /**
    * A standing Effect's magnitude falls by one count of its `decay` event:
    * Merlin's Crit DmUp (Illusion), *"loses 5% per successful Crit"* (#296).
    * The handler is the Effect's own (`snapshot.mjs#contributionsOf` makes it

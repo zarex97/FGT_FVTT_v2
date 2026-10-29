@@ -1,0 +1,29 @@
+# Karl de Große, char_orig_sheets/by-class/Ruler/Karl de Große.md (#351)
+#
+# A field-wide aura, as Medea's Territory Creation (`scope: field`), that GRANTS
+# an effect: every allied Servant, Master and summon on the board holds
+# `ceremonialReformation` while Karl is alive on it, never Karl (readings 6, 7).
+# Kept in step by `engine/aura-grants.mjs`.
+schema: 1
+id: karl-ceremonial-reformation
+name: "Ceremonial Reformation"
+rank: A
+kind: skill
+slug: ceremonialReformation
+passive: true
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive) Affects all allied Units other than himself as long as he is on the board. Has the following effects-
+  1. All damage dealt is increased by 10% including NP.
+  2. All damage taken is reduced by 10% including NP.
+  3. Max Health is increased by 100.
+  4. Max Agility is increased by 1.
+  5. Max Luck is increased by 1.
+  6. At the end of every Turn an allied Unit Acts, its Health is restored by 5% of its maximum value.
+  The magnitudes of Effects 1, 2, and 6 are doubled when the affected Unit is in its Home Base.
+  (@effect[ceremonialReformation]{Ceremonial Reformation})
+passiveRules:
+  - key: Aura
+    scope: field
+    relations: [ally]
+    grantsEffect: ceremonialReformation
