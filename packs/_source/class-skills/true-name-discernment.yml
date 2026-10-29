@@ -1,0 +1,50 @@
+# The Ruler class skill, as Karl de Große prints it (#351); Jeanne, Amakusa,
+# Martha (Ruler) and Akezuichou print the same text with their own figures, so
+# the cut, the NP DmDwn and the cooldown are parameters.
+#
+# Passive 1: an enemy Servant met for the first time, its whole page copied to
+# its bearer's player's Notebook (`unitFirstSeen`, Semiramis's Doves' event; the
+# page is `engine/true-name.mjs#learnServantPage`), a Luck Check first when it
+# hides its information (readings 2, 3). Passive 2: NP damage taken cut.
+# Active: NP DmDwn, its chance 100 and 20 more per NP the DU holds (reading 4).
+schema: 1
+id: class-true-name-discernment
+name: "True Name Discernment"
+source: class
+slug: trueNameDiscernment
+kind: classSkill
+copyable: { allowed: false, reason: classSkill }
+parameterized: [rank, npCut, dmDwn, cooldown]
+rank: "@rank"
+cooldown: "@cooldown"
+timing: { window: ownTurn }
+countsAsAttack: false
+description: |
+  (Passive 1) When you meet an enemy Servant for the first time, record all information about it from its Notebook
+  page to your Notebook page. If that enemy Servant has Skills or effects that hide its information, a successful
+  Luck Check is required for this effect to activate.
+  (Passive 2) All NP damage taken is reduced.
+  (Active) Used during your Turn. Range=2. Used on an enemy Unit. Inflicts @effect[npDmDwn]{NP DmDwn} for 1◈ Turns.
+  For every NP the DU has, the chance of inflicting NP DmDwn is increased by 20%.
+passiveRules:
+  - key: OnEvent
+    event: unitFirstSeen
+    automatic: true
+    then:
+      # The bearer learns; the Unit seen is the event's `victim`.
+      - { key: LearnPage }
+  - key: DamageModifier
+    modifierKey: defUp
+    direction: taken
+    value: "@npCut"
+    npValue: "@npCut"
+    predicate: ["attack:kind:np"]
+targeting:
+  anchor: { kind: targetUnit, range: 2 }
+  shape: { kind: unit }
+  selection: { relations: [enemy], chooser: chosen, count: 1 }
+phases:
+  - kind: applyEffects
+    target: reuse
+    effects:
+      - { id: npDmDwn, magnitude: "@dmDwn", duration: "1◈", chanceBonus: { count: { of: npsHeld }, per: 20 } }

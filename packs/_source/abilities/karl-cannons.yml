@@ -1,0 +1,36 @@
+# Karl de Große, char_orig_sheets/by-class/Ruler/Karl de Große.md (#351)
+#
+# Dragon Wing Warriors' shape fired by the platform's owner instead of the
+# platform: Range from the deck's whole footprint (`fromPlatform`), the ground
+# under it reached (`allowDirectlyBelow`), the Carolus's own "nothing Attacks
+# out" waived for it (`ignoresOutbound`), and only Units on the ground caught
+# (`groundOnly`), wherever Karl stands while the Carolus is Active (reading 22).
+schema: 1
+id: karl-cannons
+name: "Carolus Patricius: Karl Cannons"
+rank: null
+kind: skill
+slug: karlCannons
+isAttackSkill: true
+categorizedAsNP: true
+cooldown: "2◈"
+timing: { window: ownTurn }
+copyable: { allowed: false, reason: named }
+requirements:
+  - { kind: platformActive, contentId: carolus-patricius, name: "Carolus Patricius" }
+description: |
+  Attack Skill. Range=5. Only usable when Carolus Patricius is Active. Base Attack (MAG) is used. Hits a 3x3 panel
+  area within Range for 2x damage. Range is calculated from the edge of Carolus, along with the area directly under
+  the Carolus. Categorized as Noble Phantasm. Cooldown: 2◈ Turns.
+targeting:
+  allowDirectlyBelow: true
+  ignoresOutbound: true
+  groundOnly: true
+  anchor: { kind: withinRange, range: 5, metric: chebyshev, fromPlatform: carolus-patricius }
+  shape: { kind: square, size: 3 }
+  selection: { relations: [enemy, ally, neutral], chooser: all, includeSelf: false }
+damage:
+  component: mag
+  multiplier: 2
+phases:
+  - kind: damage

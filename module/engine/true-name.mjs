@@ -83,3 +83,108 @@ async function tellWitness(witness, ability, { roll, chance, learned }, board) {
   const whisper = game.users.filter((u) => u.isGM || u.id === player?.id).map((u) => u.id);
   await ChatMessage.create({ content: `<div class="fgt-card"><p>${line}</p></div>`, whisper });
 }
+
+/* -------------------------------------------------------------------------- */
+/*  An enemy Servant's page, learned on first sight                            */
+/* -------------------------------------------------------------------------- */
+
+/** What hides a Servant's information from True Name Discernment (#351 reading 3). */
+const HIDING_EFFECTS = Object.freeze(["presenceConcealment", "disguise", "feignedDefeat"]);
+
+/**
+ * Does this Unit hide its information? Presence Concealment held as a Skill or
+ * an effect, a Disguise, a Feigned Defeat (#351 reading 3).
+ *
+ * @param {object} unit a board Unit
+ * @returns {boolean}
+ */
+export function hidesInformation(unit) {
+  if ((unit?.effects ?? []).some((id) => HIDING_EFFECTS.includes(id))) return true;
+  return (unit?.abilities ?? []).some((a) => a?.slug === "presenceConcealment");
+}
+
+/**
+ * True Name Discernment, Passive 1: *"When you meet an enemy Servant for the
+ * first time, record all information about it from its Notebook page to your
+ * Notebook page. If that enemy Servant has Skills or effects that hide its
+ * information, a successful Luck Check is required for this effect to
+ * activate."* (#351 readings 2, 3).
+ *
+ * Heard on `unitFirstSeen`, which fires once a pair (`engine/vision.mjs`), so a
+ * failed Check is final. An enemy Servant only. Its whole page goes into the
+ * reader's Notebook; the die, when there is one, and the result are whispered to
+ * the reader's player and the GM.
+ *
+ * @param {{unitId: string, targetId: string}} entry
+ * @param {object} [board]
+ * @returns {Promise<{learned: boolean, roll: number|null}|null>}
+ */
+export async function learnServantPage(entry, board = currentBoard()) {
+  const reader = (board.units ?? []).find((u) => u.id === entry.unitId);
+  const seen = (board.units ?? []).find((u) => u.id === entry.targetId);
+  if (!reader || !seen || reader.defeated) return null;
+  if (seen.kind !== "servant" || !reader.faction || seen.faction === reader.faction) return null;
+  const user = readerOf(reader);
+  const key = `servant:${seen.id}`;
+  if (!user || notebookHolds(user, key)) return null;
+
+  const { luckCheck, checkPlan } = await import("../rules/checks.mjs");
+  const { luckChecksApply } = await import("../rules/difficulty.mjs");
+  const { applyWorldIntents } = await import("./applier.mjs");
+  const I = await import("./intents.mjs");
+
+  let roll = null;
+  let check = null;
+  if (hidesInformation(seen) && luckChecksApply(board.difficulty)) {
+    roll = (await new Roll("1d20").evaluate()).total;
+    const plan = checkPlan(reader, "luck");
+    check = luckCheck({
+      roll,
+      luck: Number(reader.luck ?? 0),
+      opposingLuck: Number(seen.luck ?? 0),
+      hasBoost: (reader.effects ?? []).includes("luckBoost") || plan.forceTable === "favourable",
+      hasLoss: (reader.effects ?? []).includes("luckLoss") || plan.forceTable === "unfavourable",
+      modifiers: plan.modifiers,
+    });
+    await applyWorldIntents([I.statDelta(reader.id, "luck.value", -1)], `trueName:luck:${reader.id}`);
+  }
+  const learned = !check || check.success;
+  const doc = unitActor(seen.id);
+  if (learned && doc) {
+    // fgt-name-ok: the page True Name Discernment learns is the True Name, in its reader's own Notebook
+    await recordInNotebook(user, { key, title: doc.system?.trueName || doc.name, content: servantPage(doc) });
+  }
+  const escape = foundry.utils.escapeHTML;
+  const name = publicIdentityOf(unitActor(reader.id), board).name;
+  const seenName = publicIdentityOf(doc, board).name;
+  const line = game.i18n.format(learned ? "FGT.TrueName.PageLearned" : "FGT.TrueName.PageMissed", {
+    // fgt-name-ok: whispered to the reader's player and the GM; the True Name is what the Skill learns
+    name: escape(name), seen: escape(seenName), trueName: escape(String(doc?.system?.trueName || doc?.name || "")),
+    check: check ? game.i18n.format("FGT.TrueName.PageCheck", { total: check.total, target: check.target }) : "",
+  });
+  const player = reader.ownerUserId ? game.users.get(reader.ownerUserId) : null;
+  const whisper = game.users.filter((u) => u.isGM || u.id === player?.id).map((u) => u.id);
+  await ChatMessage.create({ content: `<div class="fgt-card"><p>${line}</p></div>`, whisper });
+  return { learned, roll };
+}
+
+/**
+ * A Servant's Notebook page: everything its sheet records.
+ *
+ * @param {object} doc the Servant's actor
+ * @returns {string} HTML
+ */
+function servantPage(doc) {
+  const escape = (v) => foundry.utils.escapeHTML(String(v ?? ""));
+  const sys = doc.system ?? {};
+  const params = Object.entries(sys.parameters ?? {}).map(([k, v]) => `${k.toUpperCase()} ${escape(v)}`).join(", ");
+  const rows = [
+    // fgt-name-ok: the page is the reader's own Notebook's, written after the Skill learned the name
+    `<p><strong>${escape(sys.trueName || doc.name)}</strong> (${escape([...(sys.servantClasses ?? [])].join(", "))})</p>`,
+    `<p>${params}</p>`,
+    `<p>${escape([...(sys.attributes ?? [])].join(", "))}</p>`,
+    ...[...(doc.items ?? [])].filter((i) => i.type === "ability").map((i) =>
+      `<p><strong>${escape(i.name)}</strong>${i.system?.rank ? ` (${escape(i.system.rank)})` : ""}: ${escape(i.system?.description ?? "")}</p>`),
+  ];
+  return rows.join("");
+}

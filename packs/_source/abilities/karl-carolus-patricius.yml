@@ -1,0 +1,57 @@
+# Karl de Große, char_orig_sheets/by-class/Ruler/Karl de Große.md (#351)
+#
+# Raises the `carolus-patricius` platform centred on Karl, everyone on the ground
+# within carried aboard (reading 13); the platform carries every clause the
+# token has. Used on his own Turn (reading 12). Not while either usage of
+# Carolus Patricius Auctoritas cools (reading 23). Its 7◈ cooldown starts when
+# the platform goes, whatever ends it.
+schema: 1
+id: karl-carolus-patricius
+name: "Carolus Patricius"
+rank: A
+kind: noblePhantasm
+slug: carolusPatricius
+isNP: true
+npTags: [fortress]
+cooldown: { max: "7◈", countFrom: deactivation }
+timing: { window: ownTurn }
+creates: [large]
+copyable: { allowed: false, reason: named }
+requirements:
+  - { kind: abilityOffCooldown, abilityIds: [karl-cpa-sanctus, karl-cpa-auctoritas] }
+description: |
+  (Non-damaging) When this NP is used, place the 'Carolus Patricius' token on the board, with the middle panel being
+  the panel Karl was standing on. The token has an area of 9x9 panels. All Units who were within a 9x9 panel area of
+  Karl are moved onto the 'Patricius' token. Has the following effects-
+  1. The Carolus functions as a second Home Base for Karl's faction.
+  2. Karl's Master's ZON is ignored when he Attacks (no damage reduction) while within the Patricius.
+  3. In order to Escape the Carolus, enemy Servants have to Succeed a Luck Check against Karl (can be performed
+  anywhere within the Carolus). If Successful, the Unit is Moved to the nearest panel immediately outside the Carolus.
+  4. Enemy Units can attempt to enter the Carolus. Either the Unit's STR or AGI Parameter has to be Rank A, and the
+  nearest panel of the Carolus must be within the Unit's MOV minus 2 (when attempting to enter the Patricius, the
+  Unit's MOV is reduced by 2).
+  5. All damage received by allied Units within the Patricius is reduced by 15% including NP.
+  6. Units within the Carolus cannot be targeted by Attacks from outside the Carolus and vice versa. However, the
+  Patricius can be Attacked with an AoE Noble Phantasm. In this case, all Servants within the Carolus receive damage
+  from the NP, but Total Damage received is reduced by 50%; while Masters are undamaged and unaffected by other
+  effects. Note: If the NP used on the Carolus was an [Anti-Fortress] or higher Noble Phantasm, Carolus Patricius is
+  forcefully ended at the end of the Combat Process.
+  7. All damage dealt by allied Units within the Carolus is increased by 15% except Noble Phantasms.
+  8. Units can Move under the Carolus (i.e. onto panels occupied by the Patricius, place the Carolus token on top of
+  those Units).
+  9. Carolus Patricius initially lasts for 2◈ Turns. After the initial NP period, Karl can extend the duration of
+  Carolus Patricius by 1◈ more Turns by reducing his Health by 200 (cannot be used if Karl's Health is less than
+  200), and can be repeatedly extended.
+  10. The Carolus is forcefully ended at the end of the Turn if Karl or his Master is defeated.
+  Cannot be used if Carolus Patricius Auctoritas is on Cooldown.
+  Cooldown: 7◈ Turns after the NP ends.
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all }
+phases:
+  - kind: summonPlatform
+    platformId: carolus-patricius
+    placement: centred
+    carriesAllWithin: true
+    boardMasterIfAdjacent: false

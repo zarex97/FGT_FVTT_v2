@@ -207,6 +207,43 @@ Clicking a token selects it only if that token is on the level being viewed (`mo
 
 A bounded field is an area on one Level (`rules/bounded-fields.mjs#contains` compares `panel.k`, §46.4-BI), and **so is a painted terrain area** (#151, Ch. 26): a ground Burning area does not reach the Units aboard a platform above it — Quetzalcoatl and her Master riding the Quetzalcoatlus over Piedra Del Sol's 7×7 — and a deck's area does not reach the ground under it. A `zone` phase stamps the caster's Level, so a stone cast while Riding paints its Burning on the deck's Level, where its field already is. An area with no Level (a hand-drawn one) is on every Level. A following area — Sol's 5×5 of Day — follows its source's Level as well as her panel, and a change of Level alone (boarding) repaints it, so the daylight comes aboard with her.
 
+### Carolus Patricius and its Auctoritas (#351)
+
+Karl de Große raises two platforms, and every piece is a platform key a later sheet may author.
+
+- **Placed around its caster, carrying the ground.** `summonPlatform {placement: centred, carriesAllWithin}`: the
+  caster's panel is the middle of the 9×9, and every Unit on the ground inside it is carried aboard, any side
+  (reading 13).
+- **Its isolation.** `crossLevel` with `aoeOnly: np` (only an area Noble Phantasm reaches in), `aoeCatchesAll` (it
+  reaches every Servant aboard) and `endsOnNpScale: antiFortress` (one at or above that scale on `rules/np-scale.mjs`
+  ends it at the end of its Combat Process, `attack.mjs#breakPlatformsHit`; readings 17, 18).
+- **Who leaves, who enters.** `lockAboard: [enemy]` holds the owner's enemies aboard; `escape {kinds, byRelation,
+  luckAgainst: owner}` lets an enemy Servant leave by a Luck Check against Karl, once a Turn in place of its Move,
+  landing on the nearest free panel just outside (`escapeVerdict`, `escapeLanding`, `engine/platforms.mjs#escapePlatform`;
+  readings 14, 15). `boarding.requires {anyParameter, atLeast}` and `movCost` let an enemy enter on STR or AGI at A,
+  for 2 of its MOV (`entryVerdict`, reading 16).
+- **Its passengers' rules.** `passengerRules [{roles | relations, elements}]` (Ch. 10), run on each Unit aboard by
+  `annotatePlatforms`.
+- **Its life.** `lifespan {duration, extension {cost, grants, repeatable}}`: at the end of each period the owner is
+  asked to pay (200 Health for 1◈ more, `extendedBy`); `endsWhenDefeated: [owner, ownerMaster]` ends it at the end of
+  the Turn either falls (`engine/platforms.mjs#runLifespans`, readings 20, 21).
+- **A toll by whether it Acted.** `upkeep {every: turn, cost {amount, amountIfActed}}` charges at every Turn's end,
+  the Turn it was raised in too, the higher figure when the platform Acted that Turn, read off the board from before
+  the Turn's records were cleared (`runUpkeep(tick, {ended})`; the CPA's 30 and 10, reading 27).
+- **Ended by its owner's use.** `endsWhenOwnerUses: [abilityId]` ends it at the end of a Turn its owner used one of
+  them, after that Turn's toll: Usage 1 fired while the CPA stands (reading 28).
+- **Raised in another's place.** `summonPlatform {replaces: [contentId]}` ends the owner's standing platform of that
+  content first, its passengers scattered, the caster set back on the panel he stood on and his Master seated beside
+  him on the new deck (reading 25).
+- **Found pressing Karl live.** The escape is refused to a Unit that cannot Move (`preventedBy`); an enemy's entry
+  and every toll are said on a card; the extension prompt names the platform. A platform raised in another's place
+  lands its owner and his Master through the old deck's teardown (`destroyPlatform({landings})`): a move written
+  after it was lost. The payment that fells the owner ends the platform that same Turn, and the platform remembers
+  the Master it was raised with (`ownerMasterId`), since his fall frees the owner and clears `masterId`. A platform
+  that falls itself is closed as `destroyed`, never as its owner's defeat.
+- **A platform that walks onto Units.** `movesOntoOccupiedPanels` on a platform pushes the Units on the ground
+  beneath its destination clear (`rules/movement.mjs#pushLevelOf`): a platform stands on a level of its own.
+
 ## Invariants & edge cases
 
 1. **A platform on level 0 has no passengers.** `passengersOf` refuses this read rather than returning every unit on the board (`module/rules/platforms.mjs:60-77`).

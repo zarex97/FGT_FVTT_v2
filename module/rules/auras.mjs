@@ -56,6 +56,8 @@ export function collectAuras(unit, board, index = null) {
     // Medea shielded her ally with Item Construction for as long as the body
     // stood next to him (#168).
     if (source.defeated) continue;
+    // Granted as an effect the recipient holds (`rules/aura-grants.mjs`), not read here.
+    if (aura.grantsEffect) continue;
     const relations = aura.relations ?? ["ally", "self"];
     if (!relations.includes(relationOf(source, unit, board))) continue;
 

@@ -26,7 +26,7 @@ import { remainingMovement } from "./movement.mjs";
 import { boardablePlatform } from "./platforms.mjs";
 import { chebyshev } from "../domain/geometry.mjs";
 import { mayAttemptEscape } from "./nameless-forest.mjs";
-import { jumpVerdict, platformUnderUnit } from "./platforms.mjs";
+import { jumpVerdict, platformUnderUnit, escapeVerdict } from "./platforms.mjs";
 
 /**
  * The unit kinds that TAKE actions.
@@ -358,6 +358,24 @@ export const UNIT_ACTIONS = Object.freeze([
       // has no Jump to learn about. Shown-but-blocked for the two a player can
       // act on: step to the edge, or keep some movement back.
       if (!verdict.ok && !["notOnEdge", "noMovement"].includes(verdict.reason)) return null;
+      return { platformId: platform.id, blocked: verdict.ok ? null : verdict.reason };
+    },
+  },
+  {
+    // Carolus Patricius: an enemy Servant leaves only by *"a Luck Check against
+    // Karl (can be performed anywhere within the Carolus)"* (#351), in place of
+    // its Move, so it bills the Move (reading 14).
+    id: "escapePlatform",
+    kind: "move",
+    icon: "fa-solid fa-person-running",
+    label: "FGT.Action.EscapePlatform",
+    mode: "immediate",
+    available: (unit, board) => {
+      if (!acts(unit) || !unit.platformId) return null;
+      const platform = (board?.units ?? []).find((u) => u.id === unit.platformId && u.kind === "platform");
+      if (!platform?.escape) return null;
+      const verdict = escapeVerdict(unit, platform, board);
+      if (!verdict.ok && !["alreadyMoved", "cannotAct"].includes(verdict.reason)) return null;
       return { platformId: platform.id, blocked: verdict.ok ? null : verdict.reason };
     },
   },

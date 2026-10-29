@@ -632,6 +632,7 @@ signed: Pois Heal banks a negative.
 | `Broken Phantasm` | A modifier applied to a *copied* NP's use: Range +1 (or AoE +1 each direction), Total Damage +100%, all applied effect magnitudes **doubled**, and the copy can never be created again. |
 | `Thrown weapon` | An NP sub-classification. Rho Aias cannot be broken by one: its Health cannot drop below 1 against it, and the whole attack is stopped. Authored as `damage.thrownWeapon: true` (`attack:thrownWeapon`); **Gáe Bolg Alternative is the one** (ruled 2026-10-14, #208 reading 18). Rho Aias also holds the NP's riders while it stands, so against a thrown weapon they never land (ruled 2026-10-16, #208). |
 | `Heel Attack` | A declared sub-attack resolved **after** a failed Evade, with its own hit table. See `weakPoint`, Ch. 44 §44.2. |
+| `Christian` | An Attribute, ruled for the roster (#351 readings 9, 32 to 34): every Martha (Saint Martha, Santa Martha, Martha (Summer)), George, David, every Jeanne but Alter (Jeanne (Ruler), Jeanne (Summer), Metatron Jeanne), and Jacques de Molay (Saber). Not Jeanne Alter, Summer Jalter, Santa Lily or the Foreigner Molay. Added to each Servant as its audit builds it. Holy King spares a Divine Unit that holds it (`target:attribute:christian`); see Ch. 06. |
 
 ---
 

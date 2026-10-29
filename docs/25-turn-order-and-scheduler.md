@@ -106,6 +106,13 @@ A boundary is named by **Foundry's own counters** (`round` and `turn`), not by `
 
 **A radius reaches Units, not bodies** (#247). `targetsOf`'s `nearby` filtered by distance and relation; a defeated Unit's body stands one Turn (`clearBodies`), so the Nameless Forest rolled on Heracles' at a Round's end. Defeated Units are left out. **A boundary hands its handlers the match's history** (`historyOf(combat)`, Ch. 42), as the defeat context in `attack.mjs` does.
 
+### A platform's life at the Turn's end (#351)
+
+After the field upkeep, `runUpkeep` and then `engine/platforms.mjs#runLifespans` run at every Turn's end, both
+handed the board from before `endTurn` cleared the Turn records (`ended`): the CPA's toll asks whether it Acted, and
+`endsWhenOwnerUses` asks what its owner used. `runLifespans` ends a platform whose owner or owner's Master fell,
+one its owner's use ends, and one whose life ran out unless its owner pays to extend it (Ch. 27).
+
 ## Invariants & edge cases
 
 **NP Regen does not tick on the Turn it expires** (#193 reading 7). `npRegenOf` skips an `npCooldownRegen` instance whose expiry is the Turn ending, as `tickPeriodics` does for every `periodic:` effect, so 1◈ takes 1◈ off.

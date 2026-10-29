@@ -42,7 +42,7 @@ import { test as testPredicate } from "../rules/predicate.mjs";
 import { applicationsOf, chanceOf, effectGatePasses, timesOf } from "../rules/effect-flow.mjs";
 import { resolveValue } from "../rules/elements.mjs";
 import { expressionRefs } from "../rules/snapshot.mjs";
-import { stacksHeld, countedValue, countScaleOf, fromCountTargets } from "../rules/count.mjs";
+import { stacksHeld, countedValue, countScaleOf, fromCountTargets, countOf } from "../rules/count.mjs";
 import { checkPlan, luckCheck } from "../rules/checks.mjs";
 import { luckChecksApply } from "../rules/difficulty.mjs";
 import { luckChecksBlocked } from "../rules/bounded-fields.mjs";
@@ -134,7 +134,13 @@ export async function landEffect(entry, ctx) {
   const overcharge = outgoingScaleOf(caster, ctx, options, authored, authoredNp);
   const magnitude = overcharge.magnitude;
   const npMagnitude = overcharge.npMagnitude;
-  const stated = chanceOf(entry, { distance: ctx.distance ?? distanceBetween(caster, target), band: ctx.band ?? null });
+  const authoredChance = chanceOf(entry, { distance: ctx.distance ?? distanceBetween(caster, target), band: ctx.band ?? null });
+  // A chance raised per thing the DU has: True Name Discernment's +20% for every
+  // NP (#351 reading 4), on the stated chance or the definition's own.
+  const stated = entry.chanceBonus?.count
+    ? (authoredChance ?? def.baseChance ?? 100)
+      + (Number(entry.chanceBonus.per) || 0) * countOf(entry.chanceBonus.count, { target, self: caster })
+    : authoredChance;
   // *"Hidden while the inflicter is concealed"*: Secret Poison, decided as it lands.
   const hidden = Boolean(entry.secret) && concealed(caster);
 
@@ -160,6 +166,8 @@ export async function landEffect(entry, ctx) {
     // cannot prevent Stun from being inflicted, even those which specifically
     // affect Stun (Debuff Resist can still reduce the chance!)"* (#232).
     bypassesImmunity: bypassesImmunityFor(entry, options),
+    // God's Resolution: what names Stun is passed, the rest kept (#351 reading 5).
+    ignoresNamedDefences: Boolean(entry.ignoresNamedDefences),
     bypassChanceModifiers: Boolean(entry.bypassChanceModifiers),
     visibility: hidden ? "gmOnly" : (entry.visibility ?? "public"),
     attributionHidden: hidden || Boolean(ctx.attributionHidden),

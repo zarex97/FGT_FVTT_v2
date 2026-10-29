@@ -151,6 +151,14 @@ export const REQUIREMENT_DESCRIPTORS = describeTable([
     { key: "contentId", type: "text" },
     { key: "predicate", type: "predicateList" },
   ]),
+  req("platformActive", "Only while a named platform this Unit owns stands on the board.", [
+    { key: "contentId", type: "text" },
+    { key: "name", type: "text" },
+  ]),
+  req("platformInactive", "Only while no named platform this Unit owns stands on the board.", [
+    { key: "contentId", type: "text" },
+    { key: "name", type: "text" },
+  ]),
   req("withinPlatformCentre", "Only while standing in the middle of the platform this Unit is aboard.", [
     { key: "radius", type: "number" },
     { key: "predicate", type: "predicateList" },

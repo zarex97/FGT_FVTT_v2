@@ -29,7 +29,7 @@ import { currentHealth, maxHealth } from "../domain/health.mjs";
 /** The sources a Count may read (Q19). */
 export const COUNT_KINDS = Object.freeze([
   "stacks", "targets", "board", "resource", "parameters", "criteria", "use", "tally", "healthMissing",
-  "antiAttributeEffects",
+  "antiAttributeEffects", "npsHeld",
 ]);
 
 /** A Count whose kind is not in {@link COUNT_KINDS}. */
@@ -123,6 +123,14 @@ export function countOf(spec, ctx = {}) {
       if (!(max > 0)) return 0;
       const value = Math.max(0, Math.min(max, Number(currentHealth(holder, max))));
       return whole(Math.floor(((max - value) * 100) / max));
+    }
+    case "npsHeld": {
+      // The Noble Phantasms the DU has: True Name Discernment's *"For every NP
+      // the DU has, the chance of inflicting NP DmDwn is increased by 20%"*
+      // (#351 reading 4). Its own NPs, a passive one included; a Skill only
+      // Categorized as NP is not one it has.
+      const who = ctx.target ?? null;
+      return whole((who?.abilities ?? []).filter((a) => a?.isNP).length);
     }
     case "antiAttributeEffects": {
       // The EFFECTS on the Unit that are Anti-<Attribute>: each raises damage

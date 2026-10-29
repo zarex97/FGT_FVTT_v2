@@ -742,6 +742,42 @@ function platformUnder(unit, board) {
  * @param {object} mover a Unit projection
  * @returns {{direction: string, sidestepDamages: boolean}}
  */
+/**
+ * Knock one Unit back from another: Carolus Patricius Auctoritas, *"CPA's
+ * Normal Attacks at a Range of 1 to 2 knocks back the DU(s) by one panel"*
+ * (#351). Straight away from the nearest panel of the one pushing, as far as the
+ * entry says; a Unit with nowhere free behind it holds its ground, and the card
+ * says which.
+ *
+ * @param {{unitId: string, fromId: string, panels?: number}} entry
+ * @returns {Promise<{panel: object}|null>} where it landed
+ */
+export async function knockBackFrom({ unitId, fromId, panels = 1 }) {
+  const board = boardSnapshot(currentWar());
+  const unit = board.units.find((u) => u.id === unitId);
+  const from = board.units.find((u) => u.id === fromId);
+  if (!unit?.panel || !from || unit.defeated || unit.kind === "platform" || unit.kind === "structure") return null;
+  const { knockbackPanel } = await import("../rules/movement.mjs");
+  const footprint = from.panels?.length ? from.panels : [from.panel].filter(Boolean);
+  const d = (p) => Math.max(Math.abs(p.i - unit.panel.i), Math.abs(p.j - unit.panel.j));
+  const origin = [...footprint].sort((a, b) => d(a) - d(b))[0] ?? null;
+  if (!origin) return null;
+  const landing = knockbackPanel(origin, unit, board, { maxSteps: panels });
+  const token = canvas.tokens?.placeables?.find((t) => t.actor?.id === unitId);
+  if (landing && token) {
+    const point = canvas.grid.getTopLeftPoint(landing.panel);
+    await displaceToken(token.document, { x: point.x, y: point.y });
+  }
+  const { publicIdentityOf } = await import("./public-identity.mjs");
+  const escape = foundry.utils.escapeHTML;
+  const name = (u) => escape(publicIdentityOf(unitActor(u.id), board).name);
+  const line = game.i18n.format(landing ? "FGT.Knockback.Pushed" : "FGT.Knockback.Held", {
+    unit: name(unit), source: name(from), panels,
+  });
+  await ChatMessage.create({ content: `<div class="fgt-card"><p>${line}</p></div>` });
+  return landing ? { panel: landing.panel } : null;
+}
+
 function pushStyle(mover) {
   const spec = mover?.knockback ?? null;
   return {

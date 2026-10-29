@@ -1,0 +1,59 @@
+# Karl de Große, char_orig_sheets/by-class/Ruler/Karl de Große.md (#351)
+#
+# Dragon Slayer's dealt half and Ward (Dragon)'s taken half, keyed on Demonic
+# (its three kin, reading 10) or Divine without Christian (readings 9, 32 to
+# 34). The Active's Dmg Up (Holy) sums with them: +75% and −75% (reading 11).
+schema: 1
+id: karl-holy-king
+name: "Holy King"
+rank: A
+kind: skill
+slug: holyKing
+cooldown: "4◈"
+timing: { window: ownTurn }
+countsAsAttack: false
+copyable: { allowed: false, reason: named }
+description: |
+  (Passive) Has the following effects-
+  1. All damage dealt to Units with the 'Demonic' Attribute or Units with the 'Divine' Attribute but without the
+  'Christian' Attribute is increased by 25% including NP.
+  2. All damage received from Units with the 'Demonic' Attribute or Units with the 'Divine' Attribute but without
+  the 'Christian' Attribute is reduced by 25% including NP.
+  (Active) Used during your Turn. Has the following effects-
+  1. Applies @effect[dmgUpHoly]{Dmg Up (Holy)} for 1◈ Turns, all damage dealt to those Units is further increased by
+  50%; if NP, 25%.
+  2. Applies @effect[dmgUpHolyTaken]{Dmg Up (Holy)} for 1◈ Turns, all damage taken from those Units is further
+  reduced by 50%; if NP, 25%.
+  Cooldown: 4◈ Turns.
+passiveRules:
+  - key: DamageModifier
+    modifierKey: dmgUp
+    direction: dealt
+    value: 25
+    npValue: 25
+    predicate:
+      - or:
+          - "target:attribute:demonic"
+          - "target:attribute:demonicBeast"
+          - "target:attribute:demonicOni"
+          - { and: ["target:attribute:divine", "not:target:attribute:christian"] }
+  - key: Ward
+    value: 25
+    npValue: 25
+    defer: true
+    predicate:
+      - or:
+          - "self:attribute:demonic"
+          - "self:attribute:demonicBeast"
+          - "self:attribute:demonicOni"
+          - { and: ["self:attribute:divine", "not:self:attribute:christian"] }
+targeting:
+  anchor: { kind: self }
+  shape: { kind: unit }
+  selection: { relations: [self], includeSelf: true, chooser: all, count: 1 }
+phases:
+  - kind: applyEffects
+    target: self
+    effects:
+      - { id: dmgUpHoly, magnitude: 50, npMagnitude: 25, duration: "1◈" }
+      - { id: dmgUpHolyTaken, magnitude: 50, npMagnitude: 25, duration: "1◈" }

@@ -124,6 +124,9 @@ export function applyEffect({
   bypassesImmunity = false,
   // What the instance carries for its definition's readers (#249).
   params = null,
+  // Every immunity and resistance that NAMES this effect is passed; a general
+  // one still applies: God's Resolution's Stun (#351 reading 5).
+  ignoresNamedDefences = false,
 }) {
   /** @type {Array<{step: string, outcome: string, detail?: string}>} */
   const trace = [];
@@ -137,7 +140,7 @@ export function applyEffect({
   // other.
 
   // ── 1. IMMUNITY GATE ─────────────────────────────────────────────────────
-  const immunity = bypassesImmunity ? null : findImmunity(def, target, held);
+  const immunity = bypassesImmunity ? null : findImmunity(def, target, held, { ignoresNamed: ignoresNamedDefences });
   // Sikera Ušum clause d: "the Poison Immune effect is reduced to a Poison
   // Resist effect" -- a downgrade FROM immune TO merely resistant, not a
   // second, separate refusal. The gate still runs; it just does not block
@@ -147,7 +150,7 @@ export function applyEffect({
   // nullified (#348 rulings 6, 14, 15): Jewel of the Earth's *"Debuff Immune
   // ... 2 times"*. So it waits for the die; a debuff that missed spends
   // nothing, and one that lands for sure is nullified and spends one.
-  const counted = immunity && !downgrade ? countedImmunity(def, target, held) : null;
+  const counted = immunity && !downgrade ? countedImmunity(def, target, held, ignoresNamedDefences) : null;
   if (counted) {
     trace.push({ step: "immunity", outcome: "deferred", detail: `${immunity} (${counted.uses} left)` });
   } else if (immunity && !downgrade) {
@@ -212,7 +215,7 @@ export function applyEffect({
     // ResUp and Magic Resistance's clause 2 had nowhere to land. Reading it off
     // the target here closes the loop without every caller having to know.
     resist: (bypassChanceModifiers || def.bypassesResistance) ? 0
-      : (ctx.resist ?? resistanceOf(target, def, ctx.options, ctx.ignoresResistanceFrom))
+      : (ctx.resist ?? resistanceOf(target, def, ctx.options, ctx.ignoresResistanceFrom, ignoresNamedDefences))
         + (downgrade?.resistPercent ?? 0),
     immune: false,
     bypassesImmunity: Boolean(def.bypassesImmunity) || Boolean(bypassesImmunity),
@@ -578,15 +581,16 @@ const REPLACING_ACTIONS = new Set(["refresh", "extend", "stage", "count"]);
  * @param {string[]} held
  * @returns {string|null} the name of the blocking effect
  */
-function findImmunity(def, target, held) {
+function findImmunity(def, target, held, { ignoresNamed = false } = {}) {
   // By its name, as a card prints it: "Burn Immune", never "burn Immune" (#348, live).
-  if (held.includes(`immune:${def.id}`)) return `${def.name ?? def.id} Immune`;
+  // An application that passes what names its effect skips these two (#351).
+  if (!ignoresNamed && held.includes(`immune:${def.id}`)) return `${def.name ?? def.id} Immune`;
 
   // Immunities granted by a rule element rather than carried as an effect --
   // a class skill that reads "immune to Charm" produces an entry here, and it
   // has to gate at exactly the same point as the `Charm Immune` status does.
   const granted = target.immunities ?? [];
-  if (granted.includes(def.id)) return `${def.name ?? def.id} Immune`;
+  if (!ignoresNamed && granted.includes(def.id)) return `${def.name ?? def.id} Immune`;
   // Past every CLASS of immunity -- Debuff Immune and its scoped kin -- though
   // not past one that names this effect. The 'Kiritsugu' debuff *"ignores
   // Debuff Resist and Debuff Immune effects"*. The flag was read by the chance
@@ -641,7 +645,7 @@ function findImmunity(def, target, held) {
  * @param {string[]} held
  * @returns {{instanceId: string, uses: number}|null}
  */
-function countedImmunity(def, target, held) {
+function countedImmunity(def, target, held, ignoresNamed = false) {
   if (def.polarity !== "debuff") return null;
   const granted = target.immunities ?? [];
   const covering = granted.filter((g) => g?.scope === "debuff" && !(g.except ?? []).includes(def.id));
@@ -651,7 +655,7 @@ function countedImmunity(def, target, held) {
   if (charged.some((e) => !((e?.uses ?? 0) > 0))) return null;
   // Nothing else may refuse it: the rest of the gate, asked without them.
   const rest = { ...target, immunities: granted.filter((g) => !covering.includes(g)) };
-  if (findImmunity(def, rest, held)) return null;
+  if (findImmunity(def, rest, held, { ignoresNamed })) return null;
   return { instanceId: charged[0].id, uses: charged[0].uses };
 }
 
@@ -803,8 +807,8 @@ function blocked(reason, trace) {
  * @param {object} def the effect definition
  * @returns {number} percentage points of resistance
  */
-function resistanceOf(target, def, options = null, ignoreSources = null) {
-  return chanceContribution(target, def, "incoming", options, ignoreSources);
+function resistanceOf(target, def, options = null, ignoreSources = null, ignoresNamed = false) {
+  return chanceContribution(target, def, "incoming", options, ignoreSources, ignoresNamed);
 }
 
 /**
@@ -837,7 +841,7 @@ export function inflictBonusOf(attacker, def, options = null) {
  * @param {string} direction
  * @returns {number}
  */
-function chanceContribution(unit, def, direction, options = null, ignoreSources = null) {
+function chanceContribution(unit, def, direction, options = null, ignoreSources = null, ignoresNamed = false) {
   const severity = def.severity ?? "normal";
   const ignored = ignoreSources instanceof Set ? ignoreSources : new Set(ignoreSources ?? []);
   let total = 0;
@@ -852,6 +856,10 @@ function chanceContribution(unit, def, direction, options = null, ignoreSources 
     // a skill that states no slug can still be named.
     if (ignored.size > 0 && (ignored.has(c.sourceSlug) || ignored.has(c.source))) continue;
     if (c.effectId && c.effectId !== def.id) continue;
+    // A resistance that names this effect, passed by an application that says
+    // so: God's Resolution's *"Stun Resist ... any other effects that
+    // specifically reduce the chance of being inflicted with Stun"* (#351).
+    if (ignoresNamed && c.effectId === def.id) continue;
 
     // DEBUFFS, unless the contribution names one effect outright. Every clause
     // of this shape in the corpus is about inflicting or resisting a debuff --

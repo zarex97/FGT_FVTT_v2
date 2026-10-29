@@ -169,6 +169,20 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     if (!footprint.some((p) => panelKeys.has(geo.key(p)))) continue;
     occupants.push(u);
   }
+  // 3b. A PLATFORM AN AREA NP REACHES WHOLE. Carolus Patricius: *"the Patricius
+  //     can be Attacked with an AoE Noble Phantasm. In this case, all Servants
+  //     within the Carolus receive damage from the NP"* (#351 reading 17): every
+  //     Servant aboard, whatever the area covers of the deck.
+  const areaShape = !["unit", "point"].includes(spec.shape?.kind ?? "point");
+  if (areaShape && placement?.isNP) {
+    for (const deck of (board.units ?? []).filter((p) => p.kind === "platform" && p.crossLevel?.aoeCatchesAll)) {
+      const deckPanels = deck.panels?.length ? deck.panels : [deck.panel].filter(Boolean);
+      if (!deckPanels.some((p) => panelKeys.has(geo.key(p)))) continue;
+      for (const u of board.units ?? []) {
+        if (u.kind === "servant" && u.platformId === deck.id && !occupants.includes(u)) occupants.push(u);
+      }
+    }
+  }
 
   const sel = spec.selection ?? {};
   const limits = spec.limits ?? {};
@@ -348,6 +362,10 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     reach: placement?.reach ?? spec.reach ?? "attack",
     // A single Unit or a single panel is aimed at; anything wider is an area.
     area: !["unit", "point"].includes(spec.shape?.kind ?? "point"),
+    // A Noble Phantasm, for a platform that lets only one reach in (#351).
+    isNP: Boolean(placement?.isNP),
+    // Karl Cannons fires off the Carolus, whose occupants cannot Attack out (#351 reading 22).
+    ignoresOutbound: Boolean(spec.ignoresOutbound),
   };
   /** @type {Map<string, {platformFactor: number, platformName: string}>} */
   const tiers = new Map();
@@ -370,6 +388,12 @@ export function resolveTargets(spec, caster, board, placement = {}) {
     }
     return true;
   });
+
+  // 4f. THE GROUND ONLY. Karl Cannons hits *"the area directly under the
+  //     Carolus"* and around it, never those aboard (#351 reading 22).
+  if (spec.groundOnly) {
+    survivors = survivors.filter((u) => (u.level ?? 0) === 0 || drop(u, "not on the ground"));
+  }
 
   // 4e. THE DECK. Aerial Garden of Vanity *"cannot hit under or above the
   //     HGoB"*, and against Dragon Wing Warriors' *"plus the area under the HGoB
@@ -1155,9 +1179,14 @@ export function legalPlacements(spec, caster, board, { max = 400 } = {}) {
  * @returns {Array<{i: number, j: number}>}
  */
 function originPanels(spec, caster, board) {
+  // Or the caster's own platform's, by its content id: Karl Cannons' *"Range is
+  // calculated from the edge of Carolus"* (#351 reading 22).
   const origin = spec?.originUnitId
     ? (board.units ?? []).find((u) => u.id === spec.originUnitId)
-    : null;
+    : spec?.fromPlatform
+      ? (board.units ?? []).find((u) => u.kind === "platform" && !u.defeated && u.ownerId === caster?.id
+        && (u.contentId === spec.fromPlatform || u.id === spec.fromPlatform)) ?? null
+      : null;
   const from = origin ?? caster;
   return from.panels?.length ? from.panels : [from.panel ?? caster.panel];
 }
@@ -1287,7 +1316,8 @@ function candidatePlacements(spec, caster, board, max) {
       // 9x9 platform's top-left corner offers panels the resolver refuses and
       // hides panels it would allow. Deduplicated, because the discs around
       // neighbouring panels overlap almost entirely.
-      const from = caster.panels?.length ? caster.panels : [caster.panel];
+      // From where the resolver measures: a mount's or a deck's footprint (#351).
+      const from = originPanels(anchor, caster, board);
       const reach = range + 1;
       for (const origin of from) {
         for (let di = -reach; di <= reach && out.length < max; di++) {
