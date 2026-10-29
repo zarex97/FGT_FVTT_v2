@@ -5,8 +5,8 @@
 # Paste this whole file into the environment's settings (cloud environment
 # menu in the session's title bar -> Edit -> Setup script). It runs before the
 # session starts and cannot read the environment's variables, so it only
-# installs: Node 24 at /opt/node24, and the commands fvtt-up and fvtt-down in
-# /usr/local/bin. The licence key is read later, by fvtt-up, from the
+# installs: Node 24 at /opt/node24, and the commands fvtt-up, fvtt-down and
+# fvtt-world in /usr/local/bin. The licence key is read later, by fvtt-up, from the
 # environment variable foundry_license.
 #
 # Safe to run twice.
@@ -98,4 +98,93 @@ echo "fvtt-down: Foundry still answers on :30000" >&2
 exit 1
 FVTT_DOWN
 
-chmod +x /usr/local/bin/fvtt-up /usr/local/bin/fvtt-down
+cat > /usr/local/bin/fvtt-world <<'FVTT_WORLD'
+#!/usr/bin/env bash
+# Move a world between this session and the private repo zarex97/fgt-worlds,
+# which holds one <world>.tgz per world, packed relative to Foundry's Data
+# folder (worlds/<world>, plus the modules it needs). The world does not
+# merge: whoever pushes last wins, so close it everywhere first.
+#
+#   fvtt-world pull [world]   repo -> /opt/fvtt/data/Data, restarts Foundry if up
+#   fvtt-world push [world]   /opt/fvtt/data/Data -> repo, commit and push
+#
+# World defaults to fgt2026. FGT_WORLDS is the clone (/home/user/fgt-worlds),
+# FGT_WORLDS_URL its remote, FGT_WORLD_MODULES the modules push packs beside
+# the world (restored-keep-levels).
+set -euo pipefail
+
+cmd="${1:-}"
+WORLD="${2:-fgt2026}"
+DATA=/opt/fvtt/data/Data
+CLONE="${FGT_WORLDS:-/home/user/fgt-worlds}"
+REMOTE="${FGT_WORLDS_URL:-https://github.com/zarex97/fgt-worlds.git}"
+MODULES="${FGT_WORLD_MODULES:-restored-keep-levels}"
+ARCHIVE="$CLONE/$WORLD.tgz"
+URL=http://localhost:30000
+# GitHub refuses a file over 100 MB.
+LIMIT=$((95 * 1024 * 1024))
+
+die() { echo "fvtt-world: $*" >&2; exit 1; }
+up() { curl -s -o /dev/null "$URL/"; }
+
+# Foundry holds a launched world's databases open; copying them mid-write
+# packs a torn world, and replacing them under it loses the session's writes.
+closed() {
+  up || return 0
+  local active
+  active="$(curl -s "$URL/api/status" | /opt/node24/bin/node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{console.log(JSON.parse(s).world??"")}catch{console.log("")}})')"
+  [ "$active" != "$WORLD" ] || die "world $WORLD is running; return it to setup, or run fvtt-down, first"
+}
+
+sync_clone() {
+  if [ -d "$CLONE/.git" ]; then
+    git -C "$CLONE" pull --ff-only --quiet
+  else
+    git clone --quiet "$REMOTE" "$CLONE" \
+      || die "cannot clone $REMOTE; the session needs zarex97/fgt-worlds among its repositories"
+  fi
+}
+
+case "$cmd" in
+  pull)
+    closed
+    sync_clone
+    [ -f "$ARCHIVE" ] || die "no $WORLD.tgz in $CLONE"
+    rm -rf "${DATA:?}/worlds/$WORLD"
+    tar -xzf "$ARCHIVE" -C "$DATA"
+    echo "fvtt-world: $WORLD pulled into $DATA (packed: $(tar -tzf "$ARCHIVE" | cut -d/ -f1-2 | sort -u | tr '\n' ' '))"
+    # Setup lists a newly copied world only after a restart (docs/agents/vps.md).
+    if up; then
+      fvtt-down > /dev/null && fvtt-up > /dev/null 2>&1 \
+        || die "Foundry did not come back; run fvtt-up and see /opt/fvtt/foundry.log"
+      echo "fvtt-world: Foundry restarted"
+    fi
+    ;;
+  push)
+    closed
+    [ -d "$DATA/worlds/$WORLD" ] || die "no world $WORLD in $DATA/worlds"
+    sync_clone
+    paths=("worlds/$WORLD")
+    for m in $MODULES; do [ -d "$DATA/modules/$m" ] && paths+=("modules/$m"); done
+    tar -czf "$ARCHIVE.tmp" -C "$DATA" "${paths[@]}"
+    size=$(stat -c %s "$ARCHIVE.tmp")
+    if [ "$size" -gt "$LIMIT" ]; then
+      rm -f "$ARCHIVE.tmp"
+      die "$WORLD packs to $((size / 1024 / 1024)) MB, over GitHub's 100 MB file limit; the repo needs Git LFS"
+    fi
+    mv "$ARCHIVE.tmp" "$ARCHIVE"
+    git -C "$CLONE" add "$WORLD.tgz"
+    if git -C "$CLONE" diff --cached --quiet; then echo "fvtt-world: $WORLD unchanged since the last push"; exit 0; fi
+    git -C "$CLONE" commit --quiet -m "$WORLD from a cloud session ($(date -u +%F\ %H:%MZ)): ${paths[*]}"
+    git -C "$CLONE" push --quiet origin HEAD \
+      || die "commit made in $CLONE but the push was refused; push it from there"
+    echo "fvtt-world: $WORLD pushed ($((size / 1024)) KB: ${paths[*]})"
+    ;;
+  *)
+    echo "usage: fvtt-world pull|push [world]" >&2
+    exit 2
+    ;;
+esac
+FVTT_WORLD
+
+chmod +x /usr/local/bin/fvtt-up /usr/local/bin/fvtt-down /usr/local/bin/fvtt-world
