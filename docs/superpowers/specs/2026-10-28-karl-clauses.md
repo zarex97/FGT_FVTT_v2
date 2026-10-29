@@ -79,6 +79,51 @@ off (Ch. 27).
 
 Asked by grilling, 2026-10-28.
 
+**Round 1, ruled 2026-10-29 (the user).** Q9 went against the recommendation and opens Round 2.
+
+| # | Ruling |
+|---|---|
+| 1 | No Alignment is printed: none. A Good, Evil or Lawful predicate never matches him (ST.align). |
+| 2 | He meets an enemy Servant the first time it stands within his Detect, unconcealed: its whole page (True Name, Parameters, Skills, NPs) is copied to his player's Notebook, once per Servant (TD.p1, TD.p1.first). |
+| 3 | Hiding is what the engine treats as hiding identity (Presence Concealment, Disguise, Feigned Defeat): one Luck Check against that Servant, a failure final for it (TD.p1.hidden). |
+| 4 | NP DmDwn's chance is 100 plus 20 per NP the DU holds, passive NPs included and a Skill only categorized as NP not, then cut by debuff resistance (TD.a.chance). |
+| 5 | God's Resolution ignores only what names Stun; general debuff resistance, Magic Resistance among it, Debuff Immune and the volatility immunities still apply (GR.ignore, GR.keep). |
+| 6 | Ceremonial Reformation reaches every allied Servant, Master and summon on the board, no platform, while he is alive on the board (CR.who, CR.board). |
+| 7 | Max Health +100, Agility +1 and Luck +1 raise the maximums alone; when the aura goes, the current values fall to the maximums (CR.3, CR.4, CR.5). |
+| 8 | Great Emperor Privilege's Atk Up and Def Up roll their own 60% dice (GE.dice). |
+| 10 | Demonic, for Holy King and Joyeuse, is Demonic, Demonic Beast and Demonic (Oni), as #347 ruling 17 read it on Brahmastra (HK.demonic, JO.p.attr). |
+| 11 | Dmg Up (Holy)'s 50% sums with Passive 1's 25%: +75% dealt, −75% taken (HK.a.further). |
+| 12 | Carolus Patricius is used on his own Turn (CP.when). |
+| 13 | Every Unit on the ground within the 9×9 is moved aboard, any side, Masters and summons included (CP.aboard). |
+| 14 | The escape is an action on the Servant's own Turn, once a Turn, in place of its Move: a Luck Check contested against Karl's Luck, 1 Luck spent; a success lands on the nearest free panel just outside (CP.escape). |
+| 15 | Enemy Masters and summons aboard cannot escape; allies leave by the platform's own jump (CP.escape.who). |
+| 16 | Entry: STR or AGI at A or higher, no die; a qualifying enemy Moves on at MOV − 2 when the nearest deck panel is in reach; allies board freely (CP.entry, CP.entry.ally). |
+| 17 | An AoE NP on the Patricius hits every Servant aboard, any side, whatever its own area, Total −50%, Masters untouched; an AoE Skill does not (CP.iso.aoe). |
+| 18 | Anti-Fortress or higher is `rules/np-scale.mjs`'s order (CP.iso.antifortress). |
+| 19 | Units under the Carolus stand on the ground below, not within it: no isolation and no effects 5 and 7 (CP.under). |
+| 20 | The extension is asked at the end of each period; at exactly 200 he may pay, falls to 0 and is defeated, and the Carolus ends at the end of the Turn (CP.ext, CP.ext.floor). |
+| 21 | When the Carolus ends, everyone aboard comes down as a platform's passengers scatter, no fall damage (CP.end.scatter). |
+| 22 | Karl Cannons is the isolation's exception: its 3×3 within 5 of the deck's edge or under the deck, ground-level Units only, fired wherever Karl stands while the Carolus is Active (KC.under, KC.iso). |
+| 23 | Auctoritas is one NP with a clock per usage; either running locks the other usage and Carolus Patricius, whose clock locks both (U.lock, U.cp, CP.lock). |
+| 24 | The CPA is 2×2, the Quetzalcoatlus's Giant size (U2.place). |
+| 25 | Usage 2 while the Carolus is Active ends the Carolus; everyone aboard but his Master comes down beneath it (U2.cp, U2.scatter). |
+| 26 | Riding the CPA, its Move and Normal Attack replace Karl's; he keeps his Skills; the CPA Acted if it Moved or Attacked (U2.acts). |
+| 27 | Summoning the CPA costs no Master Health; the upkeep falls at the end of every Turn, any side's, 30 if it Acted, 10 if not (U2.upkeep, U2.upkeep.instead). |
+| 28 | Usage 1 from the CPA costs the Master the NP's normal cost × 1.5 + 30 at use, that Turn's upkeep of 30 is paid too, and the NP ends (U2.u1.cost). |
+| 29 | The CPA lasts until its upkeep cannot be paid, Usage 1 is fired from it, or it falls to 0; Karl may dismiss it on his Turn (U2.dur). |
+| 30 | The CPA at 0 Health ends the NP; Karl and his Master drop to the ground beneath (U2.down). |
+| 31 | No Attack reaches Karl or his Master on the CPA, area damage included (U2.safe). |
+| 9 | **The user:** a **Christian Attribute** on several Servants, not a list on Karl's element: *"all Marthas, George, All Jeannes (not alter), and Jacques de Molay (Saber)"* (HK.christian). |
+
+**Round 2, ruled 2026-10-29 (the user).** The frontier is empty: every reading is ruled. **35 readings ruled.**
+
+| # | Ruling |
+|---|---|
+| 32 | **The user:** David too. Christian is nine Servants (HK.christian). |
+| 33 | The nine: Saint Martha, Santa Martha, Martha (Summer), George, David, Jeanne (Ruler), Jeanne (Summer), Metatron Jeanne, and Jacques de Molay (Saber) — not Jeanne (Alter), Summer Jalter, Santa Lily or the Foreigner *Molay* (HK.christian). |
+| 34 | The list is a roster ruling (Appendix A, `CONTEXT.md`); `christian` is added to each Servant as its audit builds it, the `test-jeanne-d-arc` fixture now. Holy King reads `target:attribute:christian` / `attacker:attribute:christian` (HK.christian). |
+| 35 | Jeanne's and Amakusa's Magic Resistance read the same Attribute when they are built. |
+
 ## Statblock
 
 - [ ] **ST.name** · True Name: Karl de Große
