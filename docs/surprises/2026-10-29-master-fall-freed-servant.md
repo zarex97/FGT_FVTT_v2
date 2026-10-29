@@ -9,6 +9,6 @@ reviewed: false
 
 **Actual:** His Master fell, Karl became Free ("Ruler is Free"), and the Carolus stood.
 
-**Cause:** `module/engine/platforms.mjs:925 @ uncommitted` — the Master was read off Karl's live `masterId`, which the Master's fall clears; the board had his body only a tick.
+**Cause:** `module/engine/platforms.mjs:925 @ 8db88035` — the Master was read off Karl's live `masterId`, which the Master's fall clears; the board had his body only a tick.
 
-**Fix:** `module/engine/platforms.mjs:929 @ uncommitted` — the summon writes `ownerMasterId` on the platform; his defeat is asked of his document.
+**Fix:** `module/engine/platforms.mjs:929 @ 8db88035` — the summon writes `ownerMasterId` on the platform; his defeat is asked of his document.
